@@ -1,0 +1,18 @@
+transcoding:
+    apply: prod
+    ffmpeg_bin : /usr/bin/ffmpeg
+    ffprobe_bin : /usr/bin/ffprobe
+    qtfaststart_bin : /usr/bin/qt-faststart
+    ffmpeg_displayrawmessages : false
+
+transcoding_probe:
+    maxpresencewaittime : 300
+    sourcelocalfiles : /mnt/storage1
+    deststorage : testfile
+    templocaldir : /tmp
+
+transcodingprofiles:
+    ffmpeg_vod : 
+        type : ffmpeg
+        command : "-progress <%$PROGRESSFILE%> -i <%$INPUTFILE%> -i <%$VAR=logo%> -s 640x360 -codec:v h264 -b:v 400k -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
+        logo : /opt/logo 16-9 720x576.png

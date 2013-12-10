@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>&{'site.errorpage.applicationerror'}</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>	
+    </head>
+    <body>
+        #{if play.mode.name() == 'DEV'}
+            #{500 exception /}
+        #{/if}
+        #{else}
+            <h1>&{'site.errorpage.oops'}</h1>
+            #{if exception instanceof play.exceptions.PlayException}
+                <p>
+                    &{'site.errorpage.exception'} <strong>${exception.id}</strong>.
+                </p>
+            #{/if}
+        #{/else}
+    </body>
+</html>

@@ -1,0 +1,15 @@
+#{field 'object.' + _name}
+	<select id="${field.name}" name="${field.name}">
+	        %{ _property.choices.each() { }%
+	        %{
+	                selected = false;
+	                if(field.error?.message != 'validation.required') {
+	                    selected = it == _value;
+	                }
+	                label = it.toString()
+	
+	        }%
+	        <option name="${it.name()}" ord="${it.ordinal()}" value="${it.name()}" ${selected ? 'selected="true"'.raw() : ''}>${label}</option>
+	        %{ } }%
+	</select>
+#{/field}

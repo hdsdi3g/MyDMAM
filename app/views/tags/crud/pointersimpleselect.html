@@ -1,0 +1,16 @@
+#{field 'object.' + _name}
+
+<select id="${field.name}" name="${field.name}">
+	#{list items:_property, as:'item' }
+		%{
+			selected = false;
+			if(field.error?.message != 'validation.required') {
+				selected = item.key == _value;
+			}
+		}%
+		
+		<option value="${item.key}" ${selected ? 'selected="true"'.raw() : ''}>${item.value}</option>
+	#{/list}
+</select>
+
+#{/field}

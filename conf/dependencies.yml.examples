@@ -1,0 +1,7 @@
+# Application dependencies
+
+require:
+    - play
+
+# Enables modules here :
+#    - foobar

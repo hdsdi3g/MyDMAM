@@ -1,0 +1,46 @@
+*{
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * 
+}*%{
+js_messages=new com.google.gson.Gson().toJson(ymessages);
+}%
+var i18nMessages = %{out.print(js_messages)}%;
+var i18n = function(code) {
+    var message = i18nMessages && i18nMessages[code] || code;
+    // Encode %% to handle it later
+    message = message.replace(/%%/g, "\0%\0");
+    if (arguments.length > 1) {
+        // Explicit ordered parameters
+        for (var i=1; i<arguments.length; i++) {
+            var r = new RegExp("%" + i + "\\$\\w", "g");
+            message = message.replace(r, arguments[i]);
+        }
+        // Standard ordered parameters
+        for (var i=1; i<arguments.length; i++) {
+            message = message.replace(/%\w/, arguments[i]);
+        }
+    }
+    // Decode encoded %% to single %
+    message = message.replace("\0%\0", "%");
+    // Imbricated messages
+    var imbricated = message.match(/&\{.*?\}/g);
+    if (imbricated) {
+        for (var i=0; i<imbricated.length; i++) {
+            var imbricated_code = imbricated[i].substring(2, imbricated[i].length-1).replace(/^\s*(.*?)\s*$/, "$1");
+            message = message.replace(imbricated[i], i18nMessages[imbricated_code] || "");
+        }
+    }
+    return message;
+};

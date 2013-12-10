@@ -1,0 +1,118 @@
+*{
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * 
+}*<table class="table table-striped table-hover table-condensed">
+    <thead>
+        <tr>
+            <th>
+            </th>
+            %{ _fields.each() { }%
+            	%{ if ((it.hidden == false) & (it.type != 'method')) { }%
+	            <th>
+	                  &{it.name}
+	            </th>
+            	%{ } else if (it.type == 'method') { }%
+	            <th>
+	                  Action
+	            </th>
+            	%{ } }%
+            %{ } }%
+            <th>
+            	<input type="checkbox" id="btn-toogle-desactivate" ckecked="checked" style="margin-left:6px;" />
+            </th>
+        </tr>
+    </thead>
+    %{ _caller.eachWithIndex() { object, k -> }%
+		<tr>
+			<td>
+				<a href="@{Admin.edit(_type, object["key"])}" class="btn btn-mini btn-info"><i class="icon-pencil icon-white"></i></a>
+			</td>
+			%{ _fields.eachWithIndex() { field, i -> }%
+   			%{ if (field.hidden == false) { }%
+				<td>
+				    %{ if(field.type == "date") { }%
+				    	${ext.MydmamExtensions.formatDate(object[field.name])}
+				    %{ } else if(field.type == "boolean") {
+				    	if (object != null) {
+					    	if (object[field.name]) {
+	                            out.println(messages.get('crud.' + _type + '.' + field.name + '.true'));
+					    	} else {
+	                            out.println(messages.get('crud.' + _type + '.' + field.name + '.false'));
+					    	}
+				    	} 
+				       } else if(field.type == "pointer") {
+				    	if (object != null) {
+				    			if (_fieldspointers.get(field.class_referer).get(object[field.name]) != null) {
+				    			}%
+			    				<a href="@{Admin.edit(field.class_referer, object[field.name])}">
+			    					${_fieldspointers.get(field.class_referer).get(object[field.name])}
+			    				</a>
+				    			%{
+				    			} else {
+				    				}%<span class="badge badge-important">Null</span>%{
+				    			}
+					    	}
+
+
+				       } else if(field.type == "pointerlist") {
+				    	if (object != null) {
+				    		if (object[field.name] != null) {
+					    		if (object[field.name].length > 0) {
+					    			object[field.name].each() {
+					    			}%
+					    			<a href="@{Admin.edit(field.class_referer, it)}">
+				    					${_fieldspointers.get(field.class_referer).get(it)}
+				    				</a><br>
+					    			%{ }
+				    			} else {
+				    				}%<span class="badge badge-important">Null</span>%{
+				    			}
+			    			} else {
+			    				}%<span class="badge badge-important">Null</span>%{
+			    			}
+					   }
+				       } else if(field.type == "method") {
+				    		}% <a href="@{Admin.action(_type, object["key"], field.name)}" class="btn btn-mini">${field.name}</a> %{
+				       } else { }%
+				    	${object[field.name]?.toString()?.escape()?.raw() ?: '(no value)'}
+				    %{ } }%
+				</td>
+		    %{ } } }%
+			<td>
+				<a href="@{Admin.delete(_type, object["key"])}" class="btn btn-mini btn-danger btn-toogle-desactivate disabled"><i class="icon-trash icon-white"></i></a>
+			</td>
+		</tr>
+    %{ } }%
+</table>
+
+<script type="text/javascript" charset="UTF-8">
+<!--
+$(document).ready(function() {
+	$('#btn-toogle-desactivate').click(function (){
+		$(".btn-toogle-desactivate").toggleClass("disabled");
+	});
+
+	$('.btn-toogle-desactivate').click(function (){
+		return $(this).hasClass("disabled") == false;
+	});
+	
+	#{if flash.get('deleteunlocked')}
+		$('#btn-toogle-desactivate').click();
+	#{/if}
+
+});
+-->
+</script>
+

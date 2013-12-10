@@ -1,0 +1,14 @@
+storageindex_scan:
+    apply: prod
+    storage1:
+        label: LABEL1
+        period: 3600
+    storage2:
+        label: LABEL2
+        period: 500
+
+storageindex_bridge:
+    LABEL2: /mnt/storage2
+
+analysing_storageindexes:
+    LABEL2: /this/will/be/analysed/regulary

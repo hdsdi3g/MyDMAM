@@ -1,0 +1,174 @@
+*{
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2012-2013
+ * 
+}*
+#{extends 'maingrid.html' /}
+
+<div class="container">
+#{if searchresults}
+
+	#{if searchresults.timedout}
+		<div class="alert alert-error">
+			&{'search.timeoutserverwarning'}
+		</div>
+	#{/if}
+
+	<p class="lead">&{'search.pagetitle'}</p>
+
+	#{form @Application.index(), class:'search-query form-search', method:'GET'}
+		<div class="input-append">
+			<input type="text" class="search-query span10" placeholder="&{'maingrid.search'}" #{if flash.q}value="&{flash.q}"#{/if}  name="q"/>
+			<button type="submit" class="btn btn-info">&{'maingrid.search'}</button>
+		</div>
+	#{/form}
+	
+	#{if searchresults.results.size() == 0}
+		<div class="alert alert-info">
+			<h4>&{'search.noresults'}</h4>
+			&{'search.noresultsfor'} <strong>&{flash.q}</strong><br>
+			<small>(${searchresults.duration/1000} &{'search.seconds'})</small>.
+		</div>
+	#{/if}#{else}
+		<p><small class="muted">
+			#{if searchresults.total_items_count > 1}
+				${searchresults.total_items_count} &{'search.results'}
+				#{if searchresults.pagecount > 1}
+					&{'search.pageXonY', searchresults.frompage + 1, searchresults.pagecount}
+				#{/if}
+			#{/if}#{else}
+				&{'search.oneresult'}
+			#{/else}
+			 (${searchresults.duration/1000} &{'search.seconds'})
+		</small>
+		<small><br> &{flash.searchmethod}</small>
+		<!-- Max score : ${searchresults.max_score} -->
+		</p>
+	#{/else}
+
+	#{list items:searchresults.results, as:'item' }
+		<div style="margin-bottom:1em;">
+			#{if item.index == 'pathindex'}
+				<span class="label label-inverse">&{'search.result.storage'}</span>
+				<span class="label label-info">${item.source.get('id')}</span>
+				#{if item.source.get('date')}
+					<span class="label">${item.source.get('date').formatDate()}</span>
+				#{/if}
+				#{if item.source.get('size')}
+					<span class="label label-important">${item.source.get('size').formatFileSize().raw()}</span>
+				#{/if}
+				#{if item.source.get('directory')}
+					<span class="label label-success">&{'search.result.directory'}</span>
+				#{/if}
+					<span id="mtd-${item.getId()}"></span>
+				<br>
+				<span class="searchresultitem" data-storagekey="${item.getId()}" id="sri-${item.getId()}">
+					<strong class="storagename">${item.source.get('storagename')}</strong> :: <span class="path">${item.source.get('path')}</span>
+				</span>
+			#{/if}#{else}
+				%{	rendersearchresult = hd3gtv.mydmam.module.MyDMAMModulesManager.renderSearchResult(item)
+					if (rendersearchresult != null) {
+						out.print(rendersearchresult)
+					}
+				}%
+			#{/else}
+			<!-- (${item.score}) --> 
+		</div>
+	#{/list}
+
+	#{if searchresults.pagecount > 1}
+		<div class="pagination pagination-centered pagination-large">
+			<ul>
+				#{if (searchresults.frompage > 0) & (searchresults.pagecount > 2)}
+					<li><a href="@{Application.index(q=flash.q, from=searchresults.frompage)}"><span>&laquo;</span></a></li>
+				#{/if}
+
+				#{if searchresults.pagecount < 9}
+					#{list 1..searchresults.pagecount, as:'pos'}
+						#{if searchresults.frompage+1 == pos}
+							<li class="active"><span>${pos}</span></li>
+						#{/if}#{else}
+							<li><a href="@{Application.index(q=flash.q, from=pos)}">${pos}</a></li>
+						#{/else}
+					#{/list}
+				#{/if}#{else}
+					#{list 1..4, as:'pos'}
+						#{if searchresults.frompage+1 == pos}
+							<li class="active"><span>${pos}</span></li>
+						#{/if}#{else}
+							<li><a href="@{Application.index(q=flash.q, from=pos)}">${pos}</a></li>
+						#{/else}
+					#{/list}
+					<li class="active"><span>&nbsp;</span></li>
+					#{list searchresults.pagecount-3..searchresults.pagecount, as:'pos'}
+						#{if searchresults.frompage+1 == pos}
+							<li class="active"><span>${pos}</span></li>
+						#{/if}#{else}
+							<li><a href="@{Application.index(q=flash.q, from=pos)}">${pos}</a></li>
+						#{/else}
+					#{/list}
+
+					
+				#{/else}
+
+				#{if ((searchresults.frompage+1) < searchresults.pagecount) & (searchresults.pagecount > 2)}
+					<li><a href="@{Application.index(q=flash.q, from=searchresults.frompage+2)}"><span>&raquo;</span></a></li>
+				#{/if}
+			</ul>
+		</div>
+	#{/if}
+
+#{/if}#{else}
+	<script type="text/javascript" charset="UTF-8">
+	<!--
+	$(document).ready(function() {
+		/**
+		 * Test jquery loading
+		 */
+		$("#deleteme1").remove();
+	
+		/**
+		 * Test localStorage presence
+		 */
+		if (localStorage) {
+			$("#deleteme2").remove();
+		} else {
+			$("#navigator").remove();
+		}
+	});
+	-->
+	</script>
+	<div class="alert alert-error" id="deleteme1">&{'site.autotest.l1'}</div>
+	<div class="alert alert-error" id="deleteme2">&{'site.autotest.l2'}</div>
+	<div class="hero-unit">
+	  <h1>&{'site.name'}</h1>
+	  <p>&{'site.baseline'}</p>
+	</div>
+#{/else}
+
+</div>
+
+<script type="text/javascript" charset="UTF-8">
+<!--
+var url_navigate = "@{Application.navigate()}";
+var url_resolvepositions = "@{Application.resolvepositions()}";
+var list_external_positions_storages = %{out.print(hd3gtv.mydmam.module.MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving())}%;
+var url_simplemetadatas = "@{Application.metadatas(full=false)}";
+
+$(document).ready(function() {
+	addMetadatasToSearchListItems();
+});
+-->
+</script>
+

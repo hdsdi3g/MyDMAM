@@ -1,0 +1,33 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET     /                                       Application.index
+
+# Ignore favicon requests
+GET     /favicon.ico                            404
+
+# Map static resources from the /app/public folder to the /public path
+GET     /public/                                staticDir:public
+
+GET		/login									Secure.login
+POST	/login									Secure.authenticate
+GET		/logout									Secure.logout
+
+GET		/admin/{objtype}						Admin.index
+GET		/admin/{objtype}/new					Admin.blank
+GET		/admin/{objtype}/edit/{key}				Admin.edit
+GET		/admin/{objtype}/delete/{key}			Admin.delete
+POST	/admin/{objtype}/add					Admin.create
+POST	/admin/{objtype}/update/{key}			Admin.update
+GET		/admin/{objtype}/action/{action}/{key}	Admin.action
+*		/admin									Application.redirectToHome
+*		/admin/?								Application.redirectToHome
+
+*		/navigateto								Application.navigate
+*		/metadatas								Application.metadatas
+GET		/i18n.js								Application.i18n
+
+# Catch all
+*       /{controller}/{action}                  {controller}.{action}

@@ -1,0 +1,14 @@
+.classpath
+.project
+.settings/
+eclipse/
+tmp/
+/dump.xml
+desktop.ini
+.DS_Store
+conf/ssh
+conf/app.d/*
+conf/application.conf
+conf/dependencies.yml
+public/img/personalized/*
+
