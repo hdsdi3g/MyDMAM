@@ -24,8 +24,10 @@ import hd3gtv.log2.Log2Level;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -394,6 +396,26 @@ public class Configuration {
 	}
 	
 	public static void importLog2Configuration(Configuration configuration) {
+		try {
+			/**
+			 * Redirect STDOUT/ERR to log file.
+			 */
+			String outfilename = System.getProperty("service.redirectouterr", "");
+			if (outfilename.equals("") == false) {
+				File outfile = new File(outfilename);
+				System.out.println("Redirect standard out and error out to " + outfile.getAbsolutePath());
+				FileOutputStream fos = new FileOutputStream(outfile, true);
+				PrintStream ps = new PrintStream(fos);
+				System.setErr(ps);
+				System.setOut(ps);
+				System.out.println("Redirect standard out and error out to " + outfile.getAbsolutePath());
+			}
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
+		}
+
 		if (configuration.isElementExists("log2") == false) {
 			return;
 		}
