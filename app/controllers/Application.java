@@ -17,6 +17,7 @@
 package controllers;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.analysis.MetadataCenter;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
@@ -54,7 +55,7 @@ public class Application extends Controller {
 	public static void navigate() {
 		render();
 	}
-	
+
 	public static void stat(String filehash) {
 		if (filehash == null) {
 			throw new NotFound("No filehash");
@@ -67,62 +68,72 @@ public class Application extends Controller {
 		
 		SourcePathIndexerElement pathelement = explorer.getelementByIdkey(filehash);
 		
-		if (pathelement != null) {
-			JSONObject jo_result = pathelement.toJson();
-			
-			if (pathelement.directory) {
-				try {
-					List<SourcePathIndexerElement> subpathelement;
-					
-					if (pathelement.storagename != null) {
-						/**
-						 * Directory list
-						 */
-						subpathelement = explorer.getDirectoryContentByIdkey(pathelement.prepare_key(), 500);
-					} else {
-						/**
-						 * Storage list
-						 */
-						subpathelement = explorer.getDirectoryContentByIdkey(SourcePathIndexerElement.hashThis(""), 500);
-					}
-					JSONArray ja_subelements = new JSONArray();
-					JSONObject sub_element;
-					JSONObject metadatas;
-					boolean metadatas_exists = true;
-					for (int pos = 0; pos < subpathelement.size(); pos++) {
-						sub_element = subpathelement.get(pos).toJson();
-						if (subpathelement.get(pos).directory) {
-							sub_element.put("count", explorer.countDirectoryContentElements(subpathelement.get(pos).prepare_key()));
-						}
-						if (sub_element.containsKey("idxfilename") == false) {
-							sub_element.put("idxfilename", subpathelement.get(pos).storagename);
-						}
+		try {
+			if (pathelement != null) {
+				JSONObject jo_result = pathelement.toJson();
+				
+				if (pathelement.directory) {
+					try {
+						List<SourcePathIndexerElement> subpathelement;
 						
-						if (metadatas_exists & (subpathelement.get(pos).directory == false)) {
-							try {
-								metadatas = MetadataCenter.getMetadatas(client, subpathelement.get(pos), null);
-								if (metadatas != null) {
-									sub_element.put("metadatas", metadatas);
-								}
-							} catch (IndexMissingException ime) {
-								metadatas_exists = false;
+						if (pathelement.storagename != null) {
+							/**
+							 * Directory list
+							 */
+							subpathelement = explorer.getDirectoryContentByIdkey(pathelement.prepare_key(), 500);
+						} else {
+							/**
+							 * Storage list
+							 */
+							subpathelement = explorer.getDirectoryContentByIdkey(SourcePathIndexerElement.hashThis(""), 500);
+						}
+						JSONArray ja_subelements = new JSONArray();
+						JSONObject sub_element;
+						JSONObject metadatas;
+						boolean metadatas_exists = true;
+						for (int pos = 0; pos < subpathelement.size(); pos++) {
+							sub_element = subpathelement.get(pos).toJson();
+							if (subpathelement.get(pos).directory) {
+								sub_element.put("count", explorer.countDirectoryContentElements(subpathelement.get(pos).prepare_key()));
 							}
+							if (sub_element.containsKey("idxfilename") == false) {
+								sub_element.put("idxfilename", subpathelement.get(pos).storagename);
+							}
+							
+							if (metadatas_exists & (subpathelement.get(pos).directory == false)) {
+								try {
+									metadatas = MetadataCenter.getMetadatas(client, subpathelement.get(pos), null);
+									if (metadatas != null) {
+										sub_element.put("metadatas", metadatas);
+									}
+								} catch (IndexMissingException ime) {
+									metadatas_exists = false;
+								}
+							}
+							
+							ja_subelements.add(sub_element);
 						}
-						
-						ja_subelements.add(sub_element);
+						jo_result.put("items", ja_subelements);
+					} catch (IndexOutOfBoundsException e) {
+						jo_result.put("toomanyitems", Integer.parseInt(e.getMessage()));
 					}
-					jo_result.put("items", ja_subelements);
-				} catch (IndexOutOfBoundsException e) {
-					jo_result.put("toomanyitems", Integer.parseInt(e.getMessage()));
 				}
+				client.close();
+				renderJSON(jo_result.toJSONString());
+			} else {
+				client.close();
+				throw new NotFound(filehash);
 			}
-			client.close();
-			renderJSON(jo_result.toJSONString());
-		} else {
-			client.close();
-			throw new NotFound(filehash);
+		} catch (Exception e) {
+			if ((e instanceof IndexMissingException) & (e.getMessage().endsWith("[pathindex] missing"))) {
+				Log2.log.error("No pathindex items in ES database", null);
+			} else {
+				Log2.log.error("Error during pathindex search", e);
+			}
+			renderJSON("{}");
 		}
 	}
+	
 	
 	public static void index(String q, int from) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
