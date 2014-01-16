@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2012-2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2012-2014
  * 
 */
 package hd3gtv.mydmam.probe;
@@ -21,7 +21,6 @@ import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.analysis.AnalysingWorker;
-import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.PathScan;
@@ -61,7 +60,6 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 	}
 	
 	protected void postClassInit() throws Exception {
-		CassandraDb.autotest();
 	}
 	
 	private WorkerGroup workergroup;

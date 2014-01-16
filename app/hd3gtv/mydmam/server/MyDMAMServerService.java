@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.server;
@@ -48,7 +48,7 @@ public class MyDMAMServerService extends ServiceManager implements ServiceInform
 	}
 	
 	public String getApplicationCopyright() {
-		return "Copyright (C) hdsdi3g for hd3g.tv 2012-2013";
+		return "Copyright (C) hdsdi3g for hd3g.tv 2012-2014";
 	}
 	
 	public String getApplicationShortName() {
