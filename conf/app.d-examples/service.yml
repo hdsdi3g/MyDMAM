@@ -5,8 +5,8 @@ service:
 
 javamail:
     from: Me <me@domain.com>
-	to: admin@domain.com 
-	server: exchange.domain.com
+    to: admin@domain.com 
+    server: exchange.domain.com
     debug: false
 
 log2:
@@ -39,13 +39,7 @@ log2:
             for: hd3gtv.mydmam.taskqueue.Broker.getNextJob
             level: DEBUG
             type: HIDE
----
-log2:
-    apply: prod
     rotate_file: /var/log/mydmam/server.log 
     rotate_maxsize: 1000000
     rotate_maxfilelogs: 10
 
-service:
-    apply: debug
-    workername : me
