@@ -130,7 +130,7 @@ class BrokerQueue extends Thread {
 			long sleeptime = 500;
 			MutationBatch mutator;
 			int ttl_active_trigger_worker = (int) (max_time_spacer * sleeptime * 2l) / 1000;
-			String instancename = Broker.hostname + "-" + ServiceManager.getInstancename();
+			String instancename = Broker.hostname + "-" + ServiceManager.getInstancename(true);
 			
 			while (true) {
 				

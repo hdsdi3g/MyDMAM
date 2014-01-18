@@ -52,7 +52,7 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 	}
 	
 	public String getApplicationCopyright() {
-		return "Copyright (C) hdsdi3g for hd3g.tv 2012-2013";
+		return "Copyright (C) hdsdi3g for hd3g.tv 2012-2014";
 	}
 	
 	public String getApplicationShortName() {

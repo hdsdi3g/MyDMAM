@@ -59,7 +59,7 @@ public class IsAlive extends Thread {
 		try {
 			stopthread = false;
 			while (stopthread == false) {
-				String workername = ServiceManager.getInstancename();
+				String workername = ServiceManager.getInstancename(true);
 				
 				MutationBatch mutator = CassandraDb.prepareMutationBatch();
 				mutator.withRow(SchemeWorkers.CF, workername).putColumn("app-name", manager.getApplicationName(), period * 2);

@@ -73,7 +73,7 @@ public class Publish extends Worker {
 			return;
 		}
 		
-		workername = ServiceManager.getInstancename();
+		workername = ServiceManager.getInstancename(false);
 		
 		maxpresencewaittime = Configuration.global.getValue("transcoding_probe", "maxpresencewaittime", 300l) * 1000l;
 		

@@ -264,7 +264,7 @@ public class Broker {
 		}
 		task.context = context;
 		task.creator_hostname = hostname;
-		task.creator_instancename = ServiceManager.getInstancename();
+		task.creator_instancename = ServiceManager.getInstancename(false);
 		
 		if (creator instanceof Class) {
 			task.creator_classname = ((Class<?>) creator).getName();

@@ -129,7 +129,7 @@ public class Ssh {
 	}
 	
 	private void generateKeys() throws JSchException, IOException {
-		String comment = "mydmam-" + ServiceManager.getInstancename() + "@" + InetAddress.getLocalHost().getHostName();
+		String comment = "mydmam-" + ServiceManager.getInstancename(false) + "@" + InetAddress.getLocalHost().getHostName();
 		
 		JSch jsch = new JSch();
 		

@@ -24,6 +24,8 @@ import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.tools.TimeUtils;
 
+import java.lang.management.ManagementFactory;
+
 public abstract class ServiceManager implements ServiceInformations {
 	
 	private ServiceInformations serviceinformations;
@@ -36,12 +38,21 @@ public abstract class ServiceManager implements ServiceInformations {
 	private IsAlive isalive;
 	
 	private static String instancename;
+	private static String instancenamepid;
 	
-	public static String getInstancename() {
+	public static String getInstancename(boolean addpid) {
 		if (instancename == null) {
 			instancename = Configuration.global.getValue("service", "workername", "unknown-pleaseset-" + String.valueOf(System.currentTimeMillis()));
 		}
-		return instancename;
+		if (instancenamepid == null) {
+			instancenamepid = ManagementFactory.getRuntimeMXBean().getName();
+			instancenamepid = instancenamepid.substring(0, instancenamepid.indexOf("@"));
+		}
+		if (addpid) {
+			return instancename + "#" + instancenamepid;
+		} else {
+			return instancename;
+		}
 	}
 	
 	protected abstract void startApplicationService() throws Exception;
