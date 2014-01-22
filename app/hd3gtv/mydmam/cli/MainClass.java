@@ -30,7 +30,7 @@ public class MainClass {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-		Configuration.importLog2Configuration(Configuration.global);
+		Configuration.importLog2Configuration(Configuration.global, false);
 		
 		ApplicationArgs appargs = new ApplicationArgs(args);
 		

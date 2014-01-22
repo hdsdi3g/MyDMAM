@@ -22,7 +22,7 @@ import hd3gtv.log2.Log2;
 public class MainClass {
 	
 	public static void main(String[] args) throws Exception {
-		Configuration.importLog2Configuration(Configuration.global);
+		Configuration.importLog2Configuration(Configuration.global, true);
 		
 		Log2.log.info("Start application");
 		

@@ -395,7 +395,7 @@ public class Configuration {
 		return result;
 	}
 	
-	public static void importLog2Configuration(Configuration configuration) {
+	public static void importLog2Configuration(Configuration configuration, boolean logrotate_enabled) {
 		try {
 			/**
 			 * Redirect STDOUT/ERR to log file.
@@ -415,12 +415,14 @@ public class Configuration {
 			e.printStackTrace();
 			return;
 		}
-
+		
 		if (configuration.isElementExists("log2") == false) {
 			return;
 		}
 		
-		new Log2Rotate();
+		if (logrotate_enabled) {
+			new Log2Rotate();
+		}
 		
 		if (isElementKeyExists(configuration.configuration, "log2", "filter") == false) {
 			return;

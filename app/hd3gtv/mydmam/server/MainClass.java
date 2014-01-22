@@ -26,7 +26,7 @@ public class MainClass {
 	 */
 	public static void main(String[] args) {
 		
-		Configuration.importLog2Configuration(Configuration.global);
+		Configuration.importLog2Configuration(Configuration.global, true);
 		
 		Log2.log.info("Start application");
 		
