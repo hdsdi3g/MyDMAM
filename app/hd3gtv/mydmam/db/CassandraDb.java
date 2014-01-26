@@ -11,12 +11,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2012-2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2012-2014
  * 
 */
 package hd3gtv.mydmam.db;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.ConfigurationClusterItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 
@@ -46,8 +47,7 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 public class CassandraDb {
 	
 	static Cluster cluster;
-	private static int serverport;
-	private static String serveraddress;
+	private static List<ConfigurationClusterItem> clusterservers;
 	private static Builder builder;
 	static String keyspacename;
 	
@@ -71,23 +71,32 @@ public class CassandraDb {
 			}
 			
 			String clustername = Configuration.global.getValue("cassandra", "clustername", null);
-			serveraddress = Configuration.global.getValue("cassandra", "rpc_address", "127.0.0.1");
-			serverport = Configuration.global.getValue("cassandra", "rpc_port", 9160);
-			int maxconnsperhosts = Configuration.global.getValue("cassandra", "maxconnsperhosts", 10);
+			clusterservers = Configuration.global.getClusterConfiguration("cassandra", "rcp_cluster", "127.0.0.1", 9160);
 			keyspacename = Configuration.global.getValue("cassandra", "keyspace", null);
 			
 			Log2Dump dump = new Log2Dump();
 			dump.add("clustername", clustername);
-			dump.add("rpc_serveraddress", serveraddress);
-			dump.add("rpc_port", serverport);
-			dump.add("maxconnsperhosts", maxconnsperhosts);
+			for (ConfigurationClusterItem item : clusterservers) {
+				dump.addAll(item);
+			}
 			dump.add("keyspacename", keyspacename);
-			Log2.log.info("Init Db Client", dump);
+			Log2.log.info("Cassandra client configuration", dump);
 			
-			ConnectionPoolConfigurationImpl connexionpool = new ConnectionPoolConfigurationImpl("mydmam");
-			connexionpool.setPort(serverport);
-			connexionpool.setMaxConnsPerHost(maxconnsperhosts);
-			connexionpool.setSeeds(serveraddress + ":" + String.valueOf(serverport));
+			System.exit(0);
+			ConnectionPoolConfigurationImpl connexionpool = new ConnectionPoolConfigurationImpl("mydmam:" + clustername);
+			connexionpool.setPort(9160);
+			
+			StringBuffer sb = new StringBuffer();
+			for (ConfigurationClusterItem item : clusterservers) {
+				sb.append(item.address);
+				sb.append(":");
+				sb.append(item.port);
+				sb.append(",");
+			}
+			connexionpool.setSeeds(sb.toString().substring(0, sb.toString().length() - 1));
+			
+			// connexionpool.setSocketTimeout(socketTimeout)
+			// connexionpool.setTimeoutWindow(timeoutWindow)
 			
 			AstyanaxConfigurationImpl configurationimpl = new AstyanaxConfigurationImpl();
 			configurationimpl.setDiscoveryType(NodeDiscoveryType.NONE);
@@ -103,7 +112,7 @@ public class CassandraDb {
 			
 			CF_WORKERS = new SchemeWorkers(getkeyspace());
 		} catch (Exception e) {
-			Log2.log.error("Can't load Cassandra db configuration", e);
+			Log2.log.error("Can't load Cassandra client configuration", e);
 		}
 	}
 	

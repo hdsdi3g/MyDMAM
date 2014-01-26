@@ -1,16 +1,12 @@
 cassandra:
-    apply: prod
     clustername : mycluster
-    rpc_address : 192.168.0.1
-    rpc_port : 9160
-    maxconnsperhosts : 10
-    keyspace : wfprod
+    rcp_cluster : 127.0.0.1
+    keyspace : ks
 
----
-cassandra:
-    apply: debug
-    clustername : mycluster
-    rpc_address : 127.0.0.1
-    rpc_port : 9160
-    maxconnsperhosts : 10
-    keyspace : wfdebug
+# rcp_cluster can to be like :
+# host
+# host:specialport
+# host1,host2
+# host1:specialport,host2
+# host1:host2:host3
+# ...

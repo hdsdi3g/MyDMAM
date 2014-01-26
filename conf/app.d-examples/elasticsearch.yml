@@ -1,12 +1,11 @@
 elasticsearch:
-    apply: prod
     clustername : escluster
-    transport_address : 192.168.0.1
-    transport_port : 9300
+    transport : 127.0.0.1
 
----
-elasticsearch:
-    apply: debug
-    clustername : escluster
-    transport_address : 192.168.0.1
-    transport_port : 9300
+# transport can to be like :
+# host
+# host:specialport
+# host1,host2
+# host1:specialport,host2
+# host1:host2:host3
+# ...

@@ -11,12 +11,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.db;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.ConfigurationClusterItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -54,21 +56,21 @@ public class Elasticsearch {
 			}
 			
 			String clustername = Configuration.global.getValue("elasticsearch", "clustername", null);
-			String transport_address = Configuration.global.getValue("elasticsearch", "transport_address", "127.0.0.1");
-			int transport_port = Configuration.global.getValue("elasticsearch", "transport_port", 9300);
-			
+			List<ConfigurationClusterItem> clusterservers = Configuration.global.getClusterConfiguration("elasticsearch", "transport", "127.0.0.1", 9300);
 			settings = ImmutableSettings.settingsBuilder().put("cluster.name", clustername).build();
-			
-			transportadresses = new InetSocketTransportAddress[1];
-			transportadresses[0] = new InetSocketTransportAddress(transport_address, transport_port);
 			
 			Log2Dump dump = new Log2Dump();
 			dump.add("clustername", clustername);
-			dump.add("transport_address", transport_address);
-			dump.add("transport_port", transport_port);
+			
+			transportadresses = new InetSocketTransportAddress[clusterservers.size()];
+			for (int pos = 0; pos < clusterservers.size(); pos++) {
+				transportadresses[pos] = new InetSocketTransportAddress(clusterservers.get(pos).address, clusterservers.get(pos).port);
+				dump.addAll(clusterservers.get(pos));
+			}
+			
 			dump.addAll(getDump());
 			
-			Log2.log.info("Elastic search client configuration", dump);
+			Log2.log.info("ElasticSearch client configuration", dump);
 		} catch (Exception e) {
 			Log2.log.error("Can't load Elasticsearch client configuration", e);
 		}

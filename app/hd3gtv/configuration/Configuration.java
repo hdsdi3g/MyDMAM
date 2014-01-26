@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.configuration;
@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.yaml.snakeyaml.Yaml;
@@ -200,6 +201,44 @@ public class Configuration {
 			Log2.log.error("Bad configuration value : not a string", null, getLog2Dump(baseelement, elementname, key, defaultvalue));
 			return defaultvalue;
 		}
+	}
+	
+	public static List<ConfigurationClusterItem> getClusterConfiguration(HashMap<String, ConfigurationItem> baseelement, String elementname, String key, String defaultaddress, int defaultport) {
+		List<ConfigurationClusterItem> items = new ArrayList<ConfigurationClusterItem>();
+		
+		if (isElementKeyExists(baseelement, elementname, key)) {
+			Object value = baseelement.get(elementname).content.get(key);
+			if (value instanceof String) {
+				String[] clusterdef = ((String) value).split(",");
+				for (int pos_cluster = 0; pos_cluster < clusterdef.length; pos_cluster++) {
+					clusterdef[pos_cluster] = clusterdef[pos_cluster].trim();
+					int colonpos = clusterdef[pos_cluster].indexOf(":");
+					String hostname;
+					int port;
+					if (colonpos > 0) {
+						hostname = clusterdef[pos_cluster].substring(0, colonpos);
+						try {
+							port = Integer.valueOf(clusterdef[pos_cluster].substring(colonpos + 1));
+						} catch (NumberFormatException e) {
+							Log2.log.error("Bad port definition : " + clusterdef[pos_cluster].substring(colonpos + 1) + " is not an integer", e);
+							port = defaultport;
+						}
+					} else {
+						hostname = clusterdef[pos_cluster];
+						port = defaultport;
+					}
+					items.add(new ConfigurationClusterItem(hostname, port));
+				}
+			}
+		}
+		if ((items.size() == 0) & (defaultaddress != null)) {
+			items.add(new ConfigurationClusterItem(defaultaddress, defaultport));
+		}
+		return items;
+	}
+	
+	public List<ConfigurationClusterItem> getClusterConfiguration(String elementname, String key, String defaultaddress, int defaultport) {
+		return getClusterConfiguration(configuration, elementname, key, defaultaddress, defaultport);
 	}
 	
 	public int getValue(String elementname, String key, int defaultvalue) {
