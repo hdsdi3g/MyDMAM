@@ -87,6 +87,7 @@ public class MyDMAMModulesManager {
 								classes_to_test.add(element.getName());
 							}
 						}
+						jfile.close();
 					} catch (IOException e) {
 						Log2.log.error("Can't load/open jar file " + classpathelements[i], e);
 					}
