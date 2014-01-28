@@ -82,7 +82,6 @@ public class CassandraDb {
 			dump.add("keyspacename", keyspacename);
 			Log2.log.info("Cassandra client configuration", dump);
 			
-			System.exit(0);
 			ConnectionPoolConfigurationImpl connexionpool = new ConnectionPoolConfigurationImpl("mydmam:" + clustername);
 			connexionpool.setPort(9160);
 			
