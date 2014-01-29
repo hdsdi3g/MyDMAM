@@ -94,12 +94,14 @@ public class CassandraDb {
 			}
 			connexionpool.setSeeds(sb.toString().substring(0, sb.toString().length() - 1));
 			
-			// connexionpool.setSocketTimeout(socketTimeout)
-			// connexionpool.setTimeoutWindow(timeoutWindow)
+			// connexionpool.setTimeoutWindow(connexionpool.getTimeoutWindow() * 2);
+			// connexionpool.setSocketTimeout(connexionpool.getSocketTimeout() * 2);
+			// connexionpool.setMaxTimeoutCount(connexionpool.getMaxTimeoutCount() * 2);
 			
 			AstyanaxConfigurationImpl configurationimpl = new AstyanaxConfigurationImpl();
 			configurationimpl.setDiscoveryType(NodeDiscoveryType.NONE);
 			configurationimpl.setTargetCassandraVersion("1.2");
+			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(100, 30000, 20));
 			
 			builder = new AstyanaxContext.Builder().forCluster(clustername);
 			builder.withAstyanaxConfiguration(configurationimpl);
