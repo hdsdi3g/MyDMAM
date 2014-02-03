@@ -516,6 +516,40 @@ public class Configuration {
 		} catch (Exception e) {
 			Log2.log.error("Bad log filter configuration : check syntax", e);
 		}
+	}
+	
+	public List<LinkedHashMap<String, ?>> getListMapValues(String elementname, String key) {
+		return getValuesList(configuration, elementname, key);
+	}
+	
+	public static List<LinkedHashMap<String, ?>> getValuesList(HashMap<String, ConfigurationItem> baseelement, String elementname, String key) {// TODO
+		ConfigurationItem element = baseelement.get(elementname);
+		if (element == null) {
+			return null;
+		}
+		Object o = element.content.get(key);
 		
+		if ((o instanceof ArrayList<?>) == false) {
+			Log2.log.error("Element " + elementname + "/" + key + " is not a list.", null);
+			return null;
+		}
+		
+		ArrayList<Object> rawlist = (ArrayList<Object>) o;
+		
+		ArrayList<LinkedHashMap<String, ?>> result = new ArrayList<LinkedHashMap<String, ?>>(rawlist.size());
+		
+		for (int pos = 0; pos < rawlist.size(); pos++) {
+			o = rawlist.get(pos);
+			if ((o instanceof LinkedHashMap) == false) {
+				Log2.log.error("Element " + elementname + "/" + key + " pos " + (pos + 1) + "/" + rawlist.size() + " is not a map", null);
+				continue;
+			}
+			result.add((LinkedHashMap<String, ?>) o);
+		}
+		if (result.isEmpty()) {
+			return null;
+		}
+		
+		return result;
 	}
 }
