@@ -17,24 +17,15 @@
 
 package hd3gtv.mydmam.auth;
 
-public class ActivedirectoryAuthentication implements AuthenticationConfiguration {
+import hd3gtv.log2.Log2Dumpable;
+
+import java.io.IOException;
+
+interface Authenticator extends Log2Dumpable {
 	
-	private String domain;
-	private String server;
-	private int port;
-	
-	public ActivedirectoryAuthentication(String domain, String server, int port) {
-		this.domain = domain;
-		if (domain == null) {
-			throw new NullPointerException("\"domain\" can't to be null");
-		}
-		this.server = server;
-		if (server == null) {
-			throw new NullPointerException("\"server\" can't to be null");
-		}
-		this.port = port;
-	}
-	
-	// TODO ActivedirectoryUser
+	/**
+	 * @return null if user & password are invalid, unknow, lock...
+	 */
+	AuthenticationUser getUser(String username, String password) throws NullPointerException, IOException, InvalidAuthenticatorUserException;
 	
 }

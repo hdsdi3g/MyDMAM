@@ -10,5 +10,6 @@ conf/ssh
 conf/app.d/*
 conf/application.conf
 conf/dependencies.yml
+conf/*.db
 public/img/personalized/*
 Test.java

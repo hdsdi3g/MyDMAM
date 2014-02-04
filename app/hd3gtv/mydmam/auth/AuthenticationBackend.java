@@ -27,9 +27,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import javax.naming.CommunicationException;
-import javax.naming.NamingException;
-
 public class AuthenticationBackend {
 	
 	static {
@@ -40,7 +37,7 @@ public class AuthenticationBackend {
 		}
 	}
 	
-	private static List<AuthenticationConfiguration> configurations;
+	private static List<Authenticator> authenticators;
 	
 	public static void refreshConfiguration() throws Exception {
 		if (Configuration.global.isElementExists("auth") == false) {
@@ -56,7 +53,7 @@ public class AuthenticationBackend {
 			throw new NullPointerException("No items for \"auth/backend\" element in configuration");
 		}
 		
-		configurations = new ArrayList<AuthenticationConfiguration>(elements.size());
+		authenticators = new ArrayList<Authenticator>(elements.size());
 		
 		LinkedHashMap<String, ?> configuration_element;
 		for (int pos = 0; pos < elements.size(); pos++) {
@@ -64,46 +61,51 @@ public class AuthenticationBackend {
 			String element_source = (String) configuration_element.get("source");
 			if (element_source.equals("local")) {
 				String path = (String) configuration_element.get("path");
-				configurations.add(new LocalAuthentication(new File(path)));
+				String masterkey = (String) configuration_element.get("masterkey");
+				authenticators.add(new AuthenticatorLocalsqlite(new File(path), masterkey));
 			} else if (element_source.equals("ad")) {
 				String domain = (String) configuration_element.get("domain");
 				String server = (String) configuration_element.get("server");
 				int port = (Integer) configuration_element.get("port");
-				configurations.add(new ActivedirectoryAuthentication(domain, server, port));
+				authenticators.add(new AuthenticatorActivedirectory(domain, server, port));
 			} else {
 				Log2.log.error("Can't import \"auth/backend\" " + (pos + 1) + " configuration item", null, new Log2Dump("item", configuration_element.toString()));
 			}
 		}
 		
-		if (configurations.isEmpty()) {
+		if (authenticators.isEmpty()) {
 			throw new NullPointerException("No authentication backend is correctly set");
 		}
 	}
 	
-	public static void authenticate(String username, String password) throws IOException {
-		Log2Dump dump = new Log2Dump();
-		dump.add("username", username);
-		
-		AuthenticationConfiguration authconf;
-		for (int pos = 0; pos < configurations.size(); pos++) {
-			authconf = configurations.get(pos);
-			
-			/**
-			 * TODO if AD
-			 */
-			String server = ""; // TODO get server from configuration
-			String domain = ""; // TODO get domain from configuration
+	/**
+	 * Try to get User, authenticator after authenticator, until it found a correct user.
+	 * @return null if user & password are invalid, unknow, lock...
+	 */
+	public static AuthenticationUser authenticate(String username, String password) {
+		Authenticator authenticator;
+		AuthenticationUser authenticationUser;
+		Log2Dump dump;
+		for (int pos = 0; pos < authenticators.size(); pos++) {
+			authenticator = authenticators.get(pos);
+			dump = new Log2Dump();
+			dump.add("username", username);
+			dump.addAll(authenticator);
 			try {
-				User user = ActivedirectoryUser.getUser(username, password, domain, server);
-				// TODO ...
-				Log2.log.security("Valid user", user);
-			} catch (CommunicationException e) {
-				throw new IOException("Can't contact LDAP AD server", e);
-			} catch (NamingException e) {
-				Log2.log.security("Unknow user", e, dump);
+				authenticationUser = authenticator.getUser(username, password);
+				if (authenticationUser != null) {
+					Log2.log.info("Valid user found for this authentication method", dump);
+					return authenticationUser;
+				}
+			} catch (IOException e) {
+				Log2.log.error("Invalid authentication method", e, dump);
+			} catch (InvalidAuthenticatorUserException e) {
+				dump.add("cause", e.getMessage());
+				dump.add("from", e.getCause());
+				Log2.log.debug("Invalid user for this authentication method", dump);
 			}
 		}
-		// TODO return null
+		return null;
 	}
 	
 }
