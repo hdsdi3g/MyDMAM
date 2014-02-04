@@ -522,7 +522,7 @@ public class Configuration {
 		return getValuesList(configuration, elementname, key);
 	}
 	
-	public static List<LinkedHashMap<String, ?>> getValuesList(HashMap<String, ConfigurationItem> baseelement, String elementname, String key) {// TODO
+	public static List<LinkedHashMap<String, ?>> getValuesList(HashMap<String, ConfigurationItem> baseelement, String elementname, String key) {
 		ConfigurationItem element = baseelement.get(elementname);
 		if (element == null) {
 			return null;
