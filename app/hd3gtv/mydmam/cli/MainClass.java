@@ -35,6 +35,7 @@ public class MainClass {
 		ApplicationArgs appargs = new ApplicationArgs(args);
 		
 		ArrayList<CliModule> modules = new ArrayList<CliModule>();
+		modules.add(new CliModuleAuthenticatorLocal());
 		modules.add(new CliModuleSsh());
 		modules.add(new CliModuleStorageManager());
 		modules.add(new CliModuleCDFinderPathIndexer());
