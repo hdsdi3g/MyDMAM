@@ -1,2 +1,14 @@
 play:
     deploy: /opt/play
+
+auth:
+    backend:
+        -
+            source: local
+            path: conf/auth.db
+            masterkey: asecretkey
+#        -
+#            source: ad
+#            domain: mydomain.local
+#            server: 192.168.0.1
+#            port: 389
