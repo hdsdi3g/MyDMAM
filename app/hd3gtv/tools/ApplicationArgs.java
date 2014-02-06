@@ -11,88 +11,75 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2009-2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2009-2014
  * 
 */
 package hd3gtv.tools;
 
 import java.util.ArrayList;
 
-/**
- * @author hdsdi3g
- * @version 1.0
- */
 public class ApplicationArgs {
 	
 	private ArrayList<ApplicationArgsParam> registerparams;
-	private ArrayList<String> registeractions;
 	private String paramtoken = "-"; //$NON-NLS-1$
 	private String keytoken = "="; //$NON-NLS-1$
-	private String lastaction;
+	private String firstaction = null;
 	
 	/**
 	 * Some examples :
-	 * action0 action1 action2
+	 * firstaction
 	 * -simpleparam
 	 * -param value
 	 * -paramarray value0:value1:value2
 	 * -param=name value
-	 * lastaction
+	 * -param value with spaces
 	 */
 	public ApplicationArgs(String[] args) {
 		registerparams = new ArrayList<ApplicationArgsParam>();
-		registeractions = new ArrayList<String>();
-		boolean classicparammode = false; // for switch between "app action action action" and "app -param -param"
+		if (args == null) {
+			return;
+		}
 		
-		if (args != null) {
-			for (int i = 0; i < args.length; i++) {
-				if (args[i] != null) {
-					String arg = args[i];
-					if (arg.startsWith(paramtoken)) {
-						classicparammode = true;
-						// is a parameter
-						if ((i + 1) < args.length) {
-							// there is something behind ...
-							if ((args[i + 1] != null) && args[i + 1].startsWith(paramtoken)) {
-								// ... is a parameter, we ignore it
-								registerparams.add(new ApplicationArgsParam(arg));
-							} else {
-								// ... it is a value, lets take it
-								registerparams.add(new ApplicationArgsParam(arg, args[i + 1]));
-							}
-						} else {
-							// there is nothing left behind (last parameter)
-							registerparams.add(new ApplicationArgsParam(arg));
-						}
+		String paramname = null;
+		StringBuffer paramcontent = new StringBuffer();
+		
+		for (int i = 0; i < args.length; i++) {
+			String arg = args[i];
+			
+			if (arg.startsWith(paramtoken)) {
+				if (paramname != null) {
+					if (paramcontent.length() > 0) {
+						registerparams.add(new ApplicationArgsParam(paramname, paramcontent.toString()));
 					} else {
-						if ((i + 1) == args.length) {
-							// the last
-							lastaction = arg;
-							registeractions.add(arg);
-						} else {
-							if (classicparammode == false) {
-								registeractions.add(arg);
-							}
-						}
+						registerparams.add(new ApplicationArgsParam(paramname));
 					}
 				}
+				
+				paramcontent = new StringBuffer();
+				paramname = arg;
+				
+			} else if (i == 0) {
+				firstaction = arg;
+				continue;
+			} else {
+				if (paramcontent.length() > 0) {
+					paramcontent.append(" ");
+				}
+				paramcontent.append(arg);
+			}
+		}
+		
+		if (paramname != null) {
+			if (paramcontent.length() > 0) {
+				registerparams.add(new ApplicationArgsParam(paramname, paramcontent.toString()));
+			} else {
+				registerparams.add(new ApplicationArgsParam(paramname));
 			}
 		}
 	}
 	
 	public String getFirstAction() {
-		if (registeractions.size() > 0) {
-			return registeractions.get(0);
-		}
-		return null;
-	}
-	
-	public String getLastAction() {
-		return lastaction;
-	}
-	
-	public ArrayList<String> getActions() {
-		return registeractions;
+		return firstaction;
 	}
 	
 	private int getParampos(String name) {

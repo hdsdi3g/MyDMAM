@@ -16,10 +16,6 @@
 */
 package hd3gtv.tools;
 
-/**
- * @author hdsdi3g
- * @version 1.0
- */
 public class ApplicationArgsParam {
 	
 	String name;
