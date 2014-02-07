@@ -133,6 +133,18 @@ $(document).ready(function() {
 			  			<input type="text" id="sitesearch" class="search-query span2" placeholder="&{'maingrid.search'}" name="q" #{if flash.q}value="&{flash.q}"#{/if}/>
 				#{/form}
 	 		</li>
+			<li class="divider-vertical"></li>
+			<li class="dropdown" id="btnAdmin">
+				<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+					%{ out.println(session.get('longname')) }%
+					<b class="caret"></b>
+				</a>
+				<ul class="dropdown-menu">
+					<li>
+						<a href="@{Secure.logout()}">&{'maingrid.disconnect'}</a>
+					</li>
+				</ul>
+			</li>
  		</ul>
 
       <!-- Everything you want hidden at 940px or less, place within here -->

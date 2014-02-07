@@ -5,6 +5,8 @@ package controllers;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.auth.AuthenticationBackend;
+import hd3gtv.mydmam.auth.AuthenticationUser;
 
 import java.util.Date;
 
@@ -23,32 +25,19 @@ import play.mvc.Http;
 public class Secure extends Controller {
 	
 	/**
-	 * This method is called during the authentication process. This is where you check if
-	 * the user is allowed to log in into the system. This is the actual authentication process
-	 * against a third party system (most of the time a DB).
-	 * @param username
-	 * @param password
-	 * @return true if the authentication process succeeded
+	 * This method checks that a profile is allowed to view this page/method.
 	 */
-	private static boolean authenticate(String username, String password) {
-		// User user = User.find("byEmail", username).first();
-		// return user != null && user.password.equals(password);
-		
-		return true;
-	}
-	
-	/**
-	 * This method checks that a profile is allowed to view this page/method. This method is called prior
-	 * to the method's controller annotated with the @Check method.
-	 * @param profile
-	 * @return true if you are allowed to execute this controller method.
-	 */
-	private static boolean check(String profile) {
+	private static void check(Check check) throws Throwable {
 		/*Log2Dump dump = new Log2Dump();
 		dump.add("profile", profile);
 		dump.addAll(getUserSessionInformation());
 		Log2.log.security("Check", dump);*/
-		return true;
+		/*for (String profile : check.value()) {
+			if (check(profile) == false) {
+				Log2.log.security("Bad check right", getUserSessionInformation());
+				forbidden();
+			}
+		}*/
 	}
 	
 	private static Log2Dump getUserSessionInformation() {
@@ -124,15 +113,6 @@ public class Secure extends Controller {
 		}
 	}
 	
-	private static void check(Check check) throws Throwable {
-		for (String profile : check.value()) {
-			if (check(profile) == false) {
-				Log2.log.security("Bad check right", getUserSessionInformation());
-				forbidden();
-			}
-		}
-	}
-	
 	public static void login() throws Throwable {
 		Http.Cookie remember = request.cookies.get("rememberme");
 		if (remember != null) {
@@ -158,19 +138,21 @@ public class Secure extends Controller {
 		render();
 	}
 	
-	public static void authenticate(@Required String username, String password, boolean remember) throws Throwable {
-		// Check tokens
-		Boolean allowed = false;
-		allowed = authenticate(username, password);
-		if (Validation.hasErrors() || !allowed) {
+	public static void authenticate(@Required String username, @Required String password, boolean remember) throws Throwable {
+		AuthenticationUser authuser = AuthenticationBackend.authenticate(username, password);
+		
+		if (Validation.hasErrors() || (authuser == null)) {
 			flash.keep("url");
 			flash.error("secure.error");
 			params.flash();
 			login();
 		}
-		// Mark user as connected
+		
+		username = authuser.getLogin();
+		
 		session.put("username", username);
-		// Remember if needed
+		session.put("longname", authuser.getFullName());
+		
 		if (remember) {
 			Date expiration = new Date();
 			String duration = "30d"; // maybe make this override-able
@@ -178,7 +160,6 @@ public class Secure extends Controller {
 			response.setCookie("rememberme", Crypto.sign(username + "-" + expiration.getTime()) + "-" + username + "-" + expiration.getTime(), duration);
 			
 		}
-		// Redirect to the original URL (or /)
 		redirectToOriginalURL();
 	}
 	

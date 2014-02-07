@@ -45,7 +45,9 @@ import play.data.validation.Validation;
 import play.exceptions.TemplateNotFoundException;
 import play.i18n.Messages;
 import play.mvc.Controller;
+import play.mvc.With;
 
+@With(Secure.class)
 public class Admin extends Controller {
 	
 	private static Class<? extends CrudOrmModel> loadModelClass(String name) throws ClassNotFoundException {

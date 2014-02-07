@@ -19,7 +19,9 @@ package controllers;
 import hd3gtv.javasimpleservice.IsAlive;
 import play.i18n.Messages;
 import play.mvc.Controller;
+import play.mvc.With;
 
+@With(Secure.class)
 public class Service extends Controller {
 	
 	public static void index() {

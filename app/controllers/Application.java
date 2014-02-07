@@ -38,11 +38,13 @@ import org.json.simple.JSONObject;
 
 import play.i18n.Messages;
 import play.mvc.Controller;
+import play.mvc.With;
 import play.mvc.results.NotFound;
 
 import com.google.gson.Gson;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@With(Secure.class)
 public class Application extends Controller {
 	
 	public static final int HTTP_bad_request = 400;
@@ -55,7 +57,7 @@ public class Application extends Controller {
 	public static void navigate() {
 		render();
 	}
-
+	
 	public static void stat(String filehash) {
 		if (filehash == null) {
 			throw new NotFound("No filehash");
@@ -133,7 +135,6 @@ public class Application extends Controller {
 			renderJSON("{}");
 		}
 	}
-	
 	
 	public static void index(String q, int from) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");

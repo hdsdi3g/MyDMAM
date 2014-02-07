@@ -25,7 +25,9 @@ import org.json.simple.JSONObject;
 import play.data.validation.Required;
 import play.i18n.Messages;
 import play.mvc.Controller;
+import play.mvc.With;
 
+@With(Secure.class)
 public class Queue extends Controller {
 	
 	public static void index() {
