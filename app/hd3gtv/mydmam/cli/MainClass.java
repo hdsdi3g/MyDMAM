@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.cli;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.analysis.MetadataCenter;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.tools.ApplicationArgs;
@@ -31,6 +32,8 @@ public class MainClass {
 	public static void main(String[] args) throws Exception {
 		
 		Configuration.importLog2Configuration(Configuration.global, false);
+		
+		MyDMAM.testIllegalKeySize();
 		
 		ApplicationArgs appargs = new ApplicationArgs(args);
 		

@@ -18,6 +18,7 @@ package hd3gtv.mydmam.server;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.MyDMAM;
 
 public class MainClass {
 	
@@ -27,6 +28,8 @@ public class MainClass {
 	public static void main(String[] args) {
 		
 		Configuration.importLog2Configuration(Configuration.global, true);
+		
+		MyDMAM.testIllegalKeySize();
 		
 		Log2.log.info("Start application");
 		

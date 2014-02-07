@@ -18,9 +18,23 @@ package hd3gtv.mydmam;
 
 import hd3gtv.configuration.Configuration;
 
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Security;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class MyDMAM {
 	
@@ -87,4 +101,52 @@ public class MyDMAM {
 		}
 		return configured_messages;
 	}
+	
+	static {
+		Security.addProvider(new BouncyCastleProvider());
+	}
+	
+	public static void testIllegalKeySize() {
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256", "BC");
+			byte[] key = md.digest("".getBytes());
+			SecretKey skeySpec = new SecretKeySpec(key, "AES");
+			IvParameterSpec salt = new IvParameterSpec(key, 0, 16);
+			
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
+			cipher.init(Cipher.ENCRYPT_MODE, skeySpec, salt);
+			return;
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (NoSuchProviderException e) {
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			if (e.getMessage().equals("Illegal key size")) {
+				System.err.println("");
+				System.err.println("");
+				System.err.println("--------~~~~~~===============~~~~~~--------");
+				System.err.println("               Fatal error !");
+				System.err.println("You must to setup Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files");
+				System.err.println("");
+				System.err.println("Go to http://www.oracle.com/technetwork/java/javase/downloads/index.html");
+				System.err.println("And download it (it's free and legal)");
+				System.err.println("");
+				System.err.println("Unzip, and copy US_export_policy.jar and local_policy.jar to this directory:");
+				System.err.println("");
+				System.out.println(" " + System.getProperty("java.home") + "/lib/security/");
+				System.err.println("");
+				System.err.println("Overwrite the actual jar files");
+				System.err.println("--------~~~~~~==============~~~~~~--------");
+				System.err.println("");
+			} else {
+				e.printStackTrace();
+			}
+		} catch (InvalidAlgorithmParameterException e) {
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			e.printStackTrace();
+		}
+		System.exit(1);
+	}
+	
 }

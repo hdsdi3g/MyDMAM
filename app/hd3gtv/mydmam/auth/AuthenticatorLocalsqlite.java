@@ -26,7 +26,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.security.MessageDigest;
-import java.security.Security;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -42,7 +41,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 
 public class AuthenticatorLocalsqlite implements Authenticator {
@@ -52,10 +50,6 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	private IvParameterSpec salt;
 	private SecretKey skeySpec;
 	private Connection connection;
-	
-	static {
-		Security.addProvider(new BouncyCastleProvider());
-	}
 	
 	public static void doInternalSecurityAutotest() throws Exception {
 		System.out.println("Do BCrypt test...");
