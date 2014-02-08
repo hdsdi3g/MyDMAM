@@ -20,12 +20,12 @@ import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
 import hd3gtv.mydmam.taskqueue.TriggerWorker;
 import hd3gtv.mydmam.taskqueue.Worker;
+import hd3gtv.mydmam.web.MenuEntry;
+import hd3gtv.mydmam.web.SearchResultItem;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import models.MenuEntry;
-import models.SearchResultItem;
 import play.PlayPlugin;
 
 public abstract class MyDMAMModule extends PlayPlugin {

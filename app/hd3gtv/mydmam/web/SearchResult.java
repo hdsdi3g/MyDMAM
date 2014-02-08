@@ -15,7 +15,7 @@
  * 
 */
 
-package models;
+package hd3gtv.mydmam.web;
 
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;

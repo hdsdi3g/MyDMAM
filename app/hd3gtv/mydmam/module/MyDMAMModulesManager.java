@@ -23,6 +23,8 @@ import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
 import hd3gtv.mydmam.taskqueue.TriggerWorker;
 import hd3gtv.mydmam.taskqueue.Worker;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
+import hd3gtv.mydmam.web.MenuEntry;
+import hd3gtv.mydmam.web.SearchResultItem;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -38,9 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-
-import models.MenuEntry;
-import models.SearchResultItem;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
