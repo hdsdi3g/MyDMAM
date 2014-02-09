@@ -183,6 +183,14 @@ public class Application extends Controller {
 	}
 	
 	public static void index() {
+		// new ACLGroup("groupe2").save();
+		// ACLGroup group = ACLGroup.findById(0l);
+		// new ACLUser(group, "TestStupide1", "moi", "Moi !").save();
+		// new ACLUser(group, "TestStupide2", "remoi", "Re Moi !").save();
+		// ====User bob = User.find("byEmail", "bob@gmail.com").first();
+		// new ACLUser(group, "TestStupide3", "remoi3", "Re Moi 3 !").save();
+		// System.out.println(ACLUser.count());
+		
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		render(title);
 	}

@@ -102,7 +102,6 @@ public class Secure extends Controller {
 			flash.put("url", "GET".equals(request.method) ? request.url : Play.ctxPath + "/"); // seems a good default
 			login();
 		}
-		// Checks
 		Check check = getActionAnnotation(Check.class);
 		if (check != null) {
 			check(check);
@@ -151,7 +150,7 @@ public class Secure extends Controller {
 		username = authuser.getLogin();
 		
 		session.put("username", username);
-		session.put("longname", authuser.getFullName());
+		session.put("longname", authuser.getFullName()); // TODO update play User with longname
 		
 		if (remember) {
 			Date expiration = new Date();
