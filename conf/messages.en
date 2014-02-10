@@ -178,3 +178,11 @@ TOO_OLD=Too old
 DONE=Done
 PENDING_STOP=Stopping...
 PENDING_CANCEL_TASK=Canceling...
+
+acl.pagename=Permissions
+acl.pagenamelight=Permissions
+acl.pagename.users=Users
+acl.pagename.groups=Groups
+acl.pagename.roles=Roles
+acl.pagename.privileges=Privileges
+acl.add=Create

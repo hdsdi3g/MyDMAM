@@ -125,6 +125,26 @@ $(document).ready(function() {
 					<li>
 						<a href="@{Service.index()}">&{'service.pagename'}</a>
 					</li>
+					
+					<li class="divider"></li>
+					
+					<li class="nav-header">
+						&{'acl.pagenamelight'}
+					</li>
+					<li>
+						<a href="@{ACL.showgroups()}">&{'acl.pagename.groups'}</a>
+					</li>
+					<li>
+						<a href="@{ACL.showusers()}">&{'acl.pagename.users'}</a>
+					</li>
+					<li>
+						<a href="@{ACL.showroles()}">&{'acl.pagename.roles'}</a>
+					</li>
+					<li>
+						<a href="@{ACL.showprivileges()}">&{'acl.pagename.privileges'}</a>
+					</li>
+						
+					</li>
 				</ul>
 			</li>
 			<li class="divider-vertical"></li>

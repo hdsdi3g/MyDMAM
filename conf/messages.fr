@@ -178,3 +178,11 @@ TOO_OLD=Périmée
 DONE=Terminée
 PENDING_STOP=En arret...
 PENDING_CANCEL_TASK=Annulation...
+
+acl.pagename=Gestion des droits d'accès
+acl.pagenamelight=Droits d'accès
+acl.pagename.users=Utilisateurs
+acl.pagename.groups=Groupes
+acl.pagename.roles=Rôles
+acl.pagename.privileges=Privilèges
+acl.add=Créer
