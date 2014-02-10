@@ -109,6 +109,9 @@ http.port=9001
 # generic "destroy" method :
 # db.destroyMethod=close
 
+db.url=jdbc:h2:file:conf/acl
+db.driver=org.h2.Driver
+
 # JPA Configuration (Hibernate)
 # ~~~~~
 #
