@@ -20,6 +20,8 @@ package controllers;
 import java.util.List;
 
 import models.ACLGroup;
+import models.ACLRole;
+import play.data.validation.Required;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
@@ -27,42 +29,130 @@ import play.mvc.With;
 @With(Secure.class)
 public class ACL extends Controller {
 	
-	// new ACLGroup("groupe2").save();
-	// ACLGroup group = ACLGroup.findById(0l);
-	// new ACLUser(group, "TestStupide1", "moi", "Moi !").save();
-	// new ACLUser(group, "TestStupide2", "remoi", "Re Moi !").save();
-	// ====User bob = User.find("byEmail", "bob@gmail.com").first();
-	// new ACLUser(group, "TestStupide3", "remoi3", "Re Moi 3 !").save();
-	// System.out.println(ACLUser.count());
-	
 	public static void showgroups() {
-		/*ACLGroup group = ACLGroup.findById(0l);
-		ACLUser aclu = new ACLUser(group, "TestStupide2", "moi2", "Moi2 !");
-		aclu.save();
-		group.users.add(aclu);
-		group.save();*/
-		
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
-		List<ACLGroup> groups = ACLGroup.all().fetch();
+		List<ACLGroup> groups = ACLGroup.findAll();
 		render(title, groups);
 	}
 	
-	public static void showusers() {
+	public static void addgroup() {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
+		String name = null;
+		String role = null;
+		List<ACLRole> roles = ACLRole.findAll();
+		
+		render("ACL/formgroup.html", title, name, role, roles);
+	}
+	
+	public static void editgroup(String name) {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
+		
+		String role = null;
+		if (name != null) {
+			ACLGroup group = ACLGroup.findById(name);
+			if (group != null) {
+				role = group.role.name;
+			}
+		}
+		List<ACLRole> roles = ACLRole.findAll();
+		render("ACL/formgroup.html", title, name, role, roles);
+	}
+	
+	public static void updategroup(@Required String name, @Required String role) {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		
+		if (validation.hasErrors()) {
+			List<ACLRole> roles = ACLRole.findAll();
+			name = null;
+			role = null;
+			render("ACL/formgroup.html", title, name, role, roles);
+			return;
+		}
+		
+		ACLRole realrole = ACLRole.findById(role);
+		if (realrole == null) {
+			List<ACLRole> roles = ACLRole.findAll();
+			name = null;
+			role = null;
+			render("ACL/formgroup.html", title, name, role, roles);
+			return;
+		}
+		
+		ACLGroup group = ACLGroup.findById(name);
+		if (group != null) {
+			group.role = realrole;
+			group.save();
+		} else {
+			group = new ACLGroup(realrole, name);
+			group.save();
+		}
+		
+		redirect("ACL.showgroups");
+	}
+	
+	public static void deletegroup(@Required String name) {
+		if (validation.hasErrors()) {
+			redirect("ACL.showgroups");
+			return;
+		}
+		
+		ACLGroup group = ACLGroup.findById(name);
+		if (group != null) {
+			group.delete();
+		}
+		
+		redirect("ACL.showgroups");
+	}
+	
+	public static void showusers() {// TODO
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.users"));
 		render(title);
 	}
 	
-	public static void showroles() {
+	public static void showroles() {// TODO
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
 		render(title);
 	}
 	
-	public static void showprivileges() {
+	public static void adduser() {// TODO
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.privileges"));
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.users"));
 		render(title);
 	}
+	
+	public static void addrole() {// TODO
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
+		render(title);
+	}
+	
+	public static void edituser(@Required String login) {// TODO
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.users"));
+		render(title);
+	}
+	
+	public static void editrole(@Required String name) {// TODO
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
+		render(title);
+	}
+	
+	public static void deleteuser(@Required String login) {// TODO
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.users"));
+		render(title);
+	}
+	
+	public static void deleterole(@Required String name) {// TODO
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
+		render(title);
+	}
+	
 }
