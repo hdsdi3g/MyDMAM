@@ -16,24 +16,24 @@
 }*
 #{extends 'ACL/grid.html' /}
 
-#{form action:@ACL.updategroup(), class:'form-horizontal', enctype:'multipart/form-data' }
+#{form action:@ACL.updateuser(), class:'form-horizontal', enctype:'multipart/form-data' }
 <div class="control-group">
-	<label class="control-label" for="name">Group name</label>
+	<label class="control-label" for="login">Login</label>
 	<div class="controls">
-	#{if name}
-		<input type="text" id="name" value="${name}" disabled="disabled"/>
-		<input type="hidden" name="name" value="${name}"/>
+	#{if login}
+		<input type="text" id="login" value="${login}" disabled="disabled"/>
+		<input type="hidden" name="login" value="${login}"/>
 	#{/if}#{else}
-		<input type="text" id="name" name="name" placeholder="Group name"/>
+		<input type="text" id="login" name="login" placeholder="Login"/>
 	#{/else}
 	</div>
 </div>
 <div class="control-group">
-	<label class="control-label" for="role">Role</label>
+	<label class="control-label" for="group">Group name</label>
 	<div class="controls">
-		<select id="role" name="role">
-			#{list items:roles, as:'element'}
-				<option #{if role == element.name}selected="selected"#{/if}>${element.name}</option>
+		<select id="group" name="group">
+			#{list items:groups, as:'element'}
+				<option #{if group == element.name}selected="selected"#{/if} value="${element.name}">${element.name} (${element.role.name})</option>
 			#{/list}
 		</select>
 	</div>
@@ -45,7 +45,7 @@
 	#{/if}#{else}
 		<button type="submit" class="btn btn-success">Create</button>
 	#{/else}
-	<a href="@{ACL.showgroups()}" type="submit" class="btn">Cancel</a>
+	<a href="@{ACL.showusers()}" type="submit" class="btn">Cancel</a>
 	</div>
 </div>
 #{/form}
@@ -55,7 +55,7 @@
 $(document).ready(function() {
    	try {
 		$("#btnAdmin").addClass("active");
-		$("#subMenuBtnGroup").addClass("active");
+		$("#subMenuBtnUser").addClass("active");
 	} catch(err) {
 		console.log(err);
 	}

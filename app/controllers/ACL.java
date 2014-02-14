@@ -115,22 +115,75 @@ public class ACL extends Controller {
 		render(title, users);
 	}
 	
-	public static void adduser() {// TODO
+	public static void adduser() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.users"));
-		render(title);
+		
+		String login = null;
+		String group = null;
+		List<ACLGroup> groups = ACLGroup.findAll();
+		
+		render("ACL/formuser.html", title, login, group, groups);
 	}
 	
-	public static void edituser(@Required String login) {// TODO
+	public static void edituser(String login) {// TODO
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.users"));
-		render(title);
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
+		
+		String group = null;
+		if (login != null) {
+			ACLUser user = ACLUser.findById(login);
+			if (user != null) {
+				group = user.group.name;
+			}
+		}
+		List<ACLGroup> groups = ACLGroup.findAll();
+		render("ACL/formuser.html", title, login, group, groups);
 	}
 	
-	public static void deleteuser(@Required String login) {// TODO
+	public static void updateuser(@Required String login, @Required String group) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.users"));
-		render(title);
+		
+		if (validation.hasErrors()) {
+			List<ACLGroup> groups = ACLGroup.findAll();
+			login = null;
+			group = null;
+			render("ACL/formuser.html", title, login, group, groups);
+			return;
+		}
+		
+		ACLGroup realgroup = ACLGroup.findById(group);
+		if (realgroup == null) {
+			List<ACLGroup> groups = ACLGroup.findAll();
+			login = null;
+			group = null;
+			render("ACL/formuser.html", title, login, group, groups);
+			return;
+		}
+		
+		ACLUser user = ACLUser.findById(login);
+		if (user != null) {
+			user.group = realgroup;
+			user.save();
+		} else {
+			realgroup.addACLUser("Manualy add", login, login);
+		}
+		
+		redirect("ACL.showusers");
+	}
+	
+	public static void deleteuser(@Required String login) {
+		if (validation.hasErrors()) {
+			redirect("ACL.showusers");
+			return;
+		}
+		
+		ACLUser user = ACLUser.findById(login);
+		if (user != null) {
+			user.delete();
+		}
+		
+		redirect("ACL.showusers");
 	}
 	
 	public static void showroles() {// TODO
