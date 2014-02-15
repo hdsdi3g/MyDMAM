@@ -19,7 +19,7 @@ package ext;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.web.Privileges;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -50,7 +50,7 @@ public class Bootstrap extends Job {
 			role_admim.privileges = Privileges.getJSONPrivileges().toJSONString();
 			role_admim.save();
 		} else {
-			ArrayList<String> privileges = role_admim.getPrivileges();
+			List<String> privileges = role_admim.getPrivileges();
 			if (privileges.size() != Privileges.getPrivileges().size()) {
 				role_admim.privileges = Privileges.getJSONPrivileges().toJSONString();
 				role_admim.save();

@@ -17,6 +17,9 @@
 
 package controllers;
 
+import hd3gtv.mydmam.web.Privileges;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import models.ACLGroup;
@@ -126,7 +129,7 @@ public class ACL extends Controller {
 		render("ACL/formuser.html", title, login, group, groups);
 	}
 	
-	public static void edituser(String login) {// TODO
+	public static void edituser(String login) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
 		
@@ -186,28 +189,108 @@ public class ACL extends Controller {
 		redirect("ACL.showusers");
 	}
 	
-	public static void showroles() {// TODO
+	public static void showroles() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
-		render(title);
+		List<ACLRole> roles = ACLRole.findAll();
+		render(title, roles);
 	}
 	
-	public static void addrole() {// TODO
+	public static void addrole() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
-		render(title);
+		
+		String name = null;
+		List<ACLGroup> selectedgroups = null;
+		List<ACLGroup> groups = ACLGroup.findAll();
+		List<String> selectedprivileges = null;
+		List<String> privileges = Privileges.getPrivileges();
+		
+		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
 	}
 	
-	public static void editrole(@Required String name) {// TODO
+	public static void editrole(String name) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
-		render(title);
+		
+		List<ACLGroup> selectedgroups = null;
+		List<String> selectedprivileges = null;
+		
+		if (name != null) {
+			ACLRole role = ACLRole.findById(name);
+			if (role != null) {
+				selectedgroups = role.groups;
+				selectedprivileges = role.getPrivileges();
+			}
+		}
+		List<ACLGroup> groups = ACLGroup.findAll();
+		List<String> privileges = Privileges.getPrivileges();
+		
+		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
+		
 	}
 	
-	public static void deleterole(@Required String name) {// TODO
+	public static void deleterole(@Required String name) {
+		if (validation.hasErrors()) {
+			redirect("ACL.showroles");
+			return;
+		}
+		
+		ACLRole role = ACLRole.findById(name);
+		if (role != null) {
+			role.delete();
+		}
+		
+		redirect("ACL.showroles");
+	}
+	
+	public static void updaterole(@Required String name) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
-		render(title);
+		
+		if (validation.hasErrors()) {
+			List<ACLGroup> selectedgroups = null;
+			List<ACLGroup> groups = ACLGroup.findAll();
+			List<String> selectedprivileges = null;
+			List<String> privileges = Privileges.getPrivileges();
+			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
+			return;
+		}
+		
+		ACLRole role = ACLRole.findById(name);
+		if (role == null) {
+			List<ACLGroup> selectedgroups = null;
+			List<ACLGroup> groups = ACLGroup.findAll();
+			List<String> selectedprivileges = null;
+			List<String> privileges = Privileges.getPrivileges();
+			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
+			return;
+		}
+		
+		String[] selectedgroupnames = params.getAll("selectedgroupnames[]");
+		String[] selectedprivilegenames = params.getAll("selectedprivilegenames[]");
+		
+		if (selectedgroupnames != null) {
+			List<ACLGroup> selectedgroups = new ArrayList<ACLGroup>();
+			ACLGroup group;
+			for (int pos = 0; pos < selectedgroupnames.length; pos++) {
+				group = ACLGroup.findById(selectedgroupnames[pos]);
+				if (group != null) {
+					selectedgroups.add(group);
+				}
+			}
+			if (selectedgroups.size() > 0) {
+				role.groups = selectedgroups;
+			}
+		}
+		
+		if (selectedprivilegenames != null) {
+			if (selectedprivilegenames.length > 0) {
+				role.privileges = Privileges.getJSONPrivileges(selectedprivilegenames).toJSONString();
+			}
+		}
+		
+		role.save();
+		
+		redirect("ACL.showroles");
 	}
-	
 }

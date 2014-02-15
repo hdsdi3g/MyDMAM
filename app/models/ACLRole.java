@@ -60,7 +60,7 @@ public class ACLRole extends GenericModel {
 	/**
 	 * @return never null
 	 */
-	public ArrayList<String> getPrivileges() {
+	public List<String> getPrivileges() {
 		if (privileges == null) {
 			return new ArrayList<String>(1);
 		}

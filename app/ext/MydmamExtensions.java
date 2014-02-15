@@ -101,4 +101,24 @@ public class MydmamExtensions extends JavaExtensions {
 		
 		return result.toString();
 	}
+	
+	public static String fromCamelCaseToSpaces(String value) {
+		if (value == null) {
+			return "";
+		}
+		if (value.length() == 0) {
+			return "";
+		}
+		StringBuffer sb = new StringBuffer();
+		
+		for (int pos = 0; pos < value.length(); pos++) {
+			String str = value.substring(pos, pos + 1);
+			if (str.equals(str.toUpperCase())) {
+				sb.append(" ");
+			}
+			sb.append(str.toLowerCase());
+		}
+		
+		return sb.toString();
+	}
 }

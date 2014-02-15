@@ -47,4 +47,12 @@ public class Privileges {
 		return ja;
 	}
 	
+	public static JSONArray getJSONPrivileges(String[] privilegenames) {
+		JSONArray ja = new JSONArray();
+		for (int pos = 0; pos < privilegenames.length; pos++) {
+			ja.add(privilegenames[pos]);
+		}
+		return ja;
+	}
+	
 }
