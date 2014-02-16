@@ -39,11 +39,11 @@
 			<td>
                 #{if element.users}
 				<div class="dropdown">
-					<button id="dusr-${element.name}" class="dropdown-toggle btn btn-mini" role="button" data-toggle="dropdown">
+					<button id="dusr-${element.name.makeUniqId()}" class="dropdown-toggle btn btn-mini" role="button" data-toggle="dropdown">
 						${element.users.size()}
 						<b class="caret"></b>
 					</button>
-					<ul class="dropdown-menu" role="menu" aria-labelledby="dusr-${element.name}">
+					<ul class="dropdown-menu" role="menu" aria-labelledby="dusr-${element.name.makeUniqId()}">
 						#{list items:element.users, as:'user'}
 							<li>
 								<a href="@{ACL.edituser(user.login)}">

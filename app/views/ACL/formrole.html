@@ -1,0 +1,161 @@
+*{
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * 
+}*
+#{extends 'ACL/grid.html' /}
+
+#{form action:@ACL.updaterole(), class:'form-horizontal formpupdaterole', enctype:'multipart/form-data' }
+<div class="control-group">
+	<label class="control-label" for="name">Name</label>
+	<div class="controls">
+	#{if name}
+		<input type="text" id="name" value="${name}" disabled="disabled"/>
+		<input type="hidden" name="name" value="${name}"/>
+	#{/if}#{else}
+		<input type="text" id="name" name="name" placeholder="Name"/>
+	#{/else}
+	</div>
+</div>
+<div class="control-group">
+	<label class="control-label" for="selectedgroups">Change groups role</label>
+	<div class="controls">
+		<select id="selectedgroups" name="selectedgroups" multiple="multiple">
+			<optgroup label="Definited"></optgroup> 
+			#{list items:selectedgroups, as:'element'}
+				<option value="${element.name}">${element.name}</option>
+			#{/list}
+		</select>
+		<div class="btn-group btn-group-vertical">
+			<a id="addingroup" class="btn btn-mini" href="#"><i class="icon-plus-sign"></i></a>
+			<a id="removegroup" class="btn btn-mini" href="#"><i class="icon-minus"></i></a>
+		</div>
+		<select id="groups" multiple="multiple">
+			<optgroup label="Available"></optgroup> 
+			#{list items:groups, as:'element'}
+				<option>${element.name}</option>
+			#{/list}
+		</select>
+	</div>
+</div>
+
+<div class="control-group">
+	<label class="control-label" for="selectedprivileges">Privileges</label>
+	<div class="controls">
+		<select id="selectedprivileges" name="selectedprivileges" multiple="multiple">
+			<optgroup label="Definited"></optgroup> 
+			#{list items:selectedprivileges, as:'element'}
+				<option value="${element}">${element.fromCamelCaseToSpaces()}</option>
+			#{/list}
+		</select>
+		<div class="btn-group btn-group-vertical">
+			<optgroup label="Available"></optgroup> 
+			<a id="addinprivileges" class="btn btn-mini" href="#"><i class="icon-plus-sign"></i></a>
+			<a id="removeprivileges" class="btn btn-mini" href="#"><i class="icon-minus"></i></a>
+		</div>
+		<select id="privileges" multiple="multiple">
+			#{list items:privileges, as:'element'}
+				<option value="${element}">${element.fromCamelCaseToSpaces()}</option>
+			#{/list}
+		</select>
+	</div>
+</div>
+
+<div class="control-group">
+	<div class="controls">
+	#{if name}
+		<button type="submit" class="btn btn-info">Update</button>
+	#{/if}#{else}
+		<button type="submit" class="btn btn-success">Create</button>
+	#{/else}
+	<a href="@{ACL.showroles()}" class="btn">Cancel</a>
+	</div>
+</div>
+#{/form}
+
+<script type="text/javascript" charset="UTF-8">
+<!--
+$(document).ready(function() {
+   	try {
+		$("#btnAdmin").addClass("active");
+		$("#subMenuBtnRole").addClass("active");
+		
+		$("#addingroup").click(function() {
+			var new_selected = $("#groups").val();
+			if (new_selected == null){
+				return false;
+			}
+			var current_selected = [];
+			$("#selectedgroups option").each(function() {
+				current_selected.push($(this).text());
+			});
+			for(i = 0; i < new_selected.length; i++) {
+				if ($.inArray(new_selected[i], current_selected) == -1) {
+					$("#selectedgroups").append('<option value="' + new_selected[i] + '">' + new_selected[i] + '</option>');
+				}
+			}
+			return false;
+		});
+		
+		$("#removegroup").click(function() {
+			var current_selected = $("#selectedgroups").val();
+			if (current_selected == null){
+				return false;
+			}
+			for (i = 0; i < current_selected.length; i++) {
+				$("#selectedgroups option[value='" + current_selected[i] + "']").remove();
+			}
+			return false;
+		});
+
+		$("#addinprivileges").click(function() {
+			var new_selected = $("#privileges").val();
+			if (new_selected == null){
+				return false;
+			}
+			var current_selected = [];
+			$("#selectedprivileges option").each(function() {
+				current_selected.push($(this).val());
+			});
+			for(i = 0; i < new_selected.length; i++) {
+				if ($.inArray(new_selected[i], current_selected) == -1) {
+					$("#selectedprivileges").append('<option value="' + new_selected[i] + '">' + $("#privileges option[value='" + new_selected[i] + "']").text() + '</option>');
+				}
+			}
+			return false;
+		});
+		
+		$("#removeprivileges").click(function() {
+			var current_selected = $("#selectedprivileges").val();
+			if (current_selected == null){
+				return false;
+			}
+			for (i = 0; i < current_selected.length; i++) {
+				$("#selectedprivileges option[value='" + current_selected[i] + "']").remove();
+			}
+			return false;
+		});
+		
+		$("form.formpupdaterole").submit(function() {
+			$("#selectedgroups option").prop('selected', true);
+			$("#selectedprivileges option").prop('selected', true);
+			return true;
+		});
+		
+	} catch(err) {
+		console.log(err);
+	}
+});
+-->
+</script>

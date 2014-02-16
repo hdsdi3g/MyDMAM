@@ -244,7 +244,7 @@ public class ACL extends Controller {
 		redirect("ACL.showroles");
 	}
 	
-	public static void updaterole(@Required String name) {
+	public static void updaterole(@Required String name) { // TODO debug this
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
 		if (validation.hasErrors()) {
@@ -266,8 +266,8 @@ public class ACL extends Controller {
 			return;
 		}
 		
-		String[] selectedgroupnames = params.getAll("selectedgroupnames[]");
-		String[] selectedprivilegenames = params.getAll("selectedprivilegenames[]");
+		String[] selectedgroupnames = params.getAll("selectedgroups[]");
+		String[] selectedprivilegenames = params.getAll("selectedprivileges[]");
 		
 		if (selectedgroupnames != null) {
 			List<ACLGroup> selectedgroups = new ArrayList<ACLGroup>();

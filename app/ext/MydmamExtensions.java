@@ -16,8 +16,10 @@
 */
 package ext;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.Timecode;
 
+import java.security.MessageDigest;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -120,5 +122,23 @@ public class MydmamExtensions extends JavaExtensions {
 		}
 		
 		return sb.toString();
+	}
+	
+	public static String makeUniqId(String value) {
+		if (value == null) {
+			return "";
+		}
+		if (value.length() == 0) {
+			return "";
+		}
+		try {
+			MessageDigest md;
+			md = MessageDigest.getInstance("MD5");
+			md.update(value.getBytes());
+			return MyDMAM.byteToString(md.digest()).substring(0, 6);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return value;
+		}
 	}
 }
