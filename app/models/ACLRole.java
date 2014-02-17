@@ -50,7 +50,7 @@ public class ACLRole extends GenericModel {
 	@Lob
 	public String privileges;
 	
-	@OneToMany(mappedBy = "role", cascade = CascadeType.DETACH)
+	@OneToMany(mappedBy = "role", cascade = CascadeType.PERSIST)
 	public List<ACLGroup> groups;
 	
 	public ACLRole(String name) {

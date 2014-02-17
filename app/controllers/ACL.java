@@ -19,7 +19,6 @@ package controllers;
 
 import hd3gtv.mydmam.web.Privileges;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import models.ACLGroup;
@@ -237,14 +236,21 @@ public class ACL extends Controller {
 		}
 		
 		ACLRole role = ACLRole.findById(name);
-		if (role != null) {
-			role.delete();
+		if (role == null) {
+			redirect("ACL.showroles");
+			return;
 		}
-		
+		if (role.groups != null) {
+			if (role.groups.size() > 0) {
+				redirect("ACL.showroles");
+				return;
+			}
+		}
+		role.delete();
 		redirect("ACL.showroles");
 	}
 	
-	public static void updaterole(@Required String name) { // TODO debug this
+	public static void updaterole(@Required String name) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
 		if (validation.hasErrors()) {
@@ -256,33 +262,15 @@ public class ACL extends Controller {
 			return;
 		}
 		
+		String[] selectedprivilegenames = params.getAll("selectedprivileges");
+		
 		ACLRole role = ACLRole.findById(name);
 		if (role == null) {
-			List<ACLGroup> selectedgroups = null;
-			List<ACLGroup> groups = ACLGroup.findAll();
-			List<String> selectedprivileges = null;
-			List<String> privileges = Privileges.getPrivileges();
-			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
-			return;
+			role = new ACLRole(name);
+			role = role.save();
 		}
 		
-		String[] selectedgroupnames = params.getAll("selectedgroups[]");
-		String[] selectedprivilegenames = params.getAll("selectedprivileges[]");
-		
-		if (selectedgroupnames != null) {
-			List<ACLGroup> selectedgroups = new ArrayList<ACLGroup>();
-			ACLGroup group;
-			for (int pos = 0; pos < selectedgroupnames.length; pos++) {
-				group = ACLGroup.findById(selectedgroupnames[pos]);
-				if (group != null) {
-					selectedgroups.add(group);
-				}
-			}
-			if (selectedgroups.size() > 0) {
-				role.groups = selectedgroups;
-			}
-		}
-		
+		role.privileges = null;
 		if (selectedprivilegenames != null) {
 			if (selectedprivilegenames.length > 0) {
 				role.privileges = Privileges.getJSONPrivileges(selectedprivilegenames).toJSONString();

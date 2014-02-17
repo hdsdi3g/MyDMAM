@@ -37,9 +37,21 @@
 			<td>${element.name}</td>
 			<td>
 				#{if element.groups}
-    				#{list items:element.groups, as:'group'}
-    					<a href="@{ACL.editgroup(group.name)}">${group.name}</a><br>
-					#{/list}
+				<div class="dropdown">
+					<button id="dusr-${element.name.makeUniqId()}" class="dropdown-toggle btn btn-mini" role="button" data-toggle="dropdown">
+						${element.groups.size()}
+						<b class="caret"></b>
+					</button>
+					<ul class="dropdown-menu" role="menu" aria-labelledby="dusr-${element.name.makeUniqId()}">
+	    				#{list items:element.groups, as:'group'}
+							<li>
+								<a href="@{ACL.editgroup(group.name)}">
+									${group.name} (${group.users.size()})
+								</a>
+							</li>
+						#{/list}
+					</ul>
+				</div>
 				#{/if}#{else}
 					<em>Pas de groupes associés.</em>
 				#{/else}
@@ -55,7 +67,9 @@
 			</td>
 			<td>
 				<a href="@{ACL.editrole(element.name)}" class="btn btn-mini btn-info"><i class="icon-pencil icon-white"></i></a>
-				<a href="@{ACL.deleterole(element.name)}" class="btn btn-mini btn-danger btn-toogle-desactivate disabled"><i class="icon-trash icon-white"></i></a>
+				#{if element.groups.size() == 0}
+					<a href="@{ACL.deleterole(element.name)}" class="btn btn-mini btn-danger btn-toogle-desactivate disabled"><i class="icon-trash icon-white"></i></a>
+				#{/if}
 			</td>
 		</tr>
     #{/list}
@@ -77,6 +91,10 @@ $(document).ready(function() {
 		$('.btn-toogle-desactivate').click(function (){
 			return $(this).hasClass("disabled") == false;
 		});
+		
+		if ($(".btn-toogle-desactivate").length == 0) {
+			$("#btn-toogle-desactivate").remove();
+		}
 		
 		$('.elementlist').dataTable({
 			"bPaginate": false,

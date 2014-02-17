@@ -28,27 +28,6 @@
 	#{/else}
 	</div>
 </div>
-<div class="control-group">
-	<label class="control-label" for="selectedgroups">Change groups role</label>
-	<div class="controls">
-		<select id="selectedgroups" name="selectedgroups" multiple="multiple">
-			<optgroup label="Definited"></optgroup> 
-			#{list items:selectedgroups, as:'element'}
-				<option value="${element.name}">${element.name}</option>
-			#{/list}
-		</select>
-		<div class="btn-group btn-group-vertical">
-			<a id="addingroup" class="btn btn-mini" href="#"><i class="icon-plus-sign"></i></a>
-			<a id="removegroup" class="btn btn-mini" href="#"><i class="icon-minus"></i></a>
-		</div>
-		<select id="groups" multiple="multiple">
-			<optgroup label="Available"></optgroup> 
-			#{list items:groups, as:'element'}
-				<option>${element.name}</option>
-			#{/list}
-		</select>
-	</div>
-</div>
 
 <div class="control-group">
 	<label class="control-label" for="selectedprivileges">Privileges</label>
@@ -90,34 +69,6 @@ $(document).ready(function() {
    	try {
 		$("#btnAdmin").addClass("active");
 		$("#subMenuBtnRole").addClass("active");
-		
-		$("#addingroup").click(function() {
-			var new_selected = $("#groups").val();
-			if (new_selected == null){
-				return false;
-			}
-			var current_selected = [];
-			$("#selectedgroups option").each(function() {
-				current_selected.push($(this).text());
-			});
-			for(i = 0; i < new_selected.length; i++) {
-				if ($.inArray(new_selected[i], current_selected) == -1) {
-					$("#selectedgroups").append('<option value="' + new_selected[i] + '">' + new_selected[i] + '</option>');
-				}
-			}
-			return false;
-		});
-		
-		$("#removegroup").click(function() {
-			var current_selected = $("#selectedgroups").val();
-			if (current_selected == null){
-				return false;
-			}
-			for (i = 0; i < current_selected.length; i++) {
-				$("#selectedgroups option[value='" + current_selected[i] + "']").remove();
-			}
-			return false;
-		});
 
 		$("#addinprivileges").click(function() {
 			var new_selected = $("#privileges").val();
