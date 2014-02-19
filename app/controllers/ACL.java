@@ -32,6 +32,7 @@ import play.mvc.With;
 @With(Secure.class)
 public class ACL extends Controller {
 	
+	@Check("showAcls")
 	public static void showgroups() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
@@ -39,6 +40,7 @@ public class ACL extends Controller {
 		render(title, groups);
 	}
 	
+	@Check("editAcls")
 	public static void addgroup() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
@@ -49,6 +51,7 @@ public class ACL extends Controller {
 		render("ACL/formgroup.html", title, name, role, roles);
 	}
 	
+	@Check("editAcls")
 	public static void editgroup(String name) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
@@ -64,6 +67,7 @@ public class ACL extends Controller {
 		render("ACL/formgroup.html", title, name, role, roles);
 	}
 	
+	@Check("editAcls")
 	public static void updategroup(@Required String name, @Required String role) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
@@ -96,6 +100,7 @@ public class ACL extends Controller {
 		redirect("ACL.showgroups");
 	}
 	
+	@Check("editAcls")
 	public static void deletegroup(@Required String name) {
 		if (validation.hasErrors()) {
 			redirect("ACL.showgroups");
@@ -110,6 +115,7 @@ public class ACL extends Controller {
 		redirect("ACL.showgroups");
 	}
 	
+	@Check("showAcls")
 	public static void showusers() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.users"));
@@ -117,6 +123,7 @@ public class ACL extends Controller {
 		render(title, users);
 	}
 	
+	@Check("editAcls")
 	public static void adduser() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.users"));
@@ -128,6 +135,7 @@ public class ACL extends Controller {
 		render("ACL/formuser.html", title, login, group, groups);
 	}
 	
+	@Check("editAcls")
 	public static void edituser(String login) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
@@ -143,6 +151,7 @@ public class ACL extends Controller {
 		render("ACL/formuser.html", title, login, group, groups);
 	}
 	
+	@Check("editAcls")
 	public static void updateuser(@Required String login, @Required String group) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
@@ -174,6 +183,7 @@ public class ACL extends Controller {
 		redirect("ACL.showusers");
 	}
 	
+	@Check("editAcls")
 	public static void deleteuser(@Required String login) {
 		if (validation.hasErrors()) {
 			redirect("ACL.showusers");
@@ -188,6 +198,7 @@ public class ACL extends Controller {
 		redirect("ACL.showusers");
 	}
 	
+	@Check("showAcls")
 	public static void showroles() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
@@ -195,6 +206,7 @@ public class ACL extends Controller {
 		render(title, roles);
 	}
 	
+	@Check("editAcls")
 	public static void addrole() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
@@ -208,6 +220,7 @@ public class ACL extends Controller {
 		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
 	}
 	
+	@Check("editAcls")
 	public static void editrole(String name) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
@@ -229,6 +242,7 @@ public class ACL extends Controller {
 		
 	}
 	
+	@Check("editAcls")
 	public static void deleterole(@Required String name) {
 		if (validation.hasErrors()) {
 			redirect("ACL.showroles");
@@ -250,6 +264,7 @@ public class ACL extends Controller {
 		redirect("ACL.showroles");
 	}
 	
+	@Check("editAcls")
 	public static void updaterole(@Required String name) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		

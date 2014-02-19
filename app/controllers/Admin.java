@@ -74,6 +74,7 @@ public class Admin extends Controller {
 		return new CrudOrmEngine<CrudOrmModel>(object);
 	}
 	
+	@Check("adminCrud")
 	public static void index(String objtype) throws Exception {
 		Class<? extends CrudOrmModel> entityclass = loadModelClass(objtype);
 		notFoundIfNull(entityclass);
@@ -91,6 +92,7 @@ public class Admin extends Controller {
 		render("CRUD/list.html", type, caller, fields, fieldspointers);
 	}
 	
+	@Check("adminCrud")
 	public static void blank(String objtype) throws Exception {
 		Class<?> entityclass = loadModelClass(objtype);
 		notFoundIfNull(entityclass);
@@ -104,6 +106,7 @@ public class Admin extends Controller {
 		render("CRUD/blank.html", type, fields, entityclass, fieldspointers);
 	}
 	
+	@Check("adminCrud")
 	public static void edit(String objtype, String key) throws Exception {
 		Class<?> entityclass = loadModelClass(objtype);
 		notFoundIfNull(entityclass);
@@ -121,6 +124,7 @@ public class Admin extends Controller {
 		render("CRUD/edit.html", type, fields, entityclass, object, fieldspointers);
 	}
 	
+	@Check("adminCrud")
 	public static void delete(String objtype, String key) throws Exception {
 		Class<?> entityclass = loadModelClass(objtype);
 		notFoundIfNull(entityclass);
@@ -140,6 +144,7 @@ public class Admin extends Controller {
 		redirect("Admin.index", objtype);
 	}
 	
+	@Check("adminCrud")
 	public static void action(String objtype, String key, String action) throws Exception {
 		Class<? extends CrudOrmModel> entityclass = loadModelClass(objtype);
 		notFoundIfNull(entityclass);
@@ -442,6 +447,7 @@ public class Admin extends Controller {
 		return result;
 	}
 	
+	@Check("adminCrud")
 	public static void create(String objtype) throws Exception {
 		Class<?> entityclass = loadModelClass(objtype);
 		notFoundIfNull(entityclass);
@@ -490,6 +496,7 @@ public class Admin extends Controller {
 		}
 	}
 	
+	@Check("adminCrud")
 	public static void update(String objtype, String key) throws Exception {
 		Class<?> entityclass = loadModelClass(objtype);
 		notFoundIfNull(entityclass);

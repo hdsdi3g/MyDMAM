@@ -24,11 +24,13 @@ import play.mvc.With;
 @With(Secure.class)
 public class Service extends Controller {
 	
+	@Check("showStatus")
 	public static void index() {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.pagename"));
 		render();
 	}
 	
+	@Check("showStatus")
 	public static void laststatusworkers() throws Exception {
 		renderJSON(IsAlive.getLastStatusWorkers().toJSONString());
 	}

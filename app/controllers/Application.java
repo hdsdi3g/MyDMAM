@@ -53,10 +53,12 @@ public class Application extends Controller {
 	public static final int HTTP_internal_error = 500;
 	public static final int HTTP_not_implemented = 501;
 	
+	@Check("navigate")
 	public static void navigate() {
 		render();
 	}
 	
+	@Check("navigate")
 	public static void stat(String filehash) {
 		if (filehash == null) {
 			throw new NotFound("No filehash");
@@ -135,6 +137,7 @@ public class Application extends Controller {
 		}
 	}
 	
+	@Check("search")
 	public static void index(String q, int from) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		if (q == null) {
@@ -201,6 +204,7 @@ public class Application extends Controller {
 		}
 	}
 	
+	@Check("navigate")
 	public static void metadatas(Boolean full) {
 		Client client = Elasticsearch.createClient();
 		String[] pathelementskeys = params.getAll("fileshash[]");
@@ -213,6 +217,7 @@ public class Application extends Controller {
 		}
 	}
 	
+	@Check("navigate")
 	public static void resolvePositions() throws ConnectionException {
 		String[] keys = params.getAll("keys[]");
 		if (keys == null) {

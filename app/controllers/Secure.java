@@ -28,6 +28,7 @@ public class Secure extends Controller {
 	 * This method checks that a profile is allowed to view this page/method.
 	 */
 	private static void check(Check check) throws Throwable {
+		// TODO get from session
 		/*Log2Dump dump = new Log2Dump();
 		dump.add("profile", profile);
 		dump.addAll(getUserSessionInformation());
@@ -151,6 +152,8 @@ public class Secure extends Controller {
 		
 		session.put("username", username);
 		session.put("longname", authuser.getFullName()); // TODO update play User with longname
+		// TODO get ACLUser
+		// TODO put privileges to session
 		
 		if (remember) {
 			Date expiration = new Date();

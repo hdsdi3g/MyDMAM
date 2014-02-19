@@ -30,16 +30,19 @@ import play.mvc.With;
 @With(Secure.class)
 public class Queue extends Controller {
 	
+	@Check("showQueue")
 	public static void index() {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("queue.taskslist"));
 		render();
 	}
 	
+	@Check("showQueue")
 	public static void workers() {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("queue.workerlist"));
 		render();
 	}
 	
+	@Check("showQueue")
 	public static void getall() throws Exception {
 		JSONObject jo = new JSONObject();
 		jo.put("tasksandjobs", Broker.getTasksAndJobs(0));
@@ -51,6 +54,7 @@ public class Queue extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	@Check("showQueue")
 	public static void getupdate(@Required long since) throws Exception {
 		JSONObject jo = new JSONObject();
 		jo.put("tasksandjobs", Broker.getTasksAndJobs(since));
@@ -64,6 +68,7 @@ public class Queue extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	@Check("showQueue")
 	public static void getworkers() throws Exception {
 		JSONObject jo = new JSONObject();
 		jo.put("workers", Broker.getWorkers());
@@ -73,6 +78,7 @@ public class Queue extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	@Check("updateQueue")
 	public static void changeworkerstate(@Required String worker_ref, @Required String newstate) throws Exception {
 		JSONObject jo = new JSONObject();
 		jo.put("query", "changeworkerstate");
@@ -80,6 +86,7 @@ public class Queue extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	@Check("updateQueue")
 	public static void changeworkercyclicperiod(@Required String worker_ref, @Required int period) throws Exception {
 		JSONObject jo = new JSONObject();
 		jo.put("query", "changeworkercyclicperiod");
@@ -87,6 +94,7 @@ public class Queue extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	@Check("updateQueue")
 	public static void changetaskstatus(@Required String task_key, @Required String status) throws Exception {
 		JSONObject jo = new JSONObject();
 		jo.put("query", "changetaskstatus");
@@ -103,6 +111,7 @@ public class Queue extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	@Check("updateQueue")
 	public static void changetaskpriority(@Required String task_key, @Required int priority) throws Exception {
 		JSONObject jo = new JSONObject();
 		jo.put("query", "changetaskpriority");
@@ -110,6 +119,7 @@ public class Queue extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	@Check("updateQueue")
 	public static void changetaskmaxage(@Required String task_key, @Required long date_max_age) throws Exception {
 		JSONObject jo = new JSONObject();
 		jo.put("query", "changetaskmaxage");
