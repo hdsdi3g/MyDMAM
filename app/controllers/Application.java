@@ -137,7 +137,7 @@ public class Application extends Controller {
 		}
 	}
 	
-	@Check("search")
+	@Check("navigate")
 	public static void index(String q, int from) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		if (q == null) {

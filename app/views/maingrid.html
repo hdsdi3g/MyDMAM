@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2012-2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2012-2014
  * 
 }*<!DOCTYPE html>
 <html lang="en">
@@ -159,7 +159,7 @@ $(document).ready(function() {
 			</li>
 			<li class="divider-vertical checkifempty" data-deleteifempty="mainadminmenu"></li>
 			
-			#{secure.check 'search'}
+			#{secure.check 'navigate'}
 		 		<li>
 			 		#{form @Application.index(), class:'navbar-search', method:'GET'}
 				  			<input type="text" id="sitesearch" class="search-query span2" placeholder="&{'maingrid.search'}" name="q" #{if flash.q}value="&{flash.q}"#{/if}/>
@@ -207,9 +207,8 @@ $(document).ready(function() {
 			#{/secure.check}
 			
 			%{	menu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllUserMenusEntries()
-				menu_elements.each() {
+				menu_elements.each() { if (controllers.Secure.checkview(it.privilege)) {
 			}%
-			#{secure.check it.privilege}
 				#{if it.add_divider}
 					<li class="divider-vertical"></li>
 				#{/if}
@@ -235,9 +234,8 @@ $(document).ready(function() {
 					</ul>
 				#{/if}
 			</li>
-			#{/secure.check}
 			%{
-				}
+				} }
 			}%
 		</ul>
       </div>

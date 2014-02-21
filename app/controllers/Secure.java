@@ -35,25 +35,29 @@ public class Secure extends Controller {
 	 * This method checks that a profile is allowed to view this page/method.
 	 */
 	private static void check(Check check) throws Throwable {
-		// TODO get from session
-		/*Log2Dump dump = new Log2Dump();
-		dump.add("profile", profile);
-		dump.addAll(getUserSessionInformation());
-		Log2.log.security("Check", dump);*/
-		/*for (String profile : check.value()) {
-			if (check(profile) == false) {
-				Log2.log.security("Bad check right", getUserSessionInformation());
-				forbidden();
-			}
-		}*/
-		Log2Dump dump = new Log2Dump();
 		String[] chech_values = check.value();
-		for (int pos = 0; pos < chech_values.length; pos++) {
-			dump.add("check", chech_values[pos]);
+		
+		JSONParser jp = new JSONParser();
+		try {
+			JSONArray ja = (JSONArray) jp.parse(session.get("privileges"));
+			for (Object o : ja) {
+				for (int pos = 0; pos < chech_values.length; pos++) {
+					if (chech_values[pos].equalsIgnoreCase((String) o)) {
+						return;
+					}
+				}
+			}
+		} catch (ParseException e) {
+			e.printStackTrace();
 		}
 		
-		dump.add("privileges", session.get("privileges"));
-		Log2.log.debug("check", dump);
+		Log2Dump dump = new Log2Dump();
+		dump.addAll(getUserSessionInformation());
+		for (int pos = 0; pos < chech_values.length; pos++) {
+			dump.add("chech", chech_values[pos]);
+		}
+		Log2.log.security("Check failed: hack tentative", dump);
+		forbidden();
 	}
 	
 	public static boolean checkview(String privilege) {

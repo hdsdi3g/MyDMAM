@@ -40,9 +40,14 @@
 var url_getall = "@{Queue.getall()}";
 var url_getupdate = "@{Queue.getupdate()}";
 
-var url_changetaskstatus = "@{Queue.changetaskstatus()}";
-var url_changetaskpriority = "@{Queue.changetaskpriority()}";
-var url_changetaskmaxage = "@{Queue.changetaskmaxage()}";
+var url_changetaskstatus = "";//add checks to JS
+var url_changetaskpriority = "";
+var url_changetaskmaxage = "";
+#{secure.check 'updateQueue'}
+url_changetaskstatus = "@{Queue.changetaskstatus()}";
+url_changetaskpriority = "@{Queue.changetaskpriority()}";
+url_changetaskmaxage = "@{Queue.changetaskmaxage()}";
+#{/secure.check}
 
 $(document).ready(function() {
 	$("#btnActivities").addClass("active");

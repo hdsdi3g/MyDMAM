@@ -40,8 +40,13 @@
 <!--
 
 var url_getworkers = "@{Queue.getworkers()}";
-var url_changeworkerstate = "@{Queue.changeworkerstate()}";
-var url_changeworkercyclicperiod = "@{Queue.changeworkercyclicperiod()}";
+
+var url_changeworkerstate = "";//add checks to JS
+var url_changeworkercyclicperiod = "";
+#{secure.check 'updateQueue'}
+url_changeworkerstate = "@{Queue.changeworkerstate()}";
+url_changeworkercyclicperiod = "@{Queue.changeworkercyclicperiod()}";
+#{/secure.check}
 
 $(document).ready(function() {
 	$("#btnActivities").addClass("active");
