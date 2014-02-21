@@ -83,7 +83,7 @@ public class SearchResult {
 	private static SearchResponse internalSearch(Client client, QueryBuilder querybuilder, int frompage, int pagesize) throws SearchPhaseExecutionException {
 		SearchRequestBuilder searchrequestbuilder = client.prepareSearch();
 		
-		searchrequestbuilder.setTypes(search_type);// TODO check privileges...
+		searchrequestbuilder.setTypes(search_type);
 		searchrequestbuilder.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
 		searchrequestbuilder.setQuery(querybuilder);
 		searchrequestbuilder.setFrom(frompage * pagesize);

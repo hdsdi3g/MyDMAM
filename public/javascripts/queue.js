@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 
@@ -224,67 +224,68 @@ function Queue() {
 
 		content = content + '<div class="span4">';
 
-		var display; 
-		if (current_taskjob.status == "PROCESSING" | current_taskjob.status == "PREPARING") {
-			display = ' style="display:none"';
+		if (enable_update) {
+			var display; 
+			if (current_taskjob.status == "PROCESSING" | current_taskjob.status == "PREPARING") {
+				display = ' style="display:none"';
+			}
+			content = content + '<div class="btn-group" ' + display + '>';
+			content = content + '<a class="btn btn-primary dropdown-toggle btn-mini" data-toggle="dropdown" href="#">' + i18n('queue.task.action') +'<span class="caret"></span></a>';
+			content = content + '<ul class="dropdown-menu">';
+			
+			if (current_taskjob.status == "WAITING") {
+				display = ' style="display:none"';
+			}
+			content = content + '<li><a href="#" class="btntskwait" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('WAITING') + '</strong></a></li>';
+			display = "";
+			
+			if (current_taskjob.status == "POSTPONED") {
+				display = ' style="display:none"';
+			}
+			content = content + '<li><a href="#" class="btntskpostponed" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('POSTPONED') + '</strong></a></li>';
+			display = "";
+			
+			if (current_taskjob.status == "CANCELED") {
+				display = ' style="display:none"';
+			}
+			content = content + '<li><a href="#" class="btntskcanceled" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('CANCELED') + '</strong></a></li>';
+			display = "";
+			
+			if (current_taskjob.priority == 0 || current_taskjob.status == "DONE") {
+				display = ' style="display:none"';
+			} else {
+				content = content + '<li class="divider"></li>';
+			}
+			content = content + '<li><a href="#" class="btntsk0p" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setdefaultpriority') + '</a></li>';
+			display = "";
+			
+			if (current_taskjob.priority == HIGH_PRIORITY || current_taskjob.status == "DONE") {
+				display = ' style="display:none"';
+			} else {
+				content = content + '<li class="divider"></li>';
+			}
+			content = content + '<li><a href="#" class="btntskhighp" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.sethighpriority') +'</a></li>';
+			display = "";
+			
+			if (current_taskjob.max_date_to_wait_processing == LONG_MAX) {
+				display = ' style="display:none"';
+			} else {
+				content = content + '<li class="divider"></li>';
+			}
+			content = content + '<li><a href="#" class="btntsknomaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.unsetmaxdate') +'</a></li>';
+			display = "";
+			
+			if (current_taskjob.status == "DONE") {
+				display = ' style="display:none"';
+			} else {
+				content = content + '<li class="divider"></li>';
+			}
+			content = content + '<li><a href="#" class="btntsk1hrsmaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setmaxdateto1hrs') + '</a></li>';
+			content = content + '<li><a href="#" class="btntsk1dmaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setmaxdateto1d') + '</a></li>';
+			content = content + '<li><a href="#" class="btntsk1wmaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setmaxdateto1w') + '</a></li>';
+			content = content + '<li><a href="#" class="btntsk30dmaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setmaxdateto30d') + '</a></li>';
+			content = content + '</ul></div> ';
 		}
-		content = content + '<div class="btn-group" ' + display + '>';
-		content = content + '<a class="btn btn-primary dropdown-toggle btn-mini" data-toggle="dropdown" href="#">' + i18n('queue.task.action') +'<span class="caret"></span></a>';
-		content = content + '<ul class="dropdown-menu">';
-		
-		if (current_taskjob.status == "WAITING") {
-			display = ' style="display:none"';
-		}
-		content = content + '<li><a href="#" class="btntskwait" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('WAITING') + '</strong></a></li>';
-		display = "";
-		
-		if (current_taskjob.status == "POSTPONED") {
-			display = ' style="display:none"';
-		}
-		content = content + '<li><a href="#" class="btntskpostponed" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('POSTPONED') + '</strong></a></li>';
-		display = "";
-		
-		if (current_taskjob.status == "CANCELED") {
-			display = ' style="display:none"';
-		}
-		content = content + '<li><a href="#" class="btntskcanceled" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('CANCELED') + '</strong></a></li>';
-		display = "";
-		
-		if (current_taskjob.priority == 0 || current_taskjob.status == "DONE") {
-			display = ' style="display:none"';
-		} else {
-			content = content + '<li class="divider"></li>';
-		}
-		content = content + '<li><a href="#" class="btntsk0p" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setdefaultpriority') + '</a></li>';
-		display = "";
-		
-		if (current_taskjob.priority == HIGH_PRIORITY || current_taskjob.status == "DONE") {
-			display = ' style="display:none"';
-		} else {
-			content = content + '<li class="divider"></li>';
-		}
-		content = content + '<li><a href="#" class="btntskhighp" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.sethighpriority') +'</a></li>';
-		display = "";
-		
-		if (current_taskjob.max_date_to_wait_processing == LONG_MAX) {
-			display = ' style="display:none"';
-		} else {
-			content = content + '<li class="divider"></li>';
-		}
-		content = content + '<li><a href="#" class="btntsknomaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.unsetmaxdate') +'</a></li>';
-		display = "";
-		
-		if (current_taskjob.status == "DONE") {
-			display = ' style="display:none"';
-		} else {
-			content = content + '<li class="divider"></li>';
-		}
-		content = content + '<li><a href="#" class="btntsk1hrsmaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setmaxdateto1hrs') + '</a></li>';
-		content = content + '<li><a href="#" class="btntsk1dmaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setmaxdateto1d') + '</a></li>';
-		content = content + '<li><a href="#" class="btntsk1wmaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setmaxdateto1w') + '</a></li>';
-		content = content + '<li><a href="#" class="btntsk30dmaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setmaxdateto30d') + '</a></li>';
-		content = content + '</ul></div> ';
-		
 		content = content + '<span class="label tjdateupdated">' + i18n('queue.task.dateupdated', formatFullDate(current_taskjob.updatedate)) + '</span></span> ';
 
 		if (current_taskjob.step_count > 0) {
@@ -567,8 +568,10 @@ function Queue() {
 		$("#fulltaskjobtable").empty();
 		$("#fulltaskjobtable").append(content);
 		
-		for (var pos in selected_taskjoblist) {
-			addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
+		if (enable_update) {
+			for (var pos in selected_taskjoblist) {
+				addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
+			}
 		}
 	}
 
@@ -590,8 +593,10 @@ function Queue() {
 		
 		$("#fulltaskjobtable").prepend(content);
 		
-		for (var pos in selected_taskjoblist) {
-			addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
+		if (enable_update) {
+			for (var pos in selected_taskjoblist) {
+				addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
+			}
 		}
 	}
 	
@@ -939,6 +944,10 @@ function WorkerManager() {
 	}
 
 	updateWorkerStatusButton = function(key, worker) {
+		if (enable_update == false) {
+			return;
+		}
+
 		var simplekey = createSimpleKey(key);
 		var jqelement = '#wkr-' + simplekey + ' .wkrbtnstatus';
 		var current_state = $(jqelement).data('currentstate');
@@ -1089,11 +1098,14 @@ function WorkerManager() {
 			if (worker.time_to_sleep > 0) {
 				content = content + '<span class="wkrchngcyclprd">';
 				content = content + '<span class="label"></span> ';
-				content = content + '<button class="btn btn-mini btnshowperiodchange" data-toggle="button" type="button">' + i18n('queue.worker.edit') + '</button> ';
-				content = content + '<div class="input-append" style="display:none">';
-				content = content + '<input type="number" class="span2"/>';
-			    content = content + '<button class="btn btnvalidnewperiod btn-warning" type="button">' + i18n('queue.worker.validate') + '</button>';
-			    content = content + '</div></span>';
+				if (enable_update) {
+					content = content + '<button class="btn btn-mini btnshowperiodchange" data-toggle="button" type="button">' + i18n('queue.worker.edit') + '</button> ';
+					content = content + '<div class="input-append" style="display:none">';
+					content = content + '<input type="number" class="span2"/>';
+				    content = content + '<button class="btn btnvalidnewperiod btn-warning" type="button">' + i18n('queue.worker.validate') + '</button>';
+				    content = content + '</div>';
+				}
+			    content = content + '</span>';
 			}
 			
 			content = content + '</div></div>';

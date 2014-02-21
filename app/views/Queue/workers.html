@@ -41,9 +41,9 @@
 
 var url_getworkers = "@{Queue.getworkers()}";
 
-var url_changeworkerstate = "";//add checks to JS
-var url_changeworkercyclicperiod = "";
+var enable_update = false;
 #{secure.check 'updateQueue'}
+var enable_update = true;
 url_changeworkerstate = "@{Queue.changeworkerstate()}";
 url_changeworkercyclicperiod = "@{Queue.changeworkercyclicperiod()}";
 #{/secure.check}
