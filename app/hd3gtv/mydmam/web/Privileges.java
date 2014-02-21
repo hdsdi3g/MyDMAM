@@ -43,10 +43,10 @@ import controllers.Secure;
 
 public class Privileges {
 	
-	private static List<String> privileges;
+	private static List<String> all_privileges;
 	
 	static {
-		privileges = new ArrayList<String>();
+		all_privileges = new ArrayList<String>();
 		try {
 			List<String> classes_to_test = new ArrayList<String>();
 			
@@ -171,8 +171,8 @@ public class Privileges {
 						}
 						checks = ((Check) candidate_method_check).value();
 						for (int pos_checks = 0; pos_checks < checks.length; pos_checks++) {
-							if (privileges.contains(checks[pos_checks]) == false) {
-								privileges.add(checks[pos_checks]);
+							if (all_privileges.contains(checks[pos_checks]) == false) {
+								all_privileges.add(checks[pos_checks]);
 							}
 						}
 					}
@@ -185,13 +185,13 @@ public class Privileges {
 		}
 	}
 	
-	public static List<String> getPrivileges() {
-		return privileges;
+	public static List<String> getAllPrivileges() {
+		return all_privileges;
 	}
 	
-	public static JSONArray getJSONPrivileges() {
+	public static JSONArray getJSONAllPrivileges() {
 		JSONArray ja = new JSONArray();
-		ja.addAll(privileges);
+		ja.addAll(all_privileges);
 		return ja;
 	}
 	

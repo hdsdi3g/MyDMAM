@@ -48,4 +48,9 @@ public class ACLUser extends GenericModel {
 		this.fullname = fullname;
 	}
 	
+	// TODO create date
+	// TODO last login date
+	// TODO last login source IP
+	// TODO last edit date
+	
 }

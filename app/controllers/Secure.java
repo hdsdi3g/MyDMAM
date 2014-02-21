@@ -10,6 +10,13 @@ import hd3gtv.mydmam.auth.AuthenticationUser;
 
 import java.util.Date;
 
+import models.ACLGroup;
+import models.ACLUser;
+
+import org.json.simple.JSONArray;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import play.Play;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -39,6 +46,44 @@ public class Secure extends Controller {
 				forbidden();
 			}
 		}*/
+		Log2Dump dump = new Log2Dump();
+		String[] chech_values = check.value();
+		for (int pos = 0; pos < chech_values.length; pos++) {
+			dump.add("check", chech_values[pos]);
+		}
+		
+		dump.add("privileges", session.get("privileges"));
+		Log2.log.debug("check", dump);
+	}
+	
+	public static boolean checkview(String privilege) {
+		if (privilege.equals("")) {
+			return true;
+		}
+		
+		String privileges = session.get("privileges");
+		if (privileges == null) {
+			return false;
+		}
+		if (privileges.trim().equals("")) {
+			return false;
+		}
+		JSONParser jp = new JSONParser();
+		try {
+			JSONArray ja = (JSONArray) jp.parse(privileges);
+			if (ja.size() == 0) {
+				return false;
+			}
+			for (Object o : ja) {
+				if (privilege.equalsIgnoreCase((String) o)) {
+					return true;
+				}
+			}
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		
+		return false;
 	}
 	
 	private static Log2Dump getUserSessionInformation() {
@@ -146,21 +191,39 @@ public class Secure extends Controller {
 			flash.error("secure.error");
 			params.flash();
 			login();
+			return;
 		}
 		
 		username = authuser.getLogin();
+		ACLUser acluser = ACLUser.findById(username);
 		
-		session.put("username", username);
-		session.put("longname", authuser.getFullName()); // TODO update play User with longname
-		// TODO get ACLUser
-		// TODO put privileges to session
+		if (acluser == null) {
+			ACLGroup group_guest = ACLGroup.findById(ACLGroup.NEWUSERS_NAME);
+			if (group_guest == null) {
+				flash.keep("url");
+				flash.error("secure.error");
+				params.flash();
+				login();
+				return;
+			}
+			acluser = new ACLUser(group_guest, authuser.getSourceName(), username, authuser.getFullName());
+			acluser.save();
+		}
+		
+		if (acluser.fullname.equals(authuser.getFullName()) == false) {
+			acluser.fullname = authuser.getFullName();
+			acluser.save();
+		}
+		
+		session.put("username", acluser.login);
+		session.put("longname", acluser.fullname);
+		session.put("privileges", acluser.group.role.privileges);
 		
 		if (remember) {
 			Date expiration = new Date();
-			String duration = "30d"; // maybe make this override-able
+			String duration = "30d";
 			expiration.setTime(expiration.getTime() + Time.parseDuration(duration));
 			response.setCookie("rememberme", Crypto.sign(username + "-" + expiration.getTime()) + "-" + username + "-" + expiration.getTime(), duration);
-			
 		}
 		redirectToOriginalURL();
 	}

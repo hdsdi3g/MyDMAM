@@ -71,6 +71,17 @@ $(document).ready(function() {
 				out.println("\$('body').css('background-color', '#e5e4e4');");
 				out.println("\$('.hero-unit').css('background-color', 'rgba(238, 238, 238, 0.4)');");
 			} }%
+		
+		$('.checkifempty').each(function() {
+			var checkthis = $(this).data("deleteifempty");
+			if ($("#" + checkthis).children().length == 0) {
+				$(this).remove();
+			}
+		});
+		//
+		//data-deleteifempty="mainadminmenu">
+		//<ul class="dropdown-menu" id="mainadminmenu">
+		
     });
 });
 -->
@@ -88,12 +99,12 @@ $(document).ready(function() {
       <a class="brand" href="@{Application.index()}">&{'maingrid.brand'}</a>
  
  		<ul class="nav pull-right">
- 			 <li class="dropdown" id="btnAdmin">
+ 			 <li class="dropdown checkifempty" id="btnAdmin" data-deleteifempty="mainadminmenu">
 				<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 					&{'maingrid.adminbtn'}
 					<b class="caret"></b>
 				</a>
-				<ul class="dropdown-menu">
+				<ul class="dropdown-menu" id="mainadminmenu">
 					%{	adminmenu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllAdminMenusEntries()
 						adminmenu_elements.eachWithIndex() { adminitem, p ->
 					}%
@@ -122,33 +133,41 @@ $(document).ready(function() {
 					%{
 						}
 					}%
-					<li>
-						<a href="@{Service.index()}">&{'service.pagename'}</a>
-					</li>
 					
-					<li class="divider"></li>
+					#{secure.check 'showStatus'}
+						<li>
+							<a href="@{Service.index()}">&{'service.pagename'}</a>
+						</li>
+					#{/secure.check}
 					
-					<li class="nav-header">
-						&{'acl.pagenamelight'}
-					</li>
-					<li>
-						<a href="@{ACL.showgroups()}">&{'acl.pagename.groups'}</a>
-					</li>
-					<li>
-						<a href="@{ACL.showusers()}">&{'acl.pagename.users'}</a>
-					</li>
-					<li>
-						<a href="@{ACL.showroles()}">&{'acl.pagename.roles'}</a>
-					</li>
+					#{secure.check 'acl'}
+						<li class="divider"></li>
+						<li class="nav-header">
+							&{'acl.pagenamelight'}
+						</li>
+						<li>
+							<a href="@{ACL.showgroups()}">&{'acl.pagename.groups'}</a>
+						</li>
+						<li>
+							<a href="@{ACL.showusers()}">&{'acl.pagename.users'}</a>
+						</li>
+						<li>
+							<a href="@{ACL.showroles()}">&{'acl.pagename.roles'}</a>
+						</li>
+					#{/secure.check}
 				</ul>
 			</li>
-			<li class="divider-vertical"></li>
-	 		<li>
-		 		#{form @Application.index(), class:'navbar-search', method:'GET'}
-			  			<input type="text" id="sitesearch" class="search-query span2" placeholder="&{'maingrid.search'}" name="q" #{if flash.q}value="&{flash.q}"#{/if}/>
-				#{/form}
-	 		</li>
-			<li class="divider-vertical"></li>
+			<li class="divider-vertical checkifempty" data-deleteifempty="mainadminmenu"></li>
+			
+			#{secure.check 'search'}
+		 		<li>
+			 		#{form @Application.index(), class:'navbar-search', method:'GET'}
+				  			<input type="text" id="sitesearch" class="search-query span2" placeholder="&{'maingrid.search'}" name="q" #{if flash.q}value="&{flash.q}"#{/if}/>
+					#{/form}
+		 		</li>
+				<li class="divider-vertical"></li>
+			#{/secure.check}
+					
 			<li class="dropdown" id="btnAdmin">
 				<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 					%{ out.println(session.get('longname')) }%
@@ -164,29 +183,33 @@ $(document).ready(function() {
 
       <!-- Everything you want hidden at 940px or less, place within here -->
       <div class="nav-collapse collapse">
-        <!-- .nav, .navbar-search, .navbar-form, etc -->
  		<ul class="nav pull-left navbar-fixed-top-btn">
- 			 <li class="dropdown" id="btnActivities">
+ 			 <li class="dropdown checkifempty" id="btnActivities" data-deleteifempty="mainactivitiesmenu">
 				<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 					&{'maingrid.activities'}
 					<b class="caret"></b>
 				</a>
-				<ul class="dropdown-menu">
-					<li>
-						<a href="@{Queue.index()}">&{'queue.taskslist'}</a>
-					</li>
-					<li>
-						<a href="@{Queue.workers()}">&{'queue.workerlist'}</a>
-					</li>
+				<ul class="dropdown-menu" id="mainactivitiesmenu">
+					#{secure.check 'showQueue'}
+						<li>
+							<a href="@{Queue.index()}">&{'queue.taskslist'}</a>
+						</li>
+						<li>
+							<a href="@{Queue.workers()}">&{'queue.workerlist'}</a>
+						</li>
+					#{/secure.check}
 				</ul>
 			</li>
-			<li id="btnStorage">
-				<a href="@{Application.navigate()}">&{'application.navigate'}</a>
-			</li>
+			#{secure.check 'navigate'}
+				<li id="btnStorage">
+					<a href="@{Application.navigate()}">&{'application.navigate'}</a>
+				</li>
+			#{/secure.check}
 			
 			%{	menu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllUserMenusEntries()
 				menu_elements.each() {
 			}%
+			#{secure.check it.privilege}
 				#{if it.add_divider}
 					<li class="divider-vertical"></li>
 				#{/if}
@@ -212,6 +235,7 @@ $(document).ready(function() {
 					</ul>
 				#{/if}
 			</li>
+			#{/secure.check}
 			%{
 				}
 			}%

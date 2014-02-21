@@ -29,6 +29,7 @@ public class MenuEntry {
 	public boolean add_divider;
 	public int order = 0;
 	public List<MenuEntry> subitems;
+	public String privilege = "";
 	
 	/**
 	 * @param play_action "Mycontroller.function" like for "@{Mycontroller.function()}", use Router.reverse(action)
@@ -71,4 +72,8 @@ public class MenuEntry {
 		return this;
 	}
 	
+	public MenuEntry setPrivilege(String privilege) {
+		this.privilege = privilege;
+		return this;
+	}
 }

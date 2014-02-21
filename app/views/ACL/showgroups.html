@@ -26,9 +26,11 @@
             <th>Nom</th>
             <th>Role</th>
             <th>Users</th>
-            <th>
-            	<input type="checkbox" id="btn-toogle-desactivate" ckecked="checked" style="margin-left:39px;" />
-            </th>
+			#{secure.check 'editacls'}
+	            <th>
+	            	<input type="checkbox" id="btn-toogle-desactivate" ckecked="checked" style="margin-left:39px;" />
+	            </th>
+			#{/secure.check}
 		</tr>
     </thead>
     <tbody>

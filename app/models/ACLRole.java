@@ -55,12 +55,13 @@ public class ACLRole extends GenericModel {
 	
 	public ACLRole(String name) {
 		this.name = name;
+		this.privileges = "[]";
 	}
 	
 	/**
 	 * @return never null
 	 */
-	public List<String> getPrivileges() {
+	public List<String> getPrivilegesList() {
 		if (privileges == null) {
 			return new ArrayList<String>(1);
 		}
@@ -86,4 +87,5 @@ public class ACLRole extends GenericModel {
 		}
 		
 	}
+	
 }

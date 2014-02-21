@@ -47,12 +47,12 @@ public class Bootstrap extends Job {
 		ACLRole role_admim = ACLRole.findById(ACLRole.ADMIN_NAME);
 		if (role_admim == null) {
 			role_admim = new ACLRole(ACLRole.ADMIN_NAME);
-			role_admim.privileges = Privileges.getJSONPrivileges().toJSONString();
+			role_admim.privileges = Privileges.getJSONAllPrivileges().toJSONString();
 			role_admim.save();
 		} else {
-			List<String> privileges = role_admim.getPrivileges();
-			if (privileges.size() != Privileges.getPrivileges().size()) {
-				role_admim.privileges = Privileges.getJSONPrivileges().toJSONString();
+			List<String> privileges = role_admim.getPrivilegesList();
+			if (privileges.size() != Privileges.getAllPrivileges().size()) {
+				role_admim.privileges = Privileges.getJSONAllPrivileges().toJSONString();
 				role_admim.save();
 			}
 		}
@@ -77,6 +77,20 @@ public class Bootstrap extends Job {
 			if (group_admin.role != role_admim) {
 				group_admin.role = role_admim;
 				group_admin.save();
+			}
+		}
+		
+		/**
+		 * Peuplate DB ACLs : newusers group
+		 */
+		ACLGroup group_newusers = ACLGroup.findById(ACLGroup.NEWUSERS_NAME);
+		if (group_newusers == null) {
+			group_newusers = new ACLGroup(role_guest, ACLGroup.NEWUSERS_NAME);
+			group_newusers.save();
+		} else {
+			if (group_newusers.role != role_guest) {
+				group_newusers.role = role_guest;
+				group_newusers.save();
 			}
 		}
 		

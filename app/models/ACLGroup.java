@@ -30,6 +30,7 @@ import play.db.jpa.GenericModel;
 public class ACLGroup extends GenericModel {
 	
 	public static final String ADMIN_NAME = "administrators";
+	public static final String NEWUSERS_NAME = "new_users";
 	
 	@Id
 	@Required
