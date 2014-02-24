@@ -87,7 +87,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 			db.createUser(username, password1, longname, (disabled == false));
 			
 			Log2.log.info("Add user", db.getUserInformations(username));
-			db.close();
 			return;
 		}
 		if (args.getParamExist("-login")) {
@@ -104,7 +103,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 			} else {
 				Log2.log.info("Test login", user);
 			}
-			db.close();
 			return;
 		}
 		if (args.getParamExist("-delete")) {
@@ -122,7 +120,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 				System.err.println("Can't delete user");
 				System.exit(1);
 			}
-			db.close();
 			return;
 		}
 		if (args.getParamExist("-disable")) {
@@ -140,7 +137,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 				System.err.println("Can't disable user");
 				System.exit(1);
 			}
-			db.close();
 			return;
 		}
 		if (args.getParamExist("-enable")) {
@@ -158,7 +154,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 				System.err.println("Can't disable user");
 				System.exit(1);
 			}
-			db.close();
 			return;
 		}
 		if (args.getParamExist("-info")) {
@@ -170,7 +165,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 				return;
 			}
 			Log2.log.info("About user", db.getUserInformations(username));
-			db.close();
 			return;
 		}
 		if (args.getParamExist("-list")) {
@@ -179,7 +173,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 			for (int pos = 0; pos < list.size(); pos++) {
 				System.out.println(list.get(pos));
 			}
-			db.close();
 			return;
 		}
 		
@@ -210,7 +203,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 				System.exit(1);
 			}
 			
-			db.close();
 			return;
 		}
 		
@@ -236,7 +228,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 			}
 			
 			Log2.log.info("Rename user", db.getUserInformations(username));
-			db.close();
 			return;
 		}
 		

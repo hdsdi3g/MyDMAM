@@ -34,7 +34,7 @@ import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 
-public class AuthenticatorActivedirectory implements Authenticator {
+class AuthenticatorActivedirectory implements Authenticator {
 	
 	private String domain;
 	private String server;

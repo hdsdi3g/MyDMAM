@@ -19,6 +19,7 @@ package hd3gtv.mydmam.auth;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.BCrypt;
 import hd3gtv.tools.BCryptTest;
 
@@ -50,6 +51,11 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	private IvParameterSpec salt;
 	private SecretKey skeySpec;
 	private Connection connection;
+	private String master_password_key;
+	
+	static {
+		MyDMAM.testIllegalKeySize();
+	}
 	
 	public static void doInternalSecurityAutotest() throws Exception {
 		System.out.println("Do BCrypt test...");
@@ -159,6 +165,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 		} catch (Exception e) {
 			throw new IOException("Can't init digest password", e);
 		}
+		this.master_password_key = master_password_key;
 		
 		try {
 			Class.forName("org.sqlite.JDBC");
@@ -208,18 +215,29 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 		}
 	}
 	
-	public void close() {
-		try {
+	/**
+	 * Desactivated for never lost sqlite access with Play.
+	 */
+	private void close() {
+		/*try {
 			connection.close();
 		} catch (SQLException e) {
 			Log2.log.error("Can't close properly sqlite connection", e);
-		}
+		}*/
 	}
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("local file", dbfile);
 		return dump;
+	}
+	
+	public File getDbfile() {
+		return dbfile;
+	}
+	
+	public String getMaster_password_key() {
+		return master_password_key;
 	}
 	
 	private byte[] getHashedPassword(String clear_password) {

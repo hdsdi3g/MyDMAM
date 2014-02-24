@@ -22,12 +22,19 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Random;
 
 import models.ACLUser;
+
+import org.apache.commons.net.util.Base64;
 
 public class AuthenticationBackend {
 	
@@ -125,11 +132,45 @@ public class AuthenticationBackend {
 		}
 		AuthenticatorLocalsqlite authenticatorlocalsqlite = (AuthenticatorLocalsqlite) authenticators.get(0);
 		if (authenticatorlocalsqlite.isUserExists(ACLUser.ADMIN_NAME) == false) {
-			// TODO create admin user
+			String newpassword = passwordGenerator();
+			authenticatorlocalsqlite.createUser(ACLUser.ADMIN_NAME, newpassword, "Local Admin", true);
+			
+			File textfile = new File("play-new-password.txt");
+			FileWriter fw = new FileWriter(textfile, false);
+			fw.write("Admin login: " + ACLUser.ADMIN_NAME + "\r\n");
+			fw.write("Admin password: " + newpassword + "\r\n");
+			fw.write("\r\n");
+			fw.write("You should remove this file after keeping this password..\r\n");
+			fw.write("\r\n");
+			fw.write("You can change this password with mydmam-cli:\r\n");
+			fw.write("$ mydmam-cli localauth -f " + authenticatorlocalsqlite.getDbfile().getAbsolutePath() + " -key " + authenticatorlocalsqlite.getMaster_password_key() + " -passwd -u "
+					+ ACLUser.ADMIN_NAME + "\r\n");
+			fw.write("\r\n");
+			fw.write("Note: you haven't need a local authenticator if you set another backend and if you grant some new administrators\r\n");
+			fw.close();
+			
+			Log2Dump dump = new Log2Dump();
+			dump.add("login", ACLUser.ADMIN_NAME);
+			dump.add("password file", textfile.getAbsoluteFile());
+			dump.add("local database", authenticatorlocalsqlite.getDbfile());
+			Log2.log.security("Create Play administrator account", dump);
+			
 		} else if (authenticatorlocalsqlite.isEnabledUser(ACLUser.ADMIN_NAME) == false) {
 			throw new Exception("User " + ACLUser.ADMIN_NAME + " is disabled in sqlite file !");
 		}
 		
+	}
+	
+	/**
+	 * @return 12 first chars of Base64(SHA-264(random(1024b)))
+	 */
+	public static String passwordGenerator() throws NoSuchAlgorithmException, NoSuchProviderException {
+		MessageDigest md = MessageDigest.getInstance("SHA-256");
+		Random r = new Random();
+		byte[] fill = new byte[1024];
+		r.nextBytes(fill);
+		byte[] key = md.digest(fill);
+		return new String(Base64.encodeBase64String(key)).substring(0, 12);
 	}
 	
 }
