@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import models.ACLUser;
+
 public class AuthenticationBackend {
 	
 	static {
@@ -106,6 +108,28 @@ public class AuthenticationBackend {
 			}
 		}
 		return null;
+	}
+	
+	public static void checkFirstPlayBoot() throws Exception {
+		if (authenticators == null) {
+			throw new NullPointerException("No backend");
+		}
+		if (authenticators.size() == 0) {
+			throw new NullPointerException("No backend");
+		}
+		if ((authenticators.get(0) instanceof AuthenticatorLocalsqlite) == false) {
+			/**
+			 * Admin has set a configuration : no need to setup a first boot
+			 */
+			return;
+		}
+		AuthenticatorLocalsqlite authenticatorlocalsqlite = (AuthenticatorLocalsqlite) authenticators.get(0);
+		if (authenticatorlocalsqlite.isUserExists(ACLUser.ADMIN_NAME) == false) {
+			// TODO create admin user
+		} else if (authenticatorlocalsqlite.isEnabledUser(ACLUser.ADMIN_NAME) == false) {
+			throw new Exception("User " + ACLUser.ADMIN_NAME + " is disabled in sqlite file !");
+		}
+		
 	}
 	
 }

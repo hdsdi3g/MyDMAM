@@ -370,6 +370,17 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 		return false;
 	}
 	
+	public boolean isUserExists(String username) throws SQLException {
+		PreparedStatement pstatement = connection.prepareStatement("SELECT COUNT(login) AS user_exists FROM users WHERE login = ?");
+		pstatement.setString(1, username);
+		
+		ResultSet res = pstatement.executeQuery();
+		while (res.next()) {
+			return res.getInt("user_exists") == 1;
+		}
+		return false;
+	}
+	
 	public void changeUserPassword(String username, String password, boolean enabled) throws SQLException {
 		PreparedStatement pstatement = connection.prepareStatement("UPDATE users SET updated = ?, password = ?, enabled = ?  WHERE login = ?");
 		pstatement.setDate(1, new Date(System.currentTimeMillis()));
