@@ -7,8 +7,10 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.auth.AuthenticationUser;
+import hd3gtv.mydmam.auth.Authenticator;
 
 import java.util.Date;
+import java.util.List;
 
 import models.ACLGroup;
 import models.ACLUser;
@@ -184,13 +186,35 @@ public class Secure extends Controller {
 			}
 		}
 		flash.keep("url");
-		render();
+		
+		boolean force_select_domain = AuthenticationBackend.isForce_select_domain();
+		List<String> authenticators_domains = AuthenticationBackend.getAuthenticators_domains();
+		
+		render(force_select_domain, authenticators_domains);
 	}
 	
-	public static void authenticate(@Required String username, @Required String password, boolean remember) throws Throwable {
-		AuthenticationUser authuser = AuthenticationBackend.authenticate(username, password);
+	public static void authenticate(@Required String username, @Required String password, String domainidx, boolean remember) throws Throwable {
+		if (Validation.hasErrors()) {
+			flash.keep("url");
+			flash.error("secure.error");
+			params.flash();
+			login();
+			return;
+		}
 		
-		if (Validation.hasErrors() || (authuser == null)) {
+		AuthenticationUser authuser = null;
+		
+		if (AuthenticationBackend.isForce_select_domain()) {
+			try {
+				Authenticator authenticator = AuthenticationBackend.getAuthenticators().get(Integer.valueOf(domainidx));
+				authuser = AuthenticationBackend.authenticate(authenticator, username, password);
+			} catch (Exception e) {
+			}
+		} else {
+			authuser = AuthenticationBackend.authenticate(username, password);
+		}
+		
+		if (authuser == null) {
 			flash.keep("url");
 			flash.error("secure.error");
 			params.flash();

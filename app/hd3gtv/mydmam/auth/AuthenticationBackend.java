@@ -47,6 +47,8 @@ public class AuthenticationBackend {
 	}
 	
 	private static List<Authenticator> authenticators;
+	private static List<String> authenticators_domains;
+	private static boolean force_select_domain;
 	
 	public static void refreshConfiguration() throws Exception {
 		if (Configuration.global.isElementExists("auth") == false) {
@@ -62,7 +64,10 @@ public class AuthenticationBackend {
 			throw new NullPointerException("No items for \"auth/backend\" element in configuration");
 		}
 		
+		force_select_domain = Configuration.global.getValueBoolean("auth", "force_select_domain");
+		
 		authenticators = new ArrayList<Authenticator>(elements.size());
+		authenticators_domains = new ArrayList<String>(elements.size());
 		
 		LinkedHashMap<String, ?> configuration_element;
 		for (int pos = 0; pos < elements.size(); pos++) {
@@ -72,11 +77,16 @@ public class AuthenticationBackend {
 				String path = (String) configuration_element.get("path");
 				String masterkey = (String) configuration_element.get("masterkey");
 				authenticators.add(new AuthenticatorLocalsqlite(new File(path), masterkey));
+				
+				String label = (String) configuration_element.get("label");
+				authenticators_domains.add(label);
 			} else if (element_source.equals("ad")) {
 				String domain = (String) configuration_element.get("domain");
 				String server = (String) configuration_element.get("server");
 				int port = (Integer) configuration_element.get("port");
 				authenticators.add(new AuthenticatorActivedirectory(domain, server, port));
+				
+				authenticators_domains.add(domain);
 			} else {
 				Log2.log.error("Can't import \"auth/backend\" " + (pos + 1) + " configuration item", null, new Log2Dump("item", configuration_element.toString()));
 			}
@@ -87,31 +97,64 @@ public class AuthenticationBackend {
 		}
 	}
 	
+	public static boolean isForce_select_domain() {
+		return force_select_domain;
+	}
+	
+	public static List<String> getAuthenticators_domains() {
+		return authenticators_domains;
+	}
+	
+	public static List<Authenticator> getAuthenticators() {
+		return authenticators;
+	}
+	
+	/**
+	 * Try to get User with authenticator.
+	 * @return null if user & password are invalid, unknow, lock...
+	 */
+	public static AuthenticationUser authenticate(Authenticator authenticator, String username, String password) {
+		if (authenticator == null) {
+			throw new NullPointerException("\"authenticator\" can't to be null");
+		}
+		if (username == null) {
+			throw new NullPointerException("\"username\" can't to be null");
+		}
+		if (password == null) {
+			throw new NullPointerException("\"password\" can't to be null");
+		}
+		
+		AuthenticationUser authenticationUser;
+		Log2Dump dump;
+		dump = new Log2Dump();
+		dump.add("username", username);
+		dump.addAll(authenticator);
+		try {
+			authenticationUser = authenticator.getUser(username, password);
+			if (authenticationUser != null) {
+				Log2.log.info("Valid user found for this authentication method", dump);
+				return authenticationUser;
+			}
+		} catch (IOException e) {
+			Log2.log.error("Invalid authentication method", e, dump);
+		} catch (InvalidAuthenticatorUserException e) {
+			dump.add("cause", e.getMessage());
+			dump.add("from", e.getCause());
+			Log2.log.debug("Invalid user for this authentication method", dump);
+		}
+		return null;
+	}
+	
 	/**
 	 * Try to get User, authenticator after authenticator, until it found a correct user.
 	 * @return null if user & password are invalid, unknow, lock...
 	 */
 	public static AuthenticationUser authenticate(String username, String password) {
-		Authenticator authenticator;
 		AuthenticationUser authenticationUser;
-		Log2Dump dump;
 		for (int pos = 0; pos < authenticators.size(); pos++) {
-			authenticator = authenticators.get(pos);
-			dump = new Log2Dump();
-			dump.add("username", username);
-			dump.addAll(authenticator);
-			try {
-				authenticationUser = authenticator.getUser(username, password);
-				if (authenticationUser != null) {
-					Log2.log.info("Valid user found for this authentication method", dump);
-					return authenticationUser;
-				}
-			} catch (IOException e) {
-				Log2.log.error("Invalid authentication method", e, dump);
-			} catch (InvalidAuthenticatorUserException e) {
-				dump.add("cause", e.getMessage());
-				dump.add("from", e.getCause());
-				Log2.log.debug("Invalid user for this authentication method", dump);
+			authenticationUser = authenticate(authenticators.get(pos), username, password);
+			if (authenticationUser != null) {
+				return authenticationUser;
 			}
 		}
 		return null;

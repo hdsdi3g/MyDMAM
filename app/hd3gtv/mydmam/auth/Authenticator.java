@@ -21,11 +21,11 @@ import hd3gtv.log2.Log2Dumpable;
 
 import java.io.IOException;
 
-interface Authenticator extends Log2Dumpable {
+public interface Authenticator extends Log2Dumpable {
 	
 	/**
 	 * @return null if user & password are invalid, unknow, lock...
 	 */
-	AuthenticationUser getUser(String username, String password) throws NullPointerException, IOException, InvalidAuthenticatorUserException;
+	public AuthenticationUser getUser(String username, String password) throws NullPointerException, IOException, InvalidAuthenticatorUserException;
 	
 }
