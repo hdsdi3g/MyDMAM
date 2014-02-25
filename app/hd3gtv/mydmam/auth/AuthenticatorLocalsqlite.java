@@ -50,7 +50,6 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	
 	private IvParameterSpec salt;
 	private SecretKey skeySpec;
-	private Connection connection;
 	private String master_password_key;
 	
 	static {
@@ -141,11 +140,9 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 			authsql.changeUserLongname("bar", "New Bar Long Name");
 			Assert.assertEquals("New Bar Long Name", authsql.getUserLongname("bar"));
 			
-			authsql.close();
 			db.delete();
 			System.out.println("Done");
 		} catch (AssertionError ae) {
-			authsql.close();
 			ae.printStackTrace();
 			System.out.println("FAIL");
 		}
@@ -209,21 +206,15 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 		this.dbfile = dbfile;
 		
 		try {
-			connection = DriverManager.getConnection("jdbc:sqlite:" + dbfile.getPath());
+			Connection connection = DriverManager.getConnection("jdbc:sqlite:" + dbfile.getPath());
+			connection.close();
 		} catch (SQLException e) {
 			throw new IOException(e);
 		}
 	}
 	
-	/**
-	 * Desactivated for never lost sqlite access with Play.
-	 */
-	private void close() {
-		/*try {
-			connection.close();
-		} catch (SQLException e) {
-			Log2.log.error("Can't close properly sqlite connection", e);
-		}*/
+	private Connection createConnection() throws SQLException {
+		return DriverManager.getConnection("jdbc:sqlite:" + dbfile.getPath());
 	}
 	
 	public Log2Dump getLog2Dump() {
@@ -275,6 +266,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	}
 	
 	public void createUser(String username, String password, String longname, boolean enabled) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("INSERT INTO users (login, password, name, created, updated, enabled) values (?,?,?,?,?,?);");
 		pstatement.setString(1, username);
 		pstatement.setBytes(2, getHashedPassword(password));
@@ -283,10 +275,12 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 		pstatement.setDate(5, new Date(System.currentTimeMillis()));
 		pstatement.setBoolean(6, enabled);
 		pstatement.executeUpdate();
+		connection.close();
 	}
 	
 	public AuthenticationUser getUser(final String username, String password) throws NullPointerException, IOException, InvalidAuthenticatorUserException {
 		try {
+			Connection connection = createConnection();
 			PreparedStatement pstatement = connection.prepareStatement("SELECT password, name FROM users WHERE login = ? AND enabled = 1");
 			pstatement.setString(1, username);
 			
@@ -294,6 +288,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 			while (res.next()) {
 				if (checkPassword(password, res.getBytes("password"))) {
 					final String name = res.getString("name");
+					connection.close();
 					
 					return new AuthenticationUser() {
 						public Log2Dump getLog2Dump() {
@@ -317,9 +312,11 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 						}
 					};
 				} else {
+					connection.close();
 					throw new InvalidAuthenticatorUserException("User exists in database, but password is invalid", null);
 				}
 			}
+			connection.close();
 		} catch (SQLException e) {
 			throw new IOException(e);
 		}
@@ -327,22 +324,27 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	}
 	
 	public void deleteUser(String username) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("DELETE FROM users WHERE login = ?");
 		pstatement.setString(1, username);
 		pstatement.executeUpdate();
+		connection.close();
 	}
 	
 	/**
 	 * @return -1 if user is unknow
 	 */
 	public long getCreateDate(String username) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("SELECT created FROM users WHERE login = ?");
 		pstatement.setString(1, username);
 		ResultSet res = pstatement.executeQuery();
 		while (res.next()) {
-			return res.getDate("created").getTime();
-			
+			long date = res.getDate("created").getTime();
+			connection.close();
+			return date;
 		}
+		connection.close();
 		return -1;
 	}
 	
@@ -350,82 +352,105 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	 * @return -1 if user is unknow
 	 */
 	public long getLastUpdateDate(String username) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("SELECT updated FROM users WHERE login = ?");
 		pstatement.setString(1, username);
 		ResultSet res = pstatement.executeQuery();
 		while (res.next()) {
-			return res.getDate("updated").getTime();
+			long date = res.getDate("updated").getTime();
+			connection.close();
+			return date;
 			
 		}
+		connection.close();
 		return -1;
 	}
 	
 	public void disableUser(String username) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("UPDATE users SET updated = ?, enabled = ?  WHERE login = ?");
 		pstatement.setDate(1, new Date(System.currentTimeMillis()));
 		pstatement.setBoolean(2, false);
 		pstatement.setString(3, username);
 		pstatement.executeUpdate();
+		connection.close();
 	}
 	
 	public void enableUser(String username) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("UPDATE users SET updated = ?, enabled = ?  WHERE login = ?");
 		pstatement.setDate(1, new Date(System.currentTimeMillis()));
 		pstatement.setBoolean(2, true);
 		pstatement.setString(3, username);
 		pstatement.executeUpdate();
+		connection.close();
 	}
 	
 	public boolean isEnabledUser(String username) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("SELECT enabled FROM users WHERE login = ?");
 		pstatement.setString(1, username);
 		
 		ResultSet res = pstatement.executeQuery();
 		while (res.next()) {
 			boolean enabled = res.getBoolean("enabled");
+			connection.close();
 			return enabled;
 		}
+		connection.close();
 		return false;
 	}
 	
 	public boolean isUserExists(String username) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("SELECT COUNT(login) AS user_exists FROM users WHERE login = ?");
 		pstatement.setString(1, username);
 		
 		ResultSet res = pstatement.executeQuery();
 		while (res.next()) {
-			return res.getInt("user_exists") == 1;
+			int ue = res.getInt("user_exists");
+			connection.close();
+			return ue == 1;
 		}
+		connection.close();
 		return false;
 	}
 	
 	public void changeUserPassword(String username, String password, boolean enabled) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("UPDATE users SET updated = ?, password = ?, enabled = ?  WHERE login = ?");
 		pstatement.setDate(1, new Date(System.currentTimeMillis()));
 		pstatement.setBytes(2, getHashedPassword(password));
 		pstatement.setBoolean(3, enabled);
 		pstatement.setString(4, username);
 		pstatement.executeUpdate();
+		connection.close();
 	}
 	
 	public void changeUserLongname(String username, String longname) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("UPDATE users SET updated = ?, name = ?  WHERE login = ?");
 		pstatement.setDate(1, new Date(System.currentTimeMillis()));
 		pstatement.setString(2, longname);
 		pstatement.setString(3, username);
 		pstatement.executeUpdate();
+		connection.close();
 	}
 	
 	/**
 	 * @return null if user is unknow
 	 */
 	public String getUserLongname(String username) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("SELECT name FROM users WHERE login = ?");
 		pstatement.setString(1, username);
 		ResultSet res = pstatement.executeQuery();
 		while (res.next()) {
-			return res.getString("name");
+			String name = res.getString("name");
+			connection.close();
+			return name;
 		}
+		connection.close();
 		return null;
 	}
 	
@@ -433,6 +458,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	 * @return never null
 	 */
 	public List<String> getUserList(boolean mustenabled) throws SQLException {
+		Connection connection = createConnection();
 		ResultSet res;
 		if (mustenabled) {
 			PreparedStatement pstatement = connection.prepareStatement("SELECT login FROM users WHERE enabled = ?");
@@ -447,6 +473,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 		while (res.next()) {
 			userlist.add(res.getString("login"));
 		}
+		connection.close();
 		return userlist;
 	}
 	
@@ -454,6 +481,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	 * @return null if user is unknow
 	 */
 	public Log2Dump getUserInformations(String username) throws SQLException {
+		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("SELECT name, created, updated, enabled FROM users WHERE login = ?");
 		pstatement.setString(1, username);
 		ResultSet res = pstatement.executeQuery();
@@ -464,9 +492,11 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 			dump.addDate("created", res.getDate("created").getTime());
 			dump.addDate("updated", res.getDate("updated").getTime());
 			dump.add("enabled", res.getBoolean("enabled"));
+			connection.close();
 			return dump;
 		}
 		
+		connection.close();
 		return null;
 	}
 	
