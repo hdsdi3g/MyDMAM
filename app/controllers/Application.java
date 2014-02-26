@@ -137,13 +137,13 @@ public class Application extends Controller {
 		}
 	}
 	
-	@Check("navigate")
-	public static void index(String q) {
-		index(q, 0);
+	public static void index() {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		render(title);
 	}
 	
 	@Check("navigate")
-	public static void index(String q, int from) {
+	public static void search(String q, int from) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		if (q == null) {
 			q = "";
@@ -180,7 +180,7 @@ public class Application extends Controller {
 		
 		flash("q", q);
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
-		render(title, searchresults);
+		render("Application/index.html", title, searchresults);
 	}
 	
 	public static void i18n() {
@@ -188,11 +188,6 @@ public class Application extends Controller {
 		response.contentType = "application/javascript";
 		Properties ymessages = Messages.all(play.i18n.Lang.get());
 		render(ymessages);
-	}
-	
-	public static void index() {
-		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		render(title);
 	}
 	
 	public static void redirectToHome(String oldURL) {

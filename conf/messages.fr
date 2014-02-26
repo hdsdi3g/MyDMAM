@@ -200,6 +200,6 @@ acl.norelatedgroups=Pas de groupes associés.
 acl.noprivilegesadded=Pas de privileges ajoutés.
 acl.users=Utilisateurs
 acl.groupname=Nom du groupe
-acl.update=Mise à joute
+acl.update=Mise à jour
 acl.create=Créer
 acl.cancel=Annuler

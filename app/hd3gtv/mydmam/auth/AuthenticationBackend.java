@@ -110,10 +110,9 @@ public class AuthenticationBackend {
 	}
 	
 	/**
-	 * Try to get User with authenticator.
-	 * @return null if user & password are invalid, unknow, lock...
+	 * Try to get User with authenticator or throws exception
 	 */
-	public static AuthenticationUser authenticate(Authenticator authenticator, String username, String password) {
+	public static AuthenticationUser authenticate(Authenticator authenticator, String username, String password) throws InvalidAuthenticatorUserException {
 		if (authenticator == null) {
 			throw new NullPointerException("\"authenticator\" can't to be null");
 		}
@@ -132,32 +131,39 @@ public class AuthenticationBackend {
 		try {
 			authenticationUser = authenticator.getUser(username, password);
 			if (authenticationUser != null) {
-				Log2.log.info("Valid user found for this authentication method", dump);
+				Log2.log.debug("Valid user found for this authentication method", dump);
 				return authenticationUser;
 			}
 		} catch (IOException e) {
 			Log2.log.error("Invalid authentication method", e, dump);
-		} catch (InvalidAuthenticatorUserException e) {
-			dump.add("cause", e.getMessage());
-			dump.add("from", e.getCause());
-			Log2.log.debug("Invalid user for this authentication method", dump);
 		}
 		return null;
 	}
 	
 	/**
-	 * Try to get User, authenticator after authenticator, until it found a correct user.
-	 * @return null if user & password are invalid, unknow, lock...
+	 * Try to get User, authenticator after authenticator, until it found a correct user or throws exception
 	 */
-	public static AuthenticationUser authenticate(String username, String password) {
+	public static AuthenticationUser authenticate(String username, String password) throws InvalidAuthenticatorUserException {
 		AuthenticationUser authenticationUser;
+		Log2Dump dump = new Log2Dump();
 		for (int pos = 0; pos < authenticators.size(); pos++) {
-			authenticationUser = authenticate(authenticators.get(pos), username, password);
-			if (authenticationUser != null) {
-				return authenticationUser;
+			try {
+				dump = new Log2Dump();
+				dump.add("authenticator", authenticators.get(pos));
+				
+				authenticationUser = authenticate(authenticators.get(pos), username, password);
+				if (authenticationUser != null) {
+					return authenticationUser;
+				}
+			} catch (InvalidAuthenticatorUserException e) {
+				dump.add("cause", e.getMessage());
+				if (e.getCause() != null) {
+					dump.add("from", e.getCause().getMessage());
+				}
+				Log2.log.debug("Invalid user for this authentication method", dump);
 			}
 		}
-		return null;
+		throw new InvalidAuthenticatorUserException("Can't authenticate with " + username);
 	}
 	
 	public static void checkFirstPlayBoot() throws Exception {

@@ -8,9 +8,11 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.auth.AuthenticationUser;
 import hd3gtv.mydmam.auth.Authenticator;
+import hd3gtv.mydmam.auth.InvalidAuthenticatorUserException;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 import models.ACLGroup;
 import models.ACLUser;
@@ -41,7 +43,7 @@ public class Secure extends Controller {
 		
 		JSONParser jp = new JSONParser();
 		try {
-			JSONArray ja = (JSONArray) jp.parse(session.get("privileges"));
+			JSONArray ja = (JSONArray) jp.parse(Crypto.decryptAES(session.get("privileges")));
 			for (Object o : ja) {
 				for (int pos = 0; pos < chech_values.length; pos++) {
 					if (chech_values[pos].equalsIgnoreCase((String) o)) {
@@ -58,7 +60,7 @@ public class Secure extends Controller {
 		for (int pos = 0; pos < chech_values.length; pos++) {
 			dump.add("chech", chech_values[pos]);
 		}
-		Log2.log.security("Check failed: hack tentative", dump);
+		Log2.log.security("Check failed: hack tentative", new Exception(""), dump);
 		forbidden();
 	}
 	
@@ -67,7 +69,7 @@ public class Secure extends Controller {
 			return true;
 		}
 		
-		String privileges = session.get("privileges");
+		String privileges = Crypto.decryptAES(session.get("privileges"));
 		if (privileges == null) {
 			return false;
 		}
@@ -121,7 +123,9 @@ public class Secure extends Controller {
 		
 		dump.add("request", sb);
 		
-		dump.addAll("session", session.all());
+		dump.add("username", session.get("username"));
+		dump.add("longname", session.get("longname"));
+		dump.add("privileges", Crypto.decryptAES(session.get("privileges")));
 		return dump;
 	}
 	
@@ -154,6 +158,7 @@ public class Secure extends Controller {
 			flash.put("url", "GET".equals(request.method) ? request.url : Play.ctxPath + "/"); // seems a good default
 			login();
 		}
+		
 		Check check = getActionAnnotation(Check.class);
 		if (check != null) {
 			check(check);
@@ -204,14 +209,23 @@ public class Secure extends Controller {
 		
 		AuthenticationUser authuser = null;
 		
-		if (AuthenticationBackend.isForce_select_domain()) {
-			try {
-				Authenticator authenticator = AuthenticationBackend.getAuthenticators().get(Integer.valueOf(domainidx));
+		try {
+			if (AuthenticationBackend.isForce_select_domain()) {
+				Authenticator authenticator = null;
+				try {
+					authenticator = AuthenticationBackend.getAuthenticators().get(Integer.valueOf(domainidx));
+				} catch (Exception e) {
+				}
 				authuser = AuthenticationBackend.authenticate(authenticator, username, password);
-			} catch (Exception e) {
+			} else {
+				authuser = AuthenticationBackend.authenticate(username, password);
 			}
-		} else {
-			authuser = AuthenticationBackend.authenticate(username, password);
+		} catch (InvalidAuthenticatorUserException e) {
+			Log2Dump dump = getUserSessionInformation();
+			dump.add("username", username);
+			dump.add("domainidx", domainidx);
+			dump.add("cause", e.getMessage());
+			Log2.log.security("Can't login", dump);
 		}
 		
 		if (authuser == null) {
@@ -245,7 +259,20 @@ public class Secure extends Controller {
 		
 		session.put("username", acluser.login);
 		session.put("longname", acluser.fullname);
-		session.put("privileges", acluser.group.role.privileges);
+		
+		JSONArray ja = new JSONArray();
+		try {
+			JSONParser jp = new JSONParser();
+			ja = (JSONArray) jp.parse(acluser.group.role.privileges);
+			Random r = new Random();
+			StringBuffer sb = new StringBuffer();
+			sb.append(r.nextLong());
+			sb.append("-rnd");
+			ja.add(sb.toString());
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		session.put("privileges", Crypto.encryptAES(ja.toJSONString()));
 		
 		if (remember) {
 			Date expiration = new Date();

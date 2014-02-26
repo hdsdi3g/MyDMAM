@@ -6,4 +6,8 @@ public class InvalidAuthenticatorUserException extends Exception {
 		super(message, cause);
 	}
 	
+	InvalidAuthenticatorUserException(String message) {
+		super(message);
+	}
+	
 }

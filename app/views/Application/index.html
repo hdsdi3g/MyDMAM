@@ -27,7 +27,7 @@
 
 	<p class="lead">&{'search.pagetitle'}</p>
 
-	#{form @Application.index(), class:'search-query form-search', method:'GET'}
+	#{form @Application.search(), class:'search-query form-search', method:'GET'}
 		<div class="input-append">
 			<input type="text" class="search-query span10" placeholder="&{'maingrid.search'}" #{if flash.q}value="&{flash.q}"#{/if}  name="q"/>
 			<button type="submit" class="btn btn-info">&{'maingrid.search'}</button>
@@ -91,7 +91,7 @@
 		<div class="pagination pagination-centered pagination-large">
 			<ul>
 				#{if (searchresults.frompage > 0) & (searchresults.pagecount > 2)}
-					<li><a href="@{Application.index(q=flash.q, from=searchresults.frompage)}"><span>&laquo;</span></a></li>
+					<li><a href="@{Application.search(q=flash.q, from=searchresults.frompage)}"><span>&laquo;</span></a></li>
 				#{/if}
 
 				#{if searchresults.pagecount < 9}
@@ -99,7 +99,7 @@
 						#{if searchresults.frompage+1 == pos}
 							<li class="active"><span>${pos}</span></li>
 						#{/if}#{else}
-							<li><a href="@{Application.index(q=flash.q, from=pos)}">${pos}</a></li>
+							<li><a href="@{Application.search(q=flash.q, from=pos)}">${pos}</a></li>
 						#{/else}
 					#{/list}
 				#{/if}#{else}
@@ -107,7 +107,7 @@
 						#{if searchresults.frompage+1 == pos}
 							<li class="active"><span>${pos}</span></li>
 						#{/if}#{else}
-							<li><a href="@{Application.index(q=flash.q, from=pos)}">${pos}</a></li>
+							<li><a href="@{Application.search(q=flash.q, from=pos)}">${pos}</a></li>
 						#{/else}
 					#{/list}
 					<li class="active"><span>&nbsp;</span></li>
@@ -115,7 +115,7 @@
 						#{if searchresults.frompage+1 == pos}
 							<li class="active"><span>${pos}</span></li>
 						#{/if}#{else}
-							<li><a href="@{Application.index(q=flash.q, from=pos)}">${pos}</a></li>
+							<li><a href="@{Application.search(q=flash.q, from=pos)}">${pos}</a></li>
 						#{/else}
 					#{/list}
 
@@ -123,7 +123,7 @@
 				#{/else}
 
 				#{if ((searchresults.frompage+1) < searchresults.pagecount) & (searchresults.pagecount > 2)}
-					<li><a href="@{Application.index(q=flash.q, from=searchresults.frompage+2)}"><span>&raquo;</span></a></li>
+					<li><a href="@{Application.search(q=flash.q, from=searchresults.frompage+2)}"><span>&raquo;</span></a></li>
 				#{/if}
 			</ul>
 		</div>

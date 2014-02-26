@@ -161,7 +161,7 @@ $(document).ready(function() {
 			
 			#{secure.check 'navigate'}
 		 		<li>
-			 		#{form @Application.index(), class:'navbar-search', method:'GET'}
+			 		#{form @Application.search(), class:'navbar-search', method:'GET'}
 				  			<input type="text" id="sitesearch" class="search-query span2" placeholder="&{'maingrid.search'}" name="q" #{if flash.q}value="&{flash.q}"#{/if}/>
 					#{/form}
 		 		</li>
