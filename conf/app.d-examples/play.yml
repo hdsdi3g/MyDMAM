@@ -2,6 +2,7 @@ play:
     deploy: /opt/play
 
 auth:
+    force_select_domain: false
     backend:
         -
             source: local
