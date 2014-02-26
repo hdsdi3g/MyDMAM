@@ -18,18 +18,18 @@
 
 #{form action:@ACL.updategroup(), class:'form-horizontal', enctype:'multipart/form-data' }
 <div class="control-group">
-	<label class="control-label" for="name">Group name</label>
+	<label class="control-label" for="name">&{'acl.groupname'}</label>
 	<div class="controls">
 	#{if name}
 		<input type="text" id="name" value="${name}" disabled="disabled"/>
 		<input type="hidden" name="name" value="${name}"/>
 	#{/if}#{else}
-		<input type="text" id="name" name="name" placeholder="Group name"/>
+		<input type="text" id="name" name="name" placeholder="&{'acl.groupname'}"/>
 	#{/else}
 	</div>
 </div>
 <div class="control-group">
-	<label class="control-label" for="role">Role</label>
+	<label class="control-label" for="role">&{'acl.role'}</label>
 	<div class="controls">
 		<select id="role" name="role">
 			#{list items:roles, as:'element'}
@@ -41,11 +41,11 @@
 <div class="control-group">
 	<div class="controls">
 	#{if name}
-		<button type="submit" class="btn btn-info">Update</button>
+		<button type="submit" class="btn btn-info">&{'acl.update'}</button>
 	#{/if}#{else}
-		<button type="submit" class="btn btn-success">Create</button>
+		<button type="submit" class="btn btn-success">&{'acl.create'}</button>
 	#{/else}
-	<a href="@{ACL.showgroups()}" class="btn">Cancel</a>
+	<a href="@{ACL.showgroups()}" class="btn">&{'acl.cancel'}</a>
 	</div>
 </div>
 #{/form}

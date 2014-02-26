@@ -18,32 +18,32 @@
 
 #{form action:@ACL.updaterole(), class:'form-horizontal formpupdaterole', enctype:'multipart/form-data' }
 <div class="control-group">
-	<label class="control-label" for="name">Name</label>
+	<label class="control-label" for="name">&{'acl.name'}</label>
 	<div class="controls">
 	#{if name}
 		<input type="text" id="name" value="${name}" disabled="disabled"/>
 		<input type="hidden" name="name" value="${name}"/>
 	#{/if}#{else}
-		<input type="text" id="name" name="name" placeholder="Name"/>
+		<input type="text" id="name" name="name" placeholder="&{'acl.name'}"/>
 	#{/else}
 	</div>
 </div>
 
 <div class="control-group">
-	<label class="control-label" for="selectedprivileges">Privileges</label>
+	<label class="control-label" for="selectedprivileges">&{'acl.privileges'}</label>
 	<div class="controls">
 		<select id="selectedprivileges" name="selectedprivileges" multiple="multiple">
-			<optgroup label="Definited"></optgroup> 
+			<optgroup label="&{'acl.privileges.definited'}"></optgroup> 
 			#{list items:selectedprivileges, as:'element'}
 				<option value="${element}">${element.fromCamelCaseToSpaces()}</option>
 			#{/list}
 		</select>
 		<div class="btn-group btn-group-vertical">
-			<optgroup label="Available"></optgroup> 
 			<a id="addinprivileges" class="btn btn-mini" href="#"><i class="icon-plus-sign"></i></a>
 			<a id="removeprivileges" class="btn btn-mini" href="#"><i class="icon-minus"></i></a>
 		</div>
 		<select id="privileges" multiple="multiple">
+			<optgroup label="&{'acl.privileges.available'}"></optgroup> 
 			#{list items:privileges, as:'element'}
 				<option value="${element}">${element.fromCamelCaseToSpaces()}</option>
 			#{/list}
@@ -54,11 +54,11 @@
 <div class="control-group">
 	<div class="controls">
 	#{if name}
-		<button type="submit" class="btn btn-info">Update</button>
+		<button type="submit" class="btn btn-info">&{'acl.update'}</button>
 	#{/if}#{else}
-		<button type="submit" class="btn btn-success">Create</button>
+		<button type="submit" class="btn btn-success">&{'acl.create'}</button>
 	#{/else}
-	<a href="@{ACL.showroles()}" class="btn">Cancel</a>
+	<a href="@{ACL.showroles()}" class="btn">&{'acl.cancel'}</a>
 	</div>
 </div>
 #{/form}
