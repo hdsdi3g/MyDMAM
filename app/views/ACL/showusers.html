@@ -26,8 +26,9 @@
             <th>&{'acl.name'}</th>
             <th>&{'acl.login'}</th>
             <th>&{'acl.group'}</th>
-            <th>&{'acl.grouprole'}</th>
-            <th>&{'acl.source'}</th>
+            <th>&{'acl.creator'}</th>
+            <th>&{'acl.lastlogin'}</th>
+            <th>&{'acl.lastedited'}</th>
             <th>
             	<input type="checkbox" id="btn-toogle-desactivate" ckecked="checked" style="margin-left:39px;" />
             </th>
@@ -38,9 +39,24 @@
 		<tr>
 			<td>${element.fullname}</td>
 			<td><code>${element.login}</code></td>
-			<td><a href="@{ACL.editgroup(element.group.name)}" class="">${element.group.name}</a></td>
-			<td><a href="@{ACL.editrole(element.group.role.name)}" class="">${element.group.role.name}</a></td>
-			<td><small>${element.sourcename}</small></td>
+			<td>
+				<a href="@{ACL.editgroup(element.group.name)}" class="">${element.group.name}</a>
+				<small>
+					(<a href="@{ACL.editrole(element.group.role.name)}" class="">${element.group.role.name}</a>)
+				</small>
+			</td>
+			<td><small>
+				${element.sourcename}<br>
+				&{'acl.createat'} ${element.createdate}
+				</small>
+			</td>
+			<td><small>
+				${element.lastlogindate}<br>
+				&{'acl.fromip'} ${element.lastloginipsource}
+			</small></td>
+			<td><small>
+				${element.lasteditdate}
+			</small></td>
 			<td>
 				<a href="@{ACL.edituser(element.login)}" class="btn btn-mini btn-info"><i class="icon-pencil icon-white"></i></a>
 				<a href="@{ACL.deleteuser(element.login)}" class="btn btn-mini btn-danger btn-toogle-desactivate disabled"><i class="icon-trash icon-white"></i></a>
@@ -74,7 +90,7 @@ $(document).ready(function() {
 		    "bAutoWidth": false,
 		    "bFilter": true,
 		    "aoColumnDefs": [
-				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [5]},
+				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [6]},
 			]
 		});
 

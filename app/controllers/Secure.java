@@ -249,13 +249,16 @@ public class Secure extends Controller {
 				return;
 			}
 			acluser = new ACLUser(group_guest, authuser.getSourceName(), username, authuser.getFullName());
-			acluser.save();
 		}
 		
 		if (acluser.fullname.equals(authuser.getFullName()) == false) {
 			acluser.fullname = authuser.getFullName();
-			acluser.save();
+			acluser.lasteditdate = new Date();
 		}
+		
+		acluser.lastloginipsource = request.remoteAddress;
+		acluser.lastlogindate = new Date();
+		acluser.save();
 		
 		session.put("username", acluser.login);
 		session.put("longname", acluser.fullname);

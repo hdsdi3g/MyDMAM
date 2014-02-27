@@ -19,6 +19,7 @@ package controllers;
 
 import hd3gtv.mydmam.web.Privileges;
 
+import java.util.Date;
 import java.util.List;
 
 import models.ACLGroup;
@@ -175,6 +176,7 @@ public class ACL extends Controller {
 		ACLUser user = ACLUser.findById(login);
 		if (user != null) {
 			user.group = realgroup;
+			user.lasteditdate = new Date();
 			user.save();
 		} else {
 			realgroup.addACLUser("Manualy add", login, login);

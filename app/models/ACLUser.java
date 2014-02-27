@@ -15,6 +15,8 @@
  * 
 */package models;
 
+import java.util.Date;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
@@ -41,16 +43,23 @@ public class ACLUser extends GenericModel {
 	@ManyToOne()
 	public ACLGroup group;
 	
+	@Required
+	public Date createdate;
+	
+	public Date lastlogindate;
+	
+	public String lastloginipsource;
+	
+	@Required
+	public Date lasteditdate;
+	
 	public ACLUser(ACLGroup group, String sourcename, String login, String fullname) {
 		this.group = group;
 		this.sourcename = sourcename;
 		this.login = login;
 		this.fullname = fullname;
+		createdate = new Date();
+		lasteditdate = new Date();
 	}
-	
-	// TODO create date
-	// TODO last login date
-	// TODO last login source IP
-	// TODO last edit date
 	
 }
