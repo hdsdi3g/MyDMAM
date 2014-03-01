@@ -18,6 +18,7 @@ package hd3gtv.mydmam.analysis;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -25,6 +26,8 @@ import hd3gtv.tools.ExecprocessBadExecutionException;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -37,7 +40,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.json.simple.JSONObject;
 
-class Indexer implements IndexingEvent {
+class MetadataCenterIndexer implements IndexingEvent {
 	
 	private Client client;
 	private Explorer explorer;
@@ -46,7 +49,7 @@ class Indexer implements IndexingEvent {
 	private BulkRequestBuilder bulkrequest;
 	private MetadataCenter metadatacenter;
 	
-	Indexer(MetadataCenter metadatacenter, Client client, boolean force_refresh) throws Exception {
+	MetadataCenterIndexer(MetadataCenter metadatacenter, Client client, boolean force_refresh) throws Exception {
 		this.metadatacenter = metadatacenter;
 		this.client = client;
 		this.force_refresh = force_refresh;
@@ -129,7 +132,7 @@ class Indexer implements IndexingEvent {
 						mtd_date = ((Number) mtd_element_source.get("date")).longValue();
 						
 						if ((element.date != mtd_date) | (element.size != mtd_size)) {
-							bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, hits[pos].getType(), hits[pos].getId()));
+							bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, hits[pos].getType(), hits[pos].getId())); // TODO delete mtd file
 							
 							Log2Dump dump = new Log2Dump();
 							dump.addAll(element);
@@ -171,7 +174,7 @@ class Indexer implements IndexingEvent {
 		}
 		if (physical_source.exists() == false) {
 			for (int pos = 0; pos < valid_mtd_hit.size(); pos++) {
-				bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, valid_mtd_hit.get(pos).getType(), valid_mtd_hit.get(pos).getId()));
+				bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, valid_mtd_hit.get(pos).getType(), valid_mtd_hit.get(pos).getId())); // TODO delete mtd file
 				dump = new Log2Dump();
 				dump.add("ES_TYPE", valid_mtd_hit.get(pos).getType());
 				dump.add("ES_ID", valid_mtd_hit.get(pos).getId());
@@ -179,7 +182,7 @@ class Indexer implements IndexingEvent {
 				Log2.log.debug("Delete obsolete analysis : original file isn't exists", dump);
 			}
 			
-			bulkrequest.add(explorer.deleteRequestFileElement(element_key));
+			bulkrequest.add(explorer.deleteRequestFileElement(element_key)); // TODO delete mtd file
 			dump = new Log2Dump();
 			dump.add("key", element_key);
 			dump.add("physical_source", physical_source);
@@ -220,7 +223,7 @@ class Indexer implements IndexingEvent {
 		/**
 		 * Start real analysis
 		 */
-		String key = MetadataCenter.getUniqueElementKey(element);
+		String key = getUniqueElementKey(element);
 		
 		AnalysisResult analysis_result = null;
 		try {
@@ -257,6 +260,25 @@ class Indexer implements IndexingEvent {
 		
 		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, key).setSource(jo_summary.toJSONString()));
 		return true;
+	}
+	
+	/**
+	 * If the file size/date change, this id will change
+	 */
+	static String getUniqueElementKey(SourcePathIndexerElement element) {
+		StringBuffer sb = new StringBuffer();
+		sb.append(element.storagename);
+		sb.append(element.currentpath);
+		sb.append(element.size);
+		sb.append(element.date);
+		MessageDigest md;
+		try {
+			md = MessageDigest.getInstance("MD5");
+			md.update(sb.toString().getBytes());
+			return "mtd-" + MyDMAM.byteToString(md.digest());
+		} catch (NoSuchAlgorithmException e) {
+			throw new NullPointerException(e.getMessage());
+		}
 	}
 	
 }

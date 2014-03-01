@@ -10,11 +10,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2010-2012
+ * Copyright (C) hdsdi3g for hd3g.tv 2010-2014
  * 
 */
 
-package hd3gtv.tools;
+package hd3gtv.mydmam.analysis;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -24,7 +24,7 @@ import java.util.Collection;
 import eu.medsea.mimeutil.MimeUtil;
 import eu.medsea.mimeutil.detector.ExtensionMimeDetector;
 
-public class MimeutilsWrapper {
+public class MimeExtract {
 	
 	public static final String default_mime = "application/octet-stream";
 	
@@ -32,10 +32,20 @@ public class MimeutilsWrapper {
 		MimeUtil.registerMimeDetector("eu.medsea.mimeutil.detector.MagicMimeMimeDetector");
 		MimeUtil.registerMimeDetector("eu.medsea.mimeutil.detector.ExtensionMimeDetector");
 		MimeUtil.registerMimeDetector("eu.medsea.mimeutil.detector.WindowsRegistryMimeDetector");
+		// MimeUtil.registerMimeDetector("eu.medsea.mimeutil.detector.OpendesktopMimeDetector");
+	}
+	
+	public static String getMime(File file) {
+		try {
+			return getMime(MimeUtil.getMimeTypes(file));
+		} catch (Exception e) {
+			e.printStackTrace();
+			return default_mime;
+		}
 	}
 	
 	private static String getMime(Collection<?> mimeTypes) {
-		return String.valueOf(mimeTypes.toArray()[0]);
+		return String.valueOf(mimeTypes.toArray()[0]).toLowerCase();
 	}
 	
 	/**
@@ -69,12 +79,4 @@ public class MimeutilsWrapper {
 		}
 	}
 	
-	public static String getMime(File file) {
-		try {
-			return getMime(MimeUtil.getMimeTypes(file));
-		} catch (Exception e) {
-			e.printStackTrace();
-			return default_mime;
-		}
-	}
 }

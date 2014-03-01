@@ -18,17 +18,13 @@ package hd3gtv.mydmam.analysis;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
-import hd3gtv.tools.MimeutilsWrapper;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,31 +54,12 @@ public class MetadataCenter implements CliModule {
 	 * name -> analyser
 	 */
 	private LinkedHashMap<String, Analyser> analysers;
-	private volatile List<Indexer> indexers;
+	private volatile List<MetadataCenterIndexer> indexers;
 	
 	public MetadataCenter() {
 		analysers = new LinkedHashMap<String, Analyser>();
 		addAnalyser(new FFprobeAnalyser());
-		indexers = new ArrayList<Indexer>();
-	}
-	
-	/**
-	 * If the file size/date change, this id will change
-	 */
-	public static String getUniqueElementKey(SourcePathIndexerElement element) {
-		StringBuffer sb = new StringBuffer();
-		sb.append(element.storagename);
-		sb.append(element.currentpath);
-		sb.append(element.size);
-		sb.append(element.date);
-		MessageDigest md;
-		try {
-			md = MessageDigest.getInstance("MD5");
-			md.update(sb.toString().getBytes());
-			return "mtd-" + MyDMAM.byteToString(md.digest());
-		} catch (NoSuchAlgorithmException e) {
-			throw new NullPointerException(e.getMessage());
-		}
+		indexers = new ArrayList<MetadataCenterIndexer>();
 	}
 	
 	public synchronized void addAnalyser(Analyser analyser) {
@@ -117,13 +94,13 @@ public class MetadataCenter implements CliModule {
 			throw new NullPointerException("\"currentpath\" can't to be null");
 		}
 		
-		Indexer indexer = new Indexer(this, client, force_refresh);
-		indexers.add(indexer);
-		indexer.process(storagename, currentpath, min_index_date);
-		indexers.remove(indexer);
+		MetadataCenterIndexer metadataCenterIndexer = new MetadataCenterIndexer(this, client, force_refresh);
+		indexers.add(metadataCenterIndexer);
+		metadataCenterIndexer.process(storagename, currentpath, min_index_date);
+		indexers.remove(metadataCenterIndexer);
 	}
 	
-	public synchronized void stopAnalysis() {
+	public void stopAnalysis() {
 		for (int pos = 0; pos < indexers.size(); pos++) {
 			indexers.get(pos).stop();
 		}
@@ -204,9 +181,9 @@ public class MetadataCenter implements CliModule {
 		try {
 			GetResponse response = null;
 			if (type == null) {
-				response = client.get(new GetRequest(ES_INDEX, ES_TYPE_SUMMARY, getUniqueElementKey(element))).actionGet();
+				response = client.get(new GetRequest(ES_INDEX, ES_TYPE_SUMMARY, MetadataCenterIndexer.getUniqueElementKey(element))).actionGet();
 			} else {
-				response = client.get(new GetRequest(ES_INDEX, type, getUniqueElementKey(element))).actionGet();
+				response = client.get(new GetRequest(ES_INDEX, type, MetadataCenterIndexer.getUniqueElementKey(element))).actionGet();
 			}
 			
 			if (response.isExists() == false) {
@@ -279,6 +256,9 @@ public class MetadataCenter implements CliModule {
 		return result;
 	}
 	
+	/**
+	 * Database independant
+	 */
 	public AnalysisResult standaloneAnalysis(File physical_source) throws Exception {
 		AnalysisResult analysis_result = new AnalysisResult();
 		analysis_result.origin = physical_source;
@@ -286,13 +266,12 @@ public class MetadataCenter implements CliModule {
 		if (physical_source.length() == 0) {
 			analysis_result.mimetype = "application/null";
 		} else {
-			analysis_result.mimetype = MimeutilsWrapper.getMime(physical_source);
+			analysis_result.mimetype = MimeExtract.getMime(physical_source);
 		}
 		
 		if (analysers.size() == 0) {
 			return analysis_result;
 		}
-		
 		analysis_result.processing_results = new LinkedHashMap<Analyser, JSONObject>(analysers.size());
 		
 		for (Map.Entry<String, Analyser> entry : analysers.entrySet()) {
@@ -330,6 +309,7 @@ public class MetadataCenter implements CliModule {
 				throw new FileNotFoundException(args.getSimpleParamValue("-a"));
 			}
 			
+			AnalysisResult result;
 			File[] files = dir_testformats.listFiles();
 			for (int pos = 0; pos < files.length; pos++) {
 				if (files[pos].isDirectory()) {
@@ -338,8 +318,15 @@ public class MetadataCenter implements CliModule {
 				if (files[pos].isHidden()) {
 					continue;
 				}
-				
-				Log2.log.info("Analysis", standaloneAnalysis(files[pos]));
+				result = standaloneAnalysis(files[pos]);
+				System.out.print(result.origin);
+				System.out.print("\t");
+				System.out.print(result.mimetype);
+				System.out.print("\t");
+				if (result.processing_results != null) {
+					System.out.print(result.processing_results);
+				}
+				System.out.println();
 			}
 			
 			return;
