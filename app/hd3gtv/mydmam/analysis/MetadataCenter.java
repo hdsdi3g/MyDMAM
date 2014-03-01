@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.analysis;
@@ -20,21 +20,18 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.cli.CliModule;
-import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
-import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
-import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.MimeutilsWrapper;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -61,11 +58,12 @@ public class MetadataCenter implements CliModule {
 	 * name -> analyser
 	 */
 	private LinkedHashMap<String, Analyser> analysers;
-	private Index index;
+	private volatile List<Indexer> indexers;
 	
 	public MetadataCenter() {
 		analysers = new LinkedHashMap<String, Analyser>();
 		addAnalyser(new FFprobeAnalyser());
+		indexers = new ArrayList<Indexer>();
 	}
 	
 	/**
@@ -119,234 +117,16 @@ public class MetadataCenter implements CliModule {
 			throw new NullPointerException("\"currentpath\" can't to be null");
 		}
 		
-		index = new Index(client, storagename, currentpath, min_index_date, force_refresh);
-		index.done();
-		index = null;
+		Indexer indexer = new Indexer(this, client, force_refresh);
+		indexers.add(indexer);
+		indexer.process(storagename, currentpath, min_index_date);
+		indexers.remove(indexer);
 	}
 	
 	public synchronized void stopAnalysis() {
-		if (index == null) {
-			return;
+		for (int pos = 0; pos < indexers.size(); pos++) {
+			indexers.get(pos).stop();
 		}
-		index.stop();
-	}
-	
-	private class Index implements IndexingEvent {
-		Client client;
-		Explorer explorer;
-		boolean force_refresh;
-		boolean stop_analysis;
-		BulkRequestBuilder bulkrequest;
-		
-		public Index(Client client, String storagename, String currentpath, long min_index_date, boolean force_refresh) throws Exception {
-			this.client = client;
-			this.force_refresh = force_refresh;
-			
-			bulkrequest = client.prepareBulk();
-			stop_analysis = false;
-			
-			explorer = new Explorer(client);
-			explorer.getAllSubElementsFromElementKey(Explorer.getElementKey(storagename, currentpath), min_index_date, this);
-		}
-		
-		public synchronized void stop() {
-			stop_analysis = true;
-		}
-		
-		public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
-			if (stop_analysis) {
-				return false;
-			}
-			
-			if (bulkrequest.numberOfActions() > 1000) {
-				done();
-				bulkrequest = client.prepareBulk();
-			}
-			
-			String element_key = element.prepare_key();
-			
-			boolean must_analyst = false;
-			ArrayList<SearchHit> valid_mtd_hit = new ArrayList<SearchHit>();
-			
-			if (force_refresh) {
-				must_analyst = true;
-			} else {
-				try {
-					/**
-					 * Search old metadatas element
-					 */
-					SearchRequestBuilder request = client.prepareSearch();
-					request.setIndices(ES_INDEX);
-					request.setQuery(QueryBuilders.termQuery("origin.key", element_key));
-					SearchHit[] hits = request.execute().actionGet().getHits().hits();
-					if (hits.length == 0) {
-						must_analyst = true;
-						/*Log2Dump dump = new Log2Dump();
-						dump.add("element_key", element_key);
-						dump.addAll(element);
-						Log2.log.debug("New element to analysis", dump);*/
-					} else {
-						Map<String, Object> mtd_element_source;
-						Map<String, Object> mtd_element;
-						long mtd_date;
-						long mtd_size;
-						
-						for (int pos = 0; pos < hits.length; pos++) {
-							if (stop_analysis) {
-								return false;
-							}
-							
-							/**
-							 * For all metadata elements for this source path indexed element
-							 */
-							mtd_element = hits[pos].getSource();
-							mtd_element_source = (Map<String, Object>) mtd_element.get("origin");
-							mtd_size = ((Number) mtd_element_source.get("size")).longValue();
-							mtd_date = ((Number) mtd_element_source.get("date")).longValue();
-							
-							if ((element.date != mtd_date) | (element.size != mtd_size)) {
-								bulkrequest.add(client.prepareDelete(ES_INDEX, hits[pos].getType(), hits[pos].getId()));
-								
-								Log2Dump dump = new Log2Dump();
-								dump.addAll(element);
-								dump.add("origin", mtd_element_source);
-								Log2.log.debug("Obsolete analysis", dump);
-								
-								must_analyst = true;
-							} else {
-								valid_mtd_hit.add(hits[pos]);
-							}
-						}
-					}
-				} catch (IndexMissingException ime) {
-					must_analyst = true;
-				}
-			}
-			
-			if (must_analyst == false) {
-				return true;
-			}
-			
-			File physical_source = Explorer.getLocalBridgedElement(element);
-			
-			if (stop_analysis) {
-				return false;
-			}
-			
-			Log2Dump dump = new Log2Dump();
-			dump.addAll(element);
-			dump.add("physical_source", physical_source);
-			dump.add("force_refresh", force_refresh);
-			Log2.log.debug("Analyst this", dump);
-			
-			/**
-			 * Test if real file exists and if it's valid
-			 */
-			if (physical_source == null) {
-				throw new IOException("Can't analyst element : there is no Configuration bridge for the \"" + element.storagename + "\" storage index name.");
-			}
-			if (physical_source.exists() == false) {
-				for (int pos = 0; pos < valid_mtd_hit.size(); pos++) {
-					bulkrequest.add(client.prepareDelete(ES_INDEX, valid_mtd_hit.get(pos).getType(), valid_mtd_hit.get(pos).getId()));
-					dump = new Log2Dump();
-					dump.add("ES_TYPE", valid_mtd_hit.get(pos).getType());
-					dump.add("ES_ID", valid_mtd_hit.get(pos).getId());
-					dump.add("physical_source", physical_source);
-					Log2.log.debug("Delete obsolete analysis : original file isn't exists", dump);
-				}
-				
-				bulkrequest.add(explorer.deleteRequestFileElement(element_key));
-				dump = new Log2Dump();
-				dump.add("key", element_key);
-				dump.add("physical_source", physical_source);
-				Log2.log.debug("Delete path element : original file isn't exists", dump);
-				
-				return true;
-			}
-			if (physical_source.isFile() == false) {
-				throw new IOException(physical_source.getPath() + " is not a file");
-			}
-			if (physical_source.canRead() == false) {
-				throw new IOException("Can't read " + physical_source.getPath());
-			}
-			
-			if (stop_analysis) {
-				return false;
-			}
-			
-			/**
-			 * Tests file size : must be constant
-			 */
-			long current_length = physical_source.length();
-			
-			if (element.size != current_length) {
-				/**
-				 * Ignore this file, the size isn't constant... May be this file is in copy ?
-				 */
-				return true;
-			}
-			
-			if (physical_source.exists() == false) {
-				/**
-				 * Ignore this file, it's deleted !
-				 */
-				return true;
-			}
-			
-			/**
-			 * Start real analysis
-			 */
-			String key = getUniqueElementKey(element);
-			
-			AnalysisResult analysis_result = null;
-			try {
-				analysis_result = standaloneAnalysis(physical_source);
-			} catch (ExecprocessBadExecutionException e) {
-				/**
-				 * Cancel analyst for this file : invalid file !
-				 */
-				return true;
-			}
-			
-			/**
-			 * Wrap result datas into JSON, and prepare push.
-			 */
-			JSONObject origin = new JSONObject();
-			origin.put("size", physical_source.length());
-			origin.put("date", physical_source.lastModified());
-			origin.put("key", element_key);
-			
-			JSONObject jo_summary = new JSONObject();
-			jo_summary.put("mimetype", analysis_result.mimetype);
-			jo_summary.put("origin", origin);
-			
-			if (analysis_result.processing_results != null) {
-				for (Map.Entry<Analyser, JSONObject> entry : analysis_result.processing_results.entrySet()) {
-					Analyser analyser = entry.getKey();
-					JSONObject processing_result = entry.getValue();
-					
-					entry.getValue().put("origin", origin);
-					bulkrequest.add(client.prepareIndex(ES_INDEX, analyser.getElasticSearchIndexType(), key).setSource(processing_result.toJSONString()));
-					jo_summary.put(analyser.getElasticSearchIndexType(), analyser.getSummary(processing_result));
-				}
-			}
-			
-			bulkrequest.add(client.prepareIndex(ES_INDEX, ES_TYPE_SUMMARY, key).setSource(jo_summary.toJSONString()));
-			return true;
-		}
-		
-		public void done() {
-			if (bulkrequest.numberOfActions() == 0) {
-				return;
-			}
-			BulkResponse bulkresponse = bulkrequest.execute().actionGet();
-			if (bulkresponse.hasFailures()) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("failure message", bulkresponse.buildFailureMessage());
-				Log2.log.error("ES errors during add/delete documents", null, dump);
-			}
-		}
-		
 	}
 	
 	/**
