@@ -30,6 +30,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.ObjectWriter;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
@@ -51,32 +53,33 @@ public class MetadataCenter implements CliModule {
 	public static final String ES_TYPE_SUMMARY = "summary";
 	
 	/**
-	 * name -> analyser
+	 * name -> provider
 	 */
-	private LinkedHashMap<String, Analyser> analysers;
+	private LinkedHashMap<String, MetadataProvider> providers;
 	private volatile List<MetadataCenterIndexer> indexers;
 	
 	public MetadataCenter() {
-		analysers = new LinkedHashMap<String, Analyser>();
+		providers = new LinkedHashMap<String, MetadataProvider>();
 		addAnalyser(new FFprobeAnalyser());
+		addAnalyser(new FFmpegSnapshoot());
 		indexers = new ArrayList<MetadataCenterIndexer>();
 	}
 	
-	public synchronized void addAnalyser(Analyser analyser) {
-		if (analyser == null) {
-			throw new NullPointerException("\"analyser\" can't to be null");
+	public synchronized void addAnalyser(MetadataProvider provider) {
+		if (provider == null) {
+			throw new NullPointerException("\"provider\" can't to be null");
 		}
-		if (analyser.isEnabled()) {
-			if (analysers.containsKey(analyser.getName())) {
+		if (provider.isEnabled()) {
+			if (providers.containsKey(provider.getName())) {
 				Log2Dump dump = new Log2Dump();
-				dump.add("this", analyser);
-				dump.add("previous", analysers.get(analyser.getName()));
-				Log2.log.info("Analyser with this name exists", dump);
+				dump.add("this", provider);
+				dump.add("previous", providers.get(provider.getName()));
+				Log2.log.info("Provider with this name exists", dump);
 			} else {
-				analysers.put(analyser.getName(), analyser);
+				providers.put(provider.getName(), provider);
 			}
 		} else {
-			Log2.log.info("Analyser " + analyser.getName() + " is disabled");
+			Log2.log.info("Provider " + provider.getName() + " is disabled");
 		}
 	}
 	
@@ -136,6 +139,7 @@ public class MetadataCenter implements CliModule {
 					getresponse = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_source_key)).actionGet();
 					if (getresponse.isExists() == false) {
 						bulkrequest.add(client.prepareDelete(ES_INDEX, hits[pos].getType(), hits[pos].getId()));
+						// TODO if mtd file, delete it
 					}
 					
 					count_remaining--;
@@ -259,7 +263,7 @@ public class MetadataCenter implements CliModule {
 	/**
 	 * Database independant
 	 */
-	public AnalysisResult standaloneAnalysis(File physical_source) throws Exception {
+	public AnalysisResult standaloneAnalysis(File physical_source, SourcePathIndexerElement reference) throws Exception {
 		AnalysisResult analysis_result = new AnalysisResult();
 		analysis_result.origin = physical_source;
 		
@@ -269,22 +273,49 @@ public class MetadataCenter implements CliModule {
 			analysis_result.mimetype = MimeExtract.getMime(physical_source);
 		}
 		
-		if (analysers.size() == 0) {
+		if (providers.size() == 0) {
 			return analysis_result;
 		}
-		analysis_result.processing_results = new LinkedHashMap<Analyser, JSONObject>(analysers.size());
+		analysis_result.processing_results = new LinkedHashMap<MetadataProvider, JSONObject>(providers.size());
 		
-		for (Map.Entry<String, Analyser> entry : analysers.entrySet()) {
-			Analyser analyser = entry.getValue();
-			if (analyser.canProcessThis(analysis_result.mimetype)) {
-				JSONObject jo_processing_result = analyser.process(physical_source);
-				if (jo_processing_result == null) {
-					continue;
+		for (Map.Entry<String, MetadataProvider> entry : providers.entrySet()) {
+			MetadataProvider provider = entry.getValue();
+			if (provider.canProcessThis(analysis_result.mimetype)) {
+				if (provider instanceof Analyser) {
+					Analyser analyser = (Analyser) provider;
+					JSONObject jo_processing_result = analyser.process(physical_source);
+					if (jo_processing_result == null) {
+						continue;
+					}
+					if (jo_processing_result.isEmpty()) {
+						continue;
+					}
+					analysis_result.processing_results.put(analyser, jo_processing_result);
+				} else if (provider instanceof Renderer) {
+					Renderer renderer = (Renderer) provider;
+					List<RenderedElement> renderedelements = renderer.process(physical_source);
+					if (renderedelements == null) {
+						continue;
+					}
+					if (renderedelements.size() == 0) {
+						continue;
+					}
+					
+					JSONObject jo_processing_result = new JSONObject();
+					for (int pos = 0; pos < renderedelements.size(); pos++) {
+						renderedelements.get(pos).consolidate("TESTSTORAGE", "mtd-123456789", reference, renderer);
+						JSONObject jo = renderedelements.get(pos).toDatabase();
+						jo_processing_result.put(renderer.getElasticSearchIndexType() + "-" + pos, jo);
+					}
+					analysis_result.processing_results.put(renderer, jo_processing_result);
+					
+					RenderedElement.cleanCurrentTempDirectory();
+				} else {
+					Log2Dump dump = new Log2Dump();
+					dump.add("provider class", provider);
+					dump.add("provider name", provider.getName());
+					Log2.log.error("Can't handle this MetadataProvider", null, dump);
 				}
-				if (jo_processing_result.isEmpty()) {
-					continue;
-				}
-				analysis_result.processing_results.put(analyser, jo_processing_result);
 			}
 		}
 		
@@ -300,6 +331,18 @@ public class MetadataCenter implements CliModule {
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
+		boolean verbose = args.getParamExist("-v");
+		boolean prettify = args.getParamExist("-vv");
+		
+		SourcePathIndexerElement spie = new SourcePathIndexerElement();
+		spie.currentpath = "/execCli/" + System.currentTimeMillis();
+		spie.date = System.currentTimeMillis();
+		spie.dateindex = spie.date;
+		spie.directory = false;
+		spie.parentpath = "/execCli";
+		spie.size = 0;
+		spie.storagename = "Test_MyDMAM_CLI";
+		
 		if (args.getParamExist("-a")) {
 			File dir_testformats = new File(args.getSimpleParamValue("-a"));
 			if (dir_testformats.exists() == false) {
@@ -318,13 +361,26 @@ public class MetadataCenter implements CliModule {
 				if (files[pos].isHidden()) {
 					continue;
 				}
-				result = standaloneAnalysis(files[pos]);
+				result = standaloneAnalysis(files[pos], spie);
 				System.out.print(result.origin);
 				System.out.print("\t");
 				System.out.print(result.mimetype);
 				System.out.print("\t");
-				if (result.processing_results != null) {
-					System.out.print(result.processing_results);
+				if ((result.processing_results != null) & (verbose | prettify)) {
+					for (Map.Entry<MetadataProvider, JSONObject> entry : result.processing_results.entrySet()) {
+						System.out.println();
+						System.out.print("\t\t");
+						System.out.print(entry.getKey().getName());
+						System.out.print(" [");
+						System.out.print(entry.getKey().getElasticSearchIndexType());
+						System.out.print("]");
+						System.out.print("\t");
+						if (prettify) {
+							System.out.print(json_prettify(entry.getValue()));
+						} else {
+							System.out.print(entry.getValue().toJSONString());
+						}
+					}
 				}
 				System.out.println();
 			}
@@ -337,7 +393,21 @@ public class MetadataCenter implements CliModule {
 	public void showFullCliModuleHelp() {
 		System.out.println("Usage");
 		System.out.println(" * standalone directory analysis: ");
-		System.out.println("   " + getCliModuleName() + " -a /full/path");
+		System.out.println("   " + getCliModuleName() + " -a /full/path [-v | -vv]");
+		System.out.println("   -v verbose");
+		System.out.println("   -vv verbose and prettify");
 	}
 	
+	public static String json_prettify(JSONObject json) {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectWriter writer = mapper.writer().withDefaultPrettyPrinter();
+		try {
+			return writer.writeValueAsString(json);
+		} catch (Exception e) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("json", json);
+			Log2.log.error("Bad JSON prettify, cancel it", e);
+			return json.toJSONString();
+		}
+	}
 }

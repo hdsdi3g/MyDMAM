@@ -16,3 +16,6 @@ transcodingprofiles:
         type : ffmpeg
         command : "-progress <%$PROGRESSFILE%> -i <%$INPUTFILE%> -i <%$VAR=logo%> -s 640x360 -codec:v h264 -b:v 400k -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
         logo : /opt/logo 16-9 720x576.png
+    ffmpeg_snapshoot_first : 
+        type : ffmpeg
+        command : "-i <%$INPUTFILE%> -y -ss 00:00:01.000 -vframes 1 -f image2 <%$OUTPUTFILE%>"

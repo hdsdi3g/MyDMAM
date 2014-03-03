@@ -55,6 +55,14 @@ public abstract class ServiceManager implements ServiceInformations {
 		}
 	}
 	
+	public static String getInstancePID() {
+		if (instancenamepid == null) {
+			instancenamepid = ManagementFactory.getRuntimeMXBean().getName();
+			instancenamepid = instancenamepid.substring(0, instancenamepid.indexOf("@"));
+		}
+		return instancenamepid;
+	}
+	
 	protected abstract void startApplicationService() throws Exception;
 	
 	protected abstract void stopApplicationService() throws Exception;

@@ -11,19 +11,19 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
 package hd3gtv.mydmam.analysis;
 
-import java.io.File;
-
-import org.json.simple.JSONObject;
-
-interface Analyser extends MetadataProvider {
+interface MetadataProvider {
 	
-	String getSummary(JSONObject processresult);
+	boolean canProcessThis(String mimetype);
 	
-	JSONObject process(File file) throws Exception;
+	boolean isEnabled();
+	
+	String getName();
+	
+	String getElasticSearchIndexType();
 	
 }

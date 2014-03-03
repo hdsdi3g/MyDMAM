@@ -17,6 +17,9 @@
 package hd3gtv.mydmam.cli;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2FilterType;
+import hd3gtv.log2.Log2Level;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.analysis.MetadataCenter;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
@@ -34,6 +37,8 @@ public class MainClass {
 		Configuration.importLog2Configuration(Configuration.global, false);
 		
 		MyDMAM.testIllegalKeySize();
+		
+		Log2.log.createFilter("hd3gtv.mydmam.transcode.TranscodeProfileManager.refreshProfileslist", Log2Level.INFO, Log2FilterType.HIDE);
 		
 		ApplicationArgs appargs = new ApplicationArgs(args);
 		

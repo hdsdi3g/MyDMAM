@@ -227,7 +227,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 		
 		AnalysisResult analysis_result = null;
 		try {
-			analysis_result = metadatacenter.standaloneAnalysis(physical_source);
+			analysis_result = metadatacenter.standaloneAnalysis(physical_source, element);
 		} catch (ExecprocessBadExecutionException e) {
 			/**
 			 * Cancel analyst for this file : invalid file !
@@ -248,13 +248,15 @@ class MetadataCenterIndexer implements IndexingEvent {
 		jo_summary.put("origin", origin);
 		
 		if (analysis_result.processing_results != null) {
-			for (Map.Entry<Analyser, JSONObject> entry : analysis_result.processing_results.entrySet()) {
-				Analyser analyser = entry.getKey();
+			for (Map.Entry<MetadataProvider, JSONObject> entry : analysis_result.processing_results.entrySet()) {
+				MetadataProvider provider = entry.getKey();
 				JSONObject processing_result = entry.getValue();
 				
 				entry.getValue().put("origin", origin);
-				bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, analyser.getElasticSearchIndexType(), key).setSource(processing_result.toJSONString()));
-				jo_summary.put(analyser.getElasticSearchIndexType(), analyser.getSummary(processing_result));
+				bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, provider.getElasticSearchIndexType(), key).setSource(processing_result.toJSONString()));
+				if (provider instanceof Analyser) {
+					jo_summary.put(provider.getElasticSearchIndexType(), ((Analyser) provider).getSummary(processing_result));
+				}
 			}
 		}
 		

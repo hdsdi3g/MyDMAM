@@ -23,15 +23,13 @@ import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.ObjectWriter;
 import org.json.simple.JSONObject;
 
 public class AnalysisResult implements Log2Dumpable {
 	
 	File origin;
 	String mimetype;
-	LinkedHashMap<Analyser, JSONObject> processing_results;
+	LinkedHashMap<MetadataProvider, JSONObject> processing_results;
 	
 	AnalysisResult() {
 	}
@@ -44,7 +42,7 @@ public class AnalysisResult implements Log2Dumpable {
 		return origin;
 	}
 	
-	public LinkedHashMap<Analyser, JSONObject> getProcessing_results() {
+	public LinkedHashMap<MetadataProvider, JSONObject> getProcessing_results() {
 		return processing_results;
 	}
 	
@@ -53,23 +51,14 @@ public class AnalysisResult implements Log2Dumpable {
 		dump.add("origin", origin);
 		dump.add("mimetype", mimetype);
 		if (processing_results != null) {
-			for (Map.Entry<Analyser, JSONObject> entry : processing_results.entrySet()) {
-				dump.add(entry.getKey().getName() + "/summary", entry.getKey().getSummary(entry.getValue()));
-				dump.add(entry.getKey().getName() + "/full", json_prettify(entry.getValue()));
+			for (Map.Entry<MetadataProvider, JSONObject> entry : processing_results.entrySet()) {
+				if (entry.getKey() instanceof Analyser) {
+					dump.add(entry.getKey().getName() + "/summary", ((Analyser) entry.getKey()).getSummary(entry.getValue()));
+				}
+				dump.add(entry.getKey().getName() + "/full", MetadataCenter.json_prettify(entry.getValue()));
 			}
 		}
 		return dump;
 	}
 	
-	public static String json_prettify(JSONObject json) {
-		ObjectMapper mapper = new ObjectMapper();
-		// MyClass myObject = mapper.readValue( new FileReader("input.json"), MyClass.class);
-		ObjectWriter writer = mapper.writer().withDefaultPrettyPrinter();
-		try {
-			return writer.writeValueAsString(json);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return json.toJSONString();
-		}
-	}
 }

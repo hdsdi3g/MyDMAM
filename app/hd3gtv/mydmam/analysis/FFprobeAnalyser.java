@@ -92,7 +92,7 @@ public class FFprobeAnalyser implements Analyser {
 		return "ffprobe";
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public static boolean canProcessThisVideoOnly(String mimetype) {
 		if (mimetype.equalsIgnoreCase("application/gxf")) return true;
 		if (mimetype.equalsIgnoreCase("application/lxf")) return true;
 		if (mimetype.equalsIgnoreCase("application/mxf")) return true;
@@ -109,7 +109,10 @@ public class FFprobeAnalyser implements Analyser {
 		if (mimetype.equalsIgnoreCase("video/3gpp")) return true;
 		if (mimetype.equalsIgnoreCase("video/x-ms-wmv")) return true;
 		if (mimetype.equalsIgnoreCase("video/msvideo")) return true;
-		
+		return false;
+	}
+	
+	public static boolean canProcessThisAudioOnly(String mimetype) {
 		if (mimetype.equalsIgnoreCase("audio/ac3")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-ms-wmv")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-hx-aac-adts")) return true;
@@ -136,6 +139,7 @@ public class FFprobeAnalyser implements Analyser {
 		if (mimetype.equalsIgnoreCase("audio/mp4")) return true;
 		if (mimetype.equalsIgnoreCase("audio/mpeg")) return true;
 		if (mimetype.equalsIgnoreCase("audio/ogg")) return true;
+		
 		if (mimetype.equalsIgnoreCase("audio/vnd.dolby.heaac.1")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vnd.dolby.heaac.2")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vnd.dolby.mlp")) return true;
@@ -148,6 +152,12 @@ public class FFprobeAnalyser implements Analyser {
 		if (mimetype.equalsIgnoreCase("audio/vnd.dts")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vnd.dts.hd")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vorbis")) return true;
+		return false;
+	}
+	
+	public boolean canProcessThis(String mimetype) {
+		if (canProcessThisVideoOnly(mimetype)) return true;
+		if (canProcessThisAudioOnly(mimetype)) return true;
 		return false;
 	}
 	

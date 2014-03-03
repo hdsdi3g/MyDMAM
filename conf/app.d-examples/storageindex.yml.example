@@ -12,3 +12,7 @@ storageindex_bridge:
 
 analysing_storageindexes:
     LABEL2: /this/will/be/analysed/regulary
+
+analysing_renderer:
+    temp_directory: /tmp
+    local_directory: /mnt/shared-previews

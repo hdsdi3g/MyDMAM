@@ -77,6 +77,10 @@ public class TranscodeProfile extends Profile {
 		throw new NullPointerException("No <outputfile/> in command check configuration.");
 	}
 	
+	public ArrayList<String> makeCommandline(String source_file_path, String dest_file_path) {
+		return makeCommandline(source_file_path, dest_file_path, null);
+	}
+	
 	public ArrayList<String> makeCommandline(String source_file_path, String dest_file_path, String progress_file_path) {
 		ArrayList<String> cmdline = new ArrayList<String>();
 		
