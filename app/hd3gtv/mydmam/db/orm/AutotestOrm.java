@@ -18,6 +18,7 @@ package hd3gtv.mydmam.db.orm;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.MyDMAM;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -113,18 +114,6 @@ public class AutotestOrm extends OrmModel {
 		return result;
 	}
 	
-	private static String byteToString(byte[] b) {
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < b.length; i++) {
-			int v = b[i] & 0xFF;
-			if (v < 16) {
-				sb.append(0);
-			}
-			sb.append(Integer.toString(v, 16).toLowerCase());
-		}
-		return sb.toString();
-	}
-	
 	public boolean check(int index) {
 		AutotestOrm result = populate(index);
 		Log2Dump dump = new Log2Dump();
@@ -160,9 +149,9 @@ public class AutotestOrm extends OrmModel {
 			dump.add("origin", result.dlbvalue);
 			checkresult = false;
 		}
-		if (byteToString(result.bytvalue).equals(byteToString(bytvalue)) == false) {
-			dump.add("bytvalue", byteToString(bytvalue));
-			dump.add("origin", byteToString(result.bytvalue));
+		if (MyDMAM.byteToString(result.bytvalue).equals(MyDMAM.byteToString(bytvalue)) == false) {
+			dump.add("bytvalue", MyDMAM.byteToString(bytvalue));
+			dump.add("origin", MyDMAM.byteToString(result.bytvalue));
 			checkresult = false;
 		}
 		if (result.sbuvalue.toString().equals(sbuvalue.toString()) == false) {

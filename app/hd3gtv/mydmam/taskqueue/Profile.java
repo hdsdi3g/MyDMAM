@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.taskqueue;
 
+import hd3gtv.mydmam.MyDMAM;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -102,7 +104,7 @@ public class Profile {
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			md.update(message);
-			return "profile_" + Broker.byteToString(md.digest()).substring(0, 16);
+			return "profile_" + MyDMAM.byteToString(md.digest()).substring(0, 16);
 		} catch (NoSuchAlgorithmException e) {
 			throw new NullPointerException("NoSuchAlgorithmException !");
 		}

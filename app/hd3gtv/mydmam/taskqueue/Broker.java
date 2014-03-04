@@ -20,6 +20,7 @@ import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.DeployColumnDef;
@@ -310,18 +311,6 @@ public class Broker {
 		return count;
 	}
 	
-	final static String byteToString(byte[] b) {
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < b.length; i++) {
-			int v = b[i] & 0xFF;
-			if (v < 16) {
-				sb.append(0);
-			}
-			sb.append(Integer.toString(v, 16).toLowerCase());
-		}
-		return sb.toString();
-	}
-	
 	static String createKey(String prefix, String salt) {
 		StringBuffer sb = new StringBuffer();
 		sb.append(System.currentTimeMillis());
@@ -332,7 +321,7 @@ public class Broker {
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			md.update(sb.toString().getBytes());
-			return prefix + ":" + byteToString(md.digest());
+			return prefix + ":" + MyDMAM.byteToString(md.digest());
 		} catch (NoSuchAlgorithmException e) {
 			throw new NullPointerException("NoSuchAlgorithmException ! " + e.getMessage());
 		}

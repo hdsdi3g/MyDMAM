@@ -18,6 +18,7 @@ package hd3gtv.mydmam.db;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.MyDMAM;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -93,18 +94,6 @@ public class BackupDb {
 			Log2.log.error("End backup...", null);
 		}
 		
-	}
-	
-	public static String byteToString(byte[] b) {
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < b.length; i++) {
-			int v = b[i] & 0xFF;
-			if (v < 16) {
-				sb.append(0);
-			}
-			sb.append(Integer.toString(v, 16).toLowerCase());
-		}
-		return sb.toString();
 	}
 	
 	private class ExportCassandra implements AllRowsFoundRow {
@@ -189,7 +178,7 @@ public class BackupDb {
 				if (mode_debug) {
 					atts.addAttribute("", "", "at_date", "CDATA", (new Date(column.getTimestamp() / 1000)).toString());
 					if (column.getStringValue().equals(columnvalue) == false) {
-						atts.addAttribute("", "", "hex_value", "CDATA", byteToString(column.getByteArrayValue()));
+						atts.addAttribute("", "", "hex_value", "CDATA", MyDMAM.byteToString(column.getByteArrayValue()));
 					}
 				}
 				
