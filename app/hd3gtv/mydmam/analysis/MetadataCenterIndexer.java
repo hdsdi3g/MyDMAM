@@ -132,7 +132,8 @@ class MetadataCenterIndexer implements IndexingEvent {
 						mtd_date = ((Number) mtd_element_source.get("date")).longValue();
 						
 						if ((element.date != mtd_date) | (element.size != mtd_size)) {
-							bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, hits[pos].getType(), hits[pos].getId())); // TODO delete mtd file
+							bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, hits[pos].getType(), hits[pos].getId()));
+							RenderedElement.purge(hits[pos].getId());
 							
 							Log2Dump dump = new Log2Dump();
 							dump.addAll(element);
@@ -174,7 +175,9 @@ class MetadataCenterIndexer implements IndexingEvent {
 		}
 		if (physical_source.exists() == false) {
 			for (int pos = 0; pos < valid_mtd_hit.size(); pos++) {
-				bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, valid_mtd_hit.get(pos).getType(), valid_mtd_hit.get(pos).getId())); // TODO delete mtd file
+				bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, valid_mtd_hit.get(pos).getType(), valid_mtd_hit.get(pos).getId()));
+				RenderedElement.purge(valid_mtd_hit.get(pos).getId());
+				
 				dump = new Log2Dump();
 				dump.add("ES_TYPE", valid_mtd_hit.get(pos).getType());
 				dump.add("ES_ID", valid_mtd_hit.get(pos).getId());
@@ -182,7 +185,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 				Log2.log.debug("Delete obsolete analysis : original file isn't exists", dump);
 			}
 			
-			bulkrequest.add(explorer.deleteRequestFileElement(element_key)); // TODO delete mtd file
+			bulkrequest.add(explorer.deleteRequestFileElement(element_key));
 			dump = new Log2Dump();
 			dump.add("key", element_key);
 			dump.add("physical_source", physical_source);

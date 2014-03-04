@@ -139,7 +139,7 @@ public class MetadataCenter implements CliModule {
 					getresponse = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_source_key)).actionGet();
 					if (getresponse.isExists() == false) {
 						bulkrequest.add(client.prepareDelete(ES_INDEX, hits[pos].getType(), hits[pos].getId()));
-						// TODO if mtd file, delete it
+						RenderedElement.purge(hits[pos].getId());
 					}
 					
 					count_remaining--;
@@ -159,17 +159,18 @@ public class MetadataCenter implements CliModule {
 				}
 			}
 			
-			if (bulkrequest.numberOfActions() == 0) {
-				return;
-			} else {
+			if (bulkrequest.numberOfActions() > 0) {
 				Log2.log.info("Remove " + bulkrequest.numberOfActions() + " orphan element(s)");
+				BulkResponse bulkresponse = bulkrequest.execute().actionGet();
+				if (bulkresponse.hasFailures()) {
+					Log2Dump dump = new Log2Dump();
+					dump.add("failure message", bulkresponse.buildFailureMessage());
+					Log2.log.error("ES errors during add/delete documents", null, dump);
+				}
 			}
-			BulkResponse bulkresponse = bulkrequest.execute().actionGet();
-			if (bulkresponse.hasFailures()) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("failure message", bulkresponse.buildFailureMessage());
-				Log2.log.error("ES errors during add/delete documents", null, dump);
-			}
+			
+			RenderedElement.gc(client);
+			
 		} catch (IndexMissingException ime) {
 			Log2.log.info("No metadatas exists in database, no clean to do");
 		}

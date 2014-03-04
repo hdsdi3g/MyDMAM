@@ -37,6 +37,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Random;
 
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.client.Client;
 import org.json.simple.JSONObject;
 
 import com.eaio.uuid.UUID;
@@ -104,7 +107,6 @@ public class RenderedElement {
 	private String extention;
 	private File rendered_file;
 	private File temp_file;
-	private String storageindexname;
 	private String metadata_reference_id;
 	private String rendered_base_file_name;
 	private Renderer renderer;
@@ -165,7 +167,6 @@ public class RenderedElement {
 		if (source_element == null) {
 			throw new NullPointerException("\"source_element\" can't to be null");
 		}
-		storageindexname = source_element.storagename;
 		metadata_reference_id = MetadataCenterIndexer.getUniqueElementKey(source_element);
 		
 		this.renderer = renderer;
@@ -263,7 +264,6 @@ public class RenderedElement {
 		commit_log.info("Mime", dump);
 		
 		dump = new Log2Dump();
-		dump.add("storageindexname", storageindexname);
 		dump.add("metadata_reference_id", metadata_reference_id);
 		dump.add("source_element", source_element);
 		dump.add("renderer name", renderer.getName());
@@ -281,8 +281,6 @@ public class RenderedElement {
 	private File createBase_Directory_Dest() throws IOException {
 		StringBuffer sb_base_directory_dest = new StringBuffer();
 		sb_base_directory_dest.append(local_directory.getCanonicalPath());
-		sb_base_directory_dest.append(File.separator);
-		sb_base_directory_dest.append(storageindexname);
 		sb_base_directory_dest.append(File.separator);
 		sb_base_directory_dest.append(metadata_reference_id.substring(0, 6));
 		sb_base_directory_dest.append(File.separator);
@@ -409,5 +407,99 @@ public class RenderedElement {
 		}
 		commit_log_files.clear();
 		temp_directory.delete();
+	}
+	
+	static void purge(String metadata_reference_id) {
+		if (metadata_reference_id == null) {
+			throw new NullPointerException("\"mtd_id\" can't to be null");
+		}
+		if (metadata_reference_id.equals("")) {
+			return;
+		}
+		
+		StringBuffer sb_base_directory_dest = new StringBuffer();
+		sb_base_directory_dest.append(local_directory.getAbsolutePath());
+		sb_base_directory_dest.append(File.separator);
+		sb_base_directory_dest.append(metadata_reference_id.substring(0, 6));
+		
+		File base_dir_lvl1 = new File(sb_base_directory_dest.toString());
+		if (base_dir_lvl1.exists() == false) {
+			return;
+		}
+		
+		sb_base_directory_dest.append(File.separator);
+		sb_base_directory_dest.append(metadata_reference_id.substring(6));
+		
+		File base_dir_lvl2 = new File(sb_base_directory_dest.toString());
+		if (base_dir_lvl2.exists() == false) {
+			return;
+		}
+		
+		File[] deleteall = base_dir_lvl2.listFiles();
+		for (int pos = 0; pos < deleteall.length; pos++) {
+			deleteall[pos].delete();
+		}
+		base_dir_lvl2.delete();
+		
+		if (base_dir_lvl2.exists()) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("directory", base_dir_lvl2);
+			Log2.log.error("Can't delete", null, dump);
+		}
+		
+		if (base_dir_lvl1.list().length == 0) {
+			base_dir_lvl1.delete();
+			if (base_dir_lvl1.exists()) {
+				Log2Dump dump = new Log2Dump();
+				dump.add("directory", base_dir_lvl1);
+				Log2.log.error("Can't delete", null, dump);
+			}
+		}
+	}
+	
+	static void gc(Client client) {
+		if (client == null) {
+			throw new NullPointerException("\"client\" can't to be null");
+		}
+		
+		GetResponse getresponse;
+		File[] mtddir;
+		File[] allrootelements = local_directory.listFiles();
+		String element_source_key;
+		
+		for (int pos = 0; pos < allrootelements.length; pos++) {
+			if (allrootelements[pos].exists() == false) {
+				continue;
+			}
+			if (allrootelements[pos].isDirectory() == false) {
+				Log2Dump dump = new Log2Dump();
+				dump.add("rootelements", allrootelements[pos]);
+				Log2.log.error("Element is not a directory, delete it", null, dump);
+				allrootelements[pos].delete();
+				continue;
+			}
+			mtddir = allrootelements[pos].listFiles();
+			for (int pos_mtd = 0; pos_mtd < mtddir.length; pos_mtd++) {
+				if (allrootelements[pos].exists() == false) {
+					break;
+				}
+				if (mtddir[pos_mtd].exists() == false) {
+					continue;
+				}
+				if (mtddir[pos_mtd].isDirectory() == false) {
+					Log2Dump dump = new Log2Dump();
+					dump.add("mtddir", mtddir[pos_mtd]);
+					Log2.log.error("Element is not a directory, delete it", null, dump);
+					allrootelements[pos].delete();
+					continue;
+				}
+				element_source_key = allrootelements[pos].getName() + mtddir[pos_mtd].getName();
+				getresponse = client.get(new GetRequest(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, element_source_key)).actionGet();
+				if (getresponse.isExists() == false) {
+					RenderedElement.purge(element_source_key);
+				}
+			}
+		}
+		
 	}
 }
