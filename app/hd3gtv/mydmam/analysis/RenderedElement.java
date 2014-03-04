@@ -20,11 +20,21 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.LogHandlerToLogfile;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Random;
 
 import org.json.simple.JSONObject;
@@ -35,10 +45,17 @@ public class RenderedElement {
 	
 	private static File temp_directory;
 	private static File local_directory;
+	private static String digest_algorithm;
 	private static volatile Random random;
+	private static volatile ArrayList<File> commit_log_files;
 	
 	static {
 		try {
+			commit_log_files = new ArrayList<File>();
+			
+			digest_algorithm = "MD5";
+			MessageDigest.getInstance(digest_algorithm);
+			
 			temp_directory = new File(Configuration.global.getValue("analysing_renderer", "temp_directory", (new File("")).getAbsolutePath()));
 			if (temp_directory.exists() == false) {
 				throw new FileNotFoundException(temp_directory.getPath());
@@ -76,10 +93,13 @@ public class RenderedElement {
 			}
 			
 			random = new Random();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			Log2.log.error("Can't init, check configuration analysing_renderer element", e);
 		}
+		
 	}
+	
+	private Log2 commit_log;
 	
 	private String extention;
 	private File rendered_file;
@@ -90,6 +110,7 @@ public class RenderedElement {
 	private Renderer renderer;
 	private boolean consolidated;
 	private String rendered_mime;
+	private String rendered_digest;
 	
 	/**
 	 * Create a file like temp_directory/serviceinstancename/
@@ -102,6 +123,8 @@ public class RenderedElement {
 		}
 		
 		consolidated = false;
+		
+		temp_directory.mkdirs();
 		if (temp_directory.exists() == false) {
 			throw new IOException("Can't access to local temp dir directory: " + temp_directory.getPath());
 		}
@@ -119,28 +142,32 @@ public class RenderedElement {
 			this.extention = extention;
 		}
 		
+		File commit_log_file = new File(temp_directory.getAbsolutePath() + File.separator + uuid.toString() + "-commit.log");
+		commit_log_files.add(commit_log_file);
+		commit_log = new Log2(new LogHandlerToLogfile(commit_log_file, 0xFFFFF, 100));
+		
 		temp_file = new File(sb.toString());
 		if (temp_file.createNewFile()) {
 			temp_file.delete();
 		}
+		
+		Log2Dump dump = new Log2Dump();
+		dump.add("rendered_base_file_name", rendered_base_file_name);
+		dump.add("extention", extention);
+		commit_log.info("Prepare temporary file", dump);
 	}
 	
 	public File getTempFile() {
 		return temp_file;
 	}
 	
-	private void checkConsolidate(String storageindexname, String metadata_reference_id, SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
-		this.storageindexname = storageindexname;
-		if (storageindexname == null) {
-			throw new NullPointerException("\"storageindexname\" can't to be null");
-		}
-		this.metadata_reference_id = metadata_reference_id;
-		if (metadata_reference_id == null) {
-			throw new NullPointerException("\"referenceid\" can't to be null");
-		}
+	private void checkConsolidate(SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
 		if (source_element == null) {
 			throw new NullPointerException("\"source_element\" can't to be null");
 		}
+		storageindexname = source_element.storagename;
+		metadata_reference_id = MetadataCenterIndexer.getUniqueElementKey(source_element);
+		
 		this.renderer = renderer;
 		if (renderer == null) {
 			throw new NullPointerException("\"renderer\" can't to be null");
@@ -166,11 +193,11 @@ public class RenderedElement {
 	/**
 	 * storageindexname/metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extention
 	 */
-	void consolidate(String storageindexname, String metadata_reference_id, SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
+	void consolidate(SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
 		if (consolidated) {
 			return;
 		}
-		checkConsolidate(storageindexname, metadata_reference_id, source_element, renderer);
+		checkConsolidate(source_element, renderer);
 		
 		File f_base_directory_dest = createBase_Directory_Dest();
 		
@@ -179,31 +206,76 @@ public class RenderedElement {
 			/**
 			 * Search an available file name
 			 */
+			Log2Dump dump = new Log2Dump();
+			dump.add("rendered_file", rendered_file);
+			commit_log.info("Searching new temporary file name...", dump);
+			
 			rendered_file = nextRandomFile(f_base_directory_dest);
 		}
 		
-		if (temp_file.renameTo(rendered_file) == false) {
-			// TODO move temp_file to rendered_file (copy + md5)
-			throw new IOException("Can't move rendered_file: \"" + temp_file.getPath() + "\" to \"" + rendered_file.getPath() + "\"");
+		MessageDigest mdigest = null;
+		try {
+			mdigest = MessageDigest.getInstance(digest_algorithm);
+		} catch (NoSuchAlgorithmException e) {
 		}
+		
+		Log2Dump dump = new Log2Dump();
+		dump.add("temp_file", temp_file);
+		dump.add("rendered_file", rendered_file);
+		commit_log.info("Prepare consolidate", dump);
+		
+		BufferedInputStream source_stream = new BufferedInputStream(new FileInputStream(temp_file), 0xFFF);
+		OutputStream dest_stream = new FileOutputStream(rendered_file);
+		int len;
+		byte[] buffer = new byte[0xFFF];
+		
+		commit_log.info("Start copy");
+		while ((len = source_stream.read(buffer)) > 0) {
+			dest_stream.write(buffer, 0, len);
+			mdigest.update(buffer, 0, len);
+		}
+		commit_log.info("End copy");
+		dest_stream.close();
+		source_stream.close();
+		
+		dump = new Log2Dump();
+		dump.add("temp_file", temp_file);
+		dump.add("ok", temp_file.delete());
+		commit_log.info("Delete temp file", dump);
+		
+		rendered_digest = MyDMAM.byteToString(mdigest.digest());
+		
+		dump = new Log2Dump();
+		dump.add("rendered_file", rendered_file);
+		dump.add("rendered_digest", rendered_digest);
+		commit_log.info("Digest", dump);
+		
+		FileWriter fw = new FileWriter(new File(rendered_file + "." + digest_algorithm.toLowerCase()));
+		fw.write(rendered_digest + "\r\n");
+		fw.close();
+		commit_log.info("Write digest side-car");
 		
 		rendered_mime = MimeExtract.getMime(rendered_file);
 		
-		/*
-		String storageindexname, String metadata_reference_id, SourcePathIndexerElement source_element, Renderer renderer
-		*/
+		dump = new Log2Dump();
+		dump.add("rendered_file", rendered_file);
+		dump.add("rendered_mime", rendered_mime);
+		commit_log.info("Mime", dump);
 		
-		Log2Dump dump = new Log2Dump();
+		dump = new Log2Dump();
 		dump.add("storageindexname", storageindexname);
 		dump.add("metadata_reference_id", metadata_reference_id);
 		dump.add("source_element", source_element);
 		dump.add("renderer name", renderer.getName());
 		dump.add("rendered_file", rendered_file);
 		dump.add("rendered_mime", rendered_mime);
+		dump.add("rendered_digest", rendered_digest);
 		Log2.log.info("Consolidate rendered file", dump);
 		
-		// TODO commit log
 		consolidated = true;
+		
+		dump = new Log2Dump();
+		commit_log.info("End consolidate", dump);
 	}
 	
 	private File createBase_Directory_Dest() throws IOException {
@@ -231,7 +303,9 @@ public class RenderedElement {
 		sb_rendered_file.append(File.separator);
 		sb_rendered_file.append(rendered_base_file_name);
 		sb_rendered_file.append("_");
-		sb_rendered_file.append(random.nextInt(1000));
+		byte[] b = new byte[2];
+		random.nextBytes(b);
+		sb_rendered_file.append(MyDMAM.byteToString(b).toUpperCase());
 		sb_rendered_file.append(extention);
 		return new File(sb_rendered_file.toString());
 	}
@@ -258,7 +332,7 @@ public class RenderedElement {
 		jo.put("name", rendered_file.getName());
 		jo.put("size", rendered_file.length());
 		jo.put("date", rendered_file.lastModified());
-		jo.put("hash", "000"); // TODO hash
+		jo.put("hash", rendered_digest);
 		jo.put("producer", renderer.getName());
 		jo.put("mime", rendered_mime);
 		return jo;
@@ -299,13 +373,41 @@ public class RenderedElement {
 		}
 		
 		if (check_hash) {
-			// TODO jo.get("hash", "000");
+			String db_digest = (String) renderfromdatabase.get("hash");
+			
+			MessageDigest mdigest = null;
+			try {
+				mdigest = MessageDigest.getInstance(digest_algorithm);
+			} catch (NoSuchAlgorithmException e) {
+			}
+			BufferedInputStream source_stream = new BufferedInputStream(new FileInputStream(rendered_file), 0xFFF);
+			int len;
+			byte[] buffer = new byte[0xFFF];
+			while ((len = source_stream.read(buffer)) > 0) {
+				mdigest.update(buffer, 0, len);
+			}
+			source_stream.close();
+			String file_digest = MyDMAM.byteToString(mdigest.digest());
+			
+			if (file_digest.equalsIgnoreCase(db_digest) == false) {
+				Log2Dump dump = new Log2Dump();
+				dump.add("source", sb_rendered_file);
+				dump.add("source", file_digest);
+				dump.add("expected", renderfromdatabase.toJSONString());
+				dump.add("expected", db_digest);
+				Log2.log.error("Invalid " + digest_algorithm + " check", null, dump);
+				throw new FileNotFoundException("Rendered file has not the expected content " + sb_rendered_file.toString());
+			}
 		}
 		
 		return rendered_file;
 	}
 	
-	static void cleanCurrentTempDirectory() {
+	static synchronized void cleanCurrentTempDirectory() {
+		for (int pos = 0; pos < commit_log_files.size(); pos++) {
+			commit_log_files.get(pos).delete();
+		}
+		commit_log_files.clear();
 		temp_directory.delete();
 	}
 }

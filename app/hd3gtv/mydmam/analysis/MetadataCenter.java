@@ -303,7 +303,7 @@ public class MetadataCenter implements CliModule {
 					
 					JSONObject jo_processing_result = new JSONObject();
 					for (int pos = 0; pos < renderedelements.size(); pos++) {
-						renderedelements.get(pos).consolidate("TESTSTORAGE", "mtd-123456789", reference, renderer);
+						renderedelements.get(pos).consolidate(reference, renderer);
 						JSONObject jo = renderedelements.get(pos).toDatabase();
 						jo_processing_result.put(renderer.getElasticSearchIndexType() + "-" + pos, jo);
 					}
