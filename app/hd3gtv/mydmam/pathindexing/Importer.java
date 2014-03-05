@@ -19,13 +19,16 @@ package hd3gtv.mydmam.pathindexing;
 import hd3gtv.javasimpleservice.ServiceMessageError;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.Elasticsearch;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
+import org.json.simple.parser.ParseException;
 
 public abstract class Importer {
 	
@@ -36,12 +39,18 @@ public abstract class Importer {
 	private Client client;
 	private int window_update_size;
 	
-	public Importer(Client client) {
+	/**
+	 * Test if GC need to be activated on ES
+	 */
+	public Importer(Client client) throws IOException, ParseException {
 		this.client = client;
 		if (client == null) {
 			throw new NullPointerException("\"client\" can't to be null");
 		}
 		window_update_size = 10000;
+		
+		Elasticsearch.enableTTL(client, ES_INDEX, ES_TYPE_FILE);
+		Elasticsearch.enableTTL(client, ES_INDEX, ES_TYPE_DIRECTORY);
 	}
 	
 	/**

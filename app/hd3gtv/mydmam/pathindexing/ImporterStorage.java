@@ -23,7 +23,10 @@ import hd3gtv.storage.IgnoreFiles;
 import hd3gtv.storage.StorageListing;
 import hd3gtv.storage.StorageManager;
 
+import java.io.IOException;
+
 import org.elasticsearch.client.Client;
+import org.json.simple.parser.ParseException;
 
 public class ImporterStorage extends Importer {
 	
@@ -32,7 +35,7 @@ public class ImporterStorage extends Importer {
 	private long ttl;
 	private boolean stop;
 	
-	public ImporterStorage(Client client, String storagename, String poolname, long ttl) {
+	public ImporterStorage(Client client, String storagename, String poolname, long ttl) throws IOException, ParseException {
 		super(client);
 		this.storagename = storagename;
 		if (storagename == null) {

@@ -21,7 +21,9 @@ import hd3gtv.configuration.ConfigurationClusterItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -151,12 +153,10 @@ public class Elasticsearch {
 		return null;
 	}
 	
-	public static void enableTTL(String index_name, String type) throws IOException {
-		Client client = createClient();
+	public static void enableTTL(Client client, String index_name, String type) throws IOException, ParseException {
 		if (client.admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists() == false) {
 			return;
 		}
-		client.close();
 		
 		StringBuffer sb_url = new StringBuffer();
 		sb_url.append("http://");
@@ -170,6 +170,38 @@ public class Elasticsearch {
 		
 		URL url = new URL(sb_url.toString());
 		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+		connection.setRequestMethod("GET");
+		connection.setDoOutput(true);
+		connection.setRequestProperty("Content-Type", "application/json");
+		connection.setRequestProperty("Accept", "application/json");
+		
+		InputStream isr = connection.getInputStream();
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		
+		int len;
+		byte[] buffer = new byte[0xFFF];
+		while ((len = isr.read(buffer)) > 0) {
+			baos.write(buffer, 0, len);
+		}
+		connection.disconnect();
+		
+		JSONParser jsonparser = new JSONParser();
+		JSONObject jo_root = (JSONObject) jsonparser.parse(new String(baos.toByteArray()));
+		JSONObject jo_type = (JSONObject) jo_root.get(type);
+		if (jo_type.containsKey("_ttl")) {
+			JSONObject jo_ttl = (JSONObject) jo_type.get("_ttl");
+			boolean isenabledvalue = (Boolean) jo_ttl.get("enabled");
+			if (isenabledvalue) {
+				return;
+			}
+		}
+		
+		Log2Dump dump = new Log2Dump();
+		dump.add("index_name", index_name);
+		dump.add("type", type);
+		Log2.log.info("Activate TTL on ES", dump);
+		
+		connection = (HttpURLConnection) url.openConnection();
 		connection.setRequestMethod("PUT");
 		connection.setDoOutput(true);
 		connection.setRequestProperty("Content-Type", "application/json");
@@ -194,7 +226,6 @@ public class Elasticsearch {
 		}
 		
 	}
-	
 	/*
 	CloseIndexRequest cir = new CloseIndexRequest("pathindex");
 	CloseIndexResponse ciresp = client.admin().indices().close(cir).actionGet();

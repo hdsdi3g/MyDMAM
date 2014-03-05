@@ -239,7 +239,11 @@ public class CliModuleOperateDatabase implements CliModule {
 				}
 				String index_name = ttltoset.split("/")[0];
 				String type = ttltoset.split("/")[1];
-				Elasticsearch.enableTTL(index_name, type);
+				
+				Client client = Elasticsearch.createClient();
+				Elasticsearch.enableTTL(client, index_name, type);
+				client.close();
+				
 				return;
 			}
 		}

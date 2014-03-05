@@ -30,13 +30,14 @@ import java.io.InputStreamReader;
 import java.util.Calendar;
 
 import org.elasticsearch.client.Client;
+import org.json.simple.parser.ParseException;
 
 public class ImporterCDFinder extends Importer {
 	
 	private File filetoimport;
 	private String poolname;
 	
-	public ImporterCDFinder(Client client, File filetoimport, String poolname) throws FileNotFoundException {
+	public ImporterCDFinder(Client client, File filetoimport, String poolname) throws IOException, ParseException {
 		super(client);
 		this.filetoimport = filetoimport;
 		if (filetoimport == null) {
