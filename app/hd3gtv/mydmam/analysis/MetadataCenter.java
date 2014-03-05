@@ -282,40 +282,48 @@ public class MetadataCenter implements CliModule {
 		for (Map.Entry<String, MetadataProvider> entry : providers.entrySet()) {
 			MetadataProvider provider = entry.getValue();
 			if (provider.canProcessThis(analysis_result.mimetype)) {
-				if (provider instanceof Analyser) {
-					Analyser analyser = (Analyser) provider;
-					JSONObject jo_processing_result = analyser.process(physical_source);
-					if (jo_processing_result == null) {
-						continue;
+				try {
+					if (provider instanceof Analyser) {
+						Analyser analyser = (Analyser) provider;
+						JSONObject jo_processing_result = analyser.process(physical_source);
+						if (jo_processing_result == null) {
+							continue;
+						}
+						if (jo_processing_result.isEmpty()) {
+							continue;
+						}
+						analysis_result.processing_results.put(analyser, jo_processing_result);
+					} else if (provider instanceof Renderer) {
+						Renderer renderer = (Renderer) provider;
+						List<RenderedElement> renderedelements = renderer.process(physical_source);
+						if (renderedelements == null) {
+							continue;
+						}
+						if (renderedelements.size() == 0) {
+							continue;
+						}
+						
+						JSONObject jo_processing_result = new JSONObject();
+						for (int pos = 0; pos < renderedelements.size(); pos++) {
+							renderedelements.get(pos).consolidate(reference, renderer);
+							JSONObject jo = renderedelements.get(pos).toDatabase();
+							jo_processing_result.put(renderer.getElasticSearchIndexType() + "-" + pos, jo);
+						}
+						analysis_result.processing_results.put(renderer, jo_processing_result);
+						
+						RenderedElement.cleanCurrentTempDirectory();
+					} else {
+						Log2Dump dump = new Log2Dump();
+						dump.add("provider class", provider);
+						dump.add("provider name", provider.getName());
+						Log2.log.error("Can't handle this MetadataProvider", null, dump);
 					}
-					if (jo_processing_result.isEmpty()) {
-						continue;
-					}
-					analysis_result.processing_results.put(analyser, jo_processing_result);
-				} else if (provider instanceof Renderer) {
-					Renderer renderer = (Renderer) provider;
-					List<RenderedElement> renderedelements = renderer.process(physical_source);
-					if (renderedelements == null) {
-						continue;
-					}
-					if (renderedelements.size() == 0) {
-						continue;
-					}
-					
-					JSONObject jo_processing_result = new JSONObject();
-					for (int pos = 0; pos < renderedelements.size(); pos++) {
-						renderedelements.get(pos).consolidate(reference, renderer);
-						JSONObject jo = renderedelements.get(pos).toDatabase();
-						jo_processing_result.put(renderer.getElasticSearchIndexType() + "-" + pos, jo);
-					}
-					analysis_result.processing_results.put(renderer, jo_processing_result);
-					
-					RenderedElement.cleanCurrentTempDirectory();
-				} else {
+				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
 					dump.add("provider class", provider);
 					dump.add("provider name", provider.getName());
-					Log2.log.error("Can't handle this MetadataProvider", null, dump);
+					dump.add("physical_source", physical_source);
+					Log2.log.error("Can't analyst/render file", e, dump);
 				}
 			}
 		}

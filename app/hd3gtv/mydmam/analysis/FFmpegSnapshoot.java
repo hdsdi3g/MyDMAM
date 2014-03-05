@@ -54,6 +54,8 @@ public class FFmpegSnapshoot implements Renderer {
 		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
 		RenderedElement element = new RenderedElement("snap", ".png");
 		
+		// TODO file has video stream ??
+		
 		TranscodeProfile tprofile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
 		ArrayList<String> param = tprofile.makeCommandline(file.getAbsolutePath(), element.getTempFile().getAbsolutePath());
 		
