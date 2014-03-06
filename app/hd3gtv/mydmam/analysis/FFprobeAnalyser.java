@@ -23,10 +23,12 @@ import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst;
+import hd3gtv.tools.VideoConst.AudioSampling;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.json.simple.JSONArray;
@@ -47,7 +49,7 @@ public class FFprobeAnalyser implements Analyser {
 		return (new File(ffprobe_bin)).exists();
 	}
 	
-	public JSONObject process(File file) throws Exception {
+	public JSONObject process(AnalysisResult analysis_result) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-show_streams");
 		param.add("-show_format");
@@ -55,7 +57,7 @@ public class FFprobeAnalyser implements Analyser {
 		param.add("-print_format");
 		param.add("json");
 		param.add("-i");
-		param.add(file.getPath());
+		param.add(analysis_result.origin.getPath());
 		
 		ExecprocessGettext process = new ExecprocessGettext(ffprobe_bin, param);
 		process.setEndlinewidthnewline(true);
@@ -63,14 +65,13 @@ public class FFprobeAnalyser implements Analyser {
 			process.start();
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
+				Log2Dump dump = new Log2Dump();
+				dump.add("file", analysis_result.origin);
+				dump.add("mime", analysis_result.mimetype);
 				if (process.getRunprocess().getExitvalue() == 1) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("file", file);
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					Log2.log.error("Invalid data found when processing input", null, dump);
 				} else {
-					Log2Dump dump = new Log2Dump();
-					dump.add("file", file);
 					dump.add("stdout", process.getResultstdout().toString().trim());
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					dump.add("exitcode", process.getRunprocess().getExitvalue());
@@ -336,4 +337,56 @@ public class FFprobeAnalyser implements Analyser {
 		return translated_codecs_names.getProperty(ffmpeg_name.toLowerCase(), ffmpeg_name);
 	}
 	
+	public static List<JSONObject> getStreamNode(JSONObject processresult, String codec_type) {
+		if (processresult.containsKey("streams") == false) {
+			return null;
+		}
+		JSONArray streams = (JSONArray) processresult.get("streams");
+		ArrayList<JSONObject> stream_list = new ArrayList<JSONObject>();
+		for (int pos = 0; pos < streams.size(); pos++) {
+			JSONObject stream = (JSONObject) streams.get(pos);
+			if (((String) stream.get("codec_type")).equalsIgnoreCase(codec_type)) {
+				stream_list.add(stream);
+			}
+		}
+		if (stream_list.isEmpty()) {
+			return null;
+		}
+		return stream_list;
+	}
+	
+	public static boolean hasVideo(JSONObject processresult) {
+		List<JSONObject> streams = getStreamNode(processresult, "video");
+		return (streams != null);
+	}
+	
+	public static boolean hasAudio(JSONObject processresult) {
+		List<JSONObject> streams = getStreamNode(processresult, "audio");
+		return (streams != null);
+	}
+	
+	/**
+	 * @return the first valid value if there are more one audio stream.
+	 */
+	public static AudioSampling getAudioSampling(JSONObject processresult) {
+		List<JSONObject> streams = getStreamNode(processresult, "audio");
+		if (streams == null) {
+			return null;
+		}
+		
+		for (int pos = 0; pos < streams.size(); pos++) {
+			JSONObject stream = streams.get(pos);
+			Object samplerate = stream.get("sample_rate");
+			if (samplerate == null) {
+				continue;
+			}
+			if (samplerate instanceof String) {
+				return AudioSampling.parseAS((String) samplerate);
+			}
+			if (samplerate instanceof Integer) {
+				return AudioSampling.parseAS(Integer.toString((Integer) samplerate));
+			}
+		}
+		return null;
+	}
 }

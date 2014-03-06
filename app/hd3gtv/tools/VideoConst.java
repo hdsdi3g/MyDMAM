@@ -17,6 +17,9 @@
 
 package hd3gtv.tools;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+
 import java.awt.Point;
 
 public final class VideoConst {
@@ -534,5 +537,106 @@ public final class VideoConst {
 		sb.append(" ");
 		sb.append(systemvideo.getSummary());
 		return sb.toString();
+	}
+	
+	public enum AudioSampling {
+		FQ_48000, FQ_44100, FQ_32000, FQ_88200, FQ_96000, FQ_192000, FQ_22050, FQ_176400, FQ_64000, FQ_16000, FQ_11025, FQ_8000, FQ_6000, OTHER;
+		
+		public int toInt() {
+			if (this == FQ_48000) {
+				return 48000;
+			}
+			if (this == FQ_44100) {
+				return 44100;
+			}
+			if (this == FQ_32000) {
+				return 32000;
+			}
+			if (this == FQ_88200) {
+				return 88200;
+			}
+			if (this == FQ_96000) {
+				return 96000;
+			}
+			if (this == FQ_192000) {
+				return 192000;
+			}
+			if (this == FQ_22050) {
+				return 22050;
+			}
+			if (this == FQ_176400) {
+				return 176400;
+			}
+			if (this == FQ_64000) {
+				return 64000;
+			}
+			if (this == FQ_16000) {
+				return 16000;
+			}
+			if (this == FQ_11025) {
+				return 11025;
+			}
+			if (this == FQ_8000) {
+				return 8000;
+			}
+			if (this == FQ_6000) {
+				return 6000;
+			}
+			return -1;
+		}
+		
+		public static AudioSampling parseAS(String value) {
+			String intvalue = value;
+			if (value.toUpperCase().startsWith("FQ_")) {
+				intvalue = value.substring(3);
+			}
+			int ivalue = -1;
+			try {
+				ivalue = Integer.parseInt(intvalue);
+			} catch (NumberFormatException e) {
+				Log2.log.error("Can't parse audio frequency value", e, new Log2Dump("rawvalue", value));
+				return null;
+			}
+			if (ivalue == 48000) {
+				return FQ_48000;
+			}
+			if (ivalue == 44100) {
+				return FQ_44100;
+			}
+			if (ivalue == 32000) {
+				return FQ_32000;
+			}
+			if (ivalue == 88200) {
+				return FQ_88200;
+			}
+			if (ivalue == 96000) {
+				return FQ_96000;
+			}
+			if (ivalue == 192000) {
+				return FQ_192000;
+			}
+			if (ivalue == 22050) {
+				return FQ_22050;
+			}
+			if (ivalue == 176400) {
+				return FQ_176400;
+			}
+			if (ivalue == 64000) {
+				return FQ_64000;
+			}
+			if (ivalue == 16000) {
+				return FQ_16000;
+			}
+			if (ivalue == 11025) {
+				return FQ_11025;
+			}
+			if (ivalue == 8000) {
+				return FQ_8000;
+			}
+			if (ivalue == 6000) {
+				return FQ_6000;
+			}
+			return OTHER;
+		}
 	}
 }
