@@ -20,6 +20,8 @@ import org.json.simple.JSONObject;
 
 interface Analyser extends MetadataProvider {
 	
+	public static final String METADATA_PROVIDER_ANALYSER = "analyser";
+	
 	String getSummary(JSONObject processresult);
 	
 	JSONObject process(AnalysisResult analysis_result) throws Exception;

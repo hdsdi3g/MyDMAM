@@ -20,6 +20,10 @@ import java.util.List;
 
 interface Renderer extends MetadataProvider {
 	
+	public static final String METADATA_PROVIDER_RENDERER = "renderer";
+	
+	public static final String METADATA_PROVIDER_RENDERER_CONTENT = "content";
+	
 	/**
 	 * You don't need to consolidate rendered elements
 	 */

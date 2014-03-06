@@ -54,9 +54,6 @@ public class FFmpegSnapshoot implements Renderer {
 	}
 	
 	public List<RenderedElement> process(AnalysisResult analysis_result) throws Exception {
-		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
-		RenderedElement element = new RenderedElement("snap", ".png");
-		
 		/**
 		 * There are video streams in this file ?
 		 */
@@ -68,6 +65,9 @@ public class FFmpegSnapshoot implements Renderer {
 				break;
 			}
 		}
+		
+		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
+		RenderedElement element = new RenderedElement("snap", ".png");
 		
 		TranscodeProfile tprofile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
 		ArrayList<String> param = tprofile.makeCommandline(analysis_result.origin.getAbsolutePath(), element.getTempFile().getAbsolutePath());

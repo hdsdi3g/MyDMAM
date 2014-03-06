@@ -43,6 +43,7 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -51,6 +52,8 @@ public class MetadataCenter implements CliModule {
 	
 	public static final String ES_INDEX = "metadata";
 	public static final String ES_TYPE_SUMMARY = "summary";
+	
+	public static final String METADATA_PROVIDER_TYPE = "metadata-provider-type";
 	
 	/**
 	 * name -> provider
@@ -292,6 +295,7 @@ public class MetadataCenter implements CliModule {
 						if (jo_processing_result.isEmpty()) {
 							continue;
 						}
+						jo_processing_result.put(METADATA_PROVIDER_TYPE, Analyser.METADATA_PROVIDER_ANALYSER);
 						analysis_result.processing_results.put(analyser, jo_processing_result);
 					} else if (provider instanceof Renderer) {
 						Renderer renderer = (Renderer) provider;
@@ -303,12 +307,14 @@ public class MetadataCenter implements CliModule {
 							continue;
 						}
 						
-						JSONObject jo_processing_result = new JSONObject();
+						JSONArray ja_files = new JSONArray();
 						for (int pos = 0; pos < renderedelements.size(); pos++) {
 							renderedelements.get(pos).consolidate(reference, renderer);
-							JSONObject jo = renderedelements.get(pos).toDatabase();
-							jo_processing_result.put(renderer.getElasticSearchIndexType() + "-" + pos, jo);
+							ja_files.add(renderedelements.get(pos).toDatabase());
 						}
+						JSONObject jo_processing_result = new JSONObject();
+						jo_processing_result.put(Renderer.METADATA_PROVIDER_RENDERER_CONTENT, ja_files);
+						jo_processing_result.put(METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER);
 						analysis_result.processing_results.put(renderer, jo_processing_result);
 						
 						RenderedElement.cleanCurrentTempDirectory();
