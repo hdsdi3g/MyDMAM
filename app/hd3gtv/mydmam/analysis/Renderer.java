@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.analysis;
 
-import java.io.File;
 import java.util.List;
 
 interface Renderer extends MetadataProvider {
@@ -24,7 +23,7 @@ interface Renderer extends MetadataProvider {
 	/**
 	 * You don't need to consolidate rendered elements
 	 */
-	List<RenderedElement> process(File file) throws Exception;
+	List<RenderedElement> process(AnalysisResult analysis_result) throws Exception;
 	
 	String getElasticSearchIndexType();
 	

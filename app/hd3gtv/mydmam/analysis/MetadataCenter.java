@@ -179,7 +179,7 @@ public class MetadataCenter implements CliModule {
 	/**
 	 * @param type if null, use default (summary).
 	 */
-	public static JSONObject getMetadatas(Client client, SourcePathIndexerElement element, String type) throws IndexMissingException {
+	public static JSONObject getMetadatas(Client client, SourcePathIndexerElement element, String type) throws IndexMissingException {// TODO get mtd files refs
 		if (element == null) {
 			throw new NullPointerException("\"pathelementskeys\" can't to be null");
 		}
@@ -209,7 +209,7 @@ public class MetadataCenter implements CliModule {
 		}
 	}
 	
-	public static JSONObject getMetadatas(Client client, String[] pathelementskeys, boolean full_metadatas) throws IndexMissingException {
+	public static JSONObject getMetadatas(Client client, String[] pathelementskeys, boolean full_metadatas) throws IndexMissingException {// TODO get mtd files refs
 		if (pathelementskeys == null) {
 			throw new NullPointerException("\"pathelementskeys\" can't to be null");
 		}
@@ -285,7 +285,7 @@ public class MetadataCenter implements CliModule {
 				try {
 					if (provider instanceof Analyser) {
 						Analyser analyser = (Analyser) provider;
-						JSONObject jo_processing_result = analyser.process(physical_source);
+						JSONObject jo_processing_result = analyser.process(analysis_result);
 						if (jo_processing_result == null) {
 							continue;
 						}
@@ -295,7 +295,7 @@ public class MetadataCenter implements CliModule {
 						analysis_result.processing_results.put(analyser, jo_processing_result);
 					} else if (provider instanceof Renderer) {
 						Renderer renderer = (Renderer) provider;
-						List<RenderedElement> renderedelements = renderer.process(physical_source);
+						List<RenderedElement> renderedelements = renderer.process(analysis_result);
 						if (renderedelements == null) {
 							continue;
 						}

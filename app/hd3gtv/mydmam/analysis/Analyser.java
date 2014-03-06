@@ -16,14 +16,12 @@
 */
 package hd3gtv.mydmam.analysis;
 
-import java.io.File;
-
 import org.json.simple.JSONObject;
 
 interface Analyser extends MetadataProvider {
 	
 	String getSummary(JSONObject processresult);
 	
-	JSONObject process(File file) throws Exception;
+	JSONObject process(AnalysisResult analysis_result) throws Exception;
 	
 }
