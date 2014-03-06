@@ -30,6 +30,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.MessageDigest;
@@ -39,8 +40,16 @@ import java.util.Random;
 
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.search.SearchHit;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import com.eaio.uuid.UUID;
 
@@ -465,6 +474,7 @@ public class RenderedElement {
 		GetResponse getresponse;
 		File[] mtddir;
 		File[] allrootelements = local_directory.listFiles();
+		File[] mtdfiles;
 		String element_source_key;
 		
 		for (int pos = 0; pos < allrootelements.length; pos++) {
@@ -497,6 +507,86 @@ public class RenderedElement {
 				getresponse = client.get(new GetRequest(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, element_source_key)).actionGet();
 				if (getresponse.isExists() == false) {
 					RenderedElement.purge(element_source_key);
+					continue;
+				}
+				
+				try {
+					mtdfiles = mtddir[pos_mtd].listFiles(new FilenameFilter() {
+						public boolean accept(File dir, String name) {
+							if (name.toLowerCase().endsWith("." + digest_algorithm.toLowerCase())) return false;
+							return true;
+						}
+					});
+					
+					if (mtdfiles == null) {
+						continue;
+					}
+					
+					/**
+					 * Search all rendered files for this mtd element_source_key
+					 */
+					SearchRequestBuilder request = client.prepareSearch();
+					request.setIndices(MetadataCenter.ES_INDEX);
+					
+					BoolQueryBuilder query = QueryBuilders.boolQuery();
+					query.must(QueryBuilders.termQuery("_id", element_source_key));
+					query.must(QueryBuilders.termQuery(MetadataCenter.METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER));
+					request.setQuery(query);// field
+					
+					SearchHit[] hits = request.execute().actionGet().getHits().hits();
+					
+					JSONParser parser = new JSONParser();
+					JSONObject current_mtd;
+					JSONArray currect_content;
+					JSONObject content_rendered_element;
+					
+					ArrayList<String> elements_name = new ArrayList<String>();
+					
+					/**
+					 * Get all rendered files references from db
+					 */
+					for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
+						parser.reset();
+						current_mtd = (JSONObject) parser.parse(hits[pos_hits].getSourceAsString());
+						if (current_mtd.containsKey(Renderer.METADATA_PROVIDER_RENDERER_CONTENT) == false) {
+							continue;
+						}
+						currect_content = ((JSONArray) current_mtd.get(Renderer.METADATA_PROVIDER_RENDERER_CONTENT));
+						
+						for (int pos_content = 0; pos_content < currect_content.size(); pos_content++) {
+							content_rendered_element = (JSONObject) currect_content.get(pos_content);
+							elements_name.add((String) content_rendered_element.get("name"));
+						}
+					}
+					
+					/**
+					 * Search for each real rendered file, a presence in database.
+					 */
+					for (int pos_mtdf = 0; pos_mtdf < mtdfiles.length; pos_mtdf++) {
+						boolean founded = false;
+						for (int pos_dbf = 0; pos_dbf < elements_name.size(); pos_dbf++) {
+							if (mtdfiles[pos_mtdf].getName().equals(elements_name.get(pos_dbf))) {
+								founded = true;
+								break;
+							}
+						}
+						if (founded == false) {
+							/**
+							 * Delete old rendered file
+							 */
+							Log2.log.info("Delete old metadata file", new Log2Dump("file", mtdfiles[pos_mtdf]));
+							mtdfiles[pos_mtdf].delete();
+							/**
+							 * Delete MD5 file
+							 */
+							(new File(mtdfiles[pos_mtdf].getPath() + "." + digest_algorithm.toLowerCase())).delete();
+						}
+					}
+				} catch (IndexMissingException e) {
+					continue;
+				} catch (ParseException e) {
+					Log2.log.error("Invalid ES response", e);
+					continue;
 				}
 			}
 		}
