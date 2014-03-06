@@ -29,6 +29,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import org.json.simple.JSONObject;
 
 public class FFmpegSnapshoot implements Renderer {
 	
@@ -50,14 +53,24 @@ public class FFmpegSnapshoot implements Renderer {
 		return "FFmpeg Snapshoot";
 	}
 	
-	public List<RenderedElement> process(File file) throws Exception {
+	public List<RenderedElement> process(AnalysisResult analysis_result) throws Exception {
 		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
 		RenderedElement element = new RenderedElement("snap", ".png");
 		
-		// TODO file has video stream ??
+		/**
+		 * There are video streams in this file ?
+		 */
+		for (Map.Entry<MetadataProvider, JSONObject> entry : analysis_result.processing_results.entrySet()) {
+			if (entry.getKey() instanceof FFprobeAnalyser) {
+				if (FFprobeAnalyser.hasVideo(entry.getValue()) == false) {
+					return null;
+				}
+				break;
+			}
+		}
 		
 		TranscodeProfile tprofile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
-		ArrayList<String> param = tprofile.makeCommandline(file.getAbsolutePath(), element.getTempFile().getAbsolutePath());
+		ArrayList<String> param = tprofile.makeCommandline(analysis_result.origin.getAbsolutePath(), element.getTempFile().getAbsolutePath());
 		
 		ExecprocessGettext process = new ExecprocessGettext(ffmpeg_bin, param);
 		process.setEndlinewidthnewline(true);
@@ -65,14 +78,13 @@ public class FFmpegSnapshoot implements Renderer {
 			process.start();
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
+				Log2Dump dump = new Log2Dump();
+				dump.add("file", analysis_result.origin);
+				dump.add("mime", analysis_result.mimetype);
 				if (process.getRunprocess().getExitvalue() == 1) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("file", file);
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					Log2.log.error("Invalid data found when processing input", null, dump);
 				} else {
-					Log2Dump dump = new Log2Dump();
-					dump.add("file", file);
 					dump.add("stdout", process.getResultstdout().toString().trim());
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					dump.add("exitcode", process.getRunprocess().getExitvalue());
