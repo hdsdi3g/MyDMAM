@@ -68,7 +68,11 @@ public class RenderedElement {
 			digest_algorithm = "MD5";
 			MessageDigest.getInstance(digest_algorithm);
 			
-			temp_directory = new File(Configuration.global.getValue("analysing_renderer", "temp_directory", (new File("")).getAbsolutePath()));
+			if (Configuration.global.isElementExists("analysing_renderer") == false) {
+				throw new NullPointerException("Can't found analysing_renderer element in configuration");
+			}
+			
+			temp_directory = new File(Configuration.global.getValue("analysing_renderer", "temp_directory", (new File("/tmp")).getAbsolutePath()));
 			if (temp_directory.exists() == false) {
 				throw new FileNotFoundException(temp_directory.getPath());
 			}
@@ -90,7 +94,7 @@ public class RenderedElement {
 			temp_directory = new File(sb.toString());
 			temp_directory.mkdirs();
 			
-			local_directory = new File(Configuration.global.getValue("analysing_renderer", "local_directory", (new File("")).getAbsolutePath()));
+			local_directory = new File(Configuration.global.getValue("analysing_renderer", "local_directory", null));
 			if (local_directory.exists() == false) {
 				throw new FileNotFoundException(local_directory.getPath());
 			}
@@ -469,6 +473,10 @@ public class RenderedElement {
 	static void gc(Client client) {
 		if (client == null) {
 			throw new NullPointerException("\"client\" can't to be null");
+		}
+		
+		if (local_directory == null) {
+			return;
 		}
 		
 		GetResponse getresponse;
