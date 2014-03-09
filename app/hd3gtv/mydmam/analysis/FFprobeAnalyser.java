@@ -49,7 +49,7 @@ public class FFprobeAnalyser implements Analyser {
 		return (new File(ffprobe_bin)).exists();
 	}
 	
-	public JSONObject process(AnalysisResult analysis_result) throws Exception {
+	public JSONObject process(MetadataIndexerResult analysis_result) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-show_streams");
 		param.add("-show_format");
@@ -114,6 +114,7 @@ public class FFprobeAnalyser implements Analyser {
 	}
 	
 	public static boolean canProcessThisAudioOnly(String mimetype) {
+		if (mimetype.equalsIgnoreCase("audio/x-wav")) return true;
 		if (mimetype.equalsIgnoreCase("audio/ac3")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-ms-wmv")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-hx-aac-adts")) return true;
