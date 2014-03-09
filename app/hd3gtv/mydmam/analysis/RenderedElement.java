@@ -20,6 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.LogHandlerToLogfile;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -53,7 +54,7 @@ import org.json.simple.parser.ParseException;
 
 import com.eaio.uuid.UUID;
 
-public class RenderedElement {
+public class RenderedElement implements Log2Dumpable {
 	
 	private static File temp_directory;
 	private static File local_directory;
@@ -599,5 +600,19 @@ public class RenderedElement {
 			}
 		}
 		
+	}
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("consolidated", consolidated);
+		dump.add("renderer", renderer);
+		dump.add("rendered_file", rendered_file);
+		dump.add("rendered_mime", rendered_mime);
+		dump.add("rendered_digest", rendered_digest);
+		dump.add("rendered_base_file_name", rendered_base_file_name);
+		dump.add("extention", extention);
+		dump.add("metadata_reference_id", metadata_reference_id);
+		dump.add("temp_file", temp_file);
+		return dump;
 	}
 }

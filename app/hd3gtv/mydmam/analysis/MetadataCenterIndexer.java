@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -38,6 +40,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 class MetadataCenterIndexer implements IndexingEvent {
@@ -228,9 +231,9 @@ class MetadataCenterIndexer implements IndexingEvent {
 		 */
 		String key = getUniqueElementKey(element);
 		
-		AnalysisResult analysis_result = null;
+		MetadataIndexerResult indexing_result = null;
 		try {
-			analysis_result = metadatacenter.standaloneAnalysis(physical_source, element);
+			indexing_result = metadatacenter.standaloneIndexing(physical_source, element);
 		} catch (ExecprocessBadExecutionException e) {
 			/**
 			 * Cancel analyst for this file : invalid file !
@@ -247,20 +250,63 @@ class MetadataCenterIndexer implements IndexingEvent {
 		origin.put("key", element_key);
 		
 		JSONObject jo_summary = new JSONObject();
-		jo_summary.put("mimetype", analysis_result.mimetype);
+		jo_summary.put("mimetype", indexing_result.mimetype);
 		jo_summary.put("origin", origin);
+		JSONObject jo_summary_previews = new JSONObject();
 		
-		if (analysis_result.processing_results != null) {
-			for (Map.Entry<MetadataProvider, JSONObject> entry : analysis_result.processing_results.entrySet()) {
-				MetadataProvider provider = entry.getKey();
+		PreviewType previewtype;
+		JSONObject previewconfiguration;
+		
+		if (indexing_result.analysis_results != null) {
+			for (Map.Entry<Analyser, JSONObject> entry : indexing_result.analysis_results.entrySet()) {
+				Analyser analyser = entry.getKey();
 				JSONObject processing_result = entry.getValue();
 				
 				entry.getValue().put("origin", origin);
-				bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, provider.getElasticSearchIndexType(), key).setSource(processing_result.toJSONString()));
-				if (provider instanceof Analyser) {
-					jo_summary.put(provider.getElasticSearchIndexType(), ((Analyser) provider).getSummary(processing_result));
+				bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, analyser.getElasticSearchIndexType(), key).setSource(processing_result.toJSONString()));
+				jo_summary.put(analyser.getElasticSearchIndexType(), analyser.getSummary(processing_result));
+			}
+		}
+		
+		LinkedHashMap<Renderer, JSONArray> rendering_results = indexing_result.makeJSONRendering_results();
+		if (rendering_results != null) {
+			for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
+				Renderer renderer = entry.getKey();
+				JSONObject processing_result = new JSONObject();
+				processing_result.put("origin", origin);
+				processing_result.put(MetadataCenter.METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER);
+				processing_result.put(Renderer.METADATA_PROVIDER_RENDERER_CONTENT, entry.getValue());
+				bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, renderer.getElasticSearchIndexType(), key).setSource(processing_result.toJSONString()));
+				
+				previewtype = renderer.getPreviewType(indexing_result);
+				if (previewtype != null) {
+					JSONObject preview_content = new JSONObject();
+					List<RenderedElement> r_elements = indexing_result.rendering_results.get(renderer);
+					
+					if (r_elements.size() == 1) {
+						preview_content.put("file", r_elements.get(0).getRendered_file().getName());
+					} else {
+						JSONArray ja_elements_list = new JSONArray();
+						for (int pos_re = 0; pos_re < r_elements.size(); pos_re++) {
+							ja_elements_list.add(r_elements.get(pos_re).getRendered_file().getName());
+						}
+						preview_content.put("files", ja_elements_list);
+					}
+					
+					previewconfiguration = renderer.getPreviewConfiguration(previewtype, indexing_result);
+					if (previewconfiguration != null) {
+						if (previewconfiguration.isEmpty() == false) {
+							preview_content.put("conf", previewconfiguration);
+						}
+					}
+					preview_content.put("type", renderer.getElasticSearchIndexType());
+					jo_summary_previews.put(previewtype.toString(), preview_content);
 				}
 			}
+		}
+		
+		if (jo_summary_previews.isEmpty() == false) {
+			jo_summary.put("previews", jo_summary_previews);
 		}
 		
 		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, key).setSource(jo_summary.toJSONString()));

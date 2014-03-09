@@ -199,13 +199,17 @@ function addMetadatasToSearchListItems() {
 					var count = 0;
 					var title = "";
 					for (var metadata in metadatas.summary) {
-						if (metadata != "mimetype") {
-							count++;
-							if (title != "") {
-								title = title + " - ";
-							}
-							title = title + metadatas.summary[metadata];
+						if (metadata == "mimetype") {
+							continue;
 						}
+						if (metadata == "previews") {
+							continue;
+						}
+						count++;
+						if (title != "") {
+							title = title + " - ";
+						}
+						title = title + metadatas.summary[metadata];
 					}
 					if (count > 0) {
 						$('#mtd-' + key).html('<small>' + metadatas.summary.mimetype + ' :: ' + title.trim() + '</small> ');
@@ -394,7 +398,9 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 						if (dircontent[pos].id) {
 							content = content + '<span class="label label-info">' + dircontent[pos].id + '</span> ';
 						}
+						content = content + '<a class="tlbdirlistitem" href="' + url_navigate + "#" + dircontent[pos].storagename + ":" + dircontent[pos].path + '">';
 						content = content + dircontent[pos].path.substring(dircontent[pos].path.lastIndexOf("/") + 1);
+						content = content + '</a>';
 						content = content + '</td>';
 					}
 					
@@ -533,13 +539,17 @@ function addMetadatas(metadatas) {
 
 	var count = 0;
 	for (var metadata in metadatas) {
-		if (metadata != "mimetype") {
-			count++;
-			if (title != "") {
-				title = title + " - ";
-			}
-			title = title + metadatas[metadata];
+		if (metadata == "mimetype") {
+			continue;
 		}
+		if (metadata == "previews") {
+			continue;
+		}
+		count++;
+		if (title != "") {
+			title = title + " - ";
+		}
+		title = title + metadatas[metadata];
 	}
 	if (count > 0) {
 		return '<abbr title="' + title.trim() + '">' + metadatas.mimetype + '</abbr>';

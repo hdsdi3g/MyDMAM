@@ -59,16 +59,16 @@ public class MetadataCenter implements CliModule {
 	 * name -> provider
 	 */
 	private LinkedHashMap<String, MetadataProvider> providers;
-	private volatile List<MetadataCenterIndexer> indexers;
+	private volatile List<MetadataCenterIndexer> analysis_indexers;
 	
 	public MetadataCenter() {
 		providers = new LinkedHashMap<String, MetadataProvider>();
-		addAnalyser(new FFprobeAnalyser());
-		addAnalyser(new FFmpegSnapshoot());
-		indexers = new ArrayList<MetadataCenterIndexer>();
+		addProvider(new FFprobeAnalyser());
+		addProvider(new FFmpegSnapshoot());
+		analysis_indexers = new ArrayList<MetadataCenterIndexer>();
 	}
 	
-	public synchronized void addAnalyser(MetadataProvider provider) {
+	public synchronized void addProvider(MetadataProvider provider) {
 		if (provider == null) {
 			throw new NullPointerException("\"provider\" can't to be null");
 		}
@@ -101,14 +101,14 @@ public class MetadataCenter implements CliModule {
 		}
 		
 		MetadataCenterIndexer metadataCenterIndexer = new MetadataCenterIndexer(this, client, force_refresh);
-		indexers.add(metadataCenterIndexer);
+		analysis_indexers.add(metadataCenterIndexer);
 		metadataCenterIndexer.process(storagename, currentpath, min_index_date);
-		indexers.remove(metadataCenterIndexer);
+		analysis_indexers.remove(metadataCenterIndexer);
 	}
 	
 	public void stopAnalysis() {
-		for (int pos = 0; pos < indexers.size(); pos++) {
-			indexers.get(pos).stop();
+		for (int pos = 0; pos < analysis_indexers.size(); pos++) {
+			analysis_indexers.get(pos).stop();
 		}
 	}
 	
@@ -172,6 +172,8 @@ public class MetadataCenter implements CliModule {
 				}
 			}
 			
+			Log2.log.info("Start cleaning rendered elements");
+			
 			RenderedElement.gc(client);
 			
 		} catch (IndexMissingException ime) {
@@ -182,17 +184,13 @@ public class MetadataCenter implements CliModule {
 	/**
 	 * @param type if null, use default (summary).
 	 */
-	public static JSONObject getMetadatas(Client client, SourcePathIndexerElement element, String type) throws IndexMissingException {// TODO get mtd files refs
+	public static JSONObject getSummaryMetadatas(Client client, SourcePathIndexerElement element) throws IndexMissingException {
 		if (element == null) {
 			throw new NullPointerException("\"pathelementskeys\" can't to be null");
 		}
 		try {
 			GetResponse response = null;
-			if (type == null) {
-				response = client.get(new GetRequest(ES_INDEX, ES_TYPE_SUMMARY, MetadataCenterIndexer.getUniqueElementKey(element))).actionGet();
-			} else {
-				response = client.get(new GetRequest(ES_INDEX, type, MetadataCenterIndexer.getUniqueElementKey(element))).actionGet();
-			}
+			response = client.get(new GetRequest(ES_INDEX, ES_TYPE_SUMMARY, MetadataCenterIndexer.getUniqueElementKey(element))).actionGet();
 			
 			if (response.isExists() == false) {
 				return null;
@@ -212,7 +210,7 @@ public class MetadataCenter implements CliModule {
 		}
 	}
 	
-	public static JSONObject getMetadatas(Client client, String[] pathelementskeys, boolean full_metadatas) throws IndexMissingException {// TODO get mtd files refs
+	public static JSONObject getSummaryMetadatas(Client client, String[] pathelementskeys) throws IndexMissingException {
 		if (pathelementskeys == null) {
 			throw new NullPointerException("\"pathelementskeys\" can't to be null");
 		}
@@ -225,9 +223,7 @@ public class MetadataCenter implements CliModule {
 		try {
 			SearchRequestBuilder request = client.prepareSearch();
 			request.setIndices(ES_INDEX);
-			if (full_metadatas == false) {
-				request.setTypes(ES_TYPE_SUMMARY);
-			}
+			request.setTypes(ES_TYPE_SUMMARY);
 			
 			BoolQueryBuilder query = QueryBuilders.boolQuery();
 			for (int pos = 0; pos < pathelementskeys.length; pos++) {
@@ -267,28 +263,30 @@ public class MetadataCenter implements CliModule {
 	/**
 	 * Database independant
 	 */
-	public AnalysisResult standaloneAnalysis(File physical_source, SourcePathIndexerElement reference) throws Exception {
-		AnalysisResult analysis_result = new AnalysisResult();
-		analysis_result.origin = physical_source;
+	public MetadataIndexerResult standaloneIndexing(File physical_source, SourcePathIndexerElement reference) throws Exception {
+		MetadataIndexerResult indexing_result = new MetadataIndexerResult();
+		indexing_result.origin = physical_source;
 		
 		if (physical_source.length() == 0) {
-			analysis_result.mimetype = "application/null";
+			indexing_result.mimetype = "application/null";
 		} else {
-			analysis_result.mimetype = MimeExtract.getMime(physical_source);
+			indexing_result.mimetype = MimeExtract.getMime(physical_source);
 		}
 		
 		if (providers.size() == 0) {
-			return analysis_result;
+			return indexing_result;
 		}
-		analysis_result.processing_results = new LinkedHashMap<MetadataProvider, JSONObject>(providers.size());
 		
 		for (Map.Entry<String, MetadataProvider> entry : providers.entrySet()) {
 			MetadataProvider provider = entry.getValue();
-			if (provider.canProcessThis(analysis_result.mimetype)) {
+			if (provider.canProcessThis(indexing_result.mimetype)) {
 				try {
 					if (provider instanceof Analyser) {
+						/**
+						 * Analyser
+						 */
 						Analyser analyser = (Analyser) provider;
-						JSONObject jo_processing_result = analyser.process(analysis_result);
+						JSONObject jo_processing_result = analyser.process(indexing_result);
 						if (jo_processing_result == null) {
 							continue;
 						}
@@ -296,10 +294,13 @@ public class MetadataCenter implements CliModule {
 							continue;
 						}
 						jo_processing_result.put(METADATA_PROVIDER_TYPE, Analyser.METADATA_PROVIDER_ANALYSER);
-						analysis_result.processing_results.put(analyser, jo_processing_result);
+						indexing_result.analysis_results.put(analyser, jo_processing_result);
 					} else if (provider instanceof Renderer) {
+						/**
+						 * Renderer
+						 */
 						Renderer renderer = (Renderer) provider;
-						List<RenderedElement> renderedelements = renderer.process(analysis_result);
+						List<RenderedElement> renderedelements = renderer.process(indexing_result);
 						if (renderedelements == null) {
 							continue;
 						}
@@ -307,18 +308,15 @@ public class MetadataCenter implements CliModule {
 							continue;
 						}
 						
-						JSONArray ja_files = new JSONArray();
 						for (int pos = 0; pos < renderedelements.size(); pos++) {
 							renderedelements.get(pos).consolidate(reference, renderer);
-							ja_files.add(renderedelements.get(pos).toDatabase());
 						}
-						JSONObject jo_processing_result = new JSONObject();
-						jo_processing_result.put(Renderer.METADATA_PROVIDER_RENDERER_CONTENT, ja_files);
-						jo_processing_result.put(METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER);
-						analysis_result.processing_results.put(renderer, jo_processing_result);
-						
+						indexing_result.rendering_results.put(renderer, renderedelements);
 						RenderedElement.cleanCurrentTempDirectory();
 					} else {
+						/**
+						 * Unknow...
+						 */
 						Log2Dump dump = new Log2Dump();
 						dump.add("provider class", provider);
 						dump.add("provider name", provider.getName());
@@ -334,7 +332,7 @@ public class MetadataCenter implements CliModule {
 			}
 		}
 		
-		return analysis_result;
+		return indexing_result;
 	}
 	
 	public String getCliModuleName() {
@@ -367,7 +365,7 @@ public class MetadataCenter implements CliModule {
 				throw new FileNotFoundException(args.getSimpleParamValue("-a"));
 			}
 			
-			AnalysisResult result;
+			MetadataIndexerResult result;
 			File[] files = dir_testformats.listFiles();
 			for (int pos = 0; pos < files.length; pos++) {
 				if (files[pos].isDirectory()) {
@@ -376,13 +374,13 @@ public class MetadataCenter implements CliModule {
 				if (files[pos].isHidden()) {
 					continue;
 				}
-				result = standaloneAnalysis(files[pos], spie);
+				result = standaloneIndexing(files[pos], spie);
 				System.out.print(result.origin);
 				System.out.print("\t");
 				System.out.print(result.mimetype);
 				System.out.print("\t");
-				if ((result.processing_results != null) & (verbose | prettify)) {
-					for (Map.Entry<MetadataProvider, JSONObject> entry : result.processing_results.entrySet()) {
+				if ((result.analysis_results != null) & (verbose | prettify)) {
+					for (Map.Entry<Analyser, JSONObject> entry : result.analysis_results.entrySet()) {
 						System.out.println();
 						System.out.print("\t\t");
 						System.out.print(entry.getKey().getName());
@@ -397,6 +395,24 @@ public class MetadataCenter implements CliModule {
 						}
 					}
 				}
+				
+				if ((result.rendering_results != null) & (verbose | prettify)) {
+					for (Map.Entry<Renderer, JSONArray> entry : result.makeJSONRendering_results().entrySet()) {
+						System.out.println();
+						System.out.print("\t\t");
+						System.out.print(entry.getKey().getName());
+						System.out.print(" [");
+						System.out.print(entry.getKey().getElasticSearchIndexType());
+						System.out.print("]");
+						System.out.print("\t");
+						if (prettify) {
+							System.out.print(json_prettify(entry.getValue()));
+						} else {
+							System.out.print(entry.getValue().toJSONString());
+						}
+					}
+				}
+				
 				System.out.println();
 			}
 			
@@ -414,6 +430,19 @@ public class MetadataCenter implements CliModule {
 	}
 	
 	public static String json_prettify(JSONObject json) {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectWriter writer = mapper.writer().withDefaultPrettyPrinter();
+		try {
+			return writer.writeValueAsString(json);
+		} catch (Exception e) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("json", json);
+			Log2.log.error("Bad JSON prettify, cancel it", e);
+			return json.toJSONString();
+		}
+	}
+	
+	public static String json_prettify(JSONArray json) {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectWriter writer = mapper.writer().withDefaultPrettyPrinter();
 		try {

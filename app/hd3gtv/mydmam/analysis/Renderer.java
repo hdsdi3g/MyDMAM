@@ -18,6 +18,8 @@ package hd3gtv.mydmam.analysis;
 
 import java.util.List;
 
+import org.json.simple.JSONObject;
+
 interface Renderer extends MetadataProvider {
 	
 	public static final String METADATA_PROVIDER_RENDERER = "renderer";
@@ -27,8 +29,17 @@ interface Renderer extends MetadataProvider {
 	/**
 	 * You don't need to consolidate rendered elements
 	 */
-	List<RenderedElement> process(AnalysisResult analysis_result) throws Exception;
+	List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception;
 	
 	String getElasticSearchIndexType();
 	
+	/**
+	 * @return JS parser name for display this render, or null.
+	 */
+	PreviewType getPreviewType(MetadataIndexerResult analysis_result);
+	
+	/**
+	 * @return Data to send to JS parser for display this render, or null.
+	 */
+	JSONObject getPreviewConfiguration(PreviewType preview_type, MetadataIndexerResult analysis_result);
 }

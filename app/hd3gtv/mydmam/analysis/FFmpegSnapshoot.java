@@ -53,17 +53,21 @@ public class FFmpegSnapshoot implements Renderer {
 		return "FFmpeg Snapshoot";
 	}
 	
-	public List<RenderedElement> process(AnalysisResult analysis_result) throws Exception {
+	public List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception {
 		/**
 		 * There are video streams in this file ?
 		 */
-		for (Map.Entry<MetadataProvider, JSONObject> entry : analysis_result.processing_results.entrySet()) {
+		boolean found = false;
+		for (Map.Entry<Analyser, JSONObject> entry : analysis_result.analysis_results.entrySet()) {
 			if (entry.getKey() instanceof FFprobeAnalyser) {
-				if (FFprobeAnalyser.hasVideo(entry.getValue()) == false) {
-					return null;
+				if (FFprobeAnalyser.hasVideo(entry.getValue())) {
+					found = true;
 				}
 				break;
 			}
+		}
+		if (found == false) {
+			return null;
 		}
 		
 		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
@@ -101,6 +105,40 @@ public class FFmpegSnapshoot implements Renderer {
 	
 	public String getElasticSearchIndexType() {
 		return "ffsnapshoot";
+	}
+	
+	private static List<RenderedElement> getSnapConfiguration(MetadataIndexerResult analysis_result) {
+		List<RenderedElement> elements = null;
+		for (Map.Entry<Renderer, List<RenderedElement>> entry : analysis_result.rendering_results.entrySet()) {
+			if (entry.getKey() instanceof FFmpegSnapshoot) {
+				elements = entry.getValue();
+				break;
+			}
+		}
+		if (elements == null) {
+			return null;
+		}
+		if (elements.isEmpty()) {
+			return null;
+		}
+		return elements;
+	}
+	
+	public PreviewType getPreviewType(MetadataIndexerResult analysis_result) {
+		/**
+		 * There are snapshoots in this file ?
+		 */
+		if (getSnapConfiguration(analysis_result) == null) {
+			return null;
+		}
+		return PreviewType.full_size_thumbnail;
+	}
+	
+	public JSONObject getPreviewConfiguration(PreviewType preview_type, MetadataIndexerResult analysis_result) {
+		if (preview_type == null) {
+			return null;
+		}
+		return null;// getSnapConfiguration(analysis_result).get(0).toDatabase();
 	}
 	
 }

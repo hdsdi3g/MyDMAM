@@ -11,19 +11,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
 package hd3gtv.mydmam.analysis;
 
-import org.json.simple.JSONObject;
-
-interface Analyser extends MetadataProvider {
+/**
+ * All definitions should exists and implemented in JS side.
+ */
+public enum PreviewType {
 	
-	public static final String METADATA_PROVIDER_ANALYSER = "analyser";
-	
-	String getSummary(JSONObject processresult);
-	
-	JSONObject process(MetadataIndexerResult analysis_result) throws Exception;
+	full_size_thumbnail;
 	
 }

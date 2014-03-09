@@ -105,7 +105,7 @@ public class Application extends Controller {
 							
 							if (metadatas_exists & (subpathelement.get(pos).directory == false)) {
 								try {
-									metadatas = MetadataCenter.getMetadatas(client, subpathelement.get(pos), null);
+									metadatas = MetadataCenter.getSummaryMetadatas(client, subpathelement.get(pos));
 									if (metadatas != null) {
 										sub_element.put("metadatas", metadatas);
 									}
@@ -204,11 +204,13 @@ public class Application extends Controller {
 		}
 	}
 	
+	// TODO add controller for get mtd files ?
+	
 	@Check("navigate")
 	public static void metadatas(Boolean full) {
 		Client client = Elasticsearch.createClient();
 		String[] pathelementskeys = params.getAll("fileshash[]");
-		JSONObject result = MetadataCenter.getMetadatas(client, pathelementskeys, full);
+		JSONObject result = MetadataCenter.getSummaryMetadatas(client, pathelementskeys);
 		client.close();
 		if (result == null) {
 			renderJSON("{}");
