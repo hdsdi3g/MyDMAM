@@ -138,6 +138,7 @@ public class FFmpegSnapshoot implements Renderer {
 		if (preview_type == null) {
 			return null;
 		}
+		// TODO manage ratio ?
 		return null;// getSnapConfiguration(analysis_result).get(0).toDatabase();
 	}
 	

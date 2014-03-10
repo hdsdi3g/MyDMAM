@@ -25,6 +25,7 @@ import hd3gtv.tools.ApplicationArgs;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -181,9 +182,6 @@ public class MetadataCenter implements CliModule {
 		}
 	}
 	
-	/**
-	 * @param type if null, use default (summary).
-	 */
 	public static JSONObject getSummaryMetadatas(Client client, SourcePathIndexerElement element) throws IndexMissingException {
 		if (element == null) {
 			throw new NullPointerException("\"pathelementskeys\" can't to be null");
@@ -258,6 +256,69 @@ public class MetadataCenter implements CliModule {
 			return null;
 		}
 		return result;
+	}
+	
+	public static RenderedElement getMetadataFileReference(Client client, String origin_key, String index_type, String filename, boolean check_hash) throws IndexMissingException {
+		if (client == null) {
+			throw new NullPointerException("\"client\" can't to be null");
+		}
+		if (origin_key == null) {
+			throw new NullPointerException("\"origin_key\" can't to be null");
+		}
+		if (index_type == null) {
+			throw new NullPointerException("\"index_type\" can't to be null");
+		}
+		if (filename == null) {
+			throw new NullPointerException("\"filename\" can't to be null");
+		}
+		if (origin_key.length() == 0) {
+			throw new NullPointerException("\"origin_key\" can't to be empty");
+		}
+		if (index_type.length() == 0) {
+			throw new NullPointerException("\"index_type\" can't to be empty");
+		}
+		if (filename.length() == 0) {
+			throw new NullPointerException("\"filename\" can't to be empty");
+		}
+		
+		try {
+			SearchRequestBuilder request = client.prepareSearch();
+			request.setIndices(ES_INDEX);
+			request.setTypes(index_type);
+			
+			BoolQueryBuilder query = QueryBuilders.boolQuery();
+			query.must(QueryBuilders.termQuery("origin.key", origin_key));
+			query.must(QueryBuilders.termQuery(METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER));
+			request.setQuery(query);
+			SearchHit[] hits = request.execute().actionGet().getHits().hits();
+			
+			JSONParser parser = new JSONParser();
+			JSONObject current_mtd;
+			JSONArray current_content_list;
+			JSONObject current_content;
+			for (int pos_hit = 0; pos_hit < hits.length; pos_hit++) {
+				parser.reset();
+				current_mtd = (JSONObject) parser.parse(hits[pos_hit].getSourceAsString());
+				if (current_mtd.containsKey("content") == false) {
+					continue;
+				}
+				current_content_list = (JSONArray) current_mtd.get("content");
+				for (int pos_content = 0; pos_content < current_content_list.size(); pos_content++) {
+					current_content = (JSONObject) current_content_list.get(pos_content);
+					if (((String) current_content.get("name")).equals(filename)) {
+						return RenderedElement.fromDatabase(current_content, hits[pos_hit].getId(), check_hash);
+					}
+				}
+				
+			}
+		} catch (IndexMissingException e) {
+			return null;
+		} catch (ParseException e) {
+			Log2.log.error("Invalid ES response", e);
+		} catch (IOException e) {
+			Log2.log.error("Can't found valid file", e);
+		}
+		return null;
 	}
 	
 	/**

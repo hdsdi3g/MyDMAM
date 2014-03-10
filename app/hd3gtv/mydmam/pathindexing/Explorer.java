@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.pathindexing;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.db.Elasticsearch;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.json.simple.JSONObject;
 
 public class Explorer {
 	
@@ -242,6 +244,28 @@ public class Explorer {
 		response = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, _id)).actionGet();
 		result = SourcePathIndexerElement.fromESResponse(response);
 		return result;
+	}
+	
+	public String getStorageNameFromKey(String _id) {
+		if (_id == null) {
+			throw new NullPointerException("\"_id\" can't to be null");
+		}
+		
+		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(Importer.ES_INDEX);
+		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
+		request.setQuery(QueryBuilders.termQuery("_id", _id));
+		
+		SearchResponse response = request.execute().actionGet();
+		
+		if (response.getHits().totalHits() == 0) {
+			return null;
+		}
+		
+		SearchHit[] hits = response.getHits().hits();
+		
+		JSONObject jo = Elasticsearch.getJSONFromSimpleResponse(hits[0]);
+		return (String) jo.get("storagename");
 	}
 	
 	/**

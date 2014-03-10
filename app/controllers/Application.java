@@ -19,12 +19,15 @@ package controllers;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.analysis.MetadataCenter;
+import hd3gtv.mydmam.analysis.RenderedElement;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.web.SearchResult;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +38,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import play.data.validation.Required;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
@@ -120,6 +124,11 @@ public class Application extends Controller {
 					} catch (IndexOutOfBoundsException e) {
 						jo_result.put("toomanyitems", Integer.parseInt(e.getMessage()));
 					}
+				} else {
+					JSONObject metadatas = MetadataCenter.getSummaryMetadatas(client, pathelement);
+					if (metadatas != null) {
+						jo_result.put("metadatas", metadatas);
+					}
 				}
 				client.close();
 				renderJSON(jo_result.toJSONString());
@@ -204,8 +213,6 @@ public class Application extends Controller {
 		}
 	}
 	
-	// TODO add controller for get mtd files ?
-	
 	@Check("navigate")
 	public static void metadatas(Boolean full) {
 		Client client = Elasticsearch.createClient();
@@ -216,6 +223,27 @@ public class Application extends Controller {
 			renderJSON("{}");
 		} else {
 			renderJSON(result.toJSONString());
+		}
+	}
+	
+	@Check("navigate")
+	public static void metadatafile(@Required String filehash, @Required String type, @Required String file) {
+		if (validation.hasErrors()) {
+			forbidden();
+		}
+		Client client = Elasticsearch.createClient();
+		RenderedElement element = MetadataCenter.getMetadataFileReference(client, filehash, type, file, false);
+		client.close();
+		if (element == null) {
+			unauthorized();
+		}
+		
+		try {
+			FileInputStream fis = new FileInputStream(element.getRendered_file());
+			response.cacheFor("60s");
+			renderBinary(fis, file, element.getRendered_file().length(), element.getRendered_mime(), true);
+		} catch (FileNotFoundException e) {
+			forbidden();
 		}
 	}
 	

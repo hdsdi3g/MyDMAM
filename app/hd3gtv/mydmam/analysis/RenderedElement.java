@@ -116,6 +116,10 @@ public class RenderedElement implements Log2Dumpable {
 		
 	}
 	
+	public static String getDigest_algorithm() {
+		return digest_algorithm;
+	}
+	
 	private Log2 commit_log;
 	
 	private String extention;
@@ -132,7 +136,7 @@ public class RenderedElement implements Log2Dumpable {
 	 * Create a file like temp_directory/serviceinstancename/
 	 * @param extention with point. Not mandatory. Just appended to temp file name.
 	 */
-	public RenderedElement(String rendered_base_file_name, String extention) throws IOException {
+	RenderedElement(String rendered_base_file_name, String extention) throws IOException {
 		this.rendered_base_file_name = rendered_base_file_name;
 		if (rendered_base_file_name == null) {
 			throw new NullPointerException("\"rendered_base_file_name\" can't to be null");
@@ -173,6 +177,9 @@ public class RenderedElement implements Log2Dumpable {
 		commit_log.info("Prepare temporary file", dump);
 	}
 	
+	private RenderedElement() {
+	}
+	
 	public File getTempFile() {
 		return temp_file;
 	}
@@ -206,7 +213,7 @@ public class RenderedElement implements Log2Dumpable {
 	}
 	
 	/**
-	 * storageindexname/metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extention
+	 * metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extention
 	 */
 	void consolidate(SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
 		if (consolidated) {
@@ -350,49 +357,61 @@ public class RenderedElement implements Log2Dumpable {
 		return jo;
 	}
 	
+	public String getRendered_digest() {
+		return rendered_digest;
+	}
+	
+	public String getRendered_mime() {
+		return rendered_mime;
+	}
+	
 	/**
 	 * Test presence and validity for file.
 	 */
-	public static File fromDatabase(JSONObject renderfromdatabase, String storageindexname, String metadata_reference_id, boolean check_hash) throws IOException {
+	static RenderedElement fromDatabase(JSONObject renderfromdatabase, String metadata_reference_id, boolean check_hash) throws IOException {
 		if (renderfromdatabase == null) {
 			throw new NullPointerException("\"renderfromdatabase\" can't to be null");
-		}
-		if (storageindexname == null) {
-			throw new NullPointerException("\"storageindexname\" can't to be null");
 		}
 		if (metadata_reference_id == null) {
 			throw new NullPointerException("\"metadata_reference_id\" can't to be null");
 		}
 		
+		if (local_directory == null) {
+			throw new IOException("No configuration is set !");
+		}
+		if (local_directory.exists() == false) {
+			throw new IOException("Invalid configuration is set !");
+		}
+		
+		RenderedElement result = new RenderedElement();
+		
 		StringBuffer sb_rendered_file = new StringBuffer();
 		sb_rendered_file.append(local_directory.getCanonicalPath());
-		sb_rendered_file.append(File.separator);
-		sb_rendered_file.append(storageindexname);
 		sb_rendered_file.append(File.separator);
 		sb_rendered_file.append(metadata_reference_id.substring(0, 6));
 		sb_rendered_file.append(File.separator);
 		sb_rendered_file.append(metadata_reference_id.substring(6));
 		sb_rendered_file.append(File.separator);
 		sb_rendered_file.append((String) renderfromdatabase.get("name"));
-		File rendered_file = new File(sb_rendered_file.toString());
+		result.rendered_file = new File(sb_rendered_file.toString());
 		
-		if (rendered_file.exists() == false) {
+		if (result.rendered_file.exists() == false) {
 			throw new FileNotFoundException("Can't found rendered file " + sb_rendered_file.toString());
 		}
 		
-		if (rendered_file.length() != (Integer) renderfromdatabase.get("size")) {
+		if (result.rendered_file.length() != (Long) renderfromdatabase.get("size")) {
 			throw new FileNotFoundException("Rendered file has not the expected size " + sb_rendered_file.toString());
 		}
 		
 		if (check_hash) {
-			String db_digest = (String) renderfromdatabase.get("hash");
+			result.rendered_digest = (String) renderfromdatabase.get("hash");
 			
 			MessageDigest mdigest = null;
 			try {
 				mdigest = MessageDigest.getInstance(digest_algorithm);
 			} catch (NoSuchAlgorithmException e) {
 			}
-			BufferedInputStream source_stream = new BufferedInputStream(new FileInputStream(rendered_file), 0xFFF);
+			BufferedInputStream source_stream = new BufferedInputStream(new FileInputStream(result.rendered_file), 0xFFF);
 			int len;
 			byte[] buffer = new byte[0xFFF];
 			while ((len = source_stream.read(buffer)) > 0) {
@@ -401,18 +420,19 @@ public class RenderedElement implements Log2Dumpable {
 			source_stream.close();
 			String file_digest = MyDMAM.byteToString(mdigest.digest());
 			
-			if (file_digest.equalsIgnoreCase(db_digest) == false) {
+			if (file_digest.equalsIgnoreCase(result.rendered_digest) == false) {
 				Log2Dump dump = new Log2Dump();
 				dump.add("source", sb_rendered_file);
 				dump.add("source", file_digest);
 				dump.add("expected", renderfromdatabase.toJSONString());
-				dump.add("expected", db_digest);
+				dump.add("expected", result.rendered_digest);
 				Log2.log.error("Invalid " + digest_algorithm + " check", null, dump);
 				throw new FileNotFoundException("Rendered file has not the expected content " + sb_rendered_file.toString());
 			}
 		}
-		
-		return rendered_file;
+		result.rendered_mime = (String) renderfromdatabase.get("mime");
+		result.consolidated = true;
+		return result;
 	}
 	
 	static synchronized void cleanCurrentTempDirectory() {
