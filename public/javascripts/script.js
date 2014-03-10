@@ -11,13 +11,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
+/*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
-String.prototype.trim = function(){return(this.replace(/^[\s\xA0]+/, "").replace(/[\s\xA0]+$/, ""))}
-String.prototype.startsWith = function(str){return (this.match("^"+str)==str)}
-String.prototype.endsWith = function(str){return (this.match(str+"$")==str)}
+String.prototype.trim = function(){return(this.replace(/^[\s\xA0]+/, "").replace(/[\s\xA0]+$/, ""));};
+String.prototype.startsWith = function(str){return (this.match("^"+str)==str);};
+String.prototype.endsWith = function(str){return (this.match(str+"$")==str);};
 
 function addZeros(text) {
 	var returntext = '00' + text;
@@ -59,7 +60,7 @@ function showSimpleModalBox(title, content) {
 	$("#simplemodalbox .modal-footer").append('<a href="" class="btn btn-primary" data-dismiss="modal">Close</a>');
     $('#simplemodalbox').on('hidden', function () {
 		$('#simplemodalbox').remove();
-    })
+    });
     $('#simplemodalbox').modal('show');
 }
 
@@ -92,7 +93,7 @@ function addActionToSimpleButton(id, url_target, loading_label, params, callback
 				showSimpleModalBox("Erreur", i18n("browser.versatileerror"));
 			},
 			success: function(rawdata) {
-				if (rawdata == null | rawdata == "null" | rawdata == "") {
+				if (rawdata == null | rawdata == "null" | rawdata === "") {
 					$("#" + id).removeClass("disabled");
 					$("#" + id).text(original_text);
 					showSimpleModalBox("Erreur", i18n("browser.versatileerror"));
@@ -125,8 +126,8 @@ function getIconTableMap() {
 }
 
 function addMetadatasToSearchListItems() {
-	var external_elements_to_resolve = new Array();
-	var elements_to_get_metadatas = new Array();
+	var external_elements_to_resolve = [];
+	var elements_to_get_metadatas = [];
 	
 	$(".searchresultitem").each(function(index) {
 
@@ -182,7 +183,7 @@ function addMetadatasToSearchListItems() {
 			type: "POST",
 			data: {"fileshash" : elements_to_get_metadatas},
 			success: function(data) {
-				if (data.length == 0) {
+				if (data.length === 0) {
 					return;
 				}
 				for (var pos_key = 0; pos_key < elements_to_get_metadatas.length; pos_key++) {
@@ -206,7 +207,7 @@ function addMetadatasToSearchListItems() {
 							continue;
 						}
 						count++;
-						if (title != "") {
+						if (title !== "") {
 							title = title + " - ";
 						}
 						title = title + metadatas.summary[metadata];
@@ -280,7 +281,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 		success: function(data) {
 			//$("#waithourglass").hide();
 			
-			var external_elements_to_resolve = new Array();
+			var external_elements_to_resolve = [];
 			
 			var content = '<div class="page-header">';
 			
@@ -302,13 +303,13 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 
 			if (data.date) {
 				var data_date = formatFullDate(data.date);
-				if (data_date != "") {
+				if (data_date !== "") {
 					content = content + '<span class="label">' + i18n("browser.file.modifiedat") + ' ' + data_date + '</span> ';
 				}
 			}
 			if (data.dateindex) {
 				var data_date = formatFullDate(data.dateindex);
-				if (data_date != "") {
+				if (data_date !== "") {
 					content = content + '<span class="label">' + i18n("browser.file.indexedat") + ' ' + data_date + '</span> ';
 				}
 			} else {
@@ -319,7 +320,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 						 */
 						if (data.items[0].dateindex) {
 							var data_date = formatFullDate(data.items[0].dateindex);
-							if (data_date != "") {
+							if (data_date !== "") {
 								content = content + '<span class="label">' + i18n("browser.file.indexednearat") + ' ' + data_date + '</span> ';
 							}
 						}
@@ -335,20 +336,20 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 			
 			if (data.items) {
 				var dircontent = data.items.sort(function(a, b) {
-					if (a.directory & (b.directory == false)) {
-					    return -1;
+					if (a.directory & (b.directory === false)) {
+						return -1;
 					}
-					if (b.directory & (a.directory == false)) {
-					    return 1;
+					if (b.directory & (a.directory === false)) {
+						return 1;
 					}
-				    return a.idxfilename < b.idxfilename ? -1 : 1;
+					return a.idxfilename < b.idxfilename ? -1 : 1;
 				});
 				
 				if (data.storagename) {
 					var url_goback = url_navigate + "#" + data.storagename + ":" + data.path.substring(0, data.path.lastIndexOf("/"));
 					if (data.path == '/') {
 						url_goback = url_navigate + "#";
-					} else if (data.path.lastIndexOf("/") == 0) {
+					} else if (data.path.lastIndexOf("/") === 0) {
 						url_goback = url_navigate + "#" + data.storagename + ":/";
 					}
 					content = content + '<div><a class="btn btngoback" href="' + url_goback + '">Retour</a></div>';
@@ -369,7 +370,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 					
 					var elementkey = md5(data.storagename + ":" + dircontent[pos].path);
 					
-					if (dircontent[pos].directory == false) {
+					if (dircontent[pos].directory === false) {
 						external_elements_to_resolve.push(elementkey);
 					}
 					
@@ -388,7 +389,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 							content = content + '</a>';
 						}
 
-						if (dircontent[pos].count == 0) {
+						if (dircontent[pos].count === 0) {
 							content = content + ' <span class="badge badge-success">' + i18n('browser.emptydir') + '</span>';
 						}
 
@@ -412,7 +413,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 							content = content + i18n('browser.storagetitle');
 						}
 						if (dircontent[pos].count != null) {
-							if (dircontent[pos].count == 0) {
+							if (dircontent[pos].count === 0) {
 								content = content + ' ' + i18n('browser.emptydir');
 							} else if (dircontent[pos].count == 1) {
 								content = content + ' - ' + i18n('browser.oneelement');
@@ -436,7 +437,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 						content = content + '<td></td><td>0</td>';
 					}
 
-					if (dircontent[pos].directory == false) {
+					if (dircontent[pos].directory === false) {
 						external_elements_to_resolve.push();
 					}
 					
@@ -460,12 +461,12 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 				
 				$('.navdatatable').dataTable({
 					"bPaginate": false,
-			        "bLengthChange": false,
-			        "bSort": true,
-			        "bInfo": false,
-			        "bAutoWidth": false,
-			        "bFilter": true,
-			        "aoColumnDefs": [
+					"bLengthChange": false,
+					"bSort": true,
+					"bInfo": false,
+					"bAutoWidth": false,
+					"bFilter": true,
+					"aoColumnDefs": [
 						{"iDataSort": 2, "aTargets": [1], "bSearchable": false}, //SIZE displayed
 						{"bVisible": false, "bSearchable": false, "aTargets": [2]}, //SIZE raw
 						{"iDataSort": 4, "aTargets": [3], "bSearchable": false}, //DATE displayed
@@ -546,7 +547,7 @@ function addMetadatas(metadatas) {
 			continue;
 		}
 		count++;
-		if (title != "") {
+		if (title !== "") {
 			title = title + " - ";
 		}
 		title = title + metadatas[metadata];
@@ -576,7 +577,7 @@ function createBreadcrumb(domid, storagename, path) {
 		}
 		currentpath = currentpath + "/" + element_subpaths[pos];
 	}
-	if (content != "") {
+	if (content !== "") {
 		var header =      '<li><a href="' + url_navigate + '#">' + i18n('browser.storagestitle') + '</a> <span class="divider">::</span></li>';
 		if (path != "/") {
 			header = header + '<li><a href="' + url_navigate + "#" + storagename + ':/">' + storagename + '</a></li>';
@@ -617,7 +618,7 @@ function DatatableAC() {
 			$(ref + '_filter input').val(val);
 			$(ref + '_filter input').trigger("keyup.DT");
 		});
-	}
+	};
 
 	this.archiving = function(ref) {
 		$(ref).dataTable({
@@ -645,7 +646,7 @@ function DatatableAC() {
 			$(ref + '_filter input').val(val);
 			$(ref + '_filter input').trigger("keyup.DT");
 		});
-	}
+	};
 
 	this.destaging = function(ref) {
 		$(ref).dataTable({
@@ -673,6 +674,6 @@ function DatatableAC() {
 			$(ref + '_filter input').val(val);
 			$(ref + '_filter input').trigger("keyup.DT");
 		});
-	}
-};
+	};
+}
 

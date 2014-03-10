@@ -11,9 +11,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
+/*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 function showLastStatusWorkers() {
 
@@ -24,11 +25,11 @@ function showLastStatusWorkers() {
 			$("#laststatusworkers").empty();
 		},
 		error: function(jqXHR, textStatus, errorThrown) {
-    		$('#laststatusworkers').append('<div id="alertnoeventsfound" class="alert alert-info"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n("service.nodetectedmodule") + '</strong></div>');
+			$('#laststatusworkers').append('<div id="alertnoeventsfound" class="alert alert-info"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n("service.nodetectedmodule") + '</strong></div>');
 		},
 		success: function(rawdata) {
-			if (rawdata == null | rawdata == "null" | rawdata == ""| rawdata == "[]") {
-	    		$('#laststatusworkers').append('<div id="alertnoeventsfound" class="alert alert-info"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n("service.nodetectedmodule") + '</strong></div>');
+			if (rawdata == null | rawdata == "null" | rawdata === ""| rawdata == "[]") {
+				$('#laststatusworkers').append('<div id="alertnoeventsfound" class="alert alert-info"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n("service.nodetectedmodule") + '</strong></div>');
 				return;
 			}
 
@@ -36,7 +37,7 @@ function showLastStatusWorkers() {
 				/**
 				 * normal sort
 				 */
-			    return a.workername < b.workername ? -1 : 1;
+				return a.workername < b.workername ? -1 : 1;
 			});
 
 			var content = "<tr>";

@@ -14,23 +14,24 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
+/*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 function Queue() {
 	var LONG_MAX = 9223372036854776000;
 	var HIGH_PRIORITY = 1000;
 	
-	var taskjoblist = new Array();
+	var taskjoblist = [];
 	var refresh_handle;
 	var since_update_list = 0;
 
 	var taskjobstatuslistorder = ["WAITING", "PREPARING", "PROCESSING", "POSTPONED", "STOPPED", "ERROR", "TOO_OLD", "CANCELED", "DONE"];
-	var taskjobstatuslistcount = new Array();
+	var taskjobstatuslistcount = [];
 
 	this.prepare = function() {
 		getAll();
 		$("#btnrefresh").click(refresh);
 		refresh_handle = setInterval(refresh, 10000);
-	}
+	};
 	
 	ajaxUpdateLists = function(url, success) {
 		$.ajax({
@@ -45,8 +46,8 @@ function Queue() {
 				$("#btnrefresh").css("display", "none");
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-	    		$('#queueplaceholder').after('<div class="alert"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n('queue.fetcherror') + '</strong> ' + textStatus + ', ' + errorThrown +'</div>');
-	    		clearInterval(refresh_handle);
+				$('#queueplaceholder').after('<div class="alert"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n('queue.fetcherror') + '</strong> ' + textStatus + ', ' + errorThrown +'</div>');
+				clearInterval(refresh_handle);
 				$('#imgajaxloader').css("display", "none");
 			},
 			success: function(data) {
@@ -60,7 +61,7 @@ function Queue() {
 				}
 			}
 		});
-	}
+	};
 	
 	updateExcuseTextIfEmpty = function() {
 		if(jQuery.isEmptyObject(taskjoblist)) {
@@ -68,7 +69,7 @@ function Queue() {
 		} else {
 			$('#fulltaskjobtable .alert').remove();
 		}
-	}
+	};
 
 	getAll = function() {
 		ajaxUpdateLists(url_getall, function(rawdata) {
@@ -102,7 +103,7 @@ function Queue() {
 					count = taskjobstatuslistcount[status];
 				}
 				content = content + '<li id="navlisttaskjobstatus-' + status + '"';
-				if (count == 0) {
+				if (count === 0) {
 					content = content + ' style="display:none;"';
 				} else {
 					if (firsttaskjobstatus == null) {
@@ -144,7 +145,7 @@ function Queue() {
 			createTableAllEndedJobs(rawdata.allendedjobs, rawdata.activetriggers);
 		});
 
-	}
+	};
 
 	createTaskJobTableElementMaxDate = function(current_taskjob) {
 		var content = "";
@@ -158,7 +159,7 @@ function Queue() {
 			}
 		}
 		return content;
-	}
+	};
 
 	addContextItemsinTaskJobTableElement = function(current_taskjob) {
 		var content = "";
@@ -166,11 +167,11 @@ function Queue() {
 			content = content + '<tr><th>' + keyctx + '</th><td>' + current_taskjob.context[keyctx] + '</td></tr>';
 		}
 		return content;
-	}
+	};
 	
 	getRequireText = function(task_key_require_done) {
 		var content = '';
-		if (task_key_require_done != "") {
+		if (task_key_require_done !== "") {
 			content = content + i18n('queue.task.requires');
 			if (taskjoblist[task_key_require_done]) {
 				content = content + '<strong>' + taskjoblist[task_key_require_done].name + '</strong> ';
@@ -209,7 +210,7 @@ function Queue() {
 			content = content + '<br>';
 		}
 		return content;
-	}
+	};
 	
 	createTaskJobTableElement = function(current_taskjob) {
 		var key = current_taskjob.key;
@@ -251,7 +252,7 @@ function Queue() {
 			content = content + '<li><a href="#" class="btntskcanceled" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('CANCELED') + '</strong></a></li>';
 			display = "";
 			
-			if (current_taskjob.priority == 0 || current_taskjob.status == "DONE") {
+			if (current_taskjob.priority === 0 || current_taskjob.status == "DONE") {
 				display = ' style="display:none"';
 			} else {
 				content = content + '<li class="divider"></li>';
@@ -312,7 +313,7 @@ function Queue() {
 				}
 			}
 			
-			if (displayclass != '') {
+			if (displayclass !== '') {
 				content = content + '<div class="jobprogress ' + displayclass +'"><div class="bar" style="width:' + width + '%;"></div></div> ';
 			} else {
 				content = content + '<div class="jobprogress">' + width + ' %</div></div> ';
@@ -374,7 +375,7 @@ function Queue() {
 		
 		content = content + '</div>';/** row */
 		return content;
-	}
+	};
 	
 	updateTaskJobTableElement = function(current_taskjob) {
 		var key = current_taskjob.key;
@@ -405,7 +406,7 @@ function Queue() {
 		} else {
 			$('#' + id_row + " .btntskcanceled").css("display", "block");
 		}
-		if (current_taskjob.priority == 0) {
+		if (current_taskjob.priority === 0) {
 			$('#' + id_row + " .btntsk0p").css("display", "none");
 		} else {
 			$('#' + id_row + " .btntsk0p").css("display", "block");
@@ -514,43 +515,43 @@ function Queue() {
 		$('#' + id_row).animate({
 			"opacity": 1
 		}, 100);
-	}
+	};
 
 	addActionsForTaskJobTableElement = function(simplekey) {
 		$('#rowtskjb-' + simplekey + ' a.btntskpostponed').click(function() {
 			changetaskstatus($(this).data("emkey"), "POSTPONED");
-		})
+		});
 		$('#rowtskjb-' + simplekey + ' a.btntskwait').click(function() {
 			changetaskstatus($(this).data("emkey"), "WAITING");
-		})
+		});
 		$('#rowtskjb-' + simplekey + ' a.btntskcanceled').click(function() {
 			changetaskstatus($(this).data("emkey"), "CANCELED");
-		})
+		});
 		$('#rowtskjb-' + simplekey + ' a.btntsk0p').click(function() {
 			changetaskpriority($(this).data("emkey"), 0);
-		})
+		});
 		$('#rowtskjb-' + simplekey + ' a.btntskhighp').click(function() {
 			changetaskpriority($(this).data("emkey"), HIGH_PRIORITY);
-		})
+		});
 		$('#rowtskjb-' + simplekey + ' a.btntsknomaxdate').click(function() {
 			changetaskmaxage($(this).data("emkey"), 0);				
-		})
+		});
 		$('#rowtskjb-' + simplekey + ' a.btntsk1hrsmaxdate').click(function() {
 			changetaskmaxage($(this).data("emkey"), (new Date().getTime()) + (1000 * 3600));
-		})
+		});
 		$('#rowtskjb-' + simplekey + ' a.btntsk1dmaxdate').click(function() {
 			changetaskmaxage($(this).data("emkey"), (new Date().getTime()) + (1000 * 3600 * 24));
-		})
+		});
 		$('#rowtskjb-' + simplekey + ' a.btntsk1wmaxdate').click(function() {
 			changetaskmaxage($(this).data("emkey"), (new Date().getTime()) + (1000 * 3600 * 24 * 7));
-		})
+		});
 		$('#rowtskjb-' + simplekey + ' a.btntsk30dmaxdate').click(function() {
 			changetaskmaxage($(this).data("emkey"), (new Date().getTime()) + (1000 * 3600 * 24 * 30));
-		})
-	}
+		});
+	};
 	
 	createfulltaskjobtable = function(selected_taskjoblist) {
-		var table = new Array();
+		var table = [];
 		for (var key in selected_taskjoblist) {
 			table.push(selected_taskjoblist[key]);
 		}
@@ -573,10 +574,10 @@ function Queue() {
 				addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
 			}
 		}
-	}
+	};
 
 	updatenewtaskjobtable = function(selected_taskjoblist) {
-		var table = new Array();
+		var table = [];
 		for (var key in selected_taskjoblist) {
 			table.push(selected_taskjoblist[key]);
 		}
@@ -598,35 +599,35 @@ function Queue() {
 				addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
 			}
 		}
-	}
+	};
 	
 	changetaskstatus = function(task_key, status) {
 		$.ajax({url: url_changetaskstatus, type: "POST", async: false, data:{"task_key": task_key, "status": status}, success: refresh});
-	}
+	};
 	changetaskpriority = function(task_key, priority) {
 		$.ajax({url: url_changetaskpriority, type: "POST", async: false, data:{"task_key": task_key, "priority": priority}, success: refresh});
-	}
+	};
 	changetaskmaxage = function(task_key, date_max_age) {
 		$.ajax({url: url_changetaskmaxage, type: "POST", async: false, data:{"task_key": task_key, "date_max_age": date_max_age}, success: refresh});
-	}
+	};
 
 	createSimpleKey = function(key) {
 		return key.substring(7,16);
-	}
+	};
 
 	selectOnlyThisStatus = function(selectedstatus, selectedtaskjoblist) {
-		var taskjobsortedlist = new Array();
+		var taskjobsortedlist = [];
 		var current;
 		for (var key in selectedtaskjoblist) {
 			current = selectedtaskjoblist[key];
 			if (current.status == selectedstatus) {
-				current["key"] = key;
-				current["simplekey"] = createSimpleKey(key);
+				current.key = key;
+				current.simplekey = createSimpleKey(key);
 				taskjobsortedlist[key] = current;
 			}
 		}
 		return taskjobsortedlist;
-	}
+	};
 
 	refresh = function() {
 		ajaxUpdateLists(url_getupdate, function(rawdata) {
@@ -646,8 +647,8 @@ function Queue() {
 				}
 			}
 			
-			var newtasksandjobsforselectedstatus = new Array();
-			var updatetasksandjobsforselectedstatus = new Array();
+			var newtasksandjobsforselectedstatus = [];
+			var updatetasksandjobsforselectedstatus = [];
 			
 			/**
 			 * Update table for selected status
@@ -691,15 +692,15 @@ function Queue() {
 			 */
 			for (var key in updatetasksandjobsforselectedstatus) {
 				var current = updatetasksandjobsforselectedstatus[key];
-				current["key"] = key;
-				current["simplekey"] = createSimpleKey(key);
+				current.key = key;
+				current.simplekey = createSimpleKey(key);
 				updateTaskJobTableElement(current);
 			}
 
 			updateExcuseTextIfEmpty();
 			updateTableAllEndedJobs(rawdata.allendedjobs, rawdata.activetriggers);
 		});
-	}
+	};
 
 	createTableAllEndedJobs = function(allendedjobs, activetriggers) {
 		var content = '<table id="allendedjobs-tlb" class="table table-bordered table-hover table-condensed">';
@@ -732,7 +733,7 @@ function Queue() {
 				{"bVisible": false, "bSearchable": false, "aTargets": [3]}, //date
 			]
 		});
-	}
+	};
 
 	addRowTableAllEndedJobs = function(key, endedjob, activetriggersforprofile) {
 		var content = '<tr id="rowendjob-' + key + '">';
@@ -755,13 +756,13 @@ function Queue() {
 		content = content + '</div></td>';
 		content = content + '</tr>';
 		return content;
-	}
+	};
 
 	updateTableAllEndedJobs = function(allendedjobs, activetriggers) {
 		for (var key in allendedjobs) {
 			var endedjob = allendedjobs[key];
 
-			if ($('#rowendjob-' + key).length == 0) {
+			if ($('#rowendjob-' + key).length === 0) {
 				/**
 				 * New element: destroy table, and recreate it.
 				 */
@@ -789,8 +790,8 @@ function Queue() {
 				}
 			}
 		}
-	}
-};
+	};
+}
 
 /*
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -804,14 +805,14 @@ function Queue() {
 */
 
 function WorkerManager() {
-	var workerlist = new Array();
-	var processingtasks = new Array();
+	var workerlist = [];
+	var processingtasks = [];
 
 	this.prepare = function() {
 		getAll();
 		$("#btnrefresh").click(refresh);
 		refresh_handle = setInterval(refresh, 10000);
-	}
+	};
 
 	ajaxUpdateLists = function(url, success) {
 		$.ajax({
@@ -823,8 +824,8 @@ function WorkerManager() {
 				$("#btnrefresh").css("display", "none");
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-	    		$('#queueplaceholder').after('<div class="alert"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n('queue.fetcherror') + '</strong> ' + textStatus + ', ' + errorThrown +'</div>');
-	    		clearInterval(refresh_handle);
+				$('#queueplaceholder').after('<div class="alert"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n('queue.fetcherror') + '</strong> ' + textStatus + ', ' + errorThrown +'</div>');
+				clearInterval(refresh_handle);
 				$('#imgajaxloader').css("display", "none");
 			},
 			success: function(data) {
@@ -837,7 +838,7 @@ function WorkerManager() {
 				}
 			}
 		});
-	}
+	};
 	
 	updateExcuseTextIfEmpty = function() {
 		if(jQuery.isEmptyObject(workerlist)) {
@@ -845,7 +846,7 @@ function WorkerManager() {
 		} else {
 			$('#wrk-list .alert').remove();
 		}
-	}
+	};
 
 	getAll = function() {
 		ajaxUpdateLists(url_getworkers, function(rawdata) {
@@ -854,10 +855,10 @@ function WorkerManager() {
 			createfullworkertable();
 			updateExcuseTextIfEmpty();
 		});
-	}
+	};
 	
 	createfullworkertable = function() {
-		var table = new Array();
+		var table = [];
 		
 		for (var key in workerlist) {
 			workerlist[key].key = key;
@@ -881,33 +882,33 @@ function WorkerManager() {
 			addWorker(table[pos].key, table[pos]);
 		}
 		
-	}
+	};
 	
 	changeworkerstate = function(worker_ref, newstate) {
 		$.ajax({url: url_changeworkerstate, type: "POST", async: false, data:{"worker_ref": worker_ref, "newstate": newstate}, success: refresh});
-	}
+	};
 
 	changeworkercyclicperiod = function(worker_ref, period) {
 		$.ajax({url: url_changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": worker_ref, "period": period}, success: refresh});
-	}
+	};
 
 	createSimpleKey = function(key) {
 		return key.substring(7,16);
-	}
+	};
 
 	selectOnlyThisStatus = function(selectedstatus, selectedtaskjoblist) {
-		var taskjobsortedlist = new Array();
+		var taskjobsortedlist = [];
 		var current;
 		for (var key in selectedtaskjoblist) {
 			current = selectedtaskjoblist[key];
 			if (current.status == selectedstatus) {
-				current["key"] = key;
-				current["simplekey"] = createSimpleKey(key);
+				current.key = key;
+				current.simplekey = createSimpleKey(key);
 				taskjobsortedlist[key] = current;
 			}
 		}
 		return taskjobsortedlist;
-	}
+	};
 
 	refresh = function() {
 		ajaxUpdateLists(url_getworkers, function(rawdata) {
@@ -920,7 +921,7 @@ function WorkerManager() {
 					break;
 				}
 			}
-			if (mustfullrefreshworkers == false) {
+			if (mustfullrefreshworkers === false) {
 				for (var key in workerlist) {
 					if (rawdata.workers[key] == null) {
 						mustfullrefreshworkers = true;
@@ -941,10 +942,10 @@ function WorkerManager() {
 			
 			updateExcuseTextIfEmpty();
 		});
-	}
+	};
 
 	updateWorkerStatusButton = function(key, worker) {
-		if (enable_update == false) {
+		if (enable_update === false) {
 			return;
 		}
 
@@ -996,28 +997,23 @@ function WorkerManager() {
 			});
 		}
 		
-	}
+	};
 
 	updateWorkerStatus = function(worker) {
 		switch (worker.status) {
 			case "PROCESSING":
 			return '<span class="label label-warning">' + i18n("PROCESSING") + '</span>';
-			break;
 			case "WAITING":
 			return '<span class="label label-info">' + i18n("WAITING") + '</span>';
-			break;
 			case "STOPPED":
 			return '<span class="badge badge-inverse">' + i18n("STOPPED") + '</span>';
-			break;
 			case "PENDING_STOP":
 			return '<span class="label label-important">' + i18n("PENDING_STOP") + '</span>';
-			break;
 			case "PENDING_CANCEL_TASK":
 			return '<span class="label label-warning">' + i18n("PENDING_CANCEL_TASK") + '</span>';
-			break;
 		}
 		return worker.status;
-	}
+	};
 
 	updateCyclicWorkerCountdown = function(worker) {
 		if (worker.status == 'PROCESSING') {
@@ -1031,7 +1027,7 @@ function WorkerManager() {
 		} else {
 			return updateWorkerStatus(worker);
 		}
-	}
+	};
 	
 	addActionsForUpdateCyclicWorkerPeriod = function(key, worker) {
 		var simplekey = createSimpleKey(key);
@@ -1049,10 +1045,10 @@ function WorkerManager() {
 			var period = $(jqelement + ' input').val();
 			$.ajax({url: url_changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": key, "period": period}, success: refresh});
 		});
-	}
+	};
 	
 	updateCyclicWorkerPeriod = function(key, worker) {
-		if (worker.time_to_sleep == 0) {
+		if (worker.time_to_sleep === 0) {
 			return;
 		}
 		var simplekey = createSimpleKey(key);
@@ -1066,7 +1062,7 @@ function WorkerManager() {
 			$(jqelement + ' input').val(worker.time_to_sleep);
 			$(jqelement + ' .btnshowperiodchange').css("display", "inline");
 		}
-	}
+	};
 	
 	addWorker = function(key, worker){
 		var simplekey = createSimpleKey(key);
@@ -1102,10 +1098,10 @@ function WorkerManager() {
 					content = content + '<button class="btn btn-mini btnshowperiodchange" data-toggle="button" type="button">' + i18n('queue.worker.edit') + '</button> ';
 					content = content + '<div class="input-append" style="display:none">';
 					content = content + '<input type="number" class="span2"/>';
-				    content = content + '<button class="btn btnvalidnewperiod btn-warning" type="button">' + i18n('queue.worker.validate') + '</button>';
-				    content = content + '</div>';
+					content = content + '<button class="btn btnvalidnewperiod btn-warning" type="button">' + i18n('queue.worker.validate') + '</button>';
+					content = content + '</div>';
 				}
-			    content = content + '</span>';
+				content = content + '</span>';
 			}
 			
 			content = content + '</div></div>';
@@ -1139,7 +1135,7 @@ function WorkerManager() {
 				addActionsForUpdateCyclicWorkerPeriod(key, worker);
 			}
 		}
-	}
+	};
 	
 	updateWorker = function(key, worker){
 		var simplekey = createSimpleKey(key);
@@ -1172,6 +1168,6 @@ function WorkerManager() {
 		if (worker.cyclic & (worker.time_to_sleep > 0)) {
 			updateCyclicWorkerPeriod(key, worker);
 		}
-	}
+	};
 
 }
