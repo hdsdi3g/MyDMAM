@@ -186,6 +186,8 @@ function addMetadatasToSearchListItems() {
 				if (data.length === 0) {
 					return;
 				}
+				var mtdengine = new MetadataEngine();
+				
 				for (var pos_key = 0; pos_key < elements_to_get_metadatas.length; pos_key++) {
 					var key = elements_to_get_metadatas[pos_key];
 					var metadatas = data[key];
@@ -196,7 +198,6 @@ function addMetadatasToSearchListItems() {
 						continue;
 					}
 					
-					console.log(key, metadatas.summary);
 					var count = 0;
 					var title = "";
 					for (var metadata in metadatas.summary) {
@@ -213,9 +214,9 @@ function addMetadatasToSearchListItems() {
 						title = title + metadatas.summary[metadata];
 					}
 					if (count > 0) {
-						$('#mtd-' + key).html('<small>' + metadatas.summary.mimetype + ' :: ' + title.trim() + '</small> ');
+						$('#mtd-' + key).html('<small>' + mtdengine.typeofelement(metadatas.summary) + ' :: ' + title.trim() + '</small> ');
 					} else {
-						$('#mtd-' + key).html('<small>' + metadatas.summary.mimetype + '</small> ');
+						$('#mtd-' + key).html('<small>' + mtdengine.typeofelement(metadatas.summary) + '</small> ');
 					}
 				}
 			}
@@ -284,14 +285,30 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 			var external_elements_to_resolve = [];
 			
 			var content = '<div class="page-header">';
+			var mtdengine = new MetadataEngine(); 
 			
 			content = content + '<h3>';
 			if (data.storagename) {
+				var url_goback = url_navigate + "#" + data.storagename + ":" + data.path.substring(0, data.path.lastIndexOf("/"));
+				if (data.path == '/') {
+					url_goback = url_navigate + "#";
+				} else if (data.path.lastIndexOf("/") === 0) {
+					url_goback = url_navigate + "#" + data.storagename + ":/";
+				}
+				content = content + '<a class="btn btn-mini btngoback" style="margin-bottom: 6px;margin-right: 1em;" href="' + url_goback + '" title="' + i18n('browser.goback') + '"><i class="icon-chevron-left"></i></a>';
+
 				if (data.path != "/") {
-					if (data.directory) {
-						content = content + data.path.substring(data.path.lastIndexOf("/") + 1) + ' <small>' + i18n("browser.directory") + '</small>';
+					content = content + data.path.substring(data.path.lastIndexOf("/") + 1) + " ";
+					if (data.metadatas) {
+						content = content + '<small>';
+						content = content + mtdengine.typeofelement(data.metadatas);
+						content = content + '</small>';
 					} else {
-						content = content + data.path.substring(data.path.lastIndexOf("/") + 1) + ' <small>' + i18n("browser.file") + '</small>';
+						if (data.directory) {
+							content = content + '<small>' + i18n("browser.directory") + '</small>';
+						} else {
+							content = content + '<small>' + i18n("browser.file") + '</small>';
+						}
 					}
 				} else {
 					content = content + data.storagename + ' <small>' + i18n("browser.storage") + '</small>';
@@ -334,6 +351,12 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 			
 			content = content + '</div>';
 			
+			if (data.metadatas) {
+				content = content + '<div>';
+				content = content + mtdengine.display(data, mtdengine.NAVIGATE_SHOW_ELEMENT);
+				content = content + '</div>';
+			}
+			
 			if (data.items) {
 				var dircontent = data.items.sort(function(a, b) {
 					if (a.directory & (b.directory === false)) {
@@ -344,16 +367,6 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 					}
 					return a.idxfilename < b.idxfilename ? -1 : 1;
 				});
-				
-				if (data.storagename) {
-					var url_goback = url_navigate + "#" + data.storagename + ":" + data.path.substring(0, data.path.lastIndexOf("/"));
-					if (data.path == '/') {
-						url_goback = url_navigate + "#";
-					} else if (data.path.lastIndexOf("/") === 0) {
-						url_goback = url_navigate + "#" + data.storagename + ":/";
-					}
-					content = content + '<div><a class="btn btngoback" href="' + url_goback + '">Retour</a></div>';
-				}
 
 				content = content + '<table class="navdatatable table table-hover table-condensed">';
 				
@@ -378,7 +391,6 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 					
 					if (dircontent[pos].directory) {
 						content = content + '<th>';
-						
 						if (data.storagename) {
 							content = content + '<a class="tlbdirlistitem" href="' + url_navigate + "#" + dircontent[pos].storagename + ":" + dircontent[pos].path + '">';
 							content = content + dircontent[pos].path.substring(dircontent[pos].path.lastIndexOf("/") + 1);
@@ -444,7 +456,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 					content = content + '<td id="elmextern-' + elementkey + '"></td>';
 					
 					if (dircontent[pos].metadatas) {
-						content = content + '<td>' + addMetadatas(dircontent[pos].metadatas) + '</td>';
+						content = content + '<td>' + mtdengine.displaySummary(dircontent[pos].metadatas) + '</td>';
 					} else {
 						content = content + '<td></td>';
 					}
@@ -474,16 +486,6 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
                     ]
 				});
 
-				var click_navigate = function() {
-					displayStoragePathNavigator("storageelem", $(this).context.hash.substring(1), function(storagename, path) {
-						addMetadatasToSearchListItems();
-						createBreadcrumb("storageelem", storagename, path);
-					});
-				};
-
-				$("#" + domid + " .tlbdirlistitem").click(click_navigate);
-				$("#" + domid + " .btngoback").click(click_navigate);
-
 				$('#sitesearch').bind('keyup.DT', function(e) {
 					var val = this.value==="" ? "" : this.value;
 					$('.dataTables_filter input').val(val);
@@ -497,10 +499,18 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 				$("#" + domid).append(content);
 				if (data.toomanyitems) {
 					$("#" + domid).append(i18n('browser.toomanyitemsindir', data.toomanyitems - 1));
-				} else {
-					$("#" + domid).append(i18n('browser.afile'));
 				}
 			}
+
+			var click_navigate = function() {
+				displayStoragePathNavigator("storageelem", $(this).context.hash.substring(1), function(storagename, path) {
+					addMetadatasToSearchListItems();
+					createBreadcrumb("storageelem", storagename, path);
+				});
+			};
+
+			$("#" + domid + " .tlbdirlistitem").click(click_navigate);
+			$("#" + domid + " .btngoback").click(click_navigate);
 			
 			if (data.storagename) {
 				window.location.hash = data.storagename + ':' + data.path;
@@ -533,30 +543,6 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 		}
 	});
 	
-}
-
-function addMetadatas(metadatas) {
-	var title = "";
-
-	var count = 0;
-	for (var metadata in metadatas) {
-		if (metadata == "mimetype") {
-			continue;
-		}
-		if (metadata == "previews") {
-			continue;
-		}
-		count++;
-		if (title !== "") {
-			title = title + " - ";
-		}
-		title = title + metadatas[metadata];
-	}
-	if (count > 0) {
-		return '<abbr title="' + title.trim() + '">' + metadatas.mimetype + '</abbr>';
-	} else {
-		return metadatas.mimetype;
-	}
 }
 
 function createBreadcrumb(domid, storagename, path) {

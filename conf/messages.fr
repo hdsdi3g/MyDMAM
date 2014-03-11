@@ -121,6 +121,7 @@ browser.emptydir=vide
 browser.oneelement=1 élément
 browser.Nelements=%s éléments
 browser.toomanyitemsindir=Erreur : trop de fichiers dans le dossier (plus de %s)
+browser.goback=Retour
 
 crud.title=Administration
 crud.home=Home
@@ -207,3 +208,12 @@ acl.cancel=Annuler
 acl.lastlogin=Dernière connexion
 acl.fromip=Depuis
 acl.lastedited=Dernière modification
+
+mime.video-mpeg=MPEG Vidéo
+mime.application-pdf=Document PDF
+mime.text-xml=XML
+mime.video-flv=Vidéo Flash
+mime.video-mp4=MPEG4
+mime.application-bzip2=Archive Bzip2
+mime.image-png=Image PNG
+mime.video-quicktime=Media QuickTime

@@ -121,6 +121,7 @@ browser.emptydir=empty
 browser.oneelement=1 element
 browser.Nelements=%s elements
 browser.toomanyitemsindir=Error: too many files in the folder (more than %s)
+browser.goback=Go back
 
 crud.title=Administration
 crud.home=Home
@@ -207,3 +208,12 @@ acl.cancel=Cancel
 acl.lastlogin=Last login
 acl.fromip=From
 acl.lastedited=Last edit
+
+mime.video-mpeg=MPEG Video
+mime.application-pdf=PDF Document
+mime.text-xml=XML
+mime.video-flv=Flash video
+mime.video-mp4=MPEG4
+mime.application-bzip2=Bzip2 archive
+mime.image-png=PNG image
+mime.video-quicktime=QuickTime media 

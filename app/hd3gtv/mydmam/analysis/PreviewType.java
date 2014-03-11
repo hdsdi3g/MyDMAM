@@ -17,7 +17,7 @@
 package hd3gtv.mydmam.analysis;
 
 /**
- * All definitions should exists and implemented in JS side.
+ * All definitions should exists and implemented in JS (MetadataEngine, display function)
  */
 public enum PreviewType {
 	
