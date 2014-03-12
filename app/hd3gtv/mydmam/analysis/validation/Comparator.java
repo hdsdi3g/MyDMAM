@@ -11,19 +11,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.analysis;
+package hd3gtv.mydmam.analysis.validation;
 
-public interface MetadataProvider {
+public enum Comparator {
 	
-	boolean canProcessThis(String mimetype);
-	
-	boolean isEnabled();
-	
-	String getName();
-	
-	String getElasticSearchIndexType();
+	EQUALS, GREATER_THAN, SMALLER_THAN, DIFFERENT;
 	
 }

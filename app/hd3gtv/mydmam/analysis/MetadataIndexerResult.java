@@ -27,7 +27,7 @@ import java.util.Map;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-class MetadataIndexerResult implements Log2Dumpable {
+public class MetadataIndexerResult implements Log2Dumpable {
 	
 	File origin;
 	String mimetype;
@@ -39,12 +39,20 @@ class MetadataIndexerResult implements Log2Dumpable {
 		rendering_results = new LinkedHashMap<Renderer, List<RenderedElement>>();
 	}
 	
-	String getMimetype() {
+	public String getMimetype() {
 		return mimetype;
 	}
 	
-	File getOrigin() {
+	public File getOrigin() {
 		return origin;
+	}
+	
+	public LinkedHashMap<Analyser, JSONObject> getAnalysis_results() {
+		return analysis_results;
+	}
+	
+	public LinkedHashMap<Renderer, List<RenderedElement>> getRendering_results() {
+		return rendering_results;
 	}
 	
 	LinkedHashMap<Renderer, JSONArray> makeJSONRendering_results() {

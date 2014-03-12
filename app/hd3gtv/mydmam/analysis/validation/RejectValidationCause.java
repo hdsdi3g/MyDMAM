@@ -14,16 +14,30 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.analysis;
+package hd3gtv.mydmam.analysis.validation;
 
-import org.json.simple.JSONObject;
-
-public interface Analyser extends MetadataProvider {
+public class RejectValidationCause {
 	
-	public static final String METADATA_PROVIDER_ANALYSER = "analyser";
+	private String cause;
+	private ConstraintText constraintText;
 	
-	String getSummary(JSONObject processresult);
+	RejectValidationCause(String cause, ConstraintText constraintText) {
+		this.cause = cause;
+		if (cause == null) {
+			throw new NullPointerException("\"cause\" can't to be null");
+		}
+		this.constraintText = constraintText;
+		if (constraintText == null) {
+			throw new NullPointerException("\"constraint\" can't to be null");
+		}
+	}
 	
-	JSONObject process(MetadataIndexerResult analysis_result) throws Exception;
+	public String getCause() {
+		return cause;
+	}
+	
+	public ConstraintText getConstraint() {
+		return constraintText;
+	}
 	
 }

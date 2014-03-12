@@ -14,16 +14,29 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.analysis;
+package hd3gtv.mydmam.analysis.validation;
 
-import org.json.simple.JSONObject;
+import hd3gtv.mydmam.analysis.Analyser;
+import hd3gtv.mydmam.analysis.MetadataIndexerResult;
 
-public interface Analyser extends MetadataProvider {
+import java.util.List;
+
+public class Validator {
 	
-	public static final String METADATA_PROVIDER_ANALYSER = "analyser";
+	// private List<ValidationRule> rules;
 	
-	String getSummary(JSONObject processresult);
+	public Validator addRule(Analyser applyto, Constraint constraint, boolean fail_is_fatal) {
+		// TODO Auto-generated constructor stub
+		return this;
+	}
 	
-	JSONObject process(MetadataIndexerResult analysis_result) throws Exception;
-	
+	/**
+	 * @return null if ok, or causes.
+	 */
+	public List<RejectValidationCause> validate(MetadataIndexerResult metadatas) {
+		// TODO ...
+		// TODO array search
+		
+		return null;
+	}
 }
