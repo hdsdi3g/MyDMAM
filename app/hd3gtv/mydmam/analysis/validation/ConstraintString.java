@@ -16,12 +16,12 @@
 */
 package hd3gtv.mydmam.analysis.validation;
 
-public class ConstraintText extends Constraint {
+class ConstraintString extends Constraint {
 	
 	private String reference;
 	
-	public ConstraintText(String scope, Comparator comparator, String reference) {
-		super(scope, comparator);
+	public ConstraintString(String rule, Comparator comparator, String reference) {
+		super(rule, comparator);
 		this.reference = reference;
 		if (reference == null) {
 			throw new NullPointerException("\"reference\" can't to be null");
@@ -42,4 +42,9 @@ public class ConstraintText extends Constraint {
 			return (reference.equalsIgnoreCase(str_value)) == false;
 		}
 	}
+	
+	String getReference() {
+		return reference;
+	}
+	
 }

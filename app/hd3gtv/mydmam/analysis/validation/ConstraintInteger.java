@@ -16,12 +16,12 @@
 */
 package hd3gtv.mydmam.analysis.validation;
 
-public class ConstraintInt extends Constraint {
+class ConstraintInteger extends Constraint {
 	
 	private int reference;
 	
-	public ConstraintInt(String scope, Comparator comparator, int reference) {
-		super(scope, comparator);
+	public ConstraintInteger(String rule, Comparator comparator, int reference) {
+		super(rule, comparator);
 		this.reference = reference;
 	}
 	
@@ -29,7 +29,7 @@ public class ConstraintInt extends Constraint {
 		int int_value;
 		try {
 			int_value = (Integer) value;
-		} catch (NumberFormatException e1) {
+		} catch (Exception e1) {
 			if (value instanceof String) {
 				try {
 					int_value = Integer.parseInt((String) value);
@@ -55,4 +55,9 @@ public class ConstraintInt extends Constraint {
 			return false;
 		}
 	}
+	
+	String getReference() {
+		return String.valueOf(reference);
+	}
+	
 }

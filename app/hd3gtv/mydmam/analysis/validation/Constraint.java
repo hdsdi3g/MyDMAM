@@ -16,13 +16,20 @@
 */
 package hd3gtv.mydmam.analysis.validation;
 
+import java.util.List;
+
 import org.json.simple.JSONObject;
+
+import com.jayway.jsonpath.JsonPath;
 
 abstract class Constraint {
 	
 	protected String rule;
 	protected Comparator comparator;
 	
+	/**
+	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
+	 */
 	protected Constraint(String rule, Comparator comparator) {
 		this.rule = rule;
 		this.comparator = comparator;
@@ -35,16 +42,32 @@ abstract class Constraint {
 		}
 	}
 	
+	final List<Object> extractValueFromJson(JSONObject value) {
+		return JsonPath.read(value.toJSONString(), rule);
+	}
+	
 	final boolean isPassing(JSONObject value) {
-		/*Object item = jsonCrawler(value, scope);
-		if (item == null) {
+		List<Object> result = extractValueFromJson(value);
+		if (result == null) {
 			return false;
 		}
-		return isInternalPassing(item);*/
-		return false;
-		// TODO
+		if (result.isEmpty()) {
+			return false;
+		}
+		for (int pos = 0; pos < result.size(); pos++) {
+			if (isInternalPassing(result.get(pos)) == false) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	protected abstract boolean isInternalPassing(Object value);
+	
+	abstract String getReference();
+	
+	public String toString() {
+		return rule + " :: " + comparator.name();
+	}
 	
 }
