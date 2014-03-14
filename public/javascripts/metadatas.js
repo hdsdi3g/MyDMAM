@@ -61,6 +61,9 @@ function MetadataEngine() {
 			if (analyser == "mimetype") {
 				continue;
 			}
+			if (analyser == "master_as_preview") {
+				continue;
+			}
 			if (analyser == "previews") {
 				continue;
 			}
@@ -78,6 +81,9 @@ function MetadataEngine() {
 		var count = 0;
 		for (var analyser in metadatas) {
 			if (analyser == "mimetype") {
+				continue;
+			}
+			if (analyser == "master_as_preview") {
 				continue;
 			}
 			if (analyser == "previews") {

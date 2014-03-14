@@ -33,6 +33,7 @@ public class MetadataIndexerResult implements Log2Dumpable {
 	String mimetype;
 	LinkedHashMap<Analyser, JSONObject> analysis_results;
 	LinkedHashMap<Renderer, List<RenderedElement>> rendering_results;
+	boolean master_as_preview;
 	
 	MetadataIndexerResult() {
 		analysis_results = new LinkedHashMap<Analyser, JSONObject>();

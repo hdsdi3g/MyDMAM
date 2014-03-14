@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.analysis.validation;
 
-import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.analysis.Analyser;
 
@@ -52,10 +51,10 @@ public class ValidatorCenter {
 	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
 	 * @param reference with OR relations
 	 */
-	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Float... reference) {
+	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Float... references) {
 		Validator validator = new Validator();
-		for (int pos = 0; pos < reference.length; pos++) {
-			validator.addRule(applyto, new ConstraintFloat(rule, comparator, reference[pos]));
+		for (int pos = 0; pos < references.length; pos++) {
+			validator.addRule(applyto, new ConstraintFloat(rule, comparator, references[pos]));
 		}
 		addValidator(validator);
 		return this;
@@ -65,10 +64,10 @@ public class ValidatorCenter {
 	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
 	 * @param reference with OR relations
 	 */
-	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, String... reference) {
+	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, String... references) {
 		Validator validator = new Validator();
-		for (int pos = 0; pos < reference.length; pos++) {
-			validator.addRule(applyto, new ConstraintString(rule, comparator, reference[pos]));
+		for (int pos = 0; pos < references.length; pos++) {
+			validator.addRule(applyto, new ConstraintString(rule, comparator, references[pos]));
 		}
 		addValidator(validator);
 		return this;
@@ -78,10 +77,10 @@ public class ValidatorCenter {
 	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
 	 * @param reference with OR relations
 	 */
-	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Integer... reference) {
+	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Integer... references) {
 		Validator validator = new Validator();
-		for (int pos = 0; pos < reference.length; pos++) {
-			validator.addRule(applyto, new ConstraintInteger(rule, comparator, reference[pos]));
+		for (int pos = 0; pos < references.length; pos++) {
+			validator.addRule(applyto, new ConstraintInteger(rule, comparator, references[pos]));
 		}
 		addValidator(validator);
 		return this;
@@ -133,7 +132,7 @@ public class ValidatorCenter {
 				}
 			}
 			if (passed == false) {
-				Log2.log.debug("Fail to validate analysis", dump);
+				// Log2.log.debug("Fail to validate analysis", dump);
 			} else {
 				dump = new Log2Dump();
 			}

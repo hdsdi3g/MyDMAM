@@ -251,6 +251,9 @@ class MetadataCenterIndexer implements IndexingEvent {
 		
 		JSONObject jo_summary = new JSONObject();
 		jo_summary.put("mimetype", indexing_result.mimetype);
+		if (indexing_result.master_as_preview) {
+			jo_summary.put("master_as_preview", true);
+		}
 		jo_summary.put("origin", origin);
 		JSONObject jo_summary_previews = new JSONObject();
 		

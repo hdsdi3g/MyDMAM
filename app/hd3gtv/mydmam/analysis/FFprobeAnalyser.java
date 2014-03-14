@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import org.json.simple.JSONArray;
@@ -119,6 +118,11 @@ public class FFprobeAnalyser implements Analyser {
 	public static boolean canProcessThisAudioOnly(String mimetype) {
 		if (mimetype.equalsIgnoreCase("audio/x-wav")) return true;
 		if (mimetype.equalsIgnoreCase("audio/ac3")) return true;
+		if (mimetype.equalsIgnoreCase("audio/mp4")) return true;
+		if (mimetype.equalsIgnoreCase("audio/mpeg")) return true;
+		if (mimetype.equalsIgnoreCase("audio/ogg")) return true;
+		if (mimetype.equalsIgnoreCase("audio/vorbis")) return true;
+		
 		if (mimetype.equalsIgnoreCase("audio/x-ms-wmv")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-hx-aac-adts")) return true;
 		if (mimetype.equalsIgnoreCase("audio/3gpp")) return true;
@@ -141,9 +145,6 @@ public class FFprobeAnalyser implements Analyser {
 		if (mimetype.equalsIgnoreCase("audio/G729D")) return true;
 		if (mimetype.equalsIgnoreCase("audio/G729E")) return true;
 		if (mimetype.equalsIgnoreCase("audio/GSM")) return true;
-		if (mimetype.equalsIgnoreCase("audio/mp4")) return true;
-		if (mimetype.equalsIgnoreCase("audio/mpeg")) return true;
-		if (mimetype.equalsIgnoreCase("audio/ogg")) return true;
 		
 		if (mimetype.equalsIgnoreCase("audio/vnd.dolby.heaac.1")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vnd.dolby.heaac.2")) return true;
@@ -156,7 +157,6 @@ public class FFprobeAnalyser implements Analyser {
 		if (mimetype.equalsIgnoreCase("audio/vnd.dra")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vnd.dts")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vnd.dts.hd")) return true;
-		if (mimetype.equalsIgnoreCase("audio/vorbis")) return true;
 		return false;
 	}
 	
@@ -394,31 +394,32 @@ public class FFprobeAnalyser implements Analyser {
 		return null;
 	}
 	
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		ArrayList<String> al = new ArrayList<String>();
+		al.add("audio/mpeg");
+		al.add("audio/mp4");
+		return al;
+	}
+	
 	private static ValidatorCenter audio_webbrowser_validation;
 	
-	public static boolean isAudioIsValidForWebbrowser(MetadataIndexerResult analysis_result) {
-		Analyser me = null;
-		for (Map.Entry<Analyser, JSONObject> entry : analysis_result.analysis_results.entrySet()) {
-			if (entry.getKey() instanceof FFprobeAnalyser) {
-				me = entry.getKey();
-				break;
+	public boolean isCanUsedInMasterAsPreview(MetadataIndexerResult metadatas_result) {
+		if (metadatas_result.mimetype.equalsIgnoreCase("audio/mpeg") | metadatas_result.mimetype.equalsIgnoreCase("audio/mp4")) {
+			/**
+			 * Test for audio
+			 */
+			if (audio_webbrowser_validation == null) {
+				audio_webbrowser_validation = new ValidatorCenter();
+				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
+				audio_webbrowser_validation.and();
+				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac", "mp3");
+				audio_webbrowser_validation.and();
+				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
+				audio_webbrowser_validation.and();
+				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.SMALLER_THAN, 384001);
 			}
+			return audio_webbrowser_validation.validate(metadatas_result.analysis_results);
 		}
-		if (me == null) {
-			return false;
-		}
-		if (audio_webbrowser_validation == null) {
-			audio_webbrowser_validation = new ValidatorCenter();
-			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 0);
-			audio_webbrowser_validation.and();
-			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].codec_type", Comparator.EQUALS, "audio");
-			audio_webbrowser_validation.and();
-			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
-			audio_webbrowser_validation.and();
-			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac", "mp3");
-			audio_webbrowser_validation.and();
-			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
-		}
-		return audio_webbrowser_validation.validate(analysis_result.analysis_results);
+		return false;
 	}
 }

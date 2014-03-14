@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.analysis;
 
+import java.util.List;
+
 import org.json.simple.JSONObject;
 
 public interface Analyser extends MetadataProvider {
@@ -25,5 +27,9 @@ public interface Analyser extends MetadataProvider {
 	String getSummary(JSONObject processresult);
 	
 	JSONObject process(MetadataIndexerResult analysis_result) throws Exception;
+	
+	List<String> getMimeFileListCanUsedInMasterAsPreview();
+	
+	boolean isCanUsedInMasterAsPreview(MetadataIndexerResult analysis_result);
 	
 }

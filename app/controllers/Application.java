@@ -228,6 +228,7 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void metadatafile(@Required String filehash, @Required String type, @Required String file) {
+		// TODO partial download
 		if (validation.hasErrors()) {
 			forbidden();
 		}

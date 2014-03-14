@@ -56,34 +56,56 @@ public class MetadataCenter implements CliModule {
 	
 	public static final String METADATA_PROVIDER_TYPE = "metadata-provider-type";
 	
-	/**
-	 * name -> provider
-	 */
-	private LinkedHashMap<String, MetadataProvider> providers;
+	private LinkedHashMap<String, Analyser> analysers;
+	private LinkedHashMap<String, Renderer> renderers;
+	private MasterAsPreviewProvider master_as_preview;
+	
 	private volatile List<MetadataCenterIndexer> analysis_indexers;
 	
 	public MetadataCenter() {
-		providers = new LinkedHashMap<String, MetadataProvider>();
+		analysers = new LinkedHashMap<String, Analyser>();
+		renderers = new LinkedHashMap<String, Renderer>();
+		master_as_preview = new MasterAsPreviewProvider();
+		
 		addProvider(new FFprobeAnalyser());
 		addProvider(new FFmpegSnapshoot());
 		analysis_indexers = new ArrayList<MetadataCenterIndexer>();
 	}
 	
-	public synchronized void addProvider(MetadataProvider provider) {
-		if (provider == null) {
-			throw new NullPointerException("\"provider\" can't to be null");
+	public synchronized void addProvider(Analyser analyser) {
+		if (analyser == null) {
+			throw new NullPointerException("\"analyser\" can't to be null");
 		}
-		if (provider.isEnabled()) {
-			if (providers.containsKey(provider.getName())) {
+		if (analyser.isEnabled()) {
+			if (analysers.containsKey(analyser.getName())) {
 				Log2Dump dump = new Log2Dump();
-				dump.add("this", provider);
-				dump.add("previous", providers.get(provider.getName()));
+				dump.add("this", analyser);
+				dump.add("previous", analysers.get(analyser.getName()));
 				Log2.log.info("Provider with this name exists", dump);
 			} else {
-				providers.put(provider.getName(), provider);
+				analysers.put(analyser.getName(), analyser);
+				master_as_preview.addAnalyser(analyser);
 			}
 		} else {
-			Log2.log.info("Provider " + provider.getName() + " is disabled");
+			Log2.log.info("Analyser " + analyser.getName() + " is disabled");
+		}
+	}
+	
+	public synchronized void addProvider(Renderer renderer) {
+		if (renderer == null) {
+			throw new NullPointerException("\"renderer\" can't to be null");
+		}
+		if (renderer.isEnabled()) {
+			if (renderers.containsKey(renderer.getName())) {
+				Log2Dump dump = new Log2Dump();
+				dump.add("this", renderer);
+				dump.add("previous", renderers.get(renderer.getName()));
+				Log2.log.info("Provider with this name exists", dump);
+			} else {
+				renderers.put(renderer.getName(), renderer);
+			}
+		} else {
+			Log2.log.info("Renderer " + renderer.getName() + " is disabled");
 		}
 	}
 	
@@ -258,6 +280,8 @@ public class MetadataCenter implements CliModule {
 		return result;
 	}
 	
+	// TODO get file for master_as_preview
+	
 	public static RenderedElement getMetadataFileReference(Client client, String origin_key, String index_type, String filename, boolean check_hash) throws IndexMissingException {
 		if (client == null) {
 			throw new NullPointerException("\"client\" can't to be null");
@@ -334,59 +358,51 @@ public class MetadataCenter implements CliModule {
 			indexing_result.mimetype = MimeExtract.getMime(physical_source);
 		}
 		
-		if (providers.size() == 0) {
-			return indexing_result;
-		}
-		
-		for (Map.Entry<String, MetadataProvider> entry : providers.entrySet()) {
-			MetadataProvider provider = entry.getValue();
-			if (provider.canProcessThis(indexing_result.mimetype)) {
+		for (Map.Entry<String, Analyser> entry : analysers.entrySet()) {
+			Analyser analyser = entry.getValue();
+			if (analyser.canProcessThis(indexing_result.mimetype)) {
 				try {
-					if (provider instanceof Analyser) {
-						/**
-						 * Analyser
-						 */
-						Analyser analyser = (Analyser) provider;
-						JSONObject jo_processing_result = analyser.process(indexing_result);
-						if (jo_processing_result == null) {
-							continue;
-						}
-						if (jo_processing_result.isEmpty()) {
-							continue;
-						}
-						jo_processing_result.put(METADATA_PROVIDER_TYPE, Analyser.METADATA_PROVIDER_ANALYSER);
-						indexing_result.analysis_results.put(analyser, jo_processing_result);
-					} else if (provider instanceof Renderer) {
-						/**
-						 * Renderer
-						 */
-						Renderer renderer = (Renderer) provider;
-						List<RenderedElement> renderedelements = renderer.process(indexing_result);
-						if (renderedelements == null) {
-							continue;
-						}
-						if (renderedelements.size() == 0) {
-							continue;
-						}
-						
-						for (int pos = 0; pos < renderedelements.size(); pos++) {
-							renderedelements.get(pos).consolidate(reference, renderer);
-						}
-						indexing_result.rendering_results.put(renderer, renderedelements);
-						RenderedElement.cleanCurrentTempDirectory();
-					} else {
-						/**
-						 * Unknow...
-						 */
-						Log2Dump dump = new Log2Dump();
-						dump.add("provider class", provider);
-						dump.add("provider name", provider.getName());
-						Log2.log.error("Can't handle this MetadataProvider", null, dump);
+					JSONObject jo_processing_result = analyser.process(indexing_result);
+					if (jo_processing_result == null) {
+						continue;
 					}
+					if (jo_processing_result.isEmpty()) {
+						continue;
+					}
+					jo_processing_result.put(METADATA_PROVIDER_TYPE, Analyser.METADATA_PROVIDER_ANALYSER);
+					indexing_result.analysis_results.put(analyser, jo_processing_result);
 				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
-					dump.add("provider class", provider);
-					dump.add("provider name", provider.getName());
+					dump.add("analyser class", analyser);
+					dump.add("analyser name", analyser.getName());
+					dump.add("physical_source", physical_source);
+					Log2.log.error("Can't analyst/render file", e, dump);
+				}
+			}
+		}
+		
+		indexing_result.master_as_preview = master_as_preview.isFileIsValidForMasterAsPreview(indexing_result);
+		
+		for (Map.Entry<String, Renderer> entry : renderers.entrySet()) {
+			Renderer renderer = entry.getValue();
+			if (renderer.canProcessThis(indexing_result.mimetype)) {
+				try {
+					List<RenderedElement> renderedelements = renderer.process(indexing_result);
+					if (renderedelements == null) {
+						continue;
+					}
+					if (renderedelements.size() == 0) {
+						continue;
+					}
+					for (int pos = 0; pos < renderedelements.size(); pos++) {
+						renderedelements.get(pos).consolidate(reference, renderer);
+					}
+					indexing_result.rendering_results.put(renderer, renderedelements);
+					RenderedElement.cleanCurrentTempDirectory();
+				} catch (Exception e) {
+					Log2Dump dump = new Log2Dump();
+					dump.add("provider class", renderer);
+					dump.add("provider name", renderer.getName());
 					dump.add("physical_source", physical_source);
 					Log2.log.error("Can't analyst/render file", e, dump);
 				}
@@ -440,6 +456,10 @@ public class MetadataCenter implements CliModule {
 				System.out.print("\t");
 				System.out.print(result.mimetype);
 				System.out.print("\t");
+				if (result.master_as_preview) {
+					System.out.print("MasterAsPreview");
+				}
+				System.out.print("\t");
 				if ((result.analysis_results != null) & (verbose | prettify)) {
 					for (Map.Entry<Analyser, JSONObject> entry : result.analysis_results.entrySet()) {
 						System.out.println();
@@ -457,19 +477,22 @@ public class MetadataCenter implements CliModule {
 					}
 				}
 				
-				if ((result.rendering_results != null) & (verbose | prettify)) {
-					for (Map.Entry<Renderer, JSONArray> entry : result.makeJSONRendering_results().entrySet()) {
-						System.out.println();
-						System.out.print("\t\t");
-						System.out.print(entry.getKey().getName());
-						System.out.print(" [");
-						System.out.print(entry.getKey().getElasticSearchIndexType());
-						System.out.print("]");
-						System.out.print("\t");
-						if (prettify) {
-							System.out.print(json_prettify(entry.getValue()));
-						} else {
-							System.out.print(entry.getValue().toJSONString());
+				if (verbose | prettify) {
+					LinkedHashMap<Renderer, JSONArray> rendering_results = result.makeJSONRendering_results();
+					if (rendering_results != null) {
+						for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
+							System.out.println();
+							System.out.print("\t\t");
+							System.out.print(entry.getKey().getName());
+							System.out.print(" [");
+							System.out.print(entry.getKey().getElasticSearchIndexType());
+							System.out.print("]");
+							System.out.print("\t");
+							if (prettify) {
+								System.out.print(json_prettify(entry.getValue()));
+							} else {
+								System.out.print(entry.getValue().toJSONString());
+							}
 						}
 					}
 				}
