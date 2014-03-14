@@ -19,6 +19,8 @@ package hd3gtv.mydmam.analysis;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.analysis.validation.Comparator;
+import hd3gtv.mydmam.analysis.validation.ValidatorCenter;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.Timecode;
@@ -29,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.json.simple.JSONArray;
@@ -389,5 +392,33 @@ public class FFprobeAnalyser implements Analyser {
 			}
 		}
 		return null;
+	}
+	
+	private static ValidatorCenter audio_webbrowser_validation;
+	
+	public static boolean isAudioIsValidForWebbrowser(MetadataIndexerResult analysis_result) {
+		Analyser me = null;
+		for (Map.Entry<Analyser, JSONObject> entry : analysis_result.analysis_results.entrySet()) {
+			if (entry.getKey() instanceof FFprobeAnalyser) {
+				me = entry.getKey();
+				break;
+			}
+		}
+		if (me == null) {
+			return false;
+		}
+		if (audio_webbrowser_validation == null) {
+			audio_webbrowser_validation = new ValidatorCenter();
+			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 0);
+			audio_webbrowser_validation.and();
+			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].codec_type", Comparator.EQUALS, "audio");
+			audio_webbrowser_validation.and();
+			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
+			audio_webbrowser_validation.and();
+			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac", "mp3");
+			audio_webbrowser_validation.and();
+			audio_webbrowser_validation.addRule(me, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
+		}
+		return audio_webbrowser_validation.validate(analysis_result.analysis_results);
 	}
 }
