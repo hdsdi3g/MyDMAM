@@ -40,14 +40,50 @@ public class ValidatorCenter {
 		validators_lists.add(current_validator_list);
 	}
 	
-	/**
-	 * With OR relation.
-	 */
-	public ValidatorCenter addValidator(Validator validator) {
+	ValidatorCenter addValidator(Validator validator) {
 		if (validator == null) {
 			throw new NullPointerException("\"validator\" can't to be null");
 		}
 		current_validator_list.add(validator);
+		return this;
+	}
+	
+	/**
+	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
+	 * @param reference with OR relations
+	 */
+	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Float... reference) {
+		Validator validator = new Validator();
+		for (int pos = 0; pos < reference.length; pos++) {
+			validator.addRule(applyto, new ConstraintFloat(rule, comparator, reference[pos]));
+		}
+		addValidator(validator);
+		return this;
+	}
+	
+	/**
+	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
+	 * @param reference with OR relations
+	 */
+	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, String... reference) {
+		Validator validator = new Validator();
+		for (int pos = 0; pos < reference.length; pos++) {
+			validator.addRule(applyto, new ConstraintString(rule, comparator, reference[pos]));
+		}
+		addValidator(validator);
+		return this;
+	}
+	
+	/**
+	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
+	 * @param reference with OR relations
+	 */
+	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Integer... reference) {
+		Validator validator = new Validator();
+		for (int pos = 0; pos < reference.length; pos++) {
+			validator.addRule(applyto, new ConstraintInteger(rule, comparator, reference[pos]));
+		}
+		addValidator(validator);
 		return this;
 	}
 	

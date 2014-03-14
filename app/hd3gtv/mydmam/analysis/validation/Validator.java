@@ -30,23 +30,13 @@ import org.json.simple.JSONObject;
  */
 public class Validator {
 	
-	private LinkedHashMap<Analyser, List<Rule>> rules;
-	
-	private class Rule {
-		Constraint constraint;
-		boolean fail_is_fatal;
-		
-		Rule(Constraint constraint, boolean fail_is_fatal) {
-			this.constraint = constraint;
-			this.fail_is_fatal = fail_is_fatal;
-		}
-	}
+	private LinkedHashMap<Analyser, List<Constraint>> rules;
 	
 	public Validator() {
-		rules = new LinkedHashMap<Analyser, List<Rule>>();
+		rules = new LinkedHashMap<Analyser, List<Constraint>>();
 	}
 	
-	private Validator addRule(Analyser applyto, Constraint constraint, boolean fail_is_fatal) {
+	void addRule(Analyser applyto, Constraint constraint) {
 		if (applyto == null) {
 			throw new NullPointerException("\"applyto\" can't to be null");
 		}
@@ -54,40 +44,17 @@ public class Validator {
 			throw new NullPointerException("\"constraint\" can't to be null");
 		}
 		
-		List<Rule> analyser_rules = null;
+		List<Constraint> analyser_rules = null;
 		if (rules.containsKey(applyto)) {
 			analyser_rules = rules.get(applyto);
 		}
 		
 		if (analyser_rules == null) {
-			analyser_rules = new ArrayList<Validator.Rule>();
+			analyser_rules = new ArrayList<Constraint>();
 		}
 		
-		analyser_rules.add(new Rule(constraint, fail_is_fatal));
+		analyser_rules.add(constraint);
 		rules.put(applyto, analyser_rules);
-		
-		return this;
-	}
-	
-	/**
-	 * With AND relation.
-	 */
-	public Validator addRule(Analyser applyto, String rule, Comparator comparator, float reference, boolean fail_is_fatal) {
-		return addRule(applyto, new ConstraintFloat(rule, comparator, reference), fail_is_fatal);
-	}
-	
-	/**
-	 * With AND relation.
-	 */
-	public Validator addRule(Analyser applyto, String rule, Comparator comparator, String reference, boolean fail_is_fatal) {
-		return addRule(applyto, new ConstraintString(rule, comparator, reference), fail_is_fatal);
-	}
-	
-	/**
-	 * With AND relation.
-	 */
-	public Validator addRule(Analyser applyto, String rule, Comparator comparator, int reference, boolean fail_is_fatal) {
-		return addRule(applyto, new ConstraintInteger(rule, comparator, reference), fail_is_fatal);
 	}
 	
 	/**
@@ -97,21 +64,18 @@ public class Validator {
 		List<RejectCause> rejects = new ArrayList<RejectCause>();
 		
 		JSONObject analyst_result;
-		List<Rule> analyser_rules;
-		Rule rule;
-		for (Map.Entry<Analyser, List<Rule>> entry : rules.entrySet()) {
+		List<Constraint> analyser_rules;
+		Constraint constraint;
+		for (Map.Entry<Analyser, List<Constraint>> entry : rules.entrySet()) {
 			if (analysis_results.containsKey(entry.getKey()) == false) {
 				continue;
 			}
 			analyst_result = analysis_results.get(entry.getKey());
 			analyser_rules = entry.getValue();
 			for (int pos_rules = 0; pos_rules < analyser_rules.size(); pos_rules++) {
-				rule = analyser_rules.get(pos_rules);
-				if (rule.constraint.isPassing(analyst_result) == false) {
-					rejects.add(new RejectCause(entry.getKey(), analyst_result, rule.constraint, rule.fail_is_fatal));
-					if (rule.fail_is_fatal) {
-						return rejects;
-					}
+				constraint = analyser_rules.get(pos_rules);
+				if (constraint.isPassing(analyst_result) == false) {
+					rejects.add(new RejectCause(entry.getKey(), analyst_result, constraint));
 				}
 			}
 		}

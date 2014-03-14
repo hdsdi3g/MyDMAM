@@ -29,9 +29,8 @@ public class RejectCause implements Log2Dumpable {
 	private Analyser analyser;
 	private JSONObject source;
 	private Constraint constraint;
-	private boolean fatal;
 	
-	RejectCause(Analyser analyser, JSONObject source, Constraint constraint, boolean fatal) {
+	RejectCause(Analyser analyser, JSONObject source, Constraint constraint) {
 		this.analyser = analyser;
 		if (analyser == null) {
 			throw new NullPointerException("\"analyser\" can't to be null");
@@ -44,12 +43,10 @@ public class RejectCause implements Log2Dumpable {
 		if (constraint == null) {
 			throw new NullPointerException("\"constraint\" can't to be null");
 		}
-		this.fatal = fatal;
 	}
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
-		dump.add("fatal", fatal);
 		dump.add("analyser", analyser.getName());
 		dump.add("rule", constraint.rule);
 		List<Object> values = constraint.extractValueFromJson(source);
