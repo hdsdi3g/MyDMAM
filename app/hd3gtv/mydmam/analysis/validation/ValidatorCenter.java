@@ -38,7 +38,6 @@ public class ValidatorCenter {
 		validators_lists = new ArrayList<List<Validator>>();
 		current_validator_list = new ArrayList<Validator>();
 		validators_lists.add(current_validator_list);
-		// TODO autotest !
 	}
 	
 	/**
