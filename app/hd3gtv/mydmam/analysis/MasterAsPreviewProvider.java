@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.analysis;
 
+import hd3gtv.configuration.Configuration;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,11 +27,21 @@ class MasterAsPreviewProvider {
 	private Map<String, Analyser> mime_list;
 	
 	MasterAsPreviewProvider() {
+		if (Configuration.global.isElementExists("master_as_preview") == false) {
+			return;
+		}
+		if (Configuration.global.getValueBoolean("master_as_preview", "enable") == false) {
+			return;
+		}
 		mime_list = new HashMap<String, Analyser>();
+		
 	}
 	
 	void addAnalyser(Analyser analyser) {
 		if (analyser == null) {
+			return;
+		}
+		if (mime_list == null) {
 			return;
 		}
 		List<String> list = analyser.getMimeFileListCanUsedInMasterAsPreview();
@@ -41,6 +53,9 @@ class MasterAsPreviewProvider {
 	}
 	
 	boolean isFileIsValidForMasterAsPreview(MetadataIndexerResult metadatas_result) {
+		if (mime_list == null) {
+			return false;
+		}
 		String mime = metadatas_result.mimetype.toLowerCase();
 		if (mime_list.containsKey(mime) == false) {
 			return false;

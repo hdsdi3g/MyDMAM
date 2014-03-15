@@ -16,3 +16,6 @@ analysing_storageindexes:
 analysing_renderer:
     temp_directory: /tmp
     local_directory: /mnt/shared-previews
+
+master_as_preview:
+    enable: true
