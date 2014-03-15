@@ -19,6 +19,7 @@ package hd3gtv.mydmam.analysis;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
@@ -55,6 +56,7 @@ public class MetadataCenter implements CliModule {
 	public static final String ES_TYPE_SUMMARY = "summary";
 	
 	public static final String METADATA_PROVIDER_TYPE = "metadata-provider-type";
+	public static final String MASTER_AS_PREVIEW = "master_as_preview";
 	
 	private LinkedHashMap<String, Analyser> analysers;
 	private LinkedHashMap<String, Renderer> renderers;
@@ -280,7 +282,50 @@ public class MetadataCenter implements CliModule {
 		return result;
 	}
 	
-	// TODO get file for master_as_preview
+	public static RenderedElement getMasterAsPreviewFile(Client client, String origin_key) throws IndexMissingException {
+		if (client == null) {
+			throw new NullPointerException("\"client\" can't to be null");
+		}
+		if (origin_key == null) {
+			throw new NullPointerException("\"origin_key\" can't to be null");
+		}
+		
+		try {
+			SearchRequestBuilder request = client.prepareSearch();
+			request.setIndices(ES_INDEX);
+			request.setTypes(ES_TYPE_SUMMARY);
+			
+			BoolQueryBuilder query = QueryBuilders.boolQuery();
+			query.must(QueryBuilders.termQuery("origin.key", origin_key));
+			query.must(QueryBuilders.termQuery(MASTER_AS_PREVIEW, true));
+			request.setQuery(query);
+			SearchHit[] hits = request.execute().actionGet().getHits().hits();
+			if (hits.length == 0) {
+				return null;
+			}
+			
+			JSONParser parser = new JSONParser();
+			JSONObject current_mtd = (JSONObject) parser.parse(hits[0].getSourceAsString());
+			if (current_mtd.containsKey("mimetype") == false) {
+				return null;
+			}
+			
+			Explorer explorer = new Explorer(client);
+			SourcePathIndexerElement spie = explorer.getelementByIdkey(origin_key);
+			if (spie == null) {
+				return null;
+			}
+			
+			return RenderedElement.fromDatabaseMasterAsPreview(spie, (String) current_mtd.get("mimetype"));
+		} catch (IndexMissingException e) {
+			return null;
+		} catch (ParseException e) {
+			Log2.log.error("Invalid ES response", e);
+		} catch (IOException e) {
+			Log2.log.error("Can't found valid file", e);
+		}
+		return null;
+	}
 	
 	public static RenderedElement getMetadataFileReference(Client client, String origin_key, String index_type, String filename, boolean check_hash) throws IndexMissingException {
 		if (client == null) {

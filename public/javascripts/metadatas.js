@@ -40,13 +40,32 @@ function MetadataEngine() {
 		if (!element.metadatas) {
 			return "";
 		}
+		var file_type;
+		var file_name;
+		var file_hash;
+		var url;
+
 		var content = '';
-		if (element.metadatas.previews) {
+		
+		if ((preview_type == "full_size_thumbnail") & element.metadatas.master_as_preview) {
+			file_type = "master_as_preview";
+			file_name = "default";
+			file_hash = md5(element.storagename + ":" + element.path);
+			url = this.getURL(file_hash, file_type, file_name);
+
+			content = content + '<div style="margin-bottom: 1em;">';
+			content = content + '<audio controls="controls">';
+			content = content + 'Votre navigateur ne supporte pas lélément <code>audio</code> element.';
+			content = content + '<source src="' + url + '" type="' + element.metadatas.mimetype + '">';
+			content = content + '</audio>';
+			content = content + '</div>';
+			
+		} else if (element.metadatas.previews) {
 			if (element.metadatas.previews[preview_type]) {
-				var file_type = element.metadatas.previews[preview_type].type;
-				var file_name = element.metadatas.previews[preview_type].file;
-				var file_hash = md5(element.storagename + ":" + element.path);
-				var url = this.getURL(file_hash, file_type, file_name);
+				file_type = element.metadatas.previews[preview_type].type;
+				file_name = element.metadatas.previews[preview_type].file;
+				file_hash = md5(element.storagename + ":" + element.path);
+				url = this.getURL(file_hash, file_type, file_name);
 				if (url !== "") {
 					if (preview_type == "full_size_thumbnail") {
 						content = content + '<div style="margin-bottom: 1em;">';
@@ -56,6 +75,7 @@ function MetadataEngine() {
 				}
 			}
 		}
+		
 		
 		for (var analyser in element.metadatas) {
 			if (analyser == "mimetype") {

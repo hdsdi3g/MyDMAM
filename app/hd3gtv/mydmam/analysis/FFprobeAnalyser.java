@@ -84,7 +84,30 @@ public class FFprobeAnalyser implements Analyser {
 		}
 		
 		JSONParser jp = new JSONParser();
-		return (JSONObject) jp.parse(process.getResultstdout().toString());
+		JSONObject result = (JSONObject) jp.parse(process.getResultstdout().toString());
+		
+		// FIXME remove bug with ES and format.tags.date "failed to parse date field"
+		
+		/**
+		 * Patch mime code if "Video: ... 90000.0 fps"
+		 */
+		List<JSONObject> video_streams = getStreamNode(result, "video");
+		if (video_streams != null) {
+			for (int pos = 0; pos < video_streams.size(); pos++) {
+				if (video_streams.get(pos).containsKey("time_base") == false) {
+					continue;
+				}
+				if (((String) video_streams.get(pos).get("time_base")).equals("1/90000")) {
+					video_streams.get(pos).put("ignore_stream", true);
+					if (analysis_result.mimetype.startsWith("video")) {
+						analysis_result.mimetype = "audio" + analysis_result.mimetype.substring(5);
+					}
+					break;
+				}
+			}
+		}
+		
+		return result;
 	}
 	
 	public String getName() {
@@ -109,6 +132,7 @@ public class FFprobeAnalyser implements Analyser {
 		if (mimetype.equalsIgnoreCase("video/ogg")) return true;
 		if (mimetype.equalsIgnoreCase("video/mp2p")) return true;
 		if (mimetype.equalsIgnoreCase("video/h264")) return true;
+		if (mimetype.equalsIgnoreCase("video/x-flv")) return true;
 		if (mimetype.equalsIgnoreCase("video/3gpp")) return true;
 		if (mimetype.equalsIgnoreCase("video/x-ms-wmv")) return true;
 		if (mimetype.equalsIgnoreCase("video/msvideo")) return true;
@@ -122,6 +146,7 @@ public class FFprobeAnalyser implements Analyser {
 		if (mimetype.equalsIgnoreCase("audio/mpeg")) return true;
 		if (mimetype.equalsIgnoreCase("audio/ogg")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vorbis")) return true;
+		if (mimetype.equalsIgnoreCase("audio/quicktime")) return true;
 		
 		if (mimetype.equalsIgnoreCase("audio/x-ms-wmv")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-hx-aac-adts")) return true;
@@ -193,7 +218,9 @@ public class FFprobeAnalyser implements Analyser {
 			for (int pos = 0; pos < streams.size(); pos++) {
 				sb = new StringBuffer();
 				stream = (JSONObject) streams.get(pos);
-				if (stream.containsKey("codec_type")) {
+				if (stream.containsKey("ignore_stream")) {
+					continue;
+				} else if (stream.containsKey("codec_type")) {
 					String codec_name = (String) stream.get("codec_tag_string");
 					if (codec_name.indexOf("[") > -1) {
 						codec_name = (String) stream.get("codec_name");
@@ -222,17 +249,21 @@ public class FFprobeAnalyser implements Analyser {
 						}
 						sb.append(translateCodecName(codec_name));
 						
-						int bit_rate = Integer.parseInt((String) stream.get("bit_rate")) / 1000;
-						float sample_rate = Float.parseFloat((String) stream.get("sample_rate")) / 1000f;
-						
 						sb.append(" (");
 						sb.append(VideoConst.audioChannelCounttoString(Ints.checkedCast((Long) stream.get("channels"))));
-						sb.append(" ");
-						sb.append(sample_rate);
-						sb.append("kHz ");
-						sb.append(bit_rate);
-						sb.append("kbps");
+						
+						if (stream.containsKey("sample_rate")) {
+							sb.append(" ");
+							sb.append(Float.parseFloat((String) stream.get("sample_rate")) / 1000f);
+							sb.append("kHz");
+						}
+						if (stream.containsKey("bit_rate")) {
+							sb.append(" ");
+							sb.append(Integer.parseInt((String) stream.get("bit_rate")) / 1000);
+							sb.append("kbps");
+						}
 						sb.append(")");
+						
 					}
 				}
 				streams_list.add(sb.toString());
@@ -349,6 +380,9 @@ public class FFprobeAnalyser implements Analyser {
 		ArrayList<JSONObject> stream_list = new ArrayList<JSONObject>();
 		for (int pos = 0; pos < streams.size(); pos++) {
 			JSONObject stream = (JSONObject) streams.get(pos);
+			if (stream.containsKey("ignore_stream")) {
+				continue;
+			}
 			if (((String) stream.get("codec_type")).equalsIgnoreCase(codec_type)) {
 				stream_list.add(stream);
 			}
@@ -398,13 +432,14 @@ public class FFprobeAnalyser implements Analyser {
 		ArrayList<String> al = new ArrayList<String>();
 		al.add("audio/mpeg");
 		al.add("audio/mp4");
+		al.add("audio/quicktime");
 		return al;
 	}
 	
 	private static ValidatorCenter audio_webbrowser_validation;
 	
 	public boolean isCanUsedInMasterAsPreview(MetadataIndexerResult metadatas_result) {
-		if (metadatas_result.mimetype.equalsIgnoreCase("audio/mpeg") | metadatas_result.mimetype.equalsIgnoreCase("audio/mp4")) {
+		if (metadatas_result.mimetype.equalsIgnoreCase("audio/mpeg") | metadatas_result.mimetype.equalsIgnoreCase("audio/mp4") | metadatas_result.mimetype.equalsIgnoreCase("audio/quicktime")) {
 			/**
 			 * Test for audio
 			 */

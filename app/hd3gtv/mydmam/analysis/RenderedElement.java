@@ -23,6 +23,7 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.LogHandlerToLogfile;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.io.BufferedInputStream;
@@ -431,6 +432,32 @@ public class RenderedElement implements Log2Dumpable {
 			}
 		}
 		result.rendered_mime = (String) renderfromdatabase.get("mime");
+		result.consolidated = true;
+		return result;
+	}
+	
+	/**
+	 * Test presence and validity for file.
+	 */
+	static RenderedElement fromDatabaseMasterAsPreview(SourcePathIndexerElement sourcepathindexerelement, String mime_file) throws IOException {
+		if (sourcepathindexerelement == null) {
+			throw new NullPointerException("\"renderfromdatabase\" can't to be null");
+		}
+		
+		RenderedElement result = new RenderedElement();
+		result.rendered_file = Explorer.getLocalBridgedElement(sourcepathindexerelement);
+		
+		if (result.rendered_file == null) {
+			throw new NullPointerException("Find storage bridge in configuration");
+		}
+		if (result.rendered_file.exists() == false) {
+			throw new FileNotFoundException("Can't found rendered file " + result.rendered_file.getPath());
+		}
+		if (result.rendered_file.length() != sourcepathindexerelement.size) {
+			throw new FileNotFoundException("Original file has not the expected size " + result.rendered_file.getPath());
+		}
+		
+		result.rendered_mime = mime_file;
 		result.consolidated = true;
 		return result;
 	}
