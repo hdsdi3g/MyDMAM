@@ -24,6 +24,7 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.SearchResult;
 
 import java.io.FileInputStream;
@@ -41,6 +42,7 @@ import org.json.simple.JSONObject;
 import play.data.validation.Required;
 import play.i18n.Messages;
 import play.mvc.Controller;
+import play.mvc.Http.Header;
 import play.mvc.With;
 import play.mvc.results.NotFound;
 
@@ -228,21 +230,36 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void metadatafile(@Required String filehash, @Required String type, @Required String file) {
-		// TODO partial download
+		response.setHeader("Accept-Ranges", "bytes");
+		
 		if (validation.hasErrors()) {
 			forbidden();
 		}
+		response.cacheFor("60s");
+		
 		Client client = Elasticsearch.createClient();
-		RenderedElement element = MetadataCenter.getMetadataFileReference(client, filehash, type, file, false);
+		
+		RenderedElement element = null;
+		if (type.equals(MetadataCenter.MASTER_AS_PREVIEW)) {
+			element = MetadataCenter.getMasterAsPreviewFile(client, filehash);
+		} else {
+			element = MetadataCenter.getMetadataFileReference(client, filehash, type, file, false);
+		}
+		
 		client.close();
 		if (element == null) {
-			unauthorized();
+			forbidden();
 		}
 		
 		try {
-			FileInputStream fis = new FileInputStream(element.getRendered_file());
-			response.cacheFor("60s");
-			renderBinary(fis, file, element.getRendered_file().length(), element.getRendered_mime(), true);
+			Header rangeHeader = request.headers.get("range");
+			if (rangeHeader != null) {
+				System.out.print("range:\t");
+				System.out.println(rangeHeader.values);
+				throw new PartialContent(element.getRendered_file(), element.getRendered_mime());
+			} else {
+				renderBinary(new FileInputStream(element.getRendered_file()), file, element.getRendered_file().length(), element.getRendered_mime(), false);
+			}
 		} catch (FileNotFoundException e) {
 			forbidden();
 		}
