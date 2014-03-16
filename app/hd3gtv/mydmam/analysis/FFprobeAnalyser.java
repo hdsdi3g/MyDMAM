@@ -29,6 +29,9 @@ import hd3gtv.tools.VideoConst.AudioSampling;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -86,8 +89,6 @@ public class FFprobeAnalyser implements Analyser {
 		JSONParser jp = new JSONParser();
 		JSONObject result = (JSONObject) jp.parse(process.getResultstdout().toString());
 		
-		// FIXME remove bug with ES and format.tags.date "failed to parse date field"
-		
 		/**
 		 * Patch mime code if "Video: ... 90000.0 fps"
 		 */
@@ -107,7 +108,61 @@ public class FFprobeAnalyser implements Analyser {
 			}
 		}
 		
+		/**
+		 * Patch dates
+		 */
+		if (result.containsKey("streams")) {
+			JSONArray streams = (JSONArray) result.get("streams");
+			for (int pos = 0; pos < streams.size(); pos++) {
+				JSONObject stream = (JSONObject) streams.get(pos);
+				if (stream.containsKey("tags")) {
+					patchTagDate((JSONObject) stream.get("tags"));
+				}
+			}
+		}
+		if (result.containsKey("format")) {
+			JSONObject format = (JSONObject) result.get("format");
+			if (format.containsKey("tags")) {
+				patchTagDate((JSONObject) format.get("tags"));
+			}
+		}
+		
 		return result;
+	}
+	
+	private static void patchTagDate(JSONObject jo_tags) {
+		String key;
+		String value;
+		DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		
+		for (Object entry : jo_tags.keySet()) {
+			key = (String) entry;
+			if (key.equals("creation_time")) {
+				value = (String) jo_tags.get(key);
+				try {
+					jo_tags.put(key, format.parse(value).getTime());
+				} catch (ParseException e) {
+					Log2.log.error("Can't parse date", e, new Log2Dump("tags", jo_tags.toJSONString()));
+				}
+			}
+			if (key.equals("date")) {
+				value = (String) jo_tags.get(key);
+				try {
+					if (value.length() == "0000-00-00T00:00:00Z".length()) {
+						jo_tags.put(key, format.parse(value.substring(0, 10) + " " + value.substring(11, 19)).getTime());
+					} else if (value.length() == "0000-00-00 00:00:00".length()) {
+						jo_tags.put(key, format.parse(value).getTime());
+					} else if (value.length() == "0000-00-00".length()) {
+						jo_tags.put(key, format.parse(value.substring(0, 10) + " 00:00:00").getTime());
+					} else {
+						jo_tags.remove(key);
+						jo_tags.put(key + "-raw", "RAWDATE:" + value);
+					}
+				} catch (ParseException e) {
+					Log2.log.error("Can't parse date", e, new Log2Dump("tags", jo_tags.toJSONString()));
+				}
+			}
+		}
 	}
 	
 	public String getName() {
