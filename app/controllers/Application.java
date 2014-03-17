@@ -254,8 +254,6 @@ public class Application extends Controller {
 		try {
 			Header rangeHeader = request.headers.get("range");
 			if (rangeHeader != null) {
-				System.out.print("range:\t");
-				System.out.println(rangeHeader.values);
 				throw new PartialContent(element.getRendered_file(), element.getRendered_mime());
 			} else {
 				renderBinary(new FileInputStream(element.getRendered_file()), file, element.getRendered_file().length(), element.getRendered_mime(), false);
