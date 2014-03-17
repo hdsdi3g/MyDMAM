@@ -33,7 +33,11 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.json.simple.JSONArray;
@@ -90,20 +94,19 @@ public class FFprobeAnalyser implements Analyser {
 		JSONObject result = (JSONObject) jp.parse(process.getResultstdout().toString());
 		
 		/**
-		 * Patch mime code if "Video: ... 90000.0 fps"
+		 * Patch mime code if video stream level < 0
 		 */
 		List<JSONObject> video_streams = getStreamNode(result, "video");
 		if (video_streams != null) {
 			for (int pos = 0; pos < video_streams.size(); pos++) {
-				if (video_streams.get(pos).containsKey("time_base") == false) {
+				if (video_streams.get(pos).containsKey("level") == false) {
 					continue;
 				}
-				if (((String) video_streams.get(pos).get("time_base")).equals("1/90000")) {
+				if (((Long) video_streams.get(pos).get("level")) < 0l) {
 					video_streams.get(pos).put("ignore_stream", true);
 					if (analysis_result.mimetype.startsWith("video")) {
 						analysis_result.mimetype = "audio" + analysis_result.mimetype.substring(5);
 					}
-					break;
 				}
 			}
 		}
@@ -123,7 +126,11 @@ public class FFprobeAnalyser implements Analyser {
 		if (result.containsKey("format")) {
 			JSONObject format = (JSONObject) result.get("format");
 			if (format.containsKey("tags")) {
-				patchTagDate((JSONObject) format.get("tags"));
+				try {
+					patchTagDate((JSONObject) format.get("tags"));
+				} catch (ConcurrentModificationException cme) {
+					Log2.log.error("Can't patch dates", cme, new Log2Dump("json", format.toJSONString()));
+				}
 			}
 		}
 		
@@ -131,16 +138,30 @@ public class FFprobeAnalyser implements Analyser {
 	}
 	
 	private static void patchTagDate(JSONObject jo_tags) {
+		if (jo_tags == null) {
+			return;
+		}
+		if (jo_tags.isEmpty()) {
+			return;
+		}
+		
 		String key;
 		String value;
 		DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		
-		for (Object entry : jo_tags.keySet()) {
-			key = (String) entry;
+		HashMap<String, Object> new_values = new HashMap<String, Object>();
+		List<String> remove_values = new ArrayList<String>();
+		
+		/**
+		 * Search and prepare changes
+		 */
+		for (Object _entry : jo_tags.entrySet()) {
+			Entry entry = (Entry) _entry;
+			key = (String) entry.getKey();
 			if (key.equals("creation_time")) {
-				value = (String) jo_tags.get(key);
+				value = (String) entry.getValue();
 				try {
-					jo_tags.put(key, format.parse(value).getTime());
+					new_values.put(key, format.parse(value).getTime());
 				} catch (ParseException e) {
 					Log2.log.error("Can't parse date", e, new Log2Dump("tags", jo_tags.toJSONString()));
 				}
@@ -149,20 +170,31 @@ public class FFprobeAnalyser implements Analyser {
 				value = (String) jo_tags.get(key);
 				try {
 					if (value.length() == "0000-00-00T00:00:00Z".length()) {
-						jo_tags.put(key, format.parse(value.substring(0, 10) + " " + value.substring(11, 19)).getTime());
+						new_values.put(key, format.parse(value.substring(0, 10) + " " + value.substring(11, 19)).getTime());
 					} else if (value.length() == "0000-00-00 00:00:00".length()) {
-						jo_tags.put(key, format.parse(value).getTime());
+						new_values.put(key, format.parse(value).getTime());
 					} else if (value.length() == "0000-00-00".length()) {
-						jo_tags.put(key, format.parse(value.substring(0, 10) + " 00:00:00").getTime());
+						new_values.put(key, format.parse(value.substring(0, 10) + " 00:00:00").getTime());
 					} else {
-						jo_tags.remove(key);
-						jo_tags.put(key + "-raw", "RAWDATE:" + value);
+						remove_values.add(key);
+						new_values.put(key + "-raw", "#" + value);
 					}
 				} catch (ParseException e) {
 					Log2.log.error("Can't parse date", e, new Log2Dump("tags", jo_tags.toJSONString()));
 				}
 			}
 		}
+		
+		/**
+		 * Apply changes
+		 */
+		for (Map.Entry<String, Object> entry : new_values.entrySet()) {
+			jo_tags.put(entry.getKey(), entry.getValue());
+		}
+		for (int pos = 0; pos < remove_values.size(); pos++) {
+			jo_tags.remove(remove_values.get(pos));
+		}
+		
 	}
 	
 	public String getName() {
