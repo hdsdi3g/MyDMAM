@@ -209,7 +209,7 @@ acl.lastlogin=Dernière connexion
 acl.fromip=Depuis
 acl.lastedited=Dernière modification
 
-mime.video-mpeg=MPEG Vidéo
+mime.video-mpeg=Vidéo MPEG
 mime.application-pdf=Document PDF
 mime.text-xml=XML
 mime.video-flv=Vidéo Flash
@@ -233,4 +233,4 @@ mime.application-adobe-premiere-pro-project=Projet Adobe Premiere
 mime.application-adobe-audition-peakfile=Crête audio Audition
 mime.application-adobe-lightroom-library=Catalogue Adobe Lightroom
 mime.application-old=Ancien fichier
-mime.audio-wav=Wave Audio
+mime.audio-wav=Audio Wave
