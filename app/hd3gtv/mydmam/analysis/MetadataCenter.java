@@ -22,6 +22,8 @@ import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.transcode.FFmpegSnapshoot;
+import hd3gtv.mydmam.transcode.FFprobeAnalyser;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.io.File;

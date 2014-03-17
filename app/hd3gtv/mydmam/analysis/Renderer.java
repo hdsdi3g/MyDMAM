@@ -20,7 +20,7 @@ import java.util.List;
 
 import org.json.simple.JSONObject;
 
-interface Renderer extends MetadataProvider {
+public interface Renderer extends MetadataProvider {
 	
 	public static final String METADATA_PROVIDER_RENDERER = "renderer";
 	

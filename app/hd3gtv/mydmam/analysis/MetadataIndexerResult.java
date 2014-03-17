@@ -44,6 +44,28 @@ public class MetadataIndexerResult implements Log2Dumpable {
 		return mimetype;
 	}
 	
+	public void changeMimetype(String mimetype) {
+		if (mimetype == null) {
+			return;
+		}
+		if (mimetype.equals("")) {
+			return;
+		}
+		this.mimetype = mimetype;
+	}
+	
+	public boolean equalsMimetype(String... mime) {
+		if (mime == null) {
+			return false;
+		}
+		for (int pos = 0; pos < mime.length; pos++) {
+			if (mime[pos].equalsIgnoreCase(mimetype)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	public File getOrigin() {
 		return origin;
 	}

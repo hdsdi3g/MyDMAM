@@ -137,7 +137,7 @@ public class RenderedElement implements Log2Dumpable {
 	 * Create a file like temp_directory/serviceinstancename/
 	 * @param extention with point. Not mandatory. Just appended to temp file name.
 	 */
-	RenderedElement(String rendered_base_file_name, String extention) throws IOException {
+	public RenderedElement(String rendered_base_file_name, String extention) throws IOException {
 		this.rendered_base_file_name = rendered_base_file_name;
 		if (rendered_base_file_name == null) {
 			throw new NullPointerException("\"rendered_base_file_name\" can't to be null");

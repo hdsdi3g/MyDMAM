@@ -14,11 +14,13 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.mydmam.analysis;
+package hd3gtv.mydmam.transcode;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.analysis.Analyser;
+import hd3gtv.mydmam.analysis.MetadataIndexerResult;
 import hd3gtv.mydmam.analysis.validation.Comparator;
 import hd3gtv.mydmam.analysis.validation.ValidatorCenter;
 import hd3gtv.tools.ExecprocessBadExecutionException;
@@ -66,7 +68,7 @@ public class FFprobeAnalyser implements Analyser {
 		param.add("-print_format");
 		param.add("json");
 		param.add("-i");
-		param.add(analysis_result.origin.getPath());
+		param.add(analysis_result.getOrigin().getPath());
 		
 		ExecprocessGettext process = new ExecprocessGettext(ffprobe_bin, param);
 		process.setEndlinewidthnewline(true);
@@ -75,8 +77,8 @@ public class FFprobeAnalyser implements Analyser {
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				Log2Dump dump = new Log2Dump();
-				dump.add("file", analysis_result.origin);
-				dump.add("mime", analysis_result.mimetype);
+				dump.add("file", analysis_result.getOrigin());
+				dump.add("mime", analysis_result.getMimetype());
 				if (process.getRunprocess().getExitvalue() == 1) {
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					Log2.log.error("Invalid data found when processing input", null, dump);
@@ -104,8 +106,8 @@ public class FFprobeAnalyser implements Analyser {
 				}
 				if (((Long) video_streams.get(pos).get("level")) < 0l) {
 					video_streams.get(pos).put("ignore_stream", true);
-					if (analysis_result.mimetype.startsWith("video")) {
-						analysis_result.mimetype = "audio" + analysis_result.mimetype.substring(5);
+					if (analysis_result.getMimetype().startsWith("video")) {
+						analysis_result.changeMimetype("audio" + analysis_result.getMimetype().substring(5));
 					}
 				}
 			}
@@ -526,7 +528,7 @@ public class FFprobeAnalyser implements Analyser {
 	private static ValidatorCenter audio_webbrowser_validation;
 	
 	public boolean isCanUsedInMasterAsPreview(MetadataIndexerResult metadatas_result) {
-		if (metadatas_result.mimetype.equalsIgnoreCase("audio/mpeg") | metadatas_result.mimetype.equalsIgnoreCase("audio/mp4") | metadatas_result.mimetype.equalsIgnoreCase("audio/quicktime")) {
+		if (metadatas_result.equalsMimetype("audio/mpeg", "audio/mp4", "audio/quicktime")) {
 			/**
 			 * Test for audio
 			 */
@@ -540,7 +542,7 @@ public class FFprobeAnalyser implements Analyser {
 				audio_webbrowser_validation.and();
 				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.SMALLER_THAN, 384001);
 			}
-			return audio_webbrowser_validation.validate(metadatas_result.analysis_results);
+			return audio_webbrowser_validation.validate(metadatas_result.getAnalysis_results());
 		}
 		return false;
 	}

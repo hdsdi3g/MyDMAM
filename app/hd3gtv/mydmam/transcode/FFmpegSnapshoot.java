@@ -14,14 +14,17 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.analysis;
+package hd3gtv.mydmam.transcode;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.analysis.Analyser;
+import hd3gtv.mydmam.analysis.MetadataIndexerResult;
+import hd3gtv.mydmam.analysis.PreviewType;
+import hd3gtv.mydmam.analysis.RenderedElement;
+import hd3gtv.mydmam.analysis.Renderer;
 import hd3gtv.mydmam.taskqueue.Profile;
-import hd3gtv.mydmam.transcode.TranscodeProfile;
-import hd3gtv.mydmam.transcode.TranscodeProfileManager;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
@@ -58,7 +61,7 @@ public class FFmpegSnapshoot implements Renderer {
 		 * There are video streams in this file ?
 		 */
 		boolean found = false;
-		for (Map.Entry<Analyser, JSONObject> entry : analysis_result.analysis_results.entrySet()) {
+		for (Map.Entry<Analyser, JSONObject> entry : analysis_result.getAnalysis_results().entrySet()) {
 			if (entry.getKey() instanceof FFprobeAnalyser) {
 				if (FFprobeAnalyser.hasVideo(entry.getValue())) {
 					found = true;
@@ -74,7 +77,7 @@ public class FFmpegSnapshoot implements Renderer {
 		RenderedElement element = new RenderedElement("snap", ".png");
 		
 		TranscodeProfile tprofile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
-		ArrayList<String> param = tprofile.makeCommandline(analysis_result.origin.getAbsolutePath(), element.getTempFile().getAbsolutePath());
+		ArrayList<String> param = tprofile.makeCommandline(analysis_result.getOrigin().getAbsolutePath(), element.getTempFile().getAbsolutePath());
 		
 		ExecprocessGettext process = new ExecprocessGettext(ffmpeg_bin, param);
 		process.setEndlinewidthnewline(true);
@@ -83,8 +86,8 @@ public class FFmpegSnapshoot implements Renderer {
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				Log2Dump dump = new Log2Dump();
-				dump.add("file", analysis_result.origin);
-				dump.add("mime", analysis_result.mimetype);
+				dump.add("file", analysis_result.getOrigin());
+				dump.add("mime", analysis_result.getMimetype());
 				if (process.getRunprocess().getExitvalue() == 1) {
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					Log2.log.error("Invalid data found when processing input", null, dump);
