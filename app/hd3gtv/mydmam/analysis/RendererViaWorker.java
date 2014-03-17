@@ -16,30 +16,20 @@
 */
 package hd3gtv.mydmam.analysis;
 
+import java.io.File;
 import java.util.List;
 
 import org.json.simple.JSONObject;
 
-interface Renderer extends MetadataProvider {
-	
-	public static final String METADATA_PROVIDER_RENDERER = "renderer";
-	
-	public static final String METADATA_PROVIDER_RENDERER_CONTENT = "content";
+public interface RendererViaWorker extends Renderer {
 	
 	/**
 	 * You don't need to consolidate rendered elements
 	 */
-	List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception;
+	List<RenderedElement> standaloneProcess(File origin, JSONObject renderer_context) throws Exception;
 	
-	String getElasticSearchIndexType();
+	void stopStandaloneProcess() throws Exception;
 	
-	/**
-	 * @return JS parser name for display this render, or null.
-	 */
-	PreviewType getPreviewTypeForRenderer(JSONObject mtd_summary, List<RenderedElement> rendered_elements);
+	String getProfileName();
 	
-	/**
-	 * @return Data to send to JS parser for display this render, or null.
-	 */
-	JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, JSONObject mtd_summary, List<RenderedElement> rendered_elements);
 }

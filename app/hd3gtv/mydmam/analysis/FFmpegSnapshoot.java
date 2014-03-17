@@ -107,34 +107,17 @@ public class FFmpegSnapshoot implements Renderer {
 		return "ffsnapshoot";
 	}
 	
-	private static List<RenderedElement> getSnapConfiguration(MetadataIndexerResult analysis_result) {
-		List<RenderedElement> elements = null;
-		for (Map.Entry<Renderer, List<RenderedElement>> entry : analysis_result.rendering_results.entrySet()) {
-			if (entry.getKey() instanceof FFmpegSnapshoot) {
-				elements = entry.getValue();
-				break;
-			}
-		}
-		if (elements == null) {
+	public PreviewType getPreviewTypeForRenderer(JSONObject mtd_summary, List<RenderedElement> rendered_elements) {
+		if (rendered_elements == null) {
 			return null;
 		}
-		if (elements.isEmpty()) {
-			return null;
-		}
-		return elements;
-	}
-	
-	public PreviewType getPreviewType(MetadataIndexerResult analysis_result) {
-		/**
-		 * There are snapshoots in this file ?
-		 */
-		if (getSnapConfiguration(analysis_result) == null) {
+		if (rendered_elements.isEmpty()) {
 			return null;
 		}
 		return PreviewType.full_size_thumbnail;
 	}
 	
-	public JSONObject getPreviewConfiguration(PreviewType preview_type, MetadataIndexerResult analysis_result) {
+	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, JSONObject mtd_summary, List<RenderedElement> rendered_elements) {
 		if (preview_type == null) {
 			return null;
 		}

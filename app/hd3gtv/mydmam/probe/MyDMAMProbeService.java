@@ -20,7 +20,8 @@ import hd3gtv.configuration.GitInfo;
 import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.analysis.AnalysingWorker;
+import hd3gtv.mydmam.analysis.MetadataIndexerWorker;
+import hd3gtv.mydmam.analysis.MetadataRendererWorker;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.PathScan;
@@ -77,9 +78,12 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		workergroup.addWorker(ps);
 		workergroup.addCyclicWorker(ps);
 		
-		AnalysingWorker aw = new AnalysingWorker();
-		workergroup.addWorker(aw);
-		workergroup.addTriggerWorker(aw);
+		MetadataIndexerWorker miw = new MetadataIndexerWorker();
+		workergroup.addWorker(miw);
+		workergroup.addTriggerWorker(miw);
+		
+		MetadataRendererWorker mrw = new MetadataRendererWorker(miw);
+		workergroup.addWorker(mrw);
 		
 		MyDMAMModulesManager.declareAllModuleWorkerElement(workergroup);
 		

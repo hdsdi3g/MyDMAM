@@ -56,7 +56,7 @@ public class MetadataIndexerResult implements Log2Dumpable {
 		return rendering_results;
 	}
 	
-	LinkedHashMap<Renderer, JSONArray> makeJSONRendering_results() {
+	static LinkedHashMap<Renderer, JSONArray> makeJSONRendering_results(LinkedHashMap<Renderer, List<RenderedElement>> rendering_results) {
 		if (rendering_results == null) {
 			return null;
 		}
@@ -82,6 +82,10 @@ public class MetadataIndexerResult implements Log2Dumpable {
 			result.put(entry.getKey(), ja_files);
 		}
 		return result;
+	}
+	
+	LinkedHashMap<Renderer, JSONArray> makeJSONRendering_results() {
+		return makeJSONRendering_results(rendering_results);
 	}
 	
 	public Log2Dump getLog2Dump() {

@@ -74,7 +74,7 @@ public class MetadataCenter implements CliModule {
 		analysis_indexers = new ArrayList<MetadataCenterIndexer>();
 	}
 	
-	public synchronized void addProvider(Analyser analyser) {
+	private void addProvider(Analyser analyser) {
 		if (analyser == null) {
 			throw new NullPointerException("\"analyser\" can't to be null");
 		}
@@ -93,7 +93,7 @@ public class MetadataCenter implements CliModule {
 		}
 	}
 	
-	public synchronized void addProvider(Renderer renderer) {
+	private void addProvider(Renderer renderer) {
 		if (renderer == null) {
 			throw new NullPointerException("\"renderer\" can't to be null");
 		}
@@ -109,6 +109,10 @@ public class MetadataCenter implements CliModule {
 		} else {
 			Log2.log.info("Renderer " + renderer.getName() + " is disabled");
 		}
+	}
+	
+	synchronized LinkedHashMap<String, Renderer> getRenderers() {
+		return renderers;
 	}
 	
 	/**
@@ -206,6 +210,9 @@ public class MetadataCenter implements CliModule {
 		}
 	}
 	
+	/**
+	 * Beware: "origin" key is deleted
+	 */
 	public static JSONObject getSummaryMetadatas(Client client, SourcePathIndexerElement element) throws IndexMissingException {
 		if (element == null) {
 			throw new NullPointerException("\"pathelementskeys\" can't to be null");
@@ -232,6 +239,9 @@ public class MetadataCenter implements CliModule {
 		}
 	}
 	
+	/**
+	 * Beware: "origin" key is deleted
+	 */
 	public static JSONObject getSummaryMetadatas(Client client, String[] pathelementskeys) throws IndexMissingException {
 		if (pathelementskeys == null) {
 			throw new NullPointerException("\"pathelementskeys\" can't to be null");

@@ -38,7 +38,7 @@ import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class AnalysingWorker extends Worker implements TriggerWorker {
+public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 	
 	static final String PROFILE_CATEGORY = "analyst";
 	
@@ -64,7 +64,7 @@ public class AnalysingWorker extends Worker implements TriggerWorker {
 		String path;
 	}
 	
-	public AnalysingWorker() {
+	public MetadataIndexerWorker() {
 		if (Configuration.global.isElementExists("storageindex_bridge") == false) {
 			return;
 		}
@@ -86,11 +86,11 @@ public class AnalysingWorker extends Worker implements TriggerWorker {
 	}
 	
 	public String getShortWorkerName() {
-		return "analysing";
+		return "metadata-indexer";
 	}
 	
 	public String getLongWorkerName() {
-		return "File analysing";
+		return "Metadata Indexer";
 	}
 	
 	public boolean isConfigurationAllowToEnabled() {
@@ -139,11 +139,11 @@ public class AnalysingWorker extends Worker implements TriggerWorker {
 	}
 	
 	public String getTriggerShortName() {
-		return "analysing-trigger";
+		return "pathindex-metadata-trigger";
 	}
 	
 	public String getTriggerLongName() {
-		return "Pathindex analysing";
+		return "Pathindex metadata indexer";
 	}
 	
 	private HashMap<Profile, Long> lastindexeddatesforprofiles;
@@ -175,4 +175,9 @@ public class AnalysingWorker extends Worker implements TriggerWorker {
 		
 		lastindexeddatesforprofiles.put(profile, System.currentTimeMillis());
 	}
+	
+	MetadataCenter getMetadata_center() {
+		return metadata_center;
+	}
+	
 }

@@ -83,6 +83,49 @@ class MetadataCenterIndexer implements IndexingEvent {
 		stop_analysis = true;
 	}
 	
+	static JSONObject getOriginElement(String element_key, long size, long date) {
+		JSONObject origin = new JSONObject();
+		origin.put("size", size);
+		origin.put("date", date);
+		origin.put("key", element_key);
+		return origin;
+	}
+	
+	static void preparePushRenderedMetadataElement(Client client, BulkRequestBuilder bulkrequest, String mtd_key, JSONObject origin, Renderer renderer, JSONArray rendering_results) {
+		JSONObject processing_result = new JSONObject();
+		processing_result.put("origin", origin);
+		processing_result.put(MetadataCenter.METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER);
+		processing_result.put(Renderer.METADATA_PROVIDER_RENDERER_CONTENT, rendering_results);
+		
+		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, renderer.getElasticSearchIndexType(), mtd_key).setSource(processing_result.toJSONString()));
+	}
+	
+	static void updateSummaryPreviewRenderedMetadataElement(JSONObject jo_summary_previews, Renderer renderer, List<RenderedElement> rendered_elements, JSONObject mtd_summary) {
+		PreviewType previewtype = renderer.getPreviewTypeForRenderer(mtd_summary, rendered_elements);
+		if (previewtype == null) {
+			return;
+		}
+		JSONObject preview_content = new JSONObject();
+		if (rendered_elements.size() == 1) {
+			preview_content.put("file", rendered_elements.get(0).getRendered_file().getName());
+		} else {
+			JSONArray ja_elements_list = new JSONArray();
+			for (int pos_re = 0; pos_re < rendered_elements.size(); pos_re++) {
+				ja_elements_list.add(rendered_elements.get(pos_re).getRendered_file().getName());
+			}
+			preview_content.put("files", ja_elements_list);
+		}
+		
+		JSONObject previewconfiguration = renderer.getPreviewConfigurationForRenderer(previewtype, mtd_summary, rendered_elements);
+		if (previewconfiguration != null) {
+			if (previewconfiguration.isEmpty() == false) {
+				preview_content.put("conf", previewconfiguration);
+			}
+		}
+		preview_content.put("type", renderer.getElasticSearchIndexType());
+		jo_summary_previews.put(previewtype.toString(), preview_content);
+	}
+	
 	public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
 		if (stop_analysis) {
 			return false;
@@ -243,11 +286,9 @@ class MetadataCenterIndexer implements IndexingEvent {
 		
 		/**
 		 * Wrap result datas into JSON, and prepare push.
+		 * Don't forget to update merge() in case of updates
 		 */
-		JSONObject origin = new JSONObject();
-		origin.put("size", physical_source.length());
-		origin.put("date", physical_source.lastModified());
-		origin.put("key", element_key);
+		JSONObject origin = getOriginElement(element_key, physical_source.length(), physical_source.lastModified());
 		
 		JSONObject jo_summary = new JSONObject();
 		jo_summary.put("mimetype", indexing_result.mimetype);
@@ -256,9 +297,6 @@ class MetadataCenterIndexer implements IndexingEvent {
 		}
 		jo_summary.put("origin", origin);
 		JSONObject jo_summary_previews = new JSONObject();
-		
-		PreviewType previewtype;
-		JSONObject previewconfiguration;
 		
 		if (indexing_result.analysis_results != null) {
 			for (Map.Entry<Analyser, JSONObject> entry : indexing_result.analysis_results.entrySet()) {
@@ -274,37 +312,8 @@ class MetadataCenterIndexer implements IndexingEvent {
 		LinkedHashMap<Renderer, JSONArray> rendering_results = indexing_result.makeJSONRendering_results();
 		if (rendering_results != null) {
 			for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
-				Renderer renderer = entry.getKey();
-				JSONObject processing_result = new JSONObject();
-				processing_result.put("origin", origin);
-				processing_result.put(MetadataCenter.METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER);
-				processing_result.put(Renderer.METADATA_PROVIDER_RENDERER_CONTENT, entry.getValue());
-				bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, renderer.getElasticSearchIndexType(), key).setSource(processing_result.toJSONString()));
-				
-				previewtype = renderer.getPreviewType(indexing_result);
-				if (previewtype != null) {
-					JSONObject preview_content = new JSONObject();
-					List<RenderedElement> r_elements = indexing_result.rendering_results.get(renderer);
-					
-					if (r_elements.size() == 1) {
-						preview_content.put("file", r_elements.get(0).getRendered_file().getName());
-					} else {
-						JSONArray ja_elements_list = new JSONArray();
-						for (int pos_re = 0; pos_re < r_elements.size(); pos_re++) {
-							ja_elements_list.add(r_elements.get(pos_re).getRendered_file().getName());
-						}
-						preview_content.put("files", ja_elements_list);
-					}
-					
-					previewconfiguration = renderer.getPreviewConfiguration(previewtype, indexing_result);
-					if (previewconfiguration != null) {
-						if (previewconfiguration.isEmpty() == false) {
-							preview_content.put("conf", previewconfiguration);
-						}
-					}
-					preview_content.put("type", renderer.getElasticSearchIndexType());
-					jo_summary_previews.put(previewtype.toString(), preview_content);
-				}
+				preparePushRenderedMetadataElement(client, bulkrequest, key, origin, entry.getKey(), entry.getValue());
+				updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, entry.getKey(), indexing_result.rendering_results.get(entry.getKey()), jo_summary);
 			}
 		}
 		
@@ -314,6 +323,80 @@ class MetadataCenterIndexer implements IndexingEvent {
 		
 		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, key).setSource(jo_summary.toJSONString()));
 		return true;
+	}
+	
+	/**
+	 * Don't forget to update onFoundElement() in case of code updates
+	 */
+	public static void merge(Client client, Renderer renderer, List<RenderedElement> rendered_elements, SourcePathIndexerElement source_element, String index_type) throws IOException {
+		if (client == null) {
+			throw new NullPointerException("\"client\" can't to be null");
+		}
+		if (rendered_elements == null) {
+			throw new NullPointerException("\"rendering_results\" can't to be null");
+		}
+		if (source_element == null) {
+			throw new NullPointerException("\"source_element\" can't to be null");
+		}
+		if (index_type == null) {
+			throw new NullPointerException("\"index_type\" can't to be null");
+		}
+		
+		/**
+		 * Prepare rendered elements
+		 */
+		for (int pos = 0; pos < rendered_elements.size(); pos++) {
+			rendered_elements.get(pos).consolidate(source_element, renderer);
+		}
+		RenderedElement.cleanCurrentTempDirectory();
+		
+		/**
+		 * Convert List<RenderedElement> to JSONArray
+		 */
+		LinkedHashMap<Renderer, List<RenderedElement>> rendering_results = new LinkedHashMap<Renderer, List<RenderedElement>>();
+		rendering_results.put(renderer, rendered_elements);
+		LinkedHashMap<Renderer, JSONArray> json_rendering_results = MetadataIndexerResult.makeJSONRendering_results(rendering_results);
+		JSONArray ja_rendering_results = json_rendering_results.get(renderer);
+		
+		JSONObject json_origin = getOriginElement(source_element.prepare_key(), source_element.size, source_element.date);
+		String mtd_key = getUniqueElementKey(source_element);
+		
+		BulkRequestBuilder bulkrequest = client.prepareBulk();
+		preparePushRenderedMetadataElement(client, bulkrequest, mtd_key, json_origin, renderer, ja_rendering_results);
+		
+		/**
+		 * Search actual mtd rendered file entry.
+		 */
+		JSONObject jo_summary = MetadataCenter.getSummaryMetadatas(client, source_element);
+		if (jo_summary == null) {
+			throw new NullPointerException("Can't found element \"" + source_element.toString(" ") + "\" from DB");
+		}
+		
+		/**
+		 * Add origin which was deleted by getSummaryMetadatas()
+		 */
+		jo_summary.put("origin", json_origin);
+		
+		JSONObject jo_summary_previews = new JSONObject();
+		if (jo_summary.containsKey("previews")) {
+			jo_summary_previews = (JSONObject) jo_summary.get("previews");
+		}
+		
+		updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, renderer, rendered_elements, jo_summary);
+		
+		if (jo_summary_previews.isEmpty() == false) {
+			jo_summary.put("previews", jo_summary_previews);
+		}
+		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, mtd_key).setSource(jo_summary.toJSONString()));
+		
+		if (bulkrequest.numberOfActions() > 0) {
+			BulkResponse bulkresponse = bulkrequest.execute().actionGet();
+			if (bulkresponse.hasFailures()) {
+				Log2Dump dump = new Log2Dump();
+				dump.add("failure message", bulkresponse.buildFailureMessage());
+				Log2.log.error("ES errors during update documents", null, dump);
+			}
+		}
 	}
 	
 	/**
