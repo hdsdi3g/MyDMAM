@@ -45,11 +45,23 @@ public class TranscodeProfile extends Profile {
 		this.extention = extention;
 	}
 	
+	/**
+	 * @return start with "."
+	 */
 	public String getExtention(String default_value) {
 		if (extention == null) {
-			return default_value;
+			if (default_value.startsWith(".")) {
+				return default_value;
+			} else {
+				return "." + default_value;
+			}
+		} else {
+			if (extention.startsWith(".")) {
+				return extention;
+			} else {
+				return "." + extention;
+			}
 		}
-		return extention;
 	}
 	
 	public String toString() {
