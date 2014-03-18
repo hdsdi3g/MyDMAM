@@ -172,6 +172,30 @@ public final class VideoConst {
 			return 25;
 		}
 		
+		/**
+		 * @param ratio like "30000/1001"
+		 */
+		public static Framerate getFramerate(String ratio) {
+			String[] part = ratio.trim().split("/");
+			if (part.length != 2) {
+				return null;
+			}
+			try {
+				int left = Integer.valueOf(part[0]);
+				int right = Integer.valueOf(part[1]);
+				if (left == 0) {
+					return null;
+				}
+				if (right == 0) {
+					return null;
+				}
+				float real_fps = (float) left / (float) right;
+				return getFramerate((float) Math.round(real_fps * 10f) / 10f);
+			} catch (NumberFormatException e) {
+				return null;
+			}
+		}
+		
 		public String toString() {
 			return String.valueOf(getNumericValue());
 		}
@@ -518,9 +542,9 @@ public final class VideoConst {
 	/**
 	 * @return like "HD PAL" or "4K HFR 48"
 	 */
-	public static String getSystemSummary(int width, int height, float framerate) {
+	public static String getSystemSummary(int width, int height, Framerate framerate) {
 		Resolution resolution = Resolution.getResolution(width, height);
-		Systemvideo systemvideo = Framerate.getSystem(Framerate.getFramerate(framerate));
+		Systemvideo systemvideo = Framerate.getSystem(framerate);
 		
 		if ((resolution == Resolution.OTHER) || (systemvideo == Systemvideo.OTHER)) {
 			StringBuffer sb = new StringBuffer();
@@ -537,6 +561,13 @@ public final class VideoConst {
 		sb.append(" ");
 		sb.append(systemvideo.getSummary());
 		return sb.toString();
+	}
+	
+	/**
+	 * @return like "HD PAL" or "4K HFR 48"
+	 */
+	public static String getSystemSummary(int width, int height, float framerate) {
+		return getSystemSummary(width, height, Framerate.getFramerate(framerate));
 	}
 	
 	public enum AudioSampling {

@@ -28,6 +28,7 @@ import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst;
 import hd3gtv.tools.VideoConst.AudioSampling;
+import hd3gtv.tools.VideoConst.Framerate;
 
 import java.io.File;
 import java.io.IOException;
@@ -295,7 +296,7 @@ public class FFprobeAnalyser implements Analyser {
 			format_name = (String) jo_format.get("format_name");
 		}
 		
-		float frame_rate = 0;
+		Framerate frame_rate = Framerate.OTHER;
 		
 		ArrayList<String> streams_list = new ArrayList<String>();
 		
@@ -320,12 +321,7 @@ public class FFprobeAnalyser implements Analyser {
 						sb.append("Video: ");
 						sb.append(translateCodecName(codec_name));
 						
-						String frame_rate_raw = (String) stream.get("r_frame_rate");
-						if (format_name.equalsIgnoreCase("mpegts")) {
-							frame_rate_raw = (String) stream.get("avg_frame_rate");
-						}
-						String[] r_frame_rate_split = frame_rate_raw.split("/");
-						frame_rate = Float.parseFloat(r_frame_rate_split[0]) / Float.parseFloat(r_frame_rate_split[1]);
+						frame_rate = getFramerate(processresult);
 						width = Ints.checkedCast((Long) stream.get("width"));
 						height = Ints.checkedCast((Long) stream.get("height"));
 						
@@ -402,7 +398,7 @@ public class FFprobeAnalyser implements Analyser {
 		}
 		
 		if (jo_format.containsKey("duration")) {
-			Timecode tc = new Timecode(Float.valueOf((String) jo_format.get("duration")), frame_rate);
+			Timecode tc = new Timecode(Float.valueOf((String) jo_format.get("duration")), frame_rate.getNumericValue());
 			sb.append("Dur: ");
 			sb.append(tc.toString());
 			sb.append(" ");
@@ -517,6 +513,78 @@ public class FFprobeAnalyser implements Analyser {
 		return null;
 	}
 	
+	/**
+	 * @return the first valid value if there are more one audio stream.
+	 */
+	public static Framerate getFramerate(JSONObject processresult) {
+		List<JSONObject> streams = getStreamNode(processresult, "video");
+		if (streams == null) {
+			return null;
+		}
+		if (streams.isEmpty()) {
+			return null;
+		}
+		
+		JSONObject stream = streams.get(0);
+		
+		String avg_frame_rate = null;
+		String r_frame_rate = null;
+		int nb_frames = 0;
+		float duration = 0f;
+		
+		/**
+		 * "r_frame_rate" : "30000/1001",
+		 * "r_frame_rate" : "30/1",
+		 * "r_frame_rate" : "25/1",
+		 */
+		if (stream.containsKey("r_frame_rate")) {
+			r_frame_rate = (String) stream.get("r_frame_rate");
+		}
+		
+		/**
+		 * "avg_frame_rate" : "30000/1001",
+		 * "avg_frame_rate" : "0/0",
+		 * "avg_frame_rate" : "25/1",
+		 */
+		if (stream.containsKey("avg_frame_rate")) {
+			avg_frame_rate = (String) stream.get("avg_frame_rate");
+		}
+		
+		/** "nb_frames" : "8487", */
+		if (stream.containsKey("nb_frames")) {
+			try {
+				nb_frames = Integer.valueOf((String) stream.get("nb_frames"));
+			} catch (NumberFormatException e) {
+			}
+		}
+		
+		/** "duration" : "283.182900", */
+		if (stream.containsKey("duration")) {
+			try {
+				duration = Float.valueOf((String) stream.get("duration"));
+			} catch (NumberFormatException e) {
+			}
+		}
+		
+		Framerate result = Framerate.getFramerate(r_frame_rate);
+		if (result == null) {
+			result = Framerate.getFramerate(avg_frame_rate);
+		} else if (result == Framerate.OTHER) {
+			if (Framerate.getFramerate(avg_frame_rate) != Framerate.OTHER) {
+				result = Framerate.getFramerate(avg_frame_rate);
+			}
+		}
+		if (((result == null) | (result == Framerate.OTHER)) & (nb_frames > 0) & (duration > 0f)) {
+			result = Framerate.getFramerate((float) Math.round(((float) nb_frames / duration) * 10f) / 10f);
+		}
+		
+		/*String frame_rate_raw = (String) stream.get("r_frame_rate");
+		if (format_name.equalsIgnoreCase("mpegts")) {
+			frame_rate_raw = (String) stream.get("avg_frame_rate");
+		}*/
+		return result;
+	}
+	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
 		ArrayList<String> al = new ArrayList<String>();
 		al.add("audio/mpeg");
@@ -528,7 +596,9 @@ public class FFprobeAnalyser implements Analyser {
 	private static ValidatorCenter audio_webbrowser_validation;
 	
 	public boolean isCanUsedInMasterAsPreview(MetadataIndexerResult metadatas_result) {
-		if (metadatas_result.equalsMimetype("audio/mpeg", "audio/mp4", "audio/quicktime")) {
+		String[] mime_list = getMimeFileListCanUsedInMasterAsPreview().toArray(new String[0]);
+		
+		if (metadatas_result.equalsMimetype(mime_list)) {
 			/**
 			 * Test for audio
 			 */
