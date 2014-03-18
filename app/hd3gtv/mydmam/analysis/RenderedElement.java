@@ -185,6 +185,16 @@ public class RenderedElement implements Log2Dumpable {
 		return temp_file;
 	}
 	
+	public void deleteTempFile() {
+		if (temp_file == null) {
+			return;
+		}
+		if (temp_file.exists() == false) {
+			return;
+		}
+		temp_file.delete();
+	}
+	
 	private void checkConsolidate(SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
 		if (source_element == null) {
 			throw new NullPointerException("\"source_element\" can't to be null");

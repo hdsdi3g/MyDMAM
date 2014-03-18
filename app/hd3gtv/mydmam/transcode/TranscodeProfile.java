@@ -30,6 +30,7 @@ public class TranscodeProfile extends Profile {
 	static final String TAG_ENDVAR = "%>";
 	
 	private ArrayList<String> param;
+	private String extention;
 	
 	TranscodeProfile(String category, String name) {
 		super(category, name);
@@ -38,6 +39,17 @@ public class TranscodeProfile extends Profile {
 	
 	ArrayList<String> getParam() {
 		return param;
+	}
+	
+	void setExtention(String extention) {
+		this.extention = extention;
+	}
+	
+	public String getExtention(String default_value) {
+		if (extention == null) {
+			return default_value;
+		}
+		return extention;
 	}
 	
 	public String toString() {

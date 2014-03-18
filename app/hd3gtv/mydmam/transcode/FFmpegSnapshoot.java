@@ -73,10 +73,11 @@ public class FFmpegSnapshoot implements Renderer {
 			return null;
 		}
 		
-		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
-		RenderedElement element = new RenderedElement("snap", ".png");
-		
 		TranscodeProfile tprofile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
+		
+		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
+		RenderedElement element = new RenderedElement("snap", tprofile.getExtention("png"));
+		
 		ArrayList<String> param = tprofile.makeCommandline(analysis_result.getOrigin().getAbsolutePath(), element.getTempFile().getAbsolutePath());
 		
 		ExecprocessGettext process = new ExecprocessGettext(ffmpeg_bin, param);

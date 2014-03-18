@@ -80,6 +80,7 @@ public class TranscodeProfileManager {
 			
 			String profile_type;
 			String profile_name;
+			String profile_extention;
 			String param;
 			for (Map.Entry<String, ConfigurationItem> entry : tp_list.entrySet()) {
 				profile_type = Configuration.getValue(tp_list, entry.getKey(), "type", null);
@@ -107,6 +108,14 @@ public class TranscodeProfileManager {
 					}
 					profile.getParam().add(param);
 				}
+				
+				profile_extention = Configuration.getValue(tp_list, entry.getKey(), "extention", null);
+				if (profile_extention != null) {
+					if (profile_extention.equals("") != false) {
+						profile.setExtention(profile_extention);
+					}
+				}
+				
 				profile.testValidityProfile();
 				profiles.add(profile);
 			}

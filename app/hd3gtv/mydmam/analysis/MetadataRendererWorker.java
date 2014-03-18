@@ -147,9 +147,9 @@ public class MetadataRendererWorker extends Worker {
 		
 		List<RenderedElement> rendered_elements = null;
 		if (context.containsKey("renderer")) {
-			rendered_elements = current_renderer.standaloneProcess(origin, (JSONObject) context.get("renderer"));
+			rendered_elements = current_renderer.standaloneProcess(origin, job, (JSONObject) context.get("renderer"));
 		} else {
-			rendered_elements = current_renderer.standaloneProcess(origin, null);
+			rendered_elements = current_renderer.standaloneProcess(origin, job, null);
 		}
 		
 		if (rendered_elements == null) {

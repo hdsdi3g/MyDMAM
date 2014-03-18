@@ -11,13 +11,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.analysis;
 
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.io.File;
 import java.util.LinkedHashMap;
@@ -34,14 +35,23 @@ public class MetadataIndexerResult implements Log2Dumpable {
 	LinkedHashMap<Analyser, JSONObject> analysis_results;
 	LinkedHashMap<Renderer, List<RenderedElement>> rendering_results;
 	boolean master_as_preview;
+	SourcePathIndexerElement reference;
 	
-	MetadataIndexerResult() {
+	MetadataIndexerResult(SourcePathIndexerElement reference) {
+		this.reference = reference;
+		if (reference == null) {
+			throw new NullPointerException("\"reference\" can't to be null");
+		}
 		analysis_results = new LinkedHashMap<Analyser, JSONObject>();
 		rendering_results = new LinkedHashMap<Renderer, List<RenderedElement>>();
 	}
 	
 	public String getMimetype() {
 		return mimetype;
+	}
+	
+	public SourcePathIndexerElement getReference() {
+		return reference;
 	}
 	
 	public void changeMimetype(String mimetype) {

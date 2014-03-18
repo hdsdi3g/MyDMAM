@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.analysis;
 
+import hd3gtv.mydmam.taskqueue.Job;
+
 import java.io.File;
 import java.util.List;
 
@@ -26,7 +28,7 @@ public interface RendererViaWorker extends Renderer {
 	/**
 	 * You don't need to consolidate rendered elements
 	 */
-	List<RenderedElement> standaloneProcess(File origin, JSONObject renderer_context) throws Exception;
+	List<RenderedElement> standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception;
 	
 	void stopStandaloneProcess() throws Exception;
 	

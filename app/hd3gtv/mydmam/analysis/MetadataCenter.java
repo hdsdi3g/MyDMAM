@@ -406,7 +406,7 @@ public class MetadataCenter implements CliModule {
 	 * Database independant
 	 */
 	public MetadataIndexerResult standaloneIndexing(File physical_source, SourcePathIndexerElement reference) throws Exception {
-		MetadataIndexerResult indexing_result = new MetadataIndexerResult();
+		MetadataIndexerResult indexing_result = new MetadataIndexerResult(reference);
 		indexing_result.origin = physical_source;
 		
 		if (physical_source.length() == 0) {
