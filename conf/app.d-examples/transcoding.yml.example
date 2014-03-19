@@ -23,5 +23,5 @@ transcodingprofiles:
         extention : png
     ffmpeg_lowres : 
         type : ffmpeg
-        command : "-threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -i <%$INPUTFILE%> -pix_fmt yuv420p -aspect 16:9 -s 640x360 -codec:v h264 -b:v 400k -g 250 -bf 3 -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
+        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 640x360 -codec:v h264 -b:v 400k -g 250 -bf 3 -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
         extention : mp4
