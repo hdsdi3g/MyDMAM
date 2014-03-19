@@ -32,6 +32,4 @@ public interface RendererViaWorker extends Renderer {
 	
 	void stopStandaloneProcess() throws Exception;
 	
-	String getProfileName();
-	
 }

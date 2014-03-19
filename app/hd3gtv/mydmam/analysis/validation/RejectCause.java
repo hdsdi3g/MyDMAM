@@ -47,7 +47,7 @@ public class RejectCause implements Log2Dumpable {
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
-		dump.add("analyser", analyser.getName());
+		dump.add("analyser", analyser.getLongName());
 		dump.add("rule", constraint.rule);
 		List<Object> values = constraint.extractValueFromJson(source);
 		if (values == null) {

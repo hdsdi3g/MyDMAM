@@ -22,7 +22,7 @@ public interface MetadataProvider {
 	
 	boolean isEnabled();
 	
-	String getName();
+	String getLongName();
 	
 	String getElasticSearchIndexType();
 	

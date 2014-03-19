@@ -298,11 +298,11 @@ public class RenderedElement implements Log2Dumpable {
 		dump = new Log2Dump();
 		dump.add("metadata_reference_id", metadata_reference_id);
 		dump.add("source_element", source_element);
-		dump.add("renderer name", renderer.getName());
+		dump.add("renderer name", renderer.getLongName());
 		dump.add("rendered_file", rendered_file);
 		dump.add("rendered_mime", rendered_mime);
 		dump.add("rendered_digest", rendered_digest);
-		Log2.log.info("Consolidate rendered file", dump);
+		Log2.log.debug("Consolidate rendered file", dump);
 		
 		consolidated = true;
 		
@@ -363,7 +363,7 @@ public class RenderedElement implements Log2Dumpable {
 		jo.put("size", rendered_file.length());
 		jo.put("date", rendered_file.lastModified());
 		jo.put("hash", rendered_digest);
-		jo.put("producer", renderer.getName());
+		jo.put("producer", renderer.getLongName());
 		jo.put("mime", rendered_mime);
 		return jo;
 	}

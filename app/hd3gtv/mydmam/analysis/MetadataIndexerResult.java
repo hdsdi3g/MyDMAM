@@ -126,15 +126,15 @@ public class MetadataIndexerResult implements Log2Dumpable {
 		dump.add("mimetype", mimetype);
 		if (rendering_results != null) {
 			for (Map.Entry<Analyser, JSONObject> entry : analysis_results.entrySet()) {
-				dump.add(entry.getKey().getName() + "/summary", entry.getKey().getSummary(entry.getValue()));
-				dump.add(entry.getKey().getName() + "/full", MetadataCenter.json_prettify(entry.getValue()));
+				dump.add(entry.getKey().getLongName() + "/summary", entry.getKey().getSummary(entry.getValue()));
+				dump.add(entry.getKey().getLongName() + "/full", MetadataCenter.json_prettify(entry.getValue()));
 			}
 		}
 		if (rendering_results != null) {
 			for (Map.Entry<Renderer, List<RenderedElement>> entry : rendering_results.entrySet()) {
 				List<RenderedElement> elements = entry.getValue();
 				for (int pos = 0; pos < elements.size(); pos++) {
-					dump.add(entry.getKey().getName(), elements.get(pos));
+					dump.add(entry.getKey().getLongName(), elements.get(pos));
 				}
 			}
 		}

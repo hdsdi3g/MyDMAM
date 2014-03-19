@@ -74,7 +74,7 @@ public class MetadataRendererWorker extends Worker {
 		if (renderer == null) {
 			throw new NullPointerException("\"renderer\" can't to be null");
 		}
-		return new Profile(PROFILE_CATEGORY, renderer.getProfileName());
+		return new Profile(PROFILE_CATEGORY, renderer.getElasticSearchIndexType());
 	}
 	
 	public static String createTask(String origin_key, String name, JSONObject renderer_context, RendererViaWorker renderer, String require_task) throws ConnectionException {
