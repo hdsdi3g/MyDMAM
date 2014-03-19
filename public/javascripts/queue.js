@@ -164,7 +164,7 @@ function Queue() {
 	addContextItemsinTaskJobTableElement = function(current_taskjob) {
 		var content = "";
 		for (var keyctx in current_taskjob.context) {
-			content = content + '<tr><th>' + keyctx + '</th><td>' + current_taskjob.context[keyctx] + '</td></tr>';
+			content = content + '<tr><th>' + keyctx + '</th><td>' + current_taskjob.context[keyctx] + '</td></tr>';//TODO raw display
 		}
 		return content;
 	};
@@ -743,7 +743,7 @@ function Queue() {
 		content = content + '<td class="endedjobenddateraw">' + endedjob.end_date + '</td>';
 		content = content + '<td><small><ul class="endedjobcontext">';
 		for (var keyctx in endedjob.context) {
-			content = content + '<li><strong>' + keyctx + '</strong> :: ' + endedjob.context[keyctx] + '</li>';
+			content = content + '<li><strong>' + keyctx + '</strong> :: ' + endedjob.context[keyctx] + '</li>';//TODO raw display
 		}
 		content = content + '</ul></small></td>';
 		content = content + '<td class="endedjobendlastm">' + endedjob.last_message + '</td>';
@@ -774,7 +774,7 @@ function Queue() {
 				$('#rowendjob-' + key + ' .endedjobenddateraw').html(endedjob.end_date);
 				var content = "";
 				for (var keyctx in endedjob.context) {
-					content = content + '<li><strong>' + keyctx + '</strong> :: ' + endedjob.context[keyctx] + '</li>';
+					content = content + '<li><strong>' + keyctx + '</strong> :: ' + endedjob.context[keyctx] + '</li>'; //TODO raw display
 				}
 				$('#rowendjob-' + key + ' .endedjobcontext').html(content);
 				$('#rowendjob-' + key + ' .endedjobendlastm').html(endedjob.last_message);
