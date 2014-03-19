@@ -19,7 +19,6 @@ package hd3gtv.mydmam.transcode;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.analysis.Analyser;
 import hd3gtv.mydmam.analysis.MetadataIndexerResult;
 import hd3gtv.mydmam.analysis.PreviewType;
 import hd3gtv.mydmam.analysis.RenderedElement;
@@ -31,8 +30,8 @@ import hd3gtv.tools.ExecprocessGettext;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.json.simple.JSONObject;
 
@@ -52,24 +51,16 @@ public class FFmpegSnapshoot implements Renderer {
 		return FFprobeAnalyser.canProcessThisVideoOnly(mimetype);
 	}
 	
-	public String getName() {
+	public String getLongName() {
 		return "FFmpeg Snapshoot";
 	}
 	
 	public List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception {
-		/**
-		 * There are video streams in this file ?
-		 */
-		boolean found = false;
-		for (Map.Entry<Analyser, JSONObject> entry : analysis_result.getAnalysis_results().entrySet()) {
-			if (entry.getKey() instanceof FFprobeAnalyser) {
-				if (FFprobeAnalyser.hasVideo(entry.getValue())) {
-					found = true;
-				}
-				break;
-			}
+		JSONObject analysed_result = FFprobeAnalyser.getAnalysedProcessresult(analysis_result);
+		if (analysed_result == null) {
+			return null;
 		}
-		if (found == false) {
+		if (FFprobeAnalyser.hasVideo(analysed_result) == false) {
 			return null;
 		}
 		
@@ -111,17 +102,11 @@ public class FFmpegSnapshoot implements Renderer {
 		return "ffsnapshoot";
 	}
 	
-	public PreviewType getPreviewTypeForRenderer(JSONObject mtd_summary, List<RenderedElement> rendered_elements) {
-		if (rendered_elements == null) {
-			return null;
-		}
-		if (rendered_elements.isEmpty()) {
-			return null;
-		}
+	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
 		return PreviewType.full_size_thumbnail;
 	}
 	
-	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, JSONObject mtd_summary, List<RenderedElement> rendered_elements) {
+	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
 		if (preview_type == null) {
 			return null;
 		}

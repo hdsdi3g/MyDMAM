@@ -42,6 +42,8 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 class MetadataCenterIndexer implements IndexingEvent {
 	
@@ -91,17 +93,26 @@ class MetadataCenterIndexer implements IndexingEvent {
 		return origin;
 	}
 	
-	static void preparePushRenderedMetadataElement(Client client, BulkRequestBuilder bulkrequest, String mtd_key, JSONObject origin, Renderer renderer, JSONArray rendering_results) {
+	/**
+	 * @return new processing_result added
+	 */
+	static JSONObject preparePushRenderedMetadataElement(Client client, BulkRequestBuilder bulkrequest, String mtd_key, JSONObject origin, String es_type, JSONArray rendering_results) {
 		JSONObject processing_result = new JSONObject();
 		processing_result.put("origin", origin);
 		processing_result.put(MetadataCenter.METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER);
 		processing_result.put(Renderer.METADATA_PROVIDER_RENDERER_CONTENT, rendering_results);
-		
-		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, renderer.getElasticSearchIndexType(), mtd_key).setSource(processing_result.toJSONString()));
+		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, es_type, mtd_key).setSource(processing_result.toJSONString()));
+		return processing_result;
 	}
 	
-	static void updateSummaryPreviewRenderedMetadataElement(JSONObject jo_summary_previews, Renderer renderer, List<RenderedElement> rendered_elements, JSONObject mtd_summary) {
-		PreviewType previewtype = renderer.getPreviewTypeForRenderer(mtd_summary, rendered_elements);
+	static void updateSummaryPreviewRenderedMetadataElement(JSONObject jo_summary_previews, Renderer renderer, List<RenderedElement> rendered_elements, LinkedHashMap<String, JSONObject> metadatas) {
+		if (rendered_elements == null) {
+			return;
+		}
+		if (rendered_elements.isEmpty()) {
+			return;
+		}
+		PreviewType previewtype = renderer.getPreviewTypeForRenderer(metadatas, rendered_elements);
 		if (previewtype == null) {
 			return;
 		}
@@ -116,7 +127,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 			preview_content.put("files", ja_elements_list);
 		}
 		
-		JSONObject previewconfiguration = renderer.getPreviewConfigurationForRenderer(previewtype, mtd_summary, rendered_elements);
+		JSONObject previewconfiguration = renderer.getPreviewConfigurationForRenderer(previewtype, metadatas, rendered_elements);
 		if (previewconfiguration != null) {
 			if (previewconfiguration.isEmpty() == false) {
 				preview_content.put("conf", previewconfiguration);
@@ -298,6 +309,11 @@ class MetadataCenterIndexer implements IndexingEvent {
 		jo_summary.put("origin", origin);
 		JSONObject jo_summary_previews = new JSONObject();
 		
+		/**
+		 * For all renderers : getPreviewTypeForRenderer and getPreviewConfigurationForRenderer
+		 */
+		LinkedHashMap<String, JSONObject> actual_metadatas = new LinkedHashMap<String, JSONObject>();
+		
 		if (indexing_result.analysis_results != null) {
 			for (Map.Entry<Analyser, JSONObject> entry : indexing_result.analysis_results.entrySet()) {
 				Analyser analyser = entry.getKey();
@@ -305,15 +321,23 @@ class MetadataCenterIndexer implements IndexingEvent {
 				
 				entry.getValue().put("origin", origin);
 				bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, analyser.getElasticSearchIndexType(), key).setSource(processing_result.toJSONString()));
+				actual_metadatas.put(analyser.getElasticSearchIndexType(), processing_result);
+				
 				jo_summary.put(analyser.getElasticSearchIndexType(), analyser.getSummary(processing_result));
 			}
 		}
 		
+		actual_metadatas.put(MetadataCenter.ES_TYPE_SUMMARY, jo_summary);
+		
 		LinkedHashMap<Renderer, JSONArray> rendering_results = indexing_result.makeJSONRendering_results();
 		if (rendering_results != null) {
+			JSONObject processing_result;
+			String es_type;
 			for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
-				preparePushRenderedMetadataElement(client, bulkrequest, key, origin, entry.getKey(), entry.getValue());
-				updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, entry.getKey(), indexing_result.rendering_results.get(entry.getKey()), jo_summary);
+				es_type = entry.getKey().getElasticSearchIndexType();
+				processing_result = preparePushRenderedMetadataElement(client, bulkrequest, key, origin, es_type, entry.getValue());
+				actual_metadatas.put(es_type, processing_result);
+				updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, entry.getKey(), indexing_result.rendering_results.get(entry.getKey()), actual_metadatas);
 			}
 		}
 		
@@ -362,7 +386,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 		String mtd_key = getUniqueElementKey(source_element);
 		
 		BulkRequestBuilder bulkrequest = client.prepareBulk();
-		preparePushRenderedMetadataElement(client, bulkrequest, mtd_key, json_origin, renderer, ja_rendering_results);
+		preparePushRenderedMetadataElement(client, bulkrequest, mtd_key, json_origin, renderer.getElasticSearchIndexType(), ja_rendering_results);
 		
 		/**
 		 * Search actual mtd rendered file entry.
@@ -382,7 +406,28 @@ class MetadataCenterIndexer implements IndexingEvent {
 			jo_summary_previews = (JSONObject) jo_summary.get("previews");
 		}
 		
-		updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, renderer, rendered_elements, jo_summary);
+		/**
+		 * For all renderers : getPreviewTypeForRenderer and getPreviewConfigurationForRenderer
+		 */
+		LinkedHashMap<String, JSONObject> actual_metadatas = new LinkedHashMap<String, JSONObject>();
+		
+		/**
+		 * Get all metadatas.
+		 */
+		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(MetadataCenter.ES_INDEX);
+		request.setQuery(QueryBuilders.termQuery("_key", mtd_key));
+		SearchHit[] hits = request.execute().actionGet().getHits().hits();
+		JSONParser parser = new JSONParser();
+		for (int pos = 0; pos < hits.length; pos++) {
+			try {
+				actual_metadatas.put(hits[pos].getType(), (JSONObject) parser.parse(hits[pos].getSourceAsString()));
+			} catch (ParseException e) {
+				Log2.log.error("Fail to extract data from ES", e, new Log2Dump("value", hits[pos].getSourceAsString()));
+			}
+		}
+		
+		updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, renderer, rendered_elements, actual_metadatas);
 		
 		if (jo_summary_previews.isEmpty() == false) {
 			jo_summary.put("previews", jo_summary_previews);

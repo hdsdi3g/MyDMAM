@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.json.simple.JSONObject;
@@ -45,12 +46,8 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 	}
 	
-	public String getName() {
+	public String getLongName() {
 		return "FFmpeg lowres renderer";
-	}
-	
-	public String getProfileName() {
-		return getElasticSearchIndexType();
 	}
 	
 	public String getElasticSearchIndexType() {
@@ -66,23 +63,39 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	}
 	
 	public List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception {
+		JSONObject processresult = FFprobeAnalyser.getAnalysedProcessresult(analysis_result);
+		if (processresult == null) {
+			return null;
+		}
+		if (FFprobeAnalyser.hasVideo(processresult) == false) {
+			return null;
+		}
+		Timecode timecode = FFprobeAnalyser.getDuration(processresult);
+		if (timecode == null) {
+			return null;
+		}
 		JSONObject renderer_context = new JSONObject();
-		renderer_context.put("fps", 25.0f);// TODO get FPS for analysis
+		renderer_context.put("fps", timecode.getFps());
+		renderer_context.put("duration", timecode.getValue());
 		
 		MetadataRendererWorker.createTask(analysis_result.getReference().prepare_key(), "FFmpeg lowres for metadata", renderer_context, this);
 		return null;
 	}
 	
-	@Override
-	public PreviewType getPreviewTypeForRenderer(JSONObject mtd_summary, List<RenderedElement> rendered_elements) {
-		// TODO Auto-generated method stub
-		// mtd_summary.containsKey(key)
+	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
+		JSONObject processresult = all_metadatas_for_element.get(new FFprobeAnalyser().getElasticSearchIndexType());
+		// TODO why all_metadatas_for_element is empty ?
+		System.out.println(all_metadatas_for_element);// NULL !
+		
+		/*GetResponse getresponse = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_source_key)).actionGet();
+		if (getresponse.isExists() == false) {
+		}*/
 		
 		return null;
 	}
 	
 	@Override
-	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, JSONObject mtd_summary, List<RenderedElement> rendered_elements) {
+	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -103,7 +116,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		if (stop) {
 			return null;
 		}
-		job.step = 1;
+		job.step = 0;
 		
 		job.last_message = "Start ffmpeg convert operation";
 		
@@ -114,10 +127,14 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		
 		Float source_fps = 25f;
 		if (renderer_context.containsKey("fps")) {
-			source_fps = (Float) renderer_context.get("fps");
+			source_fps = ((Double) renderer_context.get("fps")).floatValue();
+		}
+		Float duration = 1f;
+		if (renderer_context.containsKey("duration")) {
+			duration = ((Double) renderer_context.get("duration")).floatValue();
 		}
 		
-		progress = new FFmpegProgress(progress_file.getTempFile(), job, new Timecode((String) job.getContext().get("duration"), source_fps));
+		progress = new FFmpegProgress(progress_file.getTempFile(), job, new Timecode(duration, source_fps));
 		progress.start();
 		
 		FFmpegEvents events = new FFmpegEvents(job.getKey() + ": " + origin.getName());
@@ -144,7 +161,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 			throw new IOException("Bad ffmpeg execution: " + events.getLast_message());
 		}
 		
-		job.step = 2;
+		job.step = 1;
 		job.last_message = "Finalizing";
 		
 		RenderedElement final_element = new RenderedElement("video_lowq", profile.getExtention("mp4"));
@@ -158,7 +175,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		if (stop) {
 			return null;
 		}
-		job.step = 3;
+		job.step = 2;
 		
 		job.last_message = "Converting is ended";
 		job.progress = 1;

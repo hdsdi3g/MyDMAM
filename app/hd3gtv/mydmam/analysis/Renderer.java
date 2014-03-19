@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.analysis;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.json.simple.JSONObject;
@@ -34,12 +35,13 @@ public interface Renderer extends MetadataProvider {
 	String getElasticSearchIndexType();
 	
 	/**
+	 * @param rendered_elements never null, never empty.
 	 * @return JS parser name for display this render, or null.
 	 */
-	PreviewType getPreviewTypeForRenderer(JSONObject mtd_summary, List<RenderedElement> rendered_elements);
+	PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements);
 	
 	/**
 	 * @return Data to send to JS parser for display this render, or null.
 	 */
-	JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, JSONObject mtd_summary, List<RenderedElement> rendered_elements);
+	JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements);
 }

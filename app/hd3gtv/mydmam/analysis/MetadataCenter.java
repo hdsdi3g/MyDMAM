@@ -22,6 +22,7 @@ import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.transcode.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.FFmpegSnapshoot;
 import hd3gtv.mydmam.transcode.FFprobeAnalyser;
 import hd3gtv.tools.ApplicationArgs;
@@ -73,6 +74,8 @@ public class MetadataCenter implements CliModule {
 		
 		addProvider(new FFprobeAnalyser());
 		addProvider(new FFmpegSnapshoot());
+		addProvider(new FFmpegLowresRenderer());
+		
 		analysis_indexers = new ArrayList<MetadataCenterIndexer>();
 	}
 	
@@ -81,17 +84,17 @@ public class MetadataCenter implements CliModule {
 			throw new NullPointerException("\"analyser\" can't to be null");
 		}
 		if (analyser.isEnabled()) {
-			if (analysers.containsKey(analyser.getName())) {
+			if (analysers.containsKey(analyser.getElasticSearchIndexType())) {
 				Log2Dump dump = new Log2Dump();
 				dump.add("this", analyser);
-				dump.add("previous", analysers.get(analyser.getName()));
+				dump.add("previous", analysers.get(analyser.getElasticSearchIndexType()));
 				Log2.log.info("Provider with this name exists", dump);
 			} else {
-				analysers.put(analyser.getName(), analyser);
+				analysers.put(analyser.getElasticSearchIndexType(), analyser);
 				master_as_preview.addAnalyser(analyser);
 			}
 		} else {
-			Log2.log.info("Analyser " + analyser.getName() + " is disabled");
+			Log2.log.info("Analyser " + analyser.getElasticSearchIndexType() + " is disabled");
 		}
 	}
 	
@@ -100,16 +103,16 @@ public class MetadataCenter implements CliModule {
 			throw new NullPointerException("\"renderer\" can't to be null");
 		}
 		if (renderer.isEnabled()) {
-			if (renderers.containsKey(renderer.getName())) {
+			if (renderers.containsKey(renderer.getElasticSearchIndexType())) {
 				Log2Dump dump = new Log2Dump();
 				dump.add("this", renderer);
-				dump.add("previous", renderers.get(renderer.getName()));
+				dump.add("previous", renderers.get(renderer.getElasticSearchIndexType()));
 				Log2.log.info("Provider with this name exists", dump);
 			} else {
-				renderers.put(renderer.getName(), renderer);
+				renderers.put(renderer.getElasticSearchIndexType(), renderer);
 			}
 		} else {
-			Log2.log.info("Renderer " + renderer.getName() + " is disabled");
+			Log2.log.info("Renderer " + renderer.getElasticSearchIndexType() + " is disabled");
 		}
 	}
 	
@@ -431,7 +434,7 @@ public class MetadataCenter implements CliModule {
 				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
 					dump.add("analyser class", analyser);
-					dump.add("analyser name", analyser.getName());
+					dump.add("analyser name", analyser.getLongName());
 					dump.add("physical_source", physical_source);
 					Log2.log.error("Can't analyst/render file", e, dump);
 				}
@@ -459,7 +462,7 @@ public class MetadataCenter implements CliModule {
 				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
 					dump.add("provider class", renderer);
-					dump.add("provider name", renderer.getName());
+					dump.add("provider name", renderer.getLongName());
 					dump.add("physical_source", physical_source);
 					Log2.log.error("Can't analyst/render file", e, dump);
 				}
@@ -521,7 +524,7 @@ public class MetadataCenter implements CliModule {
 					for (Map.Entry<Analyser, JSONObject> entry : result.analysis_results.entrySet()) {
 						System.out.println();
 						System.out.print("\t\t");
-						System.out.print(entry.getKey().getName());
+						System.out.print(entry.getKey().getLongName());
 						System.out.print(" [");
 						System.out.print(entry.getKey().getElasticSearchIndexType());
 						System.out.print("]");
@@ -540,7 +543,7 @@ public class MetadataCenter implements CliModule {
 						for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
 							System.out.println();
 							System.out.print("\t\t");
-							System.out.print(entry.getKey().getName());
+							System.out.print(entry.getKey().getLongName());
 							System.out.print(" [");
 							System.out.print(entry.getKey().getElasticSearchIndexType());
 							System.out.print("]");

@@ -200,7 +200,7 @@ public class FFprobeAnalyser implements Analyser {
 		
 	}
 	
-	public String getName() {
+	public String getLongName() {
 		return "FFprobe";
 	}
 	
@@ -281,20 +281,31 @@ public class FFprobeAnalyser implements Analyser {
 		return false;
 	}
 	
+	public static JSONObject getAnalysedProcessresult(MetadataIndexerResult analysis_result) {
+		if (analysis_result == null) {
+			return null;
+		}
+		if (analysis_result.getAnalysis_results() == null) {
+			return null;
+		}
+		for (Map.Entry<Analyser, JSONObject> entry : analysis_result.getAnalysis_results().entrySet()) {
+			if (entry.getKey() instanceof FFprobeAnalyser) {
+				return entry.getValue();
+			}
+		}
+		return null;
+	}
+	
 	/**
 	 * @return like "Video: DV SD PAL, Audio: PCM 16b (stereo 48.0kHz 1536kbps), Dur: 00:00:08:00 @ 28,80 Mbps", "Video: MPEG2 SD PAL, Audio: PCM 16b (mono 48.0kHz 768kbps), x2",
 	 *         "Audio: EAC3 (3ch 32.0kHz 384kbps), Dur: 00:00:05:00 @ 384,00 kbps"
 	 */
 	public String getSummary(JSONObject processresult) {
 		StringBuffer sb = new StringBuffer();
-		String format_name = "";
 		if (processresult.containsKey("format") == false) {
 			return "Invalid file";
 		}
 		JSONObject jo_format = (JSONObject) processresult.get("format");
-		if (jo_format.containsKey("format_name")) {
-			format_name = (String) jo_format.get("format_name");
-		}
 		
 		Framerate frame_rate = Framerate.OTHER;
 		
@@ -397,8 +408,8 @@ public class FFprobeAnalyser implements Analyser {
 			sb.append(", ");
 		}
 		
-		if (jo_format.containsKey("duration")) {
-			Timecode tc = new Timecode(Float.valueOf((String) jo_format.get("duration")), frame_rate.getNumericValue());
+		Timecode tc = getDuration(processresult);
+		if (tc != null) {
 			sb.append("Dur: ");
 			sb.append(tc.toString());
 			sb.append(" ");
@@ -509,6 +520,18 @@ public class FFprobeAnalyser implements Analyser {
 			if (samplerate instanceof Integer) {
 				return AudioSampling.parseAS(Integer.toString((Integer) samplerate));
 			}
+		}
+		return null;
+	}
+	
+	public static Timecode getDuration(JSONObject processresult) {
+		try {
+			Framerate framerate = getFramerate(processresult);
+			JSONObject format = (JSONObject) processresult.get("format");
+			String v_duration = (String) format.get("duration");
+			return new Timecode(Float.valueOf(v_duration), framerate.getNumericValue());
+		} catch (Exception e) {
+			Log2.log.error("Can't extract duration from file", e, new Log2Dump("processresult", processresult.toJSONString()));
 		}
 		return null;
 	}
