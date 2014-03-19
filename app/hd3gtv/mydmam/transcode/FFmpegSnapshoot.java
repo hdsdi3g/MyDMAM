@@ -103,14 +103,14 @@ public class FFmpegSnapshoot implements Renderer {
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		return PreviewType.full_size_thumbnail;
+		return PreviewType.full_size;
 	}
 	
 	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
 		if (preview_type == null) {
 			return null;
 		}
-		return null;// getSnapConfiguration(analysis_result).get(0).toDatabase();
+		return null;
 	}
 	
 }

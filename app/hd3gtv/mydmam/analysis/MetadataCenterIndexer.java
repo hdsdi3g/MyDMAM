@@ -386,7 +386,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 		String mtd_key = getUniqueElementKey(source_element);
 		
 		BulkRequestBuilder bulkrequest = client.prepareBulk();
-		preparePushRenderedMetadataElement(client, bulkrequest, mtd_key, json_origin, renderer.getElasticSearchIndexType(), ja_rendering_results);
+		JSONObject processing_result = preparePushRenderedMetadataElement(client, bulkrequest, mtd_key, json_origin, renderer.getElasticSearchIndexType(), ja_rendering_results);
 		
 		/**
 		 * Search actual mtd rendered file entry.
@@ -416,7 +416,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 		 */
 		SearchRequestBuilder request = client.prepareSearch();
 		request.setIndices(MetadataCenter.ES_INDEX);
-		request.setQuery(QueryBuilders.termQuery("_key", mtd_key));
+		request.setQuery(QueryBuilders.termQuery("_id", mtd_key));
 		SearchHit[] hits = request.execute().actionGet().getHits().hits();
 		JSONParser parser = new JSONParser();
 		for (int pos = 0; pos < hits.length; pos++) {
@@ -426,6 +426,11 @@ class MetadataCenterIndexer implements IndexingEvent {
 				Log2.log.error("Fail to extract data from ES", e, new Log2Dump("value", hits[pos].getSourceAsString()));
 			}
 		}
+		
+		/**
+		 * Add the new processed mtd file
+		 */
+		actual_metadatas.put(renderer.getElasticSearchIndexType(), processing_result);
 		
 		updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, renderer, rendered_elements, actual_metadatas);
 		

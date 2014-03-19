@@ -135,7 +135,7 @@ public class RenderedElement implements Log2Dumpable {
 	
 	/**
 	 * Create a file like temp_directory/serviceinstancename/
-	 * @param extention with point. Not mandatory. Just appended to temp file name.
+	 * @param extention with or without a point
 	 */
 	public RenderedElement(String rendered_base_file_name, String extention) throws IOException {
 		this.rendered_base_file_name = rendered_base_file_name;
@@ -159,8 +159,14 @@ public class RenderedElement implements Log2Dumpable {
 		
 		this.extention = "";
 		if (extention != null) {
-			sb.append(extention);
-			this.extention = extention;
+			if (extention.startsWith(".")) {
+				sb.append(extention);
+				this.extention = extention;
+			} else {
+				sb.append(".");
+				sb.append(extention);
+				this.extention = "." + extention;
+			}
 		}
 		
 		File commit_log_file = new File(temp_directory.getAbsolutePath() + File.separator + uuid.toString() + "-commit.log");

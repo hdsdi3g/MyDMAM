@@ -21,7 +21,7 @@ function MetadataEngine() {
 	/**
 	 * Declared preview_type, must be match with Java PreviewType class and display() function
 	 */
-	this.NAVIGATE_SHOW_ELEMENT = "full_size_thumbnail";
+	this.NAVIGATE_SHOW_ELEMENT = "full_size";
 	
 	/**
 	 * @return metadata file url
@@ -47,14 +47,15 @@ function MetadataEngine() {
 
 		var content = '';
 		
-		if ((preview_type == "full_size_thumbnail") & element.metadatas.master_as_preview) {
+		if ((preview_type == "full_size") & element.metadatas.master_as_preview) {
 			file_type = "master_as_preview";
 			file_name = "default";
 			file_hash = md5(element.storagename + ":" + element.path);
 			url = this.getURL(file_hash, file_type, file_name);
-
+			
+			//TODO test audio ? video ? image ? with mime
 			content = content + '<div style="margin-bottom: 1em;">';
-			content = content + '<audio controls="controls">';
+			content = content + '<audio controls="controls">';//TODO add jwplayer
 			content = content + 'Votre navigateur ne supporte pas lélément <code>audio</code> element.';
 			content = content + '<source src="' + url + '" type="' + element.metadatas.mimetype + '">';
 			content = content + '</audio>';
@@ -67,7 +68,8 @@ function MetadataEngine() {
 				file_hash = md5(element.storagename + ":" + element.path);
 				url = this.getURL(file_hash, file_type, file_name);
 				if (url !== "") {
-					if (preview_type == "full_size_thumbnail") {
+					if (preview_type == "full_size") {
+						//TODO test audio ? video ? image ? with mime
 						content = content + '<div style="margin-bottom: 1em;">';
 						content = content + '<img src="' + url + '" class="img-polaroid" alt="768x432" data-src="holder.js/768x432" style="width: 768px; height: 432px;"/>';
 						content = content + '</div>';

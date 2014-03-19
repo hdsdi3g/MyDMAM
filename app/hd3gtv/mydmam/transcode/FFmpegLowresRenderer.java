@@ -83,20 +83,12 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		JSONObject processresult = all_metadatas_for_element.get(new FFprobeAnalyser().getElasticSearchIndexType());
-		// TODO why all_metadatas_for_element is empty ?
-		System.out.println(all_metadatas_for_element);// NULL !
-		
-		/*GetResponse getresponse = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_source_key)).actionGet();
-		if (getresponse.isExists() == false) {
-		}*/
-		
-		return null;
+		return PreviewType.full_size;
 	}
 	
-	@Override
 	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		// TODO Auto-generated method stub
+		/*JSONObject processresult = all_metadatas_for_element.get(new FFprobeAnalyser().getElasticSearchIndexType());
+		processresult.get("ffmpeglowres");*/
 		return null;
 	}
 	

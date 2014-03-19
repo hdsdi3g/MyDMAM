@@ -21,6 +21,6 @@ package hd3gtv.mydmam.analysis;
  */
 public enum PreviewType {
 	
-	full_size_thumbnail;
+	full_size;
 	
 }
