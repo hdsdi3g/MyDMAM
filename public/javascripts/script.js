@@ -501,7 +501,9 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 					$("#" + domid).append(i18n('browser.toomanyitemsindir', data.toomanyitems - 1));
 				}
 			}
-
+			
+			mtdengine.loadAfterDisplay();
+			
 			var click_navigate = function() {
 				displayStoragePathNavigator("storageelem", $(this).context.hash.substring(1), function(storagename, path) {
 					addMetadatasToSearchListItems();

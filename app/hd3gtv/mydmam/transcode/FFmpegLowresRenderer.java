@@ -83,7 +83,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		return PreviewType.full_size;
+		return PreviewType.video_sd_pvw;
 	}
 	
 	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {

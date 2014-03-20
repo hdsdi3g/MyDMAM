@@ -103,7 +103,7 @@ public class FFmpegSnapshoot implements Renderer {
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		return PreviewType.full_size;
+		return PreviewType.full_size_thumbnail;
 	}
 	
 	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {

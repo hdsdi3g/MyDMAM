@@ -122,6 +122,7 @@ browser.oneelement=1 element
 browser.Nelements=%s elements
 browser.toomanyitemsindir=Error: too many files in the folder (more than %s)
 browser.goback=Go back
+browser.loadingplayer=Loading the player...
 
 crud.title=Administration
 crud.home=Home

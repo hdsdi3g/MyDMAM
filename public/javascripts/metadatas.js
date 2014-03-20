@@ -19,9 +19,9 @@
 function MetadataEngine() {
 
 	/**
-	 * Declared preview_type, must be match with Java PreviewType class and display() function
+	 * Declared method, must be match display() function.
 	 */
-	this.NAVIGATE_SHOW_ELEMENT = "full_size";
+	this.NAVIGATE_SHOW_ELEMENT = 0;
 	
 	/**
 	 * @return metadata file url
@@ -33,66 +33,79 @@ function MetadataEngine() {
 		return url_metadatafile.replace("filehashparam1", file_hash).replace("typeparam2", file_type).replace("fileparam3", file_name);
 	};
 	
+	this.loadAfterDisplay = function() {
+		$('div.jwplayer-video').each(function(){
+			jwplayer($(this).context.id).setup({
+				file: $(this).context.dataset.file,
+				height: $(this).context.dataset.height,
+				image: $(this).context.dataset.image,
+				width: $(this).context.dataset.width
+			});
+		});
+	};
+	
 	/**
 	 * @return the code to display in page.
 	 */
-	this.display = function(element, preview_type) {
+	this.display = function(element, method) {
 		if (!element.metadatas) {
 			return "";
 		}
-		var file_type;
-		var file_name;
-		var file_hash;
-		var url;
-
+		
 		var content = '';
-		
-		if ((preview_type == "full_size") & element.metadatas.master_as_preview) {
-			file_type = "master_as_preview";
-			file_name = "default";
-			file_hash = md5(element.storagename + ":" + element.path);
-			url = this.getURL(file_hash, file_type, file_name);
-			
-			//TODO test audio ? video ? image ? with mime
-			content = content + '<div style="margin-bottom: 1em;">';
-			content = content + '<audio controls="controls">';//TODO add jwplayer
-			content = content + 'Votre navigateur ne supporte pas lélément <code>audio</code> element.';
-			content = content + '<source src="' + url + '" type="' + element.metadatas.mimetype + '">';
-			content = content + '</audio>';
-			content = content + '</div>';
-			
-		} else if (element.metadatas.previews) {
-			if (element.metadatas.previews[preview_type]) {
-				file_type = element.metadatas.previews[preview_type].type;
-				file_name = element.metadatas.previews[preview_type].file;
-				file_hash = md5(element.storagename + ":" + element.path);
-				url = this.getURL(file_hash, file_type, file_name);
-				if (url !== "") {
-					if (preview_type == "full_size") {
-						//TODO test audio ? video ? image ? with mime
-						content = content + '<div style="margin-bottom: 1em;">';
-						content = content + '<img src="' + url + '" class="img-polaroid" alt="768x432" data-src="holder.js/768x432" style="width: 768px; height: 432px;"/>';
-						content = content + '</div>';
+	
+		if (method == this.NAVIGATE_SHOW_ELEMENT) {
+			if (element.metadatas.previews) {
+				var previews = element.metadatas.previews;
+				//TODO test audio ? video ? image ? with mime
+				if (previews.video_sd_pvw) {
+					var url_file = this.getURL(md5(element.storagename + ":" + element.path), previews.video_sd_pvw.type, previews.video_sd_pvw.file);
+					var url_image = "";
+					if (previews.full_size_thumbnail) {
+						url_image = this.getURL(md5(element.storagename + ":" + element.path), previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
 					}
+					content = content + '<div class="jwplayer-video" ';
+					content = content + 'data-file="' + url_file + '" ';
+					content = content + 'data-image="' + url_image + '" ';
+					content = content + 'data-width="640" data-height="360" ';
+					content = content + 'id="jwpvw-' + md5(element.storagename + ":" + element.path).substr(0,8) + '">';
+					content = content + i18n('browser.loadingplayer');
+					content = content + '</div>';
+				} else if (previews.full_size_thumbnail) {
+					var url = this.getURL(md5(element.storagename + ":" + element.path), previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
+					content = content + '<div style="margin-bottom: 1em;">';
+					content = content + '<img src="' + url + '" class="img-polaroid" alt="768x432" data-src="holder.js/768x432" style="width: 768px; height: 432px;"/>';
+					content = content + '</div>';
 				}
+			
+				/*if ((preview_type == "full_size") & element.metadatas.master_as_preview) {
+					file_type = "master_as_preview";
+					file_name = "default";
+					file_hash = md5(element.storagename + ":" + element.path);
+					url = this.getURL(file_hash, file_type, file_name);
+					
+					content = content + '<div style="margin-bottom: 1em;">';
+					content = content + '<audio controls="controls">';//TODO add jwplayer
+					content = content + 'Votre navigateur ne supporte pas lélément <code>audio</code> element.';
+					content = content + '<source src="' + url + '" type="' + element.metadatas.mimetype + '">';
+					content = content + '</audio>';
+					content = content + '</div>';
+					
+				}*/
 			}
-		}
-		
-		
-		for (var analyser in element.metadatas) {
-			if (analyser == "mimetype") {
-				continue;
+			
+			for (var analyser in element.metadatas) {
+				if ((analyser == "mimetype") | (analyser == "master_as_preview") | (analyser == "previews")) {
+					/**
+					 * Don't show that
+					 */
+					continue;
+				}
+				content = content + '<blockquote style="margin-top:1em;">';
+				content = content + '<p>' + element.metadatas[analyser] + '</p>';
+				content = content + '<small>' + analyser + '</small>';
+				content = content + '</blockquote>';
 			}
-			if (analyser == "master_as_preview") {
-				continue;
-			}
-			if (analyser == "previews") {
-				continue;
-			}
-			content = content + '<blockquote>';
-			content = content + '<p>' + element.metadatas[analyser] + '</p>';
-			content = content + '<small>' + analyser + '</small>';
-			content = content + '</blockquote>';
 		}
 		
 		return content;
