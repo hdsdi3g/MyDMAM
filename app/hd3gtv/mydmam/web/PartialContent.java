@@ -6,6 +6,9 @@
 */
 package hd3gtv.mydmam.web;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+
 import java.io.File;
 import java.io.RandomAccessFile;
 
@@ -48,6 +51,12 @@ public class PartialContent extends Result {
 			}
 			if (start <= end) {
 				long contentLength = end - start + 1;
+				
+				Log2Dump dump = new Log2Dump();
+				dump.add("start", start);
+				dump.add("contentLength", contentLength);
+				Log2.log.debug("Partial download", dump);
+				
 				response.setHeader("Content-Length", contentLength + "");
 				response.setHeader("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
 				response.setHeader("Content-Type", mime);
