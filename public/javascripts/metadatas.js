@@ -36,9 +36,15 @@ function MetadataEngine() {
 	this.loadAfterDisplay = function() {
 		$('div.jwplayer-video').each(function(){
 			jwplayer($(this).context.id).setup({
-				file: $(this).context.dataset.file,
+				playlist: [{
+					image: $(this).context.dataset.image,
+					sources: [
+						{ file: $(this).context.dataset.file, label: "360p" }, //TODO switch quality
+						{ file: $(this).context.dataset.file, label: "720p HD" },
+						{ file: $(this).context.dataset.file, label: "1080p HD" }
+					]
+				}],
 				height: $(this).context.dataset.height,
-				image: $(this).context.dataset.image,
 				width: $(this).context.dataset.width
 			});
 		});
