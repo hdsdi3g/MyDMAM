@@ -125,7 +125,12 @@ public class Secure extends Controller {
 		
 		dump.add("username", session.get("username"));
 		dump.add("longname", session.get("longname"));
-		dump.add("privileges", Crypto.decryptAES(session.get("privileges")));
+		String privileges = session.get("privileges");
+		if (privileges != null) {
+			dump.add("privileges", Crypto.decryptAES(privileges));
+		} else {
+			dump.add("privileges", "(null)");
+		}
 		return dump;
 	}
 	
