@@ -34,18 +34,33 @@ function MetadataEngine() {
 	};
 	
 	this.loadAfterDisplay = function() {
-		$('div.jwplayer-video').each(function(){
-			jwplayer($(this).context.id).setup({
-				playlist: [{
-					image: $(this).context.dataset.image,
-					sources: [
-						{ file: $(this).context.dataset.file, label: "360p" }, //TODO switch quality
-						{ file: $(this).context.dataset.file, label: "720p HD" },
-						{ file: $(this).context.dataset.file, label: "1080p HD" }
-					]
-				}],
-				height: $(this).context.dataset.height,
-				width: $(this).context.dataset.width
+		$('div.jwplayer-case').each(function(){
+			//console.log($(this));
+			var htmlid = $(this).context.id;
+			var dataset = $(this).context.dataset;
+			
+			var playlist_item = {};
+			if (dataset.image) {
+				playlist_item.image = dataset.image;
+			}
+			
+			var playlist_item_sources = [];
+			for (var pos = 0; pos < dataset.filecount; pos++) {
+				var source = {};
+				source.file = dataset["file" + pos];
+				source.label = "q" + pos; //TODO better name
+				playlist_item_sources.push(source);
+			}
+			playlist_item.sources = playlist_item_sources;
+			
+			/*
+			content = content + 'data-mediakind="video" ';
+			content = content + 'data-mediakind="audio" ';
+			*/
+			jwplayer(htmlid).setup({
+				playlist: [playlist_item],
+				height: dataset.height,
+				width: dataset.width
 			});
 		});
 	};
@@ -57,50 +72,129 @@ function MetadataEngine() {
 		if (!element.metadatas) {
 			return "";
 		}
+		var metadatas = element.metadatas;
+		var file_hash = md5(element.storagename + ":" + element.path);
 		
 		var content = '';
-	
+		var master_as_preview_type = '';
+		var master_as_preview_url = '';
+		
+		if (metadatas.master_as_preview) {
+			master_as_preview_type = metadatas.mimetype.substring(0, metadatas.mimetype.indexOf("/") - 1);
+			master_as_preview_url = this.getURL(file_hash, "master_as_preview", "default");
+		}
+
+		var display_prepare_video_player = function(width, height, url_image, urls) {
+			var content = '';
+			content = content + '<div class="jwplayer-case" ';
+			for (var pos = 0; pos < urls.length; pos++) {
+				content = content + 'data-file' + (pos) + '="' + urls[pos] + '" ';
+			}
+			content = content + 'data-filecount="' + urls.length + '" ';
+			if (url_image) {
+				content = content + 'data-image="' + url_image + '" ';
+			}
+			content = content + 'data-width="' + width + '" data-height="' + height + '" ';
+			content = content + 'data-mediakind="video" ';
+			content = content + 'id="jwpvw-' + file_hash.substr(0,8) + '">';
+			content = content + i18n('browser.loadingplayer');
+			content = content + '</div>';
+			return content;
+		};
+
+		var display_prepare_audio_player = function(url1, url2) {
+			var content = '';
+			content = content + '<div class="jwplayer-case" ';
+			content = content + 'data-file0="' + url1 + '" ';
+			if (url2) {
+				content = content + 'data-file1="' + url2 + '" ';
+				content = content + 'data-filecount="2" ';
+			} else {
+				content = content + 'data-filecount="1" ';
+			}
+			content = content + 'data-width="640" data-height="50" ';
+			content = content + 'data-mediakind="audio" ';
+			content = content + 'id="jwpvw-' + file_hash.substr(0,8) + '">';
+			content = content + i18n('browser.loadingplayer');
+			content = content + '</div>';
+			return content;
+		};
+
+		var display_prepare_image = function(url, htmlclass, width, height) {
+			var content = '';
+			content = content + '<div style="margin-bottom: 1em;">';
+			content = content + '<img src="' + url + '" class="' + htmlclass + '" alt="' + width + 'x' + height + '" data-src="holder.js/' + width + 'x' + height + '" style="width: ' + width + 'px; height: ' + height + 'px;"/>';
+			content = content + '</div>';
+			return content;
+		};
+		
 		if (method == this.NAVIGATE_SHOW_ELEMENT) {
-			if (element.metadatas.previews) {
-				var previews = element.metadatas.previews;
-				//TODO test audio ? video ? image ? with mime
-				if (previews.video_sd_pvw) {
-					var url_file = this.getURL(md5(element.storagename + ":" + element.path), previews.video_sd_pvw.type, previews.video_sd_pvw.file);
-					var url_image = "";
+			if (metadatas.previews) {
+				var previews = metadatas.previews;
+				
+				if ((previews.video_lq_pvw != null) | (previews.video_sd_pvw != null) | (previews.video_hd_pvw != null) | (master_as_preview_type == "video")) {
+					/**
+					 * Video
+					 */
+					var url_image = null;
 					if (previews.full_size_thumbnail) {
-						url_image = this.getURL(md5(element.storagename + ":" + element.path), previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
+						url_image = this.getURL(file_hash, previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
+					} else if (previews.normal_size_thumbnail) {
+						url_image = this.getURL(file_hash, previews.normal_size_thumbnail.type, previews.normal_size_thumbnail.file);
 					}
-					content = content + '<div class="jwplayer-video" ';
-					content = content + 'data-file="' + url_file + '" ';
-					content = content + 'data-image="' + url_image + '" ';
-					content = content + 'data-width="640" data-height="360" ';
-					content = content + 'id="jwpvw-' + md5(element.storagename + ":" + element.path).substr(0,8) + '">';
-					content = content + i18n('browser.loadingplayer');
-					content = content + '</div>';
+					var urls = [];
+					
+					if (master_as_preview_type == "video") {
+						urls.push(master_as_preview_url);
+					}
+					if (previews.video_hd_pvw) {
+						urls.push(this.getURL(file_hash, previews.video_hd_pvw.type, previews.video_hd_pvw.file));
+					}
+					if (previews.video_sd_pvw) {
+						urls.push(this.getURL(file_hash, previews.video_sd_pvw.type, previews.video_sd_pvw.file));
+					}
+					if (previews.video_lq_pvw) {
+						urls.push(this.getURL(file_hash, previews.video_lq_pvw.type, previews.video_lq_pvw.file));
+					}
+					content = content + display_prepare_video_player(640, 360, url_image, urls);
+				} else if ((previews.audio_pvw != null) | (master_as_preview_type == "audio")) {
+					/**
+					 * Audio
+					 */
+					if (master_as_preview_type == "audio") {
+						var url = this.getURL(file_hash, previews.audio_pvw.type, previews.audio_pvw.file);
+						content = content + display_prepare_audio_player(master_as_preview_url, url);
+					} else {
+						var url = this.getURL(file_hash, previews.audio_pvw.type, previews.audio_pvw.file);
+						content = content + display_prepare_audio_player(url, null);
+					}
+				} else if (master_as_preview_type == "image") {
+					/**
+					 * Image
+					 */
+					content = content + display_prepare_image(master_as_preview_url, "img-polaroid", 768, 432); //TODO get size ?
 				} else if (previews.full_size_thumbnail) {
-					var url = this.getURL(md5(element.storagename + ":" + element.path), previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
-					content = content + '<div style="margin-bottom: 1em;">';
-					content = content + '<img src="' + url + '" class="img-polaroid" alt="768x432" data-src="holder.js/768x432" style="width: 768px; height: 432px;"/>';
-					content = content + '</div>';
+					var url = this.getURL(file_hash, previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
+					content = content + display_prepare_image(url, "img-polaroid", 768, 432); //TODO size ?
+				} else if (previews.normal_size_thumbnail) {
+					var url = this.getURL(file_hash, previews.normal_size_thumbnail.type, previews.normal_size_thumbnail.file);
+					content = content + display_prepare_image(url, "img-polaroid", 768, 432); //TODO size ?
 				}
-			
-				/*if ((preview_type == "full_size") & element.metadatas.master_as_preview) {
-					file_type = "master_as_preview";
-					file_name = "default";
-					file_hash = md5(element.storagename + ":" + element.path);
-					url = this.getURL(file_hash, file_type, file_name);
-					
-					content = content + '<div style="margin-bottom: 1em;">';
-					content = content + '<audio controls="controls">';//TODO add jwplayer
-					content = content + 'Votre navigateur ne supporte pas lélément <code>audio</code> element.';
-					content = content + '<source src="' + url + '" type="' + element.metadatas.mimetype + '">';
-					content = content + '</audio>';
-					content = content + '</div>';
-					
-				}*/
+			} else {
+				/**
+				 * Only master_as_preview (maybe a small element) ?
+				 */
+				if (master_as_preview_type == "video") {
+					var urls = [master_as_preview_url];
+					content = content + display_prepare_video_player(640, 360, null, urls);
+				} else if (master_as_preview_type == "audio") {
+					content = content + display_prepare_audio_player(master_as_preview_url, null);
+				} else if (master_as_preview_type == "image") {
+					content = content + display_prepare_image(master_as_preview_url, "img-polaroid", 768, 432); //TODO get size ?
+				}
 			}
 			
-			for (var analyser in element.metadatas) {
+			for (var analyser in metadatas) {
 				if ((analyser == "mimetype") | (analyser == "master_as_preview") | (analyser == "previews")) {
 					/**
 					 * Don't show that
@@ -108,7 +202,7 @@ function MetadataEngine() {
 					continue;
 				}
 				content = content + '<blockquote style="margin-top:1em;">';
-				content = content + '<p>' + element.metadatas[analyser] + '</p>';
+				content = content + '<p>' + metadatas[analyser] + '</p>';
 				content = content + '<small>' + analyser + '</small>';
 				content = content + '</blockquote>';
 			}

@@ -38,6 +38,7 @@ import java.util.List;
 
 import org.json.simple.JSONObject;
 
+// TODO add video LQ and HD
 public class FFmpegLowresRenderer implements RendererViaWorker {
 	
 	private String ffmpeg_bin;
