@@ -49,8 +49,12 @@ class ConstraintInteger extends Constraint {
 			return reference != int_value;
 		} else if (comparator == Comparator.GREATER_THAN) {
 			return reference < int_value;
+		} else if (comparator == Comparator.EQUALS_OR_GREATER_THAN) {
+			return reference <= int_value;
 		} else if (comparator == Comparator.SMALLER_THAN) {
 			return reference > int_value;
+		} else if (comparator == Comparator.EQUALS_OR_SMALLER_THAN) {
+			return reference >= int_value;
 		} else {
 			return false;
 		}

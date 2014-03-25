@@ -18,8 +18,10 @@ package hd3gtv.mydmam.transcode;
 
 import hd3gtv.mydmam.taskqueue.Profile;
 
+import java.awt.Point;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 public class TranscodeProfile extends Profile {
 	
@@ -31,6 +33,8 @@ public class TranscodeProfile extends Profile {
 	
 	private ArrayList<String> param;
 	private String extention;
+	
+	private OutputFormat outputformat;
 	
 	TranscodeProfile(String category, String name) {
 		super(category, name);
@@ -129,6 +133,35 @@ public class TranscodeProfile extends Profile {
 		}
 		
 		return cmdline;
+	}
+	
+	void setOutputformat(LinkedHashMap<String, ?> configuration_item) {
+		outputformat = new OutputFormat(configuration_item);
+	}
+	
+	public OutputFormat getOutputformat() {
+		return outputformat;
+	}
+	
+	public class OutputFormat {
+		private int width = -1;
+		private int height = -1;
+		
+		private OutputFormat(LinkedHashMap<String, ?> configuration_item) {
+			try {
+				width = (Integer) configuration_item.get("width");
+			} catch (Exception e) {
+			}
+			try {
+				height = (Integer) configuration_item.get("height");
+			} catch (Exception e) {
+			}
+		}
+		
+		public Point getResolution() {
+			return new Point(width, height);
+		}
+		
 	}
 	
 }

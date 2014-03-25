@@ -88,6 +88,10 @@ public class MetadataIndexerResult implements Log2Dumpable {
 		return rendering_results;
 	}
 	
+	public boolean isMaster_as_preview() {
+		return master_as_preview;
+	}
+	
 	static LinkedHashMap<Renderer, JSONArray> makeJSONRendering_results(LinkedHashMap<Renderer, List<RenderedElement>> rendering_results) {
 		if (rendering_results == null) {
 			return null;

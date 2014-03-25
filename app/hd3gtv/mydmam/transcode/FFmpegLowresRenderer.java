@@ -25,10 +25,10 @@ import hd3gtv.mydmam.analysis.PreviewType;
 import hd3gtv.mydmam.analysis.RenderedElement;
 import hd3gtv.mydmam.analysis.RendererViaWorker;
 import hd3gtv.mydmam.taskqueue.Job;
-import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.Timecode;
 
+import java.awt.Point;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -38,21 +38,35 @@ import java.util.List;
 
 import org.json.simple.JSONObject;
 
-// TODO add video LQ and HD
 public class FFmpegLowresRenderer implements RendererViaWorker {
+	
+	public static TranscodeProfile transcode_profile_ffmpeg_lowres_lq = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_lq");
+	public static TranscodeProfile transcode_profile_ffmpeg_lowres_sd = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_sd");
+	public static TranscodeProfile transcode_profile_ffmpeg_lowres_hd = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_hd");
 	
 	private String ffmpeg_bin;
 	
-	public FFmpegLowresRenderer() {
+	private TranscodeProfile transcode_profile;
+	private PreviewType preview_type;
+	
+	public FFmpegLowresRenderer(TranscodeProfile transcode_profile, PreviewType preview_type) {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
+		this.transcode_profile = transcode_profile;
+		if (transcode_profile == null) {
+			throw new NullPointerException("\"transcode_profile\" can't to be null");
+		}
+		this.preview_type = preview_type;
+		if (preview_type == null) {
+			throw new NullPointerException("\"preview_type\" can't to be null");
+		}
 	}
 	
 	public String getLongName() {
-		return "FFmpeg lowres renderer";
+		return "FFmpeg renderer (" + transcode_profile.getName() + ")";
 	}
 	
 	public String getElasticSearchIndexType() {
-		return "ffmpeglowres";
+		return "pvw_" + transcode_profile.getName();
 	}
 	
 	public boolean isEnabled() {
@@ -68,23 +82,47 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		if (processresult == null) {
 			return null;
 		}
-		if (FFprobeAnalyser.hasVideo(processresult) == false) {
+		if (FFprobeAnalyser.hasVideo(processresult) == false) {// TODO add audio
 			return null;
 		}
 		Timecode timecode = FFprobeAnalyser.getDuration(processresult);
 		if (timecode == null) {
 			return null;
 		}
+		Point resolution = FFprobeAnalyser.getVideoResolution(processresult);
+		if (resolution == null) {
+			return null;
+		}
+		
+		TranscodeProfile t_profile = TranscodeProfileManager.getProfile(transcode_profile);
+		if (t_profile == null) {
+			return null;
+		}
+		if (t_profile.getOutputformat() != null) {
+			Point profile_resolution = t_profile.getOutputformat().getResolution();
+			
+			/*System.err.print(resolution);// XXX
+			System.err.print("\t");// XXX
+			System.err.print(profile_resolution);// XXX
+			System.err.print("\t");// XXX
+			System.err.println(analysis_result.isMaster_as_preview());// XXX*/
+			
+			if ((profile_resolution.x > resolution.x) | (profile_resolution.y > resolution.y)) {
+				return null;
+			} else if ((profile_resolution.x == resolution.x) & (profile_resolution.y == resolution.y) & analysis_result.isMaster_as_preview()) {
+				return null;
+			}
+		}
+		
 		JSONObject renderer_context = new JSONObject();
 		renderer_context.put("fps", timecode.getFps());
 		renderer_context.put("duration", timecode.getValue());
-		
-		MetadataRendererWorker.createTask(analysis_result.getReference().prepare_key(), "FFmpeg lowres for metadata", renderer_context, this);
+		MetadataRendererWorker.createTask(analysis_result.getReference().prepare_key(), "FFmpeg lowres for metadatas", renderer_context, this);
 		return null;
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		return PreviewType.video_sd_pvw;
+		return preview_type;
 	}
 	
 	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
@@ -113,10 +151,10 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		
 		job.last_message = "Start ffmpeg convert operation";
 		
-		TranscodeProfile profile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_lowres"));
+		TranscodeProfile profile = TranscodeProfileManager.getProfile(transcode_profile);
 		
 		RenderedElement progress_file = new RenderedElement("video_progress", "txt");
-		RenderedElement temp_element = new RenderedElement("video_lowq_noFS", profile.getExtention("mp4"));
+		RenderedElement temp_element = new RenderedElement(transcode_profile.getName(), profile.getExtention("mp4"));
 		
 		Float source_fps = 25f;
 		if (renderer_context.containsKey("fps")) {
@@ -157,7 +195,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		job.step = 1;
 		job.last_message = "Finalizing";
 		
-		RenderedElement final_element = new RenderedElement("video_lowq", profile.getExtention("mp4"));
+		RenderedElement final_element = new RenderedElement(transcode_profile.getName(), profile.getExtention("mp4"));
 		/**
 		 * qt-faststart convert
 		 */

@@ -47,8 +47,8 @@ function MetadataEngine() {
 			var playlist_item_sources = [];
 			for (var pos = 0; pos < dataset.filecount; pos++) {
 				var source = {};
-				source.file = dataset["file" + pos];
-				source.label = "q" + pos; //TODO better name
+				source.file = dataset["fileurl" + pos];
+				source.label = dataset["filelabel" + pos];
 				playlist_item_sources.push(source);
 			}
 			playlist_item.sources = playlist_item_sources;
@@ -80,17 +80,19 @@ function MetadataEngine() {
 		var master_as_preview_url = '';
 		
 		if (metadatas.master_as_preview) {
-			master_as_preview_type = metadatas.mimetype.substring(0, metadatas.mimetype.indexOf("/") - 1);
-			master_as_preview_url = this.getURL(file_hash, "master_as_preview", "default");
+			master_as_preview_type = metadatas.mimetype.substring(0, metadatas.mimetype.indexOf("/"));
+			var ext = element.path.substring(element.path.lastIndexOf("."), element.path.length);
+			master_as_preview_url = this.getURL(file_hash, "master_as_preview", "default" + ext);
 		}
 
-		var display_prepare_video_player = function(width, height, url_image, urls) {
+		var display_prepare_video_player = function(width, height, url_image, medias) {
 			var content = '';
 			content = content + '<div class="jwplayer-case" ';
-			for (var pos = 0; pos < urls.length; pos++) {
-				content = content + 'data-file' + (pos) + '="' + urls[pos] + '" ';
+			for (var pos = 0; pos < medias.length; pos++) {
+				content = content + 'data-fileurl' + (pos) + '="' + medias[pos].url + '" ';
+				content = content + 'data-filelabel' + (pos) + '="' + medias[pos].label + '" ';
 			}
-			content = content + 'data-filecount="' + urls.length + '" ';
+			content = content + 'data-filecount="' + medias.length + '" ';
 			if (url_image) {
 				content = content + 'data-image="' + url_image + '" ';
 			}
@@ -142,21 +144,33 @@ function MetadataEngine() {
 					} else if (previews.normal_size_thumbnail) {
 						url_image = this.getURL(file_hash, previews.normal_size_thumbnail.type, previews.normal_size_thumbnail.file);
 					}
-					var urls = [];
-					
+
+					var medias = [];
 					if (master_as_preview_type == "video") {
-						urls.push(master_as_preview_url);
+						var media = {};
+						media.url = master_as_preview_url;
+						media.label = "Original";
+						medias.push(media);
 					}
 					if (previews.video_hd_pvw) {
-						urls.push(this.getURL(file_hash, previews.video_hd_pvw.type, previews.video_hd_pvw.file));
+						var media = {};
+						media.url = this.getURL(file_hash, previews.video_hd_pvw.type, previews.video_hd_pvw.file);
+						media.label = "HD";
+						medias.push(media);
 					}
 					if (previews.video_sd_pvw) {
-						urls.push(this.getURL(file_hash, previews.video_sd_pvw.type, previews.video_sd_pvw.file));
+						var media = {};
+						media.url = this.getURL(file_hash, previews.video_sd_pvw.type, previews.video_sd_pvw.file);
+						media.label = "SQ";
+						medias.push(media);
 					}
 					if (previews.video_lq_pvw) {
-						urls.push(this.getURL(file_hash, previews.video_lq_pvw.type, previews.video_lq_pvw.file));
+						var media = {};
+						media.url = this.getURL(file_hash, previews.video_lq_pvw.type, previews.video_lq_pvw.file);
+						media.label = "LQ";
+						medias.push(media);
 					}
-					content = content + display_prepare_video_player(640, 360, url_image, urls);
+					content = content + display_prepare_video_player(640, 360, url_image, medias);
 				} else if ((previews.audio_pvw != null) | (master_as_preview_type == "audio")) {
 					/**
 					 * Audio
@@ -185,8 +199,10 @@ function MetadataEngine() {
 				 * Only master_as_preview (maybe a small element) ?
 				 */
 				if (master_as_preview_type == "video") {
-					var urls = [master_as_preview_url];
-					content = content + display_prepare_video_player(640, 360, null, urls);
+					var media = {};
+					media.url = master_as_preview_url;
+					media.label = "Original";
+					content = content + display_prepare_video_player(640, 360, null, [media]);
 				} else if (master_as_preview_type == "audio") {
 					content = content + display_prepare_audio_player(master_as_preview_url, null);
 				} else if (master_as_preview_type == "image") {

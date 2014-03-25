@@ -30,6 +30,7 @@ import hd3gtv.tools.VideoConst;
 import hd3gtv.tools.VideoConst.AudioSampling;
 import hd3gtv.tools.VideoConst.Framerate;
 
+import java.awt.Point;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -608,37 +609,90 @@ public class FFprobeAnalyser implements Analyser {
 		return result;
 	}
 	
+	public static Point getVideoResolution(JSONObject processresult) {
+		try {
+			List<JSONObject> streams = getStreamNode(processresult, "video");
+			if (streams == null) {
+				return null;
+			}
+			if (streams.isEmpty()) {
+				return null;
+			}
+			JSONObject stream = streams.get(0);
+			
+			if ((stream.containsKey("width") == false) | (stream.containsKey("height") == false)) {
+				throw new NullPointerException("No width or height in video information");
+			}
+			
+			Long width = (Long) stream.get("width");
+			Long height = (Long) stream.get("height");
+			
+			return new Point(width.intValue(), height.intValue());
+		} catch (Exception e) {
+			Log2.log.error("Can't extract duration from file", e, new Log2Dump("processresult", processresult.toJSONString()));
+		}
+		return null;
+	}
+	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
 		ArrayList<String> al = new ArrayList<String>();
 		al.add("audio/mpeg");
 		al.add("audio/mp4");
 		al.add("audio/quicktime");
-		// TODO add video
+		al.add("video/quicktime");
+		al.add("video/mp4");
 		return al;
 	}
 	
 	private static ValidatorCenter audio_webbrowser_validation;
+	private static ValidatorCenter video_webbrowser_validation;
 	
 	public boolean isCanUsedInMasterAsPreview(MetadataIndexerResult metadatas_result) {
 		String[] mime_list = getMimeFileListCanUsedInMasterAsPreview().toArray(new String[0]);
 		
 		if (metadatas_result.equalsMimetype(mime_list)) {
-			/**
-			 * Test for audio
-			 */
+			if (video_webbrowser_validation == null) {
+				video_webbrowser_validation = new ValidatorCenter();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].index", Comparator.EQUALS, 0);
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 1);
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac");
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 384000);
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].codec_name", Comparator.EQUALS, "h264");
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].width", Comparator.EQUALS_OR_SMALLER_THAN, 1920);
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].height", Comparator.EQUALS_OR_SMALLER_THAN, 1080);
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].level", Comparator.EQUALS_OR_SMALLER_THAN, 42);
+				video_webbrowser_validation.and();
+				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 4000000);
+			}
 			if (audio_webbrowser_validation == null) {
 				audio_webbrowser_validation = new ValidatorCenter();
-				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
+				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 0);
 				audio_webbrowser_validation.and();
+				
 				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac", "mp3");
 				audio_webbrowser_validation.and();
 				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
 				audio_webbrowser_validation.and();
-				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.SMALLER_THAN, 384001);
+				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 384000);
 			}
-			return audio_webbrowser_validation.validate(metadatas_result.getAnalysis_results());
+			
+			if (video_webbrowser_validation.validate(metadatas_result.getAnalysis_results())) {
+				return true;
+			} else if (audio_webbrowser_validation.validate(metadatas_result.getAnalysis_results())) {
+				return true;
+			}
 		}
-		// TODO add video test
 		return false;
 	}
 }

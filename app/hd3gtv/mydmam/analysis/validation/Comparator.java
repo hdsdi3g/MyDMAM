@@ -18,6 +18,6 @@ package hd3gtv.mydmam.analysis.validation;
 
 public enum Comparator {
 	
-	EQUALS, GREATER_THAN, SMALLER_THAN, DIFFERENT;
+	EQUALS, GREATER_THAN, SMALLER_THAN, EQUALS_OR_GREATER_THAN, EQUALS_OR_SMALLER_THAN, DIFFERENT;
 	
 }

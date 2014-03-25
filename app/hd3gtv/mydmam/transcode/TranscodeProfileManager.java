@@ -23,8 +23,10 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.taskqueue.Profile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class TranscodeProfileManager {
@@ -113,6 +115,15 @@ public class TranscodeProfileManager {
 				if (profile_extention != null) {
 					if (profile_extention.equals("") != false) {
 						profile.setExtention(profile_extention);
+					}
+				}
+				
+				if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "output")) {
+					try {
+						Object o_output = tp_list.get(entry.getKey()).content.get("output");
+						profile.setOutputformat((LinkedHashMap<String, ?>) o_output);
+					} catch (Exception e) {
+						throw new IOException("Can't load transcoding/" + entry.getKey() + "/output node");
 					}
 				}
 				
