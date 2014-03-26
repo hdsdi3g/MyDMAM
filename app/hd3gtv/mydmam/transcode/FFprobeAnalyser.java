@@ -530,6 +530,9 @@ public class FFprobeAnalyser implements Analyser {
 			Framerate framerate = getFramerate(processresult);
 			JSONObject format = (JSONObject) processresult.get("format");
 			String v_duration = (String) format.get("duration");
+			if (framerate == null) {
+				return new Timecode(Float.valueOf(v_duration), 1000f);
+			}
 			return new Timecode(Float.valueOf(v_duration), framerate.getNumericValue());
 		} catch (Exception e) {
 			Log2.log.error("Can't extract duration from file", e, new Log2Dump("processresult", processresult.toJSONString()));
@@ -538,7 +541,7 @@ public class FFprobeAnalyser implements Analyser {
 	}
 	
 	/**
-	 * @return the first valid value if there are more one audio stream.
+	 * @return the first valid value if there are more one video stream.
 	 */
 	public static Framerate getFramerate(JSONObject processresult) {
 		List<JSONObject> streams = getStreamNode(processresult, "video");
