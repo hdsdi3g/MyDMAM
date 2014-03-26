@@ -35,7 +35,7 @@ function MetadataEngine() {
 	
 	this.loadAfterDisplay = function() {
 		$('div.jwplayer-case').each(function(){
-			//console.log($(this));
+			//console.log($(this));//TODO
 			var htmlid = $(this).context.id;
 			var dataset = $(this).context.dataset;
 			
@@ -104,16 +104,12 @@ function MetadataEngine() {
 			return content;
 		};
 
-		var display_prepare_audio_player = function(url1, url2) {
+		var display_prepare_audio_player = function(url_audio) {
 			var content = '';
 			content = content + '<div class="jwplayer-case" ';
-			content = content + 'data-file0="' + url1 + '" ';
-			if (url2) {
-				content = content + 'data-file1="' + url2 + '" ';
-				content = content + 'data-filecount="2" ';
-			} else {
-				content = content + 'data-filecount="1" ';
-			}
+			content = content + 'data-fileurl0="' + url_audio + '" ';
+			content = content + 'data-filelabel0="Audio" ';
+			content = content + 'data-filecount="1" ';
 			content = content + 'data-width="640" data-height="50" ';
 			content = content + 'data-mediakind="audio" ';
 			content = content + 'id="jwpvw-' + file_hash.substr(0,8) + '">';
@@ -177,10 +173,10 @@ function MetadataEngine() {
 					 */
 					if (master_as_preview_type == "audio") {
 						var url = this.getURL(file_hash, previews.audio_pvw.type, previews.audio_pvw.file);
-						content = content + display_prepare_audio_player(master_as_preview_url, url);
+						content = content + display_prepare_audio_player(master_as_preview_url);
 					} else {
 						var url = this.getURL(file_hash, previews.audio_pvw.type, previews.audio_pvw.file);
-						content = content + display_prepare_audio_player(url, null);
+						content = content + display_prepare_audio_player(url);
 					}
 				} else if (master_as_preview_type == "image") {
 					/**
