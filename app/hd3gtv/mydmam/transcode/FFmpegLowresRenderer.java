@@ -40,16 +40,18 @@ import org.json.simple.JSONObject;
 
 public class FFmpegLowresRenderer implements RendererViaWorker {
 	
-	public static TranscodeProfile transcode_profile_ffmpeg_lowres_lq = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_lq");
-	public static TranscodeProfile transcode_profile_ffmpeg_lowres_sd = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_sd");
-	public static TranscodeProfile transcode_profile_ffmpeg_lowres_hd = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_hd");
+	public static final TranscodeProfile transcode_profile_ffmpeg_lowres_lq = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_lq");
+	public static final TranscodeProfile transcode_profile_ffmpeg_lowres_sd = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_sd");
+	public static final TranscodeProfile transcode_profile_ffmpeg_lowres_hd = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_hd");
+	public static final TranscodeProfile transcode_profile_ffmpeg_lowres_audio = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_audio");
 	
 	private String ffmpeg_bin;
 	
 	private TranscodeProfile transcode_profile;
 	private PreviewType preview_type;
+	private boolean audio_only;
 	
-	public FFmpegLowresRenderer(TranscodeProfile transcode_profile, PreviewType preview_type) {
+	public FFmpegLowresRenderer(TranscodeProfile transcode_profile, PreviewType preview_type, boolean audio_only) {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		this.transcode_profile = transcode_profile;
 		if (transcode_profile == null) {
@@ -59,6 +61,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		if (preview_type == null) {
 			throw new NullPointerException("\"preview_type\" can't to be null");
 		}
+		this.audio_only = audio_only;
 	}
 	
 	public String getLongName() {
@@ -74,7 +77,11 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	}
 	
 	public boolean canProcessThis(String mimetype) {
-		return FFprobeAnalyser.canProcessThisVideoOnly(mimetype);
+		if (audio_only) {
+			return FFprobeAnalyser.canProcessThisAudioOnly(mimetype);
+		} else {
+			return FFprobeAnalyser.canProcessThisVideoOnly(mimetype);
+		}
 	}
 	
 	public List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception {
@@ -82,41 +89,61 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		if (processresult == null) {
 			return null;
 		}
-		if (FFprobeAnalyser.hasVideo(processresult) == false) {// TODO add audio
+		if (audio_only == FFprobeAnalyser.hasVideo(processresult)) {
+			/**
+			 * Audio profile with audio source OR video+audio profile with video+audio source
+			 */
 			return null;
 		}
 		Timecode timecode = FFprobeAnalyser.getDuration(processresult);
 		if (timecode == null) {
 			return null;
 		}
-		Point resolution = FFprobeAnalyser.getVideoResolution(processresult);
-		if (resolution == null) {
-			return null;
-		}
-		
 		TranscodeProfile t_profile = TranscodeProfileManager.getProfile(transcode_profile);
 		if (t_profile == null) {
 			return null;
 		}
-		if (t_profile.getOutputformat() != null) {
-			Point profile_resolution = t_profile.getOutputformat().getResolution();
-			
-			/*System.err.print(resolution);// XXX
-			System.err.print("\t");// XXX
-			System.err.print(profile_resolution);// XXX
-			System.err.print("\t");// XXX
-			System.err.println(analysis_result.isMaster_as_preview());// XXX*/
-			
-			if ((profile_resolution.x > resolution.x) | (profile_resolution.y > resolution.y)) {
+		
+		if (analysis_result.isMaster_as_preview()) {
+			/**
+			 * Must I render a preview file ?
+			 */
+			if (FFprobeAnalyser.hasVideo(processresult) == false) {
+				/**
+				 * Source is audio only, Master as preview is ok, no rendering.
+				 */
 				return null;
-			} else if ((profile_resolution.x == resolution.x) & (profile_resolution.y == resolution.y) & analysis_result.isMaster_as_preview()) {
-				return null;
+			} else {
+				/**
+				 * video is ok ?
+				 */
+				Point resolution = FFprobeAnalyser.getVideoResolution(processresult);
+				if (resolution == null) {
+					return null;
+				}
+				if (t_profile.getOutputformat() != null) {
+					/**
+					 * Test if source file has an upper resolution relative at the profile
+					 */
+					Point profile_resolution = t_profile.getOutputformat().getResolution();
+					if ((profile_resolution.x > resolution.x) | (profile_resolution.y > resolution.y)) {
+						return null;
+					} else if ((profile_resolution.x == resolution.x) & (profile_resolution.y == resolution.y)) {
+						return null;
+					}
+				}
 			}
 		}
 		
 		JSONObject renderer_context = new JSONObject();
 		renderer_context.put("fps", timecode.getFps());
 		renderer_context.put("duration", timecode.getValue());
+		if (t_profile.getOutputformat() != null) {
+			renderer_context.put("faststarted", t_profile.getOutputformat().isFaststarted());
+		} else {
+			renderer_context.put("faststarted", false);
+		}
+		
 		MetadataRendererWorker.createTask(analysis_result.getReference().prepare_key(), "FFmpeg lowres for metadatas", renderer_context, this);
 		return null;
 	}
@@ -151,7 +178,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		
 		job.last_message = "Start ffmpeg convert operation";
 		
-		TranscodeProfile profile = TranscodeProfileManager.getProfile(transcode_profile);
+		TranscodeProfile profile = TranscodeProfileManager.getProfile(transcode_profile);// TODO can't found ext !
 		
 		RenderedElement progress_file = new RenderedElement("video_progress", "txt");
 		RenderedElement temp_element = new RenderedElement(transcode_profile.getName(), profile.getExtention("mp4"));
@@ -195,13 +222,22 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		job.step = 1;
 		job.last_message = "Finalizing";
 		
-		RenderedElement final_element = new RenderedElement(transcode_profile.getName(), profile.getExtention("mp4"));
+		RenderedElement final_element = null;
+		
 		/**
 		 * qt-faststart convert
 		 */
-		Publish.faststartFile(temp_element.getTempFile(), final_element.getTempFile());
-		
-		temp_element.deleteTempFile();
+		Boolean faststarted = false;
+		if (renderer_context.containsKey("faststarted")) {
+			faststarted = ((Boolean) renderer_context.get("faststarted"));
+		}
+		if (faststarted) {
+			final_element = new RenderedElement(transcode_profile.getName(), profile.getExtention("mp4"));
+			Publish.faststartFile(temp_element.getTempFile(), final_element.getTempFile());
+			temp_element.deleteTempFile();
+		} else {
+			final_element = temp_element;
+		}
 		
 		if (stop) {
 			return null;

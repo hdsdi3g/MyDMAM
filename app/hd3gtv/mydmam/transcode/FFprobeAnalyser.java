@@ -637,6 +637,42 @@ public class FFprobeAnalyser implements Analyser {
 		return null;
 	}
 	
+	/**
+	 * @param stream_type "audio", "video", or "format"
+	 * @param stream_track 0 for default (first stream)
+	 * @return in kbits per sec or -1
+	 */
+	public static float getBitrate(JSONObject processresult, String stream_type, int stream_track) {
+		try {
+			JSONObject block = null;
+			if (stream_type.equalsIgnoreCase("format")) {
+				block = (JSONObject) processresult.get("format");
+			} else {
+				List<JSONObject> streams = getStreamNode(processresult, stream_type);
+				if (streams == null) {
+					return -1;
+				}
+				if (streams.size() <= stream_track) {
+					return -1;
+				}
+				block = streams.get(stream_track);
+			}
+			
+			if ((block.containsKey("bit_rate") == false)) {
+				throw new NullPointerException("No bitrate in " + stream_type + " information");
+			}
+			String s_bit_rate = (String) block.get("bit_rate");
+			Integer int_bit_rate = Integer.parseInt(s_bit_rate);
+			return int_bit_rate.floatValue() / 1000f;
+		} catch (Exception e) {
+			Log2Dump dump = new Log2Dump("processresult", processresult.toJSONString());
+			dump.add("stream_type", stream_type);
+			dump.add("stream_track", stream_track);
+			Log2.log.error("Can't extract bitrate from file", e, dump);
+		}
+		return -1;
+	}
+	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
 		ArrayList<String> al = new ArrayList<String>();
 		al.add("audio/mpeg");

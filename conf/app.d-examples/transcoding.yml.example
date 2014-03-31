@@ -28,6 +28,7 @@ transcodingprofiles:
         output : 
             width : 320
             height : 180
+            faststart : true
     ffmpeg_lowres_sd : 
         type : ffmpeg
         command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 640x360 -codec:v h264 -b:v 400k -g 250 -bf 3 -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
@@ -35,6 +36,7 @@ transcodingprofiles:
         output : 
             width : 640
             height : 360
+            faststart : true
     ffmpeg_lowres_hd : 
         type : ffmpeg
         command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 1280x720 -codec:v h264 -b:v 3500k -g 250 -bf 3 -codec:a libfaac -b:a 256k -f mp4 <%$OUTPUTFILE%>"
@@ -42,3 +44,10 @@ transcodingprofiles:
         output : 
             width : 1280
             height : 720
+            faststart : true
+    ffmpeg_lowres_audio : 
+        type : ffmpeg
+        command : "-i <%$INPUTFILE%> -y -progress <%$PROGRESSFILE%> -codec:a libfaac -b:a 96k -ac 2 -f mp4 <%$OUTPUTFILE%>"
+        extention : aac
+        output : 
+            faststart : true

@@ -74,9 +74,10 @@ public class MetadataCenter implements CliModule {
 		
 		addProvider(new FFprobeAnalyser());
 		addProvider(new FFmpegSnapshoot());
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_lq, PreviewType.video_lq_pvw));
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_sd, PreviewType.video_sd_pvw));
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_hd, PreviewType.video_hd_pvw));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_lq, PreviewType.video_lq_pvw, false));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_sd, PreviewType.video_sd_pvw, false));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_hd, PreviewType.video_hd_pvw, false));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_audio, PreviewType.audio_pvw, true));
 		
 		analysis_indexers = new ArrayList<MetadataCenterIndexer>();
 	}

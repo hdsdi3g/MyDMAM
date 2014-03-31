@@ -146,6 +146,7 @@ public class TranscodeProfile extends Profile {
 	public class OutputFormat {
 		private int width = -1;
 		private int height = -1;
+		private boolean faststarted = false;
 		
 		private OutputFormat(LinkedHashMap<String, ?> configuration_item) {
 			try {
@@ -156,12 +157,19 @@ public class TranscodeProfile extends Profile {
 				height = (Integer) configuration_item.get("height");
 			} catch (Exception e) {
 			}
+			try {
+				faststarted = (Boolean) configuration_item.get("faststart");
+			} catch (Exception e) {
+			}
 		}
 		
 		public Point getResolution() {
 			return new Point(width, height);
 		}
 		
+		public boolean isFaststarted() {
+			return faststarted;
+		}
 	}
 	
 }
