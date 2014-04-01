@@ -98,21 +98,35 @@ public class FFprobeAnalyser implements Analyser {
 		JSONObject result = (JSONObject) jp.parse(process.getResultstdout().toString());
 		
 		/**
-		 * Patch mime code if video stream level < 0
+		 * Patch mime code if no video stream
 		 */
 		List<JSONObject> video_streams = getStreamNode(result, "video");
 		if (video_streams != null) {
+			/**
+			 * Video is present
+			 */
 			for (int pos = 0; pos < video_streams.size(); pos++) {
 				if (video_streams.get(pos).containsKey("level") == false) {
 					continue;
 				}
+				/**
+				 * level < 0 : video stream is not a real video stream
+				 */
 				if (((Long) video_streams.get(pos).get("level")) < 0l) {
 					video_streams.get(pos).put("ignore_stream", true);
 					if (analysis_result.getMimetype().startsWith("video")) {
+						/**
+						 * Need to correct bad mime category
+						 */
 						analysis_result.changeMimetype("audio" + analysis_result.getMimetype().substring(5));
 					}
 				}
 			}
+		} else if (analysis_result.getMimetype().startsWith("video")) {
+			/**
+			 * No video, only audio is present but with bad mime category
+			 */
+			analysis_result.changeMimetype("audio" + analysis_result.getMimetype().substring(5));
 		}
 		
 		/**
