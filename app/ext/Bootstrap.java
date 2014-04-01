@@ -89,11 +89,6 @@ public class Bootstrap extends Job {
 		if (group_newusers == null) {
 			group_newusers = new ACLGroup(role_guest, ACLGroup.NEWUSERS_NAME);
 			group_newusers.save();
-		} else {
-			if (group_newusers.role != role_guest) {
-				group_newusers.role = role_guest;
-				group_newusers.save();
-			}
 		}
 		
 		/**
