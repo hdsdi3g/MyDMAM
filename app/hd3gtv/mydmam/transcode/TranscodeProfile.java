@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.transcode;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.taskqueue.Profile;
 
 import java.awt.Point;
@@ -32,7 +34,7 @@ public class TranscodeProfile extends Profile {
 	static final String TAG_ENDVAR = "%>";
 	
 	private ArrayList<String> param;
-	private String extention;
+	private String extension;
 	
 	private OutputFormat outputformat;
 	
@@ -45,25 +47,25 @@ public class TranscodeProfile extends Profile {
 		return param;
 	}
 	
-	void setExtention(String extention) {
-		this.extention = extention;
+	void setExtension(String extension) {
+		this.extension = extension;
 	}
 	
 	/**
 	 * @return start with "."
 	 */
-	public String getExtention(String default_value) {
-		if (extention == null) {
+	public String getExtension(String default_value) {
+		if (extension == null) {
 			if (default_value.startsWith(".")) {
 				return default_value;
 			} else {
 				return "." + default_value;
 			}
 		} else {
-			if (extention.startsWith(".")) {
-				return extention;
+			if (extension.startsWith(".")) {
+				return extension;
 			} else {
-				return "." + extention;
+				return "." + extension;
 			}
 		}
 	}
@@ -143,7 +145,7 @@ public class TranscodeProfile extends Profile {
 		return outputformat;
 	}
 	
-	public class OutputFormat {
+	public class OutputFormat implements Log2Dumpable {
 		private int width = -1;
 		private int height = -1;
 		private boolean faststarted = false;
@@ -170,6 +172,32 @@ public class TranscodeProfile extends Profile {
 		public boolean isFaststarted() {
 			return faststarted;
 		}
+		
+		public Log2Dump getLog2Dump() {
+			Log2Dump dump = new Log2Dump();
+			if (width > 0 | height > 0) {
+				dump.add("resolution", width + "x" + height);
+			}
+			dump.add("faststarted", faststarted);
+			return dump;
+		}
 	}
 	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = super.getLog2Dump();
+		
+		StringBuffer sb = new StringBuffer();
+		ArrayList<String> cmd_line = makeCommandline("<input>", "<output>");
+		for (int pos = 0; pos < cmd_line.size(); pos++) {
+			sb.append(cmd_line.get(pos));
+			sb.append(" ");
+		}
+		
+		dump.add("commandline", sb.toString().trim());
+		dump.add("extension", extension);
+		if (outputformat != null) {
+			dump.addAll(outputformat.getLog2Dump());
+		}
+		return dump;
+	}
 }

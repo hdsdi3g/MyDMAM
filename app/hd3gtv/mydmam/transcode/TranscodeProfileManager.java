@@ -82,7 +82,7 @@ public class TranscodeProfileManager {
 			
 			String profile_type;
 			String profile_name;
-			String profile_extention;
+			String profile_extension;
 			String param;
 			for (Map.Entry<String, ConfigurationItem> entry : tp_list.entrySet()) {
 				profile_type = Configuration.getValue(tp_list, entry.getKey(), "type", null);
@@ -111,10 +111,10 @@ public class TranscodeProfileManager {
 					profile.getParam().add(param);
 				}
 				
-				profile_extention = Configuration.getValue(tp_list, entry.getKey(), "extention", null);
-				if (profile_extention != null) {
-					if (profile_extention.equals("") != false) {
-						profile.setExtention(profile_extention);
+				profile_extension = Configuration.getValue(tp_list, entry.getKey(), "extension", null);
+				if (profile_extension != null) {
+					if (profile_extension.equals("") == false) {
+						profile.setExtension(profile_extension);
 					}
 				}
 				
@@ -133,10 +133,11 @@ public class TranscodeProfileManager {
 			
 			Log2Dump dump = new Log2Dump();
 			for (int pos = 0; pos < profiles.size(); pos++) {
-				dump.add("profile", profiles.get(pos));
+				dump.add("transcoding profile", pos);
+				dump.addAll(profiles.get(pos));
 			}
 			
-			Log2.log.info("Set transcoding configuration", dump);
+			Log2.log.debug("Set transcoding configuration", dump);
 		} catch (Exception e) {
 			Log2.log.error("Can't load transcoding configuration", e);
 			throw e;

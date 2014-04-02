@@ -123,7 +123,7 @@ public class RenderedElement implements Log2Dumpable {
 	
 	private Log2 commit_log;
 	
-	private String extention;
+	private String extension;
 	private File rendered_file;
 	private File temp_file;
 	private String metadata_reference_id;
@@ -135,9 +135,9 @@ public class RenderedElement implements Log2Dumpable {
 	
 	/**
 	 * Create a file like temp_directory/serviceinstancename/
-	 * @param extention with or without a point
+	 * @param extension with or without a point
 	 */
-	public RenderedElement(String rendered_base_file_name, String extention) throws IOException {
+	public RenderedElement(String rendered_base_file_name, String extension) throws IOException {
 		this.rendered_base_file_name = rendered_base_file_name;
 		if (rendered_base_file_name == null) {
 			throw new NullPointerException("\"rendered_base_file_name\" can't to be null");
@@ -157,15 +157,15 @@ public class RenderedElement implements Log2Dumpable {
 		UUID uuid = new UUID();
 		sb.append(uuid.toString());
 		
-		this.extention = "";
-		if (extention != null) {
-			if (extention.startsWith(".")) {
-				sb.append(extention);
-				this.extention = extention;
+		this.extension = "";
+		if (extension != null) {
+			if (extension.startsWith(".")) {
+				sb.append(extension);
+				this.extension = extension;
 			} else {
 				sb.append(".");
-				sb.append(extention);
-				this.extention = "." + extention;
+				sb.append(extension);
+				this.extension = "." + extension;
 			}
 		}
 		
@@ -180,7 +180,7 @@ public class RenderedElement implements Log2Dumpable {
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("rendered_base_file_name", rendered_base_file_name);
-		dump.add("extention", extention);
+		dump.add("extension", extension);
 		commit_log.info("Prepare temporary file", dump);
 	}
 	
@@ -230,7 +230,7 @@ public class RenderedElement implements Log2Dumpable {
 	}
 	
 	/**
-	 * metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extention
+	 * metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extension
 	 */
 	void consolidate(SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
 		if (consolidated) {
@@ -342,7 +342,7 @@ public class RenderedElement implements Log2Dumpable {
 		byte[] b = new byte[2];
 		random.nextBytes(b);
 		sb_rendered_file.append(MyDMAM.byteToString(b).toUpperCase());
-		sb_rendered_file.append(extention);
+		sb_rendered_file.append(extension);
 		return new File(sb_rendered_file.toString());
 	}
 	
@@ -673,7 +673,7 @@ public class RenderedElement implements Log2Dumpable {
 		dump.add("rendered_mime", rendered_mime);
 		dump.add("rendered_digest", rendered_digest);
 		dump.add("rendered_base_file_name", rendered_base_file_name);
-		dump.add("extention", extention);
+		dump.add("extension", extension);
 		dump.add("metadata_reference_id", metadata_reference_id);
 		dump.add("temp_file", temp_file);
 		return dump;

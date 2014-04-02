@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.taskqueue;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.MyDMAM;
 
 import java.security.MessageDigest;
@@ -27,7 +29,7 @@ import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.IndexQuery;
 
-public class Profile {
+public class Profile implements Log2Dumpable {
 	
 	String name;
 	
@@ -108,5 +110,9 @@ public class Profile {
 		} catch (NoSuchAlgorithmException e) {
 			throw new NullPointerException("NoSuchAlgorithmException !");
 		}
+	}
+	
+	public Log2Dump getLog2Dump() {
+		return new Log2Dump("profile", category + ":" + name);
 	}
 }

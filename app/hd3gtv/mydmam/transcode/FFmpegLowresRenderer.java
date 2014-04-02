@@ -178,10 +178,10 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		
 		job.last_message = "Start ffmpeg convert operation";
 		
-		TranscodeProfile profile = TranscodeProfileManager.getProfile(transcode_profile);// TODO can't found ext !
+		TranscodeProfile profile = TranscodeProfileManager.getProfile(transcode_profile);
 		
 		RenderedElement progress_file = new RenderedElement("video_progress", "txt");
-		RenderedElement temp_element = new RenderedElement(transcode_profile.getName(), profile.getExtention("mp4"));
+		RenderedElement temp_element = new RenderedElement(transcode_profile.getName(), profile.getExtension("mp4"));
 		
 		Float source_fps = 25f;
 		if (renderer_context.containsKey("fps")) {
@@ -232,7 +232,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 			faststarted = ((Boolean) renderer_context.get("faststarted"));
 		}
 		if (faststarted) {
-			final_element = new RenderedElement(transcode_profile.getName(), profile.getExtention("mp4"));
+			final_element = new RenderedElement(transcode_profile.getName(), profile.getExtension("mp4"));
 			Publish.faststartFile(temp_element.getTempFile(), final_element.getTempFile());
 			temp_element.deleteTempFile();
 		} else {
