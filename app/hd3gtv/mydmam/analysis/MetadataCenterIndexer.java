@@ -53,11 +53,13 @@ class MetadataCenterIndexer implements IndexingEvent {
 	private boolean stop_analysis;
 	private BulkRequestBuilder bulkrequest;
 	private MetadataCenter metadatacenter;
+	private List<FuturePrepareTask> current_create_task_list;
 	
 	MetadataCenterIndexer(MetadataCenter metadatacenter, Client client, boolean force_refresh) throws Exception {
 		this.metadatacenter = metadatacenter;
 		this.client = client;
 		this.force_refresh = force_refresh;
+		current_create_task_list = new ArrayList<FuturePrepareTask>();
 	}
 	
 	void process(String storagename, String currentpath, long min_index_date) throws Exception {
@@ -67,6 +69,10 @@ class MetadataCenterIndexer implements IndexingEvent {
 		explorer = new Explorer(client);
 		explorer.getAllSubElementsFromElementKey(Explorer.getElementKey(storagename, currentpath), min_index_date, this);
 		bulkExecute();
+		
+		for (int pos = 0; pos < current_create_task_list.size(); pos++) {
+			current_create_task_list.get(pos).createTask();
+		}
 	}
 	
 	private void bulkExecute() {
@@ -287,7 +293,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 		
 		MetadataIndexerResult indexing_result = null;
 		try {
-			indexing_result = metadatacenter.standaloneIndexing(physical_source, element);
+			indexing_result = metadatacenter.standaloneIndexing(physical_source, element, current_create_task_list);
 		} catch (ExecprocessBadExecutionException e) {
 			/**
 			 * Cancel analyst for this file : invalid file !
@@ -393,7 +399,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 		 */
 		JSONObject jo_summary = MetadataCenter.getSummaryMetadatas(client, source_element);
 		if (jo_summary == null) {
-			throw new NullPointerException("Can't found element \"" + source_element.toString(" ") + "\" from DB");
+			throw new NullPointerException("Can't found element \"" + source_element.prepare_key() + "\" from DB");
 		}
 		
 		/**

@@ -230,6 +230,7 @@ public class MetadataCenter implements CliModule {
 			response = client.get(new GetRequest(ES_INDEX, ES_TYPE_SUMMARY, MetadataCenterIndexer.getUniqueElementKey(element))).actionGet();
 			
 			if (response.isExists() == false) {
+				Log2.log.error("Can't found element", null, new Log2Dump("mtdkey", MetadataCenterIndexer.getUniqueElementKey(element)));
 				return null;
 			}
 			if (response.isSourceEmpty()) {
@@ -411,7 +412,7 @@ public class MetadataCenter implements CliModule {
 	/**
 	 * Database independant
 	 */
-	public MetadataIndexerResult standaloneIndexing(File physical_source, SourcePathIndexerElement reference) throws Exception {
+	public MetadataIndexerResult standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FuturePrepareTask> current_create_task_list) throws Exception {
 		MetadataIndexerResult indexing_result = new MetadataIndexerResult(reference);
 		indexing_result.origin = physical_source;
 		
@@ -451,6 +452,12 @@ public class MetadataCenter implements CliModule {
 			if (renderer.canProcessThis(indexing_result.mimetype)) {
 				try {
 					List<RenderedElement> renderedelements = renderer.process(indexing_result);
+					
+					if (renderer instanceof RendererViaWorker) {
+						RendererViaWorker renderer_via_worker = (RendererViaWorker) renderer;
+						renderer_via_worker.prepareTasks(indexing_result, current_create_task_list);
+					}
+					
 					if (renderedelements == null) {
 						continue;
 					}
@@ -505,6 +512,11 @@ public class MetadataCenter implements CliModule {
 				throw new FileNotFoundException(args.getSimpleParamValue("-a"));
 			}
 			
+			/**
+			 * Never be executed here (from CLI)
+			 */
+			List<FuturePrepareTask> current_create_task_list = new ArrayList<FuturePrepareTask>();
+			
 			MetadataIndexerResult result;
 			File[] files = dir_testformats.listFiles();
 			for (int pos = 0; pos < files.length; pos++) {
@@ -514,7 +526,7 @@ public class MetadataCenter implements CliModule {
 				if (files[pos].isHidden()) {
 					continue;
 				}
-				result = standaloneIndexing(files[pos], spie);
+				result = standaloneIndexing(files[pos], spie, current_create_task_list);
 				System.out.print(result.origin);
 				System.out.print("\t");
 				System.out.print(result.mimetype);

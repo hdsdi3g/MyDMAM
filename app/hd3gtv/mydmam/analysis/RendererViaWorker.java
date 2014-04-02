@@ -26,6 +26,12 @@ import org.json.simple.JSONObject;
 public interface RendererViaWorker extends Renderer {
 	
 	/**
+	 * Don't create tasks, just add callbacks to create new tasks to current_create_task_list.
+	 * It will be executed after all metadatas analysing/rendering.
+	 */
+	void prepareTasks(final MetadataIndexerResult analysis_result, List<FuturePrepareTask> current_create_task_list) throws Exception;
+	
+	/**
 	 * You don't need to consolidate rendered elements
 	 */
 	List<RenderedElement> standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception;

@@ -19,6 +19,7 @@ package hd3gtv.mydmam.transcode;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.analysis.FuturePrepareTask;
 import hd3gtv.mydmam.analysis.MetadataIndexerResult;
 import hd3gtv.mydmam.analysis.MetadataRendererWorker;
 import hd3gtv.mydmam.analysis.PreviewType;
@@ -37,6 +38,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.json.simple.JSONObject;
+
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class FFmpegLowresRenderer implements RendererViaWorker {
 	
@@ -85,66 +88,6 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	}
 	
 	public List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception {
-		JSONObject processresult = FFprobeAnalyser.getAnalysedProcessresult(analysis_result);
-		if (processresult == null) {
-			return null;
-		}
-		if (audio_only == FFprobeAnalyser.hasVideo(processresult)) {
-			/**
-			 * Audio profile with audio source OR video+audio profile with video+audio source
-			 */
-			return null;
-		}
-		Timecode timecode = FFprobeAnalyser.getDuration(processresult);
-		if (timecode == null) {
-			return null;
-		}
-		TranscodeProfile t_profile = TranscodeProfileManager.getProfile(transcode_profile);
-		if (t_profile == null) {
-			return null;
-		}
-		
-		if (analysis_result.isMaster_as_preview()) {
-			/**
-			 * Must I render a preview file ?
-			 */
-			if (FFprobeAnalyser.hasVideo(processresult) == false) {
-				/**
-				 * Source is audio only, Master as preview is ok, no rendering.
-				 */
-				return null;
-			} else {
-				/**
-				 * video is ok ?
-				 */
-				Point resolution = FFprobeAnalyser.getVideoResolution(processresult);
-				if (resolution == null) {
-					return null;
-				}
-				if (t_profile.getOutputformat() != null) {
-					/**
-					 * Test if source file has an upper resolution relative at the profile
-					 */
-					Point profile_resolution = t_profile.getOutputformat().getResolution();
-					if ((profile_resolution.x > resolution.x) | (profile_resolution.y > resolution.y)) {
-						return null;
-					} else if ((profile_resolution.x == resolution.x) & (profile_resolution.y == resolution.y)) {
-						return null;
-					}
-				}
-			}
-		}
-		
-		JSONObject renderer_context = new JSONObject();
-		renderer_context.put("fps", timecode.getFps());
-		renderer_context.put("duration", timecode.getValue());
-		if (t_profile.getOutputformat() != null) {
-			renderer_context.put("faststarted", t_profile.getOutputformat().isFaststarted());
-		} else {
-			renderer_context.put("faststarted", false);
-		}
-		
-		MetadataRendererWorker.createTask(analysis_result.getReference().prepare_key(), "FFmpeg lowres for metadatas", renderer_context, this);
 		return null;
 	}
 	
@@ -263,4 +206,74 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		}
 	}
 	
+	public void prepareTasks(final MetadataIndexerResult analysis_result, List<FuturePrepareTask> current_create_task_list) throws Exception {
+		final RendererViaWorker source = this;
+		
+		FuturePrepareTask result = new FuturePrepareTask() {
+			public void createTask() throws ConnectionException {
+				JSONObject processresult = FFprobeAnalyser.getAnalysedProcessresult(analysis_result);
+				if (processresult == null) {
+					return;
+				}
+				if (audio_only == FFprobeAnalyser.hasVideo(processresult)) {
+					/**
+					 * Audio profile with audio source OR video+audio profile with video+audio source
+					 */
+					return;
+				}
+				Timecode timecode = FFprobeAnalyser.getDuration(processresult);
+				if (timecode == null) {
+					return;
+				}
+				TranscodeProfile t_profile = TranscodeProfileManager.getProfile(transcode_profile);
+				if (t_profile == null) {
+					return;
+				}
+				
+				if (analysis_result.isMaster_as_preview()) {
+					/**
+					 * Must I render a preview file ?
+					 */
+					if (FFprobeAnalyser.hasVideo(processresult) == false) {
+						/**
+						 * Source is audio only, Master as preview is ok, no rendering.
+						 */
+						return;
+					} else {
+						/**
+						 * video is ok ?
+						 */
+						Point resolution = FFprobeAnalyser.getVideoResolution(processresult);
+						if (resolution == null) {
+							return;
+						}
+						if (t_profile.getOutputformat() != null) {
+							/**
+							 * Test if source file has an upper resolution relative at the profile
+							 */
+							Point profile_resolution = t_profile.getOutputformat().getResolution();
+							if ((profile_resolution.x > resolution.x) | (profile_resolution.y > resolution.y)) {
+								return;
+							} else if ((profile_resolution.x == resolution.x) & (profile_resolution.y == resolution.y)) {
+								return;
+							}
+						}
+					}
+				}
+				
+				JSONObject renderer_context = new JSONObject();
+				renderer_context.put("fps", timecode.getFps());
+				renderer_context.put("duration", timecode.getValue());
+				if (t_profile.getOutputformat() != null) {
+					renderer_context.put("faststarted", t_profile.getOutputformat().isFaststarted());
+				} else {
+					renderer_context.put("faststarted", false);
+				}
+				
+				MetadataRendererWorker.createTask(analysis_result.getReference().prepare_key(), "FFmpeg lowres for metadatas", renderer_context, source);
+			}
+		};
+		
+		current_create_task_list.add(result);
+	}
 }
