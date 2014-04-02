@@ -161,10 +161,34 @@ function Queue() {
 		return content;
 	};
 
+	fullDisplayContextItem = function(context, intable) {
+		if (context == null) {
+			return "";
+		}
+		var content = "";
+		if (context instanceof Object) {
+			if (intable) {
+				content = content + '<table class="table table-bordered table-hover table-condensed" style="width:inherit; margin-bottom:inherit;">';
+				for (var element in context) {
+					content = content + '<tr><th>' + element + '</th><td>' + context[element] + '</td></tr>';
+				}
+				content = content + '</table>';
+			} else {
+				for (var element in context) {
+					content = content + element + ': ' + context[element] + ', ';
+				}
+				content = content.substring(0, content.length - 2);
+			}
+		} else {
+			content = content + context;
+		}
+		return content;
+	};
+	
 	addContextItemsinTaskJobTableElement = function(current_taskjob) {
 		var content = "";
 		for (var keyctx in current_taskjob.context) {
-			content = content + '<tr><th>' + keyctx + '</th><td>' + current_taskjob.context[keyctx] + '</td></tr>';//TODO raw display
+			content = content + '<tr><th>' + keyctx + '</th><td>' + this.fullDisplayContextItem(current_taskjob.context[keyctx], true) + '</td></tr>';
 		}
 		return content;
 	};
@@ -743,7 +767,7 @@ function Queue() {
 		content = content + '<td class="endedjobenddateraw">' + endedjob.end_date + '</td>';
 		content = content + '<td><small><ul class="endedjobcontext">';
 		for (var keyctx in endedjob.context) {
-			content = content + '<li><strong>' + keyctx + '</strong> :: ' + endedjob.context[keyctx] + '</li>';//TODO raw display
+			content = content + '<li><strong>' + keyctx + '</strong> :: ' + this.fullDisplayContextItem(endedjob.context[keyctx]) + '</li>';
 		}
 		content = content + '</ul></small></td>';
 		content = content + '<td class="endedjobendlastm">' + endedjob.last_message + '</td>';
@@ -774,7 +798,7 @@ function Queue() {
 				$('#rowendjob-' + key + ' .endedjobenddateraw').html(endedjob.end_date);
 				var content = "";
 				for (var keyctx in endedjob.context) {
-					content = content + '<li><strong>' + keyctx + '</strong> :: ' + endedjob.context[keyctx] + '</li>'; //TODO raw display
+					content = content + '<li><strong>' + keyctx + '</strong> :: ' + this.fullDisplayContextItem(endedjob.context[keyctx]) + '</li>';
 				}
 				$('#rowendjob-' + key + ' .endedjobcontext').html(content);
 				$('#rowendjob-' + key + ' .endedjobendlastm').html(endedjob.last_message);
