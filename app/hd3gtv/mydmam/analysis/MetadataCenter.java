@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,8 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectWriter;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.count.CountRequest;
+import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
@@ -181,7 +184,16 @@ public class MetadataCenter implements CliModule {
 			Map<String, Object> mtd_element;
 			Map<String, Object> mtd_element_source;
 			String element_source_key;
+			String element_source_storage;
 			GetResponse getresponse;
+			
+			/**
+			 * Protect to no remove all mtd if pathindexing is empty for a storage.
+			 * https://github.com/hdsdi3g/MyDMAM/issues/7
+			 */
+			CountRequest countrequest;
+			CountResponse countresponse;
+			HashMap<String, Long> elementcount_by_storage = new HashMap<String, Long>();
 			
 			boolean can_continue = true;
 			while (can_continue) {
@@ -189,11 +201,22 @@ public class MetadataCenter implements CliModule {
 					mtd_element = hits[pos].getSource();
 					mtd_element_source = (Map<String, Object>) mtd_element.get("origin");
 					element_source_key = (String) mtd_element_source.get("key");
+					element_source_storage = (String) mtd_element_source.get("storage");
 					
 					getresponse = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_source_key)).actionGet();
 					if (getresponse.isExists() == false) {
-						bulkrequest.add(client.prepareDelete(ES_INDEX, hits[pos].getType(), hits[pos].getId()));
-						RenderedElement.purge(hits[pos].getId());
+						if (elementcount_by_storage.containsKey(element_source_storage) == false) {
+							countrequest = new CountRequest(Importer.ES_INDEX).types(Importer.ES_TYPE_FILE).query(QueryBuilders.termQuery("storagename", element_source_storage));
+							countresponse = client.count(countrequest).actionGet();
+							elementcount_by_storage.put(element_source_storage, countresponse.getCount());
+						}
+						if (elementcount_by_storage.get(element_source_storage) > 0) {
+							/**
+							 * This storage is not empty... Source file is really deleted, we can delete metadatas
+							 */
+							bulkrequest.add(client.prepareDelete(ES_INDEX, hits[pos].getType(), hits[pos].getId()));
+							RenderedElement.purge(hits[pos].getId());
+						}
 					}
 					
 					count_remaining--;

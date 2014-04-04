@@ -91,11 +91,12 @@ class MetadataCenterIndexer implements IndexingEvent {
 		stop_analysis = true;
 	}
 	
-	static JSONObject getOriginElement(String element_key, long size, long date) {
+	static JSONObject getOriginElement(String element_key, long size, long date, String storagename) {
 		JSONObject origin = new JSONObject();
 		origin.put("size", size);
 		origin.put("date", date);
 		origin.put("key", element_key);
+		origin.put("storage", storagename);
 		return origin;
 	}
 	
@@ -305,7 +306,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 		 * Wrap result datas into JSON, and prepare push.
 		 * Don't forget to update merge() in case of updates
 		 */
-		JSONObject origin = getOriginElement(element_key, physical_source.length(), physical_source.lastModified());
+		JSONObject origin = getOriginElement(element_key, physical_source.length(), physical_source.lastModified(), element.storagename);
 		
 		JSONObject jo_summary = new JSONObject();
 		jo_summary.put("mimetype", indexing_result.mimetype);
@@ -388,7 +389,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 		LinkedHashMap<Renderer, JSONArray> json_rendering_results = MetadataIndexerResult.makeJSONRendering_results(rendering_results);
 		JSONArray ja_rendering_results = json_rendering_results.get(renderer);
 		
-		JSONObject json_origin = getOriginElement(source_element.prepare_key(), source_element.size, source_element.date);
+		JSONObject json_origin = getOriginElement(source_element.prepare_key(), source_element.size, source_element.date, source_element.storagename);
 		String mtd_key = getUniqueElementKey(source_element);
 		
 		BulkRequestBuilder bulkrequest = client.prepareBulk();
