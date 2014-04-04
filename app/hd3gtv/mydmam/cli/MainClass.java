@@ -52,7 +52,11 @@ public class MainClass {
 		modules.add(new CliModuleStorageIndex());
 		modules.add(new CliModuleCopyDirStruct());
 		modules.add(new CliModuleBroker());
-		modules.add(new MetadataCenter());
+		
+		MetadataCenter metadata_center = new MetadataCenter();
+		MetadataCenter.addAllInternalsProviders(metadata_center);
+		MyDMAMModulesManager.addAllExternalMetadataProviders(metadata_center);
+		modules.add(metadata_center);
 		
 		modules.addAll(MyDMAMModulesManager.getAllCliModules());
 		

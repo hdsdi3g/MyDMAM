@@ -18,6 +18,8 @@ package hd3gtv.mydmam.module;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.analysis.MetadataCenter;
+import hd3gtv.mydmam.analysis.MetadataProvider;
 import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
 import hd3gtv.mydmam.taskqueue.TriggerWorker;
@@ -387,4 +389,17 @@ public class MyDMAMModulesManager {
 		return fullliststorageindexnamejsonlistforhostedinarchiving;
 	}
 	
+	public static void addAllExternalMetadataProviders(MetadataCenter metadata_center) {
+		List<MetadataProvider> providers;
+		for (int pos = 0; pos < MODULES.size(); pos++) {
+			providers = MODULES.get(pos).getMetadataProviders();
+			if (providers == null) {
+				continue;
+			}
+			for (int pos_prvrs = 0; pos_prvrs < providers.size(); pos_prvrs++) {
+				metadata_center.addProvider(providers.get(pos_prvrs));
+			}
+		}
+		
+	}
 }

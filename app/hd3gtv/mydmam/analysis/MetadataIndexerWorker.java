@@ -19,6 +19,7 @@ package hd3gtv.mydmam.analysis;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.taskqueue.Broker;
@@ -69,6 +70,8 @@ public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 			return;
 		}
 		metadata_center = new MetadataCenter();
+		MetadataCenter.addAllInternalsProviders(metadata_center);
+		MyDMAMModulesManager.addAllExternalMetadataProviders(metadata_center);
 		
 		managed_profiles_trigger = new ArrayList<Profile>();
 		analysing_storageindexes_map = new HashMap<String, AnalysingConfiguration>();

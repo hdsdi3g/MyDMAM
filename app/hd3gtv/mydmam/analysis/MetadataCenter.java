@@ -63,26 +63,40 @@ public class MetadataCenter implements CliModule {
 	
 	private LinkedHashMap<String, Analyser> analysers;
 	private LinkedHashMap<String, Renderer> renderers;
-	private MasterAsPreviewProvider master_as_preview;
+	private MasterAsPreviewProvider master_as_preview_provider;
 	
 	private volatile List<MetadataCenterIndexer> analysis_indexers;
 	
 	public MetadataCenter() {
 		analysers = new LinkedHashMap<String, Analyser>();
 		renderers = new LinkedHashMap<String, Renderer>();
-		master_as_preview = new MasterAsPreviewProvider();
-		
-		addProvider(new FFprobeAnalyser());
-		addProvider(new FFmpegSnapshoot());
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_lq, PreviewType.video_lq_pvw, false));
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_sd, PreviewType.video_sd_pvw, false));
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_hd, PreviewType.video_hd_pvw, false));
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_audio, PreviewType.audio_pvw, true));
-		
+		master_as_preview_provider = new MasterAsPreviewProvider();
 		analysis_indexers = new ArrayList<MetadataCenterIndexer>();
 	}
 	
-	private void addProvider(Analyser analyser) {
+	public static void addAllInternalsProviders(MetadataCenter metadata_center) {
+		metadata_center.addAnalyser(new FFprobeAnalyser());
+		metadata_center.addRenderer(new FFmpegSnapshoot());
+		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_lq, PreviewType.video_lq_pvw, false));
+		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_sd, PreviewType.video_sd_pvw, false));
+		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_hd, PreviewType.video_hd_pvw, false));
+		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_audio, PreviewType.audio_pvw, true));
+	}
+	
+	public void addProvider(MetadataProvider provider) {
+		if (provider == null) {
+			return;
+		}
+		if (provider instanceof Analyser) {
+			addAnalyser((Analyser) provider);
+		} else if (provider instanceof Renderer) {
+			addRenderer((Renderer) provider);
+		} else {
+			Log2.log.error("Can't add unrecognized provider", null);
+		}
+	}
+	
+	private void addAnalyser(Analyser analyser) {
 		if (analyser == null) {
 			throw new NullPointerException("\"analyser\" can't to be null");
 		}
@@ -94,14 +108,14 @@ public class MetadataCenter implements CliModule {
 				Log2.log.info("Provider with this name exists", dump);
 			} else {
 				analysers.put(analyser.getElasticSearchIndexType(), analyser);
-				master_as_preview.addAnalyser(analyser);
+				master_as_preview_provider.addAnalyser(analyser);
 			}
 		} else {
 			Log2.log.info("Analyser " + analyser.getElasticSearchIndexType() + " is disabled");
 		}
 	}
 	
-	private void addProvider(Renderer renderer) {
+	private void addRenderer(Renderer renderer) {
 		if (renderer == null) {
 			throw new NullPointerException("\"renderer\" can't to be null");
 		}
@@ -230,7 +244,7 @@ public class MetadataCenter implements CliModule {
 			response = client.get(new GetRequest(ES_INDEX, ES_TYPE_SUMMARY, MetadataCenterIndexer.getUniqueElementKey(element))).actionGet();
 			
 			if (response.isExists() == false) {
-				Log2.log.error("Can't found element", null, new Log2Dump("mtdkey", MetadataCenterIndexer.getUniqueElementKey(element)));
+				// Log2.log.error("Can't found element", null, new Log2Dump("mtdkey", MetadataCenterIndexer.getUniqueElementKey(element)));
 				return null;
 			}
 			if (response.isSourceEmpty()) {
@@ -445,7 +459,7 @@ public class MetadataCenter implements CliModule {
 			}
 		}
 		
-		indexing_result.master_as_preview = master_as_preview.isFileIsValidForMasterAsPreview(indexing_result);
+		indexing_result.master_as_preview = master_as_preview_provider.isFileIsValidForMasterAsPreview(indexing_result);
 		
 		for (Map.Entry<String, Renderer> entry : renderers.entrySet()) {
 			Renderer renderer = entry.getValue();
