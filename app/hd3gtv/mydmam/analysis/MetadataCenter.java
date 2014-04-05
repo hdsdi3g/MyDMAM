@@ -22,6 +22,7 @@ import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.transcode.FFmpegAlbumartwork;
 import hd3gtv.mydmam.transcode.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.FFmpegSnapshoot;
 import hd3gtv.mydmam.transcode.FFprobeAnalyser;
@@ -80,6 +81,7 @@ public class MetadataCenter implements CliModule {
 	public static void addAllInternalsProviders(MetadataCenter metadata_center) {
 		metadata_center.addAnalyser(new FFprobeAnalyser());
 		metadata_center.addRenderer(new FFmpegSnapshoot());
+		metadata_center.addRenderer(new FFmpegAlbumartwork());
 		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_lq, PreviewType.video_lq_pvw, false));
 		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_sd, PreviewType.video_sd_pvw, false));
 		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.transcode_profile_ffmpeg_lowres_hd, PreviewType.video_hd_pvw, false));
