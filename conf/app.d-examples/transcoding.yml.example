@@ -19,8 +19,8 @@ transcodingprofiles:
         extension : mp4
     ffmpeg_snapshoot_first : 
         type : ffmpeg
-        command : "-i <%$INPUTFILE%> -y -ss 00:00:01.000 -vframes 1 -f image2 <%$OUTPUTFILE%>"
-        extension : png
+        command : "-i <%$INPUTFILE%> -y -ss 00:00:01.000 -vframes 1 -q:v 1 -vcodec mjpeg -f image2 <%$OUTPUTFILE%>"
+        extension : jpg
     ffmpeg_lowres_lq : 
         type : ffmpeg
         command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 320x180 -codec:v h264 -b:v 200k -g 250 -bf 3 -codec:a libfaac -b:a 64k -f mp4 <%$OUTPUTFILE%>"
@@ -51,3 +51,7 @@ transcodingprofiles:
         extension : aac
         output : 
             faststart : true
+    ffmpeg_album_artwork : 
+        type : ffmpeg
+        command : "-i <%$INPUTFILE%> -y -q:v 1 -vcodec mjpeg -f image2 <%$OUTPUTFILE%>"
+        extension : jpg
