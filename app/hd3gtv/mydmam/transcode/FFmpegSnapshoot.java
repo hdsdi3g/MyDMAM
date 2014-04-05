@@ -67,7 +67,7 @@ public class FFmpegSnapshoot implements Renderer {
 		TranscodeProfile tprofile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
 		
 		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
-		RenderedElement element = new RenderedElement("snap", tprofile.getExtension("png"));
+		RenderedElement element = new RenderedElement("snap", tprofile.getExtension("jpg"));
 		
 		ArrayList<String> param = tprofile.makeCommandline(analysis_result.getOrigin().getAbsolutePath(), element.getTempFile().getAbsolutePath());
 		
@@ -87,7 +87,7 @@ public class FFmpegSnapshoot implements Renderer {
 					dump.add("stdout", process.getResultstdout().toString().trim());
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					dump.add("exitcode", process.getRunprocess().getExitvalue());
-					Log2.log.error("Problem with ffprobe", null, dump);
+					Log2.log.error("Problem with ffmpeg", null, dump);
 				}
 			}
 			throw e;
