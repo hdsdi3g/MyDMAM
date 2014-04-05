@@ -121,7 +121,11 @@ function MetadataEngine() {
 		var display_prepare_image = function(url, htmlclass, width, height) {
 			var content = '';
 			content = content + '<div style="margin-bottom: 1em;">';
-			content = content + '<img src="' + url + '" class="' + htmlclass + '" alt="' + width + 'x' + height + '" data-src="holder.js/' + width + 'x' + height + '" style="width: ' + width + 'px; height: ' + height + 'px;"/>';
+			if ((width > 0) & (height > 0)) {
+				content = content + '<img src="' + url + '" class="' + htmlclass + '" alt="' + width + 'x' + height + '" data-src="holder.js/' + width + 'x' + height + '" style="width: ' + width + 'px; height: ' + height + 'px;"/>';
+			} else {
+				content = content + '<img src="' + url + '" class="' + htmlclass + '" data-src="holder.js"/>';
+			}
 			content = content + '</div>';
 			return content;
 		};
@@ -170,20 +174,26 @@ function MetadataEngine() {
 					 * Audio
 					 */
 					if (master_as_preview_type == "audio") {
-						var url = this.getURL(file_hash, previews.audio_pvw.type, previews.audio_pvw.file);
 						content = content + display_prepare_audio_player(master_as_preview_url);
 					} else {
 						var url = this.getURL(file_hash, previews.audio_pvw.type, previews.audio_pvw.file);
 						content = content + display_prepare_audio_player(url);
 					}
+					if (previews.full_size_thumbnail) {
+						/**
+						 * Display Album artwork
+						 */
+						var url = this.getURL(file_hash, previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
+						content = content + display_prepare_image(url, "img-polaroid", 0, 0); //TODO size ?
+					}
 				} else if (master_as_preview_type == "image") {
 					/**
 					 * Image
 					 */
-					content = content + display_prepare_image(master_as_preview_url, "img-polaroid", 768, 432); //TODO get size ?
+					content = content + display_prepare_image(master_as_preview_url, "img-polaroid", 0, 0); //TODO get size ?
 				} else if (previews.full_size_thumbnail) {
 					var url = this.getURL(file_hash, previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
-					content = content + display_prepare_image(url, "img-polaroid", 768, 432); //TODO size ?
+					content = content + display_prepare_image(url, "img-polaroid", 0, 0); //TODO size ?
 				}
 			} else {
 				/**
@@ -197,7 +207,7 @@ function MetadataEngine() {
 				} else if (master_as_preview_type == "audio") {
 					content = content + display_prepare_audio_player(master_as_preview_url, null);
 				} else if (master_as_preview_type == "image") {
-					content = content + display_prepare_image(master_as_preview_url, "img-polaroid", 768, 432); //TODO get size ?
+					content = content + display_prepare_image(master_as_preview_url, "img-polaroid", 0, 0); //TODO get size ?
 				}
 			}
 			
