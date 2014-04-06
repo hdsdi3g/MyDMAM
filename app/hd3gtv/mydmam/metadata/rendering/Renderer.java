@@ -14,7 +14,10 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.metadata.rendering;
+
+import hd3gtv.mydmam.metadata.MetadataProvider;
+import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
 
 import java.util.LinkedHashMap;
 import java.util.List;

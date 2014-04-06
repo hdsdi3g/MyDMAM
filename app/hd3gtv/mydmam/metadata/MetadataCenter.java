@@ -16,9 +16,19 @@
 */
 package hd3gtv.mydmam.metadata;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.metadata.analysing.Analyser;
+import hd3gtv.mydmam.metadata.analysing.MimeExtract;
+import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
+import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
+import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
+import hd3gtv.mydmam.metadata.rendering.PreviewType;
+import hd3gtv.mydmam.metadata.rendering.RenderedElement;
+import hd3gtv.mydmam.metadata.rendering.Renderer;
+import hd3gtv.mydmam.metadata.rendering.RendererViaWorker;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -69,13 +79,13 @@ public class MetadataCenter implements CliModule {
 	private LinkedHashMap<String, Renderer> renderers;
 	private MasterAsPreviewProvider master_as_preview_provider;
 	
-	private volatile List<MetadataCenterIndexer> analysis_indexers;
+	private volatile List<MetadataIndexer> analysis_indexers;
 	
 	public MetadataCenter() {
 		analysers = new LinkedHashMap<String, Analyser>();
 		renderers = new LinkedHashMap<String, Renderer>();
 		master_as_preview_provider = new MasterAsPreviewProvider();
-		analysis_indexers = new ArrayList<MetadataCenterIndexer>();
+		analysis_indexers = new ArrayList<MetadataIndexer>();
 	}
 	
 	public static void addAllInternalsProviders(MetadataCenter metadata_center) {
@@ -138,7 +148,49 @@ public class MetadataCenter implements CliModule {
 		}
 	}
 	
-	synchronized LinkedHashMap<String, Renderer> getRenderers() {
+	private class MasterAsPreviewProvider {
+		
+		private Map<String, Analyser> mime_list;
+		
+		MasterAsPreviewProvider() {
+			if (Configuration.global.isElementExists("master_as_preview") == false) {
+				return;
+			}
+			if (Configuration.global.getValueBoolean("master_as_preview", "enable") == false) {
+				return;
+			}
+			mime_list = new HashMap<String, Analyser>();
+			
+		}
+		
+		void addAnalyser(Analyser analyser) {
+			if (analyser == null) {
+				return;
+			}
+			if (mime_list == null) {
+				return;
+			}
+			List<String> list = analyser.getMimeFileListCanUsedInMasterAsPreview();
+			if (list != null) {
+				for (int pos = 0; pos < list.size(); pos++) {
+					mime_list.put(list.get(pos).toLowerCase(), analyser);
+				}
+			}
+		}
+		
+		boolean isFileIsValidForMasterAsPreview(MetadataIndexerResult metadatas_result) {
+			if (mime_list == null) {
+				return false;
+			}
+			String mime = metadatas_result.getMimetype().toLowerCase();
+			if (mime_list.containsKey(mime) == false) {
+				return false;
+			}
+			return mime_list.get(mime).isCanUsedInMasterAsPreview(metadatas_result);
+		}
+	}
+	
+	public synchronized LinkedHashMap<String, Renderer> getRenderers() {
 		return renderers;
 	}
 	
@@ -156,10 +208,10 @@ public class MetadataCenter implements CliModule {
 			throw new NullPointerException("\"currentpath\" can't to be null");
 		}
 		
-		MetadataCenterIndexer metadataCenterIndexer = new MetadataCenterIndexer(this, client, force_refresh);
-		analysis_indexers.add(metadataCenterIndexer);
-		metadataCenterIndexer.process(storagename, currentpath, min_index_date);
-		analysis_indexers.remove(metadataCenterIndexer);
+		MetadataIndexer metadataIndexer = new MetadataIndexer(this, client, force_refresh);
+		analysis_indexers.add(metadataIndexer);
+		metadataIndexer.process(storagename, currentpath, min_index_date);
+		analysis_indexers.remove(metadataIndexer);
 	}
 	
 	public void stopAnalysis() {
@@ -266,7 +318,7 @@ public class MetadataCenter implements CliModule {
 		}
 		try {
 			GetResponse response = null;
-			response = client.get(new GetRequest(ES_INDEX, ES_TYPE_SUMMARY, MetadataCenterIndexer.getUniqueElementKey(element))).actionGet();
+			response = client.get(new GetRequest(ES_INDEX, ES_TYPE_SUMMARY, MetadataIndexer.getUniqueElementKey(element))).actionGet();
 			
 			if (response.isExists() == false) {
 				// Log2.log.error("Can't found element", null, new Log2Dump("mtdkey", MetadataCenterIndexer.getUniqueElementKey(element)));
@@ -452,18 +504,17 @@ public class MetadataCenter implements CliModule {
 	 * Database independant
 	 */
 	public MetadataIndexerResult standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FuturePrepareTask> current_create_task_list) throws Exception {
-		MetadataIndexerResult indexing_result = new MetadataIndexerResult(reference);
-		indexing_result.origin = physical_source;
+		MetadataIndexerResult indexing_result = new MetadataIndexerResult(reference, physical_source);
 		
 		if (physical_source.length() == 0) {
-			indexing_result.mimetype = "application/null";
+			indexing_result.setMimetype("application/null");
 		} else {
-			indexing_result.mimetype = MimeExtract.getMime(physical_source);
+			indexing_result.setMimetype(MimeExtract.getMime(physical_source));
 		}
 		
 		for (Map.Entry<String, Analyser> entry : analysers.entrySet()) {
 			Analyser analyser = entry.getValue();
-			if (analyser.canProcessThis(indexing_result.mimetype)) {
+			if (analyser.canProcessThis(indexing_result.getMimetype())) {
 				try {
 					JSONObject jo_processing_result = analyser.process(indexing_result);
 					if (jo_processing_result == null) {
@@ -473,7 +524,7 @@ public class MetadataCenter implements CliModule {
 						continue;
 					}
 					jo_processing_result.put(METADATA_PROVIDER_TYPE, Analyser.METADATA_PROVIDER_ANALYSER);
-					indexing_result.analysis_results.put(analyser, jo_processing_result);
+					indexing_result.getAnalysis_results().put(analyser, jo_processing_result);
 				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
 					dump.add("analyser class", analyser);
@@ -488,7 +539,7 @@ public class MetadataCenter implements CliModule {
 		
 		for (Map.Entry<String, Renderer> entry : renderers.entrySet()) {
 			Renderer renderer = entry.getValue();
-			if (renderer.canProcessThis(indexing_result.mimetype)) {
+			if (renderer.canProcessThis(indexing_result.getMimetype())) {
 				try {
 					List<RenderedElement> renderedelements = renderer.process(indexing_result);
 					
@@ -506,7 +557,7 @@ public class MetadataCenter implements CliModule {
 					for (int pos = 0; pos < renderedelements.size(); pos++) {
 						renderedelements.get(pos).consolidate(reference, renderer);
 					}
-					indexing_result.rendering_results.put(renderer, renderedelements);
+					indexing_result.getRendering_results().put(renderer, renderedelements);
 					RenderedElement.cleanCurrentTempDirectory();
 				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
@@ -566,16 +617,16 @@ public class MetadataCenter implements CliModule {
 					continue;
 				}
 				result = standaloneIndexing(files[pos], spie, current_create_task_list);
-				System.out.print(result.origin);
+				System.out.print(result.getOrigin());
 				System.out.print("\t");
-				System.out.print(result.mimetype);
+				System.out.print(result.getMimetype());
 				System.out.print("\t");
 				if (result.master_as_preview) {
 					System.out.print("MasterAsPreview");
 				}
 				System.out.print("\t");
-				if ((result.analysis_results != null) & (verbose | prettify)) {
-					for (Map.Entry<Analyser, JSONObject> entry : result.analysis_results.entrySet()) {
+				if ((result.getAnalysis_results() != null) & (verbose | prettify)) {
+					for (Map.Entry<Analyser, JSONObject> entry : result.getAnalysis_results().entrySet()) {
 						System.out.println();
 						System.out.print("\t\t");
 						System.out.print(entry.getKey().getLongName());

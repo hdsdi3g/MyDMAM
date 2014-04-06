@@ -14,11 +14,12 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.metadata.indexing;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.PathScan;
@@ -179,7 +180,7 @@ public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 		lastindexeddatesforprofiles.put(profile, System.currentTimeMillis());
 	}
 	
-	MetadataCenter getMetadata_center() {
+	public MetadataCenter getMetadata_center() {
 		return metadata_center;
 	}
 	

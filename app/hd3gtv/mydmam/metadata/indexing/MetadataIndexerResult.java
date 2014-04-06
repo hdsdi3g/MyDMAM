@@ -14,10 +14,14 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.metadata.indexing;
 
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.analysing.Analyser;
+import hd3gtv.mydmam.metadata.rendering.RenderedElement;
+import hd3gtv.mydmam.metadata.rendering.Renderer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.io.File;
@@ -34,16 +38,27 @@ public class MetadataIndexerResult implements Log2Dumpable {
 	String mimetype;
 	LinkedHashMap<Analyser, JSONObject> analysis_results;
 	LinkedHashMap<Renderer, List<RenderedElement>> rendering_results;
-	boolean master_as_preview;
+	public boolean master_as_preview;
 	SourcePathIndexerElement reference;
 	
-	MetadataIndexerResult(SourcePathIndexerElement reference) {
+	public MetadataIndexerResult(SourcePathIndexerElement reference, File origin) {
 		this.reference = reference;
 		if (reference == null) {
 			throw new NullPointerException("\"reference\" can't to be null");
 		}
+		this.origin = origin;
+		if (origin == null) {
+			throw new NullPointerException("\"origin\" can't to be null");
+		}
 		analysis_results = new LinkedHashMap<Analyser, JSONObject>();
 		rendering_results = new LinkedHashMap<Renderer, List<RenderedElement>>();
+	}
+	
+	public void setMimetype(String mimetype) {
+		if (mimetype == null) {
+			return;
+		}
+		this.mimetype = mimetype;
 	}
 	
 	public String getMimetype() {
@@ -120,7 +135,7 @@ public class MetadataIndexerResult implements Log2Dumpable {
 		return result;
 	}
 	
-	LinkedHashMap<Renderer, JSONArray> makeJSONRendering_results() {
+	public LinkedHashMap<Renderer, JSONArray> makeJSONRendering_results() {
 		return makeJSONRendering_results(rendering_results);
 	}
 	

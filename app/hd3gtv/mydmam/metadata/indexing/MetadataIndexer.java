@@ -14,11 +14,17 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.metadata.indexing;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.analysing.Analyser;
+import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
+import hd3gtv.mydmam.metadata.rendering.PreviewType;
+import hd3gtv.mydmam.metadata.rendering.RenderedElement;
+import hd3gtv.mydmam.metadata.rendering.Renderer;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -45,7 +51,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-class MetadataCenterIndexer implements IndexingEvent {
+public class MetadataIndexer implements IndexingEvent {
 	
 	private Client client;
 	private Explorer explorer;
@@ -55,14 +61,14 @@ class MetadataCenterIndexer implements IndexingEvent {
 	private MetadataCenter metadatacenter;
 	private List<FuturePrepareTask> current_create_task_list;
 	
-	MetadataCenterIndexer(MetadataCenter metadatacenter, Client client, boolean force_refresh) throws Exception {
+	public MetadataIndexer(MetadataCenter metadatacenter, Client client, boolean force_refresh) throws Exception {
 		this.metadatacenter = metadatacenter;
 		this.client = client;
 		this.force_refresh = force_refresh;
 		current_create_task_list = new ArrayList<FuturePrepareTask>();
 	}
 	
-	void process(String storagename, String currentpath, long min_index_date) throws Exception {
+	public void process(String storagename, String currentpath, long min_index_date) throws Exception {
 		stop_analysis = false;
 		
 		bulkrequest = client.prepareBulk();
@@ -87,7 +93,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 		}
 	}
 	
-	synchronized void stop() {
+	public synchronized void stop() {
 		stop_analysis = true;
 	}
 	
@@ -459,7 +465,7 @@ class MetadataCenterIndexer implements IndexingEvent {
 	/**
 	 * If the file size/date change, this id will change
 	 */
-	static String getUniqueElementKey(SourcePathIndexerElement element) {
+	public static String getUniqueElementKey(SourcePathIndexerElement element) {
 		StringBuffer sb = new StringBuffer();
 		sb.append(element.storagename);
 		sb.append(element.currentpath);

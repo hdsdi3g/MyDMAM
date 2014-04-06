@@ -20,7 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.RenderedElement;
+import hd3gtv.mydmam.metadata.rendering.RenderedElement;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;

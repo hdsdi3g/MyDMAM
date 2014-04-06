@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.metadata.rendering;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.javasimpleservice.ServiceManager;
@@ -23,6 +23,9 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.LogHandlerToLogfile;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.analysing.MimeExtract;
+import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
@@ -205,7 +208,7 @@ public class RenderedElement implements Log2Dumpable {
 		if (source_element == null) {
 			throw new NullPointerException("\"source_element\" can't to be null");
 		}
-		metadata_reference_id = MetadataCenterIndexer.getUniqueElementKey(source_element);
+		metadata_reference_id = MetadataIndexer.getUniqueElementKey(source_element);
 		
 		this.renderer = renderer;
 		if (renderer == null) {
@@ -232,7 +235,7 @@ public class RenderedElement implements Log2Dumpable {
 	/**
 	 * metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extension
 	 */
-	void consolidate(SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
+	public void consolidate(SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
 		if (consolidated) {
 			return;
 		}
@@ -346,7 +349,7 @@ public class RenderedElement implements Log2Dumpable {
 		return new File(sb_rendered_file.toString());
 	}
 	
-	boolean isConsolidated() {
+	public boolean isConsolidated() {
 		return consolidated;
 	}
 	
@@ -360,7 +363,7 @@ public class RenderedElement implements Log2Dumpable {
 	/**
 	 * Don't forget to consolidate before.
 	 */
-	JSONObject toDatabase() {
+	public JSONObject toDatabase() {
 		if (consolidated == false) {
 			throw new NullPointerException("Element is not consolidated !");
 		}
@@ -385,7 +388,7 @@ public class RenderedElement implements Log2Dumpable {
 	/**
 	 * Test presence and validity for file.
 	 */
-	static RenderedElement fromDatabase(JSONObject renderfromdatabase, String metadata_reference_id, boolean check_hash) throws IOException {
+	public static RenderedElement fromDatabase(JSONObject renderfromdatabase, String metadata_reference_id, boolean check_hash) throws IOException {
 		if (renderfromdatabase == null) {
 			throw new NullPointerException("\"renderfromdatabase\" can't to be null");
 		}
@@ -455,7 +458,7 @@ public class RenderedElement implements Log2Dumpable {
 	/**
 	 * Test presence and validity for file.
 	 */
-	static RenderedElement fromDatabaseMasterAsPreview(SourcePathIndexerElement sourcepathindexerelement, String mime_file) throws IOException {
+	public static RenderedElement fromDatabaseMasterAsPreview(SourcePathIndexerElement sourcepathindexerelement, String mime_file) throws IOException {
 		if (sourcepathindexerelement == null) {
 			throw new NullPointerException("\"renderfromdatabase\" can't to be null");
 		}
@@ -478,7 +481,7 @@ public class RenderedElement implements Log2Dumpable {
 		return result;
 	}
 	
-	static synchronized void cleanCurrentTempDirectory() {
+	public static synchronized void cleanCurrentTempDirectory() {
 		for (int pos = 0; pos < commit_log_files.size(); pos++) {
 			commit_log_files.get(pos).delete();
 		}
@@ -486,7 +489,7 @@ public class RenderedElement implements Log2Dumpable {
 		temp_directory.delete();
 	}
 	
-	static void purge(String metadata_reference_id) {
+	public static void purge(String metadata_reference_id) {
 		if (metadata_reference_id == null) {
 			throw new NullPointerException("\"mtd_id\" can't to be null");
 		}
@@ -534,7 +537,7 @@ public class RenderedElement implements Log2Dumpable {
 		}
 	}
 	
-	static void gc(Client client) {
+	public static void gc(Client client) {
 		if (client == null) {
 			throw new NullPointerException("\"client\" can't to be null");
 		}

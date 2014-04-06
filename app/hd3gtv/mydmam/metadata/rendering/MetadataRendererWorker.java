@@ -14,9 +14,12 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.metadata.rendering;
 
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
+import hd3gtv.mydmam.metadata.indexing.MetadataIndexerWorker;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.Broker;
@@ -179,7 +182,7 @@ public class MetadataRendererWorker extends Worker {
 			return;
 		}
 		
-		MetadataCenterIndexer.merge(client, current_renderer, rendered_elements, element, current_renderer.getElasticSearchIndexType());
+		MetadataIndexer.merge(client, current_renderer, rendered_elements, element, current_renderer.getElasticSearchIndexType());
 		
 		client.close();
 		current_renderer = null;

@@ -17,7 +17,7 @@
 package hd3gtv.mydmam.metadata.validation;
 
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.Analyser;
+import hd3gtv.mydmam.metadata.analysing.Analyser;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

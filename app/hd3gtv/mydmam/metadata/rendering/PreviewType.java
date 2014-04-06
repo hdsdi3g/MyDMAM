@@ -14,12 +14,13 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.metadata.rendering;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
-public interface FuturePrepareTask {
+/**
+ * All definitions should exists and implemented in JS (MetadataEngine, display function)
+ */
+public enum PreviewType {
 	
-	void createTask() throws ConnectionException;
+	full_size_thumbnail, video_sd_pvw, video_hd_pvw, video_lq_pvw, audio_pvw;
 	
 }
