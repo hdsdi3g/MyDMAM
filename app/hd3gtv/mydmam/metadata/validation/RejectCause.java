@@ -14,11 +14,11 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.analysis.validation;
+package hd3gtv.mydmam.metadata.validation;
 
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.analysis.Analyser;
+import hd3gtv.mydmam.metadata.Analyser;
 
 import java.util.List;
 

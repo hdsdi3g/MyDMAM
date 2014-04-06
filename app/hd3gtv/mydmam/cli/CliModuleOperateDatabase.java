@@ -17,10 +17,10 @@
 package hd3gtv.mydmam.cli;
 
 import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.analysis.MetadataCenter;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.util.HashMap;

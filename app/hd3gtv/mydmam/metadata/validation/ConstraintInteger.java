@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.analysis.validation;
+package hd3gtv.mydmam.metadata.validation;
 
 class ConstraintInteger extends Constraint {
 	

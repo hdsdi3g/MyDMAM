@@ -21,7 +21,7 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2FilterType;
 import hd3gtv.log2.Log2Level;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.analysis.MetadataCenter;
+import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.tools.ApplicationArgs;
 

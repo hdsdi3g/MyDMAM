@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.analysis;
+package hd3gtv.mydmam.metadata;
 
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.pathindexing.Explorer;

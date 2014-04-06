@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.mydmam.analysis;
+package hd3gtv.mydmam.metadata;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;

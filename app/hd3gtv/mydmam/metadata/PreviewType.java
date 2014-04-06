@@ -11,13 +11,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.analysis.validation;
+package hd3gtv.mydmam.metadata;
 
-public enum Comparator {
+/**
+ * All definitions should exists and implemented in JS (MetadataEngine, display function)
+ */
+public enum PreviewType {
 	
-	EQUALS, GREATER_THAN, SMALLER_THAN, EQUALS_OR_GREATER_THAN, EQUALS_OR_SMALLER_THAN, DIFFERENT;
+	full_size_thumbnail, video_sd_pvw, video_hd_pvw, video_lq_pvw, audio_pvw;
 	
 }

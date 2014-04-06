@@ -1,4 +1,4 @@
-package hd3gtv.mydmam.analysis.validation;
+package hd3gtv.mydmam.metadata.validation;
 
 class ConstraintFloat extends Constraint {
 	

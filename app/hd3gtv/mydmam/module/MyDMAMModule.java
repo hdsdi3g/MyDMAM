@@ -16,8 +16,8 @@
 */
 package hd3gtv.mydmam.module;
 
-import hd3gtv.mydmam.analysis.MetadataProvider;
 import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.metadata.MetadataProvider;
 import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
 import hd3gtv.mydmam.taskqueue.TriggerWorker;
 import hd3gtv.mydmam.taskqueue.Worker;

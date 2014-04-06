@@ -14,9 +14,9 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.analysis.validation;
+package hd3gtv.mydmam.metadata.validation;
 
-import hd3gtv.mydmam.analysis.Analyser;
+import hd3gtv.mydmam.metadata.Analyser;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
