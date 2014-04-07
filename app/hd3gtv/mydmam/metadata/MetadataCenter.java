@@ -301,6 +301,8 @@ public class MetadataCenter {
 			
 			RenderedElement.gc(client);
 			
+		} catch (IOException e) {
+			Log2.log.error("Can't purge directories", e);
 		} catch (IndexMissingException ime) {
 			Log2.log.info("No metadatas exists in database, no clean to do");
 		}

@@ -76,8 +76,7 @@ public class RenderedElement implements Log2Dumpable {
 			if (Configuration.global.isElementExists("analysing_renderer") == false) {
 				throw new NullPointerException("Can't found analysing_renderer element in configuration");
 			}
-			
-			temp_directory = new File(Configuration.global.getValue("analysing_renderer", "temp_directory", (new File("/tmp")).getAbsolutePath()));
+			temp_directory = new File(Configuration.global.getValue("analysing_renderer", "temp_directory", (new File(System.getProperty("java.io.tmpdir", "/tmp")).getAbsolutePath())));
 			if (temp_directory.exists() == false) {
 				throw new FileNotFoundException(temp_directory.getPath());
 			}
@@ -537,18 +536,58 @@ public class RenderedElement implements Log2Dumpable {
 		}
 	}
 	
-	public static void gc(Client client) {
+	public static void gc(Client client) throws IOException {
 		if (client == null) {
 			throw new NullPointerException("\"client\" can't to be null");
 		}
+		File[] mtddir;
+		File[] allrootelements;
 		
+		/**
+		 * GC Temp directory
+		 */
+		if (temp_directory != null) {
+			allrootelements = temp_directory.getCanonicalFile().getParentFile().listFiles();
+			for (int pos = 0; pos < allrootelements.length; pos++) {
+				if (allrootelements[pos].isDirectory() == false) {
+					Log2Dump dump = new Log2Dump();
+					dump.add("directory", allrootelements[pos]);
+					Log2.log.info("Element is not a directory, delete it", dump);
+					allrootelements[pos].delete();
+					continue;
+				}
+				mtddir = allrootelements[pos].listFiles();
+				for (int pos_mtd = 0; pos_mtd < mtddir.length; pos_mtd++) {
+					/**
+					 * Purge hidden files.
+					 */
+					if (mtddir[pos_mtd].isHidden()) {
+						Log2Dump dump = new Log2Dump();
+						dump.add("directory", mtddir[pos_mtd]);
+						Log2.log.info("Element is not a directory, delete it", dump);
+						mtddir[pos_mtd].delete();
+					}
+				}
+				mtddir = allrootelements[pos].listFiles();
+				if (mtddir.length == 0) {
+					Log2Dump dump = new Log2Dump();
+					dump.add("directory", allrootelements[pos]);
+					Log2.log.info("Directory is empty, delete it", dump);
+					allrootelements[pos].delete();
+				}
+			}
+		}
+		
+		/**
+		 * GC Local directory
+		 */
 		if (local_directory == null) {
 			return;
 		}
 		
 		GetResponse getresponse;
-		File[] mtddir;
-		File[] allrootelements = local_directory.listFiles();
+		
+		allrootelements = local_directory.getCanonicalFile().listFiles();
 		File[] mtdfiles;
 		String element_source_key;
 		
@@ -559,11 +598,21 @@ public class RenderedElement implements Log2Dumpable {
 			if (allrootelements[pos].isDirectory() == false) {
 				Log2Dump dump = new Log2Dump();
 				dump.add("rootelements", allrootelements[pos]);
-				Log2.log.error("Element is not a directory, delete it", null, dump);
+				Log2.log.info("Element is not a directory, delete it", dump);
 				allrootelements[pos].delete();
 				continue;
 			}
 			mtddir = allrootelements[pos].listFiles();
+			if (mtddir.length == 0) {
+				/**
+				 * Remove empty dir.
+				 */
+				Log2Dump dump = new Log2Dump();
+				dump.add("rootelements", allrootelements[pos]);
+				Log2.log.info("Directory is empty delete it", dump);
+				allrootelements[pos].delete();
+				continue;
+			}
 			for (int pos_mtd = 0; pos_mtd < mtddir.length; pos_mtd++) {
 				if (allrootelements[pos].exists() == false) {
 					break;
@@ -574,8 +623,8 @@ public class RenderedElement implements Log2Dumpable {
 				if (mtddir[pos_mtd].isDirectory() == false) {
 					Log2Dump dump = new Log2Dump();
 					dump.add("mtddir", mtddir[pos_mtd]);
-					Log2.log.error("Element is not a directory, delete it", null, dump);
-					allrootelements[pos].delete();
+					Log2.log.info("Element is not a directory, delete it", dump);
+					mtddir[pos_mtd].delete();
 					continue;
 				}
 				element_source_key = allrootelements[pos].getName() + mtddir[pos_mtd].getName();
