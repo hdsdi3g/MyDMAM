@@ -21,7 +21,6 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2FilterType;
 import hd3gtv.log2.Log2Level;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.tools.ApplicationArgs;
 
@@ -52,11 +51,7 @@ public class MainClass {
 		modules.add(new CliModuleStorageIndex());
 		modules.add(new CliModuleCopyDirStruct());
 		modules.add(new CliModuleBroker());
-		
-		MetadataCenter metadata_center = new MetadataCenter();
-		MetadataCenter.addAllInternalsProviders(metadata_center);
-		MyDMAMModulesManager.addAllExternalMetadataProviders(metadata_center);
-		modules.add(metadata_center);
+		modules.add(new CliModuleMetadata());
 		
 		modules.addAll(MyDMAMModulesManager.getAllCliModules());
 		

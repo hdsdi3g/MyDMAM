@@ -19,7 +19,6 @@ package hd3gtv.mydmam.metadata;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.metadata.analysing.Analyser;
 import hd3gtv.mydmam.metadata.analysing.MimeExtract;
 import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
@@ -36,10 +35,8 @@ import hd3gtv.mydmam.transcode.FFmpegAlbumartwork;
 import hd3gtv.mydmam.transcode.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.FFmpegSnapshoot;
 import hd3gtv.mydmam.transcode.FFprobeAnalyser;
-import hd3gtv.tools.ApplicationArgs;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,7 +64,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-public class MetadataCenter implements CliModule {
+public class MetadataCenter {
 	
 	public static final String ES_INDEX = "metadata";
 	public static final String ES_TYPE_SUMMARY = "summary";
@@ -146,6 +143,46 @@ public class MetadataCenter implements CliModule {
 		} else {
 			Log2.log.info("Renderer " + renderer.getElasticSearchIndexType() + " is disabled");
 		}
+	}
+	
+	/**
+	 * Remove all elements in lists except providers_name.
+	 */
+	public void restrictToProviderList(ArrayList<String> providers_name) {
+		if (providers_name == null) {
+			throw new NullPointerException("\"providers_name\" can't to be null");
+		}
+		
+		ArrayList<String> delete_list = new ArrayList<String>();
+		for (Map.Entry<String, Analyser> entry : analysers.entrySet()) {
+			if (providers_name.contains(entry.getKey()) == false) {
+				delete_list.add(entry.getKey());
+			}
+		}
+		for (int pos_dl = 0; pos_dl < delete_list.size(); pos_dl++) {
+			analysers.remove(delete_list.get(pos_dl));
+		}
+		
+		delete_list.clear();
+		for (Map.Entry<String, Renderer> entry : renderers.entrySet()) {
+			if (providers_name.contains(entry.getKey()) == false) {
+				delete_list.add(entry.getKey());
+			}
+		}
+		for (int pos_dl = 0; pos_dl < delete_list.size(); pos_dl++) {
+			renderers.remove(delete_list.get(pos_dl));
+		}
+		
+		delete_list.clear();
+		for (Map.Entry<String, Analyser> entry : master_as_preview_provider.mime_list.entrySet()) {
+			if (providers_name.contains(entry.getKey()) == false) {
+				delete_list.add(entry.getKey());
+			}
+		}
+		for (int pos_dl = 0; pos_dl < delete_list.size(); pos_dl++) {
+			master_as_preview_provider.mime_list.remove(delete_list.get(pos_dl));
+		}
+		
 	}
 	
 	private class MasterAsPreviewProvider {
@@ -572,112 +609,6 @@ public class MetadataCenter implements CliModule {
 		return indexing_result;
 	}
 	
-	public String getCliModuleName() {
-		return "mtd";
-	}
-	
-	public String getCliModuleShortDescr() {
-		return "Operate on metadatas and file analysis";
-	}
-	
-	public void execCliModule(ApplicationArgs args) throws Exception {
-		boolean verbose = args.getParamExist("-v");
-		boolean prettify = args.getParamExist("-vv");
-		
-		SourcePathIndexerElement spie = new SourcePathIndexerElement();
-		spie.currentpath = "/execCli/" + System.currentTimeMillis();
-		spie.date = System.currentTimeMillis();
-		spie.dateindex = spie.date;
-		spie.directory = false;
-		spie.parentpath = "/execCli";
-		spie.size = 0;
-		spie.storagename = "Test_MyDMAM_CLI";
-		
-		if (args.getParamExist("-a")) {
-			File dir_testformats = new File(args.getSimpleParamValue("-a"));
-			if (dir_testformats.exists() == false) {
-				throw new FileNotFoundException(args.getSimpleParamValue("-a"));
-			}
-			if (dir_testformats.isDirectory() == false) {
-				throw new FileNotFoundException(args.getSimpleParamValue("-a"));
-			}
-			
-			/**
-			 * Never be executed here (from CLI)
-			 */
-			List<FuturePrepareTask> current_create_task_list = new ArrayList<FuturePrepareTask>();
-			
-			MetadataIndexerResult result;
-			File[] files = dir_testformats.listFiles();
-			for (int pos = 0; pos < files.length; pos++) {
-				if (files[pos].isDirectory()) {
-					continue;
-				}
-				if (files[pos].isHidden()) {
-					continue;
-				}
-				result = standaloneIndexing(files[pos], spie, current_create_task_list);
-				System.out.print(result.getOrigin());
-				System.out.print("\t");
-				System.out.print(result.getMimetype());
-				System.out.print("\t");
-				if (result.master_as_preview) {
-					System.out.print("MasterAsPreview");
-				}
-				System.out.print("\t");
-				if ((result.getAnalysis_results() != null) & (verbose | prettify)) {
-					for (Map.Entry<Analyser, JSONObject> entry : result.getAnalysis_results().entrySet()) {
-						System.out.println();
-						System.out.print("\t\t");
-						System.out.print(entry.getKey().getLongName());
-						System.out.print(" [");
-						System.out.print(entry.getKey().getElasticSearchIndexType());
-						System.out.print("]");
-						System.out.print("\t");
-						if (prettify) {
-							System.out.print(json_prettify(entry.getValue()));
-						} else {
-							System.out.print(entry.getValue().toJSONString());
-						}
-					}
-				}
-				
-				if (verbose | prettify) {
-					LinkedHashMap<Renderer, JSONArray> rendering_results = result.makeJSONRendering_results();
-					if (rendering_results != null) {
-						for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
-							System.out.println();
-							System.out.print("\t\t");
-							System.out.print(entry.getKey().getLongName());
-							System.out.print(" [");
-							System.out.print(entry.getKey().getElasticSearchIndexType());
-							System.out.print("]");
-							System.out.print("\t");
-							if (prettify) {
-								System.out.print(json_prettify(entry.getValue()));
-							} else {
-								System.out.print(entry.getValue().toJSONString());
-							}
-						}
-					}
-				}
-				
-				System.out.println();
-			}
-			
-			return;
-		}
-		showFullCliModuleHelp();
-	}
-	
-	public void showFullCliModuleHelp() {
-		System.out.println("Usage");
-		System.out.println(" * standalone directory analysis: ");
-		System.out.println("   " + getCliModuleName() + " -a /full/path [-v | -vv]");
-		System.out.println("   -v verbose");
-		System.out.println("   -vv verbose and prettify");
-	}
-	
 	public static String json_prettify(JSONObject json) {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectWriter writer = mapper.writer().withDefaultPrettyPrinter();
@@ -703,4 +634,5 @@ public class MetadataCenter implements CliModule {
 			return json.toJSONString();
 		}
 	}
+	
 }
