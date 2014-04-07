@@ -145,46 +145,6 @@ public class MetadataCenter {
 		}
 	}
 	
-	/**
-	 * Remove all elements in lists except providers_name.
-	 */
-	public void restrictToProviderList(ArrayList<String> providers_name) {
-		if (providers_name == null) {
-			throw new NullPointerException("\"providers_name\" can't to be null");
-		}
-		
-		ArrayList<String> delete_list = new ArrayList<String>();
-		for (Map.Entry<String, Analyser> entry : analysers.entrySet()) {
-			if (providers_name.contains(entry.getKey()) == false) {
-				delete_list.add(entry.getKey());
-			}
-		}
-		for (int pos_dl = 0; pos_dl < delete_list.size(); pos_dl++) {
-			analysers.remove(delete_list.get(pos_dl));
-		}
-		
-		delete_list.clear();
-		for (Map.Entry<String, Renderer> entry : renderers.entrySet()) {
-			if (providers_name.contains(entry.getKey()) == false) {
-				delete_list.add(entry.getKey());
-			}
-		}
-		for (int pos_dl = 0; pos_dl < delete_list.size(); pos_dl++) {
-			renderers.remove(delete_list.get(pos_dl));
-		}
-		
-		delete_list.clear();
-		for (Map.Entry<String, Analyser> entry : master_as_preview_provider.mime_list.entrySet()) {
-			if (providers_name.contains(entry.getKey()) == false) {
-				delete_list.add(entry.getKey());
-			}
-		}
-		for (int pos_dl = 0; pos_dl < delete_list.size(); pos_dl++) {
-			master_as_preview_provider.mime_list.remove(delete_list.get(pos_dl));
-		}
-		
-	}
-	
 	private class MasterAsPreviewProvider {
 		
 		private Map<String, Analyser> mime_list;

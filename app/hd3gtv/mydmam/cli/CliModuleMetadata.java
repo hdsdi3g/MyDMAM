@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.cli;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.analysing.Analyser;
@@ -23,6 +25,7 @@ import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
 import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
 import hd3gtv.mydmam.metadata.rendering.Renderer;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
 
@@ -141,27 +144,34 @@ public class CliModuleMetadata implements CliModule {
 			
 			return;
 		} else if (args.getParamExist("-refresh")) {
-			String storagename = args.getSimpleParamValue("-storage");
-			if (storagename == null) {
-				System.err.println("Error: no -storage is set");
-				showFullCliModuleHelp();
-				return;
-			}
-			String currentpath = args.getSimpleParamValue("-path");
-			if (currentpath == null) {
-				System.err.println("Error: no -path is set");
+			String raw_path = args.getSimpleParamValue("-refresh");
+			
+			if (raw_path.indexOf(":") <= 0) {
+				System.err.println("Error ! Use storage:/path syntax");
 				showFullCliModuleHelp();
 				return;
 			}
 			
-			ArrayList<String> providers = args.getMultipleParamsValue("-provider");
-			if (providers.size() > 0) {
-				metadata_center.restrictToProviderList(providers);
+			SourcePathIndexerElement root_indexing = new SourcePathIndexerElement();
+			
+			root_indexing.storagename = raw_path.substring(0, raw_path.indexOf(":"));
+			root_indexing.currentpath = raw_path.substring(raw_path.indexOf(":") + 1, raw_path.length());
+			if (root_indexing.currentpath.startsWith("/") == false) {
+				root_indexing.currentpath = "/" + root_indexing.currentpath;
 			}
 			
 			Client client = Elasticsearch.createClient();
-			metadata_center.performAnalysis(client, storagename, currentpath, 0, true);
+			Explorer explorer = new Explorer(client);
+			
+			if (explorer.countDirectoryContentElements(root_indexing.prepare_key()) == 0) {
+				Log2Dump dump = new Log2Dump();
+				dump.addAll(root_indexing);
+				Log2.log.info("Empty/not found element to scan metadatas", dump);
+				return;
+			}
+			metadata_center.performAnalysis(client, root_indexing.storagename, root_indexing.currentpath, 0, true);
 			client.close();
+			return;
 		}
 		showFullCliModuleHelp();
 	}
@@ -172,9 +182,8 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println("   " + getCliModuleName() + " -a /full/path [-v | -vv]");
 		System.out.println("   -v verbose");
 		System.out.println("   -vv verbose and prettify");
-		System.out.println(" * force re-indexing metadatas from a directory: ");
-		System.out.println("   " + getCliModuleName() + " -refresh -storage StorageName -path /pathindexrelative -provider providername [-provider providername]... [-v | -vv]");
-		System.out.println("   providername to restrict indexing");
+		System.out.println(" * force re-indexing metadatas for a directory: ");
+		System.out.println("   " + getCliModuleName() + " -refresh storagename:/pathindexrelative");
 	}
 	
 }
