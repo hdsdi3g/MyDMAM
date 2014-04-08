@@ -47,6 +47,10 @@ public class Explorer {
 		client = Elasticsearch.getClient();
 	}
 	
+	public Client getClient() {
+		return client;
+	}
+	
 	public SourcePathIndexerElement getByFullPathFile(String storagename, String pathfilename) {
 		SearchRequestBuilder request = client.prepareSearch();
 		request.setTypes(Importer.ES_TYPE_FILE);
