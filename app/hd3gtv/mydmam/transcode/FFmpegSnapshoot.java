@@ -38,13 +38,17 @@ import org.json.simple.JSONObject;
 public class FFmpegSnapshoot implements Renderer {
 	
 	private String ffmpeg_bin;
+	private TranscodeProfile tprofile;
 	
 	public FFmpegSnapshoot() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
+		if (TranscodeProfileManager.isEnabled()) {
+			tprofile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
+		}
 	}
 	
 	public boolean isEnabled() {
-		return (new File(ffmpeg_bin)).exists() & TranscodeProfileManager.isEnabled();
+		return (new File(ffmpeg_bin)).exists() & (tprofile != null);
 	}
 	
 	public boolean canProcessThis(String mimetype) {
@@ -63,8 +67,6 @@ public class FFmpegSnapshoot implements Renderer {
 		if (FFprobeAnalyser.hasVideo(analysed_result) == false) {
 			return null;
 		}
-		
-		TranscodeProfile tprofile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
 		
 		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
 		RenderedElement element = new RenderedElement("snap", tprofile.getExtension("jpg"));

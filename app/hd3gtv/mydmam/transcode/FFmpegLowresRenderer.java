@@ -54,17 +54,20 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	private PreviewType preview_type;
 	private boolean audio_only;
 	
-	public FFmpegLowresRenderer(TranscodeProfile transcode_profile, PreviewType preview_type, boolean audio_only) {
+	public FFmpegLowresRenderer(TranscodeProfile profile, PreviewType preview_type, boolean audio_only) {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
-		this.transcode_profile = transcode_profile;
-		if (transcode_profile == null) {
-			throw new NullPointerException("\"transcode_profile\" can't to be null");
+		if (profile == null) {
+			throw new NullPointerException("\"profile\" can't to be null");
 		}
-		this.preview_type = preview_type;
-		if (preview_type == null) {
-			throw new NullPointerException("\"preview_type\" can't to be null");
+		if (TranscodeProfileManager.isEnabled()) {
+			transcode_profile = TranscodeProfileManager.getProfile(profile);
+			
+			this.preview_type = preview_type;
+			if (preview_type == null) {
+				throw new NullPointerException("\"preview_type\" can't to be null");
+			}
+			this.audio_only = audio_only;
 		}
-		this.audio_only = audio_only;
 	}
 	
 	public String getLongName() {
@@ -76,7 +79,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	}
 	
 	public boolean isEnabled() {
-		return (new File(ffmpeg_bin)).exists() & TranscodeProfileManager.isEnabled();
+		return (new File(ffmpeg_bin)).exists() & (transcode_profile != null);
 	}
 	
 	public boolean canProcessThis(String mimetype) {
@@ -121,10 +124,8 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		
 		job.last_message = "Start ffmpeg convert operation";
 		
-		TranscodeProfile profile = TranscodeProfileManager.getProfile(transcode_profile);
-		
 		RenderedElement progress_file = new RenderedElement("video_progress", "txt");
-		RenderedElement temp_element = new RenderedElement(transcode_profile.getName(), profile.getExtension("mp4"));
+		RenderedElement temp_element = new RenderedElement(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
 		
 		Float source_fps = 25f;
 		if (renderer_context.containsKey("fps")) {
@@ -139,13 +140,13 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		progress.start();
 		
 		FFmpegEvents events = new FFmpegEvents(job.getKey() + ": " + origin.getName());
-		process = new Execprocess(ffmpeg_bin, profile.makeCommandline(origin.getAbsolutePath(), temp_element.getTempFile().getAbsolutePath(), progress_file.getTempFile().getPath()), events);
+		process = new Execprocess(ffmpeg_bin, transcode_profile.makeCommandline(origin.getAbsolutePath(), temp_element.getTempFile().getAbsolutePath(), progress_file.getTempFile().getPath()), events);
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("job", job.getKey());
 		dump.add("origin", origin);
 		dump.add("temp_file", temp_element.getTempFile());
-		dump.add("profile", profile);
+		dump.add("transcode_profile", transcode_profile);
 		dump.add("commandline", process.getCommandline());
 		Log2.log.info("Start ffmpeg", dump);
 		
@@ -175,7 +176,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 			faststarted = ((Boolean) renderer_context.get("faststarted"));
 		}
 		if (faststarted) {
-			final_element = new RenderedElement(transcode_profile.getName(), profile.getExtension("mp4"));
+			final_element = new RenderedElement(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
 			Publish.faststartFile(temp_element.getTempFile(), final_element.getTempFile());
 			temp_element.deleteTempFile();
 		} else {
