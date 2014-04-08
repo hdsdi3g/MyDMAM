@@ -20,7 +20,6 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
 import hd3gtv.mydmam.taskqueue.Job;
@@ -33,8 +32,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.elasticsearch.client.Client;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
@@ -99,13 +96,11 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 		dump.add("label", pec.label);
 		Log2.log.info("Indexing Storage", dump);
 		
-		Client client = Elasticsearch.createClient();
-		importer = new ImporterStorage(client, pec.storage, pec.label, 1000 * pec.period * grace_time_ttl);
+		importer = new ImporterStorage(pec.storage, pec.label, 1000 * pec.period * grace_time_ttl);
 		importer.index();
 		// } catch (NoNodeAvailableException e) {
 		// Log2.log.error("Elasticsearch transport trouble, cancel analysis.", e);
 		// return;
-		client.close();
 		importer = null;
 	}
 	

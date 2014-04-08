@@ -18,7 +18,6 @@ package hd3gtv.mydmam.metadata.indexing;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -35,7 +34,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.client.Client;
 import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -102,7 +100,6 @@ public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 	}
 	
 	public void process(Job job) throws Exception {
-		Client client = Elasticsearch.createClient();
 		JSONObject context = job.getContext();
 		if (context == null) {
 			throw new NullPointerException("No context");
@@ -115,8 +112,7 @@ public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 		long min_index_date = ((Number) context.get("minindexdate")).longValue();
 		boolean force_refresh = (Boolean) context.get("force_refresh");
 		
-		metadata_center.performAnalysis(client, storagename, currentpath, min_index_date, force_refresh);
-		client.close();
+		metadata_center.performAnalysis(storagename, currentpath, min_index_date, force_refresh);
 	}
 	
 	public List<Profile> getManagedProfiles() {

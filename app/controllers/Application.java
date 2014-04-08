@@ -72,8 +72,7 @@ public class Application extends Controller {
 		if (filehash.equals("")) {
 			throw new NotFound("No filehash");
 		}
-		Client client = Elasticsearch.createClient();
-		Explorer explorer = new Explorer(client);
+		Explorer explorer = new Explorer();
 		
 		SourcePathIndexerElement pathelement = explorer.getelementByIdkey(filehash);
 		
@@ -111,7 +110,7 @@ public class Application extends Controller {
 							
 							if (metadatas_exists & (subpathelement.get(pos).directory == false)) {
 								try {
-									metadatas = MetadataCenter.getSummaryMetadatas(client, subpathelement.get(pos));
+									metadatas = MetadataCenter.getSummaryMetadatas(subpathelement.get(pos));
 									if (metadatas != null) {
 										sub_element.put("metadatas", metadatas);
 									}
@@ -127,15 +126,13 @@ public class Application extends Controller {
 						jo_result.put("toomanyitems", Integer.parseInt(e.getMessage()));
 					}
 				} else {
-					JSONObject metadatas = MetadataCenter.getSummaryMetadatas(client, pathelement);
+					JSONObject metadatas = MetadataCenter.getSummaryMetadatas(pathelement);
 					if (metadatas != null) {
 						jo_result.put("metadatas", metadatas);
 					}
 				}
-				client.close();
 				renderJSON(jo_result.toJSONString());
 			} else {
-				client.close();
 				throw new NotFound(filehash);
 			}
 		} catch (Exception e) {
@@ -217,10 +214,9 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void metadatas(Boolean full) {
-		Client client = Elasticsearch.createClient();
+		Client client = Elasticsearch.getClient();
 		String[] pathelementskeys = params.getAll("fileshash[]");
 		JSONObject result = MetadataCenter.getSummaryMetadatas(client, pathelementskeys);
-		client.close();
 		if (result == null) {
 			renderJSON("{}");
 		} else {
@@ -237,16 +233,13 @@ public class Application extends Controller {
 		}
 		response.cacheFor("60s");
 		
-		Client client = Elasticsearch.createClient();
-		
 		RenderedElement element = null;
 		if (type.equals(MetadataCenter.MASTER_AS_PREVIEW)) {
-			element = MetadataCenter.getMasterAsPreviewFile(client, filehash);
+			element = MetadataCenter.getMasterAsPreviewFile(filehash);
 		} else {
-			element = MetadataCenter.getMetadataFileReference(client, filehash, type, file, false);
+			element = MetadataCenter.getMetadataFileReference(filehash, type, file, false);
 		}
 		
-		client.close();
 		if (element == null) {
 			forbidden();
 		}

@@ -179,7 +179,7 @@ public class SearchResult {
 			return null;
 		}
 		
-		Client client = Elasticsearch.createClient();
+		Client client = Elasticsearch.getClient();
 		SearchResult search_result = new SearchResult();
 		SearchResponse response = structuredInternalSearch(client, query, frompage, pagesize, search_result);
 		
@@ -197,7 +197,6 @@ public class SearchResult {
 		for (int pos = 0; pos < hits.length; pos++) {
 			search_result.results.add(SearchResultItem.fromSource(hits[pos]));
 		}
-		client.close();
 		
 		return search_result;
 	}

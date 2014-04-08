@@ -19,6 +19,7 @@ package hd3gtv.mydmam.metadata;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.analysing.Analyser;
 import hd3gtv.mydmam.metadata.analysing.MimeExtract;
 import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
@@ -77,6 +78,11 @@ public class MetadataCenter {
 	private MasterAsPreviewProvider master_as_preview_provider;
 	
 	private volatile List<MetadataIndexer> analysis_indexers;
+	private static Client client;
+	
+	static {
+		client = Elasticsearch.getClient();
+	}
 	
 	public MetadataCenter() {
 		analysers = new LinkedHashMap<String, Analyser>();
@@ -194,10 +200,7 @@ public class MetadataCenter {
 	/**
 	 * @param min_index_date set 0 for all
 	 */
-	public void performAnalysis(Client client, String storagename, String currentpath, long min_index_date, boolean force_refresh) throws Exception {
-		if (client == null) {
-			throw new NullPointerException("\"client\" can't to be null");
-		}
+	public void performAnalysis(String storagename, String currentpath, long min_index_date, boolean force_refresh) throws Exception {
 		if (storagename == null) {
 			throw new NullPointerException("\"storagename\" can't to be null");
 		}
@@ -220,7 +223,7 @@ public class MetadataCenter {
 	/**
 	 * Delete orphan (w/o pathindex) metadatas elements
 	 */
-	public static void database_gc(Client client) {
+	public static void database_gc() {
 		try {
 			BulkRequestBuilder bulkrequest = client.prepareBulk();
 			SearchRequestBuilder request = client.prepareSearch();
@@ -311,12 +314,13 @@ public class MetadataCenter {
 	/**
 	 * Beware: "origin" key is deleted
 	 */
-	public static JSONObject getSummaryMetadatas(Client client, SourcePathIndexerElement element) throws IndexMissingException {
+	public static JSONObject getSummaryMetadatas(SourcePathIndexerElement element) throws IndexMissingException {
 		if (element == null) {
 			throw new NullPointerException("\"pathelementskeys\" can't to be null");
 		}
 		try {
 			GetResponse response = null;
+			Client client = Elasticsearch.getClient();
 			response = client.get(new GetRequest(ES_INDEX, ES_TYPE_SUMMARY, MetadataIndexer.getUniqueElementKey(element))).actionGet();
 			
 			if (response.isExists() == false) {
@@ -391,15 +395,13 @@ public class MetadataCenter {
 		return result;
 	}
 	
-	public static RenderedElement getMasterAsPreviewFile(Client client, String origin_key) throws IndexMissingException {
-		if (client == null) {
-			throw new NullPointerException("\"client\" can't to be null");
-		}
+	public static RenderedElement getMasterAsPreviewFile(String origin_key) throws IndexMissingException {
 		if (origin_key == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
 		}
 		
 		try {
+			Client client = Elasticsearch.getClient();
 			SearchRequestBuilder request = client.prepareSearch();
 			request.setIndices(ES_INDEX);
 			request.setTypes(ES_TYPE_SUMMARY);
@@ -419,7 +421,7 @@ public class MetadataCenter {
 				return null;
 			}
 			
-			Explorer explorer = new Explorer(client);
+			Explorer explorer = new Explorer();
 			SourcePathIndexerElement spie = explorer.getelementByIdkey(origin_key);
 			if (spie == null) {
 				return null;
@@ -436,10 +438,7 @@ public class MetadataCenter {
 		return null;
 	}
 	
-	public static RenderedElement getMetadataFileReference(Client client, String origin_key, String index_type, String filename, boolean check_hash) throws IndexMissingException {
-		if (client == null) {
-			throw new NullPointerException("\"client\" can't to be null");
-		}
+	public static RenderedElement getMetadataFileReference(String origin_key, String index_type, String filename, boolean check_hash) throws IndexMissingException {
 		if (origin_key == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
 		}
@@ -460,6 +459,7 @@ public class MetadataCenter {
 		}
 		
 		try {
+			Client client = Elasticsearch.getClient();
 			SearchRequestBuilder request = client.prepareSearch();
 			request.setIndices(ES_INDEX);
 			request.setTypes(index_type);

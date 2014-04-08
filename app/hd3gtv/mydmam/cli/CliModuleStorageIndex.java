@@ -19,13 +19,10 @@ package hd3gtv.mydmam.cli;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2FilterType;
 import hd3gtv.log2.Log2Level;
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
-
-import org.elasticsearch.client.Client;
 
 public class CliModuleStorageIndex implements CliModule {
 	
@@ -46,8 +43,7 @@ public class CliModuleStorageIndex implements CliModule {
 			}
 			Log2.log.createFilter("", Log2Level.ERROR, Log2FilterType.DEFAULT);
 			
-			Client client = Elasticsearch.createClient();
-			Explorer explorer = new Explorer(client);
+			Explorer explorer = new Explorer();
 			
 			for (int pos = 0; pos < SourcePathIndexerElement.TOSTRING_HEADERS.length; pos++) {
 				System.err.print(SourcePathIndexerElement.TOSTRING_HEADERS[pos]);
@@ -63,7 +59,6 @@ public class CliModuleStorageIndex implements CliModule {
 				}
 			};
 			explorer.getAllStorage(args.getSimpleParamValue("-storage"), found_elements_observer);
-			client.close();
 		}
 	}
 	

@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.metadata.rendering;
 
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
 import hd3gtv.mydmam.metadata.indexing.MetadataIndexerWorker;
@@ -34,7 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.client.Client;
 import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -124,7 +122,6 @@ public class MetadataRendererWorker extends Worker {
 	public void process(Job job) throws Exception {
 		current_renderer = null;
 		
-		Client client = Elasticsearch.createClient();
 		JSONObject context = job.getContext();
 		if (context == null) {
 			throw new NullPointerException("No context");
@@ -150,7 +147,7 @@ public class MetadataRendererWorker extends Worker {
 		}
 		String origin_key = (String) context.get("origin");
 		
-		Explorer explorer = new Explorer(client);
+		Explorer explorer = new Explorer();
 		SourcePathIndexerElement element = explorer.getelementByIdkey(origin_key);
 		if (element == null) {
 			throw new NullPointerException("Can't found origin element: " + origin_key);
@@ -172,19 +169,16 @@ public class MetadataRendererWorker extends Worker {
 		}
 		
 		if (rendered_elements == null) {
-			client.close();
 			current_renderer = null;
 			return;
 		}
 		if (rendered_elements.isEmpty()) {
-			client.close();
 			current_renderer = null;
 			return;
 		}
 		
-		MetadataIndexer.merge(client, current_renderer, rendered_elements, element, current_renderer.getElasticSearchIndexType());
+		MetadataIndexer.merge(current_renderer, rendered_elements, element, current_renderer.getElasticSearchIndexType());
 		
-		client.close();
 		current_renderer = null;
 	}
 	

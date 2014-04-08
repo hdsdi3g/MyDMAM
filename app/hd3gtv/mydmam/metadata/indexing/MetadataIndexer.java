@@ -19,6 +19,7 @@ package hd3gtv.mydmam.metadata.indexing;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.analysing.Analyser;
 import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
@@ -72,7 +73,7 @@ public class MetadataIndexer implements IndexingEvent {
 		stop_analysis = false;
 		
 		bulkrequest = client.prepareBulk();
-		explorer = new Explorer(client);
+		explorer = new Explorer();
 		explorer.getAllSubElementsFromElementKey(Explorer.getElementKey(storagename, currentpath), min_index_date, this);
 		bulkExecute();
 		
@@ -109,7 +110,8 @@ public class MetadataIndexer implements IndexingEvent {
 	/**
 	 * @return new processing_result added
 	 */
-	static JSONObject preparePushRenderedMetadataElement(Client client, BulkRequestBuilder bulkrequest, String mtd_key, JSONObject origin, String es_type, JSONArray rendering_results) {
+	static JSONObject preparePushRenderedMetadataElement(BulkRequestBuilder bulkrequest, String mtd_key, JSONObject origin, String es_type, JSONArray rendering_results) {
+		Client client = Elasticsearch.getClient();
 		JSONObject processing_result = new JSONObject();
 		processing_result.put("origin", origin);
 		processing_result.put(MetadataCenter.METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER);
@@ -348,7 +350,7 @@ public class MetadataIndexer implements IndexingEvent {
 			String es_type;
 			for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
 				es_type = entry.getKey().getElasticSearchIndexType();
-				processing_result = preparePushRenderedMetadataElement(client, bulkrequest, key, origin, es_type, entry.getValue());
+				processing_result = preparePushRenderedMetadataElement(bulkrequest, key, origin, es_type, entry.getValue());
 				actual_metadatas.put(es_type, processing_result);
 				updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, entry.getKey(), indexing_result.rendering_results.get(entry.getKey()), actual_metadatas);
 			}
@@ -365,10 +367,7 @@ public class MetadataIndexer implements IndexingEvent {
 	/**
 	 * Don't forget to update onFoundElement() in case of code updates
 	 */
-	public static void merge(Client client, Renderer renderer, List<RenderedElement> rendered_elements, SourcePathIndexerElement source_element, String index_type) throws IOException {
-		if (client == null) {
-			throw new NullPointerException("\"client\" can't to be null");
-		}
+	public static void merge(Renderer renderer, List<RenderedElement> rendered_elements, SourcePathIndexerElement source_element, String index_type) throws IOException {
 		if (rendered_elements == null) {
 			throw new NullPointerException("\"rendering_results\" can't to be null");
 		}
@@ -398,13 +397,14 @@ public class MetadataIndexer implements IndexingEvent {
 		JSONObject json_origin = getOriginElement(source_element.prepare_key(), source_element.size, source_element.date, source_element.storagename);
 		String mtd_key = getUniqueElementKey(source_element);
 		
+		Client client = Elasticsearch.getClient();
 		BulkRequestBuilder bulkrequest = client.prepareBulk();
-		JSONObject processing_result = preparePushRenderedMetadataElement(client, bulkrequest, mtd_key, json_origin, renderer.getElasticSearchIndexType(), ja_rendering_results);
+		JSONObject processing_result = preparePushRenderedMetadataElement(bulkrequest, mtd_key, json_origin, renderer.getElasticSearchIndexType(), ja_rendering_results);
 		
 		/**
 		 * Search actual mtd rendered file entry.
 		 */
-		JSONObject jo_summary = MetadataCenter.getSummaryMetadatas(client, source_element);
+		JSONObject jo_summary = MetadataCenter.getSummaryMetadatas(source_element);
 		if (jo_summary == null) {
 			throw new NullPointerException("Can't found element \"" + source_element.prepare_key() + "\" from DB");
 		}

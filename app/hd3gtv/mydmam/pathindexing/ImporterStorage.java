@@ -25,7 +25,6 @@ import hd3gtv.storage.StorageManager;
 
 import java.io.IOException;
 
-import org.elasticsearch.client.Client;
 import org.json.simple.parser.ParseException;
 
 public class ImporterStorage extends Importer {
@@ -35,8 +34,8 @@ public class ImporterStorage extends Importer {
 	private long ttl;
 	private boolean stop;
 	
-	public ImporterStorage(Client client, String storagename, String poolname, long ttl) throws IOException, ParseException {
-		super(client);
+	public ImporterStorage(String storagename, String poolname, long ttl) throws IOException, ParseException {
+		super();
 		this.storagename = storagename;
 		if (storagename == null) {
 			throw new NullPointerException("\"storagename\" can't to be null");

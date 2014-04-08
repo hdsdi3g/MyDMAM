@@ -16,15 +16,12 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.io.File;
-
-import org.elasticsearch.client.Client;
 
 public class CliModuleCopyDirStruct implements CliModule {
 	
@@ -45,8 +42,7 @@ public class CliModuleCopyDirStruct implements CliModule {
 		}
 		final String dest_dir_path = (new File(args.getSimpleParamValue("-dest"))).getCanonicalPath();
 		
-		Client client = Elasticsearch.createClient();
-		Explorer explorer = new Explorer(client);
+		Explorer explorer = new Explorer();
 		
 		IndexingEvent found_elements_observer = new IndexingEvent() {
 			@Override
@@ -58,7 +54,6 @@ public class CliModuleCopyDirStruct implements CliModule {
 			}
 		};
 		explorer.getAllDirectoriesStorage(args.getSimpleParamValue("-storage"), found_elements_observer);
-		client.close();
 	}
 	
 	public void showFullCliModuleHelp() {

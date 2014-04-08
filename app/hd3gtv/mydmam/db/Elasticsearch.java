@@ -34,7 +34,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -47,19 +46,26 @@ import org.json.simple.parser.ParseException;
 
 public class Elasticsearch {
 	
-	private static Settings settings;
 	private static InetSocketTransportAddress[] transportadresses;
 	public static final char[] forbidden_query_chars = { '/', '\\', '%', '[', ']', '(', ')', '{', '}', '"', '~' };
+	private static TransportClient client;
 	
 	public static void refeshconfiguration() {
+		if (client != null) {
+			try {
+				client.close();
+			} catch (Exception e) {
+				Log2.log.error("Can't close properly client", e);
+			}
+		}
 		try {
 			if (Configuration.global.isElementExists("elasticsearch") == false) {
-				throw new Exception("No ElasticSearch configuration found");
+				throw new Exception("No configuration found");
 			}
 			
 			String clustername = Configuration.global.getValue("elasticsearch", "clustername", null);
 			List<ConfigurationClusterItem> clusterservers = Configuration.global.getClusterConfiguration("elasticsearch", "transport", "127.0.0.1", 9300);
-			settings = ImmutableSettings.settingsBuilder().put("cluster.name", clustername).build();
+			Settings settings = ImmutableSettings.settingsBuilder().put("cluster.name", clustername).build();
 			
 			Log2Dump dump = new Log2Dump();
 			dump.add("clustername", clustername);
@@ -70,39 +76,41 @@ public class Elasticsearch {
 				dump.addAll(clusterservers.get(pos));
 			}
 			
+			client = new TransportClient(settings).addTransportAddresses(transportadresses);
+			
 			dump.addAll(getDump());
 			
-			Log2.log.info("ElasticSearch client configuration", dump);
+			Log2.log.info("Client configuration", dump);
 		} catch (Exception e) {
-			Log2.log.error("Can't load Elasticsearch client configuration", e);
+			Log2.log.error("Can't load client configuration", e);
 		}
 	}
 	
 	/**
-	 * Don't forget to close() it !
+	 * @return client Don't close it !
 	 */
-	public static Client createClient() {
-		if (transportadresses == null) {
+	public static TransportClient getClient() {
+		if (client == null) {
+			refeshconfiguration();
+		} else if (client.connectedNodes().isEmpty()) {
 			refeshconfiguration();
 		}
-		Client client = new TransportClient(settings).addTransportAddresses(transportadresses);
+		if (client.connectedNodes().isEmpty()) {
+			Log2.log.error("Can't maintain connection with the database", null);
+		}
 		return client;
 	}
 	
 	public static Log2Dump getDump() {
 		Log2Dump dump = new Log2Dump();
-		Client client = createClient();
 		ClusterStateResponse csr = client.admin().cluster().prepareState().execute().actionGet();
 		dump.add("get-clustername", csr.getClusterName().toString());
-		client.close();
 		return dump;
 	}
 	
 	public static void deleteIndexRequest(String index_name) throws ElasticSearchException {
 		try {
-			Client client = createClient();
 			client.admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
-			client.close();
 		} catch (IndexMissingException e) {
 		}
 	}
@@ -153,7 +161,7 @@ public class Elasticsearch {
 		return null;
 	}
 	
-	public static void enableTTL(Client client, String index_name, String type) throws IOException, ParseException {
+	public static void enableTTL(String index_name, String type) throws IOException, ParseException {
 		if (client.admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists() == false) {
 			return;
 		}

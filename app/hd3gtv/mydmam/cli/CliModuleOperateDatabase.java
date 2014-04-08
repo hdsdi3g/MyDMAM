@@ -27,8 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.client.Client;
-
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.TokenRange;
 import com.netflix.astyanax.ddl.ColumnDefinition;
@@ -240,18 +238,13 @@ public class CliModuleOperateDatabase implements CliModule {
 				String index_name = ttltoset.split("/")[0];
 				String type = ttltoset.split("/")[1];
 				
-				Client client = Elasticsearch.createClient();
-				Elasticsearch.enableTTL(client, index_name, type);
-				client.close();
-				
+				Elasticsearch.enableTTL(index_name, type);
 				return;
 			}
 		}
 		if (args.getParamExist("-clean")) {
 			Log2.log.info("Start clean operations");
-			Client client = Elasticsearch.createClient();
-			MetadataCenter.database_gc(client);
-			client.close();
+			MetadataCenter.database_gc();
 			return;
 		}
 		

@@ -36,21 +36,21 @@ public abstract class Importer {
 	public static final String ES_TYPE_FILE = "file";
 	public static final String ES_TYPE_DIRECTORY = "directory";
 	
-	private Client client;
+	protected Client client;
 	private int window_update_size;
 	
 	/**
 	 * Test if GC need to be activated on ES
 	 */
-	public Importer(Client client) throws IOException, ParseException {
-		this.client = client;
+	public Importer() throws IOException, ParseException {
+		client = Elasticsearch.getClient();
 		if (client == null) {
 			throw new NullPointerException("\"client\" can't to be null");
 		}
 		window_update_size = 10000;
 		
-		Elasticsearch.enableTTL(client, ES_INDEX, ES_TYPE_FILE);
-		Elasticsearch.enableTTL(client, ES_INDEX, ES_TYPE_DIRECTORY);
+		Elasticsearch.enableTTL(ES_INDEX, ES_TYPE_FILE);
+		Elasticsearch.enableTTL(ES_INDEX, ES_TYPE_DIRECTORY);
 	}
 	
 	/**

@@ -43,11 +43,8 @@ public class Explorer {
 	
 	private Client client;
 	
-	public Explorer(Client client) {
-		this.client = client;
-		if (client == null) {
-			throw new NullPointerException("\"client\" can't to be null");
-		}
+	public Explorer() {
+		client = Elasticsearch.getClient();
 	}
 	
 	public SourcePathIndexerElement getByFullPathFile(String storagename, String pathfilename) {

@@ -18,7 +18,6 @@ package hd3gtv.mydmam.cli;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.analysing.Analyser;
 import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
@@ -36,7 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.client.Client;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -160,8 +158,7 @@ public class CliModuleMetadata implements CliModule {
 				root_indexing.currentpath = "/" + root_indexing.currentpath;
 			}
 			
-			Client client = Elasticsearch.createClient();
-			Explorer explorer = new Explorer(client);
+			Explorer explorer = new Explorer();
 			
 			if (explorer.countDirectoryContentElements(root_indexing.prepare_key()) == 0) {
 				Log2Dump dump = new Log2Dump();
@@ -169,8 +166,7 @@ public class CliModuleMetadata implements CliModule {
 				Log2.log.info("Empty/not found element to scan metadatas", dump);
 				return;
 			}
-			metadata_center.performAnalysis(client, root_indexing.storagename, root_indexing.currentpath, 0, true);
-			client.close();
+			metadata_center.performAnalysis(root_indexing.storagename, root_indexing.currentpath, 0, true);
 			return;
 		}
 		showFullCliModuleHelp();

@@ -16,14 +16,11 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.pathindexing.ImporterCDFinder;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-
-import org.elasticsearch.client.Client;
 
 public class CliModuleCDFinderPathIndexer implements CliModule {
 	
@@ -49,11 +46,8 @@ public class CliModuleCDFinderPathIndexer implements CliModule {
 			throw new FileNotFoundException(filename);
 		}
 		
-		Client client = Elasticsearch.createClient();
-		
-		ImporterCDFinder cdf_pi = new ImporterCDFinder(client, file, pool);
+		ImporterCDFinder cdf_pi = new ImporterCDFinder(file, pool);
 		cdf_pi.index();
-		client.close();
 	}
 	
 	public void showFullCliModuleHelp() {
