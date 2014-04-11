@@ -111,5 +111,7 @@ public class Bootstrap extends Job {
 			Log2.log.error("Invalid authentication backend configuration", e);
 		}
 		
+		// TODO purge and compile JS
+		
 	}
 }
