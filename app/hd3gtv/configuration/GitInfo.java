@@ -11,16 +11,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.configuration;
 
 import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Repository;
@@ -28,25 +28,48 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 public class GitInfo {
 	
-	public static String cur_branch = "Unknown";
-	public static String cur_commit = "repository";
+	private String branch = "unknown";
+	private String commit = "";
 	
-	static {
-		File file_repository = new File(".git");
+	public GitInfo(File repository_file) throws IOException {
+		if (repository_file == null) {
+			throw new NullPointerException("\"repository_file\" can't to be null");
+		}
+		if (repository_file.exists() == false) {
+			throw new IOException("Can't found \"" + repository_file + "\"");
+		}
+		if (repository_file.isDirectory() == false) {
+			throw new IOException("\"" + repository_file + "\" is not a directory");
+		}
+		
 		try {
 			FileRepositoryBuilder builder = new FileRepositoryBuilder();
-			Repository repository = builder.setGitDir(file_repository).readEnvironment().findGitDir().build();
+			Repository repository = builder.setGitDir(repository_file).readEnvironment().findGitDir().build();
 			if (repository.getBranch() == null) {
-				throw new FileNotFoundException();
+				throw new FileNotFoundException("Can't found branch in \"" + repository_file + "\"");
 			}
-			cur_branch = repository.getBranch();
-			cur_commit = repository.getRef(Constants.HEAD).getObjectId().abbreviate(8).name();
+			branch = repository.getBranch();
+			commit = repository.getRef(Constants.HEAD).getObjectId().abbreviate(8).name();
 		} catch (Exception e) {
-			Log2.log.error("Can't access to local code git repository", e, new Log2Dump("file-expected", file_repository.getAbsoluteFile()));
+			throw new IOException("Can't load git repository \"" + repository_file + "\"");
 		}
 	}
 	
-	public static String getActualRepositoryInformation() {
-		return cur_branch + " " + cur_commit;
+	public String getBranch() {
+		return branch;
 	}
+	
+	public String getCommit() {
+		return commit;
+	}
+	
+	public static GitInfo getFromRoot() {
+		try {
+			return new GitInfo(new File(""));
+		} catch (IOException e) {
+			Log2.log.error("Can't access to local code git repository", e);
+			return null;
+		}
+	}
+	
 }

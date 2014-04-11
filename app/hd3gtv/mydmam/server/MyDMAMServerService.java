@@ -44,7 +44,12 @@ public class MyDMAMServerService extends ServiceManager implements ServiceInform
 	}
 	
 	public String getApplicationVersion() {
-		return GitInfo.getActualRepositoryInformation();
+		GitInfo git = GitInfo.getFromRoot();
+		if (git != null) {
+			return git.getBranch() + " " + git.getCommit();
+		} else {
+			return "noset";
+		}
 	}
 	
 	public String getApplicationCopyright() {

@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.javasimpleservice;
@@ -67,9 +67,12 @@ class UIFrame extends Frame {
 		lbl_about.setBounds(new Rectangle(40, 50, 250, 30));
 		add(lbl_about);
 		
-		Label lbl_version = new Label("Branch: " + GitInfo.cur_branch + ", commit: " + GitInfo.cur_commit);
-		lbl_version.setBounds(new Rectangle(40, 80, 250, 30));
-		add(lbl_version);
+		GitInfo git = GitInfo.getFromRoot();
+		if (git != null) {
+			Label lbl_version = new Label("Branch: " + git.getBranch() + ", commit: " + git.getCommit());
+			lbl_version.setBounds(new Rectangle(40, 80, 250, 30));
+			add(lbl_version);
+		}
 	}
 	
 	public void display() {
