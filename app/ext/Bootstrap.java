@@ -19,6 +19,7 @@ package ext;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
+import hd3gtv.mydmam.web.JsCompile;
 import hd3gtv.mydmam.web.Privileges;
 
 import java.util.List;
@@ -111,7 +112,7 @@ public class Bootstrap extends Job {
 			Log2.log.error("Invalid authentication backend configuration", e);
 		}
 		
-		// TODO purge and compile JS
-		
+		JsCompile.purgeBinDirectory();
+		JsCompile.prepareFiles();
 	}
 }

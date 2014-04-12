@@ -14,4 +14,3 @@ conf/*.db
 public/img/personalized/*
 Test.java
 play-new-password.txt
-public/javascripts/bin/*

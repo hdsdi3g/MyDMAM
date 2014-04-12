@@ -21,17 +21,27 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.mozilla.javascript.ErrorReporter;
+import org.mozilla.javascript.EvaluatorException;
+
 import play.Play;
 import play.vfs.VirtualFile;
+
+import com.yahoo.platform.yui.compressor.JavaScriptCompressor;
 
 /**
  * "Binary" is optimzed version of a javascript commented source file.
@@ -178,6 +188,16 @@ public class JsCompile {
 		}
 		concat_file = VirtualFile.fromRelativePath(sb.toString());
 		
+		if (must_concat == false) {
+			long total_expected_size = 0;
+			for (int pos = 0; pos < file_list.size(); pos++) {
+				total_expected_size += file_list.get(pos).length();
+			}
+			if (concat_file.length() != total_expected_size) {
+				must_concat = true;
+			}
+		}
+		
 		if (must_concat) {
 			Collections.sort(file_list, new Comparator<VirtualFile>() {
 				public int compare(VirtualFile o1, VirtualFile o2) {
@@ -202,14 +222,100 @@ public class JsCompile {
 		return file_list;
 	}
 	
+	private static class CompilerErrorReporter implements ErrorReporter {
+		
+		File warning_file;
+		
+		public CompilerErrorReporter(File warning_file) {
+			this.warning_file = warning_file;
+		}
+		
+		public void error(String arg0, String arg1, int arg2, String arg3, int arg4) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("arg0", arg0);
+			dump.add("arg1", arg1);
+			dump.add("arg2", arg2);
+			dump.add("arg3", arg3);
+			dump.add("arg4", arg4);
+			Log2.log.error("Rhino error during javascript parsing", null, dump);
+		}
+		
+		public EvaluatorException runtimeError(String arg0, String arg1, int arg2, String arg3, int arg4) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("arg0", arg0);
+			dump.add("arg1", arg1);
+			dump.add("arg2", arg2);
+			dump.add("arg3", arg3);
+			dump.add("arg4", arg4);
+			Log2.log.error("Rhino error during javascript parsing", null, dump);
+			return null;
+		}
+		
+		public void warning(String arg0, String arg1, int arg2, String arg3, int arg4) {
+			try {
+				FileWriter fw = new FileWriter(warning_file, true);
+				PrintWriter warning_log = new PrintWriter(fw);
+				warning_log.println(arg0);
+				if (arg1 != null) {
+					warning_log.println(arg1);
+				}
+				if (arg2 > -1) {
+					warning_log.println(arg2);
+				}
+				if (arg3 != null) {
+					warning_log.println(arg3);
+				}
+				if (arg4 > -1) {
+					warning_log.println(arg4);
+				}
+				warning_log.println();
+				warning_log.close();
+			} catch (IOException e) {
+				Log2.log.error("Can't write warning log", e);
+			}
+		}
+	}
+	
 	private static void compile(VirtualFile sourcefile, VirtualFile binaryfile) throws IOException {
-		FileOutputStream fso = new FileOutputStream(binaryfile.getRealFile(), false);// TODO real compilation
-		fso.write(sourcefile.content());
-		fso.close();
+		File warning_file = new File(binaryfile.getRealFile().getAbsolutePath() + "-warning.txt");
+		warning_file.delete();
+		
+		CompilerErrorReporter compiler_error_reporter = new CompilerErrorReporter(warning_file);
+		
+		InputStreamReader in = new InputStreamReader(new FileInputStream(sourcefile.getRealFile()));
+		JavaScriptCompressor compressor = new JavaScriptCompressor(in, compiler_error_reporter);
+		in.close();
+		
+		OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(binaryfile.getRealFile()));
+		compressor.compress(out, null, 200, true, Play.mode.isDev(), true, false);
+		out.close();
+		
 		compiled_db.put(binaryfile.getName(), new Db(sourcefile));
 		if (FORCE_PROD_MODE) {
 			Log2.log.debug("Compile JS file", new Log2Dump("source", sourcefile.getRealFile()));
 		}
+	}
+	
+	public static void purgeBinDirectory() {
+		VirtualFile binary_dir = VirtualFile.search(Play.roots, PUBLIC_JAVASCRIPT_DIRECTORY + "/" + BINARY_DIRECTORY);
+		if (binary_dir == null) {
+			return;
+		}
+		List<VirtualFile> list = binary_dir.list();
+		File realfile;
+		Log2Dump dump = new Log2Dump();
+		for (int pos = 0; pos < list.size(); pos++) {
+			realfile = list.get(pos).getRealFile();
+			if (realfile.isDirectory()) {
+				continue;
+			}
+			if (realfile.isHidden()) {
+				continue;
+			}
+			dump.add("file", realfile);
+			dump.add("delete", realfile.delete());
+		}
+		Log2.log.debug("Purge temps binaries", dump);
 	}
 	
 	public static List<String> getURLlist() {
