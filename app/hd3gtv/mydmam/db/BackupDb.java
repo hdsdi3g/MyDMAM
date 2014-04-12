@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2012-2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2012-2014
  * 
 */
 package hd3gtv.mydmam.db;
@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
@@ -199,6 +200,16 @@ public class BackupDb {
 		
 		SAXParserFactory fabrique = SAXParserFactory.newInstance();
 		SAXParser parseur = fabrique.newSAXParser();
+		
+		try {
+			fabrique.setFeature("http://xml.org/sax/features/external-general-entities", false);
+		} catch (ParserConfigurationException pce) {
+		}
+		try {
+			fabrique.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+		} catch (ParserConfigurationException pce) {
+		}
+		
 		InputStream fis = new BufferedInputStream(new FileInputStream(xmlfile), 8192);
 		InputSource is = new InputSource(fis);
 		is.setEncoding("UTF-8");

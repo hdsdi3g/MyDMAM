@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2011-2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2011-2014
  * 
 */package hd3gtv.tools;
 
@@ -75,6 +75,16 @@ public class XmlData {
 		
 		try {
 			DocumentBuilderFactory xmlDocumentBuilderFactory = DocumentBuilderFactory.newInstance();
+			
+			try {
+				xmlDocumentBuilderFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+			} catch (ParserConfigurationException pce) {
+			}
+			try {
+				xmlDocumentBuilderFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			} catch (ParserConfigurationException pce) {
+			}
+			
 			DocumentBuilder xmlDocumentBuilder = xmlDocumentBuilderFactory.newDocumentBuilder();
 			xmlDocumentBuilder.setErrorHandler(null);
 			return new XmlData(xmlDocumentBuilder.parse(xmlfile));
