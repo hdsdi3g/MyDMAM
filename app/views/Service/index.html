@@ -19,7 +19,7 @@
 	<p class="lead">&{'service.pagename'}</p>
 		
 	<p class="">
-		&{'service.webversion'} %{out.print(hd3gtv.configuration.GitInfo.getActualRepositoryInformation());}%
+		&{'service.webversion'} %{out.print(hd3gtv.configuration.GitInfo.getFromRoot().getActualRepositoryInformation());}%
 	</p>
 
 	<table id="laststatusworkers" class="table"></table>

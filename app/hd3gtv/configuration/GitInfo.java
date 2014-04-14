@@ -63,9 +63,13 @@ public class GitInfo {
 		return commit;
 	}
 	
+	public String getActualRepositoryInformation() {
+		return branch + " " + commit;
+	}
+	
 	public static GitInfo getFromRoot() {
 		try {
-			return new GitInfo(new File(""));
+			return new GitInfo(new File(".git"));
 		} catch (IOException e) {
 			Log2.log.error("Can't access to local code git repository", e);
 			return null;
