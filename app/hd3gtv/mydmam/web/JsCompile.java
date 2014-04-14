@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.web;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.GitInfo;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
@@ -54,10 +55,11 @@ public class JsCompile {
 	
 	private static final ConcurrentHashMap<String, Db> compiled_db = new ConcurrentHashMap<String, JsCompile.Db>();
 	
-	/**
-	 * Set to true if you need to debug this in Play Dev mode.
-	 */
-	private static boolean FORCE_PROD_MODE = true;// TODO set to false
+	private static boolean COMPILE_JS = false;
+	
+	static {
+		COMPILE_JS = Configuration.global.getValueBoolean("play", "compile_javascript");
+	}
 	
 	private static class Db {
 		long source_size;
@@ -121,7 +123,7 @@ public class JsCompile {
 			return null;
 		}
 		
-		if (Play.mode.isDev() & (FORCE_PROD_MODE == false)) {
+		if (COMPILE_JS == false) {
 			return sources_file_list;
 		}
 		
@@ -291,7 +293,7 @@ public class JsCompile {
 		out.close();
 		
 		compiled_db.put(binaryfile.getName(), new Db(sourcefile));
-		if (FORCE_PROD_MODE) {
+		if (COMPILE_JS) {
 			Log2.log.debug("Compile JS file", new Log2Dump("source", sourcefile.getRealFile()));
 		}
 	}
