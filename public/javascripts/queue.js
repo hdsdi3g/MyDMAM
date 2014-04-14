@@ -150,7 +150,7 @@ function Queue() {
 	createTaskJobTableElementMaxDate = function(current_taskjob) {
 		var content = "";
 		if (current_taskjob.max_date_to_wait_processing < LONG_MAX) {
-			content = content + '<br><span class="label">' + i18n('queue.task.deprecatedat', formatFullDate(current_taskjob.max_date_to_wait_processing)) + '</span> ';
+			content = content + '<br><span class="label">' + i18n('queue.task.deprecatedat', mydmam.format.fulldate(current_taskjob.max_date_to_wait_processing)) + '</span> ';
 			var maxdate = Math.round((current_taskjob.max_date_to_wait_processing - (new Date().getTime()))/3600000);
 			if (maxdate > 0) {
 				content = content + i18n('queue.task.todate', maxdate);
@@ -311,7 +311,7 @@ function Queue() {
 			content = content + '<li><a href="#" class="btntsk30dmaxdate" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setmaxdateto30d') + '</a></li>';
 			content = content + '</ul></div> ';
 		}
-		content = content + '<span class="label tjdateupdated">' + i18n('queue.task.dateupdated', formatFullDate(current_taskjob.updatedate)) + '</span></span> ';
+		content = content + '<span class="label tjdateupdated">' + i18n('queue.task.dateupdated', mydmam.format.fulldate(current_taskjob.updatedate)) + '</span></span> ';
 
 		if (current_taskjob.step_count > 0) {
 			content = content + '<span class="badge badge-success tjpriority"></span> ';
@@ -361,15 +361,15 @@ function Queue() {
 		content = content + '<div id="fullview-' + simplekey + '" class="row collapse" data-emkey="' + key + '">';
 		content = content + i18n('queue.task.profile') + ' <span class="profilename">' + current_taskjob.profile_name + '</span><br>';
 		content = content + '<span class="requirekey">' + getRequireText(current_taskjob.task_key_require_done) + '</span>';
-		content = content + '<span class="label tjdatecreate">' + i18n('queue.task.createdat') + " " + formatFullDate(current_taskjob.create_date) + '</span> ';
+		content = content + '<span class="label tjdatecreate">' + i18n('queue.task.createdat') + " " + mydmam.format.fulldate(current_taskjob.create_date) + '</span> ';
 		content = content + i18n('queue.task.createby') + ' <strong class="tjcreatorcname">' + current_taskjob.creator_classname + '</strong> ';
 		content = content + i18n('queue.task.createon') + ' <strong class="tjcreatorhname">' + current_taskjob.creator_hostname + '</strong>';
 		
 		if (current_taskjob.start_date) {
 			if (current_taskjob.start_date > 0) {
-				content = content + '<br><span class="label jobdatestart">' + i18n('queue.task.startedat') + ' ' + formatFullDate(current_taskjob.start_date) + '</span> ';
+				content = content + '<br><span class="label jobdatestart">' + i18n('queue.task.startedat') + ' ' + mydmam.format.fulldate(current_taskjob.start_date) + '</span> ';
 				if (current_taskjob.end_date > 0) {
-					content = content + '<span class="label jobdateend">' + i18n('queue.task.endedat') + ' ' + formatDate(current_taskjob.end_date) + '</span> ';
+					content = content + '<span class="label jobdateend">' + i18n('queue.task.endedat') + ' ' + mydmam.format.date(current_taskjob.end_date) + '</span> ';
 				}
 			}
 		} else {
@@ -446,7 +446,7 @@ function Queue() {
 			$('#' + id_row + " .btntsknomaxdate").css("display", "block");
 		}
 		
-		$('#' + id_row + " .tjdateupdated").html(i18n('queue.task.updatedat') + formatFullDate(current_taskjob.updatedate));
+		$('#' + id_row + " .tjdateupdated").html(i18n('queue.task.updatedat') + mydmam.format.fulldate(current_taskjob.updatedate));
 
 		if (current_taskjob.step_count > 0) {
 			$('#' + id_row + " .tjpriority").empty();
@@ -496,15 +496,15 @@ function Queue() {
 
 		$('#' + id_rowfullview + " .profilename").html(current_taskjob.profile_name);
 		$('#' + id_rowfullview + " .requirekey").html(getRequireText(current_taskjob.task_key_require_done));
-		$('#' + id_rowfullview + " .tjdatecreate").html(i18n('queue.task.createdat') + ' ' + formatFullDate(current_taskjob.create_date));
+		$('#' + id_rowfullview + " .tjdatecreate").html(i18n('queue.task.createdat') + ' ' + mydmam.format.fulldate(current_taskjob.create_date));
 		$('#' + id_rowfullview + " .tjcreatorcname").html(current_taskjob.creator_classname);
 		$('#' + id_rowfullview + " .tjcreatorhname").html(current_taskjob.creator_hostname);
 		
 		if (current_taskjob.start_date) {
 			if (current_taskjob.start_date > 0) {
-				$('#' + id_rowfullview + " .jobdatestart").html(i18n('queue.task.startedat') + ' ' + formatFullDate(current_taskjob.start_date));
+				$('#' + id_rowfullview + " .jobdatestart").html(i18n('queue.task.startedat') + ' ' + mydmam.format.fulldate(current_taskjob.start_date));
 				if (current_taskjob.end_date > 0) {
-					$('#' + id_rowfullview + " .jobdateend").html(i18n('queue.task.endedat') + ' ' + formatDate(current_taskjob.end_date));
+					$('#' + id_rowfullview + " .jobdateend").html(i18n('queue.task.endedat') + ' ' + mydmam.format.date(current_taskjob.end_date));
 				}
 			}
 		} else {
@@ -763,7 +763,7 @@ function Queue() {
 		var content = '<tr id="rowendjob-' + key + '">';
 		content = content + '<td>' + endedjob.profile_category + ': ' + endedjob.profile_name + '</td>';
 		content = content + '<td><strong class="endedjobname">' + endedjob.name + '</strong></td>';
-		content = content + '<td><span class="label" class="endedjobenddateformat">' + formatFullDate(endedjob.end_date) + '</span></td>';
+		content = content + '<td><span class="label" class="endedjobenddateformat">' + mydmam.format.fulldate(endedjob.end_date) + '</span></td>';
 		content = content + '<td class="endedjobenddateraw">' + endedjob.end_date + '</td>';
 		content = content + '<td><small><ul class="endedjobcontext">';
 		for (var keyctx in endedjob.context) {
@@ -794,7 +794,7 @@ function Queue() {
 				return;
 			} else {
 				$('#rowendjob-' + key + ' .endedjobname').html(endedjob.name);
-				$('#rowendjob-' + key + ' .endedjobenddateformat').html(formatFullDate(endedjob.end_date));
+				$('#rowendjob-' + key + ' .endedjobenddateformat').html(mydmam.format.fulldate(endedjob.end_date));
 				$('#rowendjob-' + key + ' .endedjobenddateraw').html(endedjob.end_date);
 				var content = "";
 				for (var keyctx in endedjob.context) {

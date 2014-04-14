@@ -16,114 +16,6 @@
 */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
-String.prototype.trim = function(){return(this.replace(/^[\s\xA0]+/, "").replace(/[\s\xA0]+$/, ""));};
-String.prototype.startsWith = function(str){return (this.match("^"+str)==str);};
-String.prototype.endsWith = function(str){return (this.match(str+"$")==str);};
-
-function addZeros(text) {
-	var returntext = '00' + text;
-	return returntext.substr(returntext.length - 2, returntext.length);
-}
-
-function formatDate(epoch) {
-	if (epoch < 1) {
-		return "";
-	}
-	var date = new Date(epoch);
-	var returntext = addZeros(date.getHours()) + ':' + addZeros(date.getMinutes()) + ':' + addZeros(date.getSeconds()); 
-	return returntext;
-}
-
-function formatFullDate(epoch) {
-	if (epoch < 1) {
-		return "";
-	}
-	var date = new Date(epoch);
-	var returntext = addZeros(date.getDate()) + '/' + addZeros(date.getMonth() + 1) + '/' + date.getFullYear() + ' ' + addZeros(date.getHours()) + ':' + addZeros(date.getMinutes()) + ':' + addZeros(date.getSeconds()); 
-	return returntext;
-}
-
-function formatDate_JustDate(epoch) {
-	var date = new Date(epoch);
-	var returntext = addZeros(date.getDate()) + '/' + addZeros(date.getMonth() + 1) + '/' + date.getFullYear(); 
-	return returntext;
-}
-
-function showSimpleModalBox(title, content) {
-	$("body").append('<div class="modal" id="simplemodalbox"></div>');
-	$("#simplemodalbox").append('<div class="modal-header"></div>');
-	$("#simplemodalbox").append('<div class="modal-body""></div>');
-	$("#simplemodalbox").append('<div class="modal-footer"></div>');
-	$("#simplemodalbox .modal-header").append('<a class="close" data-dismiss="modal">×</a>');
-	$("#simplemodalbox .modal-header").append('<h3>'+title+'</h3>');
-	$("#simplemodalbox .modal-body").append('<p>'+content+'</p>');
-	$("#simplemodalbox .modal-footer").append('<a href="" class="btn btn-primary" data-dismiss="modal">Close</a>');
-    $('#simplemodalbox').on('hidden', function () {
-		$('#simplemodalbox').remove();
-    });
-    $('#simplemodalbox').modal('show');
-}
-
-/**
- * Create a click, ajax and call back to a button.
- * @param id String. Object must exists
- * @param url_target String
- * @param loading_label Localised String
- * @param params Simple object (keys:values)
- * @param callback Function to call with data param (JQueryObject response)
- * @returns null
- */
-function addActionToSimpleButton(id, url_target, loading_label, params, callback) {
-	$("#" + id).click(function() {
-		if ($("#" + id).hasClass("disabled")) {
-			return;
-		}
-		var original_text = $("#" + id).text();
-		$.ajax({
-			url: url_target,
-			type: "POST",
-			data: params,
-			beforeSend: function() {
-				$("#" + id).addClass("disabled");
-				$("#" + id).text(loading_label);
-			},
-			error: function(jqXHR, textStatus, errorThrown) {
-				$("#" + id).removeClass("disabled");
-				$("#" + id).text(original_text);
-				showSimpleModalBox("Erreur", i18n("browser.versatileerror"));
-			},
-			success: function(rawdata) {
-				if (rawdata == null | rawdata == "null" | rawdata === "") {
-					$("#" + id).removeClass("disabled");
-					$("#" + id).text(original_text);
-					showSimpleModalBox("Erreur", i18n("browser.versatileerror"));
-					return;
-				}
-				if (rawdata.btnlabel != null) {
-					$("#" + id).text(rawdata.btnlabel);
-				} else {
-					$("#" + id).text(original_text);
-				}
-				if (rawdata.canreclick) {
-					$("#" + id).removeClass("disabled");
-				}
-				callback(rawdata);
-			}
-		});
-	});
-	
-}
-
-function getIconTableMap() {
-	$.ajax({
-		url: url_dbicon,
-		async: false,
-		type: "GET",
-		success: function(data) {
-			dbicon = data;
-		}
-	});
-}
 
 function addMetadatasToSearchListItems() {
 	var external_elements_to_resolve = [];
@@ -319,13 +211,13 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 			content = content + '</h3>';
 
 			if (data.date) {
-				var data_date = formatFullDate(data.date);
+				var data_date = mydmam.format.fulldate(data.date);
 				if (data_date !== "") {
 					content = content + '<span class="label">' + i18n("browser.file.modifiedat") + ' ' + data_date + '</span> ';
 				}
 			}
 			if (data.dateindex) {
-				var data_date = formatFullDate(data.dateindex);
+				var data_date = mydmam.format.fulldate(data.dateindex);
 				if (data_date !== "") {
 					content = content + '<span class="label">' + i18n("browser.file.indexedat") + ' ' + data_date + '</span> ';
 				}
@@ -336,7 +228,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 						 * Fake (get from the first item), but realist indexdate.
 						 */
 						if (data.items[0].dateindex) {
-							var data_date = formatFullDate(data.items[0].dateindex);
+							var data_date = mydmam.format.fulldate(data.items[0].dateindex);
 							if (data_date !== "") {
 								content = content + '<span class="label">' + i18n("browser.file.indexednearat") + ' ' + data_date + '</span> ';
 							}
@@ -443,7 +335,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 					}
 					
 					if (data.storagename != null) {
-						content = content + '<td><span class="label">' + formatFullDate(dircontent[pos].date) + '</span></td>';
+						content = content + '<td><span class="label">' + mydmam.format.fulldate(dircontent[pos].date) + '</span></td>';
 						content = content + '<td>' + dircontent[pos].date + '</td>';
 					} else {
 						content = content + '<td></td><td>0</td>';
@@ -581,87 +473,5 @@ function createBreadcrumb(domid, storagename, path) {
 			});
 		});
 	}
-}
-
-function DatatableAC() {
-	this.library = function(ref) {
-		$(ref).dataTable({
-			"bPaginate": false,
-			"bLengthChange": false,
-			"bSort": true,
-			"bInfo": false,
-			"bAutoWidth": false,
-			"bFilter": true,
-			"aoColumnDefs": [
-				{"iDataSort": 1, "aTargets": [0], "bSearchable": true}, //tapename displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [1]}, //tapename raw
-				{"iDataSort": 6, "aTargets": [5], "bSearchable": false}, //datasize displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [6]} //datasize raw
-			]
-		});
-
-		$('#sitesearch').bind('keyup.DT', function(e) {
-			var val = this.value==="" ? "" : this.value;
-			console.log(ref);
-			$(ref + '_filter input').val(val);
-			$(ref + '_filter input').trigger("keyup.DT");
-		});
-	};
-
-	this.archiving = function(ref) {
-		$(ref).dataTable({
-			"bPaginate": false,
-			"bLengthChange": false,
-			"bSort": true,
-			"bInfo": false,
-			"bAutoWidth": false,
-			"bFilter": true,
-			"aoColumnDefs": [
-				{"iDataSort": 1, "aTargets": [0], "bSearchable": true}, //name displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [1]}, //name raw
-				{"iDataSort": 4, "aTargets": [3], "bSearchable": false}, //date displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [4]}, //date raw
-				{"iDataSort": 6, "aTargets": [5], "bSearchable": false}, //size displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [6]}, //size raw
-				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [8]}, //archived
-				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [9]} //notarchived
-			]
-		});
-
-		$('#sitesearch').bind('keyup.DT', function(e) {
-			var val = this.value==="" ? "" : this.value;
-			console.log(ref);
-			$(ref + '_filter input').val(val);
-			$(ref + '_filter input').trigger("keyup.DT");
-		});
-	};
-
-	this.destaging = function(ref) {
-		$(ref).dataTable({
-			"bPaginate": false,
-			"bLengthChange": false,
-			"bSort": true,
-			"bInfo": false,
-			"bAutoWidth": false,
-			"bFilter": true,
-			/*"aoColumnDefs": [
-				{"iDataSort": 1, "aTargets": [0], "bSearchable": true}, //name displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [1]}, //name raw
-				{"iDataSort": 4, "aTargets": [3], "bSearchable": false}, //date displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [4]}, //date raw
-				{"iDataSort": 6, "aTargets": [5], "bSearchable": false}, //size displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [6]}, //size raw
-				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [8]}, //archived
-				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [9]} //notarchived
-			]*/
-		});
-
-		$('#sitesearch').bind('keyup.DT', function(e) {
-			var val = this.value==="" ? "" : this.value;
-			console.log(ref);
-			$(ref + '_filter input').val(val);
-			$(ref + '_filter input').trigger("keyup.DT");
-		});
-	};
 }
 
