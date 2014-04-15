@@ -17,7 +17,7 @@
 package hd3gtv.mydmam.metadata.rendering;
 
 /**
- * All definitions should exists and implemented in JS (MetadataEngine, display function)
+ * All definitions should exists and implemented in JS (in mydmam.metadatas)
  */
 public enum PreviewType {
 	

@@ -78,8 +78,6 @@ function addMetadatasToSearchListItems() {
 				if (data.length === 0) {
 					return;
 				}
-				var mtdengine = new MetadataEngine();
-				
 				for (var pos_key = 0; pos_key < elements_to_get_metadatas.length; pos_key++) {
 					var key = elements_to_get_metadatas[pos_key];
 					var metadatas = data[key];
@@ -106,9 +104,9 @@ function addMetadatasToSearchListItems() {
 						title = title + metadatas.summary[metadata];
 					}
 					if (count > 0) {
-						$('#mtd-' + key).html('<small>' + mtdengine.typeofelement(metadatas.summary) + ' :: ' + title.trim() + '</small> ');
+						$('#mtd-' + key).html('<small>' + mydmam.metadatas.typeofelement(metadatas.summary) + ' :: ' + title.trim() + '</small> ');
 					} else {
-						$('#mtd-' + key).html('<small>' + mtdengine.typeofelement(metadatas.summary) + '</small> ');
+						$('#mtd-' + key).html('<small>' + mydmam.metadatas.typeofelement(metadatas.summary) + '</small> ');
 					}
 				}
 			}
@@ -177,7 +175,6 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 			var external_elements_to_resolve = [];
 			
 			var content = '<div class="page-header">';
-			var mtdengine = new MetadataEngine(); 
 			
 			content = content + '<h3>';
 			if (data.storagename) {
@@ -193,7 +190,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 					content = content + data.path.substring(data.path.lastIndexOf("/") + 1) + " ";
 					if (data.metadatas) {
 						content = content + '<small>';
-						content = content + mtdengine.typeofelement(data.metadatas);
+						content = content + mydmam.metadatas.typeofelement(data.metadatas);
 						content = content + '</small>';
 					} else {
 						if (data.directory) {
@@ -245,7 +242,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 			
 			if (data.metadatas) {
 				content = content + '<div>';
-				content = content + mtdengine.display(data, mtdengine.NAVIGATE_SHOW_ELEMENT);
+				content = content + mydmam.metadatas.display(data, mydmam.metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT);
 				content = content + '</div>';
 			}
 			
@@ -348,7 +345,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 					content = content + '<td id="elmextern-' + elementkey + '"></td>';
 					
 					if (dircontent[pos].metadatas) {
-						content = content + '<td>' + mtdengine.displaySummary(dircontent[pos].metadatas) + '</td>';
+						content = content + '<td>' + mydmam.metadatas.displaySummary(dircontent[pos].metadatas) + '</td>';
 					} else {
 						content = content + '<td></td>';
 					}
@@ -394,7 +391,7 @@ function displayStoragePathNavigator(domid, fullpath, callback) {
 				}
 			}
 			
-			mtdengine.loadAfterDisplay();
+			mydmam.metadatas.loadAfterDisplay();
 			
 			var click_navigate = function() {
 				displayStoragePathNavigator("storageelem", $(this).context.hash.substring(1), function(storagename, path) {
