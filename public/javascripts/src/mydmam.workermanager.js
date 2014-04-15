@@ -15,29 +15,28 @@
  * 
 */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
+/**
+ * Worker manager operations and display.
+ */
 
-/*
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-*/
+/**
+ * Prepare consts and vars.
+ */
+(function(mydmam) {
+	mydmam.workermanager = {};
+	var workermanager = mydmam.workermanager;
 
-function WorkerManager() {
-	var workerlist = [];
-	var processingtasks = [];
+	workermanager.workerlist = [];
+	workermanager.processingtasks = [];
+	workermanager.refresh_handle = null;
+	
+})(window.mydmam);
 
-	this.prepare = function() {
-		getAll();
-		$("#btnrefresh").click(refresh);
-		refresh_handle = setInterval(refresh, 10000);
-	};
-
-	ajaxUpdateLists = function(url, success) {
+/**
+ * ajaxUpdateLists
+ */
+(function(workermanager) {
+	workermanager.ajaxUpdateLists = function(url, success) {
 		$.ajax({
 			url: url,
 			type: "POST",
@@ -48,7 +47,7 @@ function WorkerManager() {
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
 				$('#queueplaceholder').after('<div class="alert"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n('queue.fetcherror') + '</strong> ' + textStatus + ', ' + errorThrown +'</div>');
-				clearInterval(refresh_handle);
+				clearInterval(workermanager.refresh_handle);
 				$('#imgajaxloader').css("display", "none");
 			},
 			success: function(data) {
@@ -62,30 +61,45 @@ function WorkerManager() {
 			}
 		});
 	};
-	
-	updateExcuseTextIfEmpty = function() {
-		if(jQuery.isEmptyObject(workerlist)) {
+})(window.mydmam.workermanager);
+
+/**
+ * updateExcuseTextIfEmpty
+ */
+(function(workermanager) {
+	workermanager.updateExcuseTextIfEmpty = function() {
+		if(jQuery.isEmptyObject(workermanager.workerlist)) {
 			$('#wrk-list').html('<div class="alert alert-info" style="margin-bottom: 0px;">' + i18n('queue.workers.noactivity') + '</div>');
 		} else {
 			$('#wrk-list .alert').remove();
 		}
 	};
+})(window.mydmam.workermanager);
 
-	getAll = function() {
-		ajaxUpdateLists(url_getworkers, function(rawdata) {
-			workerlist = rawdata.workers;
-			processingtasks = rawdata.processingtasks;
-			createfullworkertable();
-			updateExcuseTextIfEmpty();
+/**
+ * getAll
+ */
+(function(workermanager) {
+	workermanager.getAll = function() {
+		workermanager.ajaxUpdateLists(url_getworkers, function(rawdata) {
+			workermanager.workerlist = rawdata.workers;
+			workermanager.processingtasks = rawdata.processingtasks;
+			workermanager.createfullworkertable();
+			workermanager.updateExcuseTextIfEmpty();
 		});
 	};
-	
-	createfullworkertable = function() {
+})(window.mydmam.workermanager);
+
+/**
+ * createfullworkertable
+ */
+(function(workermanager) {
+	workermanager.createfullworkertable = function() {
 		var table = [];
 		
-		for (var key in workerlist) {
-			workerlist[key].key = key;
-			table.push(workerlist[key]);
+		for (var key in workermanager.workerlist) {
+			workermanager.workerlist[key].key = key;
+			table.push(workermanager.workerlist[key]);
 		}
 
 		var table = table.sort(function(a, b) {
@@ -102,41 +116,62 @@ function WorkerManager() {
 		
 		$('#wrk-list').empty();
 		for (var pos in table) {
-			addWorker(table[pos].key, table[pos]);
+			workermanager.addWorker(table[pos].key, table[pos]);
 		}
-		
 	};
-	
-	changeworkerstate = function(worker_ref, newstate) {
-		$.ajax({url: url_changeworkerstate, type: "POST", async: false, data:{"worker_ref": worker_ref, "newstate": newstate}, success: refresh});
+})(window.mydmam.workermanager);
+
+/**
+ * changeworkerstate, changeworkercyclicperiod
+ */
+(function(workermanager) {
+	workermanager.changeworkerstate = function(worker_ref, newstate) {
+		$.ajax({url: url_changeworkerstate, type: "POST", async: false, data:{"worker_ref": worker_ref, "newstate": newstate}, success: workermanager.refresh});
 	};
 
 	changeworkercyclicperiod = function(worker_ref, period) {
-		$.ajax({url: url_changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": worker_ref, "period": period}, success: refresh});
+		$.ajax({url: url_changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": worker_ref, "period": period}, success: workermanager.refresh});
 	};
+})(window.mydmam.workermanager);
 
-	createSimpleKey = function(key) {
+/**
+ * createSimpleKey
+ */
+(function(workermanager) {
+	workermanager.createSimpleKey = function(key) {
 		return key.substring(7,16);
 	};
+})(window.mydmam.workermanager);
 
-	selectOnlyThisStatus = function(selectedstatus, selectedtaskjoblist) {
+/**
+ * selectOnlyThisStatus
+ */
+(function(workermanager) {
+	workermanager.selectOnlyThisStatus = function(selectedstatus, selectedtaskjoblist) {
 		var taskjobsortedlist = [];
 		var current;
 		for (var key in selectedtaskjoblist) {
 			current = selectedtaskjoblist[key];
 			if (current.status == selectedstatus) {
 				current.key = key;
-				current.simplekey = createSimpleKey(key);
+				current.simplekey = workermanager.createSimpleKey(key);
 				taskjobsortedlist[key] = current;
 			}
 		}
 		return taskjobsortedlist;
 	};
+})(window.mydmam.workermanager);
 
-	refresh = function() {
-		ajaxUpdateLists(url_getworkers, function(rawdata) {
-			processingtasks = rawdata.processingtasks;
-
+/**
+ * refresh
+ */
+(function(workermanager) {
+	workermanager.refresh = function() {
+		workermanager.ajaxUpdateLists(url_getworkers, function(rawdata) {
+			workermanager.processingtasks = rawdata.processingtasks;
+			
+			var workerlist = workermanager.workerlist;
+			
 			var mustfullrefreshworkers = false;
 			for (var key in rawdata.workers) {
 				if (workerlist[key] == null) {
@@ -156,23 +191,28 @@ function WorkerManager() {
 			workerlist = rawdata.workers;
 			
 			if (mustfullrefreshworkers) {
-				createfullworkertable();
+				workermanager.createfullworkertable();
 			} else {
 				for (var key in workerlist) {
-					updateWorker(key, workerlist[key]);
+					workermanager.updateWorker(key, workerlist[key]);
 				}
 			}
 			
-			updateExcuseTextIfEmpty();
+			workermanager.updateExcuseTextIfEmpty();
 		});
 	};
+})(window.mydmam.workermanager);
 
-	updateWorkerStatusButton = function(key, worker) {
+/**
+ * updateWorkerStatusButton
+ */
+(function(workermanager) {
+	workermanager.updateWorkerStatusButton = function(key, worker) {
 		if (enable_update === false) {
 			return;
 		}
 
-		var simplekey = createSimpleKey(key);
+		var simplekey = workermanager.createSimpleKey(key);
 		var jqelement = '#wkr-' + simplekey + ' .wkrbtnstatus';
 		var current_state = $(jqelement).data('currentstate');
 		var content = ''; 
@@ -216,13 +256,18 @@ function WorkerManager() {
 			$(jqelement + ' button').click(function() {
 				var current_state = $(jqelement).data('currentstate');
 				var key = $(jqelement).data('emkey');
-				$.ajax({url: url_changeworkerstate, type: "POST", async: false, data:{"worker_ref": key, "newstate": current_state}, success: refresh});
+				$.ajax({url: url_changeworkerstate, type: "POST", async: false, data:{"worker_ref": key, "newstate": current_state}, success: workermanager.refresh});
 			});
 		}
 		
 	};
+})(window.mydmam.workermanager);
 
-	updateWorkerStatus = function(worker) {
+/**
+ * updateWorkerStatus
+ */
+(function(workermanager) {
+	workermanager.updateWorkerStatus = function(worker) {
 		switch (worker.status) {
 			case "PROCESSING":
 			return '<span class="label label-warning">' + i18n("PROCESSING") + '</span>';
@@ -237,58 +282,14 @@ function WorkerManager() {
 		}
 		return worker.status;
 	};
+})(window.mydmam.workermanager);
 
-	updateCyclicWorkerCountdown = function(worker) {
-		if (worker.status == 'PROCESSING') {
-			if (worker.countdown_to_process > 300) {
-				return '<span class="label label-info">Dans ' + worker.countdown_to_process + ' sec</span>';
-			} else if (worker.countdown_to_process > 20) {
-				return '<span class="label label-warning">Dans ' + worker.countdown_to_process + ' sec</span>';
-			} else {
-				return '<span class="label label-important">Dans ' + worker.countdown_to_process + ' sec</span>';
-			}
-		} else {
-			return updateWorkerStatus(worker);
-		}
-	};
-	
-	addActionsForUpdateCyclicWorkerPeriod = function(key, worker) {
-		var simplekey = createSimpleKey(key);
-		var jqelement = '#wkr-' + simplekey + ' .wkrchngcyclprd';
-		
-		$(jqelement + ' .btnshowperiodchange').click(function() {
-			if ($(jqelement + ' .input-append').css("display") == "none") {
-				$(jqelement + ' .input-append').css("display", "inline");
-			} else {
-				$(jqelement + ' .input-append').css("display", "none");
-			}
-		});
-		
-		$(jqelement + ' .btnvalidnewperiod').click(function() {
-			var period = $(jqelement + ' input').val();
-			$.ajax({url: url_changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": key, "period": period}, success: refresh});
-		});
-	};
-	
-	updateCyclicWorkerPeriod = function(key, worker) {
-		if (worker.time_to_sleep === 0) {
-			return;
-		}
-		var simplekey = createSimpleKey(key);
-		var jqelement = '#wkr-' + simplekey + ' .wkrchngcyclprd';
-		
-		if (worker.changecyclicperiod) {
-			$(jqelement + ' span.label').html(i18n('queue.worker.newperiod', worker.changecyclicperiod));
-			$(jqelement + ' .btnshowperiodchange').css("display", "none");
-		} else {
-			$(jqelement + ' span.label').html(i18n('queue.worker.period', worker.time_to_sleep));
-			$(jqelement + ' input').val(worker.time_to_sleep);
-			$(jqelement + ' .btnshowperiodchange').css("display", "inline");
-		}
-	};
-	
-	addWorker = function(key, worker){
-		var simplekey = createSimpleKey(key);
+/**
+ * addWorker
+ */
+(function(workermanager) {
+	workermanager.addWorker = function(key, worker){
+		var simplekey = workermanager.createSimpleKey(key);
 		var content = "";
 
 		content = content + '<div class="row-fluid';
@@ -310,7 +311,7 @@ function WorkerManager() {
 		
 		if (worker.cyclic) {
 			content = content + '<div class="span1">';
-			content = content + '<span class="wkrcountdownpro">' + updateCyclicWorkerCountdown(worker) + '</span> ';
+			content = content + '<span class="wkrcountdownpro">' + workermanager.updateCyclicWorkerCountdown(worker) + '</span> ';
 			content = content + '</div>';
 			content = content + '<div class="span7">';
 			content = content + '<span class="wkrbtnstatus"></span> ';
@@ -330,12 +331,12 @@ function WorkerManager() {
 			content = content + '</div></div>';
 		} else {
 			content = content + '<div class="span1">';
-			content = content + '<span class="wkrstatus">' + updateWorkerStatus(worker) + '</span> ';
+			content = content + '<span class="wkrstatus">' + workermanager.updateWorkerStatus(worker) + '</span> ';
 			content = content + '</div>';
 			content = content + '<div class="span7">';
 			content = content + '<span class="wkrbtnstatus"></span> ';
-			if (processingtasks[worker.job]) {
-				content = content + '<span class="wkrjob">' + i18n('queue.worker.jobworking') + ' <strong>' +  processingtasks[worker.job].name + '</strong></span>';
+			if (workermanager.processingtasks[worker.job]) {
+				content = content + '<span class="wkrjob">' + i18n('queue.worker.jobworking') + ' <strong>' +  workermanager.processingtasks[worker.job].name + '</strong></span>';
 			} else {
 				content = content + '<span class="wkrjob"></span>';
 			}
@@ -350,18 +351,23 @@ function WorkerManager() {
 		
 		$('#wrk-list').append(content);
 		
-		updateWorkerStatusButton(key, worker);
+		workermanager.updateWorkerStatusButton(key, worker);
 		
 		if (worker.cyclic) {
 			if (worker.time_to_sleep > 0) {
-				updateCyclicWorkerPeriod(key, worker);
-				addActionsForUpdateCyclicWorkerPeriod(key, worker);
+				workermanager.updateCyclicWorkerPeriod(key, worker);
+				workermanager.addActionsForUpdateCyclicWorkerPeriod(key, worker);
 			}
 		}
 	};
-	
-	updateWorker = function(key, worker){
-		var simplekey = createSimpleKey(key);
+})(window.mydmam.workermanager);
+
+/**
+ * updateWorker
+ */
+(function(workermanager) {
+	workermanager.updateWorker = function(key, worker){
+		var simplekey = workermanager.createSimpleKey(key);
 		var jqelement = '#wkr-' + simplekey;
 		var jqelement_full = '#wkrfullview-' + simplekey;
 		
@@ -369,11 +375,11 @@ function WorkerManager() {
 		$(jqelement + ' .wkrhostname').html(worker.hostname + '/' + worker.instancename);
 				
 		if (worker.cyclic) {
-			$(jqelement + ' .wkrcountdownpro').html(updateCyclicWorkerCountdown(worker));
+			$(jqelement + ' .wkrcountdownpro').html(workermanager.updateCyclicWorkerCountdown(worker));
 		} else {
-			$(jqelement + ' .wkrstatus').html(updateWorkerStatus(worker));
-			if (processingtasks[worker.job]) {
-				$(jqelement + ' .wkrjob').html(i18n('queue.worker.jobworking') + ' <strong>' +  processingtasks[worker.job].name);
+			$(jqelement + ' .wkrstatus').html(workermanager.updateWorkerStatus(worker));
+			if (workermanager.processingtasks[worker.job]) {
+				$(jqelement + ' .wkrjob').html(i18n('queue.worker.jobworking') + ' <strong>' +  workermanager.processingtasks[worker.job].name);
 			} else {
 				$(jqelement + ' .wkrjob').html('');
 			}
@@ -386,11 +392,85 @@ function WorkerManager() {
 			$(jqelement_full + ' ul').append(content);
 		}
 		
-		updateWorkerStatusButton(key, worker);
+		workermanager.updateWorkerStatusButton(key, worker);
 		
 		if (worker.cyclic & (worker.time_to_sleep > 0)) {
-			updateCyclicWorkerPeriod(key, worker);
+			workermanager.updateCyclicWorkerPeriod(key, worker);
 		}
 	};
+})(window.mydmam.workermanager);
 
-}
+/**
+ * addActionsForUpdateCyclicWorkerPeriod
+ */
+(function(workermanager) {
+	workermanager.addActionsForUpdateCyclicWorkerPeriod = function(key, worker) {
+		var simplekey = workermanager.createSimpleKey(key);
+		var jqelement = '#wkr-' + simplekey + ' .wkrchngcyclprd';
+		
+		$(jqelement + ' .btnshowperiodchange').click(function() {
+			if ($(jqelement + ' .input-append').css("display") == "none") {
+				$(jqelement + ' .input-append').css("display", "inline");
+			} else {
+				$(jqelement + ' .input-append').css("display", "none");
+			}
+		});
+		
+		$(jqelement + ' .btnvalidnewperiod').click(function() {
+			var period = $(jqelement + ' input').val();
+			$.ajax({url: url_changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": key, "period": period}, success: workermanager.refresh});
+		});
+	};
+})(window.mydmam.workermanager);
+
+/**
+ * updateCyclicWorkerPeriod
+ */
+(function(workermanager) {
+	workermanager.updateCyclicWorkerPeriod = function(key, worker) {
+		if (worker.time_to_sleep === 0) {
+			return;
+		}
+		var simplekey = workermanager.createSimpleKey(key);
+		var jqelement = '#wkr-' + simplekey + ' .wkrchngcyclprd';
+		
+		if (worker.changecyclicperiod) {
+			$(jqelement + ' span.label').html(i18n('queue.worker.newperiod', worker.changecyclicperiod));
+			$(jqelement + ' .btnshowperiodchange').css("display", "none");
+		} else {
+			$(jqelement + ' span.label').html(i18n('queue.worker.period', worker.time_to_sleep));
+			$(jqelement + ' input').val(worker.time_to_sleep);
+			$(jqelement + ' .btnshowperiodchange').css("display", "inline");
+		}
+	};
+})(window.mydmam.workermanager);
+
+/**
+ * updateCyclicWorkerCountdown
+ */
+(function(workermanager) {
+	workermanager.updateCyclicWorkerCountdown = function(worker) {
+		if (worker.status == 'PROCESSING') {
+			if (worker.countdown_to_process > 300) {
+				return '<span class="label label-info">Dans ' + worker.countdown_to_process + ' sec</span>';
+			} else if (worker.countdown_to_process > 20) {
+				return '<span class="label label-warning">Dans ' + worker.countdown_to_process + ' sec</span>';
+			} else {
+				return '<span class="label label-important">Dans ' + worker.countdown_to_process + ' sec</span>';
+			}
+		} else {
+			return workermanager.updateWorkerStatus(worker);
+		}
+	};
+})(window.mydmam.workermanager);
+
+/**
+ * display
+ */
+(function(workermanager) {
+	workermanager.display = function() {
+		workermanager.getAll();
+		$("#btnrefresh").click(workermanager.refresh);
+		workermanager.refresh_handle = setInterval(workermanager.refresh, 10000);
+	};
+})(window.mydmam.workermanager);
