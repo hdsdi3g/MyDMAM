@@ -28,9 +28,7 @@ var url_metadatafile = "@{Application.metadatafile(filehash='filehashparam1',typ
 
 $(document).ready(function() {
 	$("#btnStorage").addClass("active");
-	displayStoragePathNavigator("storageelem", decodeURIComponent(window.location.hash.substring(1)), function(storagename, path) {
-		createBreadcrumb("storageelem", storagename, path);
-	});
+	mydmam.navigator.displayStoragePathNavigator("storageelem", decodeURIComponent(window.location.hash.substring(1)), false);
 });
 -->
 </script>

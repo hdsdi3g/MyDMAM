@@ -342,3 +342,151 @@
 		}
 	};
 })(window.mydmam.metadatas);
+
+/**
+ * getAndAddExternalPosition
+ */
+(function(metadatas) {
+	metadatas.getAndAddExternalPosition = function(external_elements_to_resolve, callback_online, callback_offline, callback_nearline) {
+		$.ajax({
+			url: url_resolvepositions,
+			type: "POST",
+			data: {"keys" : external_elements_to_resolve},
+			success: function(data) {
+				
+				var key;
+				for (var pos_key = 0; pos_key < external_elements_to_resolve.length; pos_key++) {
+					key = external_elements_to_resolve[pos_key];
+					if (data.positions[key]) {
+						var verbose = true;
+						for (var pos = 0; pos < data.positions[key].length; pos++) {
+							var tapename = data.positions[key][pos];
+							if (tapename == "cache") {
+								callback_online(key);
+								verbose = false;
+								break;
+							}
+						}
+						if (verbose) {
+							for (var pos = 0; pos < data.positions[key].length; pos++) {
+								var tapename = data.positions[key][pos];
+								var location = data.locations[tapename];
+								if (location.isexternal) {
+									callback_offline(key, location.barcode);
+								} else {
+									callback_nearline(key);
+								}
+							}
+						}
+					}
+				}
+			}
+		});
+	};
+})(window.mydmam.metadatas);
+
+/**
+ * linkifysearchresultitems
+ */
+(function(metadatas) {
+	metadatas.linkifysearchresultitems = function(external_elements_to_resolve, elements_to_get_metadatas) {
+		$(".searchresultitem").each(function(index) {
+			// Transform text path to navigate links on search results
+			var element_storage = $(this).find(".storagename").text();
+			var element_path = $(this).find(".path").text();
+			$(this).find(".storagename").html('<a href=\"' + url_navigate + "#" + element_storage + ':/\">' + element_storage + '</a>');
+			
+			var element_subpaths = element_path.split("/");
+			var element_path_new = "";
+			var currentpath = "";
+			var newpath = "";
+			for (var pos = 1; pos < element_subpaths.length; pos++) {
+				newpath = element_storage + ':' + currentpath + "/" + element_subpaths[pos];
+				element_path_new = element_path_new + "/";
+				element_path_new = element_path_new + '<a href="' + url_navigate + "#" + newpath + '">';
+				element_path_new = element_path_new + element_subpaths[pos];
+				element_path_new = element_path_new + "</a>";
+				currentpath = currentpath + "/" + element_subpaths[pos];
+			}
+			$(this).find(".path").html(element_path_new);
+			
+			// Search items for a search archive position
+			for (var pos = 0; pos < list_external_positions_storages.length; pos++) {
+				if (list_external_positions_storages[pos] == element_storage) {
+					external_elements_to_resolve.push($(this).data('storagekey'));
+				}
+			}
+
+			elements_to_get_metadatas.push($(this).data('storagekey'));
+		});
+	};
+})(window.mydmam.metadatas);
+
+/**
+ * addMetadatasToSearchListItems
+ */
+(function(metadatas) {
+	metadatas.addMetadatasToSearchListItems = function() {
+		var external_elements_to_resolve = [];
+		var elements_to_get_metadatas = [];
+		
+		metadatas.linkifysearchresultitems(external_elements_to_resolve, elements_to_get_metadatas);
+		
+			/**
+			 * Add archive position to items
+			 */
+		if (external_elements_to_resolve.length > 0) {
+			metadatas.getAndAddExternalPosition(external_elements_to_resolve, function(key) {
+				$('#sri-' + key).prepend('<span class="label label-success">' + i18n('browser.externalposition.online') + '</span> ');
+			}, function(key, barcode) {
+				$('#sri-' + key).prepend('<span class="label label-important">' + barcode + '</span> ');
+			}, function(key) {
+				$('#sri-' + key).prepend('<span class="label label-success">' + i18n('browser.externalposition.nearline') + '</span> ');
+			});
+		}
+		
+		if (elements_to_get_metadatas.length > 0) {
+			$.ajax({
+				url: url_simplemetadatas,
+				type: "POST",
+				data: {"fileshash" : elements_to_get_metadatas},
+				success: function(data) {
+					if (data.length === 0) {
+						return;
+					}
+					for (var pos_key = 0; pos_key < elements_to_get_metadatas.length; pos_key++) {
+						var key = elements_to_get_metadatas[pos_key];
+						var mtd_element = data[key];
+						if (mtd_element == null) {
+							continue;
+						}
+						if (mtd_element.summary == null) {
+							continue;
+						}
+						
+						var count = 0;
+						var title = "";
+						for (var summary_element in metadatas.summary) {
+							if (summary_element == "mimetype") {
+								continue;
+							}
+							if (summary_element == "previews") {
+								continue;
+							}
+							count++;
+							if (title !== "") {
+								title = title + " - ";
+							}
+							title = title + mtd_element.summary[summary_element];
+						}
+						if (count > 0) {
+							$('#mtd-' + key).html('<small>' + metadatas.typeofelement(mtd_element.summary) + ' :: ' + title.trim() + '</small> ');
+						} else {
+							$('#mtd-' + key).html('<small>' + metadatas.typeofelement(mtd_element.summary) + '</small> ');
+						}
+					}
+				}
+			});
+		}
+	};
+})(window.mydmam.metadatas);
