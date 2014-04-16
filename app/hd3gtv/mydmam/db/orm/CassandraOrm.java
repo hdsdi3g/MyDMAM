@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.db.orm;
@@ -21,6 +21,7 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.DeployColumnDef;
+import hd3gtv.mydmam.db.orm.annotations.CassandraIndexed;
 
 import java.io.IOException;
 import java.io.InvalidClassException;

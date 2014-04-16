@@ -235,3 +235,5 @@ mime.application-adobe-audition-peakfile=Audition peak file
 mime.application-adobe-lightroom-library=Adobe Lightroom Library
 mime.application-old=Old fichier
 mime.audio-wav=Wave audio
+
+userprofile.usereditor.pagename=Settings

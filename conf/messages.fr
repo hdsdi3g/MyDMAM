@@ -235,3 +235,5 @@ mime.application-adobe-audition-peakfile=Crête audio Audition
 mime.application-adobe-lightroom-library=Catalogue Adobe Lightroom
 mime.application-old=Ancien fichier
 mime.audio-wav=Audio Wave
+
+userprofile.usereditor.pagename=Préférences

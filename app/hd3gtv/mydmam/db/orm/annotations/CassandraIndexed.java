@@ -14,40 +14,15 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.mydmam.web;
+package hd3gtv.mydmam.db.orm.annotations;
 
-import hd3gtv.mydmam.db.orm.OrmModel;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import java.util.Date;
-
-import controllers.Admin.HiddenCompactView;
-import controllers.Admin.ReadOnly;
-
-public abstract class CrudOrmModel extends OrmModel {
-	
-	@ReadOnly
-	@HiddenCompactView
-	public Date createdate;
-	
-	@ReadOnly
-	@HiddenCompactView
-	public Date updatedate;
-	
-	/**
-	 * Static call
-	 */
-	protected abstract String getCF_Name();
-	
-	/**
-	 * Static call
-	 */
-	protected abstract Class<? extends CrudOrmModel> getClassInstance();
-	
-	public String shortName() {
-		return key;
-	}
-	
-	public void onAfterSave() {
-	}
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface CassandraIndexed {
 	
 }

@@ -11,12 +11,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.web;
-
-import hd3gtv.mydmam.db.orm.CassandraOrm;
+package hd3gtv.mydmam.db.orm;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -37,6 +35,9 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 		return new ColumnFamily<String, String>(model.getCF_Name(), StringSerializer.get(), StringSerializer.get());
 	}
 	
+	/**
+	 * @param element Define internal element
+	 */
 	public CrudOrmEngine(T element) throws ConnectionException, IOException {
 		this.element = element;
 		if (element == null) {
@@ -45,12 +46,22 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 		cassandra = new CassandraOrm<T>((Class<T>) element.getClassInstance(), getCF(element));
 	}
 	
+	public static CrudOrmEngine<CrudOrmModel> get(Class<?> entityclass) throws Exception {
+		Constructor<?> constructor = entityclass.getDeclaredConstructor();
+		constructor.setAccessible(true);
+		CrudOrmModel object = (CrudOrmModel) constructor.newInstance();
+		return new CrudOrmEngine<CrudOrmModel>(object);
+	}
+	
 	/**
 	 * Dynamic call
 	 */
 	public final void saveInternalElement() throws IOException, ConnectionException {
 		if (element.key == null) {
 			element.key = UUID.randomUUID().toString();
+		}
+		
+		if (element.createdate == null) {
 			element.createdate = new Date();
 		}
 		
