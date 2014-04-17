@@ -33,13 +33,13 @@ public class UserProfile extends CrudOrmModel {
 	@TypeEmail
 	public String email;
 	
-	protected String getCF_Name() {
-		return "userprofiles";
+	@PublishedMethod
+	public void sendTestMail() throws Exception {
+		System.out.println("ok");// XXX
 	}
 	
-	@PublishedMethod
-	public void doSomething() {
-		System.out.println("ok");// XXX
+	protected String getCF_Name() {
+		return "userprofiles";
 	}
 	
 	protected Class<? extends CrudOrmModel> getClassInstance() {

@@ -18,7 +18,15 @@
 
 <div id="crudList" class="${type}">
 
-    <h2 id="crudListTitle">&{'crud.list.title', type}</h2>
+    <p class="lead">
+		%{
+			translatedfieldname = messages.get('crud.field.' + type);
+			if (translatedfieldname.equals('crud.field.' + type)) {
+				translatedfieldname = type.capFirst();
+			}
+		}%
+    	&{'crud.list.title', translatedfieldname}
+	</p>
 
     <div id="crudListTable">
 		%{if (caller) { }%
@@ -27,7 +35,7 @@
     </div>
 
     <p id="crudListAdd">
-        <a href="@{Admin.blank(type)}" class="btn btn-success"><i class="icon-plus icon-white"></i> &{'crud.add', type}</a>
+        <a href="@{Admin.blank(type)}" class="btn btn-success"><i class="icon-plus icon-white"></i> &{'crud.add'}</a>
     </p>
 
 </div>

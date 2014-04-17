@@ -1,10 +1,14 @@
 #{list items:_fields, as:'field'}
+%{
+    am = ''
+	currentObject = _object
+	
+	translatedfieldname = messages.get('crud.field.' + _type + '.' + field.name);
+	if (translatedfieldname.equals('crud.field.' + _type + '.' + field.name)) {
+		translatedfieldname = field.name.capFirst();
+	}
 
-    %{
-        am = ''
-		currentObject = _object
-    }%
-
+}%
 #{if (((field.readonly) & (currentObject != null)) | (field.readonly == false))}
 
         #{ifnot field}
@@ -16,7 +20,7 @@
 	       	#{if currentObject}
 		        #{if field.type != 'password'}
 					<label class="control-label">
-				        &{'crud.field.' + _type + '.' + field.name}
+				        ${translatedfieldname}
 				    </label>
 				    <div class="controls" style="padding-top: 5px;">
 	    	        #{if field.type == 'date'}
@@ -38,16 +42,24 @@
 	        #{/if}
         #{/if}
         #{else}
+        	#{if field.type == 'method' & _targetcontroller == null}
+        		%{return;}%
+	    	#{/if}
+        	 
 	        #{if play.data.validation.Validation.error('object.' + field.name)}
 				<div class="control-group error">
 	        #{/if}
 	        #{else}
-				<div class="control-group">
+	        	#{if field.type == 'method'}
+					<div class="control-group" style="margin-bottom: 0px;">
+		        #{/if}#{else}
+					<div class="control-group">
+	    	    #{/else}
     	    #{/else}
     	    
     	    
 	        #{if field.type != 'boolean' & field.type != 'method'}
-				<label class="control-label" for="object.${field.name}">&{'crud.field.' + _type + '.' + field.name}</label>
+				<label class="control-label" for="object.${field.name}">${translatedfieldname}</label>
     	    #{/if}
 			<div class="controls">
 
@@ -80,7 +92,7 @@
 	        #{if field.type == 'boolean'}
 		        <label class="checkbox">
 					#{crud.checkField name:field.name, value:(currentObject ? currentObject[field.name] : null) /}
-					&{'crud.field.' + _type + '.' + field.name}
+					${translatedfieldname}
 				</label>
 	        #{/if}
 	
@@ -96,9 +108,11 @@
 	            #{crud.pointerlist name:field.name, value:(currentObject ? currentObject[field.name] : null), property:_fieldspointers.get(field.class_referer) /}
 	        #{/if}
 	        
-	        #{if field.type == 'method' & targetcontroller != null}
+	        #{if field.type == 'method' & _targetcontroller != null}
 	        	<div>
-		        	<a href="#{crud.urlaction targetcontroller:_targetcontroller, objtype:_type, key:currentObject['key'], targetmethod:field.name /}" class="btn btn-mini">&{'crud.field.' + _type + '.' + field.name}</a>
+		        	<a href="#{crud.urlaction targetcontroller:_targetcontroller, objtype:_type, key:currentObject['key'], targetmethod:field.name /}" class="btn">
+		        		${translatedfieldname}
+		        	</a>
 		        </div>
 	        #{/if}
 	        

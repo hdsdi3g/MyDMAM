@@ -18,7 +18,15 @@
 
 <div id="crudBlank" class="${type}">
 
-    <h2 id="crudBlankTitle">&{'crud.blank.title', type}</h2>
+     <p class="lead">
+		%{
+			translatedfieldname = messages.get('crud.field.' + type);
+			if (translatedfieldname.equals('crud.field.' + type)) {
+				translatedfieldname = type;
+			}
+		}%
+    	&{'crud.blank.title', translatedfieldname.toLowerCase()}
+	</p>
 
     <div class="objectForm">
     #{form action:@Admin.create(type), enctype:'multipart/form-data', class:'form-horizontal'}

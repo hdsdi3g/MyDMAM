@@ -19,9 +19,14 @@
             <th>
             </th>
             %{ _fields.each() { }%
-            	%{ if ((it.hidden == false) & (it.type != 'method')) { }%
-	            <th>
-	                  &{it.name}
+            	%{ if ((it.hidden == false) & (it.type != 'method')) {
+	       			translatedfieldname = messages.get('crud.field.' + _type + '.' + it.name);
+					if (translatedfieldname.equals('crud.field.' + _type + '.' + it.name)) {
+						translatedfieldname = it.name.capFirst();
+					}
+				}%
+			    <th>
+	                  &{translatedfieldname}
 	            </th>
             	%{ } else if (it.type == 'method') { }%
 	            <th>
@@ -84,7 +89,11 @@
 			    			}
 					   }
 				       } else if(field.type == "method") {
-				    		}% <a href="@{Admin.action(_type, object["key"], field.name)}" class="btn btn-mini">${field.name}</a> %{
+				       			translatedfieldname = messages.get('crud.field.' + _type + '.' + field.name);
+								if (translatedfieldname.equals('crud.field.' + _type + '.' + field.name)) {
+									translatedfieldname = field.name.capFirst();
+								}
+				    		}% <a href="@{Admin.action(_type, object["key"], field.name)}" class="btn btn-mini">${translatedfieldname}</a> %{
 				       } else { }%
 				    	${object[field.name]?.toString()?.escape()?.raw() ?: '(no value)'}
 				    %{ } }%

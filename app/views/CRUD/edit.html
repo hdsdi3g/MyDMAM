@@ -18,7 +18,15 @@
 
 <div id="crudShow" class="${type}">
 
-    <h2 id="crudShowTitle">&{'crud.show.title', type}</h2>
+    <p class="lead">
+		%{
+			translatedfieldname = messages.get('crud.field.' + type);
+			if (translatedfieldname.equals('crud.field.' + type)) {
+				translatedfieldname = type;
+			}
+		}%
+    	&{'crud.edit.title', translatedfieldname.toLowerCase()}
+	</p>
 
     <div class="objectForm">
     #{form action:@Admin.update(type, object.key), enctype:'multipart/form-data', class:'form-horizontal'}

@@ -17,6 +17,7 @@
 package controllers;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.ModelClassResolver;
@@ -27,6 +28,7 @@ import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -59,7 +61,6 @@ public class Admin extends Controller {
 			if (all_crud_models.containsKey(name) == false) {
 				return null;
 			}
-			System.out.println(all_crud_models);
 			
 			Class<?> reference = Play.classloader.loadClass(all_crud_models.get(name));
 			if (reference.getAnnotation(AuthorisedForAdminController.class) == null) {
@@ -179,6 +180,42 @@ public class Admin extends Controller {
 	
 	private static PlayModelClassResolver playmodelclassresolver = new PlayModelClassResolver();
 	
+	static String getActionFlashMessage(String objtype, String targetmethod, Throwable e) {
+		String message;
+		if (e == null) {
+			message = Messages.all(play.i18n.Lang.get()).getProperty("crud.field." + objtype + "." + targetmethod + ".done");
+		} else {
+			message = Messages.all(play.i18n.Lang.get()).getProperty("crud.field." + objtype + "." + targetmethod + ".error");
+		}
+		if (message == null) {
+			if (e == null) {
+				message = Messages.all(play.i18n.Lang.get()).getProperty("crud.done");
+			} else {
+				message = Messages.all(play.i18n.Lang.get()).getProperty("crud.error");
+			}
+			Log2Dump dump = new Log2Dump();
+			dump.add("Done", "crud.field." + objtype + "." + targetmethod + ".done");
+			dump.add("Error", "crud.field." + objtype + "." + targetmethod + ".error");
+			Log2.log.info("Don't forget to add missing message items", dump);
+		}
+		
+		if (e != null) {
+			message = message + " (" + e.getMessage() + ")";
+		}
+		return message;
+	}
+	
+	static String getIsSavedFlashMessage(String objtype) {
+		String message = Messages.all(play.i18n.Lang.get()).getProperty("crud.field." + objtype + ".issaved");
+		if (message == null) {
+			message = Messages.all(play.i18n.Lang.get()).getProperty("crud.done");
+			Log2Dump dump = new Log2Dump();
+			dump.add("Done", "crud.field." + objtype + ".issaved");
+			Log2.log.info("Don't forget to add missing message items", dump);
+		}
+		return message;
+	}
+	
 	@Check("adminCrud")
 	public static void index(String objtype) throws Exception {
 		Class<? extends CrudOrmModel> entityclass = playmodelclassresolver.loadModelClass(objtype);
@@ -271,9 +308,13 @@ public class Admin extends Controller {
 		
 		try {
 			method.invoke(element);
-			flash.success("Ok");
+			flash.success(getActionFlashMessage(objtype, action, null));
+		} catch (InvocationTargetException e) {
+			Log2.log.error("Error during remove invoke", e.getTargetException());
+			flash.error(getActionFlashMessage(objtype, action, e.getTargetException()));
 		} catch (Exception e) {
-			flash.error("Error: " + e.getMessage());
+			Log2.log.error("Error during invoke", e);
+			flash.error(getActionFlashMessage(objtype, action, e));
 		}
 		redirect("Admin.index", objtype);
 	}

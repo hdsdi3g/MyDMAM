@@ -146,6 +146,12 @@ $(document).ready(function() {
 							<a href="@{Service.index()}">&{'service.pagename'}</a>
 						</li>
 					#{/secure.check}
+
+					#{secure.check 'adminCrud'}
+						<li>
+							<a href="@{Admin.index(objtype:'userprofile')}">&{'crud.field.userprofile'}</a>
+						</li>
+					#{/secure.check}
 					
 					#{secure.check 'acl'}
 						<li class="divider"></li>

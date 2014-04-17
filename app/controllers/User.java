@@ -17,12 +17,14 @@
 
 package controllers;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.ModelClassResolver;
 import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -126,7 +128,7 @@ public class User extends Controller {
 		}
 		engine.saveInternalElement();
 		
-		flash.success(Messages.all(play.i18n.Lang.get()).getProperty("crud.field." + type + ".issaved"));
+		flash.success(Admin.getIsSavedFlashMessage(type));
 		redirect("User.index");
 	}
 	
@@ -157,11 +159,14 @@ public class User extends Controller {
 		
 		try {
 			method.invoke(element);
-			flash.success("Ok");
+			flash.success(Admin.getActionFlashMessage(objtype, targetmethod, null));
+		} catch (InvocationTargetException e) {
+			Log2.log.error("Error during remove invoke", e.getTargetException());
+			flash.error(Admin.getActionFlashMessage(objtype, targetmethod, e.getTargetException()));
 		} catch (Exception e) {
-			flash.error("Error: " + e.getMessage());
+			Log2.log.error("Error during invoke", e);
+			flash.error(Admin.getActionFlashMessage(objtype, targetmethod, e));
 		}
 		redirect("User.index", objtype);
 	}
-	
 }
