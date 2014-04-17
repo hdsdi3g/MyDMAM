@@ -237,3 +237,5 @@ mime.application-old=Old fichier
 mime.audio-wav=Wave audio
 
 userprofile.usereditor.pagename=Settings
+crud.field.userprofile.email=Mail
+crud.field.userprofile.issaved=Settings are saved

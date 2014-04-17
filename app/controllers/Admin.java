@@ -16,6 +16,7 @@
 */
 package controllers;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.ModelClassResolver;
@@ -23,10 +24,17 @@ import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.AuthorisedForAdminController;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import play.Play;
 import play.data.binding.Binder;
@@ -37,6 +45,7 @@ import play.exceptions.TemplateNotFoundException;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
+import play.vfs.VirtualFile;
 
 @With(Secure.class)
 public class Admin extends Controller {
@@ -46,7 +55,13 @@ public class Admin extends Controller {
 			if (name == null) {
 				return null;
 			}
-			Class<?> reference = Play.classloader.loadClass("models." + name.substring(0, 1).toUpperCase() + name.substring(1));
+			
+			if (all_crud_models.containsKey(name) == false) {
+				return null;
+			}
+			System.out.println(all_crud_models);
+			
+			Class<?> reference = Play.classloader.loadClass(all_crud_models.get(name));
 			if (reference.getAnnotation(AuthorisedForAdminController.class) == null) {
 				return null;
 			}
@@ -58,6 +73,108 @@ public class Admin extends Controller {
 				return null;
 			}
 		}
+		
+		/**
+		 * simplename -> Package.LongName
+		 */
+		private static HashMap<String, String> all_crud_models;
+		
+		static {
+			all_crud_models = new HashMap<String, String>();
+			try {
+				List<String> classes_to_test = new ArrayList<String>();
+				
+				/**
+				 * Play modules
+				 */
+				File[] module_app_content;
+				for (Map.Entry<String, VirtualFile> entry : Play.modules.entrySet()) {
+					File module_dir = entry.getValue().getRealFile();
+					
+					module_app_content = (new File(module_dir.getAbsolutePath() + File.separator + "app" + File.separator + "models")).listFiles(new FilenameFilter() {
+						public boolean accept(File arg0, String arg1) {
+							return arg1.endsWith(".java");
+						}
+					});
+					if (module_app_content != null) {
+						for (int pos = 0; pos < module_app_content.length; pos++) {
+							classes_to_test.add(module_app_content[pos].getName());
+						}
+					}
+				}
+				
+				/**
+				 * Classpath modules
+				 */
+				ArrayList<String> classpathelements = new ArrayList<String>();
+				
+				String[] classpathelementsstr = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
+				
+				for (int i = 0; i < classpathelementsstr.length; i++) {
+					classpathelements.add(classpathelementsstr[i]);
+				}
+				
+				classpathelements.add((new File("app/models")).getPath());
+				
+				JarFile jfile;
+				JarEntry element;
+				FilenameFilter filenamefilter = new FilenameFilter() {
+					public boolean accept(File arg0, String arg1) {
+						return arg0.getName().equals("models") & (arg1.endsWith(".class") | arg1.endsWith(".java"));
+					}
+				};
+				
+				for (int i = 0; i < classpathelements.size(); i++) {
+					if (classpathelements.get(i).endsWith(".jar")) {
+						try {
+							jfile = new JarFile(classpathelements.get(i));
+							for (Enumeration<JarEntry> entries = jfile.entries(); entries.hasMoreElements();) {
+								element = entries.nextElement();
+								if (element.getName().endsWith(".class") & element.getName().startsWith("models")) {
+									classes_to_test.add(element.getName());
+								}
+							}
+							jfile.close();
+						} catch (IOException e) {
+							Log2.log.error("Can't load/open jar file " + classpathelements.get(i), e);
+						}
+					} else {
+						File directoryclass = new File(classpathelements.get(i));
+						if (directoryclass.exists() && directoryclass.isDirectory()) {
+							File[] list = directoryclass.listFiles(filenamefilter);
+							for (int j = 0; j < list.length; j++) {
+								classes_to_test.add(list[j].getName());
+							}
+						}
+					}
+				}
+				
+				Class candidate;
+				for (int pos_classes = 0; pos_classes < classes_to_test.size(); pos_classes++) {
+					try {
+						String classname = classes_to_test.get(pos_classes);
+						if (classname.endsWith(".java")) {
+							classname = classname.substring(0, classname.length() - (".java".length()));
+						} else if (classname.endsWith(".class")) {
+							classname = classname.substring(0, classname.length() - (".class".length()));
+						}
+						
+						candidate = Class.forName("models." + classname);
+						
+						if (CrudOrmModel.class.isAssignableFrom(candidate) == false) {
+							continue;
+						}
+						
+						all_crud_models.put(classname.toLowerCase(), candidate.getCanonicalName());
+					} catch (ClassNotFoundException e) {
+						Log2.log.error("Class not found " + classes_to_test.get(pos_classes), e);
+					}
+				}
+			} catch (Exception e) {
+				Log2.log.error("Can't load modules", e);
+			}
+		}
+		
 	}
 	
 	private static PlayModelClassResolver playmodelclassresolver = new PlayModelClassResolver();
@@ -65,6 +182,7 @@ public class Admin extends Controller {
 	@Check("adminCrud")
 	public static void index(String objtype) throws Exception {
 		Class<? extends CrudOrmModel> entityclass = playmodelclassresolver.loadModelClass(objtype);
+		
 		notFoundIfNull(entityclass);
 		
 		String type = entityclass.getSimpleName().toLowerCase();

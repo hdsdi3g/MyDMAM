@@ -34,7 +34,7 @@
 	
     <div class="objectForm">
     #{form action:@User.update(), enctype:'multipart/form-data', class:'form-horizontal'}
-        #{crud.form fields:fields, entityclass:entityclass, object:object, type:type, fieldspointers:fieldspointers /}
+        #{crud.form fields:fields, entityclass:entityclass, object:object, type:type, fieldspointers:fieldspointers, targetcontroller:'User' /}
        	<div class="control-group">
 			<div class="controls">
 	            <input type="submit" class="btn btn-primary" name="_save" value="&{'crud.save', type}" />
@@ -43,7 +43,7 @@
 		</div>
     #{/form}
     </div>
-
+, basetarget:basetarget
 </div>
 
 <script type="text/javascript" charset="UTF-8">

@@ -21,12 +21,14 @@ import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.ModelClassResolver;
 import hd3gtv.mydmam.db.orm.ORMFormField;
-import hd3gtv.mydmam.web.UserProfile;
+import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import models.UserProfile;
 import play.data.binding.Binder;
 import play.data.binding.ParamNode;
 import play.data.binding.ParamNode.RemovedNode;
@@ -79,12 +81,11 @@ public class User extends Controller {
 		HashMap<String, HashMap<String, String>> fieldspointers = ORMFormField.getFieldPointerTable(usermodelclassresolver, fields);
 		
 		Object object = userprofile;
+		
 		render(title, type, fields, entityclass, object, fieldspointers);
 	}
 	
 	public static void update() throws Exception {
-		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.usereditor.pagename");
-		
 		String username = Secure.connected();
 		String key = UserProfile.prepareKey(username);
 		
@@ -125,26 +126,31 @@ public class User extends Controller {
 		}
 		engine.saveInternalElement();
 		
-		flash.success(Messages.get("crud.saved", type));
-		
-		render("User/index.html", title, type, fields, entityclass, object, fieldspointers);
+		flash.success(Messages.all(play.i18n.Lang.get()).getProperty("crud.field." + type + ".issaved"));
+		redirect("User.index");
 	}
-	/*
-	@Check("adminCrud")
-	public static void action(String objtype, String key, String action) throws Exception {
-		Class<? extends CrudOrmModel> entityclass = playmodelclassresolver.loadModelClass(objtype);
-		notFoundIfNull(entityclass);
+	
+	public static void action(String objtype, String key, String targetmethod) throws Exception {
+		String username = Secure.connected();
+		String real_key = UserProfile.prepareKey(username);
+		
+		if (key.equalsIgnoreCase(real_key) == false) {
+			forbidden();
+		}
+		
+		Class<? extends CrudOrmModel> entityclass = UserProfile.class;
+		// String type = entityclass.getSimpleName().toLowerCase();
 		
 		CrudOrmEngine<CrudOrmModel> engine = CrudOrmEngine.get(entityclass);
 		
-		Method method = entityclass.getMethod(action);
+		Method method = entityclass.getMethod(targetmethod);
 		if (method == null) {
 			notFound();
 		}
-		if (method.isAnnotationPresent(Published.class) == false) {
+		if (method.isAnnotationPresent(PublishedMethod.class) == false) {
 			notFound();
 		}
-		CrudOrmModel element = engine.read(key);
+		CrudOrmModel element = engine.read(real_key);
 		if (element == null) {
 			notFound();
 		}
@@ -155,7 +161,7 @@ public class User extends Controller {
 		} catch (Exception e) {
 			flash.error("Error: " + e.getMessage());
 		}
-		redirect("Admin.index", objtype);
+		redirect("User.index", objtype);
 	}
-	*/
+	
 }

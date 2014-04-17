@@ -15,19 +15,31 @@
  * 
 */
 
-package hd3gtv.mydmam.web;
+package models;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
+import hd3gtv.mydmam.db.orm.annotations.AuthorisedForAdminController;
+import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
+import play.data.validation.Email;
+import play.data.validation.Required;
 
+@AuthorisedForAdminController
 public class UserProfile extends CrudOrmModel {
 	
+	@Required
+	@Email
 	@TypeEmail
 	public String email;
 	
 	protected String getCF_Name() {
 		return "userprofiles";
+	}
+	
+	@PublishedMethod
+	public void doSomething() {
+		System.out.println("ok");// XXX
 	}
 	
 	protected Class<? extends CrudOrmModel> getClassInstance() {

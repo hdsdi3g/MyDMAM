@@ -11,14 +11,12 @@
             %{ throw new play.exceptions.TagInternalException('Field not found -> ' + fieldName) }%
 	    #{/ifnot}
 
-        %{ if (field.type == 'method') continue; }%
-
         #{if field.readonly}
 			<div class="control-group">
 	       	#{if currentObject}
 		        #{if field.type != 'password'}
 					<label class="control-label">
-				        ${field.name}
+				        &{'crud.field.' + _type + '.' + field.name}
 				    </label>
 				    <div class="controls" style="padding-top: 5px;">
 	    	        #{if field.type == 'date'}
@@ -27,9 +25,9 @@
 			        #{else}
 	        	        #{if field.type == 'boolean'}
 			 	        	#{if currentObject[field.name]}
-				 	        	&{'crud.' + _type + '.' + field.name + '.true'}
+				 	        	&{'crud.field.' + _type + '.' + field.name + '.true'}
 					        #{/if}#{else}
-				 	        	&{'crud.' + _type + '.' + field.name + '.false'}
+				 	        	&{'crud.field.' + _type + '.' + field.name + '.false'}
 					        #{/else}
 				        #{/if}#{else}
 							${currentObject[field.name]?.escape()?.raw()}
@@ -48,8 +46,8 @@
     	    #{/else}
     	    
     	    
-	        #{if field.type != 'boolean'}
-				<label class="control-label" for="object.${field.name}">&{field.name}</label>
+	        #{if field.type != 'boolean' & field.type != 'method'}
+				<label class="control-label" for="object.${field.name}">&{'crud.field.' + _type + '.' + field.name}</label>
     	    #{/if}
 			<div class="controls">
 
@@ -82,7 +80,7 @@
 	        #{if field.type == 'boolean'}
 		        <label class="checkbox">
 					#{crud.checkField name:field.name, value:(currentObject ? currentObject[field.name] : null) /}
-					&{field.name}
+					&{'crud.field.' + _type + '.' + field.name}
 				</label>
 	        #{/if}
 	
@@ -96,6 +94,12 @@
 
 	        #{if field.type == 'pointerlist'}
 	            #{crud.pointerlist name:field.name, value:(currentObject ? currentObject[field.name] : null), property:_fieldspointers.get(field.class_referer) /}
+	        #{/if}
+	        
+	        #{if field.type == 'method' & targetcontroller != null}
+	        	<div>
+		        	<a href="#{crud.urlaction targetcontroller:_targetcontroller, objtype:_type, key:currentObject['key'], targetmethod:field.name /}" class="btn btn-mini">&{'crud.field.' + _type + '.' + field.name}</a>
+		        </div>
 	        #{/if}
 	        
 		    <span class="help-inline">
