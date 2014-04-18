@@ -75,6 +75,13 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 	}
 	
 	/**
+	 * Dynamic call
+	 */
+	public T getInternalElement() {
+		return element;
+	}
+	
+	/**
 	 * Dynamic call, reaffect internal element if not null.
 	 */
 	public final T read(String key) throws ConnectionException {

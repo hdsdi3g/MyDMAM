@@ -18,15 +18,20 @@
 package models;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.annotations.AuthorisedForAdminController;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
+import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
 import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
 import play.data.validation.Email;
 import play.data.validation.Required;
 
 @AuthorisedForAdminController
 public class UserProfile extends CrudOrmModel {
+	
+	@ReadOnly
+	public String longname;
 	
 	@Required
 	@Email
@@ -56,6 +61,22 @@ public class UserProfile extends CrudOrmModel {
 		sb.append("%");
 		sb.append(username);
 		return sb.toString();
+	}
+	
+	/**
+	 * Create it if don't exists.
+	 */
+	public static CrudOrmEngine<UserProfile> getORMEngine(String key) throws Exception {
+		UserProfile userprofile = new UserProfile();
+		CrudOrmEngine<UserProfile> engine = new CrudOrmEngine<UserProfile>(userprofile);
+		if (engine.exists(key)) {
+			userprofile = engine.read(key);
+		} else {
+			userprofile = engine.create();
+			userprofile.key = key;
+			engine.saveInternalElement();
+		}
+		return engine;
 	}
 	
 }

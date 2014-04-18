@@ -11,6 +11,7 @@ auth:
             source: local
             path: conf/auth.db
             masterkey: asecretkey
+            label: Local auth
 #        -
 #            source: ad
 #            domain: mydomain.local

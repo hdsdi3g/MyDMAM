@@ -240,6 +240,7 @@ mime.audio-wav=Audio Wave
 
 userprofile.usereditor.pagename=Préférences
 crud.field.userprofile=Préférences utilisateur
+crud.field.userprofile.longname=Nom
 crud.field.userprofile.email=Mail
 crud.field.userprofile.issaved=Les préférences sont enregistrées
 crud.field.userprofile.sendTestMail=Envoyer un mail de test

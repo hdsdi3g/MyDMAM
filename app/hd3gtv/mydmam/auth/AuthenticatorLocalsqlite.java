@@ -310,6 +310,10 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 						public String getFullName() {
 							return name;
 						}
+						
+						public String getMail() {
+							return null;
+						}
 					};
 				} else {
 					connection.close();

@@ -40,7 +40,7 @@ class AuthenticatorActivedirectory implements Authenticator {
 	private String server;
 	private int ldap_port;
 	
-	private static final String[] userAttributes = { "distinguishedName", "cn", "name", "uid", "sn", "givenname", "memberOf", "samaccountname", "userPrincipalName" };
+	private static final String[] userAttributes = { "distinguishedName", "cn", "name", "uid", "sn", "givenname", "memberOf", "samaccountname", "userPrincipalName", "mail" };
 	
 	public AuthenticatorActivedirectory(String domain, String server, int ldap_port) {
 		this.domain = domain;
@@ -118,11 +118,15 @@ class AuthenticatorActivedirectory implements Authenticator {
 		private String distinguishedName;
 		private String userprincipal;
 		private String commonname;
+		private String mail;
 		
 		private ActivedirectoryUser(Attributes attr) throws NamingException {
 			userprincipal = (String) attr.get("userPrincipalName").get();
 			commonname = (String) attr.get("cn").get();
 			distinguishedName = (String) attr.get("distinguishedName").get();
+			if (attr.get("mail") != null) {
+				mail = (String) attr.get("mail").get();
+			}
 		}
 		
 		public Log2Dump getLog2Dump() {
@@ -130,6 +134,7 @@ class AuthenticatorActivedirectory implements Authenticator {
 			dump.add("distinguishedName", distinguishedName);
 			dump.add("userPrincipal", userprincipal);
 			dump.add("commonName", commonname);
+			dump.add("mail", mail);
 			return dump;
 		}
 		
@@ -143,6 +148,10 @@ class AuthenticatorActivedirectory implements Authenticator {
 		
 		public String getSourceName() {
 			return "Active Directory";
+		}
+		
+		public String getMail() {
+			return mail;
 		}
 		
 	}

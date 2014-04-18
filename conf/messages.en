@@ -240,6 +240,7 @@ mime.audio-wav=Wave audio
 
 userprofile.usereditor.pagename=Settings
 crud.field.userprofile=User settings
+crud.field.userprofile.longname=Name
 crud.field.userprofile.email=Mail
 crud.field.userprofile.issaved=Settings are saved
 crud.field.userprofile.sendTestMail=Send a test mail

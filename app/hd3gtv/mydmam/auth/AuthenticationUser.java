@@ -27,4 +27,5 @@ public interface AuthenticationUser extends Log2Dumpable {
 	
 	public String getSourceName();
 	
+	public String getMail();
 }
