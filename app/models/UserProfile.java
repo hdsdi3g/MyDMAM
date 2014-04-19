@@ -47,6 +47,14 @@ public class UserProfile extends CrudOrmModel {
 		return "userprofiles";
 	}
 	
+	/**
+	 * If user don't login, delete its configuration.
+	 * @return 2 years.
+	 */
+	protected int getTTL() {
+		return 3600 * 24 * 365 * 2;
+	}
+	
 	protected Class<? extends CrudOrmModel> getClassInstance() {
 		return UserProfile.class;
 	}

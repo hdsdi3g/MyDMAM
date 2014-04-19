@@ -68,7 +68,7 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 		element.updatedate = new Date();
 		
 		cassandra.resetMutator();
-		cassandra.pushObject(element, 0);
+		cassandra.pushObject(element);
 		cassandra.executeMutation();
 		
 		element.onAfterSave();

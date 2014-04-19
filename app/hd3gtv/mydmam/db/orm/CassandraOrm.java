@@ -231,6 +231,16 @@ public class CassandraOrm<T extends OrmModel> {
 		return result;
 	}
 	
+	/**
+	 * ttl form ormobject
+	 */
+	public void pushObject(T ormobject) throws InvalidClassException, ConnectionException {
+		pushObject(ormobject, ormobject.getTTL());
+	}
+	
+	/**
+	 * @param ttl overwrite from ormobject
+	 */
 	public void pushObject(T ormobject, int ttl) throws InvalidClassException, ConnectionException {
 		if (ormobject.key == null) {
 			throw new NullPointerException("\"key\" can't to be null");

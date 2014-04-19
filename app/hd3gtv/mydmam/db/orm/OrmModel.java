@@ -23,4 +23,11 @@ public abstract class OrmModel {
 	
 	public String key;
 	
+	/**
+	 * @return In seconds, 0 by default.
+	 */
+	protected int getTTL() {
+		return 0;
+	}
+	
 }
