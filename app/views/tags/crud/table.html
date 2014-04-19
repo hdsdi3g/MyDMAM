@@ -94,9 +94,14 @@
 									translatedfieldname = field.name.capFirst();
 								}
 				    		}% <a href="@{Admin.action(_type, object["key"], field.name)}" class="btn btn-mini">${translatedfieldname}</a> %{
-				       } else { }%
-				    	${object[field.name]?.toString()?.escape()?.raw() ?: '(no value)'}
-				    %{ } }%
+				       } else { 
+				       		field_value = object[field.name]?.toString()?.escape()?.raw()
+				       		if (field_value == null) {
+					       		}% <em class="muted">&{'crud.none'}</em> %{
+				       		} else {
+					       		}% ${field_value} %{
+				       		}
+				      } }%
 				</td>
 		    %{ } } }%
 			<td>
