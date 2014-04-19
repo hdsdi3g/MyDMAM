@@ -124,6 +124,7 @@ public class User extends Controller {
 		
 		if (Validation.hasErrors()) {
 			renderArgs.put("error", Messages.get("crud.hasErrors"));
+			object = reference;
 			render("User/index.html", type, fields, entityclass, object, fieldspointers);
 		}
 		engine.saveInternalElement();

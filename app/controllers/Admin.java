@@ -401,6 +401,7 @@ public class Admin extends Controller {
 		validation.valid(object);
 		if (Validation.hasErrors()) {
 			HashMap<String, HashMap<String, String>> fieldspointers = ORMFormField.getFieldPointerTable(playmodelclassresolver, fields);
+			object = reference;
 			
 			renderArgs.put("error", Messages.get("crud.hasErrors"));
 			try {
