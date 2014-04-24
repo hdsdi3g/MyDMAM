@@ -25,6 +25,7 @@ import hd3gtv.log2.Log2Event;
 
 import java.io.File;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import javax.mail.internet.InternetAddress;
@@ -41,10 +42,16 @@ public class MessageAlert implements Log2Dumpable {
 			mailcenter = MailCenter.getGlobal();
 			workername = Configuration.global.getValue("service", "workername", "(no set)");
 			admin_addr = new InternetAddress(Configuration.global.getValue("service", "administrator_mail", "root@localhost"));
-			hostname = InetAddress.getLocalHost().getHostName();
 		} catch (Exception e) {
 			Log2.log.error("Can't init message alert", e);
 		}
+		
+		try {
+			hostname = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {
+			hostname = "localhost";
+		}
+		
 	}
 	
 	private MessageAlert() {

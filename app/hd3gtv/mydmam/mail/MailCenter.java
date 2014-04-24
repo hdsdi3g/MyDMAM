@@ -113,7 +113,11 @@ public class MailCenter {
 		message.saveChanges();
 		
 		Transport transport = session.getTransport("smtp");
-		transport.connect(username, password);
+		if ((username.equals("") == false) & (password.equals("") == false)) {
+			transport.connect(username, password);
+		} else {
+			transport.connect();
+		}
 		transport.sendMessage(message, message.getAllRecipients());
 		transport.close();
 	}
