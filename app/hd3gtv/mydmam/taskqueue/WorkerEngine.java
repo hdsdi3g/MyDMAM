@@ -16,10 +16,10 @@
 */
 package hd3gtv.mydmam.taskqueue;
 
-import hd3gtv.javamailwrapper.MessageAlert;
 import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.mail.MessageAlert;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 

@@ -1,6 +1,6 @@
 play:
     deploy: /opt/play
-    compile_javascript: true;
+    compile_javascript: true
 
 auth:
     force_select_domain: false

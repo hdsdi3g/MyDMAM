@@ -16,9 +16,9 @@
 */
 package hd3gtv.javasimpleservice;
 
-import hd3gtv.javamailwrapper.MessageAlert;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.SchemeWorkers;
+import hd3gtv.mydmam.mail.MessageAlert;
 import hd3gtv.tools.TimeUtils;
 
 import java.net.Inet6Address;

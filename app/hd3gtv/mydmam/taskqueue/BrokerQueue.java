@@ -17,11 +17,11 @@
 package hd3gtv.mydmam.taskqueue;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.javamailwrapper.MessageAlert;
 import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.mail.MessageAlert;
 
 import java.util.ArrayList;
 import java.util.HashMap;

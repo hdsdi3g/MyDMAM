@@ -11,13 +11,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.javamailwrapper;
+package hd3gtv.mydmam.mail;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.javamailwrapper.SendMail.Priority;
 import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
@@ -28,20 +27,20 @@ import java.io.File;
 import java.net.InetAddress;
 import java.util.ArrayList;
 
+import javax.mail.internet.InternetAddress;
+
 public class MessageAlert implements Log2Dumpable {
 	
-	private static MailConfigurator mailconfigurator;
+	private static MailCenter mailcenter;
 	private static String hostname;
 	private static String workername;
+	private static InternetAddress admin_addr;
 	
 	static {
 		try {
-			mailconfigurator = MailConfigurator.importConfiguration(Configuration.global);
+			mailcenter = MailCenter.getGlobal();
 			workername = Configuration.global.getValue("service", "workername", "(no set)");
-			
-			if (mailconfigurator == null) {
-				throw new NullPointerException("Invalid Javamail configuration");
-			}
+			admin_addr = new InternetAddress(Configuration.global.getValue("service", "administrator_mail", "root@localhost"));
 			hostname = InetAddress.getLocalHost().getHostName();
 		} catch (Exception e) {
 			Log2.log.error("Can't init message alert", e);
@@ -55,8 +54,6 @@ public class MessageAlert implements Log2Dumpable {
 		MessageAlert message = new MessageAlert();
 		message.basemessage = basemessage;
 		message.fatal_alert = fatal_alert;
-		message.mail = new SendMail(mailconfigurator);
-		message.to = message.mail.getTo();
 		message.subject = new StringBuffer();
 		message.caller = (new Throwable()).getStackTrace()[1];
 		return message;
@@ -65,9 +62,7 @@ public class MessageAlert implements Log2Dumpable {
 	private Throwable throwable;
 	private String basemessage;
 	private ArrayList<Log2Dump> dumps;
-	private SendMail mail;
 	private ServiceInformations serviceinformations;
-	private ArrayList<String> to;
 	private StringBuffer subject;
 	private StackTraceElement caller;
 	private boolean fatal_alert;
@@ -122,7 +117,6 @@ public class MessageAlert implements Log2Dumpable {
 	
 	public void send() {
 		try {
-			SendMailContent content = new SendMailContent();
 			
 			/**
 			 * Subject
@@ -137,7 +131,8 @@ public class MessageAlert implements Log2Dumpable {
 			}
 			subject.append("General error: ");
 			subject.append(basemessage);
-			content.setSubject(subject.toString());
+			
+			MailContent mail = mailcenter.prepareMessage(subject.toString(), admin_addr);
 			
 			/**
 			 * Message
@@ -211,15 +206,15 @@ public class MessageAlert implements Log2Dumpable {
 				plaintext.append("\r\n");
 			}
 			
-			content.setPlaintext(plaintext.toString());
+			mail.setPlaintext(plaintext.toString());
 			
 			if (fatal_alert) {
-				mail.setPriority(Priority.Highest);
+				mail.setMailPriority(MailPriority.HIGHEST);
 			}
 			
-			content.setFiles(files);
+			mail.setFiles(files);
 			
-			mail.send(content);
+			mail.send();
 			
 			Log2.log.info("Send an alert mail", this);
 		} catch (Exception e) {
@@ -229,7 +224,7 @@ public class MessageAlert implements Log2Dumpable {
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump finaldump = new Log2Dump();
-		finaldump.add("to", to);
+		finaldump.add("to", admin_addr);
 		finaldump.add("subject", subject);
 		return finaldump;
 	}

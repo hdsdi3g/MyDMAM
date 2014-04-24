@@ -2,12 +2,17 @@ service:
     apply: prod
     workername : productionsrv
     brokercleantasks : true
+    administrator_mail : Me <me@domain.com>
 
 javamail:
     from: Me <me@domain.com>
-    to: admin@domain.com 
     server: exchange.domain.com
     debug: false
+    port : 587
+    auth : true
+    starttls : true
+    username : me
+    password : mypasswd
 
 log2:
     filter:

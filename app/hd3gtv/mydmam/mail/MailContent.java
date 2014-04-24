@@ -11,11 +11,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2008-2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2008-2014
  * 
 */
 
-package hd3gtv.javamailwrapper;
+package hd3gtv.mydmam.mail;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,78 +24,108 @@ import java.util.ArrayList;
 import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
 import javax.mail.BodyPart;
+import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 
-@SuppressWarnings("nls")
-public class SendMailContent {
+public class MailContent {
 	
-	protected String subject;
-	protected Multipart messagecontent;
-	protected String textcontent;
-	protected ArrayList<String> htmltext;
-	protected String plaintext;
-	protected ArrayList<File> files;
-	protected ArrayList<File> pictures;
+	private Message message;
+	private MailCenter center;
 	
-	public SendMailContent() {
-		textcontent = null;
-		messagecontent = null;
-		htmltext = null;
-		files = null;
-		pictures = null;
-		plaintext = null;
+	private Multipart multipart_content;
+	private ArrayList<String> htmltext;
+	private String plaintext;
+	private String plaintext_content;
+	private ArrayList<File> files;
+	private ArrayList<File> pictures;
+	private MailPriority priority;
+	private InternetAddress[] cc_addr;
+	private InternetAddress[] bcc_addr;
+	
+	MailContent(MailCenter center, Message message) {
+		this.center = center;
+		if (center == null) {
+			throw new NullPointerException("\"center\" can't to be null");
+		}
+		
+		this.message = message;
+		if (message == null) {
+			throw new NullPointerException("\"message\" can't to be null");
+		}
 	}
 	
-	public void setSubject(String subject) {
-		this.subject = subject;
-	}
-	
-	String getSubject() {
-		return subject;
-	}
-	
-	Multipart getMPContent() {
-		return messagecontent;
-	}
-	
-	String getTextContent() {
-		return textcontent;
-	}
-	
-	/**
-	 * @param htmltext Contenu HTML, ligne a ligne
-	 */
-	public void setHtmltext(ArrayList<String> htmltext) {
+	public MailContent setHtmltext(ArrayList<String> htmltext) {
 		this.htmltext = htmltext;
+		return this;
 	}
 	
-	/**
-	 * @param files Fichiers a envoyer en piece jointe, pas de verification de taille
-	 */
-	public void setFiles(ArrayList<File> files) {
+	public MailContent setHtmltext(String htmltext_inline) {
+		htmltext = new ArrayList<String>(1);
+		htmltext.add(htmltext_inline);
+		return this;
+	}
+	
+	public MailContent setFiles(ArrayList<File> files) {
 		this.files = files;
+		return this;
 	}
 	
-	/**
-	 * @param files Images a associer au message texte, pas de verification de taille
-	 */
-	public void setPictures(ArrayList<File> pictures) {
+	public MailContent setFiles(File... files) {
+		this.files = new ArrayList<File>(files.length);
+		for (int pos = 0; pos < files.length; pos++) {
+			this.files.add(files[pos]);
+		}
+		return this;
+	}
+	
+	public MailContent setPictures(ArrayList<File> pictures) {
 		this.pictures = pictures;
+		return this;
 	}
 	
-	/**
-	 * @param htmltext Contenu texte pure
-	 */
-	public void setPlaintext(String plaintext) {
+	public MailContent setPictures(File... pictures) {
+		this.pictures = new ArrayList<File>(pictures.length);
+		for (int pos = 0; pos < pictures.length; pos++) {
+			this.pictures.set(pos, pictures[pos]);
+		}
+		return this;
+	}
+	
+	public MailContent setPlaintext(String plaintext) {
 		this.plaintext = plaintext;
+		return this;
+	}
+	
+	public MailContent setCCAddr(InternetAddress... cc_addr) {
+		if (cc_addr != null) {
+			if (cc_addr.length > 0) {
+				this.cc_addr = cc_addr;
+			}
+		}
+		return this;
+	}
+	
+	public MailContent setBCCAddr(InternetAddress... bcc_addr) {
+		if (bcc_addr != null) {
+			if (bcc_addr.length > 0) {
+				this.bcc_addr = bcc_addr;
+			}
+		}
+		return this;
+	}
+	
+	public MailContent setMailPriority(MailPriority priority) {
+		this.priority = priority;
+		return this;
 	}
 	
 	/*
-	CAS	TEXTE	HTML	IMAGE	PJ	Value
+	Case	TEXTE	HTML	IMAGE	PJ	Value
 	0)	0		0		0		0	Exception
 	1)	1		0		0		0	Texte
 	2)	0		1		0		0	HTML
@@ -114,68 +144,65 @@ public class SendMailContent {
 	15)	1		1		1		1	Mixed (Related (Alternative (Texte, HTML), image), pj)
 	 */
 	
-	void process() throws MessagingException, IOException, NullPointerException {
-		
+	private void process() throws MessagingException, IOException, NullPointerException {
 		/**
-		 * CAS 0 4 8 12
+		 * Case 0 4 8 12
 		 */
 		if ((plaintext == null) && (htmltext == null)) {
 			throw new NullPointerException("No text content");
 		}
-		/* ******************** */
 		if ((pictures == null) && (files == null)) {
 			/**
-			 * CAS 1 2 3
+			 * Case 1 2 3
 			 */
 			if ((plaintext != null) && (htmltext == null)) {
 				/**
-				 * CAS 1
+				 * Case 1
 				 */
-				textcontent = plaintext;
+				plaintext_content = plaintext;
 				return;
 			}
 			if ((plaintext == null) && (htmltext != null)) {
 				/**
-				 * CAS 2
+				 * Case 2
 				 */
-				messagecontent = new MimeMultipart("related");
-				messagecontent.addBodyPart(getHTMLBodyPart());
+				multipart_content = new MimeMultipart("related");
+				multipart_content.addBodyPart(getHTMLBodyPart());
 				return;
 			}
 			if ((plaintext != null) && (htmltext != null)) {
 				/**
-				 * CAS 3
+				 * Case 3
 				 */
-				messagecontent = getAlternativeContent();
+				multipart_content = getAlternativeContent();
 				return;
 			}
 		}
 		
-		/* ******************** */
 		MimeMultipart relatedmessage = null;
 		if (pictures != null) {
 			/**
-			 * CAS 5 6 7 et 13 14 15
+			 * Case 5 6 7 and 13 14 15
 			 */
 			relatedmessage = new MimeMultipart("related");
 			
 			if ((plaintext != null) && (htmltext == null)) {
 				/**
-				 * CAS 5 et 13
+				 * Case 5 and 13
 				 */
 				relatedmessage.addBodyPart(getTextBodyPart());
 			}
 			
 			if ((plaintext == null) && (htmltext != null)) {
 				/**
-				 * CAS 6 et 14
+				 * Case 6 and 14
 				 */
 				relatedmessage.addBodyPart(getHTMLBodyPart());
 			}
 			
 			if ((plaintext != null) && (htmltext != null)) {
 				/**
-				 * CAS 7 et 15
+				 * Case 7 and 15
 				 */
 				MimeBodyPart partalternated = new MimeBodyPart();
 				partalternated.setContent(getAlternativeContent());
@@ -198,39 +225,39 @@ public class SendMailContent {
 		
 		if (files != null) {
 			/**
-			 * CAS 9 10 11 12 13 14 15
+			 * Case 9 10 11 12 13 14 15
 			 */
 			
 			MimeMultipart mixedmessage = new MimeMultipart("mixed");
 			
 			if (relatedmessage != null) {
 				/**
-				 * CAS 13 14 15
+				 * Case 13 14 15
 				 */
 				BodyPart relatedmessagepart = new MimeBodyPart();
 				relatedmessagepart.setContent(relatedmessage);
 				mixedmessage.addBodyPart(relatedmessagepart);
 			} else {
 				/**
-				 * CAS 9 10 11
+				 * Case 9 10 11
 				 */
 				if ((plaintext != null) && (htmltext == null)) {
 					/**
-					 * CAS 9
+					 * Case 9
 					 */
 					mixedmessage.addBodyPart(getTextBodyPart());
 				}
 				
 				if ((plaintext == null) && (htmltext != null)) {
 					/**
-					 * CAS 10
+					 * Case 10
 					 */
 					mixedmessage.addBodyPart(getHTMLBodyPart());
 				}
 				
 				if ((plaintext != null) && (htmltext != null)) {
 					/**
-					 * CAS 11
+					 * Case 11
 					 */
 					MimeBodyPart partalternated = new MimeBodyPart();
 					partalternated.setContent(getAlternativeContent());
@@ -249,16 +276,13 @@ public class SendMailContent {
 				mixedmessage.addBodyPart(filepart);
 			}
 			
-			messagecontent = mixedmessage;
-			return;
+			multipart_content = mixedmessage;
 		} else {
-			messagecontent = relatedmessage;
-			return;
+			multipart_content = relatedmessage;
 		}
-		
 	}
 	
-	protected BodyPart getHTMLBodyPart() throws MessagingException, IOException, NullPointerException {
+	private BodyPart getHTMLBodyPart() throws MessagingException, IOException, NullPointerException {
 		MimeBodyPart parthtmltext = new MimeBodyPart();
 		
 		if (htmltext == null) {
@@ -274,7 +298,7 @@ public class SendMailContent {
 		return parthtmltext;
 	}
 	
-	protected BodyPart getTextBodyPart() throws MessagingException, NullPointerException {
+	private BodyPart getTextBodyPart() throws MessagingException, NullPointerException {
 		MimeBodyPart partplaintext = new MimeBodyPart();
 		if (plaintext == null) {
 			throw new NullPointerException("No plain text");
@@ -283,11 +307,34 @@ public class SendMailContent {
 		return partplaintext;
 	}
 	
-	protected MimeMultipart getAlternativeContent() throws NullPointerException, MessagingException, IOException {
+	private MimeMultipart getAlternativeContent() throws NullPointerException, MessagingException, IOException {
 		MimeMultipart alternative = new MimeMultipart("alternative");
 		alternative.addBodyPart(getTextBodyPart());
 		alternative.addBodyPart(getHTMLBodyPart());
 		return alternative;
+	}
+	
+	public void send() throws MessagingException, IOException, NullPointerException {
+		process();
+		
+		if (plaintext_content != null) {
+			message.setText(plaintext_content);
+		} else if (multipart_content != null) {
+			message.setContent(multipart_content);
+		} else {
+			throw new NullPointerException("No mail content");
+		}
+		
+		if (priority != null) {
+			priority.updateMessage(message);
+		}
+		if (cc_addr != null) {
+			message.setRecipients(Message.RecipientType.CC, cc_addr);
+		}
+		if (bcc_addr != null) {
+			message.setRecipients(Message.RecipientType.BCC, bcc_addr);
+		}
+		center.sendMessage(message);
 	}
 	
 }

@@ -21,6 +21,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.mail.MessageAlert;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.tools.TimeUtils;
 
@@ -29,7 +30,6 @@ import java.lang.management.ManagementFactory;
 public abstract class ServiceManager implements ServiceInformations {
 	
 	private ServiceInformations serviceinformations;
-	private ServiceMessagemanager messagemanager;
 	private long javastarttime;
 	private boolean stopservice;
 	private ServiceThread servicethread;
@@ -116,10 +116,6 @@ public abstract class ServiceManager implements ServiceInformations {
 		return serviceinformations;
 	}
 	
-	public final ServiceMessagemanager getMessagemanager() {
-		return messagemanager;
-	}
-	
 	public final long getJavaUptime() {
 		return System.currentTimeMillis() - javastarttime;
 	}
@@ -147,13 +143,6 @@ public abstract class ServiceManager implements ServiceInformations {
 			}
 		} else {
 			this.serviceinformations = serviceinformations;
-		}
-		
-		try {
-			messagemanager = new ServiceMessagemanager(this);
-		} catch (Exception e) {
-			Log2.log.error("Can't load mail configuration", e);
-			System.exit(1);
 		}
 		
 		try {
@@ -185,7 +174,7 @@ public abstract class ServiceManager implements ServiceInformations {
 						stopService();
 					} catch (Exception e) {
 						Log2.log.error("Fatal service stopping", e);
-						messagemanager.sendMessage(new ServiceMessageError("Can't stop the service", e));
+						MessageAlert.create("Can't stop the service", true).setThrowable(e).send();
 					}
 				}
 			};
@@ -194,7 +183,7 @@ public abstract class ServiceManager implements ServiceInformations {
 			
 		} catch (Exception e) {
 			Log2.log.error("Fatal service error", e, serviceinformations);
-			messagemanager.sendMessage(new ServiceMessageError("Serious internal error", e, serviceinformations));
+			MessageAlert.create("Serious internal error", true).setThrowable(e).addDump(serviceinformations).send();
 			System.exit(2);
 		}
 		
@@ -253,7 +242,7 @@ public abstract class ServiceManager implements ServiceInformations {
 				Log2.log.error("Violent stop service", e);
 			} catch (Exception e) {
 				Log2.log.error("ServiceManager execution error...", e, getServiceinformations());
-				messagemanager.sendMessage(new ServiceMessageError("Runtime Error Service", e, getServiceinformations()));
+				MessageAlert.create("Runtime Error Service", true).setThrowable(e).addDump(getServiceinformations()).send();
 			}
 		}
 	}
