@@ -108,13 +108,10 @@ public class User extends Controller {
 		}
 		
 		CrudOrmEngine<CrudOrmModel> engine = CrudOrmEngine.get(entityclass);
-		CrudOrmModel reference = engine.read(key);
-		if (reference == null) {
+		CrudOrmModel object = engine.read(key);
+		if (object == null) {
 			notFound();
 		}
-		CrudOrmModel object = engine.create();
-		object.key = key;
-		object.createdate = reference.createdate;
 		
 		Binder.bindBean(params.getRootParamNode(), "object", object);
 		
@@ -124,7 +121,6 @@ public class User extends Controller {
 		
 		if (Validation.hasErrors()) {
 			renderArgs.put("error", Messages.get("crud.hasErrors"));
-			object = reference;
 			render("User/index.html", type, fields, entityclass, object, fieldspointers);
 		}
 		engine.saveInternalElement();
