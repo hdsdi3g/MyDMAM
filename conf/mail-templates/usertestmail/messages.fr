@@ -1,0 +1,1 @@
+content=Test de mail avec MyDMAM

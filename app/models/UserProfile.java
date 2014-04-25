@@ -24,8 +24,15 @@ import hd3gtv.mydmam.db.orm.annotations.AuthorisedForAdminController;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
 import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
+import hd3gtv.mydmam.mail.EndUserBaseMail;
+
+import java.util.Locale;
+
+import javax.mail.internet.InternetAddress;
+
 import play.data.validation.Email;
 import play.data.validation.Required;
+import play.i18n.Lang;
 
 @AuthorisedForAdminController
 public class UserProfile extends CrudOrmModel {
@@ -40,7 +47,24 @@ public class UserProfile extends CrudOrmModel {
 	
 	@PublishedMethod
 	public void sendTestMail() throws Exception {
-		System.out.println("ok");// XXX
+		
+		InternetAddress email_addr = new InternetAddress(email);
+		
+		EndUserBaseMail mail;
+		try {
+			/**
+			 * Play scope
+			 */
+			mail = EndUserBaseMail.create(Lang.getLocale(), email_addr, "crud.field.userprofile.sendTestMail.subject");
+		} catch (Exception e) {
+			/**
+			 * Outside Play scope
+			 */
+			mail = EndUserBaseMail.create(Locale.getDefault(), email_addr, "crud.field.userprofile.sendTestMail.subject");
+		}
+		// XXX
+		
+		mail.send();
 	}
 	
 	protected String getCF_Name() {
