@@ -19,7 +19,7 @@ package hd3gtv.mydmam.taskqueue;
 import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Event;
-import hd3gtv.mydmam.mail.MessageAlert;
+import hd3gtv.mydmam.mail.AdminMailAlert;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
@@ -60,7 +60,7 @@ class WorkerEngine extends Thread {
 			job.processing_error = exceptionToString(e);
 			job.status = TaskJobStatus.ERROR;
 			Log2.log.error("Error during processing", null, job);
-			MessageAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();
+			AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();
 		}
 		job.end_date = System.currentTimeMillis();
 		if (worker.status != WorkerStatus.STOPPED) {
@@ -85,7 +85,7 @@ class WorkerEngine extends Thread {
 		} catch (Exception e) {
 			job.processing_error = exceptionToString(e);
 			Log2.log.error("Error during stop processing", e);
-			MessageAlert.create("Error during stop processing", false).addDump(job).addDump(worker).setThrowable(e).setServiceinformations(serviceinformations).send();
+			AdminMailAlert.create("Error during stop processing", false).addDump(job).addDump(worker).setThrowable(e).setServiceinformations(serviceinformations).send();
 		}
 		worker.status = WorkerStatus.STOPPED;
 	}

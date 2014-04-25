@@ -18,7 +18,7 @@ package hd3gtv.javasimpleservice;
 
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.SchemeWorkers;
-import hd3gtv.mydmam.mail.MessageAlert;
+import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.tools.TimeUtils;
 
 import java.net.Inet6Address;
@@ -154,7 +154,7 @@ public class IsAlive extends Thread {
 				sleep(period * 1000);
 			}
 		} catch (Exception e) {
-			MessageAlert.create("IsAlive error", true).setThrowable(e).send();
+			AdminMailAlert.create("IsAlive error", true).setThrowable(e).send();
 		}
 	}
 	

@@ -21,7 +21,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.mail.MessageAlert;
+import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.tools.TimeUtils;
 
@@ -174,7 +174,7 @@ public abstract class ServiceManager implements ServiceInformations {
 						stopService();
 					} catch (Exception e) {
 						Log2.log.error("Fatal service stopping", e);
-						MessageAlert.create("Can't stop the service", true).setThrowable(e).send();
+						AdminMailAlert.create("Can't stop the service", true).setThrowable(e).send();
 					}
 				}
 			};
@@ -183,7 +183,7 @@ public abstract class ServiceManager implements ServiceInformations {
 			
 		} catch (Exception e) {
 			Log2.log.error("Fatal service error", e, serviceinformations);
-			MessageAlert.create("Serious internal error", true).setThrowable(e).addDump(serviceinformations).send();
+			AdminMailAlert.create("Serious internal error", true).setThrowable(e).addDump(serviceinformations).send();
 			System.exit(2);
 		}
 		
@@ -242,7 +242,7 @@ public abstract class ServiceManager implements ServiceInformations {
 				Log2.log.error("Violent stop service", e);
 			} catch (Exception e) {
 				Log2.log.error("ServiceManager execution error...", e, getServiceinformations());
-				MessageAlert.create("Runtime Error Service", true).setThrowable(e).addDump(getServiceinformations()).send();
+				AdminMailAlert.create("Runtime Error Service", true).setThrowable(e).addDump(getServiceinformations()).send();
 			}
 		}
 	}

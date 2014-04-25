@@ -21,7 +21,7 @@ import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.mail.MessageAlert;
+import hd3gtv.mydmam.mail.AdminMailAlert;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -215,7 +215,7 @@ class BrokerQueue extends Thread {
 							task.pushToDatabase(mutator, Broker.ttl_task_duration);
 							Log2.log.info("This task is too old", task);
 							if (has_send_a_mail == false) {
-								MessageAlert.create("There is a too old task in queue", false).addDump(task).setServiceinformations(broker.serviceinformations).send();
+								AdminMailAlert.create("There is a too old task in queue", false).addDump(task).setServiceinformations(broker.serviceinformations).send();
 								has_send_a_mail = true;
 							}
 						}
@@ -246,7 +246,7 @@ class BrokerQueue extends Thread {
 			}
 		} catch (Exception e) {
 			Log2.log.error("Generic error during broker update", e);
-			MessageAlert.create("Error during broker update", true).setThrowable(e).setServiceinformations(broker.serviceinformations).send();
+			AdminMailAlert.create("Error during broker update", true).setThrowable(e).setServiceinformations(broker.serviceinformations).send();
 		}
 	}
 }

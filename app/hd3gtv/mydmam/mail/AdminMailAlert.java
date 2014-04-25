@@ -30,7 +30,7 @@ import java.util.ArrayList;
 
 import javax.mail.internet.InternetAddress;
 
-public class MessageAlert implements Log2Dumpable {
+public class AdminMailAlert implements Log2Dumpable {
 	
 	private static MailCenter mailcenter;
 	private static String hostname;
@@ -54,16 +54,16 @@ public class MessageAlert implements Log2Dumpable {
 		
 	}
 	
-	private MessageAlert() {
+	private AdminMailAlert() {
 	}
 	
-	public static MessageAlert create(String basemessage, boolean fatal_alert) {
-		MessageAlert message = new MessageAlert();
-		message.basemessage = basemessage;
-		message.fatal_alert = fatal_alert;
-		message.subject = new StringBuffer();
-		message.caller = (new Throwable()).getStackTrace()[1];
-		return message;
+	public static AdminMailAlert create(String basemessage, boolean fatal_alert) {
+		AdminMailAlert mail = new AdminMailAlert();
+		mail.basemessage = basemessage;
+		mail.fatal_alert = fatal_alert;
+		mail.subject = new StringBuffer();
+		mail.caller = (new Throwable()).getStackTrace()[1];
+		return mail;
 	}
 	
 	private Throwable throwable;
@@ -75,12 +75,12 @@ public class MessageAlert implements Log2Dumpable {
 	private boolean fatal_alert;
 	private ArrayList<File> files;
 	
-	public MessageAlert setThrowable(Throwable throwable) {
+	public AdminMailAlert setThrowable(Throwable throwable) {
 		this.throwable = throwable;
 		return this;
 	}
 	
-	public MessageAlert addDump(Log2Dump dump) {
+	public AdminMailAlert addDump(Log2Dump dump) {
 		if (dumps == null) {
 			dumps = new ArrayList<Log2Dump>();
 		}
@@ -90,14 +90,14 @@ public class MessageAlert implements Log2Dumpable {
 		return this;
 	}
 	
-	public MessageAlert addDump(Log2Dumpable dump) {
+	public AdminMailAlert addDump(Log2Dumpable dump) {
 		return addDump(dump.getLog2Dump());
 	}
 	
 	/**
 	 * @param file Size must to be lower to 1MB, else the file will no be incorporated.
 	 */
-	public MessageAlert addNewAttachFileToMail(File file) {
+	public AdminMailAlert addNewAttachFileToMail(File file) {
 		if (files == null) {
 			files = new ArrayList<File>();
 		}
@@ -117,7 +117,7 @@ public class MessageAlert implements Log2Dumpable {
 		return this;
 	}
 	
-	public MessageAlert setServiceinformations(ServiceInformations serviceinformations) {
+	public AdminMailAlert setServiceinformations(ServiceInformations serviceinformations) {
 		this.serviceinformations = serviceinformations;
 		return this;
 	}
