@@ -1,23 +1,24 @@
 package hd3gtv.mydmam.mail;
 
-import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 
+import java.util.HashMap;
 import java.util.Locale;
 
 import javax.mail.internet.InternetAddress;
 
 public class EndUserBaseMail implements Log2Dumpable {
 	
+	// TODO EN messages
 	private static MailCenter mailcenter;
-	private static InternetAddress admin_addr;
+	// private static InternetAddress admin_addr;
 	
 	static {
 		try {
 			mailcenter = MailCenter.getGlobal();
-			admin_addr = new InternetAddress(Configuration.global.getValue("service", "administrator_mail", "root@localhost"));
+			// admin_addr = new InternetAddress(Configuration.global.getValue("service", "administrator_mail", "root@localhost"));
 		} catch (Exception e) {
 			Log2.log.error("Can't init message", e);
 		}
@@ -63,54 +64,25 @@ public class EndUserBaseMail implements Log2Dumpable {
 	}
 	
 	public void send() {
+		send(new HashMap<Object, Object>());
+	}
+	
+	public void send(HashMap<Object, Object> mail_vars) {
+		if (mail_vars == null) {
+			throw new NullPointerException("\"mail_vars\" can't to be null");
+		}
 		try {
-			/**
-			 * Subject
-			 */
-			/*if (fatal_alert) {
-				subject.append("Important ! ");
-			}
-			if (serviceinformations != null) {
-				subject.append("[");
-				subject.append(serviceinformations.getApplicationShortName());
-				subject.append("] ");
-			}
-			subject.append("General error: ");
-			subject.append(basemessage);
-			
-			*/
-			MailContent mail = mailcenter.prepareMessage("", admin_addr);
-			
-			/**
-			 * Message
-			 */
-			/*StringBuffer plaintext = new StringBuffer();
-			plaintext.append("An error occurred when running the application.");
-			plaintext.append("\r\n");
-			
-			if (serviceinformations != null) {
-				plaintext.append(serviceinformations.getApplicationName());
-				plaintext.append(" - version ");
-				plaintext.append(serviceinformations.getApplicationVersion());
-				plaintext.append("\r\n");
-				plaintext.append(serviceinformations.getApplicationCopyright());
-				plaintext.append("\r\n");
-			}
-			
-			mail.setPlaintext(plaintext.toString());
-			
-			if (fatal_alert) {
-				mail.setMailPriority(MailPriority.HIGHEST);
-			}
-			
-			mail.setFiles(files);*/
-			
-			// mail.send();
+			MailTemplateEngine mte = new MailTemplateEngine(mail_template);
+			mte.process(mail_vars);
+			MailContent mail = mailcenter.prepareMessage(mte.getSubject(), to);
+			mail.setMailPriority(priority);
+			mail.setHtmltext(mte.getHtml_text());
+			mail.setPlaintext(mte.getPlain_text());
+			mail.send();
 			
 			Log2.log.info("Send an user mail", this);
 		} catch (Exception e) {
 			Log2.log.error("Fail to send an user mail", e, this);
 		}
 	}
-	
 }

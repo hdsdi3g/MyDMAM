@@ -26,13 +26,18 @@ import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
 import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Properties;
 
 import javax.mail.internet.InternetAddress;
 
+import play.Play;
 import play.data.validation.Email;
 import play.data.validation.Required;
 import play.i18n.Lang;
+import play.i18n.Messages;
+import play.mvc.Router;
 
 @AuthorisedForAdminController
 public class UserProfile extends CrudOrmModel {
@@ -47,24 +52,31 @@ public class UserProfile extends CrudOrmModel {
 	
 	@PublishedMethod
 	public void sendTestMail() throws Exception {
-		
 		InternetAddress email_addr = new InternetAddress(email);
-		
 		EndUserBaseMail mail;
+		HashMap<Object, Object> variables = new HashMap<Object, Object>();
+		// TODO EN messages
 		try {
-			/**
-			 * Play scope
-			 */
-			mail = EndUserBaseMail.create(Lang.getLocale(), email_addr, "crud.field.userprofile.sendTestMail.subject");
+			if (Play.initialized) {
+				mail = EndUserBaseMail.create(Lang.getLocale(), email_addr, "usertestmail");
+				Properties messages = Messages.all(play.i18n.Lang.get());
+				
+				String real_message = messages.getProperty("crud.field.userprofile.sendTestMail.by", "");
+				variables.put("me_has_sent_this_message", String.format(real_message, longname));
+				variables.put("sitename", messages.getProperty("site.name", "[MyDMAM]"));
+				variables.put("sitefooter", messages.getProperty("site.name", "[MyDMAM]") + " :: " + Router.getFullUrl("Application.index"));
+			} else {
+				throw new Exception();
+			}
 		} catch (Exception e) {
 			/**
 			 * Outside Play scope
 			 */
-			mail = EndUserBaseMail.create(Locale.getDefault(), email_addr, "crud.field.userprofile.sendTestMail.subject");
+			mail = EndUserBaseMail.create(Locale.getDefault(), email_addr, "usertestmail");
+			variables.put("sitename", "[MyDMAM]");
+			variables.put("sitefooter", "");
 		}
-		// XXX
-		
-		mail.send();
+		mail.send(variables);
 	}
 	
 	protected String getCF_Name() {

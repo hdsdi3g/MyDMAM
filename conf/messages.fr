@@ -246,3 +246,4 @@ crud.field.userprofile.issaved=Les préférences sont enregistrées
 crud.field.userprofile.sendTestMail=Envoyer un mail de test
 crud.field.userprofile.sendTestMail.done=Envoyé
 crud.field.userprofile.sendTestMail.error=Erreur durant l'envoi
+crud.field.userprofile.sendTestMail.by=Ce mail à été envoyé automatiquement par %s
