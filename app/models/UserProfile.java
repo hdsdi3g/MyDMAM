@@ -18,6 +18,7 @@
 package models;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.auth.AuthenticationUser;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.annotations.AuthorisedForAdminController;
@@ -29,6 +30,7 @@ import hd3gtv.mydmam.mail.EndUserBaseMail;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
 import javax.mail.internet.InternetAddress;
 
@@ -50,17 +52,24 @@ public class UserProfile extends CrudOrmModel {
 	@TypeEmail
 	public String email;
 	
+	@ReadOnly
+	public String language;
+	
 	@PublishedMethod
 	public void sendTestMail() throws Exception {
 		InternetAddress email_addr = new InternetAddress(email);
+		
 		EndUserBaseMail mail;
+		if (language == null) {
+			mail = EndUserBaseMail.create(Locale.getDefault(), email_addr, "usertestmail");
+		} else {
+			mail = EndUserBaseMail.create(Lang.getLocale(language), email_addr, "usertestmail");
+		}
+		
 		HashMap<Object, Object> variables = new HashMap<Object, Object>();
-		// TODO EN messages
 		try {
 			if (Play.initialized) {
-				mail = EndUserBaseMail.create(Lang.getLocale(), email_addr, "usertestmail");
-				Properties messages = Messages.all(play.i18n.Lang.get());
-				
+				Properties messages = Messages.all(Lang.get());
 				String real_message = messages.getProperty("crud.field.userprofile.sendTestMail.by", "");
 				variables.put("me_has_sent_this_message", String.format(real_message, longname));
 				variables.put("sitename", messages.getProperty("site.name", "[MyDMAM]"));
@@ -72,7 +81,6 @@ public class UserProfile extends CrudOrmModel {
 			/**
 			 * Outside Play scope
 			 */
-			mail = EndUserBaseMail.create(Locale.getDefault(), email_addr, "usertestmail");
 			variables.put("sitename", "[MyDMAM]");
 			variables.put("sitefooter", "");
 		}
@@ -121,6 +129,36 @@ public class UserProfile extends CrudOrmModel {
 			engine.saveInternalElement();
 		}
 		return engine;
+	}
+	
+	public static class AsyncSave implements Callable<Boolean> {
+		
+		private AuthenticationUser job_authuser;
+		private String language;
+		
+		public AsyncSave(AuthenticationUser job_authuser, String language) {
+			this.job_authuser = job_authuser;
+			if (job_authuser == null) {
+				throw new NullPointerException("\"job_authuser\" can't to be null");
+			}
+			this.language = language;
+			if (language == null) {
+				throw new NullPointerException("\"language\" can't to be null");
+			}
+		}
+		
+		public Boolean call() throws Exception {
+			CrudOrmEngine<UserProfile> userprofile = UserProfile.getORMEngine(UserProfile.prepareKey(job_authuser.getLogin()));
+			if (job_authuser.getMail() != null) {
+				if (userprofile.getInternalElement().email == null) {
+					userprofile.getInternalElement().email = job_authuser.getMail();
+				}
+			}
+			userprofile.getInternalElement().longname = job_authuser.getFullName();
+			userprofile.getInternalElement().language = language;
+			userprofile.saveInternalElement();
+			return true;
+		}
 	}
 	
 }

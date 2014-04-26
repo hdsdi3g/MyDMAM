@@ -11,7 +11,6 @@ import javax.mail.internet.InternetAddress;
 
 public class EndUserBaseMail implements Log2Dumpable {
 	
-	// TODO EN messages
 	private static MailCenter mailcenter;
 	// private static InternetAddress admin_addr;
 	
@@ -73,6 +72,7 @@ public class EndUserBaseMail implements Log2Dumpable {
 		}
 		try {
 			MailTemplateEngine mte = new MailTemplateEngine(mail_template);
+			mte.setLocale(locale);
 			mte.process(mail_vars);
 			MailContent mail = mailcenter.prepareMessage(mte.getSubject(), to);
 			mail.setMailPriority(priority);

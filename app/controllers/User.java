@@ -17,18 +17,17 @@
 
 package controllers;
 
-import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.ModelClassResolver;
 import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import models.UserProfile;
 import play.data.binding.Binder;
@@ -36,6 +35,7 @@ import play.data.binding.ParamNode;
 import play.data.binding.ParamNode.RemovedNode;
 import play.data.validation.Validation;
 import play.i18n.Messages;
+import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
 
@@ -129,6 +129,28 @@ public class User extends Controller {
 		redirect("User.index");
 	}
 	
+	private static class AsyncAction implements Callable<Boolean> {
+		
+		private CrudOrmModel element;
+		private Method method;
+		
+		public AsyncAction(CrudOrmModel element, Method method) {
+			this.element = element;
+			if (element == null) {
+				throw new NullPointerException("\"element\" can't to be null");
+			}
+			this.method = method;
+			if (method == null) {
+				throw new NullPointerException("\"method\" can't to be null");
+			}
+		}
+		
+		public Boolean call() throws Exception {
+			method.invoke(element);
+			return true;
+		}
+	}
+	
 	public static void action(String objtype, String key, String targetmethod) throws Exception {
 		String username = Secure.connected();
 		String real_key = UserProfile.prepareKey(username);
@@ -154,7 +176,10 @@ public class User extends Controller {
 			notFound();
 		}
 		
-		try {
+		JobsPlugin.executor.submit(new AsyncAction(element, method));
+		flash.success(Admin.getActionFlashMessage(objtype, targetmethod, null));
+		
+		/*try {
 			method.invoke(element);
 			flash.success(Admin.getActionFlashMessage(objtype, targetmethod, null));
 		} catch (InvocationTargetException e) {
@@ -163,7 +188,7 @@ public class User extends Controller {
 		} catch (Exception e) {
 			Log2.log.error("Error during invoke", e);
 			flash.error(Admin.getActionFlashMessage(objtype, targetmethod, e));
-		}
+		}*/
 		redirect("User.index", objtype);
 	}
 }

@@ -9,12 +9,10 @@ import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.auth.AuthenticationUser;
 import hd3gtv.mydmam.auth.Authenticator;
 import hd3gtv.mydmam.auth.InvalidAuthenticatorUserException;
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.Callable;
 
 import models.ACLGroup;
 import models.ACLUser;
@@ -27,6 +25,7 @@ import org.json.simple.parser.ParseException;
 import play.Play;
 import play.data.validation.Required;
 import play.data.validation.Validation;
+import play.i18n.Lang;
 import play.jobs.JobsPlugin;
 import play.libs.Crypto;
 import play.libs.Time;
@@ -272,20 +271,7 @@ public class Secure extends Controller {
 		/**
 		 * Async db update : don't slowdown login/auth with this.
 		 */
-		final AuthenticationUser job_authuser = authuser;
-		JobsPlugin.executor.submit(new Callable<Boolean>() {
-			public Boolean call() throws Exception {
-				CrudOrmEngine<UserProfile> userprofile = UserProfile.getORMEngine(UserProfile.prepareKey(job_authuser.getLogin()));
-				if (job_authuser.getMail() != null) {
-					if (userprofile.getInternalElement().email == null) {
-						userprofile.getInternalElement().email = job_authuser.getMail();
-					}
-				}
-				userprofile.getInternalElement().longname = job_authuser.getFullName();
-				userprofile.saveInternalElement();
-				return true;
-			}
-		});
+		JobsPlugin.executor.submit(new UserProfile.AsyncSave(authuser, Lang.getLocale().getLanguage()));
 		
 		session.put("username", acluser.login);
 		session.put("longname", acluser.fullname);

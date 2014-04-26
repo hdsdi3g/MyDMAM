@@ -27,6 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
@@ -211,9 +212,18 @@ public class MailTemplateEngine {
 		
 		File message_file = new File(template_directory.getAbsolutePath() + File.separator + BASE_TEMPLATE_MESSAGES + "." + locale.getLanguage());
 		if (message_file.exists() == false) {
+			Log2.log.error("No valid message file for " + locale.getLanguage() + " lang", null);
 			message_file = new File(template_directory.getAbsolutePath() + File.separator + BASE_TEMPLATE_MESSAGES + "." + Locale.ENGLISH.getLanguage());
 			if (message_file.exists() == false) {
-				throw new ClassNotFoundException("No valid message file for " + locale.getLanguage() + " lang");
+				File[] all_files = template_directory.listFiles(new FilenameFilter() {
+					public boolean accept(File dir, String name) {
+						return name.startsWith(BASE_TEMPLATE_MESSAGES);
+					}
+				});
+				if (all_files.length == 0) {
+					throw new ClassNotFoundException("No valid message file for template");
+				}
+				message_file = all_files[0];
 			}
 		}
 		
