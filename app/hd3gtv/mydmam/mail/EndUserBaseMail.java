@@ -6,6 +6,7 @@ import hd3gtv.log2.Log2Dumpable;
 
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map.Entry;
 
 import javax.mail.internet.InternetAddress;
 
@@ -80,7 +81,11 @@ public class EndUserBaseMail implements Log2Dumpable {
 			mail.setPlaintext(mte.getPlain_text());
 			mail.send();
 			
-			Log2.log.info("Send an user mail", this);
+			Log2Dump dump = getLog2Dump();
+			for (Entry<Object, Object> entry : mail_vars.entrySet()) {
+				dump.add("mail_vars: " + (String) entry.getKey(), entry.getValue());
+			}
+			Log2.log.info("Send an user mail", dump);
 		} catch (Exception e) {
 			Log2.log.error("Fail to send an user mail", e, this);
 		}

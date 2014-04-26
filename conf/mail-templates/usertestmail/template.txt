@@ -21,5 +21,4 @@ ${testmessage}
 ###
 ## ${me_has_sent_this_message}
 ## ${please_not_respond}
-## ${sitefooter}
 ###

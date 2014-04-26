@@ -203,12 +203,7 @@ public class MailTemplateEngine {
 		/**
 		 * Prepare template variables and messages
 		 */
-		HashMap<Object, Object> real_variables;
-		if (variables != null) {
-			real_variables = (HashMap<Object, Object>) variables.clone();
-		} else {
-			real_variables = new HashMap<Object, Object>();
-		}
+		HashMap<Object, Object> all_variables = new HashMap<Object, Object>();
 		
 		File message_file = new File(template_directory.getAbsolutePath() + File.separator + BASE_TEMPLATE_MESSAGES + "." + locale.getLanguage());
 		if (message_file.exists() == false) {
@@ -231,13 +226,17 @@ public class MailTemplateEngine {
 		Properties message = new OrderSafeProperties();
 		message.load(message_fis);
 		message_fis.close();
-		real_variables.putAll(message);
+		
+		all_variables.putAll(message);
+		if (variables != null) {
+			all_variables.putAll(variables);
+		}
 		
 		/**
 		 * Process templates
 		 */
-		html_text = process(template_engine.createTemplate(new File(template_directory.getAbsolutePath() + File.separator + TEMPLATE_HTML_FILE)), real_variables);
-		ArrayList<String> plain_text_list = process(template_engine.createTemplate(new File(template_directory.getAbsolutePath() + File.separator + TEMPLATE_TXT_FILE)), real_variables);
+		html_text = process(template_engine.createTemplate(new File(template_directory.getAbsolutePath() + File.separator + TEMPLATE_HTML_FILE)), all_variables);
+		ArrayList<String> plain_text_list = process(template_engine.createTemplate(new File(template_directory.getAbsolutePath() + File.separator + TEMPLATE_TXT_FILE)), all_variables);
 		
 		StringBuffer sb = new StringBuffer();
 		for (int pos = 0; pos < plain_text_list.size(); pos++) {
@@ -246,7 +245,7 @@ public class MailTemplateEngine {
 		}
 		plain_text = sb.toString();
 		
-		ArrayList<String> subject_text_list = process(template_engine.createTemplate(new File(template_directory.getAbsolutePath() + File.separator + TEMPLATE_SUBJECT_FILE)), real_variables);
+		ArrayList<String> subject_text_list = process(template_engine.createTemplate(new File(template_directory.getAbsolutePath() + File.separator + TEMPLATE_SUBJECT_FILE)), all_variables);
 		sb = new StringBuffer();
 		for (int pos = 0; pos < subject_text_list.size(); pos++) {
 			sb.append(subject_text_list.get(pos));

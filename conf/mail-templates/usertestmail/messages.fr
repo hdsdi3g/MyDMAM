@@ -1,4 +1,4 @@
 mailtest=Test d'envoi de mail
 testmessage=Ce mail a été envoyé pour vérifier le bon fonctionnement du moteur de mail, ainsi que votre capacité à pouvoir recevoir et lire ce mail.
-please_not_respond=Ce mail étant envoyé automatiquement, merci de ne pas y répondre.
+please_not_respond=Merci de ne pas y répondre à ce mail.
 me_has_sent_this_message=Vous devez avoir normalement provoqué l'envoi de ce mail.

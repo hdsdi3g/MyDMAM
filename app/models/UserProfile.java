@@ -39,7 +39,6 @@ import play.data.validation.Email;
 import play.data.validation.Required;
 import play.i18n.Lang;
 import play.i18n.Messages;
-import play.mvc.Router;
 
 @AuthorisedForAdminController
 public class UserProfile extends CrudOrmModel {
@@ -69,11 +68,10 @@ public class UserProfile extends CrudOrmModel {
 		HashMap<Object, Object> variables = new HashMap<Object, Object>();
 		try {
 			if (Play.initialized) {
-				Properties messages = Messages.all(Lang.get());
+				Properties messages = Messages.all(language);
 				String real_message = messages.getProperty("crud.field.userprofile.sendTestMail.by", "");
 				variables.put("me_has_sent_this_message", String.format(real_message, longname));
 				variables.put("sitename", messages.getProperty("site.name", "[MyDMAM]"));
-				variables.put("sitefooter", messages.getProperty("site.name", "[MyDMAM]") + " :: " + Router.getFullUrl("Application.index"));
 			} else {
 				throw new Exception();
 			}
@@ -82,7 +80,6 @@ public class UserProfile extends CrudOrmModel {
 			 * Outside Play scope
 			 */
 			variables.put("sitename", "[MyDMAM]");
-			variables.put("sitefooter", "");
 		}
 		mail.send(variables);
 	}

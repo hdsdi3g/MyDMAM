@@ -1,4 +1,4 @@
 mailtest=Send test mail
 testmessage=This email was sent to check the proper functioning of the mail engine, as well as your ability to receive and read this email.
-please_not_respond=This email is automatically sent, thank you not to answer.
+please_not_respond=Thank you not to answer to this email.
 me_has_sent_this_message=You should normally have caused the sending of this email.
