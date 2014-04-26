@@ -145,6 +145,9 @@ $(document).ready(function() {
 						<li>
 							<a href="@{Service.index()}">&{'service.pagename'}</a>
 						</li>
+						<li>
+							<a href="@{Service.playjobs()}">&{'service.playjobs.pagename'}</a>
+						</li>
 					#{/secure.check}
 
 					#{secure.check 'adminCrud'}

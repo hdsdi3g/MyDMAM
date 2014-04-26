@@ -17,7 +17,10 @@
 package controllers;
 
 import hd3gtv.javasimpleservice.IsAlive;
+import play.Play;
+import play.PlayPlugin;
 import play.i18n.Messages;
+import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
 
@@ -35,4 +38,15 @@ public class Service extends Controller {
 		renderJSON(IsAlive.getLastStatusWorkers().toJSONString());
 	}
 	
+	@Check("showStatus")
+	public static void playjobs() throws Exception {
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.playjobs.pagename"));
+		
+		PlayPlugin plugin = Play.pluginCollection.getPluginInstance(JobsPlugin.class);
+		if (plugin == null) {
+			throw new NullPointerException("No JobsPlugin enabled");
+		}
+		String rawplaystatus = plugin.getStatus();
+		render(rawplaystatus);
+	}
 }
