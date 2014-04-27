@@ -191,4 +191,13 @@ public class User extends Controller {
 		}*/
 		redirect("User.index", objtype);
 	}
+	
+	public void notificationslist() throws Exception {
+		// TODO
+	}
+	
+	public void notificationsupdate() throws Exception {
+		// TODO
+	}
+	
 }
