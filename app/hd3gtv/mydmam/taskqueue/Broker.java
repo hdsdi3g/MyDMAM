@@ -30,6 +30,8 @@ import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.json.simple.JSONArray;
@@ -624,6 +626,29 @@ public class Broker {
 			}
 		}
 		return jo;
+	}
+	
+	/**
+	 * @return never null if keys is not empty
+	 */
+	public static LinkedHashMap<String, TaskJobStatus> getStatusForTasksOrJobsByKeys(List<String> keys) throws ConnectionException {
+		if (keys == null) {
+			return null;
+		}
+		if (keys.size() == 0) {
+			return null;
+		}
+		LinkedHashMap<String, TaskJobStatus> status = new LinkedHashMap<String, TaskJobStatus>(keys.size());
+		
+		Rows<String, String> rows = keyspace.prepareQuery(CF_TASKQUEUE).getKeySlice(keys).withColumnSlice("status").execute().getResult();
+		if (rows.isEmpty()) {
+			return status;
+		}
+		for (Row<String, String> row : rows) {
+			status.put(row.getKey(), TaskJobStatus.pullFromDatabase(row.getColumns()));
+		}
+		
+		return status;
 	}
 	
 	/**

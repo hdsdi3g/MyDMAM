@@ -18,16 +18,23 @@ package hd3gtv.mydmam.mail.notification;
 
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.taskqueue.Broker;
+import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import models.UserProfile;
 
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -102,7 +109,7 @@ public class Notification {
 		return result;
 	}
 	
-	public void initDefault() {
+	private void initDefault() {
 		key = UUID.randomUUID().toString();
 		observers = new ArrayList<UserProfile>(1);
 		creator = null;
@@ -124,7 +131,7 @@ public class Notification {
 		notify_if_commented = new ArrayList<UserProfile>(1);
 	}
 	
-	public void importFromDb(JSONObject record) throws ConnectionException {
+	private Notification importFromDb(JSONObject record) throws ConnectionException {
 		observers = getUsersFromDb((JSONArray) record.get("observers"));
 		creator = user_profile_orm_engine.read((String) record.get("creator"));
 		linked_tasks_keys = convertToListString((JSONArray) record.get("linked_tasks_keys"));
@@ -143,9 +150,10 @@ public class Notification {
 		notify_if_readed = getUsersFromDb((JSONArray) record.get("notify_if_readed"));
 		notify_if_closed = getUsersFromDb((JSONArray) record.get("notify_if_closed"));
 		notify_if_commented = getUsersFromDb((JSONArray) record.get("notify_if_commented"));
+		return this;
 	}
 	
-	public void exportToDb(JSONObject record) {
+	private Notification exportToDb(JSONObject record) {
 		record.put("observers", getUsersToSetInDb(observers));
 		
 		if (creator == null) {
@@ -182,6 +190,7 @@ public class Notification {
 		record.put("notify_if_readed", getUsersToSetInDb(notify_if_readed));
 		record.put("notify_if_closed", getUsersToSetInDb(notify_if_closed));
 		record.put("notify_if_commented", getUsersToSetInDb(notify_if_commented));
+		return this;
 	}
 	
 	private Notification() throws ConnectionException, IOException {
@@ -192,16 +201,14 @@ public class Notification {
 	 * Sorted by created_at (recent first)
 	 */
 	public static List<Notification> getAllFromDatabase(int from, int size) throws ConnectionException, IOException {
+		if (size < 1) {
+			throw new IndexOutOfBoundsException("size must to be up to 0: " + size);
+		}
 		ArrayList<Notification> all_notifications = new ArrayList<Notification>(size);
 		Client client = Elasticsearch.getClient();
 		SearchRequestBuilder request = client.prepareSearch();
 		request.setIndices(ES_INDEX);
 		request.setTypes(ES_DEFAULT_TYPE);
-		
-		/*BoolQueryBuilder query = QueryBuilders.boolQuery();
-		for (int pos = 0; pos < pathelementskeys.length; pos++) {
-			query.should(QueryBuilders.termQuery("origin.key", pathelementskeys[pos]));
-		}*/
 		request.setQuery(QueryBuilders.matchAllQuery());
 		request.addSort("created_at", SortOrder.DESC);
 		request.setFrom(from);
@@ -219,7 +226,17 @@ public class Notification {
 	}
 	
 	public static Notification create(UserProfile creator, List<String> linked_tasks_keys, String creating_comment) throws ConnectionException, IOException {
+		if (creator == null) {
+			throw new NullPointerException("\"creator\" can't to be null");
+		}
+		if (linked_tasks_keys == null) {
+			throw new NullPointerException("\"linked_tasks_keys\" can't to be null");
+		}
+		if (creating_comment == null) {
+			throw new NullPointerException("\"creating_comment\" can't to be null");
+		}
 		Notification notification = new Notification();
+		notification.initDefault();
 		notification.observers.add(creator);
 		notification.creator = creator;
 		notification.linked_tasks_keys = linked_tasks_keys;
@@ -255,36 +272,57 @@ public class Notification {
 	}
 	
 	public Notification updateNotifyErrorForUser(UserProfile user, boolean notify) {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
 		updateUserList(user, notify_if_error, notify);
 		return this;
 	}
 	
 	public Notification updateNotifyDoneForUser(UserProfile user, boolean notify) {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
 		updateUserList(user, notify_if_done, notify);
 		return this;
 	}
 	
 	public Notification updateNotifyClosedForUser(UserProfile user, boolean notify) {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
 		updateUserList(user, notify_if_closed, notify);
 		return this;
 	}
 	
 	public Notification updateNotifyReadedForUser(UserProfile user, boolean notify) {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
 		updateUserList(user, notify_if_readed, notify);
 		return this;
 	}
 	
 	public Notification updateNotifyCommentedForUser(UserProfile user, boolean notify) {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
 		updateUserList(user, notify_if_commented, notify);
 		return this;
 	}
 	
 	public Notification updateObserversForUser(UserProfile user, boolean observer) {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
 		updateUserList(user, observers, observer);
 		return this;
 	}
 	
 	public Notification switchReadStatus(UserProfile user) {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
 		readed_at = System.currentTimeMillis();
 		first_reader = user;
 		is_read = true;
@@ -292,6 +330,9 @@ public class Notification {
 	}
 	
 	public Notification switchCloseStatus(UserProfile user) {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
 		closed_at = System.currentTimeMillis();
 		closed_by = user;
 		is_close = true;
@@ -299,16 +340,74 @@ public class Notification {
 	}
 	
 	public Notification updateComment(UserProfile user, String comment) {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
 		if (comment == null) {
-			return this;
+			throw new NullPointerException("\"comment\" can't to be null");
 		}
 		commented_at = System.currentTimeMillis();
 		users_comment = comment.trim();
 		return this;
 	}
 	
-	// TODO search linked_tasks_keys global status ?
-	// private List<String> linked_tasks_keys;
+	public TaskJobStatus getSummaryTaskJobStatus() throws ConnectionException {
+		LinkedHashMap<String, TaskJobStatus> status = Broker.getStatusForTasksOrJobsByKeys(linked_tasks_keys);
+		boolean has_waiting = false;
+		boolean has_done = false;
+		boolean has_processing = false;
+		for (Map.Entry<String, TaskJobStatus> entry : status.entrySet()) {
+			if (entry.getValue() == TaskJobStatus.TOO_OLD) {
+				return TaskJobStatus.ERROR;// Case 1
+			} else if (entry.getValue() == TaskJobStatus.ERROR) {
+				return TaskJobStatus.ERROR;// Case 1
+			} else if (entry.getValue() == TaskJobStatus.POSTPONED) {
+				has_waiting = true;
+			} else if (entry.getValue() == TaskJobStatus.WAITING) {
+				has_waiting = true;
+			} else if (entry.getValue() == TaskJobStatus.DONE) {
+				has_done = true;
+			} else if (entry.getValue() == TaskJobStatus.CANCELED) {
+				has_done = true;
+			} else if (entry.getValue() == TaskJobStatus.STOPPED) {
+				has_done = true;
+			} else if (entry.getValue() == TaskJobStatus.PROCESSING) {
+				has_processing = true;
+			} else if (entry.getValue() == TaskJobStatus.PREPARING) {
+				has_processing = true;
+			}
+		}
+		/*
+		problems	waiting	done	processing	Return
+		0			0		0		0			canceled: Case 5
+		0			0		1		0			done: Case 4
+		0			1		0		0			waiting: Case 3
+		0			1		1		0			waiting: Case 3
+		0			0		0		1			processing: Case 2
+		0			0		1		1			processing: Case 2
+		0			1		0		1			processing: Case 2
+		0			1		1		1			processing: Case 2
+		1			0		0		0			problem: Case 1
+		1			0		1		0			problem: Case 1
+		1			1		0		0			problem: Case 1
+		1			1		1		0			problem: Case 1
+		1			0		0		1			problem: Case 1
+		1			0		1		1			problem: Case 1
+		1			1		0		1			problem: Case 1
+		1			1		1		1			problem: Case 1
+		*/
+		if (has_processing) {// Case 2
+			return TaskJobStatus.PROCESSING;
+		}
+		if (has_waiting) {// Case 3
+			return TaskJobStatus.WAITING;
+		}
+		if (has_done) {// Case 4
+			return TaskJobStatus.DONE;
+		} else {// Case 5
+			return TaskJobStatus.CANCELED;
+		}
+	}
 	
 	public void save() {
 		Client client = Elasticsearch.getClient();
@@ -320,11 +419,49 @@ public class Notification {
 		client.index(ir);
 	}
 	
-	public static Notification readFromDatabase() throws ConnectionException, IOException {
+	public static Notification getFromDatabase(String key) throws ConnectionException, IOException {
+		if (key == null) {
+			throw new NullPointerException("\"key\" can't to be null");
+		}
+		Client client = Elasticsearch.getClient();
+		GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, key)).actionGet();
+		if (response.isExists() == false) {
+			return null;
+		}
 		Notification notification = new Notification();
-		notification.initDefault();
-		// TODO
+		notification.importFromDb(Elasticsearch.getJSONFromSimpleResponse(response));
 		return notification;
 	}
 	
+	public static List<Notification> getFromDatabaseByObserver(UserProfile user) throws ConnectionException, IOException {
+		if (user == null) {
+			throw new NullPointerException("\"user\" can't to be null");
+		}
+		Client client = Elasticsearch.getClient();
+		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(ES_INDEX);
+		request.setTypes(ES_DEFAULT_TYPE);
+		request.addSort("created_at", SortOrder.DESC);
+		request.setQuery(QueryBuilders.termQuery("observers", user.key));
+		
+		/*
+		 * QueryBuilders.boolQuery().must()
+			query.should(QueryBuilders.termQuery("origin.key", pathelementskeys[pos]));
+		 * QueryStringQueryBuilder sqqb = new QueryStringQueryBuilder("\"" + pathfilename + "\"");
+		sqqb.defaultField("path");
+		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())).must(sqqb));
+		*/
+		
+		SearchResponse response = request.execute().actionGet();
+		if (response.getHits().totalHits() == 0) {
+			return new ArrayList<Notification>(1);
+		}
+		SearchHit[] hits = response.getHits().hits();
+		ArrayList<Notification> notifications = new ArrayList<Notification>(hits.length);
+		for (int pos = 0; pos < hits.length; pos++) {
+			Notification notification = new Notification();
+			notifications.add(notification.importFromDb(Elasticsearch.getJSONFromSimpleResponse(hits[pos])));
+		}
+		return notifications;
+	}
 }
