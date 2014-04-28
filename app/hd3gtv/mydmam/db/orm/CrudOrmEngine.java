@@ -93,6 +93,26 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 	}
 	
 	/**
+	 * Static call
+	 */
+	public final List<T> read(String... keys) throws ConnectionException {
+		if (keys.length == 0) {
+			return null;
+		}
+		return cassandra.pullObjects(keys);
+	}
+	
+	/**
+	 * Static call
+	 */
+	public final List<T> read(List<String> keys) throws ConnectionException {
+		if (keys.size() == 0) {
+			return null;
+		}
+		return read(keys.toArray(new String[keys.size()]));
+	}
+	
+	/**
 	 * Dynamic call, reaffect internal element.
 	 */
 	public final T create() throws Exception {
