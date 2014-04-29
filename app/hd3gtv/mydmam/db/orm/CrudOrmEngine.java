@@ -16,14 +16,23 @@
 */
 package hd3gtv.mydmam.db.orm;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.CassandraDb;
+
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ConsistencyLevel;
+import com.netflix.astyanax.recipes.locks.BusyLockException;
+import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
+import com.netflix.astyanax.recipes.locks.StaleLockException;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 public class CrudOrmEngine<T extends CrudOrmModel> {
@@ -155,6 +164,50 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 	 */
 	public final void truncate() throws ConnectionException {
 		cassandra.truncateColumnFamily();
+	}
+	
+	private ColumnPrefixDistributedRowLock<String> lock;
+	
+	/**
+	 * 1 second
+	 */
+	public boolean aquireLock() throws ConnectionException {
+		return aquireLock(1, TimeUnit.SECONDS);
+	}
+	
+	public boolean aquireLock(long timeout, TimeUnit unit) {
+		try {
+			if (lock != null) {
+				releaseLock();
+			}
+			lock = new ColumnPrefixDistributedRowLock<String>(CassandraDb.getkeyspace(), cassandra.getColumnfamily(), "CRUD_ORM_LOCK_FOR_" + element.getClass().getSimpleName());
+			lock.withConsistencyLevel(ConsistencyLevel.CL_ALL);
+			lock.expireLockAfter(timeout, unit);
+			lock.failOnStaleLock(false);
+			lock.acquire();
+			return true;
+		} catch (StaleLockException e) {
+			// The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
+			Log2.log.error("Can't lock task : abandoned lock...", e, new Log2Dump("class", element.getClass().getName()));
+		} catch (BusyLockException e) {
+			Log2.log.error("Can't lock task, this category is currently locked...", e, new Log2Dump("class", element.getClass().getName()));
+		} catch (Exception e) {
+			Log2.log.error("Generic error", e, new Log2Dump("class", element.getClass().getName()));
+		} finally {
+			releaseLock();
+		}
+		return false;
+	}
+	
+	public void releaseLock() {
+		try {
+			if (lock != null) {
+				lock.release();
+			}
+			lock = null;
+		} catch (Exception e) {
+			Log2.log.error("Can't relase properly lock", e, new Log2Dump("class", element.getClass().getName()));
+		}
 	}
 	
 }

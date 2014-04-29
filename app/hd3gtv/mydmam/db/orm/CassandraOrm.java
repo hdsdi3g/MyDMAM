@@ -511,6 +511,10 @@ public class CassandraOrm<T extends OrmModel> {
 		}
 	}
 	
+	ColumnFamily<String, String> getColumnfamily() {
+		return columnfamily;
+	}
+	
 	private boolean isColumnFamilyExists() throws ConnectionException {
 		return CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), columnfamily.getName());
 	}

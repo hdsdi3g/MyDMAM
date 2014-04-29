@@ -503,14 +503,17 @@ public class Notification {
 		Map<UserProfile, Map<NotifyReason, List<Notification>>> usersnotifylist = new HashMap<UserProfile, Map<NotifyReason, List<Notification>>>();
 		
 		CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
-		// TODO add lock
+		if (orm_engine.aquireLock() == false) {
+			return usersnotifylist;
+		}
+		
 		List<CrudOrmModel> raw_notify_list = orm_engine.list();
 		if (raw_notify_list == null) {
-			// TODO remove lock
+			orm_engine.releaseLock();
 			return usersnotifylist;
 		}
 		if (raw_notify_list.size() == 0) {
-			// TODO remove lock
+			orm_engine.releaseLock();
 			return usersnotifylist;
 		}
 		Map<Notification, List<NotifyReason>> globalnotifylists = new HashMap<Notification, List<NotifyReason>>();
@@ -525,7 +528,8 @@ public class Notification {
 			}
 			orm_engine.delete(nu.key);
 		}
-		// TODO remove lock
+		
+		orm_engine.releaseLock();
 		
 		if (globalnotifylists.isEmpty()) {
 			return usersnotifylist;
