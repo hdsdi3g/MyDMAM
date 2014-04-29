@@ -20,6 +20,7 @@ import hd3gtv.mydmam.db.orm.annotations.HiddenCompactView;
 import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
 
 import java.util.Date;
+import java.util.zip.CRC32;
 
 public abstract class CrudOrmModel extends OrmModel {
 	
@@ -48,4 +49,40 @@ public abstract class CrudOrmModel extends OrmModel {
 	public void onAfterSave() {
 	}
 	
+	/**
+	 * Key based (via CRC32)
+	 */
+	public int hashCode() {
+		if (key != null) {
+			CRC32 crc = new CRC32();
+			crc.update(key.getBytes());
+			return (int) crc.getValue();
+		} else {
+			return super.hashCode();
+		}
+	}
+	
+	/**
+	 * Must same class instance, CF name and key
+	 */
+	public boolean equals(Object obj) {
+		if (obj == null) {
+			return false;
+		}
+		if ((obj instanceof CrudOrmModel) == false) {
+			return false;
+		}
+		CrudOrmModel candidate = (CrudOrmModel) obj;
+		
+		if (getClassInstance() != candidate.getClassInstance()) {
+			return false;
+		}
+		if (candidate.getCF_Name() == null) {
+			return false;
+		}
+		if (getCF_Name().equals(candidate.getCF_Name()) == false) {
+			return false;
+		}
+		return key.equals(candidate.key);
+	}
 }

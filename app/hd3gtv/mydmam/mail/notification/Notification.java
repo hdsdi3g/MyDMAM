@@ -18,15 +18,18 @@ package hd3gtv.mydmam.mail.notification;
 
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.zip.CRC32;
 
 import models.UserProfile;
 
@@ -50,12 +53,10 @@ public class Notification {
 	public static final String ES_INDEX = "notifications";
 	public static final String ES_DEFAULT_TYPE = "global";
 	
-	// TODO add indicator for pending notify actions ?
-	
 	private String key;
 	private List<UserProfile> observers;
 	private UserProfile creator;
-	private List<String> linked_tasks_keys;
+	private Map<String, TaskJobStatus> linked_tasksjobs;
 	private String creating_comment;
 	private long created_at;
 	private boolean is_read;
@@ -66,11 +67,11 @@ public class Notification {
 	private UserProfile closed_by;
 	private long commented_at;
 	private String users_comment;
-	private List<UserProfile> notify_if_error;
-	private List<UserProfile> notify_if_done;
-	private List<UserProfile> notify_if_readed;
-	private List<UserProfile> notify_if_closed;
-	private List<UserProfile> notify_if_commented;
+	private List<UserProfile> notify_if_error;// TODO wrapped in a NotifyReason Map
+	private List<UserProfile> notify_if_done;// TODO wrapped in a NotifyReason Map
+	private List<UserProfile> notify_if_readed;// TODO wrapped in a NotifyReason Map
+	private List<UserProfile> notify_if_closed;// TODO wrapped in a NotifyReason Map
+	private List<UserProfile> notify_if_commented;// TODO wrapped in a NotifyReason Map
 	
 	private CrudOrmEngine<UserProfile> user_profile_orm_engine;
 	
@@ -93,27 +94,11 @@ public class Notification {
 		return list_user_profile_record;
 	}
 	
-	private static List<String> convertToListString(JSONArray list) {
-		List<String> result = new ArrayList<String>();
-		for (int pos = 0; pos < list.size(); pos++) {
-			result.add((String) list.get(pos));
-		}
-		return result;
-	}
-	
-	private static JSONArray convertToJSONArray(List<String> list) {
-		JSONArray result = new JSONArray();
-		for (int pos = 0; pos < list.size(); pos++) {
-			result.add((String) list.get(pos));
-		}
-		return result;
-	}
-	
 	private void initDefault() {
 		key = UUID.randomUUID().toString();
 		observers = new ArrayList<UserProfile>(1);
 		creator = null;
-		linked_tasks_keys = new ArrayList<String>(1);
+		linked_tasksjobs = new HashMap<String, TaskJobStatus>(1);
 		creating_comment = "";
 		created_at = System.currentTimeMillis();
 		is_read = false;
@@ -134,7 +119,18 @@ public class Notification {
 	private Notification importFromDb(JSONObject record) throws ConnectionException {
 		observers = getUsersFromDb((JSONArray) record.get("observers"));
 		creator = user_profile_orm_engine.read((String) record.get("creator"));
-		linked_tasks_keys = convertToListString((JSONArray) record.get("linked_tasks_keys"));
+		
+		JSONArray ja_linked_tasks = (JSONArray) record.get("linked_tasks");
+		if (ja_linked_tasks.size() > 0) {
+			linked_tasksjobs = new HashMap<String, TaskJobStatus>(ja_linked_tasks.size());
+			for (int pos = 0; pos < ja_linked_tasks.size(); pos++) {
+				JSONObject jo = (JSONObject) ja_linked_tasks.get(pos);
+				linked_tasksjobs.put((String) jo.get("taskjobkey"), TaskJobStatus.fromString((String) jo.get("status")));
+			}
+		} else {
+			linked_tasksjobs = new HashMap<String, TaskJobStatus>(1);
+		}
+		
 		creating_comment = (String) record.get("creating_comment");
 		created_at = (Long) record.get("created_at");
 		is_read = (Boolean) record.get("is_read");
@@ -162,7 +158,15 @@ public class Notification {
 			record.put("creator", creator.key);
 		}
 		
-		record.put("linked_tasks_keys", convertToJSONArray(linked_tasks_keys));
+		JSONArray ja_linked_tasks = new JSONArray();
+		for (Map.Entry<String, TaskJobStatus> entry : linked_tasksjobs.entrySet()) {
+			JSONObject jo = new JSONObject();
+			jo.put("taskjobkey", entry.getKey());
+			jo.put("status", entry.getValue().toString());
+			ja_linked_tasks.add(jo);
+		}
+		record.put("linked_tasks", ja_linked_tasks);
+		
 		record.put("creating_comment", creating_comment);
 		record.put("created_at", created_at);
 		record.put("is_read", is_read);
@@ -225,12 +229,9 @@ public class Notification {
 		return all_notifications;
 	}
 	
-	public static Notification create(UserProfile creator, List<String> linked_tasks_keys, String creating_comment) throws ConnectionException, IOException {
+	public static Notification create(UserProfile creator, String creating_comment) throws ConnectionException, IOException {
 		if (creator == null) {
 			throw new NullPointerException("\"creator\" can't to be null");
-		}
-		if (linked_tasks_keys == null) {
-			throw new NullPointerException("\"linked_tasks_keys\" can't to be null");
 		}
 		if (creating_comment == null) {
 			throw new NullPointerException("\"creating_comment\" can't to be null");
@@ -239,10 +240,21 @@ public class Notification {
 		notification.initDefault();
 		notification.observers.add(creator);
 		notification.creator = creator;
-		notification.linked_tasks_keys = linked_tasks_keys;
 		notification.creating_comment = creating_comment;
 		notification.created_at = System.currentTimeMillis();
 		return notification;
+	}
+	
+	public Notification addLinkedTasksJobs(String... taskjobkey) throws ConnectionException {
+		LinkedHashMap<String, TaskJobStatus> all_actual_status = Broker.getStatusForTasksOrJobsByKeys(taskjobkey);
+		if (all_actual_status == null) {
+			return this;
+		}
+		if (all_actual_status.size() == 0) {
+			return this;
+		}
+		linked_tasksjobs.putAll(all_actual_status);
+		return this;
 	}
 	
 	/**
@@ -351,8 +363,7 @@ public class Notification {
 		return this;
 	}
 	
-	public TaskJobStatus getSummaryTaskJobStatus() throws ConnectionException {
-		LinkedHashMap<String, TaskJobStatus> status = Broker.getStatusForTasksOrJobsByKeys(linked_tasks_keys);
+	private static TaskJobStatus getSummaryTaskJobStatus(Map<String, TaskJobStatus> status) {
 		boolean has_waiting = false;
 		boolean has_done = false;
 		boolean has_processing = false;
@@ -409,7 +420,60 @@ public class Notification {
 		}
 	}
 	
-	public void save() {
+	/**
+	 * Don't refresh internal status.
+	 */
+	public TaskJobStatus getActualSummaryTaskJobStatus() throws ConnectionException {
+		return getSummaryTaskJobStatus(linked_tasksjobs);
+	}
+	
+	/**
+	 * Compare with previous saved element, and create (if needed) db elements for alerting.
+	 * @throws Exception
+	 */
+	public void save() throws Exception {
+		/**
+		 * Compare & update: prepare updater
+		 */
+		CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
+		NotificationUpdate nu = (NotificationUpdate) orm_engine.create();
+		nu.key = key;
+		
+		/**
+		 * Compare & update: compare tasks/jobs status
+		 */
+		LinkedHashMap<String, TaskJobStatus> new_status = Broker.getStatusForTasksOrJobsByKeys(linked_tasksjobs.keySet());
+		TaskJobStatus new_status_summary = getSummaryTaskJobStatus(new_status);
+		TaskJobStatus previous_status_summary = getSummaryTaskJobStatus(linked_tasksjobs);
+		
+		if (new_status_summary != previous_status_summary) {
+			if (new_status_summary == TaskJobStatus.ERROR) {
+				nu.is_new_error = true;
+			} else if (new_status_summary == TaskJobStatus.DONE) {
+				nu.is_new_done = true;
+			} else if (new_status_summary == TaskJobStatus.CANCELED) {
+				nu.is_new_done = true;
+			}
+		}
+		linked_tasksjobs = new_status;
+		
+		/**
+		 * Compare & update: set read ? set closed ? update commented ?
+		 */
+		Notification previous = getFromDatabase(key);
+		if (previous != null) {
+			nu.is_new_readed = (is_read & (previous.is_read == false));
+			nu.is_new_closed = (is_close & (previous.is_close == false));
+			nu.is_new_commented = (users_comment.equals(previous.users_comment)) == false;
+		}
+		
+		if (nu.isNeedUpdate()) {
+			orm_engine.saveInternalElement();
+		}
+		
+		/**
+		 * Export & save
+		 */
 		Client client = Elasticsearch.getClient();
 		JSONObject record = new JSONObject();
 		exportToDb(record);
@@ -417,6 +481,105 @@ public class Notification {
 		IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, key);
 		ir.source(record.toJSONString());
 		client.index(ir);
+	}
+	
+	/**
+	 * Key based
+	 */
+	public int hashCode() {
+		if (key != null) {
+			CRC32 crc = new CRC32();
+			crc.update(key.getBytes());
+			return (int) crc.getValue();
+		} else {
+			return super.hashCode();
+		}
+	}
+	
+	/**
+	 * @return never null
+	 */
+	public static Map<UserProfile, Map<NotifyReason, List<Notification>>> getUsersNotifyList() throws Exception {
+		Map<UserProfile, Map<NotifyReason, List<Notification>>> usersnotifylist = new HashMap<UserProfile, Map<NotifyReason, List<Notification>>>();
+		
+		CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
+		// TODO add lock
+		List<CrudOrmModel> raw_notify_list = orm_engine.list();
+		if (raw_notify_list == null) {
+			// TODO remove lock
+			return usersnotifylist;
+		}
+		if (raw_notify_list.size() == 0) {
+			// TODO remove lock
+			return usersnotifylist;
+		}
+		Map<Notification, List<NotifyReason>> globalnotifylists = new HashMap<Notification, List<NotifyReason>>();
+		
+		NotificationUpdate nu;
+		for (int pos = 0; pos < raw_notify_list.size(); pos++) {
+			nu = (NotificationUpdate) raw_notify_list.get(pos);
+			Notification notification = getFromDatabase(nu.key);
+			List<NotifyReason> reasons = nu.getReasons();
+			if (reasons.size() > 0) {
+				globalnotifylists.put(notification, reasons);
+			}
+			orm_engine.delete(nu.key);
+		}
+		// TODO remove lock
+		
+		if (globalnotifylists.isEmpty()) {
+			return usersnotifylist;
+		}
+		
+		Notification notification;
+		List<NotifyReason> reasons_list;
+		NotifyReason reason;
+		List<UserProfile> user_list;
+		UserProfile user;
+		Map<NotifyReason, List<Notification>> notify_list_map;
+		List<Notification> notification_list;
+		
+		for (Map.Entry<Notification, List<NotifyReason>> notifylist : globalnotifylists.entrySet()) {
+			notification = notifylist.getKey();
+			reasons_list = notifylist.getValue();
+			for (int pos_rlist = 0; pos_rlist < reasons_list.size(); pos_rlist++) {
+				reason = reasons_list.get(pos_rlist);
+				if (reason == NotifyReason.ERROR) {
+					user_list = notification.notify_if_error;
+				} else if (reason == NotifyReason.DONE) {
+					user_list = notification.notify_if_done;
+				} else if (reason == NotifyReason.READED) {
+					user_list = notification.notify_if_readed;
+				} else if (reason == NotifyReason.CLOSED) {
+					user_list = notification.notify_if_closed;
+				} else if (reason == NotifyReason.COMMENTED) {
+					user_list = notification.notify_if_commented;
+				} else {
+					continue;
+				}
+				
+				for (int pos_userp = 0; pos_userp < user_list.size(); pos_userp++) {
+					user = user_list.get(pos_userp);
+					if (usersnotifylist.containsKey(user)) {
+						notify_list_map = usersnotifylist.get(user);
+					} else {
+						notify_list_map = new HashMap<NotifyReason, List<Notification>>();
+						usersnotifylist.put(user, notify_list_map);
+					}
+					if (notify_list_map.containsKey(reason)) {
+						notification_list = notify_list_map.get(reason);
+						if (notification_list.contains(notification) == false) {
+							notification_list.add(notification);
+						}
+					} else {
+						notification_list = new ArrayList<Notification>();
+						notification_list.add(notification);
+						notify_list_map.put(reason, notification_list);
+					}
+				}
+			}
+		}
+		return usersnotifylist;
 	}
 	
 	public static Notification getFromDatabase(String key) throws ConnectionException, IOException {

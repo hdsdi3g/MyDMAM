@@ -60,7 +60,6 @@ public class NotificationWorker extends Worker implements TriggerWorker {
 	@Override
 	public void process(Job job) throws Exception {
 		// TODO Auto-generated method stub
-		
 	}
 	
 	@Override

@@ -30,8 +30,8 @@ import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.json.simple.JSONArray;
@@ -631,7 +631,24 @@ public class Broker {
 	/**
 	 * @return never null if keys is not empty
 	 */
-	public static LinkedHashMap<String, TaskJobStatus> getStatusForTasksOrJobsByKeys(List<String> keys) throws ConnectionException {
+	public static LinkedHashMap<String, TaskJobStatus> getStatusForTasksOrJobsByKeys(String... keys) throws ConnectionException {
+		if (keys == null) {
+			return null;
+		}
+		if (keys.length == 0) {
+			return null;
+		}
+		ArrayList<String> list = new ArrayList<String>(keys.length);
+		for (int pos = 0; pos < keys.length; pos++) {
+			list.add(keys[pos]);
+		}
+		return getStatusForTasksOrJobsByKeys(list);
+	}
+	
+	/**
+	 * @return never null if keys is not empty
+	 */
+	public static LinkedHashMap<String, TaskJobStatus> getStatusForTasksOrJobsByKeys(Collection<String> keys) throws ConnectionException {
 		if (keys == null) {
 			return null;
 		}
