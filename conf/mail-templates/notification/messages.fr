@@ -1,0 +1,2 @@
+please_not_respond=Merci de ne pas y répondre à ce mail.
+title=Notification MyDMAM

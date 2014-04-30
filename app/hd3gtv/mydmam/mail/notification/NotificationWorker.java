@@ -16,80 +16,182 @@
 */
 package hd3gtv.mydmam.mail.notification;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.mail.EndUserBaseMail;
+import hd3gtv.mydmam.mail.MailPriority;
+import hd3gtv.mydmam.taskqueue.Broker;
+import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
 import hd3gtv.mydmam.taskqueue.Job;
 import hd3gtv.mydmam.taskqueue.Profile;
-import hd3gtv.mydmam.taskqueue.TriggerWorker;
+import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 import hd3gtv.mydmam.taskqueue.Worker;
+import hd3gtv.mydmam.taskqueue.WorkerGroup;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import models.UserProfile;
+
+import javax.mail.internet.InternetAddress;
+
+import play.i18n.Lang;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class NotificationWorker extends Worker implements TriggerWorker {
+public class NotificationWorker extends Worker {
 	
-	@Override
-	public boolean isTriggerWorkerConfigurationAllowToEnabled() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+	private static final Profile notification_clean_profile = new Profile("notification", "clean");
+	private static final Profile notification_alert_profile = new Profile("notification", "alert");
+	private static long grace_period_duration = 1000 * 3600 * 24;
 	
-	@Override
-	public List<Profile> plugToProfiles() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	private Cleaner cleaner;
+	private Alerter alerter;
 	
-	@Override
-	public String getTriggerShortName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public String getTriggerLongName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public void triggerCreateTasks(Profile profile) throws ConnectionException {
-		// TODO Auto-generated method stub
+	public NotificationWorker(WorkerGroup workergroup) {
+		cleaner = new Cleaner();
+		cleaner.period = 1000 * 3600; // 1 hour
+		alerter = new Alerter();
+		alerter.period = 1000 * 60 * 10; // 10 min
 		
+		if (workergroup != null) {
+			workergroup.addWorker(this);
+			workergroup.addCyclicWorker(cleaner);
+			workergroup.addCyclicWorker(alerter);
+		}
+	}
+	
+	private class Cleaner implements CyclicCreateTasks {
+		
+		long period;
+		
+		public void createTasks() throws ConnectionException {
+			Broker.publishTask("Close old notifications", notification_clean_profile, null, NotificationWorker.class, false, 0, null, false);
+		}
+		
+		public long getInitialCyclicPeriodTasks() {
+			return period;
+		}
+		
+		public String getShortCyclicName() {
+			return "notifications-cleaner";
+		}
+		
+		public String getLongCyclicName() {
+			return "Close old notifications";
+		}
+		
+		public boolean isCyclicConfigurationAllowToEnabled() {
+			return isConfigurationAllowToEnabled();
+		}
+		
+		public boolean isPeriodDurationForCreateTasksCanChange() {
+			return true;
+		}
+	}
+	
+	private class Alerter implements CyclicCreateTasks {
+		
+		long period;
+		
+		public void createTasks() throws ConnectionException {
+			Broker.publishTask("Notifications alerter", notification_alert_profile, null, NotificationWorker.class, false, 0, null, false);
+		}
+		
+		public long getInitialCyclicPeriodTasks() {
+			return period;
+		}
+		
+		public String getShortCyclicName() {
+			return "notifications-alerter";
+		}
+		
+		public String getLongCyclicName() {
+			return "Notifications alerter";
+		}
+		
+		public boolean isCyclicConfigurationAllowToEnabled() {
+			return isConfigurationAllowToEnabled();
+		}
+		
+		public boolean isPeriodDurationForCreateTasksCanChange() {
+			return true;
+		}
 	}
 	
 	@Override
 	public void process(Job job) throws Exception {
-		// TODO Auto-generated method stub
-	}
-	
-	@Override
-	public String getShortWorkerName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public String getLongWorkerName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public List<Profile> getManagedProfiles() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public void forceStopProcess() throws Exception {
-		// TODO Auto-generated method stub
+		stop = false;
 		
+		if (job.getProfile().sameProfile(notification_alert_profile)) {
+			Notification.updateTasksJobsEvolutionsForNotifications();
+			
+			Map<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_list = Notification.getUsersNotifyList();
+			if (users_notify_list.isEmpty()) {
+				return;
+			}
+			UserProfile user;
+			NotifyReason reason;
+			List<Notification> notifications;
+			HashMap<Object, Object> mail_vars;
+			
+			for (Map.Entry<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_entry : users_notify_list.entrySet()) {
+				if (stop) {
+					return;
+				}
+				user = users_notify_entry.getKey();
+				EndUserBaseMail usermail = EndUserBaseMail.create(Lang.getLocale(user.language), new InternetAddress(user.email), "notification");
+				mail_vars = new HashMap<Object, Object>();
+				
+				for (Map.Entry<NotifyReason, List<Notification>> entry_notifyreason : users_notify_entry.getValue().entrySet()) {
+					reason = entry_notifyreason.getKey();
+					
+					notifications = entry_notifyreason.getValue();
+					List<Map<String, Object>> mail_var_notifications = new ArrayList<Map<String, Object>>();
+					
+					for (int pos_ntf = 0; pos_ntf < notifications.size(); pos_ntf++) {
+						if (stop) {
+							return;
+						}
+						mail_var_notifications.add(notifications.get(pos_ntf).exportToMailVars());
+						if (notifications.get(pos_ntf).getActualSummaryTaskJobStatus() == TaskJobStatus.ERROR) {
+							usermail.setMailPriority(MailPriority.HIGHEST);
+						}
+					}
+					mail_vars.put(reason.toString().toLowerCase(), mail_var_notifications);
+				}
+				
+				usermail.send(mail_vars);
+			}
+			
+		} else if (job.getProfile().sameProfile(notification_clean_profile)) {
+			Notification.updateOldsAndNonClosedNotifications(grace_period_duration);
+		}
 	}
 	
-	@Override
+	public String getShortWorkerName() {
+		return "notification";
+	}
+	
+	public String getLongWorkerName() {
+		return "Scan and send notifications to users";
+	}
+	
+	public List<Profile> getManagedProfiles() {
+		ArrayList<Profile> profiles = new ArrayList<Profile>();
+		profiles.add(notification_alert_profile);
+		profiles.add(notification_clean_profile);
+		return profiles;
+	}
+	
+	private boolean stop;
+	
+	public synchronized void forceStopProcess() throws Exception {
+		stop = true;
+	}
+	
 	public boolean isConfigurationAllowToEnabled() {
-		// TODO Auto-generated method stub
-		return false;
+		return Configuration.global.getValueBoolean("service", "notifications_scan");
 	}
-	
 }

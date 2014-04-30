@@ -14,6 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
+
 package hd3gtv.mydmam.mail.notification;
 
 import hd3gtv.mydmam.db.Elasticsearch;
@@ -29,16 +30,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 
 import models.UserProfile;
 
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
@@ -67,11 +71,8 @@ public class Notification {
 	private UserProfile closed_by;
 	private long commented_at;
 	private String users_comment;
-	private List<UserProfile> notify_if_error;// TODO wrapped in a NotifyReason Map
-	private List<UserProfile> notify_if_done;// TODO wrapped in a NotifyReason Map
-	private List<UserProfile> notify_if_readed;// TODO wrapped in a NotifyReason Map
-	private List<UserProfile> notify_if_closed;// TODO wrapped in a NotifyReason Map
-	private List<UserProfile> notify_if_commented;// TODO wrapped in a NotifyReason Map
+	
+	private Map<NotifyReason, List<UserProfile>> notify_list;
 	
 	private CrudOrmEngine<UserProfile> user_profile_orm_engine;
 	
@@ -109,11 +110,12 @@ public class Notification {
 		closed_by = null;
 		commented_at = -1;
 		users_comment = "";
-		notify_if_error = new ArrayList<UserProfile>(1);
-		notify_if_done = new ArrayList<UserProfile>(1);
-		notify_if_readed = new ArrayList<UserProfile>(1);
-		notify_if_closed = new ArrayList<UserProfile>(1);
-		notify_if_commented = new ArrayList<UserProfile>(1);
+		
+		notify_list = new HashMap<NotifyReason, List<UserProfile>>();
+		NotifyReason[] reasons = NotifyReason.values();
+		for (int pos = 0; pos < reasons.length; pos++) {
+			notify_list.put(reasons[pos], new ArrayList<UserProfile>(1));
+		}
 	}
 	
 	private Notification importFromDb(JSONObject record) throws ConnectionException {
@@ -141,11 +143,12 @@ public class Notification {
 		closed_by = user_profile_orm_engine.read((String) record.get("closed_by"));
 		commented_at = (Long) record.get("commented_at");
 		users_comment = (String) record.get("users_comment");
-		notify_if_error = getUsersFromDb((JSONArray) record.get("notify_if_error"));
-		notify_if_done = getUsersFromDb((JSONArray) record.get("notify_if_done"));
-		notify_if_readed = getUsersFromDb((JSONArray) record.get("notify_if_readed"));
-		notify_if_closed = getUsersFromDb((JSONArray) record.get("notify_if_closed"));
-		notify_if_commented = getUsersFromDb((JSONArray) record.get("notify_if_commented"));
+		
+		notify_list = new HashMap<NotifyReason, List<UserProfile>>();
+		NotifyReason[] reasons = NotifyReason.values();
+		for (int pos = 0; pos < reasons.length; pos++) {
+			notify_list.put(reasons[pos], getUsersFromDb((JSONArray) record.get(reasons[pos].getDbRecordName())));
+		}
 		return this;
 	}
 	
@@ -189,12 +192,28 @@ public class Notification {
 		
 		record.put("commented_at", commented_at);
 		record.put("users_comment", users_comment);
-		record.put("notify_if_error", getUsersToSetInDb(notify_if_error));
-		record.put("notify_if_done", getUsersToSetInDb(notify_if_done));
-		record.put("notify_if_readed", getUsersToSetInDb(notify_if_readed));
-		record.put("notify_if_closed", getUsersToSetInDb(notify_if_closed));
-		record.put("notify_if_commented", getUsersToSetInDb(notify_if_commented));
+		
+		NotifyReason[] reasons = NotifyReason.values();
+		if (notify_list == null) {
+			notify_list = new HashMap<NotifyReason, List<UserProfile>>();
+			for (int pos = 0; pos < reasons.length; pos++) {
+				notify_list.put(reasons[pos], new ArrayList<UserProfile>(1));
+			}
+		}
+		for (int pos = 0; pos < reasons.length; pos++) {
+			record.put(reasons[pos].getDbRecordName(), getUsersToSetInDb(notify_list.get(reasons[pos])));
+		}
 		return this;
+	}
+	
+	Map<String, Object> exportToMailVars() {
+		HashMap<String, Object> mail_vars = new HashMap<String, Object>();
+		mail_vars.put("creating_comment", creating_comment);
+		mail_vars.put("is_read", is_read);
+		mail_vars.put("is_close", is_close);
+		mail_vars.put("users_comment", users_comment);
+		mail_vars.put("creator", creator.longname);
+		return mail_vars;
 	}
 	
 	private Notification() throws ConnectionException, IOException {
@@ -283,51 +302,21 @@ public class Notification {
 		}
 	}
 	
-	public Notification updateNotifyErrorForUser(UserProfile user, boolean notify) {
+	public Notification updateNotifyReasonForUser(UserProfile user, NotifyReason reason, boolean notify) {
 		if (user == null) {
 			throw new NullPointerException("\"user\" can't to be null");
 		}
-		updateUserList(user, notify_if_error, notify);
-		return this;
-	}
-	
-	public Notification updateNotifyDoneForUser(UserProfile user, boolean notify) {
-		if (user == null) {
-			throw new NullPointerException("\"user\" can't to be null");
+		if (reason == null) {
+			throw new NullPointerException("\"reason\" can't to be null");
 		}
-		updateUserList(user, notify_if_done, notify);
-		return this;
-	}
-	
-	public Notification updateNotifyClosedForUser(UserProfile user, boolean notify) {
-		if (user == null) {
-			throw new NullPointerException("\"user\" can't to be null");
+		if (notify_list == null) {
+			NotifyReason[] reasons = NotifyReason.values();
+			notify_list = new HashMap<NotifyReason, List<UserProfile>>();
+			for (int pos = 0; pos < reasons.length; pos++) {
+				notify_list.put(reasons[pos], new ArrayList<UserProfile>(1));
+			}
 		}
-		updateUserList(user, notify_if_closed, notify);
-		return this;
-	}
-	
-	public Notification updateNotifyReadedForUser(UserProfile user, boolean notify) {
-		if (user == null) {
-			throw new NullPointerException("\"user\" can't to be null");
-		}
-		updateUserList(user, notify_if_readed, notify);
-		return this;
-	}
-	
-	public Notification updateNotifyCommentedForUser(UserProfile user, boolean notify) {
-		if (user == null) {
-			throw new NullPointerException("\"user\" can't to be null");
-		}
-		updateUserList(user, notify_if_commented, notify);
-		return this;
-	}
-	
-	public Notification updateObserversForUser(UserProfile user, boolean observer) {
-		if (user == null) {
-			throw new NullPointerException("\"user\" can't to be null");
-		}
-		updateUserList(user, observers, observer);
+		updateUserList(user, notify_list.get(reason), notify);
 		return this;
 	}
 	
@@ -427,48 +416,205 @@ public class Notification {
 		return getSummaryTaskJobStatus(linked_tasksjobs);
 	}
 	
+	public static void updateTasksJobsEvolutionsForNotifications() throws Exception {
+		Client client = Elasticsearch.getClient();
+		
+		/**
+		 * Get all non-closed notifications
+		 */
+		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(ES_INDEX);
+		request.setTypes(ES_DEFAULT_TYPE);
+		request.setQuery(QueryBuilders.termQuery("is_close", false));
+		request.addSort("created_at", SortOrder.ASC);
+		request.setSize(20);
+		
+		SearchHit[] hits = request.execute().actionGet().getHits().hits();
+		
+		if (hits.length == 0) {
+			return;
+		}
+		
+		BulkRequestBuilder bulkrequest = client.prepareBulk();
+		
+		CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
+		JSONObject record;
+		TaskJobStatus new_status_summary;
+		TaskJobStatus previous_status_summary;
+		boolean must_update_notification;
+		
+		JSONParser parser = new JSONParser();
+		for (int pos = 0; pos < hits.length; pos++) {
+			/**
+			 * For all found notifications
+			 */
+			parser.reset();
+			Notification notification = new Notification();
+			notification.importFromDb(Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
+			must_update_notification = false;
+			
+			if (notification.linked_tasksjobs.isEmpty()) {
+				continue;
+			}
+			
+			NotificationUpdate nu = (NotificationUpdate) orm_engine.create();
+			nu.key = notification.key;
+			
+			/**
+			 * Compare tasks/jobs status and push new notification update if needed
+			 */
+			LinkedHashMap<String, TaskJobStatus> new_status = Broker.getStatusForTasksOrJobsByKeys(notification.linked_tasksjobs.keySet());
+			new_status_summary = getSummaryTaskJobStatus(new_status);
+			previous_status_summary = getSummaryTaskJobStatus(notification.linked_tasksjobs);
+			
+			if (new_status_summary != previous_status_summary) {
+				if (new_status_summary == TaskJobStatus.ERROR) {
+					nu.is_new_error = true;
+				} else if (new_status_summary == TaskJobStatus.DONE) {
+					nu.is_new_done = true;
+				} else if (new_status_summary == TaskJobStatus.CANCELED) {
+					nu.is_new_done = true;
+				}
+				if (nu.isNeedUpdate()) {
+					orm_engine.saveInternalElement();
+				}
+				must_update_notification = true;
+			}
+			
+			/**
+			 * Update Tasks and Jobs status cache in notification
+			 */
+			for (Map.Entry<String, TaskJobStatus> entry : notification.linked_tasksjobs.entrySet()) {
+				String taskjobkey = entry.getKey();
+				TaskJobStatus current_taskjob = entry.getValue();
+				if (new_status.containsKey(taskjobkey) == false) {
+					/**
+					 * If task/job is referenced in notification and deleted from Broker.
+					 */
+					entry.setValue(TaskJobStatus.DONE);
+					must_update_notification = true;
+				} else if (current_taskjob != new_status.get(taskjobkey)) {
+					entry.setValue(new_status.get(taskjobkey));
+					must_update_notification = true;
+				}
+			}
+			
+			if (must_update_notification) {
+				record = new JSONObject();
+				notification.exportToDb(record);
+				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()));
+			}
+		}
+		
+		/**
+		 * Record all notifications updates
+		 */
+		if (bulkrequest.numberOfActions() > 0) {
+			bulkrequest.execute().actionGet();
+		}
+		
+	}
+	
+	/**
+	 * Switch done if terminated and old (in regulary calls) but without Notify
+	 * @param grace_period_duration in ms
+	 */
+	public static void updateOldsAndNonClosedNotifications(long grace_period_duration) throws Exception {
+		Client client = Elasticsearch.getClient();
+		
+		/**
+		 * Get all non-closed notifications
+		 */
+		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(ES_INDEX);
+		request.setTypes(ES_DEFAULT_TYPE);
+		
+		BoolQueryBuilder query = QueryBuilders.boolQuery();
+		query.must(QueryBuilders.termQuery("is_close", false));
+		query.must(QueryBuilders.rangeQuery("created_at").from(0l).to(System.currentTimeMillis() - grace_period_duration));
+		request.setQuery(query);
+		request.addSort("created_at", SortOrder.ASC);
+		request.setSize(20);
+		
+		SearchHit[] hits = request.execute().actionGet().getHits().hits();
+		
+		if (hits.length == 0) {
+			return;
+		}
+		
+		BulkRequestBuilder bulkrequest = client.prepareBulk();
+		
+		JSONObject record;
+		TaskJobStatus status_summary;
+		boolean will_close_notification;
+		
+		JSONParser parser = new JSONParser();
+		for (int pos = 0; pos < hits.length; pos++) {
+			/**
+			 * For all found notifications
+			 */
+			parser.reset();
+			Notification notification = new Notification();
+			notification.importFromDb(Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
+			will_close_notification = false;
+			
+			if (notification.linked_tasksjobs.isEmpty() == false) {
+				status_summary = getSummaryTaskJobStatus(notification.linked_tasksjobs);
+				if (status_summary == TaskJobStatus.ERROR) {
+					will_close_notification = true;
+				} else if (status_summary == TaskJobStatus.DONE) {
+					will_close_notification = true;
+				} else if (status_summary == TaskJobStatus.CANCELED) {
+					will_close_notification = true;
+				}
+			} else {
+				will_close_notification = true;
+			}
+			
+			if (will_close_notification) {
+				notification.closed_at = System.currentTimeMillis();
+				notification.is_close = true;
+				record = new JSONObject();
+				notification.exportToDb(record);
+				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()));
+			}
+		}
+		
+		/**
+		 * Record all notifications updates
+		 */
+		if (bulkrequest.numberOfActions() > 0) {
+			bulkrequest.execute().actionGet();
+		}
+		
+	}
+	
 	/**
 	 * Compare with previous saved element, and create (if needed) db elements for alerting.
 	 * @throws Exception
 	 */
 	public void save() throws Exception {
-		/**
-		 * Compare & update: prepare updater
-		 */
-		CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
-		NotificationUpdate nu = (NotificationUpdate) orm_engine.create();
-		nu.key = key;
-		
-		/**
-		 * Compare & update: compare tasks/jobs status
-		 */
-		LinkedHashMap<String, TaskJobStatus> new_status = Broker.getStatusForTasksOrJobsByKeys(linked_tasksjobs.keySet());
-		TaskJobStatus new_status_summary = getSummaryTaskJobStatus(new_status);
-		TaskJobStatus previous_status_summary = getSummaryTaskJobStatus(linked_tasksjobs);
-		
-		if (new_status_summary != previous_status_summary) {
-			if (new_status_summary == TaskJobStatus.ERROR) {
-				nu.is_new_error = true;
-			} else if (new_status_summary == TaskJobStatus.DONE) {
-				nu.is_new_done = true;
-			} else if (new_status_summary == TaskJobStatus.CANCELED) {
-				nu.is_new_done = true;
+		if (is_read | is_close | (users_comment.equals("") == false)) {
+			/**
+			 * Compare & update: prepare updater
+			 */
+			CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
+			NotificationUpdate nu = (NotificationUpdate) orm_engine.create();
+			nu.key = key;
+			
+			/**
+			 * Compare & update: set read ? set closed ? update commented ?
+			 */
+			Notification previous = getFromDatabase(key);
+			if (previous != null) {
+				nu.is_new_readed = (is_read & (previous.is_read == false));
+				nu.is_new_closed = (is_close & (previous.is_close == false));
+				nu.is_new_commented = (users_comment.equals(previous.users_comment)) == false;
 			}
-		}
-		linked_tasksjobs = new_status;
-		
-		/**
-		 * Compare & update: set read ? set closed ? update commented ?
-		 */
-		Notification previous = getFromDatabase(key);
-		if (previous != null) {
-			nu.is_new_readed = (is_read & (previous.is_read == false));
-			nu.is_new_closed = (is_close & (previous.is_close == false));
-			nu.is_new_commented = (users_comment.equals(previous.users_comment)) == false;
-		}
-		
-		if (nu.isNeedUpdate()) {
-			orm_engine.saveInternalElement();
+			
+			if (nu.isNeedUpdate()) {
+				orm_engine.saveInternalElement();
+			}
 		}
 		
 		/**
@@ -497,13 +643,14 @@ public class Notification {
 	}
 	
 	/**
+	 * Don't update notifications, juste return current Notify bulks.
 	 * @return never null
 	 */
 	public static Map<UserProfile, Map<NotifyReason, List<Notification>>> getUsersNotifyList() throws Exception {
 		Map<UserProfile, Map<NotifyReason, List<Notification>>> usersnotifylist = new HashMap<UserProfile, Map<NotifyReason, List<Notification>>>();
 		
 		CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
-		if (orm_engine.aquireLock() == false) {
+		if (orm_engine.aquireLock(10, TimeUnit.SECONDS) == false) {
 			return usersnotifylist;
 		}
 		
@@ -536,7 +683,7 @@ public class Notification {
 		}
 		
 		Notification notification;
-		List<NotifyReason> reasons_list;
+		List<NotifyReason> reasons;
 		NotifyReason reason;
 		List<UserProfile> user_list;
 		UserProfile user;
@@ -545,22 +692,10 @@ public class Notification {
 		
 		for (Map.Entry<Notification, List<NotifyReason>> notifylist : globalnotifylists.entrySet()) {
 			notification = notifylist.getKey();
-			reasons_list = notifylist.getValue();
-			for (int pos_rlist = 0; pos_rlist < reasons_list.size(); pos_rlist++) {
-				reason = reasons_list.get(pos_rlist);
-				if (reason == NotifyReason.ERROR) {
-					user_list = notification.notify_if_error;
-				} else if (reason == NotifyReason.DONE) {
-					user_list = notification.notify_if_done;
-				} else if (reason == NotifyReason.READED) {
-					user_list = notification.notify_if_readed;
-				} else if (reason == NotifyReason.CLOSED) {
-					user_list = notification.notify_if_closed;
-				} else if (reason == NotifyReason.COMMENTED) {
-					user_list = notification.notify_if_commented;
-				} else {
-					continue;
-				}
+			reasons = notifylist.getValue();
+			for (int pos_rlist = 0; pos_rlist < reasons.size(); pos_rlist++) {
+				reason = reasons.get(pos_rlist);
+				user_list = notification.notify_list.get(reason);
 				
 				for (int pos_userp = 0; pos_userp < user_list.size(); pos_userp++) {
 					user = user_list.get(pos_userp);

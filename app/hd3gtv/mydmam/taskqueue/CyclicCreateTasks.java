@@ -35,6 +35,9 @@ public interface CyclicCreateTasks {
 	
 	public String getLongCyclicName();
 	
+	/**
+	 * @return true if element configuration allow to execute cyclic. If return false = never executed.
+	 */
 	public boolean isCyclicConfigurationAllowToEnabled();
 	
 	public boolean isPeriodDurationForCreateTasksCanChange();

@@ -49,6 +49,9 @@ public abstract class Worker implements Log2Dumpable {
 	
 	public abstract void forceStopProcess() throws Exception;
 	
+	/**
+	 * @return true if element configuration allow to execute cyclic. If return false = never executed.
+	 */
 	public abstract boolean isConfigurationAllowToEnabled();
 	
 	WorkerEngine engine;

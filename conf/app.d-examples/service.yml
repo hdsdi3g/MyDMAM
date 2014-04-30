@@ -3,6 +3,7 @@ service:
     workername : productionsrv
     brokercleantasks : true
     administrator_mail : Me <me@domain.com>
+    notifications_scan: true
 
 javamail:
     from: Me <me@domain.com>
