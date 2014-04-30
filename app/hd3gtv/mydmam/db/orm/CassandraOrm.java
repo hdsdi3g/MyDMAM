@@ -118,6 +118,12 @@ public class CassandraOrm<T extends OrmModel> {
 	}
 	
 	public void pushColumn(String rowkey, Integer ttl, String name, Object o) throws InvalidClassException, ConnectionException {
+		if (rowkey == null) {
+			return;
+		}
+		if (rowkey.equals("")) {
+			return;
+		}
 		if (mutator == null) {
 			mutator = CassandraDb.prepareMutationBatch();
 		}
@@ -250,7 +256,11 @@ public class CassandraOrm<T extends OrmModel> {
 			try {
 				pushColumn(ormobject.key, ttl, fields.get(pos_df).getName(), this.reference.getField(fields.get(pos_df).getName()).get(ormobject));
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				Log2Dump dump = new Log2Dump();
+				dump.add("ormobject", ormobject);
+				dump.add("ormobject.class", ormobject.getClass());
+				dump.add("fields.name", fields.get(pos_df).getName());
+				Log2.log.error("Grave problem with ORM object", e, dump);
 			} catch (NoSuchFieldException e) {
 				e.printStackTrace();
 			}
@@ -287,6 +297,12 @@ public class CassandraOrm<T extends OrmModel> {
 	}
 	
 	public T pullObject(String rowkey) throws ConnectionException {
+		if (rowkey == null) {
+			return null;
+		}
+		if (rowkey.equals("")) {
+			return null;
+		}
 		prepareColumnlistnames();
 		ColumnFamilyQuery<String, String> rows_asset = CassandraDb.getkeyspace().prepareQuery(this.columnfamily);
 		OperationResult<ColumnList<String>> row = rows_asset.getKey(rowkey).withColumnSlice(this.column_names).execute();
@@ -294,6 +310,12 @@ public class CassandraOrm<T extends OrmModel> {
 	}
 	
 	public boolean exists(String rowkey) throws ConnectionException {
+		if (rowkey == null) {
+			return false;
+		}
+		if (rowkey.equals("")) {
+			return false;
+		}
 		prepareColumnlistnames();
 		ColumnFamilyQuery<String, String> rows_asset = CassandraDb.getkeyspace().prepareQuery(this.columnfamily);
 		OperationResult<ColumnList<String>> row = rows_asset.getKey(rowkey).withColumnSlice(this.column_names).execute();
@@ -301,9 +323,29 @@ public class CassandraOrm<T extends OrmModel> {
 	}
 	
 	public List<T> pullObjects(String... rowkey) throws ConnectionException {
+		if (rowkey == null) {
+			return null;
+		}
+		if (rowkey.length == 0) {
+			return null;
+		}
+		ArrayList<String> rowkeys = new ArrayList<String>(rowkey.length);
+		for (int pos = 0; pos < rowkey.length; pos++) {
+			if (rowkey[pos] == null) {
+				continue;
+			}
+			if (rowkey[pos].equals("")) {
+				continue;
+			}
+			rowkeys.add(rowkey[pos]);
+		}
+		if (rowkeys.size() == 0) {
+			return null;
+		}
+		
 		prepareColumnlistnames();
 		ColumnFamilyQuery<String, String> rows_asset = CassandraDb.getkeyspace().prepareQuery(this.columnfamily);
-		OperationResult<Rows<String, String>> rows = rows_asset.getKeySlice(rowkey).withColumnSlice(this.column_names).execute();
+		OperationResult<Rows<String, String>> rows = rows_asset.getKeySlice(rowkeys).withColumnSlice(this.column_names).execute();
 		return pullObjects(rows.getResult());
 	}
 	
@@ -347,8 +389,12 @@ public class CassandraOrm<T extends OrmModel> {
 	
 	public List<T> pullObjects(Rows<String, String> rows) throws ConnectionException {
 		List<T> result = new ArrayList<T>();
+		T temp;
 		for (Row<String, String> row : rows) {
-			result.add(pullObject(row.getKey(), row.getColumns()));
+			temp = pullObject(row.getKey(), row.getColumns());
+			if (temp != null) {
+				result.add(temp);
+			}
 		}
 		return result;
 	}
@@ -366,6 +412,12 @@ public class CassandraOrm<T extends OrmModel> {
 	}
 	
 	public T pullObject(String rowkey, ColumnList<String> columnlist) {
+		if (rowkey == null) {
+			return null;
+		}
+		if (rowkey.equals("")) {
+			return null;
+		}
 		if (columnlist.size() == 0) {
 			return null;
 		}
@@ -584,6 +636,12 @@ public class CassandraOrm<T extends OrmModel> {
 	 * Atomic (prepare and execute mutation)
 	 */
 	public void delete(String rowkey) throws ConnectionException {
+		if (rowkey == null) {
+			return;
+		}
+		if (rowkey.equals("")) {
+			return;
+		}
 		resetMutator();
 		ArrayList<ColumnFamily<String, String>> cf = new ArrayList<ColumnFamily<String, String>>();
 		cf.add(columnfamily);

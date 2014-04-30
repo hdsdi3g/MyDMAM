@@ -68,6 +68,7 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 	public final void saveInternalElement() throws IOException, ConnectionException {
 		if (element.key == null) {
 			element.key = UUID.randomUUID().toString();
+			Log2.log.debug("Generate manual key", new Log2Dump("key", element.key));
 		}
 		
 		if (element.createdate == null) {
@@ -99,6 +100,13 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 			this.element = element;
 		}
 		return element;
+	}
+	
+	/**
+	 * Static call don't reaffect internal element.
+	 */
+	public final T staticRead(String key) throws ConnectionException {
+		return cassandra.pullObject(key);
 	}
 	
 	/**

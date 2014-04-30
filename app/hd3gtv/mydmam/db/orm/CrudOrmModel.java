@@ -22,6 +22,9 @@ import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
 import java.util.Date;
 import java.util.zip.CRC32;
 
+/**
+ * Don't forget to set extended class to public.
+ */
 public abstract class CrudOrmModel extends OrmModel {
 	
 	@ReadOnly
