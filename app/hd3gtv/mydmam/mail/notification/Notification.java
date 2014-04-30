@@ -74,9 +74,7 @@ public class Notification {
 	
 	private Map<NotifyReason, List<UserProfile>> notify_list;
 	
-	private CrudOrmEngine<UserProfile> user_profile_orm_engine;
-	
-	private List<UserProfile> getUsersFromDb(JSONArray list_user_profile_record) throws ConnectionException {
+	private List<UserProfile> getUsersFromDb(JSONArray list_user_profile_record, CrudOrmEngine<UserProfile> user_profile_orm_engine) throws ConnectionException {
 		if (list_user_profile_record.size() == 0) {
 			return new ArrayList<UserProfile>(1);
 		}
@@ -118,9 +116,13 @@ public class Notification {
 		}
 	}
 	
-	private Notification importFromDb(JSONObject record) throws ConnectionException {
-		observers = getUsersFromDb((JSONArray) record.get("observers"));
-		creator = user_profile_orm_engine.read((String) record.get("creator"));
+	private Notification importFromDb(String key, JSONObject record) throws ConnectionException, IOException {
+		this.key = key;
+		
+		CrudOrmEngine<UserProfile> user_profile_orm_engine = new CrudOrmEngine<UserProfile>(new UserProfile());
+		
+		observers = getUsersFromDb((JSONArray) record.get("observers"), user_profile_orm_engine);
+		creator = user_profile_orm_engine.staticRead((String) record.get("creator"));
 		
 		JSONArray ja_linked_tasks = (JSONArray) record.get("linked_tasks");
 		if (ja_linked_tasks.size() > 0) {
@@ -137,17 +139,18 @@ public class Notification {
 		created_at = (Long) record.get("created_at");
 		is_read = (Boolean) record.get("is_read");
 		readed_at = (Long) record.get("readed_at");
-		first_reader = user_profile_orm_engine.read((String) record.get("first_reader"));
+		
+		first_reader = user_profile_orm_engine.staticRead((String) record.get("first_reader"));
 		closed_at = (Long) record.get("closed_at");
 		is_close = (Boolean) record.get("is_close");
-		closed_by = user_profile_orm_engine.read((String) record.get("closed_by"));
+		closed_by = user_profile_orm_engine.staticRead((String) record.get("closed_by"));
 		commented_at = (Long) record.get("commented_at");
 		users_comment = (String) record.get("users_comment");
 		
 		notify_list = new HashMap<NotifyReason, List<UserProfile>>();
 		NotifyReason[] reasons = NotifyReason.values();
 		for (int pos = 0; pos < reasons.length; pos++) {
-			notify_list.put(reasons[pos], getUsersFromDb((JSONArray) record.get(reasons[pos].getDbRecordName())));
+			notify_list.put(reasons[pos], getUsersFromDb((JSONArray) record.get(reasons[pos].getDbRecordName()), user_profile_orm_engine));
 		}
 		return this;
 	}
@@ -216,10 +219,6 @@ public class Notification {
 		return mail_vars;
 	}
 	
-	private Notification() throws ConnectionException, IOException {
-		user_profile_orm_engine = new CrudOrmEngine<UserProfile>(new UserProfile());
-	}
-	
 	/**
 	 * Sorted by created_at (recent first)
 	 */
@@ -242,7 +241,7 @@ public class Notification {
 		for (int pos = 0; pos < hits.length; pos++) {
 			parser.reset();
 			Notification notification = new Notification();
-			notification.importFromDb(Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
+			notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
 			all_notifications.add(notification);
 		}
 		return all_notifications;
@@ -450,7 +449,7 @@ public class Notification {
 			 */
 			parser.reset();
 			Notification notification = new Notification();
-			notification.importFromDb(Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
+			notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
 			must_update_notification = false;
 			
 			if (notification.linked_tasksjobs.isEmpty()) {
@@ -519,9 +518,9 @@ public class Notification {
 	 * Switch done if terminated and old (in regulary calls) but without Notify
 	 * @param grace_period_duration in ms
 	 */
-	public static void updateOldsAndNonClosedNotifications(long grace_period_duration) throws Exception {
+	public static int updateOldsAndNonClosedNotifications(long grace_period_duration) throws Exception {
 		Client client = Elasticsearch.getClient();
-		
+		int count = 0;
 		/**
 		 * Get all non-closed notifications
 		 */
@@ -539,7 +538,7 @@ public class Notification {
 		SearchHit[] hits = request.execute().actionGet().getHits().hits();
 		
 		if (hits.length == 0) {
-			return;
+			return 0;
 		}
 		
 		BulkRequestBuilder bulkrequest = client.prepareBulk();
@@ -555,7 +554,7 @@ public class Notification {
 			 */
 			parser.reset();
 			Notification notification = new Notification();
-			notification.importFromDb(Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
+			notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
 			will_close_notification = false;
 			
 			if (notification.linked_tasksjobs.isEmpty() == false) {
@@ -577,6 +576,7 @@ public class Notification {
 				record = new JSONObject();
 				notification.exportToDb(record);
 				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()));
+				count++;
 			}
 		}
 		
@@ -586,7 +586,7 @@ public class Notification {
 		if (bulkrequest.numberOfActions() > 0) {
 			bulkrequest.execute().actionGet();
 		}
-		
+		return count;
 	}
 	
 	/**
@@ -669,6 +669,12 @@ public class Notification {
 		for (int pos = 0; pos < raw_notify_list.size(); pos++) {
 			nu = (NotificationUpdate) raw_notify_list.get(pos);
 			Notification notification = getFromDatabase(nu.key);
+			if (notification == null) {
+				/**
+				 * Can't found notification
+				 */
+				continue;
+			}
 			List<NotifyReason> reasons = nu.getReasons();
 			if (reasons.size() > 0) {
 				globalnotifylists.put(notification, reasons);
@@ -731,7 +737,7 @@ public class Notification {
 			return null;
 		}
 		Notification notification = new Notification();
-		notification.importFromDb(Elasticsearch.getJSONFromSimpleResponse(response));
+		notification.importFromDb(key, Elasticsearch.getJSONFromSimpleResponse(response));
 		return notification;
 	}
 	
@@ -762,7 +768,7 @@ public class Notification {
 		ArrayList<Notification> notifications = new ArrayList<Notification>(hits.length);
 		for (int pos = 0; pos < hits.length; pos++) {
 			Notification notification = new Notification();
-			notifications.add(notification.importFromDb(Elasticsearch.getJSONFromSimpleResponse(hits[pos])));
+			notifications.add(notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos])));
 		}
 		return notifications;
 	}

@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Store all pending notifications actions
  */
-class NotificationUpdate extends CrudOrmModel {
+public class NotificationUpdate extends CrudOrmModel {
 	
 	public boolean is_new_error;
 	public boolean is_new_done;

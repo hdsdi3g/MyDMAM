@@ -21,12 +21,14 @@ import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.mail.notification.NotificationWorker;
 import hd3gtv.mydmam.metadata.indexing.MetadataIndexerWorker;
 import hd3gtv.mydmam.metadata.rendering.MetadataRendererWorker;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
+import hd3gtv.mydmam.taskqueue.demo.DemoWorker;
 import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscodeProfileManager;
 import hd3gtv.storage.StorageManager;
@@ -89,6 +91,10 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		
 		MetadataRendererWorker mrw = new MetadataRendererWorker(miw);
 		workergroup.addWorker(mrw);
+		
+		new NotificationWorker(workergroup);
+		
+		workergroup.addWorker(new DemoWorker());
 		
 		MyDMAMModulesManager.declareAllModuleWorkerElement(workergroup);
 		

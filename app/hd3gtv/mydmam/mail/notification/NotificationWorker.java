@@ -36,6 +36,8 @@ import models.UserProfile;
 
 import javax.mail.internet.InternetAddress;
 
+import org.elasticsearch.indices.IndexMissingException;
+
 import play.i18n.Lang;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -120,53 +122,62 @@ public class NotificationWorker extends Worker {
 		}
 	}
 	
-	@Override
 	public void process(Job job) throws Exception {
 		stop = false;
-		
-		if (job.getProfile().sameProfile(notification_alert_profile)) {
-			Notification.updateTasksJobsEvolutionsForNotifications();
-			
-			Map<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_list = Notification.getUsersNotifyList();
-			if (users_notify_list.isEmpty()) {
-				return;
-			}
-			UserProfile user;
-			NotifyReason reason;
-			List<Notification> notifications;
-			HashMap<Object, Object> mail_vars;
-			
-			for (Map.Entry<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_entry : users_notify_list.entrySet()) {
-				if (stop) {
+		try {
+			int count = 0;
+			if (job.getProfile().sameProfile(notification_alert_profile)) {
+				Notification.updateTasksJobsEvolutionsForNotifications();
+				
+				Map<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_list = Notification.getUsersNotifyList();
+				if (users_notify_list.isEmpty()) {
+					job.last_message = "No notifications to send";
 					return;
 				}
-				user = users_notify_entry.getKey();
-				EndUserBaseMail usermail = EndUserBaseMail.create(Lang.getLocale(user.language), new InternetAddress(user.email), "notification");
-				mail_vars = new HashMap<Object, Object>();
+				UserProfile user;
+				NotifyReason reason;
+				List<Notification> notifications;
+				HashMap<Object, Object> mail_vars;
 				
-				for (Map.Entry<NotifyReason, List<Notification>> entry_notifyreason : users_notify_entry.getValue().entrySet()) {
-					reason = entry_notifyreason.getKey();
-					
-					notifications = entry_notifyreason.getValue();
-					List<Map<String, Object>> mail_var_notifications = new ArrayList<Map<String, Object>>();
-					
-					for (int pos_ntf = 0; pos_ntf < notifications.size(); pos_ntf++) {
-						if (stop) {
-							return;
-						}
-						mail_var_notifications.add(notifications.get(pos_ntf).exportToMailVars());
-						if (notifications.get(pos_ntf).getActualSummaryTaskJobStatus() == TaskJobStatus.ERROR) {
-							usermail.setMailPriority(MailPriority.HIGHEST);
-						}
+				for (Map.Entry<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_entry : users_notify_list.entrySet()) {
+					if (stop) {
+						return;
 					}
-					mail_vars.put(reason.toString().toLowerCase(), mail_var_notifications);
+					user = users_notify_entry.getKey();
+					EndUserBaseMail usermail = EndUserBaseMail.create(Lang.getLocale(user.language), new InternetAddress(user.email), "notification");
+					mail_vars = new HashMap<Object, Object>();
+					
+					for (Map.Entry<NotifyReason, List<Notification>> entry_notifyreason : users_notify_entry.getValue().entrySet()) {
+						reason = entry_notifyreason.getKey();
+						
+						notifications = entry_notifyreason.getValue();
+						List<Map<String, Object>> mail_var_notifications = new ArrayList<Map<String, Object>>();
+						
+						for (int pos_ntf = 0; pos_ntf < notifications.size(); pos_ntf++) {
+							if (stop) {
+								return;
+							}
+							mail_var_notifications.add(notifications.get(pos_ntf).exportToMailVars());
+							if (notifications.get(pos_ntf).getActualSummaryTaskJobStatus() == TaskJobStatus.ERROR) {
+								usermail.setMailPriority(MailPriority.HIGHEST);
+							}
+						}
+						mail_vars.put(reason.toString().toLowerCase(), mail_var_notifications);
+					}
+					usermail.send(mail_vars);
+					count++;
 				}
+				job.last_message = count + " notifications(s) sended";
 				
-				usermail.send(mail_vars);
+			} else if (job.getProfile().sameProfile(notification_clean_profile)) {
+				count = Notification.updateOldsAndNonClosedNotifications(grace_period_duration);
+				job.last_message = count + " element(s) closed";
 			}
-			
-		} else if (job.getProfile().sameProfile(notification_clean_profile)) {
-			Notification.updateOldsAndNonClosedNotifications(grace_period_duration);
+		} catch (IndexMissingException e) {
+			/**
+			 * Empty Db, ignore this.
+			 */
+			job.last_message = "Database (ES) is not definited";
 		}
 	}
 	
