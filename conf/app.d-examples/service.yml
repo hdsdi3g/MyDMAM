@@ -4,6 +4,7 @@ service:
     brokercleantasks : true
     administrator_mail : Me <me@domain.com>
     notifications_scan: true
+    # demo_worker: true
 
 javamail:
     from: Me <me@domain.com>
