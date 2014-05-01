@@ -40,11 +40,25 @@ public class DemoWorker extends Worker {
 	public static String createTask(long duration) throws ConnectionException {
 		JSONObject jo = new JSONObject();
 		jo.put("sleep", duration);
+		jo.put("fail", false);
+		return Broker.publishTask("Task demo", demo_profile, jo, DemoWorker.class, false, 0, null, false);
+	}
+	
+	/**
+	 * @return new task key
+	 */
+	public static String createFailedTask() throws ConnectionException {
+		JSONObject jo = new JSONObject();
+		jo.put("sleep", 100);
+		jo.put("fail", true);
 		return Broker.publishTask("Task demo", demo_profile, jo, DemoWorker.class, false, 0, null, false);
 	}
 	
 	public void process(Job job) throws Exception {
 		Thread.sleep((Long) job.getContext().get("sleep"));
+		if ((Boolean) job.getContext().get("fail")) {
+			throw new Exception("Task demo has normally failed");
+		}
 	}
 	
 	public String getShortWorkerName() {

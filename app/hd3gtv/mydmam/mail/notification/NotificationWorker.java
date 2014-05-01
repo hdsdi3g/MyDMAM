@@ -69,7 +69,7 @@ public class NotificationWorker extends Worker {
 		long period;
 		
 		public void createTasks() throws ConnectionException {
-			Broker.publishTask("Close old notifications", notification_clean_profile, null, NotificationWorker.class, false, 0, null, false);
+			Broker.publishTask("Close old notifications", notification_clean_profile, null, this, false, 0, null, false);
 		}
 		
 		public long getInitialCyclicPeriodTasks() {
@@ -98,7 +98,7 @@ public class NotificationWorker extends Worker {
 		long period;
 		
 		public void createTasks() throws ConnectionException {
-			Broker.publishTask("Notifications alerter", notification_alert_profile, null, NotificationWorker.class, false, 0, null, false);
+			Broker.publishTask("Notifications alerter", notification_alert_profile, null, this, false, 0, null, false);
 		}
 		
 		public long getInitialCyclicPeriodTasks() {
