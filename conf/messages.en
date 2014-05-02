@@ -240,6 +240,8 @@ mime.application-old=Old fichier
 mime.audio-wav=Wave audio
 
 userprofile.usereditor.pagename=Settings
+userprofile.notifications.pagename=Notifications
+
 crud.field.userprofile=User settings
 crud.field.userprofile.longname=Name
 crud.field.userprofile.language=Language

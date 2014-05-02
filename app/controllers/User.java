@@ -22,11 +22,13 @@ import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.ModelClassResolver;
 import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
+import hd3gtv.mydmam.mail.notification.Notification;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 import models.UserProfile;
@@ -192,8 +194,34 @@ public class User extends Controller {
 		redirect("User.index", objtype);
 	}
 	
-	public void notificationslist() throws Exception {
-		// TODO
+	private static UserProfile getUserProfile() throws Exception {
+		String username = Secure.connected();
+		String key = UserProfile.prepareKey(username);
+		
+		UserProfile userprofile = new UserProfile();
+		CrudOrmEngine<UserProfile> engine = new CrudOrmEngine<UserProfile>(userprofile);
+		
+		if (engine.exists(key)) {
+			userprofile = engine.read(key);
+		} else {
+			userprofile = engine.create();
+			userprofile.key = key;
+			engine.saveInternalElement();
+		}
+		return userprofile;
+	}
+	
+	public static void notificationslist() throws Exception {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.pagename");
+		UserProfile user = getUserProfile();
+		
+		List<Notification> notifications = Notification.getFromDatabaseByObserver(user);
+		List<Map<String, Object>> user_notifications = new ArrayList<Map<String, Object>>();
+		for (int pos = 0; pos < notifications.size(); pos++) {
+			user_notifications.add(notifications.get(pos).exportToViewVars(user));
+		}
+		
+		render(title, user_notifications);
 	}
 	
 	public void notificationsupdate() throws Exception {

@@ -209,6 +209,58 @@ public class Notification {
 		return this;
 	}
 	
+	/**
+	 * @param user
+	 * @return null if User don't belongs to observers list. Return only notify reasons for this user.
+	 */
+	public Map<String, Object> exportToViewVars(UserProfile user) throws ConnectionException {
+		if (observers.contains(user) == false) {
+			return null;
+		}
+		HashMap<String, Object> result = new HashMap<String, Object>();
+		
+		if (creator != null) {
+			result.put("creator_name", creator.longname);
+			result.put("creator_mail", creator.email);
+		}
+		result.put("linked_tasksjobs", linked_tasksjobs.keySet());
+		result.put("summary_status", getActualSummaryTaskJobStatus());
+		
+		result.put("creating_comment", creating_comment);
+		result.put("created_at", created_at);
+		result.put("is_read", is_read);
+		result.put("readed_at", readed_at);
+		
+		if (first_reader != null) {
+			result.put("first_reader_name", first_reader.longname);
+			result.put("first_reader_mail", first_reader.email);
+		}
+		
+		result.put("closed_at", closed_at);
+		result.put("is_close", is_close);
+		
+		if (closed_by != null) {
+			result.put("closed_by_name", closed_by.longname);
+			result.put("closed_by_mail", closed_by.email);
+		}
+		
+		result.put("commented_at", commented_at);
+		result.put("users_comment", users_comment);
+		
+		Map<String, Boolean> notify_list_for_user = new HashMap<String, Boolean>();
+		NotifyReason[] reasons = NotifyReason.values();
+		for (int pos = 0; pos < reasons.length; pos++) {
+			if (notify_list != null) {
+				notify_list_for_user.put(reasons[pos].getDbRecordName(), notify_list.get(reasons[pos]).contains(user));
+			} else {
+				notify_list_for_user.put(reasons[pos].getDbRecordName(), false);
+			}
+		}
+		result.put("notify_list", notify_list_for_user);
+		
+		return result;
+	}
+	
 	Map<String, Object> exportToMailVars() {
 		HashMap<String, Object> mail_vars = new HashMap<String, Object>();
 		mail_vars.put("creating_comment", creating_comment);
@@ -750,7 +802,7 @@ public class Notification {
 		request.setIndices(ES_INDEX);
 		request.setTypes(ES_DEFAULT_TYPE);
 		request.addSort("created_at", SortOrder.DESC);
-		request.setQuery(QueryBuilders.termQuery("observers", user.key));
+		request.setQuery(QueryBuilders.matchPhraseQuery("observers", user.key));
 		
 		/*
 		 * QueryBuilders.boolQuery().must()
@@ -759,7 +811,6 @@ public class Notification {
 		sqqb.defaultField("path");
 		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())).must(sqqb));
 		*/
-		
 		SearchResponse response = request.execute().actionGet();
 		if (response.getHits().totalHits() == 0) {
 			return new ArrayList<Notification>(1);

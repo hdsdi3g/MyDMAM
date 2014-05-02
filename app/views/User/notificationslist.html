@@ -1,0 +1,85 @@
+*{
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * 
+}*
+#{extends 'maingrid.html' /}
+
+#{if flash.success}
+    <div class="alert alert-info">
+    	<button type="button" class="close" data-dismiss="alert">&times;</button>
+	    ${flash.success}
+    </div>
+#{/if}
+#{if flash.error || error}
+	<div class="alert alert-error">
+		<button type="button" class="close" data-dismiss="alert">&times;</button>
+		${error ?: flash.error}
+	</div>
+#{/if}
+
+<div class="container">
+	<p class="lead">&{'userprofile.notifications.pagename'}</p>
+%{ user_notifications.eachWithIndex() { notification, pos -> }%
+	<ul>
+		<li>${notification.creating_comment}
+		<button class="btn">SHOW & set to READ</button>
+		
+		<li><a href="mailto:${notification.creator_mail}">${notification.creator_name}</a>
+		<li>${notification.linked_tasksjobs}
+		<li>${notification.summary_status}
+		<li><span class="label">${notification.created_at.formatDate()}</span>
+		
+		<li>
+		#{if notification.is_read}
+			<span class="label label-inverse">READ</span>
+			<span class="label">${notification.readed_at.formatDate()}</span>
+			<a href="mailto:${notification.first_reader_mail}">${notification.first_reader_name}</a>
+		#{/if}#{else}
+			#{if notification.is_close}
+				<span class="label label-inverse">CLOSE</span>
+				<span class="label">${notification.closed_at.formatDate()}</span>
+				${notification.closed_by_name}
+				${notification.closed_by_mail}
+			#{/if}#{else}
+				<span class="label label-inverse">NEW</span>
+			#{/else}
+		#{/else}
+		
+		<li><span class="label">${notification.commented_at.formatDate()}</span>
+		<li><textaera>${notification.users_comment}</textaera>
+		
+		<li>${notification.notify_list}
+		<hr>
+	</ul>
+%{ } }%
+</div>
+
+    <button type="button" class="btn btn-danger" data-toggle="collapse" data-target="#demo">
+    TODO simple collapsible
+    </button>
+     
+    <div id="demo" class="collapse in"> TODO </div>
+
+<script type="text/javascript" charset="UTF-8">
+<!--
+$(document).ready(function() {
+   	try {
+		$("#btnSession").addClass("active");
+	} catch(err) {
+		console.log(err);
+	}
+});
+-->
+</script>

@@ -240,6 +240,8 @@ mime.application-old=Ancien fichier
 mime.audio-wav=Audio Wave
 
 userprofile.usereditor.pagename=Préférences
+userprofile.notifications.pagename=Notifications
+
 crud.field.userprofile=Préférences utilisateur
 crud.field.userprofile.longname=Nom
 crud.field.userprofile.language=Langue
