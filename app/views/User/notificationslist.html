@@ -32,51 +32,109 @@
 <div class="container">
 	<p class="lead">&{'userprofile.notifications.pagename'}</p>
 %{ user_notifications.eachWithIndex() { notification, pos -> }%
-	<ul>
-		<li>${notification.creating_comment}
-		<button class="btn">SHOW & set to READ</button>
-		
-		<li><a href="mailto:${notification.creator_mail}">${notification.creator_name}</a>
-		<li>${notification.linked_tasksjobs}
-		<li>${notification.summary_status}
-		<li><span class="label">${notification.created_at.formatDate()}</span>
-		
-		<li>
-		#{if notification.is_read}
-			<span class="label label-inverse">READ</span>
-			<span class="label">${notification.readed_at.formatDate()}</span>
-			<a href="mailto:${notification.first_reader_mail}">${notification.first_reader_name}</a>
-		#{/if}#{else}
-			#{if notification.is_close}
-				<span class="label label-inverse">CLOSE</span>
-				<span class="label">${notification.closed_at.formatDate()}</span>
-				${notification.closed_by_name}
-				${notification.closed_by_mail}
+<div class="" style="margin-bottom:0.5em;">
+	<div class="">
+		<div class="">
+			<button class="btn btn-mini #{if notification.is_read == false}btnsetreadnotification#{/if}" data-target="#notificationcontent${pos}" data-toggle="collapse" data-notificationkey="${notification.key}">
+				<i class="icon-chevron-down"></i>
+				<!-- & set to read -->
+			</button>
+			<span class="label label-info">&{notification.summary_status}</span>
+		</div>
+		<div class="">
+			${notification.creating_comment}
+		</div>
+	</div>
+	<div class="collapse" id="notificationcontent${pos}">
+		<div class="">
+			<div class="">
+				Created by <span class="userprofilekey">${notification.creator}</span>
+				<span class="label">At ${notification.created_at.formatDate()}</span>
+			</div>
+		</div>
+		<div class="">
+			
+			<li>
+			#{if notification.is_read}
+				<span class="label">Read at ${notification.readed_at.formatDate()}</span>
+				by <span class="userprofilekey">${notification.first_reader}"></span>
 			#{/if}#{else}
-				<span class="label label-inverse">NEW</span>
+				#{if notification.is_close}
+					<span class="label">Close at ${notification.closed_at.formatDate()}</span>
+					by <span class="userprofilekey">${notification.closed_by}</span>
+				#{/if}#{else}
+					<span class="label">Read <i>Now</i></span>
+					by <span class="userprofilekey">${user.key}</span>
+				#{/else}
 			#{/else}
-		#{/else}
-		
-		<li><span class="label">${notification.commented_at.formatDate()}</span>
-		<li><textaera>${notification.users_comment}</textaera>
-		
-		<li>${notification.notify_list}
-		<hr>
-	</ul>
+			
+			TODO CLOSE btn
+			
+			<li>
+			#{if notification.commented_at > 0}
+				<span class="label">Commented: ${notification.commented_at.formatDate()}</span>
+			#{/if}#{else}
+				<span class="label"><i>Never commented</i></span>
+			#{/else}
+			
+			<li><textarea>${notification.users_comment}</textarea>
+			TODO SEND btn
+			
+			
+			<div>
+				Mail notification alerts:
+			%{ notification.notify_list.eachWithIndex() { reason, tpos -> }% #{if reason.key != "notify_if_readed"}
+				<p>
+				#{if reason.value}
+					<span class="badge badge-important">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.enabled'}</span>
+				#{/if}#{else}
+					<span class="badge">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.disabled'}</span>
+				#{/else}
+				
+				<button class="btn btn-mini btnchangenotify #{if reason.value}btn-success#{/if}#{else}btn-danger#{/else}" data-notificationkey="${notification.key}" data-reason="${reason.key}">
+				#{if reason.value}
+					&{'userprofile.notifications.notify.disable'}
+				#{/if}#{else}
+					&{'userprofile.notifications.notify.enable'}
+				#{/else}
+				</button>
+				</p>
+			#{/if} %{ } }%
+			</div>
+			
+			<ul>
+			%{ notification.linked_tasks.eachWithIndex() { taskjob, tpos -> }%
+				<li>${taskjob.taskjobkey}
+			%{ } }%
+			</ul>
+			
+		</div>
+	</div>
+</div>
 %{ } }%
 </div>
-
-    <button type="button" class="btn btn-danger" data-toggle="collapse" data-target="#demo">
-    TODO simple collapsible
-    </button>
-     
-    <div id="demo" class="collapse in"> TODO </div>
 
 <script type="text/javascript" charset="UTF-8">
 <!--
 $(document).ready(function() {
    	try {
 		$("#btnSession").addClass("active");
+		$(".userprofilekey").each(function() {
+			var key = $(this).text();
+			$(this).html("<a href=\"#\"> " + key + "</a>");
+			console.log("TODO resolve User: " + key);
+		});
+		$(".btnsetreadnotification").each(function() {
+			var notificationkey = $(this).data("notificationkey");
+			$(this).click(function() {
+				if ($(this).hasClass("btnsetreadnotification")) {
+					$(this).removeClass("btnsetreadnotification");
+					console.log("TODO set read: " + notificationkey);
+				}
+			});
+		});
+		//TODO btnchangenotify
+		
 	} catch(err) {
 		console.log(err);
 	}

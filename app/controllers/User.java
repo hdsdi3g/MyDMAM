@@ -214,14 +214,8 @@ public class User extends Controller {
 	public static void notificationslist() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.pagename");
 		UserProfile user = getUserProfile();
-		
-		List<Notification> notifications = Notification.getFromDatabaseByObserver(user);
-		List<Map<String, Object>> user_notifications = new ArrayList<Map<String, Object>>();
-		for (int pos = 0; pos < notifications.size(); pos++) {
-			user_notifications.add(notifications.get(pos).exportToViewVars(user));
-		}
-		
-		render(title, user_notifications);
+		ArrayList<Map<String, Object>> user_notifications = Notification.getRawFromDatabaseByObserver(user);
+		render(title, user_notifications, user);
 	}
 	
 	public void notificationsupdate() throws Exception {

@@ -241,6 +241,15 @@ mime.audio-wav=Audio Wave
 
 userprofile.usereditor.pagename=Préférences
 userprofile.notifications.pagename=Notifications
+userprofile.notifications.notify_if_error=&{%s} en cas d'erreur
+userprofile.notifications.notify_if_done=&{%s} quand c'est terminé
+userprofile.notifications.notify_if_readed=&{%s} quand c'est lu
+userprofile.notifications.notify_if_closed=&{%s} quand c'est fermé
+userprofile.notifications.notify_if_commented=&{%s} quand c'est commenté
+userprofile.notifications.notify.enabled=Activé
+userprofile.notifications.notify.disabled=Desactivé
+userprofile.notifications.notify.enable=Activer
+userprofile.notifications.notify.disable=Desactiver
 
 crud.field.userprofile=Préférences utilisateur
 crud.field.userprofile.longname=Nom
