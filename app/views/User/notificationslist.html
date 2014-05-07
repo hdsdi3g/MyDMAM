@@ -37,7 +37,6 @@
 		<div class="">
 			<button class="btn btn-mini #{if notification.is_read == false}btnsetreadnotification#{/if}" data-target="#notificationcontent${pos}" data-toggle="collapse" data-notificationkey="${notification.key}">
 				<i class="icon-chevron-down"></i>
-				<!-- & set to read -->
 			</button>
 			<span class="label label-info">&{notification.summary_status}</span>
 		</div>
@@ -46,68 +45,85 @@
 		</div>
 	</div>
 	<div class="collapse" id="notificationcontent${pos}">
-		<div class="">
-			<div class="">
-				Created by <span class="userprofilekey">${notification.creator}</span>
-				<span class="label">At ${notification.created_at.formatDate()}</span>
+		<div class="row-fluid">
+			<div class="span4">
+				<p>
+					Created by <span class="userprofilekey">${notification.creator}</span>
+				</p>
+				<p>
+					<span class="label">At ${notification.created_at.formatDate()}</span>
+				</p>
+				#{if notification.is_read}
+					<p>
+						<span class="label">Read at ${notification.readed_at.formatDate()}</span>
+					</p>
+					<p>
+						Read by <span class="userprofilekey">${notification.first_reader}"></span>
+					</p>
+				#{/if}#{else}
+					#{if notification.is_close}
+						<p>
+							<span class="label">Close at ${notification.closed_at.formatDate()}</span>
+						</p>
+						<p>
+							Close by <span class="userprofilekey">${notification.closed_by}</span>
+						</p>
+					#{/if}#{else}
+						<p>
+							<span class="label">Read <i>Now</i></span>
+						</p>
+						<p>
+							Read by <span class="userprofilekey">${user.key}</span>
+						</p>
+					#{/else}
+				#{/else}
+				<p>
+					<button class="btn btn-primary btnclosenotification" data-notificationkey="${notification.key}">Close</button>
+				</p>
+			</div>
+			<div class="span4">
+				<p>
+					#{if notification.commented_at > 0}
+						<span class="label">Commented: ${notification.commented_at.formatDate()}</span>
+					#{/if}#{else}
+						<span class="label"><i>Never commented</i></span>
+					#{/else}
+				</p>
+				<p>
+					<textarea class="span12" placeholder="You can enter some comments here...">${notification.users_comment}</textarea>
+				</p>
+				<p>
+					<button class="btn btn-info btnupdatecomment" data-notificationkey="${notification.key}">Update comment</button>
+				</p>
+			</div>
+			<div class="span4">
+				Mail notification alerts:
+				%{ notification.notify_list.eachWithIndex() { reason, tpos -> }% #{if reason.key != "notify_if_readed"}
+				<div class="row-fluid">
+					<div class="span6">
+						#{if reason.value}
+							<span class="badge badge-important">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.enabled'}</span>
+						#{/if}#{else}
+							<span class="badge">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.disabled'}</span>
+						#{/else}
+					</div>
+					<div class="span6">
+						<button class="btn btn-mini btnchangenotify #{if reason.value}btn-success#{/if}#{else}btn-danger#{/else}" data-notificationkey="${notification.key}" data-reason="${reason.key}">
+						#{if reason.value}
+							&{'userprofile.notifications.notify.disable'}
+						#{/if}#{else}
+							&{'userprofile.notifications.notify.enable'}
+						#{/else}
+						</button>
+					</div>
+				</div>
+				#{/if} %{ } }%
 			</div>
 		</div>
-		<div class="">
-			
-			<li>
-			#{if notification.is_read}
-				<span class="label">Read at ${notification.readed_at.formatDate()}</span>
-				by <span class="userprofilekey">${notification.first_reader}"></span>
-			#{/if}#{else}
-				#{if notification.is_close}
-					<span class="label">Close at ${notification.closed_at.formatDate()}</span>
-					by <span class="userprofilekey">${notification.closed_by}</span>
-				#{/if}#{else}
-					<span class="label">Read <i>Now</i></span>
-					by <span class="userprofilekey">${user.key}</span>
-				#{/else}
-			#{/else}
-			
-			TODO CLOSE btn
-			
-			<li>
-			#{if notification.commented_at > 0}
-				<span class="label">Commented: ${notification.commented_at.formatDate()}</span>
-			#{/if}#{else}
-				<span class="label"><i>Never commented</i></span>
-			#{/else}
-			
-			<li><textarea>${notification.users_comment}</textarea>
-			TODO SEND btn
-			
-			
-			<div>
-				Mail notification alerts:
-			%{ notification.notify_list.eachWithIndex() { reason, tpos -> }% #{if reason.key != "notify_if_readed"}
-				<p>
-				#{if reason.value}
-					<span class="badge badge-important">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.enabled'}</span>
-				#{/if}#{else}
-					<span class="badge">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.disabled'}</span>
-				#{/else}
-				
-				<button class="btn btn-mini btnchangenotify #{if reason.value}btn-success#{/if}#{else}btn-danger#{/else}" data-notificationkey="${notification.key}" data-reason="${reason.key}">
-				#{if reason.value}
-					&{'userprofile.notifications.notify.disable'}
-				#{/if}#{else}
-					&{'userprofile.notifications.notify.enable'}
-				#{/else}
-				</button>
-				</p>
-			#{/if} %{ } }%
-			</div>
-			
-			<ul>
+		<div class="row-fluid">
 			%{ notification.linked_tasks.eachWithIndex() { taskjob, tpos -> }%
 				<li>${taskjob.taskjobkey}
 			%{ } }%
-			</ul>
-			
 		</div>
 	</div>
 </div>
@@ -122,19 +138,26 @@ $(document).ready(function() {
 		$(".userprofilekey").each(function() {
 			var key = $(this).text();
 			$(this).html("<a href=\"#\"> " + key + "</a>");
-			console.log("TODO resolve User: " + key);
+			//ASYNC console.log("TODO resolve User: " + key);
 		});
 		$(".btnsetreadnotification").each(function() {
 			var notificationkey = $(this).data("notificationkey");
 			$(this).click(function() {
 				if ($(this).hasClass("btnsetreadnotification")) {
 					$(this).removeClass("btnsetreadnotification");
-					console.log("TODO set read: " + notificationkey);
+					//ASYNC console.log("TODO set read: " + notificationkey);
 				}
 			});
 		});
-		//TODO btnchangenotify
-		
+		$(".btnchangenotify").each(function() {
+			var notificationkey = $(this).data("notificationkey");
+			var reason = $(this).data("reason");
+			$(this).click(function() {
+				//SYNC console.log("TODO toogle notification reason: " + notificationkey + " resaon:" + reason);
+			});
+		});
+		// .btnupdatecomment notificationkey
+		// .btnclosenotification
 	} catch(err) {
 		console.log(err);
 	}
