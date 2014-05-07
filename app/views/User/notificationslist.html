@@ -34,97 +34,110 @@
 %{ user_notifications.eachWithIndex() { notification, pos -> }%
 <div class="" style="margin-bottom:0.5em;">
 	<div class="">
-		<div class="">
-			<button class="btn btn-mini #{if notification.is_read == false}btnsetreadnotification#{/if}" data-target="#notificationcontent${pos}" data-toggle="collapse" data-notificationkey="${notification.key}">
-				<i class="icon-chevron-down"></i>
-			</button>
-			<span class="label label-info">&{notification.summary_status}</span>
-		</div>
-		<div class="">
-			${notification.creating_comment}
-		</div>
+		<button class="btn btn-mini #{if notification.is_read == false}btnsetreadnotification#{/if}" data-target="#notificationcontent${pos}" data-toggle="collapse" data-notificationkey="${notification.key}">
+			<i class="icon-chevron-down"></i>
+		</button>
+		<span class="label label-info">&{notification.summary_status}</span>
+		${notification.creating_comment}
 	</div>
 	<div class="collapse" id="notificationcontent${pos}">
-		<div class="row-fluid">
-			<div class="span4">
-				<p>
-					Created by <span class="userprofilekey">${notification.creator}</span>
-				</p>
-				<p>
-					<span class="label">At ${notification.created_at.formatDate()}</span>
-				</p>
-				#{if notification.is_read}
-					<p>
-						<span class="label">Read at ${notification.readed_at.formatDate()}</span>
-					</p>
-					<p>
-						Read by <span class="userprofilekey">${notification.first_reader}"></span>
-					</p>
-				#{/if}#{else}
-					#{if notification.is_close}
-						<p>
-							<span class="label">Close at ${notification.closed_at.formatDate()}</span>
-						</p>
-						<p>
-							Close by <span class="userprofilekey">${notification.closed_by}</span>
-						</p>
-					#{/if}#{else}
-						<p>
-							<span class="label">Read <i>Now</i></span>
-						</p>
-						<p>
-							Read by <span class="userprofilekey">${user.key}</span>
-						</p>
-					#{/else}
-				#{/else}
-				<p>
-					<button class="btn btn-primary btnclosenotification" data-notificationkey="${notification.key}">Close</button>
-				</p>
-			</div>
-			<div class="span4">
-				<p>
-					#{if notification.commented_at > 0}
-						<span class="label">Commented: ${notification.commented_at.formatDate()}</span>
-					#{/if}#{else}
-						<span class="label"><i>Never commented</i></span>
-					#{/else}
-				</p>
-				<p>
-					<textarea class="span12" placeholder="You can enter some comments here...">${notification.users_comment}</textarea>
-				</p>
-				<p>
-					<button class="btn btn-info btnupdatecomment" data-notificationkey="${notification.key}">Update comment</button>
-				</p>
-			</div>
-			<div class="span4">
-				Mail notification alerts:
-				%{ notification.notify_list.eachWithIndex() { reason, tpos -> }% #{if reason.key != "notify_if_readed"}
-				<div class="row-fluid">
-					<div class="span6">
-						#{if reason.value}
-							<span class="badge badge-important">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.enabled'}</span>
-						#{/if}#{else}
-							<span class="badge">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.disabled'}</span>
-						#{/else}
-					</div>
-					<div class="span6">
-						<button class="btn btn-mini btnchangenotify #{if reason.value}btn-success#{/if}#{else}btn-danger#{/else}" data-notificationkey="${notification.key}" data-reason="${reason.key}">
-						#{if reason.value}
-							&{'userprofile.notifications.notify.disable'}
-						#{/if}#{else}
-							&{'userprofile.notifications.notify.enable'}
-						#{/else}
-						</button>
-					</div>
-				</div>
-				#{/if} %{ } }%
-			</div>
-		</div>
-		<div class="row-fluid">
-			%{ notification.linked_tasks.eachWithIndex() { taskjob, tpos -> }%
-				<li>${taskjob.taskjobkey}
-			%{ } }%
-		</div>
+		<div class="tabbable tabs-right" style="margin-top: 1em; margin-bottom: 1em;">
+			<ul class="nav nav-tabs">
+				<li class="active">
+					<a data-toggle="tab" href="#tabpane${pos}main">Summary</a>
+				</li>
+				<li>
+					<a data-toggle="tab" href="#tabpane${pos}tj">Tasks/Jobs</a>
+				</li>
+			</ul>
+			<div class="tab-content">	
+				<div id="tabpane${pos}main" class="tab-pane active">
+					<div class="row-fluid">
+						<div class="span4">
+							<p>
+								Created by <span class="userprofilekey">${notification.creator}</span>
+							</p>
+							<p>
+								<span class="label">Created at ${notification.created_at.formatDate()}</span>
+							</p>
+							#{if notification.is_read}
+								<p>
+									<span class="label">Read at ${notification.readed_at.formatDate()}</span>
+								</p>
+								<p>
+									Read by <span class="userprofilekey">${notification.first_reader}"></span>
+								</p>
+							#{/if}#{else}
+								#{if notification.is_close}
+									<p>
+										<span class="label">Close at ${notification.closed_at.formatDate()}</span>
+									</p>
+									<p>
+										Close by <span class="userprofilekey">${notification.closed_by}</span>
+									</p>
+								#{/if}#{else}
+									<p>
+										<span class="label">Read <i>Now</i></span>
+									</p>
+									<p>
+										Read by <span class="userprofilekey">${user.key}</span>
+									</p>
+								#{/else}
+							#{/else}
+							<p>
+								<button class="btn btn-primary btnclosenotification" data-notificationkey="${notification.key}"><i class="icon-ok icon-white"></i> Close</button>
+							</p>
+						</div> <!-- span4 -->
+						<div class="span4">
+							<p>
+								#{if notification.commented_at > 0}
+									<span class="label">Commented: ${notification.commented_at.formatDate()}</span>
+								#{/if}#{else}
+									<span class="label"><i>Never commented</i></span>
+								#{/else}
+							</p>
+							<p>
+								<textarea class="span12" placeholder="You can enter some comments here...">${notification.users_comment}</textarea>
+							</p>
+							<p>
+								<button class="btn btn-info btnupdatecomment" data-notificationkey="${notification.key}"><i class="icon-edit icon-white"></i> Update comment</button>
+							</p>
+						</div> <!-- span4 -->
+						<div class="span4">
+							Mail notification alerts:
+							%{ notification.notify_list.eachWithIndex() { reason, tpos -> }% #{if reason.key != "notify_if_readed"}
+								<p>								
+									<a 
+										class="btn btn-mini btnchangenotify #{if reason.value}btn-success#{/if}#{else}btn-danger#{/else}"
+										href="#"
+										data-notificationkey="${notification.key}"
+										data-reason="${reason.key}"
+										title=" #{if reason.value}&{'userprofile.notifications.notify.disable'}#{/if}#{else}&{'userprofile.notifications.notify.enable'}#{/else}">
+									#{if reason.value}
+										<i class="icon-volume-off icon-white"></i>
+									#{/if}#{else}
+										<i class="icon-bell icon-white"></i>
+									#{/else}
+									</a>
+									#{if reason.value}
+										<span class="badge badge-important">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.enabled'}</span>
+									#{/if}#{else}
+										<span class="badge">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.disabled'}</span>
+									#{/else}
+								</p>								
+							#{/if} %{ } }%
+						</div> <!-- span4 -->
+					</div> <!-- row-fluid -->
+				</div> <!-- tab-pane -->
+				<div id="tabpane${pos}tj" class="tab-pane">
+					<div class="row-fluid">
+						%{ notification.linked_tasks.eachWithIndex() { taskjob, tpos -> }%
+							<div class="taskjobsummary">${taskjob.taskjobkey}</div>
+						%{ } }%
+					</div> <!-- row-fluid -->
+				</div> <!-- tab-pane -->
+			</div> <!-- tab-content -->
+		</div> <!-- tabbable tabs-right -->
 	</div>
 </div>
 %{ } }%
@@ -139,6 +152,11 @@ $(document).ready(function() {
 			var key = $(this).text();
 			$(this).html("<a href=\"#\"> " + key + "</a>");
 			//ASYNC console.log("TODO resolve User: " + key);
+		});
+		$(".taskjobsummary").each(function() {
+			var key = $(this).text();
+			$(this).html('<span class="label label-inverse">' + key + '</span>');
+			//ASYNC console.log("TODO resolve Task/job: " + key);
 		});
 		$(".btnsetreadnotification").each(function() {
 			var notificationkey = $(this).data("notificationkey");
