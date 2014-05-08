@@ -115,7 +115,7 @@
 								<p>								
 									<a 
 										class="btn btn-mini #{if n_reason.value}btn-success#{/if}#{else}btn-danger#{/else}"
-										href="@{User.notificationupdatealert(key=notification.key, reason=n_reason.key)}"
+										href="@{User.notificationupdatealert(key=notification.key, reason=n_reason.key, notify=(n_reason.value==false))}"
 										title=" #{if n_reason.value}&{'userprofile.notifications.notify.disable'}#{/if}#{else}&{'userprofile.notifications.notify.enable'}#{/else}">
 									#{if n_reason.value}
 										<i class="icon-volume-off icon-white"></i>

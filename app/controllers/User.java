@@ -33,6 +33,9 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import models.UserProfile;
+
+import org.json.simple.JSONObject;
+
 import play.data.binding.Binder;
 import play.data.binding.ParamNode;
 import play.data.binding.ParamNode.RemovedNode;
@@ -220,40 +223,81 @@ public class User extends Controller {
 		render(title, user_notifications, user);
 	}
 	
-	public static void notificationclose(@Required String key) throws Exception {
+	/**
+	 * @return valid notification for user, or (flash error + redirect to list) | (or if doredirect: return null)
+	 */
+	private static Notification getNotification(UserProfile user, String key, boolean doredirect) throws Exception {
+		Notification notification = Notification.getFromDatabase(key);
+		
+		if (notification == null) {
+			if (doredirect == false) {
+				return null;
+			}
+			flash("error", "Can't found selected notification");// TODO Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.")
+			redirect("User.notificationslist");
+		}
+		if (notification.containsObserver(user) == false) {
+			if (doredirect == false) {
+				return null;
+			}
+			flash("error", "Can't found valid notification for you");// TODO Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.")
+			redirect("User.notificationslist");
+		}
+		
+		return notification;
+	}
+	
+	public static void notificationclose(@Required String key) throws Exception {// TODO test me
 		if (validation.hasErrors()) {
 			redirect("User.notificationslist");
 			return;
 		}
 		flash("lastkey", key);
 		
-		// UserProfile user = getUserProfile();
-		// TODO
+		UserProfile user = getUserProfile();
+		getNotification(user, key, true).switchCloseStatus(user).save(true);
 		redirect("User.notificationslist");
 	}
 	
-	public static void notificationupdatealert(@Required String key, @Required String reason) throws Exception {
+	public static void notificationupdatealert(@Required String key, @Required String reason, @Required Boolean notify) throws Exception {
 		if (validation.hasErrors()) {
 			redirect("User.notificationslist");
 			return;
 		}
 		flash("lastkey", key);
 		
-		// TODO
-		System.out.println(NotifyReason.getFromDbRecordName(reason));
+		UserProfile user = getUserProfile();
+		NotifyReason n_resaon = NotifyReason.getFromDbRecordName(reason);
+		if (n_resaon == null) {
+			flash("error", "Invalid reason");// TODO Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.")
+			redirect("User.notificationslist");
+		}
+		
+		getNotification(user, key, true).updateNotifyReasonForUser(user, n_resaon, notify).save(true);
 		redirect("User.notificationslist");
 	}
 	
-	public static void notificationupdatecomment(@Required String key, String comment) throws Exception {
+	public static void notificationupdatecomment(@Required String key, String comment) throws Exception {// TODO test me
 		if (validation.hasErrors()) {
 			redirect("User.notificationslist");
 			return;
 		}
 		flash("lastkey", key);
+		UserProfile user = getUserProfile();
 		
-		System.out.println(">" + comment + "<");
-		// TODO
+		getNotification(user, key, true).updateComment(user, comment).save(true);
 		redirect("User.notificationslist");
 	}
 	
+	public static void notificationupdateread(@Required String key) throws Exception {// TODO create JS side & test me
+		if (validation.hasErrors()) {
+			error(new NullPointerException("Invalid key"));
+		}
+		
+		UserProfile user = getUserProfile();
+		getNotification(user, key, false).switchReadStatus(user).save(true);
+		JSONObject jo = new JSONObject();
+		jo.put("operation", true);
+		renderJSON(jo.toJSONString());
+	}
 }

@@ -74,7 +74,7 @@ public class Notification {
 	
 	private Map<NotifyReason, List<UserProfile>> notify_list;
 	
-	private List<UserProfile> getUsersFromDb(JSONArray list_user_profile_record, CrudOrmEngine<UserProfile> user_profile_orm_engine) throws ConnectionException {
+	private List<UserProfile> getUsersFromDb(JSONArray list_user_profile_record) throws Exception {
 		if (list_user_profile_record.size() == 0) {
 			return new ArrayList<UserProfile>(1);
 		}
@@ -82,7 +82,7 @@ public class Notification {
 		for (int pos = 0; pos < list_user_profile_record.size(); pos++) {
 			key_list[pos] = (String) list_user_profile_record.get(pos);
 		}
-		return user_profile_orm_engine.read(key_list);
+		return getUsers(key_list);
 	}
 	
 	private static JSONArray getUsersToSetInDb(List<UserProfile> user_list) {
@@ -116,13 +116,73 @@ public class Notification {
 		}
 	}
 	
-	private Notification importFromDb(String key, JSONObject record) throws ConnectionException, IOException {
+	private transient Map<String, UserProfile> user_cache;
+	private transient List<String> not_found_users;
+	private transient CrudOrmEngine<UserProfile> user_profile_orm_engine;
+	
+	private synchronized List<UserProfile> getUsers(String... user_keys) throws Exception {
+		if (user_cache == null) {
+			user_cache = new HashMap<String, UserProfile>();
+		}
+		if (not_found_users == null) {
+			not_found_users = new ArrayList<String>();
+		}
+		if (user_profile_orm_engine == null) {
+			user_profile_orm_engine = new CrudOrmEngine<UserProfile>(new UserProfile());
+		}
+		if (user_keys == null) {
+			return new ArrayList<UserProfile>(1);
+		}
+		if (user_keys.length == 0) {
+			return new ArrayList<UserProfile>(1);
+		}
+		
+		List<String> keys_to_resolve = new ArrayList<String>(user_keys.length);
+		List<UserProfile> result = new ArrayList<UserProfile>(user_keys.length);
+		
+		for (int pos_u = 0; pos_u < user_keys.length; pos_u++) {
+			String user_key = user_keys[pos_u];
+			if (user_cache.containsKey(user_key) == false) {
+				if (not_found_users.contains(user_key)) {
+					continue;
+				}
+				keys_to_resolve.add(user_key);
+			} else {
+				result.add(user_cache.get(user_key));
+			}
+		}
+		
+		if (keys_to_resolve.isEmpty() == false) {
+			List<UserProfile> new_users = user_profile_orm_engine.read(keys_to_resolve);
+			if (new_users != null) {
+				for (int pos_u = 0; pos_u < new_users.size(); pos_u++) {
+					UserProfile user = new_users.get(pos_u);
+					user_cache.put(user.key, user);
+					result.add(user);
+					keys_to_resolve.remove(user.key);
+				}
+			}
+			if (keys_to_resolve.isEmpty() == false) {
+				not_found_users.addAll(keys_to_resolve);
+			}
+		}
+		return result;
+	}
+	
+	private UserProfile getUser(String user_key) throws Exception {
+		List<UserProfile> list = getUsers(user_key);
+		if (list.isEmpty()) {
+			return null;
+		} else {
+			return list.get(0);
+		}
+	}
+	
+	private Notification importFromDb(String key, JSONObject record) throws Exception {
 		this.key = key;
 		
-		CrudOrmEngine<UserProfile> user_profile_orm_engine = new CrudOrmEngine<UserProfile>(new UserProfile());
-		
-		observers = getUsersFromDb((JSONArray) record.get("observers"), user_profile_orm_engine);
-		creator = user_profile_orm_engine.staticRead((String) record.get("creator"));
+		observers = getUsersFromDb((JSONArray) record.get("observers"));
+		creator = getUser((String) record.get("creator"));
 		
 		JSONArray ja_linked_tasks = (JSONArray) record.get("linked_tasks");
 		if (ja_linked_tasks.size() > 0) {
@@ -140,17 +200,17 @@ public class Notification {
 		is_read = (Boolean) record.get("is_read");
 		readed_at = (Long) record.get("readed_at");
 		
-		first_reader = user_profile_orm_engine.staticRead((String) record.get("first_reader"));
+		first_reader = getUser((String) record.get("first_reader"));
 		closed_at = (Long) record.get("closed_at");
 		is_close = (Boolean) record.get("is_close");
-		closed_by = user_profile_orm_engine.staticRead((String) record.get("closed_by"));
+		closed_by = getUser((String) record.get("closed_by"));
 		commented_at = (Long) record.get("commented_at");
 		users_comment = (String) record.get("users_comment");
 		
 		notify_list = new HashMap<NotifyReason, List<UserProfile>>();
 		NotifyReason[] reasons = NotifyReason.values();
 		for (int pos = 0; pos < reasons.length; pos++) {
-			notify_list.put(reasons[pos], getUsersFromDb((JSONArray) record.get(reasons[pos].getDbRecordName()), user_profile_orm_engine));
+			notify_list.put(reasons[pos], getUsersFromDb((JSONArray) record.get(reasons[pos].getDbRecordName())));
 		}
 		return this;
 	}
@@ -275,7 +335,7 @@ public class Notification {
 	/**
 	 * Sorted by created_at (recent first)
 	 */
-	public static List<Notification> getAllFromDatabase(int from, int size) throws ConnectionException, IOException {
+	public static List<Notification> getAllFromDatabase(int from, int size) throws Exception {
 		if (size < 1) {
 			throw new IndexOutOfBoundsException("size must to be up to 0: " + size);
 		}
@@ -314,6 +374,13 @@ public class Notification {
 		notification.creating_comment = creating_comment;
 		notification.created_at = System.currentTimeMillis();
 		return notification;
+	}
+	
+	public boolean containsObserver(UserProfile candidate) {
+		if (candidate == null) {
+			return false;
+		}
+		return observers.contains(candidate);
 	}
 	
 	public Notification addLinkedTasksJobs(String... taskjobkey) throws ConnectionException {
@@ -644,9 +711,10 @@ public class Notification {
 	
 	/**
 	 * Compare with previous saved element, and create (if needed) db elements for alerting.
+	 * @param es_refresh ask to ES to refresh after saving (for atomic writing).
 	 * @throws Exception
 	 */
-	public void save() throws Exception {
+	public void save(boolean es_refresh) throws Exception {
 		if (is_read | is_close | (users_comment.equals("") == false)) {
 			/**
 			 * Compare & update: prepare updater
@@ -679,6 +747,7 @@ public class Notification {
 		
 		IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, key);
 		ir.source(record.toJSONString());
+		ir.refresh(true);
 		client.index(ir);
 	}
 	
@@ -780,7 +849,7 @@ public class Notification {
 		return usersnotifylist;
 	}
 	
-	public static Notification getFromDatabase(String key) throws ConnectionException, IOException {
+	public static Notification getFromDatabase(String key) throws Exception {
 		if (key == null) {
 			throw new NullPointerException("\"key\" can't to be null");
 		}

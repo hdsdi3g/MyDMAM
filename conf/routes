@@ -32,7 +32,7 @@ GET		/i18n.js								Application.i18n
 GET		/preview/{filehash}/{type}/{file}		Application.metadatafile
 GET		/user/notification/list					User.notificationslist
 GET		/user/notification/{key}/close			User.notificationclose
-GET		/user/notification/{key}/close/{reason} User.notificationupdatealert
+GET		/user/notification/{key}/alert/{reason}/{notify} User.notificationupdatealert
 POST	/user/notification/{key}/comment		User.notificationupdatecomment
 
 # Catch all
