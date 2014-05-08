@@ -30,7 +30,9 @@
 #{/if}
 
 <div class="container">
+	
 	<p class="lead">&{'userprofile.notifications.pagename'}</p>
+	
 %{ user_notifications.eachWithIndex() { notification, pos -> }%
 <div class="" style="margin-bottom:0.5em;">
 	<div class="">
@@ -40,7 +42,7 @@
 		<span class="label label-info">&{notification.summary_status}</span>
 		${notification.creating_comment}
 	</div>
-	<div class="collapse" id="notificationcontent${pos}">
+	<div class="collapse #{if flash.lastkey == notification.key}in#{/if}" id="notificationcontent${pos}">
 		<div class="tabbable tabs-right" style="margin-top: 1em; margin-bottom: 1em;">
 			<ul class="nav nav-tabs">
 				<li class="active">
@@ -85,7 +87,9 @@
 								#{/else}
 							#{/else}
 							<p>
-								<button class="btn btn-primary btnclosenotification" data-notificationkey="${notification.key}"><i class="icon-ok icon-white"></i> Close</button>
+								<a class="btn btn-primary" href="@{User.notificationclose(key=notification.key)}">
+									<i class="icon-ok icon-white"></i> Close
+								</a>
 							</p>
 						</div> <!-- span4 -->
 						<div class="span4">
@@ -96,33 +100,33 @@
 									<span class="label"><i>Never commented</i></span>
 								#{/else}
 							</p>
-							<p>
-								<textarea class="span12" placeholder="You can enter some comments here...">${notification.users_comment}</textarea>
-							</p>
-							<p>
-								<button class="btn btn-info btnupdatecomment" data-notificationkey="${notification.key}"><i class="icon-edit icon-white"></i> Update comment</button>
-							</p>
+							#{form action:@User.notificationupdatecomment(key=notification.key), enctype:'multipart/form-data'}
+								<p>
+									<textarea name="comment" class="span12" placeholder="You can enter some comments here...">${notification.users_comment}</textarea>
+								</p>
+								<p>
+									<button type="submit" class="btn btn-info"><i class="icon-edit icon-white"></i> Update comment</button>
+								</p>
+							#{/form}
 						</div> <!-- span4 -->
 						<div class="span4">
 							Mail notification alerts:
-							%{ notification.notify_list.eachWithIndex() { reason, tpos -> }% #{if reason.key != "notify_if_readed"}
+							%{ notification.notify_list.eachWithIndex() { n_reason, tpos -> }% #{if n_reason.key != "notify_if_readed"}
 								<p>								
 									<a 
-										class="btn btn-mini btnchangenotify #{if reason.value}btn-success#{/if}#{else}btn-danger#{/else}"
-										href="#"
-										data-notificationkey="${notification.key}"
-										data-reason="${reason.key}"
-										title=" #{if reason.value}&{'userprofile.notifications.notify.disable'}#{/if}#{else}&{'userprofile.notifications.notify.enable'}#{/else}">
-									#{if reason.value}
+										class="btn btn-mini #{if n_reason.value}btn-success#{/if}#{else}btn-danger#{/else}"
+										href="@{User.notificationupdatealert(key=notification.key, reason=n_reason.key)}"
+										title=" #{if n_reason.value}&{'userprofile.notifications.notify.disable'}#{/if}#{else}&{'userprofile.notifications.notify.enable'}#{/else}">
+									#{if n_reason.value}
 										<i class="icon-volume-off icon-white"></i>
 									#{/if}#{else}
 										<i class="icon-bell icon-white"></i>
 									#{/else}
 									</a>
-									#{if reason.value}
-										<span class="badge badge-important">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.enabled'}</span>
+									#{if n_reason.value}
+										<span class="badge badge-important">&{'userprofile.notifications.' + n_reason.key, 'userprofile.notifications.notify.enabled'}</span>
 									#{/if}#{else}
-										<span class="badge">&{'userprofile.notifications.' + reason.key, 'userprofile.notifications.notify.disabled'}</span>
+										<span class="badge">&{'userprofile.notifications.' + n_reason.key, 'userprofile.notifications.notify.disabled'}</span>
 									#{/else}
 								</p>								
 							#{/if} %{ } }%
@@ -167,15 +171,6 @@ $(document).ready(function() {
 				}
 			});
 		});
-		$(".btnchangenotify").each(function() {
-			var notificationkey = $(this).data("notificationkey");
-			var reason = $(this).data("reason");
-			$(this).click(function() {
-				//SYNC console.log("TODO toogle notification reason: " + notificationkey + " resaon:" + reason);
-			});
-		});
-		// .btnupdatecomment notificationkey
-		// .btnclosenotification
 	} catch(err) {
 		console.log(err);
 	}

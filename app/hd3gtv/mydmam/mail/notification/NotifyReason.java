@@ -23,4 +23,17 @@ public enum NotifyReason {
 		return "notify_if_" + this.name().toLowerCase();
 	}
 	
+	public static NotifyReason getFromDbRecordName(String dbname) {
+		if (dbname == null) {
+			return null;
+		}
+		NotifyReason[] values = NotifyReason.values();
+		for (int pos = 0; pos < values.length; pos++) {
+			if (dbname.equalsIgnoreCase("notify_if_" + values[pos].name())) {
+				return values[pos];
+			}
+		}
+		return null;
+	}
+	
 }

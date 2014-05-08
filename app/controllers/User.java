@@ -23,6 +23,7 @@ import hd3gtv.mydmam.db.orm.ModelClassResolver;
 import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.mail.notification.Notification;
+import hd3gtv.mydmam.mail.notification.NotifyReason;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import models.UserProfile;
 import play.data.binding.Binder;
 import play.data.binding.ParamNode;
 import play.data.binding.ParamNode.RemovedNode;
+import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.jobs.JobsPlugin;
@@ -218,8 +220,40 @@ public class User extends Controller {
 		render(title, user_notifications, user);
 	}
 	
-	public void notificationsupdate() throws Exception {
+	public static void notificationclose(@Required String key) throws Exception {
+		if (validation.hasErrors()) {
+			redirect("User.notificationslist");
+			return;
+		}
+		flash("lastkey", key);
+		
+		// UserProfile user = getUserProfile();
 		// TODO
+		redirect("User.notificationslist");
+	}
+	
+	public static void notificationupdatealert(@Required String key, @Required String reason) throws Exception {
+		if (validation.hasErrors()) {
+			redirect("User.notificationslist");
+			return;
+		}
+		flash("lastkey", key);
+		
+		// TODO
+		System.out.println(NotifyReason.getFromDbRecordName(reason));
+		redirect("User.notificationslist");
+	}
+	
+	public static void notificationupdatecomment(@Required String key, String comment) throws Exception {
+		if (validation.hasErrors()) {
+			redirect("User.notificationslist");
+			return;
+		}
+		flash("lastkey", key);
+		
+		System.out.println(">" + comment + "<");
+		// TODO
+		redirect("User.notificationslist");
 	}
 	
 }
