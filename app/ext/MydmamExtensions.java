@@ -26,7 +26,9 @@ import java.text.DecimalFormatSymbols;
 import java.util.Date;
 
 import play.i18n.Messages;
+import play.libs.Crypto;
 import play.templates.JavaExtensions;
+import controllers.Secure;
 
 public class MydmamExtensions extends JavaExtensions {
 	
@@ -140,5 +142,57 @@ public class MydmamExtensions extends JavaExtensions {
 			e.printStackTrace();
 			return value;
 		}
+	}
+	
+	/**
+	 * @return encryptAES with salt (tab separed)
+	 */
+	public static String encrypt(String value) {
+		if (value == null) {
+			return "";
+		}
+		if (value.length() == 0) {
+			return "";
+		}
+		String username = Secure.connected();
+		
+		StringBuffer sb = new StringBuffer();
+		if (username == null) {
+			sb.append(System.nanoTime());
+		} else if (username.equals("")) {
+			sb.append(System.nanoTime());
+		} else {
+			sb.append(username);
+		}
+		sb.append("\t");
+		sb.append(value);
+		return Crypto.encryptAES(sb.toString());
+	}
+	
+	/**
+	 * @return decrypt from encrypt() value, with check salt and session check.
+	 */
+	public static String decrypt(String value) throws SecurityException {
+		if (value == null) {
+			return "";
+		}
+		if (value.length() == 0) {
+			return "";
+		}
+		String rawresult = Crypto.decryptAES(value);
+		String[] split = rawresult.split("\t");
+		if (split.length != 2) {
+			throw new SecurityException("No salt in encrypted value");
+		}
+		String username = Secure.connected();
+		if (username == null) {
+			return split[1];
+		} else if (username.equals("")) {
+			return split[1];
+		}
+		if (username.equals(split[0]) == false) {
+			throw new SecurityException("Different user (" + split[0] + ") in salt and in this (" + username + ") session");
+		}
+		return split[1];
 	}
 }

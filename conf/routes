@@ -34,6 +34,7 @@ GET		/user/notification/list					User.notificationslist
 GET		/user/notification/{key}/close			User.notificationclose
 GET		/user/notification/{key}/alert/{reason}/{notify} User.notificationupdatealert
 POST	/user/notification/{key}/comment		User.notificationupdatecomment
+GET		/user/notification/{key}/read			User.notificationupdateread
 
 # Catch all
 *       /{controller}/{action}                  {controller}.{action}

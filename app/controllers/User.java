@@ -219,7 +219,7 @@ public class User extends Controller {
 	public static void notificationslist() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.pagename");
 		UserProfile user = getUserProfile();
-		ArrayList<Map<String, Object>> user_notifications = Notification.getRawFromDatabaseByObserver(user);
+		ArrayList<Map<String, Object>> user_notifications = Notification.getRawFromDatabaseByObserver(user, true);// XXX set to false
 		render(title, user_notifications, user);
 	}
 	
@@ -255,7 +255,7 @@ public class User extends Controller {
 		flash("lastkey", key);
 		
 		UserProfile user = getUserProfile();
-		getNotification(user, key, true).switchCloseStatus(user).save(true);
+		getNotification(user, key, true).switchCloseStatus(user).save();
 		redirect("User.notificationslist");
 	}
 	
@@ -273,11 +273,11 @@ public class User extends Controller {
 			redirect("User.notificationslist");
 		}
 		
-		getNotification(user, key, true).updateNotifyReasonForUser(user, n_resaon, notify).save(true);
+		getNotification(user, key, true).updateNotifyReasonForUser(user, n_resaon, notify).save();
 		redirect("User.notificationslist");
 	}
 	
-	public static void notificationupdatecomment(@Required String key, String comment) throws Exception {// TODO test me
+	public static void notificationupdatecomment(@Required String key, String comment) throws Exception {
 		if (validation.hasErrors()) {
 			redirect("User.notificationslist");
 			return;
@@ -285,19 +285,24 @@ public class User extends Controller {
 		flash("lastkey", key);
 		UserProfile user = getUserProfile();
 		
-		getNotification(user, key, true).updateComment(user, comment).save(true);
+		getNotification(user, key, true).updateComment(user, comment).save();
 		redirect("User.notificationslist");
 	}
 	
-	public static void notificationupdateread(@Required String key) throws Exception {// TODO create JS side & test me
+	public static void notificationupdateread(@Required String key) throws Exception {// TODO test me
 		if (validation.hasErrors()) {
 			error(new NullPointerException("Invalid key"));
 		}
 		
 		UserProfile user = getUserProfile();
-		getNotification(user, key, false).switchReadStatus(user).save(true);
+		getNotification(user, key, false).switchReadStatus(user).save();
 		JSONObject jo = new JSONObject();
-		jo.put("operation", true);
+		jo.put("result", true);
 		renderJSON(jo.toJSONString());
 	}
+	
+	// TODO resolve User list from AJAX requests
+	// TODO resolve Task/Jobs list from AJAX requests
+	// MydmamExtensions.decrypt()
+	
 }

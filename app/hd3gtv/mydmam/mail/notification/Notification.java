@@ -35,6 +35,7 @@ import java.util.zip.CRC32;
 
 import models.UserProfile;
 
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
@@ -43,6 +44,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
@@ -710,11 +712,10 @@ public class Notification {
 	}
 	
 	/**
-	 * Compare with previous saved element, and create (if needed) db elements for alerting.
-	 * @param es_refresh ask to ES to refresh after saving (for atomic writing).
+	 * @param bulkrequest add element here, but save directly new NotificationUpdate if needed. Don't wait too long time for exec bulkrequest else you will have orphan NotificationUpdates!
 	 * @throws Exception
 	 */
-	public void save(boolean es_refresh) throws Exception {
+	public void save(BulkRequest bulkrequest) throws Exception {
 		if (is_read | is_close | (users_comment.equals("") == false)) {
 			/**
 			 * Compare & update: prepare updater
@@ -739,16 +740,29 @@ public class Notification {
 		}
 		
 		/**
-		 * Export & save
+		 * Export
 		 */
-		Client client = Elasticsearch.getClient();
 		JSONObject record = new JSONObject();
 		exportToDb(record);
 		
 		IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, key);
 		ir.source(record.toJSONString());
-		ir.refresh(true);
-		client.index(ir);
+		
+		if (bulkrequest == null) {
+			Client client = Elasticsearch.getClient();
+			ir.refresh(true);
+			client.index(ir);
+		} else {
+			bulkrequest.add(ir);
+		}
+	}
+	
+	/**
+	 * Compare with previous saved element, and create (if needed) db elements for alerting. ES atomic writing.
+	 * @throws Exception
+	 */
+	public void save() throws Exception {
+		save(null);
 	}
 	
 	/**
@@ -863,7 +877,7 @@ public class Notification {
 		return notification;
 	}
 	
-	public static ArrayList<Map<String, Object>> getRawFromDatabaseByObserver(UserProfile user) throws ConnectionException, IOException {
+	public static ArrayList<Map<String, Object>> getRawFromDatabaseByObserver(UserProfile user, boolean can_is_closed) throws ConnectionException, IOException {
 		if (user == null) {
 			throw new NullPointerException("\"user\" can't to be null");
 		}
@@ -872,7 +886,16 @@ public class Notification {
 		request.setIndices(ES_INDEX);
 		request.setTypes(ES_DEFAULT_TYPE);
 		request.addSort("created_at", SortOrder.DESC);
-		request.setQuery(QueryBuilders.matchPhraseQuery("observers", user.key));
+		
+		QueryBuilder select_key = QueryBuilders.matchPhraseQuery("observers", user.key);
+		if (can_is_closed) {
+			request.setQuery(select_key);
+		} else {
+			BoolQueryBuilder query = QueryBuilders.boolQuery();
+			query.must(select_key);
+			query.must(QueryBuilders.fieldQuery("is_close", false));
+			request.setQuery(query);
+		}
 		
 		SearchResponse response = request.execute().actionGet();
 		if (response.getHits().totalHits() == 0) {

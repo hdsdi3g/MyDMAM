@@ -29,8 +29,10 @@
 	</div>
 #{/if}
 
+<div id="errorplaceholder"></div>
+
 <div class="container">
-	
+
 	<p class="lead">&{'userprofile.notifications.pagename'}</p>
 	
 %{ user_notifications.eachWithIndex() { notification, pos -> }%
@@ -57,7 +59,7 @@
 					<div class="row-fluid">
 						<div class="span4">
 							<p>
-								Created by <span class="userprofilekey">${notification.creator}</span>
+								Created by <span class="userprofilekey">${notification.creator.encrypt()}</span>
 							</p>
 							<p>
 								<span class="label">Created at ${notification.created_at.formatDate()}</span>
@@ -67,7 +69,7 @@
 									<span class="label">Read at ${notification.readed_at.formatDate()}</span>
 								</p>
 								<p>
-									Read by <span class="userprofilekey">${notification.first_reader}"></span>
+									Read by <span class="userprofilekey">${notification.first_reader.encrypt()}</span>
 								</p>
 							#{/if}#{else}
 								#{if notification.is_close}
@@ -75,14 +77,14 @@
 										<span class="label">Close at ${notification.closed_at.formatDate()}</span>
 									</p>
 									<p>
-										Close by <span class="userprofilekey">${notification.closed_by}</span>
+										Close by <span class="userprofilekey">${notification.closed_by.encrypt()}</span>
 									</p>
 								#{/if}#{else}
 									<p>
-										<span class="label">Read <i>Now</i></span>
+										<span class="label label-warning">Read <i>Now</i></span>
 									</p>
 									<p>
-										Read by <span class="userprofilekey">${user.key}</span>
+										Read by <span class="userprofilekey">${user.key.encrypt()}</span>
 									</p>
 								#{/else}
 							#{/else}
@@ -145,13 +147,23 @@
 	</div>
 </div>
 %{ } }%
+
+%{ if (user_notifications.isEmpty()) { }%
+	<div class="alert alert-info" style="margin-bottom: 0px;">
+		&{'userprofile.notifications.emptylist'}
+	</div>
+%{ } }%
 </div>
 
 <script type="text/javascript" charset="UTF-8">
 <!--
+var url_notificationupdateread = "@{User.notificationupdateread(key='keyparam1')}";
+
 $(document).ready(function() {
    	try {
 		$("#btnSession").addClass("active");
+		mydmam.notification.postProcessPage();
+		
 		$(".userprofilekey").each(function() {
 			var key = $(this).text();
 			$(this).html("<a href=\"#\"> " + key + "</a>");
@@ -161,15 +173,6 @@ $(document).ready(function() {
 			var key = $(this).text();
 			$(this).html('<span class="label label-inverse">' + key + '</span>');
 			//ASYNC console.log("TODO resolve Task/job: " + key);
-		});
-		$(".btnsetreadnotification").each(function() {
-			var notificationkey = $(this).data("notificationkey");
-			$(this).click(function() {
-				if ($(this).hasClass("btnsetreadnotification")) {
-					$(this).removeClass("btnsetreadnotification");
-					//ASYNC console.log("TODO set read: " + notificationkey);
-				}
-			});
 		});
 	} catch(err) {
 		console.log(err);
