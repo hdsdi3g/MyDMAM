@@ -98,7 +98,7 @@ public class Broker {
 		try {
 			hostname = InetAddress.getLocalHost().getHostName();
 		} catch (UnknownHostException e) {
-			Log2.log.error("Network error ?", e);
+			Log2.log.error("Can't resolve localshost name", e);
 			hostname = "UnknownHost-" + System.currentTimeMillis();
 		}
 	}

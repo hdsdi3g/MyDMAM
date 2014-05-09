@@ -16,6 +16,7 @@
 */
 package hd3gtv.javasimpleservice;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.SchemeWorkers;
 import hd3gtv.mydmam.mail.AdminMailAlert;
@@ -24,6 +25,7 @@ import hd3gtv.tools.TimeUtils;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.UnknownHostException;
 import java.util.Enumeration;
 import java.util.Map;
 
@@ -127,7 +129,12 @@ public class IsAlive extends Thread {
 				mutator.withRow(SchemeWorkers.CF, workername).putColumn("java-version", System.getProperty("java.version"), period * 2);
 				
 				JSONObject jo_address = new JSONObject();
-				jo_address.put("hostname", InetAddress.getLocalHost().getHostName());
+				try {
+					jo_address.put("hostname", InetAddress.getLocalHost().getHostName());
+				} catch (UnknownHostException e) {
+					Log2.log.error("Can't resolve localhost name", e);
+					jo_address.put("hostname", "localhost");
+				}
 				Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 				
 				JSONArray js_addresss = new JSONArray();
@@ -154,6 +161,7 @@ public class IsAlive extends Thread {
 				sleep(period * 1000);
 			}
 		} catch (Exception e) {
+			Log2.log.error("Is alive fatal error", e);
 			AdminMailAlert.create("IsAlive error", true).setThrowable(e).send();
 		}
 	}
