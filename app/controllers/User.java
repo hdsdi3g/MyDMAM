@@ -24,6 +24,7 @@ import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
+import hd3gtv.mydmam.taskqueue.Broker;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ import play.i18n.Messages;
 import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
+import ext.MydmamExtensions;
 
 @With(Secure.class)
 public class User extends Controller {
@@ -301,8 +303,54 @@ public class User extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
-	// TODO resolve User list from AJAX requests
-	// TODO resolve Task/Jobs list from AJAX requests
-	// MydmamExtensions.decrypt()
+	public static void notificationresolveusers() throws Exception {
+		String[] users_crypted_keys = params.getAll("users_crypted_keys[]");
+		if (users_crypted_keys == null) {
+			renderJSON("{}");
+			return;
+		}
+		if (users_crypted_keys.length == 0) {
+			renderJSON("{}");
+			return;
+		}
+		
+		String[] keys = new String[users_crypted_keys.length];
+		
+		for (int pos = 0; pos < users_crypted_keys.length; pos++) {
+			keys[pos] = MydmamExtensions.decrypt(users_crypted_keys[pos]);
+		}
+		
+		CrudOrmEngine<UserProfile> user_profile_orm_engine = new CrudOrmEngine<UserProfile>(new UserProfile());
+		List<UserProfile> users = user_profile_orm_engine.read(keys);
+		if (users == null) {
+			renderJSON("{}");
+		}
+		
+		JSONObject jo = new JSONObject();
+		UserProfile user;
+		for (int pos = 0; pos < users.size(); pos++) {
+			user = users.get(pos);
+			JSONObject jo_user = new JSONObject();
+			jo_user.put("mail", user.email);
+			jo_user.put("name", user.longname);
+			jo.put(MydmamExtensions.encrypt(user.key), jo_user);
+		}
+		renderJSON(jo.toJSONString());
+	}
+	
+	public static void notificationresolvertasksjobs() throws Exception {
+		String[] tasksjobs_keys = params.getAll("tasksjobs_keys[]");
+		if (tasksjobs_keys == null) {
+			renderJSON("{}");
+			return;
+		}
+		if (tasksjobs_keys.length == 0) {
+			renderJSON("{}");
+			return;
+		}
+		renderJSON(Broker.getTasksAndJobsByKeys(tasksjobs_keys));
+	}
+	
+	// TODO routes + publish URL for JS side + js side
 	
 }

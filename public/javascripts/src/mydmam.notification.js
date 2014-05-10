@@ -21,6 +21,16 @@
 })(window.mydmam);
 
 /**
+ * ajaxError
+ */
+(function(notification) {
+	notification.ajaxError = function(title, textStatus, errorThrown) {
+		$('#errorplaceholder').append('<div class="alert"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + title + '</strong> ' + textStatus + ', ' + errorThrown +'</div>');
+	};
+})(window.mydmam.notification);
+
+
+/**
  * setReadNotification
  */
 (function(notification) {
@@ -37,7 +47,7 @@
 			type: "GET",
 			async: true,
 			error: function(jqXHR, textStatus, errorThrown) {
-				$('#errorplaceholder').html('<div class="alert"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n("userprofile.notifications.errorduringsetread") + '</strong> ' + textStatus + ', ' + errorThrown +'</div>');
+				notification.ajaxError(i18n("userprofile.notifications.errorduringsetread"), textStatus, errorThrown);
 			},
 			success: function(data) {
 				if (!data.result) {
@@ -53,36 +63,47 @@
  */
 (function(notification) {
 	notification.getAndDisplayUsers = function() {
-		var user_key_list = [];
-		var dom_element_list = notification.dom_element_list_for_user_to_resolve;
+
+		/**
+		 * displayUser
+		 * Transform cyphed user key by a link to user
+		 */
+		var displayUser = function(dom_element, ajaxdata) {
+			var key = $(dom_element).text();
+			if(ajaxdata[key]) {
+				var content = '<a href="mailto:' + ajaxdata[key].name + '<' + ajaxdata[key].mail + '>">' + ajaxdata[key].name + '</a>';
+				$(dom_element).html(content);
+			} else {
+				$(dom_element).html(i18n("userprofile.notifications.unknown"));
+			}
+		};
+
 		var key;
+		var users_crypted_keys = [];
+		var dom_element_list = notification.dom_element_list_for_user_to_resolve;
 		for (var pos in dom_element_list) {
 			key = $(dom_element_list[pos]).text();
-			if (user_key_list.indexOf(key) === -1) {
-				user_key_list.push(key);
+			if (users_crypted_keys.indexOf(key) === -1) {
+				users_crypted_keys.push(key);
 			}
 		}
-		console.log(user_key_list);
-		/*
-		TODO...
-		var url = url_notificationupdateread.replace("keyparam1", notificationkey);
-		
+
 		$.ajax({
-			url: url,
+			url: url_notificationresolveusers,
 			type: "POST",
-			async: true,
+			async: false,
 			data: {
-				"list": queue.since_update_list
+				"users_crypted_keys": users_crypted_keys
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				$('#errorplaceholder').html('<div class="alert"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n("userprofile.notifications.errorduringsetread") + '</strong> ' + textStatus + ', ' + errorThrown +'</div>');
+				notification.ajaxError(i18n("userprofile.notifications.errorduringgetusers"), textStatus, errorThrown);
 			},
 			success: function(data) {
-				if (!data.result) {
-					console.log(data);
-				}
+				$(".userprofilekey").each(function() {
+					displayUser(this, data);
+				});
 			}
-		});*/
+		});
 	};
 })(window.mydmam.notification);
 
@@ -92,6 +113,7 @@
 (function(notification) {
 	notification.getAndDisplayTasksJobs = function() {
 		//TODO
+		//$(this).html('<span class="label label-inverse">' + key + '</span>');
 	};
 })(window.mydmam.notification);
 

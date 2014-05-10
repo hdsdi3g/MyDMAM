@@ -669,6 +669,49 @@ public class Broker {
 	}
 	
 	/**
+	 * @return never null if keys is not empty
+	 */
+	public static JSONObject getTasksAndJobsByKeys(String... keys) throws ConnectionException, ParseException {
+		if (keys == null) {
+			return null;
+		}
+		if (keys.length == 0) {
+			return null;
+		}
+		ArrayList<String> list = new ArrayList<String>(keys.length);
+		for (int pos = 0; pos < keys.length; pos++) {
+			list.add(keys[pos]);
+		}
+		return getTasksAndJobsByKeys(list);
+	}
+	
+	/**
+	 * @return never null if keys is not empty
+	 */
+	public static JSONObject getTasksAndJobsByKeys(Collection<String> keys) throws ConnectionException, ParseException {
+		if (keys == null) {
+			return null;
+		}
+		if (keys.size() == 0) {
+			return null;
+		}
+		
+		JSONObject result = new JSONObject();
+		Rows<String, String> rows = keyspace.prepareQuery(CF_TASKQUEUE).getKeySlice(keys).execute().getResult();
+		for (Row<String, String> row : rows) {
+			if (Task.isEmptyDbEntry(row.getColumns())) {
+				continue;
+			}
+			if (Job.isAJob(row.getColumns())) {
+				result.put(row.getKey(), Job.pullJSONFromDatabase(row.getColumns()));
+			} else {
+				result.put(row.getKey(), Task.pullJSONFromDatabase(row.getColumns()));
+			}
+		}
+		return result;
+	}
+	
+	/**
 	 * @param since_date set to 0 for disabled range selection
 	 */
 	public static JSONObject getTasksAndJobs(long since_date) throws Exception {

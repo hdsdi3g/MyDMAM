@@ -158,25 +158,11 @@
 <script type="text/javascript" charset="UTF-8">
 <!--
 var url_notificationupdateread = "@{User.notificationupdateread(key='keyparam1')}";
+var url_notificationresolveusers = "@{User.notificationresolveusers}"
 
 $(document).ready(function() {
-   	try {
-		$("#btnSession").addClass("active");
-		mydmam.notification.postProcessPage();
-		
-		$(".userprofilekey").each(function() {
-			var key = $(this).text();
-			$(this).html("<a href=\"#\"> " + key + "</a>");
-			//ASYNC console.log("TODO resolve User: " + key);
-		});
-		$(".taskjobsummary").each(function() {
-			var key = $(this).text();
-			$(this).html('<span class="label label-inverse">' + key + '</span>');
-			//ASYNC console.log("TODO resolve Task/job: " + key);
-		});
-	} catch(err) {
-		console.log(err);
-	}
+	$("#btnSession").addClass("active");
+	mydmam.notification.postProcessPage();
 });
 -->
 </script>

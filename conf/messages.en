@@ -252,6 +252,8 @@ userprofile.notifications.notify.enable=Enable
 userprofile.notifications.notify.disable=Disable
 userprofile.notifications.errorduringsetread=Error while changing the read status of the notification
 userprofile.notifications.emptylist=There not are currently notifications.
+userprofile.notifications.errorduringgetusers=Error while get users names.
+userprofile.notifications.unknown=Unknown
 
 crud.field.userprofile=User settings
 crud.field.userprofile.longname=Name

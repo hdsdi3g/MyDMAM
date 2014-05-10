@@ -30,11 +30,13 @@ GET		/admin/{objtype}/action/{action}/{key}	Admin.action
 GET		/i18n.js								Application.i18n
 *		/search									Application.search
 GET		/preview/{filehash}/{type}/{file}		Application.metadatafile
+
 GET		/user/notification/list					User.notificationslist
 GET		/user/notification/{key}/close			User.notificationclose
 GET		/user/notification/{key}/alert/{reason}/{notify} User.notificationupdatealert
 POST	/user/notification/{key}/comment		User.notificationupdatecomment
 GET		/user/notification/{key}/read			User.notificationupdateread
+POST	/user/notification/resolve/users		User.notificationresolveusers
 
 # Catch all
 *       /{controller}/{action}                  {controller}.{action}
