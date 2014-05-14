@@ -254,6 +254,8 @@ userprofile.notifications.errorduringsetread=Erreur pendant le changement de d'�
 userprofile.notifications.emptylist=Il n'y a plus de notifications en cours.
 userprofile.notifications.errorduringgetusers=Erreur pendant le changement des noms d'utilisateur.
 userprofile.notifications.unknown=Inconnu
+userprofile.notifications.cantfoundtaskjob=Purgée
+userprofile.notifications.errorduringgettasksjobs=Erreur pendant le changement de la liste des taches et jobs.
 
 crud.field.userprofile=Préférences utilisateur
 crud.field.userprofile.longname=Nom

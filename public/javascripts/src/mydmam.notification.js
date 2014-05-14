@@ -91,7 +91,7 @@
 		$.ajax({
 			url: url_notificationresolveusers,
 			type: "POST",
-			async: false,
+			async: true,
 			data: {
 				"users_crypted_keys": users_crypted_keys
 			},
@@ -111,17 +111,104 @@
  * getAndDisplayTasksJobs
  */
 (function(notification) {
-	notification.getAndDisplayTasksJobs = function() {
-		//TODO
-		//$(this).html('<span class="label label-inverse">' + key + '</span>');
+	notification.displayStatus = function(status) {
+		var clazz = "";
+		if (status === "WAITING") {
+			clazz = "badge-info";
+		} else if (status === "PREPARING") {
+			clazz = "badge-warning";
+		} else if (status === "PROCESSING") {
+			clazz = "badge-warning";
+		} else if (status === "POSTPONED") {
+			clazz = "badge-info";
+		} else if (status === "STOPPED") {
+			clazz = "badge-inverse";
+		} else if (status === "CANCELED") {
+			clazz = "badge-important";
+		} else if (status === "ERROR") {
+			clazz = "badge-important";
+		} else if (status === "TOO_OLD") {
+			clazz = "badge-important";
+		} else if (status === "DONE") {
+			clazz = "badge-success";
+		}
+		return '<span class="badge ' + clazz + '">' + i18n(status) + '</span>';
 	};
 })(window.mydmam.notification);
+
+/**
+ * getAndDisplayTasksJobs
+ */
+(function(notification, mydmam) {
+	notification.getAndDisplayTasksJobs = function() {
+		
+		/**
+		 * displayTaskJob
+		 * Transform Task/Job keys to an informative cartridge
+		 */
+		var displayTaskJob = function(dom_element, ajaxdata) {
+			var key = $(dom_element).text();
+			if(ajaxdata[key]) {
+				ajaxdata[key].key = key;
+				ajaxdata[key].simplekey = mydmam.queue.createSimpleKey(key);
+				$(dom_element).html(mydmam.queue.createTaskJobTableElement(ajaxdata[key]));
+				$(dom_element).find(".blocktaskjobdateedit").prepend(notification.displayStatus(ajaxdata[key].status) + ' ');
+				$(dom_element).find(".taskjobkeyraw").remove();
+
+			} else {
+				$(dom_element).html('<strong>' + i18n("userprofile.notifications.cantfoundtaskjob") + '</strong>');
+			}
+		};
+
+		var key;
+		var tasksjobs_keys = [];
+		var dom_element_list = notification.dom_element_list_for_taskjob_resolve;
+		for (var pos in dom_element_list) {
+			key = $(dom_element_list[pos]).text();
+			if (tasksjobs_keys.indexOf(key) === -1) {
+				tasksjobs_keys.push(key);
+			}
+		}
+
+		$.ajax({
+			url: url_queuegettasksjobs,
+			type: "POST",
+			async: true,
+			data: {
+				"tasksjobs_keys": tasksjobs_keys
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				notification.ajaxError(i18n("userprofile.notifications.errorduringgettasksjobs"), textStatus, errorThrown);
+			},
+			success: function(data) {
+				$(".taskjobsummary").each(function() {
+					displayTaskJob(this, data);
+				});
+				//TODO sort T/J ?
+				/*
+				var data = [];
+				for (var key in rawdata) {
+					rawdata[key].key = key;
+					data.push(rawdata[key]);
+				}
+				data = data.sort(function(a, b) {
+					return a.updatedate > b.updatedate ? -1 : 1;
+				});
+				 * */
+			}
+		});
+	};
+})(window.mydmam.notification, window.mydmam);
 
 /**
  * postProcessPage
  */
 (function(notification) {
 	notification.postProcessPage = function() {
+		$(".redrawstatus").each(function() {
+			$(this).html(notification.displayStatus($(this).data("status")));
+		});
+
 		$(".btnsetreadnotification").each(function() {
 			$(this).click(notification.setReadNotification);
 		});

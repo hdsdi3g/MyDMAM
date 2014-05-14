@@ -78,6 +78,22 @@ public class Queue extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	/**
+	 * Open for all users
+	 */
+	public static void gettasksjobs() throws Exception {
+		String[] tasksjobs_keys = params.getAll("tasksjobs_keys[]");
+		if (tasksjobs_keys == null) {
+			renderJSON("{}");
+			return;
+		}
+		if (tasksjobs_keys.length == 0) {
+			renderJSON("{}");
+			return;
+		}
+		renderJSON(Broker.getTasksAndJobsByKeys(tasksjobs_keys));
+	}
+	
 	@Check("updateQueue")
 	public static void changeworkerstate(@Required String worker_ref, @Required String newstate) throws Exception {
 		JSONObject jo = new JSONObject();

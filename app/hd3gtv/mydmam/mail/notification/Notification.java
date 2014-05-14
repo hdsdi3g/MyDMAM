@@ -385,6 +385,10 @@ public class Notification {
 		return observers.contains(candidate);
 	}
 	
+	public boolean isClose() {
+		return is_close;
+	}
+	
 	public Notification addLinkedTasksJobs(String... taskjobkey) throws ConnectionException {
 		LinkedHashMap<String, TaskJobStatus> all_actual_status = Broker.getStatusForTasksOrJobsByKeys(taskjobkey);
 		if (all_actual_status == null) {

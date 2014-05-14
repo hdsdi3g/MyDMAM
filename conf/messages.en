@@ -254,6 +254,8 @@ userprofile.notifications.errorduringsetread=Error while changing the read statu
 userprofile.notifications.emptylist=There not are currently notifications.
 userprofile.notifications.errorduringgetusers=Error while get users names.
 userprofile.notifications.unknown=Unknown
+userprofile.notifications.cantfoundtaskjob=Deleted
+userprofile.notifications.errorduringgettasksjobs=Error while get tasks and jobs item
 
 crud.field.userprofile=User settings
 crud.field.userprofile.longname=Name

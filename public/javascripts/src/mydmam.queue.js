@@ -282,9 +282,9 @@
 		content = content + '<span class="profilecategory">' + current_taskjob.profile_category + '</span> :: ';
 		content = content + '<strong><span class="taskjobname">' + current_taskjob.name + '</span></strong></div>';
 
-		content = content + '<div class="span4">';
+		content = content + '<div class="span4 blocktaskjobdateedit">';
 
-		if (enable_update) {
+		if (enable_update_queue) {
 			var display; 
 			if (current_taskjob.status == "PROCESSING" | current_taskjob.status == "PREPARING") {
 				display = ' style="display:none"';
@@ -296,19 +296,19 @@
 			if (current_taskjob.status == "WAITING") {
 				display = ' style="display:none"';
 			}
-			content = content + '<li><a href="#" class="btntskwait" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('WAITING') + '</strong></a></li>';
+			content = content + '<li><a href="#" class="btntskwait" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + ' <strong>' + i18n('WAITING') + '</strong></a></li>';
 			display = "";
 			
 			if (current_taskjob.status == "POSTPONED") {
 				display = ' style="display:none"';
 			}
-			content = content + '<li><a href="#" class="btntskpostponed" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('POSTPONED') + '</strong></a></li>';
+			content = content + '<li><a href="#" class="btntskpostponed" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + ' <strong>' + i18n('POSTPONED') + '</strong></a></li>';
 			display = "";
 			
 			if (current_taskjob.status == "CANCELED") {
 				display = ' style="display:none"';
 			}
-			content = content + '<li><a href="#" class="btntskcanceled" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + '<strong>' + i18n('CANCELED') + '</strong></a></li>';
+			content = content + '<li><a href="#" class="btntskcanceled" data-emkey="' + key + '"' + display + '>' + i18n('queue.task.setto') + ' <strong>' + i18n('CANCELED') + '</strong></a></li>';
 			display = "";
 			
 			if (current_taskjob.priority === 0 || current_taskjob.status == "DONE") {
@@ -425,7 +425,7 @@
 			content = content + '<div class="well well-small joblastmessage" style="display:none"></div>';
 		}
 		
-		content = content + '<div>Key: <code>' + key + '</code></div>';
+		content = content + '<div class="taskjobkeyraw">Key: <code>' + key + '</code></div>';
 		if (current_taskjob.processing_error) {
 			content = content + '<div style="margin-bottom: 1em;" class="joberror">' + i18n('queue.task.error') + '<br><pre>' + current_taskjob.processing_error + '</pre></div>';
 		} else {
@@ -643,7 +643,7 @@
 		$("#fulltaskjobtable").empty();
 		$("#fulltaskjobtable").append(content);
 		
-		if (enable_update) {
+		if (enable_update_queue) {
 			for (var pos in selected_taskjoblist) {
 				queue.addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
 			}
@@ -673,7 +673,7 @@
 		
 		$("#fulltaskjobtable").prepend(content);
 		
-		if (enable_update) {
+		if (enable_update_queue) {
 			for (var pos in selected_taskjoblist) {
 				queue.addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
 			}

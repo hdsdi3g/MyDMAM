@@ -24,7 +24,6 @@ import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
-import hd3gtv.mydmam.taskqueue.Broker;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -221,14 +220,14 @@ public class User extends Controller {
 	public static void notificationslist() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.pagename");
 		UserProfile user = getUserProfile();
-		ArrayList<Map<String, Object>> user_notifications = Notification.getRawFromDatabaseByObserver(user, true);// XXX set to false
+		ArrayList<Map<String, Object>> user_notifications = Notification.getRawFromDatabaseByObserver(user, false);
 		render(title, user_notifications, user);
 	}
 	
 	/**
 	 * @return valid notification for user, or (flash error + redirect to list) | (or if doredirect: return null)
 	 */
-	private static Notification getNotification(UserProfile user, String key, boolean doredirect) throws Exception {
+	private static Notification getNotification(UserProfile user, String key, boolean doredirect, boolean must_not_closed) throws Exception {
 		Notification notification = Notification.getFromDatabase(key);
 		
 		if (notification == null) {
@@ -245,11 +244,14 @@ public class User extends Controller {
 			flash("error", "Can't found valid notification for you");// TODO Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.")
 			redirect("User.notificationslist");
 		}
-		
+		if (must_not_closed & notification.isClose()) {
+			flash("error", "Notification is closed");// TODO Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.")
+			redirect("User.notificationslist");
+		}
 		return notification;
 	}
 	
-	public static void notificationclose(@Required String key) throws Exception {// TODO test me
+	public static void notificationclose(@Required String key) throws Exception {
 		if (validation.hasErrors()) {
 			redirect("User.notificationslist");
 			return;
@@ -257,7 +259,7 @@ public class User extends Controller {
 		flash("lastkey", key);
 		
 		UserProfile user = getUserProfile();
-		getNotification(user, key, true).switchCloseStatus(user).save();
+		getNotification(user, key, true, true).switchCloseStatus(user).save();
 		redirect("User.notificationslist");
 	}
 	
@@ -275,7 +277,7 @@ public class User extends Controller {
 			redirect("User.notificationslist");
 		}
 		
-		getNotification(user, key, true).updateNotifyReasonForUser(user, n_resaon, notify).save();
+		getNotification(user, key, true, true).updateNotifyReasonForUser(user, n_resaon, notify).save();
 		redirect("User.notificationslist");
 	}
 	
@@ -287,17 +289,17 @@ public class User extends Controller {
 		flash("lastkey", key);
 		UserProfile user = getUserProfile();
 		
-		getNotification(user, key, true).updateComment(user, comment).save();
+		getNotification(user, key, true, true).updateComment(user, comment).save();
 		redirect("User.notificationslist");
 	}
 	
-	public static void notificationupdateread(@Required String key) throws Exception {// TODO test me
+	public static void notificationupdateread(@Required String key) throws Exception {
 		if (validation.hasErrors()) {
 			error(new NullPointerException("Invalid key"));
 		}
 		
 		UserProfile user = getUserProfile();
-		getNotification(user, key, false).switchReadStatus(user).save();
+		getNotification(user, key, false, true).switchReadStatus(user).save();
 		JSONObject jo = new JSONObject();
 		jo.put("result", true);
 		renderJSON(jo.toJSONString());
@@ -338,19 +340,5 @@ public class User extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
-	public static void notificationresolvertasksjobs() throws Exception {
-		String[] tasksjobs_keys = params.getAll("tasksjobs_keys[]");
-		if (tasksjobs_keys == null) {
-			renderJSON("{}");
-			return;
-		}
-		if (tasksjobs_keys.length == 0) {
-			renderJSON("{}");
-			return;
-		}
-		renderJSON(Broker.getTasksAndJobsByKeys(tasksjobs_keys));
-	}
-	
-	// TODO routes + publish URL for JS side + js side
-	
+	// TODO translate all
 }
