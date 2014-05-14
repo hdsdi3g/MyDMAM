@@ -234,18 +234,18 @@ public class User extends Controller {
 			if (doredirect == false) {
 				return null;
 			}
-			flash("error", "Can't found selected notification");// TODO Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.")
+			flash("error", Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.cantfoundselected"));
 			redirect("User.notificationslist");
 		}
 		if (notification.containsObserver(user) == false) {
 			if (doredirect == false) {
 				return null;
 			}
-			flash("error", "Can't found valid notification for you");// TODO Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.")
+			flash("error", Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.cantfoundvalid"));
 			redirect("User.notificationslist");
 		}
 		if (must_not_closed & notification.isClose()) {
-			flash("error", "Notification is closed");// TODO Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.")
+			flash("error", Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.isclosed"));
 			redirect("User.notificationslist");
 		}
 		return notification;
@@ -273,7 +273,7 @@ public class User extends Controller {
 		UserProfile user = getUserProfile();
 		NotifyReason n_resaon = NotifyReason.getFromDbRecordName(reason);
 		if (n_resaon == null) {
-			flash("error", "Invalid reason");// TODO Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.")
+			flash("error", Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.invalidreason"));
 			redirect("User.notificationslist");
 		}
 		
@@ -340,5 +340,4 @@ public class User extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
-	// TODO translate all
 }

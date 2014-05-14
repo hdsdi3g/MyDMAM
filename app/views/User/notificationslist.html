@@ -50,10 +50,10 @@
 		<div class="tabbable tabs-right" style="margin-top: 1em; margin-bottom: 1em;">
 			<ul class="nav nav-tabs">
 				<li class="active">
-					<a data-toggle="tab" href="#tabpane${pos}main">Summary</a>
+					<a data-toggle="tab" href="#tabpane${pos}main">&{'userprofile.notifications.summary'}</a>
 				</li>
 				<li>
-					<a data-toggle="tab" href="#tabpane${pos}tj">Tasks/Jobs</a>
+					<a data-toggle="tab" href="#tabpane${pos}tj">&{'userprofile.notifications.tasksjobs'}</a>
 				</li>
 			</ul>
 			<div class="tab-content">	
@@ -61,60 +61,60 @@
 					<div class="row-fluid">
 						<div class="span4">
 							<p>
-								Created by <span class="userprofilekey">${notification.creator.encrypt()}</span>
+								&{'userprofile.notifications.createdby'} <span class="userprofilekey">${notification.creator.encrypt()}</span> <i class="icon-envelope"></i>
 							</p>
 							<p>
-								<span class="label">Created at ${notification.created_at.formatDate()}</span>
+								<span class="label">&{'userprofile.notifications.createdat'} ${notification.created_at.formatDate()}</span>
 							</p>
 							#{if notification.is_read}
 								<p>
-									<span class="label">Read at ${notification.readed_at.formatDate()}</span>
+									<span class="label">&{'userprofile.notifications.readat'} ${notification.readed_at.formatDate()}</span>
 								</p>
 								<p>
-									Read by <span class="userprofilekey">${notification.first_reader.encrypt()}</span>
+									&{'userprofile.notifications.readby'} <span class="userprofilekey">${notification.first_reader.encrypt()}</span> <i class="icon-envelope"></i>
 								</p>
 							#{/if}#{else}
 								#{if notification.is_close}
 									<p>
-										<span class="label">Close at ${notification.closed_at.formatDate()}</span>
+										<span class="label">&{'userprofile.notifications.closeat'} ${notification.closed_at.formatDate()}</span>
 									</p>
 									<p>
-										Close by <span class="userprofilekey">${notification.closed_by.encrypt()}</span>
+										&{'userprofile.notifications.closeby'} <span class="userprofilekey">${notification.closed_by.encrypt()}</span> <i class="icon-envelope"></i>
 									</p>
 								#{/if}#{else}
 									<p>
-										<span class="label label-warning">Read <i>Now</i></span>
+										<span class="label label-warning"><i>&{'userprofile.notifications.readnow'}</i></span>
 									</p>
 									<p>
-										Read by <span class="userprofilekey">${user.key.encrypt()}</span>
+										&{'userprofile.notifications.readby'} <span class="userprofilekey">${user.key.encrypt()}</span> <i class="icon-envelope"></i>
 									</p>
 								#{/else}
 							#{/else}
 							<p>
 								<a class="btn btn-primary" href="@{User.notificationclose(key=notification.key)}">
-									<i class="icon-ok icon-white"></i> Close
+									<i class="icon-ok icon-white"></i> &{'userprofile.notifications.close'}
 								</a>
 							</p>
 						</div> <!-- span4 -->
 						<div class="span4">
 							<p>
 								#{if notification.commented_at > 0}
-									<span class="label">Commented: ${notification.commented_at.formatDate()}</span>
+									<span class="label">&{'userprofile.notifications.commented', notification.commented_at.formatDate()}</span>
 								#{/if}#{else}
-									<span class="label"><i>Never commented</i></span>
+									<span class="label"><i>&{'userprofile.notifications.nevercommented'}</i></span>
 								#{/else}
 							</p>
 							#{form action:@User.notificationupdatecomment(key=notification.key), enctype:'multipart/form-data'}
 								<p>
-									<textarea name="comment" class="span12" placeholder="You can enter some comments here...">${notification.users_comment}</textarea>
+									<textarea name="comment" class="span12" placeholder="&{'userprofile.notifications.youcanentercomment'}">${notification.users_comment}</textarea>
 								</p>
 								<p>
-									<button type="submit" class="btn btn-info"><i class="icon-edit icon-white"></i> Update comment</button>
+									<button type="submit" class="btn btn-info"><i class="icon-edit icon-white"></i> &{'userprofile.notifications.updatecomment'}</button>
 								</p>
 							#{/form}
 						</div> <!-- span4 -->
 						<div class="span4">
-							Mail notification alerts:
+							&{'userprofile.notifications.mailalerts'}
 							%{ notification.notify_list.eachWithIndex() { n_reason, tpos -> }% #{if n_reason.key != "notify_if_readed"}
 								<p>								
 									<a 
