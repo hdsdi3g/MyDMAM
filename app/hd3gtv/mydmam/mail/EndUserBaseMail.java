@@ -64,10 +64,10 @@ public class EndUserBaseMail implements Log2Dumpable {
 	}
 	
 	public void send() {
-		send(new HashMap<Object, Object>());
+		send(new HashMap<String, Object>());
 	}
 	
-	public void send(HashMap<Object, Object> mail_vars) {
+	public void send(HashMap<String, Object> mail_vars) {
 		if (mail_vars == null) {
 			throw new NullPointerException("\"mail_vars\" can't to be null");
 		}
@@ -82,7 +82,7 @@ public class EndUserBaseMail implements Log2Dumpable {
 			mail.send();
 			
 			Log2Dump dump = getLog2Dump();
-			for (Entry<Object, Object> entry : mail_vars.entrySet()) {
+			for (Entry<String, Object> entry : mail_vars.entrySet()) {
 				dump.add("mail_vars: " + (String) entry.getKey(), entry.getValue());
 			}
 			Log2.log.info("Send an user mail", dump);

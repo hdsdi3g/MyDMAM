@@ -29,18 +29,23 @@
 	</style>
 </head>
 <body>
-<%	/*
-reason -> n[creating_comment, is_read, is_close, users_comment, creator]
-
-Example :
- * done  [{creating_comment=Notification test 1 ok, is_close=false, users_comment=, is_read=false, creator=Me}]	java.util.ArrayList
- * error [{creating_comment=Notification test 2 err, is_close=false, users_comment=, is_read=false, creator=Me}]	java.util.ArrayList
-
-*/ %>
 	<span class="title">${title}</span></span><br>
 	<hr style="height:3px; background-color:#992626">
 	<p style="padding:7pt;">
-		Message
+	<% for (reason_entry in reasons) { %>
+		<h2>${translator.t(reason_entry.key)}</h2>
+		<ul>
+		<% reason_entry.value.eachWithIndex() { reason, pos -> %>
+			<li>
+				<b>${reason.creating_comment}</b> :: <i>${notification_createdby} ${reason.creator}</i>
+				[<% if (reason.is_close) { %>${notification_closed}<% } else if (reason.is_read) { %>${notification_readed}<% } %>]
+				<% if (reason.users_comment) { %>
+					<blockquote>${reason.users_comment}</blockquote>
+				<% } %>
+			</li>
+		<% } %>
+		</ul>
+	<% } %>
 	</p>
 	<div style="background-color:#3d9999; color:#FFFFFF; padding:7pt;" class="footer">
 		<p>

@@ -65,7 +65,7 @@ public class UserProfile extends CrudOrmModel {
 			mail = EndUserBaseMail.create(Lang.getLocale(language), email_addr, "usertestmail");
 		}
 		
-		HashMap<Object, Object> variables = new HashMap<Object, Object>();
+		HashMap<String, Object> variables = new HashMap<String, Object>();
 		try {
 			if (Play.initialized) {
 				Properties messages = Messages.all(language);

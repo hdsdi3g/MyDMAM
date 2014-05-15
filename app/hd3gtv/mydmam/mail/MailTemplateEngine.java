@@ -196,7 +196,18 @@ public class MailTemplateEngine {
 	private String plain_text;
 	private String subject;
 	
-	public void process(HashMap<Object, Object> variables) throws CompilationFailedException, ClassNotFoundException, IOException {
+	public class Translator {
+		HashMap<String, String> messages;
+		
+		public String t(String key) {
+			if (messages.containsKey(key) == false) {
+				return key;
+			}
+			return messages.get(key);
+		}
+	}
+	
+	public void process(HashMap<String, Object> variables) throws CompilationFailedException, ClassNotFoundException, IOException {
 		SimpleTemplateEngine template_engine = new SimpleTemplateEngine();
 		template_engine.setVerbose(GROOVY_VERBOSE);
 		
@@ -228,9 +239,18 @@ public class MailTemplateEngine {
 		message_fis.close();
 		
 		all_variables.putAll(message);
+		
+		Translator translator = new Translator();
+		translator.messages = new HashMap<String, String>();
+		for (Map.Entry<Object, Object> entry : all_variables.entrySet()) {
+			if ((entry.getKey() instanceof String) & (entry.getValue() instanceof String)) {
+				translator.messages.put((String) entry.getKey(), (String) entry.getValue());
+			}
+		}
 		if (variables != null) {
 			all_variables.putAll(variables);
 		}
+		all_variables.put("translator", translator);
 		
 		/**
 		 * Process templates

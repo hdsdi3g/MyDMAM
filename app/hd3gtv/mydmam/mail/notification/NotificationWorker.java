@@ -44,8 +44,8 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class NotificationWorker extends Worker {
 	
-	private static final Profile notification_clean_profile = new Profile("notification", "clean");
-	private static final Profile notification_alert_profile = new Profile("notification", "alert");
+	static final Profile notification_clean_profile = new Profile("notification", "clean");
+	static final Profile notification_alert_profile = new Profile("notification", "alert");
 	private static long grace_period_duration = 1000 * 3600 * 24;
 	
 	private Cleaner cleaner;
@@ -137,7 +137,8 @@ public class NotificationWorker extends Worker {
 				UserProfile user;
 				NotifyReason reason;
 				List<Notification> notifications;
-				HashMap<Object, Object> mail_vars;
+				HashMap<String, Object> mail_vars;
+				HashMap<Object, Object> reasons_vars;
 				
 				for (Map.Entry<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_entry : users_notify_list.entrySet()) {
 					if (stop) {
@@ -145,7 +146,8 @@ public class NotificationWorker extends Worker {
 					}
 					user = users_notify_entry.getKey();
 					EndUserBaseMail usermail = EndUserBaseMail.create(Lang.getLocale(user.language), new InternetAddress(user.email), "notification");
-					mail_vars = new HashMap<Object, Object>();
+					mail_vars = new HashMap<String, Object>();
+					reasons_vars = new HashMap<Object, Object>();
 					
 					for (Map.Entry<NotifyReason, List<Notification>> entry_notifyreason : users_notify_entry.getValue().entrySet()) {
 						reason = entry_notifyreason.getKey();
@@ -162,8 +164,9 @@ public class NotificationWorker extends Worker {
 								usermail.setMailPriority(MailPriority.HIGHEST);
 							}
 						}
-						mail_vars.put(reason.toString().toLowerCase(), mail_var_notifications);
+						reasons_vars.put(reason.toString().toLowerCase(), mail_var_notifications);
 					}
+					mail_vars.put("reasons", reasons_vars);
 					usermail.send(mail_vars);
 					count++;
 				}
