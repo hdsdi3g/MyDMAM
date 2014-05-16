@@ -62,7 +62,7 @@ public abstract class Importer {
 	protected abstract String getName();
 	
 	/**
-	 * @return in msec, set 0 to disable.
+	 * @return in seconds, set 0 to disable.
 	 */
 	protected abstract long getTTL();
 	

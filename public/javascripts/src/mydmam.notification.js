@@ -91,7 +91,7 @@
 		$.ajax({
 			url: url_notificationresolveusers,
 			type: "POST",
-			async: true,
+			async: false,
 			data: {
 				"users_crypted_keys": users_crypted_keys
 			},
@@ -204,26 +204,51 @@
  * postProcessPage
  */
 (function(notification) {
-	notification.postProcessPage = function() {
+	notification.postProcessPage = function(isadmin) {
 		$(".redrawstatus").each(function() {
 			$(this).html(notification.displayStatus($(this).data("status")));
 		});
-
-		$(".btnsetreadnotification").each(function() {
-			$(this).click(notification.setReadNotification);
-		});
-
+		if (isadmin === false) {
+			$(".btnsetreadnotification").each(function() {
+				$(this).click(notification.setReadNotification);
+			});
+		}
 		notification.dom_element_list_for_user_to_resolve = [];
 		$(".userprofilekey").each(function() {
 			notification.dom_element_list_for_user_to_resolve.push(this);
 		});
 		notification.getAndDisplayUsers();
 
-		notification.dom_element_list_for_taskjob_resolve = [];
-		$(".taskjobsummary").each(function() {
-			notification.dom_element_list_for_taskjob_resolve.push(this);
-		});
-		notification.getAndDisplayTasksJobs();
+		if (isadmin === false) {
+			notification.dom_element_list_for_taskjob_resolve = [];
+			$(".taskjobsummary").each(function() {
+				notification.dom_element_list_for_taskjob_resolve.push(this);
+			});
+			notification.getAndDisplayTasksJobs();
+		}
+		
+		if (isadmin) {
+			$('.notificationsadmindatatable').dataTable({
+				"bPaginate": false,
+				"bLengthChange": false,
+				"bSort": false,
+				"bInfo": false,
+				"bAutoWidth": false,
+				"bFilter": true,
+				"aoColumnDefs": [
+					{"bSortable": false, "aTargets": [0,1,2,3,4,5]},
+					{"bSearchable": true, "aTargets": [1,2,3,4]},
+					{"bSearchable": false, "aTargets": [0,5]}
+				]
+			});
+
+			$('#sitesearch').bind('keyup.DT', function(e) {
+				var val = this.value==="" ? "" : this.value;
+				$('.dataTables_filter input').val(val);
+				$('.dataTables_filter input').trigger("keyup.DT");
+			});
+		}
 	};
 
 })(window.mydmam.notification);
+

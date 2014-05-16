@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.mail.notification;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import hd3gtv.mydmam.mail.MailPriority;
 import hd3gtv.mydmam.taskqueue.Broker;
@@ -51,7 +52,7 @@ public class NotificationWorker extends Worker {
 	private Cleaner cleaner;
 	private Alerter alerter;
 	
-	public NotificationWorker(WorkerGroup workergroup) {
+	public NotificationWorker(WorkerGroup workergroup) throws Exception {
 		cleaner = new Cleaner();
 		cleaner.period = 1000 * 3600; // 1 hour
 		alerter = new Alerter();
@@ -62,6 +63,8 @@ public class NotificationWorker extends Worker {
 			workergroup.addCyclicWorker(cleaner);
 			workergroup.addCyclicWorker(alerter);
 		}
+		
+		Elasticsearch.enableTTL(Notification.ES_INDEX, Notification.ES_DEFAULT_TYPE);
 	}
 	
 	private class Cleaner implements CyclicCreateTasks {

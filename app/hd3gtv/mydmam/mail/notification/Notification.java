@@ -58,6 +58,7 @@ public class Notification {
 	
 	public static final String ES_INDEX = "notifications";
 	public static final String ES_DEFAULT_TYPE = "global";
+	private static final long MAXIMAL_NOTIFICATION_LIFETIME = 3600 * 24 * 7 * 2; // 2 weeks
 	
 	private String key;
 	private List<UserProfile> observers;
@@ -574,7 +575,7 @@ public class Notification {
 			if (must_update_notification) {
 				record = new JSONObject();
 				notification.exportToDb(record);
-				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()));
+				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
 			}
 		}
 		
@@ -589,7 +590,7 @@ public class Notification {
 	
 	/**
 	 * Switch done if terminated and old (in regulary calls) but without Notify
-	 * @param grace_period_duration in ms
+	 * @param grace_period_duration in ms for search windows
 	 */
 	public static int updateOldsAndNonClosedNotifications(long grace_period_duration) throws Exception {
 		Client client = Elasticsearch.getClient();
@@ -648,7 +649,7 @@ public class Notification {
 				notification.is_close = true;
 				record = new JSONObject();
 				notification.exportToDb(record);
-				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()));
+				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
 				count++;
 			}
 		}
@@ -698,6 +699,7 @@ public class Notification {
 		
 		IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, key);
 		ir.source(record.toJSONString());
+		ir.ttl(MAXIMAL_NOTIFICATION_LIFETIME);
 		
 		if (bulkrequest == null) {
 			Client client = Elasticsearch.getClient();
@@ -885,4 +887,31 @@ public class Notification {
 		}
 		return notifications;
 	}
+	
+	public static ArrayList<Map<String, Object>> getAdminListFromDatabase() throws ConnectionException, IOException {
+		Client client = Elasticsearch.getClient();
+		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(ES_INDEX);
+		request.setTypes(ES_DEFAULT_TYPE);
+		request.addSort("created_at", SortOrder.DESC);
+		request.setSize(50);
+		request.setQuery(QueryBuilders.matchAllQuery());
+		
+		SearchResponse response = request.execute().actionGet();
+		if (response.getHits().totalHits() == 0) {
+			return new ArrayList<Map<String, Object>>(1);
+		}
+		SearchHit[] hits = response.getHits().hits();
+		
+		ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>(hits.length);
+		Map<String, Object> source;
+		
+		for (int pos = 0; pos < hits.length; pos++) {
+			source = hits[pos].getSource();
+			source.put("key", hits[pos].getId());
+			notifications.add(source);
+		}
+		return notifications;
+	}
+	
 }

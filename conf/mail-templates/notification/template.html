@@ -31,7 +31,7 @@
 <body>
 	<span class="title">${title}</span></span><br>
 	<hr style="height:3px; background-color:#992626">
-	<p style="padding:7pt;">
+	<p>
 	<% for (reason_entry in reasons) { %>
 		<h2>${translator.t(reason_entry.key)}</h2>
 		<ul>
@@ -40,7 +40,7 @@
 				<b>${reason.creating_comment}</b> :: <i>${notification_createdby} ${reason.creator}</i>
 				[<% if (reason.is_close) { %>${notification_closed}<% } else if (reason.is_read) { %>${notification_readed}<% } %>]
 				<% if (reason.users_comment) { %>
-					<blockquote>${reason.users_comment}</blockquote>
+					<pre>${reason.users_comment}</pre>
 				<% } %>
 			</li>
 		<% } %>

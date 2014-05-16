@@ -662,6 +662,9 @@ public class Broker {
 			return status;
 		}
 		for (Row<String, String> row : rows) {
+			if (row.getColumns().isEmpty()) {
+				continue;
+			}
 			status.put(row.getKey(), TaskJobStatus.pullFromDatabase(row.getColumns()));
 		}
 		

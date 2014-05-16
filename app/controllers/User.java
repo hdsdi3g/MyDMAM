@@ -24,6 +24,8 @@ import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
+import hd3gtv.mydmam.taskqueue.Broker;
+import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -338,6 +340,52 @@ public class User extends Controller {
 			jo.put(MydmamExtensions.encrypt(user.key), jo_user);
 		}
 		renderJSON(jo.toJSONString());
+	}
+	
+	@Check("adminNotifications")
+	public static void notificationsadminlist() throws Exception {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.admin.pagename");
+		ArrayList<Map<String, Object>> user_notifications = Notification.getAdminListFromDatabase();
+		
+		ArrayList<String> tasks_job_to_resolve = new ArrayList<String>();
+		
+		String task_job_key;
+		ArrayList<Object> linked_tasks;
+		HashMap<String, Object> map_linked_tasksjobs;
+		for (int pos_un = 0; pos_un < user_notifications.size(); pos_un++) {
+			linked_tasks = (ArrayList) user_notifications.get(pos_un).get("linked_tasks");
+			for (int pos_lt = 0; pos_lt < linked_tasks.size(); pos_lt++) {
+				map_linked_tasksjobs = (HashMap) linked_tasks.get(pos_lt);
+				task_job_key = (String) map_linked_tasksjobs.get("taskjobkey");
+				if (tasks_job_to_resolve.contains(task_job_key) == false) {
+					tasks_job_to_resolve.add(task_job_key);
+				}
+			}
+		}
+		
+		HashMap<String, TaskJobStatus> linked_tasksjobs = new HashMap<String, TaskJobStatus>(1);
+		if (tasks_job_to_resolve.isEmpty() == false) {
+			linked_tasksjobs = Broker.getStatusForTasksOrJobsByKeys(tasks_job_to_resolve);
+		}
+		
+		render(title, user_notifications, linked_tasksjobs);
+	}
+	
+	@Check("adminNotifications")
+	public static void notificationadminclose(@Required String key) throws Exception {
+		if (validation.hasErrors()) {
+			redirect("User.notificationsadminlist");
+			return;
+		}
+		UserProfile user = getUserProfile();
+		Notification notification = Notification.getFromDatabase(key);
+		if (notification == null) {
+			flash("error", Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.cantfoundselected"));
+		} else {
+			notification.switchCloseStatus(user).save();
+		}
+		
+		redirect("User.notificationsadminlist");
 	}
 	
 }

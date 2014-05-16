@@ -13,5 +13,13 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
-*/ %>
-TODO
+*/ %>=== ${title} ===
+<% for (reason_entry in reasons) { %>
+ # ${translator.t(reason_entry.key)}
+<% reason_entry.value.eachWithIndex() { reason, pos -> %>   - ${reason.creating_comment} :: ${notification_createdby} ${reason.creator} [<% if (reason.is_close) { %>${notification_closed}<% } else if (reason.is_read) { %>${notification_readed}<% } %>]
+<% if (reason.users_comment) { %>     ${reason.users_comment}<% } %><% } %><% } %>
+
+* ${please_not_respond} *
+
+--
+${title}

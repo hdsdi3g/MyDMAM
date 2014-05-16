@@ -156,6 +156,12 @@ $(document).ready(function() {
 						</li>
 					#{/secure.check}
 					
+					#{secure.check 'adminNotifications'}
+						<li>
+							<a href="@{User.notificationsadminlist}">&{'userprofile.notifications.admin.pagename'}</a>
+						</li>
+					#{/secure.check}
+					
 					#{secure.check 'acl'}
 						<li class="divider"></li>
 						<li class="nav-header">
