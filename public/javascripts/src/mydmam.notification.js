@@ -184,8 +184,7 @@
 				$(".taskjobsummary").each(function() {
 					displayTaskJob(this, data);
 				});
-				//TODO sort T/J ?
-				/*
+				/* sort T/J ?
 				var data = [];
 				for (var key in rawdata) {
 					rawdata[key].key = key;
