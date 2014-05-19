@@ -17,6 +17,7 @@
 package ext;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.web.JsCompile;
@@ -25,6 +26,7 @@ import hd3gtv.mydmam.web.Privileges;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import models.ACLGroup;
 import models.ACLRole;
@@ -37,6 +39,53 @@ import play.jobs.OnApplicationStart;
 public class Bootstrap extends Job {
 	
 	public void doJob() {
+		/**
+		 * Compare Messages entries between languages
+		 */
+		String first_locales_lang = null;
+		Properties first_locales_messages = null;
+		Set<String> first_locales_messages_string;
+		
+		String actual_locales_lang = null;
+		Set<String> actual_messages_string;
+		Log2Dump dump;
+		boolean has_missing = false;
+		
+		for (Map.Entry<String, Properties> entry_messages_locale : Messages.locales.entrySet()) {
+			if (first_locales_lang == null) {
+				first_locales_lang = entry_messages_locale.getKey();
+				first_locales_messages = entry_messages_locale.getValue();
+				continue;
+			}
+			first_locales_messages_string = first_locales_messages.stringPropertyNames();
+			actual_messages_string = entry_messages_locale.getValue().stringPropertyNames();
+			actual_locales_lang = entry_messages_locale.getKey();
+			
+			dump = new Log2Dump();
+			has_missing = false;
+			for (String string : actual_messages_string) {
+				if (first_locales_messages_string.contains(string) == false) {
+					dump.add("missing", string);
+					has_missing = true;
+				}
+			}
+			if (has_missing) {
+				Log2.log.error("Missing Messages strings in messages." + first_locales_lang + " lang (declared in messages." + actual_locales_lang + ")", null, dump);
+			}
+			
+			dump = new Log2Dump();
+			has_missing = false;
+			for (String string : first_locales_messages_string) {
+				if (actual_messages_string.contains(string) == false) {
+					dump.add("missing", string);
+					has_missing = true;
+				}
+			}
+			if (has_missing) {
+				Log2.log.error("Missing Messages strings in messages." + actual_locales_lang + " lang (declared in messages." + first_locales_lang + ")", null, dump);
+			}
+		}
+		
 		/**
 		 * Inject configuration Messages to Play Messages
 		 */

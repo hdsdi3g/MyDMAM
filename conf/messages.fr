@@ -286,7 +286,6 @@ userprofile.notifications.admin.observers=Observateurs
 userprofile.notifications.admin.usercomments=Commentaires utilisateurs
 userprofile.notifications.admin.action=Action
 
-
 crud.field.userprofile=Préférences utilisateur
 crud.field.userprofile.longname=Nom
 crud.field.userprofile.language=Langue
