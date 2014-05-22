@@ -6,3 +6,5 @@ cp -rf mydmam.org/* .
 
 rm -rf mydmam.org
 
+rm wp-login.php*
+rm xmlrpc*
