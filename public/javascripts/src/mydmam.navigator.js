@@ -26,6 +26,7 @@
 	mydmam.navigator = {};
 	var navigator = mydmam.navigator;
 	
+	navigator.url = {};
 })(window.mydmam);
 
 /**
@@ -43,7 +44,7 @@
 		}
 		
 		$.ajax({
-			url: url_stat,
+			url: navigator.url.stat,
 			type: "GET",
 			data: {"filehash" : md5(fullpath)},
 			beforeSend: function() {

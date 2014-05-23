@@ -51,9 +51,8 @@
 	#{list hd3gtv.mydmam.web.JsCompile.getURLlist(), as:'item'}
 		#{script src:item, charset:'utf-8' /}
 	#{/list}
-	
+	<script type="text/javascript" charset="UTF-8"><!-- #{include 'routes.js'/} --></script>
 	<script src="@{Application.i18n()}" type="text/javascript" charset="UTF-8"></script>
-	
 	#{get 'moreScripts' /}
 </head>
 

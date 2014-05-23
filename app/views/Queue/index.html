@@ -35,17 +35,6 @@
 
 <script type="text/javascript" charset="UTF-8">
 <!--
-var url_getall = "@{Queue.getall()}";
-var url_getupdate = "@{Queue.getupdate()}";
-
-var enable_update_queue = false;
-#{secure.check 'updateQueue'}
-var enable_update_queue = true;
-url_changetaskstatus = "@{Queue.changetaskstatus()}";
-url_changetaskpriority = "@{Queue.changetaskpriority()}";
-url_changetaskmaxage = "@{Queue.changetaskmaxage()}";
-#{/secure.check}
-
 $(document).ready(function() {
 	$("#btnActivities").addClass("active");
 	mydmam.queue.display();

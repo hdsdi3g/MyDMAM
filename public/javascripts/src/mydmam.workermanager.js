@@ -29,6 +29,8 @@
 	workermanager.workerlist = [];
 	workermanager.processingtasks = [];
 	workermanager.refresh_handle = null;
+	workermanager.url = {};
+	workermanager.enable_update = false;
 	
 })(window.mydmam);
 
@@ -81,7 +83,7 @@
  */
 (function(workermanager) {
 	workermanager.getAll = function() {
-		workermanager.ajaxUpdateLists(url_getworkers, function(rawdata) {
+		workermanager.ajaxUpdateLists(workermanager.url.getworkers, function(rawdata) {
 			workermanager.workerlist = rawdata.workers;
 			workermanager.processingtasks = rawdata.processingtasks;
 			workermanager.createfullworkertable();
@@ -126,11 +128,11 @@
  */
 (function(workermanager) {
 	workermanager.changeworkerstate = function(worker_ref, newstate) {
-		$.ajax({url: url_changeworkerstate, type: "POST", async: false, data:{"worker_ref": worker_ref, "newstate": newstate}, success: workermanager.refresh});
+		$.ajax({url: workermanager.url.changeworkerstate, type: "POST", async: false, data:{"worker_ref": worker_ref, "newstate": newstate}, success: workermanager.refresh});
 	};
 
 	changeworkercyclicperiod = function(worker_ref, period) {
-		$.ajax({url: url_changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": worker_ref, "period": period}, success: workermanager.refresh});
+		$.ajax({url: workermanager.url.changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": worker_ref, "period": period}, success: workermanager.refresh});
 	};
 })(window.mydmam.workermanager);
 
@@ -167,7 +169,7 @@
  */
 (function(workermanager) {
 	workermanager.refresh = function() {
-		workermanager.ajaxUpdateLists(url_getworkers, function(rawdata) {
+		workermanager.ajaxUpdateLists(workermanager.url.getworkers, function(rawdata) {
 			workermanager.processingtasks = rawdata.processingtasks;
 			
 			var workerlist = workermanager.workerlist;
@@ -208,7 +210,7 @@
  */
 (function(workermanager) {
 	workermanager.updateWorkerStatusButton = function(key, worker) {
-		if (enable_update === false) {
+		if (workermanager.enable_update === false) {
 			return;
 		}
 
@@ -256,7 +258,7 @@
 			$(jqelement + ' button').click(function() {
 				var current_state = $(jqelement).data('currentstate');
 				var key = $(jqelement).data('emkey');
-				$.ajax({url: url_changeworkerstate, type: "POST", async: false, data:{"worker_ref": key, "newstate": current_state}, success: workermanager.refresh});
+				$.ajax({url: workermanager.url.changeworkerstate, type: "POST", async: false, data:{"worker_ref": key, "newstate": current_state}, success: workermanager.refresh});
 			});
 		}
 		
@@ -318,7 +320,7 @@
 			if (worker.time_to_sleep > 0) {
 				content = content + '<span class="wkrchngcyclprd">';
 				content = content + '<span class="label"></span> ';
-				if (enable_update) {
+				if (workermanager.enable_update) {
 					content = content + '<button class="btn btn-mini btnshowperiodchange" data-toggle="button" type="button">' + i18n('queue.worker.edit') + '</button> ';
 					content = content + '<div class="input-append" style="display:none">';
 					content = content + '<input type="number" class="span2"/>';
@@ -418,7 +420,7 @@
 		
 		$(jqelement + ' .btnvalidnewperiod').click(function() {
 			var period = $(jqelement + ' input').val();
-			$.ajax({url: url_changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": key, "period": period}, success: workermanager.refresh});
+			$.ajax({url: workermanager.url.changeworkercyclicperiod, type: "POST", async: false, data:{"worker_ref": key, "period": period}, success: workermanager.refresh});
 		});
 	};
 })(window.mydmam.workermanager);

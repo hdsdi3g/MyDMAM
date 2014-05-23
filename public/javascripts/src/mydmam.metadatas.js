@@ -29,6 +29,7 @@
 	metadatas.displaymethod = {};
 	metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT = 0;
 	
+	metadatas.url = {};
 })(window.mydmam);
 
 /**
@@ -36,10 +37,10 @@
  */
 (function(metadatas) {
 	metadatas.getURL = function(file_hash, file_type, file_name) {
-		if (!url_metadatafile) {
+		if (!metadatas.url.metadatafile) {
 			return "";
 		}
-		return url_metadatafile.replace("filehashparam1", file_hash).replace("typeparam2", file_type).replace("fileparam3", file_name);
+		return metadatas.url.metadatafile.replace("filehashparam1", file_hash).replace("typeparam2", file_type).replace("fileparam3", file_name);
 	};
 })(window.mydmam.metadatas);
 
@@ -349,7 +350,7 @@
 (function(metadatas) {
 	metadatas.getAndAddExternalPosition = function(external_elements_to_resolve, callback_online, callback_offline, callback_nearline) {
 		$.ajax({
-			url: url_resolvepositions,
+			url: metadatas.url.resolvepositions,
 			type: "POST",
 			data: {"keys" : external_elements_to_resolve},
 			success: function(data) {
@@ -447,7 +448,7 @@
 		
 		if (elements_to_get_metadatas.length > 0) {
 			$.ajax({
-				url: url_simplemetadatas,
+				url: metadatas.url.simplemetadatas,
 				type: "POST",
 				data: {"fileshash" : elements_to_get_metadatas},
 				success: function(data) {

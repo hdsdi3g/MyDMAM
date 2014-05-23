@@ -18,6 +18,7 @@
 
 (function(mydmam) {
 	mydmam.notification = {};
+	mydmam.notification.url = {};
 })(window.mydmam);
 
 /**
@@ -40,7 +41,7 @@
 		}
 		$(this).removeClass("btnsetreadnotification");
 		var notificationkey = $(this).data("notificationkey");
-		var url = url_notificationupdateread.replace("keyparam1", notificationkey);
+		var url = notification.url.notificationupdateread.replace("keyparam1", notificationkey);
 		
 		$.ajax({
 			url: url,
@@ -89,7 +90,7 @@
 		}
 
 		$.ajax({
-			url: url_notificationresolveusers,
+			url: notification.url.notificationresolveusers,
 			type: "POST",
 			async: false,
 			data: {
@@ -171,7 +172,7 @@
 		}
 
 		$.ajax({
-			url: url_queuegettasksjobs,
+			url: notification.url.queuegettasksjobs,
 			type: "POST",
 			async: true,
 			data: {

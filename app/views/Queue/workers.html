@@ -36,16 +36,6 @@
 
 <script type="text/javascript" charset="UTF-8">
 <!--
-
-var url_getworkers = "@{Queue.getworkers()}";
-
-var enable_update = false;
-#{secure.check 'updateQueue'}
-var enable_update = true;
-url_changeworkerstate = "@{Queue.changeworkerstate()}";
-url_changeworkercyclicperiod = "@{Queue.changeworkercyclicperiod()}";
-#{/secure.check}
-
 $(document).ready(function() {
 	$("#btnActivities").addClass("active");
 	mydmam.workermanager.display();

@@ -18,10 +18,11 @@
 
 (function(mydmam) {
 	mydmam.service = {};
+	mydmam.service.url = {};
 	
 	mydmam.service.showLastStatusWorkers = function() {
 		$.ajax({
-			url: url_laststatusworkers,
+			url: mydmam.service.url.laststatusworkers,
 			type: "POST",
 			beforeSend: function() {
 				$("#laststatusworkers").empty();

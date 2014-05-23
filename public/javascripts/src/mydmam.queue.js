@@ -34,6 +34,9 @@
 	queue.taskjobstatuslistorder = ["WAITING", "PREPARING", "PROCESSING", "POSTPONED", "STOPPED", "ERROR", "TOO_OLD", "CANCELED", "DONE"];
 	queue.taskjobstatuslistcount = [];
 	queue.REFRESH_INTERVAL = 10000;
+	queue.enable_update = false;
+	
+	queue.url = {};
 })(window.mydmam);
 
 /**
@@ -89,7 +92,7 @@
  */
 (function(queue) {
 	queue.getAll = function() {
-		queue.ajaxUpdateLists(url_getall, function(rawdata) {
+		queue.ajaxUpdateLists(queue.url.getall, function(rawdata) {
 			queue.taskjoblist = rawdata.tasksandjobs;
 			
 			// get queue.taskjobstatuslistcount from queue.taskjoblist
@@ -284,7 +287,7 @@
 
 		content = content + '<div class="span4 blocktaskjobdateedit">';
 
-		if (enable_update_queue) {
+		if (queue.enable_update) {
 			var display; 
 			if (current_taskjob.status == "PROCESSING" | current_taskjob.status == "PREPARING") {
 				display = ' style="display:none"';
@@ -643,7 +646,7 @@
 		$("#fulltaskjobtable").empty();
 		$("#fulltaskjobtable").append(content);
 		
-		if (enable_update_queue) {
+		if (queue.enable_update) {
 			for (var pos in selected_taskjoblist) {
 				queue.addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
 			}
@@ -673,7 +676,7 @@
 		
 		$("#fulltaskjobtable").prepend(content);
 		
-		if (enable_update_queue) {
+		if (queue.enable_update) {
 			for (var pos in selected_taskjoblist) {
 				queue.addActionsForTaskJobTableElement(selected_taskjoblist[pos].simplekey);
 			}
@@ -686,13 +689,13 @@
  */
 (function(queue) {
 	queue.changetaskstatus = function(task_key, status) {
-		$.ajax({url: url_changetaskstatus, type: "POST", async: false, data:{"task_key": task_key, "status": status}, success: queue.refresh});
+		$.ajax({url: queue.url.changetaskstatus, type: "POST", async: false, data:{"task_key": task_key, "status": status}, success: queue.refresh});
 	};
 	queue.changetaskpriority = function(task_key, priority) {
-		$.ajax({url: url_changetaskpriority, type: "POST", async: false, data:{"task_key": task_key, "priority": priority}, success: queue.refresh});
+		$.ajax({url: queue.url.changetaskpriority, type: "POST", async: false, data:{"task_key": task_key, "priority": priority}, success: queue.refresh});
 	};
 	queue.changetaskmaxage = function(task_key, date_max_age) {
-		$.ajax({url: url_changetaskmaxage, type: "POST", async: false, data:{"task_key": task_key, "date_max_age": date_max_age}, success: queue.refresh});
+		$.ajax({url: queue.url.changetaskmaxage, type: "POST", async: false, data:{"task_key": task_key, "date_max_age": date_max_age}, success: queue.refresh});
 	};
 })(window.mydmam.queue);
 
@@ -729,7 +732,7 @@
  */
 (function(queue) {
 	queue.refresh = function() {
-		queue.ajaxUpdateLists(url_getupdate, function(rawdata) {
+		queue.ajaxUpdateLists(queue.url.getupdate, function(rawdata) {
 			var newtasksandjobslist = rawdata.tasksandjobs;
 			queue.taskjobstatuslistcount = rawdata.counttasksandjobsstatus;
 			

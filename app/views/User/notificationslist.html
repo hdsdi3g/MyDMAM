@@ -159,12 +159,8 @@
 
 <script type="text/javascript" charset="UTF-8">
 <!--
-var url_notificationupdateread = "@{User.notificationupdateread(key='keyparam1')}";
-var url_notificationresolveusers = "@{User.notificationresolveusers}";
-var url_queuegettasksjobs = "@{Queue.gettasksjobs}";
-var enable_update_queue = false;
-
 $(document).ready(function() {
+	mydmam.queue.enable_update = false; // Force false to keep correct display layouts
 	$("#btnSession").addClass("active");
 	mydmam.notification.postProcessPage(false);
 });
