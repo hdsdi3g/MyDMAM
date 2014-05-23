@@ -43,6 +43,11 @@
 	<script src="@{'/public/javascripts/lib/md5.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	<script src="@{'/public/javascripts/lib/jquery.dataTables.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	
+	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+	<!--[if lt IE 9]>
+		<script src="@{'/public/javascripts/lib/html5shiv-3.7.0.min.js'}" type="text/javascript" charset="UTF-8"></script>
+	<![endif]-->
+	
 	#{list hd3gtv.mydmam.web.JsCompile.getURLlist(), as:'item'}
 		#{script src:item, charset:'utf-8' /}
 	#{/list}
@@ -50,12 +55,6 @@
 	<script src="@{Application.i18n()}" type="text/javascript" charset="UTF-8"></script>
 	
 	#{get 'moreScripts' /}
-	
-	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-	<!--[if lt IE 9]>
-	  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-	<![endif]-->
-	
 </head>
 
 <body>
