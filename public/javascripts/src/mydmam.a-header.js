@@ -27,3 +27,33 @@
 	
 	window.mydmam = {};
 })(window);
+
+/**
+ * Prepare new stat function
+ */
+(function(mydmam) {
+	mydmam.stat = function(fileshashs, scopes_element, scopes_subelements) {
+		var result;
+		$.ajax({
+			url: mydmam.navigator.url.getstat,
+			type: "POST",
+			async: false,
+			data: {
+				"fileshashs": fileshashs,
+				"scopes_element": scopes_element, 
+				"scopes_subelements": scopes_subelements,
+				"from": 0,
+				"size": 20
+			},
+			success: function(response) {
+				result = response;
+			}
+		});
+		return result;
+	};
+	
+	$(window.document).ready(function() {
+		console.log(mydmam.stat(["880e31c8d36dd104973c4c03e56fa804","d41d8cd98f00b204e9800998ecf8427e","fh:3"], ["dirlist", "pathinfo", "mtdsummary", "mtdpreview"], ["mtdsummary", "mtdpreview"]));
+	});
+	
+})(window.mydmam);

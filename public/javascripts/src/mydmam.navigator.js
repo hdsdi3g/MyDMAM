@@ -59,11 +59,11 @@
 				
 				content = content + '<h3>';
 				if (data.storagename) {
-					var url_goback = url_navigate + "#" + data.storagename + ":" + data.path.substring(0, data.path.lastIndexOf("/"));
+					var url_goback = mydmam.metadatas.url.navigate + "#" + data.storagename + ":" + data.path.substring(0, data.path.lastIndexOf("/"));
 					if (data.path == '/') {
-						url_goback = url_navigate + "#";
+						url_goback = mydmam.metadatas.url.navigate + "#";
 					} else if (data.path.lastIndexOf("/") === 0) {
-						url_goback = url_navigate + "#" + data.storagename + ":/";
+						url_goback = mydmam.metadatas.url.navigate + "#" + data.storagename + ":/";
 					}
 					content = content + '<a class="btn btn-mini btngoback" style="margin-bottom: 6px;margin-right: 1em;" href="' + url_goback + '" title="' + i18n('browser.goback') + '"><i class="icon-chevron-left"></i></a>';
 
@@ -160,11 +160,11 @@
 						if (dircontent[pos].directory) {
 							content = content + '<th>';
 							if (data.storagename) {
-								content = content + '<a class="tlbdirlistitem" href="' + url_navigate + "#" + dircontent[pos].storagename + ":" + dircontent[pos].path + '">';
+								content = content + '<a class="tlbdirlistitem" href="' + mydmam.metadatas.url.navigate + "#" + dircontent[pos].storagename + ":" + dircontent[pos].path + '">';
 								content = content + dircontent[pos].path.substring(dircontent[pos].path.lastIndexOf("/") + 1);
 								content = content + '</a>';
 							} else {
-								content = content + '<a class="tlbdirlistitem" href="' + url_navigate + "#" + dircontent[pos].storagename + ':/">';
+								content = content + '<a class="tlbdirlistitem" href="' + mydmam.metadatas.url.navigate + "#" + dircontent[pos].storagename + ':/">';
 								content = content + dircontent[pos].storagename ;
 								content = content + '</a>';
 							}
@@ -179,7 +179,7 @@
 							if (dircontent[pos].id) {
 								content = content + '<span class="label label-info">' + dircontent[pos].id + '</span> ';
 							}
-							content = content + '<a class="tlbdirlistitem" href="' + url_navigate + "#" + dircontent[pos].storagename + ":" + dircontent[pos].path + '">';
+							content = content + '<a class="tlbdirlistitem" href="' + mydmam.metadatas.url.navigate + "#" + dircontent[pos].storagename + ":" + dircontent[pos].path + '">';
 							content = content + dircontent[pos].path.substring(dircontent[pos].path.lastIndexOf("/") + 1);
 							content = content + '</a>';
 							content = content + '</td>';
@@ -327,16 +327,16 @@
 		for (var pos = 1; pos < element_subpaths.length; pos++) {
 			newpath = storagename + ':' + currentpath + "/" + element_subpaths[pos];
 			if (pos + 1 < element_subpaths.length) {
-				content = content + '<li><span class="divider">/</span><a href="' + url_navigate + "#" + newpath + '">' + element_subpaths[pos] + '</a></li>';
+				content = content + '<li><span class="divider">/</span><a href="' + mydmam.metadatas.url.navigate + "#" + newpath + '">' + element_subpaths[pos] + '</a></li>';
 			} else {
 				content = content + '<li class="active"><span class="divider">/</span>' + element_subpaths[pos] + '</li>';
 			}
 			currentpath = currentpath + "/" + element_subpaths[pos];
 		}
 		if (content !== "") {
-			var header =      '<li><a href="' + url_navigate + '#">' + i18n('browser.storagestitle') + '</a> <span class="divider">::</span></li>';
+			var header =      '<li><a href="' + mydmam.metadatas.url.navigate + '#">' + i18n('browser.storagestitle') + '</a> <span class="divider">::</span></li>';
 			if (path != "/") {
-				header = header + '<li><a href="' + url_navigate + "#" + storagename + ':/">' + storagename + '</a></li>';
+				header = header + '<li><a href="' + mydmam.metadatas.url.navigate + "#" + storagename + ':/">' + storagename + '</a></li>';
 			} else {
 				header = header + '<li class="active">' + storagename + '</li>';
 			}

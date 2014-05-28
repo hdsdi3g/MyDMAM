@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2012-2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2012-2014
  * 
 */
 package controllers;
@@ -26,6 +26,7 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.SearchResult;
+import hd3gtv.mydmam.web.stat.Stat;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -65,6 +66,21 @@ public class Application extends Controller {
 	}
 	
 	@Check("navigate")
+	public static void getstat() {
+		Stat stat = new Stat(params.getAll("fileshashs[]"), params.getAll("scopes_element[]"), params.getAll("scopes_subelements[]"));
+		try {
+			stat.setFrom(Integer.parseInt(params.get("from")));
+		} catch (Exception e) {
+		}
+		try {
+			stat.setSize(Integer.parseInt(params.get("size")));
+		} catch (Exception e) {
+		}
+		
+		renderJSON(stat.toJSONString());
+	}
+	
+	@Check("navigate")
 	public static void stat(String filehash) {
 		if (filehash == null) {
 			throw new NotFound("No filehash");
@@ -88,12 +104,12 @@ public class Application extends Controller {
 							/**
 							 * Directory list
 							 */
-							subpathelement = explorer.getDirectoryContentByIdkey(pathelement.prepare_key(), 500);
+							subpathelement = explorer.getDirectoryContentByIdkey(pathelement.prepare_key(), 0, 500);
 						} else {
 							/**
 							 * Storage list
 							 */
-							subpathelement = explorer.getDirectoryContentByIdkey(SourcePathIndexerElement.hashThis(""), 500);
+							subpathelement = explorer.getDirectoryContentByIdkey(SourcePathIndexerElement.hashThis(""), 0, 500);
 						}
 						JSONArray ja_subelements = new JSONArray();
 						JSONObject sub_element;

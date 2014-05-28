@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.pathindexing;
@@ -29,14 +29,17 @@ import java.util.Map;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.MultiGetItemResponse;
+import org.elasticsearch.action.get.MultiGetRequestBuilder;
+import org.elasticsearch.action.search.MultiSearchRequestBuilder;
+import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.sort.SortOrder;
 import org.json.simple.JSONObject;
 
 public class Explorer {
@@ -220,30 +223,60 @@ public class Explorer {
 	}
 	
 	public SourcePathIndexerElement getelementByIdkey(String _id) {
-		SourcePathIndexerElement result;
+		ArrayList<String> ids = new ArrayList<String>(1);
+		ids.add(_id);
+		HashMap<String, SourcePathIndexerElement> results = getelementByIdkeys(ids);
+		if (results.isEmpty()) {
+			return null;
+		}
+		return results.get(_id);
+	}
+	
+	public HashMap<String, SourcePathIndexerElement> getelementByIdkeys(List<String> _ids) {
+		if (_ids == null) {
+			return new HashMap<String, SourcePathIndexerElement>(1);
+		}
+		if (_ids.size() == 0) {
+			return new HashMap<String, SourcePathIndexerElement>(1);
+		}
+		HashMap<String, SourcePathIndexerElement> result = new HashMap<String, SourcePathIndexerElement>(_ids.size());
 		
-		if (SourcePathIndexerElement.hashThis("").equals(_id.toLowerCase())) {
-			/**
-			 * Root path ? : return empty.
-			 */
-			result = new SourcePathIndexerElement();
-			result.currentpath = null;
-			result.date = 0;
-			result.directory = true;
-			result.id = null;
-			result.parentpath = null;
-			result.size = 0;
-			result.storagename = null;
+		ArrayList<String> ids_to_query = new ArrayList<String>(_ids.size());
+		SourcePathIndexerElement element;
+		for (int pos = 0; pos < _ids.size(); pos++) {
+			if (_ids.get(pos).equalsIgnoreCase(SourcePathIndexerElement.ROOT_DIRECTORY_KEY)) {
+				/**
+				 * Root path ? : return empty.
+				 */
+				element = new SourcePathIndexerElement();
+				element.currentpath = null;
+				element.date = 0;
+				element.directory = true;
+				element.id = null;
+				element.parentpath = null;
+				element.size = 0;
+				element.storagename = null;
+				result.put(_ids.get(pos), element);
+			} else {
+				ids_to_query.add(_ids.get(pos));
+			}
+		}
+		
+		if (ids_to_query.size() == 0) {
 			return result;
 		}
 		
-		GetResponse response = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_FILE, _id)).actionGet();
-		result = SourcePathIndexerElement.fromESResponse(response);
-		if (result != null) {
-			return result;
+		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
+		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, ids_to_query);
+		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_FILE, ids_to_query);
+		
+		MultiGetItemResponse[] responses = multigetrequestbuilder.execute().actionGet().getResponses();
+		for (int pos = 0; pos < responses.length; pos++) {
+			if (responses[pos].getResponse().isExists() == false) {
+				continue;
+			}
+			result.put(responses[pos].getId(), SourcePathIndexerElement.fromESResponse(responses[pos].getResponse()));
 		}
-		response = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, _id)).actionGet();
-		result = SourcePathIndexerElement.fromESResponse(response);
 		return result;
 	}
 	
@@ -272,13 +305,14 @@ public class Explorer {
 	/**
 	 * @return never null
 	 * @throws IndexOutOfBoundsException if subelement count is > max_size
+	 * @deprecated
 	 */
-	public List<SourcePathIndexerElement> getDirectoryContentByIdkey(String _id, int max_size) throws IndexOutOfBoundsException {
+	public List<SourcePathIndexerElement> getDirectoryContentByIdkey(String _id, int from, int max_size) throws IndexOutOfBoundsException {
 		SearchRequestBuilder request = client.prepareSearch();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 		request.setQuery(QueryBuilders.termQuery("parentpath", _id.toLowerCase()));
-		request.setFrom(0);
+		request.setFrom(from);
 		request.setSize(max_size + 1);
 		
 		SearchResponse response = request.execute().actionGet();
@@ -291,6 +325,57 @@ public class Explorer {
 		
 		for (int pos = 0; pos < hits.length; pos++) {
 			result.add(SourcePathIndexerElement.fromESResponse(hits[pos]));
+		}
+		return result;
+	}
+	
+	/**
+	 * @param from for each _ids
+	 * @param size for each _ids
+	 * @return never null
+	 */
+	public Map<String, List<SourcePathIndexerElement>> getDirectoryContentByIdkeys(List<String> _ids, int from, int size) {
+		if (_ids == null) {
+			return new HashMap<String, List<SourcePathIndexerElement>>(1);
+		}
+		if (_ids.size() == 0) {
+			return new HashMap<String, List<SourcePathIndexerElement>>(1);
+		}
+		
+		MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(client);
+		
+		for (int pos = 0; pos < _ids.size(); pos++) {
+			String _id = _ids.get(pos);
+			SearchRequestBuilder request = client.prepareSearch();
+			request.setIndices(Importer.ES_INDEX);
+			request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
+			request.setQuery(QueryBuilders.termQuery("parentpath", _id.toLowerCase()));
+			request.setFrom(from);
+			request.setSize(size);
+			request.addSort("directory", SortOrder.ASC);
+			request.addSort("idxfilename", SortOrder.ASC);
+			multisearchrequestbuilder.add(request);
+		}
+		
+		MultiSearchResponse.Item[] responses = multisearchrequestbuilder.execute().actionGet().getResponses();
+		
+		Map<String, List<SourcePathIndexerElement>> result = new HashMap<String, List<SourcePathIndexerElement>>();
+		
+		SearchResponse response;
+		SearchHit[] hits;
+		ArrayList<SourcePathIndexerElement> sub_result;
+		for (int pos = 0; pos < responses.length; pos++) {
+			response = responses[pos].getResponse();
+			hits = response.getHits().hits();
+			if (hits.length == 0) {
+				continue;
+			}
+			sub_result = new ArrayList<SourcePathIndexerElement>(hits.length);
+			for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
+				sub_result.add(SourcePathIndexerElement.fromESResponse(hits[pos_hits]));
+			}
+			
+			result.put(sub_result.get(0).parentpath, sub_result);
 		}
 		return result;
 	}
