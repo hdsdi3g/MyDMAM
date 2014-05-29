@@ -53,7 +53,7 @@
 	};
 	
 	$(window.document).ready(function() {
-		console.log(mydmam.stat(["880e31c8d36dd104973c4c03e56fa804","d41d8cd98f00b204e9800998ecf8427e","fh:3"], ["dirlist", "pathinfo", "mtdsummary", "mtdpreview"], ["mtdsummary", "mtdpreview"]));
+		console.log(mydmam.stat(["880e31c8d36dd104973c4c03e56fa804","d41d8cd98f00b204e9800998ecf8427e","fh:3"], ["dirlist", "pathinfo", "mtdsummary","countitems"], ["mtdsummary","countitems"]));
 	});
 	
 })(window.mydmam);

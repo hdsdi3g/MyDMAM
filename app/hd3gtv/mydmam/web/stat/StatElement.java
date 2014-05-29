@@ -19,19 +19,23 @@ package hd3gtv.mydmam.web.stat;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.util.List;
-
-import org.json.simple.JSONObject;
+import java.util.Map;
 
 class StatElement {
 	
 	public static final String SCOPE_DIRLIST = "dirlist";
 	public static final String SCOPE_PATHINFO = "pathinfo";
 	public static final String SCOPE_MTD_SUMMARY = "mtdsummary";
-	public static final String SCOPE_MTD_PREVIEW = "mtdpreview";
-	public static final String SCOPE_COUNT_SUB_ELEMENTS = "countsubelements";
+	public static final String SCOPE_COUNT_ITEMS = "countitems";
 	
 	public StatElement() {
 	}
+	
+	/**
+	 * Referer to "this" element
+	 */
+	SourcePathIndexerElement path;
+	Map<String, Object> mtdsummary;
 	
 	/**
 	 * Bounded by from and size query
@@ -39,25 +43,18 @@ class StatElement {
 	List<StatElement> items;
 	
 	/**
-	 * Referer to "this" element
-	 */
-	SourcePathIndexerElement path;
-	JSONObject mtdsummary;
-	JSONObject mtdpreview;
-	
-	/**
 	 * Total not bounded
 	 */
-	Long countsubelements;
+	Long items_total;
 	
 	/**
 	 * Bounded values
 	 */
-	Integer from;
+	Integer items_page_from;
 	
 	/**
 	 * Bounded values
 	 */
-	Integer size;
+	Integer items_page_size;
 	
 }

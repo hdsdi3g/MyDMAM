@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.web.stat;
 
+import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
@@ -25,13 +26,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.indices.IndexMissingException;
+
 import com.google.gson.Gson;
 
 public class Stat {
 	
 	private ArrayList<String> scopes_element;
 	private ArrayList<String> scopes_subelements;
-	private LinkedHashMap<String, StatElement> pathelements;
+	private LinkedHashMap<String, StatElement> selected_path_elements;
 	private List<String> pathelementskeys;
 	private int from = 0;
 	private int size = 100;
@@ -39,18 +42,18 @@ public class Stat {
 	public Stat(String[] pathelementskeys, String[] array_scopes_element, String[] array_scopes_subelements) {
 		if (pathelementskeys != null) {
 			if (pathelementskeys.length > 0) {
-				pathelements = new LinkedHashMap<String, StatElement>(pathelementskeys.length);
+				selected_path_elements = new LinkedHashMap<String, StatElement>(pathelementskeys.length);
 				this.pathelementskeys = new ArrayList<String>(pathelementskeys.length);
 				for (int pos_k = 0; pos_k < pathelementskeys.length; pos_k++) {
-					pathelements.put(pathelementskeys[pos_k], new StatElement());
+					selected_path_elements.put(pathelementskeys[pos_k], new StatElement());
 					this.pathelementskeys.add(pathelementskeys[pos_k]);
 				}
 			} else {
-				pathelements = new LinkedHashMap<String, StatElement>(1);
+				selected_path_elements = new LinkedHashMap<String, StatElement>(1);
 				this.pathelementskeys = new ArrayList<String>(1);
 			}
 		} else {
-			pathelements = new LinkedHashMap<String, StatElement>(1);
+			selected_path_elements = new LinkedHashMap<String, StatElement>(1);
 			this.pathelementskeys = new ArrayList<String>(1);
 		}
 		
@@ -98,33 +101,30 @@ public class Stat {
 	}
 	
 	public String toJSONString() {
-		
-		/*
-		TODO scopes_element SCOPE_MTD_SUMMARY
-		TODO scopes_element SCOPE_MTD_PREVIEW
-
-		TODO scopes_subelements SCOPE_MTD_SUMMARY
-		TODO scopes_subelements SCOPE_MTD_PREVIEW
-		* */
-		
 		Explorer explorer = new Explorer();
 		
 		if (scopes_element.contains(StatElement.SCOPE_PATHINFO)) {
 			HashMap<String, SourcePathIndexerElement> map_elements_resolved = explorer.getelementByIdkeys(pathelementskeys);
-			for (Map.Entry<String, StatElement> entry : pathelements.entrySet()) {
+			boolean count_items = scopes_element.contains(StatElement.SCOPE_COUNT_ITEMS);
+			
+			for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
 				if (map_elements_resolved.containsKey(entry.getKey()) == false) {
 					continue;
 				}
 				entry.getValue().path = map_elements_resolved.get(entry.getKey());
-				entry.getValue().countsubelements = explorer.countDirectoryContentElements(entry.getKey());
+				if (count_items) {
+					entry.getValue().items_total = explorer.countDirectoryContentElements(entry.getKey());
+				}
 			}
 		}
 		
 		if (scopes_element.contains(StatElement.SCOPE_DIRLIST)) {
+			boolean count_items = scopes_subelements.contains(StatElement.SCOPE_COUNT_ITEMS);
+			
 			Map<String, List<SourcePathIndexerElement>> map_dir_list = explorer.getDirectoryContentByIdkeys(pathelementskeys, from, size);
 			
 			List<SourcePathIndexerElement> dir_list;
-			for (Map.Entry<String, StatElement> entry : pathelements.entrySet()) {
+			for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
 				if (map_dir_list.containsKey(entry.getKey()) == false) {
 					continue;
 				}
@@ -133,30 +133,56 @@ public class Stat {
 					continue;
 				}
 				
+				entry.getValue().items_page_from = from;
+				entry.getValue().items_page_size = size;
+				
 				entry.getValue().items = new ArrayList<StatElement>(dir_list.size());
 				for (int pos = 0; pos < dir_list.size(); pos++) {
 					StatElement s_element = new StatElement();
 					s_element.path = dir_list.get(pos);
-					s_element.countsubelements = explorer.countDirectoryContentElements(s_element.path.prepare_key());
+					if (count_items) {
+						s_element.items_total = explorer.countDirectoryContentElements(s_element.path.prepare_key());
+					}
 					entry.getValue().items.add(s_element);
 				}
 			}
 		}
 		
-		/*
-		 * 	private int from = 0;
-			private int size = 100;
-		 * */
-		
-		/*if (scope.equalsIgnoreCase("pathinfo")) {
-			 // Size, date
-		} else if (scope.equalsIgnoreCase("dirlist")) {
-			 // get dirlist content : size, date, and sub element count
-		} else if (scope.equalsIgnoreCase("summary")) {
-		} else if (scope.equalsIgnoreCase("")) {
-		}*/
+		try {
+			if (scopes_element.contains(StatElement.SCOPE_MTD_SUMMARY)) {
+				Map<String, Map<String, Object>> summaries = null;
+				if (scopes_element.contains(StatElement.SCOPE_PATHINFO)) {
+					ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
+					for (StatElement statelement : selected_path_elements.values()) {
+						if (statelement.path == null) {
+							continue;
+						}
+						pathelements.add(statelement.path);
+					}
+					summaries = MetadataCenter.getSummariesByPathElements(pathelements);
+				} else {
+					summaries = MetadataCenter.getSummariesByPathElementKeys(pathelementskeys);
+				}
+				
+				for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
+					if (summaries.containsKey(entry.getKey()) == false) {
+						continue;
+					}
+					entry.getValue().mtdsummary = summaries.get(entry.getKey());
+				}
+			}
+			
+			if (scopes_subelements.contains(StatElement.SCOPE_MTD_SUMMARY)) {
+				Map<String, Map<String, Object>> summaries = null;
+				
+				// TODO
+			}
+			
+		} catch (IndexMissingException e) {
+			e.printStackTrace();
+		}
 		
 		Gson gson = new Gson();
-		return gson.toJson(pathelements);
+		return gson.toJson(selected_path_elements);
 	}
 }

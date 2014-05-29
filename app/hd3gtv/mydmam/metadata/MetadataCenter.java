@@ -53,6 +53,10 @@ import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.MultiGetItemResponse;
+import org.elasticsearch.action.get.MultiGetRequestBuilder;
+import org.elasticsearch.action.search.MultiSearchRequestBuilder;
+import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -313,6 +317,7 @@ public class MetadataCenter {
 	
 	/**
 	 * Beware: "origin" key is deleted
+	 * @deprecated
 	 */
 	public static JSONObject getSummaryMetadatas(SourcePathIndexerElement element) throws IndexMissingException {
 		if (element == null) {
@@ -344,6 +349,7 @@ public class MetadataCenter {
 	
 	/**
 	 * Beware: "origin" key is deleted
+	 * @deprecated
 	 */
 	public static JSONObject getSummaryMetadatas(Client client, String[] pathelementskeys) throws IndexMissingException {
 		if (pathelementskeys == null) {
@@ -393,6 +399,89 @@ public class MetadataCenter {
 			return null;
 		}
 		return result;
+	}
+	
+	/**
+	 * Beware: "origin" key is deleted
+	 * @return never null, SourcePathIndexerElement key > Metadata element key > Metadata element value
+	 */
+	private static Map<String, Map<String, Object>> getProcessedSummaries(List<Map<String, Object>> sources) {
+		if (sources.size() == 0) {
+			return new HashMap<String, Map<String, Object>>(1);
+		}
+		
+		HashMap<String, Map<String, Object>> result = new HashMap<String, Map<String, Object>>(sources.size());
+		
+		Map<String, Object> source;
+		Map<String, Object> source_origin;
+		String pathelementkey;
+		for (int pos = 0; pos < sources.size(); pos++) {
+			source = sources.get(pos);
+			source_origin = (Map) source.get("origin");
+			pathelementkey = (String) source_origin.get("key");
+			source.remove("origin");
+			result.put(pathelementkey, source);
+		}
+		return result;
+	}
+	
+	public static Map<String, Map<String, Object>> getSummariesByPathElements(List<SourcePathIndexerElement> pathelements) throws IndexMissingException {
+		if (pathelements == null) {
+			return new HashMap<String, Map<String, Object>>(1);
+		}
+		if (pathelements.size() == 0) {
+			return new HashMap<String, Map<String, Object>>(1);
+		}
+		
+		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
+		
+		for (int pos = 0; pos < pathelements.size(); pos++) {
+			multigetrequestbuilder.add(ES_INDEX, ES_TYPE_SUMMARY, MetadataIndexer.getUniqueElementKey(pathelements.get(pos)));
+		}
+		
+		MultiGetItemResponse[] response = multigetrequestbuilder.execute().actionGet().getResponses();
+		List<Map<String, Object>> sources = new ArrayList<Map<String, Object>>();
+		for (int pos = 0; pos < response.length; pos++) {
+			if (response[pos].getResponse().isSourceEmpty()) {
+				continue;
+			}
+			sources.add(response[pos].getResponse().getSource());
+		}
+		return getProcessedSummaries(sources);
+	}
+	
+	public static Map<String, Map<String, Object>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws IndexMissingException {
+		if (pathelementkeys == null) {
+			return new HashMap<String, Map<String, Object>>(1);
+		}
+		if (pathelementkeys.size() == 0) {
+			return new HashMap<String, Map<String, Object>>(1);
+		}
+		
+		MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(client);
+		
+		SearchRequestBuilder request;
+		for (int pos = 0; pos < pathelementkeys.size(); pos++) {
+			request = new SearchRequestBuilder(client);
+			request.setIndices(ES_INDEX);
+			request.setTypes(ES_TYPE_SUMMARY);
+			request.setSize(1);
+			request.setQuery(QueryBuilders.termQuery("origin.key", pathelementkeys.get(pos)));
+			multisearchrequestbuilder.add(request);
+		}
+		MultiSearchResponse.Item[] items = multisearchrequestbuilder.execute().actionGet().getResponses();
+		List<Map<String, Object>> sources = new ArrayList<Map<String, Object>>();
+		
+		items[0].getResponse().getHits().hits()[0].getSource();
+		SearchHit[] hits;
+		for (int pos = 0; pos < items.length; pos++) {
+			hits = items[pos].getResponse().getHits().hits();
+			if (hits.length == 0) {
+				continue;
+			}
+			sources.add(hits[0].getSource());
+		}
+		return getProcessedSummaries(sources);
 	}
 	
 	public static RenderedElement getMasterAsPreviewFile(String origin_key) throws IndexMissingException {
