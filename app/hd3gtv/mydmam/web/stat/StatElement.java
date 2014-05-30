@@ -18,7 +18,6 @@ package hd3gtv.mydmam.web.stat;
 
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
-import java.util.List;
 import java.util.Map;
 
 class StatElement {
@@ -39,8 +38,9 @@ class StatElement {
 	
 	/**
 	 * Bounded by from and size query
+	 * pathelementkey > StatElement
 	 */
-	List<StatElement> items;
+	Map<String, StatElement> items;
 	
 	/**
 	 * Total not bounded

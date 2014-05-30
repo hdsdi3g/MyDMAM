@@ -462,7 +462,7 @@ public class MetadataCenter {
 		
 		SearchRequestBuilder request;
 		for (int pos = 0; pos < pathelementkeys.size(); pos++) {
-			request = new SearchRequestBuilder(client);
+			request = client.prepareSearch();
 			request.setIndices(ES_INDEX);
 			request.setTypes(ES_TYPE_SUMMARY);
 			request.setSize(1);
@@ -472,7 +472,10 @@ public class MetadataCenter {
 		MultiSearchResponse.Item[] items = multisearchrequestbuilder.execute().actionGet().getResponses();
 		List<Map<String, Object>> sources = new ArrayList<Map<String, Object>>();
 		
-		items[0].getResponse().getHits().hits()[0].getSource();
+		if (items.length == 0) {
+			return new HashMap<String, Map<String, Object>>();
+		}
+		
 		SearchHit[] hits;
 		for (int pos = 0; pos < items.length; pos++) {
 			hits = items[pos].getResponse().getHits().hits();

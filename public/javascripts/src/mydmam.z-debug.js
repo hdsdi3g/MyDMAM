@@ -16,14 +16,17 @@
 */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
-/**
- * Pre-definited strings functions.
- * Init mydmam global object
- */
-(function(window) {
-	String.prototype.trim = function(){return(this.replace(/^[\s\xA0]+/, "").replace(/[\s\xA0]+$/, ""));};
-	String.prototype.startsWith = function(str){return (this.match("^"+str)==str);};
-	String.prototype.endsWith = function(str){return (this.match(str+"$")==str);};
-	
-	window.mydmam = {};
-})(window);
+(function(mydmam) {
+	$(window.document).ready(function() {
+		var stat = mydmam.stat;
+		//"5171418f74b18a66eca5867d3eb77d24",
+		var keys = ["d41d8cd98f00b204e9800998ecf8427e","deb2aa4ae447055aa666a1c39967ac42","fh:3"];
+		//var scopes_element = [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS];
+		var scopes_element = [stat.SCOPE_MTD_SUMMARY];
+		
+		//var scopes_subelements = [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS];
+		
+		//console.log(stat.query(keys, scopes_element, scopes_subelements));
+		console.log(stat.query(keys, scopes_element));
+	});
+})(window.mydmam);

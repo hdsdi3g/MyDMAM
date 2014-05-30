@@ -332,14 +332,14 @@ public class Explorer {
 	/**
 	 * @param from for each _ids
 	 * @param size for each _ids
-	 * @return never null
+	 * @return never null, _id parent key > element key > element
 	 */
-	public Map<String, List<SourcePathIndexerElement>> getDirectoryContentByIdkeys(List<String> _ids, int from, int size) {
+	public HashMap<String, HashMap<String, SourcePathIndexerElement>> getDirectoryContentByIdkeys(List<String> _ids, int from, int size) {
 		if (_ids == null) {
-			return new HashMap<String, List<SourcePathIndexerElement>>(1);
+			return new HashMap<String, HashMap<String, SourcePathIndexerElement>>(1);
 		}
 		if (_ids.size() == 0) {
-			return new HashMap<String, List<SourcePathIndexerElement>>(1);
+			return new HashMap<String, HashMap<String, SourcePathIndexerElement>>(1);
 		}
 		
 		MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(client);
@@ -359,23 +359,32 @@ public class Explorer {
 		
 		MultiSearchResponse.Item[] responses = multisearchrequestbuilder.execute().actionGet().getResponses();
 		
-		Map<String, List<SourcePathIndexerElement>> result = new HashMap<String, List<SourcePathIndexerElement>>();
+		HashMap<String, HashMap<String, SourcePathIndexerElement>> result = new HashMap<String, HashMap<String, SourcePathIndexerElement>>();
 		
 		SearchResponse response;
 		SearchHit[] hits;
-		ArrayList<SourcePathIndexerElement> sub_result;
+		HashMap<String, SourcePathIndexerElement> sub_result;
+		String parent_key;
+		SourcePathIndexerElement element;
 		for (int pos = 0; pos < responses.length; pos++) {
 			response = responses[pos].getResponse();
 			hits = response.getHits().hits();
 			if (hits.length == 0) {
 				continue;
 			}
-			sub_result = new ArrayList<SourcePathIndexerElement>(hits.length);
+			sub_result = new HashMap<String, SourcePathIndexerElement>(hits.length);
+			parent_key = null;
 			for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
-				sub_result.add(SourcePathIndexerElement.fromESResponse(hits[pos_hits]));
+				element = SourcePathIndexerElement.fromESResponse(hits[pos_hits]);
+				sub_result.put(hits[pos_hits].getId(), element);
+				if (pos_hits == 0) {
+					parent_key = element.parentpath;
+				}
 			}
 			
-			result.put(sub_result.get(0).parentpath, sub_result);
+			if (parent_key != null) {
+				result.put(parent_key, sub_result);
+			}
 		}
 		return result;
 	}

@@ -83,13 +83,18 @@ public class Elasticsearch {
 			Log2.log.info("Client configuration", dump);
 		} catch (Exception e) {
 			Log2.log.error("Can't load client configuration", e);
+			try {
+				client.close();
+			} catch (Exception e1) {
+				Log2.log.error("Can't close client", e1);
+			}
 		}
 	}
 	
 	/**
 	 * @return client Don't close it !
 	 */
-	public static TransportClient getClient() {
+	public static synchronized TransportClient getClient() {
 		if (client == null) {
 			refeshconfiguration();
 		} else if (client.connectedNodes().isEmpty()) {

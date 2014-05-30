@@ -69,11 +69,11 @@ public class Application extends Controller {
 	public static void getstat() {
 		Stat stat = new Stat(params.getAll("fileshashs[]"), params.getAll("scopes_element[]"), params.getAll("scopes_subelements[]"));
 		try {
-			stat.setFrom(Integer.parseInt(params.get("from")));
+			stat.setPageFrom(Integer.parseInt(params.get("page_from")));
 		} catch (Exception e) {
 		}
 		try {
-			stat.setSize(Integer.parseInt(params.get("size")));
+			stat.setPageSize(Integer.parseInt(params.get("page_size")));
 		} catch (Exception e) {
 		}
 		
@@ -81,6 +81,7 @@ public class Application extends Controller {
 	}
 	
 	@Check("navigate")
+	@Deprecated
 	public static void stat(String filehash) {
 		if (filehash == null) {
 			throw new NotFound("No filehash");
