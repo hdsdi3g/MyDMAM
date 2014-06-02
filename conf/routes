@@ -25,6 +25,7 @@ GET		/admin/{objtype}/action/{action}/{key}	Admin.action
 *		/admin									Application.redirectToHome
 *		/admin/?								Application.redirectToHome
 
+*		/stat									Application.stat
 *		/navigateto								Application.navigate
 *		/metadatas								Application.metadatas
 GET		/i18n.js								Application.i18n

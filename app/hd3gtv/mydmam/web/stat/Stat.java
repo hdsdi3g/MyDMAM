@@ -112,7 +112,8 @@ public class Stat {
 			if (map_elements_resolved.containsKey(entry.getKey()) == false) {
 				continue;
 			}
-			entry.getValue().path = map_elements_resolved.get(entry.getKey());
+			entry.getValue().spie_reference = map_elements_resolved.get(entry.getKey());
+			entry.getValue().reference = entry.getValue().spie_reference.toJson();
 			if (count_items) {
 				entry.getValue().items_total = explorer.countDirectoryContentElements(entry.getKey());
 			}
@@ -137,9 +138,10 @@ public class Stat {
 			entry.getValue().items = new HashMap<String, StatElement>(dir_list.size());
 			for (Map.Entry<String, SourcePathIndexerElement> dir_list_entry : dir_list.entrySet()) {
 				StatElement s_element = new StatElement();
-				s_element.path = dir_list_entry.getValue();
+				s_element.spie_reference = dir_list_entry.getValue();
+				s_element.reference = s_element.spie_reference.toJson();
 				if (count_items) {
-					s_element.items_total = explorer.countDirectoryContentElements(s_element.path.prepare_key());
+					s_element.items_total = explorer.countDirectoryContentElements(s_element.spie_reference.prepare_key());
 				}
 				entry.getValue().items.put(dir_list_entry.getKey(), s_element);
 			}
@@ -156,10 +158,10 @@ public class Stat {
 		if (has_pathinfo) {
 			ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
 			for (StatElement statelement : selected_path_elements.values()) {
-				if (statelement.path == null) {
+				if (statelement.spie_reference == null) {
 					continue;
 				}
-				pathelements.add(statelement.path);
+				pathelements.add(statelement.spie_reference);
 			}
 			summaries = MetadataCenter.getSummariesByPathElements(pathelements);
 		} else {

@@ -20,6 +20,8 @@ import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.util.Map;
 
+import org.json.simple.JSONObject;
+
 class StatElement {
 	
 	public static final String SCOPE_DIRLIST = "dirlist";
@@ -33,7 +35,8 @@ class StatElement {
 	/**
 	 * Referer to "this" element
 	 */
-	SourcePathIndexerElement path;
+	JSONObject reference;
+	transient SourcePathIndexerElement spie_reference;
 	Map<String, Object> mtdsummary;
 	
 	/**

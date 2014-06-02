@@ -215,12 +215,11 @@
  * display : the code to display in page
  */
 (function(metadatas) {
-	metadatas.display = function(element, method) {
-		if (!element.metadatas) {
+	metadatas.display = function(reference, mtd_element, method) {
+		if (!mtd_element) {
 			return "";
 		}
-		var mtd_element = element.metadatas;
-		var file_hash = md5(element.storagename + ":" + element.path);
+		var file_hash = md5(reference.storagename + ":" + reference.path);
 		
 		var content = '';
 		var master_as_preview_type = '';
@@ -228,7 +227,7 @@
 		
 		if (mtd_element.master_as_preview) {
 			master_as_preview_type = mtd_element.mimetype.substring(0, mtd_element.mimetype.indexOf("/"));
-			var ext = element.path.substring(element.path.lastIndexOf("."), element.path.length);
+			var ext = reference.path.substring(reference.path.lastIndexOf("."), reference.path.length);
 			master_as_preview_url = this.getURL(file_hash, "master_as_preview", "default" + ext);
 		}
 
@@ -390,12 +389,12 @@
  * linkifysearchresultitems
  */
 (function(metadatas) {
-	metadatas.linkifysearchresultitems = function(external_elements_to_resolve, elements_to_get_metadatas) {
+	metadatas.linkifysearchresultitems = function(external_elements_to_resolve) {
 		$(".searchresultitem").each(function(index) {
 			// Transform text path to navigate links on search results
 			var element_storage = $(this).find(".storagename").text();
 			var element_path = $(this).find(".path").text();
-			$(this).find(".storagename").html('<a href=\"' + url_navigate + "#" + element_storage + ':/\">' + element_storage + '</a>');
+			$(this).find(".storagename").html('<a href=\"' + metadatas.url.navigate + "#" + element_storage + ':/\">' + element_storage + '</a>');
 			
 			var element_subpaths = element_path.split("/");
 			var element_path_new = "";
@@ -404,7 +403,7 @@
 			for (var pos = 1; pos < element_subpaths.length; pos++) {
 				newpath = element_storage + ':' + currentpath + "/" + element_subpaths[pos];
 				element_path_new = element_path_new + "/";
-				element_path_new = element_path_new + '<a href="' + url_navigate + "#" + newpath + '">';
+				element_path_new = element_path_new + '<a href="' + metadatas.url.navigate + "#" + newpath + '">';
 				element_path_new = element_path_new + element_subpaths[pos];
 				element_path_new = element_path_new + "</a>";
 				currentpath = currentpath + "/" + element_subpaths[pos];
@@ -417,8 +416,6 @@
 					external_elements_to_resolve.push($(this).data('storagekey'));
 				}
 			}
-
-			elements_to_get_metadatas.push($(this).data('storagekey'));
 		});
 	};
 })(window.mydmam.metadatas);
@@ -429,9 +426,7 @@
 (function(metadatas) {
 	metadatas.addMetadatasToSearchListItems = function() {
 		var external_elements_to_resolve = [];
-		var elements_to_get_metadatas = [];
-		
-		metadatas.linkifysearchresultitems(external_elements_to_resolve, elements_to_get_metadatas);
+		metadatas.linkifysearchresultitems(external_elements_to_resolve);
 		
 			/**
 			 * Add archive position to items
@@ -446,7 +441,7 @@
 			});
 		}
 		
-		if (elements_to_get_metadatas.length > 0) {
+		/*if (elements_to_get_metadatas.length > 0) {
 			$.ajax({
 				url: metadatas.url.simplemetadatas,
 				type: "POST",
@@ -488,6 +483,6 @@
 					}
 				}
 			});
-		}
+		}*/
 	};
 })(window.mydmam.metadatas);

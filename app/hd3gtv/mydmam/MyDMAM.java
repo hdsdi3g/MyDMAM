@@ -149,4 +149,14 @@ public class MyDMAM {
 		System.exit(1);
 	}
 	
+	/*private static volatile GsonBuilder gsonbuilder;
+	
+	public static Gson getGson() {
+		if (gsonbuilder == null) {
+			gsonbuilder = new GsonBuilder();
+			gsonbuilder.registerTypeAdapter(SourcePathIndexerElement.class, new SourcePathIndexerElement());
+		}
+		return gsonbuilder.create();
+	}*/
+	
 }

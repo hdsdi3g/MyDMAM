@@ -17,13 +17,10 @@
 package controllers;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.rendering.RenderedElement;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.SearchResult;
 import hd3gtv.mydmam.web.stat.Stat;
@@ -36,8 +33,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.elasticsearch.client.Client;
-import org.elasticsearch.indices.IndexMissingException;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import play.data.validation.Required;
@@ -45,7 +40,6 @@ import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.Http.Header;
 import play.mvc.With;
-import play.mvc.results.NotFound;
 
 import com.google.gson.Gson;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -66,7 +60,7 @@ public class Application extends Controller {
 	}
 	
 	@Check("navigate")
-	public static void getstat() {
+	public static void stat() {
 		Stat stat = new Stat(params.getAll("fileshashs[]"), params.getAll("scopes_element[]"), params.getAll("scopes_subelements[]"));
 		try {
 			stat.setPageFrom(Integer.parseInt(params.get("page_from")));
@@ -78,88 +72,6 @@ public class Application extends Controller {
 		}
 		
 		renderJSON(stat.toJSONString());
-	}
-	
-	@Check("navigate")
-	@Deprecated
-	public static void stat(String filehash) {
-		if (filehash == null) {
-			throw new NotFound("No filehash");
-		}
-		if (filehash.equals("")) {
-			throw new NotFound("No filehash");
-		}
-		Explorer explorer = new Explorer();
-		
-		SourcePathIndexerElement pathelement = explorer.getelementByIdkey(filehash);
-		
-		try {
-			if (pathelement != null) {
-				JSONObject jo_result = pathelement.toJson();
-				
-				if (pathelement.directory) {
-					try {
-						List<SourcePathIndexerElement> subpathelement;
-						
-						if (pathelement.storagename != null) {
-							/**
-							 * Directory list
-							 */
-							subpathelement = explorer.getDirectoryContentByIdkey(pathelement.prepare_key(), 0, 500);
-						} else {
-							/**
-							 * Storage list
-							 */
-							subpathelement = explorer.getDirectoryContentByIdkey(SourcePathIndexerElement.hashThis(""), 0, 500);
-						}
-						JSONArray ja_subelements = new JSONArray();
-						JSONObject sub_element;
-						JSONObject metadatas;
-						boolean metadatas_exists = true;
-						for (int pos = 0; pos < subpathelement.size(); pos++) {
-							sub_element = subpathelement.get(pos).toJson();
-							if (subpathelement.get(pos).directory) {
-								sub_element.put("count", explorer.countDirectoryContentElements(subpathelement.get(pos).prepare_key()));
-							}
-							if (sub_element.containsKey("idxfilename") == false) {
-								sub_element.put("idxfilename", subpathelement.get(pos).storagename);
-							}
-							
-							if (metadatas_exists & (subpathelement.get(pos).directory == false)) {
-								try {
-									metadatas = MetadataCenter.getSummaryMetadatas(subpathelement.get(pos));
-									if (metadatas != null) {
-										sub_element.put("metadatas", metadatas);
-									}
-								} catch (IndexMissingException ime) {
-									metadatas_exists = false;
-								}
-							}
-							
-							ja_subelements.add(sub_element);
-						}
-						jo_result.put("items", ja_subelements);
-					} catch (IndexOutOfBoundsException e) {
-						jo_result.put("toomanyitems", Integer.parseInt(e.getMessage()));
-					}
-				} else {
-					JSONObject metadatas = MetadataCenter.getSummaryMetadatas(pathelement);
-					if (metadatas != null) {
-						jo_result.put("metadatas", metadatas);
-					}
-				}
-				renderJSON(jo_result.toJSONString());
-			} else {
-				throw new NotFound(filehash);
-			}
-		} catch (Exception e) {
-			if ((e instanceof IndexMissingException) & (e.getMessage().endsWith("[pathindex] missing"))) {
-				Log2.log.error("No pathindex items in ES database", null);
-			} else {
-				Log2.log.error("Error during pathindex search", e);
-			}
-			renderJSON("{}");
-		}
 	}
 	
 	public static void index() {

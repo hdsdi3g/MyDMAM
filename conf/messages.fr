@@ -121,7 +121,6 @@ browser.file.indexednearat=Indexé vers le
 browser.emptydir=vide
 browser.oneelement=1 élément
 browser.Nelements=%s éléments
-browser.toomanyitemsindir=Erreur : trop de fichiers dans le dossier (plus de %s)
 browser.goback=Retour
 browser.loadingplayer=Chargement du lecteur...
 

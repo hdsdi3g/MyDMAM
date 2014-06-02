@@ -22,7 +22,7 @@
 (function(mydmam) {
 	mydmam.stat = {};
 	var stat = mydmam.stat;
-	stat.DEFAULT_PAGE_SIZE = 20;
+	stat.DEFAULT_PAGE_SIZE = 100;
 	
 	/**
 	 * Must match with StatElement.java
@@ -38,6 +38,7 @@
 /**
  * query
  * @param scopes_subelements, page_from and page_size are not mandatory
+ * @return stat result (StatElement JSON) or null if error
  */
 (function(stat) {
 	stat.query = function(fileshashs, scopes_element, scopes_subelements, page_from, page_size) {
@@ -51,7 +52,7 @@
 			scopes_subelements = [];
 		}
 		
-		var result;
+		var result = null;
 		$.ajax({
 			url: stat.url,
 			type: "POST",
@@ -65,6 +66,9 @@
 			},
 			success: function(response) {
 				result = response;
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				console.error(errorThrown);
 			}
 		});
 		return result;
