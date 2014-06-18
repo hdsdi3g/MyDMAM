@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.AstyanaxContext.Builder;
 import com.netflix.astyanax.Cluster;
@@ -144,8 +143,15 @@ public class CassandraDb {
 		AstyanaxContext<Keyspace> ctx = builder.forKeyspace(keyspacename).buildKeyspace(ThriftFamilyFactory.getInstance());
 		ctx.start();
 		Keyspace keyspace = ctx.getClient();
-		keyspace.createKeyspace(ImmutableMap.<String, Object> builder().put("strategy_options", ImmutableMap.<String, Object> builder().put("replication_factor", "1").build())
-				.put("strategy_class", "SimpleStrategy").build());
+		
+		HashMap<String, Object> strategy_options = new HashMap<String, Object>();
+		strategy_options.put("replication_factor", 1);
+		strategy_options.put("strategy_class", "SimpleStrategy");
+		
+		HashMap<String, Object> params = new HashMap<String, Object>();
+		params.put("strategy_options", strategy_options);
+		
+		keyspace.createKeyspace(params); // TODO test create Keyspace
 		cluster.getKeyspace(keyspacename).describeKeyspace();
 		Log2.log.info("Create Keyspace", new Log2Dump("keyspacename", keyspacename));
 	}
@@ -165,6 +171,7 @@ public class CassandraDb {
 	public static void createColumnFamilyString(Keyspace keyspace, String cfname) throws ConnectionException {
 		ColumnFamily<String, String> cf = ColumnFamily.newColumnFamily(cfname, StringSerializer.get(), StringSerializer.get());
 		keyspace.createColumnFamily(cf, null);
+		// TODO #49
 	}
 	
 	public static void truncateColumnFamilyString(Keyspace keyspace, String cfname) throws ConnectionException {
