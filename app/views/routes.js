@@ -20,7 +20,6 @@
 #{secure.check 'navigate'}
 	mydmam.metadatas.url.navigate = "@{Application.navigate()}";
 	mydmam.metadatas.url.resolvepositions = "@{Application.resolvepositions()}";
-	mydmam.metadatas.url.simplemetadatas = "@{Application.metadatas(full=false)}";
 	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
 	mydmam.stat.url = "@{Application.stat()}";
 #{/secure.check}

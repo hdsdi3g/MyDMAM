@@ -389,7 +389,7 @@
  * linkifysearchresultitems
  */
 (function(metadatas) {
-	metadatas.linkifysearchresultitems = function(external_elements_to_resolve) {
+	metadatas.linkifysearchresultitems = function(external_elements_to_resolve, elements_to_get_metadatas) {
 		$(".searchresultitem").each(function(index) {
 			// Transform text path to navigate links on search results
 			var element_storage = $(this).find(".storagename").text();
@@ -416,6 +416,8 @@
 					external_elements_to_resolve.push($(this).data('storagekey'));
 				}
 			}
+			
+			elements_to_get_metadatas.push($(this).data('storagekey'));
 		});
 	};
 })(window.mydmam.metadatas);
@@ -426,11 +428,13 @@
 (function(metadatas) {
 	metadatas.addMetadatasToSearchListItems = function() {
 		var external_elements_to_resolve = [];
-		metadatas.linkifysearchresultitems(external_elements_to_resolve);
+		var elements_to_get_metadatas = [];
 		
-			/**
-			 * Add archive position to items
-			 */
+		metadatas.linkifysearchresultitems(external_elements_to_resolve, elements_to_get_metadatas);
+		
+		/**
+		 * Add archive position to items
+		 */
 		if (external_elements_to_resolve.length > 0) {
 			metadatas.getAndAddExternalPosition(external_elements_to_resolve, function(key) {
 				$('#sri-' + key).prepend('<span class="label label-success">' + i18n('browser.externalposition.online') + '</span> ');
@@ -441,48 +445,47 @@
 			});
 		}
 		
-		/*if (elements_to_get_metadatas.length > 0) {
-			$.ajax({
-				url: metadatas.url.simplemetadatas,
-				type: "POST",
-				data: {"fileshash" : elements_to_get_metadatas},
-				success: function(data) {
-					if (data.length === 0) {
-						return;
+		if (elements_to_get_metadatas.length > 0) {
+			var stat = window.mydmam.stat;
+			var elements_metadatas = stat.query(elements_to_get_metadatas, [/*stat.SCOPE_PATHINFO,*/ stat.SCOPE_MTD_SUMMARY]);
+			
+			if (elements_metadatas) {
+				for (var key in elements_metadatas) {
+					var mtd_element = elements_metadatas[key];
+					if (mtd_element == null) {
+						continue;
 					}
-					for (var pos_key = 0; pos_key < elements_to_get_metadatas.length; pos_key++) {
-						var key = elements_to_get_metadatas[pos_key];
-						var mtd_element = data[key];
-						if (mtd_element == null) {
+					var summary = mtd_element.mtdsummary;
+					if (summary == null) {
+						continue;
+					}
+					
+					var count = 0;
+					var title = "";
+					for (var summary_element in summary) {
+						if (summary_element == "mimetype") {
 							continue;
 						}
-						if (mtd_element.summary == null) {
+						if (summary_element == "previews") {
 							continue;
 						}
-						
-						var count = 0;
-						var title = "";
-						for (var summary_element in metadatas.summary) {
-							if (summary_element == "mimetype") {
-								continue;
-							}
-							if (summary_element == "previews") {
-								continue;
-							}
-							count++;
-							if (title !== "") {
-								title = title + " - ";
-							}
-							title = title + mtd_element.summary[summary_element];
+						if (summary_element == "master_as_preview") {
+							continue;
 						}
-						if (count > 0) {
-							$('#mtd-' + key).html('<small>' + metadatas.typeofelement(mtd_element.summary) + ' :: ' + title.trim() + '</small> ');
-						} else {
-							$('#mtd-' + key).html('<small>' + metadatas.typeofelement(mtd_element.summary) + '</small> ');
+						count++;
+						if (title !== "") {
+							title = title + " - ";
 						}
+						title = title + summary[summary_element];
+					}
+					if (count > 0) {
+						$('#mtd-' + key).html('<small>' + metadatas.typeofelement(summary) + ' :: ' + title.trim() + '</small> ');
+					} else {
+						$('#mtd-' + key).html('<small>' + metadatas.typeofelement(summary) + '</small> ');
 					}
 				}
-			});
-		}*/
+			}
+			
+		}
 	};
 })(window.mydmam.metadatas);

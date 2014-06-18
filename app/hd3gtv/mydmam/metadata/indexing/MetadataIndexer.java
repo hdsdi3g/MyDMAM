@@ -42,6 +42,8 @@ import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -404,15 +406,20 @@ public class MetadataIndexer implements IndexingEvent {
 		/**
 		 * Search actual mtd rendered file entry.
 		 */
-		JSONObject jo_summary = MetadataCenter.getSummaryMetadatas(source_element);
+		JSONObject jo_summary = null;
+		GetResponse response = client.get(new GetRequest(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, MetadataIndexer.getUniqueElementKey(source_element))).actionGet();
+		if (response.isExists()) {
+			if (response.isSourceEmpty() == false) {
+				try {
+					JSONParser parser = new JSONParser();
+					jo_summary = (JSONObject) parser.parse(response.getSourceAsString());
+				} catch (ParseException e) {
+				}
+			}
+		}
 		if (jo_summary == null) {
 			throw new NullPointerException("Can't found element \"" + source_element.prepare_key() + "\" from DB");
 		}
-		
-		/**
-		 * Add origin which was deleted by getSummaryMetadatas()
-		 */
-		jo_summary.put("origin", json_origin);
 		
 		JSONObject jo_summary_previews = new JSONObject();
 		if (jo_summary.containsKey("previews")) {

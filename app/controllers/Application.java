@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.elasticsearch.client.Client;
 import org.json.simple.JSONObject;
 
 import play.data.validation.Required;
@@ -138,18 +137,6 @@ public class Application extends Controller {
 			renderJSON("{}");
 		} else {
 			renderJSON((new Gson()).toJson(Configuration.global.getValues("iconsmap")));
-		}
-	}
-	
-	@Check("navigate")
-	public static void metadatas(Boolean full) {
-		Client client = Elasticsearch.getClient();
-		String[] pathelementskeys = params.getAll("fileshash[]");
-		JSONObject result = MetadataCenter.getSummaryMetadatas(client, pathelementskeys);
-		if (result == null) {
-			renderJSON("{}");
-		} else {
-			renderJSON(result.toJSONString());
 		}
 	}
 	
