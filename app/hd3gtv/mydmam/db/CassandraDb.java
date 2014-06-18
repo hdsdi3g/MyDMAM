@@ -51,8 +51,6 @@ public class CassandraDb {
 	private static Builder builder;
 	static String keyspacename;
 	
-	public static SchemeWorkers CF_WORKERS;
-	
 	private static int initcount = 0;
 	
 	static {
@@ -111,7 +109,6 @@ public class CassandraDb {
 			contextcluster.start();
 			cluster = contextcluster.getClient();
 			
-			CF_WORKERS = new SchemeWorkers(getkeyspace());
 		} catch (Exception e) {
 			Log2.log.error("Can't load Cassandra client configuration", e);
 		}
@@ -252,13 +249,6 @@ public class CassandraDb {
 				throw e;
 			}
 		}
-		Log2Dump dump = new Log2Dump();
-		
-		if (CF_WORKERS.cfExists() == false) {
-			Log2.log.info("Update database column family WORKERS", dump);
-			CF_WORKERS.deployColumnFamily(keyspace);
-		}
-		
 	}
 	
 	/**

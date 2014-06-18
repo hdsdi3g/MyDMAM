@@ -18,7 +18,6 @@ package hd3gtv.javasimpleservice;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.db.SchemeWorkers;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.tools.TimeUtils;
 
@@ -33,14 +32,19 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
+import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.AllRowsQuery;
+import com.netflix.astyanax.serializers.StringSerializer;
 
 public class IsAlive extends Thread {
+	
+	public static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("workers", StringSerializer.get(), StringSerializer.get());
 	
 	private ServiceManager manager;
 	private boolean stopthread;
@@ -51,6 +55,11 @@ public class IsAlive extends Thread {
 		this.setDaemon(true);
 		this.setName("IsAlive");
 		period = 60;
+		
+		Keyspace keyspace = CassandraDb.getkeyspace();
+		if (CassandraDb.isColumnFamilyExists(keyspace, CF_WORKERS.getName()) == false) {
+			CassandraDb.createColumnFamilyString(keyspace, CF_WORKERS.getName());
+		}
 	}
 	
 	public synchronized void stopWatch() {
@@ -64,9 +73,9 @@ public class IsAlive extends Thread {
 				String workername = ServiceManager.getInstancename(true);
 				
 				MutationBatch mutator = CassandraDb.prepareMutationBatch();
-				mutator.withRow(SchemeWorkers.CF, workername).putColumn("app-name", manager.getApplicationName(), period * 2);
-				mutator.withRow(SchemeWorkers.CF, workername).putColumn("app-version", manager.getApplicationVersion(), period * 2);
-				mutator.withRow(SchemeWorkers.CF, workername).putColumn("java-uptime", manager.getJavaUptime(), period * 2);
+				mutator.withRow(CF_WORKERS, workername).putColumn("app-name", manager.getApplicationName(), period * 2);
+				mutator.withRow(CF_WORKERS, workername).putColumn("app-version", manager.getApplicationVersion(), period * 2);
+				mutator.withRow(CF_WORKERS, workername).putColumn("java-uptime", manager.getJavaUptime(), period * 2);
 				
 				JSONArray js_stacktraces = new JSONArray();
 				Map<Thread, StackTraceElement[]> stacktraces = Thread.getAllStackTraces();
@@ -124,9 +133,9 @@ public class IsAlive extends Thread {
 					
 					js_stacktraces.add(jo_stacktrace);
 				}
-				mutator.withRow(SchemeWorkers.CF, workername).putColumn("stacktraces", js_stacktraces.toJSONString(), period * 2);
+				mutator.withRow(CF_WORKERS, workername).putColumn("stacktraces", js_stacktraces.toJSONString(), period * 2);
 				
-				mutator.withRow(SchemeWorkers.CF, workername).putColumn("java-version", System.getProperty("java.version"), period * 2);
+				mutator.withRow(CF_WORKERS, workername).putColumn("java-version", System.getProperty("java.version"), period * 2);
 				
 				JSONObject jo_address = new JSONObject();
 				try {
@@ -154,7 +163,7 @@ public class IsAlive extends Thread {
 				}
 				jo_address.put("address", js_addresss);
 				
-				mutator.withRow(SchemeWorkers.CF, workername).putColumn("java-address", jo_address.toJSONString(), period * 2);
+				mutator.withRow(CF_WORKERS, workername).putColumn("java-address", jo_address.toJSONString(), period * 2);
 				
 				mutator.execute();
 				
@@ -168,7 +177,7 @@ public class IsAlive extends Thread {
 	
 	public static JSONArray getLastStatusWorkers() throws Exception {
 		JSONArray ja_result = new JSONArray();
-		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(SchemeWorkers.CF).getAllRows();
+		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(CF_WORKERS).getAllRows();
 		all_rows.setRepeatLastToken(false).setRowLimit(100);
 		OperationResult<Rows<String, String>> rows = all_rows.execute();
 		
