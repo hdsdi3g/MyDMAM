@@ -70,7 +70,7 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 			LinkedHashMap<String, ?> element = entry.getValue().content;
 			PathElementConfiguration pec = new PathElementConfiguration();
 			pec.label = (String) element.get("label");
-			pec.storage = entry.getKey();
+			pec.storage = entry.getKey().toLowerCase();
 			pec.period = (Integer) element.get("period");
 			
 			label = pec.label.toLowerCase();
