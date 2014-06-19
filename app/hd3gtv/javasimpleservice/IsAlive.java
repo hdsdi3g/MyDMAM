@@ -35,6 +35,7 @@ import org.json.simple.parser.JSONParser;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
@@ -50,16 +51,22 @@ public class IsAlive extends Thread {
 	private boolean stopthread;
 	private int period;
 	
+	static {
+		try {
+			Keyspace keyspace = CassandraDb.getkeyspace();
+			if (CassandraDb.isColumnFamilyExists(keyspace, CF_WORKERS.getName()) == false) {
+				CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), CF_WORKERS.getName(), false);
+			}
+		} catch (ConnectionException e) {
+			Log2.log.info("Can't init database access");
+		}
+	}
+	
 	public IsAlive(ServiceManager manager) throws Exception {
 		this.manager = manager;
 		this.setDaemon(true);
 		this.setName("IsAlive");
 		period = 60;
-		
-		Keyspace keyspace = CassandraDb.getkeyspace();
-		if (CassandraDb.isColumnFamilyExists(keyspace, CF_WORKERS.getName()) == false) {
-			CassandraDb.createColumnFamilyString(keyspace, CF_WORKERS.getName());
-		}
 	}
 	
 	public synchronized void stopWatch() {

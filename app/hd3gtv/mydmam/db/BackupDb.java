@@ -258,7 +258,7 @@ public class BackupDb {
 					if (purgebefore & iscfexists) {
 						keyspace.truncateColumnFamily(cfname);
 					} else if (iscfexists == false) {
-						CassandraDb.createColumnFamilyString(keyspace, cfname);
+						CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), cfname, true);
 					}
 				} catch (ConnectionException e) {
 					Log2.log.error("Prepare column family", e, dump);

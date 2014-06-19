@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.AstyanaxContext.Builder;
 import com.netflix.astyanax.Cluster;
@@ -36,6 +37,7 @@ import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 import com.netflix.astyanax.ddl.ColumnDefinition;
 import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.partitioner.Murmur3Partitioner;
@@ -49,6 +51,10 @@ public class CassandraDb {
 	private static List<ConfigurationClusterItem> clusterservers;
 	private static Builder builder;
 	static String keyspacename;
+	
+	public static String getDefaultKeyspacename() {
+		return keyspacename;
+	}
 	
 	private static int initcount = 0;
 	
@@ -98,7 +104,7 @@ public class CassandraDb {
 			AstyanaxConfigurationImpl configurationimpl = new AstyanaxConfigurationImpl();
 			configurationimpl.setDiscoveryType(NodeDiscoveryType.NONE);
 			configurationimpl.setTargetCassandraVersion("1.2");
-			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(100, 30000, 20));
+			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(keyspacename, 100, 30000, 20));
 			
 			builder = new AstyanaxContext.Builder().forCluster(clustername);
 			builder.withAstyanaxConfiguration(configurationimpl);
@@ -127,6 +133,14 @@ public class CassandraDb {
 		return cluster.getKeyspace(keyspacename);
 	}
 	
+	public static List<KeyspaceDefinition> getAllKeyspaces() throws ConnectionException {
+		return cluster.describeKeyspaces();
+	}
+	
+	public static void deleteKeyspace(String keyspacename) throws ConnectionException {
+		cluster.dropKeyspace(keyspacename);
+	}
+	
 	public static boolean isKeyspaceExists(String keyspacename) throws ConnectionException {
 		try {
 			cluster.getKeyspace(keyspacename).describeKeyspace();
@@ -144,14 +158,12 @@ public class CassandraDb {
 		ctx.start();
 		Keyspace keyspace = ctx.getClient();
 		
-		HashMap<String, Object> strategy_options = new HashMap<String, Object>();
-		strategy_options.put("replication_factor", 1);
-		strategy_options.put("strategy_class", "SimpleStrategy");
+		keyspace.createKeyspace(ImmutableMap
+				.<String, Object> builder()
+				.put("strategy_options",
+						ImmutableMap.<String, Object> builder().put("replication_factor", String.valueOf(Configuration.global.getValue("cassandra", "default_replication_factor", 1))).build())
+				.put("strategy_class", "SimpleStrategy").build());
 		
-		HashMap<String, Object> params = new HashMap<String, Object>();
-		params.put("strategy_options", strategy_options);
-		
-		keyspace.createKeyspace(params); // TODO test create Keyspace
 		cluster.getKeyspace(keyspacename).describeKeyspace();
 		Log2.log.info("Create Keyspace", new Log2Dump("keyspacename", keyspacename));
 	}
@@ -168,10 +180,35 @@ public class CassandraDb {
 		return (keyspace.describeKeyspace().getColumnFamily(cfname) != null);
 	}
 	
-	public static void createColumnFamilyString(Keyspace keyspace, String cfname) throws ConnectionException {
+	/**
+	 * @param has_long_grace_period Set true (3 day) if datas are not continually refreshed. False (600 sec) if CF will be always small (like a lock table).
+	 */
+	public static void createColumnFamilyString(String keyspacename, String cfname, boolean has_long_grace_period) throws ConnectionException {
+		Keyspace keyspace = getkeyspace(keyspacename);
+		Log2.log.info("Create ColumnFamily " + cfname + " in " + keyspace.getKeyspaceName());
 		ColumnFamily<String, String> cf = ColumnFamily.newColumnFamily(cfname, StringSerializer.get(), StringSerializer.get());
 		keyspace.createColumnFamily(cf, null);
-		// TODO #49
+		
+		try {
+			for (int pos = 0; pos < 10000; pos++) {
+				if (CassandraDb.isColumnFamilyExists(keyspace, cfname)) {
+					break;
+				}
+				Thread.sleep(1);
+			}
+		} catch (InterruptedException e) {
+		}
+		
+		keyspace = getkeyspace(keyspacename);
+		Map<String, Object> metadatas = new HashMap<String, Object>();
+		if (has_long_grace_period) {
+			metadatas.put("gc_grace_seconds", 3 * 24 * 3600);
+		} else {
+			metadatas.put("gc_grace_seconds", 600);
+		}
+		keyspace.updateColumnFamily(cf, metadatas);
+		
+		Log2.log.debug("ColumnFamily " + cfname + " is created");
 	}
 	
 	public static void truncateColumnFamilyString(Keyspace keyspace, String cfname) throws ConnectionException {
@@ -221,6 +258,7 @@ public class CassandraDb {
 		 * Prepare to push
 		 */
 		Map<String, Object> metadatas = new HashMap<String, Object>();
+		metadatas.put("gc_grace_seconds", cf_definition.getGcGraceSeconds());
 		metadatas.put("default_validation_class", cf_definition.getDefaultValidationClass());
 		metadatas.put("comparator_type", cf_definition.getComparatorType());
 		if (column_metadata.size() > 0) {

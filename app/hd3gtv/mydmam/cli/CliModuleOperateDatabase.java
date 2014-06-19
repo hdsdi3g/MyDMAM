@@ -31,6 +31,7 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.TokenRange;
 import com.netflix.astyanax.ddl.ColumnDefinition;
 import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
@@ -46,8 +47,23 @@ public class CliModuleOperateDatabase implements CliModule {
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
-		
 		if (args.getParamExist("-cassandra")) {
+			if (args.getParamExist("-keyspacesdef")) {
+				List<KeyspaceDefinition> kd_def = CassandraDb.getAllKeyspaces();
+				System.out.println("List all Keyspaces in cluster:");
+				for (int pos = 0; pos < kd_def.size(); pos++) {
+					System.out.println(" - " + kd_def.get(pos).getName());
+					System.out.print("   strategy: " + kd_def.get(pos).getStrategyClass());
+					System.out.println(" with " + kd_def.get(pos).getStrategyOptions());
+				}
+				return;
+			}
+			
+			String deletekeyspace = args.getSimpleParamValue("-deletekeyspace");
+			if (deletekeyspace != null) {
+				CassandraDb.deleteKeyspace(deletekeyspace);
+			}
+			
 			String keyspacename = args.getSimpleParamValue("-keyspace");
 			
 			Keyspace keyspace = null;
@@ -256,6 +272,12 @@ public class CliModuleOperateDatabase implements CliModule {
 		System.out.println(" " + getCliModuleName() + " -cassandra [-keyspace keyspacename] [-describe cf | -truncate cf | -delete cf]");
 		System.out.println("  default : keyspace informations");
 		System.out.println("  cf : columnfamily to use");
+		System.out.println();
+		System.out.println(" Keyspaces definition:");
+		System.out.println(" " + getCliModuleName() + " -cassandra -keyspacesdef");
+		System.out.println();
+		System.out.println(" Delete Keyspace:");
+		System.out.println(" " + getCliModuleName() + " -cassandra -deletekeyspace keyspacename");
 		System.out.println();
 		System.out.println("Usage for Elasticsearch:");
 		System.out.println(" " + getCliModuleName() + " -es [-delete index | -setttl index/type]");

@@ -20,6 +20,7 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
+import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.web.JsCompile;
 import hd3gtv.mydmam.web.Privileges;
 
@@ -34,6 +35,8 @@ import models.ACLUser;
 import play.i18n.Messages;
 import play.jobs.Job;
 import play.jobs.OnApplicationStart;
+
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 @OnApplicationStart
 public class Bootstrap extends Job {
@@ -163,5 +166,11 @@ public class Bootstrap extends Job {
 		
 		JsCompile.purgeBinDirectory();
 		JsCompile.prepareFiles();
+		
+		try {
+			CassandraDb.getkeyspace();
+		} catch (ConnectionException e) {
+			Log2.log.error("Can't access to keyspace", e);
+		}
 	}
 }

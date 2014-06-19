@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.db.orm;
 
+import hd3gtv.mydmam.db.CassandraDb;
+
 /**
  * Don't forget to set to public var;
  */
@@ -29,5 +31,12 @@ public abstract class OrmModel {
 	protected int getTTL() {
 		return 0;
 	}
+	
+	/**
+	 * Static call, only for create CF
+	 * Set true if datas are not continually refreshed. False if CF will be always small (like a lock table).
+	 * @see CassandraDb
+	 */
+	protected abstract boolean hasLongGracePeriod();
 	
 }

@@ -2,6 +2,7 @@ cassandra:
     clustername : mycluster
     rcp_cluster : 127.0.0.1
     keyspace : ks
+    default_replication_factor: 1
 
 # rcp_cluster can to be like :
 # host

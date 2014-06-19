@@ -233,4 +233,8 @@ public class AutotestOrm extends OrmModel {
 		}
 		return checkresult;
 	}
+	
+	protected boolean hasLongGracePeriod() {
+		return true;
+	}
 }

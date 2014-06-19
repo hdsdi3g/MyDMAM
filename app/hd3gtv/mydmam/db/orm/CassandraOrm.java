@@ -571,14 +571,9 @@ public class CassandraOrm<T extends OrmModel> {
 		return CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), columnfamily.getName());
 	}
 	
-	/**
-	 * Drop it if exists
-	 */
 	private void createColumnFamily() throws IOException, ConnectionException {
-		dropColumnFamily();
-		Log2.log.info("Create " + columnfamily.getName() + " CF");
 		
-		CassandraDb.createColumnFamilyString(CassandraDb.getkeyspace(), columnfamily.getName());
+		CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), columnfamily.getName(), createOrmObject().hasLongGracePeriod());
 		
 		ArrayList<Field> fields = getOrmobjectUsableFields();
 		Field field;

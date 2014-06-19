@@ -72,4 +72,8 @@ public class NotificationUpdate extends CrudOrmModel {
 		return NotificationUpdate.class;
 	}
 	
+	protected boolean hasLongGracePeriod() {
+		return true;
+	}
+	
 }

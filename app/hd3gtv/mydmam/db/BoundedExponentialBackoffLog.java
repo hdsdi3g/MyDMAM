@@ -28,21 +28,31 @@ public class BoundedExponentialBackoffLog extends BoundedExponentialBackoff {
 	private long baseSleepTimeMs;
 	private long maxSleepTimeMs;
 	private int max;
+	private String keyspacename;
 	
-	public BoundedExponentialBackoffLog(long baseSleepTimeMs, long maxSleepTimeMs, int max) {
+	public BoundedExponentialBackoffLog(String keyspacename, long baseSleepTimeMs, long maxSleepTimeMs, int max) {
 		super(baseSleepTimeMs, maxSleepTimeMs, max);
+		
+		this.keyspacename = keyspacename;
+		if (keyspacename == null) {
+			throw new NullPointerException("\"keyspacename\" can't to be null");
+		}
+		
 		this.baseSleepTimeMs = baseSleepTimeMs;
 		this.maxSleepTimeMs = maxSleepTimeMs;
 		this.max = max;
 	}
 	
 	public void failure(Exception e) {
+		if (e.getMessage().endsWith("InvalidRequestException(why:Keyspace '" + keyspacename + "' does not exist)")) {
+			return;
+		}
 		super.failure(e);
 		Log2.log.error("Lost Cassandra connection", e);
 	}
 	
 	public RetryPolicy duplicate() {
-		return new BoundedExponentialBackoffLog(baseSleepTimeMs, maxSleepTimeMs, max);
+		return new BoundedExponentialBackoffLog(keyspacename, baseSleepTimeMs, maxSleepTimeMs, max);
 	}
 	
 }

@@ -71,26 +71,28 @@ public class Broker {
 	
 	static {
 		try {
+			if (CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), CF_TASKQUEUE.getName()) == false) {
+				CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), CF_TASKQUEUE.getName(), false);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "status", CF_TASKQUEUE.getName() + "_status", DeployColumnDef.ColType_AsciiType);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "profile_category", CF_TASKQUEUE.getName() + "_profile_category", DeployColumnDef.ColType_UTF8Type);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "max_date_to_wait_processing", CF_TASKQUEUE.getName() + "_max_date_to_wait_processing",
+						DeployColumnDef.ColType_LongType);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "creator_hostname", CF_TASKQUEUE.getName() + "_creator_hostname", DeployColumnDef.ColType_UTF8Type);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "updatedate", CF_TASKQUEUE.getName() + "_updatedate", DeployColumnDef.ColType_LongType);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "delete", CF_TASKQUEUE.getName() + "_delete", DeployColumnDef.ColType_Int32Type);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "indexingdebug", CF_TASKQUEUE.getName() + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
+			}
+			if (CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), CF_WORKERGROUPS.getName()) == false) {
+				CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), CF_WORKERGROUPS.getName(), false);
+			}
+			if (CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), CF_DONEPROFILES.getName()) == false) {
+				CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), CF_DONEPROFILES.getName(), true);
+			}
+			if (CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), CF_QUEUETRIGGER.getName()) == false) {
+				CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), CF_QUEUETRIGGER.getName(), false);
+			}
+			
 			keyspace = CassandraDb.getkeyspace();
-			if (CassandraDb.isColumnFamilyExists(keyspace, CF_TASKQUEUE.getName()) == false) {
-				CassandraDb.createColumnFamilyString(keyspace, CF_TASKQUEUE.getName());
-				CassandraDb.declareIndexedColumn(keyspace, CF_TASKQUEUE, "status", CF_TASKQUEUE.getName() + "_status", DeployColumnDef.ColType_AsciiType);
-				CassandraDb.declareIndexedColumn(keyspace, CF_TASKQUEUE, "profile_category", CF_TASKQUEUE.getName() + "_profile_category", DeployColumnDef.ColType_UTF8Type);
-				CassandraDb.declareIndexedColumn(keyspace, CF_TASKQUEUE, "max_date_to_wait_processing", CF_TASKQUEUE.getName() + "_max_date_to_wait_processing", DeployColumnDef.ColType_LongType);
-				CassandraDb.declareIndexedColumn(keyspace, CF_TASKQUEUE, "creator_hostname", CF_TASKQUEUE.getName() + "_creator_hostname", DeployColumnDef.ColType_UTF8Type);
-				CassandraDb.declareIndexedColumn(keyspace, CF_TASKQUEUE, "updatedate", CF_TASKQUEUE.getName() + "_updatedate", DeployColumnDef.ColType_LongType);
-				CassandraDb.declareIndexedColumn(keyspace, CF_TASKQUEUE, "delete", CF_TASKQUEUE.getName() + "_delete", DeployColumnDef.ColType_Int32Type);
-				CassandraDb.declareIndexedColumn(keyspace, CF_TASKQUEUE, "indexingdebug", CF_TASKQUEUE.getName() + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
-			}
-			if (CassandraDb.isColumnFamilyExists(keyspace, CF_WORKERGROUPS.getName()) == false) {
-				CassandraDb.createColumnFamilyString(keyspace, CF_WORKERGROUPS.getName());
-			}
-			if (CassandraDb.isColumnFamilyExists(keyspace, CF_DONEPROFILES.getName()) == false) {
-				CassandraDb.createColumnFamilyString(keyspace, CF_DONEPROFILES.getName());
-			}
-			if (CassandraDb.isColumnFamilyExists(keyspace, CF_QUEUETRIGGER.getName()) == false) {
-				CassandraDb.createColumnFamilyString(keyspace, CF_QUEUETRIGGER.getName());
-			}
 		} catch (ConnectionException e) {
 			Log2.log.error("Can't prepare Cassandra connection", e);
 		}

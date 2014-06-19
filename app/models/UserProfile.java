@@ -158,4 +158,8 @@ public class UserProfile extends CrudOrmModel {
 		}
 	}
 	
+	protected boolean hasLongGracePeriod() {
+		return true;
+	}
+	
 }
