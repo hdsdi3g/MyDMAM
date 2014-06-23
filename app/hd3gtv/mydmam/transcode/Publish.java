@@ -195,7 +195,7 @@ public class Publish extends Worker {
 		String temp_key = job.getKey().substring(8, 16);
 		dest_file_ffmpeg = new File(templocaldir.getPath() + File.separator + mediaid.toUpperCase() + "-" + temp_key + ".mp4");
 		
-		profile = TranscodeProfileManager.getProfile(job.getProfile());
+		profile = TranscodeProfile.getTranscodeProfile(job.getProfile());
 		
 		File progress_file = new File(dest_file_ffmpeg.getPath() + "-progress.txt");
 		progress_file.delete();
@@ -204,8 +204,7 @@ public class Publish extends Worker {
 		progress.start();
 		
 		FFmpegEvents events = new FFmpegEvents(temp_key);
-		this.process = new Execprocess(Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg"), profile.makeCommandline(source_file.getPath(), dest_file_ffmpeg.getPath(),
-				progress_file.getPath()), events);
+		this.process = profile.prepareExecprocess(Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg"), events, source_file, dest_file_ffmpeg, progress_file);
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("job", job.getKey());

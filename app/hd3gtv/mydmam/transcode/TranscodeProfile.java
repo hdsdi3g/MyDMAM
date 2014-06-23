@@ -16,14 +16,23 @@
 */
 package hd3gtv.mydmam.transcode;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.ConfigurationItem;
+import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.taskqueue.Profile;
+import hd3gtv.tools.Execprocess;
+import hd3gtv.tools.ExecprocessEvent;
+import hd3gtv.tools.ExecprocessGettext;
 
 import java.awt.Point;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class TranscodeProfile extends Profile {
 	
@@ -35,20 +44,93 @@ public class TranscodeProfile extends Profile {
 	
 	private ArrayList<String> param;
 	private String extension;
-	
 	private OutputFormat outputformat;
 	
-	TranscodeProfile(String category, String name) {
+	private static ArrayList<TranscodeProfile> profiles;
+	
+	private TranscodeProfile(String category, String name) {
 		super(category, name);
 		param = new ArrayList<String>();
 	}
 	
-	ArrayList<String> getParam() {
-		return param;
+	public static boolean isConfigured() {
+		return Configuration.global.isElementExists("transcodingprofiles");
 	}
 	
-	void setExtension(String extension) {
-		this.extension = extension;
+	static {
+		try {
+			profiles = new ArrayList<TranscodeProfile>(1);
+			if (isConfigured()) {
+				HashMap<String, ConfigurationItem> tp_list = Configuration.global.getElement("transcodingprofiles");
+				
+				if (tp_list.isEmpty()) {
+					Log2.log.error("Can't found \"profile\" element in transcoding block in XML configuration", null);
+				}
+				
+				profiles = new ArrayList<TranscodeProfile>(tp_list.size());
+				
+				String profile_type;
+				String profile_name;
+				String profile_extension;
+				String param;
+				for (Map.Entry<String, ConfigurationItem> entry : tp_list.entrySet()) {
+					profile_type = Configuration.getValue(tp_list, entry.getKey(), "type", null);
+					if (profile_type == null) {
+						throw new NullPointerException("Attribute \"type\" in \"profile\" element for transcoding can't to be null");
+					} else if (profile_type.equals("")) {
+						throw new NullPointerException("Attribute \"type\" in \"profile\" element for transcoding can't to be empty");
+					}
+					profile_name = entry.getKey();
+					
+					TranscodeProfile profile = new TranscodeProfile(profile_type, profile_name);
+					String[] params = Configuration.getValue(tp_list, entry.getKey(), "command", null).trim().split(" ");
+					for (int pos_par = 0; pos_par < params.length; pos_par++) {
+						param = params[pos_par].trim();
+						if (param.length() == 0) {
+							continue;
+						}
+						if (param.startsWith(TranscodeProfile.TAG_STARTVAR) & param.endsWith(TranscodeProfile.TAG_ENDVAR)) {
+							param = param.substring(TranscodeProfile.TAG_STARTVAR.length(), param.length() - TranscodeProfile.TAG_ENDVAR.length());
+							param = Configuration.getValue(tp_list, entry.getKey(), param, null);
+							if (param == null) {
+								throw new NullPointerException("Can't found " + params[pos_par] + " param variable");
+							}
+							param = param.trim();
+						}
+						profile.param.add(param);
+					}
+					
+					profile_extension = Configuration.getValue(tp_list, entry.getKey(), "extension", null);
+					if (profile_extension != null) {
+						if (profile_extension.equals("") == false) {
+							profile.extension = profile_extension;
+						}
+					}
+					
+					if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "output")) {
+						try {
+							Object o_output = tp_list.get(entry.getKey()).content.get("output");
+							profile.outputformat = profile.new OutputFormat((LinkedHashMap<String, ?>) o_output);
+						} catch (Exception e) {
+							throw new IOException("Can't load transcoding/" + entry.getKey() + "/output node");
+						}
+					}
+					
+					profile.testValidityProfile();
+					profiles.add(profile);
+				}
+				
+				Log2Dump dump = new Log2Dump();
+				for (int pos = 0; pos < profiles.size(); pos++) {
+					dump.add("transcoding profile", pos);
+					dump.addAll(profiles.get(pos));
+				}
+				
+				Log2.log.debug("Set transcoding configuration", dump);
+			}
+		} catch (Exception e) {
+			Log2.log.error("Can't load transcoding configuration", e);
+		}
 	}
 	
 	/**
@@ -107,11 +189,7 @@ public class TranscodeProfile extends Profile {
 		throw new NullPointerException("No <outputfile/> in command check configuration.");
 	}
 	
-	public ArrayList<String> makeCommandline(String source_file_path, String dest_file_path) {
-		return makeCommandline(source_file_path, dest_file_path, null);
-	}
-	
-	public ArrayList<String> makeCommandline(String source_file_path, String dest_file_path, String progress_file_path) {
+	private ArrayList<String> makeCommandline(String source_file_path, String dest_file_path, String progress_file_path) {
 		ArrayList<String> cmdline = new ArrayList<String>();
 		
 		for (int pos = 0; pos < param.size(); pos++) {
@@ -137,8 +215,44 @@ public class TranscodeProfile extends Profile {
 		return cmdline;
 	}
 	
-	void setOutputformat(LinkedHashMap<String, ?> configuration_item) {
-		outputformat = new OutputFormat(configuration_item);
+	public Execprocess prepareExecprocess(String executable, ExecprocessEvent events, File source_file, File... dest_files) throws IOException, NullPointerException {
+		if (executable == null) {
+			throw new NullPointerException("\"executable\" can't to be null");
+		}
+		if (source_file == null) {
+			throw new NullPointerException("\"source_file\" can't to be null");
+		}
+		if (dest_files == null) {
+			throw new NullPointerException("\"dest_files\" can't to be null");
+		}
+		if (dest_files.length == 0) {
+			throw new NullPointerException("\"dest_files\" can't to be empty");
+		}
+		if (dest_files.length > 1) {
+			return new Execprocess(executable, makeCommandline(source_file.getCanonicalPath(), dest_files[0].getCanonicalPath(), dest_files[1].getCanonicalPath()), events);
+		} else {
+			return new Execprocess(executable, makeCommandline(source_file.getCanonicalPath(), dest_files[0].getCanonicalPath(), null), events);
+		}
+	}
+	
+	public ExecprocessGettext prepareExecprocessGettext(String executable, File source_file, File... dest_files) throws IOException, NullPointerException {
+		if (executable == null) {
+			throw new NullPointerException("\"executable\" can't to be null");
+		}
+		if (source_file == null) {
+			throw new NullPointerException("\"source_file\" can't to be null");
+		}
+		if (dest_files == null) {
+			throw new NullPointerException("\"dest_files\" can't to be null");
+		}
+		if (dest_files.length == 0) {
+			throw new NullPointerException("\"dest_files\" can't to be empty");
+		}
+		if (dest_files.length > 1) {
+			return new ExecprocessGettext(executable, makeCommandline(source_file.getCanonicalPath(), dest_files[0].getCanonicalPath(), dest_files[1].getCanonicalPath()));
+		} else {
+			return new ExecprocessGettext(executable, makeCommandline(source_file.getCanonicalPath(), dest_files[0].getCanonicalPath(), null));
+		}
 	}
 	
 	public OutputFormat getOutputformat() {
@@ -187,7 +301,7 @@ public class TranscodeProfile extends Profile {
 		Log2Dump dump = super.getLog2Dump();
 		
 		StringBuffer sb = new StringBuffer();
-		ArrayList<String> cmd_line = makeCommandline("<input>", "<output>");
+		ArrayList<String> cmd_line = makeCommandline("<input>", "<output>", null);
 		for (int pos = 0; pos < cmd_line.size(); pos++) {
 			sb.append(cmd_line.get(pos));
 			sb.append(" ");
@@ -199,5 +313,44 @@ public class TranscodeProfile extends Profile {
 			dump.addAll(outputformat.getLog2Dump());
 		}
 		return dump;
+	}
+	
+	private boolean subequals(Object obj1, Object obj2) {
+		if (obj1 == null) {
+			return false;
+		}
+		if (obj2 == null) {
+			return false;
+		}
+		return obj1.equals(obj2);
+	}
+	
+	public boolean equals(Object obj) {
+		if (super.equals(obj) == false) {
+			return false;
+		}
+		if ((obj instanceof TranscodeProfile) == false) {
+			return false;
+		}
+		TranscodeProfile profile = (TranscodeProfile) obj;
+		
+		if (subequals(param, profile.param) == false) {
+			return false;
+		}
+		if (subequals(extension, profile.extension) == false) {
+			return false;
+		}
+		if (subequals(outputformat, profile.outputformat) == false) {
+			return false;
+		}
+		return true;
+	}
+	
+	public static TranscodeProfile getTranscodeProfile(Profile profile) {
+		int indexof = profiles.indexOf(profile);
+		if (indexof == -1) {
+			return null;
+		}
+		return profiles.get(indexof);
 	}
 }

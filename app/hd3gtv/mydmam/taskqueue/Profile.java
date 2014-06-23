@@ -59,17 +59,21 @@ public class Profile implements Log2Dumpable {
 		return name;
 	}
 	
-	public final boolean sameProfile(Profile profile) {
-		if (profile == null) {
+	public boolean equals(Object obj) {
+		if (obj == null) {
 			return false;
 		}
+		if ((obj instanceof Profile) == false) {
+			return false;
+		}
+		Profile profile = (Profile) obj;
 		if (profile.name == null | profile.category == null) {
 			return false;
 		}
 		if (name == null | category == null) {
 			return false;
 		}
-		return (name.equalsIgnoreCase(profile.name) && category.equalsIgnoreCase(profile.category));
+		return (name.equalsIgnoreCase(profile.name) & category.equalsIgnoreCase(profile.category));
 	}
 	
 	final void pushToDatabase(MutationBatch mutator, String taskkey, int ttl) {

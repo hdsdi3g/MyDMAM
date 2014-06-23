@@ -180,7 +180,7 @@ class WorkerGroupEngine extends Thread {
 			if (workergroup.getWorkerlist().get(pos).isAvailableForProcessing()) {
 				managedprofiles = workergroup.getWorkerlist().get(pos).getManagedProfiles();
 				for (int pos_profile = 0; pos_profile < managedprofiles.size(); pos_profile++) {
-					if (managedprofiles.get(pos_profile).sameProfile(profile)) {
+					if (managedprofiles.get(pos_profile).equals(profile)) {
 						return workergroup.getWorkerlist().get(pos);
 					}
 				}

@@ -30,7 +30,7 @@ import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.mydmam.taskqueue.demo.DemoWorker;
 import hd3gtv.mydmam.transcode.Publish;
-import hd3gtv.mydmam.transcode.TranscodeProfileManager;
+import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.storage.StorageManager;
 
 public class MyDMAMProbeService extends ServiceManager implements ServiceInformations {
@@ -74,8 +74,8 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 	
 	protected void startApplicationService() throws Exception {
 		StorageManager.getGlobalStorage();
-		TranscodeProfileManager.refreshProfileslist();
 		Elasticsearch.refeshconfiguration();
+		TranscodeProfile.isConfigured();
 		
 		Broker broker = new Broker(this);
 		workergroup = new WorkerGroup(broker);

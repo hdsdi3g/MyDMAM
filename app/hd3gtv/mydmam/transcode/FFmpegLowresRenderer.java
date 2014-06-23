@@ -26,6 +26,7 @@ import hd3gtv.mydmam.metadata.rendering.PreviewType;
 import hd3gtv.mydmam.metadata.rendering.RenderedElement;
 import hd3gtv.mydmam.metadata.rendering.RendererViaWorker;
 import hd3gtv.mydmam.taskqueue.Job;
+import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.Timecode;
 
@@ -43,10 +44,10 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class FFmpegLowresRenderer implements RendererViaWorker {
 	
-	public static final TranscodeProfile transcode_profile_ffmpeg_lowres_lq = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_lq");
-	public static final TranscodeProfile transcode_profile_ffmpeg_lowres_sd = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_sd");
-	public static final TranscodeProfile transcode_profile_ffmpeg_lowres_hd = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_hd");
-	public static final TranscodeProfile transcode_profile_ffmpeg_lowres_audio = new TranscodeProfile("ffmpeg", "ffmpeg_lowres_audio");
+	public static final Profile profile_ffmpeg_lowres_lq = new Profile("ffmpeg", "ffmpeg_lowres_lq");
+	public static final Profile profile_ffmpeg_lowres_sd = new Profile("ffmpeg", "ffmpeg_lowres_sd");
+	public static final Profile profile_ffmpeg_lowres_hd = new Profile("ffmpeg", "ffmpeg_lowres_hd");
+	public static final Profile profile_ffmpeg_lowres_audio = new Profile("ffmpeg", "ffmpeg_lowres_audio");
 	
 	private String ffmpeg_bin;
 	
@@ -54,13 +55,13 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	private PreviewType preview_type;
 	private boolean audio_only;
 	
-	public FFmpegLowresRenderer(TranscodeProfile profile, PreviewType preview_type, boolean audio_only) {
+	public FFmpegLowresRenderer(Profile profile, PreviewType preview_type, boolean audio_only) {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		if (profile == null) {
 			throw new NullPointerException("\"profile\" can't to be null");
 		}
-		if (TranscodeProfileManager.isEnabled()) {
-			transcode_profile = TranscodeProfileManager.getProfile(profile);
+		if (TranscodeProfile.isConfigured()) {
+			transcode_profile = TranscodeProfile.getTranscodeProfile(profile);
 			
 			this.preview_type = preview_type;
 			if (preview_type == null) {
@@ -140,7 +141,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		progress.start();
 		
 		FFmpegEvents events = new FFmpegEvents(job.getKey() + ": " + origin.getName());
-		process = new Execprocess(ffmpeg_bin, transcode_profile.makeCommandline(origin.getAbsolutePath(), temp_element.getTempFile().getAbsolutePath(), progress_file.getTempFile().getPath()), events);
+		process = transcode_profile.prepareExecprocess(ffmpeg_bin, events, origin, temp_element.getTempFile(), progress_file.getTempFile());
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("job", job.getKey());
@@ -226,7 +227,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 				if (timecode == null) {
 					return;
 				}
-				TranscodeProfile t_profile = TranscodeProfileManager.getProfile(transcode_profile);
+				TranscodeProfile t_profile = TranscodeProfile.getTranscodeProfile(transcode_profile);
 				if (t_profile == null) {
 					return;
 				}
