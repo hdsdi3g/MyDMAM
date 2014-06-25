@@ -105,6 +105,10 @@
 		}
 		content = content + '</h3>';
 
+		if (reference.storagename) {
+			content = content + mydmam.basket.prepareNavigatorSwitchButton(md5_fullpath);
+		}
+		
 		if (reference.date) {
 			var data_date = mydmam.format.fulldate(reference.date);
 			if (data_date !== "") {
@@ -118,14 +122,18 @@
 			}
 		} else {
 			if (items) {
-				if (items.length > 0) {
-					// Fake (get from the first item), but realist indexdate.
-					if (items[0].dateindex) {
-						var data_date = mydmam.format.fulldate(items[0].dateindex);
-						if (data_date !== "") {
-							content = content + '<span class="label">' + i18n("browser.file.indexednearat") + ' ' + data_date + '</span> ';
+				// Fake (get from the first item), but realist indexdate.
+				for (var item in items) {
+					var newitem = items[item];
+					if (newitem.reference) {
+						if (newitem.reference.dateindex) {
+							var data_date = mydmam.format.fulldate(newitem.reference.dateindex);
+							if (data_date !== "") {
+								content = content + '<span class="label">' + i18n("browser.file.indexednearat") + ' ' + data_date + '</span> ';
+							}
 						}
 					}
+					break;
 				}
 			}
 		}
@@ -185,6 +193,8 @@
 				
 				if (element.directory) {
 					content = content + '<th>';
+					content = content + mydmam.basket.prepareNavigatorSwitchButton(elementkey);
+					
 					if (reference.storagename) {
 						content = content + '<a class="tlbdirlistitem" href="' + mydmam.metadatas.url.navigate + "#" + element.storagename + ":" + element.path + '">';
 						content = content + element.path.substring(element.path.lastIndexOf("/") + 1);
@@ -202,6 +212,8 @@
 					content = content + '</th>';
 				} else {
 					content = content + '<td>';
+					content = content + mydmam.basket.prepareNavigatorSwitchButton(elementkey);
+					
 					if (element.id) {
 						content = content + '<span class="label label-info">' + element.id + '</span> ';
 					}
@@ -319,6 +331,8 @@
 		if (addmetadatastosearchlistitems) {
 			mydmam.metadatas.addMetadatasToSearchListItems();
 		}
+		
+		mydmam.basket.setSwitchButtonsEvents();
 	};
 })(window.mydmam.navigator);
 
