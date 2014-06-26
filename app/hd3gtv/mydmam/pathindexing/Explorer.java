@@ -303,33 +303,6 @@ public class Explorer {
 	}
 	
 	/**
-	 * @return never null
-	 * @throws IndexOutOfBoundsException if subelement count is > max_size
-	 * @deprecated
-	 */
-	public List<SourcePathIndexerElement> getDirectoryContentByIdkey(String _id, int from, int max_size) throws IndexOutOfBoundsException {
-		SearchRequestBuilder request = client.prepareSearch();
-		request.setIndices(Importer.ES_INDEX);
-		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
-		request.setQuery(QueryBuilders.termQuery("parentpath", _id.toLowerCase()));
-		request.setFrom(from);
-		request.setSize(max_size + 1);
-		
-		SearchResponse response = request.execute().actionGet();
-		SearchHit[] hits = response.getHits().hits();
-		ArrayList<SourcePathIndexerElement> result = new ArrayList<SourcePathIndexerElement>(hits.length);
-		
-		if (hits.length > max_size) {
-			throw new IndexOutOfBoundsException(String.valueOf(hits.length));
-		}
-		
-		for (int pos = 0; pos < hits.length; pos++) {
-			result.add(SourcePathIndexerElement.fromESResponse(hits[pos]));
-		}
-		return result;
-	}
-	
-	/**
 	 * @param from for each _ids
 	 * @param size for each _ids
 	 * @return never null, _id parent key > element key > element
