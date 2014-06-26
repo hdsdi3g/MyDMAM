@@ -323,9 +323,9 @@ public class Explorer {
 			request.setIndices(Importer.ES_INDEX);
 			request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 			request.setQuery(QueryBuilders.termQuery("parentpath", _id.toLowerCase()));
-			request.setFrom(from);
+			request.setFrom(from * size);
 			request.setSize(size);
-			request.addSort("directory", SortOrder.ASC);
+			request.addSort("directory", SortOrder.DESC);
 			request.addSort("idxfilename", SortOrder.ASC);
 			multisearchrequestbuilder.add(request);
 		}

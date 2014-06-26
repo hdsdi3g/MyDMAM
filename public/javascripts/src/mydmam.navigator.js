@@ -31,9 +31,10 @@
 
 /**
  * displayStoragePathNavigator
+ * @param currentpage is default to 0 (the first page)
  */
 (function(navigator) {
-	navigator.displayStoragePathNavigator = function(domid, fullpath, addmetadatastosearchlistitems) {
+	navigator.displayStoragePathNavigator = function(domid, fullpath, addmetadatastosearchlistitems, currentpage) {
 		var externalstorage = false;
 		
 		var currentstorage = fullpath.substring(0, fullpath.indexOf(":"));
@@ -45,7 +46,7 @@
 		
 		var stat = window.mydmam.stat;
 		var md5_fullpath = md5(fullpath);
-		var stat_data = stat.query([md5_fullpath], [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS], [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS]);
+		var stat_data = stat.query([md5_fullpath], [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS], [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS], currentpage);
 		var no_result = function() {
 			$("#" + domid).empty();
 			window.location.hash = '#';
@@ -72,7 +73,6 @@
 		var items_page_from = stat_data.items_page_from;
 		var items_page_size = stat_data.items_page_size;
 
-		
 		var content = '<div class="page-header">';
 		content = content + '<h3>';
 		if (reference.storagename) {
@@ -151,6 +151,7 @@
 		}
 		
 		if (items) {
+				
 			var dircontent = []; 
 			for (var item in items) {
 				var newitem = items[item];
@@ -273,6 +274,11 @@
 			content = content + '</tbody>';
 			content = content + '</table>';
 
+			var href = function(currentpage, pagecount) {
+				return '#' + fullpath;
+			};
+			content = content +  mydmam.pagination.create(items_page_from, Math.ceil(items_total/items_page_size), href, "navigator-" + md5_fullpath);
+			
 			$("#" + domid).empty();
 			$("#" + domid).append(content);
 			
@@ -296,7 +302,13 @@
 				$('.dataTables_filter input').val(val);
 				$('.dataTables_filter input').trigger("keyup.DT");
 			});
-
+			
+			mydmam.pagination.addevents(function(currentpage) {
+				return function() {
+					mydmam.navigator.displayStoragePathNavigator("storageelem", fullpath, true, currentpage);
+				};
+			}, "navigator-" + md5_fullpath);
+			
 		} else {
 			$("#" + domid).empty();
 			$("#" + domid).append(content);
