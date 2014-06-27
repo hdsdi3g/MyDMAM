@@ -25,5 +25,12 @@
 	String.prototype.startsWith = function(str){return (this.match("^"+str)==str);};
 	String.prototype.endsWith = function(str){return (this.match(str+"$")==str);};
 	
+	Storage.prototype.setObject = function(key, obj) {
+		return this.setItem(key, JSON.stringify(obj));
+	};
+	Storage.prototype.getObject = function(key) {
+		return JSON.parse(this.getItem(key));
+	};
+	
 	window.mydmam = {};
 })(window);

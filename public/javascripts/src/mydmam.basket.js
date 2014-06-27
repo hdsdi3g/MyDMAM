@@ -21,8 +21,88 @@
  */
 (function(mydmam) {
 	mydmam.basket = {};
-	
+	mydmam.basket.content = {};
+	mydmam.basket.LOCALSTORAGE_CONTENT_KEYNAME = "basket-content";
+	mydmam.basket.LOCALSTORAGE_LASTUPDATE_KEYNAME = "basket-lastupdate";
+	mydmam.basket.CACHE_DURATION = 60; /** in sec */
 })(window.mydmam);
+
+/**
+ * backend
+ */
+(function(basket) {
+	var content = mydmam.basket.content;
+	content.backend = {};
+	var backend = content.backend;
+	
+	backend.upload = function() {
+		//TODO
+		//console.log("upload", localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME));
+	};
+	backend.download = function() {
+		//TODO
+		//console.log("download");
+		var data = [];
+		localStorage.setObject(basket.LOCALSTORAGE_CONTENT_KEYNAME, data);
+		localStorage.setItem(basket.LOCALSTORAGE_LASTUPDATE_KEYNAME, new Date().getTime());
+	};
+
+	backend.pullData = function() {
+		return localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME);
+	};
+	
+	backend.pushData = function(data) {
+		localStorage.setObject(basket.LOCALSTORAGE_CONTENT_KEYNAME, data);
+		backend.upload();
+	};
+
+	backend.init = function() {
+		var date = localStorage.getItem(basket.LOCALSTORAGE_LASTUPDATE_KEYNAME);
+		if (date != null) {
+			if (((new Date().getTime() - date) / 1000) < basket.CACHE_DURATION) {
+				/**
+				 * Too recent download, the cache should to be good, don't update.
+				 */
+				return;
+			}
+		}
+		backend.download();
+	};
+	backend.init();
+	
+})(window.mydmam.basket);
+
+/**
+ * content
+ */
+(function(basket) {
+	var content = mydmam.basket.content;
+	var backend = content.backend;
+
+	content.add = function(elementkey) {
+		if (content.contain(elementkey) === false) {
+			var data = backend.pullData();
+			data.push(elementkey);
+			backend.pushData(data);
+		}
+	};
+
+	content.remove = function(elementkey) {
+		var data = backend.pullData();
+		var pos = $.inArray(elementkey, data);
+		if (pos > -1) {
+			data.splice(pos, 1);
+		}
+		backend.pushData(data);	
+	};
+
+	content.contain = function(elementkey) {
+		var pos = $.inArray(elementkey, backend.pullData());
+		return (pos > -1);
+	};
+
+})(window.mydmam.basket);
+
 
 /**
  * prepareNavigatorButton
@@ -30,7 +110,11 @@
 (function(basket) {
 	basket.prepareNavigatorSwitchButton = function(elementkey) {
 		var content = "";
-		content = content + '<button type="button" class="btn btn-mini btnbasket btnbasketnav" data-toggle="button" data-elementkey="' + elementkey + '">';
+		var active = "";
+		if (basket.isInBasket(elementkey)) {
+			active = "active";
+		}
+		content = content + '<button type="button" class="btn btn-mini btnbasket btnbasketnav ' + active + '" data-toggle="button" data-elementkey="' + elementkey + '">';
 		content = content + '<i class="icon-star"></i>';
 		content = content + '</button>';
 		return content;
@@ -38,15 +122,47 @@
 })(window.mydmam.basket);
 
 /**
- * 
+ * addSearchSwitchButtons
+ */
+(function(basket) {
+	basket.addSearchSwitchButtons = function() {
+		$('span.searchresultitem').each(function(){
+			var elementkey = $(this).data("storagekey");
+			var content = "";
+			var active = "";
+			if (basket.isInBasket(elementkey)) {
+				active = "active";
+			}
+			content = content + '<button type="button" class="btn btn-mini btnbasket ' + active + '" data-toggle="button" data-elementkey="' + elementkey + '">';
+			content = content + '<i class="icon-star"></i>';
+			content = content + '</button>';
+			$(this).before(content);
+		});
+		basket.setSwitchButtonsEvents();
+	};
+})(window.mydmam.basket);
+
+/**
+ * isInBasket
+ * @return boolean
+ */
+(function(basket) {
+	basket.isInBasket = function(elementkey) {
+		return basket.content.contain(elementkey);
+	};
+})(window.mydmam.basket);
+
+/**
+ * setSwitchButtonsEvents
  */
 (function(basket) {
 	basket.setSwitchButtonsEvents = function() {
 		$('.btnbasket').click(function() {
+			var elementkey = $(this).data("elementkey");
 			if ($(this).hasClass("active")) {
-				console.log("remove from basket for: "+ $(this).data("elementkey"));
+				mydmam.basket.content.remove(elementkey);
 			} else {
-				console.log("put in basket for: "+ $(this).data("elementkey"));
+				mydmam.basket.content.add(elementkey);
 			}
 		});
 	};
