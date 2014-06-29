@@ -388,4 +388,24 @@ public class User extends Controller {
 		redirect("User.notificationsadminlist");
 	}
 	
+	/**
+	 * Send to client actual basket content.
+	 */
+	@Check("navigate")
+	public static void basket_pull() {
+		// String user_key = UserProfile.prepareKey(Secure.connected());
+		System.out.println("pull");
+		renderJSON("[]");// TODO get
+	}
+	
+	/**
+	 * Get new basket content from client.
+	 */
+	@Check("navigate")
+	public static void basket_push() {
+		// String user_key = UserProfile.prepareKey(Secure.connected());
+		System.out.println(params.getAll("current[]")); // TODO set
+		renderJSON("[]");
+	}
+	
 }

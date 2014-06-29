@@ -22,6 +22,8 @@
 	mydmam.metadatas.url.resolvepositions = "@{Application.resolvepositions()}";
 	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
 	mydmam.stat.url = "@{Application.stat()}";
+	mydmam.basket.url.push = "@{User.basket_push}";
+	mydmam.basket.url.pull = "@{User.basket_pull}";
 #{/secure.check}
 
 #{secure.check 'showQueue'}

@@ -22,32 +22,50 @@
 (function(mydmam) {
 	mydmam.basket = {};
 	mydmam.basket.content = {};
+	mydmam.basket.content.backend = {};
 	mydmam.basket.LOCALSTORAGE_CONTENT_KEYNAME = "basket-content";
 	mydmam.basket.LOCALSTORAGE_LASTUPDATE_KEYNAME = "basket-lastupdate";
 	mydmam.basket.CACHE_DURATION = 60; /** in sec */
+	mydmam.basket.url = {};
 })(window.mydmam);
 
 /**
  * backend
  */
-(function(basket) {
-	var content = mydmam.basket.content;
-	content.backend = {};
-	var backend = content.backend;
+(function(basket, backend) {
 	
 	backend.upload = function() {
-		//TODO
-		//console.log("upload", localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME));
+		$.ajax({
+			url: mydmam.basket.url.push,
+			type: "POST",
+			data: {current : localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME)},
+			success: function(data) {
+				backend.setCacheTimer();
+			}
+		});
 	};
-	backend.download = function() {
-		//TODO
-		//console.log("download");
-		var data = [];
-		localStorage.setObject(basket.LOCALSTORAGE_CONTENT_KEYNAME, data);
-		localStorage.setItem(basket.LOCALSTORAGE_LASTUPDATE_KEYNAME, new Date().getTime());
+	
+	/**
+	 * @param synchronized_request (boolean) default false
+	 */
+	backend.download = function(synchronized_request) {
+		$.ajax({
+			url: mydmam.basket.url.pull,
+			type: "GET",
+			async: (synchronized_request === null),
+			success: function(data) {
+				localStorage.setObject(basket.LOCALSTORAGE_CONTENT_KEYNAME, data);
+				backend.setCacheTimer();
+			}
+		});
 	};
 
 	backend.pullData = function() {
+		if (localStorage.getItem(basket.LOCALSTORAGE_CONTENT_KEYNAME) === null) {
+			backend.download(true);
+		} else if (backend.isExpiredCache()) {
+			backend.download();
+		}
 		return localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME);
 	};
 	
@@ -56,27 +74,29 @@
 		backend.upload();
 	};
 
-	backend.init = function() {
+	backend.setCacheTimer = function() {
+		localStorage.setItem(basket.LOCALSTORAGE_LASTUPDATE_KEYNAME, new Date().getTime());
+	};
+
+	backend.isExpiredCache = function() {
 		var date = localStorage.getItem(basket.LOCALSTORAGE_LASTUPDATE_KEYNAME);
 		if (date != null) {
 			if (((new Date().getTime() - date) / 1000) < basket.CACHE_DURATION) {
 				/**
 				 * Too recent download, the cache should to be good, don't update.
 				 */
-				return;
+				return false;
 			}
 		}
-		backend.download();
+		return true;
 	};
-	backend.init();
-	
-})(window.mydmam.basket);
+
+})(window.mydmam.basket, window.mydmam.basket.content.backend);
 
 /**
  * content
  */
-(function(basket) {
-	var content = mydmam.basket.content;
+(function(content) {
 	var backend = content.backend;
 
 	content.add = function(elementkey) {
@@ -101,8 +121,7 @@
 		return (pos > -1);
 	};
 
-})(window.mydmam.basket);
-
+})(window.mydmam.basket.content);
 
 /**
  * prepareNavigatorButton
@@ -165,5 +184,14 @@
 				mydmam.basket.content.add(elementkey);
 			}
 		});
+	};
+})(window.mydmam.basket);
+
+/**
+ * forceRefresh (async)
+ */
+(function(basket) {
+	basket.forceRefresh = function() {
+		basket.content.backend.download();
 	};
 })(window.mydmam.basket);
