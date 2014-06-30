@@ -26,6 +26,7 @@ import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.TaskJobStatus;
+import hd3gtv.mydmam.web.CurrentUserBasket;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -393,9 +394,7 @@ public class User extends Controller {
 	 */
 	@Check("navigate")
 	public static void basket_pull() {
-		// String user_key = UserProfile.prepareKey(Secure.connected());
-		System.out.println("pull");
-		renderJSON("[]");// TODO get
+		renderJSON(CurrentUserBasket.getBasket());
 	}
 	
 	/**
@@ -403,8 +402,7 @@ public class User extends Controller {
 	 */
 	@Check("navigate")
 	public static void basket_push() {
-		// String user_key = UserProfile.prepareKey(Secure.connected());
-		System.out.println(params.getAll("current[]")); // TODO set
+		CurrentUserBasket.setBasket(params.getAll("current[]"));
 		renderJSON("[]");
 	}
 	

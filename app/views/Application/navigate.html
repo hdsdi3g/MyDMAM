@@ -21,10 +21,10 @@
 <script type="text/javascript" charset="UTF-8">
 <!--
 var list_external_positions_storages = %{out.print(hd3gtv.mydmam.module.MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving())}%;
+mydmam.basket.setContent(%{out.print(hd3gtv.mydmam.web.CurrentUserBasket.getBasket())}%);
 
 $(document).ready(function() {
 	$("#btnStorage").addClass("active");
-	mydmam.basket.forceRefresh();
 	mydmam.navigator.displayStoragePathNavigator("storageelem", decodeURIComponent(window.location.hash.substring(1)), false);
 });
 -->

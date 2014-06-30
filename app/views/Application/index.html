@@ -146,9 +146,6 @@
 		} else {
 			$("#navigator").remove();
 		}
-		#{secure.check 'navigate'}
-			mydmam.basket.forceRefresh();
-		#{/secure.check}
 	});
 	-->
 	</script>
@@ -166,6 +163,7 @@
 <script type="text/javascript" charset="UTF-8">
 <!--
 var list_external_positions_storages = %{out.print(hd3gtv.mydmam.module.MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving())}%;
+mydmam.basket.setContent(%{out.print(hd3gtv.mydmam.web.CurrentUserBasket.getBasket())}%);
 
 $(document).ready(function() {
 	mydmam.basket.addSearchSwitchButtons();

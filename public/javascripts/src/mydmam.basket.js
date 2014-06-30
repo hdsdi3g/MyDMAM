@@ -60,6 +60,11 @@
 		});
 	};
 
+	backend.setContent = function(elements) {
+		localStorage.setObject(basket.LOCALSTORAGE_CONTENT_KEYNAME, elements);
+		backend.setCacheTimer();
+	};
+	
 	backend.pullData = function() {
 		if (localStorage.getItem(basket.LOCALSTORAGE_CONTENT_KEYNAME) === null) {
 			backend.download(true);
@@ -188,10 +193,13 @@
 })(window.mydmam.basket);
 
 /**
- * forceRefresh (async)
+ * setContent
  */
 (function(basket) {
-	basket.forceRefresh = function() {
-		basket.content.backend.download();
+	basket.setContent = function(elements) {
+		if (elements === null) {
+			elements = [];
+		}
+		basket.content.backend.setContent(elements);
 	};
 })(window.mydmam.basket);
