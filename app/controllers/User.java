@@ -24,6 +24,7 @@ import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
+import hd3gtv.mydmam.operation.Basket;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 import hd3gtv.mydmam.web.CurrentUserBasket;
@@ -48,6 +49,9 @@ import play.i18n.Messages;
 import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
+
+import com.google.gson.Gson;
+
 import ext.MydmamExtensions;
 
 @With(Secure.class)
@@ -404,6 +408,102 @@ public class User extends Controller {
 	public static void basket_push() {
 		CurrentUserBasket.setBasket(params.getAll("current[]"));
 		renderJSON("[]");
+	}
+	
+	@Check("navigate")
+	public static void baskets() throws Exception {
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.importSelectedContent();
+		
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.pagename");
+		render(title);
+	}
+	
+	@Check("navigate")
+	public static void basket_delete(@Required String name) throws Exception {
+		if (validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.delete(name);
+		
+		JSONObject jo = new JSONObject();
+		jo.put("delete", name);
+		renderJSON(jo.toJSONString());
+	}
+	
+	/**
+	 * Response JSON Object
+	 */
+	@Check("navigate")
+	public static void basket_get_selected() throws Exception {
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		
+		JSONObject jo = new JSONObject();
+		jo.put("selected", basket.getSelected());
+		renderJSON(jo.toJSONString());
+	}
+	
+	@Check("navigate")
+	public static void basket_rename(@Required String name, @Required String newname) throws Exception {
+		if (validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.rename(name, newname);
+		
+		JSONObject jo = new JSONObject();
+		jo.put("rename_from", name);
+		jo.put("rename_to", newname);
+		renderJSON(jo.toJSONString());
+	}
+	
+	@Check("navigate")
+	public static void basket_create(@Required String name, @Required Boolean switch_to_selected) throws Exception {
+		if (validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.createNew(name, switch_to_selected);
+		
+		JSONObject jo = new JSONObject();
+		jo.put("create", name);
+		jo.put("switch_to_selected", switch_to_selected);
+		renderJSON(jo.toJSONString());
+	}
+	
+	/**
+	 * Response JSON Object
+	 */
+	@Check("navigate")
+	public static void basket_get_all_user() {
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		Gson gson = new Gson();
+		renderJSON(gson.toJson(basket.getAllBaskets()));
+	}
+	
+	/**
+	 * Response basket_pull() with new content.
+	 */
+	@Check("navigate")
+	public static void basket_switch_selected(@Required String name) throws Exception {
+		if (validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.switchSelectedBasket(name);
+		basket_pull();
 	}
 	
 }

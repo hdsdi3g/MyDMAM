@@ -284,6 +284,7 @@ userprofile.notifications.admin.createdreadedclosed=Crée/lu/fermé
 userprofile.notifications.admin.observers=Observateurs
 userprofile.notifications.admin.usercomments=Commentaires utilisateurs
 userprofile.notifications.admin.action=Action
+userprofile.baskets.pagename=Paniers de selection
 
 crud.field.userprofile=Préférences utilisateur
 crud.field.userprofile.longname=Nom

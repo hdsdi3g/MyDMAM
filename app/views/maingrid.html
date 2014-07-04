@@ -197,6 +197,11 @@ $(document).ready(function() {
 					<li>
 						<a href="@{User.index()}">&{'userprofile.usereditor.pagename'}</a>
 					</li>
+					#{secure.check 'navigate'}
+						<li>
+							<a href="@{User.baskets()}">&{'userprofile.baskets.pagename'}</a>
+						</li>
+					#{/secure.check}
 					<li>
 						<a href="@{User.notificationslist()}">&{'userprofile.notifications.pagename'}</a>
 					</li>

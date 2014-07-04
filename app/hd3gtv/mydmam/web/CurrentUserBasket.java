@@ -39,7 +39,7 @@ public class CurrentUserBasket {
 		
 		Gson g = new Gson();
 		try {
-			return g.toJson(basket.getContent());
+			return g.toJson(basket.getSelectedContent());
 		} catch (ConnectionException e) {
 			Log2.log.error("Can't access to Cassandra DB", e);
 			return "[]";
@@ -62,7 +62,7 @@ public class CurrentUserBasket {
 			al_content.add(content[pos]);
 		}
 		try {
-			basket.setContent(al_content);
+			basket.setSelectedContent(al_content);
 		} catch (ConnectionException e) {
 			Log2.log.error("Can't access to Cassandra DB", e);
 		}

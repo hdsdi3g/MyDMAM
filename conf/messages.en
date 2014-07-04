@@ -284,6 +284,7 @@ userprofile.notifications.admin.createdreadedclosed=Created/readed/closed
 userprofile.notifications.admin.observers=Observers
 userprofile.notifications.admin.usercomments=User comments
 userprofile.notifications.admin.action=Action
+userprofile.baskets.pagename=Baskets selection
 
 crud.field.userprofile=User settings
 crud.field.userprofile.longname=Name
