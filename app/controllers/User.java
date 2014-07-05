@@ -497,7 +497,9 @@ public class User extends Controller {
 	@Check("navigate")
 	public static void basket_switch_selected(@Required String name) throws Exception {
 		if (validation.hasErrors()) {
-			renderJSON("[\"validation error\"]");
+			JSONObject jo = new JSONObject();
+			jo.put("notselected", true);
+			renderJSON(jo.toJSONString());
 		}
 		
 		String user_key = UserProfile.prepareKey(Secure.connected());

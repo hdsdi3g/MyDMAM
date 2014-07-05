@@ -30,6 +30,7 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.indices.IndexMissingException;
 
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -112,10 +113,14 @@ public class Basket {
 		 */
 		Map<String, Object> source;
 		
-		GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
-		if (response.isExists()) {
-			source = response.getSource();
-		} else {
+		try {
+			GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
+			if (response.isExists()) {
+				source = response.getSource();
+			} else {
+				source = new HashMap<String, Object>(1);
+			}
+		} catch (IndexMissingException e) {
 			source = new HashMap<String, Object>(1);
 		}
 		
