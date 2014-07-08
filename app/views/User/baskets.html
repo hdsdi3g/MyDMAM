@@ -31,17 +31,15 @@
 
 <div class="container">
 	<p class="lead">&{'userprofile.baskets.pagename'}</p>
-	
+	<div id="basketslist"></div>
 </div>
 
 <script type="text/javascript" charset="UTF-8">
 <!--
+var actual_content = ${all_baskets.raw()};
 $(document).ready(function() {
-   	try {
-		$("#btnSession").addClass("active");
-	} catch(err) {
-		console.log(err);
-	}
+	$("#btnSession").addClass("active");
+	mydmam.basket.showAll(actual_content);
 });
 -->
 </script>

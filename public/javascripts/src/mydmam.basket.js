@@ -91,3 +91,62 @@
 		basket.content.backend.setContent(elements);
 	};
 })(window.mydmam.basket);
+
+/**
+ * showAll
+ */
+(function(basket) {
+	basket.showAll = function(actual_content) {
+		if (actual_content === null) {
+			/**
+			 * Fetch via Ajax
+			 */
+			basket.content.backend.all(function(data) {
+				basket.showAll(data);
+			});
+			return;
+		}
+		
+		var html = '';
+		
+		html = html + "<ul>"; 
+		var current_basket;
+		var current_basket_content;
+		var basket_element;
+		for (var pos = 0; pos < actual_content.length; pos++) {
+			current_basket = actual_content[pos];
+			html = html + '<li style="margin-bottom: 2em;">'; 
+			html = html + '<div class="input-prepend input-append">'; 
+			html = html + '<button type="submit" class="btn btn-primary"><i class="icon-bookmark icon-white"></i></button>';
+			html = html + '<span class="add-on"><i class="icon-bookmark"></i></span>'; 
+			html = html + '<input type="text" class="span2" placeholder="' + i18n("userprofile.baskets.basketname") + '" value="' + current_basket.name + '" />';
+			html = html + '<button type="submit" class="btn"><i class="icon-edit"></i></button>';
+			html = html + '<button type="submit" class="btn btn-danger"><i class="icon-remove icon-white"></i></button>';
+			html = html + '</div>'; 
+			html = html + "<ul>"; 
+			
+			current_basket_content = current_basket.content;
+			for (var pos_b = 0; pos_b < current_basket_content.length; pos_b++) {
+				basket_element_key = current_basket_content[pos_b];
+				html = html + "<li>";
+				html = html + '<div class="btn-group" style="margin-right: 8pt;">';
+				html = html + '<button type="button" class="btn btn-mini active" data-toggle="button" data-elementkey="' + basket_element_key + '"><i class="icon-star"></i></button>';
+				html = html + '<button type="button" class="btn btn-mini" data-elementkey="' + basket_element_key + '"><i class="icon-picture"></i></button>';
+				html = html + '</div>';
+				html = html + '<span data-elementkey="' + basket_element_key + '">' + basket_element_key + '</span>';
+				html = html + "</li>";
+			}
+			
+			html = html + "</ul></li>"; 
+		}
+		html = html + "<li>"; 
+		html = html + '<div class="input-append">'; 
+		html = html + '<input type="text" class="span2" placeholder="' + i18n("userprofile.baskets.basketname") + '" />';
+		html = html + '<button type="submit" class="btn btn-success"><i class="icon-plus icon-white"></i></button>';
+		html = html + '</div>'; 
+		html = html + "</li>"; 
+		
+		html = html + "</ul>";
+		$("#basketslist").html(html);
+	};
+})(window.mydmam.basket);

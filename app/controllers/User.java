@@ -417,7 +417,10 @@ public class User extends Controller {
 		basket.importSelectedContent();
 		
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.pagename");
-		render(title);
+		
+		Gson gson = new Gson();
+		String all_baskets = gson.toJson(basket.getAllBaskets());
+		render(title, all_baskets);
 	}
 	
 	@Check("navigate")
