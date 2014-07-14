@@ -2,6 +2,13 @@ play:
     deploy: /opt/play
     compile_javascript: true
 
+# messages:
+    # maingrid.brand: Site name
+    # site.name: Site name
+    # site.baseline: Your wonderful Media Asset Management tool
+    # site.aboutfooter: service Name.
+    # site.logintips: Use your current login account for connect
+
 auth:
     force_select_domain: false
     # change this for separate in database user profiles between play setups
