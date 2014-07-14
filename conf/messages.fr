@@ -23,6 +23,7 @@ site.errorpage.notfound=Not found
 site.errorpage.applicationerror=Application error
 site.errorpage.oops=Oops, an error occured
 site.errorpage.exception=This exception has been logged with id
+site.logintips=
 
 filesizeunitshort=o
 filesizeunitlong=octets
