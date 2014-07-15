@@ -29,7 +29,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -113,7 +113,7 @@ public class Elasticsearch {
 		return dump;
 	}
 	
-	public static void deleteIndexRequest(String index_name) throws ElasticSearchException {
+	public static void deleteIndexRequest(String index_name) throws ElasticsearchException {
 		try {
 			client.admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
 		} catch (IndexMissingException e) {
@@ -200,7 +200,9 @@ public class Elasticsearch {
 		
 		JSONParser jsonparser = new JSONParser();
 		JSONObject jo_root = (JSONObject) jsonparser.parse(new String(baos.toByteArray()));
-		JSONObject jo_type = (JSONObject) jo_root.get(type);
+		JSONObject jo_index = (JSONObject) jo_root.get(index_name);
+		JSONObject jo_mappings = (JSONObject) jo_index.get("mappings");
+		JSONObject jo_type = (JSONObject) jo_mappings.get(type);
 		if (jo_type.containsKey("_ttl")) {
 			JSONObject jo_ttl = (JSONObject) jo_type.get("_ttl");
 			boolean isenabledvalue = (Boolean) jo_ttl.get("enabled");

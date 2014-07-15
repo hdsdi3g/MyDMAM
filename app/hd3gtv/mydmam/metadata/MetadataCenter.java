@@ -59,6 +59,7 @@ import org.elasticsearch.action.search.MultiSearchRequestBuilder;
 import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.QuerySourceBuilder;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -264,7 +265,8 @@ public class MetadataCenter {
 					getresponse = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_source_key)).actionGet();
 					if (getresponse.isExists() == false) {
 						if (elementcount_by_storage.containsKey(element_source_storage) == false) {
-							countrequest = new CountRequest(Importer.ES_INDEX).types(Importer.ES_TYPE_FILE).query(QueryBuilders.termQuery("storagename", element_source_storage));
+							countrequest = new CountRequest(Importer.ES_INDEX).types(Importer.ES_TYPE_FILE).source(
+									new QuerySourceBuilder().setQuery(QueryBuilders.termQuery("storagename", element_source_storage)));
 							countresponse = client.count(countrequest).actionGet();
 							elementcount_by_storage.put(element_source_storage, countresponse.getCount());
 						}

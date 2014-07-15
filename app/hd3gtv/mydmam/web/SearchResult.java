@@ -29,6 +29,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.FuzzyQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -104,9 +105,9 @@ public class SearchResult {
 			 * ID search
 			 */
 			BoolQueryBuilder querybuilder = QueryBuilders.boolQuery();
-			querybuilder.should(QueryBuilders.fieldQuery("mediaid", query));
-			querybuilder.should(QueryBuilders.fieldQuery("id", query));
-			querybuilder.should(QueryBuilders.fieldQuery("_id", query));
+			querybuilder.should(QueryBuilders.termQuery("mediaid", query));
+			querybuilder.should(QueryBuilders.termQuery("id", query));
+			querybuilder.should(QueryBuilders.termQuery("_id", query));
 			
 			response = internalSearch(client, querybuilder, frompage, pagesize);
 			if (response.getHits().getTotalHits() > 0) {
@@ -158,7 +159,7 @@ public class SearchResult {
 			String[] query_items = query.split(" ");
 			BoolQueryBuilder querybuilder = QueryBuilders.boolQuery();
 			for (int pos = 0; pos < query_items.length; pos++) {
-				querybuilder.must((new FuzzyQueryBuilder("_all", query_items[pos])).minSimilarity(0.8f));
+				querybuilder.must(new FuzzyQueryBuilder("_all", query_items[pos]).fuzziness(Fuzziness.AUTO));
 			}
 			response = internalSearch(client, querybuilder, frompage, pagesize);
 			if (response.getHits().getTotalHits() > 0) {
@@ -169,7 +170,7 @@ public class SearchResult {
 		/**
 		 * 1 word
 		 */
-		response = internalSearch(client, (new FuzzyQueryBuilder("_all", query)).minSimilarity(0.8f), frompage, pagesize);
+		response = internalSearch(client, (new FuzzyQueryBuilder("_all", query)).fuzziness(Fuzziness.AUTO), frompage, pagesize);
 		searchresult.mode = SearchMode.BY_FUZZY;
 		return response;
 	}
