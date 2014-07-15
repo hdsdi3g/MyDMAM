@@ -398,8 +398,16 @@ public class MetadataCenter {
 		}
 		
 		SearchHit[] hits;
+		SearchResponse response;
 		for (int pos = 0; pos < items.length; pos++) {
-			hits = items[pos].getResponse().getHits().hits();
+			response = items[pos].getResponse();
+			if (response == null) {
+				continue;
+			}
+			if (response.getHits() == null) {
+				continue;
+			}
+			hits = response.getHits().hits();
 			if (hits.length == 0) {
 				continue;
 			}
