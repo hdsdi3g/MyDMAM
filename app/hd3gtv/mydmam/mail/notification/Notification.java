@@ -847,7 +847,7 @@ public class Notification {
 		} else {
 			BoolQueryBuilder query = QueryBuilders.boolQuery();
 			query.must(select_key);
-			query.must(QueryBuilders.fieldQuery("is_close", false));
+			query.must(QueryBuilders.termQuery("is_close", false));
 			request.setQuery(query);
 		}
 		
