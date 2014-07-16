@@ -207,7 +207,6 @@ public class Stat {
 	
 	public String toJSONString() {
 		try {
-			
 			if (scopes_element.contains(StatElement.SCOPE_PATHINFO)) {
 				populate_pathinfo();
 			}

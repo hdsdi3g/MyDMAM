@@ -60,7 +60,31 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void stat() {
-		Stat stat = new Stat(params.getAll("fileshashs[]"), params.getAll("scopes_element[]"), params.getAll("scopes_subelements[]"));
+		String[] fileshashs = new String[1];
+		String onlyone_filehash = params.get("fileshashs");
+		if (onlyone_filehash == null) {
+			fileshashs = params.getAll("fileshashs[]");
+		} else {
+			fileshashs[0] = onlyone_filehash;
+		}
+		
+		String[] scopes_element = new String[1];
+		String onlyone_scope_element = params.get("scopes_element");
+		if (onlyone_scope_element == null) {
+			scopes_element = params.getAll("scopes_element[]");
+		} else {
+			scopes_element[0] = onlyone_scope_element;
+		}
+		
+		String[] scopes_subelements = new String[1];
+		String onlyone_scope_subelements = params.get("scopes_subelements");
+		if (onlyone_scope_subelements == null) {
+			scopes_subelements = params.getAll("scopes_subelements[]");
+		} else {
+			scopes_subelements[0] = onlyone_scope_subelements;
+		}
+		
+		Stat stat = new Stat(fileshashs, scopes_element, scopes_subelements);
 		try {
 			stat.setPageFrom(Integer.parseInt(params.get("page_from")));
 		} catch (Exception e) {
