@@ -357,8 +357,13 @@ public class MetadataCenter {
 		
 		MultiGetItemResponse[] response = multigetrequestbuilder.execute().actionGet().getResponses();
 		List<Map<String, Object>> sources = new ArrayList<Map<String, Object>>();
+		GetResponse current_response;
 		for (int pos = 0; pos < response.length; pos++) {
-			if (response[pos].getResponse().isSourceEmpty()) {
+			current_response = response[pos].getResponse();
+			if (current_response == null) {
+				continue;
+			}
+			if (current_response.isSourceEmpty()) {
 				continue;
 			}
 			sources.add(response[pos].getResponse().getSource());
@@ -393,8 +398,16 @@ public class MetadataCenter {
 		}
 		
 		SearchHit[] hits;
+		SearchResponse response;
 		for (int pos = 0; pos < items.length; pos++) {
-			hits = items[pos].getResponse().getHits().hits();
+			response = items[pos].getResponse();
+			if (response == null) {
+				continue;
+			}
+			if (response.getHits() == null) {
+				continue;
+			}
+			hits = response.getHits().hits();
 			if (hits.length == 0) {
 				continue;
 			}

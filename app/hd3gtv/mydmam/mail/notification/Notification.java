@@ -46,6 +46,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
 import org.json.simple.JSONArray;
@@ -851,42 +852,46 @@ public class Notification {
 			request.setQuery(query);
 		}
 		
-		SearchResponse response = request.execute().actionGet();
-		if (response.getHits().totalHits() == 0) {
-			return new ArrayList<Map<String, Object>>(1);
-		}
-		SearchHit[] hits = response.getHits().hits();
-		
-		ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>(hits.length);
-		Map<String, Object> source;
-		ArrayList<Object> linked_tasks;
-		HashMap<String, TaskJobStatus> linked_tasksjobs;
-		HashMap<String, Object> map_linked_tasksjobs;
-		Map<String, Boolean> notify_list_for_user;
-		NotifyReason[] reasons = NotifyReason.values();
-		
-		for (int pos = 0; pos < hits.length; pos++) {
-			source = hits[pos].getSource();
-			
-			linked_tasks = (ArrayList) source.get("linked_tasks");
-			linked_tasksjobs = new HashMap<String, TaskJobStatus>();
-			for (int pos_lt = 0; pos_lt < linked_tasks.size(); pos_lt++) {
-				map_linked_tasksjobs = (HashMap) linked_tasks.get(pos_lt);
-				linked_tasksjobs.put((String) map_linked_tasksjobs.get("taskjobkey"), TaskJobStatus.fromString((String) map_linked_tasksjobs.get("status")));
+		try {
+			SearchResponse response = request.execute().actionGet();
+			if (response.getHits().totalHits() == 0) {
+				return new ArrayList<Map<String, Object>>(1);
 			}
-			source.put("summary_status", getSummaryTaskJobStatus(linked_tasksjobs));
-			source.put("key", hits[pos].getId());
+			SearchHit[] hits = response.getHits().hits();
 			
-			notify_list_for_user = new HashMap<String, Boolean>();
-			for (int pos_r = 0; pos_r < reasons.length; pos_r++) {
-				ArrayList<Object> user_list_for_reason = (ArrayList) source.get(reasons[pos_r].getDbRecordName());
-				notify_list_for_user.put(reasons[pos_r].getDbRecordName(), user_list_for_reason.contains(user.key));
+			ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>(hits.length);
+			Map<String, Object> source;
+			ArrayList<Object> linked_tasks;
+			HashMap<String, TaskJobStatus> linked_tasksjobs;
+			HashMap<String, Object> map_linked_tasksjobs;
+			Map<String, Boolean> notify_list_for_user;
+			NotifyReason[] reasons = NotifyReason.values();
+			
+			for (int pos = 0; pos < hits.length; pos++) {
+				source = hits[pos].getSource();
+				
+				linked_tasks = (ArrayList) source.get("linked_tasks");
+				linked_tasksjobs = new HashMap<String, TaskJobStatus>();
+				for (int pos_lt = 0; pos_lt < linked_tasks.size(); pos_lt++) {
+					map_linked_tasksjobs = (HashMap) linked_tasks.get(pos_lt);
+					linked_tasksjobs.put((String) map_linked_tasksjobs.get("taskjobkey"), TaskJobStatus.fromString((String) map_linked_tasksjobs.get("status")));
+				}
+				source.put("summary_status", getSummaryTaskJobStatus(linked_tasksjobs));
+				source.put("key", hits[pos].getId());
+				
+				notify_list_for_user = new HashMap<String, Boolean>();
+				for (int pos_r = 0; pos_r < reasons.length; pos_r++) {
+					ArrayList<Object> user_list_for_reason = (ArrayList) source.get(reasons[pos_r].getDbRecordName());
+					notify_list_for_user.put(reasons[pos_r].getDbRecordName(), user_list_for_reason.contains(user.key));
+				}
+				source.put("notify_list", notify_list_for_user);
+				
+				notifications.add(source);
 			}
-			source.put("notify_list", notify_list_for_user);
-			
-			notifications.add(source);
+			return notifications;
+		} catch (IndexMissingException e) {
+			return new ArrayList<Map<String, Object>>(0);
 		}
-		return notifications;
 	}
 	
 	public static ArrayList<Map<String, Object>> getAdminListFromDatabase() throws ConnectionException, IOException {
@@ -898,21 +903,25 @@ public class Notification {
 		request.setSize(50);
 		request.setQuery(QueryBuilders.matchAllQuery());
 		
-		SearchResponse response = request.execute().actionGet();
-		if (response.getHits().totalHits() == 0) {
+		try {
+			SearchResponse response = request.execute().actionGet();
+			if (response.getHits().totalHits() == 0) {
+				return new ArrayList<Map<String, Object>>(1);
+			}
+			SearchHit[] hits = response.getHits().hits();
+			
+			ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>(hits.length);
+			Map<String, Object> source;
+			
+			for (int pos = 0; pos < hits.length; pos++) {
+				source = hits[pos].getSource();
+				source.put("key", hits[pos].getId());
+				notifications.add(source);
+			}
+			return notifications;
+		} catch (IndexMissingException e) {
 			return new ArrayList<Map<String, Object>>(1);
 		}
-		SearchHit[] hits = response.getHits().hits();
-		
-		ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>(hits.length);
-		Map<String, Object> source;
-		
-		for (int pos = 0; pos < hits.length; pos++) {
-			source = hits[pos].getSource();
-			source.put("key", hits[pos].getId());
-			notifications.add(source);
-		}
-		return notifications;
 	}
 	
 }
