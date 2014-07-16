@@ -286,7 +286,7 @@ userprofile.notifications.admin.observers=Observateurs
 userprofile.notifications.admin.usercomments=Commentaires utilisateurs
 userprofile.notifications.admin.action=Action
 userprofile.baskets.pagename=Paniers de selection
-userprofile.baskets.basketname=Nom du panier
+userprofile.baskets.newbasketname=Nom du nouveau panier
 userprofile.baskets.rename=Renommer
 
 crud.field.userprofile=Préférences utilisateur

@@ -406,7 +406,11 @@ public class User extends Controller {
 	 */
 	@Check("navigate")
 	public static void basket_push() {
-		CurrentUserBasket.setBasket(params.getAll("current[]"));
+		if (params.get("empty") != null) {
+			CurrentUserBasket.dropBasket();
+		} else {
+			CurrentUserBasket.setBasket(params.getAll("current[]"));
+		}
 		renderJSON("[]");
 	}
 	
@@ -420,7 +424,8 @@ public class User extends Controller {
 		
 		Gson gson = new Gson();
 		String all_baskets = gson.toJson(basket.getAllBaskets());
-		render(title, all_baskets);
+		String basket_selected_name = basket.getSelected();
+		render(title, all_baskets, basket_selected_name);
 	}
 	
 	@Check("navigate")

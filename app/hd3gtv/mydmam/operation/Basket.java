@@ -91,6 +91,12 @@ public class Basket {
 		mutator.execute();
 	}
 	
+	public void dropBasketContent() throws ConnectionException {
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		mutator.withRow(CF_BASKETS, user_key).delete();
+		mutator.execute();
+	}
+	
 	/**
 	 * @return baskets[name, content[pathindexhash]], never null
 	 */

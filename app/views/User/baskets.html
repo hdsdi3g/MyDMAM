@@ -37,9 +37,10 @@
 <script type="text/javascript" charset="UTF-8">
 <!--
 var actual_content = ${all_baskets.raw()};
+var actual_selected = "${basket_selected_name.raw()}";
 $(document).ready(function() {
 	$("#btnSession").addClass("active");
-	mydmam.basket.showAll(actual_content);
+	mydmam.basket.showAll(actual_content, actual_selected);
 });
 -->
 </script>

@@ -21,10 +21,19 @@
  */
 (function(basket, backend) {
 	backend.upload = function() {
+		var current_basket_content = localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME);
+		
+		var data = {};
+		if (current_basket_content.length === 0) {
+			data = {empty : "true"};
+		} else {
+			data = {current : localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME)};
+		}
+		
 		$.ajax({
 			url: mydmam.basket.url.push,
 			type: "POST",
-			data: {current : localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME)},
+			data: data,
 			success: function(data) {
 				backend.setCacheTimer();
 			}

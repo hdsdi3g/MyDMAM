@@ -53,7 +53,6 @@ public class CurrentUserBasket {
 		if (content.length == 0) {
 			return;
 		}
-		
 		String user_key = UserProfile.prepareKey(Secure.connected());
 		Basket basket = new Basket(user_key);
 		
@@ -61,6 +60,7 @@ public class CurrentUserBasket {
 		for (int pos = 0; pos < content.length; pos++) {
 			al_content.add(content[pos]);
 		}
+		
 		try {
 			basket.setSelectedContent(al_content);
 		} catch (ConnectionException e) {
@@ -68,4 +68,13 @@ public class CurrentUserBasket {
 		}
 	}
 	
+	public static void dropBasket() {
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		try {
+			basket.dropBasketContent();
+		} catch (ConnectionException e) {
+			Log2.log.error("Can't access to Cassandra DB", e);
+		}
+	}
 }
