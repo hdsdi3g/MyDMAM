@@ -112,6 +112,7 @@ $(document).ready(function() {
 				<ul class="dropdown-menu" id="mainadminmenu">
 					%{	adminmenu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllAdminMenusEntries()
 						adminmenu_elements.eachWithIndex() { adminitem, p ->
+						if (controllers.Secure.checkview(adminitem.privilege)) {
 					}%
 						<li id="&{adminitem.btn_id}" #{if adminitem.subitems}class="dropdown-submenu"#{/if}>
 							<a href="&{adminitem.getPlayTargetUrl()}" #{if adminitem.subitems}tabindex="-1"#{/if}>&{adminitem.title}</a>
@@ -119,6 +120,7 @@ $(document).ready(function() {
 								<ul class="dropdown-menu">
 								%{	
 									adminitem.subitems.eachWithIndex() { sitem, i ->
+									if (controllers.Secure.checkview(sitem.privilege)) {
 								}%
 									<li id="&{sitem.btn_id}">
 										<a href="&{sitem.getPlayTargetUrl()}">&{sitem.title}</a>
@@ -127,7 +129,7 @@ $(document).ready(function() {
 										<li class="divider"></li>
 									#{/if}
 								%{
-									}
+									}}
 								}%
 								</ul>
 							#{/if}
@@ -136,7 +138,7 @@ $(document).ready(function() {
 							#{/if}
 						</li>
 					%{
-						}
+						}}
 					}%
 					
 					#{secure.check 'showStatus'}
