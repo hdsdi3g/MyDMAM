@@ -288,6 +288,7 @@ userprofile.notifications.admin.action=Action
 userprofile.baskets.pagename=Paniers de selection
 userprofile.baskets.newbasketname=Nom du nouveau panier
 userprofile.baskets.rename=Renommer
+userprofile.baskets.empty=Il n'y a pas d'éléments dans ce panier.
 
 crud.field.userprofile=Préférences utilisateur
 crud.field.userprofile.longname=Nom

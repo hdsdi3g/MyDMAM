@@ -165,6 +165,8 @@ public class Basket {
 	}
 	
 	public void switchSelectedBasket(String name) throws ConnectionException, NullPointerException {
+		importSelectedContent();
+		
 		/**
 		 * ES -> Cassandra
 		 */
@@ -210,6 +212,8 @@ public class Basket {
 	 * If the basket exists, it will be overwritten.
 	 */
 	public void createNew(String name, boolean switch_to_selected) throws ConnectionException {
+		importSelectedContent();
+		
 		Map<String, Object> source;
 		GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
 		if (response.isExists()) {
@@ -305,6 +309,8 @@ public class Basket {
 	}
 	
 	public void rename(String name, String newname) throws ConnectionException {
+		importSelectedContent();
+		
 		Map<String, Object> source;
 		GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
 		if (response.isExists() == false) {
@@ -339,7 +345,7 @@ public class Basket {
 		ir.refresh(true);
 		client.index(ir);
 		
-		if (isSelected(name) == false) {
+		if (isSelected(name)) {
 			setSelected(newname);
 		}
 	}

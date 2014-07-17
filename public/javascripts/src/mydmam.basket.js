@@ -106,11 +106,23 @@
 			var elementkey = $(this).data('elementkey');
 			var element = pathelementkeys_resolved[elementkey];
 			if (element.reference) {
-				var content = '<span style="font-weight: bold;">' + element.reference.storagename + '</span> :: ';
+				var content = '';
+				if (element.reference.directory) {
+					content = content + '<span style="margin-right: 4px;"><i class="icon-folder-open"></i></span>';
+				} else {
+					content = content + '<span style="margin-right: 6px;"><i class="icon-file"></i></span>';
+				}
+
+				content = content + '<span style="font-weight: bold;">' + element.reference.storagename + '</span> :: ';
 				var path = element.reference.path.split("/");
 				for (var pos = 1; pos < path.length; pos++) {
 					content = content + "/" + path[pos];
 				}
+				
+				if (element.reference.size) {
+					content = content + ' <span class="label label-important" style="margin-left: 1em;">' + element.reference.size + '</span>';
+				}
+				content = content + ' <span class="label" style="margin-left: 1em;">' + mydmam.format.fulldate(element.reference.date) + '</span>';
 				$(this).html(content);
 			}
 		};
@@ -133,6 +145,101 @@
 			}
 		};
 		$('button.basketpresence').each(function() {
+			$(this).click(event);
+		});
+	};
+})(window.mydmam.basket);
+
+/**
+ * setSwitchBasketButtonsEvents()
+ */
+(function(basket) {
+	basket.setSwitchBasketButtonsEvents = function() {
+		var on_switch_event = function(name, data) {
+			if (name === null) {
+				return;
+			}
+			basket.showAll(null, null);
+		};
+		
+		var event = function() {
+			var basketname = $(this).data("basketname");
+			basket.content.backend.switch_selected(basketname, on_switch_event);
+		};
+		
+		$('input.btnswitchbasket').each(function() {
+			$(this).click(event);
+		});
+
+	};
+})(window.mydmam.basket);
+
+
+/**
+ * setRenameBasketButtonsEvents()
+ */
+(function(basket) {
+	basket.setRenameBasketButtonsEvents = function() {
+		var on_rename_event = function(name, newname) {
+			if (name === null) {
+				return;
+			}
+			basket.showAll(null, null);
+		};
+		
+		var event_click = function() {
+			var basketname = $(this).data("basketname");
+			var id = '#inputbasketname' + md5(basketname).substring(0, 6);
+			var newname = $(id).val().trim();
+			if (newname === "") {
+				return;
+			}
+			basket.content.backend.rename(basketname, newname, on_rename_event);
+		};
+		
+		var event_keyenter = function(event) {
+			if (event.which !== 13) {
+				return;
+			}
+			var basketname = $(this).data("basketname");
+			var id = '#inputbasketname' + md5(basketname).substring(0, 6);
+			var newname = $(id).val().trim();
+			if (newname === "") {
+				return;
+			}
+			basket.content.backend.rename(basketname, newname, on_rename_event);
+		};
+		
+		$('button.btnrenamebasket').each(function() {
+			$(this).click(event_click);
+		});
+
+		$('input.inputbasketname').each(function() {
+			$(this).keypress(event_keyenter);
+		});
+		//" data-basketname="' + current_basket.name
+	};
+})(window.mydmam.basket);
+
+
+/**
+ * setRemoveBasketButtonsEvents()
+ */
+(function(basket) {
+	basket.setRemoveBasketButtonsEvents = function() {
+		var on_remove_event = function(name) {
+			if (name === null) {
+				return;
+			}
+			basket.showAll(null, null);
+		};
+		
+		var event = function() {
+			var basketname = $(this).data("basketname");
+			basket.content.backend.bdelete(basketname, on_remove_event);
+		};
+		
+		$('button.btnremovebasket').each(function() {
 			$(this).click(event);
 		});
 	};
@@ -178,14 +285,14 @@
 			html = html + '<li style="margin-bottom: 2em;">'; 
 			html = html + '<div class="input-prepend input-append">';
 			if (is_selected) {
-				html = html + '<span class="add-on"><i class="icon-bookmark"></i></span>'; 
+				html = html + '<span class="add-on"><input type="radio" checked="checked"></span>'; 
 			} else {
-				html = html + '<button type="submit" class="btn btn-primary" style="padding-right: 6px; padding-left: 6px;"><i class="icon-bookmark icon-white"></i></button>';
+				html = html + '<span class="add-on"><input type="radio" class="btnswitchbasket" data-basketname="' + current_basket.name + '"></span>'; 
 			}
-			html = html + '<input type="text" class="span2" placeholder="' + i18n("userprofile.baskets.basketname") + '" value="' + current_basket.name + '" />';
-			html = html + '<button type="submit" class="btn"><i class="icon-edit"></i></button>';
+			html = html + '<input type="text" id="inputbasketname' + md5(current_basket.name).substring(0, 6) + '" class="span2 inputbasketname" data-basketname="' + current_basket.name + '" placeholder="' + i18n("userprofile.baskets.basketname") + '" value="' + current_basket.name + '" />';
+			html = html + '<button class="btn btnrenamebasket" data-basketname="' + current_basket.name + '"><i class="icon-edit"></i></button>';
 			if (is_selected === false) {
-				html = html + '<button type="submit" class="btn btn-danger"><i class="icon-remove icon-white"></i></button>';
+				html = html + '<button class="btn btnremovebasket" data-basketname="' + current_basket.name + '"><i class="icon-remove"></i></button>';
 			}
 			html = html + '</div>'; 
 			html = html + "<ul>"; 
@@ -197,12 +304,18 @@
 				html = html + '<div class="btn-group" style="margin-right: 8pt;">';
 				if (is_selected) {
 					html = html + '<button type="button" class="btn btn-mini active btnbasket" data-toggle="button" data-elementkey="' + basket_element_key + '"><i class="icon-star"></i></button>';
+				} else {
+					html = html + '<button type="button" class="btn btn-mini disabled"><i class="icon-star"></i></button>';
 				}
 				html = html + '<button type="button" class="btn btn-mini basketpresence" data-elementkey="' + basket_element_key + '"><i class="icon-picture"></i></button>';
 				html = html + '</div>';
 				html = html + '<span class="pathelement" data-elementkey="' + basket_element_key + '" style="color: #222222;"></span>';
 				html = html + "</li>";
 				pathelementkeys_to_resolve.push(basket_element_key);
+			}
+			
+			if (current_basket_content.length === 0) {
+				html = html + '<li><p class="muted">' + i18n("userprofile.baskets.empty") + '</p></li>';
 			}
 			
 			html = html + "</ul></li>"; 
@@ -220,6 +333,9 @@
 		var pathelementkeys_resolved = basket.showPathIndexKeysForBasketItemsLabel(pathelementkeys_to_resolve);
 		basket.setSwitchButtonsEvents();
 		basket.setNavigateButtonsEvents(pathelementkeys_resolved);
+		basket.setSwitchBasketButtonsEvents();
+		basket.setRemoveBasketButtonsEvents();
+		basket.setRenameBasketButtonsEvents();
 		
 		$("#createnewbasket").click(function() {
 			var newname = $("#inputnewbasket").val().trim();

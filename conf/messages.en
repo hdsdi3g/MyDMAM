@@ -288,6 +288,7 @@ userprofile.notifications.admin.action=Action
 userprofile.baskets.pagename=Baskets selection
 userprofile.baskets.newbasketname=New basket name
 userprofile.baskets.rename=Rename
+userprofile.baskets.empty=There are no items in this basket.
 
 crud.field.userprofile=User settings
 crud.field.userprofile.longname=Name
