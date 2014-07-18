@@ -17,17 +17,16 @@
 #{extends 'maingrid.html' /}
 
 <div class="container">
-	<p class="lead">&{'userprofile.baskets.pagename'}</p>
+	<p class="lead">&{'userprofile.baskets.admin.pagename'}</p>
 	<div id="basketslist"></div>
 </div>
 
 <script type="text/javascript" charset="UTF-8">
 <!--
-var actual_content = ${all_baskets.raw()};
-var actual_selected = "${basket_selected_name.raw()}";
+var all_baskets = ${all_baskets.raw()};
 $(document).ready(function() {
-	$("#btnSession").addClass("active");
-	mydmam.basket.showAll(actual_content, actual_selected);
+	$("#btnAdmin").addClass("active");
+	//mydmam.basket.showAll(actual_content, actual_selected); TODO
 });
 -->
 </script>

@@ -17,8 +17,11 @@
 package hd3gtv.mydmam.operation;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,16 +29,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.search.SearchHit;
 
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 public class Basket {
@@ -47,25 +54,28 @@ public class Basket {
 	private static final Integer TTL = 3600 * 24 * 365 * 2; // 2 years
 	public static final String DEFAULT_BASKET_NAME = "default";
 	
+	private static final String SELECTED_TOKEN_KEY = "#selected";
+	
+	private static Client client;
+	
 	static {
 		try {
 			if (CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), CF_BASKETS.getName()) == false) {
 				CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), CF_BASKETS.getName(), false);
 			}
+			client = Elasticsearch.getClient();
 		} catch (Exception e) {
 			Log2.log.error("Can't prepare Cassandra connection", e);
 		}
 	}
 	
 	private String user_key;
-	private Client client;
 	
 	public Basket(String user_key) {
 		this.user_key = user_key;
 		if (user_key == null) {
 			throw new NullPointerException("\"user_key\" can't to be null");
 		}
-		client = Elasticsearch.getClient();
 	}
 	
 	/**
@@ -160,7 +170,7 @@ public class Basket {
 		IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key);
 		ir.source(source);
 		ir.ttl((long) TTL);
-		ir.refresh(true);
+		// ir.refresh(true);
 		client.index(ir);
 	}
 	
@@ -303,7 +313,7 @@ public class Basket {
 		if (isSelected(name)) {
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
 			mutator.withRow(CF_BASKETS, user_key).delete();
-			mutator.withRow(CF_BASKETS, user_key + "#selected").delete();
+			mutator.withRow(CF_BASKETS, user_key + SELECTED_TOKEN_KEY).delete();
 			mutator.execute();
 		}
 	}
@@ -356,24 +366,136 @@ public class Basket {
 	
 	private void setSelected(String name) throws ConnectionException {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
-		if (name == null) {
-			mutator.withRow(CF_BASKETS, user_key + "#selected").putColumn("name", DEFAULT_BASKET_NAME, TTL);
-		} else {
-			mutator.withRow(CF_BASKETS, user_key + "#selected").putColumn("name", name, TTL);
-		}
+		setSelected(mutator, user_key, name);
 		mutator.execute();
 	}
 	
+	private static void setSelected(MutationBatch mutator, String user_key, String basketname) throws ConnectionException {
+		if (basketname == null) {
+			mutator.withRow(CF_BASKETS, user_key + SELECTED_TOKEN_KEY).putColumn("name", DEFAULT_BASKET_NAME, TTL);
+		} else {
+			mutator.withRow(CF_BASKETS, user_key + SELECTED_TOKEN_KEY).putColumn("name", basketname, TTL);
+		}
+	}
+	
 	public String getSelected() throws ConnectionException {
-		ColumnList<String> cols = CassandraDb.getkeyspace().prepareQuery(CF_BASKETS).getKey(user_key + "#selected").withColumnSlice("name").execute().getResult();
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		String basketname = getSelected(mutator, user_key);
+		mutator.execute();
+		return basketname;
+	}
+	
+	public static String getSelected(MutationBatch mutator, String user_key) throws ConnectionException {
+		ColumnList<String> cols = CassandraDb.getkeyspace().prepareQuery(CF_BASKETS).getKey(user_key + SELECTED_TOKEN_KEY).withColumnSlice("name").execute().getResult();
 		if (cols.isEmpty()) {
-			setSelected(DEFAULT_BASKET_NAME);
+			setSelected(mutator, user_key, DEFAULT_BASKET_NAME);
 			return DEFAULT_BASKET_NAME;
 		}
 		if (cols.getColumnByName("name").hasValue() == false) {
-			setSelected(DEFAULT_BASKET_NAME);
+			setSelected(mutator, user_key, DEFAULT_BASKET_NAME);
 			return DEFAULT_BASKET_NAME;
 		}
 		return cols.getStringValue("name", DEFAULT_BASKET_NAME);
+	}
+	
+	public static class All {
+		
+		public static void importSelectedContent() throws Exception {
+			final BulkRequestBuilder bulkrequest = client.prepareBulk();
+			final MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			
+			CassandraDb.allRowsReader(CF_BASKETS, new AllRowsFoundRow() {
+				public void onFoundRow(Row<String, String> row) throws Exception {
+					if (row.getColumns().isEmpty()) {
+						return;
+					}
+					if (row.getKey().endsWith(SELECTED_TOKEN_KEY)) {
+						return;
+					}
+					String user_key = row.getKey();
+					
+					/**
+					 * Cassandra -> update ES
+					 */
+					Map<String, Object> source;
+					
+					try {
+						GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
+						if (response.isExists()) {
+							source = response.getSource();
+						} else {
+							source = new HashMap<String, Object>(1);
+						}
+					} catch (IndexMissingException e) {
+						source = new HashMap<String, Object>(1);
+					}
+					
+					List<Object> baskets;
+					
+					if (source.containsKey("baskets")) {
+						baskets = (List) source.get("baskets");
+					} else {
+						baskets = new ArrayList<Object>(1);
+						source.put("baskets", baskets);
+					}
+					
+					HashMap<String, Object> basket = null;
+					
+					for (int pos = 0; pos < baskets.size(); pos++) {
+						basket = (HashMap) baskets.get(pos);
+						if (basket.get("name").equals(getSelected(mutator, user_key))) {
+							break;
+						}
+						basket = null;
+					}
+					if (basket == null) {
+						basket = new HashMap<String, Object>();
+						baskets.add(basket);
+					}
+					
+					basket.put("content", row.getColumns().getColumnNames());
+					basket.put("name", getSelected(mutator, user_key));
+					
+					IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key);
+					ir.source(source);
+					ir.ttl((long) TTL);
+					// ir.refresh(true);
+					bulkrequest.add(ir);
+				}
+			});
+			
+			try {
+				if (mutator.isEmpty() == false) {
+					mutator.execute();
+				}
+			} catch (Exception e) {
+				Log2.log.error("Can't update Cassandra", e);
+			}
+			
+			if (bulkrequest.numberOfActions() > 0) {
+				BulkResponse bulkresponse = bulkrequest.execute().actionGet();
+				if (bulkresponse.hasFailures()) {
+					Log2Dump dump = new Log2Dump();
+					dump.add("failure message", bulkresponse.buildFailureMessage());
+					Log2.log.error("Can't update ES", null, dump);
+				}
+			}
+		}
+		
+		/**
+		 * @return User Key -> ES record
+		 */
+		public static Map<String, Object> getAllUsersAllBasketsSize() throws ConnectionException {
+			final HashMap<String, Object> all_baskets = new HashMap<String, Object>();
+			
+			Elasticsearch.createCrawlerReader().setIndices(ES_INDEX).setTypes(ES_DEFAULT_TYPE).allReader(new ElastisearchCrawlerHit() {
+				public boolean onFoundHit(SearchHit hit) {
+					all_baskets.put(hit.getId(), hit.getSource());
+					return true;
+				}
+			});
+			
+			return all_baskets;
+		}
 	}
 }

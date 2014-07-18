@@ -464,12 +464,26 @@ public class User extends Controller {
 		
 		String user_key = UserProfile.prepareKey(Secure.connected());
 		Basket basket = new Basket(user_key);
-		basket.rename(name, newname);
+		basket.rename(name, cleanName(newname));
 		
 		JSONObject jo = new JSONObject();
 		jo.put("rename_from", name);
-		jo.put("rename_to", newname);
+		jo.put("rename_to", cleanName(newname));
 		renderJSON(jo.toJSONString());
+	}
+	
+	private static String cleanName(String rawname) {
+		char chr;
+		StringBuffer result = new StringBuffer();
+		for (int pos = 0; pos < rawname.length(); pos++) {
+			chr = rawname.charAt(pos);
+			if (Character.isAlphabetic(chr)) {
+				result.append(chr);
+			} else if (Character.isDigit(chr)) {
+				result.append(chr);
+			}
+		}
+		return result.toString();
 	}
 	
 	@Check("navigate")
@@ -480,10 +494,10 @@ public class User extends Controller {
 		
 		String user_key = UserProfile.prepareKey(Secure.connected());
 		Basket basket = new Basket(user_key);
-		basket.createNew(name, switch_to_selected);
+		basket.createNew(cleanName(name), switch_to_selected);
 		
 		JSONObject jo = new JSONObject();
-		jo.put("create", name);
+		jo.put("create", cleanName(name));
 		jo.put("switch_to_selected", switch_to_selected);
 		renderJSON(jo.toJSONString());
 	}
@@ -514,6 +528,17 @@ public class User extends Controller {
 		Basket basket = new Basket(user_key);
 		basket.switchSelectedBasket(name);
 		basket_pull();
+	}
+	
+	@Check("adminUsers")
+	public static void basketsadmin() throws Exception {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.admin.pagename");
+		
+		Basket.All.importSelectedContent();
+		Gson gson = new Gson();
+		String all_baskets = gson.toJson(Basket.All.getAllUsersAllBasketsSize());
+		
+		render(title, all_baskets);
 	}
 	
 }

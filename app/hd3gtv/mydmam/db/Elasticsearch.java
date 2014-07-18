@@ -241,6 +241,7 @@ public class Elasticsearch {
 		}
 		
 	}
+	
 	/*
 	CloseIndexRequest cir = new CloseIndexRequest("pathindex");
 	CloseIndexResponse ciresp = client.admin().indices().close(cir).actionGet();
@@ -262,5 +263,9 @@ public class Elasticsearch {
 	CreateIndexRequest cri = new CreateIndexRequest(index);
 	System.out.println(client.admin().indices().create(cri).actionGet().isAcknowledged());
 	*/
+	
+	public static ElastisearchCrawlerReader createCrawlerReader() {
+		return new ElastisearchCrawlerReader(client);
+	}
 	
 }
