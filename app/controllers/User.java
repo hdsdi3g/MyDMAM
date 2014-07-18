@@ -347,7 +347,7 @@ public class User extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
-	@Check("adminNotifications")
+	@Check("adminUsers")
 	public static void notificationsadminlist() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.admin.pagename");
 		ArrayList<Map<String, Object>> user_notifications = Notification.getAdminListFromDatabase();
@@ -376,7 +376,7 @@ public class User extends Controller {
 		render(title, user_notifications, linked_tasksjobs);
 	}
 	
-	@Check("adminNotifications")
+	@Check("adminUsers")
 	public static void notificationadminclose(@Required String key) throws Exception {
 		if (validation.hasErrors()) {
 			redirect("User.notificationsadminlist");

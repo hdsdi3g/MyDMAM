@@ -141,24 +141,18 @@ $(document).ready(function() {
 						}}
 					}%
 					
-					#{secure.check 'showStatus'}
-						<li>
-							<a href="@{Service.index()}">&{'service.pagename'}</a>
-						</li>
-						<li>
-							<a href="@{Service.playjobs()}">&{'service.playjobs.pagename'}</a>
-						</li>
-					#{/secure.check}
-
 					#{secure.check 'adminCrud'}
 						<li>
-							<a href="@{Admin.index(objtype:'userprofile')}">&{'crud.field.userprofile'}</a>
+							<a href="@{Admin.index(objtype:'userprofile')}"><i class="icon-th-list"></i> &{'crud.field.userprofile'}</a>
 						</li>
 					#{/secure.check}
 					
-					#{secure.check 'adminNotifications'}
+					#{secure.check 'adminUsers'}
 						<li>
-							<a href="@{User.notificationsadminlist}">&{'userprofile.notifications.admin.pagename'}</a>
+							<a href="@{User.basketsadmin}"><i class="icon-shopping-cart"></i> &{'userprofile.baskets.admin.pagename'}</a>
+						</li>
+						<li>
+							<a href="@{User.notificationsadminlist}"><i class="icon-bell"></i> &{'userprofile.notifications.admin.pagename'}</a>
 						</li>
 					#{/secure.check}
 					
@@ -168,15 +162,29 @@ $(document).ready(function() {
 							&{'acl.pagenamelight'}
 						</li>
 						<li>
-							<a href="@{ACL.showusers()}">&{'acl.pagename.users'}</a>
+							<a href="@{ACL.showusers()}"><i class="icon-user"></i> &{'acl.pagename.users'}</a>
 						</li>
 						<li>
-							<a href="@{ACL.showgroups()}">&{'acl.pagename.groups'}</a>
+							<a href="@{ACL.showgroups()}"><i class="icon-user"></i> &{'acl.pagename.groups'}</a>
 						</li>
 						<li>
-							<a href="@{ACL.showroles()}">&{'acl.pagename.roles'}</a>
+							<a href="@{ACL.showroles()}"><i class="icon-user"></i> &{'acl.pagename.roles'}</a>
 						</li>
 					#{/secure.check}
+					
+					#{secure.check 'showStatus'}
+						<li class="divider"></li>
+						<li class="nav-header">
+							&{'service.menuinfrastructure'}
+						</li>
+						<li>
+							<a href="@{Service.index()}"><i class="icon-hdd"></i> &{'service.pagename'}</a>
+						</li>
+						<li>
+							<a href="@{Service.playjobs()}"><i class="icon-info-sign"></i> &{'service.playjobs.pagename'}</a>
+						</li>
+					#{/secure.check}
+					
 				</ul>
 			</li>
 			<li class="divider-vertical checkifempty" data-deleteifempty="mainadminmenu"></li>
@@ -197,18 +205,18 @@ $(document).ready(function() {
 				</a>
 				<ul class="dropdown-menu">
 					<li>
-						<a href="@{User.index()}">&{'userprofile.usereditor.pagename'}</a>
+						<a href="@{User.index()}"><i class="icon-wrench"></i> &{'userprofile.usereditor.pagename'}</a>
 					</li>
 					#{secure.check 'navigate'}
 						<li>
-							<a href="@{User.baskets()}">&{'userprofile.baskets.pagename'}</a>
+							<a href="@{User.baskets()}"><i class="icon-shopping-cart"></i> &{'userprofile.baskets.pagename'}</a>
 						</li>
 					#{/secure.check}
 					<li>
-						<a href="@{User.notificationslist()}">&{'userprofile.notifications.pagename'}</a>
+						<a href="@{User.notificationslist()}"><i class="icon-bell"></i> &{'userprofile.notifications.pagename'}</a>
 					</li>
 					<li>
-						<a href="@{Secure.logout()}">&{'maingrid.disconnect'}</a>
+						<a href="@{Secure.logout()}"><i class="icon-off"></i> &{'maingrid.disconnect'}</a>
 					</li>
 				</ul>
 			</li>
@@ -225,10 +233,10 @@ $(document).ready(function() {
 				<ul class="dropdown-menu" id="mainactivitiesmenu">
 					#{secure.check 'showQueue'}
 						<li>
-							<a href="@{Queue.index()}">&{'queue.taskslist'}</a>
+							<a href="@{Queue.index()}"><i class="icon-tasks"></i> &{'queue.taskslist'}</a>
 						</li>
 						<li>
-							<a href="@{Queue.workers()}">&{'queue.workerlist'}</a>
+							<a href="@{Queue.workers()}"><i class="icon-fire"></i> &{'queue.workerlist'}</a>
 						</li>
 					#{/secure.check}
 				</ul>

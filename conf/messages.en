@@ -53,6 +53,7 @@ service.table.version=Version
 service.table.uptime=Uptime
 service.table.threads=Threads
 service.playjobs.pagename=Play server jobs
+service.menuinfrastructure=Infrastructure
 
 application.navigate=Storage
 
