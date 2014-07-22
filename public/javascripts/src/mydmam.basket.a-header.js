@@ -23,6 +23,7 @@
 	mydmam.basket = {};
 	mydmam.basket.content = {};
 	mydmam.basket.content.backend = {};
+	mydmam.basket.allusers = {};
 	mydmam.basket.LOCALSTORAGE_CONTENT_KEYNAME = "basket-content";
 	mydmam.basket.LOCALSTORAGE_LASTUPDATE_KEYNAME = "basket-lastupdate";
 	mydmam.basket.CACHE_DURATION = 60; /** in sec */
