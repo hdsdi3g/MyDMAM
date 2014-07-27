@@ -360,6 +360,27 @@ public class Basket {
 		}
 	}
 	
+	public static void addBasketsElementsToListFromRawDb(List<String> current_list, Map<String, Object> source) {
+		if (current_list == null) {
+			throw new NullPointerException("\"current_list\" can't to be null");
+		}
+		if (source == null) {
+			throw new NullPointerException("\"source\" can't to be null");
+		}
+		List<Object> baskets = (List) source.get("baskets");
+		Map<String, Object> basket;
+		List<Object> content;
+		for (int pos_b = 0; pos_b < baskets.size(); pos_b++) {
+			basket = (Map) baskets.get(pos_b);
+			content = (List) basket.get("content");
+			for (int pos_c = 0; pos_c < content.size(); pos_c++) {
+				if (current_list.contains(content.get(pos_c)) == false) {
+					current_list.add((String) content.get(pos_c));
+				}
+			}
+		}
+	}
+	
 	private boolean isSelected(String name) throws ConnectionException {
 		return getSelected().equals(name);
 	}
@@ -497,5 +518,6 @@ public class Basket {
 			
 			return all_baskets;
 		}
+		
 	}
 }

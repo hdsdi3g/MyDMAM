@@ -21,7 +21,9 @@
  */
 (function(allusers) {
 	allusers.baskets = {};
+	allusers.usersname = {};
 	allusers.userkeys = [];
+	allusers.pathindexelements = {};
 })(window.mydmam.basket.allusers);
 
 /**
@@ -33,9 +35,6 @@
 			allusers.userkeys.push(userkey);
 		}
 		allusers.displayUsers();
-		var content = "";
-		//TODO resolve all userkey to username 
-		//TODO stat pathindexkeys and display it
 	};
 })(window.mydmam.basket.allusers);
 
@@ -48,7 +47,7 @@
 		for (var pos in allusers.userkeys) {
 			content = content + '<li id="libtnselectuser' + pos + '" class="libtnselectuser">';
 			content = content + '<a href="#" data-userkey="' + allusers.userkeys[pos] + '" data-selectuserpos="' + pos + '" class="btnbasketusername">';
-			content = content + allusers.userkeys[pos];
+			content = content + allusers.usersname[allusers.userkeys[pos]];
 			content = content + '</a>';
 			content = content + '</li>';
 		}
@@ -81,70 +80,114 @@
 		var content_basketslist = "";
 		var content_basketscontent = "";
 		
-		content_basketscontent = content_basketscontent + '<table class="table table-hover table-condensed" id="tlbbasketcontent">';
-		content_basketscontent = content_basketscontent + '<thead>';
-		content_basketscontent = content_basketscontent + '<tr>';
-		content_basketscontent = content_basketscontent + '<th>Basketname</th>';
-		content_basketscontent = content_basketscontent + '<th>Path</th>';
-		content_basketscontent = content_basketscontent + '<th>Type/Size</th>';
-		content_basketscontent = content_basketscontent + '<th></th>';
-		content_basketscontent = content_basketscontent + '<th>Date</th>';
-		content_basketscontent = content_basketscontent + '<th></th>';
-		content_basketscontent = content_basketscontent + '<th>Remove</th>';
-		content_basketscontent = content_basketscontent + '</tr>';
-		content_basketscontent = content_basketscontent + '</thead>';
-		content_basketscontent = content_basketscontent + '<tbody id="userbasketscontent">';
+		var addBasket = function(basketname, content) {
+			content = content + '<tr>';
+			content = content + '<td>' + basketname + '</td>';
+			content = content + '<td>';
+			content = content + '<button class="btn btn-mini" type="button"><i class="icon-align-left"></i> ' + i18n('userprofile.baskets.admin.rawview') + '</button>';
+			content = content + ' <button class="btn btn-mini" type="button"><i class="icon-download"></i> ' + i18n('userprofile.baskets.admin.importbasket') + '</button>';
+			content = content + ' <button class="btn btn-mini" type="button"><i class="icon-upload"></i> ' + i18n('userprofile.baskets.admin.exportbasket') + '</button>';
+			content = content + ' &bull;';
+			content = content + ' <button class="btn btn-mini" type="button"><i class="icon-remove-sign"></i> ' + i18n('userprofile.baskets.admin.truncate') + '</button>';
+			content = content + ' <button class="btn btn-mini" type="button"><i class="icon-remove"></i> ' + i18n('userprofile.baskets.admin.remove') + '</button>';
+			content = content + '</td>';
+			content = content + '</tr>';
+			return content;
+		};
 
+		var addBasketItem = function(basketname, itemelementkey, content) {
+			var element = allusers.pathindexelements[itemelementkey];
+			element = element.reference;
+			if (element) {
+				content = content + '<tr>';
+				content = content + '<td>' + basketname + '</td>';
+				content = content + '<td>';
+				content = content + '<span style="font-weight: bold;">' + element.storagename + '</span>';
+				content = content + ' :: ' + element.path.substring(0, element.path.lastIndexOf("/") + 1);
+				content = content + '<a class="tlbdirlistitem" data-elementkey="' + itemelementkey + '" href="' + mydmam.metadatas.url.navigate + "#" + element.storagename + ":" + element.path + '">';
+				content = content + element.path.substring(element.path.lastIndexOf("/") + 1);
+				content = content + '</a></td>';
+				content = content + '<td>';
+				if (element.directory) {
+					content = content + '<span class="label label-success">' + i18n('browser.directory') + '</span>';
+				}
+				if (element.size) {
+					content = content + '<span class="label label-important">' + element.size + '</span>';
+				}
+				content = content + '</td>';
+				content = content + '<td>' + element.directory + element.size + '</td>'; //Only for table order functions
+				content = content + '<td>';
+				if (element.date) {
+					content = content + '<span class="label">' + mydmam.format.fulldate(element.date) + '</span>';
+				}
+				content = content + '</td>';
+				content = content + '<td>' + element.date + '</td>';
+				content = content + '<td>';
+				content = content + '<button class="btn btn-mini" type="button"><i class="icon-minus-sign"></i></button>';
+				content = content + '</td>';
+				content = content + '</tr>';
+			} else {
+				content = content + '<tr>';
+				content = content + '<td>' + basketname + '</td>';
+				content = content + '<td>' + '<a href="#">' + itemelementkey + '</a></td>';
+				content = content + '<td></td>';
+				content = content + '<td></td>';
+				content = content + '<td></td>';
+				content = content + '<td></td>';
+				content = content + '<td>';
+				content = content + '<button class="btn btn-mini" type="button"><i class="icon-minus-sign"></i></button>';
+				content = content + '</td>';
+				content = content + '</tr>';
+			}
+			
+			return content;
+		};
+		
+		var prepareTableBasketsList = function(content) {
+			var content_pre = "";
+			content_pre = content_pre + '<table class="table table-hover table-condensed" id="tlbbasketlist">';
+			content_pre = content_pre + '<thead>';
+			content_pre = content_pre + '<tr>';
+			content_pre = content_pre + '<th>' + i18n('userprofile.baskets.admin.basketname') + '</th>';
+			content_pre = content_pre + '<th>' + i18n('userprofile.baskets.admin.action') + '</th>';
+			content_pre = content_pre + '</tr>';
+			content_pre = content_pre + '</thead>';
+			content_pre = content_pre + '<tbody>';
+			content = content_pre + content + '</tbody></table>';
+			return content;
+		};
+		
+		var prepareTableBasketsItems = function(content) {
+			var content_pre = "";
+			content_pre = content_pre + '<table class="table table-hover table-condensed" id="tlbbasketcontent">';
+			content_pre = content_pre + '<thead>';
+			content_pre = content_pre + '<tr>';
+			content_pre = content_pre + '<th>' + i18n('userprofile.baskets.admin.basketname') + '</th>';
+			content_pre = content_pre + '<th>' + i18n('userprofile.baskets.admin.path') + '</th>';
+			content_pre = content_pre + '<th>' + i18n('userprofile.baskets.admin.typesize') + '</th>';
+			content_pre = content_pre + '<th></th>';
+			content_pre = content_pre + '<th>' + i18n('userprofile.baskets.admin.date') + '</th>';
+			content_pre = content_pre + '<th></th>';
+			content_pre = content_pre + '<th>' + i18n('userprofile.baskets.admin.removeitem') + '</th>';
+			content_pre = content_pre + '</tr>';
+			content_pre = content_pre + '</thead>';
+			content_pre = content_pre + '<tbody>';
+			content = content_pre + content + '</tbody></table>';
+			return content;
+		};
+		
 		for (var pos_ub in userbaskets) {
 			basketname = userbaskets[pos_ub].name;
 			basketcontent = userbaskets[pos_ub].content;
-			
-			content_basketslist = content_basketslist + '<li>';
-			content_basketslist = content_basketslist + basketname;
-			content_basketslist = content_basketslist + '</li>';
-			
+			content_basketslist = addBasket(basketname, content_basketslist);
 			for (var pos_elm in basketcontent) {
 				basketelement = basketcontent[pos_elm];
-				
-				content_basketscontent = content_basketscontent + '<tr>';
-				
-				content_basketscontent = content_basketscontent + '<td>' + basketname + '</td>';
-				
-				content_basketscontent = content_basketscontent + '<td>';
-				content_basketscontent = content_basketscontent + '<a href="#">' + basketelement + '</a>';
-				content_basketscontent = content_basketscontent + '</td>';
-				
-				content_basketscontent = content_basketscontent + '<td>';
-				content_basketscontent = content_basketscontent + '<span class="label label-important">Directory</span>';
-				content_basketscontent = content_basketscontent + '<span class="label label-important">447306</span>';
-				content_basketscontent = content_basketscontent + '</td>';
-				
-				content_basketscontent = content_basketscontent + '<td>';
-				content_basketscontent = content_basketscontent + '447306';
-				content_basketscontent = content_basketscontent + '</td>';
-				
-				content_basketscontent = content_basketscontent + '<td>';
-				content_basketscontent = content_basketscontent + '<span class="label">01/02/2014 17:22:28</span>';
-				content_basketscontent = content_basketscontent + '</td>';
-				content_basketscontent = content_basketscontent + '<td>';
-				content_basketscontent = content_basketscontent + '12434343432';
-				content_basketscontent = content_basketscontent + '</td>';
-
-				
-				content_basketscontent = content_basketscontent + '<td>';
-				content_basketscontent = content_basketscontent + '<button class="btn btn-mini btn-danger" type="button">';
-				content_basketscontent = content_basketscontent + '<i class="icon-star icon-white"></i>';
-				content_basketscontent = content_basketscontent + '</button>';
-				content_basketscontent = content_basketscontent + '</td>';
-				
-				content_basketscontent = content_basketscontent + '</tr>';
+				content_basketscontent = addBasketItem(basketname, basketelement, content_basketscontent);
 			}
 		}
-		content_basketscontent = content_basketscontent + '</tbody>';
-		content_basketscontent = content_basketscontent + '</table>';
 		
-		$("#userbasketslist").html(content_basketslist);
-		$("#containertlbbasketcontent").html(content_basketscontent);
+		$("#containertlbbasketlist").html(prepareTableBasketsList(content_basketslist));
+		$("#containertlbbasketcontent").html(prepareTableBasketsItems(content_basketscontent));
 		
 		$("#tlbbasketcontent").dataTable({
 			"bPaginate": false,
@@ -162,6 +205,18 @@
 			]
 		});
 
+		$("#tlbbasketlist").dataTable({
+			"bPaginate": false,
+			"bLengthChange": false,
+			"bSort": true,
+			"bInfo": false,
+			"bAutoWidth": false,
+			"bFilter": true,
+			"aoColumnDefs": [
+				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [1]}, //Actions
+			]
+		});
+		
 		$('#sitesearch').bind('keyup.DT', function(e) {
 			var val = this.value==="" ? "" : this.value;
 			$('.dataTables_filter input').val(val);

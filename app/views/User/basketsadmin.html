@@ -20,14 +20,13 @@
 	<p class="lead">&{'userprofile.baskets.admin.pagename'}</p>
 	<div class="row-fluid">
 		<div class="span2">
-			<ul class="span2 nav nav-pills nav-stacked affix" id="userlist"></ul>
+			<ul class="nav nav-pills nav-stacked" id="userlist"></ul>
 		</div>
 		<div class="span10">
-			<p class="lead">Baskets list</p>
-				<ul id="userbasketslist">
-					<li>F</li>
-				</ul>
-			<p class="lead">Baskets content</p>
+			<p class="lead">&{'userprofile.baskets.admin.basketslist'}</p>
+			<div id="containertlbbasketlist"></div>
+			<hr>
+			<p class="lead">&{'userprofile.baskets.admin.basketscontent'}</p>
 			<div id="containertlbbasketcontent"></div>
 		</div>
 	</div>
@@ -38,6 +37,8 @@
 $(document).ready(function() {
 	$("#btnAdmin").addClass("active");
 	mydmam.basket.allusers.baskets = ${all_baskets.raw()};
+	mydmam.basket.allusers.usersname = ${all_users.raw()};
+	mydmam.basket.allusers.pathindexelements = ${all_pathindexelements.raw()};
 	mydmam.basket.allusers.prepare();
 });
 -->

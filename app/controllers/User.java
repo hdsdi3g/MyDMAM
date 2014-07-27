@@ -28,6 +28,8 @@ import hd3gtv.mydmam.operation.Basket;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 import hd3gtv.mydmam.web.CurrentUserBasket;
+import hd3gtv.mydmam.web.stat.Stat;
+import hd3gtv.mydmam.web.stat.StatElement;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -536,9 +538,45 @@ public class User extends Controller {
 		
 		Basket.All.importSelectedContent();
 		Gson gson = new Gson();
-		String all_baskets = gson.toJson(Basket.All.getAllUsersAllBasketsSize());
+		Map<String, Object> real_map_all_users_baskets = Basket.All.getAllUsersAllBasketsSize();
 		
-		render(title, all_baskets);
+		/**
+		 * Get user list, and resolve names. Crypt user keys.
+		 */
+		CrudOrmEngine<UserProfile> user_profile_orm_engine = new CrudOrmEngine<UserProfile>(new UserProfile());
+		List<UserProfile> selected_users = user_profile_orm_engine.read(real_map_all_users_baskets.keySet());
+		HashMap<String, String> map_all_users = new HashMap<String, String>();
+		for (int pos = 0; pos < selected_users.size(); pos++) {
+			if (selected_users.get(pos).longname != null) {
+				if (selected_users.get(pos).longname.equals("") == false) {
+					map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).longname);
+					continue;
+				}
+			}
+			map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).key);
+		}
+		
+		/**
+		 * Crypt user keys, and resolve all baskets content pathindexkeys to pathindexelements.
+		 */
+		Map<String, Object> map_all_users_baskets = new HashMap<String, Object>();
+		List<String> list_pathindexkeys = new ArrayList<String>();
+		for (Map.Entry<String, Object> entry : real_map_all_users_baskets.entrySet()) {
+			map_all_users_baskets.put(MydmamExtensions.encrypt(entry.getKey()), entry.getValue());
+			Basket.addBasketsElementsToListFromRawDb(list_pathindexkeys, (Map) entry.getValue());
+		}
+		
+		String all_pathindexelements = "{}";
+		if (list_pathindexkeys.isEmpty() == false) {
+			String[] array_scopes_element = new String[1];
+			array_scopes_element[0] = StatElement.SCOPE_PATHINFO;
+			Stat stat = new Stat(list_pathindexkeys.toArray(new String[list_pathindexkeys.size()]), array_scopes_element, null);
+			all_pathindexelements = stat.toJSONString();
+		}
+		
+		String all_baskets = gson.toJson(map_all_users_baskets);
+		String all_users = gson.toJson(map_all_users);
+		
+		render(title, all_baskets, all_users, all_pathindexelements);
 	}
-	
 }
