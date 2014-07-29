@@ -14,3 +14,7 @@ conf/*.db
 public/img/personalized/*
 Test.java
 play-new-password.txt
+*.iml
+*.ipr
+*.iws
+
