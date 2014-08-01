@@ -24,6 +24,7 @@
 	allusers.usersname = {};
 	allusers.userkeys = [];
 	allusers.pathindexelements = {};
+	allusers.ajaxurl = "";
 })(window.mydmam.basket.allusers);
 
 /**
@@ -48,6 +49,7 @@
 			content = content + '<li id="libtnselectuser' + pos + '" class="libtnselectuser">';
 			content = content + '<a href="#" data-userkey="' + allusers.userkeys[pos] + '" data-selectuserpos="' + pos + '" class="btnbasketusername">';
 			content = content + allusers.usersname[allusers.userkeys[pos]];
+			content = content + ' <i class="icon-refresh hide iconuserrefresh"></i>';
 			content = content + '</a>';
 			content = content + '</li>';
 		}
@@ -62,6 +64,225 @@
 				
 				allusers.displayBasket($(this).data("userkey"));
 			});
+		});
+	};
+})(window.mydmam.basket.allusers);
+
+
+/**
+ * setTablesButtonsEvents
+ */
+(function(allusers) {
+	allusers.displayModalManualBasketEditor = function(userkey, basketname) {
+		var userbaskets = allusers.baskets[userkey].baskets;
+		var actualbasketcontentkeys = [];
+		for (var pos_ub in userbaskets) {
+			if (userbaskets[pos_ub].name === basketname) {
+				actualbasketcontentkeys = userbaskets[pos_ub].content;
+				break;
+			}
+		}
+		var element;
+		
+		var content = "";
+		content = content + '<div id="modalbasketeditor" class="modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="margin-left: -500px; width: 1000px;">';
+		content = content + '<div class="modal-header">';
+		content = content + '<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>';
+		content = content + '<h3 id="myModalLabel">' + i18n("userprofile.baskets.admin.rawview.modal.title", basketname, allusers.usersname[userkey]) + '</h3>';
+		content = content + '</div>';
+		content = content + '<div class="modal-body">';
+		content = content + '<textarea data-basketname="' + basketname + '" data-userkey="' + userkey + '" rows="10" style="width: 100%; margin: 0px; padding: 0px; border-width: 0px;font-size: 10pt; font-family: Monospace;" wrap="off">';
+		for (var pos in actualbasketcontentkeys) {
+			element = allusers.pathindexelements[actualbasketcontentkeys[pos]];
+			if (element === null) {
+				continue;
+			}
+			content = content + element.reference.storagename + ":" + element.reference.path + "\n";
+		}		
+		content = content + '</textarea>';
+		content = content + '</div>';
+		content = content + '<div class="modal-footer">';
+		content = content + '<button class="btn" data-dismiss="modal" aria-hidden="true">' + i18n("userprofile.baskets.admin.rawview.modal.cancel") + '</button>';
+		content = content + '<button class="btn btn-primary" id="btnvalidmodalbasketeditor">';
+		content = content + '<i class="icon-refresh icon-white hide iconmodalvalidation"></i> ';
+		content = content + i18n("userprofile.baskets.admin.rawview.modal.save");
+		content = content + '</button>';
+		content = content + '</div>';
+		content = content + '</div>';
+		
+		$("body").append(content);
+		
+		$('#modalbasketeditor').on('hidden', function() {
+			$('#modalbasketeditor').remove();
+        });
+		
+		var options = {
+			show: true
+		};
+		$('#modalbasketeditor').modal(options);
+		
+		$("#btnvalidmodalbasketeditor").click(function() {
+			var rawbasketcontent = $("#modalbasketeditor textarea").val();
+			var basketname = $("#modalbasketeditor textarea").data("basketname");
+			var userkey = $("#modalbasketeditor textarea").data("userkey");
+			
+			var rawbasketlines = rawbasketcontent.split("\n");
+			var line;
+			var item;
+			var newbasketcontent = [];
+			var resolve_new_items_stat = [];
+			var newbasketcontent_paths = [];
+			for (var pos in rawbasketlines) {
+				line = rawbasketlines[pos].trim();
+				if (line === "") {
+					continue;
+				}
+				if (line.endsWith("/") & (line.endsWith(":/") === false)) {
+					line = line.substr(0, line.length - 1);
+				}
+				item = md5(line);
+				newbasketcontent.push(item);
+				newbasketcontent_paths.push(line);
+				
+				if (!allusers.pathindexelements[item]) {
+					resolve_new_items_stat.push(item);
+				}
+			}
+			
+			$("#modalbasketeditor button").addClass("disabled");
+			$("#modalbasketeditor button").attr("disabled", "disabled");
+			$("#modalbasketeditor i.iconmodalvalidation").removeClass("hide");
+			
+			if (resolve_new_items_stat.length > 0) {
+				var new_pathelementkeys = mydmam.stat.query(resolve_new_items_stat, mydmam.stat.SCOPE_PATHINFO);
+				jQuery.extend(allusers.pathindexelements, new_pathelementkeys);
+			}
+
+			/**
+			 * Check if miss resolve path indexes
+			 */
+			var cantfounditemslistpos = [];
+			for (var pos in newbasketcontent) {
+				item = newbasketcontent[pos];
+				if (!allusers.pathindexelements[item].reference) {
+					cantfounditemslistpos.push(pos);
+				}
+			}
+
+			/**
+			 * Remove bad items for new list
+			 * Display list of bad items (can't resolve it)
+			 */
+			if (cantfounditemslistpos.length > 0) {
+				for (var pos in cantfounditemslistpos) {
+					newbasketcontent.splice(cantfounditemslistpos[pos] - pos, 1);
+					//console.log(newbasketcontent_paths[cantfounditemslistpos[pos]]); << vrais chemins
+				}
+				/*
+				TODO Display this :
+			   <div class="alert">
+			   <button type="button" class="close" data-dismiss="alert">&times;</button>
+			   <strong>Warning!</strong> Best check yo self, you're not looking too good.
+			   </div>
+				 */
+			}
+			
+			/**
+			 * Update local cache
+			 */
+			var userbaskets = allusers.baskets[userkey].baskets;
+			for (var pos_ub in userbaskets) {
+				if (userbaskets[pos_ub].name === basketname) {
+					userbaskets[pos_ub].content = newbasketcontent;
+					break;
+				}
+			}
+				
+			allusers.displayBasket(userkey);
+			
+			//TODO send newbasketcontent to server !!
+			
+			$('#modalbasketeditor').modal('hide');
+		});
+		
+	};
+})(window.mydmam.basket.allusers);
+
+/**
+ * setTablesButtonsEvents
+ */
+(function(allusers) {
+	allusers.setTablesButtonsEvents = function(userkey) {
+		$('.btnactionevent').click(function() {
+			var request = {};
+			request.userkey = userkey;
+			request.basketname = $(this).data("basketname");
+
+			if ($(this).hasClass("btnrawview")) {
+				allusers.displayModalManualBasketEditor(userkey, request.basketname);
+				return;
+			} else if ($(this).hasClass("btnimportbasket")) {
+				request.actiontodo = "importbasket";
+			} else if ($(this).hasClass("btnexportbasket")) {
+				request.actiontodo = "exportbasket";
+			} else if ($(this).hasClass("btntruncatebasket")) {
+				request.actiontodo = "truncatebasket";
+			} else if ($(this).hasClass("btnremovebasket")) {
+				request.actiontodo = "removebasket";
+			} else if ($(this).hasClass("btnremovebasketcontent")) {
+				request.elementkey = $(this).data("elementkey");
+				request.actiontodo = "removebasketcontent";
+			}
+
+			$("li.libtnselectuser i.iconuserrefresh").removeClass("hide");
+			
+			/**
+			 * After server response
+			 */
+			var response_callback = function(response) {
+				if (response.actiontodo === "importbasket" | response.actiontodo === "exportbasket") {
+					window.location.reload();
+					return;
+				}
+				$("li.libtnselectuser i.iconuserrefresh").addClass("hide");
+			};
+			
+			/**
+			 * Ask to server
+			 */
+			$.ajax({
+				url: allusers.ajaxurl,
+				type: "POST",
+				data: request,
+				success: response_callback
+			});
+
+			/**
+			 * During server response waiting time...
+			 */
+			var userbaskets = allusers.baskets[request.userkey].baskets;
+			for (var pos_ub in userbaskets) {
+				if (userbaskets[pos_ub].name === request.basketname) {
+					if (request.actiontodo === "truncatebasket" | request.actiontodo === "removebasket") {
+						if (request.actiontodo === "truncatebasket") {
+							userbaskets[pos_ub].content = [];
+						} else if (request.actiontodo === "removebasket") {
+							userbaskets.splice(pos_ub, 1);
+						}
+					} else if (request.actiontodo === "removebasketcontent") {
+						for (var pos_el in userbaskets[pos_ub].content) {
+							var item = userbaskets[pos_ub].content[pos_el];
+							if (item === request.elementkey) {
+								userbaskets[pos_ub].content.splice(pos_el, 1);
+								break;
+							}
+						}
+					}
+					break;
+				}
+			}				
+			allusers.displayBasket(userkey);
+			
 		});
 	};
 })(window.mydmam.basket.allusers);
@@ -84,12 +305,12 @@
 			content = content + '<tr>';
 			content = content + '<td>' + basketname + '</td>';
 			content = content + '<td>';
-			content = content + '<button class="btn btn-mini" type="button"><i class="icon-align-left"></i> ' + i18n('userprofile.baskets.admin.rawview') + '</button>';
-			content = content + ' <button class="btn btn-mini" type="button"><i class="icon-download"></i> ' + i18n('userprofile.baskets.admin.importbasket') + '</button>';
-			content = content + ' <button class="btn btn-mini" type="button"><i class="icon-upload"></i> ' + i18n('userprofile.baskets.admin.exportbasket') + '</button>';
+			content = content + '<button class="btn btn-mini btnactionevent btnrawview" type="button" data-basketname="' + basketname + '"><i class="icon-align-left"></i> ' + i18n('userprofile.baskets.admin.rawview') + '</button>';
+			content = content + ' <button class="btn btn-mini btnactionevent btnimportbasket" type="button" data-basketname="' + basketname + '"><i class="icon-download"></i> ' + i18n('userprofile.baskets.admin.importbasket') + '</button>';
+			content = content + ' <button class="btn btn-mini btnactionevent btnexportbasket" type="button" data-basketname="' + basketname + '"><i class="icon-upload"></i> ' + i18n('userprofile.baskets.admin.exportbasket') + '</button>';
 			content = content + ' &bull;';
-			content = content + ' <button class="btn btn-mini" type="button"><i class="icon-remove-sign"></i> ' + i18n('userprofile.baskets.admin.truncate') + '</button>';
-			content = content + ' <button class="btn btn-mini" type="button"><i class="icon-remove"></i> ' + i18n('userprofile.baskets.admin.remove') + '</button>';
+			content = content + ' <button class="btn btn-mini btnactionevent btntruncatebasket" type="button" data-basketname="' + basketname + '"><i class="icon-remove-sign"></i> ' + i18n('userprofile.baskets.admin.truncate') + '</button>';
+			content = content + ' <button class="btn btn-mini btnactionevent btnremovebasket" type="button" data-basketname="' + basketname + '"><i class="icon-remove"></i> ' + i18n('userprofile.baskets.admin.remove') + '</button>';
 			content = content + '</td>';
 			content = content + '</tr>';
 			return content;
@@ -122,10 +343,6 @@
 				}
 				content = content + '</td>';
 				content = content + '<td>' + element.date + '</td>';
-				content = content + '<td>';
-				content = content + '<button class="btn btn-mini" type="button"><i class="icon-minus-sign"></i></button>';
-				content = content + '</td>';
-				content = content + '</tr>';
 			} else {
 				content = content + '<tr>';
 				content = content + '<td>' + basketname + '</td>';
@@ -134,11 +351,12 @@
 				content = content + '<td></td>';
 				content = content + '<td></td>';
 				content = content + '<td></td>';
-				content = content + '<td>';
-				content = content + '<button class="btn btn-mini" type="button"><i class="icon-minus-sign"></i></button>';
-				content = content + '</td>';
-				content = content + '</tr>';
 			}
+			content = content + '<td>';
+			content = content + '<button class="btn btn-mini btnactionevent btnremovebasketcontent" data-basketname="' + basketname + '" data-elementkey="' + itemelementkey + '" type="button">';
+			content = content + '<i class="icon-minus-sign"></i></button>';
+			content = content + '</td>';
+			content = content + '</tr>';
 			
 			return content;
 		};
@@ -216,6 +434,8 @@
 				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [1]}, //Actions
 			]
 		});
+		
+		allusers.setTablesButtonsEvents(userkey);
 		
 		$('#sitesearch').bind('keyup.DT', function(e) {
 			var val = this.value==="" ? "" : this.value;

@@ -31,6 +31,10 @@
 	mydmam.basket.url.rename = "@{User.basket_rename}";
 	mydmam.basket.url.create = "@{User.basket_create}";
 	mydmam.basket.url.switch_selected = "@{User.basket_switch_selected}";
+	#{secure.check 'adminUsers'}
+		mydmam.basket.allusers.ajaxurl = "@{User.basket_admin_action}";
+	#{/secure.check}
+	
 #{/secure.check}
 
 #{secure.check 'showQueue'}

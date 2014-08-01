@@ -579,4 +579,26 @@ public class User extends Controller {
 		
 		render(title, all_baskets, all_users, all_pathindexelements);
 	}
+	
+	/**
+	 * @param userkey is encrypt by Play !
+	 */
+	@Check("adminUsers")
+	public static void basket_admin_action(@Required String userkey, @Required String basketname, @Required String actiontodo) throws Exception {
+		if (validation.hasErrors()) {
+			JSONObject jo = new JSONObject();
+			jo.put("error", true);
+			renderJSON(jo.toJSONString());
+		}
+		
+		HashMap<String, String> result = new HashMap<String, String>();
+		result.put("userkey", userkey);
+		result.put("basketname", basketname);
+		result.put("actiontodo", actiontodo);
+		// TODO
+		System.out.println(MydmamExtensions.decrypt(userkey));
+		
+		Gson g = new Gson();
+		renderJSON(g.toJson(result));
+	}
 }
