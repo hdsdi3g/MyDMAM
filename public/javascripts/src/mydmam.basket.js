@@ -156,6 +156,7 @@
 (function(basket) {
 	basket.setSwitchBasketButtonsEvents = function() {
 		var on_switch_event = function(name, data) {
+			document.body.style.cursor = 'default';
 			if (name === null) {
 				return;
 			}
@@ -164,6 +165,7 @@
 		
 		var event = function() {
 			var basketname = $(this).data("basketname");
+			document.body.style.cursor = 'wait';
 			basket.content.backend.switch_selected(basketname, on_switch_event);
 		};
 		
@@ -246,6 +248,30 @@
 })(window.mydmam.basket);
 
 /**
+ * setTruncateBasketButtonsEvents()
+ */
+(function(basket) {
+	basket.setTruncateBasketButtonsEvents = function() {
+		var on_remove_event = function(name) {
+			if (name === null) {
+				return;
+			}
+			basket.showAll(null, null);
+		};
+		
+		var event = function() {
+			var basketname = $(this).data("basketname");
+			basket.content.backend.truncate(basketname, on_remove_event);
+		};
+		
+		$('button.btntruncatebasket').each(function() {
+			$(this).click(event);
+		});
+	};
+})(window.mydmam.basket);
+
+
+/**
  * showAll
  */
 (function(basket) {
@@ -291,6 +317,7 @@
 			}
 			html = html + '<input type="text" id="inputbasketname' + md5(current_basket.name).substring(0, 6) + '" class="span2 inputbasketname" data-basketname="' + current_basket.name + '" placeholder="' + i18n("userprofile.baskets.basketname") + '" value="' + current_basket.name + '" />';
 			html = html + '<button class="btn btnrenamebasket" data-basketname="' + current_basket.name + '"><i class="icon-edit"></i></button>';
+			html = html + '<button class="btn btntruncatebasket" data-basketname="' + current_basket.name + '"><i class="icon-remove-sign"></i></button>';
 			if (is_selected === false) {
 				html = html + '<button class="btn btnremovebasket" data-basketname="' + current_basket.name + '"><i class="icon-remove"></i></button>';
 			}
@@ -334,6 +361,7 @@
 		basket.setSwitchButtonsEvents();
 		basket.setNavigateButtonsEvents(pathelementkeys_resolved);
 		basket.setSwitchBasketButtonsEvents();
+		basket.setTruncateBasketButtonsEvents();
 		basket.setRemoveBasketButtonsEvents();
 		basket.setRenameBasketButtonsEvents();
 		

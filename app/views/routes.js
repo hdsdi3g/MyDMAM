@@ -28,6 +28,7 @@
 	mydmam.basket.url.all = "@{User.basket_get_all_user}";
 	mydmam.basket.url.selected = "@{User.basket_get_selected}";
 	mydmam.basket.url.bdelete = "@{User.basket_delete}";
+	mydmam.basket.url.truncate = "@{User.basket_truncate}";
 	mydmam.basket.url.rename = "@{User.basket_rename}";
 	mydmam.basket.url.create = "@{User.basket_create}";
 	mydmam.basket.url.switch_selected = "@{User.basket_switch_selected}";

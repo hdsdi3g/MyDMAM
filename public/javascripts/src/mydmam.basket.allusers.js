@@ -47,7 +47,7 @@
 		var content = "";
 		for (var pos in allusers.userkeys) {
 			content = content + '<li id="libtnselectuser' + pos + '" class="libtnselectuser">';
-			content = content + '<a href="#" data-userkey="' + allusers.userkeys[pos] + '" data-selectuserpos="' + pos + '" class="btnbasketusername">';
+			content = content + '<a href="#' + allusers.usersname[allusers.userkeys[pos]] + '" data-userkey="' + allusers.userkeys[pos] + '" data-selectuserpos="' + pos + '" class="btnbasketusername">';
 			content = content + allusers.usersname[allusers.userkeys[pos]];
 			content = content + ' <i class="icon-refresh hide iconuserrefresh"></i>';
 			content = content + '</a>';
@@ -65,6 +65,26 @@
 				allusers.displayBasket($(this).data("userkey"));
 			});
 		});
+		
+		var currentlocationhash = window.location.hash.substring(1);
+		if (currentlocationhash !== "") {
+			var currentuserkey = "";
+			for (var userkey in allusers.usersname) {
+				if (allusers.usersname[userkey] === currentlocationhash) {
+					currentuserkey = userkey;
+					break;
+				}
+			}
+			if (currentuserkey !== '') {
+				for (var pos in allusers.userkeys) {
+					if (allusers.userkeys[pos] === currentuserkey) {
+						$('#libtnselectuser' + pos).addClass("active");
+						allusers.displayBasket(currentuserkey);
+						break;
+					}
+				}
+			}
+		}
 	};
 })(window.mydmam.basket.allusers);
 
@@ -255,6 +275,8 @@
 			} else if ($(this).hasClass("btnremovebasketcontent")) {
 				request.elementkey = $(this).data("elementkey");
 				request.actiontodo = "removebasketcontent";
+			} else if ($(this).hasClass("btndestroybaskets")) {
+				request.actiontodo = "destroybaskets";
 			}
 
 			$("li.libtnselectuser i.iconuserrefresh").removeClass("hide");
@@ -263,7 +285,9 @@
 			 * After server response
 			 */
 			var response_callback = function(response) {
-				if (response.actiontodo === "importbasket" | response.actiontodo === "exportbasket") {
+				if (response.actiontodo === "importbasket" |
+					response.actiontodo === "exportbasket" |
+					response.actiontodo === "destroybaskets") {
 					window.location.reload();
 					return;
 				}
@@ -427,8 +451,26 @@
 			}
 		}
 		
-		$("#containertlbbasketlist").html(prepareTableBasketsList(content_basketslist));
-		$("#containertlbbasketcontent").html(prepareTableBasketsItems(content_basketscontent));
+		var drawBasketLists = function() {
+			var content = "";
+			content = content + '<p class="lead">' + i18n('userprofile.baskets.admin.basketslist');
+			content = content + '<button class="btn btn-mini pull-right btnactionevent btndestroybaskets" data-basketname="(all)" style="display: inline;">';
+			content = content + '<i class="icon-trash"></i>';
+			content = content + '</button>';
+			content = content + '</p>';
+			content = content + '<div>';
+			content = content + prepareTableBasketsList(content_basketslist);
+			content = content + '</div>';
+			content = content + '<hr>';
+			content = content + '<p class="lead">' + i18n('userprofile.baskets.admin.basketscontent') + '</p>';
+			content = content + '<div>';
+			content = content + prepareTableBasketsItems(content_basketscontent);
+			content = content + '</div>';
+			return content;
+		};
+		
+		$("#containerbasketslist").empty();
+		$("#containerbasketslist").html(drawBasketLists());
 		
 		$("#tlbbasketcontent").dataTable({
 			"bPaginate": false,

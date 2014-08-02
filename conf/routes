@@ -46,6 +46,7 @@ GET		/user/basket/pull						User.basket_pull
 GET		/user/basket/selected					User.basket_get_selected
 GET		/user/basket/all						User.basket_get_all_user
 POST	/user/basket/delete						User.basket_delete
+POST	/user/basket/truncate					User.basket_truncate
 POST	/user/basket/rename						User.basket_rename
 POST	/user/basket/create						User.basket_create
 POST	/user/basket/switch						User.basket_switch_selected

@@ -169,6 +169,22 @@
 })(window.mydmam.basket.content.backend);
 
 /**
+ * truncate(name, result = function(name is ok, null if false))
+ */
+(function(backend) {
+	backend.truncate = function(name, result) {
+		$.ajax({
+			url:mydmam.basket.url.truncate,
+			type: "POST",
+			data: {name : name},
+			success: function(data) {
+				result(data.truncate);
+			}
+		});
+	};
+})(window.mydmam.basket.content.backend);
+
+/**
  * rename(name, newname, result = function(name, newname is ok / null, null if false))
  */
 (function(backend) {

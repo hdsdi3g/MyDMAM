@@ -445,6 +445,21 @@ public class User extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	@Check("navigate")
+	public static void basket_truncate(@Required String name) throws Exception {
+		if (validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.setBasketContent(name, new ArrayList<String>(1));
+		
+		JSONObject jo = new JSONObject();
+		jo.put("truncate", name);
+		renderJSON(jo.toJSONString());
+	}
+	
 	/**
 	 * Response JSON Object
 	 */
@@ -553,7 +568,6 @@ public class User extends Controller {
 					continue;
 				}
 			}
-			System.out.println("No long name for this !" + selected_users.get(pos).key);// XXX
 			map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).key);
 		}
 		
@@ -577,8 +591,9 @@ public class User extends Controller {
 		
 		String all_baskets = gson.toJson(map_all_users_baskets);
 		String all_users = gson.toJson(map_all_users);
+		boolean hasusers = map_all_users.isEmpty() == false;
 		
-		render(title, all_baskets, all_users, all_pathindexelements);
+		render(title, all_baskets, all_users, all_pathindexelements, hasusers);
 	}
 	
 	/**
@@ -639,15 +654,30 @@ public class User extends Controller {
 		} else if (actiontodo.equals("removebasket")) {
 			remote_basket.delete(basketname);
 		} else if (actiontodo.equals("removebasketcontent")) {
-			// elementkey
-			// TODO
+			if (elementkey == null) {
+				JSONObject jo = new JSONObject();
+				jo.put("error", true);
+				renderJSON(jo.toJSONString());
+			}
+			if (elementkey.equals("")) {
+				JSONObject jo = new JSONObject();
+				jo.put("error", true);
+				renderJSON(jo.toJSONString());
+			}
+			List<String> content = remote_basket.getBasketContent(basketname);
+			int pos = content.indexOf(elementkey);
+			if (pos > -1) {
+				content.remove(pos);
+			}
+			remote_basket.setBasketContent(basketname, content);
 		} else if (actiontodo.equals("overwritebasket")) {
 			if (newcontent == null) {
-				// TODO
-				
+				remote_basket.setBasketContent(basketname, new ArrayList<String>(1));
 			} else {
-				
+				remote_basket.setBasketContent(basketname, newcontent);
 			}
+		} else if (actiontodo.equals("destroybaskets")) {
+			remote_basket.destroy();
 		}
 		
 		Gson g = new Gson();

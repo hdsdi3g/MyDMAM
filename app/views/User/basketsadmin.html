@@ -24,11 +24,18 @@
 		</div>
 		<div class="span10">
 			<div id="containermsgerror"></div>
-			<p class="lead">&{'userprofile.baskets.admin.basketslist'}</p>
-			<div id="containertlbbasketlist"></div>
-			<hr>
-			<p class="lead">&{'userprofile.baskets.admin.basketscontent'}</p>
-			<div id="containertlbbasketcontent"></div>
+			<div id="containerbasketslist">
+				#{if hasusers}
+				    <div class="alert alert-info alert-block">
+						<button type="button" class="close" data-dismiss="alert">&times;</button>
+						&{'userprofile.baskets.admin.pleaseselect'}
+				    </div>
+				#{/if}#{else}
+				    <div class="alert alert-info alert-block">
+						&{'userprofile.baskets.admin.nobaskets'}
+				    </div>
+				#{/else}
+			</div>
 		</div>
 	</div>
 </div>

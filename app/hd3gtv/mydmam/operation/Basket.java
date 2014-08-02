@@ -31,6 +31,7 @@ import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -73,7 +74,6 @@ public class Basket {
 	
 	public Basket(String user_key) {
 		this.user_key = user_key;
-		System.out.println("new basket object : " + user_key);// XXX
 		if (user_key == null) {
 			throw new NullPointerException("\"user_key\" can't to be null");
 		}
@@ -130,8 +130,6 @@ public class Basket {
 	}
 	
 	public void importSelectedContent() throws ConnectionException {
-		// client.delete(new DeleteRequest(ES_INDEX, ES_DEFAULT_TYPE, "")).actionGet().isFound();//XXX
-		
 		/**
 		 * Cassandra -> update ES
 		 */
@@ -496,6 +494,18 @@ public class Basket {
 			return DEFAULT_BASKET_NAME;
 		}
 		return cols.getStringValue("name", DEFAULT_BASKET_NAME);
+	}
+	
+	/**
+	 * Delete all baskets in ES and Cassandra for User
+	 */
+	public void destroy() throws ConnectionException {
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		mutator.withRow(CF_BASKETS, user_key).delete();
+		mutator.withRow(CF_BASKETS, user_key + SELECTED_TOKEN_KEY).delete();
+		mutator.execute();
+		
+		client.delete(new DeleteRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
 	}
 	
 	public static class All {
