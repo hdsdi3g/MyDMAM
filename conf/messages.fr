@@ -293,7 +293,7 @@ userprofile.baskets.empty=Il n'y a pas d'éléments dans ce panier.
 userprofile.baskets.admin.pagename=Gestion des paniers
 userprofile.baskets.admin.basketslist=Liste des paniers
 userprofile.baskets.admin.basketscontent=Contenu des paniers
-userprofile.baskets.admin.importbasket=Importer dans mes paniers
+userprofile.baskets.admin.importbasket=Importer dans mon panier
 userprofile.baskets.admin.exportbasket=Transferer mon panier dans celui-ci
 userprofile.baskets.admin.truncate=Vider ce panier
 userprofile.baskets.admin.remove=Supprimer ce panier
@@ -307,6 +307,8 @@ userprofile.baskets.admin.rawview=Vue brute
 userprofile.baskets.admin.rawview.modal.title=Vue brute du panier %s de %s
 userprofile.baskets.admin.rawview.modal.cancel=Annuler
 userprofile.baskets.admin.rawview.modal.save=Enregister
+userprofile.baskets.admin.rawview.modal.warning=Attention !
+userprofile.baskets.admin.rawview.modal.cantfoundsomeitems=Impossible de trouver cet/ces element(s) dans les stockages :
 
 crud.field.userprofile=Préférences utilisateur
 crud.field.userprofile.longname=Nom

@@ -293,7 +293,7 @@ userprofile.baskets.empty=There are no items in this basket.
 userprofile.baskets.admin.pagename=Baskets managemement
 userprofile.baskets.admin.basketslist=Baskets list
 userprofile.baskets.admin.basketscontent=Baskets content
-userprofile.baskets.admin.importbasket=Import to my baskets
+userprofile.baskets.admin.importbasket=Import to my basket
 userprofile.baskets.admin.exportbasket=Transfert my basket to this
 userprofile.baskets.admin.truncate=Empty this basket
 userprofile.baskets.admin.remove=Remove this basket
@@ -307,6 +307,8 @@ userprofile.baskets.admin.rawview=Raw view
 userprofile.baskets.admin.rawview.modal.title=Raw view of basket %s from %s
 userprofile.baskets.admin.rawview.modal.cancel=Cancel
 userprofile.baskets.admin.rawview.modal.save=Save
+userprofile.baskets.admin.rawview.modal.warning=Warning!
+userprofile.baskets.admin.rawview.modal.cantfoundsomeitems=Could not find this/these item(s) in storage:
 
 crud.field.userprofile=User settings
 crud.field.userprofile.longname=Name

@@ -73,7 +73,10 @@
  * setTablesButtonsEvents
  */
 (function(allusers) {
-	allusers.displayModalManualBasketEditor = function(userkey, basketname) {
+	allusers.displayModalManualBasketEditor = function(request) {
+		var userkey = request.userkey;
+		var basketname = request.basketname;
+		
 		var userbaskets = allusers.baskets[userkey].baskets;
 		var actualbasketcontentkeys = [];
 		for (var pos_ub in userbaskets) {
@@ -91,7 +94,7 @@
 		content = content + '<h3 id="myModalLabel">' + i18n("userprofile.baskets.admin.rawview.modal.title", basketname, allusers.usersname[userkey]) + '</h3>';
 		content = content + '</div>';
 		content = content + '<div class="modal-body">';
-		content = content + '<textarea data-basketname="' + basketname + '" data-userkey="' + userkey + '" rows="10" style="width: 100%; margin: 0px; padding: 0px; border-width: 0px;font-size: 10pt; font-family: Monospace;" wrap="off">';
+		content = content + '<textarea data-basketname="' + basketname + '" data-userkey="' + userkey + '" rows="10" style="width: 100%; margin: 0px; padding: 0px; border-width: 0px;font-size: 10pt; line-height: 11pt; font-family: Monospace;" wrap="off">';
 		for (var pos in actualbasketcontentkeys) {
 			element = allusers.pathindexelements[actualbasketcontentkeys[pos]];
 			if (element === null) {
@@ -174,17 +177,22 @@
 			 * Display list of bad items (can't resolve it)
 			 */
 			if (cantfounditemslistpos.length > 0) {
+				content = "";
+				content = content + '<div class="alert alert-error">';
+				content = content + '<button type="button" class="close" data-dismiss="alert">&times;</button>';
+				content = content + '<h4>' + i18n('userprofile.baskets.admin.rawview.modal.warning') + '</h4>';
+				content = content + i18n('userprofile.baskets.admin.rawview.modal.cantfoundsomeitems') + '<br>';
+				content = content + '<pre style="background-color: inherit; border: none; font-size: 10pt; line-height: 11pt;">';
 				for (var pos in cantfounditemslistpos) {
+					/**
+					 * Remove from current list, and display it
+					 */
 					newbasketcontent.splice(cantfounditemslistpos[pos] - pos, 1);
-					//console.log(newbasketcontent_paths[cantfounditemslistpos[pos]]); << vrais chemins
+					content = content + newbasketcontent_paths[cantfounditemslistpos[pos]] + "\n";
 				}
-				/*
-				TODO Display this :
-			   <div class="alert">
-			   <button type="button" class="close" data-dismiss="alert">&times;</button>
-			   <strong>Warning!</strong> Best check yo self, you're not looking too good.
-			   </div>
-				 */
+				content = content + '</pre>';
+				content = content + '</div>';
+				$('#containermsgerror').html(content);
 			}
 			
 			/**
@@ -200,9 +208,21 @@
 				
 			allusers.displayBasket(userkey);
 			
-			//TODO send newbasketcontent to server !!
+			request.newcontent = newbasketcontent;
 			
-			$('#modalbasketeditor').modal('hide');
+			var response_callback = function(response) {
+				$('#modalbasketeditor').modal('hide');
+			}; 
+			
+			/**
+			 * Send to server
+			 */
+			$.ajax({
+				url: allusers.ajaxurl,
+				type: "POST",
+				data: request,
+				success: response_callback
+			});
 		});
 		
 	};
@@ -214,12 +234,15 @@
 (function(allusers) {
 	allusers.setTablesButtonsEvents = function(userkey) {
 		$('.btnactionevent').click(function() {
+			$("#containermsgerror").empty();
+			
 			var request = {};
 			request.userkey = userkey;
 			request.basketname = $(this).data("basketname");
 
 			if ($(this).hasClass("btnrawview")) {
-				allusers.displayModalManualBasketEditor(userkey, request.basketname);
+				request.actiontodo = "overwritebasket";
+				allusers.displayModalManualBasketEditor(request);
 				return;
 			} else if ($(this).hasClass("btnimportbasket")) {
 				request.actiontodo = "importbasket";

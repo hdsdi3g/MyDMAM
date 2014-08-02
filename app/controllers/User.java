@@ -553,6 +553,7 @@ public class User extends Controller {
 					continue;
 				}
 			}
+			System.out.println("No long name for this !" + selected_users.get(pos).key);// XXX
 			map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).key);
 		}
 		
@@ -584,7 +585,7 @@ public class User extends Controller {
 	 * @param userkey is encrypt by Play !
 	 */
 	@Check("adminUsers")
-	public static void basket_admin_action(@Required String userkey, @Required String basketname, @Required String actiontodo) throws Exception {
+	public static void basket_admin_action(@Required String userkey, @Required String basketname, @Required String actiontodo, String elementkey, List<String> newcontent) throws Exception {
 		if (validation.hasErrors()) {
 			JSONObject jo = new JSONObject();
 			jo.put("error", true);
@@ -595,8 +596,59 @@ public class User extends Controller {
 		result.put("userkey", userkey);
 		result.put("basketname", basketname);
 		result.put("actiontodo", actiontodo);
-		// TODO
-		System.out.println(MydmamExtensions.decrypt(userkey));
+		
+		String remote_username = MydmamExtensions.decrypt(userkey);
+		Basket remote_basket = new Basket(remote_username);
+		
+		if (actiontodo.equals("importbasket") | actiontodo.equals("exportbasket")) {
+			String local_username = UserProfile.prepareKey(Secure.connected());
+			Basket user_basket = new Basket(local_username);
+			List<String> user_basketcontent = user_basket.getSelectedContent();
+			List<String> remote_basketcontent = remote_basket.getBasketContent(basketname);
+			String item;
+			
+			if (actiontodo.equals("importbasket")) {
+				/**
+				 * remote -> me
+				 */
+				for (int pos = 0; pos < remote_basketcontent.size(); pos++) {
+					item = remote_basketcontent.get(pos);
+					if (user_basketcontent.contains(item) == false) {
+						user_basketcontent.add(item);
+					}
+				}
+				user_basket.setSelectedContent(remote_basketcontent);
+				user_basket.importSelectedContent();
+			} else {
+				/**
+				 * me -> remote
+				 */
+				for (int pos = 0; pos < user_basketcontent.size(); pos++) {
+					item = user_basketcontent.get(pos);
+					if (remote_basketcontent.contains(item) == false) {
+						remote_basketcontent.add(item);
+					}
+				}
+				remote_basket.switchSelectedBasket(basketname);
+				remote_basket.setSelectedContent(remote_basketcontent);
+				remote_basket.importSelectedContent();
+			}
+			
+		} else if (actiontodo.equals("truncatebasket")) {
+			remote_basket.setBasketContent(basketname, new ArrayList<String>(1));
+		} else if (actiontodo.equals("removebasket")) {
+			remote_basket.delete(basketname);
+		} else if (actiontodo.equals("removebasketcontent")) {
+			// elementkey
+			// TODO
+		} else if (actiontodo.equals("overwritebasket")) {
+			if (newcontent == null) {
+				// TODO
+				
+			} else {
+				
+			}
+		}
 		
 		Gson g = new Gson();
 		renderJSON(g.toJson(result));

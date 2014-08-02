@@ -73,6 +73,7 @@ public class Basket {
 	
 	public Basket(String user_key) {
 		this.user_key = user_key;
+		System.out.println("new basket object : " + user_key);// XXX
 		if (user_key == null) {
 			throw new NullPointerException("\"user_key\" can't to be null");
 		}
@@ -81,12 +82,17 @@ public class Basket {
 	/**
 	 * @return never null
 	 */
-	public Collection<String> getSelectedContent() throws ConnectionException {
+	public List<String> getSelectedContent() throws ConnectionException {
 		ColumnList<String> cols = CassandraDb.getkeyspace().prepareQuery(CF_BASKETS).getKey(user_key).execute().getResult();
 		if (cols.isEmpty()) {
 			return new ArrayList<String>(1);
 		}
-		return cols.getColumnNames();
+		Collection<String> names = cols.getColumnNames();
+		ArrayList<String> result = new ArrayList<String>(names.size());
+		for (String name : names) {
+			result.add(name);
+		}
+		return result;
 	}
 	
 	public void setSelectedContent(List<String> content) throws ConnectionException {
@@ -124,6 +130,8 @@ public class Basket {
 	}
 	
 	public void importSelectedContent() throws ConnectionException {
+		// client.delete(new DeleteRequest(ES_INDEX, ES_DEFAULT_TYPE, "")).actionGet().isFound();//XXX
+		
 		/**
 		 * Cassandra -> update ES
 		 */
@@ -170,7 +178,7 @@ public class Basket {
 		IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key);
 		ir.source(source);
 		ir.ttl((long) TTL);
-		// ir.refresh(true);
+		ir.refresh(true);
 		client.index(ir);
 	}
 	
@@ -216,6 +224,77 @@ public class Basket {
 		}
 		mutator.execute();
 		setSelected(name);
+	}
+	
+	public List<String> getBasketContent(String name) throws NullPointerException {
+		Map<String, Object> source;
+		GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
+		if (response.isExists() == false) {
+			throw new NullPointerException("No declared baskets for user " + user_key);
+		}
+		source = response.getSource();
+		
+		List<Object> baskets;
+		
+		if (source.containsKey("baskets") == false) {
+			throw new NullPointerException("No baskets for user " + user_key);
+		}
+		baskets = (List) source.get("baskets");
+		
+		HashMap<String, Object> basket = null;
+		
+		for (int pos = 0; pos < baskets.size(); pos++) {
+			basket = (HashMap) baskets.get(pos);
+			if (basket.get("name").equals(name)) {
+				break;
+			}
+			basket = null;
+		}
+		if (basket == null) {
+			throw new NullPointerException("Can't found basket " + name + " for user " + user_key);
+		}
+		
+		return (List) basket.get("content");
+	}
+	
+	public void setBasketContent(String name, List<String> newcontent) throws ConnectionException {
+		Map<String, Object> source;
+		GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
+		if (response.isExists() == false) {
+			throw new NullPointerException("No declared baskets for user " + user_key);
+		}
+		source = response.getSource();
+		
+		List<Object> baskets;
+		
+		if (source.containsKey("baskets") == false) {
+			throw new NullPointerException("No baskets for user " + user_key);
+		}
+		baskets = (List) source.get("baskets");
+		
+		HashMap<String, Object> basket = null;
+		
+		for (int pos = 0; pos < baskets.size(); pos++) {
+			basket = (HashMap) baskets.get(pos);
+			if (basket.get("name").equals(name)) {
+				break;
+			}
+			basket = null;
+		}
+		if (basket == null) {
+			throw new NullPointerException("Can't found basket " + name + " for user " + user_key);
+		}
+		basket.put("content", newcontent);
+		
+		IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key);
+		ir.source(source);
+		ir.ttl((long) TTL);
+		ir.refresh(true);
+		client.index(ir);
+		
+		if (isSelected(name)) {
+			setSelectedContent(newcontent);
+		}
 	}
 	
 	/**
@@ -480,7 +559,7 @@ public class Basket {
 					IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key);
 					ir.source(source);
 					ir.ttl((long) TTL);
-					// ir.refresh(true);
+					ir.refresh(true);
 					bulkrequest.add(ir);
 				}
 			});
