@@ -285,8 +285,9 @@ public class Notification {
 	
 	/**
 	 * Sorted by created_at (recent first)
+	 * Unused...
 	 */
-	public static List<Notification> getAllFromDatabase(int from, int size) throws Exception {
+	/*public static List<Notification> getAllFromDatabase(int from, int size) throws Exception {
 		if (size < 1) {
 			throw new IndexOutOfBoundsException("size must to be up to 0: " + size);
 		}
@@ -309,7 +310,7 @@ public class Notification {
 			all_notifications.add(notification);
 		}
 		return all_notifications;
-	}
+	}*/
 	
 	public static Notification create(UserProfile creator, String creating_comment) throws ConnectionException, IOException {
 		if (creator == null) {

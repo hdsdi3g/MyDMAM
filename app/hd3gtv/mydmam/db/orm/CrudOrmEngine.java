@@ -22,6 +22,7 @@ import hd3gtv.mydmam.db.CassandraDb;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -122,7 +123,7 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 	/**
 	 * Static call
 	 */
-	public final List<T> read(List<String> keys) throws ConnectionException {
+	public final List<T> read(Collection<String> keys) throws ConnectionException {
 		if (keys.size() == 0) {
 			return null;
 		}

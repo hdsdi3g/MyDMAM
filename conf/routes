@@ -27,7 +27,6 @@ GET		/admin/{objtype}/action/{action}/{key}	Admin.action
 
 *		/stat									Application.stat
 *		/navigateto								Application.navigate
-*		/metadatas								Application.metadatas
 GET		/i18n.js								Application.i18n
 *		/search									Application.search
 GET		/preview/{filehash}/{type}/{file}		Application.metadatafile
@@ -40,6 +39,18 @@ GET		/user/notification/{key}/read			User.notificationupdateread
 POST	/user/notification/resolve/users		User.notificationresolveusers
 GET		/user/notification/admin				User.notificationsadminlist
 GET		/user/notification/admin/{key}/close	User.notificationadminclose
+
+GET		/user/basket/show						User.baskets
+POST	/user/basket/push						User.basket_push
+GET		/user/basket/pull						User.basket_pull
+GET		/user/basket/selected					User.basket_get_selected
+GET		/user/basket/all						User.basket_get_all_user
+POST	/user/basket/delete						User.basket_delete
+POST	/user/basket/truncate					User.basket_truncate
+POST	/user/basket/rename						User.basket_rename
+POST	/user/basket/create						User.basket_create
+POST	/user/basket/switch						User.basket_switch_selected
+POST	/user/basket/admin						User.basket_admin_action
 
 # Catch all
 *       /{controller}/{action}                  {controller}.{action}

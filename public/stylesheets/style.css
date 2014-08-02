@@ -76,6 +76,11 @@ ul {
     padding: 0;
 }
 
+.btnbasketnav {
+	margin-right: 0.8em;
+	margin-top: -0.1em;
+}
+
 /* ============================================================================== */	
 
 .accordion-toggle {

@@ -22,7 +22,7 @@
 (function(mydmam) {
 	mydmam.stat = {};
 	var stat = mydmam.stat;
-	stat.DEFAULT_PAGE_SIZE = 100;
+	stat.DEFAULT_PAGE_SIZE = 500;
 	
 	/**
 	 * Must match with StatElement.java

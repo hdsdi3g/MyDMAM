@@ -22,6 +22,20 @@
 	mydmam.metadatas.url.resolvepositions = "@{Application.resolvepositions()}";
 	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
 	mydmam.stat.url = "@{Application.stat()}";
+	
+	mydmam.basket.url.push = "@{User.basket_push}";
+	mydmam.basket.url.pull = "@{User.basket_pull}";
+	mydmam.basket.url.all = "@{User.basket_get_all_user}";
+	mydmam.basket.url.selected = "@{User.basket_get_selected}";
+	mydmam.basket.url.bdelete = "@{User.basket_delete}";
+	mydmam.basket.url.truncate = "@{User.basket_truncate}";
+	mydmam.basket.url.rename = "@{User.basket_rename}";
+	mydmam.basket.url.create = "@{User.basket_create}";
+	mydmam.basket.url.switch_selected = "@{User.basket_switch_selected}";
+	#{secure.check 'adminUsers'}
+		mydmam.basket.allusers.ajaxurl = "@{User.basket_admin_action}";
+	#{/secure.check}
+	
 #{/secure.check}
 
 #{secure.check 'showQueue'}

@@ -208,7 +208,7 @@ public class CassandraDb {
 		}
 		keyspace.updateColumnFamily(cf, metadatas);
 		
-		Log2.log.debug("ColumnFamily " + cfname + " is created");
+		Log2.log.info("ColumnFamily " + cfname + " is created");
 	}
 	
 	public static void truncateColumnFamilyString(Keyspace keyspace, String cfname) throws ConnectionException {

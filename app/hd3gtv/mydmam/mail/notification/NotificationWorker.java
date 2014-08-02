@@ -129,7 +129,7 @@ public class NotificationWorker extends Worker {
 		stop = false;
 		try {
 			int count = 0;
-			if (job.getProfile().sameProfile(notification_alert_profile)) {
+			if (job.getProfile().equals(notification_alert_profile)) {
 				Notification.updateTasksJobsEvolutionsForNotifications();
 				
 				Map<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_list = Notification.getUsersNotifyList();
@@ -175,7 +175,7 @@ public class NotificationWorker extends Worker {
 				}
 				job.last_message = count + " notifications(s) sended";
 				
-			} else if (job.getProfile().sameProfile(notification_clean_profile)) {
+			} else if (job.getProfile().equals(notification_clean_profile)) {
 				count = Notification.updateOldsAndNonClosedNotifications(grace_period_duration);
 				job.last_message = count + " element(s) closed";
 			}

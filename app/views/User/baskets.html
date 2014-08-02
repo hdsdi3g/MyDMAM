@@ -11,21 +11,23 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 }*
 #{extends 'maingrid.html' /}
 
-<div class="container" id="storageelem"></div>
+<div class="container">
+	<p class="lead">&{'userprofile.baskets.pagename'}</p>
+	<div id="basketslist"></div>
+</div>
 
 <script type="text/javascript" charset="UTF-8">
 <!--
-var list_external_positions_storages = %{out.print(hd3gtv.mydmam.module.MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving())}%;
-mydmam.basket.setContent(%{out.print(hd3gtv.mydmam.web.CurrentUserBasket.getBasket())}%);
-
+var actual_content = ${all_baskets.raw()};
+var actual_selected = "${basket_selected_name.raw()}";
 $(document).ready(function() {
-	$("#btnStorage").addClass("active");
-	mydmam.navigator.displayStoragePathNavigator("storageelem", decodeURIComponent(window.location.hash.substring(1)), false);
+	$("#btnSession").addClass("active");
+	mydmam.basket.showAll(actual_content, actual_selected);
 });
 -->
 </script>

@@ -24,8 +24,12 @@ import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
+import hd3gtv.mydmam.operation.Basket;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.TaskJobStatus;
+import hd3gtv.mydmam.web.CurrentUserBasket;
+import hd3gtv.mydmam.web.stat.Stat;
+import hd3gtv.mydmam.web.stat.StatElement;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -47,6 +51,9 @@ import play.i18n.Messages;
 import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
+
+import com.google.gson.Gson;
+
 import ext.MydmamExtensions;
 
 @With(Secure.class)
@@ -342,7 +349,7 @@ public class User extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
-	@Check("adminNotifications")
+	@Check("adminUsers")
 	public static void notificationsadminlist() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.admin.pagename");
 		ArrayList<Map<String, Object>> user_notifications = Notification.getAdminListFromDatabase();
@@ -371,7 +378,7 @@ public class User extends Controller {
 		render(title, user_notifications, linked_tasksjobs);
 	}
 	
-	@Check("adminNotifications")
+	@Check("adminUsers")
 	public static void notificationadminclose(@Required String key) throws Exception {
 		if (validation.hasErrors()) {
 			redirect("User.notificationsadminlist");
@@ -388,4 +395,292 @@ public class User extends Controller {
 		redirect("User.notificationsadminlist");
 	}
 	
+	/**
+	 * Send to client actual basket content.
+	 */
+	@Check("navigate")
+	public static void basket_pull() {
+		renderJSON(CurrentUserBasket.getBasket());
+	}
+	
+	/**
+	 * Get new basket content from client.
+	 */
+	@Check("navigate")
+	public static void basket_push() {
+		if (params.get("empty") != null) {
+			CurrentUserBasket.dropBasket();
+		} else {
+			CurrentUserBasket.setBasket(params.getAll("current[]"));
+		}
+		renderJSON("[]");
+	}
+	
+	@Check("navigate")
+	public static void baskets() throws Exception {
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.importSelectedContent();
+		
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.pagename");
+		
+		Gson gson = new Gson();
+		String all_baskets = gson.toJson(basket.getAllBaskets());
+		String basket_selected_name = basket.getSelected();
+		render(title, all_baskets, basket_selected_name);
+	}
+	
+	@Check("navigate")
+	public static void basket_delete(@Required String name) throws Exception {
+		if (validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.delete(name);
+		
+		JSONObject jo = new JSONObject();
+		jo.put("delete", name);
+		renderJSON(jo.toJSONString());
+	}
+	
+	@Check("navigate")
+	public static void basket_truncate(@Required String name) throws Exception {
+		if (validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.setBasketContent(name, new ArrayList<String>(1));
+		
+		JSONObject jo = new JSONObject();
+		jo.put("truncate", name);
+		renderJSON(jo.toJSONString());
+	}
+	
+	/**
+	 * Response JSON Object
+	 */
+	@Check("navigate")
+	public static void basket_get_selected() throws Exception {
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		
+		JSONObject jo = new JSONObject();
+		jo.put("selected", basket.getSelected());
+		renderJSON(jo.toJSONString());
+	}
+	
+	@Check("navigate")
+	public static void basket_rename(@Required String name, @Required String newname) throws Exception {
+		if (validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.rename(name, cleanName(newname));
+		
+		JSONObject jo = new JSONObject();
+		jo.put("rename_from", name);
+		jo.put("rename_to", cleanName(newname));
+		renderJSON(jo.toJSONString());
+	}
+	
+	private static String cleanName(String rawname) {
+		char chr;
+		StringBuffer result = new StringBuffer();
+		for (int pos = 0; pos < rawname.length(); pos++) {
+			chr = rawname.charAt(pos);
+			if (Character.isAlphabetic(chr)) {
+				result.append(chr);
+			} else if (Character.isDigit(chr)) {
+				result.append(chr);
+			}
+		}
+		return result.toString();
+	}
+	
+	@Check("navigate")
+	public static void basket_create(@Required String name, @Required Boolean switch_to_selected) throws Exception {
+		if (validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.createNew(cleanName(name), switch_to_selected);
+		
+		JSONObject jo = new JSONObject();
+		jo.put("create", cleanName(name));
+		jo.put("switch_to_selected", switch_to_selected);
+		renderJSON(jo.toJSONString());
+	}
+	
+	/**
+	 * Response JSON Object
+	 */
+	@Check("navigate")
+	public static void basket_get_all_user() {
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		Gson gson = new Gson();
+		renderJSON(gson.toJson(basket.getAllBaskets()));
+	}
+	
+	/**
+	 * Response basket_pull() with new content.
+	 */
+	@Check("navigate")
+	public static void basket_switch_selected(@Required String name) throws Exception {
+		if (validation.hasErrors()) {
+			JSONObject jo = new JSONObject();
+			jo.put("notselected", true);
+			renderJSON(jo.toJSONString());
+		}
+		
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		basket.switchSelectedBasket(name);
+		basket_pull();
+	}
+	
+	@Check("adminUsers")
+	public static void basketsadmin() throws Exception {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.admin.pagename");
+		
+		Basket.All.importSelectedContent();
+		Gson gson = new Gson();
+		Map<String, Object> real_map_all_users_baskets = Basket.All.getAllUsersAllBasketsSize();
+		
+		/**
+		 * Get user list, and resolve names. Crypt user keys.
+		 */
+		CrudOrmEngine<UserProfile> user_profile_orm_engine = new CrudOrmEngine<UserProfile>(new UserProfile());
+		List<UserProfile> selected_users = user_profile_orm_engine.read(real_map_all_users_baskets.keySet());
+		HashMap<String, String> map_all_users = new HashMap<String, String>();
+		for (int pos = 0; pos < selected_users.size(); pos++) {
+			if (selected_users.get(pos).longname != null) {
+				if (selected_users.get(pos).longname.equals("") == false) {
+					map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).longname);
+					continue;
+				}
+			}
+			map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).key);
+		}
+		
+		/**
+		 * Crypt user keys, and resolve all baskets content pathindexkeys to pathindexelements.
+		 */
+		Map<String, Object> map_all_users_baskets = new HashMap<String, Object>();
+		List<String> list_pathindexkeys = new ArrayList<String>();
+		for (Map.Entry<String, Object> entry : real_map_all_users_baskets.entrySet()) {
+			map_all_users_baskets.put(MydmamExtensions.encrypt(entry.getKey()), entry.getValue());
+			Basket.addBasketsElementsToListFromRawDb(list_pathindexkeys, (Map) entry.getValue());
+		}
+		
+		String all_pathindexelements = "{}";
+		if (list_pathindexkeys.isEmpty() == false) {
+			String[] array_scopes_element = new String[1];
+			array_scopes_element[0] = StatElement.SCOPE_PATHINFO;
+			Stat stat = new Stat(list_pathindexkeys.toArray(new String[list_pathindexkeys.size()]), array_scopes_element, null);
+			all_pathindexelements = stat.toJSONString();
+		}
+		
+		String all_baskets = gson.toJson(map_all_users_baskets);
+		String all_users = gson.toJson(map_all_users);
+		boolean hasusers = map_all_users.isEmpty() == false;
+		
+		render(title, all_baskets, all_users, all_pathindexelements, hasusers);
+	}
+	
+	/**
+	 * @param userkey is encrypt by Play !
+	 */
+	@Check("adminUsers")
+	public static void basket_admin_action(@Required String userkey, @Required String basketname, @Required String actiontodo, String elementkey, List<String> newcontent) throws Exception {
+		if (validation.hasErrors()) {
+			JSONObject jo = new JSONObject();
+			jo.put("error", true);
+			renderJSON(jo.toJSONString());
+		}
+		
+		HashMap<String, String> result = new HashMap<String, String>();
+		result.put("userkey", userkey);
+		result.put("basketname", basketname);
+		result.put("actiontodo", actiontodo);
+		
+		String remote_username = MydmamExtensions.decrypt(userkey);
+		Basket remote_basket = new Basket(remote_username);
+		
+		if (actiontodo.equals("importbasket") | actiontodo.equals("exportbasket")) {
+			String local_username = UserProfile.prepareKey(Secure.connected());
+			Basket user_basket = new Basket(local_username);
+			List<String> user_basketcontent = user_basket.getSelectedContent();
+			List<String> remote_basketcontent = remote_basket.getBasketContent(basketname);
+			String item;
+			
+			if (actiontodo.equals("importbasket")) {
+				/**
+				 * remote -> me
+				 */
+				for (int pos = 0; pos < remote_basketcontent.size(); pos++) {
+					item = remote_basketcontent.get(pos);
+					if (user_basketcontent.contains(item) == false) {
+						user_basketcontent.add(item);
+					}
+				}
+				user_basket.setSelectedContent(remote_basketcontent);
+				user_basket.importSelectedContent();
+			} else {
+				/**
+				 * me -> remote
+				 */
+				for (int pos = 0; pos < user_basketcontent.size(); pos++) {
+					item = user_basketcontent.get(pos);
+					if (remote_basketcontent.contains(item) == false) {
+						remote_basketcontent.add(item);
+					}
+				}
+				remote_basket.switchSelectedBasket(basketname);
+				remote_basket.setSelectedContent(remote_basketcontent);
+				remote_basket.importSelectedContent();
+			}
+			
+		} else if (actiontodo.equals("truncatebasket")) {
+			remote_basket.setBasketContent(basketname, new ArrayList<String>(1));
+		} else if (actiontodo.equals("removebasket")) {
+			remote_basket.delete(basketname);
+		} else if (actiontodo.equals("removebasketcontent")) {
+			if (elementkey == null) {
+				JSONObject jo = new JSONObject();
+				jo.put("error", true);
+				renderJSON(jo.toJSONString());
+			}
+			if (elementkey.equals("")) {
+				JSONObject jo = new JSONObject();
+				jo.put("error", true);
+				renderJSON(jo.toJSONString());
+			}
+			List<String> content = remote_basket.getBasketContent(basketname);
+			int pos = content.indexOf(elementkey);
+			if (pos > -1) {
+				content.remove(pos);
+			}
+			remote_basket.setBasketContent(basketname, content);
+		} else if (actiontodo.equals("overwritebasket")) {
+			if (newcontent == null) {
+				remote_basket.setBasketContent(basketname, new ArrayList<String>(1));
+			} else {
+				remote_basket.setBasketContent(basketname, newcontent);
+			}
+		} else if (actiontodo.equals("destroybaskets")) {
+			remote_basket.destroy();
+		}
+		
+		Gson g = new Gson();
+		renderJSON(g.toJson(result));
+	}
 }

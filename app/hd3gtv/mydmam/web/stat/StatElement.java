@@ -22,14 +22,14 @@ import java.util.Map;
 
 import org.json.simple.JSONObject;
 
-class StatElement {
+public class StatElement {
 	
 	public static final String SCOPE_DIRLIST = "dirlist";
 	public static final String SCOPE_PATHINFO = "pathinfo";
 	public static final String SCOPE_MTD_SUMMARY = "mtdsummary";
 	public static final String SCOPE_COUNT_ITEMS = "countitems";
 	
-	public StatElement() {
+	StatElement() {
 	}
 	
 	/**

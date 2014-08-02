@@ -31,9 +31,10 @@
 
 /**
  * displayStoragePathNavigator
+ * @param currentpage is default to 0 (the first page)
  */
 (function(navigator) {
-	navigator.displayStoragePathNavigator = function(domid, fullpath, addmetadatastosearchlistitems) {
+	navigator.displayStoragePathNavigator = function(domid, fullpath, addmetadatastosearchlistitems, currentpage) {
 		var externalstorage = false;
 		
 		var currentstorage = fullpath.substring(0, fullpath.indexOf(":"));
@@ -45,7 +46,7 @@
 		
 		var stat = window.mydmam.stat;
 		var md5_fullpath = md5(fullpath);
-		var stat_data = stat.query([md5_fullpath], [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS], [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS]);
+		var stat_data = stat.query([md5_fullpath], [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS], [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS], currentpage);
 		var no_result = function() {
 			$("#" + domid).empty();
 			window.location.hash = '#';
@@ -72,7 +73,6 @@
 		var items_page_from = stat_data.items_page_from;
 		var items_page_size = stat_data.items_page_size;
 
-		
 		var content = '<div class="page-header">';
 		content = content + '<h3>';
 		if (reference.storagename) {
@@ -105,6 +105,10 @@
 		}
 		content = content + '</h3>';
 
+		if (reference.storagename) {
+			content = content + mydmam.basket.prepareNavigatorSwitchButton(md5_fullpath);
+		}
+		
 		if (reference.date) {
 			var data_date = mydmam.format.fulldate(reference.date);
 			if (data_date !== "") {
@@ -118,14 +122,18 @@
 			}
 		} else {
 			if (items) {
-				if (items.length > 0) {
-					// Fake (get from the first item), but realist indexdate.
-					if (items[0].dateindex) {
-						var data_date = mydmam.format.fulldate(items[0].dateindex);
-						if (data_date !== "") {
-							content = content + '<span class="label">' + i18n("browser.file.indexednearat") + ' ' + data_date + '</span> ';
+				// Fake (get from the first item), but realist indexdate.
+				for (var item in items) {
+					var newitem = items[item];
+					if (newitem.reference) {
+						if (newitem.reference.dateindex) {
+							var data_date = mydmam.format.fulldate(newitem.reference.dateindex);
+							if (data_date !== "") {
+								content = content + '<span class="label">' + i18n("browser.file.indexednearat") + ' ' + data_date + '</span> ';
+							}
 						}
 					}
+					break;
 				}
 			}
 		}
@@ -143,6 +151,7 @@
 		}
 		
 		if (items) {
+				
 			var dircontent = []; 
 			for (var item in items) {
 				var newitem = items[item];
@@ -185,6 +194,8 @@
 				
 				if (element.directory) {
 					content = content + '<th>';
+					content = content + mydmam.basket.prepareNavigatorSwitchButton(elementkey);
+					
 					if (reference.storagename) {
 						content = content + '<a class="tlbdirlistitem" href="' + mydmam.metadatas.url.navigate + "#" + element.storagename + ":" + element.path + '">';
 						content = content + element.path.substring(element.path.lastIndexOf("/") + 1);
@@ -202,6 +213,8 @@
 					content = content + '</th>';
 				} else {
 					content = content + '<td>';
+					content = content + mydmam.basket.prepareNavigatorSwitchButton(elementkey);
+					
 					if (element.id) {
 						content = content + '<span class="label label-info">' + element.id + '</span> ';
 					}
@@ -261,6 +274,11 @@
 			content = content + '</tbody>';
 			content = content + '</table>';
 
+			var href = function(currentpage, pagecount) {
+				return '#' + fullpath;
+			};
+			content = content +  mydmam.pagination.create(items_page_from, Math.ceil(items_total/items_page_size), href, "navigator-" + md5_fullpath);
+			
 			$("#" + domid).empty();
 			$("#" + domid).append(content);
 			
@@ -284,7 +302,13 @@
 				$('.dataTables_filter input').val(val);
 				$('.dataTables_filter input').trigger("keyup.DT");
 			});
-
+			
+			mydmam.pagination.addevents(function(currentpage) {
+				return function() {
+					mydmam.navigator.displayStoragePathNavigator("storageelem", fullpath, true, currentpage);
+				};
+			}, "navigator-" + md5_fullpath);
+			
 		} else {
 			$("#" + domid).empty();
 			$("#" + domid).append(content);
@@ -319,6 +343,8 @@
 		if (addmetadatastosearchlistitems) {
 			mydmam.metadatas.addMetadatasToSearchListItems();
 		}
+		
+		mydmam.basket.setSwitchButtonsEvents();
 	};
 })(window.mydmam.navigator);
 

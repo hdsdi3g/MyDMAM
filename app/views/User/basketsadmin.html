@@ -1,0 +1,53 @@
+*{
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * 
+}*
+#{extends 'maingrid.html' /}
+
+<div class="container-fluid">
+	<p class="lead">&{'userprofile.baskets.admin.pagename'}</p>
+	<div class="row-fluid">
+		<div class="span2">
+			<ul class="nav nav-pills nav-stacked" id="userlist"></ul>
+		</div>
+		<div class="span10">
+			<div id="containermsgerror"></div>
+			<div id="containerbasketslist">
+				#{if hasusers}
+				    <div class="alert alert-info alert-block">
+						<button type="button" class="close" data-dismiss="alert">&times;</button>
+						&{'userprofile.baskets.admin.pleaseselect'}
+				    </div>
+				#{/if}#{else}
+				    <div class="alert alert-info alert-block">
+						&{'userprofile.baskets.admin.nobaskets'}
+				    </div>
+				#{/else}
+			</div>
+		</div>
+	</div>
+</div>
+    
+<script type="text/javascript" charset="UTF-8">
+<!--
+$(document).ready(function() {
+	$("#btnAdmin").addClass("active");
+	mydmam.basket.allusers.baskets = ${all_baskets.raw()};
+	mydmam.basket.allusers.usersname = ${all_users.raw()};
+	mydmam.basket.allusers.pathindexelements = ${all_pathindexelements.raw()};
+	mydmam.basket.allusers.prepare();
+});
+-->
+</script>

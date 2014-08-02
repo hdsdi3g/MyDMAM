@@ -42,8 +42,8 @@ public class FFmpegSnapshoot implements Renderer {
 	
 	public FFmpegSnapshoot() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
-		if (TranscodeProfileManager.isEnabled()) {
-			tprofile = TranscodeProfileManager.getProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
+		if (TranscodeProfile.isConfigured()) {
+			tprofile = TranscodeProfile.getTranscodeProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
 		}
 	}
 	
@@ -71,9 +71,7 @@ public class FFmpegSnapshoot implements Renderer {
 		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
 		RenderedElement element = new RenderedElement("snap", tprofile.getExtension("jpg"));
 		
-		ArrayList<String> param = tprofile.makeCommandline(analysis_result.getOrigin().getAbsolutePath(), element.getTempFile().getAbsolutePath());
-		
-		ExecprocessGettext process = new ExecprocessGettext(ffmpeg_bin, param);
+		ExecprocessGettext process = tprofile.prepareExecprocessGettext(ffmpeg_bin, analysis_result.getOrigin(), element.getTempFile());
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();
