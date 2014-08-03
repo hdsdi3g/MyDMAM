@@ -50,6 +50,7 @@ import org.json.simple.parser.JSONParser;
 
 import com.google.common.primitives.Ints;
 
+@SuppressWarnings("unchecked")
 public class FFprobeAnalyser implements Analyser {
 	
 	private String ffprobe_bin;
@@ -155,6 +156,7 @@ public class FFprobeAnalyser implements Analyser {
 		return result;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	private static void patchTagDate(JSONObject jo_tags) {
 		if (jo_tags == null) {
 			return;

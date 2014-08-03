@@ -26,6 +26,7 @@ import models.ACLGroup;
 import models.ACLRole;
 import models.ACLUser;
 import play.data.validation.Required;
+import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
@@ -72,7 +73,7 @@ public class ACL extends Controller {
 	public static void updategroup(@Required String name, @Required String role) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			List<ACLRole> roles = ACLRole.findAll();
 			name = null;
 			role = null;
@@ -103,7 +104,7 @@ public class ACL extends Controller {
 	
 	@Check("acl")
 	public static void deletegroup(@Required String name) {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			redirect("ACL.showgroups");
 			return;
 		}
@@ -156,7 +157,7 @@ public class ACL extends Controller {
 	public static void updateuser(@Required String login, @Required String group) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			List<ACLGroup> groups = ACLGroup.findAll();
 			login = null;
 			group = null;
@@ -187,7 +188,7 @@ public class ACL extends Controller {
 	
 	@Check("acl")
 	public static void deleteuser(@Required String login) {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			redirect("ACL.showusers");
 			return;
 		}
@@ -246,7 +247,7 @@ public class ACL extends Controller {
 	
 	@Check("acl")
 	public static void deleterole(@Required String name) {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			redirect("ACL.showroles");
 			return;
 		}
@@ -270,7 +271,7 @@ public class ACL extends Controller {
 	public static void updaterole(@Required String name) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			List<ACLGroup> selectedgroups = null;
 			List<ACLGroup> groups = ACLGroup.findAll();
 			List<String> selectedprivileges = null;

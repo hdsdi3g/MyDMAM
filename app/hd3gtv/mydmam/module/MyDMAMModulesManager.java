@@ -333,6 +333,7 @@ public class MyDMAMModulesManager {
 	/**
 	 * Reboot Play to see changes.
 	 */
+	@SuppressWarnings("unchecked")
 	public static JSONObject getPositionInformationsByTapeName(String... tapenames) {
 		populate_tape_localisators();
 		JSONObject result = new JSONObject();
@@ -370,6 +371,7 @@ public class MyDMAMModulesManager {
 	
 	private static volatile String fullliststorageindexnamejsonlistforhostedinarchiving;
 	
+	@SuppressWarnings("unchecked")
 	public static String getStorageIndexNameJsonListForHostedInArchiving() {
 		if (fullliststorageindexnamejsonlistforhostedinarchiving == null) {
 			populate_tape_localisators();

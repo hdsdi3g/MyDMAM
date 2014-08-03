@@ -37,6 +37,7 @@ import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@SuppressWarnings("unchecked")
 public class MetadataRendererWorker extends Worker {
 	
 	static final String PROFILE_CATEGORY = "metadata-rendering";

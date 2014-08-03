@@ -42,6 +42,7 @@ import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@SuppressWarnings("unchecked")
 public class FFmpegLowresRenderer implements RendererViaWorker {
 	
 	public static final Profile profile_ffmpeg_lowres_lq = new Profile("ffmpeg", "ffmpeg_lowres_lq");

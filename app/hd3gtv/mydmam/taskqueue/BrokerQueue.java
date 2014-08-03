@@ -123,6 +123,7 @@ class BrokerQueue extends Thread {
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void run() {
 		try {
 			int time_spacer = 0;

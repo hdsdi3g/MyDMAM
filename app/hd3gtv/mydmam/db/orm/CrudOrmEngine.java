@@ -48,6 +48,7 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 	/**
 	 * @param element Define internal element
 	 */
+	@SuppressWarnings("unchecked")
 	public CrudOrmEngine(T element) throws ConnectionException, IOException {
 		this.element = element;
 		if (element == null) {
@@ -133,6 +134,7 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 	/**
 	 * Dynamic call, reaffect internal element.
 	 */
+	@SuppressWarnings("unchecked")
 	public final T create() throws Exception {
 		Constructor<?> constructor = element.getClass().getDeclaredConstructor();
 		constructor.setAccessible(true);

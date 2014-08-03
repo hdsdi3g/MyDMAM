@@ -35,6 +35,7 @@ import java.util.Properties;
 import org.json.simple.JSONObject;
 
 import play.data.validation.Required;
+import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.Http.Header;
@@ -168,7 +169,7 @@ public class Application extends Controller {
 	public static void metadatafile(@Required String filehash, @Required String type, @Required String file) {
 		response.setHeader("Accept-Ranges", "bytes");
 		
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			forbidden();
 		}
 		response.cacheFor("60s");
@@ -196,6 +197,7 @@ public class Application extends Controller {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Check("navigate")
 	public static void resolvePositions() throws ConnectionException {
 		String[] keys = params.getAll("keys[]");

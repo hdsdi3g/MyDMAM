@@ -28,6 +28,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import com.jcraft.jsch.JSchException;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 class ConnectionStore {
 	
 	private File store_file;

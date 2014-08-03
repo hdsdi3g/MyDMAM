@@ -60,6 +60,7 @@ public class Configuration {
 	
 	private HashMap<String, ConfigurationItem> configuration;
 	
+	@SuppressWarnings("unchecked")
 	public Configuration(File file) throws IOException {
 		if (file.exists() == false) {
 			throw new FileNotFoundException();
@@ -122,6 +123,7 @@ public class Configuration {
 					return;
 				}
 			} else if (applyto instanceof ArrayList<?>) {
+				@SuppressWarnings("unchecked")
 				ArrayList<String> list = (ArrayList<String>) applyto;
 				boolean exists = false;
 				for (int pos = 0; pos < list.size(); pos++) {
@@ -355,6 +357,7 @@ public class Configuration {
 		return getValues(configuration, elementname);
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static LinkedHashMap<String, String> getValues(HashMap<String, ConfigurationItem> baseelement, String elementname) {
 		if (isElementExists(baseelement, elementname) == false) {
 			return null;
@@ -412,6 +415,7 @@ public class Configuration {
 	/**
 	 * @return Only the keys/value Maps for elementname in baseelement
 	 */
+	@SuppressWarnings("unchecked")
 	public static HashMap<String, ConfigurationItem> getElement(HashMap<String, ConfigurationItem> baseelement, String elementname) {
 		ConfigurationItem ci = baseelement.get(elementname);
 		
@@ -434,6 +438,7 @@ public class Configuration {
 		return result;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static void importLog2Configuration(Configuration configuration, boolean logrotate_enabled) {
 		try {
 			/**
@@ -522,6 +527,7 @@ public class Configuration {
 		return getValuesList(configuration, elementname, key);
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static List<LinkedHashMap<String, ?>> getValuesList(HashMap<String, ConfigurationItem> baseelement, String elementname, String key) {
 		ConfigurationItem element = baseelement.get(elementname);
 		if (element == null) {

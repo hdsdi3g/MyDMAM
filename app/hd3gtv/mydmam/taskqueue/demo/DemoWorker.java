@@ -29,6 +29,7 @@ import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@SuppressWarnings("unchecked")
 public class DemoWorker extends Worker {
 	
 	public static final Profile demo_profile = new Profile("test", "debug1");

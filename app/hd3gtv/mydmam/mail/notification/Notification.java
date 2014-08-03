@@ -55,6 +55,7 @@ import org.json.simple.parser.JSONParser;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@SuppressWarnings("unchecked")
 public class Notification {
 	
 	public static final String ES_INDEX = "notifications";
@@ -832,6 +833,7 @@ public class Notification {
 		return notification;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public static ArrayList<Map<String, Object>> getRawFromDatabaseByObserver(UserProfile user, boolean can_is_closed) throws ConnectionException, IOException {
 		if (user == null) {
 			throw new NullPointerException("\"user\" can't to be null");

@@ -54,6 +54,7 @@ import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+@SuppressWarnings("unchecked")
 public class Broker {
 	
 	static final ColumnFamily<String, String> CF_TASKQUEUE = new ColumnFamily<String, String>("taskqueue", StringSerializer.get(), StringSerializer.get());

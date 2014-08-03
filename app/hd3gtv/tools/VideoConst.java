@@ -68,6 +68,8 @@ public final class VideoConst {
 				return "HFR 60 fps";
 			case HFR_CINEMA_SCAN:
 				return "HFR 48 fps";
+			default:
+				break;
 			}
 			return "";
 		}
@@ -485,6 +487,8 @@ public final class VideoConst {
 				return new Point(3840, 2160);
 			case UHD_8K:
 				return new Point(7680, 4320);
+			default:
+				break;
 			}
 			return null;
 		}
@@ -533,6 +537,8 @@ public final class VideoConst {
 				return "4K UHDTV";
 			case UHD_8K:
 				return "8K UHDTV";
+			default:
+				break;
 			}
 			return "";
 		}

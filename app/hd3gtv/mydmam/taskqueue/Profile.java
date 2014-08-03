@@ -89,6 +89,7 @@ public class Profile implements Log2Dumpable {
 	/**
 	 * For worker managed profiles
 	 */
+	@SuppressWarnings("unchecked")
 	final JSONObject toJson() {
 		JSONObject jo = new JSONObject();
 		jo.put("category", category);
@@ -96,6 +97,7 @@ public class Profile implements Log2Dumpable {
 		return jo;
 	}
 	
+	@SuppressWarnings("unchecked")
 	static void pullJSONFromDatabase(JSONObject jo, ColumnList<String> columns) {
 		jo.put("profile_name", columns.getStringValue("profile_name", ""));
 		jo.put("profile_category", columns.getStringValue("profile_category", ""));

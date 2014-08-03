@@ -118,6 +118,7 @@ public class Job extends Task {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	static JSONObject pullJSONFromDatabase(ColumnList<String> columns) throws ParseException {
 		JSONObject jo = Task.pullJSONFromDatabase(columns);
 		jo.put("processing_error", columns.getStringValue("processing_error", ""));

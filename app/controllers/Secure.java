@@ -206,6 +206,7 @@ public class Secure extends Controller {
 		render(force_select_domain, authenticators_domains);
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static void authenticate(@Required String username, @Required String password, String domainidx, boolean remember) throws Throwable {
 		if (Validation.hasErrors()) {
 			flash.keep("url");

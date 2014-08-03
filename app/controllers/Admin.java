@@ -53,6 +53,7 @@ import play.vfs.VirtualFile;
 public class Admin extends Controller {
 	
 	private static class PlayModelClassResolver implements ModelClassResolver {
+		@SuppressWarnings("unchecked")
 		public Class<? extends CrudOrmModel> loadModelClass(String name) throws ClassNotFoundException {
 			if (name == null) {
 				return null;
@@ -150,7 +151,7 @@ public class Admin extends Controller {
 					}
 				}
 				
-				Class candidate;
+				Class<?> candidate;
 				for (int pos_classes = 0; pos_classes < classes_to_test.size(); pos_classes++) {
 					try {
 						String classname = classes_to_test.get(pos_classes);

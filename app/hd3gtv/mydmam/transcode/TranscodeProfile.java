@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@SuppressWarnings("unchecked")
 public class TranscodeProfile extends Profile {
 	
 	static final String TAG_PROGRESSFILE = "<%$PROGRESSFILE%>";

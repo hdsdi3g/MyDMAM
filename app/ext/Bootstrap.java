@@ -38,6 +38,7 @@ import play.jobs.OnApplicationStart;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@SuppressWarnings("rawtypes")
 @OnApplicationStart
 public class Bootstrap extends Job {
 	

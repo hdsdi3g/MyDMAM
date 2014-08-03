@@ -31,6 +31,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.search.SearchHit;
 import org.json.simple.JSONObject;
 
+@SuppressWarnings("unchecked")
 public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, JsonSerializer<SourcePathIndexerElement>*/{
 	
 	private static final long serialVersionUID = -3421843205650861824L;
@@ -309,7 +310,4 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 		return dump;
 	}
 	
-	/*public JsonElement serialize(SourcePathIndexerElement src, Type typeOfSrc, JsonSerializationContext context) {
-		return new JsonPrimitive(src.toJson().toJSONString());
-	}*/
 }

@@ -58,6 +58,7 @@ import org.json.simple.parser.ParseException;
 
 import com.eaio.uuid.UUID;
 
+@SuppressWarnings("unchecked")
 public class RenderedElement implements Log2Dumpable {
 	
 	private static File temp_directory;

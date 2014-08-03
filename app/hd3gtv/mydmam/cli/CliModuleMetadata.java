@@ -48,6 +48,7 @@ public class CliModuleMetadata implements CliModule {
 		return "Operate on metadatas and file analysis";
 	}
 	
+	@SuppressWarnings("deprecation")
 	public void execCliModule(ApplicationArgs args) throws Exception {
 		MetadataCenter metadata_center = new MetadataCenter();
 		MetadataCenter.addAllInternalsProviders(metadata_center);
