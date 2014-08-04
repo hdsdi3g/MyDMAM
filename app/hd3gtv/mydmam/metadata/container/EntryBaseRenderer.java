@@ -26,7 +26,7 @@ import com.google.gson.reflect.TypeToken;
 
 public abstract class EntryBaseRenderer extends EntryBase {
 	
-	List<RenderedContent> content;
+	public List<RenderedContent> content;
 	
 	protected final void internalDeserialize(EntryBase _entry, JsonObject source, Gson gson) {
 		EntryBaseRenderer entry = (EntryBaseRenderer) _entry;

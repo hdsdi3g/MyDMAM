@@ -18,7 +18,6 @@ package hd3gtv.mydmam.metadata.container;
 
 import java.lang.reflect.Type;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -26,46 +25,32 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-public class EntrySerialiser<T extends EntryBase> {
+public class EntrySerialiserBridge<T extends EntryBase> {
 	
-	T entrybase;
-	Serializer serializer;
-	Deserializer deserializer;
-	static Gson gson;
+	private T entrybase;
 	
-	public EntrySerialiser(T entrybase) {
+	public EntrySerialiserBridge(T entrybase) {
 		this.entrybase = entrybase;
 		if (entrybase == null) {
 			throw new NullPointerException("\"entrybase\" can't to be null");
 		}
-		serializer = new Serializer();
-		deserializer = new Deserializer();
+		ContainerOperations.getGsonBuilder().registerTypeAdapter(entrybase.getClass(), new Serializer());
+		ContainerOperations.getGsonBuilder().registerTypeAdapter(entrybase.getClass(), new Deserializer());
 		/**
 		 * Refresh static reference at each load.
 		 */
-		gson = Container.getGsonBuilder().create();
 	}
 	
 	private final class Serializer implements JsonSerializer<T> {
-		
-		public Serializer() {
-			Container.getGsonBuilder().registerTypeAdapter(entrybase.getClass(), this);
-		}
-		
 		public JsonElement serialize(T src, Type typeOfSrc, JsonSerializationContext context) {
-			return entrybase.serialize(src, gson);
+			return entrybase.serialize(src, ContainerOperations.gson);
 		}
 	}
 	
 	private final class Deserializer implements JsonDeserializer<T> {
-		
-		public Deserializer() {
-			Container.getGsonBuilder().registerTypeAdapter(entrybase.getClass(), this);
-		}
-		
 		@SuppressWarnings("unchecked")
 		public T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			return (T) entrybase.deserialize(Container.getJsonObject(json, false), gson);
+			return (T) entrybase.deserialize(ContainerOperations.getJsonObject(json, false), ContainerOperations.gson);
 		}
 	}
 	

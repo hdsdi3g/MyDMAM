@@ -27,14 +27,14 @@ import com.google.gson.reflect.TypeToken;
 
 public final class EntryBaseSummary extends EntryBase {
 	
-	HashMap<String, Preview> previews;
-	String mimetype;
-	boolean master_as_preview;
-	Map<String, String> summaries;
+	public HashMap<String, Preview> previews;
+	public String mimetype;
+	public boolean master_as_preview;
+	public Map<String, String> summaries;
 	
 	final static String type = "summary";
 	
-	public String getType() {
+	public String getESType() {
 		return type;
 	}
 	
@@ -42,8 +42,8 @@ public final class EntryBaseSummary extends EntryBase {
 		return new EntryBaseSummary();
 	}
 	
-	EntrySerialiser<EntryBaseSummary> getEntrySerialiser() {
-		return new EntrySerialiser<EntryBaseSummary>(this);
+	EntrySerialiserBridge<EntryBaseSummary> createEntrySerialiserBridge() {
+		return new EntrySerialiserBridge<EntryBaseSummary>(this);
 	}
 	
 	protected void internalDeserialize(EntryBase _entry, JsonObject source, Gson gson) {

@@ -27,7 +27,7 @@ abstract class EntryBase {
 		return origin;
 	}
 	
-	public abstract String getType();
+	public abstract String getESType();
 	
 	public final void setOrigin(Origin origin) throws NullPointerException {
 		if (origin == null) {
@@ -38,11 +38,16 @@ abstract class EntryBase {
 	
 	abstract EntryBase create();
 	
+	abstract EntrySerialiserBridge<?> createEntrySerialiserBridge();
+	
 	/**
 	 * @param item from create()
 	 */
 	protected abstract void internalDeserialize(EntryBase _item, JsonObject source, Gson gson);
 	
+	/**
+	 * @param item is same type like create()
+	 */
 	protected abstract JsonObject internalSerialize(EntryBase item, Gson gson);
 	
 	final EntryBase deserialize(JsonObject source, Gson gson) {
@@ -61,7 +66,5 @@ abstract class EntryBase {
 		jo.add("origin", gson.toJsonTree(_item.origin));
 		return jo;
 	}
-	
-	abstract EntrySerialiser<?> getEntrySerialiser();
 	
 }

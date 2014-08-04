@@ -53,4 +53,28 @@ public class Origin {
 		return storage;
 	}
 	
+	public boolean equals(Object obj) {
+		if (obj == null) {
+			return false;
+		}
+		if ((obj instanceof Origin) == false) {
+			return false;
+		}
+		Origin element = (Origin) obj;
+		
+		if (element.date != date) {
+			return false;
+		}
+		if (element.key != key) {
+			return false;
+		}
+		if (element.storage != storage) {
+			return false;
+		}
+		if (element.size != size) {
+			return false;
+		}
+		return true;
+	}
+	
 }

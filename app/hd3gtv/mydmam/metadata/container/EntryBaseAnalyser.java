@@ -16,11 +16,24 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import com.google.gson.annotations.SerializedName;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 public abstract class EntryBaseAnalyser extends EntryBase {
 	
-	@SerializedName("metadata-provider-type")
-	public final String metadata_provider_type = "analyser";
+	/**
+	 * @param _item The same as create()
+	 */
+	protected abstract void extendedInternalSerializer(JsonObject current_element, EntryBaseAnalyser _item, Gson gson);
+	
+	/**
+	 * Patch output JSON with metadata-provider-type = analyser
+	 */
+	protected final JsonObject internalSerialize(EntryBase _item, Gson gson) {
+		JsonObject jo = new JsonObject();
+		extendedInternalSerializer(jo, (EntryBaseAnalyser) _item, gson);
+		jo.addProperty("metadata-provider-type", "analyser");
+		return jo;
+	}
 	
 }

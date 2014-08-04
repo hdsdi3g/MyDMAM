@@ -22,6 +22,7 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.analysing.Analyser;
+import hd3gtv.mydmam.metadata.container.Origin;
 import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
 import hd3gtv.mydmam.metadata.rendering.PreviewType;
 import hd3gtv.mydmam.metadata.rendering.RenderedElement;
@@ -101,6 +102,10 @@ public class MetadataIndexer implements IndexingEvent {
 		stop_analysis = true;
 	}
 	
+	/**
+	 * @deprecated
+	 * @see Origin
+	 */
 	static JSONObject getOriginElement(String element_key, long size, long date, String storagename) {
 		JSONObject origin = new JSONObject();
 		origin.put("size", size);

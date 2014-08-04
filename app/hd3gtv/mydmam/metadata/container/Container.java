@@ -16,94 +16,91 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.reflect.TypeToken;
 
 /**
  * Store all Metadatas references for a StorageIndex element, and (de)serialize from/to json.
  */
 public class Container {
 	
-	public static JsonObject getJsonObject(JsonElement json, boolean can_null) throws JsonParseException {
-		if (json.isJsonNull()) {
-			if (can_null) {
-				return null;
-			} else {
-				throw new JsonParseException("Json element is null");
+	private String mtd_key;
+	private List<EntryBase> entries;
+	
+	private transient EntryBaseSummary summary;
+	private transient HashMap<String, EntryBase> map_type_entry;
+	private transient Origin origin;
+	private transient HashMap<Class<?>, EntryBase> map_class_entry;
+	
+	public Container(String mtd_key) {
+		this.mtd_key = mtd_key;
+		if (mtd_key == null) {
+			throw new NullPointerException("\"mtd_key\" can't to be null");
+		}
+		entries = new ArrayList<EntryBase>();
+		summary = null;
+		map_type_entry = new HashMap<String, EntryBase>();
+		map_class_entry = new HashMap<Class<?>, EntryBase>();
+	}
+	
+	public void addEntry(EntryBase entry) {
+		if (origin != null) {
+			if (origin.equals(entry.getOrigin()) == false) {
+				throw new NullPointerException("Can't add entry, incompatible origin");
 			}
+		} else {
+			origin = entry.getOrigin();
 		}
-		if (json.isJsonObject() == false) {
-			throw new JsonParseException("Json element is not an object: " + json.toString());
-		}
-		return (JsonObject) json.getAsJsonObject();
-	}
-	
-	private static final Map<String, EntryBase> declared_entries_type;
-	private static final GsonBuilder gson_builder;
-	
-	static {
-		declared_entries_type = new LinkedHashMap<String, EntryBase>();
-		gson_builder = new GsonBuilder();
-		gson_builder.setPrettyPrinting();// TODO remove this after tests
-		gson_builder.serializeNulls();
 		
-		// declareEntryType(new EntryBaseSummary());
-	}
-	
-	public synchronized static void declareEntryType(EntryBase entry_serialiser) throws NullPointerException {
-		if (entry_serialiser == null) {
-			throw new NullPointerException("\"serialiser\" can't to be null");
-		}
-		declared_entries_type.put(entry_serialiser.getType(), entry_serialiser);
-		entry_serialiser.getEntrySerialiser();
-	}
-	
-	public static GsonBuilder getGsonBuilder() {
-		return gson_builder;
-	}
-	
-	public Container() {
-		entries = new ArrayList<EntryBaseSummary>();
-	}
-	
-	List<EntryBaseSummary> entries;// TODO reset to EntryBase
-	
-	public void addEntry(EntryBaseSummary entry) {
-		declareEntryType(entry);
 		entries.add(entry);
+		
+		map_type_entry.put(entry.getESType(), entry);
+		map_class_entry.put(entry.getClass(), entry);
+		
+		if (entry instanceof EntryBaseSummary) {
+			summary = (EntryBaseSummary) entry;
+		}
 	}
 	
-	/**
-	 * @deprecated
-	 */
-	public String toGSONString() {
-		return gson_builder.create().toJson(entries); // Non sense.
+	public EntryBaseSummary getSummary() {
+		return summary;
+	}
+	
+	public List<EntryBase> getEntries() {
+		return entries;
+	}
+	
+	public EntryBase getByType(String type) {
+		return map_type_entry.get(type);
+	}
+	
+	public Origin getOrigin() {
+		return origin;
+	}
+	
+	public String getMtd_key() {
+		return mtd_key;
 	}
 	
 	@SuppressWarnings("unchecked")
-	/**
-	 * @deprecated
-	 */
-	void load(String content) {
+	public <T> T getByClass(Class<T> class_of_T) {
+		return (T) map_class_entry.get((Class<?>) class_of_T);
+	}
+	
+	// public String toGSONString() {
+	// gson = gson_builder.create();
+	// return gson_builder.create().toJson(entries); // Non sense.
+	// }
+	
+	/*void load(String content) {
+	//gson = gson_builder.create();
 		// entries = gson_builder.create().fromJson(content, List.class);
 		
 		Type typeOfT = new TypeToken<List<EntryBaseSummary>>() {
 		}.getType();
 		
 		entries = gson_builder.create().fromJson(content, typeOfT);
-	}
+	}*/
 	
-	// TODO export to ES (all entries -> Index)
-	// TODO import from ES (all hits -> entries)
-	
-	// TODO "search" by Entry Type
 }
