@@ -40,11 +40,13 @@ public interface Renderer extends MetadataProvider {
 	/**
 	 * @param rendered_elements never null, never empty.
 	 * @return JS parser name for display this render, or null.
+	 * @deprecated
 	 */
 	PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements);
 	
 	/**
 	 * @return Data to send to JS parser for display this render, or null.
+	 * @deprecated
 	 */
 	JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements);
 }

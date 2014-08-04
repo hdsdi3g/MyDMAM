@@ -36,6 +36,10 @@ public class MetadataIndexerResult implements Log2Dumpable {
 	
 	File origin;
 	String mimetype;
+	
+	/**
+	 * @deprecated
+	 */
 	LinkedHashMap<Analyser, JSONObject> analysis_results;
 	LinkedHashMap<Renderer, List<RenderedElement>> rendering_results;
 	public boolean master_as_preview;
@@ -107,6 +111,9 @@ public class MetadataIndexerResult implements Log2Dumpable {
 		return master_as_preview;
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	static LinkedHashMap<Renderer, JSONArray> makeJSONRendering_results(LinkedHashMap<Renderer, List<RenderedElement>> rendering_results) {
 		if (rendering_results == null) {
 			return null;
@@ -135,6 +142,9 @@ public class MetadataIndexerResult implements Log2Dumpable {
 		return result;
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	public LinkedHashMap<Renderer, JSONArray> makeJSONRendering_results() {
 		return makeJSONRendering_results(rendering_results);
 	}

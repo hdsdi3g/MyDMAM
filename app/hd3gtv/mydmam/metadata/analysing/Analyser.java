@@ -27,8 +27,14 @@ public interface Analyser extends MetadataProvider {
 	
 	public static final String METADATA_PROVIDER_ANALYSER = "analyser";
 	
+	/**
+	 * @deprecated
+	 */
 	String getSummary(JSONObject processresult);
 	
+	/**
+	 * @deprecated
+	 */
 	JSONObject process(MetadataIndexerResult analysis_result) throws Exception;
 	
 	List<String> getMimeFileListCanUsedInMasterAsPreview();
