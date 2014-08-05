@@ -25,7 +25,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
-public final class EntryBaseSummary extends EntryBase {
+public final class EntrySummary extends Entry {
 	
 	public HashMap<String, Preview> previews;
 	public String mimetype;
@@ -34,20 +34,20 @@ public final class EntryBaseSummary extends EntryBase {
 	
 	final static String type = "summary";
 	
-	public String getESType() {
+	public String getES_Type() {
 		return type;
 	}
 	
-	EntryBase create() {
-		return new EntryBaseSummary();
+	Entry create() {
+		return new EntrySummary();
 	}
 	
-	EntrySerialiserBridge<EntryBaseSummary> createEntrySerialiserBridge() {
-		return new EntrySerialiserBridge<EntryBaseSummary>(this);
+	EntrySerialiserBridge<EntrySummary> createEntrySerialiserBridge() {
+		return new EntrySerialiserBridge<EntrySummary>(this);
 	}
 	
-	protected void internalDeserialize(EntryBase _entry, JsonObject source, Gson gson) {
-		EntryBaseSummary entry = (EntryBaseSummary) _entry;
+	protected void internalDeserialize(Entry _entry, JsonObject source, Gson gson) {
+		EntrySummary entry = (EntrySummary) _entry;
 		for (Map.Entry<String, JsonElement> item : source.entrySet()) {
 			if (item.getKey().equals("previews")) {
 				Type typeOfT = new TypeToken<HashMap<String, Preview>>() {
@@ -66,8 +66,8 @@ public final class EntryBaseSummary extends EntryBase {
 		}
 	}
 	
-	protected JsonObject internalSerialize(EntryBase _item, Gson gson) {
-		EntryBaseSummary src = (EntryBaseSummary) _item;
+	protected JsonObject internalSerialize(Entry _item, Gson gson) {
+		EntrySummary src = (EntrySummary) _item;
 		JsonObject jo = new JsonObject();
 		
 		if (src.previews != null) {

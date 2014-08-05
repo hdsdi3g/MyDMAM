@@ -24,20 +24,20 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
-public abstract class EntryBaseRenderer extends EntryBase {
+public abstract class EntryRenderer extends Entry {
 	
 	public List<RenderedContent> content;
 	
-	protected final void internalDeserialize(EntryBase _entry, JsonObject source, Gson gson) {
-		EntryBaseRenderer entry = (EntryBaseRenderer) _entry;
+	protected final void internalDeserialize(Entry _entry, JsonObject source, Gson gson) {
+		EntryRenderer entry = (EntryRenderer) _entry;
 		JsonElement item = source.get("content");
 		Type typeOfT = new TypeToken<List<RenderedContent>>() {
 		}.getType();
 		entry.content = gson.fromJson(item.getAsJsonArray(), typeOfT);
 	}
 	
-	protected final JsonObject internalSerialize(EntryBase _item, Gson gson) {
-		EntryBaseRenderer src = (EntryBaseRenderer) _item;
+	protected final JsonObject internalSerialize(Entry _item, Gson gson) {
+		EntryRenderer src = (EntryRenderer) _item;
 		JsonObject jo = new JsonObject();
 		jo.addProperty("metadata-provider-type", "renderer");
 		jo.add("content", gson.toJsonTree(src.content));

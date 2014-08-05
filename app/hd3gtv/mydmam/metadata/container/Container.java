@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,28 +26,28 @@ import java.util.List;
 /**
  * Store all Metadatas references for a StorageIndex element, and (de)serialize from/to json.
  */
-public class Container {
+public class Container implements Log2Dumpable {
 	
 	private String mtd_key;
-	private List<EntryBase> entries;
+	private List<Entry> entries;
 	
-	private transient EntryBaseSummary summary;
-	private transient HashMap<String, EntryBase> map_type_entry;
+	private transient EntrySummary summary;
+	private transient HashMap<String, Entry> map_type_entry;
 	private transient Origin origin;
-	private transient HashMap<Class<?>, EntryBase> map_class_entry;
+	private transient HashMap<Class<?>, Entry> map_class_entry;
 	
 	public Container(String mtd_key) {
 		this.mtd_key = mtd_key;
 		if (mtd_key == null) {
 			throw new NullPointerException("\"mtd_key\" can't to be null");
 		}
-		entries = new ArrayList<EntryBase>();
+		entries = new ArrayList<Entry>();
 		summary = null;
-		map_type_entry = new HashMap<String, EntryBase>();
-		map_class_entry = new HashMap<Class<?>, EntryBase>();
+		map_type_entry = new HashMap<String, Entry>();
+		map_class_entry = new HashMap<Class<?>, Entry>();
 	}
 	
-	public void addEntry(EntryBase entry) {
+	public void addEntry(Entry entry) {
 		if (origin != null) {
 			if (origin.equals(entry.getOrigin()) == false) {
 				throw new NullPointerException("Can't add entry, incompatible origin");
@@ -55,23 +58,23 @@ public class Container {
 		
 		entries.add(entry);
 		
-		map_type_entry.put(entry.getESType(), entry);
+		map_type_entry.put(entry.getES_Type(), entry);
 		map_class_entry.put(entry.getClass(), entry);
 		
-		if (entry instanceof EntryBaseSummary) {
-			summary = (EntryBaseSummary) entry;
+		if (entry instanceof EntrySummary) {
+			summary = (EntrySummary) entry;
 		}
 	}
 	
-	public EntryBaseSummary getSummary() {
+	public EntrySummary getSummary() {
 		return summary;
 	}
 	
-	public List<EntryBase> getEntries() {
+	public List<Entry> getEntries() {
 		return entries;
 	}
 	
-	public EntryBase getByType(String type) {
+	public Entry getByType(String type) {
 		return map_type_entry.get(type);
 	}
 	
@@ -88,19 +91,21 @@ public class Container {
 		return (T) map_class_entry.get((Class<?>) class_of_T);
 	}
 	
-	// public String toGSONString() {
-	// gson = gson_builder.create();
-	// return gson_builder.create().toJson(entries); // Non sense.
-	// }
+	public void save(boolean refresh_index_after_save) {
+		Operations.save(this, refresh_index_after_save);
+	}
 	
-	/*void load(String content) {
-	//gson = gson_builder.create();
-		// entries = gson_builder.create().fromJson(content, List.class);
-		
-		Type typeOfT = new TypeToken<List<EntryBaseSummary>>() {
-		}.getType();
-		
-		entries = gson_builder.create().fromJson(content, typeOfT);
-	}*/
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("mtd_key", mtd_key);
+		if (origin != null) {
+			dump.add("origin.key", origin.key);
+			dump.add("origin.storage", origin.storage);
+		}
+		for (int pos = 0; pos < entries.size(); pos++) {
+			dump.add(entries.get(pos).getES_Type(), Operations.getGson().toJson(entries.get(pos)));
+		}
+		return dump;
+	}
 	
 }

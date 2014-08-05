@@ -269,4 +269,8 @@ public class Elasticsearch {
 		return new ElastisearchCrawlerReader(client);
 	}
 	
+	public static ElastisearchMultipleCrawlerReader createMultipleCrawlerReader() {
+		return new ElastisearchMultipleCrawlerReader(client);
+	}
+	
 }

@@ -25,17 +25,17 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-public class EntrySerialiserBridge<T extends EntryBase> {
+public class EntrySerialiserBridge<T extends Entry> {
 	
-	private T entrybase;
+	private T entry;
 	
-	public EntrySerialiserBridge(T entrybase) {
-		this.entrybase = entrybase;
-		if (entrybase == null) {
-			throw new NullPointerException("\"entrybase\" can't to be null");
+	public EntrySerialiserBridge(T entry) {
+		this.entry = entry;
+		if (entry == null) {
+			throw new NullPointerException("\"entry\" can't to be null");
 		}
-		ContainerOperations.getGsonBuilder().registerTypeAdapter(entrybase.getClass(), new Serializer());
-		ContainerOperations.getGsonBuilder().registerTypeAdapter(entrybase.getClass(), new Deserializer());
+		Operations.getGsonBuilder().registerTypeAdapter(entry.getClass(), new Serializer());
+		Operations.getGsonBuilder().registerTypeAdapter(entry.getClass(), new Deserializer());
 		/**
 		 * Refresh static reference at each load.
 		 */
@@ -43,14 +43,14 @@ public class EntrySerialiserBridge<T extends EntryBase> {
 	
 	private final class Serializer implements JsonSerializer<T> {
 		public JsonElement serialize(T src, Type typeOfSrc, JsonSerializationContext context) {
-			return entrybase.serialize(src, ContainerOperations.gson);
+			return entry.serialize(src, Operations.getGson());
 		}
 	}
 	
 	private final class Deserializer implements JsonDeserializer<T> {
 		@SuppressWarnings("unchecked")
 		public T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			return (T) entrybase.deserialize(ContainerOperations.getJsonObject(json, false), ContainerOperations.gson);
+			return (T) entry.deserialize(Operations.getJsonObject(json, false), Operations.getGson());
 		}
 	}
 	

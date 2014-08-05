@@ -19,7 +19,7 @@ package hd3gtv.mydmam.metadata.container;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-abstract class EntryBase {
+abstract class Entry {
 	
 	private Origin origin;
 	
@@ -27,7 +27,7 @@ abstract class EntryBase {
 		return origin;
 	}
 	
-	public abstract String getESType();
+	public abstract String getES_Type();
 	
 	public final void setOrigin(Origin origin) throws NullPointerException {
 		if (origin == null) {
@@ -36,22 +36,22 @@ abstract class EntryBase {
 		this.origin = origin;
 	}
 	
-	abstract EntryBase create();
+	abstract Entry create();
 	
 	abstract EntrySerialiserBridge<?> createEntrySerialiserBridge();
 	
 	/**
 	 * @param item from create()
 	 */
-	protected abstract void internalDeserialize(EntryBase _item, JsonObject source, Gson gson);
+	protected abstract void internalDeserialize(Entry _item, JsonObject source, Gson gson);
 	
 	/**
 	 * @param item is same type like create()
 	 */
-	protected abstract JsonObject internalSerialize(EntryBase item, Gson gson);
+	protected abstract JsonObject internalSerialize(Entry item, Gson gson);
 	
-	final EntryBase deserialize(JsonObject source, Gson gson) {
-		EntryBase item = create();
+	final Entry deserialize(JsonObject source, Gson gson) {
+		Entry item = create();
 		item.origin = gson.fromJson(source.get("origin"), Origin.class);
 		source.remove("origin");
 		internalDeserialize(item, source, gson);
@@ -61,7 +61,7 @@ abstract class EntryBase {
 	/**
 	 * @param item is same type to create()
 	 */
-	final JsonObject serialize(EntryBase _item, Gson gson) {
+	final JsonObject serialize(Entry _item, Gson gson) {
 		JsonObject jo = _item.internalSerialize(_item, gson);
 		jo.add("origin", gson.toJsonTree(_item.origin));
 		return jo;
