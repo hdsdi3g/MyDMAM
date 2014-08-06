@@ -16,7 +16,8 @@
 */
 package hd3gtv.mydmam.metadata.rendering;
 
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.taskqueue.Job;
 
 import java.io.File;
@@ -30,12 +31,13 @@ public interface RendererViaWorker extends Renderer {
 	 * Don't create tasks, just add callbacks to create new tasks to current_create_task_list.
 	 * It will be executed after all metadatas analysing/rendering.
 	 */
-	void prepareTasks(final MetadataIndexerResult analysis_result, List<FuturePrepareTask> current_create_task_list) throws Exception;
+	void prepareTasks(final Container container, List<FuturePrepareTask> current_create_task_list) throws Exception;
 	
 	/**
-	 * You don't need to consolidate rendered elements
+	 * You NEED to consolidate rendered elements.
+	 * Call RenderedElement.export_to_entry() for populate in EntryRenderer
 	 */
-	List<RenderedElement> standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception;
+	EntryRenderer standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception;
 	
 	void stopStandaloneProcess() throws Exception;
 	

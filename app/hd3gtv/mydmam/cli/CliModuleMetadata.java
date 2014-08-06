@@ -19,10 +19,8 @@ package hd3gtv.mydmam.cli;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.analysing.Analyser;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
+import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
-import hd3gtv.mydmam.metadata.rendering.Renderer;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -31,12 +29,7 @@ import hd3gtv.tools.ApplicationArgs;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 public class CliModuleMetadata implements CliModule {
 	
@@ -74,8 +67,9 @@ public class CliModuleMetadata implements CliModule {
 			 */
 			List<FuturePrepareTask> current_create_task_list = new ArrayList<FuturePrepareTask>();
 			
-			MetadataIndexerResult result;
+			Container result;
 			File[] files = dir_testformats.listFiles();
+			Log2Dump dump = new Log2Dump();
 			for (int pos = 0; pos < files.length; pos++) {
 				if (files[pos].isDirectory()) {
 					continue;
@@ -93,53 +87,10 @@ public class CliModuleMetadata implements CliModule {
 				spie.storagename = "Test_MyDMAM_CLI";
 				
 				result = metadata_center.standaloneIndexing(files[pos], spie, current_create_task_list);
-				System.out.print(result.getOrigin());
-				System.out.print("\t");
-				System.out.print(result.getMimetype());
-				System.out.print("\t");
-				if (result.master_as_preview) {
-					System.out.print("MasterAsPreview");
-				}
-				System.out.print("\t");
-				if ((result.getAnalysis_results() != null) & (verbose | prettify)) {
-					for (Map.Entry<Analyser, JSONObject> entry : result.getAnalysis_results().entrySet()) {
-						System.out.println();
-						System.out.print("\t\t");
-						System.out.print(entry.getKey().getLongName());
-						System.out.print(" [");
-						System.out.print(entry.getKey().getElasticSearchIndexType());
-						System.out.print("]");
-						System.out.print("\t");
-						if (prettify) {
-							System.out.print(MetadataCenter.json_prettify(entry.getValue()));
-						} else {
-							System.out.print(entry.getValue().toJSONString());
-						}
-					}
-				}
-				
-				if (verbose | prettify) {
-					LinkedHashMap<Renderer, JSONArray> rendering_results = result.makeJSONRendering_results();
-					if (rendering_results != null) {
-						for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
-							System.out.println();
-							System.out.print("\t\t");
-							System.out.print(entry.getKey().getLongName());
-							System.out.print(" [");
-							System.out.print(entry.getKey().getElasticSearchIndexType());
-							System.out.print("]");
-							System.out.print("\t");
-							if (prettify) {
-								System.out.print(MetadataCenter.json_prettify(entry.getValue()));
-							} else {
-								System.out.print(entry.getValue().toJSONString());
-							}
-						}
-					}
-				}
-				
-				System.out.println();
+				dump.add("Item", files[pos]);
+				dump.addAll(result);
 			}
+			Log2.log.info("Result", dump);
 			
 			return;
 		} else if (args.getParamExist("-refresh")) {

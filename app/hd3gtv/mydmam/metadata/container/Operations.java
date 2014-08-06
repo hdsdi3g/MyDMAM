@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
@@ -75,6 +74,10 @@ public class Operations {
 		gson_builder = new GsonBuilder();
 		// gson_builder.setPrettyPrinting();
 		gson_builder.serializeNulls();
+	}
+	
+	static Client getClient() {
+		return client;
 	}
 	
 	static GsonBuilder getGsonBuilder() {
@@ -133,7 +136,7 @@ public class Operations {
 		}
 		
 		Entry element = gson.fromJson(getresponse.getSourceAsString(), declared_entries_type.get(type).getClass());
-		Container result = new Container(mtd_key);
+		Container result = new Container(mtd_key, element.getOrigin());
 		result.addEntry(element);
 		return result;
 	}
@@ -297,79 +300,55 @@ public class Operations {
 		return result;
 	}
 	
-	// TODO externalize bulkrequests
-	// TODO simple delete via bulkrequest client.prepareDelete(MetadataCenter.ES_INDEX, valid_mtd_hit.get(pos).getType(), valid_mtd_hit.get(pos).getId())
-	
 	/**
 	 * Only create/update. No delete operations.
 	 */
-	public static void save(Container container, boolean refresh_index_after_save) {
+	public static void save(Container container, boolean refresh_index_after_save, BulkRequestBuilder bulkrequest) {
 		if (container == null) {
 			throw new NullPointerException("\"container\" can't to be null");
 		}
 		List<Entry> entries = container.getEntries();
 		Entry entry;
 		
-		if (entries.size() == 1) {
-			entry = entries.get(0);
+		for (int pos = 0; pos < entries.size(); pos++) {
+			entry = entries.get(pos);
 			IndexRequestBuilder index = client.prepareIndex(MetadataCenter.ES_INDEX, entry.getES_Type(), container.getMtd_key());
 			index.setSource(gson.toJson(entry));
 			index.setRefresh(refresh_index_after_save);
-		} else {
-			BulkRequestBuilder bulkrequest = client.prepareBulk();
-			
-			for (int pos = 0; pos < entries.size(); pos++) {
-				entry = entries.get(pos);
-				IndexRequestBuilder index = client.prepareIndex(MetadataCenter.ES_INDEX, entry.getES_Type(), container.getMtd_key());
-				index.setSource(gson.toJson(entry));
-				index.setRefresh(refresh_index_after_save);
-				bulkrequest.add(index);
-			}
-			
-			if (bulkrequest.numberOfActions() > 0) {
-				BulkResponse bulkresponse = bulkrequest.execute().actionGet();
-				if (bulkresponse.hasFailures()) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("failure message", bulkresponse.buildFailureMessage());
-					Log2.log.error("ES errors during update documents", null, dump);
-				}
-			}
+			bulkrequest.add(index);
 		}
 	}
 	
 	/**
 	 * Only create/update. No delete operations.
 	 */
-	public static void save(Containers containers, boolean refresh_index_after_save) {
+	public static void save(Containers containers, boolean refresh_index_after_save, BulkRequestBuilder bulkrequest) {
 		if (containers == null) {
 			throw new NullPointerException("\"containers\" can't to be null");
 		}
 		Container container;
-		List<Entry> entries;
-		Entry entry;
-		
-		BulkRequestBuilder bulkrequest = client.prepareBulk();
 		for (int pos_container = 0; pos_container < containers.getAll().size(); pos_container++) {
 			container = containers.getAll().get(pos_container);
-			entries = container.getEntries();
-			for (int pos = 0; pos < entries.size(); pos++) {
-				entry = entries.get(pos);
-				IndexRequestBuilder index = client.prepareIndex(MetadataCenter.ES_INDEX, entry.getES_Type(), container.getMtd_key());
-				index.setSource(gson.toJson(entry));
-				index.setRefresh(refresh_index_after_save);
-				bulkrequest.add(index);
-			}
-		}
-		
-		if (bulkrequest.numberOfActions() > 0) {
-			BulkResponse bulkresponse = bulkrequest.execute().actionGet();
-			if (bulkresponse.hasFailures()) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("failure message", bulkresponse.buildFailureMessage());
-				Log2.log.error("ES errors during update documents", null, dump);
-			}
+			save(container, refresh_index_after_save, bulkrequest);
 		}
 	}
+	
 	// Type typeOfT = new TypeToken<List<EntrySummary>>() {}.getType();
 	
+	public static void requestDelete(Container container, BulkRequestBuilder bulkrequest) throws NullPointerException {
+		if (container == null) {
+			throw new NullPointerException("\"container\" can't to be null");
+		}
+		for (int pos = 0; pos < container.getEntries().size(); pos++) {
+			bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, container.getEntries().get(pos).getES_Type(), container.getMtd_key()));
+		}
+		
+	}
+	
+	public static void requestDelete(String mtd_key, String type, BulkRequestBuilder bulkrequest) throws NullPointerException {
+		if (mtd_key == null) {
+			throw new NullPointerException("\"mtd_key\" can't to be null");
+		}
+		bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, type, mtd_key));
+	}
 }

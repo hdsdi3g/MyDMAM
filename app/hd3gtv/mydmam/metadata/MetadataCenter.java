@@ -22,8 +22,12 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.analysing.Analyser;
 import hd3gtv.mydmam.metadata.analysing.MimeExtract;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.metadata.container.EntrySummary;
+import hd3gtv.mydmam.metadata.container.Origin;
 import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
 import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
 import hd3gtv.mydmam.metadata.rendering.PreviewType;
 import hd3gtv.mydmam.metadata.rendering.RenderedElement;
@@ -73,7 +77,6 @@ import org.json.simple.parser.ParseException;
 public class MetadataCenter {
 	
 	public static final String ES_INDEX = "metadata";
-	public static final String ES_TYPE_SUMMARY = "summary";
 	
 	public static final String METADATA_PROVIDER_TYPE = "metadata-provider-type";
 	public static final String MASTER_AS_PREVIEW = "master_as_preview";
@@ -120,6 +123,7 @@ public class MetadataCenter {
 	}
 	
 	private void addAnalyser(Analyser analyser) {
+		// TODO Operations.declareEntryType(entry);
 		if (analyser == null) {
 			throw new NullPointerException("\"analyser\" can't to be null");
 		}
@@ -139,6 +143,7 @@ public class MetadataCenter {
 	}
 	
 	private void addRenderer(Renderer renderer) {
+		// TODO Operations.declareEntryType(entry);
 		if (renderer == null) {
 			throw new NullPointerException("\"renderer\" can't to be null");
 		}
@@ -186,15 +191,15 @@ public class MetadataCenter {
 			}
 		}
 		
-		boolean isFileIsValidForMasterAsPreview(MetadataIndexerResult metadatas_result) {
+		boolean isFileIsValidForMasterAsPreview(Container container) {
 			if (mime_list == null) {
 				return false;
 			}
-			String mime = metadatas_result.getMimetype().toLowerCase();
+			String mime = container.getSummary().getMimetype().toLowerCase();
 			if (mime_list.containsKey(mime) == false) {
 				return false;
 			}
-			return mime_list.get(mime).isCanUsedInMasterAsPreview(metadatas_result);
+			return mime_list.get(mime).isCanUsedInMasterAsPreview(container);
 		}
 	}
 	
@@ -341,6 +346,9 @@ public class MetadataCenter {
 		return result;
 	}
 	
+	/**
+	 * TODO refactor
+	 */
 	public static Map<String, Map<String, Object>> getSummariesByPathElements(List<SourcePathIndexerElement> pathelements) throws IndexMissingException {
 		if (pathelements == null) {
 			return new HashMap<String, Map<String, Object>>(1);
@@ -352,7 +360,7 @@ public class MetadataCenter {
 		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
 		
 		for (int pos = 0; pos < pathelements.size(); pos++) {
-			multigetrequestbuilder.add(ES_INDEX, ES_TYPE_SUMMARY, MetadataIndexer.getUniqueElementKey(pathelements.get(pos)));
+			multigetrequestbuilder.add(ES_INDEX, EntrySummary.type, Origin.getUniqueElementKey(pathelements.get(pos)));
 		}
 		
 		MultiGetItemResponse[] response = multigetrequestbuilder.execute().actionGet().getResponses();
@@ -385,7 +393,7 @@ public class MetadataCenter {
 		for (int pos = 0; pos < pathelementkeys.size(); pos++) {
 			request = client.prepareSearch();
 			request.setIndices(ES_INDEX);
-			request.setTypes(ES_TYPE_SUMMARY);
+			request.setTypes(EntrySummary.type);
 			request.setSize(1);
 			request.setQuery(QueryBuilders.termQuery("origin.key", pathelementkeys.get(pos)));
 			multisearchrequestbuilder.add(request);
@@ -416,6 +424,9 @@ public class MetadataCenter {
 		return getProcessedSummaries(sources);
 	}
 	
+	/**
+	 * TODO refactor
+	 */
 	public static RenderedElement getMasterAsPreviewFile(String origin_key) throws IndexMissingException {
 		if (origin_key == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
@@ -425,7 +436,7 @@ public class MetadataCenter {
 			Client client = Elasticsearch.getClient();
 			SearchRequestBuilder request = client.prepareSearch();
 			request.setIndices(ES_INDEX);
-			request.setTypes(ES_TYPE_SUMMARY);
+			request.setTypes(EntrySummary.type);
 			
 			BoolQueryBuilder query = QueryBuilders.boolQuery();
 			query.must(QueryBuilders.termQuery("origin.key", origin_key));
@@ -459,6 +470,9 @@ public class MetadataCenter {
 		return null;
 	}
 	
+	/**
+	 * TODO refactor this !
+	 */
 	public static RenderedElement getMetadataFileReference(String origin_key, String index_type, String filename, boolean check_hash) throws IndexMissingException {
 		if (origin_key == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
@@ -487,7 +501,7 @@ public class MetadataCenter {
 			
 			BoolQueryBuilder query = QueryBuilders.boolQuery();
 			query.must(QueryBuilders.termQuery("origin.key", origin_key));
-			query.must(QueryBuilders.termQuery(METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER));
+			query.must(QueryBuilders.termQuery(METADATA_PROVIDER_TYPE, "renderer"));
 			request.setQuery(query);
 			SearchHit[] hits = request.execute().actionGet().getHits().hits();
 			
@@ -505,7 +519,9 @@ public class MetadataCenter {
 				for (int pos_content = 0; pos_content < current_content_list.size(); pos_content++) {
 					current_content = (JSONObject) current_content_list.get(pos_content);
 					if (((String) current_content.get("name")).equals(filename)) {
-						return RenderedElement.fromDatabase(current_content, hits[pos_hit].getId(), check_hash);
+						// import_from_entry(RenderedContent content, String metadata_reference_id, boolean check_hash)//TODO use this instead this:
+						// return RenderedElement.fromDatabase(current_content, hits[pos_hit].getId(), check_hash);
+						return null;
 					}
 				}
 				
@@ -514,38 +530,36 @@ public class MetadataCenter {
 			return null;
 		} catch (ParseException e) {
 			Log2.log.error("Invalid ES response", e);
-		} catch (IOException e) {
-			Log2.log.error("Can't found valid file", e);
+			// } catch (IOException e) {
+			// Log2.log.error("Can't found valid file", e);
 		}
 		return null;
 	}
 	
 	/**
 	 * Database independant
-	 * TODO refactor
 	 */
-	public MetadataIndexerResult standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FuturePrepareTask> current_create_task_list) throws Exception {
-		MetadataIndexerResult indexing_result = new MetadataIndexerResult(reference, physical_source);
+	public Container standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FuturePrepareTask> current_create_task_list) throws Exception {
+		Origin origin = Origin.fromSource(reference, physical_source);
+		Container container = new Container(origin.getUniqueElementKey(), origin);
+		EntrySummary entry_summary = new EntrySummary();
+		container.addEntry(entry_summary);
 		
 		if (physical_source.length() == 0) {
-			indexing_result.setMimetype("application/null");
+			entry_summary.setMimetype("application/null");
 		} else {
-			indexing_result.setMimetype(MimeExtract.getMime(physical_source));
+			entry_summary.setMimetype(MimeExtract.getMime(physical_source));
 		}
 		
 		for (Map.Entry<String, Analyser> entry : analysers.entrySet()) {
 			Analyser analyser = entry.getValue();
-			if (analyser.canProcessThis(indexing_result.getMimetype())) {
+			if (analyser.canProcessThis(entry_summary.getMimetype())) {
 				try {
-					JSONObject jo_processing_result = analyser.process(indexing_result);
-					if (jo_processing_result == null) {
+					EntryAnalyser entry_analyser = analyser.process(container);
+					if (entry_analyser == null) {
 						continue;
 					}
-					if (jo_processing_result.isEmpty()) {
-						continue;
-					}
-					jo_processing_result.put(METADATA_PROVIDER_TYPE, Analyser.METADATA_PROVIDER_ANALYSER);
-					indexing_result.getAnalysis_results().put(analyser, jo_processing_result);
+					container.addEntry(entry_analyser);
 				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
 					dump.add("analyser class", analyser);
@@ -556,29 +570,21 @@ public class MetadataCenter {
 			}
 		}
 		
-		indexing_result.master_as_preview = master_as_preview_provider.isFileIsValidForMasterAsPreview(indexing_result);
+		entry_summary.master_as_preview = master_as_preview_provider.isFileIsValidForMasterAsPreview(container);
 		
 		for (Map.Entry<String, Renderer> entry : renderers.entrySet()) {
 			Renderer renderer = entry.getValue();
-			if (renderer.canProcessThis(indexing_result.getMimetype())) {
+			if (renderer.canProcessThis(entry_summary.getMimetype())) {
 				try {
-					List<RenderedElement> renderedelements = renderer.process(indexing_result);
-					
+					EntryRenderer entry_renderer = renderer.process(container);
 					if (renderer instanceof RendererViaWorker) {
 						RendererViaWorker renderer_via_worker = (RendererViaWorker) renderer;
-						renderer_via_worker.prepareTasks(indexing_result, current_create_task_list);
+						renderer_via_worker.prepareTasks(container, current_create_task_list);
 					}
-					
-					if (renderedelements == null) {
+					if (entry_renderer == null) {
 						continue;
 					}
-					if (renderedelements.size() == 0) {
-						continue;
-					}
-					for (int pos = 0; pos < renderedelements.size(); pos++) {
-						renderedelements.get(pos).consolidate(reference, renderer);
-					}
-					indexing_result.getRendering_results().put(renderer, renderedelements);
+					container.addEntry(entry_renderer);
 					RenderedElement.cleanCurrentTempDirectory();
 				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
@@ -590,7 +596,7 @@ public class MetadataCenter {
 			}
 		}
 		
-		return indexing_result;
+		return container;
 	}
 	
 	public static String json_prettify(JSONObject json) {

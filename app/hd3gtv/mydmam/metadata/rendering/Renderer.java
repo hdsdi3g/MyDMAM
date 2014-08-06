@@ -17,38 +17,31 @@
 package hd3gtv.mydmam.metadata.rendering;
 
 import hd3gtv.mydmam.metadata.MetadataProvider;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 
-import org.json.simple.JSONObject;
-
 public interface Renderer extends MetadataProvider {
-	
-	public static final String METADATA_PROVIDER_RENDERER = "renderer";
 	
 	public static final String METADATA_PROVIDER_RENDERER_CONTENT = "content";
 	
 	/**
-	 * You don't need to consolidate rendered elements
+	 * You NEED to consolidate rendered elements.
+	 * Call RenderedElement.export_to_entry() for populate in EntryRenderer
 	 */
-	List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception;
+	EntryRenderer process(Container container) throws Exception;
 	
+	/**
+	 * @deprecated
+	 */
 	String getElasticSearchIndexType();
 	
 	/**
-	 * TODO change definition
 	 * @param rendered_elements never null, never empty.
 	 * @return JS parser name for display this render, or null.
-	 * @deprecated
 	 */
-	PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements);
+	PreviewType getPreviewTypeForRenderer(Container container, List<RenderedElement> rendered_elements);
 	
-	/**
-	 * TODO change definition
-	 * @return Data to send to JS parser for display this render, or null.
-	 * @deprecated
-	 */
-	JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements);
+	// JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, Container container, List<RenderedElement> rendered_elements);
 }

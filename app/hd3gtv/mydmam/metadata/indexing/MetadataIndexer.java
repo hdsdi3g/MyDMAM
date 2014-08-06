@@ -18,44 +18,25 @@ package hd3gtv.mydmam.metadata.indexing;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.analysing.Analyser;
-import hd3gtv.mydmam.metadata.container.Origin;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
-import hd3gtv.mydmam.metadata.rendering.PreviewType;
 import hd3gtv.mydmam.metadata.rendering.RenderedElement;
-import hd3gtv.mydmam.metadata.rendering.Renderer;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.tools.ExecprocessBadExecutionException;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
-import org.elasticsearch.search.SearchHit;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
-@SuppressWarnings("unchecked")
 public class MetadataIndexer implements IndexingEvent {
 	
 	private Client client;
@@ -75,7 +56,6 @@ public class MetadataIndexer implements IndexingEvent {
 	
 	public void process(String storagename, String currentpath, long min_index_date) throws Exception {
 		stop_analysis = false;
-		
 		bulkrequest = client.prepareBulk();
 		explorer = new Explorer();
 		explorer.getAllSubElementsFromElementKey(Explorer.getElementKey(storagename, currentpath), min_index_date, this);
@@ -102,68 +82,6 @@ public class MetadataIndexer implements IndexingEvent {
 		stop_analysis = true;
 	}
 	
-	/**
-	 * TODO refactor
-	 * @deprecated
-	 * @see Origin
-	 */
-	static JSONObject getOriginElement(String element_key, long size, long date, String storagename) {
-		JSONObject origin = new JSONObject();
-		origin.put("size", size);
-		origin.put("date", date);
-		origin.put("key", element_key);
-		origin.put("storage", storagename);
-		return origin;
-	}
-	
-	/**
-	 * @return new processing_result added
-	 */
-	static JSONObject preparePushRenderedMetadataElement(BulkRequestBuilder bulkrequest, String mtd_key, JSONObject origin, String es_type, JSONArray rendering_results) {
-		Client client = Elasticsearch.getClient();
-		JSONObject processing_result = new JSONObject();
-		processing_result.put("origin", origin);
-		processing_result.put(MetadataCenter.METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER);
-		processing_result.put(Renderer.METADATA_PROVIDER_RENDERER_CONTENT, rendering_results);
-		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, es_type, mtd_key).setSource(processing_result.toJSONString()));
-		return processing_result;
-	}
-	
-	static void updateSummaryPreviewRenderedMetadataElement(JSONObject jo_summary_previews, Renderer renderer, List<RenderedElement> rendered_elements, LinkedHashMap<String, JSONObject> metadatas) {
-		if (rendered_elements == null) {
-			return;
-		}
-		if (rendered_elements.isEmpty()) {
-			return;
-		}
-		PreviewType previewtype = renderer.getPreviewTypeForRenderer(metadatas, rendered_elements);
-		if (previewtype == null) {
-			return;
-		}
-		JSONObject preview_content = new JSONObject();
-		if (rendered_elements.size() == 1) {
-			preview_content.put("file", rendered_elements.get(0).getRendered_file().getName());
-		} else {
-			JSONArray ja_elements_list = new JSONArray();
-			for (int pos_re = 0; pos_re < rendered_elements.size(); pos_re++) {
-				ja_elements_list.add(rendered_elements.get(pos_re).getRendered_file().getName());
-			}
-			preview_content.put("files", ja_elements_list);
-		}
-		
-		JSONObject previewconfiguration = renderer.getPreviewConfigurationForRenderer(previewtype, metadatas, rendered_elements);
-		if (previewconfiguration != null) {
-			if (previewconfiguration.isEmpty() == false) {
-				preview_content.put("conf", previewconfiguration);
-			}
-		}
-		preview_content.put("type", renderer.getElasticSearchIndexType());
-		jo_summary_previews.put(previewtype.toString(), preview_content);
-	}
-	
-	/**
-	 * TODO refactor
-	 */
 	public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
 		if (stop_analysis) {
 			return false;
@@ -177,7 +95,7 @@ public class MetadataIndexer implements IndexingEvent {
 		String element_key = element.prepare_key();
 		
 		boolean must_analyst = false;
-		ArrayList<SearchHit> valid_mtd_hit = new ArrayList<SearchHit>();
+		Container container = null;
 		
 		if (force_refresh) {
 			must_analyst = true;
@@ -186,48 +104,24 @@ public class MetadataIndexer implements IndexingEvent {
 				/**
 				 * Search old metadatas element
 				 */
-				SearchRequestBuilder request = client.prepareSearch();
-				request.setIndices(MetadataCenter.ES_INDEX);
-				request.setQuery(QueryBuilders.termQuery("origin.key", element_key));
-				SearchHit[] hits = request.execute().actionGet().getHits().hits();
-				if (hits.length == 0) {
+				container = Operations.getByPathIndexId(element_key);
+				if (container == null) {
 					must_analyst = true;
-					/*Log2Dump dump = new Log2Dump();
-					dump.add("element_key", element_key);
-					dump.addAll(element);
-					Log2.log.debug("New element to analysis", dump);*/
 				} else {
-					Map<String, Object> mtd_element_source;
-					Map<String, Object> mtd_element;
-					long mtd_date;
-					long mtd_size;
-					
-					for (int pos = 0; pos < hits.length; pos++) {
-						if (stop_analysis) {
-							return false;
-						}
+					/**
+					 * For all metadata elements for this source path indexed element
+					 */
+					if ((element.date != container.getOrigin().getDate()) | (element.size != container.getOrigin().getSize())) {
+						RenderedElement.purge(container.getMtd_key());
+						Operations.requestDelete(container, bulkrequest);
 						
-						/**
-						 * For all metadata elements for this source path indexed element
-						 */
-						mtd_element = hits[pos].getSource();
-						mtd_element_source = (Map<String, Object>) mtd_element.get("origin");
-						mtd_size = ((Number) mtd_element_source.get("size")).longValue();
-						mtd_date = ((Number) mtd_element_source.get("date")).longValue();
+						Log2Dump dump = new Log2Dump();
+						dump.addAll(element);
+						dump.addAll(container);
+						Log2.log.debug("Obsolete analysis", dump);
 						
-						if ((element.date != mtd_date) | (element.size != mtd_size)) {
-							bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, hits[pos].getType(), hits[pos].getId()));
-							RenderedElement.purge(hits[pos].getId());
-							
-							Log2Dump dump = new Log2Dump();
-							dump.addAll(element);
-							dump.add("origin", mtd_element_source);
-							Log2.log.debug("Obsolete analysis", dump);
-							
-							must_analyst = true;
-						} else {
-							valid_mtd_hit.add(hits[pos]);
-						}
+						must_analyst = true;
+						container = null;
 					}
 				}
 			} catch (IndexMissingException ime) {
@@ -258,14 +152,13 @@ public class MetadataIndexer implements IndexingEvent {
 			throw new IOException("Can't analyst element : there is no Configuration bridge for the \"" + element.storagename + "\" storage index name.");
 		}
 		if (physical_source.exists() == false) {
-			for (int pos = 0; pos < valid_mtd_hit.size(); pos++) {
-				bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, valid_mtd_hit.get(pos).getType(), valid_mtd_hit.get(pos).getId()));
-				RenderedElement.purge(valid_mtd_hit.get(pos).getId());
+			if (container != null) {
+				Operations.requestDelete(container, bulkrequest);
+				RenderedElement.purge(container.getMtd_key());
 				
 				dump = new Log2Dump();
-				dump.add("ES_TYPE", valid_mtd_hit.get(pos).getType());
-				dump.add("ES_ID", valid_mtd_hit.get(pos).getId());
 				dump.add("physical_source", physical_source);
+				dump.addAll(container);
 				Log2.log.debug("Delete obsolete analysis : original file isn't exists", dump);
 			}
 			
@@ -307,195 +200,8 @@ public class MetadataIndexer implements IndexingEvent {
 			return true;
 		}
 		
-		/**
-		 * Start real analysis
-		 */
-		String key = getUniqueElementKey(element);
-		
-		MetadataIndexerResult indexing_result = null;
-		try {
-			indexing_result = metadatacenter.standaloneIndexing(physical_source, element, current_create_task_list);
-		} catch (ExecprocessBadExecutionException e) {
-			/**
-			 * Cancel analyst for this file : invalid file !
-			 */
-			return true;
-		}
-		
-		/**
-		 * Wrap result datas into JSON, and prepare push.
-		 * Don't forget to update merge() in case of updates
-		 */
-		JSONObject origin = getOriginElement(element_key, physical_source.length(), physical_source.lastModified(), element.storagename);
-		
-		JSONObject jo_summary = new JSONObject();
-		jo_summary.put("mimetype", indexing_result.mimetype);
-		if (indexing_result.master_as_preview) {
-			jo_summary.put(MetadataCenter.MASTER_AS_PREVIEW, true);
-		}
-		jo_summary.put("origin", origin);
-		JSONObject jo_summary_previews = new JSONObject();
-		
-		/**
-		 * For all renderers : getPreviewTypeForRenderer and getPreviewConfigurationForRenderer
-		 */
-		LinkedHashMap<String, JSONObject> actual_metadatas = new LinkedHashMap<String, JSONObject>();
-		
-		if (indexing_result.analysis_results != null) {
-			for (Map.Entry<Analyser, JSONObject> entry : indexing_result.analysis_results.entrySet()) {
-				Analyser analyser = entry.getKey();
-				JSONObject processing_result = entry.getValue();
-				
-				entry.getValue().put("origin", origin);
-				bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, analyser.getElasticSearchIndexType(), key).setSource(processing_result.toJSONString()));
-				actual_metadatas.put(analyser.getElasticSearchIndexType(), processing_result);
-				
-				jo_summary.put(analyser.getElasticSearchIndexType(), analyser.getSummary(processing_result));
-			}
-		}
-		
-		actual_metadatas.put(MetadataCenter.ES_TYPE_SUMMARY, jo_summary);
-		
-		LinkedHashMap<Renderer, JSONArray> rendering_results = indexing_result.makeJSONRendering_results();
-		if (rendering_results != null) {
-			JSONObject processing_result;
-			String es_type;
-			for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
-				es_type = entry.getKey().getElasticSearchIndexType();
-				processing_result = preparePushRenderedMetadataElement(bulkrequest, key, origin, es_type, entry.getValue());
-				actual_metadatas.put(es_type, processing_result);
-				updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, entry.getKey(), indexing_result.rendering_results.get(entry.getKey()), actual_metadatas);
-			}
-		}
-		
-		if (jo_summary_previews.isEmpty() == false) {
-			jo_summary.put("previews", jo_summary_previews);
-		}
-		
-		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, key).setSource(jo_summary.toJSONString()));
+		Operations.save(metadatacenter.standaloneIndexing(physical_source, element, current_create_task_list), false, bulkrequest);
 		return true;
-	}
-	
-	/**
-	 * Don't forget to update onFoundElement() in case of code updates
-	 */
-	public static void merge(Renderer renderer, List<RenderedElement> rendered_elements, SourcePathIndexerElement source_element, String index_type) throws IOException {
-		if (rendered_elements == null) {
-			throw new NullPointerException("\"rendering_results\" can't to be null");
-		}
-		if (source_element == null) {
-			throw new NullPointerException("\"source_element\" can't to be null");
-		}
-		if (index_type == null) {
-			throw new NullPointerException("\"index_type\" can't to be null");
-		}
-		
-		/**
-		 * Prepare rendered elements
-		 */
-		for (int pos = 0; pos < rendered_elements.size(); pos++) {
-			rendered_elements.get(pos).consolidate(source_element, renderer);
-		}
-		RenderedElement.cleanCurrentTempDirectory();
-		
-		/**
-		 * Convert List<RenderedElement> to JSONArray
-		 */
-		LinkedHashMap<Renderer, List<RenderedElement>> rendering_results = new LinkedHashMap<Renderer, List<RenderedElement>>();
-		rendering_results.put(renderer, rendered_elements);
-		LinkedHashMap<Renderer, JSONArray> json_rendering_results = MetadataIndexerResult.makeJSONRendering_results(rendering_results);
-		JSONArray ja_rendering_results = json_rendering_results.get(renderer);
-		
-		JSONObject json_origin = getOriginElement(source_element.prepare_key(), source_element.size, source_element.date, source_element.storagename);
-		String mtd_key = getUniqueElementKey(source_element);
-		
-		Client client = Elasticsearch.getClient();
-		BulkRequestBuilder bulkrequest = client.prepareBulk();
-		JSONObject processing_result = preparePushRenderedMetadataElement(bulkrequest, mtd_key, json_origin, renderer.getElasticSearchIndexType(), ja_rendering_results);
-		
-		/**
-		 * Search actual mtd rendered file entry.
-		 */
-		JSONObject jo_summary = null;
-		GetResponse response = client.get(new GetRequest(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, MetadataIndexer.getUniqueElementKey(source_element))).actionGet();
-		if (response.isExists()) {
-			if (response.isSourceEmpty() == false) {
-				try {
-					JSONParser parser = new JSONParser();
-					jo_summary = (JSONObject) parser.parse(response.getSourceAsString());
-				} catch (ParseException e) {
-				}
-			}
-		}
-		if (jo_summary == null) {
-			throw new NullPointerException("Can't found element \"" + source_element.prepare_key() + "\" from DB");
-		}
-		
-		JSONObject jo_summary_previews = new JSONObject();
-		if (jo_summary.containsKey("previews")) {
-			jo_summary_previews = (JSONObject) jo_summary.get("previews");
-		}
-		
-		/**
-		 * For all renderers : getPreviewTypeForRenderer and getPreviewConfigurationForRenderer
-		 */
-		LinkedHashMap<String, JSONObject> actual_metadatas = new LinkedHashMap<String, JSONObject>();
-		
-		/**
-		 * Get all metadatas.
-		 */
-		SearchRequestBuilder request = client.prepareSearch();
-		request.setIndices(MetadataCenter.ES_INDEX);
-		request.setQuery(QueryBuilders.termQuery("_id", mtd_key));
-		SearchHit[] hits = request.execute().actionGet().getHits().hits();
-		JSONParser parser = new JSONParser();
-		for (int pos = 0; pos < hits.length; pos++) {
-			try {
-				actual_metadatas.put(hits[pos].getType(), (JSONObject) parser.parse(hits[pos].getSourceAsString()));
-			} catch (ParseException e) {
-				Log2.log.error("Fail to extract data from ES", e, new Log2Dump("value", hits[pos].getSourceAsString()));
-			}
-		}
-		
-		/**
-		 * Add the new processed mtd file
-		 */
-		actual_metadatas.put(renderer.getElasticSearchIndexType(), processing_result);
-		
-		updateSummaryPreviewRenderedMetadataElement(jo_summary_previews, renderer, rendered_elements, actual_metadatas);
-		
-		if (jo_summary_previews.isEmpty() == false) {
-			jo_summary.put("previews", jo_summary_previews);
-		}
-		bulkrequest.add(client.prepareIndex(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, mtd_key).setSource(jo_summary.toJSONString()));
-		
-		if (bulkrequest.numberOfActions() > 0) {
-			BulkResponse bulkresponse = bulkrequest.execute().actionGet();
-			if (bulkresponse.hasFailures()) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("failure message", bulkresponse.buildFailureMessage());
-				Log2.log.error("ES errors during update documents", null, dump);
-			}
-		}
-	}
-	
-	/**
-	 * If the file size/date change, this id will change
-	 */
-	public static String getUniqueElementKey(SourcePathIndexerElement element) {
-		StringBuffer sb = new StringBuffer();
-		sb.append(element.storagename);
-		sb.append(element.currentpath);
-		sb.append(element.size);
-		sb.append(element.date);
-		MessageDigest md;
-		try {
-			md = MessageDigest.getInstance("MD5");
-			md.update(sb.toString().getBytes());
-			return "mtd-" + MyDMAM.byteToString(md.digest());
-		} catch (NoSuchAlgorithmException e) {
-			throw new NullPointerException(e.getMessage());
-		}
 	}
 	
 }

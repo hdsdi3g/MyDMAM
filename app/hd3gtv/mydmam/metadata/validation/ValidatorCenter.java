@@ -98,7 +98,7 @@ public class ValidatorCenter {
 		return this;
 	}
 	
-	public boolean validate(LinkedHashMap<Analyser, JSONObject> analysis_results) {
+	public boolean validate(LinkedHashMap<Analyser, JSONObject> analysis_results) {// TODO refactor
 		if (analysis_results == null) {
 			throw new NullPointerException("\"analysis_results\" can't to be null");
 		}

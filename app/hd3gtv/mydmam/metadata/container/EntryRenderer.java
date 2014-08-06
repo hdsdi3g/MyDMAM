@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
+import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.rendering.RenderedElement;
+
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -31,7 +34,7 @@ public abstract class EntryRenderer extends Entry {
 	protected final void internalDeserialize(Entry _entry, JsonObject source, Gson gson) {
 		EntryRenderer entry = (EntryRenderer) _entry;
 		JsonElement item = source.get("content");
-		Type typeOfT = new TypeToken<List<RenderedContent>>() {
+		Type typeOfT = new TypeToken<List<RenderedElement>>() {
 		}.getType();
 		entry.content = gson.fromJson(item.getAsJsonArray(), typeOfT);
 	}
@@ -39,7 +42,7 @@ public abstract class EntryRenderer extends Entry {
 	protected final JsonObject internalSerialize(Entry _item, Gson gson) {
 		EntryRenderer src = (EntryRenderer) _item;
 		JsonObject jo = new JsonObject();
-		jo.addProperty("metadata-provider-type", "renderer");
+		jo.addProperty(MetadataCenter.METADATA_PROVIDER_TYPE, "renderer");
 		jo.add("content", gson.toJsonTree(src.content));
 		return jo;
 	}

@@ -18,6 +18,7 @@ package hd3gtv.mydmam.metadata.container;
 
 public class Preview {
 	
-	String type;
-	String file;
+	public String type;
+	public String file;
+	
 }

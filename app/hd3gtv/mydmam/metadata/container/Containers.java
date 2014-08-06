@@ -22,6 +22,10 @@ import hd3gtv.log2.Log2Dumpable;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
+
 /**
  * A set of Metadata items.
  */
@@ -40,7 +44,7 @@ public class Containers implements Log2Dumpable {
 	public void add(String mtd_key, Entry entry) {
 		Container current;
 		if (map_mtd_key_item.containsKey(mtd_key) == false) {
-			current = new Container(mtd_key);
+			current = new Container(mtd_key, entry.getOrigin());
 			current.addEntry(entry);
 			map_mtd_key_item.put(mtd_key, current);
 			map_pathindex_key_item.put(entry.getOrigin().key, current);
@@ -62,8 +66,16 @@ public class Containers implements Log2Dumpable {
 		return map_pathindex_key_item.get(mtd_key);
 	}
 	
-	public void save(boolean refresh_index_after_save) {
-		Operations.save(this, refresh_index_after_save);
+	public void save(boolean refresh_index_after_save) throws ElasticsearchException {
+		BulkRequestBuilder bulkrequest = Operations.getClient().prepareBulk();
+		Operations.save(this, refresh_index_after_save, bulkrequest);
+		
+		if (bulkrequest.numberOfActions() > 0) {
+			BulkResponse bulkresponse = bulkrequest.execute().actionGet();
+			if (bulkresponse.hasFailures()) {
+				throw new ElasticsearchException(bulkresponse.buildFailureMessage());
+			}
+		}
 	}
 	
 	public Log2Dump getLog2Dump() {

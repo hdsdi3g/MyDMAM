@@ -19,7 +19,8 @@ package hd3gtv.mydmam.transcode;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.rendering.PreviewType;
 import hd3gtv.mydmam.metadata.rendering.RenderedElement;
 import hd3gtv.mydmam.metadata.rendering.Renderer;
@@ -30,7 +31,6 @@ import hd3gtv.tools.ExecprocessGettext;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.json.simple.JSONArray;
@@ -60,8 +60,8 @@ public class FFmpegAlbumartwork implements Renderer {
 		return "FFmpeg album artwork extracting";
 	}
 	
-	public List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception {
-		JSONObject analysed_result = FFprobeAnalyser.getAnalysedProcessresult(analysis_result);
+	public EntryRenderer process(Container container) throws Exception {
+		JSONObject analysed_result = null; // TODO container.getByClass()
 		if (analysed_result == null) {
 			return null;
 		}
@@ -96,15 +96,14 @@ public class FFmpegAlbumartwork implements Renderer {
 		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
 		RenderedElement element = new RenderedElement("album_artwork", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.prepareExecprocessGettext(ffmpeg_bin, analysis_result.getOrigin(), element.getTempFile());
+		ExecprocessGettext process = tprofile.prepareExecprocessGettext(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile());
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				Log2Dump dump = new Log2Dump();
-				dump.add("file", analysis_result.getOrigin());
-				dump.add("mime", analysis_result.getMimetype());
+				dump.addAll(container);
 				if (process.getRunprocess().getExitvalue() == 1) {
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					Log2.log.error("Invalid data found when processing input", null, dump);
@@ -120,19 +119,16 @@ public class FFmpegAlbumartwork implements Renderer {
 		
 		result.add(element);
 		
-		return result;
+		// return result;
+		return null;// TODO EntryRenderer for this TODO consolidate !
 	}
 	
 	public String getElasticSearchIndexType() {
 		return "ffalbumartwork";
 	}
 	
-	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
+	public PreviewType getPreviewTypeForRenderer(Container container, List<RenderedElement> rendered_elements) {
 		return PreviewType.full_size_thumbnail;
-	}
-	
-	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		return null;
 	}
 	
 }

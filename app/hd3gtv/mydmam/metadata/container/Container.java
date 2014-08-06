@@ -23,37 +23,42 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
+
 /**
  * Store all Metadatas references for a StorageIndex element, and (de)serialize from/to json.
  */
 public class Container implements Log2Dumpable {
 	
+	private Origin origin;
 	private String mtd_key;
 	private List<Entry> entries;
+	private EntrySummary summary;
+	private HashMap<String, Entry> map_type_entry;
+	private HashMap<Class<?>, Entry> map_class_entry;
 	
-	private transient EntrySummary summary;
-	private transient HashMap<String, Entry> map_type_entry;
-	private transient Origin origin;
-	private transient HashMap<Class<?>, Entry> map_class_entry;
-	
-	public Container(String mtd_key) {
-		this.mtd_key = mtd_key;
-		if (mtd_key == null) {
+	public Container(String mtd_key, Origin origin) {
+		this.origin = origin;
+		if (origin == null) {
 			throw new NullPointerException("\"mtd_key\" can't to be null");
 		}
+		this.mtd_key = mtd_key;
 		entries = new ArrayList<Entry>();
 		summary = null;
 		map_type_entry = new HashMap<String, Entry>();
 		map_class_entry = new HashMap<Class<?>, Entry>();
 	}
 	
+	/**
+	 * Add origin in entry, if missing.
+	 */
 	public void addEntry(Entry entry) {
-		if (origin != null) {
-			if (origin.equals(entry.getOrigin()) == false) {
-				throw new NullPointerException("Can't add entry, incompatible origin");
-			}
-		} else {
-			origin = entry.getOrigin();
+		if (entry.getOrigin() == null) {
+			entry.setOrigin(origin);
+		} else if (origin.equals(entry.getOrigin()) == false) {
+			throw new NullPointerException("Can't add entry, incompatible origin");
 		}
 		
 		entries.add(entry);
@@ -91,8 +96,16 @@ public class Container implements Log2Dumpable {
 		return (T) map_class_entry.get((Class<?>) class_of_T);
 	}
 	
-	public void save(boolean refresh_index_after_save) {
-		Operations.save(this, refresh_index_after_save);
+	public void save(boolean refresh_index_after_save) throws ElasticsearchException {
+		BulkRequestBuilder bulkrequest = Operations.getClient().prepareBulk();
+		Operations.save(this, refresh_index_after_save, bulkrequest);
+		
+		if (bulkrequest.numberOfActions() > 0) {
+			BulkResponse bulkresponse = bulkrequest.execute().actionGet();
+			if (bulkresponse.hasFailures()) {
+				throw new ElasticsearchException(bulkresponse.buildFailureMessage());
+			}
+		}
 	}
 	
 	public Log2Dump getLog2Dump() {

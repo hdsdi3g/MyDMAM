@@ -17,30 +17,17 @@
 package hd3gtv.mydmam.metadata.analysing;
 
 import hd3gtv.mydmam.metadata.MetadataProvider;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 
 import java.util.List;
 
-import org.json.simple.JSONObject;
-
 public interface Analyser extends MetadataProvider {
 	
-	public static final String METADATA_PROVIDER_ANALYSER = "analyser";
-	
-	/**
-	 * TODO change definition
-	 * @deprecated
-	 */
-	String getSummary(JSONObject processresult);
-	
-	/**
-	 * TODO change definition
-	 * @deprecated
-	 */
-	JSONObject process(MetadataIndexerResult analysis_result) throws Exception;
+	EntryAnalyser process(Container container) throws Exception;
 	
 	List<String> getMimeFileListCanUsedInMasterAsPreview();
 	
-	boolean isCanUsedInMasterAsPreview(MetadataIndexerResult analysis_result);
+	boolean isCanUsedInMasterAsPreview(Container container);
 	
 }

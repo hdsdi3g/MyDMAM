@@ -60,7 +60,7 @@ public class Validator {
 	/**
 	 * @return null if ok, or causes if fail.
 	 */
-	public List<RejectCause> validate(LinkedHashMap<Analyser, JSONObject> analysis_results) {
+	public List<RejectCause> validate(LinkedHashMap<Analyser, JSONObject> analysis_results) {// TODO refactor
 		List<RejectCause> rejects = new ArrayList<RejectCause>();
 		
 		JSONObject analyst_result;

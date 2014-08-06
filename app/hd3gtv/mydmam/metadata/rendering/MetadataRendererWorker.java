@@ -17,7 +17,9 @@
 package hd3gtv.mydmam.metadata.rendering;
 
 import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.indexing.MetadataIndexerWorker;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -146,39 +148,39 @@ public class MetadataRendererWorker extends Worker {
 		if (context.containsKey("origin") == false) {
 			throw new NullPointerException("No origin file !");
 		}
-		String origin_key = (String) context.get("origin");
+		String origin_pathindex_key = (String) context.get("origin");
 		
 		Explorer explorer = new Explorer();
-		SourcePathIndexerElement element = explorer.getelementByIdkey(origin_key);
+		SourcePathIndexerElement element = explorer.getelementByIdkey(origin_pathindex_key);
 		if (element == null) {
-			throw new NullPointerException("Can't found origin element: " + origin_key);
+			throw new NullPointerException("Can't found origin element: " + origin_pathindex_key);
 		}
 		
-		File origin = explorer.getLocalBridgedElement(element);
-		if (origin == null) {
-			throw new NullPointerException("Can't bridge with real file origin element: " + origin_key);
-		}
-		if (origin.exists() == false) {
-			throw new FileNotFoundException(origin.getPath());
+		Container container = Operations.getByPathIndexId(origin_pathindex_key);
+		if (container == null) {
+			throw new NullPointerException("No actual metadatas !");
 		}
 		
-		List<RenderedElement> rendered_elements = null;
+		File physical_file = Explorer.getLocalBridgedElement(element);
+		if (physical_file == null) {
+			throw new NullPointerException("Can't bridge with real file origin element: " + origin_pathindex_key);
+		}
+		if (physical_file.exists() == false) {
+			throw new FileNotFoundException(physical_file.getPath());
+		}
+		
+		EntryRenderer rendered_entry = null;
 		if (context.containsKey("renderer")) {
-			rendered_elements = current_renderer.standaloneProcess(origin, job, (JSONObject) context.get("renderer"));
+			rendered_entry = current_renderer.standaloneProcess(physical_file, job, (JSONObject) context.get("renderer"));
 		} else {
-			rendered_elements = current_renderer.standaloneProcess(origin, job, null);
+			rendered_entry = current_renderer.standaloneProcess(physical_file, job, null);
 		}
-		
-		if (rendered_elements == null) {
+		if (rendered_entry == null) {
 			current_renderer = null;
 			return;
 		}
-		if (rendered_elements.isEmpty()) {
-			current_renderer = null;
-			return;
-		}
-		
-		MetadataIndexer.merge(current_renderer, rendered_elements, element, current_renderer.getElasticSearchIndexType());
+		container.addEntry(rendered_entry);
+		container.save(false);
 		
 		current_renderer = null;
 	}

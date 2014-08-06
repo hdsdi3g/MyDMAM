@@ -20,7 +20,8 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.analysing.Analyser;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
 import hd3gtv.tools.ExecprocessBadExecutionException;
@@ -63,7 +64,7 @@ public class FFprobeAnalyser implements Analyser {
 		return (new File(ffprobe_bin)).exists();
 	}
 	
-	public JSONObject process(MetadataIndexerResult analysis_result) throws Exception {
+	public EntryAnalyser process(Container container) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-show_streams");
 		param.add("-show_format");
@@ -71,7 +72,7 @@ public class FFprobeAnalyser implements Analyser {
 		param.add("-print_format");
 		param.add("json");
 		param.add("-i");
-		param.add(analysis_result.getOrigin().getPath());
+		param.add(container.getOrigin().getPhysicalSource().getPath());
 		
 		ExecprocessGettext process = new ExecprocessGettext(ffprobe_bin, param);
 		process.setEndlinewidthnewline(true);
@@ -80,8 +81,7 @@ public class FFprobeAnalyser implements Analyser {
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				Log2Dump dump = new Log2Dump();
-				dump.add("file", analysis_result.getOrigin());
-				dump.add("mime", analysis_result.getMimetype());
+				dump.addAll(container);
 				if (process.getRunprocess().getExitvalue() == 1) {
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					Log2.log.error("Invalid data found when processing input", null, dump);
@@ -95,6 +95,7 @@ public class FFprobeAnalyser implements Analyser {
 			throw e;
 		}
 		
+		// TODO create EntryAnalyserFFprobe
 		JSONParser jp = new JSONParser();
 		JSONObject result = (JSONObject) jp.parse(process.getResultstdout().toString());
 		
@@ -115,19 +116,19 @@ public class FFprobeAnalyser implements Analyser {
 				 */
 				if (((Long) video_streams.get(pos).get("level")) < 0l) {
 					video_streams.get(pos).put("ignore_stream", true);
-					if (analysis_result.getMimetype().startsWith("video")) {
+					if (container.getSummary().getMimetype().startsWith("video")) {
 						/**
 						 * Need to correct bad mime category
 						 */
-						analysis_result.changeMimetype("audio" + analysis_result.getMimetype().substring(5));
+						container.getSummary().setMimetype("audio" + container.getSummary().getMimetype().substring(5));
 					}
 				}
 			}
-		} else if (analysis_result.getMimetype().startsWith("video")) {
+		} else if (container.getSummary().getMimetype().startsWith("video")) {
 			/**
 			 * No video, only audio is present but with bad mime category
 			 */
-			analysis_result.changeMimetype("audio" + analysis_result.getMimetype().substring(5));
+			container.getSummary().setMimetype("audio" + container.getSummary().getMimetype().substring(5));
 		}
 		
 		/**
@@ -153,7 +154,10 @@ public class FFprobeAnalyser implements Analyser {
 			}
 		}
 		
-		return result;
+		String summary = getSummary(result);// TODO compute and add summary
+		
+		// return result;
+		return null;// TODO real return
 	}
 	
 	@SuppressWarnings("rawtypes")
@@ -298,26 +302,11 @@ public class FFprobeAnalyser implements Analyser {
 		return false;
 	}
 	
-	public static JSONObject getAnalysedProcessresult(MetadataIndexerResult analysis_result) {
-		if (analysis_result == null) {
-			return null;
-		}
-		if (analysis_result.getAnalysis_results() == null) {
-			return null;
-		}
-		for (Map.Entry<Analyser, JSONObject> entry : analysis_result.getAnalysis_results().entrySet()) {
-			if (entry.getKey() instanceof FFprobeAnalyser) {
-				return entry.getValue();
-			}
-		}
-		return null;
-	}
-	
 	/**
 	 * @return like "Video: DV SD PAL, Audio: PCM 16b (stereo 48.0kHz 1536kbps), Dur: 00:00:08:00 @ 28,80 Mbps", "Video: MPEG2 SD PAL, Audio: PCM 16b (mono 48.0kHz 768kbps), x2",
 	 *         "Audio: EAC3 (3ch 32.0kHz 384kbps), Dur: 00:00:05:00 @ 384,00 kbps"
 	 */
-	public String getSummary(JSONObject processresult) {
+	private String getSummary(JSONObject processresult) {
 		StringBuffer sb = new StringBuffer();
 		if (processresult.containsKey("format") == false) {
 			return "Invalid file";
@@ -702,10 +691,10 @@ public class FFprobeAnalyser implements Analyser {
 	private static ValidatorCenter audio_webbrowser_validation;
 	private static ValidatorCenter video_webbrowser_validation;
 	
-	public boolean isCanUsedInMasterAsPreview(MetadataIndexerResult metadatas_result) {
+	public boolean isCanUsedInMasterAsPreview(Container container) {
 		String[] mime_list = getMimeFileListCanUsedInMasterAsPreview().toArray(new String[0]);
 		
-		if (metadatas_result.equalsMimetype(mime_list)) {
+		if (container.getSummary().equalsMimetype(mime_list)) {
 			if (video_webbrowser_validation == null) {
 				video_webbrowser_validation = new ValidatorCenter();
 				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].index", Comparator.EQUALS, 0);
@@ -742,12 +731,13 @@ public class FFprobeAnalyser implements Analyser {
 				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 384000);
 			}
 			
-			if (video_webbrowser_validation.validate(metadatas_result.getAnalysis_results())) {
+			/*if (video_webbrowser_validation.validate(metadatas_result.getAnalysis_results())) {// TODO refactor
 				return true;
 			} else if (audio_webbrowser_validation.validate(metadatas_result.getAnalysis_results())) {
 				return true;
-			}
+			}*/
 		}
 		return false;
 	}
+	
 }

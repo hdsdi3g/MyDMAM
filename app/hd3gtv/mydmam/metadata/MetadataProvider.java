@@ -24,6 +24,9 @@ public interface MetadataProvider {
 	
 	String getLongName();
 	
+	/**
+	 * @deprecated
+	 */
 	String getElasticSearchIndexType();
 	
 }

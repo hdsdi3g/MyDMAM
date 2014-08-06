@@ -19,7 +19,8 @@ package hd3gtv.mydmam.transcode;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
 import hd3gtv.mydmam.metadata.rendering.MetadataRendererWorker;
 import hd3gtv.mydmam.metadata.rendering.PreviewType;
@@ -35,7 +36,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.json.simple.JSONObject;
@@ -92,25 +92,19 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		}
 	}
 	
-	public List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception {
+	public EntryRenderer process(Container container) throws Exception {
 		return null;
 	}
 	
-	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
+	public PreviewType getPreviewTypeForRenderer(Container container, List<RenderedElement> rendered_elements) {
 		return preview_type;
-	}
-	
-	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		/*JSONObject processresult = all_metadatas_for_element.get(new FFprobeAnalyser().getElasticSearchIndexType());
-		processresult.get("ffmpeglowres");*/
-		return null;
 	}
 	
 	private Execprocess process;
 	private FFmpegProgress progress;
 	private boolean stop;
 	
-	public List<RenderedElement> standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception {
+	public EntryRenderer standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception {
 		stop = false;
 		job.step_count = 3;
 		
@@ -196,7 +190,8 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		
 		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
 		result.add(final_element);
-		return result;
+		// return result; // TODO EntryRenderer for this TODO consolidate !
+		return null;
 	}
 	
 	public synchronized void stopStandaloneProcess() throws Exception {
@@ -209,12 +204,12 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		}
 	}
 	
-	public void prepareTasks(final MetadataIndexerResult analysis_result, List<FuturePrepareTask> current_create_task_list) throws Exception {
+	public void prepareTasks(final Container container, List<FuturePrepareTask> current_create_task_list) throws Exception {
 		final RendererViaWorker source = this;
 		
 		FuturePrepareTask result = new FuturePrepareTask() {
 			public void createTask() throws ConnectionException {
-				JSONObject processresult = FFprobeAnalyser.getAnalysedProcessresult(analysis_result);
+				JSONObject processresult = null; // TODO container.getByClass()
 				if (processresult == null) {
 					return;
 				}
@@ -233,7 +228,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 					return;
 				}
 				
-				if (analysis_result.isMaster_as_preview()) {
+				if (container.getSummary().master_as_preview) {
 					/**
 					 * Must I render a preview file ?
 					 */
@@ -273,7 +268,11 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 					renderer_context.put("faststarted", false);
 				}
 				
-				MetadataRendererWorker.createTask(analysis_result.getReference().prepare_key(), "FFmpeg lowres for metadatas", renderer_context, source);
+				try {
+					MetadataRendererWorker.createTask(container.getOrigin().getPathindexElement().prepare_key(), "FFmpeg lowres for metadatas", renderer_context, source);
+				} catch (FileNotFoundException e) {
+					Log2.log.error("Can't found valid element", e, container);
+				}
 			}
 		};
 		

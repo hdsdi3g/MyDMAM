@@ -28,15 +28,45 @@ import com.google.gson.reflect.TypeToken;
 public final class EntrySummary extends Entry {
 	
 	public HashMap<String, Preview> previews;
-	public String mimetype;
-	public boolean master_as_preview;
 	public Map<String, String> summaries;
+	public boolean master_as_preview;
+	private String mimetype;
 	
-	final static String type = "summary";
+	public final static String type = "summary";
 	
 	public String getES_Type() {
 		return type;
 	}
+	
+	public String getMimetype() {
+		return mimetype;
+	}
+	
+	public void setMimetype(String mimetype) {
+		if (mimetype == null) {
+			return;
+		}
+		if (mimetype.equals("")) {
+			return;
+		}
+		this.mimetype = mimetype;
+	}
+	
+	public boolean equalsMimetype(String... mime) {
+		if (mime == null) {
+			return false;
+		}
+		for (int pos = 0; pos < mime.length; pos++) {
+			if (mime[pos].equalsIgnoreCase(mimetype)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/*
+	 * Start serializers functions.
+	 * */
 	
 	Entry create() {
 		return new EntrySummary();
