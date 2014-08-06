@@ -28,11 +28,13 @@ public interface Analyser extends MetadataProvider {
 	public static final String METADATA_PROVIDER_ANALYSER = "analyser";
 	
 	/**
+	 * TODO change definition
 	 * @deprecated
 	 */
 	String getSummary(JSONObject processresult);
 	
 	/**
+	 * TODO change definition
 	 * @deprecated
 	 */
 	JSONObject process(MetadataIndexerResult analysis_result) throws Exception;

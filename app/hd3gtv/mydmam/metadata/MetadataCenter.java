@@ -522,6 +522,7 @@ public class MetadataCenter {
 	
 	/**
 	 * Database independant
+	 * TODO refactor
 	 */
 	public MetadataIndexerResult standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FuturePrepareTask> current_create_task_list) throws Exception {
 		MetadataIndexerResult indexing_result = new MetadataIndexerResult(reference, physical_source);

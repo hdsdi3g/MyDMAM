@@ -103,6 +103,7 @@ public class MetadataIndexer implements IndexingEvent {
 	}
 	
 	/**
+	 * TODO refactor
 	 * @deprecated
 	 * @see Origin
 	 */
@@ -160,6 +161,9 @@ public class MetadataIndexer implements IndexingEvent {
 		jo_summary_previews.put(previewtype.toString(), preview_content);
 	}
 	
+	/**
+	 * TODO refactor
+	 */
 	public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
 		if (stop_analysis) {
 			return false;

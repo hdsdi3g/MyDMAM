@@ -38,6 +38,7 @@ public interface Renderer extends MetadataProvider {
 	String getElasticSearchIndexType();
 	
 	/**
+	 * TODO change definition
 	 * @param rendered_elements never null, never empty.
 	 * @return JS parser name for display this render, or null.
 	 * @deprecated
@@ -45,6 +46,7 @@ public interface Renderer extends MetadataProvider {
 	PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements);
 	
 	/**
+	 * TODO change definition
 	 * @return Data to send to JS parser for display this render, or null.
 	 * @deprecated
 	 */

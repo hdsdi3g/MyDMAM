@@ -297,6 +297,9 @@ public class Operations {
 		return result;
 	}
 	
+	// TODO externalize bulkrequests
+	// TODO simple delete via bulkrequest client.prepareDelete(MetadataCenter.ES_INDEX, valid_mtd_hit.get(pos).getType(), valid_mtd_hit.get(pos).getId())
+	
 	/**
 	 * Only create/update. No delete operations.
 	 */
