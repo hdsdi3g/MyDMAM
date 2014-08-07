@@ -14,13 +14,11 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata.rendering;
+package hd3gtv.mydmam.metadata;
 
-import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.Operations;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerWorker;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.Broker;
@@ -31,48 +29,40 @@ import hd3gtv.mydmam.taskqueue.Worker;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-@SuppressWarnings("unchecked")
-public class MetadataRendererWorker extends Worker {
+public class WorkerRenderer extends Worker {
 	
-	static final String PROFILE_CATEGORY = "metadata-rendering";
+	public static final String PROFILE_CATEGORY = "metadata-rendering";
 	
-	private MetadataCenter metadata_center;
-	private MetadataIndexerWorker metadataindexerworker;
+	private WorkerIndexer metadataworkerindexer;
 	
-	public MetadataRendererWorker(MetadataIndexerWorker metadataindexerworker) {
-		this.metadataindexerworker = metadataindexerworker;
-		if (metadataindexerworker == null) {
+	public WorkerRenderer(WorkerIndexer metadataworkerindexer) {
+		this.metadataworkerindexer = metadataworkerindexer;
+		if (metadataworkerindexer == null) {
 			throw new NullPointerException("\"metadataindexerworker\" can't to be null");
 		}
-		if (metadataindexerworker.isConfigurationAllowToEnabled() == false) {
-			return;
-		}
-		metadata_center = metadataindexerworker.getMetadata_center();
-		if (metadata_center == null) {
+		if (metadataworkerindexer.isConfigurationAllowToEnabled() == false) {
 			return;
 		}
 	}
 	
 	public List<Profile> getManagedProfiles() {
-		LinkedHashMap<String, Renderer> renderers = metadata_center.getRenderers();
-		if (renderers == null) {
+		List<GeneratorRenderer> generatorRenderers = MetadataCenter.getRenderers();
+		if (generatorRenderers == null) {
 			return null;
 		}
-		if (renderers.isEmpty()) {
+		if (generatorRenderers.isEmpty()) {
 			return null;
 		}
 		List<Profile> profiles = new ArrayList<Profile>();
-		for (Map.Entry<String, Renderer> entry : renderers.entrySet()) {
-			if (entry.getValue() instanceof RendererViaWorker) {
-				profiles.add(createProfile((RendererViaWorker) entry.getValue()));
+		for (int pos = 0; pos < generatorRenderers.size(); pos++) {
+			if (generatorRenderers.get(pos) instanceof GeneratorRendererViaWorker) {
+				profiles.add(generatorRenderers.get(pos).getManagedProfile());
 			}
 		}
 		return profiles;
@@ -87,17 +77,11 @@ public class MetadataRendererWorker extends Worker {
 	}
 	
 	public boolean isConfigurationAllowToEnabled() {
-		return metadataindexerworker.isConfigurationAllowToEnabled();
+		return metadataworkerindexer.isConfigurationAllowToEnabled();
 	}
 	
-	private static Profile createProfile(RendererViaWorker renderer) {
-		if (renderer == null) {
-			throw new NullPointerException("\"renderer\" can't to be null");
-		}
-		return new Profile(PROFILE_CATEGORY, renderer.getElasticSearchIndexType());
-	}
-	
-	public static String createTask(String origin_key, String name, JSONObject renderer_context, RendererViaWorker renderer, String require_task) throws ConnectionException {
+	@SuppressWarnings("unchecked")
+	public static String createTask(String origin_key, String name, JSONObject renderer_context, GeneratorRendererViaWorker renderer, String require_task) throws ConnectionException {
 		if (origin_key == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
 		}
@@ -113,14 +97,14 @@ public class MetadataRendererWorker extends Worker {
 		if (renderer_context != null) {
 			context.put("renderer", renderer_context);
 		}
-		return Broker.publishTask(name, createProfile(renderer), context, MetadataRendererWorker.class, false, 0, require_task, false);
+		return Broker.publishTask(name, renderer.getManagedProfile(), context, WorkerRenderer.class, false, 0, require_task, false);
 	}
 	
-	public static String createTask(String origin_key, String name, JSONObject renderer_context, RendererViaWorker renderer) throws ConnectionException {
+	public static String createTask(String origin_key, String name, JSONObject renderer_context, GeneratorRendererViaWorker renderer) throws ConnectionException {
 		return createTask(origin_key, name, renderer_context, renderer, null);
 	}
 	
-	private volatile RendererViaWorker current_renderer;
+	private volatile GeneratorRendererViaWorker current_renderer;
 	
 	public void process(Job job) throws Exception {
 		current_renderer = null;
@@ -132,18 +116,26 @@ public class MetadataRendererWorker extends Worker {
 		if (context.isEmpty()) {
 			throw new NullPointerException("No context");
 		}
-		LinkedHashMap<String, Renderer> renderers = metadata_center.getRenderers();
-		if (renderers == null) {
+		List<GeneratorRenderer> generatorRenderers = MetadataCenter.getRenderers();
+		if (generatorRenderers.isEmpty()) {
 			throw new NullPointerException("No declared metadatas renderers");
 		}
-		Renderer _renderer = renderers.get(job.getProfile().getName());
+		
+		GeneratorRenderer _renderer = null;
+		for (int pos = 0; pos < generatorRenderers.size(); pos++) {
+			if (generatorRenderers.get(pos).getManagedProfile().equals(job.getProfile())) {
+				_renderer = generatorRenderers.get(pos);
+				break;
+			}
+		}
+		
 		if (_renderer == null) {
 			throw new NullPointerException("Can't found declared rendrerer: \"" + job.getProfile().getName() + "\"");
 		}
-		if ((_renderer instanceof RendererViaWorker) == false) {
+		if ((_renderer instanceof GeneratorRendererViaWorker) == false) {
 			throw new NullPointerException("Invalid rendrerer: \"" + job.getProfile().getName() + "\"");
 		}
-		current_renderer = (RendererViaWorker) _renderer;
+		current_renderer = (GeneratorRendererViaWorker) _renderer;
 		
 		if (context.containsKey("origin") == false) {
 			throw new NullPointerException("No origin file !");

@@ -11,16 +11,22 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.metadata.rendering;
+package hd3gtv.mydmam.metadata;
 
-/**
- * All definitions should exists and implemented in JS (in mydmam.metadatas)
- */
-public enum PreviewType {
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+
+import java.util.List;
+
+public interface GeneratorAnalyser extends Generator {
 	
-	full_size_thumbnail, video_sd_pvw, video_hd_pvw, video_lq_pvw, audio_pvw;
+	EntryAnalyser process(Container container) throws Exception;
+	
+	List<String> getMimeFileListCanUsedInMasterAsPreview();
+	
+	boolean isCanUsedInMasterAsPreview(Container container);
 	
 }

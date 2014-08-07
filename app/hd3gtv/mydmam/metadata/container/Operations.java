@@ -72,7 +72,6 @@ public class Operations {
 		client = Elasticsearch.getClient();
 		declared_entries_type = new LinkedHashMap<String, Entry>();
 		gson_builder = new GsonBuilder();
-		// gson_builder.setPrettyPrinting();
 		gson_builder.serializeNulls();
 	}
 	

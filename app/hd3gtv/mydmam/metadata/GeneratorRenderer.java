@@ -14,34 +14,31 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata.rendering;
+package hd3gtv.mydmam.metadata;
 
-import hd3gtv.mydmam.metadata.MetadataProvider;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.taskqueue.Profile;
 
 import java.util.List;
 
-public interface Renderer extends MetadataProvider {
+public interface GeneratorRenderer extends Generator {
 	
 	public static final String METADATA_PROVIDER_RENDERER_CONTENT = "content";
 	
 	/**
 	 * You NEED to consolidate rendered elements.
-	 * Call RenderedElement.export_to_entry() for populate in EntryRenderer
+	 * Call RenderedFile.export_to_entry() for populate in EntryRenderer
 	 */
 	EntryRenderer process(Container container) throws Exception;
-	
-	/**
-	 * @deprecated
-	 */
-	String getElasticSearchIndexType();
 	
 	/**
 	 * @param rendered_elements never null, never empty.
 	 * @return JS parser name for display this render, or null.
 	 */
-	PreviewType getPreviewTypeForRenderer(Container container, List<RenderedElement> rendered_elements);
+	PreviewType getPreviewTypeForRenderer(Container container, List<RenderedFile> rendered_elements);
 	
-	// JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, Container container, List<RenderedElement> rendered_elements);
+	Profile getManagedProfile();
+	
+	// JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, Container container, List<RenderedFile> rendered_elements);
 }

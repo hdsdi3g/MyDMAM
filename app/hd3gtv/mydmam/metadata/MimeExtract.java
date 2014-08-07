@@ -14,7 +14,7 @@
  * 
 */
 
-package hd3gtv.mydmam.metadata.analysing;
+package hd3gtv.mydmam.metadata;
 
 import java.io.BufferedInputStream;
 import java.io.File;

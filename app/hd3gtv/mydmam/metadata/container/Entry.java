@@ -19,7 +19,10 @@ package hd3gtv.mydmam.metadata.container;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-abstract class Entry {
+public abstract class Entry {
+	
+	Entry() {
+	}
 	
 	private Origin origin;
 	
@@ -36,9 +39,9 @@ abstract class Entry {
 		this.origin = origin;
 	}
 	
-	abstract Entry create();
+	protected abstract Entry create();
 	
-	abstract EntrySerialiserBridge<?> createEntrySerialiserBridge();
+	public abstract EntrySerialiserBridge<?> createEntrySerialiserBridge();
 	
 	/**
 	 * @param item from create()

@@ -14,70 +14,32 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata.container;
 
-import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.Map;
+package hd3gtv.mydmam.transcode;
+
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.EntrySerialiserBridge;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 
-public final class EntrySummary extends Entry {
+public class FFprobeEntryAnalyser extends EntryAnalyser {
 	
-	public HashMap<String, Preview> previews;
-	public Map<String, String> summaries;
-	public boolean master_as_preview;
-	private String mimetype;
-	
-	public final static String type = "summary";
+	public static final String type = "ffprobe";
 	
 	public String getES_Type() {
 		return type;
 	}
 	
-	public String getMimetype() {
-		return mimetype;
+	protected FFprobeEntryAnalyser create() {
+		return new FFprobeEntryAnalyser();
 	}
 	
-	public void setMimetype(String mimetype) {
-		if (mimetype == null) {
-			return;
-		}
-		if (mimetype.equals("")) {
-			return;
-		}
-		this.mimetype = mimetype;
+	public EntrySerialiserBridge<?> createEntrySerialiserBridge() {
+		return new EntrySerialiserBridge<FFprobeEntryAnalyser>(this);
 	}
 	
-	public boolean equalsMimetype(String... mime) {
-		if (mime == null) {
-			return false;
-		}
-		for (int pos = 0; pos < mime.length; pos++) {
-			if (mime[pos].equalsIgnoreCase(mimetype)) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	/*
-	 * Start serializers functions.
-	 * */
-	
-	protected Entry create() {
-		return new EntrySummary();
-	}
-	
-	public EntrySerialiserBridge<EntrySummary> createEntrySerialiserBridge() {
-		return new EntrySerialiserBridge<EntrySummary>(this);
-	}
-	
-	protected void internalDeserialize(Entry _entry, JsonObject source, Gson gson) {
-		EntrySummary entry = (EntrySummary) _entry;
+	/*		EntrySummary entry = (EntrySummary) _entry;
 		for (Map.Entry<String, JsonElement> item : source.entrySet()) {
 			if (item.getKey().equals("previews")) {
 				Type typeOfT = new TypeToken<HashMap<String, Preview>>() {
@@ -112,6 +74,17 @@ public final class EntrySummary extends Entry {
 			}
 		}
 		return jo;
+	*/
+	
+	@Override
+	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
+		// TODO Auto-generated method stub
+	}
+	
+	@Override
+	protected void extendedInternalDeserialize(EntryAnalyser _item, JsonObject source, Gson gson) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

@@ -19,11 +19,11 @@ package hd3gtv.mydmam.cli;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.MetadataIndexer;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.io.File;
@@ -41,19 +41,11 @@ public class CliModuleMetadata implements CliModule {
 		return "Operate on metadatas and file analysis";
 	}
 	
-	@SuppressWarnings("deprecation")
 	public void execCliModule(ApplicationArgs args) throws Exception {
-		MetadataCenter metadata_center = new MetadataCenter();
-		MetadataCenter.addAllInternalsProviders(metadata_center);
-		MyDMAMModulesManager.addAllExternalMetadataProviders(metadata_center);
-		
-		boolean verbose = args.getParamExist("-v");
-		boolean prettify = args.getParamExist("-vv");
+		// boolean verbose = args.getParamExist("-v");
+		// boolean prettify = args.getParamExist("-vv");
 		
 		if (args.getParamExist("-a")) {
-			MetadataCenter.addAllInternalsProviders(metadata_center);
-			MyDMAMModulesManager.addAllExternalMetadataProviders(metadata_center);
-			
 			File dir_testformats = new File(args.getSimpleParamValue("-a"));
 			if (dir_testformats.exists() == false) {
 				throw new FileNotFoundException(args.getSimpleParamValue("-a"));
@@ -65,7 +57,7 @@ public class CliModuleMetadata implements CliModule {
 			/**
 			 * Never be executed here (from CLI)
 			 */
-			List<FuturePrepareTask> current_create_task_list = new ArrayList<FuturePrepareTask>();
+			List<FutureCreateTasks> current_create_task_list = new ArrayList<FutureCreateTasks>();
 			
 			Container result;
 			File[] files = dir_testformats.listFiles();
@@ -86,7 +78,7 @@ public class CliModuleMetadata implements CliModule {
 				spie.size = 0;
 				spie.storagename = "Test_MyDMAM_CLI";
 				
-				result = metadata_center.standaloneIndexing(files[pos], spie, current_create_task_list);
+				result = MetadataCenter.standaloneIndexing(files[pos], spie, current_create_task_list);
 				dump.add("Item", files[pos]);
 				dump.addAll(result);
 			}
@@ -118,7 +110,8 @@ public class CliModuleMetadata implements CliModule {
 				Log2.log.info("Empty/not found element to scan metadatas", dump);
 				return;
 			}
-			metadata_center.performAnalysis(root_indexing.storagename, root_indexing.currentpath, 0, true);
+			MetadataIndexer metadataIndexer = new MetadataIndexer(true);
+			metadataIndexer.process(root_indexing.storagename, root_indexing.currentpath, 0);
 			return;
 		}
 		showFullCliModuleHelp();
@@ -128,8 +121,8 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println("Usage");
 		System.out.println(" * standalone directory analysis: ");
 		System.out.println("   " + getCliModuleName() + " -a /full/path [-v | -vv]");
-		System.out.println("   -v verbose");
-		System.out.println("   -vv verbose and prettify");
+		// System.out.println("   -v verbose");
+		// System.out.println("   -vv verbose and prettify");
 		System.out.println(" * force re-indexing metadatas for a directory: ");
 		System.out.println("   " + getCliModuleName() + " -refresh storagename:/pathindexrelative");
 	}

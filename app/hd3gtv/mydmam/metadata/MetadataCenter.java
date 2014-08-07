@@ -20,22 +20,17 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.metadata.analysing.Analyser;
-import hd3gtv.mydmam.metadata.analysing.MimeExtract;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.Origin;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
-import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
-import hd3gtv.mydmam.metadata.rendering.PreviewType;
-import hd3gtv.mydmam.metadata.rendering.RenderedElement;
-import hd3gtv.mydmam.metadata.rendering.Renderer;
-import hd3gtv.mydmam.metadata.rendering.RendererViaWorker;
+import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 import hd3gtv.mydmam.transcode.FFmpegAlbumartwork;
 import hd3gtv.mydmam.transcode.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.FFmpegSnapshoot;
@@ -45,7 +40,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -81,153 +75,71 @@ public class MetadataCenter {
 	public static final String METADATA_PROVIDER_TYPE = "metadata-provider-type";
 	public static final String MASTER_AS_PREVIEW = "master_as_preview";
 	
-	private LinkedHashMap<String, Analyser> analysers;
-	private LinkedHashMap<String, Renderer> renderers;
-	private MasterAsPreviewProvider master_as_preview_provider;
-	
-	private volatile List<MetadataIndexer> analysis_indexers;
 	private static Client client;
+	private static List<GeneratorAnalyser> generatorAnalysers;
+	private static List<GeneratorRenderer> generatorRenderers;
+	private static Map<String, GeneratorAnalyser> master_as_preview_mime_list_providers;
 	
 	static {
 		client = Elasticsearch.getClient();
+		generatorAnalysers = new ArrayList<GeneratorAnalyser>();
+		generatorRenderers = new ArrayList<GeneratorRenderer>();
+		
+		addProvider(new FFprobeAnalyser());
+		addProvider(new FFmpegSnapshoot());
+		addProvider(new FFmpegAlbumartwork());
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_lq, PreviewType.video_lq_pvw, false));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_sd, PreviewType.video_sd_pvw, false));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_hd, PreviewType.video_hd_pvw, false));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_audio, PreviewType.audio_pvw, true));
+		
+		List<Generator> all_external_providers = MyDMAMModulesManager.getAllExternalMetadataGenerator();
+		for (int pos = 0; pos < all_external_providers.size(); pos++) {
+			addProvider(all_external_providers.get(pos));
+		}
+		
+		master_as_preview_mime_list_providers = null;
+		if (Configuration.global.isElementExists("master_as_preview") == false) {
+			if (Configuration.global.getValueBoolean("master_as_preview", "enable") == false) {
+				master_as_preview_mime_list_providers = new HashMap<String, GeneratorAnalyser>();
+			}
+		}
 	}
 	
-	public MetadataCenter() {
-		analysers = new LinkedHashMap<String, Analyser>();
-		renderers = new LinkedHashMap<String, Renderer>();
-		master_as_preview_provider = new MasterAsPreviewProvider();
-		analysis_indexers = new ArrayList<MetadataIndexer>();
-	}
-	
-	public static void addAllInternalsProviders(MetadataCenter metadata_center) {
-		metadata_center.addAnalyser(new FFprobeAnalyser());
-		metadata_center.addRenderer(new FFmpegSnapshoot());
-		metadata_center.addRenderer(new FFmpegAlbumartwork());
-		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_lq, PreviewType.video_lq_pvw, false));
-		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_sd, PreviewType.video_sd_pvw, false));
-		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_hd, PreviewType.video_hd_pvw, false));
-		metadata_center.addRenderer(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_audio, PreviewType.audio_pvw, true));
-	}
-	
-	public void addProvider(MetadataProvider provider) {
+	private static void addProvider(Generator provider) {
 		if (provider == null) {
 			return;
 		}
-		if (provider instanceof Analyser) {
-			addAnalyser((Analyser) provider);
-		} else if (provider instanceof Renderer) {
-			addRenderer((Renderer) provider);
+		if (provider.isEnabled() == false) {
+			Log2.log.info("Provider " + provider.getLongName() + " is disabled");
+			return;
+		}
+		Operations.declareEntryType(provider.getEntrySample());
+		
+		GeneratorAnalyser generatorAnalyser;
+		if (provider instanceof GeneratorAnalyser) {
+			generatorAnalyser = (GeneratorAnalyser) provider;
+			generatorAnalysers.add(generatorAnalyser);
+			if (master_as_preview_mime_list_providers != null) {
+				List<String> list = generatorAnalyser.getMimeFileListCanUsedInMasterAsPreview();
+				if (list != null) {
+					for (int pos = 0; pos < list.size(); pos++) {
+						master_as_preview_mime_list_providers.put(list.get(pos).toLowerCase(), generatorAnalyser);
+					}
+				}
+			}
+		} else if (provider instanceof GeneratorRenderer) {
+			generatorRenderers.add((GeneratorRenderer) provider);
 		} else {
 			Log2.log.error("Can't add unrecognized provider", null);
 		}
 	}
 	
-	private void addAnalyser(Analyser analyser) {
-		// TODO Operations.declareEntryType(entry);
-		if (analyser == null) {
-			throw new NullPointerException("\"analyser\" can't to be null");
-		}
-		if (analyser.isEnabled()) {
-			if (analysers.containsKey(analyser.getElasticSearchIndexType())) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("this", analyser);
-				dump.add("previous", analysers.get(analyser.getElasticSearchIndexType()));
-				Log2.log.info("Provider with this name exists", dump);
-			} else {
-				analysers.put(analyser.getElasticSearchIndexType(), analyser);
-				master_as_preview_provider.addAnalyser(analyser);
-			}
-		} else {
-			Log2.log.info("Analyser " + analyser.getElasticSearchIndexType() + " is disabled");
-		}
+	private MetadataCenter() {
 	}
 	
-	private void addRenderer(Renderer renderer) {
-		// TODO Operations.declareEntryType(entry);
-		if (renderer == null) {
-			throw new NullPointerException("\"renderer\" can't to be null");
-		}
-		if (renderer.isEnabled()) {
-			if (renderers.containsKey(renderer.getElasticSearchIndexType())) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("this", renderer);
-				dump.add("previous", renderers.get(renderer.getElasticSearchIndexType()));
-				Log2.log.info("Provider with this name exists", dump);
-			} else {
-				renderers.put(renderer.getElasticSearchIndexType(), renderer);
-			}
-		} else {
-			Log2.log.info("Renderer " + renderer.getElasticSearchIndexType() + " is disabled");
-		}
-	}
-	
-	private class MasterAsPreviewProvider {
-		
-		private Map<String, Analyser> mime_list;
-		
-		MasterAsPreviewProvider() {
-			if (Configuration.global.isElementExists("master_as_preview") == false) {
-				return;
-			}
-			if (Configuration.global.getValueBoolean("master_as_preview", "enable") == false) {
-				return;
-			}
-			mime_list = new HashMap<String, Analyser>();
-			
-		}
-		
-		void addAnalyser(Analyser analyser) {
-			if (analyser == null) {
-				return;
-			}
-			if (mime_list == null) {
-				return;
-			}
-			List<String> list = analyser.getMimeFileListCanUsedInMasterAsPreview();
-			if (list != null) {
-				for (int pos = 0; pos < list.size(); pos++) {
-					mime_list.put(list.get(pos).toLowerCase(), analyser);
-				}
-			}
-		}
-		
-		boolean isFileIsValidForMasterAsPreview(Container container) {
-			if (mime_list == null) {
-				return false;
-			}
-			String mime = container.getSummary().getMimetype().toLowerCase();
-			if (mime_list.containsKey(mime) == false) {
-				return false;
-			}
-			return mime_list.get(mime).isCanUsedInMasterAsPreview(container);
-		}
-	}
-	
-	public synchronized LinkedHashMap<String, Renderer> getRenderers() {
-		return renderers;
-	}
-	
-	/**
-	 * @param min_index_date set 0 for all
-	 */
-	public void performAnalysis(String storagename, String currentpath, long min_index_date, boolean force_refresh) throws Exception {
-		if (storagename == null) {
-			throw new NullPointerException("\"storagename\" can't to be null");
-		}
-		if (currentpath == null) {
-			throw new NullPointerException("\"currentpath\" can't to be null");
-		}
-		
-		MetadataIndexer metadataIndexer = new MetadataIndexer(this, client, force_refresh);
-		analysis_indexers.add(metadataIndexer);
-		metadataIndexer.process(storagename, currentpath, min_index_date);
-		analysis_indexers.remove(metadataIndexer);
-	}
-	
-	public void stopAnalysis() {
-		for (int pos = 0; pos < analysis_indexers.size(); pos++) {
-			analysis_indexers.get(pos).stop();
-		}
+	public static List<GeneratorRenderer> getRenderers() {
+		return generatorRenderers;
 	}
 	
 	/**
@@ -280,7 +192,7 @@ public class MetadataCenter {
 							 * This storage is not empty... Source file is really deleted, we can delete metadatas
 							 */
 							bulkrequest.add(client.prepareDelete(ES_INDEX, hits[pos].getType(), hits[pos].getId()));
-							RenderedElement.purge(hits[pos].getId());
+							RenderedFile.purge(hits[pos].getId());
 						}
 					}
 					
@@ -313,7 +225,7 @@ public class MetadataCenter {
 			
 			Log2.log.info("Start cleaning rendered elements");
 			
-			RenderedElement.gc(client);
+			RenderedFile.gc(client);
 			
 		} catch (IOException e) {
 			Log2.log.error("Can't purge directories", e);
@@ -323,6 +235,7 @@ public class MetadataCenter {
 	}
 	
 	/**
+	 * TODO refactor
 	 * Beware: "origin" key is deleted
 	 * @return never null, SourcePathIndexerElement key > Metadata element key > Metadata element value
 	 */
@@ -379,6 +292,9 @@ public class MetadataCenter {
 		return getProcessedSummaries(sources);
 	}
 	
+	/**
+	 * TODO refactor
+	 */
 	public static Map<String, Map<String, Object>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws IndexMissingException {
 		if (pathelementkeys == null) {
 			return new HashMap<String, Map<String, Object>>(1);
@@ -427,7 +343,7 @@ public class MetadataCenter {
 	/**
 	 * TODO refactor
 	 */
-	public static RenderedElement getMasterAsPreviewFile(String origin_key) throws IndexMissingException {
+	public static RenderedFile getMasterAsPreviewFile(String origin_key) throws IndexMissingException {
 		if (origin_key == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
 		}
@@ -459,7 +375,7 @@ public class MetadataCenter {
 				return null;
 			}
 			
-			return RenderedElement.fromDatabaseMasterAsPreview(spie, (String) current_mtd.get("mimetype"));
+			return RenderedFile.fromDatabaseMasterAsPreview(spie, (String) current_mtd.get("mimetype"));
 		} catch (IndexMissingException e) {
 			return null;
 		} catch (ParseException e) {
@@ -473,7 +389,7 @@ public class MetadataCenter {
 	/**
 	 * TODO refactor this !
 	 */
-	public static RenderedElement getMetadataFileReference(String origin_key, String index_type, String filename, boolean check_hash) throws IndexMissingException {
+	public static RenderedFile getMetadataFileReference(String origin_key, String index_type, String filename, boolean check_hash) throws IndexMissingException {
 		if (origin_key == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
 		}
@@ -520,7 +436,7 @@ public class MetadataCenter {
 					current_content = (JSONObject) current_content_list.get(pos_content);
 					if (((String) current_content.get("name")).equals(filename)) {
 						// import_from_entry(RenderedContent content, String metadata_reference_id, boolean check_hash)//TODO use this instead this:
-						// return RenderedElement.fromDatabase(current_content, hits[pos_hit].getId(), check_hash);
+						// return RenderedFile.fromDatabase(current_content, hits[pos_hit].getId(), check_hash);
 						return null;
 					}
 				}
@@ -539,7 +455,7 @@ public class MetadataCenter {
 	/**
 	 * Database independant
 	 */
-	public Container standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FuturePrepareTask> current_create_task_list) throws Exception {
+	public static Container standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FutureCreateTasks> current_create_task_list) throws Exception {
 		Origin origin = Origin.fromSource(reference, physical_source);
 		Container container = new Container(origin.getUniqueElementKey(), origin);
 		EntrySummary entry_summary = new EntrySummary();
@@ -551,45 +467,50 @@ public class MetadataCenter {
 			entry_summary.setMimetype(MimeExtract.getMime(physical_source));
 		}
 		
-		for (Map.Entry<String, Analyser> entry : analysers.entrySet()) {
-			Analyser analyser = entry.getValue();
-			if (analyser.canProcessThis(entry_summary.getMimetype())) {
+		for (int pos = 0; pos < generatorAnalysers.size(); pos++) {
+			GeneratorAnalyser generatorAnalyser = generatorAnalysers.get(pos);
+			if (generatorAnalyser.canProcessThis(entry_summary.getMimetype())) {
 				try {
-					EntryAnalyser entry_analyser = analyser.process(container);
+					EntryAnalyser entry_analyser = generatorAnalyser.process(container);
 					if (entry_analyser == null) {
 						continue;
 					}
 					container.addEntry(entry_analyser);
 				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
-					dump.add("analyser class", analyser);
-					dump.add("analyser name", analyser.getLongName());
+					dump.add("analyser class", generatorAnalyser);
+					dump.add("analyser name", generatorAnalyser.getLongName());
 					dump.add("physical_source", physical_source);
 					Log2.log.error("Can't analyst/render file", e, dump);
 				}
 			}
 		}
 		
-		entry_summary.master_as_preview = master_as_preview_provider.isFileIsValidForMasterAsPreview(container);
+		if (master_as_preview_mime_list_providers != null) {
+			String mime = container.getSummary().getMimetype().toLowerCase();
+			if (master_as_preview_mime_list_providers.containsKey(mime)) {
+				entry_summary.master_as_preview = master_as_preview_mime_list_providers.get(mime).isCanUsedInMasterAsPreview(container);
+			}
+		}
 		
-		for (Map.Entry<String, Renderer> entry : renderers.entrySet()) {
-			Renderer renderer = entry.getValue();
-			if (renderer.canProcessThis(entry_summary.getMimetype())) {
+		for (int pos = 0; pos < generatorRenderers.size(); pos++) {
+			GeneratorRenderer generatorRenderer = generatorRenderers.get(pos);
+			if (generatorRenderer.canProcessThis(entry_summary.getMimetype())) {
 				try {
-					EntryRenderer entry_renderer = renderer.process(container);
-					if (renderer instanceof RendererViaWorker) {
-						RendererViaWorker renderer_via_worker = (RendererViaWorker) renderer;
+					EntryRenderer entry_renderer = generatorRenderer.process(container);
+					if (generatorRenderer instanceof GeneratorRendererViaWorker) {
+						GeneratorRendererViaWorker renderer_via_worker = (GeneratorRendererViaWorker) generatorRenderer;
 						renderer_via_worker.prepareTasks(container, current_create_task_list);
 					}
 					if (entry_renderer == null) {
 						continue;
 					}
 					container.addEntry(entry_renderer);
-					RenderedElement.cleanCurrentTempDirectory();
+					RenderedFile.cleanCurrentTempDirectory();
 				} catch (Exception e) {
 					Log2Dump dump = new Log2Dump();
-					dump.add("provider class", renderer);
-					dump.add("provider name", renderer.getLongName());
+					dump.add("provider class", generatorRenderer);
+					dump.add("provider name", generatorRenderer.getLongName());
 					dump.add("physical_source", physical_source);
 					Log2.log.error("Can't analyst/render file", e, dump);
 				}

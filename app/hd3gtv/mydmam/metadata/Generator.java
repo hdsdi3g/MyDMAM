@@ -14,12 +14,20 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata.rendering;
+package hd3gtv.mydmam.metadata;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import hd3gtv.mydmam.metadata.container.Entry;
 
-public interface FuturePrepareTask {
+public interface Generator {
 	
-	void createTask() throws ConnectionException;
+	boolean canProcessThis(String mimetype);
+	
+	boolean isEnabled();
+	
+	String getLongName();
+	
+	// String getElasticSearchIndexType();
+	
+	Entry getEntrySample();
 	
 }

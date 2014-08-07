@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.metadata.validation;
 
-import hd3gtv.mydmam.metadata.analysing.Analyser;
+import hd3gtv.mydmam.metadata.GeneratorAnalyser;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -30,13 +30,13 @@ import org.json.simple.JSONObject;
  */
 public class Validator {
 	
-	private LinkedHashMap<Analyser, List<Constraint>> rules;
+	private LinkedHashMap<GeneratorAnalyser, List<Constraint>> rules;
 	
 	public Validator() {
-		rules = new LinkedHashMap<Analyser, List<Constraint>>();
+		rules = new LinkedHashMap<GeneratorAnalyser, List<Constraint>>();
 	}
 	
-	void addRule(Analyser applyto, Constraint constraint) {
+	void addRule(GeneratorAnalyser applyto, Constraint constraint) {
 		if (applyto == null) {
 			throw new NullPointerException("\"applyto\" can't to be null");
 		}
@@ -60,13 +60,13 @@ public class Validator {
 	/**
 	 * @return null if ok, or causes if fail.
 	 */
-	public List<RejectCause> validate(LinkedHashMap<Analyser, JSONObject> analysis_results) {// TODO refactor
+	public List<RejectCause> validate(LinkedHashMap<GeneratorAnalyser, JSONObject> analysis_results) {// TODO refactor
 		List<RejectCause> rejects = new ArrayList<RejectCause>();
 		
 		JSONObject analyst_result;
 		List<Constraint> analyser_rules;
 		Constraint constraint;
-		for (Map.Entry<Analyser, List<Constraint>> entry : rules.entrySet()) {
+		for (Map.Entry<GeneratorAnalyser, List<Constraint>> entry : rules.entrySet()) {
 			if (analysis_results.containsKey(entry.getKey()) == false) {
 				continue;
 			}

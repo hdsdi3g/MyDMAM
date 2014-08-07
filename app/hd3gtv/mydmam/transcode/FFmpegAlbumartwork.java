@@ -19,11 +19,13 @@ package hd3gtv.mydmam.transcode;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.metadata.GeneratorRenderer;
+import hd3gtv.mydmam.metadata.PreviewType;
+import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.metadata.rendering.PreviewType;
-import hd3gtv.mydmam.metadata.rendering.RenderedElement;
-import hd3gtv.mydmam.metadata.rendering.Renderer;
 import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
@@ -36,7 +38,7 @@ import java.util.List;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-public class FFmpegAlbumartwork implements Renderer {
+public class FFmpegAlbumartwork implements GeneratorRenderer {
 	
 	private String ffmpeg_bin;
 	private TranscodeProfile tprofile;
@@ -93,8 +95,8 @@ public class FFmpegAlbumartwork implements Renderer {
 			return null;
 		}
 		
-		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
-		RenderedElement element = new RenderedElement("album_artwork", tprofile.getExtension("jpg"));
+		ArrayList<RenderedFile> result = new ArrayList<RenderedFile>();
+		RenderedFile element = new RenderedFile("album_artwork", tprofile.getExtension("jpg"));
 		
 		ExecprocessGettext process = tprofile.prepareExecprocessGettext(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile());
 		process.setEndlinewidthnewline(true);
@@ -123,12 +125,20 @@ public class FFmpegAlbumartwork implements Renderer {
 		return null;// TODO EntryRenderer for this TODO consolidate !
 	}
 	
-	public String getElasticSearchIndexType() {
-		return "ffalbumartwork";
+	public PreviewType getPreviewTypeForRenderer(Container container, List<RenderedFile> rendered_elements) {
+		return PreviewType.full_size_thumbnail;
 	}
 	
-	public PreviewType getPreviewTypeForRenderer(Container container, List<RenderedElement> rendered_elements) {
-		return PreviewType.full_size_thumbnail;
+	public Profile getManagedProfile() {
+		return new Profile(WorkerRenderer.PROFILE_CATEGORY, "ffalbumartwork");
+	}
+	
+	// private static FFprobeEntryAnalyser entry_sample = new FFprobeEntryAnalyser();
+	
+	@Override
+	public Entry getEntrySample() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }

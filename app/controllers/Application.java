@@ -19,7 +19,7 @@ package controllers;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.rendering.RenderedElement;
+import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.SearchResult;
@@ -174,7 +174,7 @@ public class Application extends Controller {
 		}
 		response.cacheFor("60s");
 		
-		RenderedElement element = null;
+		RenderedFile element = null;
 		if (type.equals(MetadataCenter.MASTER_AS_PREVIEW)) {
 			element = MetadataCenter.getMasterAsPreviewFile(filehash);
 		} else {

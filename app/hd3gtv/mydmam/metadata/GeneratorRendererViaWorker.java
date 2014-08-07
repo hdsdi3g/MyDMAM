@@ -14,10 +14,11 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata.rendering;
+package hd3gtv.mydmam.metadata;
 
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 import hd3gtv.mydmam.taskqueue.Job;
 
 import java.io.File;
@@ -25,17 +26,17 @@ import java.util.List;
 
 import org.json.simple.JSONObject;
 
-public interface RendererViaWorker extends Renderer {
+public interface GeneratorRendererViaWorker extends GeneratorRenderer {
 	
 	/**
 	 * Don't create tasks, just add callbacks to create new tasks to current_create_task_list.
 	 * It will be executed after all metadatas analysing/rendering.
 	 */
-	void prepareTasks(final Container container, List<FuturePrepareTask> current_create_task_list) throws Exception;
+	void prepareTasks(final Container container, List<FutureCreateTasks> current_create_task_list) throws Exception;
 	
 	/**
 	 * You NEED to consolidate rendered elements.
-	 * Call RenderedElement.export_to_entry() for populate in EntryRenderer
+	 * Call RenderedFile.export_to_entry() for populate in EntryRenderer
 	 */
 	EntryRenderer standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception;
 	

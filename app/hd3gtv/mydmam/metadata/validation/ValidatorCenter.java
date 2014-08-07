@@ -17,7 +17,7 @@
 package hd3gtv.mydmam.metadata.validation;
 
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.analysing.Analyser;
+import hd3gtv.mydmam.metadata.GeneratorAnalyser;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -51,7 +51,7 @@ public class ValidatorCenter {
 	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
 	 * @param reference with OR relations
 	 */
-	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Float... references) {
+	public ValidatorCenter addRule(GeneratorAnalyser applyto, String rule, Comparator comparator, Float... references) {
 		Validator validator = new Validator();
 		for (int pos = 0; pos < references.length; pos++) {
 			validator.addRule(applyto, new ConstraintFloat(rule, comparator, references[pos]));
@@ -64,7 +64,7 @@ public class ValidatorCenter {
 	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
 	 * @param reference with OR relations
 	 */
-	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, String... references) {
+	public ValidatorCenter addRule(GeneratorAnalyser applyto, String rule, Comparator comparator, String... references) {
 		Validator validator = new Validator();
 		for (int pos = 0; pos < references.length; pos++) {
 			validator.addRule(applyto, new ConstraintString(rule, comparator, references[pos]));
@@ -77,7 +77,7 @@ public class ValidatorCenter {
 	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
 	 * @param reference with OR relations
 	 */
-	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Integer... references) {
+	public ValidatorCenter addRule(GeneratorAnalyser applyto, String rule, Comparator comparator, Integer... references) {
 		Validator validator = new Validator();
 		for (int pos = 0; pos < references.length; pos++) {
 			validator.addRule(applyto, new ConstraintInteger(rule, comparator, references[pos]));
@@ -98,7 +98,7 @@ public class ValidatorCenter {
 		return this;
 	}
 	
-	public boolean validate(LinkedHashMap<Analyser, JSONObject> analysis_results) {// TODO refactor
+	public boolean validate(LinkedHashMap<GeneratorAnalyser, JSONObject> analysis_results) {// TODO refactor
 		if (analysis_results == null) {
 			throw new NullPointerException("\"analysis_results\" can't to be null");
 		}

@@ -19,8 +19,9 @@ package hd3gtv.mydmam.transcode;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.analysing.Analyser;
+import hd3gtv.mydmam.metadata.GeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
@@ -42,7 +43,6 @@ import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.json.simple.JSONArray;
@@ -52,7 +52,7 @@ import org.json.simple.parser.JSONParser;
 import com.google.common.primitives.Ints;
 
 @SuppressWarnings("unchecked")
-public class FFprobeAnalyser implements Analyser {
+public class FFprobeAnalyser implements GeneratorAnalyser {
 	
 	private String ffprobe_bin;
 	
@@ -180,7 +180,7 @@ public class FFprobeAnalyser implements Analyser {
 		 * Search and prepare changes
 		 */
 		for (Object _entry : jo_tags.entrySet()) {
-			Entry entry = (Entry) _entry;
+			java.util.Map.Entry entry = (java.util.Map.Entry) _entry;
 			key = (String) entry.getKey();
 			if (key.equals("creation_time")) {
 				value = (String) entry.getValue();
@@ -738,6 +738,12 @@ public class FFprobeAnalyser implements Analyser {
 			}*/
 		}
 		return false;
+	}
+	
+	private static FFprobeEntryAnalyser entry_sample = new FFprobeEntryAnalyser();
+	
+	public Entry getEntrySample() {
+		return entry_sample;
 	}
 	
 }

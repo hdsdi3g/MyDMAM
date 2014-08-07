@@ -16,17 +16,11 @@
 */
 package hd3gtv.mydmam.metadata;
 
-public interface MetadataProvider {
+/**
+ * All definitions should exists and implemented in JS (in mydmam.metadatas)
+ */
+public enum PreviewType {
 	
-	boolean canProcessThis(String mimetype);
-	
-	boolean isEnabled();
-	
-	String getLongName();
-	
-	/**
-	 * @deprecated
-	 */
-	String getElasticSearchIndexType();
+	full_size_thumbnail, video_sd_pvw, video_hd_pvw, video_lq_pvw, audio_pvw;
 	
 }

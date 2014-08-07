@@ -14,18 +14,17 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.metadata.indexing;
+package hd3gtv.mydmam.metadata;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.Operations;
-import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
-import hd3gtv.mydmam.metadata.rendering.RenderedElement;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,19 +38,20 @@ import org.elasticsearch.indices.IndexMissingException;
 
 public class MetadataIndexer implements IndexingEvent {
 	
-	private Client client;
+	private static Client client;
 	private Explorer explorer;
 	private boolean force_refresh;
 	private boolean stop_analysis;
 	private BulkRequestBuilder bulkrequest;
-	private MetadataCenter metadatacenter;
-	private List<FuturePrepareTask> current_create_task_list;
+	private List<FutureCreateTasks> current_create_task_list;
 	
-	public MetadataIndexer(MetadataCenter metadatacenter, Client client, boolean force_refresh) throws Exception {
-		this.metadatacenter = metadatacenter;
-		this.client = client;
+	static {
+		client = Elasticsearch.getClient();
+	}
+	
+	public MetadataIndexer(boolean force_refresh) throws Exception {
 		this.force_refresh = force_refresh;
-		current_create_task_list = new ArrayList<FuturePrepareTask>();
+		current_create_task_list = new ArrayList<FutureCreateTasks>();
 	}
 	
 	public void process(String storagename, String currentpath, long min_index_date) throws Exception {
@@ -112,7 +112,7 @@ public class MetadataIndexer implements IndexingEvent {
 					 * For all metadata elements for this source path indexed element
 					 */
 					if ((element.date != container.getOrigin().getDate()) | (element.size != container.getOrigin().getSize())) {
-						RenderedElement.purge(container.getMtd_key());
+						RenderedFile.purge(container.getMtd_key());
 						Operations.requestDelete(container, bulkrequest);
 						
 						Log2Dump dump = new Log2Dump();
@@ -154,7 +154,7 @@ public class MetadataIndexer implements IndexingEvent {
 		if (physical_source.exists() == false) {
 			if (container != null) {
 				Operations.requestDelete(container, bulkrequest);
-				RenderedElement.purge(container.getMtd_key());
+				RenderedFile.purge(container.getMtd_key());
 				
 				dump = new Log2Dump();
 				dump.add("physical_source", physical_source);
@@ -200,7 +200,7 @@ public class MetadataIndexer implements IndexingEvent {
 			return true;
 		}
 		
-		Operations.save(metadatacenter.standaloneIndexing(physical_source, element, current_create_task_list), false, bulkrequest);
+		Operations.save(MetadataCenter.standaloneIndexing(physical_source, element, current_create_task_list), false, bulkrequest);
 		return true;
 	}
 	

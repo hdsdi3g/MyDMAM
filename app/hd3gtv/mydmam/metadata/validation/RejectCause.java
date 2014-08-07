@@ -18,7 +18,7 @@ package hd3gtv.mydmam.metadata.validation;
 
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.metadata.analysing.Analyser;
+import hd3gtv.mydmam.metadata.GeneratorAnalyser;
 
 import java.util.List;
 
@@ -26,13 +26,13 @@ import org.json.simple.JSONObject;
 
 public class RejectCause implements Log2Dumpable {
 	
-	private Analyser analyser;
+	private GeneratorAnalyser generatorAnalyser;
 	private JSONObject source;
 	private Constraint constraint;
 	
-	RejectCause(Analyser analyser, JSONObject source, Constraint constraint) {
-		this.analyser = analyser;
-		if (analyser == null) {
+	RejectCause(GeneratorAnalyser generatorAnalyser, JSONObject source, Constraint constraint) {
+		this.generatorAnalyser = generatorAnalyser;
+		if (generatorAnalyser == null) {
 			throw new NullPointerException("\"analyser\" can't to be null");
 		}
 		this.source = source;
@@ -47,7 +47,7 @@ public class RejectCause implements Log2Dumpable {
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
-		dump.add("analyser", analyser.getLongName());
+		dump.add("analyser", generatorAnalyser.getLongName());
 		dump.add("rule", constraint.rule);
 		List<Object> values = constraint.extractValueFromJson(source);
 		if (values == null) {
