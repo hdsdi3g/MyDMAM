@@ -14,21 +14,24 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import com.google.gson.annotations.SerializedName;
 
-import java.util.List;
-
-public interface GeneratorAnalyser extends Generator {
+public class Disposition {
 	
-	EntryAnalyser process(Container container) throws Exception;
+	int clean_effects;
+	int karaoke;
 	
-	List<String> getMimeFileListCanUsedInMasterAsPreview();
+	@SerializedName("default")
+	int default_;
 	
-	boolean isCanUsedInMasterAsPreview(Container container);
-	
-	Class<? extends EntryAnalyser> getRootEntryClass();
-	
+	int hearing_impaired;
+	int original;
+	int attached_pic;
+	int lyrics;
+	int comment;
+	int dub;
+	int visual_impaired;
+	int forced;
 }

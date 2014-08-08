@@ -27,7 +27,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 
 @SuppressWarnings("unchecked")
-class FFmpegProgress extends Thread {
+public class FFmpegProgress extends Thread {
 	private File progressfile;
 	
 	/** in seconds */
@@ -45,7 +45,7 @@ class FFmpegProgress extends Thread {
 		this.job = job;
 	}
 	
-	synchronized void stopWatching() {
+	public synchronized void stopWatching() {
 		stopthread = true;
 	}
 	

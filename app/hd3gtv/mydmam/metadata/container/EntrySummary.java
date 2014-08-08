@@ -18,6 +18,7 @@ package hd3gtv.mydmam.metadata.container;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
@@ -72,10 +73,6 @@ public final class EntrySummary extends Entry {
 		return new EntrySummary();
 	}
 	
-	public EntrySerialiserBridge<EntrySummary> createEntrySerialiserBridge() {
-		return new EntrySerialiserBridge<EntrySummary>(this);
-	}
-	
 	protected void internalDeserialize(Entry _entry, JsonObject source, Gson gson) {
 		EntrySummary entry = (EntrySummary) _entry;
 		for (Map.Entry<String, JsonElement> item : source.entrySet()) {
@@ -112,6 +109,10 @@ public final class EntrySummary extends Entry {
 			}
 		}
 		return jo;
+	}
+	
+	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
+		return null;
 	}
 	
 }

@@ -40,5 +40,6 @@ public interface GeneratorRenderer extends Generator {
 	
 	Profile getManagedProfile();
 	
-	// JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, Container container, List<RenderedFile> rendered_elements);
+	Class<? extends EntryRenderer> getRootEntryClass();
+	
 }

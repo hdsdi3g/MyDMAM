@@ -26,8 +26,6 @@ public interface Generator {
 	
 	String getLongName();
 	
-	// String getElasticSearchIndexType();
-	
-	Entry getEntrySample();
+	Class<? extends Entry> getRootEntryClass();
 	
 }

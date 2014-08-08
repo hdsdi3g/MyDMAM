@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.transcode;
+package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
@@ -24,9 +24,9 @@ import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.taskqueue.Profile;
+import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
@@ -108,9 +108,8 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		return new Profile(WorkerRenderer.PROFILE_CATEGORY, "ffsnapshoot");
 	}
 	
-	// private static FFprobeEntryAnalyser entry_sample = new FFprobeEntryAnalyser();
 	@Override
-	public Entry getEntrySample() {
+	public Class<? extends EntryRenderer> getRootEntryClass() {
 		// TODO Auto-generated method stub
 		return null;
 	}

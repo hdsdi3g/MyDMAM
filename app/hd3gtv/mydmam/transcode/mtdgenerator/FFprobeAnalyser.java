@@ -11,20 +11,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.transcode;
+package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.GeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.Timecode;
@@ -223,10 +223,6 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 	
 	public String getLongName() {
 		return "FFprobe";
-	}
-	
-	public String getElasticSearchIndexType() {
-		return "ffprobe";
 	}
 	
 	public static boolean canProcessThisVideoOnly(String mimetype) {
@@ -740,10 +736,7 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 		return false;
 	}
 	
-	private static FFprobeEntryAnalyser entry_sample = new FFprobeEntryAnalyser();
-	
-	public Entry getEntrySample() {
-		return entry_sample;
+	public Class<? extends EntryAnalyser> getRootEntryClass() {
+		return FFprobe.class;
 	}
-	
 }

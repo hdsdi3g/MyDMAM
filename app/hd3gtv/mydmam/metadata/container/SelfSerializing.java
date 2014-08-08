@@ -14,21 +14,24 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
-import java.util.List;
-
-public interface GeneratorAnalyser extends Generator {
+/**
+ * Don't forget to declare this in Operations.
+ */
+public interface SelfSerializing {
 	
-	EntryAnalyser process(Container container) throws Exception;
+	/**
+	 * @param item from create()
+	 */
+	SelfSerializing deserialize(JsonObject source, Gson gson);
 	
-	List<String> getMimeFileListCanUsedInMasterAsPreview();
-	
-	boolean isCanUsedInMasterAsPreview(Container container);
-	
-	Class<? extends EntryAnalyser> getRootEntryClass();
+	/**
+	 * @param item must be like the same type like create()
+	 */
+	JsonObject serialize(SelfSerializing _item, Gson gson);
 	
 }

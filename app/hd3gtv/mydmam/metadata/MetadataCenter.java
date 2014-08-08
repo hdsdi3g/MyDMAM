@@ -31,10 +31,10 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
-import hd3gtv.mydmam.transcode.FFmpegAlbumartwork;
-import hd3gtv.mydmam.transcode.FFmpegLowresRenderer;
-import hd3gtv.mydmam.transcode.FFmpegSnapshoot;
-import hd3gtv.mydmam.transcode.FFprobeAnalyser;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshoot;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFprobeAnalyser;
 
 import java.io.File;
 import java.io.IOException;
@@ -114,7 +114,12 @@ public class MetadataCenter {
 			Log2.log.info("Provider " + provider.getLongName() + " is disabled");
 			return;
 		}
-		Operations.declareEntryType(provider.getEntrySample());
+		try {
+			Operations.declareEntryType(provider.getRootEntryClass());
+		} catch (Exception e) {
+			Log2.log.error("Can't declare (de)serializer from Entry provider " + provider.getLongName() + ".", e);
+			return;
+		}
 		
 		GeneratorAnalyser generatorAnalyser;
 		if (provider instanceof GeneratorAnalyser) {

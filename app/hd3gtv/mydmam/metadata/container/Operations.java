@@ -24,6 +24,7 @@ import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -73,6 +74,12 @@ public class Operations {
 		declared_entries_type = new LinkedHashMap<String, Entry>();
 		gson_builder = new GsonBuilder();
 		gson_builder.serializeNulls();
+		
+		try {
+			Operations.declareEntryType(EntrySummary.class);
+		} catch (Exception e) {
+			Log2.log.error("Can't declare (de)serializer for EntrySummary", e);
+		}
 	}
 	
 	static Client getClient() {
@@ -90,13 +97,41 @@ public class Operations {
 		return gson;
 	}
 	
-	public synchronized static void declareEntryType(Entry entry) throws NullPointerException {
-		if (entry == null) {
-			throw new NullPointerException("\"entry\" can't to be null");
+	public synchronized static void declareEntryType(Class<? extends Entry> entry_class) throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException,
+			InvocationTargetException, NoSuchMethodException, SecurityException {
+		if (entry_class == null) {
+			throw new NullPointerException("\"entry_class\" can't to be null");
 		}
+		Entry entry = (Entry) declareType(entry_class);
 		declared_entries_type.put(entry.getES_Type(), entry);
-		entry.createEntrySerialiserBridge();
+		
+		List<Class<? extends SelfSerializing>> dependencies = entry.getSerializationDependencies();
+		if (dependencies != null) {
+			for (int pos = 0; pos < dependencies.size(); pos++) {
+				declareType(dependencies.get(pos));
+			}
+		}
+		
 		gson = gson_builder.create();
+	}
+	
+	public synchronized static void declareSelfSerializingType(Class<? extends SelfSerializing> selfserializing_class) throws NullPointerException, InstantiationException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+		if (selfserializing_class == null) {
+			throw new NullPointerException("\"selfserializing_class\" can't to be null");
+		}
+		declareType(selfserializing_class);
+		gson = gson_builder.create();
+	}
+	
+	private synchronized static SelfSerializing declareType(Class<? extends SelfSerializing> selfserializing_class) throws NullPointerException, InstantiationException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+		if (selfserializing_class == null) {
+			throw new NullPointerException("\"selfserializing_class\" can't to be null");
+		}
+		SelfSerializing instance = selfserializing_class.getConstructor().newInstance();
+		SelfSerialiserBridge.registerInstance(instance);
+		return instance;
 	}
 	
 	public static Container getByMtdKey(String mtd_key) throws NullPointerException {
