@@ -143,8 +143,8 @@ public class WorkerRenderer extends Worker {
 		String origin_pathindex_key = (String) context.get("origin");
 		
 		Explorer explorer = new Explorer();
-		SourcePathIndexerElement element = explorer.getelementByIdkey(origin_pathindex_key);
-		if (element == null) {
+		SourcePathIndexerElement source_element = explorer.getelementByIdkey(origin_pathindex_key);
+		if (source_element == null) {
 			throw new NullPointerException("Can't found origin element: " + origin_pathindex_key);
 		}
 		
@@ -153,7 +153,7 @@ public class WorkerRenderer extends Worker {
 			throw new NullPointerException("No actual metadatas !");
 		}
 		
-		File physical_file = Explorer.getLocalBridgedElement(element);
+		File physical_file = Explorer.getLocalBridgedElement(source_element);
 		if (physical_file == null) {
 			throw new NullPointerException("Can't bridge with real file origin element: " + origin_pathindex_key);
 		}
@@ -163,9 +163,9 @@ public class WorkerRenderer extends Worker {
 		
 		EntryRenderer rendered_entry = null;
 		if (context.containsKey("renderer")) {
-			rendered_entry = current_renderer.standaloneProcess(physical_file, job, (JSONObject) context.get("renderer"));
+			rendered_entry = current_renderer.standaloneProcess(physical_file, job, container, (JSONObject) context.get("renderer"));
 		} else {
-			rendered_entry = current_renderer.standaloneProcess(physical_file, job, null);
+			rendered_entry = current_renderer.standaloneProcess(physical_file, job, container, null);
 		}
 		if (rendered_entry == null) {
 			current_renderer = null;

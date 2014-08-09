@@ -23,9 +23,9 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.LogHandlerToLogfile;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
-import hd3gtv.mydmam.metadata.container.Origin;
 import hd3gtv.mydmam.metadata.container.RenderedContent;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -131,7 +131,7 @@ public class RenderedFile implements Log2Dumpable {
 	private File temp_file;
 	private String metadata_reference_id;
 	private String rendered_base_file_name;
-	private GeneratorRenderer generatorRenderer;
+	private GeneratorRenderer generatorrenderer;
 	private boolean consolidated;
 	private String rendered_mime;
 	private String rendered_digest;
@@ -204,13 +204,13 @@ public class RenderedFile implements Log2Dumpable {
 		temp_file.delete();
 	}
 	
-	private void checkConsolidate(SourcePathIndexerElement source_element, GeneratorRenderer generatorRenderer) throws IOException {
-		if (source_element == null) {
+	private void checkConsolidate(Container container, GeneratorRenderer generatorRenderer) throws IOException {
+		if (container == null) {
 			throw new NullPointerException("\"source_element\" can't to be null");
 		}
-		metadata_reference_id = Origin.getUniqueElementKey(source_element);
+		metadata_reference_id = container.getMtd_key();
 		
-		this.generatorRenderer = generatorRenderer;
+		this.generatorrenderer = generatorRenderer;
 		if (generatorRenderer == null) {
 			throw new NullPointerException("\"renderer\" can't to be null");
 		}
@@ -235,11 +235,12 @@ public class RenderedFile implements Log2Dumpable {
 	/**
 	 * metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extension
 	 */
-	public void consolidate(SourcePathIndexerElement source_element, GeneratorRenderer generatorRenderer) throws IOException {
+	public EntryRenderer consolidateAndExportToEntry(EntryRenderer entry_renderer, Container container, GeneratorRenderer generatorrenderer) throws IOException {
 		if (consolidated) {
-			return;
+			export_to_entry(entry_renderer, container);
+			return entry_renderer;
 		}
-		checkConsolidate(source_element, generatorRenderer);
+		checkConsolidate(container, generatorrenderer);
 		
 		File f_base_directory_dest = createBase_Directory_Dest();
 		
@@ -306,8 +307,8 @@ public class RenderedFile implements Log2Dumpable {
 		
 		dump = new Log2Dump();
 		dump.add("metadata_reference_id", metadata_reference_id);
-		dump.add("source_element", source_element);
-		dump.add("renderer name", generatorRenderer.getLongName());
+		dump.add("source_element", container.getOrigin());
+		dump.add("renderer name", generatorrenderer.getLongName());
 		dump.add("rendered_file", rendered_file);
 		dump.add("rendered_mime", rendered_mime);
 		dump.add("rendered_digest", rendered_digest);
@@ -317,6 +318,28 @@ public class RenderedFile implements Log2Dumpable {
 		
 		dump = new Log2Dump();
 		commit_log.info("End consolidate", dump);
+		
+		export_to_entry(entry_renderer, container);
+		return entry_renderer;
+	}
+	
+	private void export_to_entry(EntryRenderer entry_renderer, Container container) {
+		if (consolidated == false) {
+			throw new NullPointerException("Element is not consolidated !");
+		}
+		if (entry_renderer.content == null) {
+			entry_renderer.content = new ArrayList<RenderedContent>();
+		}
+		entry_renderer.setOrigin(container.getOrigin());
+		
+		RenderedContent rendered_content = new RenderedContent();
+		rendered_content.name = rendered_file.getName();
+		rendered_content.size = rendered_file.length();
+		rendered_content.date = rendered_file.lastModified();
+		rendered_content.hash = rendered_digest;
+		rendered_content.producer = generatorrenderer.getLongName();
+		rendered_content.mime = rendered_mime;
+		entry_renderer.content.add(rendered_content);
 	}
 	
 	private File createBase_Directory_Dest() throws IOException {
@@ -358,27 +381,6 @@ public class RenderedFile implements Log2Dumpable {
 	 */
 	public File getRendered_file() {
 		return rendered_file;
-	}
-	
-	/**
-	 * Consolidate before call this.
-	 */
-	public void export_to_entry(EntryRenderer entry_renderer) {
-		if (consolidated == false) {
-			throw new NullPointerException("Element is not consolidated !");
-		}
-		if (entry_renderer.content == null) {
-			entry_renderer.content = new ArrayList<RenderedContent>();
-		}
-		
-		RenderedContent rendered_content = new RenderedContent();
-		rendered_content.name = rendered_file.getName();
-		rendered_content.size = rendered_file.length();
-		rendered_content.date = rendered_file.lastModified();
-		rendered_content.hash = rendered_digest;
-		rendered_content.producer = generatorRenderer.getLongName();
-		rendered_content.mime = rendered_mime;
-		entry_renderer.content.add(rendered_content);
 	}
 	
 	public String getRendered_digest() {
@@ -726,7 +728,7 @@ public class RenderedFile implements Log2Dumpable {
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("consolidated", consolidated);
-		dump.add("renderer", generatorRenderer);
+		dump.add("renderer", generatorrenderer);
 		dump.add("rendered_file", rendered_file);
 		dump.add("rendered_mime", rendered_mime);
 		dump.add("rendered_digest", rendered_digest);

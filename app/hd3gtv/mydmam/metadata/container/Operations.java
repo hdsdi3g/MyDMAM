@@ -255,11 +255,9 @@ public class Operations {
 				}
 				return true;
 			}
-			
 			result.add(hit.getId(), gson.fromJson(hit.getSourceAsString(), declared_entries_type.get(type).getClass()));
 			return true;
 		}
-		
 	}
 	
 	public static Containers searchInMetadataBase(QueryBuilder query, final String... restric_to_specific_types) {

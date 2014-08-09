@@ -50,7 +50,8 @@ public class Containers implements Log2Dumpable {
 			map_pathindex_key_item.put(entry.getOrigin().key, current);
 			all_items.add(current);
 		} else {
-			map_mtd_key_item.get(mtd_key).addEntry(entry);
+			current = map_mtd_key_item.get(mtd_key);
+			current.addEntry(entry);
 		}
 	}
 	

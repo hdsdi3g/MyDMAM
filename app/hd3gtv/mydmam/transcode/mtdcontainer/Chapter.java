@@ -16,63 +16,74 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
-
-import java.util.HashMap;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
-public class Chapter implements SelfSerializing {
+public class Chapter extends FFprobeNode {
 	
-	private int id;
-	private String time_base;
-	private long start;
-	private float start_time;
-	private long end;
-	private float end_time;
-	private transient HashMap<String, JsonPrimitive> tags;
-	
-	public SelfSerializing deserialize(JsonObject source, Gson gson) {
-		Chapter item = gson.fromJson(source, Chapter.class.getGenericSuperclass());
-		item.tags = FFprobe.getTagsFromSource(source, gson);
-		return item;
+	private class Internal extends FFprobeNodeInternalItem {
+		private int id;
+		private String time_base;
+		private long start;
+		private float start_time;
+		private long end;
+		private float end_time;
 	}
 	
-	public JsonObject serialize(SelfSerializing _item, Gson gson) {
-		Chapter item = (Chapter) _item;
-		JsonObject jo = gson.toJsonTree(item, Chapter.class.getGenericSuperclass()).getAsJsonObject();
-		FFprobe.pushTagsToJson(jo, item.tags, gson);
-		return jo.getAsJsonObject();
-	}
+	private transient Internal internal;
 	
 	public long getEnd() {
-		return end;
+		return internal.end;
 	}
 	
 	public float getEnd_time() {
-		return end_time;
+		return internal.end_time;
 	}
 	
 	public int getId() {
-		return id;
+		return internal.id;
 	}
 	
 	public long getStart() {
-		return start;
+		return internal.start;
 	}
 	
 	public float getStart_time() {
-		return start_time;
-	}
-	
-	public HashMap<String, JsonPrimitive> getTags() {
-		return tags;
+		return internal.start_time;
 	}
 	
 	public String getTime_base() {
-		return time_base;
+		return internal.time_base;
+	}
+	
+	protected FFprobeNode create() {
+		return new Chapter();
+	}
+	
+	protected FFprobeNodeInternalItem getInternalItem() {
+		return internal;
+	}
+	
+	protected Class<? extends FFprobeNodeInternalItem> getInternalItemClass() {
+		return Internal.class;
+	}
+	
+	protected String[] getAdditionnaries_keys_names_to_ignore_in_params() {
+		return null;
+	}
+	
+	protected void setInternalItem(FFprobeNodeInternalItem internal) {
+		this.internal = (Internal) internal;
+	}
+	
+	public Chapter() {
+		internal = new Internal();
+	}
+	
+	protected void internalDeserialize(FFprobeNode _item, JsonObject source, Gson gson) {
+	}
+	
+	protected void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson) {
 	}
 	
 }

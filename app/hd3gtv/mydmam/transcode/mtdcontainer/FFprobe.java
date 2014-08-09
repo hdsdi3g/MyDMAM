@@ -22,13 +22,11 @@ import hd3gtv.mydmam.metadata.container.SelfSerializing;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
 public class FFprobe extends EntryAnalyser {
 	
@@ -40,27 +38,6 @@ public class FFprobe extends EntryAnalyser {
 	}.getType();
 	private static Type streams_typeOfT = new TypeToken<ArrayList<Stream>>() {
 	}.getType();
-	
-	static Type json_map_typeOfT = new TypeToken<HashMap<String, JsonPrimitive>>() {
-	}.getType();
-	
-	static HashMap<String, JsonPrimitive> getTagsFromSource(JsonObject source, Gson gson) {
-		HashMap<String, JsonPrimitive> tags = null;
-		if (source.has("tags")) {
-			tags = gson.fromJson(source.get("tags"), json_map_typeOfT);
-		} else {
-			tags = new HashMap<String, JsonPrimitive>(1);
-		}
-		return tags;
-	}
-	
-	static void pushTagsToJson(JsonObject destination, HashMap<String, JsonPrimitive> tags, Gson gson) {
-		if (tags == null) {
-			destination.add("tags", gson.toJsonTree(new HashMap<String, JsonPrimitive>(1), json_map_typeOfT));
-		} else {
-			destination.add("tags", gson.toJsonTree(tags, json_map_typeOfT));
-		}
-	}
 	
 	protected void extendedInternalDeserialize(EntryAnalyser _item, JsonObject source, Gson gson) {
 		FFprobe item = (FFprobe) _item;
@@ -79,18 +56,20 @@ public class FFprobe extends EntryAnalyser {
 		}
 		
 		if (source.has("format")) {
-			item.format = gson.fromJson(source.get("format").getAsJsonObject(), format.getClass().getGenericSuperclass());
+			item.format = gson.fromJson(source.get("format").getAsJsonObject(), Format.class);
 		}
 		if (item.format == null) {
 			item.format = new Format();
 		}
 	}
 	
+	// TODO populate videos, audios, data streams list... on demand.
+	
 	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
 		FFprobe item = (FFprobe) _item;
 		current_element.add("chapters", gson.toJsonTree(item.chapters, chapters_typeOfT));
 		current_element.add("streams", gson.toJsonTree(item.streams, streams_typeOfT));
-		current_element.add("format", gson.toJsonTree(item.format, format.getClass().getGenericSuperclass()));
+		current_element.add("format", gson.toJsonTree(item.format, Format.class));
 	}
 	
 	public String getES_Type() {
@@ -103,9 +82,22 @@ public class FFprobe extends EntryAnalyser {
 	
 	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
 		List<Class<? extends SelfSerializing>> list = new ArrayList<Class<? extends SelfSerializing>>(1);
-		list.add(Chapter.class);
 		list.add(Format.class);
 		list.add(Stream.class);
+		list.add(Chapter.class);
 		return list;
 	}
+	
+	public ArrayList<Chapter> getChapters() {
+		return chapters;
+	}
+	
+	public ArrayList<Stream> getStreams() {
+		return streams;
+	}
+	
+	public Format getFormat() {
+		return format;
+	}
+	
 }

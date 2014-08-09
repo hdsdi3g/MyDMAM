@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
+import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -36,6 +37,20 @@ public class Origin {
 	private transient SourcePathIndexerElement pathindex_element;
 	
 	Origin() {
+	}
+	
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		sb.append("key:");
+		sb.append(key);
+		sb.append(" (");
+		sb.append(storage);
+		sb.append(") ");
+		sb.append(Log2Event.dateLog(date));
+		sb.append("; ");
+		sb.append(size);
+		sb.append("b");
+		return sb.toString();
 	}
 	
 	public static Origin fromSource(SourcePathIndexerElement element, File physical_source) {
@@ -104,10 +119,10 @@ public class Origin {
 		if (element.date != date) {
 			return false;
 		}
-		if (element.key != key) {
+		if (element.key.equalsIgnoreCase(key) == false) {
 			return false;
 		}
-		if (element.storage != storage) {
+		if (element.storage.equalsIgnoreCase(storage) == false) {
 			return false;
 		}
 		if (element.size != size) {

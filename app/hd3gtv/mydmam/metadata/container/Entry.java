@@ -16,12 +16,15 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+
 import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-public abstract class Entry implements SelfSerializing {
+public abstract class Entry implements SelfSerializing, Log2Dumpable {
 	
 	Entry() {
 	}
@@ -38,6 +41,14 @@ public abstract class Entry implements SelfSerializing {
 	 * For deserializing
 	 */
 	protected abstract Entry create();
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("type", this.getClass().getName());
+		dump.add("ES type", getES_Type());
+		dump.add("origin", origin);
+		return dump;
+	}
 	
 	public final void setOrigin(Origin origin) throws NullPointerException {
 		if (origin == null) {

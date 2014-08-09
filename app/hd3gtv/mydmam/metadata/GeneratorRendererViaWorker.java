@@ -38,7 +38,7 @@ public interface GeneratorRendererViaWorker extends GeneratorRenderer {
 	 * You NEED to consolidate rendered elements.
 	 * Call RenderedFile.export_to_entry() for populate in EntryRenderer
 	 */
-	EntryRenderer standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception;
+	EntryRenderer standaloneProcess(File origin, Job job, Container container, JSONObject renderer_context) throws Exception;
 	
 	void stopStandaloneProcess() throws Exception;
 	

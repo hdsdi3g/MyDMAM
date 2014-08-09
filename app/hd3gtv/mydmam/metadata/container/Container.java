@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 
@@ -58,7 +59,11 @@ public class Container implements Log2Dumpable {
 		if (entry.getOrigin() == null) {
 			entry.setOrigin(origin);
 		} else if (origin.equals(entry.getOrigin()) == false) {
-			throw new NullPointerException("Can't add entry, incompatible origin");
+			Log2Dump dump = new Log2Dump();
+			dump.add("candidate", entry);
+			dump.add("reference origin", origin);
+			Log2.log.error("Divergent origins", null, dump);
+			throw new NullPointerException("Can't add entry " + entry.getES_Type() + ", incompatible origins");
 		}
 		
 		entries.add(entry);
@@ -110,13 +115,13 @@ public class Container implements Log2Dumpable {
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
-		dump.add("mtd_key", mtd_key);
+		dump.add("origin.key", mtd_key);
 		if (origin != null) {
 			dump.add("origin.key", origin.key);
 			dump.add("origin.storage", origin.storage);
 		}
 		for (int pos = 0; pos < entries.size(); pos++) {
-			dump.add(entries.get(pos).getES_Type(), Operations.getGson().toJson(entries.get(pos)));
+			dump.add("metadata." + entries.get(pos).getES_Type(), Operations.getGson().toJson(entries.get(pos)));
 		}
 		return dump;
 	}

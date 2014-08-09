@@ -24,7 +24,9 @@ import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.tools.ExecprocessBadExecutionException;
@@ -41,6 +43,20 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 	
 	private String ffmpeg_bin;
 	private TranscodeProfile tprofile;
+	
+	public static class Snapshoot extends EntryRenderer {
+		public String getES_Type() {
+			return "ffsnapshoot";
+		}
+		
+		protected Entry create() {
+			return new Snapshoot();
+		}
+		
+		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
+			return null;
+		}
+	}
 	
 	public FFmpegSnapshoot() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
@@ -96,8 +112,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		
 		result.add(element);
 		
-		// return result;
-		return null;// TODO EntryRenderer for this TODO consolidate !
+		return element.consolidateAndExportToEntry(new Snapshoot(), container, this);
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, List<RenderedFile> rendered_elements) {
@@ -108,10 +123,8 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		return new Profile(WorkerRenderer.PROFILE_CATEGORY, "ffsnapshoot");
 	}
 	
-	@Override
 	public Class<? extends EntryRenderer> getRootEntryClass() {
-		// TODO Auto-generated method stub
-		return null;
+		return Snapshoot.class;
 	}
 	
 }

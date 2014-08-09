@@ -51,7 +51,6 @@ import org.json.simple.parser.JSONParser;
 
 import com.google.common.primitives.Ints;
 
-@SuppressWarnings("unchecked")
 public class FFprobeAnalyser implements GeneratorAnalyser {
 	
 	private String ffprobe_bin;
@@ -95,7 +94,7 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 			throw e;
 		}
 		
-		// TODO create EntryAnalyserFFprobe
+		// TODO deserialize via gson.fromJson(ffprobe_string, FFprobe.class);
 		JSONParser jp = new JSONParser();
 		JSONObject result = (JSONObject) jp.parse(process.getResultstdout().toString());
 		

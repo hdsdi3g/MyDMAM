@@ -32,6 +32,7 @@ import hd3gtv.mydmam.transcode.FFmpegEvents;
 import hd3gtv.mydmam.transcode.FFmpegProgress;
 import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegLowres;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.Timecode;
 
@@ -39,14 +40,12 @@ import java.awt.Point;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-@SuppressWarnings("unchecked")
 public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 	
 	public static final Profile profile_ffmpeg_lowres_lq = new Profile("ffmpeg", "ffmpeg_lowres_lq");
@@ -59,12 +58,15 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 	private TranscodeProfile transcode_profile;
 	private PreviewType preview_type;
 	private boolean audio_only;
+	private Class<? extends EntryRenderer> root_entry_class;
 	
 	public FFmpegLowresRenderer(Profile transcode_profile, PreviewType preview_type, boolean audio_only) {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		if (transcode_profile == null) {
 			throw new NullPointerException("\"profile\" can't to be null");
 		}
+		root_entry_class = FFmpegLowres.getClassByProfile(transcode_profile);
+		
 		if (TranscodeProfile.isConfigured()) {
 			this.transcode_profile = TranscodeProfile.getTranscodeProfile(transcode_profile);
 			
@@ -104,7 +106,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 	private FFmpegProgress progress;
 	private boolean stop;
 	
-	public EntryRenderer standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception {
+	public EntryRenderer standaloneProcess(File origin, Job job, Container container, JSONObject renderer_context) throws Exception {
 		stop = false;
 		job.step_count = 3;
 		
@@ -182,16 +184,13 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		if (stop) {
 			return null;
 		}
-		job.step = 2;
 		
+		job.step = 2;
 		job.last_message = "Converting is ended";
 		job.progress = 1;
 		job.progress_size = 1;
 		
-		ArrayList<RenderedFile> result = new ArrayList<RenderedFile>();
-		result.add(final_element);
-		// return result; // TODO EntryRenderer for this TODO consolidate !
-		return null;
+		return final_element.consolidateAndExportToEntry(root_entry_class.getConstructor().newInstance(), container, this);
 	}
 	
 	public synchronized void stopStandaloneProcess() throws Exception {
@@ -283,10 +282,8 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		return new Profile(WorkerRenderer.PROFILE_CATEGORY, "pvw_" + transcode_profile.getName());
 	}
 	
-	@Override
 	public Class<? extends EntryRenderer> getRootEntryClass() {
-		// TODO Auto-generated method stub
-		return null;
+		return root_entry_class;
 	}
 	
 }
