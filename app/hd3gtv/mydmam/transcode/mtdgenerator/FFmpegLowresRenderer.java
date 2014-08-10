@@ -33,6 +33,7 @@ import hd3gtv.mydmam.transcode.FFmpegProgress;
 import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegLowres;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.Timecode;
 
@@ -207,18 +208,19 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		final GeneratorRendererViaWorker source = this;
 		
 		FutureCreateTasks result = new FutureCreateTasks() {
+			@SuppressWarnings("unchecked")
 			public void createTask() throws ConnectionException {
-				JSONObject processresult = null; // TODO container.getByClass()
-				if (processresult == null) {
+				FFprobe ffprobe = container.getByClass(FFprobe.class);
+				if (ffprobe == null) {
 					return;
 				}
-				if (audio_only == FFprobeAnalyser.hasVideo(processresult)) {
+				if (audio_only == ffprobe.hasVideo()) {
 					/**
 					 * Audio profile with audio source OR video+audio profile with video+audio source
 					 */
 					return;
 				}
-				Timecode timecode = FFprobeAnalyser.getDuration(processresult);
+				Timecode timecode = ffprobe.getDuration();
 				if (timecode == null) {
 					return;
 				}
@@ -231,7 +233,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 					/**
 					 * Must I render a preview file ?
 					 */
-					if (FFprobeAnalyser.hasVideo(processresult) == false) {
+					if (ffprobe.hasVideo() == false) {
 						/**
 						 * Source is audio only, Master as preview is ok, no rendering.
 						 */
@@ -240,7 +242,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 						/**
 						 * video is ok ?
 						 */
-						Point resolution = FFprobeAnalyser.getVideoResolution(processresult);
+						Point resolution = ffprobe.getVideoResolution();
 						if (resolution == null) {
 							return;
 						}

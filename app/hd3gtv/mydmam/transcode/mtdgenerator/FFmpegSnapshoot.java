@@ -29,6 +29,7 @@ import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
@@ -36,8 +37,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.json.simple.JSONObject;
 
 public class FFmpegSnapshoot implements GeneratorRenderer {
 	
@@ -78,11 +77,11 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 	}
 	
 	public EntryRenderer process(Container container) throws Exception {
-		JSONObject analysed_result = null; // TODO container.getByClass()
-		if (analysed_result == null) {
+		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		if (ffprobe == null) {
 			return null;
 		}
-		if (FFprobeAnalyser.hasVideo(analysed_result) == false) {
+		if (ffprobe.hasVideo() == false) {
 			return null;
 		}
 		

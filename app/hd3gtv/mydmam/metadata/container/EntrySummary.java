@@ -29,7 +29,7 @@ import com.google.gson.reflect.TypeToken;
 public final class EntrySummary extends Entry {
 	
 	public HashMap<String, Preview> previews;
-	public Map<String, String> summaries;
+	Map<String, String> summaries;
 	public boolean master_as_preview;
 	private String mimetype;
 	
@@ -113,6 +113,13 @@ public final class EntrySummary extends Entry {
 	
 	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
 		return null;
+	}
+	
+	public void putSummaryContent(EntryAnalyser entry, String value) {
+		if (summaries == null) {
+			summaries = new HashMap<String, String>();
+		}
+		summaries.put(entry.getES_Type(), value);
 	}
 	
 }

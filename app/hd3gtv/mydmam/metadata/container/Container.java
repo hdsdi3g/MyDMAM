@@ -98,7 +98,11 @@ public class Container implements Log2Dumpable {
 	
 	@SuppressWarnings("unchecked")
 	public <T> T getByClass(Class<T> class_of_T) {
-		return (T) map_class_entry.get((Class<?>) class_of_T);
+		if (map_class_entry.containsKey((Class<?>) class_of_T)) {
+			return (T) map_class_entry.get((Class<?>) class_of_T);
+		} else {
+			return null;
+		}
 	}
 	
 	public void save(boolean refresh_index_after_save) throws ElasticsearchException {

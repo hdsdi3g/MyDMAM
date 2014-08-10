@@ -22,34 +22,30 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.GeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
+import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst;
-import hd3gtv.tools.VideoConst.AudioSampling;
-import hd3gtv.tools.VideoConst.Framerate;
 
-import java.awt.Point;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-
-import com.google.common.primitives.Ints;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 public class FFprobeAnalyser implements GeneratorAnalyser {
 	
@@ -94,27 +90,26 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 			throw e;
 		}
 		
-		// TODO deserialize via gson.fromJson(ffprobe_string, FFprobe.class);
-		JSONParser jp = new JSONParser();
-		JSONObject result = (JSONObject) jp.parse(process.getResultstdout().toString());
+		FFprobe result = Operations.getGson().fromJson(process.getResultstdout().toString(), FFprobe.class);
 		
 		/**
 		 * Patch mime code if no video stream
 		 */
-		List<JSONObject> video_streams = getStreamNode(result, "video");
-		if (video_streams != null) {
+		
+		if (result.hasVideo()) {
 			/**
-			 * Video is present
+			 * Video is present and valid
 			 */
+			List<Stream> video_streams = result.getStreamsByCodecType("video");
 			for (int pos = 0; pos < video_streams.size(); pos++) {
-				if (video_streams.get(pos).containsKey("level") == false) {
+				if (video_streams.get(pos).hasMultipleParams("level") == false) {
 					continue;
 				}
-				/**
-				 * level < 0 : video stream is not a real video stream
-				 */
-				if (((Long) video_streams.get(pos).get("level")) < 0l) {
-					video_streams.get(pos).put("ignore_stream", true);
+				if (video_streams.get(pos).getParam("level").getAsInt() < 0l) {
+					/**
+					 * level < 0 : video stream is not a real video stream
+					 */
+					video_streams.get(pos).setIgnored(true);
 					if (container.getSummary().getMimetype().startsWith("video")) {
 						/**
 						 * Need to correct bad mime category
@@ -131,93 +126,190 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 		}
 		
 		/**
-		 * Patch dates
+		 * Patch tags dates
 		 */
-		if (result.containsKey("streams")) {
-			JSONArray streams = (JSONArray) result.get("streams");
-			for (int pos = 0; pos < streams.size(); pos++) {
-				JSONObject stream = (JSONObject) streams.get(pos);
-				if (stream.containsKey("tags")) {
-					patchTagDate((JSONObject) stream.get("tags"));
-				}
-			}
+		List<Stream> streams = result.getStreams();
+		for (int pos = 0; pos < streams.size(); pos++) {
+			patchTagDate(streams.get(pos).getTags());
 		}
-		if (result.containsKey("format")) {
-			JSONObject format = (JSONObject) result.get("format");
-			if (format.containsKey("tags")) {
-				try {
-					patchTagDate((JSONObject) format.get("tags"));
-				} catch (ConcurrentModificationException cme) {
-					Log2.log.error("Can't patch dates", cme, new Log2Dump("json", format.toJSONString()));
+		patchTagDate(result.getFormat().getTags());
+		
+		/**
+		 * Compute a summary like:
+		 * "Video: DV SD PAL, Audio: PCM 16b (stereo 48.0kHz 1536kbps), Dur: 00:00:08:00 @ 28,80 Mbps", "Video: MPEG2 SD PAL, Audio: PCM 16b (mono 48.0kHz 768kbps), x2",
+		 * "Audio: EAC3 (3ch 32.0kHz 384kbps), Dur: 00:00:05:00 @ 384,00 kbps"
+		 */
+		StringBuffer sb_summary;
+		List<String> streams_list_summary = new ArrayList<String>(1);
+		Stream stream;
+		for (int pos = 0; pos < streams.size(); pos++) {
+			sb_summary = new StringBuffer();
+			stream = streams.get(pos);
+			if (stream.isIgnored()) {
+				continue;
+			}
+			String codec_name = stream.getCodec_tag_string();
+			if (codec_name.indexOf("[") > -1) {
+				codec_name = stream.getParam("codec_name").getAsString();
+			}
+			String codec_type = stream.getCodec_type();
+			if (codec_type.equalsIgnoreCase("video")) {
+				sb_summary.append("Video: ");
+				sb_summary.append(translateCodecName(codec_name));
+				if (stream.getVideoResolution() != null) {
+					sb_summary.append(" ");
+					sb_summary.append(VideoConst.getSystemSummary(stream.getVideoResolution().x, stream.getVideoResolution().y, result.getFramerate()));
 				}
+			} else if (codec_type.equalsIgnoreCase("audio")) {
+				sb_summary.append("Audio: ");
+				if (codec_name.equalsIgnoreCase("twos") | codec_name.equalsIgnoreCase("sowt")) {
+					codec_name = stream.getParam("codec_name").getAsString();
+				}
+				sb_summary.append(translateCodecName(codec_name));
+				
+				sb_summary.append(" (");
+				if (stream.hasMultipleParams("channels")) {
+					sb_summary.append(VideoConst.audioChannelCounttoString(stream.getParam("channels").getAsInt()));
+				}
+				if (stream.hasMultipleParams("sample_rate")) {
+					sb_summary.append(" ");
+					sb_summary.append(new Integer(stream.getParam("sample_rate").getAsInt()).floatValue() / 1000f);
+					sb_summary.append("kHz");
+				}
+				if (stream.hasMultipleParams("bit_rate")) {
+					sb_summary.append(" ");
+					sb_summary.append(new Integer(stream.getParam("bit_rate").getAsInt()).floatValue() / 1000f);
+					sb_summary.append("kbps");
+				}
+				sb_summary.append(")");
+				
+			}
+			streams_list_summary.add(sb_summary.toString());
+		}
+		sb_summary = new StringBuffer();
+		
+		for (int pos = 0; pos < streams_list_summary.size(); pos++) {
+			if (streams_list_summary.get(pos).startsWith("Video:")) {
+				sb_summary.append(streams_list_summary.get(pos));
+				sb_summary.append(", ");
 			}
 		}
 		
-		String summary = getSummary(result);// TODO compute and add summary
+		/**
+		 * Do not repeat if there is more that 1 identical stream, like 4 mono channels.
+		 */
+		String last_stream = "";
+		int count_last_stream = 0;
+		for (int pos = 0; pos < streams_list_summary.size(); pos++) {
+			if (streams_list_summary.get(pos).startsWith("Audio:") == false) {
+				continue;
+			}
+			if (streams_list_summary.get(pos).equals(last_stream)) {
+				count_last_stream++;
+			} else {
+				if (count_last_stream > 0) {
+					sb_summary.append("x");
+					sb_summary.append(count_last_stream + 1);
+					sb_summary.append(", ");
+				} else {
+					sb_summary.append(streams_list_summary.get(pos));
+					sb_summary.append(", ");
+					last_stream = streams_list_summary.get(pos);
+				}
+				count_last_stream = 0;
+			}
+		}
+		if (count_last_stream > 0) {
+			sb_summary.append("x");
+			sb_summary.append(count_last_stream + 1);
+			sb_summary.append(", ");
+		}
+		if (sb_summary.toString().endsWith(", ") == false) {
+			sb_summary.append(", ");
+		}
 		
-		// return result;
-		return null;// TODO real return
+		Timecode tc = result.getDuration();
+		if (tc != null) {
+			sb_summary.append("Dur: ");
+			sb_summary.append(tc.toString());
+			sb_summary.append(" ");
+		}
+		
+		sb_summary.append("@ ");
+		int bit_rate = result.getFormat().getBit_rate();
+		if (bit_rate < 1000) {
+			sb_summary.append(bit_rate);
+			sb_summary.append(" bps");
+		} else {
+			/**
+			 * like "46,61 Mbps"
+			 */
+			int exp = (int) (Math.log(bit_rate) / Math.log(1000));
+			sb_summary.append(String.format("%.2f", bit_rate / Math.pow(1000, exp)));
+			sb_summary.append(" ");
+			sb_summary.append(("kMGTPE").charAt(exp - 1));
+			sb_summary.append("bps");
+			sb_summary.append(" ");
+		}
+		
+		/**
+		 * Store computed summary.
+		 */
+		if (sb_summary.toString().trim().endsWith(",")) {
+			container.getSummary().putSummaryContent(result, sb_summary.toString().trim().substring(0, sb_summary.toString().trim().length() - 1));
+		} else {
+			container.getSummary().putSummaryContent(result, sb_summary.toString().trim());
+		}
+		
+		return result;
 	}
 	
-	@SuppressWarnings("rawtypes")
-	private static void patchTagDate(JSONObject jo_tags) {
-		if (jo_tags == null) {
+	private static void patchTagDate(JsonObject tags) {
+		if (tags == null) {
 			return;
 		}
-		if (jo_tags.isEmpty()) {
-			return;
-		}
-		
 		String key;
 		String value;
 		DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		
-		HashMap<String, Object> new_values = new HashMap<String, Object>();
+		HashMap<String, JsonPrimitive> new_values = new HashMap<String, JsonPrimitive>();
 		List<String> remove_values = new ArrayList<String>();
 		
 		/**
 		 * Search and prepare changes
 		 */
-		for (Object _entry : jo_tags.entrySet()) {
-			java.util.Map.Entry entry = (java.util.Map.Entry) _entry;
+		for (Map.Entry<String, JsonElement> entry : tags.entrySet()) {
 			key = (String) entry.getKey();
-			if (key.equals("creation_time")) {
-				value = (String) entry.getValue();
-				try {
-					new_values.put(key, format.parse(value).getTime());
-				} catch (ParseException e) {
-					Log2.log.error("Can't parse date", e, new Log2Dump("tags", jo_tags.toJSONString()));
-				}
-			}
-			if (key.equals("date")) {
-				value = (String) jo_tags.get(key);
-				try {
+			value = entry.getValue().getAsString();
+			try {
+				if (key.equals("creation_time")) {
+					new_values.put(key, new JsonPrimitive(format.parse(value).getTime()));
+				} else if (key.equals("date")) {
 					if (value.length() == "0000-00-00T00:00:00Z".length()) {
-						new_values.put(key, format.parse(value.substring(0, 10) + " " + value.substring(11, 19)).getTime());
+						new_values.put(key, new JsonPrimitive(format.parse(value.substring(0, 10) + " " + value.substring(11, 19)).getTime()));
 					} else if (value.length() == "0000-00-00 00:00:00".length()) {
-						new_values.put(key, format.parse(value).getTime());
+						new_values.put(key, new JsonPrimitive(format.parse(value).getTime()));
 					} else if (value.length() == "0000-00-00".length()) {
-						new_values.put(key, format.parse(value.substring(0, 10) + " 00:00:00").getTime());
+						new_values.put(key, new JsonPrimitive(format.parse(value.substring(0, 10) + " 00:00:00").getTime()));
 					} else {
 						remove_values.add(key);
-						new_values.put(key + "-raw", "#" + value);
+						new_values.put(key + "-raw", new JsonPrimitive("#" + value));
 					}
-				} catch (ParseException e) {
-					Log2.log.error("Can't parse date", e, new Log2Dump("tags", jo_tags.toJSONString()));
 				}
+			} catch (ParseException e) {
+				Log2.log.error("Can't parse date", e, new Log2Dump("tags", tags.toString()));
 			}
 		}
 		
 		/**
 		 * Apply changes
 		 */
-		for (Map.Entry<String, Object> entry : new_values.entrySet()) {
-			jo_tags.put(entry.getKey(), entry.getValue());
+		for (Map.Entry<String, JsonPrimitive> entry : new_values.entrySet()) {
+			tags.add(entry.getKey(), entry.getValue());
 		}
 		for (int pos = 0; pos < remove_values.size(); pos++) {
-			jo_tags.remove(remove_values.get(pos));
+			tags.remove(remove_values.get(pos));
 		}
-		
 	}
 	
 	public String getLongName() {
@@ -297,149 +389,6 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 		return false;
 	}
 	
-	/**
-	 * @return like "Video: DV SD PAL, Audio: PCM 16b (stereo 48.0kHz 1536kbps), Dur: 00:00:08:00 @ 28,80 Mbps", "Video: MPEG2 SD PAL, Audio: PCM 16b (mono 48.0kHz 768kbps), x2",
-	 *         "Audio: EAC3 (3ch 32.0kHz 384kbps), Dur: 00:00:05:00 @ 384,00 kbps"
-	 */
-	private String getSummary(JSONObject processresult) {
-		StringBuffer sb = new StringBuffer();
-		if (processresult.containsKey("format") == false) {
-			return "Invalid file";
-		}
-		JSONObject jo_format = (JSONObject) processresult.get("format");
-		
-		Framerate frame_rate = Framerate.OTHER;
-		
-		ArrayList<String> streams_list = new ArrayList<String>();
-		
-		if (processresult.containsKey("streams")) {
-			JSONArray streams = (JSONArray) processresult.get("streams");
-			JSONObject stream;
-			int width;
-			int height;
-			for (int pos = 0; pos < streams.size(); pos++) {
-				sb = new StringBuffer();
-				stream = (JSONObject) streams.get(pos);
-				if (stream.containsKey("ignore_stream")) {
-					continue;
-				} else if (stream.containsKey("codec_type")) {
-					String codec_name = (String) stream.get("codec_tag_string");
-					if (codec_name.indexOf("[") > -1) {
-						codec_name = (String) stream.get("codec_name");
-					}
-					
-					String codec_type = (String) stream.get("codec_type");
-					if (codec_type.equalsIgnoreCase("video")) {
-						sb.append("Video: ");
-						sb.append(translateCodecName(codec_name));
-						
-						frame_rate = getFramerate(processresult);
-						width = Ints.checkedCast((Long) stream.get("width"));
-						height = Ints.checkedCast((Long) stream.get("height"));
-						
-						sb.append(" ");
-						sb.append(VideoConst.getSystemSummary(width, height, frame_rate));
-					} else if (codec_type.equalsIgnoreCase("audio")) {
-						sb.append("Audio: ");
-						if (codec_name.equalsIgnoreCase("twos") | codec_name.equalsIgnoreCase("sowt")) {
-							codec_name = (String) stream.get("codec_name");
-						}
-						sb.append(translateCodecName(codec_name));
-						
-						sb.append(" (");
-						sb.append(VideoConst.audioChannelCounttoString(Ints.checkedCast((Long) stream.get("channels"))));
-						
-						if (stream.containsKey("sample_rate")) {
-							sb.append(" ");
-							sb.append(Float.parseFloat((String) stream.get("sample_rate")) / 1000f);
-							sb.append("kHz");
-						}
-						if (stream.containsKey("bit_rate")) {
-							sb.append(" ");
-							sb.append(Integer.parseInt((String) stream.get("bit_rate")) / 1000);
-							sb.append("kbps");
-						}
-						sb.append(")");
-						
-					}
-				}
-				streams_list.add(sb.toString());
-			}
-		}
-		
-		sb = new StringBuffer();
-		
-		for (int pos = 0; pos < streams_list.size(); pos++) {
-			if (streams_list.get(pos).startsWith("Video:")) {
-				sb.append(streams_list.get(pos));
-				sb.append(", ");
-			}
-		}
-		
-		/**
-		 * Do not repeat if there is more that 1 identical stream, like 4 mono channels.
-		 */
-		String last_stream = "";
-		int count_last_stream = 0;
-		for (int pos = 0; pos < streams_list.size(); pos++) {
-			if (streams_list.get(pos).startsWith("Audio:") == false) {
-				continue;
-			}
-			if (streams_list.get(pos).equals(last_stream)) {
-				count_last_stream++;
-			} else {
-				if (count_last_stream > 0) {
-					sb.append("x");
-					sb.append(count_last_stream + 1);
-					sb.append(", ");
-				} else {
-					sb.append(streams_list.get(pos));
-					sb.append(", ");
-					last_stream = streams_list.get(pos);
-				}
-				count_last_stream = 0;
-			}
-		}
-		if (count_last_stream > 0) {
-			sb.append("x");
-			sb.append(count_last_stream + 1);
-			sb.append(", ");
-		}
-		if (sb.toString().endsWith(", ") == false) {
-			sb.append(", ");
-		}
-		
-		Timecode tc = getDuration(processresult);
-		if (tc != null) {
-			sb.append("Dur: ");
-			sb.append(tc.toString());
-			sb.append(" ");
-		}
-		if (jo_format.containsKey("bit_rate")) {
-			sb.append("@ ");
-			int bit_rate = Integer.valueOf((String) jo_format.get("bit_rate"));
-			if (bit_rate < 1000) {
-				sb.append(bit_rate);
-				sb.append(" bps");
-			} else {
-				/**
-				 * like "46,61 Mbps"
-				 */
-				int exp = (int) (Math.log(bit_rate) / Math.log(1000));
-				sb.append(String.format("%.2f", bit_rate / Math.pow(1000, exp)));
-				sb.append(" ");
-				sb.append(("kMGTPE").charAt(exp - 1));
-				sb.append("bps");
-				sb.append(" ");
-			}
-		}
-		
-		if (sb.toString().trim().endsWith(",")) {
-			return sb.toString().trim().substring(0, sb.toString().trim().length() - 1);
-		}
-		return sb.toString().trim();
-	}
-	
 	private static Properties translated_codecs_names;
 	
 	static {
@@ -469,210 +418,6 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 		return translated_codecs_names.getProperty(ffmpeg_name.toLowerCase(), ffmpeg_name);
 	}
 	
-	public static List<JSONObject> getStreamNode(JSONObject processresult, String codec_type) {
-		if (processresult.containsKey("streams") == false) {
-			return null;
-		}
-		JSONArray streams = (JSONArray) processresult.get("streams");
-		ArrayList<JSONObject> stream_list = new ArrayList<JSONObject>();
-		for (int pos = 0; pos < streams.size(); pos++) {
-			JSONObject stream = (JSONObject) streams.get(pos);
-			if (stream.containsKey("ignore_stream")) {
-				continue;
-			}
-			if (((String) stream.get("codec_type")).equalsIgnoreCase(codec_type)) {
-				stream_list.add(stream);
-			}
-		}
-		if (stream_list.isEmpty()) {
-			return null;
-		}
-		return stream_list;
-	}
-	
-	public static boolean hasVideo(JSONObject processresult) {
-		List<JSONObject> streams = getStreamNode(processresult, "video");
-		return (streams != null);
-	}
-	
-	public static boolean hasAudio(JSONObject processresult) {
-		List<JSONObject> streams = getStreamNode(processresult, "audio");
-		return (streams != null);
-	}
-	
-	/**
-	 * @return the first valid value if there are more one audio stream.
-	 */
-	public static AudioSampling getAudioSampling(JSONObject processresult) {
-		List<JSONObject> streams = getStreamNode(processresult, "audio");
-		if (streams == null) {
-			return null;
-		}
-		
-		for (int pos = 0; pos < streams.size(); pos++) {
-			JSONObject stream = streams.get(pos);
-			Object samplerate = stream.get("sample_rate");
-			if (samplerate == null) {
-				continue;
-			}
-			if (samplerate instanceof String) {
-				return AudioSampling.parseAS((String) samplerate);
-			}
-			if (samplerate instanceof Integer) {
-				return AudioSampling.parseAS(Integer.toString((Integer) samplerate));
-			}
-		}
-		return null;
-	}
-	
-	public static Timecode getDuration(JSONObject processresult) {
-		try {
-			Framerate framerate = getFramerate(processresult);
-			JSONObject format = (JSONObject) processresult.get("format");
-			String v_duration = (String) format.get("duration");
-			if (framerate == null) {
-				return new Timecode(Float.valueOf(v_duration), 1000f);
-			}
-			return new Timecode(Float.valueOf(v_duration), framerate.getNumericValue());
-		} catch (Exception e) {
-			Log2.log.error("Can't extract duration from file", e, new Log2Dump("processresult", processresult.toJSONString()));
-		}
-		return null;
-	}
-	
-	/**
-	 * @return the first valid value if there are more one video stream.
-	 */
-	public static Framerate getFramerate(JSONObject processresult) {
-		List<JSONObject> streams = getStreamNode(processresult, "video");
-		if (streams == null) {
-			return null;
-		}
-		if (streams.isEmpty()) {
-			return null;
-		}
-		
-		JSONObject stream = streams.get(0);
-		
-		String avg_frame_rate = null;
-		String r_frame_rate = null;
-		int nb_frames = 0;
-		float duration = 0f;
-		
-		/**
-		 * "r_frame_rate" : "30000/1001",
-		 * "r_frame_rate" : "30/1",
-		 * "r_frame_rate" : "25/1",
-		 */
-		if (stream.containsKey("r_frame_rate")) {
-			r_frame_rate = (String) stream.get("r_frame_rate");
-		}
-		
-		/**
-		 * "avg_frame_rate" : "30000/1001",
-		 * "avg_frame_rate" : "0/0",
-		 * "avg_frame_rate" : "25/1",
-		 */
-		if (stream.containsKey("avg_frame_rate")) {
-			avg_frame_rate = (String) stream.get("avg_frame_rate");
-		}
-		
-		/** "nb_frames" : "8487", */
-		if (stream.containsKey("nb_frames")) {
-			try {
-				nb_frames = Integer.valueOf((String) stream.get("nb_frames"));
-			} catch (NumberFormatException e) {
-			}
-		}
-		
-		/** "duration" : "283.182900", */
-		if (stream.containsKey("duration")) {
-			try {
-				duration = Float.valueOf((String) stream.get("duration"));
-			} catch (NumberFormatException e) {
-			}
-		}
-		
-		Framerate result = Framerate.getFramerate(r_frame_rate);
-		if (result == null) {
-			result = Framerate.getFramerate(avg_frame_rate);
-		} else if (result == Framerate.OTHER) {
-			if (Framerate.getFramerate(avg_frame_rate) != Framerate.OTHER) {
-				result = Framerate.getFramerate(avg_frame_rate);
-			}
-		}
-		if (((result == null) | (result == Framerate.OTHER)) & (nb_frames > 0) & (duration > 0f)) {
-			result = Framerate.getFramerate((float) Math.round(((float) nb_frames / duration) * 10f) / 10f);
-		}
-		
-		/*String frame_rate_raw = (String) stream.get("r_frame_rate");
-		if (format_name.equalsIgnoreCase("mpegts")) {
-			frame_rate_raw = (String) stream.get("avg_frame_rate");
-		}*/
-		return result;
-	}
-	
-	public static Point getVideoResolution(JSONObject processresult) {
-		try {
-			List<JSONObject> streams = getStreamNode(processresult, "video");
-			if (streams == null) {
-				return null;
-			}
-			if (streams.isEmpty()) {
-				return null;
-			}
-			JSONObject stream = streams.get(0);
-			
-			if ((stream.containsKey("width") == false) | (stream.containsKey("height") == false)) {
-				throw new NullPointerException("No width or height in video information");
-			}
-			
-			Long width = (Long) stream.get("width");
-			Long height = (Long) stream.get("height");
-			
-			return new Point(width.intValue(), height.intValue());
-		} catch (Exception e) {
-			Log2.log.error("Can't extract duration from file", e, new Log2Dump("processresult", processresult.toJSONString()));
-		}
-		return null;
-	}
-	
-	/**
-	 * @param stream_type "audio", "video", or "format"
-	 * @param stream_track 0 for default (first stream)
-	 * @return in kbits per sec or -1
-	 */
-	public static float getBitrate(JSONObject processresult, String stream_type, int stream_track) {
-		try {
-			JSONObject block = null;
-			if (stream_type.equalsIgnoreCase("format")) {
-				block = (JSONObject) processresult.get("format");
-			} else {
-				List<JSONObject> streams = getStreamNode(processresult, stream_type);
-				if (streams == null) {
-					return -1;
-				}
-				if (streams.size() <= stream_track) {
-					return -1;
-				}
-				block = streams.get(stream_track);
-			}
-			
-			if ((block.containsKey("bit_rate") == false)) {
-				throw new NullPointerException("No bitrate in " + stream_type + " information");
-			}
-			String s_bit_rate = (String) block.get("bit_rate");
-			Integer int_bit_rate = Integer.parseInt(s_bit_rate);
-			return int_bit_rate.floatValue() / 1000f;
-		} catch (Exception e) {
-			Log2Dump dump = new Log2Dump("processresult", processresult.toJSONString());
-			dump.add("stream_type", stream_type);
-			dump.add("stream_track", stream_track);
-			Log2.log.error("Can't extract bitrate from file", e, dump);
-		}
-		return -1;
-	}
-	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
 		ArrayList<String> al = new ArrayList<String>();
 		al.add("audio/mpeg");
@@ -683,54 +428,56 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 		return al;
 	}
 	
+	private static String[] mime_list_master_as_preview;
 	private static ValidatorCenter audio_webbrowser_validation;
 	private static ValidatorCenter video_webbrowser_validation;
 	
 	public boolean isCanUsedInMasterAsPreview(Container container) {
-		String[] mime_list = getMimeFileListCanUsedInMasterAsPreview().toArray(new String[0]);
-		
-		if (container.getSummary().equalsMimetype(mime_list)) {
+		if (mime_list_master_as_preview == null) {
+			mime_list_master_as_preview = getMimeFileListCanUsedInMasterAsPreview().toArray(new String[0]);
+		}
+		if (container.getSummary().equalsMimetype(mime_list_master_as_preview)) {
 			if (video_webbrowser_validation == null) {
 				video_webbrowser_validation = new ValidatorCenter();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].index", Comparator.EQUALS, 0);
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'video')].index", Comparator.EQUALS, 0);
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 1);
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 1);
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac");
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac");
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 384000);
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 384000);
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].codec_name", Comparator.EQUALS, "h264");
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'video')].codec_name", Comparator.EQUALS, "h264");
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].width", Comparator.EQUALS_OR_SMALLER_THAN, 1920);
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'video')].width", Comparator.EQUALS_OR_SMALLER_THAN, 1920);
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].height", Comparator.EQUALS_OR_SMALLER_THAN, 1080);
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'video')].height", Comparator.EQUALS_OR_SMALLER_THAN, 1080);
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].level", Comparator.EQUALS_OR_SMALLER_THAN, 42);
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'video')].level", Comparator.EQUALS_OR_SMALLER_THAN, 42);
 				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'video')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 4000000);
+				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'video')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 4000000);
 			}
 			if (audio_webbrowser_validation == null) {
 				audio_webbrowser_validation = new ValidatorCenter();
-				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 0);
+				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 0);
 				audio_webbrowser_validation.and();
 				
-				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac", "mp3");
+				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac", "mp3");
 				audio_webbrowser_validation.and();
-				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
+				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
 				audio_webbrowser_validation.and();
-				audio_webbrowser_validation.addRule(this, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 384000);
+				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 384000);
 			}
 			
-			/*if (video_webbrowser_validation.validate(metadatas_result.getAnalysis_results())) {// TODO refactor
+			if (video_webbrowser_validation.validate(this, container)) {
 				return true;
-			} else if (audio_webbrowser_validation.validate(metadatas_result.getAnalysis_results())) {
+			} else if (audio_webbrowser_validation.validate(this, container)) {
 				return true;
-			}*/
+			}
 		}
 		return false;
 	}

@@ -16,27 +16,28 @@
 */
 package hd3gtv.mydmam.metadata.validation;
 
-import hd3gtv.mydmam.metadata.GeneratorAnalyser;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Entry;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.Operations;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.simple.JSONObject;
-
 /**
  * Test if some analysis JSON result values match with predefinited values.
  */
 public class Validator {
 	
-	private LinkedHashMap<GeneratorAnalyser, List<Constraint>> rules;
+	private LinkedHashMap<Class<? extends EntryAnalyser>, List<Constraint>> rules;
 	
 	public Validator() {
-		rules = new LinkedHashMap<GeneratorAnalyser, List<Constraint>>();
+		rules = new LinkedHashMap<Class<? extends EntryAnalyser>, List<Constraint>>();
 	}
 	
-	void addRule(GeneratorAnalyser applyto, Constraint constraint) {
+	void addRule(Class<? extends EntryAnalyser> applyto, Constraint constraint) {
 		if (applyto == null) {
 			throw new NullPointerException("\"applyto\" can't to be null");
 		}
@@ -60,22 +61,31 @@ public class Validator {
 	/**
 	 * @return null if ok, or causes if fail.
 	 */
-	public List<RejectCause> validate(LinkedHashMap<GeneratorAnalyser, JSONObject> analysis_results) {// TODO refactor
+	public List<RejectCause> validate(Container container) {
+		LinkedHashMap<Class<? extends EntryAnalyser>, String> analysis_results = new LinkedHashMap<Class<? extends EntryAnalyser>, String>();
+		
+		List<Entry> entries = container.getEntries();
+		for (int pos = 0; pos < entries.size(); pos++) {
+			if (entries.get(pos) instanceof EntryAnalyser) {
+				analysis_results.put(((EntryAnalyser) entries.get(pos)).getClass(), Operations.getGson().toJson(entries.get(pos)));
+			}
+		}
+		
 		List<RejectCause> rejects = new ArrayList<RejectCause>();
 		
-		JSONObject analyst_result;
+		String source;
 		List<Constraint> analyser_rules;
 		Constraint constraint;
-		for (Map.Entry<GeneratorAnalyser, List<Constraint>> entry : rules.entrySet()) {
+		for (Map.Entry<Class<? extends EntryAnalyser>, List<Constraint>> entry : rules.entrySet()) {
 			if (analysis_results.containsKey(entry.getKey()) == false) {
 				continue;
 			}
-			analyst_result = analysis_results.get(entry.getKey());
+			source = analysis_results.get(entry.getKey());
 			analyser_rules = entry.getValue();
 			for (int pos_rules = 0; pos_rules < analyser_rules.size(); pos_rules++) {
 				constraint = analyser_rules.get(pos_rules);
-				if (constraint.isPassing(analyst_result) == false) {
-					rejects.add(new RejectCause(entry.getKey(), analyst_result, constraint));
+				if (constraint.isPassing(source) == false) {
+					rejects.add(new RejectCause(entry.getKey(), source, constraint));
 				}
 			}
 		}

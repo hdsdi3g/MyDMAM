@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -32,71 +35,6 @@ public class Format extends FFprobeNode {
 	}
 	
 	private transient Internal internal;
-	
-	/*public SelfSerializing deserialize(JsonObject source, Gson gson) {
-		Format item = new Format();
-		item.internal = gson.fromJson(source, Internal.class);
-		if (source.has("tags")) {
-			item.internal.tags = source.get("tags").getAsJsonObject();
-		} else {
-			item.internal.tags = new JsonObject();
-		}
-		
-		item.params = new HashMap<String, JsonPrimitive>();
-		for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
-			if (entry.getKey().equals("tags")) {
-				continue;
-			}
-			if (entry.getValue().isJsonPrimitive()) {
-				item.params.put(entry.getKey(), entry.getValue().getAsJsonPrimitive());
-			} else {
-				Log2Dump dump = new Log2Dump();
-				dump.add("key", entry.getKey());
-				dump.add("value", entry.getValue().toString());
-				dump.add("source", source.toString());
-				Log2.log.debug("Item is not a primitive !", dump);
-			}
-		}
-		return item;
-	}
-	
-	public JsonObject serialize(SelfSerializing _item, Gson gson) {
-		Format item = (Format) _item;
-		JsonObject jo = new JsonObject();
-		for (Map.Entry<String, JsonPrimitive> entry : item.params.entrySet()) {
-			jo.add(entry.getKey(), entry.getValue());
-		}
-		jo.add("tags", item.internal.tags);
-		return jo;
-	}*/
-	
-	public int getBit_rate() {
-		return internal.bit_rate;
-	}
-	
-	public float getDuration() {
-		return internal.duration;
-	}
-	
-	public String getFilename() {
-		return internal.filename;
-	}
-	
-	public String getFormat_long_name() {
-		return internal.format_long_name;
-	}
-	
-	public String getFormat_name() {
-		return internal.format_name;
-	}
-	
-	public int getNb_streams() {
-		return internal.nb_streams;
-	}
-	
-	public long getSize() {
-		return internal.size;
-	}
 	
 	public Format() {
 		internal = new Internal();
@@ -126,6 +64,47 @@ public class Format extends FFprobeNode {
 	
 	protected String[] getAdditionnaries_keys_names_to_ignore_in_params() {
 		return null;
+	}
+	
+	public int getBit_rate() {
+		return internal.bit_rate;
+	}
+	
+	public float getDuration() {
+		return internal.duration;
+	}
+	
+	public String getFilename() {
+		return internal.filename;
+	}
+	
+	public String getFormat_long_name() {
+		return internal.format_long_name;
+	}
+	
+	public String getFormat_name() {
+		return internal.format_name;
+	}
+	
+	public int getNb_streams() {
+		return internal.nb_streams;
+	}
+	
+	public long getSize() {
+		return internal.size;
+	}
+	
+	/**
+	 * @return in kbits per sec or -1
+	 */
+	public float getBitrate() {
+		try {
+			return new Integer(getBit_rate()).floatValue() / 1000f;
+		} catch (Exception e) {
+			Log2Dump dump = new Log2Dump("raw bitrate", getParam("bitrate").getAsString());
+			Log2.log.error("Can't extract bitrate", e, dump);
+		}
+		return -1;
 	}
 	
 }

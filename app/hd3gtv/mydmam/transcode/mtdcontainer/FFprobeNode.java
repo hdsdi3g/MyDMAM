@@ -105,6 +105,11 @@ abstract class FFprobeNode implements SelfSerializing {
 		return true;
 	}
 	
+	protected final FFprobeNode putParam(String param_name, JsonPrimitive param_value) {
+		params.put(param_name, param_value);
+		return this;
+	}
+	
 	public final JsonPrimitive getParam(String param_name) {
 		if (params.containsKey(param_name) == false) {
 			return null;

@@ -29,16 +29,13 @@ import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 public class FFmpegAlbumartwork implements GeneratorRenderer {
 	
@@ -79,39 +76,25 @@ public class FFmpegAlbumartwork implements GeneratorRenderer {
 	}
 	
 	public EntryRenderer process(Container container) throws Exception {
-		JSONObject analysed_result = null; // TODO container.getByClass()
-		if (analysed_result == null) {
+		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		if (ffprobe == null) {
 			return null;
 		}
 		
 		/**
 		 * Must not have real video stream.
 		 */
-		if (FFprobeAnalyser.hasVideo(analysed_result)) {
+		if (ffprobe.hasVideo()) {
 			return null;
 		}
 		
 		/**
 		 * Must have fake video stream : artwork
 		 */
-		boolean containt_artwork = false;
-		if (analysed_result.containsKey("streams") == false) {
-			return null;
-		}
-		JSONArray streams = (JSONArray) analysed_result.get("streams");
-		for (int pos = 0; pos < streams.size(); pos++) {
-			JSONObject stream = (JSONObject) streams.get(pos);
-			String codec_type = (String) stream.get("codec_type");
-			if (codec_type.equalsIgnoreCase("video")) {
-				containt_artwork = true;
-				break;
-			}
-		}
-		if (containt_artwork == false) {
+		if (ffprobe.getStreamsByCodecType("video") == null) {
 			return null;
 		}
 		
-		ArrayList<RenderedFile> result = new ArrayList<RenderedFile>();
 		RenderedFile element = new RenderedFile("album_artwork", tprofile.getExtension("jpg"));
 		
 		ExecprocessGettext process = tprofile.prepareExecprocessGettext(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile());

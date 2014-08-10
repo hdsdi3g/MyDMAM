@@ -16,12 +16,21 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.tools.VideoConst.AudioSampling;
+
 import java.awt.Point;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 public class Stream extends FFprobeNode {
+	
+	public Stream() {
+		internal = new Internal();
+	}
 	
 	private class Internal extends FFprobeNodeInternalItem {
 		private Disposition disposition;
@@ -31,15 +40,37 @@ public class Stream extends FFprobeNode {
 		private float duration;
 		private int index;
 		private int bit_rate;
+		private boolean ignore_stream;
 	}
 	
 	private transient Internal internal;
 	
-	public Point getResolutionAsPoint() {
-		if (hasMultipleParams("width", "height")) {
-			return new Point(getParam("width").getAsInt(), getParam("height").getAsInt());
-		}
-		return null;
+	protected FFprobeNodeInternalItem getInternalItem() {
+		return internal;
+	}
+	
+	protected void setInternalItem(FFprobeNodeInternalItem internal) {
+		this.internal = (Internal) internal;
+	}
+	
+	protected FFprobeNode create() {
+		return new Stream();
+	}
+	
+	protected Class<? extends FFprobeNodeInternalItem> getInternalItemClass() {
+		return Internal.class;
+	}
+	
+	protected void internalDeserialize(FFprobeNode _item, JsonObject source, Gson gson) {
+	}
+	
+	protected void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson) {
+		Stream item = (Stream) _item;
+		jo.add("disposition", gson.toJsonTree(item.internal.disposition));
+	}
+	
+	protected String[] getAdditionnaries_keys_names_to_ignore_in_params() {
+		return new String[] { "disposition" };
 	}
 	
 	public Disposition getDisposition() {
@@ -70,36 +101,51 @@ public class Stream extends FFprobeNode {
 		return internal.index;
 	}
 	
-	public Stream() {
-		internal = new Internal();
+	public boolean isIgnored() {
+		return internal.ignore_stream;
 	}
 	
-	protected FFprobeNodeInternalItem getInternalItem() {
-		return internal;
+	public void setIgnored(boolean ignore_stream) {
+		internal.ignore_stream = ignore_stream;
+		putParam("ignore_stream", new JsonPrimitive(ignore_stream));
 	}
 	
-	protected void setInternalItem(FFprobeNodeInternalItem internal) {
-		this.internal = (Internal) internal;
+	public Point getVideoResolution() {
+		if (hasMultipleParams("width", "height")) {
+			return new Point(getParam("width").getAsInt(), getParam("height").getAsInt());
+		}
+		return null;
 	}
 	
-	protected FFprobeNode create() {
-		return new Stream();
+	private transient AudioSampling cache_audiosampling;
+	
+	/**
+	 * @return the first valid value if there are more one audio stream.
+	 */
+	public AudioSampling getAudioSampling() {
+		if (getCodec_type().equals("audio") == false) {
+			return null;
+		}
+		if (hasMultipleParams("sample_rate") == false) {
+			return null;
+		}
+		if (cache_audiosampling == null) {
+			cache_audiosampling = AudioSampling.parseAS(getParam("sample_rate").getAsString());
+		}
+		return cache_audiosampling;
 	}
 	
-	protected Class<? extends FFprobeNodeInternalItem> getInternalItemClass() {
-		return Internal.class;
-	}
-	
-	protected void internalDeserialize(FFprobeNode _item, JsonObject source, Gson gson) {
-	}
-	
-	protected void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson) {
-		Stream item = (Stream) _item;
-		jo.add("disposition", gson.toJsonTree(item.internal.disposition));
-	}
-	
-	protected String[] getAdditionnaries_keys_names_to_ignore_in_params() {
-		return new String[] { "disposition" };
+	/**
+	 * @return in kbits per sec or -1
+	 */
+	public float getBitrate() {
+		try {
+			return new Integer(getBit_rate()).floatValue() / 1000f;
+		} catch (Exception e) {
+			Log2Dump dump = new Log2Dump("raw bitrate", getParam("bitrate").getAsString());
+			Log2.log.error("Can't extract bitrate", e, dump);
+		}
+		return -1;
 	}
 	
 }
