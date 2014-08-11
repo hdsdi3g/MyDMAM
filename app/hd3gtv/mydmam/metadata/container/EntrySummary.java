@@ -73,6 +73,8 @@ public final class EntrySummary extends Entry {
 		return new EntrySummary();
 	}
 	
+	public static final String MASTER_AS_PREVIEW = "master_as_preview";
+	
 	protected void internalDeserialize(Entry _entry, JsonObject source, Gson gson) {
 		EntrySummary entry = (EntrySummary) _entry;
 		for (Map.Entry<String, JsonElement> item : source.entrySet()) {
@@ -82,7 +84,7 @@ public final class EntrySummary extends Entry {
 				entry.previews = gson.fromJson(item.getValue().getAsJsonObject(), typeOfT);
 			} else if (item.getKey().equals("mimetype")) {
 				entry.mimetype = item.getValue().getAsString();
-			} else if (item.getKey().equals("master_as_preview")) {
+			} else if (item.getKey().equals(MASTER_AS_PREVIEW)) {
 				entry.master_as_preview = item.getValue().getAsBoolean();
 			} else {
 				if (entry.summaries == null) {

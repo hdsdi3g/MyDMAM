@@ -24,6 +24,9 @@ import java.util.List;
 
 public interface GeneratorRenderer extends Generator {
 	
+	/**
+	 * @deprecated
+	 */
 	public static final String METADATA_PROVIDER_RENDERER_CONTENT = "content";
 	
 	/**

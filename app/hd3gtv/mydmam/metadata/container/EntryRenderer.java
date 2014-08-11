@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.mydmam.metadata.MetadataCenter;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +28,6 @@ import com.google.gson.reflect.TypeToken;
 public abstract class EntryRenderer extends Entry {
 	
 	private List<RenderedContent> content;
-	public static final String METADATA_PROVIDER_TYPE = "renderer";
 	
 	public RenderedContent getByFile(String name) {
 		if (content == null) {
@@ -51,6 +48,18 @@ public abstract class EntryRenderer extends Entry {
 		content.add(rendered_content);
 	}
 	
+	public List<String> getContentFileNames() {
+		if (content == null) {
+			content = new ArrayList<RenderedContent>(1);
+			return new ArrayList<String>(1);
+		}
+		List<String> result = new ArrayList<String>();
+		for (int pos = 0; pos < content.size(); pos++) {
+			result.add(content.get(pos).name);
+		}
+		return result;
+	}
+	
 	protected final void internalDeserialize(Entry _entry, JsonObject source, Gson gson) {
 		EntryRenderer entry = (EntryRenderer) _entry;
 		JsonElement item = source.get("content");
@@ -62,7 +71,7 @@ public abstract class EntryRenderer extends Entry {
 	protected final JsonObject internalSerialize(Entry _item, Gson gson) {
 		EntryRenderer src = (EntryRenderer) _item;
 		JsonObject jo = new JsonObject();
-		jo.addProperty(MetadataCenter.METADATA_PROVIDER_TYPE, METADATA_PROVIDER_TYPE);
+		// jo.addProperty("metadata-provider-type", "renderer");
 		jo.add("content", gson.toJsonTree(src.content));
 		return jo;
 	}

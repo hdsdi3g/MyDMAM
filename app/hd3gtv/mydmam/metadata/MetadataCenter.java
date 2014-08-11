@@ -19,7 +19,6 @@ package hd3gtv.mydmam.metadata;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
@@ -27,7 +26,6 @@ import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.Origin;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
@@ -36,7 +34,6 @@ import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshoot;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFprobeAnalyser;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,36 +41,16 @@ import java.util.Map;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectWriter;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.count.CountRequest;
-import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.support.QuerySourceBuilder;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.indices.IndexMissingException;
-import org.elasticsearch.search.SearchHit;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 public class MetadataCenter {
 	
-	public static final String ES_INDEX = "metadata";
-	
-	public static final String METADATA_PROVIDER_TYPE = "metadata-provider-type";
-	public static final String MASTER_AS_PREVIEW = "master_as_preview";
-	
-	private static Client client;
 	private static List<GeneratorAnalyser> generatorAnalysers;
 	private static List<GeneratorRenderer> generatorRenderers;
 	private static Map<String, GeneratorAnalyser> master_as_preview_mime_list_providers;
 	
 	static {
-		client = Elasticsearch.getClient();
 		generatorAnalysers = new ArrayList<GeneratorAnalyser>();
 		generatorRenderers = new ArrayList<GeneratorRenderer>();
 		
@@ -137,99 +114,6 @@ public class MetadataCenter {
 	
 	public static List<GeneratorRenderer> getRenderers() {
 		return generatorRenderers;
-	}
-	
-	/**
-	 * Delete orphan (w/o pathindex) metadatas elements
-	 * TODO refactor
-	 */
-	public static void database_gc() {
-		try {
-			BulkRequestBuilder bulkrequest = client.prepareBulk();
-			SearchRequestBuilder request = client.prepareSearch();
-			request.setIndices(ES_INDEX);
-			request.setQuery(QueryBuilders.matchAllQuery());
-			SearchResponse response = request.execute().actionGet();
-			
-			SearchHit[] hits = response.getHits().hits();
-			int count_remaining = (int) response.getHits().getTotalHits();
-			int totalhits = count_remaining;
-			
-			Map<String, Object> mtd_element;
-			Map<String, Object> mtd_element_source;
-			String element_source_key;
-			String element_source_storage;
-			GetResponse getresponse;
-			
-			/**
-			 * Protect to no remove all mtd if pathindexing is empty for a storage.
-			 * https://github.com/hdsdi3g/MyDMAM/issues/7
-			 */
-			CountRequest countrequest;
-			CountResponse countresponse;
-			HashMap<String, Long> elementcount_by_storage = new HashMap<String, Long>();
-			
-			boolean can_continue = true;
-			while (can_continue) {
-				for (int pos = 0; pos < hits.length; pos++) {
-					mtd_element = hits[pos].getSource();
-					mtd_element_source = (Map<String, Object>) mtd_element.get("origin");
-					element_source_key = (String) mtd_element_source.get("key");
-					element_source_storage = (String) mtd_element_source.get("storage");
-					
-					getresponse = client.get(new GetRequest(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_source_key)).actionGet();
-					if (getresponse.isExists() == false) {
-						if (elementcount_by_storage.containsKey(element_source_storage) == false) {
-							countrequest = new CountRequest(Importer.ES_INDEX).types(Importer.ES_TYPE_FILE).source(
-									new QuerySourceBuilder().setQuery(QueryBuilders.termQuery("storagename", element_source_storage)));
-							countresponse = client.count(countrequest).actionGet();
-							elementcount_by_storage.put(element_source_storage, countresponse.getCount());
-						}
-						if (elementcount_by_storage.get(element_source_storage) > 0) {
-							/**
-							 * This storage is not empty... Source file is really deleted, we can delete metadatas
-							 */
-							bulkrequest.add(client.prepareDelete(ES_INDEX, hits[pos].getType(), hits[pos].getId()));
-							RenderedFile.purge(hits[pos].getId());
-						}
-					}
-					
-					count_remaining--;
-					if (can_continue == false) {
-						count_remaining = 0;
-						break;
-					}
-				}
-				if (count_remaining == 0) {
-					break;
-				}
-				request.setFrom(totalhits - count_remaining);
-				response = request.execute().actionGet();
-				hits = response.getHits().hits();
-				if (hits.length == 0) {
-					can_continue = false;
-				}
-			}
-			
-			if (bulkrequest.numberOfActions() > 0) {
-				Log2.log.info("Remove " + bulkrequest.numberOfActions() + " orphan element(s)");
-				BulkResponse bulkresponse = bulkrequest.execute().actionGet();
-				if (bulkresponse.hasFailures()) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("failure message", bulkresponse.buildFailureMessage());
-					Log2.log.error("ES errors during add/delete documents", null, dump);
-				}
-			}
-			
-			Log2.log.info("Start cleaning rendered elements");
-			
-			RenderedFile.gc(client);
-			
-		} catch (IOException e) {
-			Log2.log.error("Can't purge directories", e);
-		} catch (IndexMissingException ime) {
-			Log2.log.info("No metadatas exists in database, no clean to do");
-		}
 	}
 	
 	/**

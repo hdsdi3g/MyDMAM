@@ -149,6 +149,7 @@ public class WorkerIndexer extends Worker implements TriggerWorker {
 	
 	private HashMap<Profile, Long> lastindexeddatesforprofiles;
 	
+	@SuppressWarnings("unchecked")
 	public void triggerCreateTasks(Profile profile) throws ConnectionException {
 		String profilename = profile.getName();
 		

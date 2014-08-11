@@ -24,8 +24,10 @@ import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.LogHandlerToLogfile;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.RenderedContent;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -42,20 +44,10 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
-import org.elasticsearch.search.SearchHit;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import com.eaio.uuid.UUID;
 
@@ -541,11 +533,7 @@ public class RenderedFile implements Log2Dumpable {
 		}
 	}
 	
-	// TODO refactor
-	public static void gc(Client client) throws IOException {
-		if (client == null) {
-			throw new NullPointerException("\"client\" can't to be null");
-		}
+	public static void purge_orphan_metadatas_files() throws IOException, IndexMissingException {
 		File[] mtddir;
 		File[] allrootelements;
 		
@@ -591,8 +579,6 @@ public class RenderedFile implements Log2Dumpable {
 			return;
 		}
 		
-		GetResponse getresponse;
-		
 		allrootelements = local_directory.getCanonicalFile().listFiles();
 		File[] mtdfiles;
 		String element_source_key;
@@ -634,89 +620,61 @@ public class RenderedFile implements Log2Dumpable {
 					continue;
 				}
 				element_source_key = allrootelements[pos].getName() + mtddir[pos_mtd].getName();
-				getresponse = client.get(new GetRequest(MetadataCenter.ES_INDEX, EntrySummary.type, element_source_key)).actionGet();
-				if (getresponse.isExists() == false) {
-					RenderedFile.purge(element_source_key);
+				
+				Container container = Operations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.type);
+				if (container == null) {
+					purge(element_source_key);
 					continue;
 				}
 				
-				try {
-					mtdfiles = mtddir[pos_mtd].listFiles(new FilenameFilter() {
-						public boolean accept(File dir, String name) {
-							if (name.toLowerCase().endsWith("." + digest_algorithm.toLowerCase())) return false;
-							return true;
-						}
-					});
-					
-					if (mtdfiles == null) {
+				mtdfiles = mtddir[pos_mtd].listFiles(new FilenameFilter() {
+					public boolean accept(File dir, String name) {
+						if (name.toLowerCase().endsWith("." + digest_algorithm.toLowerCase())) return false;
+						return true;
+					}
+				});
+				
+				if (mtdfiles == null) {
+					continue;
+				}
+				
+				ArrayList<String> elements_name = new ArrayList<String>();
+				
+				List<Entry> entries = container.getEntries();
+				EntryRenderer current_entry;
+				/**
+				 * Get all rendered files references from db
+				 */
+				for (int pos_entry = 0; pos_entry < entries.size(); pos_entry++) {
+					if ((entries.get(pos_entry) instanceof EntryRenderer) == false) {
 						continue;
 					}
-					
-					/**
-					 * Search all rendered files for this mtd element_source_key
-					 */
-					SearchRequestBuilder request = client.prepareSearch();
-					request.setIndices(MetadataCenter.ES_INDEX);
-					
-					BoolQueryBuilder query = QueryBuilders.boolQuery();
-					query.must(QueryBuilders.termQuery("_id", element_source_key));
-					query.must(QueryBuilders.termQuery(MetadataCenter.METADATA_PROVIDER_TYPE, "renderer"));
-					request.setQuery(query);// field
-					
-					SearchHit[] hits = request.execute().actionGet().getHits().hits();
-					
-					JSONParser parser = new JSONParser();
-					JSONObject current_mtd;
-					JSONArray currect_content;
-					JSONObject content_rendered_element;
-					
-					ArrayList<String> elements_name = new ArrayList<String>();
-					
-					/**
-					 * Get all rendered files references from db
-					 */
-					for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
-						parser.reset();
-						current_mtd = (JSONObject) parser.parse(hits[pos_hits].getSourceAsString());
-						if (current_mtd.containsKey(GeneratorRenderer.METADATA_PROVIDER_RENDERER_CONTENT) == false) {
-							continue;
-						}
-						currect_content = ((JSONArray) current_mtd.get(GeneratorRenderer.METADATA_PROVIDER_RENDERER_CONTENT));
-						
-						for (int pos_content = 0; pos_content < currect_content.size(); pos_content++) {
-							content_rendered_element = (JSONObject) currect_content.get(pos_content);
-							elements_name.add((String) content_rendered_element.get("name"));
+					current_entry = (EntryRenderer) entries.get(pos_entry);
+					elements_name.addAll(current_entry.getContentFileNames());
+				}
+				
+				/**
+				 * Search for each real rendered file, a presence in database.
+				 */
+				for (int pos_mtdf = 0; pos_mtdf < mtdfiles.length; pos_mtdf++) {
+					boolean founded = false;
+					for (int pos_dbf = 0; pos_dbf < elements_name.size(); pos_dbf++) {
+						if (mtdfiles[pos_mtdf].getName().equals(elements_name.get(pos_dbf))) {
+							founded = true;
+							break;
 						}
 					}
-					
-					/**
-					 * Search for each real rendered file, a presence in database.
-					 */
-					for (int pos_mtdf = 0; pos_mtdf < mtdfiles.length; pos_mtdf++) {
-						boolean founded = false;
-						for (int pos_dbf = 0; pos_dbf < elements_name.size(); pos_dbf++) {
-							if (mtdfiles[pos_mtdf].getName().equals(elements_name.get(pos_dbf))) {
-								founded = true;
-								break;
-							}
-						}
-						if (founded == false) {
-							/**
-							 * Delete old rendered file
-							 */
-							Log2.log.info("Delete old metadata file", new Log2Dump("file", mtdfiles[pos_mtdf]));
-							mtdfiles[pos_mtdf].delete();
-							/**
-							 * Delete MD5 file
-							 */
-							(new File(mtdfiles[pos_mtdf].getPath() + "." + digest_algorithm.toLowerCase())).delete();
-						}
+					if (founded == false) {
+						/**
+						 * Delete old rendered file
+						 */
+						Log2.log.info("Delete old metadata file", new Log2Dump("file", mtdfiles[pos_mtdf]));
+						mtdfiles[pos_mtdf].delete();
+						/**
+						 * Delete MD5 file
+						 */
+						(new File(mtdfiles[pos_mtdf].getPath() + "." + digest_algorithm.toLowerCase())).delete();
 					}
-				} catch (IndexMissingException e) {
-					continue;
-				} catch (ParseException e) {
-					Log2.log.error("Invalid ES response", e);
-					continue;
 				}
 			}
 		}

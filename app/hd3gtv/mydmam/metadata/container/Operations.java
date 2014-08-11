@@ -22,26 +22,28 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
-import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 
 import com.google.gson.Gson;
@@ -54,6 +56,8 @@ import com.google.gson.JsonParseException;
  * Import and exports Container items from and to database.
  */
 public class Operations {
+	
+	private static final String ES_INDEX = "metadata";
 	
 	public static JsonObject getJsonObject(JsonElement json, boolean can_null) throws JsonParseException {
 		if (json.isJsonNull()) {
@@ -165,7 +169,7 @@ public class Operations {
 			throw new NullPointerException("Can't found type: " + type);
 		}
 		
-		GetRequest request = new GetRequest(MetadataCenter.ES_INDEX);
+		GetRequest request = new GetRequest(ES_INDEX);
 		request.type(type);
 		request.id(mtd_key);
 		
@@ -308,7 +312,7 @@ public class Operations {
 		final ArrayList<String> unknow_types = new ArrayList<String>();
 		
 		ElastisearchCrawlerReader reader = Elasticsearch.createCrawlerReader();
-		reader.setIndices(MetadataCenter.ES_INDEX);
+		reader.setIndices(ES_INDEX);
 		
 		validateRestricSpecificTypes(unknow_types, restric_to_specific_types);
 		if (restric_to_specific_types != null) {
@@ -345,7 +349,7 @@ public class Operations {
 		final ArrayList<String> unknow_types = new ArrayList<String>();
 		
 		ElastisearchMultipleCrawlerReader multiple_reader = Elasticsearch.createMultipleCrawlerReader();
-		multiple_reader.setDefaultIndices(MetadataCenter.ES_INDEX);
+		multiple_reader.setDefaultIndices(ES_INDEX);
 		
 		validateRestricSpecificTypes(unknow_types, restric_to_specific_types);
 		if (restric_to_specific_types != null) {
@@ -384,7 +388,7 @@ public class Operations {
 		
 		for (int pos = 0; pos < entries.size(); pos++) {
 			entry = entries.get(pos);
-			IndexRequestBuilder index = client.prepareIndex(MetadataCenter.ES_INDEX, entry.getES_Type(), container.getMtd_key());
+			IndexRequestBuilder index = client.prepareIndex(ES_INDEX, entry.getES_Type(), container.getMtd_key());
 			index.setSource(gson.toJson(entry));
 			index.setRefresh(refresh_index_after_save);
 			bulkrequest.add(index);
@@ -412,7 +416,7 @@ public class Operations {
 			throw new NullPointerException("\"container\" can't to be null");
 		}
 		for (int pos = 0; pos < container.getEntries().size(); pos++) {
-			bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, container.getEntries().get(pos).getES_Type(), container.getMtd_key()));
+			bulkrequest.add(client.prepareDelete(ES_INDEX, container.getEntries().get(pos).getES_Type(), container.getMtd_key()));
 		}
 		
 	}
@@ -421,13 +425,11 @@ public class Operations {
 		if (mtd_key == null) {
 			throw new NullPointerException("\"mtd_key\" can't to be null");
 		}
-		bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, type, mtd_key));
+		bulkrequest.add(client.prepareDelete(ES_INDEX, type, mtd_key));
 	}
 	
 	public static RenderedFile getMetadataFile(String pathelement_key, String type, String filename, boolean check_hash) throws IOException {
-		BoolQueryBuilder query = QueryBuilders.boolQuery();
-		query.must(QueryBuilders.termQuery("origin.key", pathelement_key));
-		Containers containers = searchInMetadataBase(query, type);
+		Containers containers = searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key), type);
 		
 		EntryRenderer current;
 		for (int pos = 0; pos < containers.size();) {
@@ -469,4 +471,86 @@ public class Operations {
 		}
 		return RenderedFile.fromDatabaseMasterAsPreview(spie, container.getSummary().getMimetype());
 	}
+	
+	private static class HitPurge implements ElastisearchCrawlerHit {
+		Explorer explorer;
+		HashMap<String, Long> elementcount_by_storage;
+		BulkRequestBuilder bulkrequest;
+		
+		HitPurge(BulkRequestBuilder bulkrequest) {
+			this.bulkrequest = bulkrequest;
+			explorer = new Explorer();
+			elementcount_by_storage = new HashMap<String, Long>();
+		}
+		
+		boolean containsStorageInBase(Origin origin) {
+			if (elementcount_by_storage.containsKey(origin.storage) == false) {
+				elementcount_by_storage.put(origin.storage, explorer.countStorageContentElements(origin.storage));
+				if (elementcount_by_storage.get(origin.storage) == 0) {
+					Log2.log.info("Missing storage item in datatabase", new Log2Dump("storagename", origin.storage));
+				}
+			}
+			return elementcount_by_storage.get(origin.storage) > 0;
+		}
+		
+		public boolean onFoundHit(SearchHit hit) {
+			if (declared_entries_type.containsKey(hit.getType()) == false) {
+				return true;
+			}
+			Entry entry = gson.fromJson(hit.getSourceAsString(), declared_entries_type.get(hit.getType()).getClass());
+			Container container = new Container(hit.getId(), entry.getOrigin());
+			
+			try {
+				container.getOrigin().getPathindexElement();
+				return true;
+			} catch (FileNotFoundException e) {
+			}
+			
+			/**
+			 * Protect to no remove all mtd if pathindexing is empty for a storage.
+			 * https://github.com/hdsdi3g/MyDMAM/issues/7
+			 */
+			if (containsStorageInBase(container.getOrigin()) == false) {
+				return true;
+			}
+			/**
+			 * This storage is not empty... Source file is really deleted, we can delete metadatas, and associated rendered files.
+			 */
+			requestDelete(container, bulkrequest);
+			RenderedFile.purge(container.getMtd_key());
+			
+			return true;
+		}
+	}
+	
+	/**
+	 * Delete orphan (w/o pathindex) metadatas elements
+	 */
+	public static void purge_orphan_metadatas() throws IOException {
+		try {
+			ElastisearchCrawlerReader reader = Elasticsearch.createCrawlerReader();
+			reader.setIndices(ES_INDEX);
+			reader.setQuery(QueryBuilders.matchAllQuery());
+			
+			BulkRequestBuilder bulkrequest = new BulkRequestBuilder(client);
+			HitPurge hit_purge = new HitPurge(bulkrequest);
+			reader.allReader(hit_purge);
+			
+			if (bulkrequest.numberOfActions() > 0) {
+				Log2.log.info("Remove " + bulkrequest.numberOfActions() + " orphan element(s)");
+				BulkResponse bulkresponse = bulkrequest.execute().actionGet();
+				if (bulkresponse.hasFailures()) {
+					Log2Dump dump = new Log2Dump();
+					dump.add("failure message", bulkresponse.buildFailureMessage());
+					Log2.log.error("ES errors during add/delete documents", null, dump);
+				}
+			}
+			
+			Log2.log.info("Start cleaning rendered elements");
+			
+			RenderedFile.purge_orphan_metadatas_files();
+		} catch (IndexMissingException ime) {
+		}
+	}
+	
 }

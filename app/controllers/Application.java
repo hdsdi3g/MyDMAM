@@ -20,8 +20,8 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.web.PartialContent;
@@ -182,7 +182,7 @@ public class Application extends Controller {
 		
 		RenderedFile element = null;
 		try {
-			if (type.equals(MetadataCenter.MASTER_AS_PREVIEW)) {
+			if (type.equals(EntrySummary.MASTER_AS_PREVIEW)) {
 				element = Operations.getMasterAsPreviewFile(filehash);
 			} else {
 				element = Operations.getMetadataFile(filehash, type, file, false);

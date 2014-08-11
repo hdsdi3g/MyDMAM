@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.mydmam.metadata.MetadataCenter;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -39,7 +37,7 @@ public abstract class EntryAnalyser extends Entry {
 	protected final JsonObject internalSerialize(Entry _item, Gson gson) {
 		JsonObject jo = new JsonObject();
 		extendedInternalSerializer(jo, (EntryAnalyser) _item, gson);
-		jo.addProperty(MetadataCenter.METADATA_PROVIDER_TYPE, "analyser");
+		// jo.addProperty("metadata-provider-type", "analyser");
 		return jo;
 	}
 	
