@@ -37,7 +37,7 @@ public class StatElement {
 	 */
 	JSONObject reference;
 	transient SourcePathIndexerElement spie_reference;
-	Map<String, Object> mtdsummary;
+	Map<String, String> mtdsummary;
 	
 	/**
 	 * Bounded by from and size query

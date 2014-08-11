@@ -59,6 +59,17 @@ public class Containers implements Log2Dumpable {
 		return all_items;
 	}
 	
+	public Container getItemAtPos(int pos) {
+		if ((pos > -1) & (pos < all_items.size())) {
+			return all_items.get(pos);
+		}
+		return null;
+	}
+	
+	public int size() {
+		return all_items.size();
+	}
+	
 	public Container getByMtdKey(String mtd_key) {
 		return map_mtd_key_item.get(mtd_key);
 	}

@@ -27,7 +27,6 @@ import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.Origin;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
@@ -51,22 +50,15 @@ import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.MultiGetItemResponse;
-import org.elasticsearch.action.get.MultiGetRequestBuilder;
-import org.elasticsearch.action.search.MultiSearchRequestBuilder;
-import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.QuerySourceBuilder;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 public class MetadataCenter {
 	
@@ -149,6 +141,7 @@ public class MetadataCenter {
 	
 	/**
 	 * Delete orphan (w/o pathindex) metadatas elements
+	 * TODO refactor
 	 */
 	public static void database_gc() {
 		try {
@@ -237,224 +230,6 @@ public class MetadataCenter {
 		} catch (IndexMissingException ime) {
 			Log2.log.info("No metadatas exists in database, no clean to do");
 		}
-	}
-	
-	/**
-	 * TODO refactor
-	 * Beware: "origin" key is deleted
-	 * @return never null, SourcePathIndexerElement key > Metadata element key > Metadata element value
-	 */
-	private static Map<String, Map<String, Object>> getProcessedSummaries(List<Map<String, Object>> sources) {
-		if (sources.size() == 0) {
-			return new HashMap<String, Map<String, Object>>(1);
-		}
-		
-		HashMap<String, Map<String, Object>> result = new HashMap<String, Map<String, Object>>(sources.size());
-		
-		Map<String, Object> source;
-		Map<String, Object> source_origin;
-		String pathelementkey;
-		for (int pos = 0; pos < sources.size(); pos++) {
-			source = sources.get(pos);
-			source_origin = (Map) source.get("origin");
-			pathelementkey = (String) source_origin.get("key");
-			source.remove("origin");
-			result.put(pathelementkey, source);
-		}
-		return result;
-	}
-	
-	/**
-	 * TODO refactor
-	 */
-	public static Map<String, Map<String, Object>> getSummariesByPathElements(List<SourcePathIndexerElement> pathelements) throws IndexMissingException {
-		if (pathelements == null) {
-			return new HashMap<String, Map<String, Object>>(1);
-		}
-		if (pathelements.size() == 0) {
-			return new HashMap<String, Map<String, Object>>(1);
-		}
-		
-		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
-		
-		for (int pos = 0; pos < pathelements.size(); pos++) {
-			multigetrequestbuilder.add(ES_INDEX, EntrySummary.type, Origin.getUniqueElementKey(pathelements.get(pos)));
-		}
-		
-		MultiGetItemResponse[] response = multigetrequestbuilder.execute().actionGet().getResponses();
-		List<Map<String, Object>> sources = new ArrayList<Map<String, Object>>();
-		GetResponse current_response;
-		for (int pos = 0; pos < response.length; pos++) {
-			current_response = response[pos].getResponse();
-			if (current_response == null) {
-				continue;
-			}
-			if (current_response.isSourceEmpty()) {
-				continue;
-			}
-			sources.add(response[pos].getResponse().getSource());
-		}
-		return getProcessedSummaries(sources);
-	}
-	
-	/**
-	 * TODO refactor
-	 */
-	public static Map<String, Map<String, Object>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws IndexMissingException {
-		if (pathelementkeys == null) {
-			return new HashMap<String, Map<String, Object>>(1);
-		}
-		if (pathelementkeys.size() == 0) {
-			return new HashMap<String, Map<String, Object>>(1);
-		}
-		
-		MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(client);
-		
-		SearchRequestBuilder request;
-		for (int pos = 0; pos < pathelementkeys.size(); pos++) {
-			request = client.prepareSearch();
-			request.setIndices(ES_INDEX);
-			request.setTypes(EntrySummary.type);
-			request.setSize(1);
-			request.setQuery(QueryBuilders.termQuery("origin.key", pathelementkeys.get(pos)));
-			multisearchrequestbuilder.add(request);
-		}
-		MultiSearchResponse.Item[] items = multisearchrequestbuilder.execute().actionGet().getResponses();
-		List<Map<String, Object>> sources = new ArrayList<Map<String, Object>>();
-		
-		if (items.length == 0) {
-			return new HashMap<String, Map<String, Object>>();
-		}
-		
-		SearchHit[] hits;
-		SearchResponse response;
-		for (int pos = 0; pos < items.length; pos++) {
-			response = items[pos].getResponse();
-			if (response == null) {
-				continue;
-			}
-			if (response.getHits() == null) {
-				continue;
-			}
-			hits = response.getHits().hits();
-			if (hits.length == 0) {
-				continue;
-			}
-			sources.add(hits[0].getSource());
-		}
-		return getProcessedSummaries(sources);
-	}
-	
-	/**
-	 * TODO refactor
-	 */
-	public static RenderedFile getMasterAsPreviewFile(String origin_key) throws IndexMissingException {
-		if (origin_key == null) {
-			throw new NullPointerException("\"origin_key\" can't to be null");
-		}
-		
-		try {
-			Client client = Elasticsearch.getClient();
-			SearchRequestBuilder request = client.prepareSearch();
-			request.setIndices(ES_INDEX);
-			request.setTypes(EntrySummary.type);
-			
-			BoolQueryBuilder query = QueryBuilders.boolQuery();
-			query.must(QueryBuilders.termQuery("origin.key", origin_key));
-			query.must(QueryBuilders.termQuery(MASTER_AS_PREVIEW, true));
-			request.setQuery(query);
-			SearchHit[] hits = request.execute().actionGet().getHits().hits();
-			if (hits.length == 0) {
-				return null;
-			}
-			
-			JSONParser parser = new JSONParser();
-			JSONObject current_mtd = (JSONObject) parser.parse(hits[0].getSourceAsString());
-			if (current_mtd.containsKey("mimetype") == false) {
-				return null;
-			}
-			
-			Explorer explorer = new Explorer();
-			SourcePathIndexerElement spie = explorer.getelementByIdkey(origin_key);
-			if (spie == null) {
-				return null;
-			}
-			
-			return RenderedFile.fromDatabaseMasterAsPreview(spie, (String) current_mtd.get("mimetype"));
-		} catch (IndexMissingException e) {
-			return null;
-		} catch (ParseException e) {
-			Log2.log.error("Invalid ES response", e);
-		} catch (IOException e) {
-			Log2.log.error("Can't found valid file", e);
-		}
-		return null;
-	}
-	
-	/**
-	 * TODO refactor this !
-	 */
-	public static RenderedFile getMetadataFileReference(String origin_key, String index_type, String filename, boolean check_hash) throws IndexMissingException {
-		if (origin_key == null) {
-			throw new NullPointerException("\"origin_key\" can't to be null");
-		}
-		if (index_type == null) {
-			throw new NullPointerException("\"index_type\" can't to be null");
-		}
-		if (filename == null) {
-			throw new NullPointerException("\"filename\" can't to be null");
-		}
-		if (origin_key.length() == 0) {
-			throw new NullPointerException("\"origin_key\" can't to be empty");
-		}
-		if (index_type.length() == 0) {
-			throw new NullPointerException("\"index_type\" can't to be empty");
-		}
-		if (filename.length() == 0) {
-			throw new NullPointerException("\"filename\" can't to be empty");
-		}
-		
-		try {
-			Client client = Elasticsearch.getClient();
-			SearchRequestBuilder request = client.prepareSearch();
-			request.setIndices(ES_INDEX);
-			request.setTypes(index_type);
-			
-			BoolQueryBuilder query = QueryBuilders.boolQuery();
-			query.must(QueryBuilders.termQuery("origin.key", origin_key));
-			query.must(QueryBuilders.termQuery(METADATA_PROVIDER_TYPE, "renderer"));
-			request.setQuery(query);
-			SearchHit[] hits = request.execute().actionGet().getHits().hits();
-			
-			JSONParser parser = new JSONParser();
-			JSONObject current_mtd;
-			JSONArray current_content_list;
-			JSONObject current_content;
-			for (int pos_hit = 0; pos_hit < hits.length; pos_hit++) {
-				parser.reset();
-				current_mtd = (JSONObject) parser.parse(hits[pos_hit].getSourceAsString());
-				if (current_mtd.containsKey("content") == false) {
-					continue;
-				}
-				current_content_list = (JSONArray) current_mtd.get("content");
-				for (int pos_content = 0; pos_content < current_content_list.size(); pos_content++) {
-					current_content = (JSONObject) current_content_list.get(pos_content);
-					if (((String) current_content.get("name")).equals(filename)) {
-						// import_from_entry(RenderedContent content, String metadata_reference_id, boolean check_hash)//TODO use this instead this:
-						// return RenderedFile.fromDatabase(current_content, hits[pos_hit].getId(), check_hash);
-						return null;
-					}
-				}
-				
-			}
-		} catch (IndexMissingException e) {
-			return null;
-		} catch (ParseException e) {
-			Log2.log.error("Invalid ES response", e);
-			// } catch (IOException e) {
-			// Log2.log.error("Can't found valid file", e);
-		}
-		return null;
 	}
 	
 	/**

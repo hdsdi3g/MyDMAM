@@ -473,9 +473,9 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].bit_rate", Comparator.EQUALS_OR_SMALLER_THAN, 384000);
 			}
 			
-			if (video_webbrowser_validation.validate(this, container)) {
+			if (video_webbrowser_validation.validate(container)) {
 				return true;
-			} else if (audio_webbrowser_validation.validate(this, container)) {
+			} else if (audio_webbrowser_validation.validate(container)) {
 				return true;
 			}
 		}

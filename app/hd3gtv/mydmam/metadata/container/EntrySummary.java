@@ -122,4 +122,11 @@ public final class EntrySummary extends Entry {
 		summaries.put(entry.getES_Type(), value);
 	}
 	
+	public Map<String, String> getSummaries() {
+		if (summaries == null) {
+			summaries = new HashMap<String, String>();
+		}
+		return summaries;
+	}
+	
 }

@@ -23,7 +23,11 @@ import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
 import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,6 +39,7 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -187,6 +192,18 @@ public class Operations {
 		}
 	}
 	
+	public static Container getByPathIndexIdOnlySummary(String pathelement_key) {
+		if (pathelement_key == null) {
+			throw new NullPointerException("\"pathelement_key\" can't to be null");
+		}
+		Containers result = Operations.searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key), EntrySummary.type);
+		if (result.getAll().isEmpty()) {
+			return null;
+		} else {
+			return result.getAll().get(0);
+		}
+	}
+	
 	public static Containers getByPathIndexId(List<String> pathelement_keys, boolean only_summaries) {
 		if (pathelement_keys == null) {
 			throw new NullPointerException("pathelement_keys");
@@ -198,6 +215,29 @@ public class Operations {
 		for (int pos = 0; pos < pathelement_keys.size(); pos++) {
 			queries.add(QueryBuilders.termQuery("origin.key", pathelement_keys.get(pos)));
 		}
+		
+		if (only_summaries) {
+			return multipleSearchInMetadataBase(queries, 1, EntrySummary.type);
+		} else {
+			return multipleSearchInMetadataBase(queries, 1000, (String[]) null);
+		}
+	}
+	
+	public static Containers getByPathIndex(List<SourcePathIndexerElement> pathelements, boolean only_summaries) {
+		if (pathelements == null) {
+			throw new NullPointerException("pathelements");
+		}
+		if (pathelements.isEmpty()) {
+			throw new NullPointerException("pathelements is empty");
+		}
+		ArrayList<QueryBuilder> queries = new ArrayList<QueryBuilder>();
+		for (int pos = 0; pos < pathelements.size(); pos++) {
+			queries.add(QueryBuilders.termQuery("_id", Origin.getUniqueElementKey(pathelements.get(pos))));
+		}
+		/*	MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
+			multigetrequestbuilder.add(ES_INDEX, EntrySummary.type, Origin.getUniqueElementKey(pathelements.get(pos)));
+			MultiGetItemResponse[] response = multigetrequestbuilder.execute().actionGet().getResponses();
+		*/
 		
 		if (only_summaries) {
 			return multipleSearchInMetadataBase(queries, 1, EntrySummary.type);
@@ -382,5 +422,51 @@ public class Operations {
 			throw new NullPointerException("\"mtd_key\" can't to be null");
 		}
 		bulkrequest.add(client.prepareDelete(MetadataCenter.ES_INDEX, type, mtd_key));
+	}
+	
+	public static RenderedFile getMetadataFile(String pathelement_key, String type, String filename, boolean check_hash) throws IOException {
+		BoolQueryBuilder query = QueryBuilders.boolQuery();
+		query.must(QueryBuilders.termQuery("origin.key", pathelement_key));
+		Containers containers = searchInMetadataBase(query, type);
+		
+		EntryRenderer current;
+		for (int pos = 0; pos < containers.size();) {
+			if (containers.getItemAtPos(pos).getByType(type) instanceof EntryRenderer) {
+				current = (EntryRenderer) containers.getItemAtPos(pos).getByType(type);
+				RenderedContent content = current.getByFile(filename);
+				if (content == null) {
+					return null;
+				}
+				return RenderedFile.import_from_entry(content, containers.getItemAtPos(pos).getMtd_key(), check_hash);
+			} else {
+				/**
+				 * Type problem : security protection.
+				 */
+				break;
+			}
+		}
+		return null;
+	}
+	
+	public static RenderedFile getMasterAsPreviewFile(String pathelement_key) throws IOException {
+		Container container = getByPathIndexIdOnlySummary(pathelement_key);
+		if (container == null) {
+			return null;
+		}
+		if (container.getSummary() == null) {
+			return null;
+		}
+		if (container.getSummary().master_as_preview == false) {
+			return null;
+		}
+		if (container.getSummary().getMimetype() == null) {
+			return null;
+		}
+		Explorer explorer = new Explorer();
+		SourcePathIndexerElement spie = explorer.getelementByIdkey(pathelement_key);
+		if (spie == null) {
+			return null;
+		}
+		return RenderedFile.fromDatabaseMasterAsPreview(spie, container.getSummary().getMimetype());
 	}
 }

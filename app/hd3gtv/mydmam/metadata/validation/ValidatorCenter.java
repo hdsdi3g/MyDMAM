@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.metadata.validation;
 
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.GeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 
@@ -97,7 +96,7 @@ public class ValidatorCenter {
 		return this;
 	}
 	
-	public boolean validate(GeneratorAnalyser entry, Container container) {// TODO refactor
+	public boolean validate(Container container) {
 		if (container == null) {
 			throw new NullPointerException("\"container\" can't to be null");
 		}

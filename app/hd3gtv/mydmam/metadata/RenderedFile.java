@@ -327,9 +327,6 @@ public class RenderedFile implements Log2Dumpable {
 		if (consolidated == false) {
 			throw new NullPointerException("Element is not consolidated !");
 		}
-		if (entry_renderer.content == null) {
-			entry_renderer.content = new ArrayList<RenderedContent>();
-		}
 		entry_renderer.setOrigin(container.getOrigin());
 		
 		RenderedContent rendered_content = new RenderedContent();
@@ -339,7 +336,7 @@ public class RenderedFile implements Log2Dumpable {
 		rendered_content.hash = rendered_digest;
 		rendered_content.producer = generatorrenderer.getLongName();
 		rendered_content.mime = rendered_mime;
-		entry_renderer.content.add(rendered_content);
+		entry_renderer.addContent(rendered_content);
 	}
 	
 	private File createBase_Directory_Dest() throws IOException {
@@ -544,6 +541,7 @@ public class RenderedFile implements Log2Dumpable {
 		}
 	}
 	
+	// TODO refactor
 	public static void gc(Client client) throws IOException {
 		if (client == null) {
 			throw new NullPointerException("\"client\" can't to be null");
