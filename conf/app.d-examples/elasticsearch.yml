@@ -9,3 +9,5 @@ elasticsearch:
 # host1:specialport,host2
 # host1:host2:host3
 # ...
+# You can add a specific REST URL to an ES node for activate TTL, if the port is not 9200.
+#  resturl: http://127.0.0.1:9200

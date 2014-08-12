@@ -172,10 +172,10 @@ public class Elasticsearch {
 			return;
 		}
 		
+		String rest_url = Configuration.global.getValue("elasticsearch", "resturl", "http://" + transportadresses[0].address().getHostName() + ":9200");
+		
 		StringBuffer sb_url = new StringBuffer();
-		sb_url.append("http://");
-		sb_url.append(transportadresses[0].address().getHostName());
-		sb_url.append(":9200");
+		sb_url.append(rest_url);
 		sb_url.append("/");
 		sb_url.append(index_name);
 		sb_url.append("/");
