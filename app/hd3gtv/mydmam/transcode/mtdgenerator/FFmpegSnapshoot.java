@@ -114,7 +114,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		return element.consolidateAndExportToEntry(new Snapshoot(), container, this);
 	}
 	
-	public PreviewType getPreviewTypeForRenderer(Container container, List<RenderedFile> rendered_elements) {
+	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return PreviewType.full_size_thumbnail;
 	}
 	

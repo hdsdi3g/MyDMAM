@@ -17,9 +17,11 @@
 package hd3gtv.mydmam.web.stat;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.Containers;
 import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.Preview;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
@@ -155,7 +157,7 @@ public class Stat {
 	}
 	
 	private void populate_mtd_summary(boolean has_pathinfo) {
-		Map<String, Map<String, String>> summaries;
+		Map<String, Map<String, Object>> summaries;
 		
 		if (has_pathinfo) {
 			ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
@@ -180,65 +182,65 @@ public class Stat {
 		}
 	}
 	
-	private static Map<String, Map<String, String>> getSummariesByPathElements(List<SourcePathIndexerElement> pathelements) throws IndexMissingException {
-		if (pathelements == null) {
-			return new HashMap<String, Map<String, String>>(1);
-		}
-		if (pathelements.size() == 0) {
-			return new HashMap<String, Map<String, String>>(1);
-		}
-		Containers containers = Operations.getByPathIndex(pathelements, true);
+	private static Map<String, Map<String, Object>> getSummariesByContainers(Containers containers) {
 		if (containers == null) {
-			return new HashMap<String, Map<String, String>>(1);
+			return new HashMap<String, Map<String, Object>>(1);
 		}
 		if (containers.size() == 0) {
-			return new HashMap<String, Map<String, String>>(1);
+			return new HashMap<String, Map<String, Object>>(1);
 		}
 		
-		Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>(containers.size());
+		Map<String, Map<String, Object>> result = new HashMap<String, Map<String, Object>>(containers.size());
 		
 		Container c;
+		Map<String, String> summaries;
+		Map<String, Object> item;
+		HashMap<PreviewType, Preview> previews;
 		for (int pos = 0; pos < containers.size(); pos++) {
 			c = containers.getItemAtPos(pos);
 			if (c.getSummary().getSummaries().isEmpty()) {
 				continue;
 			}
-			result.put(c.getOrigin().getKey(), c.getSummary().getSummaries());
+			item = new HashMap<String, Object>();
+			
+			summaries = c.getSummary().getSummaries();
+			for (Map.Entry<String, String> entry : summaries.entrySet()) {
+				item.put(entry.getKey(), entry.getValue());
+			}
+			
+			previews = c.getSummary().getPreviews();
+			item.put("previews", previews);
+			item.put("master_as_preview", c.getSummary().master_as_preview);
+			item.put("mimetype", c.getSummary().getMimetype());
+			
+			result.put(c.getOrigin().getKey(), item);
 		}
 		return result;
 	}
 	
-	private static Map<String, Map<String, String>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws IndexMissingException {
+	private static Map<String, Map<String, Object>> getSummariesByPathElements(List<SourcePathIndexerElement> pathelements) throws IndexMissingException {
+		if (pathelements == null) {
+			return new HashMap<String, Map<String, Object>>(1);
+		}
+		if (pathelements.size() == 0) {
+			return new HashMap<String, Map<String, Object>>(1);
+		}
+		return getSummariesByContainers(Operations.getByPathIndex(pathelements, true));
+	}
+	
+	private static Map<String, Map<String, Object>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws IndexMissingException {
 		if (pathelementkeys == null) {
-			return new HashMap<String, Map<String, String>>(1);
+			return new HashMap<String, Map<String, Object>>(1);
 		}
 		if (pathelementkeys.size() == 0) {
-			return new HashMap<String, Map<String, String>>(1);
+			return new HashMap<String, Map<String, Object>>(1);
 		}
-		Containers containers = Operations.getByPathIndexId(pathelementkeys, true);
-		if (containers == null) {
-			return new HashMap<String, Map<String, String>>(1);
-		}
-		if (containers.size() == 0) {
-			return new HashMap<String, Map<String, String>>(1);
-		}
-		
-		Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>(containers.size());
-		
-		Container c;
-		for (int pos = 0; pos < containers.size(); pos++) {
-			c = containers.getItemAtPos(pos);
-			if (c.getSummary().getSummaries().isEmpty()) {
-				continue;
-			}
-			result.put(c.getOrigin().getKey(), c.getSummary().getSummaries());
-		}
-		return result;
+		return getSummariesByContainers(Operations.getByPathIndexId(pathelementkeys, true));
 	}
 	
 	private void populate_dir_list_mtd_summary(HashMap<String, HashMap<String, SourcePathIndexerElement>> map_dir_list) {
 		ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
-		Map<String, Map<String, String>> summaries = null;
+		Map<String, Map<String, Object>> summaries = null;
 		
 		for (Map.Entry<String, HashMap<String, SourcePathIndexerElement>> dir_list : map_dir_list.entrySet()) {
 			pathelements.addAll(dir_list.getValue().values());

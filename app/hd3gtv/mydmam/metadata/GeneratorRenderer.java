@@ -20,14 +20,7 @@ import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.taskqueue.Profile;
 
-import java.util.List;
-
 public interface GeneratorRenderer extends Generator {
-	
-	/**
-	 * @deprecated
-	 */
-	public static final String METADATA_PROVIDER_RENDERER_CONTENT = "content";
 	
 	/**
 	 * You NEED to consolidate rendered elements.
@@ -36,10 +29,9 @@ public interface GeneratorRenderer extends Generator {
 	EntryRenderer process(Container container) throws Exception;
 	
 	/**
-	 * @param rendered_elements never null, never empty.
-	 * @return JS parser name for display this render, or null.
+	 * @return JS side parser name for display this render, or null.
 	 */
-	PreviewType getPreviewTypeForRenderer(Container container, List<RenderedFile> rendered_elements);
+	PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry);
 	
 	Profile getManagedProfile();
 	

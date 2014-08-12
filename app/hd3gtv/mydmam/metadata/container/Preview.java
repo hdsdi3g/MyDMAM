@@ -18,7 +18,18 @@ package hd3gtv.mydmam.metadata.container;
 
 public class Preview {
 	
-	public String type;
-	public String file;
+	String type;
+	String file;
+	
+	public String getFile() {
+		return file;
+	}
+	
+	public String getESType() {
+		return type;
+	}
+	
+	Preview() {
+	}
 	
 }

@@ -22,6 +22,7 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
+import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -89,6 +90,11 @@ public class Operations {
 		} catch (Exception e) {
 			Log2.log.error("Can't declare (de)serializer for EntrySummary", e);
 		}
+		
+		/**
+		 * Call MetadataCenter for run static block.
+		 */
+		MetadataCenter.doNothing();
 	}
 	
 	static Client getClient() {

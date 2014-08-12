@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
+import hd3gtv.mydmam.metadata.GeneratorRenderer;
+import hd3gtv.mydmam.metadata.PreviewType;
+
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
@@ -28,10 +31,11 @@ import com.google.gson.reflect.TypeToken;
 
 public final class EntrySummary extends Entry {
 	
-	public HashMap<String, Preview> previews;
+	private HashMap<String, Preview> previews;
 	Map<String, String> summaries;
 	public boolean master_as_preview;
 	private String mimetype;
+	private transient HashMap<PreviewType, Preview> cache_previews;
 	
 	public final static String type = "summary";
 	
@@ -129,6 +133,52 @@ public final class EntrySummary extends Entry {
 			summaries = new HashMap<String, String>();
 		}
 		return summaries;
+	}
+	
+	private void populate_previews() {
+		if (previews == null) {
+			previews = new HashMap<String, Preview>(1);
+		}
+		if (cache_previews == null) {
+			cache_previews = new HashMap<PreviewType, Preview>();
+			for (Map.Entry<String, Preview> entry : previews.entrySet()) {
+				cache_previews.put(PreviewType.valueOf(entry.getKey()), entry.getValue());
+			}
+		}
+	}
+	
+	public void addPreviewsFromEntryRenderer(EntryRenderer entry, Container container, GeneratorRenderer generator) {
+		populate_previews();
+		
+		List<String> files = entry.getContentFileNames();
+		
+		for (int pos = 0; pos < files.size(); pos++) {
+			Preview preview = new Preview();
+			preview.type = entry.getES_Type();
+			preview.file = files.get(pos);
+			
+			PreviewType previewtype = generator.getPreviewTypeForRenderer(container, entry);
+			if (previewtype != null) {
+				cache_previews.put(previewtype, preview);
+				previews.put(previewtype.toString(), preview);
+			}
+		}
+	}
+	
+	public Preview getPreview(PreviewType previewtype) {
+		populate_previews();
+		if (cache_previews.containsKey(previewtype)) {
+			return cache_previews.get(previewtype);
+		}
+		return null;
+	}
+	
+	/**
+	 * Don't add or delete items from here.
+	 */
+	public HashMap<PreviewType, Preview> getPreviews() {
+		populate_previews();
+		return cache_previews;
 	}
 	
 }

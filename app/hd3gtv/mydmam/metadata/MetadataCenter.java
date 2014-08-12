@@ -54,6 +54,13 @@ public class MetadataCenter {
 		generatorAnalysers = new ArrayList<GeneratorAnalyser>();
 		generatorRenderers = new ArrayList<GeneratorRenderer>();
 		
+		master_as_preview_mime_list_providers = null;
+		if (Configuration.global.isElementExists("master_as_preview")) {
+			if (Configuration.global.getValueBoolean("master_as_preview", "enable")) {
+				master_as_preview_mime_list_providers = new HashMap<String, GeneratorAnalyser>();
+			}
+		}
+		
 		addProvider(new FFprobeAnalyser());
 		addProvider(new FFmpegSnapshoot());
 		addProvider(new FFmpegAlbumartwork());
@@ -66,13 +73,9 @@ public class MetadataCenter {
 		for (int pos = 0; pos < all_external_providers.size(); pos++) {
 			addProvider(all_external_providers.get(pos));
 		}
-		
-		master_as_preview_mime_list_providers = null;
-		if (Configuration.global.isElementExists("master_as_preview") == false) {
-			if (Configuration.global.getValueBoolean("master_as_preview", "enable") == false) {
-				master_as_preview_mime_list_providers = new HashMap<String, GeneratorAnalyser>();
-			}
-		}
+	}
+	
+	public static void doNothing() {
 	}
 	
 	private static void addProvider(Generator provider) {
@@ -169,6 +172,8 @@ public class MetadataCenter {
 					if (entry_renderer == null) {
 						continue;
 					}
+					
+					container.getSummary().addPreviewsFromEntryRenderer(entry_renderer, container, generatorRenderer);
 					container.addEntry(entry_renderer);
 					RenderedFile.cleanCurrentTempDirectory();
 				} catch (Exception e) {
@@ -183,6 +188,40 @@ public class MetadataCenter {
 		
 		return container;
 	}
+	
+	/*
+	static void updateSummaryPreviewRenderedMetadataElement(JSONObject jo_summary_previews, Renderer renderer, List<RenderedElement> rendered_elements, LinkedHashMap<String, JSONObject> metadatas) {
+		if (rendered_elements == null) {
+			return;
+		}
+		if (rendered_elements.isEmpty()) {
+			return;
+		}
+		PreviewType previewtype = renderer.getPreviewTypeForRenderer(metadatas, rendered_elements);
+		if (previewtype == null) {
+			return;
+		}
+		JSONObject preview_content = new JSONObject();
+		if (rendered_elements.size() == 1) {
+			preview_content.put("file", rendered_elements.get(0).getRendered_file().getName());
+		} else {
+			JSONArray ja_elements_list = new JSONArray();
+			for (int pos_re = 0; pos_re < rendered_elements.size(); pos_re++) {
+				ja_elements_list.add(rendered_elements.get(pos_re).getRendered_file().getName());
+			}
+			preview_content.put("files", ja_elements_list);
+		}
+		
+		JSONObject previewconfiguration = renderer.getPreviewConfigurationForRenderer(previewtype, metadatas, rendered_elements);
+		if (previewconfiguration != null) {
+			if (previewconfiguration.isEmpty() == false) {
+				preview_content.put("conf", previewconfiguration);
+			}
+		}
+		preview_content.put("type", renderer.getElasticSearchIndexType());
+		jo_summary_previews.put(previewtype.toString(), preview_content);
+	}
+	 * */
 	
 	public static String json_prettify(JSONObject json) {
 		ObjectMapper mapper = new ObjectMapper();

@@ -109,14 +109,14 @@ public class Elasticsearch {
 	
 	public static Log2Dump getDump() {
 		Log2Dump dump = new Log2Dump();
-		ClusterStateResponse csr = client.admin().cluster().prepareState().execute().actionGet();
+		ClusterStateResponse csr = getClient().admin().cluster().prepareState().execute().actionGet();
 		dump.add("get-clustername", csr.getClusterName().toString());
 		return dump;
 	}
 	
 	public static void deleteIndexRequest(String index_name) throws ElasticsearchException {
 		try {
-			client.admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
+			getClient().admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
 		} catch (IndexMissingException e) {
 		}
 	}
@@ -168,7 +168,7 @@ public class Elasticsearch {
 	}
 	
 	public static void enableTTL(String index_name, String type) throws IOException, ParseException {
-		if (client.admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists() == false) {
+		if (getClient().admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists() == false) {
 			return;
 		}
 		
@@ -266,11 +266,11 @@ public class Elasticsearch {
 	*/
 	
 	public static ElastisearchCrawlerReader createCrawlerReader() {
-		return new ElastisearchCrawlerReader(client);
+		return new ElastisearchCrawlerReader(getClient());
 	}
 	
 	public static ElastisearchMultipleCrawlerReader createMultipleCrawlerReader() {
-		return new ElastisearchMultipleCrawlerReader(client);
+		return new ElastisearchMultipleCrawlerReader(getClient());
 	}
 	
 }

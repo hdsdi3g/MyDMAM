@@ -171,6 +171,8 @@ public class WorkerRenderer extends Worker {
 			current_renderer = null;
 			return;
 		}
+		
+		container.getSummary().addPreviewsFromEntryRenderer(rendered_entry, container, current_renderer);
 		container.addEntry(rendered_entry);
 		container.save(false);
 		

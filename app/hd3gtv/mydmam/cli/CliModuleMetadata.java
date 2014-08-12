@@ -21,6 +21,7 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.MetadataIndexer;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
@@ -113,7 +114,12 @@ public class CliModuleMetadata implements CliModule {
 			MetadataIndexer metadataIndexer = new MetadataIndexer(true);
 			metadataIndexer.process(root_indexing.storagename, root_indexing.currentpath, 0);
 			return;
+		} else if (args.getParamExist("-clean")) {
+			Log2.log.info("Start clean operations");
+			Operations.purge_orphan_metadatas();
+			return;
 		}
+		
 		showFullCliModuleHelp();
 	}
 	
@@ -123,8 +129,10 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println("   " + getCliModuleName() + " -a /full/path [-v | -vv]");
 		// System.out.println("   -v verbose");
 		// System.out.println("   -vv verbose and prettify");
-		System.out.println(" * force re-indexing metadatas for a directory: ");
+		System.out.println(" * force re-indexing metadatas for a directory:");
 		System.out.println("   " + getCliModuleName() + " -refresh storagename:/pathindexrelative");
+		System.out.println(" * do clean operation (remove orphan metadatas):");
+		System.out.println("   " + getCliModuleName() + " -clean");
 	}
 	
 }

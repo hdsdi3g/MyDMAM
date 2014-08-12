@@ -623,6 +623,7 @@ public class RenderedFile implements Log2Dumpable {
 				
 				Container container = Operations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.type);
 				if (container == null) {
+					Log2.log.info("Delete all metadata references for directory", new Log2Dump("mtd key", element_source_key));
 					purge(element_source_key);
 					continue;
 				}
@@ -640,6 +641,7 @@ public class RenderedFile implements Log2Dumpable {
 				
 				ArrayList<String> elements_name = new ArrayList<String>();
 				
+				container = Operations.getByMtdKey(element_source_key);
 				List<Entry> entries = container.getEntries();
 				EntryRenderer current_entry;
 				/**

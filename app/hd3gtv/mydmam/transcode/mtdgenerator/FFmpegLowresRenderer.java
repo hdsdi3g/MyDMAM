@@ -99,7 +99,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		return null;
 	}
 	
-	public PreviewType getPreviewTypeForRenderer(Container container, List<RenderedFile> rendered_elements) {
+	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return preview_type;
 	}
 	
