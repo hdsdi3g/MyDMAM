@@ -22,7 +22,9 @@ import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.taskqueue.Profile;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import com.eaio.uuid.UUID;
 import com.google.gson.JsonObject;
@@ -100,13 +102,22 @@ public abstract class UAFunctionality {
 		return capability;
 	}
 	
-	private volatile Profile profile;
+	private volatile List<Profile> profiles;
 	
-	public final Profile getProfile() {
-		if (profile == null) {
-			profile = new Profile("useraction", getName());
+	public final List<Profile> getProfiles() {
+		if (profiles == null) {
+			profiles = new ArrayList<Profile>();
+			List<String> whitelist = capability.getStorageindexesWhiteList();
+			if (whitelist != null) {
+				if (whitelist.isEmpty() == false) {
+					for (int pos = 0; pos < whitelist.size(); pos++) {
+						profiles.add(new Profile("useraction", getName() + "=" + whitelist.get(pos)));
+					}
+				}
+			}
+			profiles.add(new Profile("useraction", getName()));
 		}
-		return profile;
+		return profiles;
 	}
 	
 	public final JsonObject toJson() {
@@ -117,8 +128,10 @@ public abstract class UAFunctionality {
 		jo.addProperty("longname", getLongName());
 		jo.addProperty("description", getDescription());
 		jo.addProperty("instance", getInstanceReference().toString());
-		jo.addProperty("profilecategory", getProfile().getCategory());
-		jo.addProperty("profilename", getProfile().getName());
+		getProfiles();
+		for (int pos = 0; pos < profiles.size(); pos++) {
+			jo.addProperty("profile " + (pos + 1), profiles.get(pos).getCategory() + ":" + profiles.get(pos).getName());
+		}
 		jo.add("capability", capability.toJson());
 		/*
 		HashMap<String, ConfigurationItem> internal_configuration = getConfigurationFromReferenceClass();

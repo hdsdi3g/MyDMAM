@@ -29,8 +29,9 @@ public final class UAWorker extends Worker {
 	
 	private List<UAFunctionality> functionalities_list;
 	private HashMap<String, UAFunctionality> functionalities_map;
+	private List<Profile> managed_profiles;
 	
-	public UAWorker(List<UAFunctionality> functionalities_list) {
+	public UAWorker(List<UAFunctionality> functionalities_list) throws NullPointerException {
 		this.functionalities_list = functionalities_list;
 		if (functionalities_list == null) {
 			throw new NullPointerException("\"process\" can't to be null");
@@ -38,6 +39,10 @@ public final class UAWorker extends Worker {
 		functionalities_map = new HashMap<String, UAFunctionality>();
 		for (int pos = 0; pos < functionalities_list.size(); pos++) {
 			functionalities_map.put(functionalities_list.get(pos).getName(), functionalities_list.get(pos));
+		}
+		managed_profiles = new ArrayList<Profile>();
+		for (int pos = 0; pos < functionalities_list.size(); pos++) {
+			managed_profiles.addAll(functionalities_list.get(pos).getProfiles());
 		}
 	}
 	
@@ -63,6 +68,13 @@ public final class UAWorker extends Worker {
 			user_configuration = functionality.createOneClickDefaultUserConfiguration();
 		}
 		
+		// TODO get from context creator UserProfile and creator group name
+		// TODO get from context pathindex keys items
+		
+		UACapability capability = functionality.getCapabilityForInstance();
+		// capability.checkValidity();// TODO check items
+		// if (checkValidityGroupName(...)==false) {
+		
 		current_process = functionality.createProcess();
 		current_process.process(job, user_configuration);
 		current_process = null;
@@ -77,11 +89,7 @@ public final class UAWorker extends Worker {
 	}
 	
 	public List<Profile> getManagedProfiles() {
-		List<Profile> profiles = new ArrayList<Profile>();
-		for (int pos = 0; pos < functionalities_list.size(); pos++) {
-			profiles.add(functionalities_list.get(pos).getProfile());
-		}
-		return profiles;
+		return managed_profiles;
 	}
 	
 	public boolean isConfigurationAllowToEnabled() {

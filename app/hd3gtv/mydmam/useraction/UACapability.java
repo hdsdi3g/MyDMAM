@@ -18,7 +18,10 @@ package hd3gtv.mydmam.useraction;
 
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,12 +29,11 @@ import java.util.List;
 import com.google.gson.JsonObject;
 
 public abstract class UACapability {
-	/**
-	 * TODO Usergroups white/black list (declared in website by Admin Configuration)
-	 * - Force to have a local storage bridge (hard-coded)
-	 */
+	
+	private Explorer explorer;
 	
 	public UACapability() {
+		explorer = new Explorer();
 	}
 	
 	public abstract UACapability getFromConfigurations(HashMap<String, ConfigurationItem> internal_configuration, CrudOrmModel external_configuration);
@@ -48,8 +50,52 @@ public abstract class UACapability {
 		return new ArrayList<String>();
 	}
 	
-	public List<String> getStorageindexesBlackList() {
+	/**
+	 * TODO CRUD for this in website by Admin Configuration
+	 */
+	public List<String> getGroupsNameWhiteList() {
 		return new ArrayList<String>();
+	}
+	
+	boolean checkValidityGroupName(String groupname) {
+		List<String> white_list = getGroupsNameWhiteList();
+		if (white_list != null) {
+			if (white_list.isEmpty() == false) {
+				if (white_list.contains(groupname) == false) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
+	void checkValidity(SourcePathIndexerElement element) throws IOException {
+		if ((enableFileProcessing() == false) & (element.directory == false)) {
+			throw new IOException("Element is a file, and file processing is not available");
+		}
+		if ((enableDirectoryProcessing() == false) & element.directory) {
+			throw new IOException("Element is a directory, and directory processing is not available");
+		}
+		if (element.prepare_key().equalsIgnoreCase(element.ROOT_DIRECTORY_KEY)) {
+			throw new IOException("Element is the root storage, it will not be available");
+		}
+		if ((enableRootStorageindexProcessing() == false) & (element.parentpath == null)) {
+			throw new IOException("Element is a storage index root, and this is not available");
+		}
+		List<String> white_list = getStorageindexesWhiteList();
+		if (white_list != null) {
+			if (white_list.isEmpty() == false) {
+				if (white_list.contains(element.storagename) == false) {
+					throw new IOException("Storage index for element is not in white list.");
+				}
+			}
+		}
+		if (mustHaveLocalStorageindexBridge()) {
+			if (explorer.getBridgedStoragesName().contains(element.storagename) == false) {
+				throw new IOException("Storage index for element has not a storage index bridge");
+			}
+		}
+		return true;
 	}
 	
 	public final JsonObject toJson() {

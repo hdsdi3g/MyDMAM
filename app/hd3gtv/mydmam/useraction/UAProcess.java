@@ -21,6 +21,9 @@ import hd3gtv.mydmam.taskqueue.Job;
 
 public interface UAProcess {
 	
+	// TODO add pathindex item list
+	// TODO add creator user
+	
 	void process(Job job, CrudOrmModel user_configuration) throws Exception;
 	
 	void forceStopProcess() throws Exception;
