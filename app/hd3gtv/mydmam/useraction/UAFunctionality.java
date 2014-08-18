@@ -83,12 +83,12 @@ public abstract class UAFunctionality {
 	/**
 	 * @return for create new Useraction in website
 	 */
-	public abstract CrudOrmModel createUserConfiguration();
+	public abstract JsonObject createUserConfiguration();
 	
 	/**
 	 * @return can be null for desactivate one click create Useraction
 	 */
-	public abstract CrudOrmModel createOneClickDefaultUserConfiguration();
+	public abstract JsonObject createOneClickDefaultUserConfiguration();
 	
 	public abstract Class<? extends UACapability> getCapabilityClass();
 	

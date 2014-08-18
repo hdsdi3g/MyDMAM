@@ -16,7 +16,9 @@
 */
 package hd3gtv.mydmam.useraction;
 
-import hd3gtv.mydmam.db.orm.CrudOrmModel;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.Job;
 import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.mydmam.taskqueue.Worker;
@@ -25,11 +27,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import models.UserProfile;
+
+import com.google.gson.JsonObject;
+
 public final class UAWorker extends Worker {
 	
 	private List<UAFunctionality> functionalities_list;
 	private HashMap<String, UAFunctionality> functionalities_map;
 	private List<Profile> managed_profiles;
+	private Explorer explorer;
 	
 	public UAWorker(List<UAFunctionality> functionalities_list) throws NullPointerException {
 		this.functionalities_list = functionalities_list;
@@ -44,6 +51,7 @@ public final class UAWorker extends Worker {
 		for (int pos = 0; pos < functionalities_list.size(); pos++) {
 			managed_profiles.addAll(functionalities_list.get(pos).getProfiles());
 		}
+		explorer = new Explorer();
 	}
 	
 	public List<UAFunctionality> getFunctionalities_list() {
@@ -57,26 +65,48 @@ public final class UAWorker extends Worker {
 	private UAProcess current_process;
 	
 	public void process(Job job) throws Exception {
-		// TODO job.getContext().toJSONString()
-		String functionality_name = null;// TODO from context
-		UAFunctionality functionality = functionalities_map.get(functionality_name);
-		if (functionality == null) {
-			throw new NullPointerException("Can't found declared functionality " + functionality_name);
+		UAJobContext context = UAJobContext.importFromJob(job.getContext());
+		
+		if (context == null) {
+			throw new NullPointerException("No \"context\" for job");
 		}
-		CrudOrmModel user_configuration = null;// TODO from context
+		
+		if (context.functionality_name == null) {
+			throw new NullPointerException("\"context.functionality_name\" can't to be null");
+		}
+		
+		UAFunctionality functionality = functionalities_map.get(context.functionality_name);
+		if (functionality == null) {
+			throw new NullPointerException("Can't found declared functionality " + context.functionality_name);
+		}
+		
+		JsonObject user_configuration = context.user_configuration;
 		if (user_configuration == null) {
 			user_configuration = functionality.createOneClickDefaultUserConfiguration();
 		}
 		
-		// TODO get from context creator UserProfile and creator group name
-		// TODO get from context pathindex keys items
+		if (context.creator_user_key == null) {
+			throw new NullPointerException("\"context.creator_user_key\" can't to be null");
+		}
+		UserProfile user_profile = new UserProfile();
+		CrudOrmEngine<UserProfile> engine = new CrudOrmEngine<UserProfile>(user_profile);
+		if (engine.exists(context.creator_user_key)) {
+			user_profile = engine.read(context.creator_user_key);
+		}
 		
 		UACapability capability = functionality.getCapabilityForInstance();
-		// capability.checkValidity();// TODO check items
-		// if (checkValidityGroupName(...)==false) {
+		HashMap<String, SourcePathIndexerElement> elements = new HashMap<String, SourcePathIndexerElement>(1);
+		if (context.items != null) {
+			elements = explorer.getelementByIdkeys(context.items);
+		}
+		if (capability.isGroupNameIsValid(context.creator_user_group_name) == false) {
+			throw new SecurityException("Can't allow to process task from this group");
+		}
+		
+		UAJobProgress progress = new UAJobProgress(job);
 		
 		current_process = functionality.createProcess();
-		current_process.process(job, user_configuration);
+		current_process.process(progress, user_profile, user_configuration, elements);
 		current_process = null;
 	}
 	
@@ -96,7 +126,7 @@ public final class UAWorker extends Worker {
 		return (functionalities_list.isEmpty() == false);
 	}
 	
-	public void forceStopProcess() throws Exception {
+	public synchronized void forceStopProcess() throws Exception {
 		if (current_process == null) {
 			return;
 		}

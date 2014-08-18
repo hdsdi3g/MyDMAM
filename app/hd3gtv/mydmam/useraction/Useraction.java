@@ -19,7 +19,7 @@ package hd3gtv.mydmam.useraction;
 public class Useraction {
 	
 	/**
-	 * TODO create ORM <-> JsonObjet
+	 * TODO JsonObject <-> form CRUD
 	 * TODO Useraction worker: generic (interface/abstract) Useraction executor
 	 * - declare some functionalities
 	 * - must compute Profiles names/cat based on this declared functionalities

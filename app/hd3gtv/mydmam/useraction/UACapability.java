@@ -26,7 +26,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 public abstract class UACapability {
 	
@@ -57,10 +59,13 @@ public abstract class UACapability {
 		return new ArrayList<String>();
 	}
 	
-	boolean checkValidityGroupName(String groupname) {
+	boolean isGroupNameIsValid(String groupname) {
 		List<String> white_list = getGroupsNameWhiteList();
 		if (white_list != null) {
 			if (white_list.isEmpty() == false) {
+				if (groupname == null) {
+					return false;
+				}
 				if (white_list.contains(groupname) == false) {
 					return false;
 				}
@@ -95,23 +100,22 @@ public abstract class UACapability {
 				throw new IOException("Storage index for element has not a storage index bridge");
 			}
 		}
-		return true;
+		return;
 	}
 	
 	public final JsonObject toJson() {
-		// TODO
 		JsonObject jo = new JsonObject();
-		/*jo.addProperty("section", getSection());
-		jo.addProperty("vendor", getVendor());
-		jo.addProperty("reference", getReferenceClass().getSimpleName().toLowerCase());
-		jo.addProperty("longname", getLongName());
-		jo.addProperty("description", getDescription());
-		jo.addProperty("instance", getInstanceReference().toString());
-		HashMap<String, ConfigurationItem> internal_configuration = getConfigurationFromReferenceClass();
-		public final HashMap<String, ConfigurationItem> getConfigurationFromReferenceClass() {
-		public abstract CrudOrmEngine<? extends CrudOrmModel> getGlobalConfigurationFromModel();
-		public abstract UACapability getCapabilityForInstance(HashMap<String, ConfigurationItem> internal_configuration, CrudOrmModel external_configuration);
-		*/
+		jo.addProperty("enablefileprocessing", enableFileProcessing());
+		jo.addProperty("enabledirectoryprocessing", enableDirectoryProcessing());
+		jo.addProperty("enablerootstorageindexprocessing", enableRootStorageindexProcessing());
+		jo.addProperty("musthavelocalstorageindexbridge", mustHaveLocalStorageindexBridge());
+		
+		List<String> storages_wl = getStorageindexesWhiteList();
+		JsonArray storages_wl_json = new JsonArray();
+		for (int pos = 0; pos < storages_wl.size(); pos++) {
+			storages_wl_json.add(new JsonPrimitive(storages_wl.get(pos)));
+		}
+		jo.add("storagewhitelist", storages_wl_json);
 		return jo;
 	}
 	

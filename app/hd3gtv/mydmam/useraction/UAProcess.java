@@ -16,15 +16,17 @@
 */
 package hd3gtv.mydmam.useraction;
 
-import hd3gtv.mydmam.db.orm.CrudOrmModel;
-import hd3gtv.mydmam.taskqueue.Job;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+
+import java.util.HashMap;
+
+import models.UserProfile;
+
+import com.google.gson.JsonObject;
 
 public interface UAProcess {
 	
-	// TODO add pathindex item list
-	// TODO add creator user
-	
-	void process(Job job, CrudOrmModel user_configuration) throws Exception;
+	void process(UAJobProgress progress, UserProfile userprofile, JsonObject user_configuration, HashMap<String, SourcePathIndexerElement> elements) throws Exception;
 	
 	void forceStopProcess() throws Exception;
 }
