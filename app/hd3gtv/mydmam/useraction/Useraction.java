@@ -19,10 +19,6 @@ package hd3gtv.mydmam.useraction;
 public class Useraction {
 	
 	/**
-	 * TODO JsonObject <-> form CRUD
-	 * TODO Useraction worker: generic (interface/abstract) Useraction executor
-	 * - declare some functionalities
-	 * - must compute Profiles names/cat based on this declared functionalities
 	 * TODO Useraction range: 1 task for all items, or 1 task by item, or items by items for all tasks.
 	 * TODO Useraction requirement: compute Useractions availabilities with the actual Useraction workers profiles and Storages access
 	 * TODO Useraction availability: publish in database the full requirement computed list for the current probe, via isAlive
@@ -39,7 +35,7 @@ public class Useraction {
 	 * - retrieve Capabilities and Availabilities from database, and display the correct popup content relative to the creator
 	 * - each action link will be targeted to an Useraction creation modal
 	 * - or preconfigured one-click action
-	 * TODO Useraction creation tasks page/modal in iframe
+	 * TODO Useraction creation tasks page/modal by sync JS
 	 * - display current basket, or an anonymous basket with the only one item requested (file, dir, recursive dir)
 	 * - select and add an Useraction by Category, and by Long name, following the actual Availabilities.
 	 * - add creator configuration form fields, following the Creator declaration.
@@ -47,9 +43,6 @@ public class Useraction {
 	 * - add basket action after creation (for "by basket" creation): truncate after start, truncate by the finisher, or don't touch.
 	 * - add Notification options
 	 * - on validation: create task(s) with Task context, finisher(s) and notification(s)
-	 * TODO Useraction Task context, (de)serialize Json
-	 * - content of Useraction Creation (Range, finisher)
-	 * - element(s)
 	 * TODO Useraction supervision
 	 * - display Capabilities and Availabilities table
 	 * - admin Usergroups white/black list

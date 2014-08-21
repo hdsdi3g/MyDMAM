@@ -22,11 +22,9 @@ import java.util.HashMap;
 
 import models.UserProfile;
 
-import com.google.gson.JsonObject;
-
 public interface UAProcess {
 	
-	void process(UAJobProgress progress, UserProfile userprofile, JsonObject user_configuration, HashMap<String, SourcePathIndexerElement> elements) throws Exception;
+	void process(UAJobProgress progress, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> elements) throws Exception;
 	
 	void forceStopProcess() throws Exception;
 }

@@ -81,14 +81,23 @@ public abstract class UAFunctionality {
 	public abstract CrudOrmEngine<? extends CrudOrmModel> getGlobalConfiguration();
 	
 	/**
-	 * @return for create new Useraction in website
+	 * For display create form in website.
+	 * @return can be null (if no form or one click UA).
 	 */
-	public abstract JsonObject createUserConfiguration();
+	public abstract UAConfigurator createEmptyConfiguration();
 	
 	/**
-	 * @return can be null for desactivate one click create Useraction
+	 * For display create form in website.
 	 */
-	public abstract JsonObject createOneClickDefaultUserConfiguration();
+	public abstract boolean hasOneClickDefault();
+	
+	// TODO get Finisher for one click
+	// TODO get Range for one click
+	
+	/**
+	 * For execute an UA.
+	 */
+	public abstract UAConfigurator createOneClickDefaultUserConfiguration();
 	
 	public abstract Class<? extends UACapability> getCapabilityClass();
 	

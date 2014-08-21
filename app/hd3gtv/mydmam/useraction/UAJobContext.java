@@ -29,16 +29,19 @@ import org.json.simple.parser.ParseException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 public final class UAJobContext implements Log2Dumpable {
 	
 	String functionality_name;
-	JsonObject user_configuration;
+	UAConfigurator user_configuration;
 	String creator_user_key;
 	String creator_user_group_name;
 	ArrayList<String> items;
+	
+	/**
+	 * TODO add content of Useraction Creation (Range, finisher)
+	 */
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
@@ -46,7 +49,7 @@ public final class UAJobContext implements Log2Dumpable {
 		dump.add("creator_user_key", creator_user_key);
 		dump.add("creator_user_group_name", creator_user_group_name);
 		dump.add("items", items);
-		dump.add("user_configuration", user_configuration);
+		dump.addAll(user_configuration);
 		return dump;
 	}
 	
@@ -54,7 +57,10 @@ public final class UAJobContext implements Log2Dumpable {
 	}
 	
 	static Gson makeGson() {
-		return new GsonBuilder().serializeNulls().create();
+		GsonBuilder gsonbuilder = new GsonBuilder();
+		gsonbuilder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
+		gsonbuilder.serializeNulls();
+		return gsonbuilder.create();
 	}
 	
 	static UAJobContext importFromJob(JSONObject context) {

@@ -29,14 +29,11 @@ import java.util.List;
 
 import models.UserProfile;
 
-import com.google.gson.JsonObject;
-
 public final class UAWorker extends Worker {
 	
 	private List<UAFunctionality> functionalities_list;
 	private HashMap<String, UAFunctionality> functionalities_map;
 	private List<Profile> managed_profiles;
-	private Explorer explorer;
 	
 	public UAWorker(List<UAFunctionality> functionalities_list) throws NullPointerException {
 		this.functionalities_list = functionalities_list;
@@ -51,7 +48,6 @@ public final class UAWorker extends Worker {
 		for (int pos = 0; pos < functionalities_list.size(); pos++) {
 			managed_profiles.addAll(functionalities_list.get(pos).getProfiles());
 		}
-		explorer = new Explorer();
 	}
 	
 	public List<UAFunctionality> getFunctionalities_list() {
@@ -80,8 +76,11 @@ public final class UAWorker extends Worker {
 			throw new NullPointerException("Can't found declared functionality " + context.functionality_name);
 		}
 		
-		JsonObject user_configuration = context.user_configuration;
+		UAConfigurator user_configuration = context.user_configuration;
 		if (user_configuration == null) {
+			if (functionality.hasOneClickDefault() == false) {
+				throw new NullPointerException("Can't found declared user_configuration in context and One Click is disabled");
+			}
 			user_configuration = functionality.createOneClickDefaultUserConfiguration();
 		}
 		
@@ -97,6 +96,7 @@ public final class UAWorker extends Worker {
 		UACapability capability = functionality.getCapabilityForInstance();
 		HashMap<String, SourcePathIndexerElement> elements = new HashMap<String, SourcePathIndexerElement>(1);
 		if (context.items != null) {
+			Explorer explorer = new Explorer();
 			elements = explorer.getelementByIdkeys(context.items);
 		}
 		if (capability.isGroupNameIsValid(context.creator_user_group_name) == false) {
