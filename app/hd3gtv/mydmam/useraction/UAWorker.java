@@ -46,7 +46,7 @@ public final class UAWorker extends Worker {
 		}
 		managed_profiles = new ArrayList<Profile>();
 		for (int pos = 0; pos < functionalities_list.size(); pos++) {
-			managed_profiles.addAll(functionalities_list.get(pos).getProfiles());
+			managed_profiles.addAll(functionalities_list.get(pos).getUserActionProfiles());
 		}
 	}
 	
@@ -58,7 +58,7 @@ public final class UAWorker extends Worker {
 		return functionalities_map;
 	}
 	
-	private UAProcess current_process;
+	private UAJobProcess current_process;
 	
 	public void process(Job job) throws Exception {
 		UAJobContext context = UAJobContext.importFromJob(job.getContext());
@@ -76,12 +76,17 @@ public final class UAWorker extends Worker {
 			throw new NullPointerException("Can't found declared functionality " + context.functionality_name);
 		}
 		
+		UAFinisherConfiguration finisher = context.finisher;
+		UARange range = context.range;
+		
 		UAConfigurator user_configuration = context.user_configuration;
 		if (user_configuration == null) {
 			if (functionality.hasOneClickDefault() == false) {
 				throw new NullPointerException("Can't found declared user_configuration in context and One Click is disabled");
 			}
 			user_configuration = functionality.createOneClickDefaultUserConfiguration();
+			finisher = functionality.getFinisherForOneClick();
+			range = functionality.getRangeForOneClick();
 		}
 		
 		if (context.creator_user_key == null) {
@@ -95,8 +100,8 @@ public final class UAWorker extends Worker {
 		
 		UACapability capability = functionality.getCapabilityForInstance();
 		HashMap<String, SourcePathIndexerElement> elements = new HashMap<String, SourcePathIndexerElement>(1);
+		Explorer explorer = new Explorer();
 		if (context.items != null) {
-			Explorer explorer = new Explorer();
 			elements = explorer.getelementByIdkeys(context.items);
 		}
 		if (capability.isGroupNameIsValid(context.creator_user_group_name) == false) {
@@ -108,6 +113,19 @@ public final class UAWorker extends Worker {
 		current_process = functionality.createProcess();
 		current_process.process(progress, user_profile, user_configuration, elements);
 		current_process = null;
+		
+		if ((finisher != null) & (range != null)) {
+			if (range == UARange.ONE_USER_ACTION_BY_TASK) {
+				job.last_message = "Finish current job";
+				job.progress = 0;
+				job.progress_size = 1;
+				job.step_count++;
+				UAFinisherWorker.doFinishUserAction(elements, user_profile, context.basket_name, explorer, finisher);
+				job.last_message = "Finish terminated";
+				job.progress = 1;
+				job.step++;
+			}
+		}
 	}
 	
 	public String getShortWorkerName() {

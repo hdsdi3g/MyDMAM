@@ -20,6 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
+import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.taskqueue.Profile;
 
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ import com.google.gson.JsonObject;
 
 public abstract class UAFunctionality {
 	
-	public abstract UAProcess createProcess();
+	public abstract UAJobProcess createProcess();
 	
 	/**
 	 * @return like filesystem, transcoding, metadata/pvw, content check, download/delivery, user metadata...
@@ -91,8 +92,9 @@ public abstract class UAFunctionality {
 	 */
 	public abstract boolean hasOneClickDefault();
 	
-	// TODO get Finisher for one click
-	// TODO get Range for one click
+	public abstract UAFinisherConfiguration getFinisherForOneClick();
+	
+	public abstract UARange getRangeForOneClick();
 	
 	/**
 	 * For execute an UA.
@@ -111,22 +113,53 @@ public abstract class UAFunctionality {
 		return capability;
 	}
 	
-	private volatile List<Profile> profiles;
+	private volatile List<Profile> user_action_profiles;
 	
-	public final List<Profile> getProfiles() {
-		if (profiles == null) {
-			profiles = new ArrayList<Profile>();
+	public final List<Profile> getUserActionProfiles() {
+		if (user_action_profiles == null) {
+			user_action_profiles = new ArrayList<Profile>();
 			List<String> whitelist = capability.getStorageindexesWhiteList();
+			List<String> bridgedstorages = Explorer.getBridgedStoragesName();
 			if (whitelist != null) {
 				if (whitelist.isEmpty() == false) {
 					for (int pos = 0; pos < whitelist.size(); pos++) {
-						profiles.add(new Profile("useraction", getName() + "=" + whitelist.get(pos)));
+						if (bridgedstorages.contains(whitelist.get(pos)) == false) {
+							continue;
+						}
+						user_action_profiles.add(new Profile("useraction", getName() + "=" + whitelist.get(pos)));
 					}
 				}
 			}
-			profiles.add(new Profile("useraction", getName()));
 		}
-		return profiles;
+		return user_action_profiles;
+	}
+	
+	private volatile List<Profile> finisher_profiles;
+	
+	public final List<Profile> getFinisherProfiles() {
+		if (finisher_profiles == null) {
+			finisher_profiles = new ArrayList<Profile>();
+			List<String> whitelist = capability.getStorageindexesWhiteList();
+			List<String> bridgedstorages = Explorer.getBridgedStoragesName();
+			if (whitelist != null) {
+				if (whitelist.isEmpty() == false) {
+					for (int pos = 0; pos < whitelist.size(); pos++) {
+						if (bridgedstorages.contains(whitelist.get(pos)) == false) {
+							continue;
+						}
+						finisher_profiles.add(new Profile("useraction-finisher", whitelist.get(pos)));
+					}
+					return finisher_profiles;
+				}
+			}
+			/**
+			 * No whitelist
+			 */
+			for (int pos = 0; pos < bridgedstorages.size(); pos++) {
+				finisher_profiles.add(new Profile("useraction-finisher", bridgedstorages.get(pos)));
+			}
+		}
+		return finisher_profiles;
 	}
 	
 	public final JsonObject toJson() {
@@ -137,9 +170,9 @@ public abstract class UAFunctionality {
 		jo.addProperty("longname", getLongName());
 		jo.addProperty("description", getDescription());
 		jo.addProperty("instance", getInstanceReference().toString());
-		getProfiles();
-		for (int pos = 0; pos < profiles.size(); pos++) {
-			jo.addProperty("profile " + (pos + 1), profiles.get(pos).getCategory() + ":" + profiles.get(pos).getName());
+		getUserActionProfiles();
+		for (int pos = 0; pos < user_action_profiles.size(); pos++) {
+			jo.addProperty("profile " + (pos + 1), user_action_profiles.get(pos).getCategory() + ":" + user_action_profiles.get(pos).getName());
 		}
 		jo.add("capability", capability.toJson());
 		/*

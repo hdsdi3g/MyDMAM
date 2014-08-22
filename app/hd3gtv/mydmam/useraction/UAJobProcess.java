@@ -22,7 +22,7 @@ import java.util.HashMap;
 
 import models.UserProfile;
 
-public interface UAProcess {
+public interface UAJobProcess {
 	
 	void process(UAJobProgress progress, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> elements) throws Exception;
 	

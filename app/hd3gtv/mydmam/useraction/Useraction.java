@@ -19,7 +19,6 @@ package hd3gtv.mydmam.useraction;
 public class Useraction {
 	
 	/**
-	 * TODO Useraction range: 1 task for all items, or 1 task by item, or items by items for all tasks.
 	 * TODO Useraction requirement: compute Useractions availabilities with the actual Useraction workers profiles and Storages access
 	 * TODO Useraction availability: publish in database the full requirement computed list for the current probe, via isAlive
 	 * TODO Useraction publisher in website
@@ -47,8 +46,5 @@ public class Useraction {
 	 * - display Capabilities and Availabilities table
 	 * - admin Usergroups white/black list
 	 * - admin Useraction specific params (and published by ORM/form)
-	 * TODO Useraction finisher, one by Useraction created task (and required by this). It can be, after the job is ended, the refresh original selected Storage index items.
-	 * - Add Explorer option: simple refresh for a directory (only add new elements) or a forced refresh (recursive with delete).
-	 * - Add user basket remove item option.
 	 */
 }

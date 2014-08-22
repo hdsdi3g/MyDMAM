@@ -32,12 +32,6 @@ import com.google.gson.JsonPrimitive;
 
 public abstract class UACapability {
 	
-	private Explorer explorer;
-	
-	public UACapability() {
-		explorer = new Explorer();
-	}
-	
 	public abstract UACapability getFromConfigurations(HashMap<String, ConfigurationItem> internal_configuration, CrudOrmModel external_configuration);
 	
 	public abstract boolean enableFileProcessing();
@@ -81,7 +75,7 @@ public abstract class UACapability {
 		if ((enableDirectoryProcessing() == false) & element.directory) {
 			throw new IOException("Element is a directory, and directory processing is not available");
 		}
-		if (element.prepare_key().equalsIgnoreCase(element.ROOT_DIRECTORY_KEY)) {
+		if (element.prepare_key().equalsIgnoreCase(SourcePathIndexerElement.ROOT_DIRECTORY_KEY)) {
 			throw new IOException("Element is the root storage, it will not be available");
 		}
 		if ((enableRootStorageindexProcessing() == false) & (element.parentpath == null)) {
@@ -96,7 +90,7 @@ public abstract class UACapability {
 			}
 		}
 		if (mustHaveLocalStorageindexBridge()) {
-			if (explorer.getBridgedStoragesName().contains(element.storagename) == false) {
+			if (Explorer.getBridgedStoragesName().contains(element.storagename) == false) {
 				throw new IOException("Storage index for element has not a storage index bridge");
 			}
 		}

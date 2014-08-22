@@ -37,10 +37,13 @@ public final class UAJobContext implements Log2Dumpable {
 	UAConfigurator user_configuration;
 	String creator_user_key;
 	String creator_user_group_name;
+	String basket_name;
 	ArrayList<String> items;
+	UARange range;
+	UAFinisherConfiguration finisher;
 	
 	/**
-	 * TODO add content of Useraction Creation (Range, finisher)
+	 * TODO add content of Useraction Creation ( finisher)
 	 */
 	
 	public Log2Dump getLog2Dump() {
@@ -48,7 +51,10 @@ public final class UAJobContext implements Log2Dumpable {
 		dump.add("functionality_name", functionality_name);
 		dump.add("creator_user_key", creator_user_key);
 		dump.add("creator_user_group_name", creator_user_group_name);
+		dump.add("basket_name", basket_name);
+		dump.add("range", range);
 		dump.add("items", items);
+		dump.addAll(finisher);
 		dump.addAll(user_configuration);
 		return dump;
 	}
