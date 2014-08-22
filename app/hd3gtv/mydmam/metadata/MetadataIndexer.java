@@ -204,4 +204,7 @@ public class MetadataIndexer implements IndexingEvent {
 		return true;
 	}
 	
+	public void onRemoveFile(String storagename, String path) throws Exception {
+	}
+	
 }

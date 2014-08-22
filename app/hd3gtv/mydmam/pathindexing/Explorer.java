@@ -152,6 +152,9 @@ public class Explorer {
 				result.add(element);
 				return true;
 			}
+			
+			public void onRemoveFile(String storagename, String path) throws Exception {
+			}
 		});
 		return result;
 	}
@@ -421,4 +424,13 @@ public class Explorer {
 		return client.prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, _id);
 	}
 	
+	/**
+	 * Don't use Bridge, but use StorageManager and PathScan.
+	 */
+	public void refreshStoragePath(List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
+		PathScan pathscan = new PathScan();
+		for (int pos = 0; pos < elements.size(); pos++) {
+			pathscan.refreshIndex(elements.get(pos).storagename, elements.get(pos).currentpath, purge_before);
+		}
+	}
 }

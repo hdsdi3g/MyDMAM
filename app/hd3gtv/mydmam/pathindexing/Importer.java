@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.pathindexing;
@@ -26,7 +26,6 @@ import java.util.ArrayList;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.client.Client;
 import org.json.simple.parser.ParseException;
 
@@ -38,19 +37,24 @@ public abstract class Importer {
 	
 	protected Client client;
 	private int window_update_size;
+	private Explorer explorer;
 	
-	/**
-	 * Test if GC need to be activated on ES
-	 */
+	static {
+		try {
+			Elasticsearch.enableTTL(ES_INDEX, ES_TYPE_FILE);
+			Elasticsearch.enableTTL(ES_INDEX, ES_TYPE_DIRECTORY);
+		} catch (Exception e) {
+			Log2.log.error("Can't to set TTL for ES", e);
+		}
+	}
+	
 	public Importer() throws IOException, ParseException {
 		client = Elasticsearch.getClient();
 		if (client == null) {
 			throw new NullPointerException("\"client\" can't to be null");
 		}
 		window_update_size = 10000;
-		
-		Elasticsearch.enableTTL(ES_INDEX, ES_TYPE_FILE);
-		Elasticsearch.enableTTL(ES_INDEX, ES_TYPE_DIRECTORY);
+		explorer = new Explorer();
 	}
 	
 	/**
@@ -69,13 +73,33 @@ public abstract class Importer {
 	private class ElasticSearchPushElement implements IndexingEvent {
 		
 		BulkRequestBuilder bulkrequest_index;
+		BulkRequestBuilder bulkrequest_delete;
 		long ttl;
 		ArrayList<SourcePathIndexerElement> l_elements_problems;
+		boolean forcerefresh;
+		ForceRefreshRemoveElement forcerefreshremoveelement;
 		
-		public ElasticSearchPushElement() {
+		public ElasticSearchPushElement(boolean forcerefresh) {
 			bulkrequest_index = client.prepareBulk();
+			bulkrequest_delete = client.prepareBulk();
+			this.forcerefresh = forcerefresh;
 			ttl = getTTL();
 			l_elements_problems = new ArrayList<SourcePathIndexerElement>();
+			forcerefreshremoveelement = new ForceRefreshRemoveElement();
+		}
+		
+		class ForceRefreshRemoveElement implements IndexingEvent {
+			public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
+				if (element.directory) {
+					bulkrequest_delete.add(client.prepareDelete(ES_INDEX, ES_TYPE_DIRECTORY, element.prepare_key()));
+				} else {
+					bulkrequest_delete.add(client.prepareDelete(ES_INDEX, ES_TYPE_FILE, element.prepare_key()));
+				}
+				return true;
+			}
+			
+			public void onRemoveFile(String storagename, String path) throws Exception {
+			}
 		}
 		
 		private boolean searchForbiddenChars(String filename) {
@@ -109,6 +133,11 @@ public abstract class Importer {
 			return false;
 		}
 		
+		public void onRemoveFile(String storagename, String path) throws Exception {
+			bulkrequest_delete.add(client.prepareDelete(ES_INDEX, ES_TYPE_DIRECTORY, SourcePathIndexerElement.prepare_key(storagename, path)));
+			bulkrequest_delete.add(client.prepareDelete(ES_INDEX, ES_TYPE_FILE, SourcePathIndexerElement.prepare_key(storagename, path)));
+		}
+		
 		public boolean onFoundElement(SourcePathIndexerElement element) {
 			if (bulkrequest_index.numberOfActions() > (window_update_size - 1)) {
 				execute_Bulks();
@@ -129,10 +158,6 @@ public abstract class Importer {
 				// Log2.log.info("Bad filename", element);
 			}
 			
-			/**
-			 * Push it
-			 */
-			IndexRequestBuilder irb = null;
 			String index_type = null;
 			if (element.directory) {
 				index_type = ES_TYPE_DIRECTORY;
@@ -140,17 +165,45 @@ public abstract class Importer {
 				index_type = ES_TYPE_FILE;
 			}
 			
-			if (ttl > 0) {
-				irb = client.prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString()).setTTL(ttl);
-			} else {
-				irb = client.prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString());
+			if (forcerefresh & element.directory) {
+				try {
+					explorer.getAllSubElementsFromElementKey(element.prepare_key(), 0, forcerefreshremoveelement);
+				} catch (Exception e) {
+					Log2.log.error("Can't to search actual elements for purge", e);
+					return false;
+				}
 			}
-			bulkrequest_index.add(irb);
+			
+			/**
+			 * Push it
+			 */
+			if (ttl > 0) {
+				bulkrequest_index.add(client.prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString()).setTTL(ttl));
+			} else {
+				bulkrequest_index.add(client.prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString()));
+			}
+			
 			return true;
 		}
 		
 		public void execute_Bulks() {
 			Log2Dump dump = new Log2Dump();
+			
+			if (bulkrequest_delete.numberOfActions() > 0) {
+				dump.add("name", getName());
+				dump.add("deleted", bulkrequest_delete.numberOfActions());
+				BulkResponse bulkresponse = bulkrequest_delete.execute().actionGet();
+				if (bulkresponse.hasFailures()) {
+					dump = new Log2Dump();
+					dump.add("name", getName());
+					dump.add("type", "index");
+					dump.add("failure message", bulkresponse.buildFailureMessage());
+					Log2.log.error("Errors during indexing", null, dump);
+				}
+				bulkrequest_delete = client.prepareBulk();
+			}
+			
+			dump = new Log2Dump();
 			dump.add("name", getName());
 			dump.add("indexed", bulkrequest_index.numberOfActions());
 			Log2.log.debug("Prepare to update Elasticsearch database", dump);
@@ -174,10 +227,11 @@ public abstract class Importer {
 		public void end() {
 			execute_Bulks();
 		}
+		
 	}
 	
-	public final long index() throws Exception {
-		ElasticSearchPushElement push = new ElasticSearchPushElement();
+	public final long index(boolean forcerefresh) throws Exception {
+		ElasticSearchPushElement push = new ElasticSearchPushElement(forcerefresh);
 		long result = doIndex(push);
 		push.end();
 		

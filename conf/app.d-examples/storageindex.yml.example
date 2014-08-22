@@ -6,6 +6,11 @@ storageindex_scan:
     storage2:
         label: LABEL2
         period: 500
+    storage_not_regularly_scanned:
+        label: LABEL3
+        # here, period will help to calculate the ttl for pushing in database
+        period: 1500
+        manual: true
 
 storageindex_bridge:
     LABEL2: /mnt/storage2

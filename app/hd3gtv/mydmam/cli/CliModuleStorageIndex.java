@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.cli;
@@ -56,6 +56,9 @@ public class CliModuleStorageIndex implements CliModule {
 				public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
 					System.out.println(element.toString("\t"));
 					return true;
+				}
+				
+				public void onRemoveFile(String storagename, String path) throws Exception {
 				}
 			};
 			explorer.getAllStorage(args.getSimpleParamValue("-storage"), found_elements_observer);

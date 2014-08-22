@@ -260,6 +260,10 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 	}
 	
 	public String prepare_key() {
+		return prepare_key(storagename, currentpath);
+	}
+	
+	public static String prepare_key(String storagename, String currentpath) {
 		StringBuffer sb = new StringBuffer();
 		sb.append(storagename);
 		sb.append(":");

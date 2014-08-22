@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.pathindexing;
@@ -29,19 +29,20 @@ import org.json.simple.parser.ParseException;
 
 public class ImporterStorage extends Importer {
 	
-	private String storagename;
-	private String poolname;
+	private String physical_storage_name;
+	private String pathindex_storage_name;
 	private long ttl;
 	private boolean stop;
+	private String currentworkingdir;
 	
-	public ImporterStorage(String storagename, String poolname, long ttl) throws IOException, ParseException {
+	public ImporterStorage(String physical_storage_name, String pathindex_storage_name, long ttl) throws IOException, ParseException {
 		super();
-		this.storagename = storagename;
-		if (storagename == null) {
+		this.physical_storage_name = physical_storage_name;
+		if (physical_storage_name == null) {
 			throw new NullPointerException("\"storagename\" can't to be null");
 		}
-		this.poolname = poolname;
-		if (poolname == null) {
+		this.pathindex_storage_name = pathindex_storage_name;
+		if (pathindex_storage_name == null) {
 			throw new NullPointerException("\"poolname\" can't to be null");
 		}
 		this.ttl = ttl;
@@ -52,7 +53,11 @@ public class ImporterStorage extends Importer {
 	}
 	
 	protected String getName() {
-		return poolname;
+		return pathindex_storage_name;
+	}
+	
+	public void setCurrentworkingdir(String currentworkingdir) {
+		this.currentworkingdir = currentworkingdir;
 	}
 	
 	private class Listing implements StorageListing {
@@ -64,6 +69,14 @@ public class ImporterStorage extends Importer {
 		public Listing(ImporterStorage referer) {
 			this.referer = referer;
 			referer.stop = false;
+		}
+		
+		public void onNotFoundFile(String path, String storagename) {
+			try {
+				elementpush.onRemoveFile(storagename, path);
+			} catch (Exception e) {
+				Log2.log.error("Can't process not found element", e);
+			}
 		}
 		
 		public boolean onFoundFile(AbstractFile file, String storagename) {
@@ -85,7 +98,7 @@ public class ImporterStorage extends Importer {
 				element.size = file.length();
 				element.id = MyDMAM.getIdFromFilename(file.getName());
 			}
-			element.storagename = poolname;
+			element.storagename = pathindex_storage_name;
 			
 			try {
 				if (elementpush.onFoundElement(element)) {
@@ -143,13 +156,18 @@ public class ImporterStorage extends Importer {
 		
 		public void onEndSearch() {
 		}
+		
+		public String getCurrentWorkingDir() {
+			return referer.currentworkingdir;
+		}
+		
 	}
 	
 	protected long doIndex(IndexingEvent elementpush) throws Exception {
 		Listing listing = new Listing(this);
 		listing.elementpush = elementpush;
-		StorageManager.getGlobalStorage().dirList(listing, storagename);
-		listing.elementpush.onFoundElement(SourcePathIndexerElement.prepareStorageElement(poolname));
+		StorageManager.getGlobalStorage().dirList(listing, physical_storage_name);
+		listing.elementpush.onFoundElement(SourcePathIndexerElement.prepareStorageElement(pathindex_storage_name));
 		return listing.count;
 	}
 	

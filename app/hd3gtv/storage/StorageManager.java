@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.storage;
@@ -268,26 +268,47 @@ public class StorageManager {
 	 * Do a recusive dir listing and callback for each file
 	 * A close() will be call.
 	 */
-	public void dirList(StorageListing listing, String... storagename) {
+	public void dirList(StorageListing listing, String storagename) {
+		if (listing == null) {
+			throw new NullPointerException("\"listing\" can't to be null");
+		}
+		if (storagename == null) {
+			throw new NullPointerException("\"storagename\" can't to be null");
+		}
 		IgnoreFiles rules = listing.getRules();
 		
-		AbstractFile root_path;
-		for (int pos_sn = 0; pos_sn < storagename.length; pos_sn++) {
-			root_path = null;
-			try {
-				root_path = getRootPath(storagename[pos_sn]);
-				if (root_path.isDirectory() == false) {
-					throw new IOException("Invalid Storage: " + storagename[pos_sn]);
-				}
-				recursiveDirectorySearch(root_path.listFiles(), listing, storagename[pos_sn], rules);
-				root_path.close();
-			} catch (NullPointerException e) {
-				throw e;
-			} catch (IOException e) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("storagename", storagename[pos_sn]);
-				Log2.log.error("Error while open an access to storage", e, dump);
+		AbstractFile root_path = null;
+		try {
+			root_path = getRootPath(storagename);
+			if (root_path.isDirectory() == false) {
+				throw new IOException("Invalid Storage: " + storagename);
 			}
+			
+			String working_dir = listing.getCurrentWorkingDir();
+			if (working_dir != null) {
+				if (working_dir.startsWith("/")) {
+					root_path = root_path.getAbstractFile(working_dir);
+				}
+			}
+			
+			if (root_path.isFile() | root_path.isDirectory()) {
+				if (root_path.isFile()) {
+					AbstractFile[] files = new AbstractFile[1];
+					files[0] = root_path;
+					recursiveDirectorySearch(files, listing, storagename, rules);
+				} else {
+					recursiveDirectorySearch(root_path.listFiles(), listing, storagename, rules);
+				}
+			} else {
+				listing.onNotFoundFile(root_path.getPath(), storagename);
+			}
+			root_path.close();
+		} catch (NullPointerException e) {
+			throw e;
+		} catch (IOException e) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("storagename", storagename);
+			Log2.log.error("Error while open an access to storage", e, dump);
 		}
 		listing.onEndSearch();
 	}

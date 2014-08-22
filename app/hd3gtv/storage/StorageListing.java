@@ -23,6 +23,11 @@ public interface StorageListing {
 	 */
 	boolean onFoundFile(AbstractFile file, String storagename);
 	
+	/**
+	 * @return false for stop
+	 */
+	void onNotFoundFile(String path, String storagename);
+	
 	boolean isSearchIsRecursive();
 	
 	boolean canSelectfileInSearch();
@@ -38,4 +43,8 @@ public interface StorageListing {
 	
 	void onEndSearch();
 	
+	/**
+	 * @return may be null, don't chroot, keep the same root, but start crawl from this.
+	 */
+	String getCurrentWorkingDir();
 }

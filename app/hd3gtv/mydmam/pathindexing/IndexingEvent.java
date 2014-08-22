@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.pathindexing;
@@ -23,4 +23,8 @@ public interface IndexingEvent {
 	 */
 	public boolean onFoundElement(SourcePathIndexerElement element) throws Exception;
 	
+	/**
+	 * Used only for importing new file/refresh index, not for search.
+	 */
+	public void onRemoveFile(String storagename, String path) throws Exception;
 }

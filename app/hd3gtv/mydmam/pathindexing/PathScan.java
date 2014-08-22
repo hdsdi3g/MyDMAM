@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.pathindexing;
@@ -54,6 +54,7 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 		long last_create_task;
 		Profile profile;
 		String label;
+		boolean manual;
 	}
 	
 	public PathScan() throws IOException {
@@ -71,37 +72,46 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 			PathElementConfiguration pec = new PathElementConfiguration();
 			pec.label = (String) element.get("label");
 			pec.storage = entry.getKey().toLowerCase();
+			if (element.containsKey("manual")) {
+				pec.manual = (Boolean) element.get("manual");
+			}
 			pec.period = (Integer) element.get("period");
-			
 			label = pec.label.toLowerCase();
 			pec.profile = new Profile(PROFILE_CATEGORY, label);
 			
 			scanelements.put(label, pec);
 			
-			if (pec.period < min_period) {
+			if ((pec.period < min_period) & (pec.manual == false)) {
 				min_period = pec.period;
 			}
 		}
 		
 	}
 	
-	public void process(Job job) throws Exception {
-		PathElementConfiguration pec = scanelements.get(job.getProfile().getName());
+	public void refreshIndex(String storage_index_label, String current_working_directory, boolean force_refresh) throws Exception {
+		PathElementConfiguration pec = scanelements.get(storage_index_label);
 		if (pec == null) {
-			throw new IOException("Can't found pathindex storage name for " + job.getProfile().getName());
+			throw new IOException("Can't found pathindex storage name for " + storage_index_label);
 		}
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("storage", pec.storage);
 		dump.add("label", pec.label);
-		Log2.log.info("Indexing Storage", dump);
+		dump.add("current_working_directory", current_working_directory);
+		Log2.log.info("Indexing storage", dump);
 		
 		importer = new ImporterStorage(pec.storage, pec.label, 1000 * pec.period * grace_time_ttl);
-		importer.index();
+		importer.setCurrentworkingdir(current_working_directory);
+		importer.index(force_refresh);
+		importer = null;
+		
 		// } catch (NoNodeAvailableException e) {
 		// Log2.log.error("Elasticsearch transport trouble, cancel analysis.", e);
 		// return;
-		importer = null;
+	};
+	
+	public void process(Job job) throws Exception {
+		refreshIndex(job.getProfile().getName(), null, false);
 	}
 	
 	public String getShortWorkerName() {
@@ -117,7 +127,12 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 	public List<Profile> getManagedProfiles() {
 		if (profiles_list == null) {
 			profiles_list = new ArrayList<Profile>();
+			PathElementConfiguration pec;
 			for (Map.Entry<String, PathScan.PathElementConfiguration> entry : scanelements.entrySet()) {
+				pec = entry.getValue();
+				if (pec.manual) {
+					continue;
+				}
 				profiles_list.add(entry.getValue().profile);
 			}
 		}
@@ -138,6 +153,9 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 		PathElementConfiguration pec;
 		for (Map.Entry<String, PathScan.PathElementConfiguration> entry : scanelements.entrySet()) {
 			pec = entry.getValue();
+			if (pec.manual) {
+				continue;
+			}
 			if ((pec.last_create_task + (long) (pec.period * 1000)) < System.currentTimeMillis()) {
 				Broker.publishTask("Path scan", pec.profile, null, this, false, System.currentTimeMillis() + (long) (8 * 3600 * 1000), null, false);
 				pec.last_create_task = System.currentTimeMillis();
