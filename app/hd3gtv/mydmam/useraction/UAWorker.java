@@ -60,6 +60,9 @@ public final class UAWorker extends Worker {
 	
 	private UAJobProcess current_process;
 	
+	/**
+	 * @see UAFinisherWorker.process()
+	 */
 	public void process(Job job) throws Exception {
 		UAJobContext context = UAJobContext.importFromJob(job.getContext());
 		

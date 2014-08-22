@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.useraction;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.operation.Basket;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.Job;
@@ -25,6 +28,7 @@ import hd3gtv.mydmam.taskqueue.Worker;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import models.UserProfile;
 
@@ -46,14 +50,95 @@ public class UAFinisherWorker extends Worker {
 		}
 	}
 	
-	@Override
+	/**
+	 * @see UAWorker.process()
+	 */
 	public void process(Job job) throws Exception {
-		// TODO Auto-generated method stub
+		UAJobContext context = UAJobContext.importFromJob(job.getContext());
+		
+		if (context == null) {
+			throw new NullPointerException("No \"context\" for job");
+		}
+		
+		if (context.functionality_name == null) {
+			throw new NullPointerException("\"context.functionality_name\" can't to be null");
+		}
+		
+		UAFunctionality functionality = referer.getFunctionalities_map().get(context.functionality_name);
+		if (functionality == null) {
+			throw new NullPointerException("Can't found declared functionality " + context.functionality_name);
+		}
+		
+		UAFinisherConfiguration finisher = context.finisher;
+		
+		UAConfigurator user_configuration = context.user_configuration;
+		if (user_configuration == null) {
+			if (functionality.hasOneClickDefault() == false) {
+				throw new NullPointerException("Can't found declared user_configuration in context and One Click is disabled");
+			}
+			user_configuration = functionality.createOneClickDefaultUserConfiguration();
+			finisher = functionality.getFinisherForOneClick();
+		}
+		
+		if (context.creator_user_key == null) {
+			throw new NullPointerException("\"context.creator_user_key\" can't to be null");
+		}
+		UserProfile user_profile = new UserProfile();
+		CrudOrmEngine<UserProfile> engine = new CrudOrmEngine<UserProfile>(user_profile);
+		if (engine.exists(context.creator_user_key)) {
+			user_profile = engine.read(context.creator_user_key);
+		}
+		
+		UACapability capability = functionality.getCapabilityForInstance();
+		HashMap<String, SourcePathIndexerElement> elements = new HashMap<String, SourcePathIndexerElement>(1);
+		Explorer explorer = new Explorer();
+		if (context.items != null) {
+			elements = explorer.getelementByIdkeys(context.items);
+		}
+		if (capability.isGroupNameIsValid(context.creator_user_group_name) == false) {
+			throw new SecurityException("Can't allow to process task from this group");
+		}
+		
+		job.progress = 0;
+		job.step = 0;
+		job.progress_size = 1;
+		job.step_count = 1;
+		doFinishUserAction(elements, user_profile, context.basket_name, explorer, finisher);
+		job.progress = 1;
+		job.step = 1;
 	}
 	
 	static void doFinishUserAction(HashMap<String, SourcePathIndexerElement> elements, UserProfile user_profile, String basket_name, Explorer explorer, UAFinisherConfiguration configuration)
 			throws Exception {
-		// TODO
+		
+		if (configuration.remove_user_basket_item) {
+			try {
+				Basket basket = new Basket(user_profile.key);
+				List<String> basket_content = basket.getBasketContent(basket_name);
+				for (Map.Entry<String, SourcePathIndexerElement> entry : elements.entrySet()) {
+					basket_content.remove(entry.getKey());
+				}
+				basket.setBasketContent(basket_name, basket_content);
+			} catch (NullPointerException e) {
+				Log2.log.error("Invalid finishing", e);
+			}
+		}
+		
+		if (configuration.soft_refresh_source_storage_index_item | configuration.force_refresh_source_storage_index_item) {
+			List<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>();
+			
+			for (Map.Entry<String, SourcePathIndexerElement> entry : elements.entrySet()) {
+				items.add(entry.getValue());
+			}
+			
+			if (configuration.soft_refresh_source_storage_index_item) {
+				explorer.refreshStoragePath(items, false);
+			}
+			
+			if (configuration.force_refresh_source_storage_index_item) {
+				explorer.refreshStoragePath(items, true);
+			}
+		}
 	}
 	
 	public String getShortWorkerName() {

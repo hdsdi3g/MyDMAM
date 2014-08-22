@@ -22,15 +22,30 @@ import hd3gtv.log2.Log2Dumpable;
 public class UAFinisherConfiguration implements Log2Dumpable {
 	
 	boolean remove_user_basket_item;
+	boolean soft_refresh_source_storage_index_item;
+	boolean force_refresh_source_storage_index_item;
 	
-	@Override
 	public Log2Dump getLog2Dump() {
-		// TODO Auto-generated method stub
-		return null;
+		Log2Dump dump = new Log2Dump();
+		dump.add("remove_user_basket_item", remove_user_basket_item);
+		dump.add("soft_refresh_source_storage_index_item", soft_refresh_source_storage_index_item);
+		dump.add("force_refresh_source_storage_index_item", force_refresh_source_storage_index_item);
+		return dump;
 	}
-	/**
-	 * TODO Useraction finisher, one by Useraction created task (and required by this).
-	 * - It can be, after the job is ended, the refresh original selected Storage index items.
-	 * TODO Add Explorer option: simple refresh for a directory (only add new elements) or a forced refresh (recursive with delete).
-	 */
+	
+	public UAFinisherConfiguration setRemove_user_basket_item(boolean remove_user_basket_item) {
+		this.remove_user_basket_item = remove_user_basket_item;
+		return this;
+	}
+	
+	public UAFinisherConfiguration setForce_refresh_source_storage_index_item(boolean force_refresh_source_storage_index_item) {
+		this.force_refresh_source_storage_index_item = force_refresh_source_storage_index_item;
+		return this;
+	}
+	
+	public UAFinisherConfiguration setSoft_refresh_source_storage_index_item(boolean soft_refresh_source_storage_index_item) {
+		this.soft_refresh_source_storage_index_item = soft_refresh_source_storage_index_item;
+		return this;
+	}
+	
 }

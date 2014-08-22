@@ -24,7 +24,7 @@ import models.UserProfile;
 
 public interface UAJobProcess {
 	
-	void process(UAJobProgress progress, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> elements) throws Exception;
+	void process(UAJobProgress progress, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception;
 	
 	void forceStopProcess() throws Exception;
 }
