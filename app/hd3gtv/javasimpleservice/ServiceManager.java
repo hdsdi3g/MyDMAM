@@ -34,7 +34,7 @@ public abstract class ServiceManager implements ServiceInformations {
 	private boolean stopservice;
 	private ServiceThread servicethread;
 	private UIFrame uiframe;
-	private WorkerGroup workergroup;
+	protected WorkerGroup workergroup;
 	private IsAlive isalive;
 	
 	private static String instancename;
@@ -53,6 +53,13 @@ public abstract class ServiceManager implements ServiceInformations {
 		} else {
 			return instancename;
 		}
+	}
+	
+	/**
+	 * @return may be null
+	 */
+	public WorkerGroup getWorkergroup() {
+		return workergroup;
 	}
 	
 	public static String getInstancePID() {
@@ -100,10 +107,6 @@ public abstract class ServiceManager implements ServiceInformations {
 			dump.add("by", sb);
 			
 		}
-	}
-	
-	public void setWorkergroup(WorkerGroup workergroup) {
-		this.workergroup = workergroup;
 	}
 	
 	public synchronized void restart() {

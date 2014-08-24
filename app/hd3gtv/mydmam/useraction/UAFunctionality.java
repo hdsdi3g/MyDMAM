@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import com.eaio.uuid.UUID;
-import com.google.gson.JsonObject;
 
 public abstract class UAFunctionality {
 	
@@ -162,24 +161,8 @@ public abstract class UAFunctionality {
 		return finisher_profiles;
 	}
 	
-	public final JsonObject toJson() {
-		JsonObject jo = new JsonObject();
-		jo.addProperty("section", getSection());
-		jo.addProperty("vendor", getVendor());
-		jo.addProperty("reference", getName());
-		jo.addProperty("longname", getLongName());
-		jo.addProperty("description", getDescription());
-		jo.addProperty("instance", getInstanceReference().toString());
-		getUserActionProfiles();
-		for (int pos = 0; pos < user_action_profiles.size(); pos++) {
-			jo.addProperty("profile " + (pos + 1), user_action_profiles.get(pos).getCategory() + ":" + user_action_profiles.get(pos).getName());
-		}
-		jo.add("capability", capability.toJson());
-		/*
-		HashMap<String, ConfigurationItem> internal_configuration = getConfigurationFromReferenceClass();
-		public final HashMap<String, ConfigurationItem> getConfigurationFromReferenceClass() {
-		public abstract CrudOrmEngine<? extends CrudOrmModel> getGlobalConfigurationFromModel();
-		*/
-		return jo;
+	public UAFunctionalityDefinintion getDefinition() {
+		return UAFunctionalityDefinintion.fromFunctionality(this);
 	}
+	
 }

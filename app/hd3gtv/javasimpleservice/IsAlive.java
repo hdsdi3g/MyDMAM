@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.javasimpleservice;
@@ -19,19 +19,28 @@ package hd3gtv.javasimpleservice;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
+import hd3gtv.mydmam.taskqueue.Worker;
+import hd3gtv.mydmam.taskqueue.WorkerGroup;
+import hd3gtv.mydmam.useraction.UAFunctionality;
+import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
+import hd3gtv.mydmam.useraction.UAWorker;
 import hd3gtv.tools.TimeUtils;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
@@ -46,7 +55,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 @SuppressWarnings("unchecked")
 public class IsAlive extends Thread {
 	
-	public static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("workers", StringSerializer.get(), StringSerializer.get());
+	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("workers", StringSerializer.get(), StringSerializer.get());
 	
 	private ServiceManager manager;
 	private boolean stopthread;
@@ -173,6 +182,28 @@ public class IsAlive extends Thread {
 				
 				mutator.withRow(CF_WORKERS, workername).putColumn("java-address", jo_address.toJSONString(), period * 2);
 				
+				JsonArray useraction_functionality_list = new JsonArray();
+				WorkerGroup worker_group = manager.getWorkergroup();
+				if (worker_group != null) {
+					List<Worker> workers = worker_group.getWorkerlist();
+					UAWorker current_worker;
+					List<UAFunctionality> full_functionality_list = new ArrayList<UAFunctionality>();
+					for (int pos = 0; pos < workers.size(); pos++) {
+						if (workers.get(pos) instanceof UAWorker) {
+							current_worker = (UAWorker) workers.get(pos);
+							if (current_worker.isEnabled() == false) {
+								continue;
+							}
+							full_functionality_list.addAll(current_worker.getFunctionalities_list());
+						}
+					}
+					Gson gson = UAFunctionalityDefinintion.getGson();
+					for (int pos = 0; pos < full_functionality_list.size(); pos++) {
+						useraction_functionality_list.add(gson.toJsonTree(full_functionality_list.get(pos).getDefinition()));
+					}
+				}
+				// TODO Useraction availability: publish in database the full requirement computed list for the current probe, via isAlive
+				
 				mutator.execute();
 				
 				sleep(period * 1000);
@@ -181,6 +212,11 @@ public class IsAlive extends Thread {
 			Log2.log.error("Is alive fatal error", e);
 			AdminMailAlert.create("IsAlive error", true).setThrowable(e).send();
 		}
+	}
+	
+	public static List<UAFunctionalityDefinintion> getCurrentAvailabilities() {
+		// TODO
+		return null;
 	}
 	
 	public static JSONArray getLastStatusWorkers() throws Exception {
@@ -200,6 +236,7 @@ public class IsAlive extends Thread {
 			jo.put("stacktraces", (JSONArray) (new JSONParser()).parse(cols.getStringValue("stacktraces", "[]")));
 			jo.put("javaversion", cols.getStringValue("java-version", ""));
 			jo.put("javaaddress", (JSONObject) (new JSONParser()).parse(cols.getStringValue("java-address", "{}")));
+			// TODO add ...
 			ja_result.add(jo);
 		}
 		

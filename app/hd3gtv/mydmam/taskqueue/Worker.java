@@ -67,6 +67,19 @@ public abstract class Worker implements Log2Dumpable {
 		return (status == WorkerStatus.WAITING);
 	}
 	
+	public final boolean isEnabled() {
+		switch (status) {
+		case PROCESSING:
+			return true;
+		case WAITING:
+			return true;
+		case PENDING_CANCEL_TASK:
+			return true;
+		default:
+			return false;
+		}
+	}
+	
 	public final void setEnabled() {
 		if (status != WorkerStatus.WAITING) {
 			Log2.log.debug("Change worker status to waiting");

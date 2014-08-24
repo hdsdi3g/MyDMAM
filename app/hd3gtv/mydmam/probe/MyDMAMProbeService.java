@@ -70,8 +70,6 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 	protected void postClassInit() throws Exception {
 	}
 	
-	private WorkerGroup workergroup;
-	
 	protected void startApplicationService() throws Exception {
 		StorageManager.getGlobalStorage();
 		Elasticsearch.refeshconfiguration();
@@ -99,8 +97,6 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		MyDMAMModulesManager.declareAllModuleWorkerElement(workergroup);
 		
 		workergroup.start();
-		
-		setWorkergroup(workergroup);
 	}
 	
 	protected void stopApplicationService() throws Exception {

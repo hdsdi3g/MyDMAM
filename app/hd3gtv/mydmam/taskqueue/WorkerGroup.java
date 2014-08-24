@@ -59,7 +59,7 @@ public class WorkerGroup {
 		return workers_key_map;
 	}
 	
-	ArrayList<Worker> getWorkerlist() {
+	public ArrayList<Worker> getWorkerlist() {
 		return workerlist;
 	}
 	

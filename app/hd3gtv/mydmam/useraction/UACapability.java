@@ -26,10 +26,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-
 public abstract class UACapability {
 	
 	public abstract UACapability getFromConfigurations(HashMap<String, ConfigurationItem> internal_configuration, CrudOrmModel external_configuration);
@@ -95,22 +91,6 @@ public abstract class UACapability {
 			}
 		}
 		return;
-	}
-	
-	public final JsonObject toJson() {
-		JsonObject jo = new JsonObject();
-		jo.addProperty("enablefileprocessing", enableFileProcessing());
-		jo.addProperty("enabledirectoryprocessing", enableDirectoryProcessing());
-		jo.addProperty("enablerootstorageindexprocessing", enableRootStorageindexProcessing());
-		jo.addProperty("musthavelocalstorageindexbridge", mustHaveLocalStorageindexBridge());
-		
-		List<String> storages_wl = getStorageindexesWhiteList();
-		JsonArray storages_wl_json = new JsonArray();
-		for (int pos = 0; pos < storages_wl.size(); pos++) {
-			storages_wl_json.add(new JsonPrimitive(storages_wl.get(pos)));
-		}
-		jo.add("storagewhitelist", storages_wl_json);
-		return jo;
 	}
 	
 }

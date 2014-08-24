@@ -20,7 +20,6 @@ public class Useraction {
 	
 	/**
 	 * TODO Useraction requirement: compute Useractions availabilities with the actual Useraction workers profiles and Storages access
-	 * TODO Useraction availability: publish in database the full requirement computed list for the current probe, via isAlive
 	 * TODO Useraction publisher in website
 	 * - popup method for a basket in baskets list
 	 * - special web page, "Useraction creation page", apply to the current basket
@@ -43,7 +42,7 @@ public class Useraction {
 	 * - add Notification options
 	 * - on validation: create task(s) with Task context, finisher(s) and notification(s)
 	 * TODO Useraction supervision
-	 * - display Capabilities and Availabilities table
+	 * - display Capabilities and Availabilities table > in via Service.laststatusworkers page
 	 * - admin Usergroups white/black list
 	 * - admin Useraction specific params (and published by ORM/form)
 	 */
