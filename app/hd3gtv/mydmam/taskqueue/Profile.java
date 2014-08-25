@@ -20,11 +20,19 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.MyDMAM;
 
+import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import org.json.simple.JSONObject;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.IndexQuery;
@@ -121,4 +129,24 @@ public class Profile implements Log2Dumpable {
 	public Log2Dump getLog2Dump() {
 		return new Log2Dump("profile", category + ":" + name);
 	}
+	
+	public static class ProfileSerializer implements JsonSerializer<Profile>, JsonDeserializer<Profile> {
+		public JsonElement serialize(Profile src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject jo = new JsonObject();
+			jo.addProperty("name", src.name);
+			jo.addProperty("category", src.category);
+			return jo;
+		}
+		
+		public Profile deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			if (json instanceof JsonObject) {
+				JsonObject jo = (JsonObject) json;
+				if (jo.has("category") & jo.has("name")) {
+					return new Profile(jo.get("category").getAsString(), jo.get("name").getAsString());
+				}
+			}
+			return null;
+		}
+	}
+	
 }

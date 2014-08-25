@@ -101,14 +101,10 @@ public final class UAWorker extends Worker {
 			user_profile = engine.read(context.creator_user_key);
 		}
 		
-		UACapability capability = functionality.getCapabilityForInstance();
 		HashMap<String, SourcePathIndexerElement> elements = new HashMap<String, SourcePathIndexerElement>(1);
 		Explorer explorer = new Explorer();
 		if (context.items != null) {
 			elements = explorer.getelementByIdkeys(context.items);
-		}
-		if (capability.isGroupNameIsValid(context.creator_user_group_name) == false) {
-			throw new SecurityException("Can't allow to process task from this group");
 		}
 		
 		UAJobProgress progress = new UAJobProgress(job);

@@ -21,6 +21,7 @@ import hd3gtv.mydmam.metadata.Generator;
 import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
 import hd3gtv.mydmam.taskqueue.TriggerWorker;
 import hd3gtv.mydmam.taskqueue.Worker;
+import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.SearchResultItem;
 
@@ -68,6 +69,10 @@ public abstract class MyDMAMModule extends PlayPlugin {
 	}
 	
 	public List<Generator> getMetadataGenerator() {
+		return null;
+	}
+	
+	public List<UAFunctionality> getUAfunctionality() {
 		return null;
 	}
 }

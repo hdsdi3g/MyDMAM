@@ -26,12 +26,14 @@ import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import hd3gtv.mydmam.useraction.UAWorker;
 import hd3gtv.tools.TimeUtils;
 
+import java.lang.reflect.Type;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,12 +41,13 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
@@ -60,6 +63,9 @@ public class IsAlive extends Thread {
 	private ServiceManager manager;
 	private boolean stopthread;
 	private int period;
+	private static Type useraction_functionality_list_typeOfT = new TypeToken<List<UAFunctionalityDefinintion>>() {
+	}.getType();
+	private static Gson gson;
 	
 	static {
 		try {
@@ -70,6 +76,7 @@ public class IsAlive extends Thread {
 		} catch (ConnectionException e) {
 			Log2.log.info("Can't init database access");
 		}
+		gson = UAFunctionalityDefinintion.getGson();
 	}
 	
 	public IsAlive(ServiceManager manager) throws Exception {
@@ -182,7 +189,7 @@ public class IsAlive extends Thread {
 				
 				mutator.withRow(CF_WORKERS, workername).putColumn("java-address", jo_address.toJSONString(), period * 2);
 				
-				JsonArray useraction_functionality_list = new JsonArray();
+				ArrayList<UAFunctionalityDefinintion> useraction_functionality_list = new ArrayList<UAFunctionalityDefinintion>();
 				WorkerGroup worker_group = manager.getWorkergroup();
 				if (worker_group != null) {
 					List<Worker> workers = worker_group.getWorkerlist();
@@ -197,12 +204,14 @@ public class IsAlive extends Thread {
 							full_functionality_list.addAll(current_worker.getFunctionalities_list());
 						}
 					}
-					Gson gson = UAFunctionalityDefinintion.getGson();
 					for (int pos = 0; pos < full_functionality_list.size(); pos++) {
-						useraction_functionality_list.add(gson.toJsonTree(full_functionality_list.get(pos).getDefinition()));
+						useraction_functionality_list.add(full_functionality_list.get(pos).getDefinition());
 					}
 				}
-				// TODO Useraction availability: publish in database the full requirement computed list for the current probe, via isAlive
+				
+				String json_useraction_functionality_list = gson.toJson(useraction_functionality_list, useraction_functionality_list_typeOfT);
+				
+				mutator.withRow(CF_WORKERS, workername).putColumn("useraction_functionality_list", json_useraction_functionality_list, period * 2);
 				
 				mutator.execute();
 				
@@ -214,9 +223,30 @@ public class IsAlive extends Thread {
 		}
 	}
 	
-	public static List<UAFunctionalityDefinintion> getCurrentAvailabilities() {
-		// TODO
-		return null;
+	/**
+	 * @return worker key -> list
+	 */
+	public static Map<String, List<UAFunctionalityDefinintion>> getCurrentAvailabilities() throws ConnectionException {
+		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(CF_WORKERS).getAllRows().withColumnSlice("useraction_functionality_list");
+		OperationResult<Rows<String, String>> rows = all_rows.execute();
+		
+		Map<String, List<UAFunctionalityDefinintion>> result = new HashMap<String, List<UAFunctionalityDefinintion>>();
+		
+		List<UAFunctionalityDefinintion> list;
+		for (Row<String, String> row : rows.getResult()) {
+			Column<String> col = row.getColumns().getColumnByName("useraction_functionality_list");
+			if (col == null) {
+				continue;
+			}
+			list = gson.fromJson(col.getStringValue(), useraction_functionality_list_typeOfT);
+			result.put(row.getKey(), list);
+		}
+		return result;
+	}
+	
+	public static String getCurrentAvailabilitiesAsJsonString() throws ConnectionException {
+		Map<String, List<UAFunctionalityDefinintion>> availabilities = getCurrentAvailabilities();
+		return gson.toJson(availabilities);
 	}
 	
 	public static JSONArray getLastStatusWorkers() throws Exception {
@@ -236,7 +266,7 @@ public class IsAlive extends Thread {
 			jo.put("stacktraces", (JSONArray) (new JSONParser()).parse(cols.getStringValue("stacktraces", "[]")));
 			jo.put("javaversion", cols.getStringValue("java-version", ""));
 			jo.put("javaaddress", (JSONObject) (new JSONParser()).parse(cols.getStringValue("java-address", "{}")));
-			// TODO add ...
+			jo.put("useraction_functionality_list", (JSONArray) (new JSONParser()).parse(cols.getStringValue("useraction_functionality_list", "[]")));
 			ja_result.add(jo);
 		}
 		

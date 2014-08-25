@@ -42,28 +42,6 @@ public abstract class UACapability {
 		return new ArrayList<String>();
 	}
 	
-	/**
-	 * TODO CRUD for this in website by Admin Configuration
-	 */
-	public List<String> getGroupsNameWhiteList() {
-		return new ArrayList<String>();
-	}
-	
-	boolean isGroupNameIsValid(String groupname) {
-		List<String> white_list = getGroupsNameWhiteList();
-		if (white_list != null) {
-			if (white_list.isEmpty() == false) {
-				if (groupname == null) {
-					return false;
-				}
-				if (white_list.contains(groupname) == false) {
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-	
 	void checkValidity(SourcePathIndexerElement element) throws IOException {
 		if ((enableFileProcessing() == false) & (element.directory == false)) {
 			throw new IOException("Element is a file, and file processing is not available");
