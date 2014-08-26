@@ -25,7 +25,6 @@ import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
 import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
-import hd3gtv.mydmam.useraction.UAJobContext;
 import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.useraction.UARange;
 
@@ -198,14 +197,16 @@ public class UserAction extends Controller {
 			renderJSON("{}");
 		}
 		
-		UAJobContext.createTask(functionality, user_configuration, userprofile, basket_name, items, range, finisher);
+		// UACreator creator = new UACreator();// TODO send functionality list
+		
+		// (functionality, user_configuration, userprofile, basket_name, items, range, finisher);
 		
 		// TODO check if user as right too do this !
 		renderJSON("{}");
 	}
 	/**
 	 * TODO Useraction requirement: compute Useractions availabilities with the actual Useraction workers profiles and Storages access
-	 * TODO Useraction publisher in website
+	 * TODO JS/View Useraction publisher in website
 	 * - popup method for a basket in baskets list
 	 * - special web page, "Useraction creation page", apply to the current basket
 	 * - popup method for the whole and recursive directory in navigator
@@ -227,9 +228,8 @@ public class UserAction extends Controller {
 	 * - add Notification options
 	 * - on validation: create task(s) with Task context, finisher(s) and notification(s)
 	 * TODO Useraction supervision
-	 * - display Capabilities and Availabilities table > in via Service.laststatusworkers page
-	 * - admin Usergroups white/black list
-	 * - admin Useraction specific params (and published by ORM/form)
+	 * - JS display Capabilities and Availabilities table > in via Service.laststatusworkers page
+	 * - JS admin Useraction specific params (and published by ORM/form)
 	 */
 	
 }

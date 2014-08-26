@@ -19,31 +19,31 @@ package hd3gtv.mydmam.useraction;
 public enum UARange {
 	
 	/**
-	 * Notification(Item1, Item2) => Finisher(Item1, Item2) => Task2(Item1, Item2) => Task1(Item1, Item2)
+	 * Notification(Item1, Item2) => Storage1[Finisher(Item1, Item2) => Task2(Item1, Item2) => Task1(Item1, Item2)], Storage2[...]
 	 */
-	ONE_USER_ACTION_BY_BASKET, // TODO and create UA tasks and finish tasks...
+	ONE_USER_ACTION_BY_STORAGE_AND_BASKET,
 	
 	/**
 	 * - Notification(Item1) => Finisher(Item1) => Task2(Item1) => Task1(Item1)
 	 * - Notification(Item2) => Finisher(Item2) => Task2(Item2) => Task1(Item2)
 	 */
-	ONE_USER_ACTION_BY_BASKET_ITEM, // TODO and create UA tasks and finish tasks...
+	ONE_USER_ACTION_BY_BASKET_ITEM,
 	
 	/**
-	 * Notification(Task2) => Task2(Item1, Item2)+Finisher(Item1, Item2)
-	 * => Notification(Task1) => Task1(Item1, Item2)+Finisher(Item1, Item2)
+	 * Notification(Task2) => Storage2[...] => Storage1[Task2(Item1, Item2)+Finisher(Item1, Item2)]
+	 * => Notification(Task1) => Storage2[...] => Storage1[Task1(Item1, Item2)+Finisher(Item1, Item2)]
 	 */
-	ONE_USER_ACTION_BY_TASK;
+	ONE_USER_ACTION_BY_FUNCTIONALITY;
 	
 	/**
 	 * @return never null
 	 */
 	public static UARange fromString(String name) {
 		if (name == null) {
-			return ONE_USER_ACTION_BY_BASKET;
+			return ONE_USER_ACTION_BY_STORAGE_AND_BASKET;
 		}
 		if (name.isEmpty()) {
-			return ONE_USER_ACTION_BY_BASKET;
+			return ONE_USER_ACTION_BY_STORAGE_AND_BASKET;
 		}
 		UARange[] values = UARange.values();
 		for (int pos = 0; pos < values.length; pos++) {
@@ -51,7 +51,7 @@ public enum UARange {
 				return values[pos];
 			}
 		}
-		return ONE_USER_ACTION_BY_BASKET;
+		return ONE_USER_ACTION_BY_STORAGE_AND_BASKET;
 	}
 	
 }

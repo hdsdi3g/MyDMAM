@@ -114,7 +114,7 @@ public final class UAWorker extends Worker {
 		current_process = null;
 		
 		if ((finisher != null) & (range != null)) {
-			if (range == UARange.ONE_USER_ACTION_BY_TASK) {
+			if (range == UARange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
 				job.last_message = "Finish current job";
 				job.progress = 0;
 				job.progress_size = 1;
