@@ -35,4 +35,23 @@ public enum UARange {
 	 */
 	ONE_USER_ACTION_BY_TASK;
 	
+	/**
+	 * @return never null
+	 */
+	public static UARange fromString(String name) {
+		if (name == null) {
+			return ONE_USER_ACTION_BY_BASKET;
+		}
+		if (name.isEmpty()) {
+			return ONE_USER_ACTION_BY_BASKET;
+		}
+		UARange[] values = UARange.values();
+		for (int pos = 0; pos < values.length; pos++) {
+			if (values[pos].name().equalsIgnoreCase(name)) {
+				return values[pos];
+			}
+		}
+		return ONE_USER_ACTION_BY_BASKET;
+	}
+	
 }

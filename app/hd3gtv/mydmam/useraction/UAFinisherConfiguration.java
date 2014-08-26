@@ -19,6 +19,9 @@ package hd3gtv.mydmam.useraction;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+
 public class UAFinisherConfiguration implements Log2Dumpable {
 	
 	boolean remove_user_basket_item;
@@ -46,6 +49,13 @@ public class UAFinisherConfiguration implements Log2Dumpable {
 	public UAFinisherConfiguration setSoft_refresh_source_storage_index_item(boolean soft_refresh_source_storage_index_item) {
 		this.soft_refresh_source_storage_index_item = soft_refresh_source_storage_index_item;
 		return this;
+	}
+	
+	public static UAFinisherConfiguration getFinisherFromJsonString(String finisher_json) throws JsonSyntaxException {
+		if (finisher_json == null) {
+			return null;
+		}
+		return new Gson().fromJson(finisher_json, UAFinisherConfiguration.class);
 	}
 	
 }

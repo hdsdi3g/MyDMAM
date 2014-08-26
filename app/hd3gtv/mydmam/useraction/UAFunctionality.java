@@ -134,6 +134,13 @@ public abstract class UAFunctionality {
 						user_action_profiles.add(new Profile("useraction", getName() + "=" + whitelist.get(pos)));
 					}
 				}
+			} else {
+				/**
+				 * No whitelist
+				 */
+				for (int pos = 0; pos < bridgedstorages.size(); pos++) {
+					user_action_profiles.add(new Profile("useraction", getName() + "=" + bridgedstorages.get(pos)));
+				}
 			}
 		}
 		return user_action_profiles;

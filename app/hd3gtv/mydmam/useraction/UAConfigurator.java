@@ -33,6 +33,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
 public final class UAConfigurator implements Log2Dumpable {
@@ -71,6 +72,16 @@ public final class UAConfigurator implements Log2Dumpable {
 		} else {
 			return null;
 		}
+	}
+	
+	public void setObjectValuesFromJson(String user_configuration_json) throws JsonSyntaxException {
+		if (object == null) {
+			return;
+		}
+		if (user_configuration_json == null) {
+			return;
+		}
+		object = new Gson().fromJson(user_configuration_json, object.getClass());
 	}
 	
 	static class JsonUtils implements JsonSerializer<UAConfigurator>, JsonDeserializer<UAConfigurator> {
