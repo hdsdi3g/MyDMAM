@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.useraction;
 
 import hd3gtv.configuration.ConfigurationItem;
-import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
@@ -28,7 +27,7 @@ import java.util.List;
 
 public abstract class UACapability {
 	
-	public abstract UACapability getFromConfigurations(HashMap<String, ConfigurationItem> internal_configuration, CrudOrmModel external_configuration);
+	public abstract UACapability getFromConfiguration(HashMap<String, ConfigurationItem> internal_configuration);
 	
 	public abstract boolean enableFileProcessing();
 	

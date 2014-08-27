@@ -64,20 +64,9 @@ public class UAFinisherWorker extends Worker {
 			throw new NullPointerException("\"context.functionality_name\" can't to be null");
 		}
 		
-		UAFunctionality functionality = referer.getFunctionalities_map().get(context.functionality_name);
-		if (functionality == null) {
-			throw new NullPointerException("Can't found declared functionality " + context.functionality_name);
-		}
-		
 		UAFinisherConfiguration finisher = context.finisher;
-		
-		UAConfigurator user_configuration = context.user_configuration;
-		if (user_configuration == null) {
-			if (functionality.hasOneClickDefault() == false) {
-				throw new NullPointerException("Can't found declared user_configuration in context and One Click is disabled");
-			}
-			user_configuration = functionality.createOneClickDefaultUserConfiguration();
-			finisher = functionality.getFinisherForOneClick();
+		if (finisher == null) {
+			throw new NullPointerException("\"context.finisher\" can't to be null");
 		}
 		
 		if (context.creator_user_key == null) {

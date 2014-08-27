@@ -19,8 +19,6 @@ package hd3gtv.mydmam.useraction;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
-import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.taskqueue.Profile;
 
@@ -77,12 +75,6 @@ public abstract class UAFunctionality {
 	}
 	
 	/**
-	 * @return External and global configuration for website (one configuration by worker type)
-	 *         TODO publish ?
-	 */
-	public abstract CrudOrmEngine<? extends CrudOrmModel> getGlobalConfiguration();
-	
-	/**
 	 * For display create form in website.
 	 * @return can be null (if no form or one click UA).
 	 */
@@ -110,7 +102,7 @@ public abstract class UAFunctionality {
 		try {
 			if (capability == null) {
 				capability = getCapabilityClass().getConstructor().newInstance();
-				capability = capability.getFromConfigurations(getConfigurationFromReferenceClass(), getGlobalConfiguration().getInternalElement());
+				capability = capability.getFromConfiguration(getConfigurationFromReferenceClass());
 			}
 		} catch (Exception e) {
 			Log2.log.error("Can't init capability, check getCapabilityClass() return", e);

@@ -71,5 +71,5 @@ public class UAManager {
 		return functionalities_class_map.get(name);
 	}
 	
-	// TODO create workers with Configuration (set a Map for workers <-> functionalities)
+	// TODO create workers via Configuration (set a Map for workers <-> functionalities)
 }

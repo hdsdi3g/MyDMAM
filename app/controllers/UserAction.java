@@ -21,11 +21,9 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.useraction.UAConfigurator;
+import hd3gtv.mydmam.useraction.UACreator;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
-import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
-import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.useraction.UARange;
 
 import java.util.ArrayList;
@@ -33,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 import models.UserProfile;
-import play.data.validation.Required;
-import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
 
@@ -69,7 +65,7 @@ public class UserAction extends Controller {
 			}
 		}
 		
-		// TODO CRUD Group <-> UAFunctionalityDefinintion (via Availabilities)
+		// TODO CRUD Group <-> UAFunctionalityDefinintion via IsAlive.getCurrentAvailabilities()
 		render(full_availabilities); // TODO view
 	}
 	
@@ -81,95 +77,7 @@ public class UserAction extends Controller {
 		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString());// TODO JSON side
 	}
 	
-	private static void internalPrepare(String functionality_name) throws Exception {
-		// TODO from create
-	}
-	
-	@Check("userAction")
-	public static void prepare(@Required String functionality_name) throws Exception {
-		if (Validation.hasErrors()) {
-			renderJSON("{}");
-			return;
-		}
-		
-		prepare(functionality_name);
-		// TODO
-		/*
-		 * UAConfigurator configurator
-		* For display create form in website.
-		* @return can be null (if no form or one click UA).
-		public abstract UAConfigurator createEmptyConfiguration();
-		
-		*For display create form in website.
-		public abstract boolean hasOneClickDefault();
-		
-		public abstract UAFinisherConfiguration getFinisherForOneClick();
-		
-		public abstract UARange getRangeForOneClick();
-		
-		* For execute an UA.
-		public abstract UAConfigurator createOneClickDefaultUserConfiguration();*/
-		
-		// TODO check if this user can create tasks on this files
-		
-		renderJSON("{}");
-	}
-	
-	@Check("userAction")
-	public static void oneclick(String functionality_name) throws Exception {
-		UAFunctionality functionality = UAManager.getByName(functionality_name);
-		if (functionality == null) {
-			Log2.log.error("Can't found functionality", null, new Log2Dump("name", functionality_name));
-			renderJSON("{}");
-		}
-		
-		// TODO
-		/*
-		 * UAConfigurator configurator
-		* For display create form in website.
-		* @return can be null (if no form or one click UA).
-		public abstract UAConfigurator createEmptyConfiguration();
-		
-		*For display create form in website.
-		public abstract boolean hasOneClickDefault();
-		
-		public abstract UAFinisherConfiguration getFinisherForOneClick();
-		
-		public abstract UARange getRangeForOneClick();
-		
-		* For execute an UA.
-		public abstract UAConfigurator createOneClickDefaultUserConfiguration();*/
-		
-		// TODO check if this user can create tasks on this files
-		
-		renderJSON("{}");
-	}
-	
-	@Check("userAction")
-	public static void create() throws Exception {
-		String functionality_name = params.get("functionality_name");
-		UAFunctionality functionality = UAManager.getByName(functionality_name);
-		if (functionality == null) {
-			Log2.log.error("Can't found functionality", null, new Log2Dump("name", functionality_name));
-			renderJSON("{}");
-		}
-		
-		UAConfigurator user_configuration = functionality.createEmptyConfiguration();
-		if (user_configuration != null) {
-			String user_configuration_json = params.get("user_configuration");
-			try {
-				user_configuration.setObjectValuesFromJson(user_configuration_json);
-			} catch (JsonSyntaxException e) {
-				Log2.log.error("Bad JSON user_configuration", e, new Log2Dump("rawcontent", user_configuration_json));
-				renderJSON("{}");
-			}
-		}
-		
-		String username = Secure.connected();
-		UserProfile userprofile = UserProfile.getORMEngine(username).getInternalElement();
-		
-		String basket_name = params.get("basket_name");
-		
+	private static UACreator internalCreate() throws Exception {
 		String[] raw_items = params.getAll("items[]");
 		if (raw_items == null) {
 			Log2.log.error("No items !", new NullPointerException());
@@ -182,30 +90,74 @@ public class UserAction extends Controller {
 		
 		ArrayList<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>(raw_items.length);
 		Explorer explorer = new Explorer();
+		SourcePathIndexerElement item;
 		for (int pos = 0; pos < raw_items.length; pos++) {
-			items.add(explorer.getelementByIdkey(raw_items[pos]));
+			item = explorer.getelementByIdkey(raw_items[pos]);
+			if (item != null) {
+				items.add(item);
+			}
 		}
 		
-		UARange range = UARange.fromString(params.get("range"));
+		String username = Secure.connected();
+		UserProfile userprofile = UserProfile.getORMEngine(username).getInternalElement();
+		UACreator creator = new UACreator(items);
+		creator.setUserprofile(userprofile);
+		creator.setBasket_name(params.get("basket_name"));
 		
-		UAFinisherConfiguration finisher = null;
-		String finisher_json = params.get("finisher");
+		// TODO check if this user can create tasks on this files
+		return creator;
+	}
+	
+	/*if (Validation.hasErrors()) {
+		renderJSON("{}");
+		return;
+	}*/
+	
+	@Check("userAction")
+	public static void createoneclick() throws Exception {
+		UACreator creator = internalCreate();
+		
+		String functionality_name = params.get("functionality_name");
 		try {
-			finisher = UAFinisherConfiguration.getFinisherFromJsonString(finisher_json);
+			creator.setConfigured_functionalityForOneClick(functionality_name);
+		} catch (Exception e) {
+			Log2.log.error("Setup functionalities", e, new Log2Dump("functionality_name", functionality_name));
+			renderJSON("{}");
+		}
+		
+		creator.createTasks();
+		
+		renderJSON("{}");// TODO ok
+	}
+	
+	@Check("userAction")
+	public static void create() throws Exception {
+		
+		UACreator creator = internalCreate();
+		
+		String finisher_json = params.get("finisher");
+		UAFinisherConfiguration finiser_conf = null;
+		try {
+			finiser_conf = UAFinisherConfiguration.getFinisherFromJsonString(finisher_json);
 		} catch (JsonSyntaxException e) {
 			Log2.log.error("Bad JSON finisher", e, new Log2Dump("rawcontent", finisher_json));
 			renderJSON("{}");
 		}
+		creator.setRange_Finisher_NotOneClick(finiser_conf, UARange.fromString(params.get("range")));
 		
-		// UACreator creator = new UACreator();// TODO send functionality list
+		String configured_functionalities_json = params.get("configured_functionalities_json");
+		try {
+			creator.setConfigured_functionalities(configured_functionalities_json);
+		} catch (Exception e) {
+			Log2.log.error("Setup functionalities", e, new Log2Dump("raw", configured_functionalities_json));
+			renderJSON("{}");
+		}
 		
-		// (functionality, user_configuration, userprofile, basket_name, items, range, finisher);
+		creator.createTasks();
 		
-		// TODO check if user as right too do this !
-		renderJSON("{}");
+		renderJSON("{}");// TODO ok
 	}
 	/**
-	 * TODO Useraction requirement: compute Useractions availabilities with the actual Useraction workers profiles and Storages access
 	 * TODO JS/View Useraction publisher in website
 	 * - popup method for a basket in baskets list
 	 * - special web page, "Useraction creation page", apply to the current basket
