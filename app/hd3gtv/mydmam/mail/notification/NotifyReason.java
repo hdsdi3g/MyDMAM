@@ -36,4 +36,17 @@ public enum NotifyReason {
 		return null;
 	}
 	
+	public static NotifyReason getFromString(String value) {
+		if (value == null) {
+			return null;
+		}
+		NotifyReason[] values = NotifyReason.values();
+		for (int pos = 0; pos < values.length; pos++) {
+			if (value.equalsIgnoreCase(values[pos].name())) {
+				return values[pos];
+			}
+		}
+		return null;
+	}
+	
 }

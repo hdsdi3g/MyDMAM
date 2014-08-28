@@ -18,10 +18,15 @@ package hd3gtv.mydmam.useraction;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.mail.notification.Notification;
+import hd3gtv.mydmam.mail.notification.NotifyReason;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.Profile;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -45,13 +50,16 @@ public class UACreator {
 		gson = builder.create();
 	}
 	
+	private CrudOrmEngine<UserProfile> user_profile_orm;
 	private UserProfile userprofile;
 	private String basket_name;
 	private UARange range;
 	private UAFinisherConfiguration global_finisher;
 	private ArrayList<UACreatorConfiguredFunctionality> configured_functionalities;
+	private ArrayList<UANotificationDestinator> notificationdestinations;
 	private LinkedHashMap<String, ArrayList<String>> storageindexname_to_itemlist;
 	private boolean one_click;
+	private String usercomment;
 	
 	private class UACreatorConfiguredFunctionality {
 		String functionality_name;
@@ -76,7 +84,38 @@ public class UACreator {
 		}
 	}
 	
-	public UACreator(ArrayList<SourcePathIndexerElement> items_spie) {
+	private class UANotificationDestinator implements Log2Dumpable {
+		String user_key;
+		String reason;
+		
+		transient UserProfile userprofile;
+		transient NotifyReason n_reason;
+		
+		void prepare() throws NullPointerException, ConnectionException {
+			n_reason = NotifyReason.getFromString(reason);
+			if (n_reason == null) {
+				throw new NullPointerException("Invalid reason " + reason + ".");
+			}
+			if (userprofile != null) {
+				return;
+			}
+			userprofile = user_profile_orm.read(user_key);
+			if (userprofile == null) {
+				throw new NullPointerException("Can't found userprofile " + user_key + ".");
+			}
+		}
+		
+		public Log2Dump getLog2Dump() {
+			Log2Dump dump = new Log2Dump();
+			dump.add("user_key", user_key);
+			dump.add("reason", reason);
+			return dump;
+		}
+	}
+	
+	public UACreator(ArrayList<SourcePathIndexerElement> items_spie) throws ConnectionException, IOException {
+		user_profile_orm = new CrudOrmEngine<UserProfile>(new UserProfile());
+		
 		if (items_spie.isEmpty()) {
 			throw new NullPointerException("Items can't to be empty");
 		}
@@ -90,7 +129,7 @@ public class UACreator {
 			storageindexname_to_itemlist.get(item.storagename).add(item.prepare_key());
 		}
 		configured_functionalities = new ArrayList<UACreator.UACreatorConfiguredFunctionality>();
-		// TODO add Notifications param
+		notificationdestinations = new ArrayList<UACreator.UANotificationDestinator>();
 		this.one_click = true;
 	}
 	
@@ -152,6 +191,55 @@ public class UACreator {
 	}
 	
 	/**
+	 * @param configured_functionalities_json List<UACreatorConfiguredFunctionality>
+	 */
+	public UACreator setNotificationdestinations(String notificationdestinations_json) throws Exception {
+		if (notificationdestinations_json == null) {
+			return this;
+		}
+		if (notificationdestinations_json.isEmpty()) {
+			return this;
+		}
+		
+		Type typeOfT = new TypeToken<ArrayList<UANotificationDestinator>>() {
+		}.getType();
+		notificationdestinations = gson.fromJson(notificationdestinations_json, typeOfT);
+		
+		try {
+			for (int pos = 0; pos < notificationdestinations.size(); pos++) {
+				notificationdestinations.get(pos).prepare();
+			}
+		} catch (Exception e) {
+			Log2.log.error("Invalid notificationdestinations", null, new Log2Dump("notificationdestinations", notificationdestinations_json));
+			notificationdestinations = new ArrayList<UACreator.UANotificationDestinator>(1);
+			throw new Exception("Invalid configured_functionalities_json", e);
+		}
+		return this;
+	}
+	
+	public UACreator addNotificationdestinationForCreator(String... reasons) throws NullPointerException, ConnectionException {
+		if (reasons == null) {
+			return this;
+		}
+		if (reasons.length == 0) {
+			return this;
+		}
+		
+		for (int pos = 0; pos < reasons.length; pos++) {
+			UANotificationDestinator notificationdestination = new UANotificationDestinator();
+			notificationdestination.reason = reasons[pos];
+			if (notificationdestination.reason.isEmpty()) {
+				continue;
+			}
+			notificationdestination.userprofile = userprofile;
+			notificationdestination.prepare();
+			notificationdestinations.add(notificationdestination);
+		}
+		
+		return this;
+	}
+	
+	/**
 	 * @return task key
 	 */
 	private String createSingleTaskWithRequire(String require, UACreatorConfiguredFunctionality configured_functionality, ArrayList<String> items, String storage_name) throws ConnectionException {
@@ -204,8 +292,15 @@ public class UACreator {
 		return Broker.publishTask(name.toString(), profile, context.toContext(), UAJobContext.class, false, 0, require, false);
 	}
 	
-	public void createTasks() throws ConnectionException {
+	public void setUsercomment(String usercomment) {
+		this.usercomment = usercomment;
+	}
+	
+	public void createTasks() throws Exception {
 		if (configured_functionalities.isEmpty()) {
+			return;
+		}
+		if (storageindexname_to_itemlist.isEmpty()) {
 			return;
 		}
 		if (one_click) {
@@ -216,35 +311,58 @@ public class UACreator {
 		String storage_name;
 		ArrayList<String> items;
 		String last_require = null;
-		if ((range == UARange.ONE_USER_ACTION_BY_STORAGE_AND_BASKET) | (range == UARange.ONE_USER_ACTION_BY_BASKET_ITEM)) {
+		Notification notification;
+		if (range == UARange.ONE_USER_ACTION_BY_STORAGE_AND_BASKET) {
+			notification = createNotification();
 			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
 				storage_name = entry.getKey();
 				items = entry.getValue();
 				last_require = null;
 				for (int pos = 0; pos < configured_functionalities.size(); pos++) {
 					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
+					notification.addLinkedTasksJobs(last_require);
 				}
-				createSingleFinisherTask(last_require, items, storage_name);
-				if (range == UARange.ONE_USER_ACTION_BY_BASKET_ITEM) {
-					// TODO create notification
-					// TODO log in database the UA
-				}
+				notification.addLinkedTasksJobs(createSingleFinisherTask(last_require, items, storage_name));
 			}
-			if ((range == UARange.ONE_USER_ACTION_BY_STORAGE_AND_BASKET) & (last_require != null)) {
-				// TODO create notification
+			notification.save();
+			// TODO log in database the UA
+		} else if (range == UARange.ONE_USER_ACTION_BY_BASKET_ITEM) {
+			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
+				notification = createNotification();
+				storage_name = entry.getKey();
+				items = entry.getValue();
+				last_require = null;
+				for (int pos = 0; pos < configured_functionalities.size(); pos++) {
+					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
+					notification.addLinkedTasksJobs(last_require);
+				}
+				notification.addLinkedTasksJobs(createSingleFinisherTask(last_require, items, storage_name));
+				notification.save();
 				// TODO log in database the UA
 			}
 		} else if (range == UARange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
 			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
+				notification = createNotification();
 				for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
 					storage_name = entry.getKey();
 					items = entry.getValue();
 					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
+					notification.addLinkedTasksJobs(last_require);
 				}
-				// TODO create notification
+				notification.save();
 				// TODO log in database the UA
 			}
 		}
-		
+	}
+	
+	private Notification createNotification() throws ConnectionException, IOException {
+		if (usercomment == null) {
+			usercomment = "User action by " + userprofile.longname;
+		}
+		Notification n = Notification.create(userprofile, usercomment + " (by " + userprofile.longname + ")");
+		for (int pos = 0; pos < notificationdestinations.size(); pos++) {
+			n.updateNotifyReasonForUser(notificationdestinations.get(pos).userprofile, notificationdestinations.get(pos).n_reason, true);
+		}
+		return n;
 	}
 }

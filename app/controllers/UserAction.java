@@ -103,6 +103,29 @@ public class UserAction extends Controller {
 		UACreator creator = new UACreator(items);
 		creator.setUserprofile(userprofile);
 		creator.setBasket_name(params.get("basket_name"));
+		creator.setUsercomment(params.get("comment"));
+		
+		/**
+		 * Not mandatory
+		 */
+		String notificationdestinations_json = params.get("notificationdestinations_json");
+		try {
+			creator.setNotificationdestinations(notificationdestinations_json);
+		} catch (Exception e) {
+			Log2.log.error("Setup notification destinations", e, new Log2Dump("raw", notificationdestinations_json));
+		}
+		
+		/**
+		 * Not mandatory
+		 */
+		String[] notification_reasons = params.getAll("notification_reasons[]");
+		try {
+			creator.addNotificationdestinationForCreator(notification_reasons);
+		} catch (Exception e) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("raw", notification_reasons);
+			Log2.log.error("Setup notification destinations for user", e, dump);
+		}
 		
 		// TODO check if this user can create tasks on this files
 		return creator;

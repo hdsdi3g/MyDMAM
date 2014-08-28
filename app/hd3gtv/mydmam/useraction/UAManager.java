@@ -75,7 +75,8 @@ public class UAManager {
 		return functionalities_class_map.get(name);
 	}
 	
-	public static void createWorkers(WorkerGroup wgroup) {// TODO Add in Probe
+	@SuppressWarnings("unchecked")
+	public static void createWorkers(WorkerGroup wgroup) {
 		if (Configuration.global.isElementKeyExists("useraction_workers", "activated") == false) {
 			return;
 		}
