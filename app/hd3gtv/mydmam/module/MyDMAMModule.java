@@ -40,6 +40,9 @@ public abstract class MyDMAMModule extends PlayPlugin {
 		return new ArrayList<CyclicCreateTasks>(1);
 	}
 	
+	/**
+	 * Don't add workers for user's actions.
+	 */
 	public List<Worker> getWorkers() {
 		return new ArrayList<Worker>(1);
 	}

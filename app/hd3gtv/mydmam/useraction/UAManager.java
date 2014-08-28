@@ -16,8 +16,12 @@
 */
 package hd3gtv.mydmam.useraction;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.module.MyDMAMModule;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.taskqueue.WorkerGroup;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -71,5 +75,58 @@ public class UAManager {
 		return functionalities_class_map.get(name);
 	}
 	
-	// TODO create workers via Configuration (set a Map for workers <-> functionalities)
+	public static void createWorkers(WorkerGroup wgroup) {// TODO Add in Probe
+		if (Configuration.global.isElementKeyExists("useraction_workers", "activated") == false) {
+			return;
+		}
+		
+		List<LinkedHashMap<String, ?>> conf_workers = Configuration.global.getListMapValues("useraction_workers", "activated");
+		
+		LinkedHashMap<String, ?> conf_worker;
+		List<String> list;
+		UAFunctionality functionality;
+		List<UAFunctionality> worker_functionalities_list;
+		for (int pos_conf_worker = 0; pos_conf_worker < conf_workers.size(); pos_conf_worker++) {
+			worker_functionalities_list = new ArrayList<UAFunctionality>();
+			conf_worker = conf_workers.get(pos_conf_worker);
+			if (conf_worker.containsKey("class")) {
+				list = (List<String>) conf_worker.get("class");
+				for (int pos_list = 0; pos_list < list.size(); pos_list++) {
+					for (int pos_funct = 0; pos_funct < functionalities_list.size(); pos_funct++) {
+						functionality = functionalities_list.get(pos_funct);
+						if (functionality.getClass().getName().startsWith(list.get(pos_list))) {
+							if (worker_functionalities_list.contains(functionality) == false) {
+								worker_functionalities_list.add(functionality);
+							}
+						}
+					}
+				}
+			}
+			if (conf_worker.containsKey("name")) {
+				list = (List<String>) conf_worker.get("name");
+				for (int pos_list = 0; pos_list < list.size(); pos_list++) {
+					for (int pos_funct = 0; pos_funct < functionalities_list.size(); pos_funct++) {
+						functionality = functionalities_list.get(pos_funct);
+						if (functionality.getName().equals(list.get(pos_list))) {
+							if (worker_functionalities_list.contains(functionality) == false) {
+								worker_functionalities_list.add(functionality);
+							}
+						}
+					}
+				}
+			}
+			
+			if (worker_functionalities_list.isEmpty() == false) {
+				Log2Dump dump = new Log2Dump();
+				dump.add("Functionalities:", "");
+				for (int pos_funct = 0; pos_funct < worker_functionalities_list.size(); pos_funct++) {
+					functionality = functionalities_list.get(pos_funct);
+					dump.add(functionality.getName(), functionality.getLongName());
+				}
+				Log2.log.info("Add Useraction worker", dump);
+				wgroup.addWorker(new UAWorker(worker_functionalities_list));
+			}
+		}
+	}
+	
 }
