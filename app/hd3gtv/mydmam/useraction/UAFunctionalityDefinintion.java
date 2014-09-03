@@ -54,6 +54,68 @@ public class UAFunctionalityDefinintion {
 	private static final ProfileSerializer profileserializer;
 	private static final Serializer serializer;
 	
+	public static void mergueInList(List<UAFunctionalityDefinintion> ressource, UAFunctionalityDefinintion definition) {
+		if (ressource == null) {
+			return;
+		}
+		if (definition == null) {
+			return;
+		}
+		
+		UAFunctionalityDefinintion current;
+		for (int pos = 0; pos < ressource.size(); pos++) {
+			current = ressource.get(pos);
+			if (definition.section != current.section) {
+				continue;
+			} else if (definition.vendor != current.vendor) {
+				continue;
+			} else if (definition.reference != current.reference) {
+				continue;
+			} else if (definition.classname != current.classname) {
+				continue;
+			} else if (definition.longname != current.longname) {
+				continue;
+			} else if (definition.description != current.description) {
+				continue;
+			} else if (definition.instance != current.instance) {
+				continue;
+			}
+			
+			/**
+			 * Mergue...
+			 */
+			if (current.profiles == null) {
+				current.profiles = new ArrayList<Profile>();
+			}
+			if (definition.profiles != null) {
+				current.profiles.addAll(definition.profiles);
+			}
+			
+			if (current.capability_directoryprocessing_enabled == false) {
+				current.capability_directoryprocessing_enabled = definition.capability_directoryprocessing_enabled;
+			}
+			if (current.capability_fileprocessing_enabled == false) {
+				current.capability_fileprocessing_enabled = definition.capability_fileprocessing_enabled;
+			}
+			if (current.capability_rootstorageindexprocessing_enabled == false) {
+				current.capability_rootstorageindexprocessing_enabled = definition.capability_rootstorageindexprocessing_enabled;
+			}
+			if (current.capability_musthavelocalstorageindexbridge == false) {
+				current.capability_musthavelocalstorageindexbridge = definition.capability_musthavelocalstorageindexbridge;
+			}
+			
+			if (current.capability_storageindexeswhitelist == null) {
+				current.capability_storageindexeswhitelist = new ArrayList<String>();
+			}
+			if (definition.capability_storageindexeswhitelist != null) {
+				current.capability_storageindexeswhitelist.addAll(definition.capability_storageindexeswhitelist);
+			}
+			return;
+		}
+		
+		ressource.add(definition);
+	}
+	
 	static {
 		profileserializer = new Profile.ProfileSerializer();
 		serializer = new Serializer();

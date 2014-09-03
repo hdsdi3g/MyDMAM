@@ -17,8 +17,11 @@
 
 package controllers;
 
+import hd3gtv.javasimpleservice.IsAlive;
+import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import hd3gtv.mydmam.web.Privileges;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -30,6 +33,8 @@ import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
+
+import com.google.gson.Gson;
 
 @With(Secure.class)
 public class ACL extends Controller {
@@ -206,7 +211,7 @@ public class ACL extends Controller {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
 		List<ACLRole> roles = ACLRole.findAll();
-		render(title, roles);
+		render(title, roles);// TODO display role.privileges
 	}
 	
 	@Check("acl")
@@ -219,8 +224,8 @@ public class ACL extends Controller {
 		List<ACLGroup> groups = ACLGroup.findAll();
 		List<String> selectedprivileges = null;
 		List<String> privileges = Privileges.getAllPrivileges();
-		
-		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
+		List<UAFunctionalityDefinintion> functionalities = IsAlive.getCurrentFunctionalitiesAvailable();
+		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, functionalities);
 	}
 	
 	@Check("acl")
@@ -230,19 +235,21 @@ public class ACL extends Controller {
 		
 		List<ACLGroup> selectedgroups = null;
 		List<String> selectedprivileges = null;
+		List<String> selectedfunctionalities = null;
 		
 		if (name != null) {
 			ACLRole role = ACLRole.findById(name);
 			if (role != null) {
 				selectedgroups = role.groups;
 				selectedprivileges = role.getPrivilegesList();
+				selectedfunctionalities = role.getFunctionalitiesList();
 			}
 		}
 		List<ACLGroup> groups = ACLGroup.findAll();
 		List<String> privileges = Privileges.getAllPrivileges();
+		List<UAFunctionalityDefinintion> functionalities = IsAlive.getCurrentFunctionalitiesAvailable();
 		
-		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
-		
+		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);// TODO udpate view with availabilities
 	}
 	
 	@Check("acl")
@@ -276,11 +283,14 @@ public class ACL extends Controller {
 			List<ACLGroup> groups = ACLGroup.findAll();
 			List<String> selectedprivileges = null;
 			List<String> privileges = Privileges.getAllPrivileges();
-			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
+			List<String> selectedfunctionalities = null;
+			List<UAFunctionalityDefinintion> functionalities = IsAlive.getCurrentFunctionalitiesAvailable();
+			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);
 			return;
 		}
 		
 		String[] selectedprivilegenames = params.getAll("selectedprivileges");
+		String[] selectedfunctionalities = params.getAll("selectedfunctionalities");
 		
 		ACLRole role = ACLRole.findById(name);
 		if (role == null) {
@@ -295,8 +305,15 @@ public class ACL extends Controller {
 			}
 		}
 		
-		role.save();
+		role.functionalities = null;
+		if (selectedfunctionalities != null) {
+			if (selectedfunctionalities.length > 0) {
+				List<String> functionalities = Arrays.asList(selectedfunctionalities);
+				role.functionalities = (new Gson()).toJson(functionalities);
+			}
+		}
 		
+		role.save();
 		redirect("ACL.showroles");
 	}
 }

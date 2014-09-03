@@ -226,7 +226,7 @@ public class IsAlive extends Thread {
 	/**
 	 * @return worker key -> list
 	 */
-	public static Map<String, List<UAFunctionalityDefinintion>> getCurrentAvailabilities() throws ConnectionException {
+	public static Map<String, List<UAFunctionalityDefinintion>> getCurrentAvailabilities(ArrayList<String> privileges_for_user) throws ConnectionException {
 		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(CF_WORKERS).getAllRows().withColumnSlice("useraction_functionality_list");
 		OperationResult<Rows<String, String>> rows = all_rows.execute();
 		
@@ -239,14 +239,46 @@ public class IsAlive extends Thread {
 				continue;
 			}
 			list = gson.fromJson(col.getStringValue(), useraction_functionality_list_typeOfT);
+			
+			if (privileges_for_user != null) {
+				if (privileges_for_user.isEmpty() == false) {
+					for (int pos = list.size() - 1; pos > -1; pos--) {
+						if (privileges_for_user.contains(list.get(pos).reference) == false) {
+							list.remove(pos);
+						}
+					}
+				}
+			}
 			result.put(row.getKey(), list);
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * Don't use for know the real possiblity (because the instances parculiarities are merged).
+	 */
+	public static List<UAFunctionalityDefinintion> getCurrentFunctionalitiesAvailable() {
+		List<UAFunctionalityDefinintion> result = new ArrayList<UAFunctionalityDefinintion>();
+		try {
+			Map<String, List<UAFunctionalityDefinintion>> all = getCurrentAvailabilities(null);
+			List<UAFunctionalityDefinintion> current;
+			for (Map.Entry<String, List<UAFunctionalityDefinintion>> entry : all.entrySet()) {
+				current = entry.getValue();
+				for (int pos_current = 0; pos_current < current.size(); pos_current++) {
+					UAFunctionalityDefinintion.mergueInList(result, current.get(pos_current));
+				}
+			}
+		} catch (ConnectionException e) {
+			Log2.log.error("Can't connect to database", e);
+			return result;
 		}
 		return result;
 	}
 	
-	public static String getCurrentAvailabilitiesAsJsonString() throws ConnectionException {
-		Map<String, List<UAFunctionalityDefinintion>> availabilities = getCurrentAvailabilities();
-		return gson.toJson(availabilities);
+	public static String getCurrentAvailabilitiesAsJsonString(ArrayList<String> privileges_for_user) throws ConnectionException {
+		Map<String, List<UAFunctionalityDefinintion>> all = getCurrentAvailabilities(privileges_for_user);
+		return gson.toJson(all);
 	}
 	
 	public static JSONArray getLastStatusWorkers() throws Exception {

@@ -50,6 +50,12 @@ public class ACLRole extends GenericModel {
 	@Lob
 	public String privileges;
 	
+	/**
+	 * JSON Array
+	 */
+	@Lob
+	public String functionalities;
+	
 	@OneToMany(mappedBy = "role", cascade = CascadeType.PERSIST)
 	public List<ACLGroup> groups;
 	
@@ -83,6 +89,36 @@ public class ACLRole extends GenericModel {
 			return result;
 		} catch (Exception e) {
 			Log2.log.error("Can't extract privileges from DB", e, new Log2Dump("raw privileges", privileges));
+			return new ArrayList<String>(1);
+		}
+		
+	}
+	
+	/**
+	 * @return never null
+	 */
+	public List<String> getFunctionalitiesList() {
+		if (functionalities == null) {
+			return new ArrayList<String>(1);
+		}
+		if (functionalities.trim().equals("")) {
+			return new ArrayList<String>(1);
+		}
+		JSONParser jp = new JSONParser();
+		try {
+			JSONArray ja = (JSONArray) jp.parse(functionalities);
+			if (ja.size() == 0) {
+				return new ArrayList<String>(1);
+			}
+			
+			ArrayList<String> result = new ArrayList<String>();
+			for (Object o : ja) {
+				result.add((String) o);
+			}
+			
+			return result;
+		} catch (Exception e) {
+			Log2.log.error("Can't extract functionalities from DB", e, new Log2Dump("raw functionalities", functionalities));
 			return new ArrayList<String>(1);
 		}
 		

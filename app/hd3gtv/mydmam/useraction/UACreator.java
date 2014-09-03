@@ -152,7 +152,7 @@ public class UACreator {
 	/**
 	 * @param configured_functionalities_json List<UACreatorConfiguredFunctionality>
 	 */
-	public UACreator setConfigured_functionalities(String configured_functionalities_json) throws Exception {
+	public UACreator setConfigured_functionalities(String configured_functionalities_json, ArrayList<String> user_restricted_privileges) throws Exception {
 		if (configured_functionalities_json == null) {
 			throw new NullPointerException("\"configured_functionalities_json\" can't to be null");
 		}
@@ -167,6 +167,11 @@ public class UACreator {
 		try {
 			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
 				configured_functionalities.get(pos).prepare();
+				if (user_restricted_privileges != null) {
+					if (user_restricted_privileges.contains(configured_functionalities.get(pos).functionality_name) == false) {
+						throw new SecurityException("Functionality: " + configured_functionalities.get(pos).functionality_name);
+					}
+				}
 			}
 		} catch (Exception e) {
 			Log2.log.error("Invalid configured_functionalities_json", null, new Log2Dump("associated_user_configuration", configured_functionalities_json));

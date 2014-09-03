@@ -23,18 +23,19 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UACreator;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
-import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import hd3gtv.mydmam.useraction.UARange;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
+import models.ACLUser;
 import models.UserProfile;
 import play.mvc.Controller;
 import play.mvc.With;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 
 @With(Secure.class)
 public class UserAction extends Controller {
@@ -45,28 +46,24 @@ public class UserAction extends Controller {
 	// String key = UserProfile.prepareKey(username);
 	// }
 	
-	@Check({ "adminCrud", "adminUsers" })
-	public static void admingroupsrights() throws Exception {
-		List<UAFunctionalityDefinintion> full_availabilities = new ArrayList<UAFunctionalityDefinintion>();
-		List<String> actual_classes = new ArrayList<String>();
+	private static final String JSON_OK_RESPONSE = "{\"result\": \"ok\"}";
+	
+	/**
+	 * @return null if no restrictions.
+	 */
+	private static ArrayList<String> getUserPrivileges() {
+		String username = Secure.connected();
 		
-		Map<String, List<UAFunctionalityDefinintion>> availabilities = IsAlive.getCurrentAvailabilities();
-		
-		List<UAFunctionalityDefinintion> current = new ArrayList<UAFunctionalityDefinintion>();
-		
-		for (Map.Entry<String, List<UAFunctionalityDefinintion>> availability : availabilities.entrySet()) {
-			current = availability.getValue();
-			for (int pos = 0; pos < current.size(); pos++) {
-				if (actual_classes.contains(current.get(pos).classname)) {
-					continue;
-				}
-				actual_classes.add(current.get(pos).classname);
-				full_availabilities.add(current.get(pos));
-			}
+		ACLUser acl_user = ACLUser.findById(username);
+		String json_privileges = acl_user.group.role.privileges;
+		if (json_privileges == null) {
+			return null;
 		}
 		
-		// TODO CRUD Group <-> UAFunctionalityDefinintion via IsAlive.getCurrentAvailabilities()
-		render(full_availabilities); // TODO view
+		Gson gson = new Gson();
+		Type typeOfT = new TypeToken<ArrayList<String>>() {
+		}.getType();
+		return gson.fromJson(json_privileges, typeOfT);
 	}
 	
 	@Check("userAction")
@@ -74,7 +71,7 @@ public class UserAction extends Controller {
 	 * @render Map<String, List<UAFunctionalityDefinintion>> availabilities
 	 */
 	public static void currentavailabilities() throws Exception {
-		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString());// TODO JSON side
+		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString(getUserPrivileges()));// TODO JSON side
 	}
 	
 	private static UACreator internalCreate() throws Exception {
@@ -127,14 +124,8 @@ public class UserAction extends Controller {
 			Log2.log.error("Setup notification destinations for user", e, dump);
 		}
 		
-		// TODO check if this user can create tasks on this files
 		return creator;
 	}
-	
-	/*if (Validation.hasErrors()) {
-		renderJSON("{}");
-		return;
-	}*/
 	
 	@Check("userAction")
 	public static void createoneclick() throws Exception {
@@ -145,12 +136,18 @@ public class UserAction extends Controller {
 			creator.setConfigured_functionalityForOneClick(functionality_name);
 		} catch (Exception e) {
 			Log2.log.error("Setup functionalities", e, new Log2Dump("functionality_name", functionality_name));
-			renderJSON("{}");
+			throw e;
 		}
 		
+		ArrayList<String> privileges = getUserPrivileges();
+		if (privileges != null) {
+			if (privileges.contains(functionality_name) == false) {
+				throw new SecurityException("User " + Secure.connected() + " can't create " + functionality_name + " user action");
+			}
+		}
 		creator.createTasks();
 		
-		renderJSON("{}");// TODO ok
+		renderJSON(JSON_OK_RESPONSE);
 	}
 	
 	@Check("userAction")
@@ -170,15 +167,18 @@ public class UserAction extends Controller {
 		
 		String configured_functionalities_json = params.get("configured_functionalities_json");
 		try {
-			creator.setConfigured_functionalities(configured_functionalities_json);
+			creator.setConfigured_functionalities(configured_functionalities_json, getUserPrivileges());
 		} catch (Exception e) {
-			Log2.log.error("Setup functionalities", e, new Log2Dump("raw", configured_functionalities_json));
-			renderJSON("{}");
+			Log2Dump dump = new Log2Dump();
+			dump.add("user", Secure.connected());
+			dump.add("raw", configured_functionalities_json);
+			Log2.log.error("Setup functionalities", e, dump);
+			throw e;
 		}
 		
 		creator.createTasks();
 		
-		renderJSON("{}");// TODO ok
+		renderJSON(JSON_OK_RESPONSE);
 	}
 	/**
 	 * TODO JS/View Useraction publisher in website
