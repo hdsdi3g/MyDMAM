@@ -59,7 +59,7 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 public class Notification {
 	
 	public static final String ES_INDEX = "notifications";
-	public static final String ES_DEFAULT_TYPE = "global";
+	static final String ES_DEFAULT_TYPE = "global";
 	private static final long MAXIMAL_NOTIFICATION_LIFETIME = 3600 * 24 * 7 * 2; // 2 weeks
 	
 	private String key;

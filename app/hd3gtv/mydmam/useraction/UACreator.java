@@ -19,6 +19,7 @@ package hd3gtv.mydmam.useraction;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
@@ -27,12 +28,21 @@ import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.Profile;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import models.UserProfile;
+
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.sort.SortOrder;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -42,10 +52,14 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class UACreator {
 	
+	private static final String ES_TYPE = "log";
+	private static final long LOG_LIFETIME = 3600 * 24 * 365 * 2; // 2 years
+	
 	private static Gson gson;
 	
 	static {
 		GsonBuilder builder = new GsonBuilder();
+		builder.serializeNulls();
 		// builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
 		gson = builder.create();
 	}
@@ -60,6 +74,8 @@ public class UACreator {
 	private LinkedHashMap<String, ArrayList<String>> storageindexname_to_itemlist;
 	private boolean one_click;
 	private String usercomment;
+	private ArrayList<String> new_tasks;
+	private Client client;
 	
 	private class UACreatorConfiguredFunctionality {
 		String functionality_name;
@@ -114,6 +130,8 @@ public class UACreator {
 	}
 	
 	public UACreator(ArrayList<SourcePathIndexerElement> items_spie) throws ConnectionException, IOException {
+		client = Elasticsearch.getClient();
+		
 		user_profile_orm = new CrudOrmEngine<UserProfile>(new UserProfile());
 		
 		if (items_spie.isEmpty()) {
@@ -131,6 +149,7 @@ public class UACreator {
 		configured_functionalities = new ArrayList<UACreator.UACreatorConfiguredFunctionality>();
 		notificationdestinations = new ArrayList<UACreator.UANotificationDestinator>();
 		this.one_click = true;
+		new_tasks = new ArrayList<String>();
 	}
 	
 	public void setRange_Finisher_NotOneClick(UAFinisherConfiguration finisher, UARange range) {
@@ -312,6 +331,7 @@ public class UACreator {
 			global_finisher = configured_functionalities.get(0).functionality.getFinisherForOneClick();
 			range = configured_functionalities.get(0).functionality.getRangeForOneClick();
 		}
+		String finisher_task;
 		
 		String storage_name;
 		ArrayList<String> items;
@@ -325,12 +345,15 @@ public class UACreator {
 				last_require = null;
 				for (int pos = 0; pos < configured_functionalities.size(); pos++) {
 					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
+					new_tasks.add(last_require);
 					notification.addLinkedTasksJobs(last_require);
 				}
-				notification.addLinkedTasksJobs(createSingleFinisherTask(last_require, items, storage_name));
+				finisher_task = createSingleFinisherTask(last_require, items, storage_name);
+				new_tasks.add(finisher_task);
+				notification.addLinkedTasksJobs(finisher_task);
 			}
 			notification.save();
-			addUALogEntry(notification);
+			addUALogEntry();
 		} else if (range == UARange.ONE_USER_ACTION_BY_BASKET_ITEM) {
 			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
 				notification = createNotification();
@@ -341,10 +364,12 @@ public class UACreator {
 					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
 					notification.addLinkedTasksJobs(last_require);
 				}
-				notification.addLinkedTasksJobs(createSingleFinisherTask(last_require, items, storage_name));
+				finisher_task = createSingleFinisherTask(last_require, items, storage_name);
+				new_tasks.add(finisher_task);
+				notification.addLinkedTasksJobs(finisher_task);
 				notification.save();
-				addUALogEntry(notification);
 			}
+			addUALogEntry();
 		} else if (range == UARange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
 			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
 				notification = createNotification();
@@ -352,11 +377,12 @@ public class UACreator {
 					storage_name = entry.getKey();
 					items = entry.getValue();
 					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
+					new_tasks.add(last_require);
 					notification.addLinkedTasksJobs(last_require);
 				}
 				notification.save();
-				addUALogEntry(notification);
 			}
+			addUALogEntry();
 		}
 	}
 	
@@ -371,14 +397,48 @@ public class UACreator {
 		return n;
 	}
 	
-	private void addUALogEntry(Notification notification) {
-		// TODO log in database the UA
-		// usercomment
-		// userprofile
-		// configured_functionalities
-		// storageindexname_to_itemlist
-		// one_click
-		// global_finisher;
-		// range;
+	private void addUALogEntry() {
+		long now = System.currentTimeMillis();
+		
+		HashMap<String, Object> logentry = new HashMap<String, Object>();
+		logentry.put("usercomment", usercomment);
+		logentry.put("userprofile", userprofile);
+		logentry.put("configured_functionalities", configured_functionalities);
+		logentry.put("storageindexname_to_itemlist", storageindexname_to_itemlist);
+		logentry.put("one_click", one_click);
+		logentry.put("global_finisher", global_finisher);
+		logentry.put("range", range);
+		logentry.put("new_tasks", new_tasks);
+		logentry.put("created_at", now);
+		
+		StringBuffer sb = new StringBuffer();
+		sb.append(now);
+		sb.append(":");
+		sb.append(userprofile.key);
+		
+		IndexRequest ir = new IndexRequest(Notification.ES_INDEX, ES_TYPE, sb.toString());
+		ir.source(gson.toJson(logentry));
+		ir.ttl(LOG_LIFETIME);
+		client.index(ir);
 	}
+	
+	public static void dumpLog(PrintStream out, long since) {
+		Client client = Elasticsearch.getClient();
+		
+		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(Notification.ES_INDEX);
+		request.setTypes(ES_TYPE);
+		request.setQuery(QueryBuilders.rangeQuery("created_at").gte(since));
+		request.addSort("created_at", SortOrder.ASC);
+		request.setSize(1000);
+		SearchHit[] hits = request.execute().actionGet().getHits().hits();
+		
+		if (hits.length == 0) {
+			return;
+		}
+		for (int pos = 0; pos < hits.length; pos++) {
+			out.println(hits[pos].getSourceAsString());
+		}
+	}
+	
 }

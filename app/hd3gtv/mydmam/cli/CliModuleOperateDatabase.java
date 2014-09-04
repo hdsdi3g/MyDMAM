@@ -21,6 +21,7 @@ import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.useraction.UACreator;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.util.HashMap;
@@ -263,7 +264,14 @@ public class CliModuleOperateDatabase implements CliModule {
 			Operations.purge_orphan_metadatas();
 			return;
 		}
-		
+		if (args.getParamExist("-ualog")) {
+			long since = 0;
+			if (args.getSimpleParamValue("-ualog").equals("0") == false) {
+				since = (System.currentTimeMillis() / (1000l * 60l)) - Long.parseLong(args.getSimpleParamValue("-ualog"));
+			}
+			UACreator.dumpLog(System.out, since);
+			return;
+		}
 		showFullCliModuleHelp();
 	}
 	
@@ -287,6 +295,10 @@ public class CliModuleOperateDatabase implements CliModule {
 		System.out.println("Operate usages:");
 		System.out.println(" " + getCliModuleName() + " -clean");
 		System.out.println("  Do clean operations");
+		System.out.println();
+		System.out.println(" " + getCliModuleName() + " -ualog from");
+		System.out.println("  from: in minutes, or 0 for dump all (limited to 1000 lines max)");
+		System.out.println("  Dump User Action log in JSON");
 	}
 	
 }
