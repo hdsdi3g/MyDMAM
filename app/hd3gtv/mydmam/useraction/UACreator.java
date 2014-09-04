@@ -330,7 +330,7 @@ public class UACreator {
 				notification.addLinkedTasksJobs(createSingleFinisherTask(last_require, items, storage_name));
 			}
 			notification.save();
-			// TODO log in database the UA
+			addUALogEntry(notification);
 		} else if (range == UARange.ONE_USER_ACTION_BY_BASKET_ITEM) {
 			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
 				notification = createNotification();
@@ -343,7 +343,7 @@ public class UACreator {
 				}
 				notification.addLinkedTasksJobs(createSingleFinisherTask(last_require, items, storage_name));
 				notification.save();
-				// TODO log in database the UA
+				addUALogEntry(notification);
 			}
 		} else if (range == UARange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
 			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
@@ -355,7 +355,7 @@ public class UACreator {
 					notification.addLinkedTasksJobs(last_require);
 				}
 				notification.save();
-				// TODO log in database the UA
+				addUALogEntry(notification);
 			}
 		}
 	}
@@ -369,5 +369,16 @@ public class UACreator {
 			n.updateNotifyReasonForUser(notificationdestinations.get(pos).userprofile, notificationdestinations.get(pos).n_reason, true);
 		}
 		return n;
+	}
+	
+	private void addUALogEntry(Notification notification) {
+		// TODO log in database the UA
+		// usercomment
+		// userprofile
+		// configured_functionalities
+		// storageindexname_to_itemlist
+		// one_click
+		// global_finisher;
+		// range;
 	}
 }

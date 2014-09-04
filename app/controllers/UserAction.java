@@ -48,6 +48,10 @@ public class UserAction extends Controller {
 	
 	private static final String JSON_OK_RESPONSE = "{\"result\": \"ok\"}";
 	
+	private static Gson gson = new Gson();
+	private static Type typeOfArrayString = new TypeToken<ArrayList<String>>() {
+	}.getType();
+	
 	/**
 	 * @return null if no restrictions.
 	 */
@@ -59,11 +63,14 @@ public class UserAction extends Controller {
 		if (json_privileges == null) {
 			return null;
 		}
+		if (json_privileges.isEmpty()) {
+			return null;
+		}
+		if (json_privileges.equalsIgnoreCase("[]")) {
+			return new ArrayList<String>(1);
+		}
 		
-		Gson gson = new Gson();
-		Type typeOfT = new TypeToken<ArrayList<String>>() {
-		}.getType();
-		return gson.fromJson(json_privileges, typeOfT);
+		return gson.fromJson(json_privileges, typeOfArrayString);
 	}
 	
 	@Check("userAction")
@@ -180,6 +187,7 @@ public class UserAction extends Controller {
 		
 		renderJSON(JSON_OK_RESPONSE);
 	}
+	
 	/**
 	 * TODO JS/View Useraction publisher in website
 	 * - popup method for a basket in baskets list
@@ -202,9 +210,6 @@ public class UserAction extends Controller {
 	 * - add basket action after creation (for "by basket" creation): truncate after start, truncate by the finisher, or don't touch.
 	 * - add Notification options
 	 * - on validation: create task(s) with Task context, finisher(s) and notification(s)
-	 * TODO Useraction supervision
-	 * - JS display Capabilities and Availabilities table > in via Service.laststatusworkers page
-	 * - JS admin Useraction specific params (and published by ORM/form)
 	 */
 	
 }

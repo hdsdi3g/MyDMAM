@@ -27,6 +27,11 @@ import play.mvc.With;
 @With(Secure.class)
 public class Service extends Controller {
 	
+	/**
+	 * * TODO Useraction supervision
+	 * - JS display Capabilities and Availabilities table > in via Service.laststatusworkers page
+	 */
+	
 	@Check("showStatus")
 	public static void index() {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.pagename"));

@@ -226,7 +226,7 @@ public class IsAlive extends Thread {
 	/**
 	 * @return worker key -> list
 	 */
-	public static Map<String, List<UAFunctionalityDefinintion>> getCurrentAvailabilities(ArrayList<String> privileges_for_user) throws ConnectionException {
+	private static Map<String, List<UAFunctionalityDefinintion>> getCurrentAvailabilities(ArrayList<String> privileges_for_user) throws ConnectionException {
 		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(CF_WORKERS).getAllRows().withColumnSlice("useraction_functionality_list");
 		OperationResult<Rows<String, String>> rows = all_rows.execute();
 		
