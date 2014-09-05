@@ -43,14 +43,15 @@
 					return a.workername < b.workername ? -1 : 1;
 				});
 	
+				/**
+				 * laststatusworkers
+				 * */
 				var content = "<tr>";
 				var content = content + "<th>" + i18n("service.table.server") + "</th>";
 				var content = content + "<th>" + i18n("service.table.service") + "</th>";
 				var content = content + "<th>" + i18n("service.table.version") + "</th>";
 				var content = content + "<th>" + i18n("service.table.uptime") + "</th>";
-				var content = content + "<th>" + i18n("service.table.threads") + "</th>";
 				var content = content + "</tr>";
-				
 				$("#laststatusworkers").append(content);
 				
 				for (var pos = 0; pos < data.length; pos++) {
@@ -67,58 +68,103 @@
 					content = content + "<td>" + data[pos].appversion + "<br/>";
 					content = content + "<small>JVM : " + data[pos].javaversion + "</small></td>";
 					content = content + "<td>" + data[pos].javauptime + "</td>";
-					
-					content = content + '<td><div class="accordion" id="accordion' + pos + '">';
-	
-					for (var pos_th = 0; pos_th < data[pos].stacktraces.length; pos_th++) {
-	
-						content = content + '<div class="accordion-group">';
-						content = content + '<div class="accordion-heading">';
-						content = content + '<a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion' + pos + '" href="#collapse' + pos + pos_th + '">';
-						content = content + data[pos].stacktraces[pos_th].name;
-						content = content + " [" + data[pos].stacktraces[pos_th].id + "]";
-						
-						if (data[pos].stacktraces[pos_th].isdaemon) {
-							content = content + ' <span class="badge">daemon</span>';
-						}
-						
-						if (data[pos].stacktraces[pos_th].state == "TIMED_WAITING") {
-							content = content + ' <span class="label">';
-						} else if (data[pos].stacktraces[pos_th].state == "RUNNABLE") {
-							content = content + ' <span class="label label-warning">';
-						} else if (data[pos].stacktraces[pos_th].state == "WAITING") {
-							content = content + ' <span class="label label-important">';
-						} else if (data[pos].stacktraces[pos_th].state == "BLOCKED") {
-							content = content + ' <span class="label label-important">';
-						} else if (data[pos].stacktraces[pos_th].state == "TERMINATED") {
-							content = content + ' <span class="label label-inverse">';
-						} else if (data[pos].stacktraces[pos_th].state == "NEW") {
-							content = content + ' <span class="label label-inverse">';
-						} else {
-							content = content + " <span>";
-						}
-						content = content + data[pos].stacktraces[pos_th].state + "</span>";
-						
-						content = content + '</a>';
-						content = content + '</div>';
-						content = content + '<div id="collapse' + pos + pos_th + '" class="accordion-body collapse">';
-						content = content + '<div class="accordion-inner">';
-						
-						content = content + "<dl class=\"dl-horizontal\">";
-						content = content + "<dt>class</dt>";
-						content = content + "<dd>" + data[pos].stacktraces[pos_th].classname + "</dd>";
-						content = content + "<dt>execpoint</dt>";
-						content = content + "<dd>" + data[pos].stacktraces[pos_th].execpoint + "</dd>";
-						content = content + "</dl>";
-	
-						content = content + '</div></div></div>';
-					}
-						
-					content = content + "</div></td>";
-	
 					content = content + "</tr>";
 					$("#laststatusworkers").append(content);
 				}
+				
+				/**
+				 * laststatusworkersfunctionalities
+				 */
+					var functionality;
+					for (var pos = 0; pos < data.length; pos++) {
+						if (data[pos].useraction_functionality_list.length) {
+							var content = "";
+							content = content + '<tr><td colspan="6">';
+							content = content + '<strong>' + data[pos].workername + '</strong> <span class="text-warning">' + data[pos].javaaddress.hostname + '</span>';
+							for (var pos_addr = 0; pos_addr < data[pos].javaaddress.address.length; pos_addr++) {
+								content = content + " &bull; " + data[pos].javaaddress.address[pos_addr];
+							}
+							content = content + '</td></tr>';
+							
+							for (var pos_th = 0; pos_th < data[pos].useraction_functionality_list.length; pos_th++) {
+								functionality = data[pos].useraction_functionality_list[pos_th];
+								content = content + '<tr>';
+								content = content + '<td>' + functionality + '</td>'; // TODO !
+								content = content + '</tr>';
+							}
+								
+							content = content + "</tr>";
+							$("#laststatusworkersfunctionalities").append(content);
+						} else {
+							$("#laststatusworkersfunctionalities_title").remove();
+						}
+					}
+				
+				/**
+				 * laststatusworkersthreads
+				 */
+				for (var pos = 0; pos < data.length; pos++) {
+					if (data[pos].stacktraces.length) {
+						var content = "";
+						content = content + '<tr><td colspan="6">';
+						content = content + '<strong>' + data[pos].workername + '</strong> <span class="text-warning">' + data[pos].javaaddress.hostname + '</span>';
+						for (var pos_addr = 0; pos_addr < data[pos].javaaddress.address.length; pos_addr++) {
+							content = content + " &bull; " + data[pos].javaaddress.address[pos_addr];
+						}
+						content = content + '</td></tr>';
+						
+						for (var pos_th = 0; pos_th < data[pos].stacktraces.length; pos_th++) {
+							content = content + '<tr>';
+	
+							content = content + "<td>" + data[pos].stacktraces[pos_th].id + "</td>";
+							content = content + "<td>" + data[pos].stacktraces[pos_th].name + "</td>";
+							
+							content = content + '<td>';
+							if (data[pos].stacktraces[pos_th].state == "TIMED_WAITING") {
+								content = content + '<span class="label">';
+							} else if (data[pos].stacktraces[pos_th].state == "RUNNABLE") {
+								content = content + '<span class="label label-warning">';
+							} else if (data[pos].stacktraces[pos_th].state == "WAITING") {
+								content = content + '<span class="label label-important">';
+							} else if (data[pos].stacktraces[pos_th].state == "BLOCKED") {
+								content = content + '<span class="label label-important">';
+							} else if (data[pos].stacktraces[pos_th].state == "TERMINATED") {
+								content = content + '<span class="label label-inverse">';
+							} else if (data[pos].stacktraces[pos_th].state == "NEW") {
+								content = content + '<span class="label label-inverse">';
+							} else {
+								content = content + "<span>";
+							}
+							content = content + data[pos].stacktraces[pos_th].state;
+							content = content + "</span></td>";
+							
+							content = content + '<td class="text-info"><small>';
+							if (data[pos].stacktraces[pos_th].isdaemon) {
+								content = content + 'Daemon';
+							}
+							content = content + '</small></td>';
+							
+							content = content + '<td><small>';
+							content = content + data[pos].stacktraces[pos_th].classname;
+							content = content + ' (';
+							if (data[pos].stacktraces[pos_th].execpoint.startsWith("java.lang.Thread.")) {
+								content = content + data[pos].stacktraces[pos_th].execpoint.substring("java.lang.Thread.".length, data[pos].stacktraces[pos_th].execpoint.length);
+							} else {
+								content = content + data[pos].stacktraces[pos_th].execpoint;
+							}
+							content = content + ')';
+							content = content + '</small></td>';
+							
+							content = content + '</tr>';
+						}
+							
+						content = content + "</tr>";
+						$("#laststatusworkersthreads").append(content);
+					} else {
+						$("#laststatusworkersthreads_title").remove();
+					}
+				}
+				
 				return;
 			}
 		});

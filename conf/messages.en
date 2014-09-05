@@ -45,7 +45,7 @@ search.result.storage=Storage
 search.result.directory=Folder
 
 service.pagename=Services status
-service.webversion=Web service:
+service.webversion=This web server:
 service.nodetectedmodule=No module detected
 service.table.server=Server
 service.table.service=Service
@@ -54,6 +54,9 @@ service.table.uptime=Uptime
 service.table.threads=Threads
 service.playjobs.pagename=Play server jobs
 service.menuinfrastructure=Infrastructure
+service.threadslist=Threads list
+service.instanceslist=Instances liste
+service.functionalitieslist=User functionalities list
 
 application.navigate=Storage
 

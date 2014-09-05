@@ -45,7 +45,7 @@ search.result.storage=Stockage
 search.result.directory=Dossier
 
 service.pagename=Etat des services
-service.webversion=Service web :
+service.webversion=Ce serveur web :
 service.nodetectedmodule=Aucun module détecté
 service.table.server=Serveur
 service.table.service=Service
@@ -54,6 +54,9 @@ service.table.uptime=Uptime
 service.table.threads=Threads
 service.playjobs.pagename=Jobs du serveur Play
 service.menuinfrastructure=Infrastructure
+service.threadslist=Liste des threads
+service.instanceslist=Liste des instances
+service.functionalitieslist=Liste des fonctionalités utilisateur
 
 application.navigate=Stockage
 
