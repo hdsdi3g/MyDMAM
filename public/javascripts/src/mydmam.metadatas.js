@@ -211,6 +211,17 @@
 	};
 })(window.mydmam.metadatas);
 
+
+(function(metadatas) {
+	metadatas.decodeMasterAsPreview = function(mimetype, reference_path, file_hash) {
+		var result = {};
+		result.master_as_preview_type = mimetype.substring(0, mimetype.indexOf("/"));
+		var ext = reference_path.substring(reference_path.lastIndexOf("."), reference_path.length);
+		result.master_as_preview_url = this.getURL(file_hash, "master_as_preview", "default" + ext);
+		return result;
+	};
+})(window.mydmam.metadatas);
+
 /**
  * display : the code to display in page
  */
@@ -226,9 +237,9 @@
 		var master_as_preview_url = '';
 		
 		if (mtd_element.master_as_preview) {
-			master_as_preview_type = mtd_element.mimetype.substring(0, mtd_element.mimetype.indexOf("/"));
-			var ext = reference.path.substring(reference.path.lastIndexOf("."), reference.path.length);
-			master_as_preview_url = this.getURL(file_hash, "master_as_preview", "default" + ext);
+			var masteraspreview_decoded = metadatas.decodeMasterAsPreview(mtd_element.mimetype, reference.path, file_hash);
+			master_as_preview_type = masteraspreview_decoded.master_as_preview_type;
+			master_as_preview_url = masteraspreview_decoded.master_as_preview_url;
 		}
 
 		if (method == metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT) {

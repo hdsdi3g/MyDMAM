@@ -321,3 +321,5 @@ crud.field.userprofile.sendTestMail=Send a test mail
 crud.field.userprofile.sendTestMail.done=Sended
 crud.field.userprofile.sendTestMail.error=Error during mail send
 crud.field.userprofile.sendTestMail.by=This email was sent automatically for %s
+
+radio.pagename=Radio
