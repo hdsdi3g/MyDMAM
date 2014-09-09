@@ -23,6 +23,13 @@ import java.util.HashMap;
 
 public class UADummyCapability extends UACapability {
 	
+	public UADummyCapability(HashMap<String, ConfigurationItem> internal_configuration) {
+		file_p = internal_configuration.containsKey("file");
+		dir_p = internal_configuration.containsKey("dir");
+		root_p = internal_configuration.containsKey("root");
+		mustbridge = internal_configuration.containsKey("mustbridge");
+	}
+	
 	private boolean file_p = false;
 	private boolean dir_p = false;
 	private boolean root_p = false;
@@ -44,11 +51,12 @@ public class UADummyCapability extends UACapability {
 		return mustbridge;
 	}
 	
-	public void setConfiguration(HashMap<String, ConfigurationItem> internal_configuration) {
-		file_p = internal_configuration.containsKey("file");
-		dir_p = internal_configuration.containsKey("dir");
-		root_p = internal_configuration.containsKey("root");
-		mustbridge = internal_configuration.containsKey("mustbridge");
+	/*public List<String> getStorageindexesWhiteList() {
+		return new ArrayList<String>();
 	}
+	
+	void checkValidity(SourcePathIndexerElement element) {
+		checkValidity(element);
+	}*/
 	
 }

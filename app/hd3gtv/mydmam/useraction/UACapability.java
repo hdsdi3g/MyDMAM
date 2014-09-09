@@ -16,18 +16,14 @@
 */
 package hd3gtv.mydmam.useraction;
 
-import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public abstract class UACapability {
-	
-	public abstract void setConfiguration(HashMap<String, ConfigurationItem> internal_configuration);
 	
 	public abstract boolean enableFileProcessing();
 	
@@ -67,7 +63,6 @@ public abstract class UACapability {
 				throw new IOException("Storage index for element has not a storage index bridge");
 			}
 		}
-		return;
 	}
 	
 }

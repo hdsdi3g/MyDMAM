@@ -79,11 +79,12 @@ public class UAManager {
 	
 	@SuppressWarnings("unchecked")
 	public static void createWorkers(WorkerGroup wgroup) {
-		if (Configuration.global.isElementKeyExists("useraction_workers", "activated") == false) {
+		if (Configuration.global.isElementKeyExists("useraction", "workers_activated") == false) {
 			return;
 		}
+		System.err.println("YES");// XXX
 		
-		List<LinkedHashMap<String, ?>> conf_workers = Configuration.global.getListMapValues("useraction_workers", "activated");
+		List<LinkedHashMap<String, ?>> conf_workers = Configuration.global.getListMapValues("useraction", "workers_activated");
 		
 		LinkedHashMap<String, ?> conf_worker;
 		List<String> list;

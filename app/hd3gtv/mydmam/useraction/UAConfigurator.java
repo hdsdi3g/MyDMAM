@@ -16,10 +16,12 @@
 */
 package hd3gtv.mydmam.useraction;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.db.orm.ORMFormField;
 
+import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +38,9 @@ import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 
 public final class UAConfigurator implements Log2Dumpable {
+	
+	UAConfigurator() {
+	}
 	
 	private String type;
 	private String origin;
@@ -54,14 +59,24 @@ public final class UAConfigurator implements Log2Dumpable {
 	}
 	
 	/**
-	 * Annoted with hd3gtv.mydmam.db.orm.annotations, and inspected by ORMFormField to extract fields.
+	 * @param object annoted with hd3gtv.mydmam.db.orm.annotations, and inspected by ORMFormField to extract fields.
 	 */
-	public void setObject(Object object) throws SecurityException, NoSuchFieldException {
-		this.object = object;
+	public static UAConfigurator create(Serializable object) {
+		UAConfigurator configurator = new UAConfigurator();
+		configurator.object = object;
 		Class<?> entityclass = object.getClass();
-		fields = ORMFormField.getFields(entityclass);
-		type = entityclass.getSimpleName().toLowerCase();
-		origin = entityclass.getName();
+		try {
+			configurator.fields = ORMFormField.getFields(entityclass);
+		} catch (SecurityException e) {
+			Log2.log.error("Can't to access some fields", e);
+			configurator.fields = new ArrayList<ORMFormField>();
+		} catch (NoSuchFieldException e) {
+			Log2.log.error("Can't to load some fields", e);
+			configurator.fields = new ArrayList<ORMFormField>();
+		}
+		configurator.type = entityclass.getSimpleName().toLowerCase();
+		configurator.origin = entityclass.getName();
+		return configurator;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -73,7 +88,7 @@ public final class UAConfigurator implements Log2Dumpable {
 		}
 	}
 	
-	public Class<?> getObjectClass() {
+	Class<?> getObjectClass() {
 		return object.getClass();
 	}
 	

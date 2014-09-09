@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.useraction.dummy;
 
+import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.useraction.UACapability;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
@@ -23,57 +24,35 @@ import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 import hd3gtv.mydmam.useraction.UARange;
 
+import java.util.HashMap;
+
 public class UADummy extends UAFunctionality {
 	
-	@Override
-	public UAJobProcess createProcess() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
 	public String getSection() {
-		// TODO Auto-generated method stub
-		return null;
+		return "Dummy section";
 	}
 	
-	@Override
 	public String getVendor() {
-		// TODO Auto-generated method stub
-		return null;
+		return "Internal MyDMAM";
 	}
 	
-	@Override
-	public Class<? extends UAFunctionality> getReferenceClass() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
 	public String getLongName() {
-		// TODO Auto-generated method stub
-		return null;
+		return "Dummy User Action";
 	}
 	
-	@Override
 	public String getDescription() {
-		// TODO Auto-generated method stub
-		return null;
+		return "Dummy User Action for tests and debugging";
 	}
 	
-	@Override
 	public UAConfigurator createEmptyConfiguration() {
-		// TODO Auto-generated method stub
-		return null;
+		return UAConfigurator.create(new UADummyConfigurator());
 	}
 	
 	public boolean hasOneClickDefault() {
 		return false;
 	}
 	
-	@Override
 	public UAFinisherConfiguration getFinisherForOneClick() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 	
@@ -85,8 +64,12 @@ public class UADummy extends UAFunctionality {
 		return null;
 	}
 	
-	public Class<? extends UACapability> getCapabilityClass() {
-		return UADummyCapability.class;
+	public UAJobProcess createProcess() {
+		return new UADummyProcess();
+	}
+	
+	public UACapability createCapability(HashMap<String, ConfigurationItem> internal_configuration) {
+		return new UADummyCapability(internal_configuration);
 	}
 	
 }

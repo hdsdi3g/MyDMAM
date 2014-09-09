@@ -1,5 +1,5 @@
-useraction_workers:
-    activated:
+useraction:
+    workers_activated:
         -
             class:
                 - mypackage.sub.UAClassName
@@ -20,6 +20,11 @@ useraction_workers:
                 - MyItem3
                 - MyItem4
         # ...
+    uadummy:
+        file: ok
+        dir: ok
+        root: ok
+        mustbridge: ok
 
 # useraction_workers -> activated (list)
     # - worker 1 functionalities

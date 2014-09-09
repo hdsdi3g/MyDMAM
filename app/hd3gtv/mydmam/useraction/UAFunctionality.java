@@ -18,7 +18,6 @@ package hd3gtv.mydmam.useraction;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
-import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.taskqueue.Profile;
 
@@ -39,10 +38,8 @@ public abstract class UAFunctionality {
 	
 	public abstract String getVendor();
 	
-	public abstract Class<? extends UAFunctionality> getReferenceClass();
-	
 	public final String getName() {
-		return getReferenceClass().getSimpleName().toLowerCase();
+		return getClass().getSimpleName().toLowerCase();
 	}
 	
 	public abstract String getLongName();
@@ -94,18 +91,13 @@ public abstract class UAFunctionality {
 	 */
 	public abstract UAConfigurator createOneClickDefaultUserConfiguration();
 	
-	public abstract Class<? extends UACapability> getCapabilityClass();
+	public abstract UACapability createCapability(HashMap<String, ConfigurationItem> internal_configuration);
 	
 	private volatile UACapability capability;
 	
 	public final UACapability getCapabilityForInstance() {
-		try {
-			if (capability == null) {
-				capability = getCapabilityClass().getConstructor().newInstance();
-				capability.setConfiguration(getConfigurationFromReferenceClass());
-			}
-		} catch (Exception e) {
-			Log2.log.error("Can't init capability, check getCapabilityClass() return", e);
+		if (capability == null) {
+			capability = createCapability(getConfigurationFromReferenceClass());
 		}
 		return capability;
 	}
