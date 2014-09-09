@@ -22,6 +22,7 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.module.MyDMAMModule;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
+import hd3gtv.mydmam.useraction.dummy.UADummy;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -43,6 +44,7 @@ public class UAManager {
 		functionalities_list = new ArrayList<UAFunctionality>();
 		
 		// TODO add() internal implementations
+		add(new UADummy());
 		
 		List<MyDMAMModule> modules = MyDMAMModulesManager.getAllModules();
 		for (int pos = 0; pos < modules.size(); pos++) {

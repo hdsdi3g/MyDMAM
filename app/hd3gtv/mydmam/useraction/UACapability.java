@@ -27,7 +27,7 @@ import java.util.List;
 
 public abstract class UACapability {
 	
-	public abstract UACapability getFromConfiguration(HashMap<String, ConfigurationItem> internal_configuration);
+	public abstract void setConfiguration(HashMap<String, ConfigurationItem> internal_configuration);
 	
 	public abstract boolean enableFileProcessing();
 	

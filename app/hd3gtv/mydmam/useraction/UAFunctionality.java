@@ -102,7 +102,7 @@ public abstract class UAFunctionality {
 		try {
 			if (capability == null) {
 				capability = getCapabilityClass().getConstructor().newInstance();
-				capability = capability.getFromConfiguration(getConfigurationFromReferenceClass());
+				capability.setConfiguration(getConfigurationFromReferenceClass());
 			}
 		} catch (Exception e) {
 			Log2.log.error("Can't init capability, check getCapabilityClass() return", e);
