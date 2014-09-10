@@ -36,6 +36,8 @@ import com.google.gson.reflect.TypeToken;
 
 public class UAFunctionalityDefinintion {
 	
+	// TODO if capability_storageindexeswhitelist is empty, profiles[] will be empty !
+	
 	public String section;
 	public String vendor;
 	public String reference;

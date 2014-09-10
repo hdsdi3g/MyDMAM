@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.useraction.dummy;
 
-import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.useraction.UACapability;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
@@ -24,7 +23,7 @@ import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 import hd3gtv.mydmam.useraction.UARange;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 public class UADummy extends UAFunctionality {
 	
@@ -68,7 +67,7 @@ public class UADummy extends UAFunctionality {
 		return new UADummyProcess();
 	}
 	
-	public UACapability createCapability(HashMap<String, ConfigurationItem> internal_configuration) {
+	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {
 		return new UADummyCapability(internal_configuration);
 	}
 	

@@ -23,6 +23,7 @@ import hd3gtv.mydmam.taskqueue.Profile;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import com.eaio.uuid.UUID;
@@ -62,13 +63,13 @@ public abstract class UAFunctionality {
 	 * Utility. Internal and local configuration from YAML.
 	 * @return useraction->class.getSimpleName().toLowerCase() content from configuration, never null
 	 */
-	public final HashMap<String, ConfigurationItem> getConfigurationFromReferenceClass() {
+	public final LinkedHashMap<String, ?> getConfigurationFromReferenceClass() {
 		String classname = getName();
 		if (Configuration.global.isElementKeyExists("useraction", classname) == false) {
-			return new HashMap<String, ConfigurationItem>(1);
+			return new LinkedHashMap<String, Object>(1);
 		}
 		HashMap<String, ConfigurationItem> main_element = Configuration.global.getElement("useraction");
-		return Configuration.getElement(main_element, classname);
+		return main_element.get(classname).content;
 	}
 	
 	/**
@@ -91,13 +92,16 @@ public abstract class UAFunctionality {
 	 */
 	public abstract UAConfigurator createOneClickDefaultUserConfiguration();
 	
-	public abstract UACapability createCapability(HashMap<String, ConfigurationItem> internal_configuration);
+	public abstract UACapability createCapability(LinkedHashMap<String, ?> internal_configuration);
 	
 	private volatile UACapability capability;
 	
 	public final UACapability getCapabilityForInstance() {
 		if (capability == null) {
 			capability = createCapability(getConfigurationFromReferenceClass());
+			if (capability == null) {
+				throw new NullPointerException("No capability for " + getClass().getName());
+			}
 		}
 		return capability;
 	}
@@ -107,7 +111,7 @@ public abstract class UAFunctionality {
 	public final List<Profile> getUserActionProfiles() {
 		if (user_action_profiles == null) {
 			user_action_profiles = new ArrayList<Profile>();
-			List<String> whitelist = capability.getStorageindexesWhiteList();
+			List<String> whitelist = getCapabilityForInstance().getStorageindexesWhiteList();
 			List<String> bridgedstorages = Explorer.getBridgedStoragesName();
 			if (whitelist != null) {
 				if (whitelist.isEmpty() == false) {
@@ -135,7 +139,7 @@ public abstract class UAFunctionality {
 	public final List<Profile> getFinisherProfiles() {
 		if (finisher_profiles == null) {
 			finisher_profiles = new ArrayList<Profile>();
-			List<String> whitelist = capability.getStorageindexesWhiteList();
+			List<String> whitelist = getCapabilityForInstance().getStorageindexesWhiteList();
 			List<String> bridgedstorages = Explorer.getBridgedStoragesName();
 			if (whitelist != null) {
 				if (whitelist.isEmpty() == false) {

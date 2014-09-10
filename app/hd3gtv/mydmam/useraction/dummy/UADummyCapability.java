@@ -16,14 +16,13 @@
 */
 package hd3gtv.mydmam.useraction.dummy;
 
-import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.useraction.UACapability;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 public class UADummyCapability extends UACapability {
 	
-	public UADummyCapability(HashMap<String, ConfigurationItem> internal_configuration) {
+	public UADummyCapability(LinkedHashMap<String, ?> internal_configuration) {
 		file_p = internal_configuration.containsKey("file");
 		dir_p = internal_configuration.containsKey("dir");
 		root_p = internal_configuration.containsKey("root");
@@ -52,10 +51,12 @@ public class UADummyCapability extends UACapability {
 	}
 	
 	/*public List<String> getStorageindexesWhiteList() {
-		return new ArrayList<String>();
-	}
+		ArrayList<String> list = new ArrayList<String>();
+		list.add("");
+		return list;
+	}*/
 	
-	void checkValidity(SourcePathIndexerElement element) {
+	/*void checkValidity(SourcePathIndexerElement element) {
 		checkValidity(element);
 	}*/
 	
