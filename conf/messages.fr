@@ -57,6 +57,11 @@ service.menuinfrastructure=Infrastructure
 service.threadslist=Liste des threads
 service.instanceslist=Liste des instances
 service.functionalitieslist=Liste des fonctionalités utilisateur
+service.functionalitieslist.functionality=Fonctionnalités
+service.functionalitieslist.profiles=Profiles déclarés
+service.functionalitieslist.capabilities=Capacités
+service.functionalitieslist.storageindexeswhitelist=Liste blanche des stockages indexés
+service.functionalitieslist.musthavelocalstorageindexbridge=Doit avoir un storageindex bridge
 
 application.navigate=Stockage
 

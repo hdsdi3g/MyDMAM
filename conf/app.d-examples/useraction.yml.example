@@ -25,6 +25,7 @@ useraction:
         dir: ok
         root: ok
         mustbridge: ok
+        # showonly: storage2
 
 # useraction_workers -> activated (list)
     # - worker 1 functionalities

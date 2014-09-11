@@ -112,22 +112,21 @@ public abstract class UAFunctionality {
 		if (user_action_profiles == null) {
 			user_action_profiles = new ArrayList<Profile>();
 			List<String> whitelist = getCapabilityForInstance().getStorageindexesWhiteList();
+			if (whitelist == null) {
+				whitelist = new ArrayList<String>(1);
+			}
 			List<String> bridgedstorages = Explorer.getBridgedStoragesName();
-			if (whitelist != null) {
-				if (whitelist.isEmpty() == false) {
-					for (int pos = 0; pos < whitelist.size(); pos++) {
-						if (bridgedstorages.contains(whitelist.get(pos)) == false) {
-							continue;
-						}
-						user_action_profiles.add(new Profile("useraction", getName() + "=" + whitelist.get(pos)));
-					}
-				}
-			} else {
-				/**
-				 * No whitelist
-				 */
+			
+			if (whitelist.isEmpty()) {
 				for (int pos = 0; pos < bridgedstorages.size(); pos++) {
 					user_action_profiles.add(new Profile("useraction", getName() + "=" + bridgedstorages.get(pos)));
+				}
+			} else {
+				for (int pos = 0; pos < whitelist.size(); pos++) {
+					if (bridgedstorages.contains(whitelist.get(pos)) == false) {
+						continue;
+					}
+					user_action_profiles.add(new Profile("useraction", getName() + "=" + whitelist.get(pos)));
 				}
 			}
 		}

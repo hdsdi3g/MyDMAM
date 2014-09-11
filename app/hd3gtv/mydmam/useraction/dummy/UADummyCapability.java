@@ -18,11 +18,16 @@ package hd3gtv.mydmam.useraction.dummy;
 
 import hd3gtv.mydmam.useraction.UACapability;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 public class UADummyCapability extends UACapability {
 	
+	private LinkedHashMap<String, ?> internal_configuration;
+	
 	public UADummyCapability(LinkedHashMap<String, ?> internal_configuration) {
+		this.internal_configuration = internal_configuration;
 		file_p = internal_configuration.containsKey("file");
 		dir_p = internal_configuration.containsKey("dir");
 		root_p = internal_configuration.containsKey("root");
@@ -50,11 +55,13 @@ public class UADummyCapability extends UACapability {
 		return mustbridge;
 	}
 	
-	/*public List<String> getStorageindexesWhiteList() {
+	public List<String> getStorageindexesWhiteList() {
 		ArrayList<String> list = new ArrayList<String>();
-		list.add("");
+		if (internal_configuration.containsKey("showonly")) {
+			list.add((String) internal_configuration.get("showonly"));
+		}
 		return list;
-	}*/
+	}
 	
 	/*void checkValidity(SourcePathIndexerElement element) {
 		checkValidity(element);

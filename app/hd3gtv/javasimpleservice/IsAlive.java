@@ -93,6 +93,19 @@ public class IsAlive extends Thread {
 	public void run() {
 		try {
 			stopthread = false;
+			
+			for (int pos = 0; pos < 50; pos++) {
+				/**
+				 * Sleep 5 sec for wait the full app start.
+				 */
+				if (stopthread) {
+					return;
+				}
+				sleep(100);
+			}
+			
+			Log2.log.info("Start regular service instance status uploads");
+			
 			while (stopthread == false) {
 				String workername = ServiceManager.getInstancename(true);
 				

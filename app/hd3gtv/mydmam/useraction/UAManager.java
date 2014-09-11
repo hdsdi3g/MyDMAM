@@ -118,17 +118,25 @@ public class UAManager {
 				}
 			}
 			
-			if (worker_functionalities_list.isEmpty() == false) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("Functionalities:", "");
-				for (int pos_funct = 0; pos_funct < worker_functionalities_list.size(); pos_funct++) {
-					functionality = functionalities_list.get(pos_funct);
-					dump.add(functionality.getName(), functionality.getLongName());
+			for (int pos_funct = worker_functionalities_list.size() - 1; pos_funct > -1; pos_funct--) {
+				functionality = worker_functionalities_list.get(pos_funct);
+				if (functionality.getUserActionProfiles().isEmpty()) {
+					worker_functionalities_list.remove(pos_funct);
 				}
-				Log2.log.info("Add Useraction worker", dump);
-				wgroup.addWorker(new UAWorker(worker_functionalities_list));
 			}
+			
+			if (worker_functionalities_list.isEmpty()) {
+				continue;
+			}
+			
+			Log2Dump dump = new Log2Dump();
+			dump.add("Functionalities:", "");
+			for (int pos_funct = 0; pos_funct < worker_functionalities_list.size(); pos_funct++) {
+				functionality = worker_functionalities_list.get(pos_funct);
+				dump.add(functionality.getName(), functionality.getLongName());
+			}
+			Log2.log.info("Add Useraction worker", dump);
+			wgroup.addWorker(new UAWorker(worker_functionalities_list));
 		}
 	}
-	
 }
