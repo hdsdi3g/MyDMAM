@@ -67,8 +67,16 @@ public class ElastisearchCrawlerReader {
 		
 		try {
 			SearchRequestBuilder request = client.prepareSearch();
-			request.setIndices(indices);
-			request.setTypes(types);
+			if (indices != null) {
+				if (indices.length > 0) {
+					request.setIndices(indices);
+				}
+			}
+			if (types != null) {
+				if (types.length > 0) {
+					request.setTypes(types);
+				}
+			}
 			request.setQuery(query);
 			
 			SearchResponse response = request.execute().actionGet();

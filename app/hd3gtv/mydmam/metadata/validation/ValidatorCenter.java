@@ -17,13 +17,11 @@
 package hd3gtv.mydmam.metadata.validation;
 
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.analysing.Analyser;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-
-import org.json.simple.JSONObject;
 
 /**
  * Add OR relation between validators
@@ -51,7 +49,7 @@ public class ValidatorCenter {
 	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
 	 * @param reference with OR relations
 	 */
-	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Float... references) {
+	public ValidatorCenter addRule(Class<? extends EntryAnalyser> applyto, String rule, Comparator comparator, Float... references) {
 		Validator validator = new Validator();
 		for (int pos = 0; pos < references.length; pos++) {
 			validator.addRule(applyto, new ConstraintFloat(rule, comparator, references[pos]));
@@ -64,7 +62,7 @@ public class ValidatorCenter {
 	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
 	 * @param reference with OR relations
 	 */
-	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, String... references) {
+	public ValidatorCenter addRule(Class<? extends EntryAnalyser> applyto, String rule, Comparator comparator, String... references) {
 		Validator validator = new Validator();
 		for (int pos = 0; pos < references.length; pos++) {
 			validator.addRule(applyto, new ConstraintString(rule, comparator, references[pos]));
@@ -77,7 +75,7 @@ public class ValidatorCenter {
 	 * @param rule like $.streams[?(@.codec_type == 'audio')].sample_rate (via https://code.google.com/p/json-path)
 	 * @param reference with OR relations
 	 */
-	public ValidatorCenter addRule(Analyser applyto, String rule, Comparator comparator, Integer... references) {
+	public ValidatorCenter addRule(Class<? extends EntryAnalyser> applyto, String rule, Comparator comparator, Integer... references) {
 		Validator validator = new Validator();
 		for (int pos = 0; pos < references.length; pos++) {
 			validator.addRule(applyto, new ConstraintInteger(rule, comparator, references[pos]));
@@ -98,9 +96,9 @@ public class ValidatorCenter {
 		return this;
 	}
 	
-	public boolean validate(LinkedHashMap<Analyser, JSONObject> analysis_results) {
-		if (analysis_results == null) {
-			throw new NullPointerException("\"analysis_results\" can't to be null");
+	public boolean validate(Container container) {
+		if (container == null) {
+			throw new NullPointerException("\"container\" can't to be null");
 		}
 		List<Validator> current_list;
 		Validator current;
@@ -122,7 +120,7 @@ public class ValidatorCenter {
 				 * OR relations
 				 */
 				current = current_list.get(pos_list);
-				rejects = current.validate(analysis_results);
+				rejects = current.validate(container);
 				if (rejects == null) {
 					passed = true;
 					break;

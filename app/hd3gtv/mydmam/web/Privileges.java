@@ -41,6 +41,7 @@ import play.vfs.VirtualFile;
 import controllers.Check;
 import controllers.Secure;
 
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class Privileges {
 	
 	private static List<String> all_privileges;

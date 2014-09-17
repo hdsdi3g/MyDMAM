@@ -14,12 +14,10 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.mydmam.metadata.indexing;
+package hd3gtv.mydmam.metadata;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.taskqueue.Broker;
@@ -38,11 +36,11 @@ import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class MetadataIndexerWorker extends Worker implements TriggerWorker {
+public class WorkerIndexer extends Worker implements TriggerWorker {
 	
 	static final String PROFILE_CATEGORY = "analyst";
 	
-	private MetadataCenter metadata_center;
+	private volatile List<MetadataIndexer> analysis_indexers;
 	
 	/**
 	 * Plugged profiles
@@ -64,16 +62,13 @@ public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 		String path;
 	}
 	
-	public MetadataIndexerWorker() {
+	public WorkerIndexer() {
 		if (Configuration.global.isElementExists("storageindex_bridge") == false) {
 			return;
 		}
-		metadata_center = new MetadataCenter();
-		MetadataCenter.addAllInternalsProviders(metadata_center);
-		MyDMAMModulesManager.addAllExternalMetadataProviders(metadata_center);
-		
 		managed_profiles_trigger = new ArrayList<Profile>();
 		analysing_storageindexes_map = new HashMap<String, AnalysingConfiguration>();
+		analysis_indexers = new ArrayList<MetadataIndexer>();
 		
 		if (Configuration.global.isElementExists("analysing_storageindexes")) {
 			LinkedHashMap<String, String> s_bridge = Configuration.global.getValues("analysing_storageindexes");
@@ -112,7 +107,10 @@ public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 		long min_index_date = ((Number) context.get("minindexdate")).longValue();
 		boolean force_refresh = (Boolean) context.get("force_refresh");
 		
-		metadata_center.performAnalysis(storagename, currentpath, min_index_date, force_refresh);
+		MetadataIndexer metadataIndexer = new MetadataIndexer(force_refresh);
+		analysis_indexers.add(metadataIndexer);
+		metadataIndexer.process(storagename, currentpath, min_index_date);
+		analysis_indexers.remove(metadataIndexer);
 	}
 	
 	public List<Profile> getManagedProfiles() {
@@ -127,7 +125,10 @@ public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 	}
 	
 	public void forceStopProcess() throws Exception {
-		metadata_center.stopAnalysis();
+		for (int pos = 0; pos < analysis_indexers.size(); pos++) {
+			analysis_indexers.get(pos).stop();
+		}
+		analysis_indexers.clear();
 	}
 	
 	public boolean isTriggerWorkerConfigurationAllowToEnabled() {
@@ -148,6 +149,7 @@ public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 	
 	private HashMap<Profile, Long> lastindexeddatesforprofiles;
 	
+	@SuppressWarnings("unchecked")
 	public void triggerCreateTasks(Profile profile) throws ConnectionException {
 		String profilename = profile.getName();
 		
@@ -174,10 +176,6 @@ public class MetadataIndexerWorker extends Worker implements TriggerWorker {
 		Broker.publishTask("Analyst directory", new Profile(PROFILE_CATEGORY, profilename), context, this, false, 0, null, false);
 		
 		lastindexeddatesforprofiles.put(profile, System.currentTimeMillis());
-	}
-	
-	public MetadataCenter getMetadata_center() {
-		return metadata_center;
 	}
 	
 }

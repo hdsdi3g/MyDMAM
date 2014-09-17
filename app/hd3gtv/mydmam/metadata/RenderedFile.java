@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata.rendering;
+package hd3gtv.mydmam.metadata;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.javasimpleservice.ServiceManager;
@@ -23,9 +23,12 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.LogHandlerToLogfile;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.analysing.MimeExtract;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexer;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Entry;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.metadata.container.EntrySummary;
+import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.RenderedContent;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
@@ -41,24 +44,14 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
-import org.elasticsearch.search.SearchHit;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import com.eaio.uuid.UUID;
 
-public class RenderedElement implements Log2Dumpable {
+public class RenderedFile implements Log2Dumpable {
 	
 	private static File temp_directory;
 	private static File local_directory;
@@ -130,7 +123,7 @@ public class RenderedElement implements Log2Dumpable {
 	private File temp_file;
 	private String metadata_reference_id;
 	private String rendered_base_file_name;
-	private Renderer renderer;
+	private GeneratorRenderer generatorrenderer;
 	private boolean consolidated;
 	private String rendered_mime;
 	private String rendered_digest;
@@ -139,7 +132,7 @@ public class RenderedElement implements Log2Dumpable {
 	 * Create a file like temp_directory/serviceinstancename/
 	 * @param extension with or without a point
 	 */
-	public RenderedElement(String rendered_base_file_name, String extension) throws IOException {
+	public RenderedFile(String rendered_base_file_name, String extension) throws IOException {
 		this.rendered_base_file_name = rendered_base_file_name;
 		if (rendered_base_file_name == null) {
 			throw new NullPointerException("\"rendered_base_file_name\" can't to be null");
@@ -186,7 +179,7 @@ public class RenderedElement implements Log2Dumpable {
 		commit_log.info("Prepare temporary file", dump);
 	}
 	
-	private RenderedElement() {
+	private RenderedFile() {
 	}
 	
 	public File getTempFile() {
@@ -203,14 +196,14 @@ public class RenderedElement implements Log2Dumpable {
 		temp_file.delete();
 	}
 	
-	private void checkConsolidate(SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
-		if (source_element == null) {
+	private void checkConsolidate(Container container, GeneratorRenderer generatorRenderer) throws IOException {
+		if (container == null) {
 			throw new NullPointerException("\"source_element\" can't to be null");
 		}
-		metadata_reference_id = MetadataIndexer.getUniqueElementKey(source_element);
+		metadata_reference_id = container.getMtd_key();
 		
-		this.renderer = renderer;
-		if (renderer == null) {
+		this.generatorrenderer = generatorRenderer;
+		if (generatorRenderer == null) {
 			throw new NullPointerException("\"renderer\" can't to be null");
 		}
 		
@@ -234,11 +227,12 @@ public class RenderedElement implements Log2Dumpable {
 	/**
 	 * metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extension
 	 */
-	public void consolidate(SourcePathIndexerElement source_element, Renderer renderer) throws IOException {
+	public EntryRenderer consolidateAndExportToEntry(EntryRenderer entry_renderer, Container container, GeneratorRenderer generatorrenderer) throws IOException {
 		if (consolidated) {
-			return;
+			export_to_entry(entry_renderer, container);
+			return entry_renderer;
 		}
-		checkConsolidate(source_element, renderer);
+		checkConsolidate(container, generatorrenderer);
 		
 		File f_base_directory_dest = createBase_Directory_Dest();
 		
@@ -305,8 +299,8 @@ public class RenderedElement implements Log2Dumpable {
 		
 		dump = new Log2Dump();
 		dump.add("metadata_reference_id", metadata_reference_id);
-		dump.add("source_element", source_element);
-		dump.add("renderer name", renderer.getLongName());
+		dump.add("source_element", container.getOrigin());
+		dump.add("renderer name", generatorrenderer.getLongName());
 		dump.add("rendered_file", rendered_file);
 		dump.add("rendered_mime", rendered_mime);
 		dump.add("rendered_digest", rendered_digest);
@@ -316,6 +310,25 @@ public class RenderedElement implements Log2Dumpable {
 		
 		dump = new Log2Dump();
 		commit_log.info("End consolidate", dump);
+		
+		export_to_entry(entry_renderer, container);
+		return entry_renderer;
+	}
+	
+	private void export_to_entry(EntryRenderer entry_renderer, Container container) {
+		if (consolidated == false) {
+			throw new NullPointerException("Element is not consolidated !");
+		}
+		entry_renderer.setOrigin(container.getOrigin());
+		
+		RenderedContent rendered_content = new RenderedContent();
+		rendered_content.name = rendered_file.getName();
+		rendered_content.size = rendered_file.length();
+		rendered_content.date = rendered_file.lastModified();
+		rendered_content.hash = rendered_digest;
+		rendered_content.producer = generatorrenderer.getLongName();
+		rendered_content.mime = rendered_mime;
+		entry_renderer.addContent(rendered_content);
 	}
 	
 	private File createBase_Directory_Dest() throws IOException {
@@ -359,23 +372,6 @@ public class RenderedElement implements Log2Dumpable {
 		return rendered_file;
 	}
 	
-	/**
-	 * Don't forget to consolidate before.
-	 */
-	public JSONObject toDatabase() {
-		if (consolidated == false) {
-			throw new NullPointerException("Element is not consolidated !");
-		}
-		JSONObject jo = new JSONObject();
-		jo.put("name", rendered_file.getName());
-		jo.put("size", rendered_file.length());
-		jo.put("date", rendered_file.lastModified());
-		jo.put("hash", rendered_digest);
-		jo.put("producer", renderer.getLongName());
-		jo.put("mime", rendered_mime);
-		return jo;
-	}
-	
 	public String getRendered_digest() {
 		return rendered_digest;
 	}
@@ -387,10 +383,11 @@ public class RenderedElement implements Log2Dumpable {
 	/**
 	 * Test presence and validity for file.
 	 */
-	public static RenderedElement fromDatabase(JSONObject renderfromdatabase, String metadata_reference_id, boolean check_hash) throws IOException {
-		if (renderfromdatabase == null) {
-			throw new NullPointerException("\"renderfromdatabase\" can't to be null");
+	public static RenderedFile import_from_entry(RenderedContent content, String metadata_reference_id, boolean check_hash) throws IOException {
+		if (content == null) {
+			throw new NullPointerException("\"content\" can't to be null");
 		}
+		
 		if (metadata_reference_id == null) {
 			throw new NullPointerException("\"metadata_reference_id\" can't to be null");
 		}
@@ -402,7 +399,7 @@ public class RenderedElement implements Log2Dumpable {
 			throw new IOException("Invalid configuration is set !");
 		}
 		
-		RenderedElement result = new RenderedElement();
+		RenderedFile result = new RenderedFile();
 		
 		StringBuffer sb_rendered_file = new StringBuffer();
 		sb_rendered_file.append(local_directory.getCanonicalPath());
@@ -411,19 +408,19 @@ public class RenderedElement implements Log2Dumpable {
 		sb_rendered_file.append(File.separator);
 		sb_rendered_file.append(metadata_reference_id.substring(6));
 		sb_rendered_file.append(File.separator);
-		sb_rendered_file.append((String) renderfromdatabase.get("name"));
+		sb_rendered_file.append(content.name);
 		result.rendered_file = new File(sb_rendered_file.toString());
 		
 		if (result.rendered_file.exists() == false) {
 			throw new FileNotFoundException("Can't found rendered file " + sb_rendered_file.toString());
 		}
 		
-		if (result.rendered_file.length() != (Long) renderfromdatabase.get("size")) {
+		if (result.rendered_file.length() != content.size) {
 			throw new FileNotFoundException("Rendered file has not the expected size " + sb_rendered_file.toString());
 		}
 		
 		if (check_hash) {
-			result.rendered_digest = (String) renderfromdatabase.get("hash");
+			result.rendered_digest = (String) content.hash;
 			
 			MessageDigest mdigest = null;
 			try {
@@ -443,13 +440,13 @@ public class RenderedElement implements Log2Dumpable {
 				Log2Dump dump = new Log2Dump();
 				dump.add("source", sb_rendered_file);
 				dump.add("source", file_digest);
-				dump.add("expected", renderfromdatabase.toJSONString());
+				dump.add("expected", content);
 				dump.add("expected", result.rendered_digest);
 				Log2.log.error("Invalid " + digest_algorithm + " check", null, dump);
 				throw new FileNotFoundException("Rendered file has not the expected content " + sb_rendered_file.toString());
 			}
 		}
-		result.rendered_mime = (String) renderfromdatabase.get("mime");
+		result.rendered_mime = content.mime;
 		result.consolidated = true;
 		return result;
 	}
@@ -457,12 +454,12 @@ public class RenderedElement implements Log2Dumpable {
 	/**
 	 * Test presence and validity for file.
 	 */
-	public static RenderedElement fromDatabaseMasterAsPreview(SourcePathIndexerElement sourcepathindexerelement, String mime_file) throws IOException {
+	public static RenderedFile fromDatabaseMasterAsPreview(SourcePathIndexerElement sourcepathindexerelement, String mime_file) throws IOException {
 		if (sourcepathindexerelement == null) {
 			throw new NullPointerException("\"renderfromdatabase\" can't to be null");
 		}
 		
-		RenderedElement result = new RenderedElement();
+		RenderedFile result = new RenderedFile();
 		result.rendered_file = Explorer.getLocalBridgedElement(sourcepathindexerelement);
 		
 		if (result.rendered_file == null) {
@@ -536,10 +533,7 @@ public class RenderedElement implements Log2Dumpable {
 		}
 	}
 	
-	public static void gc(Client client) throws IOException {
-		if (client == null) {
-			throw new NullPointerException("\"client\" can't to be null");
-		}
+	public static void purge_orphan_metadatas_files() throws IOException, IndexMissingException {
 		File[] mtddir;
 		File[] allrootelements;
 		
@@ -585,8 +579,6 @@ public class RenderedElement implements Log2Dumpable {
 			return;
 		}
 		
-		GetResponse getresponse;
-		
 		allrootelements = local_directory.getCanonicalFile().listFiles();
 		File[] mtdfiles;
 		String element_source_key;
@@ -628,89 +620,63 @@ public class RenderedElement implements Log2Dumpable {
 					continue;
 				}
 				element_source_key = allrootelements[pos].getName() + mtddir[pos_mtd].getName();
-				getresponse = client.get(new GetRequest(MetadataCenter.ES_INDEX, MetadataCenter.ES_TYPE_SUMMARY, element_source_key)).actionGet();
-				if (getresponse.isExists() == false) {
-					RenderedElement.purge(element_source_key);
+				
+				Container container = Operations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.type);
+				if (container == null) {
+					Log2.log.info("Delete all metadata references for directory", new Log2Dump("mtd key", element_source_key));
+					purge(element_source_key);
 					continue;
 				}
 				
-				try {
-					mtdfiles = mtddir[pos_mtd].listFiles(new FilenameFilter() {
-						public boolean accept(File dir, String name) {
-							if (name.toLowerCase().endsWith("." + digest_algorithm.toLowerCase())) return false;
-							return true;
-						}
-					});
-					
-					if (mtdfiles == null) {
+				mtdfiles = mtddir[pos_mtd].listFiles(new FilenameFilter() {
+					public boolean accept(File dir, String name) {
+						if (name.toLowerCase().endsWith("." + digest_algorithm.toLowerCase())) return false;
+						return true;
+					}
+				});
+				
+				if (mtdfiles == null) {
+					continue;
+				}
+				
+				ArrayList<String> elements_name = new ArrayList<String>();
+				
+				container = Operations.getByMtdKey(element_source_key);
+				List<Entry> entries = container.getEntries();
+				EntryRenderer current_entry;
+				/**
+				 * Get all rendered files references from db
+				 */
+				for (int pos_entry = 0; pos_entry < entries.size(); pos_entry++) {
+					if ((entries.get(pos_entry) instanceof EntryRenderer) == false) {
 						continue;
 					}
-					
-					/**
-					 * Search all rendered files for this mtd element_source_key
-					 */
-					SearchRequestBuilder request = client.prepareSearch();
-					request.setIndices(MetadataCenter.ES_INDEX);
-					
-					BoolQueryBuilder query = QueryBuilders.boolQuery();
-					query.must(QueryBuilders.termQuery("_id", element_source_key));
-					query.must(QueryBuilders.termQuery(MetadataCenter.METADATA_PROVIDER_TYPE, Renderer.METADATA_PROVIDER_RENDERER));
-					request.setQuery(query);// field
-					
-					SearchHit[] hits = request.execute().actionGet().getHits().hits();
-					
-					JSONParser parser = new JSONParser();
-					JSONObject current_mtd;
-					JSONArray currect_content;
-					JSONObject content_rendered_element;
-					
-					ArrayList<String> elements_name = new ArrayList<String>();
-					
-					/**
-					 * Get all rendered files references from db
-					 */
-					for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
-						parser.reset();
-						current_mtd = (JSONObject) parser.parse(hits[pos_hits].getSourceAsString());
-						if (current_mtd.containsKey(Renderer.METADATA_PROVIDER_RENDERER_CONTENT) == false) {
-							continue;
-						}
-						currect_content = ((JSONArray) current_mtd.get(Renderer.METADATA_PROVIDER_RENDERER_CONTENT));
-						
-						for (int pos_content = 0; pos_content < currect_content.size(); pos_content++) {
-							content_rendered_element = (JSONObject) currect_content.get(pos_content);
-							elements_name.add((String) content_rendered_element.get("name"));
+					current_entry = (EntryRenderer) entries.get(pos_entry);
+					elements_name.addAll(current_entry.getContentFileNames());
+				}
+				
+				/**
+				 * Search for each real rendered file, a presence in database.
+				 */
+				for (int pos_mtdf = 0; pos_mtdf < mtdfiles.length; pos_mtdf++) {
+					boolean founded = false;
+					for (int pos_dbf = 0; pos_dbf < elements_name.size(); pos_dbf++) {
+						if (mtdfiles[pos_mtdf].getName().equals(elements_name.get(pos_dbf))) {
+							founded = true;
+							break;
 						}
 					}
-					
-					/**
-					 * Search for each real rendered file, a presence in database.
-					 */
-					for (int pos_mtdf = 0; pos_mtdf < mtdfiles.length; pos_mtdf++) {
-						boolean founded = false;
-						for (int pos_dbf = 0; pos_dbf < elements_name.size(); pos_dbf++) {
-							if (mtdfiles[pos_mtdf].getName().equals(elements_name.get(pos_dbf))) {
-								founded = true;
-								break;
-							}
-						}
-						if (founded == false) {
-							/**
-							 * Delete old rendered file
-							 */
-							Log2.log.info("Delete old metadata file", new Log2Dump("file", mtdfiles[pos_mtdf]));
-							mtdfiles[pos_mtdf].delete();
-							/**
-							 * Delete MD5 file
-							 */
-							(new File(mtdfiles[pos_mtdf].getPath() + "." + digest_algorithm.toLowerCase())).delete();
-						}
+					if (founded == false) {
+						/**
+						 * Delete old rendered file
+						 */
+						Log2.log.info("Delete old metadata file", new Log2Dump("file", mtdfiles[pos_mtdf]));
+						mtdfiles[pos_mtdf].delete();
+						/**
+						 * Delete MD5 file
+						 */
+						(new File(mtdfiles[pos_mtdf].getPath() + "." + digest_algorithm.toLowerCase())).delete();
 					}
-				} catch (IndexMissingException e) {
-					continue;
-				} catch (ParseException e) {
-					Log2.log.error("Invalid ES response", e);
-					continue;
 				}
 			}
 		}
@@ -720,7 +686,7 @@ public class RenderedElement implements Log2Dumpable {
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("consolidated", consolidated);
-		dump.add("renderer", renderer);
+		dump.add("renderer", generatorrenderer);
 		dump.add("rendered_file", rendered_file);
 		dump.add("rendered_mime", rendered_mime);
 		dump.add("rendered_digest", rendered_digest);

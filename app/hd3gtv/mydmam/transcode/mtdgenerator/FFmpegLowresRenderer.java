@@ -14,19 +14,26 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.transcode;
+package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
-import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
-import hd3gtv.mydmam.metadata.rendering.MetadataRendererWorker;
-import hd3gtv.mydmam.metadata.rendering.PreviewType;
-import hd3gtv.mydmam.metadata.rendering.RenderedElement;
-import hd3gtv.mydmam.metadata.rendering.RendererViaWorker;
+import hd3gtv.mydmam.metadata.GeneratorRendererViaWorker;
+import hd3gtv.mydmam.metadata.PreviewType;
+import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.mydmam.metadata.WorkerRenderer;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 import hd3gtv.mydmam.taskqueue.Job;
 import hd3gtv.mydmam.taskqueue.Profile;
+import hd3gtv.mydmam.transcode.FFmpegEvents;
+import hd3gtv.mydmam.transcode.FFmpegProgress;
+import hd3gtv.mydmam.transcode.Publish;
+import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegLowres;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.Timecode;
 
@@ -34,15 +41,13 @@ import java.awt.Point;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class FFmpegLowresRenderer implements RendererViaWorker {
+public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 	
 	public static final Profile profile_ffmpeg_lowres_lq = new Profile("ffmpeg", "ffmpeg_lowres_lq");
 	public static final Profile profile_ffmpeg_lowres_sd = new Profile("ffmpeg", "ffmpeg_lowres_sd");
@@ -54,14 +59,17 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	private TranscodeProfile transcode_profile;
 	private PreviewType preview_type;
 	private boolean audio_only;
+	private Class<? extends EntryRenderer> root_entry_class;
 	
-	public FFmpegLowresRenderer(Profile profile, PreviewType preview_type, boolean audio_only) {
+	public FFmpegLowresRenderer(Profile transcode_profile, PreviewType preview_type, boolean audio_only) {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
-		if (profile == null) {
+		if (transcode_profile == null) {
 			throw new NullPointerException("\"profile\" can't to be null");
 		}
+		root_entry_class = FFmpegLowres.getClassByProfile(transcode_profile);
+		
 		if (TranscodeProfile.isConfigured()) {
-			transcode_profile = TranscodeProfile.getTranscodeProfile(profile);
+			this.transcode_profile = TranscodeProfile.getTranscodeProfile(transcode_profile);
 			
 			this.preview_type = preview_type;
 			if (preview_type == null) {
@@ -73,10 +81,6 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 	
 	public String getLongName() {
 		return "FFmpeg renderer (" + transcode_profile.getName() + ")";
-	}
-	
-	public String getElasticSearchIndexType() {
-		return "pvw_" + transcode_profile.getName();
 	}
 	
 	public boolean isEnabled() {
@@ -91,25 +95,19 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		}
 	}
 	
-	public List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception {
+	public EntryRenderer process(Container container) throws Exception {
 		return null;
 	}
 	
-	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
+	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return preview_type;
-	}
-	
-	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		/*JSONObject processresult = all_metadatas_for_element.get(new FFprobeAnalyser().getElasticSearchIndexType());
-		processresult.get("ffmpeglowres");*/
-		return null;
 	}
 	
 	private Execprocess process;
 	private FFmpegProgress progress;
 	private boolean stop;
 	
-	public List<RenderedElement> standaloneProcess(File origin, Job job, JSONObject renderer_context) throws Exception {
+	public EntryRenderer standaloneProcess(File origin, Job job, Container container, JSONObject renderer_context) throws Exception {
 		stop = false;
 		job.step_count = 3;
 		
@@ -125,8 +123,8 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		
 		job.last_message = "Start ffmpeg convert operation";
 		
-		RenderedElement progress_file = new RenderedElement("video_progress", "txt");
-		RenderedElement temp_element = new RenderedElement(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
+		RenderedFile progress_file = new RenderedFile("video_progress", "txt");
+		RenderedFile temp_element = new RenderedFile(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
 		
 		Float source_fps = 25f;
 		if (renderer_context.containsKey("fps")) {
@@ -167,7 +165,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		job.step = 1;
 		job.last_message = "Finalizing";
 		
-		RenderedElement final_element = null;
+		RenderedFile final_element = null;
 		
 		/**
 		 * qt-faststart convert
@@ -177,7 +175,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 			faststarted = ((Boolean) renderer_context.get("faststarted"));
 		}
 		if (faststarted) {
-			final_element = new RenderedElement(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
+			final_element = new RenderedFile(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
 			Publish.faststartFile(temp_element.getTempFile(), final_element.getTempFile());
 			temp_element.deleteTempFile();
 		} else {
@@ -187,15 +185,13 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		if (stop) {
 			return null;
 		}
-		job.step = 2;
 		
+		job.step = 2;
 		job.last_message = "Converting is ended";
 		job.progress = 1;
 		job.progress_size = 1;
 		
-		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
-		result.add(final_element);
-		return result;
+		return final_element.consolidateAndExportToEntry(root_entry_class.getConstructor().newInstance(), container, this);
 	}
 	
 	public synchronized void stopStandaloneProcess() throws Exception {
@@ -208,22 +204,23 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 		}
 	}
 	
-	public void prepareTasks(final MetadataIndexerResult analysis_result, List<FuturePrepareTask> current_create_task_list) throws Exception {
-		final RendererViaWorker source = this;
+	public void prepareTasks(final Container container, List<FutureCreateTasks> current_create_task_list) throws Exception {
+		final GeneratorRendererViaWorker source = this;
 		
-		FuturePrepareTask result = new FuturePrepareTask() {
+		FutureCreateTasks result = new FutureCreateTasks() {
+			@SuppressWarnings("unchecked")
 			public void createTask() throws ConnectionException {
-				JSONObject processresult = FFprobeAnalyser.getAnalysedProcessresult(analysis_result);
-				if (processresult == null) {
+				FFprobe ffprobe = container.getByClass(FFprobe.class);
+				if (ffprobe == null) {
 					return;
 				}
-				if (audio_only == FFprobeAnalyser.hasVideo(processresult)) {
+				if (audio_only == ffprobe.hasVideo()) {
 					/**
 					 * Audio profile with audio source OR video+audio profile with video+audio source
 					 */
 					return;
 				}
-				Timecode timecode = FFprobeAnalyser.getDuration(processresult);
+				Timecode timecode = ffprobe.getDuration();
 				if (timecode == null) {
 					return;
 				}
@@ -232,11 +229,11 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 					return;
 				}
 				
-				if (analysis_result.isMaster_as_preview()) {
+				if (container.getSummary().master_as_preview) {
 					/**
 					 * Must I render a preview file ?
 					 */
-					if (FFprobeAnalyser.hasVideo(processresult) == false) {
+					if (ffprobe.hasVideo() == false) {
 						/**
 						 * Source is audio only, Master as preview is ok, no rendering.
 						 */
@@ -245,7 +242,7 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 						/**
 						 * video is ok ?
 						 */
-						Point resolution = FFprobeAnalyser.getVideoResolution(processresult);
+						Point resolution = ffprobe.getVideoResolution();
 						if (resolution == null) {
 							return;
 						}
@@ -272,10 +269,23 @@ public class FFmpegLowresRenderer implements RendererViaWorker {
 					renderer_context.put("faststarted", false);
 				}
 				
-				MetadataRendererWorker.createTask(analysis_result.getReference().prepare_key(), "FFmpeg lowres for metadatas", renderer_context, source);
+				try {
+					WorkerRenderer.createTask(container.getOrigin().getPathindexElement().prepare_key(), "FFmpeg lowres for metadatas", renderer_context, source);
+				} catch (FileNotFoundException e) {
+					Log2.log.error("Can't found valid element", e, container);
+				}
 			}
 		};
 		
 		current_create_task_list.add(result);
 	}
+	
+	public Profile getManagedProfile() {
+		return new Profile(WorkerRenderer.PROFILE_CATEGORY, "pvw_" + transcode_profile.getName());
+	}
+	
+	public Class<? extends EntryRenderer> getRootEntryClass() {
+		return root_entry_class;
+	}
+	
 }

@@ -20,7 +20,7 @@ import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.util.HashMap;
@@ -260,7 +260,7 @@ public class CliModuleOperateDatabase implements CliModule {
 		}
 		if (args.getParamExist("-clean")) {
 			Log2.log.info("Start clean operations");
-			MetadataCenter.database_gc();
+			Operations.purge_orphan_metadatas();
 			return;
 		}
 		

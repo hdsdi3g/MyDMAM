@@ -34,6 +34,7 @@ import org.json.simple.JSONObject;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+@SuppressWarnings("unchecked")
 public class AutotestOrm extends OrmModel {
 	
 	public static final ColumnFamily<String, String> CF = new ColumnFamily<String, String>("InternalMyDmamTest", StringSerializer.get(), StringSerializer.get());

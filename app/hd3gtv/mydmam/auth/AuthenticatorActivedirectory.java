@@ -69,6 +69,7 @@ class AuthenticatorActivedirectory implements Authenticator {
 		return buf.toString();
 	}
 	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public AuthenticationUser getUser(String username, String password) throws NullPointerException, IOException, InvalidAuthenticatorUserException {
 		if (username == null) {
 			throw new NullPointerException("\"username\" can't to be null");

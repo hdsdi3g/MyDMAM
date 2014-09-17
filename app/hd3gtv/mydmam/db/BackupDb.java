@@ -130,7 +130,7 @@ public class BackupDb {
 			 * Headers
 			 */
 			AttributesImpl atts = new AttributesImpl();
-			atts.addAttribute("", "", "keyspace", "CDATA", CassandraDb.keyspacename);
+			atts.addAttribute("", "", "keyspace", "CDATA", CassandraDb.default_keyspacename);
 			atts.addAttribute("", "", "name", "CDATA", cfname);
 			atts.addAttribute("", "", "created", "CDATA", String.valueOf(System.currentTimeMillis()));
 			if (mode_debug) {

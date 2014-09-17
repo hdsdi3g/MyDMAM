@@ -371,6 +371,15 @@ public class Explorer {
 		return response.getCount();
 	}
 	
+	public long countStorageContentElements(String storage_index_name) {
+		CountRequestBuilder request = new CountRequestBuilder(client);
+		request.setIndices(Importer.ES_INDEX);
+		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
+		request.setQuery(QueryBuilders.termQuery("storagename", storage_index_name.toLowerCase()));
+		CountResponse response = request.execute().actionGet();
+		return response.getCount();
+	}
+	
 	private static HashMap<String, File> bridge;
 	
 	private static void populate_bridge() throws NullPointerException {

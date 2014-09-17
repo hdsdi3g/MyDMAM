@@ -17,7 +17,7 @@
 package hd3gtv.mydmam.module;
 
 import hd3gtv.mydmam.cli.CliModule;
-import hd3gtv.mydmam.metadata.MetadataProvider;
+import hd3gtv.mydmam.metadata.Generator;
 import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
 import hd3gtv.mydmam.taskqueue.TriggerWorker;
 import hd3gtv.mydmam.taskqueue.Worker;
@@ -67,7 +67,7 @@ public abstract class MyDMAMModule extends PlayPlugin {
 		return null;
 	}
 	
-	public List<MetadataProvider> getMetadataProviders() {
+	public List<Generator> getMetadataGenerator() {
 		return null;
 	}
 }

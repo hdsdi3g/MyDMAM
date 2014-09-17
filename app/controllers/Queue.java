@@ -28,6 +28,7 @@ import play.mvc.Controller;
 import play.mvc.With;
 
 @With(Secure.class)
+@SuppressWarnings("unchecked")
 public class Queue extends Controller {
 	
 	@Check("showQueue")

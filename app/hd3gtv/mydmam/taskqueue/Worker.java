@@ -31,6 +31,7 @@ import org.json.simple.parser.ParseException;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
 
+@SuppressWarnings("unchecked")
 public abstract class Worker implements Log2Dumpable {
 	
 	public abstract void process(Job job) throws Exception;

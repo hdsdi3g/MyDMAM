@@ -14,31 +14,48 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.transcode;
+package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
-import hd3gtv.mydmam.metadata.rendering.PreviewType;
-import hd3gtv.mydmam.metadata.rendering.RenderedElement;
-import hd3gtv.mydmam.metadata.rendering.Renderer;
+import hd3gtv.mydmam.metadata.GeneratorRenderer;
+import hd3gtv.mydmam.metadata.PreviewType;
+import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.mydmam.metadata.WorkerRenderer;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Entry;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.taskqueue.Profile;
+import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 
-import org.json.simple.JSONObject;
-
-public class FFmpegSnapshoot implements Renderer {
+public class FFmpegSnapshoot implements GeneratorRenderer {
 	
 	private String ffmpeg_bin;
 	private TranscodeProfile tprofile;
+	
+	public static class Snapshoot extends EntryRenderer {
+		public String getES_Type() {
+			return "ffsnapshoot";
+		}
+		
+		protected Entry create() {
+			return new Snapshoot();
+		}
+		
+		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
+			return null;
+		}
+	}
 	
 	public FFmpegSnapshoot() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
@@ -59,27 +76,26 @@ public class FFmpegSnapshoot implements Renderer {
 		return "FFmpeg Snapshoot";
 	}
 	
-	public List<RenderedElement> process(MetadataIndexerResult analysis_result) throws Exception {
-		JSONObject analysed_result = FFprobeAnalyser.getAnalysedProcessresult(analysis_result);
-		if (analysed_result == null) {
+	public EntryRenderer process(Container container) throws Exception {
+		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		if (ffprobe == null) {
 			return null;
 		}
-		if (FFprobeAnalyser.hasVideo(analysed_result) == false) {
+		if (ffprobe.hasVideo() == false) {
 			return null;
 		}
 		
-		ArrayList<RenderedElement> result = new ArrayList<RenderedElement>();
-		RenderedElement element = new RenderedElement("snap", tprofile.getExtension("jpg"));
+		ArrayList<RenderedFile> result = new ArrayList<RenderedFile>();
+		RenderedFile element = new RenderedFile("snap", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.prepareExecprocessGettext(ffmpeg_bin, analysis_result.getOrigin(), element.getTempFile());
+		ExecprocessGettext process = tprofile.prepareExecprocessGettext(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile());
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				Log2Dump dump = new Log2Dump();
-				dump.add("file", analysis_result.getOrigin());
-				dump.add("mime", analysis_result.getMimetype());
+				dump.addAll(container);
 				if (process.getRunprocess().getExitvalue() == 1) {
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					Log2.log.error("Invalid data found when processing input", null, dump);
@@ -95,22 +111,19 @@ public class FFmpegSnapshoot implements Renderer {
 		
 		result.add(element);
 		
-		return result;
+		return element.consolidateAndExportToEntry(new Snapshoot(), container, this);
 	}
 	
-	public String getElasticSearchIndexType() {
-		return "ffsnapshoot";
-	}
-	
-	public PreviewType getPreviewTypeForRenderer(LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
+	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return PreviewType.full_size_thumbnail;
 	}
 	
-	public JSONObject getPreviewConfigurationForRenderer(PreviewType preview_type, LinkedHashMap<String, JSONObject> all_metadatas_for_element, List<RenderedElement> rendered_elements) {
-		if (preview_type == null) {
-			return null;
-		}
-		return null;
+	public Profile getManagedProfile() {
+		return new Profile(WorkerRenderer.PROFILE_CATEGORY, "ffsnapshoot");
+	}
+	
+	public Class<? extends EntryRenderer> getRootEntryClass() {
+		return Snapshoot.class;
 	}
 	
 }

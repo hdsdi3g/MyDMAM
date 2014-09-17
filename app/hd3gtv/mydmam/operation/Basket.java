@@ -46,6 +46,7 @@ import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class Basket {
 	
 	private static final ColumnFamily<String, String> CF_BASKETS = new ColumnFamily<String, String>("baskets", StringSerializer.get(), StringSerializer.get());

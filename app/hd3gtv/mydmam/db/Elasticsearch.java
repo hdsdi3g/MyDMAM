@@ -44,6 +44,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+@SuppressWarnings("unchecked")
 public class Elasticsearch {
 	
 	private static InetSocketTransportAddress[] transportadresses;
@@ -108,14 +109,14 @@ public class Elasticsearch {
 	
 	public static Log2Dump getDump() {
 		Log2Dump dump = new Log2Dump();
-		ClusterStateResponse csr = client.admin().cluster().prepareState().execute().actionGet();
+		ClusterStateResponse csr = getClient().admin().cluster().prepareState().execute().actionGet();
 		dump.add("get-clustername", csr.getClusterName().toString());
 		return dump;
 	}
 	
 	public static void deleteIndexRequest(String index_name) throws ElasticsearchException {
 		try {
-			client.admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
+			getClient().admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
 		} catch (IndexMissingException e) {
 		}
 	}
@@ -167,14 +168,14 @@ public class Elasticsearch {
 	}
 	
 	public static void enableTTL(String index_name, String type) throws IOException, ParseException {
-		if (client.admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists() == false) {
+		if (getClient().admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists() == false) {
 			return;
 		}
 		
+		String rest_url = Configuration.global.getValue("elasticsearch", "resturl", "http://" + transportadresses[0].address().getHostName() + ":9200");
+		
 		StringBuffer sb_url = new StringBuffer();
-		sb_url.append("http://");
-		sb_url.append(transportadresses[0].address().getHostName());
-		sb_url.append(":9200");
+		sb_url.append(rest_url);
 		sb_url.append("/");
 		sb_url.append(index_name);
 		sb_url.append("/");
@@ -265,7 +266,11 @@ public class Elasticsearch {
 	*/
 	
 	public static ElastisearchCrawlerReader createCrawlerReader() {
-		return new ElastisearchCrawlerReader(client);
+		return new ElastisearchCrawlerReader(getClient());
+	}
+	
+	public static ElastisearchMultipleCrawlerReader createMultipleCrawlerReader() {
+		return new ElastisearchMultipleCrawlerReader(getClient());
 	}
 	
 }

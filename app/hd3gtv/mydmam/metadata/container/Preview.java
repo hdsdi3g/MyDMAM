@@ -14,16 +14,22 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.metadata.container;
 
-public interface MetadataProvider {
+public class Preview {
 	
-	boolean canProcessThis(String mimetype);
+	String type;
+	String file;
 	
-	boolean isEnabled();
+	public String getFile() {
+		return file;
+	}
 	
-	String getLongName();
+	public String getESType() {
+		return type;
+	}
 	
-	String getElasticSearchIndexType();
+	Preview() {
+	}
 	
 }

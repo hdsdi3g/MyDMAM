@@ -22,7 +22,7 @@ import hd3gtv.tools.ExecprocessEvent;
 
 import java.io.IOException;
 
-class FFmpegEvents implements ExecprocessEvent {
+public class FFmpegEvents implements ExecprocessEvent {
 	
 	boolean display_raw_ffmpegmessages;
 	

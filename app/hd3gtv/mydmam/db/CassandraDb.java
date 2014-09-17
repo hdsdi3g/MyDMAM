@@ -50,10 +50,10 @@ public class CassandraDb {
 	static Cluster cluster;
 	private static List<ConfigurationClusterItem> clusterservers;
 	private static Builder builder;
-	static String keyspacename;
+	static String default_keyspacename;
 	
 	public static String getDefaultKeyspacename() {
-		return keyspacename;
+		return default_keyspacename;
 	}
 	
 	private static int initcount = 0;
@@ -75,14 +75,14 @@ public class CassandraDb {
 			
 			String clustername = Configuration.global.getValue("cassandra", "clustername", null);
 			clusterservers = Configuration.global.getClusterConfiguration("cassandra", "rcp_cluster", "127.0.0.1", 9160);
-			keyspacename = Configuration.global.getValue("cassandra", "keyspace", null);
+			default_keyspacename = Configuration.global.getValue("cassandra", "keyspace", null);
 			
 			Log2Dump dump = new Log2Dump();
 			dump.add("clustername", clustername);
 			for (ConfigurationClusterItem item : clusterservers) {
 				dump.addAll(item);
 			}
-			dump.add("keyspacename", keyspacename);
+			dump.add("keyspacename", default_keyspacename);
 			Log2.log.info("Cassandra client configuration", dump);
 			
 			ConnectionPoolConfigurationImpl connexionpool = new ConnectionPoolConfigurationImpl("mydmam-" + clustername);
@@ -104,7 +104,7 @@ public class CassandraDb {
 			AstyanaxConfigurationImpl configurationimpl = new AstyanaxConfigurationImpl();
 			configurationimpl.setDiscoveryType(NodeDiscoveryType.NONE);
 			configurationimpl.setTargetCassandraVersion("1.2");
-			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(keyspacename, 100, 30000, 20));
+			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(default_keyspacename, 100, 30000, 20));
 			
 			builder = new AstyanaxContext.Builder().forCluster(clustername);
 			builder.withAstyanaxConfiguration(configurationimpl);
@@ -120,10 +120,10 @@ public class CassandraDb {
 	}
 	
 	public static Keyspace getkeyspace() throws ConnectionException {
-		if (isKeyspaceExists(keyspacename) == false) {
-			createKeyspace(keyspacename);
+		if (isKeyspaceExists(default_keyspacename) == false) {
+			createKeyspace(default_keyspacename);
 		}
-		return cluster.getKeyspace(keyspacename);
+		return cluster.getKeyspace(default_keyspacename);
 	}
 	
 	public static Keyspace getkeyspace(String keyspacename) throws ConnectionException {
@@ -287,9 +287,9 @@ public class CassandraDb {
 		try {
 			keyspace.describeKeyspace();
 		} catch (ConnectionException e) {
-			if (e.getMessage().endsWith("InvalidRequestException(why:Keyspace '" + keyspacename + "' does not exist)")) {
+			if (e.getMessage().endsWith("InvalidRequestException(why:Keyspace '" + default_keyspacename + "' does not exist)")) {
 				Log2.log.info("Create keyspace");
-				createKeyspace(keyspacename);
+				createKeyspace(default_keyspacename);
 			} else {
 				throw e;
 			}

@@ -538,7 +538,7 @@
 		}
 
 		$('#' + id_rowfullview + " .profilename").html(current_taskjob.profile_name);
-		$('#' + id_rowfullview + " .requirekey").html(getRequireText(current_taskjob.task_key_require_done));
+		$('#' + id_rowfullview + " .requirekey").html(queue.getRequireText(current_taskjob.task_key_require_done));
 		$('#' + id_rowfullview + " .tjdatecreate").html(i18n('queue.task.createdat') + ' ' + mydmam.format.fulldate(current_taskjob.create_date));
 		$('#' + id_rowfullview + " .tjcreatorcname").html(current_taskjob.creator_classname);
 		$('#' + id_rowfullview + " .tjcreatorhname").html(current_taskjob.creator_hostname);
@@ -551,11 +551,11 @@
 				}
 			}
 		} else {
-			$('#' + id_rowfullview + " .maxdate").html(createTaskJobTableElementMaxDate(current_taskjob));
+			$('#' + id_rowfullview + " .maxdate").html(queue.createTaskJobTableElementMaxDate(current_taskjob));
 		}
 		
 		$('#' + id_rowfullview + " .tblcontext").empty();
-		$('#' + id_rowfullview + " .tblcontext").append(addContextItemsinTaskJobTableElement(current_taskjob));
+		$('#' + id_rowfullview + " .tblcontext").append(queue.addContextItemsinTaskJobTableElement(current_taskjob));
 		
 		
 		if (current_taskjob.delete_after_done) {

@@ -57,6 +57,7 @@ import com.google.gson.Gson;
 import ext.MydmamExtensions;
 
 @With(Secure.class)
+@SuppressWarnings("unchecked")
 public class User extends Controller {
 	
 	private static class UserModelClassResolver implements ModelClassResolver {
@@ -261,7 +262,7 @@ public class User extends Controller {
 	}
 	
 	public static void notificationclose(@Required String key) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			redirect("User.notificationslist");
 			return;
 		}
@@ -273,7 +274,7 @@ public class User extends Controller {
 	}
 	
 	public static void notificationupdatealert(@Required String key, @Required String reason, @Required Boolean notify) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			redirect("User.notificationslist");
 			return;
 		}
@@ -291,7 +292,7 @@ public class User extends Controller {
 	}
 	
 	public static void notificationupdatecomment(@Required String key, String comment) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			redirect("User.notificationslist");
 			return;
 		}
@@ -303,7 +304,7 @@ public class User extends Controller {
 	}
 	
 	public static void notificationupdateread(@Required String key) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			error(new NullPointerException("Invalid key"));
 		}
 		
@@ -349,6 +350,7 @@ public class User extends Controller {
 		renderJSON(jo.toJSONString());
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Check("adminUsers")
 	public static void notificationsadminlist() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.admin.pagename");
@@ -380,7 +382,7 @@ public class User extends Controller {
 	
 	@Check("adminUsers")
 	public static void notificationadminclose(@Required String key) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			redirect("User.notificationsadminlist");
 			return;
 		}
@@ -432,7 +434,7 @@ public class User extends Controller {
 	
 	@Check("navigate")
 	public static void basket_delete(@Required String name) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			renderJSON("[\"validation error\"]");
 		}
 		
@@ -447,7 +449,7 @@ public class User extends Controller {
 	
 	@Check("navigate")
 	public static void basket_truncate(@Required String name) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			renderJSON("[\"validation error\"]");
 		}
 		
@@ -475,7 +477,7 @@ public class User extends Controller {
 	
 	@Check("navigate")
 	public static void basket_rename(@Required String name, @Required String newname) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			renderJSON("[\"validation error\"]");
 		}
 		
@@ -505,7 +507,7 @@ public class User extends Controller {
 	
 	@Check("navigate")
 	public static void basket_create(@Required String name, @Required Boolean switch_to_selected) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			renderJSON("[\"validation error\"]");
 		}
 		
@@ -535,7 +537,7 @@ public class User extends Controller {
 	 */
 	@Check("navigate")
 	public static void basket_switch_selected(@Required String name) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			JSONObject jo = new JSONObject();
 			jo.put("notselected", true);
 			renderJSON(jo.toJSONString());
@@ -547,6 +549,7 @@ public class User extends Controller {
 		basket_pull();
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Check("adminUsers")
 	public static void basketsadmin() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.admin.pagename");
@@ -601,7 +604,7 @@ public class User extends Controller {
 	 */
 	@Check("adminUsers")
 	public static void basket_admin_action(@Required String userkey, @Required String basketname, @Required String actiontodo, String elementkey, List<String> newcontent) throws Exception {
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			JSONObject jo = new JSONObject();
 			jo.put("error", true);
 			renderJSON(jo.toJSONString());

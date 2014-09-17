@@ -19,24 +19,18 @@ package hd3gtv.mydmam.cli;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.analysing.Analyser;
-import hd3gtv.mydmam.metadata.indexing.MetadataIndexerResult;
-import hd3gtv.mydmam.metadata.rendering.FuturePrepareTask;
-import hd3gtv.mydmam.metadata.rendering.Renderer;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.metadata.MetadataIndexer;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 public class CliModuleMetadata implements CliModule {
 	
@@ -49,17 +43,10 @@ public class CliModuleMetadata implements CliModule {
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
-		MetadataCenter metadata_center = new MetadataCenter();
-		MetadataCenter.addAllInternalsProviders(metadata_center);
-		MyDMAMModulesManager.addAllExternalMetadataProviders(metadata_center);
-		
-		boolean verbose = args.getParamExist("-v");
-		boolean prettify = args.getParamExist("-vv");
+		// boolean verbose = args.getParamExist("-v");
+		// boolean prettify = args.getParamExist("-vv");
 		
 		if (args.getParamExist("-a")) {
-			MetadataCenter.addAllInternalsProviders(metadata_center);
-			MyDMAMModulesManager.addAllExternalMetadataProviders(metadata_center);
-			
 			File dir_testformats = new File(args.getSimpleParamValue("-a"));
 			if (dir_testformats.exists() == false) {
 				throw new FileNotFoundException(args.getSimpleParamValue("-a"));
@@ -71,10 +58,11 @@ public class CliModuleMetadata implements CliModule {
 			/**
 			 * Never be executed here (from CLI)
 			 */
-			List<FuturePrepareTask> current_create_task_list = new ArrayList<FuturePrepareTask>();
+			List<FutureCreateTasks> current_create_task_list = new ArrayList<FutureCreateTasks>();
 			
-			MetadataIndexerResult result;
+			Container result;
 			File[] files = dir_testformats.listFiles();
+			Log2Dump dump = new Log2Dump();
 			for (int pos = 0; pos < files.length; pos++) {
 				if (files[pos].isDirectory()) {
 					continue;
@@ -91,54 +79,11 @@ public class CliModuleMetadata implements CliModule {
 				spie.size = 0;
 				spie.storagename = "Test_MyDMAM_CLI";
 				
-				result = metadata_center.standaloneIndexing(files[pos], spie, current_create_task_list);
-				System.out.print(result.getOrigin());
-				System.out.print("\t");
-				System.out.print(result.getMimetype());
-				System.out.print("\t");
-				if (result.master_as_preview) {
-					System.out.print("MasterAsPreview");
-				}
-				System.out.print("\t");
-				if ((result.getAnalysis_results() != null) & (verbose | prettify)) {
-					for (Map.Entry<Analyser, JSONObject> entry : result.getAnalysis_results().entrySet()) {
-						System.out.println();
-						System.out.print("\t\t");
-						System.out.print(entry.getKey().getLongName());
-						System.out.print(" [");
-						System.out.print(entry.getKey().getElasticSearchIndexType());
-						System.out.print("]");
-						System.out.print("\t");
-						if (prettify) {
-							System.out.print(MetadataCenter.json_prettify(entry.getValue()));
-						} else {
-							System.out.print(entry.getValue().toJSONString());
-						}
-					}
-				}
-				
-				if (verbose | prettify) {
-					LinkedHashMap<Renderer, JSONArray> rendering_results = result.makeJSONRendering_results();
-					if (rendering_results != null) {
-						for (Map.Entry<Renderer, JSONArray> entry : rendering_results.entrySet()) {
-							System.out.println();
-							System.out.print("\t\t");
-							System.out.print(entry.getKey().getLongName());
-							System.out.print(" [");
-							System.out.print(entry.getKey().getElasticSearchIndexType());
-							System.out.print("]");
-							System.out.print("\t");
-							if (prettify) {
-								System.out.print(MetadataCenter.json_prettify(entry.getValue()));
-							} else {
-								System.out.print(entry.getValue().toJSONString());
-							}
-						}
-					}
-				}
-				
-				System.out.println();
+				result = MetadataCenter.standaloneIndexing(files[pos], spie, current_create_task_list);
+				dump.add("Item", files[pos]);
+				dump.addAll(result);
 			}
+			Log2.log.info("Result", dump);
 			
 			return;
 		} else if (args.getParamExist("-refresh")) {
@@ -166,9 +111,15 @@ public class CliModuleMetadata implements CliModule {
 				Log2.log.info("Empty/not found element to scan metadatas", dump);
 				return;
 			}
-			metadata_center.performAnalysis(root_indexing.storagename, root_indexing.currentpath, 0, true);
+			MetadataIndexer metadataIndexer = new MetadataIndexer(true);
+			metadataIndexer.process(root_indexing.storagename, root_indexing.currentpath, 0);
+			return;
+		} else if (args.getParamExist("-clean")) {
+			Log2.log.info("Start clean operations");
+			Operations.purge_orphan_metadatas();
 			return;
 		}
+		
 		showFullCliModuleHelp();
 	}
 	
@@ -176,10 +127,12 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println("Usage");
 		System.out.println(" * standalone directory analysis: ");
 		System.out.println("   " + getCliModuleName() + " -a /full/path [-v | -vv]");
-		System.out.println("   -v verbose");
-		System.out.println("   -vv verbose and prettify");
-		System.out.println(" * force re-indexing metadatas for a directory: ");
+		// System.out.println("   -v verbose");
+		// System.out.println("   -vv verbose and prettify");
+		System.out.println(" * force re-indexing metadatas for a directory:");
 		System.out.println("   " + getCliModuleName() + " -refresh storagename:/pathindexrelative");
+		System.out.println(" * do clean operation (remove orphan metadatas):");
+		System.out.println("   " + getCliModuleName() + " -clean");
 	}
 	
 }

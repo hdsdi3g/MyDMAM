@@ -55,6 +55,7 @@ import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.IndexQuery;
 
+@SuppressWarnings("unchecked")
 public class CassandraOrm<T extends OrmModel> {
 	
 	private MutationBatch mutator;
@@ -657,7 +658,7 @@ public class CassandraOrm<T extends OrmModel> {
 	public static void autotest() throws Exception {
 		int count = 1000;
 		
-		CassandraOrm<AutotestOrm> cassandraorm = new CassandraOrm(AutotestOrm.class, AutotestOrm.CF);
+		CassandraOrm<AutotestOrm> cassandraorm = new CassandraOrm<AutotestOrm>(AutotestOrm.class, AutotestOrm.CF);
 		cassandraorm.prepareColumnlistnames();
 		
 		Log2Dump dump = new Log2Dump();

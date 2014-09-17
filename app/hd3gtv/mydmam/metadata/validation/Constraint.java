@@ -18,8 +18,6 @@ package hd3gtv.mydmam.metadata.validation;
 
 import java.util.List;
 
-import org.json.simple.JSONObject;
-
 import com.jayway.jsonpath.JsonPath;
 
 abstract class Constraint {
@@ -42,12 +40,8 @@ abstract class Constraint {
 		}
 	}
 	
-	final List<Object> extractValueFromJson(JSONObject value) {
-		return JsonPath.read(value.toJSONString(), rule);
-	}
-	
-	final boolean isPassing(JSONObject value) {
-		List<Object> result = extractValueFromJson(value);
+	final boolean isPassing(String value) {
+		List<Object> result = JsonPath.read(value, rule);
 		if (result == null) {
 			return false;
 		}

@@ -43,6 +43,7 @@ import org.json.simple.JSONObject;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@SuppressWarnings("unchecked")
 public class Publish extends Worker {
 	
 	public static final Profile PROFILE_FFMPEG_VOD_LIVE = new Profile("ffmpeg", "ffmpeg_vod_live");

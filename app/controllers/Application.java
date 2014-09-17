@@ -17,9 +17,12 @@
 package controllers;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.rendering.RenderedElement;
+import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.mydmam.metadata.container.EntrySummary;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.SearchResult;
@@ -27,14 +30,17 @@ import hd3gtv.mydmam.web.stat.Stat;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.elasticsearch.indices.IndexMissingException;
 import org.json.simple.JSONObject;
 
 import play.data.validation.Required;
+import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.Http.Header;
@@ -94,7 +100,8 @@ public class Application extends Controller {
 		} catch (Exception e) {
 		}
 		
-		renderJSON(stat.toJSONString());
+		String result = stat.toJSONString();
+		renderJSON(result);
 	}
 	
 	public static void index() {
@@ -168,16 +175,25 @@ public class Application extends Controller {
 	public static void metadatafile(@Required String filehash, @Required String type, @Required String file) {
 		response.setHeader("Accept-Ranges", "bytes");
 		
-		if (validation.hasErrors()) {
+		if (Validation.hasErrors()) {
 			forbidden();
 		}
 		response.cacheFor("60s");
 		
-		RenderedElement element = null;
-		if (type.equals(MetadataCenter.MASTER_AS_PREVIEW)) {
-			element = MetadataCenter.getMasterAsPreviewFile(filehash);
-		} else {
-			element = MetadataCenter.getMetadataFileReference(filehash, type, file, false);
+		RenderedFile element = null;
+		try {
+			if (type.equals(EntrySummary.MASTER_AS_PREVIEW)) {
+				element = Operations.getMasterAsPreviewFile(filehash);
+			} else {
+				element = Operations.getMetadataFile(filehash, type, file, false);
+			}
+		} catch (IOException e) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("filehash", filehash);
+			dump.add("type", type);
+			dump.add("file", file);
+			Log2.log.error("Can't get the file", e, dump);
+		} catch (IndexMissingException e) {
 		}
 		
 		if (element == null) {
@@ -196,6 +212,7 @@ public class Application extends Controller {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Check("navigate")
 	public static void resolvePositions() throws ConnectionException {
 		String[] keys = params.getAll("keys[]");
