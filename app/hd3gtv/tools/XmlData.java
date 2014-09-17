@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -65,6 +66,17 @@ public class XmlData {
 		return document;
 	}
 	
+	private static void securePatchXml(DocumentBuilderFactory xmlDocumentBuilderFactory) {
+		try {
+			xmlDocumentBuilderFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+		} catch (ParserConfigurationException pce) {
+		}
+		try {
+			xmlDocumentBuilderFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+		} catch (ParserConfigurationException pce) {
+		}
+	}
+	
 	public static XmlData loadFromFile(File xmlfile) throws IOException {
 		if (xmlfile == null) {
 			throw new NullPointerException("\"xmlfile\" can't to be null");
@@ -75,16 +87,7 @@ public class XmlData {
 		
 		try {
 			DocumentBuilderFactory xmlDocumentBuilderFactory = DocumentBuilderFactory.newInstance();
-			
-			try {
-				xmlDocumentBuilderFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-			} catch (ParserConfigurationException pce) {
-			}
-			try {
-				xmlDocumentBuilderFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-			} catch (ParserConfigurationException pce) {
-			}
-			
+			securePatchXml(xmlDocumentBuilderFactory);
 			DocumentBuilder xmlDocumentBuilder = xmlDocumentBuilderFactory.newDocumentBuilder();
 			xmlDocumentBuilder.setErrorHandler(null);
 			return new XmlData(xmlDocumentBuilder.parse(xmlfile));
@@ -149,12 +152,16 @@ public class XmlData {
 	}
 	
 	public static XmlData loadFromBytes(byte[] data, int offset, int length) throws IOException {
+		return loadFromSteam(new ByteArrayInputStream(data, offset, length));
+	}
+	
+	public static XmlData loadFromSteam(InputStream inputstream) throws IOException {
 		try {
 			DocumentBuilderFactory xmlDocumentBuilderFactory = DocumentBuilderFactory.newInstance();
+			securePatchXml(xmlDocumentBuilderFactory);
 			DocumentBuilder xmlDocumentBuilder = xmlDocumentBuilderFactory.newDocumentBuilder();
 			xmlDocumentBuilder.setErrorHandler(null);
-			ByteArrayInputStream bais = new ByteArrayInputStream(data, offset, length);
-			Document document = xmlDocumentBuilder.parse(bais);
+			Document document = xmlDocumentBuilder.parse(inputstream);
 			return new XmlData(document);
 		} catch (ParserConfigurationException pce) {
 			throw new IOException("DOM parser error", pce);
@@ -164,18 +171,7 @@ public class XmlData {
 	}
 	
 	public static XmlData loadFromString(String content) throws IOException {
-		try {
-			DocumentBuilderFactory xmlDocumentBuilderFactory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder xmlDocumentBuilder = xmlDocumentBuilderFactory.newDocumentBuilder();
-			xmlDocumentBuilder.setErrorHandler(null);
-			ByteArrayInputStream bais = new ByteArrayInputStream(content.getBytes());
-			Document document = xmlDocumentBuilder.parse(bais);
-			return new XmlData(document);
-		} catch (ParserConfigurationException pce) {
-			throw new IOException("DOM parser error", pce);
-		} catch (SAXException se) {
-			throw new IOException("XML Struct error", se);
-		}
+		return loadFromSteam(new ByteArrayInputStream(content.getBytes()));
 	}
 	
 	/**
