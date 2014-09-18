@@ -80,7 +80,11 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 	}
 	
 	public String getLongName() {
-		return "FFmpeg renderer (" + transcode_profile.getName() + ")";
+		if (transcode_profile != null) {
+			return "FFmpeg renderer (" + transcode_profile.getName() + ")";
+		} else {
+			return "FFmpeg renderer (null)";
+		}
 	}
 	
 	public boolean isEnabled() {
