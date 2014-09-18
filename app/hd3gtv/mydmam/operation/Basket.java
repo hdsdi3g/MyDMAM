@@ -118,16 +118,20 @@ public class Basket {
 	 * @return baskets[name, content[pathindexhash]], never null
 	 */
 	public List<Object> getAllBaskets() {
-		GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
-		if (response.isExists() == false) {
+		try {
+			GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, user_key)).actionGet();
+			if (response.isExists() == false) {
+				return new ArrayList<Object>(1);
+			}
+			Map<String, Object> source = response.getSource();
+			
+			if (source.containsKey("baskets") == false) {
+				return new ArrayList<Object>(1);
+			}
+			return (List) source.get("baskets");
+		} catch (IndexMissingException e) {
 			return new ArrayList<Object>(1);
 		}
-		Map<String, Object> source = response.getSource();
-		
-		if (source.containsKey("baskets") == false) {
-			return new ArrayList<Object>(1);
-		}
-		return (List) source.get("baskets");
 	}
 	
 	public void importSelectedContent() throws ConnectionException {
