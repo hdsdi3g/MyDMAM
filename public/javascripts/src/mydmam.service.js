@@ -118,23 +118,23 @@
 								content = content + '</td>';
 								
 								content = content + '<td>';
-								if (functionality.capability_fileprocessing_enabled) {
+								if (functionality.capability.fileprocessing_enabled) {
 									content = content + '<span class="label label-success">File</span>';
 								}
-								if (functionality.capability_directoryprocessing_enabled) {
+								if (functionality.capability.directoryprocessing_enabled) {
 									content = content + '<span class="label label-success">Directory</span>';
 								}
-								if (functionality.capability_rootstorageindexprocessing_enabled) {
+								if (functionality.capability.rootstorageindexprocessing_enabled) {
 									content = content + '<span class="label label-success">Root storage</span>';
 								}
-								if (functionality.capability_musthavelocalstorageindexbridge) {
+								if (functionality.capability.musthavelocalstorageindexbridge) {
 									content = content + '<br><span class="label label-important">' + i18n("service.functionalitieslist.musthavelocalstorageindexbridge") + '</span>';
 								}
 								content = content + '</td>';
 
 								content = content + '<td>';
-								for (var pos_wl in functionality.capability_storageindexeswhitelist) {
-									content = content + functionality.capability_storageindexeswhitelist[pos_wl] + '<br>';
+								for (var pos_wl in functionality.capability.storageindexeswhitelist) {
+									content = content + functionality.capability.storageindexeswhitelist[pos_wl] + '<br>';
 								}
 								content = content + '</td>';
 

@@ -43,6 +43,8 @@ import org.json.simple.parser.JSONParser;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
@@ -291,7 +293,27 @@ public class IsAlive extends Thread {
 	
 	public static String getCurrentAvailabilitiesAsJsonString(ArrayList<String> privileges_for_user) throws ConnectionException {
 		Map<String, List<UAFunctionalityDefinintion>> all = getCurrentAvailabilities(privileges_for_user);
-		return gson.toJson(all);
+		
+		JsonObject result = new JsonObject();
+		JsonArray result_functdef;
+		// JsonObject result_capability;
+		
+		List<UAFunctionalityDefinintion> l_functdef;
+		UAFunctionalityDefinintion functdef;
+		for (Map.Entry<String, List<UAFunctionalityDefinintion>> entry : all.entrySet()) {
+			l_functdef = entry.getValue();
+			for (int pos = 0; pos < l_functdef.size(); pos++) {
+				functdef = l_functdef.get(pos);
+				if (result.has(functdef.reference) == false) {
+					result.add(functdef.reference, new JsonArray());
+				}
+				result_functdef = result.getAsJsonArray(functdef.reference);
+				// result_capability = new JsonObject();
+				// TODO push (UADummy)Configurator
+				result_functdef.add(gson.toJsonTree(functdef.capability));
+			}
+		}
+		return gson.toJson(result);
 	}
 	
 	public static JSONArray getLastStatusWorkers() throws Exception {

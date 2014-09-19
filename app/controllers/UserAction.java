@@ -55,22 +55,21 @@ public class UserAction extends Controller {
 	/**
 	 * @return null if no restrictions.
 	 */
-	private static ArrayList<String> getUserPrivileges() {
+	private static ArrayList<String> getUserRestrictedFunctionalities() {
 		String username = Secure.connected();
 		
 		ACLUser acl_user = ACLUser.findById(username);
-		String json_privileges = acl_user.group.role.privileges;
-		if (json_privileges == null) {
+		String json_functionalities = acl_user.group.role.functionalities;
+		if (json_functionalities == null) {
 			return null;
 		}
-		if (json_privileges.isEmpty()) {
+		if (json_functionalities.isEmpty()) {
 			return null;
 		}
-		if (json_privileges.equalsIgnoreCase("[]")) {
+		if (json_functionalities.equalsIgnoreCase("[]")) {
 			return new ArrayList<String>(1);
 		}
-		
-		return gson.fromJson(json_privileges, typeOfArrayString);
+		return gson.fromJson(json_functionalities, typeOfArrayString);
 	}
 	
 	@Check("userAction")
@@ -78,7 +77,7 @@ public class UserAction extends Controller {
 	 * @render Map<String, List<UAFunctionalityDefinintion>> availabilities
 	 */
 	public static void currentavailabilities() throws Exception {
-		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString(getUserPrivileges()));// TODO JSON side
+		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities()));// TODO JSON side
 	}
 	
 	private static UACreator internalCreate() throws Exception {
@@ -146,7 +145,7 @@ public class UserAction extends Controller {
 			throw e;
 		}
 		
-		ArrayList<String> privileges = getUserPrivileges();
+		ArrayList<String> privileges = getUserRestrictedFunctionalities();
 		if (privileges != null) {
 			if (privileges.contains(functionality_name) == false) {
 				throw new SecurityException("User " + Secure.connected() + " can't create " + functionality_name + " user action");
@@ -174,7 +173,7 @@ public class UserAction extends Controller {
 		
 		String configured_functionalities_json = params.get("configured_functionalities_json");
 		try {
-			creator.setConfigured_functionalities(configured_functionalities_json, getUserPrivileges());
+			creator.setConfigured_functionalities(configured_functionalities_json, getUserRestrictedFunctionalities());
 		} catch (Exception e) {
 			Log2Dump dump = new Log2Dump();
 			dump.add("user", Secure.connected());

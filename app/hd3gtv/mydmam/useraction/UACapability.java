@@ -37,6 +37,19 @@ public abstract class UACapability {
 		return new ArrayList<String>();
 	}
 	
+	public final UACapabilityDefinition getDefinition() {
+		UACapabilityDefinition definition = new UACapabilityDefinition();
+		definition.directoryprocessing_enabled = enableDirectoryProcessing();
+		definition.fileprocessing_enabled = enableFileProcessing();
+		definition.musthavelocalstorageindexbridge = mustHaveLocalStorageindexBridge();
+		definition.rootstorageindexprocessing_enabled = enableRootStorageindexProcessing();
+		definition.storageindexeswhitelist = getStorageindexesWhiteList();
+		if (definition.storageindexeswhitelist == null) {
+			definition.storageindexeswhitelist = new ArrayList<String>();
+		}
+		return definition;
+	}
+	
 	void checkValidity(SourcePathIndexerElement element) throws IOException {
 		if ((enableFileProcessing() == false) & (element.directory == false)) {
 			throw new IOException("Element is a file, and file processing is not available");

@@ -109,7 +109,7 @@ public class UAManager {
 				for (int pos_list = 0; pos_list < list.size(); pos_list++) {
 					for (int pos_funct = 0; pos_funct < functionalities_list.size(); pos_funct++) {
 						functionality = functionalities_list.get(pos_funct);
-						if (functionality.getName().equals(list.get(pos_list))) {
+						if (functionality.getName().equalsIgnoreCase(list.get(pos_list))) {
 							if (worker_functionalities_list.contains(functionality) == false) {
 								worker_functionalities_list.add(functionality);
 							}
@@ -130,7 +130,7 @@ public class UAManager {
 			}
 			
 			Log2Dump dump = new Log2Dump();
-			dump.add("Functionalities:", "");
+			dump.add("Functionalities:", "\\");
 			for (int pos_funct = 0; pos_funct < worker_functionalities_list.size(); pos_funct++) {
 				functionality = worker_functionalities_list.get(pos_funct);
 				dump.add(functionality.getName(), functionality.getLongName());
