@@ -496,7 +496,7 @@ public class User extends Controller {
 		StringBuffer result = new StringBuffer();
 		for (int pos = 0; pos < rawname.length(); pos++) {
 			chr = rawname.charAt(pos);
-			if (Character.isAlphabetic(chr)) {
+			if (Character.isAlphabetic(chr)) {// TODO not JRE6 compilant
 				result.append(chr);
 			} else if (Character.isDigit(chr)) {
 				result.append(chr);
