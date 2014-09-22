@@ -39,10 +39,6 @@ public abstract class UAFunctionality {
 	
 	public abstract String getVendor();
 	
-	public final String getName() {
-		return getClass().getSimpleName().toLowerCase();
-	}
-	
 	public abstract String getLongName();
 	
 	public abstract String getDescription();
@@ -60,11 +56,18 @@ public abstract class UAFunctionality {
 	}
 	
 	/**
+	 * @return get simple class name to lower case.
+	 */
+	public final String getSimpleName() {
+		return getClass().getSimpleName().toLowerCase();
+	}
+	
+	/**
 	 * Utility. Internal and local configuration from YAML.
 	 * @return useraction->class.getSimpleName().toLowerCase() content from configuration, never null
 	 */
 	public final LinkedHashMap<String, ?> getConfigurationFromReferenceClass() {
-		String classname = getName();
+		String classname = getSimpleName();
 		if (Configuration.global.isElementKeyExists("useraction", classname) == false) {
 			return new LinkedHashMap<String, Object>(1);
 		}
@@ -109,6 +112,8 @@ public abstract class UAFunctionality {
 	private volatile List<Profile> user_action_profiles;
 	
 	public final List<Profile> getUserActionProfiles() {
+		String name = getSimpleName();
+		
 		if (user_action_profiles == null) {
 			user_action_profiles = new ArrayList<Profile>();
 			List<String> whitelist = getCapabilityForInstance().getStorageindexesWhiteList();
@@ -119,14 +124,14 @@ public abstract class UAFunctionality {
 			
 			if (whitelist.isEmpty()) {
 				for (int pos = 0; pos < bridgedstorages.size(); pos++) {
-					user_action_profiles.add(new Profile("useraction", getName() + "=" + bridgedstorages.get(pos)));
+					user_action_profiles.add(new Profile("useraction", name + "=" + bridgedstorages.get(pos)));
 				}
 			} else {
 				for (int pos = 0; pos < whitelist.size(); pos++) {
 					if (bridgedstorages.contains(whitelist.get(pos)) == false) {
 						continue;
 					}
-					user_action_profiles.add(new Profile("useraction", getName() + "=" + whitelist.get(pos)));
+					user_action_profiles.add(new Profile("useraction", name + "=" + whitelist.get(pos)));
 				}
 			}
 		}

@@ -558,4 +558,40 @@ public class Configuration {
 		
 		return result;
 	}
+	
+	public List<List<String>> getListsInListValues(String elementname, String key) {
+		return getListsInListValues(configuration, elementname, key);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static List<List<String>> getListsInListValues(HashMap<String, ConfigurationItem> baseelement, String elementname, String key) {
+		ConfigurationItem element = baseelement.get(elementname);
+		if (element == null) {
+			return null;
+		}
+		Object o = element.content.get(key);
+		
+		if ((o instanceof ArrayList<?>) == false) {
+			Log2.log.error("Element " + elementname + "/" + key + " is not a list.", null);
+			return null;
+		}
+		
+		ArrayList<Object> rawlist = (ArrayList<Object>) o;
+		
+		List<List<String>> result = new ArrayList<List<String>>(rawlist.size());
+		
+		for (int pos = 0; pos < rawlist.size(); pos++) {
+			o = rawlist.get(pos);
+			if ((o instanceof List) == false) {
+				Log2.log.error("Element " + elementname + "/" + key + " pos " + (pos + 1) + "/" + rawlist.size() + " is not a list", null);
+				continue;
+			}
+			result.add((List) o);
+		}
+		if (result.isEmpty()) {
+			return null;
+		}
+		
+		return result;
+	}
 }

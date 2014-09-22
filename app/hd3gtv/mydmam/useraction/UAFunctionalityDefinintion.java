@@ -38,13 +38,13 @@ public class UAFunctionalityDefinintion {
 	
 	public String section;
 	public String vendor;
-	public String reference;
 	public String classname;
 	public String longname;
 	public String description;
 	public String instance;
 	public List<Profile> profiles;
 	public UACapabilityDefinition capability;
+	public UAConfigurator configurator;
 	
 	private static final ProfileSerializer profileserializer;
 	private static final Serializer serializer;
@@ -64,8 +64,6 @@ public class UAFunctionalityDefinintion {
 				continue;
 			} else if (definition.vendor != current.vendor) {
 				continue;
-			} else if (definition.reference != current.reference) {
-				continue;
 			} else if (definition.classname != current.classname) {
 				continue;
 			} else if (definition.longname != current.longname) {
@@ -75,6 +73,9 @@ public class UAFunctionalityDefinintion {
 			} else if (definition.instance != current.instance) {
 				continue;
 			}
+			/**
+			 * Ignore differents configurators
+			 */
 			
 			/**
 			 * Mergue...
@@ -106,12 +107,12 @@ public class UAFunctionalityDefinintion {
 		UAFunctionalityDefinintion def = new UAFunctionalityDefinintion();
 		def.section = functionality.getSection();
 		def.vendor = functionality.getVendor();
-		def.reference = functionality.getName();
 		def.longname = functionality.getLongName();
 		def.description = functionality.getDescription();
 		def.instance = functionality.getInstanceReference().toString();
 		def.classname = functionality.getClass().getName();
 		def.profiles = functionality.getUserActionProfiles();
+		def.configurator = functionality.createEmptyConfiguration();
 		
 		UACapability capability = functionality.getCapabilityForInstance();
 		if (capability != null) {
@@ -128,6 +129,7 @@ public class UAFunctionalityDefinintion {
 		builder.serializeNulls();
 		builder.registerTypeAdapter(UAFunctionalityDefinintion.class, serializer);
 		builder.registerTypeAdapter(UACapabilityDefinition.class, new UACapabilityDefinition.Serializer());
+		builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
 		return builder.create();
 	}
 	

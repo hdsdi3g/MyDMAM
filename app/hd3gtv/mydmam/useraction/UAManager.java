@@ -56,10 +56,10 @@ public class UAManager {
 		if (functionality == null) {
 			return;
 		}
-		if (functionalities_class_map.containsKey(functionality.getName())) {
+		if (functionalities_class_map.containsKey(functionality.getClass().getName())) {
 			return;
 		}
-		functionalities_class_map.put(functionality.getName(), functionality);
+		functionalities_class_map.put(functionality.getClass().getName(), functionality);
 		functionalities_list.add(functionality);
 	}
 	
@@ -73,8 +73,8 @@ public class UAManager {
 		}
 	}
 	
-	public static UAFunctionality getByName(String name) {
-		return functionalities_class_map.get(name);
+	public static UAFunctionality getByName(String classname) {
+		return functionalities_class_map.get(classname);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -82,37 +82,20 @@ public class UAManager {
 		if (Configuration.global.isElementKeyExists("useraction", "workers_activated") == false) {
 			return;
 		}
-		List<LinkedHashMap<String, ?>> conf_workers = Configuration.global.getListMapValues("useraction", "workers_activated");
+		List<List<String>> conf_workers = Configuration.global.getListsInListValues("useraction", "workers_activated");
 		
-		LinkedHashMap<String, ?> conf_worker;
 		List<String> list;
 		UAFunctionality functionality;
 		List<UAFunctionality> worker_functionalities_list;
 		for (int pos_conf_worker = 0; pos_conf_worker < conf_workers.size(); pos_conf_worker++) {
 			worker_functionalities_list = new ArrayList<UAFunctionality>();
-			conf_worker = conf_workers.get(pos_conf_worker);
-			if (conf_worker.containsKey("class")) {
-				list = (List<String>) conf_worker.get("class");
-				for (int pos_list = 0; pos_list < list.size(); pos_list++) {
-					for (int pos_funct = 0; pos_funct < functionalities_list.size(); pos_funct++) {
-						functionality = functionalities_list.get(pos_funct);
-						if (functionality.getClass().getName().startsWith(list.get(pos_list))) {
-							if (worker_functionalities_list.contains(functionality) == false) {
-								worker_functionalities_list.add(functionality);
-							}
-						}
-					}
-				}
-			}
-			if (conf_worker.containsKey("name")) {
-				list = (List<String>) conf_worker.get("name");
-				for (int pos_list = 0; pos_list < list.size(); pos_list++) {
-					for (int pos_funct = 0; pos_funct < functionalities_list.size(); pos_funct++) {
-						functionality = functionalities_list.get(pos_funct);
-						if (functionality.getName().equalsIgnoreCase(list.get(pos_list))) {
-							if (worker_functionalities_list.contains(functionality) == false) {
-								worker_functionalities_list.add(functionality);
-							}
+			list = conf_workers.get(pos_conf_worker);
+			for (int pos_list = 0; pos_list < list.size(); pos_list++) {
+				for (int pos_funct = 0; pos_funct < functionalities_list.size(); pos_funct++) {
+					functionality = functionalities_list.get(pos_funct);
+					if (functionality.getClass().getName().toLowerCase().startsWith(list.get(pos_list).toLowerCase())) {
+						if (worker_functionalities_list.contains(functionality) == false) {
+							worker_functionalities_list.add(functionality);
 						}
 					}
 				}
@@ -133,7 +116,7 @@ public class UAManager {
 			dump.add("Functionalities:", "\\");
 			for (int pos_funct = 0; pos_funct < worker_functionalities_list.size(); pos_funct++) {
 				functionality = worker_functionalities_list.get(pos_funct);
-				dump.add(functionality.getName(), functionality.getLongName());
+				dump.add(functionality.getClass().getSimpleName(), functionality.getLongName());
 			}
 			Log2.log.info("Add Useraction worker", dump);
 			wgroup.addWorker(new UAWorker(worker_functionalities_list));

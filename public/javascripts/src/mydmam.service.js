@@ -100,8 +100,7 @@
 								content = content + '<tr>';
 								
 								content = content + '<td>' + functionality.vendor + '<br>';
-								content = content + '<small>' + functionality.section + '</small><br>';
-								content = content + '<small>' + functionality.reference + '</small></td>';
+								content = content + '<small>' + functionality.section + '</small></td>';
 
 								//content = content + '<td>' + functionality.instance + '</td>';
 								

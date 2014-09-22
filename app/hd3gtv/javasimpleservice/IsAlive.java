@@ -258,7 +258,7 @@ public class IsAlive extends Thread {
 			if (privileges_for_user != null) {
 				if (privileges_for_user.isEmpty() == false) {
 					for (int pos = list.size() - 1; pos > -1; pos--) {
-						if (privileges_for_user.contains(list.get(pos).reference) == false) {
+						if (privileges_for_user.contains(list.get(pos).classname) == false) {
 							list.remove(pos);
 						}
 					}
@@ -295,8 +295,8 @@ public class IsAlive extends Thread {
 		Map<String, List<UAFunctionalityDefinintion>> all = getCurrentAvailabilities(privileges_for_user);
 		
 		JsonObject result = new JsonObject();
-		JsonArray result_functdef;
-		// JsonObject result_capability;
+		JsonArray result_functdefs;
+		JsonObject result_functdef;
 		
 		List<UAFunctionalityDefinintion> l_functdef;
 		UAFunctionalityDefinintion functdef;
@@ -304,13 +304,14 @@ public class IsAlive extends Thread {
 			l_functdef = entry.getValue();
 			for (int pos = 0; pos < l_functdef.size(); pos++) {
 				functdef = l_functdef.get(pos);
-				if (result.has(functdef.reference) == false) {
-					result.add(functdef.reference, new JsonArray());
+				if (result.has(functdef.classname) == false) {
+					result.add(functdef.classname, new JsonArray());
 				}
-				result_functdef = result.getAsJsonArray(functdef.reference);
-				// result_capability = new JsonObject();
-				// TODO push (UADummy)Configurator
-				result_functdef.add(gson.toJsonTree(functdef.capability));
+				result_functdefs = result.getAsJsonArray(functdef.classname);
+				result_functdef = new JsonObject();
+				result_functdef.add("capability", (JsonObject) gson.toJsonTree(functdef.capability));
+				result_functdef.add("configurator", (JsonObject) gson.toJsonTree(functdef.configurator));
+				result_functdefs.add(result_functdef);
 			}
 		}
 		return gson.toJson(result);

@@ -32,7 +32,7 @@ import models.UserProfile;
 public final class UAWorker extends Worker {
 	
 	private List<UAFunctionality> functionalities_list;
-	private HashMap<String, UAFunctionality> functionalities_map;
+	private HashMap<Class<? extends UAFunctionality>, UAFunctionality> functionalities_map;
 	private List<Profile> managed_profiles;
 	
 	public UAWorker(List<UAFunctionality> functionalities_list) throws NullPointerException {
@@ -40,9 +40,9 @@ public final class UAWorker extends Worker {
 		if (functionalities_list == null) {
 			throw new NullPointerException("\"process\" can't to be null");
 		}
-		functionalities_map = new HashMap<String, UAFunctionality>();
+		functionalities_map = new HashMap<Class<? extends UAFunctionality>, UAFunctionality>();
 		for (int pos = 0; pos < functionalities_list.size(); pos++) {
-			functionalities_map.put(functionalities_list.get(pos).getName(), functionalities_list.get(pos));
+			functionalities_map.put(functionalities_list.get(pos).getClass(), functionalities_list.get(pos));
 		}
 		managed_profiles = new ArrayList<Profile>();
 		for (int pos = 0; pos < functionalities_list.size(); pos++) {
@@ -52,10 +52,6 @@ public final class UAWorker extends Worker {
 	
 	public List<UAFunctionality> getFunctionalities_list() {
 		return functionalities_list;
-	}
-	
-	public HashMap<String, UAFunctionality> getFunctionalities_map() {
-		return functionalities_map;
 	}
 	
 	private UAJobProcess current_process;
@@ -70,13 +66,13 @@ public final class UAWorker extends Worker {
 			throw new NullPointerException("No \"context\" for job");
 		}
 		
-		if (context.functionality_name == null) {
-			throw new NullPointerException("\"context.functionality_name\" can't to be null");
+		if (context.functionality_class == null) {
+			throw new NullPointerException("\"context.functionality_classname\" can't to be null");
 		}
 		
-		UAFunctionality functionality = functionalities_map.get(context.functionality_name);
+		UAFunctionality functionality = functionalities_map.get(context.functionality_class);
 		if (functionality == null) {
-			throw new NullPointerException("Can't found declared functionality " + context.functionality_name);
+			throw new NullPointerException("Can't found declared functionality " + context.functionality_class.getName());
 		}
 		
 		UAFinisherConfiguration finisher = context.finisher;

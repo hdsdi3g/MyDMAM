@@ -60,8 +60,8 @@ public class UAFinisherWorker extends Worker {
 			throw new NullPointerException("No \"context\" for job");
 		}
 		
-		if (context.functionality_name == null) {
-			throw new NullPointerException("\"context.functionality_name\" can't to be null");
+		if (context.functionality_class == null) {
+			throw new NullPointerException("\"context.functionality_class\" can't to be null");
 		}
 		
 		UAFinisherConfiguration finisher = context.finisher;

@@ -1,24 +1,12 @@
 useraction:
     workers_activated:
         -
-            class:
-                - mypackage.sub.UAClassName
-            name:
-                - MyItem
+            - mypackage.sub.UAClassName
         -
-            class:
-                - myotherpackages.allclasses
-                - hd3gtv.mydmam.mail
-            name:
-                - MyItem1
-                - MyItem2
+            - myotherpackages.allclasses
+            - hd3gtv.mydmam.mail
         -
-            class:
-                - myotherpackages.allclasses
-        -
-            name:
-                - MyItem3
-                - MyItem4
+            - myotherpackages.allclasses
         # ...
     uadummy:
         file: ok
@@ -32,11 +20,10 @@ useraction:
     # - worker 2 functionalities
     # - ...
 #
-# worker functionalities: class and/or name
+# worker functionalities: class
 #
 # class (list): if declared functionality (in fonctionalities list) implement this class, added it to this worker.
 # If you set a package name, all functionality class in it will be added it to this worker.
-# name (list): if declared functionality (in fonctionalities list) has this name, add it to this worker.
 #
 # You can set the same functionality in many workers, or not if disabled.
 # You can't set the same functionality many times in the same worker.

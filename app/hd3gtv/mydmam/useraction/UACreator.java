@@ -78,16 +78,16 @@ public class UACreator {
 	private Client client;
 	
 	private class UACreatorConfiguredFunctionality {
-		String functionality_name;
+		String functionality_classname;
 		JsonElement raw_associated_user_configuration;
 		
 		transient UAConfigurator associated_user_configuration;
 		transient UAFunctionality functionality;
 		
 		void prepare() throws NullPointerException {
-			functionality = UAManager.getByName(functionality_name);
+			functionality = UAManager.getByName(functionality_classname);
 			if (functionality == null) {
-				throw new NullPointerException("Can't found functionality " + functionality_name + ".");
+				throw new NullPointerException("Can't found functionality " + functionality_classname + ".");
 			}
 			if (one_click) {
 				associated_user_configuration = functionality.createOneClickDefaultUserConfiguration();
@@ -187,8 +187,8 @@ public class UACreator {
 			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
 				configured_functionalities.get(pos).prepare();
 				if (user_restricted_privileges != null) {
-					if (user_restricted_privileges.contains(configured_functionalities.get(pos).functionality_name) == false) {
-						throw new SecurityException("Functionality: " + configured_functionalities.get(pos).functionality_name);
+					if (user_restricted_privileges.contains(configured_functionalities.get(pos).functionality_classname) == false) {
+						throw new SecurityException("Functionality: " + configured_functionalities.get(pos).functionality_classname);
 					}
 				}
 			}
@@ -200,15 +200,15 @@ public class UACreator {
 		return this;
 	}
 	
-	public UACreator setConfigured_functionalityForOneClick(String functionality_name) throws Exception {
-		if (functionality_name == null) {
-			throw new NullPointerException("\"functionality_name\" can't to be null");
+	public UACreator setConfigured_functionalityForOneClick(String functionality_classname) throws Exception {
+		if (functionality_classname == null) {
+			throw new NullPointerException("\"functionality_classname\" can't to be null");
 		}
 		
 		configured_functionalities = new ArrayList<UACreator.UACreatorConfiguredFunctionality>(1);
 		
 		UACreatorConfiguredFunctionality configured_functionality = new UACreatorConfiguredFunctionality();
-		configured_functionality.functionality_name = functionality_name;
+		configured_functionality.functionality_classname = functionality_classname;
 		configured_functionality.prepare();
 		configured_functionalities.add(configured_functionality);
 		return this;
@@ -268,7 +268,7 @@ public class UACreator {
 	 */
 	private String createSingleTaskWithRequire(String require, UACreatorConfiguredFunctionality configured_functionality, ArrayList<String> items, String storage_name) throws ConnectionException {
 		UAJobContext context = new UAJobContext();
-		context.functionality_name = configured_functionality.functionality.getName();
+		context.functionality_class = configured_functionality.functionality.getClass();
 		context.user_configuration = configured_functionality.associated_user_configuration;
 		context.creator_user_key = userprofile.key;
 		context.basket_name = basket_name;
@@ -286,7 +286,7 @@ public class UACreator {
 		name.append(storage_name);
 		name.append(")");
 		
-		Profile profile = new Profile("useraction", configured_functionality.functionality.getName() + "=" + storage_name);
+		Profile profile = new Profile("useraction", configured_functionality.functionality.getSimpleName() + "=" + storage_name);
 		return Broker.publishTask(name.toString(), profile, context.toContext(), UAJobContext.class, false, 0, require, false);
 	}
 	
@@ -295,7 +295,7 @@ public class UACreator {
 	 */
 	private String createSingleFinisherTask(String require, ArrayList<String> items, String storage_name) throws ConnectionException {
 		UAJobContext context = new UAJobContext();
-		context.functionality_name = null;
+		context.functionality_class = null;
 		context.user_configuration = null;
 		context.creator_user_key = userprofile.key;
 		context.basket_name = basket_name;

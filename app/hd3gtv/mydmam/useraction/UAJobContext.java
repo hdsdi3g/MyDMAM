@@ -33,7 +33,7 @@ import com.google.gson.reflect.TypeToken;
 
 public final class UAJobContext implements Log2Dumpable {
 	
-	String functionality_name;
+	Class<? extends UAFunctionality> functionality_class;
 	UAConfigurator user_configuration;
 	String creator_user_key;
 	String basket_name;
@@ -43,7 +43,7 @@ public final class UAJobContext implements Log2Dumpable {
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
-		dump.add("functionality_name", functionality_name);
+		dump.add("functionality_class", functionality_class);
 		dump.add("creator_user_key", creator_user_key);
 		dump.add("basket_name", basket_name);
 		dump.add("range", range);
