@@ -43,6 +43,8 @@ public abstract class UAFunctionality {
 	
 	public abstract String getDescription();
 	
+	public abstract String getMessageBaseName();
+	
 	private volatile UUID instance_reference;
 	
 	/**
@@ -77,23 +79,9 @@ public abstract class UAFunctionality {
 	
 	/**
 	 * For display create form in website.
-	 * @return can be null (if no form or one click UA).
+	 * @return can be null.
 	 */
 	public abstract UAConfigurator createEmptyConfiguration();
-	
-	/**
-	 * For display create form in website.
-	 */
-	public abstract boolean hasOneClickDefault();
-	
-	public abstract UAFinisherConfiguration getFinisherForOneClick();
-	
-	public abstract UARange getRangeForOneClick();
-	
-	/**
-	 * For execute an UA.
-	 */
-	public abstract UAConfigurator createOneClickDefaultUserConfiguration();
 	
 	public abstract UACapability createCapability(LinkedHashMap<String, ?> internal_configuration);
 	

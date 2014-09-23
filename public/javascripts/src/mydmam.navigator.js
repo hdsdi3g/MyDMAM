@@ -107,6 +107,7 @@
 
 		if (reference.storagename) {
 			content = content + mydmam.basket.prepareNavigatorSwitchButton(md5_fullpath);
+			content = content + mydmam.useraction.prepareButtonCreate(md5_fullpath, reference.directory, reference.storagename, reference.path) + " ";
 		}
 		
 		if (reference.date) {
@@ -185,7 +186,7 @@
 				var element = dircontent[pos].reference;
 				var element_items_total = dircontent[pos].items_total;
 				var element_mtdsummary = dircontent[pos].mtdsummary;
-				
+
 				if (element.directory === false) {
 					external_elements_to_resolve.push(elementkey);
 				}
@@ -225,7 +226,9 @@
 				}
 				
 				if (element.directory) {
-						content = content + '<td><span class="label label-success">';
+						content = content + '<td>';
+						content = content + mydmam.useraction.prepareButtonCreate(elementkey, true, element.storagename, element.path);
+						content = content + ' <span class="label label-success">';
 					if (reference.storagename != null) {
 						content = content + i18n('browser.directorytitle');
 					} else {
@@ -239,12 +242,17 @@
 						} else {
 							content = content + ' - ' + i18n('browser.Nelements', element_items_total);
 						}
-						content = content + '</span></td><td>-' + element_items_total + '</td>';
+						content = content + '</span>';
+						content = content + '</td><td>-' + element_items_total + '</td>';
 					} else {
 						content = content + '</span></td><td>0</td>';
 					}
 				} else {
-					content = content + '<td><span class="label label-important">' + element.size + '</span></td>';
+					content = content + '<td>';
+					content = content + mydmam.useraction.prepareButtonCreate(elementkey, false, element.storagename, element.path);
+					content = content + ' <span class="label label-important">' + element.size + '</span>';
+					content = content + '</td>';
+					
 					var rawsize = '000000000000000' + element.size;
 					content = content + '<td>' + rawsize.substring(rawsize.length - 15, rawsize.length) + '</td>';
 				}
@@ -314,6 +322,8 @@
 			$("#" + domid).append(content);
 		}
 		mydmam.metadatas.loadAfterDisplay();
+
+		mydmam.useraction.populateButtonsCreate();
 		
 		var click_navigate = function() {
 			mydmam.navigator.displayStoragePathNavigator("storageelem", $(this).context.hash.substring(1), true);

@@ -295,8 +295,10 @@ public class IsAlive extends Thread {
 		Map<String, List<UAFunctionalityDefinintion>> all = getCurrentAvailabilities(privileges_for_user);
 		
 		JsonObject result = new JsonObject();
+		JsonObject result_implementations;
 		JsonArray result_functdefs;
 		JsonObject result_functdef;
+		JsonObject result_capability;
 		
 		List<UAFunctionalityDefinintion> l_functdef;
 		UAFunctionalityDefinintion functdef;
@@ -305,11 +307,19 @@ public class IsAlive extends Thread {
 			for (int pos = 0; pos < l_functdef.size(); pos++) {
 				functdef = l_functdef.get(pos);
 				if (result.has(functdef.classname) == false) {
-					result.add(functdef.classname, new JsonArray());
+					result_implementations = new JsonObject();
+					result_implementations.addProperty("messagebasename", functdef.messagebasename);
+					result_implementations.add("definitions", new JsonArray());
+					result.add(functdef.classname, result_implementations);
 				}
-				result_functdefs = result.getAsJsonArray(functdef.classname);
+				result_implementations = result.getAsJsonObject(functdef.classname);
+				result_functdefs = result_implementations.getAsJsonArray("definitions");
+				
+				result_capability = (JsonObject) gson.toJsonTree(functdef.capability);
+				result_capability.remove("musthavelocalstorageindexbridge");
+				
 				result_functdef = new JsonObject();
-				result_functdef.add("capability", (JsonObject) gson.toJsonTree(functdef.capability));
+				result_functdef.add("capability", result_capability);
 				result_functdef.add("configurator", (JsonObject) gson.toJsonTree(functdef.configurator));
 				result_functdefs.add(result_functdef);
 			}

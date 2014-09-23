@@ -72,7 +72,6 @@ public class UACreator {
 	private ArrayList<UACreatorConfiguredFunctionality> configured_functionalities;
 	private ArrayList<UANotificationDestinator> notificationdestinations;
 	private LinkedHashMap<String, ArrayList<String>> storageindexname_to_itemlist;
-	private boolean one_click;
 	private String usercomment;
 	private ArrayList<String> new_tasks;
 	private Client client;
@@ -89,13 +88,9 @@ public class UACreator {
 			if (functionality == null) {
 				throw new NullPointerException("Can't found functionality " + functionality_classname + ".");
 			}
-			if (one_click) {
-				associated_user_configuration = functionality.createOneClickDefaultUserConfiguration();
-			} else {
-				associated_user_configuration = functionality.createEmptyConfiguration();
-				if (associated_user_configuration != null) {
-					associated_user_configuration.object = gson.fromJson(raw_associated_user_configuration, associated_user_configuration.getObjectClass());
-				}
+			associated_user_configuration = functionality.createEmptyConfiguration();
+			if (associated_user_configuration != null) {
+				associated_user_configuration.object = gson.fromJson(raw_associated_user_configuration, associated_user_configuration.getObjectClass());
 			}
 		}
 	}
@@ -148,14 +143,12 @@ public class UACreator {
 		}
 		configured_functionalities = new ArrayList<UACreator.UACreatorConfiguredFunctionality>();
 		notificationdestinations = new ArrayList<UACreator.UANotificationDestinator>();
-		this.one_click = true;
 		new_tasks = new ArrayList<String>();
 	}
 	
-	public void setRange_Finisher_NotOneClick(UAFinisherConfiguration finisher, UARange range) {
+	public void setRange_Finisher(UAFinisherConfiguration finisher, UARange range) {
 		this.global_finisher = finisher;
 		this.range = range;
-		this.one_click = false;
 	}
 	
 	public UACreator setUserprofile(UserProfile userprofile) {
@@ -327,10 +320,6 @@ public class UACreator {
 		if (storageindexname_to_itemlist.isEmpty()) {
 			return;
 		}
-		if (one_click) {
-			global_finisher = configured_functionalities.get(0).functionality.getFinisherForOneClick();
-			range = configured_functionalities.get(0).functionality.getRangeForOneClick();
-		}
 		String finisher_task;
 		
 		String storage_name;
@@ -405,7 +394,6 @@ public class UACreator {
 		logentry.put("userprofile", userprofile);
 		logentry.put("configured_functionalities", configured_functionalities);
 		logentry.put("storageindexname_to_itemlist", storageindexname_to_itemlist);
-		logentry.put("one_click", one_click);
 		logentry.put("global_finisher", global_finisher);
 		logentry.put("range", range);
 		logentry.put("new_tasks", new_tasks);

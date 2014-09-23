@@ -35,7 +35,7 @@ public final class UAWorker extends Worker {
 	private HashMap<Class<? extends UAFunctionality>, UAFunctionality> functionalities_map;
 	private List<Profile> managed_profiles;
 	
-	public UAWorker(List<UAFunctionality> functionalities_list) throws NullPointerException {
+	UAWorker(List<UAFunctionality> functionalities_list) throws NullPointerException {
 		this.functionalities_list = functionalities_list;
 		if (functionalities_list == null) {
 			throw new NullPointerException("\"process\" can't to be null");
@@ -80,12 +80,7 @@ public final class UAWorker extends Worker {
 		
 		UAConfigurator user_configuration = context.user_configuration;
 		if (user_configuration == null) {
-			if (functionality.hasOneClickDefault() == false) {
-				throw new NullPointerException("Can't found declared user_configuration in context and One Click is disabled");
-			}
-			user_configuration = functionality.createOneClickDefaultUserConfiguration();
-			finisher = functionality.getFinisherForOneClick();
-			range = functionality.getRangeForOneClick();
+			user_configuration = functionality.createEmptyConfiguration();
 		}
 		
 		if (context.creator_user_key == null) {

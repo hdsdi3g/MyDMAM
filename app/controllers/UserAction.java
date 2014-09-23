@@ -40,12 +40,6 @@ import com.google.gson.reflect.TypeToken;
 @With(Secure.class)
 public class UserAction extends Controller {
 	
-	// public static void index() throws Exception {
-	// String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile..pagename");
-	// String username = Secure.connected();
-	// String key = UserProfile.prepareKey(username);
-	// }
-	
 	private static final String JSON_OK_RESPONSE = "{\"result\": \"ok\"}";
 	
 	private static Gson gson = new Gson();
@@ -77,7 +71,7 @@ public class UserAction extends Controller {
 	 * @render Map<String, List<UAFunctionalityDefinintion>> availabilities
 	 */
 	public static void currentavailabilities() throws Exception {
-		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities()));// TODO JSON side
+		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities()));
 	}
 	
 	private static UACreator internalCreate() throws Exception {
@@ -134,29 +128,6 @@ public class UserAction extends Controller {
 	}
 	
 	@Check("userAction")
-	public static void createoneclick() throws Exception {
-		UACreator creator = internalCreate();
-		
-		String functionality_name = params.get("functionality_name");
-		try {
-			creator.setConfigured_functionalityForOneClick(functionality_name);
-		} catch (Exception e) {
-			Log2.log.error("Setup functionalities", e, new Log2Dump("functionality_name", functionality_name));
-			throw e;
-		}
-		
-		ArrayList<String> privileges = getUserRestrictedFunctionalities();
-		if (privileges != null) {
-			if (privileges.contains(functionality_name) == false) {
-				throw new SecurityException("User " + Secure.connected() + " can't create " + functionality_name + " user action");
-			}
-		}
-		creator.createTasks();
-		
-		renderJSON(JSON_OK_RESPONSE);
-	}
-	
-	@Check("userAction")
 	public static void create() throws Exception {
 		
 		UACreator creator = internalCreate();
@@ -169,7 +140,7 @@ public class UserAction extends Controller {
 			Log2.log.error("Bad JSON finisher", e, new Log2Dump("rawcontent", finisher_json));
 			renderJSON("{}");
 		}
-		creator.setRange_Finisher_NotOneClick(finiser_conf, UARange.fromString(params.get("range")));
+		creator.setRange_Finisher(finiser_conf, UARange.fromString(params.get("range")));
 		
 		String configured_functionalities_json = params.get("configured_functionalities_json");
 		try {
@@ -191,15 +162,8 @@ public class UserAction extends Controller {
 	 * TODO JS/View Useraction publisher in website
 	 * - popup method for a basket in baskets list
 	 * - special web page, "Useraction creation page", apply to the current basket
-	 * - popup method for the whole and recursive directory in navigator
-	 * - popup method for the current directory in navigator.
-	 * - popup method for the current file in navigator.
-	 * - nothing in search result
 	 * TODO JS Useraction publisher popup menu
-	 * - direct display button, async create sub menu content
-	 * - retrieve Capabilities and Availabilities from database, and display the correct popup content relative to the creator
 	 * - each action link will be targeted to an Useraction creation modal
-	 * - or preconfigured one-click action
 	 * TODO JS Useraction creator: list options to ask to user in website for create an Useraction. Specific for an Useraction. Declare a Finisher.
 	 * TODO JS Useraction creation tasks page/modal by sync
 	 * - display current basket, or an anonymous basket with the only one item requested (file, dir, recursive dir)

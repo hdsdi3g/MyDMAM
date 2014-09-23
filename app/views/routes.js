@@ -61,4 +61,10 @@
 mydmam.notification.url.notificationresolveusers = "@{User.notificationresolveusers}";
 mydmam.notification.url.notificationupdateread = "@{User.notificationupdateread(key='keyparam1')}";
 mydmam.notification.url.queuegettasksjobs = "@{Queue.gettasksjobs}";
+
+#{secure.check 'userAction'}
+mydmam.useraction.url.create = "@{UserAction.create()}";
+mydmam.useraction.url.currentavailabilities = "@{UserAction.currentavailabilities()}";
+#{/secure.check}
+
 })(window.mydmam);

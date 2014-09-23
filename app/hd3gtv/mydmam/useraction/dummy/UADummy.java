@@ -71,4 +71,8 @@ public class UADummy extends UAFunctionality {
 		return new UADummyCapability(internal_configuration);
 	}
 	
+	public String getMessageBaseName() {
+		return "uadummy";
+	}
+	
 }

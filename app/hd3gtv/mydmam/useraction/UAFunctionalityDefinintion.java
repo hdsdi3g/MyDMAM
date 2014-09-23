@@ -42,6 +42,7 @@ public class UAFunctionalityDefinintion {
 	public String longname;
 	public String description;
 	public String instance;
+	public String messagebasename;
 	public List<Profile> profiles;
 	public UACapabilityDefinition capability;
 	public UAConfigurator configurator;
@@ -60,22 +61,9 @@ public class UAFunctionalityDefinintion {
 		UAFunctionalityDefinintion current;
 		for (int pos = 0; pos < ressource.size(); pos++) {
 			current = ressource.get(pos);
-			if (definition.section != current.section) {
-				continue;
-			} else if (definition.vendor != current.vendor) {
-				continue;
-			} else if (definition.classname != current.classname) {
-				continue;
-			} else if (definition.longname != current.longname) {
-				continue;
-			} else if (definition.description != current.description) {
-				continue;
-			} else if (definition.instance != current.instance) {
+			if (definition.classname.equalsIgnoreCase(current.classname) == false) {
 				continue;
 			}
-			/**
-			 * Ignore differents configurators
-			 */
 			
 			/**
 			 * Mergue...
@@ -113,6 +101,10 @@ public class UAFunctionalityDefinintion {
 		def.classname = functionality.getClass().getName();
 		def.profiles = functionality.getUserActionProfiles();
 		def.configurator = functionality.createEmptyConfiguration();
+		def.messagebasename = functionality.getMessageBaseName();
+		if (def.messagebasename == null) {
+			def.messagebasename = functionality.getClass().getName();
+		}
 		
 		UACapability capability = functionality.getCapabilityForInstance();
 		if (capability != null) {

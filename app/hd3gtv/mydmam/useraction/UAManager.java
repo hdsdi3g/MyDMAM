@@ -43,7 +43,6 @@ public class UAManager {
 		functionalities_class_map = new LinkedHashMap<String, UAFunctionality>();
 		functionalities_list = new ArrayList<UAFunctionality>();
 		
-		// TODO add() internal implementations
 		add(new UADummy());
 		
 		List<MyDMAMModule> modules = MyDMAMModulesManager.getAllModules();
