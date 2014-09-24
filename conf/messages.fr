@@ -332,3 +332,4 @@ crud.field.userprofile.sendTestMail.by=Ce mail à été envoyé automatiquement 
 
 useractions.buttonactionlabel=Action
 useractions.functionalities.uadummy.name=Test de User Action (dummy)
+useractions.newaction=Nouvelle action

@@ -157,12 +157,18 @@
 	};
 
 	var btn_ua_dropdown_showcreate_click = function() {
-		var item_key = $(this).data("item_key");
+		var item = {
+			key : $(this).data('item_key'),
+			directory : $(this).data('is_directory'),
+			storagename : $(this).data('item_storagename'),
+			path : $(this).data('item_path')
+		};
+		var classname = $(this).data('ua-classname');
 		
 		var modal = useraction.creator.create();
-		modal.show();
+		modal.show(classname, item);
 		
-		$('#btn_ua_dropdown_' + item_key).dropdown('toggle').blur();
+		$('#btn_ua_dropdown_' + item.key).dropdown('toggle').blur();
 		return false;
 	};
 	

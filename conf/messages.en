@@ -332,3 +332,4 @@ crud.field.userprofile.sendTestMail.by=This email was sent automatically for %s
 
 useractions.buttonactionlabel=Action
 useractions.functionalities.uadummy.name=User Action test (dummy)
+useractions.newaction=New action

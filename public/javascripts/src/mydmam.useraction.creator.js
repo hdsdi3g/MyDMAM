@@ -21,33 +21,55 @@
  * public use
  * @return polyvalent object 
  */
-(function(creator) {
+(function(creator, availabilities) {
+	creator.currentmodal = null;
+	
 	creator.create = function() {
-		return {
-			show : function() {
-				console.log("Hello !");
+		creator.currentmodal = {
+			/*test: 0,*/
+			show : function(classname, items) {
+				$("#uacreationmodal").remove();
+				var content = '';
+				content = content + '<div id="uacreationmodal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="uacreationmodalLabel" aria-hidden="true">';
+				content = content + '<div class="modal-header">';
+				content = content + '<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>';
+				content = content + '<h3 id="uacreationmodalLabel">' + i18n("useractions.newaction") + '</h3>';
+				content = content + '</div>';
+				content = content + '<div class="modal-body">';
+
+				if ($.isArray(items)) {
+					//TODO
+				}
+				var item = items;//TODO
+				//this.test++;
+				
+				content = content + '<p>One fine body…</p>';
+				content = content + '</div>';
+				content = content + '<div class="modal-footer">';
+				content = content + '<button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>';
+				content = content + '<button class="btn btn-primary">Save changes</button>';
+				content = content + '</div>';
+				content = content + '</div>';
+				$("body").append(content);
+
+				/*classname: classname,
+				item.key,
+				item.directory: is_directory,
+				item.storagename: item_storagename,
+				item.path: item_path*/
+				
+				$('#uacreationmodal').modal({});
+
+				$('#uacreationmodal').on('hidden', function () {
+					creator.currentmodal = null;
+				});
 			}
 		};
+		return creator.currentmodal;
 	};
-})(mydmam.useraction.creator);
+})(mydmam.useraction.creator, mydmam.useraction.availabilities);
+
+
 
 //mydmam.useraction.url.create
 
-/*
- * 
-<div id="myModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-<div class="modal-header">
-<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-<h3 id="myModalLabel">Modal header</h3>
-</div>
-<div class="modal-body">
-<p>One fine body…</p>
-</div>
-<div class="modal-footer">
-<button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-<button class="btn btn-primary">Save changes</button>
-</div>
-</div>
- * 
- * 
- */
