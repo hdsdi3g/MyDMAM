@@ -17,19 +17,6 @@
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 /**
- * Prepare consts and vars.
- */
-(function(mydmam) {
-	mydmam.useraction = {};
-	mydmam.useraction.url = {};
-	mydmam.useraction.availabilities = {};
-	mydmam.useraction.availabilities.content = null; 
-})(window.mydmam);
-
-//mydmam.useraction.url.create
-//mydmam.useraction.url.createoneclick = "@{UserAction.createoneclick()}";
-
-/**
  * availabilities.downloadLast()
  * @param callback
  * @return null
@@ -86,20 +73,12 @@
 })(window.mydmam.useraction);
 
 /**
- * 
- */
-(function(useraction) {
-	useraction.availabilities.xxxxx = function() {
-		//TODO
-	};
-})(window.mydmam.useraction);
-
-/**
  * drawButtonsCreateContent()
- * Non-blocking action. Private use only.
+ * Non-blocking action. Internal use only.
  * @return null
  */
 (function(useraction) {
+	
 	var each_dropdown = function() {
 		var item_functionalities = [];
 		
@@ -161,17 +140,34 @@
 		for (var pos_f in item_functionalities) {
 			var item_functionality = item_functionalities[pos_f];
 			content = content + '<li>';
-			content = content + '<a href="#" class="btn-ua-dropdown-showcreate" data-ua-classname="' + item_functionality.classname + '">';
+			content = content + '<a href="#" class="btn-ua-dropdown-showcreate"';
+			content = content + ' data-ua-classname="' + item_functionality.classname + '"';
+			content = content + ' data-item_key="' + item_key + '"';
+			content = content + ' data-is_directory="' + is_directory + '"';
+			content = content + ' data-item_storagename="' + item_storagename + '"';
+			content = content + ' data-item_path="' + item_path  + '"';
+			content = content + ' data-toggle="modal"';
+			content = content + '">';
 			content = content + i18n('useractions.functionalities.' + item_functionality.messagebasename + '.name');
 			content = content + '</a>';
 			content = content + '</li>';
 		}
 		content = content + '</ul>';
 		$(this).append(content);
+	};
+
+	var btn_ua_dropdown_showcreate_click = function() {
+		var item_key = $(this).data("item_key");
 		
+		var modal = useraction.creator.create();
+		modal.show();
+		
+		$('#btn_ua_dropdown_' + item_key).dropdown('toggle').blur();
+		return false;
 	};
 	
 	useraction.drawButtonsCreateContent = function() {
 		$('div.btn-group.ua-dropdown').each(each_dropdown);
+		$("a.btn-ua-dropdown-showcreate").click(btn_ua_dropdown_showcreate_click);
 	};
 })(window.mydmam.useraction);
