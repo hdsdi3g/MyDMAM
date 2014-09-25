@@ -33,13 +33,13 @@ import com.google.gson.reflect.TypeToken;
 
 public final class UAJobContext implements Log2Dumpable {
 	
-	Class<? extends UAFunctionality> functionality_class;
-	UAConfigurator user_configuration;
-	String creator_user_key;
-	String basket_name;
-	ArrayList<String> items;
-	UARange range;
-	UAFinisherConfiguration finisher;
+	public Class<? extends UAFunctionality> functionality_class;
+	public UAConfigurator user_configuration;
+	public String creator_user_key;
+	public String basket_name;
+	public ArrayList<String> items;
+	public UARange range;
+	public UAFinisherConfiguration finisher;
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
@@ -53,7 +53,7 @@ public final class UAJobContext implements Log2Dumpable {
 		return dump;
 	}
 	
-	UAJobContext() {
+	public UAJobContext() {
 	}
 	
 	static Gson makeGson() {
@@ -81,7 +81,7 @@ public final class UAJobContext implements Log2Dumpable {
 		return result;
 	}
 	
-	JSONObject toContext() {
+	public JSONObject toContext() {
 		JSONParser jp = new JSONParser();
 		try {
 			return (JSONObject) jp.parse(makeGson().toJson(this));

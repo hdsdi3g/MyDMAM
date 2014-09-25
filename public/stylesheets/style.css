@@ -107,3 +107,32 @@ ul {
     padding: 39px 19px 14px;
     position: relative;
 }
+
+/* ================================================================================ */
+@media (min-width: 768px) {
+	div.modal {
+		margin-left: -350px;
+		width: 700px;	
+	}
+}
+
+div.modal-body p.lead {
+ 	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+#uacreationmodal div.modal-body {
+ 	padding-top: 0em;
+ 	max-height: inherit;
+}
+
+#uacreationmodal button.btn-mini.ua-creation-start {
+	float: right;
+	margin-top: 3px;
+	margin-right: 8px;
+}
+
+#uacreationmodal {
+	position: absolute;
+	top: 4em;
+}

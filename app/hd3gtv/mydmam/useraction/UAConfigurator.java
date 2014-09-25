@@ -44,7 +44,7 @@ public final class UAConfigurator implements Log2Dumpable {
 	
 	private String type;
 	private String origin;
-	Object object;
+	private Object object;
 	private List<ORMFormField> fields;
 	
 	public Log2Dump getLog2Dump() {
@@ -56,6 +56,10 @@ public final class UAConfigurator implements Log2Dumpable {
 		dump.add("fields", gson.toJson(fields, new TypeToken<ArrayList<ORMFormField>>() {
 		}.getType()));
 		return dump;
+	}
+	
+	public void setObject(Object object) {
+		this.object = object;
 	}
 	
 	/**
@@ -88,7 +92,7 @@ public final class UAConfigurator implements Log2Dumpable {
 		}
 	}
 	
-	Class<?> getObjectClass() {
+	public Class<?> getObjectClass() {
 		return object.getClass();
 	}
 	

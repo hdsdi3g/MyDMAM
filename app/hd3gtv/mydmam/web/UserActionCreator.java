@@ -14,21 +14,20 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.useraction;
+package hd3gtv.mydmam.web;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.mail.notification.Notification;
-import hd3gtv.mydmam.mail.notification.NotifyReason;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.Profile;
+import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
+import hd3gtv.mydmam.useraction.UAJobContext;
+import hd3gtv.mydmam.useraction.UARange;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,24 +37,19 @@ import java.util.Map;
 import models.UserProfile;
 
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.sort.SortOrder;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class UACreator {
+public class UserActionCreator {
 	
-	private static final String ES_TYPE = "log";
+	public static final String ES_TYPE = "log";
 	private static final long LOG_LIFETIME = 3600 * 24 * 365 * 2; // 2 years
 	
-	private static Gson gson;
+	static Gson gson;
 	
 	static {
 		GsonBuilder builder = new GsonBuilder();
@@ -64,70 +58,19 @@ public class UACreator {
 		gson = builder.create();
 	}
 	
-	private CrudOrmEngine<UserProfile> user_profile_orm;
 	private UserProfile userprofile;
 	private String basket_name;
 	private UARange range;
 	private UAFinisherConfiguration global_finisher;
-	private ArrayList<UACreatorConfiguredFunctionality> configured_functionalities;
-	private ArrayList<UANotificationDestinator> notificationdestinations;
+	private ArrayList<UserActionCreatorConfiguredFunctionality> configured_functionalities;
+	private ArrayList<UserActionCreatorNotificationDestinator> notificationdestinations;
 	private LinkedHashMap<String, ArrayList<String>> storageindexname_to_itemlist;
 	private String usercomment;
 	private ArrayList<String> new_tasks;
 	private Client client;
 	
-	private class UACreatorConfiguredFunctionality {
-		String functionality_classname;
-		JsonElement raw_associated_user_configuration;
-		
-		transient UAConfigurator associated_user_configuration;
-		transient UAFunctionality functionality;
-		
-		void prepare() throws NullPointerException {
-			functionality = UAManager.getByName(functionality_classname);
-			if (functionality == null) {
-				throw new NullPointerException("Can't found functionality " + functionality_classname + ".");
-			}
-			associated_user_configuration = functionality.createEmptyConfiguration();
-			if (associated_user_configuration != null) {
-				associated_user_configuration.object = gson.fromJson(raw_associated_user_configuration, associated_user_configuration.getObjectClass());
-			}
-		}
-	}
-	
-	private class UANotificationDestinator implements Log2Dumpable {
-		String user_key;
-		String reason;
-		
-		transient UserProfile userprofile;
-		transient NotifyReason n_reason;
-		
-		void prepare() throws NullPointerException, ConnectionException {
-			n_reason = NotifyReason.getFromString(reason);
-			if (n_reason == null) {
-				throw new NullPointerException("Invalid reason " + reason + ".");
-			}
-			if (userprofile != null) {
-				return;
-			}
-			userprofile = user_profile_orm.read(user_key);
-			if (userprofile == null) {
-				throw new NullPointerException("Can't found userprofile " + user_key + ".");
-			}
-		}
-		
-		public Log2Dump getLog2Dump() {
-			Log2Dump dump = new Log2Dump();
-			dump.add("user_key", user_key);
-			dump.add("reason", reason);
-			return dump;
-		}
-	}
-	
-	public UACreator(ArrayList<SourcePathIndexerElement> items_spie) throws ConnectionException, IOException {
+	public UserActionCreator(ArrayList<SourcePathIndexerElement> items_spie) throws ConnectionException, IOException {
 		client = Elasticsearch.getClient();
-		
-		user_profile_orm = new CrudOrmEngine<UserProfile>(new UserProfile());
 		
 		if (items_spie.isEmpty()) {
 			throw new NullPointerException("Items can't to be empty");
@@ -141,8 +84,8 @@ public class UACreator {
 			}
 			storageindexname_to_itemlist.get(item.storagename).add(item.prepare_key());
 		}
-		configured_functionalities = new ArrayList<UACreator.UACreatorConfiguredFunctionality>();
-		notificationdestinations = new ArrayList<UACreator.UANotificationDestinator>();
+		configured_functionalities = new ArrayList<UserActionCreatorConfiguredFunctionality>();
+		notificationdestinations = new ArrayList<UserActionCreatorNotificationDestinator>();
 		new_tasks = new ArrayList<String>();
 	}
 	
@@ -151,12 +94,12 @@ public class UACreator {
 		this.range = range;
 	}
 	
-	public UACreator setUserprofile(UserProfile userprofile) {
+	public UserActionCreator setUserprofile(UserProfile userprofile) {
 		this.userprofile = userprofile;
 		return this;
 	}
 	
-	public UACreator setBasket_name(String basket_name) {
+	public UserActionCreator setBasket_name(String basket_name) {
 		this.basket_name = basket_name;
 		return this;
 	}
@@ -164,7 +107,7 @@ public class UACreator {
 	/**
 	 * @param configured_functionalities_json List<UACreatorConfiguredFunctionality>
 	 */
-	public UACreator setConfigured_functionalities(String configured_functionalities_json, ArrayList<String> user_restricted_privileges) throws Exception {
+	public UserActionCreator setConfigured_functionalities(String configured_functionalities_json, ArrayList<String> user_restricted_privileges) throws Exception {
 		if (configured_functionalities_json == null) {
 			throw new NullPointerException("\"configured_functionalities_json\" can't to be null");
 		}
@@ -172,7 +115,7 @@ public class UACreator {
 			throw new NullPointerException("\"configured_functionalities_json\" can't to be empty");
 		}
 		
-		Type typeOfT = new TypeToken<ArrayList<UACreatorConfiguredFunctionality>>() {
+		Type typeOfT = new TypeToken<ArrayList<UserActionCreatorConfiguredFunctionality>>() {
 		}.getType();
 		configured_functionalities = gson.fromJson(configured_functionalities_json, typeOfT);
 		
@@ -187,20 +130,20 @@ public class UACreator {
 			}
 		} catch (Exception e) {
 			Log2.log.error("Invalid configured_functionalities_json", null, new Log2Dump("associated_user_configuration", configured_functionalities_json));
-			configured_functionalities = new ArrayList<UACreator.UACreatorConfiguredFunctionality>(1); // set empty...
+			configured_functionalities = new ArrayList<UserActionCreatorConfiguredFunctionality>(1); // set empty...
 			throw new Exception("Invalid configured_functionalities_json", e);
 		}
 		return this;
 	}
 	
-	public UACreator setConfigured_functionalityForOneClick(String functionality_classname) throws Exception {
+	public UserActionCreator setConfigured_functionalityForOneClick(String functionality_classname) throws Exception {
 		if (functionality_classname == null) {
 			throw new NullPointerException("\"functionality_classname\" can't to be null");
 		}
 		
-		configured_functionalities = new ArrayList<UACreator.UACreatorConfiguredFunctionality>(1);
+		configured_functionalities = new ArrayList<UserActionCreatorConfiguredFunctionality>(1);
 		
-		UACreatorConfiguredFunctionality configured_functionality = new UACreatorConfiguredFunctionality();
+		UserActionCreatorConfiguredFunctionality configured_functionality = new UserActionCreatorConfiguredFunctionality();
 		configured_functionality.functionality_classname = functionality_classname;
 		configured_functionality.prepare();
 		configured_functionalities.add(configured_functionality);
@@ -210,7 +153,7 @@ public class UACreator {
 	/**
 	 * @param configured_functionalities_json List<UACreatorConfiguredFunctionality>
 	 */
-	public UACreator setNotificationdestinations(String notificationdestinations_json) throws Exception {
+	public UserActionCreator setNotificationdestinations(String notificationdestinations_json) throws Exception {
 		if (notificationdestinations_json == null) {
 			return this;
 		}
@@ -218,7 +161,7 @@ public class UACreator {
 			return this;
 		}
 		
-		Type typeOfT = new TypeToken<ArrayList<UANotificationDestinator>>() {
+		Type typeOfT = new TypeToken<ArrayList<UserActionCreatorNotificationDestinator>>() {
 		}.getType();
 		notificationdestinations = gson.fromJson(notificationdestinations_json, typeOfT);
 		
@@ -228,13 +171,13 @@ public class UACreator {
 			}
 		} catch (Exception e) {
 			Log2.log.error("Invalid notificationdestinations", null, new Log2Dump("notificationdestinations", notificationdestinations_json));
-			notificationdestinations = new ArrayList<UACreator.UANotificationDestinator>(1);
+			notificationdestinations = new ArrayList<UserActionCreatorNotificationDestinator>(1);
 			throw new Exception("Invalid configured_functionalities_json", e);
 		}
 		return this;
 	}
 	
-	public UACreator addNotificationdestinationForCreator(String... reasons) throws NullPointerException, ConnectionException {
+	public UserActionCreator addNotificationdestinationForCreator(String... reasons) throws NullPointerException, ConnectionException, IOException {
 		if (reasons == null) {
 			return this;
 		}
@@ -243,7 +186,7 @@ public class UACreator {
 		}
 		
 		for (int pos = 0; pos < reasons.length; pos++) {
-			UANotificationDestinator notificationdestination = new UANotificationDestinator();
+			UserActionCreatorNotificationDestinator notificationdestination = new UserActionCreatorNotificationDestinator();
 			notificationdestination.reason = reasons[pos];
 			if (notificationdestination.reason.isEmpty()) {
 				continue;
@@ -259,7 +202,8 @@ public class UACreator {
 	/**
 	 * @return task key
 	 */
-	private String createSingleTaskWithRequire(String require, UACreatorConfiguredFunctionality configured_functionality, ArrayList<String> items, String storage_name) throws ConnectionException {
+	private String createSingleTaskWithRequire(String require, UserActionCreatorConfiguredFunctionality configured_functionality, ArrayList<String> items, String storage_name)
+			throws ConnectionException {
 		UAJobContext context = new UAJobContext();
 		context.functionality_class = configured_functionality.functionality.getClass();
 		context.user_configuration = configured_functionality.associated_user_configuration;
@@ -408,25 +352,6 @@ public class UACreator {
 		ir.source(gson.toJson(logentry));
 		ir.ttl(LOG_LIFETIME);
 		client.index(ir);
-	}
-	
-	public static void dumpLog(PrintStream out, long since) {
-		Client client = Elasticsearch.getClient();
-		
-		SearchRequestBuilder request = client.prepareSearch();
-		request.setIndices(Notification.ES_INDEX);
-		request.setTypes(ES_TYPE);
-		request.setQuery(QueryBuilders.rangeQuery("created_at").gte(since));
-		request.addSort("created_at", SortOrder.ASC);
-		request.setSize(1000);
-		SearchHit[] hits = request.execute().actionGet().getHits().hits();
-		
-		if (hits.length == 0) {
-			return;
-		}
-		for (int pos = 0; pos < hits.length; pos++) {
-			out.println(hits[pos].getSourceAsString());
-		}
 	}
 	
 }

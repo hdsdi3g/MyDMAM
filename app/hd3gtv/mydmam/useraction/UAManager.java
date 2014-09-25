@@ -86,17 +86,27 @@ public class UAManager {
 		List<String> list;
 		UAFunctionality functionality;
 		List<UAFunctionality> worker_functionalities_list;
+		boolean founded;
 		for (int pos_conf_worker = 0; pos_conf_worker < conf_workers.size(); pos_conf_worker++) {
 			worker_functionalities_list = new ArrayList<UAFunctionality>();
 			list = conf_workers.get(pos_conf_worker);
 			for (int pos_list = 0; pos_list < list.size(); pos_list++) {
+				founded = false;
 				for (int pos_funct = 0; pos_funct < functionalities_list.size(); pos_funct++) {
 					functionality = functionalities_list.get(pos_funct);
 					if (functionality.getClass().getName().toLowerCase().startsWith(list.get(pos_list).toLowerCase())) {
 						if (worker_functionalities_list.contains(functionality) == false) {
 							worker_functionalities_list.add(functionality);
+							founded = true;
+							break;
 						}
 					}
+				}
+				if (founded == false) {
+					Log2Dump dump = new Log2Dump();
+					dump.add("worker", pos_conf_worker + 1);
+					dump.add("pos in worker", pos_list + 1);
+					Log2.log.error("Can't found User action functionality declared in configuration", new ClassNotFoundException(list.get(pos_list).toLowerCase()), dump);
 				}
 			}
 			
@@ -104,6 +114,7 @@ public class UAManager {
 				functionality = worker_functionalities_list.get(pos_funct);
 				if (functionality.getUserActionProfiles().isEmpty()) {
 					worker_functionalities_list.remove(pos_funct);
+					Log2.log.error("No declared profile for this functionality and can't add it to a worker", new NullPointerException(), functionality.getDefinition());
 				}
 			}
 			

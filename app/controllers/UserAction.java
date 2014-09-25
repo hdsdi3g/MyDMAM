@@ -21,9 +21,9 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.useraction.UACreator;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
 import hd3gtv.mydmam.useraction.UARange;
+import hd3gtv.mydmam.web.UserActionCreator;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -74,7 +74,10 @@ public class UserAction extends Controller {
 		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities()));
 	}
 	
-	private static UACreator internalCreate() throws Exception {
+	// TODO get user map : Name <-> crypted user key. Lock to a domain ?
+	
+	@Check("userAction")
+	public static void create() throws Exception {
 		String[] raw_items = params.getAll("items[]");
 		if (raw_items == null) {
 			Log2.log.error("No items !", new NullPointerException());
@@ -97,7 +100,7 @@ public class UserAction extends Controller {
 		
 		String username = Secure.connected();
 		UserProfile userprofile = UserProfile.getORMEngine(username).getInternalElement();
-		UACreator creator = new UACreator(items);
+		UserActionCreator creator = new UserActionCreator(items);
 		creator.setUserprofile(userprofile);
 		creator.setBasket_name(params.get("basket_name"));
 		creator.setUsercomment(params.get("comment"));
@@ -124,15 +127,7 @@ public class UserAction extends Controller {
 			Log2.log.error("Setup notification destinations for user", e, dump);
 		}
 		
-		return creator;
-	}
-	
-	@Check("userAction")
-	public static void create() throws Exception {
-		
-		UACreator creator = internalCreate();
-		
-		String finisher_json = params.get("finisher");
+		String finisher_json = params.get("finisher_json");
 		UAFinisherConfiguration finiser_conf = null;
 		try {
 			finiser_conf = UAFinisherConfiguration.getFinisherFromJsonString(finisher_json);
@@ -161,12 +156,10 @@ public class UserAction extends Controller {
 	/**
 	 * TODO JS/View Useraction publisher in website
 	 * - popup method for a basket in baskets list
-	 * - special web page, "Useraction creation page", apply to the current basket
-	 * TODO JS Useraction publisher popup menu
-	 * - each action link will be targeted to an Useraction creation modal
+	 * - special web page, "Useraction creation page", apply to the current basket.
 	 * TODO JS Useraction creator: list options to ask to user in website for create an Useraction. Specific for an Useraction. Declare a Finisher.
 	 * TODO JS Useraction creation tasks page/modal by sync
-	 * - display current basket, or an anonymous basket with the only one item requested (file, dir, recursive dir)
+	 * - display current basket, or an anonymous basket with the only one item requested
 	 * - select and add an Useraction by Category, and by Long name, following the actual Availabilities.
 	 * - add creator configuration form fields, following the Creator declaration.
 	 * - add Useraction Range selection

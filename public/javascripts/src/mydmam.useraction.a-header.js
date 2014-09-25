@@ -25,4 +25,5 @@
 	mydmam.useraction.availabilities = {};
 	mydmam.useraction.availabilities.content = null; 
 	mydmam.useraction.creator = {};
+	mydmam.useraction.creator.current = null;
 })(window.mydmam);

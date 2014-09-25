@@ -165,8 +165,7 @@
 		};
 		var classname = $(this).data('ua-classname');
 		
-		var modal = useraction.creator.create();
-		modal.show(classname, item);
+		useraction.creator.createModal(classname, item, null);
 		
 		$('#btn_ua_dropdown_' + item.key).dropdown('toggle').blur();
 		return false;

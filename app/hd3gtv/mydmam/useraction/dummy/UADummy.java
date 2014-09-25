@@ -18,10 +18,8 @@ package hd3gtv.mydmam.useraction.dummy;
 
 import hd3gtv.mydmam.useraction.UACapability;
 import hd3gtv.mydmam.useraction.UAConfigurator;
-import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
 import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.useraction.UAJobProcess;
-import hd3gtv.mydmam.useraction.UARange;
 
 import java.util.LinkedHashMap;
 
@@ -45,22 +43,6 @@ public class UADummy extends UAFunctionality {
 	
 	public UAConfigurator createEmptyConfiguration() {
 		return UAConfigurator.create(new UADummyConfigurator());
-	}
-	
-	public boolean hasOneClickDefault() {
-		return false;
-	}
-	
-	public UAFinisherConfiguration getFinisherForOneClick() {
-		return null;
-	}
-	
-	public UARange getRangeForOneClick() {
-		return null;
-	}
-	
-	public UAConfigurator createOneClickDefaultUserConfiguration() {
-		return null;
 	}
 	
 	public UAJobProcess createProcess() {

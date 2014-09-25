@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.useraction;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,13 +34,23 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 
-public class UACapabilityDefinition {
+public final class UACapabilityDefinition implements Log2Dumpable {
 	
 	public boolean fileprocessing_enabled;
 	public boolean directoryprocessing_enabled;
 	public boolean rootstorageindexprocessing_enabled;
 	public boolean musthavelocalstorageindexbridge;
 	public List<String> storageindexeswhitelist;
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("fileprocessing_enabled", fileprocessing_enabled);
+		dump.add("directoryprocessing_enabled", directoryprocessing_enabled);
+		dump.add("rootstorageindexprocessing_enabled", rootstorageindexprocessing_enabled);
+		dump.add("musthavelocalstorageindexbridge", musthavelocalstorageindexbridge);
+		dump.add("storageindexeswhitelist", storageindexeswhitelist);
+		return dump;
+	}
 	
 	void mergue(UACapabilityDefinition definition) {
 		if (storageindexeswhitelist == null) {

@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.useraction;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.mydmam.taskqueue.Profile.ProfileSerializer;
 
@@ -34,7 +36,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 
-public class UAFunctionalityDefinintion {
+public final class UAFunctionalityDefinintion implements Log2Dumpable {
 	
 	public String section;
 	public String vendor;
@@ -157,4 +159,18 @@ public class UAFunctionalityDefinintion {
 		}
 	}
 	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("section", section);
+		dump.add("vendor", vendor);
+		dump.add("classname", classname);
+		dump.add("longname", longname);
+		dump.add("description", description);
+		dump.add("instance", instance);
+		dump.add("messagebasename", messagebasename);
+		dump.add("profiles", profiles);
+		dump.addAll(capability);
+		dump.addAll(configurator);
+		return dump;
+	}
 }
