@@ -356,3 +356,5 @@ useractions.newaction.setup.range.ONE_USER_ACTION_BY_FUNCTIONALITY=One by functi
 useractions.newaction.settings=Settings
 
 useractions.functionalities.uadummy.name=User Action test (dummy)
+useractions.functionalities.uadummy.fields.avalue=A value
+useractions.functionalities.uadummy.fields.avalue.help=This is a value for the demo.

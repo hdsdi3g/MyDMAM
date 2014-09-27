@@ -70,6 +70,7 @@
 		content = content + '</div>';
 		return content;
 	};
+	
 })(window.mydmam.useraction);
 
 /**
@@ -90,43 +91,38 @@
 		
 		var availabilities_content = useraction.availabilities.content;
 		for (var functionalities_classname in availabilities_content) {
-			var functionalities = availabilities_content[functionalities_classname];
-			var messagebasename = functionalities.messagebasename;
-			var definitions = functionalities.definitions;
-			
-			for (var pos_definition in definitions) {
-				var functionality = definitions[pos_definition];
-				if (functionality.capability === null) {
-					continue;
-				}
-				var capability = functionality.capability;
-				if ((capability.fileprocessing_enabled === false) & (is_directory === false)) {
-					continue;
-				}
-				if ((capability.directoryprocessing_enabled === false) & is_directory) {
-					continue;
-				}
-				if ((capability.rootstorageindexprocessing_enabled === false) & is_rootstorage) {
-					continue;
-				}
-				if (capability.storageindexeswhitelist.length > 0) {
-					var presence = false;
-					for (var pos_whitelist in capability.storageindexeswhitelist) {
-						var storage_whitelist = capability.storageindexeswhitelist[pos_whitelist];
-						if (storage_whitelist === item_storagename) {
-							presence = true;
-							break;
-						}
-					}
-					if (presence === false) {
-						continue;
-					}
-				}
-				var item_functionality = {};
-				item_functionality.messagebasename = messagebasename;
-				item_functionality.classname = functionalities_classname;
-				item_functionalities.push(item_functionality);
+			var functionality = availabilities_content[functionalities_classname];
+			var messagebasename = functionality.messagebasename;
+			if (functionality.capability === null) {
+				continue;
 			}
+			var capability = functionality.capability;
+			if ((capability.fileprocessing_enabled === false) & (is_directory === false)) {
+				continue;
+			}
+			if ((capability.directoryprocessing_enabled === false) & is_directory) {
+				continue;
+			}
+			if ((capability.rootstorageindexprocessing_enabled === false) & is_rootstorage) {
+				continue;
+			}
+			if (capability.storageindexeswhitelist.length > 0) {
+				var presence = false;
+				for (var pos_whitelist in capability.storageindexeswhitelist) {
+					var storage_whitelist = capability.storageindexeswhitelist[pos_whitelist];
+					if (storage_whitelist === item_storagename) {
+						presence = true;
+						break;
+					}
+				}
+				if (presence === false) {
+					continue;
+				}
+			}
+			var item_functionality = {};
+			item_functionality.messagebasename = messagebasename;
+			item_functionality.classname = functionalities_classname;
+			item_functionalities.push(item_functionality);
 		}
 		
 		if (item_functionalities.length === 0) {

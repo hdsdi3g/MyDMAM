@@ -43,7 +43,6 @@ import org.json.simple.parser.JSONParser;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -293,37 +292,39 @@ public class IsAlive extends Thread {
 	
 	public static String getCurrentAvailabilitiesAsJsonString(ArrayList<String> privileges_for_user) throws ConnectionException {
 		Map<String, List<UAFunctionalityDefinintion>> all = getCurrentAvailabilities(privileges_for_user);
-		
-		JsonObject result = new JsonObject();
-		JsonObject result_implementations;
-		JsonArray result_functdefs;
-		JsonObject result_functdef;
-		JsonObject result_capability;
-		
-		List<UAFunctionalityDefinintion> l_functdef;
-		UAFunctionalityDefinintion functdef;
+		List<UAFunctionalityDefinintion> merged_definitions = new ArrayList<UAFunctionalityDefinintion>();
+		List<UAFunctionalityDefinintion> current_definitions;
 		for (Map.Entry<String, List<UAFunctionalityDefinintion>> entry : all.entrySet()) {
-			l_functdef = entry.getValue();
-			for (int pos = 0; pos < l_functdef.size(); pos++) {
-				functdef = l_functdef.get(pos);
-				if (result.has(functdef.classname) == false) {
-					result_implementations = new JsonObject();
-					result_implementations.addProperty("messagebasename", functdef.messagebasename);
-					result_implementations.add("definitions", new JsonArray());
-					result.add(functdef.classname, result_implementations);
-				}
-				result_implementations = result.getAsJsonObject(functdef.classname);
-				result_functdefs = result_implementations.getAsJsonArray("definitions");
-				
-				result_capability = (JsonObject) gson.toJsonTree(functdef.capability);
-				result_capability.remove("musthavelocalstorageindexbridge");
-				
-				result_functdef = new JsonObject();
-				result_functdef.add("capability", result_capability);
-				result_functdef.add("configurator", (JsonObject) gson.toJsonTree(functdef.configurator));
-				result_functdefs.add(result_functdef);
+			current_definitions = entry.getValue();
+			for (int pos_current = 0; pos_current < current_definitions.size(); pos_current++) {
+				UAFunctionalityDefinintion.mergueInList(merged_definitions, current_definitions.get(pos_current));
 			}
 		}
+		
+		JsonObject result = new JsonObject();
+		JsonObject result_implementation;
+		JsonObject result_capability;
+		JsonObject result_configurator;
+		UAFunctionalityDefinintion current;
+		
+		for (int pos = 0; pos < merged_definitions.size(); pos++) {
+			current = merged_definitions.get(pos);
+			
+			result_implementation = new JsonObject();
+			result_implementation.addProperty("messagebasename", current.messagebasename);
+			
+			result_capability = (JsonObject) gson.toJsonTree(current.capability);
+			result_capability.remove("musthavelocalstorageindexbridge");
+			result_implementation.add("capability", result_capability);
+			
+			result_configurator = (JsonObject) gson.toJsonTree(current.configurator);
+			result_configurator.remove("type");
+			result_configurator.remove("origin");
+			result_implementation.add("configurator", result_configurator);
+			
+			result.add(current.classname, result_implementation);
+		}
+		
 		return gson.toJson(result);
 	}
 	
