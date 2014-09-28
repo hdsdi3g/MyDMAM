@@ -30,7 +30,7 @@
 		content = content + '<button class="btn btn-primary btn-mini ua-creation-start">' + i18n("useractions.startnewaction") + '</button>';
 		content = content + '<h3 id="uacreationmodalLabel">' + i18n("useractions.newaction") + '</h3>';
 		content = content + '</div>';
-		content = content + '<div class="modal-body">';
+		content = content + '<div class="modal-body ua-creation-box">';
 		return content;
 	};
 })(mydmam.useraction.creator);
@@ -53,8 +53,8 @@
 })(mydmam.useraction.creator);
 
 /**
- * prepareFinisherForm()
- * @return html string
+ * prepareFinisherForm() + getFinisherFromCreator()
+ * @return html string + {}
  */
 (function(creator) {
 	creator.prepareFinisherForm = function(basketname) {
@@ -62,11 +62,13 @@
 		content = content + '<div class="control-group">';
 		content = content + '<label class="control-label">' + i18n('useractions.newaction.setup.finisher') + '</label>';
 		content = content + '<div class="controls">';
-		if (basketname) {
-			content = content + '<label class="checkbox">';
-			content = content + '<input type="checkbox" class="ua-creation-finisher" value="remove_user_basket_item"> ' + i18n("useractions.newaction.setup.finisher.remove_user_basket_item");
-			content = content + '</label>';
+		content = content + '<label class="checkbox';
+		if (basketname === null) {
+			content = content + ' hide';
 		}
+		content = content + '">';
+		content = content + '<input type="checkbox" class="ua-creation-finisher" value="remove_user_basket_item"> ' + i18n("useractions.newaction.setup.finisher.remove_user_basket_item");
+		content = content + '</label>';
 		content = content + '<label class="checkbox">';
 		content = content + '<input type="checkbox" class="ua-creation-finisher" value="soft_refresh_source_storage_index_item"> ' + i18n("useractions.newaction.setup.finisher.soft_refresh_source_storage_index_item");
 		content = content + '</label>';
@@ -77,16 +79,26 @@
 		content = content + '</div>';
 		return content;
 	};
+	creator.getFinisherFromCreator = function() {
+		var result = {};
+		$('input.ua-creation-finisher').each(function() {
+			result[$(this).val()] = false;
+		});
+		$('input.ua-creation-finisher:checked').each(function() {
+			result[$(this).val()] = true;
+		});
+		return result;
+	};
 })(mydmam.useraction.creator);
 
 /**
- * prepareRangeForm()
- * @return html string
+ * prepareRangeForm() + getRangeFromCreator()
+ * @return html string + String
  */
 (function(creator) {
 	creator.prepareRangeForm = function(basketname) {
 		var content = '';
-		content = content + '<div class="control-group">';
+		content = content + '<div class="control-group hide ua-creation-range-group">';
 		content = content + '<label class="control-label">' + i18n('useractions.newaction.setup.range') + '</label>';
 		content = content + '<div class="controls">';
 		content = content + '<label class="radio">';
@@ -104,11 +116,14 @@
 		content = content + '</div>';
 		return content;
 	};
+	creator.getRangeFromCreator = function() {
+		return $('input.ua-creation-range:radio[name=ua-creation-range]:checked').val();
+	};
 })(mydmam.useraction.creator);
 
 /**
- * prepareCommentForm()
- * @return html string
+ * prepareCommentForm() + getCommentFromCreator()
+ * @return html string + String
  */
 (function(creator) {
 	creator.prepareCommentForm = function() {
@@ -121,11 +136,14 @@
 		content = content + '</div>';
 		return content;
 	};
+	creator.getCommentFromCreator = function() {
+		return $('#uacreationcomment').val();
+	};
 })(mydmam.useraction.creator);
 
 /**
- * prepareUserNotificationReasonsForm()
- * @return html string
+ * prepareUserNotificationReasonsForm() + getUserNotificationReasonsFromCreator()
+ * @return html string + [String]
  */
 (function(creator) {
 	creator.prepareUserNotificationReasonsForm = function() {
@@ -149,8 +167,14 @@
 		content = content + '</div>';
 		return content;
 	};
+	creator.getUserNotificationReasonsFromCreator = function() {
+		var result = [];
+		$('input.ua-creation-ntf-reason:checked').each(function() {
+			result.push($(this).val());
+		});
+		return result;
+	};
 })(mydmam.useraction.creator);
-
 
 /**
  * prepareConfiguratorForFunctionality()
@@ -158,7 +182,10 @@
  * @return html string
  */
 (function(creator, availabilities) {
-	creator.prepareConfiguratorForFunctionality = function(classname) {
+	creator.prepareConfiguratorForFunctionality = function(classname, index) {
+		if (index === null) {
+			index = 0;
+		}
 		if (availabilities.content[classname] === null){
 			return "";
 		}
@@ -172,9 +199,6 @@
 		
 		for (var field_pos in fields) {
 			var field = fields[field_pos];
-			if (field.hidden | field.readonly) {
-				continue;
-			}
 			var default_value = configurator.object[field.name];
 			if (default_value == null) {
 				default_value = "";
@@ -195,10 +219,9 @@
 				translatedhelpfieldname = null;
 			}
 
-			var input_id = 'ua_creation_configuratoritem_' + messagebasename + "_" + field.name;
+			var input_id = 'ua_creation_configuratoritem_' + index + '_' + messagebasename + "_" + field.name;
 			var input_classname = 'ua-creation-configuratoritem';
-			var input_data = 'data-fieldname="' + field.name + '" data-functclassname="' + classname + '"';
-			//TODO add an index for separate sames class, but differents configurations
+			var input_data = 'data-fieldname="' + field.name + '" data-functclassname="' + classname + '" data-functindex="' + index + '"';
 			
 			content = content + '<div class="control-group">';
 			content = content + '<label class="control-label" for="' + input_id + '">' + translatedfieldname + '</label>';
@@ -271,7 +294,9 @@
 		 * Display basket name
 		 **/
 		if (basketname) {
-			content = content + '<span class="label label-inverse">' + i18n("useractions.newaction.sourcefrombasket") + " " + basketname + '</span> ';
+			content = content + '<span class="label label-inverse ua-basketname" data-basketname="' + basketname + '">' + i18n("useractions.newaction.sourcefrombasket") + " " + basketname + '</span> ';
+		} else {
+			content = content + '<span class="hide ua-basketname" data-basketname=""></span>';
 		}
 		
 		/**
@@ -282,6 +307,7 @@
 			content = content + '<ul class="ua-sourcesitems">';
 			for (var pos_item in items) {
 				content = content + '<li><i class="icon-star-empty"></i> ';
+				content = content + '<span class="hide ua-sourcesitem" data-itemkey="' + items[pos_item].key + '"></span>';
 				if (items[pos_item].directory) {
 					content = content + '<strong>' + items[pos_item].storagename + ':' + items[pos_item].path + '</strong>';
 				} else {
@@ -293,6 +319,7 @@
 		} else {
 			content = content + i18n("useractions.newaction.oneselected");
 			content = content + ' <i class="icon-star-empty"></i> ';
+			content = content + '<span class="hide ua-sourcesitem" data-itemkey="' + items[0].key + '"></span>';
 			if (items[0].directory) {
 				content = content + '<strong>' + items[0].storagename + ':' + items[0].path + '</strong>';
 			} else {
@@ -303,7 +330,8 @@
 		content = content + '<form class="form-horizontal">';
 
 		content = content + '<p class="lead">' + i18n("useractions.newaction.settings") + '</p>';
-		content = content + creator.prepareConfiguratorForFunctionality(classname);
+		content = content + creator.prepareConfiguratorForFunctionality(classname, 0);
+		//TODO add new + $('#uacreationmodal div.ua-creation-range-group').removeClass("hide");
 		
 		content = content + '<p class="lead">' + i18n("useractions.newaction.setup") + '</p>';
 		
@@ -319,62 +347,133 @@
 		content = content + creator.prepareModalFooter();
 		$("body").append(content);
 
-		// TODO configured_functionalities_json : [{String functionality_classname, JsonElement raw_associated_user_configuration }] */
-		
-		// basket_name = basketname
-		// #uacreationcomment comment
-		// notification_reasons[ String in ERROR, DONE, CLOSED, COMMENTED ]
-		// finisher_json { boolean remove_user_basket_item, boolean soft_refresh_source_storage_index_item, boolean force_refresh_source_storage_index_item }
-		// range String in ONE_USER_ACTION_BY_STORAGE_AND_BASKET, ONE_USER_ACTION_BY_BASKET_ITEM, ONE_USER_ACTION_BY_FUNCTIONALITY
-		
 		$('#uacreationmodal').modal({});
-
 		$('#uacreationmodal').on('hidden', function () {
 			creator.current = null;
 		});
-
 		$('#uacreationmodal button.ua-creation-start').click(creator.onValidationForm);
-		
 	};
 })(mydmam.useraction.creator, mydmam.useraction.availabilities);
 
 
 /**
  * getFunctionalityConfigurationsFromUACreation()
- * @return never null: [java class -> field -> value]
+ * @return never null: [{functionality_classname: java class name, raw_associated_user_configuration: configured object}]
  */
 (function(creator, availabilities) {
-	creator.getFunctionalityConfigurationsFromUACreation = function() {
-		
+	creator.getFunctionalityConfigurationsFromUACreation = function(jquery_selector_base) {
 		var result = [];
-		
 		var extractConfiguration = function() {
 			var fieldname = $(this).data("fieldname");
 			var classname = $(this).data("functclassname");
+			var index = $(this).data("functindex");
 			
-			if (availabilities.content[classname] === null){
-				return;
+			var item = null;
+			item = result[index];
+			
+			if (item == null) {
+				result[index] = {
+					functionality_classname: classname,
+					raw_associated_user_configuration: {}
+				};
 			}
-			//var configuration = result[classname];
-			// TODO ...
+			result[index].raw_associated_user_configuration[fieldname] = $(this).val();
 		};
-		
-		$('#uacreationmodal .ua-creation-configuratoritem').each(extractConfiguration);
+		$(jquery_selector_base + ' .ua-creation-configuratoritem').each(extractConfiguration);
 		return result;
 	};
 })(mydmam.useraction.creator, mydmam.useraction.availabilities);
 
 /**
- * getFunctionalityConfigurationsFromUACreation()
- * @return null
+ * getItemsFormCreator()
+ * @return never null: [item key]
  */
 (function(creator, availabilities) {
-	creator.onValidationForm = function() {
-		console.log(creator.getFunctionalityConfigurationsFromUACreation());
-		//TODO ...
-		//TODO close modal ...
+	creator.getItemsFormCreator = function(jquery_selector_base) {
+		var result = [];
+		var extract = function() {
+			var itemkey = $(this).data("itemkey");
+			if (itemkey === null) {
+				return;
+			}
+			for (var pos_result in result) {
+				if (result[pos_result] === itemkey) {
+					return;
+				}
+			}
+			result.push(itemkey);
+		};
+		$(jquery_selector_base + ' .ua-sourcesitem').each(extract);
+		return result;
 	};
 })(mydmam.useraction.creator, mydmam.useraction.availabilities);
 
-//mydmam.useraction.url.create
+/**
+ * getBasketNameFromCreator()
+ * @return never null: String
+ */
+(function(creator, availabilities) {
+	creator.getBasketNameFromCreator = function(jquery_selector_base) {
+		return $(jquery_selector_base + ' .ua-basketname').data("basketname");
+	};
+})(mydmam.useraction.creator, mydmam.useraction.availabilities);
+
+/**
+ * onValidationForm()
+ * @return null
+ */
+(function(creator) {
+	creator.onValidationForm = function() {
+		var request = {};
+		request.items = creator.getItemsFormCreator("#uacreationmodal");
+		request.basket_name = creator.getBasketNameFromCreator("#uacreationmodal");
+		request.comment = creator.getCommentFromCreator();
+		//request.notificationdestinations_json = JSON.stringify({});//TODO
+		request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
+		request.finisher_json = JSON.stringify(creator.getFinisherFromCreator());
+		request.range = creator.getRangeFromCreator();
+		request.configured_functionalities_json = JSON.stringify(creator.getFunctionalityConfigurationsFromUACreation("#uacreationmodal"));
+		
+		document.body.style.cursor = 'wait';
+		creator.requestUA(request, function() {
+			$('#uacreationmodal').modal('hide');
+		}, function() {
+			var content = "";
+			content = content + '<div class="alert alert-error" style="margin-top: 1em;">';
+			content = content + '<button type="button" class="close" data-dismiss="alert">&times;</button>';
+			content = content + '<h4>' + i18n("useractions.newaction.requesterror") + '</h4>';
+			content = content + i18n("useractions.newaction.requesterror.text");
+			content = content + '</div>';
+			$('div.ua-creation-box').prepend(content);
+		});
+		document.body.style.cursor = 'default';
+		
+	};
+})(mydmam.useraction.creator);
+
+/**
+ * availabilities.downloadLast()
+ * @param request Object
+ * @param callback function()
+ * @param callback_error function()
+ * @return null
+ */
+(function(creator) {
+	creator.requestUA = function(request, callback, callback_error) {
+		$.ajax({
+			url: mydmam.useraction.url.create,
+			type: "POST",
+			async: true,
+			data: request,
+			error: callback_error,
+			success: function(data) {
+				if (data.result) {
+					callback();
+				} else {
+					callback_error();
+				}
+			}
+		});
+	};
+})(window.mydmam.useraction.creator);
 

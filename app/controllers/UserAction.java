@@ -40,7 +40,7 @@ import com.google.gson.reflect.TypeToken;
 @With(Secure.class)
 public class UserAction extends Controller {
 	
-	private static final String JSON_OK_RESPONSE = "{\"result\": \"ok\"}";
+	private static final String JSON_OK_RESPONSE = "{\"result\": true}";
 	
 	private static Gson gson = new Gson();
 	private static Type typeOfArrayString = new TypeToken<ArrayList<String>>() {
@@ -99,7 +99,7 @@ public class UserAction extends Controller {
 		}
 		
 		String username = Secure.connected();
-		UserProfile userprofile = UserProfile.getORMEngine(username).getInternalElement();
+		UserProfile userprofile = UserProfile.getORMEngine(username).getInternalElement();// TODO no mail or long name in userprofile
 		UserActionCreator creator = new UserActionCreator(items);
 		creator.setUserprofile(userprofile);
 		creator.setBasket_name(params.get("basket_name"));
@@ -148,7 +148,8 @@ public class UserAction extends Controller {
 			throw e;
 		}
 		
-		creator.createTasks();
+		// creator.createTasks(); // XXX
+		creator.addUALogEntry();
 		
 		renderJSON(JSON_OK_RESPONSE);
 	}
@@ -157,15 +158,8 @@ public class UserAction extends Controller {
 	 * TODO JS/View Useraction publisher in website
 	 * - popup method for a basket in baskets list
 	 * - special web page, "Useraction creation page", apply to the current basket.
-	 * TODO JS Useraction creator: list options to ask to user in website for create an Useraction. Specific for an Useraction. Declare a Finisher.
 	 * TODO JS Useraction creation tasks page/modal by sync
-	 * - display current basket, or an anonymous basket with the only one item requested
 	 * - select and add an Useraction by Category, and by Long name, following the actual Availabilities.
-	 * - add creator configuration form fields, following the Creator declaration.
-	 * - add Useraction Range selection
-	 * - add basket action after creation (for "by basket" creation): truncate after start, truncate by the finisher, or don't touch.
-	 * - add Notification options
-	 * - on validation: create task(s) with Task context, finisher(s) and notification(s)
 	 */
 	
 }

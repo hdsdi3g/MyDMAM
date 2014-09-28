@@ -67,7 +67,7 @@ public class UserActionCreator {
 	private LinkedHashMap<String, ArrayList<String>> storageindexname_to_itemlist;
 	private String usercomment;
 	private ArrayList<String> new_tasks;
-	private Client client;
+	private transient Client client;
 	
 	public UserActionCreator(ArrayList<SourcePathIndexerElement> items_spie) throws ConnectionException, IOException {
 		client = Elasticsearch.getClient();
@@ -330,7 +330,7 @@ public class UserActionCreator {
 		return n;
 	}
 	
-	private void addUALogEntry() {
+	public void addUALogEntry() { // TODO set to private
 		long now = System.currentTimeMillis();
 		
 		HashMap<String, Object> logentry = new HashMap<String, Object>();
