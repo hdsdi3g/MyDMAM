@@ -346,7 +346,7 @@
 		content = content + '</form>';
 		content = content + creator.prepareModalFooter();
 		$("body").append(content);
-
+		
 		$('#uacreationmodal').modal({});
 		$('#uacreationmodal').on('hidden', function () {
 			creator.current = null;
@@ -428,7 +428,6 @@
 		request.items = creator.getItemsFormCreator("#uacreationmodal");
 		request.basket_name = creator.getBasketNameFromCreator("#uacreationmodal");
 		request.comment = creator.getCommentFromCreator();
-		//request.notificationdestinations_json = JSON.stringify({});//TODO
 		request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
 		request.finisher_json = JSON.stringify(creator.getFinisherFromCreator());
 		request.range = creator.getRangeFromCreator();

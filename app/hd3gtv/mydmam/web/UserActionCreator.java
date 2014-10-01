@@ -150,33 +150,6 @@ public class UserActionCreator {
 		return this;
 	}
 	
-	/**
-	 * @param configured_functionalities_json List<UACreatorConfiguredFunctionality>
-	 */
-	public UserActionCreator setNotificationdestinations(String notificationdestinations_json) throws Exception {
-		if (notificationdestinations_json == null) {
-			return this;
-		}
-		if (notificationdestinations_json.isEmpty()) {
-			return this;
-		}
-		
-		Type typeOfT = new TypeToken<ArrayList<UserActionCreatorNotificationDestinator>>() {
-		}.getType();
-		notificationdestinations = gson.fromJson(notificationdestinations_json, typeOfT);
-		
-		try {
-			for (int pos = 0; pos < notificationdestinations.size(); pos++) {
-				notificationdestinations.get(pos).prepare();
-			}
-		} catch (Exception e) {
-			Log2.log.error("Invalid notificationdestinations", null, new Log2Dump("notificationdestinations", notificationdestinations_json));
-			notificationdestinations = new ArrayList<UserActionCreatorNotificationDestinator>(1);
-			throw new Exception("Invalid configured_functionalities_json", e);
-		}
-		return this;
-	}
-	
 	public UserActionCreator addNotificationdestinationForCreator(String... reasons) throws NullPointerException, ConnectionException, IOException {
 		if (reasons == null) {
 			return this;

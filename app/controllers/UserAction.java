@@ -108,16 +108,6 @@ public class UserAction extends Controller {
 		/**
 		 * Not mandatory
 		 */
-		String notificationdestinations_json = params.get("notificationdestinations_json");
-		try {
-			creator.setNotificationdestinations(notificationdestinations_json);
-		} catch (Exception e) {
-			Log2.log.error("Setup notification destinations", e, new Log2Dump("raw", notificationdestinations_json));
-		}
-		
-		/**
-		 * Not mandatory
-		 */
 		String[] notification_reasons = params.getAll("notification_reasons[]");
 		try {
 			creator.addNotificationdestinationForCreator(notification_reasons);
