@@ -354,6 +354,7 @@ useractions.newaction.setup.range.ONE_USER_ACTION_BY_STORAGE_AND_BASKET=Une par 
 useractions.newaction.setup.range.ONE_USER_ACTION_BY_BASKET_ITEM=Une par élément de panier
 useractions.newaction.setup.range.ONE_USER_ACTION_BY_FUNCTIONALITY=Une par fonctionnalité
 useractions.newaction.settings=Paramètres
+useractions.newaction.setup.addnewsettings=Ajouter une action supplémentaire
 useractions.newaction.requesterror=Erreur lors de la création de l'action
 useractions.newaction.requesterror.text=Verifiez que la configuration si dessous soit bien correcte et/ou contactez un administrateur.
 

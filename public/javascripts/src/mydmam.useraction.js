@@ -74,20 +74,13 @@
 })(window.mydmam.useraction);
 
 /**
- * drawButtonsCreateContent()
- * Non-blocking action. Internal use only.
- * @return null
+ * getFunctionalitiesForItem()
+ * @return list never null
  */
 (function(useraction) {
-	
-	var each_dropdown = function() {
+	useraction.getFunctionalityListForItem = function(item_key, is_directory, item_storagename, item_path) {
 		var item_functionalities = [];
-		
-		item_key = $(this).data('item_key');
-		is_directory = $(this).data('is_directory');
-		item_storagename = $(this).data('item_storagename');
-		item_path = $(this).data('item_path');
-		is_rootstorage = (item_path === '/') && is_directory;
+		var is_rootstorage = (item_path === '/') && is_directory;
 		
 		var availabilities_content = useraction.availabilities.content;
 		for (var functionalities_classname in availabilities_content) {
@@ -124,13 +117,18 @@
 			item_functionality.classname = functionalities_classname;
 			item_functionalities.push(item_functionality);
 		}
-		
-		if (item_functionalities.length === 0) {
-			return;
-		}
-		
-		$('#btn_ua_dropdown_' + item_key).addClass('dropdown-toggle').removeClass('disabled');
-		
+		return item_functionalities;
+	};
+})(window.mydmam.useraction);
+
+/**
+ * drawButtonsCreateContent() & drawButtonsCreateContentItemFunctionality(item_functionalities, item_key, is_directory, item_storagename, item_path)
+ * Non-blocking action.
+ * @return null
+ */
+(function(useraction) {
+	
+	useraction.drawButtonsCreateContentItemFunctionality = function(item_functionalities, item_key, is_directory, item_storagename, item_path) {
 		var content = '';
 		content = content + '<ul class="dropdown-menu">';
 		for (var pos_f in item_functionalities) {
@@ -149,7 +147,23 @@
 			content = content + '</li>';
 		}
 		content = content + '</ul>';
-		$(this).append(content);
+		return content;
+	};
+	
+	var each_dropdown = function() {
+		var item_key = $(this).data('item_key');
+		var is_directory = $(this).data('is_directory');
+		var item_storagename = $(this).data('item_storagename');
+		var item_path = $(this).data('item_path');
+		var item_functionalities = useraction.getFunctionalityListForItem(item_key, is_directory, item_storagename, item_path);
+		
+		if (item_functionalities.length === 0) {
+			return;
+		}
+		
+		$('#btn_ua_dropdown_' + item_key).addClass('dropdown-toggle').removeClass('disabled');
+		
+		$(this).append(useraction.drawButtonsCreateContentItemFunctionality(item_functionalities, item_key, is_directory, item_storagename, item_path));
 	};
 
 	var btn_ua_dropdown_showcreate_click = function() {

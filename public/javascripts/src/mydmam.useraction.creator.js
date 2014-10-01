@@ -177,11 +177,11 @@
 })(mydmam.useraction.creator);
 
 /**
- * prepareConfiguratorForFunctionality()
+ * prepareConfiguratorForFunctionality() & addNewConfiguratorFunctionality()
  * @param classname java class UA to create
  * @return html string
  */
-(function(creator, availabilities) {
+(function(creator, availabilities, useraction) {
 	creator.prepareConfiguratorForFunctionality = function(classname, index) {
 		if (index === null) {
 			index = 0;
@@ -258,9 +258,49 @@
 			content = content + '</div>';
 		}
 		
+		content = content + '<span class="ua-creation-boxaddnewconfigurator"></span>';
+		//content = content + '<a class="ua-creation-addnewconfigurator btn btn-info">' + i18n("") + '</a>';
+		
+		content = content + '<div class="btn-group ua-dropdown">';
+		content = content + '<button class="btn btn-info" data-toggle="dropdown">';
+		content = content + i18n('useractions.newaction.setup.addnewsettings') + ' <span class="caret">';
+		content = content + '</button>';
+		
+		var importitem = function(item) {
+			var item_key = item.key;
+			var is_directory =  item.directory;
+			var item_storagename = item.storagename;
+			var item_path = item.path;
+			return useraction.getFunctionalityListForItem(item_key, is_directory, item_storagename, item_path);
+		};
+		
+		var items_functionalities = importitem(creator.current.items[0]);
+		
+		for (var pos_items = 1; pos_items < creator.current.items.length; pos_items++) {
+			var item = creator.current.items[pos_items];
+			var functionalities = importitem(item);
+			for (var pos_functionalities in items_functionalities) {
+				//items_functionalities[pos_functionalities];
+				// TODO if items_functionalities has not functionalities, remove items_functionalities...
+			}
+			// [Object { messagebasename="uadummy", classname="hd3gtv.mydmam.useraction.dummy.UADummy"}]
+		}
+		
+		//content = content + useraction.drawButtonsCreateContentItemFunctionality(item_functionalities, item_key, is_directory, item_storagename, item_path);
+		
+		content = content + '</div>';
+		
 		return content;
 	};
-})(mydmam.useraction.creator, mydmam.useraction.availabilities);
+	
+	creator.addNewConfiguratorFunctionalityHandler = function(jquery_selector_base) {
+		var onclick = function() {
+			//TODO
+			$(jquery_selector_base + ' span.ua-creation-boxaddnewconfigurator:last').after(content);
+		};
+		$(jquery_selector_base + ' a.ua-creation-addnewconfigurator').click(onclick);
+	};
+})(mydmam.useraction.creator, mydmam.useraction.availabilities, mydmam.useraction);
 
 
 /**
@@ -340,9 +380,6 @@
 		content = content + creator.prepareCommentForm();
 		content = content + creator.prepareUserNotificationReasonsForm();
 		
-		// TODO select user form : Name <-> crypted user key. Ajax ?
-		// TODO * (Not mandatory) notificationdestinations_json: [ {String crypted_user_key, String in ERROR, DONE, READED, CLOSED, COMMENTED} ]
-		
 		content = content + '</form>';
 		content = content + creator.prepareModalFooter();
 		$("body").append(content);
@@ -352,6 +389,8 @@
 			creator.current = null;
 		});
 		$('#uacreationmodal button.ua-creation-start').click(creator.onValidationForm);
+		
+		creator.addNewConfiguratorFunctionalityHandler('#uacreationmodal');
 	};
 })(mydmam.useraction.creator, mydmam.useraction.availabilities);
 
