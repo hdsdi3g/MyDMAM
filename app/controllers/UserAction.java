@@ -148,8 +148,6 @@ public class UserAction extends Controller {
 	 * TODO JS/View Useraction publisher in website
 	 * - popup method for a basket in baskets list
 	 * - special web page, "Useraction creation page", apply to the current basket.
-	 * TODO JS Useraction creation tasks page/modal by sync
-	 * - select and add an Useraction by Category, and by Long name, following the actual Availabilities.
 	 */
 	
 }

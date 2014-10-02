@@ -128,20 +128,32 @@
  */
 (function(useraction) {
 	
-	useraction.drawButtonsCreateContentItemFunctionality = function(item_functionalities, item_key, is_directory, item_storagename, item_path) {
+	useraction.drawButtonsCreateContentItemFunctionality = function(item_functionalities, item_key, is_directory, item_storagename, item_path, indexcreator) {
 		var content = '';
 		content = content + '<ul class="dropdown-menu">';
 		for (var pos_f in item_functionalities) {
 			var item_functionality = item_functionalities[pos_f];
 			content = content + '<li>';
-			content = content + '<a href="#" class="btn-ua-dropdown-showcreate"';
+			content = content + '<a class="btn-ua-dropdown-showcreate"';
 			content = content + ' data-ua-classname="' + item_functionality.classname + '"';
-			content = content + ' data-item_key="' + item_key + '"';
-			content = content + ' data-is_directory="' + is_directory + '"';
-			content = content + ' data-item_storagename="' + item_storagename + '"';
-			content = content + ' data-item_path="' + item_path  + '"';
-			content = content + ' data-toggle="modal"';
-			content = content + '">';
+			if (item_key) {
+				content = content + ' data-item_key="' + item_key + '"';
+			}
+			if (is_directory != null) {
+				content = content + ' data-is_directory="' + is_directory + '"';
+			}
+			if (item_storagename) {
+				content = content + ' data-item_storagename="' + item_storagename + '"';
+			}
+			if (item_path) {
+				content = content + ' data-item_path="' + item_path  + '"';
+			}
+			if (indexcreator != null) {
+				content = content + ' data-ua-indexcreator="' + indexcreator + '"';
+			} else {
+				content = content + ' data-toggle="modal"';
+			}
+			content = content + '>';
 			content = content + i18n('useractions.functionalities.' + item_functionality.messagebasename + '.name');
 			content = content + '</a>';
 			content = content + '</li>';

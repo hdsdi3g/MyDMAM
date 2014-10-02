@@ -123,7 +123,7 @@ div.modal-body p.lead {
 
 #uacreationmodal div.modal-body {
  	padding-top: 0em;
- 	max-height: inherit;
+ 	/*max-height: inherit;*/
 }
 
 #uacreationmodal button.btn-mini.ua-creation-start {
@@ -132,7 +132,11 @@ div.modal-body p.lead {
 	margin-right: 8px;
 }
 
-#uacreationmodal {
-	position: absolute;
+/*#uacreationmodal {
+	position: fixed;
 	top: 4em;
+}*/
+
+#uacreationmodal div.ua-dropdown.btn-group > .btn:first-child {
+    border-radius: 4px;
 }

@@ -62,18 +62,18 @@
 		content = content + '<div class="control-group">';
 		content = content + '<label class="control-label">' + i18n('useractions.newaction.setup.finisher') + '</label>';
 		content = content + '<div class="controls">';
+		content = content + '<label class="checkbox">';
+		content = content + '<input type="checkbox" class="ua-creation-finisher" value="soft_refresh_source_storage_index_item"> ' + i18n("useractions.newaction.setup.finisher.soft_refresh_source_storage_index_item");
+		content = content + '</label>';
+		content = content + '<label class="checkbox">';
+		content = content + '<input type="checkbox" class="ua-creation-finisher" value="force_refresh_source_storage_index_item"> ' + i18n("useractions.newaction.setup.finisher.force_refresh_source_storage_index_item");
+		content = content + '</label>';
 		content = content + '<label class="checkbox';
 		if (basketname === null) {
 			content = content + ' hide';
 		}
 		content = content + '">';
 		content = content + '<input type="checkbox" class="ua-creation-finisher" value="remove_user_basket_item"> ' + i18n("useractions.newaction.setup.finisher.remove_user_basket_item");
-		content = content + '</label>';
-		content = content + '<label class="checkbox">';
-		content = content + '<input type="checkbox" class="ua-creation-finisher" value="soft_refresh_source_storage_index_item"> ' + i18n("useractions.newaction.setup.finisher.soft_refresh_source_storage_index_item");
-		content = content + '</label>';
-		content = content + '<label class="checkbox">';
-		content = content + '<input type="checkbox" class="ua-creation-finisher" value="force_refresh_source_storage_index_item"> ' + i18n("useractions.newaction.setup.finisher.force_refresh_source_storage_index_item");
 		content = content + '</label>';
 		content = content + '</div>';
 		content = content + '</div>';
@@ -157,10 +157,10 @@
 		content = content + '<label class="checkbox">';
 		content = content + '<input type="checkbox" class="ua-creation-ntf-reason" value="DONE"> ' + i18n("useractions.newaction.setup.notification_reasons.DONE");
 		content = content + '</label>';
-		content = content + '<label class="checkbox">';
+		content = content + '<label class="checkbox hide">';
 		content = content + '<input type="checkbox" class="ua-creation-ntf-reason" value="COMMENTED"> ' + i18n("useractions.newaction.setup.notification_reasons.COMMENTED");
 		content = content + '</label>';
-		content = content + '<label class="checkbox">';
+		content = content + '<label class="checkbox hide">';
 		content = content + '<input type="checkbox" class="ua-creation-ntf-reason" value="CLOSED"> ' + i18n("useractions.newaction.setup.notification_reasons.CLOSED");
 		content = content + '</label>';
 		content = content + '</div>';
@@ -189,13 +189,20 @@
 		if (availabilities.content[classname] === null){
 			return "";
 		}
+
+		/**
+		 * Display form
+		 */
 		var content = '';
 		
 		var configurator = availabilities.content[classname].configurator;
 		var fields = configurator.fields;
 		var messagebasename = availabilities.content[classname].messagebasename;
 		
-		content = content + '<h5>' + i18n('useractions.functionalities.' + availabilities.content[classname].messagebasename + '.name') + '</h5>';
+		content = content + '<h5>';
+		content = content + i18n('useractions.newaction.settings.item') + " ";
+		content = content + i18n('useractions.functionalities.' + availabilities.content[classname].messagebasename + '.name');
+		content = content + '</h5>';
 		
 		for (var field_pos in fields) {
 			var field = fields[field_pos];
@@ -259,13 +266,51 @@
 		}
 		
 		content = content + '<span class="ua-creation-boxaddnewconfigurator"></span>';
-		//content = content + '<a class="ua-creation-addnewconfigurator btn btn-info">' + i18n("") + '</a>';
 		
+		/**
+		 * Display the add another functionality button
+		 */
+		content = content + '<div class="control-group ua-creation-addnewconfigurator-btngroup">';
+		content = content + '<div class="controls">';
 		content = content + '<div class="btn-group ua-dropdown">';
 		content = content + '<button class="btn btn-info" data-toggle="dropdown">';
 		content = content + i18n('useractions.newaction.setup.addnewsettings') + ' <span class="caret">';
 		content = content + '</button>';
 		
+		var final_functionalities = creator.mergueAllFunctionalitiesForAllItemsBasket(creator.current.items);
+
+		content = content + useraction.drawButtonsCreateContentItemFunctionality(final_functionalities, null, null, null, null, index + 1);
+		
+		content = content + '</div>'; // btn-group ua-dropdown
+		content = content + '</div>'; // controls
+		content = content + '</div>'; // control-group
+		
+		return content;
+	};
+	
+	creator.addNewConfiguratorFunctionalityHandler = function(jquery_selector_base) {
+		var onclick = function() {
+			var classname = $(this).data("ua-classname");
+			var indexcreator = $(this).data("ua-indexcreator");
+			var content = creator.prepareConfiguratorForFunctionality(classname, indexcreator);
+			
+			$(jquery_selector_base + ' div.control-group.ua-creation-addnewconfigurator-btngroup').remove();
+			$(jquery_selector_base + ' span.ua-creation-boxaddnewconfigurator:last').after(content);
+			creator.addNewConfiguratorFunctionalityHandler(jquery_selector_base);
+			
+			$(jquery_selector_base + ' div.ua-creation-range-group').removeClass("hide");
+		};
+		$(jquery_selector_base + ' a.btn-ua-dropdown-showcreate').click(onclick);
+	};
+})(mydmam.useraction.creator, mydmam.useraction.availabilities, mydmam.useraction);
+
+/**
+ * mergueAllFunctionalitiesForAllItemsBasket()
+ * @param current_items
+ * @return Array of functionalities
+ */
+(function(creator, useraction) {
+	creator.mergueAllFunctionalitiesForAllItemsBasket = function(current_items) {
 		var importitem = function(item) {
 			var item_key = item.key;
 			var is_directory =  item.directory;
@@ -274,34 +319,76 @@
 			return useraction.getFunctionalityListForItem(item_key, is_directory, item_storagename, item_path);
 		};
 		
-		var items_functionalities = importitem(creator.current.items[0]);
+		var items_functionalities = importitem(current_items[0]);
+		var final_functionalities = [];
 		
-		for (var pos_items = 1; pos_items < creator.current.items.length; pos_items++) {
-			var item = creator.current.items[pos_items];
-			var functionalities = importitem(item);
+		if (current_items.length > 1) {
 			for (var pos_functionalities in items_functionalities) {
-				//items_functionalities[pos_functionalities];
-				// TODO if items_functionalities has not functionalities, remove items_functionalities...
+				/**
+				 * for each functionalities from first element
+				 */
+				var current_global_functionality = items_functionalities[pos_functionalities];
+				var founded = false;
+	
+				for (var pos_items = 1; pos_items < current_items.length; pos_items++) {
+					/**
+					 * for each items after the first
+					 */
+					var item = current_items[pos_items];
+					var functionalities = importitem(item);
+					for (var pos_item_functionality in functionalities) {
+						/**
+						 * for each functionalities to each items
+						 */
+						var current_item_functionality = functionalities[pos_item_functionality];
+						if (current_global_functionality.classname === current_item_functionality.classname) {
+							founded = true;
+							break;
+						}
+					}
+					if (founded === false) {
+						break;
+					}
+				}
+				
+				if (founded) {
+					final_functionalities.push(current_global_functionality);
+				}
 			}
-			// [Object { messagebasename="uadummy", classname="hd3gtv.mydmam.useraction.dummy.UADummy"}]
+		} else {
+			final_functionalities = items_functionalities;
 		}
+
+		return final_functionalities;
+	};
+})(mydmam.useraction.creator, mydmam.useraction);
+
+/**
+ * prepareDisplaySelectedItemInList()
+ * @param item
+ * @return html string
+ */
+(function(creator) {
+	creator.prepareDisplaySelectedItemInList = function(item) {
+		content = '';
+		if (item.directory) {
+			content = content + '<span class="label label-success">' + i18n("useractions.newaction.source.directory") + '</span> ';
+		}
+		content = content + '<strong>' + item.storagename + '</strong>';
+		content = content + ' :: ';
 		
-		//content = content + useraction.drawButtonsCreateContentItemFunctionality(item_functionalities, item_key, is_directory, item_storagename, item_path);
-		
-		content = content + '</div>';
-		
+		var last_slash_pos = item.path.lastIndexOf("/");
+		if (last_slash_pos > 0) {
+			content = content + '<span class="text-success">' + item.path.substring(0, last_slash_pos + 1) + '</span>';
+			content = content + item.path.substring(last_slash_pos + 1, item.path.length);
+		} else {
+			content = content + item.path;
+		}
+		content = content + '';
+		content = content + '';
 		return content;
 	};
-	
-	creator.addNewConfiguratorFunctionalityHandler = function(jquery_selector_base) {
-		var onclick = function() {
-			//TODO
-			$(jquery_selector_base + ' span.ua-creation-boxaddnewconfigurator:last').after(content);
-		};
-		$(jquery_selector_base + ' a.ua-creation-addnewconfigurator').click(onclick);
-	};
-})(mydmam.useraction.creator, mydmam.useraction.availabilities, mydmam.useraction);
-
+})(mydmam.useraction.creator);
 
 /**
  * createModal()
@@ -346,37 +433,28 @@
 			content = content + i18n("useractions.newaction.manyselected");
 			content = content + '<ul class="ua-sourcesitems">';
 			for (var pos_item in items) {
-				content = content + '<li><i class="icon-star-empty"></i> ';
+				content = content + '<li><i class="icon-star"></i> ';
 				content = content + '<span class="hide ua-sourcesitem" data-itemkey="' + items[pos_item].key + '"></span>';
-				if (items[pos_item].directory) {
-					content = content + '<strong>' + items[pos_item].storagename + ':' + items[pos_item].path + '</strong>';
-				} else {
-					content = content + items[pos_item].storagename + ':' + items[pos_item].path;
-				}
+				content = content + creator.prepareDisplaySelectedItemInList(items[pos_item]);
 				content = content + '</li>';
 			}
 			content = content + '</ul>';
 		} else {
 			content = content + i18n("useractions.newaction.oneselected");
-			content = content + ' <i class="icon-star-empty"></i> ';
+			content = content + '<br><i class="icon-star-empty"></i> ';
 			content = content + '<span class="hide ua-sourcesitem" data-itemkey="' + items[0].key + '"></span>';
-			if (items[0].directory) {
-				content = content + '<strong>' + items[0].storagename + ':' + items[0].path + '</strong>';
-			} else {
-				content = content + items[0].storagename + ':' + items[0].path;
-			}
+			content = content + creator.prepareDisplaySelectedItemInList(items[0]);
 		}
 
 		content = content + '<form class="form-horizontal">';
 
 		content = content + '<p class="lead">' + i18n("useractions.newaction.settings") + '</p>';
 		content = content + creator.prepareConfiguratorForFunctionality(classname, 0);
-		//TODO add new + $('#uacreationmodal div.ua-creation-range-group').removeClass("hide");
 		
 		content = content + '<p class="lead">' + i18n("useractions.newaction.setup") + '</p>';
 		
-		content = content + creator.prepareFinisherForm(basketname);
 		content = content + creator.prepareRangeForm(basketname);
+		content = content + creator.prepareFinisherForm(basketname);
 		content = content + creator.prepareCommentForm();
 		content = content + creator.prepareUserNotificationReasonsForm();
 		
@@ -385,6 +463,8 @@
 		$("body").append(content);
 		
 		$('#uacreationmodal').modal({});
+		$('#uacreationmodal div.modal-body.ua-creation-box').scrollTop(0);
+		
 		$('#uacreationmodal').on('hidden', function () {
 			creator.current = null;
 		});

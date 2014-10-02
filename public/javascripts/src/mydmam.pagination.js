@@ -107,6 +107,6 @@
 		$('a.pagination-' + name).each(function() {
 			$(this).click(onclickevent($(this).data("currentpage")));
 		});
-		return content;
+		return null;
 	};
 })(window.mydmam.pagination);
