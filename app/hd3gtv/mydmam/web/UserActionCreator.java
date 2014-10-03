@@ -137,20 +137,6 @@ public class UserActionCreator {
 		return this;
 	}
 	
-	public UserActionCreator setConfigured_functionalityForOneClick(String functionality_classname) throws Exception {
-		if (functionality_classname == null) {
-			throw new NullPointerException("\"functionality_classname\" can't to be null");
-		}
-		
-		configured_functionalities = new ArrayList<UserActionCreatorConfiguredFunctionality>(1);
-		
-		UserActionCreatorConfiguredFunctionality configured_functionality = new UserActionCreatorConfiguredFunctionality();
-		configured_functionality.functionality_classname = functionality_classname;
-		configured_functionality.prepare();
-		configured_functionalities.add(configured_functionality);
-		return this;
-	}
-	
 	public UserActionCreator addNotificationdestinationForCreator(String... reasons) throws NullPointerException, ConnectionException, IOException {
 		if (reasons == null) {
 			return this;
