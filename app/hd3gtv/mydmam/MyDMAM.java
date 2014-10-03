@@ -18,6 +18,7 @@ package hd3gtv.mydmam;
 
 import hd3gtv.configuration.Configuration;
 
+import java.lang.reflect.Type;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -35,6 +36,14 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 public class MyDMAM {
 	
@@ -158,5 +167,23 @@ public class MyDMAM {
 		}
 		return gsonbuilder.create();
 	}*/
+	
+	public static class GsonClassSerializer implements JsonSerializer<Class<?>>, JsonDeserializer<Class<?>> {
+		
+		public JsonElement serialize(Class<?> src, Type typeOfSrc, JsonSerializationContext context) {
+			if (src == null) {
+				return null;
+			}
+			return new JsonPrimitive(src.getName());
+		}
+		
+		public Class<?> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			try {
+				return Class.forName(json.getAsString());
+			} catch (Exception e) {
+				throw new JsonParseException(e);
+			}
+		}
+	}
 	
 }

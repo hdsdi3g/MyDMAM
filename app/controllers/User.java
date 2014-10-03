@@ -210,21 +210,11 @@ public class User extends Controller {
 		redirect("User.index", objtype);
 	}
 	
-	private static UserProfile getUserProfile() throws Exception {
+	static UserProfile getUserProfile() throws Exception {
 		String username = Secure.connected();
 		String key = UserProfile.prepareKey(username);
-		
-		UserProfile userprofile = new UserProfile();
-		CrudOrmEngine<UserProfile> engine = new CrudOrmEngine<UserProfile>(userprofile);
-		
-		if (engine.exists(key)) {
-			userprofile = engine.read(key);
-		} else {
-			userprofile = engine.create();
-			userprofile.key = key;
-			engine.saveInternalElement();
-		}
-		return userprofile;
+		CrudOrmEngine<UserProfile> engine = UserProfile.getORMEngine(key);
+		return engine.getInternalElement();
 	}
 	
 	public static void notificationslist() throws Exception {

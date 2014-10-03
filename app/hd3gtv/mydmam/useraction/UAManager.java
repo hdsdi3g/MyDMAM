@@ -19,6 +19,7 @@ package hd3gtv.mydmam.useraction;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.module.MyDMAMModule;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
@@ -27,6 +28,9 @@ import hd3gtv.mydmam.useraction.dummy.UADummy;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class UAManager {
 	
@@ -38,10 +42,19 @@ public class UAManager {
 	 */
 	private static volatile LinkedHashMap<String, UAFunctionality> functionalities_class_map;
 	private static volatile List<UAFunctionality> functionalities_list;
+	private static Gson gson;
 	
 	static {
 		functionalities_class_map = new LinkedHashMap<String, UAFunctionality>();
 		functionalities_list = new ArrayList<UAFunctionality>();
+		
+		GsonBuilder builder = new GsonBuilder();
+		builder.serializeNulls();
+		builder.registerTypeAdapter(UAFunctionalityDefinintion.class, new UAFunctionalityDefinintion.Serializer());
+		builder.registerTypeAdapter(UACapabilityDefinition.class, new UACapabilityDefinition.Serializer());
+		builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
+		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		gson = builder.create();
 		
 		add(new UADummy());
 		
@@ -49,6 +62,10 @@ public class UAManager {
 		for (int pos = 0; pos < modules.size(); pos++) {
 			addAll(modules.get(pos).getUAfunctionality());
 		}
+	}
+	
+	public static Gson getGson() {
+		return gson;
 	}
 	
 	private static void add(UAFunctionality functionality) {
@@ -129,7 +146,10 @@ public class UAManager {
 				dump.add(functionality.getClass().getSimpleName(), functionality.getLongName());
 			}
 			Log2.log.info("Add Useraction worker", dump);
-			wgroup.addWorker(new UAWorker(worker_functionalities_list));
+			UAWorker worker = new UAWorker(worker_functionalities_list);
+			UAFinisherWorker fworker = new UAFinisherWorker(worker);
+			wgroup.addWorker(worker);
+			wgroup.addWorker(fworker);
 		}
 	}
 }

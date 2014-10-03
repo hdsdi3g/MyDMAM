@@ -27,8 +27,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 public final class UAJobContext implements Log2Dumpable {
@@ -56,24 +54,16 @@ public final class UAJobContext implements Log2Dumpable {
 	public UAJobContext() {
 	}
 	
-	static Gson makeGson() {
-		GsonBuilder gsonbuilder = new GsonBuilder();
-		gsonbuilder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
-		gsonbuilder.serializeNulls();
-		return gsonbuilder.create();
-	}
-	
 	static UAJobContext importFromJob(JSONObject context) {
 		if (context == null) {
 			return null;
 		}
-		Gson gson = makeGson();
-		UAJobContext result = gson.fromJson(context.toJSONString(), UAJobContext.class);
+		UAJobContext result = UAManager.getGson().fromJson(context.toJSONString(), UAJobContext.class);
 		
 		if (context.containsKey("items")) {
 			Type typeOfT = new TypeToken<ArrayList<String>>() {
 			}.getType();
-			result.items = gson.fromJson(((JSONArray) context.get("items")).toJSONString(), typeOfT);
+			result.items = UAManager.getGson().fromJson(((JSONArray) context.get("items")).toJSONString(), typeOfT);
 		} else {
 			result.items = null;
 		}
@@ -84,7 +74,7 @@ public final class UAJobContext implements Log2Dumpable {
 	public JSONObject toContext() {
 		JSONParser jp = new JSONParser();
 		try {
-			return (JSONObject) jp.parse(makeGson().toJson(this));
+			return (JSONObject) jp.parse(UAManager.getGson().toJson(this));
 		} catch (ParseException e) {
 			return new JSONObject();
 		}

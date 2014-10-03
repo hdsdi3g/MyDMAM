@@ -23,6 +23,7 @@ import hd3gtv.mydmam.taskqueue.Worker;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
+import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.useraction.UAWorker;
 import hd3gtv.tools.TimeUtils;
 
@@ -42,7 +43,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -66,7 +66,6 @@ public class IsAlive extends Thread {
 	private int period;
 	private static Type useraction_functionality_list_typeOfT = new TypeToken<List<UAFunctionalityDefinintion>>() {
 	}.getType();
-	private static Gson gson;
 	
 	static {
 		try {
@@ -77,7 +76,6 @@ public class IsAlive extends Thread {
 		} catch (ConnectionException e) {
 			Log2.log.info("Can't init database access");
 		}
-		gson = UAFunctionalityDefinintion.getGson();
 	}
 	
 	public IsAlive(ServiceManager manager) throws Exception {
@@ -223,7 +221,7 @@ public class IsAlive extends Thread {
 					}
 				}
 				
-				String json_useraction_functionality_list = gson.toJson(useraction_functionality_list, useraction_functionality_list_typeOfT);
+				String json_useraction_functionality_list = UAManager.getGson().toJson(useraction_functionality_list, useraction_functionality_list_typeOfT);
 				
 				mutator.withRow(CF_WORKERS, workername).putColumn("useraction_functionality_list", json_useraction_functionality_list, period * 2);
 				
@@ -252,7 +250,7 @@ public class IsAlive extends Thread {
 			if (col == null) {
 				continue;
 			}
-			list = gson.fromJson(col.getStringValue(), useraction_functionality_list_typeOfT);
+			list = UAManager.getGson().fromJson(col.getStringValue(), useraction_functionality_list_typeOfT);
 			
 			if (privileges_for_user != null) {
 				if (privileges_for_user.isEmpty() == false) {
@@ -313,11 +311,11 @@ public class IsAlive extends Thread {
 			result_implementation = new JsonObject();
 			result_implementation.addProperty("messagebasename", current.messagebasename);
 			
-			result_capability = (JsonObject) gson.toJsonTree(current.capability);
+			result_capability = (JsonObject) UAManager.getGson().toJsonTree(current.capability);
 			result_capability.remove("musthavelocalstorageindexbridge");
 			result_implementation.add("capability", result_capability);
 			
-			result_configurator = (JsonObject) gson.toJsonTree(current.configurator);
+			result_configurator = (JsonObject) UAManager.getGson().toJsonTree(current.configurator);
 			result_configurator.remove("type");
 			result_configurator.remove("origin");
 			result_implementation.add("configurator", result_configurator);
@@ -325,7 +323,7 @@ public class IsAlive extends Thread {
 			result.add(current.classname, result_implementation);
 		}
 		
-		return gson.toJson(result);
+		return UAManager.getGson().toJson(result);
 	}
 	
 	public static JSONArray getLastStatusWorkers() throws Exception {

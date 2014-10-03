@@ -54,6 +54,7 @@ public class UserActionCreator {
 	static {
 		GsonBuilder builder = new GsonBuilder();
 		builder.serializeNulls();
+		builder.setPrettyPrinting();
 		// builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
 		gson = builder.create();
 	}
@@ -254,9 +255,11 @@ public class UserActionCreator {
 					new_tasks.add(last_require);
 					notification.addLinkedTasksJobs(last_require);
 				}
-				finisher_task = createSingleFinisherTask(last_require, items, storage_name);
-				new_tasks.add(finisher_task);
-				notification.addLinkedTasksJobs(finisher_task);
+				if (global_finisher.isNeededToCreateFinisher()) {
+					finisher_task = createSingleFinisherTask(last_require, items, storage_name);
+					new_tasks.add(finisher_task);
+					notification.addLinkedTasksJobs(finisher_task);
+				}
 			}
 			notification.save();
 			addUALogEntry();
@@ -270,10 +273,12 @@ public class UserActionCreator {
 					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
 					notification.addLinkedTasksJobs(last_require);
 				}
-				finisher_task = createSingleFinisherTask(last_require, items, storage_name);
-				new_tasks.add(finisher_task);
-				notification.addLinkedTasksJobs(finisher_task);
-				notification.save();
+				if (global_finisher.isNeededToCreateFinisher()) {
+					finisher_task = createSingleFinisherTask(last_require, items, storage_name);
+					new_tasks.add(finisher_task);
+					notification.addLinkedTasksJobs(finisher_task);
+					notification.save();
+				}
 			}
 			addUALogEntry();
 		} else if (range == UARange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
@@ -303,7 +308,7 @@ public class UserActionCreator {
 		return n;
 	}
 	
-	public void addUALogEntry() { // TODO set to private
+	private void addUALogEntry() {
 		long now = System.currentTimeMillis();
 		
 		HashMap<String, Object> logentry = new HashMap<String, Object>();
@@ -321,10 +326,16 @@ public class UserActionCreator {
 		sb.append(":");
 		sb.append(userprofile.key);
 		
+		String json_data = gson.toJson(logentry);
+		
 		IndexRequest ir = new IndexRequest(Notification.ES_INDEX, ES_TYPE, sb.toString());
-		ir.source(gson.toJson(logentry));
+		ir.source(json_data);
 		ir.ttl(LOG_LIFETIME);
 		client.index(ir);
+		
+		Log2Dump dump = new Log2Dump();
+		dump.add("id", sb.toString());
+		dump.add("raw_json", json_data);
+		Log2.log.info("Create UserAction", dump);
 	}
-	
 }

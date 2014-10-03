@@ -19,7 +19,6 @@ package hd3gtv.mydmam.useraction;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.taskqueue.Profile;
-import hd3gtv.mydmam.taskqueue.Profile.ProfileSerializer;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -48,9 +47,6 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 	public List<Profile> profiles;
 	public UACapabilityDefinition capability;
 	public UAConfigurator configurator;
-	
-	private static final ProfileSerializer profileserializer;
-	private static final Serializer serializer;
 	
 	public static void mergueInList(List<UAFunctionalityDefinintion> ressource, UAFunctionalityDefinintion definition) {
 		if (ressource == null) {
@@ -88,11 +84,6 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		ressource.add(definition);
 	}
 	
-	static {
-		profileserializer = new Profile.ProfileSerializer();
-		serializer = new Serializer();
-	}
-	
 	static UAFunctionalityDefinintion fromFunctionality(UAFunctionality functionality) {
 		UAFunctionalityDefinintion def = new UAFunctionalityDefinintion();
 		def.section = functionality.getSection();
@@ -118,27 +109,17 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		return def;
 	}
 	
-	public static Gson getGson() {
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		builder.registerTypeAdapter(UAFunctionalityDefinintion.class, serializer);
-		builder.registerTypeAdapter(UACapabilityDefinition.class, new UACapabilityDefinition.Serializer());
-		builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
-		return builder.create();
-	}
-	
-	private static class Serializer implements JsonSerializer<UAFunctionalityDefinintion>, JsonDeserializer<UAFunctionalityDefinintion> {
+	static class Serializer implements JsonSerializer<UAFunctionalityDefinintion>, JsonDeserializer<UAFunctionalityDefinintion> {
 		Gson gson;
 		
 		Type profiles_typeOfT = new TypeToken<ArrayList<Profile>>() {
 		}.getType();
 		
-		private Serializer() {
+		Serializer() {
 			GsonBuilder builder = new GsonBuilder();
 			builder.serializeNulls();
-			builder.registerTypeAdapter(Profile.class, profileserializer);
+			builder.registerTypeAdapter(Profile.class, new Profile.ProfileSerializer());
 			builder.registerTypeAdapter(UACapabilityDefinition.class, new UACapabilityDefinition.Serializer());
-			
 			gson = builder.create();
 		}
 		

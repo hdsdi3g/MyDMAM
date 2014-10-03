@@ -36,6 +36,10 @@ public class UAFinisherConfiguration implements Log2Dumpable {
 		return dump;
 	}
 	
+	public boolean isNeededToCreateFinisher() {
+		return remove_user_basket_item | soft_refresh_source_storage_index_item | force_refresh_source_storage_index_item;
+	}
+	
 	public UAFinisherConfiguration setRemove_user_basket_item(boolean remove_user_basket_item) {
 		this.remove_user_basket_item = remove_user_basket_item;
 		return this;

@@ -74,8 +74,6 @@ public class UserAction extends Controller {
 		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities()));
 	}
 	
-	// TODO get user map : Name <-> crypted user key. Lock to a domain ?
-	
 	@Check("userAction")
 	public static void create() throws Exception {
 		String[] raw_items = params.getAll("items[]");
@@ -98,8 +96,7 @@ public class UserAction extends Controller {
 			}
 		}
 		
-		String username = Secure.connected();
-		UserProfile userprofile = UserProfile.getORMEngine(username).getInternalElement();// TODO no mail or long name in userprofile
+		UserProfile userprofile = User.getUserProfile();
 		UserActionCreator creator = new UserActionCreator(items);
 		creator.setUserprofile(userprofile);
 		creator.setBasket_name(params.get("basket_name"));
@@ -138,8 +135,7 @@ public class UserAction extends Controller {
 			throw e;
 		}
 		
-		// creator.createTasks(); // XXX
-		creator.addUALogEntry();
+		creator.createTasks();
 		
 		renderJSON(JSON_OK_RESPONSE);
 	}

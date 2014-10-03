@@ -563,6 +563,7 @@
 			content = content + i18n("useractions.newaction.requesterror.text");
 			content = content + '</div>';
 			$('div.ua-creation-box').prepend(content);
+			$('#uacreationmodal div.modal-body.ua-creation-box').scrollTop(0);
 		});
 		document.body.style.cursor = 'default';
 		

@@ -60,10 +60,6 @@ public class UAFinisherWorker extends Worker {
 			throw new NullPointerException("No \"context\" for job");
 		}
 		
-		if (context.functionality_class == null) {
-			throw new NullPointerException("\"context.functionality_class\" can't to be null");
-		}
-		
 		UAFinisherConfiguration finisher = context.finisher;
 		if (finisher == null) {
 			throw new NullPointerException("\"context.finisher\" can't to be null");
@@ -84,13 +80,13 @@ public class UAFinisherWorker extends Worker {
 			elements = explorer.getelementByIdkeys(context.items);
 		}
 		
-		job.progress = 0;
+		/*job.progress = 0;
 		job.step = 0;
 		job.progress_size = 1;
-		job.step_count = 1;
+		job.step_count = 1;*/
 		doFinishUserAction(elements, user_profile, context.basket_name, explorer, finisher);
-		job.progress = 1;
-		job.step = 1;
+		/*job.progress = 1;
+		job.step = 1;*/
 	}
 	
 	static void doFinishUserAction(HashMap<String, SourcePathIndexerElement> elements, UserProfile user_profile, String basket_name, Explorer explorer, UAFinisherConfiguration configuration)

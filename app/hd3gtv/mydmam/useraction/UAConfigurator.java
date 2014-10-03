@@ -51,7 +51,7 @@ public final class UAConfigurator implements Log2Dumpable {
 		Log2Dump dump = new Log2Dump();
 		dump.add("type", type);
 		dump.add("type", origin);
-		Gson gson = UAJobContext.makeGson();
+		Gson gson = UAManager.getGson();
 		dump.add("object", gson.toJson(object));
 		dump.add("fields", gson.toJson(fields, new TypeToken<ArrayList<ORMFormField>>() {
 		}.getType()));
@@ -102,9 +102,8 @@ public final class UAConfigurator implements Log2Dumpable {
 			JsonObject je = new JsonObject();
 			je.add("type", new JsonPrimitive(src.type));
 			je.add("origin", new JsonPrimitive(src.origin));
-			Gson gson = UAJobContext.makeGson();
-			je.add("object", gson.toJsonTree(src.object));
-			je.add("fields", gson.toJsonTree(src.fields, new TypeToken<ArrayList<ORMFormField>>() {
+			je.add("object", UAManager.getGson().toJsonTree(src.object));
+			je.add("fields", UAManager.getGson().toJsonTree(src.fields, new TypeToken<ArrayList<ORMFormField>>() {
 			}.getType()));
 			return je;
 		}
@@ -117,7 +116,7 @@ public final class UAConfigurator implements Log2Dumpable {
 				JsonObject je = (JsonObject) json;
 				UAConfigurator result = new UAConfigurator();
 				result.origin = je.get("origin").getAsString();
-				result.object = UAJobContext.makeGson().fromJson(je.get("object"), Class.forName(result.origin));
+				result.object = UAManager.getGson().fromJson(je.get("object"), Class.forName(result.origin));
 				return result;
 			} catch (Exception e) {
 				throw new JsonParseException(e);

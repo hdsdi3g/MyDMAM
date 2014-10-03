@@ -88,7 +88,7 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 		
 	}
 	
-	public void refreshIndex(String storage_index_label, String current_working_directory, boolean force_refresh) throws Exception {
+	public void refreshIndex(String storage_index_label, String current_working_directory, boolean force_refresh) throws Exception {// TODO test & debug refresh
 		PathElementConfiguration pec = scanelements.get(storage_index_label);
 		if (pec == null) {
 			throw new IOException("Can't found pathindex storage name for " + storage_index_label);
