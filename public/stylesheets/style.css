@@ -29,6 +29,14 @@ body {
 	padding-right: 8px !important;
 }
 
+.label.label-bordered {
+	background-color: #fff;
+    color: #555;
+    border: 1px solid #ccc;
+    text-shadow: 0 0 0 #fff;
+    border-radius: 5px;
+}
+
 th {
 	text-align:left;
 }

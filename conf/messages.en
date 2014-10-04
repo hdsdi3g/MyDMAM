@@ -288,12 +288,13 @@ userprofile.notifications.readnow=Read Now
 userprofile.notifications.closeat=Close at
 userprofile.notifications.closeby=Close by
 userprofile.notifications.admin.pagename=Notifications admin
-userprofile.notifications.admin.tasksjobstatus=Tasks/Jobs status
-userprofile.notifications.admin.creatingcomment=Creating comment
+userprofile.notifications.admin.tasksjobstatus=Status
+userprofile.notifications.admin.creatorreferences=References
 userprofile.notifications.admin.createdreadedclosed=Created/readed/closed
 userprofile.notifications.admin.observers=Observers
 userprofile.notifications.admin.usercomments=User comments
 userprofile.notifications.admin.action=Action
+
 userprofile.baskets.pagename=Baskets selection
 userprofile.baskets.newbasketname=New basket name
 userprofile.baskets.rename=Rename

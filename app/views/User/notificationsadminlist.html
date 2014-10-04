@@ -38,7 +38,7 @@
 <thead>
 	<tr>
 		<th>&{'userprofile.notifications.admin.tasksjobstatus'}</th>
-		<th>&{'userprofile.notifications.admin.creatingcomment'}</th>
+		<th>&{'userprofile.notifications.admin.creatorreferences'}</th>
 		<th>&{'userprofile.notifications.admin.createdreadedclosed'}</th>
 		<th>&{'userprofile.notifications.admin.observers'}</th>
 		<th>&{'userprofile.notifications.admin.usercomments'}</th>
@@ -63,7 +63,15 @@
 		%{ } }%
 	</td>
 	<td>
-		${notification.creating_comment}
+		&{'userprofile.notifications.creator_reference.' + notification.creator_reference}
+		#{if notification.profile_references}
+			#{list items:notification.profile_references, as:'profile_reference'}
+				<span class="label label-bordered">&{'userprofile.notifications.profile_references.' + profile_reference}</span>
+			#{/list}
+		#{/if}
+		#{if notification.creating_comment}
+			<span class="label"><i>${notification.creating_comment}</i></span>
+		#{/if}
 	</td>
 	<td>
 		<span class="label">&{'userprofile.notifications.createdat'} ${notification.created_at.formatDate()}</span>

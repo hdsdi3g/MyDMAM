@@ -35,7 +35,7 @@ public abstract class UAFunctionality {
 	/**
 	 * @return like filesystem, transcoding, metadata/pvw, content check, download/delivery, user metadata...
 	 */
-	public abstract String getSection();
+	public abstract String getSection();// TODO display and translate section in website
 	
 	public abstract String getVendor();
 	

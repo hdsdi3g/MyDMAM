@@ -48,6 +48,7 @@ public class UserActionCreator {
 	
 	public static final String ES_TYPE = "log";
 	private static final long LOG_LIFETIME = 3600 * 24 * 365 * 2; // 2 years
+	private static final String NOTIFICATION_REFERENCE = "useraction";
 	
 	static Gson gson;
 	
@@ -240,6 +241,7 @@ public class UserActionCreator {
 					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
 					new_tasks.add(last_require);
 					notification.addLinkedTasksJobs(last_require);
+					notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
 				}
 				if (global_finisher.isNeededToCreateFinisher()) {
 					finisher_task = createSingleFinisherTask(last_require, items, storage_name);
@@ -258,6 +260,7 @@ public class UserActionCreator {
 				for (int pos = 0; pos < configured_functionalities.size(); pos++) {
 					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
 					notification.addLinkedTasksJobs(last_require);
+					notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
 				}
 				if (global_finisher.isNeededToCreateFinisher()) {
 					finisher_task = createSingleFinisherTask(last_require, items, storage_name);
@@ -276,6 +279,7 @@ public class UserActionCreator {
 					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
 					new_tasks.add(last_require);
 					notification.addLinkedTasksJobs(last_require);
+					notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
 				}
 				notification.save();
 			}
@@ -285,9 +289,9 @@ public class UserActionCreator {
 	
 	private Notification createNotification() throws ConnectionException, IOException {
 		if (usercomment == null) {
-			usercomment = "User action by " + userprofile.longname;
+			usercomment = "";
 		}
-		Notification n = Notification.create(userprofile, usercomment + " (by " + userprofile.longname + ")");
+		Notification n = Notification.create(userprofile, usercomment, NOTIFICATION_REFERENCE);
 		for (int pos = 0; pos < notificationdestinations.size(); pos++) {
 			n.updateNotifyReasonForUser(notificationdestinations.get(pos).userprofile, notificationdestinations.get(pos).n_reason, true);
 		}
@@ -322,6 +326,6 @@ public class UserActionCreator {
 		Log2Dump dump = new Log2Dump();
 		dump.add("id", sb.toString());
 		dump.add("raw_json", json_data);
-		Log2.log.info("Create UserAction", dump);
+		Log2.log.debug("Create UserAction", dump);
 	}
 }

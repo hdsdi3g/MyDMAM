@@ -288,12 +288,13 @@ userprofile.notifications.readnow=Lu maintenant
 userprofile.notifications.closeat=Fermé le
 userprofile.notifications.closeby=Fermé par
 userprofile.notifications.admin.pagename=Gestion des notifications
-userprofile.notifications.admin.tasksjobstatus=Etat des travaux
-userprofile.notifications.admin.creatingcomment=Commentaire de creation
+userprofile.notifications.admin.tasksjobstatus=Etat
+userprofile.notifications.admin.creatorreferences=Références
 userprofile.notifications.admin.createdreadedclosed=Crée/lu/fermé
 userprofile.notifications.admin.observers=Observateurs
 userprofile.notifications.admin.usercomments=Commentaires utilisateurs
 userprofile.notifications.admin.action=Action
+
 userprofile.baskets.pagename=Paniers de selection
 userprofile.baskets.newbasketname=Nom du nouveau panier
 userprofile.baskets.rename=Renommer
@@ -360,6 +361,9 @@ useractions.newaction.setup.addnewsettings=Ajouter une fonctionalité supplémen
 useractions.newaction.requesterror=Erreur lors de la création de l'action
 useractions.newaction.requesterror.text=Verifiez que la configuration si dessous soit bien correcte et/ou contactez un administrateur.
 
+userprofile.notifications.creator_reference.useraction=Action utilisateur
+
 useractions.functionalities.uadummy.name=Test de User Action (dummy)
 useractions.functionalities.uadummy.fields.avalue=Une donnée
 useractions.functionalities.uadummy.fields.avalue.help=Ceci est une donné pour la démo.
+userprofile.notifications.profile_references.uadummy=Test de User Action (dummy)

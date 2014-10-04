@@ -76,6 +76,8 @@ public class Notification {
 	private UserProfile closed_by;
 	private long commented_at;
 	private String users_comment;
+	private String creator_reference;
+	private List<String> profile_references;
 	
 	private Map<NotifyReason, List<UserProfile>> notify_list;
 	
@@ -104,6 +106,8 @@ public class Notification {
 		creator = null;
 		linked_tasksjobs = new HashMap<String, TaskJobStatus>(1);
 		creating_comment = "";
+		creator_reference = "";
+		profile_references = new ArrayList<String>();
 		created_at = System.currentTimeMillis();
 		is_read = false;
 		readed_at = -1;
@@ -201,6 +205,14 @@ public class Notification {
 		}
 		
 		creating_comment = (String) record.get("creating_comment");
+		
+		profile_references = new ArrayList<String>();
+		JSONArray ja_profile_references = (JSONArray) record.get("profile_references");
+		for (int pos = 0; pos < ja_profile_references.size(); pos++) {
+			profile_references.add((String) ja_profile_references.get(pos));
+		}
+		
+		creator_reference = (String) record.get("creator_reference");
 		created_at = (Long) record.get("created_at");
 		is_read = (Boolean) record.get("is_read");
 		readed_at = (Long) record.get("readed_at");
@@ -239,6 +251,16 @@ public class Notification {
 		record.put("linked_tasks", ja_linked_tasks);
 		
 		record.put("creating_comment", creating_comment);
+		
+		JSONArray ja_profile_references = new JSONArray();
+		if (profile_references != null) {
+			for (int pos = 0; pos < profile_references.size(); pos++) {
+				ja_profile_references.add(profile_references.get(pos));
+			}
+		}
+		
+		record.put("profile_references", ja_profile_references);
+		record.put("creator_reference", creator_reference);
 		record.put("created_at", created_at);
 		record.put("is_read", is_read);
 		record.put("readed_at", readed_at);
@@ -277,6 +299,8 @@ public class Notification {
 	Map<String, Object> exportToMailVars() {
 		HashMap<String, Object> mail_vars = new HashMap<String, Object>();
 		mail_vars.put("creating_comment", creating_comment);
+		mail_vars.put("creator_reference", creator_reference);
+		mail_vars.put("profile_references", profile_references);
 		mail_vars.put("is_read", is_read);
 		mail_vars.put("is_close", is_close);
 		mail_vars.put("users_comment", users_comment);
@@ -313,7 +337,7 @@ public class Notification {
 		return all_notifications;
 	}*/
 	
-	public static Notification create(UserProfile creator, String creating_comment) throws ConnectionException, IOException {
+	public static Notification create(UserProfile creator, String creating_comment, String creator_reference) throws ConnectionException, IOException {
 		if (creator == null) {
 			throw new NullPointerException("\"creator\" can't to be null");
 		}
@@ -325,6 +349,7 @@ public class Notification {
 		notification.observers.add(creator);
 		notification.creator = creator;
 		notification.creating_comment = creating_comment;
+		notification.creator_reference = creator_reference;
 		notification.created_at = System.currentTimeMillis();
 		return notification;
 	}
@@ -349,6 +374,17 @@ public class Notification {
 			return this;
 		}
 		linked_tasksjobs.putAll(all_actual_status);
+		return this;
+	}
+	
+	public Notification addProfileReference(String... references) {
+		if (references != null) {
+			for (int pos = 0; pos < references.length; pos++) {
+				if (profile_references.contains(references[pos]) == false) {
+					profile_references.add(references[pos]);
+				}
+			}
+		}
 		return this;
 	}
 	

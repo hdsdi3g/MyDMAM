@@ -44,7 +44,15 @@
 		<span class="redrawstatus" data-status="${notification.summary_status}">
 			<span class="label label-info">&{notification.summary_status}</span>
 		</span>
-		${notification.creating_comment}
+		&{'userprofile.notifications.creator_reference.' + notification.creator_reference}
+		#{if notification.profile_references}
+			#{list items:notification.profile_references, as:'profile_reference'}
+				<span class="label label-bordered">&{'userprofile.notifications.profile_references.' + profile_reference}</span>
+			#{/list}
+		#{/if}
+		#{if notification.creating_comment}
+			<span class="label"><i>${notification.creating_comment}</i></span>
+		#{/if}
 	</div>
 	<div class="collapse #{if flash.lastkey == notification.key}in#{/if}" id="notificationcontent${pos}">
 		<div class="tabbable tabs-right" style="margin-top: 1em; margin-bottom: 1em;">

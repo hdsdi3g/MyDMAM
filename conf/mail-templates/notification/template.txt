@@ -16,7 +16,7 @@
 */ %>=== ${title} ===
 <% for (reason_entry in reasons) { %>
  # ${translator.t(reason_entry.key)}
-<% reason_entry.value.eachWithIndex() { reason, pos -> %>   - ${reason.creating_comment} :: ${notification_createdby} ${reason.creator} [<% if (reason.is_close) { %>${notification_closed}<% } else if (reason.is_read) { %>${notification_readed}<% } %>]
+<% reason_entry.value.eachWithIndex() { reason, pos -> %>   - ${reason.creator_reference} <% if (reason.profile_references) { %>[ <% for (profile_reference in reason.profile_references) { %>${profile_reference} <% } %>]<% } %> ${reason.creating_comment} :: ${notification_createdby} ${reason.creator} [<% if (reason.is_close) { %>${notification_closed}<% } else if (reason.is_read) { %>${notification_readed}<% } %>]
 <% if (reason.users_comment) { %>     ${reason.users_comment}<% } %><% } %><% } %>
 
 * ${please_not_respond} *

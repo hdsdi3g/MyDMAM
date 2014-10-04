@@ -37,11 +37,19 @@
 		<ul>
 		<% reason_entry.value.eachWithIndex() { reason, pos -> %>
 			<li>
-				<b>${reason.creating_comment}</b> :: <i>${notification_createdby} ${reason.creator}</i>
-				[<% if (reason.is_close) { %>${notification_closed}<% } else if (reason.is_read) { %>${notification_readed}<% } %>]
+				<b>${reason.creator_reference}</b>,
+				<% if (reason.profile_references) { %>
+					[
+					<% for (profile_reference in reason.profile_references) { %>
+						${profile_reference}
+			 		<% } %>
+			 		]
+		 		<% } %>
+				${reason.creating_comment} :: <i>${notification_createdby} ${reason.creator}</i>
+				<% if (reason.is_close) { %>[${notification_closed}]<% } else if (reason.is_read) { %>[${notification_readed}]<% } %>
 				<% if (reason.users_comment) { %>
 					<pre>${reason.users_comment}</pre>
-				<% } %>
+		 		<% } %> 
 			</li>
 		<% } %>
 		</ul>
