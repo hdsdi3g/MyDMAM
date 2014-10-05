@@ -17,8 +17,8 @@
 
 package controllers;
 
-import hd3gtv.javasimpleservice.IsAlive;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
+import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.web.Privileges;
 
 import java.util.Arrays;
@@ -211,7 +211,8 @@ public class ACL extends Controller {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
 		List<ACLRole> roles = ACLRole.findAll();
-		render(title, roles);// TODO display role.privileges
+		List<UAFunctionalityDefinintion> functionalities = UAManager.getAllDeclaredFunctionalities();
+		render(title, roles, functionalities);// TODO display functionalities
 	}
 	
 	@Check("acl")
@@ -224,8 +225,9 @@ public class ACL extends Controller {
 		List<ACLGroup> groups = ACLGroup.findAll();
 		List<String> selectedprivileges = null;
 		List<String> privileges = Privileges.getAllPrivileges();
-		List<UAFunctionalityDefinintion> functionalities = IsAlive.getCurrentFunctionalitiesAvailable();
-		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, functionalities);
+		List<String> selectedfunctionalities = null;
+		List<UAFunctionalityDefinintion> functionalities = UAManager.getAllDeclaredFunctionalities();
+		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, functionalities, selectedfunctionalities);// TODO display functionalities
 	}
 	
 	@Check("acl")
@@ -247,9 +249,9 @@ public class ACL extends Controller {
 		}
 		List<ACLGroup> groups = ACLGroup.findAll();
 		List<String> privileges = Privileges.getAllPrivileges();
-		List<UAFunctionalityDefinintion> functionalities = IsAlive.getCurrentFunctionalitiesAvailable();
+		List<UAFunctionalityDefinintion> functionalities = UAManager.getAllDeclaredFunctionalities();
 		
-		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);// TODO udpate view with availabilities
+		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);// TODO display functionalities
 	}
 	
 	@Check("acl")
@@ -284,8 +286,8 @@ public class ACL extends Controller {
 			List<String> selectedprivileges = null;
 			List<String> privileges = Privileges.getAllPrivileges();
 			List<String> selectedfunctionalities = null;
-			List<UAFunctionalityDefinintion> functionalities = IsAlive.getCurrentFunctionalitiesAvailable();
-			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);
+			List<UAFunctionalityDefinintion> functionalities = UAManager.getAllDeclaredFunctionalities();
+			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);// TODO display functionalities
 			return;
 		}
 		

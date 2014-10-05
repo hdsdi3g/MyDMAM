@@ -45,6 +45,8 @@ public abstract class UAFunctionality {
 	
 	public abstract String getMessageBaseName();
 	
+	public abstract boolean isPowerfulAndDangerous();
+	
 	private volatile UUID instance_reference;
 	
 	/**

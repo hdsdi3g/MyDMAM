@@ -44,6 +44,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 	public String description;
 	public String instance;
 	public String messagebasename;
+	public boolean powerful_and_dangerous;
 	public List<Profile> profiles;
 	public UACapabilityDefinition capability;
 	public UAConfigurator configurator;
@@ -98,6 +99,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		if (def.messagebasename == null) {
 			def.messagebasename = functionality.getClass().getName();
 		}
+		def.powerful_and_dangerous = functionality.isPowerfulAndDangerous();
 		
 		UACapability capability = functionality.getCapabilityForInstance();
 		if (capability != null) {
@@ -149,6 +151,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		dump.add("description", description);
 		dump.add("instance", instance);
 		dump.add("messagebasename", messagebasename);
+		dump.add("powerful_and_dangerous", powerful_and_dangerous);
 		dump.add("profiles", profiles);
 		dump.addAll(capability);
 		dump.addAll(configurator);

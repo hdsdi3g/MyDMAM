@@ -235,14 +235,11 @@ public class IsAlive extends Thread {
 		}
 	}
 	
-	/**
-	 * @return worker key -> list
-	 */
-	private static Map<String, List<UAFunctionalityDefinintion>> getCurrentAvailabilities(ArrayList<String> privileges_for_user) throws ConnectionException {
+	public static String getCurrentAvailabilitiesAsJsonString(ArrayList<String> privileges_for_user) throws ConnectionException {
 		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(CF_WORKERS).getAllRows().withColumnSlice("useraction_functionality_list");
 		OperationResult<Rows<String, String>> rows = all_rows.execute();
 		
-		Map<String, List<UAFunctionalityDefinintion>> result = new HashMap<String, List<UAFunctionalityDefinintion>>();
+		Map<String, List<UAFunctionalityDefinintion>> all = new HashMap<String, List<UAFunctionalityDefinintion>>();
 		
 		List<UAFunctionalityDefinintion> list;
 		for (Row<String, String> row : rows.getResult()) {
@@ -261,35 +258,9 @@ public class IsAlive extends Thread {
 					}
 				}
 			}
-			result.put(row.getKey(), list);
+			all.put(row.getKey(), list);
 		}
 		
-		return result;
-	}
-	
-	/**
-	 * Don't use for know the real possiblity (because the instances parculiarities are merged).
-	 */
-	public static List<UAFunctionalityDefinintion> getCurrentFunctionalitiesAvailable() {
-		List<UAFunctionalityDefinintion> result = new ArrayList<UAFunctionalityDefinintion>();
-		try {
-			Map<String, List<UAFunctionalityDefinintion>> all = getCurrentAvailabilities(null);
-			List<UAFunctionalityDefinintion> current;
-			for (Map.Entry<String, List<UAFunctionalityDefinintion>> entry : all.entrySet()) {
-				current = entry.getValue();
-				for (int pos_current = 0; pos_current < current.size(); pos_current++) {
-					UAFunctionalityDefinintion.mergueInList(result, current.get(pos_current));
-				}
-			}
-		} catch (ConnectionException e) {
-			Log2.log.error("Can't connect to database", e);
-			return result;
-		}
-		return result;
-	}
-	
-	public static String getCurrentAvailabilitiesAsJsonString(ArrayList<String> privileges_for_user) throws ConnectionException {
-		Map<String, List<UAFunctionalityDefinintion>> all = getCurrentAvailabilities(privileges_for_user);
 		List<UAFunctionalityDefinintion> merged_definitions = new ArrayList<UAFunctionalityDefinintion>();
 		List<UAFunctionalityDefinintion> current_definitions;
 		for (Map.Entry<String, List<UAFunctionalityDefinintion>> entry : all.entrySet()) {

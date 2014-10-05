@@ -79,12 +79,19 @@ public class UAManager {
 		functionalities_list.add(functionality);
 	}
 	
+	public static List<UAFunctionalityDefinintion> getAllDeclaredFunctionalities() {
+		ArrayList<UAFunctionalityDefinintion> result = new ArrayList<UAFunctionalityDefinintion>(functionalities_list.size());
+		for (int pos = 0; pos < functionalities_list.size(); pos++) {
+			result.add(functionalities_list.get(pos).getDefinition());
+		}
+		return result;
+	}
+	
 	private static void addAll(List<? extends UAFunctionality> functionalities) {
 		if (functionalities == null) {
 			return;
 		}
 		for (int pos = 0; pos < functionalities.size(); pos++) {
-			add(functionalities.get(pos));
 			add(functionalities.get(pos));
 		}
 	}

@@ -41,6 +41,10 @@ public class UADummy extends UAFunctionality {
 		return "Dummy User Action for tests and debugging";
 	}
 	
+	public boolean isPowerfulAndDangerous() {
+		return false;
+	}
+	
 	public UAConfigurator createEmptyConfiguration() {
 		return UAConfigurator.create(new UADummyConfigurator());
 	}
