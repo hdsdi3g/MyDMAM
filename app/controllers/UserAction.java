@@ -54,11 +54,13 @@ public class UserAction extends Controller {
 		
 		ACLUser acl_user = ACLUser.findById(username);
 		String json_functionalities = acl_user.group.role.functionalities;
+		System.out.println(json_functionalities);
+		
 		if (json_functionalities == null) {
-			return null;
+			return new ArrayList<String>(1);
 		}
 		if (json_functionalities.isEmpty()) {
-			return null;
+			return new ArrayList<String>(1);
 		}
 		if (json_functionalities.equalsIgnoreCase("[]")) {
 			return new ArrayList<String>(1);
@@ -76,6 +78,11 @@ public class UserAction extends Controller {
 	
 	@Check("userAction")
 	public static void create() throws Exception {
+		ArrayList<String> getuserrestrictedfunctionalities = getUserRestrictedFunctionalities();
+		if (getuserrestrictedfunctionalities.isEmpty()) {
+			throw new SecurityException("User " + Secure.connected() + " can't use useractions");
+		}
+		
 		String[] raw_items = params.getAll("items[]");
 		if (raw_items == null) {
 			Log2.log.error("No items !", new NullPointerException());
@@ -126,7 +133,7 @@ public class UserAction extends Controller {
 		
 		String configured_functionalities_json = params.get("configured_functionalities_json");
 		try {
-			creator.setConfigured_functionalities(configured_functionalities_json, getUserRestrictedFunctionalities());
+			creator.setConfigured_functionalities(configured_functionalities_json, getuserrestrictedfunctionalities);
 		} catch (Exception e) {
 			Log2Dump dump = new Log2Dump();
 			dump.add("user", Secure.connected());

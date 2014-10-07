@@ -213,6 +213,7 @@ acl.privileges.definited=Definited
 acl.privileges.available=Available
 acl.norelatedgroups=No related groups.
 acl.noprivilegesadded=No privileges added.
+acl.functionalitiesadded=No functionality added.
 acl.users=Users
 acl.groupname=Group name
 acl.update=Update
@@ -221,6 +222,14 @@ acl.cancel=Cancel
 acl.lastlogin=Last login
 acl.fromip=From
 acl.lastedited=Last edit
+acl.functionalities=Functionalities
+acl.functionalities.dangerous=Mention a potentially dangerous action
+acl.functionalities.name=Name
+acl.functionalities.section=Section
+acl.functionalities.description=Description
+acl.functionalities.btnactivateallsimple=Activate all non dangerous functionalities
+acl.functionalities.btnactivateall=Activate all functionalities
+acl.functionalities.btndesactivateall=Desactivate all functionalities
 
 mime.video-mpeg=MPEG Video
 mime.application-pdf=PDF Document
@@ -361,6 +370,9 @@ useractions.newaction.setup.addnewsettings=Add an another functionality
 useractions.newaction.requesterror=Error during the creation of the action
 useractions.newaction.requesterror.text=Verify that the configuration in bottom is correct and / or contact an administrator.
 
+userprofile.notifications.creator_reference.useraction=User action
+
 useractions.functionalities.uadummy.name=User Action test (dummy)
 useractions.functionalities.uadummy.fields.avalue=A value
 useractions.functionalities.uadummy.fields.avalue.help=This is a value for the demo.
+userprofile.notifications.profile_references.uadummy=User Action test (dummy)

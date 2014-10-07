@@ -26,6 +26,7 @@
            <th>&{'acl.name'}</th>
            <th>&{'acl.groups'}</th>
            <th>&{'acl.privileges'}</th>
+           <th>&{'acl.functionalities'}</th>
             <th>
             	<input type="checkbox" id="btn-toogle-desactivate" ckecked="checked" style="margin-left:39px;" />
             </th>
@@ -63,6 +64,15 @@
 					#{/list}
 				#{/if}#{else}
 					<em>&{'acl.noprivilegesadded'}</em>
+				#{/else}
+			</td>
+			<td>
+				#{if element.getFunctionalitiesList()}
+    				#{list items:element.getFunctionalitiesBasenameList(), as:'functionalitybasename'}
+    					&{'useractions.functionalities.' + functionalitybasename + '.name'}<br>
+					#{/list}
+				#{/if}#{else}
+					<em>&{'acl.functionalitiesadded'}</em>
 				#{/else}
 			</td>
 			<td>
@@ -105,7 +115,8 @@ $(document).ready(function() {
 		    "bFilter": true,
 		    "aoColumnDefs": [
 				{"bVisible": true, "bSearchable": true, "bSortable": false, "aTargets": [2]},
-				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [3]},
+				{"bVisible": true, "bSearchable": true, "bSortable": false, "aTargets": [3]},
+				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [4]},
 			]
 		});
 

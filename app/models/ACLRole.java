@@ -18,6 +18,8 @@ package models;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.useraction.UAFunctionality;
+import hd3gtv.mydmam.useraction.UAManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -121,7 +123,19 @@ public class ACLRole extends GenericModel {
 			Log2.log.error("Can't extract functionalities from DB", e, new Log2Dump("raw functionalities", functionalities));
 			return new ArrayList<String>(1);
 		}
-		
+	}
+	
+	public List<String> getFunctionalitiesBasenameList() {
+		List<String> f_list = getFunctionalitiesList();
+		UAFunctionality functionality;
+		for (int pos = 0; pos < f_list.size(); pos++) {
+			functionality = UAManager.getByName(f_list.get(pos));
+			if (functionality == null) {
+				continue;
+			}
+			f_list.set(pos, functionality.getMessageBaseName());
+		}
+		return f_list;
 	}
 	
 }

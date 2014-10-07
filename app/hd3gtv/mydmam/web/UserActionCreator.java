@@ -124,10 +124,8 @@ public class UserActionCreator {
 		try {
 			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
 				configured_functionalities.get(pos).prepare();
-				if (user_restricted_privileges != null) {
-					if (user_restricted_privileges.contains(configured_functionalities.get(pos).functionality_classname) == false) {
-						throw new SecurityException("Functionality: " + configured_functionalities.get(pos).functionality_classname);
-					}
+				if (user_restricted_privileges.contains(configured_functionalities.get(pos).functionality_classname) == false) {
+					throw new SecurityException("Functionality: " + configured_functionalities.get(pos).functionality_classname);
 				}
 			}
 		} catch (Exception e) {

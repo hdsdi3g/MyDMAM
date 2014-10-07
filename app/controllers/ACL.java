@@ -212,7 +212,7 @@ public class ACL extends Controller {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.roles"));
 		List<ACLRole> roles = ACLRole.findAll();
 		List<UAFunctionalityDefinintion> functionalities = UAManager.getAllDeclaredFunctionalities();
-		render(title, roles, functionalities);// TODO display functionalities
+		render(title, roles, functionalities);
 	}
 	
 	@Check("acl")
@@ -227,7 +227,7 @@ public class ACL extends Controller {
 		List<String> privileges = Privileges.getAllPrivileges();
 		List<String> selectedfunctionalities = null;
 		List<UAFunctionalityDefinintion> functionalities = UAManager.getAllDeclaredFunctionalities();
-		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, functionalities, selectedfunctionalities);// TODO display functionalities
+		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, functionalities, selectedfunctionalities);
 	}
 	
 	@Check("acl")
@@ -251,7 +251,7 @@ public class ACL extends Controller {
 		List<String> privileges = Privileges.getAllPrivileges();
 		List<UAFunctionalityDefinintion> functionalities = UAManager.getAllDeclaredFunctionalities();
 		
-		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);// TODO display functionalities
+		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);
 	}
 	
 	@Check("acl")
@@ -287,7 +287,7 @@ public class ACL extends Controller {
 			List<String> privileges = Privileges.getAllPrivileges();
 			List<String> selectedfunctionalities = null;
 			List<UAFunctionalityDefinintion> functionalities = UAManager.getAllDeclaredFunctionalities();
-			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);// TODO display functionalities
+			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges, selectedfunctionalities, functionalities);
 			return;
 		}
 		

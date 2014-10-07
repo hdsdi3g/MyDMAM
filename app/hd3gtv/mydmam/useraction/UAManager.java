@@ -87,6 +87,18 @@ public class UAManager {
 		return result;
 	}
 	
+	public static List<String> getAllDeclaredFunctionalitiesClassname() {
+		ArrayList<String> result = new ArrayList<String>(functionalities_list.size());
+		for (int pos = 0; pos < functionalities_list.size(); pos++) {
+			result.add(functionalities_list.get(pos).getClass().getName());
+		}
+		return result;
+	}
+	
+	public static int getAllDeclaredFunctionalitiesCount() {
+		return functionalities_list.size();
+	}
+	
 	private static void addAll(List<? extends UAFunctionality> functionalities) {
 		if (functionalities == null) {
 			return;

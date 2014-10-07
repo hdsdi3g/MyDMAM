@@ -236,6 +236,13 @@ public class IsAlive extends Thread {
 	}
 	
 	public static String getCurrentAvailabilitiesAsJsonString(ArrayList<String> privileges_for_user) throws ConnectionException {
+		if (privileges_for_user == null) {
+			return "{}";
+		}
+		if (privileges_for_user.isEmpty()) {
+			return "{}";
+		}
+		
 		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(CF_WORKERS).getAllRows().withColumnSlice("useraction_functionality_list");
 		OperationResult<Rows<String, String>> rows = all_rows.execute();
 		
@@ -249,13 +256,9 @@ public class IsAlive extends Thread {
 			}
 			list = UAManager.getGson().fromJson(col.getStringValue(), useraction_functionality_list_typeOfT);
 			
-			if (privileges_for_user != null) {
-				if (privileges_for_user.isEmpty() == false) {
-					for (int pos = list.size() - 1; pos > -1; pos--) {
-						if (privileges_for_user.contains(list.get(pos).classname) == false) {
-							list.remove(pos);
-						}
-					}
+			for (int pos = list.size() - 1; pos > -1; pos--) {
+				if (privileges_for_user.contains(list.get(pos).classname) == false) {
+					list.remove(pos);
 				}
 			}
 			all.put(row.getKey(), list);
