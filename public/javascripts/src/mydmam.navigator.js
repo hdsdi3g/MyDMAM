@@ -62,7 +62,7 @@
 		stat_data = stat_data[md5_fullpath];
 		
 		var external_elements_to_resolve = [];
-
+		
 		var items = false;
 		if (stat_data.items) {
 			items = stat_data.items;
@@ -72,10 +72,14 @@
 		var items_total = stat_data.items_total;
 		var items_page_from = stat_data.items_page_from;
 		var items_page_size = stat_data.items_page_size;
+		
+		var show_useraction_button = mydmam.useraction.isEnabled();
 
 		var content = '<div class="page-header">';
 		content = content + '<h3>';
 		if (reference.storagename) {
+			show_useraction_button = mydmam.useraction.isStorageAsFunctionalities(reference.storagename);
+			 
 			var url_goback = mydmam.metadatas.url.navigate + "#" + reference.storagename + ":" + reference.path.substring(0, reference.path.lastIndexOf("/"));
 			if (reference.path == '/') {
 				url_goback = mydmam.metadatas.url.navigate + "#";
@@ -107,7 +111,9 @@
 
 		if (reference.storagename) {
 			content = content + mydmam.basket.prepareNavigatorSwitchButton(md5_fullpath);
-			content = content + mydmam.useraction.prepareButtonCreate(md5_fullpath, reference.directory, reference.storagename, reference.path) + " ";
+			if (show_useraction_button) {
+				content = content + mydmam.useraction.prepareButtonCreate(md5_fullpath, reference.directory, reference.storagename, reference.path) + " ";
+			}
 		}
 		
 		if (reference.date) {
@@ -227,7 +233,9 @@
 				
 				if (element.directory) {
 						content = content + '<td>';
-						content = content + mydmam.useraction.prepareButtonCreate(elementkey, true, element.storagename, element.path);
+						if (show_useraction_button) {
+							content = content + mydmam.useraction.prepareButtonCreate(elementkey, true, element.storagename, element.path);
+						}
 						content = content + ' <span class="label label-success">';
 					if (reference.storagename != null) {
 						content = content + i18n('browser.directorytitle');
@@ -249,7 +257,9 @@
 					}
 				} else {
 					content = content + '<td>';
-					content = content + mydmam.useraction.prepareButtonCreate(elementkey, false, element.storagename, element.path);
+					if (show_useraction_button) {
+						content = content + mydmam.useraction.prepareButtonCreate(elementkey, false, element.storagename, element.path);
+					}
 					content = content + ' <span class="label label-important">' + element.size + '</span>';
 					content = content + '</td>';
 					

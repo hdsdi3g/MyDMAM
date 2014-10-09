@@ -147,7 +147,6 @@ public class UserAction extends Controller {
 	}
 	
 	/**
-	 * TODO remove UA button in website if all UA buttons are disabled in table, remove UA button in item view if disabled. Set button group in item view for UA, one dropdown list by section
 	 * TODO JS/View Useraction publisher in website
 	 * - popup method for a basket in baskets list
 	 * - special web page, "Useraction creation page", apply to the current basket.

@@ -17,12 +17,31 @@
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 /**
+ * isEnabled()
+ * @return boolean
+ */
+(function(useraction) {
+	useraction.isEnabled = function() {
+		if (useraction.url.currentavailabilities === null) {
+			return false;
+		} else {
+			return true;
+		}
+	};
+})(window.mydmam.useraction);
+
+
+/**
  * availabilities.downloadLast()
  * @param callback
  * @return null
  */
 (function(useraction) {
 	useraction.availabilities.downloadLast = function(callback) {
+		if (useraction.isEnabled() === false) {
+			useraction.availabilities.content = {};
+			return;
+		}
 		$.ajax({
 			url: mydmam.useraction.url.currentavailabilities,
 			type: "GET",
@@ -35,6 +54,30 @@
 		});
 	};
 })(window.mydmam.useraction);
+
+
+/**
+ * isStorageAsFunctionalities
+ * @return boolean
+ */
+(function(useraction) {
+	useraction.isStorageAsFunctionalities = function(storagename) {
+		if (useraction.availabilities.content == null) {
+			useraction.availabilities.downloadLast(useraction.isStorageAsFunctionalities);
+		}
+		for (var functionality_class in useraction.availabilities.content) {
+			var functionality = useraction.availabilities.content[functionality_class];
+			for (var storagename_pos in functionality.capability.storageindexeswhitelist) {
+				if (storagename === functionality.capability.storageindexeswhitelist[storagename_pos]) {
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+})(window.mydmam.useraction);
+
+
 
 /**
  * populateButtonsCreate()

@@ -22,6 +22,8 @@
 (function(mydmam) {
 	mydmam.useraction = {};
 	mydmam.useraction.url = {};
+	mydmam.useraction.url.create = null;
+	mydmam.useraction.url.currentavailabilities = null;
 	mydmam.useraction.availabilities = {};
 	mydmam.useraction.availabilities.content = null; 
 	mydmam.useraction.creator = {};
