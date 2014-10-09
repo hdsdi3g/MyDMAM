@@ -86,6 +86,7 @@
 		for (var functionalities_classname in availabilities_content) {
 			var functionality = availabilities_content[functionalities_classname];
 			var messagebasename = functionality.messagebasename;
+			
 			if (functionality.capability === null) {
 				continue;
 			}
@@ -114,6 +115,8 @@
 			}
 			var item_functionality = {};
 			item_functionality.messagebasename = messagebasename;
+			item_functionality.section = functionality.section;
+			item_functionality.powerful_and_dangerous = functionality.powerful_and_dangerous;
 			item_functionality.classname = functionalities_classname;
 			item_functionalities.push(item_functionality);
 		}
@@ -131,11 +134,22 @@
 	useraction.drawButtonsCreateContentItemFunctionality = function(item_functionalities, item_key, is_directory, item_storagename, item_path, indexcreator) {
 		var content = '';
 		content = content + '<ul class="dropdown-menu">';
+		
+		var sections = {};
 		for (var pos_f in item_functionalities) {
 			var item_functionality = item_functionalities[pos_f];
+			var section_content = sections[item_functionality.section];
+			if (section_content == null) {
+				section_content = [];
+			}
+			section_content.push(item_functionality);
+			sections[item_functionality.section] = section_content;
+		}
+		
+		var addLink = function(functionality) {
 			content = content + '<li>';
 			content = content + '<a class="btn-ua-dropdown-showcreate"';
-			content = content + ' data-ua-classname="' + item_functionality.classname + '"';
+			content = content + ' data-ua-classname="' + functionality.classname + '"';
 			if (item_key) {
 				content = content + ' data-item_key="' + item_key + '"';
 			}
@@ -154,10 +168,45 @@
 				content = content + ' data-toggle="modal"';
 			}
 			content = content + '>';
-			content = content + i18n('useractions.functionalities.' + item_functionality.messagebasename + '.name');
+			content = content + i18n('useractions.functionalities.' + functionality.messagebasename + '.name');
+			if (functionality.powerful_and_dangerous) {
+				content = content + ' <i class="icon-warning-sign"></i>';
+			}
 			content = content + '</a>';
 			content = content + '</li>';
+		};
+
+		var startSubmenu = function(section_name) {
+			content = content + '<li class="dropdown-submenu">';
+			content = content + '<a tabindex="-1">' + i18n('useractions.functionalities.sections.' + section_name) + '</a>';
+			content = content + '<ul class="dropdown-menu">';
+		};
+		
+		var endSubmenu = function() {
+			content = content + '</ul>';
+			content = content + '</li>';
+		};
+
+		var addDivider = function(section_name) {
+			//content = content + '<li class="divider"></li>';
+			content = content + '<li class="nav-header">' + i18n('useractions.functionalities.sections.' + section_name) + '</li>';
+		};
+		
+		for (var section_name in sections) {
+			var section_content = sections[section_name];
+			if (section_content.length === 1) {
+				addDivider(section_name);
+				addLink(section_content[0]);
+			} else {
+				startSubmenu(section_name);
+				for (var pos_functionality in section_content) {
+					var functionality = section_content[pos_functionality];
+					addLink(functionality);
+				}
+				endSubmenu();
+			}
 		}
+
 		content = content + '</ul>';
 		return content;
 	};

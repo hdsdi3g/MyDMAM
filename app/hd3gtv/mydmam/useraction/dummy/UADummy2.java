@@ -24,7 +24,7 @@ import hd3gtv.mydmam.useraction.UAJobProcess;
 
 import java.util.LinkedHashMap;
 
-public class UADummy extends UAFunctionality {
+public class UADummy2 extends UAFunctionality {
 	
 	public UAFunctionalitySection getSection() {
 		return UAFunctionalitySection.debugging;
@@ -35,15 +35,15 @@ public class UADummy extends UAFunctionality {
 	}
 	
 	public String getLongName() {
-		return "Dummy User Action";
+		return "Dummy User Action 2";
 	}
 	
 	public String getDescription() {
-		return "Dummy User Action for tests and debugging";
+		return "Dummy User Action 2 for tests and debugging";
 	}
 	
 	public boolean isPowerfulAndDangerous() {
-		return false;
+		return true;
 	}
 	
 	public UAConfigurator createEmptyConfiguration() {
@@ -59,7 +59,7 @@ public class UADummy extends UAFunctionality {
 	}
 	
 	public String getMessageBaseName() {
-		return "uadummy";
+		return "uadummy2";
 	}
 	
 }

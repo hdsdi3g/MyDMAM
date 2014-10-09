@@ -372,7 +372,16 @@ useractions.newaction.requesterror.text=Verifiez que la configuration si dessous
 
 userprofile.notifications.creator_reference.useraction=Action utilisateur
 
+# UAFunctionalitySection messages
+useractions.functionalities.sections.debugging=Tests
+
+# Functionalities engines messages
 useractions.functionalities.uadummy.name=Test de User Action (dummy)
 useractions.functionalities.uadummy.fields.avalue=Une donnée
 useractions.functionalities.uadummy.fields.avalue.help=Ceci est une donné pour la démo.
 userprofile.notifications.profile_references.uadummy=Test de User Action (dummy)
+
+useractions.functionalities.uadummy2.name=Test de User Action 2 (dummy)
+useractions.functionalities.uadummy2.fields.avalue=Une donnée 2
+useractions.functionalities.uadummy2.fields.avalue.help=Ceci est une donné pour la démo 2.
+userprofile.notifications.profile_references.uadummy2=Test de User Action 2 (dummy)

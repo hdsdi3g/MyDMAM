@@ -148,3 +148,7 @@ div.modal-body p.lead {
 #uacreationmodal div.ua-dropdown.btn-group > .btn:first-child {
     border-radius: 4px;
 }
+
+div.ua-dropdown li.nav-header {
+	line-height: 12px;
+}

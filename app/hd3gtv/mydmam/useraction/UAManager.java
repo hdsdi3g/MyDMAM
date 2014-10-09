@@ -24,6 +24,7 @@ import hd3gtv.mydmam.module.MyDMAMModule;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.mydmam.useraction.dummy.UADummy;
+import hd3gtv.mydmam.useraction.dummy.UADummy2;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -57,6 +58,7 @@ public class UAManager {
 		gson = builder.create();
 		
 		add(new UADummy());
+		add(new UADummy2());
 		
 		List<MyDMAMModule> modules = MyDMAMModulesManager.getAllModules();
 		for (int pos = 0; pos < modules.size(); pos++) {

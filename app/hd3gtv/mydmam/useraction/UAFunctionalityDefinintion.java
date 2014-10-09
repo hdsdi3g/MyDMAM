@@ -37,7 +37,7 @@ import com.google.gson.reflect.TypeToken;
 
 public final class UAFunctionalityDefinintion implements Log2Dumpable {
 	
-	public String section;
+	public UAFunctionalitySection section;
 	public String vendor;
 	public String classname;
 	public String longname;

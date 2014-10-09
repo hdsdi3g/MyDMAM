@@ -284,6 +284,8 @@ public class IsAlive extends Thread {
 			
 			result_implementation = new JsonObject();
 			result_implementation.addProperty("messagebasename", current.messagebasename);
+			result_implementation.addProperty("section", current.section.name());
+			result_implementation.addProperty("powerful_and_dangerous", current.powerful_and_dangerous);
 			
 			result_capability = (JsonObject) UAManager.getGson().toJsonTree(current.capability);
 			result_capability.remove("musthavelocalstorageindexbridge");

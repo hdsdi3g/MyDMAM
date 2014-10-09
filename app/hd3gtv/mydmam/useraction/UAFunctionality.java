@@ -32,10 +32,7 @@ public abstract class UAFunctionality {
 	
 	public abstract UAJobProcess createProcess();
 	
-	/**
-	 * @return like filesystem, transcoding, metadata/pvw, content check, download/delivery, user metadata...
-	 */
-	public abstract String getSection();// TODO display and translate section in website
+	public abstract UAFunctionalitySection getSection();
 	
 	public abstract String getVendor();
 	

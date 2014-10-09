@@ -54,7 +54,6 @@ public class UserAction extends Controller {
 		
 		ACLUser acl_user = ACLUser.findById(username);
 		String json_functionalities = acl_user.group.role.functionalities;
-		System.out.println(json_functionalities);
 		
 		if (json_functionalities == null) {
 			return new ArrayList<String>(1);
