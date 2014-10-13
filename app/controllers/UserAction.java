@@ -23,6 +23,7 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
 import hd3gtv.mydmam.useraction.UARange;
+import hd3gtv.mydmam.web.CurrentUserBasket;
 import hd3gtv.mydmam.web.UserActionCreator;
 
 import java.lang.reflect.Type;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 
 import models.ACLUser;
 import models.UserProfile;
+import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
 
@@ -144,6 +146,15 @@ public class UserAction extends Controller {
 		creator.createTasks();
 		
 		renderJSON(JSON_OK_RESPONSE);
+	}
+	
+	@Check("userAction")
+	public static void index() throws Exception {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("useractions.pagename");
+		String currentavailabilities = IsAlive.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities());
+		String currentbasket = CurrentUserBasket.getBasket();
+		String currentbasketname = CurrentUserBasket.getBasketName();
+		render(title, currentavailabilities, currentbasket, currentbasketname);
 	}
 	
 	/**

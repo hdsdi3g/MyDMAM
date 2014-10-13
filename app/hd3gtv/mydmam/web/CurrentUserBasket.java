@@ -46,6 +46,17 @@ public class CurrentUserBasket {
 		}
 	}
 	
+	public static String getBasketName() {
+		String user_key = UserProfile.prepareKey(Secure.connected());
+		Basket basket = new Basket(user_key);
+		try {
+			return basket.getSelected();
+		} catch (ConnectionException e) {
+			Log2.log.error("Can't access to Cassandra DB", e);
+			return "";
+		}
+	}
+	
 	public static void setBasket(String[] content) {
 		if (content == null) {
 			return;

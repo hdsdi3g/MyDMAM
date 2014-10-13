@@ -102,6 +102,10 @@
 			return;
 		}
 		var pathelementkeys_resolved = mydmam.stat.query(pathelementkeys_to_resolve, mydmam.stat.SCOPE_PATHINFO);
+		
+		var not_founded = '<span style="margin-right: 6px;"><i class="icon-question-sign"></i></span>';
+		not_founded = not_founded + '<span class="text-error">' + i18n('userprofile.baskets.cantfound') + '</span>';
+
 		var display = function() {
 			var elementkey = $(this).data('elementkey');
 			var element = pathelementkeys_resolved[elementkey];
@@ -127,6 +131,9 @@
 			}
 		};
 		
+		$('span.pathelement').each(function() {
+			$(this).html(not_founded);
+		});
 		$('span.pathelement').each(display);
 		return pathelementkeys_resolved;
 	};

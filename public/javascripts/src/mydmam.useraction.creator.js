@@ -400,7 +400,6 @@
  */
 (function(creator, availabilities) {
 	creator.createModal = function(classname, items, basketname) {
-
 		if ($.isArray(items) === false) {
 			items = [items];
 		}

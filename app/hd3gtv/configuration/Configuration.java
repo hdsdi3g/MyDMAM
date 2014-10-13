@@ -563,7 +563,7 @@ public class Configuration {
 		return getListsInListValues(configuration, elementname, key);
 	}
 	
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public static List<List<String>> getListsInListValues(HashMap<String, ConfigurationItem> baseelement, String elementname, String key) {
 		ConfigurationItem element = baseelement.get(elementname);
 		if (element == null) {

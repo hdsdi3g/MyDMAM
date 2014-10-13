@@ -114,7 +114,6 @@ public class UAManager {
 		return functionalities_class_map.get(classname);
 	}
 	
-	@SuppressWarnings("unchecked")
 	public static void createWorkers(WorkerGroup wgroup) {
 		if (Configuration.global.isElementKeyExists("useraction", "workers_activated") == false) {
 			return;

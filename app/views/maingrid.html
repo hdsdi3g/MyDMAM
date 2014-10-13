@@ -204,6 +204,11 @@ $(document).ready(function() {
 					<b class="caret"></b>
 				</a>
 				<ul class="dropdown-menu">
+					#{secure.check 'userAction'}
+						<li>
+							<a href="@{UserAction.index()}"><i class="icon-share"></i> &{'useractions.pagename'}</a>
+						</li>
+					#{/secure.check}
 					<li>
 						<a href="@{User.index()}"><i class="icon-wrench"></i> &{'userprofile.usereditor.pagename'}</a>
 					</li>

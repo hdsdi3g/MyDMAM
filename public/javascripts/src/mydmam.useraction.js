@@ -77,8 +77,6 @@
 	};
 })(window.mydmam.useraction);
 
-
-
 /**
  * populateButtonsCreate()
  * @return null
@@ -173,7 +171,6 @@
  * @return null
  */
 (function(useraction) {
-	
 	useraction.drawButtonsCreateContentItemFunctionality = function(item_functionalities, item_key, is_directory, item_storagename, item_path, indexcreator) {
 		var content = '';
 		content = content + '<ul class="dropdown-menu">';
@@ -290,3 +287,133 @@
 		$("a.btn-ua-dropdown-showcreate").click(btn_ua_dropdown_showcreate_click);
 	};
 })(window.mydmam.useraction);
+
+
+/**
+ * drawBasketListAndAddUA()
+ * @return null
+ */
+(function(useraction) {
+	useraction.drawBasketListAndAddUA = function() {
+		/**
+		 * Display current basket
+		 */
+		var content = '';
+		content = content + "<ul>"; 
+		current_basket_content = mydmam.basket.content.backend.pullData();
+		var pathelementkeys_to_resolve = [];
+		for (var pos_b = 0; pos_b < current_basket_content.length; pos_b++) {
+			var basket_element_key = current_basket_content[pos_b];
+			content = content + "<li>";
+			content = content + '<div class="btn-group" style="margin-right: 8pt;">';
+			content = content + '<button type="button" class="btn btn-mini active btnbasket" data-toggle="button" data-elementkey="' + basket_element_key + '"><i class="icon-star"></i></button>';
+			content = content + '<button type="button" class="btn btn-mini basketpresence" data-elementkey="' + basket_element_key + '"><i class="icon-picture"></i></button>';
+			content = content + '</div>';
+			content = content + '<span class="pathelement" data-elementkey="' + basket_element_key + '" style="color: #222222;"></span>';
+			content = content + "</li>";
+			pathelementkeys_to_resolve.push(basket_element_key);
+		}
+		if (current_basket_content.length === 0) {
+			content = content + '<li><p class="muted">' + i18n("userprofile.baskets.empty") + '</p></li>';
+		}
+		content = content + "</ul>"; 
+		
+		$('div.basketaddua').html(content);
+		
+		/**
+		 * Actions on displayed basket
+		 */
+		if (current_basket_content.length === 0) {
+			$("#uacreation").empty();
+			return;
+		}
+		
+		var pathelementkeys_resolved = mydmam.basket.showPathIndexKeysForBasketItemsLabel(pathelementkeys_to_resolve);
+		
+		mydmam.basket.setSwitchButtonsEvents();
+		$('.btnbasket').click(useraction.drawBasketListAndAddUA);
+		mydmam.basket.setNavigateButtonsEvents(pathelementkeys_resolved);
+
+		/**
+		 * Prepare UA creator
+		 */
+		var creator = mydmam.useraction.creator;
+		var availabilities = mydmam.useraction.availabilities;
+		var basketname = mydmam.basket.currentname;
+		
+		var items = [];
+		for (var pathelementkey in pathelementkeys_resolved) {
+			var item = pathelementkeys_resolved[pathelementkey].reference;
+			item.key = pathelementkey;
+			items.push(item);
+		}
+		creator.current = {};
+		creator.current.items = items;
+		var final_functionalities = creator.mergueAllFunctionalitiesForAllItemsBasket(creator.current.items);
+
+		/**
+		 * Display UA creator
+		 */
+		content = '';
+		content = content + '<form class="form-horizontal">';
+		
+		content = content + '<p class="lead">' + i18n("useractions.newaction.settings") + '</p>';
+		content = content + '<span class="ua-creation-boxaddnewconfigurator"></span>';
+		content = content + '<div class="control-group ua-creation-addnewconfigurator-btngroup">';
+		content = content + '<div class="btn-group ua-dropdown">';
+		content = content + '<button class="btn btn-info" data-toggle="dropdown">';
+		content = content + i18n('useractions.newaction.setup.addfirstsetting') + ' <span class="caret">';
+		content = content + '</button>';
+		content = content + useraction.drawButtonsCreateContentItemFunctionality(final_functionalities, null, null, null, null, 0);
+		content = content + '</div>'; // btn-group ua-dropdown
+		content = content + '</div>'; // control-group
+		
+		content = content + '<p class="lead">' + i18n("useractions.newaction.setup") + '</p>';
+		
+		content = content + creator.prepareRangeForm(basketname);
+		content = content + creator.prepareFinisherForm(basketname);
+		content = content + creator.prepareCommentForm();
+		content = content + creator.prepareUserNotificationReasonsForm();
+		
+		content = content + '</form>';
+		content = content + '<button class="btn btn-primary ua-creation-start">' + i18n("useractions.startnewaction") + '</button>'; //TODO disable if not actions set
+		$("#uacreation").html(content);
+		
+		/**
+		 * Add btn handlers
+		 */
+		creator.addNewConfiguratorFunctionalityHandler('#uacreation');
+		$('#uacreation div.ua-creation-range-group').removeClass("hide");
+	
+		//$('#uacreationmodal button.ua-creation-start').click(creator.onValidationForm);
+		/*
+		creator.onValidationForm = function() {
+		var request = {};
+		request.items = //creator.getItemsFormCreator("#uacreationmodal"); //TODO read from basket
+		request.basket_name = basketname;
+		request.comment = creator.getCommentFromCreator();
+		request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
+		request.finisher_json = JSON.stringify(creator.getFinisherFromCreator());
+		request.range = creator.getRangeFromCreator();
+		request.configured_functionalities_json = JSON.stringify(creator.getFunctionalityConfigurationsFromUACreation("#uacreationmodal"));
+		
+		document.body.style.cursor = 'wait';
+		creator.requestUA(request, function() {
+			$('#uacreationmodal').modal('hide');
+		}, function() {
+			var content = "";
+			content = content + '<div class="alert alert-error" style="margin-top: 1em;">';
+			content = content + '<button type="button" class="close" data-dismiss="alert">&times;</button>';
+			content = content + '<h4>' + i18n("useractions.newaction.requesterror") + '</h4>';
+			content = content + i18n("useractions.newaction.requesterror.text");
+			content = content + '</div>';
+			$('div.ua-creation-box').prepend(content);
+			$('#uacreationmodal div.modal-body.ua-creation-box').scrollTop(0);
+		});
+		document.body.style.cursor = 'default';
+		};
+		*/
+	};
+})(window.mydmam.useraction);
+	
+
