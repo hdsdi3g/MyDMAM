@@ -363,15 +363,17 @@ useractions.newaction.setup.finisher.remove_user_basket_item=Retirer les éléme
 useractions.newaction.setup.finisher.soft_refresh_source_storage_index_item=Actualiser l'indexation du stockage des éléments source
 useractions.newaction.setup.finisher.force_refresh_source_storage_index_item=Forcer un nouvel indexation du stockage des éléments source
 useractions.newaction.setup.range=Porté des notifications :
-useractions.newaction.setup.range.ONE_USER_ACTION_BY_STORAGE_AND_BASKET=Une par stockage
-useractions.newaction.setup.range.ONE_USER_ACTION_BY_BASKET_ITEM=Une par élément de panier
-useractions.newaction.setup.range.ONE_USER_ACTION_BY_FUNCTIONALITY=Une par fonctionnalité
+useractions.newaction.setup.range.ONE_USER_ACTION_BY_STORAGE_AND_BASKET=Une pour chaque stockage
+useractions.newaction.setup.range.ONE_USER_ACTION_BY_BASKET_ITEM=Une pour chaque élément de panier
+useractions.newaction.setup.range.ONE_USER_ACTION_BY_FUNCTIONALITY=Une par fonctionnalité et par stockage
 useractions.newaction.settings=Paramètres
 useractions.newaction.settings.item=Fonctionnalité :
 useractions.newaction.setup.addnewsettings=Ajouter une fonctionnalité supplémentaire
-useractions.newaction.setup.addfirstsetting=Fonctionnalité
+useractions.newaction.setup.addfirstsetting=Ajouter une nouvelle fonctionnalité
 useractions.newaction.requesterror=Erreur lors de la création de l'action
 useractions.newaction.requesterror.text=Verifiez que la configuration si dessous soit bien correcte et/ou contactez un administrateur.
+useractions.newaction.requestvalid=L'action a bien été crée.
+useractions.newaction.requestvalid.text=L'action et ses éventuelles sous actions ont bien été crées. Vous pouvez suivre leurs évolutions dans la page "&{%s}" dans le menu en haut à droite.
 
 userprofile.notifications.creator_reference.useraction=Action utilisateur
 

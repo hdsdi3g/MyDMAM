@@ -158,9 +158,7 @@ public class UserAction extends Controller {
 	}
 	
 	/**
-	 * TODO JS/View Useraction publisher in website
-	 * - popup method for a basket in baskets list
-	 * - special web page, "Useraction creation page", apply to the current basket.
+	 * FIXME why UA button is not visible in sub-directories navigates pages ?
 	 */
 	
 }

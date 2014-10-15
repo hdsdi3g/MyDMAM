@@ -553,8 +553,10 @@
 		
 		document.body.style.cursor = 'wait';
 		creator.requestUA(request, function() {
+			document.body.style.cursor = 'default';
 			$('#uacreationmodal').modal('hide');
 		}, function() {
+			document.body.style.cursor = 'default';
 			var content = "";
 			content = content + '<div class="alert alert-error" style="margin-top: 1em;">';
 			content = content + '<button type="button" class="close" data-dismiss="alert">&times;</button>';
@@ -564,7 +566,6 @@
 			$('div.ua-creation-box').prepend(content);
 			$('#uacreationmodal div.modal-body.ua-creation-box').scrollTop(0);
 		});
-		document.body.style.cursor = 'default';
 		
 	};
 })(mydmam.useraction.creator);

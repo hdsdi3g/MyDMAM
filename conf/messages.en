@@ -369,9 +369,11 @@ useractions.newaction.setup.range.ONE_USER_ACTION_BY_FUNCTIONALITY=One by functi
 useractions.newaction.settings=Settings
 useractions.newaction.settings.item=Functionality:
 useractions.newaction.setup.addnewsettings=Add an another functionality
-useractions.newaction.setup.addfirstsetting=Functionality
+useractions.newaction.setup.addfirstsetting=Add a new functionality
 useractions.newaction.requesterror=Error during the creation of the action
 useractions.newaction.requesterror.text=Verify that the configuration in bottom is correct and / or contact an administrator.
+useractions.newaction.requestvalid=The action has been created.
+useractions.newaction.requestvalid.text=The action and its any sub-actions have been correctly created. You could monitor changes in the "&{%s}" page from the menu in the top right.
 
 userprofile.notifications.creator_reference.useraction=User action
 

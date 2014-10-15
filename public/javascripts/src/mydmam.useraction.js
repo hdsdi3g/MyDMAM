@@ -342,10 +342,12 @@
 		var basketname = mydmam.basket.currentname;
 		
 		var items = [];
+		var itemskeys = [];
 		for (var pathelementkey in pathelementkeys_resolved) {
 			var item = pathelementkeys_resolved[pathelementkey].reference;
 			item.key = pathelementkey;
 			items.push(item);
+			itemskeys.push(pathelementkey);
 		}
 		creator.current = {};
 		creator.current.items = items;
@@ -376,7 +378,7 @@
 		content = content + creator.prepareUserNotificationReasonsForm();
 		
 		content = content + '</form>';
-		content = content + '<button class="btn btn-primary ua-creation-start">' + i18n("useractions.startnewaction") + '</button>'; //TODO disable if not actions set
+		content = content + '<button class="btn btn-primary btn-large hide ua-creation-start">' + i18n("useractions.startnewaction") + '</button>';
 		$("#uacreation").html(content);
 		
 		/**
@@ -384,35 +386,49 @@
 		 */
 		creator.addNewConfiguratorFunctionalityHandler('#uacreation');
 		$('#uacreation div.ua-creation-range-group').removeClass("hide");
-	
-		//$('#uacreationmodal button.ua-creation-start').click(creator.onValidationForm);
-		/*
-		creator.onValidationForm = function() {
-		var request = {};
-		request.items = //creator.getItemsFormCreator("#uacreationmodal"); //TODO read from basket
-		request.basket_name = basketname;
-		request.comment = creator.getCommentFromCreator();
-		request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
-		request.finisher_json = JSON.stringify(creator.getFinisherFromCreator());
-		request.range = creator.getRangeFromCreator();
-		request.configured_functionalities_json = JSON.stringify(creator.getFunctionalityConfigurationsFromUACreation("#uacreationmodal"));
 		
-		document.body.style.cursor = 'wait';
-		creator.requestUA(request, function() {
-			$('#uacreationmodal').modal('hide');
-		}, function() {
-			var content = "";
-			content = content + '<div class="alert alert-error" style="margin-top: 1em;">';
-			content = content + '<button type="button" class="close" data-dismiss="alert">&times;</button>';
-			content = content + '<h4>' + i18n("useractions.newaction.requesterror") + '</h4>';
-			content = content + i18n("useractions.newaction.requesterror.text");
-			content = content + '</div>';
-			$('div.ua-creation-box').prepend(content);
-			$('#uacreationmodal div.modal-body.ua-creation-box').scrollTop(0);
+		$('#uacreation a.btn-ua-dropdown-showcreate').click(function() {
+			/**
+			 * To remove the protection which block to add UA without add a functionality.
+			 */
+			$('#uacreation button.ua-creation-start').removeClass('hide');
 		});
-		document.body.style.cursor = 'default';
+		
+		var onValidationForm = function() {
+			var request = {};
+			request.items = itemskeys;
+			request.basket_name = basketname;
+			request.comment = creator.getCommentFromCreator();
+			request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
+			request.finisher_json = JSON.stringify(creator.getFinisherFromCreator());
+			request.range = creator.getRangeFromCreator();
+			request.configured_functionalities_json = JSON.stringify(creator.getFunctionalityConfigurationsFromUACreation("#uacreation"));
+			
+			document.body.style.cursor = 'wait';
+			$("#alertcontainer").empty();
+			$('html').first().scrollTop(0);
+			
+			creator.requestUA(request, function() {
+				document.body.style.cursor = 'default';
+				var content = "";
+				content = content + '<div class="alert alert-info">';
+				content = content + '<button type="button" class="close" data-dismiss="alert">&times;</button>';
+				content = content + '<h4>' + i18n("useractions.newaction.requestvalid") + '</h4>';
+				content = content + i18n("useractions.newaction.requestvalid.text", "userprofile.notifications.pagename");
+				content = content + '</div>';
+				$('#alertcontainer').html(content);
+			}, function() {
+				document.body.style.cursor = 'default';
+				var content = "";
+				content = content + '<div class="alert alert-error">';
+				content = content + '<button type="button" class="close" data-dismiss="alert">&times;</button>';
+				content = content + '<h4>' + i18n("useractions.newaction.requesterror") + '</h4>';
+				content = content + i18n("useractions.newaction.requesterror.text");
+				content = content + '</div>';
+				$('#alertcontainer').html(content);
+			});
 		};
-		*/
+		$('#uacreation button.ua-creation-start').click(onValidationForm);
 	};
 })(window.mydmam.useraction);
 	
