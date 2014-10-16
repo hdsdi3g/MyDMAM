@@ -35,6 +35,8 @@
  */
 (function(navigator) {
 	navigator.displayStoragePathNavigator = function(domid, fullpath, addmetadatastosearchlistitems, currentpage) {
+		document.body.style.cursor = 'wait';
+
 		var externalstorage = false;
 		
 		var currentstorage = fullpath.substring(0, fullpath.indexOf(":"));
@@ -365,6 +367,8 @@
 		}
 		
 		mydmam.basket.setSwitchButtonsEvents();
+		
+		document.body.style.cursor = 'default';
 	};
 })(window.mydmam.navigator);
 
