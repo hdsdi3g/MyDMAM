@@ -27,6 +27,7 @@ import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.useraction.UAWorker;
 import hd3gtv.tools.TimeUtils;
 
+import java.io.File;
 import java.lang.reflect.Type;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -43,6 +44,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -64,6 +66,7 @@ public class IsAlive extends Thread {
 	private ServiceManager manager;
 	private boolean stopthread;
 	private int period;
+	private static String classpath;
 	private static Type useraction_functionality_list_typeOfT = new TypeToken<List<UAFunctionalityDefinintion>>() {
 	}.getType();
 	
@@ -76,6 +79,21 @@ public class IsAlive extends Thread {
 		} catch (ConnectionException e) {
 			Log2.log.info("Can't init database access");
 		}
+		String java_classpath = System.getProperty("java.class.path");
+		String[] classpath_lines = java_classpath.split(System.getProperty("path.separator"));
+		ArrayList<String> ja_classpath = new ArrayList<String>(classpath_lines.length);
+		for (int pos = 0; pos < classpath_lines.length; pos++) {
+			File file = new File(classpath_lines[pos]);
+			StringBuffer sb_classpath = new StringBuffer();
+			sb_classpath.append(file.getParentFile().getParentFile().getName());
+			sb_classpath.append("/");
+			sb_classpath.append(file.getParentFile().getName());
+			sb_classpath.append("/");
+			sb_classpath.append(file.getName());
+			ja_classpath.add(sb_classpath.toString());
+		}
+		Gson g = new Gson();
+		classpath = g.toJson(ja_classpath);
 	}
 	
 	public IsAlive(ServiceManager manager) throws Exception {
@@ -112,6 +130,7 @@ public class IsAlive extends Thread {
 				mutator.withRow(CF_WORKERS, workername).putColumn("app-name", manager.getApplicationName(), period * 2);
 				mutator.withRow(CF_WORKERS, workername).putColumn("app-version", manager.getApplicationVersion(), period * 2);
 				mutator.withRow(CF_WORKERS, workername).putColumn("java-uptime", manager.getJavaUptime(), period * 2);
+				mutator.withRow(CF_WORKERS, workername).putColumn("java-classpath", classpath, period * 2);
 				
 				JSONArray js_stacktraces = new JSONArray();
 				Map<Thread, StackTraceElement[]> stacktraces = Thread.getAllStackTraces();
@@ -320,6 +339,7 @@ public class IsAlive extends Thread {
 			jo.put("javaversion", cols.getStringValue("java-version", ""));
 			jo.put("javaaddress", (JSONObject) (new JSONParser()).parse(cols.getStringValue("java-address", "{}")));
 			jo.put("useraction_functionality_list", (JSONArray) (new JSONParser()).parse(cols.getStringValue("useraction_functionality_list", "[]")));
+			jo.put("javaclasspath", (JSONArray) (new JSONParser()).parse(cols.getStringValue("java-classpath", "[]")));
 			ja_result.add(jo);
 		}
 		

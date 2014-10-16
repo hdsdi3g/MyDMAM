@@ -51,6 +51,7 @@
 				var content = content + "<th>" + i18n("service.table.service") + "</th>";
 				var content = content + "<th>" + i18n("service.table.version") + "</th>";
 				var content = content + "<th>" + i18n("service.table.uptime") + "</th>";
+				var content = content + "<th>" + i18n("service.table.classpath") + "</th>";
 				var content = content + "</tr>";
 				$("#laststatusworkers").append(content);
 				
@@ -68,6 +69,13 @@
 					content = content + "<td>" + data[pos].appversion + "<br/>";
 					content = content + "<small>JVM : " + data[pos].javaversion + "</small></td>";
 					content = content + "<td>" + data[pos].javauptime + "</td>";
+					
+					content = content + '<td><small><ul style="height: 5em; overflow-y: scroll; overflow-x: hidden; margin-left: 0px; margin-bottom: 0px;">';
+					for (var pos_classpath in data[pos].javaclasspath) {
+						var classpath = data[pos].javaclasspath[pos_classpath];
+						content = content + "<li>" + classpath + "</li>";
+					}
+					content = content + "</ul></small></td>";
 					content = content + "</tr>";
 					$("#laststatusworkers").append(content);
 				}

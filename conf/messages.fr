@@ -52,6 +52,7 @@ service.table.service=Service
 service.table.version=Version
 service.table.uptime=Uptime
 service.table.threads=Threads
+service.table.classpath=Classpath
 service.playjobs.pagename=Jobs du serveur Play
 service.menuinfrastructure=Infrastructure
 service.threadslist=Liste des threads
