@@ -24,7 +24,7 @@ body {
 	}
 } 
 
-.navbar-fixed-top-btn a {
+.navbar-fixed-top-btn > li > a {
 	padding-left: 8px !important;
 	padding-right: 8px !important;
 }

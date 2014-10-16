@@ -104,91 +104,6 @@ $(document).ready(function() {
       <a class="brand" href="@{Application.index()}">&{'maingrid.brand'}</a>
  
  		<ul class="nav pull-right">
- 			 <li class="dropdown checkifempty" id="btnAdmin" data-deleteifempty="mainadminmenu">
-				<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-					&{'maingrid.adminbtn'}
-					<b class="caret"></b>
-				</a>
-				<ul class="dropdown-menu" id="mainadminmenu">
-					%{	adminmenu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllAdminMenusEntries()
-						adminmenu_elements.eachWithIndex() { adminitem, p ->
-						if (controllers.Secure.checkview(adminitem.privilege)) {
-					}%
-						<li id="&{adminitem.btn_id}" #{if adminitem.subitems}class="dropdown-submenu"#{/if}>
-							<a href="&{adminitem.getPlayTargetUrl()}" #{if adminitem.subitems}tabindex="-1"#{/if}>&{adminitem.title}</a>
-							#{if adminitem.subitems}
-								<ul class="dropdown-menu">
-								%{	
-									adminitem.subitems.eachWithIndex() { sitem, i ->
-									if (controllers.Secure.checkview(sitem.privilege)) {
-								}%
-									<li id="&{sitem.btn_id}">
-										<a href="&{sitem.getPlayTargetUrl()}">&{sitem.title}</a>
-									</li>
-									#{if sitem.add_divider}
-										<li class="divider"></li>
-									#{/if}
-								%{
-									}}
-								}%
-								</ul>
-							#{/if}
-							#{if adminitem.add_divider}
-								<li class="divider"></li>
-							#{/if}
-						</li>
-					%{
-						}}
-					}%
-					
-					#{secure.check 'adminCrud'}
-						<li>
-							<a href="@{Admin.index(objtype:'userprofile')}"><i class="icon-th-list"></i> &{'crud.field.userprofile'}</a>
-						</li>
-					#{/secure.check}
-					
-					#{secure.check 'adminUsers'}
-						<li>
-							<a href="@{User.basketsadmin}"><i class="icon-shopping-cart"></i> &{'userprofile.baskets.admin.pagename'}</a>
-						</li>
-						<li>
-							<a href="@{User.notificationsadminlist}"><i class="icon-bell"></i> &{'userprofile.notifications.admin.pagename'}</a>
-						</li>
-					#{/secure.check}
-					
-					#{secure.check 'acl'}
-						<li class="divider"></li>
-						<li class="nav-header">
-							&{'acl.pagenamelight'}
-						</li>
-						<li>
-							<a href="@{ACL.showusers()}"><i class="icon-user"></i> &{'acl.pagename.users'}</a>
-						</li>
-						<li>
-							<a href="@{ACL.showgroups()}"><i class="icon-user"></i> &{'acl.pagename.groups'}</a>
-						</li>
-						<li>
-							<a href="@{ACL.showroles()}"><i class="icon-user"></i> &{'acl.pagename.roles'}</a>
-						</li>
-					#{/secure.check}
-					
-					#{secure.check 'showStatus'}
-						<li class="divider"></li>
-						<li class="nav-header">
-							&{'service.menuinfrastructure'}
-						</li>
-						<li>
-							<a href="@{Service.index()}"><i class="icon-hdd"></i> &{'service.pagename'}</a>
-						</li>
-						<li>
-							<a href="@{Service.playjobs()}"><i class="icon-info-sign"></i> &{'service.playjobs.pagename'}</a>
-						</li>
-					#{/secure.check}
-					
-				</ul>
-			</li>
-			<li class="divider-vertical checkifempty" data-deleteifempty="mainadminmenu"></li>
-			
 			#{secure.check 'navigate'}
 		 		<li>
 			 		#{form @Application.search(), class:'navbar-search', method:'GET'}
@@ -283,6 +198,92 @@ $(document).ready(function() {
 			%{
 				} }
 			}%
+			
+			<li class="divider-vertical checkifempty" data-deleteifempty="mainadminmenu"></li>
+			
+			<li class="dropdown checkifempty" id="btnAdmin" data-deleteifempty="mainadminmenu">
+				<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+					&{'maingrid.adminbtn'}
+					<b class="caret"></b>
+				</a>
+				<ul class="dropdown-menu" id="mainadminmenu">
+					%{	adminmenu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllAdminMenusEntries()
+						adminmenu_elements.eachWithIndex() { adminitem, p ->
+						if (controllers.Secure.checkview(adminitem.privilege)) {
+					}%
+						<li id="&{adminitem.btn_id}" #{if adminitem.subitems}class="dropdown-submenu"#{/if}>
+							<a href="&{adminitem.getPlayTargetUrl()}" #{if adminitem.subitems}tabindex="-1"#{/if}>&{adminitem.title}</a>
+							#{if adminitem.subitems}
+								<ul class="dropdown-menu">
+								%{	
+									adminitem.subitems.eachWithIndex() { sitem, i ->
+									if (controllers.Secure.checkview(sitem.privilege)) {
+								}%
+									<li id="&{sitem.btn_id}">
+										<a href="&{sitem.getPlayTargetUrl()}">&{sitem.title}</a>
+									</li>
+									#{if sitem.add_divider}
+										<li class="divider"></li>
+									#{/if}
+								%{
+									}}
+								}%
+								</ul>
+							#{/if}
+							#{if adminitem.add_divider}
+								<li class="divider"></li>
+							#{/if}
+						</li>
+					%{
+						}}
+					}%
+					
+					#{secure.check 'adminCrud'}
+						<li>
+							<a href="@{Admin.index(objtype:'userprofile')}"><i class="icon-th-list"></i> &{'crud.field.userprofile'}</a>
+						</li>
+					#{/secure.check}
+					
+					#{secure.check 'adminUsers'}
+						<li>
+							<a href="@{User.basketsadmin}"><i class="icon-shopping-cart"></i> &{'userprofile.baskets.admin.pagename'}</a>
+						</li>
+						<li>
+							<a href="@{User.notificationsadminlist}"><i class="icon-bell"></i> &{'userprofile.notifications.admin.pagename'}</a>
+						</li>
+					#{/secure.check}
+					
+					#{secure.check 'acl'}
+						<li class="divider"></li>
+						<li class="nav-header">
+							&{'acl.pagenamelight'}
+						</li>
+						<li>
+							<a href="@{ACL.showusers()}"><i class="icon-user"></i> &{'acl.pagename.users'}</a>
+						</li>
+						<li>
+							<a href="@{ACL.showgroups()}"><i class="icon-user"></i> &{'acl.pagename.groups'}</a>
+						</li>
+						<li>
+							<a href="@{ACL.showroles()}"><i class="icon-user"></i> &{'acl.pagename.roles'}</a>
+						</li>
+					#{/secure.check}
+					
+					#{secure.check 'showStatus'}
+						<li class="divider"></li>
+						<li class="nav-header">
+							&{'service.menuinfrastructure'}
+						</li>
+						<li>
+							<a href="@{Service.index()}"><i class="icon-hdd"></i> &{'service.pagename'}</a>
+						</li>
+						<li>
+							<a href="@{Service.playjobs()}"><i class="icon-info-sign"></i> &{'service.playjobs.pagename'}</a>
+						</li>
+					#{/secure.check}
+					
+				</ul>
+			</li>
 		</ul>
       </div>
  
