@@ -79,7 +79,7 @@
 		content = content + '<h3>';
 		if (reference.storagename) {
 			show_useraction_button = mydmam.useraction.isStorageAsFunctionalities(reference.storagename);
-			 
+			
 			var url_goback = mydmam.metadatas.url.navigate + "#" + reference.storagename + ":" + reference.path.substring(0, reference.path.lastIndexOf("/"));
 			if (reference.path == '/') {
 				url_goback = mydmam.metadatas.url.navigate + "#";

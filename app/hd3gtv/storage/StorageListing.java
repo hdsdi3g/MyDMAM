@@ -36,10 +36,17 @@ public interface StorageListing {
 	
 	boolean canSelectHiddenInSearch();
 	
+	int maxPathWidthCrawl();
+	
 	/**
 	 * @return may be null;
 	 */
 	IgnoreFiles getRules();
+	
+	/**
+	 * @return false for stop
+	 */
+	boolean onStartSearch(AbstractFile search_root_path);
 	
 	void onEndSearch();
 	

@@ -17,6 +17,8 @@
 package hd3gtv.mydmam.pathindexing;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 
 import java.io.File;
@@ -26,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
@@ -37,7 +40,6 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
 import org.json.simple.JSONObject;
@@ -54,27 +56,9 @@ public class Explorer {
 		return client;
 	}
 	
-	public SourcePathIndexerElement getByFullPathFile(String storagename, String pathfilename) {
-		SearchRequestBuilder request = client.prepareSearch();
-		request.setTypes(Importer.ES_TYPE_FILE);
-		
-		QueryStringQueryBuilder sqqb = new QueryStringQueryBuilder("\"" + pathfilename + "\"");
-		sqqb.defaultField("path");
-		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())).must(sqqb));
-		request.setFrom(0);
-		request.setSize(1);
-		
-		SearchResponse response = request.execute().actionGet();
-		SearchHit[] hits = response.getHits().hits();
-		if (hits.length > 0) {
-			return SourcePathIndexerElement.fromESResponse(hits[0]);
-		}
-		
-		return null;
-	}
-	
 	public ArrayList<SourcePathIndexerElement> getByStorageFilenameAndSize(String storagename, String filename, long size) {
 		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		
 		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())).must(QueryBuilders.termQuery("size", size)));
@@ -131,6 +115,7 @@ public class Explorer {
 	
 	public void getAllId(String id, IndexingEvent found_elements_observer) throws Exception {
 		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.termQuery("id", id.toLowerCase()));
 		request.setFrom(0);
@@ -142,6 +127,7 @@ public class Explorer {
 		final ArrayList<SourcePathIndexerElement> result = new ArrayList<SourcePathIndexerElement>();
 		
 		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("id", id.toLowerCase())).must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())));
 		request.setFrom(0);
@@ -193,12 +179,11 @@ public class Explorer {
 			for (int pos = 0; pos < hits.length; pos++) {
 				count_remaining--;
 				SourcePathIndexerElement element = SourcePathIndexerElement.fromESResponse(hits[pos]);
+				if (found_elements_observer.onFoundElement(element) == false) {
+					return;
+				}
 				if (element.directory) {
 					getAllSubElementsFromElementKey(element.prepare_key(), min_index_date, found_elements_observer);
-				} else {
-					if (found_elements_observer.onFoundElement(element) == false) {
-						return;
-					}
 				}
 			}
 			request.setFrom(totalhits - count_remaining);
@@ -209,6 +194,7 @@ public class Explorer {
 	
 	public void getAllStorage(String storagename, IndexingEvent found_elements_observer) throws Exception {
 		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.termQuery("storagename", storagename.toLowerCase()));
 		request.setFrom(0);
@@ -218,6 +204,7 @@ public class Explorer {
 	
 	public void getAllDirectoriesStorage(String storagename, IndexingEvent found_elements_observer) throws Exception {
 		SearchRequestBuilder request = client.prepareSearch();
+		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_DIRECTORY);
 		request.setQuery(QueryBuilders.termQuery("storagename", storagename.toLowerCase()));
 		request.setFrom(0);
@@ -420,17 +407,71 @@ public class Explorer {
 		return list;
 	}
 	
-	public DeleteRequestBuilder deleteRequestFileElement(String _id) {
-		return client.prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, _id);
+	public DeleteRequestBuilder deleteRequestFileElement(String _id, String es_type) {
+		return client.prepareDelete(Importer.ES_INDEX, es_type, _id);
+	}
+	
+	private class IndexingDelete implements IndexingEvent {
+		
+		BulkRequestBuilder bulkrequest_delete;
+		
+		public IndexingDelete(BulkRequestBuilder bulkrequest_delete) {
+			this.bulkrequest_delete = bulkrequest_delete;
+		}
+		
+		@Override
+		public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
+			if (bulkrequest_delete.numberOfActions() > 1000) {
+				Log2.log.debug("Force delete some index items", new Log2Dump("count", bulkrequest_delete.numberOfActions()));
+				bulkrequest_delete.execute().actionGet();
+				bulkrequest_delete = client.prepareBulk();
+			}
+			
+			if (element.directory) {
+				bulkrequest_delete.add(deleteRequestFileElement(element.prepare_key(), Importer.ES_TYPE_DIRECTORY));
+			} else {
+				bulkrequest_delete.add(deleteRequestFileElement(element.prepare_key(), Importer.ES_TYPE_FILE));
+			}
+			return true;
+		}
+		
+		public void onRemoveFile(String storagename, String path) throws Exception {
+		}
+		
 	}
 	
 	/**
 	 * Don't use Bridge, but use StorageManager and PathScan.
 	 */
 	public void refreshStoragePath(List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
+		BulkRequestBuilder bulkrequest_delete = null;
 		PathScan pathscan = new PathScan();
+		
 		for (int pos = 0; pos < elements.size(); pos++) {
-			pathscan.refreshIndex(elements.get(pos).storagename, elements.get(pos).currentpath, purge_before);
+			if (elements.get(pos) == null) {
+				continue;
+			}
+			if (purge_before) {
+				if (bulkrequest_delete == null) {
+					bulkrequest_delete = client.prepareBulk();
+				}
+				if (elements.get(pos).directory) {
+					getAllSubElementsFromElementKey(elements.get(pos).prepare_key(), 0, new IndexingDelete(bulkrequest_delete));
+					bulkrequest_delete.add(deleteRequestFileElement(elements.get(pos).prepare_key(), Importer.ES_TYPE_DIRECTORY));
+				} else {
+					bulkrequest_delete.add(deleteRequestFileElement(elements.get(pos).prepare_key(), Importer.ES_TYPE_FILE));
+				}
+				if (bulkrequest_delete.numberOfActions() > 0) {
+					Log2.log.debug("Force delete some index items", new Log2Dump("count", bulkrequest_delete.numberOfActions()));
+					bulkrequest_delete.execute().actionGet();
+					bulkrequest_delete = null;
+				}
+			}
+			if (elements.get(pos).directory) {
+				pathscan.refreshIndex(elements.get(pos).storagename, elements.get(pos).currentpath, false);
+			} else {
+				pathscan.refreshIndex(elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
+			}
 		}
 	}
 }

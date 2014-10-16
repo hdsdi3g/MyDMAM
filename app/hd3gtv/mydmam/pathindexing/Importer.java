@@ -37,7 +37,6 @@ public abstract class Importer {
 	
 	protected Client client;
 	private int window_update_size;
-	private Explorer explorer;
 	
 	static {
 		try {
@@ -54,7 +53,6 @@ public abstract class Importer {
 			throw new NullPointerException("\"client\" can't to be null");
 		}
 		window_update_size = 10000;
-		explorer = new Explorer();
 	}
 	
 	/**
@@ -72,34 +70,17 @@ public abstract class Importer {
 	
 	private class ElasticSearchPushElement implements IndexingEvent {
 		
-		BulkRequestBuilder bulkrequest_index;
-		BulkRequestBuilder bulkrequest_delete;
-		long ttl;
-		ArrayList<SourcePathIndexerElement> l_elements_problems;
-		boolean forcerefresh;
-		ForceRefreshRemoveElement forcerefreshremoveelement;
-		
-		public ElasticSearchPushElement(boolean forcerefresh) {
-			bulkrequest_index = client.prepareBulk();
-			bulkrequest_delete = client.prepareBulk();
-			this.forcerefresh = forcerefresh;
-			ttl = getTTL();
-			l_elements_problems = new ArrayList<SourcePathIndexerElement>();
-			forcerefreshremoveelement = new ForceRefreshRemoveElement();
+		public void onRemoveFile(String storagename, String path) throws Exception {
 		}
 		
-		class ForceRefreshRemoveElement implements IndexingEvent {
-			public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
-				if (element.directory) {
-					bulkrequest_delete.add(client.prepareDelete(ES_INDEX, ES_TYPE_DIRECTORY, element.prepare_key()));
-				} else {
-					bulkrequest_delete.add(client.prepareDelete(ES_INDEX, ES_TYPE_FILE, element.prepare_key()));
-				}
-				return true;
-			}
-			
-			public void onRemoveFile(String storagename, String path) throws Exception {
-			}
+		BulkRequestBuilder bulkrequest_index;
+		long ttl;
+		ArrayList<SourcePathIndexerElement> l_elements_problems;
+		
+		public ElasticSearchPushElement() {
+			bulkrequest_index = client.prepareBulk();
+			ttl = getTTL();
+			l_elements_problems = new ArrayList<SourcePathIndexerElement>();
 		}
 		
 		private boolean searchForbiddenChars(String filename) {
@@ -133,29 +114,20 @@ public abstract class Importer {
 			return false;
 		}
 		
-		public void onRemoveFile(String storagename, String path) throws Exception {
-			bulkrequest_delete.add(client.prepareDelete(ES_INDEX, ES_TYPE_DIRECTORY, SourcePathIndexerElement.prepare_key(storagename, path)));
-			bulkrequest_delete.add(client.prepareDelete(ES_INDEX, ES_TYPE_FILE, SourcePathIndexerElement.prepare_key(storagename, path)));
-		}
-		
 		public boolean onFoundElement(SourcePathIndexerElement element) {
 			if (bulkrequest_index.numberOfActions() > (window_update_size - 1)) {
 				execute_Bulks();
 			}
 			
-			String filename = null;
-			if (element.parentpath == null) {
-				filename = element.currentpath.substring(1);
-			} else {
-				filename = element.currentpath.substring(element.parentpath.length() + 1);
-			}
-			
-			if (searchForbiddenChars(filename)) {
-				l_elements_problems.add(element);
-				/**
-				 * Disabled this : there is too many bad file name
-				 */
-				// Log2.log.info("Bad filename", element);
+			if (element.parentpath != null) {
+				String filename = element.currentpath.substring(element.currentpath.lastIndexOf("/"), element.currentpath.length());
+				if (searchForbiddenChars(filename)) {
+					l_elements_problems.add(element);
+					/**
+					 * Disabled this : there is too many bad file name
+					 */
+					// Log2.log.info("Bad filename", element);
+				}
 			}
 			
 			String index_type = null;
@@ -163,15 +135,6 @@ public abstract class Importer {
 				index_type = ES_TYPE_DIRECTORY;
 			} else {
 				index_type = ES_TYPE_FILE;
-			}
-			
-			if (forcerefresh & element.directory) {
-				try {
-					explorer.getAllSubElementsFromElementKey(element.prepare_key(), 0, forcerefreshremoveelement);
-				} catch (Exception e) {
-					Log2.log.error("Can't to search actual elements for purge", e);
-					return false;
-				}
 			}
 			
 			/**
@@ -188,21 +151,6 @@ public abstract class Importer {
 		
 		public void execute_Bulks() {
 			Log2Dump dump = new Log2Dump();
-			
-			if (bulkrequest_delete.numberOfActions() > 0) {
-				dump.add("name", getName());
-				dump.add("deleted", bulkrequest_delete.numberOfActions());
-				BulkResponse bulkresponse = bulkrequest_delete.execute().actionGet();
-				if (bulkresponse.hasFailures()) {
-					dump = new Log2Dump();
-					dump.add("name", getName());
-					dump.add("type", "index");
-					dump.add("failure message", bulkresponse.buildFailureMessage());
-					Log2.log.error("Errors during indexing", null, dump);
-				}
-				bulkrequest_delete = client.prepareBulk();
-			}
-			
 			dump = new Log2Dump();
 			dump.add("name", getName());
 			dump.add("indexed", bulkrequest_index.numberOfActions());
@@ -230,8 +178,8 @@ public abstract class Importer {
 		
 	}
 	
-	public final long index(boolean forcerefresh) throws Exception {
-		ElasticSearchPushElement push = new ElasticSearchPushElement(forcerefresh);
+	public final long index() throws Exception {
+		ElasticSearchPushElement push = new ElasticSearchPushElement();
 		long result = doIndex(push);
 		push.end();
 		

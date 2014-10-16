@@ -88,21 +88,24 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 		
 	}
 	
-	public void refreshIndex(String storage_index_label, String current_working_directory, boolean force_refresh) throws Exception {// TODO test & debug refresh
+	void refreshIndex(String storage_index_label, String current_working_directory, boolean limit_to_current_directory) throws Exception {
 		PathElementConfiguration pec = scanelements.get(storage_index_label);
 		if (pec == null) {
 			throw new IOException("Can't found pathindex storage name for " + storage_index_label);
 		}
 		
+		importer = new ImporterStorage(pec.storage, pec.label, 1000 * pec.period * grace_time_ttl);
+		importer.setCurrentworkingdir(current_working_directory);
+		
 		Log2Dump dump = new Log2Dump();
 		dump.add("storage", pec.storage);
 		dump.add("label", pec.label);
-		dump.add("current_working_directory", current_working_directory);
+		dump.add("current_working_directory", importer.getCurrentworkingdir());
+		dump.add("limited to current directory", limit_to_current_directory);
 		Log2.log.info("Indexing storage", dump);
 		
-		importer = new ImporterStorage(pec.storage, pec.label, 1000 * pec.period * grace_time_ttl);
-		importer.setCurrentworkingdir(current_working_directory);
-		importer.index(force_refresh);
+		importer.setLimit_to_current_directory(limit_to_current_directory);
+		importer.index();
 		importer = null;
 		
 		// } catch (NoNodeAvailableException e) {

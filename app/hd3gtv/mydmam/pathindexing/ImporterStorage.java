@@ -34,6 +34,7 @@ public class ImporterStorage extends Importer {
 	private long ttl;
 	private boolean stop;
 	private String currentworkingdir;
+	private boolean limit_to_current_directory;
 	
 	public ImporterStorage(String physical_storage_name, String pathindex_storage_name, long ttl) throws IOException, ParseException {
 		super();
@@ -58,6 +59,15 @@ public class ImporterStorage extends Importer {
 	
 	public void setCurrentworkingdir(String currentworkingdir) {
 		this.currentworkingdir = currentworkingdir;
+		if (currentworkingdir != null) {
+			if ((currentworkingdir.equals("")) | (currentworkingdir.equals("/"))) {
+				this.currentworkingdir = null;
+			}
+		}
+	}
+	
+	public String getCurrentworkingdir() {
+		return currentworkingdir;
 	}
 	
 	private class Listing implements StorageListing {
@@ -77,6 +87,13 @@ public class ImporterStorage extends Importer {
 			} catch (Exception e) {
 				Log2.log.error("Can't process not found element", e);
 			}
+		}
+		
+		public int maxPathWidthCrawl() {
+			if (limit_to_current_directory) {
+				return 1;
+			}
+			return 100;
 		}
 		
 		public boolean onFoundFile(AbstractFile file, String storagename) {
@@ -154,6 +171,26 @@ public class ImporterStorage extends Importer {
 			};
 		}
 		
+		public boolean onStartSearch(AbstractFile file) {
+			if (referer.stop == true) {
+				return false;
+			}
+			try {
+				if (currentworkingdir != null) {
+					return onFoundFile(file, pathindex_storage_name);
+				} else {
+					/**
+					 * Search from root storage
+					 */
+					elementpush.onFoundElement(SourcePathIndexerElement.prepareStorageElement(pathindex_storage_name));
+				}
+				return true;
+			} catch (Exception e) {
+				Log2.log.error("Can't process found root element", e);
+				return false;
+			}
+		}
+		
 		public void onEndSearch() {
 		}
 		
@@ -163,11 +200,14 @@ public class ImporterStorage extends Importer {
 		
 	}
 	
+	void setLimit_to_current_directory(boolean limit_to_current_directory) {
+		this.limit_to_current_directory = limit_to_current_directory;
+	}
+	
 	protected long doIndex(IndexingEvent elementpush) throws Exception {
 		Listing listing = new Listing(this);
 		listing.elementpush = elementpush;
 		StorageManager.getGlobalStorage().dirList(listing, physical_storage_name);
-		listing.elementpush.onFoundElement(SourcePathIndexerElement.prepareStorageElement(pathindex_storage_name));
 		return listing.count;
 	}
 	

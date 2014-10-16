@@ -67,6 +67,9 @@
 		}
 		for (var functionality_class in useraction.availabilities.content) {
 			var functionality = useraction.availabilities.content[functionality_class];
+			if (functionality.capability.storageindexeswhitelist.length === 0) {
+				return true;
+			}
 			for (var storagename_pos in functionality.capability.storageindexeswhitelist) {
 				if (storagename === functionality.capability.storageindexeswhitelist[storagename_pos]) {
 					return true;

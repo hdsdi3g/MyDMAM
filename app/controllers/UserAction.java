@@ -157,8 +157,4 @@ public class UserAction extends Controller {
 		render(title, currentavailabilities, currentbasket, currentbasketname);
 	}
 	
-	/**
-	 * FIXME why UA button is not visible in sub-directories navigates pages ?
-	 */
-	
 }

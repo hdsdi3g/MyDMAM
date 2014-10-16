@@ -291,13 +291,23 @@ public class StorageManager {
 				}
 			}
 			
+			if (listing.onStartSearch(root_path) == false) {
+				root_path.close();
+				return;
+			}
+			
+			int width_crawl_allowed = listing.maxPathWidthCrawl();
+			if (width_crawl_allowed == 0) {
+				width_crawl_allowed = 1;
+			}
+			
 			if (root_path.isFile() | root_path.isDirectory()) {
 				if (root_path.isFile()) {
 					AbstractFile[] files = new AbstractFile[1];
 					files[0] = root_path;
-					recursiveDirectorySearch(files, listing, storagename, rules);
+					recursiveDirectorySearch(files, listing, storagename, rules, width_crawl_allowed);
 				} else {
-					recursiveDirectorySearch(root_path.listFiles(), listing, storagename, rules);
+					recursiveDirectorySearch(root_path.listFiles(), listing, storagename, rules, width_crawl_allowed);
 				}
 			} else {
 				listing.onNotFoundFile(root_path.getPath(), storagename);
@@ -313,7 +323,10 @@ public class StorageManager {
 		listing.onEndSearch();
 	}
 	
-	private static boolean recursiveDirectorySearch(AbstractFile[] files, StorageListing listing, String storagename, IgnoreFiles rules) {
+	private static boolean recursiveDirectorySearch(AbstractFile[] files, StorageListing listing, String storagename, IgnoreFiles rules, int width_crawl_allowed) {
+		if (width_crawl_allowed == 0) {
+			return false;
+		}
 		if (files == null) {
 			return true;
 		}
@@ -366,7 +379,7 @@ public class StorageManager {
 		 * After crawl to sub dirs.
 		 */
 		for (int pos_dirs = 0; pos_dirs < dirs.size(); pos_dirs++) {
-			if (recursiveDirectorySearch(dirs.get(pos_dirs).listFiles(), listing, storagename, rules) == false) {
+			if (recursiveDirectorySearch(dirs.get(pos_dirs).listFiles(), listing, storagename, rules, width_crawl_allowed - 1) == false) {
 				return false;
 			}
 		}

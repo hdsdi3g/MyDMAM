@@ -47,7 +47,7 @@ public class CliModuleCDFinderPathIndexer implements CliModule {
 		}
 		
 		ImporterCDFinder cdf_pi = new ImporterCDFinder(file, pool);
-		cdf_pi.index(false);
+		cdf_pi.index();
 	}
 	
 	public void showFullCliModuleHelp() {

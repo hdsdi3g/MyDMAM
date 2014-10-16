@@ -22,6 +22,7 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
@@ -85,6 +86,9 @@ public class MetadataIndexer implements IndexingEvent {
 	public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
 		if (stop_analysis) {
 			return false;
+		}
+		if (element.directory) {
+			return true;
 		}
 		
 		if (bulkrequest.numberOfActions() > 1000) {
@@ -162,7 +166,7 @@ public class MetadataIndexer implements IndexingEvent {
 				Log2.log.debug("Delete obsolete analysis : original file isn't exists", dump);
 			}
 			
-			bulkrequest.add(explorer.deleteRequestFileElement(element_key));
+			bulkrequest.add(explorer.deleteRequestFileElement(element_key, Importer.ES_TYPE_FILE));
 			dump = new Log2Dump();
 			dump.add("key", element_key);
 			dump.add("physical_source", physical_source);
