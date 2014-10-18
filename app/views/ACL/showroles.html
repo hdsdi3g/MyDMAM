@@ -60,7 +60,7 @@
 			<td>
 				#{if element.getPrivilegesList()}
     				#{list items:element.getPrivilegesList(), as:'privilege'}
-    					${privilege.fromCamelCaseToSpaces()}<br>
+    					&{'acl.privileges.name.' + privilege}<br>
 					#{/list}
 				#{/if}#{else}
 					<em>&{'acl.noprivilegesadded'}</em>

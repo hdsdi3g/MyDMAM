@@ -106,7 +106,7 @@ public class MydmamExtensions extends JavaExtensions {
 		return result.toString();
 	}
 	
-	public static String fromCamelCaseToSpaces(String value) {
+	/*public static String fromCamelCaseToSpaces(String value) {
 		if (value == null) {
 			return "";
 		}
@@ -124,7 +124,7 @@ public class MydmamExtensions extends JavaExtensions {
 		}
 		
 		return sb.toString();
-	}
+	}*/
 	
 	public static String makeUniqId(String value) {
 		if (value == null) {

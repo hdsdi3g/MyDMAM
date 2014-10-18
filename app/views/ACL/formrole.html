@@ -32,20 +32,20 @@
 <div class="control-group">
 	<label class="control-label" for="selectedprivileges">&{'acl.privileges'}</label>
 	<div class="controls">
-		<select id="selectedprivileges" name="selectedprivileges" multiple="multiple">
+		<select id="selectedprivileges" name="selectedprivileges" multiple="multiple" class="input-xlarge">
 			<optgroup label="&{'acl.privileges.definited'}"></optgroup> 
 			#{list items:selectedprivileges, as:'element'}
-				<option value="${element}">${element.fromCamelCaseToSpaces()}</option>
+				<option value="${element}">&{'acl.privileges.name.' + element}</option>
 			#{/list}
 		</select>
 		<div class="btn-group btn-group-vertical">
 			<a id="addinprivileges" class="btn btn-mini" href="#"><i class="icon-plus-sign"></i></a>
 			<a id="removeprivileges" class="btn btn-mini" href="#"><i class="icon-minus"></i></a>
 		</div>
-		<select id="privileges" multiple="multiple">
+		<select id="privileges" multiple="multiple" class="input-xlarge">
 			<optgroup label="&{'acl.privileges.available'}"></optgroup> 
 			#{list items:privileges, as:'element'}
-				<option value="${element}">${element.fromCamelCaseToSpaces()}</option>
+				<option value="${element}">&{'acl.privileges.name.' + element}</option>
 			#{/list}
 		</select>
 	</div>

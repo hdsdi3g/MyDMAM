@@ -391,3 +391,13 @@ useractions.functionalities.uadummy2.name=Test de User Action 2 (dummy)
 useractions.functionalities.uadummy2.fields.avalue=Une donnée 2
 useractions.functionalities.uadummy2.fields.avalue.help=Ceci est une donné pour la démo 2.
 userprofile.notifications.profile_references.uadummy2=Test de User Action 2 (dummy)
+
+# Privileges
+acl.privileges.name.acl=Gérer des droits d'accès
+acl.privileges.name.adminCrud=Gérer les objets CRUD
+acl.privileges.name.navigate=Naviguer dans les stockages
+acl.privileges.name.showQueue=Voir la liste des taches
+acl.privileges.name.updateQueue=Gérer les taches
+acl.privileges.name.showStatus=Voir l'état des services
+acl.privileges.name.adminUsers=Gérer les utilisateurs
+acl.privileges.name.userAction=Créer une action utilisateur
