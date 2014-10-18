@@ -151,7 +151,7 @@ public class Application extends Controller {
 	}
 	
 	public static void i18n() {
-		response.cacheFor("60s");
+		response.cacheFor("24h");
 		response.contentType = "application/javascript";
 		Properties ymessages = Messages.all(play.i18n.Lang.get());
 		render(ymessages);
