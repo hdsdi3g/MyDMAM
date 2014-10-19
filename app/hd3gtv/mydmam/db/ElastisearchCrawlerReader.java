@@ -78,6 +78,7 @@ public class ElastisearchCrawlerReader {
 				}
 			}
 			request.setQuery(query);
+			request.setVersion(true);
 			
 			SearchResponse response = request.execute().actionGet();
 			SearchHit[] hits = response.getHits().hits();

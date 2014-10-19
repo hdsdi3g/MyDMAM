@@ -18,186 +18,126 @@ package hd3gtv.mydmam.db;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.net.QuotedPrintableCodec;
-import org.xml.sax.Attributes;
-import org.xml.sax.ContentHandler;
-import org.xml.sax.ErrorHandler;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
+import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
+import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.elasticsearch.action.admin.indices.stats.CommonStats;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.collect.ImmutableMap;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import org.xml.sax.helpers.AttributesImpl;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.ddl.ColumnDefinition;
 import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
-import com.sun.org.apache.xml.internal.serialize.OutputFormat;
-import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 
 public class BackupDb {
 	
 	public static boolean mode_debug = false;
 	
-	private QuotedPrintableCodec qpc;
+	private boolean cassandra;
+	private boolean elasticsearch;
 	
-	public BackupDb() {
-		qpc = new QuotedPrintableCodec("UTF-8");
+	public BackupDb(boolean cassandra, boolean elasticsearch) {
+		this.cassandra = cassandra;
+		this.elasticsearch = elasticsearch;
 	}
 	
 	public void backup(String basepath) throws Exception {
-		Keyspace keyspace = CassandraDb.getkeyspace();
-		List<ColumnFamilyDefinition> l_cdf = keyspace.describeKeyspace().getColumnFamilyList();
-		for (int pos = 0; pos < l_cdf.size(); pos++) {
-			backupCf(keyspace, l_cdf.get(pos), basepath);
-		}
-	}
-	
-	private void backupCf(Keyspace keyspace, ColumnFamilyDefinition cfd, String basepath) throws Exception {
-		String cfname = cfd.getName();
-		ColumnFamily<String, String> cf = new ColumnFamily<String, String>(cfname, StringSerializer.get(), StringSerializer.get());
-		File outfile = new File(basepath + "_" + cfname + ".xml");
-		
-		Log2Dump dump = new Log2Dump();
-		dump.add("name", cfname);
-		dump.add("outfile", outfile);
-		Log2.log.info("Start backup Column Family", dump);
-		
-		ExportCassandra exportcassandra = new ExportCassandra(keyspace, cfd, outfile);
-		
-		boolean result = CassandraDb.allRowsReader(cf, exportcassandra);
-		
-		if (result) {
-			exportcassandra.closeDocument();
-			Log2.log.info("End backup", new Log2Dump("key", exportcassandra.count));
-		} else {
-			Log2.log.error("End backup...", null);
-		}
-		
-	}
-	
-	private class ExportCassandra implements AllRowsFoundRow {
-		
-		FileOutputStream fileoutputstream;
-		ContentHandler content;
-		ColumnList<String> columnlist;
-		Column<String> column;
-		int count = 0;
-		
-		public ExportCassandra(Keyspace keyspace, ColumnFamilyDefinition cfd, File outfile) throws Exception {
-			String cfname = cfd.getName();
+		if (cassandra) {
+			Keyspace keyspace = CassandraDb.getkeyspace();
+			List<ColumnFamilyDefinition> l_cdf = keyspace.describeKeyspace().getColumnFamilyList();
 			
-			/**
-			 * Preparation
-			 */
-			fileoutputstream = new FileOutputStream(outfile);
-			
-			OutputFormat of = new OutputFormat();
-			of.setMethod("xml");
-			of.setEncoding("UTF-8");
-			of.setVersion("1.0");
-			of.setIndenting(mode_debug);
-			if (mode_debug) {
-				of.setIndent(2);
-			}
-			
-			XMLSerializer serializer = new XMLSerializer(fileoutputstream, of);
-			content = serializer.asContentHandler();
-			content.startDocument();
-			
-			/**
-			 * Headers
-			 */
-			AttributesImpl atts = new AttributesImpl();
-			atts.addAttribute("", "", "keyspace", "CDATA", CassandraDb.default_keyspacename);
-			atts.addAttribute("", "", "name", "CDATA", cfname);
-			atts.addAttribute("", "", "created", "CDATA", String.valueOf(System.currentTimeMillis()));
-			if (mode_debug) {
-				atts.addAttribute("", "", "created_date", "CDATA", (new Date()).toString());
-			}
-			content.startElement("", "", "columnfamily", atts);
-			
-			/**
-			 * Import description
-			 */
-			List<ColumnDefinition> l_cd = cfd.getColumnDefinitionList();
-			for (int pos = 0; pos < l_cd.size(); pos++) {
-				atts.clear();
-				atts.addAttribute("", "", "name", "CDATA", l_cd.get(pos).getName());
-				atts.addAttribute("", "", "indexname", "CDATA", l_cd.get(pos).getIndexName());
-				atts.addAttribute("", "", "validationclass", "CDATA", l_cd.get(pos).getValidationClass());
-				content.startElement("", "", "coldef", atts);
-				content.endElement("", "", "coldef");
-			}
-		}
-		
-		public void closeDocument() throws Exception {
-			content.endElement("", "", "columnfamily");
-			content.endDocument();
-			
-			fileoutputstream.close();
-		}
-		
-		public void onFoundRow(Row<String, String> row) throws Exception {
-			AttributesImpl atts = new AttributesImpl();
-			
-			atts.addAttribute("", "", "name", "CDATA", row.getKey());
-			content.startElement("", "", "key", atts);
-			
-			columnlist = row.getColumns();
-			String columnvalue = null;
-			for (int poscol = 0; poscol < columnlist.size(); poscol++) {
-				column = columnlist.getColumnByIndex(poscol);
-				atts.clear();
-				atts.addAttribute("", "", "name", "CDATA", column.getName());
-				atts.addAttribute("", "", "at", "CDATA", String.valueOf(column.getTimestamp() / 1000));
-				atts.addAttribute("", "", "ttl", "CDATA", String.valueOf(column.getTtl()));
+			ColumnFamilyDefinition cfd;
+			String cfname;
+			ColumnFamily<String, String> cf;
+			File outfile;
+			Log2Dump dump;
+			BackupDbCassandra exportcassandra;
+			for (int pos = 0; pos < l_cdf.size(); pos++) {
+				cfd = l_cdf.get(pos);
+				cfname = cfd.getName();
+				cf = new ColumnFamily<String, String>(cfname, StringSerializer.get(), StringSerializer.get());
+				outfile = new File(basepath + "_cs_" + cfname + ".xml");
 				
-				columnvalue = new String(qpc.encode(column.getByteArrayValue()));
+				dump = new Log2Dump();
+				dump.add("name", cfname);
+				dump.add("outfile", outfile);
+				Log2.log.info("Start backup Cassandra Column Family", dump);
 				
-				if (mode_debug) {
-					atts.addAttribute("", "", "at_date", "CDATA", (new Date(column.getTimestamp() / 1000)).toString());
-					if (column.getStringValue().equals(columnvalue) == false) {
-						atts.addAttribute("", "", "hex_value", "CDATA", MyDMAM.byteToString(column.getByteArrayValue()));
-					}
+				exportcassandra = new BackupDbCassandra(keyspace, cfd, outfile);
+				
+				boolean result = CassandraDb.allRowsReader(cf, exportcassandra);
+				
+				if (result) {
+					exportcassandra.closeDocument();
+					Log2.log.info("End backup", new Log2Dump("keys", exportcassandra.getCount()));
+				} else {
+					Log2.log.error("End backup...", null);
 				}
-				
-				content.startElement("", "", "col", atts);
-				content.characters(columnvalue.toCharArray(), 0, columnvalue.length());
-				content.endElement("", "", column.getName());
+			}
+		}
+		if (elasticsearch) {
+			Client client = Elasticsearch.getClient();
+			IndicesAdminClient admin_client = client.admin().indices();
+			ImmutableMap<ShardRouting, CommonStats> stats = admin_client.stats(new IndicesStatsRequest()).actionGet().asMap();
+			ShardRouting shard;
+			ArrayList<String> index_names = new ArrayList<String>();
+			for (Map.Entry<ShardRouting, CommonStats> entry_stats : stats.entrySet()) {
+				shard = entry_stats.getKey();
+				if (shard.active() & shard.started() & shard.primary() & (shard.getId() == 0)) {
+					index_names.add(shard.getIndex());
+				}
 			}
 			
-			content.endElement("", "", "key");
-			count++;
+			ElastisearchCrawlerReader crawler_reader;
+			File outfile;
+			Log2Dump dump;
+			BackupDbElasticsearch exportes;
+			String index_name;
+			for (int pos = 0; pos < index_names.size(); pos++) {
+				index_name = index_names.get(pos);
+				outfile = new File(basepath + "_es_" + index_name + ".xml");
+				
+				dump = new Log2Dump();
+				dump.add("index", index_names.get(pos));
+				dump.add("outfile", outfile);
+				Log2.log.info("Start backup ElasticSearch Index", dump);
+				
+				GetSettingsResponse settings = admin_client.getSettings(new GetSettingsRequest().indices(index_name)).actionGet();
+				GetMappingsResponse mapping = admin_client.getMappings(new GetMappingsRequest().indices(index_name)).actionGet();
+				
+				exportes = new BackupDbElasticsearch(outfile, index_name, mapping.getMappings(), settings.getIndexToSettings());
+				
+				crawler_reader = Elasticsearch.createCrawlerReader();
+				crawler_reader.setIndices(index_name);
+				crawler_reader.allReader(exportes);
+				
+				exportes.closeDocument();
+				Log2.log.info("End backup", new Log2Dump("keys", exportes.getCount()));
+			}
 		}
-		
 	}
 	
-	public void restore(File xmlfile, String keyspacename, boolean purgebefore) throws Exception {
-		
-		ImportCassandra importcassandra = new ImportCassandra(keyspacename, purgebefore);
-		
+	private void parse(DefaultHandler handler, File xmlfile) throws Exception {
 		SAXParserFactory fabrique = SAXParserFactory.newInstance();
 		SAXParser parseur = fabrique.newSAXParser();
 		
@@ -213,156 +153,18 @@ public class BackupDb {
 		InputStream fis = new BufferedInputStream(new FileInputStream(xmlfile), 8192);
 		InputSource is = new InputSource(fis);
 		is.setEncoding("UTF-8");
-		parseur.parse(is, importcassandra);
+		parseur.parse(is, handler);
 		fis.close();
 	}
 	
-	private class ImportCassandra extends DefaultHandler implements ErrorHandler {
-		private boolean purgebefore;
-		private Keyspace keyspace;
-		
-		public ImportCassandra(String keyspacename, boolean purgebefore) throws Exception {
-			this.purgebefore = purgebefore;
-			
-			if (CassandraDb.isKeyspaceExists(keyspacename) == false) {
-				CassandraDb.createKeyspace(keyspacename);
-			}
-			
-			keyspace = CassandraDb.getkeyspace(keyspacename);
+	public void restore(File xmlfile, String keyspacename, boolean purgebefore) throws Exception {
+		// TODO autodetect xml type
+		if (cassandra) {
+			parse(new BackupDbCassandra(keyspacename, purgebefore), xmlfile);
 		}
-		
-		private int mutator_key_count;
-		private int max_mutator_key_count = 1000;
-		
-		private ColumnFamily<String, String> columnfamily;;
-		private String key_name;
-		private StringBuffer rawtext;
-		private MutationBatch mutator;
-		private String col_name;
-		private int col_ttl;
-		
-		public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
-			
-			if (qName.equalsIgnoreCase("columnfamily")) {
-				String cfname = attributes.getValue("name");
-				
-				Log2Dump dump = new Log2Dump();
-				dump.add("keyspace", attributes.getValue("keyspace"));
-				dump.add("name", cfname);
-				dump.addDate("created", Long.parseLong(attributes.getValue("created")));
-				Log2.log.info("Start import XML for restore Cassandra Column Family", dump);
-				
-				try {
-					boolean iscfexists = CassandraDb.isColumnFamilyExists(keyspace, cfname);
-					
-					if (purgebefore & iscfexists) {
-						keyspace.truncateColumnFamily(cfname);
-					} else if (iscfexists == false) {
-						CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), cfname, true);
-					}
-				} catch (ConnectionException e) {
-					Log2.log.error("Prepare column family", e, dump);
-					return;
-				}
-				mutator_key_count = 0;
-				columnfamily = new ColumnFamily<String, String>(cfname, StringSerializer.get(), StringSerializer.get());
-				
-				return;
-			}
-			
-			if (qName.equalsIgnoreCase("coldef")) {
-				try {
-					CassandraDb.declareIndexedColumn(keyspace, columnfamily, attributes.getValue("name"), attributes.getValue("indexname"), attributes.getValue("validationclass"));
-				} catch (ConnectionException e) {
-					throw new SAXException("Can't declare column", e);
-				}
-				return;
-			}
-			
-			if (qName.equalsIgnoreCase("key")) {
-				key_name = attributes.getValue("name");
-				if (mutator == null) {
-					try {
-						mutator = CassandraDb.prepareMutationBatch();
-					} catch (ConnectionException e) {
-						throw new SAXException("Can't open access to CassandraDb", e);
-					}
-				}
-				mutator_key_count++;
-				return;
-			}
-			
-			if (qName.equalsIgnoreCase("col")) {
-				rawtext = new StringBuffer();
-				col_name = attributes.getValue("name");
-				col_ttl = Integer.parseInt(attributes.getValue("ttl"));
-				return;
-			}
-			
-			Log2Dump dump = new Log2Dump();
-			dump.add("qName", qName);
-			Log2.log.error("Unknow start qName", null, dump);
-		}
-		
-		public void endElement(String uri, String localName, String qName) throws SAXException {
-			try {
-				if (qName.equalsIgnoreCase("columnfamily")) {
-					if (mutator != null) {
-						mutator.execute().getResult();
-					}
-					return;
-				}
-				if (qName.equalsIgnoreCase("coldef")) {
-					return;
-				}
-				if (qName.equalsIgnoreCase("key")) {
-					if (mutator_key_count > max_mutator_key_count) {
-						mutator.execute().getResult();
-						mutator = CassandraDb.prepareMutationBatch();
-						mutator_key_count = 0;
-					}
-					return;
-				}
-				
-				if (qName.equalsIgnoreCase("col")) {
-					try {
-						if (col_ttl > 0) {
-							mutator.withRow(columnfamily, key_name).putColumn(col_name, qpc.decode(rawtext.toString().getBytes()), col_ttl);
-						} else {
-							mutator.withRow(columnfamily, key_name).putColumn(col_name, qpc.decode(rawtext.toString().getBytes()));
-						}
-					} catch (DecoderException e) {
-						Log2.log.error("Bad column content decoding", e, new Log2Dump("raw content", rawtext.toString()));
-						e.printStackTrace();
-					}
-					return;
-				}
-				
-			} catch (ConnectionException e) {
-				throw new SAXException("Can't access to CassandraDb", e);
-			}
-			Log2Dump dump = new Log2Dump();
-			dump.add("qName", qName);
-			Log2.log.error("Unknow end qName", null, dump);
-		}
-		
-		public void error(SAXParseException e) throws SAXException {
-			Log2.log.error("XML Parsing error", e);
-		}
-		
-		public void fatalError(SAXParseException e) throws SAXException {
-			Log2.log.error("XML Parsing error", e);
-		}
-		
-		public void warning(SAXParseException e) throws SAXException {
-			Log2.log.error("XML Parsing warning", e);
-		}
-		
-		public void characters(char[] ch, int start, int length) throws SAXException {
-			String read = new String(ch, start, length);
-			if (read.trim().length() > 0) {
-				rawtext.append(read.trim());
-			}
+		if (elasticsearch) {
+			// TODO
+			// BackupDbElasticsearch
 		}
 	}
 	
