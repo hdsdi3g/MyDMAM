@@ -17,26 +17,39 @@
 package hd3gtv.mydmam.db;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Date;
 
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.net.QuotedPrintableCodec;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequestBuilder;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.hppc.cursors.ObjectObjectCursor;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.search.SearchHit;
+import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.AttributesImpl;
+import org.xml.sax.helpers.DefaultHandler;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 
-class BackupDbElasticsearch implements ElastisearchCrawlerHit {
+class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, ElastisearchCrawlerHit {
+	
+	private static final int BULK_REQUEST_MAX_SIZE = 1000;
 	
 	private QuotedPrintableCodec quotedprintablecodec;
 	private int count = 0;
@@ -168,7 +181,140 @@ class BackupDbElasticsearch implements ElastisearchCrawlerHit {
 		fileoutputstream.close();
 	}
 	
-	// TODO import
-	// cf. http://stackoverflow.com/questions/22071198/adding-mapping-to-a-type-from-java-how-do-i-do-it
+	private BulkRequestBuilder bulkrequest;
+	private Client client;
+	private boolean purgebefore;
+	private String index_name;
+	private String mapping_name;
+	private StringBuffer rawtext;
+	private String key_name;
+	private String type_name;
+	private long ttl;
+	
+	BackupDbElasticsearch(boolean purgebefore, long ttl) throws Exception {
+		this.purgebefore = purgebefore;
+		this.ttl = ttl;
+		quotedprintablecodec = new QuotedPrintableCodec("UTF-8");
+		client = Elasticsearch.getClient();
+	}
+	
+	public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+		
+		if (qName.equalsIgnoreCase("index")) {
+			index_name = attributes.getValue("name");
+			
+			Log2Dump dump = new Log2Dump();
+			dump.add("name", index_name);
+			dump.addDate("created", Long.parseLong(attributes.getValue("created")));
+			Log2.log.info("Start import XML for restore ElasticSearch Index", dump);
+			
+			if (purgebefore) {
+				Elasticsearch.deleteIndexRequest(index_name);
+			}
+			return;
+		}
+		
+		if (qName.equalsIgnoreCase("mapping")) {
+			mapping_name = attributes.getValue("name");
+			rawtext = new StringBuffer();
+			return;
+		}
+		
+		if (qName.equalsIgnoreCase("settings")) {
+			return;
+		}
+		
+		if (qName.equalsIgnoreCase("key")) {
+			rawtext = new StringBuffer();
+			key_name = attributes.getValue("name");
+			type_name = attributes.getValue("type");
+			return;
+		}
+		
+		Log2Dump dump = new Log2Dump();
+		dump.add("qName", qName);
+		Log2.log.error("Unknow start qName", null, dump);
+	}
+	
+	public void endElement(String uri, String localName, String qName) throws SAXException {
+		try {
+			if (qName.equalsIgnoreCase("index")) {
+				if (bulkrequest == null) {
+					return;
+				}
+				if (bulkrequest.numberOfActions() > 0) {
+					BulkResponse response = bulkrequest.execute().actionGet();
+					if (response.hasFailures()) {
+						throw new SAXException("ES error: " + response.buildFailureMessage());
+					}
+				}
+				return;
+			}
+			if (qName.equalsIgnoreCase("mapping")) {
+				if (Elasticsearch.isIndexExists(index_name) == false) {
+					Elasticsearch.createIndex(index_name);
+				}
+				Elasticsearch.addMappingToIndex(index_name, mapping_name, getContent());
+				return;
+			}
+			if (qName.equalsIgnoreCase("settings")) {
+				return;
+			}
+			
+			// throw new SAXException("Can't declare mapping", e);
+			
+			if (qName.equalsIgnoreCase("key")) {
+				if (bulkrequest == null) {
+					bulkrequest = client.prepareBulk();
+				}
+				if (bulkrequest.numberOfActions() > BULK_REQUEST_MAX_SIZE) {
+					BulkResponse response = bulkrequest.execute().actionGet();
+					if (response.hasFailures()) {
+						throw new SAXException("ES error: " + response.buildFailureMessage());
+					}
+					bulkrequest = client.prepareBulk();
+				}
+				IndexRequestBuilder index = new IndexRequestBuilder(client);
+				index.setId(key_name);
+				index.setIndex(index_name);
+				index.setType(type_name);
+				if (ttl > 0) {
+					index.setTTL(ttl);
+				}
+				index.setSource(getContent());
+				bulkrequest.add(index);
+				return;
+			}
+			
+		} catch (DecoderException e) {
+			throw new SAXException("Bad XML content decoding", e);
+		}
+		Log2Dump dump = new Log2Dump();
+		dump.add("qName", qName);
+		Log2.log.error("Unknow end qName", null, dump);
+	}
+	
+	private String getContent() throws DecoderException {
+		return new String(quotedprintablecodec.decode(rawtext.toString().getBytes()));
+	}
+	
+	public void error(SAXParseException e) throws SAXException {
+		Log2.log.error("XML Parsing error", e);
+	}
+	
+	public void fatalError(SAXParseException e) throws SAXException {
+		Log2.log.error("XML Parsing error", e);
+	}
+	
+	public void warning(SAXParseException e) throws SAXException {
+		Log2.log.error("XML Parsing warning", e);
+	}
+	
+	public void characters(char[] ch, int start, int length) throws SAXException {
+		String read = new String(ch, start, length);
+		if (read.trim().length() > 0) {
+			rawtext.append(read.trim());
+		}
+	}
 	
 }

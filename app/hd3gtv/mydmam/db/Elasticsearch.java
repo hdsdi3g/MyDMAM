@@ -33,7 +33,9 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -114,6 +116,9 @@ public class Elasticsearch {
 		return dump;
 	}
 	
+	/**
+	 * Protected to some IndexMissingException
+	 */
 	public static void deleteIndexRequest(String index_name) throws ElasticsearchException {
 		try {
 			getClient().admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
@@ -167,8 +172,13 @@ public class Elasticsearch {
 		return null;
 	}
 	
+	/**
+	 * @deprecated replace this with isIndexExists, createIndex, addMappingToIndex
+	 * @see BackupDbElasticsearch
+	 *      and ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> mapping = admin_client.getMappings(new GetMappingsRequest().indices(index_name)).actionGet().getMappings();
+	 */
 	public static void enableTTL(String index_name, String type) throws IOException, ParseException {
-		if (getClient().admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists() == false) {
+		if (isIndexExists(index_name)) {
 			return;
 		}
 		
@@ -271,6 +281,23 @@ public class Elasticsearch {
 	
 	public static ElastisearchMultipleCrawlerReader createMultipleCrawlerReader() {
 		return new ElastisearchMultipleCrawlerReader(getClient());
+	}
+	
+	public static boolean isIndexExists(String index_name) {
+		return getClient().admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists();
+	}
+	
+	public static boolean createIndex(String index_name) {
+		return getClient().admin().indices().prepareCreate(index_name).execute().actionGet().isAcknowledged();
+	}
+	
+	public static boolean addMappingToIndex(String index_name, String type, String json_mapping_source) {
+		// Inspired by http://stackoverflow.com/questions/22071198/adding-mapping-to-a-type-from-java-how-do-i-do-it
+		Client client = getClient();
+		PutMappingRequestBuilder request = client.admin().indices().preparePutMapping(index_name);
+		request.setType(type);
+		request.setSource(json_mapping_source);
+		return request.execute().actionGet().isAcknowledged();
 	}
 	
 }

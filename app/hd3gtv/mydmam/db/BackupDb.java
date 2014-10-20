@@ -41,7 +41,9 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.collect.ImmutableMap;
+import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.netflix.astyanax.Keyspace;
@@ -53,15 +55,15 @@ public class BackupDb {
 	
 	public static boolean mode_debug = false;
 	
-	private boolean cassandra;
-	private boolean elasticsearch;
-	
-	public BackupDb(boolean cassandra, boolean elasticsearch) {
-		this.cassandra = cassandra;
-		this.elasticsearch = elasticsearch;
+	public BackupDb() {
 	}
 	
-	public void backup(String basepath) throws Exception {
+	public void backup(String basepath, boolean cassandra, boolean elasticsearch) throws Exception {
+		if ((cassandra == false) & (elasticsearch == false)) {
+			cassandra = true;
+			elasticsearch = true;
+		}
+		
 		if (cassandra) {
 			Keyspace keyspace = CassandraDb.getkeyspace();
 			List<ColumnFamilyDefinition> l_cdf = keyspace.describeKeyspace().getColumnFamilyList();
@@ -157,14 +159,36 @@ public class BackupDb {
 		fis.close();
 	}
 	
-	public void restore(File xmlfile, String keyspacename, boolean purgebefore) throws Exception {
-		// TODO autodetect xml type
-		if (cassandra) {
-			parse(new BackupDbCassandra(keyspacename, purgebefore), xmlfile);
+	private class XmlTypeDetection extends DefaultHandler {
+		String first_element = null;
+		
+		public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+			first_element = qName;
+			throw new SAXException("STOP");
 		}
-		if (elasticsearch) {
-			// TODO
-			// BackupDbElasticsearch
+		
+	}
+	
+	public void restore(File xmlfile, String keyspacename, boolean purgebefore, long esttl) throws Exception {
+		XmlTypeDetection type_detect = new XmlTypeDetection();
+		try {
+			parse(type_detect, xmlfile);
+		} catch (SAXException e) {
+			if (e.getMessage().equalsIgnoreCase("STOP") == false) {
+				throw e;
+			}
+		}
+		
+		if (type_detect.first_element == null) {
+			throw new SAXException("Can't found XML root element");
+		}
+		
+		if (type_detect.first_element.equalsIgnoreCase("columnfamily")) {
+			parse(new BackupDbCassandra(keyspacename, purgebefore), xmlfile);
+		} else if (type_detect.first_element.equalsIgnoreCase("index")) {
+			parse(new BackupDbElasticsearch(purgebefore, esttl), xmlfile);
+		} else {
+			throw new SAXException("Can't detect XML root element parser type");
 		}
 	}
 	

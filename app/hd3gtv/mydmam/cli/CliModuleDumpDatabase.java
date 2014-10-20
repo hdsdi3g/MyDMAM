@@ -39,22 +39,29 @@ public class CliModuleDumpDatabase implements CliModule {
 			prefix = "backup";
 		}
 		
-		BackupDb bdb = new BackupDb(args.getParamExist("-c"), args.getParamExist("-e"));
+		BackupDb bdb = new BackupDb();
 		if (args.getParamExist("-import")) {
 			File outfile = new File(args.getSimpleParamValue("-import"));
-			bdb.restore(outfile, CassandraDb.getkeyspace().getKeyspaceName(), args.getParamExist("-purgebefore"));
+			long esttl = 0;
+			try {
+				esttl = Long.valueOf(args.getSimpleParamValue("-esttl"));
+			} catch (Exception e) {
+			}
+			
+			bdb.restore(outfile, CassandraDb.getkeyspace().getKeyspaceName(), args.getParamExist("-purgebefore"), esttl);
 		} else {
-			bdb.backup(prefix);
+			bdb.backup(prefix, args.getParamExist("-c"), args.getParamExist("-e"));
 		}
 		
 	}
 	
 	public void showFullCliModuleHelp() {
 		System.out.println("Usage for export: " + getCliModuleName() + " [-prefix pathToFile/prefix] [-debug] [-c | -e]");
-		System.out.println("                  with -c for Cassandra export only");
-		System.out.println("                  with -e for ElasticSearch export only");
-		System.out.println("                  default : Cassandra and ElasticSearch export");
-		System.out.println("Usage for import: " + getCliModuleName() + " -import dumpfile.xml [-purgebefore]");
+		System.out.println("  with -c for Cassandra export only");
+		System.out.println("  with -e for ElasticSearch export only");
+		System.out.println("  default : Cassandra and ElasticSearch export");
+		System.out.println("Usage for import: " + getCliModuleName() + " -import dumpfile.xml [-purgebefore] [-esttl sec]");
+		System.out.println("  -esttl for set ttl for each inserted key, in seconds (if TTL is enabled in the index type)");
 	}
 	
 }
