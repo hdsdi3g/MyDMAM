@@ -20,6 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationClusterItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.status.ElasticsearchStatus;
 
 import java.io.IOException;
 import java.util.List;
@@ -52,6 +53,9 @@ public class Elasticsearch {
 	public static final char[] forbidden_query_chars = { '/', '\\', '%', '[', ']', '(', ')', '{', '}', '"', '~' };
 	private static TransportClient client;
 	
+	/**
+	 * @see ElasticsearchStatus
+	 */
 	public static void refeshconfiguration() {
 		if (client != null) {
 			try {
