@@ -53,6 +53,12 @@ public class UserActionCreator {
 	static Gson gson;
 	
 	static {
+		try {
+			Elasticsearch.enableTTL(Notification.ES_INDEX, ES_TYPE);
+		} catch (Exception e) {
+			Log2.log.error("Can't enable TTL in ES", e);
+		}
+		
 		GsonBuilder builder = new GsonBuilder();
 		builder.serializeNulls();
 		builder.setPrettyPrinting();

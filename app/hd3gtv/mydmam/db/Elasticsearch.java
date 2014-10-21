@@ -21,22 +21,21 @@ import hd3gtv.configuration.ConfigurationClusterItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -172,96 +171,34 @@ public class Elasticsearch {
 		return null;
 	}
 	
-	/**
-	 * @deprecated replace this with isIndexExists, createIndex, addMappingToIndex
-	 * @see BackupDbElasticsearch
-	 *      and ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> mapping = admin_client.getMappings(new GetMappingsRequest().indices(index_name)).actionGet().getMappings();
-	 */
-	public static void enableTTL(String index_name, String type) throws IOException, ParseException {
-		if (isIndexExists(index_name)) {
-			return;
+	public static void enableTTL(String index_name, String type) throws IOException {
+		if (isIndexExists(index_name) == false) {
+			createIndex(index_name);
 		}
+		GetMappingsRequest request = new GetMappingsRequest().indices(index_name);
+		ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> global_mapping = getClient().admin().indices().getMappings(request).actionGet().getMappings();
 		
-		String rest_url = Configuration.global.getValue("elasticsearch", "resturl", "http://" + transportadresses[0].address().getHostName() + ":9200");
-		
-		StringBuffer sb_url = new StringBuffer();
-		sb_url.append(rest_url);
-		sb_url.append("/");
-		sb_url.append(index_name);
-		sb_url.append("/");
-		sb_url.append(type);
-		sb_url.append("/_mapping?pretty=true");
-		
-		URL url = new URL(sb_url.toString());
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod("GET");
-		connection.setDoOutput(true);
-		connection.setRequestProperty("Content-Type", "application/json");
-		connection.setRequestProperty("Accept", "application/json");
-		
-		InputStream isr = connection.getInputStream();
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		
-		int len;
-		byte[] buffer = new byte[0xFFF];
-		while ((len = isr.read(buffer)) > 0) {
-			baos.write(buffer, 0, len);
-		}
-		connection.disconnect();
-		
-		JSONParser jsonparser = new JSONParser();
-		JSONObject jo_root = (JSONObject) jsonparser.parse(new String(baos.toByteArray()));
-		JSONObject jo_index = (JSONObject) jo_root.get(index_name);
-		JSONObject jo_mappings = (JSONObject) jo_index.get("mappings");
-		JSONObject jo_type = (JSONObject) jo_mappings.get(type);
-		if (jo_type.containsKey("_ttl")) {
-			JSONObject jo_ttl = (JSONObject) jo_type.get("_ttl");
-			boolean isenabledvalue = (Boolean) jo_ttl.get("enabled");
-			if (isenabledvalue) {
-				return;
+		if (global_mapping.containsKey(index_name)) {
+			ImmutableOpenMap<String, MappingMetaData> mapping = global_mapping.get(index_name);
+			if (mapping.containsKey(type)) {
+				Map<String, Object> mapping_mtd = ((MappingMetaData) mapping.get(type)).getSourceAsMap();
+				if (mapping_mtd.containsKey("_ttl")) {
+					Map<String, Object> mapping_ttl = (Map<String, Object>) mapping_mtd.get("_ttl");
+					if (mapping_ttl.containsKey("enabled")) {
+						if ((Boolean) mapping_ttl.get("enabled") == true) {
+							return;
+						}
+					}
+				}
 			}
 		}
-		
-		Log2Dump dump = new Log2Dump();
-		dump.add("index_name", index_name);
-		dump.add("type", type);
-		Log2.log.info("Activate TTL on ES", dump);
-		
-		connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod("PUT");
-		connection.setDoOutput(true);
-		connection.setRequestProperty("Content-Type", "application/json");
-		connection.setRequestProperty("Accept", "application/json");
-		
-		JSONObject jo_enabled = new JSONObject();
-		jo_enabled.put("enabled", true);
-		
-		JSONObject jo_ttl = new JSONObject();
-		jo_ttl.put("_ttl", jo_enabled);
-		
-		JSONObject request = new JSONObject();
-		request.put(type, jo_ttl);
-		
-		OutputStreamWriter osw = new OutputStreamWriter(connection.getOutputStream());
-		osw.write(request.toJSONString());
-		osw.flush();
-		osw.close();
-		
-		if (connection.getResponseCode() != 200) {
-			throw new IOException("Bad response from ES node : " + sb_url.toString());
-		}
-		
+		addMappingToIndex(index_name, type, "{\"_ttl\": {\"enabled\": true}}");
 	}
 	
 	/*
 	CloseIndexRequest cir = new CloseIndexRequest("pathindex");
 	CloseIndexResponse ciresp = client.admin().indices().close(cir).actionGet();
 	System.out.println(ciresp.isAcknowledged());
-	
-	UpdateSettingsRequest usr = new UpdateSettingsRequest("pathindex");
-	...
-	UpdateSettingsResponse usresp = client.admin().indices().updateSettings(usr).actionGet();
-	System.out.println(usresp.toString());
 	
 	OpenIndexRequest oir = new OpenIndexRequest("pathindex");
 	OpenIndexResponse oiresp = client.admin().indices().open(oir).actionGet();
@@ -270,9 +207,6 @@ public class Elasticsearch {
 	ClusterStateRequest csr = new ClusterStateRequest();
 	ClusterStateResponse csresp = client.admin().cluster().state(csr).actionGet();
 	System.out.println(csresp.getState().getMetaData().index("pathindex").getSettings().getAsBoolean("index.ttl.enabled", false));
-	
-	CreateIndexRequest cri = new CreateIndexRequest(index);
-	System.out.println(client.admin().indices().create(cri).actionGet().isAcknowledged());
 	*/
 	
 	public static ElastisearchCrawlerReader createCrawlerReader() {
