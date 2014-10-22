@@ -106,6 +106,19 @@ public class MydmamExtensions extends JavaExtensions {
 		return result.toString();
 	}
 	
+	public static String toLowerCaseCapFirst(String value) {
+		if (value == null) {
+			return "";
+		}
+		if (value.length() == 0) {
+			return "";
+		}
+		if (value.length() == 1) {
+			return value.toUpperCase();
+		}
+		return value.substring(0, 1).toUpperCase() + value.substring(1).toLowerCase();
+	}
+	
 	/*public static String fromCamelCaseToSpaces(String value) {
 		if (value == null) {
 			return "";

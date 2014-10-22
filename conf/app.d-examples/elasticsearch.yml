@@ -9,3 +9,4 @@ elasticsearch:
 # host1:specialport,host2
 # host1:host2:host3
 # ...
+# cluster_health_status_color : green or yellow, green by default

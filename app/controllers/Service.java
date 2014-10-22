@@ -17,6 +17,12 @@
 package controllers;
 
 import hd3gtv.javasimpleservice.IsAlive;
+import hd3gtv.mydmam.db.status.ClusterStatus;
+import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
+import hd3gtv.mydmam.db.status.StatusReport;
+
+import java.util.Map;
+
 import play.Play;
 import play.PlayPlugin;
 import play.i18n.Messages;
@@ -49,4 +55,14 @@ public class Service extends Controller {
 		String rawplaystatus = plugin.getStatus();
 		render(rawplaystatus);
 	}
+	
+	@Check("showStatus")
+	public static void clusterstatus() {
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.clusterstatus.report.pagename"));
+		ClusterStatus cluster_status = new ClusterStatus();
+		cluster_status.refresh(true);
+		Map<ClusterType, Map<String, StatusReport>> all_reports = cluster_status.getAllReports();
+		render(all_reports);
+	}
+	
 }

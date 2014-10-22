@@ -63,6 +63,7 @@ service.functionalitieslist.profiles=Declared profiles
 service.functionalitieslist.capabilities=Capabilities
 service.functionalitieslist.storageindexeswhitelist=Storage indexes whitelist
 service.functionalitieslist.musthavelocalstorageindexbridge=Must have local storageindex bridge
+service.clusterstatus.report.pagename=Clusters status
 
 application.navigate=Storage
 

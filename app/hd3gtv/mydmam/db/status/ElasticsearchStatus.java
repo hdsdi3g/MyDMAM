@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.db.status;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.db.Elasticsearch;
 
 import java.io.IOException;
@@ -24,6 +25,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.cluster.node.info.PluginInfo;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsIndices;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsNodes;
@@ -41,6 +43,18 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.transport.TransportAddress;
 
 public class ElasticsearchStatus {
+	
+	private final ClusterHealthStatus base_cluster_health_status;
+	
+	ElasticsearchStatus() {
+		String color = Configuration.global.getValue("elasticsearch", "cluster_health_status_color", "green");
+		if (color.equalsIgnoreCase(ClusterHealthStatus.YELLOW.name())) {
+			base_cluster_health_status = ClusterHealthStatus.YELLOW;
+		} else {
+			base_cluster_health_status = ClusterHealthStatus.GREEN;
+		}
+		
+	}
 	
 	private static ArrayList<TransportAddress> convertList(ImmutableList<DiscoveryNode> list) {
 		ArrayList<TransportAddress> nodes = new ArrayList<TransportAddress>();
@@ -90,7 +104,10 @@ public class ElasticsearchStatus {
 			ClusterStatsRequestBuilder cluster_stats_request = cluster_admin_client.prepareClusterStats();
 			ClusterStatsResponse cluster_stats_response = cluster_stats_request.execute().actionGet();
 			
-			System.out.println("health: " + cluster_stats_response.getStatus()); // TODO handle health
+			ClusterHealthStatus current_cluster_health_status = cluster_stats_response.getStatus();
+			if (base_cluster_health_status.ordinal() < current_cluster_health_status.ordinal()) {
+				System.out.println("health: " + cluster_stats_response.getStatus()); // TODO handle health
+			}
 			
 			if (prepare_report == false) {
 				return;
@@ -102,7 +119,6 @@ public class ElasticsearchStatus {
 	}
 	
 	private void processStats(ClusterStatsNodes nodes_stats) {
-		// TODO reports
 		StatusReport report = new StatusReport();
 		
 		report.addCell("Client", "Values", nodes_stats.getCounts().getClient());
@@ -110,7 +126,7 @@ public class ElasticsearchStatus {
 		report.addCell("Master data", "Values", nodes_stats.getCounts().getMasterData());
 		report.addCell("Master only", "Values", nodes_stats.getCounts().getMasterOnly());
 		report.addCell("Total", "Values", nodes_stats.getCounts().getTotal());
-		last_status_reports.put("Nodes stats: count", report);
+		last_status_reports.put("Count stats", report);
 		
 		report = new StatusReport();
 		report.addCell("Dev", "Values", nodes_stats.getFs().getDev());
@@ -124,7 +140,7 @@ public class ElasticsearchStatus {
 		report.addCell("Mount", "Values", nodes_stats.getFs().getMount());
 		report.addCell("Path", "Values", nodes_stats.getFs().getPath());
 		report.addCell("Total", "Values", nodes_stats.getFs().getTotal());
-		last_status_reports.put("Nodes stats: file systems", report);
+		last_status_reports.put("File systems stats", report);
 		
 		report = new StatusReport();
 		int pos = 1;
@@ -137,21 +153,21 @@ public class ElasticsearchStatus {
 			report.addCell("Url", "Plugin #" + pos, plugin.getUrl());
 			pos++;
 		}
-		last_status_reports.put("Nodes stats: plugins", report);
+		last_status_reports.put("Plugins stats", report);
 		
 		report = new StatusReport();
 		report.addCell("CPU %", "Values", nodes_stats.getProcess().getCpuPercent());
 		report.addCell("Min open file descriptors", "Values", nodes_stats.getProcess().getMinOpenFileDescriptors());
 		report.addCell("Average open file descriptors", "Values", nodes_stats.getProcess().getAvgOpenFileDescriptors());
 		report.addCell("Max open file descriptors", "Values", nodes_stats.getProcess().getMaxOpenFileDescriptors());
-		last_status_reports.put("Nodes stats: process", report);
+		last_status_reports.put("Process stats", report);
 		
 		report = new StatusReport();
 		report.addCell("Threads", "Values", nodes_stats.getJvm().getThreads());
 		report.addCell("Heap Max", "Values", nodes_stats.getJvm().getHeapMax());
 		report.addCell("Heap Used", "Values", nodes_stats.getJvm().getHeapUsed());
 		report.addCell("Max uptime", "Values", nodes_stats.getJvm().getMaxUpTime());
-		last_status_reports.put("Nodes stats: JVM", report);
+		last_status_reports.put("JVM stats", report);
 		
 		report = new StatusReport();
 		pos = 1;
@@ -177,7 +193,7 @@ public class ElasticsearchStatus {
 				pos++;
 			}
 		}
-		last_status_reports.put("Nodes stats: JVM versions", report);
+		last_status_reports.put("JVM versions", report);
 		
 		report = new StatusReport();
 		pos = 1;
@@ -189,7 +205,7 @@ public class ElasticsearchStatus {
 			report.addCell("Snapshot", "Version #" + pos, version.snapshot);
 			pos++;
 		}
-		last_status_reports.put("Nodes stats: versions", report);
+		last_status_reports.put("Elasticsearch versions", report);
 	}
 	
 	/**
