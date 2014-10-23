@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
@@ -112,62 +113,99 @@ public class ElasticsearchStatus {
 			if (prepare_report == false) {
 				return;
 			}
+			
 			last_status_reports = new LinkedHashMap<String, StatusReport>();
+			processHostsNodesLists(client.connectedNodes(), client.listedNodes(), client.filteredNodes());
 			processStats(cluster_stats_response.getIndicesStats());
 			processStats(cluster_stats_response.getNodesStats());
 		}
 	}
 	
-	private void processStats(ClusterStatsNodes nodes_stats) {
+	private class HostNodeState {
+		boolean client;
+		boolean data;
+		boolean master;
+		boolean connected;
+		boolean filtered;
+		
+		String host_addr;
+		String host_name;
+		// String id;
+		String name;
+		Version version;
+		
+		void report(TransportAddress transport, StatusReport report) {
+			report.addCell("Master/Data/Client", transport.toString(), "/", master, data, client);
+			report.addCell("Connected/Filtered", transport.toString(), "/", connected, filtered);
+			report.addCell("Host", transport.toString(), "/", host_name, host_addr);
+			// report.addCell("Id", transport.toString(), id);
+			report.addCell("Name", transport.toString(), name);
+			report.addCell("Version", transport.toString(), ".", version.major, version.minor, version.revision);
+			report.addCell("Build/Id", transport.toString(), "/", version.build, version.id);
+			report.addCell("Lucene version", transport.toString(), version.luceneVersion);
+			report.addCell("Snapshot", transport.toString(), version.snapshot);
+		}
+	}
+	
+	private void processHostsNodesLists(ImmutableList<DiscoveryNode> current_connected_nodes, ImmutableList<DiscoveryNode> current_listed_nodes, ImmutableList<DiscoveryNode> current_filtered_nodes) {
+		LinkedHashMap<TransportAddress, HostNodeState> nodes = new LinkedHashMap<TransportAddress, ElasticsearchStatus.HostNodeState>();
+		
+		for (int pos = 0; pos < current_listed_nodes.size(); pos++) {
+			HostNodeState state = new HostNodeState();
+			DiscoveryNode node = current_listed_nodes.get(pos);
+			state.client = node.isClientNode();
+			state.data = node.isDataNode();
+			state.master = node.isMasterNode();
+			state.host_addr = node.getHostAddress();
+			state.host_name = node.getHostName();
+			// state.id = node.getId();
+			state.name = node.getName();
+			state.version = node.getVersion();
+			nodes.put(current_listed_nodes.get(pos).getAddress(), state);
+		}
+		
+		for (int pos = 0; pos < current_connected_nodes.size(); pos++) {
+			DiscoveryNode node = current_connected_nodes.get(pos);
+			HostNodeState state = nodes.get(node.getAddress());
+			state.connected = true;
+			state.client = node.isClientNode();
+			state.data = node.isDataNode();
+			state.master = node.isMasterNode();
+			state.host_addr = node.getHostAddress();
+			state.host_name = node.getHostName();
+			// state.id = node.getId();
+			state.name = node.getName();
+			state.version = node.getVersion();
+		}
+		
+		for (int pos = 0; pos < current_filtered_nodes.size(); pos++) {
+			DiscoveryNode node = current_filtered_nodes.get(pos);
+			nodes.get(node.getAddress()).filtered = true;
+		}
+		
 		StatusReport report = new StatusReport();
+		for (Map.Entry<TransportAddress, HostNodeState> entry : nodes.entrySet()) {
+			entry.getValue().report(entry.getKey(), report);
+		}
+		last_status_reports.put("Nodes", report);
 		
-		report.addCell("Client", "Values", nodes_stats.getCounts().getClient());
-		report.addCell("Data only", "Values", nodes_stats.getCounts().getDataOnly());
-		report.addCell("Master data", "Values", nodes_stats.getCounts().getMasterData());
-		report.addCell("Master only", "Values", nodes_stats.getCounts().getMasterOnly());
-		report.addCell("Total", "Values", nodes_stats.getCounts().getTotal());
-		last_status_reports.put("Count stats", report);
+	}
+	
+	private void processStats(ClusterStatsNodes nodes_stats) {
+		StatusReport report;
+		int pos;
 		
-		report = new StatusReport();
-		report.addCell("Dev", "Values", nodes_stats.getFs().getDev());
-		report.addCell("Disk queue", "Values", Strings.format1Decimals(nodes_stats.getFs().getDiskQueue(), ""));
-		report.addCell("Disk reads", "Values", nodes_stats.getFs().getDiskReads());
-		report.addCell("Disk read size", "Values", nodes_stats.getFs().getDiskReadSizeSize());
-		report.addCell("Disk service time", "Values", Strings.format1Decimals(nodes_stats.getFs().getDiskServiceTime(), ""));
-		report.addCell("Disk writes", "Values", nodes_stats.getFs().getDiskWrites());
-		report.addCell("Disk write size", "Values", nodes_stats.getFs().getDiskWriteSizeSize());
-		report.addCell("Free", "Values", nodes_stats.getFs().getFree());
-		report.addCell("Mount", "Values", nodes_stats.getFs().getMount());
-		report.addCell("Path", "Values", nodes_stats.getFs().getPath());
-		report.addCell("Total", "Values", nodes_stats.getFs().getTotal());
-		last_status_reports.put("File systems stats", report);
-		
-		report = new StatusReport();
-		int pos = 1;
-		for (PluginInfo plugin : nodes_stats.getPlugins()) {
-			report.addCell("Name", "Plugin #" + pos, plugin.getName());
-			report.addCell("Description", "Plugin #" + pos, plugin.getDescription());
-			report.addCell("Version", "Plugin #" + pos, plugin.getVersion());
-			report.addCell("Jvm", "Plugin #" + pos, plugin.isJvm());
-			report.addCell("Site", "Plugin #" + pos, plugin.isSite());
-			report.addCell("Url", "Plugin #" + pos, plugin.getUrl());
+		/*report = new StatusReport();
+		pos = 1;
+		for (Version version : nodes_stats.getVersions()) {
+			report.addCell("Major.Minor.Revision", "Version #" + pos, ".", version.major, version.minor, version.revision);
+			report.addCell("Build", "Version #" + pos, version.build);
+			report.addCell("Id", "Version #" + pos, version.id);
+			report.addCell("LuceneVersion", "Version #" + pos, version.luceneVersion);
+			report.addCell("Snapshot", "Version #" + pos, version.snapshot);
 			pos++;
 		}
-		last_status_reports.put("Plugins stats", report);
-		
-		report = new StatusReport();
-		report.addCell("CPU %", "Values", nodes_stats.getProcess().getCpuPercent());
-		report.addCell("Min open file descriptors", "Values", nodes_stats.getProcess().getMinOpenFileDescriptors());
-		report.addCell("Average open file descriptors", "Values", nodes_stats.getProcess().getAvgOpenFileDescriptors());
-		report.addCell("Max open file descriptors", "Values", nodes_stats.getProcess().getMaxOpenFileDescriptors());
-		last_status_reports.put("Process stats", report);
-		
-		report = new StatusReport();
-		report.addCell("Threads", "Values", nodes_stats.getJvm().getThreads());
-		report.addCell("Heap Max", "Values", nodes_stats.getJvm().getHeapMax());
-		report.addCell("Heap Used", "Values", nodes_stats.getJvm().getHeapUsed());
-		report.addCell("Max uptime", "Values", nodes_stats.getJvm().getMaxUpTime());
-		last_status_reports.put("JVM stats", report);
+		last_status_reports.put("Elasticsearch versions", report);*/
 		
 		report = new StatusReport();
 		pos = 1;
@@ -196,16 +234,54 @@ public class ElasticsearchStatus {
 		last_status_reports.put("JVM versions", report);
 		
 		report = new StatusReport();
+		report.addCell("Client", "Values", nodes_stats.getCounts().getClient());
+		report.addCell("Data only", "Values", nodes_stats.getCounts().getDataOnly());
+		report.addCell("Master data", "Values", nodes_stats.getCounts().getMasterData());
+		report.addCell("Master only", "Values", nodes_stats.getCounts().getMasterOnly());
+		report.addCell("Total", "Values", nodes_stats.getCounts().getTotal());
+		last_status_reports.put("Count stats", report);
+		
+		report = new StatusReport();
+		report.addCell("Dev", "Values", nodes_stats.getFs().getDev());
+		report.addCell("Disk queue", "Values", Strings.format1Decimals(nodes_stats.getFs().getDiskQueue(), ""));
+		report.addCell("Disk reads", "Values", nodes_stats.getFs().getDiskReads());
+		report.addCell("Disk read size", "Values", nodes_stats.getFs().getDiskReadSizeSize());
+		report.addCell("Disk service time", "Values", Strings.format1Decimals(nodes_stats.getFs().getDiskServiceTime(), ""));
+		report.addCell("Disk writes", "Values", nodes_stats.getFs().getDiskWrites());
+		report.addCell("Disk write size", "Values", nodes_stats.getFs().getDiskWriteSizeSize());
+		report.addCell("Free", "Values", nodes_stats.getFs().getFree());
+		report.addCell("Mount", "Values", nodes_stats.getFs().getMount());
+		report.addCell("Path", "Values", nodes_stats.getFs().getPath());
+		report.addCell("Total", "Values", nodes_stats.getFs().getTotal());
+		last_status_reports.put("File systems stats", report);
+		
+		report = new StatusReport();
 		pos = 1;
-		for (Version version : nodes_stats.getVersions()) {
-			report.addCell("Major.Minor.Revision", "Version #" + pos, ".", version.major, version.minor, version.revision);
-			report.addCell("Build", "Version #" + pos, version.build);
-			report.addCell("Id", "Version #" + pos, version.id);
-			report.addCell("LuceneVersion", "Version #" + pos, version.luceneVersion);
-			report.addCell("Snapshot", "Version #" + pos, version.snapshot);
+		for (PluginInfo plugin : nodes_stats.getPlugins()) {
+			report.addCell("Name", "Plugin #" + pos, plugin.getName());
+			report.addCell("Description", "Plugin #" + pos, plugin.getDescription());
+			report.addCell("Version", "Plugin #" + pos, plugin.getVersion());
+			report.addCell("Jvm", "Plugin #" + pos, plugin.isJvm());
+			report.addCell("Site", "Plugin #" + pos, plugin.isSite());
+			report.addCell("Url", "Plugin #" + pos, plugin.getUrl());
 			pos++;
 		}
-		last_status_reports.put("Elasticsearch versions", report);
+		last_status_reports.put("Plugins stats", report);
+		
+		report = new StatusReport();
+		report.addCell("CPU %", "Values", nodes_stats.getProcess().getCpuPercent());
+		report.addCell("Min open file descriptors", "Values", nodes_stats.getProcess().getMinOpenFileDescriptors());
+		report.addCell("Average open file descriptors", "Values", nodes_stats.getProcess().getAvgOpenFileDescriptors());
+		report.addCell("Max open file descriptors", "Values", nodes_stats.getProcess().getMaxOpenFileDescriptors());
+		last_status_reports.put("Process stats", report);
+		
+		report = new StatusReport();
+		report.addCell("Threads", "Values", nodes_stats.getJvm().getThreads());
+		report.addCell("Heap Max", "Values", nodes_stats.getJvm().getHeapMax());
+		report.addCell("Heap Used", "Values", nodes_stats.getJvm().getHeapUsed());
+		report.addCell("Max uptime", "Values", nodes_stats.getJvm().getMaxUpTime());
+		last_status_reports.put("JVM stats", report);
+		
 	}
 	
 	/**
