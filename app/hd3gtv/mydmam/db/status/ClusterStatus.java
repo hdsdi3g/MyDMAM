@@ -16,25 +16,94 @@
 */
 package hd3gtv.mydmam.db.status;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ClusterStatus {
+	
+	final static String NEW_LINE = System.getProperty("line.separator");
 	
 	public enum ClusterType {
 		CASSANDRA, ELASTICSEARCH
 	}
 	
-	ElasticsearchStatus es_status;
-	
-	final String NEW_LINE = System.getProperty("line.separator");
-	
-	public ClusterStatus() {
-		es_status = new ElasticsearchStatus();
+	private enum Gravity {
+		WARN, ERROR, RECOVERED
 	}
 	
-	public void refresh(boolean prepare_reports) {
+	ElasticsearchStatus es_status;
+	private List<ClusterStatusEvents> callbacks_events;
+	private final LinkedHashMap<Gravity, LinkedHashMap<Class<?>, List<String>>> all_messages;
+	
+	public ClusterStatus() {
+		callbacks_events = new ArrayList<ClusterStatusEvents>();
+		es_status = new ElasticsearchStatus(this);
+		all_messages = new LinkedHashMap<Gravity, LinkedHashMap<Class<?>, List<String>>>();
+	}
+	
+	public ClusterStatus refresh(boolean prepare_reports) {
+		all_messages.clear();
 		es_status.refreshStatus(prepare_reports);
+		callbacksAll();
+		return this;
+	}
+	
+	public ClusterStatus addCallbackEvent(ClusterStatusEvents event) {
+		if (event == null) {
+			return this;
+		}
+		if (callbacks_events.contains(event)) {
+			return this;
+		}
+		callbacks_events.add(event);
+		return this;
+	}
+	
+	private void callbacksAll() {
+		if (all_messages.isEmpty()) {
+			return;
+		}
+		
+		for (int pos = 0; pos < callbacks_events.size(); pos++) {
+			// TODO
+			// callbacks_events.get(pos).clusterHasAWarningState(e);
+		}
+	}
+	
+	private void onSomething(Gravity gravity, Class<?> provider, String message) {
+		LinkedHashMap<Class<?>, List<String>> messages_by_gravity;
+		
+		if (all_messages.containsKey(gravity) == false) {
+			messages_by_gravity = new LinkedHashMap<Class<?>, List<String>>();
+			all_messages.put(gravity, messages_by_gravity);
+		} else {
+			messages_by_gravity = all_messages.get(gravity);
+		}
+		
+		List<String> messages;
+		if (messages_by_gravity.containsKey(provider) == false) {
+			messages = new ArrayList<String>();
+			messages_by_gravity.put(provider, messages);
+		} else {
+			messages = messages_by_gravity.get(provider);
+		}
+		
+		messages.add(message);
+	}
+	
+	void onWarning(Class<?> provider, String message) {
+		onSomething(Gravity.WARN, provider, message);
+	}
+	
+	void onRecovered(Class<?> provider, String message) {
+		onSomething(Gravity.RECOVERED, provider, message);
+	}
+	
+	void onGrave(Class<?> provider, String message) {
+		onSomething(Gravity.ERROR, provider, message);
 	}
 	
 	public Map<ClusterType, Map<String, StatusReport>> getAllReports() {

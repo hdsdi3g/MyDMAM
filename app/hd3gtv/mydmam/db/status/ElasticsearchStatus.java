@@ -45,16 +45,22 @@ import org.elasticsearch.common.transport.TransportAddress;
 
 public class ElasticsearchStatus {
 	
-	private final ClusterHealthStatus base_cluster_health_status;
+	private ClusterHealthStatus last_cluster_health_status;
+	ArrayList<String> last_invalid_nodes;
+	ArrayList<String> last_missing_nodes;
+	private final ClusterStatus referer;
+	LinkedHashMap<String, StatusReport> last_status_reports;
 	
-	ElasticsearchStatus() {
+	ElasticsearchStatus(ClusterStatus referer) {
+		this.referer = referer;
 		String color = Configuration.global.getValue("elasticsearch", "cluster_health_status_color", "green");
 		if (color.equalsIgnoreCase(ClusterHealthStatus.YELLOW.name())) {
-			base_cluster_health_status = ClusterHealthStatus.YELLOW;
+			last_cluster_health_status = ClusterHealthStatus.YELLOW;
 		} else {
-			base_cluster_health_status = ClusterHealthStatus.GREEN;
+			last_cluster_health_status = ClusterHealthStatus.GREEN;
 		}
-		
+		last_invalid_nodes = new ArrayList<String>();
+		last_missing_nodes = new ArrayList<String>();
 	}
 	
 	private static ArrayList<TransportAddress> convertList(ImmutableList<DiscoveryNode> list) {
@@ -65,60 +71,110 @@ public class ElasticsearchStatus {
 		return nodes;
 	}
 	
-	LinkedHashMap<String, StatusReport> last_status_reports;
-	
 	void refreshStatus(boolean prepare_report) {
 		TransportClient client = Elasticsearch.getClient();
 		
 		ArrayList<TransportAddress> current_connected_nodes = convertList(client.connectedNodes());
+		if (current_connected_nodes.isEmpty()) {
+			referer.onGrave(getClass(), "No connected nodes." + ClusterStatus.NEW_LINE);
+			return;
+		}
+		
 		ArrayList<TransportAddress> current_listed_nodes = convertList(client.listedNodes());
 		ArrayList<TransportAddress> current_filtered_nodes = convertList(client.filteredNodes());
 		
-		if (current_listed_nodes.isEmpty()) {
-			System.out.println("not connected"); // TODO handle disconnected
-		} else {
-			for (int pos_lstd = 0; pos_lstd < current_listed_nodes.size(); pos_lstd++) {
-				boolean founded = false;
-				for (int pos_cntd = 0; pos_cntd < current_connected_nodes.size(); pos_cntd++) {
-					if (current_connected_nodes.get(pos_cntd).equals(current_listed_nodes.get(pos_lstd))) {
+		ArrayList<String> current_invalid_nodes = new ArrayList<String>();
+		ArrayList<String> current_missing_nodes = new ArrayList<String>();
+		
+		for (int pos_lstd = 0; pos_lstd < current_listed_nodes.size(); pos_lstd++) {
+			boolean founded = false;
+			for (int pos_cntd = 0; pos_cntd < current_connected_nodes.size(); pos_cntd++) {
+				if (current_connected_nodes.get(pos_cntd).equals(current_listed_nodes.get(pos_lstd))) {
+					founded = true;
+					break;
+				}
+			}
+			if (founded == false) {
+				TransportAddress problem_node = current_listed_nodes.get(pos_lstd);
+				for (int pos_cfilt = 0; pos_cfilt < current_filtered_nodes.size(); pos_cfilt++) {
+					if (problem_node.equals(current_filtered_nodes.get(pos_cfilt))) {
 						founded = true;
 						break;
 					}
 				}
-				if (founded == false) {
-					TransportAddress problem_node = current_listed_nodes.get(pos_lstd);
-					for (int pos_cfilt = 0; pos_cfilt < current_filtered_nodes.size(); pos_cfilt++) {
-						if (problem_node.equals(current_filtered_nodes.get(pos_cfilt))) {
-							founded = true;
-							break;
-						}
-					}
-					if (founded) {
-						System.out.println("invalid: " + problem_node.toString()); // TODO handle invalid
-					} else {
-						System.out.println("missing: " + problem_node.toString()); // TODO handle missing
-					}
+				if (founded) {
+					current_invalid_nodes.add(problem_node.toString());
+				} else {
+					current_missing_nodes.add(problem_node.toString());
 				}
 			}
-			
-			ClusterAdminClient cluster_admin_client = client.admin().cluster();
-			ClusterStatsRequestBuilder cluster_stats_request = cluster_admin_client.prepareClusterStats();
-			ClusterStatsResponse cluster_stats_response = cluster_stats_request.execute().actionGet();
-			
-			ClusterHealthStatus current_cluster_health_status = cluster_stats_response.getStatus();
-			if (base_cluster_health_status.ordinal() < current_cluster_health_status.ordinal()) {
-				System.out.println("health: " + cluster_stats_response.getStatus()); // TODO handle health
-			}
-			
-			if (prepare_report == false) {
-				return;
-			}
-			
-			last_status_reports = new LinkedHashMap<String, StatusReport>();
-			processHostsNodesLists(client.connectedNodes(), client.listedNodes(), client.filteredNodes());
-			processStats(cluster_stats_response.getIndicesStats());
-			processStats(cluster_stats_response.getNodesStats());
 		}
+		
+		processInvalidAndMissingNodes(current_invalid_nodes, current_missing_nodes);
+		
+		ClusterAdminClient cluster_admin_client = client.admin().cluster();
+		ClusterStatsRequestBuilder cluster_stats_request = cluster_admin_client.prepareClusterStats();
+		ClusterStatsResponse cluster_stats_response = cluster_stats_request.execute().actionGet();
+		
+		ClusterHealthStatus current_cluster_health_status = cluster_stats_response.getStatus();
+		if (last_cluster_health_status.ordinal() < current_cluster_health_status.ordinal()) {
+			if (last_cluster_health_status == ClusterHealthStatus.YELLOW) {
+				referer.onWarning(getClass(), "Cluster health status is now YELLOW." + ClusterStatus.NEW_LINE);
+			} else if (last_cluster_health_status == ClusterHealthStatus.RED) {
+				referer.onGrave(getClass(), "Cluster health status is now RED." + ClusterStatus.NEW_LINE);
+			}
+		} else if (last_cluster_health_status.ordinal() > current_cluster_health_status.ordinal()) {
+			referer.onRecovered(getClass(), "Cluster health status is now " + current_cluster_health_status.name() + "." + ClusterStatus.NEW_LINE);
+		}
+		last_cluster_health_status = current_cluster_health_status;
+		
+		if (prepare_report == false) {
+			return;
+		}
+		
+		last_status_reports = new LinkedHashMap<String, StatusReport>();
+		processHostsNodesLists(client.connectedNodes(), client.listedNodes(), client.filteredNodes());
+		processStats(cluster_stats_response.getIndicesStats());
+		processStats(cluster_stats_response.getNodesStats());
+	}
+	
+	private void processInvalidAndMissingNodes(ArrayList<String> current_invalid_nodes, ArrayList<String> current_missing_nodes) {
+		StringBuffer sb = new StringBuffer();
+		for (int pos = 0; pos < current_invalid_nodes.size(); pos++) {
+			if (last_invalid_nodes.contains(current_invalid_nodes.get(pos))) {
+				continue;
+			}
+			sb.append("Invalid node: " + current_invalid_nodes.get(pos));
+			sb.append(ClusterStatus.NEW_LINE);
+		}
+		
+		for (int pos = 0; pos < current_missing_nodes.size(); pos++) {
+			if (last_missing_nodes.contains(current_missing_nodes.get(pos))) {
+				continue;
+			}
+			sb.append("Missing node: " + current_missing_nodes.get(pos));
+			sb.append(ClusterStatus.NEW_LINE);
+		}
+		
+		if (sb.length() > 0) {
+			referer.onWarning(getClass(), sb.toString());
+			sb = new StringBuffer();
+		}
+		
+		if (current_invalid_nodes.isEmpty() & (last_invalid_nodes.isEmpty() == false)) {
+			sb.append("All invalid nodes are now recovered.");
+			sb.append(ClusterStatus.NEW_LINE);
+		}
+		if (current_missing_nodes.isEmpty() & (last_missing_nodes.isEmpty() == false)) {
+			sb.append("All missing nodes are now retrieved.");
+			sb.append(ClusterStatus.NEW_LINE);
+		}
+		if (sb.length() > 0) {
+			referer.onRecovered(getClass(), sb.toString());
+		}
+		
+		last_invalid_nodes = current_invalid_nodes;
+		last_missing_nodes = current_missing_nodes;
 	}
 	
 	private class HostNodeState {
@@ -194,18 +250,6 @@ public class ElasticsearchStatus {
 	private void processStats(ClusterStatsNodes nodes_stats) {
 		StatusReport report;
 		int pos;
-		
-		/*report = new StatusReport();
-		pos = 1;
-		for (Version version : nodes_stats.getVersions()) {
-			report.addCell("Major.Minor.Revision", "Version #" + pos, ".", version.major, version.minor, version.revision);
-			report.addCell("Build", "Version #" + pos, version.build);
-			report.addCell("Id", "Version #" + pos, version.id);
-			report.addCell("LuceneVersion", "Version #" + pos, version.luceneVersion);
-			report.addCell("Snapshot", "Version #" + pos, version.snapshot);
-			pos++;
-		}
-		last_status_reports.put("Elasticsearch versions", report);*/
 		
 		report = new StatusReport();
 		pos = 1;
