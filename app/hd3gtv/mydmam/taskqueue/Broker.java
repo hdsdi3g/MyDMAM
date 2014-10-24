@@ -119,8 +119,26 @@ public class Broker {
 	 */
 	public Broker(ServiceInformations serviceinformations) throws ConnectionException {
 		this.serviceinformations = serviceinformations;
-		queue = new BrokerQueue(this);
-		queue.start();
+	}
+	
+	public void stop() {
+		if (queue == null) {
+			return;
+		}
+		queue.stopDemand();
+	}
+	
+	public void start() {
+		if (queue == null) {
+			queue = new BrokerQueue(this);
+			queue.start();
+		} else {
+			if (queue.isAlive()) {
+				return;
+			}
+			queue = new BrokerQueue(this);
+			queue.start();
+		}
 	}
 	
 	public static void truncateTaskqueue() throws ConnectionException {

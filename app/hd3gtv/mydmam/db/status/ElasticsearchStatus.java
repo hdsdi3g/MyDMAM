@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.db.status;
 
-import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.db.Elasticsearch;
 
 import java.io.IOException;
@@ -45,22 +44,18 @@ import org.elasticsearch.common.transport.TransportAddress;
 
 public class ElasticsearchStatus {
 	
-	private ClusterHealthStatus last_cluster_health_status;
-	ArrayList<String> last_invalid_nodes;
-	ArrayList<String> last_missing_nodes;
+	private ClusterHealthStatus last_cluster_health_status = null;
+	private ArrayList<String> last_invalid_nodes;
+	private ArrayList<String> last_missing_nodes;
 	private final ClusterStatus referer;
-	LinkedHashMap<String, StatusReport> last_status_reports;
+	private LinkedHashMap<String, StatusReport> last_status_reports;
+	private boolean last_status_full_disconnected;
 	
 	ElasticsearchStatus(ClusterStatus referer) {
 		this.referer = referer;
-		String color = Configuration.global.getValue("elasticsearch", "cluster_health_status_color", "green");
-		if (color.equalsIgnoreCase(ClusterHealthStatus.YELLOW.name())) {
-			last_cluster_health_status = ClusterHealthStatus.YELLOW;
-		} else {
-			last_cluster_health_status = ClusterHealthStatus.GREEN;
-		}
 		last_invalid_nodes = new ArrayList<String>();
 		last_missing_nodes = new ArrayList<String>();
+		last_status_full_disconnected = false;
 	}
 	
 	private static ArrayList<TransportAddress> convertList(ImmutableList<DiscoveryNode> list) {
@@ -76,8 +71,16 @@ public class ElasticsearchStatus {
 		
 		ArrayList<TransportAddress> current_connected_nodes = convertList(client.connectedNodes());
 		if (current_connected_nodes.isEmpty()) {
-			referer.onGrave(getClass(), "No connected nodes." + ClusterStatus.NEW_LINE);
+			if (last_status_full_disconnected == false) {
+				referer.onGrave(getClass(), "No connected nodes." + ClusterStatus.NEW_LINE);
+				last_status_full_disconnected = true;
+				last_cluster_health_status = null;
+			}
 			return;
+		}
+		if (last_status_full_disconnected) {
+			last_status_full_disconnected = false;
+			referer.onRecovered(getClass(), "Cluster is now connected." + ClusterStatus.NEW_LINE);
 		}
 		
 		ArrayList<TransportAddress> current_listed_nodes = convertList(client.listedNodes());
@@ -117,14 +120,17 @@ public class ElasticsearchStatus {
 		ClusterStatsResponse cluster_stats_response = cluster_stats_request.execute().actionGet();
 		
 		ClusterHealthStatus current_cluster_health_status = cluster_stats_response.getStatus();
-		if (last_cluster_health_status.ordinal() < current_cluster_health_status.ordinal()) {
-			if (last_cluster_health_status == ClusterHealthStatus.YELLOW) {
-				referer.onWarning(getClass(), "Cluster health status is now YELLOW." + ClusterStatus.NEW_LINE);
-			} else if (last_cluster_health_status == ClusterHealthStatus.RED) {
-				referer.onGrave(getClass(), "Cluster health status is now RED." + ClusterStatus.NEW_LINE);
+		
+		if (last_cluster_health_status != null) {
+			if (last_cluster_health_status.ordinal() < current_cluster_health_status.ordinal()) {
+				if (current_cluster_health_status == ClusterHealthStatus.YELLOW) {
+					referer.onWarning(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + ClusterStatus.NEW_LINE);
+				} else if (current_cluster_health_status == ClusterHealthStatus.RED) {
+					referer.onGrave(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + ClusterStatus.NEW_LINE);
+				}
+			} else if (last_cluster_health_status.ordinal() > current_cluster_health_status.ordinal()) {
+				referer.onRecovered(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + ClusterStatus.NEW_LINE);
 			}
-		} else if (last_cluster_health_status.ordinal() > current_cluster_health_status.ordinal()) {
-			referer.onRecovered(getClass(), "Cluster health status is now " + current_cluster_health_status.name() + "." + ClusterStatus.NEW_LINE);
 		}
 		last_cluster_health_status = current_cluster_health_status;
 		
@@ -133,6 +139,8 @@ public class ElasticsearchStatus {
 		}
 		
 		last_status_reports = new LinkedHashMap<String, StatusReport>();
+		last_status_reports.put("Cluster health status", new StatusReport().addCell("Color", "Cluster", last_cluster_health_status.name()));
+		
 		processHostsNodesLists(client.connectedNodes(), client.listedNodes(), client.filteredNodes());
 		processStats(cluster_stats_response.getIndicesStats());
 		processStats(cluster_stats_response.getNodesStats());
@@ -191,8 +199,9 @@ public class ElasticsearchStatus {
 		Version version;
 		
 		void report(TransportAddress transport, StatusReport report) {
+			report.addCell("Connected", transport.toString(), connected);
+			report.addCell("Filtered", transport.toString(), filtered);
 			report.addCell("Master/Data/Client", transport.toString(), "/", master, data, client);
-			report.addCell("Connected/Filtered", transport.toString(), "/", connected, filtered);
 			report.addCell("Host", transport.toString(), "/", host_name, host_addr);
 			// report.addCell("Id", transport.toString(), id);
 			report.addCell("Name", transport.toString(), name);
@@ -385,4 +394,7 @@ public class ElasticsearchStatus {
 		last_status_reports.put("Shards stats", report);
 	}
 	
+	LinkedHashMap<String, StatusReport> getLastStatusReports() {
+		return last_status_reports;
+	}
 }

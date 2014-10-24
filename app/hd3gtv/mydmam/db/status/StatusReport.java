@@ -16,15 +16,10 @@
 */
 package hd3gtv.mydmam.db.status;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.CSVStrategy;
 
 public class StatusReport {
 	
@@ -38,7 +33,7 @@ public class StatusReport {
 		content = new LinkedHashMap<String, List<String>>();
 	}
 	
-	void addCell(String col_name, String row_name, String separator, Object... separated_values) {
+	StatusReport addCell(String col_name, String row_name, String separator, Object... separated_values) {
 		StringBuffer sb = new StringBuffer();
 		for (int pos = 0; pos < separated_values.length; pos++) {
 			if (separated_values[pos] == null) {
@@ -50,17 +45,19 @@ public class StatusReport {
 			}
 		}
 		addCell(col_name, row_name, sb.toString().trim());
+		return this;
 	}
 	
-	void addCell(String col_name, String row_name, Object value) {
+	StatusReport addCell(String col_name, String row_name, Object value) {
 		if (value == null) {
 			addCell(col_name, row_name, "");
 		} else {
 			addCell(col_name, row_name, String.valueOf(value));
 		}
+		return this;
 	}
 	
-	void addCell(String col_name, String row_name, String value) {
+	StatusReport addCell(String col_name, String row_name, String value) {
 		if (colums_names.contains(col_name) == false) {
 			colums_names.add(col_name);
 		}
@@ -76,40 +73,7 @@ public class StatusReport {
 		} else {
 			values.add(value);
 		}
-	}
-	
-	public String toCSVString() {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		CSVPrinter printer = new CSVPrinter(baos);
-		printer.setStrategy(CSVStrategy.EXCEL_STRATEGY);
-		
-		printer.printlnComment("Created at " + new Date(this.creation_date));
-		
-		if (colums_names.isEmpty()) {
-			return "";
-		}
-		String[] line = new String[colums_names.size() + 1];
-		line[0] = ""; // First cell in top left.
-		for (int pos = 1; pos < line.length; pos++) {
-			line[pos] = colums_names.get(pos - 1);
-		}
-		printer.println(line);
-		
-		for (Map.Entry<String, List<String>> row : content.entrySet()) {
-			line[0] = row.getKey();
-			List<String> values = row.getValue();
-			
-			for (int pos = 1; pos < line.length; pos++) {
-				if ((pos - 1) < values.size()) {
-					line[pos] = values.get(pos - 1);
-				} else {
-					line[pos] = "";
-				}
-			}
-			printer.println(line);
-		}
-		
-		return baos.toString();
+		return this;
 	}
 	
 }

@@ -123,6 +123,12 @@ class BrokerQueue extends Thread {
 		
 	}
 	
+	private boolean do_stop;
+	
+	synchronized void stopDemand() {
+		do_stop = true;
+	}
+	
 	@SuppressWarnings("unchecked")
 	public void run() {
 		try {
@@ -133,8 +139,8 @@ class BrokerQueue extends Thread {
 			int ttl_active_trigger_worker = (int) (max_time_spacer * sleeptime * 2l) / 1000;
 			String instancename = Broker.hostname + "-" + ServiceManager.getInstancename(true);
 			
-			while (true) {
-				
+			do_stop = false;
+			while (do_stop == false) {
 				/**
 				 * Get statuses of actual processing jobs and push it to database
 				 */
@@ -197,6 +203,10 @@ class BrokerQueue extends Thread {
 							jo.put("shortname", workers_to_callback.get(poswkr).getTriggerShortName());
 							mutator.withRow(Broker.CF_QUEUETRIGGER, profile.computeKey()).putColumn(instancename + "_" + profile + "_" + poswkr, jo.toJSONString(), ttl_active_trigger_worker);
 						}
+					}
+					
+					if (do_stop) {
+						return;
 					}
 					
 					if (activecleantasks) {

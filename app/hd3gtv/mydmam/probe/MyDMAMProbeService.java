@@ -19,8 +19,10 @@ package hd3gtv.mydmam.probe;
 import hd3gtv.configuration.GitInfo;
 import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.javasimpleservice.ServiceManager;
+import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.status.ClusterStatusEvents;
+import hd3gtv.mydmam.db.status.ClusterStatusService;
 import hd3gtv.mydmam.mail.notification.NotificationWorker;
 import hd3gtv.mydmam.metadata.WorkerIndexer;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
@@ -34,7 +36,7 @@ import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.storage.StorageManager;
 
-public class MyDMAMProbeService extends ServiceManager implements ServiceInformations {
+public class MyDMAMProbeService extends ServiceManager implements ServiceInformations, ClusterStatusEvents {
 	
 	public MyDMAMProbeService(String[] args, ServiceInformations serviceinformations) {
 		super(args, serviceinformations);
@@ -68,15 +70,39 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		return "MyDMAM-Probe";
 	}
 	
+	private ClusterStatusService cluster_status_service;
+	private Broker broker;
+	private boolean first_start = true;
+	
 	protected void postClassInit() throws Exception {
+		cluster_status_service = new ClusterStatusService();
+		cluster_status_service.addCallbackEvent(this);
 	}
 	
 	protected void startApplicationService() throws Exception {
+		if (first_start) {
+			internalFirstStart();
+			first_start = false;
+		}
+		cluster_status_service.start();
+		internalStart();
+	}
+	
+	protected void stopApplicationService() throws Exception {
+		cluster_status_service.stop();
+		internalStop();
+	}
+	
+	private void internalStart() throws Exception {
+		broker.start();
+		workergroup.start();
+	}
+	
+	private void internalFirstStart() throws Exception {
 		StorageManager.getGlobalStorage();
-		Elasticsearch.refeshconfiguration();
 		TranscodeProfile.isConfigured();
 		
-		Broker broker = new Broker(this);
+		broker = new Broker(this);
 		workergroup = new WorkerGroup(broker);
 		workergroup.addWorker(new Publish());
 		
@@ -98,13 +124,29 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		MyDMAMModulesManager.declareAllModuleWorkerElement(workergroup);
 		
 		UAManager.createWorkers(workergroup);
-		
-		workergroup.start();
 	}
 	
-	protected void stopApplicationService() throws Exception {
-		if (workergroup != null) {
-			workergroup.requestStop();
+	private void internalStop() throws Exception {
+		broker.stop();
+		workergroup.requestStop();
+	}
+	
+	public void clusterHasAGraveState(String reasons) {
+		try {
+			internalStop();
+		} catch (Exception e) {
+			Log2.log.error("Can't to stop services", e);
+		}
+	}
+	
+	public void clusterHasAWarningState(String reasons) {
+	}
+	
+	public void clusterIsFunctional(String reasons) {
+		try {
+			internalStart();
+		} catch (Exception e) {
+			Log2.log.error("Can't to start services", e);
 		}
 	}
 	

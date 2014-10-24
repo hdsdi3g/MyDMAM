@@ -38,7 +38,6 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
@@ -71,7 +70,8 @@ public class Elasticsearch {
 			
 			String clustername = Configuration.global.getValue("elasticsearch", "clustername", null);
 			List<ConfigurationClusterItem> clusterservers = Configuration.global.getClusterConfiguration("elasticsearch", "transport", "127.0.0.1", 9300);
-			Settings settings = ImmutableSettings.settingsBuilder().put("cluster.name", clustername).build();
+			ImmutableSettings.Builder settings = ImmutableSettings.builder();
+			settings.put("cluster.name", clustername);
 			
 			Log2Dump dump = new Log2Dump();
 			dump.add("clustername", clustername);
@@ -81,12 +81,7 @@ public class Elasticsearch {
 				transportadresses[pos] = new InetSocketTransportAddress(clusterservers.get(pos).address, clusterservers.get(pos).port);
 				dump.addAll(clusterservers.get(pos));
 			}
-			
-			client = new TransportClient(settings).addTransportAddresses(transportadresses);
-			
-			dump.addAll(getDump());
-			
-			Log2.log.info("Client configuration", dump);
+			client = new TransportClient(settings.build()).addTransportAddresses(transportadresses);
 		} catch (Exception e) {
 			Log2.log.error("Can't load client configuration", e);
 			try {
@@ -103,19 +98,18 @@ public class Elasticsearch {
 	public static synchronized TransportClient getClient() {
 		if (client == null) {
 			refeshconfiguration();
-		} else if (client.connectedNodes().isEmpty()) {
-			refeshconfiguration();
-		}
-		if (client.connectedNodes().isEmpty()) {
-			Log2.log.error("Can't maintain connection with the database", null);
 		}
 		return client;
 	}
 	
 	public static Log2Dump getDump() {
 		Log2Dump dump = new Log2Dump();
-		ClusterStateResponse csr = getClient().admin().cluster().prepareState().execute().actionGet();
-		dump.add("get-clustername", csr.getClusterName().toString());
+		if (client != null) {
+			ClusterStateResponse csr = client.admin().cluster().prepareState().execute().actionGet();
+			dump.add("get-clustername", csr.getClusterName().toString());
+		} else {
+			dump.add("get-clustername", "<disconnected>");
+		}
 		return dump;
 	}
 	

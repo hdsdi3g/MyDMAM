@@ -22,6 +22,6 @@ public interface ClusterStatusEvents {
 	
 	public void clusterHasAWarningState(String reasons);
 	
-	public void clusterIsFullyFunctional(String reasons);
+	public void clusterIsFunctional(String reasons);
 	
 }

@@ -16,9 +16,11 @@
 */
 package hd3gtv.mydmam.db.status;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,27 +29,105 @@ public class ClusterStatus {
 	final static String NEW_LINE = System.getProperty("line.separator");
 	
 	public enum ClusterType {
-		CASSANDRA, ELASTICSEARCH
+		ELASTICSEARCH;
+		
+		static ClusterType fromClass(Class<?> referer) {
+			if (referer == ElasticsearchStatus.class) {
+				return ClusterType.ELASTICSEARCH;
+			}
+			return null;
+		}
 	}
 	
 	private enum Gravity {
-		WARN, ERROR, RECOVERED
+		WARN, ERROR, RECOVERED;
+		
+		String getText() {
+			if (this == WARN) {
+				return "Warning";
+			}
+			if (this == ERROR) {
+				return "Error";
+			}
+			if (this == RECOVERED) {
+				return "Problem recovered";
+			}
+			return null;
+		}
 	}
 	
 	ElasticsearchStatus es_status;
 	private List<ClusterStatusEvents> callbacks_events;
-	private final LinkedHashMap<Gravity, LinkedHashMap<Class<?>, List<String>>> all_messages;
+	
+	private final List<MessageEvent> all_messages_events;
+	
+	private class MessageEvent {
+		Gravity gravity;
+		ClusterType provider;
+		String message;
+		
+		MessageEvent(Gravity gravity, ClusterType provider, String message) {
+			this.gravity = gravity;
+			this.provider = provider;
+			this.message = message;
+		}
+	}
 	
 	public ClusterStatus() {
 		callbacks_events = new ArrayList<ClusterStatusEvents>();
 		es_status = new ElasticsearchStatus(this);
-		all_messages = new LinkedHashMap<Gravity, LinkedHashMap<Class<?>, List<String>>>();
+		all_messages_events = new ArrayList<ClusterStatus.MessageEvent>();
 	}
 	
-	public ClusterStatus refresh(boolean prepare_reports) {
-		all_messages.clear();
-		es_status.refreshStatus(prepare_reports);
-		callbacksAll();
+	protected void refresh() {
+		all_messages_events.clear();
+		es_status.refreshStatus(false);
+		
+		if (all_messages_events.isEmpty()) {
+			return;
+		}
+		
+		StringBuffer sb;
+		ArrayList<String> messages_list = new ArrayList<String>();
+		for (Gravity gravity : Gravity.values()) {
+			sb = new StringBuffer();
+			for (MessageEvent message_event : all_messages_events) {
+				if (message_event.gravity != gravity) {
+					continue;
+				}
+				sb.append(" * ");
+				sb.append(gravity.getText());
+				sb.append(" from ");
+				sb.append(message_event.provider);
+				sb.append(": ");
+				sb.append(message_event.message.trim());
+				sb.append(NEW_LINE);
+			}
+			if (sb.length() == 0) {
+				continue;
+			}
+			for (int pos = 0; pos < callbacks_events.size(); pos++) {
+				if (gravity == Gravity.ERROR) {
+					callbacks_events.get(pos).clusterHasAGraveState(sb.toString().trim());
+				} else if (gravity == Gravity.WARN) {
+					callbacks_events.get(pos).clusterHasAWarningState(sb.toString().trim());
+				} else if (gravity == Gravity.RECOVERED) {
+					callbacks_events.get(pos).clusterIsFunctional(sb.toString().trim());
+				}
+			}
+			messages_list.add(sb.toString().trim());
+		}
+		
+		if (messages_list.isEmpty() == false) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("messages_list", messages_list);
+			Log2.log.info("Status change", dump);
+		}
+		// TODO warning mail ?
+	}
+	
+	public ClusterStatus prepareReports() {
+		es_status.refreshStatus(true);
 		return this;
 	}
 	
@@ -62,74 +142,22 @@ public class ClusterStatus {
 		return this;
 	}
 	
-	private void callbacksAll() {
-		if (all_messages.isEmpty()) {
-			return;
-		}
-		
-		for (int pos = 0; pos < callbacks_events.size(); pos++) {
-			// TODO
-			// callbacks_events.get(pos).clusterHasAWarningState(e);
-		}
-	}
-	
-	private void onSomething(Gravity gravity, Class<?> provider, String message) {
-		LinkedHashMap<Class<?>, List<String>> messages_by_gravity;
-		
-		if (all_messages.containsKey(gravity) == false) {
-			messages_by_gravity = new LinkedHashMap<Class<?>, List<String>>();
-			all_messages.put(gravity, messages_by_gravity);
-		} else {
-			messages_by_gravity = all_messages.get(gravity);
-		}
-		
-		List<String> messages;
-		if (messages_by_gravity.containsKey(provider) == false) {
-			messages = new ArrayList<String>();
-			messages_by_gravity.put(provider, messages);
-		} else {
-			messages = messages_by_gravity.get(provider);
-		}
-		
-		messages.add(message);
-	}
-	
 	void onWarning(Class<?> provider, String message) {
-		onSomething(Gravity.WARN, provider, message);
+		all_messages_events.add(new MessageEvent(Gravity.WARN, ClusterType.fromClass(provider), message));
 	}
 	
 	void onRecovered(Class<?> provider, String message) {
-		onSomething(Gravity.RECOVERED, provider, message);
+		all_messages_events.add(new MessageEvent(Gravity.RECOVERED, ClusterType.fromClass(provider), message));
 	}
 	
 	void onGrave(Class<?> provider, String message) {
-		onSomething(Gravity.ERROR, provider, message);
+		all_messages_events.add(new MessageEvent(Gravity.ERROR, ClusterType.fromClass(provider), message));
 	}
 	
 	public Map<ClusterType, Map<String, StatusReport>> getAllReports() {
 		Map<ClusterType, Map<String, StatusReport>> response = new HashMap<ClusterType, Map<String, StatusReport>>(2);
-		response.put(ClusterType.ELASTICSEARCH, es_status.last_status_reports);
+		response.put(ClusterType.ELASTICSEARCH, es_status.getLastStatusReports());
 		return response;
-	}
-	
-	public String getAllReportsToCSVString() {
-		StringBuffer sb = new StringBuffer();
-		
-		for (Map.Entry<ClusterType, Map<String, StatusReport>> entry : getAllReports().entrySet()) {
-			// entry.getKey() entry.getValue()
-			sb.append("############# ");
-			sb.append(entry.getKey().name());
-			sb.append(" #############");
-			sb.append(NEW_LINE);
-			for (Map.Entry<String, StatusReport> report : entry.getValue().entrySet()) {
-				sb.append("=== ");
-				sb.append(report.getKey());
-				sb.append(" ===");
-				sb.append(NEW_LINE);
-				sb.append(report.getValue().toCSVString());
-			}
-		}
-		return sb.toString();
 	}
 	
 }

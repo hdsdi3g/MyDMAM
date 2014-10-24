@@ -60,7 +60,7 @@ public class Service extends Controller {
 	public static void clusterstatus() {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.clusterstatus.report.pagename"));
 		ClusterStatus cluster_status = new ClusterStatus();
-		cluster_status.refresh(true);
+		cluster_status.prepareReports();
 		Map<ClusterType, Map<String, StatusReport>> all_reports = cluster_status.getAllReports();
 		render(all_reports);
 	}
