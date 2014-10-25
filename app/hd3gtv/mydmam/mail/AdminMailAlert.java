@@ -74,6 +74,7 @@ public class AdminMailAlert implements Log2Dumpable {
 	private StackTraceElement caller;
 	private boolean fatal_alert;
 	private ArrayList<File> files;
+	private ArrayList<String> messagecontent;
 	
 	public AdminMailAlert setThrowable(Throwable throwable) {
 		this.throwable = throwable;
@@ -98,9 +99,6 @@ public class AdminMailAlert implements Log2Dumpable {
 	 * @param file Size must to be lower to 1MB, else the file will no be incorporated.
 	 */
 	public AdminMailAlert addNewAttachFileToMail(File file) {
-		if (files == null) {
-			files = new ArrayList<File>();
-		}
 		if (file == null) {
 			return this;
 		}
@@ -113,7 +111,38 @@ public class AdminMailAlert implements Log2Dumpable {
 		if (file.length() > (1024 * 1024)) {
 			return this;
 		}
+		if (files == null) {
+			files = new ArrayList<File>();
+		}
 		files.add(file);
+		return this;
+	}
+	
+	public AdminMailAlert addToMessagecontent(ArrayList<String> lines) {
+		if (lines == null) {
+			return this;
+		}
+		if (lines.isEmpty()) {
+			return this;
+		}
+		if (messagecontent == null) {
+			messagecontent = new ArrayList<String>(lines.size());
+		}
+		messagecontent.addAll(lines);
+		return this;
+	}
+	
+	public AdminMailAlert addToMessagecontent(String line) {
+		if (line == null) {
+			return this;
+		}
+		if (line.equals("")) {
+			return this;
+		}
+		if (messagecontent == null) {
+			messagecontent = new ArrayList<String>(1);
+		}
+		messagecontent.add(line);
 		return this;
 	}
 	
@@ -152,6 +181,14 @@ public class AdminMailAlert implements Log2Dumpable {
 			plaintext.append(basemessage);
 			plaintext.append("\r\n");
 			plaintext.append("\r\n");
+			
+			if (messagecontent != null) {
+				for (int pos = 0; pos < messagecontent.size(); pos++) {
+					plaintext.append(messagecontent.get(pos).trim());
+					plaintext.append("\r\n");
+				}
+				plaintext.append("\r\n");
+			}
 			
 			plaintext.append("Send by: ");
 			plaintext.append(Thread.currentThread().getName());

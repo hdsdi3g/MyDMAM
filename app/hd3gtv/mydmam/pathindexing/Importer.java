@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.javasimpleservice.ServiceMessageError;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
@@ -184,16 +183,10 @@ public abstract class Importer {
 		push.end();
 		
 		if (push.l_elements_problems.size() > 0) {
-			ServiceMessageError messageerror = new ServiceMessageError("Indexation des stockage : certains fichiers ont des noms invalides", null);
-			ArrayList<Log2Dump> tablecontent = new ArrayList<Log2Dump>(push.l_elements_problems.size());
-			for (int pos = 0; pos < push.l_elements_problems.size(); pos++) {
-				tablecontent.add(push.l_elements_problems.get(pos).getLog2Dump());
-			}
-			messageerror.setTablecontent(tablecontent);
 			/**
+			 * Alert ?
 			 * Disabled this : there is too many bad file name
 			 */
-			// messagemanager.sendMessage(messageerror);
 		}
 		
 		return result;

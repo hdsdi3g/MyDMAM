@@ -16,8 +16,10 @@
 */
 package hd3gtv.mydmam.db.status;
 
+import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.mail.AdminMailAlert;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -79,7 +81,7 @@ public class ClusterStatus {
 		all_messages_events = new ArrayList<ClusterStatus.MessageEvent>();
 	}
 	
-	protected void refresh() {
+	protected void refresh(ServiceInformations serviceinformations) {
 		all_messages_events.clear();
 		es_status.refreshStatus(false);
 		
@@ -122,8 +124,9 @@ public class ClusterStatus {
 			Log2Dump dump = new Log2Dump();
 			dump.add("messages_list", messages_list);
 			Log2.log.info("Status change", dump);
+			
+			AdminMailAlert.create("Watching cluster status: state is changing", false).addToMessagecontent(messages_list).setServiceinformations(serviceinformations).send();
 		}
-		// TODO warning mail ?
 	}
 	
 	public ClusterStatus prepareReports() {

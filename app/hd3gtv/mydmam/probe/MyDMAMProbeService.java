@@ -75,7 +75,7 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 	private boolean first_start = true;
 	
 	protected void postClassInit() throws Exception {
-		cluster_status_service = new ClusterStatusService();
+		cluster_status_service = new ClusterStatusService(this);
 		cluster_status_service.addCallbackEvent(this);
 	}
 	
