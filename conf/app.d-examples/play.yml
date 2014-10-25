@@ -13,6 +13,7 @@ auth:
     force_select_domain: false
     # change this for separate in database user profiles between play setups
     user_scope_isolation: default
+#    privileges_ttl: 10
     backend:
         -
             source: local

@@ -188,6 +188,8 @@ public class ACL extends Controller {
 			realgroup.addACLUser("Manualy add", login, login);
 		}
 		
+		Secure.changePrivilegesForUser(login);
+		
 		redirect("ACL.showusers");
 	}
 	

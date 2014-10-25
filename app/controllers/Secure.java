@@ -3,6 +3,7 @@
 */
 package controllers;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
@@ -10,18 +11,17 @@ import hd3gtv.mydmam.auth.AuthenticationUser;
 import hd3gtv.mydmam.auth.Authenticator;
 import hd3gtv.mydmam.auth.InvalidAuthenticatorUserException;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import models.ACLGroup;
 import models.ACLUser;
 import models.UserProfile;
-
-import org.json.simple.JSONArray;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
-
 import play.Play;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -33,10 +33,122 @@ import play.mvc.Before;
 import play.mvc.Controller;
 import play.mvc.Http;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
+
 /**
  * Imported from Play Secure Module
  */
 public class Secure extends Controller {
+	
+	private static Gson gson = new Gson();
+	private static Type type_alstring = new TypeToken<ArrayList<String>>() {
+	}.getType();
+	
+	private volatile static HashMap<String, Long> users_pending_privileges_change = new HashMap<String, Long>();
+	
+	private static final long ttl_duration = (Configuration.global.getValue("auth", "privileges_ttl", 60) * 60000);// 1 hour by default.
+	
+	private static boolean isSessionHasThisPrivilege(String... privileges_to_check) {
+		if (privileges_to_check == null) {
+			return false;
+		}
+		if (privileges_to_check.length == 0) {
+			return false;
+		}
+		ArrayList<String> privileges = getSessionPrivileges();
+		if (privileges.isEmpty()) {
+			return false;
+		}
+		for (int pos = 0; pos < privileges_to_check.length; pos++) {
+			if (privileges.contains(privileges_to_check[pos])) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	static void changePrivilegesForUser(String username) {
+		users_pending_privileges_change.put(username, System.currentTimeMillis() + ttl_duration);
+	}
+	
+	private static ArrayList<String> getSessionPrivileges() {
+		String username = session.get("username");
+		if (users_pending_privileges_change.containsKey(username)) {
+			users_pending_privileges_change.remove(username);
+			setPrivilegesInSession(((ACLUser) ACLUser.findById(username)).group.role.privileges);
+			return getSessionPrivileges();
+		}
+		
+		String raw_privileges = Crypto.decryptAES(session.get("privileges"));
+		ArrayList<String> privileges = gson.fromJson(raw_privileges, type_alstring);
+		if (privileges.isEmpty()) {
+			return privileges;
+		}
+		for (int pos = privileges.size() - 1; pos > -1; pos--) {
+			if (privileges.get(pos).endsWith("-rnd")) {
+				privileges.remove(pos);
+			} else if (privileges.get(pos).startsWith("ttl-")) {
+				long ttl_date = Long.valueOf(privileges.get(pos).substring(4));
+				if (System.currentTimeMillis() > ttl_date) {
+					setPrivilegesInSession(((ACLUser) ACLUser.findById(username)).group.role.privileges);
+					return getSessionPrivileges();
+				}
+				privileges.remove(pos);
+			}
+		}
+		return privileges;
+	}
+	
+	private static void setPrivilegesInSession(String database_privileges) {
+		ArrayList<String> privileges = gson.fromJson(database_privileges, type_alstring);
+		if (privileges == null) {
+			privileges = new ArrayList<String>(1);
+		}
+		privileges.add(String.valueOf(new Random().nextLong()) + "-rnd");
+		
+		long ttl_date = System.currentTimeMillis() + ttl_duration;
+		privileges.add("ttl-" + String.valueOf(ttl_date));
+		
+		session.put("privileges", Crypto.encryptAES(gson.toJson(privileges)));
+		// Log2.log.debug("Update privileges in session", new Log2Dump("raw json", gson.toJson(privileges)));
+	}
+	
+	private static void getSessionPrivilegesListToDump(Log2Dump dump) {
+		String session_privileges = session.get("privileges");
+		if (session_privileges == null) {
+			dump.add("privileges", "(null)");
+			return;
+		}
+		
+		String raw_privileges = Crypto.decryptAES(session_privileges);
+		ArrayList<String> privileges = gson.fromJson(raw_privileges, type_alstring);
+		if (privileges.isEmpty()) {
+			dump.add("privileges", "(empty)");
+			return;
+		}
+		long ttl_date = 0;
+		for (int pos = privileges.size() - 1; pos > -1; pos--) {
+			if (privileges.get(pos).endsWith("-rnd")) {
+				privileges.remove(pos);
+			} else if (privileges.get(pos).startsWith("ttl-")) {
+				ttl_date = Long.valueOf(privileges.get(pos).substring(4));
+				privileges.remove(pos);
+			}
+		}
+		StringBuffer sb = new StringBuffer();
+		for (int pos = 0; pos < privileges.size(); pos++) {
+			sb.append(privileges.get(pos));
+			if (pos + 1 < privileges.size()) {
+				sb.append(", ");
+			}
+		}
+		
+		dump.add("privileges", sb.toString());
+		if (ttl_date > 0) {
+			dump.addDate("privileges ttl", ttl_date);
+		}
+	}
 	
 	/**
 	 * This method checks that a profile is allowed to view this page/method.
@@ -44,18 +156,8 @@ public class Secure extends Controller {
 	private static void check(Check check) throws Throwable {
 		String[] chech_values = check.value();
 		
-		JSONParser jp = new JSONParser();
-		try {
-			JSONArray ja = (JSONArray) jp.parse(Crypto.decryptAES(session.get("privileges")));
-			for (Object o : ja) {
-				for (int pos = 0; pos < chech_values.length; pos++) {
-					if (chech_values[pos].equalsIgnoreCase((String) o)) {
-						return;
-					}
-				}
-			}
-		} catch (ParseException e) {
-			e.printStackTrace();
+		if (isSessionHasThisPrivilege(chech_values)) {
+			return;
 		}
 		
 		Log2Dump dump = new Log2Dump();
@@ -71,30 +173,7 @@ public class Secure extends Controller {
 		if (privilege.equals("")) {
 			return true;
 		}
-		
-		String privileges = Crypto.decryptAES(session.get("privileges"));
-		if (privileges == null) {
-			return false;
-		}
-		if (privileges.trim().equals("")) {
-			return false;
-		}
-		JSONParser jp = new JSONParser();
-		try {
-			JSONArray ja = (JSONArray) jp.parse(privileges);
-			if (ja.size() == 0) {
-				return false;
-			}
-			for (Object o : ja) {
-				if (privilege.equalsIgnoreCase((String) o)) {
-					return true;
-				}
-			}
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		
-		return false;
+		return isSessionHasThisPrivilege(privilege);
 	}
 	
 	private static Log2Dump getUserSessionInformation() {
@@ -128,12 +207,7 @@ public class Secure extends Controller {
 		
 		dump.add("username", session.get("username"));
 		dump.add("longname", session.get("longname"));
-		String privileges = session.get("privileges");
-		if (privileges != null) {
-			dump.add("privileges", Crypto.decryptAES(privileges));
-		} else {
-			dump.add("privileges", "(null)");
-		}
+		getSessionPrivilegesListToDump(dump);
 		return dump;
 	}
 	
@@ -206,7 +280,6 @@ public class Secure extends Controller {
 		render(force_select_domain, authenticators_domains);
 	}
 	
-	@SuppressWarnings("unchecked")
 	public static void authenticate(@Required String username, @Required String password, String domainidx, boolean remember) throws Throwable {
 		if (Validation.hasErrors()) {
 			flash.keep("url");
@@ -277,19 +350,7 @@ public class Secure extends Controller {
 		session.put("username", acluser.login);
 		session.put("longname", acluser.fullname);
 		
-		JSONArray ja = new JSONArray();
-		try {
-			JSONParser jp = new JSONParser();
-			ja = (JSONArray) jp.parse(acluser.group.role.privileges);
-			Random r = new Random();
-			StringBuffer sb = new StringBuffer();
-			sb.append(r.nextLong());
-			sb.append("-rnd");
-			ja.add(sb.toString());
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		session.put("privileges", Crypto.encryptAES(ja.toJSONString()));
+		setPrivilegesInSession(acluser.group.role.privileges);
 		
 		if (remember) {
 			Date expiration = new Date();
@@ -297,6 +358,25 @@ public class Secure extends Controller {
 			expiration.setTime(expiration.getTime() + Time.parseDuration(duration));
 			response.setCookie("rememberme", Crypto.sign(username + "-" + expiration.getTime()) + "-" + username + "-" + expiration.getTime(), duration);
 		}
+		
+		/**
+		 * Purge users_pending_privileges_change map.
+		 */
+		if (users_pending_privileges_change.containsKey(username)) {
+			users_pending_privileges_change.remove(username);
+		}
+		if (users_pending_privileges_change.isEmpty() == false) {
+			ArrayList<String> item_to_remove = new ArrayList<String>(users_pending_privileges_change.size());
+			for (Map.Entry<String, Long> entry : users_pending_privileges_change.entrySet()) {
+				if (System.currentTimeMillis() > entry.getValue()) {
+					item_to_remove.add(entry.getKey());
+				}
+			}
+			for (int pos = 0; pos < item_to_remove.size(); pos++) {
+				users_pending_privileges_change.remove(item_to_remove.get(pos));
+			}
+		}
+		
 		redirectToOriginalURL();
 	}
 	
