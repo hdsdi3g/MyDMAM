@@ -125,7 +125,7 @@ public class ClusterStatus {
 			dump.add("messages_list", messages_list);
 			Log2.log.info("Status change", dump);
 			
-			AdminMailAlert.create("Watching cluster status: state is changing", false).addToMessagecontent(messages_list).setServiceinformations(serviceinformations).send();
+			AdminMailAlert.create("Watching cluster status, state is changing", false).addToMessagecontent(messages_list).setServiceinformations(serviceinformations).send();
 		}
 	}
 	
