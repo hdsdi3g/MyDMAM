@@ -63,8 +63,6 @@ public class NotificationWorker extends Worker {
 			workergroup.addCyclicWorker(cleaner);
 			workergroup.addCyclicWorker(alerter);
 		}
-		
-		Elasticsearch.enableTTL(Notification.ES_INDEX, Notification.ES_DEFAULT_TYPE);
 	}
 	
 	private class Cleaner implements CyclicCreateTasks {
@@ -128,6 +126,8 @@ public class NotificationWorker extends Worker {
 	public void process(Job job) throws Exception {
 		stop = false;
 		try {
+			Elasticsearch.enableTTL(Notification.ES_INDEX, Notification.ES_DEFAULT_TYPE);
+			
 			int count = 0;
 			if (job.getProfile().equals(notification_alert_profile)) {
 				Notification.updateTasksJobsEvolutionsForNotifications();

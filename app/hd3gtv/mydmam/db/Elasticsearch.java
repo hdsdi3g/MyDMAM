@@ -171,7 +171,10 @@ public class Elasticsearch {
 	
 	public static void enableTTL(String index_name, String type) throws IOException {
 		if (isIndexExists(index_name) == false) {
-			createIndex(index_name);
+			/**
+			 * No index, no enable ttl.
+			 */
+			return;
 		}
 		GetMappingsRequest request = new GetMappingsRequest().indices(index_name);
 		ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> global_mapping = getClient().admin().indices().getMappings(request).actionGet().getMappings();
@@ -188,6 +191,11 @@ public class Elasticsearch {
 						}
 					}
 				}
+			} else {
+				/**
+				 * No actual mapping for this type in index, no enable ttl.
+				 */
+				return;
 			}
 		}
 		addMappingToIndex(index_name, type, "{\"_ttl\": {\"enabled\": true}}");
