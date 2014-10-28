@@ -216,7 +216,7 @@ public class MailTemplateEngine {
 		 */
 		HashMap<Object, Object> all_variables = new HashMap<Object, Object>();
 		
-		File message_file = new File(template_directory.getAbsolutePath() + File.separator + BASE_TEMPLATE_MESSAGES + "." + locale.getLanguage());
+		File message_file = new File(template_directory.getAbsolutePath() + File.separator + BASE_TEMPLATE_MESSAGES + "." + locale.getLanguage());// TODO refactor...
 		if (message_file.exists() == false) {
 			Log2.log.error("No valid message file for " + locale.getLanguage() + " lang", null);
 			message_file = new File(template_directory.getAbsolutePath() + File.separator + BASE_TEMPLATE_MESSAGES + "." + Locale.ENGLISH.getLanguage());
