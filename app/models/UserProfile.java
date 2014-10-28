@@ -67,7 +67,7 @@ public class UserProfile extends CrudOrmModel {
 		
 		HashMap<String, Object> variables = new HashMap<String, Object>();
 		try {
-			// TODO refactor with new message function
+			// TODO migrate variables
 			if (Play.initialized) {
 				Properties messages = Messages.all(language);
 				String real_message = messages.getProperty("crud.field.userprofile.sendTestMail.by", "");

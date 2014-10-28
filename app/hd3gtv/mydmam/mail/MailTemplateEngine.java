@@ -20,14 +20,13 @@ import groovy.lang.Writable;
 import groovy.text.SimpleTemplateEngine;
 import groovy.text.Template;
 import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.module.MessagesOutsidePlay;
+import hd3gtv.mydmam.module.MyDMAMModulesManager;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
@@ -36,81 +35,41 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 
 import org.codehaus.groovy.control.CompilationFailedException;
-
-import play.Play;
-import play.utils.OrderSafeProperties;
-import play.vfs.VirtualFile;
 
 /**
  * Front-end to Groovy engine, outside Play scope.
  * Ignore Jar files content, but manage Play modules and classpath added conf directory modules.
  */
-public class MailTemplateEngine {
+@Deprecated
+class MailTemplateEngine {
 	
 	public static final String BASE_PATH = "mail-templates";
 	public static final String TEMPLATE_HTML_FILE = "template.html";
 	public static final String TEMPLATE_TXT_FILE = "template.txt";
 	public static final String TEMPLATE_SUBJECT_FILE = "subject.txt";
 	
-	public static final String BASE_TEMPLATE_MESSAGES = "messages";
-	
 	public static boolean GROOVY_VERBOSE = false;
 	private static LinkedHashMap<String, File> templates;
 	
 	static {
 		templates = new LinkedHashMap<String, File>();
-		ArrayList<File> templates_dir_to_test = new ArrayList<File>();
 		
+		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
 		File templates_directory;
 		
-		/**
-		 * Play modules
-		 */
-		for (Map.Entry<String, VirtualFile> entry : Play.modules.entrySet()) {
-			File module_dir = entry.getValue().getRealFile();
-			templates_directory = new File(module_dir.getAbsolutePath() + File.separator + "conf" + File.separator + BASE_PATH);
-			
-			if (templates_directory.exists() & templates_directory.isDirectory()) {
-				File[] local_template_content = templates_directory.listFiles();
-				for (int pos = 0; pos < local_template_content.length; pos++) {
-					if (local_template_content[pos].isDirectory()) {
-						templates_dir_to_test.add(local_template_content[pos]);
-					}
-				}
-			}
+		for (Map.Entry<String, File> conf_dir_entry : conf_dirs.entrySet()) {
+			// entry.getKey() entry.getValue()
+			// TODO ...
 		}
 		
-		/**
-		 * Classpath modules
-		 */
-		String[] classpathelements = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
-		
-		for (int i = 0; i < classpathelements.length; i++) {
-			if (classpathelements[i].endsWith(".jar")) {
-				continue;
-			}
-			File directoryclass = new File(classpathelements[i]);
-			if (directoryclass.exists() && directoryclass.isDirectory()) {
-				templates_directory = new File(directoryclass.getAbsolutePath() + File.separator + BASE_PATH);
-				
-				if (templates_directory.exists() & templates_directory.isDirectory()) {
-					File[] local_template_content = templates_directory.listFiles();
-					for (int pos = 0; pos < local_template_content.length; pos++) {
-						if (local_template_content[pos].isDirectory()) {
-							templates_dir_to_test.add(local_template_content[pos]);
-						}
-					}
-				}
-			}
-		}
+		// templates_directory = new File(directoryclass.getAbsolutePath() + File.separator + BASE_PATH);
 		
 		/**
 		 * Test candidates validity
 		 */
-		for (int pos_tpl = 0; pos_tpl < templates_dir_to_test.size(); pos_tpl++) {
+		/*for (int pos_tpl = 0; pos_tpl < templates_dir_to_test.size(); pos_tpl++) {
 			try {
 				String tpl_path = templates_dir_to_test.get(pos_tpl).getCanonicalPath();
 				if (new File(tpl_path + File.separator + TEMPLATE_HTML_FILE).exists() == false) {
@@ -128,7 +87,9 @@ public class MailTemplateEngine {
 			} catch (IOException e) {
 				Log2.log.error("Can't use template directory: ", e, new Log2Dump("path", templates_dir_to_test.get(pos_tpl)));
 			}
-		}
+		}*/
+		
+		System.out.println(templates);
 		
 	}
 	
@@ -175,7 +136,7 @@ public class MailTemplateEngine {
 	private Locale locale;
 	private File template_directory;
 	
-	public MailTemplateEngine(String template_name) throws FileNotFoundException {
+	MailTemplateEngine(String template_name) throws FileNotFoundException {
 		if (template_name == null) {
 			throw new NullPointerException("\"template_name\" can't to be null");
 		}
@@ -186,7 +147,7 @@ public class MailTemplateEngine {
 		locale = Locale.getDefault();
 	}
 	
-	public void setLocale(Locale locale) {
+	void setLocale(Locale locale) {
 		if (locale != null) {
 			this.locale = locale;
 		}
@@ -196,18 +157,7 @@ public class MailTemplateEngine {
 	private String plain_text;
 	private String subject;
 	
-	public class Translator {
-		HashMap<String, String> messages;
-		
-		public String t(String key) {
-			if (messages.containsKey(key) == false) {
-				return key;
-			}
-			return messages.get(key);
-		}
-	}
-	
-	public void process(HashMap<String, Object> variables) throws CompilationFailedException, ClassNotFoundException, IOException {
+	void process(HashMap<String, Object> variables) throws CompilationFailedException, ClassNotFoundException, IOException {
 		SimpleTemplateEngine template_engine = new SimpleTemplateEngine();
 		template_engine.setVerbose(GROOVY_VERBOSE);
 		
@@ -215,42 +165,7 @@ public class MailTemplateEngine {
 		 * Prepare template variables and messages
 		 */
 		HashMap<Object, Object> all_variables = new HashMap<Object, Object>();
-		
-		File message_file = new File(template_directory.getAbsolutePath() + File.separator + BASE_TEMPLATE_MESSAGES + "." + locale.getLanguage());// TODO refactor...
-		if (message_file.exists() == false) {
-			Log2.log.error("No valid message file for " + locale.getLanguage() + " lang", null);
-			message_file = new File(template_directory.getAbsolutePath() + File.separator + BASE_TEMPLATE_MESSAGES + "." + Locale.ENGLISH.getLanguage());
-			if (message_file.exists() == false) {
-				File[] all_files = template_directory.listFiles(new FilenameFilter() {
-					public boolean accept(File dir, String name) {
-						return name.startsWith(BASE_TEMPLATE_MESSAGES);
-					}
-				});
-				if (all_files.length == 0) {
-					throw new ClassNotFoundException("No valid message file for template");
-				}
-				message_file = all_files[0];
-			}
-		}
-		
-		FileInputStream message_fis = new FileInputStream(message_file);
-		Properties message = new OrderSafeProperties();
-		message.load(message_fis);
-		message_fis.close();
-		
-		all_variables.putAll(message);
-		
-		Translator translator = new Translator();
-		translator.messages = new HashMap<String, String>();
-		for (Map.Entry<Object, Object> entry : all_variables.entrySet()) {
-			if ((entry.getKey() instanceof String) & (entry.getValue() instanceof String)) {
-				translator.messages.put((String) entry.getKey(), (String) entry.getValue());
-			}
-		}
-		if (variables != null) {
-			all_variables.putAll(variables);
-		}
-		all_variables.put("translator", translator);
+		all_variables.put("messages", new MessagesOutsidePlay(locale));// TODO move templates "translator.t()" vars to "messages.get(,)" vars
 		
 		/**
 		 * Process templates
@@ -281,15 +196,15 @@ public class MailTemplateEngine {
 		return tw.getContent();
 	}
 	
-	public ArrayList<String> getHtml_text() {
+	ArrayList<String> getHtml_text() {
 		return html_text;
 	}
 	
-	public String getPlain_text() {
+	String getPlain_text() {
 		return plain_text;
 	}
 	
-	public String getSubject() {
+	String getSubject() {
 		return subject;
 	}
 	

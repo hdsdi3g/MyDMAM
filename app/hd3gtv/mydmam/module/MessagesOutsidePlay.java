@@ -22,17 +22,13 @@ import hd3gtv.log2.Log2Dump;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-
-import org.yaml.snakeyaml.Yaml;
 
 import play.i18n.Lang;
 import play.utils.OrderSafeProperties;
@@ -62,79 +58,24 @@ public class MessagesOutsidePlay {
 	static {
 		locale_messages = new HashMap<Locale, Properties>();
 		
-		String[] classpathelements = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
+		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
 		
-		/**
-		 * Search & parse application.conf & dependencies.yml
-		 * Import all conf/messages.* for main app.
-		 */
-		Properties applicationconf = new OrderSafeProperties();
-		List<String> modules_names = null;
-		try {
-			for (int i = 0; i < classpathelements.length; i++) {
-				if (classpathelements[i].endsWith(".jar") == false) {
-					File applicationconf_file = new File(classpathelements[i] + File.separator + "application.conf");
-					File dependenciesyml_file = new File(classpathelements[i] + File.separator + "dependencies.yml");
-					if (applicationconf_file.exists() && dependenciesyml_file.exists()) {
-						if (applicationconf_file.isFile() && dependenciesyml_file.isFile()) {
-							FileInputStream fis = new FileInputStream(applicationconf_file);
-							applicationconf.load(fis);
-							fis.close();
-							
-							fis = new FileInputStream(dependenciesyml_file);
-							Yaml yaml = new Yaml();
-							for (Object data : yaml.loadAll(fis)) {
-								LinkedHashMap<?, ?> root_item = (LinkedHashMap<?, ?>) data;
-								modules_names = (List<String>) root_item.get("require");
-							}
-							fis.close();
-							
-							/**
-							 * Import all conf/messages.* for main app.
-							 */
-							File[] modules_files = new File(classpathelements[i]).listFiles(new FilenameFilter() {
-								public boolean accept(File dir, String name) {
-									return name.startsWith("messages.");
-								}
-							});
-							for (int pos_mf = 0; pos_mf < modules_files.length; pos_mf++) {
-								importMessageFile(modules_files[pos_mf]);
-							}
-							
-							break;
-						}
+		String module_name;
+		File conf_dir;
+		for (Map.Entry<String, File> entry : conf_dirs.entrySet()) {
+			module_name = entry.getKey();
+			conf_dir = entry.getValue();
+			try {
+				File[] modules_files = conf_dir.listFiles(new FilenameFilter() {
+					public boolean accept(File dir, String name) {
+						return name.startsWith("messages.");
 					}
+				});
+				for (int pos_mf = 0; pos_mf < modules_files.length; pos_mf++) {
+					importMessageFile(modules_files[pos_mf]);
 				}
-			}
-		} catch (Exception e) {
-			Log2.log.error("Can't import modules configuration files", e);
-		}
-		
-		// Add messages modules files in classpath jar files ?
-		
-		/**
-		 * Import for each modules all conf/messages.*
-		 */
-		if (modules_names != null) {
-			modules_names.remove("play");
-			for (int pos_mn = 0; pos_mn < modules_names.size(); pos_mn++) {
-				try {
-					File conf_dir = new File(applicationconf.getProperty("module." + modules_names.get(pos_mn), "") + File.separator + "conf");
-					if ((conf_dir.exists() == false) | (conf_dir.isDirectory() == false)) {
-						Log2.log.error("Can't found module conf directory", new FileNotFoundException(conf_dir.getPath()), new Log2Dump("module name", modules_names.get(pos_mn)));
-						continue;
-					}
-					File[] modules_files = conf_dir.listFiles(new FilenameFilter() {
-						public boolean accept(File dir, String name) {
-							return name.startsWith("messages.");
-						}
-					});
-					for (int pos_mf = 0; pos_mf < modules_files.length; pos_mf++) {
-						importMessageFile(modules_files[pos_mf]);
-					}
-				} catch (Exception e) {
-					Log2.log.error("Can't import module message files", e, new Log2Dump("module name", modules_names.get(pos_mn)));
-				}
+			} catch (Exception e) {
+				Log2.log.error("Can't import module message files", e, new Log2Dump("module name", module_name));
 			}
 		}
 		
@@ -191,8 +132,10 @@ public class MessagesOutsidePlay {
 	}
 	
 	private Properties current_locale_messages;
+	private Locale locale;
 	
 	public MessagesOutsidePlay(Locale locale) {
+		this.locale = locale;
 		if (locale == null) {
 			throw new NullPointerException("\"locale\" can't to be null");
 		}
@@ -203,7 +146,7 @@ public class MessagesOutsidePlay {
 		}
 	}
 	
-	public String get(String key) {
+	public String get(String key, Object... args) {
 		String value = null;
 		if (key == null) {
 			return "";
@@ -216,7 +159,13 @@ public class MessagesOutsidePlay {
 		if (value == null) {
 			return key;
 		}
-		return value;
+		
+		if (args == null) {
+			return value;
+		}
+		if (args.length == 0) {
+			return value;
+		}
+		return String.format(locale, value, args);
 	}
-	
 }
