@@ -23,7 +23,6 @@ import hd3gtv.log2.Log2Dump;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -41,27 +40,19 @@ public class MessagesOutsidePlay {
 	private static final Map<Locale, Properties> locale_messages;
 	private static final Locale default_locale = Locale.ENGLISH;
 	
-	private static void importMessageFile(File message_file) throws IOException {
-		Locale current_locale = Lang.getLocale(message_file.getName().substring("messages.".length()));
-		Properties current_content = new OrderSafeProperties();
-		FileInputStream fis = new FileInputStream(message_file);
-		current_content.load(fis);
-		fis.close();
-		
-		if (locale_messages.containsKey(current_locale)) {
-			locale_messages.get(current_locale).putAll(current_content);
-		} else {
-			locale_messages.put(current_locale, current_content);
-		}
-	}
-	
 	static {
+		Map<String, String> map_key_sourcemessage = new HashMap<String, String>();
+		
 		locale_messages = new HashMap<Locale, Properties>();
 		
 		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
 		
 		String module_name;
 		File conf_dir;
+		File message_file;
+		Locale current_locale;
+		Properties current_messages;
+		FileInputStream fis;
 		for (Map.Entry<String, File> entry : conf_dirs.entrySet()) {
 			module_name = entry.getKey();
 			conf_dir = entry.getValue();
@@ -72,7 +63,22 @@ public class MessagesOutsidePlay {
 					}
 				});
 				for (int pos_mf = 0; pos_mf < modules_files.length; pos_mf++) {
-					importMessageFile(modules_files[pos_mf]);
+					message_file = modules_files[pos_mf];
+					current_locale = Lang.getLocale(message_file.getName().substring("messages.".length()));
+					current_messages = new OrderSafeProperties();
+					fis = new FileInputStream(message_file);
+					current_messages.load(fis);
+					fis.close();
+					
+					for (Object message_key : current_messages.keySet()) {
+						map_key_sourcemessage.put((String) message_key, module_name);
+					}
+					
+					if (locale_messages.containsKey(current_locale)) {
+						locale_messages.get(current_locale).putAll(current_messages);
+					} else {
+						locale_messages.put(current_locale, current_messages);
+					}
 				}
 			} catch (Exception e) {
 				Log2.log.error("Can't import module message files", e, new Log2Dump("module name", module_name));
@@ -99,8 +105,8 @@ public class MessagesOutsidePlay {
 		Properties comparable_messages = null;
 		Locale comparable_locale = null;
 		for (Map.Entry<Locale, Properties> messages : locale_messages.entrySet()) {
-			Locale current_locale = messages.getKey();
-			Properties current_messages = messages.getValue();
+			current_locale = messages.getKey();
+			current_messages = messages.getValue();
 			
 			if (comparable_locale == null) {
 				comparable_locale = current_locale;
@@ -113,15 +119,15 @@ public class MessagesOutsidePlay {
 			for (Object current_messages_key : current_messages.keySet()) {
 				if (comparable_messages.containsKey(current_messages_key) == false) {
 					has_problems = true;
-					dump.add("missing message", (String) current_messages_key + " in " + comparable_locale.getLanguage() + " message file");
-					// TODO map key <-> source file
+					module_name = map_key_sourcemessage.get((String) current_messages_key);
+					dump.add("missing message", "\"" + (String) current_messages_key + "\" in " + module_name + " module, conf/message." + comparable_locale.getLanguage() + " file");
 				}
 			}
 			for (Object comparable_messages_key : comparable_messages.keySet()) {
 				if (current_messages.containsKey(comparable_messages_key) == false) {
 					has_problems = true;
-					dump.add("missing message", (String) comparable_messages_key + " in " + current_locale.getLanguage() + " message file");
-					// TODO map key <-> source file
+					module_name = map_key_sourcemessage.get((String) comparable_messages_key);
+					dump.add("missing message", "\"" + (String) comparable_messages_key + "\" in " + module_name + " module, conf/message." + current_locale.getLanguage() + " file");
 				}
 			}
 			if (has_problems) {

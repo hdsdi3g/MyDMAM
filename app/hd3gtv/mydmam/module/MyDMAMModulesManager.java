@@ -148,6 +148,7 @@ public class MyDMAMModulesManager {
 	 * Don't use MODULES system, but application.conf & dependencies.yml.
 	 * @return Module name -> conf path
 	 */
+	@SuppressWarnings("unchecked")
 	public static LinkedHashMap<String, File> getAllConfDirectories() {
 		if (all_conf_directories == null) {
 			all_conf_directories = new LinkedHashMap<String, File>();
