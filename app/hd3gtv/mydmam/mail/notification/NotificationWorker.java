@@ -170,6 +170,7 @@ public class NotificationWorker extends Worker {
 						reasons_vars.put(reason.toString().toLowerCase(), mail_var_notifications);
 					}
 					mail_vars.put("reasons", reasons_vars);
+					// TODO refactor with new message function
 					usermail.send(mail_vars);
 					count++;
 				}
