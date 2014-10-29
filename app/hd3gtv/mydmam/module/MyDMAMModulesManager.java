@@ -178,7 +178,7 @@ public class MyDMAMModulesManager {
 								}
 								fis.close();
 								
-								all_conf_directories.put("play", new File(classpathelements[i]));
+								all_conf_directories.put("internal", new File(classpathelements[i]));
 								break;
 							}
 						}

@@ -29,11 +29,11 @@
 	</style>
 </head>
 <body>
-	<span class="title">${title}</span></span><br>
+	<span class="title">${messages.get("userprofile.notifications.mailtemplate.title")}</span></span><br>
 	<hr style="height:3px; background-color:#992626">
 	<p>
 	<% for (reason_entry in reasons) { %>
-		<h2>${messages.get(reason_entry.key)}</h2>
+		<h2>${messages.get("userprofile.notifications.mailtemplate.state." + reason_entry.key)}</h2>
 		<ul>
 		<% reason_entry.value.eachWithIndex() { reason, pos -> %>
 			<li>
@@ -45,8 +45,8 @@
 			 		<% } %>
 			 		]
 		 		<% } %>
-				${reason.creating_comment} :: <i>${notification_createdby} ${reason.creator}</i>
-				<% if (reason.is_close) { %>[${notification_closed}]<% } else if (reason.is_read) { %>[${notification_readed}]<% } %>
+				${reason.creating_comment} :: <i>${messages.get("userprofile.notifications.mailtemplate.createdby")} ${reason.creator}</i>
+				<% if (reason.is_close) { %>[${messages.get("userprofile.notifications.mailtemplate.closed")}]<% } else if (reason.is_read) { %>[${messages.get("userprofile.notifications.mailtemplate.readed")}]<% } %>
 				<% if (reason.users_comment) { %>
 					<pre>${reason.users_comment}</pre>
 		 		<% } %> 
@@ -57,9 +57,9 @@
 	</p>
 	<div style="background-color:#3d9999; color:#FFFFFF; padding:7pt;" class="footer">
 		<p>
-			<i>${please_not_respond}</i>
+			<i>${messages.get("mailtemplate.please_not_respond")}</i>
 		</p>
 	</div>
-	<span style="font-size:0.9em;">${title}</span>
+	<span style="font-size:0.9em;">${messages.get("site.name")}</span>
 </body>
 </html>

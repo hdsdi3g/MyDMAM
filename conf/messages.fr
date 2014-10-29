@@ -305,6 +305,15 @@ userprofile.notifications.admin.createdreadedclosed=Crée/lu/fermé
 userprofile.notifications.admin.observers=Observateurs
 userprofile.notifications.admin.usercomments=Commentaires utilisateurs
 userprofile.notifications.admin.action=Action
+userprofile.notifications.mailtemplate.title=Notification MyDMAM
+userprofile.notifications.mailtemplate.createdby=Créé par
+userprofile.notifications.mailtemplate.closed=Notification fermée
+userprofile.notifications.mailtemplate.readed=Notification lue
+userprofile.notifications.mailtemplate.state.error=Erreur(s)
+userprofile.notifications.mailtemplate.state.done=Terminée(s) 
+userprofile.notifications.mailtemplate.state.readed=Notification(s) lue(s) 
+userprofile.notifications.mailtemplate.state.closed=Notification(s) fermés(s) 
+userprofile.notifications.mailtemplate.state.commented=Notification(s) commentée(s)
 
 userprofile.baskets.pagename=Paniers de selection
 userprofile.baskets.newbasketname=Nom du nouveau panier
@@ -333,6 +342,10 @@ userprofile.baskets.admin.rawview.modal.save=Enregister
 userprofile.baskets.admin.rawview.modal.warning=Attention !
 userprofile.baskets.admin.rawview.modal.cantfoundsomeitems=Impossible de trouver cet/ces element(s) dans les stockages :
 
+userprofile.mailtemplate.mailtest=Test d'envoi de mail
+userprofile.mailtemplate.testmessage=Ce mail a été envoyé pour vérifier le bon fonctionnement du moteur de mail, ainsi que votre capacité à pouvoir recevoir et lire ce mail.
+userprofile.mailtemplate.me_has_sent_this_message=Vous devez avoir normalement provoqué l'envoi de ce mail.
+
 crud.field.userprofile=Préférences utilisateur
 crud.field.userprofile.longname=Nom
 crud.field.userprofile.language=Langue
@@ -342,6 +355,8 @@ crud.field.userprofile.sendTestMail=Envoyer un mail de test
 crud.field.userprofile.sendTestMail.done=Envoyé
 crud.field.userprofile.sendTestMail.error=Erreur durant l'envoi
 crud.field.userprofile.sendTestMail.by=Ce mail à été envoyé automatiquement pour %s
+
+mailtemplate.please_not_respond=Merci de ne pas y répondre à ce mail.
 
 useractions.pagename=Actions
 useractions.buttonactionlabel=Action

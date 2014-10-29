@@ -27,18 +27,14 @@ import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
 import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 
 import javax.mail.internet.InternetAddress;
 
-import play.Play;
 import play.data.validation.Email;
 import play.data.validation.Required;
 import play.i18n.Lang;
-import play.i18n.Messages;
 
 @AuthorisedForAdminController
 public class UserProfile extends CrudOrmModel {
@@ -60,29 +56,24 @@ public class UserProfile extends CrudOrmModel {
 		
 		EndUserBaseMail mail;
 		if (language == null) {
-			mail = EndUserBaseMail.create(Locale.getDefault(), email_addr, "usertestmail");
+			mail = new EndUserBaseMail(Locale.getDefault(), email_addr, "usertestmail");
 		} else {
-			mail = EndUserBaseMail.create(Lang.getLocale(language), email_addr, "usertestmail");
+			mail = new EndUserBaseMail(Lang.getLocale(language), email_addr, "usertestmail");
 		}
 		
-		HashMap<String, Object> variables = new HashMap<String, Object>();
+		/*HashMap<String, Object> variables = new HashMap<String, Object>();
 		try {
-			// TODO migrate variables
+			// TODO clean
 			if (Play.initialized) {
 				Properties messages = Messages.all(language);
 				String real_message = messages.getProperty("crud.field.userprofile.sendTestMail.by", "");
 				variables.put("me_has_sent_this_message", String.format(real_message, longname));
-				variables.put("sitename", messages.getProperty("site.name", "[MyDMAM]"));
 			} else {
 				throw new Exception();
 			}
 		} catch (Exception e) {
-			/**
-			 * Outside Play scope
-			 */
-			variables.put("sitename", "[MyDMAM]");
-		}
-		mail.send(variables);
+		}*/
+		mail.send();
 	}
 	
 	protected String getCF_Name() {

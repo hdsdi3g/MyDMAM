@@ -148,7 +148,7 @@ public class NotificationWorker extends Worker {
 						return;
 					}
 					user = users_notify_entry.getKey();
-					EndUserBaseMail usermail = EndUserBaseMail.create(Lang.getLocale(user.language), new InternetAddress(user.email), "notification");
+					EndUserBaseMail usermail = new EndUserBaseMail(Lang.getLocale(user.language), new InternetAddress(user.email), "notification");
 					mail_vars = new HashMap<String, Object>();
 					reasons_vars = new HashMap<Object, Object>();
 					

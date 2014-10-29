@@ -305,6 +305,15 @@ userprofile.notifications.admin.createdreadedclosed=Created/readed/closed
 userprofile.notifications.admin.observers=Observers
 userprofile.notifications.admin.usercomments=User comments
 userprofile.notifications.admin.action=Action
+userprofile.notifications.mailtemplate.title=MyDMAM Notification
+userprofile.notifications.mailtemplate.createdby=Created by
+userprofile.notifications.mailtemplate.closed=Closed notification
+userprofile.notifications.mailtemplate.readed=Readed notification
+userprofile.notifications.mailtemplate.state.error=Error(s)
+userprofile.notifications.mailtemplate.state.done=Done(s) 
+userprofile.notifications.mailtemplate.state.readed=Readed notification(s) 
+userprofile.notifications.mailtemplate.state.closed=Closed notification(s) 
+userprofile.notifications.mailtemplate.state.commented=Commented notification(s)
 
 userprofile.baskets.pagename=Baskets selection
 userprofile.baskets.newbasketname=New basket name
@@ -333,6 +342,10 @@ userprofile.baskets.admin.rawview.modal.save=Save
 userprofile.baskets.admin.rawview.modal.warning=Warning!
 userprofile.baskets.admin.rawview.modal.cantfoundsomeitems=Could not find this/these item(s) in storage:
 
+userprofile.mailtemplate.mailtest=Send test mail
+userprofile.mailtemplate.testmessage=This email was sent to check the proper functioning of the mail engine, as well as your ability to receive and read this email.
+userprofile.mailtemplate.me_has_sent_this_message=You should normally have caused the sending of this email.
+
 crud.field.userprofile=User settings
 crud.field.userprofile.longname=Name
 crud.field.userprofile.language=Language
@@ -342,6 +355,8 @@ crud.field.userprofile.sendTestMail=Send a test mail
 crud.field.userprofile.sendTestMail.done=Sended
 crud.field.userprofile.sendTestMail.error=Error during mail send
 crud.field.userprofile.sendTestMail.by=This email was sent automatically for %s
+
+mailtemplate.please_not_respond=Thank you not to answer to this email.
 
 useractions.pagename=Actions
 useractions.buttonactionlabel=Action

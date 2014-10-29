@@ -50,91 +50,100 @@ public class EndUserBaseMail implements Log2Dumpable {
 	private static MailCenter mailcenter;
 	private static LinkedHashMap<String, File> templates;
 	
-	public static final String BASE_PATH = "mail-templates";
-	public static final String TEMPLATE_HTML_FILE = "template.html";
-	public static final String TEMPLATE_TXT_FILE = "template.txt";
-	public static final String TEMPLATE_SUBJECT_FILE = "subject.txt";
+	private static final String TEMPLATE_BASE_PATH = "mail-templates";
+	private static final String TEMPLATE_HTML_FILE = "template.html";
+	private static final String TEMPLATE_SUBJECT_FILE = "subject.txt";
 	
 	public static boolean GROOVY_VERBOSE = false;
 	private static SimpleTemplateEngine template_engine;
 	
 	static {
-		try {
-			mailcenter = MailCenter.getGlobal();
-			templates = new LinkedHashMap<String, File>();
-			template_engine = new SimpleTemplateEngine();
-			template_engine.setVerbose(GROOVY_VERBOSE);
-			
-			LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
-			File templates_directory;
-			
-			for (Map.Entry<String, File> conf_dir_entry : conf_dirs.entrySet()) {
-				// entry.getKey() entry.getValue()
-				// TODO import templates
+		mailcenter = MailCenter.getGlobal();
+		templates = new LinkedHashMap<String, File>();
+		template_engine = new SimpleTemplateEngine();
+		template_engine.setVerbose(GROOVY_VERBOSE);
+		
+		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
+		File templates_directories;
+		File[] templates_directories_content;
+		File template_directory;
+		String module_name;
+		String template_name;
+		String tpl_path;
+		Log2Dump new_templates = new Log2Dump();
+		for (Map.Entry<String, File> conf_dir_entry : conf_dirs.entrySet()) {
+			module_name = conf_dir_entry.getKey();
+			templates_directories = new File(conf_dir_entry.getValue() + File.separator + TEMPLATE_BASE_PATH);
+			if (templates_directories.exists() == false) {
+				continue;
+			}
+			if (templates_directories.isDirectory() == false) {
+				continue;
 			}
 			
-			// templates_directory = new File(directoryclass.getAbsolutePath() + File.separator + BASE_PATH);
-			
 			/**
-			 * Test candidates validity
+			 * Test validity
 			 */
-			/*for (int pos_tpl = 0; pos_tpl < templates_dir_to_test.size(); pos_tpl++) {
+			templates_directories_content = templates_directories.listFiles();
+			for (int pos_tpl = 0; pos_tpl < templates_directories_content.length; pos_tpl++) {
+				template_directory = templates_directories_content[pos_tpl];
 				try {
-					String tpl_path = templates_dir_to_test.get(pos_tpl).getCanonicalPath();
+					if (template_directory.isDirectory() == false) {
+						continue;
+					}
+					tpl_path = template_directory.getCanonicalPath();
 					if (new File(tpl_path + File.separator + TEMPLATE_HTML_FILE).exists() == false) {
 						throw new FileNotFoundException(tpl_path + File.separator + TEMPLATE_HTML_FILE);
 					}
-					if (new File(tpl_path + File.separator + TEMPLATE_TXT_FILE).exists() == false) {
-						throw new FileNotFoundException(tpl_path + File.separator + TEMPLATE_TXT_FILE);
+					tpl_path = template_directory.getCanonicalPath();
+					if (new File(tpl_path + File.separator + TEMPLATE_SUBJECT_FILE).exists() == false) {
+						throw new FileNotFoundException(tpl_path + File.separator + TEMPLATE_SUBJECT_FILE);
 					}
-					String key = templates_dir_to_test.get(pos_tpl).getName().toLowerCase();
-					if (templates.containsKey(key) == false) {
-						templates.put(key, templates_dir_to_test.get(pos_tpl));
+					
+					template_name = template_directory.getName();
+					if (templates.containsKey(template_name) == false) {
+						templates.put(template_name, template_directory);
+						new_templates.add("template", "\"" + template_name + "\" from \"" + module_name + "\" module in \"" + template_directory.getAbsolutePath() + "\"");
 					} else {
-						Log2.log.error("Template directory is already added", null, new Log2Dump("path", templates_dir_to_test.get(pos_tpl)));
+						throw new Exception("Template directory with the name \"" + template_name + "\" is already added.");
 					}
-				} catch (IOException e) {
-					Log2.log.error("Can't use template directory: ", e, new Log2Dump("path", templates_dir_to_test.get(pos_tpl)));
+				} catch (Exception e) {
+					Log2Dump dump = new Log2Dump();
+					dump.add("path", template_directory);
+					dump.add("module", module_name);
+					Log2.log.error("Can't use/import template directory: ", e, dump);
 				}
-			}*/
-			System.out.println(templates);// XXX
+			}
 			
-		} catch (Exception e) {
-			Log2.log.error("Can't init message", e);
 		}
-	}
-	
-	private EndUserBaseMail() {
+		
+		Log2.log.debug("Import mail templates", new_templates);
 	}
 	
 	private Locale locale;
 	private InternetAddress to;
-	private String mail_template;
 	private MailPriority priority;
 	
 	private File template_directory;
 	
-	public static EndUserBaseMail create(Locale locale, InternetAddress to, String mail_template) throws FileNotFoundException {
-		EndUserBaseMail mail = new EndUserBaseMail();
-		mail.locale = locale;
+	public EndUserBaseMail(Locale locale, InternetAddress to, String mail_template_name) throws FileNotFoundException {
+		this.locale = locale;
 		if (locale == null) {
 			throw new NullPointerException("\"locale\" can't to be null");
 		}
 		
-		mail.to = to;
+		this.to = to;
 		if (to == null) {
 			throw new NullPointerException("\"to\" can't to be null");
 		}
 		
-		if (mail_template == null) {
+		if (mail_template_name == null) {
 			throw new NullPointerException("\"mail_template\" can't to be null");
 		}
-		if (templates.containsKey(mail_template.toLowerCase()) == false) {
-			throw new FileNotFoundException("Not template for this name: " + mail_template.toLowerCase());
+		if (templates.containsKey(mail_template_name.toLowerCase()) == false) {
+			throw new FileNotFoundException("Not template for this name: " + mail_template_name.toLowerCase());
 		}
-		mail.template_directory = templates.get(mail_template.toLowerCase());
-		
-		return mail;
+		this.template_directory = templates.get(mail_template_name.toLowerCase());
 	}
 	
 	public EndUserBaseMail setMailPriority(MailPriority priority) {
@@ -146,7 +155,7 @@ public class EndUserBaseMail implements Log2Dumpable {
 		Log2Dump dump = new Log2Dump();
 		dump.add("to", to);
 		dump.add("locale", locale);
-		dump.add("mail_template", mail_template);
+		dump.add("template_directory", template_directory);
 		return dump;
 	}
 	
@@ -155,7 +164,7 @@ public class EndUserBaseMail implements Log2Dumpable {
 	}
 	
 	/**
-	 * @param mail_vars "message" key is reserved, and used with messages.* files.
+	 * @param mail_vars Beware ! "message" key is reserved, and it used with messages.* files.
 	 */
 	public void send(HashMap<String, Object> mail_vars) {
 		if (mail_vars == null) {
@@ -172,7 +181,7 @@ public class EndUserBaseMail implements Log2Dumpable {
 			/**
 			 * Process templates: subject
 			 */
-			ArrayList<String> subject_text_list = process(new File(template_directory.getAbsolutePath() + File.separator + TEMPLATE_SUBJECT_FILE), all_mail_vars);
+			ArrayList<String> subject_text_list = process(new File(template_directory.getPath() + File.separator + TEMPLATE_SUBJECT_FILE), all_mail_vars);
 			StringBuffer sb = new StringBuffer();
 			for (int pos = 0; pos < subject_text_list.size(); pos++) {
 				sb.append(subject_text_list.get(pos));
@@ -183,19 +192,7 @@ public class EndUserBaseMail implements Log2Dumpable {
 			/**
 			 * Process templates: html text
 			 */
-			mail.setHtmltext(process(new File(template_directory.getAbsolutePath() + File.separator + TEMPLATE_HTML_FILE), all_mail_vars));
-			
-			/**
-			 * Process templates: plain text
-			 * TODO remove plain text ??
-			 */
-			ArrayList<String> plain_text_list = process(new File(template_directory.getAbsolutePath() + File.separator + TEMPLATE_TXT_FILE), all_mail_vars);
-			sb = new StringBuffer();
-			for (int pos = 0; pos < plain_text_list.size(); pos++) {
-				sb.append(plain_text_list.get(pos));
-				sb.append("\r\n");
-			}
-			mail.setPlaintext(sb.toString());
+			mail.setHtmltext(process(new File(template_directory.getPath() + File.separator + TEMPLATE_HTML_FILE), all_mail_vars));
 			
 			mail.setMailPriority(priority);
 			mail.send();
