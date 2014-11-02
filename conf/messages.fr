@@ -350,11 +350,15 @@ crud.field.userprofile=Préférences utilisateur
 crud.field.userprofile.longname=Nom
 crud.field.userprofile.language=Langue
 crud.field.userprofile.email=Mail
+crud.field.userprofile.createdate=Crée le
+crud.field.userprofile.updatedate=Mis à jour le
 crud.field.userprofile.issaved=Les préférences sont enregistrées
 crud.field.userprofile.sendTestMail=Envoyer un mail de test
 crud.field.userprofile.sendTestMail.done=Envoyé
 crud.field.userprofile.sendTestMail.error=Erreur durant l'envoi
 crud.field.userprofile.sendTestMail.by=Ce mail à été envoyé automatiquement pour %s
+crud.field.userprofile.selectedbasketname=Panier selectionné
+crud.field.userprofile.keep_index_deleted_basket_items=Conserver les éléments supprimés de l'index dans les paniers
 
 mailtemplate.please_not_respond=Merci de ne pas y répondre à ce mail.
 

@@ -17,6 +17,7 @@
 
 package controllers;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.ModelClassResolver;
@@ -24,10 +25,9 @@ import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
-import hd3gtv.mydmam.operation.Basket;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.TaskJobStatus;
-import hd3gtv.mydmam.web.CurrentUserBasket;
+import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.web.stat.Stat;
 import hd3gtv.mydmam.web.stat.StatElement;
 
@@ -392,7 +392,12 @@ public class User extends Controller {
 	 */
 	@Check("navigate")
 	public static void basket_pull() {
-		renderJSON(CurrentUserBasket.getBasket());
+		try {
+			renderJSON(Basket.getBasketForCurrentPlayUser().getSelectedContentJson());
+		} catch (Exception e) {
+			Log2.log.error("Can't access to basket", e);
+			renderJSON("[]");
+		}
 	}
 	
 	/**
@@ -400,25 +405,28 @@ public class User extends Controller {
 	 */
 	@Check("navigate")
 	public static void basket_push() {
-		if (params.get("empty") != null) {
-			CurrentUserBasket.dropBasket();
-		} else {
-			CurrentUserBasket.setBasket(params.getAll("current[]"));
+		try {
+			Basket basket = Basket.getBasketForCurrentPlayUser();
+			if (params.get("empty") != null) {
+				basket.deleteSelected();
+			} else {
+				basket.setSelectedContent(params.getAll("current[]"));
+			}
+		} catch (Exception e) {
+			Log2.log.error("Can't access to basket", e);
 		}
 		renderJSON("[]");
 	}
 	
 	@Check("navigate")
 	public static void baskets() throws Exception {
-		String user_key = UserProfile.prepareKey(Secure.connected());
-		Basket basket = new Basket(user_key);
-		basket.importSelectedContent();
+		Basket basket = Basket.getBasketForCurrentPlayUser();
 		
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.pagename");
 		
 		Gson gson = new Gson();
-		String all_baskets = gson.toJson(basket.getAllBaskets());
-		String basket_selected_name = basket.getSelected();
+		String all_baskets = gson.toJson(basket.getAll());
+		String basket_selected_name = basket.getSelectedName();
 		render(title, all_baskets, basket_selected_name);
 	}
 	
@@ -428,8 +436,7 @@ public class User extends Controller {
 			renderJSON("[\"validation error\"]");
 		}
 		
-		String user_key = UserProfile.prepareKey(Secure.connected());
-		Basket basket = new Basket(user_key);
+		Basket basket = Basket.getBasketForCurrentPlayUser();
 		basket.delete(name);
 		
 		JSONObject jo = new JSONObject();
@@ -443,9 +450,7 @@ public class User extends Controller {
 			renderJSON("[\"validation error\"]");
 		}
 		
-		String user_key = UserProfile.prepareKey(Secure.connected());
-		Basket basket = new Basket(user_key);
-		basket.setBasketContent(name, new ArrayList<String>(1));
+		Basket.getBasketForCurrentPlayUser().setContent(name, new ArrayList<String>(1));
 		
 		JSONObject jo = new JSONObject();
 		jo.put("truncate", name);
@@ -457,11 +462,8 @@ public class User extends Controller {
 	 */
 	@Check("navigate")
 	public static void basket_get_selected() throws Exception {
-		String user_key = UserProfile.prepareKey(Secure.connected());
-		Basket basket = new Basket(user_key);
-		
 		JSONObject jo = new JSONObject();
-		jo.put("selected", basket.getSelected());
+		jo.put("selected", Basket.getBasketForCurrentPlayUser().getSelectedName());
 		renderJSON(jo.toJSONString());
 	}
 	
@@ -471,9 +473,7 @@ public class User extends Controller {
 			renderJSON("[\"validation error\"]");
 		}
 		
-		String user_key = UserProfile.prepareKey(Secure.connected());
-		Basket basket = new Basket(user_key);
-		basket.rename(name, cleanName(newname));
+		Basket.getBasketForCurrentPlayUser().rename(name, cleanName(newname));
 		
 		JSONObject jo = new JSONObject();
 		jo.put("rename_from", name);
@@ -499,9 +499,8 @@ public class User extends Controller {
 			renderJSON("[\"validation error\"]");
 		}
 		
-		String user_key = UserProfile.prepareKey(Secure.connected());
-		Basket basket = new Basket(user_key);
-		basket.createNew(cleanName(name), switch_to_selected);
+		Basket basket = Basket.getBasketForCurrentPlayUser();
+		basket.create(cleanName(name), switch_to_selected);
 		
 		JSONObject jo = new JSONObject();
 		jo.put("create", cleanName(name));
@@ -514,10 +513,13 @@ public class User extends Controller {
 	 */
 	@Check("navigate")
 	public static void basket_get_all_user() {
-		String user_key = UserProfile.prepareKey(Secure.connected());
-		Basket basket = new Basket(user_key);
-		Gson gson = new Gson();
-		renderJSON(gson.toJson(basket.getAllBaskets()));
+		Basket basket;
+		try {
+			basket = Basket.getBasketForCurrentPlayUser();
+			renderJSON(new Gson().toJson(basket.getAll()));
+		} catch (Exception e) {
+			renderJSON("[]");
+		}
 	}
 	
 	/**
@@ -531,35 +533,34 @@ public class User extends Controller {
 			renderJSON(jo.toJSONString());
 		}
 		
-		String user_key = UserProfile.prepareKey(Secure.connected());
-		Basket basket = new Basket(user_key);
-		basket.switchSelectedBasket(name);
+		Basket.getBasketForCurrentPlayUser().setSelected(name);
 		basket_pull();
 	}
 	
-	@SuppressWarnings("rawtypes")
 	@Check("adminUsers")
 	public static void basketsadmin() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.admin.pagename");
 		
-		Basket.All.importSelectedContent();
 		Gson gson = new Gson();
-		Map<String, Object> real_map_all_users_baskets = Basket.All.getAllUsersAllBasketsSize();
+		Map<String, List<Map<String, Object>>> all_users_all_baskets = Basket.getAllBasketsForAllUsers();
 		
 		/**
 		 * Get user list, and resolve names. Crypt user keys.
 		 */
 		CrudOrmEngine<UserProfile> user_profile_orm_engine = new CrudOrmEngine<UserProfile>(new UserProfile());
-		List<UserProfile> selected_users = user_profile_orm_engine.read(real_map_all_users_baskets.keySet());
 		HashMap<String, String> map_all_users = new HashMap<String, String>();
-		for (int pos = 0; pos < selected_users.size(); pos++) {
-			if (selected_users.get(pos).longname != null) {
-				if (selected_users.get(pos).longname.equals("") == false) {
-					map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).longname);
-					continue;
+		
+		List<UserProfile> selected_users = user_profile_orm_engine.read(all_users_all_baskets.keySet());
+		if (selected_users != null) {
+			for (int pos = 0; pos < selected_users.size(); pos++) {
+				if (selected_users.get(pos).longname != null) {
+					if (selected_users.get(pos).longname.equals("") == false) {
+						map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).longname);
+						continue;
+					}
 				}
+				map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).key);
 			}
-			map_all_users.put(MydmamExtensions.encrypt(selected_users.get(pos).key), selected_users.get(pos).key);
 		}
 		
 		/**
@@ -567,9 +568,23 @@ public class User extends Controller {
 		 */
 		Map<String, Object> map_all_users_baskets = new HashMap<String, Object>();
 		List<String> list_pathindexkeys = new ArrayList<String>();
-		for (Map.Entry<String, Object> entry : real_map_all_users_baskets.entrySet()) {
-			map_all_users_baskets.put(MydmamExtensions.encrypt(entry.getKey()), entry.getValue());
-			Basket.addBasketsElementsToListFromRawDb(list_pathindexkeys, (Map) entry.getValue());
+		
+		List<Map<String, Object>> baskets;
+		List<String> content;
+		for (Map.Entry<String, List<Map<String, Object>>> entry : all_users_all_baskets.entrySet()) {
+			baskets = entry.getValue();
+			map_all_users_baskets.put(MydmamExtensions.encrypt(entry.getKey()), baskets);
+			/**
+			 * Extract all baskets elements
+			 */
+			for (int pos_baskets = 0; pos_baskets < baskets.size(); pos_baskets++) {
+				content = (List<String>) baskets.get(pos_baskets).get("content");
+				for (int pos_content = 0; pos_content < content.size(); pos_content++) {
+					if (list_pathindexkeys.contains(content.get(pos_content)) == false) {
+						list_pathindexkeys.add(content.get(pos_content));
+					}
+				}
+			}
 		}
 		
 		String all_pathindexelements = "{}";
@@ -607,10 +622,9 @@ public class User extends Controller {
 		Basket remote_basket = new Basket(remote_username);
 		
 		if (actiontodo.equals("importbasket") | actiontodo.equals("exportbasket")) {
-			String local_username = UserProfile.prepareKey(Secure.connected());
-			Basket user_basket = new Basket(local_username);
+			Basket user_basket = Basket.getBasketForCurrentPlayUser();
 			List<String> user_basketcontent = user_basket.getSelectedContent();
-			List<String> remote_basketcontent = remote_basket.getBasketContent(basketname);
+			List<String> remote_basketcontent = remote_basket.getContent(basketname);
 			String item;
 			
 			if (actiontodo.equals("importbasket")) {
@@ -624,7 +638,6 @@ public class User extends Controller {
 					}
 				}
 				user_basket.setSelectedContent(remote_basketcontent);
-				user_basket.importSelectedContent();
 			} else {
 				/**
 				 * me -> remote
@@ -635,13 +648,12 @@ public class User extends Controller {
 						remote_basketcontent.add(item);
 					}
 				}
-				remote_basket.switchSelectedBasket(basketname);
+				remote_basket.setSelected(basketname);
 				remote_basket.setSelectedContent(remote_basketcontent);
-				remote_basket.importSelectedContent();
 			}
 			
 		} else if (actiontodo.equals("truncatebasket")) {
-			remote_basket.setBasketContent(basketname, new ArrayList<String>(1));
+			remote_basket.setContent(basketname, new ArrayList<String>(1));
 		} else if (actiontodo.equals("removebasket")) {
 			remote_basket.delete(basketname);
 		} else if (actiontodo.equals("removebasketcontent")) {
@@ -655,20 +667,20 @@ public class User extends Controller {
 				jo.put("error", true);
 				renderJSON(jo.toJSONString());
 			}
-			List<String> content = remote_basket.getBasketContent(basketname);
+			List<String> content = remote_basket.getContent(basketname);
 			int pos = content.indexOf(elementkey);
 			if (pos > -1) {
 				content.remove(pos);
 			}
-			remote_basket.setBasketContent(basketname, content);
+			remote_basket.setContent(basketname, content);
 		} else if (actiontodo.equals("overwritebasket")) {
 			if (newcontent == null) {
-				remote_basket.setBasketContent(basketname, new ArrayList<String>(1));
+				remote_basket.setContent(basketname, new ArrayList<String>(1));
 			} else {
-				remote_basket.setBasketContent(basketname, newcontent);
+				remote_basket.setContent(basketname, newcontent);
 			}
 		} else if (actiontodo.equals("destroybaskets")) {
-			remote_basket.destroy();
+			remote_basket.deleteAll();
 		}
 		
 		Gson g = new Gson();

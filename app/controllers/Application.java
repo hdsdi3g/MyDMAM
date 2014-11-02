@@ -24,6 +24,7 @@ import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.SearchResult;
 import hd3gtv.mydmam.web.stat.Stat;
@@ -61,7 +62,13 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void navigate() {
-		render();
+		String current_basket_content = "[]";
+		try {
+			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
+		} catch (Exception e) {
+			Log2.log.error("Can't get user basket", e);
+		}
+		render(current_basket_content);
 	}
 	
 	@Check("navigate")
@@ -106,7 +113,13 @@ public class Application extends Controller {
 	
 	public static void index() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		render(title);
+		String current_basket_content = "[]";
+		try {
+			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
+		} catch (Exception e) {
+			Log2.log.error("Can't get user basket", e);
+		}
+		render(title, current_basket_content);
 	}
 	
 	@Check("navigate")
@@ -147,7 +160,14 @@ public class Application extends Controller {
 		
 		flash("q", q);
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
-		render("Application/index.html", title, searchresults);
+		
+		String current_basket_content = "[]";
+		try {
+			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
+		} catch (Exception e) {
+			Log2.log.error("Can't get user basket", e);
+		}
+		render("Application/index.html", title, searchresults, current_basket_content);
 	}
 	
 	public static void i18n() {

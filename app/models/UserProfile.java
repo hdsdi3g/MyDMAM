@@ -22,6 +22,7 @@ import hd3gtv.mydmam.auth.AuthenticationUser;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.annotations.AuthorisedForAdminController;
+import hd3gtv.mydmam.db.orm.annotations.HiddenCompactView;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
 import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
@@ -50,6 +51,12 @@ public class UserProfile extends CrudOrmModel {
 	@ReadOnly
 	public String language;
 	
+	@ReadOnly
+	public String selectedbasketname;
+	
+	@HiddenCompactView
+	public Boolean keep_index_deleted_basket_items;
+	
 	@PublishedMethod
 	public void sendTestMail() throws Exception {
 		InternetAddress email_addr = new InternetAddress(email);
@@ -61,18 +68,6 @@ public class UserProfile extends CrudOrmModel {
 			mail = new EndUserBaseMail(Lang.getLocale(language), email_addr, "usertestmail");
 		}
 		
-		/*HashMap<String, Object> variables = new HashMap<String, Object>();
-		try {
-			// TODO clean
-			if (Play.initialized) {
-				Properties messages = Messages.all(language);
-				String real_message = messages.getProperty("crud.field.userprofile.sendTestMail.by", "");
-				variables.put("me_has_sent_this_message", String.format(real_message, longname));
-			} else {
-				throw new Exception();
-			}
-		} catch (Exception e) {
-		}*/
 		mail.send();
 	}
 	

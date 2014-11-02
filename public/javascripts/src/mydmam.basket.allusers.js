@@ -90,14 +90,14 @@
 
 
 /**
- * setTablesButtonsEvents
+ * displayModalManualBasketEditor
  */
 (function(allusers) {
 	allusers.displayModalManualBasketEditor = function(request) {
 		var userkey = request.userkey;
 		var basketname = request.basketname;
 		
-		var userbaskets = allusers.baskets[userkey].baskets;
+		var userbaskets = allusers.baskets[userkey];
 		var actualbasketcontentkeys = [];
 		for (var pos_ub in userbaskets) {
 			if (userbaskets[pos_ub].name === basketname) {
@@ -114,7 +114,7 @@
 		content = content + '<h3 id="myModalLabel">' + i18n("userprofile.baskets.admin.rawview.modal.title", basketname, allusers.usersname[userkey]) + '</h3>';
 		content = content + '</div>';
 		content = content + '<div class="modal-body">';
-		content = content + '<textarea data-basketname="' + basketname + '" data-userkey="' + userkey + '" rows="10" style="width: 100%; margin: 0px; padding: 0px; border-width: 0px;font-size: 10pt; line-height: 11pt; font-family: Monospace;" wrap="off">';
+		content = content + '<textarea data-basketname="' + basketname + '" data-userkey="' + userkey + '" spellcheck="false" rows="10" style="width: 100%; margin: 0px; padding: 0px; border-width: 0px;font-size: 10pt; line-height: 11pt; font-family: Monospace;" wrap="off">';
 		for (var pos in actualbasketcontentkeys) {
 			element = allusers.pathindexelements[actualbasketcontentkeys[pos]];
 			if (element === null) {
@@ -218,7 +218,7 @@
 			/**
 			 * Update local cache
 			 */
-			var userbaskets = allusers.baskets[userkey].baskets;
+			var userbaskets = allusers.baskets[userkey];
 			for (var pos_ub in userbaskets) {
 				if (userbaskets[pos_ub].name === basketname) {
 					userbaskets[pos_ub].content = newbasketcontent;
@@ -307,7 +307,7 @@
 			/**
 			 * During server response waiting time...
 			 */
-			var userbaskets = allusers.baskets[request.userkey].baskets;
+			var userbaskets = allusers.baskets[request.userkey];
 			for (var pos_ub in userbaskets) {
 				if (userbaskets[pos_ub].name === request.basketname) {
 					if (request.actiontodo === "truncatebasket" | request.actiontodo === "removebasket") {
@@ -340,7 +340,7 @@
  */
 (function(allusers) {
 	allusers.displayBasket = function(userkey) {
-		var userbaskets = allusers.baskets[userkey].baskets;
+		var userbaskets = allusers.baskets[userkey];
 		
 		var basketname;
 		var basketcontent;

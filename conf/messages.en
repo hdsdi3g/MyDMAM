@@ -350,11 +350,15 @@ crud.field.userprofile=User settings
 crud.field.userprofile.longname=Name
 crud.field.userprofile.language=Language
 crud.field.userprofile.email=Mail
+crud.field.userprofile.createdate=Created at
+crud.field.userprofile.updatedate=Updated at
 crud.field.userprofile.issaved=Settings are saved
 crud.field.userprofile.sendTestMail=Send a test mail
 crud.field.userprofile.sendTestMail.done=Sended
 crud.field.userprofile.sendTestMail.error=Error during mail send
 crud.field.userprofile.sendTestMail.by=This email was sent automatically for %s
+crud.field.userprofile.selectedbasketname=Selected basket
+crud.field.userprofile.keep_index_deleted_basket_items=Keep deleted items index in the baskets
 
 mailtemplate.please_not_respond=Thank you not to answer to this email.
 

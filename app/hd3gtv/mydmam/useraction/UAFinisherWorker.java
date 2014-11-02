@@ -18,7 +18,6 @@ package hd3gtv.mydmam.useraction;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
-import hd3gtv.mydmam.operation.Basket;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.taskqueue.Job;
@@ -95,11 +94,11 @@ public class UAFinisherWorker extends Worker {
 		if (configuration.remove_user_basket_item) {
 			try {
 				Basket basket = new Basket(user_profile.key);
-				List<String> basket_content = basket.getBasketContent(basket_name);
+				List<String> basket_content = basket.getContent(basket_name);
 				for (Map.Entry<String, SourcePathIndexerElement> entry : elements.entrySet()) {
 					basket_content.remove(entry.getKey());
 				}
-				basket.setBasketContent(basket_name, basket_content);
+				basket.setContent(basket_name, basket_content);
 			} catch (NullPointerException e) {
 				Log2.log.error("Invalid finishing", e);
 			}

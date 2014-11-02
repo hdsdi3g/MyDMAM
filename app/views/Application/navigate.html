@@ -21,7 +21,7 @@
 <script type="text/javascript" charset="UTF-8">
 <!--
 var list_external_positions_storages = %{out.print(hd3gtv.mydmam.module.MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving())}%;
-mydmam.basket.setContent(%{out.print(hd3gtv.mydmam.web.CurrentUserBasket.getBasket())}%);
+mydmam.basket.setContent(${current_basket_content.raw()});
 
 $(document).ready(function() {
 	$("#btnStorage").addClass("active");
