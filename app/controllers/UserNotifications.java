@@ -44,6 +44,7 @@ public class UserNotifications extends Controller {
 	public static void notificationslist() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.pagename");
 		UserProfile user = User.getUserProfile();
+		Notification.updateTasksJobsEvolutionsForNotifications();
 		ArrayList<Map<String, Object>> user_notifications = Notification.getRawFromDatabaseByObserver(user, false);
 		render(title, user_notifications, user);
 	}

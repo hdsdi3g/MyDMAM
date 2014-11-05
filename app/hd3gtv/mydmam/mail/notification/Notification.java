@@ -614,7 +614,7 @@ public class Notification {
 			if (must_update_notification) {
 				record = new JSONObject();
 				notification.exportToDb(record);
-				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
+				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()).setRefresh(true).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
 			}
 		}
 		
