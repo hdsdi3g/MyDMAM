@@ -270,6 +270,29 @@ public class Explorer {
 		return result;
 	}
 	
+	public List<String> getelementIfExists(List<String> _ids) {
+		if (_ids == null) {
+			return new ArrayList<String>(1);
+		}
+		if (_ids.size() == 0) {
+			return new ArrayList<String>(1);
+		}
+		List<String> result = new ArrayList<String>(_ids.size());
+		
+		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
+		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, _ids);
+		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_FILE, _ids);
+		
+		MultiGetItemResponse[] responses = multigetrequestbuilder.execute().actionGet().getResponses();
+		for (int pos = 0; pos < responses.length; pos++) {
+			if (responses[pos].getResponse().isExists() == false) {
+				continue;
+			}
+			result.add(responses[pos].getId());
+		}
+		return result;
+	}
+	
 	public String getStorageNameFromKey(String _id) {
 		if (_id == null) {
 			throw new NullPointerException("\"_id\" can't to be null");

@@ -25,6 +25,7 @@ import hd3gtv.mydmam.db.orm.ORMFormField;
 import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
+import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 import hd3gtv.mydmam.useraction.Basket;
@@ -420,9 +421,12 @@ public class User extends Controller {
 	
 	@Check("navigate")
 	public static void baskets() throws Exception {
-		Basket basket = Basket.getBasketForCurrentPlayUser();
-		
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.pagename");
+		
+		Basket basket = Basket.getBasketForCurrentPlayUser();
+		if (basket.isKeepIndexDeletedBasketItems() == false) {
+			JobsPlugin.executor.submit(new User.AsyncCleanBasket(basket));
+		}
 		
 		Gson gson = new Gson();
 		String all_baskets = gson.toJson(basket.getAll());
@@ -539,6 +543,8 @@ public class User extends Controller {
 	
 	@Check("adminUsers")
 	public static void basketsadmin() throws Exception {
+		JobsPlugin.executor.submit(new User.AsyncAllUsersCleanBaskets());
+		
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.baskets.admin.pagename");
 		
 		Gson gson = new Gson();
@@ -686,4 +692,69 @@ public class User extends Controller {
 		Gson g = new Gson();
 		renderJSON(g.toJson(result));
 	}
+	
+	static class AsyncCleanBasket implements Callable<Boolean> {
+		
+		private Basket basket;
+		
+		public AsyncCleanBasket(Basket basket) {
+			this.basket = basket;
+			if (basket == null) {
+				throw new NullPointerException("\"basket\" can't to be null");
+			}
+		}
+		
+		public Boolean call() throws Exception {
+			List<Map<String, Object>> baskets = basket.getAll();
+			
+			List<String> items_to_resolve = new ArrayList<String>();
+			
+			List<String> basket_items;
+			for (int pos_b = 0; pos_b < baskets.size(); pos_b++) {
+				basket_items = (List<String>) baskets.get(pos_b).get("content");
+				for (int pos_bi = 0; pos_bi < basket_items.size(); pos_bi++) {
+					if (items_to_resolve.contains(basket_items.get(pos_bi)) == false) {
+						items_to_resolve.add(basket_items.get(pos_bi));
+					}
+				}
+			}
+			
+			if (items_to_resolve.isEmpty()) {
+				return true;
+			}
+			
+			Explorer explorer = new Explorer();
+			List<String> items_resolved = explorer.getelementIfExists(items_to_resolve);
+			
+			String basket_name;
+			boolean modified_basket;
+			for (int pos_b = 0; pos_b < baskets.size(); pos_b++) {
+				basket_name = (String) baskets.get(pos_b).get("name");
+				basket_items = (List<String>) baskets.get(pos_b).get("content");
+				modified_basket = false;
+				for (int pos_bi = basket_items.size() - 1; pos_bi > -1; pos_bi--) {
+					if (items_resolved.contains(basket_items.get(pos_bi)) == false) {
+						modified_basket = true;
+						basket_items.remove(pos_bi);
+					}
+				}
+				if (modified_basket) {
+					basket.setContent(basket_name, basket_items);
+				}
+			}
+			
+			return true;
+		}
+	}
+	
+	private static class AsyncAllUsersCleanBaskets implements Callable<Boolean> {
+		
+		public Boolean call() throws Exception {
+			for (Map.Entry<String, List<Map<String, Object>>> entry : Basket.getAllBasketsForAllUsers().entrySet()) {
+				new AsyncCleanBasket(new Basket(entry.getKey())).call();
+			}
+			return true;
+		}
+	}
+	
 }

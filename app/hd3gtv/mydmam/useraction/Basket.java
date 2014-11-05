@@ -63,8 +63,6 @@ public class Basket {
 		}
 	}
 	
-	// TODO keep_index_deleted_basket_items
-	
 	/**
 	 * Play only side.
 	 */
@@ -107,6 +105,14 @@ public class Basket {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		mutator.withRow(CF_BASKETS, user_key).delete();
 		mutator.execute();
+	}
+	
+	public boolean isKeepIndexDeletedBasketItems() throws IOException, ConnectionException {
+		if (user_profile_orm.getInternalElement().keep_index_deleted_basket_items == null) {
+			user_profile_orm.getInternalElement().keep_index_deleted_basket_items = false;
+			user_profile_orm.saveInternalElement();
+		}
+		return user_profile_orm.getInternalElement().keep_index_deleted_basket_items;
 	}
 	
 	private boolean isSelected(String name) {
