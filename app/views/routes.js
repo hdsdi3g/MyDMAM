@@ -23,17 +23,17 @@
 	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
 	mydmam.stat.url = "@{Application.stat()}";
 	
-	mydmam.basket.url.push = "@{User.basket_push}";
-	mydmam.basket.url.pull = "@{User.basket_pull}";
-	mydmam.basket.url.all = "@{User.basket_get_all_user}";
-	mydmam.basket.url.selected = "@{User.basket_get_selected}";
-	mydmam.basket.url.bdelete = "@{User.basket_delete}";
-	mydmam.basket.url.truncate = "@{User.basket_truncate}";
-	mydmam.basket.url.rename = "@{User.basket_rename}";
-	mydmam.basket.url.create = "@{User.basket_create}";
-	mydmam.basket.url.switch_selected = "@{User.basket_switch_selected}";
+	mydmam.basket.url.push = "@{UserBasket.basket_push}";
+	mydmam.basket.url.pull = "@{UserBasket.basket_pull}";
+	mydmam.basket.url.all = "@{UserBasket.basket_get_all_user}";
+	mydmam.basket.url.selected = "@{UserBasket.basket_get_selected}";
+	mydmam.basket.url.bdelete = "@{UserBasket.basket_delete}";
+	mydmam.basket.url.truncate = "@{UserBasket.basket_truncate}";
+	mydmam.basket.url.rename = "@{UserBasket.basket_rename}";
+	mydmam.basket.url.create = "@{UserBasket.basket_create}";
+	mydmam.basket.url.switch_selected = "@{UserBasket.basket_switch_selected}";
 	#{secure.check 'adminUsers'}
-		mydmam.basket.allusers.ajaxurl = "@{User.basket_admin_action}";
+		mydmam.basket.allusers.ajaxurl = "@{UserBasket.basket_admin_action}";
 	#{/secure.check}
 	
 #{/secure.check}
@@ -58,8 +58,8 @@
 	mydmam.service.url.laststatusworkers = "@{Service.laststatusworkers()}";
 #{/secure.check}
 
-mydmam.notification.url.notificationresolveusers = "@{User.notificationresolveusers}";
-mydmam.notification.url.notificationupdateread = "@{User.notificationupdateread(key='keyparam1')}";
+mydmam.notification.url.notificationresolveusers = "@{UserNotifications.notificationresolveusers}";
+mydmam.notification.url.notificationupdateread = "@{UserNotifications.notificationupdateread(key='keyparam1')}";
 mydmam.notification.url.queuegettasksjobs = "@{Queue.gettasksjobs}";
 
 #{secure.check 'userAction'}

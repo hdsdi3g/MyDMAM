@@ -129,11 +129,11 @@ $(document).ready(function() {
 					</li>
 					#{secure.check 'navigate'}
 						<li>
-							<a href="@{User.baskets()}"><i class="icon-shopping-cart"></i> &{'userprofile.baskets.pagename'}</a>
+							<a href="@{UserBasket.baskets()}"><i class="icon-shopping-cart"></i> &{'userprofile.baskets.pagename'}</a>
 						</li>
 					#{/secure.check}
 					<li>
-						<a href="@{User.notificationslist()}"><i class="icon-bell"></i> &{'userprofile.notifications.pagename'}</a>
+						<a href="@{UserNotifications.notificationslist()}"><i class="icon-bell"></i> &{'userprofile.notifications.pagename'}</a>
 					</li>
 					<li>
 						<a href="@{Secure.logout()}"><i class="icon-off"></i> &{'maingrid.disconnect'}</a>
@@ -246,10 +246,10 @@ $(document).ready(function() {
 					
 					#{secure.check 'adminUsers'}
 						<li>
-							<a href="@{User.basketsadmin}"><i class="icon-shopping-cart"></i> &{'userprofile.baskets.admin.pagename'}</a>
+							<a href="@{UserBasket.basketsadmin}"><i class="icon-shopping-cart"></i> &{'userprofile.baskets.admin.pagename'}</a>
 						</li>
 						<li>
-							<a href="@{User.notificationsadminlist}"><i class="icon-bell"></i> &{'userprofile.notifications.admin.pagename'}</a>
+							<a href="@{UserNotifications.notificationsadminlist}"><i class="icon-bell"></i> &{'userprofile.notifications.admin.pagename'}</a>
 						</li>
 					#{/secure.check}
 					

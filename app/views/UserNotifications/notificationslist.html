@@ -99,7 +99,7 @@
 								#{/else}
 							#{/else}
 							<p>
-								<a class="btn btn-primary" href="@{User.notificationclose(key=notification.key)}">
+								<a class="btn btn-primary" href="@{UserNotifications.notificationclose(key=notification.key)}">
 									<i class="icon-ok icon-white"></i> &{'userprofile.notifications.close'}
 								</a>
 							</p>
@@ -112,7 +112,7 @@
 									<span class="label"><i>&{'userprofile.notifications.nevercommented'}</i></span>
 								#{/else}
 							</p>
-							#{form action:@User.notificationupdatecomment(key=notification.key), enctype:'multipart/form-data'}
+							#{form action:@UserNotifications.notificationupdatecomment(key=notification.key), enctype:'multipart/form-data'}
 								<p>
 									<textarea name="comment" class="span12" placeholder="&{'userprofile.notifications.youcanentercomment'}">${notification.users_comment}</textarea>
 								</p>
@@ -127,7 +127,7 @@
 								<p>								
 									<a 
 										class="btn btn-mini #{if n_reason.value}btn-success#{/if}#{else}btn-danger#{/else}"
-										href="@{User.notificationupdatealert(key=notification.key, reason=n_reason.key, notify=(n_reason.value==false))}"
+										href="@{UserNotifications.notificationupdatealert(key=notification.key, reason=n_reason.key, notify=(n_reason.value==false))}"
 										title=" #{if n_reason.value}&{'userprofile.notifications.notify.disable'}#{/if}#{else}&{'userprofile.notifications.notify.enable'}#{/else}">
 									#{if n_reason.value}
 										<i class="icon-volume-off icon-white"></i>

@@ -119,7 +119,7 @@ public class Application extends Controller {
 			Basket basket = Basket.getBasketForCurrentPlayUser();
 			current_basket_content = basket.getSelectedContentJson();
 			if (basket.isKeepIndexDeletedBasketItems() == false) {
-				JobsPlugin.executor.submit(new User.AsyncCleanBasket(basket));
+				JobsPlugin.executor.submit(new UserBasket.AsyncCleanBasket(basket));
 			}
 		} catch (Exception e) {
 			Log2.log.error("Can't get user basket", e);
