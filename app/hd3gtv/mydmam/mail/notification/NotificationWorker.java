@@ -18,28 +18,17 @@ package hd3gtv.mydmam.mail.notification;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.mail.EndUserBaseMail;
-import hd3gtv.mydmam.mail.MailPriority;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
 import hd3gtv.mydmam.taskqueue.Job;
 import hd3gtv.mydmam.taskqueue.Profile;
-import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 import hd3gtv.mydmam.taskqueue.Worker;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import models.UserProfile;
-
-import javax.mail.internet.InternetAddress;
 
 import org.elasticsearch.indices.IndexMissingException;
-
-import play.i18n.Lang;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
@@ -124,54 +113,16 @@ public class NotificationWorker extends Worker {
 	}
 	
 	public void process(Job job) throws Exception {
-		stop = false;
 		try {
 			Elasticsearch.enableTTL(Notification.ES_INDEX, Notification.ES_DEFAULT_TYPE);
 			
 			int count = 0;
 			if (job.getProfile().equals(notification_alert_profile)) {
-				Notification.updateTasksJobsEvolutionsForNotifications();
+				count = Notification.updateTasksJobsEvolutionsForNotifications();
 				
-				Map<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_list = Notification.getUsersNotifyList();
-				if (users_notify_list.isEmpty()) {
+				if (count == 0) {
 					job.last_message = "No notifications to send";
 					return;
-				}
-				UserProfile user;
-				NotifyReason reason;
-				List<Notification> notifications;
-				HashMap<String, Object> mail_vars;
-				HashMap<Object, Object> reasons_vars;
-				
-				for (Map.Entry<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_entry : users_notify_list.entrySet()) {
-					if (stop) {
-						return;
-					}
-					user = users_notify_entry.getKey();
-					EndUserBaseMail usermail = new EndUserBaseMail(Lang.getLocale(user.language), new InternetAddress(user.email), "notification");
-					mail_vars = new HashMap<String, Object>();
-					reasons_vars = new HashMap<Object, Object>();
-					
-					for (Map.Entry<NotifyReason, List<Notification>> entry_notifyreason : users_notify_entry.getValue().entrySet()) {
-						reason = entry_notifyreason.getKey();
-						
-						notifications = entry_notifyreason.getValue();
-						List<Map<String, Object>> mail_var_notifications = new ArrayList<Map<String, Object>>();
-						
-						for (int pos_ntf = 0; pos_ntf < notifications.size(); pos_ntf++) {
-							if (stop) {
-								return;
-							}
-							mail_var_notifications.add(notifications.get(pos_ntf).exportToMailVars());
-							if (notifications.get(pos_ntf).getActualSummaryTaskJobStatus() == TaskJobStatus.ERROR) {
-								usermail.setMailPriority(MailPriority.HIGHEST);
-							}
-						}
-						reasons_vars.put(reason.toString().toLowerCase(), mail_var_notifications);
-					}
-					mail_vars.put("reasons", reasons_vars);
-					usermail.send(mail_vars);
-					count++;
 				}
 				job.last_message = count + " notifications(s) sended";
 				
@@ -202,10 +153,7 @@ public class NotificationWorker extends Worker {
 		return profiles;
 	}
 	
-	private boolean stop;
-	
 	public synchronized void forceStopProcess() throws Exception {
-		stop = true;
 	}
 	
 	public boolean isConfigurationAllowToEnabled() {

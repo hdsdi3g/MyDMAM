@@ -20,6 +20,8 @@ package hd3gtv.mydmam.mail.notification;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
+import hd3gtv.mydmam.mail.EndUserBaseMail;
+import hd3gtv.mydmam.mail.MailPriority;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 
@@ -34,6 +36,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 
 import models.UserProfile;
+
+import javax.mail.internet.InternetAddress;
 
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -52,6 +56,8 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import play.i18n.Lang;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
@@ -528,7 +534,7 @@ public class Notification {
 		return getSummaryTaskJobStatus(linked_tasksjobs);
 	}
 	
-	public static void updateTasksJobsEvolutionsForNotifications() throws Exception {
+	public static int updateTasksJobsEvolutionsForNotifications() throws Exception {
 		Client client = Elasticsearch.getClient();
 		
 		/**
@@ -543,88 +549,201 @@ public class Notification {
 		
 		SearchHit[] hits = request.execute().actionGet().getHits().hits();
 		
-		if (hits.length == 0) {
-			return;
-		}
-		
-		BulkRequestBuilder bulkrequest = client.prepareBulk();
-		
-		CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
-		JSONObject record;
-		TaskJobStatus new_status_summary;
-		TaskJobStatus previous_status_summary;
-		boolean must_update_notification;
-		
-		JSONParser parser = new JSONParser();
-		for (int pos = 0; pos < hits.length; pos++) {
-			/**
-			 * For all found notifications
-			 */
-			parser.reset();
-			Notification notification = new Notification();
-			notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
-			must_update_notification = false;
+		if (hits.length > 0) {
+			BulkRequestBuilder bulkrequest = client.prepareBulk();
 			
-			if (notification.linked_tasksjobs.isEmpty()) {
-				continue;
-			}
+			CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
+			JSONObject record;
+			TaskJobStatus new_status_summary;
+			TaskJobStatus previous_status_summary;
+			boolean must_update_notification;
 			
-			NotificationUpdate nu = (NotificationUpdate) orm_engine.create();
-			nu.key = notification.key;
-			
-			/**
-			 * Compare tasks/jobs status and push new notification update if needed
-			 */
-			LinkedHashMap<String, TaskJobStatus> new_status = Broker.getStatusForTasksOrJobsByKeys(notification.linked_tasksjobs.keySet());
-			new_status_summary = getSummaryTaskJobStatus(new_status);
-			previous_status_summary = getSummaryTaskJobStatus(notification.linked_tasksjobs);
-			
-			if (new_status_summary != previous_status_summary) {
-				if (new_status_summary == TaskJobStatus.ERROR) {
-					nu.is_new_error = true;
-				} else if (new_status_summary == TaskJobStatus.DONE) {
-					nu.is_new_done = true;
-				} else if (new_status_summary == TaskJobStatus.CANCELED) {
-					nu.is_new_done = true;
+			JSONParser parser = new JSONParser();
+			for (int pos = 0; pos < hits.length; pos++) {
+				/**
+				 * For all found notifications
+				 */
+				parser.reset();
+				Notification notification = new Notification();
+				notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
+				must_update_notification = false;
+				
+				if (notification.linked_tasksjobs.isEmpty()) {
+					continue;
 				}
-				if (nu.isNeedUpdate()) {
-					orm_engine.saveInternalElement();
-				}
-				must_update_notification = true;
-			}
-			
-			/**
-			 * Update Tasks and Jobs status cache in notification
-			 */
-			for (Map.Entry<String, TaskJobStatus> entry : notification.linked_tasksjobs.entrySet()) {
-				String taskjobkey = entry.getKey();
-				TaskJobStatus current_taskjob = entry.getValue();
-				if (new_status.containsKey(taskjobkey) == false) {
-					/**
-					 * If task/job is referenced in notification and deleted from Broker.
-					 */
-					entry.setValue(TaskJobStatus.DONE);
-					must_update_notification = true;
-				} else if (current_taskjob != new_status.get(taskjobkey)) {
-					entry.setValue(new_status.get(taskjobkey));
+				
+				NotificationUpdate nu = (NotificationUpdate) orm_engine.create();
+				nu.key = notification.key;
+				
+				/**
+				 * Compare tasks/jobs status and push new notification update if needed
+				 */
+				LinkedHashMap<String, TaskJobStatus> new_status = Broker.getStatusForTasksOrJobsByKeys(notification.linked_tasksjobs.keySet());
+				new_status_summary = getSummaryTaskJobStatus(new_status);
+				previous_status_summary = getSummaryTaskJobStatus(notification.linked_tasksjobs);
+				
+				if (new_status_summary != previous_status_summary) {
+					if (new_status_summary == TaskJobStatus.ERROR) {
+						nu.is_new_error = true;
+					} else if (new_status_summary == TaskJobStatus.DONE) {
+						nu.is_new_done = true;
+					} else if (new_status_summary == TaskJobStatus.CANCELED) {
+						nu.is_new_done = true;
+					}
+					if (nu.isNeedUpdate()) {
+						orm_engine.saveInternalElement();
+					}
 					must_update_notification = true;
 				}
+				
+				/**
+				 * Update Tasks and Jobs status cache in notification
+				 */
+				for (Map.Entry<String, TaskJobStatus> entry : notification.linked_tasksjobs.entrySet()) {
+					String taskjobkey = entry.getKey();
+					TaskJobStatus current_taskjob = entry.getValue();
+					if (new_status.containsKey(taskjobkey) == false) {
+						/**
+						 * If task/job is referenced in notification and deleted from Broker.
+						 */
+						entry.setValue(TaskJobStatus.DONE);
+						must_update_notification = true;
+					} else if (current_taskjob != new_status.get(taskjobkey)) {
+						entry.setValue(new_status.get(taskjobkey));
+						must_update_notification = true;
+					}
+				}
+				
+				if (must_update_notification) {
+					record = new JSONObject();
+					notification.exportToDb(record);
+					bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()).setRefresh(true).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
+				}
 			}
 			
-			if (must_update_notification) {
-				record = new JSONObject();
-				notification.exportToDb(record);
-				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()).setRefresh(true).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
+			/**
+			 * Record all notifications updates
+			 */
+			if (bulkrequest.numberOfActions() > 0) {
+				bulkrequest.execute().actionGet();
 			}
 		}
 		
 		/**
-		 * Record all notifications updates
+		 * Request pending notifications for user
 		 */
-		if (bulkrequest.numberOfActions() > 0) {
-			bulkrequest.execute().actionGet();
+		Map<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_list = new HashMap<UserProfile, Map<NotifyReason, List<Notification>>>();
+		
+		CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
+		if (orm_engine.aquireLock(10, TimeUnit.SECONDS) == false) {
+			return 0;
 		}
 		
+		List<CrudOrmModel> raw_notify_list = orm_engine.list();
+		if (raw_notify_list == null) {
+			orm_engine.releaseLock();
+			return 0;
+		}
+		if (raw_notify_list.size() == 0) {
+			orm_engine.releaseLock();
+			return 0;
+		}
+		Map<Notification, List<NotifyReason>> globalnotifylists = new HashMap<Notification, List<NotifyReason>>();
+		
+		NotificationUpdate nu;
+		for (int pos = 0; pos < raw_notify_list.size(); pos++) {
+			nu = (NotificationUpdate) raw_notify_list.get(pos);
+			Notification notification = getFromDatabase(nu.key);
+			if (notification == null) {
+				/**
+				 * Can't found notification
+				 */
+				continue;
+			}
+			List<NotifyReason> reasons = nu.getReasons();
+			if (reasons.size() > 0) {
+				globalnotifylists.put(notification, reasons);
+			}
+			orm_engine.delete(nu.key);
+		}
+		
+		orm_engine.releaseLock();
+		
+		if (globalnotifylists.isEmpty()) {
+			return 0;
+		}
+		
+		Notification notification;
+		List<NotifyReason> reasons;
+		NotifyReason reason;
+		List<UserProfile> user_list;
+		UserProfile user;
+		Map<NotifyReason, List<Notification>> notify_list_map;
+		List<Notification> notification_list;
+		
+		for (Map.Entry<Notification, List<NotifyReason>> notifylist : globalnotifylists.entrySet()) {
+			notification = notifylist.getKey();
+			reasons = notifylist.getValue();
+			for (int pos_rlist = 0; pos_rlist < reasons.size(); pos_rlist++) {
+				reason = reasons.get(pos_rlist);
+				user_list = notification.notify_list.get(reason);
+				
+				for (int pos_userp = 0; pos_userp < user_list.size(); pos_userp++) {
+					user = user_list.get(pos_userp);
+					if (users_notify_list.containsKey(user)) {
+						notify_list_map = users_notify_list.get(user);
+					} else {
+						notify_list_map = new HashMap<NotifyReason, List<Notification>>();
+						users_notify_list.put(user, notify_list_map);
+					}
+					if (notify_list_map.containsKey(reason)) {
+						notification_list = notify_list_map.get(reason);
+						if (notification_list.contains(notification) == false) {
+							notification_list.add(notification);
+						}
+					} else {
+						notification_list = new ArrayList<Notification>();
+						notification_list.add(notification);
+						notify_list_map.put(reason, notification_list);
+					}
+				}
+			}
+		}
+		
+		/**
+		 * Send mails
+		 */
+		int count = 0;
+		
+		List<Notification> notifications;
+		HashMap<String, Object> mail_vars;
+		HashMap<Object, Object> reasons_vars;
+		
+		for (Map.Entry<UserProfile, Map<NotifyReason, List<Notification>>> users_notify_entry : users_notify_list.entrySet()) {
+			user = users_notify_entry.getKey();
+			EndUserBaseMail usermail = new EndUserBaseMail(Lang.getLocale(user.language), new InternetAddress(user.email), "notification");
+			mail_vars = new HashMap<String, Object>();
+			reasons_vars = new HashMap<Object, Object>();
+			
+			for (Map.Entry<NotifyReason, List<Notification>> entry_notifyreason : users_notify_entry.getValue().entrySet()) {
+				reason = entry_notifyreason.getKey();
+				
+				notifications = entry_notifyreason.getValue();
+				List<Map<String, Object>> mail_var_notifications = new ArrayList<Map<String, Object>>();
+				
+				for (int pos_ntf = 0; pos_ntf < notifications.size(); pos_ntf++) {
+					mail_var_notifications.add(notifications.get(pos_ntf).exportToMailVars());
+					if (notifications.get(pos_ntf).getActualSummaryTaskJobStatus() == TaskJobStatus.ERROR) {
+						usermail.setMailPriority(MailPriority.HIGHEST);
+					}
+				}
+				reasons_vars.put(reason.toString().toLowerCase(), mail_var_notifications);
+			}
+			mail_vars.put("reasons", reasons_vars);
+			usermail.send(mail_vars);
+			count++;
+		}
+		return count;
 	}
 	
 	/**
@@ -768,91 +887,6 @@ public class Notification {
 		} else {
 			return super.hashCode();
 		}
-	}
-	
-	/**
-	 * Don't update notifications, juste return current Notify bulks.
-	 * @return never null
-	 */
-	public static Map<UserProfile, Map<NotifyReason, List<Notification>>> getUsersNotifyList() throws Exception {
-		Map<UserProfile, Map<NotifyReason, List<Notification>>> usersnotifylist = new HashMap<UserProfile, Map<NotifyReason, List<Notification>>>();
-		
-		CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
-		if (orm_engine.aquireLock(10, TimeUnit.SECONDS) == false) {
-			return usersnotifylist;
-		}
-		
-		List<CrudOrmModel> raw_notify_list = orm_engine.list();
-		if (raw_notify_list == null) {
-			orm_engine.releaseLock();
-			return usersnotifylist;
-		}
-		if (raw_notify_list.size() == 0) {
-			orm_engine.releaseLock();
-			return usersnotifylist;
-		}
-		Map<Notification, List<NotifyReason>> globalnotifylists = new HashMap<Notification, List<NotifyReason>>();
-		
-		NotificationUpdate nu;
-		for (int pos = 0; pos < raw_notify_list.size(); pos++) {
-			nu = (NotificationUpdate) raw_notify_list.get(pos);
-			Notification notification = getFromDatabase(nu.key);
-			if (notification == null) {
-				/**
-				 * Can't found notification
-				 */
-				continue;
-			}
-			List<NotifyReason> reasons = nu.getReasons();
-			if (reasons.size() > 0) {
-				globalnotifylists.put(notification, reasons);
-			}
-			orm_engine.delete(nu.key);
-		}
-		
-		orm_engine.releaseLock();
-		
-		if (globalnotifylists.isEmpty()) {
-			return usersnotifylist;
-		}
-		
-		Notification notification;
-		List<NotifyReason> reasons;
-		NotifyReason reason;
-		List<UserProfile> user_list;
-		UserProfile user;
-		Map<NotifyReason, List<Notification>> notify_list_map;
-		List<Notification> notification_list;
-		
-		for (Map.Entry<Notification, List<NotifyReason>> notifylist : globalnotifylists.entrySet()) {
-			notification = notifylist.getKey();
-			reasons = notifylist.getValue();
-			for (int pos_rlist = 0; pos_rlist < reasons.size(); pos_rlist++) {
-				reason = reasons.get(pos_rlist);
-				user_list = notification.notify_list.get(reason);
-				
-				for (int pos_userp = 0; pos_userp < user_list.size(); pos_userp++) {
-					user = user_list.get(pos_userp);
-					if (usersnotifylist.containsKey(user)) {
-						notify_list_map = usersnotifylist.get(user);
-					} else {
-						notify_list_map = new HashMap<NotifyReason, List<Notification>>();
-						usersnotifylist.put(user, notify_list_map);
-					}
-					if (notify_list_map.containsKey(reason)) {
-						notification_list = notify_list_map.get(reason);
-						if (notification_list.contains(notification) == false) {
-							notification_list.add(notification);
-						}
-					} else {
-						notification_list = new ArrayList<Notification>();
-						notification_list.add(notification);
-						notify_list_map.put(reason, notification_list);
-					}
-				}
-			}
-		}
-		return usersnotifylist;
 	}
 	
 	public static Notification getFromDatabase(String key) throws Exception {

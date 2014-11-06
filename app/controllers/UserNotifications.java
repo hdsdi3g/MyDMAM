@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import models.UserProfile;
 
@@ -34,6 +35,7 @@ import org.json.simple.JSONObject;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
+import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
 import ext.MydmamExtensions;
@@ -41,10 +43,23 @@ import ext.MydmamExtensions;
 @With(Secure.class)
 @SuppressWarnings("unchecked")
 public class UserNotifications extends Controller {
+	
+	private static class UpdateNotifications implements Callable<Boolean> {
+		public UpdateNotifications() {
+		}
+		
+		public Boolean call() throws Exception {
+			Notification.updateTasksJobsEvolutionsForNotifications();
+			return true;
+		}
+	}
+	
 	public static void notificationslist() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.pagename");
 		UserProfile user = User.getUserProfile();
-		Notification.updateTasksJobsEvolutionsForNotifications();
+		
+		JobsPlugin.executor.submit(new UpdateNotifications());
+		
 		ArrayList<Map<String, Object>> user_notifications = Notification.getRawFromDatabaseByObserver(user, false);
 		render(title, user_notifications, user);
 	}
@@ -168,6 +183,8 @@ public class UserNotifications extends Controller {
 	@SuppressWarnings("rawtypes")
 	@Check("adminUsers")
 	public static void notificationsadminlist() throws Exception {
+		JobsPlugin.executor.submit(new UpdateNotifications());
+		
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.admin.pagename");
 		ArrayList<Map<String, Object>> user_notifications = Notification.getAdminListFromDatabase();
 		
