@@ -33,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -270,4 +271,30 @@ public class Application extends Controller {
 		renderJSON(result.toJSONString());
 	}
 	
+	public static void test() {
+		String title = "Test page";
+		render(title);
+	}
+	
+	public static void testajax() {
+		String request = params.get("rqs");
+		if (request == null) {
+			request = "()";
+		}
+		System.out.println(request);// XXX
+		
+		ArrayList<HashMap<String, String>> list = new ArrayList<HashMap<String, String>>(3);
+		
+		HashMap<String, String> v1 = new HashMap<String, String>(1);
+		v1.put("jvalue", "value" + request + "1");
+		HashMap<String, String> v2 = new HashMap<String, String>(1);
+		v2.put("jvalue", "value" + request + "2");
+		HashMap<String, String> v3 = new HashMap<String, String>(1);
+		v3.put("jvalue", "value" + request + "3");
+		
+		list.add(v1);
+		list.add(v2);
+		list.add(v3);
+		renderJSON(list);
+	}
 }

@@ -1,0 +1,83 @@
+*{
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * 
+}*
+#{extends 'maingrid.html' /}
+
+<div class="container">
+	<p class="lead">Test</p>
+	<input type="test" id="selectme" class="path-selectize" />
+	<p>
+		<span id="selectvalue" />
+	</p>
+</div>
+
+<script type="text/javascript" charset="UTF-8">
+<!--
+$(document).ready(function() {
+	// https://github.com/brianreavis/selectize.js/blob/master/docs/usage.md
+	var ajaxurl = "@{Application.testajax()}";
+	var options = {
+		delimiter: '/',
+		persist: false,
+	    maxItems: null,
+    	valueField: 'jvalue',
+	    labelField: 'jvalue',
+	    searchField: ['jvalue'],
+	    preload: true,
+	    render: {
+	        item: function(item, escape) {
+	            return '<div class="selectize-path-item">/' + escape(item.jvalue) + '</div>';
+	        }
+	    },
+        option: function(item, escape) {
+            return '<div>Directory: ' + escape(item.jvalue) + '</div>';
+        },
+        load: function(query, callback) {
+        	$.ajax({
+	            url: ajaxurl,
+	            type: 'GET',
+	            data: {
+	                rqs: query,
+	            },
+	            error: function() {
+	                callback();
+	            },
+	            success: function(response) {
+			    	console.log(response);
+                    callback(response);
+	            }
+	        });
+        },
+        onChange: function(value) {
+        	//TODO clean propositions
+        }
+   	};
+
+	$('#selectme').selectize(options);
+	
+	$('#selectme').each(function() {
+		var thisinput = $(this);
+		var update = function(e) {
+			$("#selectvalue").text(JSON.stringify(thisinput.val()));
+		};
+
+		$(this).on('change', update);
+		update();
+	});
+	
+});
+-->
+</script>
