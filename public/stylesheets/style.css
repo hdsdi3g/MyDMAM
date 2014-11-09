@@ -168,3 +168,64 @@ div.ua-dropdown li.nav-header {
     margin: 0 !important;
     padding: 1px 0px !important;
 }
+
+/**
+ * ==============================================================================
+ *  Navigator input selection functions (MyDMAM NIS)
+ */
+
+input.mynis {
+	display: none;
+}
+
+div.mynis {
+}
+
+div.mynis div.inputbox:after {
+    clear: left;
+    content: " ";
+    display: block;
+}
+
+div.mynis div.inputbox {
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
+    transition: border 0.2s linear 0s, box-shadow 0.2s linear 0s;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    box-sizing: border-box;
+    display: inline-block;
+    overflow: hidden;
+    padding: 7px 10px;
+    margin-bottom: -5px;
+    position: relative;
+    width: 100%;
+    z-index: 1;
+    background: none repeat scroll 0 0 #ffffff;
+    cursor: text;
+    display: inline-block;
+}
+
+div.mynis div.inputbox > input {
+	background: none repeat scroll 0 0 rgba(0, 0, 0, 0) !important;
+    border: 0 none !important;
+    box-shadow: none !important;
+    display: inline-block !important;
+    line-height: inherit !important;
+    margin: 0 !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    text-indent: 0 !important;
+}
+
+div.mynis div.dropdownbox {
+	z-index: 1000;
+	box-sizing: border-box;
+	position: absolute;
+}
+
+div.mynis div.dropdownbox ul.dropdown-menu {
+	overflow-y: auto;
+	max-height: 15em;
+}

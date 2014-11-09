@@ -20,16 +20,6 @@
  */
 
 /**
- * Prepare consts and vars.
- */
-(function(mydmam) {
-	mydmam.navigator = {};
-	var navigator = mydmam.navigator;
-	
-	navigator.url = {};
-})(window.mydmam);
-
-/**
  * displayStoragePathNavigator
  * @param currentpage is default to 0 (the first page)
  */

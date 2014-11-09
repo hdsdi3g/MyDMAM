@@ -22,6 +22,12 @@
 	<p>
 		<span id="selectvalue" />
 	</p>
+	<hr />
+	<input type="text" id="pathselectvalue" /><br>
+	<div class="path-select" data-inputtarget="pathselectvalue"></div>
+	<hr />
+	<input type="text" id="pathselectvalue2" /><br>
+	<div class="path-select" data-inputtarget="pathselectvalue2"></div>
 </div>
 
 <script type="text/javascript" charset="UTF-8">
@@ -29,6 +35,7 @@
 $(document).ready(function() {
 	// https://github.com/brianreavis/selectize.js/blob/master/docs/usage.md
 	var ajaxurl = "@{Application.testajax()}";
+
 	var options = {
 		delimiter: '/',
 		persist: false,
@@ -56,17 +63,13 @@ $(document).ready(function() {
 	                callback();
 	            },
 	            success: function(response) {
-			    	console.log(response);
                     callback(response);
 	            }
 	        });
         },
-        onChange: function(value) {
-        	//TODO clean propositions
-        }
    	};
 
-	$('#selectme').selectize(options);
+	var selectize_instance = $('#selectme').selectize(options);
 	
 	$('#selectme').each(function() {
 		var thisinput = $(this);
@@ -78,6 +81,7 @@ $(document).ready(function() {
 		update();
 	});
 	
+	mydmam.navigator.inputselect.create("div.path-select");
 });
 -->
 </script>
