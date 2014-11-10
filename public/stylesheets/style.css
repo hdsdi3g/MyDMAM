@@ -229,3 +229,20 @@ div.mynis div.dropdownbox ul.dropdown-menu {
 	overflow-y: auto;
 	max-height: 15em;
 }
+
+div.mynis div.dropdownbox ul.dropdown-menu {
+	overflow-y: auto;
+	max-height: 15em;
+}
+
+div.mynis div.dropdownbox ul.dropdown-menu a.dropdownitem.hovered {
+	background-color: #0081c2;
+	background-image: linear-gradient(to bottom, #08c, #0077b3);
+	background-repeat: repeat-x;
+	color: #fff;
+	text-decoration: none;
+}
+
+div.mynis div.dropdownbox ul.dropdown-menu a.dropdownitem.hovered i {
+	background-image: url("../img/glyphicons-halflings-white.png");
+}

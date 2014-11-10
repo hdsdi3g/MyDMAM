@@ -28,6 +28,7 @@ public class StatElement {
 	public static final String SCOPE_PATHINFO = "pathinfo";
 	public static final String SCOPE_MTD_SUMMARY = "mtdsummary";
 	public static final String SCOPE_COUNT_ITEMS = "countitems";
+	public static final String SCOPE_ONLYDIRECTORIES = "onlydirs";
 	
 	StatElement() {
 	}

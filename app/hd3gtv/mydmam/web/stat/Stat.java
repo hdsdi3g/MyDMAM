@@ -124,17 +124,19 @@ public class Stat {
 		}
 	}
 	
-	private HashMap<String, HashMap<String, SourcePathIndexerElement>> populate_dirlists() {
+	private HashMap<String, Explorer.DirectoryContent> populate_dirlists() {
+		boolean count_items_for_request_dir = scopes_element.contains(StatElement.SCOPE_COUNT_ITEMS);
 		boolean count_items = scopes_subelements.contains(StatElement.SCOPE_COUNT_ITEMS);
+		boolean only_directories = scopes_subelements.contains(StatElement.SCOPE_ONLYDIRECTORIES);
 		
-		HashMap<String, HashMap<String, SourcePathIndexerElement>> map_dir_list = explorer.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size);
+		HashMap<String, Explorer.DirectoryContent> map_dir_list = explorer.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, only_directories);
 		
 		HashMap<String, SourcePathIndexerElement> dir_list;
 		for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
 			if (map_dir_list.containsKey(entry.getKey()) == false) {
 				continue;
 			}
-			dir_list = map_dir_list.get(entry.getKey());
+			dir_list = map_dir_list.get(entry.getKey()).content;
 			if (dir_list.isEmpty()) {
 				continue;
 			}
@@ -150,6 +152,9 @@ public class Stat {
 				entry.getValue().items.put(dir_list_entry.getKey(), s_element);
 			}
 			
+			if (count_items_for_request_dir) {
+				entry.getValue().items_total = map_dir_list.get(entry.getKey()).directory_size;
+			}
 			entry.getValue().items_page_from = page_from;
 			entry.getValue().items_page_size = page_size;
 		}
@@ -238,12 +243,12 @@ public class Stat {
 		return getSummariesByContainers(Operations.getByPathIndexId(pathelementkeys, true));
 	}
 	
-	private void populate_dir_list_mtd_summary(HashMap<String, HashMap<String, SourcePathIndexerElement>> map_dir_list) {
+	private void populate_dir_list_mtd_summary(HashMap<String, Explorer.DirectoryContent> map_dir_list) {
 		ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
 		Map<String, Map<String, Object>> summaries = null;
 		
-		for (Map.Entry<String, HashMap<String, SourcePathIndexerElement>> dir_list : map_dir_list.entrySet()) {
-			pathelements.addAll(dir_list.getValue().values());
+		for (Map.Entry<String, Explorer.DirectoryContent> dir_list : map_dir_list.entrySet()) {
+			pathelements.addAll(dir_list.getValue().content.values());
 		}
 		summaries = getSummariesByPathElements(pathelements);
 		
@@ -271,7 +276,7 @@ public class Stat {
 				populate_pathinfo();
 			}
 			
-			HashMap<String, HashMap<String, SourcePathIndexerElement>> map_dir_list = null;
+			HashMap<String, Explorer.DirectoryContent> map_dir_list = null;
 			
 			if (scopes_element.contains(StatElement.SCOPE_DIRLIST)) {
 				map_dir_list = populate_dirlists();

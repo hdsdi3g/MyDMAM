@@ -20,6 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.web.stat.Stat;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -315,17 +316,26 @@ public class Explorer {
 		return (String) jo.get("storagename");
 	}
 	
+	public class DirectoryContent {
+		public HashMap<String, SourcePathIndexerElement> content;
+		public long directory_size;
+		
+		private DirectoryContent() {
+		}
+	}
+	
 	/**
 	 * @param from for each _ids
 	 * @param size for each _ids
 	 * @return never null, _id parent key > element key > element
+	 * @see Stat
 	 */
-	public HashMap<String, HashMap<String, SourcePathIndexerElement>> getDirectoryContentByIdkeys(List<String> _ids, int from, int size) {
+	public HashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int size, boolean only_directories) {
 		if (_ids == null) {
-			return new HashMap<String, HashMap<String, SourcePathIndexerElement>>(1);
+			return new HashMap<String, DirectoryContent>(1);
 		}
 		if (_ids.size() == 0) {
-			return new HashMap<String, HashMap<String, SourcePathIndexerElement>>(1);
+			return new HashMap<String, DirectoryContent>(1);
 		}
 		
 		MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(client);
@@ -334,7 +344,11 @@ public class Explorer {
 			String _id = _ids.get(pos);
 			SearchRequestBuilder request = client.prepareSearch();
 			request.setIndices(Importer.ES_INDEX);
-			request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
+			if (only_directories) {
+				request.setTypes(Importer.ES_TYPE_DIRECTORY);
+			} else {
+				request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
+			}
 			request.setQuery(QueryBuilders.termQuery("parentpath", _id.toLowerCase()));
 			request.setFrom(from * size);
 			request.setSize(size);
@@ -345,11 +359,10 @@ public class Explorer {
 		
 		MultiSearchResponse.Item[] responses = multisearchrequestbuilder.execute().actionGet().getResponses();
 		
-		HashMap<String, HashMap<String, SourcePathIndexerElement>> result = new HashMap<String, HashMap<String, SourcePathIndexerElement>>();
+		HashMap<String, DirectoryContent> map_dir_list = new HashMap<String, DirectoryContent>();
 		
 		SearchResponse response;
 		SearchHit[] hits;
-		HashMap<String, SourcePathIndexerElement> sub_result;
 		String parent_key;
 		SourcePathIndexerElement element;
 		for (int pos = 0; pos < responses.length; pos++) {
@@ -358,21 +371,24 @@ public class Explorer {
 			if (hits.length == 0) {
 				continue;
 			}
-			sub_result = new HashMap<String, SourcePathIndexerElement>(hits.length);
+			DirectoryContent directorycontent = new DirectoryContent();
+			directorycontent.directory_size = response.getHits().getTotalHits();
+			directorycontent.content = new HashMap<String, SourcePathIndexerElement>(hits.length);
+			
 			parent_key = null;
 			for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
 				element = SourcePathIndexerElement.fromESResponse(hits[pos_hits]);
-				sub_result.put(hits[pos_hits].getId(), element);
+				directorycontent.content.put(hits[pos_hits].getId(), element);
 				if (pos_hits == 0) {
 					parent_key = element.parentpath;
 				}
 			}
 			
 			if (parent_key != null) {
-				result.put(parent_key, sub_result);
+				map_dir_list.put(parent_key, directorycontent);
 			}
 		}
-		return result;
+		return map_dir_list;
 	}
 	
 	public long countDirectoryContentElements(String _id) {

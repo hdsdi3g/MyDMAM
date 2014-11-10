@@ -31,6 +31,7 @@
 	stat.SCOPE_PATHINFO = "pathinfo";
 	stat.SCOPE_MTD_SUMMARY = "mtdsummary";
 	stat.SCOPE_COUNT_ITEMS = "countitems";
+	stat.SCOPE_ONLYDIRECTORIES = "onlydirs";
 	
 	stat.url = "";
 })(window.mydmam);
@@ -63,6 +64,7 @@
 				"scopes_subelements": scopes_subelements,
 				"page_from": page_from,
 				"page_size": page_size
+				//TODO add text search, with JSON.stringify() ?
 			},
 			success: function(response) {
 				result = response;

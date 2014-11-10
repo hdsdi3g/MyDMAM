@@ -281,8 +281,6 @@ public class Application extends Controller {
 		if (request == null) {
 			request = "()";
 		}
-		System.out.println(request);// XXX
-		
 		ArrayList<HashMap<String, String>> list = new ArrayList<HashMap<String, String>>(3);
 		
 		HashMap<String, String> v1 = new HashMap<String, String>(1);
