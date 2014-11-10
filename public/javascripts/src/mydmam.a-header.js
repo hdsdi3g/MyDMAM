@@ -33,4 +33,13 @@
 	};
 	
 	window.mydmam = {};
+	
+	window.keycodemap = {
+		down: 40,
+		up: 38,
+		enter: 13,
+		backspace: 8,
+		esc: 27,
+	};
+	
 })(window);

@@ -171,7 +171,8 @@ div.ua-dropdown li.nav-header {
 
 /**
  * ==============================================================================
- *  Navigator input selection functions (MyDMAM NIS)
+ * Navigator input selection functions (MyDMAM NIS)
+ * The most of this is imported from Bootstrap 2 css.
  */
 
 input.mynis {
