@@ -206,13 +206,17 @@ div.mynis div.inputbox {
     display: inline-block;
 }
 
+div.mynis div.inputbox div.actualselection {
+    display: inline-block;
+}
+
 div.mynis div.inputbox > input {
 	background: none repeat scroll 0 0 rgba(0, 0, 0, 0) !important;
     border: 0 none !important;
     box-shadow: none !important;
     display: inline-block !important;
     line-height: inherit !important;
-    margin: 0 !important;
+    margin: 0px 0px 3px 4px; !important;
     max-height: none !important;
     max-width: 100% !important;
     min-height: 0 !important;

@@ -50,6 +50,7 @@
 		var jquery = {};
 		jquery.root = jquery_startup.children("div.mynis").first();
 		jquery.inputbox = jquery.root.children("div.inputbox").first();
+		jquery.actualselection = jquery.inputbox.children("div.actualselection").first();
 		jquery.input = jquery.inputbox.children("input").first();
 		jquery.dropdownbox = jquery.root.children("div.dropdownbox").first();
 		jquery.dropdownmenu = jquery.dropdownbox.children("ul.dropdown-menu").first();
@@ -92,6 +93,37 @@
 			}
 		};
 		
+		var current_storage = "";
+		var current_path = "/";
+		$("#" + inputtarget).val("");
+		
+		var getStoragePath = function() {
+			if (current_storage === "") {
+				return "";
+			} else {
+				return current_storage + ":" + current_path;
+			}
+		};
+		
+		var getStoragePathObjects = function() {
+			return {
+				storage: current_storage,
+				path: current_path,
+			};
+		};
+		
+		var setStoragePath = function(storage, path) {
+			if (storage == null) {
+				storage = "";
+			}
+			if (path == null) {
+				path = "/";
+			}
+			current_storage = storage;
+			current_path = path;
+			$("#" + inputtarget).val(getStoragePath());
+		};
+
 		return {
 			jquery: jquery,
 			getAllDropdownLi: getAllDropdownLi,
@@ -100,6 +132,9 @@
 			inputtarget: inputtarget,
 			onlydirectories: onlydirectories,
 			cancelEdition: cancelEdition,
+			getStoragePath: getStoragePath,
+			setStoragePath: setStoragePath,
+			getStoragePathObjects: getStoragePathObjects,
 		};
 	};
 })(window.mydmam.navigator.inputselect);
@@ -114,6 +149,7 @@
 		var content = '';
 		content = content + '<div class="mynis">';
 		content = content + '<div class="inputbox">';
+		content = content + '<div class="actualselection"></div>';
 		content = content + '<input type="text" autocomplete="off" tabindex="" style="width: 4px;">';
 		content = content + '</div>';
 		content = content + '<div class="dropdownbox">';
@@ -216,7 +252,10 @@
 			}
 
 			if (event.keyCode === keycodemap.backspace) {
-				// TODO ... remove last item in input box, refresh dropdown 
+				if (engine.jquery.input.val() !== '') {
+					return true;
+				}
+				inputselect.onChooseSelectOption(engine);
 				return false;
 			}
 			
@@ -229,11 +268,13 @@
 				if (jqr_selected_link == null) {
 					return false;
 				}
-				var storagename = jqr_selected_link.data("storagename");
-				var path = jqr_selected_link.data("path");
-				engine.jquery.input.data("currentstoragepath", storagename + ":" + path);
-				// TODO ... add to input box, refresh dropdown 
-				console.log(storagename + ":" + path);
+				var is_storage = jqr_selected_link.data("isstorage");
+				var is_directory = jqr_selected_link.data("isdirectory");
+				inputselect.onChooseSelectOption(engine, jqr_selected_link.data("storage"), jqr_selected_link.data("path"), is_storage, is_directory);
+				if (is_directory === false) {
+					engine.jquery.dropdownmenu.css("display", "none");
+					engine.jquery.input.blur();
+				}
 				return false;
 			}
 			
@@ -276,19 +317,17 @@
 /**
  * showMenu
  * @param engine
- * @param onlydirectories search/display only directories (no files).
+ * @param onlydirectories Search/display only directories (no files).
+ * @param forced If not null, do refresh else if there are no searchpath.
  * @return null
  */
 (function(inputselect) {
-	inputselect.refreshMenu = function(engine) {
-		var current_storagepath = engine.jquery.input.data("currentstoragepath");
-		if (current_storagepath == null) {
-			current_storagepath = ""; 
-		}
-		
+	inputselect.refreshMenu = function(engine, forced) {
 		var searchpath = engine.jquery.input.data("searchpath");
-		if (searchpath === engine.jquery.input.val().trim()) {
-			return;
+		if (forced == null) {
+			if (searchpath === engine.jquery.input.val().trim()) {
+				return;
+			}
 		}
 		searchpath = engine.jquery.input.val().trim();
 		engine.jquery.input.data("searchpath", searchpath);
@@ -296,15 +335,18 @@
 		engine.jquery.dropdownmenu.html('<span><li class="nav-header">Loading...</li></span>');
 		
 		var stat = window.mydmam.stat;
-		var md5_fullpath = md5(current_storagepath);
+		
+		var md5_fullpath = md5(engine.getStoragePath());
 		var max_item_list = 10;
 		
 		var search_scope = [stat.SCOPE_DIRLIST, stat.SCOPE_COUNT_ITEMS];
 		if (engine.onlydirectories) {
 			search_scope.push(stat.SCOPE_ONLYDIRECTORIES);
 		}
+		//TODO add search
+		//TODO debug: ONLYDIRECTORIES don't works...
 		var stat_data = stat.query([md5_fullpath], search_scope, [stat.SCOPE_COUNT_ITEMS], 0, max_item_list); //TODO add searchpath
-
+				
 		if (stat_data == null) {
 			engine.jquery.dropdownmenu.html('<span><li class="nav-header">Error during loading !</li></span>');
 			return;
@@ -341,13 +383,101 @@
 					icon = '<i class="icon-folder-close"></i>';
 				}
 			}
-			content = content + '<a tabindex="-1" href="" class="dropdownitem" data-path="' + path + '" data-storagename="' + storagename + '">';
-			content = content + icon + ' ' + storagename + ':' + path; //TODO display just the name
+			content = content + '<a tabindex="-1" href="" class="dropdownitem"';
+			content = content + ' data-path="' + path + '"';
+			content = content + ' data-storage="' + storagename + '"';
+			if ((path === "/") & isdirectory) {
+				content = content + ' data-isstorage="' + true + '"';
+			} else {
+				content = content + ' data-isstorage="' + false + '"';
+			}
+			content = content + ' data-isdirectory="' + isdirectory + '"';
+			content = content + '>';
+			
+			if (path === '/') {
+				content = content + icon + ' ' + storagename;
+			} else if (path.lastIndexOf('/') === 0) {
+				content = content + icon + ' ' + path.substring(1);
+			} else {
+				content = content + icon + ' ' + path.substring(path.lastIndexOf('/') + 1, path.length);
+			}
 			content = content + '</a>';
 			content = content + '</li>';
 		}
 		
 		engine.jquery.dropdownmenu.html(content);
-		//TODO add a click action -> see inputbox_key_action = function(event) Enter
+		
+		var eachonclick = function() {
+			$(this).click(function() {
+				var is_storage = $(this).data("isstorage");
+				var is_directory = $(this).data("isdirectory");
+				inputselect.onChooseSelectOption(engine, $(this).data("storage"), $(this).data("path"), is_storage, is_directory);
+				if (is_directory === false) {
+					engine.jquery.dropdownmenu.css("display", "none");
+					engine.jquery.input.blur();
+				}
+				return false;
+			});
+		};
+		engine.getAllDropdownA().each(eachonclick);
+		
+	};
+})(window.mydmam.navigator.inputselect);
+
+/**
+ * onChooseSelectOption
+ * @param engine
+ * @param newstorage and newpath, or null and null to go to parent directory
+ * @param is_storage and is_directory can be null if newstorage or newpath it is.
+ * @return null
+ */
+(function(inputselect) {
+	inputselect.onChooseSelectOption = function(engine, newstorage, newpath, is_storage, is_directory) {
+		if (newstorage == null || newpath == null) {
+			var current = engine.getStoragePathObjects();
+			if (current.storage === "") {
+				return;
+			}
+			is_directory = true;
+			if (current.path === "/") {
+				newpath = "/";
+				newstorage = "";
+				is_storage = true;
+			} else {
+				newstorage = current.storage;
+				is_storage = false;
+				if (current.path.lastIndexOf('/') === 0) {
+					newpath = "/";
+				} else {
+					newpath = current.path.substring(0, current.path.lastIndexOf('/'));
+				}
+			}
+		}
+		
+		engine.setStoragePath(newstorage, newpath);
+		engine.jquery.input.val("");
+		engine.jquery.input.data("");
+		
+		if (newstorage === '') {
+			engine.jquery.actualselection.html('');
+		} else {
+			var content = '';
+			if (is_storage) {
+				content = content + '<span style="margin-right: 6px;"><i class="icon-hdd"></i></span>';
+			} else if (is_directory) {
+				content = content + '<span style="margin-right: 6px;"><i class="icon-folder-close"></i></span>';
+			} else {
+				content = content + '<span style="margin-right: 6px;"><i class="icon-file"></i></span>';
+			}
+			content = content + '<span style="font-weight: bold;">' + newstorage + '</span>';
+			content = content + ' :: ';
+			content = content + '<span style="">' + newpath + '</span>';
+			engine.jquery.actualselection.html(content);
+		}
+		if (is_directory === true) {
+			inputselect.refreshMenu(engine, true);
+		}
+		
+		//TODO warn if only files are accepted, and a dir is selected, and vice-versa with file and storage
 	};
 })(window.mydmam.navigator.inputselect);
