@@ -27,6 +27,8 @@
  * @return null
  */
 (function(inputselect) {
+	inputselect.max_item_list = 50;
+	
 	inputselect.create = function(jquery_selector) {
 		$(jquery_selector).each(inputselect.deploy);
 	};
@@ -42,8 +44,23 @@
 		 * User configuration
 		 */
 		var inputtarget = jquery_startup.data("inputtarget");
-		var onlydirectories = jquery_startup.data("onlydirectories");
-
+		var canselectfiles = jquery_startup.data("canselectfiles");
+		if (canselectfiles == null) {
+			canselectfiles = true;
+		}
+		var canselectdirs = jquery_startup.data("canselectdirs");
+		if (canselectdirs == null) {
+			canselectdirs = true;
+		}
+		var canselectstorages = jquery_startup.data("canselectstorages");
+		if (canselectstorages == null) {
+			canselectstorages = true;
+		}
+		var placeholder_text = jquery_startup.data("placeholder");
+		if (placeholder_text == null) {
+			placeholder_text = '';
+		}
+		
 		/**
 		 * All jquery selectors
 		 */
@@ -51,6 +68,7 @@
 		jquery.root = jquery_startup.children("div.mynis").first();
 		jquery.inputbox = jquery.root.children("div.inputbox").first();
 		jquery.actualselection = jquery.inputbox.children("div.actualselection").first();
+		jquery.placeholder = jquery.inputbox.children("div.placeholder").first();
 		jquery.input = jquery.inputbox.children("input").first();
 		jquery.dropdownbox = jquery.root.children("div.dropdownbox").first();
 		jquery.dropdownmenu = jquery.dropdownbox.children("ul.dropdown-menu").first();
@@ -69,13 +87,6 @@
 			} else {
 				return getAllDropdownLi().children(special_selector);
 			}
-		};
-		
-		var cancelEdition = function() {
-			jquery.dropdownmenu.css("display", "none");
-			jquery.input.val("");
-			jquery.input.css("width", 4);
-			jquery.input.blur();
 		};
 		
 		/**
@@ -124,13 +135,38 @@
 			$("#" + inputtarget).val(getStoragePath());
 		};
 
+		jquery.placeholder.html('<i class="icon-search"></i> ' + placeholder_text);
+		var placeholder = {};
+		placeholder.show = function() {
+			jquery.placeholder.css('display', 'inline-block');
+		};
+		placeholder.hide = function() {
+			jquery.placeholder.css('display', 'none');
+		};
+		
+		var cancelEdition = function() {
+			jquery.dropdownmenu.css("display", "none");
+			jquery.input.val("");
+			jquery.input.css("width", 4);
+			jquery.input.blur();
+			
+			if (getStoragePath() === '') {
+				placeholder.show();
+			}
+		};
+		
 		return {
 			jquery: jquery,
 			getAllDropdownLi: getAllDropdownLi,
 			getAllDropdownA: getAllDropdownA,
 			getDropdownSelectedLink: getDropdownSelectedLink,
 			inputtarget: inputtarget,
-			onlydirectories: onlydirectories,
+			canselect: {
+				files: canselectfiles,
+				dirs: canselectdirs,
+				storages: canselectstorages,
+			},
+			placeholder: placeholder,
 			cancelEdition: cancelEdition,
 			getStoragePath: getStoragePath,
 			setStoragePath: setStoragePath,
@@ -150,6 +186,7 @@
 		content = content + '<div class="mynis">';
 		content = content + '<div class="inputbox">';
 		content = content + '<div class="actualselection"></div>';
+		content = content + '<div class="placeholder"></div>';
 		content = content + '<input type="text" autocomplete="off" tabindex="" style="width: 4px;">';
 		content = content + '</div>';
 		content = content + '<div class="dropdownbox">';
@@ -189,6 +226,7 @@
 				engine.jquery.dropdownmenu.css("display", "block");
 				inputselect.refreshMenu(engine);
 			}
+			engine.placeholder.hide();
 			set_mouse_is_inside();
 		});
 
@@ -228,6 +266,8 @@
 (function(inputselect) {
 	inputselect.inputboxKeyActionCreator = function(engine, f_reset_timeout) {
 		return function(event) {
+			engine.placeholder.hide();
+			
 			if (event.type !== "keypress") {
 				engine.jquery.input.css("width", 4 + (8 * (engine.jquery.input.val().length + 1)));
 				f_reset_timeout();
@@ -238,7 +278,7 @@
 			if (keycodes_to_handle.indexOf(event.keyCode) === -1) {
 				engine.jquery.input.css("width", 4 + (8 * (engine.jquery.input.val().length + 1)));
 				f_reset_timeout();
-				console.log(event);
+				//console.log(event);
 				return true;
 			}
 			
@@ -317,7 +357,6 @@
 /**
  * showMenu
  * @param engine
- * @param onlydirectories Search/display only directories (no files).
  * @param forced If not null, do refresh else if there are no searchpath.
  * @return null
  */
@@ -332,23 +371,26 @@
 		searchpath = engine.jquery.input.val().trim();
 		engine.jquery.input.data("searchpath", searchpath);
 
-		engine.jquery.dropdownmenu.html('<span><li class="nav-header">Loading...</li></span>');
+		var content = "";
+		var content = content + '<span><li class="nav-header">';
+		var content = content + 'Loading... ';
+		var content = content + '<img src="' + mydmam.urlimgs.ajaxloader + '" style="margin-right: 10px;" class="pull-right" />';
+		var content = content + '</li></span>';
+		engine.jquery.dropdownmenu.html(content);
 		
 		var stat = window.mydmam.stat;
 		
 		var md5_fullpath = md5(engine.getStoragePath());
-		var max_item_list = 10;
 		
 		var search_scope = [stat.SCOPE_DIRLIST, stat.SCOPE_COUNT_ITEMS];
-		if (engine.onlydirectories) {
-			search_scope.push(stat.SCOPE_ONLYDIRECTORIES);
+		var search_subscope = [stat.SCOPE_COUNT_ITEMS];
+		if (engine.canselect.files === false) {
+			search_subscope.push(stat.SCOPE_ONLYDIRECTORIES);
 		}
-		//TODO add search
-		//TODO debug: ONLYDIRECTORIES don't works...
-		var stat_data = stat.query([md5_fullpath], search_scope, [stat.SCOPE_COUNT_ITEMS], 0, max_item_list); //TODO add searchpath
+		var stat_data = stat.query([md5_fullpath], search_scope, search_subscope, 0, inputselect.max_item_list, searchpath);
 				
 		if (stat_data == null) {
-			engine.jquery.dropdownmenu.html('<span><li class="nav-header">Error during loading !</li></span>');
+			engine.jquery.dropdownmenu.html('<span><li class="nav-header">Error during loading !</li></span>');//TODO translate...
 			return;
 		}
 		if (stat_data[md5_fullpath] == null) {
@@ -356,12 +398,12 @@
 			return;
 		}
 		if (stat_data[md5_fullpath].items == null) {
-			engine.jquery.dropdownmenu.html('<span><li class="nav-header">Can\'t found current directory content.</li></span>');
+			engine.jquery.dropdownmenu.html('<span><li class="nav-header">Empty directory or no items to show.</li></span>');
 			return;
 		}
 		
 		var content = "";
-		if (stat_data[md5_fullpath].items_total > max_item_list) {
+		if (stat_data[md5_fullpath].items_total > inputselect.max_item_list) {
 			content = content + '<span><li class="nav-header">Too many items: type for search.</li></span>';
 			content = content + '<span><li class="divider"></li></span>';
 		}
@@ -395,12 +437,13 @@
 			content = content + '>';
 			
 			if (path === '/') {
-				content = content + icon + ' ' + storagename;
+				content = content + icon + ' <strong>' + storagename + '</strong>';
 			} else if (path.lastIndexOf('/') === 0) {
 				content = content + icon + ' ' + path.substring(1);
 			} else {
 				content = content + icon + ' ' + path.substring(path.lastIndexOf('/') + 1, path.length);
 			}
+			
 			content = content + '</a>';
 			content = content + '</li>';
 		}
@@ -409,12 +452,16 @@
 		
 		var eachonclick = function() {
 			$(this).click(function() {
-				var is_storage = $(this).data("isstorage");
-				var is_directory = $(this).data("isdirectory");
-				inputselect.onChooseSelectOption(engine, $(this).data("storage"), $(this).data("path"), is_storage, is_directory);
-				if (is_directory === false) {
-					engine.jquery.dropdownmenu.css("display", "none");
-					engine.jquery.input.blur();
+				try {
+					var is_storage = $(this).data("isstorage");
+					var is_directory = $(this).data("isdirectory");
+					inputselect.onChooseSelectOption(engine, $(this).data("storage"), $(this).data("path"), is_storage, is_directory);
+					if (is_directory === false) {
+						engine.jquery.dropdownmenu.css("display", "none");
+						engine.jquery.input.blur();
+					}
+				} catch(e){
+					console.log("Error:", e);
 				}
 				return false;
 			});
@@ -443,13 +490,14 @@
 				newpath = "/";
 				newstorage = "";
 				is_storage = true;
-			} else {
+		} else {
 				newstorage = current.storage;
-				is_storage = false;
 				if (current.path.lastIndexOf('/') === 0) {
 					newpath = "/";
+					is_storage = true;
 				} else {
 					newpath = current.path.substring(0, current.path.lastIndexOf('/'));
+					is_storage = false;
 				}
 			}
 		}
@@ -458,17 +506,40 @@
 		engine.jquery.input.val("");
 		engine.jquery.input.data("");
 		
+		engine.jquery.inputbox.removeClass("inputerror");
+
+		var add_error = function() {
+			if (engine.jquery.inputbox.hasClass("inputerror") === false) {
+				engine.jquery.inputbox.addClass("inputerror");
+			}
+			return '<span style="margin-left: 5px; margin-right: 1px;"><i class="icon-warning-sign"></i></span>';
+		};
+		
 		if (newstorage === '') {
 			engine.jquery.actualselection.html('');
 		} else {
 			var content = '';
 			if (is_storage) {
-				content = content + '<span style="margin-right: 6px;"><i class="icon-hdd"></i></span>';
+				content = content + '<span style="margin-right: 6px;">';
+				content = content + '<i class="icon-hdd"></i>';
+				if (engine.canselect.storages === false){
+					content = content + add_error();
+				}
 			} else if (is_directory) {
-				content = content + '<span style="margin-right: 6px;"><i class="icon-folder-close"></i></span>';
+				content = content + '<span style="margin-right: 4px;">';
+				content = content + '<i class="icon-folder-close"></i>';
+				if (engine.canselect.dirs === false){
+					content = content + add_error();
+				}
 			} else {
-				content = content + '<span style="margin-right: 6px;"><i class="icon-file"></i></span>';
+				content = content + '<span style="margin-right: 6px;">';
+				content = content + '<i class="icon-file"></i>';
+				if (engine.canselect.files === false){
+					content = content + add_error();
+				}
 			}
+			content = content + '</span>';
+			
 			content = content + '<span style="font-weight: bold;">' + newstorage + '</span>';
 			content = content + ' :: ';
 			content = content + '<span style="">' + newpath + '</span>';
@@ -477,7 +548,5 @@
 		if (is_directory === true) {
 			inputselect.refreshMenu(engine, true);
 		}
-		
-		//TODO warn if only files are accepted, and a dir is selected, and vice-versa with file and storage
 	};
 })(window.mydmam.navigator.inputselect);

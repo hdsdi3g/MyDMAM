@@ -42,7 +42,7 @@
  * @return stat result (StatElement JSON) or null if error
  */
 (function(stat) {
-	stat.query = function(fileshashs, scopes_element, scopes_subelements, page_from, page_size) {
+	stat.query = function(fileshashs, scopes_element, scopes_subelements, page_from, page_size, search) {
 		if (!page_from) {
 			page_from = 0;
 		}
@@ -51,6 +51,9 @@
 		}
 		if (!scopes_subelements) {
 			scopes_subelements = [];
+		}
+		if (search == null) {
+			search = '';
 		}
 		
 		var result = null;
@@ -63,8 +66,8 @@
 				"scopes_element": scopes_element, 
 				"scopes_subelements": scopes_subelements,
 				"page_from": page_from,
-				"page_size": page_size
-				//TODO add text search, with JSON.stringify() ?
+				"page_size": page_size,
+				"search": JSON.stringify(search),
 			},
 			success: function(response) {
 				result = response;

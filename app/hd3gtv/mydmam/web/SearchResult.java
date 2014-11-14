@@ -81,6 +81,37 @@ public class SearchResult {
 		search_type[search_type.length - 2] = Importer.ES_TYPE_DIRECTORY;
 	}
 	
+	/**
+	 * @return return null if q is empty or null.
+	 */
+	public static String cleanUserTextSearch(String q) {
+		if (q == null) {
+			return null;
+		}
+		if (q.trim().equals("")) {
+			return null;
+		}
+		StringBuffer cleanquery = new StringBuffer(q.length());
+		char current;
+		boolean keepchar;
+		for (int pos_q = 0; pos_q < q.length(); pos_q++) {
+			current = q.charAt(pos_q);
+			keepchar = true;
+			for (int pos = 0; pos < Elasticsearch.forbidden_query_chars.length; pos++) {
+				if (current == Elasticsearch.forbidden_query_chars[pos]) {
+					keepchar = false;
+					break;
+				}
+			}
+			if (keepchar) {
+				cleanquery.append(current);
+			} else {
+				cleanquery.append(" ");
+			}
+		}
+		return cleanquery.toString();
+	}
+	
 	private static SearchResponse internalSearch(Client client, QueryBuilder querybuilder, int frompage, int pagesize) throws SearchPhaseExecutionException {
 		SearchRequestBuilder searchrequestbuilder = client.prepareSearch();
 		
@@ -182,8 +213,11 @@ public class SearchResult {
 		
 		Client client = Elasticsearch.getClient();
 		SearchResult search_result = new SearchResult();
-		SearchResponse response = structuredInternalSearch(client, query, frompage, pagesize, search_result);
 		
+		String clean_query = cleanUserTextSearch(query);
+		SearchResponse response = structuredInternalSearch(client, clean_query, frompage, pagesize, search_result);
+		
+		search_result.query = clean_query;
 		search_result.results = new ArrayList<SearchResultItem>(pagesize);
 		search_result.timedout = response.isTimedOut();
 		search_result.duration = response.getTookInMillis();
@@ -210,6 +244,7 @@ public class SearchResult {
 	public int frompage;
 	public int pagesize;
 	public int pagecount;
+	public String query;
 	public SearchMode mode;
 	
 	public enum SearchMode {

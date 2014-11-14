@@ -19,7 +19,6 @@ package controllers;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.metadata.container.Operations;
@@ -100,6 +99,7 @@ public class Application extends Controller {
 		}
 		
 		Stat stat = new Stat(fileshashs, scopes_element, scopes_subelements);
+		stat.setJsonSearch(params.get("search"));
 		try {
 			stat.setPageFrom(Integer.parseInt(params.get("page_from")));
 		} catch (Exception e) {
@@ -137,31 +137,12 @@ public class Application extends Controller {
 		}
 		SearchResult searchresults = null;
 		if (q.trim().equals("") == false) {
-			StringBuffer cleanquery = new StringBuffer(q.length());
-			char current;
-			boolean keepchar;
-			for (int pos_q = 0; pos_q < q.length(); pos_q++) {
-				current = q.charAt(pos_q);
-				keepchar = true;
-				for (int pos = 0; pos < Elasticsearch.forbidden_query_chars.length; pos++) {
-					if (current == Elasticsearch.forbidden_query_chars[pos]) {
-						keepchar = false;
-						break;
-					}
-				}
-				if (keepchar) {
-					cleanquery.append(current);
-				} else {
-					cleanquery.append(" ");
-				}
-			}
-			q = cleanquery.toString();
-			
 			from = from - 1;
 			if (from < 0) {
 				from = 0;
 			}
 			searchresults = SearchResult.search(q, from, 10);
+			q = searchresults.query;
 			flash("searchmethod", Messages.all(play.i18n.Lang.get()).getProperty("search.method." + searchresults.mode.toString().toLowerCase()));
 		}
 		

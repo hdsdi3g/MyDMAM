@@ -41,5 +41,7 @@
 		backspace: 8,
 		esc: 27,
 	};
+
+	mydmam.urlimgs = {};
 	
 })(window);

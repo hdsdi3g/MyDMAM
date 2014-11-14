@@ -26,7 +26,6 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,10 +42,13 @@ public class Stat {
 	private List<String> pathelementskeys;
 	private int page_from = 0;
 	private int page_size = 100;
+	private String search;
 	private Explorer explorer;
+	private Gson gson;
 	
 	public Stat(String[] pathelementskeys, String[] array_scopes_element, String[] array_scopes_subelements) {
 		explorer = new Explorer();
+		gson = new Gson();
 		
 		if (pathelementskeys != null) {
 			if (pathelementskeys.length > 0) {
@@ -108,8 +110,19 @@ public class Stat {
 		return this;
 	}
 	
+	public Stat setJsonSearch(String json_search) {
+		if (json_search == null) {
+			return this;
+		}
+		search = gson.fromJson(json_search, String.class);
+		if (search.trim().equals("")) {
+			search = null;
+		}
+		return this;
+	}
+	
 	private void populate_pathinfo() {
-		HashMap<String, SourcePathIndexerElement> map_elements_resolved = explorer.getelementByIdkeys(pathelementskeys);
+		LinkedHashMap<String, SourcePathIndexerElement> map_elements_resolved = explorer.getelementByIdkeys(pathelementskeys);
 		boolean count_items = scopes_element.contains(StatElement.SCOPE_COUNT_ITEMS);
 		
 		for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
@@ -124,14 +137,14 @@ public class Stat {
 		}
 	}
 	
-	private HashMap<String, Explorer.DirectoryContent> populate_dirlists() {
+	private LinkedHashMap<String, Explorer.DirectoryContent> populate_dirlists() {
 		boolean count_items_for_request_dir = scopes_element.contains(StatElement.SCOPE_COUNT_ITEMS);
 		boolean count_items = scopes_subelements.contains(StatElement.SCOPE_COUNT_ITEMS);
 		boolean only_directories = scopes_subelements.contains(StatElement.SCOPE_ONLYDIRECTORIES);
 		
-		HashMap<String, Explorer.DirectoryContent> map_dir_list = explorer.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, only_directories);
+		LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list = explorer.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, only_directories, search);
 		
-		HashMap<String, SourcePathIndexerElement> dir_list;
+		LinkedHashMap<String, SourcePathIndexerElement> dir_list;
 		for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
 			if (map_dir_list.containsKey(entry.getKey()) == false) {
 				continue;
@@ -141,7 +154,7 @@ public class Stat {
 				continue;
 			}
 			
-			entry.getValue().items = new HashMap<String, StatElement>(dir_list.size());
+			entry.getValue().items = new LinkedHashMap<String, StatElement>(dir_list.size());
 			for (Map.Entry<String, SourcePathIndexerElement> dir_list_entry : dir_list.entrySet()) {
 				StatElement s_element = new StatElement();
 				s_element.spie_reference = dir_list_entry.getValue();
@@ -189,24 +202,24 @@ public class Stat {
 	
 	private static Map<String, Map<String, Object>> getSummariesByContainers(Containers containers) {
 		if (containers == null) {
-			return new HashMap<String, Map<String, Object>>(1);
+			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
 		if (containers.size() == 0) {
-			return new HashMap<String, Map<String, Object>>(1);
+			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
 		
-		Map<String, Map<String, Object>> result = new HashMap<String, Map<String, Object>>(containers.size());
+		Map<String, Map<String, Object>> result = new LinkedHashMap<String, Map<String, Object>>(containers.size());
 		
 		Container c;
 		Map<String, String> summaries;
 		Map<String, Object> item;
-		HashMap<PreviewType, Preview> previews;
+		LinkedHashMap<PreviewType, Preview> previews;
 		for (int pos = 0; pos < containers.size(); pos++) {
 			c = containers.getItemAtPos(pos);
 			if (c.getSummary().getSummaries().isEmpty()) {
 				continue;
 			}
-			item = new HashMap<String, Object>();
+			item = new LinkedHashMap<String, Object>();
 			
 			summaries = c.getSummary().getSummaries();
 			for (Map.Entry<String, String> entry : summaries.entrySet()) {
@@ -225,25 +238,25 @@ public class Stat {
 	
 	private static Map<String, Map<String, Object>> getSummariesByPathElements(List<SourcePathIndexerElement> pathelements) throws IndexMissingException {
 		if (pathelements == null) {
-			return new HashMap<String, Map<String, Object>>(1);
+			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
 		if (pathelements.size() == 0) {
-			return new HashMap<String, Map<String, Object>>(1);
+			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
 		return getSummariesByContainers(Operations.getByPathIndex(pathelements, true));
 	}
 	
 	private static Map<String, Map<String, Object>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws IndexMissingException {
 		if (pathelementkeys == null) {
-			return new HashMap<String, Map<String, Object>>(1);
+			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
 		if (pathelementkeys.size() == 0) {
-			return new HashMap<String, Map<String, Object>>(1);
+			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
 		return getSummariesByContainers(Operations.getByPathIndexId(pathelementkeys, true));
 	}
 	
-	private void populate_dir_list_mtd_summary(HashMap<String, Explorer.DirectoryContent> map_dir_list) {
+	private void populate_dir_list_mtd_summary(LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list) {
 		ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
 		Map<String, Map<String, Object>> summaries = null;
 		
@@ -276,7 +289,7 @@ public class Stat {
 				populate_pathinfo();
 			}
 			
-			HashMap<String, Explorer.DirectoryContent> map_dir_list = null;
+			LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list = null;
 			
 			if (scopes_element.contains(StatElement.SCOPE_DIRLIST)) {
 				map_dir_list = populate_dirlists();
@@ -297,7 +310,6 @@ public class Stat {
 			Log2.log.error("Some ES indexes are missing: database has not items for this", e);
 		}
 		
-		Gson gson = new Gson();
 		return gson.toJson(selected_path_elements);
 	}
 }

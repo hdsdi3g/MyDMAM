@@ -17,6 +17,8 @@
 /** Define URLs for JS functions */
 (function(mydmam) {
 
+mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
+	
 #{secure.check 'navigate'}
 	mydmam.metadatas.url.navigate = "@{Application.navigate()}";
 	mydmam.metadatas.url.resolvepositions = "@{Application.resolvepositions()}";

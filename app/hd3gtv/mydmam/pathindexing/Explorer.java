@@ -20,6 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.web.SearchResult;
 import hd3gtv.mydmam.web.stat.Stat;
 
 import java.io.File;
@@ -41,6 +42,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
 import org.json.simple.JSONObject;
@@ -223,14 +225,14 @@ public class Explorer {
 		return results.get(_id);
 	}
 	
-	public HashMap<String, SourcePathIndexerElement> getelementByIdkeys(List<String> _ids) {
+	public LinkedHashMap<String, SourcePathIndexerElement> getelementByIdkeys(List<String> _ids) {
 		if (_ids == null) {
-			return new HashMap<String, SourcePathIndexerElement>(1);
+			return new LinkedHashMap<String, SourcePathIndexerElement>(1);
 		}
 		if (_ids.size() == 0) {
-			return new HashMap<String, SourcePathIndexerElement>(1);
+			return new LinkedHashMap<String, SourcePathIndexerElement>(1);
 		}
-		HashMap<String, SourcePathIndexerElement> result = new HashMap<String, SourcePathIndexerElement>(_ids.size());
+		LinkedHashMap<String, SourcePathIndexerElement> result = new LinkedHashMap<String, SourcePathIndexerElement>(_ids.size());
 		
 		ArrayList<String> ids_to_query = new ArrayList<String>(_ids.size());
 		SourcePathIndexerElement element;
@@ -317,7 +319,7 @@ public class Explorer {
 	}
 	
 	public class DirectoryContent {
-		public HashMap<String, SourcePathIndexerElement> content;
+		public LinkedHashMap<String, SourcePathIndexerElement> content;
 		public long directory_size;
 		
 		private DirectoryContent() {
@@ -327,15 +329,17 @@ public class Explorer {
 	/**
 	 * @param from for each _ids
 	 * @param size for each _ids
+	 * @param only_directories only search in "directory" type
+	 * @param search only search with this text. Can be null.
 	 * @return never null, _id parent key > element key > element
 	 * @see Stat
 	 */
-	public HashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int size, boolean only_directories) {
+	public LinkedHashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int size, boolean only_directories, String search) {
 		if (_ids == null) {
-			return new HashMap<String, DirectoryContent>(1);
+			return new LinkedHashMap<String, DirectoryContent>(1);
 		}
 		if (_ids.size() == 0) {
-			return new HashMap<String, DirectoryContent>(1);
+			return new LinkedHashMap<String, DirectoryContent>(1);
 		}
 		
 		MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(client);
@@ -349,7 +353,21 @@ public class Explorer {
 			} else {
 				request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 			}
-			request.setQuery(QueryBuilders.termQuery("parentpath", _id.toLowerCase()));
+			
+			TermQueryBuilder querybuilder_parent = QueryBuilders.termQuery("parentpath", _id.toLowerCase());
+			if (search == null) {
+				request.setQuery(querybuilder_parent);
+			} else {
+				String query = SearchResult.cleanUserTextSearch(search);
+				if (query == null) {
+					request.setQuery(querybuilder_parent);
+				} else if (query.equals("")) {
+					request.setQuery(querybuilder_parent);
+				} else {
+					request.setQuery(QueryBuilders.boolQuery().must(querybuilder_parent).must(QueryBuilders.prefixQuery("_all", search)));
+				}
+			}
+			
 			request.setFrom(from * size);
 			request.setSize(size);
 			request.addSort("directory", SortOrder.DESC);
@@ -359,7 +377,7 @@ public class Explorer {
 		
 		MultiSearchResponse.Item[] responses = multisearchrequestbuilder.execute().actionGet().getResponses();
 		
-		HashMap<String, DirectoryContent> map_dir_list = new HashMap<String, DirectoryContent>();
+		LinkedHashMap<String, DirectoryContent> map_dir_list = new LinkedHashMap<String, DirectoryContent>();
 		
 		SearchResponse response;
 		SearchHit[] hits;
@@ -373,7 +391,7 @@ public class Explorer {
 			}
 			DirectoryContent directorycontent = new DirectoryContent();
 			directorycontent.directory_size = response.getHits().getTotalHits();
-			directorycontent.content = new HashMap<String, SourcePathIndexerElement>(hits.length);
+			directorycontent.content = new LinkedHashMap<String, SourcePathIndexerElement>(hits.length);
 			
 			parent_key = null;
 			for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
