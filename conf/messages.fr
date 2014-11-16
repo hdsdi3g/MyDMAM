@@ -135,6 +135,15 @@ browser.oneelement=1 élément
 browser.Nelements=%s éléments
 browser.goback=Retour
 browser.loadingplayer=Chargement du lecteur...
+browser.inputselect.loading=Chargement... 
+browser.inputselect.errorduringloading=Erreur pendant le chargement !
+browser.inputselect.cantfoundcurrentdir=Impossible de trouver le dossier courant.
+browser.inputselect.emptydirnoitems=Dossier vide ou aucun élément à afficher.
+browser.inputselect.toomanyitems=Trop d'éléments à afficher: entrez un texte à rechercher
+browser.inputselect.defaultplaceholder.filesdirs=Choisissez un fichier ou un dossier
+browser.inputselect.defaultplaceholder.files=Choisissez un fichier
+browser.inputselect.defaultplaceholder.dirs=Choisissez un dossier
+browser.inputselect.defaultplaceholder.storage=Choisissez un stockage
 
 crud.title=Administration
 crud.home=Home

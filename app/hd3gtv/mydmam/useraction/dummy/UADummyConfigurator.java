@@ -20,7 +20,9 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
 import hd3gtv.mydmam.db.orm.annotations.TypeLongText;
+import hd3gtv.mydmam.db.orm.annotations.TypeNavigatorInputSelection;
 import hd3gtv.mydmam.db.orm.annotations.TypePassword;
+import hd3gtv.mydmam.pathindexing.Explorer;
 
 import java.io.Serializable;
 
@@ -39,6 +41,9 @@ public class UADummyConfigurator implements Serializable, Log2Dumpable {
 	@TypePassword
 	public String apassword;
 	
+	@TypeNavigatorInputSelection(canselectdirs = false, canselectstorages = false)
+	public String path;
+	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("avalue", avalue);
@@ -46,6 +51,9 @@ public class UADummyConfigurator implements Serializable, Log2Dumpable {
 		dump.add("amail", amail);
 		dump.add("alongtext", alongtext);
 		dump.add("apassword", apassword);
+		Explorer ex = new Explorer();
+		dump.add("path", path);
+		dump.add("path file", ex.getelementByIdkey(path));
 		return dump;
 	}
 }

@@ -255,6 +255,14 @@
 				}
 				content = content + translatedfieldname;
 				content = content + '</label>';
+			} else if (field.type === 'navigatorinputselection') {
+				content = content + '<input id="' + input_id + '" type="text" value="' + default_value + '" ' + input_data + ' class="' + input_classname + '" />';
+				content = content + '<div class="path-select needtoinstance" data-inputtarget="' + input_id + '"';
+				for (var field_option_name in field.options) {
+					var field_option_value = field.options[field_option_name];
+					content = content + ' data-' + field_option_name + '="' + field_option_value + '"';
+				}
+				content = content + '></div>';
 			}
 			
 			if (translatedhelpfieldname) {
@@ -293,9 +301,9 @@
 			var classname = $(this).data("ua-classname");
 			var indexcreator = $(this).data("ua-indexcreator");
 			var content = creator.prepareConfiguratorForFunctionality(classname, indexcreator);
-			
 			$(jquery_selector_base + ' div.control-group.ua-creation-addnewconfigurator-btngroup').remove();
 			$(jquery_selector_base + ' span.ua-creation-boxaddnewconfigurator:last').after(content);
+			mydmam.navigator.inputselect.create("div.path-select.needtoinstance");
 			creator.addNewConfiguratorFunctionalityHandler(jquery_selector_base);
 			
 			$(jquery_selector_base + ' div.ua-creation-range-group').removeClass("hide");
@@ -460,6 +468,7 @@
 		content = content + '</form>';
 		content = content + creator.prepareModalFooter();
 		$("body").append(content);
+		mydmam.navigator.inputselect.create("div.path-select.needtoinstance");
 		
 		$('#uacreationmodal').modal({});
 		$('#uacreationmodal div.modal-body.ua-creation-box').scrollTop(0);

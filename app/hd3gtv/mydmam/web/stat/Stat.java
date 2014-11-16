@@ -26,6 +26,7 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -212,8 +213,8 @@ public class Stat {
 		
 		Container c;
 		Map<String, String> summaries;
-		Map<String, Object> item;
-		LinkedHashMap<PreviewType, Preview> previews;
+		LinkedHashMap<String, Object> item;
+		HashMap<PreviewType, Preview> previews;
 		for (int pos = 0; pos < containers.size(); pos++) {
 			c = containers.getItemAtPos(pos);
 			if (c.getSummary().getSummaries().isEmpty()) {

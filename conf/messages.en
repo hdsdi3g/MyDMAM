@@ -135,6 +135,15 @@ browser.oneelement=1 element
 browser.Nelements=%s elements
 browser.goback=Go back
 browser.loadingplayer=Loading the player...
+browser.inputselect.loading=Loading... 
+browser.inputselect.errorduringloading=Error during loading !
+browser.inputselect.cantfoundcurrentdir=Can't found current directory.
+browser.inputselect.emptydirnoitems=Empty directory or no items to display.
+browser.inputselect.toomanyitems=Too many items to display: enter text to search.
+browser.inputselect.defaultplaceholder.filesdirs=Select a file or directory
+browser.inputselect.defaultplaceholder.files=Select a file
+browser.inputselect.defaultplaceholder.dirs=Select a directory
+browser.inputselect.defaultplaceholder.storage=Select a storage
 
 crud.title=Administration
 crud.home=Home

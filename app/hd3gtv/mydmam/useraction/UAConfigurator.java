@@ -35,7 +35,6 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.google.gson.reflect.TypeToken;
 
 public final class UAConfigurator implements Log2Dumpable {
 	
@@ -53,8 +52,7 @@ public final class UAConfigurator implements Log2Dumpable {
 		dump.add("type", origin);
 		Gson gson = UAManager.getGson();
 		dump.add("object", gson.toJson(object));
-		dump.add("fields", gson.toJson(fields, new TypeToken<ArrayList<ORMFormField>>() {
-		}.getType()));
+		dump.add("fields", gson.toJson(fields, ORMFormField.TYPE_AL_FIELDS));
 		return dump;
 	}
 	
@@ -103,8 +101,7 @@ public final class UAConfigurator implements Log2Dumpable {
 			je.add("type", new JsonPrimitive(src.type));
 			je.add("origin", new JsonPrimitive(src.origin));
 			je.add("object", UAManager.getGson().toJsonTree(src.object));
-			je.add("fields", UAManager.getGson().toJsonTree(src.fields, new TypeToken<ArrayList<ORMFormField>>() {
-			}.getType()));
+			je.add("fields", ORMFormField.getJsonFields(src.fields));
 			return je;
 		}
 		

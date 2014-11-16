@@ -58,7 +58,19 @@
 		}
 		var placeholder_text = jquery_startup.data("placeholder");
 		if (placeholder_text == null) {
-			placeholder_text = '';
+			if (canselectfiles & canselectdirs) {
+				placeholder_text = i18n('browser.inputselect.defaultplaceholder.filesdirs');
+			} else if (canselectfiles) {
+				placeholder_text = i18n('browser.inputselect.defaultplaceholder.files');
+			} else if (canselectdirs) {
+				placeholder_text = i18n('browser.inputselect.defaultplaceholder.dirs');
+			} else if (canselectstorages) {
+				placeholder_text = i18n('browser.inputselect.defaultplaceholder.storage');
+			} else {
+				placeholder_text = '';
+			}
+		} else {
+			placeholder_text = i18n(placeholder_text);
 		}
 		
 		/**
@@ -108,11 +120,11 @@
 		var current_path = "/";
 		$("#" + inputtarget).val("");
 		
-		var getStoragePath = function() {
+		var getStoragePathMD5 = function() {
 			if (current_storage === "") {
 				return "";
 			} else {
-				return current_storage + ":" + current_path;
+				return md5(current_storage + ":" + current_path);
 			}
 		};
 		
@@ -132,7 +144,7 @@
 			}
 			current_storage = storage;
 			current_path = path;
-			$("#" + inputtarget).val(getStoragePath());
+			$("#" + inputtarget).val(getStoragePathMD5());
 		};
 
 		jquery.placeholder.html('<i class="icon-search"></i> ' + placeholder_text);
@@ -150,7 +162,7 @@
 			jquery.input.css("width", 4);
 			jquery.input.blur();
 			
-			if (getStoragePath() === '') {
+			if (getStoragePathMD5() === '') {
 				placeholder.show();
 			}
 		};
@@ -168,7 +180,7 @@
 			},
 			placeholder: placeholder,
 			cancelEdition: cancelEdition,
-			getStoragePath: getStoragePath,
+			getStoragePathMD5: getStoragePathMD5,
 			setStoragePath: setStoragePath,
 			getStoragePathObjects: getStoragePathObjects,
 		};
@@ -195,9 +207,10 @@
 		content = content + '</div>';
 		content = content + '</div>';
 		$(this).append(content);
-
+		$(this).removeClass("needtoinstance");
+		
 		var engine = inputselect.engine($(this));
-		//$("#" + engine.inputtarget).addClass("mynis"); //TODO set !
+		$("#" + engine.inputtarget).addClass("mynis");
 		
 		/**
 		 * Manage the popup menu show and hide
@@ -373,14 +386,17 @@
 
 		var content = "";
 		var content = content + '<span><li class="nav-header">';
-		var content = content + 'Loading... ';
+		var content = content + i18n('browser.inputselect.loading');
 		var content = content + '<img src="' + mydmam.urlimgs.ajaxloader + '" style="margin-right: 10px;" class="pull-right" />';
 		var content = content + '</li></span>';
 		engine.jquery.dropdownmenu.html(content);
 		
 		var stat = window.mydmam.stat;
 		
-		var md5_fullpath = md5(engine.getStoragePath());
+		var md5_fullpath = engine.getStoragePathMD5();
+		if (md5_fullpath === '') {
+			md5_fullpath = md5(md5_fullpath);
+		}
 		
 		var search_scope = [stat.SCOPE_DIRLIST, stat.SCOPE_COUNT_ITEMS];
 		var search_subscope = [stat.SCOPE_COUNT_ITEMS];
@@ -390,21 +406,21 @@
 		var stat_data = stat.query([md5_fullpath], search_scope, search_subscope, 0, inputselect.max_item_list, searchpath);
 				
 		if (stat_data == null) {
-			engine.jquery.dropdownmenu.html('<span><li class="nav-header">Error during loading !</li></span>');//TODO translate...
+			engine.jquery.dropdownmenu.html('<span><li class="nav-header">' + i18n('browser.inputselect.errorduringloading') + '</li></span>');
 			return;
 		}
 		if (stat_data[md5_fullpath] == null) {
-			engine.jquery.dropdownmenu.html('<span><li class="nav-header">Can\'t found current directory.</li></span>');
+			engine.jquery.dropdownmenu.html('<span><li class="nav-header">' + i18n('browser.inputselect.cantfoundcurrentdir') + '</li></span>');
 			return;
 		}
 		if (stat_data[md5_fullpath].items == null) {
-			engine.jquery.dropdownmenu.html('<span><li class="nav-header">Empty directory or no items to show.</li></span>');
+			engine.jquery.dropdownmenu.html('<span><li class="nav-header">' + i18n('browser.inputselect.emptydirnoitems') + '</li></span>');
 			return;
 		}
 		
 		var content = "";
 		if (stat_data[md5_fullpath].items_total > inputselect.max_item_list) {
-			content = content + '<span><li class="nav-header">Too many items: type for search.</li></span>';
+			content = content + '<span><li class="nav-header">' + i18n('browser.inputselect.toomanyitems') + '</li></span>';
 			content = content + '<span><li class="divider"></li></span>';
 		}
 

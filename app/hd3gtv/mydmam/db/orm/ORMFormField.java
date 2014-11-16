@@ -24,11 +24,13 @@ import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
 import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
 import hd3gtv.mydmam.db.orm.annotations.TypeLongText;
+import hd3gtv.mydmam.db.orm.annotations.TypeNavigatorInputSelection;
 import hd3gtv.mydmam.db.orm.annotations.TypePassword;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -36,7 +38,15 @@ import java.util.List;
 
 import javax.persistence.Transient;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
+
 public class ORMFormField {
+	
+	private static Gson gson = new Gson();
+	public static final Type TYPE_AL_FIELDS = new TypeToken<ArrayList<ORMFormField>>() {
+	}.getType();
 	
 	ORMFormField() {
 	}
@@ -46,6 +56,7 @@ public class ORMFormField {
 	public boolean hidden;
 	public boolean readonly;
 	public String class_referer = null;
+	public Object options = null;
 	
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
@@ -60,6 +71,10 @@ public class ORMFormField {
 			sb.append(class_referer);
 		}
 		return sb.toString();
+	}
+	
+	public static JsonElement getJsonFields(List<ORMFormField> fields) {
+		return gson.toJsonTree(fields, TYPE_AL_FIELDS);
 	}
 	
 	/**
@@ -102,30 +117,37 @@ public class ORMFormField {
 					continue;
 				}
 			} else {
-				
 				if (CharSequence.class.isAssignableFrom(field.getType())) {
 					ormformfield.type = "text";
 					if (field.isAnnotationPresent(TypeLongText.class)) {
 						ormformfield.type = "longtext";
-					}
-					if (field.isAnnotationPresent(TypePassword.class)) {
+					} else if (field.isAnnotationPresent(TypePassword.class)) {
 						ormformfield.type = "password";
-					}
-					if (field.isAnnotationPresent(TypeEmail.class)) {
+					} else if (field.isAnnotationPresent(TypeEmail.class)) {
 						ormformfield.type = "email";
 					}
 				}
 				if (Number.class.isAssignableFrom(field.getType()) || field.getType().equals(double.class) || field.getType().equals(int.class) || field.getType().equals(long.class)) {
 					ormformfield.type = "number";
-				}
-				if (Boolean.class.isAssignableFrom(field.getType()) || field.getType().equals(boolean.class)) {
+				} else if (Boolean.class.isAssignableFrom(field.getType()) || field.getType().equals(boolean.class)) {
 					ormformfield.type = "boolean";
-				}
-				if (Date.class.isAssignableFrom(field.getType())) {
+				} else if (Date.class.isAssignableFrom(field.getType())) {
 					ormformfield.type = "date";
-				}
-				if (field.getType().isEnum()) {
+				} else if (field.getType().isEnum()) {
 					ormformfield.type = "enum";
+				} else if (field.isAnnotationPresent(TypeNavigatorInputSelection.class)) {
+					ormformfield.type = "navigatorinputselection";
+					TypeNavigatorInputSelection field_conf = field.getAnnotation(TypeNavigatorInputSelection.class);
+					HashMap<String, Object> conf = new HashMap<String, Object>(4);
+					conf.put("canselectdirs", field_conf.canselectdirs());
+					conf.put("canselectfiles", field_conf.canselectfiles());
+					conf.put("canselectstorages", field_conf.canselectstorages());
+					if (field_conf.placeholderlabel() != null) {
+						if (field_conf.placeholderlabel().equals("") == false) {
+							conf.put("placeholder", field_conf.placeholderlabel());
+						}
+					}
+					ormformfield.options = conf;
 				}
 			}
 			

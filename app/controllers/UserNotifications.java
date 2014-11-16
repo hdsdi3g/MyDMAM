@@ -75,37 +75,37 @@ public class UserNotifications extends Controller {
 				return null;
 			}
 			flash("error", Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.cantfoundselected"));
-			redirect("User.notificationslist");
+			redirect("UserNotifications.notificationslist");
 		}
 		if (notification.containsObserver(user) == false) {
 			if (doredirect == false) {
 				return null;
 			}
 			flash("error", Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.cantfoundvalid"));
-			redirect("User.notificationslist");
+			redirect("UserNotifications.notificationslist");
 		}
 		if (must_not_closed & notification.isClose()) {
 			flash("error", Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.isclosed"));
-			redirect("User.notificationslist");
+			redirect("UserNotifications.notificationslist");
 		}
 		return notification;
 	}
 	
 	public static void notificationclose(@Required String key) throws Exception {
 		if (Validation.hasErrors()) {
-			redirect("User.notificationslist");
+			redirect("UserNotifications.notificationslist");
 			return;
 		}
 		flash("lastkey", key);
 		
 		UserProfile user = User.getUserProfile();
 		getNotification(user, key, true, true).switchCloseStatus(user).save();
-		redirect("User.notificationslist");
+		redirect("UserNotifications.notificationslist");
 	}
 	
 	public static void notificationupdatealert(@Required String key, @Required String reason, @Required Boolean notify) throws Exception {
 		if (Validation.hasErrors()) {
-			redirect("User.notificationslist");
+			redirect("UserNotifications.notificationslist");
 			return;
 		}
 		flash("lastkey", key);
@@ -114,23 +114,23 @@ public class UserNotifications extends Controller {
 		NotifyReason n_resaon = NotifyReason.getFromDbRecordName(reason);
 		if (n_resaon == null) {
 			flash("error", Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.invalidreason"));
-			redirect("User.notificationslist");
+			redirect("UserNotifications.notificationslist");
 		}
 		
 		getNotification(user, key, true, true).updateNotifyReasonForUser(user, n_resaon, notify).save();
-		redirect("User.notificationslist");
+		redirect("UserNotifications.notificationslist");
 	}
 	
 	public static void notificationupdatecomment(@Required String key, String comment) throws Exception {
 		if (Validation.hasErrors()) {
-			redirect("User.notificationslist");
+			redirect("UserNotifications.notificationslist");
 			return;
 		}
 		flash("lastkey", key);
 		UserProfile user = User.getUserProfile();
 		
 		getNotification(user, key, true, true).updateComment(user, comment).save();
-		redirect("User.notificationslist");
+		redirect("UserNotifications.notificationslist");
 	}
 	
 	public static void notificationupdateread(@Required String key) throws Exception {
@@ -215,7 +215,7 @@ public class UserNotifications extends Controller {
 	@Check("adminUsers")
 	public static void notificationadminclose(@Required String key) throws Exception {
 		if (Validation.hasErrors()) {
-			redirect("User.notificationsadminlist");
+			redirect("UserNotifications.notificationsadminlist");
 			return;
 		}
 		UserProfile user = User.getUserProfile();
@@ -226,7 +226,7 @@ public class UserNotifications extends Controller {
 			notification.switchCloseStatus(user).save();
 		}
 		
-		redirect("User.notificationsadminlist");
+		redirect("UserNotifications.notificationsadminlist");
 	}
 	
 }

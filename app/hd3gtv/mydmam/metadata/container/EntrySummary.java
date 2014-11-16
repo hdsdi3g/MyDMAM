@@ -21,7 +21,6 @@ import hd3gtv.mydmam.metadata.PreviewType;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -32,11 +31,11 @@ import com.google.gson.reflect.TypeToken;
 
 public final class EntrySummary extends Entry {
 	
-	private LinkedHashMap<String, Preview> previews;
+	private HashMap<String, Preview> previews;
 	Map<String, String> summaries;
 	public boolean master_as_preview;
 	private String mimetype;
-	private transient LinkedHashMap<PreviewType, Preview> cache_previews;
+	private transient HashMap<PreviewType, Preview> cache_previews;
 	
 	public final static String type = "summary";
 	
@@ -138,10 +137,10 @@ public final class EntrySummary extends Entry {
 	
 	private void populate_previews() {
 		if (previews == null) {
-			previews = new LinkedHashMap<String, Preview>(1);
+			previews = new HashMap<String, Preview>(1);
 		}
 		if (cache_previews == null) {
-			cache_previews = new LinkedHashMap<PreviewType, Preview>();
+			cache_previews = new HashMap<PreviewType, Preview>();
 			for (Map.Entry<String, Preview> entry : previews.entrySet()) {
 				cache_previews.put(PreviewType.valueOf(entry.getKey()), entry.getValue());
 			}
@@ -177,7 +176,7 @@ public final class EntrySummary extends Entry {
 	/**
 	 * Don't add or delete items from here.
 	 */
-	public LinkedHashMap<PreviewType, Preview> getPreviews() {
+	public HashMap<PreviewType, Preview> getPreviews() {
 		populate_previews();
 		return cache_previews;
 	}
