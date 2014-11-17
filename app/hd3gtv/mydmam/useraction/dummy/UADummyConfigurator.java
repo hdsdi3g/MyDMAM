@@ -22,9 +22,11 @@ import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
 import hd3gtv.mydmam.db.orm.annotations.TypeLongText;
 import hd3gtv.mydmam.db.orm.annotations.TypeNavigatorInputSelection;
 import hd3gtv.mydmam.db.orm.annotations.TypePassword;
-import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.db.orm.annotations.TypeSelectAsyncOptions;
+import hd3gtv.tools.VideoConst;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 
 public class UADummyConfigurator implements Serializable, Log2Dumpable {
 	
@@ -44,6 +46,14 @@ public class UADummyConfigurator implements Serializable, Log2Dumpable {
 	@TypeNavigatorInputSelection(canselectdirs = false, canselectstorages = false)
 	public String path;
 	
+	public VideoConst.Systemvideo systemvideo;
+	
+	@TypeSelectAsyncOptions(target_class = UADummyDynamicChooseList.class, multiple = true)
+	public ArrayList<String> choosed_options;
+	
+	@TypeSelectAsyncOptions(target_class = UADummyStaticChooseList.class, multiple = false)
+	public String choosed_character;
+	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("avalue", avalue);
@@ -51,9 +61,13 @@ public class UADummyConfigurator implements Serializable, Log2Dumpable {
 		dump.add("amail", amail);
 		dump.add("alongtext", alongtext);
 		dump.add("apassword", apassword);
-		Explorer ex = new Explorer();
 		dump.add("path", path);
-		dump.add("path file", ex.getelementByIdkey(path));
+		// Explorer ex = new Explorer();
+		// dump.add("path file", ex.getelementByIdkey(path));
+		dump.add("choosed_options", choosed_options);
+		if (systemvideo != null) {
+			dump.add("systemvideo", systemvideo.getSummary());
+		}
 		return dump;
 	}
 }

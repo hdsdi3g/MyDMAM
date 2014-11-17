@@ -415,6 +415,11 @@ useractions.functionalities.uadummy.name=User Action test (dummy)
 useractions.functionalities.uadummy.fields.avalue=A value
 useractions.functionalities.uadummy.fields.avalue.help=This is a value for the demo.
 userprofile.notifications.profile_references.uadummy=User Action test (dummy)
+# UASelectAsyncOptions, by field translate mode
+useractions.functionalities.uadummy.fields.choosed_character.option.huey_duck=Huey Duck
+useractions.functionalities.uadummy.fields.choosed_character.option.dewey_duck=Dewey Duck
+# 2nd mode for UASelectAsyncOptions, by orm options translate mode
+orm.options.hd3gtv.mydmam.useraction.dummy.UADummyStaticChooseList.louie_duck=Louie Duck
 
 useractions.functionalities.uadummy2.name=User Action test 2 (dummy)
 useractions.functionalities.uadummy2.fields.avalue=A value 2

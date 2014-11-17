@@ -24,10 +24,14 @@ import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
 import hd3gtv.mydmam.useraction.UARange;
+import hd3gtv.mydmam.useraction.UASelectAsyncOptions;
 import hd3gtv.mydmam.web.UserActionCreator;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import models.ACLUser;
 import models.UserProfile;
@@ -158,4 +162,42 @@ public class UserAction extends Controller {
 		render(title, currentavailabilities, currentbasket, currentbasketname);
 	}
 	
+	@Check("userAction")
+	public static void optionsforselectform() throws Exception {
+		// TODO add cache ?
+		String class_referer = params.get("classreferer");
+		if (class_referer == null) {
+			throw new NullPointerException("classreferer in params");
+		}
+		Class<?> c_referer = Class.forName(class_referer);
+		List<String> list = null;
+		
+		if (c_referer.isEnum()) {
+			Object[] enum_constants = c_referer.getEnumConstants();
+			list = new ArrayList<String>(enum_constants.length);
+			for (int pos = 0; pos < enum_constants.length; pos++) {
+				list.add(((Enum<?>) enum_constants[pos]).name());
+			}
+		} else if (UASelectAsyncOptions.class.isAssignableFrom(c_referer)) {
+			UASelectAsyncOptions selectasyncoptions = (UASelectAsyncOptions) c_referer.newInstance();
+			list = selectasyncoptions.getSelectOptionsList();
+		} else {
+			throw new ClassCastException(class_referer + " is not a valid instance from " + UASelectAsyncOptions.class.getSimpleName() + ".class");
+		}
+		if (list == null) {
+			renderJSON("[]");
+		}
+		if (list.isEmpty()) {
+			renderJSON("[]");
+		}
+		
+		List<Map<String, String>> result = new ArrayList<Map<String, String>>(list.size());
+		for (int pos = 0; pos < list.size(); pos++) {
+			HashMap<String, String> item = new HashMap<String, String>();
+			item.put("value", list.get(pos));
+			result.add(item);
+		}
+		
+		renderJSON(result);
+	}
 }

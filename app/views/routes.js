@@ -67,6 +67,7 @@ mydmam.notification.url.queuegettasksjobs = "@{Queue.gettasksjobs}";
 #{secure.check 'userAction'}
 mydmam.useraction.url.create = "@{UserAction.create()}";
 mydmam.useraction.url.currentavailabilities = "@{UserAction.currentavailabilities()}";
+mydmam.useraction.url.optionsforselectform = "@{UserAction.optionsforselectform()}";
 #{/secure.check}
 
 })(window.mydmam);

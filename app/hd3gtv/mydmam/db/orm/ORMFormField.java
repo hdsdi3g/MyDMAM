@@ -26,6 +26,7 @@ import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
 import hd3gtv.mydmam.db.orm.annotations.TypeLongText;
 import hd3gtv.mydmam.db.orm.annotations.TypeNavigatorInputSelection;
 import hd3gtv.mydmam.db.orm.annotations.TypePassword;
+import hd3gtv.mydmam.db.orm.annotations.TypeSelectAsyncOptions;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -133,8 +134,6 @@ public class ORMFormField {
 					ormformfield.type = "boolean";
 				} else if (Date.class.isAssignableFrom(field.getType())) {
 					ormformfield.type = "date";
-				} else if (field.getType().isEnum()) {
-					ormformfield.type = "enum";
 				} else if (field.isAnnotationPresent(TypeNavigatorInputSelection.class)) {
 					ormformfield.type = "navigatorinputselection";
 					TypeNavigatorInputSelection field_conf = field.getAnnotation(TypeNavigatorInputSelection.class);
@@ -148,6 +147,19 @@ public class ORMFormField {
 						}
 					}
 					ormformfield.options = conf;
+				} else if (field.isAnnotationPresent(TypeSelectAsyncOptions.class)) {
+					ormformfield.type = "select";
+					TypeSelectAsyncOptions field_conf = field.getAnnotation(TypeSelectAsyncOptions.class);
+					HashMap<String, Object> conf = new HashMap<String, Object>(4);
+					conf.put("multiple", field_conf.multiple());
+					ormformfield.options = conf;
+					ormformfield.class_referer = field_conf.target_class().getName();
+				} else if (field.getType().isEnum()) {
+					ormformfield.type = "enum";
+					HashMap<String, Object> conf = new HashMap<String, Object>(4);
+					conf.put("multiple", false);
+					ormformfield.options = conf;
+					ormformfield.class_referer = field.getType().getName();
 				}
 			}
 			

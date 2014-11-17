@@ -263,6 +263,19 @@
 					content = content + ' data-' + field_option_name + '="' + field_option_value + '"';
 				}
 				content = content + '></div>';
+			} else if ((field.type === 'select' | field.type === 'enum')) {
+				/*content = content + '<input id="' + input_id + '" type="text" value="' + default_value + '" ' + input_data;
+				content = content + ' class="' + input_classname + ' activate-selectize"';
+				content = content + ' data-classreferer="' + field.class_referer + '"';
+				content = content + ' data-optionsmultiple="' + field.options.multiple + '"';
+				content = content + ' />';*/
+				content = content + '<select id="' + input_id + '" ' + input_data;
+				content = content + ' class="' + input_classname + ' activate-selectize"';
+				content = content + ' data-classreferer="' + field.class_referer + '"';
+				content = content + ' data-optionsmultiple="' + field.options.multiple + '"';
+				content = content + ' data-messagebasename="' + messagebasename + '"';
+				content = content + ' data-fieldname="' + field.name + '"';
+				content = content + ' />';
 			}
 			
 			if (translatedhelpfieldname) {
@@ -304,6 +317,7 @@
 			$(jquery_selector_base + ' div.control-group.ua-creation-addnewconfigurator-btngroup').remove();
 			$(jquery_selector_base + ' span.ua-creation-boxaddnewconfigurator:last').after(content);
 			mydmam.navigator.inputselect.create("div.path-select.needtoinstance");
+			creator.activateAllPendingSelectize();
 			creator.addNewConfiguratorFunctionalityHandler(jquery_selector_base);
 			
 			$(jquery_selector_base + ' div.ua-creation-range-group').removeClass("hide");
@@ -311,6 +325,74 @@
 		$(jquery_selector_base + ' a.btn-ua-dropdown-showcreate').click(onclick);
 	};
 })(mydmam.useraction.creator, mydmam.useraction.availabilities, mydmam.useraction);
+
+/**
+ * activateAllPendingSelectize()
+ * @return null
+ */
+(function(creator, useraction) {
+	var each = function() {
+		var classreferer = $(this).data("classreferer");
+		var optionsmultiple = $(this).data("optionsmultiple");
+		var messagebasename = $(this).data("messagebasename");
+		var fieldname = $(this).data("fieldname");
+		
+		$(this).removeClass("activate-selectize");
+		
+		var displayItem = function(item, escape) {
+			var translated = i18n('useractions.functionalities.' + messagebasename + '.fields.' + fieldname + '.option.' + escape(item.value));
+			if (translated.startsWith('useractions.functionalities')) {
+				translated = i18n('orm.options.' + classreferer + '.' + escape(item.value));
+			}
+			if (translated.startsWith('orm.options')) {
+				translated = escape(item.value);
+			}			
+			return '<div>' + translated + '</div>';
+		};
+		
+		var options = {
+			//delimiter: '',
+			create: false,
+			persist: false,
+			maxItems: 1,
+			valueField: 'value',
+			labelField: 'value',
+			searchField: ['value'],
+			preload: true,
+			options: [],
+			render: {
+				item: displayItem,
+				option: displayItem, 
+			},
+			load: function(query, callback) {
+				$.ajax({
+					url: useraction.url.optionsforselectform,
+					type: 'GET',
+					data: {
+						classreferer: classreferer,
+					},
+					error: function() {
+						callback();
+					},
+					success: function(response) {
+						callback(response);
+					}
+				});
+			},
+		};
+		
+		if (optionsmultiple) {
+			options.maxItems = null;
+		}
+		
+		$(this).selectize(options);
+	};
+	
+	creator.activateAllPendingSelectize = function() {
+		$('select.activate-selectize').each(each);
+	};
+})(mydmam.useraction.creator, mydmam.useraction);
+
 
 /**
  * mergueAllFunctionalitiesForAllItemsBasket()
@@ -469,6 +551,7 @@
 		content = content + creator.prepareModalFooter();
 		$("body").append(content);
 		mydmam.navigator.inputselect.create("div.path-select.needtoinstance");
+		creator.activateAllPendingSelectize();
 		
 		$('#uacreationmodal').modal({});
 		$('#uacreationmodal div.modal-body.ua-creation-box').scrollTop(0);

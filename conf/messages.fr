@@ -415,6 +415,11 @@ useractions.functionalities.uadummy.name=Test de User Action (dummy)
 useractions.functionalities.uadummy.fields.avalue=Une donnée
 useractions.functionalities.uadummy.fields.avalue.help=Ceci est une donné pour la démo.
 userprofile.notifications.profile_references.uadummy=Test de User Action (dummy)
+# UASelectAsyncOptions, by field translate mode
+useractions.functionalities.uadummy.fields.choosed_character.option.huey_duck=Riri Duck
+useractions.functionalities.uadummy.fields.choosed_character.option.dewey_duck=Fifi Duck
+# 2nd mode for UASelectAsyncOptions, by orm options translate mode
+orm.options.hd3gtv.mydmam.useraction.dummy.UADummyStaticChooseList.louie_duck=Loulou Duck
 
 useractions.functionalities.uadummy2.name=Test de User Action 2 (dummy)
 useractions.functionalities.uadummy2.fields.avalue=Une donnée 2

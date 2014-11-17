@@ -16,36 +16,19 @@
 */
 package hd3gtv.mydmam.db.orm.annotations;
 
+import hd3gtv.mydmam.useraction.UASelectAsyncOptions;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * Used in Useraction with navigator.inputselect.js
- */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.FIELD })
-public @interface TypeNavigatorInputSelection {
+public @interface TypeSelectAsyncOptions {
 	
-	/**
-	 * @return true by default
-	 */
-	boolean canselectfiles() default true;
+	Class<? extends UASelectAsyncOptions> target_class();
 	
-	/**
-	 * @return true by default
-	 */
-	boolean canselectdirs() default true;
-	
-	/**
-	 * @return true by default
-	 */
-	boolean canselectstorages() default true;
-	
-	/**
-	 * It will be translated with i18n.
-	 */
-	String placeholderlabel() default "";
+	boolean multiple() default false;
 	
 }
