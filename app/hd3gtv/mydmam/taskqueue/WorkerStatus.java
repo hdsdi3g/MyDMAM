@@ -19,6 +19,10 @@ package hd3gtv.mydmam.taskqueue;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
 
+/**
+ * TODO upgrade with the new Status
+ */
+@Deprecated
 public enum WorkerStatus {
 	
 	PROCESSING, WAITING, STOPPED, PENDING_STOP, PENDING_CANCEL_TASK;

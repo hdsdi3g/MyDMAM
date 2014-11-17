@@ -37,6 +37,10 @@ import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.IndexQuery;
 
+/**
+ * TODO upgrade with the new TaskQueue
+ */
+@Deprecated
 public class Profile implements Log2Dumpable {
 	
 	String name;

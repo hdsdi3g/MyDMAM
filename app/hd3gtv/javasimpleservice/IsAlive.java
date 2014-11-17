@@ -59,6 +59,7 @@ import com.netflix.astyanax.query.AllRowsQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 @SuppressWarnings("unchecked")
+@Deprecated
 public class IsAlive extends Thread {
 	
 	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("workers", StringSerializer.get(), StringSerializer.get());

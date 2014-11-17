@@ -29,6 +29,7 @@ import play.mvc.With;
 
 @With(Secure.class)
 @SuppressWarnings("unchecked")
+@Deprecated
 public class Queue extends Controller {
 	
 	@Check("showQueue")

@@ -40,6 +40,7 @@ public class Service extends Controller {
 	}
 	
 	@Check("showStatus")
+	@Deprecated
 	public static void laststatusworkers() throws Exception {
 		renderJSON(IsAlive.getLastStatusWorkers().toJSONString());
 	}
