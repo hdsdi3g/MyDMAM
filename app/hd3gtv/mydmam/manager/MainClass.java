@@ -20,7 +20,18 @@ package hd3gtv.mydmam.manager;
 public class MainClass {
 	
 	public static void main(String[] args) throws Exception {
-		
+		/**
+		 * TODO get all declared workers and all configured workers
+		 * TODO push new job
+		 * Serialize context
+		 * TODO get a waiting job an attribute to an worker
+		 * Deserialize context
+		 * TODO manage jobs lifecycle (too old, error...)
+		 * TODO centralize status and action
+		 * - isAlive functions
+		 * - remote exec actions to workers (start, stop, change cyclic times...)
+		 * - workers status (+ add current Thread (exec class & line))
+		 */
 	}
 	
 }
