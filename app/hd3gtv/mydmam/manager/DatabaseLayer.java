@@ -30,6 +30,11 @@ public class DatabaseLayer {
 	private static final ColumnFamily<String, String> CF_QUEUE = new ColumnFamily<String, String>("manager-queue", StringSerializer.get(), StringSerializer.get());
 	private static final ColumnFamily<String, String> CF_ACTIONS = new ColumnFamily<String, String>("manager-action", StringSerializer.get(), StringSerializer.get());
 	
+	/**
+	 * In sec.
+	 */
+	static final long TTL = 120;
+	
 	static {
 		try {
 			Keyspace keyspace = CassandraDb.getkeyspace();
@@ -62,12 +67,12 @@ public class DatabaseLayer {
 		
 	}
 	
-	static void updateInstanceStatus(InstanceStatus instance_status) {
+	/*static void updateInstanceStatus(InstanceStatus instance_status) {
 		if (instance_status == null) {
 			throw new NullPointerException("\"instance_status\" can't to be null");
 		}
 		// String json = AppManager.getGson().toJson(instance_status);
 		
-	}
+	}*/
 	
 }

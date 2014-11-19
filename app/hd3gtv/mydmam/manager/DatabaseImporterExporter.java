@@ -16,33 +16,14 @@
 */
 package hd3gtv.mydmam.manager;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.netflix.astyanax.ColumnListMutation;
 
-/**
- * TODO Replace IsAlive, and Broker operations
- */
-public class AppManager {
+public interface DatabaseImporterExporter {
 	
-	private static final Gson gson;
-	private static final Gson simple_gson;
-	static final long starttime;
+	void exportToDatabase(ColumnListMutation<String> mutator);
 	
-	static {
-		starttime = System.currentTimeMillis();
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus().new Serializer());
-		gson = builder.create();
-		simple_gson = new Gson();
-	}
+	String getDatabaseKey();
 	
-	static Gson getGson() {
-		return gson;
-	}
-	
-	static Gson getSimpleGson() {
-		return simple_gson;
-	}
+	void importFromDatabase();
 	
 }
