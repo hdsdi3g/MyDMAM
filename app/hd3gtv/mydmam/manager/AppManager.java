@@ -16,6 +16,11 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.useraction.UACapabilityDefinition;
+import hd3gtv.mydmam.useraction.UAConfigurator;
+import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -26,15 +31,34 @@ public class AppManager {
 	
 	private static final Gson gson;
 	private static final Gson simple_gson;
+	private static final Gson pretty_gson;
 	static final long starttime;
 	
 	static {
 		starttime = System.currentTimeMillis();
 		GsonBuilder builder = new GsonBuilder();
 		builder.serializeNulls();
+		
+		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		
+		/**
+		 * Outside of this package serializers
+		 */
+		builder.registerTypeAdapter(UAFunctionalityDefinintion.class, new UAFunctionalityDefinintion.Serializer());
+		builder.registerTypeAdapter(UACapabilityDefinition.class, new UACapabilityDefinition.Serializer());
+		builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
+		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		simple_gson = builder.create();
+		
+		/**
+		 * Inside of this package serializers
+		 */
 		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus().new Serializer());
+		
 		gson = builder.create();
-		simple_gson = new Gson();
+		pretty_gson = builder.setPrettyPrinting().create();
 	}
 	
 	static Gson getGson() {
@@ -43,6 +67,10 @@ public class AppManager {
 	
 	static Gson getSimpleGson() {
 		return simple_gson;
+	}
+	
+	static Gson getPrettyGson() {
+		return pretty_gson;
 	}
 	
 }

@@ -79,13 +79,13 @@ public final class UACapabilityDefinition implements Log2Dumpable {
 		}
 	}
 	
-	static class Serializer implements JsonSerializer<UACapabilityDefinition>, JsonDeserializer<UACapabilityDefinition> {
+	public static class Serializer implements JsonSerializer<UACapabilityDefinition>, JsonDeserializer<UACapabilityDefinition> {
 		Gson gson;
 		
 		public static final Type capability_storageindexeswhitelist_typeOfT = new TypeToken<ArrayList<String>>() {
 		}.getType();
 		
-		Serializer() {
+		public Serializer() {
 			GsonBuilder builder = new GsonBuilder();
 			builder.serializeNulls();
 			gson = builder.create();

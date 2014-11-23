@@ -19,8 +19,6 @@ package hd3gtv.mydmam.manager;
 import groovy.json.JsonException;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.GitInfo;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 
 import java.io.File;
@@ -44,8 +42,9 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.model.ColumnList;
 
-public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
+public class InstanceStatus implements CassandraDbImporterExporter {
 	
 	private static final ArrayList<String> current_classpath;
 	private static final String current_instance_name;
@@ -53,12 +52,13 @@ public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
 	// private static final String current_app_name; TODO get AppName
 	private static final String current_app_version;
 	private static final String current_java_version;
+	private static String current_host_name;
 	
-	private Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
+	private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
 	}.getType();
-	private Type al_threadstacktrace_typeOfT = new TypeToken<ArrayList<ThreadStackTrace>>() {
+	private static Type al_threadstacktrace_typeOfT = new TypeToken<ArrayList<ThreadStackTrace>>() {
 	}.getType();
-	private Type al_uafunctionalitydefinintion_typeOfT = new TypeToken<ArrayList<UAFunctionalityDefinintion>>() {
+	private static Type al_uafunctionalitydefinintion_typeOfT = new TypeToken<ArrayList<UAFunctionalityDefinintion>>() {
 	}.getType();
 	
 	static {
@@ -76,9 +76,15 @@ public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
 			current_classpath.add(sb_classpath.toString());
 		}
 		
+		try {
+			current_host_name = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e) {
+			current_host_name = "somehost";
+		}
+		
 		current_instance_name = Configuration.global.getValue("service", "workername", "unknown-pleaseset-" + String.valueOf(System.currentTimeMillis()));
 		String instance_raw = ManagementFactory.getRuntimeMXBean().getName();
-		current_instance_name_pid = current_instance_name + "#" + instance_raw.substring(0, instance_raw.indexOf("@"));
+		current_instance_name_pid = current_instance_name + "#" + instance_raw.substring(0, instance_raw.indexOf("@")) + "@" + current_host_name;
 		
 		GitInfo git = GitInfo.getFromRoot();
 		if (git != null) {
@@ -87,6 +93,7 @@ public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
 			current_app_version = "unknow";
 		}
 		current_java_version = System.getProperty("java.version");
+		
 	}
 	
 	private ArrayList<String> classpath;
@@ -94,13 +101,13 @@ public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
 	private String instance_name_pid;
 	private String app_version;
 	private long uptime;
-	private ArrayList<ThreadStackTrace> threadstacktraces;
+	private @GsonIgnore ArrayList<ThreadStackTrace> threadstacktraces;
 	private String java_version;
 	private String host_name;
 	private ArrayList<String> host_addresses;
-	private ArrayList<UAFunctionalityDefinintion> useraction_functionality_list;
+	private @GsonIgnore ArrayList<UAFunctionalityDefinintion> useraction_functionality_list;
 	
-	public class ThreadStackTrace implements Log2Dumpable {
+	public class ThreadStackTrace {
 		String name;
 		long id;
 		String classname;
@@ -115,15 +122,23 @@ public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
 			state = t.getState().toString();
 			isdaemon = t.isDaemon();
 			
-			if (stes.length > 0) {
+			for (int pos = 0; pos < stes.length; pos++) {
+				if (stes[pos].isNativeMethod()) {
+					continue;
+				}
 				StringBuffer sb = new StringBuffer();
-				sb.append(stes[0].getClassName());
+				/**
+				 * "at " Added only for Eclipse can transform the text into a link in Console view...
+				 */
+				sb.append("at ");
+				
+				sb.append(stes[pos].getClassName());
 				sb.append(".");
-				sb.append(stes[0].getMethodName());
-				if (stes[0].getFileName() != null) {
+				sb.append(stes[pos].getMethodName());
+				if (stes[pos].getFileName() != null) {
 					sb.append("(");
-					sb.append(stes[0].getFileName());
-					int linenumber = stes[0].getLineNumber();
+					sb.append(stes[pos].getFileName());
+					int linenumber = stes[pos].getLineNumber();
 					if (linenumber > 0) {
 						sb.append(":");
 						sb.append(linenumber);
@@ -131,20 +146,11 @@ public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
 					sb.append(")");
 				}
 				execpoint = sb.toString();
+				break;
 			}
 			return this;
 		}
 		
-		public Log2Dump getLog2Dump() {
-			Log2Dump dump = new Log2Dump();
-			dump.add("name", name);
-			dump.add("id", id);
-			dump.add("classname", classname);
-			dump.add("state", state);
-			dump.add("isdaemon", isdaemon);
-			dump.add("execpoint", execpoint);
-			return dump;
-		}
 	}
 	
 	InstanceStatus populateFromThisInstance() {
@@ -155,6 +161,7 @@ public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
 		java_version = current_java_version;
 		uptime = System.currentTimeMillis() - AppManager.starttime;
 		threadstacktraces = new ArrayList<InstanceStatus.ThreadStackTrace>();
+		host_name = current_host_name;
 		
 		Thread key;
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
@@ -173,12 +180,6 @@ public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
 				continue;
 			}
 			threadstacktraces.add(new ThreadStackTrace().importThread(key, entry.getValue()));
-		}
-		
-		try {
-			host_name = InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e) {
-			host_name = "localhost";
 		}
 		
 		host_addresses = new ArrayList<String>();
@@ -239,42 +240,48 @@ public class InstanceStatus implements Log2Dumpable, DatabaseImporterExporter {
 		
 		public JsonElement serialize(InstanceStatus src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
-			result.add("classpath", AppManager.getSimpleGson().toJsonTree(classpath, al_string_typeOfT));
-			result.add("threadstacktraces", AppManager.getSimpleGson().toJsonTree(threadstacktraces, al_threadstacktrace_typeOfT));
-			result.add("host_addresses", AppManager.getSimpleGson().toJsonTree(host_addresses, al_string_typeOfT));
-			result.add("useraction_functionality_list", AppManager.getSimpleGson().toJsonTree(useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT));
+			result.add("classpath", AppManager.getSimpleGson().toJsonTree(src.classpath, al_string_typeOfT));
+			result.add("threadstacktraces", AppManager.getSimpleGson().toJsonTree(src.threadstacktraces, al_threadstacktrace_typeOfT));
+			result.add("host_addresses", AppManager.getSimpleGson().toJsonTree(src.host_addresses, al_string_typeOfT));
+			result.add("useraction_functionality_list", AppManager.getSimpleGson().toJsonTree(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT));
 			return result;
 		}
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("classpath", classpath);
-		dump.add("instance_name", instance_name);
-		dump.add("instance_name_pid", instance_name_pid);
-		dump.add("app_version", app_version);
-		dump.addDate("uptime", uptime);
-		dump.add("java_version", java_version);
-		dump.add("host_name", host_name);
-		dump.add("host_addresses", host_addresses);
-		dump.add("threadstacktraces", threadstacktraces);
-		dump.add("useraction_functionality_list", useraction_functionality_list);
-		return null;
 	}
 	
 	public String getDatabaseKey() {
 		return instance_name_pid;
 	}
 	
-	@Override
 	public void exportToDatabase(ColumnListMutation<String> mutator) {
-		// TODO Auto-generated method stub
-		// mutator.putColumn(arg0, arg1, DatabaseLayer.TTL);
+		mutator.putColumn("instance_name", instance_name, DatabaseLayer.TTL);
+		mutator.putColumn("instance_name_pid", instance_name_pid, DatabaseLayer.TTL);
+		mutator.putColumn("app_version", app_version, DatabaseLayer.TTL);
+		mutator.putColumn("uptime", uptime, DatabaseLayer.TTL);
+		mutator.putColumn("java_version", java_version, DatabaseLayer.TTL);
+		mutator.putColumn("host_name", host_name, DatabaseLayer.TTL);
+		mutator.putColumn("classpath", AppManager.getSimpleGson().toJson(classpath, al_string_typeOfT), DatabaseLayer.TTL);
+		mutator.putColumn("threadstacktraces", AppManager.getSimpleGson().toJson(threadstacktraces, al_threadstacktrace_typeOfT), DatabaseLayer.TTL);
+		mutator.putColumn("host_addresses", AppManager.getSimpleGson().toJson(host_addresses, al_string_typeOfT), DatabaseLayer.TTL);
+		mutator.putColumn("useraction_functionality_list", AppManager.getSimpleGson().toJson(useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), DatabaseLayer.TTL);
 	}
 	
-	@Override
-	public void importFromDatabase() {
-		// TODO Auto-generated method stub
-		
+	public void importFromDatabase(ColumnList<String> columnlist) {
+		if (columnlist.isEmpty()) {
+			return;
+		}
+		instance_name = columnlist.getStringValue("instance_name", "");
+		instance_name_pid = columnlist.getStringValue("instance_name_pid", "");
+		app_version = columnlist.getStringValue("app_version", "");
+		uptime = columnlist.getLongValue("uptime", -1l);
+		java_version = columnlist.getStringValue("java_version", "");
+		host_name = columnlist.getStringValue("host_name", "");
+		classpath = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("classpath", "[]"), al_string_typeOfT);
+		threadstacktraces = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("threadstacktraces", "[]"), al_threadstacktrace_typeOfT);
+		host_addresses = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("host_addresses", "[]"), al_string_typeOfT);
+		useraction_functionality_list = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("useraction_functionality_list", "[]"), al_uafunctionalitydefinintion_typeOfT);
+	}
+	
+	public String toString() {
+		return AppManager.getPrettyGson().toJson(this);
 	}
 }

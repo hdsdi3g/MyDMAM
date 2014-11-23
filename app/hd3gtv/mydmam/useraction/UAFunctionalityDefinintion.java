@@ -111,13 +111,13 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		return def;
 	}
 	
-	static class Serializer implements JsonSerializer<UAFunctionalityDefinintion>, JsonDeserializer<UAFunctionalityDefinintion> {
+	public static class Serializer implements JsonSerializer<UAFunctionalityDefinintion>, JsonDeserializer<UAFunctionalityDefinintion> {
 		Gson gson;
 		
 		Type profiles_typeOfT = new TypeToken<ArrayList<Profile>>() {
 		}.getType();
 		
-		Serializer() {
+		public Serializer() {
 			GsonBuilder builder = new GsonBuilder();
 			builder.serializeNulls();
 			builder.registerTypeAdapter(Profile.class, new Profile.ProfileSerializer());

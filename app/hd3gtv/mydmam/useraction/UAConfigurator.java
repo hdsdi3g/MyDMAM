@@ -94,7 +94,7 @@ public final class UAConfigurator implements Log2Dumpable {
 		return object.getClass();
 	}
 	
-	static class JsonUtils implements JsonSerializer<UAConfigurator>, JsonDeserializer<UAConfigurator> {
+	public static class JsonUtils implements JsonSerializer<UAConfigurator>, JsonDeserializer<UAConfigurator> {
 		
 		public JsonElement serialize(UAConfigurator src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject je = new JsonObject();
