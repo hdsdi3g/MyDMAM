@@ -16,9 +16,49 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.lang.reflect.Type;
+
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
 /**
  * TODO Replace Task and Job
  */
-public class JobNG {
+public final class JobNG {
+	
+	@GsonIgnore
+	JobContext context;
+	
+	// TODO manage job lifetime, and differents status
+	
+	static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
+		public JobNG deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext jcontext) throws JsonParseException {
+			JsonObject json = (JsonObject) jejson;
+			String context_class = json.get("context_class").getAsString();
+			json.remove("context_class");
+			
+			JobNG job = AppManager.getGson().fromJson(json, JobNG.class);
+			try {
+				job.context = (JobContext) Class.forName(context_class).newInstance();
+				job.context.contextFromJson(json.getAsJsonObject("context"));
+			} catch (Exception e) {
+				throw new JsonParseException("Invalid context class", e);
+			}
+			return job;
+		}
+		
+		public JsonElement serialize(JobNG src, Type typeOfSrc, JsonSerializationContext jcontext) {
+			JsonObject result = (JsonObject) AppManager.getGson().toJsonTree(src);
+			result.addProperty("context_class", src.getClass().getName());
+			result.add("context", src.context.contextToJson());
+			return null;
+		}
+		
+	}
 	
 }

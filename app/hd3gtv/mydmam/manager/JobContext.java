@@ -16,6 +16,31 @@
 */
 package hd3gtv.mydmam.manager;
 
-public class JobContext {
+import java.util.List;
+
+import com.google.gson.JsonObject;
+
+/**
+ * Full configuration for a Job
+ */
+public interface JobContext {
+	
+	public JsonObject contextToJson();
+	
+	public void contextFromJson(JsonObject json_object);
+	
+	/**
+	 * @return can be null or empty
+	 */
+	public List<String> getNeededIndexedStoragesName();
+	
+	/**
+	 * @return true if worker need to mount getNeededIndexedStoragesName list localy (bridged mount on worker host), for a direct access via File.
+	 */
+	public boolean isNeededIndexedStoragesBridged();
+	
+	public abstract String getName();// TODO need to keep this ? Replace by Class ?
+	
+	public abstract String getCategory();// TODO need to keep this ? Replace by Class ?
 	
 }

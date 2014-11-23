@@ -21,14 +21,20 @@ import hd3gtv.mydmam.useraction.UACapabilityDefinition;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 /**
  * TODO Replace IsAlive, and Broker operations
  */
-public class AppManager {
+public final class AppManager {
 	
+	/**
+	 * Start of static realm
+	 */
 	private static final Gson gson;
 	private static final Gson simple_gson;
 	private static final Gson pretty_gson;
@@ -56,6 +62,7 @@ public class AppManager {
 		 * Inside of this package serializers
 		 */
 		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus().new Serializer());
+		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
 		
 		gson = builder.create();
 		pretty_gson = builder.setPrettyPrinting().create();
@@ -73,4 +80,45 @@ public class AppManager {
 		return pretty_gson;
 	}
 	
+	/**
+	 * End of static realm
+	 */
+	
+	/**
+	 * All workers in app.
+	 */
+	private volatile List<WorkerNG> declared_workers;
+	
+	/**
+	 * All configured workers.
+	 */
+	private volatile List<WorkerNG> enabled_workers;
+	
+	public AppManager() {
+		declared_workers = new ArrayList<WorkerNG>();
+	}
+	
+	void workerRegister(WorkerNG worker) {
+		if (worker == null) {
+			throw new NullPointerException("\"worker\" can't to be null");
+		}
+		declared_workers.add(worker);
+		if (worker.isEnabled()) {
+			enabled_workers.add(worker);
+		}
+	}
+	
+	public void start() {
+		for (int pos = 0; pos < enabled_workers.size(); pos++) {
+			// enabled_workers.get(pos)
+		}
+		// TODO start
+	}
+	
+	public void stop() {
+		for (int pos = 0; pos < enabled_workers.size(); pos++) {
+			// enabled_workers.get(pos)
+		}
+		// TODO stop
+	}
 }
