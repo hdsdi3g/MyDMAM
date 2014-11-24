@@ -22,6 +22,8 @@ import com.google.gson.JsonObject;
 
 public abstract class WorkerNG {
 	
+	// TODO push & pull db
+	
 	public enum WorkerCategory {
 		INDEXING, METADATA, EXTERNAL_MODULE, USERACTION, INTERNAL
 	}
@@ -32,9 +34,9 @@ public abstract class WorkerNG {
 	
 	public abstract String getWorkerVendorName();
 	
-	public abstract List<JobDefinition> getWorkerCapablities();
+	public abstract List<WorkerCapablities> getWorkerCapablities();
 	
-	public abstract void workerProcessJob(JobNG job) throws Exception;
+	public abstract void workerProcessJob(JobNG.Progression progression, JobContext context) throws Exception;
 	
 	public abstract void forceStopProcess() throws Exception;
 	
@@ -80,7 +82,7 @@ public abstract class WorkerNG {
 				Log2.log.info("Start process", job);
 			}*/
 			try {
-				workerProcessJob(job);
+				workerProcessJob(job.getProgression(), job.getContext());
 			} catch (Exception e) {
 				// TODO handle exception
 				/*
@@ -143,6 +145,8 @@ public abstract class WorkerNG {
 	final WorkerStatus getStatus() {
 		return status;
 	}
+	
+	// TODO create worker ref
 	
 	// WorkerEngine engine;
 	// String worker_ref;

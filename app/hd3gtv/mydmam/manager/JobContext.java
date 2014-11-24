@@ -32,12 +32,7 @@ public interface JobContext {
 	/**
 	 * @return can be null or empty
 	 */
-	public List<String> getNeededIndexedStoragesName();
-	
-	/**
-	 * @return true if worker need to mount getNeededIndexedStoragesName list localy (bridged mount on worker host), for a direct access via File.
-	 */
-	public boolean isNeededIndexedStoragesBridged();
+	public List<String> getNeededIndexedStoragesNames();
 	
 	public abstract String getName();// TODO need to keep this ? Replace by Class ?
 	

@@ -20,11 +20,11 @@ import java.util.List;
 
 import com.google.gson.JsonObject;
 
-/**
- * This is what a worker can do, and this is what a job need.
- */
-public abstract class JobDefinition {
+public abstract class WorkerCapablities {
 	
+	/**
+	 * Can be some bridged storages or not, dependent the Worker need.
+	 */
 	public abstract List<String> getStoragesAvaliable();
 	
 	public abstract String getName();// TODO need to keep this ?
@@ -36,11 +36,11 @@ public abstract class JobDefinition {
 		if (obj == null) {
 			return false;
 		}
-		if (this.getClass().isAssignableFrom(obj.getClass()) == false) {
+		if (this.getClass().isAssignableFrom(obj.getClass()) == false) { // TODO nope, use equals class names.
 			return false;
 		}
 		
-		JobDefinition item = (JobDefinition) obj;
+		WorkerCapablities item = (WorkerCapablities) obj;
 		String item_name = item.getName();
 		if (item_name == null) {
 			return false;

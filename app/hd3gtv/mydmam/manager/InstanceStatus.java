@@ -284,4 +284,8 @@ public class InstanceStatus implements CassandraDbImporterExporter {
 	public String toString() {
 		return AppManager.getPrettyGson().toJson(this);
 	}
+	
+	public String getHostName() {
+		return host_name;
+	}
 }

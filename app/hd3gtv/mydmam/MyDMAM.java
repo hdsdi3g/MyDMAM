@@ -18,6 +18,7 @@ package hd3gtv.mydmam;
 
 import hd3gtv.configuration.Configuration;
 
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -156,6 +157,30 @@ public class MyDMAM {
 			e.printStackTrace();
 		}
 		System.exit(1);
+	}
+	
+	/**
+	 * @throws ClassNotFoundException if null, anonymous, local, member (or static if can_to_be_static).
+	 */
+	public static void checkIsAccessibleClass(Class<?> context, boolean can_to_be_static) throws ClassNotFoundException {
+		if (context == null) {
+			throw new ClassNotFoundException("\"context\" can't to be null");
+		}
+		if (context.getClass().isAnonymousClass()) {
+			throw new ClassNotFoundException("\"context\" can't to be an anonymous class");
+		}
+		if (context.getClass().isLocalClass()) {
+			throw new ClassNotFoundException("\"context\" can't to be a local class");
+		}
+		if (context.getClass().isMemberClass()) {
+			throw new ClassNotFoundException("\"context\" can't to be a member class");
+		}
+		if (can_to_be_static == false) {
+			if (Modifier.isStatic(context.getClass().getModifiers())) {
+				throw new ClassNotFoundException("\"context\" can't to be a static class");
+			}
+		}
+		
 	}
 	
 	/*private static volatile GsonBuilder gsonbuilder;

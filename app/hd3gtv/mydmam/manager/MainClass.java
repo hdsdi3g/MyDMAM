@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 // TODO remove this test class
 public class MainClass {
 	
@@ -36,7 +33,7 @@ public class MainClass {
 		 * TODO manage jobs lifecycle (too old, error...)
 		 */
 		
-		new AppManager();
+		/*new AppManager();
 		
 		InstanceStatus is = new InstanceStatus();
 		is.populateFromThisInstance();
@@ -44,7 +41,22 @@ public class MainClass {
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("result", DatabaseLayer.getAllInstancesStatus());
-		Log2.log.info("Do", dump);
+		Log2.log.info("Do", dump);*/
+		
+		GsonThrowable gt1 = null;
+		try {
+			Class.forName("toto").newInstance();
+		} catch (Exception e) {
+			Exception e2 = new Exception("test", e);
+			// e2.printStackTrace();
+			gt1 = new GsonThrowable(e2);
+		}
+		
+		String js = AppManager.getPrettyGson().toJson(gt1);
+		System.out.println(js);
+		System.err.println("===================================");
+		System.err.println(AppManager.getPrettyGson().fromJson(js, GsonThrowable.class).getPrintedStackTrace());
+		System.err.println("===================================");
 		
 	}
 }

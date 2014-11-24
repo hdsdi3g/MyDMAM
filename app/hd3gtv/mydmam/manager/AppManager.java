@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.useraction.UACapabilityDefinition;
 import hd3gtv.mydmam.useraction.UAConfigurator;
@@ -27,13 +28,12 @@ import java.util.List;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-/**
- * TODO Replace IsAlive, and Broker operations
- */
 public final class AppManager {
 	
 	/**
+	 * ============================================================================
 	 * Start of static realm
+	 * ============================================================================
 	 */
 	private static final Gson gson;
 	private static final Gson simple_gson;
@@ -63,6 +63,7 @@ public final class AppManager {
 		 */
 		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus().new Serializer());
 		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
+		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
 		
 		gson = builder.create();
 		pretty_gson = builder.setPrettyPrinting().create();
@@ -81,7 +82,9 @@ public final class AppManager {
 	}
 	
 	/**
+	 * ============================================================================
 	 * End of static realm
+	 * ============================================================================
 	 */
 	
 	/**
@@ -94,8 +97,13 @@ public final class AppManager {
 	 */
 	private volatile List<WorkerNG> enabled_workers;
 	
+	private InstanceStatus instance_status;
+	
+	// TODO store a map with class name <-> class instance tested
+	
 	public AppManager() {
 		declared_workers = new ArrayList<WorkerNG>();
+		instance_status = new InstanceStatus().populateFromThisInstance();// TODO regular update, and db push
 	}
 	
 	void workerRegister(WorkerNG worker) {
@@ -121,4 +129,18 @@ public final class AppManager {
 		}
 		// TODO stop
 	}
+	
+	public JobNG createJob(JobContext context) {
+		try {
+			return new JobNG(this, context);
+		} catch (ClassNotFoundException e) {
+			Log2.log.error("The context origin class is invalid, don't forget it will be (de)serialized.", e);
+			return null;
+		}
+	}
+	
+	InstanceStatus getInstance_status() {
+		return instance_status;
+	}
+	
 }
