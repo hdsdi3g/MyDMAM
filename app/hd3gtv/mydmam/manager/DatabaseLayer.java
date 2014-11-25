@@ -37,13 +37,7 @@ public class DatabaseLayer {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	// private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
-	// private static final ColumnFamily<String, String> CF_QUEUE = new ColumnFamily<String, String>("mgrQueue", StringSerializer.get(), StringSerializer.get());
 	// private static final ColumnFamily<String, String> CF_ACTIONS = new ColumnFamily<String, String>("mgrAction", StringSerializer.get(), StringSerializer.get());
-	
-	/**
-	 * In sec.
-	 */
-	static final int TTL = 120;
 	
 	static {
 		try {

@@ -16,7 +16,10 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.db.DeployColumnDef;
 
 import java.lang.reflect.Type;
 import java.util.Date;
@@ -31,12 +34,18 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.query.IndexQuery;
+import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
  * Use AppManager to for create job.
  */
 public final class JobNG {
+	
+	private static int TTL = 3600 * 24 * 7;
 	
 	public enum JobStatus {
 		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING;
@@ -70,14 +79,14 @@ public final class JobNG {
 	private long expiration_date;
 	@SuppressWarnings("unused")
 	private long max_execution_time;
+	@SuppressWarnings("unused")
 	private String require_key;
 	private long create_date;
-	@SuppressWarnings("unused")
 	private boolean delete_after_completed;
 	@SuppressWarnings("unused")
 	private String instance_status_creator_key;
-	@SuppressWarnings("unused")
 	private String instance_status_creator_hostname;
+	@SuppressWarnings("unused")
 	private int priority;
 	
 	@GsonIgnore
@@ -88,13 +97,20 @@ public final class JobNG {
 	 */
 	private JobStatus status;
 	private long update_date;
+	@SuppressWarnings("unused")
 	private GsonThrowable processing_error;
 	private Progression progression;
+	@SuppressWarnings("unused")
 	private long start_date;
+	@SuppressWarnings("unused")
 	private long end_date;
+	@SuppressWarnings("unused")
 	private String worker_reference;
+	@SuppressWarnings("unused")
 	private Class worker_class;
+	@SuppressWarnings("unused")
 	private String instance_status_executor_key;
+	@SuppressWarnings("unused")
 	private String instance_status_executor_hostname;
 	
 	JobNG(AppManager manager, JobContext context) throws ClassNotFoundException {
@@ -105,7 +121,7 @@ public final class JobNG {
 		urgent = false;
 		priority = 0;
 		delete_after_completed = false;
-		expiration_date = -1;
+		expiration_date = Long.MAX_VALUE;
 		status = JobStatus.WAITING;
 		
 		instance_status_creator_key = manager.getInstance_status().getDatabaseKey();
@@ -305,40 +321,22 @@ public final class JobNG {
 		processing_error = new GsonThrowable(e);
 	}
 	
-	/*static void selectWaitingForProfileCategory(IndexQuery<String, String> index_query, String category) {
-		index_query.addExpression().whereColumn("status").equals().value(TaskJobStatus.WAITING.name().toUpperCase());
-		index_query.addExpression().whereColumn("profile_category").equals().value(category.toLowerCase());
-	}
-	
-	static void selectTooOldWaitingTasks(IndexQuery<String, String> index_query, String hostname) {
-		index_query.addExpression().whereColumn("status").equals().value(TaskJobStatus.WAITING.name().toUpperCase());
-		index_query.addExpression().whereColumn("creator_hostname").equals().value(hostname);
-		index_query.addExpression().whereColumn("max_date_to_wait_processing").lessThan().value(System.currentTimeMillis());
-	}
-	
-	static void selectPostponedTasksWithMaxAge(IndexQuery<String, String> index_query, String hostname) {
-		index_query.addExpression().whereColumn("status").equals().value(TaskJobStatus.POSTPONED.name().toUpperCase());
-		index_query.addExpression().whereColumn("creator_hostname").equals().value(hostname);
-		index_query.addExpression().whereColumn("max_date_to_wait_processing").lessThan().value(Long.MAX_VALUE);
-	}
-	
-	static void selectAllLastTasksAndJobs(IndexQuery<String, String> index_query, long since_date) {
-		index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
-		index_query.addExpression().whereColumn("updatedate").greaterThanEquals().value(since_date);
-	}*/
-	
-	// TODO push & pull db
-	/*
-	 * */
-	
 	void exportToDatabase(ColumnListMutation<String> mutator) {
-		mutator.putColumn("context_class", context.getClass().getName());
-		mutator.putColumn("status", status.name());
-		mutator.putColumn("creator_hostname", instance_status_creator_hostname);
-		mutator.putColumn("expiration_date", expiration_date);
-		mutator.putColumn("update_date", update_date);
-		mutator.putColumn("delete_after_completed", delete_after_completed);
-		mutator.putColumn("source", AppManager.getGson().toJson(this));
+		mutator.putColumn("context_class", context.getClass().getName(), TTL);
+		mutator.putColumn("status", status.name(), TTL);
+		mutator.putColumn("creator_hostname", instance_status_creator_hostname, TTL);
+		mutator.putColumn("expiration_date", expiration_date, TTL);
+		mutator.putColumn("update_date", update_date, TTL);
+		mutator.putColumn("delete_after_completed", delete_after_completed, TTL);
+		/**
+		 * Workaround for Cassandra index select bug.
+		 */
+		mutator.putColumn("indexingdebug", 1, TTL);
+		mutator.putColumn("source", AppManager.getGson().toJson(this), TTL);
+	}
+	
+	void pushToDatabaseEndLifejob(ColumnListMutation<String> mutator) {
+		mutator.putColumn("delete", 1, TTL);
 	}
 	
 	public String getDatabaseKey() {
@@ -348,106 +346,54 @@ public final class JobNG {
 	static JobNG importFromDatabase(ColumnList<String> columnlist) {
 		return AppManager.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), JobNG.class);
 	}
-	/*
-	static boolean isEmptyDbEntry(ColumnList<String> columns) {
-		try {
-			return (columns.getColumnByName("name").getStringValue().equals(""));
-		} catch (NullPointerException e) {
-			return true;
-		}
-	}
 	
-	void pushToDatabase(MutationBatch mutator, int ttl) {
-		prepareKey();
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("name", name, ttl);
-		if (max_date_to_wait_processing == 0l) {
-			max_date_to_wait_processing = Long.MAX_VALUE;
-		}
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("max_date_to_wait_processing", max_date_to_wait_processing, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("create_date", create_date, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("task_key_require_done", task_key_require_done, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("creator_hostname", creator_hostname, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("creator_instancename", creator_instancename, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("creator_classname", creator_classname, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("priority", priority, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumn("delete_after_done", delete_after_done, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumn("cyclic_source", cyclic_source, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumn("trigger_source", trigger_source, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumn("updatedate", System.currentTimeMillis(), ttl);
+	private static class Db {
+		private static final ColumnFamily<String, String> CF_QUEUE = new ColumnFamily<String, String>("mgrQueue", StringSerializer.get(), StringSerializer.get());
 		
-		if (profile != null) {
-			profile.pushToDatabase(mutator, key, ttl);
-		}
-		if (context != null) {
-			mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("context", context.toJSONString(), ttl);
-		}
-		if (status != null) {
-			status.pushToDatabase(mutator, key, ttl);
-		}
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumn("indexingdebug", 1, ttl);
-
-		if (worker != null) {
-			mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("worker", worker.worker_ref, ttl);
+		static {
+			try {
+				Keyspace keyspace = CassandraDb.getkeyspace();
+				String default_keyspacename = CassandraDb.getDefaultKeyspacename();
+				if (CassandraDb.isColumnFamilyExists(keyspace, CF_QUEUE.getName()) == false) {
+					CassandraDb.createColumnFamilyString(default_keyspacename, CF_QUEUE.getName(), false);
+					String queue_name = CF_QUEUE.getName();
+					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "status", queue_name + "_status", DeployColumnDef.ColType_AsciiType);
+					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "creator_hostname", queue_name + "_creator_hostname", DeployColumnDef.ColType_UTF8Type);
+					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "expiration_date", queue_name + "_expiration_date", DeployColumnDef.ColType_LongType);
+					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "updatedate", queue_name + "_updatedate", DeployColumnDef.ColType_LongType);
+					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "delete", queue_name + "_delete", DeployColumnDef.ColType_Int32Type);
+					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "indexingdebug", queue_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
+				}
+			} catch (Exception e) {
+				Log2.log.error("Can't init database CFs", e);
+			}
 		}
 		
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("processing_error", processing_error, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("progress", progress, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("progress_size", progress_size, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("step", step, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("step_count", step_count, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("start_date", start_date, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("end_date", end_date, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("last_message", last_message, ttl);
-	}
-	
-	void pullFromDatabase(String key, ColumnList<String> columns) throws ParseException {
-		this.key = key;
-		name = columns.getStringValue("name", "");
-		max_date_to_wait_processing = columns.getLongValue("max_date_to_wait_processing", 0l);
-		create_date = columns.getLongValue("create_date", 0l);
-		task_key_require_done = columns.getStringValue("task_key_require_done", "");
-		creator_hostname = columns.getStringValue("creator_hostname", "");
-		creator_classname = columns.getStringValue("creator_classname", "");
-		creator_instancename = columns.getStringValue("creator_instancename", "");
-		priority = columns.getIntegerValue("priority", 0);
-		delete_after_done = columns.getBooleanValue("delete_after_done", false);
-		cyclic_source = columns.getBooleanValue("cyclic_source", false);
-		trigger_source = columns.getBooleanValue("trigger_source", false);
-		updatedate = columns.getLongValue("updatedate", 0l);
+		static void selectWaiting(IndexQuery<String, String> index_query, String category) {
+			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
+		}
 		
-		profile = new Profile();
-		profile.pullFromDatabase(columns);
+		static void selectTooOldWaitingTasks(IndexQuery<String, String> index_query, String hostname) {
+			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
+			index_query.addExpression().whereColumn("creator_hostname").equals().value(hostname);
+			index_query.addExpression().whereColumn("expiration_date").lessThan().value(System.currentTimeMillis());
+		}
 		
-		JSONParser jp = new JSONParser();
-		context = (JSONObject) jp.parse(columns.getStringValue("context", "{}"));
-		status = TaskJobStatus.pullFromDatabase(columns);
+		static void selectPostponedTasksWithMaxAge(IndexQuery<String, String> index_query, String hostname) {
+			index_query.addExpression().whereColumn("status").equals().value(JobStatus.POSTPONED.name());
+			index_query.addExpression().whereColumn("creator_hostname").equals().value(hostname);
+			index_query.addExpression().whereColumn("expiration_date").lessThan().value(Long.MAX_VALUE);
+		}
 		
-		processing_error = columns.getStringValue("processing_error", "");
-		progress = columns.getIntegerValue("progress", 0);
-		progress_size = columns.getIntegerValue("progress_size", 0);
-		step = columns.getIntegerValue("step", 0);
-		step_count = columns.getIntegerValue("step_count", 0);
-		start_date = columns.getLongValue("start_date", 0l);
-		end_date = columns.getLongValue("end_date", 0l);
-		last_message = columns.getStringValue("last_message", "");
-	}
-	
-	void pushToDatabaseEndLifejob(MutationBatch mutator, int ttl) {
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumn("delete", 1, ttl);
-	}
-	
-	static void selectEndLifeJobs(IndexQuery<String, String> index_query) {
-		index_query.addExpression().whereColumn("delete").equals().value(1);
-		index_query.withColumnSlice("delete");
-	}
-	
-	static boolean isAJob(ColumnList<String> columns) {
-		try {
-			return columns.getColumnByName("start_date").hasValue();
-		} catch (NullPointerException e) {
-			return false;
+		static void selectAllLastTasksAndJobs(IndexQuery<String, String> index_query, long since_date) {
+			index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
+			index_query.addExpression().whereColumn("updatedate").greaterThanEquals().value(since_date);
+		}
+		
+		static void selectEndLifeJobs(IndexQuery<String, String> index_query) {
+			index_query.addExpression().whereColumn("delete").equals().value(1);
+			index_query.withColumnSlice("delete");
 		}
 	}
-	}*/
 	
 }

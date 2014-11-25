@@ -46,6 +46,10 @@ import com.netflix.astyanax.model.ColumnList;
 
 public class InstanceStatus implements CassandraDbImporterExporter {
 	
+	/**
+	 * In sec.
+	 */
+	private static final int TTL = 120;
 	private static final ArrayList<String> current_classpath;
 	private static final String current_instance_name;
 	private static final String current_instance_name_pid;
@@ -253,16 +257,16 @@ public class InstanceStatus implements CassandraDbImporterExporter {
 	}
 	
 	public void exportToDatabase(ColumnListMutation<String> mutator) {
-		mutator.putColumn("instance_name", instance_name, DatabaseLayer.TTL);
-		mutator.putColumn("instance_name_pid", instance_name_pid, DatabaseLayer.TTL);
-		mutator.putColumn("app_version", app_version, DatabaseLayer.TTL);
-		mutator.putColumn("uptime", uptime, DatabaseLayer.TTL);
-		mutator.putColumn("java_version", java_version, DatabaseLayer.TTL);
-		mutator.putColumn("host_name", host_name, DatabaseLayer.TTL);
-		mutator.putColumn("classpath", AppManager.getSimpleGson().toJson(classpath, al_string_typeOfT), DatabaseLayer.TTL);
-		mutator.putColumn("threadstacktraces", AppManager.getSimpleGson().toJson(threadstacktraces, al_threadstacktrace_typeOfT), DatabaseLayer.TTL);
-		mutator.putColumn("host_addresses", AppManager.getSimpleGson().toJson(host_addresses, al_string_typeOfT), DatabaseLayer.TTL);
-		mutator.putColumn("useraction_functionality_list", AppManager.getSimpleGson().toJson(useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), DatabaseLayer.TTL);
+		mutator.putColumn("instance_name", instance_name, TTL);
+		mutator.putColumn("instance_name_pid", instance_name_pid, TTL);
+		mutator.putColumn("app_version", app_version, TTL);
+		mutator.putColumn("uptime", uptime, TTL);
+		mutator.putColumn("java_version", java_version, TTL);
+		mutator.putColumn("host_name", host_name, TTL);
+		mutator.putColumn("classpath", AppManager.getSimpleGson().toJson(classpath, al_string_typeOfT), TTL);
+		mutator.putColumn("threadstacktraces", AppManager.getSimpleGson().toJson(threadstacktraces, al_threadstacktrace_typeOfT), TTL);
+		mutator.putColumn("host_addresses", AppManager.getSimpleGson().toJson(host_addresses, al_string_typeOfT), TTL);
+		mutator.putColumn("useraction_functionality_list", AppManager.getSimpleGson().toJson(useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
 	}
 	
 	public void importFromDatabase(ColumnList<String> columnlist) {
