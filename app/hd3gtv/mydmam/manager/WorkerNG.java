@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.manager;
 
 import java.util.List;
+import java.util.UUID;
 
 import com.google.gson.JsonObject;
 
@@ -53,10 +54,12 @@ public abstract class WorkerNG {
 	}
 	
 	private volatile WorkerStatus status;
+	private String reference;
 	
 	public WorkerNG(AppManager manager) {
 		manager.workerRegister(this);
 		status = WorkerStatus.WAITING;
+		reference = "worker:" + UUID.randomUUID().toString();
 	}
 	
 	private volatile Executor current_executor;
@@ -82,8 +85,9 @@ public abstract class WorkerNG {
 				Log2.log.info("Start process", job);
 			}*/
 			try {
-				workerProcessJob(job.getProgression(), job.getContext());
+				workerProcessJob(job.startProcessing(), job.getContext());
 			} catch (Exception e) {
+				job.endProcessing_Error(e);
 				// TODO handle exception
 				/*
 				job.processing_error = exceptionToString(e);
@@ -92,28 +96,20 @@ public abstract class WorkerNG {
 				AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();
 				 * */
 			}
-			/*
-				if (worker.status == WorkerStatus.STOPPED) {
-					job.status = TaskJobStatus.STOPPED;
-				} else {
-					job.status = TaskJobStatus.DONE;
-				}
-				job.end_date = System.currentTimeMillis();
-				if (worker.status != WorkerStatus.STOPPED) {
-				worker.status = WorkerStatus.WAITING;
-				}
-				if (job.status == TaskJobStatus.DONE) {
+			if (status == WorkerStatus.PENDING_STOP) {
+				status = WorkerStatus.STOPPED;
+				job.endProcessing_Stopped();
+			} else {
+				status = WorkerStatus.WAITING;
+				job.endProcessing_Done();
+				/*
 				try {
 					worker.broker.doneJob(job);
 				} catch (ConnectionException e) {
 					Log2.log.error("Lost Cassandra connection", e);
 				}
 				}
-			 * */
-			if (status == WorkerStatus.PENDING_STOP) {
-				status = WorkerStatus.STOPPED;
-			} else {
-				status = WorkerStatus.WAITING;
+				* */
 			}
 			current_executor = null;
 		}
@@ -146,7 +142,9 @@ public abstract class WorkerNG {
 		return status;
 	}
 	
-	// TODO create worker ref
+	String getReference() {
+		return reference;
+	}
 	
 	// WorkerEngine engine;
 	// String worker_ref;

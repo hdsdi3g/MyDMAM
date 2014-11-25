@@ -51,12 +51,9 @@ public final class JobNG {
 	
 	JobNG() {
 		/**
-		 * For Gson
+		 * For Gson, and from DB
 		 */
 	}
-	
-	@GsonIgnore
-	private AppManager manager;
 	
 	/**
 	 * Declaration & configuration vars
@@ -92,7 +89,6 @@ public final class JobNG {
 	private String instance_status_executor_hostname;
 	
 	JobNG(AppManager manager, JobContext context) throws ClassNotFoundException {
-		this.manager = manager;
 		this.context = context;
 		MyDMAM.checkIsAccessibleClass(context.getClass(), false);
 		key = "job:" + UUID.randomUUID().toString();
@@ -105,7 +101,7 @@ public final class JobNG {
 		
 		instance_status_creator_key = manager.getInstance_status().getDatabaseKey();
 		instance_status_creator_hostname = manager.getInstance_status().getHostName();
-		progression = new Progression();
+		progression = null;
 		processing_error = null;
 		update_date = -1;
 		start_date = -1;
@@ -167,10 +163,6 @@ public final class JobNG {
 		return this;
 	}
 	
-	public Progression getProgression() {
-		return progression;
-	}
-	
 	public JobContext getContext() {
 		return context;
 	}
@@ -192,8 +184,6 @@ public final class JobNG {
 		update_date = System.currentTimeMillis();
 		// TODO access to broker, and push job...
 	}
-	
-	// TODO manage job lifetime, and differents status
 	
 	static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
 		public JobNG deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext jcontext) throws JsonParseException {
@@ -227,11 +217,11 @@ public final class JobNG {
 	public class Progression {
 		// TODO push/pull DB
 		
-		private int progress = 0;
-		private int progress_size = 0;
-		private int step = 0;
-		private int step_count = 0;
-		private String last_message;
+		private volatile int progress = 0;
+		private volatile int progress_size = 0;
+		private volatile int step = 0;
+		private volatile int step_count = 0;
+		private volatile String last_message;
 		
 		/**
 		 * Async update.
@@ -245,13 +235,63 @@ public final class JobNG {
 		/**
 		 * Async update.
 		 */
-		public void update(int step, int step_count, int progress, int progress_size) {
+		public void updateStep(int step, int step_count) {
 			update_date = System.currentTimeMillis();
-			this.progress = progress;
-			this.progress_size = progress_size;
 			this.step = step;
 			this.step_count = step_count;
 		}
+		
+		/**
+		 * Async update.
+		 */
+		public void updateProgress(int progress, int progress_size) {
+			update_date = System.currentTimeMillis();
+			this.progress = progress;
+			this.progress_size = progress_size;
+		}
+	}
+	
+	// TODO call by worker.
+	void prepareProcessing(AppManager manager, WorkerNG worker) {
+		update_date = System.currentTimeMillis();
+		status = JobStatus.PREPARING;
+		worker_class = worker.getClass();
+		worker_reference = worker.getReference();
+		instance_status_executor_key = manager.getInstance_status().getDatabaseKey();
+		instance_status_executor_hostname = manager.getInstance_status().getHostName();
+	}
+	
+	Progression startProcessing() {
+		update_date = System.currentTimeMillis();
+		start_date = update_date;
+		status = JobStatus.PROCESSING;
+		progression = new Progression();
+		return progression;
+	}
+	
+	void endProcessing_Done() {
+		update_date = System.currentTimeMillis();
+		end_date = update_date;
+		status = JobStatus.DONE;
+	}
+	
+	void endProcessing_Stopped() {
+		update_date = System.currentTimeMillis();
+		end_date = update_date;
+		status = JobStatus.STOPPED;
+	}
+	
+	public void endProcessing_Canceled() {
+		update_date = System.currentTimeMillis();
+		end_date = update_date;
+		status = JobStatus.CANCELED;
+	}
+	
+	void endProcessing_Error(Exception e) {
+		update_date = System.currentTimeMillis();
+		end_date = update_date;
+		status = JobStatus.ERROR;
+		processing_error = new GsonThrowable(e);
 	}
 	
 	// TODO push & pull db
@@ -313,6 +353,19 @@ public final class JobNG {
 			status.pushToDatabase(mutator, key, ttl);
 		}
 		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumn("indexingdebug", 1, ttl);
+
+		if (worker != null) {
+			mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("worker", worker.worker_ref, ttl);
+		}
+		
+		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("processing_error", processing_error, ttl);
+		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("progress", progress, ttl);
+		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("progress_size", progress_size, ttl);
+		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("step", step, ttl);
+		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("step_count", step_count, ttl);
+		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("start_date", start_date, ttl);
+		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("end_date", end_date, ttl);
+		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("last_message", last_message, ttl);
 	}
 	
 	void pullFromDatabase(String key, ColumnList<String> columns) throws ParseException {
@@ -336,23 +389,15 @@ public final class JobNG {
 		JSONParser jp = new JSONParser();
 		context = (JSONObject) jp.parse(columns.getStringValue("context", "{}"));
 		status = TaskJobStatus.pullFromDatabase(columns);
-	}
-	
-	void pushToDatabase(MutationBatch mutator, int ttl) {
-		super.pushToDatabase(mutator, ttl);
 		
-		if (worker != null) {
-			mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("worker", worker.worker_ref, ttl);
-		}
-		
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("processing_error", processing_error, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("progress", progress, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("progress_size", progress_size, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("step", step, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("step_count", step_count, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("start_date", start_date, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("end_date", end_date, ttl);
-		mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("last_message", last_message, ttl);
+		processing_error = columns.getStringValue("processing_error", "");
+		progress = columns.getIntegerValue("progress", 0);
+		progress_size = columns.getIntegerValue("progress_size", 0);
+		step = columns.getIntegerValue("step", 0);
+		step_count = columns.getIntegerValue("step_count", 0);
+		start_date = columns.getLongValue("start_date", 0l);
+		end_date = columns.getLongValue("end_date", 0l);
+		last_message = columns.getStringValue("last_message", "");
 	}
 	
 	void pushToDatabaseEndLifejob(MutationBatch mutator, int ttl) {
@@ -364,19 +409,6 @@ public final class JobNG {
 		index_query.withColumnSlice("delete");
 	}
 	
-	 //Get not processing_error and worker
-	void pullFromDatabase(String key, ColumnList<String> columns) throws ParseException {
-		super.pullFromDatabase(key, columns);
-		processing_error = columns.getStringValue("processing_error", "");
-		progress = columns.getIntegerValue("progress", 0);
-		progress_size = columns.getIntegerValue("progress_size", 0);
-		step = columns.getIntegerValue("step", 0);
-		step_count = columns.getIntegerValue("step_count", 0);
-		start_date = columns.getLongValue("start_date", 0l);
-		end_date = columns.getLongValue("end_date", 0l);
-		last_message = columns.getStringValue("last_message", "");
-	}
-	
 	static boolean isAJob(ColumnList<String> columns) {
 		try {
 			return columns.getColumnByName("start_date").hasValue();
@@ -384,7 +416,6 @@ public final class JobNG {
 			return false;
 		}
 	}
-	
 	}*/
 	
 }
