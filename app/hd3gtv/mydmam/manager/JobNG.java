@@ -30,6 +30,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.model.ColumnList;
 
 /**
  * Use AppManager to for create job.
@@ -49,7 +51,8 @@ public final class JobNG {
 		*/
 	}
 	
-	JobNG() {
+	@SuppressWarnings("unused")
+	private JobNG() {
 		/**
 		 * For Gson, and from DB
 		 */
@@ -59,15 +62,21 @@ public final class JobNG {
 	 * Declaration & configuration vars
 	 */
 	private String key;
+	@SuppressWarnings("unused")
 	private Class creator;
 	private boolean urgent;
+	@SuppressWarnings("unused")
 	private String name;
 	private long expiration_date;
+	@SuppressWarnings("unused")
 	private long max_execution_time;
 	private String require_key;
 	private long create_date;
+	@SuppressWarnings("unused")
 	private boolean delete_after_completed;
+	@SuppressWarnings("unused")
 	private String instance_status_creator_key;
+	@SuppressWarnings("unused")
 	private String instance_status_creator_hostname;
 	private int priority;
 	
@@ -203,7 +212,7 @@ public final class JobNG {
 		
 		public JsonElement serialize(JobNG src, Type typeOfSrc, JsonSerializationContext jcontext) {
 			JsonObject result = (JsonObject) AppManager.getGson().toJsonTree(src);
-			result.addProperty("context_class", src.getClass().getName());
+			result.addProperty("context_class", src.context.getClass().getName());
 			result.add("context", src.context.contextToJson());
 			return null;
 		}
@@ -214,9 +223,11 @@ public final class JobNG {
 		return AppManager.getPrettyGson().toJson(this);
 	}
 	
+	public JsonObject toJson() {
+		return AppManager.getGson().toJsonTree(this).getAsJsonObject();
+	}
+	
 	public class Progression {
-		// TODO push/pull DB
-		
 		private volatile int progress = 0;
 		private volatile int progress_size = 0;
 		private volatile int step = 0;
@@ -251,7 +262,7 @@ public final class JobNG {
 		}
 	}
 	
-	// TODO call by worker.
+	// TODO call by broker.
 	void prepareProcessing(AppManager manager, WorkerNG worker) {
 		update_date = System.currentTimeMillis();
 		status = JobStatus.PREPARING;
@@ -294,20 +305,19 @@ public final class JobNG {
 		processing_error = new GsonThrowable(e);
 	}
 	
-	// TODO push & pull db
 	/*static void selectWaitingForProfileCategory(IndexQuery<String, String> index_query, String category) {
-		TaskJobStatus.selectByName(index_query, TaskJobStatus.WAITING);
-		Profile.selectProfileByCategory(index_query, category);
+		index_query.addExpression().whereColumn("status").equals().value(TaskJobStatus.WAITING.name().toUpperCase());
+		index_query.addExpression().whereColumn("profile_category").equals().value(category.toLowerCase());
 	}
 	
 	static void selectTooOldWaitingTasks(IndexQuery<String, String> index_query, String hostname) {
-		TaskJobStatus.selectByName(index_query, TaskJobStatus.WAITING);
+		index_query.addExpression().whereColumn("status").equals().value(TaskJobStatus.WAITING.name().toUpperCase());
 		index_query.addExpression().whereColumn("creator_hostname").equals().value(hostname);
 		index_query.addExpression().whereColumn("max_date_to_wait_processing").lessThan().value(System.currentTimeMillis());
 	}
 	
 	static void selectPostponedTasksWithMaxAge(IndexQuery<String, String> index_query, String hostname) {
-		TaskJobStatus.selectByName(index_query, TaskJobStatus.POSTPONED);
+		index_query.addExpression().whereColumn("status").equals().value(TaskJobStatus.POSTPONED.name().toUpperCase());
 		index_query.addExpression().whereColumn("creator_hostname").equals().value(hostname);
 		index_query.addExpression().whereColumn("max_date_to_wait_processing").lessThan().value(Long.MAX_VALUE);
 	}
@@ -315,8 +325,30 @@ public final class JobNG {
 	static void selectAllLastTasksAndJobs(IndexQuery<String, String> index_query, long since_date) {
 		index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
 		index_query.addExpression().whereColumn("updatedate").greaterThanEquals().value(since_date);
+	}*/
+	
+	// TODO push & pull db
+	/*
+	 * */
+	
+	void exportToDatabase(ColumnListMutation<String> mutator) {
+		mutator.putColumn("context_class", context.getClass().getName());
+		mutator.putColumn("status", status.name());
+		mutator.putColumn("creator_hostname", instance_status_creator_hostname);
+		mutator.putColumn("expiration_date", expiration_date);
+		mutator.putColumn("update_date", update_date);
+		mutator.putColumn("delete_after_completed", delete_after_completed);
+		mutator.putColumn("source", AppManager.getGson().toJson(this));
 	}
 	
+	public String getDatabaseKey() {
+		return key;
+	}
+	
+	static JobNG importFromDatabase(ColumnList<String> columnlist) {
+		return AppManager.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), JobNG.class);
+	}
+	/*
 	static boolean isEmptyDbEntry(ColumnList<String> columns) {
 		try {
 			return (columns.getColumnByName("name").getStringValue().equals(""));
