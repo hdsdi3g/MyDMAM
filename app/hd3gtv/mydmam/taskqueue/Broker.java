@@ -618,6 +618,10 @@ public class Broker {
 		return jo;
 	}
 	
+	/**
+	 * TODO remove this
+	 */
+	@Deprecated
 	public static JSONObject getAllTasksAndJobsStatusCount() throws Exception {
 		final JSONObject all_status_count = new JSONObject();
 		CassandraDb.allRowsReader(CF_TASKQUEUE, new AllRowsFoundRow() {
