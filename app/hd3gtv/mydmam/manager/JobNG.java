@@ -18,9 +18,9 @@ package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.DeployColumnDef;
-import hd3gtv.mydmam.taskqueue.TaskJobStatus;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -61,15 +61,6 @@ public final class JobNG {
 	
 	public enum JobStatus {
 		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING;
-		
-		/*void pushToDatabase(MutationBatch mutator, String key, int ttl) {
-		 * 			mutator.withRow(Broker.CF_TASKQUEUE, key).putColumnIfNotNull("status", this.name().toUpperCase(), ttl);		}
-		static TaskJobStatus pullFromDatabase(ColumnList<String> columns) {
-			return fromString(columns.getStringValue("status", "WAITING"));		}
-		static void selectByName(IndexQuery<String, String> index_query, TaskJobStatus status) {
-			index_query.addExpression().whereColumn("status").equals().value(status.name().toUpperCase());
-		}
-		*/
 	}
 	
 	@SuppressWarnings("unused")
@@ -204,28 +195,20 @@ public final class JobNG {
 		return context;
 	}
 	
-	public void publish() {
+	public void publish() throws ConnectionException {
 		create_date = System.currentTimeMillis();
 		update_date = create_date;
 		if (urgent) {
-			/*
-			 * TODO compute priority
-			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_TASKQUEUE).searchWithIndex();
-			TaskJobStatus.selectByName(index_query, WAITING);
+			/**
+			 * Compute priority based on active wait job count.
+			 */
+			IndexQuery<String, String> index_query = Db.keyspace.prepareQuery(Db.CF_QUEUE).searchWithIndex();
+			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
 			index_query.withColumnSlice("status", "name");
 			OperationResult<Rows<String, String>> rows = index_query.execute();
-			
-			int count = 0;
-			for (Row<String, String> row : rows.getResult()) {
-			if (Task.isEmptyDbEntry(row.getColumns()) == false) {
-				count++;
-			}
-			}
-			priority = count + 1;
-			 * */
-			
+			priority = rows.getResult().size() + 1;
 		}
-		// TODO access to broker, and publish job...
+		// TODO push job...
 	}
 	
 	/**
@@ -234,7 +217,7 @@ public final class JobNG {
 	 */
 	public void saveChanges() {
 		update_date = System.currentTimeMillis();
-		// TODO access to broker, and push job...
+		// TODO push job...
 	}
 	
 	static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
@@ -397,19 +380,6 @@ public final class JobNG {
 			}
 		}
 		
-		static void selectWaiting(IndexQuery<String, String> index_query, String category) {
-			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
-		}
-		
-		static void selectAllLastTasksAndJobs(IndexQuery<String, String> index_query, long since_date) {
-			index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
-			index_query.addExpression().whereColumn("updatedate").greaterThanEquals().value(since_date);
-		}
-		
-		static void selectEndLifeJobs(IndexQuery<String, String> index_query) {
-			index_query.addExpression().whereColumn("delete").equals().value(1);
-			index_query.withColumnSlice("delete");
-		}
 	}
 	
 	static List<JobNG> watchOldAbandonedJobs(MutationBatch mutator, String hostname) throws ConnectionException {
@@ -432,7 +402,7 @@ public final class JobNG {
 		return result;
 	}
 	
-	static List<JobNG> removeMaxDateForPostponedTasks(MutationBatch mutator, String hostname) throws ConnectionException {
+	static List<JobNG> removeMaxDateForPostponedJobs(MutationBatch mutator, String hostname) throws ConnectionException {
 		IndexQuery<String, String> index_query = Db.keyspace.prepareQuery(Db.CF_QUEUE).searchWithIndex();
 		index_query.addExpression().whereColumn("status").equals().value(JobStatus.POSTPONED.name());
 		index_query.addExpression().whereColumn("creator_hostname").equals().value(hostname);
@@ -467,26 +437,38 @@ public final class JobNG {
 		}
 	}
 	
+	// TODO remove end life jobs
+	/*index_query.addExpression().whereColumn("delete").equals().value(1);
+	index_query.withColumnSlice("delete");*/
+	
 	public void delete(MutationBatch mutator) throws ConnectionException {
 		mutator.withRow(Db.CF_QUEUE, key).delete();
 	}
 	
-	// TODO drop cf
-	// CassandraDb.dropColumnFamilyString(keyspace, CF_TASKQUEUE.getName());
+	public static void dropJobsQueueCF() throws ConnectionException {
+		CassandraDb.dropColumnFamilyString(Db.keyspace, Db.CF_QUEUE.getName());
+	}
+	
+	public JobStatus getStatus() {
+		return status;
+	}
+	
+	public String getKey() {
+		return key;
+	}
 	
 	/**
 	 * @return never null if keys is not empty
 	 */
-	public static LinkedHashMap<String, TaskJobStatus> getStatusForJobsByKeys(Collection<String> keys) throws ConnectionException {
+	public static LinkedHashMap<String, JobStatus> getJobsStatusByKeys(Collection<String> keys) throws ConnectionException {
 		if (keys == null) {
 			return null;
 		}
 		if (keys.size() == 0) {
 			return null;
 		}
-		LinkedHashMap<String, TaskJobStatus> status = new LinkedHashMap<String, TaskJobStatus>(keys.size());
-		// TODO getStatusForJobsByKeys
-		/*Rows<String, String> rows = keyspace.prepareQuery(CF_TASKQUEUE).getKeySlice(keys).withColumnSlice("status").execute().getResult();
+		LinkedHashMap<String, JobStatus> status = new LinkedHashMap<String, JobStatus>(keys.size());
+		Rows<String, String> rows = Db.keyspace.prepareQuery(Db.CF_QUEUE).getKeySlice(keys).withColumnSlice("status").execute().getResult();
 		if (rows.isEmpty()) {
 			return status;
 		}
@@ -494,76 +476,82 @@ public final class JobNG {
 			if (row.getColumns().isEmpty()) {
 				continue;
 			}
-			status.put(row.getKey(), TaskJobStatus.pullFromDatabase(row.getColumns()));
-		}*/
-		
+			status.put(row.getKey(), JobStatus.valueOf(row.getColumns().getStringValue("status", JobStatus.POSTPONED.name())));
+		}
 		return status;
 	}
 	
 	/**
 	 * @return never null if keys is not empty
 	 */
-	public static JsonObject getTasksAndJobsByKeys(Collection<String> keys) throws ConnectionException, ParseException {
+	public static JsonObject getJsonJobsByKeys(Collection<String> keys) throws ConnectionException, ParseException {
 		if (keys == null) {
 			return null;
 		}
 		if (keys.size() == 0) {
 			return null;
 		}
-		// TODO getTasksAndJobsByKeys
-		/*JSONObject result = new JSONObject();
-		Rows<String, String> rows = keyspace.prepareQuery(CF_TASKQUEUE).getKeySlice(keys).execute().getResult();
+		JsonObject result = new JsonObject();
+		List<JobNG> jobs = getJobsByKeys(keys);
+		for (int pos = 0; pos < jobs.size(); pos++) {
+			result.add(jobs.get(pos).key, AppManager.getGson().toJsonTree(jobs.get(pos)));
+		}
+		return result;
+	}
+	
+	/**
+	 * @return never null if keys is not empty
+	 */
+	public static List<JobNG> getJobsByKeys(Collection<String> keys) throws ConnectionException, ParseException {
+		if (keys == null) {
+			return null;
+		}
+		if (keys.size() == 0) {
+			return null;
+		}
+		List<JobNG> result = new ArrayList<JobNG>(keys.size());
+		Rows<String, String> rows = Db.keyspace.prepareQuery(Db.CF_QUEUE).getKeySlice(keys).withColumnSlice("source").execute().getResult();
 		for (Row<String, String> row : rows) {
-			if (Task.isEmptyDbEntry(row.getColumns())) {
+			String source = row.getColumns().getStringValue("source", "{}");
+			if (source.equals("{}")) {
 				continue;
 			}
-			if (Job.isAJob(row.getColumns())) {
-				result.put(row.getKey(), Job.pullJSONFromDatabase(row.getColumns()));
-			} else {
-				result.put(row.getKey(), Task.pullJSONFromDatabase(row.getColumns()));
-			}
+			result.add(AppManager.getGson().fromJson(source, JobNG.class));
 		}
-		return result;*/
-		return null;
+		return result;
 	}
 	
 	/**
 	 * @param since_date set to 0 for disabled range selection
 	 */
-	public static JsonObject getTasksAndJobs(long since_date) throws Exception {
-		// TODO getTasksAndJobs
-		// final JSONObject jo = new JSONObject();
-		/*if (since_date == 0) {
-			CassandraDb.allRowsReader(CF_TASKQUEUE, new AllRowsFoundRow() {
+	public static JsonObject getJobsFromUpdateDate(long since_date) throws Exception {
+		final JsonObject result = new JsonObject();
+		if (since_date == 0) {
+			CassandraDb.allRowsReader(Db.CF_QUEUE, new AllRowsFoundRow() {
 				public void onFoundRow(Row<String, String> row) throws Exception {
-					if (Task.isEmptyDbEntry(row.getColumns())) {
+					String source = row.getColumns().getStringValue("source", "{}");
+					if (source.equals("{}")) {
 						return;
 					}
-					if (Job.isAJob(row.getColumns())) {
-						jo.put(row.getKey(), Job.pullJSONFromDatabase(row.getColumns()));
-					} else {
-						jo.put(row.getKey(), Task.pullJSONFromDatabase(row.getColumns()));
-					}
+					JobNG current = AppManager.getGson().fromJson(source, JobNG.class);
+					result.add(current.key, AppManager.getGson().toJsonTree(current));
 				}
 			});
 		} else {
-			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_TASKQUEUE).searchWithIndex();
-			Task.selectAllLastTasksAndJobs(index_query, since_date);
+			IndexQuery<String, String> index_query = Db.keyspace.prepareQuery(Db.CF_QUEUE).searchWithIndex();
+			index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
+			index_query.addExpression().whereColumn("updatedate").greaterThanEquals().value(since_date);
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			
 			for (Row<String, String> row : rows.getResult()) {
-				if (Task.isEmptyDbEntry(row.getColumns())) {
+				String source = row.getColumns().getStringValue("source", "{}");
+				if (source.equals("{}")) {
 					continue;
 				}
-				if (Job.isAJob(row.getColumns())) {
-					jo.put(row.getKey(), Job.pullJSONFromDatabase(row.getColumns()));
-				} else {
-					jo.put(row.getKey(), Task.pullJSONFromDatabase(row.getColumns()));
-				}
+				JobNG current = AppManager.getGson().fromJson(source, JobNG.class);
+				result.add(current.key, AppManager.getGson().toJsonTree(current));
 			}
 		}
-		return jo;*/
-		return null;
+		return result;
 	}
-	
 }
