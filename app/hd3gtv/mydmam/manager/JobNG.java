@@ -57,6 +57,28 @@ import com.netflix.astyanax.serializers.StringSerializer;
  */
 public final class JobNG {
 	
+	private static final ColumnFamily<String, String> CF_QUEUE = new ColumnFamily<String, String>("mgrQueue", StringSerializer.get(), StringSerializer.get());
+	private static Keyspace keyspace;
+	
+	static {
+		try {
+			keyspace = CassandraDb.getkeyspace();
+			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
+			if (CassandraDb.isColumnFamilyExists(keyspace, CF_QUEUE.getName()) == false) {
+				CassandraDb.createColumnFamilyString(default_keyspacename, CF_QUEUE.getName(), false);
+				String queue_name = CF_QUEUE.getName();
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "status", queue_name + "_status", DeployColumnDef.ColType_AsciiType);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "creator_hostname", queue_name + "_creator_hostname", DeployColumnDef.ColType_UTF8Type);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "expiration_date", queue_name + "_expiration_date", DeployColumnDef.ColType_LongType);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "updatedate", queue_name + "_updatedate", DeployColumnDef.ColType_LongType);
+				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "delete", queue_name + "_delete", DeployColumnDef.ColType_Int32Type);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "indexingdebug", queue_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
+			}
+		} catch (Exception e) {
+			Log2.log.error("Can't init database CFs", e);
+		}
+	}
+	
 	private static int TTL = 3600 * 24 * 7;
 	
 	public enum JobStatus {
@@ -84,6 +106,7 @@ public final class JobNG {
 	private long max_execution_time;
 	@SuppressWarnings("unused")
 	private String require_key;
+	@SuppressWarnings("unused")
 	private long create_date;
 	private boolean delete_after_completed;
 	@SuppressWarnings("unused")
@@ -197,27 +220,39 @@ public final class JobNG {
 	
 	public void publish() throws ConnectionException {
 		create_date = System.currentTimeMillis();
-		update_date = create_date;
 		if (urgent) {
 			/**
 			 * Compute priority based on active wait job count.
 			 */
-			IndexQuery<String, String> index_query = Db.keyspace.prepareQuery(Db.CF_QUEUE).searchWithIndex();
+			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
 			index_query.withColumnSlice("status", "name");
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			priority = rows.getResult().size() + 1;
 		}
-		// TODO push job...
+		saveChanges();
 	}
 	
 	/**
 	 * To force changes (sync method) with set() functions.
 	 * If job is actually POSTPONED, PROCESSING or PREPARING, changes will be canceled by the executor worker.
+	 * @throws ConnectionException
 	 */
-	public void saveChanges() {
+	void saveChanges() throws ConnectionException {
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		saveChanges(mutator);
+		mutator.execute();
+	}
+	
+	/**
+	 * To force changes (sync method) with set() functions.
+	 * If job is actually POSTPONED, PROCESSING or PREPARING, changes will be canceled by the executor worker.
+	 * @throws ConnectionException
+	 */
+	void saveChanges(MutationBatch mutator) throws ConnectionException {
 		update_date = System.currentTimeMillis();
-		// TODO push job...
+		exportToDatabase(mutator.withRow(CF_QUEUE, key));
+		mutator.execute();
 	}
 	
 	static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
@@ -288,7 +323,6 @@ public final class JobNG {
 		}
 	}
 	
-	// TODO call by broker.
 	void prepareProcessing(AppManager manager, WorkerNG worker) {
 		update_date = System.currentTimeMillis();
 		status = JobStatus.PREPARING;
@@ -331,7 +365,7 @@ public final class JobNG {
 		processing_error = new GsonThrowable(e);
 	}
 	
-	void exportToDatabase(ColumnListMutation<String> mutator) {
+	private void exportToDatabase(ColumnListMutation<String> mutator) {
 		mutator.putColumn("context_class", context.getClass().getName(), TTL);
 		mutator.putColumn("status", status.name(), TTL);
 		mutator.putColumn("creator_hostname", instance_status_creator_hostname, TTL);
@@ -345,10 +379,6 @@ public final class JobNG {
 		mutator.putColumn("source", AppManager.getGson().toJson(this), TTL);
 	}
 	
-	void pushToDatabaseEndLifejob(ColumnListMutation<String> mutator) {
-		mutator.putColumn("delete", 1, TTL);
-	}
-	
 	public String getDatabaseKey() {
 		return key;
 	}
@@ -357,33 +387,8 @@ public final class JobNG {
 		return AppManager.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), JobNG.class);
 	}
 	
-	private static class Db {
-		private static final ColumnFamily<String, String> CF_QUEUE = new ColumnFamily<String, String>("mgrQueue", StringSerializer.get(), StringSerializer.get());
-		private static Keyspace keyspace;
-		
-		static {
-			try {
-				keyspace = CassandraDb.getkeyspace();
-				String default_keyspacename = CassandraDb.getDefaultKeyspacename();
-				if (CassandraDb.isColumnFamilyExists(keyspace, CF_QUEUE.getName()) == false) {
-					CassandraDb.createColumnFamilyString(default_keyspacename, CF_QUEUE.getName(), false);
-					String queue_name = CF_QUEUE.getName();
-					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "status", queue_name + "_status", DeployColumnDef.ColType_AsciiType);
-					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "creator_hostname", queue_name + "_creator_hostname", DeployColumnDef.ColType_UTF8Type);
-					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "expiration_date", queue_name + "_expiration_date", DeployColumnDef.ColType_LongType);
-					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "updatedate", queue_name + "_updatedate", DeployColumnDef.ColType_LongType);
-					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "delete", queue_name + "_delete", DeployColumnDef.ColType_Int32Type);
-					CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "indexingdebug", queue_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
-				}
-			} catch (Exception e) {
-				Log2.log.error("Can't init database CFs", e);
-			}
-		}
-		
-	}
-	
 	static List<JobNG> watchOldAbandonedJobs(MutationBatch mutator, String hostname) throws ConnectionException {
-		IndexQuery<String, String> index_query = Db.keyspace.prepareQuery(Db.CF_QUEUE).searchWithIndex();
+		IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 		index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
 		index_query.addExpression().whereColumn("creator_hostname").equals().value(hostname);
 		index_query.addExpression().whereColumn("expiration_date").lessThan().value(System.currentTimeMillis());
@@ -396,14 +401,14 @@ public final class JobNG {
 			JobNG job = JobNG.importFromDatabase(row.getColumns());
 			job.status = JobStatus.TOO_OLD;
 			job.update_date = System.currentTimeMillis();
-			job.exportToDatabase(mutator.withRow(Db.CF_QUEUE, job.key));
+			job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
 			result.add(job);
 		}
 		return result;
 	}
 	
 	static List<JobNG> removeMaxDateForPostponedJobs(MutationBatch mutator, String hostname) throws ConnectionException {
-		IndexQuery<String, String> index_query = Db.keyspace.prepareQuery(Db.CF_QUEUE).searchWithIndex();
+		IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 		index_query.addExpression().whereColumn("status").equals().value(JobStatus.POSTPONED.name());
 		index_query.addExpression().whereColumn("creator_hostname").equals().value(hostname);
 		index_query.addExpression().whereColumn("expiration_date").lessThan().value(Long.MAX_VALUE);
@@ -416,37 +421,33 @@ public final class JobNG {
 			JobNG job = JobNG.importFromDatabase(row.getColumns());
 			job.expiration_date = Long.MAX_VALUE;
 			job.update_date = System.currentTimeMillis();
-			job.exportToDatabase(mutator.withRow(Db.CF_QUEUE, job.key));
+			job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
 			result.add(job);
 		}
 		return result;
 	}
 	
 	public static void truncateAllJobs() throws ConnectionException {
-		CassandraDb.truncateColumnFamilyString(Db.keyspace, Db.CF_QUEUE.getName());
+		CassandraDb.truncateColumnFamilyString(keyspace, CF_QUEUE.getName());
 	}
 	
 	public static void removeJobsByStatus(MutationBatch mutator, JobStatus status) throws ConnectionException {
-		IndexQuery<String, String> index_query = Db.keyspace.prepareQuery(Db.CF_QUEUE).searchWithIndex();
+		IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 		index_query.addExpression().whereColumn("status").equals().value(status.name());
 		index_query.withColumnSlice("status");
 		
 		OperationResult<Rows<String, String>> rows = index_query.execute();
 		for (Row<String, String> row : rows.getResult()) {
-			mutator.withRow(Db.CF_QUEUE, row.getKey()).delete();
+			mutator.withRow(CF_QUEUE, row.getKey()).delete();
 		}
 	}
 	
-	// TODO remove end life jobs
-	/*index_query.addExpression().whereColumn("delete").equals().value(1);
-	index_query.withColumnSlice("delete");*/
-	
 	public void delete(MutationBatch mutator) throws ConnectionException {
-		mutator.withRow(Db.CF_QUEUE, key).delete();
+		mutator.withRow(CF_QUEUE, key).delete();
 	}
 	
 	public static void dropJobsQueueCF() throws ConnectionException {
-		CassandraDb.dropColumnFamilyString(Db.keyspace, Db.CF_QUEUE.getName());
+		CassandraDb.dropColumnFamilyString(keyspace, CF_QUEUE.getName());
 	}
 	
 	public JobStatus getStatus() {
@@ -468,7 +469,7 @@ public final class JobNG {
 			return null;
 		}
 		LinkedHashMap<String, JobStatus> status = new LinkedHashMap<String, JobStatus>(keys.size());
-		Rows<String, String> rows = Db.keyspace.prepareQuery(Db.CF_QUEUE).getKeySlice(keys).withColumnSlice("status").execute().getResult();
+		Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(keys).withColumnSlice("status").execute().getResult();
 		if (rows.isEmpty()) {
 			return status;
 		}
@@ -510,7 +511,7 @@ public final class JobNG {
 			return null;
 		}
 		List<JobNG> result = new ArrayList<JobNG>(keys.size());
-		Rows<String, String> rows = Db.keyspace.prepareQuery(Db.CF_QUEUE).getKeySlice(keys).withColumnSlice("source").execute().getResult();
+		Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(keys).withColumnSlice("source").execute().getResult();
 		for (Row<String, String> row : rows) {
 			String source = row.getColumns().getStringValue("source", "{}");
 			if (source.equals("{}")) {
@@ -527,7 +528,7 @@ public final class JobNG {
 	public static JsonObject getJobsFromUpdateDate(long since_date) throws Exception {
 		final JsonObject result = new JsonObject();
 		if (since_date == 0) {
-			CassandraDb.allRowsReader(Db.CF_QUEUE, new AllRowsFoundRow() {
+			CassandraDb.allRowsReader(CF_QUEUE, new AllRowsFoundRow() {
 				public void onFoundRow(Row<String, String> row) throws Exception {
 					String source = row.getColumns().getStringValue("source", "{}");
 					if (source.equals("{}")) {
@@ -538,7 +539,7 @@ public final class JobNG {
 				}
 			});
 		} else {
-			IndexQuery<String, String> index_query = Db.keyspace.prepareQuery(Db.CF_QUEUE).searchWithIndex();
+			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
 			index_query.addExpression().whereColumn("updatedate").greaterThanEquals().value(since_date);
 			OperationResult<Rows<String, String>> rows = index_query.execute();

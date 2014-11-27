@@ -74,25 +74,12 @@ public abstract class WorkerNG {
 		
 		public void run() {
 			status = WorkerStatus.PROCESSING;
-			/*job.worker = worker;
-			if (worker instanceof WorkerCyclicEngine) {
-				job.delete_after_done = true;
-			}
-			job.start_date = System.currentTimeMillis();
-			job.status = TaskJobStatus.PROCESSING;
-			job.processing_error = null;
-			if (job.cyclic_source == false) {
-				Log2.log.info("Start process", job);
-			}*/
 			try {
 				workerProcessJob(job.startProcessing(), job.getContext());
 			} catch (Exception e) {
 				job.endProcessing_Error(e);
 				// TODO handle exception
 				/*
-				job.processing_error = exceptionToString(e);
-				job.status = TaskJobStatus.ERROR;
-				Log2.log.error("Error during processing", null, job);
 				AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();
 				 * */
 			}
