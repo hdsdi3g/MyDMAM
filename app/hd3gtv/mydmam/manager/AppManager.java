@@ -98,12 +98,14 @@ public final class AppManager {
 	private volatile List<WorkerNG> enabled_workers;
 	
 	private InstanceStatus instance_status;
+	private WorkerException worker_exception;
 	
 	// TODO store a map with class name <-> class instance tested
 	
 	public AppManager() {
 		declared_workers = new ArrayList<WorkerNG>();
 		instance_status = new InstanceStatus().populateFromThisInstance();// TODO regular update, and db push
+		worker_exception = new WorkerException();
 	}
 	
 	void workerRegister(WorkerNG worker) {
@@ -111,8 +113,15 @@ public final class AppManager {
 			throw new NullPointerException("\"worker\" can't to be null");
 		}
 		declared_workers.add(worker);
-		if (worker.isEnabled()) {
+		if (worker.getLifecyle().isEnabledForProcessing()) {
+			worker.setWorker_exception(worker_exception);
 			enabled_workers.add(worker);
+		}
+	}
+	
+	private class WorkerException implements WorkerExceptionHandler {
+		public void onError(Exception e, String error_name, WorkerNG worker) {
+			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO
 		}
 	}
 	

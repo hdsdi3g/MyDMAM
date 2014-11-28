@@ -19,6 +19,8 @@ package hd3gtv.mydmam.manager;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 
 public abstract class WorkerNG {
@@ -37,61 +39,90 @@ public abstract class WorkerNG {
 	
 	public abstract List<WorkerCapablities> getWorkerCapablities();
 	
-	public abstract void workerProcessJob(JobNG.Progression progression, JobContext context) throws Exception;
+	protected abstract void workerProcessJob(JobNG.Progression progression, JobContext context) throws Exception;
 	
-	public abstract void forceStopProcess() throws Exception;
+	protected abstract void forceStopProcess() throws Exception;
 	
-	public abstract boolean isEnabled();
+	protected abstract boolean isActivated();
 	
 	final JsonObject toJson() {
 		JsonObject result = new JsonObject();
-		// TODO for web site display...
+		result.addProperty("category", getWorkerCategory().name());
+		result.addProperty("long_name", getWorkerLongName());
+		List<WorkerCapablities> capablities = getWorkerCapablities();
+		JsonArray ja_capablities = new JsonArray();
+		if (capablities != null) {
+			for (int pos = 0; pos < capablities.size(); pos++) {
+				ja_capablities.add(capablities.get(pos).toJson());
+			}
+		}
+		result.add("capablities", ja_capablities);
+		result.addProperty("isactivated", isActivated());
+		result.addProperty("status", this.status.name());
+		result.addProperty("reference", reference);
+		if (current_executor == null) {
+			result.add("current_job_key", JsonNull.INSTANCE);
+		} else {
+			result.addProperty("current_job_key", current_executor.job.getKey());
+		}
 		return result;
 	}
 	
 	enum WorkerStatus {
-		PROCESSING, WAITING, STOPPED, PENDING_STOP;
+		PROCESSING, WAITING, STOPPED, PENDING_STOP, DISACTIVATED;
 	}
 	
 	private volatile WorkerStatus status;
 	private String reference;
+	private WorkerExceptionHandler worker_exception;
 	
 	public WorkerNG(AppManager manager) {
 		manager.workerRegister(this);
 		status = WorkerStatus.WAITING;
 		reference = "worker:" + UUID.randomUUID().toString();
+		lifecyle = new LifeCycle(this);
+	}
+	
+	void setWorker_exception(WorkerExceptionHandler worker_exception) {
+		this.worker_exception = worker_exception;
 	}
 	
 	private volatile Executor current_executor;
 	
 	private final class Executor extends Thread {
 		private JobNG job;
+		private WorkerNG reference;
 		
-		private Executor(JobNG job) {
-			setName("Worker " + getWorkerLongName() + " (" + getWorkerCategory() + ")");// TODO add job.key in name
+		private Executor(JobNG job, WorkerNG reference) {
+			setName("Worker for " + job.getKey() + " (" + getWorkerCategory() + ")");
+			this.job = job;
+			this.reference = reference;
 			setDaemon(true);
 		}
 		
 		public void run() {
 			status = WorkerStatus.PROCESSING;
+			boolean is_ok = false;
 			try {
 				workerProcessJob(job.startProcessing(), job.getContext());
+				is_ok = true;
 			} catch (Exception e) {
 				job.endProcessing_Error(e);
-				// TODO handle exception
-				/*
-				AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();
-				 * */
+				worker_exception.onError(e, "Error during processing", reference);
 			}
 			if (status == WorkerStatus.PENDING_STOP) {
 				status = WorkerStatus.STOPPED;
-				job.endProcessing_Stopped();
+				if (is_ok) {
+					job.endProcessing_Stopped();
+				}
 			} else {
 				status = WorkerStatus.WAITING;
-				job.endProcessing_Done();
+				if (is_ok) {
+					job.endProcessing_Done();
+				}
 				/*
 				try {
-					worker.broker.doneJob(job);
+					worker.broker.doneJob(job);//TODO doneJob ?
 				} catch (ConnectionException e) {
 					Log2.log.error("Lost Cassandra connection", e);
 				}
@@ -102,31 +133,76 @@ public abstract class WorkerNG {
 		}
 	}
 	
-	final void internalProcess(JobNG job) {
-		current_executor = new Executor(job);
-		current_executor.start();
-	}
+	private LifeCycle lifecyle;
 	
-	final void requestStopProcess() {
-		if (current_executor == null) {
-			return;
+	final class LifeCycle {
+		private WorkerNG reference;
+		
+		private LifeCycle(WorkerNG reference) {
+			this.reference = reference;
 		}
-		status = WorkerStatus.PENDING_STOP;
-		try {
-			forceStopProcess();
-		} catch (Exception e) {
-			// TODO handle exception
+		
+		final WorkerStatus getStatus() {
+			if (isActivated() == false) {
+				status = WorkerStatus.DISACTIVATED;
+				return status;
+			}
+			return status;
 		}
-	}
-	
-	final void resetToWaiting() {
-		if ((status == WorkerStatus.STOPPED) | (status == WorkerStatus.PENDING_STOP)) {
+		
+		final boolean isEnabledForProcessing() {
+			if (isActivated() == false) {
+				return false;
+			}
+			return (status == WorkerStatus.WAITING);
+		}
+		
+		final void enable() {
+			if (status == WorkerStatus.STOPPED) {
+				status = WorkerStatus.WAITING;
+			}
+		}
+		
+		final void disable(boolean wait_to_stop) {
+			if (isActivated() == false) {
+				return;
+			}
+			stop(wait_to_stop);
+			status = WorkerStatus.STOPPED;
+		}
+		
+		final void stop(boolean wait_to_stop) {
+			if (isActivated() == false) {
+				return;
+			}
+			if (status == WorkerStatus.PROCESSING) {
+				status = WorkerStatus.PENDING_STOP;
+				try {
+					forceStopProcess();
+				} catch (Exception e) {
+					reference.worker_exception.onError(e, "Can't stop currenr process", reference);
+				}
+				if (wait_to_stop) {
+					while (current_executor.isAlive()) {
+						try {
+							Thread.sleep(10);
+						} catch (InterruptedException e) {
+						}
+					}
+				}
+			}
 			status = WorkerStatus.WAITING;
 		}
+		
 	}
 	
-	final WorkerStatus getStatus() {
-		return status;
+	public LifeCycle getLifecyle() {
+		return lifecyle;
+	}
+	
+	final void internalProcess(JobNG job) {
+		current_executor = new Executor(job, this);
+		current_executor.start();
 	}
 	
 	String getReference() {
@@ -137,42 +213,7 @@ public abstract class WorkerNG {
 	// String worker_ref;
 	// WorkerStatus status = WorkerStatus.STOPPED;
 	// Broker broker;
-	/*final boolean isAvailableForProcessing() {
-		return (status == WorkerStatus.WAITING);
-	}
-	
-	public final boolean isEnabled() {
-		switch (status) {
-		case PROCESSING:
-			return true;
-		case WAITING:
-			return true;
-		case PENDING_CANCEL_TASK:
-			return true;
-		default:
-			return false;
-		}
-	}
-	
-	public final void setEnabled() {
-		if (status != WorkerStatus.WAITING) {
-			Log2.log.debug("Change worker status to waiting");
-		}
-		status = WorkerStatus.WAITING;
-	}
-	
-	public final void setDisabled() {
-		Log2.log.info("Change worker status to disabled");
-		status = WorkerStatus.PENDING_STOP;
-		if (engine != null) {
-			if (engine.isAlive()) {
-				engine.askStopProcess();
-				Log2.log.debug("Worker is stopped");
-			}
-		}
-		engine = null;
-		status = WorkerStatus.STOPPED;
-	}
+	/*
 	
 	final void pushToDatabase(MutationBatch mutator, String hostname, int ttl) {
 		mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("hostname", hostname, ttl);

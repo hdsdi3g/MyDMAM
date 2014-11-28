@@ -379,10 +379,6 @@ public final class JobNG {
 		mutator.putColumn("source", AppManager.getGson().toJson(this), TTL);
 	}
 	
-	public String getDatabaseKey() {
-		return key;
-	}
-	
 	static JobNG importFromDatabase(ColumnList<String> columnlist) {
 		return AppManager.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), JobNG.class);
 	}
