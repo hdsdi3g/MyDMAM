@@ -31,6 +31,11 @@ public abstract class WorkerCapablities {
 	
 	public abstract String getCategory();// TODO need to keep this ?
 	
+	/**
+	 * @return can be null, only for serialization.
+	 */
+	public abstract JsonObject getParameters();
+	
 	// TODO don't use equals ! (@see JobContext)
 	public final boolean equals(Object obj) {
 		if (obj == null) {
@@ -87,10 +92,8 @@ public abstract class WorkerCapablities {
 		return true;*/
 	}
 	
-	final JsonObject toJson() {
-		JsonObject result = new JsonObject();
-		// TODO for web site display...
-		return result;
+	final WorkerCapablitiesStatus getStatus() {
+		return new WorkerCapablitiesStatus(this);
 	}
 	
 }

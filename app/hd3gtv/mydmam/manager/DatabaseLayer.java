@@ -36,16 +36,18 @@ import com.netflix.astyanax.serializers.StringSerializer;
 public class DatabaseLayer {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
-	// private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
+	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
 	// private static final ColumnFamily<String, String> CF_ACTIONS = new ColumnFamily<String, String>("mgrAction", StringSerializer.get(), StringSerializer.get());
+	private static final InstanceStatus.Serializer instancestatus_serializer;
+	private static final WorkerStatus.Serializer workerstatus_serializer;
 	
 	static {
 		try {
 			Keyspace keyspace = CassandraDb.getkeyspace();
 			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
-			/*if (CassandraDb.isColumnFamilyExists(keyspace, CF_WORKERS.getName()) == false) {
-				 CassandraDb.createColumnFamilyString(default_keyspacename, CF_WORKERS.getName(), false);
-			}*/
+			if (CassandraDb.isColumnFamilyExists(keyspace, CF_WORKERS.getName()) == false) {
+				CassandraDb.createColumnFamilyString(default_keyspacename, CF_WORKERS.getName(), false);
+			}
 			if (CassandraDb.isColumnFamilyExists(keyspace, CF_INSTANCES.getName()) == false) {
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_INSTANCES.getName(), false);
 			}
@@ -58,6 +60,9 @@ public class DatabaseLayer {
 		} catch (Exception e) {
 			Log2.log.error("Can't init database CFs", e);
 		}
+		instancestatus_serializer = new InstanceStatus.Serializer();
+		workerstatus_serializer = new WorkerStatus.Serializer();
+		
 		/*
 		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "status", CF_TASKQUEUE.getName() + "_status", DeployColumnDef.ColType_AsciiType);
 		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "profile_category", CF_TASKQUEUE.getName() + "_profile_category", DeployColumnDef.ColType_UTF8Type);
@@ -68,31 +73,19 @@ public class DatabaseLayer {
 		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "delete", CF_TASKQUEUE.getName() + "_delete", DeployColumnDef.ColType_Int32Type);
 		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "indexingdebug", CF_TASKQUEUE.getName() + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
 		 * */
-		
 	}
 	
-	static void updateInstanceStatus(InstanceStatus instance_status) {
-		if (instance_status == null) {
-			throw new NullPointerException("\"instance_status\" can't to be null");
-		}
-		exportToDatabase(CF_INSTANCES, instance_status);
-	}
-	
-	public static List<InstanceStatus> getAllInstancesStatus() {
-		return importAllFromDatabase(CF_INSTANCES, InstanceStatus.class);
-	}
-	
-	private static void exportToDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter item) {
+	private static <T> void exportToDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, T item) {
 		try {
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
-			item.exportToDatabase(mutator.withRow(cf, item.getDatabaseKey()));
+			serializer.exportToDatabase(item, mutator.withRow(cf, serializer.getDatabaseKey(item)));
 			mutator.execute();
 		} catch (ConnectionException e) {
 			error(e);
 		}
 	}
 	
-	private static void exportToDatabase(ColumnFamily<String, String> cf, List<CassandraDbImporterExporter> item) {
+	private static <T> void exportToDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, List<T> item) {
 		if (item == null) {
 			Log2.log.error("Can't store a null item", new NullPointerException("item"));
 			return;
@@ -103,7 +96,7 @@ public class DatabaseLayer {
 		try {
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
 			for (int pos = 0; pos < item.size(); pos++) {
-				item.get(pos).exportToDatabase(mutator.withRow(cf, item.get(pos).getDatabaseKey()));
+				serializer.exportToDatabase(item.get(pos), mutator.withRow(cf, serializer.getDatabaseKey(item.get(pos))));
 			}
 			mutator.execute();
 		} catch (ConnectionException e) {
@@ -114,7 +107,7 @@ public class DatabaseLayer {
 	/**
 	 * @return true if import is ok
 	 */
-	private static boolean importFromDatabase(ColumnFamily<String, String> cf, String key, CassandraDbImporterExporter result) {
+	private static <T> boolean importFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, String key, CassandraDbImporterExporter result) {
 		try {
 			ColumnFamilyQuery<String, String> rows_asset = CassandraDb.getkeyspace().prepareQuery(cf);
 			OperationResult<ColumnList<String>> row = rows_asset.getKey(key).execute(); // .withColumnSlice(this.column_names)
@@ -129,7 +122,7 @@ public class DatabaseLayer {
 	/**
 	 * @param T must assignable from CassandraDbImporterExporter, and to be a valid instanciable class.
 	 */
-	private static <T> List<T> importAllFromDatabase(ColumnFamily<String, String> cf, final Class<T> result_class) {
+	private static <T> List<T> importAllFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, final Class<T> result_class) {
 		try {
 			if (CassandraDbImporterExporter.class.isAssignableFrom(result_class) == false) {
 				throw new Exception(result_class.getName() + " is not assignable from " + CassandraDbImporterExporter.class.getName());
@@ -151,15 +144,34 @@ public class DatabaseLayer {
 		return null;
 	}
 	
-	/*	void exportToDatabase(ColumnListMutation<String> mutator);
-	
-	String getDatabaseKey();
-	
-	void importFromDatabase(ColumnList<String> columnlist);
-	*/
-	
 	private static void error(Exception e) {
-		Log2.log.error("Non managed and non fatal error", e);
+		Log2.log.error("Non managed and non fatal error", e);// TODO alert ?
+	}
+	
+	static void updateInstanceStatus(InstanceStatus instance_status) {
+		if (instance_status == null) {
+			throw new NullPointerException("\"instance_statuses\" can't to be null");
+		}
+		exportToDatabase(CF_INSTANCES, instancestatus_serializer, instance_status);
+	}
+	
+	public static List<InstanceStatus> getAllInstancesStatus() {
+		return importAllFromDatabase(CF_INSTANCES, instancestatus_serializer, InstanceStatus.class);
+	}
+	
+	static void updateWorkerStatus(List<WorkerNG> workers) {
+		if (workers == null) {
+			throw new NullPointerException("\"workers\" can't to be null");
+		}
+		ArrayList<WorkerStatus> worker_statuses = new ArrayList<WorkerStatus>();
+		for (int pos = 0; pos < workers.size(); pos++) {
+			worker_statuses.add(workers.get(pos).getStatus());
+		}
+		exportToDatabase(CF_WORKERS, workerstatus_serializer, worker_statuses);
+	}
+	
+	public static List<WorkerStatus> getAllWorkerStatus() {
+		return importAllFromDatabase(CF_WORKERS, workerstatus_serializer, WorkerStatus.class);
 	}
 	
 }

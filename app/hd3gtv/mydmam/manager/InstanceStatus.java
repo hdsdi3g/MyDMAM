@@ -44,12 +44,12 @@ import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnList;
 
-public class InstanceStatus implements CassandraDbImporterExporter {
+public class InstanceStatus {
 	
 	/**
 	 * In sec.
 	 */
-	private static final int TTL = 120;
+	static final int TTL = 120;
 	private static final ArrayList<String> current_classpath;
 	private static final String current_instance_name;
 	private static final String current_instance_name_pid;
@@ -207,6 +207,7 @@ public class InstanceStatus implements CassandraDbImporterExporter {
 		}
 		
 		useraction_functionality_list = new ArrayList<UAFunctionalityDefinintion>();
+		// TODO add workerStatus key list
 		/*WorkerGroup worker_group = manager.getWorkergroup(); //TODO plug a workergroup @see UAManager.createWorkers()
 		if (worker_group != null) {
 			List<Worker> workers = worker_group.getWorkerlist();
@@ -228,7 +229,7 @@ public class InstanceStatus implements CassandraDbImporterExporter {
 		return this;
 	}
 	
-	class Serializer implements JsonSerializer<InstanceStatus>, JsonDeserializer<InstanceStatus> {
+	static class Serializer implements JsonSerializer<InstanceStatus>, JsonDeserializer<InstanceStatus>, CassandraDbImporterExporter<InstanceStatus> {
 		public InstanceStatus deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			if ((json instanceof JsonObject) == false) {
 				throw new JsonException("json is not a JsonObject");
@@ -250,39 +251,38 @@ public class InstanceStatus implements CassandraDbImporterExporter {
 			result.add("useraction_functionality_list", AppManager.getSimpleGson().toJsonTree(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT));
 			return result;
 		}
-	}
-	
-	public String getDatabaseKey() {
-		return instance_name_pid;
-	}
-	
-	public void exportToDatabase(ColumnListMutation<String> mutator) {
-		mutator.putColumn("instance_name", instance_name, TTL);
-		mutator.putColumn("instance_name_pid", instance_name_pid, TTL);
-		mutator.putColumn("app_version", app_version, TTL);
-		mutator.putColumn("uptime", uptime, TTL);
-		mutator.putColumn("java_version", java_version, TTL);
-		mutator.putColumn("host_name", host_name, TTL);
-		mutator.putColumn("classpath", AppManager.getSimpleGson().toJson(classpath, al_string_typeOfT), TTL);
-		mutator.putColumn("threadstacktraces", AppManager.getSimpleGson().toJson(threadstacktraces, al_threadstacktrace_typeOfT), TTL);
-		mutator.putColumn("host_addresses", AppManager.getSimpleGson().toJson(host_addresses, al_string_typeOfT), TTL);
-		mutator.putColumn("useraction_functionality_list", AppManager.getSimpleGson().toJson(useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
-	}
-	
-	public void importFromDatabase(ColumnList<String> columnlist) {
-		if (columnlist.isEmpty()) {
-			return;
+		
+		public void exportToDatabase(InstanceStatus src, ColumnListMutation<String> mutator) {
+			mutator.putColumn("instance_name", src.instance_name, TTL);
+			mutator.putColumn("instance_name_pid", src.instance_name_pid, TTL);
+			mutator.putColumn("app_version", src.app_version, TTL);
+			mutator.putColumn("uptime", src.uptime, TTL);
+			mutator.putColumn("java_version", src.java_version, TTL);
+			mutator.putColumn("host_name", src.host_name, TTL);
+			mutator.putColumn("classpath", AppManager.getSimpleGson().toJson(src.classpath, al_string_typeOfT), TTL);
+			mutator.putColumn("threadstacktraces", AppManager.getSimpleGson().toJson(src.threadstacktraces, al_threadstacktrace_typeOfT), TTL);
+			mutator.putColumn("host_addresses", AppManager.getSimpleGson().toJson(src.host_addresses, al_string_typeOfT), TTL);
+			mutator.putColumn("useraction_functionality_list", AppManager.getSimpleGson().toJson(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
 		}
-		instance_name = columnlist.getStringValue("instance_name", "");
-		instance_name_pid = columnlist.getStringValue("instance_name_pid", "");
-		app_version = columnlist.getStringValue("app_version", "");
-		uptime = columnlist.getLongValue("uptime", -1l);
-		java_version = columnlist.getStringValue("java_version", "");
-		host_name = columnlist.getStringValue("host_name", "");
-		classpath = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("classpath", "[]"), al_string_typeOfT);
-		threadstacktraces = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("threadstacktraces", "[]"), al_threadstacktrace_typeOfT);
-		host_addresses = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("host_addresses", "[]"), al_string_typeOfT);
-		useraction_functionality_list = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("useraction_functionality_list", "[]"), al_uafunctionalitydefinintion_typeOfT);
+		
+		public String getDatabaseKey(InstanceStatus src) {
+			return src.instance_name_pid;
+		}
+		
+		public InstanceStatus importFromDatabase(ColumnList<String> columnlist) {
+			InstanceStatus src = new InstanceStatus();
+			src.instance_name = columnlist.getStringValue("instance_name", "");
+			src.instance_name_pid = columnlist.getStringValue("instance_name_pid", "");
+			src.app_version = columnlist.getStringValue("app_version", "");
+			src.uptime = columnlist.getLongValue("uptime", -1l);
+			src.java_version = columnlist.getStringValue("java_version", "");
+			src.host_name = columnlist.getStringValue("host_name", "");
+			src.classpath = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("classpath", "[]"), al_string_typeOfT);
+			src.threadstacktraces = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("threadstacktraces", "[]"), al_threadstacktrace_typeOfT);
+			src.host_addresses = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("host_addresses", "[]"), al_string_typeOfT);
+			src.useraction_functionality_list = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("useraction_functionality_list", "[]"), al_uafunctionalitydefinintion_typeOfT);
+			return src;
+		}
 	}
 	
 	public String toString() {
@@ -291,5 +291,9 @@ public class InstanceStatus implements CassandraDbImporterExporter {
 	
 	public String getHostName() {
 		return host_name;
+	}
+	
+	public String getInstanceNamePid() {
+		return instance_name_pid;
 	}
 }

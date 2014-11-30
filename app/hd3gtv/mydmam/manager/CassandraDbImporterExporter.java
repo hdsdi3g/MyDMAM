@@ -19,12 +19,12 @@ package hd3gtv.mydmam.manager;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnList;
 
-public interface CassandraDbImporterExporter {
+public interface CassandraDbImporterExporter<T> {
 	
-	void exportToDatabase(ColumnListMutation<String> mutator);
+	void exportToDatabase(T src, ColumnListMutation<String> mutator);
 	
-	String getDatabaseKey();
+	String getDatabaseKey(T src);
 	
-	void importFromDatabase(ColumnList<String> columnlist);
+	T importFromDatabase(ColumnList<String> columnlist);
 	
 }

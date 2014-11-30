@@ -18,11 +18,11 @@ package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.mydmam.useraction.UACapabilityDefinition;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -61,9 +61,11 @@ public final class AppManager {
 		/**
 		 * Inside of this package serializers
 		 */
-		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus().new Serializer());
+		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus.Serializer());
 		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
 		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
+		builder.registerTypeAdapter(WorkerCapablitiesStatus.class, new WorkerCapablitiesStatus.Serializer());
+		builder.registerTypeAdapter(WorkerStatus.class, new WorkerStatus.Serializer());
 		
 		gson = builder.create();
 		pretty_gson = builder.setPrettyPrinting().create();
@@ -88,23 +90,18 @@ public final class AppManager {
 	 */
 	
 	/**
-	 * All workers in app.
-	 */
-	private volatile List<WorkerNG> declared_workers;
-	
-	/**
 	 * All configured workers.
 	 */
 	private volatile List<WorkerNG> enabled_workers;
 	
 	private InstanceStatus instance_status;
 	private WorkerException worker_exception;
+	private Updater updater;
 	
 	// TODO store a map with class name <-> class instance tested
 	
 	public AppManager() {
-		declared_workers = new ArrayList<WorkerNG>();
-		instance_status = new InstanceStatus().populateFromThisInstance();// TODO regular update, and db push
+		instance_status = new InstanceStatus().populateFromThisInstance();
 		worker_exception = new WorkerException();
 	}
 	
@@ -112,31 +109,50 @@ public final class AppManager {
 		if (worker == null) {
 			throw new NullPointerException("\"worker\" can't to be null");
 		}
-		declared_workers.add(worker);
-		if (worker.getLifecyle().isEnabledForProcessing()) {
-			worker.setWorker_exception(worker_exception);
-			enabled_workers.add(worker);
+		if (worker.isActivated() == false) {
+			return;
 		}
+		worker.setWorker_exception(worker_exception);
+		enabled_workers.add(worker);
 	}
 	
 	private class WorkerException implements WorkerExceptionHandler {
 		public void onError(Exception e, String error_name, WorkerNG worker) {
-			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO
+			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
 		}
 	}
 	
-	public void start() {
+	public void startAll() {
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
-			// enabled_workers.get(pos)
+			enabled_workers.get(pos).getLifecyle().enable();
 		}
-		// TODO start
+		// TODO start queue
+		updater = new Updater();
+		updater.start();
 	}
 	
-	public void stop() {
+	/**
+	 * Blocking
+	 */
+	public void stopAll() {
+		updater.stopUpdate();
+		
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
-			// enabled_workers.get(pos)
+			enabled_workers.get(pos).getLifecyle().askToStop();
 		}
-		// TODO stop
+		try {
+			for (int pos = 0; pos < enabled_workers.size(); pos++) {
+				while (enabled_workers.get(pos).getLifecyle().getStatus() == WorkerState.PENDING_STOP) {
+					Thread.sleep(10);
+				}
+			}
+			while (updater.isAlive()) {
+				Thread.sleep(10);
+			}
+			updater = null;
+		} catch (InterruptedException e) {
+		}
+		// TODO stop queue
 	}
 	
 	public JobNG createJob(JobContext context) {
@@ -152,4 +168,26 @@ public final class AppManager {
 		return instance_status;
 	}
 	
+	private class Updater extends Thread {
+		boolean stop_update;
+		
+		public Updater() {
+			setName("Updater for " + instance_status.getInstanceNamePid());
+			setDaemon(true);
+		}
+		
+		@Override
+		public void run() {
+			stop_update = false;
+			while (stop_update == false) {
+				// TODO InstanceAction regular pulls
+				DatabaseLayer.updateInstanceStatus(instance_status);
+				DatabaseLayer.updateWorkerStatus(enabled_workers);
+			}
+		}
+		
+		public synchronized void stopUpdate() {
+			this.stop_update = true;
+		}
+	}
 }

@@ -150,7 +150,7 @@ public final class JobNG {
 		expiration_date = Long.MAX_VALUE;
 		status = JobStatus.WAITING;
 		
-		instance_status_creator_key = manager.getInstance_status().getDatabaseKey();
+		instance_status_creator_key = manager.getInstance_status().getInstanceNamePid();
 		instance_status_creator_hostname = manager.getInstance_status().getHostName();
 		progression = null;
 		processing_error = null;
@@ -327,8 +327,8 @@ public final class JobNG {
 		update_date = System.currentTimeMillis();
 		status = JobStatus.PREPARING;
 		worker_class = worker.getClass();
-		worker_reference = worker.getReference();
-		instance_status_executor_key = manager.getInstance_status().getDatabaseKey();
+		worker_reference = worker.getReferenceKey();
+		instance_status_executor_key = manager.getInstance_status().getInstanceNamePid();
 		instance_status_executor_hostname = manager.getInstance_status().getHostName();
 	}
 	
