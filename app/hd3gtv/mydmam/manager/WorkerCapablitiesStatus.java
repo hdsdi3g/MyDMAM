@@ -40,6 +40,8 @@ public final class WorkerCapablitiesStatus {
 	
 	JsonObject parameters;
 	
+	// TODO add List<Class<? extends JobContext>> getJobContextsAvaliable();
+	
 	@SuppressWarnings("unused")
 	private WorkerCapablitiesStatus() {
 	}

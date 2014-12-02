@@ -107,6 +107,7 @@ public class DatabaseLayer {
 	/**
 	 * @return true if import is ok
 	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static <T> boolean importFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, String key, CassandraDbImporterExporter result) {
 		try {
 			ColumnFamilyQuery<String, String> rows_asset = CassandraDb.getkeyspace().prepareQuery(cf);
@@ -122,6 +123,7 @@ public class DatabaseLayer {
 	/**
 	 * @param T must assignable from CassandraDbImporterExporter, and to be a valid instanciable class.
 	 */
+	@SuppressWarnings("unchecked")
 	private static <T> List<T> importAllFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, final Class<T> result_class) {
 		try {
 			if (CassandraDbImporterExporter.class.isAssignableFrom(result_class) == false) {
@@ -130,8 +132,8 @@ public class DatabaseLayer {
 			final List<T> result = new ArrayList<T>();
 			
 			CassandraDb.allRowsReader(cf, new AllRowsFoundRow() {
-				@SuppressWarnings("unchecked")
 				public void onFoundRow(Row<String, String> row) throws Exception {
+					@SuppressWarnings("rawtypes")
 					CassandraDbImporterExporter item = (CassandraDbImporterExporter) result_class.newInstance();
 					item.importFromDatabase(row.getColumns());
 					result.add((T) item);

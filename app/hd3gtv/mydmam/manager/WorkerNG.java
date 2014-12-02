@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,6 +59,27 @@ public abstract class WorkerNG {
 	
 	final WorkerStatus getStatus() {
 		return status;
+	}
+	
+	List<Class<? extends JobContext>> getWorkerCapablitiesJobContextClasses() {
+		List<Class<? extends JobContext>> capablities_classes = new ArrayList<Class<? extends JobContext>>();
+		List<WorkerCapablities> current_capablities;
+		Class<? extends JobContext> current_capablity_class;
+		
+		current_capablities = getWorkerCapablities();
+		if (current_capablities == null) {
+			return capablities_classes;
+		}
+		for (int pos_cc = 0; pos_cc < current_capablities.size(); pos_cc++) {
+			current_capablity_class = current_capablities.get(pos_cc).getJobContextClass();
+			if (current_capablity_class == null) {
+				continue;
+			}
+			if (capablities_classes.contains(current_capablity_class) == false) {
+				capablities_classes.add(current_capablity_class);
+			}
+		}
+		return capablities_classes;
 	}
 	
 	void setWorker_exception(WorkerExceptionHandler worker_exception) {
@@ -110,7 +132,7 @@ public abstract class WorkerNG {
 			this.reference = reference;
 		}
 		
-		final WorkerState getStatus() {
+		final WorkerState getState() {
 			if (isActivated() == false) {
 				return WorkerState.DISACTIVATED;
 			}
@@ -132,7 +154,7 @@ public abstract class WorkerNG {
 		}
 		
 		final boolean isAvaliableForProcessingNewJobs() {
-			return (getStatus() == WorkerState.WAITING);
+			return (getState() == WorkerState.WAITING);
 		}
 		
 		final void enable() {
@@ -141,7 +163,7 @@ public abstract class WorkerNG {
 		
 		final void askToStop() {
 			refuse_new_jobs = true;
-			if (getStatus() == WorkerState.PROCESSING) {
+			if (getState() == WorkerState.PROCESSING) {
 				try {
 					forceStopProcess();
 				} catch (Exception e) {

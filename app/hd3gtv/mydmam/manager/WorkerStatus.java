@@ -42,7 +42,7 @@ public class WorkerStatus {
 	String long_name;
 	String vendor_name;
 	boolean isactivated;
-	Class worker_class;
+	Class<?> worker_class;
 	WorkerNG.WorkerState state;
 	String reference_key;
 	String current_job_key;
@@ -64,7 +64,7 @@ public class WorkerStatus {
 		vendor_name = worker.getWorkerVendorName();
 		worker_class = worker.getClass();
 		isactivated = worker.isActivated();
-		state = worker.getLifecyle().getStatus();
+		state = worker.getLifecyle().getState();
 		reference_key = worker.getReferenceKey();
 		JobNG job = worker.getCurrentJob();
 		if (job != null) {

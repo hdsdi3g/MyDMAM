@@ -27,6 +27,7 @@ import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -91,10 +92,10 @@ public final class AppManager {
 		return pretty_gson;
 	}
 	
-	private volatile static HashMap<String, Class> instance_class_name;
+	private volatile static HashMap<String, Class<?>> instance_class_name;
 	private volatile static ArrayList<String> not_found_class_name;
 	static {
-		instance_class_name = new HashMap<String, Class>();
+		instance_class_name = new HashMap<String, Class<?>>();
 		not_found_class_name = new ArrayList<String>();
 	}
 	
@@ -103,7 +104,7 @@ public final class AppManager {
 			if (not_found_class_name.contains(class_name)) {
 				return null;
 			}
-			Class item;
+			Class<?> item;
 			if (instance_class_name.containsKey(class_name)) {
 				item = instance_class_name.get(class_name);
 			} else {
@@ -113,6 +114,7 @@ public final class AppManager {
 				Log2.log.error("Can't instanciate class", new ClassCastException(class_name));
 				return null;
 			}
+			@SuppressWarnings("unchecked")
 			T newinstance = (T) item.newInstance();
 			instance_class_name.put(class_name, item);
 			return newinstance;
@@ -135,12 +137,13 @@ public final class AppManager {
 	private volatile List<WorkerNG> enabled_workers;
 	
 	private InstanceStatus instance_status;
-	private WorkerException worker_exception;
+	private ServiceException service_exception;
 	private Updater updater;
+	private BrokerNG broker;
 	
 	public AppManager() {
 		instance_status = new InstanceStatus().populateFromThisInstance();
-		worker_exception = new WorkerException();
+		service_exception = new ServiceException();
 	}
 	
 	void workerRegister(WorkerNG worker) {
@@ -150,11 +153,11 @@ public final class AppManager {
 		if (worker.isActivated() == false) {
 			return;
 		}
-		worker.setWorker_exception(worker_exception);
+		worker.setWorker_exception(service_exception);
 		enabled_workers.add(worker);
 	}
 	
-	private class WorkerException implements WorkerExceptionHandler {
+	class ServiceException implements WorkerExceptionHandler {
 		public void onError(Exception e, String error_name, WorkerNG worker) {
 			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
 		}
@@ -162,13 +165,22 @@ public final class AppManager {
 		private void onAppManagerError(Exception e, String error_name) {
 			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
 		}
+		
+		void onGenericServiceError(Exception e, String error_name, String service_name) {
+			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
+		}
+	}
+	
+	ServiceException getServiceException() {
+		return service_exception;
 	}
 	
 	public void startAll() {
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			enabled_workers.get(pos).getLifecyle().enable();
 		}
-		// TODO start queue
+		broker = new BrokerNG(this);
+		broker.start();
 		updater = new Updater();
 		updater.start();
 	}
@@ -178,23 +190,57 @@ public final class AppManager {
 	 */
 	public void stopAll() {
 		updater.stopUpdate();
+		broker.askStop();
 		
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			enabled_workers.get(pos).getLifecyle().askToStop();
 		}
 		try {
 			for (int pos = 0; pos < enabled_workers.size(); pos++) {
-				while (enabled_workers.get(pos).getLifecyle().getStatus() == WorkerState.PENDING_STOP) {
+				while (enabled_workers.get(pos).getLifecyle().getState() == WorkerState.PENDING_STOP) {
 					Thread.sleep(10);
 				}
 			}
 			while (updater.isAlive()) {
 				Thread.sleep(10);
 			}
+			while (broker.isAlive()) {
+				Thread.sleep(10);
+			}
 			updater = null;
 		} catch (InterruptedException e) {
+			service_exception.onAppManagerError(e, "Can't stop all services threads");
 		}
-		// TODO stop queue
+	}
+	
+	Map<Class<? extends JobContext>, List<WorkerNG>> getAllCurrentWaitingWorkersByCapablitiesJobContextClasses() {
+		Map<Class<? extends JobContext>, List<WorkerNG>> capablities_classes_workers = new HashMap<Class<? extends JobContext>, List<WorkerNG>>();
+		WorkerNG worker;
+		List<Class<? extends JobContext>> current_capablities;
+		List<WorkerNG> workers_for_capablity;
+		Class<? extends JobContext> current_capablity;
+		
+		for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
+			worker = enabled_workers.get(pos_wr);
+			if (worker.getLifecyle().getState() != WorkerState.WAITING) {
+				continue;
+			}
+			current_capablities = worker.getWorkerCapablitiesJobContextClasses();
+			if (current_capablities == null) {
+				continue;
+			}
+			for (int pos_cc = 0; pos_cc < current_capablities.size(); pos_cc++) {
+				current_capablity = current_capablities.get(pos_cc);
+				if (capablities_classes_workers.containsKey(current_capablity) == false) {
+					capablities_classes_workers.put(current_capablity, new ArrayList<WorkerNG>(1));
+				}
+				workers_for_capablity = capablities_classes_workers.get(current_capablity);
+				if (workers_for_capablity.contains(worker) == false) {
+					workers_for_capablity.add(worker);
+				}
+			}
+		}
+		return capablities_classes_workers;
 	}
 	
 	public JobNG createJob(JobContext context) {
@@ -218,7 +264,6 @@ public final class AppManager {
 			setDaemon(true);
 		}
 		
-		@Override
 		public void run() {
 			stop_update = false;
 			try {
@@ -230,7 +275,7 @@ public final class AppManager {
 					Thread.sleep(SLEEP_UPDATE_TTL * 1000);
 				}
 			} catch (Exception e) {
-				worker_exception.onAppManagerError(e, "Fatal updater error, need to restart it");
+				service_exception.onAppManagerError(e, "Fatal updater error, need to restart it");
 			}
 		}
 		

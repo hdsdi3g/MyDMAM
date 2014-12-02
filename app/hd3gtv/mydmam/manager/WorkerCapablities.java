@@ -27,6 +27,8 @@ public abstract class WorkerCapablities {
 	 */
 	public abstract List<String> getStoragesAvaliable();
 	
+	public abstract Class<? extends JobContext> getJobContextClass();
+	
 	// public abstract String getName();
 	
 	// public abstract String getCategory();
@@ -36,8 +38,14 @@ public abstract class WorkerCapablities {
 	 */
 	public abstract JsonObject getParameters();
 	
+	final boolean isAssignableFor(JobContext context) {
+		// context.
+		return false;
+	}
+	
 	@Deprecated
-	// TODO don't use equals ! (@see JobContext)
+	// TODO don't use equals for this ! (@see JobContext) use isAssignableFor()
+	// TODO use equals only for comparing
 	public final boolean equals(Object obj) {
 		if (obj == null) {
 			return false;

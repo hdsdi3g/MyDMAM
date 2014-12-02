@@ -50,6 +50,7 @@ import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.IndexQuery;
+import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
@@ -79,6 +80,10 @@ public final class JobNG {
 		}
 	}
 	
+	static ColumnPrefixDistributedRowLock<String> prepareLock() {
+		return new ColumnPrefixDistributedRowLock<String>(keyspace, CF_QUEUE, "BROKER_LOCK");
+	}
+	
 	private static int TTL = 3600 * 24 * 7;
 	
 	public enum JobStatus {
@@ -97,14 +102,13 @@ public final class JobNG {
 	 */
 	private String key;
 	@SuppressWarnings("unused")
-	private Class creator;
+	private Class<?> creator;
 	private boolean urgent;
 	@SuppressWarnings("unused")
 	private String name;
 	private long expiration_date;
 	@SuppressWarnings("unused")
 	private long max_execution_time;
-	@SuppressWarnings("unused")
 	private String require_key;
 	@SuppressWarnings("unused")
 	private long create_date;
@@ -112,7 +116,6 @@ public final class JobNG {
 	@SuppressWarnings("unused")
 	private String instance_status_creator_key;
 	private String instance_status_creator_hostname;
-	@SuppressWarnings("unused")
 	private int priority;
 	
 	@GsonIgnore
@@ -125,6 +128,7 @@ public final class JobNG {
 	long update_date;
 	@SuppressWarnings("unused")
 	private GsonThrowable processing_error;
+	@SuppressWarnings("unused")
 	private JobProgression progression;
 	@SuppressWarnings("unused")
 	private long start_date;
@@ -133,7 +137,7 @@ public final class JobNG {
 	@SuppressWarnings("unused")
 	private String worker_reference;
 	@SuppressWarnings("unused")
-	private Class worker_class;
+	private Class<?> worker_class;
 	@SuppressWarnings("unused")
 	private String instance_status_executor_key;
 	@SuppressWarnings("unused")
@@ -164,7 +168,7 @@ public final class JobNG {
 		return this;
 	}
 	
-	public JobNG setCreator(Class creator) {
+	public JobNG setCreator(Class<?> creator) {
 		this.creator = creator;
 		return this;
 	}
@@ -177,6 +181,31 @@ public final class JobNG {
 	public JobNG setRequireCompletedJob(JobNG require) {
 		require_key = require.key;
 		return this;
+	}
+	
+	boolean isRequireIsDone() throws ConnectionException {
+		if (require_key == null) {
+			return true;
+		}
+		ColumnList<String> cols = keyspace.prepareQuery(CF_QUEUE).getKey(require_key).withColumnSlice("status").execute().getResult();
+		if (cols == null) {
+			return false;
+		}
+		if (cols.isEmpty()) {
+			return false;
+		}
+		if (cols.getStringValue("status", JobStatus.WAITING.name()).equals(JobStatus.DONE.name())) {
+			return true;
+		}
+		return false;
+	}
+	
+	boolean isTooOldjob() {
+		return (expiration_date < System.currentTimeMillis());
+	}
+	
+	int getPriority() {
+		return priority;
 	}
 	
 	public JobNG setExpirationTime(long duration, TimeUnit unit) {
@@ -440,6 +469,19 @@ public final class JobNG {
 			status.put(row.getKey(), JobStatus.valueOf(row.getColumns().getStringValue("status", JobStatus.POSTPONED.name())));
 		}
 		return status;
+	}
+	
+	static List<JobNG> getJobsByStatus(JobStatus status) throws ConnectionException {
+		IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
+		index_query.addExpression().whereColumn("status").equals().value(status.name());
+		index_query.withColumnSlice("source");
+		
+		OperationResult<Rows<String, String>> rows = index_query.execute();
+		ArrayList<JobNG> result = new ArrayList<JobNG>();
+		for (Row<String, String> row : rows.getResult()) {
+			result.add(JobNG.importFromDatabase(row.getColumns()));
+		}
+		return result;
 	}
 	
 	/**
