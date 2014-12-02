@@ -122,10 +122,10 @@ public final class JobNG {
 	 * Activity vars
 	 */
 	private JobStatus status;
-	private long update_date;
+	long update_date;
 	@SuppressWarnings("unused")
 	private GsonThrowable processing_error;
-	private Progression progression;
+	private JobProgression progression;
 	@SuppressWarnings("unused")
 	private long start_date;
 	@SuppressWarnings("unused")
@@ -263,7 +263,7 @@ public final class JobNG {
 			
 			JobNG job = AppManager.getGson().fromJson(json, JobNG.class);
 			try {
-				job.context = (JobContext) Class.forName(context_class).newInstance();
+				job.context = AppManager.instanceClassForName(context_class, JobContext.class);
 				job.context.contextFromJson(json.getAsJsonObject("context"));
 			} catch (Exception e) {
 				throw new JsonParseException("Invalid context class", e);
@@ -288,41 +288,6 @@ public final class JobNG {
 		return AppManager.getGson().toJsonTree(this).getAsJsonObject();
 	}
 	
-	public class Progression {
-		private volatile int progress = 0;
-		private volatile int progress_size = 0;
-		private volatile int step = 0;
-		private volatile int step_count = 0;
-		private volatile String last_message;
-		
-		/**
-		 * Async update.
-		 * @param last_message can be null.
-		 */
-		public void update(String last_message) {
-			update_date = System.currentTimeMillis();
-			this.last_message = last_message;
-		}
-		
-		/**
-		 * Async update.
-		 */
-		public void updateStep(int step, int step_count) {
-			update_date = System.currentTimeMillis();
-			this.step = step;
-			this.step_count = step_count;
-		}
-		
-		/**
-		 * Async update.
-		 */
-		public void updateProgress(int progress, int progress_size) {
-			update_date = System.currentTimeMillis();
-			this.progress = progress;
-			this.progress_size = progress_size;
-		}
-	}
-	
 	void prepareProcessing(AppManager manager, WorkerNG worker) {
 		update_date = System.currentTimeMillis();
 		status = JobStatus.PREPARING;
@@ -332,12 +297,11 @@ public final class JobNG {
 		instance_status_executor_hostname = manager.getInstance_status().getHostName();
 	}
 	
-	Progression startProcessing() {
+	JobProgression startProcessing() {
 		update_date = System.currentTimeMillis();
 		start_date = update_date;
 		status = JobStatus.PROCESSING;
-		progression = new Progression();
-		return progression;
+		return new JobProgression(this);
 	}
 	
 	void endProcessing_Done() {

@@ -50,6 +50,7 @@ public class WorkerStatus {
 	@GsonIgnore
 	ArrayList<WorkerCapablitiesStatus> capablities;
 	
+	@SuppressWarnings("unused")
 	private WorkerStatus() {
 	}
 	

@@ -17,18 +17,26 @@
 package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.mydmam.useraction.UACapabilityDefinition;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public final class AppManager {
+	
+	/**
+	 * In sec.
+	 */
+	private static final int SLEEP_UPDATE_TTL = 60;
 	
 	/**
 	 * ============================================================================
@@ -83,6 +91,38 @@ public final class AppManager {
 		return pretty_gson;
 	}
 	
+	private volatile static HashMap<String, Class> instance_class_name;
+	private volatile static ArrayList<String> not_found_class_name;
+	static {
+		instance_class_name = new HashMap<String, Class>();
+		not_found_class_name = new ArrayList<String>();
+	}
+	
+	static <T> T instanceClassForName(String class_name, Class<T> return_type) {
+		try {
+			if (not_found_class_name.contains(class_name)) {
+				return null;
+			}
+			Class item;
+			if (instance_class_name.containsKey(class_name)) {
+				item = instance_class_name.get(class_name);
+			} else {
+				item = Class.forName(class_name);
+			}
+			if (item.isAssignableFrom(return_type) == false) {
+				Log2.log.error("Can't instanciate class", new ClassCastException(class_name));
+				return null;
+			}
+			T newinstance = (T) item.newInstance();
+			instance_class_name.put(class_name, item);
+			return newinstance;
+		} catch (Exception e) {
+			not_found_class_name.add(class_name);
+			Log2.log.error("Can't load class", e, new Log2Dump("class_name", class_name));
+		}
+		return null;
+	}
+	
 	/**
 	 * ============================================================================
 	 * End of static realm
@@ -97,8 +137,6 @@ public final class AppManager {
 	private InstanceStatus instance_status;
 	private WorkerException worker_exception;
 	private Updater updater;
-	
-	// TODO store a map with class name <-> class instance tested
 	
 	public AppManager() {
 		instance_status = new InstanceStatus().populateFromThisInstance();
@@ -118,6 +156,10 @@ public final class AppManager {
 	
 	private class WorkerException implements WorkerExceptionHandler {
 		public void onError(Exception e, String error_name, WorkerNG worker) {
+			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
+		}
+		
+		private void onAppManagerError(Exception e, String error_name) {
 			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
 		}
 	}
@@ -179,10 +221,16 @@ public final class AppManager {
 		@Override
 		public void run() {
 			stop_update = false;
-			while (stop_update == false) {
-				// TODO InstanceAction regular pulls
-				DatabaseLayer.updateInstanceStatus(instance_status);
-				DatabaseLayer.updateWorkerStatus(enabled_workers);
+			try {
+				while (stop_update == false) {
+					DatabaseLayer.updateInstanceStatus(instance_status);
+					DatabaseLayer.updateWorkerStatus(enabled_workers);
+					// TODO Queue/Broker (current job statuses) regular push
+					// TODO InstanceAction regular pulls
+					Thread.sleep(SLEEP_UPDATE_TTL * 1000);
+				}
+			} catch (Exception e) {
+				worker_exception.onAppManagerError(e, "Fatal updater error, need to restart it");
 			}
 		}
 		

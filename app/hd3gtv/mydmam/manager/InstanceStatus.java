@@ -207,7 +207,7 @@ public class InstanceStatus {
 		}
 		
 		useraction_functionality_list = new ArrayList<UAFunctionalityDefinintion>();
-		// TODO add workerStatus key list
+		
 		/*WorkerGroup worker_group = manager.getWorkergroup(); //TODO plug a workergroup @see UAManager.createWorkers()
 		if (worker_group != null) {
 			List<Worker> workers = worker_group.getWorkerlist();

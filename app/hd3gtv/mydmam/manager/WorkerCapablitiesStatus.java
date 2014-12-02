@@ -34,9 +34,9 @@ public final class WorkerCapablitiesStatus {
 	@GsonIgnore
 	ArrayList<String> storages_available;
 	
-	String name;// TODO need to keep this ?
+	// String name;
 	
-	String category;// TODO need to keep this ?
+	// String category;
 	
 	JsonObject parameters;
 	
@@ -45,8 +45,8 @@ public final class WorkerCapablitiesStatus {
 	}
 	
 	WorkerCapablitiesStatus(WorkerCapablities capablities) {
-		this.category = capablities.getCategory();
-		this.name = capablities.getName();
+		// this.category = capablities.getCategory();
+		// this.name = capablities.getName();
 		this.parameters = capablities.getParameters();
 		storages_available = new ArrayList<String>();
 		List<String> cap_sa = capablities.getStoragesAvaliable();

@@ -27,15 +27,16 @@ public abstract class WorkerCapablities {
 	 */
 	public abstract List<String> getStoragesAvaliable();
 	
-	public abstract String getName();// TODO need to keep this ?
+	// public abstract String getName();
 	
-	public abstract String getCategory();// TODO need to keep this ?
+	// public abstract String getCategory();
 	
 	/**
 	 * @return can be null, only for serialization.
 	 */
 	public abstract JsonObject getParameters();
 	
+	@Deprecated
 	// TODO don't use equals ! (@see JobContext)
 	public final boolean equals(Object obj) {
 		if (obj == null) {
@@ -46,7 +47,7 @@ public abstract class WorkerCapablities {
 		}
 		
 		WorkerCapablities item = (WorkerCapablities) obj;
-		String item_name = item.getName();
+		/*String item_name = item.getName();
 		if (item_name == null) {
 			return false;
 		}
@@ -59,7 +60,7 @@ public abstract class WorkerCapablities {
 		}
 		if (item_name.equals(getName()) == false) {
 			return false;
-		}
+		}*/
 		
 		/**
 		 * Need to test Storages ?

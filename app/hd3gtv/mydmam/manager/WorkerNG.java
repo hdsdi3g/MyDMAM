@@ -33,7 +33,7 @@ public abstract class WorkerNG {
 	
 	public abstract List<WorkerCapablities> getWorkerCapablities();
 	
-	protected abstract void workerProcessJob(JobNG.Progression progression, JobContext context) throws Exception;
+	protected abstract void workerProcessJob(JobProgression progression, JobContext context) throws Exception;
 	
 	protected abstract void forceStopProcess() throws Exception;
 	

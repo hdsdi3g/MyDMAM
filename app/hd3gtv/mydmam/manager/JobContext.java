@@ -34,8 +34,8 @@ public interface JobContext {
 	 */
 	public List<String> getNeededIndexedStoragesNames();
 	
-	public abstract String getName();// TODO need to keep this ? Replace by Class ?
+	// public abstract String getName();
 	
-	public abstract String getCategory();// TODO need to keep this ? Replace by Class ?
+	// public abstract String getCategory();
 	
 }
