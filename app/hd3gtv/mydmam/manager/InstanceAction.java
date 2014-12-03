@@ -27,4 +27,5 @@ public class InstanceAction {
 	
 	private String caller;
 	
+	// @see WorkerGroupEngine.setStatusChangesToWorkers
 }

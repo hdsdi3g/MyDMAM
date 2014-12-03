@@ -73,8 +73,8 @@ public final class AppManager {
 		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus.Serializer());
 		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
 		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
-		builder.registerTypeAdapter(WorkerCapablitiesStatus.class, new WorkerCapablitiesStatus.Serializer());
-		builder.registerTypeAdapter(WorkerStatus.class, new WorkerStatus.Serializer());
+		builder.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
+		builder.registerTypeAdapter(WorkerExporter.class, new WorkerExporter.Serializer());
 		
 		gson = builder.create();
 		pretty_gson = builder.setPrettyPrinting().create();
@@ -140,10 +140,12 @@ public final class AppManager {
 	private ServiceException service_exception;
 	private Updater updater;
 	private BrokerNG broker;
+	private DatabaseLayer database_layer;
 	
 	public AppManager() {
 		instance_status = new InstanceStatus().populateFromThisInstance();
 		service_exception = new ServiceException();
+		database_layer = new DatabaseLayer(this);
 	}
 	
 	void workerRegister(WorkerNG worker) {
@@ -167,6 +169,10 @@ public final class AppManager {
 		}
 		
 		void onGenericServiceError(Exception e, String error_name, String service_name) {
+			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
+		}
+		
+		void onCassandraError(Exception e) {
 			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
 		}
 	}
@@ -268,8 +274,8 @@ public final class AppManager {
 			stop_update = false;
 			try {
 				while (stop_update == false) {
-					DatabaseLayer.updateInstanceStatus(instance_status);
-					DatabaseLayer.updateWorkerStatus(enabled_workers);
+					database_layer.updateInstanceStatus(instance_status);
+					database_layer.updateWorkerStatus(enabled_workers);
 					// TODO Queue/Broker (current job statuses) regular push
 					// TODO InstanceAction regular pulls
 					Thread.sleep(SLEEP_UPDATE_TTL * 1000);

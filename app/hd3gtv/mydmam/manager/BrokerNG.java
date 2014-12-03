@@ -17,22 +17,20 @@
 package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.JobNG.JobStatus;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.recipes.locks.BusyLockException;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
 
-/**
- * TODO Replace Broker
- */
 class BrokerNG {
 	
 	/**
@@ -41,78 +39,87 @@ class BrokerNG {
 	private static final int QUEUE_SLEEP_TIME = 1000;
 	
 	private AppManager manager;
-	private Queue queue;
+	private QueueOperations queue_operations;
+	private QueueNewJobs queue_new_jobs;
+	private volatile List<JobNG> active_jobs;
 	
 	BrokerNG(AppManager manager) {
 		this.manager = manager;
+		active_jobs = new ArrayList<JobNG>();
 	}
 	
 	void start() {
 		if (isAlive()) {
 			return;
 		}
-		queue = new Queue();
-		queue.start();
+		queue_operations = new QueueOperations();
+		queue_operations.start();
+		queue_new_jobs = new QueueNewJobs();
+		queue_new_jobs.start();
 	}
 	
 	synchronized void askStop() {
-		if (queue == null) {
-			return;
+		if (queue_operations != null) {
+			queue_operations.stop_queue = true;
 		}
-		queue.stop_queue = true;
+		if (queue_new_jobs != null) {
+			queue_new_jobs.stop_queue = true;
+		}
 	}
 	
 	boolean isAlive() {
-		if (queue == null) {
+		if ((queue_operations == null) | (queue_new_jobs == null)) {
 			return false;
 		}
-		return queue.isAlive();
+		return queue_operations.isAlive() | queue_new_jobs.isAlive();
 	}
 	
-	private class Queue extends Thread {
+	private class QueueOperations extends Thread {
 		boolean stop_queue;
 		
-		public Queue() {
-			setName("Queue for Broker " + manager.getInstance_status().getInstanceNamePid());
+		public QueueOperations() {
+			setName("Queue operations for Broker " + manager.getInstance_status().getInstanceNamePid());
 			setDaemon(true);
 		}
 		
 		public void run() {
 			stop_queue = false;
 			try {
+				MutationBatch mutator = null;
+				JobNG job;
+				
 				while (stop_queue == false) {
-					// TODO queue
-					
-					/*
-					From BrokerQueue
-					//* Get statuses of actual processing jobs and push it to database
-					if (activejobs.isEmpty() == false) {
-					mutator = CassandraDb.prepareMutationBatch();
-					
-					Job job;
-					for (int pos = activejobs.size() - 1; pos > -1; pos--) {
-						job = activejobs.get(pos);
-						if (job.delete_after_done && (job.status == TaskJobStatus.DONE || job.status == TaskJobStatus.CANCELED)) {
-							mutator.withRow(Broker.CF_TASKQUEUE, job.key).delete();
-							job.pushToDatabaseEndLifejob(mutator, Broker.ttl_job_cyclic_endlife_duration);
-							activejobs.remove(pos);
-						} else {
-							if (job.status == TaskJobStatus.PREPARING | job.status == TaskJobStatus.PROCESSING) {
-								job.pushToDatabase(mutator, Broker.ttl_job_process_duration);
+					if (active_jobs.isEmpty() == false) {
+						/**
+						 * Get statuses of actual processing jobs and push it to database
+						 */
+						mutator = CassandraDb.prepareMutationBatch();
+						for (int pos = active_jobs.size() - 1; pos > -1; pos--) {
+							job = active_jobs.get(pos);
+							if (job.isDeleteAfterCompleted() && job.isThisStatus(JobStatus.DONE, JobStatus.CANCELED)) {
+								job.delete(mutator);
+								active_jobs.remove(pos);
 							} else {
-								job.pushToDatabase(mutator, Broker.ttl_job_ended_duration);
-							}
-							if (job.end_date > 0) {
-								activejobs.remove(pos);
+								job.saveChanges(mutator);
+								if (job.isThisStatus(JobStatus.DONE, JobStatus.STOPPED, JobStatus.CANCELED, JobStatus.ERROR)) {
+									active_jobs.remove(pos);
+								}
 							}
 						}
 					}
 					
-					if (mutator.isEmpty() == false) {
-						mutator.execute();
+					if (mutator != null) {
+						if (mutator.isEmpty() == false) {
+							mutator.execute();
+						}
 					}
-					}
+					// TODO queue...
 					
+					// *
+					/*
+					
+					//From BrokerQueue
+					 * 
 					time_spacer++;
 					if (time_spacer == max_time_spacer) {
 					mutator = CassandraDb.prepareMutationBatch();
@@ -192,174 +199,167 @@ class BrokerNG {
 					
 					*/
 					
-					/*
-					 * From WorkerGroupEngine
-					setStatusChangesToWorkers();
-					
-					WorkerCyclicEngine workercyclic;
-					for (int pos = 0; pos < workergroup.getWorkercycliclist().size(); pos++) {
-					workercyclic = workergroup.getWorkercycliclist().get(pos);
-					if (workercyclic.isAvailableForProcessing()) {
-						workercyclic.engine = new WorkerEngine(workercyclic, new Job(), workergroup.getServiceinformations());
-						workercyclic.engine.start();
-					}
-					}
-					
-					//get managed profiles for available workers
-					ArrayList<Profile> available_workersprofile = new ArrayList<Profile>();
-					for (int pos = 0; pos < workergroup.getWorkerlist().size(); pos++) {
-					if (workergroup.getWorkerlist().get(pos).isAvailableForProcessing()) {
-						available_workersprofile.addAll(workergroup.getWorkerlist().get(pos).getManagedProfiles());
-					}
-					}
-					
-					//Found a job, and start it
-					if (available_workersprofile.isEmpty() == false) {
-					Job job = broker.getNextJob(available_workersprofile);
-					if (job != null) {
-						Worker worker = getAvailableWorkerForProfiles(job.profile);
-						worker.engine = new WorkerEngine(worker, job, workergroup.getServiceinformations());
-						worker.engine.start();
-					}
-					}
-					
-					//clean terminated workers engines
-					for (int pos = 0; pos < workergroup.getWorkerlist().size(); pos++) {
-					if (workergroup.getWorkerlist().get(pos).engine != null) {
-						if (workergroup.getWorkerlist().get(pos).engine.isAlive() == false) {
-							workergroup.getWorkerlist().get(pos).engine = null;
-						}
-					}
-					}
-					
-					broker.updateWorkersStatus(workergroup.getWorkerlist(), workergroup.getWorkercycliclist());
-					
-					sleep(WorkerGroup.sleep_refresh_engine + Math.round(Math.random() * 1000));
-					}
-					stopAllActiveWorkers();
-
-					
-					*/
 					Thread.sleep(QUEUE_SLEEP_TIME);
 				}
 			} catch (Exception e) {
-				manager.getServiceException().onGenericServiceError(e, "Broker fatal error", "Broker");
+				manager.getServiceException().onGenericServiceError(e, "Broker fatal error", "Broker operations");
 			}
 		}
 	}
 	
-	/**
-	 * TODO @return multiple ?
-	 */
-	private JobNG getNextJob() throws Exception {
-		Map<Class<? extends JobContext>, List<WorkerNG>> available_workers_capablities = manager.getAllCurrentWaitingWorkersByCapablitiesJobContextClasses();
+	private class QueueNewJobs extends Thread {
+		boolean stop_queue;
 		
-		if (available_workers_capablities.isEmpty()) {
-			return null;
+		public QueueNewJobs() {
+			setName("Queue new jobs for Broker " + manager.getInstance_status().getInstanceNamePid());
+			setDaemon(true);
 		}
 		
-		/**
-		 * Prepare a list with all JobContext classes names that can be process.
-		 */
-		ArrayList<String> available_classes_names = new ArrayList<String>();
-		Set<Class<? extends JobContext>> available_classes = available_workers_capablities.keySet();
-		for (Class<? extends JobContext> available_class : available_classes) {
-			if (available_classes_names.contains(available_class.getName()) == false) {
-				available_classes_names.add(available_class.getName());
-			}
-		}
-		ColumnPrefixDistributedRowLock<String> lock = null;
-		try {
-			/**
-			 * Prepare and acquire lock for CF
-			 */
-			lock = JobNG.prepareLock();
-			lock.withConsistencyLevel(ConsistencyLevel.CL_ALL);
-			lock.expireLockAfter(500, TimeUnit.MILLISECONDS);
-			lock.failOnStaleLock(false);
-			lock.acquire();
-			
-			// Get all waiting task for this category profile.
-			
-			List<JobNG> waiting_jobs = JobNG.getJobsByStatus(JobStatus.WAITING);
-			
-			int bestpriority = Integer.MIN_VALUE;
-			JobNG best_task = null;
-			JobNG current_job = null;
-			
-			/**
-			 * For this jobs, found the best to start.
-			 */
-			for (int pos_wj = 0; pos_wj < waiting_jobs.size(); pos_wj++) {
-				current_job = waiting_jobs.get(pos_wj);
+		public void run() {
+			stop_queue = false;
+			try {
+				MutationBatch mutator = null;
+				Map<Class<? extends JobContext>, List<WorkerNG>> available_workers_capablities;
+				ArrayList<String> available_classes_names;
+				ColumnPrefixDistributedRowLock<String> lock;
+				List<JobNG> waiting_jobs;
+				int best_priority;
+				JobNG best_job = null;
+				JobNG current_job = null;
+				List<WorkerNG> workers;
+				WorkerNG best_job_worker = null;
+				JobContext context;
 				
-				if (current_job.isRequireIsDone() == false) {
+				while (stop_queue == false) {
+					Thread.sleep(QUEUE_SLEEP_TIME);
+					
+					available_workers_capablities = manager.getAllCurrentWaitingWorkersByCapablitiesJobContextClasses();
+					
+					if (available_workers_capablities.isEmpty()) {
+						return;
+					}
+					
 					/**
-					 * If the job require the processing done of another task.
+					 * Prepare a list with all JobContext classes names that can be process.
 					 */
-					continue;
-				}
-				if (current_job.isTooOldjob()) {
-					/**
-					 * This job is to old !
-					 */
-					continue;
-				}
-				if (current_job.getPriority() < bestpriority) {
-					/**
-					 * This job priority is not the best for the moment
-					 */
-					continue;
-				}
-				// TODO continue next job...
-				/*
-					for (int pos = 0; pos < l_profiles_for_cat.size(); pos++) {
-						if (l_profiles_for_cat.get(pos).equalsIgnoreCase(task.profile.name)) {
-							 // Profile name is handled
-							bestpriority = task.priority;
-							best_task = task;
-							break;
+					available_classes_names = new ArrayList<String>();
+					for (Class<? extends JobContext> available_class : available_workers_capablities.keySet()) {
+						if (available_classes_names.contains(available_class.getName()) == false) {
+							available_classes_names.add(available_class.getName());
 						}
 					}
-				*/
-			}
-			
-			if (best_task == null) {
-				/**
-				 * Not found a valid job
-				 */
-				lock.release();
-				return null;
-			}
-			
-			/* // Prepare Job from valid Task
-			Job job = best_task.toJob();
-			job.status = TaskJobStatus.PREPARING;
-			MutationBatch mutator = CassandraDb.prepareMutationBatch();
-			job.pushToDatabase(mutator, ttl_job_process_duration);
-			mutator.execute();
-			
-			 // Job is ready to start, release lock.
-			lock.release();
-			Log2.log.debug("Get next job", job);
-			
-			if (queue != null) {
-				//Add Job to active list for watching it.
-				queue.getActivejobs().add(job);
-			}
-			return job;*/
-		} catch (StaleLockException e) {
-			/**
-			 * The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
-			 */
-			Log2.log.error("Can't lock CF: abandoned lock.", e);
-		} catch (BusyLockException e) {
-			Log2.log.error("Can't lock CF, it's currently locked.", e);
-		} finally {
-			if (lock != null) {
-				lock.release();
+					lock = null;
+					try {
+						/**
+						 * Prepare and acquire lock for CF
+						 */
+						lock = JobNG.prepareLock();
+						lock.withConsistencyLevel(ConsistencyLevel.CL_ALL);
+						lock.expireLockAfter(500, TimeUnit.MILLISECONDS);
+						lock.failOnStaleLock(false);
+						lock.acquire();
+						
+						/**
+						 * Get all waiting jobs for this category profile.
+						 */
+						waiting_jobs = JobNG.getJobsByStatus(JobStatus.WAITING);
+						best_priority = Integer.MIN_VALUE;
+						best_job = null;
+						current_job = null;
+						workers = null;
+						best_job_worker = null;
+						context = null;
+						
+						/**
+						 * For this jobs, found the best to start.
+						 */
+						for (int pos_wj = 0; pos_wj < waiting_jobs.size(); pos_wj++) {
+							current_job = waiting_jobs.get(pos_wj);
+							
+							if (current_job.isRequireIsDone() == false) {
+								/**
+								 * If the job require the processing done of another task.
+								 */
+								continue;
+							}
+							if (current_job.isTooOldjob()) {
+								/**
+								 * This job is to old !
+								 */
+								continue;
+							}
+							if (current_job.getPriority() < best_priority) {
+								/**
+								 * This job priority is not the best for the moment
+								 */
+								continue;
+							}
+							
+							context = current_job.getContext();
+							if (available_classes_names.contains(context.getClass().getName()) == false) {
+								/**
+								 * Can't process this job (no workers for this).
+								 */
+								continue;
+							}
+							
+							workers = available_workers_capablities.get(context.getClass());
+							
+							for (int pos_wr = 0; pos_wr < workers.size(); pos_wr++) {
+								if (workers.get(pos_wr).canProcessThis(context)) {
+									/**
+									 * This is actually the best job found.
+									 */
+									best_priority = current_job.getPriority();
+									best_job = current_job;
+									best_job_worker = workers.get(pos_wr);
+									break;
+								}
+							}
+						}
+						
+						if (best_job == null) {
+							/**
+							 * Not found a valid job
+							 */
+							lock.release();
+							continue;
+						}
+						
+						/**
+						 * Prepare job.
+						 */
+						mutator = CassandraDb.prepareMutationBatch();
+						best_job.prepareProcessing(mutator);
+						mutator.execute();
+						
+						lock.release();
+						
+						active_jobs.add(best_job);
+						
+						best_job_worker.internalProcess(best_job);
+						
+						if (stop_queue == false) {
+							return;
+						}
+						Thread.sleep(Math.round(Math.random() * 1000));
+					} catch (StaleLockException e) {
+						/**
+						 * The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
+						 */
+						Log2.log.error("Can't lock CF: abandoned lock.", e);
+					} catch (BusyLockException e) {
+						Log2.log.error("Can't lock CF, it's currently locked.", e);
+					} finally {
+						if (lock != null) {
+							lock.release();
+						}
+					}
+				}
+			} catch (Exception e) {
+				manager.getServiceException().onGenericServiceError(e, "Broker fatal error", "Broker new jobs");
 			}
 		}
-		return null;
 	}
+	
 }

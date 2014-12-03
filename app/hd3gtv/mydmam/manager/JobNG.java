@@ -243,6 +243,10 @@ public final class JobNG {
 		return this;
 	}
 	
+	boolean isDeleteAfterCompleted() {
+		return delete_after_completed;
+	}
+	
 	public JobContext getContext() {
 		return context;
 	}
@@ -317,19 +321,24 @@ public final class JobNG {
 		return AppManager.getGson().toJsonTree(this).getAsJsonObject();
 	}
 	
-	void prepareProcessing(AppManager manager, WorkerNG worker) {
+	/**
+	 * @param mutator update new status and new update_date to DB, to protect new next job search to found it.
+	 */
+	void prepareProcessing(MutationBatch mutator) {
 		update_date = System.currentTimeMillis();
 		status = JobStatus.PREPARING;
+		mutator.withRow(CF_QUEUE, key).putColumn("status", status.name(), TTL);
+		mutator.withRow(CF_QUEUE, key).putColumn("update_date", update_date, TTL);
+	}
+	
+	JobProgression startProcessing(AppManager manager, WorkerNG worker) {
+		update_date = System.currentTimeMillis();
+		start_date = update_date;
+		status = JobStatus.PROCESSING;
 		worker_class = worker.getClass();
 		worker_reference = worker.getReferenceKey();
 		instance_status_executor_key = manager.getInstance_status().getInstanceNamePid();
 		instance_status_executor_hostname = manager.getInstance_status().getHostName();
-	}
-	
-	JobProgression startProcessing() {
-		update_date = System.currentTimeMillis();
-		start_date = update_date;
-		status = JobStatus.PROCESSING;
 		return new JobProgression(this);
 	}
 	
@@ -441,6 +450,21 @@ public final class JobNG {
 	
 	public JobStatus getStatus() {
 		return status;
+	}
+	
+	boolean isThisStatus(JobStatus... statuses) {
+		if (statuses == null) {
+			return false;
+		}
+		if (statuses.length == 0) {
+			return false;
+		}
+		for (int pos = 0; pos < statuses.length; pos++) {
+			if (status == statuses[pos]) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	public String getKey() {

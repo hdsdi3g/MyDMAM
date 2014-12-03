@@ -38,71 +38,41 @@ public abstract class WorkerCapablities {
 	 */
 	public abstract JsonObject getParameters();
 	
-	final boolean isAssignableFor(JobContext context) {
-		// context.
-		return false;
-	}
-	
-	@Deprecated
-	// TODO don't use equals for this ! (@see JobContext) use isAssignableFor()
-	// TODO use equals only for comparing
-	public final boolean equals(Object obj) {
-		if (obj == null) {
+	final boolean isAssignableFrom(JobContext context) {
+		if (context == null) {
 			return false;
-		}
-		if (this.getClass().isAssignableFrom(obj.getClass()) == false) { // TODO nope, use equals class names.
-			return false;
-		}
-		
-		WorkerCapablities item = (WorkerCapablities) obj;
-		/*String item_name = item.getName();
-		if (item_name == null) {
-			return false;
-		}
-		String item_category = item.getCategory();
-		if (item_category == null) {
-			return false;
-		}
-		if (item_category.equals(getCategory()) == false) {
-			return false;
-		}
-		if (item_name.equals(getName()) == false) {
-			return false;
-		}*/
-		
-		/**
-		 * Need to test Storages ?
-		 */
-		List<String> this_storages_avaliable = getStoragesAvaliable();
-		if (this_storages_avaliable == null) {
-			return true;
-		}
-		if (this_storages_avaliable.isEmpty()) {
-			return true;
 		}
 		
 		/**
-		 * item need some Storages
+		 * Can handle context class ?
 		 */
-		List<String> item_storages_avaliable = item.getStoragesAvaliable();
-		if (item_storages_avaliable == null) {
+		Class<? extends JobContext> this_job_context_class = getJobContextClass();
+		if (this_job_context_class == null) {
 			return false;
 		}
-		if (item_storages_avaliable.isEmpty()) {
+		if (this_job_context_class.isAssignableFrom(context.getClass()) == false) {
 			return false;
 		}
 		
-		return this_storages_avaliable.containsAll(item_storages_avaliable); // TODO don't sure for this implementation...
-		/*for (int pos = 0; pos < this_storages_avaliable.size(); pos++) {
-			if (item_storages_avaliable.contains(this_storages_avaliable.get(pos)) == false) {
+		/**
+		 * Need to test Storages, item need some Storages
+		 */
+		List<String> context_needed_storages = context.getNeededIndexedStoragesNames();
+		if (context_needed_storages != null) {
+			List<String> this_storages_avaliable = getStoragesAvaliable();
+			if (this_storages_avaliable == null) {
+				return false;
+			}
+			if (this_storages_avaliable.contains(context_needed_storages) == false) {
 				return false;
 			}
 		}
-		return true;*/
+		
+		return true;
 	}
 	
-	final WorkerCapablitiesStatus getStatus() {
-		return new WorkerCapablitiesStatus(this);
+	final WorkerCapablitiesExporter getStatus() {
+		return new WorkerCapablitiesExporter(this);
 	}
 	
 }

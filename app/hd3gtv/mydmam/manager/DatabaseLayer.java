@@ -39,7 +39,7 @@ public class DatabaseLayer {
 	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
 	// private static final ColumnFamily<String, String> CF_ACTIONS = new ColumnFamily<String, String>("mgrAction", StringSerializer.get(), StringSerializer.get());
 	private static final InstanceStatus.Serializer instancestatus_serializer;
-	private static final WorkerStatus.Serializer workerstatus_serializer;
+	private static final WorkerExporter.Serializer workerstatus_serializer;
 	
 	static {
 		try {
@@ -61,7 +61,7 @@ public class DatabaseLayer {
 			Log2.log.error("Can't init database CFs", e);
 		}
 		instancestatus_serializer = new InstanceStatus.Serializer();
-		workerstatus_serializer = new WorkerStatus.Serializer();
+		workerstatus_serializer = new WorkerExporter.Serializer();
 		
 		/*
 		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "status", CF_TASKQUEUE.getName() + "_status", DeployColumnDef.ColType_AsciiType);
@@ -75,17 +75,23 @@ public class DatabaseLayer {
 		 * */
 	}
 	
-	private static <T> void exportToDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, T item) {
+	private AppManager manager;
+	
+	DatabaseLayer(AppManager manager) {
+		this.manager = manager;
+	}
+	
+	private <T> void exportToDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, T item) {
 		try {
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
 			serializer.exportToDatabase(item, mutator.withRow(cf, serializer.getDatabaseKey(item)));
 			mutator.execute();
 		} catch (ConnectionException e) {
-			error(e);
+			manager.getServiceException().onCassandraError(e);
 		}
 	}
 	
-	private static <T> void exportToDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, List<T> item) {
+	private <T> void exportToDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, List<T> item) {
 		if (item == null) {
 			Log2.log.error("Can't store a null item", new NullPointerException("item"));
 			return;
@@ -100,7 +106,7 @@ public class DatabaseLayer {
 			}
 			mutator.execute();
 		} catch (ConnectionException e) {
-			error(e);
+			manager.getServiceException().onCassandraError(e);
 		}
 	}
 	
@@ -108,14 +114,14 @@ public class DatabaseLayer {
 	 * @return true if import is ok
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private static <T> boolean importFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, String key, CassandraDbImporterExporter result) {
+	private <T> boolean importFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, String key, CassandraDbImporterExporter result) {
 		try {
 			ColumnFamilyQuery<String, String> rows_asset = CassandraDb.getkeyspace().prepareQuery(cf);
 			OperationResult<ColumnList<String>> row = rows_asset.getKey(key).execute(); // .withColumnSlice(this.column_names)
 			result.importFromDatabase(row.getResult());
 			return true;
 		} catch (ConnectionException e) {
-			error(e);
+			manager.getServiceException().onCassandraError(e);
 		}
 		return false;
 	}
@@ -124,7 +130,7 @@ public class DatabaseLayer {
 	 * @param T must assignable from CassandraDbImporterExporter, and to be a valid instanciable class.
 	 */
 	@SuppressWarnings("unchecked")
-	private static <T> List<T> importAllFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, final Class<T> result_class) {
+	private <T> List<T> importAllFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, final Class<T> result_class) {
 		try {
 			if (CassandraDbImporterExporter.class.isAssignableFrom(result_class) == false) {
 				throw new Exception(result_class.getName() + " is not assignable from " + CassandraDbImporterExporter.class.getName());
@@ -133,47 +139,42 @@ public class DatabaseLayer {
 			
 			CassandraDb.allRowsReader(cf, new AllRowsFoundRow() {
 				public void onFoundRow(Row<String, String> row) throws Exception {
-					@SuppressWarnings("rawtypes")
-					CassandraDbImporterExporter item = (CassandraDbImporterExporter) result_class.newInstance();
+					CassandraDbImporterExporter item = AppManager.instanceClassForName(result_class.getName(), CassandraDbImporterExporter.class);
 					item.importFromDatabase(row.getColumns());
 					result.add((T) item);
 				}
 			});
 			return result;
 		} catch (Exception e) {
-			error(e);
+			manager.getServiceException().onCassandraError(e);
 		}
 		return null;
 	}
 	
-	private static void error(Exception e) {
-		Log2.log.error("Non managed and non fatal error", e);// TODO alert ?
-	}
-	
-	static void updateInstanceStatus(InstanceStatus instance_status) {
+	void updateInstanceStatus(InstanceStatus instance_status) {
 		if (instance_status == null) {
 			throw new NullPointerException("\"instance_statuses\" can't to be null");
 		}
 		exportToDatabase(CF_INSTANCES, instancestatus_serializer, instance_status);
 	}
 	
-	public static List<InstanceStatus> getAllInstancesStatus() {
+	public List<InstanceStatus> getAllInstancesStatus() {
 		return importAllFromDatabase(CF_INSTANCES, instancestatus_serializer, InstanceStatus.class);
 	}
 	
-	static void updateWorkerStatus(List<WorkerNG> workers) {
+	void updateWorkerStatus(List<WorkerNG> workers) {
 		if (workers == null) {
 			throw new NullPointerException("\"workers\" can't to be null");
 		}
-		ArrayList<WorkerStatus> worker_statuses = new ArrayList<WorkerStatus>();
+		ArrayList<WorkerExporter> worker_statuses = new ArrayList<WorkerExporter>();
 		for (int pos = 0; pos < workers.size(); pos++) {
-			worker_statuses.add(workers.get(pos).getStatus());
+			worker_statuses.add(workers.get(pos).getExporter());
 		}
 		exportToDatabase(CF_WORKERS, workerstatus_serializer, worker_statuses);
 	}
 	
-	public static List<WorkerStatus> getAllWorkerStatus() {
-		return importAllFromDatabase(CF_WORKERS, workerstatus_serializer, WorkerStatus.class);
+	public List<WorkerExporter> getAllWorkerStatus() {
+		return importAllFromDatabase(CF_WORKERS, workerstatus_serializer, WorkerExporter.class);
 	}
 	
 }

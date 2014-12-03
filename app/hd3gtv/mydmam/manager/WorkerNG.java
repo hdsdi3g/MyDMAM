@@ -47,18 +47,20 @@ public abstract class WorkerNG {
 	private String reference_key;
 	private WorkerExceptionHandler worker_exception;
 	private volatile boolean refuse_new_jobs;
-	private WorkerStatus status;
+	private WorkerExporter exporter;
+	private AppManager manager;
 	
 	public WorkerNG(AppManager manager) {
+		this.manager = manager;
 		manager.workerRegister(this);
 		reference_key = "worker:" + UUID.randomUUID().toString();
 		lifecyle = new LifeCycle(this);
 		refuse_new_jobs = true;
-		status = new WorkerStatus(this);
+		exporter = new WorkerExporter(this);
 	}
 	
-	final WorkerStatus getStatus() {
-		return status;
+	final WorkerExporter getExporter() {
+		return exporter;
 	}
 	
 	List<Class<? extends JobContext>> getWorkerCapablitiesJobContextClasses() {
@@ -82,6 +84,16 @@ public abstract class WorkerNG {
 		return capablities_classes;
 	}
 	
+	boolean canProcessThis(JobContext context) {
+		List<WorkerCapablities> current_capablities = getWorkerCapablities();
+		for (int pos_cc = 0; pos_cc < current_capablities.size(); pos_cc++) {
+			if (current_capablities.get(pos_cc).isAssignableFrom(context)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	void setWorker_exception(WorkerExceptionHandler worker_exception) {
 		this.worker_exception = worker_exception;
 	}
@@ -101,7 +113,7 @@ public abstract class WorkerNG {
 		
 		public void run() {
 			try {
-				workerProcessJob(job.startProcessing(), job.getContext());
+				workerProcessJob(job.startProcessing(manager, reference), job.getContext());
 				if (refuse_new_jobs) {
 					job.endProcessing_Stopped();
 				} else {

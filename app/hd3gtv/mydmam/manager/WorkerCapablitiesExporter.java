@@ -29,10 +29,10 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-public final class WorkerCapablitiesStatus {
+public final class WorkerCapablitiesExporter {
 	
 	@GsonIgnore
-	ArrayList<String> storages_available;
+	List<String> storages_available;
 	
 	// String name;
 	
@@ -40,35 +40,39 @@ public final class WorkerCapablitiesStatus {
 	
 	JsonObject parameters;
 	
-	// TODO add List<Class<? extends JobContext>> getJobContextsAvaliable();
+	@GsonIgnore
+	Class<? extends JobContext> job_context_avaliable;
 	
 	@SuppressWarnings("unused")
-	private WorkerCapablitiesStatus() {
+	private WorkerCapablitiesExporter() {
 	}
 	
-	WorkerCapablitiesStatus(WorkerCapablities capablities) {
+	WorkerCapablitiesExporter(WorkerCapablities capablities) {
 		// this.category = capablities.getCategory();
 		// this.name = capablities.getName();
-		this.parameters = capablities.getParameters();
-		storages_available = new ArrayList<String>();
-		List<String> cap_sa = capablities.getStoragesAvaliable();
-		storages_available.addAll(cap_sa);
+		parameters = capablities.getParameters();
+		storages_available = capablities.getStoragesAvaliable();
+		job_context_avaliable = capablities.getJobContextClass();
 	}
 	
-	static class Serializer implements JsonSerializer<WorkerCapablitiesStatus>, JsonDeserializer<WorkerCapablitiesStatus> {
+	static class Serializer implements JsonSerializer<WorkerCapablitiesExporter>, JsonDeserializer<WorkerCapablitiesExporter> {
 		private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
 		}.getType();
+		private static Type class_jobcontext_typeOfT = new TypeToken<Class<? extends JobContext>>() {
+		}.getType();
 		
-		public WorkerCapablitiesStatus deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			WorkerCapablitiesStatus result = AppManager.getSimpleGson().fromJson(json, WorkerCapablitiesStatus.class);
+		public WorkerCapablitiesExporter deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			WorkerCapablitiesExporter result = AppManager.getSimpleGson().fromJson(json, WorkerCapablitiesExporter.class);
 			JsonObject jo = json.getAsJsonObject();
 			result.storages_available = AppManager.getSimpleGson().fromJson(jo.get("storages_available"), al_string_typeOfT);
+			result.job_context_avaliable = AppManager.getSimpleGson().fromJson(jo.get("job_context_avaliable"), class_jobcontext_typeOfT);
 			return result;
 		}
 		
-		public JsonElement serialize(WorkerCapablitiesStatus src, Type typeOfSrc, JsonSerializationContext context) {
+		public JsonElement serialize(WorkerCapablitiesExporter src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
 			result.add("storages_available", AppManager.getSimpleGson().toJsonTree(src.storages_available, al_string_typeOfT).getAsJsonArray());
+			result.add("job_context_avaliable", AppManager.getSimpleGson().toJsonTree(src.job_context_avaliable, class_jobcontext_typeOfT).getAsJsonArray());
 			return result;
 		}
 		
