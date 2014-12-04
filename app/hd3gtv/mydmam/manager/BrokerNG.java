@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.JobNG.JobStatus;
@@ -42,10 +43,17 @@ class BrokerNG {
 	private QueueOperations queue_operations;
 	private QueueNewJobs queue_new_jobs;
 	private volatile List<JobNG> active_jobs;
+	private boolean active_clean_tasks;
 	
 	BrokerNG(AppManager manager) {
 		this.manager = manager;
 		active_jobs = new ArrayList<JobNG>();
+		
+		if (Configuration.global.isElementKeyExists("service", "brokercleantasks")) {
+			active_clean_tasks = Configuration.global.getValueBoolean("service", "brokercleantasks");
+		} else {
+			active_clean_tasks = true;
+		}
 	}
 	
 	void start() {
@@ -87,6 +95,9 @@ class BrokerNG {
 			try {
 				MutationBatch mutator = null;
 				JobNG job;
+				int time_spacer = 0;
+				int max_time_spacer = 100;
+				List<JobNG> jobs;
 				
 				while (stop_queue == false) {
 					if (active_jobs.isEmpty() == false) {
@@ -113,22 +124,19 @@ class BrokerNG {
 							mutator.execute();
 						}
 					}
-					// TODO queue...
 					
-					// *
-					/*
+					// TODO cyclic ?
 					
-					//From BrokerQueue
-					 * 
 					time_spacer++;
 					if (time_spacer == max_time_spacer) {
-					mutator = CassandraDb.prepareMutationBatch();
-					
-					 //* Callbacks triggers for new terminated tasks
-					Profile profile;
-					List<TriggerWorker> workers_to_callback;
-					long last_date_updated;
-					for (Map.Entry<Profile, List<TriggerWorker>> entry : callbacks_triggers.entrySet()) {
+						mutator = CassandraDb.prepareMutationBatch();
+						time_spacer = 0;
+						
+						/* TODO Callback triggers for new terminated tasks
+						Profile profile;
+						List<TriggerWorker> workers_to_callback;
+						long last_date_updated;
+						for (Map.Entry<Profile, List<TriggerWorker>> entry : callbacks_triggers.entrySet()) {
 						profile = entry.getKey();
 						workers_to_callback = entry.getValue();
 						last_date_updated = last_dates_profile_updated.get(profile);
@@ -150,55 +158,24 @@ class BrokerNG {
 							jo.put("shortname", workers_to_callback.get(poswkr).getTriggerShortName());
 							mutator.withRow(Broker.CF_QUEUETRIGGER, profile.computeKey()).putColumn(instancename + "_" + profile + "_" + poswkr, jo.toJSONString(), ttl_active_trigger_worker);
 						}
+						}*/
+						
+						if (active_clean_tasks) {
+							jobs = JobNG.Utility.watchOldAbandonedJobs(mutator, manager.getInstance_status());
+							if (jobs.isEmpty() == false) {
+								manager.getServiceException().onQueueJobProblem("There are too old jobs in queue", jobs);
+							}
+							JobNG.Utility.removeMaxDateForPostponedJobs(mutator, manager.getInstance_status());
+						}
+						
+						if (mutator.isEmpty() == false) {
+							mutator.execute();
+						}
 					}
 					
-					if (do_stop) {
+					if (stop_queue) {
 						return;
 					}
-					
-					if (activecleantasks) {
-						time_spacer = 0;
-						
-						 //* Watch old abandoned task
-						IndexQuery<String, String> index_query = Broker.keyspace.prepareQuery(Broker.CF_TASKQUEUE).searchWithIndex();
-						Task.selectTooOldWaitingTasks(index_query, Broker.hostname);
-						OperationResult<Rows<String, String>> rows = index_query.execute();
-						boolean has_send_a_mail = false;
-						for (Row<String, String> row : rows.getResult()) {
-							Task task = new Task();
-							task.pullFromDatabase(row.getKey(), row.getColumns());
-							task.status = TaskJobStatus.TOO_OLD;
-							task.pushToDatabase(mutator, Broker.ttl_task_duration);
-							Log2.log.info("This task is too old", task);
-							if (has_send_a_mail == false) {
-								AdminMailAlert.create("There is a too old task in queue", false).addDump(task).setServiceinformations(broker.serviceinformations).send();
-								has_send_a_mail = true;
-							}
-						}
-						
-						 //* Remove max_date for postponed tasks
-						index_query = Broker.keyspace.prepareQuery(Broker.CF_TASKQUEUE).searchWithIndex();
-						Task.selectPostponedTasksWithMaxAge(index_query, Broker.hostname);
-						rows = index_query.execute();
-						for (Row<String, String> row : rows.getResult()) {
-							Task task = new Task();
-							task.pullFromDatabase(row.getKey(), row.getColumns());
-							task.max_date_to_wait_processing = Long.MAX_VALUE;
-							task.pushToDatabase(mutator, Broker.ttl_task_duration);
-							Log2.log.info("Remove max age to postponed task", task);
-						}
-						
-						Log2.log.debug("Broker clean operation");
-					}
-					
-					if (mutator.isEmpty() == false) {
-						mutator.execute();
-					}
-					}
-
-					
-					*/
-					
 					Thread.sleep(QUEUE_SLEEP_TIME);
 				}
 			} catch (Exception e) {
@@ -262,7 +239,7 @@ class BrokerNG {
 						/**
 						 * Get all waiting jobs for this category profile.
 						 */
-						waiting_jobs = JobNG.getJobsByStatus(JobStatus.WAITING);
+						waiting_jobs = JobNG.Utility.getJobsByStatus(JobStatus.WAITING);
 						best_priority = Integer.MIN_VALUE;
 						best_job = null;
 						current_job = null;

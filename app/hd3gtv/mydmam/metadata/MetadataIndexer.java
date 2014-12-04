@@ -25,7 +25,6 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 
 import java.io.File;
 import java.io.IOException;

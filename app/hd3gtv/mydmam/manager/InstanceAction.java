@@ -17,7 +17,9 @@
 package hd3gtv.mydmam.manager;
 
 public class InstanceAction {
-	// TODO API for this
+	/**
+	 * TODO remote exec actions to workers (start, stop, change cyclic times...)
+	 */
 	
 	private InstanceStatus instance;
 	

@@ -63,7 +63,7 @@ public abstract class WorkerNG {
 		return exporter;
 	}
 	
-	List<Class<? extends JobContext>> getWorkerCapablitiesJobContextClasses() {
+	final List<Class<? extends JobContext>> getWorkerCapablitiesJobContextClasses() {
 		List<Class<? extends JobContext>> capablities_classes = new ArrayList<Class<? extends JobContext>>();
 		List<WorkerCapablities> current_capablities;
 		Class<? extends JobContext> current_capablity_class;
@@ -84,7 +84,7 @@ public abstract class WorkerNG {
 		return capablities_classes;
 	}
 	
-	boolean canProcessThis(JobContext context) {
+	final boolean canProcessThis(JobContext context) {
 		List<WorkerCapablities> current_capablities = getWorkerCapablities();
 		for (int pos_cc = 0; pos_cc < current_capablities.size(); pos_cc++) {
 			if (current_capablities.get(pos_cc).isAssignableFrom(context)) {
@@ -123,14 +123,6 @@ public abstract class WorkerNG {
 				job.endProcessing_Error(e);
 				worker_exception.onError(e, "Error during processing", reference);
 			}
-			/*
-			try {
-				worker.broker.doneJob(job);//TODO doneJob ?
-			} catch (ConnectionException e) {
-				Log2.log.error("Lost Cassandra connection", e);
-			}
-			}
-			* */
 			current_executor = null;
 		}
 	}
@@ -186,7 +178,7 @@ public abstract class WorkerNG {
 		
 	}
 	
-	public LifeCycle getLifecyle() {
+	final public LifeCycle getLifecyle() {
 		return lifecyle;
 	}
 	
@@ -195,11 +187,11 @@ public abstract class WorkerNG {
 		current_executor.start();
 	}
 	
-	String getReferenceKey() {
+	final String getReferenceKey() {
 		return reference_key;
 	}
 	
-	JobNG getCurrentJob() {
+	final JobNG getCurrentJob() {
 		if (current_executor == null) {
 			return null;
 		}
@@ -209,39 +201,4 @@ public abstract class WorkerNG {
 		return current_executor.job;
 	}
 	
-	// WorkerEngine engine;
-	// Broker broker;
-	/*
-	final void pushToDatabase(MutationBatch mutator, String hostname, int ttl) {
-		mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("hostname", hostname, ttl);
-		mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("instancename", ServiceManager.getInstancename(false), ttl);
-		mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("short_worker_name", getShortWorkerName(), ttl);
-		mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("long_worker_name", getLongWorkerName(), ttl);
-		status.pushToDatabase(mutator, worker_ref, ttl);
-		
-		JSONArray ja = new JSONArray();
-		List<Profile> mp = getManagedProfiles();
-		for (int pos = 0; pos < mp.size(); pos++) {
-			ja.add(mp.get(pos).toJson());
-		}
-		mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("managed_profiles", ja.toJSONString(), ttl);
-		
-		if (engine != null) {
-			mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("job", engine.job.key, ttl);
-		}
-		if (this instanceof WorkerCyclicEngine) {
-			WorkerCyclicEngine workercyclicengine = (WorkerCyclicEngine) this;
-			mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("cyclic", true, ttl);
-			
-			if (workercyclicengine.canChangeTimeToSleep()) {
-				mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("time_to_sleep", (int) workercyclicengine.getTime_to_sleep() / 1000, ttl);
-			} else {
-				mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("time_to_sleep", 0, ttl);
-			}
-			mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("countdown_to_process", workercyclicengine.getCountdown_to_process(), ttl);
-		} else {
-			mutator.withRow(Broker.CF_WORKERGROUPS, worker_ref).putColumnIfNotNull("cyclic", false, ttl);
-		}
-	}
-	*/
 }

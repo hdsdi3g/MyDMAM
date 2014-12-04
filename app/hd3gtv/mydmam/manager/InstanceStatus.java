@@ -19,7 +19,9 @@ package hd3gtv.mydmam.manager;
 import groovy.json.JsonException;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.GitInfo;
+import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
+import hd3gtv.mydmam.useraction.UAWorker;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -31,6 +33,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.reflect.TypeToken;
@@ -44,7 +47,7 @@ import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnList;
 
-public class InstanceStatus {
+public final class InstanceStatus {
 	
 	/**
 	 * In sec.
@@ -53,7 +56,6 @@ public class InstanceStatus {
 	private static final ArrayList<String> current_classpath;
 	private static final String current_instance_name;
 	private static final String current_instance_name_pid;
-	// private static final String current_app_name; TODO get AppName
 	private static final String current_app_version;
 	private static final String current_java_version;
 	private static String current_host_name;
@@ -103,6 +105,8 @@ public class InstanceStatus {
 	private ArrayList<String> classpath;
 	private String instance_name;
 	private String instance_name_pid;
+	@SuppressWarnings("unused")
+	private String app_name;
 	private String app_version;
 	private long uptime;
 	private @GsonIgnore ArrayList<ThreadStackTrace> threadstacktraces;
@@ -157,7 +161,7 @@ public class InstanceStatus {
 		
 	}
 	
-	InstanceStatus populateFromThisInstance() {
+	InstanceStatus populateFromThisInstance(AppManager manager) {
 		classpath = current_classpath;
 		instance_name = current_instance_name;
 		instance_name_pid = current_instance_name_pid;
@@ -166,6 +170,7 @@ public class InstanceStatus {
 		uptime = System.currentTimeMillis() - AppManager.starttime;
 		threadstacktraces = new ArrayList<InstanceStatus.ThreadStackTrace>();
 		host_name = current_host_name;
+		this.app_name = manager.getAppName();
 		
 		Thread key;
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
@@ -207,25 +212,14 @@ public class InstanceStatus {
 		}
 		
 		useraction_functionality_list = new ArrayList<UAFunctionalityDefinintion>();
-		
-		/*WorkerGroup worker_group = manager.getWorkergroup(); //TODO plug a workergroup @see UAManager.createWorkers()
-		if (worker_group != null) {
-			List<Worker> workers = worker_group.getWorkerlist();
-			UAWorker current_worker;
-			List<UAFunctionality> full_functionality_list = new ArrayList<UAFunctionality>();
-			for (int pos = 0; pos < workers.size(); pos++) {
-				if (workers.get(pos) instanceof UAWorker) {
-					current_worker = (UAWorker) workers.get(pos);
-					if (current_worker.isEnabled() == false) {
-						continue;
-					}
-					full_functionality_list.addAll(current_worker.getFunctionalities_list());
-				}
-			}
-			for (int pos = 0; pos < full_functionality_list.size(); pos++) {
-				useraction_functionality_list.add(full_functionality_list.get(pos).getDefinition());
-			}
-		}*/
+		List<UAFunctionality> full_functionality_list = new ArrayList<UAFunctionality>();
+		List<UAWorker> workers = manager.getAllActiveUAWorkers();
+		for (int pos = 0; pos < workers.size(); pos++) {
+			full_functionality_list.addAll(workers.get(pos).getFunctionalities_list());
+		}
+		for (int pos = 0; pos < full_functionality_list.size(); pos++) {
+			useraction_functionality_list.add(full_functionality_list.get(pos).getDefinition());
+		}
 		return this;
 	}
 	

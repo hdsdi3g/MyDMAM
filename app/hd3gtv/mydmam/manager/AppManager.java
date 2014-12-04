@@ -23,6 +23,7 @@ import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.mydmam.useraction.UACapabilityDefinition;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
+import hd3gtv.mydmam.useraction.UAWorker;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -141,11 +142,16 @@ public final class AppManager {
 	private Updater updater;
 	private BrokerNG broker;
 	private DatabaseLayer database_layer;
+	private String app_name;
 	
 	public AppManager() {
-		instance_status = new InstanceStatus().populateFromThisInstance();
 		service_exception = new ServiceException();
 		database_layer = new DatabaseLayer(this);
+		instance_status = new InstanceStatus().populateFromThisInstance(this);
+	}
+	
+	String getAppName() {
+		return app_name;
 	}
 	
 	void workerRegister(WorkerNG worker) {
@@ -173,6 +179,10 @@ public final class AppManager {
 		}
 		
 		void onCassandraError(Exception e) {
+			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
+		}
+		
+		void onQueueJobProblem(String error_name, List<JobNG> jobs) {
 			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
 		}
 	}
@@ -249,6 +259,39 @@ public final class AppManager {
 		return capablities_classes_workers;
 	}
 	
+	List<UAWorker> getAllActiveUAWorkers() {
+		ArrayList<UAWorker> workers = new ArrayList<UAWorker>();
+		// TODO get UAWorkers
+		/*
+		WorkerNG worker;
+		List<Class<? extends JobContext>> current_capablities;
+		List<WorkerNG> workers_for_capablity;
+		Class<? extends JobContext> current_capablity;
+		
+		for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
+			worker = enabled_workers.get(pos_wr);
+			if (worker.getLifecyle().getState() != WorkerState.WAITING) {
+				continue;
+			}
+			current_capablities = worker.getWorkerCapablitiesJobContextClasses();
+			if (current_capablities == null) {
+				continue;
+			}
+			for (int pos_cc = 0; pos_cc < current_capablities.size(); pos_cc++) {
+				current_capablity = current_capablities.get(pos_cc);
+				if (capablities_classes_workers.containsKey(current_capablity) == false) {
+					capablities_classes_workers.put(current_capablity, new ArrayList<WorkerNG>(1));
+				}
+				workers_for_capablity = capablities_classes_workers.get(current_capablity);
+				if (workers_for_capablity.contains(worker) == false) {
+					workers_for_capablity.add(worker);
+				}
+			}
+		}
+		*/
+		return workers;
+	}
+	
 	public JobNG createJob(JobContext context) {
 		try {
 			return new JobNG(this, context);
@@ -276,7 +319,6 @@ public final class AppManager {
 				while (stop_update == false) {
 					database_layer.updateInstanceStatus(instance_status);
 					database_layer.updateWorkerStatus(enabled_workers);
-					// TODO Queue/Broker (current job statuses) regular push
 					// TODO InstanceAction regular pulls
 					Thread.sleep(SLEEP_UPDATE_TTL * 1000);
 				}

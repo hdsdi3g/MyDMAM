@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
-public class JobProgression {
+public final class JobProgression {
 	
 	private JobNG job;
 	
@@ -35,8 +35,20 @@ public class JobProgression {
 	@SuppressWarnings("unused")
 	private String last_message;
 	
+	@SuppressWarnings("unused")
+	private String last_caller;
+	
 	JobProgression(JobNG job) {
 		this.job = job;
+	}
+	
+	private void updateLastCaller() {
+		StackTraceElement[] stack = new Throwable().getStackTrace();
+		if (stack.length > 2) {
+			last_caller = stack[2].toString();
+		} else {
+			last_caller = "<null>";
+		}
 	}
 	
 	/**
@@ -46,6 +58,7 @@ public class JobProgression {
 	public synchronized void update(String last_message) {
 		job.update_date = System.currentTimeMillis();
 		this.last_message = last_message;
+		updateLastCaller();
 	}
 	
 	/**
@@ -55,6 +68,7 @@ public class JobProgression {
 		job.update_date = System.currentTimeMillis();
 		this.step = step;
 		this.step_count = step_count;
+		updateLastCaller();
 	}
 	
 	/**
@@ -64,6 +78,7 @@ public class JobProgression {
 		job.update_date = System.currentTimeMillis();
 		this.progress = progress;
 		this.progress_size = progress_size;
+		updateLastCaller();
 	}
 	
 }

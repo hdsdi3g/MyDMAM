@@ -27,7 +27,6 @@ import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.Origin;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshoot;

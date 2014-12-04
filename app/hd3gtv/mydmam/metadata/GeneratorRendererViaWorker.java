@@ -18,7 +18,6 @@ package hd3gtv.mydmam.metadata;
 
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.taskqueue.FutureCreateTasks;
 import hd3gtv.mydmam.taskqueue.Job;
 
 import java.io.File;

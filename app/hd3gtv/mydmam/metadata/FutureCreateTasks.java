@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.taskqueue;
+package hd3gtv.mydmam.metadata;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
