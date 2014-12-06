@@ -176,6 +176,22 @@ public abstract class WorkerNG {
 			}
 		}
 		
+		final boolean isThisState(WorkerState... states) {
+			if (states == null) {
+				return false;
+			}
+			if (states.length == 0) {
+				return false;
+			}
+			WorkerState state = getState();
+			for (int pos = 0; pos < states.length; pos++) {
+				if (state == states[pos]) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
 	}
 	
 	final public LifeCycle getLifecyle() {

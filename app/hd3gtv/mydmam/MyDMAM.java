@@ -48,6 +48,8 @@ import com.google.gson.JsonSerializer;
 
 public class MyDMAM {
 	
+	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2014";
+	
 	/**
 	 * @param filename without path
 	 * @return S0000000 or 00000000 or null

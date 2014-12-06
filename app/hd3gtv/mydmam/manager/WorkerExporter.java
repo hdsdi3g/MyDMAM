@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerCategory;
 
 import java.lang.reflect.Type;
@@ -33,7 +35,7 @@ import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnList;
 
-public class WorkerExporter {
+public final class WorkerExporter implements Log2Dumpable {
 	
 	@GsonIgnore
 	transient WorkerNG worker;
@@ -58,7 +60,7 @@ public class WorkerExporter {
 		this.worker = worker;
 	}
 	
-	private void update() {
+	private synchronized void update() {
 		category = worker.getWorkerCategory();
 		long_name = worker.getWorkerLongName();
 		vendor_name = worker.getWorkerVendorName();
@@ -113,7 +115,20 @@ public class WorkerExporter {
 	}
 	
 	public String toString() {
+		update();
 		return AppManager.getPrettyGson().toJson(this);
 	}
 	
+	public Log2Dump getLog2Dump() {
+		update();
+		Log2Dump dump = new Log2Dump();
+		dump.add("worker_class", worker_class.getName());
+		dump.add("long_name", long_name);
+		dump.add("category", category);
+		dump.add("vendor_name", vendor_name);
+		dump.add("reference_key", reference_key);
+		dump.add("current_job_key", current_job_key);
+		dump.add("state", state);
+		return dump;
+	}
 }

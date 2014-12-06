@@ -19,6 +19,7 @@ package hd3gtv.mydmam.manager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.mydmam.useraction.UACapabilityDefinition;
 import hd3gtv.mydmam.useraction.UAConfigurator;
@@ -145,7 +146,7 @@ public final class AppManager {
 	private String app_name;
 	
 	public AppManager() {
-		service_exception = new ServiceException();
+		service_exception = new ServiceException(this);
 		database_layer = new DatabaseLayer(this);
 		instance_status = new InstanceStatus().populateFromThisInstance(this);
 	}
@@ -166,24 +167,39 @@ public final class AppManager {
 	}
 	
 	class ServiceException implements WorkerExceptionHandler {
+		AppManager manager;
+		
+		private ServiceException(AppManager manager) {
+			this.manager = manager;
+		}
+		
 		public void onError(Exception e, String error_name, WorkerNG worker) {
-			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
+			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager).setThrowable(e);
+			alert.addDump(worker.getExporter()).send();
 		}
 		
 		private void onAppManagerError(Exception e, String error_name) {
-			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
+			AdminMailAlert alert = AdminMailAlert.create(error_name, true).setManager(manager).setThrowable(e);
+			alert.addDump(instance_status).send();
 		}
 		
-		void onGenericServiceError(Exception e, String error_name, String service_name) {
-			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
+		void onQueueServiceError(Exception e, String error_name, String service_name) {
+			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager).setThrowable(e);
+			alert.addToMessagecontent("Service name: " + service_name);
+			alert.addDump(instance_status).send();
 		}
 		
 		void onCassandraError(Exception e) {
-			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
+			AdminMailAlert alert = AdminMailAlert.create("Cassandra error", false).setManager(manager).setThrowable(e);
+			alert.addDump(instance_status).send();
 		}
 		
 		void onQueueJobProblem(String error_name, List<JobNG> jobs) {
-			// AdminMailAlert.create("Error during processing", false).addDump(job).addDump(worker).setServiceinformations(serviceinformations).send();// TODO alert
+			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager);
+			for (int pos = 0; pos < jobs.size(); pos++) {
+				alert.addDump(jobs.get(pos));
+			}
+			alert.addDump(instance_status).send();
 		}
 	}
 	
@@ -260,36 +276,21 @@ public final class AppManager {
 	}
 	
 	List<UAWorker> getAllActiveUAWorkers() {
-		ArrayList<UAWorker> workers = new ArrayList<UAWorker>();
-		// TODO get UAWorkers
-		/*
+		ArrayList<UAWorker> uaworkers = new ArrayList<UAWorker>();
 		WorkerNG worker;
-		List<Class<? extends JobContext>> current_capablities;
-		List<WorkerNG> workers_for_capablity;
-		Class<? extends JobContext> current_capablity;
 		
 		for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
 			worker = enabled_workers.get(pos_wr);
-			if (worker.getLifecyle().getState() != WorkerState.WAITING) {
+			if (worker.getLifecyle().isThisState(WorkerState.WAITING, WorkerState.PROCESSING) == false) {
 				continue;
 			}
-			current_capablities = worker.getWorkerCapablitiesJobContextClasses();
-			if (current_capablities == null) {
+			// TODO phase 2, migrate UAWorker to WorkerNG
+			/*if ((worker instanceof WorkerNG) == false) {
 				continue;
 			}
-			for (int pos_cc = 0; pos_cc < current_capablities.size(); pos_cc++) {
-				current_capablity = current_capablities.get(pos_cc);
-				if (capablities_classes_workers.containsKey(current_capablity) == false) {
-					capablities_classes_workers.put(current_capablity, new ArrayList<WorkerNG>(1));
-				}
-				workers_for_capablity = capablities_classes_workers.get(current_capablity);
-				if (workers_for_capablity.contains(worker) == false) {
-					workers_for_capablity.add(worker);
-				}
-			}
+			uaworkers.add((WorkerNG) worker);*/
 		}
-		*/
-		return workers;
+		return uaworkers;
 	}
 	
 	public JobNG createJob(JobContext context) {
@@ -301,7 +302,7 @@ public final class AppManager {
 		}
 	}
 	
-	InstanceStatus getInstance_status() {
+	public InstanceStatus getInstance_status() {
 		return instance_status;
 	}
 	

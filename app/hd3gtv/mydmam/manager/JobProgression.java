@@ -19,23 +19,11 @@ package hd3gtv.mydmam.manager;
 public final class JobProgression {
 	
 	private JobNG job;
-	
-	@SuppressWarnings("unused")
 	private int progress = 0;
-	
-	@SuppressWarnings("unused")
 	private int progress_size = 0;
-	
-	@SuppressWarnings("unused")
 	private int step = 0;
-	
-	@SuppressWarnings("unused")
 	private int step_count = 0;
-	
-	@SuppressWarnings("unused")
 	private String last_message;
-	
-	@SuppressWarnings("unused")
 	private String last_caller;
 	
 	JobProgression(JobNG job) {
@@ -81,4 +69,20 @@ public final class JobProgression {
 		updateLastCaller();
 	}
 	
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		sb.append("step:");
+		sb.append(step);
+		sb.append("/");
+		sb.append(step_count);
+		sb.append(" progress:");
+		sb.append(progress);
+		sb.append("/");
+		sb.append(progress_size);
+		sb.append(" \"");
+		sb.append(last_message);
+		sb.append("\" by ");
+		sb.append(last_caller);
+		return sb.toString();
+	}
 }

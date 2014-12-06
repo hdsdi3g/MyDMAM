@@ -17,6 +17,8 @@
 package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -56,7 +58,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 /**
  * Use AppManager to for create job.
  */
-public final class JobNG {
+public final class JobNG implements Log2Dumpable {
 	
 	private static final ColumnFamily<String, String> CF_QUEUE = new ColumnFamily<String, String>("mgrQueue", StringSerializer.get(), StringSerializer.get());
 	private static Keyspace keyspace;
@@ -101,19 +103,14 @@ public final class JobNG {
 	 * Declaration & configuration vars
 	 */
 	private String key;
-	@SuppressWarnings("unused")
 	private Class<?> creator;
 	private boolean urgent;
-	@SuppressWarnings("unused")
 	private String name;
 	private long expiration_date;
-	@SuppressWarnings("unused")
 	private long max_execution_time;
 	private String require_key;
-	@SuppressWarnings("unused")
 	private long create_date;
 	private boolean delete_after_completed;
-	@SuppressWarnings("unused")
 	private String instance_status_creator_key;
 	private String instance_status_creator_hostname;
 	private int priority;
@@ -126,21 +123,13 @@ public final class JobNG {
 	 */
 	private JobStatus status;
 	long update_date;
-	@SuppressWarnings("unused")
 	private GsonThrowable processing_error;
-	@SuppressWarnings("unused")
 	private JobProgression progression;
-	@SuppressWarnings("unused")
 	private long start_date;
-	@SuppressWarnings("unused")
 	private long end_date;
-	@SuppressWarnings("unused")
 	private String worker_reference;
-	@SuppressWarnings("unused")
 	private Class<?> worker_class;
-	@SuppressWarnings("unused")
 	private String instance_status_executor_key;
-	@SuppressWarnings("unused")
 	private String instance_status_executor_hostname;
 	
 	JobNG(AppManager manager, JobContext context) throws ClassNotFoundException {
@@ -311,10 +300,6 @@ public final class JobNG {
 			return null;
 		}
 		
-	}
-	
-	public String toString() {
-		return AppManager.getPrettyGson().toJson(this);
 	}
 	
 	public JsonObject toJson() {
@@ -579,5 +564,37 @@ public final class JobNG {
 			}
 			return result;
 		}
+	}
+	
+	public String toString() {
+		return AppManager.getPrettyGson().toJson(this);
+	}
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("key", key);
+		dump.add("creator", creator.getName());
+		dump.add("urgent", urgent);
+		dump.add("max_execution_time", max_execution_time);
+		dump.add("name", name);
+		dump.add("priority", priority);
+		dump.add("context", context);
+		dump.add("status", status);
+		dump.add("progression", progression);
+		dump.addDate("create_date", create_date);
+		dump.addDate("expiration_date", expiration_date);
+		dump.addDate("update_date", update_date);
+		dump.addDate("start_date", start_date);
+		dump.addDate("end_date", end_date);
+		dump.add("require_key", require_key);
+		dump.add("delete_after_completed", delete_after_completed);
+		dump.add("executor key", instance_status_executor_key);
+		dump.add("executor hostname", instance_status_executor_hostname);
+		dump.add("creator key", instance_status_creator_key);
+		dump.add("creator hostname", instance_status_creator_hostname);
+		dump.add("processing error", processing_error.getPrintedStackTrace());
+		dump.add("worker_reference", worker_reference);
+		dump.add("worker_class", worker_class.getName());
+		return dump;
 	}
 }

@@ -22,6 +22,8 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.manager.AppManager;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -69,7 +71,9 @@ public class AdminMailAlert implements Log2Dumpable {
 	private Throwable throwable;
 	private String basemessage;
 	private ArrayList<Log2Dump> dumps;
+	@Deprecated
 	private ServiceInformations serviceinformations;
+	private AppManager manager;
 	private StringBuffer subject;
 	private StackTraceElement caller;
 	private boolean fatal_alert;
@@ -146,8 +150,14 @@ public class AdminMailAlert implements Log2Dumpable {
 		return this;
 	}
 	
+	@Deprecated
 	public AdminMailAlert setServiceinformations(ServiceInformations serviceinformations) {
 		this.serviceinformations = serviceinformations;
+		return this;
+	}
+	
+	public AdminMailAlert setManager(AppManager manager) {
+		this.manager = manager;
 		return this;
 	}
 	
@@ -163,6 +173,11 @@ public class AdminMailAlert implements Log2Dumpable {
 			if (serviceinformations != null) {
 				subject.append("[");
 				subject.append(serviceinformations.getApplicationShortName());
+				subject.append("] ");
+			}
+			if (manager != null) {
+				subject.append("[");
+				subject.append(manager.getInstance_status().getAppName());
 				subject.append("] ");
 			}
 			subject.append("General error: ");
@@ -247,6 +262,14 @@ public class AdminMailAlert implements Log2Dumpable {
 				plaintext.append(serviceinformations.getApplicationVersion());
 				plaintext.append("\r\n");
 				plaintext.append(serviceinformations.getApplicationCopyright());
+				plaintext.append("\r\n");
+			}
+			if (manager != null) {
+				plaintext.append(manager.getInstance_status().getInstanceName());
+				plaintext.append(" - version ");
+				plaintext.append(manager.getInstance_status().getAppVersion());
+				plaintext.append("\r\n");
+				plaintext.append(MyDMAM.APP_COPYRIGHT);
 				plaintext.append("\r\n");
 			}
 			

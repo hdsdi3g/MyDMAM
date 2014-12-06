@@ -59,9 +59,6 @@ public class Task implements Log2Dumpable {
 	
 	String task_key_require_done;
 	
-	/**
-	 * TODO remplace with a Gson system
-	 */
 	@Deprecated
 	JSONObject context;
 	

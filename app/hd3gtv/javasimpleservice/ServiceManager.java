@@ -27,9 +27,6 @@ import hd3gtv.tools.TimeUtils;
 
 import java.lang.management.ManagementFactory;
 
-/**
- * TODO Refactor with AppManager, InstanceStatus...
- */
 @Deprecated
 public abstract class ServiceManager implements ServiceInformations {
 	

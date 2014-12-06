@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
-// TODO remove this test class
+// TODO phase 2, remove this test class
 public class MainClass {
 	
 	public static void main(String[] args) throws Exception {

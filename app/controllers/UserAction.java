@@ -164,7 +164,6 @@ public class UserAction extends Controller {
 	
 	@Check("userAction")
 	public static void optionsforselectform() throws Exception {
-		// TODO add cache ?
 		String class_referer = params.get("classreferer");
 		if (class_referer == null) {
 			throw new NullPointerException("classreferer in params");

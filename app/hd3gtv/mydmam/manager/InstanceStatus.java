@@ -19,6 +19,8 @@ package hd3gtv.mydmam.manager;
 import groovy.json.JsonException;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.GitInfo;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import hd3gtv.mydmam.useraction.UAWorker;
@@ -47,7 +49,7 @@ import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnList;
 
-public final class InstanceStatus {
+public final class InstanceStatus implements Log2Dumpable {
 	
 	/**
 	 * In sec.
@@ -105,7 +107,6 @@ public final class InstanceStatus {
 	private ArrayList<String> classpath;
 	private String instance_name;
 	private String instance_name_pid;
-	@SuppressWarnings("unused")
 	private String app_name;
 	private String app_version;
 	private long uptime;
@@ -289,5 +290,31 @@ public final class InstanceStatus {
 	
 	public String getInstanceNamePid() {
 		return instance_name_pid;
+	}
+	
+	public String getInstanceName() {
+		return instance_name;
+	}
+	
+	public String getAppName() {
+		return app_name;
+	}
+	
+	public String getAppVersion() {
+		return app_version;
+	}
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("app_name", app_name);
+		dump.add("instance_name", instance_name);
+		dump.add("instance_name_pid", instance_name_pid);
+		dump.add("app_version", app_version);
+		dump.add("java_version", java_version);
+		dump.add("classpath", classpath);
+		dump.add("uptime (sec)", uptime / 1000);
+		dump.add("host_name", host_name);
+		dump.add("host_addresses", host_addresses);
+		return dump;
 	}
 }

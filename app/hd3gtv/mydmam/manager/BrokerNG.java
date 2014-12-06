@@ -179,7 +179,7 @@ class BrokerNG {
 					Thread.sleep(QUEUE_SLEEP_TIME);
 				}
 			} catch (Exception e) {
-				manager.getServiceException().onGenericServiceError(e, "Broker fatal error", "Broker operations");
+				manager.getServiceException().onQueueServiceError(e, "Broker fatal error", "Broker operations");
 			}
 		}
 	}
@@ -334,7 +334,7 @@ class BrokerNG {
 					}
 				}
 			} catch (Exception e) {
-				manager.getServiceException().onGenericServiceError(e, "Broker fatal error", "Broker new jobs");
+				manager.getServiceException().onQueueServiceError(e, "Broker fatal error", "Broker new jobs");
 			}
 		}
 	}
