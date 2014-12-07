@@ -241,6 +241,12 @@ public final class JobNG implements Log2Dumpable {
 	}
 	
 	public void publish() throws ConnectionException {
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		publish(mutator);
+		mutator.execute();
+	}
+	
+	public void publish(MutationBatch mutator) throws ConnectionException {
 		create_date = System.currentTimeMillis();
 		if (urgent) {
 			/**
@@ -252,7 +258,7 @@ public final class JobNG implements Log2Dumpable {
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			priority = rows.getResult().size() + 1;
 		}
-		saveChanges();
+		saveChanges(mutator);
 	}
 	
 	/**
@@ -274,7 +280,6 @@ public final class JobNG implements Log2Dumpable {
 	void saveChanges(MutationBatch mutator) throws ConnectionException {
 		update_date = System.currentTimeMillis();
 		exportToDatabase(mutator.withRow(CF_QUEUE, key));
-		mutator.execute();
 	}
 	
 	static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {

@@ -16,59 +16,56 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.ColumnList;
 
 public final class CyclicJobsCreator {
 	
-	// public void createTasks() throws ConnectionException;
-	
-	// @return in msec
-	// public long getInitialCyclicPeriodTasks();
-	
-	// public String getShortCyclicName();
-	
-	// public String getLongCyclicName();
-	
-	// public boolean isCyclicConfigurationAllowToEnabled();
-	
-	// public boolean isPeriodDurationForCreateTasksCanChange();
-	
-	private AppManager manager;
-	private List<CyclicDeclaration> contexts;
+	transient private AppManager manager;
+	private List<CyclicJobDeclaration> contexts;
 	private Class<?> creator;
+	private long period;
+	private long next_date_to_create_jobs;
+	private boolean enabled;
+	private String long_name;
+	private String vendor_name;
 	
-	private class CyclicDeclaration {
-		/**
-		 * In msec
-		 */
-		long period_time;
-		List<JobContext> contexts;
-		String name;
-		
-		CyclicDeclaration(String name, long period, TimeUnit unit, JobContext... contexts) {
-			this.name = name;
-			period_time = unit.toMillis(period);
-			this.contexts = new ArrayList<JobContext>(contexts.length);
-			for (int pos = 0; pos < contexts.length; pos++) {
-				this.contexts.add(contexts[pos]);
-			}
-		}
-	}
-	
-	public CyclicJobsCreator(AppManager manager) throws NullPointerException {
+	public CyclicJobsCreator(AppManager manager, long period, TimeUnit unit, boolean not_at_boot) throws NullPointerException {
 		this.manager = manager;
 		if (manager == null) {
 			throw new NullPointerException("\"manager\" can't to be null");
 		}
-		contexts = new ArrayList<CyclicDeclaration>();
+		contexts = new ArrayList<CyclicJobDeclaration>();
+		if (unit == null) {
+			unit = TimeUnit.SECONDS;
+		}
+		this.period = unit.toMillis(period);
+		
+		if (not_at_boot) {
+			next_date_to_create_jobs = System.currentTimeMillis() + period;
+		} else {
+			next_date_to_create_jobs = 0;
+		}
+		enabled = true;
 	}
 	
-	public CyclicJobsCreator setCreator(Class<?> creator) {
+	public CyclicJobsCreator setOptions(Class<?> creator, String long_name, String vendor_name) {
 		this.creator = creator;
+		this.long_name = long_name;
+		this.vendor_name = vendor_name;
 		return this;
 	}
 	
@@ -76,15 +73,12 @@ public final class CyclicJobsCreator {
 	 * @param contexts will be dependant (the second need the first, the third need the second, ... the first is the most prioritary)
 	 * @throws ClassNotFoundException a context can't to be serialized
 	 */
-	public CyclicJobsCreator addCyclic(String name, long period, TimeUnit unit, JobContext... contexts) throws ClassNotFoundException {
-		if (name == null) {
-			throw new NullPointerException("\"name\" can't to be null");
+	public CyclicJobsCreator addCyclic(String jobname, JobContext... contexts) throws ClassNotFoundException {
+		if (jobname == null) {
+			throw new NullPointerException("\"jobname\" can't to be null");
 		}
 		if (contexts == null) {
 			throw new NullPointerException("\"contexts\" can't to be null");
-		}
-		if (unit == null) {
-			unit = TimeUnit.SECONDS;
 		}
 		if (contexts.length == 0) {
 			throw new NullPointerException("\"contexts\" can't to be empty");
@@ -95,37 +89,74 @@ public final class CyclicJobsCreator {
 		for (int pos = 0; pos < contexts.length; pos++) {
 			new JobNG(manager, contexts[pos]);
 		}
-		this.contexts.add(new CyclicDeclaration(name, period, unit, contexts));
+		this.contexts.add(new CyclicJobDeclaration(manager, creator, jobname, period, contexts));
 		return this;
 	}
 	
-	// TODO do cyclic
+	/**
+	 * @param period push the next date to create jobs.
+	 */
+	synchronized void setPeriod(long period) {
+		this.period = period;
+		next_date_to_create_jobs = System.currentTimeMillis() + period;
+	}
 	
-	void createJobs() throws ConnectionException {
-		CyclicDeclaration declaration;
-		for (int pos_c = 0; pos_c < contexts.size(); pos_c++) {
-			declaration = contexts.get(pos_c);
-			long period_time = declaration.period_time;
-			List<JobContext> declaration_contexts = declaration.contexts;
-			JobNG require = null;
+	/**
+	 * @param enabled true, start now.
+	 */
+	synchronized void setEnabled(boolean enabled) {
+		if (enabled == true) {
+			period = 0;
+		}
+		this.enabled = enabled;
+	}
+	
+	boolean needToCreateJobs() {
+		if (enabled == false) {
+			return false;
+		}
+		return System.currentTimeMillis() > next_date_to_create_jobs;
+	}
+	
+	void createJobs(MutationBatch mutator) throws ConnectionException {
+		next_date_to_create_jobs = System.currentTimeMillis() + period;
+		for (int pos = 0; pos < contexts.size(); pos++) {
+			contexts.get(pos).createJobs(mutator);
+		}
+	}
+	
+	static class Serializer implements JsonSerializer<CyclicJobsCreator>, JsonDeserializer<CyclicJobsCreator>, CassandraDbImporterExporter<CyclicJobsCreator> {
+		
+		@Override
+		public void exportToDatabase(CyclicJobsCreator src, ColumnListMutation<String> mutator) {
+			// TODO Auto-generated method stub
 			
-			for (int pos_dc = 0; pos_dc < declaration_contexts.size(); pos_dc++) {
-				JobContext declatation_context = declaration_contexts.get(pos_dc);
-				JobNG job = manager.createJob(declatation_context);
-				job.setDeleteAfterCompleted();
-				job.setCreator(creator);
-				job.setExpirationTime(period_time, TimeUnit.MILLISECONDS);
-				job.setMaxExecutionTime(period_time, TimeUnit.MILLISECONDS);
-				if (declaration_contexts.size() > 0) {
-					job.setName(declaration.name);
-				} else {
-					job.setName(declaration.name + " (" + (pos_dc + 1) + "/" + declaration_contexts.size() + ")");
-				}
-				job.setRequireCompletedJob(require);
-				require = job;
-				job.publish();
-			}
+		}
+		
+		@Override
+		public String getDatabaseKey(CyclicJobsCreator src) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
+		@Override
+		public CyclicJobsCreator importFromDatabase(ColumnList<String> columnlist) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
+		@Override
+		public CyclicJobsCreator deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
+		@Override
+		public JsonElement serialize(CyclicJobsCreator src, Type typeOfSrc, JsonSerializationContext context) {
+			// TODO Auto-generated method stub
+			return null;
 		}
 		
 	}
+	
 }

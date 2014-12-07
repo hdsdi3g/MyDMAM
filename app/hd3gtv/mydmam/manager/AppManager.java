@@ -77,6 +77,8 @@ public final class AppManager {
 		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
 		builder.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
 		builder.registerTypeAdapter(WorkerExporter.class, new WorkerExporter.Serializer());
+		builder.registerTypeAdapter(CyclicJobsCreator.class, new CyclicJobsCreator.Serializer());
+		builder.registerTypeAdapter(CyclicJobDeclaration.class, new CyclicJobDeclaration.Serializer());
 		
 		gson = builder.create();
 		pretty_gson = builder.setPrettyPrinting().create();
@@ -149,13 +151,14 @@ public final class AppManager {
 		service_exception = new ServiceException(this);
 		database_layer = new DatabaseLayer(this);
 		instance_status = new InstanceStatus().populateFromThisInstance(this);
+		enabled_workers = new ArrayList<WorkerNG>();
 	}
 	
 	String getAppName() {
 		return app_name;
 	}
 	
-	void workerRegister(WorkerNG worker) {
+	public void workerRegister(WorkerNG worker) {
 		if (worker == null) {
 			throw new NullPointerException("\"worker\" can't to be null");
 		}
@@ -164,6 +167,13 @@ public final class AppManager {
 		}
 		worker.setWorker_exception(service_exception);
 		enabled_workers.add(worker);
+	}
+	
+	public void cyclicJobsRegister(CyclicJobsCreator cyclic_creator) {
+		if (cyclic_creator == null) {
+			throw new NullPointerException("\"cyclic_creator\" can't to be null");
+		}
+		broker.getDeclared_cyclics().add(cyclic_creator);
 	}
 	
 	class ServiceException implements WorkerExceptionHandler {
@@ -320,6 +330,7 @@ public final class AppManager {
 				while (stop_update == false) {
 					database_layer.updateInstanceStatus(instance_status);
 					database_layer.updateWorkerStatus(enabled_workers);
+					// TODO push declared_cyclics to Db
 					// TODO InstanceAction regular pulls
 					// TODO Dectect worker inactivity (too long exec time)
 					// TODO keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?

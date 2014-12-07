@@ -18,7 +18,7 @@ package hd3gtv.mydmam.manager;
 
 public class InstanceAction {
 	/**
-	 * TODO remote exec actions to workers (start, stop, change cyclic times...)
+	 * TODO remote exec actions to workers (start, stop...)
 	 */
 	
 	private InstanceStatus instance;
@@ -31,4 +31,6 @@ public class InstanceAction {
 	
 	// @see WorkerGroupEngine.setStatusChangesToWorkers
 	// TODO change Log2Filter on the fly
+	// TODO CyclicJobsCreator actions : enable, disable, new period, create
+	
 }

@@ -43,17 +43,23 @@ class BrokerNG {
 	private QueueOperations queue_operations;
 	private QueueNewJobs queue_new_jobs;
 	private volatile List<JobNG> active_jobs;
+	private volatile List<CyclicJobsCreator> declared_cyclics;
 	private boolean active_clean_tasks;
 	
 	BrokerNG(AppManager manager) {
 		this.manager = manager;
 		active_jobs = new ArrayList<JobNG>();
+		declared_cyclics = new ArrayList<CyclicJobsCreator>();
 		
 		if (Configuration.global.isElementKeyExists("service", "brokercleantasks")) {
 			active_clean_tasks = Configuration.global.getValueBoolean("service", "brokercleantasks");
 		} else {
 			active_clean_tasks = true;
 		}
+	}
+	
+	List<CyclicJobsCreator> getDeclared_cyclics() {
+		return declared_cyclics;
 	}
 	
 	void start() {
@@ -98,6 +104,7 @@ class BrokerNG {
 				int time_spacer = 0;
 				int max_time_spacer = 100;
 				List<JobNG> jobs;
+				CyclicJobsCreator cyclic_creator;
 				
 				while (stop_queue == false) {
 					if (active_jobs.isEmpty() == false) {
@@ -122,12 +129,28 @@ class BrokerNG {
 					if (mutator != null) {
 						if (mutator.isEmpty() == false) {
 							mutator.execute();
+							mutator = null;
 						}
 					}
 					
-					// TODO cyclic
-					// TODO cyclic only on the off hours
-					// TODO warn if the exec time is longer than cyclic period time
+					if (declared_cyclics.isEmpty() != false) {
+						// TODO cyclic only on the off hours
+						for (int pos_dc = 0; pos_dc < declared_cyclics.size(); pos_dc++) {
+							cyclic_creator = declared_cyclics.get(pos_dc);
+							if (cyclic_creator.needToCreateJobs()) {
+								if (mutator == null) {
+									mutator = CassandraDb.prepareMutationBatch();
+								}
+								cyclic_creator.createJobs(mutator);
+							}
+						}
+						
+						if (mutator != null) {
+							if (mutator.isEmpty() == false) {
+								mutator.execute();
+							}
+						}
+					}
 					// TODO push terminated jobs to db (and keep terminated jobs duration)
 					
 					time_spacer++;

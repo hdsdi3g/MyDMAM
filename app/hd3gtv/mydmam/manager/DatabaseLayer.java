@@ -37,9 +37,12 @@ public class DatabaseLayer {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
+	private static final ColumnFamily<String, String> CF_CYCLIC = new ColumnFamily<String, String>("mgrCyclic", StringSerializer.get(), StringSerializer.get());
 	// private static final ColumnFamily<String, String> CF_ACTIONS = new ColumnFamily<String, String>("mgrAction", StringSerializer.get(), StringSerializer.get());
 	private static final InstanceStatus.Serializer instancestatus_serializer;
 	private static final WorkerExporter.Serializer workerstatus_serializer;
+	private static final CyclicJobsCreator.Serializer cyclicjobscreator_serializer;
+	private static final CyclicJobDeclaration.Serializer cyclicjobdeclaration_serializer;
 	
 	static {
 		try {
@@ -51,9 +54,9 @@ public class DatabaseLayer {
 			if (CassandraDb.isColumnFamilyExists(keyspace, CF_INSTANCES.getName()) == false) {
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_INSTANCES.getName(), false);
 			}
-			/*if (CassandraDb.isColumnFamilyExists(keyspace, CF_QUEUE.getName()) == false) {
-				 CassandraDb.createColumnFamilyString(default_keyspacename, CF_QUEUE.getName(), false);
-			}*/
+			if (CassandraDb.isColumnFamilyExists(keyspace, CF_CYCLIC.getName()) == false) {
+				CassandraDb.createColumnFamilyString(default_keyspacename, CF_CYCLIC.getName(), false);
+			}
 			/*if (CassandraDb.isColumnFamilyExists(keyspace, CF_ACTIONS.getName()) == false) {
 				 CassandraDb.createColumnFamilyString(default_keyspacename, CF_ACTIONS.getName(), false);
 			}*/
@@ -62,6 +65,8 @@ public class DatabaseLayer {
 		}
 		instancestatus_serializer = new InstanceStatus.Serializer();
 		workerstatus_serializer = new WorkerExporter.Serializer();
+		cyclicjobscreator_serializer = new CyclicJobsCreator.Serializer();
+		cyclicjobdeclaration_serializer = new CyclicJobDeclaration.Serializer();
 		
 		/*
 		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "status", CF_TASKQUEUE.getName() + "_status", DeployColumnDef.ColType_AsciiType);
@@ -176,5 +181,12 @@ public class DatabaseLayer {
 	public List<WorkerExporter> getAllWorkerStatus() {
 		return importAllFromDatabase(CF_WORKERS, workerstatus_serializer, WorkerExporter.class);
 	}
+	
+	// TODO push declared_cyclics to Db
+	// TODO pull declared_cyclics from Db
+	/*
+	 * 	cyclicjobscreator_serializer
+		cyclicjobdeclaration_serializer
+	 * */
 	
 }
