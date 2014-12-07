@@ -321,6 +321,8 @@ public final class AppManager {
 					database_layer.updateInstanceStatus(instance_status);
 					database_layer.updateWorkerStatus(enabled_workers);
 					// TODO InstanceAction regular pulls
+					// TODO Dectect worker inactivity (too long exec time)
+					// TODO keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
 					Thread.sleep(SLEEP_UPDATE_TTL * 1000);
 				}
 			} catch (Exception e) {

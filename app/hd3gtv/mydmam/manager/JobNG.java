@@ -201,12 +201,12 @@ public final class JobNG implements Log2Dumpable {
 		if (duration < 0) {
 			return this;
 		}
-		expiration_date = System.currentTimeMillis() + unit.toMillis(duration);
+		expiration_date = System.currentTimeMillis() + unit.toMillis(duration);// TODO check is verified
 		return this;
 	}
 	
 	public JobNG setMaxExecutionTime(long duration, TimeUnit unit) {
-		this.max_execution_time = unit.toMillis(duration);
+		this.max_execution_time = unit.toMillis(duration);// TODO check is verified
 		return this;
 	}
 	

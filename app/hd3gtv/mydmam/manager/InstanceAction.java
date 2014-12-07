@@ -30,4 +30,5 @@ public class InstanceAction {
 	private String caller;
 	
 	// @see WorkerGroupEngine.setStatusChangesToWorkers
+	// TODO change Log2Filter on the fly
 }

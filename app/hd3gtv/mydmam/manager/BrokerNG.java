@@ -125,13 +125,15 @@ class BrokerNG {
 						}
 					}
 					
-					// TODO cyclic ?
+					// TODO cyclic
+					// TODO cyclic only on the off hours
+					// TODO warn if the exec time is longer than cyclic period time
+					// TODO push terminated jobs to db (and keep terminated jobs duration)
 					
 					time_spacer++;
 					if (time_spacer == max_time_spacer) {
 						mutator = CassandraDb.prepareMutationBatch();
 						time_spacer = 0;
-						
 						/* TODO Callback triggers for new terminated tasks
 						Profile profile;
 						List<TriggerWorker> workers_to_callback;

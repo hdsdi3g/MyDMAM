@@ -19,6 +19,8 @@ package hd3gtv.mydmam.manager;
 // TODO phase 2, remove this test class
 public class MainClass {
 	
+	// TODO phase 2, check if UA capacity need no read only for storage
+	
 	public static void main(String[] args) throws Exception {
 		/*new AppManager();
 		
@@ -44,6 +46,6 @@ public class MainClass {
 		System.err.println("===================================");
 		System.err.println(AppManager.getPrettyGson().fromJson(js, GsonThrowable.class).getPrintedStackTrace());
 		System.err.println("===================================");
-		
 	}
+	
 }

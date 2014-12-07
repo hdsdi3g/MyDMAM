@@ -112,6 +112,7 @@ public abstract class WorkerNG {
 		}
 		
 		public void run() {
+			// TODO set and get start time
 			try {
 				workerProcessJob(job.startProcessing(manager, reference), job.getContext());
 				if (refuse_new_jobs) {
