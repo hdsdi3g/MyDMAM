@@ -21,26 +21,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.ColumnList;
 
 public final class CyclicJobsCreator {
 	
 	transient private AppManager manager;
+	@GsonIgnore
 	private List<CyclicJobDeclaration> contexts;
 	private Class<?> creator;
 	private long period;
 	private long next_date_to_create_jobs;
 	private boolean enabled;
+	@SuppressWarnings("unused")
 	private String long_name;
+	@SuppressWarnings("unused")
 	private String vendor_name;
 	
 	public CyclicJobsCreator(AppManager manager, long period, TimeUnit unit, boolean not_at_boot) throws NullPointerException {
@@ -125,38 +128,27 @@ public final class CyclicJobsCreator {
 		}
 	}
 	
-	static class Serializer implements JsonSerializer<CyclicJobsCreator>, JsonDeserializer<CyclicJobsCreator>, CassandraDbImporterExporter<CyclicJobsCreator> {
+	static class Serializer implements JsonSerializer<CyclicJobsCreator>, JsonDeserializer<CyclicJobsCreator> {
 		
-		@Override
-		public void exportToDatabase(CyclicJobsCreator src, ColumnListMutation<String> mutator) {
-			// TODO Auto-generated method stub
-			
-		}
+		private static Type al_JobDeclaration_typeOfT = new TypeToken<ArrayList<CyclicJobDeclaration>>() {
+		}.getType();
 		
-		@Override
-		public String getDatabaseKey(CyclicJobsCreator src) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
-		@Override
-		public CyclicJobsCreator importFromDatabase(ColumnList<String> columnlist) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
-		@Override
 		public CyclicJobsCreator deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			// TODO Auto-generated method stub
-			return null;
+			JsonObject jo = json.getAsJsonObject();
+			CyclicJobsCreator result = AppManager.getSimpleGson().fromJson(json, CyclicJobsCreator.class);
+			result.contexts = AppManager.getSimpleGson().fromJson(jo.get("contexts"), al_JobDeclaration_typeOfT);
+			return result;
 		}
 		
-		@Override
 		public JsonElement serialize(CyclicJobsCreator src, Type typeOfSrc, JsonSerializationContext context) {
-			// TODO Auto-generated method stub
-			return null;
+			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
+			result.add("contexts", AppManager.getSimpleGson().toJsonTree(src.contexts, al_JobDeclaration_typeOfT));
+			return result;
 		}
-		
+	}
+	
+	public String toString() {
+		return AppManager.getPrettyGson().toJson(this);
 	}
 	
 }

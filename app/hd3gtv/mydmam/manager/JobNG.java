@@ -201,7 +201,7 @@ public final class JobNG implements Log2Dumpable {
 		if (duration < 0) {
 			return this;
 		}
-		expiration_date = System.currentTimeMillis() + unit.toMillis(duration);// TODO check is verified
+		expiration_date = System.currentTimeMillis() + unit.toMillis(duration);
 		return this;
 	}
 	
@@ -277,7 +277,7 @@ public final class JobNG implements Log2Dumpable {
 	 * If job is actually POSTPONED, PROCESSING or PREPARING, changes will be canceled by the executor worker.
 	 * @throws ConnectionException
 	 */
-	void saveChanges(MutationBatch mutator) throws ConnectionException {
+	void saveChanges(MutationBatch mutator) {
 		update_date = System.currentTimeMillis();
 		exportToDatabase(mutator.withRow(CF_QUEUE, key));
 	}

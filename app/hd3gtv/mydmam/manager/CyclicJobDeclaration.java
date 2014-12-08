@@ -18,19 +18,18 @@ package hd3gtv.mydmam.manager;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.ColumnList;
 
 class CyclicJobDeclaration {
 	
@@ -38,7 +37,8 @@ class CyclicJobDeclaration {
 	 * In msec
 	 */
 	private long period;
-	private List<JobContext> contexts;
+	@GsonIgnore
+	private ArrayList<JobContext> contexts;
 	private String name;
 	transient private AppManager manager;
 	private Class<?> creator;
@@ -74,71 +74,27 @@ class CyclicJobDeclaration {
 		}
 	}
 	
-	static class Serializer implements JsonSerializer<CyclicJobDeclaration>, JsonDeserializer<CyclicJobDeclaration>, CassandraDbImporterExporter<CyclicJobDeclaration> {
-		
-		@Override
-		public void exportToDatabase(CyclicJobDeclaration src, ColumnListMutation<String> mutator) {
-			// TODO Auto-generated method stub
-		}
-		
-		@Override
-		public String getDatabaseKey(CyclicJobDeclaration src) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
-		@Override
-		public CyclicJobDeclaration importFromDatabase(ColumnList<String> columnlist) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
-		@Override
-		public CyclicJobDeclaration deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
-		@Override
-		public JsonElement serialize(CyclicJobDeclaration src, Type typeOfSrc, JsonSerializationContext context) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		
+	void setManager(AppManager manager) {
+		this.manager = manager;
 	}
 	
-	/*
-	static class Serializer implements JsonSerializer<WorkerExporter>, JsonDeserializer<WorkerExporter>, CassandraDbImporterExporter<WorkerExporter> {
-		private static Type al_wcs_typeOfT = new TypeToken<ArrayList<WorkerCapablitiesExporter>>() {
+	static class Serializer implements JsonSerializer<CyclicJobDeclaration>, JsonDeserializer<CyclicJobDeclaration> {
+		private static Type al_JobContext_typeOfT = new TypeToken<ArrayList<JobContext>>() {
 		}.getType();
 		
-		public WorkerExporter deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			WorkerExporter result = AppManager.getSimpleGson().fromJson(json, WorkerExporter.class);
+		public CyclicJobDeclaration deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			JsonObject jo = json.getAsJsonObject();
-			result.capablities = AppManager.getSimpleGson().fromJson(jo.get("capablities"), al_wcs_typeOfT);
+			CyclicJobDeclaration result = AppManager.getSimpleGson().fromJson(json, CyclicJobDeclaration.class);
+			result.contexts = AppManager.getSimpleGson().fromJson(jo.get("contexts"), al_JobContext_typeOfT);
 			return result;
 		}
 		
-		public JsonElement serialize(WorkerExporter src, Type typeOfSrc, JsonSerializationContext context) {
-			src.update();
+		public JsonElement serialize(CyclicJobDeclaration src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
-			result.add("capablities", AppManager.getSimpleGson().toJsonTree(src.capablities, al_wcs_typeOfT).getAsJsonArray());
+			result.add("contexts", AppManager.getSimpleGson().toJsonTree(src.contexts, al_JobContext_typeOfT));
 			return result;
-		}
-		
-		public String getDatabaseKey(WorkerExporter src) {
-			return src.reference_key;
-		}
-		
-		public void exportToDatabase(WorkerExporter src, ColumnListMutation<String> mutator) {
-			mutator.putColumn("source", AppManager.getGson().toJson(src), InstanceStatus.TTL);
-		}
-		
-		public WorkerExporter importFromDatabase(ColumnList<String> columnlist) {
-			return AppManager.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), WorkerExporter.class);
 		}
 		
 	}
-	 * */
 	
 }

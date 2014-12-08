@@ -43,7 +43,7 @@ class BrokerNG {
 	private QueueOperations queue_operations;
 	private QueueNewJobs queue_new_jobs;
 	private volatile List<JobNG> active_jobs;
-	private volatile List<CyclicJobsCreator> declared_cyclics;
+	private volatile ArrayList<CyclicJobsCreator> declared_cyclics;
 	private boolean active_clean_tasks;
 	
 	BrokerNG(AppManager manager) {
@@ -58,7 +58,7 @@ class BrokerNG {
 		}
 	}
 	
-	List<CyclicJobsCreator> getDeclared_cyclics() {
+	ArrayList<CyclicJobsCreator> getDeclared_cyclics() {
 		return declared_cyclics;
 	}
 	
@@ -271,6 +271,7 @@ class BrokerNG {
 						workers = null;
 						best_job_worker = null;
 						context = null;
+						mutator = null;
 						
 						/**
 						 * For this jobs, found the best to start.
@@ -278,18 +279,6 @@ class BrokerNG {
 						for (int pos_wj = 0; pos_wj < waiting_jobs.size(); pos_wj++) {
 							current_job = waiting_jobs.get(pos_wj);
 							
-							if (current_job.isRequireIsDone() == false) {
-								/**
-								 * If the job require the processing done of another task.
-								 */
-								continue;
-							}
-							if (current_job.isTooOldjob()) {
-								/**
-								 * This job is to old !
-								 */
-								continue;
-							}
 							if (current_job.getPriority() < best_priority) {
 								/**
 								 * This job priority is not the best for the moment
@@ -301,6 +290,20 @@ class BrokerNG {
 							if (available_classes_names.contains(context.getClass().getName()) == false) {
 								/**
 								 * Can't process this job (no workers for this).
+								 */
+								continue;
+							}
+							
+							if (current_job.isTooOldjob()) {
+								/**
+								 * This job is to old !
+								 */
+								continue;
+							}
+							
+							if (current_job.isRequireIsDone() == false) {
+								/**
+								 * If the job require the processing done of another task.
 								 */
 								continue;
 							}
@@ -317,6 +320,12 @@ class BrokerNG {
 									best_job_worker = workers.get(pos_wr);
 									break;
 								}
+							}
+						}
+						
+						if (mutator != null) {
+							if (mutator.isEmpty() == false) {
+								mutator.execute();
 							}
 						}
 						

@@ -158,6 +158,10 @@ public final class AppManager {
 		return app_name;
 	}
 	
+	BrokerNG getBroker() {
+		return broker;
+	}
+	
 	public void workerRegister(WorkerNG worker) {
 		if (worker == null) {
 			throw new NullPointerException("\"worker\" can't to be null");
