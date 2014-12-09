@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-interface WorkerExceptionHandler {
-	
-	void onError(Exception e, String error_name, WorkerNG worker);
+class TriggerJobDeclaration {
 	
 }

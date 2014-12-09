@@ -89,7 +89,7 @@ public final class JobNG implements Log2Dumpable {
 	private static int TTL = 3600 * 24 * 7;
 	
 	public enum JobStatus {
-		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING;
+		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
 	}
 	
 	@SuppressWarnings("unused")
@@ -141,6 +141,7 @@ public final class JobNG implements Log2Dumpable {
 		priority = 0;
 		delete_after_completed = false;
 		expiration_date = Long.MAX_VALUE;
+		max_execution_time = Long.MAX_VALUE;
 		status = JobStatus.WAITING;
 		
 		instance_status_creator_key = manager.getInstance_status().getInstanceNamePid();
@@ -206,17 +207,29 @@ public final class JobNG implements Log2Dumpable {
 	}
 	
 	public JobNG setMaxExecutionTime(long duration, TimeUnit unit) {
-		this.max_execution_time = unit.toMillis(duration);// TODO check is verified
+		this.max_execution_time = unit.toMillis(duration);
 		return this;
+	}
+	
+	boolean isMaxExecutionTimeIsReached() {
+		if (getStatus() != JobStatus.PROCESSING) {
+			return false;
+		}
+		if (start_date == -1) {
+			return false;
+		}
+		return start_date + max_execution_time < System.currentTimeMillis();
+		
+	}
+	
+	boolean hasAMaxExecutionTime() {
+		return max_execution_time < Long.MAX_VALUE;
 	}
 	
 	/**
 	 * Doesn't change current status if POSTPONED, PROCESSING or PREPARING.
 	 */
 	public JobNG setPostponed() {
-		if (status == JobStatus.POSTPONED) {
-			return this;
-		}
 		if (status == JobStatus.PROCESSING) {
 			return this;
 		}
@@ -342,6 +355,12 @@ public final class JobNG implements Log2Dumpable {
 		update_date = System.currentTimeMillis();
 		end_date = update_date;
 		status = JobStatus.STOPPED;
+	}
+	
+	synchronized void endProcessing_TooLongDuration() {
+		update_date = System.currentTimeMillis();
+		end_date = update_date;
+		status = JobStatus.TOO_LONG_DURATION;
 	}
 	
 	synchronized void endProcessing_Canceled() {

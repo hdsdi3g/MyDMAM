@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.log2.Log2;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -45,7 +47,6 @@ public abstract class WorkerNG {
 	}
 	
 	private String reference_key;
-	private WorkerExceptionHandler worker_exception;
 	private volatile boolean refuse_new_jobs;
 	private WorkerExporter exporter;
 	private AppManager manager;
@@ -94,37 +95,68 @@ public abstract class WorkerNG {
 		return false;
 	}
 	
-	void setWorker_exception(WorkerExceptionHandler worker_exception) {
-		this.worker_exception = worker_exception;
-	}
-	
 	private volatile Executor current_executor;
 	
 	private final class Executor extends Thread {
 		private JobNG job;
 		private WorkerNG reference;
+		ExecutorWatchDog current_executor_watch_dog;
 		
 		private Executor(JobNG job, WorkerNG reference) {
 			setName("Worker for " + job.getKey() + " (" + getWorkerCategory() + ")");
 			this.job = job;
 			this.reference = reference;
 			setDaemon(true);
+			if (job.hasAMaxExecutionTime()) {
+				current_executor_watch_dog = new ExecutorWatchDog(this);
+			}
 		}
 		
 		public void run() {
-			// TODO set and get start time
+			if (current_executor_watch_dog != null) {
+				current_executor_watch_dog.start();
+			}
 			try {
 				workerProcessJob(job.startProcessing(manager, reference), job.getContext());
-				if (refuse_new_jobs) {
-					job.endProcessing_Stopped();
+				if (job.isMaxExecutionTimeIsReached()) {
+					job.endProcessing_TooLongDuration();
+					manager.getServiceException().onMaxExecJobTime(job);
 				} else {
-					job.endProcessing_Done();
+					if (refuse_new_jobs) {
+						job.endProcessing_Stopped();
+					} else {
+						job.endProcessing_Done();
+					}
 				}
 			} catch (Exception e) {
 				job.endProcessing_Error(e);
-				worker_exception.onError(e, "Error during processing", reference);
+				manager.getServiceException().onError(e, "Error during processing", reference);
 			}
 			current_executor = null;
+		}
+		
+		private final class ExecutorWatchDog extends Thread {
+			Executor executor;
+			
+			private ExecutorWatchDog(Executor executor) {
+				this.executor = executor;
+				setName("ExecutorWatchDog for " + executor.getName());
+				setDaemon(true);
+			}
+			
+			public void run() {
+				try {
+					while (executor.isAlive()) {
+						if (executor.job.isMaxExecutionTimeIsReached()) {
+							forceStopProcess();
+							return;
+						}
+						sleep(1000);
+					}
+				} catch (Exception e) {
+					Log2.log.error("Can't monitor Executor", e);
+				}
+			}
 		}
 	}
 	
@@ -172,7 +204,7 @@ public abstract class WorkerNG {
 				try {
 					forceStopProcess();
 				} catch (Exception e) {
-					reference.worker_exception.onError(e, "Can't stop current process", reference);
+					manager.getServiceException().onError(e, "Can't stop current process", reference);
 				}
 			}
 		}

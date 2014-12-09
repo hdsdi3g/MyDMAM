@@ -169,7 +169,6 @@ public final class AppManager {
 		if (worker.isActivated() == false) {
 			return;
 		}
-		worker.setWorker_exception(service_exception);
 		enabled_workers.add(worker);
 	}
 	
@@ -180,8 +179,8 @@ public final class AppManager {
 		broker.getDeclared_cyclics().add(cyclic_creator);
 	}
 	
-	class ServiceException implements WorkerExceptionHandler {
-		AppManager manager;
+	class ServiceException {
+		private AppManager manager;
 		
 		private ServiceException(AppManager manager) {
 			this.manager = manager;
@@ -213,6 +212,12 @@ public final class AppManager {
 			for (int pos = 0; pos < jobs.size(); pos++) {
 				alert.addDump(jobs.get(pos));
 			}
+			alert.addDump(instance_status).send();
+		}
+		
+		void onMaxExecJobTime(JobNG job) {
+			AdminMailAlert alert = AdminMailAlert.create("A job has an execution time too long", false).setManager(manager);
+			alert.addDump(job);
 			alert.addDump(instance_status).send();
 		}
 	}
@@ -334,10 +339,8 @@ public final class AppManager {
 				while (stop_update == false) {
 					database_layer.updateInstanceStatus(instance_status);
 					database_layer.updateWorkerStatus(enabled_workers);
-					// TODO push declared_cyclics to Db
 					// TODO InstanceAction regular pulls
-					// TODO Dectect worker inactivity (too long exec time)
-					// TODO keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
+					// TODO phase 2, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
 					Thread.sleep(SLEEP_UPDATE_TTL * 1000);
 				}
 			} catch (Exception e) {

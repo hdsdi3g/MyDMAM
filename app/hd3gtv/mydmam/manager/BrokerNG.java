@@ -119,7 +119,7 @@ class BrokerNG {
 								active_jobs.remove(pos);
 							} else {
 								job.saveChanges(mutator);
-								if (job.isThisStatus(JobStatus.DONE, JobStatus.STOPPED, JobStatus.CANCELED, JobStatus.ERROR)) {
+								if (job.isThisStatus(JobStatus.DONE, JobStatus.STOPPED, JobStatus.CANCELED, JobStatus.ERROR, JobStatus.TOO_LONG_DURATION)) {
 									active_jobs.remove(pos);
 								}
 							}
@@ -134,7 +134,7 @@ class BrokerNG {
 					}
 					
 					if (declared_cyclics.isEmpty() != false) {
-						// TODO cyclic only on the off hours
+						// TODO phase 2, cyclic only on the off hours
 						for (int pos_dc = 0; pos_dc < declared_cyclics.size(); pos_dc++) {
 							cyclic_creator = declared_cyclics.get(pos_dc);
 							if (cyclic_creator.needToCreateJobs()) {
@@ -157,7 +157,8 @@ class BrokerNG {
 					if (time_spacer == max_time_spacer) {
 						mutator = CassandraDb.prepareMutationBatch();
 						time_spacer = 0;
-						/* TODO Callback triggers for new terminated tasks
+						/*
+						TODO Callback triggers for new terminated tasks
 						Profile profile;
 						List<TriggerWorker> workers_to_callback;
 						long last_date_updated;
@@ -183,7 +184,8 @@ class BrokerNG {
 							jo.put("shortname", workers_to_callback.get(poswkr).getTriggerShortName());
 							mutator.withRow(Broker.CF_QUEUETRIGGER, profile.computeKey()).putColumn(instancename + "_" + profile + "_" + poswkr, jo.toJSONString(), ttl_active_trigger_worker);
 						}
-						}*/
+						}
+						*/
 						
 						if (active_clean_tasks) {
 							jobs = JobNG.Utility.watchOldAbandonedJobs(mutator, manager.getInstance_status());
