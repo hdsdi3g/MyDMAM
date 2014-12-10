@@ -18,7 +18,7 @@ package hd3gtv.mydmam.manager;
 
 public class InstanceAction {
 	/**
-	 * TODO remote exec actions to workers (start, stop...)
+	 * TODO phase 2, remote exec actions to workers (start, stop...)
 	 */
 	
 	private InstanceStatus instance;
@@ -30,7 +30,7 @@ public class InstanceAction {
 	private String caller;
 	
 	// @see WorkerGroupEngine.setStatusChangesToWorkers
-	// TODO change Log2Filter on the fly
-	// TODO CyclicJobsCreator actions : enable, disable, new period, create
+	// TODO phase 2, change Log2Filter on the fly
+	// TODO phase 2, CyclicJobsCreator actions : enable, disable, new period, create
 	
 }

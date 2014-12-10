@@ -16,9 +16,18 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 /**
  * Full configuration for a Job
@@ -34,8 +43,50 @@ public interface JobContext {
 	 */
 	public List<String> getNeededIndexedStoragesNames();
 	
-	// public abstract String getName();
+	final static class Serializer implements JsonSerializer<JobContext>, JsonDeserializer<JobContext> {
+		
+		public JobContext deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			try {
+				JsonObject json = jejson.getAsJsonObject();
+				String context_class = json.get("classname").getAsString();
+				JobContext result = AppManager.instanceClassForName(context_class, JobContext.class);
+				result.contextFromJson(json.getAsJsonObject("content"));
+				return result;
+			} catch (Exception e) {
+				throw new JsonParseException("Invalid context class", e);
+			}
+		}
+		
+		public JsonElement serialize(JobContext src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = new JsonObject();
+			result.addProperty("classname", src.getClass().getName());
+			result.add("content", src.contextToJson());
+			result.add("neededstorages", AppManager.getGson().toJsonTree(src.getNeededIndexedStoragesNames()));
+			return result;
+		}
+	}
 	
-	// public abstract String getCategory();
+	final static class SerializerList implements JsonSerializer<ArrayList<JobContext>>, JsonDeserializer<ArrayList<JobContext>> {
+		
+		public ArrayList<JobContext> deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			JsonArray ja = jejson.getAsJsonArray();
+			ArrayList<JobContext> result = new ArrayList<JobContext>();
+			for (int pos = 0; pos < ja.size(); pos++) {
+				result.add(AppManager.getGson().fromJson(ja.get(pos), JobContext.class));
+			}
+			return result;
+		}
+		
+		public JsonElement serialize(ArrayList<JobContext> src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonArray ja = new JsonArray();
+			if (src == null) {
+				return ja;
+			}
+			for (int pos = 0; pos < src.size(); pos++) {
+				ja.add(AppManager.getGson().toJsonTree(src.get(pos), JobContext.class));
+			}
+			return ja;
+		}
+	}
 	
 }

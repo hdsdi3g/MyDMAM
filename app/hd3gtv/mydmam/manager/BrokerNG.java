@@ -43,13 +43,15 @@ class BrokerNG {
 	private QueueOperations queue_operations;
 	private QueueNewJobs queue_new_jobs;
 	private volatile List<JobNG> active_jobs;
-	private volatile ArrayList<CyclicJobsCreator> declared_cyclics;
+	private volatile ArrayList<JobCreatorCyclic> declared_cyclics;
+	private volatile ArrayList<JobCreator> declared_triggers;
 	private boolean active_clean_tasks;
 	
 	BrokerNG(AppManager manager) {
 		this.manager = manager;
 		active_jobs = new ArrayList<JobNG>();
-		declared_cyclics = new ArrayList<CyclicJobsCreator>();
+		declared_cyclics = new ArrayList<JobCreatorCyclic>();
+		declared_triggers = new ArrayList<JobCreator>();
 		
 		if (Configuration.global.isElementKeyExists("service", "brokercleantasks")) {
 			active_clean_tasks = Configuration.global.getValueBoolean("service", "brokercleantasks");
@@ -58,8 +60,12 @@ class BrokerNG {
 		}
 	}
 	
-	ArrayList<CyclicJobsCreator> getDeclared_cyclics() {
+	ArrayList<JobCreatorCyclic> getDeclared_cyclics() {
 		return declared_cyclics;
+	}
+	
+	ArrayList<JobCreator> getDeclared_triggers() {
+		return declared_triggers;
 	}
 	
 	void start() {
@@ -104,7 +110,7 @@ class BrokerNG {
 				int time_spacer = 0;
 				int max_time_spacer = 100;
 				List<JobNG> jobs;
-				CyclicJobsCreator cyclic_creator;
+				JobCreatorCyclic cyclic_creator;
 				
 				while (stop_queue == false) {
 					if (active_jobs.isEmpty() == false) {
@@ -158,7 +164,9 @@ class BrokerNG {
 						mutator = CassandraDb.prepareMutationBatch();
 						time_spacer = 0;
 						/*
-						TODO Callback triggers for new terminated tasks
+						declared_triggers
+						
+						TODO Callback triggers for new terminated tasks (for all CF recent end jobs)
 						Profile profile;
 						List<TriggerWorker> workers_to_callback;
 						long last_date_updated;

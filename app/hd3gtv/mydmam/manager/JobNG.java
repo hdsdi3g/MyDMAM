@@ -298,26 +298,16 @@ public final class JobNG implements Log2Dumpable {
 	static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
 		public JobNG deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext jcontext) throws JsonParseException {
 			JsonObject json = (JsonObject) jejson;
-			String context_class = json.get("context_class").getAsString();
-			json.remove("context_class");
-			
-			JobNG job = AppManager.getGson().fromJson(json, JobNG.class);
-			try {
-				job.context = AppManager.instanceClassForName(context_class, JobContext.class);
-				job.context.contextFromJson(json.getAsJsonObject("context"));
-			} catch (Exception e) {
-				throw new JsonParseException("Invalid context class", e);
-			}
+			JobNG job = AppManager.getSimpleGson().fromJson(json, JobNG.class);
+			job.context = AppManager.getGson().fromJson(json.get("context"), JobContext.class);
 			return job;
 		}
 		
 		public JsonElement serialize(JobNG src, Type typeOfSrc, JsonSerializationContext jcontext) {
-			JsonObject result = (JsonObject) AppManager.getGson().toJsonTree(src);
-			result.addProperty("context_class", src.context.getClass().getName());
-			result.add("context", src.context.contextToJson());
+			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
+			result.add("context", AppManager.getGson().toJsonTree(src.context, JobContext.class));
 			return null;
 		}
-		
 	}
 	
 	public JsonObject toJson() {

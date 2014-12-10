@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -77,8 +78,13 @@ public final class AppManager {
 		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
 		builder.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
 		builder.registerTypeAdapter(WorkerExporter.class, new WorkerExporter.Serializer());
-		builder.registerTypeAdapter(CyclicJobsCreator.class, new CyclicJobsCreator.Serializer());
-		builder.registerTypeAdapter(CyclicJobDeclaration.class, new CyclicJobDeclaration.Serializer());
+		
+		builder.registerTypeAdapter(JobContext.class, new JobContext.Serializer());
+		builder.registerTypeAdapter(new TypeToken<ArrayList<JobContext>>() {
+		}.getType(), new JobContext.SerializerList());
+		
+		builder.registerTypeAdapter(JobCreatorCyclic.class, JobCreatorCyclic.serializer);
+		builder.registerTypeAdapter(JobCreatorDeclarationCyclic.class, JobCreatorDeclarationCyclic.serializer);
 		
 		gson = builder.create();
 		pretty_gson = builder.setPrettyPrinting().create();
@@ -172,11 +178,18 @@ public final class AppManager {
 		enabled_workers.add(worker);
 	}
 	
-	public void cyclicJobsRegister(CyclicJobsCreator cyclic_creator) {
+	public void cyclicJobsRegister(JobCreatorCyclic cyclic_creator) {
 		if (cyclic_creator == null) {
 			throw new NullPointerException("\"cyclic_creator\" can't to be null");
 		}
 		broker.getDeclared_cyclics().add(cyclic_creator);
+	}
+	
+	public void triggerJobsRegister(JobCreator trigger_creator) {
+		if (trigger_creator == null) {
+			throw new NullPointerException("\"trigger_creator\" can't to be null");
+		}
+		broker.getDeclared_triggers().add(trigger_creator);
 	}
 	
 	class ServiceException {
@@ -339,7 +352,7 @@ public final class AppManager {
 				while (stop_update == false) {
 					database_layer.updateInstanceStatus(instance_status);
 					database_layer.updateWorkerStatus(enabled_workers);
-					// TODO InstanceAction regular pulls
+					// TODO phase 2, InstanceAction regular pulls
 					// TODO phase 2, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
 					Thread.sleep(SLEEP_UPDATE_TTL * 1000);
 				}

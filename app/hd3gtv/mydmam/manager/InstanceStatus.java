@@ -68,7 +68,9 @@ public final class InstanceStatus implements Log2Dumpable {
 	}.getType();
 	private static Type al_uafunctionalitydefinintion_typeOfT = new TypeToken<ArrayList<UAFunctionalityDefinintion>>() {
 	}.getType();
-	private static Type al_cyclicjobscreator_typeOfT = new TypeToken<ArrayList<CyclicJobsCreator>>() {
+	private static Type al_cyclicjobscreator_typeOfT = new TypeToken<ArrayList<JobCreatorCyclic>>() {
+	}.getType();
+	private static Type al_triggerjobscreator_typeOfT = new TypeToken<ArrayList<JobCreator>>() {
 	}.getType();
 	
 	static {
@@ -117,7 +119,8 @@ public final class InstanceStatus implements Log2Dumpable {
 	private String host_name;
 	private ArrayList<String> host_addresses;
 	private @GsonIgnore ArrayList<UAFunctionalityDefinintion> useraction_functionality_list;
-	private @GsonIgnore ArrayList<CyclicJobsCreator> declared_cyclics;
+	private @GsonIgnore ArrayList<JobCreatorCyclic> declared_cyclics;
+	private @GsonIgnore ArrayList<JobCreator> declared_triggers;
 	
 	public class ThreadStackTrace {
 		String name;
@@ -176,6 +179,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		host_name = current_host_name;
 		this.app_name = manager.getAppName();
 		declared_cyclics = manager.getBroker().getDeclared_cyclics();
+		declared_triggers = manager.getBroker().getDeclared_triggers();
 		
 		Thread key;
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
@@ -241,6 +245,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			result.host_addresses = AppManager.getSimpleGson().fromJson(src.get("host_addresses"), al_string_typeOfT);
 			result.useraction_functionality_list = AppManager.getSimpleGson().fromJson(src.get("useraction_functionality_list"), al_uafunctionalitydefinintion_typeOfT);
 			result.declared_cyclics = AppManager.getSimpleGson().fromJson(src.get("declared_cyclics"), al_cyclicjobscreator_typeOfT);
+			result.declared_triggers = AppManager.getSimpleGson().fromJson(src.get("declared_triggers"), al_triggerjobscreator_typeOfT);
 			return result;
 		}
 		
@@ -251,6 +256,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			result.add("host_addresses", AppManager.getSimpleGson().toJsonTree(src.host_addresses, al_string_typeOfT));
 			result.add("useraction_functionality_list", AppManager.getSimpleGson().toJsonTree(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT));
 			result.add("declared_cyclics", AppManager.getSimpleGson().toJsonTree(src.declared_cyclics, al_cyclicjobscreator_typeOfT));
+			result.add("declared_triggers", AppManager.getSimpleGson().toJsonTree(src.declared_triggers, al_triggerjobscreator_typeOfT));
 			return result;
 		}
 		
@@ -266,6 +272,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			mutator.putColumn("host_addresses", AppManager.getSimpleGson().toJson(src.host_addresses, al_string_typeOfT), TTL);
 			mutator.putColumn("useraction_functionality_list", AppManager.getSimpleGson().toJson(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
 			mutator.putColumn("declared_cyclics", AppManager.getSimpleGson().toJson(src.declared_cyclics, al_cyclicjobscreator_typeOfT), TTL);
+			mutator.putColumn("declared_triggers", AppManager.getSimpleGson().toJson(src.declared_triggers, al_triggerjobscreator_typeOfT), TTL);
 		}
 		
 		public String getDatabaseKey(InstanceStatus src) {
@@ -285,6 +292,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			src.host_addresses = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("host_addresses", "[]"), al_string_typeOfT);
 			src.useraction_functionality_list = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("useraction_functionality_list", "[]"), al_uafunctionalitydefinintion_typeOfT);
 			src.declared_cyclics = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("declared_cyclics", "[]"), al_cyclicjobscreator_typeOfT);
+			src.declared_triggers = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("declared_triggers", "[]"), al_triggerjobscreator_typeOfT);
 			return src;
 		}
 	}

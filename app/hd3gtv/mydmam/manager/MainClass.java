@@ -16,6 +16,11 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import com.google.gson.JsonObject;
+
 // TODO phase 2, remove this test class
 public class MainClass {
 	
@@ -32,6 +37,35 @@ public class MainClass {
 		dump.add("result", DatabaseLayer.getAllInstancesStatus());
 		Log2.log.info("Do", dump);*/
 		
+		// builder.registerTypeAdapter(JobCreatorCyclic.class, JobCreatorCyclic.serializer);
+		// builder.registerTypeAdapter(JobCreatorDeclarationCyclic.class, JobCreatorDeclarationCyclic.serializer);
+		
+		AppManager manager = new AppManager();
+		
+		JobCreatorCyclic cy = new JobCreatorCyclic(manager, 50, TimeUnit.SECONDS, true);
+		JobContext context = new JobContext() {
+			
+			@Override
+			public List<String> getNeededIndexedStoragesNames() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+			
+			@Override
+			public JsonObject contextToJson() {
+				return new JsonObject();
+			}
+			
+			@Override
+			public void contextFromJson(JsonObject json_object) {
+				// TODO Auto-generated method stub
+			}
+		};
+		cy.add("toto", context);
+		System.out.println(AppManager.getGson().toJson(cy));
+		
+		System.exit(0);
+		
 		GsonThrowable gt1 = null;
 		try {
 			Class.forName("toto").newInstance();
@@ -47,5 +81,4 @@ public class MainClass {
 		System.err.println(AppManager.getPrettyGson().fromJson(js, GsonThrowable.class).getPrintedStackTrace());
 		System.err.println("===================================");
 	}
-	
 }
