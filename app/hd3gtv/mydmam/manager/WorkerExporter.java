@@ -89,14 +89,14 @@ public final class WorkerExporter implements Log2Dumpable {
 		public WorkerExporter deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			WorkerExporter result = AppManager.getSimpleGson().fromJson(json, WorkerExporter.class);
 			JsonObject jo = json.getAsJsonObject();
-			result.capablities = AppManager.getSimpleGson().fromJson(jo.get("capablities"), al_wcs_typeOfT);
+			result.capablities = AppManager.getGson().fromJson(jo.get("capablities"), al_wcs_typeOfT);
 			return result;
 		}
 		
 		public JsonElement serialize(WorkerExporter src, Type typeOfSrc, JsonSerializationContext context) {
 			src.update();
 			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
-			result.add("capablities", AppManager.getSimpleGson().toJsonTree(src.capablities, al_wcs_typeOfT).getAsJsonArray());
+			result.add("capablities", AppManager.getGson().toJsonTree(src.capablities, al_wcs_typeOfT).getAsJsonArray());
 			return result;
 		}
 		

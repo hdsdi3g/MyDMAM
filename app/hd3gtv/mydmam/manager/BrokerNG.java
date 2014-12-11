@@ -43,15 +43,15 @@ class BrokerNG {
 	private QueueOperations queue_operations;
 	private QueueNewJobs queue_new_jobs;
 	private volatile List<JobNG> active_jobs;
-	private volatile ArrayList<JobCreatorCyclic> declared_cyclics;
-	private volatile ArrayList<JobCreator> declared_triggers;
+	private volatile ArrayList<CyclicJobCreator> declared_cyclics;
+	private volatile ArrayList<TriggerJobCreator> declared_triggers;
 	private boolean active_clean_tasks;
 	
 	BrokerNG(AppManager manager) {
 		this.manager = manager;
 		active_jobs = new ArrayList<JobNG>();
-		declared_cyclics = new ArrayList<JobCreatorCyclic>();
-		declared_triggers = new ArrayList<JobCreator>();
+		declared_cyclics = new ArrayList<CyclicJobCreator>();
+		declared_triggers = new ArrayList<TriggerJobCreator>();
 		
 		if (Configuration.global.isElementKeyExists("service", "brokercleantasks")) {
 			active_clean_tasks = Configuration.global.getValueBoolean("service", "brokercleantasks");
@@ -60,11 +60,11 @@ class BrokerNG {
 		}
 	}
 	
-	ArrayList<JobCreatorCyclic> getDeclared_cyclics() {
+	ArrayList<CyclicJobCreator> getDeclared_cyclics() {
 		return declared_cyclics;
 	}
 	
-	ArrayList<JobCreator> getDeclared_triggers() {
+	ArrayList<TriggerJobCreator> getDeclared_triggers() {
 		return declared_triggers;
 	}
 	
@@ -110,14 +110,18 @@ class BrokerNG {
 				int time_spacer = 0;
 				int max_time_spacer = 100;
 				List<JobNG> jobs;
-				JobCreatorCyclic cyclic_creator;
+				CyclicJobCreator cyclic_creator;
+				long precedent_date_trigger = System.currentTimeMillis();
 				
 				while (stop_queue == false) {
 					if (active_jobs.isEmpty() == false) {
 						/**
 						 * Get statuses of actual processing jobs and push it to database
 						 */
-						mutator = CassandraDb.prepareMutationBatch();
+						if (mutator == null) {
+							mutator = CassandraDb.prepareMutationBatch();
+						}
+						
 						for (int pos = active_jobs.size() - 1; pos > -1; pos--) {
 							job = active_jobs.get(pos);
 							if (job.isDeleteAfterCompleted() && job.isThisStatus(JobStatus.DONE, JobStatus.CANCELED)) {
@@ -128,6 +132,9 @@ class BrokerNG {
 								if (job.isThisStatus(JobStatus.DONE, JobStatus.STOPPED, JobStatus.CANCELED, JobStatus.ERROR, JobStatus.TOO_LONG_DURATION)) {
 									active_jobs.remove(pos);
 								}
+							}
+							if (job.isThisStatus(JobStatus.DONE)) {
+								TriggerJobCreator.doneJob(job, mutator);
 							}
 						}
 					}
@@ -154,46 +161,20 @@ class BrokerNG {
 						if (mutator != null) {
 							if (mutator.isEmpty() == false) {
 								mutator.execute();
+								mutator = null;
 							}
 						}
 					}
-					// TODO push terminated jobs to db (and keep terminated jobs duration)
 					
 					time_spacer++;
 					if (time_spacer == max_time_spacer) {
 						mutator = CassandraDb.prepareMutationBatch();
 						time_spacer = 0;
-						/*
-						declared_triggers
 						
-						TODO Callback triggers for new terminated tasks (for all CF recent end jobs)
-						Profile profile;
-						List<TriggerWorker> workers_to_callback;
-						long last_date_updated;
-						for (Map.Entry<Profile, List<TriggerWorker>> entry : callbacks_triggers.entrySet()) {
-						profile = entry.getKey();
-						workers_to_callback = entry.getValue();
-						last_date_updated = last_dates_profile_updated.get(profile);
-						
-						if (broker.isRecentJobIsEnded(profile, last_date_updated)) {
-							Log2Dump dump = new Log2Dump();
-							dump.add("profilekey", profile);
-							for (int pos_wks = 0; pos_wks < workers_to_callback.size(); pos_wks++) {
-								dump.add("worker", workers_to_callback.get(pos_wks).getTriggerLongName());
-								workers_to_callback.get(pos_wks).triggerCreateTasks(profile);
-							}
-							Log2.log.debug("Trigger", dump);
-							last_dates_profile_updated.put(profile, System.currentTimeMillis());
+						if (declared_triggers.isEmpty() == false) {
+							TriggerJobCreator.prepareTriggerHooksCreateJobs(declared_triggers, precedent_date_trigger, mutator);
+							precedent_date_trigger = System.currentTimeMillis();
 						}
-						
-						for (int poswkr = 0; poswkr < workers_to_callback.size(); poswkr++) {
-							JSONObject jo = new JSONObject();
-							jo.put("longname", workers_to_callback.get(poswkr).getTriggerLongName());
-							jo.put("shortname", workers_to_callback.get(poswkr).getTriggerShortName());
-							mutator.withRow(Broker.CF_QUEUETRIGGER, profile.computeKey()).putColumn(instancename + "_" + profile + "_" + poswkr, jo.toJSONString(), ttl_active_trigger_worker);
-						}
-						}
-						*/
 						
 						if (active_clean_tasks) {
 							jobs = JobNG.Utility.watchOldAbandonedJobs(mutator, manager.getInstance_status());
@@ -205,6 +186,7 @@ class BrokerNG {
 						
 						if (mutator.isEmpty() == false) {
 							mutator.execute();
+							mutator = null;
 						}
 					}
 					

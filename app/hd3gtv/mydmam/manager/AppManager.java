@@ -83,8 +83,10 @@ public final class AppManager {
 		builder.registerTypeAdapter(new TypeToken<ArrayList<JobContext>>() {
 		}.getType(), new JobContext.SerializerList());
 		
-		builder.registerTypeAdapter(JobCreatorCyclic.class, JobCreatorCyclic.serializer);
-		builder.registerTypeAdapter(JobCreatorDeclarationCyclic.class, JobCreatorDeclarationCyclic.serializer);
+		builder.registerTypeAdapter(CyclicJobCreator.class, CyclicJobCreator.serializer);
+		builder.registerTypeAdapter(CyclicJobCreatorDeclaration.class, CyclicJobCreatorDeclaration.serializer);
+		builder.registerTypeAdapter(TriggerJobCreator.class, TriggerJobCreator.serializer);
+		builder.registerTypeAdapter(TriggerJobCreatorDeclaration.class, TriggerJobCreatorDeclaration.serializer);
 		
 		gson = builder.create();
 		pretty_gson = builder.setPrettyPrinting().create();
@@ -178,14 +180,14 @@ public final class AppManager {
 		enabled_workers.add(worker);
 	}
 	
-	public void cyclicJobsRegister(JobCreatorCyclic cyclic_creator) {
+	public void cyclicJobsRegister(CyclicJobCreator cyclic_creator) {
 		if (cyclic_creator == null) {
 			throw new NullPointerException("\"cyclic_creator\" can't to be null");
 		}
 		broker.getDeclared_cyclics().add(cyclic_creator);
 	}
 	
-	public void triggerJobsRegister(JobCreator trigger_creator) {
+	public void triggerJobsRegister(TriggerJobCreator trigger_creator) {
 		if (trigger_creator == null) {
 			throw new NullPointerException("\"trigger_creator\" can't to be null");
 		}

@@ -86,7 +86,7 @@ public final class JobNG implements Log2Dumpable {
 		return new ColumnPrefixDistributedRowLock<String>(keyspace, CF_QUEUE, "BROKER_LOCK");
 	}
 	
-	private static int TTL = 3600 * 24 * 7;
+	final static int TTL = 3600 * 24 * 7;
 	
 	public enum JobStatus {
 		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
@@ -368,6 +368,10 @@ public final class JobNG implements Log2Dumpable {
 	
 	public JobStatus getStatus() {
 		return status;
+	}
+	
+	long getEndDate() {
+		return end_date;
 	}
 	
 	public void delete(MutationBatch mutator) throws ConnectionException {

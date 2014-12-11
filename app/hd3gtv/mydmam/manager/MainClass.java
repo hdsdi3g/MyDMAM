@@ -42,7 +42,7 @@ public class MainClass {
 		
 		AppManager manager = new AppManager();
 		
-		JobCreatorCyclic cy = new JobCreatorCyclic(manager, 50, TimeUnit.SECONDS, true);
+		CyclicJobCreator cy = new CyclicJobCreator(manager, 50, TimeUnit.SECONDS, true);
 		JobContext context = new JobContext() {
 			
 			@Override

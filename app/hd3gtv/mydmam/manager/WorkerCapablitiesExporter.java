@@ -65,14 +65,14 @@ public final class WorkerCapablitiesExporter {
 			WorkerCapablitiesExporter result = AppManager.getSimpleGson().fromJson(json, WorkerCapablitiesExporter.class);
 			JsonObject jo = json.getAsJsonObject();
 			result.storages_available = AppManager.getSimpleGson().fromJson(jo.get("storages_available"), al_string_typeOfT);
-			result.job_context_avaliable = AppManager.getSimpleGson().fromJson(jo.get("job_context_avaliable"), class_jobcontext_typeOfT);
+			result.job_context_avaliable = AppManager.getGson().fromJson(jo.get("job_context_avaliable"), class_jobcontext_typeOfT);
 			return result;
 		}
 		
 		public JsonElement serialize(WorkerCapablitiesExporter src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
 			result.add("storages_available", AppManager.getSimpleGson().toJsonTree(src.storages_available, al_string_typeOfT).getAsJsonArray());
-			result.add("job_context_avaliable", AppManager.getSimpleGson().toJsonTree(src.job_context_avaliable, class_jobcontext_typeOfT).getAsJsonArray());
+			result.add("job_context_avaliable", AppManager.getGson().toJsonTree(src.job_context_avaliable, class_jobcontext_typeOfT).getAsJsonArray());
 			return result;
 		}
 		

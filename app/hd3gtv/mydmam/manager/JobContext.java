@@ -16,8 +16,13 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.MyDMAM;
+
 import java.lang.reflect.Type;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.google.gson.JsonArray;
@@ -89,4 +94,36 @@ public interface JobContext {
 		}
 	}
 	
+	final static class Utility {
+		static String prepareContextKeyForTrigger(JobContext context) {
+			if (context == null) {
+				throw new NullPointerException("\"context\" can't to be null");
+			}
+			StringBuffer sb = new StringBuffer();
+			sb.append(context.getClass().getName());
+			
+			List<String> storagesneeded = context.getNeededIndexedStoragesNames();
+			if (storagesneeded != null) {
+				/**
+				 * Copy storagesneeded for not alter actual order in Context.
+				 */
+				ArrayList<String> storagesneeded_sorted = new ArrayList<String>();
+				storagesneeded_sorted.addAll(storagesneeded);
+				Collections.sort(storagesneeded_sorted);
+				for (int pos = 0; pos < storagesneeded_sorted.size(); pos++) {
+					sb.append("/storage:");
+					sb.append(storagesneeded_sorted.get(pos));
+				}
+			}
+			
+			try {
+				MessageDigest md = MessageDigest.getInstance("MD5");
+				md.update(sb.toString().getBytes());
+				return "jobcontext:" + MyDMAM.byteToString(md.digest());
+			} catch (Exception e) {
+				Log2.log.error("Can't compute digest", e);
+				return sb.toString();
+			}
+		}
+	}
 }

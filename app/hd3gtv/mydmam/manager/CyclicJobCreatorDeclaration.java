@@ -21,14 +21,14 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-class JobCreatorDeclarationCyclic extends JobCreatorDeclaration {
+class CyclicJobCreatorDeclaration extends JobCreatorDeclaration {
 	
 	/**
 	 * In msec
 	 */
 	private long period;
 	
-	JobCreatorDeclarationCyclic(AppManager manager, Class<?> creator, String name, long period, JobContext... contexts) {
+	CyclicJobCreatorDeclaration(AppManager manager, Class<?> creator, String name, long period, JobContext... contexts) {
 		super(manager, creator, name, contexts);
 		this.period = period;
 	}
@@ -38,6 +38,6 @@ class JobCreatorDeclarationCyclic extends JobCreatorDeclaration {
 		job.setMaxExecutionTime(period, TimeUnit.MILLISECONDS);
 	}
 	
-	static JobCreatorDeclarationSerializer<JobCreatorDeclarationCyclic> serializer = new JobCreatorDeclarationSerializer<JobCreatorDeclarationCyclic>();
+	static JobCreatorDeclarationSerializer<CyclicJobCreatorDeclaration> serializer = new JobCreatorDeclarationSerializer<CyclicJobCreatorDeclaration>();
 	
 }

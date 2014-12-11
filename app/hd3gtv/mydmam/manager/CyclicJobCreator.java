@@ -21,12 +21,12 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class JobCreatorCyclic extends JobCreator<JobCreatorDeclarationCyclic> {
+public class CyclicJobCreator extends JobCreator<CyclicJobCreatorDeclaration> {
 	
 	private long period;
 	private long next_date_to_create_jobs;
 	
-	public JobCreatorCyclic(AppManager manager, long period, TimeUnit unit, boolean not_at_boot) throws NullPointerException {
+	public CyclicJobCreator(AppManager manager, long period, TimeUnit unit, boolean not_at_boot) throws NullPointerException {
 		super(manager);
 		if (unit == null) {
 			unit = TimeUnit.SECONDS;
@@ -67,9 +67,9 @@ public class JobCreatorCyclic extends JobCreator<JobCreatorDeclarationCyclic> {
 		super.createJobs(mutator);
 	}
 	
-	protected JobCreatorDeclarationCyclic createDeclaration(AppManager manager, Class<?> creator, String name, JobContext... contexts) {
-		return new JobCreatorDeclarationCyclic(manager, creator, name, period, contexts);
+	protected CyclicJobCreatorDeclaration createDeclaration(AppManager manager, Class<?> creator, String name, JobContext... contexts) {
+		return new CyclicJobCreatorDeclaration(manager, creator, name, period, contexts);
 	}
 	
-	static JobCreatorSerializer<JobCreatorCyclic, JobCreatorDeclarationCyclic> serializer = new JobCreatorSerializer<JobCreatorCyclic, JobCreatorDeclarationCyclic>();
+	static JobCreatorSerializer<CyclicJobCreator, CyclicJobCreatorDeclaration> serializer = new JobCreatorSerializer<CyclicJobCreator, CyclicJobCreatorDeclaration>();
 }

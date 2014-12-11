@@ -40,7 +40,6 @@ final class JobCreatorSerializer<T extends JobCreator<U>, U extends JobCreatorDe
 		JsonObject jo = json.getAsJsonObject();
 		T result = AppManager.getSimpleGson().fromJson(json, t_typeOfT);
 		result.declarations = AppManager.getGson().fromJson(jo.get("declarations"), al_JobDeclaration_typeOfT);
-		// TODO big Serializer bad implementation => always getGson() not getSimpleGson() for TypeToken in all Serializers: must correct the others Serializers
 		return result;
 	}
 	

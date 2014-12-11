@@ -22,7 +22,7 @@ import java.util.List;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public abstract class JobCreator<T extends JobCreatorDeclaration> {
+abstract class JobCreator<T extends JobCreatorDeclaration> {
 	
 	transient protected AppManager manager;
 	private Class<?> creator;
