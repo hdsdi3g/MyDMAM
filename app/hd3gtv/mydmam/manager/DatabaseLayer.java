@@ -140,6 +140,7 @@ public class DatabaseLayer {
 			
 			CassandraDb.allRowsReader(cf, new AllRowsFoundRow() {
 				public void onFoundRow(Row<String, String> row) throws Exception {
+					@SuppressWarnings("rawtypes")
 					CassandraDbImporterExporter item = AppManager.instanceClassForName(result_class.getName(), CassandraDbImporterExporter.class);
 					item.importFromDatabase(row.getColumns());
 					result.add((T) item);

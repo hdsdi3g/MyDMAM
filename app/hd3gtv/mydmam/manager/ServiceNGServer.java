@@ -16,15 +16,17 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.configuration.Configuration;
-
-// TODO phase 2, remove this test class
-public class MainClass {
+public class ServiceNGServer extends ServiceNG {
 	
-	// TODO phase 2, check if UA capacity need no read only for storage
+	public ServiceNGServer(String[] args) throws Exception {
+		super(args, "MyDMAM - Server service");
+	}
 	
-	public static void main(String[] args) throws Exception {
-		Configuration.importLog2Configuration(Configuration.global, true);
-		new ServiceNGProbe(args);
+	// TODO service server
+	
+	protected void startService() throws Exception {
+	}
+	
+	protected void stopService() throws Exception {
 	}
 }

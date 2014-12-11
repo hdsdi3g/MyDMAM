@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.db.status;
 
 import hd3gtv.javasimpleservice.ServiceInformations;
+import hd3gtv.mydmam.manager.AppManager;
 
 public class ClusterStatusService extends ClusterStatus {
 	
@@ -24,10 +25,16 @@ public class ClusterStatusService extends ClusterStatus {
 	private Watch watch;
 	private int sleep_time = 5000; // 5 sec
 	private ServiceInformations serviceinformations;
+	private AppManager manager;
 	
 	public ClusterStatusService(ServiceInformations serviceinformations) {
 		watch = new Watch();
 		this.serviceinformations = serviceinformations;
+	}
+	
+	public ClusterStatusService(AppManager manager) {
+		watch = new Watch();
+		this.manager = manager;
 	}
 	
 	public boolean isAlive() {
@@ -44,7 +51,7 @@ public class ClusterStatusService extends ClusterStatus {
 			dostop = false;
 			while (dostop == false) {
 				try {
-					refresh(serviceinformations);
+					refresh(serviceinformations, manager);
 				} catch (Exception e) {
 				}
 				try {

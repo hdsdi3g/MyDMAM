@@ -191,7 +191,7 @@ public abstract class ServiceManager implements ServiceInformations {
 			System.exit(2);
 		}
 		
-		startService();
+		startService();// TODO to ServiceNG
 	}
 	
 	public boolean isWorkingToShowUIStatus() {

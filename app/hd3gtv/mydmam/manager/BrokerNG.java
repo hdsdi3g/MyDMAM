@@ -315,12 +315,6 @@ class BrokerNG {
 							}
 						}
 						
-						if (mutator != null) {
-							if (mutator.isEmpty() == false) {
-								mutator.execute();
-							}
-						}
-						
 						if (best_job == null) {
 							/**
 							 * Not found a valid job

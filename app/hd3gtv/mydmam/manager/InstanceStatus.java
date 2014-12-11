@@ -108,6 +108,8 @@ public final class InstanceStatus implements Log2Dumpable {
 		
 	}
 	
+	private transient AppManager manager;
+	
 	private ArrayList<String> classpath;
 	private String instance_name;
 	private String instance_name_pid;
@@ -137,11 +139,8 @@ public final class InstanceStatus implements Log2Dumpable {
 			state = t.getState().toString();
 			isdaemon = t.isDaemon();
 			
+			StringBuffer sb = new StringBuffer();
 			for (int pos = 0; pos < stes.length; pos++) {
-				if (stes[pos].isNativeMethod()) {
-					continue;
-				}
-				StringBuffer sb = new StringBuffer();
 				/**
 				 * "at " Added only for Eclipse can transform the text into a link in Console view...
 				 */
@@ -157,48 +156,32 @@ public final class InstanceStatus implements Log2Dumpable {
 					if (linenumber > 0) {
 						sb.append(":");
 						sb.append(linenumber);
+					} else {
+						sb.append(":1");
 					}
 					sb.append(")");
 				}
-				execpoint = sb.toString();
-				break;
+				sb.append("\n");
 			}
+			execpoint = sb.toString();
+			System.out.println(name);
+			System.out.println(execpoint);
 			return this;
 		}
 		
 	}
 	
 	InstanceStatus populateFromThisInstance(AppManager manager) {
+		this.manager = manager;
 		classpath = current_classpath;
 		instance_name = current_instance_name;
 		instance_name_pid = current_instance_name_pid;
 		app_version = current_app_version;
 		java_version = current_java_version;
-		uptime = System.currentTimeMillis() - AppManager.starttime;
-		threadstacktraces = new ArrayList<InstanceStatus.ThreadStackTrace>();
 		host_name = current_host_name;
+		threadstacktraces = new ArrayList<InstanceStatus.ThreadStackTrace>();
+		useraction_functionality_list = new ArrayList<UAFunctionalityDefinintion>();
 		this.app_name = manager.getAppName();
-		declared_cyclics = manager.getBroker().getDeclared_cyclics();
-		declared_triggers = manager.getBroker().getDeclared_triggers();
-		
-		Thread key;
-		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
-			key = entry.getKey();
-			if (key.getName().equals("Signal Dispatcher")) {
-				continue;
-			} else if (key.getName().equals("Reference Handler")) {
-				continue;
-			} else if (key.getName().equals("Finalizer")) {
-				continue;
-			} else if (key.getName().equals("DestroyJavaVM")) {
-				continue;
-			} else if (key.getName().equals("Attach Listener")) {
-				continue;
-			} else if (key.getName().equals("Poller SunPKCS11-Darwin")) {
-				continue;
-			}
-			threadstacktraces.add(new ThreadStackTrace().importThread(key, entry.getValue()));
-		}
 		
 		host_addresses = new ArrayList<String>();
 		try {
@@ -220,7 +203,37 @@ public final class InstanceStatus implements Log2Dumpable {
 		} catch (SocketException e) {
 		}
 		
-		useraction_functionality_list = new ArrayList<UAFunctionalityDefinintion>();
+		return this;
+	}
+	
+	/**
+	 * @return this
+	 */
+	InstanceStatus refresh() {
+		uptime = System.currentTimeMillis() - AppManager.starttime;
+		threadstacktraces.clear();
+		declared_cyclics = manager.getBroker().getDeclared_cyclics();
+		declared_triggers = manager.getBroker().getDeclared_triggers();
+		Thread key;
+		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
+			key = entry.getKey();
+			if (key.getName().equals("Signal Dispatcher")) {
+				continue;
+			} else if (key.getName().equals("Reference Handler")) {
+				continue;
+			} else if (key.getName().equals("Finalizer")) {
+				continue;
+			} else if (key.getName().equals("DestroyJavaVM")) {
+				continue;
+			} else if (key.getName().equals("Attach Listener")) {
+				continue;
+			} else if (key.getName().equals("Poller SunPKCS11-Darwin")) {
+				continue;
+			}
+			threadstacktraces.add(new ThreadStackTrace().importThread(key, entry.getValue()));
+		}
+		
+		useraction_functionality_list.clear();
 		List<UAFunctionality> full_functionality_list = new ArrayList<UAFunctionality>();
 		List<UAWorker> workers = manager.getAllActiveUAWorkers();
 		for (int pos = 0; pos < workers.size(); pos++) {
@@ -261,18 +274,13 @@ public final class InstanceStatus implements Log2Dumpable {
 		}
 		
 		public void exportToDatabase(InstanceStatus src, ColumnListMutation<String> mutator) {
-			mutator.putColumn("instance_name", src.instance_name, TTL);
-			mutator.putColumn("instance_name_pid", src.instance_name_pid, TTL);
-			mutator.putColumn("app_version", src.app_version, TTL);
-			mutator.putColumn("uptime", src.uptime, TTL);
-			mutator.putColumn("java_version", src.java_version, TTL);
-			mutator.putColumn("host_name", src.host_name, TTL);
-			mutator.putColumn("classpath", AppManager.getSimpleGson().toJson(src.classpath, al_string_typeOfT), TTL);
-			mutator.putColumn("threadstacktraces", AppManager.getSimpleGson().toJson(src.threadstacktraces, al_threadstacktrace_typeOfT), TTL);
-			mutator.putColumn("host_addresses", AppManager.getSimpleGson().toJson(src.host_addresses, al_string_typeOfT), TTL);
-			mutator.putColumn("useraction_functionality_list", AppManager.getSimpleGson().toJson(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
-			mutator.putColumn("declared_cyclics", AppManager.getSimpleGson().toJson(src.declared_cyclics, al_cyclicjobscreator_typeOfT), TTL);
-			mutator.putColumn("declared_triggers", AppManager.getSimpleGson().toJson(src.declared_triggers, al_triggerjobscreator_typeOfT), TTL);
+			// mutator.putColumn("classpath", AppManager.getGson().toJson(src.classpath, al_string_typeOfT), TTL);
+			// mutator.putColumn("threadstacktraces", AppManager.getGson().toJson(src.threadstacktraces, al_threadstacktrace_typeOfT), TTL);
+			// mutator.putColumn("host_addresses", AppManager.getGson().toJson(src.host_addresses, al_string_typeOfT), TTL);
+			mutator.putColumn("useraction_functionality_list", AppManager.getGson().toJson(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
+			// mutator.putColumn("declared_cyclics", AppManager.getGson().toJson(src.declared_cyclics, al_cyclicjobscreator_typeOfT), TTL);
+			// mutator.putColumn("declared_triggers", AppManager.getGson().toJson(src.declared_triggers, al_triggerjobscreator_typeOfT), TTL);
+			mutator.putColumn("source", AppManager.getGson().toJson(src), TTL);
 		}
 		
 		public String getDatabaseKey(InstanceStatus src) {
@@ -280,20 +288,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		}
 		
 		public InstanceStatus importFromDatabase(ColumnList<String> columnlist) {
-			InstanceStatus src = new InstanceStatus();
-			src.instance_name = columnlist.getStringValue("instance_name", "");
-			src.instance_name_pid = columnlist.getStringValue("instance_name_pid", "");
-			src.app_version = columnlist.getStringValue("app_version", "");
-			src.uptime = columnlist.getLongValue("uptime", -1l);
-			src.java_version = columnlist.getStringValue("java_version", "");
-			src.host_name = columnlist.getStringValue("host_name", "");
-			src.classpath = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("classpath", "[]"), al_string_typeOfT);
-			src.threadstacktraces = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("threadstacktraces", "[]"), al_threadstacktrace_typeOfT);
-			src.host_addresses = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("host_addresses", "[]"), al_string_typeOfT);
-			src.useraction_functionality_list = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("useraction_functionality_list", "[]"), al_uafunctionalitydefinintion_typeOfT);
-			src.declared_cyclics = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("declared_cyclics", "[]"), al_cyclicjobscreator_typeOfT);
-			src.declared_triggers = AppManager.getSimpleGson().fromJson(columnlist.getStringValue("declared_triggers", "[]"), al_triggerjobscreator_typeOfT);
-			return src;
+			return AppManager.getGson().fromJson(columnlist.getStringValue("source", "{}"), InstanceStatus.class);
 		}
 	}
 	

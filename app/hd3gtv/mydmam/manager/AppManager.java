@@ -158,8 +158,15 @@ public final class AppManager {
 	public AppManager() {
 		service_exception = new ServiceException(this);
 		database_layer = new DatabaseLayer(this);
-		instance_status = new InstanceStatus().populateFromThisInstance(this);
 		enabled_workers = new ArrayList<WorkerNG>();
+		broker = new BrokerNG(this);
+		instance_status = new InstanceStatus().populateFromThisInstance(this);
+		updater = new Updater();
+	}
+	
+	public AppManager(String app_name) {
+		this();
+		this.app_name = app_name;
 	}
 	
 	String getAppName() {
@@ -245,9 +252,13 @@ public final class AppManager {
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			enabled_workers.get(pos).getLifecyle().enable();
 		}
-		broker = new BrokerNG(this);
+		if (broker == null) {
+			broker = new BrokerNG(this);
+		}
 		broker.start();
-		updater = new Updater();
+		if (updater == null) {
+			updater = new Updater();
+		}
 		updater.start();
 	}
 	
@@ -270,10 +281,11 @@ public final class AppManager {
 			while (updater.isAlive()) {
 				Thread.sleep(10);
 			}
+			updater = null;
 			while (broker.isAlive()) {
 				Thread.sleep(10);
 			}
-			updater = null;
+			broker = null;
 		} catch (InterruptedException e) {
 			service_exception.onAppManagerError(e, "Can't stop all services threads");
 		}
@@ -352,7 +364,7 @@ public final class AppManager {
 			stop_update = false;
 			try {
 				while (stop_update == false) {
-					database_layer.updateInstanceStatus(instance_status);
+					database_layer.updateInstanceStatus(instance_status.refresh());
 					database_layer.updateWorkerStatus(enabled_workers);
 					// TODO phase 2, InstanceAction regular pulls
 					// TODO phase 2, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?

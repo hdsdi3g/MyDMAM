@@ -19,6 +19,9 @@ package hd3gtv.javasimpleservice;
 
 import hd3gtv.log2.Log2Dumpable;
 
+/**
+ * @deprecated
+ */
 public interface ServiceInformations extends Log2Dumpable {
 	
 	String getApplicationName();
