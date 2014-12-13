@@ -26,7 +26,7 @@ public abstract class ServiceNG {
 	private ServiceThread servicethread;
 	private AppManager manager;
 	
-	// private UIFrame uiframe; //TODO add uiframe
+	// private UIFrame uiframe; //TODO phase 3, add uiframe
 	
 	public ServiceNG(String[] args, String app_name) throws Exception {
 		CassandraDb.autotest();
@@ -84,7 +84,7 @@ public abstract class ServiceNG {
 					String uititle = Configuration.global.getValue("service", "ui", null);
 					if (uititle != null) {
 						try {
-							// TODO add UIFrame
+							// TODO phase 3, add UIFrame
 							uiframe = new UIFrame(uititle, servicemanager);
 							uiframe.display();
 						} catch (Exception e) {

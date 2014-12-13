@@ -16,17 +16,47 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.server.ExecprocessEventServicelog;
+import hd3gtv.tools.Execprocess;
+
+import java.io.File;
+import java.util.ArrayList;
+
 public class ServiceNGServer extends ServiceNG {
 	
 	public ServiceNGServer(String[] args) throws Exception {
 		super(args, "MyDMAM - Server service");
 	}
 	
-	// TODO service server
+	private Execprocess process_play;
 	
 	protected void startService() throws Exception {
+		File f_playdeploy = new File(Configuration.global.getValue("play", "deploy", "/opt/play"));
+		
+		ArrayList<String> p_play = new ArrayList<String>();
+		p_play.add("run");
+		p_play.add((new File("")).getAbsolutePath());
+		p_play.add("--silent");
+		
+		String config_path = System.getProperty("service.config.path", "");
+		if (config_path.equals("") == false) {
+			p_play.add("-Dservice.config.path=" + config_path);
+		}
+		String config_select_apply = System.getProperty("service.config.apply", "");
+		if (config_select_apply.equals("") == false) {
+			p_play.add("-Dservice.config.apply=" + config_select_apply);
+		}
+		String config_verboseload = System.getProperty("service.config.verboseload", "");
+		if (config_verboseload.equals("") == false) {
+			p_play.add("-Dservice.config.verboseload=" + config_verboseload);
+		}
+		
+		process_play = new Execprocess(f_playdeploy.getPath() + File.separator + "play", p_play, new ExecprocessEventServicelog("play"));
+		process_play.start();
 	}
 	
 	protected void stopService() throws Exception {
+		process_play.kill();
 	}
 }

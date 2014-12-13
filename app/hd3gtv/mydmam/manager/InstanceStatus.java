@@ -91,7 +91,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		try {
 			current_host_name = InetAddress.getLocalHost().getHostName();
 		} catch (UnknownHostException e) {
-			current_host_name = "somehost";
+			current_host_name = "";
 		}
 		
 		current_instance_name = Configuration.global.getValue("service", "workername", "unknown-pleaseset-" + String.valueOf(System.currentTimeMillis()));
@@ -164,8 +164,6 @@ public final class InstanceStatus implements Log2Dumpable {
 				sb.append("\n");
 			}
 			execpoint = sb.toString();
-			System.out.println(name);
-			System.out.println(execpoint);
 			return this;
 		}
 		
@@ -181,7 +179,6 @@ public final class InstanceStatus implements Log2Dumpable {
 		host_name = current_host_name;
 		threadstacktraces = new ArrayList<InstanceStatus.ThreadStackTrace>();
 		useraction_functionality_list = new ArrayList<UAFunctionalityDefinintion>();
-		this.app_name = manager.getAppName();
 		
 		host_addresses = new ArrayList<String>();
 		try {
@@ -210,6 +207,7 @@ public final class InstanceStatus implements Log2Dumpable {
 	 * @return this
 	 */
 	InstanceStatus refresh() {
+		app_name = manager.getAppName();
 		uptime = System.currentTimeMillis() - AppManager.starttime;
 		threadstacktraces.clear();
 		declared_cyclics = manager.getBroker().getDeclared_cyclics();
@@ -323,7 +321,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		dump.add("instance_name_pid", instance_name_pid);
 		dump.add("app_version", app_version);
 		dump.add("java_version", java_version);
-		dump.add("classpath", classpath);
+		// dump.add("classpath", classpath);
 		dump.add("uptime (sec)", uptime / 1000);
 		dump.add("host_name", host_name);
 		dump.add("host_addresses", host_addresses);
@@ -331,4 +329,36 @@ public final class InstanceStatus implements Log2Dumpable {
 		dump.add("declared_triggers", declared_triggers);
 		return dump;
 	}
+	
+	public static class Gatherer {
+		private static final AppManager manager;
+		
+		static {
+			manager = new AppManager("MyDMAM Gatherer");
+		}
+		
+		public static List<InstanceStatus> getAllInstances() {
+			List<InstanceStatus> result = manager.getDatabaseLayer().getAllInstancesStatus();
+			if (result == null) {
+				return new ArrayList<InstanceStatus>();
+			}
+			InstanceStatus status = manager.getInstance_status();
+			status.refresh();
+			result.add(status);
+			return result;
+		}
+		
+		public static List<WorkerExporter> getAllWorkers() {
+			return manager.getDatabaseLayer().getAllWorkerStatus();
+		}
+		
+		public static String getAllInstancesJsonString() {
+			return AppManager.getGson().toJson(getAllInstances());
+		}
+		
+		public static String getAllWorkersJsonString() {
+			return AppManager.getGson().toJson(getAllWorkers());
+		}
+	}
+	
 }

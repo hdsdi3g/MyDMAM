@@ -60,6 +60,10 @@ mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 	mydmam.service.url.laststatusworkers = "@{Service.laststatusworkers()}";
 #{/secure.check}
 
+#{secure.check 'showManager'}
+	mydmam.manager.url.allinstances = "@{Manager.allinstances()}";
+#{/secure.check}
+
 mydmam.notification.url.notificationresolveusers = "@{UserNotifications.notificationresolveusers}";
 mydmam.notification.url.notificationupdateread = "@{UserNotifications.notificationupdateread(key='keyparam1')}";
 mydmam.notification.url.queuegettasksjobs = "@{Queue.gettasksjobs}";

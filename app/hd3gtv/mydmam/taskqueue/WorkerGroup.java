@@ -23,6 +23,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * @deprecated
+ */
 public class WorkerGroup {
 	
 	private WorkerGroupEngine engine;

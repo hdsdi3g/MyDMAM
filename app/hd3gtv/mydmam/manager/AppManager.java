@@ -155,7 +155,8 @@ public final class AppManager {
 	private DatabaseLayer database_layer;
 	private String app_name;
 	
-	public AppManager() {
+	public AppManager(String app_name) {
+		this.app_name = app_name;
 		service_exception = new ServiceException(this);
 		database_layer = new DatabaseLayer(this);
 		enabled_workers = new ArrayList<WorkerNG>();
@@ -164,17 +165,16 @@ public final class AppManager {
 		updater = new Updater();
 	}
 	
-	public AppManager(String app_name) {
-		this();
-		this.app_name = app_name;
-	}
-	
 	String getAppName() {
 		return app_name;
 	}
 	
 	BrokerNG getBroker() {
 		return broker;
+	}
+	
+	DatabaseLayer getDatabaseLayer() {
+		return database_layer;
 	}
 	
 	public void workerRegister(WorkerNG worker) {

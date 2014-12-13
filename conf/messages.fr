@@ -65,6 +65,9 @@ service.functionalitieslist.storageindexeswhitelist=Liste blanche des stockages 
 service.functionalitieslist.musthavelocalstorageindexbridge=Doit avoir un storageindex bridge
 service.clusterstatus.report.pagename=Suivi des clusters
 
+manager.pagename=Gestion des services
+manager.loading=Chargement...
+
 application.navigate=Stockage
 
 queue.workerlist=Liste des workers 

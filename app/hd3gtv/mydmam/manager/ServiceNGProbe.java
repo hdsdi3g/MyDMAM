@@ -45,11 +45,10 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	protected void startService() throws Exception {
 		// TODO startService
 		// getManager();
-		/*StorageManager.getGlobalStorage();
+		/*
+		StorageManager.getGlobalStorage();
 		TranscodeProfile.isConfigured();
-		
-		broker = new Broker(this);
-		workergroup = new WorkerGroup(broker);
+
 		workergroup.addWorker(new Publish());
 		
 		PathScan ps = new PathScan();

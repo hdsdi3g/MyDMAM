@@ -289,6 +289,13 @@ $(document).ready(function() {
 						</li>
 					#{/secure.check}
 					
+					#{secure.check 'showManager'}
+						<li class="divider"></li>
+						<li>
+							<a href="@{Manager.index()}"><i class="icon-globe"></i> &{'manager.pagename'}</a>
+						</li>
+					#{/secure.check}
+					
 				</ul>
 			</li>
 		</ul>

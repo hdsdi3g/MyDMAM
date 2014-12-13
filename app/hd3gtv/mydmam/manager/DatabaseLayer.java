@@ -33,7 +33,7 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-public class DatabaseLayer {
+final class DatabaseLayer {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
@@ -114,36 +114,28 @@ public class DatabaseLayer {
 	/**
 	 * @return true if import is ok
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes", "unused" })
-	private <T> boolean importFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, String key, CassandraDbImporterExporter result) {
+	@SuppressWarnings({ "unused" })
+	private <T> T importFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, String key, Class<T> result_class) {
 		try {
 			ColumnFamilyQuery<String, String> rows_asset = CassandraDb.getkeyspace().prepareQuery(cf);
 			OperationResult<ColumnList<String>> row = rows_asset.getKey(key).execute(); // .withColumnSlice(this.column_names)
-			result.importFromDatabase(row.getResult());
-			return true;
+			return serializer.importFromDatabase(row.getResult());
 		} catch (ConnectionException e) {
 			manager.getServiceException().onCassandraError(e);
 		}
-		return false;
+		return null;
 	}
 	
 	/**
 	 * @param T must assignable from CassandraDbImporterExporter, and to be a valid instanciable class.
 	 */
-	@SuppressWarnings("unchecked")
-	private <T> List<T> importAllFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, final Class<T> result_class) {
+	private <T> List<T> importAllFromDatabase(ColumnFamily<String, String> cf, final CassandraDbImporterExporter<T> serializer, final Class<T> result_class) {
 		try {
-			if (CassandraDbImporterExporter.class.isAssignableFrom(result_class) == false) {
-				throw new Exception(result_class.getName() + " is not assignable from " + CassandraDbImporterExporter.class.getName());
-			}
 			final List<T> result = new ArrayList<T>();
 			
 			CassandraDb.allRowsReader(cf, new AllRowsFoundRow() {
 				public void onFoundRow(Row<String, String> row) throws Exception {
-					@SuppressWarnings("rawtypes")
-					CassandraDbImporterExporter item = AppManager.instanceClassForName(result_class.getName(), CassandraDbImporterExporter.class);
-					item.importFromDatabase(row.getColumns());
-					result.add((T) item);
+					result.add(serializer.importFromDatabase(row.getColumns()));
 				}
 			});
 			return result;
@@ -160,7 +152,7 @@ public class DatabaseLayer {
 		exportToDatabase(CF_INSTANCES, instancestatus_serializer, instance_status);
 	}
 	
-	public List<InstanceStatus> getAllInstancesStatus() {
+	List<InstanceStatus> getAllInstancesStatus() {
 		return importAllFromDatabase(CF_INSTANCES, instancestatus_serializer, InstanceStatus.class);
 	}
 	
@@ -175,7 +167,7 @@ public class DatabaseLayer {
 		exportToDatabase(CF_WORKERS, workerstatus_serializer, worker_statuses);
 	}
 	
-	public List<WorkerExporter> getAllWorkerStatus() {
+	List<WorkerExporter> getAllWorkerStatus() {
 		return importAllFromDatabase(CF_WORKERS, workerstatus_serializer, WorkerExporter.class);
 	}
 	
