@@ -67,6 +67,15 @@ service.clusterstatus.report.pagename=Suivi des clusters
 
 manager.pagename=Gestion des services
 manager.loading=Chargement...
+manager.nodetectedmodule=Aucune instance détectée
+manager.summary.title=Résumé des instances
+manager.summary.instance_name=Instance
+manager.summary.app_name=Nom
+manager.summary.uptime=Uptime
+manager.summary.java_version=Version Java
+manager.summary.app_version=Version app
+manager.summary.host=Serveur
+manager.summary.addresses=Adresses
 
 application.navigate=Stockage
 

@@ -24,6 +24,7 @@ import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import hd3gtv.mydmam.useraction.UAWorker;
+import hd3gtv.tools.TimeUtils;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -37,6 +38,8 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+
+import play.Play;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
@@ -268,6 +271,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			result.add("useraction_functionality_list", AppManager.getGson().toJsonTree(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT));
 			result.add("declared_cyclics", AppManager.getGson().toJsonTree(src.declared_cyclics, al_cyclicjobscreator_typeOfT));
 			result.add("declared_triggers", AppManager.getGson().toJsonTree(src.declared_triggers, al_triggerjobscreator_typeOfT));
+			result.addProperty("uptime_from", TimeUtils.secondsToYWDHMS(src.uptime / 1000));
 			return result;
 		}
 		
@@ -334,7 +338,11 @@ public final class InstanceStatus implements Log2Dumpable {
 		private static final AppManager manager;
 		
 		static {
-			manager = new AppManager("MyDMAM Gatherer");
+			String name = "MyDMAM - Gatherer";
+			if (Play.initialized) {
+				name = "MyDMAM - Play instance";
+			}
+			manager = new AppManager(name);
 		}
 		
 		public static List<InstanceStatus> getAllInstances() {
