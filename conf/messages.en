@@ -76,6 +76,9 @@ manager.summary.java_version=Java version
 manager.summary.app_version=App version
 manager.summary.host=Server
 manager.summary.addresses=Addresses
+manager.threads.title=Threads stack traces
+manager.threads.tnamestate=Name and state
+manager.threads.tstacks=Stacks
 
 application.navigate=Storage
 

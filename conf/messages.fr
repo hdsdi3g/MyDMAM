@@ -76,6 +76,9 @@ manager.summary.java_version=Version Java
 manager.summary.app_version=Version app
 manager.summary.host=Serveur
 manager.summary.addresses=Adresses
+manager.threads.title=Traces des piles des threads
+manager.threads.tnamestate=Nom et Etat
+manager.threads.tstacks=Trace de la pile
 
 application.navigate=Stockage
 

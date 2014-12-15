@@ -272,7 +272,7 @@ $(document).ready(function() {
 							<a href="@{ACL.showroles()}"><i class="icon-user"></i> &{'acl.pagename.roles'}</a>
 						</li>
 					#{/secure.check}
-					
+
 					#{secure.check 'showStatus'}
 						<li class="divider"></li>
 						<li class="nav-header">
@@ -288,14 +288,11 @@ $(document).ready(function() {
 							<a href="@{Service.clusterstatus()}"><i class="icon-globe"></i> &{'service.clusterstatus.report.pagename'}</a>
 						</li>
 					#{/secure.check}
-					
 					#{secure.check 'showManager'}
-						<li class="divider"></li>
 						<li>
 							<a href="@{Manager.index()}"><i class="icon-globe"></i> &{'manager.pagename'}</a>
 						</li>
 					#{/secure.check}
-					
 				</ul>
 			</li>
 		</ul>
