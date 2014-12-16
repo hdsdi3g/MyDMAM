@@ -72,14 +72,12 @@ public abstract class ServiceNG {
 	private class ServiceThread extends Thread {
 		
 		public ServiceThread() {
-			setName("Service");
+			setName("MyDMAM Service");
 		}
 		
 		public void run() {
 			want_stop_service = false;
 			try {
-				manager.startAll();
-				
 				/*if (Configuration.global.isElementExists("service")) {
 					String uititle = Configuration.global.getValue("service", "ui", null);
 					if (uititle != null) {
@@ -94,6 +92,8 @@ public abstract class ServiceNG {
 				}*/
 				
 				startService();
+				
+				manager.startAll();
 				
 				while (want_stop_service == false) {
 					sleep(10);

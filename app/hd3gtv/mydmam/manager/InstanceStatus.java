@@ -203,6 +203,8 @@ public final class InstanceStatus implements Log2Dumpable {
 		} catch (SocketException e) {
 		}
 		
+		refresh();
+		
 		return this;
 	}
 	

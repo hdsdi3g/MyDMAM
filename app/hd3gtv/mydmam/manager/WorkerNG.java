@@ -17,7 +17,9 @@
 package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.MyDMAM;
 
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -51,12 +53,41 @@ public abstract class WorkerNG {
 	private WorkerExporter exporter;
 	private AppManager manager;
 	
-	public WorkerNG(AppManager manager) {
+	public WorkerNG() {
+	}
+	
+	private String computeKey() {
+		StringBuffer sb = new StringBuffer();
+		sb.append(manager.getInstance_status().getAppName());
+		sb.append(manager.getInstance_status().getHostName());
+		sb.append(manager.getInstance_status().getInstanceName());
+		sb.append(getClass().getName());
+		sb.append(getWorkerCategory().name());
+		sb.append(getWorkerLongName());
+		sb.append(getWorkerVendorName());
+		List<WorkerCapablities> cap = getWorkerCapablities();
+		if (cap != null) {
+			for (int pos = 0; pos < cap.size(); pos++) {
+				sb.append("/cap:");
+				sb.append(cap.get(pos).toString());
+			}
+		}
+		
+		try {
+			MessageDigest md;
+			md = MessageDigest.getInstance("MD5");
+			md.update(sb.toString().getBytes());
+			return "worker:" + MyDMAM.byteToString(md.digest());
+		} catch (Exception e) {
+			return "worker:" + UUID.randomUUID().toString();
+		}
+	}
+	
+	void setManager(AppManager manager) {
 		this.manager = manager;
-		manager.workerRegister(this);
-		reference_key = "worker:" + UUID.randomUUID().toString();
+		reference_key = computeKey();
 		lifecyle = new LifeCycle(this);
-		refuse_new_jobs = true;
+		refuse_new_jobs = false;
 		exporter = new WorkerExporter(this);
 	}
 	

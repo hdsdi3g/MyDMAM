@@ -18,12 +18,10 @@ package hd3gtv.mydmam.manager;
 
 import java.util.List;
 
-import com.google.gson.JsonObject;
-
 public abstract class WorkerCapablities {
 	
 	/**
-	 * Can be some bridged storages or not, dependent the Worker need.
+	 * Can be some bridged storages or not, dependent the Worker needs.
 	 */
 	public abstract List<String> getStoragesAvaliable();
 	
@@ -33,10 +31,8 @@ public abstract class WorkerCapablities {
 	
 	// public abstract String getCategory();
 	
-	/**
-	 * @return can be null, only for serialization.
-	 */
-	public abstract JsonObject getParameters();
+	// @ return can be null, only for serialization.
+	// public abstract JsonObject getParameters();
 	
 	final boolean isAssignableFrom(JobContext context) {
 		if (context == null) {
@@ -71,8 +67,29 @@ public abstract class WorkerCapablities {
 		return true;
 	}
 	
-	final WorkerCapablitiesExporter getStatus() {
+	final WorkerCapablitiesExporter getExporter() {
 		return new WorkerCapablitiesExporter(this);
 	}
 	
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		
+		Class<? extends JobContext> cclass = getJobContextClass();
+		if (cclass != null) {
+			sb.append("JobContext:");
+			sb.append(cclass.getName());
+			sb.append(" ");
+		}
+		
+		List<String> storages = getStoragesAvaliable();
+		if (storages != null) {
+			for (int pos = 0; pos < storages.size(); pos++) {
+				sb.append("Storage:");
+				sb.append(storages.get(pos));
+				sb.append(" ");
+			}
+		}
+		
+		return sb.toString().trim();
+	}
 }

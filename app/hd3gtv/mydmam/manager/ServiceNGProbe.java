@@ -18,6 +18,7 @@ package hd3gtv.mydmam.manager;
 
 import hd3gtv.mydmam.db.status.ClusterStatusEvents;
 import hd3gtv.mydmam.db.status.ClusterStatusService;
+import hd3gtv.mydmam.manager.dummy.Dummy1WorkerNG;
 
 public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	
@@ -43,9 +44,11 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	
 	@Override
 	protected void startService() throws Exception {
-		// TODO startService
-		// getManager();
+		AppManager manager = getManager();
+		manager.workerRegister(new Dummy1WorkerNG());
+		
 		/*
+		// TODO startService
 		StorageManager.getGlobalStorage();
 		TranscodeProfile.isConfigured();
 

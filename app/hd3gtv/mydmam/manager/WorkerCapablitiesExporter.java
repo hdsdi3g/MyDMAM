@@ -38,7 +38,7 @@ public final class WorkerCapablitiesExporter {
 	
 	// String category;
 	
-	JsonObject parameters;
+	// JsonObject parameters;
 	
 	@GsonIgnore
 	Class<? extends JobContext> job_context_avaliable;
@@ -50,7 +50,7 @@ public final class WorkerCapablitiesExporter {
 	WorkerCapablitiesExporter(WorkerCapablities capablities) {
 		// this.category = capablities.getCategory();
 		// this.name = capablities.getName();
-		parameters = capablities.getParameters();
+		// parameters = capablities.getParameters();
 		storages_available = capablities.getStoragesAvaliable();
 		job_context_avaliable = capablities.getJobContextClass();
 	}
@@ -71,8 +71,8 @@ public final class WorkerCapablitiesExporter {
 		
 		public JsonElement serialize(WorkerCapablitiesExporter src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
-			result.add("storages_available", AppManager.getSimpleGson().toJsonTree(src.storages_available, al_string_typeOfT).getAsJsonArray());
-			result.add("job_context_avaliable", AppManager.getGson().toJsonTree(src.job_context_avaliable, class_jobcontext_typeOfT).getAsJsonArray());
+			result.add("storages_available", AppManager.getSimpleGson().toJsonTree(src.storages_available, al_string_typeOfT));
+			result.add("job_context_avaliable", AppManager.getGson().toJsonTree(src.job_context_avaliable, class_jobcontext_typeOfT));
 			return result;
 		}
 		

@@ -43,7 +43,6 @@ public final class WorkerExporter implements Log2Dumpable {
 	WorkerCategory category;
 	String long_name;
 	String vendor_name;
-	boolean isactivated;
 	Class<?> worker_class;
 	WorkerNG.WorkerState state;
 	String reference_key;
@@ -58,27 +57,30 @@ public final class WorkerExporter implements Log2Dumpable {
 	
 	WorkerExporter(WorkerNG worker) {
 		this.worker = worker;
-	}
-	
-	private synchronized void update() {
+		capablities = new ArrayList<WorkerCapablitiesExporter>();
+		List<WorkerCapablities> workercapablities = worker.getWorkerCapablities();
+		if (workercapablities != null) {
+			for (int pos = 0; pos < workercapablities.size(); pos++) {
+				capablities.add(workercapablities.get(pos).getExporter());
+			}
+		}
 		category = worker.getWorkerCategory();
 		long_name = worker.getWorkerLongName();
 		vendor_name = worker.getWorkerVendorName();
 		worker_class = worker.getClass();
-		isactivated = worker.isActivated();
-		state = worker.getLifecyle().getState();
 		reference_key = worker.getReferenceKey();
+		
+		update();
+	}
+	
+	private synchronized void update() {
+		if (worker == null) {
+			return;
+		}
+		state = worker.getLifecyle().getState();
 		JobNG job = worker.getCurrentJob();
 		if (job != null) {
 			current_job_key = job.getKey();
-		}
-		
-		List<WorkerCapablities> workercapablities = worker.getWorkerCapablities();
-		if (workercapablities != null) {
-			ArrayList<WorkerCapablitiesExporter> capablities = new ArrayList<WorkerCapablitiesExporter>();
-			for (int pos = 0; pos < workercapablities.size(); pos++) {
-				capablities.add(workercapablities.get(pos).getStatus());
-			}
 		}
 	}
 	
@@ -96,7 +98,7 @@ public final class WorkerExporter implements Log2Dumpable {
 		public JsonElement serialize(WorkerExporter src, Type typeOfSrc, JsonSerializationContext context) {
 			src.update();
 			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
-			result.add("capablities", AppManager.getGson().toJsonTree(src.capablities, al_wcs_typeOfT).getAsJsonArray());
+			result.add("capablities", AppManager.getGson().toJsonTree(src.capablities, al_wcs_typeOfT));
 			return result;
 		}
 		
@@ -105,6 +107,7 @@ public final class WorkerExporter implements Log2Dumpable {
 		}
 		
 		public void exportToDatabase(WorkerExporter src, ColumnListMutation<String> mutator) {
+			src.update();
 			mutator.putColumn("source", AppManager.getGson().toJson(src), InstanceStatus.TTL);
 		}
 		

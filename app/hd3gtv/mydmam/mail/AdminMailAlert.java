@@ -293,7 +293,12 @@ public class AdminMailAlert implements Log2Dumpable {
 		Log2Dump finaldump = new Log2Dump();
 		finaldump.add("to", admin_addr);
 		finaldump.add("subject", subject);
+		if (caller != null) {
+			finaldump.add("caller", caller);
+		}
+		if (throwable != null) {
+			finaldump.add("throwable", throwable);
+		}
 		return finaldump;
 	}
-	
 }

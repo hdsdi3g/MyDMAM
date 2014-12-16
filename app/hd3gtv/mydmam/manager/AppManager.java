@@ -92,15 +92,15 @@ public final class AppManager {
 		pretty_gson = builder.setPrettyPrinting().create();
 	}
 	
-	static Gson getGson() {
+	public static Gson getGson() {
 		return gson;
 	}
 	
-	static Gson getSimpleGson() {
+	public static Gson getSimpleGson() {
 		return simple_gson;
 	}
 	
-	static Gson getPrettyGson() {
+	public static Gson getPrettyGson() {
 		return pretty_gson;
 	}
 	
@@ -184,6 +184,7 @@ public final class AppManager {
 		if (worker.isActivated() == false) {
 			return;
 		}
+		worker.setManager(this);
 		enabled_workers.add(worker);
 	}
 	
