@@ -79,6 +79,11 @@ manager.summary.addresses=Adresses
 manager.threads.title=Traces des piles des threads
 manager.threads.tnamestate=Nom et Etat
 manager.threads.tstacks=Trace de la pile
+manager.classpaths.title=Classpaths
+manager.classpaths.item=Element du classpath
+manager.classpaths.missinginstances=Instances où il manque
+manager.classpaths.cpiseverywhere=Present partout
+manager.classpaths.warnmessage=Les instances manquantes sont indiqués seulement pour information, cela peut-être normal selon les installations.
 
 application.navigate=Stockage
 

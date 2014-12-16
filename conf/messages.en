@@ -79,6 +79,11 @@ manager.summary.addresses=Addresses
 manager.threads.title=Threads stack traces
 manager.threads.tnamestate=Name and state
 manager.threads.tstacks=Stacks
+manager.classpaths.title=Classpaths
+manager.classpaths.item=Classpath item
+manager.classpaths.missinginstances=Instances where it missing
+manager.classpaths.cpiseverywhere=Present everywhere
+manager.classpaths.warnmessage=The missing items are indicated only for information, it may be normal depending on the installation.
 
 application.navigate=Storage
 

@@ -62,47 +62,13 @@
 })(window.mydmam.manager);
 
 /**
- * getStacktraceline(line, app_version)
- * Add GitHub MyDMAM url java code if match. 
- */
-(function(manager) {
-	manager.getStacktraceline = function(line, app_version) {
-		if (line.startsWith("at hd3gtv.mydmam") === false) {
-			return line;
-		}
-		if (line.startsWith("at ") === false) {
-			line = "at " + line;
-		}
-		var content = '';
-		
-		var pos_parL = line.indexOf("(");
-		var pos_parR = line.indexOf(")");
-		
-		var filenameandlinepos = line.substring(pos_parL + 1, pos_parR);
-		
-		var path = line.substring(3, pos_parL).replace(/\./g, "/");
-		path = path.substring(0, path.lastIndexOf("/"));//Remove function name
-		path = path.substring(0, path.lastIndexOf("/"));//Remove class name
-		path = path + "/" + filenameandlinepos.substring(0, filenameandlinepos.indexOf(":"));
-		path = path + "#L" + filenameandlinepos.substring(filenameandlinepos.indexOf(":") + 1, filenameandlinepos.length);
-		
-		content = content + line.substring(0, pos_parL + 1);
-		content = content + '<a href="' + manager.getGitHubURL(app_version, path) + '">';
-		content = content + filenameandlinepos;
-		content = content + '</a>';
-		content = content + ')';
-		return content;
-	};
-})(window.mydmam.manager);
-
-/**
  * showFullDisplay(rawdata, query_destination)
  */
 (function(manager) {
 	manager.showFullDisplay = function(rawdata, query_destination) {
 		var content = '';
 		if (window.location.hash === '') {
-			window.location.hash = "#summary";
+			window.location.hash = "#mgrsummary";
 		}
 		
 		var getActiveClassIfThisTabIsUserSelected = function(target) {
@@ -116,6 +82,7 @@
 		content = content + '<ul class="nav nav-tabs manager">';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrsummary") + '"><a href="#mgrsummary">' + i18n('manager.summary.title') + '</a></li>';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrthreads") + '"><a href="#mgrthreads">' + i18n('manager.threads.title') + '</a></li>';
+		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrclasspaths") + '"><a href="#mgrclasspaths">' + i18n('manager.classpaths.title') + '</a></li>';
 		content = content + '</ul>';
 		 
 		content = content + '<div class="tab-content">';
@@ -141,8 +108,13 @@
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrthreads") + '" id="mgrthreads">';
 		content = content + manager.prepareThreadsStackTrace(rawdata);
-		content = content + '</table>';
+		content = content + '</div>'; //tab-pane
 		
+		/**
+		 * Show classpaths
+		 */
+		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrclasspaths") + '" id="mgrclasspaths">';
+		content = content + manager.prepareClasspaths(rawdata);
 		content = content + '</div>'; //tab-pane
 		
 		$(query_destination).html(content);
@@ -227,7 +199,6 @@
  */
 (function(manager) {
 	manager.prepareThreadsStackTrace = function(instances) {
-		
 		var prepareThisInstanceThreadsStackTrace = function(threadstacktraces, instancepos, app_version) {
 			var content = '';
 			content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
@@ -240,6 +211,34 @@
 			threadstacktraces = threadstacktraces.sort(function(a, b) {
 				return a.id < b.id ? -1 : 1;
 			});
+			
+			getStacktraceline = function(line) {
+				if (line.startsWith("at hd3gtv.mydmam") === false) {
+					return line;
+				}
+				if (line.startsWith("at ") === false) {
+					line = "at " + line;
+				}
+				var content = '';
+				
+				var pos_parL = line.indexOf("(");
+				var pos_parR = line.indexOf(")");
+				
+				var filenameandlinepos = line.substring(pos_parL + 1, pos_parR);
+				
+				var path = line.substring(3, pos_parL).replace(/\./g, "/");
+				path = path.substring(0, path.lastIndexOf("/"));//Remove function name
+				path = path.substring(0, path.lastIndexOf("/"));//Remove class name
+				path = path + "/" + filenameandlinepos.substring(0, filenameandlinepos.indexOf(":"));
+				path = path + "#L" + filenameandlinepos.substring(filenameandlinepos.indexOf(":") + 1, filenameandlinepos.length);
+				
+				content = content + line.substring(0, pos_parL + 1);
+				content = content + '<a href="' + manager.getGitHubURL(app_version, path) + '">';
+				content = content + filenameandlinepos;
+				content = content + '</a>';
+				content = content + ')';
+				return content;
+			};
 			
 			for (var pos = 0; pos < threadstacktraces.length; pos++) {
 				var threadstacktrace = threadstacktraces[pos];
@@ -268,17 +267,17 @@
 				content = content + '<td><small>';
 				if (execpoints.length > 1) {
 					if (execpoints.length > 2) {
-						content = content + manager.getStacktraceline(execpoints[0], app_version) + '<br />';
+						content = content + getStacktraceline(execpoints[0]) + '<br />';
 						var cssclassname = 'mgr-' + pos_i + '-' + pos; 
 						content = content + '<button class="btn btn-mini btnincollapse" data-collapsetarget="' + cssclassname + '"><i class="icon-chevron-down"></i></button>';
-						content = content + '<div class="collapse ' + cssclassname + '">'; //in
+						content = content + '<div class="collapse ' + cssclassname + '">';
 						for (var pos_ep = 1; pos_ep < execpoints.length - 1; pos_ep++) {
 							var execpoint = execpoints[pos_ep];
-							content = content + manager.getStacktraceline(execpoint, app_version) + '<br />';
+							content = content + getStacktraceline(execpoint) + '<br />';
 						}
 						content = content + '</div>'; //collapse
 					} else {
-						content = content + manager.getStacktraceline(execpoints[0], app_version) + '<br />';
+						content = content + getStacktraceline(execpoints[0]) + '<br />';
 					}
 				}
 				content = content + '</small></td>';
@@ -304,14 +303,95 @@
 	};
 })(window.mydmam.manager);
 
-//TODO display instance.classpath
+/**
+ * prepareClasspaths(instances)
+ */
+(function(manager) {
+	manager.prepareClasspaths = function(instances) {
+		var all_classpath_items = {};
+		/**
+		 * Collect all classpath items form instances.
+		 */
+		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
+			var instance = instances[pos_i];
+			for (var pos_cp = 0; pos_cp < instance.classpath.length; pos_cp++) {
+				var classpath_item = instance.classpath[pos_cp];
+				if (all_classpath_items[classpath_item]) {
+					continue;
+				} else {
+					all_classpath_items[classpath_item] = true;
+				}
+			}
+		}
+		
+		/**
+		 * @return true if classpath_item exists in instance.classpath
+		 */
+		var isInThisClasspath = function(instance, classpath_item) {
+			for (var pos_cp = 0; pos_cp < instance.classpath.length; pos_cp++) {
+				if (classpath_item === instance.classpath[pos_cp]) {
+					return true;
+				}
+			}
+			return false;
+		};
+		
+		/**
+		 * Collect all missing classpath_item in instances
+		 */
+		var missing_instances_classpath_items = {};
+		for (var classpath_item in all_classpath_items) {
+			for (var pos_i = 0; pos_i < instances.length; pos_i++) {
+				var instance = instances[pos_i];
+				if (isInThisClasspath(instance, classpath_item) === false) {
+					if (missing_instances_classpath_items[classpath_item]) {
+						missing_instances_classpath_items[classpath_item].push(instance);
+					} else {
+						missing_instances_classpath_items[classpath_item] = [instance];
+					}
+				}
+			}
+		}
+
+		/**
+		 * Draw result table.
+		 */
+		var content = '';
+		content = content + '<blockquote><p>' + i18n('manager.classpaths.warnmessage') + '</p></blockquote>';
+		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
+		content = content + '<thead>';
+		content = content + '<th>' + i18n('manager.classpaths.item') + '</th>';
+		content = content + '<th>' + i18n('manager.classpaths.missinginstances') + '</th>';
+		content = content + '</thead>';
+		content = content + '<tbody>';
+		
+		for (var classpath_item in all_classpath_items) {
+			content = content + '<tr>';
+			content = content + '<td>' + classpath_item + '</td>';
+			
+			content = content + '<td>';
+			if (missing_instances_classpath_items[classpath_item]) {
+				content = content + '<small>';
+				var missing_cp = missing_instances_classpath_items[classpath_item];
+				for (var pos_mcp = 0; pos_mcp < missing_cp.length; pos_mcp++) {
+					content = content + missing_cp[pos].instance_name_pid;
+					content = content + " (" + missing_cp[pos].app_name + ")";
+					content = content + "<br>";
+				}
+				content = content + '</small>';
+			} else {
+				content = content + "<em>" + i18n('manager.classpaths.cpiseverywhere') + "</em>";
+			} 
+			content = content + '</td>';
+			content = content + '</tr>';
+		}
+		content = content + '</tbody>';
+		content = content + '</table>';
+
+		return content;
+	};
+})(window.mydmam.manager);
+
 //TODO display useraction_functionality_list
 //TODO display declared_cyclics
 //TODO display declared_triggers
-
-/*
-var data = rawdata.sort(function(a, b){
-	 * normal sort
-	return a.workername < b.workername ? -1 : 1;
-});
-* */
