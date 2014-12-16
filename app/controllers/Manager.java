@@ -35,4 +35,9 @@ public class Manager extends Controller {
 		renderJSON(InstanceStatus.Gatherer.getAllInstancesJsonString());
 	}
 	
+	@Check("showManager")
+	public static void allworkers() throws Exception {
+		renderJSON(InstanceStatus.Gatherer.getAllWorkersJsonString());
+	}
+	
 }

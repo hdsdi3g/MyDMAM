@@ -84,6 +84,12 @@ manager.classpaths.item=Classpath item
 manager.classpaths.missinginstances=Instances where it missing
 manager.classpaths.cpiseverywhere=Present everywhere
 manager.classpaths.warnmessage=The missing items are indicated only for information, it may be normal depending on the installation.
+manager.cyclic.title=Regular creation jobs
+manager.trigger.title=Creating jobs by triggers
+manager.uafunctlist.title=User functionalities
+manager.workers.title=Active workers
+manager.workers.empty=No active workers...
+manager.workers.refresherror=Can't refresh the worker list. Check your access to the server.
 
 application.navigate=Storage
 

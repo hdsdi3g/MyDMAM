@@ -37,11 +37,55 @@
 				$(query_destination).html('<div class="alert alert-info"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + textStatus + '</strong></div>');
 			},
 			success: function(rawdata) {
-				if (rawdata == null | rawdata == "null" | rawdata === ""| rawdata == "[]") {
+				if (rawdata == null | rawdata.length === 0) {
 					$('#laststatusworkers').append('<div class="alert alert-info"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n("manager.nodetectedmodule") + '</strong></div>');
 					return;
 				}
 				manager.showFullDisplay(rawdata, query_destination);
+			}
+		});
+	};
+})(window.mydmam.manager);
+
+/**
+ * refreshWorkersStatus(query_destination)
+ */
+(function(manager) {
+	manager.refreshWorkersStatus = function(query_destination) {
+		var do_refresh = function() {
+			manager.refreshWorkersStatus(query_destination);
+		};
+		
+		var last_workers = [];
+		var update = function(workers) {
+			//TODO
+			last_workers = workers;
+		};
+		
+		$.ajax({
+			url: mydmam.manager.url.allworkers,
+			type: "POST",
+			beforeSend: function() {
+				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-style", " italic");
+				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-weight", " normal");
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-style", " normal");
+				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-weight", " bold");
+				window.setTimeout(do_refresh, 20000);
+				$(query_destination).empty();
+				$(query_destination).html('<div class="alert"><strong>' + i18n('manager.workers.refresherror') + '</strong></div>');
+			},
+			success: function(rawdata) {
+				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-style", " normal");
+				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-weight", " normal");
+				window.setTimeout(do_refresh, 5000);
+				if (rawdata == null | rawdata.length === 0) {
+					$(query_destination).empty();
+					$(query_destination).append('<div class="alert alert-info"><strong>' + i18n("manager.workers.empty") + '</strong></div>');
+					return;
+				}
+				update(rawdata);
 			}
 		});
 	};
@@ -79,10 +123,16 @@
 			}
 		};
 		
-		content = content + '<ul class="nav nav-tabs manager">';
-		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrsummary") + '"><a href="#mgrsummary">' + i18n('manager.summary.title') + '</a></li>';
-		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrthreads") + '"><a href="#mgrthreads">' + i18n('manager.threads.title') + '</a></li>';
-		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrclasspaths") + '"><a href="#mgrclasspaths">' + i18n('manager.classpaths.title') + '</a></li>';
+		content = content + '<ul class="nav nav-tabs">';
+		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrsummary") + '"><a href="#mgrsummary" class="btnmanager">' + i18n('manager.summary.title') + '</a></li>';
+		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrworkers") + '"><a href="#mgrworkers" class="btnmanager">' + i18n('manager.workers.title') + '</a></li>';
+		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgruafunctlist") + '"><a href="#mgruafunctlist" class="btnmanager">' + i18n('manager.uafunctlist.title') + '</a></li>';
+		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrcyclic") + '"><a href="#mgrcyclic" class="btnmanager">' + i18n('manager.cyclic.title') + '</a></li>';
+		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrtriggers") + '"><a href="#mgrtriggers" class="btnmanager">' + i18n('manager.trigger.title') + '</a></li>';
+		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrthreads") + '"><a href="#mgrthreads" class="btnmanager">' + i18n('manager.threads.title') + '</a></li>';
+		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrclasspaths") + '"><a href="#mgrclasspaths" class="btnmanager">' + i18n('manager.classpaths.title') + '</a></li>';
+
+		content = content + '<li class="pull-right"><a href="#mgrsummary" class="btnrefresh"><i class="icon-refresh"></i>' + '</a></li>';
 		content = content + '</ul>';
 		 
 		content = content + '<div class="tab-content">';
@@ -117,9 +167,38 @@
 		content = content + manager.prepareClasspaths(rawdata);
 		content = content + '</div>'; //tab-pane
 		
+		/**
+		 * Show Cyclic
+		 */
+		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrcyclic") + '" id="mgrcyclic">';
+		content = content + manager.prepareCyclic(rawdata);
+		content = content + '</div>'; //tab-pane
+		
+		/**
+		 * Show Triggers
+		 */
+		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrtriggers") + '" id="mgrtriggers">';
+		content = content + manager.prepareTriggers(rawdata);
+		content = content + '</div>'; //tab-pane
+		
+		/**
+		 * Show Triggers
+		 */
+		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgruafunctlist") + '" id="mgruafunctlist">';
+		content = content + manager.prepareUseractionFunctionalityList(rawdata);
+		content = content + '</div>'; //tab-pane
+		
+		/**
+		 * Show Workers status
+		 */
+		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrworkers") + '" id="mgrworkers">';
+		content = content + '</div>'; //tab-pane
+		
 		$(query_destination).html(content);
 		
-		$(query_destination + ' table.setdatatable').dataTable({
+		manager.refreshWorkersStatus("#mgrworkers");
+		
+		var all_datatables = $(query_destination + ' table.setdatatable').dataTable({
 			"bPaginate": false,
 			"bLengthChange": false,
 			"bSort": true,
@@ -132,9 +211,15 @@
 		/**
 		 * set actions 
 		 */
-		$(query_destination + ' ul.nav.nav-tabs.manager a').click(function() {
+		$(query_destination + ' ul.nav.nav-tabs a.btnmanager').click(function() {
+			window.location.hash = $(this).attr("href");
 			$(this).tab('show');
-			return true;
+			return false;
+		});
+		
+		$(query_destination + ' ul.nav.nav-tabs a.btnrefresh').click(function() {
+			manager.display(query_destination);
+			return false;
 		});
 		
 		$(query_destination + ' button.btn.btn-mini.btnincollapse').click(function() {
@@ -374,8 +459,8 @@
 				content = content + '<small>';
 				var missing_cp = missing_instances_classpath_items[classpath_item];
 				for (var pos_mcp = 0; pos_mcp < missing_cp.length; pos_mcp++) {
-					content = content + missing_cp[pos].instance_name_pid;
-					content = content + " (" + missing_cp[pos].app_name + ")";
+					content = content + missing_cp[pos_mcp].instance_name_pid;
+					content = content + " (" + missing_cp[pos_mcp].app_name + ")";
 					content = content + "<br>";
 				}
 				content = content + '</small>';
@@ -392,6 +477,65 @@
 	};
 })(window.mydmam.manager);
 
-//TODO display useraction_functionality_list
-//TODO display declared_cyclics
-//TODO display declared_triggers
+/**
+ * prepareCyclic(instances)
+ */
+(function(manager) {
+	manager.prepareCyclic = function(instances) {
+		var content = 'C';
+		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
+			var instance = instances[pos_i];
+			var declared_cyclics = instance.declared_cyclics;
+			for (var pos_cy = 0; pos_cy < declared_cyclics.length; pos_cy++) {
+				var declared_cyclic = declared_cyclics[pos_cy];
+				//TODO display cyclics
+			}
+		}
+		/*content = content + '<blockquote><p>' + i18n('manager.classpaths.warnmessage') + '</p></blockquote>';
+		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
+		content = content + '<thead>';
+		content = content + '<th>' + i18n('manager.classpaths.item') + '</th>';
+		content = content + '<th>' + i18n('manager.classpaths.missinginstances') + '</th>';
+		content = content + '</thead>';
+		content = content + '<tbody>';*/
+
+		return content;
+	};
+})(window.mydmam.manager);
+
+/**
+ * prepareTriggers(instances)
+ */
+(function(manager) {
+	manager.prepareTriggers = function(instances) {
+		var content = 'T';
+		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
+			var instance = instances[pos_i];
+			var declared_triggers = instance.declared_triggers;
+			for (var pos_tr = 0; pos_tr < declared_triggers.length; pos_tr++) {
+				var declared_trigger = declared_triggers[pos_tr];
+				//TODO display trigger
+			}
+		}
+		return content;
+	};
+})(window.mydmam.manager);
+
+/**
+ * prepareUseractionFunctionalityList(instances)
+ */
+(function(manager) {
+	manager.prepareUseractionFunctionalityList = function(instances) {
+		var content = 'UA';
+		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
+			var instance = instances[pos_i];
+			var useraction_functionality_list = instance.useraction_functionality_list;
+			for (var pos_uafl = 0; pos_uafl < useraction_functionality_list.length; pos_uafl++) {
+				var useraction_functionality = useraction_functionality_list[pos_uafl];
+				//TODO display useraction_functionality
+			}
+		}
+		return content;
+	};
+})(window.mydmam.manager);
+
