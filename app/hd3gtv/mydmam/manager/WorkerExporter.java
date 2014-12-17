@@ -46,6 +46,7 @@ public final class WorkerExporter implements Log2Dumpable {
 	Class<?> worker_class;
 	WorkerNG.WorkerState state;
 	String reference_key;
+	JsonObject manager_reference;
 	String current_job_key;
 	
 	@GsonIgnore
@@ -69,7 +70,7 @@ public final class WorkerExporter implements Log2Dumpable {
 		vendor_name = worker.getWorkerVendorName();
 		worker_class = worker.getClass();
 		reference_key = worker.getReferenceKey();
-		
+		manager_reference = worker.getManagerReference();
 		update();
 	}
 	
@@ -132,6 +133,7 @@ public final class WorkerExporter implements Log2Dumpable {
 		dump.add("reference_key", reference_key);
 		dump.add("current_job_key", current_job_key);
 		dump.add("state", state);
+		dump.add("manager_reference", manager_reference);
 		return dump;
 	}
 }

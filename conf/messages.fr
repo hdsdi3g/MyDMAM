@@ -90,6 +90,7 @@ manager.uafunctlist.title=Fonctionnalités utilisateur
 manager.workers.title=Workers actifs
 manager.workers.empty=Pas de workers actifs...
 manager.workers.refresherror=Impossible d'actualiser la liste des workers. Vérifiez votre accès au serveur.
+manager.workers.inrefresh=Le tableau est en cours de mise à jour...
 
 application.navigate=Stockage
 

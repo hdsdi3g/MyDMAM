@@ -90,6 +90,7 @@ manager.uafunctlist.title=User functionalities
 manager.workers.title=Active workers
 manager.workers.empty=No active workers...
 manager.workers.refresherror=Can't refresh the worker list. Check your access to the server.
+manager.workers.inrefresh=The table is being updated...
 
 application.navigate=Storage
 

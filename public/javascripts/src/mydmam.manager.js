@@ -52,42 +52,116 @@
  */
 (function(manager) {
 	manager.refreshWorkersStatus = function(query_destination) {
-		var do_refresh = function() {
-			manager.refreshWorkersStatus(query_destination);
-		};
+
+		var datatable = null;
 		
-		var last_workers = [];
-		var update = function(workers) {
-			//TODO
-			last_workers = workers;
-		};
-		
-		$.ajax({
-			url: mydmam.manager.url.allworkers,
-			type: "POST",
-			beforeSend: function() {
-				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-style", " italic");
-				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-weight", " normal");
-			},
-			error: function(jqXHR, textStatus, errorThrown) {
-				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-style", " normal");
-				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-weight", " bold");
-				window.setTimeout(do_refresh, 20000);
-				$(query_destination).empty();
-				$(query_destination).html('<div class="alert"><strong>' + i18n('manager.workers.refresherror') + '</strong></div>');
-			},
-			success: function(rawdata) {
-				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-style", " normal");
-				$('ul.nav.nav-tabs li.active a.btnmanager').css("font-weight", " normal");
-				window.setTimeout(do_refresh, 5000);
-				if (rawdata == null | rawdata.length === 0) {
-					$(query_destination).empty();
-					$(query_destination).append('<div class="alert alert-info"><strong>' + i18n("manager.workers.empty") + '</strong></div>');
-					return;
-				}
-				update(rawdata);
+		var drawTable = function(workers) {
+			var content = '';
+			content = content + '<table class="table table-striped table-bordered table-hover table-condensed">';
+			content = content + '<thead>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '</thead>';
+			content = content + '<tbody>';
+			for (var pos_wr = 0; pos_wr < workers.length; pos_wr++) {
+				//content = content + workers[pos_wr], pos;
 			}
-		});
+			content = content + '</tbody>';
+			content = content + '</table>';
+			
+			/*{
+			 * "category":"INTERNAL",
+			 * "long_name":"Dummy worker 1",
+			 * "vendor_name":"MyDMAM Test classes",
+			 * "worker_class":"hd3gtv.mydmam.manager.dummy.Dummy1WorkerNG",
+			 * "state":"WAITING",
+			 * "reference_key":"worker:3e1990fe861f1b5675a4554f4ff5d562",
+			 * "manager_reference":{"members":{"app_name":"MyDMAM - Probe service","host_name":"qcerzcrqzr","instance_name":"mydmamvm","instance_ref":"mydmamvm#80783@qcerzcrqzr"}},
+			 * "current_job_key":null,
+			 * "capablities":[
+			 *		{"storages_available":["REAZRZERZERZE"],
+			 *		"job_context_avaliable":"hd3gtv.mydmam.manager.dummy.Dummy1Context"}
+			 * ]}*/
+			
+			$(query_destination + ' div.tableworkers').html(content);
+			/*datatable = $(query_destination + ' div.tableworkers table').dataTable({ //TODO set datatable
+				"bPaginate": false,
+				"bLengthChange": false,
+				"bSort": true,
+				"bInfo": false,
+				"bAutoWidth": false,
+				"bFilter": true,
+			});*/
+		};
+		
+		var last_workers = {};
+		
+		var update = function(workers) {
+			if (datatable == null) {
+				drawTable(workers);
+				for (var pos_wr = 0; pos_wr < workers.length; pos_wr++) {
+					last_workers[workers[pos_wr].reference_key] = workers[pos_wr];
+				}
+				return;
+			}
+			
+			//TODO https://datatables.net/reference/api/
+			var current_workers = {};
+			for (var worker in workers) {
+				var key = worker.reference_key;
+				if (last_workers[key]) {
+					//TODO update ?
+				} else {
+					//TODO https://datatables.net/reference/api/row.add%28%29
+				}
+				current_workers[key] = worker;
+				last_workers[key] = worker;
+			}
+			
+			for (var last_worker in last_workers) {
+				if (!current_workers[last_worker]) {
+					//TODO https://datatables.net/reference/api/row%28%29.remove%28%29
+					delete last_workers[last_worker];
+				}
+			}
+		};
+		
+		var do_refresh = function() {
+			$.ajax({
+				url: mydmam.manager.url.allworkers,
+				type: "POST",
+				beforeSend: function() {
+					$(query_destination + " div.refreshhourglass").css('visibility', 'visible');
+				},
+				error: function(jqXHR, textStatus, errorThrown) {
+					$(query_destination + " div.refreshhourglass").css('visibility', 'hidden');
+					$(query_destination + ' div.tableworkers').html('<div class="alert"><strong>' + i18n('manager.workers.refresherror') + '</strong></div>');
+				},
+				success: function(rawdata) {
+					$(query_destination + " div.refreshhourglass").css('visibility', 'hidden');
+					if (rawdata == null | rawdata.length === 0) {
+						$(query_destination + ' div.tableworkers').html('<div class="alert alert-info"><strong>' + i18n("manager.workers.empty") + '</strong></div>');
+						return;
+					}
+					update(rawdata);
+				}
+			});
+		};
+
+		var content = '';
+		content = content + '<div class="tableworkers"></div>';
+		content = content + '<div class="refreshhourglass muted" style="visibility: hidden;"><small>' + i18n('manager.workers.inrefresh') + '</small></div>';
+		$(query_destination).html(content);
+		do_refresh();
+		setInterval(do_refresh, 2000);
 	};
 })(window.mydmam.manager);
 

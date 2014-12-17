@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.gson.JsonObject;
+
 public abstract class WorkerNG {
 	
 	public enum WorkerCategory {
@@ -269,6 +271,15 @@ public abstract class WorkerNG {
 	
 	final String getReferenceKey() {
 		return reference_key;
+	}
+	
+	final JsonObject getManagerReference() {
+		JsonObject jo = new JsonObject();
+		jo.addProperty("app_name", manager.getInstance_status().getAppName());
+		jo.addProperty("host_name", manager.getInstance_status().getHostName());
+		jo.addProperty("instance_name", manager.getInstance_status().getInstanceName());
+		jo.addProperty("instance_ref", manager.getInstance_status().getInstanceNamePid());
+		return jo;
 	}
 	
 	final JobNG getCurrentJob() {
