@@ -53,7 +53,14 @@
 (function(manager) {
 	manager.refreshWorkersStatus = function(query_destination) {
 
-		var datatable = null;
+		var set_btn_event_in_collapse = function() {
+			var tr_class = $(this).data("collapsetarget");
+			var all_collapse = $(query_destination + ' div.tableworkers tr.' + tr_class + ' div.collapse.notyetcollapsed');
+			all_collapse.addClass('in');
+			all_collapse.removeClass('notyetcollapsed');
+			$(this).remove();
+			return true;
+		};
 		
 		var drawTable = function(workers) {
 			var content = '';
@@ -62,45 +69,33 @@
 			content = content + '<th>' + i18n('instance') + '</th>';
 			content = content + '<th>' + i18n('name') + '</th>';
 			content = content + '<th>' + i18n('state') + '</th>';
-			content = content + '<th>' + i18n('current_job_key') + '</th>';
 			content = content + '<th>' + i18n('capablities') + '</th>';
 			content = content + '</thead>';
 			content = content + '<tbody>';
-			for (var pos_wr = 0; pos_wr < workers.length; pos_wr++) {
+			/*for (var pos_wr = 0; pos_wr < workers.length; pos_wr++) {
 				var worker = workers[pos_wr];
 				var instance = worker.manager_reference.members;
+				var tr_class = 'wkrsrow-' + pos_wr;
 				
-				content = content + '<tr data-workerref="' + worker.reference_key + '" data-instanceref="' + instance.instance_ref + '">';
+				content = content + '<tr class="' + tr_class + '" data-workerref="' + worker.reference_key + '" data-instanceref="' + instance.instance_ref + '">';
 				content = content + '<td>';
-				content = content + '<strong>' +instance.app_name + '</strong><br/>';
-				content = content + instance.instance_name + '<br/>';
+				content = content + '<strong>' +instance.app_name + '</strong>&nbsp;&bull; ';
+				content = content + instance.instance_name + ' ';
+				content = content + '<button class="btn btn-mini btnincollapse pull-right notyetsetevent" data-collapsetarget="' + tr_class + '"><i class="icon-chevron-down"></i></button><br/>';
+				content = content + '<div class="collapse notyetcollapsed">';
 				content = content + '<small>' + instance.host_name + '</small>';
+				content = content + '</div>'; // collapse
 				content = content + '</td>';
 				
 				content = content + '<td>';
-				content = content + worker.long_name + '<br/>';
+				content = content + worker.long_name;
+				content = content + '<div class="collapse notyetcollapsed">';
 				content = content + '<span class="label label-inverse">' + i18n('manager.workers.category.' + worker.category) + '</span><br/>';
 				content = content + '<small>' + worker.vendor_name + '</small><br/>';
 				var worker_class_name = worker.worker_class.substring(worker.worker_class.lastIndexOf('.') + 1, worker.worker_class.length);
 				content = content + '<abbr title="' + worker.worker_class + '">' + worker_class_name + '.class</abbr>';
+				content = content + '</div>'; // collapse
 				content = content + '</td>';
-				
-				/*
-				TODO Add collapse for worker infos
-				var cssclassname = 'mgr-' + pos_i + '-' + pos; 
-				content = content + '<button class="btn btn-mini btnincollapse" data-collapsetarget="' + cssclassname + '"><i class="icon-chevron-down"></i></button>';
-				content = content + '<div class="collapse ' + cssclassname + '">';
-				for (var pos_ep = 1; pos_ep < execpoints.length - 1; pos_ep++) {
-					var execpoint = execpoints[pos_ep];
-					content = content + getStacktraceline(execpoint) + '<br />';
-				}
-				content = content + '</div>'; //collapse
-				$(query_destination + ' button.btn.btn-mini.btnincollapse').click(function() {
-					var collapsetarget = $(this).data("collapsetarget");
-					$(query_destination + ' div.collapse.' + collapsetarget).addClass('in');
-					$(this).remove();
-					return true;
-				});*/
 				
 				content = content + '<td>';
 				if (worker.state === 'WAITING') {
@@ -114,77 +109,101 @@
 				} else {
 					content = content + worker.state;
 				}
+				
+				content = content + '<div class="collapse notyetcollapsed">';
+				if (worker.current_job_key) {
+					content = content + '<small>' + i18n('manager.workers.currentjob', worker.current_job_key) + '</small>';
+				}
+				content = content + '</div>'; // collapse
+				
 				content = content + '</td>';
 
-				content = content + '<td>';
+				content = content + '<td><small>';
 				var capablities = worker.capablities;
 				for (var pos_wcap = 0; pos_wcap < capablities.length; pos_wcap++) {
 					var capablity = capablities[pos_wcap];
-					// capablity.storages_available []
-					// capablity.job_context_avaliable
+					var job_context_avaliable_class_name = capablity.job_context_avaliable.substring(capablity.job_context_avaliable.lastIndexOf('.') + 1, capablity.job_context_avaliable.length);
+					content = content + '&bull; <abbr title="' + capablity.job_context_avaliable + '">' + job_context_avaliable_class_name + '.class</abbr>';
+					
+					content = content + '<div class="collapse notyetcollapsed">';
+					var storages_available = capablity.storages_available;
+					if (storages_available) {
+						content = content + i18n('manager.workers.capablitystorages') + ' ';
+						for (var pos_sa = 0; pos_sa < storages_available.length; pos_sa++) {
+							var storage_available = storages_available[pos_sa];
+							content = content + storage_available;
+							if (pos_sa + 1 !== storages_available.length) {
+								content = content + ', ';
+							}
+						}
+					}
+					content = content + '</div>'; // collapse
+					if (pos_wcap + 1 !== capablities.length) {
+						content = content + '<br/>';
+					}
 				}
-				content = content + '</td>';
-				
-				content = content + '<td>' + worker.current_job_key + '</td>';
+				content = content + '</small></td>';
 				
 				content = content + '</tr>';
-			}
+			}*/
 			content = content + '</tbody>';
 			content = content + '</table>';
 			
-			/*{
-			 * "category":"INTERNAL",
-			 * "long_name":"Dummy worker 1",
-			 * "vendor_name":"MyDMAM Test classes",
-			 * "worker_class":"hd3gtv.mydmam.manager.dummy.Dummy1WorkerNG",
-			 * "state":"WAITING",
-			 * "reference_key":"worker:3e1990fe861f1b5675a4554f4ff5d562",
-			 * "manager_reference":{"members":{"app_name":"MyDMAM - Probe service","host_name":"qcerzcrqzr","instance_name":"mydmamvm","instance_ref":"mydmamvm#80783@qcerzcrqzr"}},
-			 * "current_job_key":null,
-			 * "capablities":[
-			 *		{"storages_available":["REAZRZERZERZE"],
-			 *		"job_context_avaliable":"hd3gtv.mydmam.manager.dummy.Dummy1Context"}
-			 * ]}*/
-			
 			$(query_destination + ' div.tableworkers').html(content);
-			/*datatable = $(query_destination + ' div.tableworkers table').dataTable({ //TODO set datatable
+			datatable = $(query_destination + ' div.tableworkers table').dataTable({
 				"bPaginate": false,
 				"bLengthChange": false,
 				"bSort": true,
 				"bInfo": false,
 				"bAutoWidth": false,
 				"bFilter": true,
-			});*/
+			});
+			
+			$(query_destination + ' div.tableworkers tr button.btn.btn-mini.btnincollapse.notyetsetevent').click(set_btn_event_in_collapse);
+			
+			return datatable;
 		};
 		
 		var last_workers = {};
+		var datatable_workers_position = {};
+		var datatable = null;
 		
 		var update = function(workers) {
 			if (datatable == null) {
-				drawTable(workers);
-				for (var pos_wr = 0; pos_wr < workers.length; pos_wr++) {
+				datatable = drawTable(workers);
+				/*for (var pos_wr = 0; pos_wr < workers.length; pos_wr++) {
 					last_workers[workers[pos_wr].reference_key] = workers[pos_wr];
-				}
-				return;
+				}*/
 			}
 			
-			//TODO https://datatables.net/reference/api/
 			var current_workers = {};
-			for (var worker in workers) {
+			
+			for (var pos_wr in workers) {
+				var worker = workers[pos_wr];
 				var key = worker.reference_key;
 				if (last_workers[key]) {
 					//TODO update ?
+					//console.log('update', worker);
+					//datatable.fnUpdate(["DDD<strong>sds</strong>","Bdsd","Csdsd","Dsdsd"], datatable_workers_position[key]);
 				} else {
-					//TODO https://datatables.net/reference/api/row.add%28%29
+					//TODO add
+					//console.log('add', worker);
+					var new_item_pos = datatable.fnAddData(["A<strong>BB</strong>","B","C","D"]);
+					datatable_workers_position[key] = new_item_pos[0];
+					//content = content + '<tr class="' + tr_class + '" data-workerref="' + worker.reference_key + '" data-instanceref="' + instance.instance_ref + '">';
+					//content = content + '<td>';
+					//datatable_workers_position
 				}
 				current_workers[key] = worker;
 				last_workers[key] = worker;
 			}
 			
-			for (var last_worker in last_workers) {
-				if (!current_workers[last_worker]) {
-					//TODO https://datatables.net/reference/api/row%28%29.remove%28%29
-					delete last_workers[last_worker];
+			for (var key in last_workers) {
+				if (!current_workers[key]) {
+					//TODO remove
+					// console.log('remove', last_workers[key]);
+					//datatable.fnDeleteRow(0);
+					delete last_workers[key];
 				}
 			}
 		};
@@ -199,11 +218,15 @@
 				error: function(jqXHR, textStatus, errorThrown) {
 					$(query_destination + " div.refreshhourglass").css('visibility', 'hidden');
 					$(query_destination + ' div.tableworkers').html('<div class="alert"><strong>' + i18n('manager.workers.refresherror') + '</strong></div>');
+					last_workers = {};
+					datatable = null;
 				},
 				success: function(rawdata) {
 					$(query_destination + " div.refreshhourglass").css('visibility', 'hidden');
 					if (rawdata == null | rawdata.length === 0) {
 						$(query_destination + ' div.tableworkers').html('<div class="alert alert-info"><strong>' + i18n("manager.workers.empty") + '</strong></div>');
+						last_workers = {};
+						datatable = null;
 						return;
 					}
 					update(rawdata);

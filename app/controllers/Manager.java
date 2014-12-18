@@ -37,7 +37,9 @@ public class Manager extends Controller {
 	
 	@Check("showManager")
 	public static void allworkers() throws Exception {
-		renderJSON(InstanceStatus.Gatherer.getAllWorkersJsonString());
+		String result = InstanceStatus.Gatherer.getAllWorkersJsonString();
+		// result = "[]";
+		renderJSON(result);
 	}
 	
 }

@@ -100,6 +100,8 @@ manager.workers.state.PROCESSING=In processing
 manager.workers.state.WAITING=In waiting
 manager.workers.state.STOPPED=Stopped
 manager.workers.state.PENDING_STOP=In stop pending
+manager.workers.currentjob=Current job: %s
+manager.workers.capablitystorages=Storages:
 
 application.navigate=Storage
 
