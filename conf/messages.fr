@@ -91,6 +91,15 @@ manager.workers.title=Workers actifs
 manager.workers.empty=Pas de workers actifs...
 manager.workers.refresherror=Impossible d'actualiser la liste des workers. Vérifiez votre accès au serveur.
 manager.workers.inrefresh=Le tableau est en cours de mise à jour...
+manager.workers.category.INDEXING=Indexation
+manager.workers.category.METADATA=Metadata
+manager.workers.category.EXTERNAL_MODULE=Module
+manager.workers.category.USERACTION=Action utilisateur
+manager.workers.category.INTERNAL=Interne
+manager.workers.state.PROCESSING=En traitement
+manager.workers.state.WAITING=En attente
+manager.workers.state.STOPPED=Arrêté
+manager.workers.state.PENDING_STOP=En cours d'arrêt
 
 application.navigate=Stockage
 

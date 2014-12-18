@@ -59,20 +59,75 @@
 			var content = '';
 			content = content + '<table class="table table-striped table-bordered table-hover table-condensed">';
 			content = content + '<thead>';
-			content = content + '<th>' + i18n('') + '</th>';
-			content = content + '<th>' + i18n('') + '</th>';
-			content = content + '<th>' + i18n('') + '</th>';
-			content = content + '<th>' + i18n('') + '</th>';
-			content = content + '<th>' + i18n('') + '</th>';
-			content = content + '<th>' + i18n('') + '</th>';
-			content = content + '<th>' + i18n('') + '</th>';
-			content = content + '<th>' + i18n('') + '</th>';
-			content = content + '<th>' + i18n('') + '</th>';
-			content = content + '<th>' + i18n('') + '</th>';
+			content = content + '<th>' + i18n('instance') + '</th>';
+			content = content + '<th>' + i18n('name') + '</th>';
+			content = content + '<th>' + i18n('state') + '</th>';
+			content = content + '<th>' + i18n('current_job_key') + '</th>';
+			content = content + '<th>' + i18n('capablities') + '</th>';
 			content = content + '</thead>';
 			content = content + '<tbody>';
 			for (var pos_wr = 0; pos_wr < workers.length; pos_wr++) {
-				//content = content + workers[pos_wr], pos;
+				var worker = workers[pos_wr];
+				var instance = worker.manager_reference.members;
+				
+				content = content + '<tr data-workerref="' + worker.reference_key + '" data-instanceref="' + instance.instance_ref + '">';
+				content = content + '<td>';
+				content = content + '<strong>' +instance.app_name + '</strong><br/>';
+				content = content + instance.instance_name + '<br/>';
+				content = content + '<small>' + instance.host_name + '</small>';
+				content = content + '</td>';
+				
+				content = content + '<td>';
+				content = content + worker.long_name + '<br/>';
+				content = content + '<span class="label label-inverse">' + i18n('manager.workers.category.' + worker.category) + '</span><br/>';
+				content = content + '<small>' + worker.vendor_name + '</small><br/>';
+				var worker_class_name = worker.worker_class.substring(worker.worker_class.lastIndexOf('.') + 1, worker.worker_class.length);
+				content = content + '<abbr title="' + worker.worker_class + '">' + worker_class_name + '.class</abbr>';
+				content = content + '</td>';
+				
+				/*
+				TODO Add collapse for worker infos
+				var cssclassname = 'mgr-' + pos_i + '-' + pos; 
+				content = content + '<button class="btn btn-mini btnincollapse" data-collapsetarget="' + cssclassname + '"><i class="icon-chevron-down"></i></button>';
+				content = content + '<div class="collapse ' + cssclassname + '">';
+				for (var pos_ep = 1; pos_ep < execpoints.length - 1; pos_ep++) {
+					var execpoint = execpoints[pos_ep];
+					content = content + getStacktraceline(execpoint) + '<br />';
+				}
+				content = content + '</div>'; //collapse
+				$(query_destination + ' button.btn.btn-mini.btnincollapse').click(function() {
+					var collapsetarget = $(this).data("collapsetarget");
+					$(query_destination + ' div.collapse.' + collapsetarget).addClass('in');
+					$(this).remove();
+					return true;
+				});*/
+				
+				content = content + '<td>';
+				if (worker.state === 'WAITING') {
+					content  = content + '<span class="label label-success">' + i18n('manager.workers.state.' + worker.state) + '</span>';
+				} else if (worker.state === 'PROCESSING') {
+					content  = content + '<span class="label label-warning">' + i18n('manager.workers.state.' + worker.state) + '</span>';
+				} else if (worker.state === 'STOPPED') {
+					content  = content + '<span class="label label-info">' + i18n('manager.workers.state.' + worker.state) + '</span>';
+				} else if (worker.state === 'PENDING_STOP') {
+					content  = content + '<span class="label label-important">' + i18n('manager.workers.state.' + worker.state) + '</span>';
+				} else {
+					content = content + worker.state;
+				}
+				content = content + '</td>';
+
+				content = content + '<td>';
+				var capablities = worker.capablities;
+				for (var pos_wcap = 0; pos_wcap < capablities.length; pos_wcap++) {
+					var capablity = capablities[pos_wcap];
+					// capablity.storages_available []
+					// capablity.job_context_avaliable
+				}
+				content = content + '</td>';
+				
+				content = content + '<td>' + worker.current_job_key + '</td>';
+				
+				content = content + '</tr>';
 			}
 			content = content + '</tbody>';
 			content = content + '</table>';
@@ -161,7 +216,7 @@
 		content = content + '<div class="refreshhourglass muted" style="visibility: hidden;"><small>' + i18n('manager.workers.inrefresh') + '</small></div>';
 		$(query_destination).html(content);
 		do_refresh();
-		setInterval(do_refresh, 2000);
+		setInterval(do_refresh, 5000);
 	};
 })(window.mydmam.manager);
 
