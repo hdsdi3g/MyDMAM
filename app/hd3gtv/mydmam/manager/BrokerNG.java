@@ -108,7 +108,7 @@ class BrokerNG {
 				MutationBatch mutator = null;
 				JobNG job;
 				int time_spacer = 0;
-				int max_time_spacer = 100;
+				int max_time_spacer = 10;
 				List<JobNG> jobs;
 				CyclicJobCreator cyclic_creator;
 				long precedent_date_trigger = System.currentTimeMillis();
@@ -146,7 +146,7 @@ class BrokerNG {
 						}
 					}
 					
-					if (declared_cyclics.isEmpty() != false) {
+					if (declared_cyclics.isEmpty() == false) {
 						// TODO phase 2, cyclic only on the off hours
 						for (int pos_dc = 0; pos_dc < declared_cyclics.size(); pos_dc++) {
 							cyclic_creator = declared_cyclics.get(pos_dc);
@@ -154,6 +154,7 @@ class BrokerNG {
 								if (mutator == null) {
 									mutator = CassandraDb.prepareMutationBatch();
 								}
+								Log2.log.debug("Cyclic create jobs", cyclic_creator);
 								cyclic_creator.createJobs(mutator);
 							}
 						}
@@ -270,7 +271,6 @@ class BrokerNG {
 						 */
 						for (int pos_wj = 0; pos_wj < waiting_jobs.size(); pos_wj++) {
 							current_job = waiting_jobs.get(pos_wj);
-							
 							if (current_job.getPriority() < best_priority) {
 								/**
 								 * This job priority is not the best for the moment

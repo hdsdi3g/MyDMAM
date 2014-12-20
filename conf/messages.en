@@ -102,6 +102,21 @@ manager.workers.state.STOPPED=Stopped
 manager.workers.state.PENDING_STOP=In stop pending
 manager.workers.currentjob=Current job: %s
 manager.workers.capablitystorages=Storages:
+manager.workers.th.instance=Instance
+manager.workers.th.name=Name
+manager.workers.th.state=State
+manager.workers.th.capabilities=Capabilities
+manager.jobcreator.disabled=Disabled
+manager.jobcreator.createdby=Created by: 
+manager.jobcreator.th.instance=Instance
+manager.jobcreator.th.name=Name
+manager.jobcreator.th.declarations=Jobs creations
+manager.jobcreator.context.neededindexedstoragesnames=Linked storages:
+manager.jobcreator.cyclic.period=Period
+manager.jobcreator.cyclic.periodvalue=Creating every %s seconds
+manager.jobcreator.cyclic.nextdate=Next creation:
+manager.jobcreator.cyclic.nonextdate=No next creation
+manager.jobcreator.trigger.hook=Trigger on
 
 application.navigate=Storage
 

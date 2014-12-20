@@ -53,10 +53,10 @@
 		var content = '';
 		content = content + '<table class="table table-striped table-bordered table-hover table-condensed" style="margin-bottom: 0px;">';
 		content = content + '<thead>';
-		content = content + '<th>' + i18n('instance') + '</th>';
-		content = content + '<th>' + i18n('name') + '</th>';
-		content = content + '<th>' + i18n('state') + '</th>';
-		content = content + '<th>' + i18n('capablities') + '</th>';
+		content = content + '<th>' + i18n('manager.workers.th.instance') + '</th>';
+		content = content + '<th>' + i18n('manager.workers.th.name') + '</th>';
+		content = content + '<th>' + i18n('manager.workers.th.state') + '</th>';
+		content = content + '<th>' + i18n('manager.workers.th.capabilities') + '</th>';
 		content = content + '</thead>';
 		content = content + '<tbody>';
 		content = content + '</tbody>';

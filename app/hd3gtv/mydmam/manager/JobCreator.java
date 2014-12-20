@@ -16,23 +16,67 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+
 import java.util.ArrayList;
-import java.util.List;
 
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-abstract class JobCreator<T extends JobCreatorDeclaration> {
+abstract class JobCreator implements Log2Dumpable {
 	
 	transient protected AppManager manager;
 	private Class<?> creator;
 	private boolean enabled;
-	@SuppressWarnings("unused")
 	private String long_name;
-	@SuppressWarnings("unused")
 	private String vendor_name;
 	@GsonIgnore
-	protected List<T> declarations;
+	ArrayList<Declaration> declarations;
+	
+	class Declaration implements Log2Dumpable {
+		ArrayList<JobContext> contexts;
+		String job_name;
+		
+		Declaration() {
+		}
+		
+		Declaration(String job_name, JobContext... contexts) {
+			this.job_name = job_name;
+			this.contexts = new ArrayList<JobContext>(contexts.length);
+			for (int pos = 0; pos < contexts.length; pos++) {
+				this.contexts.add(contexts[pos]);
+			}
+		}
+		
+		void createJobs(MutationBatch mutator) throws ConnectionException {
+			JobNG require = null;
+			for (int pos_dc = 0; pos_dc < contexts.size(); pos_dc++) {
+				JobContext declatation_context = contexts.get(pos_dc);
+				JobNG job = manager.createJob(declatation_context);
+				job.setDeleteAfterCompleted();
+				job.setCreator(creator);
+				if (contexts.size() > 0) {
+					job.setName(job_name);
+				} else {
+					job.setName(job_name + " (" + (pos_dc + 1) + "/" + contexts.size() + ")");
+				}
+				job.setRequireCompletedJob(require);
+				createJobsInternal(mutator, job, require);
+				job.publish(mutator);
+				require = job;
+			}
+		}
+		
+		public Log2Dump getLog2Dump() {
+			Log2Dump dump = new Log2Dump();
+			dump.add("job_name", job_name);
+			for (int pos = 0; pos < contexts.size(); pos++) {
+				dump.add("context", AppManager.getGson().toJson(contexts.get(pos)));
+			}
+			return dump;
+		}
+	}
 	
 	public JobCreator(AppManager manager) {
 		this.manager = manager;
@@ -40,10 +84,10 @@ abstract class JobCreator<T extends JobCreatorDeclaration> {
 			throw new NullPointerException("\"manager\" can't to be null");
 		}
 		enabled = true;
-		declarations = new ArrayList<T>();
+		declarations = new ArrayList<Declaration>();
 	}
 	
-	public final JobCreator<T> setOptions(Class<?> creator, String long_name, String vendor_name) {
+	public final JobCreator setOptions(Class<?> creator, String long_name, String vendor_name) {
 		this.creator = creator;
 		this.long_name = long_name;
 		this.vendor_name = vendor_name;
@@ -61,17 +105,16 @@ abstract class JobCreator<T extends JobCreatorDeclaration> {
 		return enabled;
 	}
 	
-	protected abstract T createDeclaration(AppManager manager, Class<?> creator, String name, JobContext... contexts);
-	
-	// return new JobCreatorDeclaration(manager, creator, name, contexts);
+	protected void createJobsInternal(MutationBatch mutator, JobNG job, JobNG require) throws ConnectionException {
+	}
 	
 	/**
 	 * @param contexts will be dependant (the second need the first, the third need the second, ... the first is the most prioritary)
 	 * @throws ClassNotFoundException a context can't to be serialized
 	 */
-	public final JobCreator<T> add(String jobname, JobContext... contexts) throws ClassNotFoundException {
-		if (jobname == null) {
-			throw new NullPointerException("\"jobname\" can't to be null");
+	public final JobCreator add(String job_name, JobContext... contexts) throws ClassNotFoundException {
+		if (job_name == null) {
+			throw new NullPointerException("\"job_name\" can't to be null");
 		}
 		if (contexts == null) {
 			throw new NullPointerException("\"contexts\" can't to be null");
@@ -85,7 +128,7 @@ abstract class JobCreator<T extends JobCreatorDeclaration> {
 		for (int pos = 0; pos < contexts.length; pos++) {
 			new JobNG(manager, contexts[pos]);
 		}
-		this.declarations.add(createDeclaration(manager, creator, jobname, contexts));
+		declarations.add(new Declaration(job_name, contexts));
 		return this;
 	}
 	
@@ -99,4 +142,13 @@ abstract class JobCreator<T extends JobCreatorDeclaration> {
 		}
 	}
 	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("creator", creator);
+		dump.add("enabled", enabled);
+		dump.add("long_name", long_name);
+		dump.add("vendor_name", vendor_name);
+		dump.add("declarations", declarations);
+		return dump;
+	}
 }

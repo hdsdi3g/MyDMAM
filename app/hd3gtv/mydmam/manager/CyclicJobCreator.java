@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class CyclicJobCreator extends JobCreator<CyclicJobCreatorDeclaration> {
+public final class CyclicJobCreator extends JobCreator {
 	
 	private long period;
 	private long next_date_to_create_jobs;
@@ -67,9 +67,10 @@ public class CyclicJobCreator extends JobCreator<CyclicJobCreatorDeclaration> {
 		super.createJobs(mutator);
 	}
 	
-	protected CyclicJobCreatorDeclaration createDeclaration(AppManager manager, Class<?> creator, String name, JobContext... contexts) {
-		return new CyclicJobCreatorDeclaration(manager, creator, name, period, contexts);
+	protected void createJobsInternal(MutationBatch mutator, JobNG job, JobNG require) throws ConnectionException {
+		job.setExpirationTime(period, TimeUnit.MILLISECONDS);
+		job.setMaxExecutionTime(period, TimeUnit.MILLISECONDS);
 	}
 	
-	static JobCreatorSerializer<CyclicJobCreator, CyclicJobCreatorDeclaration> serializer = new JobCreatorSerializer<CyclicJobCreator, CyclicJobCreatorDeclaration>();
+	static JobCreatorSerializer<CyclicJobCreator> serializer = new JobCreatorSerializer<CyclicJobCreator>(CyclicJobCreator.class);
 }

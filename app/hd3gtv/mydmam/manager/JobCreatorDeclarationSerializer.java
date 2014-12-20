@@ -28,21 +28,19 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-final class JobCreatorDeclarationSerializer<U extends JobCreatorDeclaration> implements JsonSerializer<U>, JsonDeserializer<U> {
+final class JobCreatorDeclarationSerializer implements JsonSerializer<JobCreator.Declaration>, JsonDeserializer<JobCreator.Declaration> {
 	
-	private Type u_typeOfT = new TypeToken<U>(getClass()) {
-	}.getType();
 	private Type al_JobContext_typeOfT = new TypeToken<ArrayList<JobContext>>() {
 	}.getType();
 	
-	public U deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+	public JobCreator.Declaration deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 		JsonObject jo = json.getAsJsonObject();
-		U result = AppManager.getSimpleGson().fromJson(json, u_typeOfT);
+		JobCreator.Declaration result = AppManager.getSimpleGson().fromJson(json, JobCreator.Declaration.class);
 		result.contexts = AppManager.getGson().fromJson(jo.get("contexts"), al_JobContext_typeOfT);
 		return result;
 	}
 	
-	public JsonElement serialize(U src, Type typeOfSrc, JsonSerializationContext context) {
+	public JsonElement serialize(JobCreator.Declaration src, Type typeOfSrc, JsonSerializationContext context) {
 		JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
 		result.add("contexts", AppManager.getGson().toJsonTree(src.contexts, al_JobContext_typeOfT));
 		return result;

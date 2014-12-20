@@ -130,6 +130,7 @@ public final class JobNG implements Log2Dumpable {
 	private String worker_reference;
 	private Class<?> worker_class;
 	private String instance_status_executor_key;
+	@SuppressWarnings("unused")
 	private String instance_status_executor_hostname;
 	
 	JobNG(AppManager manager, JobContext context) throws ClassNotFoundException {
@@ -169,7 +170,9 @@ public final class JobNG implements Log2Dumpable {
 	}
 	
 	public JobNG setRequireCompletedJob(JobNG require) {
-		require_key = require.key;
+		if (require != null) {
+			require_key = require.key;
+		}
 		return this;
 	}
 	
@@ -306,7 +309,7 @@ public final class JobNG implements Log2Dumpable {
 		public JsonElement serialize(JobNG src, Type typeOfSrc, JsonSerializationContext jcontext) {
 			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
 			result.add("context", AppManager.getGson().toJsonTree(src.context, JobContext.class));
-			return null;
+			return result;
 		}
 	}
 	
@@ -504,7 +507,8 @@ public final class JobNG implements Log2Dumpable {
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			ArrayList<JobNG> result = new ArrayList<JobNG>();
 			for (Row<String, String> row : rows.getResult()) {
-				result.add(JobNG.Utility.importFromDatabase(row.getColumns()));
+				JobNG new_job = JobNG.Utility.importFromDatabase(row.getColumns());
+				result.add(new_job);
 			}
 			return result;
 		}
@@ -596,7 +600,7 @@ public final class JobNG implements Log2Dumpable {
 		dump.add("max_execution_time", max_execution_time);
 		dump.add("name", name);
 		dump.add("priority", priority);
-		dump.add("context", context);
+		dump.add("context", AppManager.getGson().toJson(context, JobContext.class));
 		dump.add("status", status);
 		dump.add("progression", progression);
 		dump.addDate("create_date", create_date);
@@ -606,13 +610,15 @@ public final class JobNG implements Log2Dumpable {
 		dump.addDate("end_date", end_date);
 		dump.add("require_key", require_key);
 		dump.add("delete_after_completed", delete_after_completed);
-		dump.add("executor key", instance_status_executor_key);
-		dump.add("executor hostname", instance_status_executor_hostname);
-		dump.add("creator key", instance_status_creator_key);
-		dump.add("creator hostname", instance_status_creator_hostname);
-		dump.add("processing error", processing_error.getPrintedStackTrace());
+		dump.add("executor", instance_status_executor_key);
+		dump.add("creator", instance_status_creator_key);
+		if (processing_error != null) {
+			dump.add("processing error", processing_error.getPrintedStackTrace());
+		}
 		dump.add("worker_reference", worker_reference);
-		dump.add("worker_class", worker_class.getName());
+		if (worker_class != null) {
+			dump.add("worker_class", worker_class.getName());
+		}
 		return dump;
 	}
 }

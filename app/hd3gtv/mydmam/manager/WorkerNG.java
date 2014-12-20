@@ -150,18 +150,25 @@ public abstract class WorkerNG {
 				current_executor_watch_dog.start();
 			}
 			try {
+				Log2.log.debug("Start processing", job);
+				
 				workerProcessJob(job.startProcessing(manager, reference), job.getContext());
+				
 				if (job.isMaxExecutionTimeIsReached()) {
 					job.endProcessing_TooLongDuration();
 					manager.getServiceException().onMaxExecJobTime(job);
+					Log2.log.error("Max execution time is reached", null, job);
 				} else {
 					if (refuse_new_jobs) {
 						job.endProcessing_Stopped();
+						Log2.log.debug("Stop execution", job);
 					} else {
 						job.endProcessing_Done();
+						Log2.log.debug("End execution", job);
 					}
 				}
 			} catch (Exception e) {
+				Log2.log.error("Processing error", e, job);
 				job.endProcessing_Error(e);
 				manager.getServiceException().onError(e, "Error during processing", reference);
 			}
@@ -235,6 +242,9 @@ public abstract class WorkerNG {
 			refuse_new_jobs = true;
 			if (getState() == WorkerState.PROCESSING) {
 				try {
+					if (current_executor != null) {
+						Log2.log.debug("Force stop process", current_executor.job);
+					}
 					forceStopProcess();
 				} catch (Exception e) {
 					manager.getServiceException().onError(e, "Can't stop current process", reference);

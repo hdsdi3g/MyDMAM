@@ -102,6 +102,22 @@ manager.workers.state.STOPPED=Arrêté
 manager.workers.state.PENDING_STOP=En cours d'arrêt
 manager.workers.currentjob=Job courant : %s
 manager.workers.capablitystorages=Stockages:
+manager.workers.th.instance=Instance
+manager.workers.th.name=Nom
+manager.workers.th.state=Etat
+manager.workers.th.capabilities=Capacités
+manager.jobcreator.th.instance=Instance
+manager.jobcreator.th.name=Nom
+manager.jobcreator.th.declarations=Creations de jobs
+manager.jobcreator.context.neededindexedstoragesnames=Stockages liés :
+manager.jobcreator.cyclic.period=Période
+manager.jobcreator.cyclic.periodvalue=Création toutes les %s secondes
+manager.jobcreator.cyclic.nextdate=Prochaine création :
+manager.jobcreator.cyclic.nonextdate=Pas de prochaine création
+manager.jobcreator.trigger.hook=Job de déclenchement
+
+manager.jobcreator.disabled=Desactivé
+manager.jobcreator.createdby=Crée par :
 
 application.navigate=Stockage
 

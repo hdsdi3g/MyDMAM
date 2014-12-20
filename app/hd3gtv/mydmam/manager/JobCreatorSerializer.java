@@ -28,17 +28,19 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-final class JobCreatorSerializer<T extends JobCreator<U>, U extends JobCreatorDeclaration> implements JsonSerializer<T>, JsonDeserializer<T> {
+class JobCreatorSerializer<T extends JobCreator> implements JsonSerializer<T>, JsonDeserializer<T> {
 	
-	private Type al_JobDeclaration_typeOfT = new TypeToken<ArrayList<T>>() {
+	private Class<T> referer_class;
+	private Type al_JobDeclaration_typeOfT = new TypeToken<ArrayList<JobCreator.Declaration>>() {
 	}.getType();
 	
-	private Type t_typeOfT = new TypeToken<T>(getClass()) {
-	}.getType();
+	JobCreatorSerializer(Class<T> referer_class) {
+		this.referer_class = referer_class;
+	}
 	
 	public T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 		JsonObject jo = json.getAsJsonObject();
-		T result = AppManager.getSimpleGson().fromJson(json, t_typeOfT);
+		T result = AppManager.getSimpleGson().fromJson(json, referer_class);
 		result.declarations = AppManager.getGson().fromJson(jo.get("declarations"), al_JobDeclaration_typeOfT);
 		return result;
 	}

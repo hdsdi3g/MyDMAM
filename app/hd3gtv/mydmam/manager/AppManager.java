@@ -83,10 +83,9 @@ public final class AppManager {
 		builder.registerTypeAdapter(new TypeToken<ArrayList<JobContext>>() {
 		}.getType(), new JobContext.SerializerList());
 		
-		builder.registerTypeAdapter(CyclicJobCreator.class, CyclicJobCreator.serializer);
-		builder.registerTypeAdapter(CyclicJobCreatorDeclaration.class, CyclicJobCreatorDeclaration.serializer);
+		builder.registerTypeAdapter(JobCreatorDeclarationSerializer.class, new JobCreatorDeclarationSerializer());
 		builder.registerTypeAdapter(TriggerJobCreator.class, TriggerJobCreator.serializer);
-		builder.registerTypeAdapter(TriggerJobCreatorDeclaration.class, TriggerJobCreatorDeclaration.serializer);
+		builder.registerTypeAdapter(CyclicJobCreator.class, CyclicJobCreator.serializer);
 		
 		gson = builder.create();
 		pretty_gson = builder.setPrettyPrinting().create();
@@ -122,7 +121,7 @@ public final class AppManager {
 			} else {
 				item = Class.forName(class_name);
 			}
-			if (item.isAssignableFrom(return_type) == false) {
+			if (return_type.isAssignableFrom(item) == false) {
 				Log2.log.error("Can't instanciate class", new ClassCastException(class_name));
 				return null;
 			}

@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
 
 import java.lang.reflect.Type;
@@ -58,6 +59,7 @@ public interface JobContext {
 				result.contextFromJson(json.getAsJsonObject("content"));
 				return result;
 			} catch (Exception e) {
+				Log2.log.error("Can't deserialize", e, new Log2Dump("json source", jejson.toString()));
 				throw new JsonParseException("Invalid context class", e);
 			}
 		}

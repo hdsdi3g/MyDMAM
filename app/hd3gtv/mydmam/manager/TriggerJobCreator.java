@@ -19,9 +19,14 @@ package hd3gtv.mydmam.manager;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.CassandraDb;
 
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -29,7 +34,7 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-public class TriggerJobCreator extends JobCreator<TriggerJobCreatorDeclaration> {
+public final class TriggerJobCreator extends JobCreator {
 	
 	private static Keyspace keyspace;
 	private static final ColumnFamily<String, String> CF_DONE_JOBS = new ColumnFamily<String, String>("mgrDoneJobs", StringSerializer.get(), StringSerializer.get());
@@ -76,6 +81,7 @@ public class TriggerJobCreator extends JobCreator<TriggerJobCreatorDeclaration> 
 	
 	// private JobContext context_hook;
 	private String context_hook_trigger_key;
+	private @GsonIgnore JobContext context_hook;
 	
 	public TriggerJobCreator(AppManager manager, JobContext context_hook) {
 		super(manager);
@@ -84,12 +90,27 @@ public class TriggerJobCreator extends JobCreator<TriggerJobCreatorDeclaration> 
 			throw new NullPointerException("\"context_hook\" can't to be null");
 		}
 		context_hook_trigger_key = JobContext.Utility.prepareContextKeyForTrigger(context_hook);
+		this.context_hook = context_hook;
 	}
 	
-	protected TriggerJobCreatorDeclaration createDeclaration(AppManager manager, Class<?> creator, String name, JobContext... contexts) {
-		return new TriggerJobCreatorDeclaration(manager, creator, name, contexts);
+	static class Serializer extends JobCreatorSerializer<TriggerJobCreator> {
+		Serializer() {
+			super(TriggerJobCreator.class);
+		}
+		
+		public JsonElement serialize(TriggerJobCreator src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonElement result = super.serialize(src, typeOfSrc, context);
+			result.getAsJsonObject().add("context_hook", AppManager.getGson().toJsonTree(src.context_hook, JobContext.class));
+			return result;
+		}
+		
+		public TriggerJobCreator deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			TriggerJobCreator result = super.deserialize(json, typeOfT, context);
+			result.context_hook = AppManager.getGson().fromJson(json.getAsJsonObject().get("context_hook"), JobContext.class);
+			return result;
+		}
 	}
 	
-	static JobCreatorSerializer<TriggerJobCreator, TriggerJobCreatorDeclaration> serializer = new JobCreatorSerializer<TriggerJobCreator, TriggerJobCreatorDeclaration>();
+	static Serializer serializer = new Serializer();
 	
 }

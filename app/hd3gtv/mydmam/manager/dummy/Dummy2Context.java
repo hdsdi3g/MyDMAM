@@ -14,14 +14,25 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.manager;
+package hd3gtv.mydmam.manager.dummy;
 
-class TriggerJobCreatorDeclaration extends JobCreatorDeclaration {
+import hd3gtv.mydmam.manager.JobContext;
+
+import java.util.List;
+
+import com.google.gson.JsonObject;
+
+public class Dummy2Context implements JobContext {
 	
-	TriggerJobCreatorDeclaration(AppManager manager, Class<?> creator, String name, JobContext[] contexts) {
-		super(manager, creator, name, contexts);
+	public JsonObject contextToJson() {
+		return new JsonObject();
 	}
 	
-	static JobCreatorDeclarationSerializer<TriggerJobCreatorDeclaration> serializer = new JobCreatorDeclarationSerializer<TriggerJobCreatorDeclaration>();
+	public void contextFromJson(JsonObject json_object) {
+	}
+	
+	public List<String> getNeededIndexedStoragesNames() {
+		return null;
+	}
 	
 }

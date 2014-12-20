@@ -123,14 +123,14 @@
 		 * Show Cyclic
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrcyclic") + '" id="mgrcyclic">';
-		content = content + manager.prepareCyclic(rawdata);
+		content = content + manager.jobcreator.prepareCyclic(rawdata);
 		content = content + '</div>'; //tab-pane
 		
 		/**
 		 * Show Triggers
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrtriggers") + '" id="mgrtriggers">';
-		content = content + manager.prepareTriggers(rawdata);
+		content = content + manager.jobcreator.prepareTriggers(rawdata);
 		content = content + '</div>'; //tab-pane
 		
 		/**
@@ -425,50 +425,6 @@
 		content = content + '</tbody>';
 		content = content + '</table>';
 
-		return content;
-	};
-})(window.mydmam.manager);
-
-/**
- * prepareCyclic(instances)
- */
-(function(manager) {
-	manager.prepareCyclic = function(instances) {
-		var content = 'C';
-		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
-			var instance = instances[pos_i];
-			var declared_cyclics = instance.declared_cyclics;
-			for (var pos_cy = 0; pos_cy < declared_cyclics.length; pos_cy++) {
-				var declared_cyclic = declared_cyclics[pos_cy];
-				//TODO display cyclics
-			}
-		}
-		/*content = content + '<blockquote><p>' + i18n('manager.classpaths.warnmessage') + '</p></blockquote>';
-		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
-		content = content + '<thead>';
-		content = content + '<th>' + i18n('manager.classpaths.item') + '</th>';
-		content = content + '<th>' + i18n('manager.classpaths.missinginstances') + '</th>';
-		content = content + '</thead>';
-		content = content + '<tbody>';*/
-
-		return content;
-	};
-})(window.mydmam.manager);
-
-/**
- * prepareTriggers(instances)
- */
-(function(manager) {
-	manager.prepareTriggers = function(instances) {
-		var content = 'T';
-		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
-			var instance = instances[pos_i];
-			var declared_triggers = instance.declared_triggers;
-			for (var pos_tr = 0; pos_tr < declared_triggers.length; pos_tr++) {
-				var declared_trigger = declared_triggers[pos_tr];
-				//TODO display trigger
-			}
-		}
 		return content;
 	};
 })(window.mydmam.manager);
