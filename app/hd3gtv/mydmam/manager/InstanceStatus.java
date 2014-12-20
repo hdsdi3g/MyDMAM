@@ -88,7 +88,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			sb_classpath.append(file.getParentFile().getName());
 			sb_classpath.append("/");
 			sb_classpath.append(file.getName());
-			current_classpath.add(sb_classpath.toString());
+			current_classpath.add(sb_classpath.toString().toLowerCase());
 		}
 		
 		try {
@@ -217,23 +217,8 @@ public final class InstanceStatus implements Log2Dumpable {
 		threadstacktraces.clear();
 		declared_cyclics = manager.getBroker().getDeclared_cyclics();
 		declared_triggers = manager.getBroker().getDeclared_triggers();
-		Thread key;
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
-			key = entry.getKey();
-			if (key.getName().equals("Signal Dispatcher")) {
-				continue;
-			} else if (key.getName().equals("Reference Handler")) {
-				continue;
-			} else if (key.getName().equals("Finalizer")) {
-				continue;
-			} else if (key.getName().equals("DestroyJavaVM")) {
-				continue;
-			} else if (key.getName().equals("Attach Listener")) {
-				continue;
-			} else if (key.getName().equals("Poller SunPKCS11-Darwin")) {
-				continue;
-			}
-			threadstacktraces.add(new ThreadStackTrace().importThread(key, entry.getValue()));
+			threadstacktraces.add(new ThreadStackTrace().importThread(entry.getKey(), entry.getValue()));
 		}
 		
 		useraction_functionality_list.clear();
@@ -340,9 +325,9 @@ public final class InstanceStatus implements Log2Dumpable {
 		private static final AppManager manager;
 		
 		static {
-			String name = "MyDMAM - Gatherer";
+			String name = "Gatherer";
 			if (Play.initialized) {
-				name = "MyDMAM - Play instance";
+				name = "This Play instance";
 			}
 			manager = new AppManager(name);
 		}

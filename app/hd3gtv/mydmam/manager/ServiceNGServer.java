@@ -26,7 +26,7 @@ import java.util.ArrayList;
 public class ServiceNGServer extends ServiceNG {
 	
 	public ServiceNGServer(String[] args) throws Exception {
-		super(args, "MyDMAM - Server service");
+		super(args, "Play Server service handler");
 	}
 	
 	private Execprocess process_play;

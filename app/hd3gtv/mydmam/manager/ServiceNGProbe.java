@@ -25,7 +25,7 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	private ClusterStatusService cluster_status_service;
 	
 	public ServiceNGProbe(String[] args) throws Exception {
-		super(args, "MyDMAM - Probe service");
+		super(args, "Probe service");
 		
 		cluster_status_service = new ClusterStatusService(getManager());
 		cluster_status_service.addCallbackEvent(this);
