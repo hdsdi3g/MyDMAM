@@ -38,7 +38,7 @@ public abstract class ServiceNG {
 					Thread tkill = new Thread() {
 						public void run() {
 							try {
-								sleep(8000);
+								sleep(5000);
 								Log2.log.error("Request KILL application", null);
 								System.exit(2);
 							} catch (Exception e) {

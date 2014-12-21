@@ -227,7 +227,6 @@ class BrokerNG {
 				
 				while (stop_queue == false) {
 					Thread.sleep(QUEUE_SLEEP_TIME);
-					
 					available_workers_capablities = manager.getAllCurrentWaitingWorkersByCapablitiesJobContextClasses();
 					
 					if (available_workers_capablities.isEmpty()) {
@@ -336,7 +335,7 @@ class BrokerNG {
 						
 						best_job_worker.internalProcess(best_job);
 						
-						if (stop_queue == false) {
+						if (stop_queue) {
 							return;
 						}
 						Thread.sleep(Math.round(Math.random() * 1000));

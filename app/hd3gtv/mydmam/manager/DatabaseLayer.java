@@ -37,7 +37,6 @@ final class DatabaseLayer {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
-	private static final ColumnFamily<String, String> CF_CYCLIC = new ColumnFamily<String, String>("mgrCyclic", StringSerializer.get(), StringSerializer.get());
 	// private static final ColumnFamily<String, String> CF_ACTIONS = new ColumnFamily<String, String>("mgrAction", StringSerializer.get(), StringSerializer.get());
 	private static final InstanceStatus.Serializer instancestatus_serializer;
 	private static final WorkerExporter.Serializer workerstatus_serializer;
@@ -52,12 +51,6 @@ final class DatabaseLayer {
 			if (CassandraDb.isColumnFamilyExists(keyspace, CF_INSTANCES.getName()) == false) {
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_INSTANCES.getName(), false);
 			}
-			if (CassandraDb.isColumnFamilyExists(keyspace, CF_CYCLIC.getName()) == false) {
-				CassandraDb.createColumnFamilyString(default_keyspacename, CF_CYCLIC.getName(), false);
-			}
-			/*if (CassandraDb.isColumnFamilyExists(keyspace, CF_ACTIONS.getName()) == false) {
-				 CassandraDb.createColumnFamilyString(default_keyspacename, CF_ACTIONS.getName(), false);
-			}*/
 		} catch (Exception e) {
 			Log2.log.error("Can't init database CFs", e);
 		}

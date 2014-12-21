@@ -108,6 +108,7 @@ public final class JobNG implements Log2Dumpable {
 	private String name;
 	private long expiration_date;
 	private long max_execution_time;
+	private static final long default_max_execution_time = 1000 * 3600 * 24;
 	private String require_key;
 	private long create_date;
 	private boolean delete_after_completed;
@@ -141,8 +142,8 @@ public final class JobNG implements Log2Dumpable {
 		urgent = false;
 		priority = 0;
 		delete_after_completed = false;
-		expiration_date = Long.MAX_VALUE;
-		max_execution_time = Long.MAX_VALUE;
+		expiration_date = System.currentTimeMillis() + (default_max_execution_time * 7);
+		max_execution_time = default_max_execution_time;
 		status = JobStatus.WAITING;
 		
 		instance_status_creator_key = manager.getInstance_status().getInstanceNamePid();
@@ -226,7 +227,7 @@ public final class JobNG implements Log2Dumpable {
 	}
 	
 	boolean hasAMaxExecutionTime() {
-		return max_execution_time < Long.MAX_VALUE;
+		return max_execution_time < default_max_execution_time;
 	}
 	
 	/**
@@ -335,7 +336,8 @@ public final class JobNG implements Log2Dumpable {
 		worker_reference = worker.getReferenceKey();
 		instance_status_executor_key = manager.getInstance_status().getInstanceNamePid();
 		instance_status_executor_hostname = manager.getInstance_status().getHostName();
-		return new JobProgression(this);
+		progression = new JobProgression(this);
+		return progression;
 	}
 	
 	synchronized void endProcessing_Done() {
@@ -450,7 +452,7 @@ public final class JobNG implements Log2Dumpable {
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			for (Row<String, String> row : rows.getResult()) {
 				JobNG job = JobNG.Utility.importFromDatabase(row.getColumns());
-				job.expiration_date = Long.MAX_VALUE;
+				job.expiration_date = System.currentTimeMillis() + (default_max_execution_time * 7);
 				job.update_date = System.currentTimeMillis();
 				job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
 			}

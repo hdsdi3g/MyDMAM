@@ -65,6 +65,12 @@ mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 	mydmam.manager.url.allworkers = "@{Manager.allworkers()}";
 #{/secure.check}
 
+#{secure.check 'showJobs'}
+	mydmam.manager.url.alljobs = "@{Manager.alljobs()}";
+	mydmam.manager.url.recentupdatedjobs = "@{Manager.recentupdatedjobs()}";
+#{/secure.check}
+		
+
 mydmam.notification.url.notificationresolveusers = "@{UserNotifications.notificationresolveusers}";
 mydmam.notification.url.notificationupdateread = "@{UserNotifications.notificationupdateread(key='keyparam1')}";
 mydmam.notification.url.queuegettasksjobs = "@{Queue.gettasksjobs}";

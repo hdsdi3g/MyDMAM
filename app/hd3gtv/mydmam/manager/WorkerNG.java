@@ -17,6 +17,8 @@
 package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.MyDMAM;
 
 import java.security.MessageDigest;
@@ -26,7 +28,7 @@ import java.util.UUID;
 
 import com.google.gson.JsonObject;
 
-public abstract class WorkerNG {
+public abstract class WorkerNG implements Log2Dumpable {
 	
 	public enum WorkerCategory {
 		INDEXING, METADATA, EXTERNAL_MODULE, USERACTION, INTERNAL
@@ -50,6 +52,8 @@ public abstract class WorkerNG {
 		PROCESSING, WAITING, STOPPED, PENDING_STOP, DISACTIVATED;
 	}
 	
+	private LifeCycle lifecyle;
+	private volatile Executor current_executor;
 	private String reference_key;
 	private volatile boolean refuse_new_jobs;
 	private WorkerExporter exporter;
@@ -128,8 +132,6 @@ public abstract class WorkerNG {
 		return false;
 	}
 	
-	private volatile Executor current_executor;
-	
 	private final class Executor extends Thread {
 		private JobNG job;
 		private WorkerNG reference;
@@ -164,7 +166,7 @@ public abstract class WorkerNG {
 						Log2.log.debug("Stop execution", job);
 					} else {
 						job.endProcessing_Done();
-						Log2.log.debug("End execution", job);
+						Log2.log.debug("End processing", job);
 					}
 				}
 			} catch (Exception e) {
@@ -200,8 +202,6 @@ public abstract class WorkerNG {
 		}
 	}
 	
-	private LifeCycle lifecyle;
-	
 	final class LifeCycle {
 		private WorkerNG reference;
 		
@@ -228,10 +228,6 @@ public abstract class WorkerNG {
 				return WorkerState.STOPPED;
 			}
 			return WorkerState.WAITING;
-		}
-		
-		final boolean isAvaliableForProcessingNewJobs() {
-			return (getState() == WorkerState.WAITING);
 		}
 		
 		final void enable() {
@@ -302,4 +298,14 @@ public abstract class WorkerNG {
 		return current_executor.job;
 	}
 	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.addAll(exporter);
+		if (current_executor != null) {
+			dump.add("executor", current_executor.getName() + " [" + current_executor.getId() + "]");
+			dump.add("executor is alive", current_executor.isAlive());
+		}
+		dump.add("refuse_new_jobs", refuse_new_jobs);
+		return dump;
+	}
 }

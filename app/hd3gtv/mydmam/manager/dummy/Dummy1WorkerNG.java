@@ -71,7 +71,7 @@ public class Dummy1WorkerNG extends WorkerNG {
 				return;
 			}
 			progression.updateProgress(pos, 1000);
-			Thread.sleep(10);
+			Thread.sleep(100);
 		}
 		
 		progression.update("Dummy process is ended");

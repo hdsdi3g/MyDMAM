@@ -318,6 +318,7 @@ public final class AppManager {
 				}
 			}
 		}
+		
 		return capablities_classes_workers;
 	}
 	

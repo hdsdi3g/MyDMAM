@@ -16,7 +16,11 @@
 */
 package controllers;
 
+import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceStatus;
+import hd3gtv.mydmam.manager.JobNG;
+import play.data.validation.Required;
+import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
@@ -42,4 +46,16 @@ public class Manager extends Controller {
 		renderJSON(result);
 	}
 	
+	@Check("showJobs")
+	public static void alljobs() throws Exception {
+		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(0)));
+	}
+	
+	@Check("showJobs")
+	public static void recentupdatedjobs(@Required Long since) throws Exception {
+		if (Validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(since)));
+	}
 }
