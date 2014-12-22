@@ -47,6 +47,13 @@ public class Manager extends Controller {
 	}
 	
 	@Check("showJobs")
+	public static void jobs() throws Exception {
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("manager.jobs.pagename"));
+		String actual_jobs = AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(0));
+		render(actual_jobs);
+	}
+	
+	@Check("showJobs")
 	public static void alljobs() throws Exception {
 		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(0)));
 	}

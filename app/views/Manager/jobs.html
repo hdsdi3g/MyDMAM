@@ -16,15 +16,23 @@
 #{extends 'maingrid.html' /}
 
 <div class="container-fluid">
-	<p class="lead">&{'manager.pagename'}</p>
-	<div id="managerdisplay"></div>
+	<div id="joblistrefresh"></div>
+	<p class="lead">&{'manager.jobs.pagename'}</p>
+	<div id="jobtabs"></div>		
+	<div id="joblist"></div>		
 </div>
 
 <script type="text/javascript" charset="UTF-8">
 <!--
 $(document).ready(function() {
 	$("#btnAdmin").addClass("active");
-	mydmam.manager.display('#managerdisplay');
+	mydmam.manager.jobs.list = ${actual_jobs.raw()};
+	mydmam.manager.jobs.last_refresh = new Date().getTime(); 
+	mydmam.manager.jobs.client_time = new Date().getTime(); 
+	mydmam.manager.jobs.server_time = %{out.print(System.currentTimeMillis())}%; 
+	mydmam.manager.jobs.jquery_destination = "#joblist";
+	mydmam.manager.jobs.jquery_header = "#jobtabs";
+	mydmam.manager.jobs.prepare("#joblistrefresh");
 });
 -->
 </script>

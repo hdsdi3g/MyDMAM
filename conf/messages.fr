@@ -106,6 +106,8 @@ manager.workers.th.instance=Instance
 manager.workers.th.name=Nom
 manager.workers.th.state=Etat
 manager.workers.th.capabilities=Capacités
+manager.jobcreator.disabled=Desactivé
+manager.jobcreator.createdby=Crée par :
 manager.jobcreator.th.instance=Instance
 manager.jobcreator.th.name=Nom
 manager.jobcreator.th.declarations=Creations de jobs
@@ -115,9 +117,20 @@ manager.jobcreator.cyclic.periodvalue=Création toutes les %s secondes
 manager.jobcreator.cyclic.nextdate=Prochaine création :
 manager.jobcreator.cyclic.nonextdate=Pas de prochaine création
 manager.jobcreator.trigger.hook=Job de déclenchement
-
-manager.jobcreator.disabled=Desactivé
-manager.jobcreator.createdby=Crée par :
+manager.jobs.pagename=Liste des jobs
+manager.jobs.status.WAITING=En attente
+manager.jobs.status.PREPARING=En préparation
+manager.jobs.status.PREPARINGPROCESSING=En traitement
+manager.jobs.status.PROCESSING=En traitement
+manager.jobs.status.DONE=Terminée
+manager.jobs.status.TOO_OLD=Périmée
+manager.jobs.status.STOPPEDTOO_LONG_DURATION=Arrêté
+manager.jobs.status.STOPPED=Arrêté
+manager.jobs.status.TOO_LONG_DURATION=Trop longue
+manager.jobs.status.CANCELEDPOSTPONED=Non traité
+manager.jobs.status.CANCELED=Annulée
+manager.jobs.status.POSTPONED=Reportée
+manager.jobs.status.ERROR=En erreur
 
 application.navigate=Stockage
 

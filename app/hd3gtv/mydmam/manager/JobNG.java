@@ -73,7 +73,7 @@ public final class JobNG implements Log2Dumpable {
 				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "status", queue_name + "_status", DeployColumnDef.ColType_AsciiType);
 				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "creator_hostname", queue_name + "_creator_hostname", DeployColumnDef.ColType_UTF8Type);
 				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "expiration_date", queue_name + "_expiration_date", DeployColumnDef.ColType_LongType);
-				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "updatedate", queue_name + "_updatedate", DeployColumnDef.ColType_LongType);
+				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "update_date", queue_name + "_update_date", DeployColumnDef.ColType_LongType);
 				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "delete", queue_name + "_delete", DeployColumnDef.ColType_Int32Type);
 				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "indexingdebug", queue_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
 			}
@@ -574,7 +574,7 @@ public final class JobNG implements Log2Dumpable {
 			} else {
 				IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 				index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
-				index_query.addExpression().whereColumn("updatedate").greaterThanEquals().value(since_date);
+				index_query.addExpression().whereColumn("update_date").greaterThanEquals().value(since_date - 1000);
 				OperationResult<Rows<String, String>> rows = index_query.execute();
 				
 				for (Row<String, String> row : rows.getResult()) {

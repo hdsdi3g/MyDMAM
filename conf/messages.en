@@ -117,6 +117,20 @@ manager.jobcreator.cyclic.periodvalue=Creating every %s seconds
 manager.jobcreator.cyclic.nextdate=Next creation:
 manager.jobcreator.cyclic.nonextdate=No next creation
 manager.jobcreator.trigger.hook=Trigger on
+manager.jobs.pagename=Jobs list
+manager.jobs.status.WAITING=Waiting
+manager.jobs.status.PREPARING=Preparing
+manager.jobs.status.PREPARINGPROCESSING=Processing
+manager.jobs.status.PROCESSING=Processing
+manager.jobs.status.DONE=Done
+manager.jobs.status.TOO_OLD=Too old
+manager.jobs.status.STOPPEDTOO_LONG_DURATION=Stopped
+manager.jobs.status.STOPPED=Stopped
+manager.jobs.status.TOO_LONG_DURATION=Too long duration
+manager.jobs.status.CANCELEDPOSTPONED=Not processed
+manager.jobs.status.CANCELED=Canceled
+manager.jobs.status.POSTPONED=Postponed
+manager.jobs.status.ERROR=Error
 
 application.navigate=Storage
 

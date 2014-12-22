@@ -293,6 +293,11 @@ $(document).ready(function() {
 							<a href="@{Manager.index()}"><i class="icon-globe"></i> &{'manager.pagename'}</a>
 						</li>
 					#{/secure.check}
+					#{secure.check 'showJobs'}
+						<li>
+							<a href="@{Manager.jobs()}"><i class="icon-tasks"></i> &{'manager.jobs.pagename'}</a>
+						</li>
+					#{/secure.check}
 				</ul>
 			</li>
 		</ul>

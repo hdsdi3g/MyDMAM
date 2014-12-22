@@ -21,4 +21,5 @@
 	mydmam.manager.url = {};
 	mydmam.manager.workerstatus = {};
 	mydmam.manager.jobcreator = {};
+	mydmam.manager.jobs = {};
 })(window.mydmam);

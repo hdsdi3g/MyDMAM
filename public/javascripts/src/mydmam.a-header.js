@@ -44,4 +44,9 @@
 
 	mydmam.urlimgs = {};
 	
+	if (window.console == null) {
+		window.console = {};
+		window.console.log = function(){};
+		window.console.err = function(){};
+	}
 })(window);
