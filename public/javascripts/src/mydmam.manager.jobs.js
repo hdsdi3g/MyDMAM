@@ -25,10 +25,12 @@
 	jobs.jquery_destination = "";
 	jobs.jquery_header = "";
 	jobs.datatable = null;
+	jobs.datatable_job_pos = {};
 	jobs.client_time = 0; 
 	jobs.server_time = 0; 
 	jobs.refresh_intervaller = null;
 	jobs.status_list = ["TOO_OLD", "CANCELED", "POSTPONED", "WAITING", "DONE", "PROCESSING", "STOPPED", "ERROR", "PREPARING", "TOO_LONG_DURATION"];
+	jobs.refresh_delay_time = 60000;
 })(window.mydmam.manager.jobs);
 
 /**
@@ -46,6 +48,7 @@
 		content = content + '</table>';
 		
 		$(jobs.jquery_destination).html(content);
+		datatable_job_pos = {};
 		jobs.datatable = $(jobs.jquery_destination + ' table').dataTable({
 			"bPaginate": false,
 			"bLengthChange": false,
@@ -58,12 +61,172 @@
 })(window.mydmam.manager.jobs);
 
 /**
+ * displayClassName(class_name)
+ */
+(function(jobs) {
+	jobs.displayClassName = function(class_name) {
+		var simple_name = class_name.substring(class_name.lastIndexOf(".") + 1, class_name.length);
+		if (class_name.indexOf("(") > -1) {
+			simple_name = class_name.substring(class_name.indexOf("(") + 1, (class_name.indexOf(")")));
+			if (simple_name.indexOf(".java") > -1) {
+				simple_name = simple_name.substring(0, simple_name.indexOf(".java"));
+			}
+		}
+		return '<i class="icon-book"></i> <abbr title="' + class_name + '">' + simple_name + '</abbr>';
+	};
+})(window.mydmam.manager.jobs);
+
+/**
+ * displayKey(key)
+ */
+(function(jobs) {
+	jobs.displayKey = function(key, ishtml) {
+		var short_value = key.substring(key.lastIndexOf(":") + 1, key.lastIndexOf(":") + 9) + '.';
+		if (ishtml) {
+			return '<abbr title="' + key + '"><code><i class="icon-barcode"></i> ' + short_value + '</code></abbr>';
+		} else {
+			return short_value;
+		}
+	};
+})(window.mydmam.manager.jobs);
+
+/**
  * addRow(job)
  */
 (function(jobs) {
-	jobs.addRow = function(job) {
-		console.log("add", job);
-		jobs.refreshHeaderCounters();
+	jobs.addRow = function(job, selected_status) {
+		if (selected_status.indexOf(job.status) === -1) {
+			// return; TODO set !
+		}
+		var cols = [];
+		
+		var content = '';
+		content = content + '' + jobs.displayClassName(job.context.classname) + '' + '<br />'; 
+		if (job.context.neededstorages) {
+			content = content + '' + JSON.stringify(job.context.neededstorages) + '' + '<br />'; 
+		}
+		if (job.context.content) {
+			content = content + '<code><i class="icon-indent-left"></i> ' + JSON.stringify(job.context.content) + '</code>' + '<br />'; 
+		}
+		
+		content = content + '<span class="label">Cr ' + mydmam.format.fulldate(job.create_date) + '</span>' + '<br />';
+		content = content + '<span class="label">St ' + mydmam.format.fulldate(job.start_date) + '</span>' + '<br />';
+		content = content + '<span class="label">Up ' + mydmam.format.fulldate(job.update_date) + '</span>' + '<br />';
+		content = content + '<span class="label">Ex ' + mydmam.format.fulldate(job.expiration_date) + '</span>' + '<br />';
+		content = content + '<span class="label">En ' + mydmam.format.fulldate(job.end_date) + '</span>' + '<br />';
+		
+		var i18n_status = i18n('manager.jobs.status.' + job.status);
+		if (job.status === 'WAITING') {
+			content = content + '<span class="label">' + i18n_status + '</span>' + '<br />'; 
+		} else if (job.status === 'PREPARING') {
+			content = content + '<span class="label label-warning">' + i18n_status + '</span>' + '<br />'; 
+		} else if (job.status === 'PROCESSING') {
+			content = content + '<span class="label label-warning">' + i18n_status + '</span>' + '<br />'; 
+		} else if (job.status === 'DONE') {
+			content = content + '<span class="label">'               + i18n_status + '</span>' + '<br />'; 
+		} else if (job.status === 'TOO_OLD') {
+			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+		} else if (job.status === 'STOPPED') {
+			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+		} else if (job.status === 'TOO_LONG_DURATION') {
+			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+		} else if (job.status === 'CANCELED') {
+			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+		} else if (job.status === 'POSTPONED') {
+			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+		} else if (job.status === 'ERROR') {
+			content = content + '<span class="label badge-important">' + i18n_status + '</span>' + '<br />'; 
+		} else {
+			content = content + '<span class="label label-inverse">' + i18n_status + '</span>' + '<br />'; 
+		}
+		
+		if (job.delete_after_completed) {
+			content = content + '<span class="label label-inverse">' + i18n("manager.jobs.delete_after_completed") + '</span>' + '<br />'; 
+		}
+		
+		content = content + jobs.displayKey(job.key, true) + '<br />';
+
+		content = content + '' + job.name + '' + '<br />';
+		
+		if (job.priority > 0) {
+			content = content + '<span class="badge badge-important">' + job.priority + '</span>' + '<br />';
+		}
+		if (job.urgent) {
+			content = content + '<span class="badge badge-important">' + i18n('manager.jobs.urgent') + '</span>' + '<br />';
+		}
+		
+		if (job.require_key) {
+			var jobrq = jobs.list[require_key];
+			if (jobrq) {
+				content = content + '<abbr title="' + jobs.displayKey(jobrq.key, false)  + '">';
+				content = content + '<span class="label label-info">';
+				content = content + 'Rq ' + jobrq.name + ' (' + i18n('manager.jobs.status.' + jobrq.status) + ')'; 
+				content = content + '</span>'; 
+				content = content + '</abbr>'; 
+				content = content + '<br />'; 
+			} else {
+				content = content + 'Rq ' + jobs.displayKey(job.require_key, true) + '' + '<br />'; 
+			}
+		}
+		
+		content = content + '' + jobs.displayClassName(job.creator) + '' + '<br />';
+		
+		content = content + '' + jobs.displayClassName(job.worker_class) + '' + '<br />'; 
+		
+		content = content + jobs.displayKey(job.worker_reference, true) + '<br />'; 
+		
+		if (job.max_execution_time < (1000 * 3600 * 24)) {
+			if (job.max_execution_time > (3600 * 1000)) {
+				content = content + '<span class="label">' + i18n('manager.jobs.max_execution_time_hrs', Math.round((job.max_execution_time / (3600 * 1000)))) + '</span>' + '<br />';
+			} else {
+				content = content + '<span class="label">' + i18n('manager.jobs.max_execution_time_sec', (job.max_execution_time / 1000)) + '</span>' + '<br />';
+			}
+		}
+		
+		content = content + '<abbr title="' + job.instance_status_creator_key + '">' + job.instance_status_creator_hostname + '</abbr>' + '<br />';
+		
+		content = content + '<abbr title="' + job.instance_status_executor_key + '">' + job.instance_status_executor_hostname + '</abbr>' + '<br />'; 
+
+		if (job.processing_error) {
+			content = content + '<code>' + JSON.stringify(job.processing_error) + '</code>' + '<br />';
+		}
+		
+		if (job.progression) {
+			var progression = job.progression;
+			content = content + '' + jobs.displayClassName(progression.last_caller) + '' + '<br />'; 
+			content = content + '<i class="icon-comment"></i> <em>' + progression.last_message + '</em>' + '<br />'; 
+			
+			content = content + '<strong>'; 
+			if (progression.step > progression.step_count) {
+				content = content + progression.step; 
+			} else {
+				content = content + progression.step + ' <i class="icon-arrow-right"></i> ' + progression.step_count; 
+			}
+			content = content + '</strong>';
+
+			if (job.status === 'DONE') {
+				content = content + '<div class="progress progress-success">';
+			    content = content + '<div class="bar" style="width: 100%;"></div>';
+			    content = content + '</div>';
+				content = content + '<br />';
+			} else {
+				var percent = (progression.progress / progression.progress_size) * 100;
+				 content = content + ' ' + progression.progress + '/' + progression.progress_size + ' ';
+				if (job.status === 'PROCESSING') {
+					content = content + '<div class="progress progress-striped active">';
+				} else {
+					content = content + '<div class="progress progress-danger progress-striped">';
+				}
+			    content = content + '<div class="bar" style="width: ' + percent + '%;"></div>';
+			    content = content + '</div>';
+				content = content + '<br />';
+			}
+		}
+		cols.push(content);
+		
+		console.log("add", job, selected_status);
+		var pos_new_row = jobs.datatable.fnAddData(cols);
+		jobs.datatable_job_pos[job.key] = pos_new_row;
 	};
 })(window.mydmam.manager.jobs);
 
@@ -71,14 +234,17 @@
  * updateRow(job)
  */
 (function(jobs) {
-	jobs.updateRow = function(job) {
+	jobs.updateRow = function(job, selected_status) {
 		console.log("update", job);
 		/**
 		 * TODO if job.delete_after_completed && job.status === 'DONE'
 		 * 
 		 * TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
 		 */
-		jobs.refreshHeaderCounters();
+		/**
+		 * TODO if job.status is changed, delete row !
+			var pos_row = jobs.datatable_job_pos[job.key];
+		 */
 	};
 })(window.mydmam.manager.jobs);
 
@@ -101,6 +267,9 @@
 	};
 })(window.mydmam.manager.jobs);
 
+/**
+ * refreshHeaderCounters()
+ */
 (function(jobs) {
 	jobs.refreshHeaderCounters = function() {
 		var counters = {};
@@ -129,6 +298,27 @@
 		$(jobs.jquery_header + ' ul.nav.joblistheader a.btnswitchjoblisttable').each(setbadges);
 	};
 })(window.mydmam.manager.jobs);
+
+//$(jobs.jquery_header + ' ul.nav.joblistheader
+
+/**
+ * getSelectedHeaderTab()
+ * return [job.status]
+ */
+(function(jobs) {
+	jobs.getSelectedStatusHeaderTab = function() {
+		var jq_selected_a = $(jobs.jquery_header + ' ul.nav.joblistheader li.active').children("a");
+		var result = [];
+		for (var pos = 0; pos < jobs.status_list.length; pos++) {
+			var status_name = jobs.status_list[pos];
+			if (jq_selected_a.hasClass('jobswitch' + status_name)) {
+				result.push(status_name);
+			}
+		}
+		return result;
+	};
+})(window.mydmam.manager.jobs);
+
 
 /**
  * drawHeader()
@@ -168,8 +358,11 @@
 			$(this).parent().addClass("active");
 			jobs.drawTable();
 			
+			jobs.refreshHeaderCounters();
+			var selected_status = jobs.getSelectedStatusHeaderTab();
+			
 			for (var job_key in jobs.list) {
-				jobs.addRow(jobs.list[job_key]);
+				jobs.addRow(jobs.list[job_key], selected_status);
 			}
 			return false;
 		});
@@ -207,7 +400,7 @@
 		};
 		
 		$('#btnjobslistrefresh').click(full_refresh);
-		jobs.refresh_intervaller = setInterval(since_date_refresh, 5000);
+		jobs.refresh_intervaller = setInterval(since_date_refresh, jobs.refresh_delay_time);
 	
 		/**
 		 * Display the content provided by the server in web page.
@@ -261,14 +454,16 @@
 				jobs.list = rawdata;
 				jobs.clearTable();
 			} else {
+				var selected_status = jobs.getSelectedStatusHeaderTab();
 				for (var job_update_key in rawdata) {
 					if (jobs.list[job_update_key]) {
-						jobs.updateRow(rawdata[job_update_key]);
+						jobs.updateRow(rawdata[job_update_key], selected_status);
 					} else {
-						jobs.addRow(rawdata[job_update_key]);
+						jobs.addRow(rawdata[job_update_key], selected_status);
 					}
 					jobs.list[job_update_key] = rawdata[job_update_key];
 				}
+				jobs.refreshHeaderCounters();
 			}
 		}
 	};

@@ -131,6 +131,10 @@ manager.jobs.status.CANCELEDPOSTPONED=Non traité
 manager.jobs.status.CANCELED=Annulée
 manager.jobs.status.POSTPONED=Reportée
 manager.jobs.status.ERROR=En erreur
+manager.jobs.delete_after_completed=Supprimer après le traitement
+manager.jobs.urgent=Urgent
+manager.jobs.max_execution_time_sec=Durée max. de traitement : %s sec.
+manager.jobs.max_execution_time_hrs=Durée max. de traitement : %s hrs.
 
 application.navigate=Stockage
 

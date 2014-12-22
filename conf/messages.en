@@ -131,6 +131,10 @@ manager.jobs.status.CANCELEDPOSTPONED=Not processed
 manager.jobs.status.CANCELED=Canceled
 manager.jobs.status.POSTPONED=Postponed
 manager.jobs.status.ERROR=Error
+manager.jobs.delete_after_completed=Delete after completed
+manager.jobs.urgent=Urgent
+manager.jobs.max_execution_time_sec=Max exec. time: %s sec.
+manager.jobs.max_execution_time_hrs=Max exec. time: %s hrs.
 
 application.navigate=Storage
 
