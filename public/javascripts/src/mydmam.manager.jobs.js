@@ -33,32 +33,6 @@
 	jobs.refresh_delay_time = 60000;
 })(window.mydmam.manager.jobs);
 
-/**
- * drawTable
- */
-(function(jobs) {
-	jobs.drawTable = function() {
-		var content = '';
-		content = content + '<table class="table table-striped table-bordered table-hover table-condensed" style="margin-bottom: 0px;">';
-		content = content + '<thead>';
-		content = content + '<th>' + i18n('A') + '</th>';
-		content = content + '</thead>';
-		content = content + '<tbody>';
-		content = content + '</tbody>';
-		content = content + '</table>';
-		
-		$(jobs.jquery_destination).html(content);
-		datatable_job_pos = {};
-		jobs.datatable = $(jobs.jquery_destination + ' table').dataTable({
-			"bPaginate": false,
-			"bLengthChange": false,
-			"bSort": true,
-			"bInfo": false,
-			"bAutoWidth": false,
-			"bFilter": true,
-		});
-	};
-})(window.mydmam.manager.jobs);
 
 /**
  * displayClassName(class_name)
@@ -90,6 +64,44 @@
 	};
 })(window.mydmam.manager.jobs);
 
+
+/**
+ * drawTable
+ */
+(function(jobs) {
+	jobs.drawTable = function() {
+		var content = '';
+		content = content + '<table class="table table-striped table-bordered table-hover table-condensed" style="margin-bottom: 0px;">';
+		content = content + '<thead>';
+		content = content + '<th>' + i18n('manager.jobs.th.name') + '</th>';
+		content = content + '<th>' + i18n('manager.jobs.th.status') + '</th>';
+		content = content + '<th>' + i18n('manager.jobs.th.date') + '</th>';
+		content = content + '<th>' + i18n('manager.jobs.th.params') + '</th>';
+		content = content + '<th>' + i18n('manager.jobs.th.progress') + '</th>';
+		content = content + '<th>' + i18n('manager.jobs.th.action') + '</th>';
+		content = content + '</thead>';
+		content = content + '<tbody>';
+		content = content + '</tbody>';
+		content = content + '</table>';
+		
+		$(jobs.jquery_destination).html(content);
+		datatable_job_pos = {};
+		jobs.datatable = $(jobs.jquery_destination + ' table').dataTable({
+			"bPaginate": false,
+			"bLengthChange": false,
+			"bSort": true,
+			"bInfo": false,
+			"bAutoWidth": false,
+			"bFilter": true,
+			"aoColumnDefs": [
+				{"sWidth": "4em", "aTargets": [1]},
+				{"sWidth": "5em", "aTargets": [2]},
+				{"sWidth": "8em", "aTargets": [5]},
+			],
+		});
+	};
+})(window.mydmam.manager.jobs);
+
 /**
  * addRow(job)
  */
@@ -99,22 +111,19 @@
 			// return; TODO set !
 		}
 		var cols = [];
-		
 		var content = '';
-		content = content + '' + jobs.displayClassName(job.context.classname) + '' + '<br />'; 
-		if (job.context.neededstorages) {
-			content = content + '' + JSON.stringify(job.context.neededstorages) + '' + '<br />'; 
-		}
-		if (job.context.content) {
-			content = content + '<code><i class="icon-indent-left"></i> ' + JSON.stringify(job.context.content) + '</code>' + '<br />'; 
-		}
 		
-		content = content + '<span class="label">Cr ' + mydmam.format.fulldate(job.create_date) + '</span>' + '<br />';
-		content = content + '<span class="label">St ' + mydmam.format.fulldate(job.start_date) + '</span>' + '<br />';
-		content = content + '<span class="label">Up ' + mydmam.format.fulldate(job.update_date) + '</span>' + '<br />';
-		content = content + '<span class="label">Ex ' + mydmam.format.fulldate(job.expiration_date) + '</span>' + '<br />';
-		content = content + '<span class="label">En ' + mydmam.format.fulldate(job.end_date) + '</span>' + '<br />';
+		/**
+		 * New col
+		 */
+		content = content + '<strong>' + job.name + '</strong>';
+		content = content + '<button class="btn btn-mini pull-right"><i class="icon-chevron-down"></i></button>'; 
+		cols.push(content);
 		
+		/**
+		 * New col
+		 */
+		content = '';
 		var i18n_status = i18n('manager.jobs.status.' + job.status);
 		if (job.status === 'WAITING') {
 			content = content + '<span class="label">' + i18n_status + '</span>' + '<br />'; 
@@ -139,28 +148,37 @@
 		} else {
 			content = content + '<span class="label label-inverse">' + i18n_status + '</span>' + '<br />'; 
 		}
-		
-		if (job.delete_after_completed) {
-			content = content + '<span class="label label-inverse">' + i18n("manager.jobs.delete_after_completed") + '</span>' + '<br />'; 
-		}
-		
-		content = content + jobs.displayKey(job.key, true) + '<br />';
-
-		content = content + '' + job.name + '' + '<br />';
-		
 		if (job.priority > 0) {
 			content = content + '<span class="badge badge-important">' + job.priority + '</span>' + '<br />';
 		}
 		if (job.urgent) {
 			content = content + '<span class="badge badge-important">' + i18n('manager.jobs.urgent') + '</span>' + '<br />';
 		}
+		cols.push(content);
 		
+		/**
+		 * New col
+		 */
+		content = '';
+		content = content + '<span class="label">' + i18n('manager.jobs.create_date', mydmam.format.fulldate(job.create_date)) + '</span>' + '<br />';
+		content = content + '<span class="label">' + i18n('manager.jobs.start_date', mydmam.format.fulldate(job.start_date)) + '</span>' + '<br />';
+		content = content + '<span class="label">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>' + '<br />';
+		content = content + '<span class="label">' + i18n('manager.jobs.expiration_date', mydmam.format.fulldate(job.expiration_date)) + '</span>' + '<br />';
+		content = content + '<span class="label">' + i18n('manager.jobs.end_date', mydmam.format.fulldate(job.end_date)) + '</span>' + '<br />';
+		cols.push(content);
+		
+		/**
+		 * New col
+		 */
+		content = '';
+		content = content + i18n('manager.jobs.createdby') + ' ' + jobs.displayClassName(job.creator);
+		content = content + ' <abbr title="' + job.instance_status_creator_key + '">' + job.instance_status_creator_hostname + '</abbr>' + '<br />';
 		if (job.require_key) {
 			var jobrq = jobs.list[require_key];
 			if (jobrq) {
 				content = content + '<abbr title="' + jobs.displayKey(jobrq.key, false)  + '">';
 				content = content + '<span class="label label-info">';
-				content = content + 'Rq ' + jobrq.name + ' (' + i18n('manager.jobs.status.' + jobrq.status) + ')'; 
+				content = content + i18n('manager.jobs.requireto') + ' ' + jobrq.name + ' (' + i18n('manager.jobs.status.' + jobrq.status) + ')'; 
 				content = content + '</span>'; 
 				content = content + '</abbr>'; 
 				content = content + '<br />'; 
@@ -168,13 +186,6 @@
 				content = content + 'Rq ' + jobs.displayKey(job.require_key, true) + '' + '<br />'; 
 			}
 		}
-		
-		content = content + '' + jobs.displayClassName(job.creator) + '' + '<br />';
-		
-		content = content + '' + jobs.displayClassName(job.worker_class) + '' + '<br />'; 
-		
-		content = content + jobs.displayKey(job.worker_reference, true) + '<br />'; 
-		
 		if (job.max_execution_time < (1000 * 3600 * 24)) {
 			if (job.max_execution_time > (3600 * 1000)) {
 				content = content + '<span class="label">' + i18n('manager.jobs.max_execution_time_hrs', Math.round((job.max_execution_time / (3600 * 1000)))) + '</span>' + '<br />';
@@ -183,20 +194,34 @@
 			}
 		}
 		
-		content = content + '<abbr title="' + job.instance_status_creator_key + '">' + job.instance_status_creator_hostname + '</abbr>' + '<br />';
+		if (job.delete_after_completed) {
+			content = content + '<span class="label label-inverse">' + i18n("manager.jobs.delete_after_completed") + '</span>' + '<br />'; 
+		}
+		content = content + '' + jobs.displayClassName(job.context.classname) + '' + '<br />'; 
+		if (job.context.neededstorages) {
+			content = content + '' + JSON.stringify(job.context.neededstorages) + '' + '<br />'; 
+		}
+		if (job.context.content) {
+			content = content + '<code><i class="icon-indent-left"></i> ' + JSON.stringify(job.context.content) + '</code>' + '<br />'; 
+		}
 		
-		content = content + '<abbr title="' + job.instance_status_executor_key + '">' + job.instance_status_executor_hostname + '</abbr>' + '<br />'; 
-
 		if (job.processing_error) {
 			content = content + '<code>' + JSON.stringify(job.processing_error) + '</code>' + '<br />';
 		}
+
+		content = content + jobs.displayKey(job.key, true) + '<br />';
+		cols.push(content);
 		
+		/**
+		 * New col
+		 */
+		content = '';
 		if (job.progression) {
 			var progression = job.progression;
 			content = content + '' + jobs.displayClassName(progression.last_caller) + '' + '<br />'; 
 			content = content + '<i class="icon-comment"></i> <em>' + progression.last_message + '</em>' + '<br />'; 
 			
-			content = content + '<strong>'; 
+			content = content + '<strong class="pull-left" style="margin-right: 5px;">'; 
 			if (progression.step > progression.step_count) {
 				content = content + progression.step; 
 			} else {
@@ -205,25 +230,40 @@
 			content = content + '</strong>';
 
 			if (job.status === 'DONE') {
-				content = content + '<div class="progress progress-success">';
+				content = content + '<div class="progress progress-success" style="margin-bottom: 5px;">';
 			    content = content + '<div class="bar" style="width: 100%;"></div>';
 			    content = content + '</div>';
 				content = content + '<br />';
 			} else {
 				var percent = (progression.progress / progression.progress_size) * 100;
-				 content = content + ' ' + progression.progress + '/' + progression.progress_size + ' ';
 				if (job.status === 'PROCESSING') {
-					content = content + '<div class="progress progress-striped active">';
+					content = content + '<div class="progress progress-striped active" style="margin-bottom: 5px;">';
 				} else {
-					content = content + '<div class="progress progress-danger progress-striped">';
+					content = content + '<div class="progress progress-danger progress-striped" style="margin-bottom: 5px;">';
 				}
 			    content = content + '<div class="bar" style="width: ' + percent + '%;"></div>';
 			    content = content + '</div>';
-				content = content + '<br />';
+				content = content + ' ' + progression.progress + '/' + progression.progress_size + '<br>';
 			}
 		}
+		content = content + i18n('manager.jobs.worker') + ' ' + jobs.displayClassName(job.worker_class) + ' '; 
+		content = content + '(' + jobs.displayKey(job.worker_reference, true) + ')<br>'; 
+		content = content + i18n('manager.jobs.instanceexecutor') + ' <abbr title="' + job.instance_status_executor_key + '">' + job.instance_status_executor_hostname + '</abbr>' + '<br />';
 		cols.push(content);
 		
+		/**
+		 * New col
+		 */
+		content = '';
+		content = content + '<button class="btn btn-mini"><i class="icon-repeat"></i> ' + i18n('manager.jobs.btn.restart') + '</button><br>'; 
+		content = content + '<button class="btn btn-mini"><i class="icon-trash"></i> ' + i18n('manager.jobs.btn.delete') + '</button><br>';
+		content = content + '<button class="btn btn-mini"><i class="icon-stop"></i> ' + i18n('manager.jobs.btn.stop') + '</button><br>';
+		content = content + '<button class="btn btn-mini"><i class="icon-inbox"></i> ' + i18n('manager.jobs.btn.setinwait') + '</button><br>';
+		content = content + '<button class="btn btn-mini"><i class="icon-off"></i> ' + i18n('manager.jobs.btn.cancel') + '</button><br>';
+		content = content + '<button class="btn btn-mini"><i class="icon-warning-sign"></i> ' + i18n('manager.jobs.btn.hipriority') + '</button><br>';
+		content = content + '<button class="btn btn-mini"><i class="icon-calendar"></i> ' + i18n('manager.jobs.btn.noexpiration') + '</button><br>';
+		cols.push(content);
+
 		console.log("add", job, selected_status);
 		var pos_new_row = jobs.datatable.fnAddData(cols);
 		jobs.datatable_job_pos[job.key] = pos_new_row;
@@ -343,7 +383,7 @@
 		content = content + i18n("manager.jobs.status.STOPPEDTOO_LONG_DURATION") + ' <span class="badge badge-info" style="margin-left: 5px;"></span>';
 		content = content + '</a></li>';
 		content = content + '<li><a href="" data-toggle="tab" class="btnswitchjoblisttable jobswitchCANCELED jobswitchPOSTPONED">';
-		content = content + i18n("manager.jobs.status.CANCELEDPOSTPONED") + ' <span class="badge badge-info" style="margin-left: 5px;"></span>';
+		content = content + i18n("manager.jobs.status.CANCELEDPOSTPONED") + ' <span class="badge" style="margin-left: 5px;"></span>';
 		content = content + '</a></li>';
 		content = content + '<li><a href="" data-toggle="tab" class="btnswitchjoblisttable jobswitchERROR">';
 		content = content + i18n("manager.jobs.status.ERROR") + ' <span class="badge badge-important" style="margin-left: 5px;"></span>';
