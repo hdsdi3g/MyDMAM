@@ -55,4 +55,25 @@
 	};
 	mydmam.format.justdate = formatDate_JustDate;
 
+	var formatDate_JustDate = function(epoch) {
+		var date = new Date(epoch);
+		var returntext = addZeros(date.getDate()) + '/' + addZeros(date.getMonth() + 1) + '/' + date.getFullYear(); 
+		return returntext;
+	};
+	
+	mydmam.format.timeAgo = function(epoch_since_date) {
+		var delta = (new Date().getTime() - epoch_since_date) / 1000;
+		if (delta < 60) {
+			return i18n('timeunit.sec', Math.round(delta));
+		} else if (delta < 3600) {
+			return i18n('timeunit.min', Math.round((delta / 60)));
+		} else if (delta < (3600 * 24)) {
+			return i18n('timeunit.hrs', Math.round((delta / 3600)));
+		} else if (delta < (3600 * 24 * 7)) {
+			return i18n('timeunit.days', Math.round((delta / (3600 * 24))));
+		} else {
+			return i18n('timeunit.weeks', Math.round((delta / (3600 * 24 * 7))));
+		}
+	};
+
 })(window.mydmam);

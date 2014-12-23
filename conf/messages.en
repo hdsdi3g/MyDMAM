@@ -27,6 +27,11 @@ site.logintips=
 
 filesizeunitshort=b
 filesizeunitlong=bytes
+timeunit.sec=%s sec
+timeunit.min=%s min
+timeunit.hrs=%s hr
+timeunit.days=%s day(s)
+timeunit.weeks=%s week(s)
 
 search.pagetitle=Search
 search.method.by_id=Search by ID
@@ -146,9 +151,12 @@ manager.jobs.start_date=Started %s
 manager.jobs.update_date=Updated %s
 manager.jobs.expiration_date=Expires %s
 manager.jobs.end_date=Completed %s
-manager.jobs.createdby=Created by
+manager.jobs.createdby=Created by %s on %s
 manager.jobs.requireto=Requires
-manager.jobs.btn.restart=Restart
+manager.jobs.since=Since %s
+manager.jobs.setup=Setup:
+manager.jobs.last_message=Last message:
+manager.jobs.last_message_let_by=Last message let by
 manager.jobs.btn.delete=Delete
 manager.jobs.btn.stop=Stop
 manager.jobs.btn.setinwait=Queued

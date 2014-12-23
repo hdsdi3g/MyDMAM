@@ -19,52 +19,19 @@
 /**
  */
 (function(jobs) {
+	jobs.view = {};
 	jobs.list = {};
 	jobs.last_refresh = null;
 	jobs.last_full_refresh = null;
 	jobs.jquery_destination = "";
 	jobs.jquery_header = "";
 	jobs.datatable = null;
-	jobs.datatable_job_pos = {};
 	jobs.client_time = 0; 
 	jobs.server_time = 0; 
 	jobs.refresh_intervaller = null;
 	jobs.status_list = ["TOO_OLD", "CANCELED", "POSTPONED", "WAITING", "DONE", "PROCESSING", "STOPPED", "ERROR", "PREPARING", "TOO_LONG_DURATION"];
 	jobs.refresh_delay_time = 60000;
 })(window.mydmam.manager.jobs);
-
-
-/**
- * displayClassName(class_name)
- */
-(function(jobs) {
-	jobs.displayClassName = function(class_name) {
-		var simple_name = class_name.substring(class_name.lastIndexOf(".") + 1, class_name.length);
-		if (class_name.indexOf("(") > -1) {
-			simple_name = class_name.substring(class_name.indexOf("(") + 1, (class_name.indexOf(")")));
-			if (simple_name.indexOf(".java") > -1) {
-				simple_name = simple_name.substring(0, simple_name.indexOf(".java"));
-			}
-		}
-		return '<i class="icon-book"></i> <abbr title="' + class_name + '">' + simple_name + '</abbr>';
-	};
-})(window.mydmam.manager.jobs);
-
-/**
- * displayKey(key)
- */
-(function(jobs) {
-	jobs.displayKey = function(key, ishtml) {
-		var short_value = key.substring(key.lastIndexOf(":") + 1, key.lastIndexOf(":") + 9) + '.';
-		if (ishtml) {
-			return '<abbr title="' + key + '"><code><i class="icon-barcode"></i> ' + short_value + '</code></abbr>';
-		} else {
-			return short_value;
-		}
-	};
-})(window.mydmam.manager.jobs);
-
-
 /**
  * drawTable
  */
@@ -85,7 +52,6 @@
 		content = content + '</table>';
 		
 		$(jobs.jquery_destination).html(content);
-		datatable_job_pos = {};
 		jobs.datatable = $(jobs.jquery_destination + ' table').dataTable({
 			"bPaginate": false,
 			"bLengthChange": false,
@@ -105,168 +71,65 @@
 /**
  * addRow(job)
  */
-(function(jobs) {
+(function(jobs, view) {
 	jobs.addRow = function(job, selected_status) {
-		if (selected_status.indexOf(job.status) === -1) {
-			// return; TODO set !
+		if (job.isThisStatus(selected_status) === false) {
+			//return; //TODO set !
 		}
 		var cols = [];
 		var content = '';
 		
-		/**
-		 * New col
-		 */
-		content = content + '<strong>' + job.name + '</strong>';
-		content = content + '<button class="btn btn-mini pull-right"><i class="icon-chevron-down"></i></button>'; 
+		content = content + view.getNameCol(job);
+		content = content + '<button class="btn btn-mini pull-right btnshowcollapse"><i class="icon-chevron-down"></i></button>'; 
 		cols.push(content);
 		
-		/**
-		 * New col
-		 */
-		content = '';
-		var i18n_status = i18n('manager.jobs.status.' + job.status);
-		if (job.status === 'WAITING') {
-			content = content + '<span class="label">' + i18n_status + '</span>' + '<br />'; 
-		} else if (job.status === 'PREPARING') {
-			content = content + '<span class="label label-warning">' + i18n_status + '</span>' + '<br />'; 
-		} else if (job.status === 'PROCESSING') {
-			content = content + '<span class="label label-warning">' + i18n_status + '</span>' + '<br />'; 
-		} else if (job.status === 'DONE') {
-			content = content + '<span class="label">'               + i18n_status + '</span>' + '<br />'; 
-		} else if (job.status === 'TOO_OLD') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
-		} else if (job.status === 'STOPPED') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
-		} else if (job.status === 'TOO_LONG_DURATION') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
-		} else if (job.status === 'CANCELED') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
-		} else if (job.status === 'POSTPONED') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
-		} else if (job.status === 'ERROR') {
-			content = content + '<span class="label badge-important">' + i18n_status + '</span>' + '<br />'; 
-		} else {
-			content = content + '<span class="label label-inverse">' + i18n_status + '</span>' + '<br />'; 
-		}
-		if (job.priority > 0) {
-			content = content + '<span class="badge badge-important">' + job.priority + '</span>' + '<br />';
-		}
-		if (job.urgent) {
-			content = content + '<span class="badge badge-important">' + i18n('manager.jobs.urgent') + '</span>' + '<br />';
-		}
-		cols.push(content);
-		
-		/**
-		 * New col
-		 */
-		content = '';
-		content = content + '<span class="label">' + i18n('manager.jobs.create_date', mydmam.format.fulldate(job.create_date)) + '</span>' + '<br />';
-		content = content + '<span class="label">' + i18n('manager.jobs.start_date', mydmam.format.fulldate(job.start_date)) + '</span>' + '<br />';
-		content = content + '<span class="label">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>' + '<br />';
-		content = content + '<span class="label">' + i18n('manager.jobs.expiration_date', mydmam.format.fulldate(job.expiration_date)) + '</span>' + '<br />';
-		content = content + '<span class="label">' + i18n('manager.jobs.end_date', mydmam.format.fulldate(job.end_date)) + '</span>' + '<br />';
-		cols.push(content);
-		
-		/**
-		 * New col
-		 */
-		content = '';
-		content = content + i18n('manager.jobs.createdby') + ' ' + jobs.displayClassName(job.creator);
-		content = content + ' <abbr title="' + job.instance_status_creator_key + '">' + job.instance_status_creator_hostname + '</abbr>' + '<br />';
-		if (job.require_key) {
-			var jobrq = jobs.list[require_key];
-			if (jobrq) {
-				content = content + '<abbr title="' + jobs.displayKey(jobrq.key, false)  + '">';
-				content = content + '<span class="label label-info">';
-				content = content + i18n('manager.jobs.requireto') + ' ' + jobrq.name + ' (' + i18n('manager.jobs.status.' + jobrq.status) + ')'; 
-				content = content + '</span>'; 
-				content = content + '</abbr>'; 
-				content = content + '<br />'; 
-			} else {
-				content = content + 'Rq ' + jobs.displayKey(job.require_key, true) + '' + '<br />'; 
-			}
-		}
-		if (job.max_execution_time < (1000 * 3600 * 24)) {
-			if (job.max_execution_time > (3600 * 1000)) {
-				content = content + '<span class="label">' + i18n('manager.jobs.max_execution_time_hrs', Math.round((job.max_execution_time / (3600 * 1000)))) + '</span>' + '<br />';
-			} else {
-				content = content + '<span class="label">' + i18n('manager.jobs.max_execution_time_sec', (job.max_execution_time / 1000)) + '</span>' + '<br />';
-			}
-		}
-		
-		if (job.delete_after_completed) {
-			content = content + '<span class="label label-inverse">' + i18n("manager.jobs.delete_after_completed") + '</span>' + '<br />'; 
-		}
-		content = content + '' + jobs.displayClassName(job.context.classname) + '' + '<br />'; 
-		if (job.context.neededstorages) {
-			content = content + '' + JSON.stringify(job.context.neededstorages) + '' + '<br />'; 
-		}
-		if (job.context.content) {
-			content = content + '<code><i class="icon-indent-left"></i> ' + JSON.stringify(job.context.content) + '</code>' + '<br />'; 
-		}
-		
-		if (job.processing_error) {
-			content = content + '<code>' + JSON.stringify(job.processing_error) + '</code>' + '<br />';
-		}
+		cols.push(view.getStatusCol(job));
+		cols.push(view.getDateCol(job));
+		cols.push(view.getParamCol(job));
+		cols.push(view.getProgressionCol(job));
+		cols.push(view.getButtonsCol(job));
 
-		content = content + jobs.displayKey(job.key, true) + '<br />';
-		cols.push(content);
+		var datatable = jobs.datatable;
 		
-		/**
-		 * New col
-		 */
-		content = '';
-		if (job.progression) {
-			var progression = job.progression;
-			content = content + '' + jobs.displayClassName(progression.last_caller) + '' + '<br />'; 
-			content = content + '<i class="icon-comment"></i> <em>' + progression.last_message + '</em>' + '<br />'; 
-			
-			content = content + '<strong class="pull-left" style="margin-right: 5px;">'; 
-			if (progression.step > progression.step_count) {
-				content = content + progression.step; 
-			} else {
-				content = content + progression.step + ' <i class="icon-arrow-right"></i> ' + progression.step_count; 
-			}
-			content = content + '</strong>';
+		job.web = {
+			datatablerowpos: datatable.fnAddData(cols)[0],
+			jqueryrow: datatable.$('tr:last'),
+			status: job.status,
+		};
+		
+		console.log("add", job, selected_status);//TODO remove this
+		
+		job.web.jqueryrow.find('button.btnshowcollapse').click(function() {
+			job.web.jqueryrow.find('div.collapse').addClass('in');
+			$(this).remove();
+		});
+		
+		/*job.web.jqueryrow.find('div.collapse').addClass('in');//TODO remove this
+		job.web.jqueryrow.find('button.btnshowcollapse').remove();//TODO remove this*/
+	};
+})(window.mydmam.manager.jobs, window.mydmam.manager.jobs.view);
 
-			if (job.status === 'DONE') {
-				content = content + '<div class="progress progress-success" style="margin-bottom: 5px;">';
-			    content = content + '<div class="bar" style="width: 100%;"></div>';
-			    content = content + '</div>';
-				content = content + '<br />';
-			} else {
-				var percent = (progression.progress / progression.progress_size) * 100;
-				if (job.status === 'PROCESSING') {
-					content = content + '<div class="progress progress-striped active" style="margin-bottom: 5px;">';
-				} else {
-					content = content + '<div class="progress progress-danger progress-striped" style="margin-bottom: 5px;">';
-				}
-			    content = content + '<div class="bar" style="width: ' + percent + '%;"></div>';
-			    content = content + '</div>';
-				content = content + ' ' + progression.progress + '/' + progression.progress_size + '<br>';
+
+/**
+ * deleteRow(job)
+ */
+(function(jobs) {
+	jobs.deleteRow = function(job) {
+		var datatablerowpos = job.web.datatablerowpos;
+		for (var job_key in jobs.list) {
+			var thisjob = jobs.list[job_key];
+			if (!thisjob.web) {
+				continue;
+			}
+			if (datatablerowpos < thisjob.web.datatablerowpos) {
+				/**
+				 * Re-order row indexes before deleting...
+				 */
+				thisjob.web.datatablerowpos--;
 			}
 		}
-		content = content + i18n('manager.jobs.worker') + ' ' + jobs.displayClassName(job.worker_class) + ' '; 
-		content = content + '(' + jobs.displayKey(job.worker_reference, true) + ')<br>'; 
-		content = content + i18n('manager.jobs.instanceexecutor') + ' <abbr title="' + job.instance_status_executor_key + '">' + job.instance_status_executor_hostname + '</abbr>' + '<br />';
-		cols.push(content);
-		
-		/**
-		 * New col
-		 */
-		content = '';
-		content = content + '<button class="btn btn-mini"><i class="icon-repeat"></i> ' + i18n('manager.jobs.btn.restart') + '</button><br>'; 
-		content = content + '<button class="btn btn-mini"><i class="icon-trash"></i> ' + i18n('manager.jobs.btn.delete') + '</button><br>';
-		content = content + '<button class="btn btn-mini"><i class="icon-stop"></i> ' + i18n('manager.jobs.btn.stop') + '</button><br>';
-		content = content + '<button class="btn btn-mini"><i class="icon-inbox"></i> ' + i18n('manager.jobs.btn.setinwait') + '</button><br>';
-		content = content + '<button class="btn btn-mini"><i class="icon-off"></i> ' + i18n('manager.jobs.btn.cancel') + '</button><br>';
-		content = content + '<button class="btn btn-mini"><i class="icon-warning-sign"></i> ' + i18n('manager.jobs.btn.hipriority') + '</button><br>';
-		content = content + '<button class="btn btn-mini"><i class="icon-calendar"></i> ' + i18n('manager.jobs.btn.noexpiration') + '</button><br>';
-		cols.push(content);
-
-		console.log("add", job, selected_status);
-		var pos_new_row = jobs.datatable.fnAddData(cols);
-		jobs.datatable_job_pos[job.key] = pos_new_row;
+		jobs.datatable.fnDeleteRow(datatablerowpos);
+		job.web = null;
 	};
 })(window.mydmam.manager.jobs);
 
@@ -275,25 +138,39 @@
  */
 (function(jobs) {
 	jobs.updateRow = function(job, selected_status) {
+		if (job.isThisStatus(selected_status) === false) {
+			/** 
+			 * status is not in this table.
+			 */ 
+			if (job.web) {
+				/**
+				 * but job is in this table: status are changed, remove row
+				 */
+				jobs.deleteRow(job);
+			}
+			return;
+		}
+		if (job.web == null) {
+			/**
+			 * not added in table
+			 */
+			return;
+		}
+		
+		var datatable = jobs.datatable;
+		if (job.delete_after_completed && job.isThisStatus('DONE')) {
+			/**
+			 * job will be deleted by some brokers, delete it here.
+			 */
+			jobs.deleteRow(job);
+			return;
+		}
+		
 		console.log("update", job);
+		//TODO update
 		/**
-		 * TODO if job.delete_after_completed && job.status === 'DONE'
-		 * 
 		 * TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
 		 */
-		/**
-		 * TODO if job.status is changed, delete row !
-			var pos_row = jobs.datatable_job_pos[job.key];
-		 */
-	};
-})(window.mydmam.manager.jobs);
-
-/**
- * clearTable()
- */
-(function(jobs) {
-	jobs.clearTable = function() {
-		jobs.drawHeader();
 	};
 })(window.mydmam.manager.jobs);
 
@@ -490,9 +367,19 @@
 				return;
 			}
 		} else {
+			for (var job_key in rawdata) {
+				rawdata[job_key].isThisStatus = function(status) {
+					if (Array.isArray(status)) {
+						return status.indexOf(this.status) > -1;
+					} else {
+						return status === this.status;
+					}
+				};
+			}
+
 			if (full_refresh) {
 				jobs.list = rawdata;
-				jobs.clearTable();
+				jobs.drawHeader();
 			} else {
 				var selected_status = jobs.getSelectedStatusHeaderTab();
 				for (var job_update_key in rawdata) {
