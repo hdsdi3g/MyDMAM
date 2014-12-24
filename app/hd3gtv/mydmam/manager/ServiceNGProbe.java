@@ -22,6 +22,8 @@ import hd3gtv.mydmam.manager.dummy.Dummy1Context;
 import hd3gtv.mydmam.manager.dummy.Dummy1WorkerNG;
 import hd3gtv.mydmam.manager.dummy.Dummy2Context;
 import hd3gtv.mydmam.manager.dummy.Dummy2WorkerNG;
+import hd3gtv.mydmam.manager.dummy.Dummy3Context;
+import hd3gtv.mydmam.manager.dummy.Dummy3WorkerNG;
 
 import java.util.concurrent.TimeUnit;
 
@@ -54,16 +56,22 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		AppManager manager = getManager();
 		manager.workerRegister(new Dummy1WorkerNG());
 		manager.workerRegister(new Dummy2WorkerNG());
+		manager.workerRegister(new Dummy3WorkerNG());
 		
 		CyclicJobCreator cyclic_creator = new CyclicJobCreator(manager, 1, TimeUnit.MINUTES, false);
 		cyclic_creator.setOptions(ServiceNGProbe.class, "Dummy cyclic test", "MyDMAM Test classes");
 		cyclic_creator.add("Regular job", new Dummy1Context());
-		manager.cyclicJobsRegister(cyclic_creator);
+		// manager.cyclicJobsRegister(cyclic_creator);
 		
 		TriggerJobCreator trigger_creator = new TriggerJobCreator(getManager(), new Dummy1Context());
 		trigger_creator.add("Trig job", new Dummy2Context());
 		trigger_creator.setOptions(ServiceNGProbe.class, "Dummy trigger test", "MyDMAM Test classes");
-		manager.triggerJobsRegister(trigger_creator);
+		// manager.triggerJobsRegister(trigger_creator);
+		
+		CyclicJobCreator cyclic_creator2 = new CyclicJobCreator(manager, 1, TimeUnit.HOURS, false);
+		cyclic_creator2.setOptions(ServiceNGProbe.class, "Dummy cyclic test 2", "MyDMAM Test classes");
+		cyclic_creator2.add("Regular long job", new Dummy3Context());
+		manager.cyclicJobsRegister(cyclic_creator2);
 		
 		/*
 		// TODO phase 2, startService

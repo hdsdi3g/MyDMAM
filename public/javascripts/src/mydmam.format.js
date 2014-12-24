@@ -61,18 +61,24 @@
 		return returntext;
 	};
 	
-	mydmam.format.timeAgo = function(epoch_since_date) {
+	mydmam.format.timeAgo = function(epoch_since_date, i18n_pos, i18n_neg) {
 		var delta = (new Date().getTime() - epoch_since_date) / 1000;
+		var i18n_label = i18n_pos;
+		if (Math.sign(delta) < 0) {
+			i18n_label = i18n_neg;
+		}
+		delta = Math.abs(delta);
+		
 		if (delta < 60) {
-			return i18n('timeunit.sec', Math.round(delta));
+			return i18n(i18n_label, i18n('timeunit.sec', Math.round(delta)));
 		} else if (delta < 3600) {
-			return i18n('timeunit.min', Math.round((delta / 60)));
+			return i18n(i18n_label, i18n('timeunit.min', Math.round((delta / 60))));
 		} else if (delta < (3600 * 24)) {
-			return i18n('timeunit.hrs', Math.round((delta / 3600)));
+			return i18n(i18n_label, i18n('timeunit.hrs', Math.round((delta / 3600))));
 		} else if (delta < (3600 * 24 * 7)) {
-			return i18n('timeunit.days', Math.round((delta / (3600 * 24))));
+			return i18n(i18n_label, i18n('timeunit.days', Math.round((delta / (3600 * 24)))));
 		} else {
-			return i18n('timeunit.weeks', Math.round((delta / (3600 * 24 * 7))));
+			return i18n(i18n_label, i18n('timeunit.weeks', Math.round((delta / (3600 * 24 * 7)))));
 		}
 	};
 

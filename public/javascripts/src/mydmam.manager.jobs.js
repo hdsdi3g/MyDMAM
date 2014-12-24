@@ -30,8 +30,10 @@
 	jobs.server_time = 0; 
 	jobs.refresh_intervaller = null;
 	jobs.status_list = ["TOO_OLD", "CANCELED", "POSTPONED", "WAITING", "DONE", "PROCESSING", "STOPPED", "ERROR", "PREPARING", "TOO_LONG_DURATION"];
-	jobs.refresh_delay_time = 60000;
+	jobs.refresh_delay_time = 5000;
+	jobs.last_full_refresh_delay_time = 3600 * 1000;
 })(window.mydmam.manager.jobs);
+
 /**
  * drawTable
  */
@@ -65,6 +67,7 @@
 				{"sWidth": "8em", "aTargets": [5]},
 			],
 		});
+		$(jobs.jquery_destination + ' table td.dataTables_empty').html('<em>' + i18n('manager.jobs.tableisempty') + '</em>');
 	};
 })(window.mydmam.manager.jobs);
 
@@ -74,7 +77,7 @@
 (function(jobs, view) {
 	jobs.addRow = function(job, selected_status) {
 		if (job.isThisStatus(selected_status) === false) {
-			//return; //TODO set !
+			return;
 		}
 		var cols = [];
 		var content = '';
@@ -97,15 +100,12 @@
 			status: job.status,
 		};
 		
-		console.log("add", job, selected_status);//TODO remove this
-		
 		job.web.jqueryrow.find('button.btnshowcollapse').click(function() {
 			job.web.jqueryrow.find('div.collapse').addClass('in');
 			$(this).remove();
 		});
 		
-		/*job.web.jqueryrow.find('div.collapse').addClass('in');//TODO remove this
-		job.web.jqueryrow.find('button.btnshowcollapse').remove();//TODO remove this*/
+		console.log("add", job, selected_status);//TODO remove this
 	};
 })(window.mydmam.manager.jobs, window.mydmam.manager.jobs.view);
 
@@ -136,11 +136,11 @@
 /**
  * updateRow(job)
  */
-(function(jobs) {
+(function(jobs, view) {
 	jobs.updateRow = function(job, selected_status) {
 		if (job.isThisStatus(selected_status) === false) {
 			/** 
-			 * status is not in this table.
+			 * this status is not for this table.
 			 */ 
 			if (job.web) {
 				/**
@@ -154,7 +154,7 @@
 			/**
 			 * not added in table
 			 */
-			return;
+			jobs.addRow(job, selected_status);
 		}
 		
 		var datatable = jobs.datatable;
@@ -167,12 +167,9 @@
 		}
 		
 		console.log("update", job);
-		//TODO update
-		/**
-		 * TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
-		 */
+		view.update(job);
 	};
-})(window.mydmam.manager.jobs);
+})(window.mydmam.manager.jobs, window.mydmam.manager.jobs.view);
 
 /**
  * hideTable()
@@ -216,8 +213,6 @@
 	};
 })(window.mydmam.manager.jobs);
 
-//$(jobs.jquery_header + ' ul.nav.joblistheader
-
 /**
  * getSelectedHeaderTab()
  * return [job.status]
@@ -241,7 +236,31 @@
  * drawHeader()
  */
 (function(jobs) {
-	jobs.drawHeader = function() {
+	jobs.drawHeader = function(setselected) {
+		var tabindex = 0;
+		if (setselected) {
+			var selected = setselected[0];
+			if (selected === "PREPARING") {
+				tabindex = 1;
+			} else if (selected === "PROCESSING") {
+				tabindex = 1;
+			} else if (selected === "DONE") {
+				tabindex = 2;
+			} else if (selected === "TOO_OLD") {
+				tabindex = 3;
+			} else if (selected === "STOPPED") {
+				tabindex = 4;
+			} else if (selected === "TOO_LONG_DURATION") {
+				tabindex = 4;
+			} else if (selected === "CANCELED") {
+				tabindex = 5;
+			} else if (selected === "POSTPONED") {
+				tabindex = 5;
+			} else if (selected === "ERROR") {
+				tabindex = 6;
+			}
+		}
+		
 		var content = '';
 		content = content + '<ul class="nav nav-tabs joblistheader">';
 		content = content + '<li><a href="" data-toggle="tab" class="btnswitchjoblisttable jobswitchWAITING">';
@@ -290,7 +309,7 @@
 			return false;
 		});
 		
-		$(jobs.jquery_header + ' ul.nav.joblistheader a.btnswitchjoblisttable:first').click();
+		$(jobs.jquery_header + ' ul.nav.joblistheader a.btnswitchjoblisttable:eq(' + tabindex + ')').click();
 	};
 })(window.mydmam.manager.jobs);
 
@@ -376,19 +395,24 @@
 					}
 				};
 			}
-
+			
+			var selected_status = jobs.getSelectedStatusHeaderTab();
 			if (full_refresh) {
 				jobs.list = rawdata;
-				jobs.drawHeader();
+				jobs.drawHeader(selected_status);
 			} else {
-				var selected_status = jobs.getSelectedStatusHeaderTab();
 				for (var job_update_key in rawdata) {
-					if (jobs.list[job_update_key]) {
-						jobs.updateRow(rawdata[job_update_key], selected_status);
+					var actual_job = jobs.list[job_update_key];
+					var updated_job = rawdata[job_update_key];
+					if (actual_job) {
+						if (actual_job.web) {
+							updated_job.web = actual_job.web;
+						}
+						jobs.updateRow(updated_job, selected_status);
 					} else {
-						jobs.addRow(rawdata[job_update_key], selected_status);
+						jobs.addRow(updated_job, selected_status);
 					}
-					jobs.list[job_update_key] = rawdata[job_update_key];
+					jobs.list[job_update_key] = updated_job;
 				}
 				jobs.refreshHeaderCounters();
 			}
@@ -418,7 +442,7 @@
 			full_refresh = true;
 		}
 		
-		if (jobs.last_full_refresh + (3600 * 1000) < (new Date().getTime())) {
+		if (jobs.last_full_refresh + jobs.last_full_refresh_delay_time < (new Date().getTime())) {
 			full_refresh = true;
 		}
 		

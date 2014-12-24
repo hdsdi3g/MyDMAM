@@ -143,7 +143,7 @@ manager.jobs.max_execution_time_hrs=Max exec. time: %s hrs.
 manager.jobs.th.name=Name
 manager.jobs.th.status=Status
 manager.jobs.th.date=Date
-manager.jobs.th.params=Parameters
+manager.jobs.th.params=Parameters and options
 manager.jobs.th.progress=Progress
 manager.jobs.th.action=Actions
 manager.jobs.create_date=Created %s
@@ -154,6 +154,7 @@ manager.jobs.end_date=Completed %s
 manager.jobs.createdby=Created by %s on %s
 manager.jobs.requireto=Requires
 manager.jobs.since=Since %s
+manager.jobs.negativesince=In %s
 manager.jobs.setup=Setup:
 manager.jobs.last_message=Last message:
 manager.jobs.last_message_let_by=Last message let by
@@ -165,6 +166,7 @@ manager.jobs.btn.hipriority=High Priority
 manager.jobs.btn.noexpiration=No expires
 manager.jobs.worker=Executed by
 manager.jobs.instanceexecutor=On
+manager.jobs.tableisempty=No job for the selected state.
 
 application.navigate=Storage
 

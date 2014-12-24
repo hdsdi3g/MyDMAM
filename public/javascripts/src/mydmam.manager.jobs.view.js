@@ -107,37 +107,39 @@
 	view.getDateCol = function(job) {
 		var content ='';
 		
-		var ago = function(since) {
-			return '<span class="label" style="margin-bottom: 6px;"><em>(' + i18n('manager.jobs.since', mydmam.format.timeAgo(since)) + ')</em></span>' + '<br />';
+		var ago = function(since, varname) {
+			return '<span class="label itemtoupdate agoupdate" data-varname="' + varname + '" style="margin-bottom: 6px;"><em>(' + mydmam.format.timeAgo(since, 'manager.jobs.since', 'manager.jobs.negativesince') + ')</em></span>' + '<br />';
 		};
 		
 		content = content + '<div class="collapse">';
-		content = content + '<span class="label">' + i18n('manager.jobs.create_date', mydmam.format.fulldate(job.create_date)) + '</span>' + '<br />';
-		content = content + ago(job.create_date);
+		content = content + '<span class="label itemtoupdate dateupdate" data-varname="create_date">' + i18n('manager.jobs.create_date', mydmam.format.fulldate(job.create_date)) + '</span>' + '<br />';
+		content = content + ago(job.create_date, "create_date");
 		
 		if (job.start_date > 0) {
-			content = content + '<span class="label">' + i18n('manager.jobs.start_date', mydmam.format.fulldate(job.start_date)) + '</span>' + '<br />';
-			content = content + ago(job.start_date);
+			content = content + '<span class="label itemtoupdate dateupdate" data-varname="start_date">' + i18n('manager.jobs.start_date', mydmam.format.fulldate(job.start_date)) + '</span>' + '<br />';
+			content = content + ago(job.start_date, "start_date");
 		}
 		content = content + '</div>';
 		
-		content = content + '<span class="label">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>' + '<br />';
+		content = content + '<span class="label itemtoupdate dateupdate" data-varname="update_date">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>' + '<br />';
 		
 		content = content + '<div class="collapse">';
-		content = content + ago(job.update_date);
+		content = content + ago(job.update_date, "update_date");
 		if (job.expiration_date > 0) {
-			content = content + '<span class="label">' + i18n('manager.jobs.expiration_date', mydmam.format.fulldate(job.expiration_date)) + '</span>' + '<br />';
-			content = content + ago(job.expiration_date);
+			content = content + '<span class="label itemtoupdate dateupdate" data-varname="expiration_date">' + i18n('manager.jobs.expiration_date', mydmam.format.fulldate(job.expiration_date)) + '</span>' + '<br />';
+			content = content + ago(job.expiration_date, "expiration_date");
 		}
 		if (job.end_date > 0) {
-			content = content + '<span class="label">' + i18n('manager.jobs.end_date', mydmam.format.fulldate(job.end_date)) + '</span>';
-			content = content + ago(job.end_date);
+			content = content + '<span class="label itemtoupdate dateupdate" data-varname="end_date">' + i18n('manager.jobs.end_date', mydmam.format.fulldate(job.end_date)) + '</span>';
+			content = content + ago(job.end_date, "end_date");
 		}
 		
 		content = content + '</div>';
 		return content;
 	};
 })(window.mydmam.manager.jobs.view);
+
+
 
 /**
  * getParamCol(job)
@@ -216,6 +218,101 @@
 })(window.mydmam.manager.jobs.view);
 
 /**
+ * update(job)
+ */
+(function(view) {
+	view.update = function(job) {
+		var patch_ago = function(item, since) {
+			item.find('em').html('(' + mydmam.format.timeAgo(since, 'manager.jobs.since', 'manager.jobs.negativesince') + ')');
+		};
+		
+		var patch_date = function(item, varname, date) {
+			item.html(i18n('manager.jobs.' + varname, mydmam.format.fulldate(date)));
+		};
+
+		var update = function() {
+			var varname = $(this).data("varname");
+			var item = $(this);
+			
+			if (item.hasClass("agoupdate")) {
+				if (varname === 'create_date') {
+					patch_ago(item, job.create_date);
+				} else if (varname === 'start_date') {
+					patch_ago(item, job.start_date);
+				} else if (varname === 'update_date') {
+					patch_ago(item, job.update_date);
+				} else if (varname === 'expiration_date') {
+					patch_ago(item, job.expiration_date);
+				} else if (varname === 'end_date') {
+					patch_ago(item, job.end_date);
+				}
+			} else if (item.hasClass("dateupdate")) {
+				if (varname === 'create_date') {
+					patch_date(item, varname, job.create_date);
+				} else if (varname === 'start_date') {
+					patch_date(item, varname, job.start_date);
+				} else if (varname === 'update_date') {
+					patch_date(item, varname, job.update_date);
+				} else if (varname === 'expiration_date') {
+					patch_date(item, varname, job.expiration_date);
+				} else if (varname === 'end_date') {
+					patch_date(item, varname, job.end_date);
+				}
+			} else if (item.hasClass("updateprogression")) {
+				var progression = job.progression;
+				if (varname === 'step') {
+					item.html(view.getProgressionStepHtmlContent(progression));
+				} else if (varname === 'percent') {
+					item.css('width', ((progression.progress / progression.progress_size) * 100) + '%');
+				} else if (varname === 'progress') {
+					item.html(progression.progress + '/' + progression.progress_size + '<br>');
+				} else if (varname === 'last_message') {
+					item.html(view.getProgressionLastmessageHtmlContent(progression));
+				} else if (varname === 'last_caller') {
+					item.html(view.displayClassName(progression.last_caller));
+				}
+				
+			}
+		};
+		job.web.jqueryrow.find('.itemtoupdate').each(update);
+	};
+})(window.mydmam.manager.jobs.view);
+
+/**
+ * getProgressionStepHtmlContent(job)
+ */
+(function(view) {
+	view.getProgressionStepHtmlContent = function(progression) {
+		if ((progression.step === 0) & (progression.step_count === 0)) {
+			return '';
+		}
+		
+		if (progression.step > progression.step_count) {
+			return progression.step; 
+		}
+		
+		var content ='';
+			content = content + progression.step;
+			content = content + ' <i class="icon-arrow-right"></i> '; 
+			content = content + progression.step_count; 
+		return content;
+	};
+})(window.mydmam.manager.jobs.view);
+
+/**
+ * getProgressionLastmessageHtmlContent(job)
+ */
+(function(view) {
+	view.getProgressionLastmessageHtmlContent = function(progression) {
+		var last_message = i18n('job.progressionmessage.' + progression.last_message);
+		if (last_message.startsWith('job.progressionmessage.')) {
+			last_message = progression.last_message;
+		}
+		return last_message;
+	};
+})(window.mydmam.manager.jobs.view);
+
+/**
  * getProgressionCol(job)
  */
 (function(view) {
@@ -224,12 +321,8 @@
 		if (job.progression) {
 			var progression = job.progression;
 			
-			content = content + '<strong class="pull-left" style="margin-right: 5px;">'; 
-			if (progression.step > progression.step_count) {
-				content = content + progression.step; 
-			} else {
-				content = content + progression.step + ' <i class="icon-arrow-right"></i> ' + progression.step_count; 
-			}
+			content = content + '<strong class="pull-left itemtoupdate updateprogression" data-varname="step" style="margin-right: 5px;">'; 
+			content = content + view.getProgressionStepHtmlContent(progression); 
 			content = content + '</strong>';
 
 			if (job.status === 'DONE') {
@@ -244,9 +337,9 @@
 				} else {
 					content = content + '<div class="progress progress-danger progress-striped" style="margin-bottom: 5px;">';
 				}
-			    content = content + '<div class="bar" style="width: ' + percent + '%;"></div>';
+			    content = content + '<div class="bar itemtoupdate updateprogression" data-varname="percent" style="width: ' + percent + '%;"></div>';
 			    content = content + '</div>';
-				content = content + '<div class="collapse">';
+				content = content + '<div class="collapse itemtoupdate updateprogression" data-varname="progress">';
 				content = content + progression.progress + '/' + progression.progress_size + '<br>';
 				content = content + '</div>';
 			}
@@ -254,12 +347,15 @@
 			content = content + '<div class="collapse"><small>';
 			content = content + '<hr style="margin-top: 4px; margin-bottom: 3px;">';
 			
-			var last_message = i18n('job.progressionmessage.' + progression.last_message);
-			if (last_message.startsWith('job.progressionmessage.')) {
-				last_message = progression.last_message;
-			}
-			content = content + i18n('manager.jobs.last_message') + ' <em>' + last_message + '</em> <i class="icon-comment"></i>' + '<br />'; 
-			content = content + i18n('manager.jobs.last_message_let_by') + ' ' + view.displayClassName(progression.last_caller) + '<br />';
+			content = content + i18n('manager.jobs.last_message') + ' '; 
+			content = content + '<em class="itemtoupdate updateprogression" data-varname="last_message">'; 
+			content = content + view.getProgressionLastmessageHtmlContent(job.progression); 
+			content = content + '</em> <i class="icon-comment"></i>' + '<br />';
+			
+			content = content + i18n('manager.jobs.last_message_let_by') + ' ';
+			content = content + '<span class="itemtoupdate updateprogression" data-varname="last_caller">';
+			content = content + view.displayClassName(progression.last_caller);
+			content = content + '</span><br />';
 			
 			content = content + '<hr style="margin-top: 4px; margin-bottom: 3px;">';
 			
