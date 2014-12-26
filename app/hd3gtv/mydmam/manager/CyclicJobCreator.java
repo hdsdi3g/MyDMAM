@@ -16,8 +16,11 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.log2.Log2;
+
 import java.util.concurrent.TimeUnit;
 
+import com.google.gson.JsonObject;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
@@ -73,4 +76,17 @@ public final class CyclicJobCreator extends JobCreator {
 	}
 	
 	static JobCreatorSerializer<CyclicJobCreator> serializer = new JobCreatorSerializer<CyclicJobCreator>(CyclicJobCreator.class);
+	
+	public void doAnAction(JsonObject order) {
+		super.doAnAction(order);
+		
+		if (order.has("setperiod")) {
+			setPeriod(order.get("setperiod").getAsLong());
+			Log2.log.info("Change period", this);
+		}
+		if (order.has("setnextdate")) {
+			next_date_to_create_jobs = order.get("setnextdate").getAsLong();
+			Log2.log.info("Change next date", this);
+		}
+	}
 }

@@ -28,7 +28,7 @@ import java.util.UUID;
 
 import com.google.gson.JsonObject;
 
-public abstract class WorkerNG implements Log2Dumpable {
+public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 	
 	public enum WorkerCategory {
 		INDEXING, METADATA, EXTERNAL_MODULE, USERACTION, INTERNAL
@@ -308,4 +308,18 @@ public abstract class WorkerNG implements Log2Dumpable {
 		dump.add("refuse_new_jobs", refuse_new_jobs);
 		return dump;
 	}
+	
+	public final void doAnAction(JsonObject order) {
+		if (order.has("state")) {
+			if (order.get("state").getAsString().equals("enable")) {
+				lifecyle.enable();
+				Log2.log.info("Enable worker", this);
+			} else if (order.get("state").getAsString().equals("disable")) {
+				lifecyle.askToStop();
+				Log2.log.info("Disable worker", this);
+			}
+		}
+		
+	}
+	
 }

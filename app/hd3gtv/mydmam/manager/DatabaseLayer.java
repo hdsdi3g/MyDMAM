@@ -25,19 +25,15 @@ import java.util.List;
 
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 final class DatabaseLayer {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
-	// private static final ColumnFamily<String, String> CF_ACTIONS = new ColumnFamily<String, String>("mgrAction", StringSerializer.get(), StringSerializer.get());
 	private static final InstanceStatus.Serializer instancestatus_serializer;
 	private static final WorkerExporter.Serializer workerstatus_serializer;
 	
@@ -56,17 +52,6 @@ final class DatabaseLayer {
 		}
 		instancestatus_serializer = new InstanceStatus.Serializer();
 		workerstatus_serializer = new WorkerExporter.Serializer();
-		
-		/*
-		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "status", CF_TASKQUEUE.getName() + "_status", DeployColumnDef.ColType_AsciiType);
-		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "profile_category", CF_TASKQUEUE.getName() + "_profile_category", DeployColumnDef.ColType_UTF8Type);
-		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "max_date_to_wait_processing", CF_TASKQUEUE.getName() + "_max_date_to_wait_processing",
-				DeployColumnDef.ColType_LongType);
-		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "creator_hostname", CF_TASKQUEUE.getName() + "_creator_hostname", DeployColumnDef.ColType_UTF8Type);
-		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "updatedate", CF_TASKQUEUE.getName() + "_updatedate", DeployColumnDef.ColType_LongType);
-		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "delete", CF_TASKQUEUE.getName() + "_delete", DeployColumnDef.ColType_Int32Type);
-		CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_TASKQUEUE, "indexingdebug", CF_TASKQUEUE.getName() + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
-		 * */
 	}
 	
 	private AppManager manager;
@@ -105,10 +90,9 @@ final class DatabaseLayer {
 	}
 	
 	/**
-	 * @return true if import is ok
+	 * @ return true if import is ok
 	 */
-	@SuppressWarnings({ "unused" })
-	private <T> T importFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, String key, Class<T> result_class) {
+	/*private <T> T importFromDatabase(ColumnFamily<String, String> cf, CassandraDbImporterExporter<T> serializer, String key, Class<T> result_class) {
 		try {
 			ColumnFamilyQuery<String, String> rows_asset = CassandraDb.getkeyspace().prepareQuery(cf);
 			OperationResult<ColumnList<String>> row = rows_asset.getKey(key).execute(); // .withColumnSlice(this.column_names)
@@ -117,7 +101,7 @@ final class DatabaseLayer {
 			manager.getServiceException().onCassandraError(e);
 		}
 		return null;
-	}
+	}*/
 	
 	/**
 	 * @param T must assignable from CassandraDbImporterExporter, and to be a valid instanciable class.

@@ -19,6 +19,7 @@ package hd3gtv.mydmam.manager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.mydmam.useraction.UACapabilityDefinition;
@@ -34,8 +35,10 @@ import java.util.Map;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.netflix.astyanax.MutationBatch;
 
-public final class AppManager {
+public final class AppManager implements InstanceActionReceiver {
 	
 	/**
 	 * In sec.
@@ -74,6 +77,7 @@ public final class AppManager {
 		 * Inside of this package serializers
 		 */
 		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus.Serializer());
+		builder.registerTypeAdapter(InstanceAction.class, new InstanceAction.Serializer());
 		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
 		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
 		builder.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
@@ -364,11 +368,21 @@ public final class AppManager {
 		public void run() {
 			stop_update = false;
 			try {
+				List<InstanceAction> pending_actions = new ArrayList<InstanceAction>();
+				
 				while (stop_update == false) {
 					database_layer.updateInstanceStatus(instance_status.refresh());
 					database_layer.updateWorkerStatus(enabled_workers);
-					// TODO phase 2, InstanceAction regular pulls
+					
+					InstanceAction.getAllPendingInstancesAction(pending_actions);
+					if (pending_actions.isEmpty() == false) {
+						processInstanceAction(pending_actions);
+					}
+					
 					// TODO phase 2, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
+					// broker.getDeclared_cyclics()
+					// broker.getDeclared_triggers()
+					
 					Thread.sleep(SLEEP_UPDATE_TTL * 1000);
 				}
 			} catch (Exception e) {
@@ -378,6 +392,76 @@ public final class AppManager {
 		
 		public synchronized void stopUpdate() {
 			this.stop_update = true;
+		}
+		
+		void processInstanceAction(List<InstanceAction> pending_actions) throws Exception {
+			InstanceAction current_instance_action;
+			String target_class_name;
+			String ref_key;
+			JsonObject order;
+			ArrayList<CyclicJobCreator> declared_cyclics = broker.getDeclared_cyclics();
+			ArrayList<TriggerJobCreator> declared_triggers = broker.getDeclared_triggers();
+			
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			
+			for (int pos_pa = 0; pos_pa < pending_actions.size(); pos_pa++) {
+				current_instance_action = pending_actions.get(pos_pa);
+				target_class_name = current_instance_action.getTargetClassname();
+				ref_key = current_instance_action.getTarget_reference_key();
+				order = current_instance_action.getOrder();
+				
+				if (target_class_name == AppManager.class.getSimpleName()) {
+					if (ref_key.equals(instance_status.getInstanceNamePid())) {
+						Log2.log.info("Do an instance action on manager", current_instance_action);
+						doAnAction(current_instance_action.getOrder());
+						current_instance_action.delete(mutator);
+					}
+					
+				} else if (target_class_name == WorkerNG.class.getSimpleName()) {
+					for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
+						if (ref_key.equals(enabled_workers.get(pos_wr).getReferenceKey())) {
+							Log2.log.info("Do an instance action on worker", current_instance_action);
+							enabled_workers.get(pos_wr).doAnAction(order);
+							current_instance_action.delete(mutator);
+							break;
+						}
+					}
+				} else if (target_class_name == CyclicJobCreator.class.getSimpleName()) {
+					for (int pos_dc = 0; pos_dc < declared_cyclics.size(); pos_dc++) {
+						if (ref_key.equals(declared_cyclics.get(pos_dc).getReference_key())) {
+							Log2.log.info("Do an instance action on cyclic", current_instance_action);
+							declared_cyclics.get(pos_dc).doAnAction(order);
+							current_instance_action.delete(mutator);
+							break;
+						}
+					}
+				} else if (target_class_name == TriggerJobCreator.class.getSimpleName()) {
+					for (int pos_dt = 0; pos_dt < declared_triggers.size(); pos_dt++) {
+						if (ref_key.equals(declared_triggers.get(pos_dt).getReference_key())) {
+							Log2.log.info("Do an instance action on trigger", current_instance_action);
+							declared_triggers.get(pos_dt).doAnAction(order);
+							current_instance_action.delete(mutator);
+							break;
+						}
+					}
+				} else {
+					Log2.log.error("An instance action is not plugged to a known class", new ClassNotFoundException(target_class_name), current_instance_action);
+				}
+			}
+			
+			if (mutator.isEmpty() == false) {
+				mutator.execute();
+			}
+		}
+	}
+	
+	public void doAnAction(JsonObject order) {
+		if (order.has("broker")) {
+			if (order.get("broker").getAsString().equals("start")) {
+				broker.start();
+			} else if (order.get("broker").getAsString().equals("stop")) {
+				broker.askStop();
+			}
 		}
 	}
 }

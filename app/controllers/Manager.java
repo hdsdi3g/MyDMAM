@@ -17,6 +17,7 @@
 package controllers;
 
 import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.manager.JobNG;
 import play.data.validation.Required;
@@ -24,6 +25,8 @@ import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
+
+import com.google.gson.JsonParser;
 
 @With(Secure.class)
 public class Manager extends Controller {
@@ -65,4 +68,44 @@ public class Manager extends Controller {
 		}
 		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(since)));
 	}
+	
+	@Check("actionManager")
+	public static void instanceaction(@Required String target_class_name, @Required String target_reference_key, @Required String json_order) throws Exception {
+		if (Validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		
+		StringBuffer caller = new StringBuffer();
+		caller.append(User.getUserProfile().key);
+		caller.append(" ");
+		if (request.isLoopback == false) {
+			caller.append(request.remoteAddress);
+		} else {
+			caller.append("loopback");
+		}
+		
+		InstanceAction.addNew(target_class_name, target_reference_key, new JsonParser().parse(json_order).getAsJsonObject(), caller.toString());
+		
+		/*
+		 * AppManager
+		 * broker : start | stop
+		 * 
+		 * WorkerNG
+		 * state : enable | disable
+		 * 
+		 * CyclicJobCreator
+		 * activity : enable | disable | createjobs
+		 * setperiod : long
+		 * setnextdate : long
+		 * 
+		 * TriggerJobCreator
+		 * activity : enable | disable | createjobs
+		 * 
+		 * */
+		
+		renderJSON("[]");
+	}
+	
+	// TODO add job action
+	
 }

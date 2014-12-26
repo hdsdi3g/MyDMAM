@@ -16,21 +16,146 @@
 */
 package hd3gtv.mydmam.manager;
 
-public class InstanceAction {
-	/**
-	 * TODO phase 2, remote exec actions to workers (start, stop...)
-	 */
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.CassandraDb;
+
+import java.lang.reflect.Type;
+import java.util.List;
+import java.util.UUID;
+
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.serializers.StringSerializer;
+
+public final class InstanceAction implements Log2Dumpable {
 	
-	private InstanceStatus instance;
+	private static final int TTL = 5 * 60;
 	
-	private String target;
+	private static final ColumnFamily<String, String> CF_ACTION = new ColumnFamily<String, String>("mgrAction", StringSerializer.get(), StringSerializer.get());
+	private static Keyspace keyspace;
 	
-	private String order;
+	static {
+		try {
+			keyspace = CassandraDb.getkeyspace();
+			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
+			if (CassandraDb.isColumnFamilyExists(keyspace, CF_ACTION.getName()) == false) {
+				CassandraDb.createColumnFamilyString(default_keyspacename, CF_ACTION.getName(), false);
+			}
+		} catch (Exception e) {
+			Log2.log.error("Can't init database CFs", e);
+		}
+	}
 	
+	private String key;
+	private String target_class_name;
+	private String target_reference_key;
+	private @GsonIgnore JsonObject order;
 	private String caller;
+	private long created_at;
 	
-	// @see WorkerGroupEngine.setStatusChangesToWorkers
+	/**
+	 * Used for de/serializer.
+	 */
+	private InstanceAction() {
+	}
+	
+	/**
+	 * Used for create a new instance action and publish it.
+	 */
+	public static void addNew(String target_class_name, String target_reference_key, JsonObject order, String caller) throws ConnectionException {
+		InstanceAction new_instance_action = new InstanceAction();
+		new_instance_action.target_class_name = target_class_name;
+		if (target_class_name == null) {
+			throw new NullPointerException("\"target_class_name\" can't to be null");
+		}
+		new_instance_action.target_reference_key = target_reference_key;
+		if (target_reference_key == null) {
+			throw new NullPointerException("\"target_reference_key\" can't to be null");
+		}
+		new_instance_action.order = order;
+		if (order == null) {
+			throw new NullPointerException("\"order\" can't to be null");
+		}
+		new_instance_action.caller = caller;
+		if (caller == null) {
+			throw new NullPointerException("\"caller\" can't to be null");
+		}
+		new_instance_action.key = UUID.randomUUID().toString();
+		new_instance_action.created_at = System.currentTimeMillis();
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		mutator.withRow(CF_ACTION, new_instance_action.key).putColumn("source", AppManager.getGson().toJson(new_instance_action), TTL);
+		mutator.execute();
+		
+		Log2.log.info("Create manager action", new_instance_action);
+	}
+	
+	static void getAllPendingInstancesAction(final List<InstanceAction> current_item_list) throws Exception {
+		current_item_list.clear();
+		
+		CassandraDb.allRowsReader(CF_ACTION, new AllRowsFoundRow() {
+			public void onFoundRow(Row<String, String> row) throws Exception {
+				current_item_list.add(AppManager.getGson().fromJson(row.getColumns().getColumnByName("source").getStringValue(), InstanceAction.class));
+			}
+		});
+	}
+	
+	void delete(MutationBatch mutator) {
+		mutator.withRow(CF_ACTION, key).delete();
+	}
+	
+	JsonObject getOrder() {
+		return order;
+	}
+	
+	public String getTargetClassname() {
+		return target_class_name;
+	}
+	
+	String getTarget_reference_key() {
+		return target_reference_key;
+	}
+	
+	static class Serializer implements JsonSerializer<InstanceAction>, JsonDeserializer<InstanceAction> {
+		
+		public InstanceAction deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			JsonObject src = json.getAsJsonObject();
+			InstanceAction result = AppManager.getSimpleGson().fromJson(json, InstanceAction.class);
+			result.order = src.getAsJsonObject("order");
+			return result;
+		}
+		
+		public JsonElement serialize(InstanceAction src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
+			result.add("order", src.order);
+			return result;
+		}
+	}
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("key", key);
+		dump.add("target_class_name", target_class_name);
+		dump.add("target_reference_key", target_reference_key);
+		dump.add("order", order);
+		dump.addDate("created_at", created_at);
+		dump.add("caller", caller);
+		return dump;
+	}
+	
 	// TODO phase 2, change Log2Filter on the fly
-	// TODO phase 2, CyclicJobsCreator actions : enable, disable, new period, create
 	
 }

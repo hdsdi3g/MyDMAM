@@ -65,6 +65,10 @@ mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 	mydmam.manager.url.allworkers = "@{Manager.allworkers()}";
 #{/secure.check}
 
+#{secure.check 'actionManager'}
+	mydmam.manager.url.instanceaction = "@{Manager.instanceaction()}";
+#{/secure.check}
+	
 #{secure.check 'showJobs'}
 	mydmam.manager.url.alljobs = "@{Manager.alljobs()}";
 	mydmam.manager.url.recentupdatedjobs = "@{Manager.recentupdatedjobs()}";
