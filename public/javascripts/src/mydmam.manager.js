@@ -42,6 +42,17 @@
 	};
 })(window.mydmam.manager);
 
+/**
+ * hasInstanceAction()
+ */
+(function(manager) {
+	manager.hasInstanceAction = function() {
+		if (mydmam.manager.url.instanceaction) {
+			return true;
+		}
+		return false;
+	};
+})(window.mydmam.manager);
 
 /**
  * getGitHubURL(app_version)
@@ -180,7 +191,33 @@
 			$(this).remove();
 			return true;
 		});
+		
+		if (manager.hasInstanceAction()) {
+			manager.setBtnActionClick(query_destination);
+		}
+		
+	};
+})(window.mydmam.manager);
 
+/**
+ * setBtnActionClick(query_destination)
+ */
+(function(manager) {
+	var push = function() {
+		$(this).removeClass("btnmgraction");
+		var target_class_name = $(this).data("target_class_name");
+		var target_reference_key = $(this).data("target_reference_key");
+		var order_key = $(this).data("order_key");
+		var order_value = $(this).data("order_value");
+		var order = {};
+		order[order_key] = order_value;
+		var json_order = JSON.stringify(order);
+		//TODO ajax
+		console.log('click', target_class_name, target_reference_key, json_order);
+	};
+	
+	manager.setBtnActionClick = function(query_destination) {
+		$(query_destination + ' button.btn.btnmgraction').click(push);
 	};
 })(window.mydmam.manager);
 
@@ -199,6 +236,9 @@
 			content = content + '<th>' + i18n('manager.summary.app_version') + '</th>';
 			content = content + '<th>' + i18n('manager.summary.host') + '</th>';
 			content = content + '<th>' + i18n('manager.summary.addresses') + '</th>';
+			if (manager.hasInstanceAction()) {
+				content = content + '<th>' + i18n('manager.summary.actions') + '</th>';
+			}
 			return content + '</tr>';
 		}
 		
@@ -226,6 +266,27 @@
 			content = content + instance.host_addresses[pos] + '<br/>';
 		}
 		content = content + '</small></td>';
+		
+		if (manager.hasInstanceAction()) {
+			content = content + '<td>';
+			if (instance.brokeralive) {
+				content = content + '<button class="btn btn-mini btnmgraction btn-danger" ';
+				content = content + 'data-target_class_name="AppManager" ';
+				content = content + 'data-order_key="broker" ';
+				content = content + 'data-order_value="stop" ';
+				content = content + 'data-target_reference_key="' + instance.instance_name_pid + '" ';
+				content = content + '>' + i18n("manager.summary.broker.stop") ;
+			} else {
+				content = content + '<button class="btn btn-mini btnmgraction btn-success" ';
+				content = content + 'data-target_class_name="AppManager" ';
+				content = content + 'data-order_key="broker" ';
+				content = content + 'data-order_value="start" ';
+				content = content + 'data-target_reference_key="' + instance.instance_name_pid + '" ';
+				content = content + '>' + i18n("manager.summary.broker.start") ;
+			}
+			content = content + '</button>';
+			content = content + '</td>';
+		}
 		
 		return content + '</tr>';
 	};

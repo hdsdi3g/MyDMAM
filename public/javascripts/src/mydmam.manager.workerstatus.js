@@ -127,7 +127,7 @@
 			var key = worker.reference_key;
 			if (!db.last_workers[key]) {
 				var new_item_pos = datatable.fnAddData(workerstatus.getColsToAddData(worker, pos_wr));
-				db.datatable_workers_position[key] = new_item_pos[0];
+				db.datatable_workers_position[key] = new_item_pos[0]; //TODO correct behaviors with pos !
 			}
 			workerstatus.updateStatus(query_destination, worker, pos_wr);
 			current_workers[key] = worker;
@@ -135,6 +135,9 @@
 		}
 		
 		workerstatus.set_btn_event_in_collapse(query_destination);
+		if (mydmam.manager.hasInstanceAction()) {
+			mydmam.manager.setBtnActionClick(query_destination);
+		}
 		
 		for (var key in db.last_workers) {
 			if (!current_workers[key]) {
@@ -163,13 +166,12 @@
 		content = content + instance.instance_name + ' ';
 		content = content + '<button class="btn btn-mini btnincollapse pull-right notyetsetevent"';
 		content = content + ' data-collapsetarget="' + row_class + '"';
-		//content = content + ' data-workerref="' + worker.reference_key + '"';
-		//content = content + ' data-instanceref="' + instance.instance_ref + '"';
 		content = content + '>';
 		content = content + '<i class="icon-chevron-down"></i>';
 		content = content + '</button><br/>';
 		content = content + '<div class="collapse notyetcollapsed ' + row_class + '">';
 		content = content + '<small>' + instance.host_name + '</small>';
+		content = content + '<br><span>' + mydmam.manager.jobs.view.displayKey(worker.reference_key, true) + '</span>';
 		content = content + '</div>'; // collapse
 		cols.push(content);
 		
@@ -220,7 +222,6 @@
 	};
 })(window.mydmam.manager.workerstatus);
 
-
 /**
  * updateStatus(worker, pos_wr)
  */
@@ -229,6 +230,7 @@
 		var row_class = 'wkrsrow-' + pos_wr;
 		var div_workerstate = $(query_destination + ' div.tableworkers div.workerstate.' + row_class);
 		var div_currentjobkey = $(query_destination + ' div.tableworkers div.currentjobkey.' + row_class);
+		var instance = worker.manager_reference.members;
 		
 		content = '';
 		if (worker.state === 'WAITING') {
@@ -242,9 +244,32 @@
 		} else {
 			content = content + worker.state;
 		}
+		
+		if (mydmam.manager.hasInstanceAction()) {
+			content = content + '<span class="workerbtnactions pull-right">';
+			if (worker.state === "PROCESSING" | worker.state === "WAITING") {
+				content = content + '<button class="btn btn-mini btnmgraction btn-danger" ';
+				content = content + 'data-target_class_name="WorkerNG" ';
+				content = content + 'data-order_key="state" ';
+				content = content + 'data-order_value="disable" ';
+				content = content + 'data-target_reference_key="' + worker.reference_key + '" ';
+				content = content + '>' + i18n("manager.workers.action.stop") ;
+			} else if (worker.state === "STOPPED") {
+				content = content + '<button class="btn btn-mini btnmgraction btn-success" ';
+				content = content + 'data-target_class_name="WorkerNG" ';
+				content = content + 'data-order_key="state" ';
+				content = content + 'data-order_value="enable" ';
+				content = content + 'data-target_reference_key="' + worker.reference_key + '" ';
+				content = content + '>' + i18n("manager.workers.action.start") ;
+			} else {
+				content = content + '<button class="btn btn-mini btn-disable btn-success">' + i18n("manager.workers.action.start");
+			}
+			content = content + '</button>';
+			content = content + '</span>';
+		}
+
 		div_workerstate.html(content);
 		
-		var instance = worker.manager_reference.members;
 		content = '';
 		if (worker.current_job_key) {
 			content = content + '<small>' + i18n('manager.workers.currentjob', worker.current_job_key) + '</small>';

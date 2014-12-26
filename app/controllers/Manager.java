@@ -85,10 +85,9 @@ public class Manager extends Controller {
 		}
 		
 		InstanceAction.addNew(target_class_name, target_reference_key, new JsonParser().parse(json_order).getAsJsonObject(), caller.toString());
-		
 		/*
-		 * AppManager
-		 * broker : start | stop
+		 * =AppManager
+		 * =broker : start | stop
 		 * 
 		 * WorkerNG
 		 * state : enable | disable
