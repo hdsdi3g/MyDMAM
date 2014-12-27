@@ -19,6 +19,7 @@ package controllers;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
+import hd3gtv.mydmam.manager.JobAction;
 import hd3gtv.mydmam.manager.JobNG;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -85,26 +86,21 @@ public class Manager extends Controller {
 		}
 		
 		InstanceAction.addNew(target_class_name, target_reference_key, new JsonParser().parse(json_order).getAsJsonObject(), caller.toString());
-		/*
-		 * =AppManager
-		 * =broker : start | stop
-		 * 
-		 * =WorkerNG
-		 * =state : enable | disable
-		 * 
-		 * =CyclicJobCreator
-		 * =activity : enable | disable | createjobs
-		 * =setperiod : long
-		 * =setnextdate : long
-		 * 
-		 * =TriggerJobCreator
-		 * =activity : enable | disable | createjobs
-		 * 
-		 * */
-		
 		renderJSON("[]");
 	}
 	
-	// TODO add job action
+	@Check("actionJobs")
+	public static void jobaction(@Required String request) throws Exception {
+		if (Validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		// TODO
+		JobAction action = AppManager.getGson().fromJson(request, JobAction.class);
+		// al_JobAction_typeOfT
+		/*List<JobNG> jobs = JobNG.Utility.getJobsByKeys(keys);
+		for (int pos = 0; pos < jobs.size(); pos++) {
+			// jobs.get(pos).delete();
+		}*/
+	}
 	
 }

@@ -79,6 +79,7 @@ public final class AppManager implements InstanceActionReceiver {
 		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus.Serializer());
 		builder.registerTypeAdapter(InstanceAction.class, new InstanceAction.Serializer());
 		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
+		builder.registerTypeAdapter(JobAction.class, new JobAction.Serializer());
 		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
 		builder.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
 		builder.registerTypeAdapter(WorkerExporter.class, new WorkerExporter.Serializer());
