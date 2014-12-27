@@ -16,8 +16,14 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.db.CassandraDb;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
@@ -27,13 +33,81 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class JobAction {
+public class JobAction implements Log2Dumpable {
 	
-	public JsonObject doAction() {
-		JsonObject jo = new JsonObject();
+	private enum Order {
+		delete, stop, setinwait, cancel, hipriority, noexpiration, postponed
+	}
+	
+	private @GsonIgnore ArrayList<String> jobs_keys;
+	private Order order;
+	
+	public JsonObject doAction(String caller) throws ConnectionException {
+		JsonObject result = new JsonObject();
 		
-		return jo;
+		List<JobNG> jobs = JobNG.Utility.getJobsByKeys(jobs_keys);
+		if (jobs == null) {
+			return result;
+		}
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		
+		JobNG job;
+		String worker_reg;
+		for (int pos = 0; pos < jobs.size(); pos++) {
+			job = jobs.get(pos);
+			
+			switch (order) {
+			case delete:
+				job.delete(mutator);
+				break;
+			case stop:
+				worker_reg = job.getWorker_reference();
+				WorkerExporter worker_exporter = DatabaseLayer.getWorkerStatusByKey(worker_reg);
+				if (worker_exporter == null) {
+					job.getActionUtils().setStopped();
+				} else if (worker_exporter.current_job_key == null) {
+					job.getActionUtils().setStopped();
+				} else if (worker_exporter.current_job_key.equals(job.getKey())) {
+					JsonObject json_order = new JsonObject();
+					json_order.addProperty("state", "stop");
+					InstanceAction.addNew("WorkerNG", worker_reg, json_order, caller);
+				} else {
+					job.getActionUtils().setStopped();
+				}
+				break;
+			case setinwait:
+				job.getActionUtils().setWaiting();
+				break;
+			case cancel:
+				job.getActionUtils().setCancel();
+				break;
+			case postponed:
+				job.getActionUtils().setPostponed();
+				break;
+			case hipriority:
+				job.getActionUtils().setMaxPriority();
+				break;
+			case noexpiration:
+				job.getActionUtils().setDontExpiration();
+				break;
+			}
+			
+			job.saveChanges(mutator);
+		}
+		
+		if (mutator.isEmpty() == false) {
+			mutator.execute();
+			
+			Log2Dump dump = getLog2Dump();
+			dump.add("caller", caller);
+			Log2.log.info("Action on jobs", dump);
+		}
+		
+		return result;
 	}
 	
 	static class Serializer implements JsonSerializer<JobAction>, JsonDeserializer<JobAction> {
@@ -41,17 +115,25 @@ public class JobAction {
 		private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
 		}.getType();
 		
-		@Override
 		public JobAction deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			// TODO Auto-generated method stub
-			return null;
+			JsonObject jo = json.getAsJsonObject();
+			JobAction result = AppManager.getSimpleGson().fromJson(json, JobAction.class);
+			result.jobs_keys = AppManager.getGson().fromJson(jo.get("jobs_keys"), al_String_typeOfT);
+			return result;
 		}
 		
-		@Override
 		public JsonElement serialize(JobAction src, Type typeOfSrc, JsonSerializationContext context) {
-			// TODO Auto-generated method stub
-			return null;
+			JsonObject result = AppManager.getPrettyGson().toJsonTree(src).getAsJsonObject();
+			result.add("jobs_keys", AppManager.getGson().toJsonTree(src.jobs_keys, al_String_typeOfT));
+			return result;
 		}
+	}
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("jobs_keys", jobs_keys);
+		dump.add("order", order);
+		return dump;
 	}
 	
 }

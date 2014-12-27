@@ -27,6 +27,7 @@ import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
 
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 @With(Secure.class)
@@ -70,12 +71,7 @@ public class Manager extends Controller {
 		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(since)));
 	}
 	
-	@Check("actionManager")
-	public static void instanceaction(@Required String target_class_name, @Required String target_reference_key, @Required String json_order) throws Exception {
-		if (Validation.hasErrors()) {
-			renderJSON("[\"validation error\"]");
-		}
-		
+	private static String getCaller() throws Exception {
 		StringBuffer caller = new StringBuffer();
 		caller.append(User.getUserProfile().key);
 		caller.append(" ");
@@ -84,8 +80,15 @@ public class Manager extends Controller {
 		} else {
 			caller.append("loopback");
 		}
-		
-		InstanceAction.addNew(target_class_name, target_reference_key, new JsonParser().parse(json_order).getAsJsonObject(), caller.toString());
+		return caller.toString();
+	}
+	
+	@Check("actionManager")
+	public static void instanceaction(@Required String target_class_name, @Required String target_reference_key, @Required String json_order) throws Exception {
+		if (Validation.hasErrors()) {
+			renderJSON("[\"validation error\"]");
+		}
+		InstanceAction.addNew(target_class_name, target_reference_key, new JsonParser().parse(json_order).getAsJsonObject(), getCaller());
 		renderJSON("[]");
 	}
 	
@@ -94,13 +97,10 @@ public class Manager extends Controller {
 		if (Validation.hasErrors()) {
 			renderJSON("[\"validation error\"]");
 		}
-		// TODO
 		JobAction action = AppManager.getGson().fromJson(request, JobAction.class);
-		// al_JobAction_typeOfT
-		/*List<JobNG> jobs = JobNG.Utility.getJobsByKeys(keys);
-		for (int pos = 0; pos < jobs.size(); pos++) {
-			// jobs.get(pos).delete();
-		}*/
+		JsonObject result = action.doAction(getCaller());
+		System.out.println(result.toString()); // TODO enlever
+		renderJSON(result.toString());
 	}
 	
 }

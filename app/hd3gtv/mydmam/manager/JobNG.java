@@ -244,6 +244,54 @@ public final class JobNG implements Log2Dumpable {
 		return this;
 	}
 	
+	private ActionUtils actionUtils;
+	
+	ActionUtils getActionUtils() {
+		if (actionUtils == null) {
+			actionUtils = new ActionUtils();
+		}
+		return actionUtils;
+	}
+	
+	class ActionUtils {
+		void setPostponed() {
+			status = JobStatus.POSTPONED;
+		}
+		
+		void setDontExpiration() {
+			delete_after_completed = false;
+			expiration_date = System.currentTimeMillis() + (default_max_execution_time * 7);
+			max_execution_time = default_max_execution_time;
+			update_date = System.currentTimeMillis();
+		}
+		
+		void setWaiting() {
+			update_date = System.currentTimeMillis();
+			status = JobStatus.WAITING;
+		}
+		
+		void setCancel() {
+			update_date = System.currentTimeMillis();
+			status = JobStatus.CANCELED;
+		}
+		
+		void setStopped() {
+			update_date = System.currentTimeMillis();
+			status = JobStatus.STOPPED;
+		}
+		
+		void setMaxPriority() throws ConnectionException {
+			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
+			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
+			index_query.withColumnSlice("status", "name");
+			OperationResult<Rows<String, String>> rows = index_query.execute();
+			priority = rows.getResult().size() + 1;
+			urgent = true;
+			update_date = System.currentTimeMillis();
+		}
+		
+	}
+	
 	public JobNG setDeleteAfterCompleted() {
 		delete_after_completed = true;
 		return this;
@@ -263,17 +311,21 @@ public final class JobNG implements Log2Dumpable {
 		mutator.execute();
 	}
 	
+	/**
+	 * Compute priority based on active wait job count.
+	 */
+	void setMaxPriority() throws ConnectionException {
+		IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
+		index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
+		index_query.withColumnSlice("status", "name");
+		OperationResult<Rows<String, String>> rows = index_query.execute();
+		priority = rows.getResult().size() + 1;
+	}
+	
 	public void publish(MutationBatch mutator) throws ConnectionException {
 		create_date = System.currentTimeMillis();
 		if (urgent) {
-			/**
-			 * Compute priority based on active wait job count.
-			 */
-			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
-			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
-			index_query.withColumnSlice("status", "name");
-			OperationResult<Rows<String, String>> rows = index_query.execute();
-			priority = rows.getResult().size() + 1;
+			setMaxPriority();
 		}
 		saveChanges(mutator);
 	}
@@ -536,7 +588,7 @@ public final class JobNG implements Log2Dumpable {
 		/**
 		 * @return never null if keys is not empty
 		 */
-		public static List<JobNG> getJobsByKeys(Collection<String> keys) throws ConnectionException, ParseException {
+		public static List<JobNG> getJobsByKeys(Collection<String> keys) throws ConnectionException {
 			if (keys == null) {
 				return null;
 			}
@@ -592,6 +644,10 @@ public final class JobNG implements Log2Dumpable {
 	
 	public String toString() {
 		return AppManager.getPrettyGson().toJson(this);
+	}
+	
+	String getWorker_reference() {
+		return worker_reference;
 	}
 	
 	public Log2Dump getLog2Dump() {

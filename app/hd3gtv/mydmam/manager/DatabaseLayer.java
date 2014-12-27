@@ -27,6 +27,7 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
@@ -36,10 +37,10 @@ final class DatabaseLayer {
 	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
 	private static final InstanceStatus.Serializer instancestatus_serializer;
 	private static final WorkerExporter.Serializer workerstatus_serializer;
-	
+	private static Keyspace keyspace;
 	static {
 		try {
-			Keyspace keyspace = CassandraDb.getkeyspace();
+			keyspace = CassandraDb.getkeyspace();
 			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
 			if (CassandraDb.isColumnFamilyExists(keyspace, CF_WORKERS.getName()) == false) {
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_WORKERS.getName(), false);
@@ -148,4 +149,11 @@ final class DatabaseLayer {
 		return importAllFromDatabase(CF_WORKERS, workerstatus_serializer, WorkerExporter.class);
 	}
 	
+	static WorkerExporter getWorkerStatusByKey(String worker_key) throws ConnectionException {
+		ColumnList<String> cols = keyspace.prepareQuery(CF_WORKERS).getKey(worker_key).execute().getResult();
+		if (cols.isEmpty()) {
+			return null;
+		}
+		return workerstatus_serializer.importFromDatabase(cols);
+	}
 }

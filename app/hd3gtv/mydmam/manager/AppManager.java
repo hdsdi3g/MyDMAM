@@ -275,7 +275,7 @@ public final class AppManager implements InstanceActionReceiver {
 		broker.askStop();
 		
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
-			enabled_workers.get(pos).getLifecyle().askToStop();
+			enabled_workers.get(pos).getLifecyle().askToStopAndRefuseNewJobs();
 		}
 		try {
 			for (int pos = 0; pos < enabled_workers.size(); pos++) {

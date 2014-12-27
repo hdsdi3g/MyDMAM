@@ -140,7 +140,6 @@
 })(window.mydmam.manager.jobs.view);
 
 
-
 /**
  * getParamCol(job)
  */
@@ -378,6 +377,7 @@
 		var btnsetinwait = '<button class="btn btn-mini btn-block hide"><i class="icon-inbox"></i> ' + i18n('manager.jobs.btn.setinwait') + '</button>';
 		var btncancel = '<button class="btn btn-mini btn-info btn-block hide"><i class="icon-off icon-white"></i> ' + i18n('manager.jobs.btn.cancel') + '</button>';
 		var btnhipriority = '<button class="btn btn-mini btn-block hide"><i class="icon-warning-sign"></i> ' + i18n('manager.jobs.btn.hipriority') + '</button>';
+		var btnpostponed = '<button class="btn btn-mini btn-block hide"><i class="icon-step-forward"></i> ' + i18n('manager.jobs.btn.postponed') + '</button>';
 		var btnnoexpiration = '<button class="btn btn-mini btn-block hide"><i class="icon-calendar"></i> ' + i18n('manager.jobs.btn.noexpiration') + '</button>';
 		var divcollapse = '<div class="collapse" style=" margin-top: 5px;">';
 		
@@ -389,6 +389,7 @@
 		if (job.isThisStatus("WAITING")){
 			content = content + btnhipriority;
 			content = content + divcollapse;
+			content = content + btnpostponed;
 			content = content + btncancel;
 			content = content + btnnoexpiration;
 			content = content + btndelete;
@@ -398,6 +399,9 @@
 		if (job.isThisStatus(["CANCELED", "POSTPONED", "DONE"])){
 			content = content + btnsetinwait;
 			content = content + divcollapse;
+			if (job.isThisStatus(["CANCELED", "DONE"])) {
+				content = content + btnpostponed;
+			}
 			content = content + btnhipriority;
 			content = content + btnnoexpiration;
 			content = content + btndelete;
@@ -407,6 +411,7 @@
 		if (job.isThisStatus(["ERROR", "STOPPED", "TOO_LONG_DURATION", "TOO_OLD"])){
 			content = content + btncancel;
 			content = content + divcollapse;
+			content = content + btnpostponed;
 			content = content + btnsetinwait;
 			content = content + btnhipriority;
 			content = content + btnnoexpiration;
@@ -414,15 +419,6 @@
 			content = content + '</div>';
 			return content;
 		}
-		/*
-		==============	WAI	PRE	PRO	DON	CAN	POS	ERR	STO	TOL	TOO
-		btnstop			.	.	1	.						
-		btncancel		2.	.	.	.			[1.	1.	1.	1.		
-		btnsetinwait	.	.	.	[1.	1.	1.	2.	2.	2.	2.	
-		btnhipriority	1.	.	.	2.	2.	2.	2.	2.	2.	2.	
-		btnnoexpiration	2.	.	.	2.	2.	2.	2.	2.	2.	2.	
-		btndelete		2.	.	.	2.	2.	2.]	2.	2.	2.	2.]	
-		 * */
 		return content;
 	};
 })(window.mydmam.manager.jobs.view);

@@ -52,10 +52,14 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 		PROCESSING, WAITING, STOPPED, PENDING_STOP, DISACTIVATED;
 	}
 	
+	private enum StopReason {
+		full_functionnal, refuse_new_jobs, simple_job_stop
+	}
+	
 	private LifeCycle lifecyle;
 	private volatile Executor current_executor;
 	private String reference_key;
-	private volatile boolean refuse_new_jobs;
+	private volatile StopReason stopreason;
 	private WorkerExporter exporter;
 	private AppManager manager;
 	
@@ -93,7 +97,7 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 		this.manager = manager;
 		reference_key = computeKey();
 		lifecyle = new LifeCycle(this);
-		refuse_new_jobs = false;
+		stopreason = StopReason.full_functionnal;
 		exporter = new WorkerExporter(this);
 	}
 	
@@ -161,12 +165,20 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 					manager.getServiceException().onMaxExecJobTime(job);
 					Log2.log.error("Max execution time is reached", null, job);
 				} else {
-					if (refuse_new_jobs) {
-						job.endProcessing_Stopped();
-						Log2.log.debug("Stop execution", job);
-					} else {
+					switch (stopreason) {
+					case full_functionnal:
 						job.endProcessing_Done();
 						Log2.log.debug("End processing", job);
+						break;
+					case refuse_new_jobs:
+						job.endProcessing_Stopped();
+						Log2.log.debug("Stop execution", job);
+						break;
+					case simple_job_stop:
+						job.endProcessing_Stopped();
+						Log2.log.debug("Stop execution", job);
+						stopreason = StopReason.full_functionnal;
+						break;
 					}
 				}
 			} catch (Exception e) {
@@ -215,26 +227,34 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 			}
 			if (current_executor != null) {
 				if (current_executor.isAlive()) {
-					if (refuse_new_jobs) {
-						return WorkerState.PENDING_STOP;
-					} else {
+					switch (stopreason) {
+					case full_functionnal:
 						return WorkerState.PROCESSING;
+					case refuse_new_jobs:
+						return WorkerState.PENDING_STOP;
+					case simple_job_stop:
+						return WorkerState.PENDING_STOP;
 					}
 				} else {
 					current_executor = null;
 				}
 			}
-			if (refuse_new_jobs) {
+			switch (stopreason) {
+			case full_functionnal:
+				return WorkerState.WAITING;
+			case refuse_new_jobs:
 				return WorkerState.STOPPED;
+			case simple_job_stop:
+				return WorkerState.WAITING;
 			}
 			return WorkerState.WAITING;
 		}
 		
 		final void enable() {
-			refuse_new_jobs = false;
+			stopreason = StopReason.full_functionnal;
 		}
 		
-		final void askToStop() {
+		private final void askToStop() {
 			if (getState() == WorkerState.PROCESSING) {
 				try {
 					if (current_executor != null) {
@@ -245,7 +265,16 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 					manager.getServiceException().onError(e, "Can't stop current process", reference);
 				}
 			}
-			refuse_new_jobs = true;
+		}
+		
+		final void askToStopAndRefuseNewJobs() {
+			askToStop();
+			stopreason = StopReason.refuse_new_jobs;
+		}
+		
+		final void justAskToStop() {
+			askToStop();
+			stopreason = StopReason.simple_job_stop;
 		}
 		
 		final boolean isThisState(WorkerState... states) {
@@ -305,7 +334,7 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 			dump.add("executor", current_executor.getName() + " [" + current_executor.getId() + "]");
 			dump.add("executor is alive", current_executor.isAlive());
 		}
-		dump.add("refuse_new_jobs", refuse_new_jobs);
+		dump.add("stopreason", stopreason);
 		return dump;
 	}
 	
@@ -315,8 +344,11 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 				lifecyle.enable();
 				Log2.log.info("Enable worker", this);
 			} else if (order.get("state").getAsString().equals("disable")) {
-				lifecyle.askToStop();
+				lifecyle.askToStopAndRefuseNewJobs();
 				Log2.log.info("Disable worker", this);
+			} else if (order.get("state").getAsString().equals("stop")) {
+				lifecyle.justAskToStop();
+				Log2.log.info("Stop current job", this);
 			}
 		}
 		
