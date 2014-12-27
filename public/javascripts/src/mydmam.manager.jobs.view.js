@@ -335,7 +335,7 @@
 				if (job.status === 'PROCESSING') {
 					content = content + '<div class="progress progress-striped active" style="margin-bottom: 5px;">';
 				} else {
-					content = content + '<div class="progress progress-danger progress-striped" style="margin-bottom: 5px;">';
+					content = content + '<div class="progress progress-danger" style="margin-bottom: 5px;">';
 				}
 			    content = content + '<div class="bar itemtoupdate updateprogression" data-varname="percent" style="width: ' + percent + '%;"></div>';
 			    content = content + '</div>';

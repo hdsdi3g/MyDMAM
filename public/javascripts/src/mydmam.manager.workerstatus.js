@@ -126,10 +126,11 @@
 			var worker = workers[pos_wr];
 			var key = worker.reference_key;
 			if (!db.last_workers[key]) {
-				var new_item_pos = datatable.fnAddData(workerstatus.getColsToAddData(worker, pos_wr));
-				db.datatable_workers_position[key] = new_item_pos[0]; //TODO correct behaviors with pos !
+				var new_item_pos = datatable.fnAddData(workerstatus.getColsToAddData(worker));
+				worker.datatablerowpos = new_item_pos[0];
+				worker.jqueryrow = datatable.$('tr:last');
 			}
-			workerstatus.updateStatus(query_destination, worker, pos_wr);
+			workerstatus.updateStatus(query_destination, worker);
 			current_workers[key] = worker;
 			db.last_workers[key] = worker;
 		}
@@ -141,25 +142,48 @@
 		
 		for (var key in db.last_workers) {
 			if (!current_workers[key]) {
-				// console.log('remove', last_workers[key]);
-				datatable.fnDeleteRow(db.datatable_workers_position[key]);
-				delete db.datatable_workers_position[key];
-				delete db.last_workers[key];
+				workerstatus.deleteRow(db.last_workers[key]);
 			}
 		}
 		return db;
 	};
 })(window.mydmam.manager.workerstatus);
 
+
 /**
- * getColsToAddData(worker, pos_wr)
+ * deleteRow(workerstatus)
  */
 (function(workerstatus) {
-	workerstatus.getColsToAddData = function(worker, pos_wr) {
+	workerstatus.deleteRow = function(worker) {
+		var datatablerowpos = worker.datatablerowpos;
+		for (var key in db.last_workers) {
+			var thisworker = db.last_workers[key];
+			if (!thisworker.jqueryrow) {
+				continue;
+			}
+			if (datatablerowpos < thisworker.datatablerowpos) {
+				/**
+				 * Re-order row indexes before deleting...
+				 */
+				thisworker.datatablerowpos--;
+			}
+		}
+		db.datatable.fnDeleteRow(datatablerowpos);
+		delete worker.datatablerowpos;
+		delete worker.jqueryrow;
+		delete db.last_workers[key];
+	};
+})(window.mydmam.manager.workerstatus);
+
+/**
+ * getColsToAddData(worker)
+ */
+(function(workerstatus) {
+	workerstatus.getColsToAddData = function(worker) {
 		var cols = [];
 		
 		var instance = worker.manager_reference.members;
-		var row_class = 'wkrsrow-' + pos_wr;
+		var row_class = 'wkrsrow-' + worker.reference_key.substring(8, 16);
 		
 		var content = '';
 		content = content + '<strong>' +instance.app_name + '</strong>&nbsp;&bull; ';
@@ -223,11 +247,11 @@
 })(window.mydmam.manager.workerstatus);
 
 /**
- * updateStatus(worker, pos_wr)
+ * updateStatus(worker)
  */
 (function(workerstatus) {
-	workerstatus.updateStatus = function(query_destination, worker, pos_wr) {
-		var row_class = 'wkrsrow-' + pos_wr;
+	workerstatus.updateStatus = function(query_destination, worker) {
+		var row_class = 'wkrsrow-' + worker.reference_key.substring(8, 16);
 		var div_workerstate = $(query_destination + ' div.tableworkers div.workerstate.' + row_class);
 		var div_currentjobkey = $(query_destination + ' div.tableworkers div.currentjobkey.' + row_class);
 		var instance = worker.manager_reference.members;
@@ -253,16 +277,14 @@
 				content = content + 'data-order_key="state" ';
 				content = content + 'data-order_value="disable" ';
 				content = content + 'data-target_reference_key="' + worker.reference_key + '" ';
-				content = content + '>' + i18n("manager.workers.action.stop") ;
+				content = content + '><i class="icon-stop icon-white"></i> ' + i18n("manager.workers.action.stop") ;
 			} else if (worker.state === "STOPPED") {
 				content = content + '<button class="btn btn-mini btnmgraction btn-success" ';
 				content = content + 'data-target_class_name="WorkerNG" ';
 				content = content + 'data-order_key="state" ';
 				content = content + 'data-order_value="enable" ';
 				content = content + 'data-target_reference_key="' + worker.reference_key + '" ';
-				content = content + '>' + i18n("manager.workers.action.start") ;
-			} else {
-				content = content + '<button class="btn btn-mini btn-disable btn-success">' + i18n("manager.workers.action.start");
+				content = content + '><i class="icon-play icon-white"></i> ' + i18n("manager.workers.action.start") ;
 			}
 			content = content + '</button>';
 			content = content + '</span>';

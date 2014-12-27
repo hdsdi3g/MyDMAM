@@ -77,7 +77,7 @@ abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 			Log2Dump dump = new Log2Dump();
 			dump.add("job_name", job_name);
 			for (int pos = 0; pos < contexts.size(); pos++) {
-				dump.add("context", AppManager.getGson().toJson(contexts.get(pos)));
+				dump.add("context", AppManager.getGson().toJson(contexts.get(pos), JobContext.class));
 			}
 			return dump;
 		}
@@ -90,7 +90,7 @@ abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 		}
 		enabled = true;
 		declarations = new ArrayList<Declaration>();
-		reference_key = UUID.randomUUID().toString();
+		reference_key = getClass().getName().toLowerCase() + ":" + UUID.randomUUID().toString();
 	}
 	
 	public final JobCreator setOptions(Class<?> creator, String long_name, String vendor_name) {

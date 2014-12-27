@@ -235,7 +235,6 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 		}
 		
 		final void askToStop() {
-			refuse_new_jobs = true;
 			if (getState() == WorkerState.PROCESSING) {
 				try {
 					if (current_executor != null) {
@@ -246,6 +245,7 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 					manager.getServiceException().onError(e, "Can't stop current process", reference);
 				}
 			}
+			refuse_new_jobs = true;
 		}
 		
 		final boolean isThisState(WorkerState... states) {

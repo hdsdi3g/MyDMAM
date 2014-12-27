@@ -410,14 +410,14 @@ public final class AppManager implements InstanceActionReceiver {
 				ref_key = current_instance_action.getTarget_reference_key();
 				order = current_instance_action.getOrder();
 				
-				if (target_class_name == AppManager.class.getSimpleName()) {
+				if (target_class_name.equals(AppManager.class.getSimpleName())) {
 					if (ref_key.equals(instance_status.getInstanceNamePid())) {
 						Log2.log.info("Do an instance action on manager", current_instance_action);
 						doAnAction(current_instance_action.getOrder());
 						current_instance_action.delete(mutator);
 					}
 					
-				} else if (target_class_name == WorkerNG.class.getSimpleName()) {
+				} else if (target_class_name.equals(WorkerNG.class.getSimpleName())) {
 					for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
 						if (ref_key.equals(enabled_workers.get(pos_wr).getReferenceKey())) {
 							Log2.log.info("Do an instance action on worker", current_instance_action);
@@ -426,7 +426,7 @@ public final class AppManager implements InstanceActionReceiver {
 							break;
 						}
 					}
-				} else if (target_class_name == CyclicJobCreator.class.getSimpleName()) {
+				} else if (target_class_name.equals(CyclicJobCreator.class.getSimpleName())) {
 					for (int pos_dc = 0; pos_dc < declared_cyclics.size(); pos_dc++) {
 						if (ref_key.equals(declared_cyclics.get(pos_dc).getReference_key())) {
 							Log2.log.info("Do an instance action on cyclic", current_instance_action);
@@ -435,7 +435,7 @@ public final class AppManager implements InstanceActionReceiver {
 							break;
 						}
 					}
-				} else if (target_class_name == TriggerJobCreator.class.getSimpleName()) {
+				} else if (target_class_name.equals(TriggerJobCreator.class.getSimpleName())) {
 					for (int pos_dt = 0; pos_dt < declared_triggers.size(); pos_dt++) {
 						if (ref_key.equals(declared_triggers.get(pos_dt).getReference_key())) {
 							Log2.log.info("Do an instance action on trigger", current_instance_action);

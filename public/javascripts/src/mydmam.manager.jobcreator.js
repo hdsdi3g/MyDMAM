@@ -45,7 +45,7 @@
  * prepareGenericTable(instances)
  */
 (function(jobcreator) {
-	jobcreator.prepareGenericTable = function(instances, declared_key_name, specific_cols_headers, specific_row) {
+	jobcreator.prepareGenericTable = function(instances, declared_key_name, specific_cols_headers, specific_row, target_class_name) {
 		var prepareCreatorRow = function(creator) {
 			var content = '';
 			content = content + '<td>';
@@ -75,6 +75,39 @@
 				content = content + '</ul>';
 			}
 			content = content + '</small></td>';
+			
+			if (mydmam.manager.hasInstanceAction()) {
+				content = content + '<td>';
+				content = content + '<div class="btn-group">';
+				if (creator.enabled) {
+					content = content + '<button class="btn btn-mini btnmgraction btn-danger" ';
+					content = content + 'data-target_class_name="' + target_class_name + '" ';
+					content = content + 'data-order_key="activity" ';
+					content = content + 'data-order_value="disable" ';
+					content = content + 'data-target_reference_key="' + creator.reference_key + '" ';
+					content = content + '><i class="icon-stop icon-white"></i> ' + i18n("manager.jobcreator.action.disable") ;
+					content = content + '</button>';
+				} else {
+					content = content + '<button class="btn btn-mini btnmgraction btn-success" ';
+					content = content + 'data-target_class_name="' + target_class_name + '" ';
+					content = content + 'data-order_key="activity" ';
+					content = content + 'data-order_value="enable" ';
+					content = content + 'data-target_reference_key="' + creator.reference_key + '" ';
+					content = content + '><i class="icon-play icon-white"></i> ' + i18n("manager.jobcreator.action.enable") ;
+					content = content + '</button>';
+				}
+				content = content + '<button class="btn btn-mini btnmgraction btn-primary" ';
+				content = content + 'data-target_class_name="' + target_class_name + '" ';
+				content = content + 'data-order_key="activity" ';
+				content = content + 'data-order_value="createjobs" ';
+				content = content + 'data-target_reference_key="' + creator.reference_key + '" ';
+				content = content + '><i class="icon-play-circle icon-white"></i> ' + i18n("manager.jobcreator.action.createjobs") ;
+				content = content + '</button>';
+				
+				content = content + '</div>'; //btn-group
+				content = content + '</td>';
+			}
+			
 			return content;
 		};
 
@@ -89,15 +122,17 @@
 			var content = '';
 			
 			for (var pos_crt = 0; pos_crt < creators.length; pos_crt++) {
+				var creator = creators[pos_crt];
 				content = content + '<tr>';
 
 				content = content + '<td>';
 				content = content + '<strong>' +instance.app_name + '</strong>&nbsp;&bull; ';
 				content = content + instance.instance_name + '<br>';
 				content = content + '<small>' + instance.host_name + '</small>';
+				content = content + '<span class="pull-right">' + mydmam.manager.jobs.view.displayKey(creator.reference_key, true) + '</span>';
 				content = content + '</td>';
 
-				content = content + prepareCreatorRow(creators[pos_crt]);
+				content = content + prepareCreatorRow(creator);
 				content = content + '</tr>';
 			}
 			return content;
@@ -105,7 +140,7 @@
 		
 		var content = '';
 		var is_empty = true;
-		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatableAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">';
+		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
 		content = content + '<thead>';
 		content = content + '<th>' + i18n('manager.jobcreator.th.instance') + '</th>';
 		content = content + '<th>' + i18n('manager.jobcreator.th.name') + '</th>';
@@ -117,6 +152,9 @@
 		}
 		
 		content = content + '<th>' + i18n('manager.jobcreator.th.declarations') + '</th>';
+		if (mydmam.manager.hasInstanceAction()) {
+			content = content + '<th>' + i18n('manager.jobcreator.th.actions') + '</th>';
+		}
 		content = content + '</thead>';
 		content = content + '<tbody>';
 		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
@@ -144,25 +182,54 @@
  */
 (function(jobcreator) {
 	jobcreator.prepareCyclic = function(instances) {
+		var target_class_name = 'CyclicJobCreator';
 		var specific_row = function(creator) {
 			var content = '<td>';
-			content = content + i18n('manager.jobcreator.cyclic.periodvalue', (creator.period / 1000)) + '<br />';
-			
-			content = content + '<span class="label">';
-			var next_date = mydmam.format.fulldate(creator.next_date_to_create_jobs);
-			if (next_date) {
-				content = content + i18n('manager.jobcreator.cyclic.nextdate') + ' ' + next_date;
-			} else {
-				content = content + i18n('manager.jobcreator.cyclic.nonextdate');
+			if (creator.enabled) {
+				content = content + '<span class="label">';
+				content = content + mydmam.format.timeAgo(creator.period + new Date().getTime(), 'manager.jobcreator.cyclic.periodvalue', 'manager.jobcreator.cyclic.periodvalue');
+				content = content + '</span>';
+
+				content = content + '<span class="pull-right">';
+				content = content + '<div class="btn-group">';
+				var addButton = function(order_key, order_value, icon1, icon2, label) {
+					content = content + '<button class="btn btn-mini btnmgraction" ';
+					content = content + 'data-target_class_name="' + target_class_name + '" ';
+					content = content + 'data-order_key="' + order_key + '" ';
+					content = content + 'data-order_value="' + order_value + '" ';
+					content = content + 'data-target_reference_key="' + creator.reference_key + '" ';
+					content = content + '><i class="' + icon1 + '"></i> ';
+					if (icon2) {
+						content = content + '<i class="' + icon2 + '"></i> ';
+					}
+					if (label) {
+						content = content + i18n(label);
+					}
+					
+					content = content + '</button>';
+				};
+				
+				addButton("setperiod", Math.round(creator.period / 2), 'icon-repeat', null, '/2');
+				addButton("setperiod", creator.period * 2, 'icon-repeat', null, 'x2');
+				addButton("setnextdate", creator.next_date_to_create_jobs + creator.period, 'icon-time', 'icon-fast-forward', null);
+				content = content + '</div>';
+				content = content + '</span>';
+				
+				content = content + '<br><span class="label">';
+				if (creator.next_date_to_create_jobs) {
+					content = content + mydmam.format.timeAgo(creator.next_date_to_create_jobs, 'manager.jobcreator.cyclic.nextdate', 'manager.jobcreator.cyclic.nextdate');
+				} else {
+					content = content + i18n('manager.jobcreator.cyclic.nonextdate');
+				}
+				content = content + '</span>';
 			}
-			content = content + '</span>';
 			
 			content = content + '</td>';
 			return content;
 		};
 		
 		return jobcreator.prepareGenericTable(instances, "declared_cyclics", 
-				[i18n('manager.jobcreator.cyclic.period')], specific_row);
+				[i18n('manager.jobcreator.cyclic.period')], specific_row, target_class_name);
 	};
 })(window.mydmam.manager.jobcreator);
 
@@ -179,6 +246,7 @@
 		};
 		
 		return jobcreator.prepareGenericTable(instances, "declared_triggers", 
-				[i18n('manager.jobcreator.trigger.hook')], specific_row);
+				[i18n('manager.jobcreator.trigger.hook')], specific_row, 'TriggerJobCreator');
 	};
 })(window.mydmam.manager.jobcreator);
+

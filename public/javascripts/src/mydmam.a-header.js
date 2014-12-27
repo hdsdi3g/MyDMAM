@@ -25,6 +25,8 @@
 	String.prototype.startsWith = function(str){return (this.match("^"+str)==str);};
 	String.prototype.endsWith = function(str){return (this.match(str+"$")==str);};
 	
+	String.prototype.append = function(str){return this + str;};
+
 	Storage.prototype.setObject = function(key, obj) {
 		return this.setItem(key, JSON.stringify(obj));
 	};

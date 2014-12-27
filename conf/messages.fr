@@ -27,11 +27,12 @@ site.logintips=
 
 filesizeunitshort=o
 filesizeunitlong=octets
-timeunit.sec=%s sec
-timeunit.min=%s min
-timeunit.hrs=%s hrs
-timeunit.days=%s jrs
-timeunit.weeks=%s sem
+timeunit.years=années
+timeunit.years=année
+timeunit.weeks=sem
+timeunit.weeks=sem
+timeunit.days=jours
+timeunit.day=jour
 
 search.pagetitle=Recherche
 search.method.by_id=Recherche par ID/media ID
@@ -121,10 +122,14 @@ manager.jobcreator.createdby=Crée par :
 manager.jobcreator.th.instance=Instance
 manager.jobcreator.th.name=Nom
 manager.jobcreator.th.declarations=Creations de jobs
+manager.jobcreator.th.actions=Actions
 manager.jobcreator.context.neededindexedstoragesnames=Stockages liés :
+manager.jobcreator.action.enable=Activer
+manager.jobcreator.action.disable=Desactiver
+manager.jobcreator.action.createjobs=Créer les jobs
 manager.jobcreator.cyclic.period=Période
-manager.jobcreator.cyclic.periodvalue=Création toutes les %s secondes
-manager.jobcreator.cyclic.nextdate=Prochaine création :
+manager.jobcreator.cyclic.periodvalue=Création toutes les %s
+manager.jobcreator.cyclic.nextdate=Prochaine création dans %s
 manager.jobcreator.cyclic.nonextdate=Pas de prochaine création
 manager.jobcreator.trigger.hook=Job de déclenchement
 manager.jobs.pagename=Liste des jobs
@@ -172,6 +177,7 @@ manager.jobs.btn.noexpiration=N'expire plus
 manager.jobs.worker=Executé par
 manager.jobs.instanceexecutor=Sur
 manager.jobs.tableisempty=Aucun job pour l'état selectionné. 
+manager.action.error=Impossible d'ajouter une action pour cette instance.
 
 application.navigate=Stockage
 

@@ -61,25 +61,89 @@
 		return returntext;
 	};
 	
+	var secondsToYWDHMS = function(seconds) {
+		if (seconds === 0) {
+			return "0";
+		}
+		var sb = '';
+		
+		var oneyear = 31536000;
+		// (365 x 24 x 60 x 60 ) en secondes
+		var _years = seconds / oneyear;
+		var years = Math.floor(_years);
+		if (years > 0) {
+			sb = sb.append(years);
+			if (years > 1) {
+				sb = sb.append(' ' + i18n('timeunit.years') + ' ');
+			} else {
+				sb = sb.append(' ' + i18n('timeunit.year') + ' ');
+			}
+		}
+		
+		var oneweek = 604800;
+		// 7 x 24 x 60 x 60 en secondes
+		var _weeks = (_years - years) * oneyear / oneweek;
+		var weeks = Math.floor(_weeks);
+		if (weeks > 0) {
+			sb = sb.append(weeks);
+			if (weeks > 1) {
+				sb = sb.append(' ' + i18n('timeunit.weeks') + ' ');
+			} else {
+				sb = sb.append(' ' + i18n('timeunit.week') + ' ');
+			}
+		}
+		
+		var oneday = 86400;
+		// 24 x 60 x 60 en secondes
+		var _days = (_weeks - weeks) * oneweek / oneday;
+		var days = Math.floor(_days);
+		if (days > 0) {
+			sb = sb.append(days);
+			if (days > 1) {
+				sb = sb.append(' ' + i18n('timeunit.days') + ' ');
+			} else {
+				sb = sb.append(' ' + i18n('timeunit.day') + ' ');
+			}
+		}
+		
+		// secondes restantes
+		var sec = (_days - days) * oneday;
+		
+		var hrs = Math.floor(sec / 3600);
+		if (hrs < 10) {
+			sb = sb.append(0);
+		}
+		sb = sb.append(hrs);
+		sb = sb.append(":");
+		
+		var _diff_hours = sec / 3600;
+		var diff_hours = Math.floor(_diff_hours); // en heures
+		var min = (_diff_hours - diff_hours) * 60;
+		
+		if (min < 10) {
+			sb = sb.append(0);
+		}
+		sb = sb.append(Math.floor(min));
+		
+		sb = sb.append(":");
+		var  secresult = Math.round((min - Math.floor(min)) * 60);
+		
+		if (secresult < 10) {
+			sb = sb.append(0);
+		}
+		
+		sb = sb.append(secresult);
+		
+		return sb;
+	};
+	
 	mydmam.format.timeAgo = function(epoch_since_date, i18n_pos, i18n_neg) {
 		var delta = (new Date().getTime() - epoch_since_date) / 1000;
 		var i18n_label = i18n_pos;
-		if (Math.sign(delta) < 0) {
+		if (delta < 0) {
 			i18n_label = i18n_neg;
 		}
-		delta = Math.abs(delta);
-		
-		if (delta < 60) {
-			return i18n(i18n_label, i18n('timeunit.sec', Math.round(delta)));
-		} else if (delta < 3600) {
-			return i18n(i18n_label, i18n('timeunit.min', Math.round((delta / 60))));
-		} else if (delta < (3600 * 24)) {
-			return i18n(i18n_label, i18n('timeunit.hrs', Math.round((delta / 3600))));
-		} else if (delta < (3600 * 24 * 7)) {
-			return i18n(i18n_label, i18n('timeunit.days', Math.round((delta / (3600 * 24)))));
-		} else {
-			return i18n(i18n_label, i18n('timeunit.weeks', Math.round((delta / (3600 * 24 * 7)))));
-		}
+		return i18n(i18n_label, secondsToYWDHMS(Math.abs(delta)));
 	};
 
 })(window.mydmam);

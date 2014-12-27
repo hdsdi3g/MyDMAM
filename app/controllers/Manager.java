@@ -89,16 +89,16 @@ public class Manager extends Controller {
 		 * =AppManager
 		 * =broker : start | stop
 		 * 
-		 * WorkerNG
-		 * state : enable | disable
+		 * =WorkerNG
+		 * =state : enable | disable
 		 * 
-		 * CyclicJobCreator
-		 * activity : enable | disable | createjobs
-		 * setperiod : long
-		 * setnextdate : long
+		 * =CyclicJobCreator
+		 * =activity : enable | disable | createjobs
+		 * =setperiod : long
+		 * =setnextdate : long
 		 * 
-		 * TriggerJobCreator
-		 * activity : enable | disable | createjobs
+		 * =TriggerJobCreator
+		 * =activity : enable | disable | createjobs
 		 * 
 		 * */
 		
