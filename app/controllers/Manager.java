@@ -27,7 +27,7 @@ import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
 
-import com.google.gson.JsonObject;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 @With(Secure.class)
@@ -93,13 +93,12 @@ public class Manager extends Controller {
 	}
 	
 	@Check("actionJobs")
-	public static void jobaction(@Required String request) throws Exception {
+	public static void jobaction(@Required String requestactions) throws Exception {
 		if (Validation.hasErrors()) {
 			renderJSON("[\"validation error\"]");
 		}
-		JobAction action = AppManager.getGson().fromJson(request, JobAction.class);
-		JsonObject result = action.doAction(getCaller());
-		System.out.println(result.toString()); // TODO enlever
+		JobAction action = AppManager.getGson().fromJson(requestactions, JobAction.class);
+		JsonElement result = action.doAction(getCaller());
 		renderJSON(result.toString());
 	}
 	

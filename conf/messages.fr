@@ -27,12 +27,12 @@ site.logintips=
 
 filesizeunitshort=o
 filesizeunitlong=octets
-timeunit.years=années
+timeunit.year=années
 timeunit.years=année
+timeunit.week=sem
 timeunit.weeks=sem
-timeunit.weeks=sem
-timeunit.days=jours
 timeunit.day=jour
+timeunit.days=jours
 
 search.pagetitle=Recherche
 search.method.by_id=Recherche par ID/media ID
@@ -163,6 +163,7 @@ manager.jobs.expiration_date=Expire le %s
 manager.jobs.end_date=Terminé le %s
 manager.jobs.createdby=Créé par %s sur %s
 manager.jobs.requireto=Requiert
+manager.jobs.priority=Priorité %s
 manager.jobs.since=Depuis %s
 manager.jobs.negativesince=Dans %s
 manager.jobs.setup=Configuration :

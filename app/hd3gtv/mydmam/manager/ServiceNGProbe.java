@@ -51,7 +51,7 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	
 	@Override
 	protected void startService() throws Exception {
-		JobNG.Utility.truncateAllJobs();// TODO phase 2, remove
+		// JobNG.Utility.truncateAllJobs();// TODO phase 2, remove
 		
 		AppManager manager = getManager();
 		manager.workerRegister(new Dummy1WorkerNG());

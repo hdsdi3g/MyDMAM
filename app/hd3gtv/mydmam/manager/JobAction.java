@@ -96,7 +96,10 @@ public class JobAction implements Log2Dumpable {
 				break;
 			}
 			
-			job.saveChanges(mutator);
+			if (order != JobAction.Order.delete) {
+				job.saveChanges(mutator);
+				result.add(job.getKey(), AppManager.getGson().toJsonTree(job));
+			}
 		}
 		
 		if (mutator.isEmpty() == false) {

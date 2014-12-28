@@ -32,6 +32,9 @@
 	jobs.status_list = ["TOO_OLD", "CANCELED", "POSTPONED", "WAITING", "DONE", "PROCESSING", "STOPPED", "ERROR", "PREPARING", "TOO_LONG_DURATION"];
 	jobs.refresh_delay_time = 5000;
 	jobs.last_full_refresh_delay_time = 3600 * 1000;
+	
+	jobs.default_max_execution_time = 1000 * 3600 * 24; // 1 day
+	jobs.default_max_expiration_time = jobs.default_max_execution_time * 7; //Java is 10 days
 })(window.mydmam.manager.jobs);
 
 /**
@@ -47,11 +50,21 @@
 		content = content + '<th>' + i18n('manager.jobs.th.date') + '</th>';
 		content = content + '<th>' + i18n('manager.jobs.th.params') + '</th>';
 		content = content + '<th>' + i18n('manager.jobs.th.progress') + '</th>';
-		content = content + '<th>' + i18n('manager.jobs.th.action') + '</th>';
+		if (mydmam.manager.url.jobaction) {
+			content = content + '<th>' + i18n('manager.jobs.th.action') + '</th>';
+		}
 		content = content + '</thead>';
 		content = content + '<tbody>';
 		content = content + '</tbody>';
 		content = content + '</table>';
+		
+		var colsdef = [
+			{"sWidth": "4em", "aTargets": [1]},
+			{"sWidth": "5em", "aTargets": [2]},
+		];
+		if (mydmam.manager.url.jobaction) {
+			colsdef.push({"sWidth": "8em", "aTargets": [5]});
+		}
 		
 		$(jobs.jquery_destination).html(content);
 		jobs.datatable = $(jobs.jquery_destination + ' table').dataTable({
@@ -61,11 +74,7 @@
 			"bInfo": false,
 			"bAutoWidth": false,
 			"bFilter": true,
-			"aoColumnDefs": [
-				{"sWidth": "4em", "aTargets": [1]},
-				{"sWidth": "5em", "aTargets": [2]},
-				{"sWidth": "8em", "aTargets": [5]},
-			],
+			"aoColumnDefs": colsdef,
 		});
 		$(jobs.jquery_destination + ' table td.dataTables_empty').html('<em>' + i18n('manager.jobs.tableisempty') + '</em>');
 	};
@@ -90,8 +99,11 @@
 		cols.push(view.getDateCol(job));
 		cols.push(view.getParamCol(job));
 		cols.push(view.getProgressionCol(job));
-		cols.push(view.getButtonsCol(job));
-
+		
+		if (mydmam.manager.url.jobaction) {
+			cols.push(view.getButtonsCol(job));
+		}
+		
 		var datatable = jobs.datatable;
 		
 		job.web = {
@@ -105,10 +117,65 @@
 			$(this).remove();
 		});
 		
-		console.log("add", job, selected_status);//TODO remove this
+		if (mydmam.manager.url.jobaction) {
+			var all_jquery_btnjobaction = job.web.jqueryrow.find('button.btnjobaction');
+			all_jquery_btnjobaction.click(function() {
+				var jquery_button = $(this);
+				var order = jquery_button.data("target-order");
+				var key = jquery_button.data("target-key");
+				
+				var requestactions = {
+					order: order,
+					jobs_keys: [key],
+				};
+				jobs.doAction(requestactions, all_jquery_btnjobaction);
+			});
+		}
 	};
 })(window.mydmam.manager.jobs, window.mydmam.manager.jobs.view);
 
+/**
+ * doAction(requestactions, all_jquery_btnjobaction)
+ */
+(function(jobs) {
+	jobs.doAction = function(requestactions, all_jquery_btnjobaction) {
+		$.ajax({
+			url: mydmam.manager.url.jobaction,
+			type: "POST",
+			data: {
+				requestactions : JSON.stringify(requestactions),
+			},
+			beforeSend: function() {
+				all_jquery_btnjobaction.addClass('disabled');
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				$(jobs.jquery_destination + ' div.alert').remove();
+				$(jobs.jquery_destination).prepend('<div class="alert"><strong>' + i18n('error') + '</strong></div>');
+			},
+			success: function(rawdata) {
+				if (rawdata[0]) {
+					$(jobs.jquery_destination + ' div.alert').remove();
+					$(jobs.jquery_destination).prepend('<div class="alert"><strong>' + i18n('error') + '</strong></div>');
+					return;
+				}
+				
+				if (requestactions.order === "delete") {
+					for (var pos_jb = 0; pos_jb < requestactions.jobs_keys.length; pos_jb++) {
+						var job_key = requestactions.jobs_keys[pos_jb];
+						var job_to_delete = jobs.list[job_key];
+						if (job_to_delete) {
+							jobs.deleteRow(job_to_delete);
+							delete jobs.list[job_key];
+						}
+					}
+				}
+				
+				all_jquery_btnjobaction.removeClass('disabled');
+				jobs.ajaxRefreshOnsuccess(rawdata, false);
+			},
+		});
+	};
+})(window.mydmam.manager.jobs, window.mydmam.manager.jobs.view);
 
 /**
  * deleteRow(job)
@@ -130,6 +197,7 @@
 		}
 		jobs.datatable.fnDeleteRow(datatablerowpos);
 		job.web = null;
+		$(jobs.jquery_destination + ' table td.dataTables_empty').html('<em>' + i18n('manager.jobs.tableisempty') + '</em>');
 	};
 })(window.mydmam.manager.jobs);
 
@@ -165,8 +233,6 @@
 			jobs.deleteRow(job);
 			return;
 		}
-		
-		console.log("update", job);
 		view.update(job);
 	};
 })(window.mydmam.manager.jobs, window.mydmam.manager.jobs.view);
@@ -303,11 +369,11 @@
 			return false;
 		});
 		
-		$(jobs.jquery_header + ' ul.nav.joblistheader a.btnjoblistaction').click(function() {
+		/*$(jobs.jquery_header + ' ul.nav.joblistheader a.btnjoblistaction').click(function() {
 			$(this).blur();
 			console.log('do something action');
 			return false;
-		});
+		});*/
 		
 		$(jobs.jquery_header + ' ul.nav.joblistheader a.btnswitchjoblisttable:eq(' + tabindex + ')').click();
 	};
@@ -363,7 +429,7 @@
 })(window.mydmam.manager.jobs);
 
 /**
- * 
+ * ajaxRefreshOnsuccess(rawdata, full_refresh)
  */
 (function(jobs) {
 	jobs.ajaxRefreshOnsuccess = function(rawdata, full_refresh) {
@@ -435,7 +501,7 @@
 		var delta_time = Math.abs(jobs.client_time - jobs.server_time);
 		if (delta_time > 5000) {
 			full_refresh = true;
-			console.err("Check client time !", delta_time, new Date(jobs.server_time), new Date(jobs.client_time));
+			console.error("Check client time !", delta_time, new Date(jobs.server_time), new Date(jobs.client_time));
 		}
 		
 		if (jobs.last_refresh === 0) {

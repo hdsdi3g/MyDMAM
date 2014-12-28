@@ -372,12 +372,18 @@ public final class AppManager implements InstanceActionReceiver {
 				List<InstanceAction> pending_actions = new ArrayList<InstanceAction>();
 				
 				while (stop_update == false) {
+					// TODO phase 2, add next refresh date
 					database_layer.updateInstanceStatus(instance_status.refresh());
 					database_layer.updateWorkerStatus(enabled_workers);
 					
 					InstanceAction.getAllPendingInstancesAction(pending_actions);
 					if (pending_actions.isEmpty() == false) {
-						processInstanceAction(pending_actions);
+						boolean pending_refresh = processInstanceAction(pending_actions);
+						if (pending_refresh & (stop_update == false)) {
+							Thread.sleep(1000);
+							database_layer.updateInstanceStatus(instance_status.refresh());
+							database_layer.updateWorkerStatus(enabled_workers);
+						}
 					}
 					
 					// TODO phase 2, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
@@ -395,7 +401,8 @@ public final class AppManager implements InstanceActionReceiver {
 			this.stop_update = true;
 		}
 		
-		void processInstanceAction(List<InstanceAction> pending_actions) throws Exception {
+		boolean processInstanceAction(List<InstanceAction> pending_actions) throws Exception {
+			boolean is_action = false;
 			InstanceAction current_instance_action;
 			String target_class_name;
 			String ref_key;
@@ -416,6 +423,7 @@ public final class AppManager implements InstanceActionReceiver {
 						Log2.log.info("Do an instance action on manager", current_instance_action);
 						doAnAction(current_instance_action.getOrder());
 						current_instance_action.delete(mutator);
+						is_action = true;
 					}
 					
 				} else if (target_class_name.equals(WorkerNG.class.getSimpleName())) {
@@ -424,6 +432,7 @@ public final class AppManager implements InstanceActionReceiver {
 							Log2.log.info("Do an instance action on worker", current_instance_action);
 							enabled_workers.get(pos_wr).doAnAction(order);
 							current_instance_action.delete(mutator);
+							is_action = true;
 							break;
 						}
 					}
@@ -433,6 +442,7 @@ public final class AppManager implements InstanceActionReceiver {
 							Log2.log.info("Do an instance action on cyclic", current_instance_action);
 							declared_cyclics.get(pos_dc).doAnAction(order);
 							current_instance_action.delete(mutator);
+							is_action = true;
 							break;
 						}
 					}
@@ -442,6 +452,7 @@ public final class AppManager implements InstanceActionReceiver {
 							Log2.log.info("Do an instance action on trigger", current_instance_action);
 							declared_triggers.get(pos_dt).doAnAction(order);
 							current_instance_action.delete(mutator);
+							is_action = true;
 							break;
 						}
 					}
@@ -453,6 +464,7 @@ public final class AppManager implements InstanceActionReceiver {
 			if (mutator.isEmpty() == false) {
 				mutator.execute();
 			}
+			return is_action;
 		}
 	}
 	

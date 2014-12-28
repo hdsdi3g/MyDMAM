@@ -17,11 +17,6 @@
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 /**
- */
-(function(jobs, view) {
-})(window.mydmam.manager.jobs, window.mydmam.manager.jobs.view);
-
-/**
  * displayClassName(class_name)
  */
 (function(view) {
@@ -90,12 +85,6 @@
 		} else {
 			content = content + '<span class="label label-inverse">' + i18n_status + '</span>' + '<br />'; 
 		}
-		if (job.priority > 0) {
-			content = content + '<span class="badge badge-important">' + job.priority + '</span>' + '<br />';
-		}
-		if (job.urgent) {
-			content = content + '<span class="badge badge-important">' + i18n('manager.jobs.urgent') + '</span>' + '<br />';
-		}
 		return content;
 	};
 })(window.mydmam.manager.jobs.view);
@@ -125,7 +114,7 @@
 		
 		content = content + '<div class="collapse">';
 		content = content + ago(job.update_date, "update_date");
-		if (job.expiration_date > 0) {
+		if ((job.expiration_date - job.create_date) < mydmam.manager.jobs.default_max_expiration_time) {
 			content = content + '<span class="label itemtoupdate dateupdate" data-varname="expiration_date">' + i18n('manager.jobs.expiration_date', mydmam.format.fulldate(job.expiration_date)) + '</span>' + '<br />';
 			content = content + ago(job.expiration_date, "expiration_date");
 		}
@@ -149,7 +138,21 @@
 		 * */
 		var content ='';
 		
-		content = content + '' + view.displayClassName(job.context.classname) + '' + '<br />'; 
+		content = content + '' + view.displayClassName(job.context.classname); 
+		
+		content = content + '<div class="pull-right">'; 
+		content = content + '<span class="badge badge-important itemtoupdate" data-varname="priority">';
+		if (job.priority > 0) {
+			content = content + i18n('manager.jobs.priority', job.priority);
+		}
+		content = content + '</span> ';
+		content = content + '<span class="badge badge-important itemtoupdate" data-varname="urgent">';
+		if (job.urgent) {
+			content = content + i18n('manager.jobs.urgent');
+		}
+		content = content + '</span>';
+		content = content + '</div>'; 
+
 		
 		content = content + '<div class="collapse">';
 		
@@ -196,20 +199,24 @@
 			content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
 			need_to_display_hr = true;
 		}
-
-		if (need_to_display_hr) {
-			content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">'+ i18n('manager.jobs.setup') +'<br>';
+		
+		if (job.context.neededstorages | (job.context.content.length > 0)) {
+			if (need_to_display_hr) {
+				content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
+			}
+			content = content + i18n('manager.jobs.setup');
 		}
+
+		content = content + '<div class="pull-right">' + view.displayKey(job.key, true) + '</div>';
 		
 		if (job.context.neededstorages) {
 			content = content + '' + JSON.stringify(job.context.neededstorages) + '' + '<br />'; 
 		}
 		
-		if (job.context.content) {
+		if (job.context.content.length > 0) {
 			content = content + '<code><i class="icon-indent-left"></i> ' + JSON.stringify(job.context.content) + '</code>' + '<br />'; 
 		}
-		content = content + view.displayKey(job.key, true);
-		content = content + '</p>';
+
 		content = content + '</div>';
 		
 		return content;
@@ -241,7 +248,11 @@
 				} else if (varname === 'update_date') {
 					patch_ago(item, job.update_date);
 				} else if (varname === 'expiration_date') {
-					patch_ago(item, job.expiration_date);
+					if ((job.expiration_date - job.create_date) < mydmam.manager.jobs.default_max_expiration_time) {
+						patch_ago(item, job.expiration_date);
+					} else {
+						item.remove();
+					}
 				} else if (varname === 'end_date') {
 					patch_ago(item, job.end_date);
 				}
@@ -252,8 +263,12 @@
 					patch_date(item, varname, job.start_date);
 				} else if (varname === 'update_date') {
 					patch_date(item, varname, job.update_date);
-				} else if (varname === 'expiration_date') {
-					patch_date(item, varname, job.expiration_date);
+				} else if (varname === 'expiration_date') {//
+					if ((job.expiration_date - job.create_date) < mydmam.manager.jobs.default_max_expiration_time) {
+						patch_date(item, varname, job.expiration_date);
+					} else {
+						item.remove();
+					}
 				} else if (varname === 'end_date') {
 					patch_date(item, varname, job.end_date);
 				}
@@ -270,7 +285,18 @@
 				} else if (varname === 'last_caller') {
 					item.html(view.displayClassName(progression.last_caller));
 				}
-				
+			} else if (varname == 'priority') {
+				if (job.priority > 0) {
+					item.html(i18n('manager.jobs.priority', job.priority));
+				} else {
+					item.empty();
+				}
+			} else if (varname == 'urgent') {
+				if (job.urgent) {
+					item.html(i18n('manager.jobs.urgent'));
+				} else {
+					item.empty();
+				}
 			}
 		};
 		job.web.jqueryrow.find('.itemtoupdate').each(update);
@@ -372,13 +398,26 @@
  */
 (function(view) {
 	view.getButtonsCol = function(job) {
-		var btndelete = '<button class="btn btn-mini btn-danger btn-block hide"><i class="icon-trash icon-white"></i> ' + i18n('manager.jobs.btn.delete') + '</button>';
-		var btnstop = '<button class="btn btn-mini btn-danger btn-block hide"><i class="icon-stop icon-white"></i> ' + i18n('manager.jobs.btn.stop') + '</button>';
-		var btnsetinwait = '<button class="btn btn-mini btn-block hide"><i class="icon-inbox"></i> ' + i18n('manager.jobs.btn.setinwait') + '</button>';
-		var btncancel = '<button class="btn btn-mini btn-info btn-block hide"><i class="icon-off icon-white"></i> ' + i18n('manager.jobs.btn.cancel') + '</button>';
-		var btnhipriority = '<button class="btn btn-mini btn-block hide"><i class="icon-warning-sign"></i> ' + i18n('manager.jobs.btn.hipriority') + '</button>';
-		var btnpostponed = '<button class="btn btn-mini btn-block hide"><i class="icon-step-forward"></i> ' + i18n('manager.jobs.btn.postponed') + '</button>';
-		var btnnoexpiration = '<button class="btn btn-mini btn-block hide"><i class="icon-calendar"></i> ' + i18n('manager.jobs.btn.noexpiration') + '</button>';
+		var createBtn = function(color, icon, title, order) {
+			var content ='';
+			content = content + '<button class="btn btn-mini ' + color + ' btn-block btnjobaction" data-target-order="' + order + '" data-target-key="' + job.key + '">';
+			content = content + '<i class="' + icon + '"></i> ';
+			content = content + i18n(title);
+			content = content + '</button>';
+			return content;
+		};
+		var btndelete = createBtn('btn-danger', 'icon-trash icon-white', 'manager.jobs.btn.delete', 'delete');
+		var btnstop = createBtn('btn-danger', 'icon-stop icon-white', 'manager.jobs.btn.stop', 'stop');
+		var btnsetinwait = createBtn('', 'icon-inbox', 'manager.jobs.btn.setinwait', 'setinwait');
+		var btncancel = createBtn('btn-info', 'icon-off icon-white', 'manager.jobs.btn.cancel', 'cancel');
+		var btnhipriority = createBtn('', 'icon-warning-sign', 'manager.jobs.btn.hipriority', 'hipriority');
+		var btnpostponed = createBtn('', 'icon-step-forward', 'manager.jobs.btn.postponed', 'postponed');
+		
+		var btnnoexpiration = '';
+		if ((job.expiration_date - job.create_date) < mydmam.manager.jobs.default_max_expiration_time) {
+			btnnoexpiration = createBtn('', 'icon-calendar', 'manager.jobs.btn.noexpiration', 'noexpiration');
+		}
+		
 		var divcollapse = '<div class="collapse" style=" margin-top: 5px;">';
 		
 		var content ='';
@@ -402,7 +441,6 @@
 			if (job.isThisStatus(["CANCELED", "DONE"])) {
 				content = content + btnpostponed;
 			}
-			content = content + btnhipriority;
 			content = content + btnnoexpiration;
 			content = content + btndelete;
 			content = content + '</div>';
@@ -413,7 +451,6 @@
 			content = content + divcollapse;
 			content = content + btnpostponed;
 			content = content + btnsetinwait;
-			content = content + btnhipriority;
 			content = content + btnnoexpiration;
 			content = content + btndelete;
 			content = content + '</div>';

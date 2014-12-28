@@ -142,7 +142,7 @@ public final class JobNG implements Log2Dumpable {
 		urgent = false;
 		priority = 0;
 		delete_after_completed = false;
-		expiration_date = System.currentTimeMillis() + (default_max_execution_time * 7);
+		expiration_date = System.currentTimeMillis() + (default_max_execution_time * 10);
 		max_execution_time = default_max_execution_time;
 		status = JobStatus.WAITING;
 		
@@ -244,7 +244,7 @@ public final class JobNG implements Log2Dumpable {
 		return this;
 	}
 	
-	private ActionUtils actionUtils;
+	private transient ActionUtils actionUtils;
 	
 	ActionUtils getActionUtils() {
 		if (actionUtils == null) {
@@ -254,20 +254,28 @@ public final class JobNG implements Log2Dumpable {
 	}
 	
 	class ActionUtils {
-		void setPostponed() {
-			status = JobStatus.POSTPONED;
-		}
 		
 		void setDontExpiration() {
 			delete_after_completed = false;
-			expiration_date = System.currentTimeMillis() + (default_max_execution_time * 7);
+			expiration_date = System.currentTimeMillis() + (default_max_execution_time * 10);
 			max_execution_time = default_max_execution_time;
 			update_date = System.currentTimeMillis();
 		}
 		
+		void setPostponed() {
+			setWaiting();
+			status = JobStatus.POSTPONED;
+			urgent = false;
+			priority = 0;
+		}
+		
 		void setWaiting() {
-			update_date = System.currentTimeMillis();
 			status = JobStatus.WAITING;
+			update_date = System.currentTimeMillis();
+			progression = null;
+			processing_error = null;
+			start_date = -1;
+			end_date = -1;
 		}
 		
 		void setCancel() {
@@ -276,8 +284,8 @@ public final class JobNG implements Log2Dumpable {
 		}
 		
 		void setStopped() {
-			update_date = System.currentTimeMillis();
 			status = JobStatus.STOPPED;
+			update_date = System.currentTimeMillis();
 		}
 		
 		void setMaxPriority() throws ConnectionException {
@@ -289,7 +297,6 @@ public final class JobNG implements Log2Dumpable {
 			urgent = true;
 			update_date = System.currentTimeMillis();
 		}
-		
 	}
 	
 	public JobNG setDeleteAfterCompleted() {
