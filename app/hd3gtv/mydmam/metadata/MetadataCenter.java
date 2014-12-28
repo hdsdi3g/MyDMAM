@@ -63,10 +63,10 @@ public class MetadataCenter {
 		addProvider(new FFprobeAnalyser());
 		addProvider(new FFmpegSnapshoot());
 		addProvider(new FFmpegAlbumartwork());
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_lq, PreviewType.video_lq_pvw, false));
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_sd, PreviewType.video_sd_pvw, false));
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_hd, PreviewType.video_hd_pvw, false));
-		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_ffmpeg_lowres_audio, PreviewType.audio_pvw, true));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_name_ffmpeg_lowres_lq, PreviewType.video_lq_pvw, false));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_name_ffmpeg_lowres_sd, PreviewType.video_sd_pvw, false));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_name_ffmpeg_lowres_hd, PreviewType.video_hd_pvw, false));
+		addProvider(new FFmpegLowresRenderer(FFmpegLowresRenderer.profile_name_ffmpeg_lowres_audio, PreviewType.audio_pvw, true));
 		
 		List<Generator> all_external_providers = MyDMAMModulesManager.getAllExternalMetadataGenerator();
 		for (int pos = 0; pos < all_external_providers.size(); pos++) {

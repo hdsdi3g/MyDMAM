@@ -196,7 +196,7 @@ public class Publish extends Worker {
 		String temp_key = job.getKey().substring(8, 16);
 		dest_file_ffmpeg = new File(templocaldir.getPath() + File.separator + mediaid.toUpperCase() + "-" + temp_key + ".mp4");
 		
-		profile = TranscodeProfile.getTranscodeProfile(job.getProfile());
+		profile = TranscodeProfile.getTranscodeProfile(job.getProfile().getCategory(), job.getProfile().getName());
 		
 		File progress_file = new File(dest_file_ffmpeg.getPath() + "-progress.txt");
 		progress_file.delete();

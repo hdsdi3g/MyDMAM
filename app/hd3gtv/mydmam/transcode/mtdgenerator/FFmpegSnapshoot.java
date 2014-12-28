@@ -60,7 +60,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 	public FFmpegSnapshoot() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		if (TranscodeProfile.isConfigured()) {
-			tprofile = TranscodeProfile.getTranscodeProfile(new Profile("ffmpeg", "ffmpeg_snapshoot_first"));
+			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg", "ffmpeg_snapshoot_first");
 		}
 	}
 	

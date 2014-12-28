@@ -49,10 +49,10 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 	
-	public static final Profile profile_ffmpeg_lowres_lq = new Profile("ffmpeg", "ffmpeg_lowres_lq");
-	public static final Profile profile_ffmpeg_lowres_sd = new Profile("ffmpeg", "ffmpeg_lowres_sd");
-	public static final Profile profile_ffmpeg_lowres_hd = new Profile("ffmpeg", "ffmpeg_lowres_hd");
-	public static final Profile profile_ffmpeg_lowres_audio = new Profile("ffmpeg", "ffmpeg_lowres_audio");
+	public static final String profile_name_ffmpeg_lowres_lq = "ffmpeg_lowres_lq";
+	public static final String profile_name_ffmpeg_lowres_sd = "ffmpeg_lowres_sd";
+	public static final String profile_name_ffmpeg_lowres_hd = "ffmpeg_lowres_hd";
+	public static final String profile_name_ffmpeg_lowres_audio = "ffmpeg_lowres_audio";
 	
 	private String ffmpeg_bin;
 	
@@ -61,15 +61,15 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 	private boolean audio_only;
 	private Class<? extends EntryRenderer> root_entry_class;
 	
-	public FFmpegLowresRenderer(Profile transcode_profile, PreviewType preview_type, boolean audio_only) {
+	public FFmpegLowresRenderer(String transcode_profile_name, PreviewType preview_type, boolean audio_only) {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
-		if (transcode_profile == null) {
-			throw new NullPointerException("\"profile\" can't to be null");
+		if (transcode_profile_name == null) {
+			throw new NullPointerException("\"transcode_profile_name\" can't to be null");
 		}
-		root_entry_class = FFmpegLowres.getClassByProfile(transcode_profile);
+		root_entry_class = FFmpegLowres.getClassByProfile(transcode_profile_name);
 		
 		if (TranscodeProfile.isConfigured()) {
-			this.transcode_profile = TranscodeProfile.getTranscodeProfile(transcode_profile);
+			this.transcode_profile = TranscodeProfile.getTranscodeProfile("ffmpeg", transcode_profile_name);
 			
 			this.preview_type = preview_type;
 			if (preview_type == null) {
@@ -228,8 +228,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 				if (timecode == null) {
 					return;
 				}
-				TranscodeProfile t_profile = TranscodeProfile.getTranscodeProfile(transcode_profile);
-				if (t_profile == null) {
+				if (transcode_profile == null) {
 					return;
 				}
 				
@@ -250,11 +249,11 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 						if (resolution == null) {
 							return;
 						}
-						if (t_profile.getOutputformat() != null) {
+						if (transcode_profile.getOutputformat() != null) {
 							/**
 							 * Test if source file has an upper resolution relative at the profile
 							 */
-							Point profile_resolution = t_profile.getOutputformat().getResolution();
+							Point profile_resolution = transcode_profile.getOutputformat().getResolution();
 							if ((profile_resolution.x > resolution.x) | (profile_resolution.y > resolution.y)) {
 								return;
 							} else if ((profile_resolution.x == resolution.x) & (profile_resolution.y == resolution.y)) {
@@ -267,8 +266,8 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 				JSONObject renderer_context = new JSONObject();
 				renderer_context.put("fps", timecode.getFps());
 				renderer_context.put("duration", timecode.getValue());
-				if (t_profile.getOutputformat() != null) {
-					renderer_context.put("faststarted", t_profile.getOutputformat().isFaststarted());
+				if (transcode_profile.getOutputformat() != null) {
+					renderer_context.put("faststarted", transcode_profile.getOutputformat().isFaststarted());
 				} else {
 					renderer_context.put("faststarted", false);
 				}

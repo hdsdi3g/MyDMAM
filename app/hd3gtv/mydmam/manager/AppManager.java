@@ -336,7 +336,7 @@ public final class AppManager implements InstanceActionReceiver {
 			if (worker.getLifecyle().isThisState(WorkerState.WAITING, WorkerState.PROCESSING) == false) {
 				continue;
 			}
-			// TODO phase 2, migrate UAWorker to WorkerNG
+			// TODO #78.2, migrate UAWorker to WorkerNG
 			/*if ((worker instanceof WorkerNG) == false) {
 				continue;
 			}
@@ -372,7 +372,7 @@ public final class AppManager implements InstanceActionReceiver {
 				List<InstanceAction> pending_actions = new ArrayList<InstanceAction>();
 				
 				while (stop_update == false) {
-					// TODO phase 2, add next refresh date
+					// TODO #78.4, add next refresh date
 					database_layer.updateInstanceStatus(instance_status.refresh());
 					database_layer.updateWorkerStatus(enabled_workers);
 					
@@ -386,7 +386,7 @@ public final class AppManager implements InstanceActionReceiver {
 						}
 					}
 					
-					// TODO phase 2, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
+					// TODO #78.4, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
 					// broker.getDeclared_cyclics()
 					// broker.getDeclared_triggers()
 					

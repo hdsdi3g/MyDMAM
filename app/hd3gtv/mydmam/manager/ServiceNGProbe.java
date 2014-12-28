@@ -51,8 +51,6 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	
 	@Override
 	protected void startService() throws Exception {
-		// JobNG.Utility.truncateAllJobs();// TODO phase 2, remove
-		
 		AppManager manager = getManager();
 		manager.workerRegister(new Dummy1WorkerNG());
 		manager.workerRegister(new Dummy2WorkerNG());
@@ -74,7 +72,7 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		manager.cyclicJobsRegister(cyclic_creator2);
 		
 		/*
-		// TODO phase 2, startService
+		// TODO #78.3, startService
 		StorageManager.getGlobalStorage();
 		TranscodeProfile.isConfigured();
 

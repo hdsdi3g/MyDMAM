@@ -18,13 +18,17 @@ package hd3gtv.mydmam.manager;
 
 import hd3gtv.configuration.Configuration;
 
-// TODO phase 2, remove this test class
+// TODO #78.3, remove this test class
 public class MainClass {
 	
-	// TODO phase 2, check if UA capacity need no read only for storage
+	// TODO #78.2, check if UA capacity need no read only for storage
 	
 	public static void main(String[] args) throws Exception {
+		
 		Configuration.importLog2Configuration(Configuration.global, true);
 		new ServiceNGProbe(args);
 	}
+	
+	// TODO #78.1 Refactoring all actuals workers and tasks creations.
+	// TODO #78.1 Refactoring User Action API and display all availability for user and admin
 }

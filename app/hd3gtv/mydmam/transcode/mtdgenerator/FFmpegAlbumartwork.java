@@ -59,7 +59,7 @@ public class FFmpegAlbumartwork implements GeneratorRenderer {
 	public FFmpegAlbumartwork() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		if (TranscodeProfile.isConfigured()) {
-			tprofile = TranscodeProfile.getTranscodeProfile(new Profile("ffmpeg", "ffmpeg_album_artwork"));
+			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg", "ffmpeg_album_artwork");
 		}
 	}
 	

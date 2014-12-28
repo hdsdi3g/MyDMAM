@@ -147,7 +147,7 @@ class BrokerNG {
 					}
 					
 					if (declared_cyclics.isEmpty() == false) {
-						// TODO phase 2, cyclic only on the off hours
+						// TODO #78.2, cyclic only on the off hours
 						for (int pos_dc = 0; pos_dc < declared_cyclics.size(); pos_dc++) {
 							cyclic_creator = declared_cyclics.get(pos_dc);
 							if (cyclic_creator.needToCreateJobs()) {

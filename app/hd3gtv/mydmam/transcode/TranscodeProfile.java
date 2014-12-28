@@ -21,7 +21,6 @@ import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessEvent;
 import hd3gtv.tools.ExecprocessGettext;
@@ -34,8 +33,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.google.gson.JsonObject;
+
 @SuppressWarnings("unchecked")
-public class TranscodeProfile extends Profile {
+public class TranscodeProfile implements Log2Dumpable {
 	
 	static final String TAG_PROGRESSFILE = "<%$PROGRESSFILE%>";
 	static final String TAG_INPUTFILE = "<%$INPUTFILE%>";
@@ -47,10 +48,22 @@ public class TranscodeProfile extends Profile {
 	private String extension;
 	private OutputFormat outputformat;
 	
+	private String name;
+	private String category;
+	
 	private static ArrayList<TranscodeProfile> profiles;
 	
 	private TranscodeProfile(String category, String name) {
-		super(category, name);
+		this.category = category;
+		if (category == null) {
+			throw new NullPointerException("\"category\" can't to be null");
+		}
+		this.name = name;
+		if (name == null) {
+			throw new NullPointerException("\"name\" can't to be null");
+		}
+		this.category = this.category.toLowerCase();
+		this.name = this.name.toLowerCase();
 		param = new ArrayList<String>();
 	}
 	
@@ -151,6 +164,14 @@ public class TranscodeProfile extends Profile {
 				return "." + extension;
 			}
 		}
+	}
+	
+	public final String getCategory() {
+		return category;
+	}
+	
+	public final String getName() {
+		return name;
 	}
 	
 	public String toString() {
@@ -298,9 +319,51 @@ public class TranscodeProfile extends Profile {
 		}
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = super.getLog2Dump();
+	/**
+	 * @param context with transcodecategory and transcodename keys
+	 * @return null, or valid Tprofile
+	 */
+	public static TranscodeProfile getTranscodeProfile(JsonObject context) {
+		if (context.has("transcodecategory") == false) {
+			return null;
+		}
+		if (context.has("transcodename") == false) {
+			return null;
+		}
+		return getTranscodeProfile(context.get("transcodecategory").getAsString(), context.get("transcodename").getAsString());
+	}
+	
+	/**
+	 * @param context with transcodecategory and transcodename keys
+	 * @return null, or valid Tprofile
+	 */
+	public static TranscodeProfile getTranscodeProfile(String category, String name) {
+		if (category == null) {
+			throw new NullPointerException("\"category\" can't to be null");
+		}
+		if (name == null) {
+			throw new NullPointerException("\"name\" can't to be null");
+		}
 		
+		for (int pos_pr = 0; pos_pr < profiles.size(); pos_pr++) {
+			if (profiles.get(pos_pr).category.equalsIgnoreCase(category)) {
+				if (profiles.get(pos_pr).name.equalsIgnoreCase(name)) {
+					return profiles.get(pos_pr);
+				}
+			}
+		}
+		return null;
+	}
+	
+	public final JsonObject toJson() {
+		JsonObject jo = new JsonObject();
+		jo.addProperty("transcodecategory", category);
+		jo.addProperty("transcodename", name);
+		return jo;
+	}
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump("profile", category + ":" + name);
 		StringBuffer sb = new StringBuffer();
 		ArrayList<String> cmd_line = makeCommandline("<input>", "<output>", null);
 		for (int pos = 0; pos < cmd_line.size(); pos++) {
@@ -314,44 +377,5 @@ public class TranscodeProfile extends Profile {
 			dump.addAll(outputformat.getLog2Dump());
 		}
 		return dump;
-	}
-	
-	private boolean subequals(Object obj1, Object obj2) {
-		if (obj1 == null) {
-			return false;
-		}
-		if (obj2 == null) {
-			return false;
-		}
-		return obj1.equals(obj2);
-	}
-	
-	public boolean equals(Object obj) {
-		if (super.equals(obj) == false) {
-			return false;
-		}
-		if ((obj instanceof TranscodeProfile) == false) {
-			return false;
-		}
-		TranscodeProfile profile = (TranscodeProfile) obj;
-		
-		if (subequals(param, profile.param) == false) {
-			return false;
-		}
-		if (subequals(extension, profile.extension) == false) {
-			return false;
-		}
-		if (subequals(outputformat, profile.outputformat) == false) {
-			return false;
-		}
-		return true;
-	}
-	
-	public static TranscodeProfile getTranscodeProfile(Profile profile) {
-		int indexof = profiles.indexOf(profile);
-		if (indexof == -1) {
-			return null;
-		}
-		return profiles.get(indexof);
 	}
 }

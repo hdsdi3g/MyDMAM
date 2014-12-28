@@ -233,7 +233,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		for (int pos = 0; pos < full_functionality_list.size(); pos++) {
 			useraction_functionality_list.add(full_functionality_list.get(pos).getDefinition());
 		}
-		// TODO phase 2, add next refresh date
+		// TODO #78.4, add next refresh date
 		return this;
 	}
 	
