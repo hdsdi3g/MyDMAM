@@ -26,6 +26,7 @@ import java.util.Map;
 /**
  * @deprecated
  */
+@Deprecated
 public class WorkerGroup {
 	
 	private WorkerGroupEngine engine;

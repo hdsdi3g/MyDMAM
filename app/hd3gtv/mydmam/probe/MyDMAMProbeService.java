@@ -19,20 +19,16 @@ package hd3gtv.mydmam.probe;
 import hd3gtv.configuration.GitInfo;
 import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.javasimpleservice.ServiceManager;
-import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.status.ClusterStatusEvents;
-import hd3gtv.mydmam.db.status.ClusterStatusService;
 import hd3gtv.mydmam.metadata.WorkerIndexer;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
-import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.storage.StorageManager;
 
-public class MyDMAMProbeService extends ServiceManager implements ServiceInformations, ClusterStatusEvents {
+public class MyDMAMProbeService extends ServiceManager implements ServiceInformations {
 	
 	public MyDMAMProbeService(String[] args, ServiceInformations serviceinformations) {
 		super(args, serviceinformations);
@@ -66,13 +62,10 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		return "MyDMAM-Probe";
 	}
 	
-	private ClusterStatusService cluster_status_service;
 	private Broker broker;
 	private boolean first_start = true;
 	
 	protected void postClassInit() throws Exception {
-		cluster_status_service = new ClusterStatusService(this);
-		cluster_status_service.addCallbackEvent(this);
 	}
 	
 	protected void startApplicationService() throws Exception {
@@ -80,12 +73,10 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 			internalFirstStart();
 			first_start = false;
 		}
-		cluster_status_service.start();
 		internalStart();
 	}
 	
 	protected void stopApplicationService() throws Exception {
-		cluster_status_service.stop();
 		internalStop();
 	}
 	
@@ -101,10 +92,6 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		broker = new Broker(this);
 		workergroup = new WorkerGroup(broker);
 		
-		PathScan ps = new PathScan();
-		workergroup.addWorker(ps);
-		workergroup.addCyclicWorker(ps);
-		
 		WorkerIndexer mwi = new WorkerIndexer();
 		workergroup.addWorker(mwi);
 		workergroup.addTriggerWorker(mwi);
@@ -118,25 +105,6 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 	private void internalStop() throws Exception {
 		broker.stop();
 		workergroup.requestStop();
-	}
-	
-	public void clusterHasAGraveState(String reasons) {
-		try {
-			internalStop();
-		} catch (Exception e) {
-			Log2.log.error("Can't to stop services", e);
-		}
-	}
-	
-	public void clusterHasAWarningState(String reasons) {
-	}
-	
-	public void clusterIsFunctional(String reasons) {
-		try {
-			internalStart();
-		} catch (Exception e) {
-			Log2.log.error("Can't to start services", e);
-		}
 	}
 	
 }

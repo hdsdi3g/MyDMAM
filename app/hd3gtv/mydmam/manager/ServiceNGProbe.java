@@ -19,16 +19,9 @@ package hd3gtv.mydmam.manager;
 import hd3gtv.mydmam.db.status.ClusterStatusEvents;
 import hd3gtv.mydmam.db.status.ClusterStatusService;
 import hd3gtv.mydmam.mail.notification.NotificationWorker;
-import hd3gtv.mydmam.manager.dummy.Dummy1Context;
-import hd3gtv.mydmam.manager.dummy.Dummy1WorkerNG;
-import hd3gtv.mydmam.manager.dummy.Dummy2Context;
-import hd3gtv.mydmam.manager.dummy.Dummy2WorkerNG;
-import hd3gtv.mydmam.manager.dummy.Dummy3Context;
-import hd3gtv.mydmam.manager.dummy.Dummy3WorkerNG;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.transcode.Publish;
-
-import java.util.concurrent.TimeUnit;
 
 public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	
@@ -58,14 +51,15 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		
 		new NotificationWorker(manager);
 		manager.workerRegister(new Publish());
-		
-		manager.workerRegister(new Dummy1WorkerNG());
-		manager.workerRegister(new Dummy2WorkerNG());
-		manager.workerRegister(new Dummy3WorkerNG());
+		manager.workerRegister(new PathScan().cyclicJobsRegister(manager));
 		
 		MyDMAMModulesManager.declareAllModuleWorkerElement(manager);
 		
-		CyclicJobCreator cyclic_creator = new CyclicJobCreator(manager, 1, TimeUnit.MINUTES, false);
+		/*manager.workerRegister(new Dummy1WorkerNG());
+		manager.workerRegister(new Dummy2WorkerNG());
+		manager.workerRegister(new Dummy3WorkerNG());*/
+		
+		/*CyclicJobCreator cyclic_creator = new CyclicJobCreator(manager, 1, TimeUnit.MINUTES, false);
 		cyclic_creator.setOptions(ServiceNGProbe.class, "Dummy cyclic test", "MyDMAM Test classes");
 		cyclic_creator.add("Regular job", new Dummy1Context());
 		// manager.cyclicJobsRegister(cyclic_creator);
@@ -78,7 +72,7 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		CyclicJobCreator cyclic_creator2 = new CyclicJobCreator(manager, 1, TimeUnit.HOURS, false);
 		cyclic_creator2.setOptions(ServiceNGProbe.class, "Dummy cyclic test 2", "MyDMAM Test classes");
 		cyclic_creator2.add("Regular long job", new Dummy3Context());
-		manager.cyclicJobsRegister(cyclic_creator2);
+		manager.cyclicJobsRegister(cyclic_creator2);*/
 		
 		/*
 		// TODO #78.3, startService

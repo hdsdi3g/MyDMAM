@@ -81,7 +81,7 @@ public class StorageManager {
 		for (int pos = 0; pos < list_storages.size(); pos++) {
 			dump.add(list_storages.get(pos).name, list_storages.get(pos));
 		}
-		Log2.log.info("Storages found and loaded in XML configuration", dump);
+		Log2.log.info("Storages found and loaded from configuration", dump);
 		
 	}
 	

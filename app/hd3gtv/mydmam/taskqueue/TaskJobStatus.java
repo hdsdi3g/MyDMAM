@@ -23,6 +23,7 @@ import com.netflix.astyanax.query.IndexQuery;
 /**
  * If add new status, don't forget to add it in queue.js order
  */
+@Deprecated
 public enum TaskJobStatus {
 	
 	TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING;

@@ -89,6 +89,19 @@ ul {
 	margin-top: -0.1em;
 }
 
+code.json {
+    white-space: normal;
+    display: block;
+    color: rgb(18,96,23);
+    line-height: 1.3em;
+}
+
+code.json span.jsontitle {
+    color: #000000;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 95%;
+}
+
 /* ============================================================================== */	
 
 .accordion-toggle {

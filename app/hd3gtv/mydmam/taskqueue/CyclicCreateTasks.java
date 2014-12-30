@@ -18,6 +18,7 @@ package hd3gtv.mydmam.taskqueue;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@Deprecated
 public interface CyclicCreateTasks {
 	
 	/**

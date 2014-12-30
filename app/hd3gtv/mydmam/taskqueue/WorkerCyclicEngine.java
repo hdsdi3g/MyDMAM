@@ -19,6 +19,7 @@ package hd3gtv.mydmam.taskqueue;
 import java.util.ArrayList;
 import java.util.List;
 
+@Deprecated
 class WorkerCyclicEngine extends Worker {
 	
 	CyclicCreateTasks cyclic;

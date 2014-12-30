@@ -40,7 +40,6 @@ import org.elasticsearch.action.search.MultiSearchRequestBuilder;
 import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
@@ -49,18 +48,8 @@ import org.json.simple.JSONObject;
 
 public class Explorer {
 	
-	private Client client;
-	
-	public Explorer() {
-		client = Elasticsearch.getClient();
-	}
-	
-	public Client getClient() {
-		return client;
-	}
-	
 	public ArrayList<SourcePathIndexerElement> getByStorageFilenameAndSize(String storagename, String filename, long size) {
-		SearchRequestBuilder request = client.prepareSearch();
+		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		
@@ -117,7 +106,7 @@ public class Explorer {
 	}
 	
 	public void getAllId(String id, IndexingEvent found_elements_observer) throws Exception {
-		SearchRequestBuilder request = client.prepareSearch();
+		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.termQuery("id", id.toLowerCase()));
@@ -129,7 +118,7 @@ public class Explorer {
 	public ArrayList<SourcePathIndexerElement> getAllIdFromStorage(String id, String storagename) throws Exception {
 		final ArrayList<SourcePathIndexerElement> result = new ArrayList<SourcePathIndexerElement>();
 		
-		SearchRequestBuilder request = client.prepareSearch();
+		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("id", id.toLowerCase())).must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())));
@@ -159,7 +148,7 @@ public class Explorer {
 	 * @param min_index_date set 0 for all
 	 */
 	public void getAllSubElementsFromElementKey(String parentpath_key, long min_index_date, IndexingEvent found_elements_observer) throws Exception {
-		SearchRequestBuilder request = client.prepareSearch();
+		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 		
@@ -196,7 +185,7 @@ public class Explorer {
 	}
 	
 	public void getAllStorage(String storagename, IndexingEvent found_elements_observer) throws Exception {
-		SearchRequestBuilder request = client.prepareSearch();
+		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.termQuery("storagename", storagename.toLowerCase()));
@@ -206,7 +195,7 @@ public class Explorer {
 	}
 	
 	public void getAllDirectoriesStorage(String storagename, IndexingEvent found_elements_observer) throws Exception {
-		SearchRequestBuilder request = client.prepareSearch();
+		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_DIRECTORY);
 		request.setQuery(QueryBuilders.termQuery("storagename", storagename.toLowerCase()));
@@ -259,7 +248,7 @@ public class Explorer {
 			return result;
 		}
 		
-		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
+		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(Elasticsearch.getClient());
 		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, ids_to_query);
 		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_FILE, ids_to_query);
 		
@@ -282,7 +271,7 @@ public class Explorer {
 		}
 		List<String> result = new ArrayList<String>(_ids.size());
 		
-		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
+		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(Elasticsearch.getClient());
 		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, _ids);
 		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_FILE, _ids);
 		
@@ -301,7 +290,7 @@ public class Explorer {
 			throw new NullPointerException("\"_id\" can't to be null");
 		}
 		
-		SearchRequestBuilder request = client.prepareSearch();
+		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 		request.setQuery(QueryBuilders.termQuery("_id", _id));
@@ -342,11 +331,11 @@ public class Explorer {
 			return new LinkedHashMap<String, DirectoryContent>(1);
 		}
 		
-		MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(client);
+		MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(Elasticsearch.getClient());
 		
 		for (int pos = 0; pos < _ids.size(); pos++) {
 			String _id = _ids.get(pos);
-			SearchRequestBuilder request = client.prepareSearch();
+			SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
 			request.setIndices(Importer.ES_INDEX);
 			if (only_directories) {
 				request.setTypes(Importer.ES_TYPE_DIRECTORY);
@@ -410,7 +399,7 @@ public class Explorer {
 	}
 	
 	public long countDirectoryContentElements(String _id) {
-		CountRequestBuilder request = new CountRequestBuilder(client);
+		CountRequestBuilder request = new CountRequestBuilder(Elasticsearch.getClient());
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 		request.setQuery(QueryBuilders.termQuery("parentpath", _id.toLowerCase()));
@@ -419,7 +408,7 @@ public class Explorer {
 	}
 	
 	public long countStorageContentElements(String storage_index_name) {
-		CountRequestBuilder request = new CountRequestBuilder(client);
+		CountRequestBuilder request = new CountRequestBuilder(Elasticsearch.getClient());
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 		request.setQuery(QueryBuilders.termQuery("storagename", storage_index_name.toLowerCase()));
@@ -465,7 +454,7 @@ public class Explorer {
 	}
 	
 	public DeleteRequestBuilder deleteRequestFileElement(String _id, String es_type) {
-		return client.prepareDelete(Importer.ES_INDEX, es_type, _id);
+		return Elasticsearch.getClient().prepareDelete(Importer.ES_INDEX, es_type, _id);
 	}
 	
 	private class IndexingDelete implements IndexingEvent {
@@ -481,7 +470,7 @@ public class Explorer {
 			if (bulkrequest_delete.numberOfActions() > 1000) {
 				Log2.log.debug("Force delete some index items", new Log2Dump("count", bulkrequest_delete.numberOfActions()));
 				bulkrequest_delete.execute().actionGet();
-				bulkrequest_delete = client.prepareBulk();
+				bulkrequest_delete = Elasticsearch.getClient().prepareBulk();
 			}
 			
 			if (element.directory) {
@@ -510,7 +499,7 @@ public class Explorer {
 			}
 			if (purge_before) {
 				if (bulkrequest_delete == null) {
-					bulkrequest_delete = client.prepareBulk();
+					bulkrequest_delete = Elasticsearch.getClient().prepareBulk();
 				}
 				if (elements.get(pos).directory) {
 					getAllSubElementsFromElementKey(elements.get(pos).prepare_key(), 0, new IndexingDelete(bulkrequest_delete));

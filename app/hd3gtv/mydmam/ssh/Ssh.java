@@ -16,9 +16,9 @@
 */
 package hd3gtv.mydmam.ssh;
 
-import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.tools.ExecprocessGettext;
 
 import java.io.ByteArrayInputStream;
@@ -26,7 +26,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.ArrayList;
 
 import com.jcraft.jsch.Channel;
@@ -129,7 +128,9 @@ public class Ssh {
 	}
 	
 	private void generateKeys() throws JSchException, IOException {
-		String comment = "mydmam-" + ServiceManager.getInstancename(false) + "@" + InetAddress.getLocalHost().getHostName();
+		String instance_name = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getInstanceName();
+		String host_name = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getHostName();
+		String comment = "mydmam-" + instance_name + "@" + host_name;
 		
 		JSch jsch = new JSch();
 		

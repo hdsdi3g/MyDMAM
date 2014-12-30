@@ -27,13 +27,6 @@ public abstract class WorkerCapablities {
 	
 	public abstract Class<? extends JobContext> getJobContextClass();
 	
-	// public abstract String getName();
-	
-	// public abstract String getCategory();
-	
-	// @ return can be null, only for serialization.
-	// public abstract JsonObject getParameters();
-	
 	final boolean isAssignableFrom(JobContext context) {
 		if (context == null) {
 			return false;
@@ -59,8 +52,10 @@ public abstract class WorkerCapablities {
 			if (this_storages_avaliable == null) {
 				return false;
 			}
-			if (this_storages_avaliable.contains(context_needed_storages) == false) {
-				return false;
+			for (int pos = 0; pos < context_needed_storages.size(); pos++) {
+				if (this_storages_avaliable.contains(context_needed_storages.get(pos)) == false) {
+					return false;
+				}
 			}
 		}
 		

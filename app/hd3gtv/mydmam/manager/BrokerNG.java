@@ -212,6 +212,7 @@ class BrokerNG {
 		
 		public void run() {
 			stop_queue = false;
+			boolean first_start = true;
 			try {
 				MutationBatch mutator = null;
 				Map<Class<? extends JobContext>, List<WorkerNG>> available_workers_capablities;
@@ -226,11 +227,18 @@ class BrokerNG {
 				JobContext context;
 				
 				while (stop_queue == false) {
-					Thread.sleep(QUEUE_SLEEP_TIME);
+					if (first_start == false) {
+						/**
+						 * Don't sleep at the start for speed up start.
+						 */
+						Thread.sleep(QUEUE_SLEEP_TIME);
+					}
+					first_start = false;
+					
 					available_workers_capablities = manager.getAllCurrentWaitingWorkersByCapablitiesJobContextClasses();
 					
 					if (available_workers_capablities.isEmpty()) {
-						return;
+						continue;
 					}
 					
 					/**

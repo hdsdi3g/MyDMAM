@@ -20,13 +20,10 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.client.Client;
-import org.json.simple.parser.ParseException;
 
 public abstract class Importer {
 	
@@ -34,8 +31,7 @@ public abstract class Importer {
 	public static final String ES_TYPE_FILE = "file";
 	public static final String ES_TYPE_DIRECTORY = "directory";
 	
-	protected Client client;
-	private int window_update_size;
+	private static final int window_update_size = 5000;
 	
 	static {
 		try {
@@ -44,14 +40,6 @@ public abstract class Importer {
 		} catch (Exception e) {
 			Log2.log.error("Can't to set TTL for ES", e);
 		}
-	}
-	
-	public Importer() throws IOException, ParseException {
-		client = Elasticsearch.getClient();
-		if (client == null) {
-			throw new NullPointerException("\"client\" can't to be null");
-		}
-		window_update_size = 10000;
 	}
 	
 	/**
@@ -77,7 +65,7 @@ public abstract class Importer {
 		ArrayList<SourcePathIndexerElement> l_elements_problems;
 		
 		public ElasticSearchPushElement() {
-			bulkrequest_index = client.prepareBulk();
+			bulkrequest_index = Elasticsearch.getClient().prepareBulk();
 			ttl = getTTL();
 			l_elements_problems = new ArrayList<SourcePathIndexerElement>();
 		}
@@ -140,9 +128,9 @@ public abstract class Importer {
 			 * Push it
 			 */
 			if (ttl > 0) {
-				bulkrequest_index.add(client.prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString()).setTTL(ttl));
+				bulkrequest_index.add(Elasticsearch.getClient().prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString()).setTTL(ttl));
 			} else {
-				bulkrequest_index.add(client.prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString()));
+				bulkrequest_index.add(Elasticsearch.getClient().prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString()));
 			}
 			
 			return true;
@@ -166,7 +154,7 @@ public abstract class Importer {
 					dump.add("failure message", bulkresponse.buildFailureMessage());
 					Log2.log.error("Errors during indexing", null, dump);
 				}
-				bulkrequest_index = client.prepareBulk();
+				bulkrequest_index = Elasticsearch.getClient().prepareBulk();
 			}
 			
 		}

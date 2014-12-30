@@ -19,7 +19,6 @@ package hd3gtv.mydmam.taskqueue;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.mail.AdminMailAlert;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +30,7 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.RowSliceQuery;
 
+@Deprecated
 class WorkerGroupEngine extends Thread {
 	
 	private boolean stopwatching;
@@ -110,7 +110,7 @@ class WorkerGroupEngine extends Thread {
 			stopAllActiveWorkers();
 		} catch (Exception e) {
 			Log2.log.error("Generic error", e);
-			AdminMailAlert.create("Worker group error", true).setThrowable(e).setServiceinformations(workergroup.getServiceinformations()).send();
+			// AdminMailAlert.create("Worker group error", true).setThrowable(e).setServiceinformations(workergroup.getServiceinformations()).send();
 		}
 		Log2.log.info("Worker group is ended");
 	}

@@ -178,8 +178,11 @@ manager.jobs.btn.noexpiration=N'expire plus
 manager.jobs.btn.postponed=Reporté
 manager.jobs.worker=Executé par
 manager.jobs.instanceexecutor=Sur
+manager.jobs.neededstorages=A besoin de :
+manager.jobs.context=Données du contexte :
 manager.jobs.tableisempty=Aucun job pour l'état selectionné. 
 manager.action.error=Impossible d'ajouter une action pour cette instance.
+job.progressionmessage.null=(non défini)
 
 application.navigate=Stockage
 

@@ -20,11 +20,12 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.taskqueue.Broker;
-import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
-import hd3gtv.mydmam.taskqueue.Job;
-import hd3gtv.mydmam.taskqueue.Profile;
-import hd3gtv.mydmam.taskqueue.Worker;
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.CyclicJobCreator;
+import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.manager.WorkerCapablities;
+import hd3gtv.mydmam.manager.WorkerNG;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,28 +33,25 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class PathScan extends Worker implements CyclicCreateTasks {
+public class PathScan extends WorkerNG {
 	
 	private HashMap<String, PathElementConfiguration> scanelements;
 	
 	private ImporterStorage importer;
-	private int min_period = Integer.MAX_VALUE;
 	
 	private static final int grace_time_ttl = 5; // ttl = (grace_time_ttl * period)
-	public static final String PROFILE_CATEGORY = "pathscan";
 	
 	private class PathElementConfiguration {
 		/**
 		 * In sec
 		 */
 		int period;
-		String storage;
-		long last_create_task;
-		Profile profile;
-		String label;
+		String storage_internal_name;
+		String storage_label;
 		boolean manual;
 	}
 	
@@ -70,20 +68,15 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 		for (Map.Entry<String, ConfigurationItem> entry : ps_configuration.entrySet()) {
 			LinkedHashMap<String, ?> element = entry.getValue().content;
 			PathElementConfiguration pec = new PathElementConfiguration();
-			pec.label = (String) element.get("label");
-			pec.storage = entry.getKey().toLowerCase();
+			pec.storage_label = (String) element.get("label");
+			pec.storage_internal_name = entry.getKey().toLowerCase();
 			if (element.containsKey("manual")) {
 				pec.manual = (Boolean) element.get("manual");
 			}
 			pec.period = (Integer) element.get("period");
-			label = pec.label.toLowerCase();
-			pec.profile = new Profile(PROFILE_CATEGORY, label);
+			label = pec.storage_label.toLowerCase();
 			
 			scanelements.put(label, pec);
-			
-			if ((pec.period < min_period) & (pec.manual == false)) {
-				min_period = pec.period;
-			}
 		}
 		
 	}
@@ -94,12 +87,12 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 			throw new IOException("Can't found pathindex storage name for " + storage_index_label);
 		}
 		
-		importer = new ImporterStorage(pec.storage, pec.label, 1000 * pec.period * grace_time_ttl);
+		importer = new ImporterStorage(pec.storage_internal_name, pec.storage_label, 1000 * pec.period * grace_time_ttl);
 		importer.setCurrentworkingdir(current_working_directory);
 		
 		Log2Dump dump = new Log2Dump();
-		dump.add("storage", pec.storage);
-		dump.add("label", pec.label);
+		dump.add("storage", pec.storage_internal_name);
+		dump.add("label", pec.storage_label);
 		dump.add("current_working_directory", importer.getCurrentworkingdir());
 		dump.add("limited to current directory", limit_to_current_directory);
 		Log2.log.info("Indexing storage", dump);
@@ -107,40 +100,7 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 		importer.setLimit_to_current_directory(limit_to_current_directory);
 		importer.index();
 		importer = null;
-		
-		// } catch (NoNodeAvailableException e) {
-		// Log2.log.error("Elasticsearch transport trouble, cancel analysis.", e);
-		// return;
 	};
-	
-	public void process(Job job) throws Exception {
-		refreshIndex(job.getProfile().getName(), null, false);
-	}
-	
-	public String getShortWorkerName() {
-		return "storagescanindex";
-	}
-	
-	public String getLongWorkerName() {
-		return "Storage indexing";
-	}
-	
-	ArrayList<Profile> profiles_list;
-	
-	public List<Profile> getManagedProfiles() {
-		if (profiles_list == null) {
-			profiles_list = new ArrayList<Profile>();
-			PathElementConfiguration pec;
-			for (Map.Entry<String, PathScan.PathElementConfiguration> entry : scanelements.entrySet()) {
-				pec = entry.getValue();
-				if (pec.manual) {
-					continue;
-				}
-				profiles_list.add(entry.getValue().profile);
-			}
-		}
-		return profiles_list;
-	}
 	
 	public void forceStopProcess() throws Exception {
 		if (importer != null) {
@@ -148,44 +108,70 @@ public class PathScan extends Worker implements CyclicCreateTasks {
 		}
 	}
 	
-	public boolean isConfigurationAllowToEnabled() {
-		return Configuration.global.isElementExists("storageindex_scan");
-	}
-	
-	public void createTasks() throws ConnectionException {
-		PathElementConfiguration pec;
+	/**
+	 * @return this
+	 */
+	public PathScan cyclicJobsRegister(AppManager manager) throws ConnectionException, ClassNotFoundException {
+		PathElementConfiguration pathelementconfiguration;
+		CyclicJobCreator cyclicjobcreator;
 		for (Map.Entry<String, PathScan.PathElementConfiguration> entry : scanelements.entrySet()) {
-			pec = entry.getValue();
-			if (pec.manual) {
+			pathelementconfiguration = entry.getValue();
+			if (pathelementconfiguration.manual) {
 				continue;
 			}
-			if ((pec.last_create_task + (long) (pec.period * 1000)) < System.currentTimeMillis()) {
-				Broker.publishTask("Path scan", pec.profile, null, this, false, System.currentTimeMillis() + (long) (8 * 3600 * 1000), null, false);
-				pec.last_create_task = System.currentTimeMillis();
+			cyclicjobcreator = new CyclicJobCreator(manager, pathelementconfiguration.period, TimeUnit.SECONDS, false);
+			cyclicjobcreator.setOptions(getClass(), "Regular storage indexing", getWorkerVendorName());
+			cyclicjobcreator.add("Index " + pathelementconfiguration.storage_label + " storage", new JobContextPathScan(pathelementconfiguration.storage_label));
+			manager.cyclicJobsRegister(cyclicjobcreator);
+		}
+		return this;
+	}
+	
+	public WorkerCategory getWorkerCategory() {
+		return WorkerCategory.INDEXING;
+	}
+	
+	public String getWorkerLongName() {
+		return "Storage indexing";
+	}
+	
+	public String getWorkerVendorName() {
+		return "MyDMAM Internal";
+	}
+	
+	private ArrayList<String> storages_avaliable;
+	
+	public List<WorkerCapablities> getWorkerCapablities() {
+		if (storages_avaliable == null) {
+			storages_avaliable = new ArrayList<String>();
+			PathElementConfiguration pec;
+			for (Map.Entry<String, PathScan.PathElementConfiguration> entry : scanelements.entrySet()) {
+				pec = entry.getValue();
+				if (pec.manual) {
+					continue;
+				}
+				storages_avaliable.add(entry.getValue().storage_label);
 			}
+		}
+		return JobContext.WorkerCapablitiesUtility.create(JobContextPathScan.class, storages_avaliable);
+	}
+	
+	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
+		List<String> storages = context.getNeededIndexedStoragesNames();
+		if (storages == null) {
+			throw new NullPointerException("\"storages\" can't to be null");
+		}
+		if (storages.size() == 0) {
+			throw new IndexOutOfBoundsException("\"storages\" can't to be empty");
+		}
+		for (int pos = 0; pos < storages.size(); pos++) {
+			progression.updateStep(pos + 1, storages.size());
+			refreshIndex(storages.get(pos), null, false);
 		}
 	}
 	
-	public long getInitialCyclicPeriodTasks() {
-		return min_period * 1000;
-	}
-	
-	@Override
-	public String getShortCyclicName() {
-		return getClass().getSimpleName() + "-cyclic";
-	}
-	
-	public String getLongCyclicName() {
-		return "Regular storage indexing";
-	}
-	
-	@Override
-	public boolean isCyclicConfigurationAllowToEnabled() {
-		return isConfigurationAllowToEnabled();
-	}
-	
-	public boolean isPeriodDurationForCreateTasksCanChange() {
-		return false;
+	protected boolean isActivated() {
+		return Configuration.global.isElementExists("storageindex_scan");
 	}
 	
 }

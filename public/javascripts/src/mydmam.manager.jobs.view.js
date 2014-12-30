@@ -63,27 +63,27 @@
 		var content = '';
 		var i18n_status = i18n('manager.jobs.status.' + job.status);
 		if (job.status === 'WAITING') {
-			content = content + '<span class="label">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label">' + i18n_status + '</span>'; 
 		} else if (job.status === 'PREPARING') {
-			content = content + '<span class="label label-warning">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label label-warning">' + i18n_status + '</span>'; 
 		} else if (job.status === 'PROCESSING') {
-			content = content + '<span class="label label-warning">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label label-warning">' + i18n_status + '</span>'; 
 		} else if (job.status === 'DONE') {
-			content = content + '<span class="label">'               + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label">'               + i18n_status + '</span>'; 
 		} else if (job.status === 'TOO_OLD') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label label-info">' + i18n_status + '</span>'; 
 		} else if (job.status === 'STOPPED') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label label-info">' + i18n_status + '</span>'; 
 		} else if (job.status === 'TOO_LONG_DURATION') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label label-info">' + i18n_status + '</span>'; 
 		} else if (job.status === 'CANCELED') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label label-info">' + i18n_status + '</span>'; 
 		} else if (job.status === 'POSTPONED') {
-			content = content + '<span class="label label-info">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label label-info">' + i18n_status + '</span>'; 
 		} else if (job.status === 'ERROR') {
-			content = content + '<span class="label badge-important">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label badge-important">' + i18n_status + '</span>'; 
 		} else {
-			content = content + '<span class="label label-inverse">' + i18n_status + '</span>' + '<br />'; 
+			content = content + '<span class="label label-inverse">' + i18n_status + '</span>'; 
 		}
 		return content;
 	};
@@ -110,7 +110,7 @@
 		}
 		content = content + '</div>';
 		
-		content = content + '<span class="label itemtoupdate dateupdate" data-varname="update_date">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>' + '<br />';
+		content = content + '<span class="label itemtoupdate dateupdate" data-varname="update_date">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>';
 		
 		content = content + '<div class="collapse">';
 		content = content + ago(job.update_date, "update_date");
@@ -200,7 +200,7 @@
 			need_to_display_hr = true;
 		}
 		
-		if (job.context.neededstorages | (job.context.content.length > 0)) {
+		if (job.context.neededstorages | job.context.content) {
 			if (need_to_display_hr) {
 				content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
 			}
@@ -210,13 +210,23 @@
 		content = content + '<div class="pull-right">' + view.displayKey(job.key, true) + '</div>';
 		
 		if (job.context.neededstorages) {
-			content = content + '' + JSON.stringify(job.context.neededstorages) + '' + '<br />'; 
+			if (job.context.neededstorages.length > 0) {
+				content = content + '<small><div style="margin-bottom: 5px;">' + i18n('manager.jobs.neededstorages') + ' '; 
+				for (var pos_ns = 0; pos_ns < job.context.neededstorages.length; pos_ns++) {
+					content = content + '<i class="icon-hdd"></i> ' + job.context.neededstorages[pos_ns];
+					if ((pos_ns + 1) < job.context.neededstorages.length) {
+						content = content + ', ';
+					}
+				}
+				content = content + '</div></small>'; 
+			}
 		}
 		
-		if (job.context.content.length > 0) {
-			content = content + '<code><i class="icon-indent-left"></i> ' + JSON.stringify(job.context.content) + '</code>' + '<br />'; 
+		if (job.context.content) {
+			content = content + '<code class="json"><i class="icon-indent-left"></i><span class="jsontitle"> ' + i18n('manager.jobs.context') + ' </span>'; 
+			content = content + JSON.stringify(job.context.content, null, "\t").nl2br(); 
+			content = content + '</code>'; 
 		}
-
 		content = content + '</div>';
 		
 		return content;
@@ -279,7 +289,7 @@
 				} else if (varname === 'percent') {
 					item.css('width', ((progression.progress / progression.progress_size) * 100) + '%');
 				} else if (varname === 'progress') {
-					item.html(progression.progress + '/' + progression.progress_size + '<br>');
+					item.html(progression.progress + '/' + progression.progress_size);
 				} else if (varname === 'last_message') {
 					item.html(view.getProgressionLastmessageHtmlContent(progression));
 				} else if (varname === 'last_caller') {
@@ -354,7 +364,6 @@
 				content = content + '<div class="progress progress-success" style="margin-bottom: 5px;">';
 			    content = content + '<div class="bar" style="width: 100%;"></div>';
 			    content = content + '</div>';
-				content = content + '<br />';
 			} else {
 				var percent = (progression.progress / progression.progress_size) * 100;
 				if (job.status === 'PROCESSING') {
@@ -365,7 +374,7 @@
 			    content = content + '<div class="bar itemtoupdate updateprogression" data-varname="percent" style="width: ' + percent + '%;"></div>';
 			    content = content + '</div>';
 				content = content + '<div class="collapse itemtoupdate updateprogression" data-varname="progress">';
-				content = content + progression.progress + '/' + progression.progress_size + '<br>';
+				content = content + progression.progress + '/' + progression.progress_size;
 				content = content + '</div>';
 			}
 

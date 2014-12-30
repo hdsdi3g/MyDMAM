@@ -19,7 +19,6 @@ package hd3gtv.mydmam.metadata;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.Job;
 import hd3gtv.mydmam.taskqueue.Profile;
@@ -73,7 +72,7 @@ public class WorkerIndexer extends Worker implements TriggerWorker {
 		if (Configuration.global.isElementExists("analysing_storageindexes")) {
 			LinkedHashMap<String, String> s_bridge = Configuration.global.getValues("analysing_storageindexes");
 			for (Map.Entry<String, String> entry : s_bridge.entrySet()) {
-				managed_profiles_trigger.add(new Profile(PathScan.PROFILE_CATEGORY, entry.getKey()));
+				// managed_profiles_trigger.add(new Profile(PathScan.PROFILE_CATEGORY, entry.getKey())); //TODO #78.1 upgrade trigger
 				AnalysingConfiguration ac = new AnalysingConfiguration();
 				ac.pathindexstoragename = entry.getKey();
 				ac.path = entry.getValue();

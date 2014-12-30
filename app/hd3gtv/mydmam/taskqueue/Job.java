@@ -28,6 +28,7 @@ import com.netflix.astyanax.query.IndexQuery;
 /**
  * Task in process
  */
+@Deprecated
 public class Job extends Task {
 	
 	Job() {

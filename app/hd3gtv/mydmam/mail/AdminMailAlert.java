@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.mail;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
@@ -71,8 +70,6 @@ public class AdminMailAlert implements Log2Dumpable {
 	private Throwable throwable;
 	private String basemessage;
 	private ArrayList<Log2Dump> dumps;
-	@Deprecated
-	private ServiceInformations serviceinformations;
 	private AppManager manager;
 	private StringBuffer subject;
 	private StackTraceElement caller;
@@ -150,12 +147,6 @@ public class AdminMailAlert implements Log2Dumpable {
 		return this;
 	}
 	
-	@Deprecated
-	public AdminMailAlert setServiceinformations(ServiceInformations serviceinformations) {
-		this.serviceinformations = serviceinformations;
-		return this;
-	}
-	
 	public AdminMailAlert setManager(AppManager manager) {
 		this.manager = manager;
 		return this;
@@ -169,11 +160,6 @@ public class AdminMailAlert implements Log2Dumpable {
 			 */
 			if (fatal_alert) {
 				subject.append("Important ! ");
-			}
-			if (serviceinformations != null) {
-				subject.append("[");
-				subject.append(serviceinformations.getApplicationShortName());
-				subject.append("] ");
 			}
 			if (manager != null) {
 				subject.append("[");
@@ -256,14 +242,6 @@ public class AdminMailAlert implements Log2Dumpable {
 			plaintext.append("\r\n");
 			plaintext.append("\r\n");
 			
-			if (serviceinformations != null) {
-				plaintext.append(serviceinformations.getApplicationName());
-				plaintext.append(" - version ");
-				plaintext.append(serviceinformations.getApplicationVersion());
-				plaintext.append("\r\n");
-				plaintext.append(serviceinformations.getApplicationCopyright());
-				plaintext.append("\r\n");
-			}
 			if (manager != null) {
 				plaintext.append(manager.getInstance_status().getInstanceName());
 				plaintext.append(" - version ");

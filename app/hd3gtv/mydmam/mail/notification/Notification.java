@@ -22,11 +22,12 @@ import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import hd3gtv.mydmam.mail.MailPriority;
-import hd3gtv.mydmam.taskqueue.Broker;
-import hd3gtv.mydmam.taskqueue.TaskJobStatus;
+import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.manager.JobNG.JobStatus;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,7 +72,7 @@ public class Notification {
 	private String key;
 	private List<UserProfile> observers;
 	private UserProfile creator;
-	private Map<String, TaskJobStatus> linked_tasksjobs;
+	private Map<String, JobStatus> linked_tasksjobs;
 	private String creating_comment;
 	private long created_at;
 	private boolean is_read;
@@ -110,7 +111,7 @@ public class Notification {
 		key = UUID.randomUUID().toString();
 		observers = new ArrayList<UserProfile>(1);
 		creator = null;
-		linked_tasksjobs = new HashMap<String, TaskJobStatus>(1);
+		linked_tasksjobs = new HashMap<String, JobStatus>(1);
 		creating_comment = "";
 		creator_reference = "";
 		profile_references = new ArrayList<String>();
@@ -201,13 +202,13 @@ public class Notification {
 		
 		JSONArray ja_linked_tasks = (JSONArray) record.get("linked_tasks");
 		if (ja_linked_tasks.size() > 0) {
-			linked_tasksjobs = new HashMap<String, TaskJobStatus>(ja_linked_tasks.size());
+			linked_tasksjobs = new HashMap<String, JobStatus>(ja_linked_tasks.size());
 			for (int pos = 0; pos < ja_linked_tasks.size(); pos++) {
 				JSONObject jo = (JSONObject) ja_linked_tasks.get(pos);
-				linked_tasksjobs.put((String) jo.get("taskjobkey"), TaskJobStatus.fromString((String) jo.get("status")));
+				linked_tasksjobs.put((String) jo.get("taskjobkey"), JobStatus.valueOf((String) jo.get("status")));
 			}
 		} else {
-			linked_tasksjobs = new HashMap<String, TaskJobStatus>(1);
+			linked_tasksjobs = new HashMap<String, JobStatus>(1);
 		}
 		
 		creating_comment = (String) record.get("creating_comment");
@@ -248,7 +249,7 @@ public class Notification {
 		}
 		
 		JSONArray ja_linked_tasks = new JSONArray();
-		for (Map.Entry<String, TaskJobStatus> entry : linked_tasksjobs.entrySet()) {
+		for (Map.Entry<String, JobStatus> entry : linked_tasksjobs.entrySet()) {
 			JSONObject jo = new JSONObject();
 			jo.put("taskjobkey", entry.getKey());
 			jo.put("status", entry.getValue().toString());
@@ -372,7 +373,13 @@ public class Notification {
 	}
 	
 	public Notification addLinkedTasksJobs(String... taskjobkey) throws ConnectionException {
-		LinkedHashMap<String, TaskJobStatus> all_actual_status = Broker.getStatusForTasksOrJobsByKeys(taskjobkey);
+		if (taskjobkey == null) {
+			return this;
+		}
+		if (taskjobkey.length == 0) {
+			return this;
+		}
+		LinkedHashMap<String, JobStatus> all_actual_status = JobNG.Utility.getJobsStatusByKeys(Arrays.asList(taskjobkey));
 		if (all_actual_status == null) {
 			return this;
 		}
@@ -470,29 +477,31 @@ public class Notification {
 		return this;
 	}
 	
-	private static TaskJobStatus getSummaryTaskJobStatus(Map<String, TaskJobStatus> status) {
+	private static JobStatus getSummaryJobStatus(Map<String, JobStatus> status) {
 		boolean has_waiting = false;
 		boolean has_done = false;
 		boolean has_processing = false;
-		for (Map.Entry<String, TaskJobStatus> entry : status.entrySet()) {
-			if (entry.getValue() == TaskJobStatus.TOO_OLD) {
-				return TaskJobStatus.ERROR;// Case 1
-			} else if (entry.getValue() == TaskJobStatus.ERROR) {
-				return TaskJobStatus.ERROR;// Case 1
-			} else if (entry.getValue() == TaskJobStatus.POSTPONED) {
+		for (Map.Entry<String, JobStatus> entry : status.entrySet()) {
+			if (entry.getValue() == JobStatus.TOO_OLD) {
+				return JobStatus.ERROR;// Case 1
+			} else if (entry.getValue() == JobStatus.ERROR) {
+				return JobStatus.ERROR;// Case 1
+			} else if (entry.getValue() == JobStatus.POSTPONED) {
 				has_waiting = true;
-			} else if (entry.getValue() == TaskJobStatus.WAITING) {
+			} else if (entry.getValue() == JobStatus.WAITING) {
 				has_waiting = true;
-			} else if (entry.getValue() == TaskJobStatus.DONE) {
+			} else if (entry.getValue() == JobStatus.DONE) {
 				has_done = true;
-			} else if (entry.getValue() == TaskJobStatus.CANCELED) {
+			} else if (entry.getValue() == JobStatus.CANCELED) {
 				has_done = true;
-			} else if (entry.getValue() == TaskJobStatus.STOPPED) {
+			} else if (entry.getValue() == JobStatus.STOPPED) {
 				has_done = true;
-			} else if (entry.getValue() == TaskJobStatus.PROCESSING) {
+			} else if (entry.getValue() == JobStatus.PROCESSING) {
 				has_processing = true;
-			} else if (entry.getValue() == TaskJobStatus.PREPARING) {
+			} else if (entry.getValue() == JobStatus.PREPARING) {
 				has_processing = true;
+			} else if (entry.getValue() == JobStatus.TOO_LONG_DURATION) {
+				return JobStatus.ERROR;// Case 1
 			}
 		}
 		/*
@@ -515,23 +524,23 @@ public class Notification {
 		1			1		1		1			problem: Case 1
 		*/
 		if (has_processing) {// Case 2
-			return TaskJobStatus.PROCESSING;
+			return JobStatus.PROCESSING;
 		}
 		if (has_waiting) {// Case 3
-			return TaskJobStatus.WAITING;
+			return JobStatus.WAITING;
 		}
 		if (has_done) {// Case 4
-			return TaskJobStatus.DONE;
+			return JobStatus.DONE;
 		} else {// Case 5
-			return TaskJobStatus.CANCELED;
+			return JobStatus.CANCELED;
 		}
 	}
 	
 	/**
 	 * Don't refresh internal status.
 	 */
-	public TaskJobStatus getActualSummaryTaskJobStatus() throws ConnectionException {
-		return getSummaryTaskJobStatus(linked_tasksjobs);
+	public JobStatus getActualSummaryJobStatus() throws ConnectionException {
+		return getSummaryJobStatus(linked_tasksjobs);
 	}
 	
 	public static int updateTasksJobsEvolutionsForNotifications() throws Exception {
@@ -554,8 +563,8 @@ public class Notification {
 			
 			CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
 			JSONObject record;
-			TaskJobStatus new_status_summary;
-			TaskJobStatus previous_status_summary;
+			JobStatus new_status_summary;
+			JobStatus previous_status_summary;
 			boolean must_update_notification;
 			
 			JSONParser parser = new JSONParser();
@@ -578,16 +587,16 @@ public class Notification {
 				/**
 				 * Compare tasks/jobs status and push new notification update if needed
 				 */
-				LinkedHashMap<String, TaskJobStatus> new_status = Broker.getStatusForTasksOrJobsByKeys(notification.linked_tasksjobs.keySet());
-				new_status_summary = getSummaryTaskJobStatus(new_status);
-				previous_status_summary = getSummaryTaskJobStatus(notification.linked_tasksjobs);
+				LinkedHashMap<String, JobStatus> new_status = JobNG.Utility.getJobsStatusByKeys(notification.linked_tasksjobs.keySet());
+				new_status_summary = getSummaryJobStatus(new_status);
+				previous_status_summary = getSummaryJobStatus(notification.linked_tasksjobs);
 				
 				if (new_status_summary != previous_status_summary) {
-					if (new_status_summary == TaskJobStatus.ERROR) {
+					if (new_status_summary == JobStatus.ERROR) {
 						nu.is_new_error = true;
-					} else if (new_status_summary == TaskJobStatus.DONE) {
+					} else if (new_status_summary == JobStatus.DONE) {
 						nu.is_new_done = true;
-					} else if (new_status_summary == TaskJobStatus.CANCELED) {
+					} else if (new_status_summary == JobStatus.CANCELED) {
 						nu.is_new_done = true;
 					}
 					if (nu.isNeedUpdate()) {
@@ -599,14 +608,14 @@ public class Notification {
 				/**
 				 * Update Tasks and Jobs status cache in notification
 				 */
-				for (Map.Entry<String, TaskJobStatus> entry : notification.linked_tasksjobs.entrySet()) {
+				for (Map.Entry<String, JobStatus> entry : notification.linked_tasksjobs.entrySet()) {
 					String taskjobkey = entry.getKey();
-					TaskJobStatus current_taskjob = entry.getValue();
+					JobStatus current_taskjob = entry.getValue();
 					if (new_status.containsKey(taskjobkey) == false) {
 						/**
 						 * If task/job is referenced in notification and deleted from Broker.
 						 */
-						entry.setValue(TaskJobStatus.DONE);
+						entry.setValue(JobStatus.DONE);
 						must_update_notification = true;
 					} else if (current_taskjob != new_status.get(taskjobkey)) {
 						entry.setValue(new_status.get(taskjobkey));
@@ -733,7 +742,7 @@ public class Notification {
 				
 				for (int pos_ntf = 0; pos_ntf < notifications.size(); pos_ntf++) {
 					mail_var_notifications.add(notifications.get(pos_ntf).exportToMailVars());
-					if (notifications.get(pos_ntf).getActualSummaryTaskJobStatus() == TaskJobStatus.ERROR) {
+					if (notifications.get(pos_ntf).getActualSummaryJobStatus() == JobStatus.ERROR) {
 						usermail.setMailPriority(MailPriority.HIGHEST);
 					}
 				}
@@ -776,7 +785,7 @@ public class Notification {
 		BulkRequestBuilder bulkrequest = client.prepareBulk();
 		
 		JSONObject record;
-		TaskJobStatus status_summary;
+		JobStatus status_summary;
 		boolean will_close_notification;
 		
 		JSONParser parser = new JSONParser();
@@ -790,12 +799,12 @@ public class Notification {
 			will_close_notification = false;
 			
 			if (notification.linked_tasksjobs.isEmpty() == false) {
-				status_summary = getSummaryTaskJobStatus(notification.linked_tasksjobs);
-				if (status_summary == TaskJobStatus.ERROR) {
+				status_summary = getSummaryJobStatus(notification.linked_tasksjobs);
+				if (status_summary == JobStatus.ERROR) {
 					will_close_notification = true;
-				} else if (status_summary == TaskJobStatus.DONE) {
+				} else if (status_summary == JobStatus.DONE) {
 					will_close_notification = true;
-				} else if (status_summary == TaskJobStatus.CANCELED) {
+				} else if (status_summary == JobStatus.CANCELED) {
 					will_close_notification = true;
 				}
 			} else {
@@ -934,7 +943,7 @@ public class Notification {
 			ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>(hits.length);
 			Map<String, Object> source;
 			ArrayList<Object> linked_tasks;
-			HashMap<String, TaskJobStatus> linked_tasksjobs;
+			HashMap<String, JobStatus> linked_tasksjobs;
 			HashMap<String, Object> map_linked_tasksjobs;
 			Map<String, Boolean> notify_list_for_user;
 			NotifyReason[] reasons = NotifyReason.values();
@@ -943,12 +952,12 @@ public class Notification {
 				source = hits[pos].getSource();
 				
 				linked_tasks = (ArrayList) source.get("linked_tasks");
-				linked_tasksjobs = new HashMap<String, TaskJobStatus>();
+				linked_tasksjobs = new HashMap<String, JobStatus>();
 				for (int pos_lt = 0; pos_lt < linked_tasks.size(); pos_lt++) {
 					map_linked_tasksjobs = (HashMap) linked_tasks.get(pos_lt);
-					linked_tasksjobs.put((String) map_linked_tasksjobs.get("taskjobkey"), TaskJobStatus.fromString((String) map_linked_tasksjobs.get("status")));
+					linked_tasksjobs.put((String) map_linked_tasksjobs.get("taskjobkey"), JobStatus.valueOf((String) map_linked_tasksjobs.get("status")));
 				}
-				source.put("summary_status", getSummaryTaskJobStatus(linked_tasksjobs));
+				source.put("summary_status", getSummaryJobStatus(linked_tasksjobs));
 				source.put("key", hits[pos].getId());
 				
 				notify_list_for_user = new HashMap<String, Boolean>();

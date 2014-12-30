@@ -31,6 +31,7 @@ import com.netflix.astyanax.query.IndexQuery;
  * Contient toutes les infos pour le traitement à effectuer.
  */
 @SuppressWarnings("unchecked")
+@Deprecated
 public class Task implements Log2Dumpable {
 	
 	Task() {

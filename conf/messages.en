@@ -178,8 +178,11 @@ manager.jobs.btn.noexpiration=No expires
 manager.jobs.btn.postponed=Postponed
 manager.jobs.worker=Executed by
 manager.jobs.instanceexecutor=On
+manager.jobs.neededstorages=Needs:
+manager.jobs.context=Context data:
 manager.jobs.tableisempty=No job for the selected state.
 manager.action.error=Can't add this action to instance.
+job.progressionmessage.null=(no set)
 
 application.navigate=Storage
 

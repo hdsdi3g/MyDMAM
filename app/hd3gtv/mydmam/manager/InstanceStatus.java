@@ -325,6 +325,9 @@ public final class InstanceStatus implements Log2Dumpable {
 		return dump;
 	}
 	
+	/**
+	 * For get some manager tools, without start a manager.
+	 */
 	public static class Gatherer {
 		private static final AppManager manager;
 		
@@ -334,6 +337,10 @@ public final class InstanceStatus implements Log2Dumpable {
 				name = "This Play instance";
 			}
 			manager = new AppManager(name);
+		}
+		
+		public static InstanceStatus getDefaultManagerInstanceStatus() {
+			return manager.getInstance_status();
 		}
 		
 		public static List<InstanceStatus> getAllInstances() {

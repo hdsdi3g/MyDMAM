@@ -24,8 +24,8 @@
 	String.prototype.trim = function(){return(this.replace(/^[\s\xA0]+/, "").replace(/[\s\xA0]+$/, ""));};
 	String.prototype.startsWith = function(str){return (this.match("^"+str)==str);};
 	String.prototype.endsWith = function(str){return (this.match(str+"$")==str);};
-	
 	String.prototype.append = function(str){return this + str;};
+	String.prototype.nl2br = function() { return this.replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1' + '<br>' + '$2');};
 
 	Storage.prototype.setObject = function(key, obj) {
 		return this.setItem(key, JSON.stringify(obj));

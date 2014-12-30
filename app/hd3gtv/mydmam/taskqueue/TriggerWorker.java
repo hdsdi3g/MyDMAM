@@ -20,6 +20,7 @@ import java.util.List;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@Deprecated
 public interface TriggerWorker {
 	
 	public boolean isTriggerWorkerConfigurationAllowToEnabled();
