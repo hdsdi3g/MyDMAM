@@ -17,10 +17,10 @@
 package hd3gtv.mydmam.module;
 
 import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.manager.CyclicJobCreator;
+import hd3gtv.mydmam.manager.TriggerJobCreator;
+import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.metadata.Generator;
-import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
-import hd3gtv.mydmam.taskqueue.TriggerWorker;
-import hd3gtv.mydmam.taskqueue.Worker;
 import hd3gtv.mydmam.useraction.UAFunctionality;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.SearchResultItem;
@@ -36,19 +36,19 @@ public abstract class MyDMAMModule extends PlayPlugin {
 		return new ArrayList<CliModule>(1);
 	}
 	
-	public List<CyclicCreateTasks> getCyclicsCreateTasks() {
-		return new ArrayList<CyclicCreateTasks>(1);
+	public List<CyclicJobCreator> getCyclicsCreateTasks() {
+		return new ArrayList<CyclicJobCreator>(1);
 	}
 	
 	/**
 	 * Don't add workers for user's actions.
 	 */
-	public List<Worker> getWorkers() {
-		return new ArrayList<Worker>(1);
+	public List<WorkerNG> getWorkers() {
+		return new ArrayList<WorkerNG>(1);
 	}
 	
-	public List<TriggerWorker> getTriggersWorker() {
-		return new ArrayList<TriggerWorker>(1);
+	public List<TriggerJobCreator> getTriggersWorker() {
+		return new ArrayList<TriggerJobCreator>(1);
 	}
 	
 	public List<String> getESTypeForUserSearch() {

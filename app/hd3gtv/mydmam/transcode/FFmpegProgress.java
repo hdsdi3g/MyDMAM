@@ -32,17 +32,29 @@ public class FFmpegProgress extends Thread {
 	
 	/** in seconds */
 	private float source_duration;
-	private Job job;
+	@Deprecated
+	private Job old_job;
+	private FFmpegProgressCallback callback;
 	private boolean stopthread;
 	private float fps;
 	
+	@Deprecated
 	public FFmpegProgress(File progressfile, Job job, Timecode source_duration) {
 		this.progressfile = progressfile;
 		this.setDaemon(true);
 		this.setName("FFmpegProgress for " + job.getKey());
 		this.source_duration = source_duration.getValue();
 		this.fps = source_duration.getFps();
-		this.job = job;
+		this.old_job = job;
+	}
+	
+	public FFmpegProgress(File progressfile, FFmpegProgressCallback callback) {
+		this.progressfile = progressfile;
+		this.setDaemon(true);
+		this.setName("FFmpegProgress for " + callback.getJobKey());
+		this.source_duration = callback.getSourceDuration().getValue();
+		this.fps = callback.getSourceDuration().getFps();
+		this.callback = callback;
 	}
 	
 	public synchronized void stopWatching() {
@@ -115,12 +127,17 @@ public class FFmpegProgress extends Thread {
 					lastpublished_percent = last_percent;
 				}
 				
-				job.progress = Math.round(last_percent);
-				job.progress_size = 100;
-				job.getContext().put("fps", Float.parseFloat(last_fps));
-				job.getContext().put("frame", raw_framepos);
-				job.getContext().put("dup_frames", Integer.parseInt(last_dup_frames));
-				job.getContext().put("drop_frames", Integer.parseInt(last_drop_frames));
+				if (callback != null) {
+					callback.updateProgression(Math.round(last_percent), Float.parseFloat(last_fps), raw_framepos, Integer.parseInt(last_dup_frames), Integer.parseInt(last_drop_frames));
+				}
+				if (old_job != null) {
+					old_job.progress = Math.round(last_percent);
+					old_job.progress_size = 100;
+					old_job.getContext().put("fps", Float.parseFloat(last_fps));
+					old_job.getContext().put("frame", raw_framepos);
+					old_job.getContext().put("dup_frames", Integer.parseInt(last_dup_frames));
+					old_job.getContext().put("drop_frames", Integer.parseInt(last_drop_frames));
+				}
 				sleep(2000);
 			}
 		} catch (Exception e) {

@@ -28,9 +28,9 @@ site.logintips=
 filesizeunitshort=b
 filesizeunitlong=bytes
 timeunit.years=years
-timeunit.years=year
+timeunit.year=year
 timeunit.weeks=weeks
-timeunit.weeks=week
+timeunit.week=week
 timeunit.days=days
 timeunit.day=day
 

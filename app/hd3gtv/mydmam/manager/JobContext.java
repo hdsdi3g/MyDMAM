@@ -40,8 +40,14 @@ import com.google.gson.JsonSerializer;
  */
 public interface JobContext {
 	
+	/**
+	 * @return can be null
+	 */
 	public JsonObject contextToJson();
 	
+	/**
+	 * @param json_object never null
+	 */
 	public void contextFromJson(JsonObject json_object);
 	
 	/**
@@ -67,7 +73,11 @@ public interface JobContext {
 		public JsonElement serialize(JobContext src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = new JsonObject();
 			result.addProperty("classname", src.getClass().getName());
-			result.add("content", src.contextToJson());
+			JsonObject context_content = src.contextToJson();
+			if (context_content == null) {
+				context_content = new JsonObject();
+			}
+			result.add("content", context_content);
 			result.add("neededstorages", AppManager.getGson().toJsonTree(src.getNeededIndexedStoragesNames()));
 			return result;
 		}
@@ -96,7 +106,7 @@ public interface JobContext {
 		}
 	}
 	
-	final static class Utility {
+	public final static class Utility {
 		static String prepareContextKeyForTrigger(JobContext context) {
 			if (context == null) {
 				throw new NullPointerException("\"context\" can't to be null");
@@ -127,5 +137,29 @@ public interface JobContext {
 				return sb.toString();
 			}
 		}
+		
 	}
+	
+	public final static class WorkerCapablitiesUtility {
+		
+		public static List<WorkerCapablities> create(Class<? extends JobContext> context) {
+			return create(context, null);
+		}
+		
+		public static List<WorkerCapablities> create(final Class<? extends JobContext> context, final List<String> storages_avaliable) {
+			ArrayList<WorkerCapablities> result = new ArrayList<WorkerCapablities>(1);
+			result.add(new WorkerCapablities() {
+				public List<String> getStoragesAvaliable() {
+					return storages_avaliable;
+				}
+				
+				public Class<? extends JobContext> getJobContextClass() {
+					return context;
+				}
+			});
+			return result;
+		}
+		
+	}
+	
 }

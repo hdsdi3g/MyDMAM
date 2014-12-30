@@ -33,8 +33,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.google.gson.JsonObject;
-
 @SuppressWarnings("unchecked")
 public class TranscodeProfile implements Log2Dumpable {
 	
@@ -323,7 +321,7 @@ public class TranscodeProfile implements Log2Dumpable {
 	 * @param context with transcodecategory and transcodename keys
 	 * @return null, or valid Tprofile
 	 */
-	public static TranscodeProfile getTranscodeProfile(JsonObject context) {
+	/*public static TranscodeProfile getTranscodeProfile(JsonObject context) {
 		if (context.has("transcodecategory") == false) {
 			return null;
 		}
@@ -333,11 +331,28 @@ public class TranscodeProfile implements Log2Dumpable {
 		return getTranscodeProfile(context.get("transcodecategory").getAsString(), context.get("transcodename").getAsString());
 	}
 	
+	public final JsonObject toJson() {
+		JsonObject jo = new JsonObject();
+		jo.addProperty("transcodecategory", category);
+		jo.addProperty("transcodename", name);
+		return jo;
+	}
+	
+	public static JsonObject transcodeProfiletoJsonContext(String category, String name) {
+		JsonObject jo = new JsonObject();
+		jo.addProperty("transcodecategory", category);
+		jo.addProperty("transcodename", name);
+		return jo;
+	}*/
+	
 	/**
 	 * @param context with transcodecategory and transcodename keys
 	 * @return null, or valid Tprofile
 	 */
 	public static TranscodeProfile getTranscodeProfile(String category, String name) {
+		if (isConfigured() == false) {
+			return null;
+		}
 		if (category == null) {
 			throw new NullPointerException("\"category\" can't to be null");
 		}
@@ -353,13 +368,6 @@ public class TranscodeProfile implements Log2Dumpable {
 			}
 		}
 		return null;
-	}
-	
-	public final JsonObject toJson() {
-		JsonObject jo = new JsonObject();
-		jo.addProperty("transcodecategory", category);
-		jo.addProperty("transcodename", name);
-		return jo;
 	}
 	
 	public Log2Dump getLog2Dump() {

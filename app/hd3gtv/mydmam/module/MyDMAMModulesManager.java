@@ -19,11 +19,11 @@ package hd3gtv.mydmam.module;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.CyclicJobCreator;
+import hd3gtv.mydmam.manager.TriggerJobCreator;
+import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.metadata.Generator;
-import hd3gtv.mydmam.taskqueue.CyclicCreateTasks;
-import hd3gtv.mydmam.taskqueue.TriggerWorker;
-import hd3gtv.mydmam.taskqueue.Worker;
-import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.SearchResultItem;
 
@@ -221,34 +221,34 @@ public class MyDMAMModulesManager {
 		return result;
 	}
 	
-	public static void declareAllModuleWorkerElement(WorkerGroup workergroup) {
-		if (workergroup == null) {
+	public static void declareAllModuleWorkerElement(AppManager manager) {
+		if (manager == null) {
 			return;
 		}
 		
-		List<Worker> elements_worker;
-		List<CyclicCreateTasks> elements_cyclic;
-		List<TriggerWorker> elements_trigger;
+		List<WorkerNG> elements_worker;
+		List<CyclicJobCreator> elements_cyclic;
+		List<TriggerJobCreator> elements_trigger;
 		
 		for (int pos = 0; pos < MODULES.size(); pos++) {
 			elements_worker = MODULES.get(pos).getWorkers();
 			if (elements_worker != null) {
 				for (int pos_worker = 0; pos_worker < elements_worker.size(); pos_worker++) {
-					workergroup.addWorker(elements_worker.get(pos_worker));
+					manager.workerRegister(elements_worker.get(pos_worker));
 				}
 			}
 			
 			elements_cyclic = MODULES.get(pos).getCyclicsCreateTasks();
 			if (elements_cyclic != null) {
 				for (int pos_cyclic = 0; pos_cyclic < elements_cyclic.size(); pos_cyclic++) {
-					workergroup.addCyclicWorker(elements_cyclic.get(pos_cyclic));
+					manager.cyclicJobsRegister(elements_cyclic.get(pos_cyclic));
 				}
 			}
 			
 			elements_trigger = MODULES.get(pos).getTriggersWorker();
 			if (elements_trigger != null) {
 				for (int pos_trigger = 0; pos_trigger < elements_trigger.size(); pos_trigger++) {
-					workergroup.addTriggerWorker(elements_trigger.get(pos_trigger));
+					manager.triggerJobsRegister(elements_trigger.get(pos_trigger));
 				}
 			}
 		}

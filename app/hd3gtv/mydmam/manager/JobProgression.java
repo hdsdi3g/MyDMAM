@@ -69,6 +69,10 @@ public final class JobProgression {
 		updateLastCaller();
 	}
 	
+	public String getJobKey() {
+		return job.getKey();
+	}
+	
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("step:");

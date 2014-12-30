@@ -17,13 +17,14 @@
 package hd3gtv.mydmam.transcode;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.taskqueue.Broker;
-import hd3gtv.mydmam.taskqueue.Job;
-import hd3gtv.mydmam.taskqueue.Profile;
-import hd3gtv.mydmam.taskqueue.Worker;
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.manager.WorkerCapablities;
+import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.storage.AbstractFile;
 import hd3gtv.storage.StorageManager;
 import hd3gtv.tools.Execprocess;
@@ -38,15 +39,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.json.simple.JSONObject;
+import java.util.concurrent.TimeUnit;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-@SuppressWarnings("unchecked")
-public class Publish extends Worker {
+public class Publish extends WorkerNG {
 	
-	public static final Profile PROFILE_FFMPEG_VOD_LIVE = new Profile("ffmpeg", "ffmpeg_vod_live");
+	public static final String TRANSCODE_PROFILE_CAT = "ffmpeg";
+	public static final String TRANSCODE_PROFILE_NAME = "ffmpeg_vod_live";
 	
 	private String workername;
 	private long maxpresencewaittime;
@@ -57,24 +57,15 @@ public class Publish extends Worker {
 	private File templocaldir;
 	private boolean stop;
 	
-	public static void createPublishTask(String mediaid, Timecode duration, String program_name, boolean islive, Class<?> referer) throws ConnectionException {
-		JSONObject jo = new JSONObject();
-		jo.put("id", mediaid);
-		jo.put("duration", duration.toString());
-		
-		if (islive) {
-			Broker.publishTask(program_name, PROFILE_FFMPEG_VOD_LIVE, jo, referer, true, System.currentTimeMillis() + (long) (2 * 3600 * 1000), null, false);
-		} else {
-			Log2.log.error("No publish tasks for no live case", null);
-		}
+	public static void createPublishTask(AppManager manager, String mediaid, Timecode duration, String program_name, Class<?> referer) throws ConnectionException {
+		JobNG job = manager.createJob(new JobContextPublishing(mediaid, duration, program_name));
+		job.setCreator(referer).setName(program_name).setUrgent().setExpirationTime(2, TimeUnit.HOURS).publish();
 	}
 	
 	public Publish() throws FileNotFoundException {
 		if (Configuration.global.isElementExists("transcoding_probe") == false) {
 			return;
 		}
-		
-		workername = ServiceManager.getInstancename(false);
 		
 		maxpresencewaittime = Configuration.global.getValue("transcoding_probe", "maxpresencewaittime", 300l) * 1000l;
 		
@@ -109,13 +100,14 @@ public class Publish extends Worker {
 		dump.add("sourcelocalfiles", sourcelocalfiles);
 		dump.add("deststorage", deststorage);
 		dump.add("templocaldir", templocaldir);
-		Log2.log.info("Init Publish", dump);
+		Log2.log.debug("Init Publish", dump);
 	}
 	
-	public void process(Job job) throws Exception {
+	protected void workerProcessJob(final JobProgression progression, JobContext context) throws Exception {
 		stop = false;
 		
-		String mediaid;
+		final JobContextPublishing context_publish = (JobContextPublishing) context;
+		
 		long start_wait_time;
 		File source_file;
 		long old_size;
@@ -129,18 +121,13 @@ public class Publish extends Worker {
 		byte[] buffer;
 		int len;
 		
-		job.last_message = "Attente de la présence du media...";
-		job.step_count = 6;
-		
-		/**
-		 * Get ID
-		 */
-		mediaid = (String) job.getContext().get("id");
+		progression.update("Attente de la présence du media...");
+		progression.updateStep(0, 5);
 		
 		/**
 		 * Wait & with cancel if too long time.
 		 */
-		source_file = new File(sourcelocalfiles.getPath() + File.separator + mediaid.toUpperCase() + ".mov");
+		source_file = new File(sourcelocalfiles.getPath() + File.separator + context_publish.mediaid.toUpperCase() + ".mov");
 		start_wait_time = System.currentTimeMillis();
 		while ((start_wait_time + maxpresencewaittime) > System.currentTimeMillis()) {
 			if (stop) {
@@ -155,15 +142,15 @@ public class Publish extends Worker {
 		}
 		
 		if (source_file.exists() == false) {
-			job.last_message = "Fichier introuvable dans le stockage.";
+			progression.update("Fichier introuvable dans le stockage.");
 			throw new FileNotFoundException(source_file.getPath());
 		}
 		
 		if (stop) {
 			return;
 		}
-		job.step = 1;
-		job.last_message = "Media en cours de copie, attente de sa disponiblité pour son traitement...";
+		progression.updateStep(1, 5);
+		progression.update("Media en cours de copie, attente de sa disponiblité pour son traitement...");
 		
 		/**
 		 * Wait copy
@@ -190,25 +177,42 @@ public class Publish extends Worker {
 		if (stop) {
 			return;
 		}
-		job.step = 2;
-		job.last_message = "Conversion ffmpeg";
+		progression.updateStep(2, 5);
+		progression.update("Conversion ffmpeg");
 		
-		String temp_key = job.getKey().substring(8, 16);
-		dest_file_ffmpeg = new File(templocaldir.getPath() + File.separator + mediaid.toUpperCase() + "-" + temp_key + ".mp4");
+		dest_file_ffmpeg = new File(templocaldir.getPath() + File.separator + context_publish.mediaid.toUpperCase() + "-" + progression.getJobKey() + ".mp4");
 		
-		profile = TranscodeProfile.getTranscodeProfile(job.getProfile().getCategory(), job.getProfile().getName());
+		profile = TranscodeProfile.getTranscodeProfile(TRANSCODE_PROFILE_CAT, TRANSCODE_PROFILE_NAME);
 		
 		File progress_file = new File(dest_file_ffmpeg.getPath() + "-progress.txt");
 		progress_file.delete();
 		
-		progress = new FFmpegProgress(progress_file, job, new Timecode((String) job.getContext().get("duration"), 25));
+		FFmpegProgressCallback progress_callback = new FFmpegProgressCallback() {
+			public void updateProgression(int percent, float performance_fps, int frame, int dup_frames, int drop_frames) {
+				context_publish.performance_fps = performance_fps;
+				context_publish.frame = frame;
+				context_publish.dup_frames = dup_frames;
+				context_publish.drop_frames = drop_frames;
+				progression.updateProgress(percent, 100);
+			}
+			
+			public Timecode getSourceDuration() {
+				return context_publish.duration;
+			}
+			
+			public String getJobKey() {
+				return progression.getJobKey();
+			}
+		};
+		
+		progress = new FFmpegProgress(progress_file, progress_callback);
 		progress.start();
 		
-		FFmpegEvents events = new FFmpegEvents(temp_key);
+		FFmpegEvents events = new FFmpegEvents("tmp-" + progression.getJobKey());
 		this.process = profile.prepareExecprocess(Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg"), events, source_file, dest_file_ffmpeg, progress_file);
 		
 		Log2Dump dump = new Log2Dump();
-		dump.add("job", job.getKey());
+		dump.addAll(context_publish);
 		dump.add("source_file", source_file);
 		dump.add("dest_file", dest_file_ffmpeg);
 		dump.add("profile", profile);
@@ -228,13 +232,13 @@ public class Publish extends Worker {
 			throw new IOException("Bad ffmpeg execution: " + events.getLast_message());
 		}
 		
-		job.step = 3;
-		job.last_message = "Finalisation du traitement";
+		progression.updateStep(3, 5);
+		progression.update("Finalisation du traitement");
 		
 		/**
 		 * qt-faststart convert
 		 */
-		dest_file_qtfs = new File(templocaldir.getPath() + File.separator + mediaid.toUpperCase() + "-" + temp_key + "-faststart" + ".f4v");
+		dest_file_qtfs = new File(templocaldir.getPath() + File.separator + context_publish.mediaid.toUpperCase() + "-" + progression.getJobKey() + "-faststart" + ".f4v");
 		faststartFile(dest_file_ffmpeg, dest_file_qtfs);
 		
 		dest_file_ffmpeg.delete();
@@ -242,15 +246,16 @@ public class Publish extends Worker {
 		if (stop) {
 			return;
 		}
-		job.step = 4;
-		job.last_message = "Publication du média";
+		progression.updateStep(4, 5);
+		progression.update("Publication du média");
+		progression.updateProgress(1, 1);
 		
 		/**
 		 * End storage move
 		 */
 		bis = new BufferedInputStream(new FileInputStream(dest_file_qtfs), 0xFFFF);
 		dest_dir = StorageManager.getGlobalStorage().getRootPath(deststorage);
-		dest_file = dest_dir.getAbstractFile("/" + mediaid.toUpperCase() + ".f4v");
+		dest_file = dest_dir.getAbstractFile("/" + context_publish.mediaid.toUpperCase() + ".f4v");
 		bos = dest_file.getOutputStream(0xFFFF);
 		buffer = new byte[0xFFFF];
 		while ((len = bis.read(buffer)) > 0) {
@@ -267,24 +272,8 @@ public class Publish extends Worker {
 		
 		dest_file_qtfs.delete();
 		
-		job.step = 5;
-		job.last_message = "Publication terminée";
-		job.progress = 1;
-		job.progress_size = 1;
-	}
-	
-	public String getShortWorkerName() {
-		return "publish";
-	}
-	
-	public String getLongWorkerName() {
-		return "Media transcoding and publishing";
-	}
-	
-	public List<Profile> getManagedProfiles() {
-		ArrayList<Profile> profiles = new ArrayList<Profile>();
-		profiles.add(PROFILE_FFMPEG_VOD_LIVE);
-		return profiles;
+		progression.updateStep(5, 5);
+		progression.update("Publication terminée");
 	}
 	
 	public synchronized void forceStopProcess() throws Exception {
@@ -295,10 +284,6 @@ public class Publish extends Worker {
 		if (process != null) {
 			process.kill();
 		}
-	}
-	
-	public boolean isConfigurationAllowToEnabled() {
-		return Configuration.global.isElementExists("transcoding_probe");
 	}
 	
 	public static void faststartFile(File source_file, File dest_file) throws Exception {
@@ -318,5 +303,25 @@ public class Publish extends Worker {
 		dump.add("result", process.getResultstdout());
 		Log2.log.info("Fast start done", dump);
 		source_file.delete();
+	}
+	
+	public WorkerCategory getWorkerCategory() {
+		return WorkerCategory.EXTERNAL_MODULE;
+	}
+	
+	public String getWorkerLongName() {
+		return "Media transcoding and publishing";
+	}
+	
+	public String getWorkerVendorName() {
+		return "MyDMAM Addons";
+	}
+	
+	public List<WorkerCapablities> getWorkerCapablities() {
+		return JobContext.WorkerCapablitiesUtility.create(JobContextPublishing.class);
+	}
+	
+	protected boolean isActivated() {
+		return Configuration.global.isElementExists("transcoding_probe");
 	}
 }

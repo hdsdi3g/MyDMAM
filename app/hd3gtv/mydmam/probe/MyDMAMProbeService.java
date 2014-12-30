@@ -23,15 +23,11 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.status.ClusterStatusEvents;
 import hd3gtv.mydmam.db.status.ClusterStatusService;
-import hd3gtv.mydmam.mail.notification.NotificationWorker;
 import hd3gtv.mydmam.metadata.WorkerIndexer;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
-import hd3gtv.mydmam.taskqueue.demo.DemoWorker;
-import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.storage.StorageManager;
@@ -104,7 +100,6 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		
 		broker = new Broker(this);
 		workergroup = new WorkerGroup(broker);
-		workergroup.addWorker(new Publish());
 		
 		PathScan ps = new PathScan();
 		workergroup.addWorker(ps);
@@ -116,12 +111,6 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		
 		WorkerRenderer mwr = new WorkerRenderer(mwi);
 		workergroup.addWorker(mwr);
-		
-		new NotificationWorker(workergroup);
-		
-		workergroup.addWorker(new DemoWorker());
-		
-		MyDMAMModulesManager.declareAllModuleWorkerElement(workergroup);
 		
 		UAManager.createWorkers(workergroup);
 	}

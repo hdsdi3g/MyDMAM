@@ -18,12 +18,15 @@ package hd3gtv.mydmam.manager;
 
 import hd3gtv.mydmam.db.status.ClusterStatusEvents;
 import hd3gtv.mydmam.db.status.ClusterStatusService;
+import hd3gtv.mydmam.mail.notification.NotificationWorker;
 import hd3gtv.mydmam.manager.dummy.Dummy1Context;
 import hd3gtv.mydmam.manager.dummy.Dummy1WorkerNG;
 import hd3gtv.mydmam.manager.dummy.Dummy2Context;
 import hd3gtv.mydmam.manager.dummy.Dummy2WorkerNG;
 import hd3gtv.mydmam.manager.dummy.Dummy3Context;
 import hd3gtv.mydmam.manager.dummy.Dummy3WorkerNG;
+import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.transcode.Publish;
 
 import java.util.concurrent.TimeUnit;
 
@@ -52,9 +55,15 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	@Override
 	protected void startService() throws Exception {
 		AppManager manager = getManager();
+		
+		new NotificationWorker(manager);
+		manager.workerRegister(new Publish());
+		
 		manager.workerRegister(new Dummy1WorkerNG());
 		manager.workerRegister(new Dummy2WorkerNG());
 		manager.workerRegister(new Dummy3WorkerNG());
+		
+		MyDMAMModulesManager.declareAllModuleWorkerElement(manager);
 		
 		CyclicJobCreator cyclic_creator = new CyclicJobCreator(manager, 1, TimeUnit.MINUTES, false);
 		cyclic_creator.setOptions(ServiceNGProbe.class, "Dummy cyclic test", "MyDMAM Test classes");
@@ -74,28 +83,7 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		/*
 		// TODO #78.3, startService
 		StorageManager.getGlobalStorage();
-		TranscodeProfile.isConfigured();
-
-		workergroup.addWorker(new Publish());
-		
-		PathScan ps = new PathScan();
-		workergroup.addWorker(ps);
-		workergroup.addCyclicWorker(ps);
-		
-		WorkerIndexer mwi = new WorkerIndexer();
-		workergroup.addWorker(mwi);
-		workergroup.addTriggerWorker(mwi);
-		
-		WorkerRenderer mwr = new WorkerRenderer(mwi);
-		workergroup.addWorker(mwr);
-		
-		new NotificationWorker(workergroup);
-		
-		workergroup.addWorker(new DemoWorker());
-		
-		MyDMAMModulesManager.declareAllModuleWorkerElement(workergroup);
-		
-		UAManager.createWorkers(workergroup);*/
+		 */
 	}
 	
 	protected void stopService() throws Exception {
