@@ -90,7 +90,7 @@ ul {
 }
 
 code.json {
-    white-space: normal;
+    white-space: pre-wrap;
     display: block;
     color: rgb(18,96,23);
     line-height: 1.3em;
@@ -102,6 +102,10 @@ code.json span.jsontitle {
     font-size: 95%;
 }
 
+code.stacktrace {
+    color: rgb(70, 70, 255);
+    font-size: 0.8em;
+}
 /* ============================================================================== */	
 
 .accordion-toggle {

@@ -26,10 +26,18 @@
 		var class_name = context.classname.substring(context.classname.lastIndexOf('.') + 1, context.classname.length);
 		content = content + '<abbr title="' + context.classname + '">' + class_name + '.class</abbr>';
 		if (show_json_content) {
-			content = content + ' &bull; <code>' + JSON.stringify(context.content) + '</code>';
+			if (jQuery.isEmptyObject(context.content) === false) {
+				content = content + ' &bull; <code class="json"><i class="icon-indent-left"></i>'; 
+				content = content + JSON.stringify(context.content, null, "\t").nl2br(); 
+				content = content + '</code>'; 
+			} else {
+				content = content + '<br>'; 
+			}
+		} else {
+			content = content + '<br>'; 
 		}
 		if (context.neededstorages) {
-			content = content + '<br />' + i18n('manager.jobcreator.context.neededindexedstoragesnames') + ' ';
+			content = content + i18n('manager.jobcreator.context.neededindexedstoragesnames') + ' ';
 			for (var pos_nstr = 0; pos_nstr < context.neededstorages.length; pos_nstr++) {
 				content = content + context.neededstorages[pos_nstr];
 				if (pos_nstr + 1 < context.neededstorages.length) {

@@ -130,12 +130,12 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		
 		FFmpegProgressCallback callback = new FFmpegProgressCallback() {
 			
-			public void updateProgression(int percent, float performance_fps, int frame, int dup_frames, int drop_frames) {
+			public void updateProgression(float position, float duration, float performance_fps, int frame, int dup_frames, int drop_frames) {
 				ffmpeg_renderer_context.performance_fps = performance_fps;
 				ffmpeg_renderer_context.frame = frame;
 				ffmpeg_renderer_context.dup_frames = dup_frames;
 				ffmpeg_renderer_context.drop_frames = drop_frames;
-				job_progress.updateProgress(percent, 100);
+				job_progress.updateProgress(Math.round(position), (int) Math.round(Math.ceil(duration)));
 			}
 			
 			public Timecode getSourceDuration() {

@@ -26,15 +26,14 @@
 	jobs.jquery_destination = "";
 	jobs.jquery_header = "";
 	jobs.datatable = null;
-	jobs.client_time = 0; 
-	jobs.server_time = 0; 
 	jobs.refresh_intervaller = null;
 	jobs.status_list = ["TOO_OLD", "CANCELED", "POSTPONED", "WAITING", "DONE", "PROCESSING", "STOPPED", "ERROR", "PREPARING", "TOO_LONG_DURATION"];
 	jobs.refresh_delay_time = 5000;
-	jobs.last_full_refresh_delay_time = 3600 * 1000;
-	
+	jobs.last_full_refresh_delay_time = 300 * 1000;
 	jobs.default_max_execution_time = 1000 * 3600 * 24; // 1 day
 	jobs.default_max_expiration_time = jobs.default_max_execution_time * 7; //Java is 10 days
+	jobs.grace_period_to_remove_deleted_after_completed_job = 1000 * 30; //1 min
+
 })(window.mydmam.manager.jobs);
 
 /**
@@ -91,8 +90,10 @@
 		var cols = [];
 		var content = '';
 		
+		var class_btnjobkey = 'jobkey-' + job.key.substring(6, 16);
+		
 		content = content + view.getNameCol(job);
-		content = content + '<button class="btn btn-mini pull-right btnshowcollapse"><i class="icon-chevron-down"></i></button>'; 
+		content = content + '<button class="btn btn-mini pull-right btnshowcollapse ' + class_btnjobkey + '"><i class="icon-chevron-down"></i></button>'; 
 		cols.push(content);
 		
 		cols.push(view.getStatusCol(job));
@@ -106,13 +107,18 @@
 		
 		var datatable = jobs.datatable;
 		
+		var datatablerowpos = datatable.fnAddData(cols)[0];
+		
+		var jquerybtnshowcollapse = datatable.$('button.btnshowcollapse.' + class_btnjobkey);
+		jquerybtnshowcollapse.removeClass(class_btnjobkey);
+		
 		job.web = {
-			datatablerowpos: datatable.fnAddData(cols)[0],
-			jqueryrow: datatable.$('tr:last'),
+			datatablerowpos: datatablerowpos,
+			jqueryrow: jquerybtnshowcollapse.parent().parent(),
 			status: job.status,
 		};
 		
-		job.web.jqueryrow.find('button.btnshowcollapse').click(function() {
+		jquerybtnshowcollapse.click(function() {
 			job.web.jqueryrow.find('div.collapse').addClass('in');
 			$(this).remove();
 		});
@@ -225,14 +231,11 @@
 			jobs.addRow(job, selected_status);
 		}
 		
-		var datatable = jobs.datatable;
-		if (job.delete_after_completed && job.isThisStatus('DONE')) {
-			/**
-			 * job will be deleted by some brokers, delete it here.
-			 */
+		/*if (job.delete_after_completed && job.isThisStatus(['DONE', 'CANCELED']) && (job.end_date + jobs.grace_period_to_remove_deleted_after_completed_job < (new Date().getTime()))) {
+			 //job will be deleted by some brokers, delete it here.
 			jobs.deleteRow(job);
 			return;
-		}
+		}*/
 		view.update(job);
 	};
 })(window.mydmam.manager.jobs, window.mydmam.manager.jobs.view);
@@ -498,11 +501,13 @@
 		/**
 		 * Check if server and client Unix time are close.
 		 */
+		/*jobs.client_time = 0; 
+		jobs.server_time = 0; 
 		var delta_time = Math.abs(jobs.client_time - jobs.server_time);
 		if (delta_time > 5000) {
 			full_refresh = true;
 			console.error("Check client time !", delta_time, new Date(jobs.server_time), new Date(jobs.client_time));
-		}
+		}*/
 		
 		if (jobs.last_refresh === 0) {
 			full_refresh = true;

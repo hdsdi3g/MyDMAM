@@ -19,11 +19,9 @@ package hd3gtv.mydmam.manager.dummy;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 
-import java.util.List;
-
 import com.google.gson.JsonObject;
 
-public class Dummy1Context implements JobContext {
+public class Dummy1Context extends JobContext {
 	
 	long sleep = 100;
 	
@@ -34,10 +32,6 @@ public class Dummy1Context implements JobContext {
 	public void contextFromJson(JsonObject json_object) {
 		Dummy1Context context = AppManager.getGson().fromJson(json_object, Dummy1Context.class);
 		this.sleep = context.sleep;
-	}
-	
-	public List<String> getNeededIndexedStoragesNames() {
-		return null;
 	}
 	
 }

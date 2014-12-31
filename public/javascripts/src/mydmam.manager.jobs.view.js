@@ -21,6 +21,12 @@
  */
 (function(view) {
 	view.displayClassName = function(class_name) {
+		if (class_name === null) {
+			return '';
+		}
+		if (class_name === '') {
+			return '';
+		}
 		var simple_name = class_name.substring(class_name.lastIndexOf(".") + 1, class_name.length);
 		if (class_name.indexOf("(") > -1) {
 			simple_name = class_name.substring(class_name.indexOf("(") + 1, (class_name.indexOf(")")));
@@ -110,15 +116,24 @@
 		}
 		content = content + '</div>';
 		
-		content = content + '<span class="label itemtoupdate dateupdate" data-varname="update_date">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>';
+		if (job.end_date > 0) {
+			content = content + '<span class="label itemtoupdate dateupdate" data-varname="end_date">' + i18n('manager.jobs.end_date', mydmam.format.fulldate(job.end_date)) + '</span>';
+			content = content + '<div class="collapse">';
+			content = content + ago(job.end_date, "end_date");
+		} else {
+			content = content + '<span class="label itemtoupdate dateupdate" data-varname="update_date">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>';
+			content = content + '<div class="collapse">';
+			content = content + ago(job.update_date, "update_date");
+		}
 		
-		content = content + '<div class="collapse">';
-		content = content + ago(job.update_date, "update_date");
 		if ((job.expiration_date - job.create_date) < mydmam.manager.jobs.default_max_expiration_time) {
 			content = content + '<span class="label itemtoupdate dateupdate" data-varname="expiration_date">' + i18n('manager.jobs.expiration_date', mydmam.format.fulldate(job.expiration_date)) + '</span>' + '<br />';
 			content = content + ago(job.expiration_date, "expiration_date");
 		}
 		if (job.end_date > 0) {
+			content = content + '<span class="label itemtoupdate dateupdate" data-varname="update_date">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>';
+			content = content + ago(job.update_date, "update_date");
+		} else {
 			content = content + '<span class="label itemtoupdate dateupdate" data-varname="end_date">' + i18n('manager.jobs.end_date', mydmam.format.fulldate(job.end_date)) + '</span>';
 			content = content + ago(job.end_date, "end_date");
 		}
@@ -128,6 +143,38 @@
 	};
 })(window.mydmam.manager.jobs.view);
 
+/**
+ * getStacktrace(processing_error)
+ */
+(function(view) {
+	view.getStacktrace = function(processing_error) {
+		var content = '';
+		content = content + processing_error["class"] + ': ' + processing_error.message + "\n";
+		for (var pos = 0; pos < processing_error.stacktrace.length; pos++) {
+			var trace = processing_error.stacktrace[pos];
+			content = content + String.fromCharCode(160) + 'at' + String.fromCharCode(160) + trace["class"] + '.' + trace.method;
+			if (trace.line === -2) {
+				content = content + '(Native Method)';
+			} else if (trace.file) {
+				if (trace.line >= 0) {
+					content = content + '(' + trace.file + ':' + trace.line + ')';
+				} else {
+					content = content + '(' + trace.file + ')';
+				}
+			} else {
+				content = content + '(Unknown Source)';
+			}
+			content = content + "\n";
+		}
+		
+		if (processing_error.cause) {
+			content = content + 'Caused by: ';
+			content = content + view.getStacktrace(processing_error.cause);
+		}
+		content = content + '';
+		return content;
+	};
+})(window.mydmam.manager.jobs.view);
 
 /**
  * getParamCol(job)
@@ -193,14 +240,16 @@
 			need_to_display_hr = true;
 		}
 		
-		if (job.processing_error) {
-			content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
-			content = content + '<code>' + JSON.stringify(job.processing_error) + '</code>' + '<br />';
-			content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
+		if (jQuery.isEmptyObject(job.processing_error) === false) {
+			if (need_to_display_hr) {
+				content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
+			}
+			//content = content + '<code class="json stacktrace">' + JSON.stringify(job.processing_error, null, ' ') + '</code>';
+			content = content + '<code class="json stacktrace">' + view.getStacktrace(job.processing_error) + '</code>';
 			need_to_display_hr = true;
 		}
 		
-		if (job.context.neededstorages | job.context.content) {
+		if (job.context.neededstorages | (jQuery.isEmptyObject(job.context.content) === false)) {
 			if (need_to_display_hr) {
 				content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
 			}
@@ -222,9 +271,9 @@
 			}
 		}
 		
-		if (job.context.content) {
+		if (jQuery.isEmptyObject(job.context.content) === false) {
 			content = content + '<code class="json"><i class="icon-indent-left"></i><span class="jsontitle"> ' + i18n('manager.jobs.context') + ' </span>'; 
-			content = content + JSON.stringify(job.context.content, null, "\t").nl2br(); 
+			content = content + JSON.stringify(job.context.content, null, " "); 
 			content = content + '</code>'; 
 		}
 		content = content + '</div>';

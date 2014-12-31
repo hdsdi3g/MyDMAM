@@ -18,33 +18,23 @@ package hd3gtv.mydmam.metadata;
 
 import hd3gtv.mydmam.manager.JobContext;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.gson.JsonObject;
 
-public class JobContextAnalyst implements JobContext {
+public class JobContextAnalyst extends JobContext {
 	
-	String storagename;
 	String currentpath;
 	boolean force_refresh;
 	
 	public JsonObject contextToJson() {
 		JsonObject json_object = new JsonObject();
-		json_object.addProperty("storagename", storagename);
 		json_object.addProperty("currentpath", currentpath);
 		json_object.addProperty("force_refresh", force_refresh);
 		return json_object;
 	}
 	
 	public void contextFromJson(JsonObject json_object) {
-		storagename = json_object.get("storagename").getAsString();
 		currentpath = json_object.get("currentpath").getAsString();
 		force_refresh = json_object.get("force_refresh").getAsBoolean();
-	}
-	
-	public List<String> getNeededIndexedStoragesNames() {
-		return Arrays.asList(storagename);
 	}
 	
 }

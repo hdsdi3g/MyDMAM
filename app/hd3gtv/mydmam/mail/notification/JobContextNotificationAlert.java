@@ -18,21 +18,15 @@ package hd3gtv.mydmam.mail.notification;
 
 import hd3gtv.mydmam.manager.JobContext;
 
-import java.util.List;
-
 import com.google.gson.JsonObject;
 
-public class JobContextNotificationAlert implements JobContext {
+public class JobContextNotificationAlert extends JobContext {
 	
 	public JsonObject contextToJson() {
 		return null;
 	}
 	
 	public void contextFromJson(JsonObject json_object) {
-	}
-	
-	public List<String> getNeededIndexedStoragesNames() {
-		return null;
 	}
 	
 }

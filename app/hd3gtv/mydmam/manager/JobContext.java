@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -38,24 +39,27 @@ import com.google.gson.JsonSerializer;
 /**
  * Full configuration for a Job
  */
-public interface JobContext {
+public abstract class JobContext {
 	
 	/**
 	 * @return can be null
 	 */
-	public JsonObject contextToJson();
+	public abstract JsonObject contextToJson();
 	
 	/**
 	 * @param json_object never null
 	 */
-	public void contextFromJson(JsonObject json_object);
+	public abstract void contextFromJson(JsonObject json_object);
 	
 	/**
 	 * @return can be null or empty
 	 */
-	public List<String> getNeededIndexedStoragesNames();
+	public List<String> neededstorages;
 	
 	final static class Serializer implements JsonSerializer<JobContext>, JsonDeserializer<JobContext> {
+		
+		Type type_String_AL = new TypeToken<ArrayList<String>>() {
+		}.getType();
 		
 		public JobContext deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			try {
@@ -63,6 +67,7 @@ public interface JobContext {
 				String context_class = json.get("classname").getAsString();
 				JobContext result = AppManager.instanceClassForName(context_class, JobContext.class);
 				result.contextFromJson(json.getAsJsonObject("content"));
+				result.neededstorages = AppManager.getGson().fromJson(json.get("neededstorages"), type_String_AL);
 				return result;
 			} catch (Exception e) {
 				Log2.log.error("Can't deserialize", e, new Log2Dump("json source", jejson.toString()));
@@ -78,7 +83,7 @@ public interface JobContext {
 				context_content = new JsonObject();
 			}
 			result.add("content", context_content);
-			result.add("neededstorages", AppManager.getGson().toJsonTree(src.getNeededIndexedStoragesNames()));
+			result.add("neededstorages", AppManager.getGson().toJsonTree(src.neededstorages));
 			return result;
 		}
 	}
@@ -114,13 +119,12 @@ public interface JobContext {
 			StringBuffer sb = new StringBuffer();
 			sb.append(context.getClass().getName());
 			
-			List<String> storagesneeded = context.getNeededIndexedStoragesNames();
-			if (storagesneeded != null) {
+			if (context.neededstorages != null) {
 				/**
 				 * Copy storagesneeded for not alter actual order in Context.
 				 */
 				ArrayList<String> storagesneeded_sorted = new ArrayList<String>();
-				storagesneeded_sorted.addAll(storagesneeded);
+				storagesneeded_sorted.addAll(context.neededstorages);
 				Collections.sort(storagesneeded_sorted);
 				for (int pos = 0; pos < storagesneeded_sorted.size(); pos++) {
 					sb.append("/storage:");

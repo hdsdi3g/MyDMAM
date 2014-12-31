@@ -31,7 +31,7 @@ import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-final class DatabaseLayer {
+public final class DatabaseLayer {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
@@ -156,4 +156,10 @@ final class DatabaseLayer {
 		}
 		return workerstatus_serializer.importFromDatabase(cols);
 	}
+	
+	public static void truncateAll() throws ConnectionException {
+		CassandraDb.truncateColumnFamilyString(keyspace, CF_INSTANCES.getName());
+		CassandraDb.truncateColumnFamilyString(keyspace, CF_WORKERS.getName());
+	}
+	
 }

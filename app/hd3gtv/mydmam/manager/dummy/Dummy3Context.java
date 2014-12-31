@@ -22,7 +22,7 @@ import java.util.List;
 
 import com.google.gson.JsonObject;
 
-public class Dummy3Context implements JobContext {
+public class Dummy3Context extends JobContext {
 	
 	long youcantseeme = 5;
 	
@@ -31,10 +31,6 @@ public class Dummy3Context implements JobContext {
 	}
 	
 	public void contextFromJson(JsonObject json_object) {
-	}
-	
-	public List<String> getNeededIndexedStoragesNames() {
-		return null;
 	}
 	
 }

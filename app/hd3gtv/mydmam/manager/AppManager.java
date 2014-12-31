@@ -43,7 +43,8 @@ public final class AppManager implements InstanceActionReceiver {
 	/**
 	 * In sec.
 	 */
-	private static final int SLEEP_UPDATE_TTL = 60;
+	private static final int SLEEP_BASE_TIME_UPDATE = 10;
+	private static final int SLEEP_COUNT_UPDATE = 6;
 	
 	/**
 	 * ============================================================================
@@ -373,24 +374,27 @@ public final class AppManager implements InstanceActionReceiver {
 				
 				while (stop_update == false) {
 					// TODO #78.4, add next refresh date
+					// TODO #78.4, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
 					database_layer.updateInstanceStatus(instance_status.refresh());
 					database_layer.updateWorkerStatus(enabled_workers);
 					
-					InstanceAction.getAllPendingInstancesAction(pending_actions);
-					if (pending_actions.isEmpty() == false) {
-						boolean pending_refresh = processInstanceAction(pending_actions);
-						if (pending_refresh & (stop_update == false)) {
-							Thread.sleep(1000);
-							database_layer.updateInstanceStatus(instance_status.refresh());
-							database_layer.updateWorkerStatus(enabled_workers);
+					for (int pos = 0; pos < SLEEP_COUNT_UPDATE; pos++) {
+						if (stop_update) {
+							return;
 						}
+						
+						InstanceAction.getAllPendingInstancesAction(pending_actions);
+						if (pending_actions.isEmpty() == false) {
+							boolean pending_refresh = processInstanceAction(pending_actions);
+							if (pending_refresh & (stop_update == false)) {
+								Thread.sleep(1000);
+								database_layer.updateInstanceStatus(instance_status.refresh());
+								database_layer.updateWorkerStatus(enabled_workers);
+							}
+						}
+						
+						Thread.sleep(SLEEP_BASE_TIME_UPDATE * 1000);
 					}
-					
-					// TODO #78.4, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
-					// broker.getDeclared_cyclics()
-					// broker.getDeclared_triggers()
-					
-					Thread.sleep(SLEEP_UPDATE_TTL * 1000);
 				}
 			} catch (Exception e) {
 				service_exception.onAppManagerError(e, "Fatal updater error, need to restart it");

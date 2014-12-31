@@ -16,7 +16,8 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.mydmam.taskqueue.Broker;
+import hd3gtv.mydmam.manager.DatabaseLayer;
+import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.tools.ApplicationArgs;
 
 public class CliModuleBroker implements CliModule {
@@ -31,32 +32,27 @@ public class CliModuleBroker implements CliModule {
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
 		if (args.getParamExist("-truncate")) {
-			if (args.getSimpleParamValue("-truncate").equalsIgnoreCase("workers")) {
-				Broker.truncateWorkergroups();
+			if (args.getSimpleParamValue("-truncate").equalsIgnoreCase("instances")) {
+				DatabaseLayer.truncateAll();
 				return;
 			}
 			if (args.getSimpleParamValue("-truncate").equalsIgnoreCase("queue")) {
-				Broker.truncateTaskqueue();
+				JobNG.Utility.truncateAllJobs();
 				return;
 			}
 			if (args.getSimpleParamValue("-truncate").equalsIgnoreCase("all")) {
-				Broker.truncateWorkergroups();
-				Broker.truncateTaskqueue();
+				DatabaseLayer.truncateAll();
+				JobNG.Utility.truncateAllJobs();
 				return;
 			}
-		}
-		if (args.getParamExist("-delete")) {
-			Broker.deleteTaskJob(args.getSimpleParamValue("-delete"));
-			System.out.println("Don't forget to refresh web client");
 		}
 	}
 	
 	public void showFullCliModuleHelp() {
 		System.out.println("Usage (with no confirm)");
-		System.out.println(" * truncate worker list: " + getCliModuleName() + " -truncate workers");
-		System.out.println(" * truncate task/job queue: " + getCliModuleName() + " -truncate queue");
-		System.out.println(" * truncate worker list and queue: " + getCliModuleName() + " -truncate all");
-		System.out.println(" * delete task/job: " + getCliModuleName() + " -delete task:id");
+		System.out.println(" * truncate instances list: " + getCliModuleName() + " -truncate instances");
+		System.out.println(" * truncate job queue: " + getCliModuleName() + " -truncate queue");
+		System.out.println(" * truncate instances list and queue: " + getCliModuleName() + " -truncate all");
 	}
 	
 }

@@ -363,12 +363,14 @@ public final class JobNG implements Log2Dumpable {
 			JsonObject json = (JsonObject) jejson;
 			JobNG job = AppManager.getSimpleGson().fromJson(json, JobNG.class);
 			job.context = AppManager.getGson().fromJson(json.get("context"), JobContext.class);
+			job.processing_error = AppManager.getGson().fromJson(json.get("processing_error"), GsonThrowable.class);
 			return job;
 		}
 		
 		public JsonElement serialize(JobNG src, Type typeOfSrc, JsonSerializationContext jcontext) {
 			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
 			result.add("context", AppManager.getGson().toJsonTree(src.context, JobContext.class));
+			result.add("processing_error", AppManager.getGson().toJsonTree(src.processing_error));
 			return result;
 		}
 	}
@@ -438,7 +440,7 @@ public final class JobNG implements Log2Dumpable {
 		return end_date;
 	}
 	
-	public void delete(MutationBatch mutator) throws ConnectionException {
+	void delete(MutationBatch mutator) throws ConnectionException {
 		mutator.withRow(CF_QUEUE, key).delete();
 	}
 	
@@ -462,17 +464,25 @@ public final class JobNG implements Log2Dumpable {
 	}
 	
 	private void exportToDatabase(ColumnListMutation<String> mutator) {
-		mutator.putColumn("context_class", context.getClass().getName(), TTL);
-		mutator.putColumn("status", status.name(), TTL);
-		mutator.putColumn("creator_hostname", instance_status_creator_hostname, TTL);
-		mutator.putColumn("expiration_date", expiration_date, TTL);
-		mutator.putColumn("update_date", update_date, TTL);
-		mutator.putColumn("delete_after_completed", delete_after_completed, TTL);
+		int ttl = TTL;
+		if (delete_after_completed && isThisStatus(JobStatus.DONE, JobStatus.CANCELED)) {
+			/**
+			 * Short ttl if Broker is closed before it can delete this.
+			 */
+			ttl = 300;
+		}
+		
+		mutator.putColumn("context_class", context.getClass().getName(), ttl);
+		mutator.putColumn("status", status.name(), ttl);
+		mutator.putColumn("creator_hostname", instance_status_creator_hostname, ttl);
+		mutator.putColumn("expiration_date", expiration_date, ttl);
+		mutator.putColumn("update_date", update_date, ttl);
+		mutator.putColumn("delete_after_completed", delete_after_completed, ttl);
 		/**
 		 * Workaround for Cassandra index select bug.
 		 */
-		mutator.putColumn("indexingdebug", 1, TTL);
-		mutator.putColumn("source", AppManager.getGson().toJson(this), TTL);
+		mutator.putColumn("indexingdebug", 1, ttl);
+		mutator.putColumn("source", AppManager.getGson().toJson(this), ttl);
 	}
 	
 	public static final class Utility {

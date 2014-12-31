@@ -47,14 +47,13 @@ public abstract class WorkerCapablities {
 		/**
 		 * Need to test Storages, item need some Storages
 		 */
-		List<String> context_needed_storages = context.getNeededIndexedStoragesNames();
-		if (context_needed_storages != null) {
+		if (context.neededstorages != null) {
 			List<String> this_storages_avaliable = getStoragesAvaliable();
 			if (this_storages_avaliable == null) {
 				return false;
 			}
-			for (int pos = 0; pos < context_needed_storages.size(); pos++) {
-				if (this_storages_avaliable.contains(context_needed_storages.get(pos)) == false) {
+			for (int pos = 0; pos < context.neededstorages.size(); pos++) {
+				if (this_storages_avaliable.contains(context.neededstorages.get(pos)) == false) {
 					return false;
 				}
 			}

@@ -235,9 +235,6 @@
 				}
 			}
 			content = content + '</div>'; // collapse
-			if (pos_wcap + 1 !== capablities.length) {
-				content = content + '<br/>';
-			}
 		}
 		content = content + '</small>';
 		cols.push(content);

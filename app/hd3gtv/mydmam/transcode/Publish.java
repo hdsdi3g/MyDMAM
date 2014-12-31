@@ -188,12 +188,12 @@ public class Publish extends WorkerNG {
 		progress_file.delete();
 		
 		FFmpegProgressCallback progress_callback = new FFmpegProgressCallback() {
-			public void updateProgression(int percent, float performance_fps, int frame, int dup_frames, int drop_frames) {
+			public void updateProgression(float position, float duration, float performance_fps, int frame, int dup_frames, int drop_frames) {
 				context_publish.performance_fps = performance_fps;
 				context_publish.frame = frame;
 				context_publish.dup_frames = dup_frames;
 				context_publish.drop_frames = drop_frames;
-				progression.updateProgress(percent, 100);
+				progression.updateProgress(Math.round(position), (int) Math.round(Math.ceil(duration)));
 			}
 			
 			public Timecode getSourceDuration() {

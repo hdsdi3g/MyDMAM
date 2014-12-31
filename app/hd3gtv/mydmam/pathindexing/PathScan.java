@@ -29,6 +29,7 @@ import hd3gtv.mydmam.manager.WorkerNG;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -121,7 +122,10 @@ public class PathScan extends WorkerNG {
 			}
 			cyclicjobcreator = new CyclicJobCreator(manager, pathelementconfiguration.period, TimeUnit.SECONDS, false);
 			cyclicjobcreator.setOptions(getClass(), "Regular storage indexing", getWorkerVendorName());
-			cyclicjobcreator.add("Index " + pathelementconfiguration.storage_label + " storage", new JobContextPathScan(pathelementconfiguration.storage_label));
+			
+			JobContextPathScan context = new JobContextPathScan();
+			context.neededstorages = Arrays.asList(pathelementconfiguration.storage_label);
+			cyclicjobcreator.add("Index " + pathelementconfiguration.storage_label + " storage", context);
 			manager.cyclicJobsRegister(cyclicjobcreator);
 		}
 		return this;
@@ -157,16 +161,15 @@ public class PathScan extends WorkerNG {
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
-		List<String> storages = context.getNeededIndexedStoragesNames();
-		if (storages == null) {
-			throw new NullPointerException("\"storages\" can't to be null");
+		if (context.neededstorages == null) {
+			throw new NullPointerException("\"neededstorages\" can't to be null");
 		}
-		if (storages.size() == 0) {
+		if (context.neededstorages.size() == 0) {
 			throw new IndexOutOfBoundsException("\"storages\" can't to be empty");
 		}
-		for (int pos = 0; pos < storages.size(); pos++) {
-			progression.updateStep(pos + 1, storages.size());
-			refreshIndex(storages.get(pos), null, false);
+		for (int pos = 0; pos < context.neededstorages.size(); pos++) {
+			progression.updateStep(pos + 1, context.neededstorages.size());
+			refreshIndex(context.neededstorages.get(pos), null, false);
 		}
 	}
 	

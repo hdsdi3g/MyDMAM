@@ -38,6 +38,7 @@ class BrokerNG {
 	 * In msec
 	 */
 	private static final int QUEUE_SLEEP_TIME = 1000;
+	private static final int GRACE_PERIOD_TO_REMOVE_DELETED_AFTER_COMPLETED_JOB = 1000 * 30;
 	
 	private AppManager manager;
 	private QueueOperations queue_operations;
@@ -125,8 +126,12 @@ class BrokerNG {
 						for (int pos = active_jobs.size() - 1; pos > -1; pos--) {
 							job = active_jobs.get(pos);
 							if (job.isDeleteAfterCompleted() && job.isThisStatus(JobStatus.DONE, JobStatus.CANCELED)) {
-								job.delete(mutator);
-								active_jobs.remove(pos);
+								if ((job.getEndDate() + GRACE_PERIOD_TO_REMOVE_DELETED_AFTER_COMPLETED_JOB) < System.currentTimeMillis()) {
+									job.delete(mutator);
+									active_jobs.remove(pos);
+								} else {
+									job.saveChanges(mutator);
+								}
 							} else {
 								job.saveChanges(mutator);
 								if (job.isThisStatus(JobStatus.DONE, JobStatus.STOPPED, JobStatus.CANCELED, JobStatus.ERROR, JobStatus.TOO_LONG_DURATION)) {

@@ -27,6 +27,7 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.JobContextPathScan;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,11 +49,12 @@ public class WorkerIndexer extends WorkerNG {
 		LinkedHashMap<String, String> s_bridge = Configuration.global.getValues("analysing_storageindexes");
 		for (Map.Entry<String, String> entry : s_bridge.entrySet()) {
 			JobContextAnalyst analyst = new JobContextAnalyst();
-			analyst.storagename = entry.getKey();
+			analyst.neededstorages = Arrays.asList(entry.getKey());
 			analyst.currentpath = entry.getValue();
 			analyst.force_refresh = false;
 			
-			JobContextPathScan context_hook = new JobContextPathScan(entry.getKey());
+			JobContextPathScan context_hook = new JobContextPathScan();
+			context_hook.neededstorages = Arrays.asList(entry.getKey());
 			TriggerJobCreator trigger_creator = new TriggerJobCreator(manager, context_hook);
 			trigger_creator.setOptions(this.getClass(), "Pathindex metadata indexer", "MyDMAM Internal");
 			trigger_creator.add("Analyst directory", analyst);
@@ -64,18 +66,31 @@ public class WorkerIndexer extends WorkerNG {
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		JobContextAnalyst analyst_context = (JobContextAnalyst) context;
-		MetadataIndexer metadataIndexer = new MetadataIndexer(analyst_context.force_refresh);
-		analysis_indexers.add(metadataIndexer);
-		
-		long min_index_date = 0;
-		if (lastindexeddatesforstoragenames.containsKey(analyst_context.storagename)) {
-			min_index_date = lastindexeddatesforstoragenames.get(analyst_context.storagename);
-		} else {
-			lastindexeddatesforstoragenames.put(analyst_context.storagename, 0l);
+		if (analyst_context.neededstorages == null) {
+			throw new NullPointerException("\"neededstorages\" can't to be null");
 		}
+		if (analyst_context.neededstorages.isEmpty()) {
+			throw new IndexOutOfBoundsException("\"neededstorages\" can't to be empty");
+		}
+		String storagename;
+		MetadataIndexer metadataIndexer;
 		
-		metadataIndexer.process(analyst_context.storagename, analyst_context.currentpath, min_index_date);
-		analysis_indexers.remove(metadataIndexer);
+		for (int pos = 0; pos < analyst_context.neededstorages.size(); pos++) {
+			progression.updateStep(pos + 1, analyst_context.neededstorages.size());
+			
+			metadataIndexer = new MetadataIndexer(analyst_context.force_refresh);
+			analysis_indexers.add(metadataIndexer);
+			storagename = analyst_context.neededstorages.get(pos);
+			long min_index_date = 0;
+			if (lastindexeddatesforstoragenames.containsKey(storagename)) {
+				min_index_date = lastindexeddatesforstoragenames.get(storagename);
+			} else {
+				lastindexeddatesforstoragenames.put(storagename, 0l);
+			}
+			
+			metadataIndexer.process(storagename, analyst_context.currentpath, min_index_date);
+			analysis_indexers.remove(metadataIndexer);
+		}
 	}
 	
 	public void forceStopProcess() throws Exception {

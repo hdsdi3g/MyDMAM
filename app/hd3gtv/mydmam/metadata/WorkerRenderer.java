@@ -30,6 +30,7 @@ import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -60,7 +61,7 @@ public class WorkerRenderer extends WorkerNG {
 		}
 		
 		renderer_context.origin_pathindex_key = source.prepare_key();
-		renderer_context.storagename = source.storagename;
+		renderer_context.neededstorages = Arrays.asList(source.storagename);
 		
 		AppManager.createJob(renderer_context).setCreator(WorkerRenderer.class).setDeleteAfterCompleted().setName(name).publish();
 	}
@@ -103,7 +104,14 @@ public class WorkerRenderer extends WorkerNG {
 		
 		Container container = Operations.getByPathIndexId(renderer_context.origin_pathindex_key);
 		if (container == null) {
-			throw new NullPointerException("No actual metadatas !");
+			/**
+			 * Too fast for ES ?
+			 */
+			Thread.sleep(500);
+			container = Operations.getByPathIndexId(renderer_context.origin_pathindex_key);
+			if (container == null) {
+				throw new NullPointerException("No actual metadatas !");
+			}
 		}
 		
 		File physical_file = Explorer.getLocalBridgedElement(source_element);

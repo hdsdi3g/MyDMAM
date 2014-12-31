@@ -21,11 +21,9 @@ import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.tools.Timecode;
 
-import java.util.List;
-
 import com.google.gson.JsonObject;
 
-public class JobContextPublishing implements JobContext, Log2Dumpable {
+public class JobContextPublishing extends JobContext implements Log2Dumpable {
 	
 	String mediaid;
 	Timecode duration;
@@ -82,10 +80,6 @@ public class JobContextPublishing implements JobContext, Log2Dumpable {
 			dup_frames = jo_progress.get("dup_frames").getAsInt();
 			drop_frames = jo_progress.get("drop_frames").getAsInt();
 		}
-	}
-	
-	public List<String> getNeededIndexedStoragesNames() {
-		return null;
 	}
 	
 	public Log2Dump getLog2Dump() {

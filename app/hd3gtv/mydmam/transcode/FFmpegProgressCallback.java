@@ -24,6 +24,6 @@ public interface FFmpegProgressCallback {
 	
 	Timecode getSourceDuration();
 	
-	void updateProgression(int percent, float performance_fps, int frame, int dup_frames, int drop_frames);
+	void updateProgression(float position, float duration, float performance_fps, int frame, int dup_frames, int drop_frames);
 	
 }

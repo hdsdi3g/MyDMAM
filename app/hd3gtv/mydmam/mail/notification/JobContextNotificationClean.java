@@ -22,17 +22,13 @@ import java.util.List;
 
 import com.google.gson.JsonObject;
 
-public class JobContextNotificationClean implements JobContext {
+public class JobContextNotificationClean extends JobContext {
 	
 	public JsonObject contextToJson() {
 		return null;
 	}
 	
 	public void contextFromJson(JsonObject json_object) {
-	}
-	
-	public List<String> getNeededIndexedStoragesNames() {
-		return null;
 	}
 	
 }

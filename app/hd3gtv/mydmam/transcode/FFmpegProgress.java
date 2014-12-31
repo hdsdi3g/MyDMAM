@@ -113,7 +113,8 @@ public class FFmpegProgress extends Thread {
 				}
 				
 				if (callback != null) {
-					callback.updateProgression(Math.round(last_percent), Float.parseFloat(last_fps), raw_framepos, Integer.parseInt(last_dup_frames), Integer.parseInt(last_drop_frames));
+					callback.updateProgression((float) raw_framepos / fps, source_duration, Float.parseFloat(last_fps), raw_framepos, Integer.parseInt(last_dup_frames),
+							Integer.parseInt(last_drop_frames));
 				}
 				sleep(2000);
 			}

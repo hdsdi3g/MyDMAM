@@ -18,15 +18,11 @@ package hd3gtv.mydmam.metadata;
 
 import hd3gtv.mydmam.manager.JobContext;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.gson.JsonObject;
 
-public abstract class JobContextRenderer implements JobContext {
+public abstract class JobContextRenderer extends JobContext {
 	
 	String origin_pathindex_key;
-	transient String storagename;
 	
 	public JobContextRenderer() {
 	}
@@ -39,10 +35,6 @@ public abstract class JobContextRenderer implements JobContext {
 	
 	public void contextFromJson(JsonObject json_object) {
 		origin_pathindex_key = json_object.get("origin").getAsString();
-	}
-	
-	public List<String> getNeededIndexedStoragesNames() {
-		return Arrays.asList(storagename);
 	}
 	
 }

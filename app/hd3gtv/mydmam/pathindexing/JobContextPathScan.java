@@ -18,41 +18,15 @@ package hd3gtv.mydmam.pathindexing;
 
 import hd3gtv.mydmam.manager.JobContext;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.gson.JsonObject;
 
-public class JobContextPathScan implements JobContext {
-	
-	private String storage_index_name;
-	
-	public JobContextPathScan(String storage_index_name) {
-		this.storage_index_name = storage_index_name;
-	}
-	
-	/**
-	 * Only for (de)serializations needs.
-	 */
-	public JobContextPathScan() {
-	}
-	
-	public String getStorageIndexName() {
-		return storage_index_name;
-	}
+public class JobContextPathScan extends JobContext {
 	
 	public JsonObject contextToJson() {
-		JsonObject jo = new JsonObject();
-		jo.addProperty("storage_index_name", storage_index_name);
-		return jo;
+		return null;
 	}
 	
 	public void contextFromJson(JsonObject json_object) {
-		storage_index_name = json_object.get("storage_index_name").getAsString();
-	}
-	
-	public List<String> getNeededIndexedStoragesNames() {
-		return Arrays.asList(storage_index_name);
 	}
 	
 }
