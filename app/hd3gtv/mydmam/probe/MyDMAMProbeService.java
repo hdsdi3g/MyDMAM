@@ -20,8 +20,6 @@ import hd3gtv.configuration.GitInfo;
 import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.WorkerIndexer;
-import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.taskqueue.Broker;
 import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
@@ -91,13 +89,6 @@ public class MyDMAMProbeService extends ServiceManager implements ServiceInforma
 		
 		broker = new Broker(this);
 		workergroup = new WorkerGroup(broker);
-		
-		WorkerIndexer mwi = new WorkerIndexer();
-		workergroup.addWorker(mwi);
-		workergroup.addTriggerWorker(mwi);
-		
-		WorkerRenderer mwr = new WorkerRenderer(mwi);
-		workergroup.addWorker(mwr);
 		
 		UAManager.createWorkers(workergroup);
 	}

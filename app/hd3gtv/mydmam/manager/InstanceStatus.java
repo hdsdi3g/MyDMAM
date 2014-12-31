@@ -61,6 +61,7 @@ public final class InstanceStatus implements Log2Dumpable {
 	private static final ArrayList<String> current_classpath;
 	private static final String current_instance_name;
 	private static final String current_instance_name_pid;
+	private static final String current_pid;
 	private static final String current_app_version;
 	private static final String current_java_version;
 	private static String current_host_name;
@@ -99,7 +100,8 @@ public final class InstanceStatus implements Log2Dumpable {
 		
 		current_instance_name = Configuration.global.getValue("service", "workername", "unknown-pleaseset-" + String.valueOf(System.currentTimeMillis()));
 		String instance_raw = ManagementFactory.getRuntimeMXBean().getName();
-		current_instance_name_pid = current_instance_name + "#" + instance_raw.substring(0, instance_raw.indexOf("@")) + "@" + current_host_name;
+		current_pid = instance_raw.substring(0, instance_raw.indexOf("@"));
+		current_instance_name_pid = current_instance_name + "#" + current_pid + "@" + current_host_name;
 		
 		GitInfo git = GitInfo.getFromRoot();
 		if (git != null) {
@@ -307,6 +309,10 @@ public final class InstanceStatus implements Log2Dumpable {
 	
 	public String getAppVersion() {
 		return app_version;
+	}
+	
+	public static String getThisCurrentPID() {
+		return current_pid;
 	}
 	
 	public Log2Dump getLog2Dump() {

@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class WorkerCapablities {
@@ -87,4 +88,23 @@ public abstract class WorkerCapablities {
 		
 		return sb.toString().trim();
 	}
+	
+	public static List<WorkerCapablities> createList(Class<? extends JobContext> context) {
+		return createList(context, null);
+	}
+	
+	public static List<WorkerCapablities> createList(final Class<? extends JobContext> context, final List<String> storages_avaliable) {
+		ArrayList<WorkerCapablities> result = new ArrayList<WorkerCapablities>(1);
+		result.add(new WorkerCapablities() {
+			public List<String> getStoragesAvaliable() {
+				return storages_avaliable;
+			}
+			
+			public Class<? extends JobContext> getJobContextClass() {
+				return context;
+			}
+		});
+		return result;
+	}
+	
 }

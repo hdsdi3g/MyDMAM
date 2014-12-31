@@ -65,8 +65,8 @@ public class NotificationWorker extends WorkerNG {
 	}
 	
 	public List<WorkerCapablities> getWorkerCapablities() {
-		List<WorkerCapablities> r = JobContext.WorkerCapablitiesUtility.create(JobContextNotificationAlert.class);
-		r.addAll(JobContext.WorkerCapablitiesUtility.create(JobContextNotificationClean.class));
+		List<WorkerCapablities> r = WorkerCapablities.createList(JobContextNotificationAlert.class);
+		r.addAll(WorkerCapablities.createList(JobContextNotificationClean.class));
 		return r;
 	}
 	

@@ -17,12 +17,12 @@
 package hd3gtv.mydmam.metadata;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.LogHandlerToLogfile;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
@@ -85,9 +85,9 @@ public class RenderedFile implements Log2Dumpable {
 			StringBuffer sb = new StringBuffer();
 			sb.append(temp_directory.getCanonicalPath());
 			sb.append(File.separator);
-			sb.append(ServiceManager.getInstancename(false));
+			sb.append(InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getInstanceName());
 			sb.append("-");
-			sb.append(ServiceManager.getInstancePID());
+			sb.append(InstanceStatus.getThisCurrentPID());
 			temp_directory = new File(sb.toString());
 			temp_directory.mkdirs();
 			

@@ -17,13 +17,14 @@
 package hd3gtv.mydmam.metadata;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.manager.TriggerJobCreator;
+import hd3gtv.mydmam.manager.WorkerCapablities;
+import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.taskqueue.Broker;
-import hd3gtv.mydmam.taskqueue.Job;
-import hd3gtv.mydmam.taskqueue.Profile;
-import hd3gtv.mydmam.taskqueue.TriggerWorker;
-import hd3gtv.mydmam.taskqueue.Worker;
+import hd3gtv.mydmam.pathindexing.JobContextPathScan;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,96 +32,50 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.simple.JSONObject;
-
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
-public class WorkerIndexer extends Worker implements TriggerWorker {
-	
-	static final String PROFILE_CATEGORY = "analyst";
+public class WorkerIndexer extends WorkerNG {
 	
 	private volatile List<MetadataIndexer> analysis_indexers;
 	
-	/**
-	 * Plugged profiles
-	 */
-	private ArrayList<Profile> managed_profiles_worker;
+	private HashMap<String, Long> lastindexeddatesforstoragenames;
 	
-	/**
-	 * Profiles to plug
-	 */
-	private ArrayList<Profile> managed_profiles_trigger;
-	
-	/**
-	 * profile name -> AnalysingConfiguration
-	 */
-	private HashMap<String, AnalysingConfiguration> analysing_storageindexes_map;
-	
-	private class AnalysingConfiguration {
-		String pathindexstoragename;
-		String path;
-	}
-	
-	public WorkerIndexer() {
-		if (Configuration.global.isElementExists("storageindex_bridge") == false) {
+	public WorkerIndexer(AppManager manager) throws ClassNotFoundException {
+		if (isActivated() == false) {
 			return;
 		}
-		managed_profiles_trigger = new ArrayList<Profile>();
-		analysing_storageindexes_map = new HashMap<String, AnalysingConfiguration>();
 		analysis_indexers = new ArrayList<MetadataIndexer>();
+		lastindexeddatesforstoragenames = new HashMap<String, Long>();
 		
-		if (Configuration.global.isElementExists("analysing_storageindexes")) {
-			LinkedHashMap<String, String> s_bridge = Configuration.global.getValues("analysing_storageindexes");
-			for (Map.Entry<String, String> entry : s_bridge.entrySet()) {
-				// managed_profiles_trigger.add(new Profile(PathScan.PROFILE_CATEGORY, entry.getKey())); //TODO #78.1 upgrade trigger
-				AnalysingConfiguration ac = new AnalysingConfiguration();
-				ac.pathindexstoragename = entry.getKey();
-				ac.path = entry.getValue();
-				analysing_storageindexes_map.put(entry.getKey().toLowerCase(), ac);
-			}
+		LinkedHashMap<String, String> s_bridge = Configuration.global.getValues("analysing_storageindexes");
+		for (Map.Entry<String, String> entry : s_bridge.entrySet()) {
+			JobContextAnalyst analyst = new JobContextAnalyst();
+			analyst.storagename = entry.getKey();
+			analyst.currentpath = entry.getValue();
+			analyst.force_refresh = false;
+			
+			JobContextPathScan context_hook = new JobContextPathScan(entry.getKey());
+			TriggerJobCreator trigger_creator = new TriggerJobCreator(manager, context_hook);
+			trigger_creator.setOptions(this.getClass(), "Pathindex metadata indexer", "MyDMAM Internal");
+			trigger_creator.add("Analyst directory", analyst);
+			manager.triggerJobsRegister(trigger_creator);
+			
+			lastindexeddatesforstoragenames.put(entry.getKey(), 0l);
 		}
 	}
 	
-	public String getShortWorkerName() {
-		return "metadata-indexer";
-	}
-	
-	public String getLongWorkerName() {
-		return "Metadata Indexer";
-	}
-	
-	public boolean isConfigurationAllowToEnabled() {
-		return Configuration.global.isElementExists("storageindex_bridge") & Configuration.global.isElementExists("analysing_storageindexes");
-	}
-	
-	public void process(Job job) throws Exception {
-		JSONObject context = job.getContext();
-		if (context == null) {
-			throw new NullPointerException("No context");
-		}
-		if (context.isEmpty()) {
-			throw new NullPointerException("No context");
-		}
-		String storagename = (String) context.get("storage");
-		String currentpath = (String) context.get("path");
-		long min_index_date = ((Number) context.get("minindexdate")).longValue();
-		boolean force_refresh = (Boolean) context.get("force_refresh");
-		
-		MetadataIndexer metadataIndexer = new MetadataIndexer(force_refresh);
+	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
+		JobContextAnalyst analyst_context = (JobContextAnalyst) context;
+		MetadataIndexer metadataIndexer = new MetadataIndexer(analyst_context.force_refresh);
 		analysis_indexers.add(metadataIndexer);
-		metadataIndexer.process(storagename, currentpath, min_index_date);
-		analysis_indexers.remove(metadataIndexer);
-	}
-	
-	public List<Profile> getManagedProfiles() {
-		if (managed_profiles_worker == null) {
-			ArrayList<String> bridged_list = Explorer.getBridgedStoragesName();
-			managed_profiles_worker = new ArrayList<Profile>();
-			for (int pos = 0; pos < bridged_list.size(); pos++) {
-				managed_profiles_worker.add(new Profile(PROFILE_CATEGORY, bridged_list.get(pos)));
-			}
+		
+		long min_index_date = 0;
+		if (lastindexeddatesforstoragenames.containsKey(analyst_context.storagename)) {
+			min_index_date = lastindexeddatesforstoragenames.get(analyst_context.storagename);
+		} else {
+			lastindexeddatesforstoragenames.put(analyst_context.storagename, 0l);
 		}
-		return managed_profiles_worker;
+		
+		metadataIndexer.process(analyst_context.storagename, analyst_context.currentpath, min_index_date);
+		analysis_indexers.remove(metadataIndexer);
 	}
 	
 	public void forceStopProcess() throws Exception {
@@ -130,51 +85,24 @@ public class WorkerIndexer extends Worker implements TriggerWorker {
 		analysis_indexers.clear();
 	}
 	
-	public boolean isTriggerWorkerConfigurationAllowToEnabled() {
+	public WorkerCategory getWorkerCategory() {
+		return WorkerCategory.METADATA;
+	}
+	
+	public String getWorkerLongName() {
+		return "Metadata Indexer";
+	}
+	
+	public String getWorkerVendorName() {
+		return "MyDMAM Internal";
+	}
+	
+	public List<WorkerCapablities> getWorkerCapablities() {
+		return WorkerCapablities.createList(JobContextAnalyst.class, Explorer.getBridgedStoragesName());
+	}
+	
+	protected boolean isActivated() {
 		return Configuration.global.isElementExists("storageindex_bridge") & Configuration.global.isElementExists("analysing_storageindexes");
-	}
-	
-	public List<Profile> plugToProfiles() {
-		return managed_profiles_trigger;
-	}
-	
-	public String getTriggerShortName() {
-		return "pathindex-metadata-trigger";
-	}
-	
-	public String getTriggerLongName() {
-		return "Pathindex metadata indexer";
-	}
-	
-	private HashMap<Profile, Long> lastindexeddatesforprofiles;
-	
-	@SuppressWarnings("unchecked")
-	public void triggerCreateTasks(Profile profile) throws ConnectionException {
-		String profilename = profile.getName();
-		
-		AnalysingConfiguration ac = analysing_storageindexes_map.get(profilename);
-		if (ac == null) {
-			Log2.log.error("No configuration for this Profile", new NullPointerException(profilename));
-			return;
-		}
-		
-		if (lastindexeddatesforprofiles == null) {
-			lastindexeddatesforprofiles = new HashMap<Profile, Long>();
-		}
-		
-		long lastdate = 0;
-		if (lastindexeddatesforprofiles.containsKey(profile)) {
-			lastdate = lastindexeddatesforprofiles.get(profile);
-		}
-		
-		JSONObject context = new JSONObject();
-		context.put("storage", ac.pathindexstoragename);
-		context.put("path", ac.path);
-		context.put("minindexdate", lastdate);
-		context.put("force_refresh", false);
-		Broker.publishTask("Analyst directory", new Profile(PROFILE_CATEGORY, profilename), context, this, false, 0, null, false);
-		
-		lastindexeddatesforprofiles.put(profile, System.currentTimeMillis());
 	}
 	
 }

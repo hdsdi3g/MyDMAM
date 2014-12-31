@@ -17,8 +17,6 @@
 package hd3gtv.mydmam.transcode;
 
 import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.taskqueue.Job;
-import hd3gtv.tools.Timecode;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -26,27 +24,14 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 
-@SuppressWarnings("unchecked")
 public class FFmpegProgress extends Thread {
 	private File progressfile;
 	
 	/** in seconds */
 	private float source_duration;
-	@Deprecated
-	private Job old_job;
 	private FFmpegProgressCallback callback;
 	private boolean stopthread;
 	private float fps;
-	
-	@Deprecated
-	public FFmpegProgress(File progressfile, Job job, Timecode source_duration) {
-		this.progressfile = progressfile;
-		this.setDaemon(true);
-		this.setName("FFmpegProgress for " + job.getKey());
-		this.source_duration = source_duration.getValue();
-		this.fps = source_duration.getFps();
-		this.old_job = job;
-	}
 	
 	public FFmpegProgress(File progressfile, FFmpegProgressCallback callback) {
 		this.progressfile = progressfile;
@@ -129,14 +114,6 @@ public class FFmpegProgress extends Thread {
 				
 				if (callback != null) {
 					callback.updateProgression(Math.round(last_percent), Float.parseFloat(last_fps), raw_framepos, Integer.parseInt(last_dup_frames), Integer.parseInt(last_drop_frames));
-				}
-				if (old_job != null) {
-					old_job.progress = Math.round(last_percent);
-					old_job.progress_size = 100;
-					old_job.getContext().put("fps", Float.parseFloat(last_fps));
-					old_job.getContext().put("frame", raw_framepos);
-					old_job.getContext().put("dup_frames", Integer.parseInt(last_dup_frames));
-					old_job.getContext().put("drop_frames", Integer.parseInt(last_drop_frames));
 				}
 				sleep(2000);
 			}

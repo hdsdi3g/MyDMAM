@@ -140,26 +140,4 @@ public interface JobContext {
 		
 	}
 	
-	public final static class WorkerCapablitiesUtility {
-		
-		public static List<WorkerCapablities> create(Class<? extends JobContext> context) {
-			return create(context, null);
-		}
-		
-		public static List<WorkerCapablities> create(final Class<? extends JobContext> context, final List<String> storages_avaliable) {
-			ArrayList<WorkerCapablities> result = new ArrayList<WorkerCapablities>(1);
-			result.add(new WorkerCapablities() {
-				public List<String> getStoragesAvaliable() {
-					return storages_avaliable;
-				}
-				
-				public Class<? extends JobContext> getJobContextClass() {
-					return context;
-				}
-			});
-			return result;
-		}
-		
-	}
-	
 }

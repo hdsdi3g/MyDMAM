@@ -14,24 +14,19 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.transcode.mtdgenerator;
 
-import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegLowres.Lowres_audio;
 
-public interface GeneratorRenderer extends Generator {
+public class JobContextFFmpegLowresRendererAudio extends JobContextFFmpegLowresRenderer {
 	
-	/**
-	 * You NEED to consolidate rendered elements.
-	 * Call RenderedFile.export_to_entry() for populate in EntryRenderer
-	 */
-	EntryRenderer process(Container container) throws Exception;
+	String getTranscodeProfileName() {
+		return "ffmpeg_lowres_audio";
+	}
 	
-	/**
-	 * @return JS side parser name for display this render, or null.
-	 */
-	PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry);
-	
-	Class<? extends EntryRenderer> getRootEntryClass();
+	Class<? extends EntryRenderer> getEntryRendererClass() {
+		return Lowres_audio.class;
+	}
 	
 }

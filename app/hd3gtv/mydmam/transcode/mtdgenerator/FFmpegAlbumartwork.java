@@ -22,12 +22,10 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.GeneratorRenderer;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
-import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
-import hd3gtv.mydmam.taskqueue.Profile;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
@@ -123,10 +121,6 @@ public class FFmpegAlbumartwork implements GeneratorRenderer {
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return PreviewType.full_size_thumbnail;
-	}
-	
-	public Profile getManagedProfile() {
-		return new Profile(WorkerRenderer.PROFILE_CATEGORY, "ffalbumartwork");
 	}
 	
 	public Class<? extends EntryRenderer> getRootEntryClass() {

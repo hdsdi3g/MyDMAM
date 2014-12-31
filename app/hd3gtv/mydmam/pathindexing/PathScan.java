@@ -153,7 +153,7 @@ public class PathScan extends WorkerNG {
 				storages_avaliable.add(entry.getValue().storage_label);
 			}
 		}
-		return JobContext.WorkerCapablitiesUtility.create(JobContextPathScan.class, storages_avaliable);
+		return WorkerCapablities.createList(JobContextPathScan.class, storages_avaliable);
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {

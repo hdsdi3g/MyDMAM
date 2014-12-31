@@ -134,7 +134,7 @@ public final class JobNG implements Log2Dumpable {
 	@SuppressWarnings("unused")
 	private String instance_status_executor_hostname;
 	
-	JobNG(AppManager manager, JobContext context) throws ClassNotFoundException {
+	JobNG(JobContext context) throws ClassNotFoundException {
 		this.context = context;
 		MyDMAM.checkIsAccessibleClass(context.getClass(), false);
 		key = "job:" + UUID.randomUUID().toString();
@@ -146,8 +146,8 @@ public final class JobNG implements Log2Dumpable {
 		max_execution_time = default_max_execution_time;
 		status = JobStatus.WAITING;
 		
-		instance_status_creator_key = manager.getInstance_status().getInstanceNamePid();
-		instance_status_creator_hostname = manager.getInstance_status().getHostName();
+		instance_status_creator_key = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getInstanceNamePid();
+		instance_status_creator_hostname = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getHostName();
 		progression = null;
 		processing_error = null;
 		update_date = -1;

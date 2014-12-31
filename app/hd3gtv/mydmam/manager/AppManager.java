@@ -115,7 +115,7 @@ public final class AppManager implements InstanceActionReceiver {
 		not_found_class_name = new ArrayList<String>();
 	}
 	
-	static <T> T instanceClassForName(String class_name, Class<T> return_type) {
+	public static <T> T instanceClassForName(String class_name, Class<T> return_type) {
 		try {
 			if (not_found_class_name.contains(class_name)) {
 				return null;
@@ -345,9 +345,9 @@ public final class AppManager implements InstanceActionReceiver {
 		return uaworkers;
 	}
 	
-	public JobNG createJob(JobContext context) {
+	public static JobNG createJob(JobContext context) {
 		try {
-			return new JobNG(this, context);
+			return new JobNG(context);
 		} catch (ClassNotFoundException e) {
 			Log2.log.error("The context origin class is invalid, don't forget it will be (de)serialized.", e);
 			return null;

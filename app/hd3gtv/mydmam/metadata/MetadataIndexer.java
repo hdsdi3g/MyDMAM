@@ -33,21 +33,15 @@ import java.util.List;
 
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.indices.IndexMissingException;
 
 public class MetadataIndexer implements IndexingEvent {
 	
-	private static Client client;
 	private Explorer explorer;
 	private boolean force_refresh;
 	private boolean stop_analysis;
 	private BulkRequestBuilder bulkrequest;
 	private List<FutureCreateTasks> current_create_task_list;
-	
-	static {
-		client = Elasticsearch.getClient();
-	}
 	
 	public MetadataIndexer(boolean force_refresh) throws Exception {
 		this.force_refresh = force_refresh;
@@ -56,7 +50,7 @@ public class MetadataIndexer implements IndexingEvent {
 	
 	public void process(String storagename, String currentpath, long min_index_date) throws Exception {
 		stop_analysis = false;
-		bulkrequest = client.prepareBulk();
+		bulkrequest = Elasticsearch.getClient().prepareBulk();
 		explorer = new Explorer();
 		explorer.getAllSubElementsFromElementKey(Explorer.getElementKey(storagename, currentpath), min_index_date, this);
 		bulkExecute();
@@ -92,7 +86,7 @@ public class MetadataIndexer implements IndexingEvent {
 		
 		if (bulkrequest.numberOfActions() > 1000) {
 			bulkExecute();
-			bulkrequest = client.prepareBulk();
+			bulkrequest = Elasticsearch.getClient().prepareBulk();
 		}
 		
 		String element_key = element.prepare_key();

@@ -16,30 +16,13 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
-import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer;
 
 import java.util.List;
 
 public class FFmpegLowres {
-	
-	public static Class<? extends EntryRenderer> getClassByProfile(String profile_name) {
-		if (profile_name.equalsIgnoreCase(FFmpegLowresRenderer.profile_name_ffmpeg_lowres_lq)) {
-			return Lowres_lq.class;
-		} else if (profile_name.equalsIgnoreCase(FFmpegLowresRenderer.profile_name_ffmpeg_lowres_sd)) {
-			return Lowres_sd.class;
-		} else if (profile_name.equalsIgnoreCase(FFmpegLowresRenderer.profile_name_ffmpeg_lowres_hd)) {
-			return Lowres_hd.class;
-		} else if (profile_name.equalsIgnoreCase(FFmpegLowresRenderer.profile_name_ffmpeg_lowres_audio)) {
-			return Lowres_audio.class;
-		}
-		Log2.log.error("Can't found class for profile name", new ClassNotFoundException(), new Log2Dump("profile_name", profile_name));
-		return null;
-	}
 	
 	public static class Lowres_lq extends EntryRenderer {
 		public String getES_Type() {

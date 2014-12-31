@@ -58,7 +58,7 @@ abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 			JobNG require = null;
 			for (int pos_dc = 0; pos_dc < contexts.size(); pos_dc++) {
 				JobContext declatation_context = contexts.get(pos_dc);
-				JobNG job = manager.createJob(declatation_context);
+				JobNG job = AppManager.createJob(declatation_context);
 				job.setDeleteAfterCompleted();
 				job.setCreator(creator);
 				if (contexts.size() > 0) {
@@ -132,7 +132,7 @@ abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 		 * Test each context serialisation
 		 */
 		for (int pos = 0; pos < contexts.length; pos++) {
-			new JobNG(manager, contexts[pos]);
+			new JobNG(contexts[pos]);
 		}
 		declarations.add(new Declaration(job_name, contexts));
 		return this;
