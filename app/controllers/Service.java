@@ -16,7 +16,6 @@
 */
 package controllers;
 
-import hd3gtv.javasimpleservice.IsAlive;
 import hd3gtv.mydmam.db.status.ClusterStatus;
 import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
 import hd3gtv.mydmam.db.status.StatusReport;
@@ -42,7 +41,7 @@ public class Service extends Controller {
 	@Check("showStatus")
 	@Deprecated
 	public static void laststatusworkers() throws Exception {
-		renderJSON(IsAlive.getLastStatusWorkers().toJSONString());
+		renderJSON("[]");
 	}
 	
 	@Check("showStatus")

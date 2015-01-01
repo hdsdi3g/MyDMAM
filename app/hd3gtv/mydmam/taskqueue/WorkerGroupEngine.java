@@ -65,7 +65,7 @@ class WorkerGroupEngine extends Thread {
 				for (int pos = 0; pos < workergroup.getWorkercycliclist().size(); pos++) {
 					workercyclic = workergroup.getWorkercycliclist().get(pos);
 					if (workercyclic.isAvailableForProcessing()) {
-						workercyclic.engine = new WorkerEngine(workercyclic, new Job(), workergroup.getServiceinformations());
+						workercyclic.engine = new WorkerEngine(workercyclic, new Job());
 						workercyclic.engine.start();
 					}
 				}
@@ -87,7 +87,7 @@ class WorkerGroupEngine extends Thread {
 					Job job = broker.getNextJob(available_workersprofile);
 					if (job != null) {
 						Worker worker = getAvailableWorkerForProfiles(job.profile);
-						worker.engine = new WorkerEngine(worker, job, workergroup.getServiceinformations());
+						worker.engine = new WorkerEngine(worker, job);
 						worker.engine.start();
 					}
 				}

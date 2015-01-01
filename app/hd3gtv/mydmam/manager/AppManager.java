@@ -40,6 +40,9 @@ import com.netflix.astyanax.MutationBatch;
 
 public final class AppManager implements InstanceActionReceiver {
 	
+	// TODO #78.1 Refactoring User Action API and display all availability for user and admin
+	// TODO #78.2, check if UA capacity need no read only for storage
+	
 	/**
 	 * In sec.
 	 */
@@ -116,27 +119,41 @@ public final class AppManager implements InstanceActionReceiver {
 		not_found_class_name = new ArrayList<String>();
 	}
 	
-	public static <T> T instanceClassForName(String class_name, Class<T> return_type) {
+	public static boolean isClassForNameExists(String class_name) {
 		try {
 			if (not_found_class_name.contains(class_name)) {
-				return null;
+				return false;
 			}
-			Class<?> item;
-			if (instance_class_name.containsKey(class_name)) {
-				item = instance_class_name.get(class_name);
-			} else {
-				item = Class.forName(class_name);
+			if (instance_class_name.containsKey(class_name) == false) {
+				instance_class_name.put(class_name, Class.forName(class_name));
 			}
+			return true;
+		} catch (Exception e) {
+			not_found_class_name.add(class_name);
+		}
+		return false;
+	}
+	
+	public static <T> T instanceClassForName(String class_name, Class<T> return_type) {
+		try {
+			if (isClassForNameExists(class_name) == false) {
+				throw new ClassNotFoundException(class_name);
+			}
+			Class<?> item = instance_class_name.get(class_name);
 			if (return_type.isAssignableFrom(item) == false) {
-				Log2.log.error("Can't instanciate class", new ClassCastException(class_name));
-				return null;
+				throw new ClassCastException(item.getName() + " by " + return_type.getName());
 			}
 			@SuppressWarnings("unchecked")
 			T newinstance = (T) item.newInstance();
 			instance_class_name.put(class_name, item);
 			return newinstance;
 		} catch (Exception e) {
-			not_found_class_name.add(class_name);
+			if (not_found_class_name.contains(class_name) == false) {
+				not_found_class_name.add(class_name);
+			}
+			if (instance_class_name.containsKey(class_name)) {
+				instance_class_name.remove(class_name);
+			}
 			Log2.log.error("Can't load class", e, new Log2Dump("class_name", class_name));
 		}
 		return null;
@@ -295,6 +312,19 @@ public final class AppManager implements InstanceActionReceiver {
 		} catch (InterruptedException e) {
 			service_exception.onAppManagerError(e, "Can't stop all services threads");
 		}
+	}
+	
+	boolean isWorkingToShowUIStatus() {
+		for (int pos = 0; pos < enabled_workers.size(); pos++) {
+			if (enabled_workers.get(pos).getLifecyle().getState() == WorkerState.PROCESSING) {
+				return true;
+			}
+			if (enabled_workers.get(pos).getLifecyle().getState() == WorkerState.PENDING_STOP) {
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	Map<Class<? extends JobContext>, List<WorkerNG>> getAllCurrentWaitingWorkersByCapablitiesJobContextClasses() {

@@ -238,14 +238,14 @@ public class MyDMAMModulesManager {
 				}
 			}
 			
-			elements_cyclic = MODULES.get(pos).getCyclicsCreateTasks();
+			elements_cyclic = MODULES.get(pos).getCyclicsCreateTasks(manager);
 			if (elements_cyclic != null) {
 				for (int pos_cyclic = 0; pos_cyclic < elements_cyclic.size(); pos_cyclic++) {
 					manager.cyclicJobsRegister(elements_cyclic.get(pos_cyclic));
 				}
 			}
 			
-			elements_trigger = MODULES.get(pos).getTriggersWorker();
+			elements_trigger = MODULES.get(pos).getTriggersWorker(manager);
 			if (elements_trigger != null) {
 				for (int pos_trigger = 0; pos_trigger < elements_trigger.size(); pos_trigger++) {
 					manager.triggerJobsRegister(elements_trigger.get(pos_trigger));

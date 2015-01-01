@@ -27,10 +27,10 @@ site.logintips=
 
 filesizeunitshort=o
 filesizeunitlong=octets
-timeunit.year=années
-timeunit.years=année
+timeunit.year=année
+timeunit.years=années
 timeunit.week=sem
-timeunit.weeks=sem
+timeunit.weeks=sems
 timeunit.day=jour
 timeunit.days=jours
 

@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.javasimpleservice;
+package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
 
@@ -79,10 +79,9 @@ class UIActionListener implements ActionListener, WindowListener, MouseListener 
 		}
 	}
 	
-	@Override
 	public void windowClosed(WindowEvent e) {
 		Log2.log.info("User close application");
-		frame.servicemanager.stopService();
+		frame.manager.stopAll();
 		System.exit(0);
 	}
 	

@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.javasimpleservice;
+package hd3gtv.mydmam.manager;
 
 import hd3gtv.configuration.GitInfo;
 import hd3gtv.log2.Log2;
@@ -32,23 +32,21 @@ import javax.swing.ImageIcon;
 
 class UIFrame extends Frame {
 	
-	private static final long serialVersionUID = -4936469277038419568L;
-	
 	Button bt_quit;
 	
 	private UIActionListener actionlistener;
-	ServiceManager servicemanager;
+	AppManager manager;
 	private ThreadStatusCheck t_statuscheck;
 	
-	UIFrame(String title, ServiceManager servicemanager) {
+	UIFrame(String title, AppManager manager) {
 		super();
 		
 		if (title == null) {
 			throw new NullPointerException("\"title\" can't to be null");
 		}
-		this.servicemanager = servicemanager;
-		if (servicemanager == null) {
-			throw new NullPointerException("\"servicemanager\" can't to be null");
+		this.manager = manager;
+		if (manager == null) {
+			throw new NullPointerException("\"manager\" can't to be null");
 		}
 		
 		actionlistener = new UIActionListener(this);
@@ -94,7 +92,7 @@ class UIFrame extends Frame {
 		super.paint(g);
 		Graphics2D g2 = (Graphics2D) g;
 		
-		if (servicemanager.isWorkingToShowUIStatus()) {
+		if (manager.isWorkingToShowUIStatus()) {
 			g2.setColor(new Color(0, 255, 0));
 		} else {
 			g2.setColor(new Color(220, 220, 225));
@@ -105,19 +103,16 @@ class UIFrame extends Frame {
 	
 	private class ThreadStatusCheck extends Thread {
 		
-		long sleeptime;
-		
 		public ThreadStatusCheck() {
 			setName("UIFrame StatusCheck");
 			setDaemon(true);
-			sleeptime = servicemanager.refreshUIStatusDelay();
 		}
 		
 		public void run() {
 			try {
 				while (true) {
 					repaint();
-					sleep(sleeptime);
+					sleep(500);
 				}
 			} catch (InterruptedException e) {
 				Log2.log.error("UIFrame status check sleep problem", e);

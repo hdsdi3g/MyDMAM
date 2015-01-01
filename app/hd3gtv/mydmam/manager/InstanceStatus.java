@@ -239,6 +239,8 @@ public final class InstanceStatus implements Log2Dumpable {
 		return this;
 	}
 	
+	static final String COL_NAME_UA_LIST = "useraction_functionality_list";
+	
 	static class Serializer implements JsonSerializer<InstanceStatus>, JsonDeserializer<InstanceStatus>, CassandraDbImporterExporter<InstanceStatus> {
 		
 		public InstanceStatus deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
@@ -250,7 +252,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			result.classpath = AppManager.getGson().fromJson(src.get("classpath"), al_string_typeOfT);
 			result.threadstacktraces = AppManager.getGson().fromJson(src.get("threadstacktraces"), al_threadstacktrace_typeOfT);
 			result.host_addresses = AppManager.getGson().fromJson(src.get("host_addresses"), al_string_typeOfT);
-			result.useraction_functionality_list = AppManager.getGson().fromJson(src.get("useraction_functionality_list"), al_uafunctionalitydefinintion_typeOfT);
+			result.useraction_functionality_list = AppManager.getGson().fromJson(src.get(COL_NAME_UA_LIST), al_uafunctionalitydefinintion_typeOfT);
 			result.declared_cyclics = AppManager.getGson().fromJson(src.get("declared_cyclics"), al_cyclicjobscreator_typeOfT);
 			result.declared_triggers = AppManager.getGson().fromJson(src.get("declared_triggers"), al_triggerjobscreator_typeOfT);
 			return result;
@@ -261,7 +263,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			result.add("classpath", AppManager.getGson().toJsonTree(src.classpath, al_string_typeOfT));
 			result.add("threadstacktraces", AppManager.getGson().toJsonTree(src.threadstacktraces, al_threadstacktrace_typeOfT));
 			result.add("host_addresses", AppManager.getGson().toJsonTree(src.host_addresses, al_string_typeOfT));
-			result.add("useraction_functionality_list", AppManager.getGson().toJsonTree(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT));
+			result.add(COL_NAME_UA_LIST, AppManager.getGson().toJsonTree(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT));
 			result.add("declared_cyclics", AppManager.getGson().toJsonTree(src.declared_cyclics, al_cyclicjobscreator_typeOfT));
 			result.add("declared_triggers", AppManager.getGson().toJsonTree(src.declared_triggers, al_triggerjobscreator_typeOfT));
 			result.addProperty("uptime_from", TimeUtils.secondsToYWDHMS(src.uptime / 1000));
@@ -269,12 +271,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		}
 		
 		public void exportToDatabase(InstanceStatus src, ColumnListMutation<String> mutator) {
-			// mutator.putColumn("classpath", AppManager.getGson().toJson(src.classpath, al_string_typeOfT), TTL);
-			// mutator.putColumn("threadstacktraces", AppManager.getGson().toJson(src.threadstacktraces, al_threadstacktrace_typeOfT), TTL);
-			// mutator.putColumn("host_addresses", AppManager.getGson().toJson(src.host_addresses, al_string_typeOfT), TTL);
-			mutator.putColumn("useraction_functionality_list", AppManager.getGson().toJson(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
-			// mutator.putColumn("declared_cyclics", AppManager.getGson().toJson(src.declared_cyclics, al_cyclicjobscreator_typeOfT), TTL);
-			// mutator.putColumn("declared_triggers", AppManager.getGson().toJson(src.declared_triggers, al_triggerjobscreator_typeOfT), TTL);
+			mutator.putColumn(COL_NAME_UA_LIST, AppManager.getGson().toJson(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
 			mutator.putColumn("source", AppManager.getGson().toJson(src), TTL);
 		}
 		

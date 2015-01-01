@@ -58,24 +58,7 @@ public class Dummy1WorkerNG extends WorkerNG {
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		stop_process = false;
-		progression.update("Start dummy process");
-		progression.updateStep(1, 3);
-		
-		Thread.sleep(context.contextToJson().get("sleep").getAsLong());
-		
-		progression.update("Dummy process is on live");
-		progression.updateStep(2, 3);
-		
-		for (int pos = 0; pos < 1000; pos++) {
-			if (stop_process) {
-				return;
-			}
-			progression.updateProgress(pos, 1000);
-			Thread.sleep(100);
-		}
-		
-		progression.update("Dummy process is ended");
-		progression.updateStep(3, 3);
+		Thread.sleep(10000);
 	}
 	
 	protected void forceStopProcess() throws Exception {

@@ -204,6 +204,7 @@
 		jobs.datatable.fnDeleteRow(datatablerowpos);
 		job.web = null;
 		$(jobs.jquery_destination + ' table td.dataTables_empty').html('<em>' + i18n('manager.jobs.tableisempty') + '</em>');
+		//console.log("delete", job, datatablerowpos);
 	};
 })(window.mydmam.manager.jobs);
 

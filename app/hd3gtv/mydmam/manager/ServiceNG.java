@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
@@ -26,7 +27,7 @@ public abstract class ServiceNG {
 	private ServiceThread servicethread;
 	private AppManager manager;
 	
-	// private UIFrame uiframe; //TODO #78.3, add uiframe
+	private UIFrame uiframe;
 	
 	public ServiceNG(String[] args, String app_name) throws Exception {
 		CassandraDb.autotest();
@@ -78,18 +79,17 @@ public abstract class ServiceNG {
 		public void run() {
 			want_stop_service = false;
 			try {
-				/*if (Configuration.global.isElementExists("service")) {
+				if (Configuration.global.isElementExists("service")) {
 					String uititle = Configuration.global.getValue("service", "ui", null);
 					if (uititle != null) {
 						try {
-							// TODO #78.3, add UIFrame
-							uiframe = new UIFrame(uititle, servicemanager);
+							uiframe = new UIFrame(uititle, manager);
 							uiframe.display();
 						} catch (Exception e) {
 							Log2.log.error("Can't display UI", e);
 						}
 					}
-				}*/
+				}
 				
 				startService();
 				

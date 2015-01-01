@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.taskqueue;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -137,7 +136,7 @@ class BrokerQueue extends Thread {
 			long sleeptime = 500;
 			MutationBatch mutator;
 			int ttl_active_trigger_worker = (int) (max_time_spacer * sleeptime * 2l) / 1000;
-			String instancename = Broker.hostname + "-" + ServiceManager.getInstancename(true);
+			String instancename = "";
 			
 			do_stop = false;
 			while (do_stop == false) {

@@ -64,7 +64,7 @@ public class StorageManager {
 		HashMap<String, ConfigurationItem> conf_storages = Configuration.global.getElement("storage");
 		
 		if (conf_storages.isEmpty()) {
-			Log2.log.info("No storages found in XML configuration");
+			Log2.log.info("No storages found in YAML configuration");
 			return;
 		}
 		
@@ -73,7 +73,7 @@ public class StorageManager {
 		}
 		
 		if (list_storages.isEmpty()) {
-			Log2.log.info("No storages found in XML configuration");
+			Log2.log.info("No storages found in YAML configuration");
 			return;
 		}
 		

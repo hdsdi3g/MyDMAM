@@ -16,9 +16,9 @@
 */
 package controllers;
 
-import hd3gtv.javasimpleservice.IsAlive;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.manager.DatabaseLayer;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.Basket;
@@ -78,7 +78,7 @@ public class UserAction extends Controller {
 	 * @render Map<String, List<UAFunctionalityDefinintion>> availabilities
 	 */
 	public static void currentavailabilities() throws Exception {
-		renderJSON(IsAlive.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities()));
+		renderJSON(DatabaseLayer.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities()));
 	}
 	
 	@Check("userAction")
@@ -155,7 +155,7 @@ public class UserAction extends Controller {
 	@Check("userAction")
 	public static void index() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("useractions.pagename");
-		String currentavailabilities = IsAlive.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities());
+		String currentavailabilities = DatabaseLayer.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities());
 		Basket basket = Basket.getBasketForCurrentPlayUser();
 		String currentbasket = basket.getSelectedContentJson();
 		String currentbasketname = basket.getSelectedName();
@@ -199,4 +199,5 @@ public class UserAction extends Controller {
 		
 		renderJSON(result);
 	}
+	
 }

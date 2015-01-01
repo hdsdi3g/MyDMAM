@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.taskqueue;
 
-import hd3gtv.javasimpleservice.ServiceInformations;
-import hd3gtv.javasimpleservice.ServiceManager;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
@@ -108,7 +106,6 @@ public class Broker {
 	}
 	
 	private BrokerQueue queue;
-	ServiceInformations serviceinformations;
 	
 	Keyspace getKeyspace() {
 		return keyspace;
@@ -118,8 +115,7 @@ public class Broker {
 	 * Enable queue management.
 	 * Use static methods for not.
 	 */
-	public Broker(ServiceInformations serviceinformations) throws ConnectionException {
-		this.serviceinformations = serviceinformations;
+	public Broker() throws ConnectionException {
 	}
 	
 	public void stop() {
@@ -289,7 +285,7 @@ public class Broker {
 		}
 		task.context = context;
 		task.creator_hostname = hostname;
-		task.creator_instancename = ServiceManager.getInstancename(false);
+		task.creator_instancename = "";
 		
 		if (creator instanceof Class) {
 			task.creator_classname = ((Class<?>) creator).getName();

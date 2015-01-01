@@ -55,9 +55,7 @@ public class Dummy2WorkerNG extends WorkerNG {
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
-		progression.update("Start dummy2 process");
-		Thread.sleep(100);
-		progression.update("Dummy2 process is ended");
+		Thread.sleep(10000);
 	}
 	
 	protected void forceStopProcess() throws Exception {

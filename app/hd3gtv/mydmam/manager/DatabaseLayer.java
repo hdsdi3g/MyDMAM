@@ -19,16 +19,27 @@ package hd3gtv.mydmam.manager;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
+import hd3gtv.mydmam.useraction.UAManager;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.query.AllRowsQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 public final class DatabaseLayer {
@@ -160,6 +171,76 @@ public final class DatabaseLayer {
 	public static void truncateAll() throws ConnectionException {
 		CassandraDb.truncateColumnFamilyString(keyspace, CF_INSTANCES.getName());
 		CassandraDb.truncateColumnFamilyString(keyspace, CF_WORKERS.getName());
+	}
+	
+	public static String getCurrentAvailabilitiesAsJsonString(ArrayList<String> privileges_for_user) throws ConnectionException {
+		if (privileges_for_user == null) {
+			return "{}";
+		}
+		if (privileges_for_user.isEmpty()) {
+			return "{}";
+		}
+		
+		Type useraction_functionality_list_typeOfT = new TypeToken<List<UAFunctionalityDefinintion>>() {
+		}.getType();
+		
+		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(CF_INSTANCES).getAllRows().withColumnSlice(InstanceStatus.COL_NAME_UA_LIST);
+		OperationResult<Rows<String, String>> rows = all_rows.execute();
+		
+		Map<String, List<UAFunctionalityDefinintion>> all = new HashMap<String, List<UAFunctionalityDefinintion>>();
+		
+		List<UAFunctionalityDefinintion> list;
+		for (Row<String, String> row : rows.getResult()) {
+			Column<String> col = row.getColumns().getColumnByName("useraction_functionality_list");
+			if (col == null) {
+				continue;
+			}
+			list = UAManager.getGson().fromJson(col.getStringValue(), useraction_functionality_list_typeOfT);
+			
+			for (int pos = list.size() - 1; pos > -1; pos--) {
+				if (privileges_for_user.contains(list.get(pos).classname) == false) {
+					list.remove(pos);
+				}
+			}
+			all.put(row.getKey(), list);
+		}
+		
+		List<UAFunctionalityDefinintion> merged_definitions = new ArrayList<UAFunctionalityDefinintion>();
+		List<UAFunctionalityDefinintion> current_definitions;
+		for (Map.Entry<String, List<UAFunctionalityDefinintion>> entry : all.entrySet()) {
+			current_definitions = entry.getValue();
+			for (int pos_current = 0; pos_current < current_definitions.size(); pos_current++) {
+				UAFunctionalityDefinintion.mergueInList(merged_definitions, current_definitions.get(pos_current));
+			}
+		}
+		
+		JsonObject result = new JsonObject();
+		JsonObject result_implementation;
+		JsonObject result_capability;
+		JsonObject result_configurator;
+		UAFunctionalityDefinintion current;
+		
+		for (int pos = 0; pos < merged_definitions.size(); pos++) {
+			current = merged_definitions.get(pos);
+			
+			result_implementation = new JsonObject();
+			result_implementation.addProperty("messagebasename", current.messagebasename);
+			result_implementation.addProperty("section", current.section.name());
+			result_implementation.addProperty("powerful_and_dangerous", current.powerful_and_dangerous);
+			
+			result_capability = (JsonObject) UAManager.getGson().toJsonTree(current.capability);
+			result_capability.remove("musthavelocalstorageindexbridge");
+			result_implementation.add("capability", result_capability);
+			
+			result_configurator = (JsonObject) UAManager.getGson().toJsonTree(current.configurator);
+			result_configurator.remove("type");
+			result_configurator.remove("origin");
+			result_implementation.add("configurator", result_configurator);
+			
+			result.add(current.classname, result_implementation);
+		}
+		
+		return UAManager.getGson().toJson(result);
 	}
 	
 }

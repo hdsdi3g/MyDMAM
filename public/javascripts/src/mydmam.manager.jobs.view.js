@@ -133,9 +133,6 @@
 		if (job.end_date > 0) {
 			content = content + '<span class="label itemtoupdate dateupdate" data-varname="update_date">' + i18n('manager.jobs.update_date', mydmam.format.fulldate(job.update_date)) + '</span>';
 			content = content + ago(job.update_date, "update_date");
-		} else {
-			content = content + '<span class="label itemtoupdate dateupdate" data-varname="end_date">' + i18n('manager.jobs.end_date', mydmam.format.fulldate(job.end_date)) + '</span>';
-			content = content + ago(job.end_date, "end_date");
 		}
 		
 		content = content + '</div>';
@@ -210,7 +207,7 @@
 		content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
 		
 		if (job.require_key) {
-			var jobrq = jobs.list[require_key];
+			var jobrq = mydmam.manager.jobs.list[job.require_key];
 			if (jobrq) {
 				content = content + '<abbr title="' + view.displayKey(jobrq.key, false)  + '">';
 				content = content + '<span class="label label-info">';
@@ -288,11 +285,19 @@
 (function(view) {
 	view.update = function(job) {
 		var patch_ago = function(item, since) {
-			item.find('em').html('(' + mydmam.format.timeAgo(since, 'manager.jobs.since', 'manager.jobs.negativesince') + ')');
+			if (since > 0) {
+				item.find('em').html('(' + mydmam.format.timeAgo(since, 'manager.jobs.since', 'manager.jobs.negativesince') + ')');
+			} else {
+				item.find('em').empty();
+			}
 		};
 		
 		var patch_date = function(item, varname, date) {
-			item.html(i18n('manager.jobs.' + varname, mydmam.format.fulldate(date)));
+			if (date > 0) {
+				item.html(i18n('manager.jobs.' + varname, mydmam.format.fulldate(date)));
+			} else {
+				item.empty();
+			}
 		};
 
 		var update = function() {

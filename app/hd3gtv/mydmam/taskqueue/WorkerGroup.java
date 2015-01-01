@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.taskqueue;
 
-import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.log2.Log2;
 
 import java.util.ArrayList;
@@ -49,10 +48,6 @@ public class WorkerGroup {
 		workercycliclist = new ArrayList<WorkerCyclicEngine>();
 		workers_key_map = new HashMap<String, Worker>();
 		triggerlist = new HashMap<String, TriggerWorker>();
-	}
-	
-	ServiceInformations getServiceinformations() {
-		return broker.serviceinformations;
 	}
 	
 	ArrayList<WorkerCyclicEngine> getWorkercycliclist() {

@@ -199,7 +199,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		job_progress.updateStep(3, 3);
 		job_progress.update("Converting is ended");
 		
-		return final_element.consolidateAndExportToEntry(root_entry_class.newInstance(), container, this); // TODO why root_entry_class.getConstructor().newInstance() ?
+		return final_element.consolidateAndExportToEntry(root_entry_class.newInstance(), container, this);
 	}
 	
 	public synchronized void stopStandaloneProcess() throws Exception {

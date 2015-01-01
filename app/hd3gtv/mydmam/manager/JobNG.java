@@ -40,6 +40,7 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.ColumnListMutation;
@@ -86,6 +87,9 @@ public final class JobNG implements Log2Dumpable {
 		return new ColumnPrefixDistributedRowLock<String>(keyspace, CF_QUEUE, "BROKER_LOCK");
 	}
 	
+	/**
+	 * 7 days
+	 */
 	final static int TTL = 3600 * 24 * 7;
 	
 	public enum JobStatus {
@@ -471,7 +475,6 @@ public final class JobNG implements Log2Dumpable {
 			 */
 			ttl = 300;
 		}
-		
 		mutator.putColumn("context_class", context.getClass().getName(), ttl);
 		mutator.putColumn("status", status.name(), ttl);
 		mutator.putColumn("creator_hostname", instance_status_creator_hostname, ttl);
@@ -487,6 +490,9 @@ public final class JobNG implements Log2Dumpable {
 	
 	public static final class Utility {
 		
+		/**
+		 * Check before if you can instanciate the JobContext class.
+		 */
 		static JobNG importFromDatabase(ColumnList<String> columnlist) {
 			return AppManager.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), JobNG.class);
 		}
@@ -496,12 +502,15 @@ public final class JobNG implements Log2Dumpable {
 			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
 			index_query.addExpression().whereColumn("creator_hostname").equals().value(instance_status.getHostName());
 			index_query.addExpression().whereColumn("expiration_date").lessThan().value(System.currentTimeMillis());
-			index_query.withColumnSlice("source");
+			index_query.withColumnSlice("source", "context_class");
 			
 			List<JobNG> result = new ArrayList<JobNG>();
 			
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			for (Row<String, String> row : rows.getResult()) {
+				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+					continue;
+				}
 				JobNG job = JobNG.Utility.importFromDatabase(row.getColumns());
 				job.status = JobStatus.TOO_OLD;
 				job.update_date = System.currentTimeMillis();
@@ -515,11 +524,14 @@ public final class JobNG implements Log2Dumpable {
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(JobStatus.POSTPONED.name());
 			index_query.addExpression().whereColumn("creator_hostname").equals().value(instance_status.getHostName());
-			index_query.addExpression().whereColumn("expiration_date").lessThan().value(Long.MAX_VALUE);
-			index_query.withColumnSlice("source");
+			index_query.addExpression().whereColumn("expiration_date").lessThan().value(System.currentTimeMillis() + default_max_execution_time);
+			index_query.withColumnSlice("source", "context_class");
 			
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			for (Row<String, String> row : rows.getResult()) {
+				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+					continue;
+				}
 				JobNG job = JobNG.Utility.importFromDatabase(row.getColumns());
 				job.expiration_date = System.currentTimeMillis() + (default_max_execution_time * 7);
 				job.update_date = System.currentTimeMillis();
@@ -573,11 +585,14 @@ public final class JobNG implements Log2Dumpable {
 		static List<JobNG> getJobsByStatus(JobStatus status) throws ConnectionException {
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(status.name());
-			index_query.withColumnSlice("source");
+			index_query.withColumnSlice("source", "context_class");
 			
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			ArrayList<JobNG> result = new ArrayList<JobNG>();
 			for (Row<String, String> row : rows.getResult()) {
+				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+					continue;
+				}
 				JobNG new_job = JobNG.Utility.importFromDatabase(row.getColumns());
 				result.add(new_job);
 			}
@@ -613,10 +628,13 @@ public final class JobNG implements Log2Dumpable {
 				return null;
 			}
 			List<JobNG> result = new ArrayList<JobNG>(keys.size());
-			Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(keys).withColumnSlice("source").execute().getResult();
+			Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(keys).withColumnSlice("source", "context_class").execute().getResult();
 			for (Row<String, String> row : rows) {
 				String source = row.getColumns().getStringValue("source", "{}");
 				if (source.equals("{}")) {
+					continue;
+				}
+				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				result.add(AppManager.getGson().fromJson(source, JobNG.class));
@@ -636,14 +654,15 @@ public final class JobNG implements Log2Dumpable {
 						if (source.equals("{}")) {
 							return;
 						}
-						JobNG current = AppManager.getGson().fromJson(source, JobNG.class);
-						result.add(current.key, AppManager.getGson().toJsonTree(current));
+						JsonObject current = new JsonParser().parse(source).getAsJsonObject();
+						result.add(current.get("key").getAsString(), current);
 					}
-				});
+				}, "source");
 			} else {
 				IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 				index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
 				index_query.addExpression().whereColumn("update_date").greaterThanEquals().value(since_date - 1000);
+				index_query.withColumnSlice("source");
 				OperationResult<Rows<String, String>> rows = index_query.execute();
 				
 				for (Row<String, String> row : rows.getResult()) {
@@ -651,8 +670,8 @@ public final class JobNG implements Log2Dumpable {
 					if (source.equals("{}")) {
 						continue;
 					}
-					JobNG current = AppManager.getGson().fromJson(source, JobNG.class);
-					result.add(current.key, AppManager.getGson().toJsonTree(current));
+					JsonObject current = new JsonParser().parse(source).getAsJsonObject();
+					result.add(current.get("key").getAsString(), current);
 				}
 			}
 			return result;
@@ -670,7 +689,7 @@ public final class JobNG implements Log2Dumpable {
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("key", key);
-		dump.add("creator", creator.getName());
+		dump.add("creator", creator);
 		dump.add("urgent", urgent);
 		dump.add("max_execution_time", max_execution_time);
 		dump.add("name", name);

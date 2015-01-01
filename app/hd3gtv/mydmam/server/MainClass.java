@@ -19,20 +19,14 @@ package hd3gtv.mydmam.server;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.manager.ServiceNGServer;
 
 public class MainClass {
 	
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		
+	public static void main(String[] args) throws Exception {
 		Configuration.importLog2Configuration(Configuration.global, true);
-		
 		MyDMAM.testIllegalKeySize();
-		
 		Log2.log.info("Start application");
-		
-		new MyDMAMServerService(args, null);
+		new ServiceNGServer(args);
 	}
 }

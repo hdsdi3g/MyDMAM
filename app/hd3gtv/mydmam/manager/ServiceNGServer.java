@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.manager;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.mydmam.server.ExecprocessEventServicelog;
 import hd3gtv.tools.Execprocess;
 
 import java.io.File;

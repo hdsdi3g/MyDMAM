@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.taskqueue;
 
-import hd3gtv.javasimpleservice.ServiceInformations;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Event;
 
@@ -26,12 +25,10 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 class WorkerEngine extends Thread {
 	Worker worker;
 	Job job;
-	ServiceInformations serviceinformations;
 	
-	WorkerEngine(Worker referer, Job job, ServiceInformations serviceinformations) {
+	WorkerEngine(Worker referer, Job job) {
 		this.job = job;
 		this.worker = referer;
-		this.serviceinformations = serviceinformations;
 		setDaemon(true);
 		setName(referer.getShortWorkerName() + "-for-" + job.key);
 	}

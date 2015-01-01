@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.module;
 
 import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
 import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
@@ -36,7 +37,7 @@ public abstract class MyDMAMModule extends PlayPlugin {
 		return new ArrayList<CliModule>(1);
 	}
 	
-	public List<CyclicJobCreator> getCyclicsCreateTasks() {
+	public List<CyclicJobCreator> getCyclicsCreateTasks(AppManager manager) {
 		return new ArrayList<CyclicJobCreator>(1);
 	}
 	
@@ -47,7 +48,7 @@ public abstract class MyDMAMModule extends PlayPlugin {
 		return new ArrayList<WorkerNG>(1);
 	}
 	
-	public List<TriggerJobCreator> getTriggersWorker() {
+	public List<TriggerJobCreator> getTriggersWorker(AppManager manager) {
 		return new ArrayList<TriggerJobCreator>(1);
 	}
 	
