@@ -157,6 +157,7 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 			}
 			try {
 				Log2.log.debug("Start processing", job);
+				job.saveChanges();
 				
 				workerProcessJob(job.startProcessing(manager, reference), job.getContext());
 				

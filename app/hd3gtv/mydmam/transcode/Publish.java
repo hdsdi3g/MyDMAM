@@ -209,9 +209,19 @@ public class Publish extends WorkerNG {
 		progress.start();
 		
 		FFmpegEvents events = new FFmpegEvents("tmp-" + progression.getJobKey());
-		this.process = profile.prepareExecprocess(Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg"), events, source_file, dest_file_ffmpeg, progress_file);
 		
 		Log2Dump dump = new Log2Dump();
+		dump.addAll(context_publish);
+		dump.add("source_file", source_file);
+		dump.add("dest_file", dest_file_ffmpeg);
+		dump.add("progress_file", progress_file);
+		dump.add("profile", profile);
+		dump.add("exec", Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg"));
+		Log2.log.debug("Prepare execprocess", dump);
+		
+		this.process = profile.prepareExecprocess(Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg"), events, source_file, dest_file_ffmpeg, progress_file);
+		
+		dump = new Log2Dump();
 		dump.addAll(context_publish);
 		dump.add("source_file", source_file);
 		dump.add("dest_file", dest_file_ffmpeg);
