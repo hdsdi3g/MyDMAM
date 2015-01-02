@@ -57,12 +57,13 @@ public class PathScan extends WorkerNG {
 	}
 	
 	public PathScan() throws IOException {
+		scanelements = new HashMap<String, PathElementConfiguration>();
+		
 		if (Configuration.global.isElementExists("storageindex_scan") == false) {
 			return;
 		}
 		
 		HashMap<String, ConfigurationItem> ps_configuration = Configuration.global.getElement("storageindex_scan");
-		scanelements = new HashMap<String, PathElementConfiguration>();
 		
 		String label;
 		
