@@ -180,7 +180,7 @@ public class Publish extends WorkerNG {
 		progression.updateStep(2, 5);
 		progression.update("Conversion ffmpeg");
 		
-		dest_file_ffmpeg = new File(templocaldir.getPath() + File.separator + context_publish.mediaid.toUpperCase() + "-" + progression.getJobKey() + ".mp4");
+		dest_file_ffmpeg = new File(templocaldir.getPath() + File.separator + context_publish.mediaid.toUpperCase() + "-" + progression.getJobKey().replaceAll(":", "-") + ".mp4");
 		
 		profile = TranscodeProfile.getTranscodeProfile(TRANSCODE_PROFILE_CAT, TRANSCODE_PROFILE_NAME);
 		
