@@ -94,8 +94,13 @@ public class PathScan extends WorkerNG {
 		Log2Dump dump = new Log2Dump();
 		dump.add("storage", pec.storage_internal_name);
 		dump.add("label", pec.storage_label);
-		dump.add("current_working_directory", importer.getCurrentworkingdir());
-		dump.add("limited to current directory", limit_to_current_directory);
+		String cwd = importer.getCurrentworkingdir();
+		if (cwd != null) {
+			dump.add("current_working_directory", cwd);
+		}
+		if (limit_to_current_directory) {
+			dump.add("limited to current directory", limit_to_current_directory);
+		}
 		Log2.log.info("Indexing storage", dump);
 		
 		importer.setLimit_to_current_directory(limit_to_current_directory);

@@ -31,6 +31,8 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.search.SearchHit;
 import org.json.simple.JSONObject;
 
+import com.google.gson.JsonObject;
+
 @SuppressWarnings("unchecked")
 public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, JsonSerializer<SourcePathIndexerElement>*/{
 	
@@ -54,6 +56,7 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 	
 	public long dateindex = 0;
 	
+	@Deprecated
 	public JSONObject toJson() {
 		JSONObject jo = new JSONObject();
 		if (currentpath != null) {
@@ -85,6 +88,39 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 			jo.put("idxfilename", sanitise);
 		}
 		
+		return jo;
+	}
+	
+	public JsonObject toGson() {
+		JsonObject jo = new JsonObject();
+		if (currentpath != null) {
+			jo.addProperty("path", currentpath);
+		}
+		jo.addProperty("directory", directory);
+		if (size > 0) {
+			jo.addProperty("size", size);
+		}
+		if (date > 0) {
+			jo.addProperty("date", date);
+		}
+		if (dateindex > 0) {
+			jo.addProperty("dateindex", dateindex);
+		}
+		if (storagename != null) {
+			jo.addProperty("storagename", storagename);
+		}
+		if (id != null) {
+			jo.addProperty("id", id);
+		}
+		if (parentpath != null) {
+			jo.addProperty("parentpath", hashThis(storagename + ":" + parentpath));
+		} else {
+			jo.addProperty("parentpath", hashThis(""));
+		}
+		String sanitise = sanitisePathToFilename();
+		if (sanitise != null) {
+			jo.addProperty("idxfilename", sanitise);
+		}
 		return jo;
 	}
 	

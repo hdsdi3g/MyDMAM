@@ -17,21 +17,13 @@
 package hd3gtv.mydmam.pathindexing;
 
 import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
-
-import java.util.ArrayList;
-
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
 
 public abstract class Importer {
 	
 	public static final String ES_INDEX = "pathindex";
 	public static final String ES_TYPE_FILE = "file";
 	public static final String ES_TYPE_DIRECTORY = "directory";
-	
-	private static final int window_update_size = 5000;
 	
 	static {
 		try {
@@ -55,127 +47,17 @@ public abstract class Importer {
 	 */
 	protected abstract long getTTL();
 	
-	private class ElasticSearchPushElement implements IndexingEvent {
-		
-		public void onRemoveFile(String storagename, String path) throws Exception {
-		}
-		
-		BulkRequestBuilder bulkrequest_index;
-		long ttl;
-		ArrayList<SourcePathIndexerElement> l_elements_problems;
-		
-		public ElasticSearchPushElement() {
-			bulkrequest_index = Elasticsearch.getClient().prepareBulk();
-			ttl = getTTL();
-			l_elements_problems = new ArrayList<SourcePathIndexerElement>();
-		}
-		
-		private boolean searchForbiddenChars(String filename) {
-			if (filename.indexOf("/") > -1) {
-				return true;
-			}
-			if (filename.indexOf("\\") > -1) {
-				return true;
-			}
-			if (filename.indexOf(":") > -1) {
-				return true;
-			}
-			if (filename.indexOf("*") > -1) {
-				return true;
-			}
-			if (filename.indexOf("?") > -1) {
-				return true;
-			}
-			if (filename.indexOf("\"") > -1) {
-				return true;
-			}
-			if (filename.indexOf("<") > -1) {
-				return true;
-			}
-			if (filename.indexOf(">") > -1) {
-				return true;
-			}
-			if (filename.indexOf("|") > -1) {
-				return true;
-			}
-			return false;
-		}
-		
-		public boolean onFoundElement(SourcePathIndexerElement element) {
-			if (bulkrequest_index.numberOfActions() > (window_update_size - 1)) {
-				execute_Bulks();
-			}
-			
-			if (element.parentpath != null) {
-				String filename = element.currentpath.substring(element.currentpath.lastIndexOf("/"), element.currentpath.length());
-				if (searchForbiddenChars(filename)) {
-					l_elements_problems.add(element);
-					/**
-					 * Disabled this : there is too many bad file name
-					 */
-					// Log2.log.info("Bad filename", element);
-				}
-			}
-			
-			String index_type = null;
-			if (element.directory) {
-				index_type = ES_TYPE_DIRECTORY;
-			} else {
-				index_type = ES_TYPE_FILE;
-			}
-			
-			/**
-			 * Push it
-			 */
-			if (ttl > 0) {
-				bulkrequest_index.add(Elasticsearch.getClient().prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString()).setTTL(ttl));
-			} else {
-				bulkrequest_index.add(Elasticsearch.getClient().prepareIndex(ES_INDEX, index_type, element.prepare_key()).setSource(element.toJson().toJSONString()));
-			}
-			
-			return true;
-		}
-		
-		public void execute_Bulks() {
-			Log2Dump dump = new Log2Dump();
-			dump = new Log2Dump();
-			dump.add("name", getName());
-			dump.add("indexed", bulkrequest_index.numberOfActions());
-			Log2.log.debug("Prepare to update Elasticsearch database", dump);
-			
-			BulkResponse bulkresponse;
-			
-			if (bulkrequest_index.numberOfActions() > 0) {
-				bulkresponse = bulkrequest_index.execute().actionGet();
-				if (bulkresponse.hasFailures()) {
-					dump = new Log2Dump();
-					dump.add("name", getName());
-					dump.add("type", "index");
-					dump.add("failure message", bulkresponse.buildFailureMessage());
-					Log2.log.error("Errors during indexing", null, dump);
-				}
-				bulkrequest_index = Elasticsearch.getClient().prepareBulk();
-			}
-			
-		}
-		
-		public void end() {
-			execute_Bulks();
-		}
-		
-	}
-	
 	public final long index() throws Exception {
-		ElasticSearchPushElement push = new ElasticSearchPushElement();
+		ElasticSearchPushElement push = new ElasticSearchPushElement(this);
 		long result = doIndex(push);
 		push.end();
 		
-		if (push.l_elements_problems.size() > 0) {
-			/**
-			 * Alert ?
-			 * Disabled this : there is too many bad file name
-			 */
-		}
+		// if (push.l_elements_problems.size() > 0) {
+		/**
+		 * Alert ?
+		 * Disabled this : there is too many bad file name
+		 */
+		// }
 		
 		return result;
 	}
