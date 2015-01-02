@@ -417,16 +417,20 @@ public class Explorer {
 	}
 	
 	private static HashMap<String, File> bridge;
+	private static ArrayList<String> bridge_list;
 	
 	private static void populate_bridge() throws NullPointerException {
 		if (bridge == null) {
-			if (Configuration.global.isElementExists("storageindex_bridge") == false) {
-				throw new NullPointerException("No configuration for storageindex_bridge");
-			}
 			bridge = new HashMap<String, File>();
+			bridge_list = new ArrayList<String>();
+			if (Configuration.global.isElementExists("storageindex_bridge") == false) {
+				Log2.log.error("No configuration for storageindex_bridge", new NullPointerException());
+				return;
+			}
 			LinkedHashMap<String, String> s_bridge = Configuration.global.getValues("storageindex_bridge");
 			for (Map.Entry<String, String> entry : s_bridge.entrySet()) {
 				bridge.put(entry.getKey(), (new File(entry.getValue())).getAbsoluteFile());
+				bridge_list.add(entry.getKey());
 			}
 		}
 	}
@@ -446,11 +450,7 @@ public class Explorer {
 	
 	public static ArrayList<String> getBridgedStoragesName() {
 		populate_bridge();
-		ArrayList<String> list = new ArrayList<String>();
-		for (Map.Entry<String, File> entry : bridge.entrySet()) {
-			list.add(entry.getKey());
-		}
-		return list;
+		return bridge_list;
 	}
 	
 	public DeleteRequestBuilder deleteRequestFileElement(String _id, String es_type) {
