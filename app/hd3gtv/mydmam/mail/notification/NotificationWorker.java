@@ -45,7 +45,7 @@ public class NotificationWorker extends WorkerNG {
 			
 			CyclicJobCreator cyclic_alerter = new CyclicJobCreator(manager, 10, TimeUnit.MINUTES, false);
 			cyclic_alerter.setOptions(getClass(), "Notifications alerter", "Internal MyDMAM");
-			cyclic_cleaner.add("Notifications alerter", new JobContextNotificationAlert());
+			cyclic_alerter.add("Notifications alerter", new JobContextNotificationAlert());
 			manager.cyclicJobsRegister(cyclic_alerter);
 		}
 		

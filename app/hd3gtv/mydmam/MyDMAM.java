@@ -208,7 +208,7 @@ public class MyDMAM {
 			try {
 				return Class.forName(json.getAsString());
 			} catch (Exception e) {
-				throw new JsonParseException(e);
+				return null;
 			}
 		}
 	}

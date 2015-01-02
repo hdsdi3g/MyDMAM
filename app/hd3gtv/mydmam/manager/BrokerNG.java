@@ -199,6 +199,12 @@ class BrokerNG {
 					if (stop_queue) {
 						return;
 					}
+					
+					if (queue_new_jobs != null) {
+						if (queue_new_jobs.isAlive() == false) {
+							throw new Exception("Queue for new jobs is terminated, stop operations");
+						}
+					}
 					Thread.sleep(QUEUE_SLEEP_TIME);
 				}
 			} catch (Exception e) {

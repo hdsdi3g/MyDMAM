@@ -47,7 +47,7 @@ public class JobContextPublishing extends JobContext implements Log2Dumpable {
 	/**
 	 * Only for (de)serialization.
 	 */
-	JobContextPublishing() {
+	public JobContextPublishing() {
 	}
 	
 	public JsonObject contextToJson() {

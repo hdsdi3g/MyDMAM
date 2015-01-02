@@ -71,7 +71,7 @@ public abstract class JobContext {
 				return result;
 			} catch (Exception e) {
 				Log2.log.error("Can't deserialize", e, new Log2Dump("json source", jejson.toString()));
-				throw new JsonParseException("Invalid context class", e);
+				throw new JsonParseException("Invalid context class: " + jejson.toString(), e);
 			}
 		}
 		
