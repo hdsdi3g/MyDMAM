@@ -37,7 +37,7 @@ class BrokerNG {
 	/**
 	 * In msec
 	 */
-	private static final int QUEUE_SLEEP_TIME = 1000;
+	private static final int QUEUE_SLEEP_TIME = 5000;
 	private static final int GRACE_PERIOD_TO_REMOVE_DELETED_AFTER_COMPLETED_JOB = 1000 * 30;
 	
 	private AppManager manager;
@@ -351,7 +351,7 @@ class BrokerNG {
 						if (stop_queue) {
 							return;
 						}
-						Thread.sleep(Math.round(Math.random() * 1000));
+						Thread.sleep(Math.round(Math.random() * 3000));
 					} catch (StaleLockException e) {
 						/**
 						 * The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
