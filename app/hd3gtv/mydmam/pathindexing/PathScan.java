@@ -70,12 +70,12 @@ public class PathScan extends WorkerNG {
 			LinkedHashMap<String, ?> element = entry.getValue().content;
 			PathElementConfiguration pec = new PathElementConfiguration();
 			pec.storage_label = (String) element.get("label");
-			pec.storage_internal_name = entry.getKey().toLowerCase();
+			pec.storage_internal_name = entry.getKey();
 			if (element.containsKey("manual")) {
 				pec.manual = (Boolean) element.get("manual");
 			}
 			pec.period = (Integer) element.get("period");
-			label = pec.storage_label.toLowerCase();
+			label = pec.storage_label;
 			
 			scanelements.put(label, pec);
 		}
