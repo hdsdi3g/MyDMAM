@@ -286,6 +286,19 @@ public final class AppManager implements InstanceActionReceiver {
 	}
 	
 	/**
+	 * Don't start broker and workers.
+	 */
+	public void startJustService() {
+		if (broker == null) {
+			broker = new BrokerNG(this);
+		}
+		if (updater == null) {
+			updater = new Updater();
+		}
+		updater.start();
+	}
+	
+	/**
 	 * Blocking
 	 */
 	public void stopAll() {

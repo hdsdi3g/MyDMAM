@@ -70,6 +70,13 @@ public abstract class ServiceNG {
 		return manager;
 	}
 	
+	/**
+	 * Set false to stop Broker at start
+	 */
+	protected boolean startBroker() {
+		return true;
+	}
+	
 	private class ServiceThread extends Thread {
 		
 		public ServiceThread() {
@@ -93,7 +100,11 @@ public abstract class ServiceNG {
 				
 				startService();
 				
-				manager.startAll();
+				if (startBroker()) {
+					manager.startAll();
+				} else {
+					manager.startJustService();
+				}
 				
 				while (want_stop_service == false) {
 					sleep(10);

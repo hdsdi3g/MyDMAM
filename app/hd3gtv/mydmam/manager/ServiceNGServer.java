@@ -30,6 +30,10 @@ public class ServiceNGServer extends ServiceNG {
 	
 	private Execprocess process_play;
 	
+	protected boolean startBroker() {
+		return false;
+	}
+	
 	protected void startService() throws Exception {
 		File f_playdeploy = new File(Configuration.global.getValue("play", "deploy", "/opt/play"));
 		
