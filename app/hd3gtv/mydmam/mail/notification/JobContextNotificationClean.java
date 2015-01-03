@@ -18,8 +18,6 @@ package hd3gtv.mydmam.mail.notification;
 
 import hd3gtv.mydmam.manager.JobContext;
 
-import java.util.List;
-
 import com.google.gson.JsonObject;
 
 public class JobContextNotificationClean extends JobContext {

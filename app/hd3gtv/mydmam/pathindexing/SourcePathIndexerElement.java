@@ -32,7 +32,6 @@ import org.elasticsearch.search.SearchHit;
 
 import com.google.gson.JsonObject;
 
-@SuppressWarnings("unchecked")
 public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, JsonSerializer<SourcePathIndexerElement>*/{
 	
 	private static final long serialVersionUID = -3421843205650861824L;
