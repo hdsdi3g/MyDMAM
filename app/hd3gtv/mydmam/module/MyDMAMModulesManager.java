@@ -46,14 +46,14 @@ import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.yaml.snakeyaml.Yaml;
 
 import play.Play;
 import play.templates.TemplateLoader;
 import play.utils.OrderSafeProperties;
 import play.vfs.VirtualFile;
+
+import com.google.gson.Gson;
 
 public class MyDMAMModulesManager {
 	
@@ -405,12 +405,11 @@ public class MyDMAMModulesManager {
 	/**
 	 * Reboot Play to see changes.
 	 */
-	@SuppressWarnings("unchecked")
-	public static JSONObject getPositionInformationsByTapeName(String... tapenames) {
+	public static Map<String, ArchivingTapeInformation> getPositionInformationsByTapeName(String... tapenames) {
 		populate_tape_localisators();
-		JSONObject result = new JSONObject();
 		
-		JSONObject result_module;
+		Map<String, ArchivingTapeInformation> result_module;
+		HashMap<String, ArchivingTapeInformation> result = new HashMap<String, ArchivingTapeInformation>();
 		for (int pos = 0; pos < tape_localisators.size(); pos++) {
 			result_module = tape_localisators.get(pos).getPositionInformationsByTapeName(tapenames);
 			if (result_module.isEmpty()) {
@@ -418,7 +417,6 @@ public class MyDMAMModulesManager {
 			}
 			result.putAll(result_module);
 		}
-		
 		return result;
 	}
 	
@@ -443,21 +441,20 @@ public class MyDMAMModulesManager {
 	
 	private static volatile String fullliststorageindexnamejsonlistforhostedinarchiving;
 	
-	@SuppressWarnings("unchecked")
 	public static String getStorageIndexNameJsonListForHostedInArchiving() {
 		if (fullliststorageindexnamejsonlistforhostedinarchiving == null) {
 			populate_tape_localisators();
-			JSONArray ja = new JSONArray();
+			List<String> ja = new ArrayList<String>();
 			
-			JSONArray ja_module;
+			List<String> ja_module;
 			for (int pos = 0; pos < tape_localisators.size(); pos++) {
-				ja_module = tape_localisators.get(pos).getStorageIndexNameJsonListForHostedInArchiving();
+				ja_module = tape_localisators.get(pos).getStorageIndexNameListForHostedInArchiving();
 				if (ja_module.isEmpty()) {
 					continue;
 				}
 				ja.addAll(ja_module);
 			}
-			fullliststorageindexnamejsonlistforhostedinarchiving = ja.toJSONString();
+			fullliststorageindexnamejsonlistforhostedinarchiving = new Gson().toJson(ja);
 		}
 		
 		return fullliststorageindexnamejsonlistforhostedinarchiving;

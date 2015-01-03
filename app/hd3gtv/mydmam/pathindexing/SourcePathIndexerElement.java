@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.search.SearchHit;
-import org.json.simple.JSONObject;
 
 import com.google.gson.JsonObject;
 
@@ -55,41 +54,6 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 	public String parentpath;
 	
 	public long dateindex = 0;
-	
-	@Deprecated
-	public JSONObject toJson() {
-		JSONObject jo = new JSONObject();
-		if (currentpath != null) {
-			jo.put("path", currentpath);
-		}
-		jo.put("directory", directory);
-		if (size > 0) {
-			jo.put("size", size);
-		}
-		if (date > 0) {
-			jo.put("date", date);
-		}
-		if (dateindex > 0) {
-			jo.put("dateindex", dateindex);
-		}
-		if (storagename != null) {
-			jo.put("storagename", storagename);
-		}
-		if (id != null) {
-			jo.put("id", id);
-		}
-		if (parentpath != null) {
-			jo.put("parentpath", hashThis(storagename + ":" + parentpath));
-		} else {
-			jo.put("parentpath", hashThis(""));
-		}
-		String sanitise = sanitisePathToFilename();
-		if (sanitise != null) {
-			jo.put("idxfilename", sanitise);
-		}
-		
-		return jo;
-	}
 	
 	public JsonObject toGson() {
 		JsonObject jo = new JsonObject();
@@ -233,37 +197,36 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 		return fromESResponse(Elasticsearch.getJSONFromSimpleResponse(hit));
 	}
 	
-	private static SourcePathIndexerElement fromESResponse(JSONObject jo) {
+	private static SourcePathIndexerElement fromESResponse(JsonObject jo) {
 		if (jo == null) {
 			return null;
 		}
 		
 		SourcePathIndexerElement result = new SourcePathIndexerElement();
 		
-		if (jo.containsKey("path")) {
-			result.currentpath = (String) jo.get("path");
+		if (jo.has("path")) {
+			result.currentpath = jo.get("path").getAsString();
 		}
-		
-		if (jo.containsKey("parentpath")) {
-			result.parentpath = (String) jo.get("parentpath");
+		if (jo.has("parentpath")) {
+			result.parentpath = jo.get("parentpath").getAsString();
 		}
-		if (jo.containsKey("directory")) {
-			result.directory = (Boolean) jo.get("directory");
+		if (jo.has("directory")) {
+			result.directory = jo.get("directory").getAsBoolean();
 		}
-		if (jo.containsKey("storagename")) {
-			result.storagename = (String) jo.get("storagename");
+		if (jo.has("storagename")) {
+			result.storagename = jo.get("storagename").getAsString();
 		}
-		if (jo.containsKey("id")) {
-			result.id = (String) jo.get("id");
+		if (jo.has("id")) {
+			result.id = jo.get("id").getAsString();
 		}
-		if (jo.containsKey("date")) {
-			result.date = (Long) jo.get("date");
+		if (jo.has("date")) {
+			result.date = jo.get("date").getAsLong();
 		}
-		if (jo.containsKey("size")) {
-			result.size = (Long) jo.get("size");
+		if (jo.has("size")) {
+			result.size = jo.get("size").getAsLong();
 		}
-		if (jo.containsKey("dateindex")) {
-			result.dateindex = (Long) jo.get("dateindex");
+		if (jo.has("dateindex")) {
+			result.dateindex = jo.get("dateindex").getAsLong();
 		}
 		return result;
 	}

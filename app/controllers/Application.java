@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.elasticsearch.indices.IndexMissingException;
-import org.json.simple.JSONObject;
 
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -49,6 +48,7 @@ import play.mvc.Http.Header;
 import play.mvc.With;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 @With(Secure.class)
@@ -220,7 +220,6 @@ public class Application extends Controller {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Check("navigate")
 	public static void resolvePositions() throws ConnectionException {
 		String[] keys = params.getAll("keys[]");
@@ -233,7 +232,7 @@ public class Application extends Controller {
 			return;
 		}
 		
-		JSONObject result = new JSONObject();
+		JsonObject result = new JsonObject();
 		Map<String, List<String>> raw_positions = MyDMAMModulesManager.getPositions(keys);
 		
 		ArrayList<String> queries_locations = new ArrayList<String>();
@@ -246,10 +245,9 @@ public class Application extends Controller {
 				}
 			}
 		}
-		result.put("positions", raw_positions);
-		result.put("locations", MyDMAMModulesManager.getPositionInformationsByTapeName(queries_locations.toArray(new String[0])));
-		
-		renderJSON(result.toJSONString());
+		result.add("positions", new Gson().toJsonTree(raw_positions));
+		result.add("locations", new Gson().toJsonTree(MyDMAMModulesManager.getPositionInformationsByTapeName(queries_locations.toArray(new String[0]))));
+		renderJSON(result.toString());
 	}
 	
 	public static void test() {

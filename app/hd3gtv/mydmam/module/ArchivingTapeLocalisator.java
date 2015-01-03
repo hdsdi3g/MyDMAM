@@ -19,15 +19,12 @@ package hd3gtv.mydmam.module;
 import java.util.List;
 import java.util.Map;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
 public interface ArchivingTapeLocalisator {
 	
 	/**
 	 * @return [storageindexname1, storageindexname2]
 	 */
-	public JSONArray getStorageIndexNameJsonListForHostedInArchiving();
+	public List<String> getStorageIndexNameListForHostedInArchiving();
 	
 	/**
 	 * Resolve pathindexes keys in tapes location
@@ -38,6 +35,6 @@ public interface ArchivingTapeLocalisator {
 	/**
 	 * @return tapename: {isexternal, barcode, location},
 	 */
-	public JSONObject getPositionInformationsByTapeName(String... tapenames);
+	public Map<String, ArchivingTapeInformation> getPositionInformationsByTapeName(String... tapenames);
 	
 }

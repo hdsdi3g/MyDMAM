@@ -54,15 +54,15 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import play.i18n.Lang;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-@SuppressWarnings("unchecked")
 public class Notification {
 	
 	public static final String ES_INDEX = "notifications";
@@ -88,19 +88,19 @@ public class Notification {
 	
 	private Map<NotifyReason, List<UserProfile>> notify_list;
 	
-	private List<UserProfile> getUsersFromDb(JSONArray list_user_profile_record) throws Exception {
+	private List<UserProfile> getUsersFromDb(JsonArray list_user_profile_record) throws Exception {
 		if (list_user_profile_record.size() == 0) {
 			return new ArrayList<UserProfile>(1);
 		}
 		String[] key_list = new String[list_user_profile_record.size()];
 		for (int pos = 0; pos < list_user_profile_record.size(); pos++) {
-			key_list[pos] = (String) list_user_profile_record.get(pos);
+			key_list[pos] = list_user_profile_record.get(pos).getAsString();
 		}
 		return getUsers(key_list);
 	}
 	
-	private static JSONArray getUsersToSetInDb(List<UserProfile> user_list) {
-		JSONArray list_user_profile_record = new JSONArray();
+	private static List<String> getUsersToSetInDb(List<UserProfile> user_list) {
+		ArrayList<String> list_user_profile_record = new ArrayList<String>();
 		for (int pos = 0; pos < user_list.size(); pos++) {
 			list_user_profile_record.add(user_list.get(pos).key);
 		}
@@ -194,101 +194,101 @@ public class Notification {
 		}
 	}
 	
-	private Notification importFromDb(String key, JSONObject record) throws Exception {
+	private Notification importFromDb(String key, JsonObject record) throws Exception {
 		this.key = key;
 		
-		observers = getUsersFromDb((JSONArray) record.get("observers"));
-		creator = getUser((String) record.get("creator"));
+		observers = getUsersFromDb(record.get("observers").getAsJsonArray());
+		creator = getUser(record.get("creator").getAsString());
 		
-		JSONArray ja_linked_tasks = (JSONArray) record.get("linked_tasks");
+		JsonArray ja_linked_tasks = record.get("linked_tasks").getAsJsonArray();
 		if (ja_linked_tasks.size() > 0) {
 			linked_tasksjobs = new HashMap<String, JobStatus>(ja_linked_tasks.size());
 			for (int pos = 0; pos < ja_linked_tasks.size(); pos++) {
-				JSONObject jo = (JSONObject) ja_linked_tasks.get(pos);
-				linked_tasksjobs.put((String) jo.get("taskjobkey"), JobStatus.valueOf((String) jo.get("status")));
+				JsonObject jo = ja_linked_tasks.get(pos).getAsJsonObject();
+				linked_tasksjobs.put(jo.get("taskjobkey").getAsString(), JobStatus.valueOf(jo.get("status").getAsString()));
 			}
 		} else {
 			linked_tasksjobs = new HashMap<String, JobStatus>(1);
 		}
 		
-		creating_comment = (String) record.get("creating_comment");
+		creating_comment = record.get("creating_comment").getAsString();
 		
 		profile_references = new ArrayList<String>();
-		JSONArray ja_profile_references = (JSONArray) record.get("profile_references");
+		JsonArray ja_profile_references = record.get("profile_references").getAsJsonArray();
 		for (int pos = 0; pos < ja_profile_references.size(); pos++) {
-			profile_references.add((String) ja_profile_references.get(pos));
+			profile_references.add(ja_profile_references.get(pos).getAsString());
 		}
 		
-		creator_reference = (String) record.get("creator_reference");
-		created_at = (Long) record.get("created_at");
-		is_read = (Boolean) record.get("is_read");
-		readed_at = (Long) record.get("readed_at");
+		creator_reference = record.get("creator_reference").getAsString();
+		created_at = record.get("created_at").getAsLong();
+		is_read = record.get("is_read").getAsBoolean();
+		readed_at = record.get("readed_at").getAsLong();
 		
-		first_reader = getUser((String) record.get("first_reader"));
-		closed_at = (Long) record.get("closed_at");
-		is_close = (Boolean) record.get("is_close");
-		closed_by = getUser((String) record.get("closed_by"));
-		commented_at = (Long) record.get("commented_at");
-		users_comment = (String) record.get("users_comment");
+		first_reader = getUser(record.get("first_reader").getAsString());
+		closed_at = record.get("closed_at").getAsLong();
+		is_close = record.get("is_close").getAsBoolean();
+		closed_by = getUser(record.get("closed_by").getAsString());
+		commented_at = record.get("commented_at").getAsLong();
+		users_comment = record.get("users_comment").getAsString();
 		
 		notify_list = new HashMap<NotifyReason, List<UserProfile>>();
 		NotifyReason[] reasons = NotifyReason.values();
 		for (int pos = 0; pos < reasons.length; pos++) {
-			notify_list.put(reasons[pos], getUsersFromDb((JSONArray) record.get(reasons[pos].getDbRecordName())));
+			notify_list.put(reasons[pos], getUsersFromDb(record.get(reasons[pos].getDbRecordName()).getAsJsonArray()));
 		}
 		return this;
 	}
 	
-	private Notification exportToDb(JSONObject record) {
-		record.put("observers", getUsersToSetInDb(observers));
+	private Notification exportToDb(JsonObject record) {
+		Gson gson = new Gson();
+		
+		record.add("observers", gson.toJsonTree(getUsersToSetInDb(observers)));
 		
 		if (creator == null) {
-			record.put("creator", "");
+			record.addProperty("creator", "");
 		} else {
-			record.put("creator", creator.key);
+			record.addProperty("creator", creator.key);
 		}
 		
-		JSONArray ja_linked_tasks = new JSONArray();
+		JsonArray ja_linked_tasks = new JsonArray();
 		for (Map.Entry<String, JobStatus> entry : linked_tasksjobs.entrySet()) {
-			JSONObject jo = new JSONObject();
-			jo.put("taskjobkey", entry.getKey());
-			jo.put("status", entry.getValue().toString());
+			JsonObject jo = new JsonObject();
+			jo.addProperty("taskjobkey", entry.getKey());
+			jo.addProperty("status", entry.getValue().toString());
 			ja_linked_tasks.add(jo);
 		}
-		record.put("linked_tasks", ja_linked_tasks);
+		record.add("linked_tasks", ja_linked_tasks);
 		
-		record.put("creating_comment", creating_comment);
+		record.addProperty("creating_comment", creating_comment);
 		
-		JSONArray ja_profile_references = new JSONArray();
 		if (profile_references != null) {
-			for (int pos = 0; pos < profile_references.size(); pos++) {
-				ja_profile_references.add(profile_references.get(pos));
-			}
+			record.add("profile_references", gson.toJsonTree(profile_references));
+		} else {
+			record.add("profile_references", gson.toJsonTree(new ArrayList<String>()));
 		}
 		
-		record.put("profile_references", ja_profile_references);
-		record.put("creator_reference", creator_reference);
-		record.put("created_at", created_at);
-		record.put("is_read", is_read);
-		record.put("readed_at", readed_at);
+		record.addProperty("creator_reference", creator_reference);
+		record.addProperty("created_at", created_at);
+		record.addProperty("is_read", is_read);
+		record.addProperty("readed_at", readed_at);
 		
 		if (first_reader == null) {
-			record.put("first_reader", "");
+			record.addProperty("first_reader", "");
 		} else {
-			record.put("first_reader", first_reader.key);
+			record.addProperty("first_reader", first_reader.key);
 		}
 		
-		record.put("closed_at", closed_at);
-		record.put("is_close", is_close);
+		record.addProperty("closed_at", closed_at);
+		record.addProperty("is_close", is_close);
 		
 		if (closed_by == null) {
-			record.put("closed_by", "");
+			record.addProperty("closed_by", "");
 		} else {
-			record.put("closed_by", closed_by.key);
+			record.addProperty("closed_by", closed_by.key);
 		}
 		
-		record.put("commented_at", commented_at);
-		record.put("users_comment", users_comment);
+		record.addProperty("commented_at", commented_at);
+		record.addProperty("users_comment", users_comment);
 		
 		NotifyReason[] reasons = NotifyReason.values();
 		if (notify_list == null) {
@@ -298,7 +298,7 @@ public class Notification {
 			}
 		}
 		for (int pos = 0; pos < reasons.length; pos++) {
-			record.put(reasons[pos].getDbRecordName(), getUsersToSetInDb(notify_list.get(reasons[pos])));
+			record.add(reasons[pos].getDbRecordName(), gson.toJsonTree(getUsersToSetInDb(notify_list.get(reasons[pos]))));
 		}
 		return this;
 	}
@@ -562,7 +562,7 @@ public class Notification {
 			BulkRequestBuilder bulkrequest = client.prepareBulk();
 			
 			CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
-			JSONObject record;
+			JsonObject record;
 			JobStatus new_status_summary;
 			JobStatus previous_status_summary;
 			boolean must_update_notification;
@@ -624,9 +624,9 @@ public class Notification {
 				}
 				
 				if (must_update_notification) {
-					record = new JSONObject();
+					record = new JsonObject();
 					notification.exportToDb(record);
-					bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()).setRefresh(true).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
+					bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toString()).setRefresh(true).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
 				}
 			}
 			
@@ -784,7 +784,7 @@ public class Notification {
 		
 		BulkRequestBuilder bulkrequest = client.prepareBulk();
 		
-		JSONObject record;
+		JsonObject record;
 		JobStatus status_summary;
 		boolean will_close_notification;
 		
@@ -814,9 +814,9 @@ public class Notification {
 			if (will_close_notification) {
 				notification.closed_at = System.currentTimeMillis();
 				notification.is_close = true;
-				record = new JSONObject();
+				record = new JsonObject();
 				notification.exportToDb(record);
-				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toJSONString()).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
+				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toString()).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
 				count++;
 			}
 		}
@@ -861,11 +861,11 @@ public class Notification {
 		/**
 		 * Export
 		 */
-		JSONObject record = new JSONObject();
+		JsonObject record = new JsonObject();
 		exportToDb(record);
 		
 		IndexRequest ir = new IndexRequest(ES_INDEX, ES_DEFAULT_TYPE, key);
-		ir.source(record.toJSONString());
+		ir.source(record.toString());
 		ir.ttl(MAXIMAL_NOTIFICATION_LIFETIME);
 		
 		if (bulkrequest == null) {
@@ -912,7 +912,7 @@ public class Notification {
 		return notification;
 	}
 	
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static ArrayList<Map<String, Object>> getRawFromDatabaseByObserver(UserProfile user, boolean can_is_closed) throws ConnectionException, IOException {
 		if (user == null) {
 			throw new NullPointerException("\"user\" can't to be null");

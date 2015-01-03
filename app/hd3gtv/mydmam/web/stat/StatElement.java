@@ -16,11 +16,17 @@
 */
 package hd3gtv.mydmam.web.stat;
 
+import hd3gtv.mydmam.manager.GsonIgnore;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
-import org.json.simple.JSONObject;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 public class StatElement {
 	
@@ -36,14 +42,15 @@ public class StatElement {
 	/**
 	 * Referer to "this" element
 	 */
-	JSONObject reference;
-	transient SourcePathIndexerElement spie_reference;
+	@GsonIgnore
+	SourcePathIndexerElement reference;
 	Map<String, Object> mtdsummary;
 	
 	/**
 	 * Bounded by from and size query
 	 * pathelementkey > StatElement
 	 */
+	@GsonIgnore
 	Map<String, StatElement> items;
 	
 	/**
@@ -60,5 +67,17 @@ public class StatElement {
 	 * Bounded values
 	 */
 	Integer items_page_size;
+	
+	static class Serializer implements JsonSerializer<StatElement> {
+		Gson gson_simple;
+		Gson gson;
+		
+		public JsonElement serialize(StatElement src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = gson_simple.toJsonTree(src).getAsJsonObject();
+			result.add("reference", src.reference.toGson());
+			result.add("items", gson.toJsonTree(src.items));
+			return result;
+		}
+	}
 	
 }

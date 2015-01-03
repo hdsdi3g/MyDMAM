@@ -42,11 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.ObjectWriter;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-
 public class MetadataCenter {
 	
 	private static List<GeneratorAnalyser> generatorAnalysers;
@@ -194,66 +189,6 @@ public class MetadataCenter {
 		}
 		
 		return container;
-	}
-	
-	/*
-	static void updateSummaryPreviewRenderedMetadataElement(JSONObject jo_summary_previews, Renderer renderer, List<RenderedElement> rendered_elements, LinkedHashMap<String, JSONObject> metadatas) {
-		if (rendered_elements == null) {
-			return;
-		}
-		if (rendered_elements.isEmpty()) {
-			return;
-		}
-		PreviewType previewtype = renderer.getPreviewTypeForRenderer(metadatas, rendered_elements);
-		if (previewtype == null) {
-			return;
-		}
-		JSONObject preview_content = new JSONObject();
-		if (rendered_elements.size() == 1) {
-			preview_content.put("file", rendered_elements.get(0).getRendered_file().getName());
-		} else {
-			JSONArray ja_elements_list = new JSONArray();
-			for (int pos_re = 0; pos_re < rendered_elements.size(); pos_re++) {
-				ja_elements_list.add(rendered_elements.get(pos_re).getRendered_file().getName());
-			}
-			preview_content.put("files", ja_elements_list);
-		}
-		
-		JSONObject previewconfiguration = renderer.getPreviewConfigurationForRenderer(previewtype, metadatas, rendered_elements);
-		if (previewconfiguration != null) {
-			if (previewconfiguration.isEmpty() == false) {
-				preview_content.put("conf", previewconfiguration);
-			}
-		}
-		preview_content.put("type", renderer.getElasticSearchIndexType());
-		jo_summary_previews.put(previewtype.toString(), preview_content);
-	}
-	 * */
-	
-	public static String json_prettify(JSONObject json) {
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectWriter writer = mapper.writer().withDefaultPrettyPrinter();
-		try {
-			return writer.writeValueAsString(json);
-		} catch (Exception e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("json", json);
-			Log2.log.error("Bad JSON prettify, cancel it", e);
-			return json.toJSONString();
-		}
-	}
-	
-	public static String json_prettify(JSONArray json) {
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectWriter writer = mapper.writer().withDefaultPrettyPrinter();
-		try {
-			return writer.writeValueAsString(json);
-		} catch (Exception e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("json", json);
-			Log2.log.error("Bad JSON prettify, cancel it", e);
-			return json.toJSONString();
-		}
 	}
 	
 }

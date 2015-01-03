@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.web.stat;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.manager.GsonIgnoreStrategy;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.Containers;
@@ -34,6 +35,7 @@ import java.util.Map;
 import org.elasticsearch.indices.IndexMissingException;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class Stat {
 	
@@ -45,11 +47,23 @@ public class Stat {
 	private int page_size = 100;
 	private String search;
 	private Explorer explorer;
+	private Gson gson_simple;
 	private Gson gson;
 	
 	public Stat(String[] pathelementskeys, String[] array_scopes_element, String[] array_scopes_subelements) {
 		explorer = new Explorer();
-		gson = new Gson();
+		
+		GsonBuilder builder = new GsonBuilder();
+		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		gson_simple = builder.create();
+		
+		StatElement.Serializer statelement_serializer = new StatElement.Serializer();
+		builder.registerTypeAdapter(StatElement.class, statelement_serializer);
+		gson = builder.create();
+		statelement_serializer.gson = gson;
+		statelement_serializer.gson_simple = gson_simple;
 		
 		if (pathelementskeys != null) {
 			if (pathelementskeys.length > 0) {
@@ -130,8 +144,7 @@ public class Stat {
 			if (map_elements_resolved.containsKey(entry.getKey()) == false) {
 				continue;
 			}
-			entry.getValue().spie_reference = map_elements_resolved.get(entry.getKey());
-			entry.getValue().reference = entry.getValue().spie_reference.toJson();
+			entry.getValue().reference = map_elements_resolved.get(entry.getKey());
 			if (count_items) {
 				entry.getValue().items_total = explorer.countDirectoryContentElements(entry.getKey());
 			}
@@ -158,10 +171,9 @@ public class Stat {
 			entry.getValue().items = new LinkedHashMap<String, StatElement>(dir_list.size());
 			for (Map.Entry<String, SourcePathIndexerElement> dir_list_entry : dir_list.entrySet()) {
 				StatElement s_element = new StatElement();
-				s_element.spie_reference = dir_list_entry.getValue();
-				s_element.reference = s_element.spie_reference.toJson();
+				s_element.reference = dir_list_entry.getValue();
 				if (count_items) {
-					s_element.items_total = explorer.countDirectoryContentElements(s_element.spie_reference.prepare_key());
+					s_element.items_total = explorer.countDirectoryContentElements(s_element.reference.prepare_key());
 				}
 				entry.getValue().items.put(dir_list_entry.getKey(), s_element);
 			}
@@ -181,10 +193,10 @@ public class Stat {
 		if (has_pathinfo) {
 			ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
 			for (StatElement statelement : selected_path_elements.values()) {
-				if (statelement.spie_reference == null) {
+				if (statelement.reference == null) {
 					continue;
 				}
-				pathelements.add(statelement.spie_reference);
+				pathelements.add(statelement.reference);
 			}
 			summaries = getSummariesByPathElements(pathelements);
 		} else {

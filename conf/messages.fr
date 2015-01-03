@@ -554,3 +554,7 @@ acl.privileges.name.updateQueue=Gérer les taches
 acl.privileges.name.showStatus=Voir l'état des services
 acl.privileges.name.adminUsers=Gérer les utilisateurs
 acl.privileges.name.userAction=Créer une action utilisateur
+acl.privileges.name.showManager=Voir la gestion des services
+acl.privileges.name.showJobs=Voir la liste des jobs
+acl.privileges.name.actionManager=Gérer les services
+acl.privileges.name.actionJobs=Gérer la liste des jobs

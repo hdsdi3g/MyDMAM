@@ -29,15 +29,15 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import models.UserProfile;
-
-import org.json.simple.JSONObject;
-
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
+
+import com.google.gson.JsonObject;
+
 import ext.MydmamExtensions;
 
 @With(Secure.class)
@@ -140,9 +140,9 @@ public class UserNotifications extends Controller {
 		
 		UserProfile user = User.getUserProfile();
 		getNotification(user, key, false, true).switchReadStatus(user).save();
-		JSONObject jo = new JSONObject();
-		jo.put("result", true);
-		renderJSON(jo.toJSONString());
+		JsonObject jo = new JsonObject();
+		jo.addProperty("result", true);
+		renderJSON(jo.toString());
 	}
 	
 	public static void notificationresolveusers() throws Exception {
@@ -168,16 +168,16 @@ public class UserNotifications extends Controller {
 			renderJSON("{}");
 		}
 		
-		JSONObject jo = new JSONObject();
+		JsonObject jo = new JsonObject();
 		UserProfile user;
 		for (int pos = 0; pos < users.size(); pos++) {
 			user = users.get(pos);
-			JSONObject jo_user = new JSONObject();
-			jo_user.put("mail", user.email);
-			jo_user.put("name", user.longname);
-			jo.put(MydmamExtensions.encrypt(user.key), jo_user);
+			JsonObject jo_user = new JsonObject();
+			jo_user.addProperty("mail", user.email);
+			jo_user.addProperty("name", user.longname);
+			jo.add(MydmamExtensions.encrypt(user.key), jo_user);
 		}
-		renderJSON(jo.toJSONString());
+		renderJSON(jo.toString());
 	}
 	
 	@SuppressWarnings("rawtypes")

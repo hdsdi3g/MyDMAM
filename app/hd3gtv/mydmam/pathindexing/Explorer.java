@@ -44,7 +44,6 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
-import org.json.simple.JSONObject;
 
 public class Explorer {
 	
@@ -303,8 +302,7 @@ public class Explorer {
 		
 		SearchHit[] hits = response.getHits().hits();
 		
-		JSONObject jo = Elasticsearch.getJSONFromSimpleResponse(hits[0]);
-		return (String) jo.get("storagename");
+		return Elasticsearch.getJSONFromSimpleResponse(hits[0]).get("storagename").getAsString();
 	}
 	
 	public class DirectoryContent {

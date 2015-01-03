@@ -41,9 +41,10 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 @SuppressWarnings("unchecked")
 public class Elasticsearch {
@@ -127,22 +128,20 @@ public class Elasticsearch {
 	 * Do all checks, test if exists, and if has result
 	 * @return null if no/impossible result
 	 */
-	public static JSONObject getJSONFromSimpleResponse(GetResponse response) {
+	public static JsonObject getJSONFromSimpleResponse(GetResponse response) {
 		if (response == null) {
 			return null;
 		}
 		if (response.isExists() == false) {
 			return null;
 		}
-		JSONParser jp = new JSONParser();
-		
-		try {
-			Object o = jp.parse(response.getSourceAsString());
-			if (o instanceof JSONObject) {
-				return (JSONObject) o;
-			}
-		} catch (ParseException e) {
-			e.printStackTrace();
+		return getJSONFromString(response.getSourceAsString());
+	}
+	
+	private static JsonObject getJSONFromString(String source_as_string) {
+		JsonElement o = new JsonParser().parse(source_as_string);
+		if (o.isJsonObject()) {
+			return o.getAsJsonObject();
 		}
 		return null;
 	}
@@ -151,22 +150,11 @@ public class Elasticsearch {
 	 * Do all checks, test if exists, and if has result
 	 * @return null if no/impossible result
 	 */
-	public static JSONObject getJSONFromSimpleResponse(SearchHit hit) {
+	public static JsonObject getJSONFromSimpleResponse(SearchHit hit) {
 		if (hit == null) {
 			return null;
 		}
-		JSONParser jp = new JSONParser();
-		
-		try {
-			Object o = jp.parse(hit.getSourceAsString());
-			if (o instanceof JSONObject) {
-				return (JSONObject) o;
-			}
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
-		
-		return null;
+		return getJSONFromString(hit.getSourceAsString());
 	}
 	
 	public static void enableTTL(String index_name, String type) throws IOException {

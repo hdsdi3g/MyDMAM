@@ -30,9 +30,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import models.UserProfile;
-
-import org.json.simple.JSONObject;
-
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
@@ -41,6 +38,7 @@ import play.mvc.Controller;
 import play.mvc.With;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import ext.MydmamExtensions;
 
@@ -102,9 +100,9 @@ public class UserBasket extends Controller {
 		Basket basket = Basket.getBasketForCurrentPlayUser();
 		basket.delete(name);
 		
-		JSONObject jo = new JSONObject();
-		jo.put("delete", name);
-		renderJSON(jo.toJSONString());
+		JsonObject jo = new JsonObject();
+		jo.addProperty("delete", name);
+		renderJSON(jo.toString());
 	}
 	
 	@Check("navigate")
@@ -115,9 +113,9 @@ public class UserBasket extends Controller {
 		
 		Basket.getBasketForCurrentPlayUser().setContent(name, new ArrayList<String>(1));
 		
-		JSONObject jo = new JSONObject();
-		jo.put("truncate", name);
-		renderJSON(jo.toJSONString());
+		JsonObject jo = new JsonObject();
+		jo.addProperty("truncate", name);
+		renderJSON(jo.toString());
 	}
 	
 	/**
@@ -125,9 +123,9 @@ public class UserBasket extends Controller {
 	 */
 	@Check("navigate")
 	public static void basket_get_selected() throws Exception {
-		JSONObject jo = new JSONObject();
-		jo.put("selected", Basket.getBasketForCurrentPlayUser().getSelectedName());
-		renderJSON(jo.toJSONString());
+		JsonObject jo = new JsonObject();
+		jo.addProperty("selected", Basket.getBasketForCurrentPlayUser().getSelectedName());
+		renderJSON(jo.toString());
 	}
 	
 	@Check("navigate")
@@ -138,10 +136,10 @@ public class UserBasket extends Controller {
 		
 		Basket.getBasketForCurrentPlayUser().rename(name, cleanName(newname));
 		
-		JSONObject jo = new JSONObject();
-		jo.put("rename_from", name);
-		jo.put("rename_to", cleanName(newname));
-		renderJSON(jo.toJSONString());
+		JsonObject jo = new JsonObject();
+		jo.addProperty("rename_from", name);
+		jo.addProperty("rename_to", cleanName(newname));
+		renderJSON(jo.toString());
 	}
 	
 	private static String cleanName(String rawname) {
@@ -165,10 +163,10 @@ public class UserBasket extends Controller {
 		Basket basket = Basket.getBasketForCurrentPlayUser();
 		basket.create(cleanName(name), switch_to_selected);
 		
-		JSONObject jo = new JSONObject();
-		jo.put("create", cleanName(name));
-		jo.put("switch_to_selected", switch_to_selected);
-		renderJSON(jo.toJSONString());
+		JsonObject jo = new JsonObject();
+		jo.addProperty("create", cleanName(name));
+		jo.addProperty("switch_to_selected", switch_to_selected);
+		renderJSON(jo.toString());
 	}
 	
 	/**
@@ -191,9 +189,9 @@ public class UserBasket extends Controller {
 	@Check("navigate")
 	public static void basket_switch_selected(@Required String name) throws Exception {
 		if (Validation.hasErrors()) {
-			JSONObject jo = new JSONObject();
-			jo.put("notselected", true);
-			renderJSON(jo.toJSONString());
+			JsonObject jo = new JsonObject();
+			jo.addProperty("notselected", true);
+			renderJSON(jo.toString());
 		}
 		
 		Basket.getBasketForCurrentPlayUser().setSelected(name);
@@ -273,9 +271,9 @@ public class UserBasket extends Controller {
 	@Check("adminUsers")
 	public static void basket_admin_action(@Required String userkey, @Required String basketname, @Required String actiontodo, String elementkey, List<String> newcontent) throws Exception {
 		if (Validation.hasErrors()) {
-			JSONObject jo = new JSONObject();
-			jo.put("error", true);
-			renderJSON(jo.toJSONString());
+			JsonObject jo = new JsonObject();
+			jo.addProperty("error", true);
+			renderJSON(jo.toString());
 		}
 		
 		HashMap<String, String> result = new HashMap<String, String>();
@@ -323,14 +321,14 @@ public class UserBasket extends Controller {
 			remote_basket.delete(basketname);
 		} else if (actiontodo.equals("removebasketcontent")) {
 			if (elementkey == null) {
-				JSONObject jo = new JSONObject();
-				jo.put("error", true);
-				renderJSON(jo.toJSONString());
+				JsonObject jo = new JsonObject();
+				jo.addProperty("error", true);
+				renderJSON(jo.toString());
 			}
 			if (elementkey.equals("")) {
-				JSONObject jo = new JSONObject();
-				jo.put("error", true);
-				renderJSON(jo.toJSONString());
+				JsonObject jo = new JsonObject();
+				jo.addProperty("error", true);
+				renderJSON(jo.toString());
 			}
 			List<String> content = remote_basket.getContent(basketname);
 			int pos = content.indexOf(elementkey);
