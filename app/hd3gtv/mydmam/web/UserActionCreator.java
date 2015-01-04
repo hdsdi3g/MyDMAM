@@ -272,6 +272,7 @@ public class UserActionCreator {
 		logentry.put("storageindexname_to_itemlist", storageindexname_to_itemlist);
 		// logentry.put("global_finisher", global_finisher);
 		logentry.put("range", range);
+		logentry.put("basket_name", basket_name);
 		logentry.put("new_tasks", new_tasks);
 		logentry.put("created_at", now);
 		

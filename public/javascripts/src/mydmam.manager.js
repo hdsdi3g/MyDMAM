@@ -531,9 +531,80 @@
 			for (var pos_uafl = 0; pos_uafl < useraction_functionality_list.length; pos_uafl++) {
 				var useraction_functionality = useraction_functionality_list[pos_uafl];
 				//TODO display useraction_functionality
+				/* LEGACY CODE :
+					var functionality;
+					var presence_functionality = false;
+					for (var pos = 0; pos < data.length; pos++) {
+						if (data[pos].useraction_functionality_list.length) {
+							presence_functionality = true;
+							var content = "";
+							content = content + '<tr><td colspan="5">';
+							content = content + '<span class="text-info"><strong>' + data[pos].workername + '</strong> ' + data[pos].javaaddress.hostname;
+							for (var pos_addr = 0; pos_addr < data[pos].javaaddress.address.length; pos_addr++) {
+								content = content + " &bull; " + data[pos].javaaddress.address[pos_addr];
+							}
+							content = content + '</span></td></tr>';
+
+							content = content + '<tr>';
+							content = content + '<th colspan="2">' + i18n("service.functionalitieslist.functionality") + '</th>';
+							content = content + '<th>' + i18n("service.functionalitieslist.profiles") + '</th>';
+							content = content + '<th>' + i18n("service.functionalitieslist.capabilities") + '</th>';
+							content = content + '<th>' + i18n("service.functionalitieslist.storageindexeswhitelist") + '</th>';
+							content = content + '</tr>';
+
+							for (var pos_th = 0; pos_th < data[pos].useraction_functionality_list.length; pos_th++) {
+								functionality = data[pos].useraction_functionality_list[pos_th];
+								content = content + '<tr>';
+								
+								content = content + '<td>' + functionality.vendor + '<br>';
+								content = content + '<small>' + functionality.section + '</small></td>';
+
+								//content = content + '<td>' + functionality.instance + '</td>';
+								
+								content = content + '<td>' + functionality.longname + '<br>';
+								content = content + '<small>' + functionality.description + '</small><br>';
+								content = content + '<small>' + functionality.classname + '</small></td>';
+
+								content = content + '<td>';
+								for (var pos_pf in functionality.profiles) {
+									content = content + '<strong>' + functionality.profiles[pos_pf].category + '</strong> :: ';
+									content = content + functionality.profiles[pos_pf].name;
+									content = content + '<br>';
+								}
+								content = content + '</td>';
+								
+								content = content + '<td>';
+								if (functionality.capability.fileprocessing_enabled) {
+									content = content + '<span class="label label-success">File</span>';
+								}
+								if (functionality.capability.directoryprocessing_enabled) {
+									content = content + '<span class="label label-success">Directory</span>';
+								}
+								if (functionality.capability.rootstorageindexprocessing_enabled) {
+									content = content + '<span class="label label-success">Root storage</span>';
+								}
+								if (functionality.capability.musthavelocalstorageindexbridge) {
+									content = content + '<br><span class="label label-important">' + i18n("service.functionalitieslist.musthavelocalstorageindexbridge") + '</span>';
+								}
+								content = content + '</td>';
+
+								content = content + '<td>';
+								for (var pos_wl in functionality.capability.storageindexeswhitelist) {
+									content = content + functionality.capability.storageindexeswhitelist[pos_wl] + '<br>';
+								}
+								content = content + '</td>';
+
+								content = content + '</tr>';
+							}
+							$("#laststatusworkersfunctionalities").append(content);
+						}
+					}
+				 * 
+				 * */
 			}
 		}
 		return content;
 	};
 })(window.mydmam.manager);
+
 

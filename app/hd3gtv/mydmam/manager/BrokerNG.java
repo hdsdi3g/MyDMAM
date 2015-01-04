@@ -375,9 +375,7 @@ class BrokerNG {
 						 */
 						Log2.log.error("Can't lock CF: abandoned lock.", e, stat_time.getStatisticTimeResult());
 					} catch (BusyLockException e) {
-						Log2.log.error("Can't lock CF, it's currently locked.", e, stat_time.getStatisticTimeResult());
-						Thread.sleep(QUEUE_SLEEP_TIME);
-						Thread.sleep(Math.round(Math.random() * 10000));
+						Log2.log.debug("Can't lock CF, it's currently locked.", stat_time.getStatisticTimeResult());
 					} finally {
 						if (lock != null) {
 							lock.release();

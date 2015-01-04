@@ -19,8 +19,7 @@ package controllers;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
-import hd3gtv.mydmam.taskqueue.Broker;
-import hd3gtv.mydmam.taskqueue.TaskJobStatus;
+import hd3gtv.mydmam.manager.JobNG;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,6 +62,8 @@ public class UserNotifications extends Controller {
 		ArrayList<Map<String, Object>> user_notifications = Notification.getRawFromDatabaseByObserver(user, false);
 		render(title, user_notifications, user);
 	}
+	
+	// TODO add controller for mydmam.notification.url.queuegettasksjobs
 	
 	/**
 	 * @return valid notification for user, or (flash error + redirect to list) | (or if doredirect: return null)
@@ -204,9 +205,9 @@ public class UserNotifications extends Controller {
 			}
 		}
 		
-		HashMap<String, TaskJobStatus> linked_tasksjobs = new HashMap<String, TaskJobStatus>(1);
+		HashMap<String, JobNG.JobStatus> linked_tasksjobs = new HashMap<String, JobNG.JobStatus>(1);
 		if (tasks_job_to_resolve.isEmpty() == false) {
-			linked_tasksjobs = Broker.getStatusForTasksOrJobsByKeys(tasks_job_to_resolve);
+			linked_tasksjobs = JobNG.Utility.getJobsStatusByKeys(tasks_job_to_resolve);
 		}
 		
 		render(title, user_notifications, linked_tasksjobs);

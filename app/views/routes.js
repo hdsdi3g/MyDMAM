@@ -40,26 +40,6 @@ mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 	
 #{/secure.check}
 
-#{secure.check 'showQueue'}
-	mydmam.queue.url.getall = "@{Queue.getall()}";
-	mydmam.queue.url.getupdate = "@{Queue.getupdate()}";
-	mydmam.workermanager.url.getworkers = "@{Queue.getworkers()}";
-#{/secure.check}
-#{secure.check 'updateQueue'}
-	mydmam.queue.enable_update = true;
-	mydmam.workermanager.enable_update = true;
-	
-	mydmam.queue.url.changetaskstatus = "@{Queue.changetaskstatus()}";
-	mydmam.queue.url.changetaskpriority = "@{Queue.changetaskpriority()}";
-	mydmam.queue.url.changetaskmaxage = "@{Queue.changetaskmaxage()}";
-	mydmam.workermanager.url.changeworkerstate = "@{Queue.changeworkerstate()}";
-	mydmam.workermanager.url.changeworkercyclicperiod = "@{Queue.changeworkercyclicperiod()}";
-#{/secure.check}
-
-#{secure.check 'showStatus'}
-	mydmam.service.url.laststatusworkers = "@{Service.laststatusworkers()}";
-#{/secure.check}
-
 #{secure.check 'showManager'}
 	mydmam.manager.url.allinstances = "@{Manager.allinstances()}";
 	mydmam.manager.url.allworkers = "@{Manager.allworkers()}";
@@ -80,7 +60,7 @@ mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 		
 mydmam.notification.url.notificationresolveusers = "@{UserNotifications.notificationresolveusers}";
 mydmam.notification.url.notificationupdateread = "@{UserNotifications.notificationupdateread(key='keyparam1')}";
-mydmam.notification.url.queuegettasksjobs = "@{Queue.gettasksjobs}";
+//mydmam.notification.url.queuegettasksjobs = "";
 
 #{secure.check 'userAction'}
 mydmam.useraction.url.create = "@{UserAction.create()}";

@@ -16,15 +16,24 @@
 */
 package controllers;
 
+import hd3gtv.mydmam.db.status.ClusterStatus;
+import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
+import hd3gtv.mydmam.db.status.StatusReport;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.manager.JobAction;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.WorkerExporter;
+
+import java.util.Map;
+
+import play.Play;
+import play.PlayPlugin;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
+import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
 
@@ -33,6 +42,27 @@ import com.google.gson.JsonParser;
 
 @With(Secure.class)
 public class Manager extends Controller {
+	
+	@Check("showManager")
+	public static void playjobs() throws Exception {
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.playjobs.pagename"));
+		
+		PlayPlugin plugin = Play.pluginCollection.getPluginInstance(JobsPlugin.class);
+		if (plugin == null) {
+			throw new NullPointerException("No JobsPlugin enabled");
+		}
+		String rawplaystatus = plugin.getStatus();
+		render(rawplaystatus);
+	}
+	
+	@Check("showManager")
+	public static void clusterstatus() {
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.clusterstatus.report.pagename"));
+		ClusterStatus cluster_status = new ClusterStatus();
+		cluster_status.prepareReports();
+		Map<ClusterType, Map<String, StatusReport>> all_reports = cluster_status.getAllReports();
+		render(all_reports);
+	}
 	
 	@Check("showManager")
 	public static void index() {

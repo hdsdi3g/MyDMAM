@@ -149,22 +149,6 @@ $(document).ready(function() {
       <!-- Everything you want hidden at 940px or less, place within here -->
       <div class="nav-collapse collapse">
  		<ul class="nav pull-left navbar-fixed-top-btn">
- 			 <li class="dropdown checkifempty" id="btnActivities" data-deleteifempty="mainactivitiesmenu">
-				<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-					&{'maingrid.activities'}
-					<b class="caret"></b>
-				</a>
-				<ul class="dropdown-menu" id="mainactivitiesmenu">
-					#{secure.check 'showQueue'}
-						<li>
-							<a href="@{Queue.index()}"><i class="icon-tasks"></i> &{'queue.taskslist'}</a>
-						</li>
-						<li>
-							<a href="@{Queue.workers()}"><i class="icon-fire"></i> &{'queue.workerlist'}</a>
-						</li>
-					#{/secure.check}
-				</ul>
-			</li>
 			#{secure.check 'navigate'}
 				<li id="btnStorage">
 					<a href="@{Application.navigate()}">&{'application.navigate'}</a>
@@ -242,18 +226,34 @@ $(document).ready(function() {
 						}}
 					}%
 					
-					#{secure.check 'adminCrud'}
-						<li>
-							<a href="@{Admin.index(objtype:'userprofile')}"><i class="icon-th-list"></i> &{'crud.field.userprofile'}</a>
-						</li>
-					#{/secure.check}
-					
 					#{secure.check 'adminUsers'}
 						<li>
 							<a href="@{UserBasket.basketsadmin}"><i class="icon-shopping-cart"></i> &{'userprofile.baskets.admin.pagename'}</a>
 						</li>
 						<li>
 							<a href="@{UserNotifications.notificationsadminlist}"><i class="icon-bell"></i> &{'userprofile.notifications.admin.pagename'}</a>
+						</li>
+					#{/secure.check}
+					
+					#{secure.check 'showJobs'}
+						<li class="divider"></li>
+						<li class="nav-header">
+							&{'service.menuinfrastructure'}
+						</li>
+						<li>
+							<a href="@{Manager.jobs()}"><i class="icon-tasks"></i> &{'manager.jobs.pagename'}</a>
+						</li>
+					#{/secure.check}
+					
+					#{secure.check 'showManager'}
+						<li>
+							<a href="@{Manager.index()}"><i class="icon-hdd"></i> &{'manager.pagename'}</a>
+						</li>
+						<li>
+							<a href="@{Manager.clusterstatus()}"><i class="icon-globe"></i> &{'service.clusterstatus.report.pagename'}</a>
+						</li>
+						<li>
+							<a href="@{Manager.playjobs()}"><i class="icon-info-sign"></i> &{'service.playjobs.pagename'}</a>
 						</li>
 					#{/secure.check}
 					
@@ -272,32 +272,13 @@ $(document).ready(function() {
 							<a href="@{ACL.showroles()}"><i class="icon-user"></i> &{'acl.pagename.roles'}</a>
 						</li>
 					#{/secure.check}
-
-					#{secure.check 'showStatus'}
-						<li class="divider"></li>
-						<li class="nav-header">
-							&{'service.menuinfrastructure'}
-						</li>
+					
+					#{secure.check 'adminCrud'}
 						<li>
-							<a href="@{Service.index()}"><i class="icon-hdd"></i> &{'service.pagename'}</a>
-						</li>
-						<li>
-							<a href="@{Service.playjobs()}"><i class="icon-info-sign"></i> &{'service.playjobs.pagename'}</a>
-						</li>
-						<li>
-							<a href="@{Service.clusterstatus()}"><i class="icon-globe"></i> &{'service.clusterstatus.report.pagename'}</a>
+							<a href="@{Admin.index(objtype:'userprofile')}"><i class="icon-th-list"></i> &{'crud.field.userprofile'}</a>
 						</li>
 					#{/secure.check}
-					#{secure.check 'showManager'}
-						<li>
-							<a href="@{Manager.index()}"><i class="icon-globe"></i> &{'manager.pagename'}</a>
-						</li>
-					#{/secure.check}
-					#{secure.check 'showJobs'}
-						<li>
-							<a href="@{Manager.jobs()}"><i class="icon-tasks"></i> &{'manager.jobs.pagename'}</a>
-						</li>
-					#{/secure.check}
+					
 				</ul>
 			</li>
 		</ul>
