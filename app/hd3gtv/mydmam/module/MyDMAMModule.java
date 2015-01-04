@@ -22,7 +22,7 @@ import hd3gtv.mydmam.manager.CyclicJobCreator;
 import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.metadata.Generator;
-import hd3gtv.mydmam.useraction.UAFunctionality;
+import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.SearchResultItem;
 
@@ -76,7 +76,7 @@ public abstract class MyDMAMModule extends PlayPlugin {
 		return null;
 	}
 	
-	public List<UAFunctionality> getUAfunctionality() {
+	public List<UAFunctionalityContext> getUAfunctionality() {
 		return null;
 	}
 }

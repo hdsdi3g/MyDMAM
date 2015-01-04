@@ -174,17 +174,15 @@ public final class AppManager implements InstanceActionReceiver {
 	private ServiceException service_exception;
 	private Updater updater;
 	private BrokerNG broker;
-	private DatabaseLayer database_layer;
 	private String app_name;
 	
 	public AppManager(String app_name) {
 		this.app_name = app_name;
 		service_exception = new ServiceException(this);
-		database_layer = new DatabaseLayer(this);
 		enabled_workers = new ArrayList<WorkerNG>();
 		broker = new BrokerNG(this);
 		instance_status = new InstanceStatus().populateFromThisInstance(this);
-		updater = new Updater();
+		updater = new Updater(this);
 	}
 	
 	String getAppName() {
@@ -193,10 +191,6 @@ public final class AppManager implements InstanceActionReceiver {
 	
 	BrokerNG getBroker() {
 		return broker;
-	}
-	
-	DatabaseLayer getDatabaseLayer() {
-		return database_layer;
 	}
 	
 	public void workerRegister(WorkerNG worker) {
@@ -280,7 +274,7 @@ public final class AppManager implements InstanceActionReceiver {
 		}
 		broker.start();
 		if (updater == null) {
-			updater = new Updater();
+			updater = new Updater(this);
 		}
 		updater.start();
 	}
@@ -293,7 +287,7 @@ public final class AppManager implements InstanceActionReceiver {
 			broker = new BrokerNG(this);
 		}
 		if (updater == null) {
-			updater = new Updater();
+			updater = new Updater(this);
 		}
 		updater.start();
 	}
@@ -390,11 +384,10 @@ public final class AppManager implements InstanceActionReceiver {
 			if (worker.getLifecyle().isThisState(WorkerState.WAITING, WorkerState.PROCESSING) == false) {
 				continue;
 			}
-			// TODO #78.2, migrate UAWorker to WorkerNG
-			/*if ((worker instanceof WorkerNG) == false) {
+			if ((worker instanceof UAWorker) == false) {
 				continue;
 			}
-			uaworkers.add((WorkerNG) worker);*/
+			uaworkers.add((UAWorker) worker);
 		}
 		return uaworkers;
 	}
@@ -414,10 +407,12 @@ public final class AppManager implements InstanceActionReceiver {
 	
 	private class Updater extends Thread {
 		boolean stop_update;
+		AppManager referer;
 		
-		public Updater() {
+		public Updater(AppManager referer) {
 			setName("Updater for " + instance_status.getInstanceNamePid());
 			setDaemon(true);
+			this.referer = referer;
 		}
 		
 		public void run() {
@@ -428,8 +423,8 @@ public final class AppManager implements InstanceActionReceiver {
 				while (stop_update == false) {
 					// TODO #78.4, add next refresh date
 					// TODO #78.4, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
-					database_layer.updateInstanceStatus(instance_status.refresh());
-					database_layer.updateWorkerStatus(enabled_workers);
+					instance_status.refresh(true);
+					WorkerExporter.updateWorkerStatus(enabled_workers, referer);
 					
 					for (int pos = 0; pos < SLEEP_COUNT_UPDATE; pos++) {
 						if (stop_update) {
@@ -441,8 +436,8 @@ public final class AppManager implements InstanceActionReceiver {
 							boolean pending_refresh = processInstanceAction(pending_actions);
 							if (pending_refresh & (stop_update == false)) {
 								Thread.sleep(1000);
-								database_layer.updateInstanceStatus(instance_status.refresh());
-								database_layer.updateWorkerStatus(enabled_workers);
+								instance_status.refresh(true);
+								WorkerExporter.updateWorkerStatus(enabled_workers, referer);
 							}
 						}
 						

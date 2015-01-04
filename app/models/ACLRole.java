@@ -18,7 +18,7 @@ package models;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.useraction.UAFunctionality;
+import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.useraction.UAManager;
 
 import java.util.ArrayList;
@@ -127,7 +127,7 @@ public class ACLRole extends GenericModel {
 	
 	public List<String> getFunctionalitiesBasenameList() {
 		List<String> f_list = getFunctionalitiesList();
-		UAFunctionality functionality;
+		UAFunctionalityContext functionality;
 		for (int pos = 0; pos < f_list.size(); pos++) {
 			functionality = UAManager.getByName(f_list.get(pos));
 			if (functionality == null) {

@@ -16,8 +16,9 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.mydmam.manager.DatabaseLayer;
+import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.manager.WorkerExporter;
 import hd3gtv.tools.ApplicationArgs;
 
 public class CliModuleBroker implements CliModule {
@@ -33,7 +34,8 @@ public class CliModuleBroker implements CliModule {
 	public void execCliModule(ApplicationArgs args) throws Exception {
 		if (args.getParamExist("-truncate")) {
 			if (args.getSimpleParamValue("-truncate").equalsIgnoreCase("instances")) {
-				DatabaseLayer.truncateAll();
+				WorkerExporter.truncate();
+				InstanceStatus.truncate();
 				return;
 			}
 			if (args.getSimpleParamValue("-truncate").equalsIgnoreCase("queue")) {
@@ -41,7 +43,8 @@ public class CliModuleBroker implements CliModule {
 				return;
 			}
 			if (args.getSimpleParamValue("-truncate").equalsIgnoreCase("all")) {
-				DatabaseLayer.truncateAll();
+				WorkerExporter.truncate();
+				InstanceStatus.truncate();
 				JobNG.Utility.truncateAllJobs();
 				return;
 			}

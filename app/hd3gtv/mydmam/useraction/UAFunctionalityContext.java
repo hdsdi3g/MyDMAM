@@ -18,8 +18,9 @@ package hd3gtv.mydmam.useraction;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
+import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.taskqueue.Profile;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,8 +28,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import com.eaio.uuid.UUID;
+import com.google.gson.JsonObject;
 
-public abstract class UAFunctionality {
+public abstract class UAFunctionalityContext extends JobContext {
+	
+	/**
+	 * "Static" descr zone
+	 */
 	
 	public abstract UAJobProcess createProcess();
 	
@@ -57,18 +63,11 @@ public abstract class UAFunctionality {
 	}
 	
 	/**
-	 * @return get simple class name to lower case.
-	 */
-	public final String getSimpleName() {
-		return getClass().getSimpleName().toLowerCase();
-	}
-	
-	/**
 	 * Utility. Internal and local configuration from YAML.
 	 * @return useraction->class.getSimpleName().toLowerCase() content from configuration, never null
 	 */
 	public final LinkedHashMap<String, ?> getConfigurationFromReferenceClass() {
-		String classname = getSimpleName();
+		String classname = getClass().getSimpleName().toLowerCase();
 		if (Configuration.global.isElementKeyExists("useraction", classname) == false) {
 			return new LinkedHashMap<String, Object>(1);
 		}
@@ -96,65 +95,57 @@ public abstract class UAFunctionality {
 		return capability;
 	}
 	
-	private volatile List<Profile> user_action_profiles;
-	
-	public final List<Profile> getUserActionProfiles() {
-		String name = getSimpleName();
+	public final WorkerCapablities getUserActionWorkerCapablities() {
+		final Class<? extends JobContext> funct_class = this.getClass();
 		
-		if (user_action_profiles == null) {
-			user_action_profiles = new ArrayList<Profile>();
-			List<String> whitelist = getCapabilityForInstance().getStorageindexesWhiteList();
-			if (whitelist == null) {
-				whitelist = new ArrayList<String>(1);
-			}
-			List<String> bridgedstorages = Explorer.getBridgedStoragesName();
-			
-			if (whitelist.isEmpty()) {
-				for (int pos = 0; pos < bridgedstorages.size(); pos++) {
-					user_action_profiles.add(new Profile("useraction", name + "=" + bridgedstorages.get(pos)));
-				}
-			} else {
-				for (int pos = 0; pos < whitelist.size(); pos++) {
-					if (bridgedstorages.contains(whitelist.get(pos)) == false) {
-						continue;
-					}
-					user_action_profiles.add(new Profile("useraction", name + "=" + whitelist.get(pos)));
+		List<String> whitelist = getCapabilityForInstance().getStorageindexesWhiteList();
+		if (whitelist == null) {
+			whitelist = new ArrayList<String>(1);
+		}
+		List<String> bridgedstorages = Explorer.getBridgedStoragesName();
+		
+		List<String> storages_to_add = new ArrayList<String>();
+		if (whitelist.isEmpty()) {
+			storages_to_add = bridgedstorages;
+		} else {
+			for (int pos = 0; pos < whitelist.size(); pos++) {
+				if (bridgedstorages.contains(whitelist.get(pos))) {
+					storages_to_add.add(whitelist.get(pos));
 				}
 			}
 		}
-		return user_action_profiles;
-	}
-	
-	private volatile List<Profile> finisher_profiles;
-	
-	public final List<Profile> getFinisherProfiles() {
-		if (finisher_profiles == null) {
-			finisher_profiles = new ArrayList<Profile>();
-			List<String> whitelist = getCapabilityForInstance().getStorageindexesWhiteList();
-			List<String> bridgedstorages = Explorer.getBridgedStoragesName();
-			if (whitelist != null) {
-				if (whitelist.isEmpty() == false) {
-					for (int pos = 0; pos < whitelist.size(); pos++) {
-						if (bridgedstorages.contains(whitelist.get(pos)) == false) {
-							continue;
-						}
-						finisher_profiles.add(new Profile("useraction-finisher", whitelist.get(pos)));
-					}
-					return finisher_profiles;
+		
+		if (storages_to_add.isEmpty() == false) {
+			final List<String> f_storages_to_add = storages_to_add;
+			return new WorkerCapablities() {
+				
+				public List<String> getStoragesAvaliable() {
+					return f_storages_to_add;
 				}
-			}
-			/**
-			 * No whitelist
-			 */
-			for (int pos = 0; pos < bridgedstorages.size(); pos++) {
-				finisher_profiles.add(new Profile("useraction-finisher", bridgedstorages.get(pos)));
-			}
+				
+				public Class<? extends JobContext> getJobContextClass() {
+					return funct_class;
+				}
+			};
 		}
-		return finisher_profiles;
+		return null;
 	}
 	
 	public UAFunctionalityDefinintion getDefinition() {
 		return UAFunctionalityDefinintion.fromFunctionality(this);
+	}
+	
+	/**
+	 * "Dynamic" action process zone
+	 */
+	UAJobFunctionalityContextContent content;// TODO create...
+	
+	public final void contextFromJson(JsonObject json_object) {
+		content = UAJobFunctionalityContextContent.contextFromJson(json_object);
+	}
+	
+	public final JsonObject contextToJson() {
+		return content.contextToJson();
 	}
 	
 }

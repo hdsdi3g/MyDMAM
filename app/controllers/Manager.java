@@ -21,6 +21,7 @@ import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.manager.JobAction;
 import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.manager.WorkerExporter;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
@@ -46,8 +47,7 @@ public class Manager extends Controller {
 	
 	@Check("showManager")
 	public static void allworkers() throws Exception {
-		String result = InstanceStatus.Gatherer.getAllWorkersJsonString();
-		// result = "[]";
+		String result = WorkerExporter.getAllWorkerStatusJson();
 		renderJSON(result);
 	}
 	

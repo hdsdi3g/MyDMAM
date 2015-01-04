@@ -21,11 +21,6 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.taskqueue.Broker;
-import hd3gtv.mydmam.taskqueue.Profile;
-import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
-import hd3gtv.mydmam.useraction.UAJobContext;
-import hd3gtv.mydmam.useraction.UARange;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -62,14 +57,13 @@ public class UserActionCreator {
 		GsonBuilder builder = new GsonBuilder();
 		builder.serializeNulls();
 		builder.setPrettyPrinting();
-		// builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
 		gson = builder.create();
 	}
 	
 	private UserProfile userprofile;
 	private String basket_name;
-	private UARange range;
-	private UAFinisherConfiguration global_finisher;
+	private UserActionCreatorRange range;
+	// private UAFinisherJobContext global_finisher;
 	private ArrayList<UserActionCreatorConfiguredFunctionality> configured_functionalities;
 	private ArrayList<UserActionCreatorNotificationDestinator> notificationdestinations;
 	private LinkedHashMap<String, ArrayList<String>> storageindexname_to_itemlist;
@@ -97,8 +91,8 @@ public class UserActionCreator {
 		new_tasks = new ArrayList<String>();
 	}
 	
-	public void setRange_Finisher(UAFinisherConfiguration finisher, UARange range) {
-		this.global_finisher = finisher;
+	public void setRange_Finisher(String finisher_json, UserActionCreatorRange range) {
+		// TODO import finisher_json datas
 		this.range = range;
 	}
 	
@@ -169,6 +163,8 @@ public class UserActionCreator {
 	 */
 	private String createSingleTaskWithRequire(String require, UserActionCreatorConfiguredFunctionality configured_functionality, ArrayList<String> items, String storage_name)
 			throws ConnectionException {
+		// TODO
+		/*
 		UAJobContext context = new UAJobContext();
 		context.functionality_class = configured_functionality.functionality.getClass();
 		context.user_configuration = configured_functionality.associated_user_configuration;
@@ -187,35 +183,11 @@ public class UserActionCreator {
 		name.append(" items in ");
 		name.append(storage_name);
 		name.append(")");
-		
-		Profile profile = new Profile("useraction", configured_functionality.functionality.getSimpleName() + "=" + storage_name);
-		return Broker.publishTask(name.toString(), profile, context.toContext(), UAJobContext.class, false, 0, require, false);
-	}
-	
-	/**
-	 * @return task key
-	 */
-	private String createSingleFinisherTask(String require, ArrayList<String> items, String storage_name) throws ConnectionException {
-		UAJobContext context = new UAJobContext();
-		context.functionality_class = null;
-		context.user_configuration = null;
-		context.creator_user_key = userprofile.key;
-		context.basket_name = basket_name;
-		context.items = items;
-		context.finisher = global_finisher;
-		context.range = range;
-		
-		StringBuffer name = new StringBuffer();
-		name.append("Finisher for ");
-		name.append(userprofile.longname);
-		name.append(" (");
-		name.append(context.items.size());
-		name.append(" items in ");
-		name.append(storage_name);
-		name.append(")");
-		
-		Profile profile = new Profile("useraction-finisher", storage_name);
-		return Broker.publishTask(name.toString(), profile, context.toContext(), UAJobContext.class, false, 0, require, false);
+		*/
+		// TODO
+		/*Profile profile = new Profile("useraction", configured_functionality.functionality.getSimpleName() + "=" + storage_name);
+		return Broker.publishTask(name.toString(), profile, context.toContext(), UAJobContext.class, false, 0, require, false);*/
+		return "";
 	}
 	
 	public void setUsercomment(String usercomment) {
@@ -229,13 +201,12 @@ public class UserActionCreator {
 		if (storageindexname_to_itemlist.isEmpty()) {
 			return;
 		}
-		String finisher_task;
 		
 		String storage_name;
 		ArrayList<String> items;
 		String last_require = null;
 		Notification notification;
-		if (range == UARange.ONE_USER_ACTION_BY_STORAGE_AND_BASKET) {
+		if (range == UserActionCreatorRange.ONE_USER_ACTION_BY_STORAGE_AND_BASKET) {
 			notification = createNotification();
 			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
 				storage_name = entry.getKey();
@@ -247,15 +218,10 @@ public class UserActionCreator {
 					notification.addLinkedTasksJobs(last_require);
 					notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
 				}
-				if (global_finisher.isNeededToCreateFinisher()) {
-					finisher_task = createSingleFinisherTask(last_require, items, storage_name);
-					new_tasks.add(finisher_task);
-					notification.addLinkedTasksJobs(finisher_task);
-				}
 			}
 			notification.save();
 			addUALogEntry();
-		} else if (range == UARange.ONE_USER_ACTION_BY_BASKET_ITEM) {
+		} else if (range == UserActionCreatorRange.ONE_USER_ACTION_BY_BASKET_ITEM) {
 			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
 				notification = createNotification();
 				storage_name = entry.getKey();
@@ -266,15 +232,9 @@ public class UserActionCreator {
 					notification.addLinkedTasksJobs(last_require);
 					notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
 				}
-				if (global_finisher.isNeededToCreateFinisher()) {
-					finisher_task = createSingleFinisherTask(last_require, items, storage_name);
-					new_tasks.add(finisher_task);
-					notification.addLinkedTasksJobs(finisher_task);
-					notification.save();
-				}
 			}
 			addUALogEntry();
-		} else if (range == UARange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
+		} else if (range == UserActionCreatorRange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
 			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
 				notification = createNotification();
 				for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
@@ -310,7 +270,7 @@ public class UserActionCreator {
 		logentry.put("userprofile", userprofile);
 		logentry.put("configured_functionalities", configured_functionalities);
 		logentry.put("storageindexname_to_itemlist", storageindexname_to_itemlist);
-		logentry.put("global_finisher", global_finisher);
+		// logentry.put("global_finisher", global_finisher);
 		logentry.put("range", range);
 		logentry.put("new_tasks", new_tasks);
 		logentry.put("created_at", now);

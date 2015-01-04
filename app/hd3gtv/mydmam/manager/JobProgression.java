@@ -62,6 +62,24 @@ public final class JobProgression {
 	/**
 	 * Async update.
 	 */
+	public synchronized void incrStep() {
+		job.update_date = System.currentTimeMillis();
+		this.step++;
+		updateLastCaller();
+	}
+	
+	/**
+	 * Async update.
+	 */
+	public synchronized void incrStepCount() {
+		job.update_date = System.currentTimeMillis();
+		this.step_count++;
+		updateLastCaller();
+	}
+	
+	/**
+	 * Async update.
+	 */
 	public synchronized void updateProgress(int progress, int progress_size) {
 		job.update_date = System.currentTimeMillis();
 		this.progress = progress;

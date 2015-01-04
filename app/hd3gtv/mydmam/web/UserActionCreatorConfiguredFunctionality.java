@@ -17,7 +17,7 @@
 package hd3gtv.mydmam.web;
 
 import hd3gtv.mydmam.useraction.UAConfigurator;
-import hd3gtv.mydmam.useraction.UAFunctionality;
+import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.useraction.UAManager;
 
 import com.google.gson.JsonElement;
@@ -28,7 +28,7 @@ public class UserActionCreatorConfiguredFunctionality {
 	JsonElement raw_associated_user_configuration;
 	
 	transient UAConfigurator associated_user_configuration;
-	transient UAFunctionality functionality;
+	transient UAFunctionalityContext functionality;
 	
 	void prepare() throws NullPointerException {
 		functionality = UAManager.getByName(functionality_classname);

@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.useraction;
 
+import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.util.HashMap;
@@ -24,7 +25,7 @@ import models.UserProfile;
 
 public interface UAJobProcess {
 	
-	void process(UAJobProgress progress, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception;
+	void process(JobProgression progression, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception;
 	
 	void forceStopProcess() throws Exception;
 }

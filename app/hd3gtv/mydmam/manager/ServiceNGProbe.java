@@ -24,6 +24,7 @@ import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.transcode.Publish;
+import hd3gtv.mydmam.useraction.UAManager;
 
 public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	
@@ -58,6 +59,8 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		WorkerIndexer mwi = new WorkerIndexer(manager);
 		manager.workerRegister(mwi);
 		manager.workerRegister(new WorkerRenderer(mwi));
+		
+		UAManager.createWorkers(manager);
 		
 		MyDMAMModulesManager.declareAllModuleWorkerElement(manager);
 	}

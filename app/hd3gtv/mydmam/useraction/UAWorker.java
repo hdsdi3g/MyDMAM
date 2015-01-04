@@ -16,41 +16,49 @@
 */
 package hd3gtv.mydmam.useraction;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.manager.WorkerCapablities;
+import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.taskqueue.Job;
-import hd3gtv.mydmam.taskqueue.Profile;
-import hd3gtv.mydmam.taskqueue.Worker;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import models.UserProfile;
 
-public final class UAWorker extends Worker {
+public final class UAWorker extends WorkerNG {
 	
-	private List<UAFunctionality> functionalities_list;
-	private HashMap<Class<? extends UAFunctionality>, UAFunctionality> functionalities_map;
-	private List<Profile> managed_profiles;
+	private List<UAFunctionalityContext> functionalities_list;
+	private HashMap<Class<? extends UAFunctionalityContext>, UAFunctionalityContext> functionalities_map;
+	private List<WorkerCapablities> managed_worker_capablities;
+	private boolean stop;
 	
-	UAWorker(List<UAFunctionality> functionalities_list) throws NullPointerException {
+	UAWorker(List<UAFunctionalityContext> functionalities_list) throws NullPointerException {
 		this.functionalities_list = functionalities_list;
 		if (functionalities_list == null) {
 			throw new NullPointerException("\"process\" can't to be null");
 		}
-		functionalities_map = new HashMap<Class<? extends UAFunctionality>, UAFunctionality>();
+		functionalities_map = new HashMap<Class<? extends UAFunctionalityContext>, UAFunctionalityContext>();
 		for (int pos = 0; pos < functionalities_list.size(); pos++) {
 			functionalities_map.put(functionalities_list.get(pos).getClass(), functionalities_list.get(pos));
 		}
-		managed_profiles = new ArrayList<Profile>();
+		managed_worker_capablities = new ArrayList<WorkerCapablities>();
+		WorkerCapablities wc;
 		for (int pos = 0; pos < functionalities_list.size(); pos++) {
-			managed_profiles.addAll(functionalities_list.get(pos).getUserActionProfiles());
+			wc = functionalities_list.get(pos).getUserActionWorkerCapablities();
+			if (wc != null) {
+				managed_worker_capablities.add(wc);
+			}
 		}
 	}
 	
-	public List<UAFunctionality> getFunctionalities_list() {
+	public List<UAFunctionalityContext> getFunctionalities_list() {
 		return functionalities_list;
 	}
 	
@@ -59,24 +67,18 @@ public final class UAWorker extends Worker {
 	/**
 	 * @see UAFinisherWorker.process()
 	 */
-	public void process(Job job) throws Exception {
-		UAJobContext context = UAJobContext.importFromJob(job.getContext());
-		
-		if (context == null) {
-			throw new NullPointerException("No \"context\" for job");
-		}
+	protected void workerProcessJob(JobProgression progression, JobContext jobcontext) throws Exception {
+		stop = false;
+		UAJobFunctionalityContextContent context = ((UAFunctionalityContext) jobcontext).content;
 		
 		if (context.functionality_class == null) {
 			throw new NullPointerException("\"context.functionality_classname\" can't to be null");
 		}
 		
-		UAFunctionality functionality = functionalities_map.get(context.functionality_class);
+		UAFunctionalityContext functionality = functionalities_map.get(context.functionality_class);
 		if (functionality == null) {
 			throw new NullPointerException("Can't found declared functionality " + context.functionality_class.getName());
 		}
-		
-		UAFinisherConfiguration finisher = context.finisher;
-		UARange range = context.range;
 		
 		UAConfigurator user_configuration = context.user_configuration;
 		if (user_configuration == null) {
@@ -98,48 +100,81 @@ public final class UAWorker extends Worker {
 			elements = explorer.getelementByIdkeys(context.items);
 		}
 		
-		UAJobProgress progress = new UAJobProgress(job);
-		
 		current_process = functionality.createProcess();
-		current_process.process(progress, user_profile, user_configuration, elements);
+		current_process.process(progression, user_profile, user_configuration, elements);
 		current_process = null;
 		
-		if ((finisher != null) & (range != null)) {
-			if (range == UARange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
-				job.last_message = "Finish current job";
-				job.progress = 0;
-				job.progress_size = 1;
-				job.step_count++;
-				UAFinisherWorker.doFinishUserAction(elements, user_profile, context.basket_name, explorer, finisher);
-				job.last_message = "Finish terminated";
-				job.progress = 1;
-				job.step++;
+		progression.update("Finish current job");
+		progression.updateProgress(0, 1);
+		
+		if (context.remove_user_basket_item) {
+			progression.incrStepCount();
+			try {
+				Basket basket = new Basket(user_profile.key);
+				List<String> basket_content = basket.getContent(context.basket_name);
+				for (Map.Entry<String, SourcePathIndexerElement> entry : elements.entrySet()) {
+					basket_content.remove(entry.getKey());
+				}
+				basket.setContent(context.basket_name, basket_content);
+			} catch (NullPointerException e) {
+				Log2.log.error("Invalid finishing", e);
 			}
+			progression.incrStep();
 		}
-	}
-	
-	public String getShortWorkerName() {
-		return "User Action";
-	}
-	
-	public String getLongWorkerName() {
-		return "Process User actions";
-	}
-	
-	public List<Profile> getManagedProfiles() {
-		return managed_profiles;
-	}
-	
-	public boolean isConfigurationAllowToEnabled() {
-		return (functionalities_list.isEmpty() == false);
+		
+		if (context.soft_refresh_source_storage_index_item | context.force_refresh_source_storage_index_item) {
+			progression.incrStepCount();
+			List<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>();
+			
+			for (Map.Entry<String, SourcePathIndexerElement> entry : elements.entrySet()) {
+				items.add(entry.getValue());
+			}
+			
+			if (context.soft_refresh_source_storage_index_item) {
+				explorer.refreshStoragePath(items, false);
+			}
+			
+			if (context.force_refresh_source_storage_index_item) {
+				explorer.refreshStoragePath(items, true);
+			}
+			progression.incrStep();
+		}
+		
+		progression.update("Finish terminated");
+		progression.updateProgress(1, 1);
 	}
 	
 	public synchronized void forceStopProcess() throws Exception {
+		stop = true;
 		if (current_process == null) {
 			return;
 		}
 		current_process.forceStopProcess();
 		current_process = null;
+	}
+	
+	public WorkerCategory getWorkerCategory() {
+		return WorkerCategory.USERACTION;
+	}
+	
+	public String getWorkerLongName() {
+		return "Process User actions";
+	}
+	
+	public String getWorkerVendorName() {
+		return "MyDMAM Internal";
+	}
+	
+	public List<WorkerCapablities> getWorkerCapablities() {
+		return managed_worker_capablities;
+	}
+	
+	protected boolean isActivated() {
+		return (functionalities_list.isEmpty() == false);
+	}
+	
+	public boolean wantToStop() {
+		return stop;
 	}
 	
 }

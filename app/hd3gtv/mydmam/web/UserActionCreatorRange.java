@@ -14,10 +14,9 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.useraction;
+package hd3gtv.mydmam.web;
 
-public enum UARange {
-	
+public enum UserActionCreatorRange {
 	/**
 	 * Notification(Item1, Item2) => Storage1[Finisher(Item1, Item2) => Task2(Item1, Item2) => Task1(Item1, Item2)], Storage2[...]
 	 */
@@ -38,14 +37,14 @@ public enum UARange {
 	/**
 	 * @return never null
 	 */
-	public static UARange fromString(String name) {
+	public static UserActionCreatorRange fromString(String name) {
 		if (name == null) {
 			return ONE_USER_ACTION_BY_STORAGE_AND_BASKET;
 		}
 		if (name.isEmpty()) {
 			return ONE_USER_ACTION_BY_STORAGE_AND_BASKET;
 		}
-		UARange[] values = UARange.values();
+		UserActionCreatorRange[] values = UserActionCreatorRange.values();
 		for (int pos = 0; pos < values.length; pos++) {
 			if (values[pos].name().equalsIgnoreCase(name)) {
 				return values[pos];

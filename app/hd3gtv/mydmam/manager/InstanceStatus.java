@@ -16,13 +16,16 @@
 */
 package hd3gtv.mydmam.manager;
 
-import groovy.json.JsonException;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.GitInfo;
+import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.useraction.UAFunctionality;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
+import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.useraction.UAWorker;
 import hd3gtv.tools.TimeUtils;
 
@@ -36,23 +39,46 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import play.Play;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.OperationResult;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.query.AllRowsQuery;
+import com.netflix.astyanax.serializers.StringSerializer;
 
 public final class InstanceStatus implements Log2Dumpable {
+	
+	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
+	
+	private static Keyspace keyspace;
+	static {
+		try {
+			keyspace = CassandraDb.getkeyspace();
+			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
+			if (CassandraDb.isColumnFamilyExists(keyspace, CF_INSTANCES.getName()) == false) {
+				CassandraDb.createColumnFamilyString(default_keyspacename, CF_INSTANCES.getName(), false);
+			}
+		} catch (Exception e) {
+			Log2.log.error("Can't init database CFs", e);
+		}
+	}
 	
 	/**
 	 * In sec.
@@ -207,7 +233,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		} catch (SocketException e) {
 		}
 		
-		refresh();
+		refresh(false);
 		
 		return this;
 	}
@@ -215,7 +241,7 @@ public final class InstanceStatus implements Log2Dumpable {
 	/**
 	 * @return this
 	 */
-	InstanceStatus refresh() {
+	InstanceStatus refresh(boolean push_to_db) {
 		app_name = manager.getAppName();
 		uptime = System.currentTimeMillis() - AppManager.starttime;
 		threadstacktraces.clear();
@@ -227,7 +253,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		}
 		
 		useraction_functionality_list.clear();
-		List<UAFunctionality> full_functionality_list = new ArrayList<UAFunctionality>();
+		List<UAFunctionalityContext> full_functionality_list = new ArrayList<UAFunctionalityContext>();
 		List<UAWorker> workers = manager.getAllActiveUAWorkers();
 		for (int pos = 0; pos < workers.size(); pos++) {
 			full_functionality_list.addAll(workers.get(pos).getFunctionalities_list());
@@ -235,29 +261,25 @@ public final class InstanceStatus implements Log2Dumpable {
 		for (int pos = 0; pos < full_functionality_list.size(); pos++) {
 			useraction_functionality_list.add(full_functionality_list.get(pos).getDefinition());
 		}
+		
+		if (push_to_db) {
+			try {
+				MutationBatch mutator = CassandraDb.prepareMutationBatch();
+				mutator.withRow(CF_INSTANCES, instance_name_pid).putColumn(COL_NAME_UA_LIST, AppManager.getGson().toJson(useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
+				mutator.withRow(CF_INSTANCES, instance_name_pid).putColumn("source", AppManager.getGson().toJson(this), TTL);
+				mutator.execute();
+			} catch (ConnectionException e) {
+				manager.getServiceException().onCassandraError(e);
+			}
+		}
+		
 		// TODO #78.4, add next refresh date
 		return this;
 	}
 	
-	static final String COL_NAME_UA_LIST = "useraction_functionality_list";
+	private static final String COL_NAME_UA_LIST = "useraction_functionality_list";
 	
-	static class Serializer implements JsonSerializer<InstanceStatus>, JsonDeserializer<InstanceStatus>, CassandraDbImporterExporter<InstanceStatus> {
-		
-		public InstanceStatus deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			if ((json instanceof JsonObject) == false) {
-				throw new JsonException("json is not a JsonObject");
-			}
-			JsonObject src = (JsonObject) json;
-			InstanceStatus result = AppManager.getSimpleGson().fromJson(src, InstanceStatus.class);
-			result.classpath = AppManager.getGson().fromJson(src.get("classpath"), al_string_typeOfT);
-			result.threadstacktraces = AppManager.getGson().fromJson(src.get("threadstacktraces"), al_threadstacktrace_typeOfT);
-			result.host_addresses = AppManager.getGson().fromJson(src.get("host_addresses"), al_string_typeOfT);
-			result.useraction_functionality_list = AppManager.getGson().fromJson(src.get(COL_NAME_UA_LIST), al_uafunctionalitydefinintion_typeOfT);
-			result.declared_cyclics = AppManager.getGson().fromJson(src.get("declared_cyclics"), al_cyclicjobscreator_typeOfT);
-			result.declared_triggers = AppManager.getGson().fromJson(src.get("declared_triggers"), al_triggerjobscreator_typeOfT);
-			return result;
-		}
-		
+	static class Serializer implements JsonSerializer<InstanceStatus> {
 		public JsonElement serialize(InstanceStatus src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
 			result.add("classpath", AppManager.getGson().toJsonTree(src.classpath, al_string_typeOfT));
@@ -268,19 +290,6 @@ public final class InstanceStatus implements Log2Dumpable {
 			result.add("declared_triggers", AppManager.getGson().toJsonTree(src.declared_triggers, al_triggerjobscreator_typeOfT));
 			result.addProperty("uptime_from", TimeUtils.secondsToYWDHMS(src.uptime / 1000));
 			return result;
-		}
-		
-		public void exportToDatabase(InstanceStatus src, ColumnListMutation<String> mutator) {
-			mutator.putColumn(COL_NAME_UA_LIST, AppManager.getGson().toJson(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
-			mutator.putColumn("source", AppManager.getGson().toJson(src), TTL);
-		}
-		
-		public String getDatabaseKey(InstanceStatus src) {
-			return src.instance_name_pid;
-		}
-		
-		public InstanceStatus importFromDatabase(ColumnList<String> columnlist) {
-			return AppManager.getGson().fromJson(columnlist.getStringValue("source", "{}"), InstanceStatus.class);
 		}
 	}
 	
@@ -328,6 +337,80 @@ public final class InstanceStatus implements Log2Dumpable {
 		return dump;
 	}
 	
+	public static void truncate() throws ConnectionException {
+		CassandraDb.truncateColumnFamilyString(keyspace, CF_INSTANCES.getName());
+	}
+	
+	public static String getCurrentAvailabilitiesAsJsonString(ArrayList<String> privileges_for_user) throws ConnectionException {
+		if (privileges_for_user == null) {
+			return "{}";
+		}
+		if (privileges_for_user.isEmpty()) {
+			return "{}";
+		}
+		
+		Type useraction_functionality_list_typeOfT = new TypeToken<List<UAFunctionalityDefinintion>>() {
+		}.getType();
+		
+		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(CF_INSTANCES).getAllRows().withColumnSlice(InstanceStatus.COL_NAME_UA_LIST);
+		OperationResult<Rows<String, String>> rows = all_rows.execute();
+		
+		Map<String, List<UAFunctionalityDefinintion>> all = new HashMap<String, List<UAFunctionalityDefinintion>>();
+		
+		List<UAFunctionalityDefinintion> list;
+		for (Row<String, String> row : rows.getResult()) {
+			Column<String> col = row.getColumns().getColumnByName("useraction_functionality_list");
+			if (col == null) {
+				continue;
+			}
+			list = UAManager.getGson().fromJson(col.getStringValue(), useraction_functionality_list_typeOfT);
+			
+			for (int pos = list.size() - 1; pos > -1; pos--) {
+				if (privileges_for_user.contains(list.get(pos).classname) == false) {
+					list.remove(pos);
+				}
+			}
+			all.put(row.getKey(), list);
+		}
+		
+		List<UAFunctionalityDefinintion> merged_definitions = new ArrayList<UAFunctionalityDefinintion>();
+		List<UAFunctionalityDefinintion> current_definitions;
+		for (Map.Entry<String, List<UAFunctionalityDefinintion>> entry : all.entrySet()) {
+			current_definitions = entry.getValue();
+			for (int pos_current = 0; pos_current < current_definitions.size(); pos_current++) {
+				UAFunctionalityDefinintion.mergueInList(merged_definitions, current_definitions.get(pos_current));
+			}
+		}
+		
+		JsonObject result = new JsonObject();
+		JsonObject result_implementation;
+		JsonObject result_capability;
+		JsonObject result_configurator;
+		UAFunctionalityDefinintion current;
+		
+		for (int pos = 0; pos < merged_definitions.size(); pos++) {
+			current = merged_definitions.get(pos);
+			
+			result_implementation = new JsonObject();
+			result_implementation.addProperty("messagebasename", current.messagebasename);
+			result_implementation.addProperty("section", current.section.name());
+			result_implementation.addProperty("powerful_and_dangerous", current.powerful_and_dangerous);
+			
+			result_capability = (JsonObject) UAManager.getGson().toJsonTree(current.capability);
+			result_capability.remove("musthavelocalstorageindexbridge");
+			result_implementation.add("capability", result_capability);
+			
+			result_configurator = (JsonObject) UAManager.getGson().toJsonTree(current.configurator);
+			result_configurator.remove("type");
+			result_configurator.remove("origin");
+			result_implementation.add("configurator", result_configurator);
+			
+			result.add(current.classname, result_implementation);
+		}
+		
+		return UAManager.getGson().toJson(result);
+	}
+	
 	/**
 	 * For get some manager tools, without start a manager.
 	 */
@@ -346,28 +429,24 @@ public final class InstanceStatus implements Log2Dumpable {
 			return manager.getInstance_status();
 		}
 		
-		public static List<InstanceStatus> getAllInstances() {
-			List<InstanceStatus> result = manager.getDatabaseLayer().getAllInstancesStatus();
-			if (result == null) {
-				return new ArrayList<InstanceStatus>();
-			}
-			InstanceStatus status = manager.getInstance_status();
-			status.refresh();
-			result.add(status);
-			return result;
-		}
-		
-		public static List<WorkerExporter> getAllWorkers() {
-			return manager.getDatabaseLayer().getAllWorkerStatus();
-		}
-		
 		public static String getAllInstancesJsonString() {
-			return AppManager.getGson().toJson(getAllInstances());
+			final JsonArray result = new JsonArray();
+			final JsonParser parser = new JsonParser();
+			
+			try {
+				CassandraDb.allRowsReader(CF_INSTANCES, new AllRowsFoundRow() {
+					public void onFoundRow(Row<String, String> row) throws Exception {
+						result.add(parser.parse(row.getColumns().getStringValue("source", "{}")));
+					}
+				}, "source");
+			} catch (Exception e) {
+				manager.getServiceException().onCassandraError(e);
+			}
+			
+			result.add(AppManager.getGson().toJsonTree(manager.getInstance_status().refresh(false)));
+			return result.toString();
 		}
 		
-		public static String getAllWorkersJsonString() {
-			return AppManager.getGson().toJson(getAllWorkers());
-		}
 	}
 	
 }

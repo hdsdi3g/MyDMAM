@@ -18,14 +18,13 @@ package controllers;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.manager.DatabaseLayer;
+import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.Basket;
-import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
-import hd3gtv.mydmam.useraction.UARange;
 import hd3gtv.mydmam.useraction.UASelectAsyncOptions;
 import hd3gtv.mydmam.web.UserActionCreator;
+import hd3gtv.mydmam.web.UserActionCreatorRange;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -40,7 +39,6 @@ import play.mvc.Controller;
 import play.mvc.With;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
 @With(Secure.class)
@@ -78,7 +76,7 @@ public class UserAction extends Controller {
 	 * @render Map<String, List<UAFunctionalityDefinintion>> availabilities
 	 */
 	public static void currentavailabilities() throws Exception {
-		renderJSON(DatabaseLayer.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities()));
+		renderJSON(InstanceStatus.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities()));
 	}
 	
 	@Check("userAction")
@@ -113,7 +111,6 @@ public class UserAction extends Controller {
 		creator.setUserprofile(userprofile);
 		creator.setBasket_name(params.get("basket_name"));
 		creator.setUsercomment(params.get("comment"));
-		
 		/**
 		 * Not mandatory
 		 */
@@ -127,14 +124,7 @@ public class UserAction extends Controller {
 		}
 		
 		String finisher_json = params.get("finisher_json");
-		UAFinisherConfiguration finiser_conf = null;
-		try {
-			finiser_conf = UAFinisherConfiguration.getFinisherFromJsonString(finisher_json);
-		} catch (JsonSyntaxException e) {
-			Log2.log.error("Bad JSON finisher", e, new Log2Dump("rawcontent", finisher_json));
-			renderJSON("{}");
-		}
-		creator.setRange_Finisher(finiser_conf, UARange.fromString(params.get("range")));
+		creator.setRange_Finisher(finisher_json, UserActionCreatorRange.fromString(params.get("range")));
 		
 		String configured_functionalities_json = params.get("configured_functionalities_json");
 		try {
@@ -155,7 +145,7 @@ public class UserAction extends Controller {
 	@Check("userAction")
 	public static void index() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("useractions.pagename");
-		String currentavailabilities = DatabaseLayer.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities());
+		String currentavailabilities = InstanceStatus.getCurrentAvailabilitiesAsJsonString(getUserRestrictedFunctionalities());
 		Basket basket = Basket.getBasketForCurrentPlayUser();
 		String currentbasket = basket.getSelectedContentJson();
 		String currentbasketname = basket.getSelectedName();

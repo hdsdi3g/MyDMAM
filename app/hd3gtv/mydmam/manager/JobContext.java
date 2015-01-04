@@ -54,7 +54,7 @@ public abstract class JobContext {
 	/**
 	 * @return can be null or empty
 	 */
-	public List<String> neededstorages;
+	public @GsonIgnore List<String> neededstorages;
 	
 	final static class Serializer implements JsonSerializer<JobContext>, JsonDeserializer<JobContext> {
 		

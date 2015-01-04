@@ -18,10 +18,10 @@ package hd3gtv.mydmam.useraction.dummy;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
-import hd3gtv.mydmam.useraction.UAJobProgress;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,11 +32,11 @@ public class UADummyProcess implements UAJobProcess {
 	
 	private boolean stop;
 	
-	public void process(UAJobProgress progress, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception {
+	public void process(JobProgression progression, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception {
 		stop = false;
 		
-		progress.updateProgress(0);
-		progress.updateProgress_size(100);
+		// progress.updateProgress(0);
+		// progress.updateProgress_size(100);
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("by", userprofile.longname);
@@ -58,17 +58,17 @@ public class UADummyProcess implements UAJobProcess {
 			}
 		}
 		
-		progress.updateLastMessage("Starts with " + source_elements.size() + " items");
+		// progress.updateLastMessage("Starts with " + source_elements.size() + " items");
 		for (int pos = 0; pos < 100; pos++) {
 			if (stop) {
 				return;
 			}
-			progress.updateProgress(pos);
+			// progress.updateProgress(pos);
 			Thread.sleep(20);
 		}
-		progress.updateProgress(100);
+		// progress.updateProgress(100);
 		
-		progress.updateLastMessage("Done with " + source_elements.size() + " items");
+		// progress.updateLastMessage("Done with " + source_elements.size() + " items");
 		
 		Log2.log.info("Dummy process is done", dump);
 	}

@@ -66,7 +66,7 @@ public class JobAction implements Log2Dumpable {
 				break;
 			case stop:
 				worker_reg = job.getWorker_reference();
-				WorkerExporter worker_exporter = DatabaseLayer.getWorkerStatusByKey(worker_reg);
+				WorkerExporter worker_exporter = WorkerExporter.getWorkerStatusByKey(worker_reg);
 				if (worker_exporter == null) {
 					job.getActionUtils().setStopped();
 				} else if (worker_exporter.current_job_key == null) {

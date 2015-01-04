@@ -18,7 +18,6 @@ package hd3gtv.mydmam.useraction;
 
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.taskqueue.Profile;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -45,7 +44,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 	public String instance;
 	public String messagebasename;
 	public boolean powerful_and_dangerous;
-	public List<Profile> profiles;
+	public List<String> worker_capablity_storages;
 	public UACapabilityDefinition capability;
 	public UAConfigurator configurator;
 	
@@ -67,11 +66,11 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 			/**
 			 * Mergue...
 			 */
-			if (current.profiles == null) {
-				current.profiles = new ArrayList<Profile>();
+			if (current.worker_capablity_storages == null) {
+				current.worker_capablity_storages = new ArrayList<String>();
 			}
-			if (definition.profiles != null) {
-				current.profiles.addAll(definition.profiles);
+			if (definition.worker_capablity_storages != null) {
+				current.worker_capablity_storages.addAll(definition.worker_capablity_storages);
 			}
 			if (current.capability != null) {
 				current.capability.mergue(definition.capability);
@@ -85,7 +84,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		ressource.add(definition);
 	}
 	
-	static UAFunctionalityDefinintion fromFunctionality(UAFunctionality functionality) {
+	static UAFunctionalityDefinintion fromFunctionality(UAFunctionalityContext functionality) {
 		UAFunctionalityDefinintion def = new UAFunctionalityDefinintion();
 		def.section = functionality.getSection();
 		def.vendor = functionality.getVendor();
@@ -93,7 +92,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		def.description = functionality.getDescription();
 		def.instance = functionality.getInstanceReference().toString();
 		def.classname = functionality.getClass().getName();
-		def.profiles = functionality.getUserActionProfiles();
+		def.worker_capablity_storages = functionality.getUserActionWorkerCapablities().getStoragesAvaliable();
 		def.configurator = functionality.createEmptyConfiguration();
 		def.messagebasename = functionality.getMessageBaseName();
 		if (def.messagebasename == null) {
@@ -114,20 +113,19 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 	public static class Serializer implements JsonSerializer<UAFunctionalityDefinintion>, JsonDeserializer<UAFunctionalityDefinintion> {
 		Gson gson;
 		
-		Type profiles_typeOfT = new TypeToken<ArrayList<Profile>>() {
+		Type profiles_typeOfT = new TypeToken<ArrayList<String>>() {
 		}.getType();
 		
 		public Serializer() {
 			GsonBuilder builder = new GsonBuilder();
 			builder.serializeNulls();
-			builder.registerTypeAdapter(Profile.class, new Profile.ProfileSerializer());
 			builder.registerTypeAdapter(UACapabilityDefinition.class, new UACapabilityDefinition.Serializer());
 			gson = builder.create();
 		}
 		
 		public JsonElement serialize(UAFunctionalityDefinintion src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject jo = (JsonObject) gson.toJsonTree(src);
-			jo.add("profiles", gson.toJsonTree(src.profiles, profiles_typeOfT));
+			jo.add("worker_capablity_storages", gson.toJsonTree(src.worker_capablity_storages, profiles_typeOfT));
 			return jo;
 		}
 		
@@ -137,7 +135,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 			}
 			JsonObject jo = (JsonObject) json;
 			UAFunctionalityDefinintion result = gson.fromJson(json, UAFunctionalityDefinintion.class);
-			result.profiles = gson.fromJson(jo.get("profiles").getAsJsonArray(), profiles_typeOfT);
+			result.worker_capablity_storages = gson.fromJson(jo.get("worker_capablity_storages").getAsJsonArray(), profiles_typeOfT);
 			return result;
 		}
 	}
@@ -152,7 +150,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		dump.add("instance", instance);
 		dump.add("messagebasename", messagebasename);
 		dump.add("powerful_and_dangerous", powerful_and_dangerous);
-		dump.add("profiles", profiles);
+		dump.add("worker_capablity_storages", worker_capablity_storages);
 		dump.addAll(capability);
 		dump.addAll(configurator);
 		return dump;

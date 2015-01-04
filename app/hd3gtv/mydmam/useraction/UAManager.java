@@ -20,9 +20,10 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.GsonIgnoreStrategy;
 import hd3gtv.mydmam.module.MyDMAMModule;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.taskqueue.WorkerGroup;
 import hd3gtv.mydmam.useraction.dummy.UADummy;
 import hd3gtv.mydmam.useraction.dummy.UADummy2;
 
@@ -41,13 +42,13 @@ public class UAManager {
 	/**
 	 * UAFunctionality Name -> UAFunctionality
 	 */
-	private static volatile LinkedHashMap<String, UAFunctionality> functionalities_class_map;
-	private static volatile List<UAFunctionality> functionalities_list;
+	private static volatile LinkedHashMap<String, UAFunctionalityContext> functionalities_class_map;
+	private static volatile List<UAFunctionalityContext> functionalities_list;
 	private static Gson gson;
 	
 	static {
-		functionalities_class_map = new LinkedHashMap<String, UAFunctionality>();
-		functionalities_list = new ArrayList<UAFunctionality>();
+		functionalities_class_map = new LinkedHashMap<String, UAFunctionalityContext>();
+		functionalities_list = new ArrayList<UAFunctionalityContext>();
 		
 		GsonBuilder builder = new GsonBuilder();
 		builder.serializeNulls();
@@ -55,6 +56,11 @@ public class UAManager {
 		builder.registerTypeAdapter(UACapabilityDefinition.class, new UACapabilityDefinition.Serializer());
 		builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
 		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		
+		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		
 		gson = builder.create();
 		
 		add(new UADummy());
@@ -70,7 +76,7 @@ public class UAManager {
 		return gson;
 	}
 	
-	private static void add(UAFunctionality functionality) {
+	private static void add(UAFunctionalityContext functionality) {
 		if (functionality == null) {
 			return;
 		}
@@ -101,7 +107,7 @@ public class UAManager {
 		return functionalities_list.size();
 	}
 	
-	private static void addAll(List<? extends UAFunctionality> functionalities) {
+	private static void addAll(List<? extends UAFunctionalityContext> functionalities) {
 		if (functionalities == null) {
 			return;
 		}
@@ -110,22 +116,22 @@ public class UAManager {
 		}
 	}
 	
-	public static UAFunctionality getByName(String classname) {
+	public static UAFunctionalityContext getByName(String classname) {
 		return functionalities_class_map.get(classname);
 	}
 	
-	public static void createWorkers(WorkerGroup wgroup) {
+	public static void createWorkers(AppManager manager) {
 		if (Configuration.global.isElementKeyExists("useraction", "workers_activated") == false) {
 			return;
 		}
 		List<List<String>> conf_workers = Configuration.global.getListsInListValues("useraction", "workers_activated");
 		
 		List<String> list;
-		UAFunctionality functionality;
-		List<UAFunctionality> worker_functionalities_list;
+		UAFunctionalityContext functionality;
+		List<UAFunctionalityContext> worker_functionalities_list;
 		boolean founded;
 		for (int pos_conf_worker = 0; pos_conf_worker < conf_workers.size(); pos_conf_worker++) {
-			worker_functionalities_list = new ArrayList<UAFunctionality>();
+			worker_functionalities_list = new ArrayList<UAFunctionalityContext>();
 			list = conf_workers.get(pos_conf_worker);
 			for (int pos_list = 0; pos_list < list.size(); pos_list++) {
 				founded = false;
@@ -149,7 +155,7 @@ public class UAManager {
 			
 			for (int pos_funct = worker_functionalities_list.size() - 1; pos_funct > -1; pos_funct--) {
 				functionality = worker_functionalities_list.get(pos_funct);
-				if (functionality.getUserActionProfiles().isEmpty()) {
+				if (functionality.getUserActionWorkerCapablities() == null) {
 					worker_functionalities_list.remove(pos_funct);
 					Log2.log.error("No declared profile for this functionality and can't add it to a worker", new NullPointerException(), functionality.getDefinition());
 				}
@@ -165,11 +171,8 @@ public class UAManager {
 				functionality = worker_functionalities_list.get(pos_funct);
 				dump.add(functionality.getClass().getSimpleName(), functionality.getLongName());
 			}
-			Log2.log.info("Add Useraction worker", dump);
-			UAWorker worker = new UAWorker(worker_functionalities_list);
-			UAFinisherWorker fworker = new UAFinisherWorker(worker);
-			wgroup.addWorker(worker);
-			wgroup.addWorker(fworker);
+			Log2.log.debug("Add Useraction worker", dump);
+			manager.workerRegister(new UAWorker(worker_functionalities_list));
 		}
 	}
 }
