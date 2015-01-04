@@ -302,8 +302,12 @@ public final class AppManager implements InstanceActionReceiver {
 	 * Blocking
 	 */
 	public void stopAll() {
-		updater.stopUpdate();
-		broker.askStop();
+		if (updater != null) {
+			updater.stopUpdate();
+		}
+		if (broker != null) {
+			broker.askStop();
+		}
 		
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			enabled_workers.get(pos).getLifecyle().askToStopAndRefuseNewJobs();
@@ -314,12 +318,18 @@ public final class AppManager implements InstanceActionReceiver {
 					Thread.sleep(10);
 				}
 			}
-			while (updater.isAlive()) {
-				Thread.sleep(10);
+			
+			if (updater != null) {
+				while (updater.isAlive()) {
+					Thread.sleep(10);
+				}
 			}
 			updater = null;
-			while (broker.isAlive()) {
-				Thread.sleep(10);
+			
+			if (broker != null) {
+				while (broker.isAlive()) {
+					Thread.sleep(10);
+				}
 			}
 			broker = null;
 		} catch (InterruptedException e) {

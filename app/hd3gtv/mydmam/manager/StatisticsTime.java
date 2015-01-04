@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 public class StatisticsTime {
 	
-	private static final int MAX_ITEMS = 10;// TODO set to 100
+	private static final int MAX_ITEMS = 100;
 	
 	private class MeterEntry {
 		long start_date;
