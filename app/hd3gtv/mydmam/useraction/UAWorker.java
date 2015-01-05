@@ -107,7 +107,7 @@ public final class UAWorker extends WorkerNG {
 		progression.update("Finish current job");
 		progression.updateProgress(0, 1);
 		
-		if (context.remove_user_basket_item) {
+		if (context.finisher.remove_user_basket_item) {
 			progression.incrStepCount();
 			try {
 				Basket basket = new Basket(user_profile.key);
@@ -122,7 +122,7 @@ public final class UAWorker extends WorkerNG {
 			progression.incrStep();
 		}
 		
-		if (context.soft_refresh_source_storage_index_item | context.force_refresh_source_storage_index_item) {
+		if (context.finisher.soft_refresh_source_storage_index_item | context.finisher.force_refresh_source_storage_index_item) {
 			progression.incrStepCount();
 			List<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>();
 			
@@ -130,11 +130,11 @@ public final class UAWorker extends WorkerNG {
 				items.add(entry.getValue());
 			}
 			
-			if (context.soft_refresh_source_storage_index_item) {
+			if (context.finisher.soft_refresh_source_storage_index_item) {
 				explorer.refreshStoragePath(items, false);
 			}
 			
-			if (context.force_refresh_source_storage_index_item) {
+			if (context.finisher.force_refresh_source_storage_index_item) {
 				explorer.refreshStoragePath(items, true);
 			}
 			progression.incrStep();

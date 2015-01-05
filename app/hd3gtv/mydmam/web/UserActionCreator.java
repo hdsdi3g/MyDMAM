@@ -21,6 +21,7 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -63,7 +64,7 @@ public class UserActionCreator {
 	private UserProfile userprofile;
 	private String basket_name;
 	private UserActionCreatorRange range;
-	// private UAFinisherJobContext global_finisher;
+	private UAFinisherConfiguration finisher;
 	private ArrayList<UserActionCreatorConfiguredFunctionality> configured_functionalities;
 	private ArrayList<UserActionCreatorNotificationDestinator> notificationdestinations;
 	private LinkedHashMap<String, ArrayList<String>> storageindexname_to_itemlist;
@@ -91,8 +92,8 @@ public class UserActionCreator {
 		new_tasks = new ArrayList<String>();
 	}
 	
-	public void setRange_Finisher(String finisher_json, UserActionCreatorRange range) {
-		// TODO import finisher_json datas
+	public void setRangeFinishing(UAFinisherConfiguration finisher, UserActionCreatorRange range) {
+		this.finisher = finisher;
 		this.range = range;
 	}
 	
@@ -270,7 +271,7 @@ public class UserActionCreator {
 		logentry.put("userprofile", userprofile);
 		logentry.put("configured_functionalities", configured_functionalities);
 		logentry.put("storageindexname_to_itemlist", storageindexname_to_itemlist);
-		// logentry.put("global_finisher", global_finisher);
+		logentry.put("finisher", finisher);
 		logentry.put("range", range);
 		logentry.put("basket_name", basket_name);
 		logentry.put("new_tasks", new_tasks);

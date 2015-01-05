@@ -22,6 +22,8 @@ import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.Basket;
+import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
+import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.useraction.UASelectAsyncOptions;
 import hd3gtv.mydmam.web.UserActionCreator;
 import hd3gtv.mydmam.web.UserActionCreatorRange;
@@ -124,7 +126,8 @@ public class UserAction extends Controller {
 		}
 		
 		String finisher_json = params.get("finisher_json");
-		creator.setRange_Finisher(finisher_json, UserActionCreatorRange.fromString(params.get("range")));
+		
+		creator.setRangeFinishing(UAManager.getGson().fromJson(finisher_json, UAFinisherConfiguration.class), UserActionCreatorRange.fromString(params.get("range")));
 		
 		String configured_functionalities_json = params.get("configured_functionalities_json");
 		try {

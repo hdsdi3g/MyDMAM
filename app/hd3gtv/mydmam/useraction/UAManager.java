@@ -55,6 +55,7 @@ public class UAManager {
 		builder.registerTypeAdapter(UAFunctionalityDefinintion.class, new UAFunctionalityDefinintion.Serializer());
 		builder.registerTypeAdapter(UACapabilityDefinition.class, new UACapabilityDefinition.Serializer());
 		builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
+		builder.registerTypeAdapter(UAFinisherConfiguration.class, new UAFinisherConfiguration.Serializer());
 		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
 		
 		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();

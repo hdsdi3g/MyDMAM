@@ -33,10 +33,7 @@ public final class UAJobFunctionalityContextContent implements Log2Dumpable {
 	public String creator_user_key;
 	public String basket_name;
 	public @GsonIgnore ArrayList<String> items;
-	
-	public boolean remove_user_basket_item;// TODO set...
-	public boolean soft_refresh_source_storage_index_item;// TODO set...
-	public boolean force_refresh_source_storage_index_item;// TODO set...
+	public UAFinisherConfiguration finisher;
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
@@ -44,9 +41,7 @@ public final class UAJobFunctionalityContextContent implements Log2Dumpable {
 		dump.add("creator_user_key", creator_user_key);
 		dump.add("basket_name", basket_name);
 		dump.add("items", items);
-		dump.add("remove_user_basket_item", remove_user_basket_item);
-		dump.add("soft_refresh_source_storage_index_item", soft_refresh_source_storage_index_item);
-		dump.add("force_refresh_source_storage_index_item", force_refresh_source_storage_index_item);
+		dump.addAll(finisher);
 		dump.addAll(user_configuration);
 		return dump;
 	}
