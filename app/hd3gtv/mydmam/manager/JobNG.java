@@ -600,6 +600,32 @@ public final class JobNG implements Log2Dumpable {
 		}
 		
 		/**
+		 * @return deleted raw json jobs
+		 */
+		public static List<JsonObject> deleteJobsByStatus(JobStatus status) throws ConnectionException {
+			ArrayList<JsonObject> result = new ArrayList<JsonObject>();
+			
+			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
+			index_query.addExpression().whereColumn("status").equals().value(status.name());
+			index_query.withColumnSlice("source");
+			
+			OperationResult<Rows<String, String>> rows = index_query.execute();
+			if (rows.getResult().isEmpty()) {
+				return result;
+			}
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			JsonParser parser = new JsonParser();
+			
+			for (Row<String, String> row : rows.getResult()) {
+				result.add(parser.parse(row.getColumns().getStringValue("source", "{}")).getAsJsonObject());
+				mutator.withRow(CF_QUEUE, row.getKey()).delete();
+			}
+			mutator.execute();
+			
+			return result;
+		}
+		
+		/**
 		 * @return never null if keys is not empty
 		 */
 		public static JsonObject getJsonJobsByKeys(Collection<String> keys) throws ConnectionException, ParseException {

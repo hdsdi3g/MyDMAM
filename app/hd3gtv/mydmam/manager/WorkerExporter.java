@@ -168,6 +168,8 @@ public final class WorkerExporter implements Log2Dumpable {
 		JobNG job = worker.getCurrentJob();
 		if (job != null) {
 			current_job_key = job.getKey();
+		} else {
+			current_job_key = null;
 		}
 	}
 	

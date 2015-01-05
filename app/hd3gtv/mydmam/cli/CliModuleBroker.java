@@ -18,8 +18,13 @@ package hd3gtv.mydmam.cli;
 
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.manager.JobNG.JobStatus;
 import hd3gtv.mydmam.manager.WorkerExporter;
 import hd3gtv.tools.ApplicationArgs;
+
+import java.util.List;
+
+import com.google.gson.JsonObject;
 
 public class CliModuleBroker implements CliModule {
 	
@@ -48,7 +53,16 @@ public class CliModuleBroker implements CliModule {
 				JobNG.Utility.truncateAllJobs();
 				return;
 			}
+		} else if (args.getParamExist("-remove")) {
+			if (args.getSimpleParamValue("-remove").equalsIgnoreCase("preparing")) {
+				List<JsonObject> jobs = JobNG.Utility.deleteJobsByStatus(JobStatus.PREPARING);
+				for (int pos = 0; pos < jobs.size(); pos++) {
+					System.out.println(jobs.get(pos).toString());
+				}
+				return;
+			}
 		}
+		showFullCliModuleHelp();
 	}
 	
 	public void showFullCliModuleHelp() {
@@ -56,6 +70,7 @@ public class CliModuleBroker implements CliModule {
 		System.out.println(" * truncate instances list: " + getCliModuleName() + " -truncate instances");
 		System.out.println(" * truncate job queue: " + getCliModuleName() + " -truncate queue");
 		System.out.println(" * truncate instances list and queue: " + getCliModuleName() + " -truncate all");
+		System.out.println(" * remove all \"preparing\" jobs: " + getCliModuleName() + " -remove preparing");
 	}
 	
 }
