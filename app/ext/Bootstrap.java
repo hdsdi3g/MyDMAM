@@ -16,6 +16,7 @@
 */
 package ext;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
@@ -44,6 +45,8 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 public class Bootstrap extends Job {
 	
 	public void doJob() {
+		Configuration.importLog2Configuration(Configuration.global, false);
+		
 		/**
 		 * Compare Messages entries between languages
 		 */

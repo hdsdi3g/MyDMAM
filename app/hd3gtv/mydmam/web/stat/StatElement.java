@@ -74,7 +74,9 @@ public class StatElement {
 		
 		public JsonElement serialize(StatElement src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = gson_simple.toJsonTree(src).getAsJsonObject();
-			result.add("reference", src.reference.toGson());
+			if (src.reference != null) {
+				result.add("reference", src.reference.toGson());
+			}
 			result.add("items", gson.toJsonTree(src.items));
 			return result;
 		}
