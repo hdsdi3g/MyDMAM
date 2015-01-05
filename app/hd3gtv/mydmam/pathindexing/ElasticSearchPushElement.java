@@ -20,6 +20,7 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
@@ -113,16 +114,18 @@ class ElasticSearchPushElement implements IndexingEvent {
 	}
 	
 	public void execute_Bulks() {
-		Log2Dump dump = new Log2Dump();
-		dump = new Log2Dump();
-		dump.add("name", importer.getName());
-		dump.add("indexed", bulkrequest_index.numberOfActions());
-		Log2.log.debug("Prepare to update Elasticsearch database", dump);
-		
-		BulkResponse bulkresponse;
+		client = Elasticsearch.getClient();
 		
 		if (bulkrequest_index.numberOfActions() > 0) {
-			bulkresponse = bulkrequest_index.execute().actionGet();
+			Log2Dump dump = new Log2Dump();
+			dump = new Log2Dump();
+			dump.add("name", importer.getName());
+			dump.add("indexed", bulkrequest_index.numberOfActions());
+			Log2.log.debug("Prepare to update Elasticsearch database", dump);
+			
+			BulkRequest bu_r = bulkrequest_index.request();
+			BulkResponse bulkresponse = client.bulk(bu_r).actionGet();
+			
 			if (bulkresponse.hasFailures()) {
 				dump = new Log2Dump();
 				dump.add("name", importer.getName());
@@ -130,8 +133,7 @@ class ElasticSearchPushElement implements IndexingEvent {
 				dump.add("failure message", bulkresponse.buildFailureMessage());
 				Log2.log.error("Errors during indexing", null, dump);
 			}
-			client = Elasticsearch.getClient();
-			bulkrequest_index = client.prepareBulk();
+			bulkrequest_index.request().requests().clear();
 		}
 		
 	}
