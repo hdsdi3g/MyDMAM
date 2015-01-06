@@ -16,17 +16,11 @@
 */
 package controllers;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.Basket;
-import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
+import hd3gtv.mydmam.useraction.UACreationRequest;
 import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.useraction.UASelectAsyncOptions;
-import hd3gtv.mydmam.web.UserActionCreator;
-import hd3gtv.mydmam.web.UserActionCreatorRange;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -35,12 +29,12 @@ import java.util.List;
 import java.util.Map;
 
 import models.ACLUser;
-import models.UserProfile;
+import play.data.validation.Required;
+import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
 
-import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 @With(Secure.class)
@@ -48,7 +42,6 @@ public class UserAction extends Controller {
 	
 	private static final String JSON_OK_RESPONSE = "{\"result\": true}";
 	
-	private static Gson gson = new Gson();
 	private static Type typeOfArrayString = new TypeToken<ArrayList<String>>() {
 	}.getType();
 	
@@ -70,7 +63,7 @@ public class UserAction extends Controller {
 		if (json_functionalities.equalsIgnoreCase("[]")) {
 			return new ArrayList<String>(1);
 		}
-		return gson.fromJson(json_functionalities, typeOfArrayString);
+		return UAManager.getGson().fromJson(json_functionalities, typeOfArrayString);
 	}
 	
 	@Check("userAction")
@@ -82,65 +75,20 @@ public class UserAction extends Controller {
 	}
 	
 	@Check("userAction")
-	public static void create() throws Exception {
+	public static void create(@Required String uarequest) throws Exception {
+		if (Validation.hasErrors()) {
+			throw new NullPointerException("request");
+		}
+		
 		ArrayList<String> getuserrestrictedfunctionalities = getUserRestrictedFunctionalities();
 		if (getuserrestrictedfunctionalities.isEmpty()) {
 			throw new SecurityException("User " + Secure.connected() + " can't use useractions");
 		}
 		
-		String[] raw_items = params.getAll("items[]");
-		if (raw_items == null) {
-			Log2.log.error("No items !", new NullPointerException());
-			renderJSON("{}");
-		}
-		if (raw_items.length == 0) {
-			Log2.log.error("No items !", null);
-			renderJSON("{}");
-		}
-		
-		ArrayList<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>(raw_items.length);
-		Explorer explorer = new Explorer();
-		SourcePathIndexerElement item;
-		for (int pos = 0; pos < raw_items.length; pos++) {
-			item = explorer.getelementByIdkey(raw_items[pos]);
-			if (item != null) {
-				items.add(item);
-			}
-		}
-		
-		UserProfile userprofile = User.getUserProfile();
-		UserActionCreator creator = new UserActionCreator(items);
-		creator.setUserprofile(userprofile);
-		creator.setBasket_name(params.get("basket_name"));
-		creator.setUsercomment(params.get("comment"));
-		/**
-		 * Not mandatory
-		 */
-		String[] notification_reasons = params.getAll("notification_reasons[]");
-		try {
-			creator.addNotificationdestinationForCreator(notification_reasons);
-		} catch (Exception e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("raw", notification_reasons);
-			Log2.log.error("Setup notification destinations for user", e, dump);
-		}
-		
-		String finisher_json = params.get("finisher_json");
-		
-		creator.setRangeFinishing(UAManager.getGson().fromJson(finisher_json, UAFinisherConfiguration.class), UserActionCreatorRange.fromString(params.get("range")));
-		
-		String configured_functionalities_json = params.get("configured_functionalities_json");
-		try {
-			creator.setConfigured_functionalities(configured_functionalities_json, getuserrestrictedfunctionalities);
-		} catch (Exception e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("user", Secure.connected());
-			dump.add("raw", configured_functionalities_json);
-			Log2.log.error("Setup functionalities", e, dump);
-			throw e;
-		}
-		
-		creator.createTasks();
+		UACreationRequest ua_request = UAManager.getGson().fromJson(uarequest, UACreationRequest.class);
+		ua_request.setUserprofile(User.getUserProfile());
+		ua_request.setUserRestrictedPrivileges(getuserrestrictedfunctionalities);
+		ua_request.createJobs();
 		
 		renderJSON(JSON_OK_RESPONSE);
 	}

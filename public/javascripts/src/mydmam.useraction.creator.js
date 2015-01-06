@@ -639,9 +639,9 @@
 		request.basket_name = creator.getBasketNameFromCreator("#uacreationmodal");
 		request.comment = creator.getCommentFromCreator();
 		request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
-		request.finisher_json = JSON.stringify(creator.getFinisherFromCreator());
+		request.finisher = creator.getFinisherFromCreator();
 		request.range = creator.getRangeFromCreator();
-		request.configured_functionalities_json = JSON.stringify(creator.getFunctionalityConfigurationsFromUACreation("#uacreationmodal"));
+		request.configured_functionalities = creator.getFunctionalityConfigurationsFromUACreation("#uacreationmodal");
 		
 		document.body.style.cursor = 'wait';
 		creator.requestUA(request, function() {
@@ -675,7 +675,9 @@
 			url: mydmam.useraction.url.create,
 			type: "POST",
 			async: true,
-			data: request,
+			data: {
+				uarequest : JSON.stringify(request),
+			},
 			error: callback_error,
 			success: function(data) {
 				if (data.result) {

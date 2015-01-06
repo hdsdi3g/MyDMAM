@@ -18,52 +18,31 @@ package hd3gtv.mydmam.web;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.useraction.UACreationRange;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import models.UserProfile;
 
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+@Deprecated
 public class UserActionCreator {
-	
-	public static final String ES_TYPE = "log";
-	private static final long LOG_LIFETIME = 3600 * 24 * 365 * 2; // 2 years
-	private static final String NOTIFICATION_REFERENCE = "useraction";
-	
-	static Gson gson;
-	
-	static {
-		try {
-			Elasticsearch.enableTTL(Notification.ES_INDEX, ES_TYPE);
-		} catch (Exception e) {
-			Log2.log.error("Can't enable TTL in ES", e);
-		}
-		
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		builder.setPrettyPrinting();
-		gson = builder.create();
-	}
 	
 	private UserProfile userprofile;
 	private String basket_name;
-	private UserActionCreatorRange range;
+	private UACreationRange range;
 	private UAFinisherConfiguration finisher;
 	private ArrayList<UserActionCreatorConfiguredFunctionality> configured_functionalities;
 	private ArrayList<UserActionCreatorNotificationDestinator> notificationdestinations;
@@ -73,11 +52,6 @@ public class UserActionCreator {
 	private transient Client client;
 	
 	public UserActionCreator(ArrayList<SourcePathIndexerElement> items_spie) throws ConnectionException, IOException {
-		client = Elasticsearch.getClient();
-		
-		if (items_spie.isEmpty()) {
-			throw new NullPointerException("Items can't to be empty");
-		}
 		storageindexname_to_itemlist = new LinkedHashMap<String, ArrayList<String>>();
 		SourcePathIndexerElement item;
 		for (int pos = 0; pos < items_spie.size(); pos++) {
@@ -92,7 +66,7 @@ public class UserActionCreator {
 		new_tasks = new ArrayList<String>();
 	}
 	
-	public void setRangeFinishing(UAFinisherConfiguration finisher, UserActionCreatorRange range) {
+	public void setRangeFinishing(UAFinisherConfiguration finisher, UACreationRange range) {
 		this.finisher = finisher;
 		this.range = range;
 	}
@@ -120,7 +94,7 @@ public class UserActionCreator {
 		
 		Type typeOfT = new TypeToken<ArrayList<UserActionCreatorConfiguredFunctionality>>() {
 		}.getType();
-		configured_functionalities = gson.fromJson(configured_functionalities_json, typeOfT);
+		configured_functionalities = new Gson().fromJson(configured_functionalities_json, typeOfT);
 		
 		try {
 			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
@@ -164,7 +138,6 @@ public class UserActionCreator {
 	 */
 	private String createSingleTaskWithRequire(String require, UserActionCreatorConfiguredFunctionality configured_functionality, ArrayList<String> items, String storage_name)
 			throws ConnectionException {
-		// TODO
 		/*
 		UAJobContext context = new UAJobContext();
 		context.functionality_class = configured_functionality.functionality.getClass();
@@ -185,7 +158,6 @@ public class UserActionCreator {
 		name.append(storage_name);
 		name.append(")");
 		*/
-		// TODO
 		/*Profile profile = new Profile("useraction", configured_functionality.functionality.getSimpleName() + "=" + storage_name);
 		return Broker.publishTask(name.toString(), profile, context.toContext(), UAJobContext.class, false, 0, require, false);*/
 		return "";
@@ -207,7 +179,7 @@ public class UserActionCreator {
 		ArrayList<String> items;
 		String last_require = null;
 		Notification notification;
-		if (range == UserActionCreatorRange.ONE_USER_ACTION_BY_STORAGE_AND_BASKET) {
+		if (range == UACreationRange.ONE_USER_ACTION_BY_STORAGE_AND_BASKET) {
 			notification = createNotification();
 			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
 				storage_name = entry.getKey();
@@ -221,8 +193,8 @@ public class UserActionCreator {
 				}
 			}
 			notification.save();
-			addUALogEntry();
-		} else if (range == UserActionCreatorRange.ONE_USER_ACTION_BY_BASKET_ITEM) {
+			// addUALogEntry();
+		} else if (range == UACreationRange.ONE_USER_ACTION_BY_BASKET_ITEM) {
 			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
 				notification = createNotification();
 				storage_name = entry.getKey();
@@ -234,8 +206,8 @@ public class UserActionCreator {
 					notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
 				}
 			}
-			addUALogEntry();
-		} else if (range == UserActionCreatorRange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
+			// addUALogEntry();
+		} else if (range == UACreationRange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
 			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
 				notification = createNotification();
 				for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
@@ -248,7 +220,7 @@ public class UserActionCreator {
 				}
 				notification.save();
 			}
-			addUALogEntry();
+			// addUALogEntry();
 		}
 	}
 	
@@ -256,42 +228,11 @@ public class UserActionCreator {
 		if (usercomment == null) {
 			usercomment = "";
 		}
-		Notification n = Notification.create(userprofile, usercomment, NOTIFICATION_REFERENCE);
+		Notification n = Notification.create(userprofile, usercomment, "log");
 		for (int pos = 0; pos < notificationdestinations.size(); pos++) {
 			n.updateNotifyReasonForUser(notificationdestinations.get(pos).userprofile, notificationdestinations.get(pos).n_reason, true);
 		}
 		return n;
 	}
 	
-	private void addUALogEntry() {
-		long now = System.currentTimeMillis();
-		
-		HashMap<String, Object> logentry = new HashMap<String, Object>();
-		logentry.put("usercomment", usercomment);
-		logentry.put("userprofile", userprofile);
-		logentry.put("configured_functionalities", configured_functionalities);
-		logentry.put("storageindexname_to_itemlist", storageindexname_to_itemlist);
-		logentry.put("finisher", finisher);
-		logentry.put("range", range);
-		logentry.put("basket_name", basket_name);
-		logentry.put("new_tasks", new_tasks);
-		logentry.put("created_at", now);
-		
-		StringBuffer sb = new StringBuffer();
-		sb.append(now);
-		sb.append(":");
-		sb.append(userprofile.key);
-		
-		String json_data = gson.toJson(logentry);
-		
-		IndexRequest ir = new IndexRequest(Notification.ES_INDEX, ES_TYPE, sb.toString());
-		ir.source(json_data);
-		ir.ttl(LOG_LIFETIME);
-		client.index(ir);
-		
-		Log2Dump dump = new Log2Dump();
-		dump.add("id", sb.toString());
-		dump.add("raw_json", json_data);
-		Log2.log.debug("Create UserAction", dump);
-	}
 }

@@ -22,6 +22,7 @@ import hd3gtv.mydmam.useraction.UAManager;
 
 import com.google.gson.JsonElement;
 
+@Deprecated
 public class UserActionCreatorConfiguredFunctionality {
 	
 	String functionality_classname;
@@ -37,7 +38,7 @@ public class UserActionCreatorConfiguredFunctionality {
 		}
 		associated_user_configuration = functionality.createEmptyConfiguration();
 		if (associated_user_configuration != null) {
-			associated_user_configuration.setObject(UserActionCreator.gson.fromJson(raw_associated_user_configuration, associated_user_configuration.getObjectClass()));
+			associated_user_configuration.setObject(UAManager.getGson().fromJson(raw_associated_user_configuration, associated_user_configuration.getObjectClass()));
 		}
 	}
 	

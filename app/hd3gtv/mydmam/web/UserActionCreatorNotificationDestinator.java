@@ -29,6 +29,7 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import ext.MydmamExtensions;
 
+@Deprecated
 public class UserActionCreatorNotificationDestinator implements Log2Dumpable {
 	
 	private CrudOrmEngine<UserProfile> user_profile_orm;
