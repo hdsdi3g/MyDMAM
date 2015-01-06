@@ -18,6 +18,7 @@ package hd3gtv.mydmam.pathindexing;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 
 public abstract class Importer {
 	
@@ -48,9 +49,10 @@ public abstract class Importer {
 	protected abstract long getTTL();
 	
 	public final long index() throws Exception {
-		ElasticSearchPushElement push = new ElasticSearchPushElement(this);
+		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+		PushElement push = new PushElement(this, bulk);
 		long result = doIndex(push);
-		push.end();
+		bulk.terminateBulk();
 		
 		// if (push.l_elements_problems.size() > 0) {
 		/**
@@ -60,5 +62,85 @@ public abstract class Importer {
 		// }
 		
 		return result;
+	}
+	
+	private final class PushElement implements IndexingEvent {
+		
+		public void onRemoveFile(String storagename, String path) throws Exception {
+		}
+		
+		private ElasticsearchBulkOperation bulk;
+		private long ttl;
+		
+		// ArrayList<SourcePathIndexerElement> l_elements_problems;
+		
+		public PushElement(Importer importer, ElasticsearchBulkOperation bulk) {
+			ttl = importer.getTTL();
+			this.bulk = bulk;
+			// l_elements_problems = new ArrayList<SourcePathIndexerElement>();
+		}
+		
+		public boolean onFoundElement(SourcePathIndexerElement element) {
+			if (element.parentpath != null) {
+				String filename = element.currentpath.substring(element.currentpath.lastIndexOf("/"), element.currentpath.length());
+				if (searchForbiddenChars(filename)) {
+					// l_elements_problems.add(element);
+					/**
+					 * Disabled this : there is too many bad file name
+					 */
+					// Log2.log.info("Bad filename", element);
+				}
+			}
+			
+			String index_type = null;
+			if (element.directory) {
+				index_type = Importer.ES_TYPE_DIRECTORY;
+			} else {
+				index_type = Importer.ES_TYPE_FILE;
+			}
+			
+			/**
+			 * Push it
+			 */
+			if (ttl > 0) {
+				bulk.add(bulk.getClient().prepareIndex(Importer.ES_INDEX, index_type, element.prepare_key()).setSource(element.toGson().toString()).setTTL(ttl));
+			} else {
+				bulk.add(bulk.getClient().prepareIndex(Importer.ES_INDEX, index_type, element.prepare_key()).setSource(element.toGson().toString()));
+			}
+			
+			return true;
+		}
+		
+	}
+	
+	private static boolean searchForbiddenChars(String filename) {
+		if (filename.indexOf("/") > -1) {
+			return true;
+		}
+		if (filename.indexOf("\\") > -1) {
+			return true;
+		}
+		if (filename.indexOf(":") > -1) {
+			return true;
+		}
+		if (filename.indexOf("*") > -1) {
+			return true;
+		}
+		if (filename.indexOf("?") > -1) {
+			return true;
+		}
+		if (filename.indexOf("\"") > -1) {
+			return true;
+		}
+		if (filename.indexOf("<") > -1) {
+			return true;
+		}
+		if (filename.indexOf(">") > -1) {
+			return true;
+		}
+		if (filename.indexOf("|") > -1) {
+			return true;
+		}
+		return false;
 	}
 }

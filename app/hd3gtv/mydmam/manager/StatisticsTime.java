@@ -74,6 +74,9 @@ public class StatisticsTime {
 		entries.remove(0);
 	}
 	
+	/**
+	 * @return null if not entries.
+	 */
 	public StatisticTimeResult getStatisticTimeResult() {
 		if (entries.isEmpty()) {
 			return null;
@@ -117,7 +120,9 @@ public class StatisticsTime {
 			for (int pos = 0; pos < al_values.size(); pos++) {
 				stddev += Math.pow(al_values.get(pos) - mean, 2);
 			}
-			stddev = Math.round(Math.sqrt(stddev / (al_values.size() - 1)));
+			if (al_values.size() > 1) {
+				stddev = Math.round(Math.sqrt(stddev / (al_values.size() - 1)));
+			}
 		}
 		
 		public Log2Dump getLog2Dump() {

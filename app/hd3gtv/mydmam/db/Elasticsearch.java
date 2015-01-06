@@ -25,6 +25,7 @@ import hd3gtv.mydmam.db.status.ElasticsearchStatus;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -73,6 +74,7 @@ public class Elasticsearch {
 			List<ConfigurationClusterItem> clusterservers = Configuration.global.getClusterConfiguration("elasticsearch", "transport", "127.0.0.1", 9300);
 			ImmutableSettings.Builder settings = ImmutableSettings.builder();
 			settings.put("cluster.name", clustername);
+			settings.put("client.transport.ping_timeout", 10, TimeUnit.SECONDS);
 			
 			Log2Dump dump = new Log2Dump();
 			dump.add("clustername", clustername);
@@ -101,6 +103,10 @@ public class Elasticsearch {
 			refeshconfiguration();
 		}
 		return client;
+	}
+	
+	public static ElasticsearchBulkOperation prepareBulk() {
+		return new ElasticsearchBulkOperation(getClient());
 	}
 	
 	public static Log2Dump getDump() {
