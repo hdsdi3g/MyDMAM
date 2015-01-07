@@ -62,14 +62,15 @@ public final class UACreationRequest {
 	private String comment;
 	private ArrayList<NotifyReason> notification_reasons;
 	private UAFinisherConfiguration finisher;
-	private UACreationRange range;
-	private ArrayList<JsonObject> configured_functionalities;
 	private ArrayList<String> dependent_storages;
 	private long created_at;
 	
-	private UserProfile userprofile;
 	private ArrayList<String> user_restricted_privileges;
 	private ArrayList<String> created_jobs_keys;
+	
+	private transient ArrayList<JsonObject> json_configured_functionalities;
+	private transient ArrayList<ConfiguredFunctionality> configured_functionalities;
+	private transient UserProfile userprofile;
 	
 	public static class Serializer implements JsonSerializer<UACreationRequest>, JsonDeserializer<UACreationRequest> {
 		
@@ -81,18 +82,17 @@ public final class UACreationRequest {
 		
 		public JsonElement serialize(UACreationRequest src, Type typeOfSrc, JsonSerializationContext context) {
 			/**
-			 * Only for log to ES.
+			 * Only use it for log to ES.
 			 */
 			JsonObject result = gson_simple.toJsonTree(src).getAsJsonObject();
 			
 			JsonArray ja_configured_functionalities = new JsonArray();
-			for (int pos = 0; pos < src.configured_functionalities.size(); pos++) {
-				ja_configured_functionalities.add(src.configured_functionalities.get(pos));
+			for (int pos = 0; pos < src.json_configured_functionalities.size(); pos++) {
+				ja_configured_functionalities.add(src.json_configured_functionalities.get(pos));
 			}
 			result.add("configured_functionalities", ja_configured_functionalities);
 			result.remove("user_restricted_privileges");
 			
-			result.remove("userprofile");
 			result.addProperty("userprofile_longname", src.userprofile.longname);
 			result.addProperty("userprofile_language", src.userprofile.language);
 			result.addProperty("userprofile_key", src.userprofile.key);
@@ -102,8 +102,6 @@ public final class UACreationRequest {
 		}
 		
 		public UACreationRequest deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			System.out.println(json.toString());// XXX
-			
 			JsonObject request = json.getAsJsonObject();
 			UACreationRequest result = gson_simple.fromJson(json, UACreationRequest.class);
 			result.items = UAManager.getGson().fromJson(request.get("items"), typeOfArrayString);
@@ -114,10 +112,10 @@ public final class UACreationRequest {
 			result.notification_reasons = UAManager.getGson().fromJson(request.get("notification_reasons"), typeOfArrayNotifyReason);
 			result.finisher = UAManager.getGson().fromJson(request.get("finisher"), UAFinisherConfiguration.class);
 			
-			result.configured_functionalities = new ArrayList<JsonObject>();
+			result.json_configured_functionalities = new ArrayList<JsonObject>();
 			JsonArray ja_configured_functionalities = request.get("configured_functionalities").getAsJsonArray();
 			for (int pos = 0; pos < ja_configured_functionalities.size(); pos++) {
-				result.configured_functionalities.add(ja_configured_functionalities.get(pos).getAsJsonObject());
+				result.json_configured_functionalities.add(ja_configured_functionalities.get(pos).getAsJsonObject());
 			}
 			
 			result.created_at = System.currentTimeMillis();
@@ -157,6 +155,30 @@ public final class UACreationRequest {
 		Log2.log.debug("Create UserAction", dump);
 	}
 	
+	private class ConfiguredFunctionality {
+		UAConfigurator associated_user_configuration;
+		UAFunctionalityContext functionality;
+		
+		ConfiguredFunctionality(JsonObject json_functionality) throws ClassNotFoundException, SecurityException {
+			String functionality_classname = json_functionality.get("functionality_classname").getAsString();
+			JsonElement raw_associated_user_configuration = json_functionality.get("raw_associated_user_configuration");
+			
+			if (user_restricted_privileges.contains(functionality_classname) == false) {
+				throw new SecurityException("Functionality: " + functionality_classname);
+			}
+			
+			functionality = UAManager.getByName(functionality_classname);
+			if (functionality == null) {
+				throw new ClassNotFoundException("Can't found functionality " + functionality_classname + ".");
+			}
+			
+			associated_user_configuration = functionality.createEmptyConfiguration();
+			if (associated_user_configuration != null) {
+				associated_user_configuration.setObject(UAManager.getGson().fromJson(raw_associated_user_configuration, associated_user_configuration.getObjectClass()));
+			}
+		}
+	}
+	
 	public void createJobs() throws Exception {
 		ArrayList<SourcePathIndexerElement> basket_content = new ArrayList<SourcePathIndexerElement>(items.size());
 		Explorer explorer = new Explorer();
@@ -172,10 +194,42 @@ public final class UACreationRequest {
 			}
 		}
 		
+		configured_functionalities = new ArrayList<UACreationRequest.ConfiguredFunctionality>();
+		for (int pos = 0; pos < json_configured_functionalities.size(); pos++) {
+			configured_functionalities.add(new ConfiguredFunctionality(json_configured_functionalities.get(pos)));
+		}
+		
+		if (comment == null) {
+			comment = "";
+		}
+		
+		/*Notification n = Notification.create(userprofile, usercomment, "log");
+		for (int pos = 0; pos < notificationdestinations.size(); pos++) {
+			n.updateNotifyReasonForUser(notificationdestinations.get(pos).userprofile, notificationdestinations.get(pos).n_reason, true);
+		}*/
+		
+		// System.out.println(UAManager.getGson().toJson(this));// XXX
+		
+		/*String storage_name;
+		ArrayList<String> items;
+		String last_require = null;
+		Notification notification = createNotification();
+		for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
+			storage_name = entry.getKey();
+			items = entry.getValue();
+			last_require = null;
+			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
+				last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
+				new_tasks.add(last_require);
+				notification.addLinkedTasksJobs(last_require);
+				notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
+			}
+		}
+		notification.save();
+		*/
+		
+		// addUALogEntry();
+		
 		created_jobs_keys = new ArrayList<String>();
-		
-		// TODO
-		System.out.println(UAManager.getGson().toJson(this));// XXX
-		
 	}
 }

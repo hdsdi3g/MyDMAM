@@ -22,7 +22,7 @@ import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.metadata.container.Operations;
-import hd3gtv.mydmam.web.UserActionCreator;
+import hd3gtv.mydmam.useraction.UACreationRequest;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.util.HashMap;
@@ -280,7 +280,7 @@ public class CliModuleOperateDatabase implements CliModule {
 			
 			SearchRequestBuilder request = client.prepareSearch();
 			request.setIndices(Notification.ES_INDEX);
-			request.setTypes(UserActionCreator.ES_TYPE);
+			request.setTypes(UACreationRequest.ES_TYPE);
 			request.setQuery(QueryBuilders.rangeQuery("created_at").gte(since));
 			request.addSort("created_at", SortOrder.ASC);
 			request.setSize(1000);

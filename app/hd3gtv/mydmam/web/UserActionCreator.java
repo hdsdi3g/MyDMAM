@@ -16,25 +16,17 @@
 */
 package hd3gtv.mydmam.web;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.useraction.UACreationRange;
 import hd3gtv.mydmam.useraction.UAFinisherConfiguration;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.Map;
 
 import models.UserProfile;
 
 import org.elasticsearch.client.Client;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 @Deprecated
@@ -42,9 +34,7 @@ public class UserActionCreator {
 	
 	private UserProfile userprofile;
 	private String basket_name;
-	private UACreationRange range;
 	private UAFinisherConfiguration finisher;
-	private ArrayList<UserActionCreatorConfiguredFunctionality> configured_functionalities;
 	private ArrayList<UserActionCreatorNotificationDestinator> notificationdestinations;
 	private LinkedHashMap<String, ArrayList<String>> storageindexname_to_itemlist;
 	private String usercomment;
@@ -61,14 +51,12 @@ public class UserActionCreator {
 			}
 			storageindexname_to_itemlist.get(item.storagename).add(item.prepare_key());
 		}
-		configured_functionalities = new ArrayList<UserActionCreatorConfiguredFunctionality>();
 		notificationdestinations = new ArrayList<UserActionCreatorNotificationDestinator>();
 		new_tasks = new ArrayList<String>();
 	}
 	
-	public void setRangeFinishing(UAFinisherConfiguration finisher, UACreationRange range) {
+	public void setRangeFinishing(UAFinisherConfiguration finisher) {
 		this.finisher = finisher;
-		this.range = range;
 	}
 	
 	public UserActionCreator setUserprofile(UserProfile userprofile) {
@@ -78,36 +66,6 @@ public class UserActionCreator {
 	
 	public UserActionCreator setBasket_name(String basket_name) {
 		this.basket_name = basket_name;
-		return this;
-	}
-	
-	/**
-	 * @param configured_functionalities_json List<UACreatorConfiguredFunctionality>
-	 */
-	public UserActionCreator setConfigured_functionalities(String configured_functionalities_json, ArrayList<String> user_restricted_privileges) throws Exception {
-		if (configured_functionalities_json == null) {
-			throw new NullPointerException("\"configured_functionalities_json\" can't to be null");
-		}
-		if (configured_functionalities_json.isEmpty()) {
-			throw new NullPointerException("\"configured_functionalities_json\" can't to be empty");
-		}
-		
-		Type typeOfT = new TypeToken<ArrayList<UserActionCreatorConfiguredFunctionality>>() {
-		}.getType();
-		configured_functionalities = new Gson().fromJson(configured_functionalities_json, typeOfT);
-		
-		try {
-			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
-				configured_functionalities.get(pos).prepare();
-				if (user_restricted_privileges.contains(configured_functionalities.get(pos).functionality_classname) == false) {
-					throw new SecurityException("Functionality: " + configured_functionalities.get(pos).functionality_classname);
-				}
-			}
-		} catch (Exception e) {
-			Log2.log.error("Invalid configured_functionalities_json", null, new Log2Dump("associated_user_configuration", configured_functionalities_json));
-			configured_functionalities = new ArrayList<UserActionCreatorConfiguredFunctionality>(1); // set empty...
-			throw new Exception("Invalid configured_functionalities_json", e);
-		}
 		return this;
 	}
 	
@@ -136,8 +94,7 @@ public class UserActionCreator {
 	/**
 	 * @return task key
 	 */
-	private String createSingleTaskWithRequire(String require, UserActionCreatorConfiguredFunctionality configured_functionality, ArrayList<String> items, String storage_name)
-			throws ConnectionException {
+	private String createSingleTaskWithRequire(String require, ArrayList<String> items, String storage_name) throws ConnectionException {
 		/*
 		UAJobContext context = new UAJobContext();
 		context.functionality_class = configured_functionality.functionality.getClass();
@@ -168,71 +125,7 @@ public class UserActionCreator {
 	}
 	
 	public void createTasks() throws Exception {
-		if (configured_functionalities.isEmpty()) {
-			return;
-		}
-		if (storageindexname_to_itemlist.isEmpty()) {
-			return;
-		}
 		
-		String storage_name;
-		ArrayList<String> items;
-		String last_require = null;
-		Notification notification;
-		if (range == UACreationRange.ONE_USER_ACTION_BY_STORAGE_AND_BASKET) {
-			notification = createNotification();
-			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
-				storage_name = entry.getKey();
-				items = entry.getValue();
-				last_require = null;
-				for (int pos = 0; pos < configured_functionalities.size(); pos++) {
-					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
-					new_tasks.add(last_require);
-					notification.addLinkedTasksJobs(last_require);
-					notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
-				}
-			}
-			notification.save();
-			// addUALogEntry();
-		} else if (range == UACreationRange.ONE_USER_ACTION_BY_BASKET_ITEM) {
-			for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
-				notification = createNotification();
-				storage_name = entry.getKey();
-				items = entry.getValue();
-				last_require = null;
-				for (int pos = 0; pos < configured_functionalities.size(); pos++) {
-					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
-					notification.addLinkedTasksJobs(last_require);
-					notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
-				}
-			}
-			// addUALogEntry();
-		} else if (range == UACreationRange.ONE_USER_ACTION_BY_FUNCTIONALITY) {
-			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
-				notification = createNotification();
-				for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
-					storage_name = entry.getKey();
-					items = entry.getValue();
-					last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
-					new_tasks.add(last_require);
-					notification.addLinkedTasksJobs(last_require);
-					notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
-				}
-				notification.save();
-			}
-			// addUALogEntry();
-		}
-	}
-	
-	private Notification createNotification() throws ConnectionException, IOException {
-		if (usercomment == null) {
-			usercomment = "";
-		}
-		Notification n = Notification.create(userprofile, usercomment, "log");
-		for (int pos = 0; pos < notificationdestinations.size(); pos++) {
-			n.updateNotifyReasonForUser(notificationdestinations.get(pos).userprofile, notificationdestinations.get(pos).n_reason, true);
-		}
-		return n;
 	}
 	
 }

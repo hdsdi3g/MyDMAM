@@ -375,7 +375,6 @@
 		
 		content = content + '<p class="lead">' + i18n("useractions.newaction.setup") + '</p>';
 		
-		content = content + creator.prepareRangeForm(basketname);
 		content = content + creator.prepareFinisherForm(basketname);
 		content = content + creator.prepareCommentForm();
 		content = content + creator.prepareUserNotificationReasonsForm();
@@ -388,7 +387,6 @@
 		 * Add btn handlers
 		 */
 		creator.addNewConfiguratorFunctionalityHandler('#uacreation');
-		$('#uacreation div.ua-creation-range-group').removeClass("hide");
 		
 		$('#uacreation a.btn-ua-dropdown-showcreate').click(function() {
 			/**
@@ -403,9 +401,8 @@
 			request.basket_name = basketname;
 			request.comment = creator.getCommentFromCreator();
 			request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
-			request.finisher_json = JSON.stringify(creator.getFinisherFromCreator());
-			request.range = creator.getRangeFromCreator();
-			request.configured_functionalities_json = JSON.stringify(creator.getFunctionalityConfigurationsFromUACreation("#uacreation"));
+			request.finisher = creator.getFinisherFromCreator();
+			request.configured_functionalities = creator.getFunctionalityConfigurationsFromUACreation("#uacreation");
 			
 			document.body.style.cursor = 'wait';
 			$("#alertcontainer").empty();

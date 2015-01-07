@@ -92,36 +92,6 @@
 })(mydmam.useraction.creator);
 
 /**
- * prepareRangeForm() + getRangeFromCreator()
- * @return html string + String
- */
-(function(creator) {
-	creator.prepareRangeForm = function(basketname) {
-		var content = '';
-		content = content + '<div class="control-group hide ua-creation-range-group">';
-		content = content + '<label class="control-label">' + i18n('useractions.newaction.setup.range') + '</label>';
-		content = content + '<div class="controls">';
-		content = content + '<label class="radio">';
-		content = content + '<input type="radio" class="ua-creation-range" name="ua-creation-range" checked="checked" value="ONE_USER_ACTION_BY_STORAGE_AND_BASKET"> ' + i18n("useractions.newaction.setup.range.ONE_USER_ACTION_BY_STORAGE_AND_BASKET");
-		content = content + '</label>';
-		if (basketname) {
-			content = content + '<label class="radio">';
-			content = content + '<input type="radio" class="ua-creation-range" name="ua-creation-range" value="ONE_USER_ACTION_BY_BASKET_ITEM"> ' + i18n("useractions.newaction.setup.range.ONE_USER_ACTION_BY_BASKET_ITEM");
-			content = content + '</label>';
-		}
-		content = content + '<label class="radio">';
-		content = content + '<input type="radio" class="ua-creation-range" name="ua-creation-range" value="ONE_USER_ACTION_BY_FUNCTIONALITY"> ' + i18n("useractions.newaction.setup.range.ONE_USER_ACTION_BY_FUNCTIONALITY");
-		content = content + '</label>';
-		content = content + '</div>';
-		content = content + '</div>';
-		return content;
-	};
-	creator.getRangeFromCreator = function() {
-		return $('input.ua-creation-range:radio[name=ua-creation-range]:checked').val();
-	};
-})(mydmam.useraction.creator);
-
-/**
  * prepareCommentForm() + getCommentFromCreator()
  * @return html string + String
  */
@@ -319,8 +289,6 @@
 			mydmam.navigator.inputselect.create("div.path-select.needtoinstance");
 			creator.activateAllPendingSelectize();
 			creator.addNewConfiguratorFunctionalityHandler(jquery_selector_base);
-			
-			$(jquery_selector_base + ' div.ua-creation-range-group').removeClass("hide");
 		};
 		$(jquery_selector_base + ' a.btn-ua-dropdown-showcreate').click(onclick);
 	};
@@ -542,7 +510,6 @@
 		
 		content = content + '<p class="lead">' + i18n("useractions.newaction.setup") + '</p>';
 		
-		content = content + creator.prepareRangeForm(basketname);
 		content = content + creator.prepareFinisherForm(basketname);
 		content = content + creator.prepareCommentForm();
 		content = content + creator.prepareUserNotificationReasonsForm();
@@ -640,7 +607,6 @@
 		request.comment = creator.getCommentFromCreator();
 		request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
 		request.finisher = creator.getFinisherFromCreator();
-		request.range = creator.getRangeFromCreator();
 		request.configured_functionalities = creator.getFunctionalityConfigurationsFromUACreation("#uacreationmodal");
 		
 		document.body.style.cursor = 'wait';
