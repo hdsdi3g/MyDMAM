@@ -138,7 +138,7 @@ public abstract class UAFunctionalityContext extends JobContext {
 	/**
 	 * "Dynamic" action process zone
 	 */
-	UAJobFunctionalityContextContent content;// TODO create...
+	UAJobFunctionalityContextContent content;
 	
 	public final void contextFromJson(JsonObject json_object) {
 		content = UAJobFunctionalityContextContent.contextFromJson(json_object);
@@ -146,6 +146,14 @@ public abstract class UAFunctionalityContext extends JobContext {
 	
 	public final JsonObject contextToJson() {
 		return content.contextToJson();
+	}
+	
+	/**
+	 * Overload this to change it.
+	 * @return in ms.
+	 */
+	public long getMaxExecutionTime() {
+		return 0;
 	}
 	
 }

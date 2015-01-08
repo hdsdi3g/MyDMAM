@@ -18,15 +18,20 @@ package hd3gtv.mydmam.useraction;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import models.UserProfile;
 
@@ -42,6 +47,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
+import com.netflix.astyanax.MutationBatch;
 
 public final class UACreationRequest {
 	
@@ -66,7 +72,7 @@ public final class UACreationRequest {
 	private long created_at;
 	
 	private ArrayList<String> user_restricted_privileges;
-	private ArrayList<String> created_jobs_keys;
+	private ArrayList<String> created_jobs_key;
 	
 	private transient ArrayList<JsonObject> json_configured_functionalities;
 	private transient ArrayList<ConfiguredFunctionality> configured_functionalities;
@@ -180,19 +186,15 @@ public final class UACreationRequest {
 	}
 	
 	public void createJobs() throws Exception {
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		
 		ArrayList<SourcePathIndexerElement> basket_content = new ArrayList<SourcePathIndexerElement>(items.size());
 		Explorer explorer = new Explorer();
 		LinkedHashMap<String, SourcePathIndexerElement> elements = explorer.getelementByIdkeys(items);
 		basket_content.addAll(elements.values());
 		items.clear();
 		items.addAll(elements.keySet());
-		
-		dependent_storages = new ArrayList<String>();
-		for (int pos = 0; pos < basket_content.size(); pos++) {
-			if (dependent_storages.contains(basket_content.get(pos).storagename) == false) {
-				dependent_storages.add(basket_content.get(pos).storagename);
-			}
-		}
 		
 		configured_functionalities = new ArrayList<UACreationRequest.ConfiguredFunctionality>();
 		for (int pos = 0; pos < json_configured_functionalities.size(); pos++) {
@@ -203,33 +205,103 @@ public final class UACreationRequest {
 			comment = "";
 		}
 		
-		/*Notification n = Notification.create(userprofile, usercomment, "log");
-		for (int pos = 0; pos < notificationdestinations.size(); pos++) {
-			n.updateNotifyReasonForUser(notificationdestinations.get(pos).userprofile, notificationdestinations.get(pos).n_reason, true);
-		}*/
+		Notification notification = Notification.create(userprofile, comment, "log");
+		
+		for (int pos_nr = 0; pos_nr < notification_reasons.size(); pos_nr++) {
+			notification.updateNotifyReasonForUser(userprofile, notification_reasons.get(pos_nr), true);
+		}
 		
 		// System.out.println(UAManager.getGson().toJson(this));// XXX
 		
-		/*String storage_name;
-		ArrayList<String> items;
-		String last_require = null;
-		Notification notification = createNotification();
-		for (Map.Entry<String, ArrayList<String>> entry : storageindexname_to_itemlist.entrySet()) {
-			storage_name = entry.getKey();
-			items = entry.getValue();
-			last_require = null;
-			for (int pos = 0; pos < configured_functionalities.size(); pos++) {
-				last_require = createSingleTaskWithRequire(last_require, configured_functionalities.get(pos), items, storage_name);
-				new_tasks.add(last_require);
-				notification.addLinkedTasksJobs(last_require);
-				notification.addProfileReference(configured_functionalities.get(pos).functionality.getMessageBaseName());
+		LinkedHashMap<String, ArrayList<SourcePathIndexerElement>> storageindexname_to_itemlist = new LinkedHashMap<String, ArrayList<SourcePathIndexerElement>>();
+		ArrayList<SourcePathIndexerElement> items_list;
+		for (Map.Entry<String, SourcePathIndexerElement> item : elements.entrySet()) {
+			if (storageindexname_to_itemlist.containsKey(item.getValue().storagename)) {
+				items_list = storageindexname_to_itemlist.get(item.getValue().storagename);
+			} else {
+				items_list = new ArrayList<SourcePathIndexerElement>();
+				storageindexname_to_itemlist.put(item.getValue().storagename, items_list);
+			}
+			items_list.add(item.getValue());
+		}
+		
+		created_jobs_key = new ArrayList<String>();
+		dependent_storages = new ArrayList<String>();
+		
+		UACreationRequest.ConfiguredFunctionality configured_functionality;
+		UAConfigurator associated_user_configuration;
+		UAFunctionalityContext functionality;
+		String storage_name;
+		ArrayList<SourcePathIndexerElement> items;
+		
+		for (int pos_cf = 0; pos_cf < configured_functionalities.size(); pos_cf++) {
+			configured_functionality = configured_functionalities.get(pos_cf);
+			associated_user_configuration = configured_functionality.associated_user_configuration;
+			functionality = configured_functionality.functionality;
+			functionality.content = new UAJobFunctionalityContextContent();
+			functionality.content.basket_name = basket_name;
+			functionality.content.creator_user_key = userprofile.key;
+			functionality.content.finisher = finisher;
+			functionality.content.functionality_class = functionality.getClass();
+			functionality.neededstorages = new ArrayList<String>();
+			functionality.content.items = new ArrayList<String>();
+			functionality.content.user_configuration = associated_user_configuration;// TODO add in neededstorages and dependent_storages all from web paths selector
+			
+			notification.addProfileReference(functionality.getMessageBaseName());
+			
+			for (Map.Entry<String, ArrayList<SourcePathIndexerElement>> item : storageindexname_to_itemlist.entrySet()) {
+				/**
+				 * Create a job by storage.
+				 */
+				storage_name = item.getKey();
+				items = item.getValue();
+				
+				if (dependent_storages.contains(storage_name) == false) {
+					dependent_storages.add(storage_name);
+				}
+				
+				functionality.neededstorages.clear();
+				functionality.neededstorages.add(storage_name);
+				
+				functionality.content.items.clear();
+				for (int pos_it = 0; pos_it < items.size(); pos_it++) {
+					functionality.content.items.add(items.get(pos_it).prepare_key());
+				}
+				
+				StringBuffer name = new StringBuffer();
+				name.append(functionality.getLongName());
+				name.append(" for ");
+				name.append(userprofile.longname);
+				name.append(" (");
+				name.append(functionality.content.items.size());
+				name.append(" items in ");
+				name.append(storage_name);
+				name.append(")");
+				
+				JobNG new_job = AppManager.createJob(functionality);
+				new_job.setCreator(getClass());
+				
+				long max_execution_time = functionality.getMaxExecutionTime();
+				if (max_execution_time > 0) {
+					new_job.setMaxExecutionTime(max_execution_time, TimeUnit.MILLISECONDS);
+				}
+				
+				new_job.setName(name.toString());
+				
+				new_job.publish(mutator);
+				
+				created_jobs_key.add(new_job.getKey());
+				notification.addLinkedJobs(new_job);
 			}
 		}
+		
+		if (mutator.isEmpty() == false) {
+			mutator.execute();
+		}
+		
 		notification.save();
-		*/
 		
-		// addUALogEntry();
+		// addUALogEntry(); //TODO set
 		
-		created_jobs_keys = new ArrayList<String>();
 	}
 }

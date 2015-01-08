@@ -582,6 +582,23 @@ public final class JobNG implements Log2Dumpable {
 			return status;
 		}
 		
+		/**
+		 * @return never null if keys is not empty
+		 */
+		public static LinkedHashMap<String, JobStatus> getJobsStatus(Collection<JobNG> jobs) throws ConnectionException {
+			if (jobs == null) {
+				return null;
+			}
+			if (jobs.size() == 0) {
+				return null;
+			}
+			ArrayList<String> keys = new ArrayList<String>();
+			for (JobNG job : jobs) {
+				keys.add(job.key);
+			}
+			return getJobsStatusByKeys(keys);
+		}
+		
 		static List<JobNG> getJobsByStatus(JobStatus status) throws ConnectionException {
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(status.name());
