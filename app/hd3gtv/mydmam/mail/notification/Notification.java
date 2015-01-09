@@ -84,7 +84,7 @@ public class Notification {
 	private long commented_at;
 	private String users_comment;
 	private String creator_reference;
-	private List<String> profile_references;// TODO rename
+	private List<String> profile_references;
 	
 	private Map<NotifyReason, List<UserProfile>> notify_list;
 	
@@ -379,7 +379,7 @@ public class Notification {
 		if (jobs.length == 0) {
 			return this;
 		}
-		LinkedHashMap<String, JobStatus> all_actual_status = JobNG.Utility.getJobsStatusByKeys(Arrays.asList(jobs));
+		LinkedHashMap<String, JobStatus> all_actual_status = JobNG.Utility.getJobsStatus(Arrays.asList(jobs));
 		if (all_actual_status == null) {
 			return this;
 		}
@@ -390,7 +390,7 @@ public class Notification {
 		return this;
 	}
 	
-	public Notification addProfileReference(String... references) {// TODO rename
+	public Notification addProfileReference(String... references) {
 		if (references != null) {
 			for (int pos = 0; pos < references.length; pos++) {
 				if (profile_references.contains(references[pos]) == false) {

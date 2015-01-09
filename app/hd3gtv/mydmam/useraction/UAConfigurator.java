@@ -32,7 +32,6 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
@@ -98,8 +97,8 @@ public final class UAConfigurator implements Log2Dumpable {
 		
 		public JsonElement serialize(UAConfigurator src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject je = new JsonObject();
-			je.add("type", new JsonPrimitive(src.type));
-			je.add("origin", new JsonPrimitive(src.origin));
+			je.addProperty("type", src.type);
+			je.addProperty("origin", src.origin);
 			je.add("object", UAManager.getGson().toJsonTree(src.object));
 			je.add("fields", ORMFormField.getJsonFields(src.fields));
 			return je;

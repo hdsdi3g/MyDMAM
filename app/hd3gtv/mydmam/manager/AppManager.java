@@ -40,8 +40,7 @@ import com.netflix.astyanax.MutationBatch;
 
 public final class AppManager implements InstanceActionReceiver {
 	
-	// TODO #78.1 Refactoring User Action API and display all availability for user and admin
-	// TODO #78.2, check if UA capacity need no read only for storage
+	// TODO #78.1 Display all UA availabilities for admin
 	
 	/**
 	 * In sec.

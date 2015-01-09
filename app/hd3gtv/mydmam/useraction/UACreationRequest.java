@@ -20,6 +20,7 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.orm.annotations.TypeNavigatorInputSelection;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.mail.notification.NotifyReason;
 import hd3gtv.mydmam.manager.AppManager;
@@ -27,6 +28,9 @@ import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -77,6 +81,8 @@ public final class UACreationRequest {
 	private transient ArrayList<JsonObject> json_configured_functionalities;
 	private transient ArrayList<ConfiguredFunctionality> configured_functionalities;
 	private transient UserProfile userprofile;
+	
+	private transient Explorer explorer = new Explorer();
 	
 	public static class Serializer implements JsonSerializer<UACreationRequest>, JsonDeserializer<UACreationRequest> {
 		
@@ -164,8 +170,9 @@ public final class UACreationRequest {
 	private class ConfiguredFunctionality {
 		UAConfigurator associated_user_configuration;
 		UAFunctionalityContext functionality;
+		ArrayList<String> navigator_input_selection_storages;
 		
-		ConfiguredFunctionality(JsonObject json_functionality) throws ClassNotFoundException, SecurityException {
+		ConfiguredFunctionality(JsonObject json_functionality) throws ClassNotFoundException, SecurityException, IllegalArgumentException, IllegalAccessException, IOException {
 			String functionality_classname = json_functionality.get("functionality_classname").getAsString();
 			JsonElement raw_associated_user_configuration = json_functionality.get("raw_associated_user_configuration");
 			
@@ -178,9 +185,58 @@ public final class UACreationRequest {
 				throw new ClassNotFoundException("Can't found functionality " + functionality_classname + ".");
 			}
 			
+			navigator_input_selection_storages = new ArrayList<String>();
+			
 			associated_user_configuration = functionality.createEmptyConfiguration();
 			if (associated_user_configuration != null) {
-				associated_user_configuration.setObject(UAManager.getGson().fromJson(raw_associated_user_configuration, associated_user_configuration.getObjectClass()));
+				Object object_user_configuration = UAManager.getGson().fromJson(raw_associated_user_configuration, associated_user_configuration.getObjectClass());
+				associated_user_configuration.setObject(object_user_configuration);
+				
+				Field[] fields = object_user_configuration.getClass().getFields();
+				Field field;
+				Object extracted_field;
+				TypeNavigatorInputSelection field_conf;
+				SourcePathIndexerElement item_spie;
+				String string_extracted_field;
+				for (int pos = 0; pos < fields.length; pos++) {
+					field = fields[pos];
+					if (field.isAnnotationPresent(TypeNavigatorInputSelection.class) == false) {
+						continue;
+					}
+					extracted_field = field.get(object_user_configuration);
+					if ((extracted_field instanceof String) == false) {
+						throw new ClassNotFoundException("Invalid extracted field (" + field.getName() + ") from " + object_user_configuration.getClass().getName());
+					}
+					string_extracted_field = (String) extracted_field;
+					if (string_extracted_field.equals("")) {
+						continue;
+					}
+					item_spie = explorer.getelementByIdkey(string_extracted_field);
+					if (item_spie == null) {
+						throw new FileNotFoundException("Can't found pathindex file from extracted field (" + field.getName() + ") from " + object_user_configuration.getClass().getName());
+					}
+					field_conf = field.getAnnotation(TypeNavigatorInputSelection.class);
+					
+					if (item_spie.directory) {
+						if (field_conf.canselectdirs() == false) {
+							throw new IOException("Invalid pathindex file type (directory) " + item_spie.toString(" ") + " from extracted field (" + field.getName() + ") from "
+									+ object_user_configuration.getClass().getName());
+						}
+						if (item_spie.currentpath.equals("/") & (field_conf.canselectstorages() == false)) {
+							throw new IOException("Invalid pathindex file type (storage) " + item_spie.toString(" ") + " from extracted field (" + field.getName() + ") from "
+									+ object_user_configuration.getClass().getName());
+						}
+					} else {
+						if (field_conf.canselectfiles() == false) {
+							throw new IOException("Invalid pathindex file type (file) " + item_spie.toString(" ") + " from extracted field (" + field.getName() + ") from "
+									+ object_user_configuration.getClass().getName());
+						}
+					}
+					
+					if (navigator_input_selection_storages.contains(item_spie.storagename) == false) {
+						navigator_input_selection_storages.add(item_spie.storagename);
+					}
+				}
 			}
 		}
 	}
@@ -190,7 +246,6 @@ public final class UACreationRequest {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		
 		ArrayList<SourcePathIndexerElement> basket_content = new ArrayList<SourcePathIndexerElement>(items.size());
-		Explorer explorer = new Explorer();
 		LinkedHashMap<String, SourcePathIndexerElement> elements = explorer.getelementByIdkeys(items);
 		basket_content.addAll(elements.values());
 		items.clear();
@@ -211,7 +266,7 @@ public final class UACreationRequest {
 			notification.updateNotifyReasonForUser(userprofile, notification_reasons.get(pos_nr), true);
 		}
 		
-		// System.out.println(UAManager.getGson().toJson(this));// XXX
+		// System.out.println(UAManager.getGson().toJson(this));
 		
 		LinkedHashMap<String, ArrayList<SourcePathIndexerElement>> storageindexname_to_itemlist = new LinkedHashMap<String, ArrayList<SourcePathIndexerElement>>();
 		ArrayList<SourcePathIndexerElement> items_list;
@@ -245,7 +300,7 @@ public final class UACreationRequest {
 			functionality.content.functionality_class = functionality.getClass();
 			functionality.neededstorages = new ArrayList<String>();
 			functionality.content.items = new ArrayList<String>();
-			functionality.content.user_configuration = associated_user_configuration;// TODO add in neededstorages and dependent_storages all from web paths selector
+			functionality.content.user_configuration = associated_user_configuration;
 			
 			notification.addProfileReference(functionality.getMessageBaseName());
 			
@@ -262,6 +317,15 @@ public final class UACreationRequest {
 				
 				functionality.neededstorages.clear();
 				functionality.neededstorages.add(storage_name);
+				
+				for (int pos_tnis = 0; pos_tnis < configured_functionality.navigator_input_selection_storages.size(); pos_tnis++) {
+					if (functionality.neededstorages.contains(configured_functionality.navigator_input_selection_storages.get(pos_tnis)) == false) {
+						functionality.neededstorages.add(configured_functionality.navigator_input_selection_storages.get(pos_tnis));
+					}
+					if (dependent_storages.contains(configured_functionality.navigator_input_selection_storages.get(pos_tnis)) == false) {
+						dependent_storages.add(configured_functionality.navigator_input_selection_storages.get(pos_tnis));
+					}
+				}
 				
 				functionality.content.items.clear();
 				for (int pos_it = 0; pos_it < items.size(); pos_it++) {
@@ -301,7 +365,7 @@ public final class UACreationRequest {
 		
 		notification.save();
 		
-		// addUALogEntry(); //TODO set
+		addUALogEntry();
 		
 	}
 }
