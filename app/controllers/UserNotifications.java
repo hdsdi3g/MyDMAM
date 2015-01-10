@@ -22,6 +22,7 @@ import hd3gtv.mydmam.mail.notification.NotifyReason;
 import hd3gtv.mydmam.manager.JobNG;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,16 @@ public class UserNotifications extends Controller {
 		render(title, user_notifications, user);
 	}
 	
-	// TODO add controller for mydmam.notification.url.queuegettasksjobs
+	public static void associatedjobs() throws Exception {
+		String[] job_keys = params.getAll("job_keys[]");
+		if (job_keys == null) {
+			renderJSON("[\"validation error\"]");
+		}
+		if (job_keys.length == 0) {
+			renderJSON("[\"validation error\"]");
+		}
+		renderJSON(JobNG.Utility.getJsonJobsByKeys(Arrays.asList(job_keys)).toString());
+	}
 	
 	/**
 	 * @return valid notification for user, or (flash error + redirect to list) | (or if doredirect: return null)

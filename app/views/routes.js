@@ -60,7 +60,7 @@ mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 		
 mydmam.notification.url.notificationresolveusers = "@{UserNotifications.notificationresolveusers}";
 mydmam.notification.url.notificationupdateread = "@{UserNotifications.notificationupdateread(key='keyparam1')}";
-//mydmam.notification.url.queuegettasksjobs = "";
+mydmam.notification.url.associatedjobs = "@{UserNotifications.associatedjobs}";
 
 #{secure.check 'userAction'}
 mydmam.useraction.url.create = "@{UserAction.create()}";

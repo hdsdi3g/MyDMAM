@@ -41,6 +41,7 @@ import com.netflix.astyanax.MutationBatch;
 public final class AppManager implements InstanceActionReceiver {
 	
 	// TODO #78.1 Display all UA availabilities for admin
+	// TODO #78.2 Upgrade Notification Job display in web view.
 	
 	/**
 	 * In sec.

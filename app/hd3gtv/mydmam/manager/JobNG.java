@@ -63,6 +63,7 @@ public final class JobNG implements Log2Dumpable {
 	
 	private static final ColumnFamily<String, String> CF_QUEUE = new ColumnFamily<String, String>("mgrQueue", StringSerializer.get(), StringSerializer.get());
 	private static Keyspace keyspace;
+	private static JsonParser parser = new JsonParser();
 	
 	static {
 		try {
@@ -631,8 +632,6 @@ public final class JobNG implements Log2Dumpable {
 				return result;
 			}
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
-			JsonParser parser = new JsonParser();
-			
 			for (Row<String, String> row : rows.getResult()) {
 				result.add(parser.parse(row.getColumns().getStringValue("source", "{}")).getAsJsonObject());
 				mutator.withRow(CF_QUEUE, row.getKey()).delete();
@@ -653,10 +652,17 @@ public final class JobNG implements Log2Dumpable {
 				return null;
 			}
 			JsonObject result = new JsonObject();
-			List<JobNG> jobs = getJobsByKeys(keys);
-			for (int pos = 0; pos < jobs.size(); pos++) {
-				result.add(jobs.get(pos).key, AppManager.getGson().toJsonTree(jobs.get(pos)));
+			
+			Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(keys).withColumnSlice("source").execute().getResult();
+			for (Row<String, String> row : rows) {
+				String source = row.getColumns().getStringValue("source", "{}");
+				if (source.equals("{}")) {
+					continue;
+				}
+				JsonObject current = parser.parse(source).getAsJsonObject();
+				result.add(current.get("key").getAsString(), current);
 			}
+			
 			return result;
 		}
 		
@@ -697,7 +703,7 @@ public final class JobNG implements Log2Dumpable {
 						if (source.equals("{}")) {
 							return;
 						}
-						JsonObject current = new JsonParser().parse(source).getAsJsonObject();
+						JsonObject current = parser.parse(source).getAsJsonObject();
 						result.add(current.get("key").getAsString(), current);
 					}
 				}, "source");
@@ -713,7 +719,7 @@ public final class JobNG implements Log2Dumpable {
 					if (source.equals("{}")) {
 						continue;
 					}
-					JsonObject current = new JsonParser().parse(source).getAsJsonObject();
+					JsonObject current = parser.parse(source).getAsJsonObject();
 					result.add(current.get("key").getAsString(), current);
 				}
 			}

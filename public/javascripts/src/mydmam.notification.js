@@ -144,17 +144,19 @@
 	notification.getAndDisplayTasksJobs = function() {
 		
 		/**
-		 * displayTaskJob
+		 * displayJob
 		 * Transform Task/Job keys to an informative cartridge
 		 */
-		var displayTaskJob = function(dom_element, ajaxdata) {
+		var displayJob = function(dom_element, ajaxdata) {
 			var key = $(dom_element).text();
 			if(ajaxdata[key]) {
-				ajaxdata[key].key = key;
-				ajaxdata[key].simplekey = mydmam.queue.createSimpleKey(key);
-				$(dom_element).html(mydmam.queue.createTaskJobTableElement(ajaxdata[key]));
-				$(dom_element).find(".blocktaskjobdateedit").prepend(notification.displayStatus(ajaxdata[key].status) + ' ');
+				//TODO refactor
+				//ajaxdata[key].key = key;
+				//ajaxdata[key].simplekey = mydmam.queue.createSimpleKey(key);
+				//$(dom_element).html(mydmam.queue.createTaskJobTableElement(ajaxdata[key]));
+				//$(dom_element).find(".blocktaskjobdateedit").prepend(notification.displayStatus(ajaxdata[key].status) + ' ');
 				$(dom_element).find(".taskjobkeyraw").remove();
+				console.log(ajaxdata[key]);
 
 			} else {
 				$(dom_element).html('<strong>' + i18n("userprofile.notifications.cantfoundtaskjob") + '</strong>');
@@ -162,39 +164,33 @@
 		};
 
 		var key;
-		var tasksjobs_keys = [];
+		var job_keys = [];
 		var dom_element_list = notification.dom_element_list_for_taskjob_resolve;
 		for (var pos in dom_element_list) {
 			key = $(dom_element_list[pos]).text();
-			if (tasksjobs_keys.indexOf(key) === -1) {
-				tasksjobs_keys.push(key);
+			if (job_keys.indexOf(key) === -1) {
+				job_keys.push(key);
 			}
 		}
 
 		$.ajax({
-			url: notification.url.queuegettasksjobs,
+			url: notification.url.associatedjobs,
 			type: "POST",
 			async: true,
 			data: {
-				"tasksjobs_keys": tasksjobs_keys
+				"job_keys": job_keys
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
 				notification.ajaxError(i18n("userprofile.notifications.errorduringgettasksjobs"), textStatus, errorThrown);
 			},
 			success: function(data) {
-				$(".taskjobsummary").each(function() {
-					displayTaskJob(this, data);
-				});
-				/* sort T/J ?
-				var data = [];
-				for (var key in rawdata) {
-					rawdata[key].key = key;
-					data.push(rawdata[key]);
-				}
-				data = data.sort(function(a, b) {
-					return a.updatedate > b.updatedate ? -1 : 1;
-				});
+				/*
+				 * data is {jobkey: jobng, }
 				 * */
+				//TODO
+				/*$(".taskjobsummary").each(function() {
+					displayJob(this, data);
+				});*/
 			}
 		});
 	};
