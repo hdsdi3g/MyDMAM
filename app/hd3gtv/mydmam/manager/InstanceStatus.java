@@ -321,6 +321,10 @@ public final class InstanceStatus implements Log2Dumpable {
 		return current_pid;
 	}
 	
+	public static String getThisInstanceNamePid() {
+		return current_instance_name_pid;
+	}
+	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("app_name", app_name);

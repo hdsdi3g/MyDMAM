@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.mail.notification;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
@@ -25,6 +26,7 @@ import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -32,12 +34,18 @@ import org.elasticsearch.indices.IndexMissingException;
 
 public class NotificationWorker extends WorkerNG {
 	
+	static {
+		try {
+			Elasticsearch.enableTTL(Notification.ES_INDEX, Notification.ES_DEFAULT_TYPE);
+		} catch (IOException e) {
+			Log2.log.error("Can't to set TTL for ES", e);
+		}
+	}
+	
 	private static long grace_period_duration = 1000 * 3600 * 24;
 	
 	public NotificationWorker(AppManager manager) throws Exception {
 		if (isActivated()) {
-			Elasticsearch.enableTTL(Notification.ES_INDEX, Notification.ES_DEFAULT_TYPE);
-			
 			CyclicJobCreator cyclic_cleaner = new CyclicJobCreator(manager, 1, TimeUnit.HOURS, true);
 			cyclic_cleaner.setOptions(getClass(), "Close old notifications", "Internal MyDMAM");
 			cyclic_cleaner.add("Close old notifications", new JobContextNotificationClean());
