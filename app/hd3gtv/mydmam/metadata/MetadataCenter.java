@@ -124,7 +124,7 @@ public class MetadataCenter {
 	/**
 	 * Database independant
 	 */
-	public static Container standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FutureCreateTasks> current_create_task_list) throws Exception {
+	public static Container standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FutureCreateJobs> current_create_job_list) throws Exception {
 		Origin origin = Origin.fromSource(reference, physical_source);
 		Container container = new Container(origin.getUniqueElementKey(), origin);
 		EntrySummary entry_summary = new EntrySummary();
@@ -169,7 +169,7 @@ public class MetadataCenter {
 					EntryRenderer entry_renderer = generatorRenderer.process(container);
 					if (generatorRenderer instanceof GeneratorRendererViaWorker) {
 						GeneratorRendererViaWorker renderer_via_worker = (GeneratorRendererViaWorker) generatorRenderer;
-						renderer_via_worker.prepareTasks(container, current_create_task_list);
+						renderer_via_worker.prepareJobs(container, current_create_job_list);
 					}
 					if (entry_renderer == null) {
 						continue;

@@ -32,7 +32,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -63,6 +62,8 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void navigate() {
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("application.navigate"));
+		
 		String current_basket_content = "[]";
 		try {
 			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
@@ -147,7 +148,7 @@ public class Application extends Controller {
 		}
 		
 		flash("q", q);
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
+		flash("pagename", q + " - " + Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
 		
 		String current_basket_content = "[]";
 		try {
@@ -250,28 +251,4 @@ public class Application extends Controller {
 		renderJSON(result.toString());
 	}
 	
-	public static void test() {
-		String title = "Test page";
-		render(title);
-	}
-	
-	public static void testajax() {
-		String request = params.get("rqs");
-		if (request == null) {
-			request = "()";
-		}
-		ArrayList<HashMap<String, String>> list = new ArrayList<HashMap<String, String>>(3);
-		
-		HashMap<String, String> v1 = new HashMap<String, String>(1);
-		v1.put("jvalue", "value" + request + "1");
-		HashMap<String, String> v2 = new HashMap<String, String>(1);
-		v2.put("jvalue", "value" + request + "2");
-		HashMap<String, String> v3 = new HashMap<String, String>(1);
-		v3.put("jvalue", "value" + request + "3");
-		
-		list.add(v1);
-		list.add(v2);
-		list.add(v3);
-		renderJSON(list);
-	}
 }

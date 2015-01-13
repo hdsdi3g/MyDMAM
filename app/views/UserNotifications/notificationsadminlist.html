@@ -37,7 +37,7 @@
 <table class="table table-hover table-condensed notificationsadmindatatable">
 <thead>
 	<tr>
-		<th>&{'userprofile.notifications.admin.tasksjobstatus'}</th>
+		<th>&{'userprofile.notifications.admin.jobstatus'}</th>
 		<th>&{'userprofile.notifications.admin.creatorreferences'}</th>
 		<th>&{'userprofile.notifications.admin.createdreadedclosed'}</th>
 		<th>&{'userprofile.notifications.admin.observers'}</th>
@@ -49,15 +49,15 @@
 %{ user_notifications.eachWithIndex() { notification, pos -> }%
 <tr>
 	<td>
-		%{ notification.linked_tasks.eachWithIndex() { taskjob, tpos -> }%
-			<abbr title="${taskjob.taskjobkey}">
-				#{if linked_tasksjobs.get(taskjob.taskjobkey)}
-					<span class="redrawstatus" data-status="${linked_tasksjobs.get(taskjob.taskjobkey)}">
-						<span class="label label-info">${linked_tasksjobs.get(taskjob.taskjobkey)}</span>
+		%{ notification.linked_jobs.eachWithIndex() { job, tpos -> }%
+			<abbr title="${job.jobkey}">
+				#{if linked_jobs.get(job.jobkey)}
+					<span class="redrawstatus" data-status="${linked_jobs.get(job.jobkey)}">
+						<span class="label label-info">${linked_jobs.get(job.jobkey)}</span>
 					</span>
 				#{/if}#{else}
-					<span class="label label-inverse">&{'userprofile.notifications.cantfoundtaskjob'}</span>
-					<code>${taskjob.taskjobkey}</code>
+					<span class="label label-inverse">&{'userprofile.notifications.cantfoundjob'}</span>
+					<code>${job.jobkey}</code>
 				#{/else}
 			</abbr>
 			<br>

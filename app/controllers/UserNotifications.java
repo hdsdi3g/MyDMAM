@@ -49,13 +49,15 @@ public class UserNotifications extends Controller {
 		}
 		
 		public Boolean call() throws Exception {
-			Notification.updateTasksJobsEvolutionsForNotifications();
+			Notification.updateJobsEvolutionsForNotifications();
 			return true;
 		}
 	}
 	
 	public static void notificationslist() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.pagename");
+		flash("pagename", title);
+		
 		UserProfile user = User.getUserProfile();
 		
 		JobsPlugin.executor.submit(new UpdateNotifications());
@@ -72,7 +74,7 @@ public class UserNotifications extends Controller {
 		if (job_keys.length == 0) {
 			renderJSON("[\"validation error\"]");
 		}
-		renderJSON(JobNG.Utility.getJsonJobsByKeys(Arrays.asList(job_keys)).toString());
+		renderJSON(JobNG.Utility.getJsonJobsByKeys(Arrays.asList(job_keys), true).toString());
 	}
 	
 	/**
@@ -197,30 +199,32 @@ public class UserNotifications extends Controller {
 		JobsPlugin.executor.submit(new UpdateNotifications());
 		
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("userprofile.notifications.admin.pagename");
+		flash("pagename", title);
+		
 		ArrayList<Map<String, Object>> user_notifications = Notification.getAdminListFromDatabase();
 		
-		ArrayList<String> tasks_job_to_resolve = new ArrayList<String>();
+		ArrayList<String> job_keys_to_resolve = new ArrayList<String>();
 		
-		String task_job_key;
-		ArrayList<Object> linked_tasks;
-		HashMap<String, Object> map_linked_tasksjobs;
+		String job_key;
+		ArrayList<Object> current_linked_jobs;
+		HashMap<String, Object> map_linked_jobs;
 		for (int pos_un = 0; pos_un < user_notifications.size(); pos_un++) {
-			linked_tasks = (ArrayList) user_notifications.get(pos_un).get("linked_tasks");
-			for (int pos_lt = 0; pos_lt < linked_tasks.size(); pos_lt++) {
-				map_linked_tasksjobs = (HashMap) linked_tasks.get(pos_lt);
-				task_job_key = (String) map_linked_tasksjobs.get("taskjobkey");
-				if (tasks_job_to_resolve.contains(task_job_key) == false) {
-					tasks_job_to_resolve.add(task_job_key);
+			current_linked_jobs = (ArrayList) user_notifications.get(pos_un).get("linked_jobs");
+			for (int pos_lt = 0; pos_lt < current_linked_jobs.size(); pos_lt++) {
+				map_linked_jobs = (HashMap) current_linked_jobs.get(pos_lt);
+				job_key = (String) map_linked_jobs.get("jobkey");
+				if (job_keys_to_resolve.contains(job_key) == false) {
+					job_keys_to_resolve.add(job_key);
 				}
 			}
 		}
 		
-		HashMap<String, JobNG.JobStatus> linked_tasksjobs = new HashMap<String, JobNG.JobStatus>(1);
-		if (tasks_job_to_resolve.isEmpty() == false) {
-			linked_tasksjobs = JobNG.Utility.getJobsStatusByKeys(tasks_job_to_resolve);
+		HashMap<String, JobNG.JobStatus> linked_jobs = new HashMap<String, JobNG.JobStatus>(1);
+		if (job_keys_to_resolve.isEmpty() == false) {
+			linked_jobs = JobNG.Utility.getJobsStatusByKeys(job_keys_to_resolve);
 		}
 		
-		render(title, user_notifications, linked_tasksjobs);
+		render(title, user_notifications, linked_jobs);
 	}
 	
 	@Check("adminUsers")

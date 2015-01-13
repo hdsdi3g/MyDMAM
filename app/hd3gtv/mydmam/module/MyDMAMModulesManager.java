@@ -238,7 +238,7 @@ public class MyDMAMModulesManager {
 				}
 			}
 			
-			elements_cyclic = MODULES.get(pos).getCyclicsCreateTasks(manager);
+			elements_cyclic = MODULES.get(pos).getCyclicsCreateJobs(manager);
 			if (elements_cyclic != null) {
 				for (int pos_cyclic = 0; pos_cyclic < elements_cyclic.size(); pos_cyclic++) {
 					manager.cyclicJobsRegister(elements_cyclic.get(pos_cyclic));

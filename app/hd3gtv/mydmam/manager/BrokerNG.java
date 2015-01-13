@@ -46,7 +46,7 @@ class BrokerNG {
 	private volatile List<JobNG> active_jobs;
 	private volatile ArrayList<CyclicJobCreator> declared_cyclics;
 	private volatile ArrayList<TriggerJobCreator> declared_triggers;
-	private boolean active_clean_tasks;
+	private boolean active_clean_jobs;
 	
 	BrokerNG(AppManager manager) {
 		this.manager = manager;
@@ -54,10 +54,10 @@ class BrokerNG {
 		declared_cyclics = new ArrayList<CyclicJobCreator>();
 		declared_triggers = new ArrayList<TriggerJobCreator>();
 		
-		if (Configuration.global.isElementKeyExists("service", "brokercleantasks")) {
-			active_clean_tasks = Configuration.global.getValueBoolean("service", "brokercleantasks");
+		if (Configuration.global.isElementKeyExists("service", "brokercleanjobs")) {
+			active_clean_jobs = Configuration.global.getValueBoolean("service", "brokercleanjobs");
 		} else {
-			active_clean_tasks = true;
+			active_clean_jobs = true;
 		}
 	}
 	
@@ -182,7 +182,7 @@ class BrokerNG {
 							precedent_date_trigger = System.currentTimeMillis();
 						}
 						
-						if (active_clean_tasks) {
+						if (active_clean_jobs) {
 							jobs = JobNG.Utility.watchOldAbandonedJobs(mutator, manager.getInstance_status());
 							if (jobs.isEmpty() == false) {
 								manager.getServiceException().onQueueJobProblem("There are too old jobs in queue", jobs);
@@ -322,7 +322,7 @@ class BrokerNG {
 							
 							if (current_job.isRequireIsDone() == false) {
 								/**
-								 * If the job require the processing done of another task.
+								 * If the job require the processing done of another job.
 								 */
 								continue;
 							}

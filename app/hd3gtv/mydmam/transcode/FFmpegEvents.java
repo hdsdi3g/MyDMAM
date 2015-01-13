@@ -26,13 +26,13 @@ public class FFmpegEvents implements ExecprocessEvent {
 	
 	boolean display_raw_ffmpegmessages;
 	
-	private String taskref;
+	private String jobref;
 	
 	private String last_message;
 	
-	public FFmpegEvents(String taskref) {
+	public FFmpegEvents(String jobref) {
 		display_raw_ffmpegmessages = Configuration.global.getValueBoolean("transcoding", "ffmpeg_displayrawmessages");
-		this.taskref = taskref;
+		this.jobref = jobref;
 	}
 	
 	public void onStart() {
@@ -42,26 +42,26 @@ public class FFmpegEvents implements ExecprocessEvent {
 	}
 	
 	public void onKill() {
-		Log2.log.error("FFmpeg is killed for " + taskref, null);
+		Log2.log.error("FFmpeg is killed for " + jobref, null);
 	}
 	
 	public void onError(IOException ioe) {
-		Log2.log.error("FFmpeg error for " + taskref, ioe);
+		Log2.log.error("FFmpeg error for " + jobref, ioe);
 	}
 	
 	public void onError(InterruptedException ie) {
-		Log2.log.error("FFmpeg threads error for " + taskref, ie);
+		Log2.log.error("FFmpeg threads error for " + jobref, ie);
 	}
 	
 	public void onStdout(String message) {
 		if (display_raw_ffmpegmessages) {
-			System.out.println("[" + taskref + "] " + message);
+			System.out.println("[" + jobref + "] " + message);
 		}
 	}
 	
 	public void onStderr(String message) {
 		if (display_raw_ffmpegmessages) {
-			System.out.println("[" + taskref + "] " + message);
+			System.out.println("[" + jobref + "] " + message);
 		}
 		last_message = message;
 	}

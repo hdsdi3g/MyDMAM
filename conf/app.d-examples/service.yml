@@ -1,7 +1,7 @@
 service:
     apply: prod
     workername : productionsrv
-    brokercleantasks : true
+    brokercleanjobs : true
     administrator_mail : Me <me@domain.com>
     notifications_scan: true
     # demo_worker: true
@@ -19,33 +19,21 @@ javamail:
 log2:
     filter:
         -
-            for: hd3gtv.javasimpleservice.ServiceWorker$1.run
-            level: INFO
-            type: HIDE
-        -
-            for: hd3gtv.javasimpleservice.ServiceManager$1.run
-            level: INFO
-            type: HIDE
-        -
-            for: hd3gtv.mydmam.probe.Scan
+            for: hd3gtv.mydmam.pathindexing
             level: INFO
             type: DEFAULT
         -
-            for: hd3gtv.mydmam.pathindexing.Importer
+            for: hd3gtv.mydmam.manager
             level: INFO
             type: DEFAULT
-        -
-            for: hd3gtv.mydmam.task.Task.createTask
-            level: DEBUG
-            type: ONE_LINE
         -
             for: hd3gtv.mydmam.ssh.SshLogger
             level: INFO
             type: HIDE
         -
-            for: hd3gtv.mydmam.taskqueue.Broker.getNextJob
-            level: DEBUG
-            type: HIDE
+            for: hd3gtv.mydmam.db
+            level: INFO
+            type: DEFAULT
     rotate_file: /var/log/mydmam/server.log 
     rotate_maxsize: 1000000
     rotate_maxfilelogs: 10

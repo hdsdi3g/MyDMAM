@@ -109,7 +109,7 @@
 })(window.mydmam.notification);
 
 /**
- * getAndDisplayTasksJobs
+ * displayStatus
  */
 (function(notification) {
 	notification.displayStatus = function(status) {
@@ -133,39 +133,70 @@
 		} else if (status === "DONE") {
 			clazz = "badge-success";
 		}
-		return '<span class="badge ' + clazz + '">' + i18n(status) + '</span>';
+		return '<span class="badge ' + clazz + '">' + i18n('manager.jobs.status.' + status) + '</span>';
 	};
 })(window.mydmam.notification);
 
 /**
- * getAndDisplayTasksJobs
+ * getAndDisplayJobs
  */
 (function(notification, mydmam) {
-	notification.getAndDisplayTasksJobs = function() {
+	notification.getAndDisplayJobs = function() {
+		
+		var view = mydmam.manager.jobs.view;
 		
 		/**
 		 * displayJob
-		 * Transform Task/Job keys to an informative cartridge
+		 * @param ajaxdata is {jobkey: jobng, }
+		 * Transform Job keys to an informative cartridge
 		 */
 		var displayJob = function(dom_element, ajaxdata) {
 			var key = $(dom_element).text();
 			if(ajaxdata[key]) {
+				var job = ajaxdata[key];
 				//TODO refactor
 				//ajaxdata[key].key = key;
 				//ajaxdata[key].simplekey = mydmam.queue.createSimpleKey(key);
-				//$(dom_element).html(mydmam.queue.createTaskJobTableElement(ajaxdata[key]));
-				//$(dom_element).find(".blocktaskjobdateedit").prepend(notification.displayStatus(ajaxdata[key].status) + ' ');
-				$(dom_element).find(".taskjobkeyraw").remove();
+				//$(dom_element).html(mydmam.queue.createJobTableElement(ajaxdata[key]));
+				//$(dom_element).find(".blockjobdateedit").prepend(notification.displayStatus(ajaxdata[key].status) + ' ');
+				
+				var content = '';
+				content = content + '<div class="row-fluid">';
+				
+				content = content + '<div class="span2">';
+				content = content + view.getNameCol(job);
+				content = content + '</div>';
+				
+				content = content + '<div class="span2">';
+				content = content + view.getStatusCol(job);
+				content = content + '</div>';
+				
+				content = content + '<div class="span3">';
+				content = content + view.getDateCol(job);
+				content = content + '</div>';
+				
+				//content = content + '</div>'; //row-fluid
+				//content = content + '<div class="row-fluid">';
+				
+				content = content + '<div class="span5">';
+				content = content + view.getProgressionCol(job);
+				content = content + view.getParamCol(job);
+				content = content + '</div>';
+				
+				content = content + '</div>'; //row-fluid
+				
+				$(dom_element).html(content);
+				$(dom_element).find('div.collapse').removeClass('collapse');
 				console.log(ajaxdata[key]);
-
 			} else {
-				$(dom_element).html('<strong>' + i18n("userprofile.notifications.cantfoundtaskjob") + '</strong>');
+				$(dom_element).html('<p>' + i18n("userprofile.notifications.cantfoundjob", key) + '</p>');
 			}
+			$(dom_element).find(".jobkeyraw").remove();
 		};
 
 		var key;
 		var job_keys = [];
-		var dom_element_list = notification.dom_element_list_for_taskjob_resolve;
+		var dom_element_list = notification.dom_element_list_for_job_resolve;
 		for (var pos in dom_element_list) {
 			key = $(dom_element_list[pos]).text();
 			if (job_keys.indexOf(key) === -1) {
@@ -181,16 +212,15 @@
 				"job_keys": job_keys
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				notification.ajaxError(i18n("userprofile.notifications.errorduringgettasksjobs"), textStatus, errorThrown);
+				notification.ajaxError(i18n("userprofile.notifications.errorduringgetjobs"), textStatus, errorThrown);
 			},
 			success: function(data) {
 				/*
 				 * data is {jobkey: jobng, }
 				 * */
-				//TODO
-				/*$(".taskjobsummary").each(function() {
+				$(".jobsummary").each(function() {
 					displayJob(this, data);
-				});*/
+				});
 			}
 		});
 	};
@@ -216,11 +246,11 @@
 		notification.getAndDisplayUsers();
 
 		if (isadmin === false) {
-			notification.dom_element_list_for_taskjob_resolve = [];
-			$(".taskjobsummary").each(function() {
-				notification.dom_element_list_for_taskjob_resolve.push(this);
+			notification.dom_element_list_for_job_resolve = [];
+			$(".jobsummary").each(function() {
+				notification.dom_element_list_for_job_resolve.push(this);
 			});
-			notification.getAndDisplayTasksJobs();
+			notification.getAndDisplayJobs();
 		}
 		
 		if (isadmin) {

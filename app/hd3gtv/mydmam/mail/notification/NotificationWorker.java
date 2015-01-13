@@ -74,7 +74,7 @@ public class NotificationWorker extends WorkerNG {
 		try {
 			int count = 0;
 			if (context.getClass().equals(JobContextNotificationAlert.class)) {
-				count = Notification.updateTasksJobsEvolutionsForNotifications();
+				count = Notification.updateJobsEvolutionsForNotifications();
 				
 				if (count == 0) {
 					progression.update("No notifications to send");

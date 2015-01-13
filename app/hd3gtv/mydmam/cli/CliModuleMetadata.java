@@ -18,7 +18,7 @@ package hd3gtv.mydmam.cli;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.FutureCreateTasks;
+import hd3gtv.mydmam.metadata.FutureCreateJobs;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.MetadataIndexer;
 import hd3gtv.mydmam.metadata.container.Container;
@@ -58,7 +58,7 @@ public class CliModuleMetadata implements CliModule {
 			/**
 			 * Never be executed here (from CLI)
 			 */
-			List<FutureCreateTasks> current_create_task_list = new ArrayList<FutureCreateTasks>();
+			List<FutureCreateJobs> current_create_job_list = new ArrayList<FutureCreateJobs>();
 			
 			Container result;
 			File[] files = dir_testformats.listFiles();
@@ -79,7 +79,7 @@ public class CliModuleMetadata implements CliModule {
 				spie.size = 0;
 				spie.storagename = "Test_MyDMAM_CLI";
 				
-				result = MetadataCenter.standaloneIndexing(files[pos], spie, current_create_task_list);
+				result = MetadataCenter.standaloneIndexing(files[pos], spie, current_create_job_list);
 				dump.add("Item", files[pos]);
 				dump.addAll(result);
 			}

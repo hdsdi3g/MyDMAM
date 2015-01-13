@@ -33,7 +33,7 @@ public class CliModuleBroker implements CliModule {
 	}
 	
 	public String getCliModuleShortDescr() {
-		return "Operate on Task queue system";
+		return "Operate on Queue system";
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {

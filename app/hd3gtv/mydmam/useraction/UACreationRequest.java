@@ -73,6 +73,8 @@ public final class UACreationRequest {
 	private ArrayList<NotifyReason> notification_reasons;
 	private UAFinisherConfiguration finisher;
 	private ArrayList<String> dependent_storages;
+	
+	@SuppressWarnings("unused")
 	private long created_at;
 	
 	private ArrayList<String> user_restricted_privileges;
@@ -260,7 +262,7 @@ public final class UACreationRequest {
 			comment = "";
 		}
 		
-		Notification notification = Notification.create(userprofile, comment, "log");
+		Notification notification = Notification.create(userprofile, comment, NOTIFICATION_REFERENCE);
 		
 		for (int pos_nr = 0; pos_nr < notification_reasons.size(); pos_nr++) {
 			notification.updateNotifyReasonForUser(userprofile, notification_reasons.get(pos_nr), true);
@@ -355,7 +357,7 @@ public final class UACreationRequest {
 				new_job.publish(mutator);
 				
 				created_jobs_key.add(new_job.getKey());
-				notification.addLinkedJobs(new_job);
+				notification.addLinkedJob(new_job);
 			}
 		}
 		

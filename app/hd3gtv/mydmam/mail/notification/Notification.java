@@ -27,7 +27,6 @@ import hd3gtv.mydmam.manager.JobNG.JobStatus;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,7 +71,7 @@ public class Notification {
 	private String key;
 	private List<UserProfile> observers;
 	private UserProfile creator;
-	private Map<String, JobStatus> linked_tasksjobs;
+	private Map<String, JobStatus> linked_jobs;
 	private String creating_comment;
 	private long created_at;
 	private boolean is_read;
@@ -111,7 +110,7 @@ public class Notification {
 		key = UUID.randomUUID().toString();
 		observers = new ArrayList<UserProfile>(1);
 		creator = null;
-		linked_tasksjobs = new HashMap<String, JobStatus>(1);
+		linked_jobs = new HashMap<String, JobStatus>(1);
 		creating_comment = "";
 		creator_reference = "";
 		profile_references = new ArrayList<String>();
@@ -200,15 +199,15 @@ public class Notification {
 		observers = getUsersFromDb(record.get("observers").getAsJsonArray());
 		creator = getUser(record.get("creator").getAsString());
 		
-		JsonArray ja_linked_tasks = record.get("linked_tasks").getAsJsonArray();
-		if (ja_linked_tasks.size() > 0) {
-			linked_tasksjobs = new HashMap<String, JobStatus>(ja_linked_tasks.size());
-			for (int pos = 0; pos < ja_linked_tasks.size(); pos++) {
-				JsonObject jo = ja_linked_tasks.get(pos).getAsJsonObject();
-				linked_tasksjobs.put(jo.get("taskjobkey").getAsString(), JobStatus.valueOf(jo.get("status").getAsString()));
+		JsonArray ja_linked_jobs = record.get("linked_jobs").getAsJsonArray();
+		if (ja_linked_jobs.size() > 0) {
+			linked_jobs = new HashMap<String, JobStatus>(ja_linked_jobs.size());
+			for (int pos = 0; pos < ja_linked_jobs.size(); pos++) {
+				JsonObject jo = ja_linked_jobs.get(pos).getAsJsonObject();
+				linked_jobs.put(jo.get("jobkey").getAsString(), JobStatus.valueOf(jo.get("status").getAsString()));
 			}
 		} else {
-			linked_tasksjobs = new HashMap<String, JobStatus>(1);
+			linked_jobs = new HashMap<String, JobStatus>(1);
 		}
 		
 		creating_comment = record.get("creating_comment").getAsString();
@@ -250,14 +249,14 @@ public class Notification {
 			record.addProperty("creator", creator.key);
 		}
 		
-		JsonArray ja_linked_tasks = new JsonArray();
-		for (Map.Entry<String, JobStatus> entry : linked_tasksjobs.entrySet()) {
+		JsonArray ja_linked_jobs = new JsonArray();
+		for (Map.Entry<String, JobStatus> entry : linked_jobs.entrySet()) {
 			JsonObject jo = new JsonObject();
-			jo.addProperty("taskjobkey", entry.getKey());
+			jo.addProperty("jobkey", entry.getKey());
 			jo.addProperty("status", entry.getValue().toString());
-			ja_linked_tasks.add(jo);
+			ja_linked_jobs.add(jo);
 		}
-		record.add("linked_tasks", ja_linked_tasks);
+		record.add("linked_jobs", ja_linked_jobs);
 		
 		record.addProperty("creating_comment", creating_comment);
 		
@@ -372,21 +371,11 @@ public class Notification {
 		return is_close;
 	}
 	
-	public Notification addLinkedJobs(JobNG... jobs) throws ConnectionException {
-		if (jobs == null) {
+	public Notification addLinkedJob(JobNG job) throws ConnectionException {
+		if (job == null) {
 			return this;
 		}
-		if (jobs.length == 0) {
-			return this;
-		}
-		LinkedHashMap<String, JobStatus> all_actual_status = JobNG.Utility.getJobsStatus(Arrays.asList(jobs));
-		if (all_actual_status == null) {
-			return this;
-		}
-		if (all_actual_status.size() == 0) {
-			return this;
-		}
-		linked_tasksjobs.putAll(all_actual_status);
+		linked_jobs.put(job.getKey(), job.getStatus());
 		return this;
 	}
 	
@@ -540,10 +529,10 @@ public class Notification {
 	 * Don't refresh internal status.
 	 */
 	public JobStatus getActualSummaryJobStatus() throws ConnectionException {
-		return getSummaryJobStatus(linked_tasksjobs);
+		return getSummaryJobStatus(linked_jobs);
 	}
 	
-	public static int updateTasksJobsEvolutionsForNotifications() throws Exception {
+	public static int updateJobsEvolutionsForNotifications() throws Exception {
 		Client client = Elasticsearch.getClient();
 		
 		/**
@@ -577,7 +566,7 @@ public class Notification {
 				notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
 				must_update_notification = false;
 				
-				if (notification.linked_tasksjobs.isEmpty()) {
+				if (notification.linked_jobs.isEmpty()) {
 					continue;
 				}
 				
@@ -585,11 +574,11 @@ public class Notification {
 				nu.key = notification.key;
 				
 				/**
-				 * Compare tasks/jobs status and push new notification update if needed
+				 * Compare jobs status and push new notification update if needed
 				 */
-				LinkedHashMap<String, JobStatus> new_status = JobNG.Utility.getJobsStatusByKeys(notification.linked_tasksjobs.keySet());
+				LinkedHashMap<String, JobStatus> new_status = JobNG.Utility.getJobsStatusByKeys(notification.linked_jobs.keySet());
 				new_status_summary = getSummaryJobStatus(new_status);
-				previous_status_summary = getSummaryJobStatus(notification.linked_tasksjobs);
+				previous_status_summary = getSummaryJobStatus(notification.linked_jobs);
 				
 				if (new_status_summary != previous_status_summary) {
 					if (new_status_summary == JobStatus.ERROR) {
@@ -606,19 +595,19 @@ public class Notification {
 				}
 				
 				/**
-				 * Update Tasks and Jobs status cache in notification
+				 * Update Jobs status cache in notification
 				 */
-				for (Map.Entry<String, JobStatus> entry : notification.linked_tasksjobs.entrySet()) {
-					String taskjobkey = entry.getKey();
-					JobStatus current_taskjob = entry.getValue();
-					if (new_status.containsKey(taskjobkey) == false) {
+				for (Map.Entry<String, JobStatus> entry : notification.linked_jobs.entrySet()) {
+					String jobkey = entry.getKey();
+					JobStatus current_job = entry.getValue();
+					if (new_status.containsKey(jobkey) == false) {
 						/**
-						 * If task/job is referenced in notification and deleted from Broker.
+						 * If job is referenced in notification and deleted from Broker.
 						 */
 						entry.setValue(JobStatus.DONE);
 						must_update_notification = true;
-					} else if (current_taskjob != new_status.get(taskjobkey)) {
-						entry.setValue(new_status.get(taskjobkey));
+					} else if (current_job != new_status.get(jobkey)) {
+						entry.setValue(new_status.get(jobkey));
 						must_update_notification = true;
 					}
 				}
@@ -798,8 +787,8 @@ public class Notification {
 			notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
 			will_close_notification = false;
 			
-			if (notification.linked_tasksjobs.isEmpty() == false) {
-				status_summary = getSummaryJobStatus(notification.linked_tasksjobs);
+			if (notification.linked_jobs.isEmpty() == false) {
+				status_summary = getSummaryJobStatus(notification.linked_jobs);
 				if (status_summary == JobStatus.ERROR) {
 					will_close_notification = true;
 				} else if (status_summary == JobStatus.DONE) {
@@ -942,22 +931,22 @@ public class Notification {
 			
 			ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>(hits.length);
 			Map<String, Object> source;
-			ArrayList<Object> linked_tasks;
-			HashMap<String, JobStatus> linked_tasksjobs;
-			HashMap<String, Object> map_linked_tasksjobs;
+			ArrayList<Object> raw_linked_jobs;
+			HashMap<String, JobStatus> linked_jobs;
+			HashMap<String, Object> map_linked_jobs;
 			Map<String, Boolean> notify_list_for_user;
 			NotifyReason[] reasons = NotifyReason.values();
 			
 			for (int pos = 0; pos < hits.length; pos++) {
 				source = hits[pos].getSource();
 				
-				linked_tasks = (ArrayList) source.get("linked_tasks");
-				linked_tasksjobs = new HashMap<String, JobStatus>();
-				for (int pos_lt = 0; pos_lt < linked_tasks.size(); pos_lt++) {
-					map_linked_tasksjobs = (HashMap) linked_tasks.get(pos_lt);
-					linked_tasksjobs.put((String) map_linked_tasksjobs.get("taskjobkey"), JobStatus.valueOf((String) map_linked_tasksjobs.get("status")));
+				raw_linked_jobs = (ArrayList) source.get("linked_jobs");
+				linked_jobs = new HashMap<String, JobStatus>();
+				for (int pos_lt = 0; pos_lt < raw_linked_jobs.size(); pos_lt++) {
+					map_linked_jobs = (HashMap) raw_linked_jobs.get(pos_lt);
+					linked_jobs.put((String) map_linked_jobs.get("jobkey"), JobStatus.valueOf((String) map_linked_jobs.get("status")));
 				}
-				source.put("summary_status", getSummaryJobStatus(linked_tasksjobs));
+				source.put("summary_status", getSummaryJobStatus(linked_jobs));
 				source.put("key", hits[pos].getId());
 				
 				notify_list_for_user = new HashMap<String, Boolean>();

@@ -199,9 +199,9 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 			return true;
 		} catch (StaleLockException e) {
 			// The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
-			Log2.log.error("Can't lock task : abandoned lock...", e, new Log2Dump("class", element.getClass().getName()));
+			Log2.log.error("Can't lock : abandoned lock...", e, new Log2Dump("class", element.getClass().getName()));
 		} catch (BusyLockException e) {
-			Log2.log.error("Can't lock task, this category is currently locked...", e, new Log2Dump("class", element.getClass().getName()));
+			Log2.log.error("Can't lock, this category is currently locked...", e, new Log2Dump("class", element.getClass().getName()));
 		} catch (Exception e) {
 			Log2.log.error("Generic error", e, new Log2Dump("class", element.getClass().getName()));
 		} finally {

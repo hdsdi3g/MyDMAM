@@ -37,7 +37,7 @@ public abstract class MyDMAMModule extends PlayPlugin {
 		return new ArrayList<CliModule>(1);
 	}
 	
-	public List<CyclicJobCreator> getCyclicsCreateTasks(AppManager manager) {
+	public List<CyclicJobCreator> getCyclicsCreateJobs(AppManager manager) {
 		return new ArrayList<CyclicJobCreator>(1);
 	}
 	

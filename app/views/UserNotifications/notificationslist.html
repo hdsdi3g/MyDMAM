@@ -42,7 +42,7 @@
 			<i class="icon-chevron-down"></i>
 		</button>
 		<span class="redrawstatus" data-status="${notification.summary_status}">
-			<span class="label label-info">&{notification.summary_status}</span>
+			<span class="label label-info">&{'manager.jobs.status.' + notification.summary_status}</span>
 		</span>
 		&{'userprofile.notifications.creator_reference.' + notification.creator_reference}
 		#{if notification.profile_references}
@@ -61,7 +61,7 @@
 					<a data-toggle="tab" href="#tabpane${pos}main">&{'userprofile.notifications.summary'}</a>
 				</li>
 				<li>
-					<a data-toggle="tab" href="#tabpane${pos}tj">&{'userprofile.notifications.tasksjobs'}</a>
+					<a data-toggle="tab" href="#tabpane${pos}tj">&{'userprofile.notifications.jobs'}</a>
 				</li>
 			</ul>
 			<div class="tab-content">	
@@ -147,8 +147,8 @@
 				</div> <!-- tab-pane -->
 				<div id="tabpane${pos}tj" class="tab-pane">
 					<div class="row-fluid">
-						%{ notification.linked_tasks.eachWithIndex() { taskjob, tpos -> }%
-							<div class="taskjobsummary" style="margin-left: 40px;" id="taskjobsummary${pos}-${tpos}">${taskjob.taskjobkey}</div>
+						%{ notification.linked_jobs.eachWithIndex() { job, tpos -> }%
+							<div class="jobsummary" style="margin-left: 40px;" id="jobsummary${pos}-${tpos}">${job.jobkey}</div>
 						%{ } }%
 					</div> <!-- row-fluid -->
 				</div> <!-- tab-pane -->
@@ -168,7 +168,6 @@
 <script type="text/javascript" charset="UTF-8">
 <!--
 $(document).ready(function() {
-	mydmam.queue.enable_update = false; // Force false to keep correct display layouts
 	$("#btnSession").addClass("active");
 	mydmam.notification.postProcessPage(false);
 });

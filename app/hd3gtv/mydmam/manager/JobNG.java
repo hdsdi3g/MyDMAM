@@ -644,7 +644,7 @@ public final class JobNG implements Log2Dumpable {
 		/**
 		 * @return never null if keys is not empty
 		 */
-		public static JsonObject getJsonJobsByKeys(Collection<String> keys) throws ConnectionException, ParseException {
+		public static JsonObject getJsonJobsByKeys(Collection<String> keys, boolean is_public_access) throws ConnectionException, ParseException {
 			if (keys == null) {
 				return null;
 			}
@@ -660,6 +660,19 @@ public final class JobNG implements Log2Dumpable {
 					continue;
 				}
 				JsonObject current = parser.parse(source).getAsJsonObject();
+				if (is_public_access) {
+					current.remove("context");
+					current.remove("worker_class");
+					current.remove("worker_reference");
+					current.remove("processing_error");
+					current.remove("instance_status_creator_hostname");
+					current.remove("instance_status_creator_key");
+					current.remove("instance_status_executor_hostname");
+					current.remove("instance_status_executor_key");
+					if (current.has("progression")) {
+						current.get("progression").getAsJsonObject().remove("last_caller");
+					}
+				}
 				result.add(current.get("key").getAsString(), current);
 			}
 			

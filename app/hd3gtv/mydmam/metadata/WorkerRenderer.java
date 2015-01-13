@@ -49,7 +49,7 @@ public class WorkerRenderer extends WorkerNG {
 		}
 	}
 	
-	public static void createTask(SourcePathIndexerElement source, String name, JobContextRenderer renderer_context, GeneratorRendererViaWorker renderer) throws ConnectionException {
+	public static void createJob(SourcePathIndexerElement source, String name, JobContextRenderer renderer_context, GeneratorRendererViaWorker renderer) throws ConnectionException {
 		if (source == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
 		}

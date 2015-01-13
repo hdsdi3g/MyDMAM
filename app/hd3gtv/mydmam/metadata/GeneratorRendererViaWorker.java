@@ -26,10 +26,10 @@ import java.util.List;
 public interface GeneratorRendererViaWorker extends GeneratorRenderer {
 	
 	/**
-	 * Don't create tasks, just add callbacks to create new tasks to current_create_task_list.
+	 * Don't create jobs, just add callbacks to create new jobs to current_create_jobs_list.
 	 * It will be executed after all metadatas analysing/rendering.
 	 */
-	void prepareTasks(final Container container, List<FutureCreateTasks> current_create_task_list) throws Exception;
+	void prepareJobs(final Container container, List<FutureCreateJobs> current_create_job_list) throws Exception;
 	
 	/**
 	 * You NEED to consolidate rendered elements.

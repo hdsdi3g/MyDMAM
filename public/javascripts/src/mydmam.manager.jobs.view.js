@@ -21,7 +21,7 @@
  */
 (function(view) {
 	view.displayClassName = function(class_name) {
-		if (class_name === null) {
+		if (!class_name) {
 			return '';
 		}
 		if (class_name === '') {
@@ -43,6 +43,9 @@
  */
 (function(view) {
 	view.displayKey = function(key, ishtml) {
+		if (!key) {
+			return '';
+		}
 		var short_value = key.substring(key.lastIndexOf(":") + 1, key.lastIndexOf(":") + 9) + '.';
 		if (ishtml) {
 			return '<abbr title="' + key + '"><code><i class="icon-barcode"></i> ' + short_value + '</code></abbr>';
@@ -182,7 +185,9 @@
 		 * */
 		var content ='';
 		
-		content = content + '' + view.displayClassName(job.context.classname); 
+		if (job.context) {
+			content = content + '' + view.displayClassName(job.context.classname); 
+		}
 		
 		content = content + '<div class="pull-right">'; 
 		content = content + '<span class="badge badge-important itemtoupdate" data-varname="priority">';
@@ -200,9 +205,13 @@
 		
 		content = content + '<div class="collapse">';
 		
-		content = content + i18n('manager.jobs.createdby', 
-				view.displayClassName(job.creator),
-				'<abbr title="' + job.instance_status_creator_key + '">' + job.instance_status_creator_hostname + '</abbr>') + '<br />';
+		if (job.instance_status_creator_key & job.instance_status_creator_hostname) {
+			content = content + i18n('manager.jobs.createdby', 
+					view.displayClassName(job.creator),
+					'<abbr title="' + job.instance_status_creator_key + '">' + job.instance_status_creator_hostname + '</abbr>') + '<br />';
+		} else {
+			content = content + i18n('manager.jobs.createdbysimple', view.displayClassName(job.creator)) + '<br />';
+		}
 		
 		content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
 		
@@ -246,33 +255,41 @@
 			need_to_display_hr = true;
 		}
 		
-		if (job.context.neededstorages | (jQuery.isEmptyObject(job.context.content) === false)) {
+		if (job.context) {
+			if (job.context.neededstorages | (jQuery.isEmptyObject(job.context.content) === false)) {
+				if (need_to_display_hr) {
+					content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
+				}
+				content = content + i18n('manager.jobs.setup');
+			}
+
+			content = content + '<div class="pull-right">' + view.displayKey(job.key, true) + '</div>';
+			
+			if (job.context.neededstorages) {
+				if (job.context.neededstorages.length > 0) {
+					content = content + '<small><div style="margin-bottom: 5px;">' + i18n('manager.jobs.neededstorages') + ' '; 
+					for (var pos_ns = 0; pos_ns < job.context.neededstorages.length; pos_ns++) {
+						content = content + '<i class="icon-hdd"></i> ' + job.context.neededstorages[pos_ns];
+						if ((pos_ns + 1) < job.context.neededstorages.length) {
+							content = content + ', ';
+						}
+					}
+					content = content + '</div></small>'; 
+				}
+			}
+			
+			if (jQuery.isEmptyObject(job.context.content) === false) {
+				content = content + '<code class="json"><i class="icon-indent-left"></i><span class="jsontitle"> ' + i18n('manager.jobs.context') + ' </span>'; 
+				content = content + JSON.stringify(job.context.content, null, " "); 
+				content = content + '</code>'; 
+			}
+		} else {
 			if (need_to_display_hr) {
 				content = content + '<hr style="margin-top: 8px; margin-bottom: 5px;">';
 			}
-			content = content + i18n('manager.jobs.setup');
-		}
-
-		content = content + '<div class="pull-right">' + view.displayKey(job.key, true) + '</div>';
-		
-		if (job.context.neededstorages) {
-			if (job.context.neededstorages.length > 0) {
-				content = content + '<small><div style="margin-bottom: 5px;">' + i18n('manager.jobs.neededstorages') + ' '; 
-				for (var pos_ns = 0; pos_ns < job.context.neededstorages.length; pos_ns++) {
-					content = content + '<i class="icon-hdd"></i> ' + job.context.neededstorages[pos_ns];
-					if ((pos_ns + 1) < job.context.neededstorages.length) {
-						content = content + ', ';
-					}
-				}
-				content = content + '</div></small>'; 
-			}
+			content = content + '<div>' + view.displayKey(job.key, true) + '</div>';
 		}
 		
-		if (jQuery.isEmptyObject(job.context.content) === false) {
-			content = content + '<code class="json"><i class="icon-indent-left"></i><span class="jsontitle"> ' + i18n('manager.jobs.context') + ' </span>'; 
-			content = content + JSON.stringify(job.context.content, null, " "); 
-			content = content + '</code>'; 
-		}
 		content = content + '</div>';
 		
 		return content;
@@ -416,8 +433,8 @@
 
 			if (job.status === 'DONE') {
 				content = content + '<div class="progress progress-success" style="margin-bottom: 5px;">';
-			    content = content + '<div class="bar" style="width: 100%;"></div>';
-			    content = content + '</div>';
+				content = content + '<div class="bar" style="width: 100%;"></div>';
+				content = content + '</div>';
 			} else {
 				var percent = (progression.progress / progression.progress_size) * 100;
 				if (job.status === 'PROCESSING') {
@@ -425,8 +442,8 @@
 				} else {
 					content = content + '<div class="progress progress-danger" style="margin-bottom: 5px;">';
 				}
-			    content = content + '<div class="bar itemtoupdate updateprogression" data-varname="percent" style="width: ' + percent + '%;"></div>';
-			    content = content + '</div>';
+				content = content + '<div class="bar itemtoupdate updateprogression" data-varname="percent" style="width: ' + percent + '%;"></div>';
+				content = content + '</div>';
 				content = content + '<div class="collapse itemtoupdate updateprogression" data-varname="progress">';
 				content = content + progression.progress + '/' + progression.progress_size;
 				content = content + '</div>';
@@ -438,19 +455,25 @@
 			content = content + i18n('manager.jobs.last_message') + ' '; 
 			content = content + '<em class="itemtoupdate updateprogression" data-varname="last_message">'; 
 			content = content + view.getProgressionLastmessageHtmlContent(job.progression); 
-			content = content + '</em> <i class="icon-comment"></i>' + '<br />';
+			content = content + '</em> <i class="icon-comment"></i>';
 			
-			content = content + i18n('manager.jobs.last_message_let_by') + ' ';
-			content = content + '<span class="itemtoupdate updateprogression" data-varname="last_caller">';
-			content = content + view.displayClassName(progression.last_caller);
-			content = content + '</span><br />';
+			if (progression.last_caller) {
+				content = content + '<br />';
+				content = content + i18n('manager.jobs.last_message_let_by') + ' ';
+				content = content + '<span class="itemtoupdate updateprogression" data-varname="last_caller">';
+				content = content + view.displayClassName(progression.last_caller);
+				content = content + '</span>';
+			}
 			
-			content = content + '<hr style="margin-top: 4px; margin-bottom: 3px;">';
+			if (job.worker_class & job.worker_reference & job.instance_status_executor_key & job.instance_status_executor_hostname) {
+				content = content + '<br />';
+				content = content + '<hr style="margin-top: 4px; margin-bottom: 3px;">';
+				content = content + i18n('manager.jobs.worker') + ' ' + view.displayClassName(job.worker_class) + ' '; 
+				content = content + '(' + view.displayKey(job.worker_reference, true) + ')<br>'; 
+				content = content + i18n('manager.jobs.instanceexecutor') + ' <abbr title="' + job.instance_status_executor_key + '">' + job.instance_status_executor_hostname + '</abbr>' + '<br />';
+			}
 			
-			content = content + i18n('manager.jobs.worker') + ' ' + view.displayClassName(job.worker_class) + ' '; 
-			content = content + '(' + view.displayKey(job.worker_reference, true) + ')<br>'; 
-			content = content + i18n('manager.jobs.instanceexecutor') + ' <abbr title="' + job.instance_status_executor_key + '">' + job.instance_status_executor_hostname + '</abbr>' + '<br />';
-			content = content + '</div></div>';
+			content = content + '</small></div>';
 		}
 		return content;
 	};

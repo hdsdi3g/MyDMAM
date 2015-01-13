@@ -233,7 +233,7 @@
 		}
 		
 		/*if (job.delete_after_completed && job.isThisStatus(['DONE', 'CANCELED']) && (job.end_date + jobs.grace_period_to_remove_deleted_after_completed_job < (new Date().getTime()))) {
-			 //job will be deleted by some brokers, delete it here.
+			//job will be deleted by some brokers, delete it here.
 			jobs.deleteRow(job);
 			return;
 		}*/

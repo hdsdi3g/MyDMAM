@@ -20,7 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.JobProgression;
-import hd3gtv.mydmam.metadata.FutureCreateTasks;
+import hd3gtv.mydmam.metadata.FutureCreateJobs;
 import hd3gtv.mydmam.metadata.GeneratorRendererViaWorker;
 import hd3gtv.mydmam.metadata.JobContextRenderer;
 import hd3gtv.mydmam.metadata.PreviewType;
@@ -212,11 +212,11 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		}
 	}
 	
-	public void prepareTasks(final Container container, List<FutureCreateTasks> current_create_task_list) throws Exception {
+	public void prepareJobs(final Container container, List<FutureCreateJobs> current_create_jobs_list) throws Exception {
 		final GeneratorRendererViaWorker source = this;
 		
-		FutureCreateTasks result = new FutureCreateTasks() {
-			public void createTask() throws ConnectionException {
+		FutureCreateJobs result = new FutureCreateJobs() {
+			public void createJob() throws ConnectionException {
 				FFprobe ffprobe = container.getByClass(FFprobe.class);
 				if (ffprobe == null) {
 					return;
@@ -282,14 +282,14 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 				}
 				
 				try {
-					WorkerRenderer.createTask(container.getOrigin().getPathindexElement(), "FFmpeg lowres for metadatas", renderer_context, source);
+					WorkerRenderer.createJob(container.getOrigin().getPathindexElement(), "FFmpeg lowres for metadatas", renderer_context, source);
 				} catch (FileNotFoundException e) {
 					Log2.log.error("Can't found valid element", e, container);
 				}
 			}
 		};
 		
-		current_create_task_list.add(result);
+		current_create_jobs_list.add(result);
 	}
 	
 	public Class<? extends EntryRenderer> getRootEntryClass() {

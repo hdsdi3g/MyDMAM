@@ -57,7 +57,7 @@ public class Publish extends WorkerNG {
 	private File templocaldir;
 	private boolean stop;
 	
-	public static void createPublishTask(String mediaid, Timecode duration, String program_name, Class<?> referer) throws ConnectionException {
+	public static void createPublishJob(String mediaid, Timecode duration, String program_name, Class<?> referer) throws ConnectionException {
 		JobNG job = AppManager.createJob(new JobContextPublishing(mediaid, duration, program_name));
 		job.setCreator(referer).setName(program_name).setUrgent().setExpirationTime(2, TimeUnit.HOURS).publish();
 	}

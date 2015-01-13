@@ -41,11 +41,11 @@ public class MetadataIndexer implements IndexingEvent {
 	private boolean force_refresh;
 	private boolean stop_analysis;
 	private BulkRequestBuilder bulkrequest;
-	private List<FutureCreateTasks> current_create_task_list;
+	private List<FutureCreateJobs> current_create_job_list;
 	
 	public MetadataIndexer(boolean force_refresh) throws Exception {
 		this.force_refresh = force_refresh;
-		current_create_task_list = new ArrayList<FutureCreateTasks>();
+		current_create_job_list = new ArrayList<FutureCreateJobs>();
 	}
 	
 	public void process(String storagename, String currentpath, long min_index_date) throws Exception {
@@ -55,8 +55,8 @@ public class MetadataIndexer implements IndexingEvent {
 		explorer.getAllSubElementsFromElementKey(Explorer.getElementKey(storagename, currentpath), min_index_date, this);
 		bulkExecute();
 		
-		for (int pos = 0; pos < current_create_task_list.size(); pos++) {
-			current_create_task_list.get(pos).createTask();
+		for (int pos = 0; pos < current_create_job_list.size(); pos++) {
+			current_create_job_list.get(pos).createJob();
 		}
 	}
 	
@@ -197,7 +197,7 @@ public class MetadataIndexer implements IndexingEvent {
 			return true;
 		}
 		
-		Operations.save(MetadataCenter.standaloneIndexing(physical_source, element, current_create_task_list), false, bulkrequest);
+		Operations.save(MetadataCenter.standaloneIndexing(physical_source, element, current_create_job_list), false, bulkrequest);
 		return true;
 	}
 	

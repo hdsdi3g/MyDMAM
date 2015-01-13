@@ -18,8 +18,8 @@ package hd3gtv.mydmam.metadata;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public interface FutureCreateTasks {
+public interface FutureCreateJobs {
 	
-	void createTask() throws ConnectionException;
+	void createJob() throws ConnectionException;
 	
 }
