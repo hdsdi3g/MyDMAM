@@ -17,7 +17,11 @@
 
 package hd3gtv.mydmam.mail.notification;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
+import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
@@ -33,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.CRC32;
 
 import models.UserProfile;
@@ -40,7 +45,6 @@ import models.UserProfile;
 import javax.mail.internet.InternetAddress;
 
 import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -53,7 +57,6 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
-import org.json.simple.parser.JSONParser;
 
 import play.i18n.Lang;
 
@@ -314,35 +317,6 @@ public class Notification {
 		return mail_vars;
 	}
 	
-	/**
-	 * Sorted by created_at (recent first)
-	 * Unused...
-	 */
-	/*public static List<Notification> getAllFromDatabase(int from, int size) throws Exception {
-		if (size < 1) {
-			throw new IndexOutOfBoundsException("size must to be up to 0: " + size);
-		}
-		ArrayList<Notification> all_notifications = new ArrayList<Notification>(size);
-		Client client = Elasticsearch.getClient();
-		SearchRequestBuilder request = client.prepareSearch();
-		request.setIndices(ES_INDEX);
-		request.setTypes(ES_DEFAULT_TYPE);
-		request.setQuery(QueryBuilders.matchAllQuery());
-		request.addSort("created_at", SortOrder.DESC);
-		request.setFrom(from);
-		request.setSize(size);
-		
-		SearchHit[] hits = request.execute().actionGet().getHits().hits();
-		JSONParser parser = new JSONParser();
-		for (int pos = 0; pos < hits.length; pos++) {
-			parser.reset();
-			Notification notification = new Notification();
-			notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
-			all_notifications.add(notification);
-		}
-		return all_notifications;
-	}*/
-	
 	public static Notification create(UserProfile creator, String creating_comment, String creator_reference) throws ConnectionException, IOException {
 		if (creator == null) {
 			throw new NullPointerException("\"creator\" can't to be null");
@@ -533,99 +507,97 @@ public class Notification {
 	}
 	
 	public static int updateJobsEvolutionsForNotifications() throws Exception {
-		Client client = Elasticsearch.getClient();
-		
 		/**
 		 * Get all non-closed notifications
 		 */
-		SearchRequestBuilder request = client.prepareSearch();
-		request.setIndices(ES_INDEX);
-		request.setTypes(ES_DEFAULT_TYPE);
-		request.setQuery(QueryBuilders.termQuery("is_close", false));
-		request.addSort("created_at", SortOrder.ASC);
-		request.setSize(20);
+		ElastisearchCrawlerReader crawler_reader = Elasticsearch.createCrawlerReader();
+		crawler_reader.setIndices(ES_INDEX);
+		crawler_reader.setTypes(ES_DEFAULT_TYPE);
+		crawler_reader.setQuery(QueryBuilders.termQuery("is_close", false));
+		crawler_reader.addSort("created_at", SortOrder.ASC);
 		
-		SearchHit[] hits = request.execute().actionGet().getHits().hits();
-		
-		if (hits.length > 0) {
-			BulkRequestBuilder bulkrequest = client.prepareBulk();
+		final ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+		crawler_reader.allReader(new ElastisearchCrawlerHit() {
 			
+			boolean must_update_notification;
 			CrudOrmEngine<CrudOrmModel> orm_engine = CrudOrmEngine.get(NotificationUpdate.class);
 			JsonObject record;
 			JobStatus new_status_summary;
 			JobStatus previous_status_summary;
-			boolean must_update_notification;
 			
-			JSONParser parser = new JSONParser();
-			for (int pos = 0; pos < hits.length; pos++) {
-				/**
-				 * For all found notifications
-				 */
-				parser.reset();
-				Notification notification = new Notification();
-				notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
-				must_update_notification = false;
-				
-				if (notification.linked_jobs.isEmpty()) {
-					continue;
-				}
-				
-				NotificationUpdate nu = (NotificationUpdate) orm_engine.create();
-				nu.key = notification.key;
-				
-				/**
-				 * Compare jobs status and push new notification update if needed
-				 */
-				LinkedHashMap<String, JobStatus> new_status = JobNG.Utility.getJobsStatusByKeys(notification.linked_jobs.keySet());
-				new_status_summary = getSummaryJobStatus(new_status);
-				previous_status_summary = getSummaryJobStatus(notification.linked_jobs);
-				
-				if (new_status_summary != previous_status_summary) {
-					if (new_status_summary == JobStatus.ERROR) {
-						nu.is_new_error = true;
-					} else if (new_status_summary == JobStatus.DONE) {
-						nu.is_new_done = true;
-					} else if (new_status_summary == JobStatus.CANCELED) {
-						nu.is_new_done = true;
+			public boolean onFoundHit(SearchHit hit) {
+				try {
+					
+					/**
+					 * For all found notifications
+					 */
+					Notification notification = new Notification();
+					notification.importFromDb(hit.getId(), Elasticsearch.getJSONFromSimpleResponse(hit));
+					must_update_notification = false;
+					
+					if (notification.linked_jobs.isEmpty()) {
+						return true;
 					}
-					if (nu.isNeedUpdate()) {
-						orm_engine.saveInternalElement();
-					}
-					must_update_notification = true;
-				}
-				
-				/**
-				 * Update Jobs status cache in notification
-				 */
-				for (Map.Entry<String, JobStatus> entry : notification.linked_jobs.entrySet()) {
-					String jobkey = entry.getKey();
-					JobStatus current_job = entry.getValue();
-					if (new_status.containsKey(jobkey) == false) {
-						/**
-						 * If job is referenced in notification and deleted from Broker.
-						 */
-						entry.setValue(JobStatus.DONE);
-						must_update_notification = true;
-					} else if (current_job != new_status.get(jobkey)) {
-						entry.setValue(new_status.get(jobkey));
+					
+					NotificationUpdate nu = (NotificationUpdate) orm_engine.create();
+					nu.key = notification.key;
+					
+					/**
+					 * Compare jobs status and push new notification update if needed
+					 */
+					LinkedHashMap<String, JobStatus> new_status = JobNG.Utility.getJobsStatusByKeys(notification.linked_jobs.keySet());
+					new_status_summary = getSummaryJobStatus(new_status);
+					previous_status_summary = getSummaryJobStatus(notification.linked_jobs);
+					
+					if (new_status_summary != previous_status_summary) {
+						if (new_status_summary == JobStatus.ERROR) {
+							nu.is_new_error = true;
+						} else if (new_status_summary == JobStatus.DONE) {
+							nu.is_new_done = true;
+						} else if (new_status_summary == JobStatus.CANCELED) {
+							nu.is_new_done = true;
+						}
+						if (nu.isNeedUpdate()) {
+							orm_engine.saveInternalElement();
+						}
 						must_update_notification = true;
 					}
+					
+					/**
+					 * Update Jobs status cache in notification
+					 */
+					for (Map.Entry<String, JobStatus> entry : notification.linked_jobs.entrySet()) {
+						String jobkey = entry.getKey();
+						JobStatus current_job = entry.getValue();
+						if (new_status.containsKey(jobkey) == false) {
+							/**
+							 * If job is referenced in notification and deleted from Broker.
+							 */
+							entry.setValue(JobStatus.DONE);
+							must_update_notification = true;
+						} else if (current_job != new_status.get(jobkey)) {
+							entry.setValue(new_status.get(jobkey));
+							must_update_notification = true;
+						}
+					}
+					
+					if (must_update_notification) {
+						record = new JsonObject();
+						notification.exportToDb(record);
+						bulk.add(bulk.getClient().prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toString()).setRefresh(true).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
+					}
+				} catch (Exception e) {
+					Log2.log.error("Can't import Notification", e);
+					return false;
 				}
-				
-				if (must_update_notification) {
-					record = new JsonObject();
-					notification.exportToDb(record);
-					bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toString()).setRefresh(true).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
-				}
+				return true;
 			}
-			
-			/**
-			 * Record all notifications updates
-			 */
-			if (bulkrequest.numberOfActions() > 0) {
-				bulkrequest.execute().actionGet();
-			}
-		}
+		});
+		
+		/**
+		 * Record all notifications updates
+		 */
+		bulk.terminateBulk();
 		
 		/**
 		 * Request pending notifications for user
@@ -749,74 +721,68 @@ public class Notification {
 	 * @param grace_period_duration in ms for search windows
 	 */
 	public static int updateOldsAndNonClosedNotifications(long grace_period_duration) throws Exception {
-		Client client = Elasticsearch.getClient();
-		int count = 0;
+		final AtomicInteger count = new AtomicInteger(0);
 		/**
 		 * Get all non-closed notifications
 		 */
-		SearchRequestBuilder request = client.prepareSearch();
-		request.setIndices(ES_INDEX);
-		request.setTypes(ES_DEFAULT_TYPE);
+		ElastisearchCrawlerReader crawler_reader = Elasticsearch.createCrawlerReader();
 		
+		crawler_reader.setIndices(ES_INDEX);
+		crawler_reader.setTypes(ES_DEFAULT_TYPE);
 		BoolQueryBuilder query = QueryBuilders.boolQuery();
 		query.must(QueryBuilders.termQuery("is_close", false));
 		query.must(QueryBuilders.rangeQuery("created_at").from(0l).to(System.currentTimeMillis() - grace_period_duration));
-		request.setQuery(query);
-		request.addSort("created_at", SortOrder.ASC);
-		request.setSize(20);
+		crawler_reader.setQuery(query);
+		crawler_reader.addSort("created_at", SortOrder.ASC);
 		
-		SearchHit[] hits = request.execute().actionGet().getHits().hits();
+		final ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 		
-		if (hits.length == 0) {
-			return 0;
-		}
-		
-		BulkRequestBuilder bulkrequest = client.prepareBulk();
-		
-		JsonObject record;
-		JobStatus status_summary;
-		boolean will_close_notification;
-		
-		JSONParser parser = new JSONParser();
-		for (int pos = 0; pos < hits.length; pos++) {
-			/**
-			 * For all found notifications
-			 */
-			parser.reset();
-			Notification notification = new Notification();
-			notification.importFromDb(hits[pos].getId(), Elasticsearch.getJSONFromSimpleResponse(hits[pos]));
-			will_close_notification = false;
+		crawler_reader.allReader(new ElastisearchCrawlerHit() {
+			JsonObject record;
+			JobStatus status_summary;
+			boolean will_close_notification;
 			
-			if (notification.linked_jobs.isEmpty() == false) {
-				status_summary = getSummaryJobStatus(notification.linked_jobs);
-				if (status_summary == JobStatus.ERROR) {
-					will_close_notification = true;
-				} else if (status_summary == JobStatus.DONE) {
-					will_close_notification = true;
-				} else if (status_summary == JobStatus.CANCELED) {
+			public boolean onFoundHit(SearchHit hit) {
+				/**
+				 * For all found notifications
+				 */
+				Notification notification = new Notification();
+				try {
+					notification.importFromDb(hit.getId(), Elasticsearch.getJSONFromSimpleResponse(hit));
+				} catch (Exception e) {
+					Log2.log.error("Can't import from ES", e);
+					return false;
+				}
+				will_close_notification = false;
+				
+				if (notification.linked_jobs.isEmpty() == false) {
+					status_summary = getSummaryJobStatus(notification.linked_jobs);
+					if (status_summary == JobStatus.ERROR) {
+						will_close_notification = true;
+					} else if (status_summary == JobStatus.DONE) {
+						will_close_notification = true;
+					} else if (status_summary == JobStatus.CANCELED) {
+						will_close_notification = true;
+					}
+				} else {
 					will_close_notification = true;
 				}
-			} else {
-				will_close_notification = true;
+				
+				if (will_close_notification) {
+					notification.closed_at = System.currentTimeMillis();
+					notification.is_close = true;
+					record = new JsonObject();
+					notification.exportToDb(record);
+					bulk.add(bulk.getClient().prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toString()).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
+					count.incrementAndGet();
+				}
+				return true;
 			}
-			
-			if (will_close_notification) {
-				notification.closed_at = System.currentTimeMillis();
-				notification.is_close = true;
-				record = new JsonObject();
-				notification.exportToDb(record);
-				bulkrequest.add(client.prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toString()).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
-				count++;
-			}
-		}
+		});
 		
-		/**
-		 * Record all notifications updates
-		 */
-		if (bulkrequest.numberOfActions() > 0) {
-			bulkrequest.execute().actionGet();
-		}
-		return count;
+		bulk.terminateBulk();
+		
+		return count.get();
 	}
 	
 	/**

@@ -108,7 +108,7 @@ public class Elasticsearch {
 	}
 	
 	public static ElasticsearchBulkOperation prepareBulk() {
-		return new ElasticsearchBulkOperation(getClient());
+		return new ElasticsearchBulkOperation();
 	}
 	
 	public static Log2Dump getDump() {
@@ -212,7 +212,7 @@ public class Elasticsearch {
 	*/
 	
 	public static ElastisearchCrawlerReader createCrawlerReader() {
-		return new ElastisearchCrawlerReader(getClient());
+		return new ElastisearchCrawlerReader();
 	}
 	
 	public static ElastisearchMultipleCrawlerReader createMultipleCrawlerReader() {

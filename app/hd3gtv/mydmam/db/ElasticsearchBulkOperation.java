@@ -47,8 +47,8 @@ public final class ElasticsearchBulkOperation {
 	private StatisticsTime stat_time;
 	private BulkRequestBuilder bulk_request_builder;
 	
-	ElasticsearchBulkOperation(Client client) {
-		this.client = client;
+	ElasticsearchBulkOperation() {
+		this.client = Elasticsearch.getClient();
 		stat_time = new StatisticsTime();
 		bulk_request_builder = client.prepareBulk();
 		configuration = new Configuration();

@@ -35,7 +35,6 @@ timeunit.day=jour
 timeunit.days=jours
 
 search.pagetitle=Recherche
-search.pagetitleQ=Recherche "%s"
 search.method.by_id=Recherche par ID/media ID
 search.method.by_all_words=Recherche avec tous les mots
 search.method.by_full_text=Recherche de texte
