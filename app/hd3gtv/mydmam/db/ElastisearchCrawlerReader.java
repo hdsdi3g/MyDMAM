@@ -98,7 +98,7 @@ public class ElastisearchCrawlerReader {
 	private SearchResponse execute(SearchRequestBuilder request) {
 		for (int pos_retry = 0; pos_retry < max_retry; pos_retry++) {
 			try {
-				return request.execute().actionGet();
+				return Elasticsearch.getClient().search(request.request()).actionGet();
 			} catch (NoNodeAvailableException e) {
 				try {
 					/**
@@ -118,6 +118,7 @@ public class ElastisearchCrawlerReader {
 					/**
 					 * The last try has failed, throw error.
 					 */
+					Log2.log.error("The last (" + max_retry + ") try has failed, throw error", e);
 					throw e;
 				}
 				
