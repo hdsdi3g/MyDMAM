@@ -64,7 +64,11 @@ public class AbstractFileBridgeFtpNexio implements AbstractFile {
 	}
 	
 	public String getPath() {
-		return "/" + path.substring(configurator.path.length());
+		try {
+			return "/" + path.substring(configurator.path.length());
+		} catch (StringIndexOutOfBoundsException e) {
+			return "/";
+		}
 	}
 	
 	public boolean isDirectory() {
