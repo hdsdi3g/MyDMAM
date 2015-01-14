@@ -132,14 +132,9 @@
 			for (var pos_crt = 0; pos_crt < creators.length; pos_crt++) {
 				var creator = creators[pos_crt];
 				content = content + '<tr>';
-
 				content = content + '<td>';
-				content = content + '<strong>' +instance.app_name + '</strong>&nbsp;&bull; ';
-				content = content + instance.instance_name + '<br>';
-				content = content + '<small>' + instance.host_name + '</small>';
-				content = content + '<span class="pull-right">' + mydmam.manager.jobs.view.displayKey(creator.reference_key, true) + '</span>';
+				content = content + mydmam.manager.prepareInstanceNameCell(instance, creator.reference_key);
 				content = content + '</td>';
-
 				content = content + prepareCreatorRow(creator);
 				content = content + '</tr>';
 			}

@@ -523,86 +523,89 @@
  * prepareUseractionFunctionalityList(instances)
  */
 (function(manager) {
+	manager.prepareInstanceNameCell = function(instance, item_key) {
+		var content = '';
+		content = content + '<strong>' +instance.app_name + '</strong>&nbsp;&bull; ';
+		content = content + instance.instance_name + '<br>';
+		content = content + '<small>' + instance.host_name + '</small>';
+		content = content + '<span class="pull-right">' + mydmam.manager.jobs.view.displayKey(item_key, true) + '</span>';
+		return content;
+	};
+})(window.mydmam.manager);
+
+/**
+ * prepareUseractionFunctionalityList(instances)
+ */
+(function(manager) {
 	manager.prepareUseractionFunctionalityList = function(instances) {
-		var content = 'UA';
+		var content = '';
+		
+		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
+		content = content + '<thead>';
+		content = content + '<th>' + i18n('manager.jobcreator.th.instance') + '</th>';
+		content = content + '<th>' + i18n("manager.uafunctlist.functionality") + '</th>';
+		content = content + '<th>' + i18n("manager.uafunctlist.functionality") + '</th>';
+		content = content + '<th>' + i18n("manager.uafunctlist.capabilities") + '</th>';
+		content = content + '<th>' + i18n("manager.uafunctlist.storageindexeswhitelist") + '</th>';
+		content = content + '</thead>';
+		content = content + '<tbody>';
+
 		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
 			var instance = instances[pos_i];
 			var useraction_functionality_list = instance.useraction_functionality_list;
 			for (var pos_uafl = 0; pos_uafl < useraction_functionality_list.length; pos_uafl++) {
-				var useraction_functionality = useraction_functionality_list[pos_uafl];
-				//TODO display useraction_functionality
-				/* LEGACY CODE :
-					var functionality;
-					var presence_functionality = false;
-					for (var pos = 0; pos < data.length; pos++) {
-						if (data[pos].useraction_functionality_list.length) {
-							presence_functionality = true;
-							var content = "";
-							content = content + '<tr><td colspan="5">';
-							content = content + '<span class="text-info"><strong>' + data[pos].workername + '</strong> ' + data[pos].javaaddress.hostname;
-							for (var pos_addr = 0; pos_addr < data[pos].javaaddress.address.length; pos_addr++) {
-								content = content + " &bull; " + data[pos].javaaddress.address[pos_addr];
-							}
-							content = content + '</span></td></tr>';
+				var functionality = useraction_functionality_list[pos_uafl];
+				
+				content = content + '<tr>';
 
-							content = content + '<tr>';
-							content = content + '<th colspan="2">' + i18n("service.functionalitieslist.functionality") + '</th>';
-							content = content + '<th>' + i18n("service.functionalitieslist.profiles") + '</th>';
-							content = content + '<th>' + i18n("service.functionalitieslist.capabilities") + '</th>';
-							content = content + '<th>' + i18n("service.functionalitieslist.storageindexeswhitelist") + '</th>';
-							content = content + '</tr>';
+				content = content + '<td>';
+				content = content + mydmam.manager.prepareInstanceNameCell(instance, functionality.instance);
+				content = content + '</td>';
+				
+				content = content + '<td>' + functionality.vendor + '<br>';
+				content = content + '<span class="label label-inverse">' + i18n('useractions.functionalities.sections.' + functionality.section) + '</span>';
+				if (functionality.powerful_and_dangerous) {
+					content = content + ' <span class="label label-warning">' + i18n("manager.uafunctlist.powerful_and_dangerous") + '</span>';
+				}
+				content = content + '</td>';
 
-							for (var pos_th = 0; pos_th < data[pos].useraction_functionality_list.length; pos_th++) {
-								functionality = data[pos].useraction_functionality_list[pos_th];
-								content = content + '<tr>';
-								
-								content = content + '<td>' + functionality.vendor + '<br>';
-								content = content + '<small>' + functionality.section + '</small></td>';
+				content = content + '<td>';
+				content = content + functionality.longname + '';
+				content = content + '<span class="pull-right">' + mydmam.manager.jobs.view.displayClassName(functionality.classname) + '</span>';
+				content = content + '<br><small>' + functionality.description + '</small>';
+				content = content + '</td>';
 
-								//content = content + '<td>' + functionality.instance + '</td>';
-								
-								content = content + '<td>' + functionality.longname + '<br>';
-								content = content + '<small>' + functionality.description + '</small><br>';
-								content = content + '<small>' + functionality.classname + '</small></td>';
+				content = content + '<td>';
+				if (functionality.capability.fileprocessing_enabled) {
+					content = content + '<span class="label label-success">File</span>';
+				}
+				if (functionality.capability.directoryprocessing_enabled) {
+					content = content + '<span class="label label-success">Directory</span>';
+				}
+				if (functionality.capability.rootstorageindexprocessing_enabled) {
+					content = content + '<span class="label label-success">Root storage</span>';
+				}
+				if (functionality.capability.musthavelocalstorageindexbridge) {
+					content = content + '<br><span class="label label-important">' + i18n("manager.uafunctlist.musthavelocalstorageindexbridge") + '</span>';
+				}
+				content = content + '</td>';
 
-								content = content + '<td>';
-								for (var pos_pf in functionality.profiles) {
-									content = content + '<strong>' + functionality.profiles[pos_pf].category + '</strong> :: ';
-									content = content + functionality.profiles[pos_pf].name;
-									content = content + '<br>';
-								}
-								content = content + '</td>';
-								
-								content = content + '<td>';
-								if (functionality.capability.fileprocessing_enabled) {
-									content = content + '<span class="label label-success">File</span>';
-								}
-								if (functionality.capability.directoryprocessing_enabled) {
-									content = content + '<span class="label label-success">Directory</span>';
-								}
-								if (functionality.capability.rootstorageindexprocessing_enabled) {
-									content = content + '<span class="label label-success">Root storage</span>';
-								}
-								if (functionality.capability.musthavelocalstorageindexbridge) {
-									content = content + '<br><span class="label label-important">' + i18n("service.functionalitieslist.musthavelocalstorageindexbridge") + '</span>';
-								}
-								content = content + '</td>';
-
-								content = content + '<td>';
-								for (var pos_wl in functionality.capability.storageindexeswhitelist) {
-									content = content + functionality.capability.storageindexeswhitelist[pos_wl] + '<br>';
-								}
-								content = content + '</td>';
-
-								content = content + '</tr>';
-							}
-							$("#laststatusworkersfunctionalities").append(content);
-						}
+				content = content + '<td><small>';
+				for (var pos_wl in functionality.capability.storageindexeswhitelist) {
+					var storageindexeswhiteitem = functionality.capability.storageindexeswhitelist[pos_wl];
+					if (jQuery.inArray(storageindexeswhiteitem, functionality.worker_capablity_storages) > -1) {
+						content = content + storageindexeswhiteitem + ' ';
+					} else {
+						content = content + '<span class="muted">' + storageindexeswhiteitem + '</span> ';
 					}
-				 * 
-				 * */
+				}
+				content = content + '</small></td>';
+
+				content = content + '</tr>';
 			}
 		}
+		content = content + '</tbody>';
+		content = content + '</table>';
 		return content;
 	};
 })(window.mydmam.manager);

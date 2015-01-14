@@ -40,8 +40,6 @@ import com.netflix.astyanax.MutationBatch;
 
 public final class AppManager implements InstanceActionReceiver {
 	
-	// TODO #78.1 Display all UA availabilities for admin
-	
 	/**
 	 * In sec.
 	 */
