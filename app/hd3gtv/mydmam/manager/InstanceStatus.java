@@ -152,6 +152,7 @@ public final class InstanceStatus implements Log2Dumpable {
 	private String host_name;
 	private ArrayList<String> host_addresses;
 	private boolean brokeralive;
+	private boolean is_off_hours;
 	private @GsonIgnore ArrayList<UAFunctionalityDefinintion> useraction_functionality_list;
 	private @GsonIgnore ArrayList<CyclicJobCreator> declared_cyclics;
 	private @GsonIgnore ArrayList<TriggerJobCreator> declared_triggers;
@@ -212,6 +213,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		threadstacktraces = new ArrayList<InstanceStatus.ThreadStackTrace>();
 		useraction_functionality_list = new ArrayList<UAFunctionalityDefinintion>();
 		brokeralive = manager.getBroker().isAlive();
+		is_off_hours = AppManager.isActuallyOffHours();
 		
 		host_addresses = new ArrayList<String>();
 		try {
@@ -246,6 +248,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		uptime = System.currentTimeMillis() - AppManager.starttime;
 		threadstacktraces.clear();
 		brokeralive = manager.getBroker().isAlive();
+		is_off_hours = AppManager.isActuallyOffHours();
 		declared_cyclics = manager.getBroker().getDeclared_cyclics();
 		declared_triggers = manager.getBroker().getDeclared_triggers();
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
@@ -333,6 +336,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		dump.add("app_version", app_version);
 		dump.add("java_version", java_version);
 		dump.add("brokeralive", brokeralive);
+		dump.add("is_off_hours", is_off_hours);
 		dump.add("uptime (sec)", uptime / 1000);
 		dump.add("host_name", host_name);
 		dump.add("host_addresses", host_addresses);

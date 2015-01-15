@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
@@ -28,6 +29,7 @@ import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import hd3gtv.mydmam.useraction.UAWorker;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -526,4 +528,35 @@ public final class AppManager implements InstanceActionReceiver {
 			}
 		}
 	}
+	
+	/**
+	 * Configure this with
+	 */
+	static boolean isActuallyOffHours() {
+		if (Configuration.global.isElementKeyExists("service", "fullhours") == false) {
+			return false;
+		}
+		
+		Calendar cal = Calendar.getInstance();
+		int this_date = cal.get(Calendar.HOUR_OF_DAY);
+		ArrayList<String> fullhours = Configuration.global.getValues("service", "fullhours", "0-24");
+		String[] fullhour;
+		for (int pos_fh = 0; pos_fh < fullhours.size(); pos_fh++) {
+			fullhour = fullhours.get(pos_fh).trim().split("-");
+			int start = 0;
+			int end = 24;
+			for (int pos_hr = 0; pos_hr < fullhour.length; pos_hr++) {
+				if (pos_hr == 0) {
+					start = Integer.parseInt(fullhour[pos_hr].trim());
+				} else {
+					end = Integer.parseInt(fullhour[pos_hr].trim());
+				}
+			}
+			if ((this_date < start | this_date >= end) == false) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 }

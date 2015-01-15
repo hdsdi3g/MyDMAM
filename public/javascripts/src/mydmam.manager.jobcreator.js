@@ -54,7 +54,7 @@
  */
 (function(jobcreator) {
 	jobcreator.prepareGenericTable = function(instances, declared_key_name, specific_cols_headers, specific_row, target_class_name) {
-		var prepareCreatorRow = function(creator) {
+		var prepareCreatorRow = function(creator, instance) {
 			var content = '';
 			content = content + '<td>';
 			if (creator.enabled === false) {
@@ -65,7 +65,7 @@
 			content = content + '</td>';
 			
 			if (specific_row) {
-				content = content + specific_row(creator);
+				content = content + specific_row(creator, instance);
 			}
 			
 			content = content + '<td><small>';
@@ -135,7 +135,7 @@
 				content = content + '<td>';
 				content = content + mydmam.manager.prepareInstanceNameCell(instance, creator.reference_key);
 				content = content + '</td>';
-				content = content + prepareCreatorRow(creator);
+				content = content + prepareCreatorRow(creator, instance);
 				content = content + '</tr>';
 			}
 			return content;
@@ -186,7 +186,7 @@
 (function(jobcreator) {
 	jobcreator.prepareCyclic = function(instances) {
 		var target_class_name = 'CyclicJobCreator';
-		var specific_row = function(creator) {
+		var specific_row = function(creator, instance) {
 			var content = '<td>';
 			if (creator.enabled) {
 				content = content + '<span class="label">';
@@ -218,13 +218,27 @@
 				content = content + '</div>';
 				content = content + '</span>';
 				
-				content = content + '<br><span class="label">';
 				if (creator.next_date_to_create_jobs) {
-					content = content + mydmam.format.timeAgo(creator.next_date_to_create_jobs, 'manager.jobcreator.cyclic.nextdate', 'manager.jobcreator.cyclic.nextdate');
+					if (creator.only_off_hours) {
+						if (instance.is_off_hours) {
+							content = content + '<br><span class="label">' + mydmam.format.timeAgo(creator.next_date_to_create_jobs, 'manager.jobcreator.cyclic.nextdate', 'manager.jobcreator.cyclic.nextdate') + '</span>';
+						} else {
+							content = content + '<br><span class="label">' + i18n('manager.jobcreator.cyclic.nonextdate') + '</span>';
+						}
+					} else {
+						content = content + '<br><span class="label">' + mydmam.format.timeAgo(creator.next_date_to_create_jobs, 'manager.jobcreator.cyclic.nextdate', 'manager.jobcreator.cyclic.nextdate') + '</span>';
+					}
 				} else {
-					content = content + i18n('manager.jobcreator.cyclic.nonextdate');
+					content = content + '<br><span class="label">' + i18n('manager.jobcreator.cyclic.nonextdate') + '</span>';
 				}
-				content = content + '</span>';
+				
+				if (creator.only_off_hours) {
+					content = content + '<br><span class="label label-info">' + i18n('manager.jobcreator.cyclic.onlyonoffhours') + '</span>';
+					if (creator.is_off_hours) {
+						content = content + '<span class="label label-info">' + i18n('manager.jobcreator.cyclic.actuallyonoffhours') + '</span>';
+					}
+				}
+				content = content;
 			}
 			
 			content = content + '</td>';
@@ -241,7 +255,7 @@
  */
 (function(jobcreator) {
 	jobcreator.prepareTriggers = function(instances) {
-		var specific_row = function(creator) {
+		var specific_row = function(creator, instance) {
 			var content = '<td>';
 			content = content + jobcreator.contextToString(creator.context_hook, false);
 			content = content + '</td>';

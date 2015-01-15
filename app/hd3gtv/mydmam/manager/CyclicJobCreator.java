@@ -27,7 +27,9 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 public final class CyclicJobCreator extends JobCreator {
 	
 	private long period;
+	private transient long origin_period;
 	private long next_date_to_create_jobs;
+	private boolean only_off_hours;
 	
 	public CyclicJobCreator(AppManager manager, long period, TimeUnit unit, boolean not_at_boot) throws NullPointerException {
 		super(manager);
@@ -35,9 +37,10 @@ public final class CyclicJobCreator extends JobCreator {
 			unit = TimeUnit.SECONDS;
 		}
 		this.period = unit.toMillis(period);
+		origin_period = this.period;
 		
 		if (not_at_boot) {
-			next_date_to_create_jobs = System.currentTimeMillis() + period;
+			next_date_to_create_jobs = System.currentTimeMillis() + this.period;
 		} else {
 			next_date_to_create_jobs = 0;
 		}
@@ -47,6 +50,8 @@ public final class CyclicJobCreator extends JobCreator {
 		super.setEnabled(enabled);
 		if (isEnabled() == true) {
 			period = 0;
+		} else {
+			period = origin_period;
 		}
 	}
 	
@@ -55,12 +60,23 @@ public final class CyclicJobCreator extends JobCreator {
 	 */
 	synchronized void setPeriod(long period) {
 		this.period = period;
+		origin_period = period;
 		next_date_to_create_jobs = System.currentTimeMillis() + period;
+	}
+	
+	public CyclicJobCreator setOnlyOffHours(boolean only_off_hours) {
+		this.only_off_hours = only_off_hours;
+		return this;
 	}
 	
 	boolean needToCreateJobs() {
 		if (isEnabled() == false) {
 			return false;
+		}
+		if (only_off_hours) {
+			if (AppManager.isActuallyOffHours() == false) {
+				return false;
+			}
 		}
 		return System.currentTimeMillis() > next_date_to_create_jobs;
 	}

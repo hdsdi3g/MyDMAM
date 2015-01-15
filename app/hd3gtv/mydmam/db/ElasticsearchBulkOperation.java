@@ -51,7 +51,7 @@ public final class ElasticsearchBulkOperation {
 		this.client = Elasticsearch.getClient();
 		stat_time = new StatisticsTime();
 		bulk_request_builder = client.prepareBulk();
-		configuration = new Configuration();
+		bulkconfiguration = new BulkConfiguration();
 		stat_time = new StatisticsTime();
 	}
 	
@@ -124,41 +124,41 @@ public final class ElasticsearchBulkOperation {
 		bulk_request_builder.request().requests().clear();
 	}
 	
-	private Configuration configuration;
+	private BulkConfiguration bulkconfiguration;
 	
-	public Configuration getConfiguration() {
-		return configuration;
+	public BulkConfiguration getConfiguration() {
+		return bulkconfiguration;
 	}
 	
-	public class Configuration {
-		private Configuration() {
+	public class BulkConfiguration {
+		private BulkConfiguration() {
 		}
 		
-		public Configuration setReplicationType(ReplicationType replicationType) {
+		public BulkConfiguration setReplicationType(ReplicationType replicationType) {
 			bulk_request_builder.setReplicationType(replicationType);
 			refresh();
 			return this;
 		}
 		
-		public Configuration setConsistencyLevel(WriteConsistencyLevel consistencyLevel) {
+		public BulkConfiguration setConsistencyLevel(WriteConsistencyLevel consistencyLevel) {
 			bulk_request_builder.setConsistencyLevel(consistencyLevel);
 			refresh();
 			return this;
 		}
 		
-		public Configuration setRefresh(boolean refresh) {
+		public BulkConfiguration setRefresh(boolean refresh) {
 			bulk_request_builder.setRefresh(refresh);
 			refresh();
 			return this;
 		}
 		
-		public final Configuration setTimeout(TimeValue timeout) {
+		public final BulkConfiguration setTimeout(TimeValue timeout) {
 			bulk_request_builder.setTimeout(timeout);
 			refresh();
 			return this;
 		}
 		
-		public final Configuration setTimeout(String timeout) {
+		public final BulkConfiguration setTimeout(String timeout) {
 			bulk_request_builder.setTimeout(timeout);
 			refresh();
 			return this;
