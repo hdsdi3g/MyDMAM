@@ -5,6 +5,14 @@ service:
     administrator_mail : Me <me@domain.com>
     notifications_scan: true
     # demo_worker: true
+    # 
+    # Full/off hours configuration
+    # CyclicJobCreator with only_off_hours parameter, use "fullhours" syntax.
+    # Hours are in 24h style, one entry by line, example:
+    #       - 8-12
+    #       - 14-19
+    # for activate off hours Cyclic only from 0 PM to 8 AM, and from 12 PM to 7 PM.
+    # From time is included, end time is excluded.
 
 javamail:
     from: Me <me@domain.com>
