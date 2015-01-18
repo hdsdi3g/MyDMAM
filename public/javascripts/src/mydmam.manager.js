@@ -94,6 +94,7 @@
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrtriggers") + '"><a href="#mgrtriggers" class="btnmanager">' + i18n('manager.trigger.title') + '</a></li>';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrthreads") + '"><a href="#mgrthreads" class="btnmanager">' + i18n('manager.threads.title') + '</a></li>';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrclasspaths") + '"><a href="#mgrclasspaths" class="btnmanager">' + i18n('manager.classpaths.title') + '</a></li>';
+		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrlog2filters") + '"><a href="#mgrlog2filters" class="btnmanager">' + i18n('manager.log2filters.title') + '</a></li>';
 
 		content = content + '<li class="pull-right"><a href="#mgrsummary" class="btnrefresh"><i class="icon-refresh"></i>' + '</a></li>';
 		content = content + '</ul>';
@@ -149,6 +150,13 @@
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgruafunctlist") + '" id="mgruafunctlist">';
 		content = content + manager.prepareUseractionFunctionalityList(rawdata);
+		content = content + '</div>'; //tab-pane
+		
+		/**
+		 * Show Log2filters
+		 */
+		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrlog2filters") + '" id="mgrlog2filters">';
+		content = content + manager.prepareLog2filters(rawdata);
 		content = content + '</div>'; //tab-pane
 		
 		/**
@@ -525,7 +533,7 @@
 (function(manager) {
 	manager.prepareInstanceNameCell = function(instance, item_key) {
 		var content = '';
-		content = content + '<strong>' +instance.app_name + '</strong>&nbsp;&bull; ';
+		content = content + '<strong>' + instance.app_name + '</strong>&nbsp;&bull; ';
 		content = content + instance.instance_name + '<br>';
 		content = content + '<small>' + instance.host_name + '</small>';
 		content = content + '<span class="pull-right">' + mydmam.manager.jobs.view.displayKey(item_key, true) + '</span>';
@@ -610,4 +618,84 @@
 	};
 })(window.mydmam.manager);
 
+/**
+ * prepareLog2filters(instances)
+ */
+(function(manager) {
+	manager.prepareLog2filters = function(instances) {
 
+		var prepare_select_level = function(actual_value) {
+			var levels = ["DEBUG", "INFO", "ERROR", "NONE"];
+			var content = '';
+			content = content + '<select class="input-small">';
+			for (var pos = 0; pos < levels.length; pos++) {
+				content = content + '<option value="' + levels[pos] + '"';
+				if (actual_value === levels[pos]) {
+					content = content + ' selected';
+				}
+				content = content + '>' + i18n('manager.log2filters.level.' + levels[pos]) + '</option>';
+			}
+			content = content + '</select>';
+			return content;
+		};
+		
+		var prepare_select_filtertype = function(actual_value) {
+			var levels = ["HIDE", "ONE_LINE", "NO_DUMP", "DEFAULT", "VERBOSE_CALLER"];
+			var content = '';
+			content = content + '<select class="input-medium">';
+			for (var pos = 0; pos < levels.length; pos++) {
+				content = content + '<option value="' + levels[pos] + '"';
+				if (actual_value === levels[pos]) {
+					content = content + ' selected';
+				}
+				content = content + '>' + i18n('manager.filtertype.level.' + levels[pos]) + '</option>';
+			}
+			content = content + '</select>';
+			return content;
+		};
+
+		
+		var content = '';
+		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatableAAAAAAAAAAAAAAAAAAAAA">';
+		content = content + '<thead>';
+		content = content + '<th>' + i18n('manager.log2filters.instance') + '</th>';
+		content = content + '</thead>';
+		content = content + '<tbody>';
+
+		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
+			var instance = instances[pos_i];
+			var log2filters = instance.log2filters;
+			
+			content = content + '<tr>';
+
+			content = content + '<td>';
+			content = content + mydmam.manager.prepareInstanceNameCell(instance);
+			content = content + '</td>';
+			
+			content = content + '<td>';
+			for (var pos_l2 = 0; pos_l2 < log2filters.length; pos_l2++) {
+				var log2filter = log2filters[pos_l2];
+				content = content + '' + prepare_select_level(log2filter.level) + ' ';
+				// content = content + '<input type="checkbox" class="chkb-btnmgr-l2flt" data-list-pos="' + pos_l2 + '" data-instance-name-pid="' + instance.instance_name_pid + '" />'; 
+				content = content + '<input type="text" class="input-xxlarge" value="' + log2filter.baseclassname + '" />';
+				content = content + ' ' + prepare_select_filtertype(log2filter.filtertype) + ' <br>';
+			}
+			content = content + '</td>';
+
+			content = content + '<td>';
+			content = content + '<button class="btn btn-mini btnmgraction btn-primary" ';
+			content = content + 'data-target_class_name="AppManager" ';
+			content = content + 'data-order_key="log2filters" ';
+			content = content + 'data-order_value="" ';
+			content = content + 'data-target_reference_key="' + instance.instance_name_pid + '" ';
+			content = content + '><i class="icon-ok icon-white"></i> ' + i18n("manager.log2filters.validate") ;
+			content = content + '</td>';
+			
+			content = content + '</tr>';
+		}
+		
+		content = content + '</tbody>';
+		content = content + '</table>';
+		return content;
+	};
+})(window.mydmam.manager);

@@ -21,6 +21,7 @@ import hd3gtv.configuration.GitInfo;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.log2.Log2Filter;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.useraction.UAFunctionalityContext;
@@ -101,6 +102,8 @@ public final class InstanceStatus implements Log2Dumpable {
 	private static Type al_cyclicjobscreator_typeOfT = new TypeToken<ArrayList<CyclicJobCreator>>() {
 	}.getType();
 	private static Type al_triggerjobscreator_typeOfT = new TypeToken<ArrayList<TriggerJobCreator>>() {
+	}.getType();
+	private static Type al_log2filter_typeOfT = new TypeToken<ArrayList<Log2Filter>>() {
 	}.getType();
 	
 	static {
@@ -291,6 +294,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			result.add(COL_NAME_UA_LIST, AppManager.getGson().toJsonTree(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT));
 			result.add("declared_cyclics", AppManager.getGson().toJsonTree(src.declared_cyclics, al_cyclicjobscreator_typeOfT));
 			result.add("declared_triggers", AppManager.getGson().toJsonTree(src.declared_triggers, al_triggerjobscreator_typeOfT));
+			result.add("log2filters", AppManager.getGson().toJsonTree(Log2.log.getFilters(), al_log2filter_typeOfT));
 			result.addProperty("uptime_from", TimeUtils.secondsToYWDHMS(src.uptime / 1000));
 			return result;
 		}
