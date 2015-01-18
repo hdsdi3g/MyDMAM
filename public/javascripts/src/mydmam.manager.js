@@ -204,6 +204,7 @@
 			manager.setBtnActionClick(query_destination);
 		}
 		
+		manager.setBtnForLog2filters(query_destination);
 	};
 })(window.mydmam.manager);
 
@@ -658,7 +659,9 @@
 		var content = '';
 		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatableAAAAAAAAAAAAAAAAAAAAA">';
 		content = content + '<thead>';
-		content = content + '<th>' + i18n('manager.log2filters.instance') + '</th>';
+		content = content + '<th>' + i18n('manager.log2filters.th.instances') + '</th>';
+		content = content + '<th>' + i18n('manager.log2filters.th.filters') + '</th>';
+		content = content + '<th>' + i18n('manager.log2filters.th.btncheck') + '</th>';
 		content = content + '</thead>';
 		content = content + '<tbody>';
 
@@ -675,11 +678,22 @@
 			content = content + '<td>';
 			for (var pos_l2 = 0; pos_l2 < log2filters.length; pos_l2++) {
 				var log2filter = log2filters[pos_l2];
-				content = content + '' + prepare_select_level(log2filter.level) + ' ';
-				// content = content + '<input type="checkbox" class="chkb-btnmgr-l2flt" data-list-pos="' + pos_l2 + '" data-instance-name-pid="' + instance.instance_name_pid + '" />'; 
+				content = content + '<span>';
 				content = content + '<input type="text" class="input-xxlarge" value="' + log2filter.baseclassname + '" />';
-				content = content + ' ' + prepare_select_filtertype(log2filter.filtertype) + ' <br>';
+				content = content + ' ' + prepare_select_level(log2filter.level) + '';
+				content = content + ' ' + prepare_select_filtertype(log2filter.filtertype) + '';
+				content = content + '</span>';
+				content = content + ' <button class="btn btn-danger btn-mini btnmgrremovelog2filter" style="margin-bottom: 10px;"><i class="icon-minus icon-white"></i></button>';
+				content = content + '<br>';
 			}
+
+			content = content + '<span>';
+			content = content + '<input type="text" class="input-xxlarge" value="" />';
+			content = content + ' ' + prepare_select_level("") + ' ';
+			content = content + ' ' + prepare_select_filtertype("") + '';
+			content = content + '</span>';
+			content = content + ' <button class="btn btn-success btn-mini btnmgraddlog2filter" style="margin-bottom: 10px;"><i class="icon-plus icon-white"></i></button>';
+			
 			content = content + '</td>';
 
 			content = content + '<td>';
@@ -697,5 +711,14 @@
 		content = content + '</tbody>';
 		content = content + '</table>';
 		return content;
+	};
+})(window.mydmam.manager);
+
+/**
+ * setBtnForLog2filters()
+ */
+(function(manager) {
+	manager.setBtnForLog2filters = function(query_destination) {
+		//TODO query_destination
 	};
 })(window.mydmam.manager);
