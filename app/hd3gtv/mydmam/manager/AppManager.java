@@ -527,6 +527,11 @@ public final class AppManager implements InstanceActionReceiver {
 				broker.askStop();
 			}
 		}
+		if (order.has("log2filter")) {
+			Log2.log.debug("Update log2", new Log2Dump("raw", order.toString()));// TODO #78.4, change Log2Filter on the fly
+			// Log2.log.getFilters()
+			// Log2.log.createFilter(baseclassname, level, filtertype);
+		}
 	}
 	
 	/**

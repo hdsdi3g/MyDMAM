@@ -156,6 +156,4 @@ public final class InstanceAction implements Log2Dumpable {
 		return dump;
 	}
 	
-	// TODO #78.4, change Log2Filter on the fly
-	
 }
