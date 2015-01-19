@@ -343,6 +343,9 @@ public final class InstanceStatus implements Log2Dumpable {
 		dump.add("app_version", app_version);
 		dump.add("java_version", java_version);
 		dump.add("brokeralive", brokeralive);
+		if (next_updater_refresh_date > 0) {
+			dump.addDate("next_updater_refresh_date", next_updater_refresh_date);
+		}
 		dump.add("is_off_hours", is_off_hours);
 		dump.add("uptime (sec)", uptime / 1000);
 		dump.add("host_name", host_name);
