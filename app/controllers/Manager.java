@@ -30,6 +30,7 @@ import java.util.Map;
 
 import play.Play;
 import play.PlayPlugin;
+import play.cache.Cache;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
@@ -73,11 +74,45 @@ public class Manager extends Controller {
 	@Check("showManager")
 	public static void allinstances() throws Exception {
 		renderJSON(InstanceStatus.Gatherer.getAllInstancesJsonString());
+		
+		/**
+		 * Only for accelerate debugging and remove get data time from db
+		 */
+		String result = Cache.get("InstanceStatus.Gatherer.getAllInstancesJsonString", String.class);
+		if (result == null) {
+			result = InstanceStatus.Gatherer.getAllInstancesJsonString();
+			Cache.set("InstanceStatus.Gatherer.getAllInstancesJsonString", result, "30mn");
+		}
+		renderJSON(result);
 	}
 	
 	@Check("showManager")
 	public static void allworkers() throws Exception {
-		String result = WorkerExporter.getAllWorkerStatusJson();
+		renderJSON(WorkerExporter.getAllWorkerStatusJson());
+		
+		/**
+		 * Only for accelerate debugging and remove get data time from db
+		 */
+		String result = Cache.get("WorkerExporter.getAllWorkerStatusJson", String.class);
+		if (result == null) {
+			result = WorkerExporter.getAllWorkerStatusJson();
+			Cache.set("WorkerExporter.getAllWorkerStatusJson", result, "30mn");
+		}
+		renderJSON(result);
+	}
+	
+	@Check("showManager")
+	public static void allavailabilities() throws Exception {
+		renderJSON(InstanceStatus.getAllAvailabilitiesAsJsonString());
+		
+		/**
+		 * Only for accelerate debugging and remove get data time from db
+		 */
+		String result = Cache.get("InstanceStatus.getAllAvailabilitiesAsJsonString", String.class);
+		if (result == null) {
+			result = InstanceStatus.getAllAvailabilitiesAsJsonString();
+			Cache.set("InstanceStatus.getAllAvailabilitiesAsJsonString", result, "30mn");
+		}
 		renderJSON(result);
 	}
 	

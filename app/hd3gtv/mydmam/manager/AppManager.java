@@ -19,6 +19,9 @@ package hd3gtv.mydmam.manager;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Filter;
+import hd3gtv.log2.Log2FilterType;
+import hd3gtv.log2.Log2Level;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
@@ -37,6 +40,7 @@ import java.util.Map;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.MutationBatch;
 
@@ -421,7 +425,6 @@ public final class AppManager implements InstanceActionReceiver {
 				
 				while (stop_update == false) {
 					// TODO #78.4, add next refresh date
-					// TODO #78.4, keep duration rotative "while" Threads (min/moy/max values). Warn if too long ?
 					instance_status.refresh(true);
 					WorkerExporter.updateWorkerStatus(enabled_workers, referer);
 					
@@ -528,9 +531,26 @@ public final class AppManager implements InstanceActionReceiver {
 			}
 		}
 		if (order.has("log2filters")) {
-			Log2.log.debug("Update log2", new Log2Dump("raw", order.toString()));// TODO #78.4, change Log2Filter on the fly
-			// Log2.log.getFilters()
-			// Log2.log.createFilter(baseclassname, level, filtertype);
+			JsonArray ja_log2filters = order.get("log2filters").getAsJsonArray();
+			
+			@SuppressWarnings("unchecked")
+			ArrayList<Log2Filter> actual_filters_backup = (ArrayList<Log2Filter>) Log2.log.getFilters().clone();
+			
+			Log2.log.getFilters().clear();
+			try {
+				for (int pos_ja = 0; pos_ja < ja_log2filters.size(); pos_ja++) {
+					JsonObject jo_filter = ja_log2filters.get(pos_ja).getAsJsonObject();
+					String baseclassname = jo_filter.get("baseclassname").getAsString().trim();
+					Log2Level level = Log2Level.valueOf(jo_filter.get("level").getAsString().trim());
+					Log2FilterType filtertype = Log2FilterType.valueOf(jo_filter.get("filtertype").getAsString().trim());
+					Log2.log.createFilter(baseclassname, level, filtertype);
+				}
+			} catch (Exception e) {
+				Log2.log.getFilters().clear();
+				Log2.log.getFilters().addAll(actual_filters_backup);
+				Log2.log.error("Error during add log2 filters", e);
+			}
+			Log2.log.info("Change log2 filters", new Log2Dump("raw", order.toString()));
 		}
 	}
 	

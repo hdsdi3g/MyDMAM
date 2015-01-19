@@ -28,7 +28,7 @@
 		if (show_json_content) {
 			if (jQuery.isEmptyObject(context.content) === false) {
 				content = content + ' &bull; <code class="json"><i class="icon-indent-left"></i>'; 
-				content = content + JSON.stringify(context.content, null, "\t").nl2br(); 
+				content = content + JSON.stringify(context.content, null, " "); 
 				content = content + '</code>'; 
 			} else {
 				content = content + '<br>'; 

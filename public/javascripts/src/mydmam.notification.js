@@ -154,11 +154,6 @@
 			var key = $(dom_element).text();
 			if(ajaxdata[key]) {
 				var job = ajaxdata[key];
-				//TODO refactor
-				//ajaxdata[key].key = key;
-				//ajaxdata[key].simplekey = mydmam.queue.createSimpleKey(key);
-				//$(dom_element).html(mydmam.queue.createJobTableElement(ajaxdata[key]));
-				//$(dom_element).find(".blockjobdateedit").prepend(notification.displayStatus(ajaxdata[key].status) + ' ');
 				
 				var content = '';
 				content = content + '<div class="row-fluid">';
@@ -174,9 +169,6 @@
 				content = content + '<div class="span3">';
 				content = content + view.getDateCol(job);
 				content = content + '</div>';
-				
-				//content = content + '</div>'; //row-fluid
-				//content = content + '<div class="row-fluid">';
 				
 				content = content + '<div class="span5">';
 				content = content + view.getProgressionCol(job);

@@ -291,7 +291,6 @@ public final class InstanceStatus implements Log2Dumpable {
 			result.add("classpath", AppManager.getGson().toJsonTree(src.classpath, al_string_typeOfT));
 			result.add("threadstacktraces", AppManager.getGson().toJsonTree(src.threadstacktraces, al_threadstacktrace_typeOfT));
 			result.add("host_addresses", AppManager.getGson().toJsonTree(src.host_addresses, al_string_typeOfT));
-			result.add(COL_NAME_UA_LIST, AppManager.getGson().toJsonTree(src.useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT));
 			result.add("declared_cyclics", AppManager.getGson().toJsonTree(src.declared_cyclics, al_cyclicjobscreator_typeOfT));
 			result.add("declared_triggers", AppManager.getGson().toJsonTree(src.declared_triggers, al_triggerjobscreator_typeOfT));
 			result.add("log2filters", AppManager.getGson().toJsonTree(Log2.log.getFilters(), al_log2filter_typeOfT));
@@ -371,7 +370,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		
 		List<UAFunctionalityDefinintion> list;
 		for (Row<String, String> row : rows.getResult()) {
-			Column<String> col = row.getColumns().getColumnByName("useraction_functionality_list");
+			Column<String> col = row.getColumns().getColumnByName(COL_NAME_UA_LIST);
 			if (col == null) {
 				continue;
 			}
@@ -421,6 +420,30 @@ public final class InstanceStatus implements Log2Dumpable {
 		}
 		
 		return UAManager.getGson().toJson(result);
+	}
+	
+	public static String getAllAvailabilitiesAsJsonString() throws ConnectionException {
+		AllRowsQuery<String, String> all_rows = CassandraDb.getkeyspace().prepareQuery(CF_INSTANCES).getAllRows().withColumnSlice(InstanceStatus.COL_NAME_UA_LIST);
+		OperationResult<Rows<String, String>> rows = all_rows.execute();
+		
+		JsonObject result = new JsonObject();
+		JsonParser parser = new JsonParser();
+		
+		JsonArray ja_functionality_list;
+		Column<String> col;
+		for (Row<String, String> row : rows.getResult()) {
+			col = row.getColumns().getColumnByName(COL_NAME_UA_LIST);
+			if (col == null) {
+				continue;
+			}
+			ja_functionality_list = parser.parse(col.getStringValue()).getAsJsonArray();
+			for (int pos_ja_fl = 0; pos_ja_fl < ja_functionality_list.size(); pos_ja_fl++) {
+				ja_functionality_list.get(pos_ja_fl).getAsJsonObject().remove("configurator");
+			}
+			result.add(row.getKey(), ja_functionality_list);
+		}
+		
+		return result.toString();
 	}
 	
 	/**

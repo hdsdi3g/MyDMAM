@@ -146,10 +146,9 @@
 		content = content + '</div>'; //tab-pane
 		
 		/**
-		 * Show Useraction Functionality List
+		 * Prepare block for Useraction Functionality List
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgruafunctlist") + '" id="mgruafunctlist">';
-		content = content + manager.prepareUseractionFunctionalityList(rawdata);
 		content = content + '</div>'; //tab-pane
 		
 		/**
@@ -205,13 +204,49 @@
 		}
 		
 		manager.setBtnForLog2filters(query_destination);
+		
+		manager.drawUseractionFunctionalityList("#mgruafunctlist", rawdata, function() {
+			var all_datatables = $(query_destination + ' table.setdatatable').dataTable({
+				"bPaginate": false,
+				"bLengthChange": false,
+				"bSort": true,
+				"bInfo": false,
+				"bAutoWidth": false,
+				"bFilter": true,
+			});
+			$(query_destination + ' table.setdatatable').removeClass('setdatatable');
+			
+			if (manager.hasInstanceAction()) {
+				manager.setBtnActionClick(query_destination);
+			}
+		});
+
 	};
 })(window.mydmam.manager);
 
 /**
+ * doAction(target_class_name, target_reference_key, order_key, order_value, beforesend, error, success)
  * setBtnActionClick(query_destination)
  */
 (function(manager) {
+	manager.doAction = function(target_class_name, target_reference_key, order_key, order_value, beforesend, error, success) {
+		var order = {};
+		order[order_key] = order_value;
+		
+		$.ajax({
+			url: manager.url.instanceaction,
+			type: "POST",
+			data: {
+				target_class_name: target_class_name,
+				target_reference_key: target_reference_key,
+				json_order: JSON.stringify(order),
+			},
+			beforeSend: beforesend,
+			error: error,
+			success: success,
+		});
+	};
+	
 	var push = function() {
 		var jquery_btn = $(this);
 		
@@ -225,33 +260,24 @@
 		}
 		
 		jquery_btn.removeClass("btnmgraction");
-		
-		var order_key = jquery_btn.data("order_key");
-		var order = {};
-		order[order_key] = jquery_btn.data("order_value");
-		
-		$.ajax({
-			url: manager.url.instanceaction,
-			type: "POST",
-			data: {
-				target_class_name: jquery_btn.data("target_class_name"),
-				target_reference_key: jquery_btn.data("target_reference_key"),
-				json_order: JSON.stringify(order),
-			},
-			beforeSend: function() {
-				jquery_btn.addClass("disabled");
-			},
-			error: function() {
-				jquery_btn.removeClass("disabled");
-				alert(i18n('manager.action.error'));
-			},
-			success: function(rawdata) {
-				jquery_btn.removeClass("disabled");
-				if (rawdata.length !== 0) {
-					console.err(rawdata);
-				}
-			},
-		});
+
+		manager.doAction(jquery_btn.data("target_class_name"),
+				jquery_btn.data("target_reference_key"),
+				jquery_btn.data("order_key"),
+				jquery_btn.data("order_value"),
+				function() {
+					jquery_btn.addClass("disabled");
+				},
+				function() {
+					jquery_btn.removeClass("disabled");
+					alert(i18n('manager.action.error'));
+				},
+				function(rawdata) {
+					jquery_btn.removeClass("disabled");
+					if (rawdata.length !== 0) {
+						console.err(rawdata);
+					}
+				});
 	};
 	
 	manager.setBtnActionClick = function(query_destination) {
@@ -529,7 +555,7 @@
 })(window.mydmam.manager);
 
 /**
- * prepareUseractionFunctionalityList(instances)
+ * prepareInstanceNameCell(instances)
  */
 (function(manager) {
 	manager.prepareInstanceNameCell = function(instance, item_key) {
@@ -546,116 +572,110 @@
  * prepareUseractionFunctionalityList(instances)
  */
 (function(manager) {
-	manager.prepareUseractionFunctionalityList = function(instances) {
-		var content = '';
+	manager.drawUseractionFunctionalityList = function(query_destination, instances, callback) {
 		
-		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
-		content = content + '<thead>';
-		content = content + '<th>' + i18n('manager.jobcreator.th.instance') + '</th>';
-		content = content + '<th>' + i18n("manager.uafunctlist.functionality") + '</th>';
-		content = content + '<th>' + i18n("manager.uafunctlist.functionality") + '</th>';
-		content = content + '<th>' + i18n("manager.uafunctlist.capabilities") + '</th>';
-		content = content + '<th>' + i18n("manager.uafunctlist.storageindexeswhitelist") + '</th>';
-		content = content + '</thead>';
-		content = content + '<tbody>';
-
-		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
-			var instance = instances[pos_i];
-			var useraction_functionality_list = instance.useraction_functionality_list;
-			for (var pos_uafl = 0; pos_uafl < useraction_functionality_list.length; pos_uafl++) {
-				var functionality = useraction_functionality_list[pos_uafl];
+		var prepareUseractionFunctionalityList = function(availabilities) {
+			var content = '';
+			
+			content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
+			content = content + '<thead>';
+			content = content + '<th>' + i18n('manager.jobcreator.th.instance') + '</th>';
+			content = content + '<th>' + i18n("manager.uafunctlist.functionality") + '</th>';
+			content = content + '<th>' + i18n("manager.uafunctlist.functionality") + '</th>';
+			content = content + '<th>' + i18n("manager.uafunctlist.capabilities") + '</th>';
+			content = content + '<th>' + i18n("manager.uafunctlist.storageindexeswhitelist") + '</th>';
+			content = content + '</thead>';
+			content = content + '<tbody>';
+			
+			for (var pos_i = 0; pos_i < instances.length; pos_i++) {
+				var instance = instances[pos_i];
+				var instance_ref = instance.instance_name_pid;				
 				
-				content = content + '<tr>';
+				if (availabilities[instance_ref]) {
+					var useraction_functionality_list = availabilities[instance_ref];
+					for (var pos_uafl = 0; pos_uafl < useraction_functionality_list.length; pos_uafl++) {
+						var functionality = useraction_functionality_list[pos_uafl];
+						
+						content = content + '<tr>';
 
-				content = content + '<td>';
-				content = content + mydmam.manager.prepareInstanceNameCell(instance, functionality.instance);
-				content = content + '</td>';
-				
-				content = content + '<td>' + functionality.vendor + '<br>';
-				content = content + '<span class="label label-inverse">' + i18n('useractions.functionalities.sections.' + functionality.section) + '</span>';
-				if (functionality.powerful_and_dangerous) {
-					content = content + ' <span class="label label-warning">' + i18n("manager.uafunctlist.powerful_and_dangerous") + '</span>';
-				}
-				content = content + '</td>';
+						content = content + '<td>';
+						content = content + mydmam.manager.prepareInstanceNameCell(instance, functionality.instance);
+						content = content + '</td>';
+						
+						content = content + '<td>' + functionality.vendor + '<br>';
+						content = content + '<span class="label label-inverse">' + i18n('useractions.functionalities.sections.' + functionality.section) + '</span>';
+						if (functionality.powerful_and_dangerous) {
+							content = content + ' <span class="label label-warning">' + i18n("manager.uafunctlist.powerful_and_dangerous") + '</span>';
+						}
+						content = content + '</td>';
 
-				content = content + '<td>';
-				content = content + functionality.longname + '';
-				content = content + '<span class="pull-right">' + mydmam.manager.jobs.view.displayClassName(functionality.classname) + '</span>';
-				content = content + '<br><small>' + functionality.description + '</small>';
-				content = content + '</td>';
+						content = content + '<td>';
+						content = content + functionality.longname + '';
+						content = content + '<span class="pull-right">' + mydmam.manager.jobs.view.displayClassName(functionality.classname) + '</span>';
+						content = content + '<br><small>' + functionality.description + '</small>';
+						content = content + '</td>';
 
-				content = content + '<td>';
-				if (functionality.capability.fileprocessing_enabled) {
-					content = content + '<span class="label label-success">File</span>';
-				}
-				if (functionality.capability.directoryprocessing_enabled) {
-					content = content + '<span class="label label-success">Directory</span>';
-				}
-				if (functionality.capability.rootstorageindexprocessing_enabled) {
-					content = content + '<span class="label label-success">Root storage</span>';
-				}
-				if (functionality.capability.musthavelocalstorageindexbridge) {
-					content = content + '<br><span class="label label-important">' + i18n("manager.uafunctlist.musthavelocalstorageindexbridge") + '</span>';
-				}
-				content = content + '</td>';
+						content = content + '<td>';
+						if (functionality.capability.fileprocessing_enabled) {
+							content = content + '<span class="label label-success">File</span>';
+						}
+						if (functionality.capability.directoryprocessing_enabled) {
+							content = content + '<span class="label label-success">Directory</span>';
+						}
+						if (functionality.capability.rootstorageindexprocessing_enabled) {
+							content = content + '<span class="label label-success">Root storage</span>';
+						}
+						if (functionality.capability.musthavelocalstorageindexbridge) {
+							content = content + '<br><span class="label label-important">' + i18n("manager.uafunctlist.musthavelocalstorageindexbridge") + '</span>';
+						}
+						content = content + '</td>';
 
-				content = content + '<td><small>';
-				for (var pos_wl in functionality.capability.storageindexeswhitelist) {
-					var storageindexeswhiteitem = functionality.capability.storageindexeswhitelist[pos_wl];
-					if (jQuery.inArray(storageindexeswhiteitem, functionality.worker_capablity_storages) > -1) {
-						content = content + storageindexeswhiteitem + ' ';
-					} else {
-						content = content + '<span class="muted">' + storageindexeswhiteitem + '</span> ';
+						content = content + '<td><small>';
+						for (var pos_wl in functionality.capability.storageindexeswhitelist) {
+							var storageindexeswhiteitem = functionality.capability.storageindexeswhitelist[pos_wl];
+							if (jQuery.inArray(storageindexeswhiteitem, functionality.worker_capablity_storages) > -1) {
+								content = content + storageindexeswhiteitem + ' ';
+							} else {
+								content = content + '<span class="muted">' + storageindexeswhiteitem + '</span> ';
+							}
+						}
+						content = content + '</small></td>';
+
+						content = content + '</tr>';
 					}
 				}
-				content = content + '</small></td>';
-
-				content = content + '</tr>';
 			}
-		}
-		content = content + '</tbody>';
-		content = content + '</table>';
-		return content;
+			content = content + '</tbody>';
+			content = content + '</table>';
+			return content;
+		};
+		
+		$.ajax({
+			url: mydmam.manager.url.allavailabilities,
+			type: "POST",
+			async: true,
+			beforeSend: function() {
+				$(query_destination).html(i18n('manager.loading'));
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				$(query_destination).html('<div class="alert alert-info"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + textStatus + '</strong></div>');
+			},
+			success: function(rawdata) {
+				$(query_destination).html(prepareUseractionFunctionalityList(rawdata));
+				callback();
+			}
+		});
+		
 	};
+	
 })(window.mydmam.manager);
 
 /**
  * prepareLog2filters(instances)
+ * addLog2filterFormItems(baseclassname, level, filtertype)
  */
 (function(manager) {
 	manager.prepareLog2filters = function(instances) {
-
-		var prepare_select_level = function(actual_value) {
-			var levels = ["DEBUG", "INFO", "ERROR", "NONE"];
-			var content = '';
-			content = content + '<select class="input-small">';
-			for (var pos = 0; pos < levels.length; pos++) {
-				content = content + '<option value="' + levels[pos] + '"';
-				if (actual_value === levels[pos]) {
-					content = content + ' selected';
-				}
-				content = content + '>' + i18n('manager.log2filters.level.' + levels[pos]) + '</option>';
-			}
-			content = content + '</select>';
-			return content;
-		};
-		
-		var prepare_select_filtertype = function(actual_value) {
-			var levels = ["HIDE", "ONE_LINE", "NO_DUMP", "DEFAULT", "VERBOSE_CALLER"];
-			var content = '';
-			content = content + '<select class="input-medium">';
-			for (var pos = 0; pos < levels.length; pos++) {
-				content = content + '<option value="' + levels[pos] + '"';
-				if (actual_value === levels[pos]) {
-					content = content + ' selected';
-				}
-				content = content + '>' + i18n('manager.filtertype.level.' + levels[pos]) + '</option>';
-			}
-			content = content + '</select>';
-			return content;
-		};
-
-		
 		var content = '';
 		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatableAAAAAAAAAAAAAAAAAAAAA">';
 		content = content + '<thead>';
@@ -678,38 +698,71 @@
 			content = content + '<td>';
 			for (var pos_l2 = 0; pos_l2 < log2filters.length; pos_l2++) {
 				var log2filter = log2filters[pos_l2];
-				content = content + '<span>';
-				content = content + '<input type="text" class="input-xxlarge" value="' + log2filter.baseclassname + '" />';
-				content = content + ' ' + prepare_select_level(log2filter.level) + '';
-				content = content + ' ' + prepare_select_filtertype(log2filter.filtertype) + '';
-				content = content + '</span>';
+				content = content + manager.addLog2filterFormItems(log2filter.baseclassname, log2filter.level, log2filter.filtertype);
 				content = content + ' <button class="btn btn-danger btn-mini btnmgrremovelog2filter" style="margin-bottom: 10px;"><i class="icon-minus icon-white"></i></button>';
 				content = content + '<br>';
 			}
 
-			content = content + '<span>';
-			content = content + '<input type="text" class="input-xxlarge" value="" />';
-			content = content + ' ' + prepare_select_level("") + ' ';
-			content = content + ' ' + prepare_select_filtertype("") + '';
-			content = content + '</span>';
+			content = content + manager.addLog2filterFormItems("", "", "");
 			content = content + ' <button class="btn btn-success btn-mini btnmgraddlog2filter" style="margin-bottom: 10px;"><i class="icon-plus icon-white"></i></button>';
 			
 			content = content + '</td>';
 
 			content = content + '<td>';
-			content = content + '<button class="btn btn-mini btnmgraction btn-primary" ';
-			content = content + 'data-target_class_name="AppManager" ';
-			content = content + 'data-order_key="log2filters" ';
-			content = content + 'data-order_value="" ';
-			content = content + 'data-target_reference_key="' + instance.instance_name_pid + '" ';
-			content = content + '><i class="icon-ok icon-white"></i> ' + i18n("manager.log2filters.validate") ;
-			content = content + '</td>';
 			
+			content = content + '<p><button class="btn btn-mini btn-primary btnsetlog2filters" ';
+			content = content + 'data-instanceref="' + instance.instance_name_pid + '" ';
+			content = content + '><i class="icon-ok icon-white"></i> ' + i18n("manager.log2filters.validate") + '</button></p>';
+
+			content = content + '<p><button class="btn btn-mini btncopylogfilterconf">';
+			content = content + '<i class="icon-download"></i> ' + i18n("manager.log2filters.copyconf") + '</button></p>';
+
+			content = content + '</td>';
 			content = content + '</tr>';
 		}
 		
 		content = content + '</tbody>';
 		content = content + '</table>';
+		return content;
+	};
+	
+	manager.addLog2filterFormItems = function(baseclassname, level, filtertype) {
+		var prepare_select_level = function(actual_value) {
+			var levels = ["NONE", "DEBUG", "INFO", "ERROR", "SECURITY"];
+			var content = '';
+			content = content + '<select class="input-small sellog2level">';
+			for (var pos = 0; pos < levels.length; pos++) {
+				content = content + '<option value="' + levels[pos] + '"';
+				if (actual_value === levels[pos]) {
+					content = content + ' selected';
+				}
+				content = content + '>' + i18n('manager.log2filters.level.' + levels[pos]) + '</option>';
+			}
+			content = content + '</select>';
+			return content;
+		};
+		
+		var prepare_select_filtertype = function(actual_value) {
+			var levels = ["HIDE", "ONE_LINE", "NO_DUMP", "DEFAULT", "VERBOSE_CALLER"];
+			var content = '';
+			content = content + '<select class="input-medium sellog2filtertype">';
+			for (var pos = 0; pos < levels.length; pos++) {
+				content = content + '<option value="' + levels[pos] + '"';
+				if (actual_value === levels[pos]) {
+					content = content + ' selected';
+				}
+				content = content + '>' + i18n('manager.log2filters.filtertype.' + levels[pos]) + '</option>';
+			}
+			content = content + '</select>';
+			return content;
+		};
+
+		var content = '';
+		content = content + '<span class="inputlog2filter">';
+		content = content + '<input type="text" spellcheck="false" class="input-xxlarge log2classname" value="' + baseclassname + '" placeholder="' + i18n('manager.log2filters.classnameplaceholder') + '" />';
+		content = content + ' ' + prepare_select_level(level) + '';
+		content = content + ' ' + prepare_select_filtertype(filtertype) + '';
+		content = content + '</span>';
 		return content;
 	};
 })(window.mydmam.manager);
@@ -719,6 +772,79 @@
  */
 (function(manager) {
 	manager.setBtnForLog2filters = function(query_destination) {
-		//TODO query_destination
+		
+		var getFilters = function(jq_tr) {
+			var jq_all_spaninput = jq_tr.find("span.inputlog2filter");
+			var filters = [];
+			jq_all_spaninput.each(function() {
+				var filter = {
+					baseclassname: $(this).children("input.log2classname").val().trim(), 
+					level: $(this).children("select.sellog2level").val(),
+					filtertype:	$(this).children("select.sellog2filtertype").val()
+				};
+				if (filter.baseclassname === '') {
+					return;
+				}
+				filters.push(filter);
+			});
+			return filters;
+		};
+		
+		var btnsetlog2filters_click = function() {
+			var button = $(this);
+			if (button.hasClass("disabled")) {
+				return;
+			}
+			var jq_tr = button.parent().parent().parent();// p > td > tr
+			var beforesend = function() {
+				button.addClass("disabled");
+			};
+			var error = function() {
+			};
+			var success = function() {
+				button.removeClass("disabled");
+			};
+			manager.doAction("AppManager", $(this).data("instanceref"), "log2filters", getFilters(jq_tr), beforesend, error, success);
+		};
+		
+		var btncopylogfilterconf_click = function() {
+			$(query_destination + ' textarea.log2filterconf').remove();
+			
+			var filters = getFilters($(this).parent().parent().parent()); // p > td > tr
+			
+			var content = '';
+			content = content + '<textarea class="input-block-level log2filterconf" style="margin-top: 1em; font-size: 8px; line-height: 1.3em; height: 15em; overflow: none;" spellcheck="false">';
+			content = content + 'log2:' + "\n";
+			content = content + '    filter:' + "\n";
+			for (var pos_f = 0; pos_f < filters.length; pos_f++) {
+				content = content + '        -' + "\n";
+				content = content + '            for: ' + filters[pos_f].baseclassname + "\n";
+				content = content + '            level: ' + filters[pos_f].level + "\n";
+				content = content + '            type: ' + filters[pos_f].filtertype + "\n";
+			}
+			content = content + '</textarea>';
+			$(this).after(content);
+			$(this).next().select();
+		};
+		
+		var btnmgrremovelog2filter_click = function(){
+			$(this).prev().remove(); //span
+			$(this).next().remove(); //br
+			$(this).remove(); // button
+		};
+		
+		var btnmgraddlog2filter_click = function(){
+			var content = '';
+			content = content + ' <button class="btn btn-danger btn-mini btnmgrremovelog2filter" style="margin-bottom: 10px;"><i class="icon-minus icon-white"></i></button>';
+			content = content + '<br>';
+			content = content + manager.addLog2filterFormItems("", "", "") + " ";
+			$(this).before(content);
+			manager.setBtnForLog2filters(query_destination);
+		};
+		
+		$(query_destination + ' button.btnsetlog2filters').click(btnsetlog2filters_click).removeClass("btnsetlog2filters");
+		$(query_destination + ' button.btncopylogfilterconf').click(btncopylogfilterconf_click).removeClass("btncopylogfilterconf");
+		$(query_destination + ' button.btnmgrremovelog2filter').click(btnmgrremovelog2filter_click).removeClass("btnmgrremovelog2filter");
+		$(query_destination + ' button.btnmgraddlog2filter').click(btnmgraddlog2filter_click).removeClass("btnmgraddlog2filter");
 	};
 })(window.mydmam.manager);
