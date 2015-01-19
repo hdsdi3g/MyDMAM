@@ -81,6 +81,7 @@ public final class WorkerExporter implements Log2Dumpable {
 		if (workers == null) {
 			throw new NullPointerException("\"workers\" can't to be null");
 		}
+		long start_time = System.currentTimeMillis();
 		try {
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
 			WorkerExporter we;
@@ -96,6 +97,7 @@ public final class WorkerExporter implements Log2Dumpable {
 		} catch (ConnectionException e) {
 			manager.getServiceException().onCassandraError(e);
 		}
+		Log2.log.debug("Update worker status", new Log2Dump("took", System.currentTimeMillis() - start_time));
 	}
 	
 	public static List<WorkerExporter> getAllWorkerStatus() throws Exception {

@@ -308,7 +308,13 @@
 		
 		content = content + '<td>' + instance.instance_name + '</td>';
 		content = content + '<td><strong>' + instance.app_name + '</strong><br><small>' + instance.instance_name_pid + '</small></td>';
-		content = content + '<td>' + instance.uptime_from + '</td>';
+	
+		content = content + '<td>';
+		content = content + instance.uptime_from;
+		if (instance.next_updater_refresh_date > 0) {
+			content = content + '<br><small>' + mydmam.format.timeAgo(instance.next_updater_refresh_date, 'manager.summary.next_updater_refresh_date.from', 'manager.summary.next_updater_refresh_date.to') + '</small>';
+		}
+		content = content + '</td>';
 		
 		content = content + '<td>';
 		if (instance.java_version.startsWith('1.7.0')) {

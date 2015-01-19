@@ -408,9 +408,17 @@ public final class AppManager implements InstanceActionReceiver {
 		return instance_status;
 	}
 	
+	synchronized long getNextUpdaterRefreshDate() {
+		if (updater == null) {
+			return 0;
+		}
+		return updater.next_refresh_date;
+	}
+	
 	private class Updater extends Thread {
 		boolean stop_update;
 		AppManager referer;
+		long next_refresh_date;
 		
 		public Updater(AppManager referer) {
 			setName("Updater for " + instance_status.getInstanceNamePid());
@@ -424,7 +432,8 @@ public final class AppManager implements InstanceActionReceiver {
 				List<InstanceAction> pending_actions = new ArrayList<InstanceAction>();
 				
 				while (stop_update == false) {
-					// TODO #78.4, add next refresh date
+					next_refresh_date = System.currentTimeMillis() + (SLEEP_COUNT_UPDATE * SLEEP_BASE_TIME_UPDATE * 1000);
+					
 					instance_status.refresh(true);
 					WorkerExporter.updateWorkerStatus(enabled_workers, referer);
 					
@@ -432,11 +441,13 @@ public final class AppManager implements InstanceActionReceiver {
 						if (stop_update) {
 							return;
 						}
+						next_refresh_date = System.currentTimeMillis() + ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000);
 						
 						InstanceAction.getAllPendingInstancesAction(pending_actions);
 						if (pending_actions.isEmpty() == false) {
 							boolean pending_refresh = processInstanceAction(pending_actions);
 							if (pending_refresh & (stop_update == false)) {
+								next_refresh_date = System.currentTimeMillis() + ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000) + 1000;
 								Thread.sleep(1000);
 								instance_status.refresh(true);
 								WorkerExporter.updateWorkerStatus(enabled_workers, referer);
@@ -453,6 +464,7 @@ public final class AppManager implements InstanceActionReceiver {
 		
 		public synchronized void stopUpdate() {
 			this.stop_update = true;
+			next_refresh_date = 0;
 		}
 		
 		boolean processInstanceAction(List<InstanceAction> pending_actions) throws Exception {

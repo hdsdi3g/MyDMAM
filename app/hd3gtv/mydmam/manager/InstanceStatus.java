@@ -150,6 +150,7 @@ public final class InstanceStatus implements Log2Dumpable {
 	private String app_name;
 	private String app_version;
 	private long uptime;
+	private long next_updater_refresh_date;
 	private @GsonIgnore ArrayList<ThreadStackTrace> threadstacktraces;
 	private String java_version;
 	private String host_name;
@@ -217,6 +218,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		useraction_functionality_list = new ArrayList<UAFunctionalityDefinintion>();
 		brokeralive = manager.getBroker().isAlive();
 		is_off_hours = AppManager.isActuallyOffHours();
+		next_updater_refresh_date = manager.getNextUpdaterRefreshDate();
 		
 		host_addresses = new ArrayList<String>();
 		try {
@@ -254,6 +256,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		is_off_hours = AppManager.isActuallyOffHours();
 		declared_cyclics = manager.getBroker().getDeclared_cyclics();
 		declared_triggers = manager.getBroker().getDeclared_triggers();
+		next_updater_refresh_date = manager.getNextUpdaterRefreshDate();
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
 			threadstacktraces.add(new ThreadStackTrace().importThread(entry.getKey(), entry.getValue()));
 		}
@@ -270,16 +273,17 @@ public final class InstanceStatus implements Log2Dumpable {
 		
 		if (push_to_db) {
 			try {
+				long start_time = System.currentTimeMillis();
 				MutationBatch mutator = CassandraDb.prepareMutationBatch();
 				mutator.withRow(CF_INSTANCES, instance_name_pid).putColumn(COL_NAME_UA_LIST, AppManager.getGson().toJson(useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
 				mutator.withRow(CF_INSTANCES, instance_name_pid).putColumn("source", AppManager.getGson().toJson(this), TTL);
 				mutator.execute();
+				Log2.log.debug("Update instance status", new Log2Dump("took", System.currentTimeMillis() - start_time));
 			} catch (ConnectionException e) {
 				manager.getServiceException().onCassandraError(e);
 			}
 		}
 		
-		// TODO #78.4, add next refresh date
 		return this;
 	}
 	
