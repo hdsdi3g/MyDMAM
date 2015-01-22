@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
 public class Identify {
@@ -28,8 +29,50 @@ public class Identify {
 		identify_bin = Configuration.global.getValue("transcoding", "identify_bin", "identify");
 	}
 	
+	void testProcessAll(File[] files) throws IOException {
+		GsonBuilder gb = new GsonBuilder();
+		gb.setPrettyPrinting();
+		for (int pos = 0; pos < files.length; pos++) {
+			System.out.println(files[pos]);
+			System.out.println(gb.create().toJson(analyst(files[pos])));
+		}
+	}
+	
 	private class IdentifyLine {
+		int incr_level;
+		String key_name;
+		String value;
 		
+		IdentifyLine(int incr_level, String key_name, String value) {
+			this.incr_level = incr_level;
+			this.key_name = key_name;
+			this.value = value;
+		}
+		
+		public String toString() {
+			return incr_level + "\t" + key_name + " -> " + value;
+		}
+	}
+	
+	private class JsonObjectParent {
+		JsonObject item;
+		
+		/**
+		 * Null if item is the root.
+		 */
+		JsonObjectParent parent;
+		
+		JsonObjectParent(JsonObject item, JsonObjectParent parent) {
+			this.item = item;
+			this.parent = parent;
+		}
+		
+		public String toString() {
+			if (parent != null) {
+				return hashCode() + ":" + parent.toString();
+			}
+			return hashCode() + ":";
+		}
 	}
 	
 	JsonObject analyst(File inputfile) throws IOException {
@@ -55,18 +98,18 @@ public class Identify {
 		
 		String[] lines = process.getResultstdout().toString().split(ExecprocessGettext.LINESEPARATOR);
 		
-		JsonObject result = new JsonObject();
-		
+		ArrayList<IdentifyLine> raw_lines = new ArrayList<Identify.IdentifyLine>(lines.length);
+		String current_sub_key = null;
 		String line;
 		String key_name;
 		String value;
 		final String SPACE_SEPARATOR = "  ";
 		int pos_colon;
+		int pos_sub_colon;
+		int pos_first_space;
 		int incr_level;
 		String incr_header;
-		JsonObject current_branch = result;
-		String current_branch_key_name = null;
-		int previous_level = 0;
+		String sub_key_name;
 		
 		for (int pos = 0; pos < lines.length; pos++) {
 			line = lines[pos];
@@ -79,6 +122,17 @@ public class Identify {
 				if (pos_colon == -1) {
 					continue;
 				}
+				pos_first_space = line.indexOf(" ", pos_colon);
+				
+				if (line.trim().endsWith(":")) {
+					pos_sub_colon = -1;
+				} else {
+					pos_sub_colon = line.indexOf(":", pos_colon);
+					if (pos_sub_colon == (pos_first_space - 1)) {
+						pos_sub_colon = -1;
+					}
+				}
+				
 				incr_level = 0;
 				incr_header = SPACE_SEPARATOR;
 				
@@ -93,26 +147,89 @@ public class Identify {
 					}
 				}
 				
-				key_name = line.substring(0, pos_colon).trim();
-				value = line.substring(pos_colon + 1).trim();
-				System.out.println(incr_level + "\t" + key_name + " -> " + value);
-				// TODO IdentifyLine
-				/*if (incr_level == previous_level) {
-					current_branch.addProperty(key_name, value);
-				} else if (incr_level > previous_level) {
-					JsonObject new_branch = new JsonObject();
-					current_branch_key_name = 
-					current_branch.add(key_name, new_branch);
-					current_branch = new_branch;
+				if (pos_sub_colon > -1) {
+					/**
+					 * Line is type AAAA:BBBB: cccc
+					 */
+					key_name = line.substring(0, pos_sub_colon).trim();
+					pos_sub_colon = line.indexOf(":", pos_colon + 1);
+					sub_key_name = line.substring(pos_colon + 1, pos_sub_colon);
 					
+					value = line.substring(pos_sub_colon + 1).trim();
+					if (current_sub_key == null) {
+						raw_lines.add(new IdentifyLine(incr_level, key_name, ""));
+						// System.out.println(raw_lines.get(raw_lines.size() - 1));
+						current_sub_key = key_name;
+					} else if (current_sub_key.equals(key_name) == false) {
+						raw_lines.add(new IdentifyLine(incr_level, key_name, ""));
+						// System.out.println(raw_lines.get(raw_lines.size() - 1));
+						current_sub_key = key_name;
+					}
+					raw_lines.add(new IdentifyLine(incr_level + 1, sub_key_name, value));
+					
+					// previous_line.incr_level + 1
+					// System.out.println(raw_lines.get(raw_lines.size() - 1));
 				} else {
+					/**
+					 * Line is type AAAA: bbbb
+					 */
+					current_sub_key = null;
+					key_name = line.substring(0, pos_colon).trim();
+					if (key_name.equals("Histogram")) {
+						continue;
+					}
 					
-				}*/
-				// TODO add to current value
-				// previous_level = incr_level;
+					value = line.substring(pos_colon + 1).trim();
+					try {
+						Integer.parseInt(key_name);
+						continue;
+					} catch (NumberFormatException e) {
+					}
+					
+					raw_lines.add(new IdentifyLine(incr_level, key_name, value));
+					// System.out.println(raw_lines.get(raw_lines.size() - 1));
+				}
 			}
-			// System.out.println(line);
 		}
+		
+		JsonObject result = new JsonObject();
+		JsonObject current_node = result;
+		JsonObjectParent previous_parent_node = null;
+		
+		IdentifyLine current_line;
+		IdentifyLine previous_line = null;
+		for (int pos = 0; pos < raw_lines.size(); pos++) {
+			current_line = raw_lines.get(pos);
+			// System.out.println(current_line);
+			if (pos > 0) {
+				previous_line = raw_lines.get(pos - 1);
+			} else {
+				previous_line = current_line;
+			}
+			
+			if (previous_line.incr_level < current_line.incr_level) {
+				/**
+				 * Go to child level
+				 */
+				JsonObject child_node = new JsonObject();
+				current_node.add(previous_line.key_name, child_node);
+				previous_parent_node = new JsonObjectParent(current_node, previous_parent_node);
+				current_node = child_node;
+			} else if (previous_line.incr_level > current_line.incr_level) {
+				/**
+				 * Return to next parent level
+				 */
+				int delta = (previous_line.incr_level - current_line.incr_level) - 1;
+				for (int pos_delta = 0; pos_delta < delta; pos_delta++) {
+					previous_parent_node = previous_parent_node.parent;
+				}
+				current_node = previous_parent_node.item;
+				previous_parent_node = previous_parent_node.parent;
+			}
+			current_node.addProperty(current_line.key_name, current_line.value);
+			
+		}
+		
 		return result;
 	}
 	// TODO parse identify result to ImageAttributes
