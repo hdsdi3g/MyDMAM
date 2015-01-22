@@ -28,6 +28,10 @@ public class Identify {
 		identify_bin = Configuration.global.getValue("transcoding", "identify_bin", "identify");
 	}
 	
+	private class IdentifyLine {
+		
+	}
+	
 	JsonObject analyst(File inputfile) throws IOException {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-verbose");
@@ -61,6 +65,7 @@ public class Identify {
 		int incr_level;
 		String incr_header;
 		JsonObject current_branch = result;
+		String current_branch_key_name = null;
 		int previous_level = 0;
 		
 		for (int pos = 0; pos < lines.length; pos++) {
@@ -79,7 +84,7 @@ public class Identify {
 				
 				for (int pos_incr = 0; pos_incr < 10; pos_incr++) {
 					/**
-					 * Count the number of double-spaces line header. One pair = 1 incr_level
+					 * Count the number of double-spaces line header. +One pair = +1 incr_level
 					 */
 					incr_level = pos_incr;
 					incr_header = incr_header + SPACE_SEPARATOR;
@@ -91,18 +96,20 @@ public class Identify {
 				key_name = line.substring(0, pos_colon).trim();
 				value = line.substring(pos_colon + 1).trim();
 				System.out.println(incr_level + "\t" + key_name + " -> " + value);
-				
-				if (incr_level == previous_level) {
+				// TODO IdentifyLine
+				/*if (incr_level == previous_level) {
 					current_branch.addProperty(key_name, value);
 				} else if (incr_level > previous_level) {
-					current_branch = new JsonObject();
+					JsonObject new_branch = new JsonObject();
+					current_branch_key_name = 
+					current_branch.add(key_name, new_branch);
+					current_branch = new_branch;
 					
 				} else {
 					
-				}
+				}*/
 				// TODO add to current value
-				// result
-				previous_level = incr_level;
+				// previous_level = incr_level;
 			}
 			// System.out.println(line);
 		}
