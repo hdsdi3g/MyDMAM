@@ -43,9 +43,6 @@ public class CliModuleMetadata implements CliModule {
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
-		// boolean verbose = args.getParamExist("-v");
-		// boolean prettify = args.getParamExist("-vv");
-		
 		if (args.getParamExist("-a")) {
 			File dir_testformats = new File(args.getSimpleParamValue("-a"));
 			if (dir_testformats.exists() == false) {
@@ -53,6 +50,10 @@ public class CliModuleMetadata implements CliModule {
 			}
 			if (dir_testformats.isDirectory() == false) {
 				throw new FileNotFoundException(args.getSimpleParamValue("-a"));
+			}
+			
+			if (args.getParamExist("-ptt")) {
+				Operations.setGsonPrettyPrinting();
 			}
 			
 			/**
@@ -71,13 +72,13 @@ public class CliModuleMetadata implements CliModule {
 					continue;
 				}
 				SourcePathIndexerElement spie = new SourcePathIndexerElement();
-				spie.currentpath = "/execCli/" + System.currentTimeMillis();
-				spie.date = System.currentTimeMillis();
-				spie.dateindex = spie.date;
+				spie.currentpath = "/cli-request/" + System.currentTimeMillis();
+				spie.date = files[pos].lastModified();
+				spie.dateindex = System.currentTimeMillis();
 				spie.directory = false;
-				spie.parentpath = "/execCli";
-				spie.size = 0;
-				spie.storagename = "Test_MyDMAM_CLI";
+				spie.parentpath = "/cli-request";
+				spie.size = files[pos].length();
+				spie.storagename = "MyDMAM-CLI-Request";
 				
 				result = MetadataCenter.standaloneIndexing(files[pos], spie, current_create_job_list);
 				dump.add("Item", files[pos]);
@@ -126,9 +127,8 @@ public class CliModuleMetadata implements CliModule {
 	public void showFullCliModuleHelp() {
 		System.out.println("Usage");
 		System.out.println(" * standalone directory analysis: ");
-		System.out.println("   " + getCliModuleName() + " -a /full/path [-v | -vv]");
-		// System.out.println("   -v verbose");
-		// System.out.println("   -vv verbose and prettify");
+		System.out.println("   " + getCliModuleName() + " -a /full/path [-ptt]");
+		System.out.println("   -ptt prettify json for human reading");
 		System.out.println(" * force re-indexing metadatas for a directory:");
 		System.out.println("   " + getCliModuleName() + " -refresh storagename:/pathindexrelative");
 		System.out.println(" * do clean operation (remove orphan metadatas):");

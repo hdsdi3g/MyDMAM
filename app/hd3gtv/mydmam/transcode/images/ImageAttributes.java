@@ -1,29 +1,46 @@
 package hd3gtv.mydmam.transcode.images;
 
-import java.lang.reflect.Type;
+import hd3gtv.mydmam.metadata.container.Entry;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.SelfSerializing;
 
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
+import java.util.List;
 
-public class ImageAttributes {
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
+
+public class ImageAttributes extends EntryAnalyser {
 	
-	public static class Serializer implements JsonSerializer<ImageAttributes>, JsonDeserializer<ImageAttributes> {
-		@Override
-		public ImageAttributes deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			// TODO Auto-generated method stub
-			return null;
-		}
+	// TODO @see FFprobe
+	
+	@SerializedName("Rendering intent")
+	String rendering_intent;
+	
+	@Override
+	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
+		// TODO Auto-generated method stub
 		
-		@Override
-		public JsonElement serialize(ImageAttributes src, Type typeOfSrc, JsonSerializationContext context) {
-			// TODO Auto-generated method stub
-			return null;
-		}
+	}
+	
+	@Override
+	protected void extendedInternalDeserialize(EntryAnalyser _item, JsonObject source, Gson gson) {
+		// TODO Auto-generated method stub
 		
+	}
+	
+	public String getES_Type() {
+		return "identify";
+	}
+	
+	protected Entry create() {
+		return new ImageAttributes();
+	}
+	
+	@Override
+	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }

@@ -3,32 +3,34 @@ package hd3gtv.mydmam.transcode.images;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.metadata.GeneratorAnalyser;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
-public class Identify {
+public class Identify implements GeneratorAnalyser {
 	
 	private String identify_bin;
 	
+	// TODO limits
 	// -limit memory 100MB -limit map 100MB -limit area 100MB -limit disk 30MB -limit file 50 -limit time 50
-	/*		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-				try {
-					String line = "";
-					while (channel.isClosed() == false) {
-						while (((line = reader.readLine()) != null)) {
-	 * */
+	
+	// TODO @see FFprobeAnalyser
 	
 	public Identify() {
 		identify_bin = Configuration.global.getValue("transcoding", "identify_bin", "identify");
 	}
 	
+	@Deprecated
 	void testProcessAll(File[] files) throws IOException {
 		GsonBuilder gb = new GsonBuilder();
 		gb.setPrettyPrinting();
@@ -75,6 +77,7 @@ public class Identify {
 		}
 	}
 	
+	@Deprecated
 	JsonObject analyst(File inputfile) throws IOException {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-verbose");
@@ -176,11 +179,17 @@ public class Identify {
 					current_sub_key = null;
 					key_name = line.substring(0, pos_colon).trim();
 					if (key_name.equals("Histogram")) {
+						/**
+						 * Remove "Histogram" key. Its values are very difficult to parse.
+						 */
 						continue;
 					}
 					
 					value = line.substring(pos_colon + 1).trim();
 					try {
+						/**
+						 * Remove int key name.
+						 */
 						Integer.parseInt(key_name);
 						continue;
 					} catch (NumberFormatException e) {
@@ -232,5 +241,52 @@ public class Identify {
 		
 		return result;
 	}
+	
 	// TODO parse identify result to ImageAttributes
+	
+	@Override
+	public boolean canProcessThis(String mimetype) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	public boolean isEnabled() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	public String getLongName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public EntryAnalyser process(Container container) throws Exception {
+		// TODO Auto-generated method stub
+		
+		// TODO return ImageAttributes
+		// ImageAttributes result = Operations.getGson().fromJson(json, ImageAttributes.class);
+		
+		return null;
+	}
+	
+	@Override
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public boolean isCanUsedInMasterAsPreview(Container container) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	public Class<? extends EntryAnalyser> getRootEntryClass() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

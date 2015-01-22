@@ -27,6 +27,7 @@ import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.Origin;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.transcode.images.Identify;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshoot;
@@ -60,6 +61,7 @@ public class MetadataCenter {
 		}
 		
 		try {
+			addProvider(new Identify());
 			addProvider(new FFprobeAnalyser());
 			addProvider(new FFmpegSnapshoot());
 			addProvider(new FFmpegAlbumartwork());

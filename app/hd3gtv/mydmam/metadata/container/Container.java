@@ -119,7 +119,7 @@ public class Container implements Log2Dumpable {
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
-		dump.add("origin.key", mtd_key);
+		dump.add("mtd.key", mtd_key);
 		if (origin != null) {
 			dump.add("origin.key", origin.key);
 			dump.add("origin.storage", origin.storage);

@@ -97,6 +97,11 @@ public class Operations {
 		MetadataCenter.doNothing();
 	}
 	
+	public static void setGsonPrettyPrinting() {
+		gson_builder.setPrettyPrinting();
+		gson = gson_builder.create();
+	}
+	
 	static Client getClient() {
 		return client;
 	}
@@ -126,7 +131,6 @@ public class Operations {
 				declareType(dependencies.get(pos));
 			}
 		}
-		
 		gson = gson_builder.create();
 	}
 	
