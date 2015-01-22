@@ -29,7 +29,7 @@ import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 public class GitInfo {
 	
 	private String branch = "unknown";
-	private String commit = "";
+	private String commit = "00000000";
 	
 	public GitInfo(File repository_file) throws IOException {
 		if (repository_file == null) {
@@ -69,11 +69,35 @@ public class GitInfo {
 	
 	public static GitInfo getFromRoot() {
 		try {
-			return new GitInfo(new File(".git"));
+			File git_dir = new File(".git");
+			if (git_dir.exists()) {
+				return new GitInfo(git_dir);
+			}
+			
+			String[] classpathelementsstr = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
+			File cp_element;
+			for (int i = 0; i < classpathelementsstr.length; i++) {
+				if (classpathelementsstr[i].endsWith(".jar")) {
+					continue;
+				}
+				cp_element = new File(classpathelementsstr[i]);
+				if (cp_element.isDirectory() == false) {
+					continue;
+				}
+				git_dir = new File(cp_element.getCanonicalPath() + File.separator + ".git");
+				if (git_dir.exists()) {
+					return new GitInfo(git_dir);
+				} else if (cp_element.getCanonicalPath().endsWith(File.separator + "conf")) {
+					git_dir = new File(cp_element.getCanonicalFile().getParentFile().getPath() + File.separator + ".git");
+					if (git_dir.exists()) {
+						return new GitInfo(git_dir);
+					}
+				}
+			}
+			throw new FileNotFoundException();
 		} catch (IOException e) {
 			Log2.log.error("Can't access to local code git repository", e);
 			return null;
 		}
 	}
-	
 }
