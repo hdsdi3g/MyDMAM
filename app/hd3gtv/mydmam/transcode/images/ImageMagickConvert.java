@@ -1,6 +1,6 @@
 package hd3gtv.mydmam.transcode.images;
 
-public class Convert {
+public class ImageMagickConvert {
 	
 	// convert image.bmp -interlace line -strip -quality 70 image.jpg
 	
