@@ -37,4 +37,21 @@ public class ImageAttributeGeometry {
 	public int getHeight() {
 		return height;
 	}
+	
+	public String toString() {
+		StringBuffer db = new StringBuffer();
+		
+		if (x > 0 | y > 0) {
+			db.append("+");
+			db.append(x);
+			db.append("+");
+			db.append(y);
+			db.append("; ");
+		}
+		db.append(width);
+		db.append("x");
+		db.append(height);
+		
+		return db.toString();
+	}
 }

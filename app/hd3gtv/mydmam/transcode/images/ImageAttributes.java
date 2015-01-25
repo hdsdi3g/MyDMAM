@@ -4,6 +4,18 @@ import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Colorspace;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Compose;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Compress;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Dispose;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Endian;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.ImageClass;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.ImageType;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Intensity;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Intent;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Interlace;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Orientation;
+import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.ResolutionUnits;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.GsonIgnore;
 
@@ -22,8 +34,6 @@ import com.google.gson.JsonObject;
 
 public class ImageAttributes extends EntryAnalyser {
 	
-	// @see FFprobe
-	
 	private static Type properties_typeOfT = new TypeToken<LinkedHashMap<String, String>>() {
 	}.getType();
 	
@@ -33,11 +43,13 @@ public class ImageAttributes extends EntryAnalyser {
 	}
 	
 	protected Entry internalDeserialize(JsonObject source, Gson gson) {
+		String entry_value;
 		for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
 			if (entry.getValue().isJsonPrimitive() == false) {
 				continue;
 			}
-			if (entry.getValue().getAsString().equalsIgnoreCase("Undefined")) {
+			entry_value = entry.getValue().getAsString();
+			if (entry_value.equalsIgnoreCase("undefined")) {
 				source.add(entry.getKey(), JsonNull.INSTANCE);
 			}
 		}
@@ -45,7 +57,7 @@ public class ImageAttributes extends EntryAnalyser {
 		ImageAttributes item = Operations.getGsonSimple().fromJson(source, ImageAttributes.class);
 		item.properties = gson.fromJson(source.get("properties"), properties_typeOfT);
 		if (source.has("class")) {
-			item.imgclass = source.get("class").getAsString();
+			item.imgclass = ImageClass.valueOf(source.get("class").getAsString());
 		}
 		return item;
 	}
@@ -60,46 +72,103 @@ public class ImageAttributes extends EntryAnalyser {
 	
 	String format;
 	String formatDescription;
-	String imgclass;
+	ImageClass imgclass;
 	ImageAttributeDimension resolution;
 	ImageAttributeDimension printSize;
 	ImageAttributeGeometry geometry;
-	String units;
-	String type;
-	String endianess;
-	String colorspace;
+	ResolutionUnits units;
+	ImageType type;
+	Endian endianess;
+	Colorspace colorspace;
 	int depth;
 	int baseDepth;
 	ImageAttributeChannelDepth channelDepth;
 	ImageAttributeImageStatistics imageStatistics;
 	ImageAttributeChannelStatistics channelStatistics;
 	ImageAttributeChromaticity chromaticity;
-	String alpha;
-	String renderingIntent;
+	Intent renderingIntent;
 	float gamma;
 	String totalInkDensity;
+	
+	/**
+	 * Color, like srgba(253,255,255,0) or rgba(255,255,255,0)
+	 */
+	String alpha;
 	String backgroundColor;
 	String borderColor;
 	String matteColor;
 	String transparentColor;
-	String interlace;
-	String intensity;
-	String compose;
+	
+	Interlace interlace;
+	Intensity intensity;
+	Compose compose;
 	ImageAttributeGeometry pageGeometry;
-	String dispose;
+	Dispose dispose;
 	int iterations;
-	String compression;
-	String orientation;
+	Compress compression;
+	int quality;
+	Orientation orientation;
+	/**
+	 * Like ImageMagick 6.9.0-0 Q16 x86_64 2015-01-21 http://www.imagemagick.org
+	 */
 	String version;
+	/**
+	 * Like 0:01.000
+	 */
 	String elapsedTime;
+	/**
+	 * like 0.000u
+	 */
 	String userTime;
+	/**
+	 * Like 512.13GB
+	 */
 	String pixelsPerSecond;
+	/**
+	 * 2.049M
+	 */
 	String numberPixels;
-	String filesize;
 	boolean tainted;
 	
 	@GsonIgnore
 	LinkedHashMap<String, String> properties;
+	
+	String createSummary() {
+		StringBuffer sb = new StringBuffer();
+		if (geometry != null) {
+			sb.append(geometry);
+			sb.append(", ");
+		}
+		
+		if (resolution != null) {
+			if (Math.round(resolution.x) != Math.round(resolution.y)) {
+				sb.append(Math.round(resolution.x));
+				sb.append("x");
+				sb.append(Math.round(resolution.y));
+			} else {
+				sb.append(Math.round(resolution.x));
+			}
+			sb.append(" ");
+			if (units != null) {
+				if (units == ResolutionUnits.PixelsPerInch) {
+					sb.append("dpi");
+				} else {
+					sb.append("px per cm");
+				}
+			} else {
+				sb.append("dpi");
+			}
+			sb.append(", ");
+		}
+		
+		if (colorspace != null) {
+			sb.append(colorspace);
+			sb.append("/");
+			sb.append(depth);
+		}
+		
+		return sb.toString();
+	}
 	
 	/**
 	 * Parse IPTC raw data like : 2#120#Caption="Raw value\nWith spaces and&nbsp;entities"

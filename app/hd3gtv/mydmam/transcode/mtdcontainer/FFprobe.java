@@ -185,14 +185,18 @@ public class FFprobe extends EntryAnalyser {
 				}*/
 			}
 			
-			try {
-				if (framerate == null) {
-					duration = new Timecode(format.getParam("duration").getAsFloat(), 100f);
-				} else {
-					duration = new Timecode(format.getParam("duration").getAsFloat(), framerate.getNumericValue());
+			if (format.hasMultipleParams("duration")) {
+				try {
+					if (framerate == null) {
+						duration = new Timecode(format.getParam("duration").getAsFloat(), 100f);
+					} else {
+						duration = new Timecode(format.getParam("duration").getAsFloat(), framerate.getNumericValue());
+					}
+				} catch (Exception e) {
+					Log2.log.error("Can't extract duration", e, new Log2Dump("duration", format.getParam("duration").getAsString()));
 				}
-			} catch (Exception e) {
-				Log2.log.error("Can't extract duration", e, new Log2Dump("duration", format.getParam("duration").getAsString()));
+			} else {
+				duration = new Timecode("00:00:00:01", framerate.getNumericValue());
 			}
 			
 		}

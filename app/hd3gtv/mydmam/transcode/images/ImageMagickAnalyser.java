@@ -61,7 +61,6 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 	
 	// TODO limits : -limit memory 100MB -limit map 100MB -limit area 100MB -limit disk 30MB -limit file 50 -limit time 50
 	
-	// @see FFprobeAnalyser
 	public ImageMagickAnalyser() {
 		convert_bin = Configuration.global.getValue("transcoding", "convert_bin", "convert");
 	}
@@ -112,8 +111,7 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 			result.remove("name");
 			
 			ImageAttributes ia = Operations.getGson().fromJson(result, ImageAttributes.class);
-			
-			// container.getSummary().putSummaryContent(ia, ""); //TODO create summary
+			container.getSummary().putSummaryContent(ia, ia.createSummary());
 			
 			return ia;
 		} catch (IOException e) {

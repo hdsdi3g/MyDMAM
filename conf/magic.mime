@@ -27,6 +27,82 @@
 #    Column #4: MIME type of result
 #    Column #5: MIME encoding of result (optional)
 
+##################################################
+################## MyDMAM added ##################
+##################################################
+0	belong	0x802a5fd7
+>4	belong	0x00000800
+>8	belong	0x00000400
+>12	belong	0x00000400
+>16	belong	0x00000000	image/cineon
+
+0	string	SDPX
+>8	string	V	image/dpx
+
+0	string	v/1
+>8	string	channels
+>17	string	chlist	image/exr
+
+0	string	#?RGBE	image/vnd.radiance
+
+0	belong	0x233f5241
+>4	belong	0x4449414e	image/vnd.radiance
+
+0	string	RIFF
+>8	string	WEBPVP8X	image/webp
+
+0	belong	0x01DA0101
+>4	belong	0x0003050A	image/sgi
+
+0	belong	0x050A0634
+>4	belong	0x0A142400
+>8	belong	0x10010000	image/x-palm-pixmap
+
+0	belong	0x00135029
+>4	belong	0x04372500
+>8	belong	0x13502904	image/x-g3-fax
+
+2048	string	PCD_IPI	image/jpcd
+80	string CT	image/x-sct
+
+0	belong	0x00020100
+>4	belong	0x0000050A
+>8	belong	0x00000634	image/jbig
+
+0	string id=ImageMagick image/x-miff
+
+0	belong	0x59A66A95
+>4	belong	0x0000050A
+>8	belong	0x00000634	image/x-sun
+
+2	string	Imagineer
+>12	string	project
+>20	string	script	application/x-mocha
+
+54	belong	0x78006D00
+>58	belong	0x70006D00
+>62	belong	0x65007400
+>66	belong	0x61002000	application/vnd.adobe.xmpses
+
+0	string	RIFX
+>7	string	pEgg!	application/vnd.adobe.aftereffects.project
+
+0	string SQLite\ format\ 3
+>390	string	Adobe_libraryImageDevelopHistoryStep	application/vnd.adobe.lightroom.library
+
+1	string	KeyG	application/x-finalcutpro-project
+0	string	DCZCHX	application/x-protools-wavcache
+1	string 0010111100101011	application/x-protools-project
+40	string	PremiereData	application/vnd.adobe.premierepro.project
+
+0	belong	0x060E2B34
+>4	belong	0x02050101	application/mxf
+
+18	belong	0x00514021	application/gxf
+0	string	LEITCH	application/lxf
+5	string	omfi	application/omfi
+66	string	sesx	application/vnd.adobe.audition.project
+
 #------------------------------------------------------------------------------
 # Localstuff:  file(1) magic for locally observed files
 # Add any locally observed files here.
@@ -1025,53 +1101,3 @@
 # This entry is only semi-helpful, as Gnumeric compresses its files, so
 # they will ordinarily reported as "compressed", but at least -z helps
 39	string	=<gmr:Workbook	application/x-gnumeric
-
-##################################################
-##################################################
-################## MyDMAM added ##################
-##################################################
-##################################################
-0	belong	0x802a5fd7
->4	belong	0x00000800
->8	belong	0x00000400
->12	belong	0x00000400
->16	belong	0x00000000	image/cineon
-
-0	string	SDPX
->8	string	V	image/dpx
-
-0	string	v/1
->8	string	channels
->17	string	chlist	image/exr
-
-0	string	#?RGBE	image/vnd.radiance
-
-0	belong	0x233f5241
->4	belong	0x4449414e	image/vnd.radiance
-
-0	string	RIFF
->8	string	WEBPVP8X	image/webp
-
-0	belong	0x01DA0101
->4	belong	0x0003050A	image/sgi
-
-0	belong	0x050A0634
->4	belong	0x0A142400
->8	belong	0x10010000	image/x-palm-pixmap
-
-0	belong	0x00135029
->4	belong	0x04372500
->8	belong	0x13502904	image/x-g3-fax
-
-2048	string	PCD_IPI	image/jpcd
-80	string CT	image/x-sct
-
-0	belong	0x00020100
->4	belong	0x0000050A
->8	belong	0x00000634	image/jbig
-
-0	string id=ImageMagick image/x-miff
-
-0	belong	0x59A66A95
->4	belong	0x0000050A
->8	belong	0x00000634	image/x-sun

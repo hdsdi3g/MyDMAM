@@ -150,7 +150,11 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 			}
 			String codec_name = stream.getCodec_tag_string();
 			if (codec_name.indexOf("[") > -1) {
-				codec_name = stream.getParam("codec_name").getAsString();
+				if (stream.hasMultipleParams("codec_name")) {
+					codec_name = stream.getParam("codec_name").getAsString();
+				} else {
+					codec_name = "Unsupported";
+				}
 			}
 			String codec_type = stream.getCodec_type();
 			if (codec_type.equalsIgnoreCase("video")) {
