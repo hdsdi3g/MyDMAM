@@ -45,8 +45,8 @@ public class FFprobe extends EntryAnalyser {
 	private static Type streams_typeOfT = new TypeToken<ArrayList<Stream>>() {
 	}.getType();
 	
-	protected void extendedInternalDeserialize(EntryAnalyser _item, JsonObject source, Gson gson) {
-		FFprobe item = (FFprobe) _item;
+	protected EntryAnalyser internalDeserialize(JsonObject source, Gson gson) {
+		FFprobe item = new FFprobe();
 		if (source.has("chapters")) {
 			item.chapters = gson.fromJson(source.get("chapters").getAsJsonArray(), chapters_typeOfT);
 		}
@@ -67,6 +67,7 @@ public class FFprobe extends EntryAnalyser {
 		if (item.format == null) {
 			item.format = new Format();
 		}
+		return item;
 	}
 	
 	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
@@ -78,10 +79,6 @@ public class FFprobe extends EntryAnalyser {
 	
 	public String getES_Type() {
 		return "ffprobe";
-	}
-	
-	protected FFprobe create() {
-		return new FFprobe();
 	}
 	
 	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {

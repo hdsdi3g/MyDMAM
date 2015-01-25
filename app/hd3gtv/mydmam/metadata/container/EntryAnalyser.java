@@ -27,22 +27,12 @@ public abstract class EntryAnalyser extends Entry {
 	protected abstract void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson);
 	
 	/**
-	 * @param item from create()
-	 */
-	protected abstract void extendedInternalDeserialize(EntryAnalyser _item, JsonObject source, Gson gson);
-	
-	/**
 	 * Patch output JSON with metadata-provider-type = analyser
 	 */
 	protected final JsonObject internalSerialize(Entry _item, Gson gson) {
-		JsonObject jo = new JsonObject();
+		JsonObject jo = Operations.getGsonSimple().toJsonTree(_item).getAsJsonObject();
 		extendedInternalSerializer(jo, (EntryAnalyser) _item, gson);
-		// jo.addProperty("metadata-provider-type", "analyser");
 		return jo;
-	}
-	
-	protected final void internalDeserialize(Entry _item, JsonObject source, Gson gson) {
-		extendedInternalDeserialize((EntryAnalyser) _item, source, gson);
 	}
 	
 }

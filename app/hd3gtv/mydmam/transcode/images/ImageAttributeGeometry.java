@@ -16,9 +16,19 @@
 */
 package hd3gtv.mydmam.transcode.images;
 
-public class ImageAttributeGeometry extends ImageAttributeIntPoint {
+public class ImageAttributeGeometry {
+	int x;
+	int y;
 	int width;
 	int height;
+	
+	public int getX() {
+		return x;
+	}
+	
+	public int getY() {
+		return y;
+	}
 	
 	public int getWidth() {
 		return width;

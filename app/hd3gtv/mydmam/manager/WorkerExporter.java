@@ -22,6 +22,7 @@ import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerCategory;
+import hd3gtv.tools.GsonIgnore;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;

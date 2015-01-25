@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.web.stat;
 
 import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.manager.GsonIgnoreStrategy;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.Containers;
@@ -25,6 +24,7 @@ import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.Preview;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.util.ArrayList;
 import java.util.HashMap;

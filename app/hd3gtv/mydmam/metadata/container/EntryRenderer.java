@@ -60,12 +60,18 @@ public abstract class EntryRenderer extends Entry {
 		return result;
 	}
 	
-	protected final void internalDeserialize(Entry _entry, JsonObject source, Gson gson) {
-		EntryRenderer entry = (EntryRenderer) _entry;
+	/**
+	 * For deserializing
+	 */
+	protected abstract EntryRenderer create();
+	
+	protected final Entry internalDeserialize(JsonObject source, Gson gson) {
+		EntryRenderer entry = create();
 		JsonElement item = source.get("content");
 		Type typeOfT = new TypeToken<List<RenderedContent>>() {
 		}.getType();
 		entry.content = gson.fromJson(item.getAsJsonArray(), typeOfT);
+		return entry;
 	}
 	
 	protected final JsonObject internalSerialize(Entry _item, Gson gson) {

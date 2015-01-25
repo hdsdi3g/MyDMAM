@@ -17,24 +17,24 @@
 package hd3gtv.mydmam.transcode.images;
 
 public class ImageAttributeChromaticity {
-	ImageAttributeFloatPoint redPrimary;
-	ImageAttributeFloatPoint greenPrimary;
-	ImageAttributeFloatPoint bluePrimary;
-	ImageAttributeFloatPoint whitePrimary;
+	ImageAttributeDimension redPrimary;
+	ImageAttributeDimension greenPrimary;
+	ImageAttributeDimension bluePrimary;
+	ImageAttributeDimension whitePrimary;
 	
-	public ImageAttributeFloatPoint getBluePrimary() {
+	public ImageAttributeDimension getBluePrimary() {
 		return bluePrimary;
 	}
 	
-	public ImageAttributeFloatPoint getGreenPrimary() {
+	public ImageAttributeDimension getGreenPrimary() {
 		return greenPrimary;
 	}
 	
-	public ImageAttributeFloatPoint getRedPrimary() {
+	public ImageAttributeDimension getRedPrimary() {
 		return redPrimary;
 	}
 	
-	public ImageAttributeFloatPoint getWhitePrimary() {
+	public ImageAttributeDimension getWhitePrimary() {
 		return whitePrimary;
 	}
 }

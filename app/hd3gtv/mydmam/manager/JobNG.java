@@ -23,6 +23,7 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.DeployColumnDef;
+import hd3gtv.tools.GsonIgnore;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;

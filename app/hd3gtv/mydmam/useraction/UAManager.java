@@ -21,11 +21,11 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.AppManager;
-import hd3gtv.mydmam.manager.GsonIgnoreStrategy;
 import hd3gtv.mydmam.module.MyDMAMModule;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.useraction.dummy.UADummy;
 import hd3gtv.mydmam.useraction.dummy.UADummy2;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

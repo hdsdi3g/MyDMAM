@@ -25,6 +25,9 @@ public interface GeneratorAnalyser extends Generator {
 	
 	EntryAnalyser process(Container container) throws Exception;
 	
+	/**
+	 * @return can be null.
+	 */
 	List<String> getMimeFileListCanUsedInMasterAsPreview();
 	
 	boolean isCanUsedInMasterAsPreview(Container container);

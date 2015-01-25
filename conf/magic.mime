@@ -694,8 +694,8 @@
 # 255 (hex FF)! DL format SUCKS BIG ROCKS.
 #
 #						DL file version 1 , medium format (160x100, 4 images/screen)
-0	byte		1			video/x-unknown
-0	byte		2			video/x-unknown
+#0	byte		1			video/x-unknown
+#0	byte		2			video/x-unknown
 #
 # Databases
 #
@@ -1025,3 +1025,53 @@
 # This entry is only semi-helpful, as Gnumeric compresses its files, so
 # they will ordinarily reported as "compressed", but at least -z helps
 39	string	=<gmr:Workbook	application/x-gnumeric
+
+##################################################
+##################################################
+################## MyDMAM added ##################
+##################################################
+##################################################
+0	belong	0x802a5fd7
+>4	belong	0x00000800
+>8	belong	0x00000400
+>12	belong	0x00000400
+>16	belong	0x00000000	image/cineon
+
+0	string	SDPX
+>8	string	V	image/dpx
+
+0	string	v/1
+>8	string	channels
+>17	string	chlist	image/exr
+
+0	string	#?RGBE	image/vnd.radiance
+
+0	belong	0x233f5241
+>4	belong	0x4449414e	image/vnd.radiance
+
+0	string	RIFF
+>8	string	WEBPVP8X	image/webp
+
+0	belong	0x01DA0101
+>4	belong	0x0003050A	image/sgi
+
+0	belong	0x050A0634
+>4	belong	0x0A142400
+>8	belong	0x10010000	image/x-palm-pixmap
+
+0	belong	0x00135029
+>4	belong	0x04372500
+>8	belong	0x13502904	image/x-g3-fax
+
+2048	string	PCD_IPI	image/jpcd
+80	string CT	image/x-sct
+
+0	belong	0x00020100
+>4	belong	0x0000050A
+>8	belong	0x00000634	image/jbig
+
+0	string id=ImageMagick image/x-miff
+
+0	belong	0x59A66A95
+>4	belong	0x0000050A
+>8	belong	0x00000634	image/x-sun

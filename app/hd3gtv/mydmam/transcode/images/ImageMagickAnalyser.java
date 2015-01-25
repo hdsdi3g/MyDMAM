@@ -20,18 +20,52 @@ import com.google.gson.JsonParser;
 
 public class ImageMagickAnalyser implements GeneratorAnalyser {
 	
+	static final ArrayList<String> mimetype_list;
+	
+	static {
+		mimetype_list = new ArrayList<String>();
+		mimetype_list.add("image/jpeg");
+		mimetype_list.add("image/png");
+		mimetype_list.add("image/bmp");
+		mimetype_list.add("image/gif");
+		mimetype_list.add("image/vnd.adobe.photoshop");
+		mimetype_list.add("image/tiff");
+		mimetype_list.add("image/svg+xml");
+		mimetype_list.add("application/postscript");
+		mimetype_list.add("image/jp2");
+		mimetype_list.add("application/dicom");
+		mimetype_list.add("image/x-icon");
+		mimetype_list.add("image/pict");
+		mimetype_list.add("image/vndwapwbmp");
+		mimetype_list.add("image/x-pcx");
+		mimetype_list.add("image/x-portable-bitmap");
+		mimetype_list.add("image/x-xbm");
+		mimetype_list.add("image/xpm");
+		mimetype_list.add("image/cineon");
+		mimetype_list.add("image/dpx");
+		mimetype_list.add("image/tga");
+		mimetype_list.add("image/exr");
+		mimetype_list.add("image/vnd.radiance");
+		mimetype_list.add("image/webp");
+		mimetype_list.add("image/sgi");
+		mimetype_list.add("image/x-palm-pixmap");
+		mimetype_list.add("image/x-g3-fax");
+		mimetype_list.add("image/jpcd");
+		mimetype_list.add("image/x-sct");
+		mimetype_list.add("image/jbig");
+		mimetype_list.add("image/x-miff");
+		mimetype_list.add("image/x-sun");
+	}
+	
 	private String convert_bin;
 	
-	// TODO limits
-	// -limit memory 100MB -limit map 100MB -limit area 100MB -limit disk 30MB -limit file 50 -limit time 50
+	// TODO limits : -limit memory 100MB -limit map 100MB -limit area 100MB -limit disk 30MB -limit file 50 -limit time 50
 	
-	// TODO @see FFprobeAnalyser
-	
+	// @see FFprobeAnalyser
 	public ImageMagickAnalyser() {
 		convert_bin = Configuration.global.getValue("transcoding", "convert_bin", "convert");
 	}
 	
-	@Override
 	public EntryAnalyser process(Container container) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		ExecprocessGettext process = null;
@@ -48,10 +82,12 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 			result = result.get("image").getAsJsonObject();
 			
 			if (result.has("profiles")) {
-				if (result.get("profiles").getAsJsonObject().has("iptc")) {
+				JsonObject jo_profiles = result.get("profiles").getAsJsonObject();
+				if (jo_profiles.has("iptc")) {
 					/**
 					 * Import and inject IPTC
 					 */
+					param.clear();
 					param.add(container.getOrigin().getPhysicalSource().getPath() + "[0]");
 					param.add("iptctext:-");
 					process = new ExecprocessGettext(convert_bin, param);
@@ -60,18 +96,26 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 					process.start();
 					
 					if (process.getRunprocess().getExitvalue() == 0) {
-						// process.getResultstdout()
-						// TODO parse IPTC raw data like : 2#120#Caption="Description avec des àccénts.&#13;et un sau\t de &quot;ligne&quot;"
-						// and insert in result.properties.iptc:2-120 -> Description...
-						// beware, some entries are not single !
+						if (result.has("properties")) {
+							ImageAttributes.injectIPTCInProperties(process.getResultstdout().toString(), result.get("properties").getAsJsonObject());
+						} else {
+							JsonObject jo_properties = new JsonObject();
+							result.add("properties", jo_properties);
+							ImageAttributes.injectIPTCInProperties(process.getResultstdout().toString(), jo_properties);
+						}
 					}
 				}
 				result.remove("profiles");
 			}
 			
 			result.remove("artifacts");
+			result.remove("name");
 			
-			return Operations.getGson().fromJson(result, ImageAttributes.class);
+			ImageAttributes ia = Operations.getGson().fromJson(result, ImageAttributes.class);
+			
+			// container.getSummary().putSummaryContent(ia, ""); //TODO create summary
+			
+			return ia;
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				Log2Dump dump = new Log2Dump();
@@ -87,14 +131,6 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 		}
 	}
 	
-	static final ArrayList<String> mimetype_list;
-	
-	static {
-		mimetype_list = new ArrayList<String>();
-		// TODO mimetype_list
-	}
-	
-	@Override
 	public boolean canProcessThis(String mimetype) {
 		return mimetype_list.contains(mimetype);
 	}
@@ -108,13 +144,10 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 	}
 	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 	
-	@Override
 	public boolean isCanUsedInMasterAsPreview(Container container) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 	

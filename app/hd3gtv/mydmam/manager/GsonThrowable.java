@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.tools.GsonIgnore;
+
 import java.lang.reflect.Type;
 
 import com.google.gson.JsonArray;

@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Locale;
 
 @SuppressWarnings("nls")
 /**
@@ -98,6 +100,8 @@ public class Execprocess extends Thread {
 		status = STATE_RUNNIG;
 		
 		pb = new ProcessBuilder(processinfo);
+		pb.environment().put("LANG", Locale.getDefault().getLanguage() + "_" + Locale.getDefault().getCountry() + "." + Charset.forName("UTF-8"));
+		
 		try {
 			process = pb.start();
 		} catch (IOException ioe) {

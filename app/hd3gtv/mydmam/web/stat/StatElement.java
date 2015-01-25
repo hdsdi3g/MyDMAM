@@ -16,8 +16,8 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.mydmam.manager.GsonIgnore;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.tools.GsonIgnore;
 
 import java.lang.reflect.Type;
 import java.util.Map;

@@ -22,6 +22,11 @@ public class ImageAttributeChannelDepth {
 	int green;
 	int blue;
 	
+	int cyan;
+	int magenta;
+	int yellow;
+	int black;
+	
 	public int getAlpha() {
 		return alpha;
 	}
@@ -36,6 +41,22 @@ public class ImageAttributeChannelDepth {
 	
 	public int getRed() {
 		return red;
+	}
+	
+	public int getBlack() {
+		return black;
+	}
+	
+	public int getCyan() {
+		return cyan;
+	}
+	
+	public int getMagenta() {
+		return magenta;
+	}
+	
+	public int getYellow() {
+		return yellow;
 	}
 	
 }

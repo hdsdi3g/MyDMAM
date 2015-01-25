@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
 
@@ -29,7 +28,7 @@ public class FFmpegLowres {
 			return "pvw_ffmpeg_lowres_lq";
 		}
 		
-		protected Entry create() {
+		protected EntryRenderer create() {
 			return new Lowres_lq();
 		}
 		
@@ -43,7 +42,7 @@ public class FFmpegLowres {
 			return "pvw_ffmpeg_lowres_sd";
 		}
 		
-		protected Entry create() {
+		protected EntryRenderer create() {
 			return new Lowres_sd();
 		}
 		
@@ -57,7 +56,7 @@ public class FFmpegLowres {
 			return "pvw_ffmpeg_lowres_hd";
 		}
 		
-		protected Entry create() {
+		protected EntryRenderer create() {
 			return new Lowres_hd();
 		}
 		
@@ -71,7 +70,7 @@ public class FFmpegLowres {
 			return "pvw_ffmpeg_lowres_audio";
 		}
 		
-		protected Entry create() {
+		protected EntryRenderer create() {
 			return new Lowres_audio();
 		}
 		

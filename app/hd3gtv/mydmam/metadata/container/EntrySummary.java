@@ -73,14 +73,10 @@ public final class EntrySummary extends Entry {
 	 * Start serializers functions.
 	 * */
 	
-	protected Entry create() {
-		return new EntrySummary();
-	}
-	
 	public static final String MASTER_AS_PREVIEW = "master_as_preview";
 	
-	protected void internalDeserialize(Entry _entry, JsonObject source, Gson gson) {
-		EntrySummary entry = (EntrySummary) _entry;
+	protected Entry internalDeserialize(JsonObject source, Gson gson) {
+		EntrySummary entry = new EntrySummary();
 		for (Map.Entry<String, JsonElement> item : source.entrySet()) {
 			if (item.getKey().equals("previews")) {
 				Type typeOfT = new TypeToken<HashMap<String, Preview>>() {
@@ -97,6 +93,7 @@ public final class EntrySummary extends Entry {
 				entry.summaries.put(item.getKey(), item.getValue().getAsString());
 			}
 		}
+		return entry;
 	}
 	
 	protected JsonObject internalSerialize(Entry _item, Gson gson) {

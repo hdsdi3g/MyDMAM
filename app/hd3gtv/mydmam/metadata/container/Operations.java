@@ -26,6 +26,7 @@ import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -77,6 +78,7 @@ public class Operations {
 	private static final Map<String, Entry> declared_entries_type;
 	private static final GsonBuilder gson_builder;
 	private static volatile Gson gson;
+	private static final Gson gson_simple;
 	private static Client client;
 	
 	static {
@@ -85,8 +87,13 @@ public class Operations {
 		gson_builder = new GsonBuilder();
 		gson_builder.serializeNulls();
 		
+		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
+		gson_builder.addDeserializationExclusionStrategy(ignore_strategy);
+		gson_builder.addSerializationExclusionStrategy(ignore_strategy);
+		
+		gson_simple = gson_builder.create();
 		try {
-			Operations.declareEntryType(EntrySummary.class);
+			declareEntryType(EntrySummary.class);
 		} catch (Exception e) {
 			Log2.log.error("Can't declare (de)serializer for EntrySummary", e);
 		}
@@ -108,6 +115,10 @@ public class Operations {
 	
 	static GsonBuilder getGsonBuilder() {
 		return gson_builder;
+	}
+	
+	public static Gson getGsonSimple() {
+		return gson_simple;
 	}
 	
 	/**

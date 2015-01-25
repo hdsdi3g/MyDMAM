@@ -21,6 +21,10 @@ public class ImageAttributeChannelStatistics {
 	ImageAttributeStatistics red;
 	ImageAttributeStatistics green;
 	ImageAttributeStatistics blue;
+	ImageAttributeStatistics cyan;
+	ImageAttributeStatistics magenta;
+	ImageAttributeStatistics yellow;
+	ImageAttributeStatistics black;
 	
 	public ImageAttributeStatistics getAlpha() {
 		return alpha;
@@ -36,5 +40,21 @@ public class ImageAttributeChannelStatistics {
 	
 	public ImageAttributeStatistics getRed() {
 		return red;
+	}
+	
+	public ImageAttributeStatistics getBlack() {
+		return black;
+	}
+	
+	public ImageAttributeStatistics getCyan() {
+		return cyan;
+	}
+	
+	public ImageAttributeStatistics getMagenta() {
+		return magenta;
+	}
+	
+	public ImageAttributeStatistics getYellow() {
+		return yellow;
 	}
 }

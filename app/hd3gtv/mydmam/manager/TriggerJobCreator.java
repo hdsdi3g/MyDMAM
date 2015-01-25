@@ -18,6 +18,7 @@ package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.tools.GsonIgnore;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;

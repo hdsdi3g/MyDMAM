@@ -30,6 +30,7 @@ import hd3gtv.mydmam.useraction.UACapabilityDefinition;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import hd3gtv.mydmam.useraction.UAWorker;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.util.ArrayList;
 import java.util.Calendar;

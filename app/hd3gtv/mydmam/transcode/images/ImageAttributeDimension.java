@@ -16,15 +16,16 @@
 */
 package hd3gtv.mydmam.transcode.images;
 
-public class ImageAttributeIntPoint {
-	int x;
-	int y;
+public class ImageAttributeDimension {
+	float x;
+	float y;
 	
-	public int getX() {
+	public float getX() {
 		return x;
 	}
 	
-	public int getY() {
+	public float getY() {
 		return y;
 	}
+	
 }

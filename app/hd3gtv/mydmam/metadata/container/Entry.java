@@ -22,6 +22,7 @@ import hd3gtv.log2.Log2Dumpable;
 import java.util.List;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 public abstract class Entry implements SelfSerializing, Log2Dumpable {
@@ -36,11 +37,6 @@ public abstract class Entry implements SelfSerializing, Log2Dumpable {
 	}
 	
 	public abstract String getES_Type();
-	
-	/**
-	 * For deserializing
-	 */
-	protected abstract Entry create();
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
@@ -66,7 +62,7 @@ public abstract class Entry implements SelfSerializing, Log2Dumpable {
 	/**
 	 * @param item from create()
 	 */
-	protected abstract void internalDeserialize(Entry _item, JsonObject source, Gson gson);
+	protected abstract Entry internalDeserialize(JsonObject source, Gson gson);
 	
 	/**
 	 * @param item is same type like create()
@@ -74,10 +70,10 @@ public abstract class Entry implements SelfSerializing, Log2Dumpable {
 	protected abstract JsonObject internalSerialize(Entry item, Gson gson);
 	
 	public Entry deserialize(JsonObject source, Gson gson) {
-		Entry item = create();
-		item.origin = gson.fromJson(source.get("origin"), Origin.class);
+		JsonElement j_origin = source.get("origin");
 		source.remove("origin");
-		internalDeserialize(item, source, gson);
+		Entry item = internalDeserialize(source, gson);
+		item.origin = gson.fromJson(j_origin, Origin.class);
 		return item;
 	}
 	

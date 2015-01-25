@@ -28,6 +28,7 @@ import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.useraction.UAWorker;
+import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.TimeUtils;
 
 import java.io.File;

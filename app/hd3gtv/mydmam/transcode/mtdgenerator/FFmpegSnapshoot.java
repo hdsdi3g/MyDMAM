@@ -23,7 +23,6 @@ import hd3gtv.mydmam.metadata.GeneratorRenderer;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
@@ -46,7 +45,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 			return "ffsnapshoot";
 		}
 		
-		protected Entry create() {
+		protected EntryRenderer create() {
 			return new Snapshoot();
 		}
 		
