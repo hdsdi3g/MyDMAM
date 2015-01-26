@@ -94,7 +94,7 @@ public class FFmpegAlbumartwork implements GeneratorRenderer {
 		
 		RenderedFile element = new RenderedFile("album_artwork", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.prepareExecprocessGettext(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile());
+		ExecprocessGettext process = tprofile.createProcessConfiguration(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile()).prepareExecprocess();
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();

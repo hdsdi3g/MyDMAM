@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@SuppressWarnings("unchecked")
 public class TranscodeProfile implements Log2Dumpable {
 	
 	static final String TAG_PROGRESSFILE = "<%$PROGRESSFILE%>";
@@ -146,6 +145,31 @@ public class TranscodeProfile implements Log2Dumpable {
 	}
 	
 	/**
+	 * @param context with transcodecategory and transcodename keys
+	 * @return null, or valid Tprofile
+	 */
+	public static TranscodeProfile getTranscodeProfile(String category, String name) {
+		if (isConfigured() == false) {
+			return null;
+		}
+		if (category == null) {
+			throw new NullPointerException("\"category\" can't to be null");
+		}
+		if (name == null) {
+			throw new NullPointerException("\"name\" can't to be null");
+		}
+		
+		for (int pos_pr = 0; pos_pr < profiles.size(); pos_pr++) {
+			if (profiles.get(pos_pr).category.equalsIgnoreCase(category)) {
+				if (profiles.get(pos_pr).name.equalsIgnoreCase(name)) {
+					return profiles.get(pos_pr);
+				}
+			}
+		}
+		return null;
+	}
+	
+	/**
 	 * @return start with "."
 	 */
 	public String getExtension(String default_value) {
@@ -193,6 +217,23 @@ public class TranscodeProfile implements Log2Dumpable {
 		return sb.toString().trim();
 	}
 	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump("profile", category + ":" + name);
+		StringBuffer sb = new StringBuffer();
+		ArrayList<String> cmd_line = makeCommandline(param, "<input>", "<output>", null);
+		for (int pos = 0; pos < cmd_line.size(); pos++) {
+			sb.append(cmd_line.get(pos));
+			sb.append(" ");
+		}
+		
+		dump.add("commandline", sb.toString().trim());
+		dump.add("extension", extension);
+		if (outputformat != null) {
+			dump.addAll(outputformat.getLog2Dump());
+		}
+		return dump;
+	}
+	
 	void testValidityProfile() throws NullPointerException {
 		if (getCategory() == null) {
 			throw new NullPointerException("\"profile_type\" can't to be null : check configuration.");
@@ -207,72 +248,6 @@ public class TranscodeProfile implements Log2Dumpable {
 			}
 		}
 		throw new NullPointerException("No <outputfile/> in command check configuration.");
-	}
-	
-	private ArrayList<String> makeCommandline(String source_file_path, String dest_file_path, String progress_file_path) {
-		ArrayList<String> cmdline = new ArrayList<String>();
-		
-		for (int pos = 0; pos < param.size(); pos++) {
-			if (param.get(pos).equals(TAG_INPUTFILE)) {
-				if (source_file_path == null) {
-					cmdline.add("-");
-				} else {
-					cmdline.add(source_file_path);
-				}
-			} else if (param.get(pos).equals(TAG_OUTPUTFILE)) {
-				cmdline.add(dest_file_path);
-			} else if (param.get(pos).equals(TAG_PROGRESSFILE)) {
-				if (progress_file_path != null) {
-					cmdline.add(progress_file_path);
-				} else {
-					cmdline.add(System.getProperty("java.io.tmpdir") + File.separator + "progress.txt");
-				}
-			} else {
-				cmdline.add(param.get(pos));
-			}
-		}
-		
-		return cmdline;
-	}
-	
-	public Execprocess prepareExecprocess(String executable, ExecprocessEvent events, File source_file, File... dest_files) throws IOException, NullPointerException {
-		if (executable == null) {
-			throw new NullPointerException("\"executable\" can't to be null");
-		}
-		if (source_file == null) {
-			throw new NullPointerException("\"source_file\" can't to be null");
-		}
-		if (dest_files == null) {
-			throw new NullPointerException("\"dest_files\" can't to be null");
-		}
-		if (dest_files.length == 0) {
-			throw new NullPointerException("\"dest_files\" can't to be empty");
-		}
-		if (dest_files.length > 1) {
-			return new Execprocess(executable, makeCommandline(source_file.getCanonicalPath(), dest_files[0].getCanonicalPath(), dest_files[1].getCanonicalPath()), events);
-		} else {
-			return new Execprocess(executable, makeCommandline(source_file.getCanonicalPath(), dest_files[0].getCanonicalPath(), null), events);
-		}
-	}
-	
-	public ExecprocessGettext prepareExecprocessGettext(String executable, File source_file, File... dest_files) throws IOException, NullPointerException {
-		if (executable == null) {
-			throw new NullPointerException("\"executable\" can't to be null");
-		}
-		if (source_file == null) {
-			throw new NullPointerException("\"source_file\" can't to be null");
-		}
-		if (dest_files == null) {
-			throw new NullPointerException("\"dest_files\" can't to be null");
-		}
-		if (dest_files.length == 0) {
-			throw new NullPointerException("\"dest_files\" can't to be empty");
-		}
-		if (dest_files.length > 1) {
-			return new ExecprocessGettext(executable, makeCommandline(source_file.getCanonicalPath(), dest_files[0].getCanonicalPath(), dest_files[1].getCanonicalPath()));
-		} else {
-			return new ExecprocessGettext(executable, makeCommandline(source_file.getCanonicalPath(), dest_files[0].getCanonicalPath(), null));
-		}
 	}
 	
 	public OutputFormat getOutputformat() {
@@ -317,73 +292,79 @@ public class TranscodeProfile implements Log2Dumpable {
 		}
 	}
 	
-	/**
-	 * @param context with transcodecategory and transcodename keys
-	 * @return null, or valid Tprofile
-	 */
-	/*public static TranscodeProfile getTranscodeProfile(JsonObject context) {
-		if (context.has("transcodecategory") == false) {
-			return null;
-		}
-		if (context.has("transcodename") == false) {
-			return null;
-		}
-		return getTranscodeProfile(context.get("transcodecategory").getAsString(), context.get("transcodename").getAsString());
-	}
-	
-	public final JsonObject toJson() {
-		JsonObject jo = new JsonObject();
-		jo.addProperty("transcodecategory", category);
-		jo.addProperty("transcodename", name);
-		return jo;
-	}
-	
-	public static JsonObject transcodeProfiletoJsonContext(String category, String name) {
-		JsonObject jo = new JsonObject();
-		jo.addProperty("transcodecategory", category);
-		jo.addProperty("transcodename", name);
-		return jo;
-	}*/
-	
-	/**
-	 * @param context with transcodecategory and transcodename keys
-	 * @return null, or valid Tprofile
-	 */
-	public static TranscodeProfile getTranscodeProfile(String category, String name) {
-		if (isConfigured() == false) {
-			return null;
-		}
-		if (category == null) {
-			throw new NullPointerException("\"category\" can't to be null");
-		}
-		if (name == null) {
-			throw new NullPointerException("\"name\" can't to be null");
+	public class ProcessConfiguration {
+		private String executable;
+		private File input_file;
+		private File output_file;
+		
+		private File progress_file;
+		
+		private ProcessConfiguration(String executable, File input_file, File output_file) {
+			this.input_file = input_file;
+			this.output_file = output_file;
+			this.executable = executable;
 		}
 		
-		for (int pos_pr = 0; pos_pr < profiles.size(); pos_pr++) {
-			if (profiles.get(pos_pr).category.equalsIgnoreCase(category)) {
-				if (profiles.get(pos_pr).name.equalsIgnoreCase(name)) {
-					return profiles.get(pos_pr);
-				}
+		public ProcessConfiguration setProgressFile(File progress_file) {
+			this.progress_file = progress_file;
+			return this;
+		}
+		
+		public Execprocess prepareExecprocess(ExecprocessEvent events) throws IOException {
+			if (progress_file != null) {
+				return new Execprocess(executable, makeCommandline(param, input_file.getCanonicalPath(), output_file.getCanonicalPath(), progress_file.getCanonicalPath()), events);
+			} else {
+				return new Execprocess(executable, makeCommandline(param, input_file.getCanonicalPath(), output_file.getCanonicalPath(), null), events);
 			}
 		}
-		return null;
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump("profile", category + ":" + name);
-		StringBuffer sb = new StringBuffer();
-		ArrayList<String> cmd_line = makeCommandline("<input>", "<output>", null);
-		for (int pos = 0; pos < cmd_line.size(); pos++) {
-			sb.append(cmd_line.get(pos));
-			sb.append(" ");
+		
+		public ExecprocessGettext prepareExecprocess() throws IOException {
+			if (progress_file != null) {
+				return new ExecprocessGettext(executable, makeCommandline(param, input_file.getCanonicalPath(), output_file.getCanonicalPath(), progress_file.getCanonicalPath()));
+			} else {
+				return new ExecprocessGettext(executable, makeCommandline(param, input_file.getCanonicalPath(), output_file.getCanonicalPath(), null));
+			}
 		}
 		
-		dump.add("commandline", sb.toString().trim());
-		dump.add("extension", extension);
-		if (outputformat != null) {
-			dump.addAll(outputformat.getLog2Dump());
+	}
+	
+	public ProcessConfiguration createProcessConfiguration(String executable, File input_file, File output_file) {
+		if (executable == null) {
+			throw new NullPointerException("\"executable\" can't to be null");
 		}
-		return dump;
+		if (input_file == null) {
+			throw new NullPointerException("\"input_file\" can't to be null");
+		}
+		if (output_file == null) {
+			throw new NullPointerException("\"output_file\" can't to be null");
+		}
+		return new ProcessConfiguration(executable, input_file, output_file);
+	}
+	
+	@Deprecated
+	private static ArrayList<String> makeCommandline(ArrayList<String> param, String source_file_path, String dest_file_path, String progress_file_path) {
+		ArrayList<String> cmdline = new ArrayList<String>();
+		
+		for (int pos = 0; pos < param.size(); pos++) {
+			if (param.get(pos).equals(TAG_INPUTFILE)) {
+				if (source_file_path == null) {
+					cmdline.add("-");
+				} else {
+					cmdline.add(source_file_path);
+				}
+			} else if (param.get(pos).equals(TAG_OUTPUTFILE)) {
+				cmdline.add(dest_file_path);
+			} else if (param.get(pos).equals(TAG_PROGRESSFILE)) {
+				if (progress_file_path != null) {
+					cmdline.add(progress_file_path);
+				} else {
+					cmdline.add(System.getProperty("java.io.tmpdir") + File.separator + "progress.txt");
+				}
+			} else {
+				cmdline.add(param.get(pos));
+			}// TODO add personalized tags
+		}
+		
+		return cmdline;
 	}
 }

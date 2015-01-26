@@ -152,7 +152,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		progress.start();
 		
 		FFmpegEvents events = new FFmpegEvents(job_progress.getJobKey() + ": " + origin.getName());
-		process = transcode_profile.prepareExecprocess(ffmpeg_bin, events, origin, temp_element.getTempFile(), progress_file.getTempFile());
+		process = transcode_profile.createProcessConfiguration(ffmpeg_bin, origin, temp_element.getTempFile()).setProgressFile(progress_file.getTempFile()).prepareExecprocess(events);
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("job", job_progress.getJobKey());

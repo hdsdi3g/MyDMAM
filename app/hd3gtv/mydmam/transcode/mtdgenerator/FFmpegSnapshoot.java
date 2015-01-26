@@ -85,7 +85,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		ArrayList<RenderedFile> result = new ArrayList<RenderedFile>();
 		RenderedFile element = new RenderedFile("snap", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.prepareExecprocessGettext(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile());
+		ExecprocessGettext process = tprofile.createProcessConfiguration(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile()).prepareExecprocess();
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();

@@ -55,3 +55,14 @@ transcodingprofiles:
         type : ffmpeg
         command : "-i <%$INPUTFILE%> -y -q:v 1 -vcodec mjpeg -f image2 <%$OUTPUTFILE%>"
         extension : jpg
+
+    convert_full_display : 
+        type : imagemagick
+        command : ""
+        extension : jpg
+
+# convert_cartridge convert_icon <%$INPUTFILE%> <%$OUTPUTFILE%>
+#convert logo-mtd-CMJN.psd[0] -profile srgb.icc \
+# null: \( -brightness-contrast 30x60 -size 1290x1588 pattern:CHECKERBOARD \) -compose Dst_Over -layers composite \
+# -strip -thumbnail 800x800 -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 4:1:1 -quality 90 low-411.jpg
+#convert IMG_0627.jpg[0] -profile srgb.icc -strip -thumbnail 800x800 -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 4:1:1 -quality 90 low.jpg
