@@ -57,7 +57,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 	public FFmpegSnapshoot() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		if (TranscodeProfile.isConfigured()) {
-			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg", "ffmpeg_snapshoot_first");
+			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg_snapshoot_first");
 		}
 	}
 	
@@ -85,7 +85,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		ArrayList<RenderedFile> result = new ArrayList<RenderedFile>();
 		RenderedFile element = new RenderedFile("snap", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.createProcessConfiguration(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile()).prepareExecprocess();
+		ExecprocessGettext process = tprofile.createProcessConfiguration(ffmpeg_bin, container.getPhysicalSource(), element.getTempFile()).prepareExecprocess();
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();

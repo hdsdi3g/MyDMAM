@@ -153,7 +153,7 @@ public class ImageAttributes extends EntryAnalyser {
 				if (units == ResolutionUnits.PixelsPerInch) {
 					sb.append("dpi");
 				} else {
-					sb.append("px per cm");
+					sb.append("px/cm");
 				}
 			} else {
 				sb.append("dpi");
@@ -163,8 +163,9 @@ public class ImageAttributes extends EntryAnalyser {
 		
 		if (colorspace != null) {
 			sb.append(colorspace);
-			sb.append("/");
+			sb.append(", ");
 			sb.append(depth);
+			sb.append("b");
 		}
 		
 		return sb.toString();

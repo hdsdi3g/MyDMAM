@@ -66,7 +66,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		root_entry_class = item.getEntryRendererClass();
 		
 		if (TranscodeProfile.isConfigured()) {
-			this.transcode_profile = TranscodeProfile.getTranscodeProfile("ffmpeg", item.getTranscodeProfileName());
+			this.transcode_profile = TranscodeProfile.getTranscodeProfile(item.getTranscodeProfileName());
 			
 			this.preview_type = preview_type;
 			if (preview_type == null) {

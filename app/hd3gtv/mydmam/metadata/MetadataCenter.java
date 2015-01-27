@@ -29,6 +29,9 @@ import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.transcode.images.ImageMagickAnalyser;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Cartridge;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.FullDisplay;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Icon;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshoot;
@@ -66,7 +69,9 @@ public class MetadataCenter {
 			addProvider(new FFprobeAnalyser());
 			addProvider(new FFmpegSnapshoot());
 			addProvider(new FFmpegAlbumartwork());
-			addProvider(new ImageMagickThumbnailer());
+			addProvider(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
+			addProvider(new ImageMagickThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
+			addProvider(new ImageMagickThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
 			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererLQ.class, PreviewType.video_lq_pvw, false));
 			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererSD.class, PreviewType.video_sd_pvw, false));
 			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererHD.class, PreviewType.video_hd_pvw, false));
@@ -95,7 +100,7 @@ public class MetadataCenter {
 		try {
 			Operations.declareEntryType(provider.getRootEntryClass());
 		} catch (Exception e) {
-			Log2.log.error("Can't declare (de)serializer from Entry provider " + provider.getLongName() + ".", e);
+			Log2.log.error("Can't declare (de)serializer from Entry provider " + provider.getLongName(), e);
 			return;
 		}
 		

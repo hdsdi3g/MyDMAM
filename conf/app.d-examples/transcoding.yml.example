@@ -57,12 +57,38 @@ transcodingprofiles:
         extension : jpg
 
     convert_full_display : 
-        type : imagemagick
-        command : ""
+        command : "<%$INPUTFILE%>[0] -thumbnail 800x800 -profile <%$ICCPROFILE%> -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
-
-# convert_cartridge convert_icon <%$INPUTFILE%> <%$OUTPUTFILE%>
-#convert logo-mtd-CMJN.psd[0] -profile srgb.icc \
-# null: \( -brightness-contrast 30x60 -size 1290x1588 pattern:CHECKERBOARD \) -compose Dst_Over -layers composite \
-# -strip -thumbnail 800x800 -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 4:1:1 -quality 90 low-411.jpg
-#convert IMG_0627.jpg[0] -profile srgb.icc -strip -thumbnail 800x800 -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 4:1:1 -quality 90 low.jpg
+        output : 
+            width : 800
+            height : 800
+    convert_cartridge : 
+        command : "<%$INPUTFILE%>[0] -thumbnail 300x300 -profile <%$ICCPROFILE%> -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
+        extension : jpg
+        output : 
+            width : 300
+            height : 300
+    convert_icon : 
+        command : "<%$INPUTFILE%>[0] -thumbnail 64x64 -profile <%$ICCPROFILE%> -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 4:1:1 -quality 80 <%$OUTPUTFILE%>"
+        extension : jpg
+        output : 
+            width : 64
+            height : 64
+    convert_full_display_alpha : 
+        command : "<%$INPUTFILE%>[0] -thumbnail 800x800 -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size 1600x1600 -resize 800x800 pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
+        extension : jpg
+        output : 
+            width : 800
+            height : 800
+    convert_cartridge_alpha : 
+        command : "<%$INPUTFILE%>[0] -thumbnail 300x300 -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size 600x600 -resize 300x300 pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
+        extension : jpg
+        output : 
+            width : 300
+            height : 300
+    convert_icon_alpha : 
+        command : "<%$INPUTFILE%>[0] -thumbnail 64x64 -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size 128x128 -resize 64x64 pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 4:1:1 -quality 80 <%$OUTPUTFILE%>"
+        extension : jpg
+        output : 
+            width : 64
+            height : 64

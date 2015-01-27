@@ -20,6 +20,8 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +40,7 @@ public class Container implements Log2Dumpable {
 	private List<Entry> entries;
 	private EntrySummary summary;
 	private HashMap<String, Entry> map_type_entry;
-	private HashMap<Class<?>, Entry> map_class_entry;
+	private HashMap<Class<? extends Entry>, Entry> map_class_entry;
 	
 	public Container(String mtd_key, Origin origin) {
 		this.origin = origin;
@@ -49,7 +51,7 @@ public class Container implements Log2Dumpable {
 		entries = new ArrayList<Entry>();
 		summary = null;
 		map_type_entry = new HashMap<String, Entry>();
-		map_class_entry = new HashMap<Class<?>, Entry>();
+		map_class_entry = new HashMap<Class<? extends Entry>, Entry>();
 	}
 	
 	/**
@@ -97,7 +99,7 @@ public class Container implements Log2Dumpable {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T> T getByClass(Class<T> class_of_T) {
+	public <T extends Entry> T getByClass(Class<T> class_of_T) {
 		if (map_class_entry.containsKey((Class<?>) class_of_T)) {
 			return (T) map_class_entry.get((Class<?>) class_of_T);
 		} else {
@@ -130,4 +132,11 @@ public class Container implements Log2Dumpable {
 		return dump;
 	}
 	
+	public File getPhysicalSource() throws IOException {
+		Origin o = getOrigin();
+		if (o == null) {
+			return null;
+		}
+		return o.getPhysicalSource();
+	}
 }

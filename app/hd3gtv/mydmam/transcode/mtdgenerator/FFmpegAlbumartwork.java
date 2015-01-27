@@ -56,7 +56,7 @@ public class FFmpegAlbumartwork implements GeneratorRenderer {
 	public FFmpegAlbumartwork() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		if (TranscodeProfile.isConfigured()) {
-			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg", "ffmpeg_album_artwork");
+			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg_album_artwork");
 		}
 	}
 	
@@ -94,7 +94,7 @@ public class FFmpegAlbumartwork implements GeneratorRenderer {
 		
 		RenderedFile element = new RenderedFile("album_artwork", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.createProcessConfiguration(ffmpeg_bin, container.getOrigin().getPhysicalSource(), element.getTempFile()).prepareExecprocess();
+		ExecprocessGettext process = tprofile.createProcessConfiguration(ffmpeg_bin, container.getPhysicalSource(), element.getTempFile()).prepareExecprocess();
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();

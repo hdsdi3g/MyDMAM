@@ -33,44 +33,28 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@SuppressWarnings("unchecked")
 public class TranscodeProfile implements Log2Dumpable {
 	
-	static final String TAG_PROGRESSFILE = "<%$PROGRESSFILE%>";
-	static final String TAG_INPUTFILE = "<%$INPUTFILE%>";
-	static final String TAG_OUTPUTFILE = "<%$OUTPUTFILE%>";
-	static final String TAG_STARTVAR = "<%$VAR=";
-	static final String TAG_ENDVAR = "%>";
+	private static final String TAG_PROGRESSFILE = "<%$PROGRESSFILE%>";
+	private static final String TAG_INPUTFILE = "<%$INPUTFILE%>";
+	private static final String TAG_OUTPUTFILE = "<%$OUTPUTFILE%>";
+	private static final String TAG_STARTVAR = "<%$VAR=";
+	private static final String TAG_ENDVAR = "%>";
+	private static final String TAG_STARTPARAM = "<%$";
+	private static final String TAG_ENDPARAM = "%>";
 	
-	private ArrayList<String> param;
+	private ArrayList<String> params;
 	private String extension;
 	private OutputFormat outputformat;
 	
 	private String name;
-	private String category;
 	
-	private static ArrayList<TranscodeProfile> profiles;
-	
-	private TranscodeProfile(String category, String name) {
-		this.category = category;
-		if (category == null) {
-			throw new NullPointerException("\"category\" can't to be null");
-		}
-		this.name = name;
-		if (name == null) {
-			throw new NullPointerException("\"name\" can't to be null");
-		}
-		this.category = this.category.toLowerCase();
-		this.name = this.name.toLowerCase();
-		param = new ArrayList<String>();
-	}
-	
-	public static boolean isConfigured() {
-		return Configuration.global.isElementExists("transcodingprofiles");
-	}
+	private static LinkedHashMap<String, TranscodeProfile> profiles;
 	
 	static {
 		try {
-			profiles = new ArrayList<TranscodeProfile>(1);
+			profiles = new LinkedHashMap<String, TranscodeProfile>();
 			if (isConfigured()) {
 				HashMap<String, ConfigurationItem> tp_list = Configuration.global.getElement("transcodingprofiles");
 				
@@ -78,22 +62,13 @@ public class TranscodeProfile implements Log2Dumpable {
 					Log2.log.error("Can't found \"profile\" element in transcoding block in XML configuration", null);
 				}
 				
-				profiles = new ArrayList<TranscodeProfile>(tp_list.size());
-				
-				String profile_type;
 				String profile_name;
 				String profile_extension;
 				String param;
 				for (Map.Entry<String, ConfigurationItem> entry : tp_list.entrySet()) {
-					profile_type = Configuration.getValue(tp_list, entry.getKey(), "type", null);
-					if (profile_type == null) {
-						throw new NullPointerException("Attribute \"type\" in \"profile\" element for transcoding can't to be null");
-					} else if (profile_type.equals("")) {
-						throw new NullPointerException("Attribute \"type\" in \"profile\" element for transcoding can't to be empty");
-					}
 					profile_name = entry.getKey();
 					
-					TranscodeProfile profile = new TranscodeProfile(profile_type, profile_name);
+					TranscodeProfile profile = new TranscodeProfile(profile_name);
 					String[] params = Configuration.getValue(tp_list, entry.getKey(), "command", null).trim().split(" ");
 					for (int pos_par = 0; pos_par < params.length; pos_par++) {
 						param = params[pos_par].trim();
@@ -108,7 +83,7 @@ public class TranscodeProfile implements Log2Dumpable {
 							}
 							param = param.trim();
 						}
-						profile.param.add(param);
+						profile.params.add(param);
 					}
 					
 					profile_extension = Configuration.getValue(tp_list, entry.getKey(), "extension", null);
@@ -127,14 +102,27 @@ public class TranscodeProfile implements Log2Dumpable {
 						}
 					}
 					
-					profile.testValidityProfile();
-					profiles.add(profile);
+					if (profile.name == null) {
+						throw new NullPointerException("\"profile_name\" can't to be null : check configuration.");
+					}
+					
+					boolean founded = false;
+					for (int pos = 0; pos < profile.params.size(); pos++) {
+						if (profile.params.get(pos).contains(TAG_OUTPUTFILE)) {
+							founded = true;
+							break;
+						}
+					}
+					if (founded == false) {
+						throw new NullPointerException("No " + TAG_OUTPUTFILE + " in command check configuration.");
+					}
+					
+					profiles.put(profile_name, profile);
 				}
 				
 				Log2Dump dump = new Log2Dump();
-				for (int pos = 0; pos < profiles.size(); pos++) {
-					dump.add("transcoding profile", pos);
-					dump.addAll(profiles.get(pos));
+				for (Map.Entry<String, TranscodeProfile> entry : profiles.entrySet()) {
+					dump.addAll(entry.getValue());
 				}
 				
 				Log2.log.debug("Set transcoding configuration", dump);
@@ -144,27 +132,32 @@ public class TranscodeProfile implements Log2Dumpable {
 		}
 	}
 	
+	private TranscodeProfile(String name) {
+		this.name = name;
+		if (name == null) {
+			throw new NullPointerException("\"name\" can't to be null");
+		}
+		params = new ArrayList<String>();
+	}
+	
+	public static boolean isConfigured() {
+		return Configuration.global.isElementExists("transcodingprofiles");
+	}
+	
 	/**
 	 * @param context with transcodecategory and transcodename keys
 	 * @return null, or valid Tprofile
 	 */
-	public static TranscodeProfile getTranscodeProfile(String category, String name) {
+	public static TranscodeProfile getTranscodeProfile(String name) {
 		if (isConfigured() == false) {
+			Log2.log.error("TranscodeProfile is not configured", new NullPointerException());
 			return null;
-		}
-		if (category == null) {
-			throw new NullPointerException("\"category\" can't to be null");
 		}
 		if (name == null) {
 			throw new NullPointerException("\"name\" can't to be null");
 		}
-		
-		for (int pos_pr = 0; pos_pr < profiles.size(); pos_pr++) {
-			if (profiles.get(pos_pr).category.equalsIgnoreCase(category)) {
-				if (profiles.get(pos_pr).name.equalsIgnoreCase(name)) {
-					return profiles.get(pos_pr);
-				}
-			}
+		if (profiles.containsKey(name)) {
+			return profiles.get(name);
 		}
 		return null;
 	}
@@ -188,28 +181,22 @@ public class TranscodeProfile implements Log2Dumpable {
 		}
 	}
 	
-	public final String getCategory() {
-		return category;
-	}
-	
 	public final String getName() {
 		return name;
 	}
 	
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
-		sb.append(getCategory());
-		sb.append("[\"");
 		sb.append(getName());
-		sb.append("\"]\t");
+		sb.append("\t");
 		
-		for (int pos = 0; pos < param.size(); pos++) {
-			if (param.get(pos).split(" ").length > 1) {
+		for (int pos = 0; pos < params.size(); pos++) {
+			if (params.get(pos).split(" ").length > 1) {
 				sb.append("\"");
-				sb.append(param.get(pos));
+				sb.append(params.get(pos));
 				sb.append("\"");
 			} else {
-				sb.append(param.get(pos));
+				sb.append(params.get(pos));
 			}
 			sb.append(" ");
 		}
@@ -218,11 +205,10 @@ public class TranscodeProfile implements Log2Dumpable {
 	}
 	
 	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump("profile", category + ":" + name);
+		Log2Dump dump = new Log2Dump("profile", name);
 		StringBuffer sb = new StringBuffer();
-		ArrayList<String> cmd_line = makeCommandline(param, "<input>", "<output>", null);
-		for (int pos = 0; pos < cmd_line.size(); pos++) {
-			sb.append(cmd_line.get(pos));
+		for (int pos = 0; pos < params.size(); pos++) {
+			sb.append(params.get(pos));
 			sb.append(" ");
 		}
 		
@@ -232,22 +218,6 @@ public class TranscodeProfile implements Log2Dumpable {
 			dump.addAll(outputformat.getLog2Dump());
 		}
 		return dump;
-	}
-	
-	void testValidityProfile() throws NullPointerException {
-		if (getCategory() == null) {
-			throw new NullPointerException("\"profile_type\" can't to be null : check configuration.");
-		}
-		if (getName() == null) {
-			throw new NullPointerException("\"profile_name\" can't to be null : check configuration.");
-		}
-		
-		for (int pos = 0; pos < param.size(); pos++) {
-			if (param.get(pos).equals(TAG_OUTPUTFILE)) {
-				return;
-			}
-		}
-		throw new NullPointerException("No <outputfile/> in command check configuration.");
 	}
 	
 	public OutputFormat getOutputformat() {
@@ -287,22 +257,26 @@ public class TranscodeProfile implements Log2Dumpable {
 			if (width > 0 | height > 0) {
 				dump.add("resolution", width + "x" + height);
 			}
-			dump.add("faststarted", faststarted);
+			if (faststarted) {
+				dump.add("faststarted", faststarted);
+			}
 			return dump;
 		}
 	}
 	
-	public class ProcessConfiguration {
+	public class ProcessConfiguration implements Log2Dumpable {
 		private String executable;
 		private File input_file;
 		private File output_file;
 		
 		private File progress_file;
+		private HashMap<String, String> param_tags;
 		
 		private ProcessConfiguration(String executable, File input_file, File output_file) {
 			this.input_file = input_file;
 			this.output_file = output_file;
 			this.executable = executable;
+			param_tags = new HashMap<String, String>();
 		}
 		
 		public ProcessConfiguration setProgressFile(File progress_file) {
@@ -310,22 +284,71 @@ public class TranscodeProfile implements Log2Dumpable {
 			return this;
 		}
 		
+		public HashMap<String, String> getParamTags() {
+			return param_tags;
+		}
+		
 		public Execprocess prepareExecprocess(ExecprocessEvent events) throws IOException {
-			if (progress_file != null) {
-				return new Execprocess(executable, makeCommandline(param, input_file.getCanonicalPath(), output_file.getCanonicalPath(), progress_file.getCanonicalPath()), events);
-			} else {
-				return new Execprocess(executable, makeCommandline(param, input_file.getCanonicalPath(), output_file.getCanonicalPath(), null), events);
-			}
+			return new Execprocess(executable, makeCommandline(), events);
 		}
 		
 		public ExecprocessGettext prepareExecprocess() throws IOException {
-			if (progress_file != null) {
-				return new ExecprocessGettext(executable, makeCommandline(param, input_file.getCanonicalPath(), output_file.getCanonicalPath(), progress_file.getCanonicalPath()));
-			} else {
-				return new ExecprocessGettext(executable, makeCommandline(param, input_file.getCanonicalPath(), output_file.getCanonicalPath(), null));
-			}
+			return new ExecprocessGettext(executable, makeCommandline());
 		}
 		
+		private ArrayList<String> makeCommandline() throws IOException {
+			ArrayList<String> cmdline = new ArrayList<String>();
+			
+			String param;
+			
+			for (int pos = 0; pos < params.size(); pos++) {
+				param = params.get(pos);
+				if (param.contains(TAG_INPUTFILE)) {
+					if (input_file.getCanonicalPath() == null) {
+						cmdline.add(param.replace(TAG_INPUTFILE, "-"));
+					} else {
+						cmdline.add(param.replace(TAG_INPUTFILE, input_file.getCanonicalPath()));
+					}
+				} else if (param.equals(TAG_OUTPUTFILE)) {
+					cmdline.add(output_file.getCanonicalPath());
+				} else if (param.equals(TAG_PROGRESSFILE)) {
+					if (progress_file != null) {
+						cmdline.add(progress_file.getCanonicalPath());
+					} else {
+						cmdline.add(System.getProperty("java.io.tmpdir") + File.separator + "progress.txt");
+					}
+				} else if (param.startsWith(TAG_STARTPARAM) & param.endsWith(TAG_ENDPARAM)) {
+					param = param.substring(TAG_STARTPARAM.length(), param.length() - TAG_ENDPARAM.length());
+					if (param_tags.containsKey(param)) {
+						cmdline.add(param_tags.get(param));
+					}
+				} else {
+					cmdline.add(param);
+				}
+			}
+			
+			return cmdline;
+		}
+		
+		public Log2Dump getLog2Dump() {
+			Log2Dump dump = new Log2Dump("profile", name);
+			try {
+				StringBuffer sb = new StringBuffer();
+				ArrayList<String> cmd = makeCommandline();
+				for (int pos = 0; pos < cmd.size(); pos++) {
+					sb.append(cmd.get(pos));
+					sb.append(" ");
+				}
+				dump.add("commandline", sb.toString().trim());
+			} catch (IOException e) {
+				dump.add("commandline", e);
+			}
+			dump.add("extension", extension);
+			if (outputformat != null) {
+				dump.addAll(outputformat.getLog2Dump());
+			}
+			return dump;
+		}
 	}
 	
 	public ProcessConfiguration createProcessConfiguration(String executable, File input_file, File output_file) {
@@ -341,30 +364,4 @@ public class TranscodeProfile implements Log2Dumpable {
 		return new ProcessConfiguration(executable, input_file, output_file);
 	}
 	
-	@Deprecated
-	private static ArrayList<String> makeCommandline(ArrayList<String> param, String source_file_path, String dest_file_path, String progress_file_path) {
-		ArrayList<String> cmdline = new ArrayList<String>();
-		
-		for (int pos = 0; pos < param.size(); pos++) {
-			if (param.get(pos).equals(TAG_INPUTFILE)) {
-				if (source_file_path == null) {
-					cmdline.add("-");
-				} else {
-					cmdline.add(source_file_path);
-				}
-			} else if (param.get(pos).equals(TAG_OUTPUTFILE)) {
-				cmdline.add(dest_file_path);
-			} else if (param.get(pos).equals(TAG_PROGRESSFILE)) {
-				if (progress_file_path != null) {
-					cmdline.add(progress_file_path);
-				} else {
-					cmdline.add(System.getProperty("java.io.tmpdir") + File.separator + "progress.txt");
-				}
-			} else {
-				cmdline.add(param.get(pos));
-			}// TODO add personalized tags
-		}
-		
-		return cmdline;
-	}
 }

@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.metadata.validation;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
@@ -130,7 +131,8 @@ public class ValidatorCenter {
 				}
 			}
 			if (passed == false) {
-				// Log2.log.debug("Fail to validate analysis", dump);
+				Log2.log.debug("Fail to validate analysis", dump);
+				return false;
 			} else {
 				dump = new Log2Dump();
 			}

@@ -45,7 +45,6 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class Publish extends WorkerNG {
 	
-	public static final String TRANSCODE_PROFILE_CAT = "ffmpeg";
 	public static final String TRANSCODE_PROFILE_NAME = "ffmpeg_vod_live";
 	
 	private String workername;
@@ -182,7 +181,7 @@ public class Publish extends WorkerNG {
 		
 		dest_file_ffmpeg = new File(templocaldir.getPath() + File.separator + context_publish.mediaid.toUpperCase() + "-" + progression.getJobKey().replaceAll(":", "-") + ".mp4");
 		
-		profile = TranscodeProfile.getTranscodeProfile(TRANSCODE_PROFILE_CAT, TRANSCODE_PROFILE_NAME);
+		profile = TranscodeProfile.getTranscodeProfile(TRANSCODE_PROFILE_NAME);
 		
 		File progress_file = new File(dest_file_ffmpeg.getPath() + "-progress.txt");
 		progress_file.delete();

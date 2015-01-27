@@ -67,7 +67,7 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 		param.add("-print_format");
 		param.add("json");
 		param.add("-i");
-		param.add(container.getOrigin().getPhysicalSource().getPath());
+		param.add(container.getPhysicalSource().getPath());
 		
 		ExecprocessGettext process = new ExecprocessGettext(ffprobe_bin, param);
 		process.setEndlinewidthnewline(true);
@@ -102,13 +102,9 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 			 */
 			List<Stream> video_streams = result.getStreamsByCodecType("video");
 			for (int pos = 0; pos < video_streams.size(); pos++) {
-				if (video_streams.get(pos).hasMultipleParams("level") == false) {
+				if (video_streams.get(pos).isAValidVideoStreamOrAlbumArtwork()) {
 					continue;
-				}
-				if (video_streams.get(pos).getParam("level").getAsInt() < 0l) {
-					/**
-					 * level < 0 : video stream is not a real video stream
-					 */
+				} else {
 					video_streams.get(pos).setIgnored(true);
 					if (container.getSummary().getMimetype().startsWith("video")) {
 						/**
@@ -398,7 +394,8 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 	static {
 		translated_codecs_names = new Properties();
 		translated_codecs_names.setProperty("dvvideo", "DV");
-		translated_codecs_names.setProperty("dvcp", "DV");
+		translated_codecs_names.setProperty("dvcp", "DV/DVCPro");
+		translated_codecs_names.setProperty("dv5p", "DVCPro 50");
 		translated_codecs_names.setProperty("h264", "h264");
 		translated_codecs_names.setProperty("avc1", "h264");
 		translated_codecs_names.setProperty("mpeg2video", "MPEG2");
@@ -478,6 +475,7 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 			}
 			
 			if (video_webbrowser_validation.validate(container)) {
+				Log2.log.debug("YES ??");
 				return true;
 			} else if (audio_webbrowser_validation.validate(container)) {
 				return true;

@@ -69,7 +69,7 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 		ArrayList<String> param = new ArrayList<String>();
 		ExecprocessGettext process = null;
 		try {
-			param.add(container.getOrigin().getPhysicalSource().getPath() + "[0]");
+			param.add(container.getPhysicalSource().getPath() + "[0]");
 			param.add("json:-");
 			
 			process = new ExecprocessGettext(convert_bin, param);
@@ -87,7 +87,7 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 					 * Import and inject IPTC
 					 */
 					param.clear();
-					param.add(container.getOrigin().getPhysicalSource().getPath() + "[0]");
+					param.add(container.getPhysicalSource().getPath() + "[0]");
 					param.add("iptctext:-");
 					process = new ExecprocessGettext(convert_bin, param);
 					process.setEndlinewidthnewline(true);

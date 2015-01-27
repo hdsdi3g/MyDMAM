@@ -148,4 +148,40 @@ public class Stream extends FFprobeNode {
 		return -1;
 	}
 	
+	public boolean isAValidVideoStreamOrAlbumArtwork() {
+		if (getCodec_type().equals("video") == false) {
+			return false;
+		}
+		if (hasMultipleParams("level") == false) {
+			/**
+			 * No level ? It's a real video stream.
+			 */
+			return true;
+		}
+		if (getParam("level").getAsInt() >= 0l) {
+			/**
+			 * level > 0 : video stream is a real video stream.
+			 */
+			return true;
+		}
+		if (getCodec_tag().equals("0x0000") == false) {
+			/**
+			 * codec_tag != 0x0000: this stream is correct.
+			 */
+			return true;
+		}
+		if (getParam("codec_name").getAsString().equals("mjpeg")) {
+			/**
+			 * MJPEG, but not a valid codec_tag ? this stream is an album artwork.
+			 */
+			return false;
+		}
+		if (getParam("codec_name").getAsString().equals("png")) {
+			/**
+			 * png, but not a valid codec_tag ? this stream is an album artwork.
+			 */
+			return false;
+		}
+		return true;
+	}
 }
