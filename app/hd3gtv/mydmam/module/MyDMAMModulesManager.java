@@ -169,7 +169,6 @@ public class MyDMAMModulesManager {
 								FileInputStream fis = new FileInputStream(applicationconf_file);
 								applicationconf.load(fis);
 								fis.close();
-								
 								fis = new FileInputStream(dependenciesyml_file);
 								Yaml yaml = new Yaml();
 								for (Object data : yaml.loadAll(fis)) {
@@ -183,6 +182,9 @@ public class MyDMAMModulesManager {
 							}
 						}
 					}
+				}
+				if (all_conf_directories.isEmpty()) {
+					throw new FileNotFoundException("Empty all_conf_directories !");
 				}
 			} catch (Exception e) {
 				Log2.log.error("Can't import modules configuration files", e);
