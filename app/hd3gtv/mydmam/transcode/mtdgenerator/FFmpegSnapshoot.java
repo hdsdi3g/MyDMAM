@@ -51,7 +51,6 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
 			return null;
 		}
-		// TODO add the mgr to 3 types of thumbnail
 	}
 	
 	public FFmpegSnapshoot() {
@@ -85,6 +84,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		RenderedFile element = new RenderedFile("snap", tprofile.getExtension("jpg"));
 		
 		ExecprocessGettext process = tprofile.createProcessConfiguration(ffmpeg_bin, container.getPhysicalSource(), element.getTempFile()).prepareExecprocess();
+		// TODO deinterlace (-vf yadif=0:-1:0)
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();
@@ -107,13 +107,11 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		
 		Snapshoot result = new Snapshoot();
 		element.consolidateAndExportToEntry(result, container, this);
-		// TODO add 3 types of thumbnail, with MetadataCenter.standaloneAnalysis(physical_source), and ImageMagickThumbnailer
 		return result;
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
-		// TODO extends to 3 types of thumbnail
-		return PreviewType.full_size_thumbnail;
+		return null;
 	}
 	
 	public Class<? extends EntryRenderer> getRootEntryClass() {

@@ -32,6 +32,8 @@ public abstract class Entry implements SelfSerializing, Log2Dumpable {
 	
 	private Origin origin;
 	
+	transient Container container;
+	
 	public final Origin getOrigin() {
 		return origin;
 	}

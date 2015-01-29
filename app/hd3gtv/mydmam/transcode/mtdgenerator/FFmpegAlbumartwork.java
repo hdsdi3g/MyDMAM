@@ -51,7 +51,6 @@ public class FFmpegAlbumartwork implements GeneratorRenderer {
 		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
 			return null;
 		}
-		// TODO add the mgr to 3 types of thumbnail
 	}
 	
 	public FFmpegAlbumartwork() {
@@ -118,13 +117,11 @@ public class FFmpegAlbumartwork implements GeneratorRenderer {
 		
 		Albumartwork result = new Albumartwork();
 		element.consolidateAndExportToEntry(result, container, this);
-		// TODO add 3 types of thumbnail, with MetadataCenter.standaloneAnalysis(physical_source), and ImageMagickThumbnailer
 		return result;
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
-		// TODO extends to 3 types of thumbnail
-		return PreviewType.full_size_thumbnail;
+		return null;
 	}
 	
 	public Class<? extends EntryRenderer> getRootEntryClass() {

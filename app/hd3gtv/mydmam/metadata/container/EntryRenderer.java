@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
+import hd3gtv.mydmam.metadata.RenderedFile;
+
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,6 +61,18 @@ public abstract class EntryRenderer extends Entry {
 			result.add(content.get(pos).name);
 		}
 		return result;
+	}
+	
+	public RenderedFile getRenderedFile(String name, boolean check_hash) throws IOException {
+		if (content == null) {
+			return null;
+		}
+		for (int pos = 0; pos < content.size(); pos++) {
+			if (name.equals(content.get(pos).name)) {
+				return RenderedFile.import_from_entry(content.get(pos), container.getMtd_key(), check_hash);
+			}
+		}
+		return null;
 	}
 	
 	/**

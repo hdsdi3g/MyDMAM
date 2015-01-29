@@ -67,7 +67,7 @@ public class Container implements Log2Dumpable {
 			Log2.log.error("Divergent origins", null, dump);
 			throw new NullPointerException("Can't add entry " + entry.getES_Type() + ", incompatible origins");
 		}
-		
+		entry.container = this;
 		entries.add(entry);
 		
 		map_type_entry.put(entry.getES_Type(), entry);
@@ -87,7 +87,9 @@ public class Container implements Log2Dumpable {
 	}
 	
 	public Entry getByType(String type) {
-		return map_type_entry.get(type);
+		Entry result = map_type_entry.get(type);
+		result.container = this;
+		return result;
 	}
 	
 	public Origin getOrigin() {
@@ -101,7 +103,9 @@ public class Container implements Log2Dumpable {
 	@SuppressWarnings("unchecked")
 	public <T extends Entry> T getByClass(Class<T> class_of_T) {
 		if (map_class_entry.containsKey((Class<?>) class_of_T)) {
-			return (T) map_class_entry.get((Class<?>) class_of_T);
+			T result = (T) map_class_entry.get((Class<?>) class_of_T);
+			result.container = this;
+			return result;
 		} else {
 			return null;
 		}

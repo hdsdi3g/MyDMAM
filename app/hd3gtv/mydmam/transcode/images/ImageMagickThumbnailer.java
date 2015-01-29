@@ -1,3 +1,19 @@
+/*
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2015
+ * 
+*/
 package hd3gtv.mydmam.transcode.images;
 
 import hd3gtv.configuration.Configuration;
@@ -78,7 +94,7 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 	private TranscodeProfile tprofile_alpha;
 	private Class<? extends EntryRenderer> root_entry_class;
 	private PreviewType preview_type;
-	private static File icc_profile;
+	protected static File icc_profile;
 	
 	static {
 		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
@@ -145,6 +161,10 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 			return null;
 		}
 		
+		return subProcess(container, container.getPhysicalSource(), image_attributes);
+	}
+	
+	protected EntryRenderer subProcess(Container container, File physical_source, ImageAttributes image_attributes) throws Exception {
 		TranscodeProfile tprofile = tprofile_opaque;
 		if (image_attributes.alpha != null) {
 			tprofile = tprofile_alpha;
@@ -157,6 +177,7 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 			if ((tprofile.getOutputformat().getResolution().x > image_attributes.geometry.width) & (tprofile.getOutputformat().getResolution().y > image_attributes.geometry.height)) {
 				Log2Dump dump = new Log2Dump();
 				dump.add("Source", container);
+				dump.add("physical_source", physical_source);
 				dump.add("output format", tprofile.getOutputformat());
 				Log2.log.debug("Image size is too litte to fit in this profile", dump);
 				return null;
@@ -164,7 +185,7 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 		}
 		
 		RenderedFile element = new RenderedFile(root_entry_class.getSimpleName().toLowerCase(), tprofile.getExtension("jpg"));
-		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(convert_bin, container.getPhysicalSource(), element.getTempFile());
+		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(convert_bin, physical_source, element.getTempFile());
 		process_conf.getParamTags().put("ICCPROFILE", icc_profile.getAbsolutePath());
 		
 		ExecprocessGettext process = process_conf.prepareExecprocess();
@@ -172,11 +193,6 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 		process.start();
 		
 		return element.consolidateAndExportToEntry(root_entry_class.newInstance(), container, this);
-	}
-	
-	public static void standaloneProcess(File source_file, File dest_file, ImageAttributes image_attributes, PreviewType preview_type) {
-		// TODO standaloneProcess ?
-		return;
 	}
 	
 }
