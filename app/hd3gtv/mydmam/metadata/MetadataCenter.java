@@ -19,6 +19,7 @@ package hd3gtv.mydmam.metadata;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
@@ -42,6 +43,7 @@ import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererLQ;
 import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererSD;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -132,6 +134,7 @@ public class MetadataCenter {
 	
 	/**
 	 * Database independant
+	 * @param current_create_job_list set null for not process rendering
 	 */
 	public static Container standaloneIndexing(File physical_source, SourcePathIndexerElement reference, List<FutureCreateJobs> current_create_job_list) throws Exception {
 		Origin origin = Origin.fromSource(reference, physical_source);
@@ -171,6 +174,10 @@ public class MetadataCenter {
 			}
 		}
 		
+		if (current_create_job_list == null) {
+			return container;
+		}
+		
 		for (int pos = 0; pos < generatorRenderers.size(); pos++) {
 			GeneratorRenderer generatorRenderer = generatorRenderers.get(pos);
 			if (generatorRenderer.canProcessThis(entry_summary.getMimetype())) {
@@ -198,6 +205,25 @@ public class MetadataCenter {
 		}
 		
 		return container;
+	}
+	
+	/**
+	 * Database independant, and don't create any rendering files.
+	 */
+	public static Container standaloneAnalysis(File physical_source) throws Exception {
+		if (physical_source.isFile() == false) {
+			throw new IOException(physical_source.getPath() + " is not a file");
+		}
+		
+		SourcePathIndexerElement reference = new SourcePathIndexerElement();
+		reference.size = physical_source.length();
+		reference.currentpath = physical_source.getCanonicalPath();
+		reference.date = physical_source.lastModified();
+		reference.directory = false;
+		reference.storagename = "standalone-" + InstanceStatus.getThisInstanceNamePid();
+		reference.parentpath = physical_source.getParentFile().getAbsolutePath();
+		
+		return standaloneIndexing(physical_source, reference, null);
 	}
 	
 }

@@ -32,7 +32,6 @@ import hd3gtv.tools.ExecprocessGettext;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class FFmpegSnapshoot implements GeneratorRenderer {
@@ -52,6 +51,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
 			return null;
 		}
+		// TODO add the mgr to 3 types of thumbnail
 	}
 	
 	public FFmpegSnapshoot() {
@@ -82,7 +82,6 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 			return null;
 		}
 		
-		ArrayList<RenderedFile> result = new ArrayList<RenderedFile>();
 		RenderedFile element = new RenderedFile("snap", tprofile.getExtension("jpg"));
 		
 		ExecprocessGettext process = tprofile.createProcessConfiguration(ffmpeg_bin, container.getPhysicalSource(), element.getTempFile()).prepareExecprocess();
@@ -106,12 +105,14 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 			throw e;
 		}
 		
-		result.add(element);
-		
-		return element.consolidateAndExportToEntry(new Snapshoot(), container, this);
+		Snapshoot result = new Snapshoot();
+		element.consolidateAndExportToEntry(result, container, this);
+		// TODO add 3 types of thumbnail, with MetadataCenter.standaloneAnalysis(physical_source), and ImageMagickThumbnailer
+		return result;
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
+		// TODO extends to 3 types of thumbnail
 		return PreviewType.full_size_thumbnail;
 	}
 	

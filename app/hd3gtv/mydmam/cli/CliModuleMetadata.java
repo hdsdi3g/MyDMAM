@@ -18,7 +18,6 @@ package hd3gtv.mydmam.cli;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.FutureCreateJobs;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.MetadataIndexer;
 import hd3gtv.mydmam.metadata.container.Container;
@@ -29,8 +28,6 @@ import hd3gtv.tools.ApplicationArgs;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class CliModuleMetadata implements CliModule {
 	
@@ -56,11 +53,6 @@ public class CliModuleMetadata implements CliModule {
 				Operations.setGsonPrettyPrinting();
 			}
 			
-			/**
-			 * Never be executed here (from CLI)
-			 */
-			List<FutureCreateJobs> current_create_job_list = new ArrayList<FutureCreateJobs>();
-			
 			Container result;
 			File[] files = dir_testformats.listFiles();
 			Log2Dump dump = new Log2Dump();
@@ -80,7 +72,7 @@ public class CliModuleMetadata implements CliModule {
 				spie.size = files[pos].length();
 				spie.storagename = "MyDMAM-CLI-Request";
 				
-				result = MetadataCenter.standaloneIndexing(files[pos], spie, current_create_job_list);
+				result = MetadataCenter.standaloneIndexing(files[pos], spie, null);
 				dump.add("Item", files[pos]);
 				dump.addAll(result);
 			}

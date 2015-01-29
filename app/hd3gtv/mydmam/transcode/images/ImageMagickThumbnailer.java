@@ -173,4 +173,10 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 		
 		return element.consolidateAndExportToEntry(root_entry_class.newInstance(), container, this);
 	}
+	
+	public static void standaloneProcess(File source_file, File dest_file, ImageAttributes image_attributes, PreviewType preview_type) {
+		// TODO standaloneProcess ?
+		return;
+	}
+	
 }
