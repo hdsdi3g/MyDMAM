@@ -16,21 +16,27 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.tools.GsonIgnore;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 
 public abstract class EntryRenderer extends Entry {
 	
-	private List<RenderedContent> content;
+	private @GsonIgnore List<RenderedContent> content;
+	private @GsonIgnore JsonObject options;
+	
+	public EntryRenderer() {
+		options = new JsonObject();
+	}
 	
 	public RenderedContent getByFile(String name) {
 		if (content == null) {
@@ -49,6 +55,10 @@ public abstract class EntryRenderer extends Entry {
 			content = new ArrayList<RenderedContent>(1);
 		}
 		content.add(rendered_content);
+	}
+	
+	protected final List<Class<? extends SelfSerializing>> getSerializationDependencies() {
+		return null;
 	}
 	
 	public List<String> getContentFileNames() {
@@ -75,24 +85,30 @@ public abstract class EntryRenderer extends Entry {
 		return null;
 	}
 	
-	/**
-	 * For deserializing
-	 */
-	protected abstract EntryRenderer create();
+	private Type type_l_RenderedContent_OfT = new TypeToken<List<RenderedContent>>() {
+	}.getType();
+	
+	public JsonObject getOptions() {
+		return options;
+	}
 	
 	protected final Entry internalDeserialize(JsonObject source, Gson gson) {
-		EntryRenderer entry = create();
-		JsonElement item = source.get("content");
-		Type typeOfT = new TypeToken<List<RenderedContent>>() {
-		}.getType();
-		entry.content = gson.fromJson(item.getAsJsonArray(), typeOfT);
+		EntryRenderer entry;
+		try {
+			entry = getClass().newInstance();
+		} catch (Exception e) {
+			Log2.log.error("Can't instanciate this Entry", e);
+			return null;
+		}
+		entry.content = gson.fromJson(source.get("content").getAsJsonArray(), type_l_RenderedContent_OfT);
+		entry.options = source.get("options").getAsJsonObject();
 		return entry;
 	}
 	
 	protected final JsonObject internalSerialize(Entry _item, Gson gson) {
 		EntryRenderer src = (EntryRenderer) _item;
 		JsonObject jo = new JsonObject();
-		// jo.addProperty("metadata-provider-type", "renderer");
+		jo.add("options", src.options);
 		jo.add("content", gson.toJsonTree(src.content));
 		return jo;
 	}

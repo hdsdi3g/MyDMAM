@@ -153,6 +153,7 @@ public final class EntrySummary extends Entry {
 			Preview preview = new Preview();
 			preview.type = entry.getES_Type();
 			preview.file = files.get(pos);
+			preview.options = entry.getOptions();
 			
 			PreviewType previewtype = generator.getPreviewTypeForRenderer(container, entry);
 			if (previewtype != null) {

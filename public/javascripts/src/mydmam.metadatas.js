@@ -215,6 +215,46 @@
  * display : the code to display in page
  */
 (function(metadatas) {
+	
+	var prepareImage = function(file_hash, previews, prefered_size, just_url) {
+		
+		var getReturn = function(thumbnail) {
+			var url = metadatas.getURL(file_hash, thumbnail.type, thumbnail.file);
+			if (just_url) {
+				return url;
+			}
+			return metadatas.view.image.prepare(file_hash, url, "img-polaroid", thumbnail.options.width, thumbnail.options.height);
+		};
+		
+		if (prefered_size == null) {
+			prefered_size = "full_size_thumbnail";
+		}
+		
+		if (prefered_size === "full_size_thumbnail") {
+			if (previews.full_size_thumbnail) {
+				return getReturn(previews.full_size_thumbnail);
+			} else {
+				prefered_size = "cartridge_thumbnail";
+			}
+		}
+		
+		if (prefered_size === "cartridge_thumbnail") {
+			if (previews.cartridge_thumbnail) {
+				return getReturn(previews.cartridge_thumbnail);
+			} else {
+				prefered_size = "icon_thumbnail";
+			}
+		}
+		
+		if (prefered_size === "icon_thumbnail") {
+			if (previews.icon_thumbnail) {
+				return getReturn(previews.icon_thumbnail);
+			}
+		} else {
+			return null;
+		}
+	};
+	
 	metadatas.display = function(reference, mtd_element, method) {
 		if (!mtd_element) {
 			return "";
@@ -234,16 +274,17 @@
 		if (method == metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT) {
 			if (mtd_element.previews) {
 				var previews = mtd_element.previews;
+				var has_image_thumbnail = (previews.full_size_thumbnail != null) | (previews.cartridge_thumbnail != null) | (previews.icon_thumbnail != null);
 				
 				if ((previews.video_lq_pvw != null) | (previews.video_sd_pvw != null) | (previews.video_hd_pvw != null) | (master_as_preview_type == "video")) {
 					/**
 					 * Video
 					 */
 					var url_image = null;
-					if (previews.full_size_thumbnail) {
-						url_image = this.getURL(file_hash, previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
+					if (has_image_thumbnail) {
+						url_image = prepareImage(file_hash, previews, "cartridge_thumbnail", true);
 					}
-
+					
 					var medias = [];
 					if (master_as_preview_type == "video") {
 						var media = {};
@@ -280,21 +321,11 @@
 						var url = this.getURL(file_hash, previews.audio_pvw.type, previews.audio_pvw.file);
 						content = content + metadatas.view.audio.prepare(file_hash, url);
 					}
-					if (previews.full_size_thumbnail) {
-						/**
-						 * Display Album artwork
-						 */
-						var url = this.getURL(file_hash, previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
-						content = content + metadatas.view.image.prepare(file_hash, url, "img-polaroid", 0, 0); //TODO size ?
+					if (has_image_thumbnail) {
+						content = content + prepareImage(file_hash, previews);
 					}
-				} else if (master_as_preview_type == "image") {
-					/**
-					 * Image
-					 */
-					content = content + metadatas.view.image.prepare(file_hash, master_as_preview_url, "img-polaroid", 0, 0); //TODO get size ?
-				} else if (previews.full_size_thumbnail) {
-					var url = this.getURL(file_hash, previews.full_size_thumbnail.type, previews.full_size_thumbnail.file);
-					content = content + metadatas.view.image.prepare(file_hash, url, "img-polaroid", 0, 0); //TODO size ?
+				} else if ((previews.full_size_thumbnail != null) | (previews.cartridge_thumbnail != null) | (previews.icon_thumbnail != null)) {
+					content = content + prepareImage(file_hash, previews);
 				}
 			} else {
 				/**
@@ -307,9 +338,10 @@
 					content = content + metadatas.view.video.prepare(file_hash, 640, 360, null, [media]);
 				} else if (master_as_preview_type == "audio") {
 					content = content + metadatas.view.audio.prepare(file_hash, master_as_preview_url, null);
-				} else if (master_as_preview_type == "image") {
-					content = content + metadatas.view.image.prepare(file_hash, master_as_preview_url, "img-polaroid", 0, 0); //TODO get size ?
 				}
+				/**
+				 * It never be an image as master, this may be security/confidentiality problems.
+				 */
 			}
 			
 			for (var analyser in mtd_element) {

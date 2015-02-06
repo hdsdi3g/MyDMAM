@@ -39,6 +39,24 @@ import com.google.gson.GsonBuilder;
 
 public class Stat {
 	
+	static Gson gson_simple;
+	static Gson gson;
+	
+	static {
+		GsonBuilder builder = new GsonBuilder();
+		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		builder.registerTypeAdapter(Preview.class, new Preview.Serializer());
+		builder.registerTypeAdapter(Preview.class, new Preview.Deserializer());
+		gson_simple = builder.create();
+		
+		StatElement.Serializer statelement_serializer = new StatElement.Serializer();
+		builder.registerTypeAdapter(StatElement.class, statelement_serializer);
+		
+		gson = builder.create();
+	}
+	
 	private ArrayList<String> scopes_element;
 	private ArrayList<String> scopes_subelements;
 	private LinkedHashMap<String, StatElement> selected_path_elements;
@@ -47,23 +65,9 @@ public class Stat {
 	private int page_size = 100;
 	private String search;
 	private Explorer explorer;
-	private Gson gson_simple;
-	private Gson gson;
 	
 	public Stat(String[] pathelementskeys, String[] array_scopes_element, String[] array_scopes_subelements) {
 		explorer = new Explorer();
-		
-		GsonBuilder builder = new GsonBuilder();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		gson_simple = builder.create();
-		
-		StatElement.Serializer statelement_serializer = new StatElement.Serializer();
-		builder.registerTypeAdapter(StatElement.class, statelement_serializer);
-		gson = builder.create();
-		statelement_serializer.gson = gson;
-		statelement_serializer.gson_simple = gson_simple;
 		
 		if (pathelementskeys != null) {
 			if (pathelementskeys.length > 0) {
@@ -256,7 +260,8 @@ public class Stat {
 		if (pathelements.size() == 0) {
 			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
-		return getSummariesByContainers(Operations.getByPathIndex(pathelements, true));
+		Map<String, Map<String, Object>> result = getSummariesByContainers(Operations.getByPathIndex(pathelements, true));
+		return result;
 	}
 	
 	private static Map<String, Map<String, Object>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws IndexMissingException {
@@ -322,7 +327,6 @@ public class Stat {
 		} catch (IndexMissingException e) {
 			Log2.log.error("Some ES indexes are missing: database has not items for this", e);
 		}
-		
 		return gson.toJson(selected_path_elements);
 	}
 }

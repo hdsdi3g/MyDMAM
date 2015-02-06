@@ -20,21 +20,21 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.GeneratorRenderer;
+import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
+import hd3gtv.mydmam.transcode.images.ImageAttributeGeometry.Compare;
 import hd3gtv.tools.ExecprocessGettext;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 public class ImageMagickThumbnailer implements GeneratorRenderer {
@@ -46,28 +46,13 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 			return "imthumbnail_full";
 		}
 		
-		protected EntryRenderer create() {
-			return new FullDisplay();
-		}
-		
-		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-			return null;
-		}
-		
 		public static final String profile_name = "convert_full_display";
+		public static final String profile_personalizedsize_name = "convert_personalizedsize";
 	}
 	
 	public static class Cartridge extends EntryRenderer {
 		public String getES_Type() {
 			return "imthumbnail_cartridge";
-		}
-		
-		protected EntryRenderer create() {
-			return new Cartridge();
-		}
-		
-		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-			return null;
 		}
 		
 		public static final String profile_name = "convert_cartridge";
@@ -76,14 +61,6 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 	public static class Icon extends EntryRenderer {
 		public String getES_Type() {
 			return "imthumbnail_icon";
-		}
-		
-		protected EntryRenderer create() {
-			return new Icon();
-		}
-		
-		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-			return null;
 		}
 		
 		public static final String profile_name = "convert_icon";
@@ -170,11 +147,41 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 			tprofile = tprofile_alpha;
 		}
 		
-		if (root_entry_class != Icon.class) {
-			/**
-			 * Icon image will be allways created.
-			 */
-			if ((tprofile.getOutputformat().getResolution().x > image_attributes.geometry.width) & (tprofile.getOutputformat().getResolution().y > image_attributes.geometry.height)) {
+		/*
+		 * Choose list :
+					img < icon		img < cartridge	img < full		img > full
+		full		nope			personalized	personalized	full
+		cartridge	nope			nope			cartridge		cartridge
+		icon		icon			icon			icon			icon 
+		 * */
+		
+		Compare compare = image_attributes.geometry.compare(tprofile);
+		boolean is_personalizedsize = false;
+		if (root_entry_class == FullDisplay.class) {
+			if (compare == Compare.IS_SMALLER_THAN_PROFILE) {
+				if (image_attributes.geometry.compare(TranscodeProfile.getTranscodeProfile(Icon.profile_name)) == Compare.IS_SMALLER_THAN_PROFILE) {
+					/**
+					 * full, but img < icon => nope
+					 */
+					Log2Dump dump = new Log2Dump();
+					dump.add("Source", container);
+					dump.add("physical_source", physical_source);
+					dump.add("output format", tprofile.getOutputformat());
+					Log2.log.debug("Image size is too litte to fit in this profile", dump);
+					return null;
+				}
+				if (image_attributes.alpha == null) {
+					tprofile = TranscodeProfile.getTranscodeProfile(FullDisplay.profile_personalizedsize_name);
+				} else {
+					tprofile = TranscodeProfile.getTranscodeProfile(FullDisplay.profile_personalizedsize_name + "_alpha");
+				}
+				is_personalizedsize = true;
+			}
+		} else if (root_entry_class == Cartridge.class) {
+			if (compare == Compare.IS_SMALLER_THAN_PROFILE) {
+				/**
+				 * cartridge, but img < cartridge => nope
+				 */
 				Log2Dump dump = new Log2Dump();
 				dump.add("Source", container);
 				dump.add("physical_source", physical_source);
@@ -187,12 +194,31 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 		RenderedFile element = new RenderedFile(root_entry_class.getSimpleName().toLowerCase(), tprofile.getExtension("jpg"));
 		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(convert_bin, physical_source, element.getTempFile());
 		process_conf.getParamTags().put("ICCPROFILE", icc_profile.getAbsolutePath());
+		if (is_personalizedsize) {
+			process_conf.getParamTags().put("THUMBNAILSIZE", image_attributes.geometry.width + "x" + image_attributes.geometry.height);
+			process_conf.getParamTags().put("CHECKERBOARDSIZE", (image_attributes.geometry.width * 2) + "x" + (image_attributes.geometry.height * 2));
+		}
 		
 		ExecprocessGettext process = process_conf.prepareExecprocess();
 		Log2.log.debug("Start conversion", process_conf);
 		process.start();
 		
-		return element.consolidateAndExportToEntry(root_entry_class.newInstance(), container, this);
+		EntryRenderer thumbnail = root_entry_class.newInstance();
+		
+		Container thumbnail_file_container = MetadataCenter.standaloneAnalysis(element.getTempFile());
+		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByClass(ImageAttributes.class);
+		if (thumbnail_image_attributes == null) {
+			Log2.log.debug("No image_attributes for the snapshoot file container", thumbnail_image_attributes);
+			return null;
+		}
+		if (thumbnail_image_attributes.geometry == null) {
+			Log2.log.debug("No image_attributes.geometry for the snapshoot file container", thumbnail_image_attributes);
+			return null;
+		}
+		thumbnail.getOptions().addProperty("height", thumbnail_image_attributes.geometry.height);
+		thumbnail.getOptions().addProperty("width", thumbnail_image_attributes.geometry.width);
+		
+		return element.consolidateAndExportToEntry(thumbnail, container, this);
 	}
 	
 }

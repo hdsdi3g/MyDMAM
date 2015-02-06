@@ -20,10 +20,6 @@ package hd3gtv.mydmam.metadata;
  * All definitions should exists and implemented in JS (in mydmam.metadatas)
  */
 public enum PreviewType {
-	// TODO add in JS side cartridge_thumbnail and icon_thumbnail
-	// TODO failback the choose of jwplayer bg image to cartridge_thumbnail and icon_thumbnail,
-	// TODO failback the choose of audio artwork image to cartridge_thumbnail and icon_thumbnail,
-	// TODO failback the choose of any images to cartridge_thumbnail and icon_thumbnail ?
 	
 	full_size_thumbnail, video_sd_pvw, video_hd_pvw, video_lq_pvw, audio_pvw, cartridge_thumbnail, icon_thumbnail;
 }

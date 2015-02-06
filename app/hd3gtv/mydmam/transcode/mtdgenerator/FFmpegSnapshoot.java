@@ -24,7 +24,6 @@ import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
@@ -32,7 +31,6 @@ import hd3gtv.tools.ExecprocessGettext;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 public class FFmpegSnapshoot implements GeneratorRenderer {
 	
@@ -44,13 +42,6 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 			return "ffsnapshoot";
 		}
 		
-		protected EntryRenderer create() {
-			return new Snapshoot();
-		}
-		
-		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-			return null;
-		}
 	}
 	
 	public FFmpegSnapshoot() {

@@ -17,9 +17,6 @@
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
-
-import java.util.List;
 
 public class FFmpegLowres {
 	
@@ -28,13 +25,6 @@ public class FFmpegLowres {
 			return "pvw_ffmpeg_lowres_lq";
 		}
 		
-		protected EntryRenderer create() {
-			return new Lowres_lq();
-		}
-		
-		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-			return null;
-		}
 	}
 	
 	public static class Lowres_sd extends EntryRenderer {
@@ -42,13 +32,6 @@ public class FFmpegLowres {
 			return "pvw_ffmpeg_lowres_sd";
 		}
 		
-		protected EntryRenderer create() {
-			return new Lowres_sd();
-		}
-		
-		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-			return null;
-		}
 	}
 	
 	public static class Lowres_hd extends EntryRenderer {
@@ -56,13 +39,6 @@ public class FFmpegLowres {
 			return "pvw_ffmpeg_lowres_hd";
 		}
 		
-		protected EntryRenderer create() {
-			return new Lowres_hd();
-		}
-		
-		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-			return null;
-		}
 	}
 	
 	public static class Lowres_audio extends EntryRenderer {
@@ -70,13 +46,6 @@ public class FFmpegLowres {
 			return "pvw_ffmpeg_lowres_audio";
 		}
 		
-		protected EntryRenderer create() {
-			return new Lowres_audio();
-		}
-		
-		protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-			return null;
-		}
 	}
 	
 }

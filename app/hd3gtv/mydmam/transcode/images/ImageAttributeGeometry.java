@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.transcode.images;
 
+import hd3gtv.mydmam.transcode.TranscodeProfile;
+
 public class ImageAttributeGeometry {
 	int x;
 	int y;
@@ -53,5 +55,21 @@ public class ImageAttributeGeometry {
 		db.append(height);
 		
 		return db.toString();
+	}
+	
+	public static enum Compare {
+		IS_BIGGER_THAN_PROFILE, IS_SMALLER_THAN_PROFILE, EQUALS_PROFILE
+	}
+	
+	Compare compare(TranscodeProfile reference) {
+		int profile_res = (int) (reference.getOutputformat().getResolution().getX() * reference.getOutputformat().getResolution().getY());
+		int this_res = height * width;
+		
+		if (profile_res > this_res) {
+			return Compare.IS_SMALLER_THAN_PROFILE;
+		} else if (profile_res < this_res) {
+			return Compare.IS_BIGGER_THAN_PROFILE;
+		}
+		return Compare.EQUALS_PROFILE;
 	}
 }

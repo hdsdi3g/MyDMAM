@@ -92,11 +92,14 @@ public class Operations {
 		gson_builder.addSerializationExclusionStrategy(ignore_strategy);
 		
 		gson_simple = gson_builder.create();
+		
 		try {
 			declareEntryType(EntrySummary.class);
 		} catch (Exception e) {
 			Log2.log.error("Can't declare (de)serializer for EntrySummary", e);
 		}
+		gson_builder.registerTypeAdapter(Preview.class, new Preview.Serializer());
+		gson_builder.registerTypeAdapter(Preview.class, new Preview.Deserializer());
 		
 		/**
 		 * Call MetadataCenter for run static block.
@@ -113,7 +116,7 @@ public class Operations {
 		return client;
 	}
 	
-	static GsonBuilder getGsonBuilder() {
+	public static GsonBuilder getGsonBuilder() {
 		return gson_builder;
 	}
 	

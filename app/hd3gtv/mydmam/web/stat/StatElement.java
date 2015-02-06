@@ -22,7 +22,6 @@ import hd3gtv.tools.GsonIgnore;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
@@ -69,15 +68,12 @@ public class StatElement {
 	Integer items_page_size;
 	
 	static class Serializer implements JsonSerializer<StatElement> {
-		Gson gson_simple;
-		Gson gson;
-		
 		public JsonElement serialize(StatElement src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = gson_simple.toJsonTree(src).getAsJsonObject();
+			JsonObject result = Stat.gson_simple.toJsonTree(src).getAsJsonObject();
 			if (src.reference != null) {
 				result.add("reference", src.reference.toGson());
 			}
-			result.add("items", gson.toJsonTree(src.items));
+			result.add("items", Stat.gson.toJsonTree(src.items));
 			return result;
 		}
 	}

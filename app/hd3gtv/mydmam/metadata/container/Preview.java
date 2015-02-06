@@ -16,10 +16,21 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-public class Preview {
+import java.lang.reflect.Type;
+
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+public final class Preview {
 	
 	String type;
 	String file;
+	JsonObject options;
 	
 	public String getFile() {
 		return file;
@@ -29,7 +40,33 @@ public class Preview {
 		return type;
 	}
 	
+	public JsonObject getOptions() {
+		return options;
+	}
+	
 	Preview() {
+	}
+	
+	public static class Serializer implements JsonSerializer<Preview> {
+		public JsonElement serialize(Preview src, Type typeOfSrc, JsonSerializationContext context) {
+			Preview p = (Preview) src;
+			JsonObject result = new JsonObject();
+			result.addProperty("file", p.file);
+			result.addProperty("type", p.type);
+			result.add("options", p.options);
+			return result;
+		}
+	}
+	
+	public static class Deserializer implements JsonDeserializer<Preview> {
+		public Preview deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			Preview p = new Preview();
+			JsonObject source = json.getAsJsonObject();
+			p.file = source.get("file").getAsString();
+			p.type = source.get("type").getAsString();
+			p.options = source.get("options").getAsJsonObject();
+			return p;
+		}
 	}
 	
 }
