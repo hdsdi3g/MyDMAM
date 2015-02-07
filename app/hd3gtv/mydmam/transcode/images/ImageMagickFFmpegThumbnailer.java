@@ -34,8 +34,6 @@ import java.util.List;
  */
 public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 	
-	// TODO limits : -limit memory 100MB -limit map 100MB -limit area 100MB -limit disk 30MB -limit file 50 -limit time 50
-	
 	public ImageMagickFFmpegThumbnailer(Class<? extends EntryRenderer> root_entry_class, PreviewType preview_type, String profile_name) {
 		super(root_entry_class, preview_type, profile_name);
 	}

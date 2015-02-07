@@ -11,6 +11,12 @@ transcoding_probe:
     deststorage : testfile
     templocaldir : /tmp
 
+imagemagick_limits:
+    memory: 256MB
+    disk: 4000MB
+    file: 50
+    time: 120
+
 transcodingprofiles:
     ffmpeg_vod : 
         type : ffmpeg

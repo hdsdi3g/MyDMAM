@@ -39,8 +39,6 @@ import java.util.Map;
 
 public class ImageMagickThumbnailer implements GeneratorRenderer {
 	
-	// TODO limits : -limit memory 100MB -limit map 100MB -limit area 100MB -limit disk 30MB -limit file 50 -limit time 50
-	
 	public static class FullDisplay extends EntryRenderer {
 		public String getES_Type() {
 			return "imthumbnail_full";
@@ -193,12 +191,12 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 		
 		RenderedFile element = new RenderedFile(root_entry_class.getSimpleName().toLowerCase(), tprofile.getExtension("jpg"));
 		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(convert_bin, physical_source, element.getTempFile());
+		process_conf.getInitialParams().addAll(ImageMagickAnalyser.convert_limits_params);
 		process_conf.getParamTags().put("ICCPROFILE", icc_profile.getAbsolutePath());
 		if (is_personalizedsize) {
 			process_conf.getParamTags().put("THUMBNAILSIZE", image_attributes.geometry.width + "x" + image_attributes.geometry.height);
 			process_conf.getParamTags().put("CHECKERBOARDSIZE", (image_attributes.geometry.width * 2) + "x" + (image_attributes.geometry.height * 2));
 		}
-		
 		ExecprocessGettext process = process_conf.prepareExecprocess();
 		Log2.log.debug("Start conversion", process_conf);
 		process.start();

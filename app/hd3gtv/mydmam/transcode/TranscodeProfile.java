@@ -268,6 +268,7 @@ public class TranscodeProfile implements Log2Dumpable {
 		private String executable;
 		private File input_file;
 		private File output_file;
+		private ArrayList<String> initial_params;
 		
 		private File progress_file;
 		private HashMap<String, String> param_tags;
@@ -277,6 +278,7 @@ public class TranscodeProfile implements Log2Dumpable {
 			this.output_file = output_file;
 			this.executable = executable;
 			param_tags = new HashMap<String, String>();
+			initial_params = new ArrayList<String>();
 		}
 		
 		public ProcessConfiguration setProgressFile(File progress_file) {
@@ -286,6 +288,10 @@ public class TranscodeProfile implements Log2Dumpable {
 		
 		public HashMap<String, String> getParamTags() {
 			return param_tags;
+		}
+		
+		public ArrayList<String> getInitialParams() {
+			return initial_params;
 		}
 		
 		public Execprocess prepareExecprocess(ExecprocessEvent events) throws IOException {
@@ -298,6 +304,10 @@ public class TranscodeProfile implements Log2Dumpable {
 		
 		private ArrayList<String> makeCommandline() throws IOException {
 			ArrayList<String> cmdline = new ArrayList<String>();
+			
+			if (initial_params != null) {
+				cmdline.addAll(initial_params);
+			}
 			
 			String param;
 			

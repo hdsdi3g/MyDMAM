@@ -37,6 +37,7 @@ import com.google.gson.JsonParser;
 public class ImageMagickAnalyser implements GeneratorAnalyser {
 	
 	static final ArrayList<String> mimetype_list;
+	static final ArrayList<String> convert_limits_params;
 	
 	static {
 		mimetype_list = new ArrayList<String>();
@@ -71,11 +72,40 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 		mimetype_list.add("image/jbig");
 		mimetype_list.add("image/x-miff");
 		mimetype_list.add("image/x-sun");
+		
+		convert_limits_params = new ArrayList<String>(4);
+		if (Configuration.global.isElementExists("imagemagick_limits")) {
+			String memory = Configuration.global.getValue("imagemagick_limits", "memory", null);
+			if (memory != null) {
+				convert_limits_params.add("-limit");
+				convert_limits_params.add("memory");
+				convert_limits_params.add(memory);
+			}
+			
+			String disk = Configuration.global.getValue("imagemagick_limits", "disk", null);
+			if (disk != null) {
+				convert_limits_params.add("-limit");
+				convert_limits_params.add("disk");
+				convert_limits_params.add(disk);
+			}
+			
+			String file = Configuration.global.getValue("imagemagick_limits", "file", null);
+			if (file != null) {
+				convert_limits_params.add("-limit");
+				convert_limits_params.add("file");
+				convert_limits_params.add(file);
+			}
+			
+			String time = Configuration.global.getValue("imagemagick_limits", "time", null);
+			if (time != null) {
+				convert_limits_params.add("-limit");
+				convert_limits_params.add("time");
+				convert_limits_params.add(time);
+			}
+		}
 	}
 	
 	private String convert_bin;
-	
-	// TODO limits : -limit memory 100MB -limit map 100MB -limit area 100MB -limit disk 30MB -limit file 50 -limit time 50
 	
 	public ImageMagickAnalyser() {
 		convert_bin = Configuration.global.getValue("transcoding", "convert_bin", "convert");
@@ -85,6 +115,7 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 		ArrayList<String> param = new ArrayList<String>();
 		ExecprocessGettext process = null;
 		try {
+			param.addAll(convert_limits_params);
 			param.add(container.getPhysicalSource().getPath() + "[0]");
 			param.add("json:-");
 			
@@ -103,6 +134,7 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 					 * Import and inject IPTC
 					 */
 					param.clear();
+					param.addAll(convert_limits_params);
 					param.add(container.getPhysicalSource().getPath() + "[0]");
 					param.add("iptctext:-");
 					process = new ExecprocessGettext(convert_bin, param);
