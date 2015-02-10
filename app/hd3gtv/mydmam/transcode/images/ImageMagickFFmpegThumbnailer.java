@@ -88,7 +88,6 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 			Log2.log.debug("No image_attributes for the snapshoot file container", snapshoot_file_container);
 			return null;
 		}
-		// TODO get aspect ratio from media_source_container, and set to IM
 		return subProcess(media_source_container, physical_source, image_attributes);
 	}
 }

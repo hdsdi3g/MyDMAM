@@ -35,6 +35,7 @@ import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Cartridge;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.FullDisplay;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Icon;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegInterlacingDetection;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshoot;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFprobeAnalyser;
@@ -70,6 +71,7 @@ public class MetadataCenter {
 		try {
 			addProvider(new ImageMagickAnalyser());
 			addProvider(new FFprobeAnalyser());
+			addProvider(new FFmpegInterlacingDetection());
 			addProvider(new FFmpegSnapshoot());
 			addProvider(new FFmpegAlbumartwork());
 			addProvider(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
