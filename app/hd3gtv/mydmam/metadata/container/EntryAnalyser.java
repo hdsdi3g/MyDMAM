@@ -22,12 +22,12 @@ import com.google.gson.JsonObject;
 public abstract class EntryAnalyser extends Entry {
 	
 	/**
-	 * @param _item The same as create()
+	 * @param _item The same type as this.
 	 */
 	protected abstract void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson);
 	
 	/**
-	 * Patch output JSON with metadata-provider-type = analyser
+	 * Patch output JSON
 	 */
 	protected final JsonObject internalSerialize(Entry _item, Gson gson) {
 		JsonObject jo = Operations.getGsonSimple().toJsonTree(_item).getAsJsonObject();

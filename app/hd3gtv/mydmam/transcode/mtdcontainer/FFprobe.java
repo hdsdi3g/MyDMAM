@@ -23,6 +23,7 @@ import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst.Framerate;
+import hd3gtv.tools.VideoConst.Resolution;
 
 import java.awt.Point;
 import java.lang.reflect.Type;
@@ -277,6 +278,25 @@ public class FFprobe extends EntryAnalyser {
 			return getStreamsByCodecType("video").get(0).getVideoResolution();
 		}
 		return null;
+	}
+	
+	public Resolution getStandardizedVideoResolution() {
+		Point res = getVideoResolution();
+		if (res == null) {
+			return Resolution.OTHER;
+		}
+		return Resolution.getResolution(res.x, res.y);
+	}
+	
+	public boolean hasVerticalBlankIntervalInImage() {
+		Resolution res = getStandardizedVideoResolution();
+		if (res == Resolution.SD_480_VBI) {
+			return true;
+		}
+		if (res == Resolution.SD_576_VBI) {
+			return true;
+		}
+		return false;
 	}
 	
 }

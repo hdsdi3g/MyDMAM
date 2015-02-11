@@ -19,6 +19,7 @@ package hd3gtv.mydmam.transcode.mtdcontainer;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.tools.VideoConst.AudioSampling;
+import hd3gtv.tools.VideoConst.Resolution;
 
 import java.awt.Point;
 
@@ -115,6 +116,14 @@ public class Stream extends FFprobeNode {
 			return new Point(getParam("width").getAsInt(), getParam("height").getAsInt());
 		}
 		return null;
+	}
+	
+	public Resolution getStandardizedVideoResolution() {
+		Point res = getVideoResolution();
+		if (res == null) {
+			return Resolution.OTHER;
+		}
+		return Resolution.getResolution(res.x, res.y);
 	}
 	
 	private transient AudioSampling cache_audiosampling;

@@ -7,8 +7,11 @@ import hd3gtv.mydmam.metadata.GeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.VideoConst.Interlacing;
+import hd3gtv.tools.VideoConst.Resolution;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,18 +21,32 @@ import java.util.List;
 public class FFmpegInterlacingDetection implements GeneratorAnalyser {
 	
 	private String ffmpeg_bin;
+	private int framecount;
 	
 	public FFmpegInterlacingDetection() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
+		framecount = Configuration.global.getValue("transcoding", "ffmpeg_interlacing_detection_framecount", 1000);
 	}
 	
 	public boolean isEnabled() {
 		return (new File(ffmpeg_bin)).exists();
 	}
 	
-	@Override
 	public boolean canProcessThis(String mimetype) {
-		// TODO Auto-generated method stub
+		if (mimetype.equalsIgnoreCase("application/gxf")) return true;
+		if (mimetype.equalsIgnoreCase("application/lxf")) return true;
+		if (mimetype.equalsIgnoreCase("application/mxf")) return true;
+		
+		if (mimetype.equalsIgnoreCase("video/mp2t")) return true;
+		if (mimetype.equalsIgnoreCase("video/mp4")) return true;
+		if (mimetype.equalsIgnoreCase("video/mpeg")) return true;
+		if (mimetype.equalsIgnoreCase("video/quicktime")) return true;
+		if (mimetype.equalsIgnoreCase("video/x-dv")) return true;
+		if (mimetype.equalsIgnoreCase("video/vc1")) return true;
+		if (mimetype.equalsIgnoreCase("video/mp2p")) return true;
+		if (mimetype.equalsIgnoreCase("video/h264")) return true;
+		if (mimetype.equalsIgnoreCase("video/x-ms-wmv")) return true;
+		if (mimetype.equalsIgnoreCase("video/msvideo")) return true;
 		return false;
 	}
 	
@@ -39,13 +56,46 @@ public class FFmpegInterlacingDetection implements GeneratorAnalyser {
 	
 	@Override
 	public EntryAnalyser process(Container container) throws Exception {
+		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		
+		if (ffprobe == null) {
+			return null;
+		}
+		if (ffprobe.hasVideo() == false) {
+			return null;
+		}
+		Resolution v_res = ffprobe.getStandardizedVideoResolution();
+		boolean is_valid_broadcast = false;
+		if (v_res == Resolution.CIF4) is_valid_broadcast = true;
+		if (v_res == Resolution.CIF9) is_valid_broadcast = true;
+		if (v_res == Resolution.CIF16) is_valid_broadcast = true;
+		if (v_res == Resolution.VGA) is_valid_broadcast = true;
+		if (v_res == Resolution.SD_480) is_valid_broadcast = true;
+		if (v_res == Resolution.SD_480_VBI) is_valid_broadcast = true;
+		if (v_res == Resolution.SD_576) is_valid_broadcast = true;
+		if (v_res == Resolution.SD_576_VBI) is_valid_broadcast = true;
+		if (v_res == Resolution.HD_720) is_valid_broadcast = true;
+		if (v_res == Resolution.HD_HALF_1080) is_valid_broadcast = true;
+		if (v_res == Resolution.HD_1080) is_valid_broadcast = true;
+		if (v_res == Resolution.UHD_4K) is_valid_broadcast = true;
+		if (v_res == Resolution.UHD_8K) is_valid_broadcast = true;
+		
+		if (is_valid_broadcast == false) {
+			/**
+			 * Exclude all non-broadcast resolutions, to keep only potentially interlaced formats.
+			 */
+			return null;
+		}
+		
 		ArrayList<String> param = new ArrayList<String>();
+		param.add("-threads");
+		param.add("4");
 		param.add("-i");
-		param.add("/Users/fabien/Downloads/debug/MXF_OP1A_D10_50_4-3_608.mxf");
+		param.add(container.getPhysicalSource().getPath());
 		param.add("-filter:v");
 		param.add("idet");
 		param.add("-frames:v");
-		param.add("1000");
+		param.add(String.valueOf(framecount));
 		param.add("-an");
 		param.add("-f");
 		param.add("md5");
@@ -95,7 +145,27 @@ public class FFmpegInterlacingDetection implements GeneratorAnalyser {
 			}
 		}
 		
-		return FFmpegInterlacingStats.parseFFmpegResult(item_single, item_multi);
+		FFmpegInterlacingStats stats = FFmpegInterlacingStats.parseFFmpegResult(item_single, item_multi);
+		
+		if (stats == null) {
+			return null;
+		}
+		Interlacing stats_interlace = stats.getInterlacing();
+		switch (stats_interlace) {
+		case Progressive:
+			container.getSummary().putSummaryContent(stats, "Progressive frames");
+			break;
+		case TopFieldFirst:
+			container.getSummary().putSummaryContent(stats, "Interlaced, top field first (odd)");
+			break;
+		case BottomFieldFirst:
+			container.getSummary().putSummaryContent(stats, "Interlaced, bottom field first (even)");
+			break;
+		case Unknow:
+			container.getSummary().putSummaryContent(stats, "Progressive frames, may be interlaced");
+			break;
+		}
+		return stats;
 	}
 	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {

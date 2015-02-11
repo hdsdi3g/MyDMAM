@@ -152,9 +152,16 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		progress.start();
 		
 		FFmpegEvents events = new FFmpegEvents(job_progress.getJobKey() + ": " + origin.getName());
-		// TODO add some filters: -vf yadif,crop=w=in_w:h=in_h-32:x=0:y=32,scale=w=in_w*sar:h=in_h <%$FILTERS%>
 		
 		process = transcode_profile.createProcessConfiguration(ffmpeg_bin, origin, temp_element.getTempFile()).setProgressFile(progress_file.getTempFile()).prepareExecprocess(events);
+		
+		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		if (ffprobe != null) {
+			if (ffprobe.hasVerticalBlankIntervalInImage()) {
+				
+			}
+		}
+		// TODO add some filters: -vf yadif,crop=w=in_w:h=in_h-32:x=0:y=32,scale=w=in_w*sar:h=in_h <%$FILTERS%>
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("job", job_progress.getJobKey());

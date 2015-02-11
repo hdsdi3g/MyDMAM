@@ -61,14 +61,8 @@ public abstract class Entry implements SelfSerializing, Log2Dumpable {
 	 */
 	protected abstract List<Class<? extends SelfSerializing>> getSerializationDependencies();
 	
-	/**
-	 * @param item from create()
-	 */
 	protected abstract Entry internalDeserialize(JsonObject source, Gson gson);
 	
-	/**
-	 * @param item is same type like create()
-	 */
 	protected abstract JsonObject internalSerialize(Entry item, Gson gson);
 	
 	public Entry deserialize(JsonObject source, Gson gson) {
