@@ -19,16 +19,13 @@ imagemagick_limits:
 
 transcodingprofiles:
     ffmpeg_vod : 
-        type : ffmpeg
         command : "-progress <%$PROGRESSFILE%> -i <%$INPUTFILE%> -i <%$VAR=logo%> -s 640x360 -codec:v h264 -b:v 400k -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
         logo : /opt/logo 16-9 720x576.png
         extension : mp4
     ffmpeg_snapshoot_first : 
-        type : ffmpeg
         command : "-i <%$INPUTFILE%> -y -ss 00:00:01.000 -vframes 1 -q:v 1 -vcodec mjpeg -f image2 <%$OUTPUTFILE%>"
         extension : jpg
     ffmpeg_lowres_lq : 
-        type : ffmpeg
         command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 320x180 -codec:v h264 -b:v 200k -g 250 -bf 3 -codec:a libfaac -b:a 64k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
         output : 
@@ -36,7 +33,6 @@ transcodingprofiles:
             height : 180
             faststart : true
     ffmpeg_lowres_sd : 
-        type : ffmpeg
         command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 640x360 -codec:v h264 -b:v 400k -g 250 -bf 3 -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
         output : 
@@ -44,7 +40,6 @@ transcodingprofiles:
             height : 360
             faststart : true
     ffmpeg_lowres_hd : 
-        type : ffmpeg
         command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 1280x720 -codec:v h264 -b:v 3500k -g 250 -bf 3 -codec:a libfaac -b:a 256k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
         output : 
@@ -52,13 +47,11 @@ transcodingprofiles:
             height : 720
             faststart : true
     ffmpeg_lowres_audio : 
-        type : ffmpeg
         command : "-i <%$INPUTFILE%> -y -progress <%$PROGRESSFILE%> -codec:a libfaac -b:a 96k -ac 2 -f mp4 <%$OUTPUTFILE%>"
         extension : aac
         output : 
             faststart : true
     ffmpeg_album_artwork : 
-        type : ffmpeg
         command : "-i <%$INPUTFILE%> -y -q:v 1 -vcodec mjpeg -f image2 <%$OUTPUTFILE%>"
         extension : jpg
 
