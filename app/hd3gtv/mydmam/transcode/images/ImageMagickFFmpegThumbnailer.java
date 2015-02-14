@@ -23,14 +23,14 @@ import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork.Albumartwork;
-import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshoot.Snapshoot;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot.Snapshot;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFprobeAnalyser;
 
 import java.io.File;
 import java.util.List;
 
 /**
- * Create valid and usable thumbnails from raw ffmpeg snapshoots and albums artworks.
+ * Create valid and usable thumbnails from raw ffmpeg snapshots and albums artworks.
  */
 public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 	
@@ -49,7 +49,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 	}
 	
 	public String getLongName() {
-		return "ImageMagick low-res thumbnailer from ffmpeg snapshoots and artworks";
+		return "ImageMagick low-res thumbnailer from ffmpeg snapshots and artworks";
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
@@ -61,31 +61,31 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 	}
 	
 	public EntryRenderer process(Container media_source_container) throws Exception {
-		EntryRenderer snapshoot = media_source_container.getByClass(Albumartwork.class);
-		if (snapshoot == null) {
-			snapshoot = media_source_container.getByClass(Snapshoot.class);
+		EntryRenderer snapshot = media_source_container.getByClass(Albumartwork.class);
+		if (snapshot == null) {
+			snapshot = media_source_container.getByClass(Snapshot.class);
 		}
-		if (snapshoot == null) {
-			Log2.log.debug("No snapshoot or artwork found from this container", media_source_container);
+		if (snapshot == null) {
+			Log2.log.debug("No snapshot or artwork found from this container", media_source_container);
 			return null;
 		}
 		
-		List<String> filenames = snapshoot.getContentFileNames();
+		List<String> filenames = snapshot.getContentFileNames();
 		if (filenames.isEmpty()) {
-			Log2.log.debug("Snapshoot or artwork list from this container is empty", media_source_container);
+			Log2.log.debug("snapshot or artwork list from this container is empty", media_source_container);
 			return null;
 		}
-		RenderedFile snapshoot_rfile = snapshoot.getRenderedFile(filenames.get(0), true);
-		File physical_source = snapshoot_rfile.getRendered_file();
+		RenderedFile snapshot_rfile = snapshot.getRenderedFile(filenames.get(0), true);
+		File physical_source = snapshot_rfile.getRendered_file();
 		
 		/**
 		 * Used for analyst previous rendered file and get an ImageAttributes for it.
 		 */
-		Container snapshoot_file_container = MetadataCenter.standaloneAnalysis(physical_source);
+		Container snapshot_file_container = MetadataCenter.standaloneAnalysis(physical_source);
 		
-		ImageAttributes image_attributes = snapshoot_file_container.getByClass(ImageAttributes.class);
+		ImageAttributes image_attributes = snapshot_file_container.getByClass(ImageAttributes.class);
 		if (image_attributes == null) {
-			Log2.log.debug("No image_attributes for the snapshoot file container", snapshoot_file_container);
+			Log2.log.debug("No image_attributes for the snapshot file container", snapshot_file_container);
 			return null;
 		}
 		return subProcess(media_source_container, physical_source, image_attributes);

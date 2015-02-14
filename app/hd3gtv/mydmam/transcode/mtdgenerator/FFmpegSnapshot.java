@@ -34,23 +34,24 @@ import hd3gtv.tools.VideoConst.Interlacing;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
-public class FFmpegSnapshoot implements GeneratorRenderer {
+public class FFmpegSnapshot implements GeneratorRenderer {
 	
 	private String ffmpeg_bin;
 	private TranscodeProfile tprofile;
 	
-	public static class Snapshoot extends EntryRenderer {
+	public static class Snapshot extends EntryRenderer {
 		public String getES_Type() {
-			return "ffsnapshoot";
+			return "ffsnapshot";
 		}
 		
 	}
 	
-	public FFmpegSnapshoot() {
+	public FFmpegSnapshot() {
 		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		if (TranscodeProfile.isConfigured()) {
-			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg_snapshoot_first");
+			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg_snapshot_first");
 		}
 	}
 	
@@ -63,7 +64,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 	}
 	
 	public String getLongName() {
-		return "FFmpeg Snapshoot";
+		return "FFmpeg Snapshot";
 	}
 	
 	public EntryRenderer process(Container container) throws Exception {
@@ -80,24 +81,42 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 		if (interlace_stats != null) {
 			interlacing = interlace_stats.getInterlacing();
 		}
-		if (interlacing == Interlacing.Unknow) {
-			interlacing = Interlacing.Progressive;
-		}
 		
-		RenderedFile element = new RenderedFile("snap", tprofile.getExtension("jpg"));
+		RenderedFile element = new RenderedFile("snap", tprofile.getExtension("png"));
 		
 		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(ffmpeg_bin, container.getPhysicalSource(), element.getTempFile());
-		ExecprocessGettext process = process_conf.prepareExecprocess();
+		
+		ArrayList<String> filters = new ArrayList<String>();
+		if (ffprobe.getDuration().getValue() > 10) {
+			/**
+			 * Duration is > 10 seconds: ask to ffmpeg to choose the best capture frame from the 100 first.
+			 */
+			filters.add("thumbnail");
+		}
+		
+		if (interlacing != Interlacing.Progressive) {
+			filters.add("yadif");
+		}
 		
 		if (ffprobe.hasVerticalBlankIntervalInImage()) {
-			
+			/**
+			 * Cut the 32 lines from the top.
+			 */
+			filters.add("crop=w=in_w:h=in_h-32:x=0:y=32");
 		}
-		if (interlacing != Interlacing.Progressive) {
-			
+		filters.add("scale=iw*sar:ih");
+		
+		StringBuilder sb_filters = new StringBuilder();
+		for (int pos_flt = 0; pos_flt < filters.size(); pos_flt++) {
+			sb_filters.append(filters.get(pos_flt));
+			if (pos_flt + 1 < filters.size()) {
+				sb_filters.append(",");
+			}
 		}
 		
-		// TODO add some filters: -vf yadif,crop=w=in_w:h=in_h-32:x=0:y=32,scale=w=in_w*sar:h=in_h <%$FILTERS%>
+		process_conf.getParamTags().put("FILTERS", sb_filters.toString());
 		
+		ExecprocessGettext process = process_conf.prepareExecprocess();
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();
@@ -118,7 +137,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 			throw e;
 		}
 		
-		Snapshoot result = new Snapshoot();
+		Snapshot result = new Snapshot();
 		element.consolidateAndExportToEntry(result, container, this);
 		return result;
 	}
@@ -128,7 +147,7 @@ public class FFmpegSnapshoot implements GeneratorRenderer {
 	}
 	
 	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return Snapshoot.class;
+		return Snapshot.class;
 	}
 	
 }

@@ -206,11 +206,11 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 		Container thumbnail_file_container = MetadataCenter.standaloneAnalysis(element.getTempFile());
 		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByClass(ImageAttributes.class);
 		if (thumbnail_image_attributes == null) {
-			Log2.log.debug("No image_attributes for the snapshoot file container", thumbnail_image_attributes);
+			Log2.log.debug("No image_attributes for the snapshot file container", thumbnail_image_attributes);
 			return null;
 		}
 		if (thumbnail_image_attributes.geometry == null) {
-			Log2.log.debug("No image_attributes.geometry for the snapshoot file container", thumbnail_image_attributes);
+			Log2.log.debug("No image_attributes.geometry for the snapshot file container", thumbnail_image_attributes);
 			return null;
 		}
 		thumbnail.getOptions().addProperty("height", thumbnail_image_attributes.geometry.height);
