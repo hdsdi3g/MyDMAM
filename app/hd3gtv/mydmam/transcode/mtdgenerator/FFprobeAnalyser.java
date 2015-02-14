@@ -413,6 +413,11 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 		translated_codecs_names.setProperty("pcm_s16be", "PCM 16b/BE");
 		translated_codecs_names.setProperty("pcm_s24le", "PCM 24b");
 		translated_codecs_names.setProperty("pcm_s24be", "PCM 24b/BE");
+		translated_codecs_names.setProperty("apch", "Apple ProRes 422 HQ");
+		translated_codecs_names.setProperty("apcn", "Apple ProRes 422");
+		translated_codecs_names.setProperty("apcs", "Apple ProRes 422 LT");
+		translated_codecs_names.setProperty("apco", "Apple ProRes 422 Proxy");
+		translated_codecs_names.setProperty("ap4h", "Apple ProRes 4444");
 	}
 	
 	public static String translateCodecName(String ffmpeg_name) {

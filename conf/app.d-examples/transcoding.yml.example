@@ -22,25 +22,25 @@ transcodingprofiles:
         command : "-progress <%$PROGRESSFILE%> -i <%$INPUTFILE%> -i <%$VAR=logo%> -s 640x360 -codec:v h264 -b:v 400k -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
         logo : /opt/logo 16-9 720x576.png
         extension : mp4
-    ffmpeg_snapshoot_first : 
-        command : "-i <%$INPUTFILE%> -y -ss 00:00:01.000 -vframes 1 -q:v 1 -vcodec mjpeg -f image2 <%$OUTPUTFILE%>"
-        extension : jpg
+    ffmpeg_snapshot_first : 
+        command : "-i <%$INPUTFILE%> -y -vf <%$FILTERS%> -frames:v 1 <%$OUTPUTFILE%>"
+        extension : png
     ffmpeg_lowres_lq : 
-        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 320x180 -codec:v h264 -b:v 200k -g 250 -bf 3 -codec:a libfaac -b:a 64k -f mp4 <%$OUTPUTFILE%>"
+        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -vf <%$FILTERS%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 384x216 -codec:v h264 -b:v 200k -g 250 -bf 3 -codec:a libfaac -b:a 64k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
         output : 
-            width : 320
-            height : 180
+            width : 384
+            height : 216
             faststart : true
     ffmpeg_lowres_sd : 
-        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 640x360 -codec:v h264 -b:v 400k -g 250 -bf 3 -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
+        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -vf <%$FILTERS%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 640x360 -codec:v h264 -b:v 400k -g 250 -bf 3 -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
         output : 
             width : 640
             height : 360
             faststart : true
     ffmpeg_lowres_hd : 
-        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 1280x720 -codec:v h264 -b:v 3500k -g 250 -bf 3 -codec:a libfaac -b:a 256k -f mp4 <%$OUTPUTFILE%>"
+        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -vf <%$FILTERS%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 1280x720 -codec:v h264 -b:v 3500k -g 250 -bf 3 -codec:a libfaac -b:a 256k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
         output : 
             width : 1280

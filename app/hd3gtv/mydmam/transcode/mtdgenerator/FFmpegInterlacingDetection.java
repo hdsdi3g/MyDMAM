@@ -162,7 +162,7 @@ public class FFmpegInterlacingDetection implements GeneratorAnalyser {
 			container.getSummary().putSummaryContent(stats, "Interlaced, bottom field first (even)");
 			break;
 		case Unknow:
-			container.getSummary().putSummaryContent(stats, "Progressive frames, may be interlaced");
+			container.getSummary().putSummaryContent(stats, "Some interlaced and progressive frames");
 			break;
 		}
 		return stats;

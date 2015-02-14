@@ -33,14 +33,18 @@ import hd3gtv.mydmam.transcode.FFmpegProgress;
 import hd3gtv.mydmam.transcode.FFmpegProgressCallback;
 import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.Timecode;
+import hd3gtv.tools.VideoConst.Interlacing;
 
 import java.awt.Point;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -153,15 +157,40 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		
 		FFmpegEvents events = new FFmpegEvents(job_progress.getJobKey() + ": " + origin.getName());
 		
-		process = transcode_profile.createProcessConfiguration(ffmpeg_bin, origin, temp_element.getTempFile()).setProgressFile(progress_file.getTempFile()).prepareExecprocess(events);
+		ProcessConfiguration process_conf = transcode_profile.createProcessConfiguration(ffmpeg_bin, origin, temp_element.getTempFile());
 		
+		ArrayList<String> filters = new ArrayList<String>();
+		FFmpegInterlacingStats interlace_stats = container.getByClass(FFmpegInterlacingStats.class);
+		if (interlace_stats != null) {
+			if (interlace_stats.getInterlacing() != Interlacing.Progressive) {
+				filters.add("yadif");
+			}
+		}
 		FFprobe ffprobe = container.getByClass(FFprobe.class);
 		if (ffprobe != null) {
 			if (ffprobe.hasVerticalBlankIntervalInImage()) {
-				
+				/**
+				 * Cut the 32 lines from the top.
+				 */
+				filters.add("crop=w=in_w:h=in_h-32:x=0:y=32");
 			}
 		}
-		// TODO add some filters: -vf yadif,crop=w=in_w:h=in_h-32:x=0:y=32,scale=w=in_w*sar:h=in_h <%$FILTERS%>
+		
+		/**
+		 * Resize the image with the correct aspect ratio, and add, if needed, black borders.
+		 */
+		filters.add("scale=iw*sar:ih,pad=max(iw\\,ih*(16/9)):ow/(16/9):(ow-iw)/2:(oh-ih)/2");
+		
+		StringBuilder sb_filters = new StringBuilder();
+		for (int pos_flt = 0; pos_flt < filters.size(); pos_flt++) {
+			sb_filters.append(filters.get(pos_flt));
+			if (pos_flt + 1 < filters.size()) {
+				sb_filters.append(",");
+			}
+		}
+		
+		process_conf.getParamTags().put("FILTERS", sb_filters.toString());
+		process = process_conf.setProgressFile(progress_file.getTempFile()).prepareExecprocess(events);
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("job", job_progress.getJobKey());

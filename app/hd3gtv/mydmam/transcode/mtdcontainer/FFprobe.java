@@ -57,11 +57,15 @@ public class FFprobe extends EntryAnalyser {
 		
 		if (source.has("streams")) {
 			item.streams = gson.fromJson(source.get("streams").getAsJsonArray(), streams_typeOfT);
+			for (int pos = item.streams.size() - 1; pos > -1; pos--) {
+				if (item.streams.get(pos).getCodec_type() == null) {
+					item.streams.remove(pos);
+				}
+			}
 		}
 		if (item.streams == null) {
 			item.streams = new ArrayList<Stream>(1);
 		}
-		
 		if (source.has("format")) {
 			item.format = gson.fromJson(source.get("format").getAsJsonObject(), Format.class);
 		}
@@ -274,6 +278,9 @@ public class FFprobe extends EntryAnalyser {
 	 * @return for first video stream. Use streams[i].getVideoResolution() for specific stream.
 	 */
 	public Point getVideoResolution() {
+		if (cache == null) {
+			cache = new Cache();
+		}
 		if (cache.stream_by_codec_type.containsKey("video")) {
 			return getStreamsByCodecType("video").get(0).getVideoResolution();
 		}

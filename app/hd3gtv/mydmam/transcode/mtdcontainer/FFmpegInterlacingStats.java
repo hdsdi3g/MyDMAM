@@ -4,6 +4,7 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.metadata.container.Entry;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.tools.VideoConst.Interlacing;
 
@@ -53,11 +54,6 @@ public class FFmpegInterlacingStats extends EntryAnalyser implements Log2Dumpabl
 		float pfr_detection_percent = ((float) stats.pfr_detection / (float) analysed_frames_count) * 100;
 		float und_detection_percent = ((float) stats.und_detection / (float) analysed_frames_count) * 100;
 		
-		System.out.println(tff_detection_percent);
-		System.out.println(bff_detection_percent);
-		System.out.println(pfr_detection_percent);
-		System.out.println(und_detection_percent);
-		
 		if ((tff_detection_percent < 6) & (bff_detection_percent < 6)) {
 			if (und_detection_percent > pfr_detection_percent) {
 				stats.interlacing = Interlacing.Unknow;
@@ -86,7 +82,7 @@ public class FFmpegInterlacingStats extends EntryAnalyser implements Log2Dumpabl
 	}
 	
 	protected Entry internalDeserialize(JsonObject source, Gson gson) {
-		return gson.fromJson(source, FFmpegInterlacingStats.class);
+		return Operations.getGsonSimple().fromJson(source, FFmpegInterlacingStats.class);
 	}
 	
 	public Interlacing getInterlacing() {
