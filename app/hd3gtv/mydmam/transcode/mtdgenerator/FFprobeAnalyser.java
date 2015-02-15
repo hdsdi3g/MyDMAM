@@ -19,10 +19,10 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.GeneratorAnalyser;
+import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
@@ -47,7 +47,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-public class FFprobeAnalyser implements GeneratorAnalyser {
+public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 	
 	private String ffprobe_bin;
 	
@@ -90,7 +90,7 @@ public class FFprobeAnalyser implements GeneratorAnalyser {
 			throw e;
 		}
 		
-		FFprobe result = Operations.getGson().fromJson(process.getResultstdout().toString(), FFprobe.class);
+		FFprobe result = ContainerOperations.getGson().fromJson(process.getResultstdout().toString(), FFprobe.class);
 		
 		/**
 		 * Patch mime code if no video stream

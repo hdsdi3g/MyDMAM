@@ -19,10 +19,10 @@ package hd3gtv.mydmam.transcode.images;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.GeneratorAnalyser;
+import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
@@ -34,7 +34,7 @@ import java.util.List;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-public class ImageMagickAnalyser implements GeneratorAnalyser {
+public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 	
 	static final ArrayList<String> mimetype_list;
 	static final ArrayList<String> convert_limits_params;
@@ -158,7 +158,7 @@ public class ImageMagickAnalyser implements GeneratorAnalyser {
 			result.remove("artifacts");
 			result.remove("name");
 			
-			ImageAttributes ia = Operations.getGson().fromJson(result, ImageAttributes.class);
+			ImageAttributes ia = ContainerOperations.getGson().fromJson(result, ImageAttributes.class);
 			container.getSummary().putSummaryContent(ia, ia.createSummary());
 			
 			return ia;

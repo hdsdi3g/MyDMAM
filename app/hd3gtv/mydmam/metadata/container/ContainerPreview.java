@@ -26,7 +26,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-public final class Preview {
+public final class ContainerPreview {
 	
 	String type;
 	String file;
@@ -44,12 +44,12 @@ public final class Preview {
 		return options;
 	}
 	
-	Preview() {
+	ContainerPreview() {
 	}
 	
-	public static class Serializer implements JsonSerializer<Preview> {
-		public JsonElement serialize(Preview src, Type typeOfSrc, JsonSerializationContext context) {
-			Preview p = (Preview) src;
+	public static class Serializer implements JsonSerializer<ContainerPreview> {
+		public JsonElement serialize(ContainerPreview src, Type typeOfSrc, JsonSerializationContext context) {
+			ContainerPreview p = (ContainerPreview) src;
 			JsonObject result = new JsonObject();
 			result.addProperty("file", p.file);
 			result.addProperty("type", p.type);
@@ -58,9 +58,9 @@ public final class Preview {
 		}
 	}
 	
-	public static class Deserializer implements JsonDeserializer<Preview> {
-		public Preview deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			Preview p = new Preview();
+	public static class Deserializer implements JsonDeserializer<ContainerPreview> {
+		public ContainerPreview deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			ContainerPreview p = new ContainerPreview();
 			JsonObject source = json.getAsJsonObject();
 			p.file = source.get("file").getAsString();
 			p.type = source.get("type").getAsString();

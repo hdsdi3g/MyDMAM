@@ -21,7 +21,6 @@ import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
 import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
-import hd3gtv.mydmam.metadata.Generator;
 import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.SearchResultItem;
@@ -69,10 +68,6 @@ public abstract class MyDMAMModule extends PlayPlugin {
 	}
 	
 	public ArchivingTapeLocalisator getTapeLocalisator() {
-		return null;
-	}
-	
-	public List<Generator> getMetadataGenerator() {
 		return null;
 	}
 	

@@ -46,8 +46,8 @@ class SelfSerialiserBridge {
 		}
 		
 		SelfSerialiserBridge b = new SelfSerialiserBridge(selfserializer);
-		Operations.getGsonBuilder().registerTypeAdapter(candidate, b.new Serializer());
-		Operations.getGsonBuilder().registerTypeAdapter(candidate, b.new Deserializer());
+		ContainerOperations.getGsonBuilder().registerTypeAdapter(candidate, b.new Serializer());
+		ContainerOperations.getGsonBuilder().registerTypeAdapter(candidate, b.new Deserializer());
 	}
 	
 	SelfSerialiserBridge(SelfSerializing selfserializer) {
@@ -56,13 +56,13 @@ class SelfSerialiserBridge {
 	
 	private class Serializer implements JsonSerializer<SelfSerializing> {
 		public JsonElement serialize(SelfSerializing src, Type typeOfSrc, JsonSerializationContext context) {
-			return selfserializer.serialize(src, Operations.getGson());
+			return selfserializer.serialize(src, ContainerOperations.getGson());
 		}
 	}
 	
 	private class Deserializer implements JsonDeserializer<SelfSerializing> {
 		public SelfSerializing deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			return (SelfSerializing) selfserializer.deserialize(Operations.getJsonObject(json, false), Operations.getGson());
+			return (SelfSerializing) selfserializer.deserialize(ContainerOperations.getJsonObject(json, false), ContainerOperations.getGson());
 		}
 	}
 	

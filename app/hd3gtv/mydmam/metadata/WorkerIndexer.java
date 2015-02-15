@@ -23,15 +23,14 @@ import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
+import hd3gtv.mydmam.metadata.MetadataCenter.MetadataConfigurationItem;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.JobContextPathScan;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class WorkerIndexer extends WorkerNG {
 	
@@ -46,26 +45,29 @@ public class WorkerIndexer extends WorkerNG {
 		analysis_indexers = new ArrayList<MetadataIndexer>();
 		lastindexeddatesforstoragenames = new HashMap<String, Long>();
 		
-		LinkedHashMap<String, String> s_bridge = Configuration.global.getValues("analysing_storageindexes");
-		for (Map.Entry<String, String> entry : s_bridge.entrySet()) {
-			JobContextAnalyst analyst = new JobContextAnalyst();
-			analyst.neededstorages = Arrays.asList(entry.getKey());
-			analyst.currentpath = entry.getValue();
+		for (int pos = 0; pos < MetadataCenter.conf_items.size(); pos++) {
+			MetadataConfigurationItem item = MetadataCenter.conf_items.get(pos);
+			System.out.println(item);
+			
+			JobContextMetadataAnalyst analyst = new JobContextMetadataAnalyst();
+			analyst.neededstorages = Arrays.asList(item.storage_label_name);
+			analyst.currentpath = item.currentpath;
 			analyst.force_refresh = false;
 			
 			JobContextPathScan context_hook = new JobContextPathScan();
-			context_hook.neededstorages = Arrays.asList(entry.getKey());
+			context_hook.neededstorages = Arrays.asList(item.storage_label_name);
 			TriggerJobCreator trigger_creator = new TriggerJobCreator(manager, context_hook);
 			trigger_creator.setOptions(this.getClass(), "Pathindex metadata indexer", "MyDMAM Internal");
 			trigger_creator.add("Analyst directory", analyst);
 			manager.triggerJobsRegister(trigger_creator);
 			
-			lastindexeddatesforstoragenames.put(entry.getKey(), 0l);
+			lastindexeddatesforstoragenames.put(item.storage_label_name, 0l);
 		}
+		
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
-		JobContextAnalyst analyst_context = (JobContextAnalyst) context;
+		JobContextMetadataAnalyst analyst_context = (JobContextMetadataAnalyst) context;
 		if (analyst_context.neededstorages == null) {
 			throw new NullPointerException("\"neededstorages\" can't to be null");
 		}
@@ -113,11 +115,11 @@ public class WorkerIndexer extends WorkerNG {
 	}
 	
 	public List<WorkerCapablities> getWorkerCapablities() {
-		return WorkerCapablities.createList(JobContextAnalyst.class, Explorer.getBridgedStoragesName());
+		return WorkerCapablities.createList(JobContextMetadataAnalyst.class, Explorer.getBridgedStoragesName());
 	}
 	
 	protected boolean isActivated() {
-		return Configuration.global.isElementExists("storageindex_bridge") & Configuration.global.isElementExists("analysing_storageindexes");
+		return Configuration.global.isElementExists("storageindex_bridge") & (MetadataCenter.conf_items.isEmpty() == false);
 	}
 	
 }

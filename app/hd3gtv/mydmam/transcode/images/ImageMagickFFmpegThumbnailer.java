@@ -17,7 +17,8 @@
 package hd3gtv.mydmam.transcode.images;
 
 import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
@@ -81,7 +82,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		/**
 		 * Used for analyst previous rendered file and get an ImageAttributes for it.
 		 */
-		Container snapshot_file_container = MetadataCenter.standaloneAnalysis(physical_source);
+		Container snapshot_file_container = new MetadataIndexingOperation(physical_source).addLimit(MetadataIndexingLimit.ANALYST).doIndexing();
 		
 		ImageAttributes image_attributes = snapshot_file_container.getByClass(ImageAttributes.class);
 		if (image_attributes == null) {

@@ -16,12 +16,12 @@
 */
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
-import hd3gtv.mydmam.metadata.JobContextRenderer;
+import hd3gtv.mydmam.metadata.JobContextMetadataRenderer;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 
 import com.google.gson.JsonObject;
 
-public abstract class JobContextFFmpegLowresRenderer extends JobContextRenderer {
+public abstract class JobContextFFmpegLowresRenderer extends JobContextMetadataRenderer {
 	
 	boolean faststarted;
 	float source_fps;

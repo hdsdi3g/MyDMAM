@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class Origin {
+public class ContainerOrigin {
 	
 	long date;
 	String key;
@@ -36,7 +36,7 @@ public class Origin {
 	private transient File physical_source;
 	private transient SourcePathIndexerElement pathindex_element;
 	
-	Origin() {
+	ContainerOrigin() {
 	}
 	
 	public String toString() {
@@ -53,15 +53,15 @@ public class Origin {
 		return sb.toString();
 	}
 	
-	public static Origin fromSource(SourcePathIndexerElement element, File physical_source) {
-		Origin origin = new Origin();
-		origin.date = element.date;
-		origin.key = element.prepare_key();
-		origin.size = element.size;
-		origin.storage = element.storagename;
-		origin.pathindex_element = element;
-		origin.physical_source = physical_source;
-		return origin;
+	public static ContainerOrigin fromSource(SourcePathIndexerElement element, File physical_source) {
+		ContainerOrigin containerOrigin = new ContainerOrigin();
+		containerOrigin.date = element.date;
+		containerOrigin.key = element.prepare_key();
+		containerOrigin.size = element.size;
+		containerOrigin.storage = element.storagename;
+		containerOrigin.pathindex_element = element;
+		containerOrigin.physical_source = physical_source;
+		return containerOrigin;
 	}
 	
 	/**
@@ -111,10 +111,10 @@ public class Origin {
 		if (obj == null) {
 			return false;
 		}
-		if ((obj instanceof Origin) == false) {
+		if ((obj instanceof ContainerOrigin) == false) {
 			return false;
 		}
-		Origin element = (Origin) obj;
+		ContainerOrigin element = (ContainerOrigin) obj;
 		
 		if (element.date != date) {
 			return false;

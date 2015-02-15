@@ -23,7 +23,6 @@ import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
 import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
-import hd3gtv.mydmam.metadata.Generator;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.SearchResultItem;
 
@@ -460,22 +459,6 @@ public class MyDMAMModulesManager {
 		}
 		
 		return fullliststorageindexnamejsonlistforhostedinarchiving;
-	}
-	
-	public static List<Generator> getAllExternalMetadataGenerator() {
-		List<Generator> result = new ArrayList<Generator>();
-		List<Generator> providers;
-		for (int pos = 0; pos < MODULES.size(); pos++) {
-			providers = MODULES.get(pos).getMetadataGenerator();
-			if (providers == null) {
-				continue;
-			}
-			if (providers.isEmpty()) {
-				continue;
-			}
-			result.addAll(providers);
-		}
-		return result;
 	}
 	
 }

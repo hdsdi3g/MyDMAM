@@ -18,10 +18,11 @@ package hd3gtv.mydmam.cli;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.MetadataIndexer;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
@@ -50,7 +51,7 @@ public class CliModuleMetadata implements CliModule {
 			}
 			
 			if (args.getParamExist("-ptt")) {
-				Operations.setGsonPrettyPrinting();
+				ContainerOperations.setGsonPrettyPrinting();
 			}
 			
 			Container result;
@@ -72,7 +73,7 @@ public class CliModuleMetadata implements CliModule {
 				spie.size = files[pos].length();
 				spie.storagename = "MyDMAM-CLI-Request";
 				
-				result = MetadataCenter.standaloneIndexing(files[pos], spie, null);
+				result = new MetadataIndexingOperation(files[pos]).addLimit(MetadataIndexingLimit.ANALYST).doIndexing();
 				dump.add("Item", files[pos]);
 				dump.addAll(result);
 			}
@@ -109,7 +110,7 @@ public class CliModuleMetadata implements CliModule {
 			return;
 		} else if (args.getParamExist("-clean")) {
 			Log2.log.info("Start clean operations");
-			Operations.purge_orphan_metadatas();
+			ContainerOperations.purge_orphan_metadatas();
 			return;
 		}
 		

@@ -21,8 +21,8 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.metadata.FutureCreateJobs;
-import hd3gtv.mydmam.metadata.GeneratorRendererViaWorker;
-import hd3gtv.mydmam.metadata.JobContextRenderer;
+import hd3gtv.mydmam.metadata.MetadataGeneratorRendererViaWorker;
+import hd3gtv.mydmam.metadata.JobContextMetadataRenderer;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
@@ -49,7 +49,7 @@ import java.util.List;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
+public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker {
 	
 	private String ffmpeg_bin;
 	
@@ -112,7 +112,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 	private FFmpegProgress progress;
 	private boolean stop;
 	
-	public EntryRenderer standaloneProcess(File origin, final JobProgression job_progress, Container container, JobContextRenderer renderer_context) throws Exception {
+	public EntryRenderer standaloneProcess(File origin, final JobProgression job_progress, Container container, JobContextMetadataRenderer renderer_context) throws Exception {
 		stop = false;
 		job_progress.updateStep(1, 3);
 		
@@ -251,7 +251,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 	}
 	
 	public void prepareJobs(final Container container, List<FutureCreateJobs> current_create_jobs_list) throws Exception {
-		final GeneratorRendererViaWorker source = this;
+		final MetadataGeneratorRendererViaWorker source = this;
 		
 		FutureCreateJobs result = new FutureCreateJobs() {
 			public void createJob() throws ConnectionException {
@@ -334,7 +334,7 @@ public class FFmpegLowresRenderer implements GeneratorRendererViaWorker {
 		return root_entry_class;
 	}
 	
-	public Class<? extends JobContextRenderer> getContextClass() {
+	public Class<? extends JobContextMetadataRenderer> getContextClass() {
 		return context_class;
 	}
 	

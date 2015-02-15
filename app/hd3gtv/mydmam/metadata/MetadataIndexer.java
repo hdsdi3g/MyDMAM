@@ -20,7 +20,7 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
@@ -101,7 +101,7 @@ public class MetadataIndexer implements IndexingEvent {
 				/**
 				 * Search old metadatas element
 				 */
-				container = Operations.getByPathIndexId(element_key);
+				container = ContainerOperations.getByPathIndexId(element_key);
 				if (container == null) {
 					must_analyst = true;
 				} else {
@@ -110,7 +110,7 @@ public class MetadataIndexer implements IndexingEvent {
 					 */
 					if ((element.date != container.getOrigin().getDate()) | (element.size != container.getOrigin().getSize())) {
 						RenderedFile.purge(container.getMtd_key());
-						Operations.requestDelete(container, bulkrequest);
+						ContainerOperations.requestDelete(container, bulkrequest);
 						
 						Log2Dump dump = new Log2Dump();
 						dump.addAll(element);
@@ -150,7 +150,7 @@ public class MetadataIndexer implements IndexingEvent {
 		}
 		if (physical_source.exists() == false) {
 			if (container != null) {
-				Operations.requestDelete(container, bulkrequest);
+				ContainerOperations.requestDelete(container, bulkrequest);
 				RenderedFile.purge(container.getMtd_key());
 				
 				dump = new Log2Dump();
@@ -197,7 +197,12 @@ public class MetadataIndexer implements IndexingEvent {
 			return true;
 		}
 		
-		Operations.save(MetadataCenter.standaloneIndexing(physical_source, element, current_create_job_list), false, bulkrequest);
+		MetadataIndexingOperation indexing = new MetadataIndexingOperation(physical_source);
+		indexing.setReference(element);
+		indexing.setCreateJobList(current_create_job_list);
+		indexing.importConfiguration();
+		
+		ContainerOperations.save(indexing.doIndexing(), false, bulkrequest);
 		return true;
 	}
 	

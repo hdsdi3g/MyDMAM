@@ -23,7 +23,7 @@ import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
@@ -49,7 +49,7 @@ public class WorkerRenderer extends WorkerNG {
 		}
 	}
 	
-	public static void createJob(SourcePathIndexerElement source, String name, JobContextRenderer renderer_context, GeneratorRendererViaWorker renderer) throws ConnectionException {
+	public static void createJob(SourcePathIndexerElement source, String name, JobContextMetadataRenderer renderer_context, MetadataGeneratorRendererViaWorker renderer) throws ConnectionException {
 		if (source == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
 		}
@@ -66,23 +66,23 @@ public class WorkerRenderer extends WorkerNG {
 		AppManager.createJob(renderer_context).setCreator(WorkerRenderer.class).setDeleteAfterCompleted().setName(name).publish();
 	}
 	
-	private volatile GeneratorRendererViaWorker current_renderer;
+	private volatile MetadataGeneratorRendererViaWorker current_renderer;
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		current_renderer = null;
 		
-		JobContextRenderer renderer_context = (JobContextRenderer) context;
+		JobContextMetadataRenderer renderer_context = (JobContextMetadataRenderer) context;
 		
-		List<GeneratorRenderer> generatorRenderers = MetadataCenter.getRenderers();
-		if (generatorRenderers.isEmpty()) {
+		List<MetadataGeneratorRenderer> metadataGeneratorRenderers = MetadataCenter.getRenderers();
+		if (metadataGeneratorRenderers.isEmpty()) {
 			throw new NullPointerException("No declared metadatas renderers");
 		}
 		
-		GeneratorRendererViaWorker _renderer = null;
-		for (int pos = 0; pos < generatorRenderers.size(); pos++) {
-			if (generatorRenderers.get(pos) instanceof GeneratorRendererViaWorker) {
-				if (((GeneratorRendererViaWorker) generatorRenderers.get(pos)).getContextClass().equals(renderer_context.getClass())) {
-					_renderer = (GeneratorRendererViaWorker) generatorRenderers.get(pos);
+		MetadataGeneratorRendererViaWorker _renderer = null;
+		for (int pos = 0; pos < metadataGeneratorRenderers.size(); pos++) {
+			if (metadataGeneratorRenderers.get(pos) instanceof MetadataGeneratorRendererViaWorker) {
+				if (((MetadataGeneratorRendererViaWorker) metadataGeneratorRenderers.get(pos)).getContextClass().equals(renderer_context.getClass())) {
+					_renderer = (MetadataGeneratorRendererViaWorker) metadataGeneratorRenderers.get(pos);
 					break;
 				}
 			}
@@ -91,10 +91,10 @@ public class WorkerRenderer extends WorkerNG {
 		if (_renderer == null) {
 			throw new NullPointerException("Can't found declared rendrerer: \"" + renderer_context.getClass().getName() + "\"");
 		}
-		if ((_renderer instanceof GeneratorRendererViaWorker) == false) {
+		if ((_renderer instanceof MetadataGeneratorRendererViaWorker) == false) {
 			throw new NullPointerException("Invalid rendrerer: \"" + renderer_context.getClass().getName() + "\"");
 		}
-		current_renderer = (GeneratorRendererViaWorker) _renderer;
+		current_renderer = (MetadataGeneratorRendererViaWorker) _renderer;
 		
 		Explorer explorer = new Explorer();
 		SourcePathIndexerElement source_element = explorer.getelementByIdkey(renderer_context.origin_pathindex_key);
@@ -102,13 +102,13 @@ public class WorkerRenderer extends WorkerNG {
 			throw new NullPointerException("Can't found origin element: " + renderer_context.origin_pathindex_key);
 		}
 		
-		Container container = Operations.getByPathIndexId(renderer_context.origin_pathindex_key);
+		Container container = ContainerOperations.getByPathIndexId(renderer_context.origin_pathindex_key);
 		if (container == null) {
 			/**
 			 * Too fast for ES ?
 			 */
 			Thread.sleep(500);
-			container = Operations.getByPathIndexId(renderer_context.origin_pathindex_key);
+			container = ContainerOperations.getByPathIndexId(renderer_context.origin_pathindex_key);
 			if (container == null) {
 				throw new NullPointerException("No actual metadatas !");
 			}
@@ -156,17 +156,17 @@ public class WorkerRenderer extends WorkerNG {
 	}
 	
 	public List<WorkerCapablities> getWorkerCapablities() {
-		List<GeneratorRenderer> generatorRenderers = MetadataCenter.getRenderers();
-		if (generatorRenderers == null) {
+		List<MetadataGeneratorRenderer> metadataGeneratorRenderers = MetadataCenter.getRenderers();
+		if (metadataGeneratorRenderers == null) {
 			return null;
 		}
-		if (generatorRenderers.isEmpty()) {
+		if (metadataGeneratorRenderers.isEmpty()) {
 			return null;
 		}
 		List<WorkerCapablities> result = new ArrayList<WorkerCapablities>();
-		for (int pos = 0; pos < generatorRenderers.size(); pos++) {
-			if (generatorRenderers.get(pos) instanceof GeneratorRendererViaWorker) {
-				result.addAll(WorkerCapablities.createList(((GeneratorRendererViaWorker) generatorRenderers.get(pos)).getContextClass(), Explorer.getBridgedStoragesName()));
+		for (int pos = 0; pos < metadataGeneratorRenderers.size(); pos++) {
+			if (metadataGeneratorRenderers.get(pos) instanceof MetadataGeneratorRendererViaWorker) {
+				result.addAll(WorkerCapablities.createList(((MetadataGeneratorRendererViaWorker) metadataGeneratorRenderers.get(pos)).getContextClass(), Explorer.getBridgedStoragesName()));
 			}
 		}
 		return result;

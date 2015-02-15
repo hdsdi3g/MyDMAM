@@ -2,9 +2,9 @@ package hd3gtv.mydmam.transcode.mtdcontainer;
 
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.metadata.container.Entry;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.tools.VideoConst.Interlacing;
 
@@ -81,8 +81,8 @@ public class FFmpegInterlacingStats extends EntryAnalyser implements Log2Dumpabl
 		return null;
 	}
 	
-	protected Entry internalDeserialize(JsonObject source, Gson gson) {
-		return Operations.getGsonSimple().fromJson(source, FFmpegInterlacingStats.class);
+	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
+		return ContainerOperations.getGsonSimple().fromJson(source, FFmpegInterlacingStats.class);
 	}
 	
 	public Interlacing getInterlacing() {

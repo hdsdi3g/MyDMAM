@@ -19,8 +19,9 @@ package hd3gtv.mydmam.transcode.images;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.GeneratorRenderer;
-import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
@@ -37,7 +38,7 @@ import java.io.FilenameFilter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class ImageMagickThumbnailer implements GeneratorRenderer {
+public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 	
 	public static class FullDisplay extends EntryRenderer {
 		public String getES_Type() {
@@ -203,7 +204,7 @@ public class ImageMagickThumbnailer implements GeneratorRenderer {
 		
 		EntryRenderer thumbnail = root_entry_class.newInstance();
 		
-		Container thumbnail_file_container = MetadataCenter.standaloneAnalysis(element.getTempFile());
+		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).addLimit(MetadataIndexingLimit.ANALYST).doIndexing();
 		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByClass(ImageAttributes.class);
 		if (thumbnail_image_attributes == null) {
 			Log2.log.debug("No image_attributes for the snapshot file container", thumbnail_image_attributes);

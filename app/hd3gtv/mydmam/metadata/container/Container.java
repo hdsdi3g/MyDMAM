@@ -35,46 +35,46 @@ import org.elasticsearch.action.bulk.BulkResponse;
  */
 public class Container implements Log2Dumpable {
 	
-	private Origin origin;
+	private ContainerOrigin containerOrigin;
 	private String mtd_key;
-	private List<Entry> entries;
+	private List<ContainerEntry> containerEntries;
 	private EntrySummary summary;
-	private HashMap<String, Entry> map_type_entry;
-	private HashMap<Class<? extends Entry>, Entry> map_class_entry;
+	private HashMap<String, ContainerEntry> map_type_entry;
+	private HashMap<Class<? extends ContainerEntry>, ContainerEntry> map_class_entry;
 	
-	public Container(String mtd_key, Origin origin) {
-		this.origin = origin;
-		if (origin == null) {
+	public Container(String mtd_key, ContainerOrigin containerOrigin) {
+		this.containerOrigin = containerOrigin;
+		if (containerOrigin == null) {
 			throw new NullPointerException("\"mtd_key\" can't to be null");
 		}
 		this.mtd_key = mtd_key;
-		entries = new ArrayList<Entry>();
+		containerEntries = new ArrayList<ContainerEntry>();
 		summary = null;
-		map_type_entry = new HashMap<String, Entry>();
-		map_class_entry = new HashMap<Class<? extends Entry>, Entry>();
+		map_type_entry = new HashMap<String, ContainerEntry>();
+		map_class_entry = new HashMap<Class<? extends ContainerEntry>, ContainerEntry>();
 	}
 	
 	/**
 	 * Add origin in entry, if missing.
 	 */
-	public void addEntry(Entry entry) {
-		if (entry.getOrigin() == null) {
-			entry.setOrigin(origin);
-		} else if (origin.equals(entry.getOrigin()) == false) {
+	public void addEntry(ContainerEntry containerEntry) {
+		if (containerEntry.getOrigin() == null) {
+			containerEntry.setOrigin(containerOrigin);
+		} else if (containerOrigin.equals(containerEntry.getOrigin()) == false) {
 			Log2Dump dump = new Log2Dump();
-			dump.add("candidate", entry);
-			dump.add("reference origin", origin);
+			dump.add("candidate", containerEntry);
+			dump.add("reference origin", containerOrigin);
 			Log2.log.error("Divergent origins", null, dump);
-			throw new NullPointerException("Can't add entry " + entry.getES_Type() + ", incompatible origins");
+			throw new NullPointerException("Can't add entry " + containerEntry.getES_Type() + ", incompatible origins");
 		}
-		entry.container = this;
-		entries.add(entry);
+		containerEntry.container = this;
+		containerEntries.add(containerEntry);
 		
-		map_type_entry.put(entry.getES_Type(), entry);
-		map_class_entry.put(entry.getClass(), entry);
+		map_type_entry.put(containerEntry.getES_Type(), containerEntry);
+		map_class_entry.put(containerEntry.getClass(), containerEntry);
 		
-		if (entry instanceof EntrySummary) {
-			summary = (EntrySummary) entry;
+		if (containerEntry instanceof EntrySummary) {
+			summary = (EntrySummary) containerEntry;
 		}
 	}
 	
@@ -82,18 +82,18 @@ public class Container implements Log2Dumpable {
 		return summary;
 	}
 	
-	public List<Entry> getEntries() {
-		return entries;
+	public List<ContainerEntry> getEntries() {
+		return containerEntries;
 	}
 	
-	public Entry getByType(String type) {
-		Entry result = map_type_entry.get(type);
+	public ContainerEntry getByType(String type) {
+		ContainerEntry result = map_type_entry.get(type);
 		result.container = this;
 		return result;
 	}
 	
-	public Origin getOrigin() {
-		return origin;
+	public ContainerOrigin getOrigin() {
+		return containerOrigin;
 	}
 	
 	public String getMtd_key() {
@@ -101,7 +101,7 @@ public class Container implements Log2Dumpable {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T extends Entry> T getByClass(Class<T> class_of_T) {
+	public <T extends ContainerEntry> T getByClass(Class<T> class_of_T) {
 		if (map_class_entry.containsKey((Class<?>) class_of_T)) {
 			T result = (T) map_class_entry.get((Class<?>) class_of_T);
 			result.container = this;
@@ -112,8 +112,8 @@ public class Container implements Log2Dumpable {
 	}
 	
 	public void save(boolean refresh_index_after_save) throws ElasticsearchException {
-		BulkRequestBuilder bulkrequest = Operations.getClient().prepareBulk();
-		Operations.save(this, refresh_index_after_save, bulkrequest);
+		BulkRequestBuilder bulkrequest = ContainerOperations.getClient().prepareBulk();
+		ContainerOperations.save(this, refresh_index_after_save, bulkrequest);
 		
 		if (bulkrequest.numberOfActions() > 0) {
 			BulkResponse bulkresponse = bulkrequest.execute().actionGet();
@@ -126,18 +126,18 @@ public class Container implements Log2Dumpable {
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("mtd.key", mtd_key);
-		if (origin != null) {
-			dump.add("origin.key", origin.key);
-			dump.add("origin.storage", origin.storage);
+		if (containerOrigin != null) {
+			dump.add("origin.key", containerOrigin.key);
+			dump.add("origin.storage", containerOrigin.storage);
 		}
-		for (int pos = 0; pos < entries.size(); pos++) {
-			dump.add("metadata." + entries.get(pos).getES_Type(), Operations.getGson().toJson(entries.get(pos)));
+		for (int pos = 0; pos < containerEntries.size(); pos++) {
+			dump.add("metadata." + containerEntries.get(pos).getES_Type(), ContainerOperations.getGson().toJson(containerEntries.get(pos)));
 		}
 		return dump;
 	}
 	
 	public File getPhysicalSource() throws IOException {
-		Origin o = getOrigin();
+		ContainerOrigin o = getOrigin();
 		if (o == null) {
 			return null;
 		}

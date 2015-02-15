@@ -17,9 +17,9 @@
 package hd3gtv.mydmam.metadata.validation;
 
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.Entry;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -64,10 +64,10 @@ public class Validator {
 	public List<RejectCause> validate(Container container) {
 		LinkedHashMap<Class<? extends EntryAnalyser>, String> analysis_results = new LinkedHashMap<Class<? extends EntryAnalyser>, String>();
 		
-		List<Entry> entries = container.getEntries();
-		for (int pos = 0; pos < entries.size(); pos++) {
-			if (entries.get(pos) instanceof EntryAnalyser) {
-				analysis_results.put(((EntryAnalyser) entries.get(pos)).getClass(), Operations.getGson().toJson(entries.get(pos)));
+		List<ContainerEntry> containerEntries = container.getEntries();
+		for (int pos = 0; pos < containerEntries.size(); pos++) {
+			if (containerEntries.get(pos) instanceof EntryAnalyser) {
+				analysis_results.put(((EntryAnalyser) containerEntries.get(pos)).getClass(), ContainerOperations.getGson().toJson(containerEntries.get(pos)));
 			}
 		}
 		

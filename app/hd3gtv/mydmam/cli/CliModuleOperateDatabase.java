@@ -21,7 +21,7 @@ import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.mail.notification.Notification;
-import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.useraction.UACreationRequest;
 import hd3gtv.tools.ApplicationArgs;
 
@@ -268,7 +268,7 @@ public class CliModuleOperateDatabase implements CliModule {
 		}
 		if (args.getParamExist("-clean")) {
 			Log2.log.info("Start clean operations");
-			Operations.purge_orphan_metadatas();
+			ContainerOperations.purge_orphan_metadatas();
 			return;
 		}
 		if (args.getParamExist("-ualog")) {

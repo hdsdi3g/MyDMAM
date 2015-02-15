@@ -16,25 +16,22 @@
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 
-import com.google.gson.JsonObject;
-
-public abstract class JobContextRenderer extends JobContext {
+public interface MetadataGeneratorRenderer extends MetadataGenerator {
 	
-	String origin_pathindex_key;
+	/**
+	 * You NEED to consolidate rendered elements.
+	 * Call RenderedFile.export_to_entry() for populate in EntryRenderer
+	 */
+	EntryRenderer process(Container container) throws Exception;
 	
-	public JobContextRenderer() {
-	}
+	/**
+	 * @return JS side parser name for display this render, or null.
+	 */
+	PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry);
 	
-	public JsonObject contextToJson() {
-		JsonObject json_object = new JsonObject();
-		json_object.addProperty("origin", origin_pathindex_key);
-		return json_object;
-	}
-	
-	public void contextFromJson(JsonObject json_object) {
-		origin_pathindex_key = json_object.get("origin").getAsString();
-	}
+	Class<? extends EntryRenderer> getRootEntryClass();
 	
 }

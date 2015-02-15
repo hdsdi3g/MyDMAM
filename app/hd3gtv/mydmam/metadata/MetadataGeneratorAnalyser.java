@@ -11,21 +11,27 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.mydmam.metadata.container.Entry;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 
-public interface Generator {
+import java.util.List;
+
+public interface MetadataGeneratorAnalyser extends MetadataGenerator {
 	
-	boolean canProcessThis(String mimetype);
+	EntryAnalyser process(Container container) throws Exception;
 	
-	boolean isEnabled();
+	/**
+	 * @return can be null.
+	 */
+	List<String> getMimeFileListCanUsedInMasterAsPreview();
 	
-	String getLongName();
+	boolean isCanUsedInMasterAsPreview(Container container);
 	
-	Class<? extends Entry> getRootEntryClass();
+	Class<? extends EntryAnalyser> getRootEntryClass();
 	
 }

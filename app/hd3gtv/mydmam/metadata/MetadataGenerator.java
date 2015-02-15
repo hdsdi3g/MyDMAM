@@ -16,22 +16,16 @@
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 
-public interface GeneratorRenderer extends Generator {
+public interface MetadataGenerator {
 	
-	/**
-	 * You NEED to consolidate rendered elements.
-	 * Call RenderedFile.export_to_entry() for populate in EntryRenderer
-	 */
-	EntryRenderer process(Container container) throws Exception;
+	boolean canProcessThis(String mimetype);
 	
-	/**
-	 * @return JS side parser name for display this render, or null.
-	 */
-	PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry);
+	boolean isEnabled();
 	
-	Class<? extends EntryRenderer> getRootEntryClass();
+	String getLongName();
+	
+	Class<? extends ContainerEntry> getRootEntryClass();
 	
 }

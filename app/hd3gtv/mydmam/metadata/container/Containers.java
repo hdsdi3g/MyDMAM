@@ -41,17 +41,17 @@ public class Containers implements Log2Dumpable {
 		all_items = new ArrayList<Container>();
 	}
 	
-	public void add(String mtd_key, Entry entry) {
+	public void add(String mtd_key, ContainerEntry containerEntry) {
 		Container current;
 		if (map_mtd_key_item.containsKey(mtd_key) == false) {
-			current = new Container(mtd_key, entry.getOrigin());
-			current.addEntry(entry);
+			current = new Container(mtd_key, containerEntry.getOrigin());
+			current.addEntry(containerEntry);
 			map_mtd_key_item.put(mtd_key, current);
-			map_pathindex_key_item.put(entry.getOrigin().key, current);
+			map_pathindex_key_item.put(containerEntry.getOrigin().key, current);
 			all_items.add(current);
 		} else {
 			current = map_mtd_key_item.get(mtd_key);
-			current.addEntry(entry);
+			current.addEntry(containerEntry);
 		}
 	}
 	
@@ -79,8 +79,8 @@ public class Containers implements Log2Dumpable {
 	}
 	
 	public void save(boolean refresh_index_after_save) throws ElasticsearchException {
-		BulkRequestBuilder bulkrequest = Operations.getClient().prepareBulk();
-		Operations.save(this, refresh_index_after_save, bulkrequest);
+		BulkRequestBuilder bulkrequest = ContainerOperations.getClient().prepareBulk();
+		ContainerOperations.save(this, refresh_index_after_save, bulkrequest);
 		
 		if (bulkrequest.numberOfActions() > 0) {
 			BulkResponse bulkresponse = bulkrequest.execute().actionGet();

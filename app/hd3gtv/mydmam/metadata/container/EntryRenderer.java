@@ -29,7 +29,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-public abstract class EntryRenderer extends Entry {
+public abstract class EntryRenderer extends ContainerEntry {
 	
 	private @GsonIgnore List<RenderedContent> content;
 	private @GsonIgnore JsonObject options;
@@ -92,7 +92,7 @@ public abstract class EntryRenderer extends Entry {
 		return options;
 	}
 	
-	protected final Entry internalDeserialize(JsonObject source, Gson gson) {
+	protected final ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
 		EntryRenderer entry;
 		try {
 			entry = getClass().newInstance();
@@ -105,7 +105,7 @@ public abstract class EntryRenderer extends Entry {
 		return entry;
 	}
 	
-	protected final JsonObject internalSerialize(Entry _item, Gson gson) {
+	protected final JsonObject internalSerialize(ContainerEntry _item, Gson gson) {
 		EntryRenderer src = (EntryRenderer) _item;
 		JsonObject jo = new JsonObject();
 		jo.add("options", src.options);

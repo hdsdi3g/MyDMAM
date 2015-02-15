@@ -19,9 +19,9 @@ package hd3gtv.mydmam.web.stat;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.metadata.container.ContainerPreview;
 import hd3gtv.mydmam.metadata.container.Containers;
-import hd3gtv.mydmam.metadata.container.Operations;
-import hd3gtv.mydmam.metadata.container.Preview;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.GsonIgnoreStrategy;
@@ -47,8 +47,8 @@ public class Stat {
 		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
 		builder.addDeserializationExclusionStrategy(ignore_strategy);
 		builder.addSerializationExclusionStrategy(ignore_strategy);
-		builder.registerTypeAdapter(Preview.class, new Preview.Serializer());
-		builder.registerTypeAdapter(Preview.class, new Preview.Deserializer());
+		builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Serializer());
+		builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
 		gson_simple = builder.create();
 		
 		StatElement.Serializer statelement_serializer = new StatElement.Serializer();
@@ -224,29 +224,25 @@ public class Stat {
 		if (containers.size() == 0) {
 			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
-		
 		Map<String, Map<String, Object>> result = new LinkedHashMap<String, Map<String, Object>>(containers.size());
 		
 		Container c;
 		Map<String, String> summaries;
 		LinkedHashMap<String, Object> item;
-		HashMap<PreviewType, Preview> previews;
+		HashMap<PreviewType, ContainerPreview> containerPreviews;
 		for (int pos = 0; pos < containers.size(); pos++) {
 			c = containers.getItemAtPos(pos);
-			if (c.getSummary().getSummaries().isEmpty()) {
-				continue;
-			}
+			
 			item = new LinkedHashMap<String, Object>();
+			containerPreviews = c.getSummary().getPreviews();
+			item.put("previews", containerPreviews);
+			item.put("master_as_preview", c.getSummary().master_as_preview);
+			item.put("mimetype", c.getSummary().getMimetype());
 			
 			summaries = c.getSummary().getSummaries();
 			for (Map.Entry<String, String> entry : summaries.entrySet()) {
 				item.put(entry.getKey(), entry.getValue());
 			}
-			
-			previews = c.getSummary().getPreviews();
-			item.put("previews", previews);
-			item.put("master_as_preview", c.getSummary().master_as_preview);
-			item.put("mimetype", c.getSummary().getMimetype());
 			
 			result.put(c.getOrigin().getKey(), item);
 		}
@@ -260,7 +256,7 @@ public class Stat {
 		if (pathelements.size() == 0) {
 			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
-		Map<String, Map<String, Object>> result = getSummariesByContainers(Operations.getByPathIndex(pathelements, true));
+		Map<String, Map<String, Object>> result = getSummariesByContainers(ContainerOperations.getByPathIndex(pathelements, true));
 		return result;
 	}
 	
@@ -271,7 +267,7 @@ public class Stat {
 		if (pathelementkeys.size() == 0) {
 			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
-		return getSummariesByContainers(Operations.getByPathIndexId(pathelementkeys, true));
+		return getSummariesByContainers(ContainerOperations.getByPathIndexId(pathelementkeys, true));
 	}
 	
 	private void populate_dir_list_mtd_summary(LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list) {

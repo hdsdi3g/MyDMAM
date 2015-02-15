@@ -25,17 +25,17 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-public abstract class Entry implements SelfSerializing, Log2Dumpable {
+public abstract class ContainerEntry implements SelfSerializing, Log2Dumpable {
 	
-	Entry() {
+	ContainerEntry() {
 	}
 	
-	private Origin origin;
+	private ContainerOrigin containerOrigin;
 	
 	transient Container container;
 	
-	public final Origin getOrigin() {
-		return origin;
+	public final ContainerOrigin getOrigin() {
+		return containerOrigin;
 	}
 	
 	public abstract String getES_Type();
@@ -44,15 +44,15 @@ public abstract class Entry implements SelfSerializing, Log2Dumpable {
 		Log2Dump dump = new Log2Dump();
 		dump.add("type", this.getClass().getName());
 		dump.add("ES type", getES_Type());
-		dump.add("origin", origin);
+		dump.add("origin", containerOrigin);
 		return dump;
 	}
 	
-	public final void setOrigin(Origin origin) throws NullPointerException {
-		if (origin == null) {
+	public final void setOrigin(ContainerOrigin containerOrigin) throws NullPointerException {
+		if (containerOrigin == null) {
 			throw new NullPointerException("\"origin\" can't to be null");
 		}
-		this.origin = origin;
+		this.containerOrigin = containerOrigin;
 	}
 	
 	/**
@@ -61,22 +61,22 @@ public abstract class Entry implements SelfSerializing, Log2Dumpable {
 	 */
 	protected abstract List<Class<? extends SelfSerializing>> getSerializationDependencies();
 	
-	protected abstract Entry internalDeserialize(JsonObject source, Gson gson);
+	protected abstract ContainerEntry internalDeserialize(JsonObject source, Gson gson);
 	
-	protected abstract JsonObject internalSerialize(Entry item, Gson gson);
+	protected abstract JsonObject internalSerialize(ContainerEntry item, Gson gson);
 	
-	public Entry deserialize(JsonObject source, Gson gson) {
+	public ContainerEntry deserialize(JsonObject source, Gson gson) {
 		JsonElement j_origin = source.get("origin");
 		source.remove("origin");
-		Entry item = internalDeserialize(source, gson);
-		item.origin = gson.fromJson(j_origin, Origin.class);
+		ContainerEntry item = internalDeserialize(source, gson);
+		item.containerOrigin = gson.fromJson(j_origin, ContainerOrigin.class);
 		return item;
 	}
 	
 	public JsonObject serialize(SelfSerializing _item, Gson gson) {
-		Entry item = (Entry) _item;
+		ContainerEntry item = (ContainerEntry) _item;
 		JsonObject jo = item.internalSerialize(item, gson);
-		jo.add("origin", gson.toJsonTree(item.origin));
+		jo.add("origin", gson.toJsonTree(item.containerOrigin));
 		return jo;
 	}
 	

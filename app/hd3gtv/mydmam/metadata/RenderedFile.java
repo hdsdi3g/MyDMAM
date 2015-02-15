@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
@@ -24,10 +23,10 @@ import hd3gtv.log2.LogHandlerToLogfile;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.Entry;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
-import hd3gtv.mydmam.metadata.container.Operations;
 import hd3gtv.mydmam.metadata.container.RenderedContent;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -66,10 +65,9 @@ public class RenderedFile implements Log2Dumpable {
 			digest_algorithm = "MD5";
 			MessageDigest.getInstance(digest_algorithm);
 			
-			if (Configuration.global.isElementExists("analysing_renderer") == false) {
-				throw new NullPointerException("Can't found analysing_renderer element in configuration");
-			}
-			temp_directory = new File(Configuration.global.getValue("analysing_renderer", "temp_directory", (new File(System.getProperty("java.io.tmpdir", "/tmp")).getAbsolutePath())));
+			temp_directory = MetadataCenter.rendering_temp_directory;
+			local_directory = MetadataCenter.rendering_local_directory;
+			
 			if (temp_directory.exists() == false) {
 				throw new FileNotFoundException(temp_directory.getPath());
 			}
@@ -91,7 +89,6 @@ public class RenderedFile implements Log2Dumpable {
 			temp_directory = new File(sb.toString());
 			temp_directory.mkdirs();
 			
-			local_directory = new File(Configuration.global.getValue("analysing_renderer", "local_directory", null));
 			if (local_directory.exists() == false) {
 				throw new FileNotFoundException(local_directory.getPath());
 			}
@@ -107,7 +104,7 @@ public class RenderedFile implements Log2Dumpable {
 			
 			random = new Random();
 		} catch (Exception e) {
-			Log2.log.error("Can't init, check configuration analysing_renderer element", e);
+			Log2.log.error("Can't init, check configuration on metadata_analysing.temp/local_directory", e);
 		}
 		
 	}
@@ -123,7 +120,7 @@ public class RenderedFile implements Log2Dumpable {
 	private File temp_file;
 	private String metadata_reference_id;
 	private String rendered_base_file_name;
-	private GeneratorRenderer generatorrenderer;
+	private MetadataGeneratorRenderer generatorrenderer;
 	private boolean consolidated;
 	private String rendered_mime;
 	private String rendered_digest;
@@ -196,14 +193,14 @@ public class RenderedFile implements Log2Dumpable {
 		temp_file.delete();
 	}
 	
-	private void checkConsolidate(Container container, GeneratorRenderer generatorRenderer) throws IOException {
+	private void checkConsolidate(Container container, MetadataGeneratorRenderer metadataGeneratorRenderer) throws IOException {
 		if (container == null) {
 			throw new NullPointerException("\"source_element\" can't to be null");
 		}
 		metadata_reference_id = container.getMtd_key();
 		
-		this.generatorrenderer = generatorRenderer;
-		if (generatorRenderer == null) {
+		this.generatorrenderer = metadataGeneratorRenderer;
+		if (metadataGeneratorRenderer == null) {
 			throw new NullPointerException("\"renderer\" can't to be null");
 		}
 		
@@ -227,7 +224,7 @@ public class RenderedFile implements Log2Dumpable {
 	/**
 	 * metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extension
 	 */
-	public EntryRenderer consolidateAndExportToEntry(EntryRenderer entry_renderer, Container container, GeneratorRenderer generatorrenderer) throws IOException {
+	public EntryRenderer consolidateAndExportToEntry(EntryRenderer entry_renderer, Container container, MetadataGeneratorRenderer generatorrenderer) throws IOException {
 		if (consolidated) {
 			export_to_entry(entry_renderer, container);
 			return entry_renderer;
@@ -621,7 +618,7 @@ public class RenderedFile implements Log2Dumpable {
 				}
 				element_source_key = allrootelements[pos].getName() + mtddir[pos_mtd].getName();
 				
-				Container container = Operations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.type);
+				Container container = ContainerOperations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.type);
 				if (container == null) {
 					Log2.log.info("Delete all metadata references for directory", new Log2Dump("mtd key", element_source_key));
 					purge(element_source_key);
@@ -641,17 +638,17 @@ public class RenderedFile implements Log2Dumpable {
 				
 				ArrayList<String> elements_name = new ArrayList<String>();
 				
-				container = Operations.getByMtdKey(element_source_key);
-				List<Entry> entries = container.getEntries();
+				container = ContainerOperations.getByMtdKey(element_source_key);
+				List<ContainerEntry> containerEntries = container.getEntries();
 				EntryRenderer current_entry;
 				/**
 				 * Get all rendered files references from db
 				 */
-				for (int pos_entry = 0; pos_entry < entries.size(); pos_entry++) {
-					if ((entries.get(pos_entry) instanceof EntryRenderer) == false) {
+				for (int pos_entry = 0; pos_entry < containerEntries.size(); pos_entry++) {
+					if ((containerEntries.get(pos_entry) instanceof EntryRenderer) == false) {
 						continue;
 					}
-					current_entry = (EntryRenderer) entries.get(pos_entry);
+					current_entry = (EntryRenderer) containerEntries.get(pos_entry);
 					elements_name.addAll(current_entry.getContentFileNames());
 				}
 				

@@ -3,7 +3,7 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.GeneratorAnalyser;
+import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FFmpegInterlacingDetection implements GeneratorAnalyser {
+public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 	
 	private String ffmpeg_bin;
 	private int framecount;

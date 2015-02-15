@@ -19,7 +19,7 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.GeneratorRenderer;
+import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
@@ -36,7 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class FFmpegSnapshot implements GeneratorRenderer {
+public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 	
 	private String ffmpeg_bin;
 	private TranscodeProfile tprofile;

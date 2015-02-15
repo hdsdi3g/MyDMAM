@@ -1,8 +1,8 @@
 package hd3gtv.mydmam.transcode.images;
 
-import hd3gtv.mydmam.metadata.container.Entry;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.Operations;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Colorspace;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Compose;
@@ -42,7 +42,7 @@ public class ImageAttributes extends EntryAnalyser {
 		current_element.add("properties", gson.toJsonTree(item.properties, properties_typeOfT));
 	}
 	
-	protected Entry internalDeserialize(JsonObject source, Gson gson) {
+	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
 		String entry_value;
 		for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
 			if (entry.getValue().isJsonPrimitive() == false) {
@@ -54,7 +54,7 @@ public class ImageAttributes extends EntryAnalyser {
 			}
 		}
 		
-		ImageAttributes item = Operations.getGsonSimple().fromJson(source, ImageAttributes.class);
+		ImageAttributes item = ContainerOperations.getGsonSimple().fromJson(source, ImageAttributes.class);
 		item.properties = gson.fromJson(source.get("properties"), properties_typeOfT);
 		if (source.has("class")) {
 			item.imgclass = ImageClass.valueOf(source.get("class").getAsString());

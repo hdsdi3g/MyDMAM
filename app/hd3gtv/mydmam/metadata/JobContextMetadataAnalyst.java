@@ -20,7 +20,7 @@ import hd3gtv.mydmam.manager.JobContext;
 
 import com.google.gson.JsonObject;
 
-public class JobContextAnalyst extends JobContext {
+public class JobContextMetadataAnalyst extends JobContext {
 	
 	String currentpath;
 	boolean force_refresh;

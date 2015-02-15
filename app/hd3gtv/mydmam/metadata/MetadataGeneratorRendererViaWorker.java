@@ -23,7 +23,7 @@ import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import java.io.File;
 import java.util.List;
 
-public interface GeneratorRendererViaWorker extends GeneratorRenderer {
+public interface MetadataGeneratorRendererViaWorker extends MetadataGeneratorRenderer {
 	
 	/**
 	 * Don't create jobs, just add callbacks to create new jobs to current_create_jobs_list.
@@ -35,10 +35,10 @@ public interface GeneratorRendererViaWorker extends GeneratorRenderer {
 	 * You NEED to consolidate rendered elements.
 	 * Call RenderedFile.export_to_entry() for populate in EntryRenderer
 	 */
-	EntryRenderer standaloneProcess(File origin, JobProgression job_progress, Container container, JobContextRenderer renderer_context) throws Exception;
+	EntryRenderer standaloneProcess(File origin, JobProgression job_progress, Container container, JobContextMetadataRenderer renderer_context) throws Exception;
 	
 	void stopStandaloneProcess() throws Exception;
 	
-	Class<? extends JobContextRenderer> getContextClass();
+	Class<? extends JobContextMetadataRenderer> getContextClass();
 	
 }

@@ -1,3 +1,5 @@
+# Indexing configuration (scan storages, and add reference to ES).
+
 storageindex_scan:
     apply: prod
     storage1:
@@ -10,17 +12,30 @@ storageindex_scan:
         label: LABEL3
         # here, period will help to calculate the ttl for pushing in database
         period: 1500
+        # set manual to desactivate regular indexing
         manual: true
 
 storageindex_bridge:
     LABEL2: /mnt/storage2
 
-analysing_storageindexes:
-    LABEL2: /this/will/be/analysed/regulary
+# Metadata analysing configuration, after indexing.
 
-analysing_renderer:
+metadata_analysing:
+    items:
+        -
+            to: LABEL2:/this/will/be/analysed/regulary
+        -
+            to: LABEL3:/
+    # Item restrictions ("blacklist" and "limit" are no mandatory), add:
+    #       blacklist:
+    #           - full.class.name, like "hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer", used to ignore processing this it.
+    #                              This class must extends MetadataGenerator.
+    #       limit: MIMETYPE # this is a MetadataIndexingLimit from MIMETYPE, ANALYST, SIMPLERENDERS or NOLIMITS
+
+    # This is only for this host:
     temp_directory: /tmp
+    
+    # local_directory content must to be share with all instances (probe and Play), and backup.
     local_directory: /mnt/shared-previews
 
-master_as_preview:
-    enable: true
+    master_as_preview: true

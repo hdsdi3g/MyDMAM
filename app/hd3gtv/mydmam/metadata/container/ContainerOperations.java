@@ -57,7 +57,7 @@ import com.google.gson.JsonParseException;
 /**
  * Import and exports Container items from and to database.
  */
-public class Operations {
+public class ContainerOperations {
 	
 	private static final String ES_INDEX = "metadata";
 	
@@ -75,7 +75,7 @@ public class Operations {
 		return (JsonObject) json.getAsJsonObject();
 	}
 	
-	private static final Map<String, Entry> declared_entries_type;
+	private static final Map<String, ContainerEntry> declared_entries_type;
 	private static final GsonBuilder gson_builder;
 	private static volatile Gson gson;
 	private static final Gson gson_simple;
@@ -83,7 +83,7 @@ public class Operations {
 	
 	static {
 		client = Elasticsearch.getClient();
-		declared_entries_type = new LinkedHashMap<String, Entry>();
+		declared_entries_type = new LinkedHashMap<String, ContainerEntry>();
 		gson_builder = new GsonBuilder();
 		gson_builder.serializeNulls();
 		
@@ -98,13 +98,13 @@ public class Operations {
 		} catch (Exception e) {
 			Log2.log.error("Can't declare (de)serializer for EntrySummary", e);
 		}
-		gson_builder.registerTypeAdapter(Preview.class, new Preview.Serializer());
-		gson_builder.registerTypeAdapter(Preview.class, new Preview.Deserializer());
+		gson_builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Serializer());
+		gson_builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
 		
 		/**
 		 * Call MetadataCenter for run static block.
 		 */
-		MetadataCenter.doNothing();
+		MetadataCenter.getAnalysers();
 	}
 	
 	public static void setGsonPrettyPrinting() {
@@ -131,15 +131,15 @@ public class Operations {
 		return gson;
 	}
 	
-	public synchronized static void declareEntryType(Class<? extends Entry> entry_class) throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NoSuchMethodException, SecurityException {
+	public synchronized static void declareEntryType(Class<? extends ContainerEntry> entry_class) throws NullPointerException, InstantiationException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		if (entry_class == null) {
 			throw new NullPointerException("\"entry_class\" can't to be null");
 		}
-		Entry entry = (Entry) declareType(entry_class);
-		declared_entries_type.put(entry.getES_Type(), entry);
+		ContainerEntry containerEntry = (ContainerEntry) declareType(entry_class);
+		declared_entries_type.put(containerEntry.getES_Type(), containerEntry);
 		
-		List<Class<? extends SelfSerializing>> dependencies = entry.getSerializationDependencies();
+		List<Class<? extends SelfSerializing>> dependencies = containerEntry.getSerializationDependencies();
 		if (dependencies != null) {
 			for (int pos = 0; pos < dependencies.size(); pos++) {
 				declareType(dependencies.get(pos));
@@ -171,7 +171,7 @@ public class Operations {
 		if (mtd_key == null) {
 			throw new NullPointerException("\"mtd_key\" can't to be null");
 		}
-		Containers result = Operations.searchInMetadataBase(QueryBuilders.termQuery("_id", mtd_key));
+		Containers result = ContainerOperations.searchInMetadataBase(QueryBuilders.termQuery("_id", mtd_key));
 		if (result.getAll().isEmpty()) {
 			return null;
 		} else {
@@ -202,7 +202,7 @@ public class Operations {
 			return null;
 		}
 		
-		Entry element = gson.fromJson(getresponse.getSourceAsString(), declared_entries_type.get(type).getClass());
+		ContainerEntry element = gson.fromJson(getresponse.getSourceAsString(), declared_entries_type.get(type).getClass());
 		Container result = new Container(mtd_key, element.getOrigin());
 		result.addEntry(element);
 		return result;
@@ -212,7 +212,7 @@ public class Operations {
 		if (pathelement_key == null) {
 			throw new NullPointerException("\"pathelement_key\" can't to be null");
 		}
-		Containers result = Operations.searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key));
+		Containers result = ContainerOperations.searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key));
 		if (result.getAll().isEmpty()) {
 			return null;
 		} else {
@@ -224,7 +224,7 @@ public class Operations {
 		if (pathelement_key == null) {
 			throw new NullPointerException("\"pathelement_key\" can't to be null");
 		}
-		Containers result = Operations.searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key), EntrySummary.type);
+		Containers result = ContainerOperations.searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key), EntrySummary.type);
 		if (result.getAll().isEmpty()) {
 			return null;
 		} else {
@@ -260,7 +260,7 @@ public class Operations {
 		}
 		ArrayList<QueryBuilder> queries = new ArrayList<QueryBuilder>();
 		for (int pos = 0; pos < pathelements.size(); pos++) {
-			queries.add(QueryBuilders.termQuery("_id", Origin.getUniqueElementKey(pathelements.get(pos))));
+			queries.add(QueryBuilders.termQuery("_id", ContainerOrigin.getUniqueElementKey(pathelements.get(pos))));
 		}
 		/*	MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
 			multigetrequestbuilder.add(ES_INDEX, EntrySummary.type, Origin.getUniqueElementKey(pathelements.get(pos)));
@@ -407,13 +407,13 @@ public class Operations {
 		if (container == null) {
 			throw new NullPointerException("\"container\" can't to be null");
 		}
-		List<Entry> entries = container.getEntries();
-		Entry entry;
+		List<ContainerEntry> containerEntries = container.getEntries();
+		ContainerEntry containerEntry;
 		
-		for (int pos = 0; pos < entries.size(); pos++) {
-			entry = entries.get(pos);
-			IndexRequestBuilder index = client.prepareIndex(ES_INDEX, entry.getES_Type(), container.getMtd_key());
-			index.setSource(gson.toJson(entry));
+		for (int pos = 0; pos < containerEntries.size(); pos++) {
+			containerEntry = containerEntries.get(pos);
+			IndexRequestBuilder index = client.prepareIndex(ES_INDEX, containerEntry.getES_Type(), container.getMtd_key());
+			index.setSource(gson.toJson(containerEntry));
 			index.setRefresh(refresh_index_after_save);
 			bulkrequest.add(index);
 		}
@@ -507,22 +507,22 @@ public class Operations {
 			elementcount_by_storage = new HashMap<String, Long>();
 		}
 		
-		boolean containsStorageInBase(Origin origin) {
-			if (elementcount_by_storage.containsKey(origin.storage) == false) {
-				elementcount_by_storage.put(origin.storage, explorer.countStorageContentElements(origin.storage));
-				if (elementcount_by_storage.get(origin.storage) == 0) {
-					Log2.log.info("Missing storage item in datatabase", new Log2Dump("storagename", origin.storage));
+		boolean containsStorageInBase(ContainerOrigin containerOrigin) {
+			if (elementcount_by_storage.containsKey(containerOrigin.storage) == false) {
+				elementcount_by_storage.put(containerOrigin.storage, explorer.countStorageContentElements(containerOrigin.storage));
+				if (elementcount_by_storage.get(containerOrigin.storage) == 0) {
+					Log2.log.info("Missing storage item in datatabase", new Log2Dump("storagename", containerOrigin.storage));
 				}
 			}
-			return elementcount_by_storage.get(origin.storage) > 0;
+			return elementcount_by_storage.get(containerOrigin.storage) > 0;
 		}
 		
 		public boolean onFoundHit(SearchHit hit) {
 			if (declared_entries_type.containsKey(hit.getType()) == false) {
 				return true;
 			}
-			Entry entry = gson.fromJson(hit.getSourceAsString(), declared_entries_type.get(hit.getType()).getClass());
-			Container container = new Container(hit.getId(), entry.getOrigin());
+			ContainerEntry containerEntry = gson.fromJson(hit.getSourceAsString(), declared_entries_type.get(hit.getType()).getClass());
+			Container container = new Container(hit.getId(), containerEntry.getOrigin());
 			
 			try {
 				container.getOrigin().getPathindexElement();

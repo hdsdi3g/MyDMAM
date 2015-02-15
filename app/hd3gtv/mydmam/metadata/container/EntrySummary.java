@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.mydmam.metadata.GeneratorRenderer;
+import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
 import hd3gtv.mydmam.metadata.PreviewType;
 
 import java.lang.reflect.Type;
@@ -29,13 +29,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
-public final class EntrySummary extends Entry {
+public final class EntrySummary extends ContainerEntry {
 	
-	private HashMap<String, Preview> previews;
+	private HashMap<String, ContainerPreview> containerPreviews;
 	Map<String, String> summaries;
 	public boolean master_as_preview;
 	private String mimetype;
-	private transient HashMap<PreviewType, Preview> cache_previews;
+	private transient HashMap<PreviewType, ContainerPreview> cache_previews;
 	
 	public final static String type = "summary";
 	
@@ -75,13 +75,13 @@ public final class EntrySummary extends Entry {
 	
 	public static final String MASTER_AS_PREVIEW = "master_as_preview";
 	
-	protected Entry internalDeserialize(JsonObject source, Gson gson) {
+	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
 		EntrySummary entry = new EntrySummary();
 		for (Map.Entry<String, JsonElement> item : source.entrySet()) {
 			if (item.getKey().equals("previews")) {
-				Type typeOfT = new TypeToken<HashMap<String, Preview>>() {
+				Type typeOfT = new TypeToken<HashMap<String, ContainerPreview>>() {
 				}.getType();
-				entry.previews = gson.fromJson(item.getValue().getAsJsonObject(), typeOfT);
+				entry.containerPreviews = gson.fromJson(item.getValue().getAsJsonObject(), typeOfT);
 			} else if (item.getKey().equals("mimetype")) {
 				entry.mimetype = item.getValue().getAsString();
 			} else if (item.getKey().equals(MASTER_AS_PREVIEW)) {
@@ -96,12 +96,12 @@ public final class EntrySummary extends Entry {
 		return entry;
 	}
 	
-	protected JsonObject internalSerialize(Entry _item, Gson gson) {
+	protected JsonObject internalSerialize(ContainerEntry _item, Gson gson) {
 		EntrySummary src = (EntrySummary) _item;
 		JsonObject jo = new JsonObject();
 		
-		if (src.previews != null) {
-			jo.add("previews", gson.toJsonTree(src.previews));
+		if (src.containerPreviews != null) {
+			jo.add("previews", gson.toJsonTree(src.containerPreviews));
 		}
 		
 		jo.addProperty("mimetype", src.mimetype);
@@ -133,37 +133,37 @@ public final class EntrySummary extends Entry {
 	}
 	
 	private void populate_previews() {
-		if (previews == null) {
-			previews = new HashMap<String, Preview>(1);
+		if (containerPreviews == null) {
+			containerPreviews = new HashMap<String, ContainerPreview>(1);
 		}
 		if (cache_previews == null) {
-			cache_previews = new HashMap<PreviewType, Preview>();
-			for (Map.Entry<String, Preview> entry : previews.entrySet()) {
+			cache_previews = new HashMap<PreviewType, ContainerPreview>();
+			for (Map.Entry<String, ContainerPreview> entry : containerPreviews.entrySet()) {
 				cache_previews.put(PreviewType.valueOf(entry.getKey()), entry.getValue());
 			}
 		}
 	}
 	
-	public void addPreviewsFromEntryRenderer(EntryRenderer entry, Container container, GeneratorRenderer generator) {
+	public void addPreviewsFromEntryRenderer(EntryRenderer entry, Container container, MetadataGeneratorRenderer generator) {
 		populate_previews();
 		
 		List<String> files = entry.getContentFileNames();
 		
 		for (int pos = 0; pos < files.size(); pos++) {
-			Preview preview = new Preview();
-			preview.type = entry.getES_Type();
-			preview.file = files.get(pos);
-			preview.options = entry.getOptions();
+			ContainerPreview containerPreview = new ContainerPreview();
+			containerPreview.type = entry.getES_Type();
+			containerPreview.file = files.get(pos);
+			containerPreview.options = entry.getOptions();
 			
 			PreviewType previewtype = generator.getPreviewTypeForRenderer(container, entry);
 			if (previewtype != null) {
-				cache_previews.put(previewtype, preview);
-				previews.put(previewtype.toString(), preview);
+				cache_previews.put(previewtype, containerPreview);
+				containerPreviews.put(previewtype.toString(), containerPreview);
 			}
 		}
 	}
 	
-	public Preview getPreview(PreviewType previewtype) {
+	public ContainerPreview getPreview(PreviewType previewtype) {
 		populate_previews();
 		if (cache_previews.containsKey(previewtype)) {
 			return cache_previews.get(previewtype);
@@ -174,7 +174,7 @@ public final class EntrySummary extends Entry {
 	/**
 	 * Don't add or delete items from here.
 	 */
-	public HashMap<PreviewType, Preview> getPreviews() {
+	public HashMap<PreviewType, ContainerPreview> getPreviews() {
 		populate_previews();
 		return cache_previews;
 	}
