@@ -66,7 +66,7 @@
 					<span class="label">${item.source.get('date').formatDate()}</span>
 				#{/if}
 				#{if item.source.get('size')}
-					<span class="label label-important">${item.source.get('size').formatFileSize().raw()}</span>
+					<span class="label label-important"><i class="icon-briefcase icon-white"></i> ${item.source.get('size').formatFileSize().raw()}</span>
 				#{/if}
 				#{if item.source.get('directory')}
 					<span class="label label-success">&{'search.result.directory'}</span>

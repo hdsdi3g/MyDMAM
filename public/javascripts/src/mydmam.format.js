@@ -146,4 +146,17 @@
 		return i18n(i18n_label, secondsToYWDHMS(Math.abs(delta)));
 	};
 
+	var numberformat = null;
+	if (window.Intl) {
+		numberformat = new window.Intl.NumberFormat();
+	}	
+	
+	mydmam.format.number = function(value) {
+		if (numberformat) {
+			return numberformat.format(value);
+		} else {
+			return value;
+		}
+	};
+
 })(window.mydmam);

@@ -1,6 +1,6 @@
 # You can specialize this file for each language.
 #
-secure.pagetitle=Login :: MyDMAM
+secure.pagetitle=Login ::
 secure.username=User
 secure.password=Password
 secure.remember=Remember me

@@ -469,11 +469,11 @@
 		 */
 		if (external_elements_to_resolve.length > 0) {
 			metadatas.getAndAddExternalPosition(external_elements_to_resolve, function(key) {
-				$('#sri-' + key).prepend('<span class="label label-success">' + i18n('browser.externalposition.online') + '</span> ');
+				$('#sri-' + key).prepend(' <span class="label label-success"><i class="icon-barcode icon-white"></i> ' + i18n('browser.externalposition.online') + '</span> ');
 			}, function(key, barcode) {
-				$('#sri-' + key).prepend('<span class="label label-important">' + barcode + '</span> ');
+				$('#sri-' + key).prepend(' <span class="label label-important"><i class="icon-barcode icon-white"></i> ' + barcode + '</span> ');
 			}, function(key) {
-				$('#sri-' + key).prepend('<span class="label label-success">' + i18n('browser.externalposition.nearline') + '</span> ');
+				$('#sri-' + key).prepend(' <span class="label label-success"><i class="icon-barcode icon-white"></i> ' + i18n('browser.externalposition.nearline') + '</span> ');
 			});
 		}
 		

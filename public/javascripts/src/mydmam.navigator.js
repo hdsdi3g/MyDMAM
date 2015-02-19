@@ -138,7 +138,13 @@
 		}
 		
 		if (reference.size) {
-			content = content + '<span class="label label-important">' + reference.size + '</span> ';
+			content = content + '<span class="label label-important"><i class="icon-briefcase icon-white"></i> ' + mydmam.format.number(reference.size) + '</span> ';
+		}
+		
+		if (reference.directory === false) {
+			external_elements_to_resolve.push(md5_fullpath);
+			content = content + '<span id="elmextern-' + md5_fullpath + '"></span>';
+			//TODO show external key.
 		}
 		
 		content = content + '</div>';
@@ -252,7 +258,7 @@
 					if (show_useraction_button) {
 						content = content + mydmam.useraction.prepareButtonCreate(elementkey, false, element.storagename, element.path);
 					}
-					content = content + ' <span class="label label-important">' + element.size + '</span>';
+					content = content + ' <span class="label label-important"><i class="icon-briefcase icon-white"></i> ' + mydmam.format.number(element.size) + '</span>';
 					content = content + '</td>';
 					
 					var rawsize = '000000000000000' + element.size;
@@ -266,10 +272,6 @@
 					content = content + '<td></td><td>0</td>';
 				}
 
-				if (element.directory === false) {
-					external_elements_to_resolve.push();
-				}
-				
 				content = content + '<td id="elmextern-' + elementkey + '"></td>';
 				
 				if (element_mtdsummary) {
@@ -342,11 +344,11 @@
 		
 		if (externalstorage & (external_elements_to_resolve.length > 0)) {
 			mydmam.metadatas.getAndAddExternalPosition(external_elements_to_resolve, function(key) {
-				$('#elmextern-' + key).append('<span class="label label-success">' + i18n('browser.externalposition.online') + '</span> ');
+				$('#elmextern-' + key).append('<span class="label label-success"><i class="icon-barcode icon-white"></i> ' + i18n('browser.externalposition.online') + '</span> ');
 			}, function(key, barcode) {
-				$('#elmextern-' + key).append(barcode + ' ');
+				$('#elmextern-' + key).append('<span class="label label-important"><i class="icon-barcode icon-white"></i> ' + barcode + '</span>');
 			}, function(key) {
-				$('#elmextern-' + key).append('<span class="label label-success">' + i18n('browser.externalposition.nearline') + '</span> ');
+				$('#elmextern-' + key).append('<span class="label label-success"><i class="icon-barcode icon-white"></i> ' + i18n('browser.externalposition.nearline') + '</span> ');
 			});
 		}
 
