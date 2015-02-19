@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>MyDMAM Project &#187; Javascript</title>
+	<atom:link href="http://mydmam.org/tag/javascript/feed/" rel="self" type="application/rss+xml" />
+	<link>http://mydmam.org</link>
+	<description>Another way of looking a Digital Media Asset Management</description>
+	<lastBuildDate>Thu, 19 Feb 2015 16:44:11 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>hourly</sy:updatePeriod>
+	<sy:updateFrequency>1</sy:updateFrequency>
+	
+	<item>
+		<title>Git master branch update v0.5</title>
+		<link>http://mydmam.org/2014/06/git-master-branch-update-v0-5/</link>
+		<comments>http://mydmam.org/2014/06/git-master-branch-update-v0-5/#comments</comments>
+		<pubDate>Sat, 21 Jun 2014 13:48:32 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[Beta]]></category>
+		<category><![CDATA[bug correcting]]></category>
+		<category><![CDATA[Cassandra]]></category>
+		<category><![CDATA[Javascript]]></category>
+		<category><![CDATA[Setup]]></category>
+		<category><![CDATA[StorageIndex]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=295</guid>
+		<description><![CDATA[New update for some corrections and new functions. Refactoring Cassandra side : Clean Cassandra/IsAlive code, and remove old Schemes classes #50 Create Cassandra CF and KS with correct gc_grace and replication_factor values #49 Repair some non fatal bugs for the first boot, in case of no Keyspaces, and some races condition with the CF creating and pushing datas. [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>New update for some corrections and new functions.</p>
+<p>Refactoring Cassandra side :</p>
+<ul>
+<li>Clean Cassandra/IsAlive code, and remove old Schemes classes <a href="https://github.com/hdsdi3g/MyDMAM/issues/50" target="_blank">#50</a></li>
+<li>Create Cassandra CF and KS with correct gc_grace and replication_factor values <a href="https://github.com/hdsdi3g/MyDMAM/issues/49" target="_blank">#49</a></li>
+<li>Repair some non fatal bugs for the first boot, in case of no Keyspaces, and some races condition with the CF creating and pushing datas. Transform CF creating to a blocking operation.</li>
+</ul>
+<p>Refactoring JS side :</p>
+<ul>
+<li>Get html5shiv from web server instead of Google servers <a href="https://github.com/hdsdi3g/MyDMAM/issues/46" target="_blank">#46</a></li>
+<li>Refactoring URLs in JS side <a href="https://github.com/hdsdi3g/MyDMAM/issues/47" target="_blank">#47</a></li>
+<li><strong>Extend stat function with scopes in website <a href="https://github.com/hdsdi3g/MyDMAM/issues/30" target="_blank">#30</a></strong></li>
+</ul>
+<p>Correct a simple bug :</p>
+<ul>
+<li>StorageIndex can&#8217;t found a Storage if its name has uppercase letter(s) <a href="https://github.com/hdsdi3g/MyDMAM/issues/48" target="_blank">#48</a></li>
+</ul>
+<p>Update your git repository, or download it <a href="https://github.com/hdsdi3g/MyDMAM/releases/tag/v0.5" target="_blank">here from GitHub</a>.</p>
+]]></content:encoded>
+			<wfw:commentRss>http://mydmam.org/2014/06/git-master-branch-update-v0-5/feed/</wfw:commentRss>
+		<slash:comments>0</slash:comments>
+		</item>
+	</channel>
+</rss>
+
+<!-- Performance optimized by W3 Total Cache. Learn more: http://www.w3-edge.com/wordpress-plugins/
+
+Minified using disk
+Page Caching using disk: enhanced
+Database Caching using disk
+Object Caching 248/251 objects using disk
+
+ Served from: mydmam.org @ 2015-02-19 17:51:12 by W3 Total Cache -->
