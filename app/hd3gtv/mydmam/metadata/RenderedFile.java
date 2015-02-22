@@ -66,7 +66,14 @@ public class RenderedFile implements Log2Dumpable {
 			MessageDigest.getInstance(digest_algorithm);
 			
 			temp_directory = MetadataCenter.rendering_temp_directory;
+			if (temp_directory == null) {
+				throw new NullPointerException("temp_directory");
+			}
+			
 			local_directory = MetadataCenter.rendering_local_directory;
+			if (local_directory == null) {
+				throw new NullPointerException("temp_directory");
+			}
 			
 			if (temp_directory.exists() == false) {
 				throw new FileNotFoundException(temp_directory.getPath());

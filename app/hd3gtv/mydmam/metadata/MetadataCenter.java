@@ -144,31 +144,29 @@ public class MetadataCenter {
 			}
 			rendering_temp_directory = new File(Configuration.global.getValue("metadata_analysing", "temp_directory", System.getProperty("java.io.tmpdir", "/tmp")));
 			rendering_local_directory = new File(Configuration.global.getValue("metadata_analysing", "local_directory", System.getProperty("user.home", "/tmp")));
+		}
+		
+		try {
+			addProvider(new ImageMagickAnalyser());
 			
-			try {
-				addProvider(new ImageMagickAnalyser());
-				
-				addProvider(new FFprobeAnalyser());
-				addProvider(new FFmpegInterlacingDetection());
-				addProvider(new FFmpegSnapshot());
-				addProvider(new FFmpegAlbumartwork());
-				
-				addProvider(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
-				addProvider(new ImageMagickThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
-				addProvider(new ImageMagickThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
-				addProvider(new ImageMagickFFmpegThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
-				addProvider(new ImageMagickFFmpegThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
-				addProvider(new ImageMagickFFmpegThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
-				
-				addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererLQ.class, PreviewType.video_lq_pvw, false));
-				addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererSD.class, PreviewType.video_sd_pvw, false));
-				addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererHD.class, PreviewType.video_hd_pvw, false));
-				addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererAudio.class, PreviewType.audio_pvw, true));
-			} catch (Exception e) {
-				Log2.log.error("Can't instanciate Providers", e);
-			}
-		} else {
-			Log2.log.error("metadata_analysing configuration is missing", null);
+			addProvider(new FFprobeAnalyser());
+			addProvider(new FFmpegInterlacingDetection());
+			addProvider(new FFmpegSnapshot());
+			addProvider(new FFmpegAlbumartwork());
+			
+			addProvider(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
+			addProvider(new ImageMagickThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
+			addProvider(new ImageMagickThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
+			addProvider(new ImageMagickFFmpegThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
+			addProvider(new ImageMagickFFmpegThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
+			addProvider(new ImageMagickFFmpegThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
+			
+			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererLQ.class, PreviewType.video_lq_pvw, false));
+			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererSD.class, PreviewType.video_sd_pvw, false));
+			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererHD.class, PreviewType.video_hd_pvw, false));
+			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererAudio.class, PreviewType.audio_pvw, true));
+		} catch (Exception e) {
+			Log2.log.error("Can't instanciate Providers", e);
 		}
 	}
 	
