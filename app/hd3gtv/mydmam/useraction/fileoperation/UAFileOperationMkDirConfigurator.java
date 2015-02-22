@@ -11,20 +11,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.useraction;
+package hd3gtv.mydmam.useraction.fileoperation;
 
-/**
- * Don't forget to set messages for add a new section.
- * useractions.functionalities.sections.*
- */
-public enum UAFunctionalitySection {
-	/**
-	 * like transcoding, metadata/pvw, content check, download/delivery, user metadata...
-	 */
+import java.io.Serializable;
+
+public class UAFileOperationMkDirConfigurator implements Serializable {
 	
-	debugging, filesystem
+	public String newpathname;
 	
 }

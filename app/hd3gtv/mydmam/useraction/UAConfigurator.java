@@ -40,6 +40,25 @@ public final class UAConfigurator implements Log2Dumpable {
 	UAConfigurator() {
 	}
 	
+	UAConfigurator(Serializable object) {
+		if (object == null) {
+			throw new NullPointerException("\"object\" can't to be null");
+		}
+		this.object = object;
+		Class<?> entityclass = object.getClass();
+		try {
+			fields = ORMFormField.getFields(entityclass);
+		} catch (SecurityException e) {
+			Log2.log.error("Can't to access some fields", e);
+			fields = new ArrayList<ORMFormField>();
+		} catch (NoSuchFieldException e) {
+			Log2.log.error("Can't to load some fields", e);
+			fields = new ArrayList<ORMFormField>();
+		}
+		type = entityclass.getSimpleName().toLowerCase();
+		origin = entityclass.getName();
+	}
+	
 	private String type;
 	private String origin;
 	private Object object;
@@ -55,33 +74,12 @@ public final class UAConfigurator implements Log2Dumpable {
 		return dump;
 	}
 	
-	public void setObject(Object object) {
+	void setObject(Object object) {
 		this.object = object;
 	}
 	
-	/**
-	 * @param object annoted with hd3gtv.mydmam.db.orm.annotations, and inspected by ORMFormField to extract fields.
-	 */
-	public static UAConfigurator create(Serializable object) {
-		UAConfigurator configurator = new UAConfigurator();
-		configurator.object = object;
-		Class<?> entityclass = object.getClass();
-		try {
-			configurator.fields = ORMFormField.getFields(entityclass);
-		} catch (SecurityException e) {
-			Log2.log.error("Can't to access some fields", e);
-			configurator.fields = new ArrayList<ORMFormField>();
-		} catch (NoSuchFieldException e) {
-			Log2.log.error("Can't to load some fields", e);
-			configurator.fields = new ArrayList<ORMFormField>();
-		}
-		configurator.type = entityclass.getSimpleName().toLowerCase();
-		configurator.origin = entityclass.getName();
-		return configurator;
-	}
-	
 	@SuppressWarnings("unchecked")
-	public <T> T getObject(Class<T> class_of_T) throws ClassNotFoundException {
+	public <T extends Serializable> T getObject(Class<T> class_of_T) throws ClassNotFoundException {
 		if (class_of_T.isAssignableFrom(Class.forName(origin))) {
 			return (T) object;
 		} else {

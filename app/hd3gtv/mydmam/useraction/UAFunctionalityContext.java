@@ -22,6 +22,7 @@ import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.pathindexing.Explorer;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -77,9 +78,10 @@ public abstract class UAFunctionalityContext extends JobContext {
 	
 	/**
 	 * For display create form in website.
-	 * @return can be null.
+	 * @return can be null, an object annoted with hd3gtv.mydmam.db.orm.annotations, and inspected by ORMFormField to extract fields.
+	 *         This object must to be independent of the class and without constructor.
 	 */
-	public abstract UAConfigurator createEmptyConfiguration();
+	public abstract Serializable prepareEmptyConfiguration();
 	
 	public abstract UACapability createCapability(LinkedHashMap<String, ?> internal_configuration);
 	

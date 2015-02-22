@@ -82,7 +82,7 @@ public final class UAWorker extends WorkerNG {
 		
 		UAConfigurator user_configuration = context.user_configuration;
 		if (user_configuration == null) {
-			user_configuration = functionality.createEmptyConfiguration();
+			user_configuration = new UAConfigurator(functionality.prepareEmptyConfiguration());
 		}
 		
 		if (context.creator_user_key == null) {

@@ -189,7 +189,7 @@ public final class UACreationRequest {
 			
 			navigator_input_selection_storages = new ArrayList<String>();
 			
-			associated_user_configuration = functionality.createEmptyConfiguration();
+			associated_user_configuration = new UAConfigurator(functionality.prepareEmptyConfiguration());
 			if (associated_user_configuration != null) {
 				Object object_user_configuration = UAManager.getGson().fromJson(raw_associated_user_configuration, associated_user_configuration.getObjectClass());
 				associated_user_configuration.setObject(object_user_configuration);

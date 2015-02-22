@@ -93,7 +93,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		def.instance = functionality.getInstanceReference().toString();
 		def.classname = functionality.getClass().getName();
 		def.worker_capablity_storages = functionality.getUserActionWorkerCapablities().getStoragesAvaliable();
-		def.configurator = functionality.createEmptyConfiguration();
+		def.configurator = new UAConfigurator(functionality.prepareEmptyConfiguration());
 		def.messagebasename = functionality.getMessageBaseName();
 		if (def.messagebasename == null) {
 			def.messagebasename = functionality.getClass().getName();

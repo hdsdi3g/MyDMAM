@@ -17,11 +17,11 @@
 package hd3gtv.mydmam.useraction.dummy;
 
 import hd3gtv.mydmam.useraction.UACapability;
-import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.useraction.UAFunctionalitySection;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 
+import java.io.Serializable;
 import java.util.LinkedHashMap;
 
 public class UADummy extends UAFunctionalityContext {
@@ -46,8 +46,8 @@ public class UADummy extends UAFunctionalityContext {
 		return false;
 	}
 	
-	public UAConfigurator createEmptyConfiguration() {
-		return UAConfigurator.create(new UADummyConfigurator());
+	public Serializable prepareEmptyConfiguration() {
+		return new UADummyConfigurator();
 	}
 	
 	public UAJobProcess createProcess() {

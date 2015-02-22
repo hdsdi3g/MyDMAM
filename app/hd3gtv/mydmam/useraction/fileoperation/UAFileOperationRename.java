@@ -11,55 +11,59 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.useraction.dummy;
+package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.mydmam.useraction.UACapability;
-import hd3gtv.mydmam.useraction.UAFunctionalityContext;
-import hd3gtv.mydmam.useraction.UAFunctionalitySection;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
 
-public class UADummy2 extends UAFunctionalityContext {
+public class UAFileOperationRename extends BaseFileOperation {
 	
-	public UAFunctionalitySection getSection() {
-		return UAFunctionalitySection.debugging;
+	@Override
+	protected String getSubLongName() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
-	public String getVendor() {
-		return "Internal MyDMAM";
+	@Override
+	protected String getSubMessageBaseName() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
-	public String getLongName() {
-		return "Dummy User Action 2";
-	}
-	
-	public String getDescription() {
-		return "Dummy User Action 2 for tests and debugging";
-	}
-	
-	public boolean isPowerfulAndDangerous() {
-		return true;
-	}
-	
-	public Serializable prepareEmptyConfiguration() {
-		return new UADummyConfigurator();
-	}
-	
+	@Override
 	public UAJobProcess createProcess() {
-		return new UADummyProcess();
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
+	@Override
+	public String getDescription() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public boolean isPowerfulAndDangerous() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	public Serializable prepareEmptyConfiguration() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
 	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {
-		return new UADummyCapability(internal_configuration);
-	}
-	
-	public String getMessageBaseName() {
-		return "uadummy2";
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 }
