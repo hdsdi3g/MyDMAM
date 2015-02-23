@@ -16,13 +16,19 @@
 */
 package hd3gtv.mydmam.useraction.fileoperation;
 
+import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UACapability;
+import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 
-public class UAFileOperationCompress extends BaseFileOperation {
+import models.UserProfile;
+
+public class UAFileOperationExpand extends BaseFileOperation {
 	
 	@Override
 	protected String getSubLongName() {
@@ -64,6 +70,12 @@ public class UAFileOperationCompress extends BaseFileOperation {
 	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public void process(JobProgression progression, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

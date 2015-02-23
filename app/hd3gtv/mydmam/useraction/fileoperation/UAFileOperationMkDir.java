@@ -35,10 +35,10 @@ import java.util.Map;
 
 import models.UserProfile;
 
-public class UAFileOperationMkDir extends BaseFileOperation implements UAJobProcess {
+public class UAFileOperationMkDir extends BaseFileOperation {
 	
 	protected String getSubLongName() {
-		return "create directories";
+		return "create directory";
 	}
 	
 	protected String getSubMessageBaseName() {
@@ -89,8 +89,6 @@ public class UAFileOperationMkDir extends BaseFileOperation implements UAJobProc
 	 * UAJobProcess part
 	 */
 	
-	private boolean stop;
-	
 	public void process(JobProgression progression, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception {
 		UAFileOperationMkDirConfigurator conf = user_configuration.getObject(UAFileOperationMkDirConfigurator.class);
 		
@@ -120,7 +118,7 @@ public class UAFileOperationMkDir extends BaseFileOperation implements UAJobProc
 				throw new FileNotFoundException("current_dir is not a dir: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
 			}
 			if (current_dir.canWrite() == false) {
-				throw new FileNotFoundException("Can't write to current_dir: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
+				throw new IOException("Can't write to current_dir: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
 			}
 			conf.newpathname = conf.newpathname.replace("\\", File.separator);
 			conf.newpathname = conf.newpathname.replace("/", File.separator);
@@ -150,10 +148,6 @@ public class UAFileOperationMkDir extends BaseFileOperation implements UAJobProc
 			}
 		}
 		
-	}
-	
-	public synchronized void forceStopProcess() throws Exception {
-		stop = true;
 	}
 	
 }

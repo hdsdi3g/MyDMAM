@@ -16,54 +16,82 @@
 */
 package hd3gtv.mydmam.useraction.fileoperation;
 
+import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UACapability;
+import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+
+import models.UserProfile;
 
 public class UAFileOperationCopyMove extends BaseFileOperation {
 	
-	@Override
 	protected String getSubLongName() {
-		// TODO Auto-generated method stub
-		return null;
+		return "copy/move files and directories";
 	}
 	
-	@Override
 	protected String getSubMessageBaseName() {
-		// TODO Auto-generated method stub
-		return null;
+		return "copymove";
 	}
 	
-	@Override
 	public UAJobProcess createProcess() {
-		// TODO Auto-generated method stub
-		return null;
+		return new UAFileOperationCopyMove();
 	}
 	
-	@Override
 	public String getDescription() {
-		// TODO Auto-generated method stub
-		return null;
+		return "Copy and move files and directories content";
 	}
 	
-	@Override
 	public boolean isPowerfulAndDangerous() {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 	
-	@Override
 	public Serializable prepareEmptyConfiguration() {
-		// TODO Auto-generated method stub
-		return null;
+		return new UAFileOperationCopyMoveConfigurator();
+	}
+	
+	public class Capability extends UACapability {
+		
+		public boolean enableFileProcessing() {
+			return true;
+		}
+		
+		public boolean enableDirectoryProcessing() {
+			return true;
+		}
+		
+		public boolean enableRootStorageindexProcessing() {
+			return false;
+		}
+		
+		public boolean mustHaveLocalStorageindexBridge() {
+			return true;
+		}
+		
+	}
+	
+	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {
+		return new Capability();
 	}
 	
 	@Override
-	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {
+	public void process(JobProgression progression, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception {
+		UAFileOperationCopyMoveConfigurator conf = user_configuration.getObject(UAFileOperationCopyMoveConfigurator.class);
+		
 		// TODO Auto-generated method stub
-		return null;
+		
+		/**
+		 * copy or move
+		 * if move > simple mv is ok ? else "copy"
+		 * if copy & file > simple copy
+		 * if copy & dir > recursive copy
+		 * if move & file > delete source
+		 * if move & dir > recursive delete source
+		 */
 	}
 	
 }

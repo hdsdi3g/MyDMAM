@@ -18,8 +18,9 @@ package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.useraction.UAFunctionalitySection;
+import hd3gtv.mydmam.useraction.UAJobProcess;
 
-abstract class BaseFileOperation extends UAFunctionalityContext {
+abstract class BaseFileOperation extends UAFunctionalityContext implements UAJobProcess {
 	
 	public final UAFunctionalitySection getSection() {
 		return UAFunctionalitySection.filesystem;
@@ -40,5 +41,11 @@ abstract class BaseFileOperation extends UAFunctionalityContext {
 	}
 	
 	protected abstract String getSubMessageBaseName();
+	
+	protected boolean stop;
+	
+	public synchronized void forceStopProcess() throws Exception {
+		stop = true;
+	}
 	
 }

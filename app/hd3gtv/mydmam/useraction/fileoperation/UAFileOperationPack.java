@@ -28,7 +28,7 @@ import java.util.LinkedHashMap;
 
 import models.UserProfile;
 
-public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
+public class UAFileOperationPack extends BaseFileOperation {
 	
 	@Override
 	protected String getSubLongName() {
