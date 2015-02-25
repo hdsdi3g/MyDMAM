@@ -71,10 +71,6 @@ public class UAFileOperationRename extends BaseFileOperation {
 			return true;
 		}
 		
-		public boolean enableRootStorageindexProcessing() {
-			return false;
-		}
-		
 		public boolean mustHaveLocalStorageindexBridge() {
 			return true;
 		}
@@ -102,7 +98,10 @@ public class UAFileOperationRename extends BaseFileOperation {
 		}
 		dump.add("newname", conf.newname);
 		
+		progression.updateStep(1, source_elements.size());
+		
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
+			progression.incrStep();
 			File current_element = Explorer.getLocalBridgedElement(entry.getValue());
 			if (current_element == null) {
 				throw new NullPointerException("Can't found current_element: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);

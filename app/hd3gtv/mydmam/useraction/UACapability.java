@@ -25,13 +25,21 @@ import java.util.List;
 
 public abstract class UACapability {
 	
-	public abstract boolean enableFileProcessing();
+	public boolean enableFileProcessing() {
+		return false;
+	}
 	
-	public abstract boolean enableDirectoryProcessing();
+	public boolean enableDirectoryProcessing() {
+		return false;
+	}
 	
-	public abstract boolean enableRootStorageindexProcessing();
+	public boolean enableRootStorageindexProcessing() {
+		return false;
+	}
 	
-	public abstract boolean mustHaveLocalStorageindexBridge();
+	public boolean mustHaveLocalStorageindexBridge() {
+		return false;
+	}
 	
 	public List<String> getStorageindexesWhiteList() {
 		return new ArrayList<String>();
@@ -50,7 +58,7 @@ public abstract class UACapability {
 		return definition;
 	}
 	
-	void checkValidity(SourcePathIndexerElement element) throws IOException {
+	final void checkValidity(SourcePathIndexerElement element) throws IOException {
 		if ((enableFileProcessing() == false) & (element.directory == false)) {
 			throw new IOException("Element is a file, and file processing is not available");
 		}

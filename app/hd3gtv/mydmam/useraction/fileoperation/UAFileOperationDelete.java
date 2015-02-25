@@ -73,10 +73,6 @@ public class UAFileOperationDelete extends BaseFileOperation {
 			return true;
 		}
 		
-		public boolean enableRootStorageindexProcessing() {
-			return false;
-		}
-		
 		public boolean mustHaveLocalStorageindexBridge() {
 			return true;
 		}
@@ -92,8 +88,11 @@ public class UAFileOperationDelete extends BaseFileOperation {
 		Log2Dump dump = new Log2Dump();
 		dump.add("user", userprofile.key);
 		
+		progression.updateStep(1, source_elements.size());
+		
 		ArrayList<File> items_to_delete = new ArrayList<File>();
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
+			progression.incrStep();
 			File current_element = Explorer.getLocalBridgedElement(entry.getValue());
 			if (current_element == null) {
 				throw new NullPointerException("Can't found current_element: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
@@ -127,7 +126,9 @@ public class UAFileOperationDelete extends BaseFileOperation {
 			
 			boolean can_delete_all = true;
 			
+			progression.updateProgress(1, items_to_delete.size());
 			for (int pos_idel = items_to_delete.size() - 1; pos_idel > -1; pos_idel--) {
+				progression.updateProgress(items_to_delete.size() - pos_idel, items_to_delete.size());
 				if (items_to_delete.get(pos_idel).delete() == false) {
 					dump.add("item", items_to_delete.get(pos_idel));
 					can_delete_all = false;

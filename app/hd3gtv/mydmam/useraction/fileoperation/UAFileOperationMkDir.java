@@ -63,10 +63,6 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 	
 	public class Capability extends UACapability {
 		
-		public boolean enableFileProcessing() {
-			return false;
-		}
-		
 		public boolean enableDirectoryProcessing() {
 			return true;
 		}
@@ -105,6 +101,8 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 		}
 		
 		dump.add("newpathname", conf.newpathname);
+		
+		progression.updateStep(1, source_elements.size());
 		
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
 			File current_dir = Explorer.getLocalBridgedElement(entry.getValue());
@@ -146,6 +144,7 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 			if (stop) {
 				return;
 			}
+			progression.incrStep();
 		}
 		
 	}
