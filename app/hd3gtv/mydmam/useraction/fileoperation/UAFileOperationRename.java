@@ -129,6 +129,8 @@ public class UAFileOperationRename extends BaseFileOperation {
 				throw new IOException("Can't rename correctly file: " + current_element.getPath() + " to \"" + conf.newname + "\"");
 			}
 			
+			// TODO rename in db, with mtd
+			
 			if (stop) {
 				return;
 			}

@@ -142,6 +142,7 @@ public class UAFileOperationDelete extends BaseFileOperation {
 				Log2.log.debug("Can't delete correctly multiple files", dump);
 				throw new IOException("Can't delete multiple files from: " + current_element.getPath());
 			}
+			// TODO delete in db, with mtds
 			
 			if (stop) {
 				return;

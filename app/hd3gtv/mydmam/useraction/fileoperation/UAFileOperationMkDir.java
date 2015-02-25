@@ -141,6 +141,7 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 				throw new IOException("Can't create correctly directories: " + dest_dir.getPath());
 			}
 			
+			// TODO mkdir in db
 			if (stop) {
 				return;
 			}

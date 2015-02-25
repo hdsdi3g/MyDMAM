@@ -26,9 +26,15 @@ import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationCopyMoveConfigurator.Action;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -122,6 +128,7 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			Log2.log.debug("Prepare " + conf.action, dump);
 			
 			processSourceElement(progression, conf, source, f_destination);
+			// TODO move/copy in db, with mtds
 			
 			if (stop) {
 				return;
@@ -167,21 +174,25 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 		String destination_base_path = destination.getCanonicalPath() + File.separator;
 		
 		if (source_is_like_file) {
+			File destination_file = new File(destination_base_path + source.getName());
+			
 			if (user_want_copy == false) {
-				if (source.renameTo(new File(destination_base_path + source.getName()))) {
+				if (source.renameTo(destination_file)) {
 					/**
 					 * Simple rename: ok
 					 */
 					return;
 				}
 			}
-			// TODO copy file
+			
+			copyFile(progression, source, destination_file);
 			
 			if (user_want_copy == false) {
 				if (source.delete() == false) {
-					// TODO ERR
+					throw new IOException("Can't delete source file \"" + source.getAbsolutePath() + "\"");
 				}
 			}
+			return;
 		}
 		
 		// TODO copy/move dir
@@ -193,30 +204,29 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 		 * if copy & dir > recursive copy
 		 * if move & file > delete source
 		 * if move & dir > recursive delete source
-		 * DON'T FORGET DATES FOR NEW FILES !
 		 */
 		
 		/*
-					String current_dir_path = current_dir.getCanonicalPath();
-					File dest_dir = new File(current_dir_path + File.separator + conf.newpathname);
-					
-					if (dest_dir.exists()) {
-						continue;
-					}
-					
-					if (dest_dir.getCanonicalPath().startsWith(current_dir_path) == false) {
-						dump.add("current_dir_path", current_dir_path);
-						dump.add("dest_dir", dest_dir.getCanonicalPath());
-						Log2.log.security("User try to create a sub directory outside the choosed directory", dump);
-						throw new IOException("Invalid newpathname: " + conf.newpathname);
-					}
-					
-					if (dest_dir.mkdirs() == false) {
-						dump.add("dest_dir", dest_dir);
-						Log2.log.debug("Can't create correctly directories", dump);
-						throw new IOException("Can't create correctly directories: " + dest_dir.getPath());
-					}
-				 * */
+			String current_dir_path = current_dir.getCanonicalPath();
+			File dest_dir = new File(current_dir_path + File.separator + conf.newpathname);
+			
+			if (dest_dir.exists()) {
+				continue;
+			}
+			
+			if (dest_dir.getCanonicalPath().startsWith(current_dir_path) == false) {
+				dump.add("current_dir_path", current_dir_path);
+				dump.add("dest_dir", dest_dir.getCanonicalPath());
+				Log2.log.security("User try to create a sub directory outside the choosed directory", dump);
+				throw new IOException("Invalid newpathname: " + conf.newpathname);
+			}
+			
+			if (dest_dir.mkdirs() == false) {
+				dump.add("dest_dir", dest_dir);
+				Log2.log.debug("Can't create correctly directories", dump);
+				throw new IOException("Can't create correctly directories: " + dest_dir.getPath());
+			}
+		 * */
 		
 		/*Log2Dump dump = new Log2Dump();
 		dump.add("user", userprofile.key);
@@ -275,5 +285,43 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 				return;
 			}
 		}*/
+	}
+	
+	private void copyFile(JobProgression progression, File source_file, File destination_file) throws Exception {
+		InputStream in = null;
+		OutputStream out = null;
+		try {
+			in = new BufferedInputStream(new FileInputStream(source_file), 1024 * 1024);
+			out = new BufferedOutputStream(new FileOutputStream(destination_file), 1024 * 1024);
+			
+			// Transfer bytes from in to out
+			byte[] buf = new byte[1024];
+			int len;
+			long pos = 0;
+			int progress_size = (int) (source_file.length() / (1024 * 1024));
+			int last_progress = 0;
+			int progress;
+			
+			while ((len = in.read(buf)) > 0) {
+				out.write(buf, 0, len);
+				
+				pos += len;
+				progress = (int) (pos / (1024 * 1024));
+				if (progress > last_progress) {
+					progress = last_progress;
+					progression.updateProgress(progress, progress_size);
+				}
+			}
+		} finally {
+			if (in != null) {
+				in.close();
+			}
+			if (out != null) {
+				out.close();
+			}
+		}
+		
+		destination_file.setExecutable(source_file.canExecute());
+		destination_file.setLastModified(source_file.lastModified());
 	}
 }
