@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.useraction.fileoperation;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.JobProgression;
 
 import java.io.File;
@@ -23,9 +25,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 
 public class CopyMove {
 	
@@ -39,7 +43,6 @@ public class CopyMove {
 		if (element.canRead() == false) {
 			throw new IOException("Can't read element \"" + element.getPath() + "\"");
 		}
-		
 	}
 	
 	public static void checkIsDirectory(File element) throws FileNotFoundException {
@@ -56,11 +59,15 @@ public class CopyMove {
 	
 	private File source;
 	private File destination;
-	private boolean delete_during_copy;
 	private boolean delete_after_copy;
 	private ArrayList<File> list_to_copy;
 	private JobProgression progression;
-	private byte[] buffer;
+	
+	private long total_size = 0;
+	long progress_copy = 0;
+	int actual_progress_value = 0;
+	int last_progress_value = 0;
+	int progress_size = 0;
 	
 	public CopyMove(File source, File destination) throws NullPointerException, IOException {
 		this.source = source;
@@ -71,9 +78,6 @@ public class CopyMove {
 		checkExistsCanRead(destination);
 		checkIsDirectory(destination);
 		checkIsWritable(destination);
-		
-		list_to_copy = new ArrayList<File>();
-		buffer = new byte[512 * 1024];
 	}
 	
 	public void setDelete_after_copy(boolean delete_after_copy) throws IOException {
@@ -83,83 +87,196 @@ public class CopyMove {
 		}
 	}
 	
-	public void setDelete_during_copy(boolean delete_during_copy) throws IOException {
-		this.delete_during_copy = delete_during_copy;
-		if (delete_during_copy) {
-			checkIsWritable(source);
-		}
-	}
-	
 	public void setProgression(JobProgression progression) {
 		this.progression = progression;
 	}
 	
 	public void operate() throws IOException {
+		if (delete_after_copy) {
+			/**
+			 * Move operation
+			 * Can we simply move ?
+			 */
+			File moveto = new File(destination.getAbsoluteFile() + File.separator + source.getName());
+			if (source.renameTo(moveto)) {
+				return;
+			} else {
+				Log2Dump dump = new Log2Dump();
+				dump.add("source", source);
+				dump.add("moveto", moveto);
+				Log2.log.debug("Can't simply move, do a copy + move operation", dump);
+			}
+		}
+		
 		/**
 		 * Dirlist source
 		 */
-		list_to_copy.add(source);
 		if (source.isDirectory()) {
-			// TODO recursive scan
+			dirListing();
+		} else {
+			list_to_copy.add(source);
+		}
+		
+		File item_to_copy;
+		/**
+		 * Compute total_size to display progress.
+		 */
+		total_size = 0;
+		for (int pos_ltc = 0; pos_ltc < list_to_copy.size(); pos_ltc++) {
+			item_to_copy = list_to_copy.get(pos_ltc);
+			total_size += item_to_copy.length();
+		}
+		
+		/**
+		 * check UsableSpace
+		 */
+		if (destination.getUsableSpace() > 0) {
+			if (total_size > destination.getUsableSpace()) {
+				throw new IOException("Not enough space in destination directory");
+			}
 		}
 		
 		/**
 		 * Copy source
 		 */
-		File item_to_copy;
-		for (int pos_ltc = list_to_copy.size() - 1; pos_ltc > -1; pos_ltc--) {
+		File destination_element_to_copy;
+		progress_size = ((int) total_size / (1024 * 1024));
+		actual_progress_value = 0;
+		last_progress_value = 0;
+		progress_copy = 0;
+		
+		int chars_to_ignore = source.getParentFile().getAbsolutePath().length() + 1;
+		String base_destination_path = destination.getAbsolutePath() + File.separator;
+		
+		for (int pos_ltc = 0; pos_ltc < list_to_copy.size(); pos_ltc++) {
 			item_to_copy = list_to_copy.get(pos_ltc);
-			// item_to_copy
+			destination_element_to_copy = new File(base_destination_path + item_to_copy.getAbsolutePath().substring(chars_to_ignore));
+			
+			if (item_to_copy.isDirectory()) {
+				if (destination_element_to_copy.exists()) {
+					if (destination_element_to_copy.isDirectory() == false) {
+						throw new IOException("Destination directory exists, and it not a directory: \"" + destination_element_to_copy.getPath() + "\"");
+					}
+				} else {
+					if (destination_element_to_copy.mkdirs()) {
+						throw new IOException("Can't create destination directory: \"" + destination_element_to_copy.getPath() + "\"");
+					}
+				}
+			} else {
+				copyFile(item_to_copy, destination_element_to_copy);
+			}
+			
+			if (progression != null) {
+				progress_copy += destination_element_to_copy.length();
+				actual_progress_value = (int) (progress_copy / (1024 * 1024));
+				if (actual_progress_value > last_progress_value) {
+					last_progress_value = actual_progress_value;
+					progression.updateProgress(actual_progress_value, progress_size);
+				}
+			}
 		}
 		
 		if (delete_after_copy) {
 			/**
-			 * Delete source
+			 * To complete a move operation
 			 */
-			// TODO
+			for (int pos_ltc = list_to_copy.size() - 1; pos_ltc > -1; pos_ltc--) {
+				item_to_copy = list_to_copy.get(pos_ltc);
+				if (item_to_copy.delete() == false) {
+					throw new IOException("Can't delete moved file: \"" + item_to_copy.getPath() + "\"");
+				}
+			}
 		}
 	}
 	
-	private void copyFile(File source_file, File destination_file) throws Exception {
-		InputStream in = null;
-		OutputStream out = null;
+	/**
+	 * 50 Mbytes in bytes
+	 */
+	private static final long FIFTY_MB = 52428800;
+	
+	private void copyFile(File source_file, File destination_file) throws IOException {
+		if (destination_file.exists()) {
+			Log2.log.info("destination_file exists, it will be overwrite", new Log2Dump("file", destination_file));
+		}
+		
+		/**
+		 * Imported from org.apache.commons.io.FileUtils
+		 * Licensed to the Apache Software Foundation,
+		 * http://www.apache.org/licenses/LICENSE-2.0
+		 */
+		FileInputStream fis = null;
+		FileOutputStream fos = null;
+		FileChannel input = null;
+		FileChannel output = null;
 		try {
-			in = new FileInputStream(source_file);
-			out = new FileOutputStream(destination_file);
-			
-			// Transfer bytes from in to out
-			int len;
+			fis = new FileInputStream(source_file);
+			fos = new FileOutputStream(destination_file);
+			input = fis.getChannel();
+			output = fos.getChannel();
+			long size = input.size();
 			long pos = 0;
-			int progress_size = (int) (source_file.length() / (1024 * 1024));
-			int last_progress = 0;
-			int progress;
-			
-			while ((len = in.read(buffer)) > 0) {
-				out.write(buffer, 0, len);
+			long count = 0;
+			while (pos < size) {
+				count = (size - pos) > FIFTY_MB ? FIFTY_MB : (size - pos);
+				pos += output.transferFrom(input, pos, count);
 				
-				pos += len;
-				progress = (int) (pos / (1024 * 1024));
-				if (progress > last_progress) {
-					progress = last_progress;
-					// progression.updateProgress(progress, progress_size);
+				actual_progress_value = (int) ((pos + progress_copy) / (1024 * 1024));
+				if (actual_progress_value > last_progress_value) {
+					last_progress_value = actual_progress_value;
+					progression.updateProgress(actual_progress_value, progress_size);
 				}
 			}
 		} finally {
-			if (in != null) {
-				in.close();
-			}
-			if (out != null) {
-				out.close();
-			}
+			IOUtils.closeQuietly(output);
+			IOUtils.closeQuietly(fos);
+			IOUtils.closeQuietly(input);
+			IOUtils.closeQuietly(fis);
 		}
 		
-		destination_file.setExecutable(source_file.canExecute());
-		destination_file.setLastModified(source_file.lastModified());
+		if (source_file.length() != destination_file.length()) {
+			throw new IOException("Failed to copy full contents from '" + source_file + "' to '" + destination_file + "'");
+		}
+		if (destination_file.setExecutable(source_file.canExecute()) == false) {
+			Log2.log.error("Can't set Executable status to dest file", new IOException(destination_file.getPath()));
+		}
+		if (destination_file.setLastModified(source_file.lastModified()) == false) {
+			Log2.log.error("Can't set LastModified status to dest file", new IOException(destination_file.getPath()));
+		}
+	}
+	
+	private void dirListing() throws IOException {
+		ArrayList<File> bucket = new ArrayList<File>();
+		ArrayList<File> next_bucket = new ArrayList<File>();
+		bucket.add(source);
 		
-		if (delete_during_copy) {
-			if (source_file.delete() == false) {
-				// TODO err
+		File bucket_item;
+		File[] list_content;
+		
+		while (true) {
+			for (int pos_b = 0; pos_b < bucket.size(); pos_b++) {
+				bucket_item = bucket.get(pos_b).getCanonicalFile();
+				
+				if (FileUtils.isSymlink(bucket_item)) {
+					continue;
+				}
+				
+				if (list_to_copy.contains(bucket_item)) {
+					continue;
+				}
+				if (bucket_item.isDirectory()) {
+					list_content = bucket_item.listFiles();
+					for (int pos_lc = 0; pos_lc < list_content.length; pos_lc++) {
+						next_bucket.add(list_content[pos_lc]);
+					}
+				}
+				list_to_copy.add(bucket_item);
 			}
+			if (next_bucket.isEmpty()) {
+				return;
+			}
+			bucket.clear();
+			bucket.addAll(next_bucket);
+			next_bucket.clear();
 		}
 	}
 	
