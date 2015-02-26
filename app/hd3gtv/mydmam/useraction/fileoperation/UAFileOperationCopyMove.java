@@ -26,15 +26,9 @@ import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationCopyMoveConfigurator.Action;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -112,23 +106,17 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 		
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
 			File source = Explorer.getLocalBridgedElement(entry.getValue());
-			if (source == null) {
-				throw new NullPointerException("\"" + entry.getValue().toString(" ") + "\" can't to be found");
-			}
-			if (source.exists() == false) {
-				throw new FileNotFoundException("\"" + source.getPath() + "\" can't to be found");
-			}
-			if (source.canRead() == false) {
-				throw new IOException("\"" + source.getPath() + "\" can't to be read");
-			}
+			CopyMove.checkExistsCanRead(source);
+			
 			if ((conf.action == Action.MOVE) & (source.canWrite() == false)) {
 				throw new IOException("\"" + source.getPath() + "\" can't to be write (erased)");
 			}
 			
 			Log2.log.debug("Prepare " + conf.action, dump);
 			
-			processSourceElement(progression, conf, source, f_destination);
-			// TODO move/copy in db, with mtds
+			// TODO if move, try simple move, else CopyMove
+			// TODO if copy, CopyMove
+			// TODO async move/copy in db, with mtds
 			
 			if (stop) {
 				return;
@@ -152,19 +140,12 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 		if (spie_dest == null) {
 			throw new FileNotFoundException("\"" + destination + "\" in storage index");
 		}
+		
 		File f_destination = Explorer.getLocalBridgedElement(spie_dest);
-		if (f_destination == null) {
-			throw new FileNotFoundException("\"" + spie_dest.toString(" ") + "\"  in storage index");
-		}
-		if (f_destination.exists() == false) {
-			throw new FileNotFoundException("\"" + f_destination.getPath() + "\" in filesytem");
-		}
-		if (f_destination.isDirectory() == false) {
-			throw new IOException("\"" + f_destination.getPath() + "\" is not a directory");
-		}
-		if ((f_destination.canRead() == false) | (f_destination.canWrite() == false)) {
-			throw new IOException("Can't read or write in destinnation directory \"" + f_destination.getPath() + "\"");
-		}
+		CopyMove.checkExistsCanRead(f_destination);
+		CopyMove.checkIsDirectory(f_destination);
+		CopyMove.checkIsWritable(f_destination);
+		
 		return f_destination;
 	}
 	
@@ -185,7 +166,7 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 				}
 			}
 			
-			copyFile(progression, source, destination_file);
+			// copyFile(progression, source, destination_file);
 			
 			if (user_want_copy == false) {
 				if (source.delete() == false) {
@@ -287,41 +268,4 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 		}*/
 	}
 	
-	private void copyFile(JobProgression progression, File source_file, File destination_file) throws Exception {
-		InputStream in = null;
-		OutputStream out = null;
-		try {
-			in = new BufferedInputStream(new FileInputStream(source_file), 1024 * 1024);
-			out = new BufferedOutputStream(new FileOutputStream(destination_file), 1024 * 1024);
-			
-			// Transfer bytes from in to out
-			byte[] buf = new byte[1024];
-			int len;
-			long pos = 0;
-			int progress_size = (int) (source_file.length() / (1024 * 1024));
-			int last_progress = 0;
-			int progress;
-			
-			while ((len = in.read(buf)) > 0) {
-				out.write(buf, 0, len);
-				
-				pos += len;
-				progress = (int) (pos / (1024 * 1024));
-				if (progress > last_progress) {
-					progress = last_progress;
-					progression.updateProgress(progress, progress_size);
-				}
-			}
-		} finally {
-			if (in != null) {
-				in.close();
-			}
-			if (out != null) {
-				out.close();
-			}
-		}
-		
-		destination_file.setExecutable(source_file.canExecute());
-		destination_file.setLastModified(source_file.lastModified());
-	}
 }
