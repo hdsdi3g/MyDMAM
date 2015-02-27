@@ -64,10 +64,10 @@ public class CopyMove {
 	private JobProgression progression;
 	
 	private long total_size = 0;
-	long progress_copy = 0;
-	int actual_progress_value = 0;
-	int last_progress_value = 0;
-	int progress_size = 0;
+	private long progress_copy = 0;
+	private int actual_progress_value = 0;
+	private int last_progress_value = 0;
+	private int progress_size = 0;
 	
 	public CopyMove(File source, File destination) throws NullPointerException, IOException {
 		this.source = source;
@@ -158,7 +158,7 @@ public class CopyMove {
 						throw new IOException("Destination directory exists, and it not a directory: \"" + destination_element_to_copy.getPath() + "\"");
 					}
 				} else {
-					if (destination_element_to_copy.mkdirs()) {
+					if (destination_element_to_copy.mkdirs() == false) {
 						throw new IOException("Can't create destination directory: \"" + destination_element_to_copy.getPath() + "\"");
 					}
 				}
@@ -220,10 +220,12 @@ public class CopyMove {
 				count = (size - pos) > FIFTY_MB ? FIFTY_MB : (size - pos);
 				pos += output.transferFrom(input, pos, count);
 				
-				actual_progress_value = (int) ((pos + progress_copy) / (1024 * 1024));
-				if (actual_progress_value > last_progress_value) {
-					last_progress_value = actual_progress_value;
-					progression.updateProgress(actual_progress_value, progress_size);
+				if (progression != null) {
+					actual_progress_value = (int) ((pos + progress_copy) / (1024 * 1024));
+					if (actual_progress_value > last_progress_value) {
+						last_progress_value = actual_progress_value;
+						progression.updateProgress(actual_progress_value, progress_size);
+					}
 				}
 			}
 		} finally {
@@ -278,6 +280,32 @@ public class CopyMove {
 			bucket.addAll(next_bucket);
 			next_bucket.clear();
 		}
+	}
+	
+	// TODO internal tests for debugging
+	
+	public static void main(String[] args) throws Exception {
+		// TODO create temp file
+		// TODO rename temp file, restore source
+		// TODO move temp file + check, restore source
+		// TODO copy temp file + check
+		// TODO delete temp file, and dest
+		
+		// TODO create temp dir tree with files, one must to be > 50 MB
+		// TODO rename temp dir, restore source
+		// TODO move temp dir + check, restore source
+		// TODO copy temp dir + check
+		// TODO delete temp dir, and dest
+		
+		/**
+		 * TODO test api for:
+		 * - create temp files, and one > 50 MB
+		 * - create tree dir
+		 * - force rename or just copy/delete
+		 * - check all files
+		 * - recursive delete
+		 */
+		
 	}
 	
 }
