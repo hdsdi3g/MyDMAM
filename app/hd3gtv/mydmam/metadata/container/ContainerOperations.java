@@ -560,4 +560,24 @@ public class ContainerOperations {
 		}
 	}
 	
+	public static void copyMetadatas(SourcePathIndexerElement from, SourcePathIndexerElement dest) {
+		Explorer explorer = new Explorer();
+		// explorer.getAllSubElementsFromElementKey(parentpath_key, min_index_date, found_elements_observer);
+		// public static Container getByMtdKey(String mtd_key) throws NullPointerException {
+		/**
+		 * for each "from" elements, get Container
+		 * change origin for each entry, rename directories for each entry renderer
+		 * save container: save(Container container, boolean refresh_index_after_save, BulkRequestBuilder bulkrequest)
+		 */
+		
+	}
+	
+	/*private static class CopyMetadatas implements ElastisearchCrawlerHit {
+		
+		@Override
+		public boolean onFoundHit(SearchHit hit) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+	}*/
 }

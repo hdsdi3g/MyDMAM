@@ -27,6 +27,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.zip.CRC32;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -60,7 +63,6 @@ public class CopyMove {
 	private File source;
 	private File destination;
 	private boolean delete_after_copy;
-	private ArrayList<File> list_to_copy;
 	private JobProgression progression;
 	
 	private long total_size = 0;
@@ -87,12 +89,19 @@ public class CopyMove {
 		}
 	}
 	
+	private boolean force_move_with_copy_delete;
+	
+	private void forceMoveWithCopyDelete() throws IOException {
+		setDelete_after_copy(true);
+		force_move_with_copy_delete = true;
+	}
+	
 	public void setProgression(JobProgression progression) {
 		this.progression = progression;
 	}
 	
 	public void operate() throws IOException {
-		if (delete_after_copy) {
+		if (delete_after_copy & (force_move_with_copy_delete == false)) {
 			/**
 			 * Move operation
 			 * Can we simply move ?
@@ -108,11 +117,12 @@ public class CopyMove {
 			}
 		}
 		
+		ArrayList<File> list_to_copy = new ArrayList<File>();
 		/**
 		 * Dirlist source
 		 */
 		if (source.isDirectory()) {
-			dirListing();
+			dirListing(source, list_to_copy);
 		} else {
 			list_to_copy.add(source);
 		}
@@ -246,7 +256,7 @@ public class CopyMove {
 		}
 	}
 	
-	private void dirListing() throws IOException {
+	private static void dirListing(File source, ArrayList<File> list_to_copy) throws IOException {
 		ArrayList<File> bucket = new ArrayList<File>();
 		ArrayList<File> next_bucket = new ArrayList<File>();
 		bucket.add(source);
@@ -282,30 +292,306 @@ public class CopyMove {
 		}
 	}
 	
-	// TODO internal tests for debugging
+	private CopyMove() {
+	}
 	
+	/**
+	 * Do a complete and recursive test for this class.
+	 * Test copy, move (rename) and move (copy + delete) for a file, and directories with a thousand of files inside.
+	 */
+	private class InternalTests {
+		Random random = new Random(System.nanoTime());
+		CRC32 crc32 = new CRC32();
+		
+		private class TestFile {
+			String relative_path;
+			long size = 0;
+			long cksum = 0;
+			boolean directory = false;
+			
+			public TestFile(File root, File source) throws IOException {
+				relative_path = source.getPath().substring(root.getPath().length());
+				if (source.isDirectory()) {
+					directory = true;
+				} else {
+					size = source.length();
+					
+					crc32.reset();
+					cksum = FileUtils.checksum(source, crc32).getValue();
+				}
+			}
+			
+			void checkFile(File parent) throws IOException {
+				File compare = new File(parent.getPath() + relative_path);
+				
+				checkExistsCanRead(compare);
+				
+				if (directory) {
+					checkIsDirectory(compare);
+					return;
+				}
+				
+				if (size != compare.length()) {
+					throw new IOException("Invalid size with " + relative_path);
+				}
+				
+				crc32.reset();
+				long cksum_new = FileUtils.checksum(compare, crc32).getValue();
+				if (cksum != cksum_new) {
+					throw new IOException("Invalid cksum with " + relative_path + " (" + cksum + "/" + cksum_new + ")");
+				}
+			}
+			
+			public String toString() {
+				StringBuilder sb = new StringBuilder();
+				sb.append(relative_path);
+				sb.append("\t");
+				sb.append(size);
+				sb.append("\t");
+				sb.append(cksum);
+				sb.append("\t");
+				sb.append(directory);
+				return sb.toString();
+			}
+		}
+		
+		InternalTests(File temp_dir) throws Exception {
+			checkExistsCanRead(temp_dir);
+			checkIsDirectory(temp_dir);
+			checkIsWritable(temp_dir);
+			
+			ArrayList<TestFile> test_files;
+			CopyMove cm;
+			File parent_source;
+			File parent_destination;
+			TestFile test_file;
+			
+			/**
+			 * Test copy file
+			 */
+			parent_source = createTempFile(temp_dir, false);
+			parent_destination = prepareWorkingDirectory(temp_dir, "dest");
+			test_file = new TestFile(temp_dir, parent_source);
+			test_file.checkFile(temp_dir);
+			cm = new CopyMove(parent_source, parent_destination);
+			cm.operate();
+			test_file.checkFile(parent_destination);
+			FileUtils.deleteQuietly(parent_source);
+			FileUtils.deleteQuietly(parent_destination);
+			
+			/**
+			 * Test move (rename) file
+			 */
+			parent_source = createTempFile(temp_dir, false);
+			parent_destination = prepareWorkingDirectory(temp_dir, "dest");
+			test_file = new TestFile(temp_dir, parent_source);
+			test_file.checkFile(temp_dir);
+			cm = new CopyMove(parent_source, parent_destination);
+			cm.setDelete_after_copy(true);
+			cm.operate();
+			test_file.checkFile(parent_destination);
+			if (parent_source.exists()) {
+				throw new IOException("parent_source exists");
+			}
+			FileUtils.deleteQuietly(parent_source);
+			FileUtils.deleteQuietly(parent_destination);
+			
+			/**
+			 * Test move (copy + delete) file
+			 */
+			parent_source = createTempFile(temp_dir, false);
+			parent_destination = prepareWorkingDirectory(temp_dir, "dest");
+			test_file = new TestFile(temp_dir, parent_source);
+			test_file.checkFile(temp_dir);
+			cm = new CopyMove(parent_source, parent_destination);
+			cm.forceMoveWithCopyDelete();
+			cm.operate();
+			test_file.checkFile(parent_destination);
+			if (parent_source.exists()) {
+				throw new IOException("parent_source exists");
+			}
+			FileUtils.deleteQuietly(parent_source);
+			FileUtils.deleteQuietly(parent_destination);
+			
+			/**
+			 * Test copy directory
+			 */
+			parent_source = prepareWorkingDirectory(temp_dir, "source");
+			test_files = prepareTestFiles(parent_source);
+			checkFiles(parent_source, test_files);
+			
+			parent_destination = prepareWorkingDirectory(temp_dir, "dest");
+			cm = new CopyMove(parent_source, parent_destination);
+			cm.operate();
+			checkFiles(new File(parent_destination.getPath() + File.separator + parent_source.getName()), test_files);
+			FileUtils.deleteQuietly(parent_destination);
+			
+			/**
+			 * Test move (rename) directory
+			 */
+			parent_destination = prepareWorkingDirectory(temp_dir, "dest");
+			cm = new CopyMove(parent_source, parent_destination);
+			cm.setDelete_after_copy(true);
+			cm.operate();
+			checkFiles(new File(parent_destination.getPath() + File.separator + parent_source.getName()), test_files);
+			if (parent_source.exists()) {
+				throw new IOException("can't move parent source " + parent_source.getPath());
+			}
+			FileUtils.deleteQuietly(parent_destination);
+			
+			/**
+			 * Test move (copy + delete) directory
+			 */
+			parent_source = prepareWorkingDirectory(temp_dir, "source");
+			test_files = prepareTestFiles(parent_source);
+			checkFiles(parent_source, test_files);
+			parent_destination = prepareWorkingDirectory(temp_dir, "dest");
+			cm = new CopyMove(parent_source, parent_destination);
+			cm.forceMoveWithCopyDelete();
+			cm.operate();
+			checkFiles(new File(parent_destination.getPath() + File.separator + parent_source.getName()), test_files);
+			if (parent_source.exists()) {
+				throw new IOException("can't move parent source " + parent_source.getPath());
+			}
+			FileUtils.deleteQuietly(parent_destination);
+			
+			FileUtils.deleteQuietly(parent_source);
+		}
+		
+		File prepareWorkingDirectory(File root, String name) throws IOException {
+			File item_dir = new File(root.getPath() + File.separator + name);
+			
+			if (item_dir.exists()) {
+				FileUtils.deleteQuietly(item_dir);
+			}
+			if (item_dir.mkdir() == false) {
+				throw new IOException("Can't create source file \"" + item_dir + "\"");
+			}
+			return item_dir;
+		}
+		
+		void checkFiles(File parent, ArrayList<TestFile> test_files) throws IOException {
+			for (int pos = 0; pos < test_files.size(); pos++) {
+				test_files.get(pos).checkFile(parent);
+			}
+		}
+		
+		ArrayList<TestFile> prepareTestFiles(File parent) throws IOException {
+			
+			List<File> dirs = createTreeDir(parent);
+			List<File> files = new ArrayList<File>(dirs.size());
+			
+			/**
+			 * Add a 50MB file
+			 */
+			files.add(createTempFile(dirs.get(random.nextInt(dirs.size())), true));
+			
+			/**
+			 * Add a lot of small files.
+			 */
+			for (int pos_d = 0; pos_d < dirs.size(); pos_d++) {
+				for (int pos_f = 0; pos_f < random.nextInt(10) - 1; pos_f++) {
+					files.add(createTempFile(dirs.get(pos_d), false));
+				}
+			}
+			
+			ArrayList<TestFile> test_files = new ArrayList<CopyMove.InternalTests.TestFile>(dirs.size() + files.size());
+			
+			for (int pos = 0; pos < dirs.size(); pos++) {
+				test_files.add(new TestFile(parent, dirs.get(pos)));
+			}
+			for (int pos = 0; pos < files.size(); pos++) {
+				test_files.add(new TestFile(parent, files.get(pos)));
+			}
+			return test_files;
+		}
+		
+		String createTempName(boolean isfile) {
+			StringBuilder sb = new StringBuilder();
+			
+			if (random.nextInt(10) == 1) {
+				sb.append(".");
+			}
+			
+			int val;
+			for (int pos = 0; pos < (random.nextInt(20) + 1); pos++) {
+				val = random.nextInt(91 - 65);
+				sb.append(Character.toChars(val + 65));
+			}
+			sb.append(" ");
+			sb.append(random.nextInt(10000));
+			
+			if (isfile) {
+				sb.append(".");
+				for (int pos = 0; pos < 3; pos++) {
+					val = random.nextInt(122 - 97);
+					sb.append(Character.toChars(val + 97));
+				}
+			}
+			
+			return sb.toString();
+		}
+		
+		List<File> createTreeDir(File parent) throws IOException {
+			ArrayList<File> result = new ArrayList<File>();
+			
+			for (int i = 0; i < 5; i++) {
+				result.add(createTempDir(parent));
+			}
+			
+			ArrayList<File> temp = new ArrayList<File>();
+			for (int d = 0; d < 5; d++) {
+				temp.clear();
+				temp.addAll(result);
+				for (int pos = 0; pos < temp.size(); pos++) {
+					for (int i = 0; i < random.nextInt(5); i++) {
+						result.add(createTempDir(temp.get(pos)));
+					}
+				}
+			}
+			return result;
+		}
+		
+		File createTempDir(File parent) throws IOException {
+			File new_dir = new File(parent.getPath() + File.separator + createTempName(false));
+			if (new_dir.mkdir() == false) {
+				throw new IOException("Can't create temp dir");
+			}
+			return new_dir;
+		}
+		
+		File createTempFile(File parent, boolean big_file) throws IOException {
+			File new_file = new File(parent.getPath() + File.separator + createTempName(true));
+			
+			FileOutputStream fos = new FileOutputStream(new_file);
+			int size = random.nextInt(500);
+			byte[] buffer = new byte[random.nextInt(500)];
+			for (int pos = 0; pos < size; pos++) {
+				random.nextBytes(buffer);
+				fos.write(buffer, 0, buffer.length);
+			}
+			if (big_file) {
+				size = size * 10;
+				buffer = new byte[random.nextInt(10000)];
+				while (new_file.length() < (FIFTY_MB * 1.5)) {
+					fos.flush();
+					for (int pos = 0; pos < size; pos++) {
+						random.nextBytes(buffer);
+						fos.write(buffer, 0, buffer.length);
+					}
+				}
+			}
+			fos.close();
+			
+			return new_file;
+		}
+	}
+	
+	/**
+	 * @param args with a empty dir
+	 */
 	public static void main(String[] args) throws Exception {
-		// TODO create temp file
-		// TODO rename temp file, restore source
-		// TODO move temp file + check, restore source
-		// TODO copy temp file + check
-		// TODO delete temp file, and dest
-		
-		// TODO create temp dir tree with files, one must to be > 50 MB
-		// TODO rename temp dir, restore source
-		// TODO move temp dir + check, restore source
-		// TODO copy temp dir + check
-		// TODO delete temp dir, and dest
-		
-		/**
-		 * TODO test api for:
-		 * - create temp files, and one > 50 MB
-		 * - create tree dir
-		 * - force rename or just copy/delete
-		 * - check all files
-		 * - recursive delete
-		 */
-		
+		new CopyMove().new InternalTests(new File(args[0]).getCanonicalFile());
 	}
 	
 }

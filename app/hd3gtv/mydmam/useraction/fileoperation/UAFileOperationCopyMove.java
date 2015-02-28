@@ -36,8 +36,6 @@ import java.util.Map;
 
 import models.UserProfile;
 
-import org.apache.commons.io.FileUtils;
-
 public class UAFileOperationCopyMove extends BaseFileOperation {
 	
 	protected String getSubLongName() {
@@ -114,9 +112,13 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			
 			Log2.log.debug("Prepare " + conf.action, dump);
 			
-			// TODO if move, try simple move, else CopyMove
-			// TODO if copy, CopyMove
-			// TODO async move/copy in db, with mtds
+			CopyMove cm = new CopyMove(source, f_destination);
+			cm.setDelete_after_copy(conf.action == Action.MOVE);
+			cm.setProgression(progression);
+			cm.operate();
+			
+			// TODO move/copy in db, with mtds
+			// ContainerOperations.getByMtdKey(mtd_key)
 			
 			if (stop) {
 				return;
@@ -125,7 +127,7 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 		}
 	}
 	
-	private File getDestinationFile(UAFileOperationCopyMoveConfigurator conf) throws IOException, IndexOutOfBoundsException {
+	private File getDestinationFile(UAFileOperationCopyMoveConfigurator conf) throws Exception {
 		// conf.destination
 		String destination = conf.destination.replace("\\", File.separator);
 		destination = destination.replace("/", File.separator);
@@ -149,7 +151,7 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 		return f_destination;
 	}
 	
-	private void processSourceElement(JobProgression progression, UAFileOperationCopyMoveConfigurator conf, File source, File destination) throws Exception {
+	/*private void processSourceElement(JobProgression progression, UAFileOperationCopyMoveConfigurator conf, File source, File destination) throws Exception {
 		boolean source_is_like_file = (source.isFile() | FileUtils.isSymlink(source));
 		boolean user_want_copy = (conf.action == Action.COPY);
 		String destination_base_path = destination.getCanonicalPath() + File.separator;
@@ -159,9 +161,6 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			
 			if (user_want_copy == false) {
 				if (source.renameTo(destination_file)) {
-					/**
-					 * Simple rename: ok
-					 */
 					return;
 				}
 			}
@@ -176,96 +175,6 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			return;
 		}
 		
-		// TODO copy/move dir
-		
-		/**
-		 * copy or move
-		 * if move > simple mv is ok ? else "copy"
-		 * if copy & file > simple copy
-		 * if copy & dir > recursive copy
-		 * if move & file > delete source
-		 * if move & dir > recursive delete source
-		 */
-		
-		/*
-			String current_dir_path = current_dir.getCanonicalPath();
-			File dest_dir = new File(current_dir_path + File.separator + conf.newpathname);
-			
-			if (dest_dir.exists()) {
-				continue;
-			}
-			
-			if (dest_dir.getCanonicalPath().startsWith(current_dir_path) == false) {
-				dump.add("current_dir_path", current_dir_path);
-				dump.add("dest_dir", dest_dir.getCanonicalPath());
-				Log2.log.security("User try to create a sub directory outside the choosed directory", dump);
-				throw new IOException("Invalid newpathname: " + conf.newpathname);
-			}
-			
-			if (dest_dir.mkdirs() == false) {
-				dump.add("dest_dir", dest_dir);
-				Log2.log.debug("Can't create correctly directories", dump);
-				throw new IOException("Can't create correctly directories: " + dest_dir.getPath());
-			}
-		 * */
-		
-		/*Log2Dump dump = new Log2Dump();
-		dump.add("user", userprofile.key);
-		
-		ArrayList<File> items_to_delete = new ArrayList<File>();
-		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
-			File current_element = Explorer.getLocalBridgedElement(entry.getValue());
-			if (current_element == null) {
-				throw new NullPointerException("Can't found current_element: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
-			if (current_element.exists() == false) {
-				continue;
-			}
-			if (current_element.getParentFile().canWrite() == false) {
-				throw new IOException("Can't write to current_element parent directory: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
-			
-			if (current_element.isFile() | FileUtils.isSymlink(current_element)) {
-				if (current_element.delete() == false) {
-					Log2.log.debug("Can't delete correctly file", dump);
-					throw new IOException("Can't delete correctly file: " + current_element.getPath());
-				}
-				if (stop) {
-					return;
-				}
-				continue;
-			}
-			
-			items_to_delete.clear();
-			items_to_delete.add(current_element);
-			
-			recursivePath(current_element, items_to_delete);
-			
-			if (stop) {
-				return;
-			}
-			
-			boolean can_delete_all = true;
-			
-			for (int pos_idel = items_to_delete.size() - 1; pos_idel > -1; pos_idel--) {
-				if (items_to_delete.get(pos_idel).delete() == false) {
-					dump.add("item", items_to_delete.get(pos_idel));
-					can_delete_all = false;
-				}
-				if (stop) {
-					return;
-				}
-			}
-			
-			if (can_delete_all == false) {
-				Log2.log.debug("Can't delete correctly multiple files", dump);
-				throw new IOException("Can't delete multiple files from: " + current_element.getPath());
-			}
-			
-			if (stop) {
-				return;
-			}
-		}*/
-	}
+	}*/
 	
 }
