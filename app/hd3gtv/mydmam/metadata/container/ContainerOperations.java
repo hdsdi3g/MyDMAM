@@ -19,6 +19,7 @@ package hd3gtv.mydmam.metadata.container;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
@@ -29,7 +30,6 @@ import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,12 +37,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
@@ -79,10 +76,8 @@ public class ContainerOperations {
 	private static final GsonBuilder gson_builder;
 	private static volatile Gson gson;
 	private static final Gson gson_simple;
-	private static Client client;
 	
 	static {
-		client = Elasticsearch.getClient();
 		declared_entries_type = new LinkedHashMap<String, ContainerEntry>();
 		gson_builder = new GsonBuilder();
 		gson_builder.serializeNulls();
@@ -110,10 +105,6 @@ public class ContainerOperations {
 	public static void setGsonPrettyPrinting() {
 		gson_builder.setPrettyPrinting();
 		gson = gson_builder.create();
-	}
-	
-	static Client getClient() {
-		return client;
 	}
 	
 	public static GsonBuilder getGsonBuilder() {
@@ -167,7 +158,7 @@ public class ContainerOperations {
 		return instance;
 	}
 	
-	public static Container getByMtdKey(String mtd_key) throws NullPointerException {
+	public static Container getByMtdKey(String mtd_key) throws Exception {
 		if (mtd_key == null) {
 			throw new NullPointerException("\"mtd_key\" can't to be null");
 		}
@@ -197,7 +188,7 @@ public class ContainerOperations {
 		request.type(type);
 		request.id(mtd_key);
 		
-		GetResponse getresponse = client.get(request).actionGet();
+		GetResponse getresponse = Elasticsearch.get(request);
 		if (getresponse.isExists() == false) {
 			return null;
 		}
@@ -208,7 +199,7 @@ public class ContainerOperations {
 		return result;
 	}
 	
-	public static Container getByPathIndexId(String pathelement_key) {
+	public static Container getByPathIndexId(String pathelement_key) throws Exception {
 		if (pathelement_key == null) {
 			throw new NullPointerException("\"pathelement_key\" can't to be null");
 		}
@@ -220,7 +211,7 @@ public class ContainerOperations {
 		}
 	}
 	
-	public static Container getByPathIndexIdOnlySummary(String pathelement_key) {
+	public static Container getByPathIndexIdOnlySummary(String pathelement_key) throws Exception {
 		if (pathelement_key == null) {
 			throw new NullPointerException("\"pathelement_key\" can't to be null");
 		}
@@ -232,7 +223,7 @@ public class ContainerOperations {
 		}
 	}
 	
-	public static Containers getByPathIndexId(List<String> pathelement_keys, boolean only_summaries) {
+	public static Containers getByPathIndexId(List<String> pathelement_keys, boolean only_summaries) throws Exception {
 		if (pathelement_keys == null) {
 			throw new NullPointerException("pathelement_keys");
 		}
@@ -251,7 +242,7 @@ public class ContainerOperations {
 		}
 	}
 	
-	public static Containers getByPathIndex(List<SourcePathIndexerElement> pathelements, boolean only_summaries) {
+	public static Containers getByPathIndex(List<SourcePathIndexerElement> pathelements, boolean only_summaries) throws Exception {
 		if (pathelements == null) {
 			throw new NullPointerException("pathelements");
 		}
@@ -274,7 +265,7 @@ public class ContainerOperations {
 		}
 	}
 	
-	public static Containers searchInMetadataBase(QueryBuilder query) {
+	public static Containers searchInMetadataBase(QueryBuilder query) throws Exception {
 		if (query == null) {
 			throw new NullPointerException("\"query\" can't to be null");
 		}
@@ -328,7 +319,7 @@ public class ContainerOperations {
 		}
 	}
 	
-	public static Containers searchInMetadataBase(QueryBuilder query, final String... restric_to_specific_types) {
+	public static Containers searchInMetadataBase(QueryBuilder query, final String... restric_to_specific_types) throws Exception {
 		if (query == null) {
 			throw new NullPointerException("\"query\" can't to be null");
 		}
@@ -359,7 +350,7 @@ public class ContainerOperations {
 		return result;
 	}
 	
-	public static Containers multipleSearchInMetadataBase(List<QueryBuilder> queries, int maxsize, final String... restric_to_specific_types) {
+	public static Containers multipleSearchInMetadataBase(List<QueryBuilder> queries, int maxsize, final String... restric_to_specific_types) throws Exception {
 		if (queries == null) {
 			throw new NullPointerException("\"query\" can't to be null");
 		}
@@ -403,7 +394,7 @@ public class ContainerOperations {
 	/**
 	 * Only create/update. No delete operations.
 	 */
-	public static void save(Container container, boolean refresh_index_after_save, BulkRequestBuilder bulkrequest) {
+	public static void save(Container container, boolean refresh_index_after_save, ElasticsearchBulkOperation es_bulk) {
 		if (container == null) {
 			throw new NullPointerException("\"container\" can't to be null");
 		}
@@ -412,47 +403,47 @@ public class ContainerOperations {
 		
 		for (int pos = 0; pos < containerEntries.size(); pos++) {
 			containerEntry = containerEntries.get(pos);
-			IndexRequestBuilder index = client.prepareIndex(ES_INDEX, containerEntry.getES_Type(), container.getMtd_key());
+			IndexRequestBuilder index = es_bulk.getClient().prepareIndex(ES_INDEX, containerEntry.getES_Type(), container.getMtd_key());
 			index.setSource(gson.toJson(containerEntry));
 			index.setRefresh(refresh_index_after_save);
-			bulkrequest.add(index);
+			es_bulk.add(index);
 		}
 	}
 	
 	/**
 	 * Only create/update. No delete operations.
 	 */
-	public static void save(Containers containers, boolean refresh_index_after_save, BulkRequestBuilder bulkrequest) {
+	public static void save(Containers containers, boolean refresh_index_after_save, ElasticsearchBulkOperation es_bulk) {
 		if (containers == null) {
 			throw new NullPointerException("\"containers\" can't to be null");
 		}
 		Container container;
 		for (int pos_container = 0; pos_container < containers.getAll().size(); pos_container++) {
 			container = containers.getAll().get(pos_container);
-			save(container, refresh_index_after_save, bulkrequest);
+			save(container, refresh_index_after_save, es_bulk);
 		}
 	}
 	
 	// Type typeOfT = new TypeToken<List<EntrySummary>>() {}.getType();
 	
-	public static void requestDelete(Container container, BulkRequestBuilder bulkrequest) throws NullPointerException {
+	public static void requestDelete(Container container, ElasticsearchBulkOperation es_bulk) throws NullPointerException {
 		if (container == null) {
 			throw new NullPointerException("\"container\" can't to be null");
 		}
 		for (int pos = 0; pos < container.getEntries().size(); pos++) {
-			bulkrequest.add(client.prepareDelete(ES_INDEX, container.getEntries().get(pos).getES_Type(), container.getMtd_key()));
+			es_bulk.add(es_bulk.getClient().prepareDelete(ES_INDEX, container.getEntries().get(pos).getES_Type(), container.getMtd_key()));
 		}
 		
 	}
 	
-	public static void requestDelete(String mtd_key, String type, BulkRequestBuilder bulkrequest) throws NullPointerException {
+	public static void requestDelete(String mtd_key, String type, ElasticsearchBulkOperation es_bulk) throws NullPointerException {
 		if (mtd_key == null) {
 			throw new NullPointerException("\"mtd_key\" can't to be null");
 		}
-		bulkrequest.add(client.prepareDelete(ES_INDEX, type, mtd_key));
+		es_bulk.add(es_bulk.getClient().prepareDelete(ES_INDEX, type, mtd_key));
 	}
 	
-	public static RenderedFile getMetadataFile(String pathelement_key, String type, String filename, boolean check_hash) throws IOException {
+	public static RenderedFile getMetadataFile(String pathelement_key, String type, String filename, boolean check_hash) throws Exception {
 		Containers containers = searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key), type);
 		
 		EntryRenderer current;
@@ -474,7 +465,7 @@ public class ContainerOperations {
 		return null;
 	}
 	
-	public static RenderedFile getMasterAsPreviewFile(String pathelement_key) throws IOException {
+	public static RenderedFile getMasterAsPreviewFile(String pathelement_key) throws Exception {
 		Container container = getByPathIndexIdOnlySummary(pathelement_key);
 		if (container == null) {
 			return null;
@@ -499,10 +490,10 @@ public class ContainerOperations {
 	private static class HitPurge implements ElastisearchCrawlerHit {
 		Explorer explorer;
 		HashMap<String, Long> elementcount_by_storage;
-		BulkRequestBuilder bulkrequest;
+		ElasticsearchBulkOperation es_bulk;
 		
-		HitPurge(BulkRequestBuilder bulkrequest) {
-			this.bulkrequest = bulkrequest;
+		HitPurge(ElasticsearchBulkOperation es_bulk) {
+			this.es_bulk = es_bulk;
 			explorer = new Explorer();
 			elementcount_by_storage = new HashMap<String, Long>();
 		}
@@ -540,7 +531,7 @@ public class ContainerOperations {
 			/**
 			 * This storage is not empty... Source file is really deleted, we can delete metadatas, and associated rendered files.
 			 */
-			requestDelete(container, bulkrequest);
+			requestDelete(container, es_bulk);
 			RenderedFile.purge(container.getMtd_key());
 			
 			return true;
@@ -550,25 +541,17 @@ public class ContainerOperations {
 	/**
 	 * Delete orphan (w/o pathindex) metadatas elements
 	 */
-	public static void purge_orphan_metadatas() throws IOException {
+	public static void purge_orphan_metadatas() throws Exception {
 		try {
 			ElastisearchCrawlerReader reader = Elasticsearch.createCrawlerReader();
 			reader.setIndices(ES_INDEX);
 			reader.setQuery(QueryBuilders.matchAllQuery());
 			
-			BulkRequestBuilder bulkrequest = new BulkRequestBuilder(client);
-			HitPurge hit_purge = new HitPurge(bulkrequest);
-			reader.allReader(hit_purge);
+			ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
 			
-			if (bulkrequest.numberOfActions() > 0) {
-				Log2.log.info("Remove " + bulkrequest.numberOfActions() + " orphan element(s)");
-				BulkResponse bulkresponse = bulkrequest.execute().actionGet();
-				if (bulkresponse.hasFailures()) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("failure message", bulkresponse.buildFailureMessage());
-					Log2.log.error("ES errors during add/delete documents", null, dump);
-				}
-			}
+			HitPurge hit_purge = new HitPurge(es_bulk);
+			reader.allReader(hit_purge);
+			es_bulk.terminateBulk();
 			
 			Log2.log.info("Start cleaning rendered elements");
 			

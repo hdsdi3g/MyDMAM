@@ -20,8 +20,8 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.RenderedFile;
-import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.web.PartialContent;
@@ -181,7 +181,7 @@ public class Application extends Controller {
 	}
 	
 	@Check("navigate")
-	public static void metadatafile(@Required String filehash, @Required String type, @Required String file) {
+	public static void metadatafile(@Required String filehash, @Required String type, @Required String file) throws Exception {
 		response.setHeader("Accept-Ranges", "bytes");
 		
 		if (Validation.hasErrors()) {

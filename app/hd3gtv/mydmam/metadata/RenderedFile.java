@@ -46,8 +46,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.elasticsearch.indices.IndexMissingException;
-
 import com.eaio.uuid.UUID;
 
 public class RenderedFile implements Log2Dumpable {
@@ -537,7 +535,7 @@ public class RenderedFile implements Log2Dumpable {
 		}
 	}
 	
-	public static void purge_orphan_metadatas_files() throws IOException, IndexMissingException {
+	public static void purge_orphan_metadatas_files() throws Exception {
 		File[] mtddir;
 		File[] allrootelements;
 		

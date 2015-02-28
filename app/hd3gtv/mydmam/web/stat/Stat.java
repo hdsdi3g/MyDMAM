@@ -140,7 +140,7 @@ public class Stat {
 		return this;
 	}
 	
-	private void populate_pathinfo() {
+	private void populate_pathinfo() throws Exception {
 		LinkedHashMap<String, SourcePathIndexerElement> map_elements_resolved = explorer.getelementByIdkeys(pathelementskeys);
 		boolean count_items = scopes_element.contains(StatElement.SCOPE_COUNT_ITEMS);
 		
@@ -191,7 +191,7 @@ public class Stat {
 		return map_dir_list;
 	}
 	
-	private void populate_mtd_summary(boolean has_pathinfo) {
+	private void populate_mtd_summary(boolean has_pathinfo) throws Exception {
 		Map<String, Map<String, Object>> summaries;
 		
 		if (has_pathinfo) {
@@ -249,7 +249,7 @@ public class Stat {
 		return result;
 	}
 	
-	private static Map<String, Map<String, Object>> getSummariesByPathElements(List<SourcePathIndexerElement> pathelements) throws IndexMissingException {
+	private static Map<String, Map<String, Object>> getSummariesByPathElements(List<SourcePathIndexerElement> pathelements) throws Exception {
 		if (pathelements == null) {
 			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
@@ -260,7 +260,7 @@ public class Stat {
 		return result;
 	}
 	
-	private static Map<String, Map<String, Object>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws IndexMissingException {
+	private static Map<String, Map<String, Object>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws Exception {
 		if (pathelementkeys == null) {
 			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
@@ -270,7 +270,7 @@ public class Stat {
 		return getSummariesByContainers(ContainerOperations.getByPathIndexId(pathelementkeys, true));
 	}
 	
-	private void populate_dir_list_mtd_summary(LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list) {
+	private void populate_dir_list_mtd_summary(LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list) throws Exception {
 		ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
 		Map<String, Map<String, Object>> summaries = null;
 		
@@ -322,6 +322,8 @@ public class Stat {
 			
 		} catch (IndexMissingException e) {
 			Log2.log.error("Some ES indexes are missing: database has not items for this", e);
+		} catch (Exception e) {
+			Log2.log.error("General error", e);
 		}
 		return gson.toJson(selected_path_elements);
 	}

@@ -25,10 +25,7 @@ import java.util.Date;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.net.QuotedPrintableCodec;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.hppc.cursors.ObjectObjectCursor;
@@ -48,8 +45,6 @@ import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 
 class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, ElastisearchCrawlerHit {
-	
-	private static final int BULK_REQUEST_MAX_SIZE = 1000;
 	
 	private QuotedPrintableCodec quotedprintablecodec;
 	private int count = 0;
@@ -181,8 +176,7 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 		fileoutputstream.close();
 	}
 	
-	private BulkRequestBuilder bulkrequest;
-	private Client client;
+	private ElasticsearchBulkOperation bulk_op;
 	private boolean purgebefore;
 	private String index_name;
 	private String mapping_name;
@@ -195,7 +189,6 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 		this.purgebefore = purgebefore;
 		this.ttl = ttl;
 		quotedprintablecodec = new QuotedPrintableCodec("UTF-8");
-		client = Elasticsearch.getClient();
 	}
 	
 	public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
@@ -239,15 +232,10 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		try {
 			if (qName.equalsIgnoreCase("index")) {
-				if (bulkrequest == null) {
+				if (bulk_op == null) {
 					return;
 				}
-				if (bulkrequest.numberOfActions() > 0) {
-					BulkResponse response = bulkrequest.execute().actionGet();
-					if (response.hasFailures()) {
-						throw new SAXException("ES error: " + response.buildFailureMessage());
-					}
-				}
+				bulk_op.terminateBulk();
 				return;
 			}
 			if (qName.equalsIgnoreCase("mapping")) {
@@ -264,17 +252,11 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 			// throw new SAXException("Can't declare mapping", e);
 			
 			if (qName.equalsIgnoreCase("key")) {
-				if (bulkrequest == null) {
-					bulkrequest = client.prepareBulk();
+				if (bulk_op == null) {
+					bulk_op = Elasticsearch.prepareBulk();
 				}
-				if (bulkrequest.numberOfActions() > BULK_REQUEST_MAX_SIZE) {
-					BulkResponse response = bulkrequest.execute().actionGet();
-					if (response.hasFailures()) {
-						throw new SAXException("ES error: " + response.buildFailureMessage());
-					}
-					bulkrequest = client.prepareBulk();
-				}
-				IndexRequestBuilder index = new IndexRequestBuilder(client);
+				
+				IndexRequestBuilder index = bulk_op.getClient().prepareIndex();
 				index.setId(key_name);
 				index.setIndex(index_name);
 				index.setType(type_name);
@@ -282,7 +264,7 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 					index.setTTL(ttl);
 				}
 				index.setSource(getContent());
-				bulkrequest.add(index);
+				bulk_op.add(index);
 				return;
 			}
 			

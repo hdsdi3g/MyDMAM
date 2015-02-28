@@ -18,8 +18,11 @@ package hd3gtv.mydmam.pathindexing;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
+import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
+import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.web.SearchResult;
 import hd3gtv.mydmam.web.stat.Stat;
 
@@ -30,12 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.count.CountRequestBuilder;
-import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.delete.DeleteRequestBuilder;
-import org.elasticsearch.action.get.MultiGetItemResponse;
-import org.elasticsearch.action.get.MultiGetRequestBuilder;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.MultiSearchRequestBuilder;
 import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
@@ -47,27 +45,22 @@ import org.elasticsearch.search.sort.SortOrder;
 
 public class Explorer {
 	
-	public ArrayList<SourcePathIndexerElement> getByStorageFilenameAndSize(String storagename, String filename, long size) {
-		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
+	public ArrayList<SourcePathIndexerElement> getByStorageFilenameAndSize(String storagename, final String filename, long size) throws Exception {
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
-		
 		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())).must(QueryBuilders.termQuery("size", size)));
-		request.setFrom(0);
 		
-		SearchResponse response = request.execute().actionGet();
-		SearchHit[] hits = response.getHits().hits();
-		if (hits.length == 0) {
-			return null;
-		}
-		
-		ArrayList<SourcePathIndexerElement> result = new ArrayList<SourcePathIndexerElement>();
-		for (int pos = 0; pos < hits.length; pos++) {
-			SourcePathIndexerElement element = SourcePathIndexerElement.fromESResponse(hits[pos]);
-			if (element.currentpath.endsWith(filename)) {
-				result.add(element);
+		final ArrayList<SourcePathIndexerElement> result = new ArrayList<SourcePathIndexerElement>();
+		request.allReader(new ElastisearchCrawlerHit() {
+			public boolean onFoundHit(SearchHit hit) throws Exception {
+				SourcePathIndexerElement element = SourcePathIndexerElement.fromESResponse(hit);
+				if (element.currentpath.endsWith(filename)) {
+					result.add(element);
+				}
+				return true;
 			}
-		}
+		});
 		
 		if (result.size() == 0) {
 			return null;
@@ -76,40 +69,20 @@ public class Explorer {
 		}
 	}
 	
-	private void crawler(SearchRequestBuilder request, IndexingEvent found_elements_observer) throws Exception {
-		SearchResponse response = request.execute().actionGet();
-		SearchHit[] hits = response.getHits().hits();
-		int count_remaining = (int) response.getHits().getTotalHits();
-		int totalhits = count_remaining;
-		
-		boolean can_continue = true;
-		while (can_continue) {
-			for (int pos = 0; pos < hits.length; pos++) {
-				can_continue = found_elements_observer.onFoundElement(SourcePathIndexerElement.fromESResponse(hits[pos]));
-				count_remaining--;
-				if (can_continue == false) {
-					count_remaining = 0;
-					break;
-				}
+	private void crawler(ElastisearchCrawlerReader request, final IndexingEvent found_elements_observer) throws Exception {
+		request.allReader(new ElastisearchCrawlerHit() {
+			public boolean onFoundHit(SearchHit hit) throws Exception {
+				found_elements_observer.onFoundElement(SourcePathIndexerElement.fromESResponse(hit));
+				return true;
 			}
-			if (count_remaining == 0) {
-				break;
-			}
-			request.setFrom(totalhits - count_remaining);
-			response = request.execute().actionGet();
-			hits = response.getHits().hits();
-			if (hits.length == 0) {
-				can_continue = false;
-			}
-		}
+		});
 	}
 	
 	public void getAllId(String id, IndexingEvent found_elements_observer) throws Exception {
-		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.termQuery("id", id.toLowerCase()));
-		request.setFrom(0);
 		request.setSize(100);
 		crawler(request, found_elements_observer);
 	}
@@ -117,11 +90,10 @@ public class Explorer {
 	public ArrayList<SourcePathIndexerElement> getAllIdFromStorage(String id, String storagename) throws Exception {
 		final ArrayList<SourcePathIndexerElement> result = new ArrayList<SourcePathIndexerElement>();
 		
-		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("id", id.toLowerCase())).must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())));
-		request.setFrom(0);
 		request.setSize(100);
 		
 		crawler(request, new IndexingEvent() {
@@ -146,8 +118,8 @@ public class Explorer {
 	/**
 	 * @param min_index_date set 0 for all
 	 */
-	public void getAllSubElementsFromElementKey(String parentpath_key, long min_index_date, IndexingEvent found_elements_observer) throws Exception {
-		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
+	public void getAllSubElementsFromElementKey(String parentpath_key, final long min_index_date, final IndexingEvent found_elements_observer) throws Exception {
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 		
@@ -157,48 +129,37 @@ public class Explorer {
 			request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("parentpath", parentpath_key))
 					.must(QueryBuilders.rangeQuery("dateindex").from(min_index_date).to(System.currentTimeMillis() + 1000000)));
 		}
-		
-		request.setFrom(0);
 		request.setSize(500);
 		
-		SearchResponse response = request.execute().actionGet();
-		SearchHit[] hits = response.getHits().hits();
-		int count_remaining = (int) response.getHits().getTotalHits();
-		int totalhits = count_remaining;
-		
-		while (hits.length > 0) {
-			for (int pos = 0; pos < hits.length; pos++) {
-				count_remaining--;
-				SourcePathIndexerElement element = SourcePathIndexerElement.fromESResponse(hits[pos]);
+		request.allReader(new ElastisearchCrawlerHit() {
+			public boolean onFoundHit(SearchHit hit) throws Exception {
+				SourcePathIndexerElement element = SourcePathIndexerElement.fromESResponse(hit);
 				if (found_elements_observer.onFoundElement(element) == false) {
-					return;
+					return true;
 				}
 				if (element.directory) {
 					getAllSubElementsFromElementKey(element.prepare_key(), min_index_date, found_elements_observer);
 				}
+				return true;
 			}
-			request.setFrom(totalhits - count_remaining);
-			response = request.execute().actionGet();
-			hits = response.getHits().hits();
-		}
+		});
+		
 	}
 	
 	public void getAllStorage(String storagename, IndexingEvent found_elements_observer) throws Exception {
-		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.termQuery("storagename", storagename.toLowerCase()));
-		request.setFrom(0);
 		request.setSize(500);
 		crawler(request, found_elements_observer);
 	}
 	
 	public void getAllDirectoriesStorage(String storagename, IndexingEvent found_elements_observer) throws Exception {
-		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_DIRECTORY);
 		request.setQuery(QueryBuilders.termQuery("storagename", storagename.toLowerCase()));
-		request.setFrom(0);
 		request.setSize(500);
 		crawler(request, found_elements_observer);
 	}
@@ -206,14 +167,20 @@ public class Explorer {
 	public SourcePathIndexerElement getelementByIdkey(String _id) {
 		ArrayList<String> ids = new ArrayList<String>(1);
 		ids.add(_id);
-		HashMap<String, SourcePathIndexerElement> results = getelementByIdkeys(ids);
-		if (results.isEmpty()) {
+		HashMap<String, SourcePathIndexerElement> results;
+		try {
+			results = getelementByIdkeys(ids);
+			if (results.isEmpty()) {
+				return null;
+			}
+			return results.get(_id);
+		} catch (Exception e) {
+			Log2.log.error("Can't found in ES", e);
 			return null;
 		}
-		return results.get(_id);
 	}
 	
-	public LinkedHashMap<String, SourcePathIndexerElement> getelementByIdkeys(List<String> _ids) {
+	public LinkedHashMap<String, SourcePathIndexerElement> getelementByIdkeys(List<String> _ids) throws Exception {
 		if (_ids == null) {
 			return new LinkedHashMap<String, SourcePathIndexerElement>(1);
 		}
@@ -247,21 +214,18 @@ public class Explorer {
 			return result;
 		}
 		
-		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(Elasticsearch.getClient());
+		ElasticsearchMultiGetRequest multigetrequestbuilder = Elasticsearch.prepareMultiGetRequest();
 		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, ids_to_query);
 		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_FILE, ids_to_query);
 		
-		MultiGetItemResponse[] responses = multigetrequestbuilder.execute().actionGet().getResponses();
-		for (int pos = 0; pos < responses.length; pos++) {
-			if (responses[pos].getResponse().isExists() == false) {
-				continue;
-			}
-			result.put(responses[pos].getId(), SourcePathIndexerElement.fromESResponse(responses[pos].getResponse()));
+		List<GetResponse> responses = multigetrequestbuilder.responses();
+		for (int pos = 0; pos < responses.size(); pos++) {
+			result.put(responses.get(pos).getId(), SourcePathIndexerElement.fromESResponse(responses.get(pos)));
 		}
 		return result;
 	}
 	
-	public List<String> getelementIfExists(List<String> _ids) {
+	public List<String> getelementIfExists(List<String> _ids) throws Exception {
 		if (_ids == null) {
 			return new ArrayList<String>(1);
 		}
@@ -270,39 +234,40 @@ public class Explorer {
 		}
 		List<String> result = new ArrayList<String>(_ids.size());
 		
-		MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(Elasticsearch.getClient());
+		ElasticsearchMultiGetRequest multigetrequestbuilder = Elasticsearch.prepareMultiGetRequest();
 		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, _ids);
 		multigetrequestbuilder.add(Importer.ES_INDEX, Importer.ES_TYPE_FILE, _ids);
 		
-		MultiGetItemResponse[] responses = multigetrequestbuilder.execute().actionGet().getResponses();
-		for (int pos = 0; pos < responses.length; pos++) {
-			if (responses[pos].getResponse().isExists() == false) {
-				continue;
-			}
-			result.add(responses[pos].getId());
+		List<GetResponse> responses = multigetrequestbuilder.responses();
+		for (int pos = 0; pos < responses.size(); pos++) {
+			result.add(responses.get(pos).getId());
 		}
 		return result;
 	}
 	
-	public String getStorageNameFromKey(String _id) {
+	public String getStorageNameFromKey(String _id) throws Exception {
 		if (_id == null) {
 			throw new NullPointerException("\"_id\" can't to be null");
 		}
 		
-		SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 		request.setQuery(QueryBuilders.termQuery("_id", _id));
 		
-		SearchResponse response = request.execute().actionGet();
+		final ArrayList<SearchHit> hits = new ArrayList<SearchHit>(1);
+		request.allReader(new ElastisearchCrawlerHit() {
+			public boolean onFoundHit(SearchHit hit) throws Exception {
+				hits.add(hit);
+				return false;
+			}
+		});
 		
-		if (response.getHits().totalHits() == 0) {
+		if (hits.isEmpty()) {
 			return null;
 		}
 		
-		SearchHit[] hits = response.getHits().hits();
-		
-		return Elasticsearch.getJSONFromSimpleResponse(hits[0]).get("storagename").getAsString();
+		return Elasticsearch.getJSONFromSimpleResponse(hits.get(0)).get("storagename").getAsString();
 	}
 	
 	public class DirectoryContent {
@@ -397,21 +362,11 @@ public class Explorer {
 	}
 	
 	public long countDirectoryContentElements(String _id) {
-		CountRequestBuilder request = new CountRequestBuilder(Elasticsearch.getClient());
-		request.setIndices(Importer.ES_INDEX);
-		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
-		request.setQuery(QueryBuilders.termQuery("parentpath", _id.toLowerCase()));
-		CountResponse response = request.execute().actionGet();
-		return response.getCount();
+		return Elasticsearch.countRequest(Importer.ES_INDEX, QueryBuilders.termQuery("parentpath", _id.toLowerCase()), Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 	}
 	
 	public long countStorageContentElements(String storage_index_name) {
-		CountRequestBuilder request = new CountRequestBuilder(Elasticsearch.getClient());
-		request.setIndices(Importer.ES_INDEX);
-		request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
-		request.setQuery(QueryBuilders.termQuery("storagename", storage_index_name.toLowerCase()));
-		CountResponse response = request.execute().actionGet();
-		return response.getCount();
+		return Elasticsearch.countRequest(Importer.ES_INDEX, QueryBuilders.termQuery("storagename", storage_index_name.toLowerCase()), Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 	}
 	
 	private static HashMap<String, File> bridge;
@@ -451,30 +406,19 @@ public class Explorer {
 		return bridge_list;
 	}
 	
-	public DeleteRequestBuilder deleteRequestFileElement(String _id, String es_type) {
-		return Elasticsearch.getClient().prepareDelete(Importer.ES_INDEX, es_type, _id);
-	}
-	
 	private class IndexingDelete implements IndexingEvent {
 		
-		BulkRequestBuilder bulkrequest_delete;
+		ElasticsearchBulkOperation bulk_op;
 		
-		public IndexingDelete(BulkRequestBuilder bulkrequest_delete) {
-			this.bulkrequest_delete = bulkrequest_delete;
+		public IndexingDelete(ElasticsearchBulkOperation bulk_op) {
+			this.bulk_op = bulk_op;
 		}
 		
-		@Override
 		public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
-			if (bulkrequest_delete.numberOfActions() > 1000) {
-				Log2.log.debug("Force delete some index items", new Log2Dump("count", bulkrequest_delete.numberOfActions()));
-				bulkrequest_delete.execute().actionGet();
-				bulkrequest_delete = Elasticsearch.getClient().prepareBulk();
-			}
-			
 			if (element.directory) {
-				bulkrequest_delete.add(deleteRequestFileElement(element.prepare_key(), Importer.ES_TYPE_DIRECTORY));
+				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, element.prepare_key(), Importer.ES_TYPE_DIRECTORY));
 			} else {
-				bulkrequest_delete.add(deleteRequestFileElement(element.prepare_key(), Importer.ES_TYPE_FILE));
+				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, element.prepare_key(), Importer.ES_TYPE_FILE));
 			}
 			return true;
 		}
@@ -488,7 +432,7 @@ public class Explorer {
 	 * Don't use Bridge, but use StorageManager and PathScan.
 	 */
 	public void refreshStoragePath(List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
-		BulkRequestBuilder bulkrequest_delete = null;
+		ElasticsearchBulkOperation bulk_op = null;
 		PathScan pathscan = new PathScan();
 		
 		for (int pos = 0; pos < elements.size(); pos++) {
@@ -496,19 +440,14 @@ public class Explorer {
 				continue;
 			}
 			if (purge_before) {
-				if (bulkrequest_delete == null) {
-					bulkrequest_delete = Elasticsearch.getClient().prepareBulk();
+				if (bulk_op == null) {
+					bulk_op = Elasticsearch.prepareBulk();
 				}
 				if (elements.get(pos).directory) {
-					getAllSubElementsFromElementKey(elements.get(pos).prepare_key(), 0, new IndexingDelete(bulkrequest_delete));
-					bulkrequest_delete.add(deleteRequestFileElement(elements.get(pos).prepare_key(), Importer.ES_TYPE_DIRECTORY));
+					getAllSubElementsFromElementKey(elements.get(pos).prepare_key(), 0, new IndexingDelete(bulk_op));
+					bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, elements.get(pos).prepare_key(), Importer.ES_TYPE_DIRECTORY));
 				} else {
-					bulkrequest_delete.add(deleteRequestFileElement(elements.get(pos).prepare_key(), Importer.ES_TYPE_FILE));
-				}
-				if (bulkrequest_delete.numberOfActions() > 0) {
-					Log2.log.debug("Force delete some index items", new Log2Dump("count", bulkrequest_delete.numberOfActions()));
-					bulkrequest_delete.execute().actionGet();
-					bulkrequest_delete = null;
+					bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, elements.get(pos).prepare_key(), Importer.ES_TYPE_FILE));
 				}
 			}
 			if (elements.get(pos).directory) {
@@ -516,6 +455,9 @@ public class Explorer {
 			} else {
 				pathscan.refreshIndex(elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
 			}
+		}
+		if (bulk_op != null) {
+			bulk_op.terminateBulk();
 		}
 	}
 }

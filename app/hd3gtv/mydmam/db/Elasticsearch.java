@@ -34,13 +34,20 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
+import org.elasticsearch.action.count.CountRequestBuilder;
+import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 
@@ -111,6 +118,10 @@ public class Elasticsearch {
 		return new ElasticsearchBulkOperation();
 	}
 	
+	public static ElasticsearchMultiGetRequest prepareMultiGetRequest() {
+		return new ElasticsearchMultiGetRequest(getClient());
+	}
+	
 	public static Log2Dump getDump() {
 		Log2Dump dump = new Log2Dump();
 		if (client != null) {
@@ -125,9 +136,14 @@ public class Elasticsearch {
 	/**
 	 * Protected to some IndexMissingException
 	 */
-	public static void deleteIndexRequest(String index_name) throws ElasticsearchException {
+	public static void deleteIndexRequest(final String index_name) throws ElasticsearchException {
 		try {
-			getClient().admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
+			Elasticsearch.withRetry(new ElasticsearchWithRetry<Void>() {
+				public Void call(Client client) throws NoNodeAvailableException {
+					client.admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
+					return null;
+				}
+			});
 		} catch (IndexMissingException e) {
 		}
 	}
@@ -219,21 +235,107 @@ public class Elasticsearch {
 		return new ElastisearchMultipleCrawlerReader(getClient());
 	}
 	
-	public static boolean isIndexExists(String index_name) {
-		return getClient().admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists();
+	public static boolean isIndexExists(final String index_name) {
+		return Elasticsearch.withRetry(new ElasticsearchWithRetry<Boolean>() {
+			public Boolean call(Client client) throws NoNodeAvailableException {
+				return client.admin().indices().exists(new IndicesExistsRequest(index_name)).actionGet().isExists();
+			}
+		});
 	}
 	
-	public static boolean createIndex(String index_name) {
-		return getClient().admin().indices().prepareCreate(index_name).execute().actionGet().isAcknowledged();
+	public static boolean createIndex(final String index_name) {
+		return Elasticsearch.withRetry(new ElasticsearchWithRetry<Boolean>() {
+			public Boolean call(Client client) throws NoNodeAvailableException {
+				return client.admin().indices().prepareCreate(index_name).execute().actionGet().isAcknowledged();
+			}
+		});
 	}
 	
-	public static boolean addMappingToIndex(String index_name, String type, String json_mapping_source) {
-		// Inspired by http://stackoverflow.com/questions/22071198/adding-mapping-to-a-type-from-java-how-do-i-do-it
-		Client client = getClient();
-		PutMappingRequestBuilder request = client.admin().indices().preparePutMapping(index_name);
-		request.setType(type);
-		request.setSource(json_mapping_source);
-		return request.execute().actionGet().isAcknowledged();
+	public static boolean addMappingToIndex(final String index_name, final String type, final String json_mapping_source) {
+		return Elasticsearch.withRetry(new ElasticsearchWithRetry<Boolean>() {
+			public Boolean call(Client client) throws NoNodeAvailableException {
+				// Inspired by http://stackoverflow.com/questions/22071198/adding-mapping-to-a-type-from-java-how-do-i-do-it
+				PutMappingRequestBuilder request = client.admin().indices().preparePutMapping(index_name);
+				request.setType(type);
+				request.setSource(json_mapping_source);
+				return request.execute().actionGet().isAcknowledged();
+			}
+		});
+	}
+	
+	private static int max_retry = 5;
+	
+	static <T> T withRetry(ElasticsearchWithRetry<T> callable) throws NoNodeAvailableException {
+		for (int pos_retry = 0; pos_retry < max_retry; pos_retry++) {
+			try {
+				return callable.call(getClient());
+			} catch (NoNodeAvailableException e) {
+				try {
+					/**
+					 * Wait before to retry, after the 2nd try.
+					 */
+					Thread.sleep(pos_retry * 100);
+				} catch (InterruptedException e1) {
+					Log2.log.error("Stop sleep", e1);
+					return null;
+				}
+				if (pos_retry == (max_retry - 2)) {
+					/**
+					 * Before the last try, force refesh configuration.
+					 */
+					Elasticsearch.refeshconfiguration();
+				} else if (pos_retry + 1 == max_retry) {
+					/**
+					 * The last try has failed, throw error.
+					 */
+					Log2.log.error("The last (" + max_retry + ") try has failed, throw error", e);
+					throw e;
+				}
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * With retry
+	 */
+	public static GetResponse get(final GetRequest request) {
+		return withRetry(new ElasticsearchWithRetry<GetResponse>() {
+			public GetResponse call(Client client) throws NoNodeAvailableException {
+				return client.get(request).actionGet();
+			}
+		});
+	}
+	
+	/**
+	 * With retry
+	 */
+	public static IndexResponse index(final IndexRequest request) {
+		return withRetry(new ElasticsearchWithRetry<IndexResponse>() {
+			public IndexResponse call(Client client) throws NoNodeAvailableException {
+				return client.index(request).actionGet();
+			}
+		});
+	}
+	
+	/**
+	 * With retry
+	 */
+	public static long countRequest(String index, QueryBuilder query, String... types) {
+		final CountRequestBuilder request = new CountRequestBuilder(Elasticsearch.getClient());
+		request.setIndices(index);
+		request.setTypes(types);
+		request.setQuery(query);
+		
+		CountResponse response = withRetry(new ElasticsearchWithRetry<CountResponse>() {
+			public CountResponse call(Client client) throws NoNodeAvailableException {
+				return client.count(request.request()).actionGet();
+			}
+		});
+		if (response == null) {
+			return 0;
+		}
+		return response.getCount();
 	}
 	
 }

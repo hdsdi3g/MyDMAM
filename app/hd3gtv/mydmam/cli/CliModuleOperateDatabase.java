@@ -20,6 +20,8 @@ import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
+import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.useraction.UACreationRequest;
@@ -29,8 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
@@ -276,22 +276,21 @@ public class CliModuleOperateDatabase implements CliModule {
 			if (args.getSimpleParamValue("-ualog").equals("0") == false) {
 				since = (System.currentTimeMillis() / (1000l * 60l)) - Long.parseLong(args.getSimpleParamValue("-ualog"));
 			}
-			Client client = Elasticsearch.getClient();
 			
-			SearchRequestBuilder request = client.prepareSearch();
+			ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 			request.setIndices(Notification.ES_INDEX);
 			request.setTypes(UACreationRequest.ES_TYPE);
 			request.setQuery(QueryBuilders.rangeQuery("created_at").gte(since));
 			request.addSort("created_at", SortOrder.ASC);
 			request.setSize(1000);
-			SearchHit[] hits = request.execute().actionGet().getHits().hits();
 			
-			if (hits.length == 0) {
-				return;
-			}
-			for (int pos = 0; pos < hits.length; pos++) {
-				System.out.println(hits[pos].getSourceAsString());
-			}
+			request.allReader(new ElastisearchCrawlerHit() {
+				public boolean onFoundHit(SearchHit hit) {
+					System.out.println(hit.getSourceAsString());
+					return true;
+				}
+			});
+			
 			return;
 		}
 		showFullCliModuleHelp();

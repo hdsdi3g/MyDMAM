@@ -16,12 +16,11 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.log2.Log2;
-
 import java.util.ArrayList;
 
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -48,14 +47,15 @@ public class ElastisearchCrawlerReader {
 	private QueryBuilder query;
 	private ArrayList<Sort> sorts;
 	private int size;
-	
-	private int max_retry = 5;
+	private int from;
+	private SearchType searchtype;
 	
 	ElastisearchCrawlerReader() {
 		client = Elasticsearch.getClient();
 		query = QueryBuilders.matchAllQuery();
 		sorts = new ArrayList<ElastisearchCrawlerReader.Sort>();
 		size = 0;
+		from = 0;
 	}
 	
 	public ElastisearchCrawlerReader setIndices(String... indices) {
@@ -95,39 +95,28 @@ public class ElastisearchCrawlerReader {
 		return this;
 	}
 	
-	private SearchResponse execute(SearchRequestBuilder request) {
-		for (int pos_retry = 0; pos_retry < max_retry; pos_retry++) {
-			try {
-				return Elasticsearch.getClient().search(request.request()).actionGet();
-			} catch (NoNodeAvailableException e) {
-				try {
-					/**
-					 * Wait before to retry, after the 2nd try.
-					 */
-					Thread.sleep(pos_retry * 100);
-				} catch (InterruptedException e1) {
-					Log2.log.error("Stop sleep", e1);
-					return null;
-				}
-				if (pos_retry == (max_retry - 2)) {
-					/**
-					 * Before the last try, force refesh configuration.
-					 */
-					Elasticsearch.refeshconfiguration();
-				} else if (pos_retry + 1 == max_retry) {
-					/**
-					 * The last try has failed, throw error.
-					 */
-					Log2.log.error("The last (" + max_retry + ") try has failed, throw error", e);
-					throw e;
-				}
-				
-			}
-		}
-		return null;
+	/*public ElastisearchCrawlerReader setFrom(int from) {
+		this.from = from;
+		return this;
+	}*/
+	
+	public ElastisearchCrawlerReader setSearchType(SearchType searchtype) {
+		this.searchtype = searchtype;
+		return this;
 	}
 	
-	public void allReader(ElastisearchCrawlerHit crawler) {
+	private SearchResponse execute(final SearchRequestBuilder request) {
+		return Elasticsearch.withRetry(new ElasticsearchWithRetry<SearchResponse>() {
+			public SearchResponse call(Client client) throws NoNodeAvailableException {
+				return client.search(request.request()).actionGet();
+			}
+		});
+	}
+	
+	/**
+	 * Never parallelized
+	 */
+	public void allReader(ElastisearchCrawlerHit crawler) throws Exception {
 		if (crawler == null) {
 			throw new NullPointerException("\"crawler\" can't to be null");
 		}
@@ -151,6 +140,12 @@ public class ElastisearchCrawlerReader {
 			}
 			if (size > 0) {
 				request.setSize(size);
+			}
+			if (from > 0) {
+				request.setSize(from);
+			}
+			if (searchtype != null) {
+				request.setSearchType(searchtype);
 			}
 			
 			SearchResponse response = execute(request);

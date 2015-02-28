@@ -43,7 +43,6 @@ public final class ElasticsearchBulkOperation {
 	
 	private Client client;
 	private int window_update_size = 500;
-	private int max_retry = 5;
 	private StatisticsTime stat_time;
 	private BulkRequestBuilder bulk_request_builder;
 	
@@ -72,40 +71,17 @@ public final class ElasticsearchBulkOperation {
 		dump.add("numberOfActions", bulk_request_builder.numberOfActions());
 		Log2.log.debug("Prepare to update database", dump);
 		
-		BulkRequest bu_r = bulk_request_builder.request();
+		final BulkRequest bu_r = bulk_request_builder.request();
 		
 		BulkResponse bulkresponse = null;
 		stat_time.startMeasure();
 		boolean it_was_hard = false;
 		
-		for (int pos_retry = 0; pos_retry < max_retry; pos_retry++) {
-			try {
-				bulkresponse = Elasticsearch.getClient().bulk(bu_r).actionGet();
-			} catch (NoNodeAvailableException e) {
-				it_was_hard = true;
-				try {
-					/**
-					 * Wait before to retry, after the 2nd try.
-					 */
-					Thread.sleep(pos_retry * 100);
-				} catch (InterruptedException e1) {
-					Log2.log.error("Stop sleep", e1);
-					return;
-				}
-				if (pos_retry == (max_retry - 2)) {
-					/**
-					 * Before the last try, force refesh configuration.
-					 */
-					Elasticsearch.refeshconfiguration();
-				} else if (pos_retry + 1 == max_retry) {
-					/**
-					 * The last try has failed, throw error.
-					 */
-					throw e;
-				}
-				
+		bulkresponse = Elasticsearch.withRetry(new ElasticsearchWithRetry<BulkResponse>() {
+			public BulkResponse call(Client client) throws NoNodeAvailableException {
+				return client.bulk(bu_r).actionGet();
 			}
-		}
+		});
 		
 		if (bulkresponse != null) {
 			if (bulkresponse.hasFailures()) {

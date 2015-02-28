@@ -44,13 +44,9 @@ import models.UserProfile;
 
 import javax.mail.internet.InternetAddress;
 
-import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -789,7 +785,7 @@ public class Notification {
 	 * @param bulkrequest add element here, but save directly new NotificationUpdate if needed. Don't wait too long time for exec bulkrequest else you will have orphan NotificationUpdates!
 	 * @throws Exception
 	 */
-	public void save(BulkRequest bulkrequest) throws Exception {
+	public void save(ElasticsearchBulkOperation bulk_op) throws Exception {
 		if (is_read | is_close | (users_comment.equals("") == false)) {
 			/**
 			 * Compare & update: prepare updater
@@ -823,12 +819,11 @@ public class Notification {
 		ir.source(record.toString());
 		ir.ttl(MAXIMAL_NOTIFICATION_LIFETIME);
 		
-		if (bulkrequest == null) {
-			Client client = Elasticsearch.getClient();
+		if (bulk_op == null) {
 			ir.refresh(true);
-			client.index(ir);
+			Elasticsearch.index(ir);
 		} else {
-			bulkrequest.add(ir);
+			bulk_op.add(ir);
 		}
 	}
 	
@@ -857,8 +852,7 @@ public class Notification {
 		if (key == null) {
 			throw new NullPointerException("\"key\" can't to be null");
 		}
-		Client client = Elasticsearch.getClient();
-		GetResponse response = client.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, key)).actionGet();
+		GetResponse response = Elasticsearch.get(new GetRequest(ES_INDEX, ES_DEFAULT_TYPE, key));
 		if (response.isExists() == false) {
 			return null;
 		}
@@ -868,12 +862,11 @@ public class Notification {
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static ArrayList<Map<String, Object>> getRawFromDatabaseByObserver(UserProfile user, boolean can_is_closed) throws ConnectionException, IOException {
+	public static ArrayList<Map<String, Object>> getRawFromDatabaseByObserver(final UserProfile user, boolean can_is_closed) throws ConnectionException, Exception {
 		if (user == null) {
 			throw new NullPointerException("\"user\" can't to be null");
 		}
-		Client client = Elasticsearch.getClient();
-		SearchRequestBuilder request = client.prepareSearch();
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(ES_INDEX);
 		request.setTypes(ES_DEFAULT_TYPE);
 		request.addSort("created_at", SortOrder.DESC);
@@ -889,71 +882,65 @@ public class Notification {
 		}
 		
 		try {
-			SearchResponse response = request.execute().actionGet();
-			if (response.getHits().totalHits() == 0) {
-				return new ArrayList<Map<String, Object>>(1);
-			}
-			SearchHit[] hits = response.getHits().hits();
+			final ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>();
 			
-			ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>(hits.length);
-			Map<String, Object> source;
-			ArrayList<Object> raw_linked_jobs;
-			HashMap<String, JobStatus> linked_jobs;
-			HashMap<String, Object> map_linked_jobs;
-			Map<String, Boolean> notify_list_for_user;
-			NotifyReason[] reasons = NotifyReason.values();
+			request.allReader(new ElastisearchCrawlerHit() {
+				
+				Map<String, Object> source;
+				ArrayList<Object> raw_linked_jobs;
+				HashMap<String, JobStatus> linked_jobs;
+				HashMap<String, Object> map_linked_jobs;
+				Map<String, Boolean> notify_list_for_user;
+				NotifyReason[] reasons = NotifyReason.values();
+				
+				public boolean onFoundHit(SearchHit hit) throws Exception {
+					source = hit.getSource();
+					raw_linked_jobs = (ArrayList) source.get("linked_jobs");
+					linked_jobs = new HashMap<String, JobStatus>();
+					for (int pos_lt = 0; pos_lt < raw_linked_jobs.size(); pos_lt++) {
+						map_linked_jobs = (HashMap) raw_linked_jobs.get(pos_lt);
+						linked_jobs.put((String) map_linked_jobs.get("jobkey"), JobStatus.valueOf((String) map_linked_jobs.get("status")));
+					}
+					source.put("summary_status", getSummaryJobStatus(linked_jobs));
+					source.put("key", hit.getId());
+					
+					notify_list_for_user = new HashMap<String, Boolean>();
+					for (int pos_r = 0; pos_r < reasons.length; pos_r++) {
+						ArrayList<Object> user_list_for_reason = (ArrayList) source.get(reasons[pos_r].getDbRecordName());
+						notify_list_for_user.put(reasons[pos_r].getDbRecordName(), user_list_for_reason.contains(user.key));
+					}
+					source.put("notify_list", notify_list_for_user);
+					
+					notifications.add(source);
+					return true;
+				}
+			});
 			
-			for (int pos = 0; pos < hits.length; pos++) {
-				source = hits[pos].getSource();
-				
-				raw_linked_jobs = (ArrayList) source.get("linked_jobs");
-				linked_jobs = new HashMap<String, JobStatus>();
-				for (int pos_lt = 0; pos_lt < raw_linked_jobs.size(); pos_lt++) {
-					map_linked_jobs = (HashMap) raw_linked_jobs.get(pos_lt);
-					linked_jobs.put((String) map_linked_jobs.get("jobkey"), JobStatus.valueOf((String) map_linked_jobs.get("status")));
-				}
-				source.put("summary_status", getSummaryJobStatus(linked_jobs));
-				source.put("key", hits[pos].getId());
-				
-				notify_list_for_user = new HashMap<String, Boolean>();
-				for (int pos_r = 0; pos_r < reasons.length; pos_r++) {
-					ArrayList<Object> user_list_for_reason = (ArrayList) source.get(reasons[pos_r].getDbRecordName());
-					notify_list_for_user.put(reasons[pos_r].getDbRecordName(), user_list_for_reason.contains(user.key));
-				}
-				source.put("notify_list", notify_list_for_user);
-				
-				notifications.add(source);
-			}
 			return notifications;
 		} catch (IndexMissingException e) {
 			return new ArrayList<Map<String, Object>>(0);
 		}
 	}
 	
-	public static ArrayList<Map<String, Object>> getAdminListFromDatabase() throws ConnectionException, IOException {
-		Client client = Elasticsearch.getClient();
-		SearchRequestBuilder request = client.prepareSearch();
+	public static ArrayList<Map<String, Object>> getAdminListFromDatabase() throws ConnectionException, Exception {
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(ES_INDEX);
 		request.setTypes(ES_DEFAULT_TYPE);
 		request.addSort("created_at", SortOrder.DESC);
-		request.setSize(50);
-		request.setQuery(QueryBuilders.matchAllQuery());
 		
 		try {
-			SearchResponse response = request.execute().actionGet();
-			if (response.getHits().totalHits() == 0) {
-				return new ArrayList<Map<String, Object>>(1);
-			}
-			SearchHit[] hits = response.getHits().hits();
+			final ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>();
 			
-			ArrayList<Map<String, Object>> notifications = new ArrayList<Map<String, Object>>(hits.length);
-			Map<String, Object> source;
+			request.allReader(new ElastisearchCrawlerHit() {
+				public boolean onFoundHit(SearchHit hit) throws Exception {
+					Map<String, Object> source;
+					source = hit.getSource();
+					source.put("key", hit.getId());
+					notifications.add(source);
+					return true;
+				}
+			});
 			
-			for (int pos = 0; pos < hits.length; pos++) {
-				source = hits[pos].getSource();
-				source.put("key", hits[pos].getId());
-				notifications.add(source);
-			}
 			return notifications;
 		} catch (IndexMissingException e) {
 			return new ArrayList<Map<String, Object>>(1);

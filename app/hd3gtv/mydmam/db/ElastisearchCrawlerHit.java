@@ -23,6 +23,6 @@ public interface ElastisearchCrawlerHit {
 	/**
 	 * @return false to stop crawl
 	 */
-	public boolean onFoundHit(SearchHit hit);
+	public boolean onFoundHit(SearchHit hit) throws Exception;
 	
 }

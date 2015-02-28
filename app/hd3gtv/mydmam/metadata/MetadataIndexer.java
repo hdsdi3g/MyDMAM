@@ -19,6 +19,7 @@ package hd3gtv.mydmam.metadata;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -31,8 +32,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.indices.IndexMissingException;
 
 public class MetadataIndexer implements IndexingEvent {
@@ -40,7 +39,7 @@ public class MetadataIndexer implements IndexingEvent {
 	private Explorer explorer;
 	private boolean force_refresh;
 	private boolean stop_analysis;
-	private BulkRequestBuilder bulkrequest;
+	private ElasticsearchBulkOperation es_bulk;
 	private List<FutureCreateJobs> current_create_job_list;
 	
 	public MetadataIndexer(boolean force_refresh) throws Exception {
@@ -50,25 +49,13 @@ public class MetadataIndexer implements IndexingEvent {
 	
 	public void process(String storagename, String currentpath, long min_index_date) throws Exception {
 		stop_analysis = false;
-		bulkrequest = Elasticsearch.getClient().prepareBulk();
+		es_bulk = Elasticsearch.prepareBulk();
 		explorer = new Explorer();
 		explorer.getAllSubElementsFromElementKey(Explorer.getElementKey(storagename, currentpath), min_index_date, this);
-		bulkExecute();
+		es_bulk.terminateBulk();
 		
 		for (int pos = 0; pos < current_create_job_list.size(); pos++) {
 			current_create_job_list.get(pos).createJob();
-		}
-	}
-	
-	private void bulkExecute() {
-		if (bulkrequest.numberOfActions() == 0) {
-			return;
-		}
-		BulkResponse bulkresponse = bulkrequest.execute().actionGet();
-		if (bulkresponse.hasFailures()) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("failure message", bulkresponse.buildFailureMessage());
-			Log2.log.error("ES errors during add/delete documents", null, dump);
 		}
 	}
 	
@@ -82,11 +69,6 @@ public class MetadataIndexer implements IndexingEvent {
 		}
 		if (element.directory) {
 			return true;
-		}
-		
-		if (bulkrequest.numberOfActions() > 1000) {
-			bulkExecute();
-			bulkrequest = Elasticsearch.getClient().prepareBulk();
 		}
 		
 		String element_key = element.prepare_key();
@@ -110,7 +92,7 @@ public class MetadataIndexer implements IndexingEvent {
 					 */
 					if ((element.date != container.getOrigin().getDate()) | (element.size != container.getOrigin().getSize())) {
 						RenderedFile.purge(container.getMtd_key());
-						ContainerOperations.requestDelete(container, bulkrequest);
+						ContainerOperations.requestDelete(container, es_bulk);
 						
 						Log2Dump dump = new Log2Dump();
 						dump.addAll(element);
@@ -150,7 +132,7 @@ public class MetadataIndexer implements IndexingEvent {
 		}
 		if (physical_source.exists() == false) {
 			if (container != null) {
-				ContainerOperations.requestDelete(container, bulkrequest);
+				ContainerOperations.requestDelete(container, es_bulk);
 				RenderedFile.purge(container.getMtd_key());
 				
 				dump = new Log2Dump();
@@ -159,7 +141,7 @@ public class MetadataIndexer implements IndexingEvent {
 				Log2.log.debug("Delete obsolete analysis : original file isn't exists", dump);
 			}
 			
-			bulkrequest.add(explorer.deleteRequestFileElement(element_key, Importer.ES_TYPE_FILE));
+			es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, element_key, Importer.ES_TYPE_FILE));
 			dump = new Log2Dump();
 			dump.add("key", element_key);
 			dump.add("physical_source", physical_source);
@@ -202,7 +184,7 @@ public class MetadataIndexer implements IndexingEvent {
 		indexing.setCreateJobList(current_create_job_list);
 		indexing.importConfiguration();
 		
-		ContainerOperations.save(indexing.doIndexing(), false, bulkrequest);
+		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);
 		return true;
 	}
 	

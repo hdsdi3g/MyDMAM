@@ -21,9 +21,11 @@ import java.util.List;
 
 import org.elasticsearch.action.search.MultiSearchRequestBuilder;
 import org.elasticsearch.action.search.MultiSearchResponse;
+import org.elasticsearch.action.search.MultiSearchResponse.Item;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
@@ -76,13 +78,17 @@ public class ElastisearchMultipleCrawlerReader {
 		return this;
 	}
 	
-	public void allReader(ElastisearchCrawlerHit crawler) {
+	public void allReader(ElastisearchCrawlerHit crawler) throws Exception {
 		try {
-			MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(client);
-			for (int pos = 0; pos < queries.size(); pos++) {
-				multisearchrequestbuilder.add(queries.get(pos).getRequest());
-			}
-			MultiSearchResponse.Item[] items = multisearchrequestbuilder.execute().actionGet().getResponses();
+			MultiSearchResponse.Item[] items = Elasticsearch.withRetry(new ElasticsearchWithRetry<Item[]>() {
+				public Item[] call(Client client) throws NoNodeAvailableException {
+					MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(client);
+					for (int pos = 0; pos < queries.size(); pos++) {
+						multisearchrequestbuilder.add(queries.get(pos).getRequest());
+					}
+					return multisearchrequestbuilder.execute().actionGet().getResponses();
+				}
+			});
 			
 			SearchHit[] hits;
 			SearchResponse response;
@@ -112,7 +118,7 @@ public class ElastisearchMultipleCrawlerReader {
 		}
 	}
 	
-	class QueryItem {
+	public class QueryItem {
 		private String[] indices;
 		private String[] types;
 		private QueryBuilder query;

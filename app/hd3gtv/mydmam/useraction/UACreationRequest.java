@@ -161,7 +161,7 @@ public final class UACreationRequest {
 		IndexRequest ir = new IndexRequest(Notification.ES_INDEX, ES_TYPE, sb.toString());
 		ir.source(json_data);
 		ir.ttl(LOG_LIFETIME);
-		Elasticsearch.getClient().index(ir);
+		Elasticsearch.index(ir);
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("id", sb.toString());

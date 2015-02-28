@@ -19,6 +19,8 @@ package hd3gtv.mydmam.metadata.container;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,8 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.bulk.BulkRequestBuilder;
-import org.elasticsearch.action.bulk.BulkResponse;
 
 /**
  * Store all Metadatas references for a StorageIndex element, and (de)serialize from/to json.
@@ -112,15 +112,10 @@ public class Container implements Log2Dumpable {
 	}
 	
 	public void save(boolean refresh_index_after_save) throws ElasticsearchException {
-		BulkRequestBuilder bulkrequest = ContainerOperations.getClient().prepareBulk();
-		ContainerOperations.save(this, refresh_index_after_save, bulkrequest);
-		
-		if (bulkrequest.numberOfActions() > 0) {
-			BulkResponse bulkresponse = bulkrequest.execute().actionGet();
-			if (bulkresponse.hasFailures()) {
-				throw new ElasticsearchException(bulkresponse.buildFailureMessage());
-			}
-		}
+		ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
+		es_bulk.getConfiguration().setRefresh(refresh_index_after_save);
+		ContainerOperations.save(this, refresh_index_after_save, es_bulk);
+		es_bulk.terminateBulk();
 	}
 	
 	public Log2Dump getLog2Dump() {
