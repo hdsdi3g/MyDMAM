@@ -26,8 +26,10 @@ import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.GsonIgnoreStrategy;
+import hd3gtv.tools.StoppableProcessing;
 
 import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
@@ -424,8 +426,6 @@ public class ContainerOperations {
 		}
 	}
 	
-	// Type typeOfT = new TypeToken<List<EntrySummary>>() {}.getType();
-	
 	public static void requestDelete(Container container, ElasticsearchBulkOperation es_bulk) throws NullPointerException {
 		if (container == null) {
 			throw new NullPointerException("\"container\" can't to be null");
@@ -560,24 +560,90 @@ public class ContainerOperations {
 		}
 	}
 	
-	public static void copyMetadatas(SourcePathIndexerElement from, SourcePathIndexerElement dest) {
-		Explorer explorer = new Explorer();
-		// explorer.getAllSubElementsFromElementKey(parentpath_key, min_index_date, found_elements_observer);
-		// public static Container getByMtdKey(String mtd_key) throws NullPointerException {
-		/**
-		 * for each "from" elements, get Container
-		 * change origin for each entry, rename directories for each entry renderer
-		 * save container: save(Container container, boolean refresh_index_after_save, BulkRequestBuilder bulkrequest)
-		 */
+	/**
+	 * Recursively
+	 */
+	public static void copyMoveMetadatas(SourcePathIndexerElement from, SourcePathIndexerElement dest, boolean copy, StoppableProcessing stoppable) throws Exception {
+		Log2Dump dump = new Log2Dump();
+		dump.add("from", from);
+		dump.add("dest", dest);
+		dump.add("copy", copy);
+		Log2.log.debug("Prepare copy/move", dump);
 		
+		// XXX copy/move mtd don't works with files !
+		
+		CopyMoveMetadatas cmm = new CopyMoveMetadatas(from.currentpath, dest, copy, stoppable);
+		Explorer explorer = new Explorer();
+		explorer.getAllSubElementsFromElementKey(from.prepare_key(), 0, cmm);
 	}
 	
-	/*private static class CopyMetadatas implements ElastisearchCrawlerHit {
+	private static class CopyMoveMetadatas implements IndexingEvent {
 		
-		@Override
-		public boolean onFoundHit(SearchHit hit) {
-			// TODO Auto-generated method stub
-			return false;
+		String root_from_currentpath;
+		SourcePathIndexerElement root_dest;
+		boolean copy;
+		StoppableProcessing stoppable;
+		
+		CopyMoveMetadatas(String root_from_currentpath, SourcePathIndexerElement root_dest, boolean copy, StoppableProcessing stoppable) {
+			this.root_from_currentpath = root_from_currentpath;
+			this.root_dest = root_dest;
+			this.copy = copy;
+			this.stoppable = stoppable;
+			
+			Log2Dump dump = new Log2Dump();
+			dump.add("root_from_currentpath", root_from_currentpath);
+			dump.add("root_dest", root_dest);
+			dump.add("copy", copy);
+			Log2.log.debug("Init CopyMoveMetadatas", dump);
 		}
-	}*/
+		
+		/**
+		 * For each "from" elements, get Container
+		 */
+		public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
+			Container container = getByPathIndexId(element.prepare_key());
+			if (container == null) {
+				return true;
+			}
+			
+			ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
+			if (copy == false) {
+				requestDelete(container, es_bulk);
+			}
+			
+			String mtd_key_source = container.getMtd_key();
+			String dest_path = root_dest.currentpath + element.currentpath.substring(root_from_currentpath.length());
+			
+			Log2Dump dump = new Log2Dump();
+			dump.add("source", element);
+			dump.add("root_dest", root_dest);
+			dump.add("dest_path", dest_path);
+			dump.add("mtd_key_source", mtd_key_source);
+			dump.add("mtd_key_dest", container.getMtd_key());
+			dump.add("root_from_currentpath", root_from_currentpath);
+			Log2.log.debug("Copy/move mtd", dump);
+			
+			/**
+			 * Change origin for each entry
+			 */
+			ContainerOrigin new_origin = container.getOrigin().migrateOrigin(root_dest.storagename, dest_path);
+			container.changeAllOrigins(new_origin);
+			
+			/**
+			 * rename/copy directories for each entry renderer
+			 */
+			if (container.hasRenderers()) {
+				RenderedFile.copyMoveAllMetadataContent(mtd_key_source, container.getMtd_key(), copy);
+			}
+			
+			container.save(es_bulk, true);
+			es_bulk.terminateBulk();
+			
+			return stoppable.isWantToStopCurrentProcessing() == false;
+		}
+		
+		public void onRemoveFile(String storagename, String path) throws Exception {
+		}
+		
+	}
 }

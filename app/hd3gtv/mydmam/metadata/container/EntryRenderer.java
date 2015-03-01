@@ -38,6 +38,13 @@ public abstract class EntryRenderer extends ContainerEntry {
 		options = new JsonObject();
 	}
 	
+	public boolean isEmpty() {
+		if (content == null) {
+			return true;
+		}
+		return content.isEmpty();
+	}
+	
 	public RenderedContent getByFile(String name) {
 		if (content == null) {
 			return null;
@@ -112,4 +119,5 @@ public abstract class EntryRenderer extends ContainerEntry {
 		jo.add("content", gson.toJsonTree(src.content));
 		return jo;
 	}
+	
 }

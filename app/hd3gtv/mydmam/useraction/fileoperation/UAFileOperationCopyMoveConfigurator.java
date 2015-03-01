@@ -28,7 +28,7 @@ public class UAFileOperationCopyMoveConfigurator implements Serializable {
 	
 	public Action action;
 	
-	@TypeNavigatorInputSelection(canselectdirs = true, canselectstorages = true, canselectfiles = false, placeholderlabel = "")
+	@TypeNavigatorInputSelection(canselectdirs = true, canselectstorages = true, canselectfiles = false)
 	public String destination;
 	
 }

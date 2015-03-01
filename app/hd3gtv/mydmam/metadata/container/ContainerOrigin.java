@@ -35,6 +35,7 @@ public class ContainerOrigin {
 	long size;
 	private transient File physical_source;
 	private transient SourcePathIndexerElement pathindex_element;
+	private transient String currentpath;
 	
 	ContainerOrigin() {
 	}
@@ -59,6 +60,7 @@ public class ContainerOrigin {
 		containerOrigin.key = element.prepare_key();
 		containerOrigin.size = element.size;
 		containerOrigin.storage = element.storagename;
+		containerOrigin.currentpath = element.currentpath;
 		containerOrigin.pathindex_element = element;
 		containerOrigin.physical_source = physical_source;
 		return containerOrigin;
@@ -131,8 +133,20 @@ public class ContainerOrigin {
 		return true;
 	}
 	
-	public String getUniqueElementKey() throws FileNotFoundException {
-		return getUniqueElementKey(getPathindexElement());
+	public String getUniqueElementKey() {
+		StringBuffer sb = new StringBuffer();
+		sb.append(storage);
+		sb.append(currentpath);
+		sb.append(size);
+		sb.append(date);
+		MessageDigest md;
+		try {
+			md = MessageDigest.getInstance("MD5");
+			md.update(sb.toString().getBytes());
+			return "mtd-" + MyDMAM.byteToString(md.digest());
+		} catch (NoSuchAlgorithmException e) {
+			throw new NullPointerException(e.getMessage());
+		}
 	}
 	
 	/**
@@ -154,4 +168,12 @@ public class ContainerOrigin {
 		}
 	}
 	
+	ContainerOrigin migrateOrigin(String new_storage_name, String new_currentpath) {
+		storage = new_storage_name;
+		currentpath = new_currentpath;
+		key = SourcePathIndexerElement.prepare_key(new_storage_name, new_currentpath);
+		pathindex_element = null;
+		physical_source = null;
+		return this;
+	}
 }

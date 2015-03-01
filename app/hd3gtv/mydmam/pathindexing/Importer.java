@@ -48,11 +48,9 @@ public abstract class Importer {
 	 */
 	protected abstract long getTTL();
 	
-	public final long index() throws Exception {
-		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+	public final long index(ElasticsearchBulkOperation bulk) throws Exception {
 		PushElement push = new PushElement(this, bulk);
 		long result = doIndex(push);
-		bulk.terminateBulk();
 		
 		// if (push.l_elements_problems.size() > 0) {
 		/**

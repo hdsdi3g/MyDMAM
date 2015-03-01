@@ -46,6 +46,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.io.FileUtils;
+
 import com.eaio.uuid.UUID;
 
 public class RenderedFile implements Log2Dumpable {
@@ -380,6 +382,55 @@ public class RenderedFile implements Log2Dumpable {
 	
 	public String getRendered_mime() {
 		return rendered_mime;
+	}
+	
+	public static void copyMoveAllMetadataContent(String metadata_reference_id_from, String metadata_reference_id_dest, boolean copy) throws IOException {
+		if (metadata_reference_id_from == null) {
+			throw new NullPointerException("\"metadata_reference_id_from\" can't to be null");
+		}
+		if (metadata_reference_id_dest == null) {
+			throw new NullPointerException("\"metadata_reference_id_dest\" can't to be null");
+		}
+		if (local_directory == null) {
+			throw new IOException("No configuration is set !");
+		}
+		if (local_directory.exists() == false) {
+			throw new IOException("Invalid configuration is set !");
+		}
+		
+		StringBuilder sb_from_directory = new StringBuilder();
+		sb_from_directory.append(local_directory.getCanonicalPath());
+		sb_from_directory.append(File.separator);
+		sb_from_directory.append(metadata_reference_id_from.substring(0, 6));
+		sb_from_directory.append(File.separator);
+		sb_from_directory.append(metadata_reference_id_from.substring(6));
+		
+		StringBuilder sb_dest_directory = new StringBuilder();
+		sb_dest_directory.append(local_directory.getCanonicalPath());
+		sb_dest_directory.append(File.separator);
+		sb_dest_directory.append(metadata_reference_id_dest.substring(0, 6));
+		sb_dest_directory.append(File.separator);
+		sb_dest_directory.append(metadata_reference_id_dest.substring(6));
+		
+		File from_dir = new File(sb_from_directory.toString()).getCanonicalFile();
+		File dest_dir = new File(sb_dest_directory.toString()).getCanonicalFile();
+		
+		Log2Dump dump = new Log2Dump();
+		dump.add("from", from_dir);
+		dump.add("to", dest_dir);
+		Log2.log.debug("Prepare operation", dump);
+		
+		/**
+		 * Create sub directories.
+		 */
+		FileUtils.forceMkdir(dest_dir);
+		FileUtils.deleteDirectory(dest_dir);
+		
+		if (copy == false) {
+			FileUtils.moveDirectory(from_dir, dest_dir);
+		} else {
+			FileUtils.copyDirectory(from_dir, dest_dir, true);
+		}
 	}
 	
 	/**

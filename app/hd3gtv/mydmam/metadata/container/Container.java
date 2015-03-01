@@ -96,6 +96,13 @@ public class Container implements Log2Dumpable {
 		return containerOrigin;
 	}
 	
+	void changeAllOrigins(ContainerOrigin new_origin) {
+		for (int pos_e = 0; pos_e < containerEntries.size(); pos_e++) {
+			containerEntries.get(pos_e).setOrigin(new_origin);
+		}
+		mtd_key = new_origin.getUniqueElementKey();
+	}
+	
 	public String getMtd_key() {
 		return mtd_key;
 	}
@@ -113,9 +120,12 @@ public class Container implements Log2Dumpable {
 	
 	public void save(boolean refresh_index_after_save) throws ElasticsearchException {
 		ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
-		es_bulk.getConfiguration().setRefresh(refresh_index_after_save);
-		ContainerOperations.save(this, refresh_index_after_save, es_bulk);
+		save(es_bulk, refresh_index_after_save);
 		es_bulk.terminateBulk();
+	}
+	
+	public void save(ElasticsearchBulkOperation es_bulk, boolean refresh_index_after_save) throws ElasticsearchException {
+		ContainerOperations.save(this, refresh_index_after_save, es_bulk);
 	}
 	
 	public Log2Dump getLog2Dump() {
@@ -137,5 +147,17 @@ public class Container implements Log2Dumpable {
 			return null;
 		}
 		return o.getPhysicalSource();
+	}
+	
+	public boolean hasRenderers() {
+		for (int pos_e = 0; pos_e < containerEntries.size(); pos_e++) {
+			if (containerEntries.get(pos_e) instanceof EntryRenderer) {
+				EntryRenderer renderer = (EntryRenderer) containerEntries.get(pos_e);
+				if (renderer.isEmpty() == false) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }

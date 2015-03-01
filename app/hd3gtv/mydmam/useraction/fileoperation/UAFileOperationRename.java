@@ -18,7 +18,10 @@ package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UACapability;
@@ -26,9 +29,9 @@ import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,6 +39,7 @@ import java.util.Map;
 import models.UserProfile;
 
 public class UAFileOperationRename extends BaseFileOperation {
+	private Explorer explorer = new Explorer();
 	
 	protected String getSubLongName() {
 		return "rename file/directory";
@@ -103,15 +107,9 @@ public class UAFileOperationRename extends BaseFileOperation {
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
 			progression.incrStep();
 			File current_element = Explorer.getLocalBridgedElement(entry.getValue());
-			if (current_element == null) {
-				throw new NullPointerException("Can't found current_element: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
-			if (current_element.exists() == false) {
-				throw new FileNotFoundException("Can't found current_element: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
-			if (current_element.getParentFile().canWrite() == false) {
-				throw new IOException("Can't write to current_element parent directory: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
+			CopyMove.checkExistsCanRead(current_element);
+			CopyMove.checkIsWritable(current_element.getParentFile());
+			
 			if ((conf.newname.indexOf("\\") > -1) | (conf.newname.indexOf("/") > -1)) {
 				Log2.log.security("User try to move file outside the current directory.", dump);
 				throw new IOException("Invalid newname: " + conf.newname);
@@ -129,7 +127,20 @@ public class UAFileOperationRename extends BaseFileOperation {
 				throw new IOException("Can't rename correctly file: " + current_element.getPath() + " to \"" + conf.newname + "\"");
 			}
 			
-			// TODO rename in db, with mtd
+			SourcePathIndexerElement dest = entry.getValue().clone();
+			dest.currentpath = dest.currentpath.substring(0, dest.currentpath.lastIndexOf("/")) + "/" + conf.newname;
+			if (dest.currentpath.startsWith("//")) {
+				dest.currentpath = dest.currentpath.substring(1);
+			}
+			ContainerOperations.copyMoveMetadatas(entry.getValue(), dest, false, this);
+			
+			if (stop) {
+				return;
+			}
+			
+			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+			explorer.refreshStoragePath(bulk, Arrays.asList(dest), false);
+			bulk.terminateBulk();
 			
 			if (stop) {
 				return;

@@ -20,6 +20,8 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
 import hd3gtv.mydmam.manager.JobContext;
@@ -83,7 +85,7 @@ public class PathScan extends WorkerNG {
 		
 	}
 	
-	void refreshIndex(String storage_index_label, String current_working_directory, boolean limit_to_current_directory) throws Exception {
+	void refreshIndex(ElasticsearchBulkOperation bulk, String storage_index_label, String current_working_directory, boolean limit_to_current_directory) throws Exception {
 		PathElementConfiguration pec = scanelements.get(storage_index_label);
 		if (pec == null) {
 			throw new IOException("Can't found pathindex storage name for " + storage_index_label);
@@ -105,7 +107,7 @@ public class PathScan extends WorkerNG {
 		Log2.log.info("Indexing storage", dump);
 		
 		importer.setLimit_to_current_directory(limit_to_current_directory);
-		importer.index();
+		importer.index(bulk);
 		importer = null;
 	};
 	
@@ -173,10 +175,12 @@ public class PathScan extends WorkerNG {
 		if (context.neededstorages.size() == 0) {
 			throw new IndexOutOfBoundsException("\"storages\" can't to be empty");
 		}
+		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 		for (int pos = 0; pos < context.neededstorages.size(); pos++) {
 			progression.updateStep(pos + 1, context.neededstorages.size());
-			refreshIndex(context.neededstorages.get(pos), null, false);
+			refreshIndex(bulk, context.neededstorages.get(pos), null, false);
 		}
+		bulk.terminateBulk();
 	}
 	
 	protected boolean isActivated() {

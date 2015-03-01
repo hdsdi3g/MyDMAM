@@ -431,8 +431,7 @@ public class Explorer {
 	/**
 	 * Don't use Bridge, but use StorageManager and PathScan.
 	 */
-	public void refreshStoragePath(List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
-		ElasticsearchBulkOperation bulk_op = null;
+	public void refreshStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
 		PathScan pathscan = new PathScan();
 		
 		for (int pos = 0; pos < elements.size(); pos++) {
@@ -440,9 +439,6 @@ public class Explorer {
 				continue;
 			}
 			if (purge_before) {
-				if (bulk_op == null) {
-					bulk_op = Elasticsearch.prepareBulk();
-				}
 				if (elements.get(pos).directory) {
 					getAllSubElementsFromElementKey(elements.get(pos).prepare_key(), 0, new IndexingDelete(bulk_op));
 					bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, elements.get(pos).prepare_key(), Importer.ES_TYPE_DIRECTORY));
@@ -451,13 +447,10 @@ public class Explorer {
 				}
 			}
 			if (elements.get(pos).directory) {
-				pathscan.refreshIndex(elements.get(pos).storagename, elements.get(pos).currentpath, false);
+				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath, false);
 			} else {
-				pathscan.refreshIndex(elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
+				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
 			}
-		}
-		if (bulk_op != null) {
-			bulk_op.terminateBulk();
 		}
 	}
 }

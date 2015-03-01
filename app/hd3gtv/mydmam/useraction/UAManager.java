@@ -25,6 +25,7 @@ import hd3gtv.mydmam.module.MyDMAMModule;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.useraction.dummy.UADummy;
 import hd3gtv.mydmam.useraction.dummy.UADummy2;
+import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationCopyMove;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationDelete;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationMkDir;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationRename;
@@ -71,14 +72,15 @@ public class UAManager {
 		add(new UADummy());
 		add(new UADummy2());
 		
-		// TODO activate, cases by cases
 		add(new UAFileOperationMkDir());
 		add(new UAFileOperationRename());
 		add(new UAFileOperationDelete());
+		add(new UAFileOperationCopyMove());
+		
+		// TODO activate, cases by cases
 		// add(new UAFileOperationReProcessMetadatas());
 		// add(new UAFileOperationExpand());
 		// add(new UAFileOperationPack());
-		// add(new UAFileOperationCopyMove());
 		// add(new UAFileOperationTrash());
 		
 		List<MyDMAMModule> modules = MyDMAMModulesManager.getAllModules();

@@ -23,6 +23,7 @@ import java.lang.annotation.Target;
 
 /**
  * Used in Useraction with navigator.inputselect.js
+ * Always return a SourcePathIndexerElement key !
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.FIELD })

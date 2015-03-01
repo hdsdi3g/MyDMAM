@@ -90,6 +90,10 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 	public static final String[] TOSTRING_HEADERS = { "Element key", "Storage index name", "Directory", "Full path", "Id", "Size", "Element date", "Element name", "Simple name", "Extension",
 			"Indexing date", "Parent key" };
 	
+	public String toString() {
+		return toString(" ");
+	}
+	
 	public String toString(String separator) {
 		StringBuffer sb = new StringBuffer();
 		sb.append(prepare_key());
@@ -189,14 +193,14 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 	}
 	
 	public static SourcePathIndexerElement fromESResponse(GetResponse response) {
-		return fromESResponse(Elasticsearch.getJSONFromSimpleResponse(response));
+		return fromJson(Elasticsearch.getJSONFromSimpleResponse(response));
 	}
 	
 	public static SourcePathIndexerElement fromESResponse(SearchHit hit) {
-		return fromESResponse(Elasticsearch.getJSONFromSimpleResponse(hit));
+		return fromJson(Elasticsearch.getJSONFromSimpleResponse(hit));
 	}
 	
-	private static SourcePathIndexerElement fromESResponse(JsonObject jo) {
+	public static SourcePathIndexerElement fromJson(JsonObject jo) {
 		if (jo == null) {
 			return null;
 		}
@@ -278,6 +282,10 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 		} catch (NoSuchAlgorithmException e) {
 			throw new NullPointerException(e.getMessage());
 		}
+	}
+	
+	public SourcePathIndexerElement clone() {
+		return fromJson(toGson());
 	}
 	
 	public static SourcePathIndexerElement prepareStorageElement(String storagename) {

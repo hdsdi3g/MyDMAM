@@ -18,7 +18,12 @@ package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UACapability;
@@ -142,7 +147,17 @@ public class UAFileOperationDelete extends BaseFileOperation {
 				Log2.log.debug("Can't delete correctly multiple files", dump);
 				throw new IOException("Can't delete multiple files from: " + current_element.getPath());
 			}
-			// TODO delete in db, with mtds
+			
+			/**
+			 * Delete mtds
+			 */
+			Container container = ContainerOperations.getByPathIndexId(entry.getKey());
+			if (container != null) {
+				ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+				ContainerOperations.requestDelete(container, bulk);
+				bulk.terminateBulk();
+				RenderedFile.purge(entry.getKey());
+			}
 			
 			if (stop) {
 				return;

@@ -141,11 +141,25 @@ public class MetadataIndexer implements IndexingEvent {
 				Log2.log.debug("Delete obsolete analysis : original file isn't exists", dump);
 			}
 			
-			es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, element_key, Importer.ES_TYPE_FILE));
+			es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_key));
 			dump = new Log2Dump();
 			dump.add("key", element_key);
 			dump.add("physical_source", physical_source);
-			Log2.log.debug("Delete path element : original file isn't exists", dump);
+			Log2.log.debug("Delete path element: original file isn't exists", dump);
+			
+			if (physical_source.getParentFile().exists() == false) {
+				if (element.parentpath == null) {
+					return true;
+				}
+				if (element.parentpath.equals("")) {
+					return true;
+				}
+				es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, element.parentpath));
+				dump = new Log2Dump();
+				dump.add("key", element.parentpath);
+				dump.add("physical_source parent", physical_source.getParentFile());
+				Log2.log.debug("Delete parent path element: original directory isn't exists", dump);
+			}
 			
 			return true;
 		}

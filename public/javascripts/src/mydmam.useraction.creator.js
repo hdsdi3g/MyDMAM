@@ -196,7 +196,7 @@
 				translatedhelpfieldname = null;
 			}
 
-			var input_id = 'ua_creation_configuratoritem_' + index + '_' + messagebasename + "_" + field.name;
+			var input_id = 'uacrinput_' + md5(index + '_' + messagebasename + "_" + field.name); //used to simplify the key and avoid "." in ids.
 			var input_classname = 'ua-creation-configuratoritem';
 			var input_data = 'data-fieldname="' + field.name + '" data-functclassname="' + classname + '" data-functindex="' + index + '"';
 			

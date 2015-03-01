@@ -18,7 +18,10 @@ package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UACapability;
@@ -30,6 +33,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -37,6 +41,8 @@ import java.util.Map;
 import models.UserProfile;
 
 public class UAFileOperationCopyMove extends BaseFileOperation {
+	
+	private Explorer explorer = new Explorer();
 	
 	protected String getSubLongName() {
 		return "copy/move files and directories";
@@ -97,7 +103,17 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			return;
 		}
 		dump.add("path index dest", conf.destination);
-		File f_destination = getDestinationFile(conf);
+		
+		SourcePathIndexerElement root_destination = explorer.getelementByIdkey(conf.destination);
+		if (root_destination == null) {
+			throw new FileNotFoundException("\"" + root_destination + "\" in storage index");
+		}
+		
+		File f_destination = Explorer.getLocalBridgedElement(root_destination);
+		CopyMove.checkExistsCanRead(f_destination);
+		CopyMove.checkIsDirectory(f_destination);
+		CopyMove.checkIsWritable(f_destination);
+		
 		dump.add("real dest", f_destination);
 		
 		progression.updateStep(1, source_elements.size());
@@ -117,8 +133,25 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			cm.setProgression(progression);
 			cm.operate();
 			
-			// TODO move/copy in db, with mtds
-			// ContainerOperations.getByMtdKey(mtd_key)
+			if (stop) {
+				return;
+			}
+			
+			SourcePathIndexerElement destination = root_destination.clone();
+			destination.currentpath = destination.currentpath + "/" + entry.getValue().currentpath.substring(entry.getValue().currentpath.lastIndexOf("/") + 1);
+			if (destination.currentpath.startsWith("//")) {
+				destination.currentpath = destination.currentpath.substring(1);
+			}
+			
+			ContainerOperations.copyMoveMetadatas(entry.getValue(), destination, conf.action == Action.COPY, this);
+			
+			if (stop) {
+				return;
+			}
+			
+			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+			explorer.refreshStoragePath(bulk, Arrays.asList(root_destination), false);
+			bulk.terminateBulk();
 			
 			if (stop) {
 				return;
@@ -126,55 +159,5 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			progression.incrStep();
 		}
 	}
-	
-	private File getDestinationFile(UAFileOperationCopyMoveConfigurator conf) throws Exception {
-		// conf.destination
-		String destination = conf.destination.replace("\\", File.separator);
-		destination = destination.replace("/", File.separator);
-		if (destination.indexOf(":") < 1) {
-			throw new IndexOutOfBoundsException("Invalid destination pathindex: " + destination);
-		}
-		if (destination.endsWith(File.separator)) {
-			destination = destination.substring(destination.length() - 1);
-		}
-		Explorer explorer = new Explorer();
-		SourcePathIndexerElement spie_dest = explorer.getelementByIdkey(SourcePathIndexerElement.hashThis(destination));
-		if (spie_dest == null) {
-			throw new FileNotFoundException("\"" + destination + "\" in storage index");
-		}
-		
-		File f_destination = Explorer.getLocalBridgedElement(spie_dest);
-		CopyMove.checkExistsCanRead(f_destination);
-		CopyMove.checkIsDirectory(f_destination);
-		CopyMove.checkIsWritable(f_destination);
-		
-		return f_destination;
-	}
-	
-	/*private void processSourceElement(JobProgression progression, UAFileOperationCopyMoveConfigurator conf, File source, File destination) throws Exception {
-		boolean source_is_like_file = (source.isFile() | FileUtils.isSymlink(source));
-		boolean user_want_copy = (conf.action == Action.COPY);
-		String destination_base_path = destination.getCanonicalPath() + File.separator;
-		
-		if (source_is_like_file) {
-			File destination_file = new File(destination_base_path + source.getName());
-			
-			if (user_want_copy == false) {
-				if (source.renameTo(destination_file)) {
-					return;
-				}
-			}
-			
-			// copyFile(progression, source, destination_file);
-			
-			if (user_want_copy == false) {
-				if (source.delete() == false) {
-					throw new IOException("Can't delete source file \"" + source.getAbsolutePath() + "\"");
-				}
-			}
-			return;
-		}
-		
-	}*/
 	
 }

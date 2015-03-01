@@ -19,8 +19,9 @@ package hd3gtv.mydmam.useraction.fileoperation;
 import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.useraction.UAFunctionalitySection;
 import hd3gtv.mydmam.useraction.UAJobProcess;
+import hd3gtv.tools.StoppableProcessing;
 
-abstract class BaseFileOperation extends UAFunctionalityContext implements UAJobProcess {
+abstract class BaseFileOperation extends UAFunctionalityContext implements UAJobProcess, StoppableProcessing {
 	
 	public final UAFunctionalitySection getSection() {
 		return UAFunctionalitySection.filesystem;
@@ -46,6 +47,10 @@ abstract class BaseFileOperation extends UAFunctionalityContext implements UAJob
 	
 	public synchronized void forceStopProcess() throws Exception {
 		stop = true;
+	}
+	
+	public synchronized boolean isWantToStopCurrentProcessing() {
+		return stop;
 	}
 	
 }

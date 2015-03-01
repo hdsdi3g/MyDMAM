@@ -17,6 +17,8 @@
 package hd3gtv.mydmam.useraction;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
@@ -126,17 +128,21 @@ public final class UAWorker extends WorkerNG {
 			progression.incrStepCount();
 			List<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>();
 			
+			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+			
 			for (Map.Entry<String, SourcePathIndexerElement> entry : elements.entrySet()) {
 				items.add(entry.getValue());
 			}
 			
 			if (context.finisher.soft_refresh_source_storage_index_item) {
-				explorer.refreshStoragePath(items, false);
+				explorer.refreshStoragePath(bulk, items, false);
 			}
 			
 			if (context.finisher.force_refresh_source_storage_index_item) {
-				explorer.refreshStoragePath(items, true);
+				explorer.refreshStoragePath(bulk, items, true);
 			}
+			bulk.terminateBulk();
+			
 			progression.incrStep();
 		}
 		

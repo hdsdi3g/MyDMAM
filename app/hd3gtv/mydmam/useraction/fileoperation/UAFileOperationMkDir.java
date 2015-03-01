@@ -26,7 +26,6 @@ import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
@@ -36,6 +35,8 @@ import java.util.Map;
 import models.UserProfile;
 
 public class UAFileOperationMkDir extends BaseFileOperation {
+	
+	private Explorer explorer = new Explorer();
 	
 	protected String getSubLongName() {
 		return "create directory";
@@ -106,18 +107,10 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 		
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
 			File current_dir = Explorer.getLocalBridgedElement(entry.getValue());
-			if (current_dir == null) {
-				throw new NullPointerException("Can't found current_dir: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
-			if (current_dir.exists() == false) {
-				throw new FileNotFoundException("Can't found current_dir: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
-			if (current_dir.isDirectory() == false) {
-				throw new FileNotFoundException("current_dir is not a dir: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
-			if (current_dir.canWrite() == false) {
-				throw new IOException("Can't write to current_dir: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
+			CopyMove.checkExistsCanRead(current_dir);
+			CopyMove.checkIsDirectory(current_dir);
+			CopyMove.checkIsWritable(current_dir);
+			
 			conf.newpathname = conf.newpathname.replace("\\", File.separator);
 			conf.newpathname = conf.newpathname.replace("/", File.separator);
 			
@@ -141,7 +134,6 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 				throw new IOException("Can't create correctly directories: " + dest_dir.getPath());
 			}
 			
-			// TODO mkdir in db
 			if (stop) {
 				return;
 			}

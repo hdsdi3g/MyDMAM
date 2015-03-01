@@ -32,6 +32,8 @@ import com.google.gson.JsonSerializer;
 public final class UAFinisherConfiguration implements Log2Dumpable {
 	
 	boolean remove_user_basket_item;
+	
+	// TODO remove refresh pathindex, and integrate it on UAProcess
 	boolean soft_refresh_source_storage_index_item;
 	boolean force_refresh_source_storage_index_item;
 	
