@@ -321,15 +321,14 @@ public class Elasticsearch {
 	/**
 	 * With retry
 	 */
-	public static long countRequest(String index, QueryBuilder query, String... types) {
-		final CountRequestBuilder request = new CountRequestBuilder(Elasticsearch.getClient());
-		request.setIndices(index);
-		request.setTypes(types);
-		request.setQuery(query);
-		
+	public static long countRequest(final String index, final QueryBuilder query, final String... types) {
 		CountResponse response = withRetry(new ElasticsearchWithRetry<CountResponse>() {
 			public CountResponse call(Client client) throws NoNodeAvailableException {
-				return client.count(request.request()).actionGet();
+				CountRequestBuilder request_builder = new CountRequestBuilder(client);
+				request_builder.setIndices(index);
+				request_builder.setTypes(types);
+				request_builder.setQuery(query);
+				return request_builder.execute().actionGet();
 			}
 		});
 		if (response == null) {

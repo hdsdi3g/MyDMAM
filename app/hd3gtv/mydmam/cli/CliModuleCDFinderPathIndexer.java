@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.cli;
 
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.pathindexing.ImporterCDFinder;
 import hd3gtv.tools.ApplicationArgs;
 
@@ -47,7 +49,9 @@ public class CliModuleCDFinderPathIndexer implements CliModule {
 		}
 		
 		ImporterCDFinder cdf_pi = new ImporterCDFinder(file, pool);
-		cdf_pi.index();
+		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+		cdf_pi.index(bulk);
+		bulk.terminateBulk();
 	}
 	
 	public void showFullCliModuleHelp() {
