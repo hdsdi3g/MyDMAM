@@ -544,6 +544,12 @@ useractions.functionalities.uafileoperation.copymove.fields.destinationplacehold
 useractions.functionalities.uafileoperation.copymove.fields.action=Action
 useractions.functionalities.uafileoperation.copymove.fields.action.option.COPY=Copier
 useractions.functionalities.uafileoperation.copymove.fields.action.option.MOVE=Déplacer
+useractions.functionalities.uafileoperation.refreshpathindex.name=Actualiser la liste des éléments
+useractions.functionalities.uafileoperation.refreshpathindex.fields.refresh_scope=Etendue
+useractions.functionalities.uafileoperation.refreshpathindex.fields.refresh_scope.option.CURRENT=Cet élement seulement
+useractions.functionalities.uafileoperation.refreshpathindex.fields.refresh_scope.option.ALL_SUB_ELEMENTS=Cet élément et tous ses sous-élements
+useractions.functionalities.uafileoperation.refreshpathindex.fields.force_refresh=Forcer le rafraichissement
+useractions.functionalities.uafileoperation.refreshpathindex.fields.force_refresh.help=Retire les éléments de l'index, puis refait l'indexation. Permet de retirer de l'index les éléments qui n'y sont plus, mais cela prends plus de temps pour les gros dossiers.
 
 # Privileges
 acl.privileges.name.acl=Gérer des droits d'accès

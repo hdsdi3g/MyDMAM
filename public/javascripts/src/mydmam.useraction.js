@@ -179,14 +179,32 @@
 		content = content + '<ul class="dropdown-menu">';
 		
 		var sections = {};
-		for (var pos_f in item_functionalities) {
-			var item_functionality = item_functionalities[pos_f];
+
+		var addToList = function(item_functionality) {
 			var section_content = sections[item_functionality.section];
 			if (section_content == null) {
 				section_content = [];
 			}
 			section_content.push(item_functionality);
 			sections[item_functionality.section] = section_content;
+		};
+
+		/**
+		 * Add simple sections
+		 */
+		for (var pos_f in item_functionalities) {
+			if (item_functionalities[pos_f].powerful_and_dangerous === false) {
+				addToList(item_functionalities[pos_f]);
+			}
+		}
+
+		/**
+		 * Add simple powerful and dangerous sections
+		 */
+		for (var pos_f in item_functionalities) {
+			if (item_functionalities[pos_f].powerful_and_dangerous) {
+				addToList(item_functionalities[pos_f]);
+			}
 		}
 		
 		var addLink = function(functionality) {
@@ -231,7 +249,6 @@
 		};
 
 		var addDivider = function(section_name) {
-			//content = content + '<li class="divider"></li>';
 			content = content + '<li class="nav-header">' + i18n('useractions.functionalities.sections.' + section_name) + '</li>';
 		};
 		
@@ -395,6 +412,9 @@
 			$('#uacreation button.ua-creation-start').removeClass('hide');
 		});
 		
+		/**
+		 * Called by useraction page
+		 */
 		var onValidationForm = function() {
 			var request = {};
 			request.items = itemskeys;
@@ -403,7 +423,7 @@
 			request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
 			request.finisher = creator.getFinisherFromCreator();
 			request.configured_functionalities = creator.getFunctionalityConfigurationsFromUACreation("#uacreation");
-			
+
 			document.body.style.cursor = 'wait';
 			$("#alertcontainer").empty();
 			$('html').first().scrollTop(0);

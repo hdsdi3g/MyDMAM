@@ -36,8 +36,6 @@ import models.UserProfile;
 
 public class UAFileOperationMkDir extends BaseFileOperation {
 	
-	private Explorer explorer = new Explorer();
-	
 	protected String getSubLongName() {
 		return "create directory";
 	}

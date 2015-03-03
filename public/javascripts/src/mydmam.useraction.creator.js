@@ -174,6 +174,15 @@
 		content = content + i18n('useractions.functionalities.' + availabilities.content[classname].messagebasename + '.name');
 		content = content + '</h5>';
 		
+		if (fields.length === 0) {
+			var field = {
+				type: "label",
+				name: "default",
+				noparamfields: true
+			}
+			fields.push(field);
+		}
+
 		for (var field_pos in fields) {
 			var field = fields[field_pos];
 			var default_value = configurator.object[field.name];
@@ -201,7 +210,9 @@
 			var input_data = 'data-fieldname="' + field.name + '" data-functclassname="' + classname + '" data-functindex="' + index + '"';
 			
 			content = content + '<div class="control-group">';
-			content = content + '<label class="control-label" for="' + input_id + '">' + translatedfieldname + '</label>';
+			if (!field.noparamfields & (field.type !== 'boolean')) {
+				content = content + '<label class="control-label" for="' + input_id + '">' + translatedfieldname + '</label>';
+			}
 			content = content + '<div class="controls">';
 			
 			if (field.type === 'text') {
@@ -215,7 +226,7 @@
 			} else if (field.type === 'number') {
 				content = content + '<input id="' + input_id + '" type="number" value="' + default_value + '" ' + input_data + ' class="input-xlarge ' + input_classname + '" />';
 			} else if (field.type === 'date') {
-				content = content + '<input id="' + input_id + '" type="email" value="' + default_value + '" ' + input_data + ' class="input-xlarge ' + input_classname + '" />';
+				content = content + '<input id="' + input_id + '" type="date" value="' + default_value + '" ' + input_data + ' class="input-xlarge ' + input_classname + '" />';
 			} else if (field.type === 'boolean') {
 				content = content + '<label class="checkbox">';
 				if (default_value) {
@@ -234,11 +245,6 @@
 				}
 				content = content + '></div>';
 			} else if ((field.type === 'select' | field.type === 'enum')) {
-				/*content = content + '<input id="' + input_id + '" type="text" value="' + default_value + '" ' + input_data;
-				content = content + ' class="' + input_classname + ' activate-selectize"';
-				content = content + ' data-classreferer="' + field.class_referer + '"';
-				content = content + ' data-optionsmultiple="' + field.options.multiple + '"';
-				content = content + ' />';*/
 				content = content + '<select id="' + input_id + '" ' + input_data;
 				content = content + ' class="' + input_classname + ' activate-selectize"';
 				content = content + ' data-classreferer="' + field.class_referer + '"';
@@ -246,6 +252,8 @@
 				content = content + ' data-messagebasename="' + messagebasename + '"';
 				content = content + ' data-fieldname="' + field.name + '"';
 				content = content + ' />';
+			} else if (field.type === 'label') {
+				content = content + '<input id="' + input_id + '" type="hidden" value="" ' + input_data + ' class="' + input_classname + '" />';
 			}
 			
 			if (translatedhelpfieldname) {
@@ -554,7 +562,11 @@
 					raw_associated_user_configuration: {}
 				};
 			}
-			result[index].raw_associated_user_configuration[fieldname] = $(this).val();
+			if ($(this).is('input:checkbox')) {
+				result[index].raw_associated_user_configuration[fieldname] = $(this).is(':checked');
+			} else {
+				result[index].raw_associated_user_configuration[fieldname] = $(this).val();
+			}
 		};
 		$(jquery_selector_base + ' .ua-creation-configuratoritem').each(extractConfiguration);
 		return result;
@@ -597,6 +609,7 @@
 
 /**
  * onValidationForm()
+ * Called by modal
  * @return null
  */
 (function(creator) {

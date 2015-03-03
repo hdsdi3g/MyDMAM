@@ -570,11 +570,17 @@ public class ContainerOperations {
 		dump.add("copy", copy);
 		Log2.log.debug("Prepare copy/move", dump);
 		
-		// XXX copy/move mtd don't works with files !
-		
-		CopyMoveMetadatas cmm = new CopyMoveMetadatas(from.currentpath, dest, copy, stoppable);
 		Explorer explorer = new Explorer();
-		explorer.getAllSubElementsFromElementKey(from.prepare_key(), 0, cmm);
+		CopyMoveMetadatas cmm;
+		if (from.directory) {
+			cmm = new CopyMoveMetadatas(from.currentpath, dest, copy, stoppable);
+			explorer.getAllSubElementsFromElementKey(from.prepare_key(), 0, cmm);
+		} else {
+			SourcePathIndexerElement from_root = explorer.getelementByIdkey(from.parentpath);
+			cmm = new CopyMoveMetadatas(from_root.currentpath, dest, copy, stoppable);
+			cmm.onFoundElement(from);
+		}
+		
 	}
 	
 	private static class CopyMoveMetadatas implements IndexingEvent {

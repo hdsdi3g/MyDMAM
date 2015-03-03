@@ -188,6 +188,11 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 				Log2.log.debug("Image size is too litte to fit in this profile", dump);
 				return null;
 			}
+		} else if (root_entry_class == null) {
+			throw new NullPointerException("\"root_entry_class\" can't to be null");
+		}
+		if (tprofile == null) {
+			throw new NullPointerException("\"tprofile\" can't to be null");
 		}
 		
 		RenderedFile element = new RenderedFile(root_entry_class.getSimpleName().toLowerCase(), tprofile.getExtension("jpg"));

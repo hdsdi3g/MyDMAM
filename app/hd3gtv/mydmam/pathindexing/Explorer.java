@@ -416,9 +416,9 @@ public class Explorer {
 		
 		public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
 			if (element.directory) {
-				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, element.prepare_key(), Importer.ES_TYPE_DIRECTORY));
+				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, element.prepare_key()));
 			} else {
-				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, element.prepare_key(), Importer.ES_TYPE_FILE));
+				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element.prepare_key()));
 			}
 			return true;
 		}
@@ -430,6 +430,7 @@ public class Explorer {
 	
 	/**
 	 * Don't use Bridge, but use StorageManager and PathScan.
+	 * Recursive.
 	 */
 	public void refreshStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
 		PathScan pathscan = new PathScan();
@@ -441,9 +442,9 @@ public class Explorer {
 			if (purge_before) {
 				if (elements.get(pos).directory) {
 					getAllSubElementsFromElementKey(elements.get(pos).prepare_key(), 0, new IndexingDelete(bulk_op));
-					bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, elements.get(pos).prepare_key(), Importer.ES_TYPE_DIRECTORY));
+					bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, elements.get(pos).prepare_key()));
 				} else {
-					bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, elements.get(pos).prepare_key(), Importer.ES_TYPE_FILE));
+					bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, elements.get(pos).prepare_key()));
 				}
 			}
 			if (elements.get(pos).directory) {
@@ -453,4 +454,28 @@ public class Explorer {
 			}
 		}
 	}
+	
+	/**
+	 * Non recursive, only for this item.
+	 * if purge_before, only do purge for file elements.
+	 * Don't use Bridge, but use StorageManager and PathScan.
+	 */
+	public void refreshCurrentStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
+		PathScan pathscan = new PathScan();
+		
+		for (int pos = 0; pos < elements.size(); pos++) {
+			if (elements.get(pos) == null) {
+				continue;
+			}
+			if (elements.get(pos).directory) {
+				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath, true);
+			} else {
+				if (purge_before) {
+					bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, elements.get(pos).prepare_key()));
+				}
+				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
+			}
+		}
+	}
+	
 }

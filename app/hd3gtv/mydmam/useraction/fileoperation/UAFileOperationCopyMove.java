@@ -137,10 +137,16 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 				return;
 			}
 			
-			SourcePathIndexerElement destination = root_destination.clone();
-			destination.currentpath = destination.currentpath + "/" + entry.getValue().currentpath.substring(entry.getValue().currentpath.lastIndexOf("/") + 1);
-			if (destination.currentpath.startsWith("//")) {
-				destination.currentpath = destination.currentpath.substring(1);
+			SourcePathIndexerElement destination = root_destination;
+			if (entry.getValue().directory) {
+				/**
+				 * Compute this sub directory dest path name.
+				 */
+				destination = root_destination.clone();
+				destination.currentpath = destination.currentpath + "/" + entry.getValue().currentpath.substring(entry.getValue().currentpath.lastIndexOf("/") + 1);
+				if (destination.currentpath.startsWith("//")) {
+					destination.currentpath = destination.currentpath.substring(1);
+				}
 			}
 			
 			ContainerOperations.copyMoveMetadatas(entry.getValue(), destination, conf.action == Action.COPY, this);

@@ -28,6 +28,7 @@ import hd3gtv.mydmam.useraction.dummy.UADummy2;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationCopyMove;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationDelete;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationMkDir;
+import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationRefreshPathindex;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationRename;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
@@ -76,7 +77,7 @@ public class UAManager {
 		add(new UAFileOperationRename());
 		add(new UAFileOperationDelete());
 		add(new UAFileOperationCopyMove());
-		
+		add(new UAFileOperationRefreshPathindex());
 		// TODO activate, cases by cases
 		// add(new UAFileOperationReProcessMetadatas());
 		// add(new UAFileOperationExpand());

@@ -11,13 +11,21 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2015
+ * Copyright (C) hdsdi3g for hd3g.tv 3 mars 2015
  * 
 */
 package hd3gtv.mydmam.useraction.fileoperation;
 
 import java.io.Serializable;
 
-public class UAFileOperationEmptyConfigurator implements Serializable {
+public class UAFileOperationRefreshPathindexConfigurator implements Serializable {
+	
+	public enum RefreshScope {
+		CURRENT, ALL_SUB_ELEMENTS
+	}
+	
+	public RefreshScope refresh_scope;
+	
+	public boolean force_refresh;
 	
 }

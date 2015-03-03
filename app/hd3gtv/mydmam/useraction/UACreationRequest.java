@@ -258,6 +258,10 @@ public final class UACreationRequest {
 			configured_functionalities.add(new ConfiguredFunctionality(json_configured_functionalities.get(pos)));
 		}
 		
+		if (configured_functionalities.isEmpty()) {
+			throw new IndexOutOfBoundsException("No configured_functionalities set by user (empty request) !");
+		}
+		
 		if (comment == null) {
 			comment = "";
 		}
