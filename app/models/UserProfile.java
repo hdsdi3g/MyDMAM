@@ -87,6 +87,26 @@ public class UserProfile extends CrudOrmModel {
 		return UserProfile.class;
 	}
 	
+	private static String cleanFileName(String value) {
+		return value.replace(".", "-").replace("%", "-").replace("@", "_").replace("#", "-").replace("$", "-").replace("&", "-").replace("*", "-").replace("'", "-").replace("/", "-")
+				.replace("?", "-").replace("^", "-").replace("`", "-").replace("{", "-").replace("|", "-").replace("}", "-").replace("~", "-");
+	}
+	
+	/**
+	 * @return a string like name-surname_domain_com or username_userScopeIsolation
+	 */
+	public String getBaseFileName_BasedOnEMail() {
+		StringBuilder sb = new StringBuilder();
+		
+		if (email != null) {
+			if (email.isEmpty() == false) {
+				sb.append(cleanFileName(email));
+			}
+		}// TODO
+		
+		return sb.toString();
+	}
+	
 	public static String prepareKey(String username) {
 		if (username == null) {
 			throw new NullPointerException("\"username\" can't to be null");
