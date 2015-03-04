@@ -132,14 +132,19 @@ public class UAFileOperationRename extends BaseFileOperation {
 			if (dest.currentpath.startsWith("//")) {
 				dest.currentpath = dest.currentpath.substring(1);
 			}
-			ContainerOperations.copyMoveMetadatas(entry.getValue(), dest, false, this);
+			ContainerOperations.copyMoveMetadatas(entry.getValue(), dest.storagename, dest.currentpath, false, this);
 			
 			if (stop) {
 				return;
 			}
 			
 			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
-			explorer.refreshStoragePath(bulk, Arrays.asList(dest), false);
+			explorer.deleteStoragePath(bulk, Arrays.asList(entry.getValue()));
+			if (entry.getValue().directory) {
+				explorer.refreshStoragePath(bulk, Arrays.asList(dest), false);
+			} else {
+				explorer.refreshCurrentStoragePath(bulk, Arrays.asList(dest), false);
+			}
 			bulk.terminateBulk();
 			
 			if (stop) {

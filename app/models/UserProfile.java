@@ -96,15 +96,12 @@ public class UserProfile extends CrudOrmModel {
 	 * @return a string like name-surname_domain_com or username_userScopeIsolation
 	 */
 	public String getBaseFileName_BasedOnEMail() {
-		StringBuilder sb = new StringBuilder();
-		
 		if (email != null) {
 			if (email.isEmpty() == false) {
-				sb.append(cleanFileName(email));
+				return cleanFileName(email);
 			}
-		}// TODO
-		
-		return sb.toString();
+		}
+		return cleanFileName(key);
 	}
 	
 	public static String prepareKey(String username) {

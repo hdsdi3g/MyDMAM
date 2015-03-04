@@ -538,6 +538,7 @@ useractions.functionalities.uafileoperation.mkdir.fields.newpathname=New directo
 useractions.functionalities.uafileoperation.rename.name=Rename
 useractions.functionalities.uafileoperation.rename.fields.newname=New name
 useractions.functionalities.uafileoperation.delete.name=Delete
+useractions.functionalities.uafileoperation.trash.name=Move to trash
 useractions.functionalities.uafileoperation.copymove.name=Copy/move
 useractions.functionalities.uafileoperation.copymove.fields.destination=Destination
 useractions.functionalities.uafileoperation.copymove.fields.destinationplaceholderlabel=Copy/move here

@@ -30,6 +30,7 @@ import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationDelete;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationMkDir;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationRefreshPathindex;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationRename;
+import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationTrash;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.util.ArrayList;
@@ -78,11 +79,11 @@ public class UAManager {
 		add(new UAFileOperationDelete());
 		add(new UAFileOperationCopyMove());
 		add(new UAFileOperationRefreshPathindex());
+		add(new UAFileOperationTrash());
 		// TODO activate, cases by cases
 		// add(new UAFileOperationReProcessMetadatas());
 		// add(new UAFileOperationExpand());
 		// add(new UAFileOperationPack());
-		// add(new UAFileOperationTrash());
 		
 		List<MyDMAMModule> modules = MyDMAMModulesManager.getAllModules();
 		for (int pos = 0; pos < modules.size(); pos++) {

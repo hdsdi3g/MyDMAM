@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -158,6 +159,10 @@ public class UAFileOperationDelete extends BaseFileOperation {
 				bulk.terminateBulk();
 				RenderedFile.purge(entry.getKey());
 			}
+			
+			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+			new Explorer().deleteStoragePath(bulk, Arrays.asList(entry.getValue()));
+			bulk.terminateBulk();
 			
 			if (stop) {
 				return;

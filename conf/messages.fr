@@ -538,6 +538,7 @@ useractions.functionalities.uafileoperation.mkdir.fields.newpathname=Nouveau dos
 useractions.functionalities.uafileoperation.rename.name=Renommer
 useractions.functionalities.uafileoperation.rename.fields.newname=Nouveau nom
 useractions.functionalities.uafileoperation.delete.name=Supprimer
+useractions.functionalities.uafileoperation.trash.name=Placer dans la corbeille
 useractions.functionalities.uafileoperation.copymove.name=Copier/déplacer
 useractions.functionalities.uafileoperation.copymove.fields.destination=Destination
 useractions.functionalities.uafileoperation.copymove.fields.destinationplaceholderlabel=Copier/déplacer ici

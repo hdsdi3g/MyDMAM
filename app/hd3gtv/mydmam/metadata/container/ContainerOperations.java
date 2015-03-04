@@ -562,22 +562,25 @@ public class ContainerOperations {
 	
 	/**
 	 * Recursively
+	 * @param from file or directory to copy or move metadatas
+	 * @param root_dest
 	 */
-	public static void copyMoveMetadatas(SourcePathIndexerElement from, SourcePathIndexerElement dest, boolean copy, StoppableProcessing stoppable) throws Exception {
+	public static void copyMoveMetadatas(SourcePathIndexerElement from, String dest_storage, String dest_parent_path, boolean copy, StoppableProcessing stoppable) throws Exception {
 		Log2Dump dump = new Log2Dump();
 		dump.add("from", from);
-		dump.add("dest", dest);
+		dump.add("dest_storage", dest_storage);
+		dump.add("dest_path", dest_parent_path);
 		dump.add("copy", copy);
 		Log2.log.debug("Prepare copy/move", dump);
 		
 		Explorer explorer = new Explorer();
 		CopyMoveMetadatas cmm;
 		if (from.directory) {
-			cmm = new CopyMoveMetadatas(from.currentpath, dest, copy, stoppable);
+			cmm = new CopyMoveMetadatas(from.currentpath, dest_storage, dest_parent_path, copy, stoppable);
 			explorer.getAllSubElementsFromElementKey(from.prepare_key(), 0, cmm);
 		} else {
 			SourcePathIndexerElement from_root = explorer.getelementByIdkey(from.parentpath);
-			cmm = new CopyMoveMetadatas(from_root.currentpath, dest, copy, stoppable);
+			cmm = new CopyMoveMetadatas(from_root.currentpath, dest_storage, dest_parent_path, copy, stoppable);
 			cmm.onFoundElement(from);
 		}
 		
@@ -586,19 +589,22 @@ public class ContainerOperations {
 	private static class CopyMoveMetadatas implements IndexingEvent {
 		
 		String root_from_currentpath;
-		SourcePathIndexerElement root_dest;
+		String dest_storage;
+		String dest_parent_path;
 		boolean copy;
 		StoppableProcessing stoppable;
 		
-		CopyMoveMetadatas(String root_from_currentpath, SourcePathIndexerElement root_dest, boolean copy, StoppableProcessing stoppable) {
+		CopyMoveMetadatas(String root_from_currentpath, String dest_storage, String dest_parent_path, boolean copy, StoppableProcessing stoppable) {
 			this.root_from_currentpath = root_from_currentpath;
-			this.root_dest = root_dest;
+			this.dest_storage = dest_storage;
+			this.dest_parent_path = dest_parent_path;
 			this.copy = copy;
 			this.stoppable = stoppable;
 			
 			Log2Dump dump = new Log2Dump();
 			dump.add("root_from_currentpath", root_from_currentpath);
-			dump.add("root_dest", root_dest);
+			dump.add("dest_storage", dest_storage);
+			dump.add("dest_parent_path", dest_parent_path);
 			dump.add("copy", copy);
 			Log2.log.debug("Init CopyMoveMetadatas", dump);
 		}
@@ -618,11 +624,12 @@ public class ContainerOperations {
 			}
 			
 			String mtd_key_source = container.getMtd_key();
-			String dest_path = root_dest.currentpath + element.currentpath.substring(root_from_currentpath.length());
+			String dest_path = dest_parent_path + element.currentpath.substring(root_from_currentpath.length());
 			
 			Log2Dump dump = new Log2Dump();
 			dump.add("source", element);
-			dump.add("root_dest", root_dest);
+			dump.add("dest_storage", dest_storage);
+			dump.add("dest_parent_path", dest_parent_path);
 			dump.add("dest_path", dest_path);
 			dump.add("mtd_key_source", mtd_key_source);
 			dump.add("mtd_key_dest", container.getMtd_key());
@@ -632,7 +639,7 @@ public class ContainerOperations {
 			/**
 			 * Change origin for each entry
 			 */
-			ContainerOrigin new_origin = container.getOrigin().migrateOrigin(root_dest.storagename, dest_path);
+			ContainerOrigin new_origin = container.getOrigin().migrateOrigin(dest_storage, dest_path);
 			container.changeAllOrigins(new_origin);
 			
 			/**

@@ -146,6 +146,23 @@ public class Explorer {
 		
 	}
 	
+	/**
+	 * Not recursive
+	 */
+	public void getChildElementsFromElementKey(String parentpath_key, final IndexingEvent found_elements_observer, String... types) throws Exception {
+		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
+		request.setIndices(Importer.ES_INDEX);
+		request.setTypes(types);
+		request.setQuery(QueryBuilders.termQuery("parentpath", parentpath_key));
+		request.setSize(500);
+		
+		request.allReader(new ElastisearchCrawlerHit() {
+			public boolean onFoundHit(SearchHit hit) throws Exception {
+				return found_elements_observer.onFoundElement(SourcePathIndexerElement.fromESResponse(hit));
+			}
+		});
+	}
+	
 	public void getAllStorage(String storagename, IndexingEvent found_elements_observer) throws Exception {
 		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
 		request.setIndices(Importer.ES_INDEX);
@@ -468,12 +485,32 @@ public class Explorer {
 				continue;
 			}
 			if (elements.get(pos).directory) {
+				if (purge_before) {
+					getChildElementsFromElementKey(elements.get(pos).prepare_key(), new IndexingDelete(bulk_op), Importer.ES_TYPE_FILE);
+				}
 				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath, true);
 			} else {
 				if (purge_before) {
 					bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, elements.get(pos).prepare_key()));
 				}
 				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
+			}
+		}
+	}
+	
+	/**
+	 * Recursive, delete only ES pathindex.
+	 */
+	public void deleteStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements) throws Exception {
+		for (int pos = 0; pos < elements.size(); pos++) {
+			if (elements.get(pos) == null) {
+				continue;
+			}
+			if (elements.get(pos).directory) {
+				getAllSubElementsFromElementKey(elements.get(pos).prepare_key(), 0, new IndexingDelete(bulk_op));
+				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, elements.get(pos).prepare_key()));
+			} else {
+				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, elements.get(pos).prepare_key()));
 			}
 		}
 	}

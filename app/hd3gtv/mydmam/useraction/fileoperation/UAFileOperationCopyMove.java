@@ -149,13 +149,16 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 				}
 			}
 			
-			ContainerOperations.copyMoveMetadatas(entry.getValue(), destination, conf.action == Action.COPY, this);
+			ContainerOperations.copyMoveMetadatas(entry.getValue(), destination.storagename, destination.currentpath, conf.action == Action.COPY, this);
 			
 			if (stop) {
 				return;
 			}
 			
 			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+			if (conf.action == Action.MOVE) {
+				explorer.deleteStoragePath(bulk, Arrays.asList(entry.getValue()));
+			}
 			explorer.refreshStoragePath(bulk, Arrays.asList(root_destination), false);
 			bulk.terminateBulk();
 			

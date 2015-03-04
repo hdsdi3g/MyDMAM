@@ -68,9 +68,12 @@ public abstract class UAFunctionalityContext extends JobContext {
 	 * @return useraction->class.getSimpleName().toLowerCase() content from configuration, never null
 	 */
 	public final LinkedHashMap<String, ?> getConfigurationFromReferenceClass() {
-		String classname = getClass().getSimpleName().toLowerCase();
+		String classname = getClass().getSimpleName();
 		if (Configuration.global.isElementKeyExists("useraction", classname) == false) {
-			return new LinkedHashMap<String, Object>(1);
+			classname = classname.toLowerCase();
+			if (Configuration.global.isElementKeyExists("useraction", classname) == false) {
+				return new LinkedHashMap<String, Object>(1);
+			}
 		}
 		HashMap<String, ConfigurationItem> main_element = Configuration.global.getElement("useraction");
 		return main_element.get(classname).content;
