@@ -48,8 +48,11 @@ public class UAFileOperationTrash extends BaseFileOperation {
 	private String trash_directory_name;
 	private SimpleDateFormat simpledateformat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 	
-	public UAFileOperationTrash() {
-		trash_directory_name = "Trash";
+	public UAFileOperationTrash(String trash_directory_name) {
+		this.trash_directory_name = trash_directory_name;
+		if (trash_directory_name == null) {
+			trash_directory_name = "Trash";
+		}
 	}
 	
 	protected String getSubLongName() {
@@ -61,7 +64,7 @@ public class UAFileOperationTrash extends BaseFileOperation {
 	}
 	
 	public UAJobProcess createProcess() {
-		return new UAFileOperationTrash();
+		return new UAFileOperationTrash(trash_directory_name);
 	}
 	
 	public String getDescription() {

@@ -16,7 +16,11 @@
 */
 package hd3gtv.mydmam.useraction.fileoperation;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UACapability;
 import hd3gtv.mydmam.useraction.UAConfigurator;
@@ -30,52 +34,79 @@ import models.UserProfile;
 
 public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 	
-	@Override
+	private Explorer explorer = new Explorer();
+	
 	protected String getSubLongName() {
-		// TODO Auto-generated method stub
-		return null;
+		return "process metadata anaylist/rendering";
 	}
 	
-	@Override
 	protected String getSubMessageBaseName() {
-		// TODO Auto-generated method stub
-		return null;
+		return "refreshmetadatas";
 	}
 	
-	@Override
 	public UAJobProcess createProcess() {
-		// TODO Auto-generated method stub
-		return null;
+		return new UAFileOperationReProcessMetadatas();
 	}
 	
-	@Override
 	public String getDescription() {
-		// TODO Auto-generated method stub
-		return null;
+		return "Refresh manually metadata anaylist/rendering";
 	}
 	
-	@Override
 	public boolean isPowerfulAndDangerous() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 	
-	@Override
 	public Serializable prepareEmptyConfiguration() {
-		// TODO Auto-generated method stub
-		return null;
+		return new UAFileOperationReProcessMetadatasConfigurator();
 	}
 	
-	@Override
-	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public void process(JobProgression progression, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception {
-		// TODO Auto-generated method stub
+	public class Capability extends UACapability {
 		
+		public boolean enableFileProcessing() {
+			return true;
+		}
+		
+		public boolean enableDirectoryProcessing() {
+			return true;
+		}
+		
+		public boolean enableRootStorageindexProcessing() {
+			return true;
+		}
+		
+		public boolean mustHaveLocalStorageindexBridge() {
+			return true;
+		}
+		
+	}
+	
+	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {
+		return new Capability();
+	}
+	
+	public void process(JobProgression progression, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception {
+		Log2Dump dump = new Log2Dump();
+		dump.add("user", userprofile.key);
+		
+		UAFileOperationReProcessMetadatasConfigurator conf = user_configuration.getObject(UAFileOperationReProcessMetadatasConfigurator.class);
+		
+		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+		// TODO
+		// + conf.limit + conf.refresh_path_index
+		/*ArrayList<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>(source_elements.size());
+		items.addAll(source_elements.values());
+		
+		if (conf.refresh_scope == RefreshScope.CURRENT) {
+			explorer.refreshCurrentStoragePath(bulk, items, conf.force_refresh);
+		} else if (conf.refresh_scope == RefreshScope.ALL_SUB_ELEMENTS) {
+			explorer.refreshStoragePath(bulk, items, conf.force_refresh);
+		}*/
+		
+		// BEWARE, KEEP OLD MTDs BEFORE OVERWRITE THE NEWS (for future user mtd).
+		
+		// TODO messages.en for this
+		
+		bulk.terminateBulk();
 	}
 	
 }

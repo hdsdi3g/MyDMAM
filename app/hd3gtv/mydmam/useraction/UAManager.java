@@ -28,6 +28,7 @@ import hd3gtv.mydmam.useraction.dummy.UADummy2;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationCopyMove;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationDelete;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationMkDir;
+import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationReProcessMetadatas;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationRefreshPathindex;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationRename;
 import hd3gtv.mydmam.useraction.fileoperation.UAFileOperationTrash;
@@ -78,10 +79,10 @@ public class UAManager {
 		add(new UAFileOperationRename());
 		add(new UAFileOperationDelete());
 		add(new UAFileOperationCopyMove());
+		add(new UAFileOperationTrash(null));
 		add(new UAFileOperationRefreshPathindex());
-		add(new UAFileOperationTrash());
+		add(new UAFileOperationReProcessMetadatas());
 		// TODO activate, cases by cases
-		// add(new UAFileOperationReProcessMetadatas());
 		// add(new UAFileOperationExpand());
 		// add(new UAFileOperationPack());
 		
@@ -168,7 +169,8 @@ public class UAManager {
 					Log2Dump dump = new Log2Dump();
 					dump.add("worker", pos_conf_worker + 1);
 					dump.add("pos in worker", pos_list + 1);
-					Log2.log.error("Can't found User action functionality declared in configuration", new ClassNotFoundException(list.get(pos_list).toLowerCase()), dump);
+					dump.add("class", list.get(pos_list));
+					Log2.log.error("Can't found User action functionality declared in configuration", new ClassNotFoundException(list.get(pos_list)), dump);
 				}
 			}
 			
