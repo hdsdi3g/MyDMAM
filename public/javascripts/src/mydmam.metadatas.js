@@ -13,7 +13,7 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 /**
  * Metadata engine
@@ -25,10 +25,10 @@
 (function(mydmam) {
 	mydmam.metadatas = {};
 	var metadatas = mydmam.metadatas;
-	
+
 	metadatas.displaymethod = {};
 	metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT = 0;
-	
+
 	metadatas.url = {};
 })(window.mydmam);
 
@@ -61,12 +61,12 @@
 		var element = mtd_element.mimetype;
 		var element_type = element.substr(0, element.indexOf('/'));
 		var element_subtype = element.substr(element.indexOf('/') + 1);
-		
+
 		if (element_subtype.startsWith("x-")) {
 			element_subtype = element_subtype.substr(2);
 		}
 		element = element_type + "-" + element_subtype;
-		
+
 		var translated_element = i18n("mime." + element);
 		if (translated_element.startsWith("mime.")) {
 			translated_element = translated_element.substr(5);
@@ -82,7 +82,7 @@
 	metadatas.displaySummary = function(mtd_element) {
 		var title = "";
 		var count = 0;
-		for (var analyser in mtd_element) {
+		for ( var analyser in mtd_element) {
 			if (analyser == "mimetype") {
 				continue;
 			}
@@ -119,7 +119,7 @@
 (function(metadatas) {
 	metadatas.view.video = {};
 	var thisview = metadatas.view.video;
-	
+
 	thisview.prepare = function(file_hash, width, height, url_image, medias) {
 		var content = '';
 		content = content + '<div class="jwplayer-case" ';
@@ -133,23 +133,23 @@
 		}
 		content = content + 'data-width="' + width + '" data-height="' + height + '" ';
 		content = content + 'data-mediakind="video" ';
-		content = content + 'id="jwpvw-' + file_hash.substr(0,8) + '">';
+		content = content + 'id="jwpvw-' + file_hash.substr(0, 8) + '">';
 		content = content + i18n('browser.loadingplayer');
 		content = content + '</div>';
 		return content;
 	};
-	
+
 	thisview.loadafterdisplay = function() {
-		$('div.jwplayer-case').each(function(){
-			//console.log($(this));
+		$('div.jwplayer-case').each(function() {
+			// console.log($(this));
 			var htmlid = $(this).context.id;
 			var dataset = $(this).context.dataset;
-			
+
 			var playlist_item = {};
 			if (dataset.image) {
 				playlist_item.image = dataset.image;
 			}
-			
+
 			var playlist_item_sources = [];
 			for (var pos = 0; pos < dataset.filecount; pos++) {
 				var source = {};
@@ -158,11 +158,11 @@
 				playlist_item_sources.push(source);
 			}
 			playlist_item.sources = playlist_item_sources;
-			
+
 			/*
-			content = content + 'data-mediakind="video" ';
-			content = content + 'data-mediakind="audio" ';
-			*/
+			 * content = content + 'data-mediakind="video" '; content = content +
+			 * 'data-mediakind="audio" ';
+			 */
 			jwplayer(htmlid).setup({
 				playlist: [playlist_item],
 				height: dataset.height,
@@ -170,7 +170,7 @@
 			});
 		});
 	};
-	
+
 })(window.mydmam.metadatas);
 
 /**
@@ -186,7 +186,7 @@
 		content = content + 'data-filecount="1" ';
 		content = content + 'data-width="640" data-height="50" ';
 		content = content + 'data-mediakind="audio" ';
-		content = content + 'id="jwpvw-' + file_hash.substr(0,8) + '">';
+		content = content + 'id="jwpvw-' + file_hash.substr(0, 8) + '">';
 		content = content + i18n('browser.loadingplayer');
 		content = content + '</div>';
 		return content;
@@ -202,9 +202,9 @@
 		var content = '';
 		content = content + '<div style="margin-bottom: 1em;">';
 		if ((width > 0) & (height > 0)) {
-			content = content + '<img id="' + file_hash.substr(0,8) + '" src="' + url + '" class="' + htmlclass + '" alt="' + width + 'x' + height + '" data-src="holder.js/' + width + 'x' + height + '" style="width: ' + width + 'px; height: ' + height + 'px;"/>';
+			content = content + '<img id="' + file_hash.substr(0, 8) + '" src="' + url + '" class="' + htmlclass + '" alt="' + width + 'x' + height + '" data-src="holder.js/' + width + 'x' + height + '" style="width: ' + width + 'px; height: ' + height + 'px;"/>';
 		} else {
-			content = content + '<img id="' + file_hash.substr(0,8) + '" src="' + url + '" class="' + htmlclass + '" data-src="holder.js"/>';
+			content = content + '<img id="' + file_hash.substr(0, 8) + '" src="' + url + '" class="' + htmlclass + '" data-src="holder.js"/>';
 		}
 		content = content + '</div>';
 		return content;
@@ -215,9 +215,9 @@
  * display : the code to display in page
  */
 (function(metadatas) {
-	
-	var prepareImage = function(file_hash, previews, prefered_size, just_url) {
-		
+
+	var prepareImage = function(file_hash, previews, _prefered_size, just_url) {
+		var prefered_size = _prefered_size;
 		var getReturn = function(thumbnail) {
 			var url = metadatas.getURL(file_hash, thumbnail.type, thumbnail.file);
 			if (just_url) {
@@ -225,11 +225,11 @@
 			}
 			return metadatas.view.image.prepare(file_hash, url, "img-polaroid", thumbnail.options.width, thumbnail.options.height);
 		};
-		
+
 		if (prefered_size == null) {
 			prefered_size = "full_size_thumbnail";
 		}
-		
+
 		if (prefered_size === "full_size_thumbnail") {
 			if (previews.full_size_thumbnail) {
 				return getReturn(previews.full_size_thumbnail);
@@ -237,7 +237,7 @@
 				prefered_size = "cartridge_thumbnail";
 			}
 		}
-		
+
 		if (prefered_size === "cartridge_thumbnail") {
 			if (previews.cartridge_thumbnail) {
 				return getReturn(previews.cartridge_thumbnail);
@@ -245,7 +245,7 @@
 				prefered_size = "icon_thumbnail";
 			}
 		}
-		
+
 		if (prefered_size === "icon_thumbnail") {
 			if (previews.icon_thumbnail) {
 				return getReturn(previews.icon_thumbnail);
@@ -254,17 +254,17 @@
 			return null;
 		}
 	};
-	
+
 	metadatas.display = function(reference, mtd_element, method) {
 		if (!mtd_element) {
 			return "";
 		}
 		var file_hash = md5(reference.storagename + ":" + reference.path);
-		
+
 		var content = '';
 		var master_as_preview_type = '';
 		var master_as_preview_url = '';
-		
+
 		if (mtd_element.master_as_preview) {
 			master_as_preview_type = mtd_element.mimetype.substring(0, mtd_element.mimetype.indexOf("/"));
 			var ext = reference.path.substring(reference.path.lastIndexOf("."), reference.path.length);
@@ -275,7 +275,7 @@
 			if (mtd_element.previews) {
 				var previews = mtd_element.previews;
 				var has_image_thumbnail = (previews.full_size_thumbnail != null) | (previews.cartridge_thumbnail != null) | (previews.icon_thumbnail != null);
-				
+
 				if ((previews.video_lq_pvw != null) | (previews.video_sd_pvw != null) | (previews.video_hd_pvw != null) | (master_as_preview_type == "video")) {
 					/**
 					 * Video
@@ -284,7 +284,7 @@
 					if (has_image_thumbnail) {
 						url_image = prepareImage(file_hash, previews, "cartridge_thumbnail", true);
 					}
-					
+
 					var medias = [];
 					if (master_as_preview_type == "video") {
 						var media = {};
@@ -340,11 +340,12 @@
 					content = content + metadatas.view.audio.prepare(file_hash, master_as_preview_url, null);
 				}
 				/**
-				 * It never be an image as master, this may be security/confidentiality problems.
+				 * It never be an image as master, this may be
+				 * security/confidentiality problems.
 				 */
 			}
-			
-			for (var analyser in mtd_element) {
+
+			for ( var analyser in mtd_element) {
 				if ((analyser == "mimetype") | (analyser == "master_as_preview") | (analyser == "previews")) {
 					/**
 					 * Don't show that
@@ -362,12 +363,13 @@
 })(window.mydmam.metadatas);
 
 /**
- * loadAfterDisplay : call loadafterdisplay() for all metadatas.view.* (if exists).
+ * loadAfterDisplay : call loadafterdisplay() for all metadatas.view.* (if
+ * exists).
  */
 (function(metadatas) {
 	metadatas.loadAfterDisplay = function() {
-		for (var viewname in metadatas.view) {
-			var viewer =  metadatas.view[viewname];
+		for ( var viewname in metadatas.view) {
+			var viewer = metadatas.view[viewname];
 			if (typeof viewer.loadafterdisplay == 'function') {
 				viewer.loadafterdisplay();
 			}
@@ -383,9 +385,11 @@
 		$.ajax({
 			url: metadatas.url.resolvepositions,
 			type: "POST",
-			data: {"keys" : external_elements_to_resolve},
+			data: {
+				"keys": external_elements_to_resolve
+			},
 			success: function(data) {
-				
+
 				var key;
 				for (var pos_key = 0; pos_key < external_elements_to_resolve.length; pos_key++) {
 					key = external_elements_to_resolve[pos_key];
@@ -427,7 +431,7 @@
 			var element_storage = $(this).find(".storagename").text();
 			var element_path = $(this).find(".path").text();
 			$(this).find(".storagename").html('<a href=\"' + metadatas.url.navigate + "#" + element_storage + ':/\">' + element_storage + '</a>');
-			
+
 			var element_subpaths = element_path.split("/");
 			var element_path_new = "";
 			var currentpath = "";
@@ -441,14 +445,14 @@
 				currentpath = currentpath + "/" + element_subpaths[pos];
 			}
 			$(this).find(".path").html(element_path_new);
-			
+
 			// Search items for a search archive position
 			for (var pos = 0; pos < list_external_positions_storages.length; pos++) {
 				if (list_external_positions_storages[pos] == element_storage) {
 					external_elements_to_resolve.push($(this).data('storagekey'));
 				}
 			}
-			
+
 			elements_to_get_metadatas.push($(this).data('storagekey'));
 		});
 	};
@@ -461,9 +465,9 @@
 	metadatas.addMetadatasToSearchListItems = function() {
 		var external_elements_to_resolve = [];
 		var elements_to_get_metadatas = [];
-		
+
 		metadatas.linkifysearchresultitems(external_elements_to_resolve, elements_to_get_metadatas);
-		
+
 		/**
 		 * Add archive position to items
 		 */
@@ -476,13 +480,13 @@
 				$('#sri-' + key).prepend(' <span class="label label-success"><i class="icon-barcode icon-white"></i> ' + i18n('browser.externalposition.nearline') + '</span> ');
 			});
 		}
-		
+
 		if (elements_to_get_metadatas.length > 0) {
 			var stat = window.mydmam.stat;
-			var elements_metadatas = stat.query(elements_to_get_metadatas, [/*stat.SCOPE_PATHINFO,*/ stat.SCOPE_MTD_SUMMARY]);
-			
+			var elements_metadatas = stat.query(elements_to_get_metadatas, [/* stat.SCOPE_PATHINFO, */stat.SCOPE_MTD_SUMMARY]);
+
 			if (elements_metadatas) {
-				for (var key in elements_metadatas) {
+				for ( var key in elements_metadatas) {
 					var mtd_element = elements_metadatas[key];
 					if (mtd_element == null) {
 						continue;
@@ -491,10 +495,10 @@
 					if (summary == null) {
 						continue;
 					}
-					
+
 					var count = 0;
 					var title = "";
-					for (var summary_element in summary) {
+					for ( var summary_element in summary) {
 						if (summary_element == "mimetype") {
 							continue;
 						}
@@ -517,7 +521,7 @@
 					}
 				}
 			}
-			
+
 		}
 	};
 })(window.mydmam.metadatas);

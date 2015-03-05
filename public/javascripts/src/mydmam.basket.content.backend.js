@@ -13,7 +13,7 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 /**
@@ -22,19 +22,23 @@
 (function(basket, backend) {
 	backend.upload = function() {
 		var current_basket_content = localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME);
-		
+
 		var data = {};
 		if (current_basket_content.length === 0) {
-			data = {empty : "true"};
+			data = {
+				empty : "true"
+			};
 		} else {
-			data = {current : localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME)};
+			data = {
+				current : localStorage.getObject(basket.LOCALSTORAGE_CONTENT_KEYNAME)
+			};
 		}
-		
+
 		$.ajax({
-			url: mydmam.basket.url.push,
-			type: "POST",
-			data: data,
-			success: function(data) {
+			url : mydmam.basket.url.push,
+			type : "POST",
+			data : data,
+			success : function(data) {
 				backend.setCacheTimer();
 			}
 		});
@@ -46,14 +50,15 @@
  */
 (function(basket, backend) {
 	/**
-	 * @param synchronized_request (boolean) default false
+	 * @param synchronized_request
+	 *            (boolean) default false
 	 */
 	backend.download = function(synchronized_request) {
 		$.ajax({
-			url: mydmam.basket.url.pull,
-			type: "GET",
-			async: (synchronized_request === null),
-			success: function(data) {
+			url : mydmam.basket.url.pull,
+			type : "GET",
+			async : (synchronized_request === null),
+			success : function(data) {
 				localStorage.setObject(basket.LOCALSTORAGE_CONTENT_KEYNAME, data);
 				backend.setCacheTimer();
 			}
@@ -113,7 +118,8 @@
 		if (date != null) {
 			if (((new Date().getTime() - date) / 1000) < basket.CACHE_DURATION) {
 				/**
-				 * Too recent download, the cache should to be good, don't update.
+				 * Too recent download, the cache should to be good, don't
+				 * update.
 				 */
 				return false;
 			}
@@ -128,9 +134,9 @@
 (function(backend) {
 	backend.all = function(result) {
 		$.ajax({
-			url:mydmam.basket.url.all,
-			type: "GET",
-			success: function(data) {
+			url : mydmam.basket.url.all,
+			type : "GET",
+			success : function(data) {
 				result(data);
 			}
 		});
@@ -143,9 +149,9 @@
 (function(backend) {
 	backend.selected = function(result) {
 		$.ajax({
-			url:mydmam.basket.url.selected,
-			type: "GET",
-			success: function(data) {
+			url : mydmam.basket.url.selected,
+			type : "GET",
+			success : function(data) {
 				result(data.selected);
 			}
 		});
@@ -158,10 +164,12 @@
 (function(backend) {
 	backend.bdelete = function(name, result) {
 		$.ajax({
-			url:mydmam.basket.url.bdelete,
-			type: "POST",
-			data: {name : name},
-			success: function(data) {
+			url : mydmam.basket.url.bdelete,
+			type : "POST",
+			data : {
+				name : name
+			},
+			success : function(data) {
 				result(data["delete"]);
 			}
 		});
@@ -174,10 +182,12 @@
 (function(backend) {
 	backend.truncate = function(name, result) {
 		$.ajax({
-			url:mydmam.basket.url.truncate,
-			type: "POST",
-			data: {name : name},
-			success: function(data) {
+			url : mydmam.basket.url.truncate,
+			type : "POST",
+			data : {
+				name : name
+			},
+			success : function(data) {
 				result(data.truncate);
 			}
 		});
@@ -185,15 +195,19 @@
 })(window.mydmam.basket.content.backend);
 
 /**
- * rename(name, newname, result = function(name, newname is ok / null, null if false))
+ * rename(name, newname, result = function(name, newname is ok / null, null if
+ * false))
  */
 (function(backend) {
 	backend.rename = function(name, newname, result) {
 		$.ajax({
-			url:mydmam.basket.url.rename,
-			type: "POST",
-			data: {name : name, newname: newname},
-			success: function(data) {
+			url : mydmam.basket.url.rename,
+			type : "POST",
+			data : {
+				name : name,
+				newname : newname
+			},
+			success : function(data) {
 				result(data.rename_from, data.rename_to);
 			}
 		});
@@ -201,15 +215,19 @@
 })(window.mydmam.basket.content.backend);
 
 /**
- * create(name, switch_to_selected, result = function(name, switch_to_selected is ok / null, null if false))
+ * create(name, switch_to_selected, result = function(name, switch_to_selected
+ * is ok / null, null if false))
  */
 (function(backend) {
 	backend.create = function(name, switch_to_selected, result) {
 		$.ajax({
-			url:mydmam.basket.url.create,
-			type: "POST",
-			data: {name : name, switch_to_selected : switch_to_selected},
-			success: function(data) {
+			url : mydmam.basket.url.create,
+			type : "POST",
+			data : {
+				name : name,
+				switch_to_selected : switch_to_selected
+			},
+			success : function(data) {
 				result(data.create, data.switch_to_selected);
 			}
 		});
@@ -217,15 +235,18 @@
 })(window.mydmam.basket.content.backend);
 
 /**
- * switch_selected(name, result = function(name, data is ok / null, null if false))
+ * switch_selected(name, result = function(name, data is ok / null, null if
+ * false))
  */
 (function(backend, basket) {
 	backend.switch_selected = function(name, result) {
 		$.ajax({
-			url:mydmam.basket.url.switch_selected,
-			type: "POST",
-			data: {name : name},
-			success: function(data) {
+			url : mydmam.basket.url.switch_selected,
+			type : "POST",
+			data : {
+				name : name
+			},
+			success : function(data) {
 				if (data.notselected) {
 					result(null, null);
 					return;

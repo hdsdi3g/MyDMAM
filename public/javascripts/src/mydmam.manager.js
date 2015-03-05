@@ -13,12 +13,11 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 /**
- * PUBLIC USE
- * display(query_destination)
+ * PUBLIC USE display(query_destination)
  */
 (function(manager) {
 	manager.display = function(query_destination) {
@@ -32,7 +31,7 @@
 				$(query_destination).html('<div class="alert alert-info"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + textStatus + '</strong></div>');
 			},
 			success: function(rawdata) {
-				if (rawdata == null | rawdata.length === 0) {
+				if ((rawdata == null) | rawdata.length === 0) {
 					$('#laststatusworkers').append('<div class="alert alert-info"><button type="button" class="close" data-dismiss="alert">&times;</button><strong>' + i18n("manager.nodetectedmodule") + '</strong></div>');
 					return;
 				}
@@ -55,8 +54,7 @@
 })(window.mydmam.manager);
 
 /**
- * getGitHubURL(app_version)
- * getGitHubURL(app_version, path)
+ * getGitHubURL(app_version) getGitHubURL(app_version, path)
  */
 (function(manager) {
 	manager.getGitHubURL = function(app_version, path) {
@@ -77,7 +75,7 @@
 		if (window.location.hash === '') {
 			window.location.hash = "#mgrsummary";
 		}
-		
+
 		var getActiveClassIfThisTabIsUserSelected = function(target) {
 			if (target === window.location.hash) {
 				return "active";
@@ -85,7 +83,7 @@
 				return "";
 			}
 		};
-		
+
 		content = content + '<ul class="nav nav-tabs">';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrsummary") + '"><a href="#mgrsummary" class="btnmanager">' + i18n('manager.summary.title') + '</a></li>';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrworkers") + '"><a href="#mgrworkers" class="btnmanager">' + i18n('manager.workers.title') + '</a></li>';
@@ -98,9 +96,9 @@
 
 		content = content + '<li class="pull-right"><a href="#mgrsummary" class="btnrefresh"><i class="icon-refresh"></i>' + '</a></li>';
 		content = content + '</ul>';
-		 
+
 		content = content + '<div class="tab-content">';
-		
+
 		/**
 		 * Show summary
 		 */
@@ -115,60 +113,60 @@
 		}
 		content = content + '</tbody>';
 		content = content + '</table>';
-		content = content + '</div>'; //tab-pane
+		content = content + '</div>'; // tab-pane
 
 		/**
 		 * Show threads
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrthreads") + '" id="mgrthreads">';
 		content = content + manager.prepareThreadsStackTrace(rawdata);
-		content = content + '</div>'; //tab-pane
-		
+		content = content + '</div>'; // tab-pane
+
 		/**
 		 * Show classpaths
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrclasspaths") + '" id="mgrclasspaths">';
 		content = content + manager.prepareClasspaths(rawdata);
-		content = content + '</div>'; //tab-pane
-		
+		content = content + '</div>'; // tab-pane
+
 		/**
 		 * Show Cyclic
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrcyclic") + '" id="mgrcyclic">';
 		content = content + manager.jobcreator.prepareCyclic(rawdata);
-		content = content + '</div>'; //tab-pane
-		
+		content = content + '</div>'; // tab-pane
+
 		/**
 		 * Show Triggers
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrtriggers") + '" id="mgrtriggers">';
 		content = content + manager.jobcreator.prepareTriggers(rawdata);
-		content = content + '</div>'; //tab-pane
-		
+		content = content + '</div>'; // tab-pane
+
 		/**
 		 * Prepare block for Useraction Functionality List
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgruafunctlist") + '" id="mgruafunctlist">';
-		content = content + '</div>'; //tab-pane
-		
+		content = content + '</div>'; // tab-pane
+
 		/**
 		 * Show Log2filters
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrlog2filters") + '" id="mgrlog2filters">';
 		content = content + manager.prepareLog2filters(rawdata);
-		content = content + '</div>'; //tab-pane
-		
+		content = content + '</div>'; // tab-pane
+
 		/**
 		 * Show Workers status
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrworkers") + '" id="mgrworkers">';
-		content = content + '</div>'; //tab-pane
-		
+		content = content + '</div>'; // tab-pane
+
 		$(query_destination).html(content);
-		
+
 		manager.workerstatus.refresh("#mgrworkers");
-		
-		var all_datatables = $(query_destination + ' table.setdatatable').dataTable({
+
+		$(query_destination + ' table.setdatatable').dataTable({
 			"bPaginate": false,
 			"bLengthChange": false,
 			"bSort": true,
@@ -177,36 +175,36 @@
 			"bFilter": true,
 		});
 		$(query_destination + ' table.setdatatable').removeClass('setdatatable');
-		
+
 		/**
-		 * set actions 
+		 * set actions
 		 */
 		$(query_destination + ' ul.nav.nav-tabs a.btnmanager').click(function() {
 			window.location.hash = $(this).attr("href");
 			$(this).tab('show');
 			return false;
 		});
-		
+
 		$(query_destination + ' ul.nav.nav-tabs a.btnrefresh').click(function() {
 			manager.display(query_destination);
 			return false;
 		});
-		
+
 		$(query_destination + ' button.btn.btn-mini.btnincollapse').click(function() {
 			var collapsetarget = $(this).data("collapsetarget");
 			$(query_destination + ' div.collapse.' + collapsetarget).addClass('in');
 			$(this).remove();
 			return true;
 		});
-		
+
 		if (manager.hasInstanceAction()) {
 			manager.setBtnActionClick(query_destination);
 		}
-		
+
 		manager.setBtnForLog2filters(query_destination);
-		
+
 		manager.drawUseractionFunctionalityList("#mgruafunctlist", rawdata, function() {
-			var all_datatables = $(query_destination + ' table.setdatatable').dataTable({
+			$(query_destination + ' table.setdatatable').dataTable({
 				"bPaginate": false,
 				"bLengthChange": false,
 				"bSort": true,
@@ -215,7 +213,7 @@
 				"bFilter": true,
 			});
 			$(query_destination + ' table.setdatatable').removeClass('setdatatable');
-			
+
 			if (manager.hasInstanceAction()) {
 				manager.setBtnActionClick(query_destination);
 			}
@@ -225,14 +223,13 @@
 })(window.mydmam.manager);
 
 /**
- * doAction(target_class_name, target_reference_key, order_key, order_value, beforesend, error, success)
- * setBtnActionClick(query_destination)
+ * doAction(target_class_name, target_reference_key, order_key, order_value, beforesend, error, success) setBtnActionClick(query_destination)
  */
 (function(manager) {
 	manager.doAction = function(target_class_name, target_reference_key, order_key, order_value, beforesend, error, success) {
 		var order = {};
 		order[order_key] = order_value;
-		
+
 		$.ajax({
 			url: manager.url.instanceaction,
 			type: "POST",
@@ -246,45 +243,38 @@
 			success: success,
 		});
 	};
-	
+
 	var push = function() {
 		var jquery_btn = $(this);
-		
+
 		if (!manager.url.instanceaction) {
 			jquery_btn.remove();
 			return false;
 		}
-		
+
 		if (jquery_btn.hasClass('disabled')) {
 			return false;
 		}
-		
+
 		jquery_btn.removeClass("btnmgraction");
 
-		manager.doAction(jquery_btn.data("target_class_name"),
-				jquery_btn.data("target_reference_key"),
-				jquery_btn.data("order_key"),
-				jquery_btn.data("order_value"),
-				function() {
-					jquery_btn.addClass("disabled");
-				},
-				function() {
-					jquery_btn.removeClass("disabled");
-					alert(i18n('manager.action.error'));
-				},
-				function(rawdata) {
-					jquery_btn.removeClass("disabled");
-					if (rawdata.length !== 0) {
-						console.err(rawdata);
-					}
-				});
+		manager.doAction(jquery_btn.data("target_class_name"), jquery_btn.data("target_reference_key"), jquery_btn.data("order_key"), jquery_btn.data("order_value"), function() {
+			jquery_btn.addClass("disabled");
+		}, function() {
+			jquery_btn.removeClass("disabled");
+			alert(i18n('manager.action.error'));
+		}, function(rawdata) {
+			jquery_btn.removeClass("disabled");
+			if (rawdata.length !== 0) {
+				console.err(rawdata);
+			}
+		});
 	};
-	
+
 	manager.setBtnActionClick = function(query_destination) {
 		$(query_destination + ' button.btn.btnmgraction').click(push);
 	};
 })(window.mydmam.manager);
-
 
 /**
  * prepareSummary(instance, pos))
@@ -305,38 +295,38 @@
 			}
 			return content + '</tr>';
 		}
-		
+
 		content = content + '<td>' + instance.instance_name + '</td>';
 		content = content + '<td><strong>' + instance.app_name + '</strong><br><small>' + instance.instance_name_pid + '</small></td>';
-	
+
 		content = content + '<td>';
 		content = content + instance.uptime_from;
 		if (instance.next_updater_refresh_date > 0) {
 			content = content + '<br><small>' + mydmam.format.timeAgo(instance.next_updater_refresh_date, 'manager.summary.next_updater_refresh_date.from', 'manager.summary.next_updater_refresh_date.to') + '</small>';
 		}
 		content = content + '</td>';
-		
+
 		content = content + '<td>';
 		if (instance.java_version.startsWith('1.7.0')) {
 			content = content + '<a href="http://www.oracle.com/technetwork/java/javase/downloads/java-archive-downloads-javase7-521261.html#jre-7u';
-			content = content +  instance.java_version.substring(instance.java_version.lastIndexOf("_") + 1, instance.java_version.length) + '-oth-JPR">' + instance.java_version + '</a>';
+			content = content + instance.java_version.substring(instance.java_version.lastIndexOf("_") + 1, instance.java_version.length) + '-oth-JPR">' + instance.java_version + '</a>';
 		} else if (instance.java_version.startsWith('1.8.0')) {
 			content = content + '<a href="http://www.oracle.com/technetwork/java/javase/downloads/java-archive-javase8-2177648.html#jre-8u';
-			content = content +  instance.java_version.substring(instance.java_version.lastIndexOf("_") + 1, instance.java_version.length) + '-oth-JPR">' + instance.java_version + '</a>';
+			content = content + instance.java_version.substring(instance.java_version.lastIndexOf("_") + 1, instance.java_version.length) + '-oth-JPR">' + instance.java_version + '</a>';
 		} else {
 			content = content + instance.java_version;
 		}
 		content = content + '</td>';
-		
+
 		content = content + '<td><a href="' + manager.getGitHubURL(instance.app_version) + '">' + instance.app_version + '</a></td>';
-		
+
 		content = content + '<td>' + instance.host_name + '</td>';
 		content = content + '<td><small>';
 		for (var pos = 0; pos < instance.host_addresses.length; pos++) {
 			content = content + instance.host_addresses[pos] + '<br/>';
 		}
 		content = content + '</small></td>';
-		
+
 		if (manager.hasInstanceAction()) {
 			content = content + '<td>';
 			if (instance.brokeralive) {
@@ -345,19 +335,19 @@
 				content = content + 'data-order_key="broker" ';
 				content = content + 'data-order_value="stop" ';
 				content = content + 'data-target_reference_key="' + instance.instance_name_pid + '" ';
-				content = content + '><i class="icon-stop icon-white"></i> ' + i18n("manager.summary.broker.stop") ;
+				content = content + '><i class="icon-stop icon-white"></i> ' + i18n("manager.summary.broker.stop");
 			} else {
 				content = content + '<button class="btn btn-mini btnmgraction btn-success" ';
 				content = content + 'data-target_class_name="AppManager" ';
 				content = content + 'data-order_key="broker" ';
 				content = content + 'data-order_value="start" ';
 				content = content + 'data-target_reference_key="' + instance.instance_name_pid + '" ';
-				content = content + '><i class="icon-play icon-white"></i> ' + i18n("manager.summary.broker.start") ;
+				content = content + '><i class="icon-play icon-white"></i> ' + i18n("manager.summary.broker.start");
 			}
 			content = content + '</button>';
 			content = content + '</td>';
 		}
-		
+
 		return content + '</tr>';
 	};
 })(window.mydmam.manager);
@@ -367,7 +357,7 @@
  */
 (function(manager) {
 	manager.prepareThreadsStackTrace = function(instances) {
-		var prepareThisInstanceThreadsStackTrace = function(threadstacktraces, instancepos, app_version) {
+		var prepareThisInstanceThreadsStackTrace = function(_threadstacktraces, instancepos, app_version) {
 			var content = '';
 			content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
 			content = content + '<thead>';
@@ -375,12 +365,14 @@
 			content = content + '<th>' + i18n('manager.threads.tstacks') + '</th>';
 			content = content + '</thead>';
 			content = content + '<tbody>';
-			
+
+			var threadstacktraces = _threadstacktraces;
 			threadstacktraces = threadstacktraces.sort(function(a, b) {
 				return a.id < b.id ? -1 : 1;
 			});
-			
-			getStacktraceline = function(line) {
+
+			getStacktraceline = function(_line) {
+				var line = _line;
 				if (line.startsWith("at hd3gtv.mydmam") === false) {
 					return line;
 				}
@@ -388,18 +380,20 @@
 					line = "at " + line;
 				}
 				var content = '';
-				
+
 				var pos_parL = line.indexOf("(");
 				var pos_parR = line.indexOf(")");
-				
+
 				var filenameandlinepos = line.substring(pos_parL + 1, pos_parR);
-				
+
 				var path = line.substring(3, pos_parL).replace(/\./g, "/");
-				path = path.substring(0, path.lastIndexOf("/"));//Remove function name
-				path = path.substring(0, path.lastIndexOf("/"));//Remove class name
+				path = path.substring(0, path.lastIndexOf("/"));// Remove
+				// function name
+				path = path.substring(0, path.lastIndexOf("/"));// Remove class
+				// name
 				path = path + "/" + filenameandlinepos.substring(0, filenameandlinepos.indexOf(":"));
 				path = path + "#L" + filenameandlinepos.substring(filenameandlinepos.indexOf(":") + 1, filenameandlinepos.length);
-				
+
 				content = content + line.substring(0, pos_parL + 1);
 				content = content + '<a href="' + manager.getGitHubURL(app_version, path) + '">';
 				content = content + filenameandlinepos;
@@ -407,10 +401,10 @@
 				content = content + ')';
 				return content;
 			};
-			
+
 			for (var pos = 0; pos < threadstacktraces.length; pos++) {
 				var threadstacktrace = threadstacktraces[pos];
-				
+
 				content = content + '<tr>';
 				content = content + '<td>';
 				content = content + '<span class="badge badge-info">' + threadstacktrace.id + '</span>';
@@ -430,20 +424,20 @@
 				content = content + '<br /><small>' + threadstacktrace.name + '</small>';
 				content = content + '<br /><small><span class="muted">' + threadstacktrace.classname + '</span></small>';
 				content = content + '</td>';
-				
+
 				var execpoints = threadstacktrace.execpoint.split("\n");
 				content = content + '<td><small>';
 				if (execpoints.length > 1) {
 					if (execpoints.length > 2) {
 						content = content + getStacktraceline(execpoints[0]) + '<br />';
-						var cssclassname = 'mgr-' + pos_i + '-' + pos; 
+						var cssclassname = 'mgr-' + pos_i + '-' + pos;
 						content = content + '<button class="btn btn-mini btnincollapse" data-collapsetarget="' + cssclassname + '"><i class="icon-chevron-down"></i></button>';
 						content = content + '<div class="collapse ' + cssclassname + '">';
 						for (var pos_ep = 1; pos_ep < execpoints.length - 1; pos_ep++) {
 							var execpoint = execpoints[pos_ep];
 							content = content + getStacktraceline(execpoint) + '<br />';
 						}
-						content = content + '</div>'; //collapse
+						content = content + '</div>'; // collapse
 					} else {
 						content = content + getStacktraceline(execpoints[0]) + '<br />';
 					}
@@ -455,7 +449,7 @@
 			content = content + '</table>';
 			return content;
 		};
-		
+
 		var content = '';
 		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
 			var instance = instances[pos_i];
@@ -466,7 +460,7 @@
 			content = content + '</p>';
 			content = content + prepareThisInstanceThreadsStackTrace(instance.threadstacktraces, pos_i, instance.app_version);
 		}
-		
+
 		return content;
 	};
 })(window.mydmam.manager);
@@ -491,7 +485,7 @@
 				}
 			}
 		}
-		
+
 		/**
 		 * @return true if classpath_item exists in instance.classpath
 		 */
@@ -503,12 +497,12 @@
 			}
 			return false;
 		};
-		
+
 		/**
 		 * Collect all missing classpath_item in instances
 		 */
 		var missing_instances_classpath_items = {};
-		for (var classpath_item in all_classpath_items) {
+		for ( var classpath_item in all_classpath_items) {
 			for (var pos_i = 0; pos_i < instances.length; pos_i++) {
 				var instance = instances[pos_i];
 				if (isInThisClasspath(instance, classpath_item) === false) {
@@ -532,11 +526,11 @@
 		content = content + '<th>' + i18n('manager.classpaths.missinginstances') + '</th>';
 		content = content + '</thead>';
 		content = content + '<tbody>';
-		
-		for (var classpath_item in all_classpath_items) {
+
+		for ( var classpath_item in all_classpath_items) {
 			content = content + '<tr>';
 			content = content + '<td>' + classpath_item + '</td>';
-			
+
 			content = content + '<td>';
 			if (missing_instances_classpath_items[classpath_item]) {
 				content = content + '<small>';
@@ -549,7 +543,7 @@
 				content = content + '</small>';
 			} else {
 				content = content + "<em>" + i18n('manager.classpaths.cpiseverywhere') + "</em>";
-			} 
+			}
 			content = content + '</td>';
 			content = content + '</tr>';
 		}
@@ -579,10 +573,10 @@
  */
 (function(manager) {
 	manager.drawUseractionFunctionalityList = function(query_destination, instances, callback) {
-		
+
 		var prepareUseractionFunctionalityList = function(availabilities) {
 			var content = '';
-			
+
 			content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
 			content = content + '<thead>';
 			content = content + '<th>' + i18n('manager.jobcreator.th.instance') + '</th>';
@@ -592,22 +586,22 @@
 			content = content + '<th>' + i18n("manager.uafunctlist.storageindexeswhitelist") + '</th>';
 			content = content + '</thead>';
 			content = content + '<tbody>';
-			
+
 			for (var pos_i = 0; pos_i < instances.length; pos_i++) {
 				var instance = instances[pos_i];
-				var instance_ref = instance.instance_name_pid;				
-				
+				var instance_ref = instance.instance_name_pid;
+
 				if (availabilities[instance_ref]) {
 					var useraction_functionality_list = availabilities[instance_ref];
 					for (var pos_uafl = 0; pos_uafl < useraction_functionality_list.length; pos_uafl++) {
 						var functionality = useraction_functionality_list[pos_uafl];
-						
+
 						content = content + '<tr>';
 
 						content = content + '<td>';
 						content = content + mydmam.manager.prepareInstanceNameCell(instance, functionality.instance);
 						content = content + '</td>';
-						
+
 						content = content + '<td>' + functionality.vendor + '<br>';
 						content = content + '<span class="label label-inverse">' + i18n('useractions.functionalities.sections.' + functionality.section) + '</span>';
 						if (functionality.powerful_and_dangerous) {
@@ -637,7 +631,7 @@
 						content = content + '</td>';
 
 						content = content + '<td><small>';
-						for (var pos_wl in functionality.capability.storageindexeswhitelist) {
+						for ( var pos_wl in functionality.capability.storageindexeswhitelist) {
 							var storageindexeswhiteitem = functionality.capability.storageindexeswhitelist[pos_wl];
 							if (jQuery.inArray(storageindexeswhiteitem, functionality.worker_capablity_storages) > -1) {
 								content = content + storageindexeswhiteitem + ' ';
@@ -655,7 +649,7 @@
 			content = content + '</table>';
 			return content;
 		};
-		
+
 		$.ajax({
 			url: mydmam.manager.url.allavailabilities,
 			type: "POST",
@@ -671,14 +665,13 @@
 				callback();
 			}
 		});
-		
+
 	};
-	
+
 })(window.mydmam.manager);
 
 /**
- * prepareLog2filters(instances)
- * addLog2filterFormItems(baseclassname, level, filtertype)
+ * prepareLog2filters(instances) addLog2filterFormItems(baseclassname, level, filtertype)
  */
 (function(manager) {
 	manager.prepareLog2filters = function(instances) {
@@ -694,13 +687,13 @@
 		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
 			var instance = instances[pos_i];
 			var log2filters = instance.log2filters;
-			
+
 			content = content + '<tr>';
 
 			content = content + '<td>';
 			content = content + mydmam.manager.prepareInstanceNameCell(instance);
 			content = content + '</td>';
-			
+
 			content = content + '<td>';
 			for (var pos_l2 = 0; pos_l2 < log2filters.length; pos_l2++) {
 				var log2filter = log2filters[pos_l2];
@@ -711,11 +704,11 @@
 
 			content = content + manager.addLog2filterFormItems("", "", "");
 			content = content + ' <button class="btn btn-success btn-mini btnmgraddlog2filter" style="margin-bottom: 10px;"><i class="icon-plus icon-white"></i></button>';
-			
+
 			content = content + '</td>';
 
 			content = content + '<td>';
-			
+
 			content = content + '<p><button class="btn btn-mini btn-primary btnsetlog2filters" ';
 			content = content + 'data-instanceref="' + instance.instance_name_pid + '" ';
 			content = content + '><i class="icon-ok icon-white"></i> ' + i18n("manager.log2filters.validate") + '</button></p>';
@@ -726,12 +719,12 @@
 			content = content + '</td>';
 			content = content + '</tr>';
 		}
-		
+
 		content = content + '</tbody>';
 		content = content + '</table>';
 		return content;
 	};
-	
+
 	manager.addLog2filterFormItems = function(baseclassname, level, filtertype) {
 		var prepare_select_level = function(actual_value) {
 			var levels = ["NONE", "DEBUG", "INFO", "ERROR", "SECURITY"];
@@ -747,7 +740,7 @@
 			content = content + '</select>';
 			return content;
 		};
-		
+
 		var prepare_select_filtertype = function(actual_value) {
 			var levels = ["HIDE", "ONE_LINE", "NO_DUMP", "DEFAULT", "VERBOSE_CALLER"];
 			var content = '';
@@ -778,15 +771,15 @@
  */
 (function(manager) {
 	manager.setBtnForLog2filters = function(query_destination) {
-		
+
 		var getFilters = function(jq_tr) {
 			var jq_all_spaninput = jq_tr.find("span.inputlog2filter");
 			var filters = [];
 			jq_all_spaninput.each(function() {
 				var filter = {
-					baseclassname: $(this).children("input.log2classname").val().trim(), 
+					baseclassname: $(this).children("input.log2classname").val().trim(),
 					level: $(this).children("select.sellog2level").val(),
-					filtertype:	$(this).children("select.sellog2filtertype").val()
+					filtertype: $(this).children("select.sellog2filtertype").val()
 				};
 				if (filter.baseclassname === '') {
 					return;
@@ -795,7 +788,7 @@
 			});
 			return filters;
 		};
-		
+
 		var btnsetlog2filters_click = function() {
 			var button = $(this);
 			if (button.hasClass("disabled")) {
@@ -806,18 +799,23 @@
 				button.addClass("disabled");
 			};
 			var error = function() {
+				/**
+				 * No error handle.
+				 */
 			};
 			var success = function() {
 				button.removeClass("disabled");
 			};
 			manager.doAction("AppManager", $(this).data("instanceref"), "log2filters", getFilters(jq_tr), beforesend, error, success);
 		};
-		
+
 		var btncopylogfilterconf_click = function() {
 			$(query_destination + ' textarea.log2filterconf').remove();
-			
-			var filters = getFilters($(this).parent().parent().parent()); // p > td > tr
-			
+
+			var filters = getFilters($(this).parent().parent().parent()); // p >
+			// td >
+			// tr
+
 			var content = '';
 			content = content + '<textarea class="input-block-level log2filterconf" style="margin-top: 1em; font-size: 8px; line-height: 1.3em; height: 15em; overflow: none;" spellcheck="false">';
 			content = content + 'log2:' + "\n";
@@ -832,14 +830,14 @@
 			$(this).after(content);
 			$(this).next().select();
 		};
-		
-		var btnmgrremovelog2filter_click = function(){
-			$(this).prev().remove(); //span
-			$(this).next().remove(); //br
+
+		var btnmgrremovelog2filter_click = function() {
+			$(this).prev().remove(); // span
+			$(this).next().remove(); // br
 			$(this).remove(); // button
 		};
-		
-		var btnmgraddlog2filter_click = function(){
+
+		var btnmgraddlog2filter_click = function() {
 			var content = '';
 			content = content + ' <button class="btn btn-danger btn-mini btnmgrremovelog2filter" style="margin-bottom: 10px;"><i class="icon-minus icon-white"></i></button>';
 			content = content + '<br>';
@@ -847,7 +845,7 @@
 			$(this).before(content);
 			manager.setBtnForLog2filters(query_destination);
 		};
-		
+
 		$(query_destination + ' button.btnsetlog2filters').click(btnsetlog2filters_click).removeClass("btnsetlog2filters");
 		$(query_destination + ' button.btncopylogfilterconf').click(btncopylogfilterconf_click).removeClass("btncopylogfilterconf");
 		$(query_destination + ' button.btnmgrremovelog2filter').click(btnmgrremovelog2filter_click).removeClass("btnmgrremovelog2filter");

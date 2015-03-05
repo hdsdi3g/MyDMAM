@@ -13,22 +13,21 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 /**
  * Navigator input selection functions
  */
 
 /**
- * PUBLIC
- * create
- * Each item found will be deployed with Navigator Inputselect.
+ * PUBLIC create Each item found will be deployed with Navigator Inputselect.
+ * 
  * @param jquery_selector
  * @return null
  */
 (function(inputselect) {
 	inputselect.max_item_list = 50;
-	
+
 	inputselect.create = function(jquery_selector) {
 		$(jquery_selector).each(inputselect.deploy);
 	};
@@ -36,6 +35,7 @@
 
 /**
  * engine
+ * 
  * @return object
  */
 (function(inputselect) {
@@ -72,7 +72,7 @@
 		} else {
 			placeholder_text = i18n(placeholder_text);
 		}
-		
+
 		/**
 		 * All jquery selectors
 		 */
@@ -84,7 +84,7 @@
 		jquery.input = jquery.inputbox.children("input").first();
 		jquery.dropdownbox = jquery.root.children("div.dropdownbox").first();
 		jquery.dropdownmenu = jquery.dropdownbox.children("ul.dropdown-menu").first();
-		
+
 		var getAllDropdownLi = function(special_selector) {
 			if (special_selector == null) {
 				return jquery.dropdownmenu.children("li");
@@ -92,7 +92,7 @@
 				return jquery.dropdownmenu.children(special_selector);
 			}
 		};
-		
+
 		var getAllDropdownA = function(special_selector) {
 			if (special_selector == null) {
 				return getAllDropdownLi().children("a");
@@ -100,11 +100,13 @@
 				return getAllDropdownLi().children(special_selector);
 			}
 		};
-		
+
 		/**
 		 * Get the current selected link in dropdown
 		 */
-		var getDropdownSelectedLink = function(special_selector) {
+		var getDropdownSelectedLink = function(_special_selector) {
+			var special_selector = _special_selector;
+
 			if (special_selector == null) {
 				special_selector = "a.hovered";
 			}
@@ -115,11 +117,11 @@
 				return null;
 			}
 		};
-		
+
 		var current_storage = "";
 		var current_path = "/";
 		$("#" + inputtarget).val("");
-		
+
 		var getStoragePathMD5 = function() {
 			if (current_storage === "") {
 				return "";
@@ -127,15 +129,18 @@
 				return md5(current_storage + ":" + current_path);
 			}
 		};
-		
+
 		var getStoragePathObjects = function() {
 			return {
 				storage: current_storage,
 				path: current_path,
 			};
 		};
-		
-		var setStoragePath = function(storage, path) {
+
+		var setStoragePath = function(_storage, _path) {
+			var storage = _storage;
+			var path = _path;
+
 			if (storage == null) {
 				storage = "";
 			}
@@ -155,18 +160,18 @@
 		placeholder.hide = function() {
 			jquery.placeholder.css('display', 'none');
 		};
-		
+
 		var cancelEdition = function() {
 			jquery.dropdownmenu.css("display", "none");
 			jquery.input.val("");
 			jquery.input.css("width", 4);
 			jquery.input.blur();
-			
+
 			if (getStoragePathMD5() === '') {
 				placeholder.show();
 			}
 		};
-		
+
 		return {
 			jquery: jquery,
 			getAllDropdownLi: getAllDropdownLi,
@@ -188,8 +193,8 @@
 })(window.mydmam.navigator.inputselect);
 
 /**
- * deploy
- * Navigator Inputselect in this jquery item.
+ * deploy Navigator Inputselect in this jquery item.
+ * 
  * @return null
  */
 (function(inputselect) {
@@ -208,10 +213,10 @@
 		content = content + '</div>';
 		$(this).append(content);
 		$(this).removeClass("needtoinstance");
-		
+
 		var engine = inputselect.engine($(this));
 		$("#" + engine.inputtarget).addClass("mynis");
-		
+
 		/**
 		 * Manage the popup menu show and hide
 		 */
@@ -222,17 +227,17 @@
 		var unset_mouse_is_inside = function() {
 			mouse_is_inside = false;
 		};
-		
+
 		engine.jquery.inputbox.mouseout(unset_mouse_is_inside);
 		engine.jquery.dropdownmenu.mouseout(unset_mouse_is_inside);
-		
+
 		engine.jquery.inputbox.mouseover(set_mouse_is_inside);
 		engine.jquery.dropdownmenu.mouseover(set_mouse_is_inside);
 
 		engine.jquery.dropdownmenu.mouseover(function() {
 			engine.getAllDropdownA().removeClass("hovered");
 		});
-		
+
 		engine.jquery.inputbox.click(function() {
 			engine.jquery.input.focus();
 			if (engine.jquery.dropdownmenu.css("display") === "none") {
@@ -257,14 +262,14 @@
 			inputselect.refreshMenu(engine);
 			timeout_action_handle = null;
 		};
-		
+
 		var inputbox_key_action = inputselect.inputboxKeyActionCreator(engine, function() {
 			if (timeout_action_handle != null) {
 				clearTimeout(timeout_action_handle);
 			}
 			timeout_action_handle = setTimeout(timeout_action, 500);
 		});
-		
+
 		engine.jquery.input.keypress(inputbox_key_action);
 		engine.jquery.input.keyup(inputbox_key_action);
 		engine.jquery.input.keydown(inputbox_key_action);
@@ -274,31 +279,33 @@
 
 /**
  * inputboxKeyAction
+ * 
  * @return function to call
  */
 (function(inputselect) {
 	inputselect.inputboxKeyActionCreator = function(engine, f_reset_timeout) {
 		return function(event) {
 			engine.placeholder.hide();
-			
+
 			if (event.type !== "keypress") {
 				engine.jquery.input.css("width", 4 + (8 * (engine.jquery.input.val().length + 1)));
 				f_reset_timeout();
 				return;
 			}
-			
-			var keycodes_to_handle = [keycodemap.down, keycodemap.up, keycodemap.enter, keycodemap.backspace, keycodemap.esc];
+
+			var keycodes_to_handle;
+			keycodes_to_handle = [keycodemap.down, keycodemap.up, keycodemap.enter, keycodemap.backspace, keycodemap.esc];
 			if (keycodes_to_handle.indexOf(event.keyCode) === -1) {
 				engine.jquery.input.css("width", 4 + (8 * (engine.jquery.input.val().length + 1)));
 				f_reset_timeout();
-				//console.log(event);
+				// console.log(event);
 				return true;
 			}
-			
+
 			/**
 			 * Pressed key is a "special" key.
 			 */
-			
+
 			if (event.keyCode === keycodemap.esc) {
 				engine.cancelEdition();
 				return false;
@@ -311,9 +318,9 @@
 				inputselect.onChooseSelectOption(engine);
 				return false;
 			}
-			
+
 			var jqr_selected_link = engine.getDropdownSelectedLink();
-			
+
 			/**
 			 * Enter key is pressed
 			 */
@@ -330,7 +337,7 @@
 				}
 				return false;
 			}
-			
+
 			/**
 			 * Down/Up key
 			 * 
@@ -344,7 +351,7 @@
 				}
 				return false;
 			}
-			
+
 			var jqr_parent_li = jqr_selected_link.parent();
 			if (event.keyCode === keycodemap.down) {
 				if (jqr_parent_li.text() !== engine.getAllDropdownLi().last().text()) {
@@ -357,7 +364,7 @@
 					jqr_selected_link.removeClass("hovered");
 				}
 			}
-			
+
 			jqr_selected_link = engine.getDropdownSelectedLink();
 			var top_first_link_offset = engine.getAllDropdownLi().first().offset().top;
 			var top_selected_link_offset = jqr_selected_link.offset().top;
@@ -369,8 +376,10 @@
 
 /**
  * showMenu
+ * 
  * @param engine
- * @param forced If not null, do refresh else if there are no searchpath.
+ * @param forced
+ *            If not null, do refresh else if there are no searchpath.
  * @return null
  */
 (function(inputselect) {
@@ -385,26 +394,26 @@
 		engine.jquery.input.data("searchpath", searchpath);
 
 		var content = "";
-		var content = content + '<span><li class="nav-header">';
-		var content = content + i18n('browser.inputselect.loading');
-		var content = content + '<img src="' + mydmam.urlimgs.ajaxloader + '" style="margin-right: 10px;" class="pull-right" />';
-		var content = content + '</li></span>';
+		content = content + '<span><li class="nav-header">';
+		content = content + i18n('browser.inputselect.loading');
+		content = content + '<img src="' + mydmam.urlimgs.ajaxloader + '" style="margin-right: 10px;" class="pull-right" />';
+		content = content + '</li></span>';
 		engine.jquery.dropdownmenu.html(content);
-		
+
 		var stat = window.mydmam.stat;
-		
+
 		var md5_fullpath = engine.getStoragePathMD5();
 		if (md5_fullpath === '') {
 			md5_fullpath = md5(md5_fullpath);
 		}
-		
+
 		var search_scope = [stat.SCOPE_DIRLIST, stat.SCOPE_COUNT_ITEMS];
 		var search_subscope = [stat.SCOPE_COUNT_ITEMS];
 		if (engine.canselect.files === false) {
 			search_subscope.push(stat.SCOPE_ONLYDIRECTORIES);
 		}
 		var stat_data = stat.query([md5_fullpath], search_scope, search_subscope, 0, inputselect.max_item_list, searchpath);
-				
+
 		if (stat_data == null) {
 			engine.jquery.dropdownmenu.html('<span><li class="nav-header">' + i18n('browser.inputselect.errorduringloading') + '</li></span>');
 			return;
@@ -417,7 +426,7 @@
 			engine.jquery.dropdownmenu.html('<span><li class="nav-header">' + i18n('browser.inputselect.emptydirnoitems') + '</li></span>');
 			return;
 		}
-		
+
 		var content = "";
 		if (stat_data[md5_fullpath].items_total > inputselect.max_item_list) {
 			content = content + '<span><li class="nav-header">' + i18n('browser.inputselect.toomanyitems') + '</li></span>';
@@ -425,13 +434,12 @@
 		}
 
 		var items = stat_data[md5_fullpath].items;
-		for (var pathindexkey in items) {
+		for ( var pathindexkey in items) {
 			var pathindexitem = items[pathindexkey];
-			var items_total = pathindexitem.items_total;
 			var isdirectory = pathindexitem.reference.directory;
 			var path = pathindexitem.reference.path;
 			var storagename = pathindexitem.reference.storagename;
-			
+
 			content = content + '<li>';
 			var icon = '<i class="icon-file"></i>';
 			if (isdirectory) {
@@ -451,7 +459,7 @@
 			}
 			content = content + ' data-isdirectory="' + isdirectory + '"';
 			content = content + '>';
-			
+
 			if (path === '/') {
 				content = content + icon + ' <strong>' + storagename + '</strong>';
 			} else if (path.lastIndexOf('/') === 0) {
@@ -459,13 +467,13 @@
 			} else {
 				content = content + icon + ' ' + path.substring(path.lastIndexOf('/') + 1, path.length);
 			}
-			
+
 			content = content + '</a>';
 			content = content + '</li>';
 		}
-		
+
 		engine.jquery.dropdownmenu.html(content);
-		
+
 		var eachonclick = function() {
 			$(this).click(function() {
 				try {
@@ -476,27 +484,35 @@
 						engine.jquery.dropdownmenu.css("display", "none");
 						engine.jquery.input.blur();
 					}
-				} catch(e){
+				} catch (e) {
 					console.log("Error:", e);
 				}
 				return false;
 			});
 		};
 		engine.getAllDropdownA().each(eachonclick);
-		
+
 	};
 })(window.mydmam.navigator.inputselect);
 
 /**
  * onChooseSelectOption
+ * 
  * @param engine
- * @param newstorage and newpath, or null and null to go to parent directory
- * @param is_storage and is_directory can be null if newstorage or newpath it is.
+ * @param newstorage
+ *            and newpath, or null and null to go to parent directory
+ * @param is_storage
+ *            and is_directory can be null if newstorage or newpath it is.
  * @return null
  */
 (function(inputselect) {
-	inputselect.onChooseSelectOption = function(engine, newstorage, newpath, is_storage, is_directory) {
-		if (newstorage == null || newpath == null) {
+	inputselect.onChooseSelectOption = function(engine, _newstorage, _newpath, _is_storage, _is_directory) {
+		var is_directory = _is_directory;
+		var newstorage = _newstorage;
+		var newpath = _newpath;
+		var is_storage = _is_storage;
+
+		if ((newstorage == null) || (newpath == null)) {
 			var current = engine.getStoragePathObjects();
 			if (current.storage === "") {
 				return;
@@ -506,7 +522,7 @@
 				newpath = "/";
 				newstorage = "";
 				is_storage = true;
-		} else {
+			} else {
 				newstorage = current.storage;
 				if (current.path.lastIndexOf('/') === 0) {
 					newpath = "/";
@@ -517,11 +533,11 @@
 				}
 			}
 		}
-		
+
 		engine.setStoragePath(newstorage, newpath);
 		engine.jquery.input.val("");
 		engine.jquery.input.data("");
-		
+
 		engine.jquery.inputbox.removeClass("inputerror");
 
 		var add_error = function() {
@@ -530,7 +546,7 @@
 			}
 			return '<span style="margin-left: 5px; margin-right: 1px;"><i class="icon-warning-sign"></i></span>';
 		};
-		
+
 		if (newstorage === '') {
 			engine.jquery.actualselection.html('');
 		} else {
@@ -538,24 +554,24 @@
 			if (is_storage) {
 				content = content + '<span style="margin-right: 6px;">';
 				content = content + '<i class="icon-hdd"></i>';
-				if (engine.canselect.storages === false){
+				if (engine.canselect.storages === false) {
 					content = content + add_error();
 				}
 			} else if (is_directory) {
 				content = content + '<span style="margin-right: 4px;">';
 				content = content + '<i class="icon-folder-close"></i>';
-				if (engine.canselect.dirs === false){
+				if (engine.canselect.dirs === false) {
 					content = content + add_error();
 				}
 			} else {
 				content = content + '<span style="margin-right: 6px;">';
 				content = content + '<i class="icon-file"></i>';
-				if (engine.canselect.files === false){
+				if (engine.canselect.files === false) {
 					content = content + add_error();
 				}
 			}
 			content = content + '</span>';
-			
+
 			content = content + '<span style="font-weight: bold;">' + newstorage + '</span>';
 			content = content + ' :: ';
 			content = content + '<span style="">' + newpath + '</span>';

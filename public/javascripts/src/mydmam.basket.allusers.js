@@ -13,7 +13,7 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 /**
@@ -32,7 +32,7 @@
  */
 (function(allusers) {
 	allusers.prepare = function(all_baskets) {
-		for (var userkey in allusers.baskets) {
+		for ( var userkey in allusers.baskets) {
 			allusers.userkeys.push(userkey);
 		}
 		allusers.displayUsers();
@@ -45,7 +45,7 @@
 (function(allusers) {
 	allusers.displayUsers = function() {
 		var content = "";
-		for (var pos in allusers.userkeys) {
+		for ( var pos in allusers.userkeys) {
 			content = content + '<li id="libtnselectuser' + pos + '" class="libtnselectuser">';
 			content = content + '<a href="#' + allusers.usersname[allusers.userkeys[pos]] + '" data-userkey="' + allusers.userkeys[pos] + '" data-selectuserpos="' + pos + '" class="btnbasketusername">';
 			content = content + allusers.usersname[allusers.userkeys[pos]];
@@ -55,28 +55,28 @@
 		}
 		$("#userlist").empty();
 		$("#userlist").html(content);
-		
+
 		$('a.btnbasketusername').each(function() {
 			$(this).click(function() {
 				var pos = $(this).data("selectuserpos");
 				$('li.libtnselectuser').removeClass("active");
 				$('#libtnselectuser' + pos).addClass("active");
-				
+
 				allusers.displayBasket($(this).data("userkey"));
 			});
 		});
-		
+
 		var currentlocationhash = window.location.hash.substring(1);
 		if (currentlocationhash !== "") {
 			var currentuserkey = "";
-			for (var userkey in allusers.usersname) {
+			for ( var userkey in allusers.usersname) {
 				if (allusers.usersname[userkey] === currentlocationhash) {
 					currentuserkey = userkey;
 					break;
 				}
 			}
 			if (currentuserkey !== '') {
-				for (var pos in allusers.userkeys) {
+				for ( var pos in allusers.userkeys) {
 					if (allusers.userkeys[pos] === currentuserkey) {
 						$('#libtnselectuser' + pos).addClass("active");
 						allusers.displayBasket(currentuserkey);
@@ -88,7 +88,6 @@
 	};
 })(window.mydmam.basket.allusers);
 
-
 /**
  * displayModalManualBasketEditor
  */
@@ -96,17 +95,17 @@
 	allusers.displayModalManualBasketEditor = function(request) {
 		var userkey = request.userkey;
 		var basketname = request.basketname;
-		
+
 		var userbaskets = allusers.baskets[userkey];
 		var actualbasketcontentkeys = [];
-		for (var pos_ub in userbaskets) {
+		for ( var pos_ub in userbaskets) {
 			if (userbaskets[pos_ub].name === basketname) {
 				actualbasketcontentkeys = userbaskets[pos_ub].content;
 				break;
 			}
 		}
 		var element;
-		
+
 		var content = "";
 		content = content + '<div id="modalbasketeditor" class="modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="margin-left: -500px; width: 1000px;">';
 		content = content + '<div class="modal-header">';
@@ -115,13 +114,13 @@
 		content = content + '</div>';
 		content = content + '<div class="modal-body">';
 		content = content + '<textarea data-basketname="' + basketname + '" data-userkey="' + userkey + '" spellcheck="false" rows="10" style="width: 100%; margin: 0px; padding: 0px; border-width: 0px;font-size: 10pt; line-height: 11pt; font-family: Monospace;" wrap="off">';
-		for (var pos in actualbasketcontentkeys) {
+		for ( var pos in actualbasketcontentkeys) {
 			element = allusers.pathindexelements[actualbasketcontentkeys[pos]];
 			if (element === null) {
 				continue;
 			}
 			content = content + element.reference.storagename + ":" + element.reference.path + "\n";
-		}		
+		}
 		content = content + '</textarea>';
 		content = content + '</div>';
 		content = content + '<div class="modal-footer">';
@@ -132,30 +131,30 @@
 		content = content + '</button>';
 		content = content + '</div>';
 		content = content + '</div>';
-		
+
 		$("body").append(content);
-		
+
 		$('#modalbasketeditor').on('hidden', function() {
 			$('#modalbasketeditor').remove();
-        });
-		
+		});
+
 		var options = {
 			show: true
 		};
 		$('#modalbasketeditor').modal(options);
-		
+
 		$("#btnvalidmodalbasketeditor").click(function() {
 			var rawbasketcontent = $("#modalbasketeditor textarea").val();
 			var basketname = $("#modalbasketeditor textarea").data("basketname");
 			var userkey = $("#modalbasketeditor textarea").data("userkey");
-			
+
 			var rawbasketlines = rawbasketcontent.split("\n");
 			var line;
 			var item;
 			var newbasketcontent = [];
 			var resolve_new_items_stat = [];
 			var newbasketcontent_paths = [];
-			for (var pos in rawbasketlines) {
+			for ( var pos in rawbasketlines) {
 				line = rawbasketlines[pos].trim();
 				if (line === "") {
 					continue;
@@ -166,16 +165,16 @@
 				item = md5(line);
 				newbasketcontent.push(item);
 				newbasketcontent_paths.push(line);
-				
+
 				if (!allusers.pathindexelements[item]) {
 					resolve_new_items_stat.push(item);
 				}
 			}
-			
+
 			$("#modalbasketeditor button").addClass("disabled");
 			$("#modalbasketeditor button").attr("disabled", "disabled");
 			$("#modalbasketeditor i.iconmodalvalidation").removeClass("hide");
-			
+
 			if (resolve_new_items_stat.length > 0) {
 				var new_pathelementkeys = mydmam.stat.query(resolve_new_items_stat, mydmam.stat.SCOPE_PATHINFO);
 				jQuery.extend(allusers.pathindexelements, new_pathelementkeys);
@@ -185,7 +184,7 @@
 			 * Check if miss resolve path indexes
 			 */
 			var cantfounditemslistpos = [];
-			for (var pos in newbasketcontent) {
+			for ( var pos in newbasketcontent) {
 				item = newbasketcontent[pos];
 				if (!allusers.pathindexelements[item].reference) {
 					cantfounditemslistpos.push(pos);
@@ -193,8 +192,8 @@
 			}
 
 			/**
-			 * Remove bad items for new list
-			 * Display list of bad items (can't resolve it)
+			 * Remove bad items for new list Display list of bad items (can't
+			 * resolve it)
 			 */
 			if (cantfounditemslistpos.length > 0) {
 				content = "";
@@ -203,7 +202,7 @@
 				content = content + '<h4>' + i18n('userprofile.baskets.admin.rawview.modal.warning') + '</h4>';
 				content = content + i18n('userprofile.baskets.admin.rawview.modal.cantfoundsomeitems') + '<br>';
 				content = content + '<pre style="background-color: inherit; border: none; font-size: 10pt; line-height: 11pt;">';
-				for (var pos in cantfounditemslistpos) {
+				for ( var pos in cantfounditemslistpos) {
 					/**
 					 * Remove from current list, and display it
 					 */
@@ -214,26 +213,26 @@
 				content = content + '</div>';
 				$('#containermsgerror').html(content);
 			}
-			
+
 			/**
 			 * Update local cache
 			 */
 			var userbaskets = allusers.baskets[userkey];
-			for (var pos_ub in userbaskets) {
+			for ( var pos_ub in userbaskets) {
 				if (userbaskets[pos_ub].name === basketname) {
 					userbaskets[pos_ub].content = newbasketcontent;
 					break;
 				}
 			}
-				
+
 			allusers.displayBasket(userkey);
-			
+
 			request.newcontent = newbasketcontent;
-			
+
 			var response_callback = function(response) {
 				$('#modalbasketeditor').modal('hide');
-			}; 
-			
+			};
+
 			/**
 			 * Send to server
 			 */
@@ -244,7 +243,7 @@
 				success: response_callback
 			});
 		});
-		
+
 	};
 })(window.mydmam.basket.allusers);
 
@@ -255,7 +254,7 @@
 	allusers.setTablesButtonsEvents = function(userkey) {
 		$('.btnactionevent').click(function() {
 			$("#containermsgerror").empty();
-			
+
 			var request = {};
 			request.userkey = userkey;
 			request.basketname = $(this).data("basketname");
@@ -280,20 +279,18 @@
 			}
 
 			$("li.libtnselectuser i.iconuserrefresh").removeClass("hide");
-			
+
 			/**
 			 * After server response
 			 */
 			var response_callback = function(response) {
-				if (response.actiontodo === "importbasket" |
-					response.actiontodo === "exportbasket" |
-					response.actiontodo === "destroybaskets") {
+				if (response.actiontodo === "importbasket" | response.actiontodo === "exportbasket" | response.actiontodo === "destroybaskets") {
 					window.location.reload();
 					return;
 				}
 				$("li.libtnselectuser i.iconuserrefresh").addClass("hide");
 			};
-			
+
 			/**
 			 * Ask to server
 			 */
@@ -308,7 +305,7 @@
 			 * During server response waiting time...
 			 */
 			var userbaskets = allusers.baskets[request.userkey];
-			for (var pos_ub in userbaskets) {
+			for ( var pos_ub in userbaskets) {
 				if (userbaskets[pos_ub].name === request.basketname) {
 					if (request.actiontodo === "truncatebasket" | request.actiontodo === "removebasket") {
 						if (request.actiontodo === "truncatebasket") {
@@ -317,7 +314,7 @@
 							userbaskets.splice(pos_ub, 1);
 						}
 					} else if (request.actiontodo === "removebasketcontent") {
-						for (var pos_el in userbaskets[pos_ub].content) {
+						for ( var pos_el in userbaskets[pos_ub].content) {
 							var item = userbaskets[pos_ub].content[pos_el];
 							if (item === request.elementkey) {
 								userbaskets[pos_ub].content.splice(pos_el, 1);
@@ -327,13 +324,12 @@
 					}
 					break;
 				}
-			}				
+			}
 			allusers.displayBasket(userkey);
-			
+
 		});
 	};
 })(window.mydmam.basket.allusers);
-
 
 /**
  * displayBasket
@@ -341,15 +337,15 @@
 (function(allusers) {
 	allusers.displayBasket = function(userkey) {
 		var userbaskets = allusers.baskets[userkey];
-		
+
 		var basketname;
 		var basketcontent;
 		var basketelement;
 		var content_basketslist = "";
 		var content_basketscontent = "";
-		
-		var addBasket = function(basketname, content) {
-			content = content + '<tr>';
+
+		var addBasket = function(basketname, _content) {
+			var content = _content + '<tr>';
 			content = content + '<td>' + basketname + '</td>';
 			content = content + '<td>';
 			content = content + '<button class="btn btn-mini btnactionevent btnrawview" type="button" data-basketname="' + basketname + '"><i class="icon-align-left"></i> ' + i18n('userprofile.baskets.admin.rawview') + '</button>';
@@ -363,9 +359,10 @@
 			return content;
 		};
 
-		var addBasketItem = function(basketname, itemelementkey, content) {
+		var addBasketItem = function(basketname, itemelementkey, _content) {
 			var element = allusers.pathindexelements[itemelementkey];
 			element = element.reference;
+			var content = _content;
 			if (element) {
 				content = content + '<tr>';
 				content = content + '<td>' + basketname + '</td>';
@@ -383,7 +380,11 @@
 					content = content + '<span class="label label-important">' + element.size + '</span>';
 				}
 				content = content + '</td>';
-				content = content + '<td>' + element.directory + element.size + '</td>'; //Only for table order functions
+				content = content + '<td>' + element.directory + element.size + '</td>'; // Only
+				// for
+				// table
+				// order
+				// functions
 				content = content + '<td>';
 				if (element.date) {
 					content = content + '<span class="label">' + mydmam.format.fulldate(element.date) + '</span>';
@@ -404,10 +405,10 @@
 			content = content + '<i class="icon-minus-sign"></i></button>';
 			content = content + '</td>';
 			content = content + '</tr>';
-			
+
 			return content;
 		};
-		
+
 		var prepareTableBasketsList = function(content) {
 			var content_pre = "";
 			content_pre = content_pre + '<table class="table table-hover table-condensed" id="tlbbasketlist">';
@@ -418,10 +419,9 @@
 			content_pre = content_pre + '</tr>';
 			content_pre = content_pre + '</thead>';
 			content_pre = content_pre + '<tbody>';
-			content = content_pre + content + '</tbody></table>';
-			return content;
+			return content_pre + content + '</tbody></table>';
 		};
-		
+
 		var prepareTableBasketsItems = function(content) {
 			var content_pre = "";
 			content_pre = content_pre + '<table class="table table-hover table-condensed" id="tlbbasketcontent">';
@@ -437,20 +437,19 @@
 			content_pre = content_pre + '</tr>';
 			content_pre = content_pre + '</thead>';
 			content_pre = content_pre + '<tbody>';
-			content = content_pre + content + '</tbody></table>';
-			return content;
+			return content_pre + content + '</tbody></table>';
 		};
-		
-		for (var pos_ub in userbaskets) {
+
+		for ( var pos_ub in userbaskets) {
 			basketname = userbaskets[pos_ub].name;
 			basketcontent = userbaskets[pos_ub].content;
 			content_basketslist = addBasket(basketname, content_basketslist);
-			for (var pos_elm in basketcontent) {
+			for ( var pos_elm in basketcontent) {
 				basketelement = basketcontent[pos_elm];
 				content_basketscontent = addBasketItem(basketname, basketelement, content_basketscontent);
 			}
 		}
-		
+
 		var drawBasketLists = function() {
 			var content = "";
 			content = content + '<p class="lead">' + i18n('userprofile.baskets.admin.basketslist');
@@ -468,10 +467,10 @@
 			content = content + '</div>';
 			return content;
 		};
-		
+
 		$("#containerbasketslist").empty();
 		$("#containerbasketslist").html(drawBasketLists());
-		
+
 		$("#tlbbasketcontent").dataTable({
 			"bPaginate": false,
 			"bLengthChange": false,
@@ -479,12 +478,36 @@
 			"bInfo": false,
 			"bAutoWidth": false,
 			"bFilter": true,
-			"aoColumnDefs": [
-				{"iDataSort": 3, "aTargets": [2], "bSearchable": false}, //SIZE displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [3]}, //SIZE raw
-				{"iDataSort": 5, "aTargets": [4], "bSearchable": false}, //DATE displayed
-				{"bVisible": false, "bSearchable": false, "aTargets": [5]}, //DATE raw
-				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [6]}, //Remove
+			"aoColumnDefs": [{
+				"iDataSort": 3,
+				"aTargets": [2],
+				"bSearchable": false
+			}, // SIZE
+			// displayed
+			{
+				"bVisible": false,
+				"bSearchable": false,
+				"aTargets": [3]
+			}, // SIZE
+			// raw
+			{
+				"iDataSort": 5,
+				"aTargets": [4],
+				"bSearchable": false
+			}, // DATE
+			// displayed
+			{
+				"bVisible": false,
+				"bSearchable": false,
+				"aTargets": [5]
+			}, // DATE
+			// raw
+			{
+				"bVisible": true,
+				"bSearchable": false,
+				"bSortable": false,
+				"aTargets": [6]
+			}, // Remove
 			]
 		});
 
@@ -495,18 +518,22 @@
 			"bInfo": false,
 			"bAutoWidth": false,
 			"bFilter": true,
-			"aoColumnDefs": [
-				{"bVisible": true, "bSearchable": false, "bSortable": false, "aTargets": [1]}, //Actions
+			"aoColumnDefs": [{
+				"bVisible": true,
+				"bSearchable": false,
+				"bSortable": false,
+				"aTargets": [1]
+			}, // Actions
 			]
 		});
-		
+
 		allusers.setTablesButtonsEvents(userkey);
-		
+
 		$('#sitesearch').bind('keyup.DT', function(e) {
-			var val = this.value==="" ? "" : this.value;
+			var val = this.value === "" ? "" : this.value;
 			$('.dataTables_filter input').val(val);
 			$('.dataTables_filter input').trigger("keyup.DT");
 		});
-		
+
 	};
 })(window.mydmam.basket.allusers);

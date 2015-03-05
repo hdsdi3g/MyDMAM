@@ -118,7 +118,7 @@ public class UAFileOperationTrash extends BaseFileOperation {
 			if (trashs_dirs.containsKey(storagename)) {
 				continue;
 			}
-			File storage_dir = Explorer.getLocalBridgedElement(entry.getValue().prepareStorageElement(storagename));
+			File storage_dir = Explorer.getLocalBridgedElement(SourcePathIndexerElement.prepareStorageElement(storagename));
 			current_user_trash_dir = new File(storage_dir.getPath() + File.separator + trash_directory_name + File.separator + user_base_directory_name);
 			
 			if (current_user_trash_dir.exists() == false) {

@@ -13,7 +13,7 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 /**
@@ -38,7 +38,7 @@
  */
 (function(basket) {
 	basket.addSearchSwitchButtons = function() {
-		$('span.searchresultitem').each(function(){
+		$('span.searchresultitem').each(function() {
 			var elementkey = $(this).data("storagekey");
 			var content = "";
 			var active = "";
@@ -56,6 +56,7 @@
 
 /**
  * isInBasket
+ * 
  * @return boolean
  */
 (function(basket) {
@@ -86,14 +87,16 @@
 (function(basket) {
 	basket.setContent = function(elements) {
 		if (elements === null) {
-			elements = [];
+			basket.content.backend.setContent([]);
+		} else {
+			basket.content.backend.setContent(elements);
 		}
-		basket.content.backend.setContent(elements);
 	};
 })(window.mydmam.basket);
 
 /**
  * showPathIndexKeysForBasketItemsLabel
+ * 
  * @returns pathelementkeys_resolved
  */
 (function(basket) {
@@ -102,7 +105,7 @@
 			return;
 		}
 		var pathelementkeys_resolved = mydmam.stat.query(pathelementkeys_to_resolve, mydmam.stat.SCOPE_PATHINFO);
-		
+
 		var not_founded = '<span style="margin-right: 6px;"><i class="icon-question-sign"></i></span>';
 		not_founded = not_founded + '<span class="text-error">' + i18n('userprofile.baskets.cantfound') + '</span>';
 
@@ -122,7 +125,7 @@
 				for (var pos = 1; pos < path.length; pos++) {
 					content = content + "/" + path[pos];
 				}
-				
+
 				if (element.reference.size) {
 					content = content + ' <span class="label label-important" style="margin-left: 1em;">' + element.reference.size + '</span>';
 				}
@@ -130,7 +133,7 @@
 				$(this).html(content);
 			}
 		};
-		
+
 		$('span.pathelement').each(function() {
 			$(this).html(not_founded);
 		});
@@ -169,20 +172,19 @@
 			}
 			basket.showAll(null, null);
 		};
-		
+
 		var event = function() {
 			var basketname = $(this).data("basketname");
 			document.body.style.cursor = 'wait';
 			basket.content.backend.switch_selected(basketname, on_switch_event);
 		};
-		
+
 		$('input.btnswitchbasket').each(function() {
 			$(this).click(event);
 		});
 
 	};
 })(window.mydmam.basket);
-
 
 /**
  * setRenameBasketButtonsEvents()
@@ -195,7 +197,7 @@
 			}
 			basket.showAll(null, null);
 		};
-		
+
 		var event_click = function() {
 			var basketname = $(this).data("basketname");
 			var id = '#inputbasketname' + md5(basketname).substring(0, 6);
@@ -205,7 +207,7 @@
 			}
 			basket.content.backend.rename(basketname, newname, on_rename_event);
 		};
-		
+
 		var event_keyenter = function(event) {
 			if (event.which !== 13) {
 				return;
@@ -218,7 +220,7 @@
 			}
 			basket.content.backend.rename(basketname, newname, on_rename_event);
 		};
-		
+
 		$('button.btnrenamebasket').each(function() {
 			$(this).click(event_click);
 		});
@@ -226,10 +228,9 @@
 		$('input.inputbasketname').each(function() {
 			$(this).keypress(event_keyenter);
 		});
-		//" data-basketname="' + current_basket.name
+		// " data-basketname="' + current_basket.name
 	};
 })(window.mydmam.basket);
-
 
 /**
  * setRemoveBasketButtonsEvents()
@@ -242,12 +243,12 @@
 			}
 			basket.showAll(null, null);
 		};
-		
+
 		var event = function() {
 			var basketname = $(this).data("basketname");
 			basket.content.backend.bdelete(basketname, on_remove_event);
 		};
-		
+
 		$('button.btnremovebasket').each(function() {
 			$(this).click(event);
 		});
@@ -265,18 +266,17 @@
 			}
 			basket.showAll(null, null);
 		};
-		
+
 		var event = function() {
 			var basketname = $(this).data("basketname");
 			basket.content.backend.truncate(basketname, on_remove_event);
 		};
-		
+
 		$('button.btntruncatebasket').each(function() {
 			$(this).click(event);
 		});
 	};
 })(window.mydmam.basket);
-
 
 /**
  * showAll
@@ -301,26 +301,25 @@
 			});
 			return;
 		}
-		
+
 		var html = '';
-		
+
 		html = html + "<ul>";
 		var pathelementkeys_to_resolve = [];
-		
+
 		var current_basket;
 		var current_basket_content;
-		var basket_element;
 		var is_selected;
 		for (var pos = 0; pos < actual_content.length; pos++) {
 			current_basket = actual_content[pos];
 			is_selected = (actual_selected === current_basket.name);
-			
-			html = html + '<li style="margin-bottom: 2em;">'; 
+
+			html = html + '<li style="margin-bottom: 2em;">';
 			html = html + '<div class="input-prepend input-append">';
 			if (is_selected) {
-				html = html + '<span class="add-on"><input type="radio" checked="checked"></span>'; 
+				html = html + '<span class="add-on"><input type="radio" checked="checked"></span>';
 			} else {
-				html = html + '<span class="add-on"><input type="radio" class="btnswitchbasket" data-basketname="' + current_basket.name + '"></span>'; 
+				html = html + '<span class="add-on"><input type="radio" class="btnswitchbasket" data-basketname="' + current_basket.name + '"></span>';
 			}
 			html = html + '<input type="text" id="inputbasketname' + md5(current_basket.name).substring(0, 6) + '" class="span2 inputbasketname" data-basketname="' + current_basket.name + '" placeholder="' + i18n("userprofile.baskets.basketname") + '" value="' + current_basket.name + '" />';
 			html = html + '<button class="btn btnrenamebasket" data-basketname="' + current_basket.name + '"><i class="icon-edit"></i></button>';
@@ -328,9 +327,9 @@
 			if (is_selected === false) {
 				html = html + '<button class="btn btnremovebasket" data-basketname="' + current_basket.name + '"><i class="icon-remove"></i></button>';
 			}
-			html = html + '</div>'; 
-			html = html + "<ul>"; 
-			
+			html = html + '</div>';
+			html = html + "<ul>";
+
 			current_basket_content = current_basket.content;
 			for (var pos_b = 0; pos_b < current_basket_content.length; pos_b++) {
 				basket_element_key = current_basket_content[pos_b];
@@ -347,23 +346,23 @@
 				html = html + "</li>";
 				pathelementkeys_to_resolve.push(basket_element_key);
 			}
-			
+
 			if (current_basket_content.length === 0) {
 				html = html + '<li><p class="muted">' + i18n("userprofile.baskets.empty") + '</p></li>';
 			}
-			
-			html = html + "</ul></li>"; 
+
+			html = html + "</ul></li>";
 		}
-		html = html + "<li>"; 
-		html = html + '<div class="input-append">'; 
+		html = html + "<li>";
+		html = html + '<div class="input-append">';
 		html = html + '<input type="text" id="inputnewbasket" class="span2" placeholder="' + i18n("userprofile.baskets.newbasketname") + '" />';
 		html = html + '<button type="button" id="createnewbasket" class="btn btn-success"><i class="icon-plus icon-white"></i></button>';
-		html = html + '</div>'; 
-		html = html + "</li>"; 
-		
+		html = html + '</div>';
+		html = html + "</li>";
+
 		html = html + "</ul>";
 		$("#basketslist").html(html);
-		
+
 		var pathelementkeys_resolved = basket.showPathIndexKeysForBasketItemsLabel(pathelementkeys_to_resolve);
 		basket.setSwitchButtonsEvents();
 		basket.setNavigateButtonsEvents(pathelementkeys_resolved);
@@ -371,7 +370,7 @@
 		basket.setTruncateBasketButtonsEvents();
 		basket.setRemoveBasketButtonsEvents();
 		basket.setRenameBasketButtonsEvents();
-		
+
 		$("#createnewbasket").click(function() {
 			var newname = $("#inputnewbasket").val().trim();
 			if (newname === "") {
@@ -383,6 +382,6 @@
 				}
 			});
 		});
-		
+
 	};
 })(window.mydmam.basket);

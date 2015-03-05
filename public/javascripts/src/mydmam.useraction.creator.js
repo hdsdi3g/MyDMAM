@@ -13,12 +13,12 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
-
 
 /**
  * prepareModalHeader()
+ * 
  * @return html string
  */
 (function(creator) {
@@ -37,6 +37,7 @@
 
 /**
  * prepareModalFooter()
+ * 
  * @return html string
  */
 (function(creator) {
@@ -54,6 +55,7 @@
 
 /**
  * prepareFinisherForm() + getFinisherFromCreator()
+ * 
  * @return html string + {}
  */
 (function(creator) {
@@ -93,6 +95,7 @@
 
 /**
  * prepareCommentForm() + getCommentFromCreator()
+ * 
  * @return html string + String
  */
 (function(creator) {
@@ -112,7 +115,9 @@
 })(mydmam.useraction.creator);
 
 /**
- * prepareUserNotificationReasonsForm() + getUserNotificationReasonsFromCreator()
+ * prepareUserNotificationReasonsForm() +
+ * getUserNotificationReasonsFromCreator()
+ * 
  * @return html string + [String]
  */
 (function(creator) {
@@ -148,15 +153,18 @@
 
 /**
  * prepareConfiguratorForFunctionality() & addNewConfiguratorFunctionality()
- * @param classname java class UA to create
+ * 
+ * @param classname
+ *            java class UA to create
  * @return html string
  */
 (function(creator, availabilities, useraction) {
-	creator.prepareConfiguratorForFunctionality = function(classname, index) {
+	creator.prepareConfiguratorForFunctionality = function(classname, _index) {
+		var index = _index;
 		if (index === null) {
 			index = 0;
 		}
-		if (availabilities.content[classname] === null){
+		if (availabilities.content[classname] === null) {
 			return "";
 		}
 
@@ -164,32 +172,32 @@
 		 * Display form
 		 */
 		var content = '';
-		
+
 		var configurator = availabilities.content[classname].configurator;
 		var fields = configurator.fields;
 		var messagebasename = availabilities.content[classname].messagebasename;
-		
+
 		content = content + '<h5>';
 		content = content + i18n('useractions.newaction.settings.item') + " ";
 		content = content + i18n('useractions.functionalities.' + availabilities.content[classname].messagebasename + '.name');
 		content = content + '</h5>';
-		
+
 		if (fields.length === 0) {
 			var field = {
 				type: "label",
 				name: "default",
 				noparamfields: true
-			}
+			};
 			fields.push(field);
 		}
 
-		for (var field_pos in fields) {
+		for ( var field_pos in fields) {
 			var field = fields[field_pos];
 			var default_value = configurator.object[field.name];
 			if (default_value == null) {
 				default_value = "";
 			}
-			
+
 			var translatedfieldname = i18n('useractions.functionalities.' + messagebasename + '.fields.' + field.name);
 			if (translatedfieldname === 'useractions.functionalities.' + messagebasename + '.fields.' + field.name) {
 				/**
@@ -205,16 +213,16 @@
 				translatedhelpfieldname = null;
 			}
 
-			var input_id = 'uacrinput_' + md5(index + '_' + messagebasename + "_" + field.name); //used to simplify the key and avoid "." in ids.
+			var input_id = 'uacrinput_' + md5(index + '_' + messagebasename + "_" + field.name); // used to simplify the key and avoid "." in ids.
 			var input_classname = 'ua-creation-configuratoritem';
 			var input_data = 'data-fieldname="' + field.name + '" data-functclassname="' + classname + '" data-functindex="' + index + '"';
-			
+
 			content = content + '<div class="control-group">';
 			if (!field.noparamfields & (field.type !== 'boolean')) {
 				content = content + '<label class="control-label" for="' + input_id + '">' + translatedfieldname + '</label>';
 			}
 			content = content + '<div class="controls">';
-			
+
 			if (field.type === 'text') {
 				content = content + '<input id="' + input_id + '" type="text" value="' + default_value + '" ' + input_data + ' class="input-xlarge ' + input_classname + '" />';
 			} else if (field.type === 'password') {
@@ -239,7 +247,7 @@
 			} else if (field.type === 'navigatorinputselection') {
 				content = content + '<input id="' + input_id + '" type="text" value="' + default_value + '" ' + input_data + ' class="' + input_classname + '" />';
 				content = content + '<div class="path-select needtoinstance" data-inputtarget="' + input_id + '"';
-				for (var field_option_name in field.options) {
+				for ( var field_option_name in field.options) {
 					var field_option_value = field.options[field_option_name];
 					content = content + ' data-' + field_option_name + '="' + field_option_value + '"';
 				}
@@ -255,17 +263,17 @@
 			} else if (field.type === 'label') {
 				content = content + '<input id="' + input_id + '" type="hidden" value="" ' + input_data + ' class="' + input_classname + '" />';
 			}
-			
+
 			if (translatedhelpfieldname) {
 				content = content + '<span class="help-block">' + translatedhelpfieldname + '</span>';
 			}
-			
+
 			content = content + '</div>';
 			content = content + '</div>';
 		}
-		
+
 		content = content + '<span class="ua-creation-boxaddnewconfigurator"></span>';
-		
+
 		/**
 		 * Display the add another functionality button
 		 */
@@ -275,18 +283,18 @@
 		content = content + '<button class="btn btn-info" data-toggle="dropdown">';
 		content = content + i18n('useractions.newaction.setup.addnewsettings') + ' <span class="caret">';
 		content = content + '</button>';
-		
+
 		var final_functionalities = creator.mergueAllFunctionalitiesForAllItemsBasket(creator.current.items);
 
 		content = content + useraction.drawButtonsCreateContentItemFunctionality(final_functionalities, null, null, null, null, index + 1);
-		
+
 		content = content + '</div>'; // btn-group ua-dropdown
 		content = content + '</div>'; // controls
 		content = content + '</div>'; // control-group
-		
+
 		return content;
 	};
-	
+
 	creator.addNewConfiguratorFunctionalityHandler = function(jquery_selector_base) {
 		var onclick = function() {
 			var classname = $(this).data("ua-classname");
@@ -304,6 +312,7 @@
 
 /**
  * activateAllPendingSelectize()
+ * 
  * @return null
  */
 (function(creator, useraction) {
@@ -312,9 +321,9 @@
 		var optionsmultiple = $(this).data("optionsmultiple");
 		var messagebasename = $(this).data("messagebasename");
 		var fieldname = $(this).data("fieldname");
-		
+
 		$(this).removeClass("activate-selectize");
-		
+
 		var displayItem = function(item, escape) {
 			var translated = i18n('useractions.functionalities.' + messagebasename + '.fields.' + fieldname + '.option.' + escape(item.value));
 			if (translated.startsWith('useractions.functionalities')) {
@@ -322,12 +331,12 @@
 			}
 			if (translated.startsWith('orm.options')) {
 				translated = escape(item.value);
-			}			
+			}
 			return '<div>' + translated + '</div>';
 		};
-		
+
 		var options = {
-			//delimiter: '',
+			// delimiter: '',
 			create: false,
 			persist: false,
 			maxItems: 1,
@@ -338,7 +347,7 @@
 			options: [],
 			render: {
 				item: displayItem,
-				option: displayItem, 
+				option: displayItem,
 			},
 			load: function(query, callback) {
 				$.ajax({
@@ -356,22 +365,22 @@
 				});
 			},
 		};
-		
+
 		if (optionsmultiple) {
 			options.maxItems = null;
 		}
-		
+
 		$(this).selectize(options);
 	};
-	
+
 	creator.activateAllPendingSelectize = function() {
 		$('select.activate-selectize').each(each);
 	};
 })(mydmam.useraction.creator, mydmam.useraction);
 
-
 /**
  * mergueAllFunctionalitiesForAllItemsBasket()
+ * 
  * @param current_items
  * @return Array of functionalities
  */
@@ -379,30 +388,30 @@
 	creator.mergueAllFunctionalitiesForAllItemsBasket = function(current_items) {
 		var importitem = function(item) {
 			var item_key = item.key;
-			var is_directory =  item.directory;
+			var is_directory = item.directory;
 			var item_storagename = item.storagename;
 			var item_path = item.path;
 			return useraction.getFunctionalityListForItem(item_key, is_directory, item_storagename, item_path);
 		};
-		
+
 		var items_functionalities = importitem(current_items[0]);
 		var final_functionalities = [];
-		
+
 		if (current_items.length > 1) {
-			for (var pos_functionalities in items_functionalities) {
+			for ( var pos_functionalities in items_functionalities) {
 				/**
 				 * for each functionalities from first element
 				 */
 				var current_global_functionality = items_functionalities[pos_functionalities];
 				var founded = false;
-	
+
 				for (var pos_items = 1; pos_items < current_items.length; pos_items++) {
 					/**
 					 * for each items after the first
 					 */
 					var item = current_items[pos_items];
 					var functionalities = importitem(item);
-					for (var pos_item_functionality in functionalities) {
+					for ( var pos_item_functionality in functionalities) {
 						/**
 						 * for each functionalities to each items
 						 */
@@ -416,7 +425,7 @@
 						break;
 					}
 				}
-				
+
 				if (founded) {
 					final_functionalities.push(current_global_functionality);
 				}
@@ -431,6 +440,7 @@
 
 /**
  * prepareDisplaySelectedItemInList()
+ * 
  * @param item
  * @return html string
  */
@@ -442,7 +452,7 @@
 		}
 		content = content + '<strong>' + item.storagename + '</strong>';
 		content = content + ' :: ';
-		
+
 		var last_slash_pos = item.path.lastIndexOf("/");
 		if (last_slash_pos > 0) {
 			content = content + '<span class="text-success">' + item.path.substring(0, last_slash_pos + 1) + '</span>';
@@ -457,47 +467,52 @@
 })(mydmam.useraction.creator);
 
 /**
- * createModal()
- * public use
- * @param classname java class UA to create
- * @param items Object/Array of objects, item mush have key, directory, storagename and path as content.
- * @param basketname can be null
+ * createModal() public use
+ * 
+ * @param classname
+ *            java class UA to create
+ * @param items
+ *            Object/Array of objects, item mush have key, directory,
+ *            storagename and path as content.
+ * @param basketname
+ *            can be null
  * @return null
  */
 (function(creator, availabilities) {
-	creator.createModal = function(classname, items, basketname) {
+	creator.createModal = function(classname, _items, basketname) {
+		var items = _items;
 		if ($.isArray(items) === false) {
 			items = [items];
 		}
-		
+
 		creator.current = {
 			classname: classname,
 			items: items
 		};
-		
+
 		$("#uacreationmodal").remove();
 
 		var content = '';
 		content = content + creator.prepareModalHeader();
 
 		content = content + '<p class="lead">' + i18n("Source") + '</p>';
-		
+
 		/**
 		 * Display basket name
-		 **/
+		 */
 		if (basketname) {
 			content = content + '<span class="label label-inverse ua-basketname" data-basketname="' + basketname + '">' + i18n("useractions.newaction.sourcefrombasket") + " " + basketname + '</span> ';
 		} else {
 			content = content + '<span class="hide ua-basketname" data-basketname=""></span>';
 		}
-		
+
 		/**
 		 * Item list
-		 **/
+		 */
 		if (items.length > 1) {
 			content = content + i18n("useractions.newaction.manyselected");
 			content = content + '<ul class="ua-sourcesitems">';
-			for (var pos_item in items) {
+			for ( var pos_item in items) {
 				content = content + '<li><i class="icon-star"></i> ';
 				content = content + '<span class="hide ua-sourcesitem" data-itemkey="' + items[pos_item].key + '"></span>';
 				content = content + creator.prepareDisplaySelectedItemInList(items[pos_item]);
@@ -515,35 +530,36 @@
 
 		content = content + '<p class="lead">' + i18n("useractions.newaction.settings") + '</p>';
 		content = content + creator.prepareConfiguratorForFunctionality(classname, 0);
-		
+
 		content = content + '<p class="lead">' + i18n("useractions.newaction.setup") + '</p>';
-		
+
 		content = content + creator.prepareFinisherForm(basketname);
 		content = content + creator.prepareCommentForm();
 		content = content + creator.prepareUserNotificationReasonsForm();
-		
+
 		content = content + '</form>';
 		content = content + creator.prepareModalFooter();
 		$("body").append(content);
 		mydmam.navigator.inputselect.create("div.path-select.needtoinstance");
 		creator.activateAllPendingSelectize();
-		
+
 		$('#uacreationmodal').modal({});
 		$('#uacreationmodal div.modal-body.ua-creation-box').scrollTop(0);
-		
-		$('#uacreationmodal').on('hidden', function () {
+
+		$('#uacreationmodal').on('hidden', function() {
 			creator.current = null;
 		});
 		$('#uacreationmodal button.ua-creation-start').click(creator.onValidationForm);
-		
+
 		creator.addNewConfiguratorFunctionalityHandler('#uacreationmodal');
 	};
 })(mydmam.useraction.creator, mydmam.useraction.availabilities);
 
-
 /**
  * getFunctionalityConfigurationsFromUACreation()
- * @return never null: [{functionality_classname: java class name, raw_associated_user_configuration: configured object}]
+ * 
+ * @return never null: [{functionality_classname: java class name,
+ *         raw_associated_user_configuration: configured object}]
  */
 (function(creator, availabilities) {
 	creator.getFunctionalityConfigurationsFromUACreation = function(jquery_selector_base) {
@@ -552,10 +568,10 @@
 			var fieldname = $(this).data("fieldname");
 			var classname = $(this).data("functclassname");
 			var index = $(this).data("functindex");
-			
+
 			var item = null;
 			item = result[index];
-			
+
 			if (item == null) {
 				result[index] = {
 					functionality_classname: classname,
@@ -575,6 +591,7 @@
 
 /**
  * getItemsFormCreator()
+ * 
  * @return never null: [item key]
  */
 (function(creator, availabilities) {
@@ -585,7 +602,7 @@
 			if (itemkey === null) {
 				return;
 			}
-			for (var pos_result in result) {
+			for ( var pos_result in result) {
 				if (result[pos_result] === itemkey) {
 					return;
 				}
@@ -599,6 +616,7 @@
 
 /**
  * getBasketNameFromCreator()
+ * 
  * @return never null: String
  */
 (function(creator, availabilities) {
@@ -608,8 +626,8 @@
 })(mydmam.useraction.creator, mydmam.useraction.availabilities);
 
 /**
- * onValidationForm()
- * Called by modal
+ * onValidationForm() Called by modal
+ * 
  * @return null
  */
 (function(creator) {
@@ -621,7 +639,7 @@
 		request.notification_reasons = creator.getUserNotificationReasonsFromCreator();
 		request.finisher = creator.getFinisherFromCreator();
 		request.configured_functionalities = creator.getFunctionalityConfigurationsFromUACreation("#uacreationmodal");
-		
+
 		document.body.style.cursor = 'wait';
 		creator.requestUA(request, function() {
 			document.body.style.cursor = 'default';
@@ -637,15 +655,19 @@
 			$('div.ua-creation-box').prepend(content);
 			$('#uacreationmodal div.modal-body.ua-creation-box').scrollTop(0);
 		});
-		
+
 	};
 })(mydmam.useraction.creator);
 
 /**
  * availabilities.downloadLast()
- * @param request Object
- * @param callback function()
- * @param callback_error function()
+ * 
+ * @param request
+ *            Object
+ * @param callback
+ *            function()
+ * @param callback_error
+ *            function()
  * @return null
  */
 (function(creator) {
@@ -655,7 +677,7 @@
 			type: "POST",
 			async: true,
 			data: {
-				uarequest : JSON.stringify(request),
+				uarequest: JSON.stringify(request),
 			},
 			error: callback_error,
 			success: function(data) {
@@ -668,4 +690,3 @@
 		});
 	};
 })(window.mydmam.useraction.creator);
-

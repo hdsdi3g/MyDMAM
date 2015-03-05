@@ -13,7 +13,7 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 /**
@@ -23,7 +23,7 @@
 	mydmam.stat = {};
 	var stat = mydmam.stat;
 	stat.DEFAULT_PAGE_SIZE = 500;
-	
+
 	/**
 	 * Must match with StatElement.java
 	 */
@@ -32,17 +32,24 @@
 	stat.SCOPE_MTD_SUMMARY = "mtdsummary";
 	stat.SCOPE_COUNT_ITEMS = "countitems";
 	stat.SCOPE_ONLYDIRECTORIES = "onlydirs";
-	
+
 	stat.url = "";
 })(window.mydmam);
 
 /**
  * query
- * @param scopes_subelements, page_from and page_size are not mandatory
+ * 
+ * @param scopes_subelements,
+ *            page_from and page_size are not mandatory
  * @return stat result (StatElement JSON) or null if error
  */
 (function(stat) {
-	stat.query = function(fileshashs, scopes_element, scopes_subelements, page_from, page_size, search) {
+	stat.query = function(fileshashs, scopes_element, _scopes_subelements, _page_from, _page_size, _search) {
+		var page_from = _page_from;
+		var page_size = _page_size;
+		var scopes_subelements = _scopes_subelements;
+		var search = _search;
+
 		if (!page_from) {
 			page_from = 0;
 		}
@@ -55,7 +62,7 @@
 		if (search == null) {
 			search = '';
 		}
-		
+
 		var result = null;
 		$.ajax({
 			url: stat.url,
@@ -63,7 +70,7 @@
 			async: false,
 			data: {
 				"fileshashs": fileshashs,
-				"scopes_element": scopes_element, 
+				"scopes_element": scopes_element,
 				"scopes_subelements": scopes_subelements,
 				"page_from": page_from,
 				"page_size": page_size,
@@ -78,5 +85,5 @@
 		});
 		return result;
 	};
-	
+
 })(window.mydmam.stat);

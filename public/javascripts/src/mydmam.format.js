@@ -13,7 +13,7 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 /**
@@ -21,7 +21,7 @@
  */
 (function(mydmam) {
 	mydmam.format = {};
-	
+
 	var addZeros = function(text) {
 		var returntext = '00' + text;
 		return returntext.substr(returntext.length - 2, returntext.length);
@@ -33,40 +33,34 @@
 			return "";
 		}
 		var date = new Date(epoch);
-		var returntext = addZeros(date.getHours()) + ':' + addZeros(date.getMinutes()) + ':' + addZeros(date.getSeconds()); 
+		var returntext = addZeros(date.getHours()) + ':' + addZeros(date.getMinutes()) + ':' + addZeros(date.getSeconds());
 		return returntext;
 	};
 	mydmam.format.date = formatDate;
-		
+
 	var formatFullDate = function(epoch) {
 		if (epoch < 1) {
 			return "";
 		}
 		var date = new Date(epoch);
-		var returntext = addZeros(date.getDate()) + '/' + addZeros(date.getMonth() + 1) + '/' + date.getFullYear() + ' ' + addZeros(date.getHours()) + ':' + addZeros(date.getMinutes()) + ':' + addZeros(date.getSeconds()); 
+		var returntext = addZeros(date.getDate()) + '/' + addZeros(date.getMonth() + 1) + '/' + date.getFullYear() + ' ' + addZeros(date.getHours()) + ':'+ addZeros(date.getMinutes()) + ':' + addZeros(date.getSeconds());
 		return returntext;
 	};
 	mydmam.format.fulldate = formatFullDate;
 
 	var formatDate_JustDate = function(epoch) {
 		var date = new Date(epoch);
-		var returntext = addZeros(date.getDate()) + '/' + addZeros(date.getMonth() + 1) + '/' + date.getFullYear(); 
+		var returntext = addZeros(date.getDate()) + '/' + addZeros(date.getMonth() + 1) + '/' + date.getFullYear();
 		return returntext;
 	};
 	mydmam.format.justdate = formatDate_JustDate;
 
-	var formatDate_JustDate = function(epoch) {
-		var date = new Date(epoch);
-		var returntext = addZeros(date.getDate()) + '/' + addZeros(date.getMonth() + 1) + '/' + date.getFullYear(); 
-		return returntext;
-	};
-	
 	var secondsToYWDHMS = function(seconds) {
 		if (seconds === 0) {
 			return "0";
 		}
 		var sb = '';
-		
+
 		var oneyear = 31536000;
 		// (365 x 24 x 60 x 60 ) en secondes
 		var _years = seconds / oneyear;
@@ -79,7 +73,7 @@
 				sb = sb.append(' ' + i18n('timeunit.year') + ' ');
 			}
 		}
-		
+
 		var oneweek = 604800;
 		// 7 x 24 x 60 x 60 en secondes
 		var _weeks = (_years - years) * oneyear / oneweek;
@@ -92,7 +86,7 @@
 				sb = sb.append(' ' + i18n('timeunit.week') + ' ');
 			}
 		}
-		
+
 		var oneday = 86400;
 		// 24 x 60 x 60 en secondes
 		var _days = (_weeks - weeks) * oneweek / oneday;
@@ -105,38 +99,38 @@
 				sb = sb.append(' ' + i18n('timeunit.day') + ' ');
 			}
 		}
-		
+
 		// secondes restantes
 		var sec = (_days - days) * oneday;
-		
+
 		var hrs = Math.floor(sec / 3600);
 		if (hrs < 10) {
 			sb = sb.append(0);
 		}
 		sb = sb.append(hrs);
 		sb = sb.append(":");
-		
+
 		var _diff_hours = sec / 3600;
 		var diff_hours = Math.floor(_diff_hours); // en heures
 		var min = (_diff_hours - diff_hours) * 60;
-		
+
 		if (min < 10) {
 			sb = sb.append(0);
 		}
 		sb = sb.append(Math.floor(min));
-		
+
 		sb = sb.append(":");
-		var  secresult = Math.round((min - Math.floor(min)) * 60);
-		
+		var secresult = Math.round((min - Math.floor(min)) * 60);
+
 		if (secresult < 10) {
 			sb = sb.append(0);
 		}
-		
+
 		sb = sb.append(secresult);
-		
+
 		return sb;
 	};
-	
+
 	mydmam.format.timeAgo = function(epoch_since_date, i18n_pos, i18n_neg) {
 		var delta = (new Date().getTime() - epoch_since_date) / 1000;
 		var i18n_label = i18n_pos;
@@ -149,8 +143,8 @@
 	var numberformat = null;
 	if (window.Intl) {
 		numberformat = new window.Intl.NumberFormat();
-	}	
-	
+	}
+
 	mydmam.format.number = function(value) {
 		if (numberformat) {
 			return numberformat.format(value);

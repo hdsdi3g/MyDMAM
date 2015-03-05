@@ -13,9 +13,8 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
-
 
 /**
  * contextToString(instances)
@@ -27,14 +26,14 @@
 		content = content + '<abbr title="' + context.classname + '">' + class_name + '.class</abbr>';
 		if (show_json_content) {
 			if (jQuery.isEmptyObject(context.content) === false) {
-				content = content + ' &bull; <code class="json"><i class="icon-indent-left"></i>'; 
-				content = content + JSON.stringify(context.content, null, " "); 
-				content = content + '</code>'; 
+				content = content + ' &bull; <code class="json"><i class="icon-indent-left"></i>';
+				content = content + JSON.stringify(context.content, null, " ");
+				content = content + '</code>';
 			} else {
-				content = content + '<br>'; 
+				content = content + '<br>';
 			}
 		} else {
-			content = content + '<br>'; 
+			content = content + '<br>';
 		}
 		if (context.neededstorages) {
 			content = content + i18n('manager.jobcreator.context.neededindexedstoragesnames') + ' ';
@@ -63,11 +62,11 @@
 			content = content + '<abbr title="' + i18n('manager.jobcreator.createdby') + ' ' + creator.creator + '">' + creator.long_name + '</abbr><br />';
 			content = content + '<small>' + creator.vendor_name + '</small>';
 			content = content + '</td>';
-			
+
 			if (specific_row) {
 				content = content + specific_row(creator, instance);
 			}
-			
+
 			content = content + '<td><small>';
 			for (var pos_d = 0; pos_d < creator.declarations.length; pos_d++) {
 				var declaration = creator.declarations[pos_d];
@@ -79,11 +78,11 @@
 					content = content + '<li>' + jobcreator.contextToString(declaration.contexts[pos_ctx], true) + '</li>';
 				}
 				content = content + '</ul></li>';
-				
+
 				content = content + '</ul>';
 			}
 			content = content + '</small></td>';
-			
+
 			if (mydmam.manager.hasInstanceAction()) {
 				content = content + '<td>';
 				content = content + '<div class="btn-group">';
@@ -93,7 +92,7 @@
 					content = content + 'data-order_key="activity" ';
 					content = content + 'data-order_value="disable" ';
 					content = content + 'data-target_reference_key="' + creator.reference_key + '" ';
-					content = content + '><i class="icon-stop icon-white"></i> ' + i18n("manager.jobcreator.action.disable") ;
+					content = content + '><i class="icon-stop icon-white"></i> ' + i18n("manager.jobcreator.action.disable");
 					content = content + '</button>';
 				} else {
 					content = content + '<button class="btn btn-mini btnmgraction btn-success" ';
@@ -101,7 +100,7 @@
 					content = content + 'data-order_key="activity" ';
 					content = content + 'data-order_value="enable" ';
 					content = content + 'data-target_reference_key="' + creator.reference_key + '" ';
-					content = content + '><i class="icon-play icon-white"></i> ' + i18n("manager.jobcreator.action.enable") ;
+					content = content + '><i class="icon-play icon-white"></i> ' + i18n("manager.jobcreator.action.enable");
 					content = content + '</button>';
 				}
 				content = content + '<button class="btn btn-mini btnmgraction btn-primary" ';
@@ -109,13 +108,13 @@
 				content = content + 'data-order_key="activity" ';
 				content = content + 'data-order_value="createjobs" ';
 				content = content + 'data-target_reference_key="' + creator.reference_key + '" ';
-				content = content + '><i class="icon-play-circle icon-white"></i> ' + i18n("manager.jobcreator.action.createjobs") ;
+				content = content + '><i class="icon-play-circle icon-white"></i> ' + i18n("manager.jobcreator.action.createjobs");
 				content = content + '</button>';
-				
-				content = content + '</div>'; //btn-group
+
+				content = content + '</div>'; // btn-group
 				content = content + '</td>';
 			}
-			
+
 			return content;
 		};
 
@@ -128,7 +127,7 @@
 				return null;
 			}
 			var content = '';
-			
+
 			for (var pos_crt = 0; pos_crt < creators.length; pos_crt++) {
 				var creator = creators[pos_crt];
 				content = content + '<tr>';
@@ -140,20 +139,20 @@
 			}
 			return content;
 		};
-		
+
 		var content = '';
 		var is_empty = true;
 		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatable">';
 		content = content + '<thead>';
 		content = content + '<th>' + i18n('manager.jobcreator.th.instance') + '</th>';
 		content = content + '<th>' + i18n('manager.jobcreator.th.name') + '</th>';
-		
+
 		if (specific_cols_headers) {
 			for (var pos_sch = 0; pos_sch < specific_cols_headers.length; pos_sch++) {
 				content = content + '<th>' + specific_cols_headers[pos_sch] + '</th>';
 			}
 		}
-		
+
 		content = content + '<th>' + i18n('manager.jobcreator.th.declarations') + '</th>';
 		if (mydmam.manager.hasInstanceAction()) {
 			content = content + '<th>' + i18n('manager.jobcreator.th.actions') + '</th>';
@@ -162,7 +161,7 @@
 		content = content + '<tbody>';
 		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
 			var instance = instances[pos_i];
-			var instance_content = prepareInstance(instance); 
+			var instance_content = prepareInstance(instance);
 			if (instance_content != null) {
 				content = content + instance_content;
 				is_empty = false;
@@ -170,7 +169,7 @@
 		}
 		content = content + '</tbody>';
 		content = content + '</table>';
-		
+
 		if (is_empty) {
 			return '<div class="alert alert-info"><strong>' + i18n('manager.workers.empty') + '</strong></div>';
 		} else {
@@ -178,7 +177,6 @@
 		}
 	};
 })(window.mydmam.manager.jobcreator);
-
 
 /**
  * prepareCyclic(instances)
@@ -208,16 +206,16 @@
 					if (label) {
 						content = content + i18n(label);
 					}
-					
+
 					content = content + '</button>';
 				};
-				
+
 				addButton("setperiod", Math.round(creator.period / 2), 'icon-repeat', null, '/2');
 				addButton("setperiod", creator.period * 2, 'icon-repeat', null, 'x2');
 				addButton("setnextdate", creator.next_date_to_create_jobs + creator.period, 'icon-time', 'icon-fast-forward', null);
 				content = content + '</div>';
 				content = content + '</span>';
-				
+
 				if (creator.next_date_to_create_jobs) {
 					if (creator.only_off_hours) {
 						if (instance.is_off_hours) {
@@ -231,22 +229,20 @@
 				} else {
 					content = content + '<br><span class="label">' + i18n('manager.jobcreator.cyclic.nonextdate') + '</span>';
 				}
-				
+
 				if (creator.only_off_hours) {
 					content = content + '<br><span class="label label-info">' + i18n('manager.jobcreator.cyclic.onlyonoffhours') + '</span>';
 					if (creator.is_off_hours) {
 						content = content + '<span class="label label-info">' + i18n('manager.jobcreator.cyclic.actuallyonoffhours') + '</span>';
 					}
 				}
-				content = content;
 			}
-			
+
 			content = content + '</td>';
 			return content;
 		};
-		
-		return jobcreator.prepareGenericTable(instances, "declared_cyclics", 
-				[i18n('manager.jobcreator.cyclic.period')], specific_row, target_class_name);
+
+		return jobcreator.prepareGenericTable(instances, "declared_cyclics", [i18n('manager.jobcreator.cyclic.period')], specific_row, target_class_name);
 	};
 })(window.mydmam.manager.jobcreator);
 
@@ -261,9 +257,7 @@
 			content = content + '</td>';
 			return content;
 		};
-		
-		return jobcreator.prepareGenericTable(instances, "declared_triggers", 
-				[i18n('manager.jobcreator.trigger.hook')], specific_row, 'TriggerJobCreator');
+
+		return jobcreator.prepareGenericTable(instances, "declared_triggers", [i18n('manager.jobcreator.trigger.hook')], specific_row, 'TriggerJobCreator');
 	};
 })(window.mydmam.manager.jobcreator);
-
