@@ -31,13 +31,11 @@ public class UADummyCapability extends UACapability {
 		file_p = internal_configuration.containsKey("file");
 		dir_p = internal_configuration.containsKey("dir");
 		root_p = internal_configuration.containsKey("root");
-		mustbridge = internal_configuration.containsKey("mustbridge");
 	}
 	
 	private boolean file_p = false;
 	private boolean dir_p = false;
 	private boolean root_p = false;
-	private boolean mustbridge = false;
 	
 	public boolean enableFileProcessing() {
 		return file_p;
@@ -49,10 +47,6 @@ public class UADummyCapability extends UACapability {
 	
 	public boolean enableRootStorageindexProcessing() {
 		return root_p;
-	}
-	
-	public boolean mustHaveLocalStorageindexBridge() {
-		return mustbridge;
 	}
 	
 	public List<String> getStorageindexesWhiteList() {

@@ -82,9 +82,6 @@ public class UAManager {
 		add(new UAFileOperationTrash(null));
 		add(new UAFileOperationRefreshPathindex());
 		add(new UAFileOperationReProcessMetadatas());
-		// TODO activate, cases by cases
-		// add(new UAFileOperationExpand());
-		// add(new UAFileOperationPack());
 		
 		List<MyDMAMModule> modules = MyDMAMModulesManager.getAllModules();
 		for (int pos = 0; pos < modules.size(); pos++) {

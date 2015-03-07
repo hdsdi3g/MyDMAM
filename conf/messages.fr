@@ -553,10 +553,10 @@ useractions.functionalities.uafileoperation.refreshpathindex.fields.force_refres
 useractions.functionalities.uafileoperation.refreshpathindex.fields.force_refresh.help=Retire les éléments de l'index, puis refait l'indexation. Permet de retirer de l'index les éléments qui n'y sont plus, mais cela prends plus de temps pour les gros dossiers.
 useractions.functionalities.uafileoperation.refreshmetadatas.name=Actualiser les métadonnées
 useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit=Se limiter
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.MIMETYPE=Au type de fichier.
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.ANALYST=A l'analyse automatique.
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.SIMPLERENDERS=Aux rendus simples.
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.NOLIMITS=A tous les rendus.
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.MIMETYPE=Au type de fichier
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.ANALYST=A l'analyse automatique
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.SIMPLERENDERS=Aux rendus simples
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.NOLIMITS=A tous les rendus
 useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope=Etendue
 useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope.option.CURRENT=Cet élement seulement
 useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope.option.ALL_SUB_ELEMENTS=Cet élément et tous ses sous-élements

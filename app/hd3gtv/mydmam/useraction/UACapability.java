@@ -37,10 +37,6 @@ public abstract class UACapability {
 		return false;
 	}
 	
-	public boolean mustHaveLocalStorageindexBridge() {
-		return false;
-	}
-	
 	public List<String> getStorageindexesWhiteList() {
 		return new ArrayList<String>();
 	}
@@ -49,7 +45,6 @@ public abstract class UACapability {
 		UACapabilityDefinition definition = new UACapabilityDefinition();
 		definition.directoryprocessing_enabled = enableDirectoryProcessing();
 		definition.fileprocessing_enabled = enableFileProcessing();
-		definition.musthavelocalstorageindexbridge = mustHaveLocalStorageindexBridge();
 		definition.rootstorageindexprocessing_enabled = enableRootStorageindexProcessing();
 		definition.storageindexeswhitelist = getStorageindexesWhiteList();
 		if (definition.storageindexeswhitelist == null) {
@@ -79,10 +74,8 @@ public abstract class UACapability {
 				}
 			}
 		}
-		if (mustHaveLocalStorageindexBridge()) {
-			if (Explorer.getBridgedStoragesName().contains(element.storagename) == false) {
-				throw new IOException("Storage index for element has not a storage index bridge");
-			}
+		if (Explorer.getBridgedStoragesName().contains(element.storagename) == false) {
+			throw new IOException("Storage index for element has not a storage index bridge");
 		}
 	}
 	

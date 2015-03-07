@@ -39,7 +39,6 @@ public final class UACapabilityDefinition implements Log2Dumpable {
 	public boolean fileprocessing_enabled;
 	public boolean directoryprocessing_enabled;
 	public boolean rootstorageindexprocessing_enabled;
-	public boolean musthavelocalstorageindexbridge;
 	public List<String> storageindexeswhitelist;
 	
 	public Log2Dump getLog2Dump() {
@@ -47,7 +46,6 @@ public final class UACapabilityDefinition implements Log2Dumpable {
 		dump.add("fileprocessing_enabled", fileprocessing_enabled);
 		dump.add("directoryprocessing_enabled", directoryprocessing_enabled);
 		dump.add("rootstorageindexprocessing_enabled", rootstorageindexprocessing_enabled);
-		dump.add("musthavelocalstorageindexbridge", musthavelocalstorageindexbridge);
 		dump.add("storageindexeswhitelist", storageindexeswhitelist);
 		return dump;
 	}
@@ -69,9 +67,6 @@ public final class UACapabilityDefinition implements Log2Dumpable {
 		}
 		if (rootstorageindexprocessing_enabled == false) {
 			rootstorageindexprocessing_enabled = definition.rootstorageindexprocessing_enabled;
-		}
-		if (musthavelocalstorageindexbridge == false) {
-			musthavelocalstorageindexbridge = definition.musthavelocalstorageindexbridge;
 		}
 		
 		if (definition.storageindexeswhitelist != null) {

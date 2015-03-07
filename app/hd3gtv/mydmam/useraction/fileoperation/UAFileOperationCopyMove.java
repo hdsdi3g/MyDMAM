@@ -78,10 +78,6 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			return true;
 		}
 		
-		public boolean mustHaveLocalStorageindexBridge() {
-			return true;
-		}
-		
 	}
 	
 	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {

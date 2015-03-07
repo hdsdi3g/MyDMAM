@@ -552,18 +552,18 @@ useractions.functionalities.uafileoperation.refreshpathindex.fields.refresh_scop
 useractions.functionalities.uafileoperation.refreshpathindex.fields.force_refresh=Force refresh
 useractions.functionalities.uafileoperation.refreshpathindex.fields.force_refresh.help=Removes items in the index, and then re indexing. Removes the index items that are no longer there, but it takes more time for large files.
 
-useractions.functionalities.uafileoperation.refreshmetadatas.name=Actualiser les métadonnées
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit=Se limiter
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.MIMETYPE=Au type de fichier.
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.ANALYST=A l'analyse automatique.
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.SIMPLERENDERS=Aux rendus simples.
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.NOLIMITS=A tous les rendus.
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope=Etendue
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope.option.CURRENT=Cet élement seulement
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope.option.ALL_SUB_ELEMENTS=Cet élément et tous ses sous-élements
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.force_refresh=Forcer le rafraichissement
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.force_refresh.help=Supprime les métadonnées déjà analysées et rendues, puis refait les analyses et les rendus. Utile en cas de changement de configuration ou de mises à jour.
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_path_index=Rafraichir aussi l'indexaction des fichiers et des dossiers.
+useractions.functionalities.uafileoperation.refreshmetadatas.name=Refresh Metadatas
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit=Limited to
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.MIMETYPE=File type
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.ANALYST=Automatic analysis
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.SIMPLERENDERS=Simple rendering
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.NOLIMITS=All rendering
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope=Scope
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope.option.CURRENT=Only this element
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope.option.ALL_SUB_ELEMENTS=This and all its sub-elements
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.force_refresh=Force refresh
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.force_refresh.help=Removes items in the index, and then re indexing. Removes the index items that are no longer there, but it takes more time for large files.
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_path_index=Refresh also the the files and folders indexing.
 
 # Privileges
 acl.privileges.name.acl=Manage permissions

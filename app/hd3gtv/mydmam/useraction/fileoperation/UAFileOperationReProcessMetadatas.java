@@ -74,10 +74,6 @@ public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 			return true;
 		}
 		
-		public boolean mustHaveLocalStorageindexBridge() {
-			return true;
-		}
-		
 	}
 	
 	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {
@@ -103,8 +99,6 @@ public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 		}*/
 		
 		// BEWARE, KEEP OLD MTDs BEFORE OVERWRITE THE NEWS (for future user mtd).
-		
-		// TODO messages.en for this
 		
 		bulk.terminateBulk();
 	}
