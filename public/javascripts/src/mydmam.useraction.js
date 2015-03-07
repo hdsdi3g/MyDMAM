@@ -174,9 +174,7 @@
 })(window.mydmam.useraction);
 
 /**
- * drawButtonsCreateContent() &
- * drawButtonsCreateContentItemFunctionality(item_functionalities, item_key,
- * is_directory, item_storagename, item_path) Non-blocking action.
+ * drawButtonsCreateContent() & drawButtonsCreateContentItemFunctionality(item_functionalities, item_key, is_directory, item_storagename, item_path) Non-blocking action.
  * 
  * @return null
  */
@@ -366,10 +364,11 @@
 		 */
 		var creator = mydmam.useraction.creator;
 		// var availabilities = mydmam.useraction.availabilities;
+		var basketname = mydmam.basket.currentname;
 
 		var items = [];
 		var itemskeys = [];
-		for (var pathelementkey in pathelementkeys_resolved) {
+		for ( var pathelementkey in pathelementkeys_resolved) {
 			var item = pathelementkeys_resolved[pathelementkey].reference;
 			item.key = pathelementkey;
 			items.push(item);
@@ -413,8 +412,7 @@
 
 		$('#uacreation a.btn-ua-dropdown-showcreate').click(function() {
 			/**
-			 * To remove the protection which block to add UA without add a
-			 * functionality.
+			 * To remove the protection which block to add UA without add a functionality.
 			 */
 			$('#uacreation button.ua-creation-start').removeClass('hide');
 		});

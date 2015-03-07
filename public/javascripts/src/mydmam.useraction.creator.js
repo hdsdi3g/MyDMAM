@@ -60,26 +60,19 @@
  */
 (function(creator) {
 	creator.prepareFinisherForm = function(basketname) {
-		var content = '';
-		content = content + '<div class="control-group">';
-		content = content + '<label class="control-label">' + i18n('useractions.newaction.setup.finisher') + '</label>';
-		content = content + '<div class="controls">';
-		content = content + '<label class="checkbox">';
-		content = content + '<input type="checkbox" class="ua-creation-finisher" value="soft_refresh_source_storage_index_item"> ' + i18n("useractions.newaction.setup.finisher.soft_refresh_source_storage_index_item");
-		content = content + '</label>';
-		content = content + '<label class="checkbox">';
-		content = content + '<input type="checkbox" class="ua-creation-finisher" value="force_refresh_source_storage_index_item"> ' + i18n("useractions.newaction.setup.finisher.force_refresh_source_storage_index_item");
-		content = content + '</label>';
-		content = content + '<label class="checkbox';
-		if (basketname === null) {
-			content = content + ' hide';
+		if ((basketname === null) === false) {
+			var content = '';
+			content = content + '<div class="control-group">';
+			content = content + '<label class="control-label">' + i18n('useractions.newaction.setup.finisher') + '</label>';
+			content = content + '<div class="controls">';
+			content = content + '<label class="checkbox">';
+			content = content + '<input type="checkbox" class="ua-creation-finisher" value="remove_user_basket_item"> ' + i18n("useractions.newaction.setup.finisher.remove_user_basket_item");
+			content = content + '</label>';
+			content = content + '</div>';
+			content = content + '</div>';
+			return content;
 		}
-		content = content + '">';
-		content = content + '<input type="checkbox" class="ua-creation-finisher" value="remove_user_basket_item"> ' + i18n("useractions.newaction.setup.finisher.remove_user_basket_item");
-		content = content + '</label>';
-		content = content + '</div>';
-		content = content + '</div>';
-		return content;
+		return "";
 	};
 	creator.getFinisherFromCreator = function() {
 		var result = {};
@@ -115,8 +108,7 @@
 })(mydmam.useraction.creator);
 
 /**
- * prepareUserNotificationReasonsForm() +
- * getUserNotificationReasonsFromCreator()
+ * prepareUserNotificationReasonsForm() + getUserNotificationReasonsFromCreator()
  * 
  * @return html string + [String]
  */
@@ -472,8 +464,7 @@
  * @param classname
  *            java class UA to create
  * @param items
- *            Object/Array of objects, item mush have key, directory,
- *            storagename and path as content.
+ *            Object/Array of objects, item mush have key, directory, storagename and path as content.
  * @param basketname
  *            can be null
  * @return null
@@ -558,8 +549,7 @@
 /**
  * getFunctionalityConfigurationsFromUACreation()
  * 
- * @return never null: [{functionality_classname: java class name,
- *         raw_associated_user_configuration: configured object}]
+ * @return never null: [{functionality_classname: java class name, raw_associated_user_configuration: configured object}]
  */
 (function(creator, availabilities) {
 	creator.getFunctionalityConfigurationsFromUACreation = function(jquery_selector_base) {

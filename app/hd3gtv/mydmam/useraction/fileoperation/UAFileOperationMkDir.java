@@ -127,6 +127,7 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 				Log2.log.debug("Can't create correctly directories", dump);
 				throw new IOException("Can't create correctly directories: " + dest_dir.getPath());
 			}
+			// TODO refresh pathindex
 			
 			if (stop) {
 				return;

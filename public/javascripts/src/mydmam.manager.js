@@ -625,9 +625,6 @@
 						if (functionality.capability.rootstorageindexprocessing_enabled) {
 							content = content + '<span class="label label-success">Root storage</span>';
 						}
-						if (functionality.capability.musthavelocalstorageindexbridge) {
-							content = content + '<br><span class="label label-important">' + i18n("manager.uafunctlist.musthavelocalstorageindexbridge") + '</span>';
-						}
 						content = content + '</td>';
 
 						content = content + '<td><small>';

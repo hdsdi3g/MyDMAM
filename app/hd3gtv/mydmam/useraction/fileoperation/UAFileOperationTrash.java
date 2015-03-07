@@ -50,9 +50,9 @@ public class UAFileOperationTrash extends BaseFileOperation {
 	
 	public UAFileOperationTrash(String trash_directory_name) {
 		this.trash_directory_name = trash_directory_name;
-		if (trash_directory_name == null) {
-			trash_directory_name = "Trash";
-		}
+	}
+	
+	public UAFileOperationTrash() {
 	}
 	
 	protected String getSubLongName() {
@@ -100,6 +100,10 @@ public class UAFileOperationTrash extends BaseFileOperation {
 	
 	public void process(JobProgression progression, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception {
 		String user_base_directory_name = userprofile.getBaseFileName_BasedOnEMail();
+		
+		if (trash_directory_name == null) {
+			trash_directory_name = "Trash";
+		}
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("user", userprofile.key);

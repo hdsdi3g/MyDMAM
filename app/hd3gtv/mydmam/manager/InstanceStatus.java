@@ -416,7 +416,6 @@ public final class InstanceStatus implements Log2Dumpable {
 			result_implementation.addProperty("powerful_and_dangerous", current.powerful_and_dangerous);
 			
 			result_capability = (JsonObject) UAManager.getGson().toJsonTree(current.capability);
-			result_capability.remove("musthavelocalstorageindexbridge");
 			result_implementation.add("capability", result_capability);
 			
 			result_configurator = (JsonObject) UAManager.getGson().toJsonTree(current.configurator);

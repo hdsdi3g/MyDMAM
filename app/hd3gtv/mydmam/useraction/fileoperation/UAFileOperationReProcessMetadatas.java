@@ -88,7 +88,7 @@ public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 		
 		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 		// TODO
-		// + conf.limit + conf.refresh_path_index
+		// + conf.limit + conf.refresh_path_index (before)
 		/*ArrayList<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>(source_elements.size());
 		items.addAll(source_elements.values());
 		

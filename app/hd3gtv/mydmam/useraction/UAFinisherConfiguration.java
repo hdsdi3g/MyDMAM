@@ -33,10 +33,6 @@ public final class UAFinisherConfiguration implements Log2Dumpable {
 	
 	boolean remove_user_basket_item;
 	
-	// TODO remove refresh pathindex, and integrate it on UAProcess
-	boolean soft_refresh_source_storage_index_item;
-	boolean force_refresh_source_storage_index_item;
-	
 	static class Serializer implements JsonSerializer<UAFinisherConfiguration>, JsonDeserializer<UAFinisherConfiguration> {
 		
 		private Gson gson_simple = new Gson();
@@ -53,8 +49,6 @@ public final class UAFinisherConfiguration implements Log2Dumpable {
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("remove_user_basket_item", remove_user_basket_item);
-		dump.add("soft_refresh_source_storage_index_item", soft_refresh_source_storage_index_item);
-		dump.add("force_refresh_source_storage_index_item", force_refresh_source_storage_index_item);
 		return dump;
 	}
 	

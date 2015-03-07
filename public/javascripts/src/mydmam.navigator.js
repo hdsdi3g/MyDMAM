@@ -13,7 +13,7 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
-*/
+ */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 /**
  * Navigator functions
@@ -21,21 +21,23 @@
 
 /**
  * displayStoragePathNavigator
- * @param currentpage is default to 0 (the first page)
+ * 
+ * @param currentpage
+ *            is default to 0 (the first page)
  */
 (function(navigator) {
 	navigator.displayStoragePathNavigator = function(domid, fullpath, addmetadatastosearchlistitems, currentpage) {
 		document.body.style.cursor = 'wait';
 
 		var externalstorage = false;
-		
+
 		var currentstorage = fullpath.substring(0, fullpath.indexOf(":"));
 		for (var pos = 0; pos < list_external_positions_storages.length; pos++) {
 			if (list_external_positions_storages[pos] == currentstorage) {
 				externalstorage = true;
 			}
 		}
-		
+
 		var stat = window.mydmam.stat;
 		var md5_fullpath = md5(fullpath);
 		var stat_data = stat.query([md5_fullpath], [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS], [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS], currentpage);
@@ -43,7 +45,7 @@
 			$("#" + domid).empty();
 			window.location.hash = '#';
 		};
-		
+
 		if (!stat_data) {
 			no_result();
 			return;
@@ -52,9 +54,9 @@
 			return;
 		}
 		stat_data = stat_data[md5_fullpath];
-		
+
 		var external_elements_to_resolve = [];
-		
+
 		var items = false;
 		if (stat_data.items) {
 			items = stat_data.items;
@@ -64,14 +66,14 @@
 		var items_total = stat_data.items_total;
 		var items_page_from = stat_data.items_page_from;
 		var items_page_size = stat_data.items_page_size;
-		
+
 		var show_useraction_button = mydmam.useraction.isEnabled();
 
 		var content = '<div class="page-header">';
 		content = content + '<h3>';
 		if (reference.storagename) {
 			show_useraction_button = mydmam.useraction.isStorageAsFunctionalities(reference.storagename);
-			
+
 			var url_goback = mydmam.metadatas.url.navigate + "#" + reference.storagename + ":" + reference.path.substring(0, reference.path.lastIndexOf("/"));
 			if (reference.path == '/') {
 				url_goback = mydmam.metadatas.url.navigate + "#";
@@ -107,7 +109,7 @@
 				content = content + mydmam.useraction.prepareButtonCreate(md5_fullpath, reference.directory, reference.storagename, reference.path) + " ";
 			}
 		}
-		
+
 		if (reference.date) {
 			var data_date = mydmam.format.fulldate(reference.date);
 			if (data_date !== "") {
@@ -122,7 +124,7 @@
 		} else {
 			if (items) {
 				// Fake (get from the first item), but realist indexdate.
-				for (var item in items) {
+				for ( var item in items) {
 					var newitem = items[item];
 					if (newitem.reference) {
 						if (newitem.reference.dateindex) {
@@ -136,29 +138,29 @@
 				}
 			}
 		}
-		
+
 		if (reference.size) {
 			content = content + '<span class="label label-important"><i class="icon-briefcase icon-white"></i> ' + mydmam.format.number(reference.size) + '</span> ';
 		}
-		
+
 		if (reference.directory === false) {
 			external_elements_to_resolve.push(md5_fullpath);
 			content = content + '<span id="elmextern-' + md5_fullpath + '"></span>';
-			//TODO show external key.
+			// T O D O show external key.
 		}
-		
+
 		content = content + '</div>';
-		
+
 		if (parentmtdsummary) {
 			content = content + '<div>';
 			content = content + mydmam.metadatas.display(reference, parentmtdsummary, mydmam.metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT);
 			content = content + '</div>';
 		}
-		
+
 		if (items) {
-				
-			var dircontent = []; 
-			for (var item in items) {
+
+			var dircontent = [];
+			for ( var item in items) {
 				var newitem = items[item];
 				newitem.key = item;
 				dircontent.push(newitem);
@@ -175,7 +177,7 @@
 			});
 
 			content = content + '<table class="navdatatable table table-hover table-condensed">';
-			
+
 			content = content + '<thead>';
 			if (reference.storagename) {
 				content = content + '<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
@@ -183,7 +185,7 @@
 				content = content + '<tr><td>' + i18n("browser.storagelist") + '</td> <td></td> <td></td> <td></td> <td></td> <td></td><td></td></tr>';
 			}
 			content = content + '</thead>';
-			
+
 			content = content + '<tbody>';
 			for (var pos = 0; pos < dircontent.length; pos++) {
 				var elementkey = dircontent[pos].key;
@@ -194,20 +196,20 @@
 				if (element.directory === false) {
 					external_elements_to_resolve.push(elementkey);
 				}
-				
+
 				content = content + '<tr>';
-				
+
 				if (element.directory) {
 					content = content + '<th>';
 					content = content + mydmam.basket.prepareNavigatorSwitchButton(elementkey);
-					
+
 					if (reference.storagename) {
 						content = content + '<a class="tlbdirlistitem" href="' + mydmam.metadatas.url.navigate + "#" + element.storagename + ":" + element.path + '">';
 						content = content + element.path.substring(element.path.lastIndexOf("/") + 1);
 						content = content + '</a>';
 					} else {
 						content = content + '<a class="tlbdirlistitem" href="' + mydmam.metadatas.url.navigate + "#" + element.storagename + ':/">';
-						content = content + element.storagename ;
+						content = content + element.storagename;
 						content = content + '</a>';
 					}
 
@@ -219,7 +221,7 @@
 				} else {
 					content = content + '<td>';
 					content = content + mydmam.basket.prepareNavigatorSwitchButton(elementkey);
-					
+
 					if (element.id) {
 						content = content + '<span class="label label-info">' + element.id + '</span> ';
 					}
@@ -228,13 +230,13 @@
 					content = content + '</a>';
 					content = content + '</td>';
 				}
-				
+
 				if (element.directory) {
-						content = content + '<td>';
-						if (show_useraction_button) {
-							content = content + mydmam.useraction.prepareButtonCreate(elementkey, true, element.storagename, element.path);
-						}
-						content = content + ' <span class="label label-success">';
+					content = content + '<td>';
+					if (show_useraction_button) {
+						content = content + mydmam.useraction.prepareButtonCreate(elementkey, true, element.storagename, element.path);
+					}
+					content = content + ' <span class="label label-success">';
 					if (reference.storagename != null) {
 						content = content + i18n('browser.directorytitle');
 					} else {
@@ -260,11 +262,11 @@
 					}
 					content = content + ' <span class="label label-important"><i class="icon-briefcase icon-white"></i> ' + mydmam.format.number(element.size) + '</span>';
 					content = content + '</td>';
-					
+
 					var rawsize = '000000000000000' + element.size;
 					content = content + '<td>' + rawsize.substring(rawsize.length - 15, rawsize.length) + '</td>';
 				}
-				
+
 				if (reference.storagename != null) {
 					content = content + '<td><span class="label">' + mydmam.format.fulldate(element.date) + '</span></td>';
 					content = content + '<td>' + element.date + '</td>';
@@ -273,7 +275,7 @@
 				}
 
 				content = content + '<td id="elmextern-' + elementkey + '"></td>';
-				
+
 				if (element_mtdsummary) {
 					content = content + '<td>' + mydmam.metadatas.displaySummary(element_mtdsummary) + '</td>';
 				} else {
@@ -282,18 +284,18 @@
 
 				content = content + '</tr>';
 			}
-			
+
 			content = content + '</tbody>';
 			content = content + '</table>';
 
 			var href = function(currentpage, pagecount) {
 				return '#' + fullpath;
 			};
-			content = content +  mydmam.pagination.create(items_page_from, Math.ceil(items_total/items_page_size), href, "navigator-" + md5_fullpath);
-			
+			content = content + mydmam.pagination.create(items_page_from, Math.ceil(items_total / items_page_size), href, "navigator-" + md5_fullpath);
+
 			$("#" + domid).empty();
 			$("#" + domid).append(content);
-			
+
 			$('.navdatatable').dataTable({
 				"bPaginate": false,
 				"bLengthChange": false,
@@ -301,26 +303,41 @@
 				"bInfo": false,
 				"bAutoWidth": false,
 				"bFilter": true,
-				"aoColumnDefs": [
-					{"iDataSort": 2, "aTargets": [1], "bSearchable": false}, //SIZE displayed
-					{"bVisible": false, "bSearchable": false, "aTargets": [2]}, //SIZE raw
-					{"iDataSort": 4, "aTargets": [3], "bSearchable": false}, //DATE displayed
-					{"bVisible": false, "bSearchable": false, "aTargets": [4]} //DATE raw
+				"aoColumnDefs": [{
+					"iDataSort": 2,
+					"aTargets": [1],
+					"bSearchable": false
+				}, // SIZE displayed
+				{
+					"bVisible": false,
+					"bSearchable": false,
+					"aTargets": [2]
+				}, // SIZE raw
+				{
+					"iDataSort": 4,
+					"aTargets": [3],
+					"bSearchable": false
+				}, // DATE displayed
+				{
+					"bVisible": false,
+					"bSearchable": false,
+					"aTargets": [4]
+				} // DATE raw
 				]
 			});
 
 			$('#sitesearch').bind('keyup.DT', function(e) {
-				var val = this.value==="" ? "" : this.value;
+				var val = this.value === "" ? "" : this.value;
 				$('.dataTables_filter input').val(val);
 				$('.dataTables_filter input').trigger("keyup.DT");
 			});
-			
+
 			mydmam.pagination.addevents(function(currentpage) {
 				return function() {
 					mydmam.navigator.displayStoragePathNavigator("storageelem", fullpath, true, currentpage);
 				};
 			}, "navigator-" + md5_fullpath);
-			
+
 		} else {
 			$("#" + domid).empty();
 			$("#" + domid).append(content);
@@ -328,20 +345,20 @@
 		mydmam.metadatas.loadAfterDisplay();
 
 		mydmam.useraction.populateButtonsCreate();
-		
+
 		var click_navigate = function() {
 			mydmam.navigator.displayStoragePathNavigator("storageelem", $(this).context.hash.substring(1), true);
 		};
 
 		$("#" + domid + " .tlbdirlistitem").click(click_navigate);
 		$("#" + domid + " .btngoback").click(click_navigate);
-		
+
 		if (reference.storagename) {
 			window.location.hash = reference.storagename + ':' + reference.path;
 		} else {
 			window.location.hash = '#';
 		}
-		
+
 		if (externalstorage & (external_elements_to_resolve.length > 0)) {
 			mydmam.metadatas.getAndAddExternalPosition(external_elements_to_resolve, function(key) {
 				$('#elmextern-' + key).append('<span class="label label-success"><i class="icon-barcode icon-white"></i> ' + i18n('browser.externalposition.online') + '</span> ');
@@ -357,9 +374,9 @@
 		if (addmetadatastosearchlistitems) {
 			mydmam.metadatas.addMetadatasToSearchListItems();
 		}
-		
+
 		mydmam.basket.setSwitchButtonsEvents();
-		
+
 		document.body.style.cursor = 'default';
 	};
 })(window.mydmam.navigator);
@@ -388,7 +405,7 @@
 			currentpath = currentpath + "/" + element_subpaths[pos];
 		}
 		if (content !== "") {
-			var header =      '<li><a href="' + mydmam.metadatas.url.navigate + '#">' + i18n('browser.storagestitle') + '</a> <span class="divider">::</span></li>';
+			var header = '<li><a href="' + mydmam.metadatas.url.navigate + '#">' + i18n('browser.storagestitle') + '</a> <span class="divider">::</span></li>';
 			if (path != "/") {
 				header = header + '<li><a href="' + mydmam.metadatas.url.navigate + "#" + storagename + ':/">' + storagename + '</a></li>';
 			} else {

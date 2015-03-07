@@ -159,6 +159,7 @@ public class UAFileOperationDelete extends BaseFileOperation {
 			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 			new Explorer().deleteStoragePath(bulk, Arrays.asList(entry.getValue()));
 			bulk.terminateBulk();
+			// TODO check refresh pathindex for source and dest
 			
 			if (stop) {
 				return;

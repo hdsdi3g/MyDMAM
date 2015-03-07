@@ -157,6 +157,7 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			}
 			explorer.refreshStoragePath(bulk, Arrays.asList(root_destination), false);
 			bulk.terminateBulk();
+			// TODO check refresh pathindex for source and dest
 			
 			if (stop) {
 				return;
