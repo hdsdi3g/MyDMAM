@@ -18,6 +18,8 @@ package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -28,6 +30,7 @@ import hd3gtv.mydmam.useraction.UAJobProcess;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -35,6 +38,8 @@ import java.util.Map;
 import models.UserProfile;
 
 public class UAFileOperationMkDir extends BaseFileOperation {
+	
+	Explorer explorer = new Explorer();
 	
 	protected String getSubLongName() {
 		return "create directory";
@@ -127,7 +132,10 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 				Log2.log.debug("Can't create correctly directories", dump);
 				throw new IOException("Can't create correctly directories: " + dest_dir.getPath());
 			}
-			// TODO refresh pathindex
+			
+			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+			explorer.refreshCurrentStoragePath(bulk, Arrays.asList(entry.getValue()), false);
+			bulk.terminateBulk();
 			
 			if (stop) {
 				return;

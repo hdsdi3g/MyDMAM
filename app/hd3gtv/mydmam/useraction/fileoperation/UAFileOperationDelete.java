@@ -45,6 +45,8 @@ import org.apache.commons.io.FileUtils;
 
 public class UAFileOperationDelete extends BaseFileOperation {
 	
+	Explorer explorer = new Explorer();
+	
 	protected String getSubLongName() {
 		return "delete file/directory";
 	}
@@ -114,52 +116,48 @@ public class UAFileOperationDelete extends BaseFileOperation {
 				if (stop) {
 					return;
 				}
-				continue;
+			} else {
+				items_to_delete.clear();
+				items_to_delete.add(current_element);
+				boolean can_delete_all = true;
+				recursivePath(current_element, items_to_delete);
+				
+				progression.updateProgress(1, items_to_delete.size());
+				for (int pos_idel = items_to_delete.size() - 1; pos_idel > -1; pos_idel--) {
+					progression.updateProgress(items_to_delete.size() - pos_idel, items_to_delete.size());
+					if (items_to_delete.get(pos_idel).delete() == false) {
+						dump.add("item", items_to_delete.get(pos_idel));
+						can_delete_all = false;
+					}
+					if (stop) {
+						return;
+					}
+				}
+				
+				if (can_delete_all == false) {
+					Log2.log.debug("Can't delete correctly multiple files", dump);
+					throw new IOException("Can't delete multiple files from: " + current_element.getPath());
+				}
 			}
-			
-			items_to_delete.clear();
-			items_to_delete.add(current_element);
-			
-			recursivePath(current_element, items_to_delete);
 			
 			if (stop) {
 				return;
 			}
 			
-			boolean can_delete_all = true;
-			
-			progression.updateProgress(1, items_to_delete.size());
-			for (int pos_idel = items_to_delete.size() - 1; pos_idel > -1; pos_idel--) {
-				progression.updateProgress(items_to_delete.size() - pos_idel, items_to_delete.size());
-				if (items_to_delete.get(pos_idel).delete() == false) {
-					dump.add("item", items_to_delete.get(pos_idel));
-					can_delete_all = false;
-				}
-				if (stop) {
-					return;
-				}
-			}
-			
-			if (can_delete_all == false) {
-				Log2.log.debug("Can't delete correctly multiple files", dump);
-				throw new IOException("Can't delete multiple files from: " + current_element.getPath());
-			}
+			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 			
 			/**
 			 * Delete mtds
 			 */
 			Container container = ContainerOperations.getByPathIndexId(entry.getKey());
 			if (container != null) {
-				ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 				ContainerOperations.requestDelete(container, bulk);
-				bulk.terminateBulk();
 				RenderedFile.purge(entry.getKey());
 			}
 			
-			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
-			new Explorer().deleteStoragePath(bulk, Arrays.asList(entry.getValue()));
+			explorer.deleteStoragePath(bulk, Arrays.asList(entry.getValue()));
+			
 			bulk.terminateBulk();
-			// TODO check refresh pathindex for source and dest
 			
 			if (stop) {
 				return;

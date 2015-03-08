@@ -118,6 +118,8 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			File source = Explorer.getLocalBridgedElement(entry.getValue());
 			CopyMove.checkExistsCanRead(source);
 			
+			// TODO protect duplicate
+			
 			if ((conf.action == Action.MOVE) & (source.canWrite() == false)) {
 				throw new IOException("\"" + source.getPath() + "\" can't to be write (erased)");
 			}
