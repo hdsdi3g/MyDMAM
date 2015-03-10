@@ -18,10 +18,38 @@ package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 
+import java.util.concurrent.TimeUnit;
+
 public class UAFileOperationReProcessMetadatasConfigurator extends UAFileOperationRefreshPathindexConfigurator {
 	
 	public MetadataIndexingLimit limit;
 	
-	boolean refresh_path_index;
+	public boolean refresh_path_index;
+	
+	public enum LimitToRecent {
+		ALL, LAST_MONTH, LAST_WEEK, LAST_DAY, LAST_HOUR, LAST_10MINUTES;
+		
+		long toDate() {
+			switch (this) {
+			case ALL:
+				return 0;
+			case LAST_MONTH:
+				return System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30);
+			case LAST_WEEK:
+				return System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7);
+			case LAST_DAY:
+				return System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1);
+			case LAST_HOUR:
+				return System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1);
+			case LAST_10MINUTES:
+				return System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(10);
+			default:
+				return 0;
+			}
+		}
+		
+	}
+	
+	public LimitToRecent limit_to_recent;
 	
 }

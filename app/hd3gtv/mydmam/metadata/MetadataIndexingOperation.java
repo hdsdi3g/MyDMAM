@@ -87,7 +87,7 @@ public class MetadataIndexingOperation {
 		NOLIMITS
 	}
 	
-	public MetadataIndexingOperation addLimit(MetadataIndexingLimit limit) {
+	public MetadataIndexingOperation setLimit(MetadataIndexingLimit limit) {
 		this.limit = limit;
 		return this;
 	}
@@ -129,7 +129,7 @@ public class MetadataIndexingOperation {
 					blacklistGenerator(item.blacklist.get(pos_bl));
 				}
 			}
-			addLimit(item.limit);
+			setLimit(item.limit);
 			break;
 		}
 		
@@ -151,8 +151,8 @@ public class MetadataIndexingOperation {
 			reference.parentpath = physical_source.getParentFile().getAbsolutePath();
 		}
 		
-		ContainerOrigin containerOrigin = ContainerOrigin.fromSource(reference, physical_source);
-		Container container = new Container(containerOrigin.getUniqueElementKey(), containerOrigin);
+		ContainerOrigin container_origin = ContainerOrigin.fromSource(reference, physical_source);
+		Container container = new Container(container_origin.getUniqueElementKey(), container_origin);
 		EntrySummary entry_summary = new EntrySummary();
 		container.addEntry(entry_summary);
 		

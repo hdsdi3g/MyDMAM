@@ -98,15 +98,8 @@ public class UAFileOperationDelete extends BaseFileOperation {
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
 			progression.incrStep();
 			File current_element = Explorer.getLocalBridgedElement(entry.getValue());
-			if (current_element == null) {
-				throw new NullPointerException("Can't found current_element: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
-			if (current_element.exists() == false) {
-				continue;
-			}
-			if (current_element.getParentFile().canWrite() == false) {
-				throw new IOException("Can't write to current_element parent directory: " + entry.getValue().storagename + ":" + entry.getValue().currentpath);
-			}
+			CopyMove.checkExistsCanRead(current_element);
+			CopyMove.checkIsWritable(current_element.getParentFile());
 			
 			if (current_element.isFile() | FileUtils.isSymlink(current_element)) {
 				if (current_element.delete() == false) {

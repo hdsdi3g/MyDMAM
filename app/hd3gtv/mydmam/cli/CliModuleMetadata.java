@@ -73,7 +73,7 @@ public class CliModuleMetadata implements CliModule {
 				spie.size = files[pos].length();
 				spie.storagename = "MyDMAM-CLI-Request";
 				
-				result = new MetadataIndexingOperation(files[pos]).addLimit(MetadataIndexingLimit.ANALYST).doIndexing();
+				result = new MetadataIndexingOperation(files[pos]).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
 				dump.add("Item", files[pos]);
 				dump.addAll(result);
 			}
