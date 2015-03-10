@@ -17,6 +17,9 @@
 package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.metadata.MetadataIndexer;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -25,9 +28,12 @@ import hd3gtv.mydmam.useraction.UACapability;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
 
+import java.io.File;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import models.UserProfile;
@@ -88,58 +94,54 @@ public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 		
 		UAFileOperationReProcessMetadatasConfigurator conf = user_configuration.getObject(UAFileOperationReProcessMetadatasConfigurator.class);
 		
-		// TODO JobContextMetadataAnalyst
-		
-		/*ArrayList<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>(1);
-		indexer = new MetadataIndexer(conf.force_refresh);
+		ArrayList<SourcePathIndexerElement> items = new ArrayList<SourcePathIndexerElement>(1);
 		
 		long min_index_date = 0;
 		if (conf.limit_to_recent != null) {
 			min_index_date = conf.limit_to_recent.toDate();
 		}
 		
+		ArrayList<JobNG> new_created_jobs = new ArrayList<JobNG>();
+		
 		SourcePathIndexerElement item;
-		ElasticsearchBulkOperation bulk;*/
+		ElasticsearchBulkOperation bulk;
+		progression.updateStep(0, source_elements.size());
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
-			
-			/*item = entry.getValue();
+			progression.incrStep();
+			item = entry.getValue();
 			items.add(item);
 			
-			if (conf.refresh_path_index) {
+			if (stop) {
+				return;
+			}
+			
+			if (conf.refresh_path_index_before) {
 				bulk = Elasticsearch.prepareBulk();
 				explorer.refreshStoragePath(bulk, items, false);
 				bulk.terminateBulk();
 			}
 			
+			if (stop) {
+				return;
+			}
+			
 			File current_element = Explorer.getLocalBridgedElement(entry.getValue());
 			CopyMove.checkExistsCanRead(current_element);
 			
-			// TODO
-			indexer.process(item.storagename, item.currentpath, min_index_date);
-			// Container result = new MetadataIndexingOperation(current_element).setReference(reference) .addLimit(MetadataIndexingLimit.ANALYST).doIndexing();
+			indexer = new MetadataIndexer(true);
+			indexer.setLimitProcessing(conf.limit_processing);
+			new_created_jobs.addAll(indexer.process(item.storagename, item.currentpath, min_index_date));
+		}
+		
+		if (new_created_jobs.isEmpty() == false) {
+			progression.incrStep();
 			
-			switch (conf.limit) {
-			case MIMETYPE:
-				
-				break;
-			case ANALYST:
-				
-				break;
-			case SIMPLERENDERS:
-				
-				break;
-			case NOLIMITS:
-				
-				break;
-			default:
-				break;
-			}*/
+			List<String> job_keys = new ArrayList<String>(new_created_jobs.size());
+			for (int pos = 0; pos < new_created_jobs.size(); pos++) {
+				job_keys.add(new_created_jobs.get(pos).getKey());
+			}
 			
-			/*
-			if (conf.refresh_scope == RefreshScope.CURRENT) {
-				explorer.refreshCurrentStoragePath(bulk, items, conf.force_refresh);
-			} else if (conf.refresh_scope == RefreshScope.ALL_SUB_ELEMENTS) {
-			}*/
+			JobNG.Utility.waitAllJobsProcessing(job_keys, this);
 		}
 		
 		indexer = null;

@@ -16,10 +16,12 @@
 */
 package hd3gtv.mydmam.metadata;
 
+import hd3gtv.mydmam.manager.JobNG;
+
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public interface FutureCreateJobs {
 	
-	void createJob() throws ConnectionException;
+	JobNG createJob() throws ConnectionException;
 	
 }

@@ -34,6 +34,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * Used for regular analysts
+ */
 public class WorkerIndexer extends WorkerNG {
 	
 	private volatile List<MetadataIndexer> analysis_indexers;

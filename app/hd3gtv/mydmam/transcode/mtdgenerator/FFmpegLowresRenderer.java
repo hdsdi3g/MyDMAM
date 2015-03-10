@@ -19,10 +19,11 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.metadata.FutureCreateJobs;
-import hd3gtv.mydmam.metadata.MetadataGeneratorRendererViaWorker;
 import hd3gtv.mydmam.metadata.JobContextMetadataRenderer;
+import hd3gtv.mydmam.metadata.MetadataGeneratorRendererViaWorker;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
@@ -254,23 +255,23 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		final MetadataGeneratorRendererViaWorker source = this;
 		
 		FutureCreateJobs result = new FutureCreateJobs() {
-			public void createJob() throws ConnectionException {
+			public JobNG createJob() throws ConnectionException {
 				FFprobe ffprobe = container.getByClass(FFprobe.class);
 				if (ffprobe == null) {
-					return;
+					return null;
 				}
 				if (audio_only == ffprobe.hasVideo()) {
 					/**
 					 * Audio profile with audio source OR video+audio profile with video+audio source
 					 */
-					return;
+					return null;
 				}
 				Timecode timecode = ffprobe.getDuration();
 				if (timecode == null) {
-					return;
+					return null;
 				}
 				if (transcode_profile == null) {
-					return;
+					return null;
 				}
 				
 				if (container.getSummary().master_as_preview) {
@@ -281,14 +282,14 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 						/**
 						 * Source is audio only, Master as preview is ok, no rendering.
 						 */
-						return;
+						return null;
 					} else {
 						/**
 						 * video is ok ?
 						 */
 						Point resolution = ffprobe.getVideoResolution();
 						if (resolution == null) {
-							return;
+							return null;
 						}
 						if (transcode_profile.getOutputformat() != null) {
 							/**
@@ -296,9 +297,9 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 							 */
 							Point profile_resolution = transcode_profile.getOutputformat().getResolution();
 							if ((profile_resolution.x > resolution.x) | (profile_resolution.y > resolution.y)) {
-								return;
+								return null;
 							} else if ((profile_resolution.x == resolution.x) & (profile_resolution.y == resolution.y)) {
-								return;
+								return null;
 							}
 						}
 					}
@@ -309,7 +310,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 					renderer_context = context_class.newInstance();
 				} catch (Exception e) {
 					Log2.log.error("Impossible error", e);
-					return;
+					return null;
 				}
 				renderer_context.source_fps = timecode.getFps();
 				renderer_context.source_duration = timecode.getValue();
@@ -320,10 +321,11 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 				}
 				
 				try {
-					WorkerRenderer.createJob(container.getOrigin().getPathindexElement(), "FFmpeg lowres for metadatas", renderer_context, source);
+					return WorkerRenderer.createJob(container.getOrigin().getPathindexElement(), "FFmpeg lowres for metadatas", renderer_context, source);
 				} catch (FileNotFoundException e) {
 					Log2.log.error("Can't found valid element", e, container);
 				}
+				return null;
 			}
 		};
 		

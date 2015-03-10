@@ -18,6 +18,7 @@ package hd3gtv.mydmam.metadata;
 
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
@@ -49,7 +50,7 @@ public class WorkerRenderer extends WorkerNG {
 		}
 	}
 	
-	public static void createJob(SourcePathIndexerElement source, String name, JobContextMetadataRenderer renderer_context, MetadataGeneratorRendererViaWorker renderer) throws ConnectionException {
+	public static JobNG createJob(SourcePathIndexerElement source, String name, JobContextMetadataRenderer renderer_context, MetadataGeneratorRendererViaWorker renderer) throws ConnectionException {
 		if (source == null) {
 			throw new NullPointerException("\"origin_key\" can't to be null");
 		}
@@ -63,7 +64,9 @@ public class WorkerRenderer extends WorkerNG {
 		renderer_context.origin_pathindex_key = source.prepare_key();
 		renderer_context.neededstorages = Arrays.asList(source.storagename);
 		
-		AppManager.createJob(renderer_context).setCreator(WorkerRenderer.class).setDeleteAfterCompleted().setName(name).publish();
+		JobNG new_job = AppManager.createJob(renderer_context).setCreator(WorkerRenderer.class).setDeleteAfterCompleted().setName(name);
+		new_job.publish();
+		return new_job;
 	}
 	
 	private volatile MetadataGeneratorRendererViaWorker current_renderer;

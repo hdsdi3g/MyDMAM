@@ -24,13 +24,16 @@ import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.DeployColumnDef;
 import hd3gtv.tools.GsonIgnore;
+import hd3gtv.tools.StoppableProcessing;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -738,6 +741,62 @@ public final class JobNG implements Log2Dumpable {
 				}
 			}
 			return result;
+		}
+		
+		/**
+		 * Blocking operation.
+		 * @param job_keys will be empty at the end.
+		 * @return null when all jobs are CANCELED | POSTPONED | DONE | STOPPED
+		 * @throws Exception if some jobs are in trouble (TOO_OLD | ERROR | TOO_LONG_DURATION)
+		 */
+		public static void waitAllJobsProcessing(List<String> job_keys, StoppableProcessing stoppable) throws Exception {
+			List<String> jobs_keys_in_errors = new ArrayList<String>();
+			HashMap<String, JobNG.JobStatus> current_state = null;
+			
+			while ((job_keys.isEmpty() == false) | (stoppable.isWantToStopCurrentProcessing() == false)) {
+				if (job_keys.size() > 10) {
+					current_state = getJobsStatusByKeys(job_keys.subList(0, 10));
+				} else {
+					current_state = getJobsStatusByKeys(job_keys);
+				}
+				
+				for (Map.Entry<String, JobNG.JobStatus> entry : current_state.entrySet()) {
+					switch (entry.getValue()) {
+					case CANCELED:
+					case POSTPONED:
+					case DONE:
+					case STOPPED:
+						job_keys.remove(entry.getKey());
+						break;
+					case TOO_OLD:
+					case ERROR:
+					case TOO_LONG_DURATION:
+						jobs_keys_in_errors.add(entry.getKey());
+						job_keys.remove(entry.getKey());
+						break;
+					default:
+						break;
+					}
+				}
+				
+				for (int pos = 0; pos < 30; pos++) {
+					if (stoppable.isWantToStopCurrentProcessing()) {
+						break;
+					}
+					Thread.sleep(100);
+				}
+			}
+			
+			if (jobs_keys_in_errors.isEmpty() == false) {
+				Exception e = new Exception("Trouble with some processed jobs");
+				Log2Dump errors = new Log2Dump();
+				List<JobNG> error_jobs = getJobsByKeys(jobs_keys_in_errors);
+				for (int pos = 0; pos < error_jobs.size(); pos++) {
+					errors.addAll(error_jobs.get(pos));
+				}
+				Log2.log.error("Some jobs are trouble", e, errors);
+				throw e;
+			}
 		}
 	}
 	

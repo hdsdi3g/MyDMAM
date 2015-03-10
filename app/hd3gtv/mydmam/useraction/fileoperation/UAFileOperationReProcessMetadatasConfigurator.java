@@ -18,13 +18,14 @@ package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
-public class UAFileOperationReProcessMetadatasConfigurator extends UAFileOperationRefreshPathindexConfigurator {
+public class UAFileOperationReProcessMetadatasConfigurator implements Serializable {
 	
-	public MetadataIndexingLimit limit;
+	public boolean refresh_path_index_before;
 	
-	public boolean refresh_path_index;
+	public MetadataIndexingLimit limit_processing;
 	
 	public enum LimitToRecent {
 		ALL, LAST_MONTH, LAST_WEEK, LAST_DAY, LAST_HOUR, LAST_10MINUTES;

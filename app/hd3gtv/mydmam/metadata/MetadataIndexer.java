@@ -20,6 +20,8 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -41,22 +43,35 @@ public class MetadataIndexer implements IndexingEvent {
 	private boolean stop_analysis;
 	private ElasticsearchBulkOperation es_bulk;
 	private List<FutureCreateJobs> current_create_job_list;
+	private MetadataIndexingLimit limit_processing;
 	
 	public MetadataIndexer(boolean force_refresh) throws Exception {
 		this.force_refresh = force_refresh;
 		current_create_job_list = new ArrayList<FutureCreateJobs>();
 	}
 	
-	public void process(String storagename, String currentpath, long min_index_date) throws Exception {
+	public void setLimitProcessing(MetadataIndexingLimit limit_processing) {
+		this.limit_processing = limit_processing;
+	}
+	
+	/**
+	 * @return new created jobs, never null
+	 */
+	public List<JobNG> process(String storagename, String currentpath, long min_index_date) throws Exception {
 		stop_analysis = false;
 		es_bulk = Elasticsearch.prepareBulk();
 		explorer = new Explorer();
 		explorer.getAllSubElementsFromElementKey(Explorer.getElementKey(storagename, currentpath), min_index_date, this);
 		es_bulk.terminateBulk();
 		
-		for (int pos = 0; pos < current_create_job_list.size(); pos++) {
-			current_create_job_list.get(pos).createJob();
+		if (current_create_job_list.isEmpty()) {
+			return new ArrayList<JobNG>(1);
 		}
+		ArrayList<JobNG> new_jobs = new ArrayList<JobNG>(current_create_job_list.size());
+		for (int pos = 0; pos < current_create_job_list.size(); pos++) {
+			new_jobs.add(current_create_job_list.get(pos).createJob());
+		}
+		return new_jobs;
 	}
 	
 	public synchronized void stop() {
@@ -197,6 +212,9 @@ public class MetadataIndexer implements IndexingEvent {
 		indexing.setReference(element);
 		indexing.setCreateJobList(current_create_job_list);
 		indexing.importConfiguration();
+		if (limit_processing != null) {
+			indexing.setLimit(limit_processing);
+		}
 		
 		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);
 		return true;
