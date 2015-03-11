@@ -95,7 +95,14 @@ public final class JobNG implements Log2Dumpable {
 	/**
 	 * 7 days
 	 */
-	final static int TTL = 3600 * 24 * 7;
+	final static int TTL_WAITING = 3600 * 24 * 7;
+	final static int TTL_DELETE_AFTER_COMPLETED = 300;
+	final static int TTL_PREPARING = 60;
+	final static int TTL_PROCESSING = 120;
+	final static int TTL_DONE = 3600 * 24;
+	final static int TTL_TROUBLES = 3600 * 24 * 3;
+	
+	// TODO
 	
 	public enum JobStatus {
 		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
@@ -394,8 +401,8 @@ public final class JobNG implements Log2Dumpable {
 	void prepareProcessing(MutationBatch mutator) {
 		update_date = System.currentTimeMillis();
 		status = JobStatus.PREPARING;
-		mutator.withRow(CF_QUEUE, key).putColumn("status", status.name(), TTL);
-		mutator.withRow(CF_QUEUE, key).putColumn("update_date", update_date, TTL);
+		mutator.withRow(CF_QUEUE, key).putColumn("status", status.name(), TTL_PREPARING);
+		mutator.withRow(CF_QUEUE, key).putColumn("update_date", update_date, TTL_PREPARING);
 	}
 	
 	JobProgression startProcessing(AppManager manager, WorkerNG worker) {
@@ -473,13 +480,26 @@ public final class JobNG implements Log2Dumpable {
 	}
 	
 	private void exportToDatabase(ColumnListMutation<String> mutator) {
-		int ttl = TTL;
+		/**
+		 * POSTPONED | WAITING
+		 */
+		int ttl = TTL_WAITING;
+		
 		if (delete_after_completed && isThisStatus(JobStatus.DONE, JobStatus.CANCELED)) {
 			/**
 			 * Short ttl if Broker is closed before it can delete this.
 			 */
-			ttl = 300;
+			ttl = TTL_DELETE_AFTER_COMPLETED;
+		} else if (isThisStatus(JobStatus.TOO_OLD, JobStatus.CANCELED, JobStatus.STOPPED, JobStatus.ERROR, JobStatus.TOO_LONG_DURATION)) {
+			ttl = TTL_TROUBLES;
+		} else if (isThisStatus(JobStatus.PREPARING)) {
+			ttl = TTL_PREPARING;
+		} else if (isThisStatus(JobStatus.DONE)) {
+			ttl = TTL_DONE;
+		} else if (isThisStatus(JobStatus.PROCESSING)) {
+			ttl = TTL_PROCESSING;
 		}
+		
 		mutator.putColumn("context_class", context.getClass().getName(), ttl);
 		mutator.putColumn("status", status.name(), ttl);
 		mutator.putColumn("creator_hostname", instance_status_creator_hostname, ttl);
@@ -753,7 +773,7 @@ public final class JobNG implements Log2Dumpable {
 			List<String> jobs_keys_in_errors = new ArrayList<String>();
 			HashMap<String, JobNG.JobStatus> current_state = null;
 			
-			while ((job_keys.isEmpty() == false) | (stoppable.isWantToStopCurrentProcessing() == false)) {
+			while ((job_keys.isEmpty() == false) & (stoppable.isWantToStopCurrentProcessing() == false)) {
 				if (job_keys.size() > 10) {
 					current_state = getJobsStatusByKeys(job_keys.subList(0, 10));
 				} else {

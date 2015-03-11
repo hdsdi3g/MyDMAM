@@ -57,8 +57,8 @@ public final class TriggerJobCreator extends JobCreator {
 			return;
 		}
 		String key = JobContext.Utility.prepareContextKeyForTrigger(job.getContext());
-		mutator.withRow(CF_DONE_JOBS, key).putColumn("source", AppManager.getGson().toJson(job), JobNG.TTL);
-		mutator.withRow(CF_DONE_JOBS, key).putColumn("end_date", job.getEndDate(), JobNG.TTL);
+		mutator.withRow(CF_DONE_JOBS, key).putColumn("source", AppManager.getGson().toJson(job), JobNG.TTL_WAITING);
+		mutator.withRow(CF_DONE_JOBS, key).putColumn("end_date", job.getEndDate(), JobNG.TTL_WAITING);
 	}
 	
 	static void prepareTriggerHooksCreateJobs(List<TriggerJobCreator> triggers, long precedent_date, MutationBatch mutator) throws ConnectionException {

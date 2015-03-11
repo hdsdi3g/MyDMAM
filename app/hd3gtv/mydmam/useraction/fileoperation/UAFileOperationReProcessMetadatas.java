@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.useraction.fileoperation;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
@@ -89,8 +90,6 @@ public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 	private MetadataIndexer indexer;
 	
 	public void process(JobProgression progression, UserProfile userprofile, UAConfigurator user_configuration, HashMap<String, SourcePathIndexerElement> source_elements) throws Exception {
-		Log2Dump dump = new Log2Dump();
-		dump.add("user", userprofile.key);
 		
 		UAFileOperationReProcessMetadatasConfigurator conf = user_configuration.getObject(UAFileOperationReProcessMetadatasConfigurator.class);
 		
@@ -127,6 +126,14 @@ public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 			
 			File current_element = Explorer.getLocalBridgedElement(entry.getValue());
 			CopyMove.checkExistsCanRead(current_element);
+			
+			Log2Dump dump = new Log2Dump();
+			dump.add("user", userprofile.key);
+			dump.addDate("min_index_date", min_index_date);
+			dump.add("limit_processing", conf.limit_processing);
+			dump.add("item", item);
+			dump.add("file", current_element);
+			Log2.log.info("Metadata analyst/render", dump);
 			
 			indexer = new MetadataIndexer(true);
 			indexer.setLimitProcessing(conf.limit_processing);

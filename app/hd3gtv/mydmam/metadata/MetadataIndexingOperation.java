@@ -88,7 +88,11 @@ public class MetadataIndexingOperation {
 	}
 	
 	public MetadataIndexingOperation setLimit(MetadataIndexingLimit limit) {
-		this.limit = limit;
+		if (limit == null) {
+			this.limit = MetadataIndexingLimit.NOLIMITS;
+		} else {
+			this.limit = limit;
+		}
 		return this;
 	}
 	

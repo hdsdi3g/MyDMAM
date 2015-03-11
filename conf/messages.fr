@@ -549,17 +549,20 @@ useractions.functionalities.uafileoperation.refreshpathindex.fields.refresh_scop
 useractions.functionalities.uafileoperation.refreshpathindex.fields.force_refresh=Forcer le rafraichissement
 useractions.functionalities.uafileoperation.refreshpathindex.fields.force_refresh.help=Retire les éléments de l'index, puis refait l'indexation. Permet de retirer de l'index les éléments qui n'y sont plus, mais cela prends plus de temps pour les gros dossiers.
 useractions.functionalities.uafileoperation.refreshmetadatas.name=Actualiser les métadonnées
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit=Se limiter
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.MIMETYPE=Au type de fichier
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.ANALYST=A l'analyse automatique
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.SIMPLERENDERS=Aux rendus simples
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit.option.NOLIMITS=A tous les rendus
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope=Etendue
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope.option.CURRENT=Cet élement seulement
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_scope.option.ALL_SUB_ELEMENTS=Cet élément et tous ses sous-élements
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.force_refresh=Forcer le rafraichissement
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.force_refresh.help=Supprime les métadonnées déjà analysées et rendues, puis refait les analyses et les rendus. Utile en cas de changement de configuration ou de mises à jour.
-useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_path_index=Rafraichir aussi l'indexaction des fichiers et des dossiers.
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_processing=Se limiter
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.refresh_path_index_before=Actualiser l'indexation des fichiers avant
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_processing.option.MIMETYPE=Au type de fichier
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_processing.option.ANALYST=A l'analyse automatique
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_processing.option.SIMPLERENDERS=Aux rendus simples
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_processing.option.NOLIMITS=A tous les rendus
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_to_recent=Se limiter depuis
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_to_recent.option.ALL=tous le temps
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_to_recent.option.LAST_MONTH=le dernier mois
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_to_recent.option.LAST_WEEK=la dernière semaine
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_to_recent.option.LAST_DAY=les dernières 24 heures
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_to_recent.option.LAST_HOUR=la dernière heure
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_to_recent.option.LAST_10MINUTES=les 10 dernières minutes
+useractions.functionalities.uafileoperation.refreshmetadatas.fields.limit_to_recent.help=Se base sur les dates de modification des fichiers
 
 # Privileges
 acl.privileges.name.acl=Gérer des droits d'accès
