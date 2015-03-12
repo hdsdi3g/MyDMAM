@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.useraction.fileoperation;
 
 import hd3gtv.mydmam.db.orm.annotations.TypeNavigatorInputSelection;
+import hd3gtv.mydmam.useraction.fileoperation.CopyMove.FileExistsPolicy;
 
 import java.io.Serializable;
 
@@ -30,5 +31,7 @@ public class UAFileOperationCopyMoveConfigurator implements Serializable {
 	
 	@TypeNavigatorInputSelection(canselectdirs = true, canselectstorages = true, canselectfiles = false)
 	public String destination;
+	
+	public FileExistsPolicy fileexistspolicy;
 	
 }

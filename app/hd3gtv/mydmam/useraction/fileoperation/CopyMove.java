@@ -36,6 +36,10 @@ import org.apache.commons.io.IOUtils;
 
 public class CopyMove {
 	
+	public enum FileExistsPolicy {
+		OVERWRITE, IGNORE, RENAME
+	}
+	
 	public static void checkExistsCanRead(File element) throws IOException, NullPointerException {
 		if (element == null) {
 			throw new NullPointerException("element is null");
@@ -70,6 +74,7 @@ public class CopyMove {
 	private int actual_progress_value = 0;
 	private int last_progress_value = 0;
 	private int progress_size = 0;
+	private FileExistsPolicy fileexistspolicy;
 	
 	public CopyMove(File source, File destination) throws NullPointerException, IOException {
 		this.source = source;
@@ -80,24 +85,36 @@ public class CopyMove {
 		checkExistsCanRead(destination);
 		checkIsDirectory(destination);
 		checkIsWritable(destination);
+		fileexistspolicy = FileExistsPolicy.OVERWRITE;
 	}
 	
-	public void setDelete_after_copy(boolean delete_after_copy) throws IOException {
+	public CopyMove setFileExistsPolicy(FileExistsPolicy fileexistspolicy) {
+		if (fileexistspolicy == null) {
+			return this;
+		}
+		this.fileexistspolicy = fileexistspolicy;
+		return this;
+	}
+	
+	public CopyMove setDelete_after_copy(boolean delete_after_copy) throws IOException {
 		this.delete_after_copy = delete_after_copy;
 		if (delete_after_copy) {
 			checkIsWritable(source);
 		}
+		return this;
 	}
 	
 	private boolean force_move_with_copy_delete;
 	
-	private void forceMoveWithCopyDelete() throws IOException {
+	private CopyMove forceMoveWithCopyDelete() throws IOException {
 		setDelete_after_copy(true);
 		force_move_with_copy_delete = true;
+		return this;
 	}
 	
-	public void setProgression(JobProgression progression) {
+	public CopyMove setProgression(JobProgression progression) {
 		this.progression = progression;
+		return this;
 	}
 	
 	public void operate() throws IOException {
@@ -206,9 +223,46 @@ public class CopyMove {
 	
 	private void copyFile(File source_file, File destination_file) throws IOException {
 		if (destination_file.exists()) {
-			Log2.log.info("destination_file exists, it will be overwrite", new Log2Dump("file", destination_file));
+			Log2Dump dump = new Log2Dump();
+			dump.add("source_file", source_file);
+			dump.add("destination_file", destination_file);
+			dump.add("delete_after_copy", delete_after_copy);
+			
+			if (fileexistspolicy == FileExistsPolicy.IGNORE) {
+				Log2.log.debug("Destination file exists, ignore copy/move", dump);
+				return;
+			} else if (fileexistspolicy == FileExistsPolicy.OVERWRITE) {
+				Log2.log.debug("Destination file exists, overwrite it", dump);
+				FileUtils.forceDelete(destination_file);
+			} else if (fileexistspolicy == FileExistsPolicy.RENAME) {
+				// destination_file
+				int cursor = 1;
+				int dot_pos;
+				StringBuilder sb;
+				while (destination_file.exists()) {
+					sb = new StringBuilder();
+					sb.append(destination_file.getParent());
+					sb.append(File.separator);
+					dot_pos = destination_file.getName().lastIndexOf(".");
+					if (dot_pos > 0) {
+						sb.append(destination_file.getName().substring(0, dot_pos));
+						sb.append(" (");
+						sb.append(cursor);
+						sb.append(")");
+						sb.append(destination_file.getName().substring(dot_pos, destination_file.getName().length()));
+					} else {
+						sb.append(destination_file.getName());
+						sb.append(" (");
+						sb.append(cursor);
+						sb.append(")");
+					}
+					destination_file = new File(sb.toString());
+					cursor++;
+				}
+				dump.add("new destination file name", destination_file);
+				Log2.log.debug("Destination file exists, change destionation name", dump);
+			}
 		}
-		
 		/**
 		 * Imported from org.apache.commons.io.FileUtils
 		 * Licensed to the Apache Software Foundation,

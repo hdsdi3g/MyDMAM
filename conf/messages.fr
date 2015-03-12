@@ -542,6 +542,10 @@ useractions.functionalities.uafileoperation.copymove.fields.destinationplacehold
 useractions.functionalities.uafileoperation.copymove.fields.action=Action
 useractions.functionalities.uafileoperation.copymove.fields.action.option.COPY=Copier
 useractions.functionalities.uafileoperation.copymove.fields.action.option.MOVE=Déplacer
+useractions.functionalities.uafileoperation.copymove.fields.fileexistspolicy=Si la destination existe
+useractions.functionalities.uafileoperation.copymove.fields.fileexistspolicy.option.OVERWRITE=Ecraser
+useractions.functionalities.uafileoperation.copymove.fields.fileexistspolicy.option.IGNORE=Ignorer
+useractions.functionalities.uafileoperation.copymove.fields.fileexistspolicy.option.RENAME=Renommer
 useractions.functionalities.uafileoperation.refreshpathindex.name=Actualiser la liste des éléments
 useractions.functionalities.uafileoperation.refreshpathindex.fields.refresh_scope=Etendue
 useractions.functionalities.uafileoperation.refreshpathindex.fields.refresh_scope.option.CURRENT=Cet élement seulement

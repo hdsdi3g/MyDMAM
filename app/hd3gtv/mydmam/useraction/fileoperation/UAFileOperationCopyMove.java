@@ -118,8 +118,6 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			File source = Explorer.getLocalBridgedElement(entry.getValue());
 			CopyMove.checkExistsCanRead(source);
 			
-			// TODO protect duplicate
-			
 			if ((conf.action == Action.MOVE) & (source.canWrite() == false)) {
 				throw new IOException("\"" + source.getPath() + "\" can't to be write (erased)");
 			}
@@ -129,6 +127,7 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			CopyMove cm = new CopyMove(source, f_destination);
 			cm.setDelete_after_copy(conf.action == Action.MOVE);
 			cm.setProgression(progression);
+			cm.setFileExistsPolicy(conf.fileexistspolicy);
 			cm.operate();
 			
 			if (stop) {
@@ -159,7 +158,6 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			}
 			explorer.refreshStoragePath(bulk, Arrays.asList(root_destination), false);
 			bulk.terminateBulk();
-			// TODO check refresh pathindex for source and dest
 			
 			if (stop) {
 				return;
