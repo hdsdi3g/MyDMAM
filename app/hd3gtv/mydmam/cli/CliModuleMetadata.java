@@ -106,7 +106,7 @@ public class CliModuleMetadata implements CliModule {
 				return;
 			}
 			MetadataIndexer metadataIndexer = new MetadataIndexer(true);
-			metadataIndexer.process(root_indexing.storagename, root_indexing.currentpath, 0);
+			metadataIndexer.process(root_indexing, 0);
 			return;
 		} else if (args.getParamExist("-clean")) {
 			Log2.log.info("Start clean operations");

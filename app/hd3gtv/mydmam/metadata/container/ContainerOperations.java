@@ -498,14 +498,14 @@ public class ContainerOperations {
 			elementcount_by_storage = new HashMap<String, Long>();
 		}
 		
-		boolean containsStorageInBase(ContainerOrigin containerOrigin) {
-			if (elementcount_by_storage.containsKey(containerOrigin.storage) == false) {
-				elementcount_by_storage.put(containerOrigin.storage, explorer.countStorageContentElements(containerOrigin.storage));
-				if (elementcount_by_storage.get(containerOrigin.storage) == 0) {
-					Log2.log.info("Missing storage item in datatabase", new Log2Dump("storagename", containerOrigin.storage));
+		boolean containsStorageInBase(ContainerOrigin origin) {
+			if (elementcount_by_storage.containsKey(origin.storage) == false) {
+				elementcount_by_storage.put(origin.storage, explorer.countStorageContentElements(origin.storage));
+				if (elementcount_by_storage.get(origin.storage) == 0) {
+					Log2.log.info("Missing storage item in datatabase", new Log2Dump("storagename", origin.storage));
 				}
 			}
-			return elementcount_by_storage.get(containerOrigin.storage) > 0;
+			return elementcount_by_storage.get(origin.storage) > 0;
 		}
 		
 		public boolean onFoundHit(SearchHit hit) {

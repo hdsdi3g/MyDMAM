@@ -23,6 +23,7 @@ import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.metadata.MetadataIndexer;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.UACapability;
@@ -99,6 +100,9 @@ public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 		if (conf.limit_to_recent != null) {
 			min_index_date = conf.limit_to_recent.toDate();
 		}
+		if (conf.limit_processing == null) {
+			conf.limit_processing = MetadataIndexingLimit.NOLIMITS;
+		}
 		
 		ArrayList<JobNG> new_created_jobs = new ArrayList<JobNG>();
 		
@@ -137,7 +141,7 @@ public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 			
 			indexer = new MetadataIndexer(true);
 			indexer.setLimitProcessing(conf.limit_processing);
-			new_created_jobs.addAll(indexer.process(item.storagename, item.currentpath, min_index_date));
+			new_created_jobs.addAll(indexer.process(item, min_index_date));
 		}
 		
 		if (new_created_jobs.isEmpty() == false) {

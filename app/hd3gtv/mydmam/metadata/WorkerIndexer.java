@@ -42,6 +42,7 @@ public class WorkerIndexer extends WorkerNG {
 	private volatile List<MetadataIndexer> analysis_indexers;
 	
 	private HashMap<String, Long> lastindexeddatesforstoragenames;
+	private Explorer explorer = new Explorer();
 	
 	public WorkerIndexer(AppManager manager) throws ClassNotFoundException {
 		if (isActivated() == false) {
@@ -95,8 +96,7 @@ public class WorkerIndexer extends WorkerNG {
 			} else {
 				lastindexeddatesforstoragenames.put(storagename, 0l);
 			}
-			
-			metadataIndexer.process(storagename, analyst_context.currentpath, min_index_date);
+			metadataIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, analyst_context.currentpath)), min_index_date);
 			analysis_indexers.remove(metadataIndexer);
 		}
 	}

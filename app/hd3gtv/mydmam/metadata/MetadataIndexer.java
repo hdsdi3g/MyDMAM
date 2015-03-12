@@ -46,6 +46,7 @@ public class MetadataIndexer implements IndexingEvent {
 	private MetadataIndexingLimit limit_processing;
 	
 	public MetadataIndexer(boolean force_refresh) throws Exception {
+		explorer = new Explorer();
 		this.force_refresh = force_refresh;
 		current_create_job_list = new ArrayList<FutureCreateJobs>();
 	}
@@ -57,11 +58,27 @@ public class MetadataIndexer implements IndexingEvent {
 	/**
 	 * @return new created jobs, never null
 	 */
-	public List<JobNG> process(String storagename, String currentpath, long min_index_date) throws Exception {
+	public List<JobNG> process(SourcePathIndexerElement item, long min_index_date) throws Exception {
+		if (item == null) {
+			return new ArrayList<JobNG>(1);
+		}
+		
 		stop_analysis = false;
 		es_bulk = Elasticsearch.prepareBulk();
-		explorer = new Explorer();
-		explorer.getAllSubElementsFromElementKey(Explorer.getElementKey(storagename, currentpath), min_index_date, this);
+		
+		Log2Dump dump = new Log2Dump();
+		dump.add("item", item);
+		dump.addDate("min_index_date", min_index_date);
+		Log2.log.debug("Prepare", dump);
+		
+		if (item.directory) {
+			explorer.getAllSubElementsFromElementKey(item.prepare_key(), min_index_date, this);
+		} else {
+			if (onFoundElement(item) == false) {
+				return new ArrayList<JobNG>(1);
+			}
+		}
+		
 		es_bulk.terminateBulk();
 		
 		if (current_create_job_list.isEmpty()) {
@@ -215,7 +232,6 @@ public class MetadataIndexer implements IndexingEvent {
 		if (limit_processing != null) {
 			indexing.setLimit(limit_processing);
 		}
-		
 		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);
 		return true;
 	}

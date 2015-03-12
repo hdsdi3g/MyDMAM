@@ -155,8 +155,8 @@ public class MetadataIndexingOperation {
 			reference.parentpath = physical_source.getParentFile().getAbsolutePath();
 		}
 		
-		ContainerOrigin container_origin = ContainerOrigin.fromSource(reference, physical_source);
-		Container container = new Container(container_origin.getUniqueElementKey(), container_origin);
+		ContainerOrigin origin = ContainerOrigin.fromSource(reference, physical_source);
+		Container container = new Container(origin.getUniqueElementKey(), origin);
 		EntrySummary entry_summary = new EntrySummary();
 		container.addEntry(entry_summary);
 		

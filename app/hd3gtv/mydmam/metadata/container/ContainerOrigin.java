@@ -55,15 +55,15 @@ public class ContainerOrigin {
 	}
 	
 	public static ContainerOrigin fromSource(SourcePathIndexerElement element, File physical_source) {
-		ContainerOrigin containerOrigin = new ContainerOrigin();
-		containerOrigin.date = element.date;
-		containerOrigin.key = element.prepare_key();
-		containerOrigin.size = element.size;
-		containerOrigin.storage = element.storagename;
-		containerOrigin.currentpath = element.currentpath;
-		containerOrigin.pathindex_element = element;
-		containerOrigin.physical_source = physical_source;
-		return containerOrigin;
+		ContainerOrigin origin = new ContainerOrigin();
+		origin.date = element.date;
+		origin.key = element.prepare_key();
+		origin.size = element.size;
+		origin.storage = element.storagename;
+		origin.currentpath = element.currentpath;
+		origin.pathindex_element = element;
+		origin.physical_source = physical_source;
+		return origin;
 	}
 	
 	/**

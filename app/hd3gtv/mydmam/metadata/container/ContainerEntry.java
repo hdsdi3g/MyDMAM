@@ -30,12 +30,12 @@ public abstract class ContainerEntry implements SelfSerializing, Log2Dumpable {
 	ContainerEntry() {
 	}
 	
-	private ContainerOrigin containerOrigin;
+	private ContainerOrigin origin;
 	
 	transient Container container;
 	
 	public final ContainerOrigin getOrigin() {
-		return containerOrigin;
+		return origin;
 	}
 	
 	public abstract String getES_Type();
@@ -44,15 +44,15 @@ public abstract class ContainerEntry implements SelfSerializing, Log2Dumpable {
 		Log2Dump dump = new Log2Dump();
 		dump.add("type", this.getClass().getName());
 		dump.add("ES type", getES_Type());
-		dump.add("origin", containerOrigin);
+		dump.add("origin", origin);
 		return dump;
 	}
 	
-	public final void setOrigin(ContainerOrigin containerOrigin) throws NullPointerException {
-		if (containerOrigin == null) {
+	public final void setOrigin(ContainerOrigin origin) throws NullPointerException {
+		if (origin == null) {
 			throw new NullPointerException("\"origin\" can't to be null");
 		}
-		this.containerOrigin = containerOrigin;
+		this.origin = origin;
 	}
 	
 	/**
@@ -69,14 +69,14 @@ public abstract class ContainerEntry implements SelfSerializing, Log2Dumpable {
 		JsonElement j_origin = source.get("origin");
 		source.remove("origin");
 		ContainerEntry item = internalDeserialize(source, gson);
-		item.containerOrigin = gson.fromJson(j_origin, ContainerOrigin.class);
+		item.origin = gson.fromJson(j_origin, ContainerOrigin.class);
 		return item;
 	}
 	
 	public JsonObject serialize(SelfSerializing _item, Gson gson) {
 		ContainerEntry item = (ContainerEntry) _item;
 		JsonObject jo = item.internalSerialize(item, gson);
-		jo.add("origin", gson.toJsonTree(item.containerOrigin));
+		jo.add("origin", gson.toJsonTree(item.origin));
 		return jo;
 	}
 	

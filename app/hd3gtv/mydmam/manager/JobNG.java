@@ -102,8 +102,6 @@ public final class JobNG implements Log2Dumpable {
 	final static int TTL_DONE = 3600 * 24;
 	final static int TTL_TROUBLES = 3600 * 24 * 3;
 	
-	// TODO
-	
 	public enum JobStatus {
 		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
 	}
