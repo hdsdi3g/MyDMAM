@@ -21,7 +21,6 @@ import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.web.stat.Stat;
-import hd3gtv.mydmam.web.stat.StatElement;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -253,7 +252,7 @@ public class UserBasket extends Controller {
 		String all_pathindexelements = "{}";
 		if (list_pathindexkeys.isEmpty() == false) {
 			String[] array_scopes_element = new String[1];
-			array_scopes_element[0] = StatElement.SCOPE_PATHINFO;
+			array_scopes_element[0] = Stat.SCOPE_PATHINFO;
 			Stat stat = new Stat(list_pathindexkeys.toArray(new String[list_pathindexkeys.size()]), array_scopes_element, null);
 			all_pathindexelements = stat.toJSONString();
 		}

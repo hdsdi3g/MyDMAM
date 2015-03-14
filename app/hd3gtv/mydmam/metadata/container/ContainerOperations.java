@@ -227,10 +227,10 @@ public class ContainerOperations {
 	
 	public static Containers getByPathIndexId(List<String> pathelement_keys, boolean only_summaries) throws Exception {
 		if (pathelement_keys == null) {
-			throw new NullPointerException("pathelement_keys");
+			return new Containers();
 		}
 		if (pathelement_keys.isEmpty()) {
-			throw new NullPointerException("pathelement_keys is empty");
+			return new Containers();
 		}
 		ArrayList<QueryBuilder> queries = new ArrayList<QueryBuilder>();
 		for (int pos = 0; pos < pathelement_keys.size(); pos++) {

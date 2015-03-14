@@ -26,7 +26,9 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,13 +38,25 @@ import org.elasticsearch.indices.IndexMissingException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 public class Stat {
 	
+	public static final String SCOPE_DIRLIST = "dirlist";
+	public static final String SCOPE_PATHINFO = "pathinfo";
+	public static final String SCOPE_MTD_SUMMARY = "mtdsummary";
+	public static final String SCOPE_COUNT_ITEMS = "countitems";
+	public static final String SCOPE_ONLYDIRECTORIES = "onlydirs";
+	
 	static Gson gson_simple;
 	static Gson gson;
+	static Explorer explorer;
 	
 	static {
+		explorer = new Explorer();
+		
 		GsonBuilder builder = new GsonBuilder();
 		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
 		builder.addDeserializationExclusionStrategy(ignore_strategy);
@@ -51,66 +65,51 @@ public class Stat {
 		builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
 		gson_simple = builder.create();
 		
-		StatElement.Serializer statelement_serializer = new StatElement.Serializer();
-		builder.registerTypeAdapter(StatElement.class, statelement_serializer);
+		builder.registerTypeAdapter(StatResult.class, new StatResultSerializer());
+		builder.registerTypeAdapter(StatResultElement.class, new StatResultElement.Serializer());
+		builder.registerTypeAdapter(StatResultSubElement.class, new StatResultSubElement.Serializer());
 		
 		gson = builder.create();
 	}
 	
-	private ArrayList<String> scopes_element;
-	private ArrayList<String> scopes_subelements;
-	private LinkedHashMap<String, StatElement> selected_path_elements;
+	private StatResult result;
+	
+	private boolean request_dir_count_items = false;
+	private boolean sub_items_count_items = false;
+	private boolean sub_items_only_directories = false;
+	private boolean request_dir_pathinfo = false;
+	private boolean request_dir_mtd_summary = false;
+	private boolean request_dir_dir_list = false;
+	private boolean sub_items_mtd_summary = false;
+	
 	private List<String> pathelementskeys;
 	private int page_from = 0;
 	private int page_size = 100;
 	private String search;
-	private Explorer explorer;
 	
-	public Stat(String[] pathelementskeys, String[] array_scopes_element, String[] array_scopes_subelements) {
-		explorer = new Explorer();
-		
-		if (pathelementskeys != null) {
-			if (pathelementskeys.length > 0) {
-				selected_path_elements = new LinkedHashMap<String, StatElement>(pathelementskeys.length);
-				this.pathelementskeys = new ArrayList<String>(pathelementskeys.length);
-				for (int pos_k = 0; pos_k < pathelementskeys.length; pos_k++) {
-					selected_path_elements.put(pathelementskeys[pos_k], new StatElement());
-					this.pathelementskeys.add(pathelementskeys[pos_k]);
-				}
-			} else {
-				selected_path_elements = new LinkedHashMap<String, StatElement>(1);
-				this.pathelementskeys = new ArrayList<String>(1);
-			}
-		} else {
-			selected_path_elements = new LinkedHashMap<String, StatElement>(1);
-			this.pathelementskeys = new ArrayList<String>(1);
+	public Stat(String[] request_pathelementskeys, String[] request_scopes_element, String[] request_scopes_subelements) {
+		if (request_scopes_element != null) {
+			List<String> scopes_element = Arrays.asList(request_scopes_element);
+			request_dir_count_items = scopes_element.contains(SCOPE_COUNT_ITEMS);
+			request_dir_pathinfo = scopes_element.contains(SCOPE_PATHINFO);
+			request_dir_dir_list = scopes_element.contains(SCOPE_DIRLIST);
+			request_dir_mtd_summary = scopes_element.contains(SCOPE_MTD_SUMMARY);
 		}
 		
-		if (array_scopes_element != null) {
-			if (array_scopes_element.length > 0) {
-				scopes_element = new ArrayList<String>(array_scopes_element.length);
-				for (int pos_sc = 0; pos_sc < array_scopes_element.length; pos_sc++) {
-					scopes_element.add(array_scopes_element[pos_sc]);
-				}
-			} else {
-				scopes_element = new ArrayList<String>(1);
-			}
-		} else {
-			scopes_element = new ArrayList<String>(1);
+		if (request_scopes_subelements != null) {
+			List<String> scopes_subelements = Arrays.asList(request_scopes_subelements);
+			sub_items_count_items = scopes_subelements.contains(SCOPE_COUNT_ITEMS);
+			sub_items_only_directories = scopes_subelements.contains(SCOPE_ONLYDIRECTORIES);
+			sub_items_mtd_summary = scopes_subelements.contains(SCOPE_MTD_SUMMARY);
 		}
 		
-		if (array_scopes_subelements != null) {
-			if (array_scopes_subelements.length > 0) {
-				scopes_subelements = new ArrayList<String>(array_scopes_subelements.length);
-				for (int pos_sc = 0; pos_sc < array_scopes_subelements.length; pos_sc++) {
-					scopes_subelements.add(array_scopes_subelements[pos_sc]);
-				}
-			} else {
-				scopes_subelements = new ArrayList<String>(1);
-			}
+		if (request_pathelementskeys != null) {
+			pathelementskeys = Arrays.asList(request_pathelementskeys);
 		} else {
-			scopes_subelements = new ArrayList<String>(1);
+			pathelementskeys = new ArrayList<String>(1);
 		}
+		
+		result = new StatResult(pathelementskeys);
 	}
 	
 	public Stat setPageFrom(int page_from) throws IndexOutOfBoundsException {
@@ -140,87 +139,7 @@ public class Stat {
 		return this;
 	}
 	
-	private void populate_pathinfo() throws Exception {
-		LinkedHashMap<String, SourcePathIndexerElement> map_elements_resolved = explorer.getelementByIdkeys(pathelementskeys);
-		boolean count_items = scopes_element.contains(StatElement.SCOPE_COUNT_ITEMS);
-		
-		for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
-			if (map_elements_resolved.containsKey(entry.getKey()) == false) {
-				continue;
-			}
-			entry.getValue().reference = map_elements_resolved.get(entry.getKey());
-			if (count_items) {
-				entry.getValue().items_total = explorer.countDirectoryContentElements(entry.getKey());
-			}
-		}
-	}
-	
-	private LinkedHashMap<String, Explorer.DirectoryContent> populate_dirlists() {
-		boolean count_items_for_request_dir = scopes_element.contains(StatElement.SCOPE_COUNT_ITEMS);
-		boolean count_items = scopes_subelements.contains(StatElement.SCOPE_COUNT_ITEMS);
-		boolean only_directories = scopes_subelements.contains(StatElement.SCOPE_ONLYDIRECTORIES);
-		
-		LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list = explorer.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, only_directories, search);
-		
-		LinkedHashMap<String, SourcePathIndexerElement> dir_list;
-		for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
-			if (map_dir_list.containsKey(entry.getKey()) == false) {
-				continue;
-			}
-			dir_list = map_dir_list.get(entry.getKey()).content;
-			if (dir_list.isEmpty()) {
-				continue;
-			}
-			
-			entry.getValue().items = new LinkedHashMap<String, StatElement>(dir_list.size());
-			for (Map.Entry<String, SourcePathIndexerElement> dir_list_entry : dir_list.entrySet()) {
-				StatElement s_element = new StatElement();
-				s_element.reference = dir_list_entry.getValue();
-				if (count_items) {
-					s_element.items_total = explorer.countDirectoryContentElements(s_element.reference.prepare_key());
-				}
-				entry.getValue().items.put(dir_list_entry.getKey(), s_element);
-			}
-			
-			if (count_items_for_request_dir) {
-				entry.getValue().items_total = map_dir_list.get(entry.getKey()).directory_size;
-			}
-			entry.getValue().items_page_from = page_from;
-			entry.getValue().items_page_size = page_size;
-		}
-		return map_dir_list;
-	}
-	
-	private void populate_mtd_summary(boolean has_pathinfo) throws Exception {
-		Map<String, Map<String, Object>> summaries;
-		
-		if (has_pathinfo) {
-			ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
-			for (StatElement statelement : selected_path_elements.values()) {
-				if (statelement.reference == null) {
-					continue;
-				}
-				pathelements.add(statelement.reference);
-			}
-			summaries = getSummariesByPathElements(pathelements);
-		} else {
-			summaries = getSummariesByPathElementKeys(pathelementskeys);
-		}
-		
-		if (summaries != null) {
-			for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
-				if (summaries.containsKey(entry.getKey()) == false) {
-					continue;
-				}
-				entry.getValue().mtdsummary = summaries.get(entry.getKey());
-			}
-		}
-	}
-	
 	private static Map<String, Map<String, Object>> getSummariesByContainers(Containers containers) {
-		if (containers == null) {
-			return new LinkedHashMap<String, Map<String, Object>>(1);
-		}
 		if (containers.size() == 0) {
 			return new LinkedHashMap<String, Map<String, Object>>(1);
 		}
@@ -260,64 +179,109 @@ public class Stat {
 		return result;
 	}
 	
-	private static Map<String, Map<String, Object>> getSummariesByPathElementKeys(List<String> pathelementkeys) throws Exception {
-		if (pathelementkeys == null) {
-			return new LinkedHashMap<String, Map<String, Object>>(1);
-		}
-		if (pathelementkeys.size() == 0) {
-			return new LinkedHashMap<String, Map<String, Object>>(1);
-		}
-		return getSummariesByContainers(ContainerOperations.getByPathIndexId(pathelementkeys, true));
-	}
-	
-	private void populate_dir_list_mtd_summary(LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list) throws Exception {
-		ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
-		Map<String, Map<String, Object>> summaries = null;
-		
-		for (Map.Entry<String, Explorer.DirectoryContent> dir_list : map_dir_list.entrySet()) {
-			pathelements.addAll(dir_list.getValue().content.values());
-		}
-		summaries = getSummariesByPathElements(pathelements);
-		
-		Map<String, StatElement> items;
-		for (Map.Entry<String, StatElement> entry : selected_path_elements.entrySet()) {
-			items = entry.getValue().items;
-			if (items == null) {
-				/**
-				 * If can't found a selected_path_element
-				 */
-				continue;
-			}
-			for (Map.Entry<String, StatElement> entry_item : items.entrySet()) {
-				if (summaries.containsKey(entry_item.getKey()) == false) {
-					continue;
-				}
-				entry_item.getValue().mtdsummary = summaries.get(entry_item.getKey());
-			}
-		}
-	}
-	
 	public String toJSONString() {
 		try {
-			if (scopes_element.contains(StatElement.SCOPE_PATHINFO)) {
-				populate_pathinfo();
+			// TODO refactor : 0) separate requests and datas mergue 1) group all requests 2) do requests (with caching) 3) put responses to result
+			
+			// TODO use a multiget/multisearch ?
+			
+			if (request_dir_pathinfo) {
+				/**
+				 * populate pathinfo
+				 */
+				LinkedHashMap<String, SourcePathIndexerElement> map_elements_resolved = explorer.getelementByIdkeys(pathelementskeys);
+				String item_key;
+				for (int pos = 0; pos < pathelementskeys.size(); pos++) {
+					item_key = pathelementskeys.get(pos);
+					
+					if (map_elements_resolved.containsKey(item_key) == false) {
+						continue;
+					}
+					result.setReference(item_key, map_elements_resolved.get(item_key));
+					if (request_dir_count_items) {
+						result.setItemTotalCount(item_key, explorer.countDirectoryContentElements(item_key));
+					}
+				}
 			}
 			
 			LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list = null;
 			
-			if (scopes_element.contains(StatElement.SCOPE_DIRLIST)) {
-				map_dir_list = populate_dirlists();
-			}
-			
-			if (scopes_element.contains(StatElement.SCOPE_MTD_SUMMARY)) {
-				populate_mtd_summary(scopes_element.contains(StatElement.SCOPE_PATHINFO));
-			}
-			
-			if (scopes_subelements.contains(StatElement.SCOPE_MTD_SUMMARY)) {
-				if (map_dir_list == null) {
-					map_dir_list = populate_dirlists();
+			if (request_dir_dir_list | sub_items_mtd_summary) {
+				map_dir_list = explorer.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, sub_items_only_directories, search);
+				
+				LinkedHashMap<String, SourcePathIndexerElement> dir_list;
+				for (Map.Entry<String, StatResultElement> entry : result.selected_path_elements.entrySet()) {
+					if (map_dir_list.containsKey(entry.getKey()) == false) {
+						continue;
+					}
+					dir_list = map_dir_list.get(entry.getKey()).directory_content;
+					if (dir_list.isEmpty()) {
+						continue;
+					}
+					
+					entry.getValue().items = new LinkedHashMap<String, StatResultSubElement>(dir_list.size());
+					for (Map.Entry<String, SourcePathIndexerElement> dir_list_entry : dir_list.entrySet()) {
+						StatResultElement s_element = new StatResultElement();
+						s_element.reference = dir_list_entry.getValue();
+						if (sub_items_count_items) {
+							s_element.items_total = explorer.countDirectoryContentElements(s_element.reference.prepare_key());
+						}
+						entry.getValue().items.put(dir_list_entry.getKey(), s_element);
+					}
+					
+					if (request_dir_count_items) {
+						entry.getValue().items_total = map_dir_list.get(entry.getKey()).directory_size;
+					}
+					entry.getValue().items_page_from = page_from;
+					entry.getValue().items_page_size = page_size;
 				}
-				populate_dir_list_mtd_summary(map_dir_list);
+			}
+			
+			if (request_dir_mtd_summary) {
+				/**
+				 * populate mtd summary
+				 */
+				Map<String, Map<String, Object>> summaries;
+				
+				if (request_dir_pathinfo) {
+					summaries = getSummariesByPathElements(result.getAllPathElements());
+				} else {
+					summaries = getSummariesByContainers(ContainerOperations.getByPathIndexId(pathelementskeys, true));
+				}
+				
+				if (summaries.isEmpty() == false) {
+					for (Map.Entry<String, Map<String, Object>> entry : summaries.entrySet()) {
+						result.setMtdSummary(entry.getKey(), entry.getValue());
+					}
+				}
+			}
+			
+			if (sub_items_mtd_summary) {
+				ArrayList<SourcePathIndexerElement> pathelements = new ArrayList<SourcePathIndexerElement>();
+				Map<String, Map<String, Object>> summaries = null;
+				
+				for (Map.Entry<String, Explorer.DirectoryContent> dir_list : map_dir_list.entrySet()) {
+					pathelements.addAll(dir_list.getValue().directory_content.values());
+				}
+				summaries = getSummariesByPathElements(pathelements);
+				
+				Map<String, StatResultSubElement> items;
+				for (Map.Entry<String, StatResultElement> entry : result.selected_path_elements.entrySet()) {
+					items = entry.getValue().items;
+					if (items == null) {
+						/**
+						 * If can't found a selected_path_element
+						 */
+						continue;
+					}
+					for (Map.Entry<String, StatResultSubElement> entry_item : items.entrySet()) {
+						if (summaries.containsKey(entry_item.getKey()) == false) {
+							continue;
+						}
+						entry_item.getValue().mtdsummary = summaries.get(entry_item.getKey());
+					}
+				}
+				
 			}
 			
 		} catch (IndexMissingException e) {
@@ -325,6 +289,13 @@ public class Stat {
 		} catch (Exception e) {
 			Log2.log.error("General error", e);
 		}
-		return gson.toJson(selected_path_elements);
+		return gson.toJson(result);
 	}
+	
+	private static class StatResultSerializer implements JsonSerializer<StatResult> {
+		public JsonElement serialize(StatResult src, Type typeOfSrc, JsonSerializationContext context) {
+			return gson.toJsonTree(src.selected_path_elements);
+		}
+	}
+	
 }

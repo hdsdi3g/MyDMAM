@@ -288,7 +288,7 @@ public class Explorer {
 	}
 	
 	public class DirectoryContent {
-		public LinkedHashMap<String, SourcePathIndexerElement> content;
+		public LinkedHashMap<String, SourcePathIndexerElement> directory_content;
 		public long directory_size;
 		
 		private DirectoryContent() {
@@ -360,12 +360,12 @@ public class Explorer {
 			}
 			DirectoryContent directorycontent = new DirectoryContent();
 			directorycontent.directory_size = response.getHits().getTotalHits();
-			directorycontent.content = new LinkedHashMap<String, SourcePathIndexerElement>(hits.length);
+			directorycontent.directory_content = new LinkedHashMap<String, SourcePathIndexerElement>(hits.length);
 			
 			parent_key = null;
 			for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
 				element = SourcePathIndexerElement.fromESResponse(hits[pos_hits]);
-				directorycontent.content.put(hits[pos_hits].getId(), element);
+				directorycontent.directory_content.put(hits[pos_hits].getId(), element);
 				if (pos_hits == 0) {
 					parent_key = element.parentpath;
 				}
