@@ -90,4 +90,8 @@ public class Containers implements Log2Dumpable {
 		return dump;
 	}
 	
+	public HashMap<String, Container> getMapPathindexKeyItems() {
+		return map_pathindex_key_item;
+	}
+	
 }

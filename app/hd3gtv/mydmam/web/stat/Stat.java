@@ -179,7 +179,7 @@ public class Stat {
 				/**
 				 * populate pathinfo
 				 */
-				LinkedHashMap<String, SourcePathIndexerElement> map_elements_resolved = request_response_cache.getelementByIdkeys(pathelementskeys);
+				HashMap<String, SourcePathIndexerElement> map_elements_resolved = request_response_cache.getelementByIdkeys(pathelementskeys);
 				String item_key;
 				for (int pos = 0; pos < pathelementskeys.size(); pos++) {
 					item_key = pathelementskeys.get(pos);
@@ -188,13 +188,17 @@ public class Stat {
 						continue;
 					}
 					result.setReference(item_key, map_elements_resolved.get(item_key));
-					if (request_dir_count_items) {
-						result.setItemTotalCount(item_key, request_response_cache.countDirectoryContentElements(item_key));
+				}
+				
+				if (request_dir_count_items) {
+					HashMap<String, Long> count_dir = request_response_cache.countDirectoryContentElements(pathelementskeys);
+					for (Map.Entry<String, Long> entry : count_dir.entrySet()) {
+						result.setItemTotalCount(entry.getKey(), entry.getValue());
 					}
 				}
 			}
 			
-			LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list = null;
+			HashMap<String, Explorer.DirectoryContent> map_dir_list = null;
 			
 			if (request_dir_dir_list | sub_items_mtd_summary) {
 				map_dir_list = request_response_cache.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, sub_items_only_directories, search);
@@ -205,9 +209,9 @@ public class Stat {
 			
 			if (request_dir_mtd_summary) {
 				if (request_dir_pathinfo) {
-					summaries = getSummariesByContainers(request_response_cache.getContainersByPathIndex(result.getAllPathElements(), true));
+					summaries = getSummariesByContainers(request_response_cache.getContainersSummariesByPathIndex(result.getAllPathElements()));
 				} else {
-					summaries = getSummariesByContainers(request_response_cache.getContainersByPathIndexId(pathelementskeys, true));
+					summaries = getSummariesByContainers(request_response_cache.getContainersSummariesByPathIndexId(pathelementskeys));
 				}
 				
 				if (summaries.isEmpty() == false) {
@@ -223,7 +227,7 @@ public class Stat {
 					pathelements.addAll(dir_list.getValue().directory_content.values());
 				}
 				if (pathelements.isEmpty() == false) {
-					summaries = getSummariesByContainers(request_response_cache.getContainersByPathIndex(pathelements, true));
+					summaries = getSummariesByContainers(request_response_cache.getContainersSummariesByPathIndex(pathelements));
 					result.populateSummariesForItems(summaries);
 				}
 			}

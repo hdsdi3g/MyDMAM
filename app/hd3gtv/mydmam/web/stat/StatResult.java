@@ -21,6 +21,8 @@ import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,8 +77,10 @@ class StatResult {
 		return all_path_elements;
 	}
 	
-	void populateDirListsForItems(LinkedHashMap<String, Explorer.DirectoryContent> map_dir_list, boolean sub_items_count_items, boolean request_dir_count_items) {
+	void populateDirListsForItems(HashMap<String, Explorer.DirectoryContent> map_dir_list, boolean sub_items_count_items, boolean request_dir_count_items) throws Exception {
 		LinkedHashMap<String, SourcePathIndexerElement> dir_list;
+		HashMap<String, Long> count_result;
+		String element_key;
 		for (Map.Entry<String, StatResultElement> entry : selected_path_elements.entrySet()) {
 			if (map_dir_list.containsKey(entry.getKey()) == false) {
 				continue;
@@ -90,8 +94,12 @@ class StatResult {
 			for (Map.Entry<String, SourcePathIndexerElement> dir_list_entry : dir_list.entrySet()) {
 				StatResultElement s_element = new StatResultElement();
 				s_element.reference = dir_list_entry.getValue();
-				if (sub_items_count_items) {
-					s_element.items_total = Stat.request_response_cache.countDirectoryContentElements(s_element.reference.prepare_key());
+				if (sub_items_count_items & s_element.reference.directory) {
+					element_key = s_element.reference.prepare_key();
+					count_result = Stat.request_response_cache.countDirectoryContentElements(Arrays.asList(element_key));
+					if (count_result.containsKey(element_key)) {
+						s_element.items_total = count_result.get(element_key);
+					}
 				}
 				entry.getValue().items.put(dir_list_entry.getKey(), s_element);
 			}
