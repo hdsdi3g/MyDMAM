@@ -27,10 +27,12 @@ import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import play.cache.Cache;
+import play.jobs.JobsPlugin;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -40,8 +42,9 @@ public class RequestResponseCache {
 	
 	public static final long CACHING_TTL_SEC = 5 * 60;
 	public static final String CACHING_TTL_STR = "5mn";
+	public static final int DEFAULT_DIRLIST_PAGE_SIZE = 500;
 	private static final String CACHE_PREFIX_NAME = RequestResponseCache.class.getSimpleName() + "_";
-	private static final boolean DISPLAY_VERBOSE_LOG = true;
+	static final boolean DISPLAY_VERBOSE_LOG = true;
 	
 	private static Explorer explorer;
 	private static JsonParser json_parser;
@@ -60,14 +63,17 @@ public class RequestResponseCache {
 	
 	private SourcePathIndexerElement_CacheFactory spie_cache_factory;
 	private CountDirectoryContentElements_CacheFactory count_dir_cache_factory;
+	private DirectoryContent_CacheFactory directory_content_cache_factory;
 	
 	public RequestResponseCache() {
 		spie_cache_factory = new SourcePathIndexerElement_CacheFactory();
 		count_dir_cache_factory = new CountDirectoryContentElements_CacheFactory();
+		directory_content_cache_factory = new DirectoryContent_CacheFactory();
 	}
 	
 	private boolean isStorageIsExpired(String storage_name) {
 		// TODO isStorageAsExpired
+		// TODO add caching date to all jsons, and check it with cassandra
 		return false;
 	}
 	
@@ -148,7 +154,19 @@ public class RequestResponseCache {
 	private class SourcePathIndexerElement_CacheFactory implements RequestResponseCacheFactory<SourcePathIndexerElement> {
 		
 		public HashMap<String, SourcePathIndexerElement> makeValues(List<String> cache_reference_tags) throws Exception {
-			return explorer.getelementByIdkeys(cache_reference_tags);
+			HashMap<String, SourcePathIndexerElement> result = explorer.getelementByIdkeys(cache_reference_tags);
+			
+			ArrayList<String> prefetch_dir_list = new ArrayList<String>();
+			for (Map.Entry<String, SourcePathIndexerElement> entry : result.entrySet()) {
+				if (entry.getValue().directory) {
+					prefetch_dir_list.add(makeCacheKeyForDirlist(entry.getKey(), DEFAULT_DIRLIST_PAGE_SIZE, false));
+				}
+			}
+			if (prefetch_dir_list.isEmpty() == false) {
+				JobsPlugin.executor.submit(new RequestResponsePrefetch<DirectoryContent>(prefetch_dir_list, directory_content_cache_factory));
+			}
+			
+			return result;
 		}
 		
 		public String serializeThis(SourcePathIndexerElement item) throws Exception {
@@ -213,21 +231,121 @@ public class RequestResponseCache {
 	}
 	
 	public HashMap<String, Long> countDirectoryContentElements(List<String> _ids) throws Exception {
-		HashMap<String, CountDirectoryItem> items = getItems(_ids, count_dir_cache_factory);
+		HashMap<String, SourcePathIndexerElement> elements = getelementByIdkeys(_ids);
+		
+		/**
+		 * Keep only directories...
+		 */
+		ArrayList<String> directories_ids = new ArrayList<String>();
+		for (Map.Entry<String, SourcePathIndexerElement> entry : elements.entrySet()) {
+			if (entry.getValue().directory == false) {
+				continue;
+			}
+			directories_ids.add(entry.getKey());
+		}
+		
+		HashMap<String, CountDirectoryItem> items = getItems(directories_ids, count_dir_cache_factory);
 		
 		HashMap<String, Long> result = new HashMap<String, Long>();
-		for (int pos = 0; pos < _ids.size(); pos++) {
-			if (items.containsKey(_ids.get(pos))) {
-				result.put(_ids.get(pos), items.get(_ids.get(pos)).count);
+		for (int pos = 0; pos < directories_ids.size(); pos++) {
+			if (items.containsKey(directories_ids.get(pos))) {
+				result.put(directories_ids.get(pos), items.get(directories_ids.get(pos)).count);
 			}
 		}
 		
 		return result;
 	}
 	
-	public HashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int size, boolean only_directories, String search) {
-		// TODO cache
-		return explorer.getDirectoryContentByIdkeys(_ids, from, size, only_directories, search);
+	private class DirectoryContent_CacheFactory implements RequestResponseCacheFactory<DirectoryContent> {
+		
+		public HashMap<String, DirectoryContent> makeValues(List<String> cache_reference_tags) throws Exception {
+			String[] cache_reference_tag;
+			/**
+			 * Only one size by request.
+			 */
+			int fetch_size = 0;
+			List<String> _ids = new ArrayList<String>();
+			boolean only_directories = false;
+			for (int pos = 0; pos < cache_reference_tags.size(); pos++) {
+				cache_reference_tag = cache_reference_tags.get(pos).split("_");
+				_ids.add(cache_reference_tag[0]);
+				fetch_size = Integer.parseInt(cache_reference_tag[1]);
+				only_directories = Boolean.parseBoolean(cache_reference_tag[2]);
+			}
+			
+			/**
+			 * add >>> "_" + size + "_" + only_directories <<< to keys
+			 */
+			LinkedHashMap<String, DirectoryContent> real_result = explorer.getDirectoryContentByIdkeys(_ids, 0, fetch_size, only_directories, null);
+			if (real_result.isEmpty()) {
+				return real_result;
+			}
+			
+			HashMap<String, DirectoryContent> result = new HashMap<String, Explorer.DirectoryContent>(real_result.size());
+			for (Map.Entry<String, Explorer.DirectoryContent> entry : real_result.entrySet()) {
+				result.put(makeCacheKeyForDirlist(entry.getValue().pathindexkey, fetch_size, only_directories), entry.getValue());
+			}
+			
+			return result;
+		}
+		
+		public String serializeThis(DirectoryContent item) throws Exception {
+			return item.toJson().toString();
+		}
+		
+		public DirectoryContent deserializeThis(String value) throws Exception {
+			return explorer.getDirectoryContentfromJson(json_parser.parse(value).getAsJsonObject());
+		}
+		
+		public boolean hasExpired(DirectoryContent item) {
+			if (item.storagename == null) {
+				return true;
+			}
+			return isStorageIsExpired(item.storagename);
+		}
+		
+		public String getLocaleCategoryName() {
+			return "directorycontent";
+		}
+		
+	}
+	
+	private static String makeCacheKeyForDirlist(String id, int fetch_size, boolean only_directories) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(id);
+		sb.append("_");
+		sb.append(fetch_size);
+		sb.append("_");
+		sb.append(only_directories);
+		return sb.toString();
+	}
+	
+	public HashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int fetch_size, boolean only_directories, String search) throws Exception {
+		if (search != null) {
+			return explorer.getDirectoryContentByIdkeys(_ids, from, fetch_size, only_directories, search);
+		}
+		if (from > 0) {
+			return explorer.getDirectoryContentByIdkeys(_ids, from, fetch_size, only_directories, search);
+		}
+		
+		ArrayList<String> cache_ref_tags = new ArrayList<String>();
+		for (int pos = 0; pos < _ids.size(); pos++) {
+			cache_ref_tags.add(makeCacheKeyForDirlist(_ids.get(pos), fetch_size, only_directories));
+		}
+		
+		HashMap<String, DirectoryContent> cache_result = getItems(cache_ref_tags, directory_content_cache_factory);
+		if (cache_result.isEmpty()) {
+			return cache_result;
+		}
+		/**
+		 * remove "makeCacheKeyForDirlist" from keys
+		 */
+		HashMap<String, DirectoryContent> result = new HashMap<String, Explorer.DirectoryContent>(cache_result.size());
+		for (Map.Entry<String, Explorer.DirectoryContent> entry : cache_result.entrySet()) {
+			result.put(entry.getValue().pathindexkey, entry.getValue());
+		}
+		
+		return result;
 	}
 	
 	public Containers getContainersSummariesByPathIndex(List<SourcePathIndexerElement> pathelements) throws Exception {

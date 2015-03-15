@@ -25,8 +25,10 @@ import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.web.SearchResult;
 import hd3gtv.mydmam.web.stat.Stat;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -43,7 +45,22 @@ import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
+
 public class Explorer {
+	
+	private static Gson gson_simple;
+	
+	static {
+		GsonBuilder builder = new GsonBuilder();
+		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		gson_simple = builder.create();
+	}
 	
 	public ArrayList<SourcePathIndexerElement> getByStorageFilenameAndSize(String storagename, final String filename, long size) throws Exception {
 		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
@@ -288,22 +305,46 @@ public class Explorer {
 	}
 	
 	public class DirectoryContent {
+		
 		public LinkedHashMap<String, SourcePathIndexerElement> directory_content;
 		public long directory_size;
+		public String storagename;
+		public String pathindexkey;
 		
 		private DirectoryContent() {
 		}
+		
+		public JsonObject toJson() {
+			JsonObject jo = new JsonObject();
+			jo.addProperty("size", directory_size);
+			jo.addProperty("storagename", storagename);
+			jo.addProperty("pathindexkey", pathindexkey);
+			jo.add("content", gson_simple.toJsonTree(directory_content));
+			return jo;
+		}
+	}
+	
+	private static final Type typeOfT_LinkedHashMap_String_SPIE = new TypeToken<LinkedHashMap<String, SourcePathIndexerElement>>() {
+	}.getType();
+	
+	public DirectoryContent getDirectoryContentfromJson(JsonObject jo) {
+		DirectoryContent dc = new DirectoryContent();
+		dc.directory_size = jo.get("size").getAsLong();
+		dc.storagename = jo.get("storagename").getAsString();
+		dc.pathindexkey = jo.get("pathindexkey").getAsString();
+		dc.directory_content = gson_simple.fromJson(jo.get("content").getAsJsonObject(), typeOfT_LinkedHashMap_String_SPIE);
+		return dc;
 	}
 	
 	/**
 	 * @param from for each _ids
-	 * @param size for each _ids
+	 * @param fetch_size for each _ids
 	 * @param only_directories only search in "directory" type
 	 * @param search only search with this text. Can be null.
 	 * @return never null, _id parent key > element key > element
 	 * @see Stat
 	 */
-	public LinkedHashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int size, boolean only_directories, String search) {
+	public LinkedHashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int fetch_size, boolean only_directories, String search) {
 		if (_ids == null) {
 			return new LinkedHashMap<String, DirectoryContent>(1);
 		}
@@ -337,8 +378,8 @@ public class Explorer {
 				}
 			}
 			
-			request.setFrom(from * size);
-			request.setSize(size);
+			request.setFrom(from * fetch_size);
+			request.setSize(fetch_size);
 			request.addSort("directory", SortOrder.DESC);
 			request.addSort("idxfilename", SortOrder.ASC);
 			multisearchrequestbuilder.add(request);
@@ -368,6 +409,8 @@ public class Explorer {
 				directorycontent.directory_content.put(hits[pos_hits].getId(), element);
 				if (pos_hits == 0) {
 					parent_key = element.parentpath;
+					directorycontent.storagename = element.storagename;
+					directorycontent.pathindexkey = parent_key;
 				}
 			}
 			
