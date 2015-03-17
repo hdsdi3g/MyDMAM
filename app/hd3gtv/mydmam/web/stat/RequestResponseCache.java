@@ -28,6 +28,7 @@ import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Explorer.DirectoryContent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.lang.reflect.Type;
@@ -49,8 +50,6 @@ import com.google.gson.JsonParser;
 
 public class RequestResponseCache {
 	
-	public static final long CACHING_TTL_SEC = 5 * 60;
-	public static final String CACHING_TTL_STR = "5mn";
 	public static final int DEFAULT_DIRLIST_PAGE_SIZE = 500;
 	private static final String CACHE_PREFIX_NAME = RequestResponseCache.class.getSimpleName() + "_";
 	static final boolean DISPLAY_VERBOSE_LOG = true;
@@ -150,7 +149,7 @@ public class RequestResponseCache {
 		for (Map.Entry<String, T> entry : missing_values_return.entrySet()) {
 			cache_key = CACHE_PREFIX_NAME + cache_factory.getLocaleCategoryName() + "_" + entry.getKey();
 			cache_value = cache_factory.serializeThis(entry.getValue());
-			Cache.set(cache_key, cache_value, CACHING_TTL_STR);
+			Cache.set(cache_key, cache_value, WebCacheInvalidation.CACHING_TTL_STR);
 			if (DISPLAY_VERBOSE_LOG) {
 				Log2Dump dump = new Log2Dump("cache_key", cache_key);
 				dump.add("cache_value", cache_value);
