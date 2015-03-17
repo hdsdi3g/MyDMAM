@@ -17,10 +17,7 @@
 package hd3gtv.mydmam.web.stat;
 
 import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.metadata.PreviewType;
-import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerPreview;
-import hd3gtv.mydmam.metadata.container.Containers;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.GsonIgnoreStrategy;
@@ -28,7 +25,6 @@ import hd3gtv.tools.GsonIgnoreStrategy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -144,35 +140,6 @@ public class Stat {
 		return this;
 	}
 	
-	private static Map<String, Map<String, Object>> getSummariesByContainers(Containers containers) {
-		if (containers.size() == 0) {
-			return new LinkedHashMap<String, Map<String, Object>>(1);
-		}
-		Map<String, Map<String, Object>> result = new LinkedHashMap<String, Map<String, Object>>(containers.size());
-		
-		Container c;
-		Map<String, String> summaries;
-		LinkedHashMap<String, Object> item;
-		HashMap<PreviewType, ContainerPreview> previews;
-		for (int pos = 0; pos < containers.size(); pos++) {
-			c = containers.getItemAtPos(pos);
-			
-			item = new LinkedHashMap<String, Object>();
-			previews = c.getSummary().getPreviews();
-			item.put("previews", previews);
-			item.put("master_as_preview", c.getSummary().master_as_preview);
-			item.put("mimetype", c.getSummary().getMimetype());
-			
-			summaries = c.getSummary().getSummaries();
-			for (Map.Entry<String, String> entry : summaries.entrySet()) {
-				item.put(entry.getKey(), entry.getValue());
-			}
-			
-			result.put(c.getOrigin().getKey(), item);
-		}
-		return result;
-	}
-	
 	public String toJSONString() {
 		try {
 			if (request_dir_pathinfo) {
@@ -201,7 +168,7 @@ public class Stat {
 			HashMap<String, Explorer.DirectoryContent> map_dir_list = null;
 			
 			if (request_dir_dir_list | sub_items_mtd_summary) {
-				map_dir_list = request_response_cache.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, sub_items_only_directories, search);
+				map_dir_list = request_response_cache.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, sub_items_only_directories, search, request_dir_pathinfo);
 				result.populateDirListsForItems(map_dir_list, sub_items_count_items, request_dir_count_items);
 			}
 			
@@ -209,9 +176,9 @@ public class Stat {
 			
 			if (request_dir_mtd_summary) {
 				if (request_dir_pathinfo) {
-					summaries = getSummariesByContainers(request_response_cache.getContainersSummariesByPathIndex(result.getAllPathElements()));
+					summaries = request_response_cache.getContainersSummariesByPathIndex(result.getAllPathElements());
 				} else {
-					summaries = getSummariesByContainers(request_response_cache.getContainersSummariesByPathIndexId(pathelementskeys));
+					summaries = request_response_cache.getContainersSummariesByPathIndexId(pathelementskeys);
 				}
 				
 				if (summaries.isEmpty() == false) {
@@ -227,7 +194,7 @@ public class Stat {
 					pathelements.addAll(dir_list.getValue().directory_content.values());
 				}
 				if (pathelements.isEmpty() == false) {
-					summaries = getSummariesByContainers(request_response_cache.getContainersSummariesByPathIndex(pathelements));
+					summaries = request_response_cache.getContainersSummariesByPathIndex(pathelements);
 					result.populateSummariesForItems(summaries);
 				}
 			}

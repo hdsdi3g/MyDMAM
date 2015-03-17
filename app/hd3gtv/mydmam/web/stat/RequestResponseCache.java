@@ -18,14 +18,21 @@ package hd3gtv.mydmam.web.stat;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.metadata.PreviewType;
+import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.metadata.container.ContainerOrigin;
+import hd3gtv.mydmam.metadata.container.ContainerPreview;
 import hd3gtv.mydmam.metadata.container.Containers;
+import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Explorer.DirectoryContent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,8 +41,10 @@ import java.util.Map;
 import play.cache.Cache;
 import play.jobs.JobsPlugin;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 public class RequestResponseCache {
@@ -64,11 +73,13 @@ public class RequestResponseCache {
 	private SourcePathIndexerElement_CacheFactory spie_cache_factory;
 	private CountDirectoryContentElements_CacheFactory count_dir_cache_factory;
 	private DirectoryContent_CacheFactory directory_content_cache_factory;
+	private ContainersSummaries_CacheFactory containers_summaries_cache_factory;
 	
 	public RequestResponseCache() {
 		spie_cache_factory = new SourcePathIndexerElement_CacheFactory();
 		count_dir_cache_factory = new CountDirectoryContentElements_CacheFactory();
 		directory_content_cache_factory = new DirectoryContent_CacheFactory();
+		containers_summaries_cache_factory = new ContainersSummaries_CacheFactory();
 	}
 	
 	private boolean isStorageIsExpired(String storage_name) {
@@ -154,19 +165,7 @@ public class RequestResponseCache {
 	private class SourcePathIndexerElement_CacheFactory implements RequestResponseCacheFactory<SourcePathIndexerElement> {
 		
 		public HashMap<String, SourcePathIndexerElement> makeValues(List<String> cache_reference_tags) throws Exception {
-			HashMap<String, SourcePathIndexerElement> result = explorer.getelementByIdkeys(cache_reference_tags);
-			
-			ArrayList<String> prefetch_dir_list = new ArrayList<String>();
-			for (Map.Entry<String, SourcePathIndexerElement> entry : result.entrySet()) {
-				if (entry.getValue().directory) {
-					prefetch_dir_list.add(makeCacheKeyForDirlist(entry.getKey(), DEFAULT_DIRLIST_PAGE_SIZE, false));
-				}
-			}
-			if (prefetch_dir_list.isEmpty() == false) {
-				JobsPlugin.executor.submit(new RequestResponsePrefetch<DirectoryContent>(prefetch_dir_list, directory_content_cache_factory));
-			}
-			
-			return result;
+			return explorer.getelementByIdkeys(cache_reference_tags);
 		}
 		
 		public String serializeThis(SourcePathIndexerElement item) throws Exception {
@@ -231,7 +230,7 @@ public class RequestResponseCache {
 	}
 	
 	public HashMap<String, Long> countDirectoryContentElements(List<String> _ids) throws Exception {
-		HashMap<String, SourcePathIndexerElement> elements = getelementByIdkeys(_ids);
+		HashMap<String, SourcePathIndexerElement> elements = getItems(_ids, spie_cache_factory);
 		
 		/**
 		 * Keep only directories...
@@ -320,44 +319,147 @@ public class RequestResponseCache {
 		return sb.toString();
 	}
 	
-	public HashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int fetch_size, boolean only_directories, String search) throws Exception {
+	public HashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int fetch_size, boolean only_directories, String search, boolean prefetch) throws Exception {
+		HashMap<String, DirectoryContent> result;
 		if (search != null) {
-			return explorer.getDirectoryContentByIdkeys(_ids, from, fetch_size, only_directories, search);
+			result = explorer.getDirectoryContentByIdkeys(_ids, from, fetch_size, only_directories, search);
+		} else if (from > 0) {
+			result = explorer.getDirectoryContentByIdkeys(_ids, from, fetch_size, only_directories, search);
+		} else {
+			ArrayList<String> cache_ref_tags = new ArrayList<String>();
+			for (int pos = 0; pos < _ids.size(); pos++) {
+				cache_ref_tags.add(makeCacheKeyForDirlist(_ids.get(pos), fetch_size, only_directories));
+			}
+			
+			HashMap<String, DirectoryContent> cache_result = getItems(cache_ref_tags, directory_content_cache_factory);
+			
+			if (cache_result.isEmpty()) {
+				result = cache_result;
+			} else {
+				/**
+				 * remove "makeCacheKeyForDirlist" from keys
+				 */
+				result = new HashMap<String, Explorer.DirectoryContent>(cache_result.size());
+				for (Map.Entry<String, Explorer.DirectoryContent> entry : cache_result.entrySet()) {
+					result.put(entry.getValue().pathindexkey, entry.getValue());
+				}
+			}
 		}
-		if (from > 0) {
-			return explorer.getDirectoryContentByIdkeys(_ids, from, fetch_size, only_directories, search);
-		}
-		
-		ArrayList<String> cache_ref_tags = new ArrayList<String>();
-		for (int pos = 0; pos < _ids.size(); pos++) {
-			cache_ref_tags.add(makeCacheKeyForDirlist(_ids.get(pos), fetch_size, only_directories));
-		}
-		
-		HashMap<String, DirectoryContent> cache_result = getItems(cache_ref_tags, directory_content_cache_factory);
-		if (cache_result.isEmpty()) {
-			return cache_result;
-		}
-		/**
-		 * remove "makeCacheKeyForDirlist" from keys
-		 */
-		HashMap<String, DirectoryContent> result = new HashMap<String, Explorer.DirectoryContent>(cache_result.size());
-		for (Map.Entry<String, Explorer.DirectoryContent> entry : cache_result.entrySet()) {
-			result.put(entry.getValue().pathindexkey, entry.getValue());
+		if (prefetch) {
+			ArrayList<String> prefetch_dir_list = new ArrayList<String>();
+			Map<String, SourcePathIndexerElement> item;
+			for (Map.Entry<String, DirectoryContent> entry_dir_content : result.entrySet()) {
+				item = entry_dir_content.getValue().directory_content;
+				for (Map.Entry<String, SourcePathIndexerElement> entry : item.entrySet()) {
+					if (entry.getValue().directory) {
+						prefetch_dir_list.add(makeCacheKeyForDirlist(entry.getKey(), fetch_size, only_directories));
+					}
+				}
+			}
+			
+			if (prefetch_dir_list.isEmpty() == false) {
+				JobsPlugin.executor.submit(new RequestResponsePrefetch<DirectoryContent>(prefetch_dir_list, directory_content_cache_factory));
+			}
 		}
 		
 		return result;
 	}
 	
-	public Containers getContainersSummariesByPathIndex(List<SourcePathIndexerElement> pathelements) throws Exception {
-		// TODO cache
-		// ContainerOperations.getGson() Container.getSummary()
-		return ContainerOperations.getByPathIndex(pathelements, true);
+	public Map<String, Map<String, Object>> getContainersSummariesByPathIndexId(List<String> pathelement_keys) throws Exception {
+		return getContainersSummariesByPathIndex(getItems(pathelement_keys, spie_cache_factory).values());
 	}
 	
-	public Containers getContainersSummariesByPathIndexId(List<String> pathelement_keys) throws Exception {
-		// TODO cache
-		// ContainerOperations.getGson() Container.getSummary()
-		return ContainerOperations.getByPathIndexId(pathelement_keys, true);
+	public Map<String, Map<String, Object>> getContainersSummariesByPathIndex(Collection<SourcePathIndexerElement> pathelements) throws Exception {
+		ArrayList<String> cache_ref_tags = new ArrayList<String>();
+		for (SourcePathIndexerElement item : pathelements) {
+			cache_ref_tags.add(ContainerOrigin.getUniqueElementKey(item));
+		}
+		
+		Map<String, ContainersSummaryCached> raw_results = getItems(cache_ref_tags, containers_summaries_cache_factory);
+		Map<String, Map<String, Object>> result = new HashMap<String, Map<String, Object>>();
+		
+		for (ContainersSummaryCached entry : raw_results.values()) {
+			if (entry.summary == null) {
+				continue;
+			}
+			result.put(entry.pathindexkey, entry.summary);
+		}
+		
+		return result;
+	}
+	
+	private static Type map_string_object_typeOfT = new TypeToken<Map<String, Object>>() {
+	}.getType();
+	
+	private class ContainersSummaries_CacheFactory implements RequestResponseCacheFactory<ContainersSummaryCached> {
+		
+		public HashMap<String, ContainersSummaryCached> makeValues(List<String> cache_reference_tags) throws Exception {
+			HashMap<String, ContainersSummaryCached> result = new HashMap<String, RequestResponseCache.ContainersSummaryCached>();
+			
+			Containers containers = ContainerOperations.multipleGetInMetadataBase(cache_reference_tags, EntrySummary.type);
+			
+			if (containers.size() == 0) {
+				return result;
+			}
+			
+			Container c;
+			Map<String, String> summaries;
+			LinkedHashMap<String, Object> item;
+			HashMap<PreviewType, ContainerPreview> previews;
+			for (int pos = 0; pos < containers.size(); pos++) {
+				c = containers.getItemAtPos(pos);
+				
+				item = new LinkedHashMap<String, Object>();
+				previews = c.getSummary().getPreviews();
+				item.put("previews", previews);
+				item.put("master_as_preview", c.getSummary().master_as_preview);
+				item.put("mimetype", c.getSummary().getMimetype());
+				
+				summaries = c.getSummary().getSummaries();
+				for (Map.Entry<String, String> entry : summaries.entrySet()) {
+					item.put(entry.getKey(), entry.getValue());
+				}
+				
+				ContainersSummaryCached csc = new ContainersSummaryCached();
+				csc.storagename = c.getOrigin().getStorage();
+				csc.summary = item;
+				csc.pathindexkey = c.getOrigin().getKey();
+				result.put(c.getMtd_key(), csc);
+			}
+			
+			return result;
+		}
+		
+		public String serializeThis(ContainersSummaryCached item) throws Exception {
+			return gson_simple.toJson(item);
+		}
+		
+		public ContainersSummaryCached deserializeThis(String value) throws Exception {
+			JsonObject jo = json_parser.parse(value).getAsJsonObject();
+			ContainersSummaryCached result = new ContainersSummaryCached();
+			result.storagename = jo.get("storagename").getAsString();
+			result.pathindexkey = jo.get("pathindexkey").getAsString();
+			result.summary = gson_simple.fromJson(jo.get("summary"), map_string_object_typeOfT);
+			return result;
+		}
+		
+		public boolean hasExpired(ContainersSummaryCached item) {
+			if (item.storagename == null) {
+				return true;
+			}
+			return isStorageIsExpired(item.storagename);
+		}
+		
+		public String getLocaleCategoryName() {
+			return "mtdsummaries";
+		}
+		
+	}
+	
+	private class ContainersSummaryCached {
+		Map<String, Object> summary;
+		String storagename;
+		String pathindexkey;
 	}
 	
 }

@@ -20,6 +20,7 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
@@ -225,48 +226,6 @@ public class ContainerOperations {
 		}
 	}
 	
-	public static Containers getByPathIndexId(List<String> pathelement_keys, boolean only_summaries) throws Exception {
-		if (pathelement_keys == null) {
-			return new Containers();
-		}
-		if (pathelement_keys.isEmpty()) {
-			return new Containers();
-		}
-		ArrayList<QueryBuilder> queries = new ArrayList<QueryBuilder>();
-		for (int pos = 0; pos < pathelement_keys.size(); pos++) {
-			queries.add(QueryBuilders.termQuery("origin.key", pathelement_keys.get(pos)));
-		}
-		
-		if (only_summaries) {
-			return multipleSearchInMetadataBase(queries, 1, EntrySummary.type);
-		} else {
-			return multipleSearchInMetadataBase(queries, 1000, (String[]) null);
-		}
-	}
-	
-	public static Containers getByPathIndex(List<SourcePathIndexerElement> pathelements, boolean only_summaries) throws Exception {
-		if (pathelements == null) {
-			throw new NullPointerException("pathelements");
-		}
-		if (pathelements.isEmpty()) {
-			throw new NullPointerException("pathelements is empty");
-		}
-		ArrayList<QueryBuilder> queries = new ArrayList<QueryBuilder>();
-		for (int pos = 0; pos < pathelements.size(); pos++) {
-			queries.add(QueryBuilders.termQuery("_id", ContainerOrigin.getUniqueElementKey(pathelements.get(pos))));
-		}
-		/*	MultiGetRequestBuilder multigetrequestbuilder = new MultiGetRequestBuilder(client);
-			multigetrequestbuilder.add(ES_INDEX, EntrySummary.type, Origin.getUniqueElementKey(pathelements.get(pos)));
-			MultiGetItemResponse[] response = multigetrequestbuilder.execute().actionGet().getResponses();
-		*/
-		
-		if (only_summaries) {
-			return multipleSearchInMetadataBase(queries, 1, EntrySummary.type);
-		} else {
-			return multipleSearchInMetadataBase(queries, 1000, (String[]) null);
-		}
-	}
-	
 	public static Containers searchInMetadataBase(QueryBuilder query) throws Exception {
 		if (query == null) {
 			throw new NullPointerException("\"query\" can't to be null");
@@ -318,6 +277,17 @@ public class ContainerOperations {
 			}
 			result.add(hit.getId(), gson.fromJson(hit.getSourceAsString(), declared_entries_type.get(type).getClass()));
 			return true;
+		}
+		
+		void onFoundGetResponse(GetResponse response) {
+			String type = response.getType();
+			if (declared_entries_type.containsKey(type) == false) {
+				if (unknow_types.contains(type) == false) {
+					unknow_types.add(type);
+				}
+				return;
+			}
+			result.add(response.getId(), gson.fromJson(response.getSourceAsString(), declared_entries_type.get(type).getClass()));
 		}
 	}
 	
@@ -658,5 +628,46 @@ public class ContainerOperations {
 		public void onRemoveFile(String storagename, String path) throws Exception {
 		}
 		
+	}
+	
+	public static Containers multipleGetInMetadataBase(List<String> mtd_keys, String... types) throws Exception {
+		if (mtd_keys == null) {
+			throw new NullPointerException("\"mtd_keys\" can't to be null");
+		}
+		if (mtd_keys.isEmpty()) {
+			throw new NullPointerException("\"mtd_keys\" can't to be empty");
+		}
+		if (types == null) {
+			throw new NullPointerException("\"type\" can't to be null");
+		}
+		if (types.length == 0) {
+			throw new NullPointerException("\"type\" can't to be empty");
+		}
+		
+		final ArrayList<String> unknow_types = new ArrayList<String>();
+		
+		ElasticsearchMultiGetRequest multiple_get = Elasticsearch.prepareMultiGetRequest();
+		
+		validateRestricSpecificTypes(unknow_types, types);
+		
+		for (int pos_types = 0; pos_types < types.length; pos_types++) {
+			multiple_get.add(ES_INDEX, types[pos_types], mtd_keys);
+		}
+		
+		Containers result = new Containers();
+		
+		List<GetResponse> get_responses = multiple_get.responses();
+		HitReader hr = new HitReader(result, unknow_types);
+		
+		for (int pos_gresp = 0; pos_gresp < get_responses.size(); pos_gresp++) {
+			hr.onFoundGetResponse(get_responses.get(pos_gresp));
+		}
+		
+		if (unknow_types.isEmpty() == false) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("unknow_types", unknow_types);
+			Log2.log.error("Can't found some declared types retrieved by get", null, dump);
+		}
+		return result;
 	}
 }
