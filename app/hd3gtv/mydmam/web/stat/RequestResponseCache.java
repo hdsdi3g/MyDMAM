@@ -149,7 +149,7 @@ public class RequestResponseCache {
 		for (Map.Entry<String, T> entry : missing_values_return.entrySet()) {
 			cache_key = CACHE_PREFIX_NAME + cache_factory.getLocaleCategoryName() + "_" + entry.getKey();
 			cache_value = cache_factory.serializeThis(entry.getValue());
-			Cache.set(cache_key, cache_value, WebCacheInvalidation.CACHING_TTL_STR);
+			Cache.set(cache_key, cache_value, WebCacheInvalidation.CACHING_CLIENT_TTL);
 			if (DISPLAY_VERBOSE_LOG) {
 				Log2Dump dump = new Log2Dump("cache_key", cache_key);
 				dump.add("cache_value", cache_value);
