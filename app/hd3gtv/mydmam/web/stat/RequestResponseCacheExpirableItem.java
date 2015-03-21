@@ -36,9 +36,13 @@ final class RequestResponseCacheExpirableItem<E> {
 	private String storage_name;
 	
 	RequestResponseCacheExpirableItem(E item, String storage_name) {
-		this.item = item;
-		this.indexed_date = System.currentTimeMillis();
 		this.storage_name = storage_name;
+		
+		this.item = item;
+		if (item == null) {
+			throw new NullPointerException("\"item\" can't to be null");
+		}
+		this.indexed_date = System.currentTimeMillis();
 	}
 	
 	@SuppressWarnings("unused")

@@ -55,7 +55,7 @@ public abstract class RequestResponseCacheFactory<E> {
 	final RequestResponseCacheExpirableItem<E> deserializeThis(String raw_json_value) throws Exception {
 		JsonObject jo_ei = json_parser.parse(raw_json_value).getAsJsonObject();
 		RequestResponseCacheExpirableItem<E> result = Stat.gson_simple.fromJson(jo_ei, RequestResponseExpirableItem_typeOfT);
-		result.setItem(fromJson(jo_ei.get("item").getAsJsonObject()));
+		result.setItem(fromJson(jo_ei.get("item")));
 		return result;
 	}
 	

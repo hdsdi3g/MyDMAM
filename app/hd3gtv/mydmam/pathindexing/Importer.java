@@ -20,6 +20,8 @@ import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 
+import java.util.ArrayList;
+
 public abstract class Importer {
 	
 	public static final String ES_INDEX = "pathindex";
@@ -59,10 +61,14 @@ public abstract class Importer {
 		 */
 		// }
 		
+		WebCacheInvalidation.addInvalidation(push.storages_name);
+		
 		return result;
 	}
 	
 	private final class PushElement implements IndexingEvent {
+		
+		ArrayList<String> storages_name;
 		
 		public void onRemoveFile(String storagename, String path) throws Exception {
 		}
@@ -76,6 +82,7 @@ public abstract class Importer {
 			ttl = importer.getTTL();
 			this.bulk = bulk;
 			// l_elements_problems = new ArrayList<SourcePathIndexerElement>();
+			storages_name = new ArrayList<String>();
 		}
 		
 		public boolean onFoundElement(SourcePathIndexerElement element) {
@@ -104,6 +111,12 @@ public abstract class Importer {
 				bulk.add(bulk.getClient().prepareIndex(Importer.ES_INDEX, index_type, element.prepare_key()).setSource(element.toGson().toString()).setTTL(ttl));
 			} else {
 				bulk.add(bulk.getClient().prepareIndex(Importer.ES_INDEX, index_type, element.prepare_key()).setSource(element.toGson().toString()));
+			}
+			
+			if (element.storagename != null) {
+				if (storages_name.contains(element.storagename) == false) {
+					storages_name.add(element.storagename);
+				}
 			}
 			
 			return true;

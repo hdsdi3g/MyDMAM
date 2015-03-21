@@ -514,6 +514,7 @@ public class Explorer {
 				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
 			}
 		}
+		// TODO WebCacheInvalidation.addInvalidation(invalidation);
 	}
 	
 	/**
@@ -540,12 +541,14 @@ public class Explorer {
 				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
 			}
 		}
+		// TODO WebCacheInvalidation.addInvalidation(invalidation);
 	}
 	
 	/**
 	 * Recursive, delete only ES pathindex.
 	 */
 	public void deleteStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements) throws Exception {
+		ArrayList<String> invalidation = new ArrayList<String>();
 		for (int pos = 0; pos < elements.size(); pos++) {
 			if (elements.get(pos) == null) {
 				continue;
@@ -556,7 +559,11 @@ public class Explorer {
 			} else {
 				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, elements.get(pos).prepare_key()));
 			}
+			if (invalidation.contains(elements.get(pos).storagename) == false) {
+				invalidation.add(elements.get(pos).storagename);
+			}
 		}
+		WebCacheInvalidation.addInvalidation(invalidation);
 	}
 	
 }

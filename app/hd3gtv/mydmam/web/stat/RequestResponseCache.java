@@ -237,8 +237,8 @@ public class RequestResponseCache {
 			}
 			
 			for (Map.Entry<String, Explorer.DirectoryContent> entry : real_result.entrySet()) {
-				result.put(makeCacheKeyForDirlist(entry.getValue().pathindexkey, fetch_size, only_directories), new RequestResponseCacheExpirableItem<DirectoryContent>(entry.getValue(),
-						entry.getValue().storagename));
+				result.put(makeCacheKeyForDirlist(entry.getValue().pathindexkey, fetch_size, only_directories),
+						new RequestResponseCacheExpirableItem<DirectoryContent>(entry.getValue(), entry.getValue().storagename));
 			}
 			
 			return result;
