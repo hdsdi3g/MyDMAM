@@ -100,7 +100,7 @@ public class RequestResponseCache {
 						Log2.log.debug("Cache force delete", new Log2Dump("cache_key", cache_key));
 					}
 					Cache.safeDelete(cache_key);
-					continue;
+					// continue;
 				}
 			}
 			

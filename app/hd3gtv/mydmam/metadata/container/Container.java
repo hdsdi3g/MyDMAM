@@ -21,8 +21,10 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -118,14 +120,23 @@ public class Container implements Log2Dumpable {
 		}
 	}
 	
-	public void save(boolean refresh_index_after_save) throws ElasticsearchException {
+	public void save() throws ElasticsearchException {
 		ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
-		save(es_bulk, refresh_index_after_save);
+		save(es_bulk);
 		es_bulk.terminateBulk();
+		
+		try {
+			WebCacheInvalidation.addInvalidation(this.getOrigin().getPathindexElement().storagename);
+		} catch (FileNotFoundException e) {
+			Log2.log.error("Can't found origin pathindexElement", e, this);
+		}
 	}
 	
-	public void save(ElasticsearchBulkOperation es_bulk, boolean refresh_index_after_save) throws ElasticsearchException {
-		ContainerOperations.save(this, refresh_index_after_save, es_bulk);
+	/**
+	 * Don't forget to invalidate Play Cache Stat with WebCacheInvalidation.
+	 */
+	public void save(ElasticsearchBulkOperation es_bulk) throws ElasticsearchException {
+		ContainerOperations.save(this, false, es_bulk);
 	}
 	
 	public Log2Dump getLog2Dump() {

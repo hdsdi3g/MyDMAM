@@ -133,7 +133,7 @@ public class WorkerRenderer extends WorkerNG {
 		
 		container.getSummary().addPreviewsFromEntryRenderer(rendered_entry, container, current_renderer);
 		container.addEntry(rendered_entry);
-		container.save(false);
+		container.save();
 		
 		current_renderer = null;
 	}

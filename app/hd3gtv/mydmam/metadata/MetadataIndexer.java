@@ -28,6 +28,7 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 
 import java.io.File;
 import java.io.IOException;
@@ -80,6 +81,8 @@ public class MetadataIndexer implements IndexingEvent {
 		}
 		
 		es_bulk.terminateBulk();
+		
+		WebCacheInvalidation.addInvalidation(item.storagename);
 		
 		if (current_create_job_list.isEmpty()) {
 			return new ArrayList<JobNG>(1);

@@ -18,12 +18,9 @@ package hd3gtv.mydmam.metadata.container;
 
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import org.elasticsearch.ElasticsearchException;
 
 /**
  * A set of Metadata items.
@@ -75,10 +72,6 @@ public class Containers implements Log2Dumpable {
 	
 	public Container getByPathindexKey(String mtd_key) {
 		return map_pathindex_key_item.get(mtd_key);
-	}
-	
-	public void save(ElasticsearchBulkOperation es_bulk, boolean refresh_index_after_save) throws ElasticsearchException {
-		ContainerOperations.save(this, refresh_index_after_save, es_bulk);
 	}
 	
 	public Log2Dump getLog2Dump() {

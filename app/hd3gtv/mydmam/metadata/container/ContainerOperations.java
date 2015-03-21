@@ -29,6 +29,7 @@ import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 import hd3gtv.tools.GsonIgnoreStrategy;
 import hd3gtv.tools.StoppableProcessing;
 
@@ -382,35 +383,14 @@ public class ContainerOperations {
 		}
 	}
 	
-	/**
-	 * Only create/update. No delete operations.
-	 */
-	public static void save(Containers containers, boolean refresh_index_after_save, ElasticsearchBulkOperation es_bulk) {
-		if (containers == null) {
-			throw new NullPointerException("\"containers\" can't to be null");
-		}
-		Container container;
-		for (int pos_container = 0; pos_container < containers.getAll().size(); pos_container++) {
-			container = containers.getAll().get(pos_container);
-			save(container, refresh_index_after_save, es_bulk);
-		}
-	}
-	
 	public static void requestDelete(Container container, ElasticsearchBulkOperation es_bulk) throws NullPointerException {
 		if (container == null) {
 			throw new NullPointerException("\"container\" can't to be null");
 		}
 		for (int pos = 0; pos < container.getEntries().size(); pos++) {
 			es_bulk.add(es_bulk.getClient().prepareDelete(ES_INDEX, container.getEntries().get(pos).getES_Type(), container.getMtd_key()));
+			// es_bulk.add(es_bulk.getClient().prepareDelete(ES_INDEX, type, mtd_key));
 		}
-		
-	}
-	
-	public static void requestDelete(String mtd_key, String type, ElasticsearchBulkOperation es_bulk) throws NullPointerException {
-		if (mtd_key == null) {
-			throw new NullPointerException("\"mtd_key\" can't to be null");
-		}
-		es_bulk.add(es_bulk.getClient().prepareDelete(ES_INDEX, type, mtd_key));
 	}
 	
 	public static RenderedFile getMetadataFile(String pathelement_key, String type, String filename, boolean check_hash) throws Exception {
@@ -468,6 +448,10 @@ public class ContainerOperations {
 			elementcount_by_storage = new HashMap<String, Long>();
 		}
 		
+		/**
+		 * Protect to no remove all mtd if pathindexing is empty for a storage.
+		 * https://github.com/hdsdi3g/MyDMAM/issues/7
+		 */
 		boolean containsStorageInBase(ContainerOrigin origin) {
 			if (elementcount_by_storage.containsKey(origin.storage) == false) {
 				elementcount_by_storage.put(origin.storage, explorer.countStorageContentElements(origin.storage));
@@ -491,10 +475,6 @@ public class ContainerOperations {
 			} catch (FileNotFoundException e) {
 			}
 			
-			/**
-			 * Protect to no remove all mtd if pathindexing is empty for a storage.
-			 * https://github.com/hdsdi3g/MyDMAM/issues/7
-			 */
 			if (containsStorageInBase(container.getOrigin()) == false) {
 				return true;
 			}
@@ -526,6 +506,7 @@ public class ContainerOperations {
 			Log2.log.info("Start cleaning rendered elements");
 			
 			RenderedFile.purge_orphan_metadatas_files();
+			
 		} catch (IndexMissingException ime) {
 		}
 	}
@@ -554,6 +535,11 @@ public class ContainerOperations {
 			cmm.onFoundElement(from);
 		}
 		
+		if (copy == false) {
+			WebCacheInvalidation.addInvalidation(from.storagename, dest_storage);
+		} else {
+			WebCacheInvalidation.addInvalidation(dest_storage);
+		}
 	}
 	
 	private static class CopyMoveMetadatas implements IndexingEvent {
@@ -619,7 +605,7 @@ public class ContainerOperations {
 				RenderedFile.copyMoveAllMetadataContent(mtd_key_source, container.getMtd_key(), copy);
 			}
 			
-			container.save(es_bulk, true);
+			container.save(es_bulk);
 			es_bulk.terminateBulk();
 			
 			return stoppable.isWantToStopCurrentProcessing() == false;

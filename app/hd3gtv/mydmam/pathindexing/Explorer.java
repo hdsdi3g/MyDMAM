@@ -496,6 +496,7 @@ public class Explorer {
 	public void refreshStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
 		PathScan pathscan = new PathScan();
 		
+		ArrayList<String> storages = new ArrayList<String>();
 		for (int pos = 0; pos < elements.size(); pos++) {
 			if (elements.get(pos) == null) {
 				continue;
@@ -513,8 +514,12 @@ public class Explorer {
 			} else {
 				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
 			}
+			if (storages.contains(elements.get(pos).storagename) == false) {
+				storages.add(elements.get(pos).storagename);
+			}
 		}
-		// TODO WebCacheInvalidation.addInvalidation(invalidation);
+		
+		WebCacheInvalidation.addInvalidation(storages);
 	}
 	
 	/**
@@ -525,6 +530,7 @@ public class Explorer {
 	public void refreshCurrentStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
 		PathScan pathscan = new PathScan();
 		
+		ArrayList<String> storages = new ArrayList<String>();
 		for (int pos = 0; pos < elements.size(); pos++) {
 			if (elements.get(pos) == null) {
 				continue;
@@ -540,8 +546,11 @@ public class Explorer {
 				}
 				pathscan.refreshIndex(bulk_op, elements.get(pos).storagename, elements.get(pos).currentpath.substring(0, elements.get(pos).currentpath.lastIndexOf("/")), true);
 			}
+			if (storages.contains(elements.get(pos).storagename) == false) {
+				storages.add(elements.get(pos).storagename);
+			}
 		}
-		// TODO WebCacheInvalidation.addInvalidation(invalidation);
+		WebCacheInvalidation.addInvalidation(storages);
 	}
 	
 	/**

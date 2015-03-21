@@ -42,6 +42,10 @@ log2:
             for: hd3gtv.mydmam.db
             level: INFO
             type: DEFAULT
+        -
+            for: hd3gtv.mydmam.web.stat
+            level: INFO
+            type: DEFAULT
     rotate_file: /var/log/mydmam/server.log 
     rotate_maxsize: 1000000
     rotate_maxfilelogs: 10
