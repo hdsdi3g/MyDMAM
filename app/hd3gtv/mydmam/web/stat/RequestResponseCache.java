@@ -29,7 +29,6 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Explorer.DirectoryContent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
-import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -43,10 +42,8 @@ import play.cache.Cache;
 import play.jobs.JobsPlugin;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 
 public class RequestResponseCache {
 	
@@ -55,18 +52,9 @@ public class RequestResponseCache {
 	static final boolean DISPLAY_VERBOSE_LOG = true;
 	
 	private static Explorer explorer;
-	private static JsonParser json_parser;
-	private static Gson gson_simple;
 	
 	static {
 		explorer = new Explorer();
-		json_parser = new JsonParser();
-		
-		GsonBuilder builder = new GsonBuilder();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		gson_simple = builder.create();
 	}
 	
 	private SourcePathIndexerElement_CacheFactory spie_cache_factory;
@@ -81,18 +69,12 @@ public class RequestResponseCache {
 		containers_summaries_cache_factory = new ContainersSummaries_CacheFactory();
 	}
 	
-	private boolean isStorageIsExpired(String storage_name) {
-		// TODO isStorageAsExpired
-		// TODO add caching date to all jsons, and check it with cassandra
-		return false;
-	}
-	
-	public static <T> HashMap<String, T> getItems(List<String> cache_reference_tags, RequestResponseCacheFactory<T> cache_factory) throws Exception {
-		HashMap<String, T> result = new HashMap<String, T>();
+	public static <E> HashMap<String, E> getItems(List<String> cache_reference_tags, RequestResponseCacheFactory<E> cache_factory) throws Exception {
+		HashMap<String, E> result = new HashMap<String, E>();
 		
 		String[] request = new String[cache_reference_tags.size()];
 		for (int pos = 0; pos < cache_reference_tags.size(); pos++) {
-			request[pos] = CACHE_PREFIX_NAME + cache_factory.getLocaleCategoryName() + "_" + cache_reference_tags.get(pos);
+			request[pos] = CACHE_PREFIX_NAME + cache_factory.getClass().getSimpleName() + "_" + cache_reference_tags.get(pos);
 		}
 		
 		ArrayList<String> unset_cache_reference_tags = null;
@@ -100,7 +82,7 @@ public class RequestResponseCache {
 		Map<String, Object> cache_results = Cache.get(request);
 		String cache_key;
 		String cache_reference_tag;
-		T item;
+		RequestResponseCacheExpirableItem<E> item;
 		
 		for (int pos = 0; pos < request.length; pos++) {
 			cache_key = request[pos];
@@ -109,8 +91,8 @@ public class RequestResponseCache {
 			if (cache_results.containsKey(cache_key)) {
 				if (cache_results.get(cache_key) != null) {
 					item = cache_factory.deserializeThis((String) cache_results.get(cache_key));
-					if (cache_factory.hasExpired(item) == false) {
-						result.put(cache_reference_tag, item);
+					if (item.hasExpired() == false) {
+						result.put(cache_reference_tag, item.getItem());
 						continue;
 					}
 					
@@ -136,7 +118,7 @@ public class RequestResponseCache {
 		 * Some values are not get from Cache.
 		 * So, we create it.
 		 */
-		HashMap<String, T> missing_values_return = cache_factory.makeValues(unset_cache_reference_tags);
+		HashMap<String, RequestResponseCacheExpirableItem<E>> missing_values_return = cache_factory.makeValues(unset_cache_reference_tags);
 		
 		if (missing_values_return.isEmpty()) {
 			return result;
@@ -146,8 +128,8 @@ public class RequestResponseCache {
 		 * And push it in Cache.
 		 */
 		String cache_value;
-		for (Map.Entry<String, T> entry : missing_values_return.entrySet()) {
-			cache_key = CACHE_PREFIX_NAME + cache_factory.getLocaleCategoryName() + "_" + entry.getKey();
+		for (Map.Entry<String, RequestResponseCacheExpirableItem<E>> entry : missing_values_return.entrySet()) {
+			cache_key = CACHE_PREFIX_NAME + cache_factory.getClass().getSimpleName() + "_" + entry.getKey();
 			cache_value = cache_factory.serializeThis(entry.getValue());
 			Cache.set(cache_key, cache_value, WebCacheInvalidation.CACHING_CLIENT_TTL);
 			if (DISPLAY_VERBOSE_LOG) {
@@ -157,70 +139,52 @@ public class RequestResponseCache {
 			}
 		}
 		
-		result.putAll(missing_values_return);
+		for (Map.Entry<String, RequestResponseCacheExpirableItem<E>> entry : missing_values_return.entrySet()) {
+			result.put(entry.getKey(), entry.getValue().getItem());
+		}
+		
 		return result;
 	}
 	
-	private class SourcePathIndexerElement_CacheFactory implements RequestResponseCacheFactory<SourcePathIndexerElement> {
+	private class SourcePathIndexerElement_CacheFactory extends RequestResponseCacheFactory<SourcePathIndexerElement> {
 		
-		public HashMap<String, SourcePathIndexerElement> makeValues(List<String> cache_reference_tags) throws Exception {
-			return explorer.getelementByIdkeys(cache_reference_tags);
+		protected JsonElement toJson(SourcePathIndexerElement item) throws Exception {
+			return item.toGson();
 		}
 		
-		public String serializeThis(SourcePathIndexerElement item) throws Exception {
-			return item.toGson().toString();
+		protected SourcePathIndexerElement fromJson(JsonElement value) throws Exception {
+			return SourcePathIndexerElement.fromJson(value.getAsJsonObject());
 		}
 		
-		public SourcePathIndexerElement deserializeThis(String value) throws Exception {
-			return SourcePathIndexerElement.fromJson(json_parser.parse(value).getAsJsonObject());
-		}
-		
-		public boolean hasExpired(SourcePathIndexerElement item) {
-			return isStorageIsExpired(item.storagename);
-		}
-		
-		public String getLocaleCategoryName() {
-			return "pathindexkeys";
-		}
-		
-	}
-	
-	private class CountDirectoryItem {
-		private String storagename;
-		private Long count;
-	}
-	
-	private class CountDirectoryContentElements_CacheFactory implements RequestResponseCacheFactory<CountDirectoryItem> {
-		
-		public HashMap<String, CountDirectoryItem> makeValues(List<String> cache_reference_tags) throws Exception {
-			HashMap<String, CountDirectoryItem> result = new HashMap<String, RequestResponseCache.CountDirectoryItem>();
-			CountDirectoryItem item;
+		HashMap<String, RequestResponseCacheExpirableItem<SourcePathIndexerElement>> makeValues(List<String> cache_reference_tags) throws Exception {
+			HashMap<String, SourcePathIndexerElement> values = explorer.getelementByIdkeys(cache_reference_tags);
 			
+			HashMap<String, RequestResponseCacheExpirableItem<SourcePathIndexerElement>> result = new HashMap<String, RequestResponseCacheExpirableItem<SourcePathIndexerElement>>();
+			for (Map.Entry<String, SourcePathIndexerElement> entry : values.entrySet()) {
+				result.put(entry.getKey(), new RequestResponseCacheExpirableItem<SourcePathIndexerElement>(entry.getValue(), entry.getValue().storagename));
+			}
+			return result;
+		}
+	}
+	
+	private class CountDirectoryContentElements_CacheFactory extends RequestResponseCacheFactory<Long> {
+		
+		public HashMap<String, RequestResponseCacheExpirableItem<Long>> makeValues(List<String> cache_reference_tags) throws Exception {
+			HashMap<String, RequestResponseCacheExpirableItem<Long>> result = new HashMap<String, RequestResponseCacheExpirableItem<Long>>();
 			HashMap<String, SourcePathIndexerElement> items = getItems(cache_reference_tags, spie_cache_factory);
 			
 			for (Map.Entry<String, SourcePathIndexerElement> entry : items.entrySet()) {
-				item = new CountDirectoryItem();
-				item.count = explorer.countDirectoryContentElements(entry.getKey());
-				item.storagename = entry.getValue().storagename;
-				result.put(entry.getKey(), item);
+				result.put(entry.getKey(), new RequestResponseCacheExpirableItem<Long>(explorer.countDirectoryContentElements(entry.getKey()), entry.getValue().storagename));
 			}
 			return result;
 		}
 		
-		public String serializeThis(CountDirectoryItem item) throws Exception {
-			return gson_simple.toJson(item);
+		protected JsonElement toJson(Long item) throws Exception {
+			return new JsonPrimitive(item);
 		}
 		
-		public CountDirectoryItem deserializeThis(String value) throws Exception {
-			return gson_simple.fromJson(value, CountDirectoryItem.class);
-		}
-		
-		public boolean hasExpired(CountDirectoryItem item) {
-			return isStorageIsExpired(item.storagename);
-		}
-		
-		public String getLocaleCategoryName() {
-			return "countdirectoryitem";
+		protected Long fromJson(JsonElement value) throws Exception {
+			return value.getAsLong();
 		}
 	}
 	
@@ -242,21 +206,12 @@ public class RequestResponseCache {
 			directories_ids.add(entry.getKey());
 		}
 		
-		HashMap<String, CountDirectoryItem> items = getItems(directories_ids, count_dir_cache_factory);
-		
-		HashMap<String, Long> result = new HashMap<String, Long>();
-		for (int pos = 0; pos < directories_ids.size(); pos++) {
-			if (items.containsKey(directories_ids.get(pos))) {
-				result.put(directories_ids.get(pos), items.get(directories_ids.get(pos)).count);
-			}
-		}
-		
-		return result;
+		return getItems(directories_ids, count_dir_cache_factory);
 	}
 	
-	private class DirectoryContent_CacheFactory implements RequestResponseCacheFactory<DirectoryContent> {
+	private class DirectoryContent_CacheFactory extends RequestResponseCacheFactory<DirectoryContent> {
 		
-		public HashMap<String, DirectoryContent> makeValues(List<String> cache_reference_tags) throws Exception {
+		public HashMap<String, RequestResponseCacheExpirableItem<DirectoryContent>> makeValues(List<String> cache_reference_tags) throws Exception {
 			String[] cache_reference_tag;
 			/**
 			 * Only one size by request.
@@ -271,39 +226,30 @@ public class RequestResponseCache {
 				only_directories = Boolean.parseBoolean(cache_reference_tag[2]);
 			}
 			
+			HashMap<String, RequestResponseCacheExpirableItem<DirectoryContent>> result = new HashMap<String, RequestResponseCacheExpirableItem<DirectoryContent>>();
+			
 			/**
 			 * add >>> "_" + size + "_" + only_directories <<< to keys
 			 */
 			LinkedHashMap<String, DirectoryContent> real_result = explorer.getDirectoryContentByIdkeys(_ids, 0, fetch_size, only_directories, null);
 			if (real_result.isEmpty()) {
-				return real_result;
+				return result;
 			}
 			
-			HashMap<String, DirectoryContent> result = new HashMap<String, Explorer.DirectoryContent>(real_result.size());
 			for (Map.Entry<String, Explorer.DirectoryContent> entry : real_result.entrySet()) {
-				result.put(makeCacheKeyForDirlist(entry.getValue().pathindexkey, fetch_size, only_directories), entry.getValue());
+				result.put(makeCacheKeyForDirlist(entry.getValue().pathindexkey, fetch_size, only_directories), new RequestResponseCacheExpirableItem<DirectoryContent>(entry.getValue(),
+						entry.getValue().storagename));
 			}
 			
 			return result;
 		}
 		
-		public String serializeThis(DirectoryContent item) throws Exception {
-			return item.toJson().toString();
+		protected JsonElement toJson(DirectoryContent item) throws Exception {
+			return item.toJson();
 		}
 		
-		public DirectoryContent deserializeThis(String value) throws Exception {
-			return explorer.getDirectoryContentfromJson(json_parser.parse(value).getAsJsonObject());
-		}
-		
-		public boolean hasExpired(DirectoryContent item) {
-			if (item.storagename == null) {
-				return true;
-			}
-			return isStorageIsExpired(item.storagename);
-		}
-		
-		public String getLocaleCategoryName() {
-			return "directorycontent";
+		protected DirectoryContent fromJson(JsonElement value) throws Exception {
+			return explorer.getDirectoryContentfromJson(value.getAsJsonObject());
 		}
 		
 	}
@@ -357,7 +303,7 @@ public class RequestResponseCache {
 			}
 			
 			if (prefetch_dir_list.isEmpty() == false) {
-				JobsPlugin.executor.submit(new RequestResponsePrefetch<DirectoryContent>(prefetch_dir_list, directory_content_cache_factory));
+				JobsPlugin.executor.submit(new RequestResponseCachePrefetch<DirectoryContent>(prefetch_dir_list, directory_content_cache_factory));
 			}
 		}
 		
@@ -374,10 +320,10 @@ public class RequestResponseCache {
 			cache_ref_tags.add(ContainerOrigin.getUniqueElementKey(item));
 		}
 		
-		Map<String, ContainersSummaryCached> raw_results = getItems(cache_ref_tags, containers_summaries_cache_factory);
+		Map<String, ContainersSummaryCachedItem> raw_results = getItems(cache_ref_tags, containers_summaries_cache_factory);
 		Map<String, Map<String, Object>> result = new HashMap<String, Map<String, Object>>();
 		
-		for (ContainersSummaryCached entry : raw_results.values()) {
+		for (ContainersSummaryCachedItem entry : raw_results.values()) {
 			if (entry.summary == null) {
 				continue;
 			}
@@ -390,10 +336,10 @@ public class RequestResponseCache {
 	private static Type map_string_object_typeOfT = new TypeToken<Map<String, Object>>() {
 	}.getType();
 	
-	private class ContainersSummaries_CacheFactory implements RequestResponseCacheFactory<ContainersSummaryCached> {
+	private class ContainersSummaries_CacheFactory extends RequestResponseCacheFactory<ContainersSummaryCachedItem> {
 		
-		public HashMap<String, ContainersSummaryCached> makeValues(List<String> cache_reference_tags) throws Exception {
-			HashMap<String, ContainersSummaryCached> result = new HashMap<String, RequestResponseCache.ContainersSummaryCached>();
+		public HashMap<String, RequestResponseCacheExpirableItem<ContainersSummaryCachedItem>> makeValues(List<String> cache_reference_tags) throws Exception {
+			HashMap<String, RequestResponseCacheExpirableItem<ContainersSummaryCachedItem>> result = new HashMap<String, RequestResponseCacheExpirableItem<ContainersSummaryCachedItem>>();
 			
 			Containers containers = ContainerOperations.multipleGetInMetadataBase(cache_reference_tags, EntrySummary.type);
 			
@@ -419,45 +365,30 @@ public class RequestResponseCache {
 					item.put(entry.getKey(), entry.getValue());
 				}
 				
-				ContainersSummaryCached csc = new ContainersSummaryCached();
-				csc.storagename = c.getOrigin().getStorage();
-				csc.summary = item;
-				csc.pathindexkey = c.getOrigin().getKey();
-				result.put(c.getMtd_key(), csc);
+				ContainersSummaryCachedItem csc_item = new ContainersSummaryCachedItem();
+				csc_item.summary = item;
+				csc_item.pathindexkey = c.getOrigin().getKey();
+				
+				result.put(c.getMtd_key(), new RequestResponseCacheExpirableItem<ContainersSummaryCachedItem>(csc_item, c.getOrigin().getStorage()));
 			}
 			
 			return result;
 		}
 		
-		public String serializeThis(ContainersSummaryCached item) throws Exception {
-			return gson_simple.toJson(item);
+		protected JsonElement toJson(ContainersSummaryCachedItem item) throws Exception {
+			return Stat.gson_simple.toJsonTree(item);
 		}
 		
-		public ContainersSummaryCached deserializeThis(String value) throws Exception {
-			JsonObject jo = json_parser.parse(value).getAsJsonObject();
-			ContainersSummaryCached result = new ContainersSummaryCached();
-			result.storagename = jo.get("storagename").getAsString();
-			result.pathindexkey = jo.get("pathindexkey").getAsString();
-			result.summary = gson_simple.fromJson(jo.get("summary"), map_string_object_typeOfT);
+		protected ContainersSummaryCachedItem fromJson(JsonElement value) throws Exception {
+			ContainersSummaryCachedItem result = Stat.gson_simple.fromJson(value, ContainersSummaryCachedItem.class);
+			result.summary = Stat.gson_simple.fromJson(value.getAsJsonObject().get("summary"), map_string_object_typeOfT);
 			return result;
-		}
-		
-		public boolean hasExpired(ContainersSummaryCached item) {
-			if (item.storagename == null) {
-				return true;
-			}
-			return isStorageIsExpired(item.storagename);
-		}
-		
-		public String getLocaleCategoryName() {
-			return "mtdsummaries";
 		}
 		
 	}
 	
-	private class ContainersSummaryCached {
+	private class ContainersSummaryCachedItem {
 		Map<String, Object> summary;
-		String storagename;
 		String pathindexkey;
 	}
 	

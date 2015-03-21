@@ -16,27 +16,57 @@
 */
 package hd3gtv.mydmam.web.stat;
 
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 
-public interface RequestResponseCacheFactory<T> {
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+public abstract class RequestResponseCacheFactory<E> {
+	
+	private static JsonParser json_parser;
+	static {
+		json_parser = new JsonParser();
+	}
 	
 	/**
 	 * @return never null
 	 */
-	HashMap<String, T> makeValues(List<String> cache_reference_tags) throws Exception;
+	abstract HashMap<String, RequestResponseCacheExpirableItem<E>> makeValues(List<String> cache_reference_tags) throws Exception;
 	
 	/**
 	 * @return never null
 	 */
-	String serializeThis(T item) throws Exception;
+	final String serializeThis(RequestResponseCacheExpirableItem<E> item) throws Exception {
+		JsonObject result = item.getCacheStatus();
+		result.add("item", toJson(item.getItem()));
+		return Stat.gson_simple.toJson(result);
+	}
+	
+	private Type RequestResponseExpirableItem_typeOfT = new TypeToken<RequestResponseCacheExpirableItem<E>>() {
+	}.getType();
 	
 	/**
 	 * @return never null
 	 */
-	T deserializeThis(String value) throws Exception;
+	final RequestResponseCacheExpirableItem<E> deserializeThis(String raw_json_value) throws Exception {
+		JsonObject jo_ei = json_parser.parse(raw_json_value).getAsJsonObject();
+		RequestResponseCacheExpirableItem<E> result = Stat.gson_simple.fromJson(jo_ei, RequestResponseExpirableItem_typeOfT);
+		result.setItem(fromJson(jo_ei.get("item").getAsJsonObject()));
+		return result;
+	}
 	
-	boolean hasExpired(T item);
+	/**
+	 * @return never null
+	 */
+	protected abstract JsonElement toJson(E item) throws Exception;
 	
-	String getLocaleCategoryName();
+	/**
+	 * @return never null
+	 */
+	protected abstract E fromJson(JsonElement value) throws Exception;
+	
 }

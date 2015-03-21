@@ -33,8 +33,11 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 public class WebCacheInvalidation {
 	
-	public static final int CACHING_CASSANDRA_TTL_SEC = 5 * 60;
-	public static final String CACHING_CLIENT_TTL = "5mn";
+	// TODO add WebCacheInvalidation.addInvalidation() for Explorer, PathIndex and Metadata
+	
+	public static final int CACHING_CASSANDRA_TTL_SEC = 60 * 60;
+	public static final String CACHING_CLIENT_TTL = "60mn";
+	
 	public static final long CACHING_LOCAL_CASSANDRA_INVALIDATION_TTL = 1 * 60;
 	
 	private static final ColumnFamily<String, String> CF_CACHEINVALIDATION = new ColumnFamily<String, String>("cacheInvalidation", StringSerializer.get(), StringSerializer.get());

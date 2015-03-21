@@ -33,6 +33,22 @@ import org.elasticsearch.indices.IndexMissingException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+/**
+ * User do a global request.
+ * Request is separated in many requests, by request data type/target.
+ * All this sub-requests are asked to RequestResponseCache.
+ * RequestResponseCache ask to Play.cache values, combined by group.
+ * If requested value is out of cache, RequestResponseCache ask to getItems() to produce value.
+ * If requested value is in cache, RequestResponseCache ask to getItems() to verify if the storage targeted by this value is expired, via isStorageIsExpired().
+ * isStorageIsExpired ask to WebCacheInvalidation, the getLastInvalidationDate() and compare with value.
+ * getLastInvalidationDate ask to cassandra if this storage is refreshed, and keep result to a local cache, or request local cache.
+ * Examples :
+ * - the better case : Stat, values ? -> RequestResponseCache, getItems ? -> Play.cache -> WebCacheInvalidation, if this items are ok ? -> local cache.
+ * - the worst case : Stat, values ? -> RequestResponseCache, getItems ? -> Play.cache -> no items -> request to databases actual datas.
+ * Stat group many request in one request
+ * RequestResponseCache cache results -> db requests
+ * WebCacheInvalidation cache invalidation result -> less Cassandra requests
+ */
 public class Stat {
 	
 	public static final String SCOPE_DIRLIST = "dirlist";
@@ -44,8 +60,6 @@ public class Stat {
 	static Gson gson_simple;
 	static Gson gson;
 	
-	@Deprecated
-	static Explorer explorer;
 	static RequestResponseCache request_response_cache;
 	
 	static {

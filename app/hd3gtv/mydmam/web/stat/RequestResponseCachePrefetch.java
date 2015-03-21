@@ -22,12 +22,12 @@ import hd3gtv.log2.Log2Dump;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-class RequestResponsePrefetch<T> implements Callable<Boolean> {
+class RequestResponseCachePrefetch<E> implements Callable<Boolean> {
 	
-	private RequestResponseCacheFactory<T> factory;
+	private RequestResponseCacheFactory<E> factory;
 	private List<String> cache_reference_tags;
 	
-	RequestResponsePrefetch(List<String> cache_reference_tags, RequestResponseCacheFactory<T> factory) {
+	RequestResponseCachePrefetch(List<String> cache_reference_tags, RequestResponseCacheFactory<E> factory) {
 		this.cache_reference_tags = cache_reference_tags;
 		this.factory = factory;
 	}

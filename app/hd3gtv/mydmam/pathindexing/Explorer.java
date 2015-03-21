@@ -25,6 +25,7 @@ import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.web.SearchResult;
 import hd3gtv.mydmam.web.stat.Stat;
+import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.io.File;
@@ -308,8 +309,10 @@ public class Explorer {
 		
 		public LinkedHashMap<String, SourcePathIndexerElement> directory_content;
 		public long directory_size;
-		public String storagename;
 		public String pathindexkey;
+		
+		@GsonIgnore
+		public String storagename;
 		
 		private DirectoryContent() {
 		}
@@ -317,7 +320,6 @@ public class Explorer {
 		public JsonObject toJson() {
 			JsonObject jo = new JsonObject();
 			jo.addProperty("size", directory_size);
-			jo.addProperty("storagename", storagename);
 			jo.addProperty("pathindexkey", pathindexkey);
 			jo.add("content", gson_simple.toJsonTree(directory_content));
 			return jo;
@@ -330,7 +332,6 @@ public class Explorer {
 	public DirectoryContent getDirectoryContentfromJson(JsonObject jo) {
 		DirectoryContent dc = new DirectoryContent();
 		dc.directory_size = jo.get("size").getAsLong();
-		dc.storagename = jo.get("storagename").getAsString();
 		dc.pathindexkey = jo.get("pathindexkey").getAsString();
 		dc.directory_content = gson_simple.fromJson(jo.get("content").getAsJsonObject(), typeOfT_LinkedHashMap_String_SPIE);
 		return dc;
