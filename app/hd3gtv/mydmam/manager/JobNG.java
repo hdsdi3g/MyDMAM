@@ -648,6 +648,7 @@ public final class JobNG implements Log2Dumpable {
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(status.name());
 			index_query.withColumnSlice("source");
+			index_query.setRowLimit(1000);
 			
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			if (rows.getResult().isEmpty()) {

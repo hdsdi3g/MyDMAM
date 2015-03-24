@@ -54,15 +54,31 @@ public class CliModuleBroker implements CliModule {
 				return;
 			}
 		} else if (args.getParamExist("-remove")) {
-			if (args.getSimpleParamValue("-remove").equalsIgnoreCase("preparing")) {
-				List<JsonObject> jobs = JobNG.Utility.deleteJobsByStatus(JobStatus.PREPARING);
+			try {
+				JobStatus status = JobStatus.valueOf(args.getSimpleParamValue("-remove").toUpperCase());
+				List<JsonObject> jobs = JobNG.Utility.deleteJobsByStatus(status);
 				for (int pos = 0; pos < jobs.size(); pos++) {
 					System.out.println(jobs.get(pos).toString());
 				}
 				return;
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+				System.err.println("Invalid job status name.");
+				System.err.println("Valid names: " + sb_jobstatus.toString());
+				return;
 			}
 		}
 		showFullCliModuleHelp();
+	}
+	
+	private static final StringBuilder sb_jobstatus = new StringBuilder();
+	static {
+		for (int i = 0; i < JobStatus.values().length; i++) {
+			sb_jobstatus.append(JobStatus.values()[i].name().toLowerCase());
+			if (i + 1 < JobStatus.values().length) {
+				sb_jobstatus.append("|");
+			}
+		}
 	}
 	
 	public void showFullCliModuleHelp() {
@@ -70,7 +86,8 @@ public class CliModuleBroker implements CliModule {
 		System.out.println(" * truncate instances list: " + getCliModuleName() + " -truncate instances");
 		System.out.println(" * truncate job queue: " + getCliModuleName() + " -truncate queue");
 		System.out.println(" * truncate instances list and queue: " + getCliModuleName() + " -truncate all");
-		System.out.println(" * remove all \"preparing\" jobs: " + getCliModuleName() + " -remove preparing");
+		
+		System.out.println(" * remove jobs by status: " + getCliModuleName() + " -remove [" + sb_jobstatus.toString() + "]");
 	}
 	
 }
