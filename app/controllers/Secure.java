@@ -9,6 +9,7 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.auth.AuthenticationUser;
 import hd3gtv.mydmam.auth.Authenticator;
+import hd3gtv.mydmam.auth.BlacklistIP;
 import hd3gtv.mydmam.auth.InvalidAuthenticatorUserException;
 
 import java.lang.reflect.Type;
@@ -32,6 +33,7 @@ import play.libs.Time;
 import play.mvc.Before;
 import play.mvc.Controller;
 import play.mvc.Http;
+import play.mvc.Http.Request;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
@@ -281,7 +283,7 @@ public class Secure extends Controller {
 	}
 	
 	public static void authenticate(@Required String username, @Required String password, String domainidx, boolean remember) throws Throwable {
-		if (Validation.hasErrors()) {
+		if (Validation.hasErrors() | (BlacklistIP.get().validThisIP(Request.current().remoteAddress) == false)) {
 			flash.keep("url");
 			flash.error("secure.error");
 			params.flash();
