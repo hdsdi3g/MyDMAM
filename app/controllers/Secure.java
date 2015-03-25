@@ -9,7 +9,6 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.auth.AuthenticationUser;
 import hd3gtv.mydmam.auth.Authenticator;
-import hd3gtv.mydmam.auth.BlacklistIP;
 import hd3gtv.mydmam.auth.InvalidAuthenticatorUserException;
 
 import java.lang.reflect.Type;
@@ -22,6 +21,7 @@ import java.util.Random;
 
 import models.ACLGroup;
 import models.ACLUser;
+import models.BlackListIP;
 import models.UserProfile;
 import play.Play;
 import play.data.validation.Required;
@@ -283,7 +283,9 @@ public class Secure extends Controller {
 	}
 	
 	public static void authenticate(@Required String username, @Required String password, String domainidx, boolean remember) throws Throwable {
-		if (Validation.hasErrors() | (BlacklistIP.get().validThisIP(Request.current().remoteAddress) == false)) {
+		String remote_address = Request.current().remoteAddress;
+		
+		if (Validation.hasErrors() | (BlackListIP.validThisIP(remote_address) == false)) {
 			flash.keep("url");
 			flash.error("secure.error");
 			params.flash();
@@ -310,6 +312,7 @@ public class Secure extends Controller {
 			dump.add("domainidx", domainidx);
 			dump.add("cause", e.getMessage());
 			Log2.log.security("Can't login", dump);
+			// TODO BlackListIP
 		}
 		
 		if (authuser == null) {
@@ -317,6 +320,7 @@ public class Secure extends Controller {
 			flash.error("secure.error");
 			params.flash();
 			login();
+			// TODO BlackListIP
 			return;
 		}
 		
@@ -330,6 +334,7 @@ public class Secure extends Controller {
 				flash.error("secure.error");
 				params.flash();
 				login();
+				// TODO BlackListIP
 				return;
 			}
 			acluser = new ACLUser(group_guest, authuser.getSourceName(), username, authuser.getFullName());
@@ -343,6 +348,8 @@ public class Secure extends Controller {
 		acluser.lastloginipsource = request.remoteAddress;
 		acluser.lastlogindate = new Date();
 		acluser.save();
+		
+		BlackListIP.releaseIP(remote_address);
 		
 		/**
 		 * Async db update : don't slowdown login/auth with this.
