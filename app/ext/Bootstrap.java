@@ -102,6 +102,17 @@ public class Bootstrap extends Job {
 		}
 		
 		/**
+		 * Peuplate DB ACLs : set locked_account if null
+		 */
+		List<ACLUser> user_list = ACLUser.all().fetch();
+		for (int pos = 0; pos < user_list.size(); pos++) {
+			if (user_list.get(pos).locked_account == null) {
+				user_list.get(pos).locked_account = false;
+				user_list.get(pos).save();
+			}
+		}
+		
+		/**
 		 * Peuplate DB ACLs : admin role
 		 */
 		ACLRole role_admim = ACLRole.findById(ACLRole.ADMIN_NAME);

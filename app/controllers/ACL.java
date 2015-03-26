@@ -138,8 +138,9 @@ public class ACL extends Controller {
 		String login = null;
 		String group = null;
 		List<ACLGroup> groups = ACLGroup.findAll();
+		boolean locked_account = false;
 		
-		render("ACL/formuser.html", title, login, group, groups);
+		render("ACL/formuser.html", title, login, group, groups, locked_account);
 	}
 	
 	@Check("acl")
@@ -147,26 +148,29 @@ public class ACL extends Controller {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.groups"));
 		
+		boolean locked_account = false;
+		
 		String group = null;
 		if (login != null) {
 			ACLUser user = ACLUser.findById(login);
 			if (user != null) {
 				group = user.group.name;
+				locked_account = user.locked_account;
 			}
 		}
 		List<ACLGroup> groups = ACLGroup.findAll();
-		render("ACL/formuser.html", title, login, group, groups);
+		render("ACL/formuser.html", title, login, group, groups, locked_account);
 	}
 	
 	@Check("acl")
-	public static void updateuser(@Required String login, @Required String group) {
+	public static void updateuser(@Required String login, @Required String group, @Required Boolean locked_account) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
 		if (Validation.hasErrors()) {
 			List<ACLGroup> groups = ACLGroup.findAll();
 			login = null;
 			group = null;
-			render("ACL/formuser.html", title, login, group, groups);
+			render("ACL/formuser.html", title, login, group, groups, locked_account);
 			return;
 		}
 		
@@ -175,7 +179,7 @@ public class ACL extends Controller {
 			List<ACLGroup> groups = ACLGroup.findAll();
 			login = null;
 			group = null;
-			render("ACL/formuser.html", title, login, group, groups);
+			render("ACL/formuser.html", title, login, group, groups, locked_account);
 			return;
 		}
 		
@@ -183,6 +187,7 @@ public class ACL extends Controller {
 		if (user != null) {
 			user.group = realgroup;
 			user.lasteditdate = new Date();
+			user.locked_account = locked_account;
 			user.save();
 		} else {
 			realgroup.addACLUser("Manualy add", login, login);

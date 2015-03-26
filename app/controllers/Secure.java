@@ -281,15 +281,19 @@ public class Secure extends Controller {
 		render(force_select_domain, authenticators_domains);
 	}
 	
+	private static void rejectUser() throws Throwable {
+		flash.keep("url");
+		flash.error("secure.error");
+		params.flash();
+		login();
+	}
+	
 	public static void authenticate(@Required String username, @Required String password, String domainidx, boolean remember) throws Throwable {
 		String remote_address = request.remoteAddress;
 		
 		if (Validation.hasErrors() | (BlackListIP.validThisIP(remote_address) == false)) {
 			// TODO valid this blocked user
-			flash.keep("url");
-			flash.error("secure.error");
-			params.flash();
-			login();
+			rejectUser();
 			return;
 		}
 		
@@ -315,13 +319,9 @@ public class Secure extends Controller {
 		}
 		
 		if (authuser == null) {
-			flash.keep("url");
-			flash.error("secure.error");
-			params.flash();
-			login();
 			BlackListIP.failedAttempt(remote_address, username);
 			// TODO bad password user, set bad login attempt date/count
-			return;
+			rejectUser();
 		}
 		
 		username = authuser.getLogin();
@@ -330,18 +330,22 @@ public class Secure extends Controller {
 		if (acluser == null) {
 			ACLGroup group_guest = ACLGroup.findById(ACLGroup.NEWUSERS_NAME);
 			if (group_guest == null) {
-				flash.keep("url");
-				flash.error("secure.error");
-				params.flash();
-				login();
-				return;
+				rejectUser();
 			}
 			acluser = new ACLUser(group_guest, authuser.getSourceName(), username, authuser.getFullName());
 		}
 		
-		// TODO check acluser Security Policy and blocked/locked and check bad login attempt date/count (or release count)
-		
 		BlackListIP.releaseIP(remote_address);
+		
+		if (acluser.locked_account) {
+			Log2Dump dump = getUserSessionInformation();
+			dump.add("username", username);
+			dump.add("domainidx", domainidx);
+			Log2.log.security("Locked account for user", dump);
+			rejectUser();
+		}
+		
+		// TODO check acluser Security Policy and blocked/locked and check bad login attempt date/count (or release count)
 		
 		if (acluser.fullname.equals(authuser.getFullName()) == false) {
 			acluser.fullname = authuser.getFullName();

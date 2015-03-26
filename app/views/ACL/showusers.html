@@ -38,7 +38,12 @@
     #{list items:users, as:'element'}
 		<tr>
 			<td>${element.fullname}</td>
-			<td><code>${element.login}</code></td>
+			<td>
+				<code>${element.login}</code>
+				#{if element.locked_account}
+				<span class="badge badge-important">&{'acl.locked_account'}</span>
+				#{/if}<br>
+			</td>
 			<td>
 				<a href="@{ACL.editgroup(element.group.name)}" class="">${element.group.name}</a>
 				<small>
