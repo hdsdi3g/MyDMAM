@@ -40,21 +40,13 @@ public class BlackListIP extends GenericModel {
 	public Date last_attempt;
 	
 	@Required
-	public AttackType attacktype;
-	
-	@Required
 	public String last_attempt_username;
-	
-	public enum AttackType {
-		INVALID_USER_NAME, INVALID_PASSWORD
-	}
 	
 	@Required
 	public int attempt;
 	
-	public BlackListIP(String address, AttackType attacktype, String attempt_username) {
+	public BlackListIP(String address, String attempt_username) {
 		this.address = address;
-		this.attacktype = attacktype;
 		this.last_attempt_username = attempt_username;
 		first_attempt = new Date();
 		attempt = 0;
@@ -111,10 +103,10 @@ public class BlackListIP extends GenericModel {
 		bl.delete();
 	}
 	
-	public static void failedAttempt(String address, String login_name, AttackType attacktype) {
+	public static void failedAttempt(String address, String login_name) {
 		BlackListIP bl = BlackListIP.findById(address);
 		if (bl == null) {
-			bl = new BlackListIP(address, attacktype, login_name);
+			bl = new BlackListIP(address, login_name);
 		}
 		bl.attempt++;
 		bl.last_attempt = new Date();

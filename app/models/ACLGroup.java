@@ -43,6 +43,8 @@ public class ACLGroup extends GenericModel {
 	@Required
 	public ACLRole role;
 	
+	// TODO add Security Policy @Entity, with SubnetUtils
+	
 	public ACLGroup(ACLRole role, String name) {
 		this.role = role;
 		this.name = name;

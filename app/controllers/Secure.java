@@ -33,7 +33,6 @@ import play.libs.Time;
 import play.mvc.Before;
 import play.mvc.Controller;
 import play.mvc.Http;
-import play.mvc.Http.Request;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
@@ -283,9 +282,10 @@ public class Secure extends Controller {
 	}
 	
 	public static void authenticate(@Required String username, @Required String password, String domainidx, boolean remember) throws Throwable {
-		String remote_address = Request.current().remoteAddress;
+		String remote_address = request.remoteAddress;
 		
 		if (Validation.hasErrors() | (BlackListIP.validThisIP(remote_address) == false)) {
+			// TODO valid this blocked user
 			flash.keep("url");
 			flash.error("secure.error");
 			params.flash();
@@ -312,7 +312,6 @@ public class Secure extends Controller {
 			dump.add("domainidx", domainidx);
 			dump.add("cause", e.getMessage());
 			Log2.log.security("Can't login", dump);
-			// TODO BlackListIP
 		}
 		
 		if (authuser == null) {
@@ -320,7 +319,8 @@ public class Secure extends Controller {
 			flash.error("secure.error");
 			params.flash();
 			login();
-			// TODO BlackListIP
+			BlackListIP.failedAttempt(remote_address, username);
+			// TODO bad password user, set bad login attempt date/count
 			return;
 		}
 		
@@ -334,22 +334,23 @@ public class Secure extends Controller {
 				flash.error("secure.error");
 				params.flash();
 				login();
-				// TODO BlackListIP
 				return;
 			}
 			acluser = new ACLUser(group_guest, authuser.getSourceName(), username, authuser.getFullName());
 		}
+		
+		// TODO check acluser Security Policy and blocked/locked and check bad login attempt date/count (or release count)
+		
+		BlackListIP.releaseIP(remote_address);
 		
 		if (acluser.fullname.equals(authuser.getFullName()) == false) {
 			acluser.fullname = authuser.getFullName();
 			acluser.lasteditdate = new Date();
 		}
 		
-		acluser.lastloginipsource = request.remoteAddress;
+		acluser.lastloginipsource = remote_address;
 		acluser.lastlogindate = new Date();
 		acluser.save();
-		
-		BlackListIP.releaseIP(remote_address);
 		
 		/**
 		 * Async db update : don't slowdown login/auth with this.

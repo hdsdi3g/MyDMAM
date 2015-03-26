@@ -53,6 +53,10 @@ public class ACLUser extends GenericModel {
 	@Required
 	public Date lasteditdate;
 	
+	// TODO add access_blocked boolean, locked_account boolean
+	
+	// TODO add bad login attempt date/count IN SEPARATE @Entity
+	
 	public ACLUser(ACLGroup group, String sourcename, String login, String fullname) {
 		this.group = group;
 		this.sourcename = sourcename;
