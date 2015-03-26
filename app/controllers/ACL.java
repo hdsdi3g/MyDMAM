@@ -163,8 +163,12 @@ public class ACL extends Controller {
 	}
 	
 	@Check("acl")
-	public static void updateuser(@Required String login, @Required String group, @Required Boolean locked_account) {
+	public static void updateuser(@Required String login, @Required String group, Boolean locked_account) {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		
+		if (locked_account == null) {
+			locked_account = false;
+		}
 		
 		if (Validation.hasErrors()) {
 			List<ACLGroup> groups = ACLGroup.findAll();

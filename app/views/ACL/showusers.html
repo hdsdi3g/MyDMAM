@@ -40,9 +40,9 @@
 			<td>${element.fullname}</td>
 			<td>
 				<code>${element.login}</code>
-				#{if element.locked_account}
+				#{if element.locked_account}<br>
 				<span class="badge badge-important">&{'acl.locked_account'}</span>
-				#{/if}<br>
+				#{/if}
 			</td>
 			<td>
 				<a href="@{ACL.editgroup(element.group.name)}" class="">${element.group.name}</a>

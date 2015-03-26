@@ -314,6 +314,7 @@ acl.functionalities.btnactivateallsimple=Activer toutes les fonctionnalités non
 acl.functionalities.btnactivateall=Activer toutes les fonctionnalités
 acl.functionalities.btndesactivateall=Desactiver toutes les fonctionnalités
 acl.locked_account=Desactivé
+acl.locked_account.checked=Compte desactivé
 
 mime.video-mpeg=Vidéo MPEG
 mime.application-pdf=Document PDF

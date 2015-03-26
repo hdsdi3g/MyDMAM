@@ -5,7 +5,7 @@ play:
 # messages:
     # maingrid.brand: Site name
     # site.name: Site name
-    # site.baseline: Your wonderful Media Asset Management tool
+    # site.baseline: My wonderful Media Asset Management tool
     # site.aboutfooter: service Name.
     # site.logintips: Use your current login account for connect
 
@@ -14,6 +14,9 @@ auth:
     # change this for separate in database user profiles between play setups
     user_scope_isolation: default
 #    privileges_ttl: 10
+#    max_attempt_for_blocking_addr: 20
+#    grace_attempt_count: 5
+#    grace_period_factor_time: 60
     backend:
         -
             source: local

@@ -69,6 +69,4 @@ public class ACLUser extends GenericModel {
 		locked_account = false;
 	}
 	
-	// TODO add bad login attempt date/count IN SEPARATE @Entity
-	
 }

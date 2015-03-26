@@ -39,6 +39,16 @@
 	</div>
 </div>
 <div class="control-group">
+	<label class="control-label" for="locked_account">&{'acl.locked_account.checked'}</label>
+	<div class="controls">
+		#{if locked_account}
+    		<input id="locked_account" type="checkbox" name="locked_account" value="true" checked="checked" />
+    	#{/if}#{else}
+    		<input id="locked_account" type="checkbox" name="locked_account" value="true" />
+    	#{/else}
+	</div>
+</div>
+<div class="control-group">
 	<div class="controls">
 	#{if login}
 		<button type="submit" class="btn btn-info">&{'acl.update'}</button>

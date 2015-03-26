@@ -17,6 +17,8 @@
 package models;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.web.acaddr.AccessControlAddresses;
+import hd3gtv.mydmam.web.acaddr.AccessControlAddresses.AccessControlAddressesStatus;
 
 import java.util.Date;
 
@@ -28,6 +30,8 @@ import play.db.jpa.GenericModel;
 
 @Entity
 public class BlackListIP extends GenericModel {
+	
+	// TODO view and delete entry for this
 	
 	@Id
 	@Required
@@ -52,13 +56,25 @@ public class BlackListIP extends GenericModel {
 		attempt = 0;
 	}
 	
-	private static final int max_attempt_for_blocking_addr = Configuration.global.getValue("auth", "max_attempt_for_blocking_addr", 10);
+	private static final int max_attempt_for_blocking_addr;
+	private static final int grace_attempt_count;
+	private static final int grace_period_factor_time;
 	
-	private static final int grace_attempt_count = Configuration.global.getValue("auth", "grace_attempt_count", 2);
-	
-	private static final int grace_period_factor_time = Configuration.global.getValue("auth", "grace_period_factor_time", 10);
+	static {
+		max_attempt_for_blocking_addr = Configuration.global.getValue("auth", "max_attempt_for_blocking_addr", 20);
+		grace_attempt_count = Configuration.global.getValue("auth", "grace_attempt_count", 5);
+		grace_period_factor_time = Configuration.global.getValue("auth", "grace_period_factor_time", 60);
+	}
 	
 	public static boolean validThisIP(String address) {
+		AccessControlAddressesStatus status = AccessControlAddresses.getAddrStatus(address);
+		if (status == AccessControlAddressesStatus.NEVERBLOCK) {
+			return true;
+		}
+		if (status == AccessControlAddressesStatus.BLACK) {
+			return false;
+		}
+		
 		BlackListIP bl = BlackListIP.findById(address);
 		
 		if (bl == null) {

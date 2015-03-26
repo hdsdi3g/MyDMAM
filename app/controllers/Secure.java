@@ -292,7 +292,6 @@ public class Secure extends Controller {
 		String remote_address = request.remoteAddress;
 		
 		if (Validation.hasErrors() | (BlackListIP.validThisIP(remote_address) == false)) {
-			// TODO valid this blocked user
 			rejectUser();
 			return;
 		}
@@ -320,7 +319,6 @@ public class Secure extends Controller {
 		
 		if (authuser == null) {
 			BlackListIP.failedAttempt(remote_address, username);
-			// TODO bad password user, set bad login attempt date/count
 			rejectUser();
 		}
 		
@@ -344,8 +342,6 @@ public class Secure extends Controller {
 			Log2.log.security("Locked account for user", dump);
 			rejectUser();
 		}
-		
-		// TODO check acluser Security Policy and blocked/locked and check bad login attempt date/count (or release count)
 		
 		if (acluser.fullname.equals(authuser.getFullName()) == false) {
 			acluser.fullname = authuser.getFullName();

@@ -314,6 +314,7 @@ acl.functionalities.btnactivateallsimple=Activate all non dangerous functionalit
 acl.functionalities.btnactivateall=Activate all functionalities
 acl.functionalities.btndesactivateall=Desactivate all functionalities
 acl.locked_account=Disabled
+acl.locked_account.checked=Disabled login
 
 mime.video-mpeg=MPEG Video
 mime.application-pdf=PDF Document
