@@ -16,6 +16,12 @@
 */
 package hd3gtv.mydmam.web.acaddr;
 
+import java.util.List;
+
 class AccessControlAddressesNeverblock extends AccessControlAddresses {
+	
+	AccessControlAddressesNeverblock(List<String> addrlist) {
+		super(addrlist);
+	}
 	
 }

@@ -17,6 +17,10 @@ auth:
 #    max_attempt_for_blocking_addr: 20
 #    grace_attempt_count: 5
 #    grace_period_factor_time: 60
+#    access_control_addresses:
+#        -
+#            list: black | white | neverblock
+#            addr: 192.168.0.0/16 10.0.0.0/8 172.16.0.0/12 fc00::/7 fe80::/10 ::1/128 127.0.0.0/16 ...
     backend:
         -
             source: local

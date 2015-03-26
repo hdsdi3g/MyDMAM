@@ -17,6 +17,8 @@
 package models;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.web.acaddr.AccessControlAddresses;
 import hd3gtv.mydmam.web.acaddr.AccessControlAddresses.AccessControlAddressesStatus;
 
@@ -72,6 +74,7 @@ public class BlackListIP extends GenericModel {
 			return true;
 		}
 		if (status == AccessControlAddressesStatus.BLACK) {
+			Log2.log.debug("User try to login from blacklisted addr", new Log2Dump("address", address));
 			return false;
 		}
 		

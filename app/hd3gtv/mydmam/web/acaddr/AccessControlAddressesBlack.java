@@ -16,6 +16,12 @@
 */
 package hd3gtv.mydmam.web.acaddr;
 
+import java.util.List;
+
 class AccessControlAddressesBlack extends AccessControlAddresses {
+	
+	AccessControlAddressesBlack(List<String> addrlist) {
+		super(addrlist);
+	}
 	
 }

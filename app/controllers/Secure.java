@@ -291,7 +291,17 @@ public class Secure extends Controller {
 	public static void authenticate(@Required String username, @Required String password, String domainidx, boolean remember) throws Throwable {
 		String remote_address = request.remoteAddress;
 		
-		if (Validation.hasErrors() | (BlackListIP.validThisIP(remote_address) == false)) {
+		if (Validation.hasErrors()) {
+			rejectUser();
+			return;
+		}
+		
+		if (BlackListIP.validThisIP(remote_address) == false) {
+			Log2Dump dump = new Log2Dump();
+			dump.add("username", username);
+			dump.add("domainidx", domainidx);
+			dump.add("remote_address", remote_address);
+			Log2.log.debug("Refuse IP addr for user", dump);
 			rejectUser();
 			return;
 		}
