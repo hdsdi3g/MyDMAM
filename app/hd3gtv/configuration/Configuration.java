@@ -44,11 +44,16 @@ public class Configuration {
 		refreshGlobalConfiguration();
 	}
 	
+	/**
+	 * Like conf/app.d
+	 */
+	private static File global_configuration_directory;
+	
 	public static void refreshGlobalConfiguration() {
-		File file = new File(System.getProperty("service.config.path", "conf/app.d"));
+		global_configuration_directory = new File(System.getProperty("service.config.path", "conf/app.d"));
 		
 		try {
-			global = new Configuration(file);
+			global = new Configuration(global_configuration_directory);
 		} catch (IOException e) {
 			Log2Dump dump = new Log2Dump();
 			dump.add("user-set", System.getProperty("service.config.path", "null"));
@@ -56,6 +61,10 @@ public class Configuration {
 			Log2.log.error("Problem while load configuration documents", e, dump);
 			System.exit(1);
 		}
+	}
+	
+	public static File getGlobalConfigurationDirectory() {
+		return global_configuration_directory;
 	}
 	
 	private HashMap<String, ConfigurationItem> configuration;

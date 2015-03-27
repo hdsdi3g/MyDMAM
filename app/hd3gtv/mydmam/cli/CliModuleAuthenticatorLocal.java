@@ -1,7 +1,9 @@
 package hd3gtv.mydmam.cli;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.auth.AuthenticationUser;
+import hd3gtv.mydmam.auth.Authenticator;
 import hd3gtv.mydmam.auth.AuthenticatorLocalsqlite;
 import hd3gtv.tools.ApplicationArgs;
 
@@ -254,5 +256,28 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 		System.out.println("Or");
 		System.out.println(" -autotest");
 		System.out.println("  test bCrypt and auth sqlite internal functions");
+		
+		List<Authenticator> auths = AuthenticationBackend.getAuthenticators();
+		if (auths.isEmpty()) {
+			return;
+		}
+		System.out.println("With actual configured local auth:");
+		
+		AuthenticatorLocalsqlite localauth;
+		for (int pos = 0; pos < auths.size(); pos++) {
+			if ((auths.get(pos) instanceof AuthenticatorLocalsqlite) == false) {
+				continue;
+			}
+			localauth = (AuthenticatorLocalsqlite) auths.get(pos);
+			if (localauth.getDbfile().exists() == false) {
+				continue;
+			}
+			System.out.print(" -f ");
+			System.out.print(localauth.getDbfile().getAbsolutePath());
+			System.out.print(" -key ");
+			System.out.print(localauth.getMaster_password_key());
+			System.out.println();
+		}
+		
 	}
 }

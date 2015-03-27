@@ -22,6 +22,7 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.security.MessageDigest;
@@ -70,13 +71,31 @@ public class AuthenticationBackend {
 		authenticators_domains = new ArrayList<String>(elements.size());
 		
 		LinkedHashMap<String, ?> configuration_element;
+		File auth_file;
 		for (int pos = 0; pos < elements.size(); pos++) {
 			configuration_element = elements.get(pos);
 			String element_source = (String) configuration_element.get("source");
 			if (element_source.equals("local")) {
 				String path = (String) configuration_element.get("path");
+				
+				auth_file = new File(path);
+				if (auth_file.exists() == false) {
+					if (auth_file.isAbsolute() == false) {
+						if (auth_file.getParentFile().getName().equals("conf") & Configuration.getGlobalConfigurationDirectory().getParentFile().getName().equals("conf")) {
+							/**
+							 * SQLite file is located in Play conf directory, and Play /app.d/ is also located in conf directory.
+							 * We consider that conf directory is the same.
+							 */
+							auth_file = new File(Configuration.getGlobalConfigurationDirectory().getParent() + File.separator + auth_file.getName());
+						}
+					}
+				}
+				if (auth_file.exists() == false) {
+					throw new FileNotFoundException(path);
+				}
+				
 				String masterkey = (String) configuration_element.get("masterkey");
-				authenticators.add(new AuthenticatorLocalsqlite(new File(path), masterkey));
+				authenticators.add(new AuthenticatorLocalsqlite(auth_file, masterkey));
 				
 				String label = (String) configuration_element.get("label");
 				authenticators_domains.add(label);
