@@ -100,6 +100,13 @@ public class UAManager {
 		if (functionalities_class_map.containsKey(functionality.getClass().getName())) {
 			return;
 		}
+		try {
+			functionality.testDeclaration();
+		} catch (Exception e) {
+			Log2.log.error("Can't use functionality", e, new Log2Dump("class", functionality.getClass().getName()));
+			return;
+		}
+		
 		functionalities_class_map.put(functionality.getClass().getName(), functionality);
 		functionalities_list.add(functionality);
 	}

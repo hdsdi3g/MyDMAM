@@ -161,4 +161,15 @@ public abstract class UAFunctionalityContext extends JobContext {
 		return 0;
 	}
 	
+	final void testDeclaration() throws Exception {
+		/*createProcess();
+		getSection();
+		getVendor();
+		getLongName();
+		getDescription();
+		getMessageBaseName();
+		isPowerfulAndDangerous();
+		prepareEmptyConfiguration();
+		getCapabilityForInstance();*/
+	}
 }
