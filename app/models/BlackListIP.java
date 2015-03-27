@@ -33,8 +33,6 @@ import play.db.jpa.GenericModel;
 @Entity
 public class BlackListIP extends GenericModel {
 	
-	// TODO view and delete entry for this
-	
 	@Id
 	@Required
 	public String address;
@@ -58,9 +56,9 @@ public class BlackListIP extends GenericModel {
 		attempt = 0;
 	}
 	
-	private static final int max_attempt_for_blocking_addr;
-	private static final int grace_attempt_count;
-	private static final int grace_period_factor_time;
+	public static final int max_attempt_for_blocking_addr;
+	public static final int grace_attempt_count;
+	public static final int grace_period_factor_time;
 	
 	static {
 		max_attempt_for_blocking_addr = Configuration.global.getValue("auth", "max_attempt_for_blocking_addr", 20);

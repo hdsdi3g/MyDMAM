@@ -271,6 +271,9 @@ $(document).ready(function() {
 						<li>
 							<a href="@{ACL.showroles()}"><i class="icon-user"></i> &{'acl.pagename.roles'}</a>
 						</li>
+						<li>
+							<a href="@{ACL.showblacklistips()}"><i class="icon-user"></i> &{'acl.pagename.showblacklistips'}</a>
+						</li>
 					#{/secure.check}
 					
 					#{secure.check 'adminCrud'}

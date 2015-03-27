@@ -315,6 +315,15 @@ acl.functionalities.btnactivateall=Activer toutes les fonctionnalités
 acl.functionalities.btndesactivateall=Desactiver toutes les fonctionnalités
 acl.locked_account=Desactivé
 acl.locked_account.checked=Compte desactivé
+acl.pagename.showblacklistips=Adresses bloquées
+acl.blacklistip.address=Adresse
+acl.blacklistip.first_attempt=Premier essai
+acl.blacklistip.last_attempt=Dernier essai
+acl.blacklistip.last_attempt_username=Avec l'utilisateur
+acl.blacklistip.attempt=Tentative
+acl.blacklistip.max_attempt_for_blocking_addr=Nombre de tentatives max avant blocage de l'adresse
+acl.blacklistip.grace_attempt_count=Nombre de tentatives permises avant blocage temporisé
+acl.blacklistip.grace_period_factor_time=Facteur de durée (sec) d'attente du blocage temporisé
 
 mime.video-mpeg=Vidéo MPEG
 mime.application-pdf=Document PDF

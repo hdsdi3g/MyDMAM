@@ -28,6 +28,7 @@ import java.util.List;
 import models.ACLGroup;
 import models.ACLRole;
 import models.ACLUser;
+import models.BlackListIP;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
@@ -329,4 +330,33 @@ public class ACL extends Controller {
 		role.save();
 		redirect("ACL.showroles");
 	}
+	
+	@Check("acl")
+	public static void showblacklistips() {
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.showblacklistips"));
+		List<BlackListIP> blacklistips = BlackListIP.findAll();
+		
+		int max_attempt_for_blocking_addr = BlackListIP.max_attempt_for_blocking_addr;
+		int grace_attempt_count = BlackListIP.grace_attempt_count;
+		int grace_period_factor_time = BlackListIP.grace_period_factor_time;
+		
+		render(title, blacklistips, max_attempt_for_blocking_addr, grace_attempt_count, grace_period_factor_time);
+	}
+	
+	@Check("acl")
+	public static void deleteblacklistip(@Required String address) {
+		if (Validation.hasErrors()) {
+			redirect("ACL.showblacklistips");
+		}
+		
+		BlackListIP blacklist = BlackListIP.findById(address);
+		if (blacklist == null) {
+			redirect("ACL.showblacklistips");
+		}
+		
+		blacklist.delete();
+		redirect("ACL.showblacklistips");
+	}
+	
 }
