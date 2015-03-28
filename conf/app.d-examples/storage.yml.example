@@ -1,15 +1,26 @@
 storage:
-    apply: debug
-    
-    storage1 : 
-        type : smb
-        host : 192.168.0.1
-        path : /storage1
-        username : usr
-        password : passwd
-        readonly : true
+    definitions:
+        -
+            name: Storage1
+            path: file:/home/me/A local directory
+            # or path: ftp_passive://user:password@host/dest/path/to/go
+            # with file, ftp_passive, ftp_active, smb, ftp_broadcastserver
+            # password: A:Spec:alP:ssword
+            regular_indexing: true # set to false for just declare a storage.
+            period: 600 # in seconds: if regular_indexing, it will index this storage regulary, else period will help to calculate the ttl for pushing in database.
+            # mounted: /Volumes/host/dest/path/to/go # if you want the local tools, like ffmpeg or ImageMagick can access to a distant file, you can mount it in local.
+        # - ...
 
-    storage2 :
-        type : file
-        path : /mnt/storage2
-        readonly : true
+# Some examples for path:
+# protocol://user:AStrong:P@ssword@123.10.09.1:1234/fsdfsdfsdf/ÊÊÊÊ/dfs:dfdfdf
+# protocol://123.10.09.1/A Path
+# protocol://user@123.10.09.1/A Path
+# protocol://user:password@123.10.09.1/A Path
+# protocol://123.10.09.1:1234/A Path
+# protocol://user@123.10.09.1:1234/A Path
+# protocol:/user@123.10.09.1:1234/A Path
+# protocol://user@123.10.09.1:1234/A Path/
+# protocol://user@123.10.09.1:1234/A Path/with @/
+# protocol://123.10.09.1:1234/A Path/with @
+# protocol://user:password@123.10.09.1:1234/A Path/with @/
+# If your password contain a ":", please set it in a "password" entry in definition.

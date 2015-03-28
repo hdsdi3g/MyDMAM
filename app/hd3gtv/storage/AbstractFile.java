@@ -24,6 +24,7 @@ import java.io.BufferedOutputStream;
 /**
  * Caution : this API is not thread safe !
  */
+@Deprecated
 public interface AbstractFile extends Log2Dumpable {
 	
 	public AbstractFile[] listFiles();

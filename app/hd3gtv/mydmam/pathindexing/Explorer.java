@@ -430,9 +430,12 @@ public class Explorer {
 		return Elasticsearch.countRequest(Importer.ES_INDEX, QueryBuilders.termQuery("storagename", storage_index_name.toLowerCase()), Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
 	}
 	
+	@Deprecated
 	private static HashMap<String, File> bridge;
+	@Deprecated
 	private static ArrayList<String> bridge_list;
 	
+	@Deprecated
 	private static void populate_bridge() throws NullPointerException {
 		if (bridge == null) {
 			bridge = new HashMap<String, File>();
@@ -449,6 +452,7 @@ public class Explorer {
 		}
 	}
 	
+	@Deprecated
 	public static File getLocalBridgedElement(SourcePathIndexerElement element) {
 		if (element == null) {
 			return null;
@@ -462,6 +466,7 @@ public class Explorer {
 		return new File(base_path.getPath() + element.currentpath);
 	}
 	
+	@Deprecated
 	public static ArrayList<String> getBridgedStoragesName() {
 		populate_bridge();
 		return bridge_list;

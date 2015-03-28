@@ -27,6 +27,7 @@ import jcifs.smb.NtlmPasswordAuthentication;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
 
+@Deprecated
 class AbstractFileBridgeSmb implements AbstractFile {
 	
 	private StorageConfigurator configurator;

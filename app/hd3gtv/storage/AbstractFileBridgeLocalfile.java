@@ -26,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+@Deprecated
 class AbstractFileBridgeLocalfile implements AbstractFile {
 	
 	private File file;

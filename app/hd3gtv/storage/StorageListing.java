@@ -16,6 +16,7 @@
 */
 package hd3gtv.storage;
 
+@Deprecated
 public interface StorageListing {
 	
 	/**

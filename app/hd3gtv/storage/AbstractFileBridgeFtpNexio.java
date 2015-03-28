@@ -30,6 +30,7 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
 
+@Deprecated
 public class AbstractFileBridgeFtpNexio implements AbstractFile {
 	
 	StorageConfigurator configurator;

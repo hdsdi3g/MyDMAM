@@ -16,6 +16,7 @@
 */
 package hd3gtv.storage;
 
+@Deprecated
 public abstract class IgnoreFiles {
 	
 	public abstract boolean isFileNameIsAllowed(String filename);

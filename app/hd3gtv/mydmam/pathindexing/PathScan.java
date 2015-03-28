@@ -48,6 +48,7 @@ public class PathScan extends WorkerNG {
 	
 	private static final int grace_time_ttl = 5; // ttl = (grace_time_ttl * period)
 	
+	@Deprecated
 	private class PathElementConfiguration {
 		/**
 		 * In sec

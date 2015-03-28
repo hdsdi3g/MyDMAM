@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+@Deprecated
 public class StorageManager {
 	
 	private ArrayList<StorageConfigurator> list_storages;
