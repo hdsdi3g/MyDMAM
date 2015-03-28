@@ -116,6 +116,12 @@ public class ElasticsearchMultiGetRequest {
 			List<GetResponse> result = new ArrayList<GetResponse>(responses.length);
 			
 			for (int pos = 0; pos < responses.length; pos++) {
+				if (responses[pos] == null) {
+					continue;
+				}
+				if (responses[pos].getResponse() == null) {
+					continue;
+				}
 				if (responses[pos].getResponse().isExists() == false) {
 					continue;
 				}
