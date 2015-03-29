@@ -20,7 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.WorkerCapablities;
-import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.storage.Storage;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -107,7 +107,7 @@ public abstract class UAFunctionalityContext extends JobContext {
 		if (whitelist == null) {
 			whitelist = new ArrayList<String>(1);
 		}
-		List<String> bridgedstorages = Explorer.getBridgedStoragesName();
+		List<String> bridgedstorages = Storage.getLocalAccessStoragesName();
 		
 		List<String> storages_to_add = new ArrayList<String>();
 		if (whitelist.isEmpty()) {

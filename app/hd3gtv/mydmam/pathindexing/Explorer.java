@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
@@ -28,13 +27,11 @@ import hd3gtv.mydmam.web.stat.Stat;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
-import java.io.File;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.MultiSearchRequestBuilder;
@@ -428,48 +425,6 @@ public class Explorer {
 	
 	public long countStorageContentElements(String storage_index_name) {
 		return Elasticsearch.countRequest(Importer.ES_INDEX, QueryBuilders.termQuery("storagename", storage_index_name.toLowerCase()), Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
-	}
-	
-	@Deprecated
-	private static HashMap<String, File> bridge;
-	@Deprecated
-	private static ArrayList<String> bridge_list;
-	
-	@Deprecated
-	private static void populate_bridge() throws NullPointerException {
-		if (bridge == null) {
-			bridge = new HashMap<String, File>();
-			bridge_list = new ArrayList<String>();
-			if (Configuration.global.isElementExists("storageindex_bridge") == false) {
-				Log2.log.error("No configuration for storageindex_bridge", new NullPointerException());
-				return;
-			}
-			LinkedHashMap<String, String> s_bridge = Configuration.global.getValues("storageindex_bridge");
-			for (Map.Entry<String, String> entry : s_bridge.entrySet()) {
-				bridge.put(entry.getKey(), (new File(entry.getValue())).getAbsoluteFile());
-				bridge_list.add(entry.getKey());
-			}
-		}
-	}
-	
-	@Deprecated
-	public static File getLocalBridgedElement(SourcePathIndexerElement element) {
-		if (element == null) {
-			return null;
-		}
-		populate_bridge();
-		
-		File base_path = bridge.get(element.storagename);
-		if (base_path == null) {
-			return null;
-		}
-		return new File(base_path.getPath() + element.currentpath);
-	}
-	
-	@Deprecated
-	public static ArrayList<String> getBridgedStoragesName() {
-		populate_bridge();
-		return bridge_list;
 	}
 	
 	private class IndexingDelete implements IndexingEvent {

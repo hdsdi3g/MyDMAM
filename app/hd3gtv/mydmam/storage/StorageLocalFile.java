@@ -38,6 +38,10 @@ public class StorageLocalFile extends Storage {
 		this.root = root;
 	}
 	
+	File getRoot() {
+		return root;
+	}
+	
 	class Localfile implements AbstractFile {
 		
 		private File file;

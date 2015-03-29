@@ -26,6 +26,7 @@ import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.useraction.UACapability;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
@@ -97,7 +98,7 @@ public class UAFileOperationDelete extends BaseFileOperation {
 		ArrayList<File> items_to_delete = new ArrayList<File>();
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
 			progression.incrStep();
-			File current_element = Explorer.getLocalBridgedElement(entry.getValue());
+			File current_element = Storage.getLocalFile(entry.getValue());
 			CopyMove.checkExistsCanRead(current_element);
 			CopyMove.checkIsWritable(current_element.getParentFile());
 			

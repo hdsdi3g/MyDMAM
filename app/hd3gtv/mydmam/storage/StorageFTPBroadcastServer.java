@@ -42,7 +42,7 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 		path = configuration.relative_path.replaceAll("/", "").toUpperCase();
 	}
 	
-	public class AbstractFileFtpBCST implements AbstractFile {
+	class AbstractFileFtpBCST implements AbstractFile {
 		
 		private AbstractFileFtpBCST() throws IOException {
 		}

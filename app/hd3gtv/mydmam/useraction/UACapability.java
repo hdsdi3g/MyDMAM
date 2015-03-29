@@ -16,8 +16,8 @@
 */
 package hd3gtv.mydmam.useraction;
 
-import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.Storage;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -74,7 +74,7 @@ public abstract class UACapability {
 				}
 			}
 		}
-		if (Explorer.getBridgedStoragesName().contains(element.storagename) == false) {
+		if (Storage.getLocalAccessStoragesName().contains(element.storagename) == false) {
 			throw new IOException("Storage index for element has not a storage index bridge");
 		}
 	}

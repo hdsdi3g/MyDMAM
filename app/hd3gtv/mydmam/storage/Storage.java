@@ -37,6 +37,7 @@ public abstract class Storage {
 	
 	private static final List<Storage> declared_storages;
 	private static final Map<String, Storage> declared_storages_by_name;
+	private static final ArrayList<String> declared_storages_local_access;
 	
 	static {
 		declared_storages = new ArrayList<Storage>();
@@ -64,7 +65,7 @@ public abstract class Storage {
 				}
 				
 				if (storage_def.containsKey("mounted")) {
-					storage.mounted = new File((String) storage_def.get("mounted"));
+					storage.mounted = new File((String) storage_def.get("mounted")).getCanonicalFile();
 					CopyMove.checkExistsCanRead(storage.mounted);
 					CopyMove.checkIsDirectory(storage.mounted);
 				}
@@ -78,6 +79,15 @@ public abstract class Storage {
 		for (int pos = 0; pos < declared_storages.size(); pos++) {
 			declared_storages_by_name.put(declared_storages.get(pos).name, declared_storages.get(pos));
 		}
+		
+		declared_storages_local_access = new ArrayList<String>();
+		for (int pos = 0; pos < declared_storages.size(); pos++) {
+			if (declared_storages.get(pos) instanceof StorageLocalFile) {
+				declared_storages_local_access.add(declared_storages.get(pos).name);
+			} else if (declared_storages.get(pos).mounted != null) {
+				declared_storages_local_access.add(declared_storages.get(pos).name);
+			}
+		}
 	}
 	
 	public static Storage getByName(String storage_name) {
@@ -87,23 +97,36 @@ public abstract class Storage {
 		return declared_storages_by_name.get(storage_name);
 	}
 	
-	public static File getLocalBridgedElement(SourcePathIndexerElement element) {
-		// TODO and rename
+	/**
+	 * @return null if storage can't provide a File
+	 */
+	public static File getLocalFile(SourcePathIndexerElement element) {// TODO rename
 		if (element == null) {
 			return null;
 		}
+		if (declared_storages_local_access.contains(element.storagename) == false) {
+			return null;
+		}
 		
-		/*File base_path = bridge.get(element.storagename);
+		File base_path = null;
+		Storage storage = declared_storages_by_name.get(element.storagename);
+		if (storage instanceof StorageLocalFile) {
+			base_path = ((StorageLocalFile) storage).getRoot();
+		} else {
+			base_path = storage.mounted;
+		}
+		
 		if (base_path == null) {
 			return null;
 		}
-		return new File(base_path.getPath() + element.currentpath);*/
-		return null;
+		return new File(base_path.getPath() + element.currentpath.replaceAll("/", File.separator));
 	}
 	
-	public static ArrayList<String> getBridgedStoragesName() {
-		// TODO and rename
-		return null;
+	/**
+	 * Storage File based, or mounted storages on localhost.
+	 */
+	public static ArrayList<String> getLocalAccessStoragesName() {// TODO rename
+		return declared_storages_local_access;
 	}
 	
 	public static void testAllStoragesConnection() {

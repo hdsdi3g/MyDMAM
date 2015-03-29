@@ -27,6 +27,7 @@ import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.Storage;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -117,7 +118,7 @@ public class WorkerRenderer extends WorkerNG {
 			}
 		}
 		
-		File physical_file = Explorer.getLocalBridgedElement(source_element);
+		File physical_file = Storage.getLocalFile(source_element);
 		if (physical_file == null) {
 			throw new NullPointerException("Can't bridge with real file origin element: " + renderer_context.origin_pathindex_key);
 		}
@@ -169,7 +170,7 @@ public class WorkerRenderer extends WorkerNG {
 		List<WorkerCapablities> result = new ArrayList<WorkerCapablities>();
 		for (int pos = 0; pos < metadataGeneratorRenderers.size(); pos++) {
 			if (metadataGeneratorRenderers.get(pos) instanceof MetadataGeneratorRendererViaWorker) {
-				result.addAll(WorkerCapablities.createList(((MetadataGeneratorRendererViaWorker) metadataGeneratorRenderers.get(pos)).getContextClass(), Explorer.getBridgedStoragesName()));
+				result.addAll(WorkerCapablities.createList(((MetadataGeneratorRendererViaWorker) metadataGeneratorRenderers.get(pos)).getContextClass(), Storage.getLocalAccessStoragesName()));
 			}
 		}
 		return result;

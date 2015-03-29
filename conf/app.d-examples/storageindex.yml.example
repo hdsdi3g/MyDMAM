@@ -15,9 +15,6 @@ storageindex_scan:
         # set manual to desactivate regular indexing
         manual: true
 
-storageindex_bridge:
-    LABEL2: /mnt/storage2
-
 # Metadata analysing configuration, after indexing.
 
 metadata_analysing:

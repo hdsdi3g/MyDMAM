@@ -20,6 +20,7 @@ import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.Storage;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -71,7 +72,7 @@ public class ContainerOrigin {
 	 */
 	public File getPhysicalSource() throws IOException {
 		if (physical_source == null) {
-			physical_source = Explorer.getLocalBridgedElement(getPathindexElement());
+			physical_source = Storage.getLocalFile(getPathindexElement());
 			if (physical_source == null) {
 				throw new IOException("Can't bridge with " + storage + " storage");
 			}

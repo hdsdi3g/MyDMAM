@@ -29,6 +29,7 @@ import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
+import hd3gtv.mydmam.storage.Storage;
 
 import java.io.File;
 import java.io.IOException;
@@ -147,7 +148,7 @@ public class MetadataIndexer implements IndexingEvent {
 			return true;
 		}
 		
-		File physical_source = Explorer.getLocalBridgedElement(element);
+		File physical_source = Storage.getLocalFile(element);
 		
 		if (stop_analysis) {
 			return false;

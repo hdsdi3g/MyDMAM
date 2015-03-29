@@ -28,6 +28,7 @@ import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.metadata.MetadataCenter.MetadataConfigurationItem;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.JobContextPathScan;
+import hd3gtv.mydmam.storage.Storage;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -121,7 +122,7 @@ public class WorkerIndexer extends WorkerNG {
 	}
 	
 	public List<WorkerCapablities> getWorkerCapablities() {
-		return WorkerCapablities.createList(JobContextMetadataAnalyst.class, Explorer.getBridgedStoragesName());
+		return WorkerCapablities.createList(JobContextMetadataAnalyst.class, Storage.getLocalAccessStoragesName());
 	}
 	
 	protected boolean isActivated() {

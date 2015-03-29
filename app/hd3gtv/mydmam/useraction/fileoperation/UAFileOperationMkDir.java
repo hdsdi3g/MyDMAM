@@ -23,6 +23,7 @@ import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.useraction.UACapability;
 import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAJobProcess;
@@ -105,7 +106,7 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 		progression.updateStep(1, source_elements.size());
 		
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
-			File current_dir = Explorer.getLocalBridgedElement(entry.getValue());
+			File current_dir = Storage.getLocalFile(entry.getValue());
 			CopyMove.checkExistsCanRead(current_dir);
 			CopyMove.checkIsDirectory(current_dir);
 			CopyMove.checkIsWritable(current_dir);

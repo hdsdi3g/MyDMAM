@@ -28,8 +28,8 @@ import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.metadata.container.RenderedContent;
-import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.Storage;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -513,7 +513,7 @@ public class RenderedFile implements Log2Dumpable {
 		}
 		
 		RenderedFile result = new RenderedFile();
-		result.rendered_file = Explorer.getLocalBridgedElement(sourcepathindexerelement);
+		result.rendered_file = Storage.getLocalFile(sourcepathindexerelement);
 		
 		if (result.rendered_file == null) {
 			throw new NullPointerException("Find storage bridge in configuration");
