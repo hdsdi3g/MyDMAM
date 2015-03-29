@@ -16,21 +16,16 @@
 */
 package hd3gtv.mydmam.storage;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-
-public class StorageTypeSMB extends StorageType {
+abstract class StorageURILoginPassword extends Storage {
 	
-	List<String> getPathPrefixName() {
-		return Arrays.asList("smb", "cifs");
+	protected URILoginPasswordConfiguration configuration;
+	
+	StorageURILoginPassword(URILoginPasswordConfiguration configuration) {
+		this.configuration = configuration;
 	}
 	
-	Storage createStorage(String configuration_path, LinkedHashMap<String, ?> optional_storage_def) throws Exception {
-		URILoginPasswordConfiguration configuration = new URILoginPasswordConfiguration(configuration_path, optional_storage_def);
-		
-		// TODO Auto-generated method stub
-		return null;
+	public String toString() {
+		return this.getClass().getSimpleName() + ":" + configuration.toString();
 	}
 	
 }

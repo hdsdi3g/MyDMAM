@@ -16,13 +16,17 @@
 */
 package hd3gtv.mydmam.storage;
 
+import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
+
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class StorageType {
+abstract class StorageType {
 	
 	abstract List<String> getPathPrefixName();
 	
@@ -56,4 +60,73 @@ public abstract class StorageType {
 		}
 		return all_storage_type_by_prefix_name.get(prefix_name).createStorage(raw_path, storage_def);
 	}
+	
+	private static class StorageTypeFile extends StorageType {
+		
+		List<String> getPathPrefixName() {
+			return Arrays.asList("file", "local");
+		}
+		
+		Storage createStorage(String configuration_path, LinkedHashMap<String, ?> optional_storage_def) throws Exception {
+			
+			int pos_colon = configuration_path.indexOf(":");
+			String path = configuration_path.substring(pos_colon + 1);
+			if (path.startsWith("//")) {
+				path = path.substring(1);
+			}
+			if (path.substring(0, 1).equals(File.separator) == false) {
+				/**
+				 * Windows case.
+				 */
+				path = path.substring(1);
+			}
+			
+			File root_path = new File(path);
+			CopyMove.checkExistsCanRead(root_path);
+			CopyMove.checkIsDirectory(root_path);
+			
+			return new StorageLocalFile(root_path);
+		}
+		
+	}
+	
+	private static class StorageTypeFTP extends StorageType {
+		
+		List<String> getPathPrefixName() {
+			return Arrays.asList("ftp_passive", "ftp_active", "ftp");
+		}
+		
+		Storage createStorage(String configuration_path, LinkedHashMap<String, ?> optional_storage_def) throws Exception {
+			URILoginPasswordConfiguration configuration = new URILoginPasswordConfiguration(configuration_path, optional_storage_def);
+			boolean ftp_active = configuration_path.startsWith("ftp_active:/");
+			return new StorageFTP(configuration, ftp_active);
+		}
+	}
+	
+	private static class StorageTypeFTPBroadcastServer extends StorageType {
+		
+		List<String> getPathPrefixName() {
+			return Arrays.asList("ftp_broadcastserver");
+		}
+		
+		Storage createStorage(String configuration_path, LinkedHashMap<String, ?> optional_storage_def) throws Exception {
+			URILoginPasswordConfiguration configuration = new URILoginPasswordConfiguration(configuration_path, optional_storage_def);
+			return new StorageFTPBroadcastServer(configuration);
+		}
+		
+	}
+	
+	private static class StorageTypeSMB extends StorageType {
+		
+		List<String> getPathPrefixName() {
+			return Arrays.asList("smb", "cifs");
+		}
+		
+		Storage createStorage(String configuration_path, LinkedHashMap<String, ?> optional_storage_def) throws Exception {
+			URILoginPasswordConfiguration configuration = new URILoginPasswordConfiguration(configuration_path, optional_storage_def);
+			return new StorageSMB(configuration);
+		}
+		
+	}
+	
 }

@@ -25,8 +25,8 @@ import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
-import hd3gtv.storage.AbstractFile;
-import hd3gtv.storage.StorageManager;
+import hd3gtv.mydmam.storage.AbstractFile;
+import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.Timecode;
@@ -79,7 +79,7 @@ public class Publish extends WorkerNG {
 		
 		try {
 			deststorage = Configuration.global.getValue("transcoding_probe", "deststorage", null);
-			StorageManager.getGlobalStorage().testIOForStorages(deststorage);
+			Storage.getByName(deststorage).testStorageOperations();
 		} catch (Exception e) {
 			throw new FileNotFoundException(deststorage);
 		}
@@ -264,7 +264,7 @@ public class Publish extends WorkerNG {
 		 * End storage move
 		 */
 		bis = new BufferedInputStream(new FileInputStream(dest_file_qtfs), 0xFFFF);
-		dest_dir = StorageManager.getGlobalStorage().getRootPath(deststorage);
+		dest_dir = Storage.getByName(deststorage).getRootPath();
 		dest_file = dest_dir.getAbstractFile("/" + context_publish.mediaid.toUpperCase() + ".f4v");
 		bos = dest_file.getOutputStream(0xFFFF);
 		buffer = new byte[0xFFFF];

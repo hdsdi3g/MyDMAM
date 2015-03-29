@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.storage.StorageManager;
+import hd3gtv.mydmam.storage.Storage;
 
 import java.io.IOException;
 
@@ -24,7 +24,9 @@ import org.json.simple.parser.ParseException;
 
 public class ImporterStorage extends Importer {
 	
+	@Deprecated
 	private String physical_storage_name;
+	
 	String pathindex_storage_name;
 	private long ttl;
 	boolean stop;
@@ -72,7 +74,7 @@ public class ImporterStorage extends Importer {
 	protected long doIndex(IndexingEvent elementpush) throws Exception {
 		Listing listing = new Listing(this);
 		listing.elementpush = elementpush;
-		StorageManager.getGlobalStorage().dirList(listing, physical_storage_name);
+		Storage.getByName(physical_storage_name).dirList(listing);
 		return listing.count;
 	}
 	

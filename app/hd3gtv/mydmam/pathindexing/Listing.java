@@ -18,9 +18,9 @@ package hd3gtv.mydmam.pathindexing;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.storage.AbstractFile;
-import hd3gtv.storage.IgnoreFiles;
-import hd3gtv.storage.StorageListing;
+import hd3gtv.mydmam.storage.AbstractFile;
+import hd3gtv.mydmam.storage.IgnoreFiles;
+import hd3gtv.mydmam.storage.StorageListing;
 
 class Listing implements StorageListing {
 	

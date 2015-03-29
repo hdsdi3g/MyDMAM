@@ -75,6 +75,10 @@ final class URILoginPasswordConfiguration {
 	}
 	
 	public String toString() {
+		return toURI(false);
+	}
+	
+	private String toURI(boolean show_passwords) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(type);
 		sb.append("://");
@@ -82,7 +86,11 @@ final class URILoginPasswordConfiguration {
 			sb.append(login);
 			if (password != null) {
 				sb.append(":");
-				sb.append(password);
+				if (show_passwords) {
+					sb.append(password);
+				} else {
+					sb.append("********");
+				}
 			}
 			sb.append("@");
 		}
@@ -115,7 +123,7 @@ final class URILoginPasswordConfiguration {
 			from = raw_path_example.get(pos);
 			try {
 				URILoginPasswordConfiguration ulpc = new URILoginPasswordConfiguration(from, new LinkedHashMap<String, String>());
-				to = ulpc.toString();
+				to = ulpc.toURI(true);
 				if (from.equals(to) == false) {
 					System.out.println(from);
 					System.out.println(to);

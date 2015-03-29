@@ -14,20 +14,20 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.storage;
+package hd3gtv.mydmam.storage;
 
 import hd3gtv.log2.Log2Dumpable;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.util.List;
 
 /**
  * Caution : this API is not thread safe !
  */
-@Deprecated
 public interface AbstractFile extends Log2Dumpable {
 	
-	public AbstractFile[] listFiles();
+	public List<AbstractFile> listFiles();
 	
 	public boolean canRead();
 	

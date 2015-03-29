@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.storage.StorageManager;
+import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.tools.ApplicationArgs;
 
 class CliModuleStorageManager implements CliModule {
@@ -30,13 +30,12 @@ class CliModuleStorageManager implements CliModule {
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
-		StorageManager storage = StorageManager.getGlobalStorage();
 		
 		String storagename = args.getSimpleParamValue("-testio");
 		if (storagename != null) {
-			storage.testIOForStorages(storagename);
+			Storage.getByName(storagename).testStorageOperations();
 		} else {
-			storage.testAllStorages();
+			Storage.testAllStoragesConnection();
 		}
 		
 	}
