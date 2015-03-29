@@ -20,9 +20,9 @@ import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.IgnoreFiles;
-import hd3gtv.mydmam.storage.StorageListing;
+import hd3gtv.mydmam.storage.StorageCrawler;
 
-class Listing implements StorageListing {
+class Listing implements StorageCrawler {
 	
 	IndexingEvent elementpush;
 	long count = 0;
@@ -67,7 +67,7 @@ class Listing implements StorageListing {
 			element.size = file.length();
 			element.id = MyDMAM.getIdFromFilename(file.getName());
 		}
-		element.storagename = referer.pathindex_storage_name;
+		element.storagename = referer.getName();
 		
 		try {
 			if (elementpush.onFoundElement(element)) {
@@ -129,12 +129,12 @@ class Listing implements StorageListing {
 		}
 		try {
 			if (referer.currentworkingdir != null) {
-				return onFoundFile(file, referer.pathindex_storage_name);
+				return onFoundFile(file, referer.getName());
 			} else {
 				/**
 				 * Search from root storage
 				 */
-				elementpush.onFoundElement(SourcePathIndexerElement.prepareStorageElement(referer.pathindex_storage_name));
+				elementpush.onFoundElement(SourcePathIndexerElement.prepareStorageElement(referer.getName()));
 			}
 			return true;
 		} catch (Exception e) {

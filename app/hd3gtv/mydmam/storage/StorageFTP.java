@@ -45,6 +45,9 @@ public class StorageFTP extends StorageURILoginPassword {
 	StorageFTP(URILoginPasswordConfiguration configuration, boolean ftp_active) {
 		super(configuration);
 		this.ftp_active = ftp_active;
+		if (configuration.port == 0) {
+			configuration.port = 21;
+		}
 		
 		if (configuration.relative_path.equals("/") == false) {
 			if (configuration.relative_path.startsWith("/") == false) {
@@ -58,6 +61,12 @@ public class StorageFTP extends StorageURILoginPassword {
 		} else {
 			root_path = "/";
 		}
+	}
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = super.getLog2Dump();
+		dump.add("configuration", configuration.toString());
+		return dump;
 	}
 	
 	class AbstractFileFtp implements AbstractFile {

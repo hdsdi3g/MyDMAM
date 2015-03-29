@@ -19,6 +19,7 @@ package hd3gtv.mydmam.storage;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
 
@@ -33,11 +34,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class Storage {
+public abstract class Storage implements Log2Dumpable {
 	
 	private static final List<Storage> declared_storages;
 	private static final Map<String, Storage> declared_storages_by_name;
 	private static final ArrayList<String> declared_storages_local_access;
+	private static final List<Storage> regular_indexing_storages;
 	
 	static {
 		declared_storages = new ArrayList<Storage>();
@@ -88,6 +90,13 @@ public abstract class Storage {
 				declared_storages_local_access.add(declared_storages.get(pos).name);
 			}
 		}
+		
+		regular_indexing_storages = new ArrayList<Storage>();
+		for (int pos = 0; pos < declared_storages.size(); pos++) {
+			if (declared_storages.get(pos).regular_indexing && (declared_storages.get(pos).period > 0)) {
+				regular_indexing_storages.add(declared_storages.get(pos));
+			}
+		}
 	}
 	
 	public static Storage getByName(String storage_name) {
@@ -100,7 +109,7 @@ public abstract class Storage {
 	/**
 	 * @return null if storage can't provide a File
 	 */
-	public static File getLocalFile(SourcePathIndexerElement element) {// TODO rename
+	public static File getLocalFile(SourcePathIndexerElement element) {
 		if (element == null) {
 			return null;
 		}
@@ -125,7 +134,7 @@ public abstract class Storage {
 	/**
 	 * Storage File based, or mounted storages on localhost.
 	 */
-	public static ArrayList<String> getLocalAccessStoragesName() {// TODO rename
+	public static ArrayList<String> getLocalAccessStoragesName() {
 		return declared_storages_local_access;
 	}
 	
@@ -142,14 +151,44 @@ public abstract class Storage {
 		}
 	}
 	
+	public static boolean hasRegularIndexing() {
+		return regular_indexing_storages.isEmpty() == false;
+	}
+	
+	public static List<Storage> getRegularIndexingStorages() {
+		return regular_indexing_storages;
+	}
+	
 	/**
 	 * Start dynamic zone...
 	 */
-	
 	private String name;
 	private boolean regular_indexing;
 	private int period;
 	private File mounted;
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = new Log2Dump();
+		dump.add("name", name);
+		dump.add("type", getClass().getName());
+		dump.add("regular_indexing", regular_indexing);
+		dump.add("period", period);
+		if (mounted != null) {
+			dump.add("mounted", mounted);
+		}
+		return dump;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	/**
+	 * In sec
+	 */
+	public int getPeriod() {
+		return period;
+	}
 	
 	/**
 	 * Caution : AbstractFile is not thread safe !
@@ -253,7 +292,7 @@ public abstract class Storage {
 	 * Do a recusive dir listing and callback for each file
 	 * A close() will be call.
 	 */
-	public void dirList(StorageListing listing) {
+	public void dirList(StorageCrawler listing) {
 		if (listing == null) {
 			throw new NullPointerException("\"listing\" can't to be null");
 		}
@@ -305,7 +344,7 @@ public abstract class Storage {
 		listing.onEndSearch();
 	}
 	
-	private boolean recursiveDirectorySearch(List<AbstractFile> files, StorageListing listing, IgnoreFiles rules, int width_crawl_allowed) {
+	private boolean recursiveDirectorySearch(List<AbstractFile> files, StorageCrawler listing, IgnoreFiles rules, int width_crawl_allowed) {
 		if (width_crawl_allowed == 0) {
 			return false;
 		}

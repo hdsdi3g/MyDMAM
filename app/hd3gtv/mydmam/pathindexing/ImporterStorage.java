@@ -24,26 +24,21 @@ import org.json.simple.parser.ParseException;
 
 public class ImporterStorage extends Importer {
 	
-	@Deprecated
-	private String physical_storage_name;
+	private static final int grace_time_ttl = 5; // ttl = (grace_time_ttl * period)
 	
-	String pathindex_storage_name;
+	private Storage storage;
 	private long ttl;
 	boolean stop;
 	String currentworkingdir;
 	boolean limit_to_current_directory;
 	
-	public ImporterStorage(String physical_storage_name, String pathindex_storage_name, long ttl) throws IOException, ParseException {
+	public ImporterStorage(Storage storage) throws IOException, ParseException {
 		super();
-		this.physical_storage_name = physical_storage_name;
-		if (physical_storage_name == null) {
-			throw new NullPointerException("\"storagename\" can't to be null");
+		this.storage = storage;
+		if (storage == null) {
+			throw new NullPointerException("\"storage\" can't to be null");
 		}
-		this.pathindex_storage_name = pathindex_storage_name;
-		if (pathindex_storage_name == null) {
-			throw new NullPointerException("\"poolname\" can't to be null");
-		}
-		this.ttl = ttl;
+		this.ttl = 1000 * storage.getPeriod() * grace_time_ttl;
 	}
 	
 	public synchronized void stopScan() {
@@ -51,7 +46,7 @@ public class ImporterStorage extends Importer {
 	}
 	
 	protected String getName() {
-		return pathindex_storage_name;
+		return storage.getName();
 	}
 	
 	public void setCurrentworkingdir(String currentworkingdir) {
@@ -74,7 +69,7 @@ public class ImporterStorage extends Importer {
 	protected long doIndex(IndexingEvent elementpush) throws Exception {
 		Listing listing = new Listing(this);
 		listing.elementpush = elementpush;
-		Storage.getByName(physical_storage_name).dirList(listing);
+		storage.dirList(listing);
 		return listing.count;
 	}
 	

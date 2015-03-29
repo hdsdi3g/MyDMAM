@@ -16,8 +16,8 @@
 */
 package hd3gtv.mydmam.storage;
 
-public interface StorageListing {// TODO rename
-
+public interface StorageCrawler {
+	
 	/**
 	 * @return false for stop
 	 */

@@ -39,7 +39,17 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 	
 	StorageFTPBroadcastServer(URILoginPasswordConfiguration configuration) {
 		super(configuration);
+		if (configuration.port == 0) {
+			configuration.port = 22;
+		}
+		
 		path = configuration.relative_path.replaceAll("/", "").toUpperCase();
+	}
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = super.getLog2Dump();
+		dump.add("configuration", configuration.toString());
+		return dump;
 	}
 	
 	class AbstractFileFtpBCST implements AbstractFile {

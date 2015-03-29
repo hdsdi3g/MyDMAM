@@ -42,6 +42,12 @@ public class StorageLocalFile extends Storage {
 		return root;
 	}
 	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = super.getLog2Dump();
+		dump.add("root", root);
+		return dump;
+	}
+	
 	class Localfile implements AbstractFile {
 		
 		private File file;

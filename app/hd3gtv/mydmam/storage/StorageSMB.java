@@ -32,13 +32,26 @@ import jcifs.smb.SmbFile;
 public class StorageSMB extends StorageURILoginPassword {
 	
 	private NtlmPasswordAuthentication auth;
+	private String root_path;
 	
 	StorageSMB(URILoginPasswordConfiguration configuration) {
 		super(configuration);
 		auth = new NtlmPasswordAuthentication("", configuration.login, configuration.password);
 		
+		StringBuffer sb = new StringBuffer();
+		sb.append("smb://");
+		sb.append(configuration.host);
+		sb.append(configuration.relative_path);
+		sb.append("/");
+		root_path = sb.toString();
 		/*
 		configuration.relative_path = file.getPath();*/
+	}
+	
+	public Log2Dump getLog2Dump() {
+		Log2Dump dump = super.getLog2Dump();
+		dump.add("configuration", configuration.toString());
+		return dump;
 	}
 	
 	class AbstractFileSmb implements AbstractFile {
@@ -46,11 +59,7 @@ public class StorageSMB extends StorageURILoginPassword {
 		private SmbFile file;
 		
 		private AbstractFileSmb() throws IOException {
-			StringBuffer sb = new StringBuffer();
-			sb.append("smb://");
-			sb.append(configuration.host);
-			sb.append(configuration.relative_path);
-			this.file = new SmbFile(sb.toString(), auth);
+			this.file = new SmbFile(root_path, auth);
 		}
 		
 		private AbstractFileSmb(SmbFile file) {
@@ -133,9 +142,9 @@ public class StorageSMB extends StorageURILoginPassword {
 		public String getPath() {
 			String path = file.getPath();
 			if (path.endsWith("/")) {
-				return path.substring(configuration.relative_path.length() - 1, path.length() - 1);
+				return path.substring(root_path.length() - 1, path.length() - 1);
 			} else {
-				return path.substring(configuration.relative_path.length() - 1);
+				return path.substring(root_path.length() - 1);
 			}
 		}
 		
@@ -189,12 +198,12 @@ public class StorageSMB extends StorageURILoginPassword {
 			StringBuffer sb = new StringBuffer();
 			sb.append("smb://");
 			sb.append(configuration.host);
-			sb.append(configuration.relative_path.substring(0, configuration.relative_path.length() - 1));
+			sb.append(root_path.substring(0, root_path.length() - 1));
 			sb.append(newpath);
 			
 			try {
 				SmbFile newfile = new SmbFile(sb.toString(), auth);
-				if (newfile.getCanonicalPath().startsWith(configuration.relative_path) == false) {
+				if (newfile.getCanonicalPath().startsWith(root_path) == false) {
 					/** Security problem */
 					return null;
 				} else {
