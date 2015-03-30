@@ -107,14 +107,14 @@ public abstract class UAFunctionalityContext extends JobContext {
 		if (whitelist == null) {
 			whitelist = new ArrayList<String>(1);
 		}
-		List<String> bridgedstorages = Storage.getLocalAccessStoragesName();
+		List<String> all_storages = Storage.getAllStoragesName();
 		
 		List<String> storages_to_add = new ArrayList<String>();
 		if (whitelist.isEmpty()) {
-			storages_to_add = bridgedstorages;
+			storages_to_add = all_storages;
 		} else {
 			for (int pos = 0; pos < whitelist.size(); pos++) {
-				if (bridgedstorages.contains(whitelist.get(pos))) {
+				if (all_storages.contains(whitelist.get(pos))) {
 					storages_to_add.add(whitelist.get(pos));
 				}
 			}

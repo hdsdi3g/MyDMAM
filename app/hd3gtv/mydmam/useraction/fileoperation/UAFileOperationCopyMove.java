@@ -106,7 +106,7 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 			throw new FileNotFoundException("\"" + root_destination + "\" in storage index");
 		}
 		
-		File f_destination = Storage.getLocalFile(root_destination);
+		File f_destination = Storage.getLocalFile(root_destination);// TODO replace with Storage API !
 		CopyMove.checkExistsCanRead(f_destination);
 		CopyMove.checkIsDirectory(f_destination);
 		CopyMove.checkIsWritable(f_destination);
@@ -116,7 +116,7 @@ public class UAFileOperationCopyMove extends BaseFileOperation {
 		progression.updateStep(1, source_elements.size());
 		
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
-			File source = Storage.getLocalFile(entry.getValue());
+			File source = Storage.getLocalFile(entry.getValue());// TODO replace with Storage API !
 			CopyMove.checkExistsCanRead(source);
 			
 			if ((conf.action == Action.MOVE) & (source.canWrite() == false)) {

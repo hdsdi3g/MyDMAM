@@ -98,7 +98,7 @@ public class UAFileOperationDelete extends BaseFileOperation {
 		ArrayList<File> items_to_delete = new ArrayList<File>();
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
 			progression.incrStep();
-			File current_element = Storage.getLocalFile(entry.getValue());
+			File current_element = Storage.getLocalFile(entry.getValue());// TODO replace with Storage API !
 			CopyMove.checkExistsCanRead(current_element);
 			CopyMove.checkIsWritable(current_element.getParentFile());
 			

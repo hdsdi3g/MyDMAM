@@ -106,7 +106,7 @@ public class UAFileOperationMkDir extends BaseFileOperation {
 		progression.updateStep(1, source_elements.size());
 		
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
-			File current_dir = Storage.getLocalFile(entry.getValue());
+			File current_dir = Storage.getLocalFile(entry.getValue());// TODO replace with Storage API !
 			CopyMove.checkExistsCanRead(current_dir);
 			CopyMove.checkIsDirectory(current_dir);
 			CopyMove.checkIsWritable(current_dir);

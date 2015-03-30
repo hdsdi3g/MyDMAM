@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.Elasticsearch;
@@ -132,7 +131,7 @@ public class PathScan extends WorkerNG {
 	}
 	
 	protected boolean isActivated() {
-		return Configuration.global.isElementExists("storageindex_scan");
+		return Storage.getRegularIndexingStorages().isEmpty() == false;
 	}
 	
 }

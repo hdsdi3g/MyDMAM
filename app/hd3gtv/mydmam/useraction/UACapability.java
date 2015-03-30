@@ -16,10 +16,8 @@
 */
 package hd3gtv.mydmam.useraction;
 
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.Storage;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,8 +35,20 @@ public abstract class UACapability {
 		return false;
 	}
 	
+	public boolean onlyLocalStorages() {
+		return false;
+	}
+	
+	/**
+	 * Overload this will overload onlyLocalStorages.
+	 */
 	public List<String> getStorageindexesWhiteList() {
-		return new ArrayList<String>();
+		if (onlyLocalStorages()) {
+			return Storage.getLocalAccessStoragesName();
+		} else {
+			return new ArrayList<String>();
+		}
+		
 	}
 	
 	public final UACapabilityDefinition getDefinition() {
@@ -51,32 +61,6 @@ public abstract class UACapability {
 			definition.storageindexeswhitelist = new ArrayList<String>();
 		}
 		return definition;
-	}
-	
-	final void checkValidity(SourcePathIndexerElement element) throws IOException {
-		if ((enableFileProcessing() == false) & (element.directory == false)) {
-			throw new IOException("Element is a file, and file processing is not available");
-		}
-		if ((enableDirectoryProcessing() == false) & element.directory) {
-			throw new IOException("Element is a directory, and directory processing is not available");
-		}
-		if (element.prepare_key().equalsIgnoreCase(SourcePathIndexerElement.ROOT_DIRECTORY_KEY)) {
-			throw new IOException("Element is the root storage, it will not be available");
-		}
-		if ((enableRootStorageindexProcessing() == false) & (element.parentpath == null)) {
-			throw new IOException("Element is a storage index root, and this is not available");
-		}
-		List<String> white_list = getStorageindexesWhiteList();
-		if (white_list != null) {
-			if (white_list.isEmpty() == false) {
-				if (white_list.contains(element.storagename) == false) {
-					throw new IOException("Storage index for element is not in white list.");
-				}
-			}
-		}
-		if (Storage.getLocalAccessStoragesName().contains(element.storagename) == false) {
-			throw new IOException("Storage index for element has not a storage index bridge");
-		}
 	}
 	
 }

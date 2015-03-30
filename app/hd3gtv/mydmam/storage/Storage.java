@@ -38,7 +38,8 @@ public abstract class Storage implements Log2Dumpable {
 	
 	private static final List<Storage> declared_storages;
 	private static final Map<String, Storage> declared_storages_by_name;
-	private static final ArrayList<String> declared_storages_local_access;
+	private static final List<String> declared_storages_local_access;
+	private static final List<String> declared_storages_string;
 	private static final List<Storage> regular_indexing_storages;
 	
 	static {
@@ -78,8 +79,11 @@ public abstract class Storage implements Log2Dumpable {
 		}
 		
 		declared_storages_by_name = new HashMap<String, Storage>();
+		declared_storages_string = new ArrayList<String>();
+		
 		for (int pos = 0; pos < declared_storages.size(); pos++) {
 			declared_storages_by_name.put(declared_storages.get(pos).name, declared_storages.get(pos));
+			declared_storages_string.add(declared_storages.get(pos).name);
 		}
 		
 		declared_storages_local_access = new ArrayList<String>();
@@ -134,8 +138,15 @@ public abstract class Storage implements Log2Dumpable {
 	/**
 	 * Storage File based, or mounted storages on localhost.
 	 */
-	public static ArrayList<String> getLocalAccessStoragesName() {
+	public static List<String> getLocalAccessStoragesName() {
 		return declared_storages_local_access;
+	}
+	
+	/**
+	 * Storage File based, or mounted storages on localhost.
+	 */
+	public static List<String> getAllStoragesName() {
+		return declared_storages_string;
 	}
 	
 	public static void testAllStoragesConnection() {

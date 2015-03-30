@@ -57,8 +57,4 @@ public class UADummyCapability extends UACapability {
 		return list;
 	}
 	
-	/*void checkValidity(SourcePathIndexerElement element) {
-		checkValidity(element);
-	}*/
-	
 }
