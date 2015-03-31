@@ -25,62 +25,117 @@ import java.util.List;
 /**
  * Caution : this API is not thread safe !
  */
-public interface AbstractFile extends Log2Dumpable {
+public abstract class AbstractFile implements Log2Dumpable {
 	
-	public List<AbstractFile> listFiles();
+	private Storage referer;
 	
-	public boolean canRead();
+	protected AbstractFile(Storage referer) {
+		this.referer = referer;
+		if (referer == null) {
+			throw new NullPointerException("\"referer\" can't to be null");
+		}
+	}
 	
-	public boolean canWrite();
+	protected AbstractFile(AbstractFile referer) {
+		this.referer = referer.referer;
+	}
 	
-	public long lastModified();
+	public abstract List<AbstractFile> listFiles();
 	
-	public String getPath();
+	public abstract boolean canRead();
 	
-	public boolean isDirectory();
+	public abstract boolean canWrite();
 	
-	public boolean isFile();
+	public abstract long lastModified();
 	
-	public boolean isHidden();
+	public abstract String getPath();
 	
-	public String getName();
+	public abstract boolean isDirectory();
 	
-	public long length();
+	public abstract boolean isFile();
+	
+	public abstract boolean isHidden();
+	
+	public abstract String getName();
+	
+	public abstract long length();
+	
+	public abstract boolean exists();
 	
 	/**
 	 * Close connection to server but don't close specific stream.
 	 */
-	public void close();
+	public abstract void close();
 	
 	/**
 	 * Don't forget to close the stream
 	 */
-	public BufferedInputStream getInputStream(int buffersize);
+	public abstract BufferedInputStream getInputStream(int buffersize);
 	
 	/**
 	 * Overwrite the actual stream
 	 * Don't forget to close the stream
 	 */
-	public BufferedOutputStream getOutputStream(int buffersize);
+	public abstract BufferedOutputStream getOutputStream(int buffersize);
 	
 	/**
 	 * @param newpath Always a full path, never relative
 	 */
-	public AbstractFile moveTo(String newpath);
+	public abstract AbstractFile renameTo(String newpath);
 	
 	/**
 	 * @param newpath Always a full path, never relative
 	 */
-	public AbstractFile mkdir(String newpath);
+	public abstract AbstractFile mkdir(String newpath);
 	
 	/**
 	 * @param newpath Always a full path, never relative
 	 */
-	public AbstractFile getAbstractFile(String newpath);
+	public abstract AbstractFile getAbstractFile(String newpath);
 	
 	/**
 	 * Recusive
 	 */
-	public boolean delete();
+	public abstract boolean delete();
+	
+	public Storage getStorage() {
+		return referer;
+	}
+	
+	public String getParentPath() {
+		String path = getPath();
+		int last_slash = path.lastIndexOf("/");
+		if (last_slash > 0) {
+			return path.substring(0, last_slash - 1);
+		} else {
+			return "/";
+		}
+	}
+	
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		sb.append(referer.getProtocol());
+		sb.append("://");
+		sb.append(referer.getName());
+		sb.append("/");
+		sb.append(getPath());
+		return sb.toString();
+	}
+	
+	/**
+	 * @param dest Always a full path, never relative
+	 */
+	public void copyTo(Storage dest_storage, String dest_path, CopyProgression copy_progression) {
+		if (dest_storage.getClass() == referer.getClass()) {
+			// TODO classic copy
+			if (dest_storage instanceof StorageLocalFile) {
+				
+			} else {
+				
+			}
+		} else {
+			// TODO cross storage type copy
+		}
+	}
 	
 }

@@ -19,6 +19,9 @@ package hd3gtv.mydmam.useraction.fileoperation;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.storage.AbstractFile;
+import hd3gtv.mydmam.storage.CopyProgression;
+import hd3gtv.mydmam.storage.CopyProgression.FileExistsPolicy;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,11 +39,7 @@ import org.apache.commons.io.IOUtils;
 
 public class CopyMove {
 	
-	public enum FileExistsPolicy {
-		OVERWRITE, IGNORE, RENAME
-	}
-	
-	public static void checkExistsCanRead(File element) throws IOException, NullPointerException {
+	public static void checkExistsCanRead(AbstractFile element) throws IOException, NullPointerException {
 		if (element == null) {
 			throw new NullPointerException("element is null");
 		}
@@ -52,56 +51,37 @@ public class CopyMove {
 		}
 	}
 	
-	public static void checkIsDirectory(File element) throws FileNotFoundException {
+	public static void checkIsDirectory(AbstractFile element) throws FileNotFoundException {
 		if (element.isDirectory() == false) {
 			throw new FileNotFoundException("\"" + element.getPath() + "\" is not a directory");
 		}
 	}
 	
-	public static void checkIsWritable(File element) throws IOException {
+	public static void checkIsWritable(AbstractFile element) throws IOException {
 		if (element.canWrite() == false) {
 			throw new IOException("\"" + element.getPath() + "\" is not writable");
 		}
 	}
 	
-	private File source;
-	private File destination;
-	private boolean delete_after_copy;
-	private JobProgression progression;
+	private AbstractFile source;
+	private AbstractFile destination;
+	private CopyProgression copy_progress;
 	
-	private long total_size = 0;
-	private long progress_copy = 0;
-	private int actual_progress_value = 0;
-	private int last_progress_value = 0;
-	private int progress_size = 0;
-	private FileExistsPolicy fileexistspolicy;
-	
-	public CopyMove(File source, File destination) throws NullPointerException, IOException {
+	public CopyMove(AbstractFile source, AbstractFile destination, CopyProgression copy_progress) throws NullPointerException, IOException {
 		this.source = source;
 		this.destination = destination;
+		this.copy_progress = copy_progress;
+		if (copy_progress == null) {
+			throw new NullPointerException("\"copy_progress\" can't to be null");
+		}
 		
 		checkExistsCanRead(source);
 		
 		checkExistsCanRead(destination);
 		checkIsDirectory(destination);
 		checkIsWritable(destination);
-		fileexistspolicy = FileExistsPolicy.OVERWRITE;
-	}
-	
-	public CopyMove setFileExistsPolicy(FileExistsPolicy fileexistspolicy) {
-		if (fileexistspolicy == null) {
-			return this;
-		}
-		this.fileexistspolicy = fileexistspolicy;
-		return this;
-	}
-	
-	public CopyMove setDelete_after_copy(boolean delete_after_copy) throws IOException {
-		this.delete_after_copy = delete_after_copy;
-		if (delete_after_copy) {
-			checkIsWritable(source);
-		}
-		return this;
+		
+		if (copy_progress.)
 	}
 	
 	private boolean force_move_with_copy_delete;
@@ -123,10 +103,10 @@ public class CopyMove {
 			 * Move operation
 			 * Can we simply move ?
 			 */
-			File moveto = new File(destination.getAbsoluteFile() + File.separator + source.getName());
-			if (source.renameTo(moveto)) {
-				return;
-			} else {
+			String moveto = destination.getPath() + File.separator + source.getName();
+			try {
+				source.renameTo(moveto);
+			} catch (Exception e) {
 				Log2Dump dump = new Log2Dump();
 				dump.add("source", source);
 				dump.add("moveto", moveto);
@@ -134,7 +114,7 @@ public class CopyMove {
 			}
 		}
 		
-		ArrayList<File> list_to_copy = new ArrayList<File>();
+		ArrayList<AbstractFile> list_to_copy = new ArrayList<AbstractFile>();
 		/**
 		 * Dirlist source
 		 */
@@ -144,7 +124,7 @@ public class CopyMove {
 			list_to_copy.add(source);
 		}
 		
-		File item_to_copy;
+		AbstractFile item_to_copy;
 		/**
 		 * Compute total_size to display progress.
 		 */
@@ -157,8 +137,8 @@ public class CopyMove {
 		/**
 		 * check UsableSpace
 		 */
-		if (destination.getUsableSpace() > 0) {
-			if (total_size > destination.getUsableSpace()) {
+		if (destination.getStorage().getUsableSpace() > 0) {
+			if (total_size > destination.getStorage().getUsableSpace()) {
 				throw new IOException("Not enough space in destination directory");
 			}
 		}
@@ -166,18 +146,18 @@ public class CopyMove {
 		/**
 		 * Copy source
 		 */
-		File destination_element_to_copy;
+		AbstractFile destination_element_to_copy;
 		progress_size = ((int) total_size / (1024 * 1024));
 		actual_progress_value = 0;
 		last_progress_value = 0;
 		progress_copy = 0;
 		
-		int chars_to_ignore = source.getParentFile().getAbsolutePath().length() + 1;
-		String base_destination_path = destination.getAbsolutePath() + File.separator;
+		int chars_to_ignore = source.getParentPath().length() + 1;
+		String base_destination_path = destination.getPath() + File.separator;
 		
 		for (int pos_ltc = 0; pos_ltc < list_to_copy.size(); pos_ltc++) {
 			item_to_copy = list_to_copy.get(pos_ltc);
-			destination_element_to_copy = new File(base_destination_path + item_to_copy.getAbsolutePath().substring(chars_to_ignore));
+			destination_element_to_copy = new File(base_destination_path + item_to_copy.getPath().substring(chars_to_ignore));
 			
 			if (item_to_copy.isDirectory()) {
 				if (destination_element_to_copy.exists()) {
@@ -221,7 +201,7 @@ public class CopyMove {
 	 */
 	private static final long FIFTY_MB = 52428800;
 	
-	private void copyFile(File source_file, File destination_file) throws IOException {
+	private void copyFile(AbstractFile source_file, AbstractFile destination_file) throws IOException {
 		if (destination_file.exists()) {
 			Log2Dump dump = new Log2Dump();
 			dump.add("source_file", source_file);
@@ -233,7 +213,9 @@ public class CopyMove {
 				return;
 			} else if (fileexistspolicy == FileExistsPolicy.OVERWRITE) {
 				Log2.log.debug("Destination file exists, overwrite it", dump);
-				FileUtils.forceDelete(destination_file);
+				if (destination_file.delete() == false) {
+					throw new IOException("Can't delete this file " + destination_file.toString());
+				}
 			} else if (fileexistspolicy == FileExistsPolicy.RENAME) {
 				// destination_file
 				int cursor = 1;
@@ -241,7 +223,7 @@ public class CopyMove {
 				StringBuilder sb;
 				while (destination_file.exists()) {
 					sb = new StringBuilder();
-					sb.append(destination_file.getParent());
+					sb.append(destination_file.getParentPath());
 					sb.append(File.separator);
 					dot_pos = destination_file.getName().lastIndexOf(".");
 					if (dot_pos > 0) {
@@ -256,13 +238,14 @@ public class CopyMove {
 						sb.append(cursor);
 						sb.append(")");
 					}
-					destination_file = new File(sb.toString());
+					destination_file = destination_file.getAbstractFile(sb.toString());
 					cursor++;
 				}
 				dump.add("new destination file name", destination_file);
 				Log2.log.debug("Destination file exists, change destionation name", dump);
 			}
 		}
+		
 		/**
 		 * Imported from org.apache.commons.io.FileUtils
 		 * Licensed to the Apache Software Foundation,
@@ -275,6 +258,7 @@ public class CopyMove {
 		try {
 			fis = new FileInputStream(source_file);
 			fos = new FileOutputStream(destination_file);
+			
 			input = fis.getChannel();
 			output = fos.getChannel();
 			long size = input.size();
@@ -310,7 +294,8 @@ public class CopyMove {
 		}
 	}
 	
-	private static void dirListing(File source, ArrayList<File> list_to_copy) throws IOException {
+	private static void dirListing(AbstractFile source, ArrayList<AbstractFile> list_to_copy) throws IOException {
+		// Storage.getByName("").dirList(listing);
 		ArrayList<File> bucket = new ArrayList<File>();
 		ArrayList<File> next_bucket = new ArrayList<File>();
 		bucket.add(source);
@@ -375,8 +360,8 @@ public class CopyMove {
 				}
 			}
 			
-			void checkFile(File parent) throws IOException {
-				File compare = new File(parent.getPath() + relative_path);
+			void checkFile(AbstractFile parent) throws IOException {
+				AbstractFile compare = new File(parent.getPath() + relative_path);
 				
 				checkExistsCanRead(compare);
 				
@@ -409,15 +394,15 @@ public class CopyMove {
 			}
 		}
 		
-		InternalTests(File temp_dir) throws Exception {
+		InternalTests(AbstractFile temp_dir) throws Exception {
 			checkExistsCanRead(temp_dir);
 			checkIsDirectory(temp_dir);
 			checkIsWritable(temp_dir);
 			
 			ArrayList<TestFile> test_files;
 			CopyMove cm;
-			File parent_source;
-			File parent_destination;
+			AbstractFile parent_source;
+			AbstractFile parent_destination;
 			TestFile test_file;
 			
 			/**

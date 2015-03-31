@@ -21,9 +21,9 @@ import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,6 +33,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.io.FileUtils;
 
 public abstract class Storage implements Log2Dumpable {
 	
@@ -69,8 +71,7 @@ public abstract class Storage implements Log2Dumpable {
 				
 				if (storage_def.containsKey("mounted")) {
 					storage.mounted = new File((String) storage_def.get("mounted")).getCanonicalFile();
-					CopyMove.checkExistsCanRead(storage.mounted);
-					CopyMove.checkIsDirectory(storage.mounted);
+					validRootFile(storage.mounted);
 				}
 				declared_storages.add(storage);
 			} catch (Exception e) {
@@ -100,6 +101,24 @@ public abstract class Storage implements Log2Dumpable {
 			if (declared_storages.get(pos).regular_indexing && (declared_storages.get(pos).period > 0)) {
 				regular_indexing_storages.add(declared_storages.get(pos));
 			}
+		}
+	}
+	
+	static void validRootFile(File element) throws IOException {
+		if (element == null) {
+			throw new NullPointerException("element is null");
+		}
+		if (element.exists() == false) {
+			throw new FileNotFoundException("\"" + element.getPath() + "\" in filesytem");
+		}
+		if (element.canRead() == false) {
+			throw new IOException("Can't read element \"" + element.getPath() + "\"");
+		}
+		if (element.isDirectory() == false) {
+			throw new FileNotFoundException("\"" + element.getPath() + "\" is not a directory");
+		}
+		if (FileUtils.isSymlink(element)) {
+			throw new IOException("\"" + element.getPath() + "\" is a link");
 		}
 	}
 	
@@ -195,6 +214,11 @@ public abstract class Storage implements Log2Dumpable {
 	}
 	
 	/**
+	 * @return file, smb, ftp...
+	 */
+	public abstract String getProtocol();
+	
+	/**
 	 * In sec
 	 */
 	public int getPeriod() {
@@ -206,6 +230,8 @@ public abstract class Storage implements Log2Dumpable {
 	 * Don't forget to close it !
 	 */
 	public abstract AbstractFile getRootPath() throws NullPointerException, IOException;
+	
+	public abstract long getUsableSpace();
 	
 	public void testStorageConnection() throws Exception {
 		AbstractFile file;
@@ -268,7 +294,7 @@ public abstract class Storage implements Log2Dumpable {
 		outputstream.write(datasource);
 		outputstream.close();
 		
-		test_file_rename = test_file.moveTo(test_dir_name + "/" + "testfile_rename.txt");
+		test_file_rename = test_file.renameTo(test_dir_name + "/" + "testfile_rename.txt");
 		if (test_file_rename == null) {
 			throw new IOException("Can't rename uploaded file");
 		}
