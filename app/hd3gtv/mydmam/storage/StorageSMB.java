@@ -54,17 +54,15 @@ public class StorageSMB extends StorageURILoginPassword {
 		return dump;
 	}
 	
-	class AbstractFileSmb extends AbstractFile {
+	class AbstractFileSmb implements AbstractFile {
 		
 		private SmbFile file;
 		
-		private AbstractFileSmb(Storage referer) throws IOException {
-			super(referer);
+		private AbstractFileSmb() throws IOException {
 			this.file = new SmbFile(root_path, auth);
 		}
 		
-		private AbstractFileSmb(SmbFile file, AbstractFile referer) {
-			super(referer);
+		private AbstractFileSmb(SmbFile file) {
 			this.file = file;
 		}
 		
@@ -80,7 +78,7 @@ public class StorageSMB extends StorageURILoginPassword {
 				}
 				List<AbstractFile> abstractlist = new ArrayList<AbstractFile>();
 				for (int pos = 0; pos < list.length; pos++) {
-					abstractlist.add(new AbstractFileSmb(list[pos], this));
+					abstractlist.add(new AbstractFileSmb(list[pos]));
 				}
 				return abstractlist;
 			} catch (SmbException e) {
@@ -218,7 +216,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			}
 		}
 		
-		public AbstractFile renameTo(String newpath) {
+		public AbstractFile moveTo(String newpath) {
 			/*if (configurator.readonly) {
 				return null;
 			}*/
@@ -229,7 +227,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			
 			try {
 				file.renameTo(newfile);
-				return new AbstractFileSmb(newfile, this);
+				return new AbstractFileSmb(newfile);
 			} catch (SmbException e) {
 				Log2.log.error("Can't access to file", e, this);
 				return null;
@@ -250,7 +248,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			}
 			try {
 				newfile.mkdir();
-				return new AbstractFileSmb(newfile, this);
+				return new AbstractFileSmb(newfile);
 			} catch (SmbException e) {
 				Log2.log.error("Can't access to file", e, this);
 				return null;
@@ -262,7 +260,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			if (newfile == null) {
 				return null;
 			}
-			return new AbstractFileSmb(newfile, this);
+			return new AbstractFileSmb(newfile);
 		}
 		
 		private boolean recursiveDelete(SmbFile currentfile) {
@@ -289,32 +287,10 @@ public class StorageSMB extends StorageURILoginPassword {
 			}*/
 			return recursiveDelete(file);
 		}
-		
-		public boolean exists() {
-			try {
-				return file.exists();
-			} catch (SmbException e) {
-				Log2.log.error("Can't check if this file exists", e);
-				return false;
-			}
-		}
 	}
 	
 	public AbstractFile getRootPath() throws NullPointerException, IOException {
-		return new AbstractFileSmb(this);
-	}
-	
-	public long getUsableSpace() {
-		try {
-			return new SmbFile(root_path, auth).getDiskFreeSpace();
-		} catch (Exception e) {
-			Log2.log.error("Can't extract usable space", e);
-			return Long.MAX_VALUE;
-		}
-	}
-	
-	public String getProtocol() {
-		return "smb";
+		return new AbstractFileSmb();
 	}
 	
 }

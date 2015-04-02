@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.storage;
 
+import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -80,7 +82,8 @@ abstract class StorageType {
 			}
 			
 			File root_path = new File(path);
-			Storage.validRootFile(root_path);
+			CopyMove.checkExistsCanRead(root_path);
+			CopyMove.checkIsDirectory(root_path);
 			
 			return new StorageLocalFile(root_path);
 		}

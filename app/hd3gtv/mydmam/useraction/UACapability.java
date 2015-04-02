@@ -35,20 +35,28 @@ public abstract class UACapability {
 		return false;
 	}
 	
-	public boolean onlyLocalStorages() {
-		return false;
+	public List<String> getStorageindexesWhiteList() {
+		return new ArrayList<String>();
 	}
 	
-	/**
-	 * Overload this will overload onlyLocalStorages.
-	 */
-	public List<String> getStorageindexesWhiteList() {
-		if (onlyLocalStorages()) {
-			return Storage.getLocalAccessStoragesName();
-		} else {
-			return new ArrayList<String>();
+	final List<String> getStorageindexesRealList() {
+		List<String> whitelist = getStorageindexesWhiteList();
+		if (whitelist == null) {
+			whitelist = new ArrayList<String>(1);
 		}
+		List<String> bridgedstorages = Storage.getLocalAccessStoragesName();
 		
+		List<String> storages_to_add = new ArrayList<String>();
+		if (whitelist.isEmpty()) {
+			storages_to_add = bridgedstorages;
+		} else {
+			for (int pos = 0; pos < whitelist.size(); pos++) {
+				if (bridgedstorages.contains(whitelist.get(pos))) {
+					storages_to_add.add(whitelist.get(pos));
+				}
+			}
+		}
+		return storages_to_add;
 	}
 	
 	public final UACapabilityDefinition getDefinition() {
@@ -56,10 +64,7 @@ public abstract class UACapability {
 		definition.directoryprocessing_enabled = enableDirectoryProcessing();
 		definition.fileprocessing_enabled = enableFileProcessing();
 		definition.rootstorageindexprocessing_enabled = enableRootStorageindexProcessing();
-		definition.storageindexeswhitelist = getStorageindexesWhiteList();
-		if (definition.storageindexeswhitelist == null) {
-			definition.storageindexeswhitelist = new ArrayList<String>();
-		}
+		definition.storageindexeswhitelist = getStorageindexesRealList();
 		return definition;
 	}
 	

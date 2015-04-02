@@ -52,10 +52,9 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 		return dump;
 	}
 	
-	class AbstractFileFtpBCST extends AbstractFile {
+	class AbstractFileFtpBCST implements AbstractFile {
 		
-		private AbstractFileFtpBCST(Storage referer) throws IOException {
-			super(referer);
+		private AbstractFileFtpBCST() throws IOException {
 		}
 		
 		public long lastModified() {
@@ -106,7 +105,7 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 		public void close() {
 		}
 		
-		public AbstractFile renameTo(String newpath) {
+		public AbstractFile moveTo(String newpath) {
 			return null;
 		}
 		
@@ -159,7 +158,7 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 			return ftpclient;
 		}
 		
-		private class SimpleMediaFile extends AbstractFile {
+		private class SimpleMediaFile implements AbstractFile {
 			
 			String name;
 			AbstractFileFtpBCST referer;
@@ -167,7 +166,6 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 			FTPClient ftpclient;
 			
 			public SimpleMediaFile(String name, AbstractFileFtpBCST referer, long size) {
-				super(referer);
 				this.name = name;
 				this.referer = referer;
 				this.size = size;
@@ -263,7 +261,7 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 				return null;
 			}
 			
-			public AbstractFile renameTo(String newpath) {
+			public AbstractFile moveTo(String newpath) {
 				return null;
 			}
 			
@@ -288,10 +286,6 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 					Log2.log.error("Can't delete file", e, this);
 				}
 				return false;
-			}
-			
-			public boolean exists() {
-				return true;
 			}
 			
 		}
@@ -329,26 +323,10 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 			}
 			return new SimpleMediaFile(newpath, this, 0);
 		}
-		
-		/**
-		 * Fake response
-		 */
-		public boolean exists() {
-			// TODO !
-			return true;
-		}
 	}
 	
 	public AbstractFile getRootPath() throws NullPointerException, IOException {
-		return new AbstractFileFtpBCST(this);
-	}
-	
-	public long getUsableSpace() {
-		return Long.MAX_VALUE;
-	}
-	
-	public String getProtocol() {
-		return "ftpbroadcast";
+		return new AbstractFileFtpBCST();
 	}
 	
 }

@@ -48,12 +48,11 @@ public class StorageLocalFile extends Storage {
 		return dump;
 	}
 	
-	class Localfile extends AbstractFile {
+	class Localfile implements AbstractFile {
 		
 		private File file;
 		
-		private Localfile(File file, Storage referer) {
-			super(referer);
+		private Localfile(File file) {
 			this.file = file;
 		}
 		
@@ -64,7 +63,7 @@ public class StorageLocalFile extends Storage {
 			}
 			ArrayList<AbstractFile> abstractlist = new ArrayList<AbstractFile>();
 			for (int pos = 0; pos < list.length; pos++) {
-				abstractlist.add(new Localfile(list[pos], this.getStorage()));
+				abstractlist.add(new Localfile(list[pos]));
 			}
 			return abstractlist;
 		}
@@ -164,7 +163,7 @@ public class StorageLocalFile extends Storage {
 			return newfile;
 		}
 		
-		public AbstractFile renameTo(String newpath) {
+		public AbstractFile moveTo(String newpath) {
 			/*if (configurator.readonly) {
 				return null;
 			}*/
@@ -174,7 +173,7 @@ public class StorageLocalFile extends Storage {
 			}
 			
 			if (file.renameTo(newfile)) {
-				return new Localfile(newfile, this.getStorage());
+				return new Localfile(newfile);
 			} else {
 				return null;
 			}
@@ -189,7 +188,7 @@ public class StorageLocalFile extends Storage {
 				return null;
 			}
 			if (newfile.mkdir()) {
-				return new Localfile(newfile, this.getStorage());
+				return new Localfile(newfile);
 			} else {
 				return null;
 			}
@@ -201,7 +200,7 @@ public class StorageLocalFile extends Storage {
 				return null;
 			}
 			
-			return new Localfile(newfile, this.getStorage());
+			return new Localfile(newfile);
 		}
 		
 		public boolean delete() {
@@ -211,22 +210,10 @@ public class StorageLocalFile extends Storage {
 			return FileUtils.deleteQuietly(file);
 		}
 		
-		public boolean exists() {
-			return file.exists();
-		}
-		
 	}
 	
 	public AbstractFile getRootPath() throws NullPointerException, IOException {
-		return new Localfile(root, this);
-	}
-	
-	public long getUsableSpace() {
-		return root.getUsableSpace();
-	}
-	
-	public String getProtocol() {
-		return "file";
+		return new Localfile(root);
 	}
 	
 }

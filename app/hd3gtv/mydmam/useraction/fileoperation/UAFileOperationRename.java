@@ -103,7 +103,7 @@ public class UAFileOperationRename extends BaseFileOperation {
 		
 		for (Map.Entry<String, SourcePathIndexerElement> entry : source_elements.entrySet()) {
 			progression.incrStep();
-			File current_element = Storage.getLocalFile(entry.getValue());// TODO replace with Storage API !
+			File current_element = Storage.getLocalFile(entry.getValue());
 			CopyMove.checkExistsCanRead(current_element);
 			CopyMove.checkIsWritable(current_element.getParentFile());
 			

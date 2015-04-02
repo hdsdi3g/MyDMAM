@@ -69,7 +69,7 @@ public class StorageFTP extends StorageURILoginPassword {
 		return dump;
 	}
 	
-	class AbstractFileFtp extends AbstractFile {
+	class AbstractFileFtp implements AbstractFile {
 		
 		private FTPClient ftpclient;
 		private FTPFile file;
@@ -82,9 +82,7 @@ public class StorageFTP extends StorageURILoginPassword {
 		/**
 		 * root directory
 		 */
-		private AbstractFileFtp(Storage referer) throws IOException {
-			super(referer);
-			
+		private AbstractFileFtp() throws IOException {
 			ftpclient = new FTPClient();
 			reconnect();
 			
@@ -124,8 +122,6 @@ public class StorageFTP extends StorageURILoginPassword {
 		}
 		
 		private AbstractFileFtp(AbstractFileFtp referer, FTPFile file, String path) {
-			super(referer);
-			
 			this.ftpclient = referer.ftpclient;
 			this.file = file;
 			this.path = path;
@@ -370,7 +366,7 @@ public class StorageFTP extends StorageURILoginPassword {
 			return null;
 		}
 		
-		public AbstractFile renameTo(String newpath) {
+		public AbstractFile moveTo(String newpath) {
 			/*if (configurator.readonly) {
 				return null;
 			}*/
@@ -516,22 +512,10 @@ public class StorageFTP extends StorageURILoginPassword {
 			}
 		}
 		
-		public boolean exists() {
-			// TODO !
-			return true;
-		}
-		
 	}
 	
 	public AbstractFile getRootPath() throws NullPointerException, IOException {
-		return new AbstractFileFtp(this);
+		return new AbstractFileFtp();
 	}
 	
-	public long getUsableSpace() {
-		return Long.MAX_VALUE;
-	}
-	
-	public String getProtocol() {
-		return "ftp";
-	}
 }

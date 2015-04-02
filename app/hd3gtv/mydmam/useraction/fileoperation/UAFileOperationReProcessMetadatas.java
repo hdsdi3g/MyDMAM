@@ -83,10 +83,6 @@ public class UAFileOperationReProcessMetadatas extends BaseFileOperation {
 			return true;
 		}
 		
-		public boolean onlyLocalStorages() {
-			return true;
-		}
-		
 	}
 	
 	public UACapability createCapability(LinkedHashMap<String, ?> internal_configuration) {

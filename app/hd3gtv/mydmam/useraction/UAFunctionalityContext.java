@@ -20,10 +20,8 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.WorkerCapablities;
-import hd3gtv.mydmam.storage.Storage;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -103,22 +101,7 @@ public abstract class UAFunctionalityContext extends JobContext {
 	public final WorkerCapablities getUserActionWorkerCapablities() {
 		final Class<? extends JobContext> funct_class = this.getClass();
 		
-		List<String> whitelist = getCapabilityForInstance().getStorageindexesWhiteList();
-		if (whitelist == null) {
-			whitelist = new ArrayList<String>(1);
-		}
-		List<String> all_storages = Storage.getAllStoragesName();
-		
-		List<String> storages_to_add = new ArrayList<String>();
-		if (whitelist.isEmpty()) {
-			storages_to_add = all_storages;
-		} else {
-			for (int pos = 0; pos < whitelist.size(); pos++) {
-				if (all_storages.contains(whitelist.get(pos))) {
-					storages_to_add.add(whitelist.get(pos));
-				}
-			}
-		}
+		List<String> storages_to_add = getCapabilityForInstance().getStorageindexesRealList();
 		
 		if (storages_to_add.isEmpty() == false) {
 			final List<String> f_storages_to_add = storages_to_add;
