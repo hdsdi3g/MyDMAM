@@ -100,12 +100,10 @@ $(document).ready(function() {
 				$(this).remove();
 			}
 		});
-		//data-deleteifempty="mainadminmenu">
-		//<ul class="dropdown-menu" id="mainadminmenu">
 		
 		if (jsx_error_messages.length > 0) {
 			for (pos = 0; pos < jsx_error_messages.length; pos++) {
-				console.log("Error in " + jsx_error_messages[pos].from + " from server side:\n" + jsx_error_messages[pos].text);
+				console.log("Error in " + jsx_error_messages[pos].from + " from server side:\n" + jsx_error_messages[pos].text + "\n" + jsx_error_messages[pos].line);
 			}
 		}
     });

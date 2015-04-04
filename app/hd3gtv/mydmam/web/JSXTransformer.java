@@ -20,8 +20,10 @@ package hd3gtv.mydmam.web;
 
 import hd3gtv.log2.Log2;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,6 +32,7 @@ import java.util.List;
 
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
+import org.mozilla.javascript.JavaScriptException;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.commonjs.module.ModuleScriptProvider;
@@ -127,7 +130,7 @@ public class JSXTransformer {
 		return list;
 	}
 	
-	public static String getJSXContentFromURLList(String ressource_name, boolean transfrom) throws FileNotFoundException {
+	public static String getJSXContentFromURLList(String ressource_name, boolean transfrom, boolean catch_js_problem) throws FileNotFoundException {
 		VirtualFile v_file = VirtualFile.fromRelativePath(JSX_SRC + "/" + ressource_name);
 		if (v_file.exists() == false) {
 			throw new FileNotFoundException(JSX_SRC + " / " + ressource_name);
@@ -135,6 +138,54 @@ public class JSXTransformer {
 		if (transfrom == false) {
 			v_file.contentAsString();
 		}
-		return global.transform(v_file.contentAsString());
+		String v_file_content = v_file.contentAsString();
+		if (catch_js_problem) {
+			try {
+				return global.transform(v_file_content);
+			} catch (JavaScriptException e) {
+				v_file_content = v_file_content.replaceAll("/r", "");
+				String[] lines = v_file_content.split("\n");
+				String error_message = e.getMessage().replaceAll("\"", "'");
+				
+				String error_line = "";
+				if (error_message.startsWith("Error: Parse Error: Line ")) {
+					int colon = error_message.indexOf(":", "Error: Parse Error: Line ".length());
+					int line_num = Integer.parseInt(error_message.substring("Error: Parse Error: Line ".length(), colon));
+					error_message = "Line " + line_num + ": " + error_message.substring(colon + 2);
+					if (line_num - 2 > -1) {
+						error_line = error_line + (line_num - 1) + " > " + lines[line_num - 2].replaceAll("\"", "\\\"") + "\\n";
+					}
+					error_line = error_line + (line_num) + " > " + lines[line_num - 1].replaceAll("\"", "\\\"") + "\\n";
+					if (line_num < lines.length) {
+						error_line = error_line + (line_num + 1) + " > " + lines[line_num].replaceAll("\"", "\\\"");
+					}
+				}
+				
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				PrintWriter pw = new PrintWriter(baos);
+				pw.println("// JSX ERROR");
+				pw.println("new function(){");
+				pw.println("	$(document).ready(function() {");
+				pw.println("		var message = {}");
+				pw.println("		message.from = \"" + ressource_name + "\";");
+				pw.println("		message.text = \"" + error_message + "\";");
+				pw.println("		message.line = \"" + error_line + "\";");
+				pw.println("		jsx_error_messages.push(message);");
+				pw.println("	});");
+				pw.println("}();");
+				pw.println();
+				pw.println("// SOURCE FILE");
+				for (int pos = 0; pos < lines.length; pos++) {
+					pw.print("// ");
+					pw.print(pos + 1);
+					pw.print(" ");
+					pw.println(lines[pos]);
+				}
+				pw.close();
+				return new String(baos.toByteArray());
+			}
+		} else {
+			return global.transform(v_file_content);
+		}
 	}
 }
