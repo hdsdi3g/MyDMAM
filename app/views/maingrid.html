@@ -52,16 +52,29 @@
 		<script src="@{'/public/javascripts/lib/es5-shim-2.0.8.min.js'}"></script>
 	<![endif]-->
 	
+	%{ if (play.mode.toString() == "DEV"){ }%
+		<script src="@{'/public/javascripts/lib/react-with-addons.js'}" type="text/javascript" charset="UTF-8"></script>
+		#{list hd3gtv.mydmam.web.JSXTransformer.getJSXURLList(), as:'item'}
+			<script src="&{item}" type="text/javascript" charset="UTF-8"></script>
+		#{/list}
+	%{ } else { }%
+		<script src="@{'/public/javascripts/lib/react-with-addons.min.js'}" type="text/javascript" charset="UTF-8"></script>
+	%{ } }%
+	
 	#{list hd3gtv.mydmam.web.JsCompile.getURLlist(), as:'item'}
 		#{script src:item, charset:'utf-8' /}
 	#{/list}
 	<script type="text/javascript" charset="UTF-8"><!-- #{include 'routes.js'/} --></script>
 	<script src="@{Application.i18n()}" type="text/javascript" charset="UTF-8"></script>
+	
 	#{get 'moreScripts' /}
 </head>
 
 <body>
+
 <script type="text/javascript" charset="UTF-8">
+var jsx_error_messages = [];
+
 <!--
 $(document).ready(function() {
 	$(function () {
@@ -87,10 +100,14 @@ $(document).ready(function() {
 				$(this).remove();
 			}
 		});
-		//
 		//data-deleteifempty="mainadminmenu">
 		//<ul class="dropdown-menu" id="mainadminmenu">
 		
+		if (jsx_error_messages.length > 0) {
+			for (pos = 0; pos < jsx_error_messages.length; pos++) {
+				console.log("Error in " + jsx_error_messages[pos].from + " from server side:\n" + jsx_error_messages[pos].text);
+			}
+		}
     });
 });
 -->
@@ -295,5 +312,9 @@ $(document).ready(function() {
 <div class="container-fluid" style="text-align:center; margin-top: 2em;">
 	<small class="muted"><a href="http://mydmam.org" style="color: #999999;">MyDMAM</a> &{'site.aboutfooter'}</small>
 </div>
+
+
+<div id="example"></div>
+
 </body>
 </html>

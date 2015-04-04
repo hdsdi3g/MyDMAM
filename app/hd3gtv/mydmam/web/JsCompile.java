@@ -36,11 +36,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.mozilla.javascript.ErrorReporter;
-import org.mozilla.javascript.EvaluatorException;
-
 import play.Play;
 import play.vfs.VirtualFile;
+import yuiforkorgmozillajavascript.ErrorReporter;
 
 import com.yahoo.platform.yui.compressor.JavaScriptCompressor;
 
@@ -242,7 +240,7 @@ public class JsCompile {
 			Log2.log.error("Rhino error during javascript parsing", null, dump);
 		}
 		
-		public EvaluatorException runtimeError(String arg0, String arg1, int arg2, String arg3, int arg4) {
+		public yuiforkorgmozillajavascript.EvaluatorException runtimeError(String arg0, String arg1, int arg2, String arg3, int arg4) {
 			Log2Dump dump = new Log2Dump();
 			dump.add("arg0", arg0);
 			dump.add("arg1", arg1);
@@ -289,7 +287,7 @@ public class JsCompile {
 		in.close();
 		
 		OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(binaryfile.getRealFile()));
-		compressor.compress(out, null, 200, true, Play.mode.isDev(), true, false);
+		compressor.compress(out, 200, true, Play.mode.isDev(), true, false);
 		out.close();
 		
 		compiled_db.put(binaryfile.getName(), new Db(sourcefile));
