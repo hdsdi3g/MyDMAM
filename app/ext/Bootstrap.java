@@ -23,6 +23,7 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.useraction.UAManager;
+import hd3gtv.mydmam.web.JSXTransformer;
 import hd3gtv.mydmam.web.JsCompile;
 import hd3gtv.mydmam.web.Privileges;
 
@@ -187,6 +188,7 @@ public class Bootstrap extends Job {
 		}
 		
 		JsCompile.purgeBinDirectory();
+		JSXTransformer.transformAllJSX();
 		JsCompile.prepareFiles();
 		
 		try {

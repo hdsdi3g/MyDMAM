@@ -17,4 +17,5 @@ play-new-password.txt
 *.iml
 *.ipr
 *.iws
+public/javascripts/src/react.*.jsx.js
 

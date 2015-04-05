@@ -53,7 +53,7 @@ public class JsCompile {
 	
 	private static final ConcurrentHashMap<String, Db> compiled_db = new ConcurrentHashMap<String, JsCompile.Db>();
 	
-	private static boolean COMPILE_JS = false;
+	public static final boolean COMPILE_JS;
 	
 	static {
 		COMPILE_JS = Configuration.global.getValueBoolean("play", "compile_javascript");
@@ -91,21 +91,34 @@ public class JsCompile {
 		}
 	}
 	
+	/**
+	 * Get all items named and on this path, from all modules, and not only the first.
+	 */
+	public static List<VirtualFile> getAllfromRelativePath(String path, boolean must_exists, boolean must_directory) {
+		List<VirtualFile> file_list = new ArrayList<VirtualFile>();
+		VirtualFile child;
+		for (VirtualFile vfile : Play.roots) {
+			child = vfile.child(path);
+			if (must_exists & (child.exists() == false)) {
+				continue;
+			}
+			if (must_directory & (child.isDirectory() == false)) {
+				continue;
+			}
+			file_list.add(child);
+		}
+		return file_list;
+	}
+	
 	public static List<VirtualFile> prepareFiles() {
 		List<VirtualFile> file_list = new ArrayList<VirtualFile>();
 		
 		List<VirtualFile> sources_file_list = new ArrayList<VirtualFile>();
+		List<VirtualFile> main_dirs = getAllfromRelativePath(PUBLIC_JAVASCRIPT_DIRECTORY + "/" + SOURCE_DIRECTORY, true, true);
 		List<VirtualFile> child_content;
-		VirtualFile child;
-		for (VirtualFile file : Play.roots) {
-			child = file.child(PUBLIC_JAVASCRIPT_DIRECTORY + "/" + SOURCE_DIRECTORY);
-			if (child.exists() == false) {
-				continue;
-			}
-			if (child.isDirectory() == false) {
-				continue;
-			}
-			child_content = child.list();
+		
+		for (int pos_md = 0; pos_md < main_dirs.size(); pos_md++) {
+			child_content = main_dirs.get(pos_md).list();
 			for (int pos = 0; pos < child_content.size(); pos++) {
 				if (child_content.get(pos).isDirectory()) {
 					continue;
@@ -315,7 +328,7 @@ public class JsCompile {
 			dump.add("file", realfile);
 			dump.add("delete", realfile.delete());
 		}
-		Log2.log.debug("Purge temps binaries", dump);
+		Log2.log.debug("Purge compiled js files temp", dump);
 	}
 	
 	public static List<String> getURLlist() {
