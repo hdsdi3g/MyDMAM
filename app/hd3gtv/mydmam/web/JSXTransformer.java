@@ -100,7 +100,7 @@ public class JSXTransformer {
 		}
 	}
 	
-	public String transform(String jsx) throws InstantiationError {
+	private String _transform(String jsx) throws Error {
 		if (is_init == false) {
 			throw new InstantiationError("JSXTransformer is not instantiated correctly");
 		}
@@ -110,6 +110,77 @@ public class JSXTransformer {
 			return result.get("code").toString();
 		} finally {
 			Context.exit();
+		}
+	}
+	
+	private static String escapeAll(String text) {
+		StringBuilder sb = new StringBuilder(text.length() + 1);
+		char letter;
+		char backshash = "\\".charAt(0);
+		char quote = "\"".charAt(0);
+		
+		for (int pos = 0; pos < text.length(); pos++) {
+			letter = text.charAt(pos);
+			if (letter == backshash) {
+				sb.append("\\\\");
+			} else if (letter == quote) {
+				sb.append("\\\"");
+			} else {
+				sb.append(letter);
+			}
+		}
+		return sb.toString();
+	}
+	
+	public String transform(String jsx, boolean catch_js_problem, String filename) throws InstantiationError {
+		if (catch_js_problem) {
+			try {
+				return _transform(jsx);
+			} catch (JavaScriptException e) {
+				String v_file_content = jsx;
+				v_file_content = v_file_content.replaceAll("/r", "");
+				String[] lines = v_file_content.split("\n");
+				String error_message = escapeAll(e.getMessage());
+				
+				String error_line = "";
+				if (error_message.startsWith("Error: Parse Error: Line ")) {
+					int colon = error_message.indexOf(":", "Error: Parse Error: Line ".length());
+					int line_num = Integer.parseInt(error_message.substring("Error: Parse Error: Line ".length(), colon));
+					error_message = "Line " + line_num + ": " + error_message.substring(colon + 2);
+					if (line_num - 2 > -1) {
+						error_line = error_line + (line_num - 1) + " > " + escapeAll(lines[line_num - 2]) + "\\n";
+					}
+					error_line = error_line + (line_num) + " > " + escapeAll(lines[line_num - 1]) + "\\n";
+					if (line_num < lines.length) {
+						error_line = error_line + (line_num + 1) + " > " + escapeAll(lines[line_num]);
+					}
+				}
+				
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				PrintWriter pw = new PrintWriter(baos);
+				pw.println("// JSX ERROR");
+				pw.println("new function(){");
+				pw.println("	$(document).ready(function() {");
+				pw.println("		var message = {}");
+				pw.println("		message.from = \"" + filename + "\";");
+				pw.println("		message.text = \"" + error_message + "\";");
+				pw.println("		message.line = \"" + error_line + "\";");
+				pw.println("		jsx_error_messages.push(message);");
+				pw.println("	});");
+				pw.println("}();");
+				pw.println();
+				pw.println("// SOURCE FILE");
+				for (int pos = 0; pos < lines.length; pos++) {
+					pw.print("// ");
+					pw.print(pos + 1);
+					pw.print(" ");
+					pw.println(lines[pos]);
+				}
+				pw.close();
+				return new String(baos.toByteArray());
+			}
+		} else {
+			return _transform(jsx);
 		}
 	}
 	
@@ -142,54 +213,7 @@ public class JSXTransformer {
 		if (transfrom == false) {
 			return v_file_content;
 		}
-		if (catch_js_problem) {
-			try {
-				return global.transform(v_file_content);
-			} catch (JavaScriptException e) {
-				v_file_content = v_file_content.replaceAll("/r", "");
-				String[] lines = v_file_content.split("\n");
-				String error_message = e.getMessage().replaceAll("\"", "'");
-				
-				String error_line = "";
-				if (error_message.startsWith("Error: Parse Error: Line ")) {
-					int colon = error_message.indexOf(":", "Error: Parse Error: Line ".length());
-					int line_num = Integer.parseInt(error_message.substring("Error: Parse Error: Line ".length(), colon));
-					error_message = "Line " + line_num + ": " + error_message.substring(colon + 2);
-					if (line_num - 2 > -1) {
-						error_line = error_line + (line_num - 1) + " > " + lines[line_num - 2].replaceAll("\"", "\\\"") + "\\n";
-					}
-					error_line = error_line + (line_num) + " > " + lines[line_num - 1].replaceAll("\"", "\\\"") + "\\n";
-					if (line_num < lines.length) {
-						error_line = error_line + (line_num + 1) + " > " + lines[line_num].replaceAll("\"", "\\\"");
-					}
-				}
-				
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				PrintWriter pw = new PrintWriter(baos);
-				pw.println("// JSX ERROR");
-				pw.println("new function(){");
-				pw.println("	$(document).ready(function() {");
-				pw.println("		var message = {}");
-				pw.println("		message.from = \"" + jsx_vfile.getName() + "\";");
-				pw.println("		message.text = \"" + error_message + "\";");
-				pw.println("		message.line = \"" + error_line + "\";");
-				pw.println("		jsx_error_messages.push(message);");
-				pw.println("	});");
-				pw.println("}();");
-				pw.println();
-				pw.println("// SOURCE FILE");
-				for (int pos = 0; pos < lines.length; pos++) {
-					pw.print("// ");
-					pw.print(pos + 1);
-					pw.print(" ");
-					pw.println(lines[pos]);
-				}
-				pw.close();
-				return new String(baos.toByteArray());
-			}
-		} else {
-			return global.transform(v_file_content);
-		}
+		return global.transform(v_file_content, catch_js_problem, jsx_vfile.getName());
 	}
 	
 	public static void transformAllJSX() {
@@ -206,7 +230,7 @@ public class JSXTransformer {
 		Log2Dump dump = new Log2Dump();
 		for (int pos = 0; pos < old_transformed_jsxfiles.length; pos++) {
 			dump.add("file", old_transformed_jsxfiles[pos]);
-			old_transformed_jsxfiles[pos].delete();
+			dump.add("delete", old_transformed_jsxfiles[pos].delete());
 		}
 		if (old_transformed_jsxfiles.length > 0) {
 			Log2.log.debug("Purge transformed jsx files temp", dump);

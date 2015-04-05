@@ -18,4 +18,6 @@ play-new-password.txt
 *.ipr
 *.iws
 public/javascripts/src/react.*.jsx.js
+logs/
+server.pid
 

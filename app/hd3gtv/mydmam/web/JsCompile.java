@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -265,6 +267,9 @@ public class JsCompile {
 		}
 		
 		public void warning(String arg0, String arg1, int arg2, String arg3, int arg4) {
+			if (warning_file == null) {
+				return;
+			}
 			try {
 				FileWriter fw = new FileWriter(warning_file, true);
 				PrintWriter warning_log = new PrintWriter(fw);
@@ -317,6 +322,7 @@ public class JsCompile {
 		List<VirtualFile> list = binary_dir.list();
 		File realfile;
 		Log2Dump dump = new Log2Dump();
+		boolean has_purge = false;
 		for (int pos = 0; pos < list.size(); pos++) {
 			realfile = list.get(pos).getRealFile();
 			if (realfile.isDirectory()) {
@@ -327,8 +333,11 @@ public class JsCompile {
 			}
 			dump.add("file", realfile);
 			dump.add("delete", realfile.delete());
+			has_purge = true;
 		}
-		Log2.log.debug("Purge compiled js files temp", dump);
+		if (has_purge) {
+			Log2.log.debug("Purge compiled js files temp", dump);
+		}
 	}
 	
 	public static List<String> getURLlist() {
@@ -351,6 +360,23 @@ public class JsCompile {
 		
 		Collections.sort(list);
 		return list;
+	}
+	
+	/**
+	 * Beware, this operation TAKE TIME and MEMORY (because it must instance a Javascript interpreter).
+	 */
+	public static String compileJSOnTheFly(String content) {
+		try {
+			StringReader sr = new StringReader(content);
+			JavaScriptCompressor compressor;
+			compressor = new JavaScriptCompressor(sr, new CompilerErrorReporter(null));
+			StringWriter sw = new StringWriter(content.length());
+			compressor.compress(sw, 80, true, false, true, false);
+			return sw.toString();
+		} catch (Exception e) {
+			Log2.log.error("Can't compile on the fly", e, new Log2Dump("raw content", content));
+			return content;
+		}
 	}
 	
 }

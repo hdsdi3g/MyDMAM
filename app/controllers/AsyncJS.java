@@ -18,8 +18,10 @@ package controllers;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.web.JSXTransformer;
+import hd3gtv.mydmam.web.JsCompile;
 
 import java.io.FileNotFoundException;
+import java.util.List;
 
 import play.data.validation.Required;
 import play.mvc.Controller;
@@ -35,10 +37,11 @@ public class AsyncJS extends Controller {
 	
 	public static void dynamicCompileJSX(@Required String ressource_name) {
 		try {
-			VirtualFile v_file = VirtualFile.fromRelativePath(JSXTransformer.JSX_SRC + "/" + ressource_name);
-			if (v_file.exists() == false) {
-				throw new FileNotFoundException(JSXTransformer.JSX_SRC + " / " + ressource_name);
+			List<VirtualFile> search_vfile = JsCompile.getAllfromRelativePath(JSXTransformer.JSX_SRC + "/" + ressource_name, true, false);
+			if (search_vfile.isEmpty()) {
+				throw new FileNotFoundException(JSXTransformer.JSX_SRC + "/" + ressource_name);
 			}
+			VirtualFile v_file = search_vfile.get(0);
 			
 			String jsx_compiled = JSXTransformer.getJSXContentFromURLList(v_file, true, true);
 			response.setHeader("Content-Length", jsx_compiled.length() + "");
@@ -49,8 +52,6 @@ public class AsyncJS extends Controller {
 		}
 	}
 	
-	// TODO check if module can add JSX
-	// TODO create in-Groovy dynamic JSX transform
 	// TODO JSX i18n with React
 	
 	// TODO create Ajax routing (declaration must follow Secure.checkview()), with systematic validation and Gson xchange for requests/responses, via an Interface.
