@@ -17,6 +17,7 @@
 package controllers;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.web.AsyncJSRequestManager;
 import hd3gtv.mydmam.web.JSXTransformer;
 import hd3gtv.mydmam.web.JsCompile;
 
@@ -24,15 +25,20 @@ import java.io.FileNotFoundException;
 import java.util.List;
 
 import play.data.validation.Required;
+import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
 import play.vfs.VirtualFile;
 
 @With(Secure.class)
-public class AsyncJS extends Controller {
+public class AsyncJavascript extends Controller {
 	
-	public static void index() throws Exception {
-		// String js = JSXTransformer.global.transform("React.renderComponent(\n<h1>Hello, world!</h1>,\ndocument.getElementById('example')\n);");
+	public static void index(@Required String request) throws Exception {
+		if (Validation.hasErrors()) {
+			response.status = Application.HTTP_not_found;
+			renderJSON("{}");
+		}
+		renderJSON(AsyncJSRequestManager.global.doRequest(request));
 	}
 	
 	public static void dynamicCompileJSX(@Required String ressource_name) {
@@ -52,6 +58,4 @@ public class AsyncJS extends Controller {
 		}
 	}
 	
-	// TODO create Ajax routing (declaration must follow Secure.checkview()), with systematic validation and Gson xchange for requests/responses, via an Interface.
-	// TODO create Ajax routing with module ?
 }

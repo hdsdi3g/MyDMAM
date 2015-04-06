@@ -47,7 +47,7 @@ import org.mozilla.javascript.commonjs.module.provider.UrlModuleSourceProvider;
 
 import play.mvc.Router;
 import play.vfs.VirtualFile;
-import controllers.AsyncJS;
+import controllers.AsyncJavascript;
 
 public class JSXTransformer {
 	
@@ -201,7 +201,7 @@ public class JSXTransformer {
 				continue;
 			}
 			args.put("ressource_name", jsx_file.getName());
-			list.add(Router.reverse(AsyncJS.class.getName() + "." + "dynamicCompileJSX", args).url);
+			list.add(Router.reverse(AsyncJavascript.class.getName() + "." + "dynamicCompileJSX", args).url);
 		}
 		
 		Collections.sort(list);

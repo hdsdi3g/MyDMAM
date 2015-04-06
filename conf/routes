@@ -10,7 +10,7 @@ GET     /favicon.ico                            404
 
 # Map static resources from the /app/public folder to the /public path
 GET     /public/                                staticDir:public
-GET		/raw-jsx/{ressource_name}				AsyncJS.dynamicCompileJSX
+GET		/raw-jsx/{ressource_name}				AsyncJavascript.dynamicCompileJSX
 
 GET		/login									Secure.login
 POST	/login									Secure.authenticate
@@ -53,5 +53,7 @@ POST	/user/basket/create						User.basket_create
 POST	/user/basket/switch						User.basket_switch_selected
 POST	/user/basket/admin						User.basket_admin_action
 
+POST	/asyncjs								AsyncJavascript.index
+	
 # Catch all
 *       /{controller}/{action}                  {controller}.{action}
