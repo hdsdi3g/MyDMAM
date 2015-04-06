@@ -2,7 +2,7 @@ $(document).ready(function() {
 	var node = $("#example")[0];
 
 	React.render(
-		<h1>Hello, world!</h1>,
+		<h1>Hello, {i18n("maingrid.brand")} !</h1>,
 		node
 	);
 });

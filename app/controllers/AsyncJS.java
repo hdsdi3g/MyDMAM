@@ -52,8 +52,6 @@ public class AsyncJS extends Controller {
 		}
 	}
 	
-	// TODO JSX i18n with React
-	
 	// TODO create Ajax routing (declaration must follow Secure.checkview()), with systematic validation and Gson xchange for requests/responses, via an Interface.
 	// TODO create Ajax routing with module ?
 }
