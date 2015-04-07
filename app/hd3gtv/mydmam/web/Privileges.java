@@ -185,7 +185,7 @@ public class Privileges {
 			Log2.log.error("Can't load modules", e);
 		}
 		
-		AsyncJSRequestManager.global.putAllPrivilegesNames(all_privileges);
+		AsyncJSManager.global.putAllPrivilegesNames(all_privileges);
 	}
 	
 	public static List<String> getAllPrivileges() {

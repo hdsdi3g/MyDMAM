@@ -17,7 +17,7 @@
 package controllers;
 
 import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.web.AsyncJSRequestManager;
+import hd3gtv.mydmam.web.AsyncJSManager;
 import hd3gtv.mydmam.web.JSXTransformer;
 import hd3gtv.mydmam.web.JsCompile;
 
@@ -38,7 +38,7 @@ public class AsyncJavascript extends Controller {
 			response.status = Application.HTTP_not_found;
 			renderJSON("{}");
 		}
-		renderJSON(AsyncJSRequestManager.global.doRequest(request));
+		renderJSON(AsyncJSManager.global.doRequest(request));
 	}
 	
 	public static void dynamicCompileJSX(@Required String ressource_name) {

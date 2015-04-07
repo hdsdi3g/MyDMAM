@@ -14,14 +14,27 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.web;
+package controllers.asyncjs.demoreact;
 
-import com.google.gson.Gson;
+import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 
-public interface AsyncJSRequestGsonProvider {
+public class VerbAddComment extends AsyncJSControllerVerb<NewComment, CommentAdded> {
 	
-	public Gson getGson();
+	public String getVerbName() {
+		return "add";
+	}
 	
-	public Gson getGsonSimple();
+	public Class<NewComment> getRequestClass() {
+		return NewComment.class;
+	}
+	
+	public Class<CommentAdded> getResponseClass() {
+		return CommentAdded.class;
+	}
+	
+	public CommentAdded onRequest(NewComment request) throws Exception {
+		FakeDB.add(request);
+		return new CommentAdded();
+	}
 	
 }

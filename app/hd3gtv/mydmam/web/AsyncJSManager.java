@@ -21,7 +21,6 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,11 +35,11 @@ import com.google.gson.JsonParser;
 import controllers.Secure;
 
 @SuppressWarnings("rawtypes")
-public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp>, Rq extends Serializable, Rp extends Serializable> implements AsyncJSRequestGsonProvider {
+public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> implements AsyncJSGsonProvider {
 	
 	public static final String ASYNC_CLASS_PATH = "/app/controllers/asyncjs";
 	public static final String ASYNC_PACKAGE_NAME = "controllers.asyncjs";
-	public static final AsyncJSRequestManager<?, ?, ?> global;
+	public static final AsyncJSManager<?, ?, ?> global;
 	private static final Gson gson_simple;
 	private static final GsonIgnoreStrategy ignore_strategy;
 	private static final JsonParser parser;
@@ -56,10 +55,10 @@ public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp
 		
 		parser = new JsonParser();
 		
-		global = new AsyncJSRequestManager();
+		global = new AsyncJSManager();
 	}
 	
-	private HashMap<String, HashMap<String, AsyncJSRequestControllerVerb<Rq, Rp>>> declarations;
+	private HashMap<String, HashMap<String, AsyncJSControllerVerb<Rq, Rp>>> declarations;
 	private Gson gson;
 	
 	private HashMap<String, List<String>> controllers_mandatory_privileges;
@@ -70,8 +69,8 @@ public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp
 	 */
 	private List<String> all_privileges_names;
 	
-	private AsyncJSRequestManager() {
-		declarations = new HashMap<String, HashMap<String, AsyncJSRequestControllerVerb<Rq, Rp>>>();
+	private AsyncJSManager() {
+		declarations = new HashMap<String, HashMap<String, AsyncJSControllerVerb<Rq, Rp>>>();
 		controllers_mandatory_privileges = new HashMap<String, List<String>>();
 		verbs_mandatory_privileges = new HashMap<String, HashMap<String, List<String>>>();
 		all_privileges_names = new ArrayList<String>();
@@ -93,7 +92,7 @@ public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp
 			class_vfiles.addAll(main_dirs.get(pos).list());
 		}
 		
-		List<AsyncJSRequestController> all_js_controllers = new ArrayList<AsyncJSRequestController>();
+		List<AsyncJSController> all_js_controllers = new ArrayList<AsyncJSController>();
 		Class<?> class_candidate;
 		for (int pos = 0; pos < class_vfiles.size(); pos++) {
 			String name = class_vfiles.get(pos).getName();
@@ -106,9 +105,9 @@ public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp
 				Log2.log.error("Invalid class loading", e);
 				continue;
 			}
-			if (AsyncJSRequestController.class.isAssignableFrom(class_candidate)) {
+			if (AsyncJSController.class.isAssignableFrom(class_candidate)) {
 				try {
-					all_js_controllers.add((AsyncJSRequestController) class_candidate.newInstance());
+					all_js_controllers.add((AsyncJSController) class_candidate.newInstance());
 				} catch (Exception e) {
 					Log2.log.error("Invalid class instancing", e);
 					continue;
@@ -124,26 +123,26 @@ public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp
 		declarations.clear();
 		controllers_mandatory_privileges.clear();
 		verbs_mandatory_privileges.clear();
-		List<AsyncJSRequestControllerVerb<Rq, Rp>> all_verbs = new ArrayList<AsyncJSRequestControllerVerb<Rq, Rp>>();
+		List<AsyncJSControllerVerb<Rq, Rp>> all_verbs = new ArrayList<AsyncJSControllerVerb<Rq, Rp>>();
 		
-		AsyncJSRequestController controller;
+		AsyncJSController controller;
 		
-		List<AsyncJSRequestControllerVerb<Serializable, Serializable>> manager_verbs;
-		AsyncJSRequestControllerVerb<Serializable, Serializable> verb;
-		HashMap<String, AsyncJSRequestControllerVerb<Rq, Rp>> map_managed_verbs;
+		List<AsyncJSControllerVerb<AsyncJSRequestObject, AsyncJSResponseObject>> manager_verbs;
+		AsyncJSControllerVerb<AsyncJSRequestObject, AsyncJSResponseObject> verb;
+		HashMap<String, AsyncJSControllerVerb<Rq, Rp>> map_managed_verbs;
 		HashMap<String, List<String>> map_privileges_verbs;
 		Log2Dump dump = new Log2Dump();
 		
 		for (int pos_ctrl = 0; pos_ctrl < all_js_controllers.size(); pos_ctrl++) {
 			controller = all_js_controllers.get(pos_ctrl);
 			manager_verbs = controller.getManagedVerbs();
-			map_managed_verbs = new HashMap<String, AsyncJSRequestControllerVerb<Rq, Rp>>();
+			map_managed_verbs = new HashMap<String, AsyncJSControllerVerb<Rq, Rp>>();
 			map_privileges_verbs = new HashMap<String, List<String>>();
 			
 			for (int pos_mv = 0; pos_mv < manager_verbs.size(); pos_mv++) {
 				verb = manager_verbs.get(pos_mv);
-				map_managed_verbs.put(verb.getVerbName(), (AsyncJSRequestControllerVerb<Rq, Rp>) verb);
-				all_verbs.add((AsyncJSRequestControllerVerb<Rq, Rp>) verb);
+				map_managed_verbs.put(verb.getVerbName(), (AsyncJSControllerVerb<Rq, Rp>) verb);
+				all_verbs.add((AsyncJSControllerVerb<Rq, Rp>) verb);
 				map_privileges_verbs.put(verb.getVerbName(), verb.getMandatoryPrivileges());
 				all_privileges_names.addAll(verb.getMandatoryPrivileges());
 				dump.add("controller", controller.getRequestName() + "/" + verb.getVerbName());
@@ -165,17 +164,28 @@ public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp
 		builder.serializeNulls();
 		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
 		
-		List<AsyncJSRequestSerializer<?>> map_serializers;
-		List<AsyncJSRequestDeserializer<?>> map_deserializers;
+		List<AsyncJSSerializer<?>> map_serializers;
+		List<AsyncJSDeserializer<?>> map_deserializers;
 		List<Class<?>> serializer_enclosing_classes = new ArrayList<Class<?>>();
 		List<Class<?>> deserializer_enclosing_classes = new ArrayList<Class<?>>();
 		Class<?> enclosing_class;
+		List<AsyncJSSerializer<?>> all_declared_serializers = new ArrayList<AsyncJSSerializer<?>>();
+		List<AsyncJSDeserializer<?>> all_declared_deserializers = new ArrayList<AsyncJSDeserializer<?>>();
 		
 		for (int pos_vbs = 0; pos_vbs < all_verbs.size(); pos_vbs++) {
 			map_serializers = all_verbs.get(pos_vbs).getJsonSerializers(this);
 			for (int pos = 0; pos < map_serializers.size(); pos++) {
 				enclosing_class = map_serializers.get(pos).getEnclosingClass();
+				if (all_declared_serializers.contains(map_serializers.get(pos))) {
+					/**
+					 * Twice declaration for this serializer.
+					 */
+					continue;
+				}
 				if (serializer_enclosing_classes.contains(enclosing_class)) {
+					/**
+					 * Twice declaration for this serializer class, but not with the same serializer !
+					 */
 					dump = new Log2Dump();
 					dump.add("class", enclosing_class);
 					dump.add("serializer", map_serializers.get(pos).getClass());
@@ -184,12 +194,22 @@ public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp
 				}
 				serializer_enclosing_classes.add(enclosing_class);
 				builder.registerTypeAdapter(enclosing_class, map_serializers.get(pos));
+				all_declared_serializers.add(map_serializers.get(pos));
 			}
 			
 			map_deserializers = all_verbs.get(pos_vbs).getJsonDeserializers(this);
 			for (int pos = 0; pos < map_deserializers.size(); pos++) {
 				enclosing_class = map_deserializers.get(pos).getEnclosingClass();
+				if (all_declared_deserializers.contains(map_deserializers.get(pos))) {
+					/**
+					 * Twice declaration for this deserializer.
+					 */
+					continue;
+				}
 				if (deserializer_enclosing_classes.contains(enclosing_class)) {
+					/**
+					 * Twice declaration for this deserializer class, but not with the same deserializer !
+					 */
 					dump = new Log2Dump();
 					dump.add("class", enclosing_class);
 					dump.add("serializer", map_deserializers.get(pos).getClass());
@@ -198,9 +218,17 @@ public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp
 				}
 				deserializer_enclosing_classes.add(enclosing_class);
 				builder.registerTypeAdapter(enclosing_class, map_deserializers.get(pos));
+				all_declared_deserializers.add(map_deserializers.get(pos));
 			}
 		}
 		
+		for (int pos = 0; pos < serializer_enclosing_classes.size(); pos++) {
+			try {
+				serializer_enclosing_classes.get(pos).newInstance();
+			} catch (Exception e) {
+				Log2.log.error("Can't instance (for serializing test) class", e, new Log2Dump("class name", deserializer_enclosing_classes.get(pos).getName()));
+			}
+		}
 		for (int pos = 0; pos < deserializer_enclosing_classes.size(); pos++) {
 			try {
 				deserializer_enclosing_classes.get(pos).newInstance();
@@ -248,11 +276,11 @@ public class AsyncJSRequestManager<V extends AsyncJSRequestControllerVerb<Rq, Rp
 		if (declarations.containsKey(request_name) == false) {
 			throw new ClassNotFoundException("Invalid request \"" + request_name + "\"");
 		}
-		HashMap<String, AsyncJSRequestControllerVerb<Rq, Rp>> verbs_ctrl = declarations.get(request_name);
+		HashMap<String, AsyncJSControllerVerb<Rq, Rp>> verbs_ctrl = declarations.get(request_name);
 		if (verbs_ctrl.containsKey(verb) == false) {
 			throw new ClassNotFoundException("Invalid verb \"" + verb + "\" for request \"" + request_name + "\"");
 		}
-		AsyncJSRequestControllerVerb<Rq, Rp> verb_ctrl = verbs_ctrl.get(verb);
+		AsyncJSControllerVerb<Rq, Rp> verb_ctrl = verbs_ctrl.get(verb);
 		
 		/**
 		 * Deserialise request

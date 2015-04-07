@@ -14,26 +14,11 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.web;
+package controllers.asyncjs.demoreact;
 
-import java.io.Serializable;
-import java.util.List;
+import hd3gtv.mydmam.web.AsyncJSRequestObject;
 
-public interface AsyncJSRequestController {
-	
-	/**
-	 * @return never null
-	 */
-	public String getRequestName();
-	
-	/**
-	 * @return never null
-	 */
-	public <V extends AsyncJSRequestControllerVerb<Rq, Rp>, Rq extends Serializable, Rp extends Serializable> List<V> getManagedVerbs();
-	
-	/**
-	 * @return OR list, never null
-	 */
-	public List<String> getMandatoryPrivileges();
-	
+public class NewComment implements AsyncJSRequestObject {
+	String text;
+	String author;
 }

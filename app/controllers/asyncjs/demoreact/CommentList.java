@@ -14,12 +14,14 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.web;
+package controllers.asyncjs.demoreact;
 
-import com.google.gson.JsonSerializer;
+import hd3gtv.mydmam.web.AsyncJSResponseObject;
+import hd3gtv.tools.GsonIgnore;
 
-public interface AsyncJSRequestSerializer<T> extends JsonSerializer<T> {
-	
-	public Class<T> getEnclosingClass();
-	
+import java.util.List;
+
+public class CommentList implements AsyncJSResponseObject {
+	@GsonIgnore
+	List<Comment> commentlist;
 }

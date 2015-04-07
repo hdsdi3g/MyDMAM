@@ -18,7 +18,7 @@ package hd3gtv.mydmam.web;
 
 import com.google.gson.JsonDeserializer;
 
-public interface AsyncJSRequestDeserializer<T> extends JsonDeserializer<T> {
+public interface AsyncJSDeserializer<T> extends JsonDeserializer<T> {
 	
 	public Class<T> getEnclosingClass();
 	

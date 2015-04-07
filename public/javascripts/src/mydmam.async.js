@@ -26,7 +26,7 @@
 	/**
 	 * @return null
 	 */
-	mydmam.async.request = function(name, verb, content, response_callback) {
+	mydmam.async.request = function(name, verb, content, response_callback, error_callback) {
 		var encoded_request = JSON.stringify({
 			name: name,
 			verb: verb,
@@ -44,7 +44,9 @@
 				/**
 				 * It never throw an error if you respect privileges and request_name/verb.
 				 */
-				console.log(textStatus, errorThrown);
+				if (error_callback) {
+					error_callback();
+				}
 			},
 			success: response_callback,
 		});
