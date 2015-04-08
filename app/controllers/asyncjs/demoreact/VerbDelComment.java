@@ -18,22 +18,22 @@ package controllers.asyncjs.demoreact;
 
 import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 
-public class VerbAddComment extends AsyncJSControllerVerb<NewComment, CommentList> {
+public class VerbDelComment extends AsyncJSControllerVerb<DeleteComment, CommentList> {
 	
 	public String getVerbName() {
-		return "add";
+		return "del";
 	}
 	
-	public Class<NewComment> getRequestClass() {
-		return NewComment.class;
+	public Class<DeleteComment> getRequestClass() {
+		return DeleteComment.class;
 	}
 	
 	public Class<CommentList> getResponseClass() {
 		return CommentList.class;
 	}
 	
-	public CommentList onRequest(NewComment request) throws Exception {
-		FakeDB.add(request);
+	public CommentList onRequest(DeleteComment request) throws Exception {
+		FakeDB.delete(request.key);
 		CommentList result = new CommentList();
 		result.commentlist = FakeDB.getAll();
 		return result;

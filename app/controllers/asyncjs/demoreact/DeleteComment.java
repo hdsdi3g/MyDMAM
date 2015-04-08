@@ -16,8 +16,10 @@
 */
 package controllers.asyncjs.demoreact;
 
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
+import hd3gtv.mydmam.web.AsyncJSRequestObject;
 
-public class CommentAdded implements AsyncJSResponseObject {
+public class DeleteComment implements AsyncJSRequestObject {
+	
+	String key;
 	
 }

@@ -46,8 +46,17 @@ public class FakeDB {
 		Comment c = new Comment();
 		c.author = comment.author;
 		c.text = comment.text;
-		c.key = String.valueOf(random.nextInt(100000));
+		c.key = "k" + String.valueOf(random.nextInt(100000));
 		comments.add(c);
+	}
+	
+	static void delete(String key) {
+		for (int pos = comments.size() - 1; pos > -1; pos--) {
+			if (comments.get(pos).key.equals(key)) {
+				comments.remove(pos);
+				return;
+			}
+		}
 	}
 	
 	static List<Comment> getAll() {
