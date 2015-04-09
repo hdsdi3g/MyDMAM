@@ -18,6 +18,9 @@
 */
 
 $(document).ready(function() {
+	if ($("#example").length === 0) {
+		return;	
+	}
 
 	var Comment = React.createClass({
 		handleDelete: function(e) {

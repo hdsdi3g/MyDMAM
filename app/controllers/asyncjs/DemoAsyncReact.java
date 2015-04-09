@@ -40,4 +40,7 @@ public class DemoAsyncReact extends AsyncJSController {
 		return (List<V>) Arrays.asList(new VerbGetCommentList(), new VerbAddComment(), new VerbDelComment(), new VerbEditComment());
 	}
 	
+	public List<String> getMandatoryPrivileges() {
+		return Arrays.asList("demoAsync");
+	}
 }
