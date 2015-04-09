@@ -26,6 +26,7 @@ import java.util.List;
 
 import controllers.asyncjs.demoreact.VerbAddComment;
 import controllers.asyncjs.demoreact.VerbDelComment;
+import controllers.asyncjs.demoreact.VerbEditComment;
 import controllers.asyncjs.demoreact.VerbGetCommentList;
 
 public class DemoAsyncReact extends AsyncJSController {
@@ -36,7 +37,7 @@ public class DemoAsyncReact extends AsyncJSController {
 	
 	@SuppressWarnings("unchecked")
 	public <V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> List<V> getManagedVerbs() {
-		return (List<V>) Arrays.asList(new VerbGetCommentList(), new VerbAddComment(), new VerbDelComment());
+		return (List<V>) Arrays.asList(new VerbGetCommentList(), new VerbAddComment(), new VerbDelComment(), new VerbEditComment());
 	}
 	
 }

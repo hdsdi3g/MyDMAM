@@ -22,14 +22,20 @@ $(document).ready(function() {
 	var Comment = React.createClass({
 		handleDelete: function(e) {
 			e.preventDefault();
-			//this.props.doaction.onCommentDelete(this.props.id);
-			this.props.doaction.hw(this.props.id);
+			this.props.doaction.onCommentDelete(this.props.id);
+			//this.props.doaction.hw(this.props.id);
+			return;
+		},
+		handleEdit: function(e) {
+			e.preventDefault();
+			this.props.doaction.onCommentEdit(this.props.id);
 			return;
 		},
 		render: function() {
 			return (
 				<div className="comment">
 					<a href="" className="btn" onClick={this.handleDelete}>Delete</a>&nbsp;
+					<a href="" className="btn" onClick={this.handleEdit}>Edit</a>&nbsp;
 					<strong>{this.props.author}</strong> &bull;
 					{this.props.children}
 				</div>
@@ -59,6 +65,13 @@ $(document).ready(function() {
 	});
 
 	var CommentForm = React.createClass({
+		handleChange: function(event) {
+			var author = React.findDOMNode(this.refs.author).value;
+		    var text = React.findDOMNode(this.refs.text).value;
+		    var key = this.props.edit.key;
+		    var edit = {key: key, author: author, text: text};
+			this.props.onChangeComment(edit);
+		},
 		handleSubmit: function(e) {
 			e.preventDefault();
 			var author = React.findDOMNode(this.refs.author).value.trim();
@@ -67,18 +80,19 @@ $(document).ready(function() {
 				return;
 			}
 
-			this.props.onCommentSubmit({text: text, author: author});
-
+			this.props.onCommentSubmit({text: text, author: author, key: this.props.edit.key});
 			React.findDOMNode(this.refs.author).value = '';
 		    React.findDOMNode(this.refs.text).value = '';
+
 		    return;
 		},
 		render: function() {
+			//console.log(this.props);
 			return (
-				<form className="commentForm" onSubmit={this.handleSubmit}>
-					<input type="text" placeholder="Your name" ref="author" />
-					<input type="text" placeholder="Say something..." ref="text" />
-					<input type="submit" value="Post" />
+				<form className="commentForm" onSubmit={this.handleSubmit} editkey={this.props.edit.key}>
+					<input type="text" placeholder="Your name" ref="author" value={this.props.edit.author} onChange={this.handleChange} />
+					<input type="text" placeholder="Say something..." ref="text" value={this.props.edit.text} onChange={this.handleChange} />
+					<input type="submit" value="Post" className="btn" />
 				</form>
 			);
 		}
@@ -91,13 +105,29 @@ $(document).ready(function() {
 			}.bind(this));
 		},
 		handleCommentSubmit: function(comment) {
-			var comments = this.state.data;
-			var newComments = comments.concat([comment]);
-			/** Sans key, mais c'est pas grave, car il dégagera/recyclera au prochain async.request */
-			this.setState({data: newComments});
-			mydmam.async.request("demosasync", "add", comment, function(data) {
-				this.setState({data: data.commentlist});
-			}.bind(this));
+			var actual_comments = this.state.data;
+			var cleared_edit = {key: null, author: null, text: null};
+			if (comment.key) {
+				/** edit comment */
+				for (var i = 0; i < actual_comments.length; i++) {
+					if (comment.key === actual_comments[i].key) {
+						actual_comments[i] = comment;
+						break;
+					}
+				}
+				this.setState({data: actual_comments, edit: cleared_edit});
+				mydmam.async.request("demosasync", "edit", comment, function(data) {
+					this.setState({data: data.commentlist});
+				}.bind(this));
+			} else {
+				/** add comment */
+				var new_comments = actual_comments.concat([comment]);
+				/** Sans key, mais c'est pas grave, car il dégagera/recyclera au prochain async.request */
+				this.setState({data: new_comments, edit: cleared_edit});
+				mydmam.async.request("demosasync", "add", comment, function(data) {
+					this.setState({data: data.commentlist});
+				}.bind(this));
+			}
 		},
 		handleCommentDelete: function(comment_key) {
 			var comment;
@@ -113,8 +143,29 @@ $(document).ready(function() {
 				this.setState({data: data.commentlist});
 			}.bind(this));
 		},
+		handleCommentEdit: function(comment_key) {
+			var comment;
+			for (var i = 0; i < this.state.data.length; i++) {
+				if (comment_key === this.state.data[i].key) {
+					comment = this.state.data[i];
+					break;
+				}
+			};
+			this.setState({edit: comment})
+		},
+		handleChangeComment: function(comment) {
+			var new_comment_list = this.state.data;
+			for (var i = 0; i < new_comment_list.length; i++) {
+				if (comment.key === new_comment_list[i].key) {
+					new_comment_list[i] = comment;
+					break;
+				}
+			};
+
+			this.setState({data: new_comment_list, edit: comment});
+		},
 		getInitialState: function() {
-			return {data: []};
+			return {data: [], edit: {key: null, author: null, text: null}};
 		},
 		componentDidMount: function() {
 			this.loadCommentsFromServer();
@@ -127,6 +178,7 @@ $(document).ready(function() {
 					hw: function(key) {
 						console.log("HELLO!", key);
 					},
+					onCommentEdit: this.handleCommentEdit,
 				},
 			};
 
@@ -134,7 +186,7 @@ $(document).ready(function() {
 				<div className="commentBox">
 			        <h1>Comments</h1>
 			        <CommentList data={this.state.data} {...action_comment_list} />
-					<CommentForm onCommentSubmit={this.handleCommentSubmit} />
+					<CommentForm onCommentSubmit={this.handleCommentSubmit} edit={this.state.edit} onChangeComment={this.handleChangeComment} />
 				</div>
 			);
 		}

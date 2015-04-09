@@ -59,6 +59,15 @@ public class FakeDB {
 		}
 	}
 	
+	static void update(Comment comment) {
+		for (int pos = 0; pos < comments.size(); pos++) {
+			if (comments.get(pos).key.equals(comment.key)) {
+				comments.set(pos, comment);
+				return;
+			}
+		}
+	}
+	
 	static List<Comment> getAll() {
 		return Collections.unmodifiableList(comments);
 	}

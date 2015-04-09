@@ -16,10 +16,28 @@
 */
 package controllers.asyncjs.demoreact;
 
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
+import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 
-public class Comment implements AsyncJSRequestObject {
-	String key;
-	String author;
-	String text;
+public class VerbEditComment extends AsyncJSControllerVerb<Comment, CommentList> {
+	
+	public String getVerbName() {
+		return "edit";
+	}
+	
+	public Class<Comment> getRequestClass() {
+		return Comment.class;
+	}
+	
+	public Class<CommentList> getResponseClass() {
+		return CommentList.class;
+	}
+	
+	public CommentList onRequest(Comment request) throws Exception {
+		FakeDB.update(request);
+		
+		CommentList result = new CommentList();
+		result.commentlist = FakeDB.getAll();
+		return result;
+	}
+	
 }
