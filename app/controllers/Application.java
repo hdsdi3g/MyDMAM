@@ -171,16 +171,19 @@ public class Application extends Controller {
 			flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
 		}
 		
+		/*
+		//TODO set get async basket content (SPEED UP page display).
 		String current_basket_content = "[]";
 		try {
 			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
 		} catch (Exception e) {
 			Log2.log.error("Can't get user basket", e);
-		}
+		}*/
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
 		String results = s_results.toJsonString();
-		render(title, results, current_basket_content);
+		
+		render(title, results);
 	}
 	
 	public static void i18n() {
