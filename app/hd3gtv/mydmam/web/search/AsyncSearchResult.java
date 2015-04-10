@@ -21,10 +21,13 @@ import java.util.Map;
 public final class AsyncSearchResult {
 	
 	@SuppressWarnings("unused")
-	private float score;
+	private String index;
 	
 	@SuppressWarnings("unused")
 	private String type;
+	
+	@SuppressWarnings("unused")
+	private float score;
 	
 	@SuppressWarnings("unused")
 	private Map<String, Object> content;
@@ -32,10 +35,19 @@ public final class AsyncSearchResult {
 	@SuppressWarnings("unused")
 	private String key;
 	
-	public AsyncSearchResult(String type, String key, Map<String, Object> content, float score) {
+	public AsyncSearchResult(String index, String type, String key, Map<String, Object> content, float score) {
+		this.index = index;
 		this.content = content;
 		this.score = score;
 		this.type = type;
 		this.key = key;
+	}
+	
+	public void setContent(Map<String, Object> content) {
+		this.content = content;
+	}
+	
+	public Map<String, Object> getContent() {
+		return content;
 	}
 }

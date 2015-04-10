@@ -26,7 +26,7 @@ import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.SearchResult;
-import hd3gtv.mydmam.web.search.AsyncSearchResults;
+import hd3gtv.mydmam.web.search.AsyncSearchQuery;
 import hd3gtv.mydmam.web.stat.Stat;
 
 import java.io.FileInputStream;
@@ -162,7 +162,7 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void asyncsearch(String q, int from) {
-		AsyncSearchResults s_results = new AsyncSearchResults(q, from);
+		AsyncSearchQuery s_results = new AsyncSearchQuery(q, from);
 		
 		if (s_results.hasResults()) {
 			flash("q", s_results.getQ());

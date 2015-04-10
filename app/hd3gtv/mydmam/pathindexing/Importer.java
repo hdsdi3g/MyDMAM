@@ -19,8 +19,16 @@ package hd3gtv.mydmam.pathindexing;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.web.SearchResultItem;
+import hd3gtv.mydmam.web.SearchResultPreProcessor;
+import hd3gtv.mydmam.web.search.AsyncSearchResult;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.search.SearchHit;
 
 public abstract class Importer {
 	
@@ -153,5 +161,22 @@ public abstract class Importer {
 			return true;
 		}
 		return false;
+	}
+	
+	public static class SearchPreProcessor implements SearchResultPreProcessor {
+		public final List<String> getESTypeForUserSearch() {
+			return Arrays.asList(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
+		}
+		
+		public final void prepareSearchResult(SearchHit hit, AsyncSearchResult result) {
+			Map<String, Object> source = hit.getSource();
+			source.remove("idxfilename");
+			source.remove("parentpath");
+			result.setContent(source);
+		}
+		
+		public String getTemplateNameForSearchResultItem(SearchResultItem item) {
+			return null;
+		}
 	}
 }

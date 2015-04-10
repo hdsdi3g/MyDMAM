@@ -17,9 +17,11 @@
 
 package hd3gtv.mydmam.web;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.Importer;
+import hd3gtv.mydmam.web.search.AsyncSearchQuery;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,34 +44,6 @@ import org.elasticsearch.search.SearchHit;
  */
 public class SearchResult {
 	
-	/**
-	 * @return true if S0000000 or 00000000
-	 */
-	public static boolean isValidMediaId(String query) {
-		if (query.length() != 8) {
-			return false;
-		}
-		char[] chars = query.toCharArray();
-		char curchar;
-		for (int pos = 0; pos < 8; pos++) {
-			curchar = chars[pos];
-			if ((curchar > 47) && (curchar < 58)) {
-				/**
-				 * from 0 to 9
-				 */
-				continue;
-			}
-			if (((curchar == 83) || (curchar == 115)) && (pos == 0)) {
-				/**
-				 * Start by "S" or "s"
-				 */
-				continue;
-			}
-			return false;
-		}
-		return true;
-	}
-	
 	private static String[] search_type;
 	
 	static {
@@ -82,37 +56,6 @@ public class SearchResult {
 		}
 		search_type[search_type.length - 1] = Importer.ES_TYPE_FILE;
 		search_type[search_type.length - 2] = Importer.ES_TYPE_DIRECTORY;
-	}
-	
-	/**
-	 * @return return null if q is empty or null.
-	 */
-	public static String cleanUserTextSearch(String q) {
-		if (q == null) {
-			return null;
-		}
-		if (q.trim().equals("")) {
-			return null;
-		}
-		StringBuffer cleanquery = new StringBuffer(q.length());
-		char current;
-		boolean keepchar;
-		for (int pos_q = 0; pos_q < q.length(); pos_q++) {
-			current = q.charAt(pos_q);
-			keepchar = true;
-			for (int pos = 0; pos < Elasticsearch.forbidden_query_chars.length; pos++) {
-				if (current == Elasticsearch.forbidden_query_chars[pos]) {
-					keepchar = false;
-					break;
-				}
-			}
-			if (keepchar) {
-				cleanquery.append(current);
-			} else {
-				cleanquery.append(" ");
-			}
-		}
-		return cleanquery.toString();
 	}
 	
 	private static SearchResponse internalSearch(Client client, QueryBuilder querybuilder, int frompage, int pagesize) throws SearchPhaseExecutionException {
@@ -132,7 +75,7 @@ public class SearchResult {
 		
 		String query = realquery.toLowerCase();
 		
-		boolean isvalidmediaid = isValidMediaId(query);
+		boolean isvalidmediaid = MyDMAM.isValidMediaId(query);
 		
 		if (isvalidmediaid) {
 			/**
@@ -217,7 +160,7 @@ public class SearchResult {
 		Client client = Elasticsearch.getClient();
 		SearchResult search_result = new SearchResult();
 		
-		String clean_query = cleanUserTextSearch(query);
+		String clean_query = AsyncSearchQuery.cleanUserTextSearch(query);
 		SearchResponse response = structuredInternalSearch(client, clean_query, frompage, pagesize, search_result);
 		
 		search_result.query = clean_query;

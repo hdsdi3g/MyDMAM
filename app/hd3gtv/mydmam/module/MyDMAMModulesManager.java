@@ -23,8 +23,12 @@ import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
 import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
+import hd3gtv.mydmam.pathindexing.Importer;
+import hd3gtv.mydmam.pathindexing.Importer.SearchPreProcessor;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.SearchResultItem;
+import hd3gtv.mydmam.web.SearchResultPreProcessor;
+import hd3gtv.mydmam.web.search.AsyncSearchResult;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -45,6 +49,7 @@ import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.elasticsearch.search.SearchHit;
 import org.yaml.snakeyaml.Yaml;
 
 import play.Play;
@@ -258,6 +263,12 @@ public class MyDMAMModulesManager {
 	public static List<String> getESTypesForUserSearch() {
 		ArrayList<String> all_elements = new ArrayList<String>();
 		List<String> elements;
+		
+		/**
+		 * Add Pathindex
+		 */
+		all_elements.addAll(new Importer.SearchPreProcessor().getESTypeForUserSearch());
+		
 		for (int pos = 0; pos < MODULES.size(); pos++) {
 			elements = MODULES.get(pos).getESTypeForUserSearch();
 			if (elements == null) {
@@ -329,14 +340,64 @@ public class MyDMAMModulesManager {
 	/**
 	 * Index -> Module
 	 */
-	private volatile static Map<String, MyDMAMModule> render_engines;
+	private volatile static Map<String, SearchResultPreProcessor> search_engines_pre_processing;
+	
+	/**
+	 * Reboot Play to see changes.
+	 * @return never null.
+	 */
+	public static AsyncSearchResult renderSearchResult(SearchHit hit) throws Exception {
+		AsyncSearchResult result = new AsyncSearchResult(hit.getIndex(), hit.getType(), hit.getId(), hit.getSource(), hit.getScore());
+		
+		if (search_engines_pre_processing == null) {
+			search_engines_pre_processing = new HashMap<String, SearchResultPreProcessor>();
+			
+			/**
+			 * Add Pathindex
+			 */
+			SearchPreProcessor pathindex_preproc = new Importer.SearchPreProcessor();
+			List<String> es_type_handled = pathindex_preproc.getESTypeForUserSearch();
+			for (int pos_estype = 0; pos_estype < es_type_handled.size(); pos_estype++) {
+				search_engines_pre_processing.put(es_type_handled.get(pos_estype), pathindex_preproc);
+			}
+			
+			for (int pos_module = 0; pos_module < MODULES.size(); pos_module++) {
+				es_type_handled = MODULES.get(pos_module).getESTypeForUserSearch();
+				if (es_type_handled == null) {
+					continue;
+				}
+				for (int pos_estype = 0; pos_estype < es_type_handled.size(); pos_estype++) {
+					if (search_engines_pre_processing.containsKey(es_type_handled.get(pos_estype))) {
+						Log2Dump dump = new Log2Dump();
+						dump.add("es_type_handled", es_type_handled.get(pos_estype));
+						dump.add("module", MODULES.get(pos_module).getClass().getName());
+						Log2.log.error("Twice modules declares the same ES Type for user search", null, dump);
+						continue;
+					}
+					search_engines_pre_processing.put(es_type_handled.get(pos_estype), MODULES.get(pos_module));
+				}
+			}
+		}
+		
+		SearchResultPreProcessor pre_processor = search_engines_pre_processing.get(hit.getType());
+		if (pre_processor == null) {
+			return result;
+		}
+		pre_processor.prepareSearchResult(hit, result);
+		
+		if (result.getContent() == null) {
+			result.setContent(new HashMap<String, Object>());
+		}
+		return result;
+	}
 	
 	/**
 	 * Reboot Play to see changes.
 	 */
+	@Deprecated
 	public static String renderSearchResult(SearchResultItem item) throws Exception {
-		if (render_engines == null) {
-			render_engines = new HashMap<String, MyDMAMModule>();
+		if (search_engines_pre_processing == null) {
+			search_engines_pre_processing = new HashMap<String, SearchResultPreProcessor>();
 			List<String> es_type_handled;
 			for (int pos_module = 0; pos_module < MODULES.size(); pos_module++) {
 				es_type_handled = MODULES.get(pos_module).getESTypeForUserSearch();
@@ -344,19 +405,19 @@ public class MyDMAMModulesManager {
 					continue;
 				}
 				for (int pos_estype = 0; pos_estype < es_type_handled.size(); pos_estype++) {
-					if (render_engines.containsKey(es_type_handled.get(pos_estype))) {
+					if (search_engines_pre_processing.containsKey(es_type_handled.get(pos_estype))) {
 						Log2Dump dump = new Log2Dump();
 						dump.add("es_type_handled", es_type_handled.get(pos_estype));
 						dump.add("module", MODULES.get(pos_module).getClass().getName());
 						Log2.log.error("Twice modules declares the same ES Type for user search", null, dump);
 						continue;
 					}
-					render_engines.put(es_type_handled.get(pos_estype), MODULES.get(pos_module));
+					search_engines_pre_processing.put(es_type_handled.get(pos_estype), MODULES.get(pos_module));
 				}
 			}
 		}
 		
-		MyDMAMModule module_handle = render_engines.get(item.type);
+		SearchResultPreProcessor module_handle = search_engines_pre_processing.get(item.type);
 		if (module_handle == null) {
 			return null;
 		}

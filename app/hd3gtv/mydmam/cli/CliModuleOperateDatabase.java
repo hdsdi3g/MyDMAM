@@ -282,7 +282,7 @@ public class CliModuleOperateDatabase implements CliModule {
 			request.setTypes(UACreationRequest.ES_TYPE);
 			request.setQuery(QueryBuilders.rangeQuery("created_at").gte(since));
 			request.addSort("created_at", SortOrder.ASC);
-			request.setSize(1000);
+			request.setPageSize(1000);
 			
 			request.allReader(new ElastisearchCrawlerHit() {
 				public boolean onFoundHit(SearchHit hit) {

@@ -24,13 +24,17 @@ import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.SearchResultItem;
+import hd3gtv.mydmam.web.SearchResultPreProcessor;
+import hd3gtv.mydmam.web.search.AsyncSearchResult;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.search.SearchHit;
+
 import play.PlayPlugin;
 
-public abstract class MyDMAMModule extends PlayPlugin {
+public abstract class MyDMAMModule extends PlayPlugin implements SearchResultPreProcessor {
 	
 	public List<CliModule> getCliModules() {
 		return new ArrayList<CliModule>(1);
@@ -51,6 +55,9 @@ public abstract class MyDMAMModule extends PlayPlugin {
 		return new ArrayList<TriggerJobCreator>(1);
 	}
 	
+	/**
+	 * Search API
+	 */
 	public List<String> getESTypeForUserSearch() {
 		return null;
 	}
@@ -63,8 +70,18 @@ public abstract class MyDMAMModule extends PlayPlugin {
 		return null;
 	}
 	
+	/**
+	 * Search API
+	 */
+	@Deprecated
 	public String getTemplateNameForSearchResultItem(SearchResultItem item) {
 		return null;
+	}
+	
+	/**
+	 * Search API
+	 */
+	public void prepareSearchResult(SearchHit hit, AsyncSearchResult result) {
 	}
 	
 	public ArchivingTapeLocalisator getTapeLocalisator() {

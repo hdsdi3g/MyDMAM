@@ -48,6 +48,7 @@ public class ElastisearchCrawlerReader {
 	private ArrayList<Sort> sorts;
 	private int size;
 	private int from;
+	private int max_size;
 	private SearchType searchtype;
 	
 	ElastisearchCrawlerReader() {
@@ -90,15 +91,20 @@ public class ElastisearchCrawlerReader {
 		return this;
 	}
 	
-	public ElastisearchCrawlerReader setSize(int size) {
+	public ElastisearchCrawlerReader setPageSize(int size) {
 		this.size = size;
 		return this;
 	}
 	
-	/*public ElastisearchCrawlerReader setFrom(int from) {
+	public ElastisearchCrawlerReader setMaximumSize(int max_size) {
+		this.max_size = max_size;
+		return this;
+	}
+	
+	public ElastisearchCrawlerReader setFrom(int from) {
 		this.from = from;
 		return this;
-	}*/
+	}
 	
 	public ElastisearchCrawlerReader setSearchType(SearchType searchtype) {
 		this.searchtype = searchtype;
@@ -117,6 +123,13 @@ public class ElastisearchCrawlerReader {
 	 * Never parallelized
 	 */
 	public void allReader(ElastisearchCrawlerHit crawler) throws Exception {
+		allReader(crawler, null);
+	}
+	
+	/**
+	 * Never parallelized
+	 */
+	public void allReader(ElastisearchCrawlerHit crawler, ElastisearchStatSearch stat) throws Exception {
 		if (crawler == null) {
 			throw new NullPointerException("\"crawler\" can't to be null");
 		}
@@ -142,15 +155,25 @@ public class ElastisearchCrawlerReader {
 				request.setSize(size);
 			}
 			if (from > 0) {
-				request.setSize(from);
+				request.setFrom(from);
 			}
 			if (searchtype != null) {
 				request.setSearchType(searchtype);
 			}
 			
 			SearchResponse response = execute(request);
+			
+			if (stat != null) {
+				if (stat.onFirstSearch(response.isTimedOut(), response.getTookInMillis(), response.getHits().getTotalHits(), response.getHits().getMaxScore()) == false) {
+					return;
+				}
+			}
+			
 			SearchHit[] hits = response.getHits().hits();
-			int count_remaining = (int) response.getHits().getTotalHits();
+			int count_remaining = ((int) response.getHits().getTotalHits()) - from;
+			if ((max_size > 0) & (max_size < count_remaining)) {
+				count_remaining = max_size;
+			}
 			int totalhits = count_remaining;
 			
 			boolean can_continue = true;

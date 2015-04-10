@@ -22,7 +22,7 @@ import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
-import hd3gtv.mydmam.web.SearchResult;
+import hd3gtv.mydmam.web.search.AsyncSearchQuery;
 import hd3gtv.mydmam.web.stat.Stat;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
@@ -98,7 +98,7 @@ public class Explorer {
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.termQuery("id", id.toLowerCase()));
-		request.setSize(100);
+		request.setPageSize(100);
 		crawler(request, found_elements_observer);
 	}
 	
@@ -109,7 +109,7 @@ public class Explorer {
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("id", id.toLowerCase())).must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())));
-		request.setSize(100);
+		request.setPageSize(100);
 		
 		crawler(request, new IndexingEvent() {
 			public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
@@ -144,7 +144,7 @@ public class Explorer {
 			request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("parentpath", parentpath_key))
 					.must(QueryBuilders.rangeQuery("dateindex").from(min_index_date).to(System.currentTimeMillis() + 1000000)));
 		}
-		request.setSize(500);
+		request.setPageSize(500);
 		
 		request.allReader(new ElastisearchCrawlerHit() {
 			public boolean onFoundHit(SearchHit hit) throws Exception {
@@ -169,7 +169,7 @@ public class Explorer {
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(types);
 		request.setQuery(QueryBuilders.termQuery("parentpath", parentpath_key));
-		request.setSize(500);
+		request.setPageSize(500);
 		
 		request.allReader(new ElastisearchCrawlerHit() {
 			public boolean onFoundHit(SearchHit hit) throws Exception {
@@ -183,7 +183,7 @@ public class Explorer {
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_FILE);
 		request.setQuery(QueryBuilders.termQuery("storagename", storagename.toLowerCase()));
-		request.setSize(500);
+		request.setPageSize(500);
 		crawler(request, found_elements_observer);
 	}
 	
@@ -192,7 +192,7 @@ public class Explorer {
 		request.setIndices(Importer.ES_INDEX);
 		request.setTypes(Importer.ES_TYPE_DIRECTORY);
 		request.setQuery(QueryBuilders.termQuery("storagename", storagename.toLowerCase()));
-		request.setSize(500);
+		request.setPageSize(500);
 		crawler(request, found_elements_observer);
 	}
 	
@@ -366,7 +366,7 @@ public class Explorer {
 			if (search == null) {
 				request.setQuery(querybuilder_parent);
 			} else {
-				String query = SearchResult.cleanUserTextSearch(search);
+				String query = AsyncSearchQuery.cleanUserTextSearch(search);
 				if (query == null) {
 					request.setQuery(querybuilder_parent);
 				} else if (query.equals("")) {

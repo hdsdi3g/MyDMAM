@@ -59,7 +59,7 @@ import com.google.gson.JsonParser;
 public class Elasticsearch {
 	
 	private static InetSocketTransportAddress[] transportadresses;
-	public static final char[] forbidden_query_chars = { '/', '\\', '%', '[', ']', '(', ')', '{', '}', '"', '~' };
+	public static final char[] forbidden_query_chars = { '/', '\\', '%', '[', ']', '(', ')', '{', '}', '"', '~', '#', '!' };
 	private static TransportClient client;
 	
 	/**
