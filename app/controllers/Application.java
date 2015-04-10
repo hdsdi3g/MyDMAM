@@ -26,6 +26,7 @@ import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.SearchResult;
+import hd3gtv.mydmam.web.search.AsyncSearchResults;
 import hd3gtv.mydmam.web.stat.Stat;
 
 import java.io.FileInputStream;
@@ -157,6 +158,29 @@ public class Application extends Controller {
 			Log2.log.error("Can't get user basket", e);
 		}
 		render("Application/index.html", title, searchresults, current_basket_content);
+	}
+	
+	@Check("navigate")
+	public static void asyncsearch(String q, int from) {
+		AsyncSearchResults s_results = new AsyncSearchResults(q, from);
+		
+		if (s_results.hasResults()) {
+			flash("q", s_results.getQ());
+			flash("pagename", s_results.getQ() + " - " + Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
+		} else {
+			flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
+		}
+		
+		String current_basket_content = "[]";
+		try {
+			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
+		} catch (Exception e) {
+			Log2.log.error("Can't get user basket", e);
+		}
+		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		
+		String results = s_results.toJsonString();
+		render(title, results, current_basket_content);
 	}
 	
 	public static void i18n() {

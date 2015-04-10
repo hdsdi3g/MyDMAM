@@ -24,6 +24,9 @@ import java.util.Map;
 
 import org.elasticsearch.search.SearchHit;
 
+/**
+ * @deprecated
+ */
 public class SearchResultItem implements Log2Dumpable {
 	
 	public String index;

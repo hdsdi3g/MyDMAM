@@ -37,6 +37,9 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 
+/**
+ * @deprecated
+ */
 public class SearchResult {
 	
 	/**
