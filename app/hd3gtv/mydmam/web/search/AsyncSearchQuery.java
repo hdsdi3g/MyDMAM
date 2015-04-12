@@ -93,18 +93,18 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 	private int from;
 	
 	@SuppressWarnings("unused")
-	private boolean timedout;
+	private boolean timedout = false;
 	@SuppressWarnings("unused")
 	private long duration = 0;
 	@SuppressWarnings("unused")
-	private long total_items_count;
+	private long total_items_count = 0;
 	@SuppressWarnings("unused")
-	private float max_score;
+	private float max_score = 0f;
 	private int pagesize = MAX_ELEMENTS_RESPONSE_PAGE_SIZE;
 	@SuppressWarnings("unused")
-	private int pagecount;
+	private int pagecount = 0;
 	@SuppressWarnings("unused")
-	private SearchMode mode;
+	private SearchMode mode = null;
 	
 	public static class Serializer implements JsonSerializer<AsyncSearchQuery> {
 		public JsonElement serialize(AsyncSearchQuery src, Type typeOfSrc, JsonSerializationContext context) {

@@ -53,10 +53,3 @@
 	};
 	
 })(window.mydmam);
-
-(function(mydmam) {
-	mydmam.async.search = function(results, dom_target) {
-		//TODO call react, with results
-		console.log(results);
-	};
-})(window.mydmam);

@@ -164,7 +164,11 @@ public class ElastisearchCrawlerReader {
 			SearchResponse response = execute(request);
 			
 			if (stat != null) {
-				if (stat.onFirstSearch(response.isTimedOut(), response.getTookInMillis(), response.getHits().getTotalHits(), response.getHits().getMaxScore()) == false) {
+				float max_score = response.getHits().getMaxScore();
+				if (String.valueOf(max_score).equalsIgnoreCase("NaN")) {
+					max_score = 0f;
+				}
+				if (stat.onFirstSearch(response.isTimedOut(), response.getTookInMillis(), response.getHits().getTotalHits(), max_score) == false) {
 					return;
 				}
 			}

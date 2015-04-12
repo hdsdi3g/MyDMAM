@@ -51,12 +51,9 @@
 		<script src="@{'/public/javascripts/lib/html5shiv-3.7.0.min.js'}" type="text/javascript" charset="UTF-8"></script>
 		<script src="@{'/public/javascripts/lib/es5-shim-2.0.8.min.js'}"></script>
 	<![endif]-->
-	
+
 	%{ if (play.mode.toString() == "DEV"){ }%
 		<script src="@{'/public/javascripts/lib/react-with-addons.js'}" type="text/javascript" charset="UTF-8"></script>
-		#{list hd3gtv.mydmam.web.JSXTransformer.getJSXURLList(), as:'item'}
-			<script src="&{item}" type="text/javascript" charset="UTF-8"></script>
-		#{/list}
 	%{ } else { }%
 		<script src="@{'/public/javascripts/lib/react-with-addons.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	%{ } }%
@@ -64,6 +61,13 @@
 	#{list hd3gtv.mydmam.web.JsCompile.getURLlist(), as:'item'}
 		#{script src:item, charset:'utf-8' /}
 	#{/list}
+	
+	%{ if (play.mode.toString() == "DEV"){ }%
+		#{list hd3gtv.mydmam.web.JSXTransformer.getJSXURLList(), as:'item'}
+			<script src="&{item}" type="text/javascript" charset="UTF-8"></script>
+		#{/list}
+	%{ } }%
+
 	<script type="text/javascript" charset="UTF-8"><!-- #{include 'routes.js'/} --></script>
 	<script src="@{Application.i18n()}" type="text/javascript" charset="UTF-8"></script>
 	

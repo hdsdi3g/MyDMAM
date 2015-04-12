@@ -358,7 +358,6 @@ public class JsCompile {
 			}
 		}
 		
-		Collections.sort(list);
 		return list;
 	}
 	

@@ -25,7 +25,14 @@
 <script type="text/javascript" charset="UTF-8">
 <!--
 $(document).ready(function() {
-	mydmam.async.search(${results.raw()}, $("#searchcontainer")[0]);
+	try {
+		mydmam.async.search(${results.raw()}, $("#searchcontainer")[0]);
+	} catch (err) {
+		console.error(err);
+	}
+	
+	//mydmam.module.dumpList();
+	//console.log(mydmam.module.f.helloworld("FFF"));
 });
 -->
 </script>

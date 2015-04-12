@@ -27,3 +27,13 @@
 		//console.log(stat.query(keys, scopes_element, scopes_subelements), stat.query(keys, [stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY]));
 	});
 })(window.mydmam);
+
+
+(function() {
+	$(document).ready(function() {
+		var helloworld = function(me) {
+			return "This is an other test for \"" + me + "\"";
+		};
+		mydmam.module.register("zdebug", {helloworld: helloworld});
+	});
+})();
