@@ -49,6 +49,8 @@ search.oneresult=1 result
 search.pageXonY=: page %s/%s
 search.result.storage=Storage
 search.result.directory=Folder
+search.previous=previous
+search.next=next
 
 service.playjobs.pagename=Play server jobs
 service.menuinfrastructure=Infrastructure

@@ -19,6 +19,21 @@
 	mydmam.async.pathindex = {};
 
 	mydmam.async.pathindex.react2lines = React.createClass({
+		getInitialState: function() {
+			return {present_in_basket: mydmam.basket.isInBasket(this.props.result.key)};
+		},
+		handleBasketSwitch: function(event) {
+			if (this.state.present_in_basket) {
+				mydmam.basket.content.remove(this.props.result.key);
+			} else {
+				mydmam.basket.content.add(this.props.result.key);
+			}
+			this.setState({present_in_basket: !this.state.present_in_basket});
+		},
+		shouldComponentUpdate: function(nextProps, nextState) {
+			//TODO return false if mtd & external pos == null
+			return true;
+		}
 		render: function() {
 			var result = this.props.result;
 			if (result.index !== "pathindex") {
@@ -39,15 +54,46 @@
 			if (result.content.directory) {
 				directory_block = (<span className="label label-success">{i18n("search.result.directory")}</span>);
 			}
+
 			//<span id="mtd-${item.getId()}"></span>
 
+			var path_linked = [];
+			var sub_paths = result.content.path.split("/");
+			var sub_path;
+			var currentpath = "";
+			for (var i = 1; i < sub_paths.length; i++) {
+				sub_path = sub_paths[i];
+				path_linked.push(
+					<span key={i}>/
+						<a href={mydmam.metadatas.url.navigate + "#" + result.content.storagename + ':' + currentpath + "/" + sub_path}>
+							{sub_path}
+						</a>
+					</span>
+				);
+				currentpath = currentpath + "/" + sub_path;
+			};
+
+			var btn_basket_classes = classNames({
+			    'btn': true, 'btn-mini': true,
+			    'active': this.state.present_in_basket,
+			});
+
 			return (
-				<div>
+				<div className="pathindex">
 					<span className="label label-inverse">{i18n("search.result.storage")}</span>
 					<span className="label label-info">{result.content.id}</span> {date_block} {size_block} {directory_block}
 					<br />
-					<span className="searchresultitem">
-						<strong className="storagename">{result.content.storagename}</strong> :: <span className="path">{result.content.path}</span>
+					<span>
+						<button className={btn_basket_classes} type="button" onClick={this.handleBasketSwitch}><i className="icon-star"></i></button>&nbsp;
+						<strong className="storagename">
+							<a href={mydmam.metadatas.url.navigate + "#" + result.content.storagename + ":/"}>
+								{result.content.storagename}
+							</a>
+						</strong>
+						&nbsp;::&nbsp;
+						<span className="path">
+							{path_linked}
+						</span>
 					</span>
 				</div>
 			);

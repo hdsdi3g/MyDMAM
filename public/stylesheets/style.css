@@ -57,6 +57,19 @@ ul {
 	cursor: pointer;
 }
 
+div.pathindex a {
+    color: #222;
+    border-bottom: 1px dotted #CCC;
+}
+div.pathindex a:hover {
+    color: #000;
+    border-bottom: 1px solid #000;
+    text-decoration: none;
+}
+div.pathindex button.btn {
+    border-width: 0px;
+}
+
 .searchresultitem A {
 	color: #222;
 	border-bottom: 1px dotted #CCC;

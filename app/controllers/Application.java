@@ -161,7 +161,10 @@ public class Application extends Controller {
 	}
 	
 	@Check("navigate")
-	public static void asyncsearch(String q, int from) {
+	public static void asyncsearch(String q, Integer from) {
+		if (from == null) {
+			from = 0;
+		}
 		AsyncSearchQuery s_results = new AsyncSearchQuery(q, from);
 		
 		if (s_results.hasResults()) {
@@ -171,14 +174,7 @@ public class Application extends Controller {
 			flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
 		}
 		
-		/*
-		//TODO set get async basket content (SPEED UP page display).
-		String current_basket_content = "[]";
-		try {
-			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
-		} catch (Exception e) {
-			Log2.log.error("Can't get user basket", e);
-		}*/
+		// TODO update react lib w/o plugins.
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
 		String results = s_results.toJsonString();

@@ -15,6 +15,11 @@
  * 
 */
 (function(mydmam) {
+
+	mydmam.async.makeURLsearch = function (q, from) {
+		return mydmam.async.baseURLsearch.replace("param1query", encodeURIComponent(q)).replace("param2from", from);
+	};
+
 	mydmam.async.search = function(results, dom_target) {
 		if (!dom_target) {
 			return;
@@ -117,30 +122,7 @@
 			}
 		});
 
-		var SearchPagination = React.createClass({
-			render: function() {
-			    return (
-			    	<p>Pages !
-						{/*<div class="pagination pagination-centered pagination-large">
-								<ul>
-									<li><a href="/oldsearch?q=+a&amp;from=1"><span>«</span></a></li>
-				
-																						<li><a href="/oldsearch?q=+a&amp;from=1">1</a></li>
-																								<li class="active"><span>2</span></li>
-																								<li><a href="/oldsearch?q=+a&amp;from=3">3</a></li>
-																								<li><a href="/oldsearch?q=+a&amp;from=4">4</a></li>
-																<li class="active"><span>&nbsp;</span></li>
-																		<li><a href="/oldsearch?q=+a&amp;from=8">8</a></li>
-																								<li><a href="/oldsearch?q=+a&amp;from=9">9</a></li>
-																								<li><a href="/oldsearch?q=+a&amp;from=10">10</a></li>
-																								<li><a href="/oldsearch?q=+a&amp;from=11">11</a></li>
-									<li><a href="/oldsearch?q=+a&amp;from=3"><span>»</span></a></li>
-							</ul>
-						</div>*/}
-			    	</p>
-				);
-			}
-		});
+		var SearchPagination = mydmam.async.pagination.reactBlock;
 
 		var SearchResultPage = React.createClass({
 			handleSearchFormChange: function(q) {
@@ -157,19 +139,40 @@
 				this.setState({results: actual_results});
 				//TODO create server side, and update this:
 				/*mydmam.async.request("demosasync", "add", comment, function(data) {
-					this.setState({data: data.commentlist});
+					this.setState({results: data.results, mtd: data.mtd, external: data.external});
 				}.bind(this));*/
+			},
+			handlePaginationLinkTargeter: function(button_num) {
+				return mydmam.async.makeURLsearch(this.state.results.q, button_num);
+			},
+			handlePaginationSwitchPage: function(new_page_pos) {
+				console.log("TODO switch page:", new_page_pos);
 			},
 			getInitialState: function() {
 				return {results: results, };
 			},
+			componentDidMount: function() {
+				var results = this.state.results.results;
+				var stat_request_keys = [];
+				for (var i = 0; i < results.length; i++) {
+					if (results[i].index === "pathindex") {
+						stat_request_keys.push(results[i].key);
+					}
+				}
+				//TODO console.log("TODO stat mtd + external pos", stat_request_keys);
+			},
 			render: function() {
+				//TODO push state mtd & external pos
 			    return (
 			    	<div>
 						<SearchForm results={this.state.results} onSearchFormSubmit={this.handleSearchFormSubmit} onSearchFormChange={this.handleSearchFormChange} />
 						<SearchResultsHeader results={this.state.results} />
 						<SearchResults results={this.state.results} />
-						<SearchPagination results={this.state.results} />
+						<SearchPagination
+							pagecount={this.state.results.pagecount}
+							currentpage={this.state.results.from}
+							onlinkTargeter={this.handlePaginationLinkTargeter}
+							onClickButton={this.handlePaginationSwitchPage} />
 			    	</div>
 				);
 			}

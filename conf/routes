@@ -30,8 +30,7 @@ GET		/admin/{objtype}/action/{action}/{key}	Admin.action
 *		/navigateto								Application.navigate
 GET		/i18n.js								Application.i18n
 *		/oldsearch								Application.search
-GET		/search									Application.asyncsearch
-GET		/search/{q}								Application.asyncsearch
+GET		/search/{from}/{q}						Application.asyncsearch
 GET		/preview/{filehash}/{type}/{file}		Application.metadatafile
 
 GET		/user/notification/list					User.notificationslist
