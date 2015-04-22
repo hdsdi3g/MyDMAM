@@ -28,16 +28,24 @@
 		/**
 		 * Create React uniq key.
 		 */
-		var result_list = results.results;
-		for (var pos in result_list) {
-			result_list[pos].reactkey = result_list[pos].index + ":" + result_list[pos].type + ":" + result_list[pos].key;
-		};
-		console.log(results);
+		var createReactKey = function(result_list) {
+			for (var pos in result_list) {
+				result_list[pos].reactkey = result_list[pos].index + ":" + result_list[pos].type + ":" + result_list[pos].key;
+			};
+			console.log(results);
+		}
+
+		createReactKey(results.results);
 
 		var SearchForm = React.createClass({
+			getInitialState: function() {
+				return {new_q: ""};
+			},
+			componentDidMount: function() {
+				this.setState({new_q: this.props.results.q});
+			},
 			handleChange: function(event) {
-				var q = React.findDOMNode(this.refs.q).value;
-				this.props.onSearchFormChange(q);
+				this.setState({new_q: React.findDOMNode(this.refs.q).value});
 			},
 			handleSubmit: function(e) {
 				e.preventDefault();
@@ -46,14 +54,12 @@
 					return;
 				}
 				this.props.onSearchFormSubmit({q: q});
-				React.findDOMNode(this.refs.q).value = '';
-			    return;
 			},
 			render: function() {
 			    return (
 			    	<form className="search-query form-search" onSubmit={this.handleSubmit}>
 						<div className="input-append">
-							<input type="text" ref="q" value={this.props.results.q} placeholder={i18n("maingrid.search")} className="search-query span10" onChange={this.handleChange} />
+							<input type="text" ref="q" value={this.state.new_q} placeholder={i18n("maingrid.search")} className="search-query span10" onChange={this.handleChange} />
 							<button className="btn btn-info" type="submit">{i18n("maingrid.search")}</button>
 						</div>
 					</form>
@@ -125,28 +131,21 @@
 		var SearchPagination = mydmam.async.pagination.reactBlock;
 
 		var SearchResultPage = React.createClass({
-			handleSearchFormChange: function(q) {
-				var results = this.state.results;
-				results.q = q;
-				this.setState({results: results});
-			},
 			handleSearchFormSubmit: function(search_request) {
 				if (!search_request.q) {
 					return;
 				}
-				var actual_results = this.state.results;
-				actual_results.q = search_request.q;
-				this.setState({results: actual_results});
-				//TODO create server side, and update this:
-				/*mydmam.async.request("demosasync", "add", comment, function(data) {
-					this.setState({results: data.results, mtd: data.mtd, external: data.external});
+				/*actual_results.q = search_request.q;*/
+				window.location = mydmam.async.makeURLsearch(search_request.q, 1);
+				/*mydmam.async.request("search", "query", search_request, function(data) {
+					createReactKey(data.results);
+					this.setState({results: data});
 				}.bind(this));*/
 			},
 			handlePaginationLinkTargeter: function(button_num) {
 				return mydmam.async.makeURLsearch(this.state.results.q, button_num);
 			},
 			handlePaginationSwitchPage: function(new_page_pos) {
-				console.log("TODO switch page:", new_page_pos);
 			},
 			getInitialState: function() {
 				return {results: results, };

@@ -164,8 +164,8 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 		builder.serializeNulls();
 		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
 		
-		List<AsyncJSSerializer<?>> map_serializers;
-		List<AsyncJSDeserializer<?>> map_deserializers;
+		List<? extends AsyncJSSerializer<?>> map_serializers;
+		List<? extends AsyncJSDeserializer<?>> map_deserializers;
 		List<Class<?>> serializer_enclosing_classes = new ArrayList<Class<?>>();
 		List<Class<?>> deserializer_enclosing_classes = new ArrayList<Class<?>>();
 		Class<?> enclosing_class;

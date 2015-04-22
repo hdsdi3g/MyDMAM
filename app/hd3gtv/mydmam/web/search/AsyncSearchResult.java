@@ -29,7 +29,6 @@ public final class AsyncSearchResult {
 	@SuppressWarnings("unused")
 	private float score;
 	
-	@SuppressWarnings("unused")
 	private Map<String, Object> content;
 	
 	@SuppressWarnings("unused")

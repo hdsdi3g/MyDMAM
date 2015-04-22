@@ -26,6 +26,7 @@ import hd3gtv.mydmam.db.ElastisearchStatSearch;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.web.AsyncJSManager;
 import hd3gtv.mydmam.web.AsyncJSResponseObject;
+import hd3gtv.mydmam.web.AsyncJSSerializer;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
@@ -48,7 +49,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 public final class AsyncSearchQuery implements AsyncJSResponseObject, ElastisearchStatSearch {
 	
@@ -106,11 +106,15 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 	@SuppressWarnings("unused")
 	private SearchMode mode = null;
 	
-	public static class Serializer implements JsonSerializer<AsyncSearchQuery> {
+	public static class Serializer implements AsyncJSSerializer<AsyncSearchQuery> {
 		public JsonElement serialize(AsyncSearchQuery src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AsyncJSManager.global.getGsonSimple().toJsonTree(src).getAsJsonObject();
 			result.add("results", AsyncJSManager.global.getGsonSimple().toJsonTree(src.results, type_Resultlist));
 			return result;
+		}
+		
+		public Class<AsyncSearchQuery> getEnclosingClass() {
+			return AsyncSearchQuery.class;
 		}
 	}
 	
@@ -145,26 +149,26 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 		return cleanquery.toString();
 	}
 	
-	/**
-	 * @param from is the page number
-	 */
-	public AsyncSearchQuery(String raw_q, int from) {
+	public AsyncSearchQuery() {
+	}
+	
+	public AsyncSearchQuery search(AsyncSearchRequest request) {
 		results = new ArrayList<AsyncSearchResult>(MAX_ELEMENTS_RESPONSE_PAGE_SIZE);
 		
-		if (raw_q == null) {
-			raw_q = "";
+		if (request.q == null) {
+			request.q = "";
 		}
-		q = cleanUserTextSearch(raw_q);
+		q = cleanUserTextSearch(request.q);
 		if (q == null) {
 			q = "";
 		}
 		q = q.trim().toLowerCase();
 		if (q.equals("")) {
-			return;
+			return this;
 		}
 		
-		if (from > 1) {
-			this.from = from;
+		if (request.from > 1) {
+			this.from = request.from;
 		} else {
 			this.from = 1;
 		}
@@ -184,7 +188,7 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 			
 			if (operation.doQuery(querybuilder)) {
 				mode = SearchMode.BY_ID;
-				return;
+				return this;
 			}
 		}
 		
@@ -199,7 +203,7 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 			}
 			if (operation.doQuery(querybuilder)) {
 				mode = SearchMode.BY_ALL_WORDS;
-				return;
+				return this;
 			}
 		}
 		
@@ -208,7 +212,7 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 		 */
 		if (operation.doQuery(new QueryStringQueryBuilder(q))) {
 			mode = SearchMode.BY_FULL_TEXT;
-			return;
+			return this;
 		}
 		
 		/**
@@ -216,7 +220,7 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 		 */
 		if (isvalidmediaid) {
 			mode = SearchMode.BY_ID;
-			return;
+			return this;
 		}
 		
 		/**
@@ -233,7 +237,7 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 			}
 			if (operation.doQuery(querybuilder)) {
 				mode = SearchMode.BY_FUZZY;
-				return;
+				return this;
 			}
 		}
 		/**
@@ -241,6 +245,7 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 		 */
 		operation.doQuery((new FuzzyQueryBuilder("_all", q)).fuzziness(Fuzziness.AUTO));
 		mode = SearchMode.BY_FUZZY;
+		return this;
 	}
 	
 	public String toJsonString() {
@@ -252,6 +257,9 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 	}
 	
 	public boolean hasResults() {
+		if (results == null) {
+			return false;
+		}
 		return results.isEmpty() == false;
 	}
 	

@@ -59,6 +59,10 @@
 	pagination.reactBlock = React.createClass({
 		render: function() {
 			var pagecount = this.props.pagecount;
+			if (pagecount === 1) {
+				return (<div className="pagination pagination-centered pagination-large"></div>);
+			}
+
 			var currentpage = this.props.currentpage;
 
 			var list = [];

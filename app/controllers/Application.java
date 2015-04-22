@@ -27,6 +27,7 @@ import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.SearchResult;
 import hd3gtv.mydmam.web.search.AsyncSearchQuery;
+import hd3gtv.mydmam.web.search.AsyncSearchRequest;
 import hd3gtv.mydmam.web.stat.Stat;
 
 import java.io.FileInputStream;
@@ -165,7 +166,8 @@ public class Application extends Controller {
 		if (from == null) {
 			from = 0;
 		}
-		AsyncSearchQuery s_results = new AsyncSearchQuery(q, from);
+		AsyncSearchQuery s_results = new AsyncSearchQuery();
+		s_results.search(new AsyncSearchRequest(q, from));
 		
 		if (s_results.hasResults()) {
 			flash("q", s_results.getQ());

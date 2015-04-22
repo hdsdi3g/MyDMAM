@@ -39,14 +39,14 @@ public abstract class AsyncJSControllerVerb<Rq extends AsyncJSRequestObject, Rp 
 	/**
 	 * @return never null
 	 */
-	public List<AsyncJSDeserializer<?>> getJsonDeserializers(final AsyncJSGsonProvider gson_provider) {
+	public List<? extends AsyncJSDeserializer<?>> getJsonDeserializers(final AsyncJSGsonProvider gson_provider) {
 		return Collections.emptyList();
 	}
 	
 	/**
 	 * @return never null
 	 */
-	public List<AsyncJSSerializer<?>> getJsonSerializers(final AsyncJSGsonProvider gson_provider) {
+	public List<? extends AsyncJSSerializer<?>> getJsonSerializers(final AsyncJSGsonProvider gson_provider) {
 		return Collections.emptyList();
 	}
 	
