@@ -100,25 +100,25 @@
 			}
 		});
 
-		var Result = React.createClass({
-			render: function() {
-				var view_hander = mydmam.module.f.processViewSearchResult(this.props.result);
-				if (!view_hander) {
-					console.error("Can't handle search result", this.props.result);
-					view_hander = (<div>Error</div>);
-				}
-			    return view_hander;
-			}
-		});
-
 		var SearchResults = React.createClass({
 			render: function() {
+				var stat = this.props.stat;
 				var resultList = this.props.results.results.map(function (result) {
-					return (
-						<div style={{marginBottom: "1em"}} key={result.reactkey}>
-							<Result result={result} />
-						</div>
-					);
+					var ViewHander = mydmam.module.f.processViewSearchResult(result);
+					if (!ViewHander) {
+						console.error("Can't handle search result", result, stat[result.key]);
+						return (
+							<div style={{marginBottom: "1em"}} key={result.reactkey}>
+								<div>Error</div>
+							</div>
+						);
+					} else {
+						return (
+							<div style={{marginBottom: "1em"}} key={result.reactkey}>
+								<ViewHander result={result} stat={stat[result.key]} />
+							</div>
+						);
+					}
 				});
 			    return (
 			    	<div>
@@ -137,10 +137,6 @@
 				}
 				/*actual_results.q = search_request.q;*/
 				window.location = mydmam.async.makeURLsearch(search_request.q, 1);
-				/*mydmam.async.request("search", "query", search_request, function(data) {
-					createReactKey(data.results);
-					this.setState({results: data});
-				}.bind(this));*/
 			},
 			handlePaginationLinkTargeter: function(button_num) {
 				return mydmam.async.makeURLsearch(this.state.results.q, button_num);
@@ -148,7 +144,7 @@
 			handlePaginationSwitchPage: function(new_page_pos) {
 			},
 			getInitialState: function() {
-				return {results: results, };
+				return {results: results, stat: {}, };
 			},
 			componentDidMount: function() {
 				var results = this.state.results.results;
@@ -158,16 +154,28 @@
 						stat_request_keys.push(results[i].key);
 					}
 				}
-				//stat cache
-				//TODO console.log("TODO stat mtd + external pos", stat_request_keys);
+				if (stat_request_keys.length === 0) {
+					return;
+				}
+				var stat_request = {
+					pathelementskeys: stat_request_keys,
+					scopes_element: [mydmam.stat.SCOPE_MTD_SUMMARY],
+					scopes_subelements: [],
+					page_from: 0,
+					page_size: 500,
+					search: JSON.stringify(''),
+				};
+
+				mydmam.async.request("stat", "cache", stat_request, function(data) {
+					this.setState({stat: data});
+				}.bind(this));
 			},
 			render: function() {
-				//TODO push state mtd & external pos
 			    return (
 			    	<div>
 						<SearchForm results={this.state.results} onSearchFormSubmit={this.handleSearchFormSubmit} onSearchFormChange={this.handleSearchFormChange} />
 						<SearchResultsHeader results={this.state.results} />
-						<SearchResults results={this.state.results} />
+						<SearchResults results={this.state.results} stat={this.state.stat} />
 						<SearchPagination
 							pagecount={this.state.results.pagecount}
 							currentpage={this.state.results.from}

@@ -25,7 +25,7 @@
 	stat.DEFAULT_PAGE_SIZE = 500;
 
 	/**
-	 * Must match with StatElement.java
+	 * Must match with Stat.java
 	 */
 	stat.SCOPE_DIRLIST = "dirlist";
 	stat.SCOPE_PATHINFO = "pathinfo";

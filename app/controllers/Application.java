@@ -78,31 +78,28 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void stat() {
-		String[] fileshashs = new String[1];
-		String onlyone_filehash = params.get("fileshashs");
-		if (onlyone_filehash == null) {
-			fileshashs = params.getAll("fileshashs[]");
-		} else {
-			fileshashs[0] = onlyone_filehash;
+		ArrayList<String> fileshashs = new ArrayList<String>();
+		if (params.get("fileshashs") != null) {
+			fileshashs.add(params.get("fileshashs"));
+		} else if (params.getAll("fileshashs[]") != null) {
+			fileshashs.addAll(Arrays.asList(params.getAll("fileshashs[]")));
 		}
 		
-		String[] scopes_element = new String[1];
-		String onlyone_scope_element = params.get("scopes_element");
-		if (onlyone_scope_element == null) {
-			scopes_element = params.getAll("scopes_element[]");
-		} else {
-			scopes_element[0] = onlyone_scope_element;
+		ArrayList<String> scopes_element = new ArrayList<String>();
+		if (params.get("scopes_element") != null) {
+			scopes_element.add(params.get("scopes_element"));
+		} else if (params.getAll("scopes_element[]") != null) {
+			scopes_element.addAll(Arrays.asList(params.getAll("scopes_element[]")));
 		}
 		
-		String[] scopes_subelements = new String[1];
-		String onlyone_scope_subelements = params.get("scopes_subelements");
-		if (onlyone_scope_subelements == null) {
-			scopes_subelements = params.getAll("scopes_subelements[]");
-		} else {
-			scopes_subelements[0] = onlyone_scope_subelements;
+		ArrayList<String> scopes_subelements = new ArrayList<String>();
+		if (params.get("scopes_subelements") != null) {
+			scopes_subelements.add(params.get("scopes_subelements"));
+		} else if (params.getAll("scopes_subelements[]") != null) {
+			scopes_subelements.addAll(Arrays.asList(params.getAll("scopes_subelements[]")));
 		}
 		
-		Stat stat = new Stat(Arrays.asList(fileshashs), Arrays.asList(scopes_element), Arrays.asList(scopes_subelements));
+		Stat stat = new Stat(fileshashs, scopes_element, scopes_subelements);
 		stat.setJsonSearch(params.get("search"));
 		try {
 			stat.setPageFrom(Integer.parseInt(params.get("page_from")));

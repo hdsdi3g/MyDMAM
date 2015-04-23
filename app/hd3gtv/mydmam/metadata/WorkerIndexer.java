@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.AppManager;
@@ -126,7 +125,7 @@ public class WorkerIndexer extends WorkerNG {
 	}
 	
 	protected boolean isActivated() {
-		return Configuration.global.isElementExists("storageindex_bridge") & (MetadataCenter.conf_items.isEmpty() == false);
+		return MetadataCenter.conf_items.isEmpty() == false;
 	}
 	
 }

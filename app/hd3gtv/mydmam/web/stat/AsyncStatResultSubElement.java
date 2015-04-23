@@ -37,18 +37,32 @@ public class AsyncStatResultSubElement {
 	
 	Map<String, Object> mtdsummary;
 	
+	// TODO add external position
+	
 	static class Serializer implements AsyncJSSerializer<AsyncStatResultSubElement> {
 		public JsonElement serialize(AsyncStatResultSubElement src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = Stat.gson_simple.toJsonTree(src).getAsJsonObject();
 			if (src.reference != null) {
 				result.add("reference", src.reference.toGson());
 			}
+			// TODO add external position
 			return result;
 		}
 		
 		public Class<AsyncStatResultSubElement> getEnclosingClass() {
 			return AsyncStatResultSubElement.class;
 		}
+	}
+	
+	boolean isEmpty() {
+		if (reference != null) {
+			return false;
+		}
+		if (mtdsummary == null) {
+			return true;
+		}
+		// TODO add external position
+		return mtdsummary.isEmpty();
 	}
 	
 }

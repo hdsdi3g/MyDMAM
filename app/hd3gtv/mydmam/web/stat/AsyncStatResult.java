@@ -140,9 +140,18 @@ public final class AsyncStatResult implements AsyncJSResponseObject {
 		}
 	}
 	
+	// TODO push external position...
+	
 	static class Serializer implements AsyncJSSerializer<AsyncStatResult> {
 		public JsonElement serialize(AsyncStatResult src, Type typeOfSrc, JsonSerializationContext context) {
-			return Stat.gson.toJsonTree(src.selected_path_elements);
+			Map<String, AsyncStatResultElement> items = new HashMap<String, AsyncStatResultElement>(src.selected_path_elements.size() + 1);
+			for (Map.Entry<String, AsyncStatResultElement> entry : src.selected_path_elements.entrySet()) {
+				if (entry.getValue().isEmpty()) {
+					continue;
+				}
+				items.put(entry.getKey(), entry.getValue());
+			}
+			return Stat.gson.toJsonTree(items);
 		}
 		
 		public Class<AsyncStatResult> getEnclosingClass() {

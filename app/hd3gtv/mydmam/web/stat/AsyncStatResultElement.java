@@ -65,4 +65,14 @@ public class AsyncStatResultElement extends AsyncStatResultSubElement {
 		}
 	}
 	
+	boolean isEmpty() {
+		if (super.isEmpty() == false) {
+			return false;
+		}
+		if (items == null) {
+			return true;
+		}
+		return items.isEmpty();
+	}
+	
 }

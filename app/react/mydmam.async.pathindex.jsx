@@ -36,9 +36,9 @@
 			    'active': this.state.present_in_basket,
 			});
 
-			var icon = (<i className="icon-star"></i>);
+			var icon = (<i className="icon-star-empty"></i>);
 			if (this.state.present_in_basket) {
-				icon = (<i className="icon-star-empty"></i>);
+				icon = (<i className="icon-star"></i>);
 			}
 
 			return (
@@ -49,16 +49,52 @@
 		},
 	});
 
+	mydmam.async.pathindex.reactMetadata1Line = React.createClass({
+		render: function() {
+			var stat = this.props.stat;
+			if (stat == null){
+				return null;
+			}
+			var summary = stat.mtdsummary;
+			if (summary == null) {
+				return null;
+			}
+
+			var titles = [];
+			for (var summary_element in summary) {
+				if (summary_element == "mimetype") {
+					continue;
+				}
+				if (summary_element == "previews") {
+					continue;
+				}
+				if (summary_element == "master_as_preview") {
+					continue;
+				}
+				titles.push(<span key={summary_element}>{summary[summary_element]}</span>);
+			}
+			// className="spanmetadata"
+			if (titles.length > 0) {
+				return (
+					<small>{mydmam.metadatas.typeofelement(summary)} :: {titles}</small>
+				);
+			} else {
+				return (
+					<small>{mydmam.metadatas.typeofelement(summary)}</small>
+				);
+			}
+		}		
+	});
+
 	mydmam.async.pathindex.react2lines = React.createClass({
 		shouldComponentUpdate: function(nextProps, nextState) {
-			//TODO return false if mtd & external pos == null
+			if (nextProps.stat == null) {
+				return false;
+			}
 			return true;
 		},
 		render: function() {
 			var result = this.props.result;
-			if (result.index !== "pathindex") {
-				return null;
-			}
 
 			var date_block = null;
 			if (result.content.date) {
@@ -74,8 +110,6 @@
 			if (result.content.directory) {
 				directory_block = (<span className="label label-success">{i18n("search.result.directory")}</span>);
 			}
-
-			//<span id="mtd-${item.getId()}"></span>
 
 			var path_linked = [];
 			var sub_paths = result.content.path.split("/");
@@ -94,7 +128,9 @@
 			};
 
 			var BasketButton = mydmam.async.pathindex.reactBasketButton;
-			
+			var Metadata1Line = mydmam.async.pathindex.reactMetadata1Line;
+			//TODO get and display external via stat result.
+
 			return (
 				<div className="pathindex">
 					<span className="label label-inverse">{i18n("search.result.storage")}</span>
@@ -102,6 +138,7 @@
 					&nbsp;{date_block}
 					&nbsp;{size_block}
 					&nbsp;{directory_block}
+					&nbsp;<Metadata1Line stat={this.props.stat} />
 					<br />
 					<span>
 						<BasketButton pathindexkey={this.props.result.key}/>&nbsp;
@@ -121,8 +158,10 @@
 	});
 
 	var searchResult = function(result) {
-		var React2lines = mydmam.async.pathindex.react2lines;
-		return (<React2lines result={result} />);
+		if (result.index !== "pathindex") {
+			return null;
+		}
+		return mydmam.async.pathindex.react2lines;
 	};
 
 	/**
