@@ -18,6 +18,8 @@ package hd3gtv.mydmam.web.stat;
 
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.web.AsyncJSResponseObject;
+import hd3gtv.mydmam.web.AsyncJSSerializer;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -29,21 +31,27 @@ import java.util.Map;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
-class StatResult {
+public final class AsyncStatResult implements AsyncJSResponseObject {
 	
-	private LinkedHashMap<String, StatResultElement> selected_path_elements;
+	private LinkedHashMap<String, AsyncStatResultElement> selected_path_elements;
 	
 	private transient List<SourcePathIndexerElement> all_path_elements;
 	private transient int page_from = 0;
 	private transient int page_size = 100;
 	
-	StatResult(List<String> pathelementskeys) {
-		selected_path_elements = new LinkedHashMap<String, StatResultElement>();
+	public AsyncStatResult(List<String> pathelementskeys) {
+		selected_path_elements = new LinkedHashMap<String, AsyncStatResultElement>();
 		for (int pos_k = 0; pos_k < pathelementskeys.size(); pos_k++) {
-			selected_path_elements.put(pathelementskeys.get(pos_k), new StatResultElement());
+			selected_path_elements.put(pathelementskeys.get(pos_k), new AsyncStatResultElement());
 		}
+	}
+	
+	/**
+	 * Create an empty stat result
+	 */
+	public AsyncStatResult() {
+		selected_path_elements = new LinkedHashMap<String, AsyncStatResultElement>();
 	}
 	
 	void setPage_from(int page_from) {
@@ -81,7 +89,7 @@ class StatResult {
 		LinkedHashMap<String, SourcePathIndexerElement> dir_list;
 		HashMap<String, Long> count_result;
 		String element_key;
-		for (Map.Entry<String, StatResultElement> entry : selected_path_elements.entrySet()) {
+		for (Map.Entry<String, AsyncStatResultElement> entry : selected_path_elements.entrySet()) {
 			if (map_dir_list.containsKey(entry.getKey()) == false) {
 				continue;
 			}
@@ -90,9 +98,9 @@ class StatResult {
 				continue;
 			}
 			
-			entry.getValue().items = new LinkedHashMap<String, StatResultSubElement>(dir_list.size());
+			entry.getValue().items = new LinkedHashMap<String, AsyncStatResultSubElement>(dir_list.size());
 			for (Map.Entry<String, SourcePathIndexerElement> dir_list_entry : dir_list.entrySet()) {
-				StatResultElement s_element = new StatResultElement();
+				AsyncStatResultElement s_element = new AsyncStatResultElement();
 				s_element.reference = dir_list_entry.getValue();
 				if (sub_items_count_items & s_element.reference.directory) {
 					element_key = s_element.reference.prepare_key();
@@ -114,8 +122,8 @@ class StatResult {
 	}
 	
 	void populateSummariesForItems(Map<String, Map<String, Object>> summaries) {
-		Map<String, StatResultSubElement> items;
-		for (Map.Entry<String, StatResultElement> entry : selected_path_elements.entrySet()) {
+		Map<String, AsyncStatResultSubElement> items;
+		for (Map.Entry<String, AsyncStatResultElement> entry : selected_path_elements.entrySet()) {
 			items = entry.getValue().items;
 			if (items == null) {
 				/**
@@ -123,7 +131,7 @@ class StatResult {
 				 */
 				continue;
 			}
-			for (Map.Entry<String, StatResultSubElement> entry_item : items.entrySet()) {
+			for (Map.Entry<String, AsyncStatResultSubElement> entry_item : items.entrySet()) {
 				if (summaries.containsKey(entry_item.getKey()) == false) {
 					continue;
 				}
@@ -132,10 +140,17 @@ class StatResult {
 		}
 	}
 	
-	static class Serializer implements JsonSerializer<StatResult> {
-		public JsonElement serialize(StatResult src, Type typeOfSrc, JsonSerializationContext context) {
+	static class Serializer implements AsyncJSSerializer<AsyncStatResult> {
+		public JsonElement serialize(AsyncStatResult src, Type typeOfSrc, JsonSerializationContext context) {
 			return Stat.gson.toJsonTree(src.selected_path_elements);
+		}
+		
+		public Class<AsyncStatResult> getEnclosingClass() {
+			return AsyncStatResult.class;
 		}
 	}
 	
+	public String toJSONString() {
+		return Stat.gson.toJson(this);
+	}
 }

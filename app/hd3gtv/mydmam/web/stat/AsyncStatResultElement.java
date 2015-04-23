@@ -11,12 +11,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2015
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.web.AsyncJSSerializer;
 import hd3gtv.tools.GsonIgnore;
 
 import java.lang.reflect.Type;
@@ -25,28 +25,43 @@ import java.util.Map;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
-class StatResultSubElement {
-	
-	StatResultSubElement() {
-	}
+public class AsyncStatResultElement extends AsyncStatResultSubElement {
 	
 	/**
-	 * Referer to "this" element
+	 * Bounded by from and size query
+	 * pathelementkey > StatElement
 	 */
 	@GsonIgnore
-	SourcePathIndexerElement reference;
+	Map<String, AsyncStatResultSubElement> items;
 	
-	Map<String, Object> mtdsummary;
+	/**
+	 * Total not bounded
+	 */
+	Long items_total;
 	
-	static class Serializer implements JsonSerializer<StatResultSubElement> {
-		public JsonElement serialize(StatResultSubElement src, Type typeOfSrc, JsonSerializationContext context) {
+	/**
+	 * Bounded values
+	 */
+	Integer items_page_from;
+	
+	/**
+	 * Bounded values
+	 */
+	Integer items_page_size;
+	
+	static class Serializer implements AsyncJSSerializer<AsyncStatResultElement> {
+		public JsonElement serialize(AsyncStatResultElement src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = Stat.gson_simple.toJsonTree(src).getAsJsonObject();
 			if (src.reference != null) {
 				result.add("reference", src.reference.toGson());
 			}
+			result.add("items", Stat.gson.toJsonTree(src.items));
 			return result;
+		}
+		
+		public Class<AsyncStatResultElement> getEnclosingClass() {
+			return AsyncStatResultElement.class;
 		}
 	}
 	

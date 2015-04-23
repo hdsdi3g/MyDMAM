@@ -23,6 +23,7 @@ import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.web.stat.Stat;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -253,8 +254,8 @@ public class UserBasket extends Controller {
 		if (list_pathindexkeys.isEmpty() == false) {
 			String[] array_scopes_element = new String[1];
 			array_scopes_element[0] = Stat.SCOPE_PATHINFO;
-			Stat stat = new Stat(list_pathindexkeys.toArray(new String[list_pathindexkeys.size()]), array_scopes_element, null);
-			all_pathindexelements = stat.toJSONString();
+			Stat stat = new Stat(list_pathindexkeys, Arrays.asList(array_scopes_element), null);
+			all_pathindexelements = stat.getResult().toJSONString();
 		}
 		
 		String all_baskets = gson.toJson(map_all_users_baskets);

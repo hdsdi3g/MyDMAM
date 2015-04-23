@@ -23,7 +23,6 @@ import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,13 +72,13 @@ public class Stat {
 		builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
 		gson_simple = builder.create();
 		
-		builder.registerTypeAdapter(StatResult.class, new StatResult.Serializer());
-		builder.registerTypeAdapter(StatResultElement.class, new StatResultElement.Serializer());
-		builder.registerTypeAdapter(StatResultSubElement.class, new StatResultSubElement.Serializer());
+		builder.registerTypeAdapter(AsyncStatResult.class, new AsyncStatResult.Serializer());
+		builder.registerTypeAdapter(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer());
+		builder.registerTypeAdapter(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer());
 		gson = builder.create();
 	}
 	
-	private StatResult result;
+	private AsyncStatResult result;
 	
 	private boolean request_dir_count_items = false;
 	private boolean sub_items_count_items = false;
@@ -97,32 +96,41 @@ public class Stat {
 	private int page_size = 100;
 	private String search;
 	
-	public Stat(String[] request_pathelementskeys, String[] request_scopes_element, String[] request_scopes_subelements) throws IndexOutOfBoundsException, NullPointerException {
-		if (request_scopes_element != null) {
-			List<String> scopes_element = Arrays.asList(request_scopes_element);
+	Stat(AsyncStatRequest request) throws IndexOutOfBoundsException, NullPointerException {
+		this(request.pathelementskeys, request.scopes_element, request.scopes_subelements);
+		setJsonSearch(request.search);
+		if (request.page_from > 0) {
+			setPageFrom(request.page_from);
+		}
+		if (request.page_size > 0) {
+			setPageSize(request.page_size);
+		}
+	}
+	
+	public Stat(List<String> pathelementskeys, List<String> scopes_element, List<String> scopes_subelements) throws IndexOutOfBoundsException, NullPointerException {
+		if (pathelementskeys != null) {
+			if (pathelementskeys.isEmpty()) {
+				throw new IndexOutOfBoundsException("pathelementskeys");
+			}
+			this.pathelementskeys = pathelementskeys;
+		} else {
+			throw new NullPointerException("pathelementskeys");
+		}
+		
+		if (scopes_element != null) {
 			request_dir_count_items = scopes_element.contains(SCOPE_COUNT_ITEMS);
 			request_dir_pathinfo = scopes_element.contains(SCOPE_PATHINFO);
 			request_dir_dir_list = scopes_element.contains(SCOPE_DIRLIST);
 			request_dir_mtd_summary = scopes_element.contains(SCOPE_MTD_SUMMARY);
 		}
 		
-		if (request_scopes_subelements != null) {
-			List<String> scopes_subelements = Arrays.asList(request_scopes_subelements);
+		if (scopes_subelements != null) {
 			sub_items_count_items = scopes_subelements.contains(SCOPE_COUNT_ITEMS);
 			sub_items_only_directories = scopes_subelements.contains(SCOPE_ONLYDIRECTORIES);
 			sub_items_mtd_summary = scopes_subelements.contains(SCOPE_MTD_SUMMARY);
 		}
 		
-		if (request_pathelementskeys != null) {
-			if (request_pathelementskeys.length == 0) {
-				throw new IndexOutOfBoundsException("request_pathelementskeys");
-			}
-			pathelementskeys = Arrays.asList(request_pathelementskeys);
-		} else {
-			throw new NullPointerException("request_pathelementskeys");
-		}
-		
-		result = new StatResult(pathelementskeys);
+		result = new AsyncStatResult(pathelementskeys);
 	}
 	
 	public Stat setPageFrom(int page_from) throws IndexOutOfBoundsException {
@@ -154,7 +162,7 @@ public class Stat {
 		return this;
 	}
 	
-	public String toJSONString() {
+	public AsyncStatResult getResult() {
 		try {
 			if (request_dir_pathinfo) {
 				/**
@@ -218,7 +226,7 @@ public class Stat {
 		} catch (Exception e) {
 			Log2.log.error("General error", e);
 		}
-		return gson.toJson(result);
+		return result;
 	}
 	
 }

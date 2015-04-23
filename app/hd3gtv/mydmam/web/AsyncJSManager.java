@@ -226,7 +226,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 			try {
 				serializer_enclosing_classes.get(pos).newInstance();
 			} catch (Exception e) {
-				Log2.log.error("Can't instance (for serializing test) class", e, new Log2Dump("class name", deserializer_enclosing_classes.get(pos).getName()));
+				Log2.log.error("Can't instance (for serializing test) class", e, new Log2Dump("class name", serializer_enclosing_classes.get(pos).getName()));
 			}
 		}
 		for (int pos = 0; pos < deserializer_enclosing_classes.size(); pos++) {

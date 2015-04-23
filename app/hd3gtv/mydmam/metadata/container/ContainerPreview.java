@@ -44,9 +44,6 @@ public final class ContainerPreview {
 		return options;
 	}
 	
-	ContainerPreview() {
-	}
-	
 	public static class Serializer implements JsonSerializer<ContainerPreview> {
 		public JsonElement serialize(ContainerPreview src, Type typeOfSrc, JsonSerializationContext context) {
 			ContainerPreview p = (ContainerPreview) src;

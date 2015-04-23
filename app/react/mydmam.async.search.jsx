@@ -158,6 +158,7 @@
 						stat_request_keys.push(results[i].key);
 					}
 				}
+				//stat cache
 				//TODO console.log("TODO stat mtd + external pos", stat_request_keys);
 			},
 			render: function() {

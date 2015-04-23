@@ -34,6 +34,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -101,7 +102,7 @@ public class Application extends Controller {
 			scopes_subelements[0] = onlyone_scope_subelements;
 		}
 		
-		Stat stat = new Stat(fileshashs, scopes_element, scopes_subelements);
+		Stat stat = new Stat(Arrays.asList(fileshashs), Arrays.asList(scopes_element), Arrays.asList(scopes_subelements));
 		stat.setJsonSearch(params.get("search"));
 		try {
 			stat.setPageFrom(Integer.parseInt(params.get("page_from")));
@@ -112,7 +113,7 @@ public class Application extends Controller {
 		} catch (Exception e) {
 		}
 		
-		String result = stat.toJSONString();
+		String result = stat.getResult().toJSONString();
 		renderJSON(result);
 	}
 	
@@ -248,6 +249,7 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void resolvePositions() throws ConnectionException {
+		// TODO move (temp copy) to stat
 		String[] keys = params.getAll("keys[]");
 		if (keys == null) {
 			renderJSON("{}");
