@@ -202,7 +202,7 @@ job.progressionmessage.null=(non défini)
 application.navigate=Stockage
 
 browser.versatileerror=Une erreur a été rencontrée pendant l'action demandé
-browser.externalposition.online=Disponible
+browser.externalposition.online=En cache
 browser.externalposition.nearline=Nearline
 browser.directory=dossier
 browser.file=fichier

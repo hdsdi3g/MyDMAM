@@ -248,12 +248,16 @@ public class Ssh {
 	}
 	
 	public boolean isRemoteExists(String connection_name) {
-		return store.exists(connection_name);
+		if (store.exists(connection_name) == false) {
+			Log2.log.debug("Remote connection don't exists. You can create it with CLI ssh functions", new Log2Dump("connection_name", connection_name));
+			return false;
+		}
+		return true;
 	}
 	
 	private class Interactive implements UserInfo, UIKeyboardInteractive {
 		public String getPassword() {
-			Log2.log.debug("gP");
+			Log2.log.debug("Request password from ssh server...");
 			return passwd;
 		}
 		
@@ -272,7 +276,7 @@ public class Ssh {
 		}
 		
 		public String getPassphrase() {
-			Log2.log.debug("gP");
+			Log2.log.debug("Request passphrase from ssh server...");
 			return null;
 		}
 		

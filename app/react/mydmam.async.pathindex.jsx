@@ -18,6 +18,21 @@
 (function(mydmam) {
 	mydmam.async.pathindex = {};
 
+	var externalPos = function(result) {
+		if (result.index !== "pathindex") {
+			return null;
+		}
+		if (result.content.directory) {
+			return null;
+		}
+		for (var pos = 0; pos < list_external_positions_storages.length; pos++) {
+			if (list_external_positions_storages[pos] === result.content.storagename) {
+				return result.key;
+			}
+		}
+		return null;
+	};
+
 	mydmam.async.pathindex.reactBasketButton = React.createClass({
 		getInitialState: function() {
 			return {present_in_basket: mydmam.basket.isInBasket(this.props.pathindexkey)};
@@ -86,11 +101,71 @@
 		}		
 	});
 
+	mydmam.async.pathindex.reactExternalPosition = React.createClass({
+		render: function() {
+			var externalpos = this.props.externalpos;
+			var pathindexkey = this.props.pathindexkey;
+
+			if (!externalpos.positions) {
+				return (
+					<span />
+				);
+			}
+			var positions = externalpos.positions[pathindexkey];
+			if (!positions) {
+				return (
+					<span />
+				);
+			}
+			
+			var react_positions = [];
+			var tapelocation;
+			for (var i = 0; i < positions.length; i++) {
+				if (positions[i] == "cache") {
+					react_positions.push(
+						<span className="label label-success external-pathindex-position" key={i}>
+							<i className="icon-barcode icon-white"></i> <i className="icon-ok icon-white"></i> {i18n("browser.externalposition.online")}
+						</span>
+					);
+					break;
+				}
+			 	tapelocation = externalpos.locations[positions[i]];
+				if (!tapelocation) {
+					continue;
+				}
+				if (tapelocation.isexternal) {
+					react_positions.push(
+						<span className="label label-important external-pathindex-position" key={i}>
+							<i className="icon-barcode icon-white"></i> {tapelocation.barcode}
+						</span>
+					);
+				} else {
+					react_positions.push(
+						<span className="label label-success external-pathindex-position" key={i}>
+							<i className="icon-barcode icon-white"></i> <i className="icon-screenshot icon-white"></i> {mydmam.module.f.i18nExternalPosition(tapelocation.location)}
+						</span>
+					);
+				}
+			}; 
+			return (
+				<span>{react_positions}</span>
+			);
+		}
+	});
+
+
 	mydmam.async.pathindex.react2lines = React.createClass({
 		shouldComponentUpdate: function(nextProps, nextState) {
+			if (nextProps.externalpos.positions) {
+				if (nextProps.externalpos.positions[nextProps.result.key]) {
+					return true;
+				}
+			}
+
 			if (nextProps.stat == null) {
 				return false;
 			}
+
 			return true;
 		},
 		render: function() {
@@ -129,7 +204,7 @@
 
 			var BasketButton = mydmam.async.pathindex.reactBasketButton;
 			var Metadata1Line = mydmam.async.pathindex.reactMetadata1Line;
-			//TODO get and display external via stat result.
+			var ExternalPosition = mydmam.async.pathindex.reactExternalPosition;
 
 			return (
 				<div className="pathindex">
@@ -141,7 +216,8 @@
 					&nbsp;<Metadata1Line stat={this.props.stat} />
 					<br />
 					<span>
-						<BasketButton pathindexkey={this.props.result.key}/>&nbsp;
+						<BasketButton pathindexkey={this.props.result.key}/>
+						<ExternalPosition pathindexkey={this.props.result.key} externalpos={this.props.externalpos} />&nbsp;
 						<strong className="storagename">
 							<a href={mydmam.metadatas.url.navigate + "#" + result.content.storagename + ":/"}>
 								{result.content.storagename}
@@ -167,5 +243,8 @@
 	/**
 	 * We don't wait the document.ready because we sure the mydmam.module.f code is already loaded. 
 	 */
-	mydmam.module.register("PathIndexView", {processViewSearchResult: searchResult});
+	mydmam.module.register("PathIndexView", {
+		processViewSearchResult: searchResult,
+		wantToHaveResolvedExternalPositions: externalPos,
+	});
 })(window.mydmam);

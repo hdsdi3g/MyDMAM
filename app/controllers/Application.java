@@ -178,8 +178,9 @@ public class Application extends Controller {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
 		String results = s_results.toJsonString();
+		String list_external_positions_storages = MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
 		
-		render(title, results);
+		render(title, results, list_external_positions_storages);
 	}
 	
 	public static void i18n() {
@@ -246,7 +247,6 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void resolvePositions() throws ConnectionException {
-		// TODO move (temp copy) to stat
 		String[] keys = params.getAll("keys[]");
 		if (keys == null) {
 			renderJSON("{}");

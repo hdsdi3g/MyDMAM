@@ -140,8 +140,6 @@ public final class AsyncStatResult implements AsyncJSResponseObject {
 		}
 	}
 	
-	// TODO push external position...
-	
 	static class Serializer implements AsyncJSSerializer<AsyncStatResult> {
 		public JsonElement serialize(AsyncStatResult src, Type typeOfSrc, JsonSerializationContext context) {
 			Map<String, AsyncStatResultElement> items = new HashMap<String, AsyncStatResultElement>(src.selected_path_elements.size() + 1);

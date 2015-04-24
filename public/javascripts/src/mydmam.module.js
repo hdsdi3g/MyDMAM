@@ -125,5 +125,7 @@
 	module.f = {};
 	module.f.helloworld = multipleCallbacks("helloworld");
 	module.f.processViewSearchResult = firstValidCallback("processViewSearchResult");
+	module.f.wantToHaveResolvedExternalPositions = firstValidCallback("wantToHaveResolvedExternalPositions");
+	module.f.i18nExternalPosition = firstValidCallback("i18nExternalPosition");
 	
 })(window.mydmam.module);

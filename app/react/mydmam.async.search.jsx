@@ -83,7 +83,7 @@
 					if (this.props.results.total_items_count > 1) {
 						pageon = (<span>{this.props.results.total_items_count} {i18n("search.results")}</span>);
 						if (this.props.results.pagecount > 1) {
-							pageadd = (<span>{i18n("search.pageXonY", this.props.results.from, this.props.results.pagesize)}</span>);
+							pageadd = (<span>{i18n("search.pageXonY", this.props.results.from, this.props.results.pagecount)}</span>);
 						}
 					}
 
@@ -103,6 +103,8 @@
 		var SearchResults = React.createClass({
 			render: function() {
 				var stat = this.props.stat;
+				var externalpos = this.props.externalpos;
+
 				var resultList = this.props.results.results.map(function (result) {
 					var ViewHander = mydmam.module.f.processViewSearchResult(result);
 					if (!ViewHander) {
@@ -115,7 +117,7 @@
 					} else {
 						return (
 							<div style={{marginBottom: "1em"}} key={result.reactkey}>
-								<ViewHander result={result} stat={stat[result.key]} />
+								<ViewHander result={result} stat={stat[result.key]} externalpos={externalpos} />
 							</div>
 						);
 					}
@@ -144,7 +146,7 @@
 			handlePaginationSwitchPage: function(new_page_pos) {
 			},
 			getInitialState: function() {
-				return {results: results, stat: {}, };
+				return {results: results, stat: {}, externalpos: {}};
 			},
 			componentDidMount: function() {
 				var results = this.state.results.results;
@@ -154,28 +156,51 @@
 						stat_request_keys.push(results[i].key);
 					}
 				}
-				if (stat_request_keys.length === 0) {
-					return;
-				}
-				var stat_request = {
-					pathelementskeys: stat_request_keys,
-					scopes_element: [mydmam.stat.SCOPE_MTD_SUMMARY],
-					scopes_subelements: [],
-					page_from: 0,
-					page_size: 500,
-					search: JSON.stringify(''),
-				};
+				if (stat_request_keys.length > 0) {
+					var stat_request = {
+						pathelementskeys: stat_request_keys,
+						scopes_element: [mydmam.stat.SCOPE_MTD_SUMMARY],
+						scopes_subelements: [],
+						page_from: 0,
+						page_size: 500,
+						search: JSON.stringify(''),
+					};
 
-				mydmam.async.request("stat", "cache", stat_request, function(data) {
-					this.setState({stat: data});
-				}.bind(this));
+					mydmam.async.request("stat", "cache", stat_request, function(data) {
+						this.setState({stat: data});
+					}.bind(this));
+				}
+
+				var externalpos_request_keys = [];
+				var external_key;
+				for (var i = 0; i < results.length; i++) {
+					external_key = mydmam.module.f.wantToHaveResolvedExternalPositions(results[i]);
+					if (external_key) {
+						externalpos_request_keys.push(external_key);
+					}
+				}
+				if (externalpos_request_keys.length > 0) {
+					$.ajax({
+						url: mydmam.metadatas.url.resolvepositions,
+						type: "POST",
+						data: {
+							"keys": externalpos_request_keys,
+						},
+						success: function(data) {
+							this.setState({externalpos: data});
+						}.bind(this),
+						error: function(jqXHR, textStatus, errorThrown) {
+							console.error(jqXHR, textStatus, errorThrown);
+						},
+					});
+				}
 			},
 			render: function() {
 			    return (
 			    	<div>
 						<SearchForm results={this.state.results} onSearchFormSubmit={this.handleSearchFormSubmit} onSearchFormChange={this.handleSearchFormChange} />
 						<SearchResultsHeader results={this.state.results} />
-						<SearchResults results={this.state.results} stat={this.state.stat} />
+						<SearchResults results={this.state.results} stat={this.state.stat} externalpos={this.state.externalpos} />
 						<SearchPagination
 							pagecount={this.state.results.pagecount}
 							currentpage={this.state.results.from}

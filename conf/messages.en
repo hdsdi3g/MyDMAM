@@ -202,7 +202,7 @@ job.progressionmessage.null=(no set)
 application.navigate=Storage
 
 browser.versatileerror=An error was encountered during the requested actions
-browser.externalposition.online=Online
+browser.externalposition.online=Cached
 browser.externalposition.nearline=Nearline
 browser.directory=directory
 browser.file=file

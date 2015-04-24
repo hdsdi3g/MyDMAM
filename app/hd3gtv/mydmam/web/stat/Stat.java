@@ -55,7 +55,6 @@ public class Stat {
 	public static final String SCOPE_MTD_SUMMARY = "mtdsummary";
 	public static final String SCOPE_COUNT_ITEMS = "countitems";
 	public static final String SCOPE_ONLYDIRECTORIES = "onlydirs";
-	// TODO add external position
 	
 	static Gson gson_simple;
 	static Gson gson;
@@ -121,7 +120,6 @@ public class Stat {
 		if (scopes_element != null) {
 			request_dir_count_items = scopes_element.contains(SCOPE_COUNT_ITEMS);
 			request_dir_pathinfo = scopes_element.contains(SCOPE_PATHINFO);
-			// TODO add external position
 			request_dir_dir_list = scopes_element.contains(SCOPE_DIRLIST);
 			request_dir_mtd_summary = scopes_element.contains(SCOPE_MTD_SUMMARY);
 		}
@@ -130,7 +128,6 @@ public class Stat {
 			sub_items_count_items = scopes_subelements.contains(SCOPE_COUNT_ITEMS);
 			sub_items_only_directories = scopes_subelements.contains(SCOPE_ONLYDIRECTORIES);
 			sub_items_mtd_summary = scopes_subelements.contains(SCOPE_MTD_SUMMARY);
-			// TODO add external position
 		}
 		
 		result = new AsyncStatResult(pathelementskeys);
@@ -189,8 +186,6 @@ public class Stat {
 					}
 				}
 			}
-			
-			// TODO add and insert external position
 			
 			HashMap<String, Explorer.DirectoryContent> map_dir_list = null;
 			

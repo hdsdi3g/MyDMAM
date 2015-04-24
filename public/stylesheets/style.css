@@ -119,6 +119,11 @@ code.stacktrace {
     color: rgb(70, 70, 255);
     font-size: 0.8em;
 }
+
+span.external-pathindex-position {
+    margin-left: 5px;
+}
+
 /* ============================================================================== */	
 
 .accordion-toggle {
