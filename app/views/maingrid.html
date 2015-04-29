@@ -129,8 +129,9 @@ $(document).ready(function() {
  		<ul class="nav pull-right">
 			#{secure.check 'navigate'}
 		 		<li>
-			 		#{form @Application.search(), class:'navbar-search', method:'GET'}
-				  			<input type="text" id="sitesearch" class="search-query span2" placeholder="&{'maingrid.search'}" name="q" #{if flash.q}value="&{flash.q}"#{/if}/>
+			 		#{form @Application.asyncsearch(), class:'navbar-search', method:'GET'}
+				  		<input type="text" id="sitesearch" class="search-query span2" placeholder="&{'maingrid.search'}" name="q" #{if flash.q}value="&{flash.q}"#{/if}/>
+				  		<input type="hidden" name="from" value="1"/>
 					#{/form}
 		 		</li>
 				<li class="divider-vertical"></li>

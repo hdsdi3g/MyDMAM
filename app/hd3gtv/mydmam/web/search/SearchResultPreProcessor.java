@@ -16,26 +16,14 @@
 */
 package hd3gtv.mydmam.web.search;
 
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
+import java.util.List;
 
-public class AsyncSearchRequest implements AsyncJSRequestObject {
+import org.elasticsearch.search.SearchHit;
+
+public interface SearchResultPreProcessor {
 	
-	String q;
+	public List<String> getESTypeForUserSearch();
 	
-	/**
-	 * Is the page number
-	 */
-	int from;
-	
-	public AsyncSearchRequest() {
-	}
-	
-	/**
-	 * @param from is the page number
-	 */
-	public AsyncSearchRequest(String q, int from) {
-		this.q = q;
-		this.from = from;
-	}
+	public void prepareSearchResult(SearchHit hit, SearchResult result);
 	
 }

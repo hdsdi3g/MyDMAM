@@ -93,7 +93,8 @@ public class Elasticsearch {
 				transportadresses[pos] = new InetSocketTransportAddress(clusterservers.get(pos).address, clusterservers.get(pos).port);
 				dump.addAll(clusterservers.get(pos));
 			}
-			client = new TransportClient(settings.build()).addTransportAddresses(transportadresses);
+			client = new TransportClient(settings.build());
+			client.addTransportAddresses(transportadresses);
 		} catch (Exception e) {
 			Log2.log.error("Can't load client configuration", e);
 			try {

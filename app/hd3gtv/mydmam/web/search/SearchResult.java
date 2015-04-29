@@ -18,7 +18,7 @@ package hd3gtv.mydmam.web.search;
 
 import java.util.Map;
 
-public final class AsyncSearchResult {
+public final class SearchResult {
 	
 	@SuppressWarnings("unused")
 	private String index;
@@ -34,7 +34,7 @@ public final class AsyncSearchResult {
 	@SuppressWarnings("unused")
 	private String key;
 	
-	public AsyncSearchResult(String index, String type, String key, Map<String, Object> content, float score) {
+	public SearchResult(String index, String type, String key, Map<String, Object> content, float score) {
 		this.index = index;
 		this.content = content;
 		this.score = score;

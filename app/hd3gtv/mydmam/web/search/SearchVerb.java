@@ -23,26 +23,26 @@ import hd3gtv.mydmam.web.AsyncJSSerializer;
 import java.util.Arrays;
 import java.util.List;
 
-public class AsyncSearchVerb extends AsyncJSControllerVerb<AsyncSearchRequest, AsyncSearchQuery> {
+public class SearchVerb extends AsyncJSControllerVerb<SearchRequest, SearchQuery> {
 	
 	public String getVerbName() {
 		return "query";
 	}
 	
-	public Class<AsyncSearchRequest> getRequestClass() {
-		return AsyncSearchRequest.class;
+	public Class<SearchRequest> getRequestClass() {
+		return SearchRequest.class;
 	}
 	
-	public Class<AsyncSearchQuery> getResponseClass() {
-		return AsyncSearchQuery.class;
+	public Class<SearchQuery> getResponseClass() {
+		return SearchQuery.class;
 	}
 	
-	public AsyncSearchQuery onRequest(AsyncSearchRequest request) throws Exception {
-		return new AsyncSearchQuery().search(request);
+	public SearchQuery onRequest(SearchRequest request) throws Exception {
+		return new SearchQuery().search(request);
 	}
 	
 	public List<? extends AsyncJSSerializer<?>> getJsonSerializers(AsyncJSGsonProvider gson_provider) {
-		return Arrays.asList(AsyncSearchQuery.serializer);
+		return Arrays.asList(SearchQuery.serializer);
 	}
 	
 }

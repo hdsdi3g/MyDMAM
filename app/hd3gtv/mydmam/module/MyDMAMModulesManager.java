@@ -26,17 +26,14 @@ import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.Importer.SearchPreProcessor;
 import hd3gtv.mydmam.web.MenuEntry;
-import hd3gtv.mydmam.web.SearchResultItem;
-import hd3gtv.mydmam.web.SearchResultPreProcessor;
-import hd3gtv.mydmam.web.search.AsyncSearchResult;
+import hd3gtv.mydmam.web.search.SearchResult;
+import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -53,7 +50,6 @@ import org.elasticsearch.search.SearchHit;
 import org.yaml.snakeyaml.Yaml;
 
 import play.Play;
-import play.templates.TemplateLoader;
 import play.utils.OrderSafeProperties;
 import play.vfs.VirtualFile;
 
@@ -346,8 +342,8 @@ public class MyDMAMModulesManager {
 	 * Reboot Play to see changes.
 	 * @return never null.
 	 */
-	public static AsyncSearchResult renderSearchResult(SearchHit hit) throws Exception {
-		AsyncSearchResult result = new AsyncSearchResult(hit.getIndex(), hit.getType(), hit.getId(), hit.getSource(), hit.getScore());
+	public static SearchResult renderSearchResult(SearchHit hit) throws Exception {
+		SearchResult result = new SearchResult(hit.getIndex(), hit.getType(), hit.getId(), hit.getSource(), hit.getScore());
 		
 		if (search_engines_pre_processing == null) {
 			search_engines_pre_processing = new HashMap<String, SearchResultPreProcessor>();
@@ -389,63 +385,6 @@ public class MyDMAMModulesManager {
 			result.setContent(new HashMap<String, Object>());
 		}
 		return result;
-	}
-	
-	/**
-	 * Reboot Play to see changes.
-	 */
-	@Deprecated
-	public static String renderSearchResult(SearchResultItem item) throws Exception {
-		if (search_engines_pre_processing == null) {
-			search_engines_pre_processing = new HashMap<String, SearchResultPreProcessor>();
-			List<String> es_type_handled;
-			for (int pos_module = 0; pos_module < MODULES.size(); pos_module++) {
-				es_type_handled = MODULES.get(pos_module).getESTypeForUserSearch();
-				if (es_type_handled == null) {
-					continue;
-				}
-				for (int pos_estype = 0; pos_estype < es_type_handled.size(); pos_estype++) {
-					if (search_engines_pre_processing.containsKey(es_type_handled.get(pos_estype))) {
-						Log2Dump dump = new Log2Dump();
-						dump.add("es_type_handled", es_type_handled.get(pos_estype));
-						dump.add("module", MODULES.get(pos_module).getClass().getName());
-						Log2.log.error("Twice modules declares the same ES Type for user search", null, dump);
-						continue;
-					}
-					search_engines_pre_processing.put(es_type_handled.get(pos_estype), MODULES.get(pos_module));
-				}
-			}
-		}
-		
-		SearchResultPreProcessor module_handle = search_engines_pre_processing.get(item.type);
-		if (module_handle == null) {
-			return null;
-		}
-		
-		String templatename = module_handle.getTemplateNameForSearchResultItem(item);
-		if (templatename == null) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("module", module_handle.getClass().getName());
-			dump.addAll(item);
-			Log2.log.error("No template name for search result item", null);
-			return null;
-		}
-		
-		HashMap<String, Object> args = item.getArgs();
-		args.put("_body", true);
-		StringWriter writer = new StringWriter();
-		args.put("out", new PrintWriter(writer));
-		try {
-			TemplateLoader.load(templatename).render(args);
-		} catch (Exception e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("module", module_handle.getClass().getName());
-			dump.add("template name", templatename);
-			dump.addAll(item);
-			Log2.log.error("Can't render search template name for search result item", e);
-			throw e;
-		}
-		return writer.toString();
 	}
 	
 	private volatile static List<ArchivingTapeLocalisator> tape_localisators;

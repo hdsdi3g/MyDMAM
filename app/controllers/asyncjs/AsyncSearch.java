@@ -20,7 +20,7 @@ import hd3gtv.mydmam.web.AsyncJSController;
 import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 import hd3gtv.mydmam.web.AsyncJSRequestObject;
 import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.search.AsyncSearchVerb;
+import hd3gtv.mydmam.web.search.SearchVerb;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,7 +33,7 @@ public class AsyncSearch extends AsyncJSController {
 	
 	@SuppressWarnings("unchecked")
 	public <V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> List<V> getManagedVerbs() {
-		return (List<V>) Arrays.asList(new AsyncSearchVerb());
+		return (List<V>) Arrays.asList(new SearchVerb());
 	}
 	
 	public List<String> getMandatoryPrivileges() {

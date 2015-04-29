@@ -23,9 +23,8 @@ import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.useraction.UAFunctionalityContext;
 import hd3gtv.mydmam.web.MenuEntry;
-import hd3gtv.mydmam.web.SearchResultItem;
-import hd3gtv.mydmam.web.SearchResultPreProcessor;
-import hd3gtv.mydmam.web.search.AsyncSearchResult;
+import hd3gtv.mydmam.web.search.SearchResult;
+import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,15 +72,7 @@ public abstract class MyDMAMModule extends PlayPlugin implements SearchResultPre
 	/**
 	 * Search API
 	 */
-	@Deprecated
-	public String getTemplateNameForSearchResultItem(SearchResultItem item) {
-		return null;
-	}
-	
-	/**
-	 * Search API
-	 */
-	public void prepareSearchResult(SearchHit hit, AsyncSearchResult result) {
+	public void prepareSearchResult(SearchHit hit, SearchResult result) {
 	}
 	
 	public ArchivingTapeLocalisator getTapeLocalisator() {

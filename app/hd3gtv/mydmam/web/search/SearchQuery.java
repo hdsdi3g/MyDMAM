@@ -50,14 +50,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 
-public final class AsyncSearchQuery implements AsyncJSResponseObject, ElastisearchStatSearch {
+public final class SearchQuery implements AsyncJSResponseObject, ElastisearchStatSearch {
 	
 	public enum SearchMode {
 		BY_ID, BY_ALL_WORDS, BY_FULL_TEXT, BY_FUZZY;
 	}
 	
 	/**
-	 * Also serialize AsyncSearchResult
+	 * Also serialize SearchResult
 	 */
 	public static final Serializer serializer = new Serializer();
 	private static final String[] all_search_types;
@@ -67,7 +67,7 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 	 * Only used here for the toJsonString
 	 */
 	private static final Gson internal_gson;
-	private static final Type type_Resultlist = new TypeToken<ArrayList<AsyncSearchResult>>() {
+	private static final Type type_Resultlist = new TypeToken<ArrayList<SearchResult>>() {
 	}.getType();
 	
 	static {
@@ -76,7 +76,7 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 		builder.addDeserializationExclusionStrategy(ignore_strategy);
 		builder.addSerializationExclusionStrategy(ignore_strategy);
 		builder.serializeNulls();
-		builder.registerTypeAdapter(AsyncSearchQuery.class, serializer);
+		builder.registerTypeAdapter(SearchQuery.class, serializer);
 		internal_gson = builder.create();
 		
 		List<String> module_ES_TYPE_search = MyDMAMModulesManager.getESTypesForUserSearch();
@@ -84,7 +84,7 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 	}
 	
 	@GsonIgnore
-	private List<AsyncSearchResult> results;
+	private List<SearchResult> results;
 	private String q;
 	
 	/**
@@ -106,15 +106,15 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 	@SuppressWarnings("unused")
 	private SearchMode mode = null;
 	
-	public static class Serializer implements AsyncJSSerializer<AsyncSearchQuery> {
-		public JsonElement serialize(AsyncSearchQuery src, Type typeOfSrc, JsonSerializationContext context) {
+	public static class Serializer implements AsyncJSSerializer<SearchQuery> {
+		public JsonElement serialize(SearchQuery src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AsyncJSManager.global.getGsonSimple().toJsonTree(src).getAsJsonObject();
 			result.add("results", AsyncJSManager.global.getGsonSimple().toJsonTree(src.results, type_Resultlist));
 			return result;
 		}
 		
-		public Class<AsyncSearchQuery> getEnclosingClass() {
-			return AsyncSearchQuery.class;
+		public Class<SearchQuery> getEnclosingClass() {
+			return SearchQuery.class;
 		}
 	}
 	
@@ -149,11 +149,11 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 		return cleanquery.toString();
 	}
 	
-	public AsyncSearchQuery() {
+	public SearchQuery() {
 	}
 	
-	public AsyncSearchQuery search(AsyncSearchRequest request) {
-		results = new ArrayList<AsyncSearchResult>(MAX_ELEMENTS_RESPONSE_PAGE_SIZE);
+	public SearchQuery search(SearchRequest request) {
+		results = new ArrayList<SearchResult>(MAX_ELEMENTS_RESPONSE_PAGE_SIZE);
 		
 		if (request.q == null) {
 			request.q = "";
@@ -265,10 +265,10 @@ public final class AsyncSearchQuery implements AsyncJSResponseObject, Elastisear
 	
 	private class Operation implements ElastisearchCrawlerHit {
 		
-		private AsyncSearchQuery reference;
+		private SearchQuery reference;
 		private ElastisearchCrawlerReader crawl;
 		
-		Operation(AsyncSearchQuery reference) {
+		Operation(SearchQuery reference) {
 			this.reference = reference;
 			crawl = Elasticsearch.createCrawlerReader();
 			crawl.setTypes(all_search_types).setSearchType(SearchType.DFS_QUERY_THEN_FETCH);

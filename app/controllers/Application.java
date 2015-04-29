@@ -25,9 +25,8 @@ import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.useraction.Basket;
 import hd3gtv.mydmam.web.PartialContent;
-import hd3gtv.mydmam.web.SearchResult;
-import hd3gtv.mydmam.web.search.AsyncSearchQuery;
-import hd3gtv.mydmam.web.search.AsyncSearchRequest;
+import hd3gtv.mydmam.web.search.SearchQuery;
+import hd3gtv.mydmam.web.search.SearchRequest;
 import hd3gtv.mydmam.web.stat.Stat;
 
 import java.io.FileInputStream;
@@ -131,41 +130,12 @@ public class Application extends Controller {
 	}
 	
 	@Check("navigate")
-	public static void search(String q, int from) {
-		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		if (q == null) {
-			q = "";
-		}
-		SearchResult searchresults = null;
-		if (q.trim().equals("") == false) {
-			from = from - 1;
-			if (from < 0) {
-				from = 0;
-			}
-			searchresults = SearchResult.search(q, from, 10);
-			q = searchresults.query;
-			flash("searchmethod", Messages.all(play.i18n.Lang.get()).getProperty("search.method." + searchresults.mode.toString().toLowerCase()));
-		}
-		
-		flash("q", q);
-		flash("pagename", q + " - " + Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
-		
-		String current_basket_content = "[]";
-		try {
-			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
-		} catch (Exception e) {
-			Log2.log.error("Can't get user basket", e);
-		}
-		render("Application/index.html", title, searchresults, current_basket_content);
-	}
-	
-	@Check("navigate")
 	public static void asyncsearch(String q, Integer from) {
 		if (from == null) {
 			from = 0;
 		}
-		AsyncSearchQuery s_results = new AsyncSearchQuery();
-		s_results.search(new AsyncSearchRequest(q, from));
+		SearchQuery s_results = new SearchQuery();
+		s_results.search(new SearchRequest(q, from));
 		
 		if (s_results.hasResults()) {
 			flash("q", s_results.getQ());

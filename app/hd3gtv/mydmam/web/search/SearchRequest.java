@@ -14,21 +14,28 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.web;
+package hd3gtv.mydmam.web.search;
 
-import hd3gtv.mydmam.web.search.AsyncSearchResult;
+import hd3gtv.mydmam.web.AsyncJSRequestObject;
 
-import java.util.List;
-
-import org.elasticsearch.search.SearchHit;
-
-public interface SearchResultPreProcessor {
+public class SearchRequest implements AsyncJSRequestObject {
 	
-	public List<String> getESTypeForUserSearch();
+	String q;
 	
-	public void prepareSearchResult(SearchHit hit, AsyncSearchResult result);
+	/**
+	 * Is the page number
+	 */
+	int from;
 	
-	@Deprecated
-	public String getTemplateNameForSearchResultItem(SearchResultItem item);
+	public SearchRequest() {
+	}
+	
+	/**
+	 * @param from is the page number
+	 */
+	public SearchRequest(String q, int from) {
+		this.q = q;
+		this.from = from;
+	}
 	
 }

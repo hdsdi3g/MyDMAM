@@ -22,7 +22,7 @@ import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
-import hd3gtv.mydmam.web.search.AsyncSearchQuery;
+import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.mydmam.web.stat.Stat;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
@@ -366,7 +366,7 @@ public class Explorer {
 			if (search == null) {
 				request.setQuery(querybuilder_parent);
 			} else {
-				String query = AsyncSearchQuery.cleanUserTextSearch(search);
+				String query = SearchQuery.cleanUserTextSearch(search);
 				if (query == null) {
 					request.setQuery(querybuilder_parent);
 				} else if (query.equals("")) {
