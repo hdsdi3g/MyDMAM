@@ -130,7 +130,7 @@ public class Application extends Controller {
 	}
 	
 	@Check("navigate")
-	public static void asyncsearch(String q, Integer from) {
+	public static void search(String q, Integer from) {
 		if (from == null) {
 			from = 0;
 		}
@@ -138,13 +138,12 @@ public class Application extends Controller {
 		s_results.search(new SearchRequest(q, from));
 		
 		if (s_results.hasResults()) {
-			flash("q", s_results.getQ());
+			// flash("q", s_results.getQ());
 			flash("pagename", s_results.getQ() + " - " + Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
 		} else {
 			flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
 		}
 		
-		// TODO update react lib w/o plugins.
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
 		String results = s_results.toJsonString();

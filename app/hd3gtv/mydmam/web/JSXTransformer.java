@@ -51,7 +51,7 @@ import controllers.AsyncJavascript;
 
 public class JSXTransformer {
 	
-	public static final String JSXTRANSFORMER_PATH = "/public/javascripts/lib/JSXTransformer.js";
+	public static final String JSXTRANSFORMER_PATH = "/public/javascripts/lib/JSXTransformer-0.13.2.js";
 	public static final String JSX_SRC = "/app/react";
 	
 	public static final JSXTransformer global;

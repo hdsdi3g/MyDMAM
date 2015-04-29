@@ -40,7 +40,7 @@ mydmam.async.url = "@{AsyncJavascript.index()}";
 		mydmam.basket.allusers.ajaxurl = "@{UserBasket.basket_admin_action}";
 	#{/secure.check}
 	
-	mydmam.async.baseURLsearch = "@{Application.asyncsearch(q='param1query',from='param2from')}";
+	mydmam.async.baseURLsearch = "@{Application.search(q='param1query',from='param2from')}";
 #{/secure.check}
 
 #{secure.check 'showManager'}

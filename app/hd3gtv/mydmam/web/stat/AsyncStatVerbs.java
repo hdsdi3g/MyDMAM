@@ -48,7 +48,6 @@ public class AsyncStatVerbs extends AsyncJSControllerVerb<AsyncStatRequest, Asyn
 		return new Stat(request).getResult();
 	}
 	
-	@SuppressWarnings("unchecked")
 	public List<? extends AsyncJSSerializer<?>> getJsonSerializers(AsyncJSGsonProvider gson_provider) {
 		return Arrays.asList(new AsyncJSSerializer<ContainerPreview>() {
 			
