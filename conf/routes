@@ -27,7 +27,8 @@ GET		/admin/{objtype}/action/{action}/{key}	Admin.action
 *		/admin/?								Application.redirectToHome
 
 *		/stat									Application.stat
-*		/navigateto								Application.navigate
+*		/navigateto								Application.oldnavigate
+*		/navigate								Application.navigate
 GET		/i18n.js								Application.i18n
 GET		/search/{from}/{q}						Application.search
 GET		/preview/{filehash}/{type}/{file}		Application.metadatafile

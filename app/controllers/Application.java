@@ -72,6 +72,22 @@ public class Application extends Controller {
 		} catch (Exception e) {
 			Log2.log.error("Can't get user basket", e);
 		}
+		String list_external_positions_storages = MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
+		
+		render(current_basket_content, list_external_positions_storages);
+	}
+	
+	@Check("navigate")
+	@Deprecated
+	public static void oldnavigate() {
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("application.navigate"));
+		
+		String current_basket_content = "[]";
+		try {
+			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
+		} catch (Exception e) {
+			Log2.log.error("Can't get user basket", e);
+		}
 		render(current_basket_content);
 	}
 	
