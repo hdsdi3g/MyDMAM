@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.manager;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.tools.ExecprocessEvent;
 
 import java.io.IOException;
@@ -50,11 +51,18 @@ public class ExecprocessEventServicelog implements ExecprocessEvent {
 	}
 	
 	public void onStdout(String message) {
-		System.out.println("[" + execname + "] " + message);
+		if (message.isEmpty()) {
+			return;
+		}
+		Log2.log.info("Service message", new Log2Dump(execname, message));
 	}
 	
 	public void onStderr(String message) {
-		System.err.println("[" + execname + "] " + message);
+		if (message.isEmpty()) {
+			return;
+		}
+		System.err.println(message);
+		// Log2.log.error("Service message", null, new Log2Dump(execname, message));
 	}
 	
 }
