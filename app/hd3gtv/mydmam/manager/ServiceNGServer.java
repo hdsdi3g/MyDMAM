@@ -20,6 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.tools.Execprocess;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
 public class ServiceNGServer extends ServiceNG {
@@ -34,12 +35,29 @@ public class ServiceNGServer extends ServiceNG {
 		return false;
 	}
 	
+	private static String getMyDMAMPlayDirectory() throws FileNotFoundException {
+		String[] classpathelements = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
+		/**
+		 * Search application.conf
+		 */
+		for (int i = 0; i < classpathelements.length; i++) {
+			if (classpathelements[i].endsWith(".jar")) {
+				continue;
+			}
+			File applicationconf_file = new File(classpathelements[i] + File.separator + "application.conf");
+			if (applicationconf_file.exists()) {
+				return (new File(classpathelements[i]).getParentFile()).getAbsolutePath();
+			}
+		}
+		throw new FileNotFoundException("Can't found MyDMAM Play application");
+	}
+	
 	protected void startService() throws Exception {
 		File f_playdeploy = new File(Configuration.global.getValue("play", "deploy", "/opt/play"));
 		
 		ArrayList<String> p_play = new ArrayList<String>();
 		p_play.add("run");
-		p_play.add((new File("")).getAbsolutePath());
+		p_play.add(getMyDMAMPlayDirectory());
 		p_play.add("--silent");
 		
 		String config_path = System.getProperty("service.config.path", "");
