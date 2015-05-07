@@ -51,10 +51,16 @@ public class ExecprocessEventServicelog implements ExecprocessEvent {
 	}
 	
 	public void onStdout(String message) {
+		if (message.isEmpty()) {
+			return;
+		}
 		Log2.log.info("Service message", new Log2Dump(execname, message));
 	}
 	
 	public void onStderr(String message) {
+		if (message.isEmpty()) {
+			return;
+		}
 		Log2.log.error("Service message", null, new Log2Dump(execname, message));
 	}
 	
