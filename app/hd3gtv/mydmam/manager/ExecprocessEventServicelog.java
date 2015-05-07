@@ -61,7 +61,8 @@ public class ExecprocessEventServicelog implements ExecprocessEvent {
 		if (message.isEmpty()) {
 			return;
 		}
-		Log2.log.error("Service message", null, new Log2Dump(execname, message));
+		System.err.println(message);
+		// Log2.log.error("Service message", null, new Log2Dump(execname, message));
 	}
 	
 }
