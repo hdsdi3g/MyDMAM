@@ -3,7 +3,7 @@
 set -e
 
 BASEPATH="/opt/mydmam"; # DIRECTORY WHERE IS APP
-PLAYPATH="/opt/play1-1.3.0";  # DIRECTORY WHERE PLAY
+PLAYPATH="/opt/play1-1.3.1";  # DIRECTORY WHERE PLAY
 PLAY_JAR="play-1.3.1.jar";
 
 # If you change this, don't forget to update EnvironmentFile var for all *.service
