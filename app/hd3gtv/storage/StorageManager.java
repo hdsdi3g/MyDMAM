@@ -77,11 +77,11 @@ public class StorageManager {
 			return;
 		}
 		
-		Log2Dump dump = new Log2Dump();
+		/*Log2Dump dump = new Log2Dump();
 		for (int pos = 0; pos < list_storages.size(); pos++) {
 			dump.add(list_storages.get(pos).name, list_storages.get(pos));
 		}
-		Log2.log.info("Storages found and loaded from configuration", dump);
+		Log2.log.info("Storages found and loaded from configuration", dump);*/
 		
 	}
 	
