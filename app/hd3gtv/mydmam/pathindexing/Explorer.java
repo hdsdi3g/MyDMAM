@@ -438,7 +438,7 @@ public class Explorer {
 			bridge = new HashMap<String, File>();
 			bridge_list = new ArrayList<String>();
 			if (Configuration.global.isElementExists("storageindex_bridge") == false) {
-				Log2.log.error("No configuration for storageindex_bridge", new NullPointerException());
+				Log2.log.info("No configuration for storageindex_bridge");
 				return;
 			}
 			LinkedHashMap<String, String> s_bridge = Configuration.global.getValues("storageindex_bridge");
