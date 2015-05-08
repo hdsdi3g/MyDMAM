@@ -18,6 +18,7 @@
 package hd3gtv.mydmam.web;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.manager.ServiceNGServer;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -81,7 +82,7 @@ public class Privileges {
 				classpathelements.add(classpathelementsstr[i]);
 			}
 			
-			classpathelements.add((new File("app/controllers")).getPath());
+			classpathelements.add((new File(ServiceNGServer.getMyDMAMRootPlayDirectory().getAbsolutePath() + File.separator + "app" + File.separator + "controllers")).getPath());
 			
 			JarFile jfile;
 			JarEntry element;

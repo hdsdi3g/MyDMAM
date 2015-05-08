@@ -35,7 +35,10 @@ public class ServiceNGServer extends ServiceNG {
 		return false;
 	}
 	
-	private static String getMyDMAMPlayDirectory() throws FileNotFoundException {
+	/**
+	 * Search application.conf in classpath, and return the /mydmam main directory.
+	 */
+	public static File getMyDMAMRootPlayDirectory() throws FileNotFoundException {
 		String[] classpathelements = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
 		/**
 		 * Search application.conf
@@ -46,7 +49,7 @@ public class ServiceNGServer extends ServiceNG {
 			}
 			File applicationconf_file = new File(classpathelements[i] + File.separator + "application.conf");
 			if (applicationconf_file.exists()) {
-				return (new File(classpathelements[i]).getParentFile()).getAbsolutePath();
+				return (new File(classpathelements[i]).getParentFile());
 			}
 		}
 		throw new FileNotFoundException("Can't found MyDMAM Play application");
@@ -57,7 +60,7 @@ public class ServiceNGServer extends ServiceNG {
 		
 		ArrayList<String> p_play = new ArrayList<String>();
 		p_play.add("run");
-		p_play.add(getMyDMAMPlayDirectory());
+		p_play.add(getMyDMAMRootPlayDirectory().getAbsolutePath());
 		p_play.add("--silent");
 		
 		String config_path = System.getProperty("service.config.path", "");
