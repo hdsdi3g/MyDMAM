@@ -30,47 +30,77 @@
 
 		var BreadCrumb = React.createClass({
 			render: function() {
-				//TODO BreadCrumb
-				/*
-				storagename={storagename} path={path}
+				var storagename = this.props.storagename;
+				var path = this.props.path;
+				if (storagename == null) {
+					return (
+						<ul className="breadcrumb">
+							<li className="active">
+								{i18n('browser.storagestitle')}
+							</li>
+						</ul>
+					);
+				}
+				
+				var element_subpaths = path.split("/");
+				var currentpath = "";
+				var newpath = "";
+				var items = [];
+				for (var pos = 1; pos < element_subpaths.length; pos++) {
+					newpath = storagename + ':' + currentpath + "/" + element_subpaths[pos];
+					if (pos + 1 < element_subpaths.length) {
+						items.push(
+							<li key={pos}>
+								<span className="divider">/</span>
+								<a href={url_navigate + "#" + newpath} onClick={this.props.navigate} data-navigatetarget={newpath}>
+									{element_subpaths[pos]}
+								</a>
+							</li>
+						);
+					} else {
+						items.push(
+							<li key={pos} className="active">
+								<span className="divider">/</span>
+								{element_subpaths[pos]}
+							</li>
+						);
+					}
+					currentpath = currentpath + "/" + element_subpaths[pos];
+				}
 
-				navigator.createBreadcrumb = function(storagename, path) {
-					var domid = "storageelem";
-					if (storagename == null) {
-						$("#" + domid).prepend('<ul class="breadcrumb"><li class="active">' + i18n('browser.storagestitle') + '</li></ul>');
-						return;
+				var header = [];
+				if (items.length > 0) {
+					header.push(
+						<li key="storagestitle">
+							<a href={url_navigate} onClick={this.props.navigate} data-navigatetarget="">
+								{i18n('browser.storagestitle')}
+							</a>
+							<span className="divider">::</span>
+						</li>
+					);
+					if (path != "/") {
+						header.push(
+							<li key="root">
+								<a href={url_navigate + "#" + storagename + ':/'} onClick={this.props.navigate} data-navigatetarget={storagename + ':/'}>
+									{storagename}
+								</a>
+							</li>
+						);
+					} else {
+						header.push(
+							<li key="root" className="active">
+								{storagename}
+							</li>
+						);
 					}
-					var element_subpaths = path.split("/");
-					var content = "";
-					var currentpath = "";
-					var newpath = "";
-					for (var pos = 1; pos < element_subpaths.length; pos++) {
-						newpath = storagename + ':' + currentpath + "/" + element_subpaths[pos];
-						if (pos + 1 < element_subpaths.length) {
-							content = content + '<li><span class="divider">/</span><a href="' + url_navigate + "#" + newpath + '">' + element_subpaths[pos] + '</a></li>';
-						} else {
-							content = content + '<li class="active"><span class="divider">/</span>' + element_subpaths[pos] + '</li>';
-						}
-						currentpath = currentpath + "/" + element_subpaths[pos];
-					}
-					if (content !== "") {
-						var header = '<li><a href="' + url_navigate + '#">' + i18n('browser.storagestitle') + '</a> <span class="divider">::</span></li>';
-						if (path != "/") {
-							header = header + '<li><a href="' + url_navigate + "#" + storagename + ':/">' + storagename + '</a></li>';
-						} else {
-							header = header + '<li class="active">' + storagename + '</li>';
-						}
-						content = '<ul class="breadcrumb">' + header + content + '</ul>';
-						$("#" + domid).prepend(content);
-						$("#" + domid + " .breadcrumb a").click(function() {
-							mydmam.navigator.displayStoragePathNavigator("storageelem", $(this).context.hash.substring(1), true);
-						});
-					}
-				};
-				*/
-				return (
-					<div>breadcrumb</div>
-				);
+					return (
+						<ul className="breadcrumb">
+							{header}
+							{items}
+						</ul>
+					);
+				} 
+				return null;
 			}
 		});
 
@@ -84,14 +114,21 @@
 
 				var header_title = null;
 				if (reference.storagename) {
-					var url_goback = url_navigate + "#" + reference.storagename + ":" + reference.path.substring(0, reference.path.lastIndexOf("/"));
+					var navigatetarget = reference.storagename + ":" + reference.path.substring(0, reference.path.lastIndexOf("/"));
 					if (reference.path == '/') {
-						url_goback = url_navigate + "#";
+						navigatetarget = "";
 					} else if (reference.path.lastIndexOf("/") === 0) {
-						url_goback = url_navigate + "#" + reference.storagename + ":/";
+						navigatetarget = reference.storagename + ":/";
 					}
+					var url_goback = url_navigate + "#" + navigatetarget;
 					var go_back = (
-						<a className="btn btn-mini btngoback" style={{marginBottom: "6px", marginRight: "1em"}} href={url_goback} title={i18n('browser.goback')}>
+						<a
+							className="btn btn-mini btngoback"
+							style={{marginBottom: "6px", marginRight: "1em"}}
+							href={url_goback}
+							title={i18n('browser.goback')}
+							onClick={this.props.navigate}
+							data-navigatetarget={navigatetarget}>
 							<i className="icon-chevron-left"></i>
 						</a>
 					);
@@ -177,7 +214,8 @@
 					dircontent.push(newitem);
 				}
 
-				/*dircontent = dircontent.sort(function(a, b) {
+				/* TODO sort ?
+					dircontent = dircontent.sort(function(a, b) {
 					if (a.directory & (b.directory === false)) {
 						return -1;
 					}
@@ -186,13 +224,14 @@
 					}
 					return a.idxfilename < b.idxfilename ? -1 : 1;
 				});*/
-				//console.log(dircontent);
 
 				var thead = null;
 				if (reference.storagename) {
+					//TODO sort
 					thead = (<thead><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr></thead>);
 				} else {
-					thead = (<thead><tr><td>{i18n("browser.storagelist")}</td> <td></td> <td></td> <td></td> <td></td></tr></thead>);
+					//TODO sort
+					thead = (<thead><tr><td>{i18n("browser.storagelist")}</td><td></td><td></td><td></td><td></td></tr></thead>);
 				}
 
 				var tbody = [];
@@ -213,13 +252,23 @@
 						var name = null;
 						if (reference.storagename) {
 							name = (
-								<a className="tlbdirlistitem" href={url_navigate + "#" + element.storagename + ":" + element.path}>
+								<a
+									className="tlbdirlistitem"
+									href={url_navigate + "#" + element.storagename + ":" + element.path}
+									onClick={this.props.navigate}
+									data-navigatetarget={element.storagename + ":" + element.path}>
+
 									{element.path.substring(element.path.lastIndexOf("/") + 1)}
 								</a>
 							);
 						} else {
 							name = (
-								<a className="tlbdirlistitem" href={url_navigate + "#" + element.storagename + ':/'}>
+								<a
+									className="tlbdirlistitem"
+									href={url_navigate + "#" + element.storagename + ":/"}
+									onClick={this.props.navigate}
+									data-navigatetarget={element.storagename + ":/"}>
+
 									{element.storagename}
 								</a>
 							);
@@ -249,7 +298,12 @@
 						td_element_name = (
 							<td>
 								<BasketButton pathindexkey={elementkey} />
-								<a className="tlbdirlistitem" href={url_navigate + "#" + element.storagename + ":" + element.path}>
+								<a
+									className="tlbdirlistitem"
+									href={url_navigate + "#" + element.storagename + ":" + element.path}
+									onClick={this.props.navigate}
+									data-navigatetarget={element.storagename + ":" + element.path}>
+
 									{elementid}
 									{element.path.substring(element.path.lastIndexOf("/") + 1)}
 								</a>
@@ -302,56 +356,6 @@
 					);
 				}
 
-				/*var href = function(currentpage, pagecount) {
-					return '#' + fullpath;
-				};
-				content = content + mydmam.pagination.create(items_page_from, Math.ceil(items_total / items_page_size), href, "navigator-" + md5_fullpath);
-
-				$("#" + domid).empty();
-				$("#" + domid).append(content);
-
-				$('.navdatatable').dataTable({
-					"bPaginate": false,
-					"bLengthChange": false,
-					"bSort": true,
-					"bInfo": false,
-					"bAutoWidth": false,
-					"bFilter": true,
-					"aoColumnDefs": [{
-						"iDataSort": 2,
-						"aTargets": [1],
-						"bSearchable": false
-					}, // SIZE displayed
-					{
-						"bVisible": false,
-						"bSearchable": false,
-						"aTargets": [2]
-					}, // SIZE raw
-					{
-						"iDataSort": 4,
-						"aTargets": [3],
-						"bSearchable": false
-					}, // DATE displayed
-					{
-						"bVisible": false,
-						"bSearchable": false,
-						"aTargets": [4]
-					} // DATE raw
-					]
-				});
-
-				$('#sitesearch').bind('keyup.DT', function(e) {
-					var val = this.value === "" ? "" : this.value;
-					$('.dataTables_filter input').val(val);
-					$('.dataTables_filter input').trigger("keyup.DT");
-				});
-
-				mydmam.pagination.addevents(function(currentpage) {
-					return function() {
-						mydmam.navigator.displayStoragePathNavigator("storageelem", fullpath, true, currentpage);
-					};
-				}, "navigator-" + md5_fullpath);
-				*/
 				return (
 					<table className="table table-hover table-condensed">
 						{thead}
@@ -365,45 +369,69 @@
 			getInitialState: function() {
 				return {
 					stat: {},
-					pathindexkey: md5(pathindex_destination),
+					pathindex: "",
+					default_page_size: 20,
 				};
 			},
-			componentDidMount: function() {
+			navigateTo: function(pathindex, page_from, page_size) {
 				var stat = mydmam.stat;
-
-				var stat_request = {
-					pathelementskeys: [md5(pathindex_destination)],
+				var pathindex_key = md5(pathindex);
+				var request = {
+					pathelementskeys: [pathindex_key],
+					page_from: page_from,
+					page_size: page_size,
 					scopes_element: [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
 					scopes_subelements: [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
-					page_from: 0,
-					page_size: 20,
 					search: JSON.stringify(''),
 				};
+				
+				//TODO manage search
+				// https://facebook.github.io/react/tips/use-react-with-other-libraries.html
+				/*
+				$('#sitesearch').bind('keyup.DT', function(e) {
+					var val = this.value === "" ? "" : this.value;
+					$('.dataTables_filter input').val(val);
+					$('.dataTables_filter input').trigger("keyup.DT");
+				});
+				*/
 
 				document.body.style.cursor = 'wait';
-				mydmam.async.request("stat", "cache", stat_request, function(data) {
+				mydmam.async.request("stat", "cache", request, function(data) {
 					document.body.style.cursor = 'default';
-					if (!data[this.state.pathindexkey]) {
+					if (data[pathindex_key]) {
 						this.setState({
-							stat: {},
-							pathindexkey: md5(''),
+							stat: data,
+							pathindex: pathindex,
+							default_page_size: page_size,
 						});
+					} else {
+						if (page_from > 0) {
+							this.navigateTo(pathindex, 0, page_size);
+						}
 						return;
 					}
-					this.setState({
-						stat: data,
-					});
+					window.location.hash = this.state.pathindex;
 				}.bind(this));
 			},
-			handlePaginationSwitchPage: function(e) {
-				console.log(e);
-				//TODO change page...
-				return null;
+			componentDidMount: function() {
+				this.navigateTo(pathindex_destination, 0, this.state.default_page_size);
+			},
+			handlePaginationSwitchPage: function(newpage, alt_pressed) {
+				if (alt_pressed){
+					this.navigateTo(this.state.pathindex, 0, this.state.default_page_size * 2);
+				} else {
+					this.navigateTo(this.state.pathindex, newpage - 1, this.state.default_page_size);
+				}
+			},
+			handleOnClickANavigateToNewDest: function(e) {
+				e.preventDefault();
+				var pathindex_target = $(e.currentTarget).data("navigatetarget");
+				this.navigateTo(pathindex_target, 0, this.state.default_page_size);
 			},
 			render: function() {
-				var stat = this.state.stat[this.state.pathindexkey];
+				var stat = this.state.stat[md5(this.state.pathindex)];
 				if (!stat) {
-					return (<div>{i18n('browser.emptydir')}</div>);
+					return (<div></div>);
 				}
 
 				/**
@@ -429,18 +457,37 @@
 				if (stat.reference) {
 					path = stat.reference.path;
 				}
-				var Pagination = mydmam.async.pagination.reactBlock;
+				
+				var display_pagination = null;
+				if (stat.items_total) {
+					var Pagination = mydmam.async.pagination.reactBlock;
+					display_pagination = (
+						<Pagination
+							pagecount={Math.ceil(stat.items_total / stat.items_page_size)}
+							currentpage={stat.items_page_from + 1}
+							onClickButton={this.handlePaginationSwitchPage} />
+					);
+				}
 
 				return (
 					<div>
-						<BreadCrumb storagename={storagename} path={path} />
-						<HeaderItem reference={stat.reference} first_item_dateindex={first_item_dateindex} pathindexkey={this.state.pathindexkey} />
-						<ItemContent reference={stat.reference} mtdsummary={stat.mtdsummary} />
-						<NavigateTable stat={stat} />
-						<Pagination
-							pagecount={Math.ceil(stat.items_total / stat.items_page_size)}
-							currentpage={stat.items_page_from}
-							onClickButton={this.handlePaginationSwitchPage} />
+						<BreadCrumb
+							storagename={storagename}
+							path={path}
+							navigate={this.handleOnClickANavigateToNewDest} />
+						<HeaderItem
+							reference={stat.reference}
+							first_item_dateindex={first_item_dateindex}
+							pathindexkey={md5(this.state.pathindex)}
+							navigate={this.handleOnClickANavigateToNewDest} />
+						<ItemContent
+							reference={stat.reference}
+							mtdsummary={stat.mtdsummary}
+							navigate={this.handleOnClickANavigateToNewDest} />
+						<NavigateTable
+							stat={stat}
+							navigate={this.handleOnClickANavigateToNewDest} />
+						{display_pagination}
 					</div>
 				);
 			}

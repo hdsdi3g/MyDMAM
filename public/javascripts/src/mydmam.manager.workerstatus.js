@@ -182,7 +182,7 @@
 	workerstatus.getColsToAddData = function(worker) {
 		var cols = [];
 
-		var instance = worker.manager_reference.members;
+		var instance = worker.manager_reference;
 		var row_class = 'wkrsrow-' + worker.reference_key.substring(8, 16);
 
 		var content = '';

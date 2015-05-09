@@ -46,6 +46,9 @@
 			this.setState({present_in_basket: !this.state.present_in_basket});
 		},
 		render: function() {
+			if (this.props.pathindexkey === md5('')) {
+				return null;
+			}
 			var btn_basket_classes = classNames({
 			    'btn': true, 'btn-mini': true, 'basket': true,
 			    'active': this.state.present_in_basket,

@@ -21,7 +21,11 @@
 	var PageButton = React.createClass({
 		handleClick: function(e) {
 			e.preventDefault();
-			this.props.onClickButton(this.props.num);
+			var alt = false;
+			if (e.altKey) {
+				alt = true;
+			}
+			this.props.onClickButton(this.props.num, alt);
 		},
 		render: function() {
 			if (this.props.currentpage === this.props.num) {
@@ -37,7 +41,11 @@
 	var PagePreviousNext = React.createClass({
 		handleClick: function(e) {
 			e.preventDefault();
-			this.props.onClickButton(this.props.num);
+			var alt = false;
+			if (e.altKey) {
+				alt = true;
+			}
+			this.props.onClickButton(this.props.num, alt);
 		},
 		render: function() {
 			if (this.props.direction === "previous") {
@@ -63,7 +71,7 @@
 			if (this.props.onlinkTargeter) {
 				return this.props.onlinkTargeter(new_pos);
 			} else {
-				return "";
+				return window.location;
 			}
 		},
 		render: function() {
