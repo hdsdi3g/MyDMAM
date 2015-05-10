@@ -21,7 +21,9 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
+import hd3gtv.mydmam.db.ElastisearchCrawlerMultipleHits;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
+import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
 import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.mydmam.web.stat.Stat;
 import hd3gtv.tools.GsonIgnore;
@@ -34,13 +36,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.search.MultiSearchRequestBuilder;
-import org.elasticsearch.action.search.MultiSearchResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 
 import com.google.gson.Gson;
@@ -339,10 +340,11 @@ public class Explorer {
 	 * @param fetch_size for each _ids
 	 * @param only_directories only search in "directory" type
 	 * @param search only search with this text. Can be null.
+	 * @param sort, can be null: default for directory and path.
 	 * @return never null, _id parent key > element key > element
 	 * @see Stat
 	 */
-	public LinkedHashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int fetch_size, boolean only_directories, String search) {
+	public LinkedHashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int fetch_size, boolean only_directories, String search, List<SortBuilder> sort) {
 		if (_ids == null) {
 			return new LinkedHashMap<String, DirectoryContent>(1);
 		}
@@ -350,72 +352,73 @@ public class Explorer {
 			return new LinkedHashMap<String, DirectoryContent>(1);
 		}
 		
-		MultiSearchRequestBuilder multisearchrequestbuilder = new MultiSearchRequestBuilder(Elasticsearch.getClient());
+		ElastisearchMultipleCrawlerReader searches = Elasticsearch.createMultipleCrawlerReader();
+		searches.setDefaultIndices(Importer.ES_INDEX);
+		if (only_directories) {
+			searches.setDefaultTypes(Importer.ES_TYPE_DIRECTORY);
+		} else {
+			searches.setDefaultTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
+		}
+		searches.setDefaultFrom(from * fetch_size);
+		searches.setDefaultMaxSize(fetch_size);
+		if (sort == null) {
+			searches.setDefaultSort(SortBuilders.fieldSort("directory").order(SortOrder.DESC), SortBuilders.fieldSort("path").order(SortOrder.ASC));
+		} else {
+			searches.setDefaultSort(sort.toArray(new SortBuilder[0]));
+		}
 		
 		for (int pos = 0; pos < _ids.size(); pos++) {
 			String _id = _ids.get(pos);
-			SearchRequestBuilder request = Elasticsearch.getClient().prepareSearch();
-			request.setIndices(Importer.ES_INDEX);
-			if (only_directories) {
-				request.setTypes(Importer.ES_TYPE_DIRECTORY);
-			} else {
-				request.setTypes(Importer.ES_TYPE_FILE, Importer.ES_TYPE_DIRECTORY);
-			}
-			
 			TermQueryBuilder querybuilder_parent = QueryBuilders.termQuery("parentpath", _id.toLowerCase());
 			if (search == null) {
-				request.setQuery(querybuilder_parent);
+				searches.addNewQuery(querybuilder_parent);
 			} else {
 				String query = SearchQuery.cleanUserTextSearch(search);
 				if (query == null) {
-					request.setQuery(querybuilder_parent);
+					searches.addNewQuery(querybuilder_parent);
 				} else if (query.equals("")) {
-					request.setQuery(querybuilder_parent);
+					searches.addNewQuery(querybuilder_parent);
 				} else {
-					request.setQuery(QueryBuilders.boolQuery().must(querybuilder_parent).must(QueryBuilders.prefixQuery("_all", search)));
+					searches.addNewQuery(QueryBuilders.boolQuery().must(querybuilder_parent).must(QueryBuilders.prefixQuery("_all", search)));
 				}
 			}
-			
-			request.setFrom(from * fetch_size);
-			request.setSize(fetch_size);
-			request.addSort("directory", SortOrder.DESC);
-			request.addSort("idxfilename", SortOrder.ASC);
-			multisearchrequestbuilder.add(request);
 		}
 		
-		MultiSearchResponse.Item[] responses = multisearchrequestbuilder.execute().actionGet().getResponses();
+		final LinkedHashMap<String, DirectoryContent> map_dir_list = new LinkedHashMap<String, DirectoryContent>();
 		
-		LinkedHashMap<String, DirectoryContent> map_dir_list = new LinkedHashMap<String, DirectoryContent>();
-		
-		SearchResponse response;
-		SearchHit[] hits;
-		String parent_key;
-		SourcePathIndexerElement element;
-		for (int pos = 0; pos < responses.length; pos++) {
-			response = responses[pos].getResponse();
-			hits = response.getHits().hits();
-			if (hits.length == 0) {
-				continue;
-			}
-			DirectoryContent directorycontent = new DirectoryContent();
-			directorycontent.directory_size = response.getHits().getTotalHits();
-			directorycontent.directory_content = new LinkedHashMap<String, SourcePathIndexerElement>(hits.length);
+		final ElastisearchCrawlerMultipleHits crawler = new ElastisearchCrawlerMultipleHits() {
 			
-			parent_key = null;
-			for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
-				element = SourcePathIndexerElement.fromESResponse(hits[pos_hits]);
-				directorycontent.directory_content.put(hits[pos_hits].getId(), element);
-				if (pos_hits == 0) {
-					parent_key = element.parentpath;
-					directorycontent.storagename = element.storagename;
-					directorycontent.pathindexkey = parent_key;
+			@Override
+			public boolean onMultipleResponse(SearchResponse response, List<SearchHit> hits) throws Exception {
+				DirectoryContent directorycontent = new DirectoryContent();
+				directorycontent.directory_size = response.getHits().getTotalHits();
+				directorycontent.directory_content = new LinkedHashMap<String, SourcePathIndexerElement>(hits.size());
+				
+				String parent_key = null;
+				SourcePathIndexerElement element;
+				for (int pos_hits = 0; pos_hits < hits.size(); pos_hits++) {
+					element = SourcePathIndexerElement.fromESResponse(hits.get(pos_hits));
+					directorycontent.directory_content.put(hits.get(pos_hits).getId(), element);
+					if (pos_hits == 0) {
+						parent_key = element.parentpath;
+						directorycontent.storagename = element.storagename;
+						directorycontent.pathindexkey = parent_key;
+					}
 				}
+				
+				if (parent_key != null) {
+					map_dir_list.put(parent_key, directorycontent);
+				}
+				return true;
 			}
-			
-			if (parent_key != null) {
-				map_dir_list.put(parent_key, directorycontent);
-			}
+		};
+		
+		try {
+			searches.allReader(crawler);
+		} catch (Exception e) {
+			Log2.log.error("Can't crawl from ES", e);
 		}
+		
 		return map_dir_list;
 	}
 	

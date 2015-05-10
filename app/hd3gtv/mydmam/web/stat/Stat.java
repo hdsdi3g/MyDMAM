@@ -87,6 +87,7 @@ public class Stat {
 	private boolean request_dir_mtd_summary = false;
 	private boolean request_dir_dir_list = false;
 	private boolean sub_items_mtd_summary = false;
+	private List<SortDirListing> request_dir_list_sort = null;
 	
 	/**
 	 * Never empty
@@ -105,6 +106,7 @@ public class Stat {
 		if (request.page_size > 0) {
 			setPageSize(request.page_size);
 		}
+		setDirListSort(request.sort);
 	}
 	
 	public Stat(List<String> pathelementskeys, List<String> scopes_element, List<String> scopes_subelements) throws IndexOutOfBoundsException, NullPointerException {
@@ -162,6 +164,17 @@ public class Stat {
 		return this;
 	}
 	
+	public Stat setDirListSort(List<SortDirListing> request_dir_list_sort) {
+		if (request_dir_list_sort == null) {
+			return this;
+		}
+		if (request_dir_list_sort.isEmpty()) {
+			return this;
+		}
+		this.request_dir_list_sort = request_dir_list_sort;
+		return this;
+	}
+	
 	public AsyncStatResult getResult() {
 		try {
 			if (request_dir_pathinfo) {
@@ -190,7 +203,8 @@ public class Stat {
 			HashMap<String, Explorer.DirectoryContent> map_dir_list = null;
 			
 			if (request_dir_dir_list | sub_items_mtd_summary) {
-				map_dir_list = request_response_cache.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, sub_items_only_directories, search, request_dir_pathinfo);
+				map_dir_list = request_response_cache.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, sub_items_only_directories, search, request_dir_list_sort,
+						request_dir_pathinfo);
 				result.populateDirListsForItems(map_dir_list, sub_items_count_items, request_dir_count_items);
 			}
 			

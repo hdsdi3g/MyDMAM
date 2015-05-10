@@ -219,6 +219,7 @@ public class RequestResponseCache {
 			int fetch_size = 0;
 			List<String> _ids = new ArrayList<String>();
 			boolean only_directories = false;
+			
 			for (int pos = 0; pos < cache_reference_tags.size(); pos++) {
 				cache_reference_tag = cache_reference_tags.get(pos).split("_");
 				_ids.add(cache_reference_tag[0]);
@@ -227,11 +228,10 @@ public class RequestResponseCache {
 			}
 			
 			HashMap<String, RequestResponseCacheExpirableItem<DirectoryContent>> result = new HashMap<String, RequestResponseCacheExpirableItem<DirectoryContent>>();
-			
 			/**
 			 * add >>> "_" + size + "_" + only_directories <<< to keys
 			 */
-			LinkedHashMap<String, DirectoryContent> real_result = explorer.getDirectoryContentByIdkeys(_ids, 0, fetch_size, only_directories, null);
+			LinkedHashMap<String, DirectoryContent> real_result = explorer.getDirectoryContentByIdkeys(_ids, 0, fetch_size, only_directories, null, null);
 			if (real_result.isEmpty()) {
 				return result;
 			}
@@ -264,12 +264,11 @@ public class RequestResponseCache {
 		return sb.toString();
 	}
 	
-	public HashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int fetch_size, boolean only_directories, String search, boolean prefetch) throws Exception {
+	public HashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int fetch_size, boolean only_directories, String search, List<SortDirListing> sort,
+			boolean prefetch) throws Exception {
 		HashMap<String, DirectoryContent> result;
-		if (search != null) {
-			result = explorer.getDirectoryContentByIdkeys(_ids, from, fetch_size, only_directories, search);
-		} else if (from > 0) {
-			result = explorer.getDirectoryContentByIdkeys(_ids, from, fetch_size, only_directories, search);
+		if ((search != null) | (from > 0) | (sort != null)) {
+			result = explorer.getDirectoryContentByIdkeys(_ids, from, fetch_size, only_directories, search, SortDirListing.mergue(sort));
 		} else {
 			ArrayList<String> cache_ref_tags = new ArrayList<String>();
 			for (int pos = 0; pos < _ids.size(); pos++) {

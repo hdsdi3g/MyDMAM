@@ -180,21 +180,7 @@
 			}
 		});
 
-		var ItemContent = React.createClass({
-			/*
-			if (stat.mtdsummary) {
-				content = content + '<div>';
-				content = content + mydmam.metadatas.display(stat.reference, stat.mtdsummary, mydmam.metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT);
-				content = content + '</div>';
-			}
-			*/
-			//TODO display metadatas in place
-			render: function() {
-				return (
-					<div>itemcontent</div>
-				);
-			}
-		});
+		var ItemContent = mydmam.async.pathindex.reactMetadataFull;
 
 		var NavigateTable = React.createClass({
 			render: function() {
@@ -214,26 +200,11 @@
 					dircontent.push(newitem);
 				}
 
-				/* TODO sort ?
-					dircontent = dircontent.sort(function(a, b) {
-					if (a.directory & (b.directory === false)) {
-						return -1;
-					}
-					if (b.directory & (a.directory === false)) {
-						return 1;
-					}
-					return a.idxfilename < b.idxfilename ? -1 : 1;
-				});*/
-
 				var thead = null;
 				if (reference.storagename) {
-					//TODO sort
+					//TODO sort btn
 					thead = (<thead><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr></thead>);
-				} else {
-					//TODO sort
-					thead = (<thead><tr><td>{i18n("browser.storagelist")}</td><td></td><td></td><td></td><td></td></tr></thead>);
 				}
-
 				var tbody = [];
 				for (var pos = 0; pos < dircontent.length; pos++) {
 					var elementkey = dircontent[pos].key;
@@ -383,8 +354,11 @@
 					scopes_element: [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
 					scopes_subelements: [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
 					search: JSON.stringify(''),
+					sort: [
+						//{colname: "size", order: "ASC"}
+					],
 				};
-				
+
 				//TODO manage search
 				// https://facebook.github.io/react/tips/use-react-with-other-libraries.html
 				/*

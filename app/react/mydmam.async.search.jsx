@@ -164,6 +164,7 @@
 						page_from: 0,
 						page_size: 500,
 						search: JSON.stringify(''),
+						sort: [],
 					};
 
 					mydmam.async.request("stat", "cache", stat_request, function(data) {

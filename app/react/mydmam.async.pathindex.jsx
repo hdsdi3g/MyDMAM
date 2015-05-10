@@ -263,6 +263,26 @@
 		}
 	});
 
+	mydmam.async.pathindex.reactMetadataFull = React.createClass({
+		render: function() {
+			if (!this.props.mtdsummary) {
+				return null;
+			}
+			console.log(this.props);
+			/*
+			if (stat.mtdsummary) {
+				content = content + '<div>';
+				content = content + mydmam.metadatas.display(stat.reference, stat.mtdsummary, mydmam.metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT);
+				content = content + '</div>';
+			}
+			*/
+			//TODO display metadatas in place
+			return (
+				<div>itemcontent</div>
+			);
+		}
+	});
+
 	var searchResult = function(result) {
 		if (result.index !== "pathindex") {
 			return null;
