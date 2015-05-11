@@ -50,11 +50,11 @@ public class ExecprocessEventServicelog implements ExecprocessEvent {
 	}
 	
 	public void onStdout(String message) {
-		System.out.println("[" + execname + "] " + message);
+		Log2.log.rawEvent(execname, message, false);
 	}
 	
 	public void onStderr(String message) {
-		System.err.println("[" + execname + "] " + message);
+		Log2.log.rawEvent(execname, message, true);
 	}
 	
 }

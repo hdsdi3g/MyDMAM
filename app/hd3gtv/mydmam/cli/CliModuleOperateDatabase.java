@@ -17,16 +17,25 @@
 package hd3gtv.mydmam.cli;
 
 import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.mail.notification.Notification;
+import hd3gtv.mydmam.manager.ServiceNGServer;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.useraction.UACreationRequest;
 import hd3gtv.tools.ApplicationArgs;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +43,8 @@ import java.util.Map;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
+import org.h2.util.IOUtils;
+import org.h2.util.JdbcUtils;
 
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.TokenRange;
@@ -293,6 +304,45 @@ public class CliModuleOperateDatabase implements CliModule {
 			
 			return;
 		}
+		
+		if (args.getParamExist("-h2")) {
+			org.h2.Driver.load();
+			
+			if (args.getParamExist("-export")) {
+				String source = ServiceNGServer.getMyDMAMRootPlayDirectory().getAbsolutePath() + "/conf/play";
+				File dest = new File(args.getSimpleParamValue("-export"));
+				
+				Log2Dump dump = new Log2Dump();
+				dump.add("source", new File(source + ".h2.db"));
+				dump.add("dest", dest);
+				Log2.log.info("Export h2 base", dump);
+				
+				Connection conn = null;
+				try {
+					conn = DriverManager.getConnection("jdbc:h2:file:" + source);
+					Statement stat = null;
+					try {
+						stat = conn.createStatement();
+						PrintWriter writer = new PrintWriter(IOUtils.getBufferedWriter(new FileOutputStream(dest)));
+						ResultSet rs = stat.executeQuery("SCRIPT");
+						while (rs.next()) {
+							String s = rs.getString(1);
+							writer.println(s);
+						}
+						writer.flush();
+					} finally {
+						JdbcUtils.closeSilently(stat);
+					}
+				} finally {
+					JdbcUtils.closeSilently(conn);
+				}
+				return;
+			} else if (args.getParamExist("-import")) {
+				// TODO @see RunScript for import
+				return;
+			}
+		}
+		
 		showFullCliModuleHelp();
 	}
 	
@@ -316,6 +366,10 @@ public class CliModuleOperateDatabase implements CliModule {
 		System.out.println("Operate usages:");
 		System.out.println(" " + getCliModuleName() + " -clean");
 		System.out.println("  Do clean operations");
+		System.out.println();
+		System.out.println("Usage for H2 (Play internal db serverless):");
+		System.out.println(" " + getCliModuleName() + " -h2 -export filename.sql");
+		// System.out.println(" " + getCliModuleName() + " -h2 -import filename.sql"); //TODO import
 		System.out.println();
 		System.out.println(" " + getCliModuleName() + " -ualog from");
 		System.out.println("  from: in minutes, or 0 for dump all (limited to 1000 lines max)");
