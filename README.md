@@ -55,8 +55,8 @@ if your JRE has the best priority (we set 2000 here).
 Don’t forget to setup the *Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files*, free downloadable from [Oracle website](http://www.oracle.com/technetwork/java/javase/downloads/index.html), else the startup script will throw a fatal exception. See the message for known the exact location to extract the files, often here: `(extracted JRE directory)/jre/lib/security/`.
 
 ### Update Java
-- `update-alternatives —remove java $(realpath /etc/alternatives/java)`
-- `update-alternatives —install /usr/bin/java java (extracted directory for new JRE)/bin/java 2000`
+- `update-alternatives --remove java $(realpath /etc/alternatives/java)`
+- `update-alternatives --install /usr/bin/java java (extracted directory for new JRE)/bin/java 2000`
 Check with
 - `update-alternatives --display java`
 - `java -version`
