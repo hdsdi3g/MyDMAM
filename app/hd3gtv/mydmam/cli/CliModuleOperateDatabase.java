@@ -29,9 +29,14 @@ import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.useraction.UACreationRequest;
 import hd3gtv.tools.ApplicationArgs;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -43,6 +48,9 @@ import java.util.Map;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
+import org.h2.engine.Constants;
+import org.h2.store.fs.FileUtils;
+import org.h2.tools.RunScript;
 import org.h2.util.IOUtils;
 import org.h2.util.JdbcUtils;
 
@@ -312,8 +320,13 @@ public class CliModuleOperateDatabase implements CliModule {
 				String source = ServiceNGServer.getMyDMAMRootPlayDirectory().getAbsolutePath() + "/conf/play";
 				File dest = new File(args.getSimpleParamValue("-export"));
 				
+				File f_source = new File(source + ".h2.db");
+				if (f_source.exists() == false) {
+					throw new FileNotFoundException(f_source.getAbsolutePath());
+				}
+				
 				Log2Dump dump = new Log2Dump();
-				dump.add("source", new File(source + ".h2.db"));
+				dump.add("source", f_source);
 				dump.add("dest", dest);
 				Log2.log.info("Export h2 base", dump);
 				
@@ -338,7 +351,32 @@ public class CliModuleOperateDatabase implements CliModule {
 				}
 				return;
 			} else if (args.getParamExist("-import")) {
-				// TODO @see RunScript for import
+				File source = new File(args.getSimpleParamValue("-import"));
+				String dest = ServiceNGServer.getMyDMAMRootPlayDirectory().getAbsolutePath() + "/conf/play";
+				
+				if (source.exists() == false) {
+					throw new FileNotFoundException(source.getAbsolutePath());
+				}
+				
+				Log2Dump dump = new Log2Dump();
+				dump.add("source", source);
+				dump.add("dest", new File(dest + ".h2.db"));
+				Log2.log.info("Export h2 base", dump);
+				
+				Connection conn = null;
+				try {
+					conn = DriverManager.getConnection("jdbc:h2:file:" + dest);
+					InputStream in = FileUtils.newInputStream(source.getAbsolutePath());
+					try {
+						in = new BufferedInputStream(in, Constants.IO_BUFFER_SIZE);
+						Reader reader = new InputStreamReader(in);
+						RunScript.execute(conn, reader);
+					} finally {
+						IOUtils.closeSilently(in);
+					}
+				} finally {
+					JdbcUtils.closeSilently(conn);
+				}
 				return;
 			}
 		}
@@ -369,7 +407,7 @@ public class CliModuleOperateDatabase implements CliModule {
 		System.out.println();
 		System.out.println("Usage for H2 (Play internal db serverless):");
 		System.out.println(" " + getCliModuleName() + " -h2 -export filename.sql");
-		// System.out.println(" " + getCliModuleName() + " -h2 -import filename.sql"); //TODO import
+		System.out.println(" " + getCliModuleName() + " -h2 -import filename.sql");
 		System.out.println();
 		System.out.println(" " + getCliModuleName() + " -ualog from");
 		System.out.println("  from: in minutes, or 0 for dump all (limited to 1000 lines max)");
