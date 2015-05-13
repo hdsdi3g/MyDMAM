@@ -39,16 +39,26 @@
 			},
 			handleClick: function(e) {
 				e.preventDefault();
-				//TODO
+				if (this.state.sort == null) {
+					this.setState({
+						sort: 'desc',
+					});
+				} else if (this.state.sort === 'asc')  {
+					this.setState({
+						sort: null,
+					});
+				} else {
+					this.setState({
+						sort: 'asc',
+					});
+				}
+				this.props.onChangeState(this.props.colname, this.state.sort);
 			},
 			render: function() {
-				//this.props.colname
-				//this.props.onChangeState(colname, order);
-				//TODO
-
 				var is_up = false;
 				var is_down = true;
 				var btn_active = false;
+
 				if (this.state.sort != null) {
 					is_up = (this.state.sort === 'asc');
 					is_down = (this.state.sort === 'desc');
@@ -66,7 +76,7 @@
 				});
 
 				return (
-					<button className={btn_classes}>
+					<button className={btn_classes} onClick={this.handleClick}>
 						<i className={icon_classes}></i>
 					</button>
 				);
@@ -165,6 +175,8 @@
 					} else if (reference.path.lastIndexOf("/") === 0) {
 						navigatetarget = reference.storagename + ":/";
 					}
+					console.log(navigatetarget);
+
 					var url_goback = url_navigate + "#" + navigatetarget;
 					var go_back = (
 						<a
@@ -402,6 +414,7 @@
 			navigateTo: function(pathindex, page_from, page_size) {
 				var stat = mydmam.stat;
 				var pathindex_key = md5(pathindex);
+				console.log(pathindex);
 				var request = {
 					pathelementskeys: [pathindex_key],
 					page_from: page_from,
