@@ -28,6 +28,51 @@
 		var FileSize = mydmam.async.pathindex.reactFileSize;
 		var Metadata1Line = mydmam.async.pathindex.reactMetadata1Line;
 
+		var ButtonSort = React.createClass({
+			getInitialState: function() {
+				return {
+					sort: null,
+				};
+			},
+			componentDidMount: function() {
+				//TODO get current sort by stat result
+			},
+			handleClick: function(e) {
+				e.preventDefault();
+				//TODO
+			},
+			render: function() {
+				//this.props.colname
+				//this.props.onChangeState(colname, order);
+				//TODO
+
+				var is_up = false;
+				var is_down = true;
+				var btn_active = false;
+				if (this.state.sort != null) {
+					is_up = (this.state.sort === 'asc');
+					is_down = (this.state.sort === 'desc');
+					btn_active = true;
+				}
+
+				var btn_classes = classNames({
+				    'btn': true, 'btn-mini': true, 'pull-right': true,
+			    	'active': btn_active,
+				});
+				var icon_classes = classNames({
+					'pull-right': true,
+				    'icon-chevron-up': is_up,
+				    'icon-chevron-down': is_down,
+				});
+
+				return (
+					<button className={btn_classes}>
+						<i className={icon_classes}></i>
+					</button>
+				);
+			}
+		});
+
 		var BreadCrumb = React.createClass({
 			render: function() {
 				var storagename = this.props.storagename;
@@ -183,6 +228,9 @@
 		var ItemContent = mydmam.async.pathindex.reactMetadataFull;
 
 		var NavigateTable = React.createClass({
+			handleChangeSort: function(colname) {
+				console.log(colname);//TODO
+			},
 			render: function() {
 				var items = this.props.stat.items;
 				if (!items) {
@@ -202,8 +250,15 @@
 
 				var thead = null;
 				if (reference.storagename) {
-					//TODO sort btn
-					thead = (<thead><tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr></thead>);
+					thead = (
+						<thead><tr>
+							<td><ButtonSort onChangeState={this.handleChangeSort} colname="path" /></td>
+							<td><ButtonSort onChangeState={this.handleChangeSort} colname="size" /></td>
+							<td><ButtonSort onChangeState={this.handleChangeSort} colname="date" /></td>
+							<td>&nbsp;</td>
+							<td>&nbsp;</td>
+						</tr></thead>
+					);
 				}
 				var tbody = [];
 				for (var pos = 0; pos < dircontent.length; pos++) {
@@ -355,6 +410,8 @@
 					scopes_subelements: [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
 					search: JSON.stringify(''),
 					sort: [
+						//@see stat.SortDirListing.Col: sortedfilename, date, directory, size
+						// ASC / DESC
 						//{colname: "size", order: "ASC"}
 					],
 				};
