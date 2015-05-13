@@ -28,61 +28,6 @@
 		var FileSize = mydmam.async.pathindex.reactFileSize;
 		var Metadata1Line = mydmam.async.pathindex.reactMetadata1Line;
 
-		var ButtonSort = React.createClass({
-			getInitialState: function() {
-				return {
-					sort: null,
-				};
-			},
-			componentDidMount: function() {
-				//TODO get current sort by stat result
-			},
-			handleClick: function(e) {
-				e.preventDefault();
-				if (this.state.sort == null) {
-					this.setState({
-						sort: 'desc',
-					});
-				} else if (this.state.sort === 'asc')  {
-					this.setState({
-						sort: null,
-					});
-				} else {
-					this.setState({
-						sort: 'asc',
-					});
-				}
-				this.props.onChangeState(this.props.colname, this.state.sort);
-			},
-			render: function() {
-				var is_up = false;
-				var is_down = true;
-				var btn_active = false;
-
-				if (this.state.sort != null) {
-					is_up = (this.state.sort === 'asc');
-					is_down = (this.state.sort === 'desc');
-					btn_active = true;
-				}
-
-				var btn_classes = classNames({
-				    'btn': true, 'btn-mini': true, 'pull-right': true,
-			    	'active': btn_active,
-				});
-				var icon_classes = classNames({
-					'pull-right': true,
-				    'icon-chevron-up': is_up,
-				    'icon-chevron-down': is_down,
-				});
-
-				return (
-					<button className={btn_classes} onClick={this.handleClick}>
-						<i className={icon_classes}></i>
-					</button>
-				);
-			}
-		});
-
 		var BreadCrumb = React.createClass({
 			render: function() {
 				var storagename = this.props.storagename;
@@ -175,7 +120,6 @@
 					} else if (reference.path.lastIndexOf("/") === 0) {
 						navigatetarget = reference.storagename + ":/";
 					}
-					console.log(navigatetarget);
 
 					var url_goback = url_navigate + "#" + navigatetarget;
 					var go_back = (
@@ -185,7 +129,7 @@
 							href={url_goback}
 							title={i18n('browser.goback')}
 							onClick={this.props.navigate}
-							data-navigatetarget={navigatetarget}>
+							data-navigatetarget="../">
 							<i className="icon-chevron-left"></i>
 						</a>
 					);
@@ -239,9 +183,60 @@
 
 		var ItemContent = mydmam.async.pathindex.reactMetadataFull;
 
+		var ButtonSort = React.createClass({
+			handleClick: function(e) {
+				e.preventDefault();
+				this.props.onChangeState(this.props.colname, this.props.order);
+			},
+			render: function() {
+				var is_up = false;
+				var is_down = false;
+				var btn_active = false;
+
+				if (this.props.order != null) {
+					is_up = (this.props.order === 'asc');
+					is_down = (this.props.order === 'desc');
+					btn_active = true;
+				}
+
+				var btn_classes = classNames({
+				    'btn': true, 'btn-mini': true, 'pull-right': true,
+			    	'active': btn_active,
+				});
+				var icon_classes = classNames({
+					'pull-right': true,
+				    'icon-chevron-up': is_up,
+				    'icon-chevron-down': is_down,
+				    'icon-minus': ((is_up === false) & (is_down === false)),
+				});
+
+				return (
+					<button className={btn_classes} onClick={this.handleClick}>
+						<i className={icon_classes}></i>
+					</button>
+				);
+			}
+		});
+
 		var NavigateTable = React.createClass({
-			handleChangeSort: function(colname) {
-				console.log(colname);//TODO
+			getInitialState: function() {
+				return {
+					sorted_col: null,
+					sorted_order: null,
+				};
+			},
+			handleChangeSort: function(colname, previous_order) {
+				var order = null;
+				if (previous_order == null) {
+					order = "desc";
+				} else if (previous_order === "desc") {
+					order = "asc";
+				}
+				this.setState({
+					sorted_col: colname,
+					sorted_order: order,
+				});
+				this.props.changeOrderSort(colname, order);
 			},
 			render: function() {
 				var items = this.props.stat.items;
@@ -262,11 +257,15 @@
 
 				var thead = null;
 				if (reference.storagename) {
+					var order_path = (this.state.sorted_col === 'path' ? this.state.sorted_order : null);
+					var order_size = (this.state.sorted_col === 'size' ? this.state.sorted_order : null);
+					var order_date = (this.state.sorted_col === 'date' ? this.state.sorted_order : null);
+
 					thead = (
 						<thead><tr>
-							<td><ButtonSort onChangeState={this.handleChangeSort} colname="path" /></td>
-							<td><ButtonSort onChangeState={this.handleChangeSort} colname="size" /></td>
-							<td><ButtonSort onChangeState={this.handleChangeSort} colname="date" /></td>
+							<td><ButtonSort onChangeState={this.handleChangeSort} colname="path" order={order_path} /></td>
+							<td className="pathindex-col-size"><ButtonSort onChangeState={this.handleChangeSort} colname="size" order={order_size} /></td>
+							<td className="pathindex-col-date"><ButtonSort onChangeState={this.handleChangeSort} colname="date" order={order_date} /></td>
 							<td>&nbsp;</td>
 							<td>&nbsp;</td>
 						</tr></thead>
@@ -409,12 +408,15 @@
 					stat: {},
 					pathindex: "",
 					default_page_size: 20,
+					sort_order: [],
 				};
 			},
-			navigateTo: function(pathindex, page_from, page_size) {
+			navigateTo: function(pathindex, page_from, page_size, sort) {
 				var stat = mydmam.stat;
 				var pathindex_key = md5(pathindex);
-				console.log(pathindex);
+				if (sort == null) {
+					sort = this.state.sort_order;
+				}
 				var request = {
 					pathelementskeys: [pathindex_key],
 					page_from: page_from,
@@ -422,11 +424,7 @@
 					scopes_element: [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
 					scopes_subelements: [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
 					search: JSON.stringify(''),
-					sort: [
-						//@see stat.SortDirListing.Col: sortedfilename, date, directory, size
-						// ASC / DESC
-						//{colname: "size", order: "ASC"}
-					],
+					sort: sort,
 				};
 
 				//TODO manage search
@@ -447,6 +445,7 @@
 							stat: data,
 							pathindex: pathindex,
 							default_page_size: page_size,
+							sort_order: sort,
 						});
 					} else {
 						if (page_from > 0) {
@@ -470,7 +469,47 @@
 			handleOnClickANavigateToNewDest: function(e) {
 				e.preventDefault();
 				var pathindex_target = $(e.currentTarget).data("navigatetarget");
+				if (pathindex_target === '../') {
+					/** Go to the parent directory */
+					if (this.state.pathindex === "") {
+						return;
+					}
+					if (this.state.pathindex.endsWith(":/")) {
+						pathindex_target = "";
+					} else {
+						pathindex_target = this.state.pathindex.substring(0, this.state.pathindex.lastIndexOf("/"));
+						if (pathindex_target.endsWith(":")) {
+							pathindex_target += '/';
+						}
+					}
+				}
 				this.navigateTo(pathindex_target, 0, this.state.default_page_size);
+			},
+			handlechangeOrderSort: function(colname, order) {
+				var stat_order = [];
+				if (order != null) {
+					/*	@see stat.SortDirListing.Col: sortedfilename, date, directory, size
+						ASC / DESC {colname: "size", order: "ASC"}
+					*/
+					var order = order.toUpperCase();
+					if (colname === 'size') {
+						// directories has not sizes. We put them to the bottom.
+						stat_order = [
+							{colname: "directory", order: "ASC"},
+							{colname: "size", order: order},
+						];
+					} else if (colname === 'date') {
+						stat_order = [
+							{colname: "date", order: order},
+						];
+					} else {
+						// path, with natural sort (no separate dirs and files).
+						stat_order = [
+							{colname: "sortedfilename", order: order},
+						];
+					}
+				}
+				this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, stat_order);
 			},
 			render: function() {
 				var stat = this.state.stat[md5(this.state.pathindex)];
@@ -530,7 +569,8 @@
 							navigate={this.handleOnClickANavigateToNewDest} />
 						<NavigateTable
 							stat={stat}
-							navigate={this.handleOnClickANavigateToNewDest} />
+							navigate={this.handleOnClickANavigateToNewDest}
+							changeOrderSort={this.handlechangeOrderSort} />
 						{display_pagination}
 					</div>
 				);

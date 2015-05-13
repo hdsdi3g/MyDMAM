@@ -43,6 +43,7 @@
 			},
 			componentDidMount: function() {
 				this.setState({new_q: this.props.results.q});
+				React.findDOMNode(this.refs.q).focus();
 			},
 			handleChange: function(event) {
 				this.setState({new_q: React.findDOMNode(this.refs.q).value});

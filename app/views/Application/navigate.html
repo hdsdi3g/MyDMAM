@@ -27,7 +27,6 @@ $(document).ready(function() {
 	$("#btnStorage").addClass("active");
 	try {
 		mydmam.async.navigate(decodeURIComponent(window.location.hash.substring(1)), $("#navigatecontainer")[0]);
-		//mydmam.navigator.displayStoragePathNavigator("storageelem", decodeURIComponent(window.location.hash.substring(1)), false);
 	} catch (err) {
 		console.error(err);
 	}
