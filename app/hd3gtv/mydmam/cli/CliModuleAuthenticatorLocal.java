@@ -12,6 +12,26 @@ import java.util.List;
 
 public class CliModuleAuthenticatorLocal implements CliModule {
 	
+	private static File default_localauth_dbfile = new File("auth.db");
+	private static String default_master_password_key = "masterkey";
+	
+	static {
+		AuthenticatorLocalsqlite localauth;
+		List<Authenticator> auths = AuthenticationBackend.getAuthenticators();
+		for (int pos = 0; pos < auths.size(); pos++) {
+			if ((auths.get(pos) instanceof AuthenticatorLocalsqlite) == false) {
+				continue;
+			}
+			localauth = (AuthenticatorLocalsqlite) auths.get(pos);
+			if (localauth.getDbfile().exists() == false) {
+				continue;
+			}
+			default_localauth_dbfile = localauth.getDbfile();
+			default_master_password_key = localauth.getMaster_password_key();
+			break;
+		}
+	}
+	
 	public String getCliModuleName() {
 		return "localauth";
 	}
@@ -39,20 +59,12 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 		
 		String filename = args.getSimpleParamValue("-f");
 		if (filename == null) {
-			showFullCliModuleHelp();
-			System.err.println();
-			System.err.println("You don't set filename !");
-			System.err.println("Cancel operation");
-			return;
+			filename = default_localauth_dbfile.getAbsolutePath();
 		}
 		
 		String master_password_key = args.getSimpleParamValue("-key");
 		if (master_password_key == null) {
-			showFullCliModuleHelp();
-			System.err.println();
-			System.err.println("You don't set master password key !");
-			System.err.println("Cancel operation");
-			return;
+			master_password_key = default_master_password_key;
 		}
 		
 		AuthenticatorLocalsqlite db = new AuthenticatorLocalsqlite(new File(filename), master_password_key);
@@ -124,6 +136,14 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 			}
 			return;
 		}
+		if (args.getParamExist("-list")) {
+			boolean disabled = args.getParamExist("-disabled");
+			List<String> list = db.getUserList((disabled == false));
+			for (int pos = 0; pos < list.size(); pos++) {
+				System.out.println(list.get(pos));
+			}
+			return;
+		}
 		if (args.getParamExist("-disable")) {
 			if (username == null) {
 				showFullCliModuleHelp();
@@ -169,15 +189,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 			Log2.log.info("About user", db.getUserInformations(username));
 			return;
 		}
-		if (args.getParamExist("-list")) {
-			boolean disabled = args.getParamExist("-disable");
-			List<String> list = db.getUserList((disabled == false));
-			for (int pos = 0; pos < list.size(); pos++) {
-				System.out.println(list.get(pos));
-			}
-			return;
-		}
-		
 		if (args.getParamExist("-passwd")) {
 			if (username == null) {
 				showFullCliModuleHelp();
@@ -237,7 +248,7 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 	}
 	
 	public void showFullCliModuleHelp() {
-		System.out.println("Usage: " + getCliModuleName() + " -f conf/auth.db -key masterkey");
+		System.out.println("Usage: " + getCliModuleName());
 		System.out.println("and");
 		System.out.println(" -add -u user [-name \"Full Name\"] [-disable]");
 		System.out.println("  create user, -name user long name, -disable disabled by default");
@@ -247,12 +258,16 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 		System.out.println(" -enable -u user");
 		System.out.println(" -disable -u user");
 		System.out.println(" -info -u user");
-		System.out.println(" -list [-disable]");
-		System.out.println("  show users list, -disable to show disabled users");
+		System.out.println(" -list [-disabled]");
+		System.out.println("  show users list, -disabled to show disabled users");
 		System.out.println(" -passwd -u user");
 		System.out.println("  change password for user");
 		System.out.println(" -rename -u user -name \"Full Name\"");
 		System.out.println("  change user long name");
+		System.out.println(" -f " + default_localauth_dbfile.getAbsolutePath());
+		System.out.println("  change the default local SQLite file");
+		System.out.println(" -key " + default_master_password_key);
+		System.out.println("  change the default SQLite password file");
 		System.out.println("Or");
 		System.out.println(" -autotest");
 		System.out.println("  test bCrypt and auth sqlite internal functions");
@@ -261,6 +276,7 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 		if (auths.isEmpty()) {
 			return;
 		}
+		System.out.println();
 		System.out.println("With actual configured local auth:");
 		
 		AuthenticatorLocalsqlite localauth;
@@ -278,6 +294,6 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 			System.out.print(localauth.getMaster_password_key());
 			System.out.println();
 		}
-		
 	}
+	
 }
