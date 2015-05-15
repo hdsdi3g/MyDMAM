@@ -96,8 +96,17 @@ public class StatisticsTime {
 		private long stddev = 0;
 		
 		private StatisticTimeResult(ArrayList<Long> al_values) {
+			if (al_values.size() < 2) {
+				return;
+			}
 			Collections.sort(al_values, new Comparator<Long>() {
 				public int compare(Long o1, Long o2) {
+					if (o1 == null) {
+						return -1;
+					}
+					if (o2 == null) {
+						return 1;
+					}
 					if (o1 == o2) {
 						return 0;
 					} else if (o1 < o2) {
