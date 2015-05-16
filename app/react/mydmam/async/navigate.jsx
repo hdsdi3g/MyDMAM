@@ -15,8 +15,8 @@
  * 
 */
 (function(mydmam) {
-
 	mydmam.async.navigate = function(pathindex_destination, dom_target) {
+		
 		if (!dom_target) {
 			return;
 		}

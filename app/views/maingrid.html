@@ -62,7 +62,7 @@
 		#{script src:item, charset:'utf-8' /}
 	#{/list}
 	
-	%{ if (play.mode.toString() == "DEV"){ }%
+	%{ if (hd3gtv.mydmam.web.JsCompile.COMPILE_JS == false){ }%
 		#{list hd3gtv.mydmam.web.JSXTransformer.getJSXURLList(), as:'item'}
 			<script src="&{item}" type="text/javascript" charset="UTF-8"></script>
 		#{/list}

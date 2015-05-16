@@ -18,14 +18,18 @@
 */
 package hd3gtv.mydmam.web;
 
+import static org.apache.commons.io.IOUtils.closeQuietly;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.util.ArrayList;
@@ -45,6 +49,8 @@ import org.mozilla.javascript.commonjs.module.provider.ModuleSourceProvider;
 import org.mozilla.javascript.commonjs.module.provider.SoftCachingModuleScriptProvider;
 import org.mozilla.javascript.commonjs.module.provider.UrlModuleSourceProvider;
 
+import play.exceptions.UnexpectedException;
+import play.libs.IO;
 import play.mvc.Router;
 import play.vfs.VirtualFile;
 import controllers.AsyncJavascript;
@@ -184,23 +190,65 @@ public class JSXTransformer {
 		}
 	}
 	
-	public static List<String> getJSXURLList() {
-		List<String> list = new ArrayList<String>();
+	public static class JSXItem {
+		File realfile;
+		String namespace;
 		
-		List<VirtualFile> main_dirs = JsCompile.getAllfromRelativePath(JSX_SRC, true, true);
-		List<VirtualFile> jsx_vfiles = new ArrayList<VirtualFile>();
-		for (int pos = 0; pos < main_dirs.size(); pos++) {
-			jsx_vfiles.addAll(main_dirs.get(pos).list());
+		String getRessourceName() {
+			return namespace;
 		}
 		
-		VirtualFile jsx_file;
+		JSXItem(File realfile, File jsx_root_dir) {
+			this.realfile = realfile;
+			namespace = realfile.getAbsolutePath();
+			namespace = namespace.substring(jsx_root_dir.getAbsolutePath().length() + 1, namespace.length()).replaceAll(File.separator, ".");
+		}
+		
+		public static String getRelativePathFromRessourceName(String ressourcename) throws FileNotFoundException {
+			if (ressourcename.endsWith(".jsx") == false) {
+				throw new FileNotFoundException(ressourcename + " is not a JSX file.");
+			}
+			StringBuilder sb = new StringBuilder();
+			sb.append(JSXTransformer.JSX_SRC);
+			sb.append("/");
+			sb.append(ressourcename.substring(0, ressourcename.lastIndexOf(".")).replaceAll("\\.", "/"));
+			sb.append(".jsx");
+			return sb.toString();
+		}
+	}
+	
+	private static void recursiveList(List<JSXItem> list, File from, File jsx_root_dir) {
+		File[] current_list = from.listFiles(new FileFilter() {
+			public boolean accept(File pathname) {
+				return pathname.getName().endsWith(".jsx") | pathname.isDirectory();
+			}
+		});
+		for (int pos = 0; pos < current_list.length; pos++) {
+			if (current_list[pos].isDirectory()) {
+				recursiveList(list, current_list[pos], jsx_root_dir);
+			} else {
+				list.add(new JSXItem(current_list[pos], jsx_root_dir));
+			}
+		}
+	}
+	
+	private static List<JSXItem> getAllJSXItems() {
+		List<JSXItem> result = new ArrayList<JSXTransformer.JSXItem>();
+		List<VirtualFile> main_dirs = JsCompile.getAllfromRelativePath(JSX_SRC, true, true);
+		for (int pos = 0; pos < main_dirs.size(); pos++) {
+			recursiveList(result, main_dirs.get(pos).getRealFile(), main_dirs.get(pos).getRealFile());
+		}
+		return result;
+	}
+	
+	public static List<String> getJSXURLList() {
+		List<String> list = new ArrayList<String>();
+		List<JSXItem> jsx_vfiles = getAllJSXItems();
+		JSXItem jsx_file;
 		HashMap<String, Object> args = new HashMap<String, Object>();
 		for (int pos = 0; pos < jsx_vfiles.size(); pos++) {
 			jsx_file = jsx_vfiles.get(pos);
-			if (jsx_file.getName().endsWith(".jsx") == false) {
-				continue;
-			}
-			args.put("ressource_name", jsx_file.getName());
+			args.put("ressource_name", jsx_file.getRessourceName());
 			list.add(Router.reverse(AsyncJavascript.class.getName() + "." + "dynamicCompileJSX", args).url);
 		}
 		
@@ -208,12 +256,23 @@ public class JSXTransformer {
 		return list;
 	}
 	
-	public static String getJSXContentFromURLList(VirtualFile jsx_vfile, boolean transfrom, boolean catch_js_problem) throws FileNotFoundException {
-		String v_file_content = jsx_vfile.contentAsString();
+	public static String getJSXContentFromURLList(File jsx_file, String ressource_name, boolean transfrom, boolean catch_js_problem) throws FileNotFoundException {
+		String v_file_content;
+		try {
+			InputStream is = new FileInputStream(jsx_file);
+			try {
+				v_file_content = IO.readContentAsString(is);
+			} finally {
+				closeQuietly(is);
+			}
+		} catch (Exception e) {
+			throw new UnexpectedException(e);
+		}
+		
 		if (transfrom == false) {
 			return v_file_content;
 		}
-		return global.transform(v_file_content, catch_js_problem, jsx_vfile.getName());
+		return global.transform(v_file_content, catch_js_problem, ressource_name);
 	}
 	
 	public static void transformAllJSX() {
@@ -240,28 +299,22 @@ public class JSXTransformer {
 			return;
 		}
 		
-		List<VirtualFile> main_dirs = JsCompile.getAllfromRelativePath(JSX_SRC, true, true);
-		List<VirtualFile> jsx_vfiles = new ArrayList<VirtualFile>();
-		for (int pos = 0; pos < main_dirs.size(); pos++) {
-			jsx_vfiles.addAll(main_dirs.get(pos).list());
-		}
-		
-		VirtualFile jsx_file;
+		List<JSXItem> jsx_vfiles = getAllJSXItems();
+		JSXItem jsx_file;
 		File dest_js_file;
 		String js_content;
 		FileWriter fw = null;
 		
 		for (int pos = 0; pos < jsx_vfiles.size(); pos++) {
 			jsx_file = jsx_vfiles.get(pos);
-			if (jsx_file.getName().endsWith(".jsx") == false) {
-				continue;
-			}
 			try {
-				js_content = "// DO NOT EDIT THIS FILE\n// THIS FILE WAS GENERATED AUTOMATICALLY BY JSXTRANSFORMER\n\n" + getJSXContentFromURLList(jsx_file, true, false);
-				dest_js_file = new File(js_dest_dir_path + "/" + "ZZZZZZZZZZZZZZZ.react." + jsx_file.getName() + ".js");
+				js_content = "// DO NOT EDIT THIS FILE\n// THIS FILE WAS GENERATED AUTOMATICALLY BY JSXTRANSFORMER\n\n"
+						+ getJSXContentFromURLList(jsx_file.realfile, jsx_file.getRessourceName(), true, false);
+				dest_js_file = new File(js_dest_dir_path + "/" + "ZZZZZZZZZZZZZZZ.react." + jsx_file.getRessourceName() + ".js");
 				
 				dump = new Log2Dump();
-				dump.add("jsx_file", jsx_file.getRealFile());
+				dump.add("jsx_file", jsx_file.realfile);
+				dump.add("jsx_ressource", jsx_file.getRessourceName());
 				dump.add("dest_js_file", dest_js_file);
 				Log2.log.debug("Transform JSX File", dump);
 				
@@ -270,7 +323,7 @@ public class JSXTransformer {
 				fw.close();
 				fw = null;
 			} catch (Exception e) {
-				Log2.log.error("Can't transform JSX", e, new Log2Dump("file", jsx_file.getRealFile()));
+				Log2.log.error("Can't transform JSX", e, new Log2Dump("file", jsx_file.realfile));
 				continue;
 			} finally {
 				if (fw != null) {
