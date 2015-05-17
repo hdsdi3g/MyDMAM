@@ -47,6 +47,12 @@ navigate.HeaderItem = React.createClass({
 			</a>
 		);
 
+
+		var is_in_search_label = null;
+		if (this.props.is_in_search) {
+			is_in_search_label = (<span className="badge badge-info" style={{marginLeft: 10}}>{i18n("browser.search")}</span>);
+		}
+
 		var summary = null;
 		if (reference.path != "/") {
 				var element_name = reference.path.substring(reference.path.lastIndexOf("/") + 1);
@@ -63,7 +69,7 @@ navigate.HeaderItem = React.createClass({
 			} else {
 				summary = (<span>{reference.storagename} <small>{i18n("browser.storage")}</small></span>);
 			}
-			header_title = (<span>{go_back} {summary}</span>);
+			header_title = (<span>{go_back} {summary}{is_in_search_label}</span>);
 		} else {
 			header_title = (
 				<span>

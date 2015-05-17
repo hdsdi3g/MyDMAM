@@ -30,25 +30,24 @@ navigate.NavigatePage = React.createClass({
 		if (sort == null) {
 			sort = this.state.sort_order;
 		}
+		var search = "";
+		if (this.state.inputboxsearch) {
+			if (pathindex !== this.state.pathindex) {
+				this.state.inputboxsearch.value = "";
+			}
+			search = this.state.inputboxsearch.value;
+		}
+		search = JSON.stringify(search);
+
 		var request = {
 			pathelementskeys: [pathindex_key],
 			page_from: page_from,
 			page_size: page_size,
 			scopes_element: [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
 			scopes_subelements: [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
-			search: JSON.stringify(''),
+			search: search,
 			sort: sort,
 		};
-
-		//TODO manage search
-		// https://facebook.github.io/react/tips/use-react-with-other-libraries.html
-		/*
-		$('#sitesearch').bind('keyup.DT', function(e) {
-			var val = this.value === "" ? "" : this.value;
-			$('.dataTables_filter input').val(val);
-			$('.dataTables_filter input').trigger("keyup.DT");
-		});
-		*/
 
 		document.body.style.cursor = 'wait';
 		mydmam.async.request("stat", "cache", request, function(data) {
@@ -124,6 +123,14 @@ navigate.NavigatePage = React.createClass({
 		}
 		this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, stat_order);
 	},
+	handleChangeSearchBox: function(dom_inputbox) {
+		if (!this.state.inputboxsearch) {
+			this.setState({
+				inputboxsearch: dom_inputbox,
+			});
+		}
+		this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, null);
+	},
 	render: function() {
 		var stat = this.state.stat[md5(this.state.pathindex)];
 		if (!stat) {
@@ -155,14 +162,23 @@ navigate.NavigatePage = React.createClass({
 		}
 		
 		var display_pagination = null;
-		if (stat.items_total) {
-			var Pagination = mydmam.async.pagination.reactBlock;
+		if (stat.items_total & !stat.search_return_nothing) {
 			display_pagination = (
-				<Pagination
+				<mydmam.async.pagination.reactBlock
 					pagecount={Math.ceil(stat.items_total / stat.items_page_size)}
 					currentpage={stat.items_page_from + 1}
 					onClickButton={this.handlePaginationSwitchPage} />
 			);
+		}
+
+		var noresult = null;
+		if (stat.search_return_nothing) {
+			noresult = (<navigate.NoResultsSearch />);
+		}
+
+		var is_in_search = false;
+		if (this.state.inputboxsearch) {
+			is_in_search = this.state.inputboxsearch.value != "";
 		}
 
 		return (
@@ -175,7 +191,8 @@ navigate.NavigatePage = React.createClass({
 					reference={stat.reference}
 					first_item_dateindex={first_item_dateindex}
 					pathindexkey={md5(this.state.pathindex)}
-					navigate={this.handleOnClickANavigateToNewDest} />
+					navigate={this.handleOnClickANavigateToNewDest}
+					is_in_search={is_in_search} />
 				<mydmam.async.pathindex.reactMetadataFull
 					reference={stat.reference}
 					mtdsummary={stat.mtdsummary}
@@ -185,6 +202,9 @@ navigate.NavigatePage = React.createClass({
 					navigate={this.handleOnClickANavigateToNewDest}
 					changeOrderSort={this.handlechangeOrderSort} />
 				{display_pagination}
+				{noresult}
+				<navigate.SearchBox
+					changeStateInputbox={this.handleChangeSearchBox} />
 			</div>
 		);
 	}

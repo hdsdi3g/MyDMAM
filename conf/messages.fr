@@ -220,6 +220,7 @@ browser.emptydir=vide
 browser.oneelement=1 élément
 browser.Nelements=%s éléments
 browser.goback=Retour
+browser.search=Recherche intégrée
 browser.loadingplayer=Chargement du lecteur...
 browser.inputselect.loading=Chargement... 
 browser.inputselect.errorduringloading=Erreur pendant le chargement !

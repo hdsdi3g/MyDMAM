@@ -50,6 +50,8 @@ public class AsyncStatResultElement extends AsyncStatResultSubElement {
 	 */
 	Integer items_page_size;
 	
+	Boolean search_return_nothing;
+	
 	static class Serializer implements AsyncJSSerializer<AsyncStatResultElement> {
 		public JsonElement serialize(AsyncStatResultElement src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = Stat.gson_simple.toJsonTree(src).getAsJsonObject();
