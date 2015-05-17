@@ -1,7 +1,19 @@
 # Application dependencies
+# - configure this file
+# - play dependencies --verbose
+# - don't forget to rename all files to module/* in {mymodulename-1.0} else Play don't load them.
 
 require:
     - play
+    # - myorganisation -> mymodulename 1.0
 
-# Enables modules here :
-#    - foobar
+#repositories:
+#    - myModules:  
+#        type: chain
+#        using:            
+#            - locRep:
+#                type: local       
+#                descriptor: /path/to/the/all/modules/[module]/conf/dependencies.yml
+#                artifact: /path/to/the/all/modules/[module]
+#        contains:
+#             - myorganisation -> *
