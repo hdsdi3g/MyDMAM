@@ -129,7 +129,13 @@ navigate.NavigatePage = React.createClass({
 				inputboxsearch: dom_inputbox,
 			});
 		}
-		this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, null);
+		var stat = this.state.stat[md5(this.state.pathindex)];
+		if (!stat) {
+			return;
+		}
+		if (stat.reference.directory) {
+			this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, null);
+		}
 	},
 	render: function() {
 		var stat = this.state.stat[md5(this.state.pathindex)];
