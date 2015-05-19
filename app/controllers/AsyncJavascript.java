@@ -19,15 +19,17 @@ package controllers;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.web.AsyncJSManager;
 import hd3gtv.mydmam.web.JSXTransformer;
+import hd3gtv.mydmam.web.JSXTransformer.JSXItem;
 import hd3gtv.mydmam.web.JsCompile;
 
 import java.io.FileNotFoundException;
-import java.util.List;
+import java.util.Date;
 
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
+import play.utils.Utils;
 import play.vfs.VirtualFile;
 
 @With(Secure.class)
@@ -43,16 +45,25 @@ public class AsyncJavascript extends Controller {
 	
 	public static void dynamicCompileJSX(@Required String ressource_name) {
 		try {
-			List<VirtualFile> search_vfile = JsCompile.getAllfromRelativePath(JSXTransformer.JSX_SRC + "/" + ressource_name, true, false);
-			if (search_vfile.isEmpty()) {
-				throw new FileNotFoundException(JSXTransformer.JSX_SRC + "/" + ressource_name);
+			VirtualFile v_file = JsCompile.getTheFirstFromRelativePath(JSXItem.getRelativePathFromRessourceName(ressource_name), true, false);
+			if (v_file == null) {
+				throw new FileNotFoundException(ressource_name);
 			}
-			VirtualFile v_file = search_vfile.get(0);
+			String etag = v_file.getRealFile().lastModified() + "--";
+			long last_modified = v_file.getRealFile().lastModified();
 			
-			String jsx_compiled = JSXTransformer.getJSXContentFromURLList(v_file, true, true);
+			if (request.isModified(etag, last_modified) == false) {
+				response.setHeader("Etag", etag);
+				notModified();
+			}
+			
+			String jsx_compiled = JSXTransformer.getJSXContentFromURLList(v_file.getRealFile(), ressource_name, true, true);
 			response.setHeader("Content-Length", jsx_compiled.length() + "");
 			response.setHeader("Content-Type", "text/javascript");
+			response.setHeader("Etag", etag);
+			response.setHeader("Last-Modified", Utils.getHttpDateFormatter().format(new Date(last_modified)));
 			renderText(jsx_compiled);
+			
 		} catch (Exception e) {
 			Log2.log.error("JSX Transformer Error", e);
 		}

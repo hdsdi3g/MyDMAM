@@ -220,6 +220,7 @@ browser.emptydir=empty
 browser.oneelement=1 element
 browser.Nelements=%s elements
 browser.goback=Go back
+browser.search=Integrated search
 browser.loadingplayer=Loading the player...
 browser.inputselect.loading=Loading... 
 browser.inputselect.errorduringloading=Error during loading !

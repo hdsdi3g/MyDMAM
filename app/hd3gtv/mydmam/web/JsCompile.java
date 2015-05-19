@@ -112,6 +112,24 @@ public class JsCompile {
 		return file_list;
 	}
 	
+	/**
+	 * Get all items named and on this path, from all modules, and not only the first.
+	 */
+	public static VirtualFile getTheFirstFromRelativePath(String path, boolean must_exists, boolean must_directory) {
+		VirtualFile child;
+		for (VirtualFile vfile : Play.roots) {
+			child = vfile.child(path);
+			if (must_exists & (child.exists() == false)) {
+				continue;
+			}
+			if (must_directory & (child.isDirectory() == false)) {
+				continue;
+			}
+			return child;
+		}
+		return null;
+	}
+	
 	public static List<VirtualFile> prepareFiles() {
 		List<VirtualFile> file_list = new ArrayList<VirtualFile>();
 		

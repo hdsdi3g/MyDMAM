@@ -198,7 +198,7 @@ public class MyDMAMModulesManager {
 			if (modules_names != null) {
 				modules_names.remove("play");
 				for (int pos_mn = 0; pos_mn < modules_names.size(); pos_mn++) {
-					File conf_dir = new File(applicationconf.getProperty("module." + modules_names.get(pos_mn), "") + File.separator + "conf");
+					File conf_dir = new File(applicationconf.getProperty("module." + modules_names.get(pos_mn), "") + File.separator + "conf"); // TODO use dependencies.yml for that
 					if ((conf_dir.exists() == false) | (conf_dir.isDirectory() == false)) {
 						Log2.log.error("Can't found module conf directory", new FileNotFoundException(conf_dir.getPath()), new Log2Dump("module name", modules_names.get(pos_mn)));
 						continue;

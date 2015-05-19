@@ -84,6 +84,8 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 		if (sanitise != null) {
 			jo.addProperty("idxfilename", sanitise);
 		}
+		jo.addProperty("sortedfilename", sortedFilename());
+		
 		return jo;
 	}
 	
@@ -134,7 +136,7 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 	private static final Pattern combining_diacritical_marks = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
 	
 	/**
-	 * remove accents, uderscores from path
+	 * remove accents, underscores from path
 	 */
 	public String sanitisePathToFilename() {
 		if (currentpath == null) {
@@ -186,6 +188,53 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 			if (previous_chr != 32) {
 				/** space */
 				sb.append(" ");
+			}
+		}
+		
+		return sb.toString();
+	}
+	
+	/**
+	 * Let ES to sort filenames. "This is a 8 Examplé.txt" => "thisisa8exampletxt"
+	 * @return never null
+	 */
+	public String sortedFilename() {
+		String filename = currentpath;
+		if (filename == null) {
+			filename = storagename;
+		} else if (filename.equals("") | filename.equals("/")) {
+			filename = storagename;
+		}
+		if (filename == null) {
+			return "";
+		}
+		
+		if (filename.indexOf("/") > -1) {
+			int poslastslash = filename.lastIndexOf("/");
+			filename = filename.substring(poslastslash + 1);
+		}
+		
+		String filename_normalized = combining_diacritical_marks.matcher(Normalizer.normalize(filename, Normalizer.Form.NFD)).replaceAll("").trim().toLowerCase();
+		
+		StringBuffer sb = new StringBuffer();
+		char[] filename_chr = filename_normalized.toCharArray();
+		char chr = 0x0;
+		for (int pos = 0; pos < filename_chr.length; pos++) {
+			chr = filename_chr[pos];
+			if (chr > 47 & chr < 58) {
+				/** 0-9 */
+				sb.append(chr);
+				continue;
+			}
+			if (chr > 64 & chr < 91) {
+				/** A-Z */
+				sb.append(chr);
+				continue;
+			}
+			if (chr > 96 & chr < 123) {
+				/** a-z */
+				sb.append(chr);
+				continue;
 			}
 		}
 		

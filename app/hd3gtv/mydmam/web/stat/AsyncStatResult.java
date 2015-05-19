@@ -85,12 +85,14 @@ public final class AsyncStatResult implements AsyncJSResponseObject {
 		return all_path_elements;
 	}
 	
-	void populateDirListsForItems(HashMap<String, Explorer.DirectoryContent> map_dir_list, boolean sub_items_count_items, boolean request_dir_count_items) throws Exception {
+	void populateDirListsForItems(HashMap<String, Explorer.DirectoryContent> map_dir_list, boolean sub_items_count_items, boolean request_dir_count_items, boolean has_search) throws Exception {
 		LinkedHashMap<String, SourcePathIndexerElement> dir_list;
 		HashMap<String, Long> count_result;
 		String element_key;
+		
 		for (Map.Entry<String, AsyncStatResultElement> entry : selected_path_elements.entrySet()) {
 			if (map_dir_list.containsKey(entry.getKey()) == false) {
+				entry.getValue().search_return_nothing = has_search;
 				continue;
 			}
 			dir_list = map_dir_list.get(entry.getKey()).directory_content;
@@ -117,6 +119,7 @@ public final class AsyncStatResult implements AsyncJSResponseObject {
 			}
 			entry.getValue().items_page_from = page_from;
 			entry.getValue().items_page_size = page_size;
+			// System.out.println(map_dir_list.get(entry.getKey()).has_search);
 		}
 		
 	}

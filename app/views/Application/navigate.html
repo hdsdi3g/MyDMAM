@@ -26,8 +26,7 @@ mydmam.basket.setContent(${current_basket_content.raw()});
 $(document).ready(function() {
 	$("#btnStorage").addClass("active");
 	try {
-		mydmam.async.navigate(decodeURIComponent(window.location.hash.substring(1)), $("#navigatecontainer")[0]);
-		//mydmam.navigator.displayStoragePathNavigator("storageelem", decodeURIComponent(window.location.hash.substring(1)), false);
+		mydmam.async.navigate.to(decodeURIComponent(window.location.hash.substring(1)), $("#navigatecontainer")[0]);
 	} catch (err) {
 		console.error(err);
 	}

@@ -67,6 +67,14 @@ div.pathindex a:hover {
     text-decoration: none;
 }
 
+td.pathindex-col-date {
+    width: 140px;
+}
+
+td.pathindex-col-size {
+    width: 150px;
+}
+
 button.basket {
     border-width: 0px;
 }

@@ -1,4 +1,4 @@
-*{
+/*
  * This file is part of MyDMAM.
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -11,28 +11,19 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2012-2015
+ * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
-}*
-#{extends 'maingrid.html' /}
+*/
 
-<div class="container">
-	<p class="lead">&{'search.pagetitle'}</p>
-	<div id="searchcontainer"></div>
-</div>
-
-#{secure.check 'navigate'}
-<script type="text/javascript" charset="UTF-8">
-<!--
-var list_external_positions_storages = ${list_external_positions_storages.raw()};
-
-$(document).ready(function() {
-	try {
-		mydmam.async.search.found(${results.raw()}, $("#searchcontainer")[0]);
-	} catch (err) {
-		console.error(err);
-	}
+pathindex.reactFileSize = React.createClass({
+	render: function() {
+		if (!this.props.size) {
+			return null;
+		}
+		var style = {marginLeft: 5};
+		if (this.props.style) {
+			style = this.props.style;
+		}
+		return (<span className="label label-important" style={style}><i className="icon-briefcase icon-white"></i> {mydmam.format.number(this.props.size)}</span>);
+	},
 });
--->
-</script>
-#{/secure.check}

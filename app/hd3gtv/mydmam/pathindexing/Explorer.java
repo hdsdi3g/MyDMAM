@@ -362,7 +362,7 @@ public class Explorer {
 		searches.setDefaultFrom(from * fetch_size);
 		searches.setDefaultMaxSize(fetch_size);
 		if (sort == null) {
-			searches.setDefaultSort(SortBuilders.fieldSort("directory").order(SortOrder.DESC), SortBuilders.fieldSort("path").order(SortOrder.ASC));
+			searches.setDefaultSort(SortBuilders.fieldSort("directory").order(SortOrder.DESC), SortBuilders.fieldSort("sortedfilename").order(SortOrder.ASC));
 		} else {
 			searches.setDefaultSort(sort.toArray(new SortBuilder[0]));
 		}

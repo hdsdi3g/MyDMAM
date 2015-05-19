@@ -26,7 +26,7 @@ import org.elasticsearch.search.sort.SortOrder;
 public class SortDirListing {
 	
 	public enum Col {
-		path, date, directory, size
+		sortedfilename, date, directory, size
 	};
 	
 	public Col colname;

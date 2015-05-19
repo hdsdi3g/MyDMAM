@@ -160,6 +160,8 @@ public class Stat {
 		search = gson.fromJson(json_search, String.class);
 		if (search.trim().equals("")) {
 			search = null;
+		} else {
+			search = search.toLowerCase();
 		}
 		return this;
 	}
@@ -205,7 +207,7 @@ public class Stat {
 			if (request_dir_dir_list | sub_items_mtd_summary) {
 				map_dir_list = request_response_cache.getDirectoryContentByIdkeys(pathelementskeys, page_from, page_size, sub_items_only_directories, search, request_dir_list_sort,
 						request_dir_pathinfo);
-				result.populateDirListsForItems(map_dir_list, sub_items_count_items, request_dir_count_items);
+				result.populateDirListsForItems(map_dir_list, sub_items_count_items, request_dir_count_items, search != null);
 			}
 			
 			Map<String, Map<String, Object>> summaries = null;
