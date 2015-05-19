@@ -22,7 +22,8 @@ mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 mydmam.async.url = "@{AsyncJavascript.index()}";	
 
 #{secure.check 'navigate'}
-	mydmam.metadatas.url.navigate = "@{Application.navigate()}";
+	mydmam.metadatas.url.navigate = "@{Application.oldnavigate()}";
+	mydmam.metadatas.url.navigate_react = "@{Application.navigate()}";
 	mydmam.metadatas.url.resolvepositions = "@{Application.resolvepositions()}";
 	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
 	mydmam.stat.url = "@{Application.stat()}";

@@ -46,8 +46,11 @@
 			this.setState({present_in_basket: !this.state.present_in_basket});
 		},
 		render: function() {
+			if (this.props.pathindexkey === md5('')) {
+				return null;
+			}
 			var btn_basket_classes = classNames({
-			    'btn': true, 'btn-mini': true,
+			    'btn': true, 'btn-mini': true, 'basket': true,
 			    'active': this.state.present_in_basket,
 			});
 
@@ -89,13 +92,18 @@
 				titles.push(<span key={summary_element}>{summary[summary_element]}</span>);
 			}
 			// className="spanmetadata"
+
+			var style = {marginLeft: 5};
+			if (this.props.style) {
+				style = this.props.style;
+			}
 			if (titles.length > 0) {
 				return (
-					<small>{mydmam.metadatas.typeofelement(summary)} :: {titles}</small>
+					<small style={style}>{mydmam.metadatas.typeofelement(summary)} :: {titles}</small>
 				);
 			} else {
 				return (
-					<small>{mydmam.metadatas.typeofelement(summary)}</small>
+					<small style={style}>{mydmam.metadatas.typeofelement(summary)}</small>
 				);
 			}
 		}		
@@ -153,6 +161,35 @@
 		}
 	});
 
+	mydmam.async.pathindex.reactDate = React.createClass({
+		render: function() {
+			if (!this.props.date) {
+				return null;
+			}
+			var label = null;
+			if (this.props.i18nlabel) {
+				label = i18n(this.props.i18nlabel) + " ";
+			}
+			var style = {marginLeft: 5};
+			if (this.props.style) {
+				style = this.props.style;
+			}
+			return (<span className="label" style={style}>{label}{mydmam.format.fulldate(this.props.date)}</span>);
+		},
+	});
+
+	mydmam.async.pathindex.reactFileSize = React.createClass({
+		render: function() {
+			if (!this.props.size) {
+				return null;
+			}
+			var style = {marginLeft: 5};
+			if (this.props.style) {
+				style = this.props.style;
+			}
+			return (<span className="label label-important" style={style}><i className="icon-briefcase icon-white"></i> {mydmam.format.number(this.props.size)}</span>);
+		},
+	});
 
 	mydmam.async.pathindex.react2lines = React.createClass({
 		shouldComponentUpdate: function(nextProps, nextState) {
@@ -169,21 +206,12 @@
 			return true;
 		},
 		render: function() {
+			var url_navigate = mydmam.metadatas.url.navigate_react;
+			
 			var result = this.props.result;
-
-			var date_block = null;
-			if (result.content.date) {
-				date_block = (<span className="label">{mydmam.format.fulldate(result.content.date)}</span>);
-			}
-
-			var size_block = null;
-			if (result.content.size) {
-				size_block = (<span className="label label-important"><i className="icon-briefcase icon-white"></i> {mydmam.format.number(result.content.size)}</span>);
-			}
-
 			var directory_block = null;
 			if (result.content.directory) {
-				directory_block = (<span className="label label-success">{i18n("search.result.directory")}</span>);
+				directory_block = (<span className="label label-success" style={{marginLeft: 5}}>{i18n("search.result.directory")}</span>);
 			}
 
 			var path_linked = [];
@@ -194,7 +222,7 @@
 				sub_path = sub_paths[i];
 				path_linked.push(
 					<span key={i}>/
-						<a href={mydmam.metadatas.url.navigate + "#" + result.content.storagename + ':' + currentpath + "/" + sub_path}>
+						<a href={url_navigate + "#" + result.content.storagename + ':' + currentpath + "/" + sub_path}>
 							{sub_path}
 						</a>
 					</span>
@@ -205,21 +233,23 @@
 			var BasketButton = mydmam.async.pathindex.reactBasketButton;
 			var Metadata1Line = mydmam.async.pathindex.reactMetadata1Line;
 			var ExternalPosition = mydmam.async.pathindex.reactExternalPosition;
+			var DateBlock = mydmam.async.pathindex.reactDate;
+			var SizeBlock = mydmam.async.pathindex.reactFileSize;
 
 			return (
 				<div className="pathindex">
 					<span className="label label-inverse">{i18n("search.result.storage")}</span>
-					&nbsp;<span className="label label-info">{result.content.id}</span>
-					&nbsp;{date_block}
-					&nbsp;{size_block}
-					&nbsp;{directory_block}
-					&nbsp;<Metadata1Line stat={this.props.stat} />
+					<span className="label label-info" style={{marginLeft: 5}}>{result.content.id}</span>
+					<DateBlock date={result.content.date} />
+					<SizeBlock size={result.content.size} />
+					{directory_block}
+					<Metadata1Line stat={this.props.stat} />
 					<br />
 					<span>
 						<BasketButton pathindexkey={this.props.result.key}/>
 						<ExternalPosition pathindexkey={this.props.result.key} externalpos={this.props.externalpos} />&nbsp;
 						<strong className="storagename">
-							<a href={mydmam.metadatas.url.navigate + "#" + result.content.storagename + ":/"}>
+							<a href={url_navigate + "#" + result.content.storagename + ":/"}>
 								{result.content.storagename}
 							</a>
 						</strong>
@@ -229,6 +259,26 @@
 						</span>
 					</span>
 				</div>
+			);
+		}
+	});
+
+	mydmam.async.pathindex.reactMetadataFull = React.createClass({
+		render: function() {
+			if (!this.props.mtdsummary) {
+				return null;
+			}
+			console.log(this.props);
+			/*
+			if (stat.mtdsummary) {
+				content = content + '<div>';
+				content = content + mydmam.metadatas.display(stat.reference, stat.mtdsummary, mydmam.metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT);
+				content = content + '</div>';
+			}
+			*/
+			//TODO display metadatas in place
+			return (
+				<div>itemcontent</div>
 			);
 		}
 	});

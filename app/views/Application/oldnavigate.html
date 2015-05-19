@@ -16,21 +16,16 @@
 }*
 #{extends 'maingrid.html' /}
 
-<div class="container" id="navigatecontainer"></div>
+<div class="container" id="storageelem"></div>
 
 <script type="text/javascript" charset="UTF-8">
 <!--
-var list_external_positions_storages = ${list_external_positions_storages.raw()};
+var list_external_positions_storages = %{out.print(hd3gtv.mydmam.module.MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving())}%;
 mydmam.basket.setContent(${current_basket_content.raw()});
 
 $(document).ready(function() {
 	$("#btnStorage").addClass("active");
-	try {
-		mydmam.async.navigate(decodeURIComponent(window.location.hash.substring(1)), $("#navigatecontainer")[0]);
-		//mydmam.navigator.displayStoragePathNavigator("storageelem", decodeURIComponent(window.location.hash.substring(1)), false);
-	} catch (err) {
-		console.error(err);
-	}
+	mydmam.navigator.displayStoragePathNavigator("storageelem", decodeURIComponent(window.location.hash.substring(1)), false);
 });
 -->
 </script>

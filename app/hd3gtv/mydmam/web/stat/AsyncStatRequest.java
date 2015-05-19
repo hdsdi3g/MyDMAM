@@ -41,8 +41,11 @@ public class AsyncStatRequest implements AsyncJSRequestObject {
 	String search;
 	int page_from;
 	int page_size;
+	List<SortDirListing> sort;
 	
 	static Type type_List_String = new TypeToken<ArrayList<String>>() {
+	}.getType();
+	static Type type_List_Sort = new TypeToken<ArrayList<SortDirListing>>() {
 	}.getType();
 	
 	static class Deserializer implements AsyncJSDeserializer<AsyncStatRequest> {
@@ -52,6 +55,7 @@ public class AsyncStatRequest implements AsyncJSRequestObject {
 			result.pathelementskeys = Stat.gson_simple.fromJson(json.getAsJsonObject().get("pathelementskeys"), type_List_String);
 			result.scopes_element = Stat.gson_simple.fromJson(json.getAsJsonObject().get("scopes_element"), type_List_String);
 			result.scopes_subelements = Stat.gson_simple.fromJson(json.getAsJsonObject().get("scopes_subelements"), type_List_String);
+			result.sort = Stat.gson_simple.fromJson(json.getAsJsonObject().get("sort"), type_List_Sort);
 			return result;
 		}
 		

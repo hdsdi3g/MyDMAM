@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.db;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.elasticsearch.action.search.MultiSearchRequestBuilder;
@@ -30,6 +31,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.sort.SortBuilder;
 
 public class ElastisearchMultipleCrawlerReader {
 	
@@ -38,6 +40,8 @@ public class ElastisearchMultipleCrawlerReader {
 	private String[] default_indices;
 	private String[] default_types;
 	private int default_maxsize = 0;
+	private int default_from = 0;
+	private List<SortBuilder> default_sort = new ArrayList<SortBuilder>(1);
 	
 	ElastisearchMultipleCrawlerReader(Client client) {
 		this.client = client;
@@ -62,6 +66,27 @@ public class ElastisearchMultipleCrawlerReader {
 		return this;
 	}
 	
+	public ElastisearchMultipleCrawlerReader setDefaultFrom(int default_from) {
+		this.default_from = default_from;
+		return this;
+	}
+	
+	/**
+	 * Use SortBuilders.fieldSort("").order()
+	 */
+	public ElastisearchMultipleCrawlerReader setDefaultSort(SortBuilder... sort) {
+		if (sort == null) {
+			default_sort = new ArrayList<SortBuilder>(1);
+			return this;
+		}
+		if (sort.length == 0) {
+			default_sort = new ArrayList<SortBuilder>(1);
+			return this;
+		}
+		default_sort = Arrays.asList(sort);
+		return this;
+	}
+	
 	public QueryItem addNewQuery() {
 		QueryItem item = new QueryItem();
 		queries.add(item);
@@ -78,7 +103,7 @@ public class ElastisearchMultipleCrawlerReader {
 		return this;
 	}
 	
-	public void allReader(ElastisearchCrawlerHit crawler) throws Exception {
+	public void allReader(ElastisearchCrawlerMultipleHits crawler) throws Exception {
 		try {
 			MultiSearchResponse.Item[] items = Elasticsearch.withRetry(new ElasticsearchWithRetry<Item[]>() {
 				public Item[] call(Client client) throws NoNodeAvailableException {
@@ -104,10 +129,8 @@ public class ElastisearchMultipleCrawlerReader {
 				if (hits.length == 0) {
 					continue;
 				}
-				for (int pos_hits = 0; pos_hits < hits.length; pos_hits++) {
-					if (crawler.onFoundHit(hits[pos_hits]) == false) {
-						return;
-					}
+				if (crawler.onMultipleResponse(response, Arrays.asList(hits)) == false) {
+					return;
 				}
 			}
 		} catch (IndexMissingException ime) {
@@ -118,17 +141,36 @@ public class ElastisearchMultipleCrawlerReader {
 		}
 	}
 	
+	/**
+	 * Mergue all results requests in one.
+	 */
+	public void allReader(final ElastisearchCrawlerHit crawler) throws Exception {
+		allReader(new ElastisearchCrawlerMultipleHits() {
+			@Override
+			public boolean onMultipleResponse(SearchResponse response, List<SearchHit> hits) throws Exception {
+				for (int pos = 0; pos < hits.size(); pos++) {
+					crawler.onFoundHit(hits.get(pos));
+				}
+				return false;
+			}
+		});
+	}
+	
 	public class QueryItem {
 		private String[] indices;
 		private String[] types;
 		private QueryBuilder query;
 		private int maxsize;
+		private int from;
+		private List<SortBuilder> sort;
 		
 		private QueryItem() {
 			query = QueryBuilders.matchAllQuery();
 			this.indices = default_indices;
 			this.types = default_types;
 			this.maxsize = default_maxsize;
+			this.from = default_from;
+			this.sort = default_sort;
 		}
 		
 		public QueryItem setIndices(String... indices) {
@@ -138,6 +180,27 @@ public class ElastisearchMultipleCrawlerReader {
 		
 		public QueryItem setTypes(String... types) {
 			this.types = types;
+			return this;
+		}
+		
+		public QueryItem setFrom(int from) {
+			this.from = from;
+			return this;
+		}
+		
+		/**
+		 * Use SortBuilders.fieldSort("").order()
+		 */
+		public QueryItem setSort(SortBuilder... sort) {
+			if (sort == null) {
+				this.sort = new ArrayList<SortBuilder>(1);
+				return this;
+			}
+			if (sort.length == 0) {
+				this.sort = new ArrayList<SortBuilder>(1);
+				return this;
+			}
+			this.sort = Arrays.asList(sort);
 			return this;
 		}
 		
@@ -170,6 +233,12 @@ public class ElastisearchMultipleCrawlerReader {
 			}
 			if (maxsize > 0) {
 				request.setSize(maxsize);
+			}
+			if (from > 0) {
+				request.setFrom(from);
+			}
+			for (int pos_s = 0; pos_s < sort.size(); pos_s++) {
+				request.addSort(sort.get(pos_s));
 			}
 			request.setQuery(query);
 			return request;

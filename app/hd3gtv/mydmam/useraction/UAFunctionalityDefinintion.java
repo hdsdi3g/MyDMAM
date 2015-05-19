@@ -18,13 +18,10 @@ package hd3gtv.mydmam.useraction;
 
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.manager.WorkerCapablities;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.elasticsearch.common.collect.Lists;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -95,12 +92,7 @@ public final class UAFunctionalityDefinintion implements Log2Dumpable {
 		def.description = functionality.getDescription();
 		def.instance = functionality.getInstanceReference().toString();
 		def.classname = functionality.getClass().getName();
-		WorkerCapablities wc = functionality.getUserActionWorkerCapablities();
-		if (wc != null) {
-			def.worker_capablity_storages = wc.getStoragesAvaliable();
-		} else {
-			def.worker_capablity_storages = Lists.newArrayList();
-		}
+		def.worker_capablity_storages = functionality.getUserActionWorkerCapablities().getStoragesAvaliable();
 		def.configurator = new UAConfigurator(functionality.prepareEmptyConfiguration());
 		def.messagebasename = functionality.getMessageBaseName();
 		if (def.messagebasename == null) {
