@@ -54,28 +54,16 @@ search.SearchResultPage = React.createClass({
 		}
 
 		var externalpos_request_keys = [];
-		var external_key;
 		for (var i = 0; i < results.length; i++) {
-			external_key = mydmam.module.f.wantToHaveResolvedExternalPositions(results[i]);
-			if (external_key) {
-				externalpos_request_keys.push(external_key);
+			if (mydmam.module.f.wantToHaveResolvedExternalPositions(results[i].index, results[i].content.directory, results[i].content.storagename)) {
+				externalpos_request_keys.push(results[i].key);
 			}
 		}
-		if (externalpos_request_keys.length > 0) {
-			$.ajax({
-				url: mydmam.metadatas.url.resolvepositions,
-				type: "POST",
-				data: {
-					"keys": externalpos_request_keys,
-				},
-				success: function(data) {
-					this.setState({externalpos: data});
-				}.bind(this),
-				error: function(jqXHR, textStatus, errorThrown) {
-					console.error(jqXHR, textStatus, errorThrown);
-				},
-			});
-		}
+		var response_resolve_external = function(data) {
+			this.setState({externalpos: data});
+		}.bind(this);
+
+		mydmam.async.pathindex.resolveExternalPosition(externalpos_request_keys, response_resolve_external);
 	},
 	render: function() {
 	    return (

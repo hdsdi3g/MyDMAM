@@ -32,12 +32,14 @@ pathindex.reactExternalPosition = React.createClass({
 			);
 		}
 		
+		var style = {float: "right"};
+
 		var react_positions = [];
 		var tapelocation;
 		for (var i = 0; i < positions.length; i++) {
 			if (positions[i] == "cache") {
 				react_positions.push(
-					<span className="label label-success external-pathindex-position" key={i}>
+					<span style={style} className="label label-success external-pathindex-position" key={i}>
 						<i className="icon-barcode icon-white"></i> <i className="icon-ok icon-white"></i> {i18n("browser.externalposition.online")}
 					</span>
 				);
@@ -49,20 +51,20 @@ pathindex.reactExternalPosition = React.createClass({
 			}
 			if (tapelocation.isexternal) {
 				react_positions.push(
-					<span className="label label-important external-pathindex-position" key={i}>
+					<span style={style} className="label label-important external-pathindex-position" key={i}>
 						<i className="icon-barcode icon-white"></i> {tapelocation.barcode}
 					</span>
 				);
 			} else {
 				react_positions.push(
-					<span className="label label-success external-pathindex-position" key={i}>
+					<span style={style} className="label label-success external-pathindex-position" key={i}>
 						<i className="icon-barcode icon-white"></i> <i className="icon-screenshot icon-white"></i> {mydmam.module.f.i18nExternalPosition(tapelocation.location)}
 					</span>
 				);
 			}
 		}; 
 		return (
-			<span>{react_positions}</span>
+			<span style={{float: "clear"}}>{react_positions}</span>
 		);
 	}
 });

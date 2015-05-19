@@ -15,19 +15,25 @@
  * 
 */
 
-var externalPos = function(result) {
-	if (result.index !== "pathindex") {
-		return null;
+var externalPos = function(index_name, is_directory, storagename) {
+	if (!index_name | !storagename) {
+		return false;
 	}
-	if (result.content.directory) {
-		return null;
+	if (index_name !== "pathindex") {
+		return false;
+	}
+	if (is_directory) {
+		return false;
+	}
+	if (!list_external_positions_storages) {
+		return false;
 	}
 	for (var pos = 0; pos < list_external_positions_storages.length; pos++) {
-		if (list_external_positions_storages[pos] === result.content.storagename) {
-			return result.key;
+		if (list_external_positions_storages[pos] === storagename) {
+			return true;
 		}
 	}
-	return null;
+	return false;
 };
 
 var searchResult = function(result) {

@@ -22,6 +22,7 @@ navigate.NavigatePage = React.createClass({
 			pathindex: "",
 			default_page_size: 20,
 			sort_order: [],
+			externalpos: {},
 		};
 	},
 	navigateTo: function(pathindex, page_from, page_size, sort) {
@@ -59,6 +60,36 @@ navigate.NavigatePage = React.createClass({
 					default_page_size: page_size,
 					sort_order: sort,
 				});
+
+				var externalpos_request_keys = [];
+				for (var response_pathindexkey in data) {
+					var this_response = data[response_pathindexkey];
+					if (!this_response.reference) {
+						continue;
+					}
+					if (!this_response.reference) {
+						continue;
+					}
+					if (mydmam.module.f.wantToHaveResolvedExternalPositions("pathindex", this_response.reference.directory, this_response.reference.storagename)) {
+						externalpos_request_keys.push(response_pathindexkey);
+					}
+					if (!this_response.items) {
+						continue;
+					}
+					for (var responseitem_pathindexkey in this_response.items) {
+						var this_responseitem = this_response.items[responseitem_pathindexkey];
+						if (!this_responseitem.reference) {
+							continue;
+						}
+						if (mydmam.module.f.wantToHaveResolvedExternalPositions("pathindex", this_responseitem.reference.directory, this_responseitem.reference.storagename)) {
+							externalpos_request_keys.push(responseitem_pathindexkey);
+						}
+					}
+				}
+				var response_resolve_external = function(external_resolve_data) {
+					this.setState({externalpos: external_resolve_data});
+				}.bind(this);
+				mydmam.async.pathindex.resolveExternalPosition(externalpos_request_keys, response_resolve_external);
 			} else {
 				if (page_from > 0) {
 					this.navigateTo(pathindex, 0, page_size);
@@ -198,7 +229,8 @@ navigate.NavigatePage = React.createClass({
 					first_item_dateindex={first_item_dateindex}
 					pathindexkey={md5(this.state.pathindex)}
 					navigate={this.handleOnClickANavigateToNewDest}
-					is_in_search={is_in_search} />
+					is_in_search={is_in_search}
+					externalpos={this.state.externalpos} />
 				<mydmam.async.pathindex.reactMetadataFull
 					reference={stat.reference}
 					mtdsummary={stat.mtdsummary}
@@ -206,7 +238,8 @@ navigate.NavigatePage = React.createClass({
 				<navigate.NavigateTable
 					stat={stat}
 					navigate={this.handleOnClickANavigateToNewDest}
-					changeOrderSort={this.handlechangeOrderSort} />
+					changeOrderSort={this.handlechangeOrderSort}
+					externalpos={this.state.externalpos} />
 				{display_pagination}
 				{noresult}
 				<navigate.SearchBox

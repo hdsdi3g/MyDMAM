@@ -83,11 +83,11 @@ navigate.HeaderItem = React.createClass({
 			dateindex = reference.dateindex;
 		}
 
+		var external_pos = null;
 		if (reference.directory === false) {
-			//external_elements_to_resolve.push(md5_fullpath);
-			//content = content + '<span id="elmextern-' + md5_fullpath + '"></span>'; TODO show external key.
+			external_pos = (<mydmam.async.pathindex.reactExternalPosition pathindexkey={this.props.pathindexkey} externalpos={this.props.externalpos} />);
 		}
-		
+
 		return (
 			<div className="page-header">
 				<h3>{header_title}</h3>
@@ -95,6 +95,7 @@ navigate.HeaderItem = React.createClass({
 				<mydmam.async.pathindex.reactDate date={reference.date} i18nlabel={"browser.file.modifiedat"} />
 				<mydmam.async.pathindex.reactDate date={dateindex} i18nlabel={"browser.file.indexedat"} />
 				<mydmam.async.pathindex.reactFileSize size={reference.size} />
+				{external_pos}
 			</div>
 		);
 	}

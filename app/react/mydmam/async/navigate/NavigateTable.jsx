@@ -76,10 +76,6 @@ navigate.NavigateTable = React.createClass({
 			var element = dircontent[pos].reference;
 			var element_items_total = dircontent[pos].items_total;
 
-			if (element.directory === false) {
-				//external_elements_to_resolve.push(elementkey); TODO external pos
-			}
-
 			var td_element_name = null;
 			var td_element_attributes = null;
 			var td_element_date = (<td></td>);
@@ -180,7 +176,10 @@ navigate.NavigateTable = React.createClass({
 				td_element_date = (<td><mydmam.async.pathindex.reactDate date={element.date} /></td>);
 			}
 
-			//content = content + '<td id="elmextern-' + elementkey + '"></td>'; TODO external pos...
+			var external_pos = null;
+			if (element.directory === false) {
+				external_pos = (<mydmam.async.pathindex.reactExternalPosition pathindexkey={elementkey} externalpos={this.props.externalpos} />);
+			}
 
 			tbody.push(
 				<tr key={elementkey}>
@@ -188,6 +187,7 @@ navigate.NavigateTable = React.createClass({
 					{td_element_attributes}
 					{td_element_date}
 					<td><mydmam.async.pathindex.reactMetadata1Line stat={dircontent[pos]} /></td>
+					<td>{external_pos}</td>
 				</tr>
 			);
 		}
