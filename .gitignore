@@ -11,7 +11,6 @@ conf/app.d/*
 conf/application.conf
 conf/dependencies.yml
 conf/*.db
-modules/*
 public/img/personalized/*
 Test.java
 play-new-password.txt

@@ -18,6 +18,7 @@ package hd3gtv.mydmam.module;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
@@ -25,15 +26,16 @@ import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.Importer.SearchPreProcessor;
+import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.search.SearchResult;
 import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -42,17 +44,15 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import org.elasticsearch.search.SearchHit;
-import org.yaml.snakeyaml.Yaml;
 
 import play.Play;
-import play.utils.OrderSafeProperties;
 import play.vfs.VirtualFile;
 
+import com.google.common.io.Files;
 import com.google.gson.Gson;
 
 public class MyDMAMModulesManager {
@@ -145,65 +145,54 @@ public class MyDMAMModulesManager {
 	private static volatile LinkedHashMap<String, File> all_conf_directories;
 	
 	/**
-	 * Don't use MODULES system, but application.conf & dependencies.yml.
-	 * @return Module name -> conf path
+	 * Don't use MODULES system, but Play /module directory.
+	 * @return ModuleName-Version -> conf path directory
 	 */
-	@SuppressWarnings("unchecked")
 	public static LinkedHashMap<String, File> getAllConfDirectories() {
 		if (all_conf_directories == null) {
 			all_conf_directories = new LinkedHashMap<String, File>();
-			String[] classpathelements = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
 			
-			/**
-			 * Search & parse application.conf & dependencies.yml
-			 */
-			Properties applicationconf = new OrderSafeProperties();
-			List<String> modules_names = null;
+			File app_module_path = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getPath() + File.separator + "modules");
+			
+			all_conf_directories.put("mydmam", new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getPath() + File.separator + "conf"));
+			
 			try {
-				for (int i = 0; i < classpathelements.length; i++) {
-					if (classpathelements[i].endsWith(".jar") == false) {
-						File applicationconf_file = new File(classpathelements[i] + File.separator + "application.conf");
-						File dependenciesyml_file = new File(classpathelements[i] + File.separator + "dependencies.yml");
-						if (applicationconf_file.exists() && dependenciesyml_file.exists()) {
-							if (applicationconf_file.isFile() && dependenciesyml_file.isFile()) {
-								FileInputStream fis = new FileInputStream(applicationconf_file);
-								applicationconf.load(fis);
-								fis.close();
-								fis = new FileInputStream(dependenciesyml_file);
-								Yaml yaml = new Yaml();
-								for (Object data : yaml.loadAll(fis)) {
-									LinkedHashMap<?, ?> root_item = (LinkedHashMap<?, ?>) data;
-									modules_names = (List<String>) root_item.get("require");
-								}
-								fis.close();
-								
-								all_conf_directories.put("internal", new File(classpathelements[i]));
-								break;
-							}
-						}
-					}
-				}
-				if (all_conf_directories.isEmpty()) {
-					throw new FileNotFoundException("Empty all_conf_directories !");
-				}
+				CopyMove.checkExistsCanRead(app_module_path);
+				CopyMove.checkIsDirectory(app_module_path);
 			} catch (Exception e) {
-				Log2.log.error("Can't import modules configuration files", e);
+				Log2.log.error("Can't found MyDMAM /modules directory", e);
+				return all_conf_directories;
 			}
 			
-			// Add messages modules files in classpath jar files ?
-			
-			/**
-			 * Import for each modules all conf/messages.*
-			 */
-			if (modules_names != null) {
-				modules_names.remove("play");
-				for (int pos_mn = 0; pos_mn < modules_names.size(); pos_mn++) {
-					File conf_dir = new File(applicationconf.getProperty("module." + modules_names.get(pos_mn), "") + File.separator + "conf"); // TODO use dependencies.yml for that
-					if ((conf_dir.exists() == false) | (conf_dir.isDirectory() == false)) {
-						Log2.log.error("Can't found module conf directory", new FileNotFoundException(conf_dir.getPath()), new Log2Dump("module name", modules_names.get(pos_mn)));
-						continue;
+			File[] modules_link_files = app_module_path.listFiles(new FileFilter() {
+				
+				public boolean accept(File pathname) {
+					if (pathname.isDirectory()) {
+						return false;
 					}
-					all_conf_directories.put(modules_names.get(pos_mn), conf_dir);
+					if (pathname.isHidden()) {
+						return false;
+					}
+					if (pathname.canRead() == false) {
+						return false;
+					}
+					return true;
+				}
+			});
+			
+			File module_path;
+			File conf_dir;
+			for (int pos = 0; pos < modules_link_files.length; pos++) {
+				try {
+					module_path = new File(Files.readFirstLine(modules_link_files[pos], Charset.defaultCharset()));
+					CopyMove.checkExistsCanRead(module_path);
+					CopyMove.checkIsDirectory(module_path);
+					conf_dir = new File(module_path.getPath() + File.separator + "conf");
+					CopyMove.checkExistsCanRead(conf_dir);
+					CopyMove.checkIsDirectory(conf_dir);
+					all_conf_directories.put(modules_link_files[pos].getName(), conf_dir);
+				} catch (IOException e) {
+					Log2.log.error("Can't read module desc file and found module conf directory", e, new Log2Dump("file", modules_link_files[pos]));
 				}
 			}
 		}

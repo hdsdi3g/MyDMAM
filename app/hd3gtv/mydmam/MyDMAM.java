@@ -17,7 +17,10 @@
 package hd3gtv.mydmam;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.security.InvalidAlgorithmParameterException;
@@ -239,6 +242,33 @@ public class MyDMAM {
 				return null;
 			}
 		}
+	}
+	
+	/**
+	 * Search application.conf in classpath, and return the /mydmam main directory.
+	 */
+	public static final File APP_ROOT_PLAY_DIRECTORY;
+	
+	static {
+		APP_ROOT_PLAY_DIRECTORY = getMyDMAMRootPlayDirectory();
+	}
+	
+	private static File getMyDMAMRootPlayDirectory() {
+		String[] classpathelements = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
+		/**
+		 * Search application.conf
+		 */
+		for (int i = 0; i < classpathelements.length; i++) {
+			if (classpathelements[i].endsWith(".jar")) {
+				continue;
+			}
+			File applicationconf_file = new File(classpathelements[i] + File.separator + "application.conf");
+			if (applicationconf_file.exists()) {
+				return (new File(classpathelements[i]).getParentFile());
+			}
+		}
+		Log2.log.error("Can't found MyDMAM Play application", new FileNotFoundException(new File("").getAbsolutePath()));
+		return new File("");
 	}
 	
 }

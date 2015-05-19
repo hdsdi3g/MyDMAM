@@ -18,13 +18,13 @@ package hd3gtv.mydmam.cli;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.mail.notification.Notification;
-import hd3gtv.mydmam.manager.ServiceNGServer;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.useraction.UACreationRequest;
 import hd3gtv.tools.ApplicationArgs;
@@ -317,7 +317,7 @@ public class CliModuleOperateDatabase implements CliModule {
 			org.h2.Driver.load();
 			
 			if (args.getParamExist("-export")) {
-				String source = ServiceNGServer.getMyDMAMRootPlayDirectory().getAbsolutePath() + "/conf/play";
+				String source = MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath() + "/conf/play";
 				File dest = new File(args.getSimpleParamValue("-export"));
 				
 				File f_source = new File(source + ".h2.db");
@@ -352,7 +352,7 @@ public class CliModuleOperateDatabase implements CliModule {
 				return;
 			} else if (args.getParamExist("-import")) {
 				File source = new File(args.getSimpleParamValue("-import"));
-				String dest = ServiceNGServer.getMyDMAMRootPlayDirectory().getAbsolutePath() + "/conf/play";
+				String dest = MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath() + "/conf/play";
 				
 				if (source.exists() == false) {
 					throw new FileNotFoundException(source.getAbsolutePath());
