@@ -28,6 +28,10 @@ Check with
 - `tail -f /var/log/mydmam/mydmam.log`
 - Your mails
 
+And set CLI:
+- `ln -s (this directory)/cli-run.sh /bin/mydmam-cli`
+- `chmod +x (this directory)/cli-run.sh`
+
 ## Update
 See [MyDMAM changelogs](http://mydmam.org/category/changelogs) before updating...
 - use Git with mydmam app
