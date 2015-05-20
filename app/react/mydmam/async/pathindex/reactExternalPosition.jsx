@@ -31,8 +31,9 @@ pathindex.reactExternalPosition = React.createClass({
 				<span />
 			);
 		}
-		
-		var style = {float: "right"};
+
+		//var style = ;
+		var style = null;
 
 		var react_positions = [];
 		var tapelocation;
@@ -64,7 +65,7 @@ pathindex.reactExternalPosition = React.createClass({
 			}
 		}; 
 		return (
-			<span style={{float: "clear"}}>{react_positions}</span>
+			<span style={{display: "inline-block", whiteSpace: "nowrap"}}>{react_positions}</span>
 		);
 	}
 });
