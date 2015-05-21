@@ -57,6 +57,7 @@ service.menuinfrastructure=Infrastructure
 service.threadslist=Liste des threads
 service.instanceslist=Liste des instances
 service.clusterstatus.report.pagename=Suivi des clusters
+service.playjobs.purgecache=Purger le cache de Play
 
 manager.pagename=Gestion des services
 manager.loading=Chargement...

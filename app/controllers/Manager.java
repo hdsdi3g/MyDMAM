@@ -16,6 +16,7 @@
 */
 package controllers;
 
+import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.status.ClusterStatus;
 import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
 import hd3gtv.mydmam.db.status.StatusReport;
@@ -53,7 +54,15 @@ public class Manager extends Controller {
 			throw new NullPointerException("No JobsPlugin enabled");
 		}
 		String rawplaystatus = plugin.getStatus();
+		
 		render(rawplaystatus);
+	}
+	
+	@Check("showManager")
+	public static void purgeplaycache() throws Exception {
+		Log2.log.info("Purge Play cache");
+		Cache.clear();
+		redirect("Manager.playjobs");
 	}
 	
 	@Check("showManager")
