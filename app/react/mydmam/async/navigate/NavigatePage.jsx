@@ -225,7 +225,7 @@ navigate.NavigatePage = React.createClass({
 					path={path}
 					navigate={this.handleOnClickANavigateToNewDest} />
 				<navigate.HeaderItem
-					reference={stat.reference}
+					stat={stat}
 					first_item_dateindex={first_item_dateindex}
 					pathindexkey={md5(this.state.pathindex)}
 					navigate={this.handleOnClickANavigateToNewDest}

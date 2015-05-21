@@ -19,7 +19,9 @@ navigate.HeaderItem = React.createClass({
 	render: function() {
 		var url_navigate = mydmam.metadatas.url.navigate_react;
 		
-		var reference = this.props.reference;
+		var reference = this.props.stat.reference;
+		var mtdsummary = this.props.stat.mtdsummary;
+
 		var first_item_dateindex = this.props.first_item_dateindex;
 		if (!reference) {
 			return null;
@@ -47,7 +49,6 @@ navigate.HeaderItem = React.createClass({
 			</a>
 		);
 
-
 		var is_in_search_label = null;
 		if (this.props.is_in_search) {
 			is_in_search_label = (<span className="badge badge-info" style={{marginLeft: 10}}>{i18n("browser.search")}</span>);
@@ -56,8 +57,8 @@ navigate.HeaderItem = React.createClass({
 		var summary = null;
 		if (reference.path != "/") {
 				var element_name = reference.path.substring(reference.path.lastIndexOf("/") + 1);
-				if (reference.mtdsummary) {
-					summary = (<small>{mydmam.metadatas.typeofelement(reference.mtdsummary)}</small>);
+				if (mtdsummary) {
+					summary = (<small>{mydmam.async.pathindex.mtdTypeofElement(mtdsummary)}</small>);
 				} else {
 					if (reference.directory) {
 						summary = (<small>{i18n("browser.directory")}</small>);

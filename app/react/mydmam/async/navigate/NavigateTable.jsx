@@ -186,7 +186,7 @@ navigate.NavigateTable = React.createClass({
 					{td_element_name}
 					{td_element_attributes}
 					{td_element_date}
-					<td><mydmam.async.pathindex.reactMetadata1Line stat={dircontent[pos]} /></td>
+					<td>{mydmam.async.pathindex.mtdTypeofElement(dircontent[pos].mtdsummary)}</td>
 					<td>{external_pos}</td>
 				</tr>
 			);

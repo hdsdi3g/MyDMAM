@@ -15,24 +15,9 @@
  * 
 */
 
-search.found = function(results, dom_target) {
-	if (!dom_target) {
-		return;
+metadatas.getFileURL = function(mtd_element) {
+	if (!mydmam.metadatas.url.metadatafile) {
+		return "";
 	}
-
-	/**
-	 * Create React uniq key.
-	 */
-	var createReactKey = function(result_list) {
-		for (var pos in result_list) {
-			result_list[pos].reactkey = result_list[pos].index + ":" + result_list[pos].type + ":" + result_list[pos].key;
-		};
-	}
-
-	createReactKey(results.results);
-
-	React.render(
-		<search.SearchResultPage results={results} />,
-		dom_target
-	);
+	return mydmam.metadatas.url.metadatafile.replace("filehashparam1", file_hash).replace("typeparam2", file_type).replace("fileparam3", file_name);
 };

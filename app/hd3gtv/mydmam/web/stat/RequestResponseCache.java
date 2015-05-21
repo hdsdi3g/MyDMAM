@@ -18,11 +18,9 @@ package hd3gtv.mydmam.web.stat;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.ContainerOrigin;
-import hd3gtv.mydmam.metadata.container.ContainerPreview;
 import hd3gtv.mydmam.metadata.container.Containers;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -347,22 +345,14 @@ public class RequestResponseCache {
 			}
 			
 			Container c;
-			Map<String, String> summaries;
 			LinkedHashMap<String, Object> item;
-			HashMap<PreviewType, ContainerPreview> previews;
 			for (int pos = 0; pos < containers.size(); pos++) {
 				c = containers.getItemAtPos(pos);
-				
 				item = new LinkedHashMap<String, Object>();
-				previews = c.getSummary().getPreviews();
-				item.put("previews", previews);
+				item.put("previews", c.getSummary().getPreviews());
 				item.put("master_as_preview", c.getSummary().master_as_preview);
 				item.put("mimetype", c.getSummary().getMimetype());
-				
-				summaries = c.getSummary().getSummaries();
-				for (Map.Entry<String, String> entry : summaries.entrySet()) {
-					item.put(entry.getKey(), entry.getValue());
-				}
+				item.put("summaries", c.getSummary().getSummaries());
 				
 				ContainersSummaryCachedItem csc_item = new ContainersSummaryCachedItem();
 				csc_item.summary = item;

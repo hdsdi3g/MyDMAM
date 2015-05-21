@@ -27,19 +27,11 @@ pathindex.reactMetadata1Line = React.createClass({
 		}
 
 		var titles = [];
-		for (var summary_element in summary) {
-			if (summary_element == "mimetype") {
-				continue;
+		if (summary.summaries) {
+			for (var summary_element in summary.summaries) {
+				titles.push(<span key={summary_element}>{summary.summaries[summary_element]}</span>);
 			}
-			if (summary_element == "previews") {
-				continue;
-			}
-			if (summary_element == "master_as_preview") {
-				continue;
-			}
-			titles.push(<span key={summary_element}>{summary[summary_element]}</span>);
 		}
-		// className="spanmetadata"
 
 		var style = {marginLeft: 5};
 		if (this.props.style) {
@@ -47,11 +39,11 @@ pathindex.reactMetadata1Line = React.createClass({
 		}
 		if (titles.length > 0) {
 			return (
-				<small style={style}>{mydmam.metadatas.typeofelement(summary)} :: {titles}</small>
+				<small style={style}>{mydmam.async.pathindex.mtdTypeofElement(summary)} :: {titles}</small>
 			);
 		} else {
 			return (
-				<small style={style}>{mydmam.metadatas.typeofelement(summary)}</small>
+				<small style={style}>{mydmam.async.pathindex.mtdTypeofElement(summary)}</small>
 			);
 		}
 	}		
