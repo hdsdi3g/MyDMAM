@@ -17,33 +17,34 @@
 
 pathindex.reactMetadataFull = React.createClass({
 	render: function() {
-		if (!this.props.mtdsummary) {
+		if (!this.props.mtdsummary | !this.props.reference) {
 			return null;
 		}
+		var mtdsummary = this.props.mtdsummary;
+		var reference = this.props.reference;
 		console.log("TODO", this.props);
 
-		/*
 		var file_hash = md5(reference.storagename + ":" + reference.path);
-
-		var content = '';
 		var master_as_preview_type = '';
 		var master_as_preview_url = '';
 
-		if (mtd_element.master_as_preview) {
+		/*if (mtd_element.master_as_preview) {
 			master_as_preview_type = mtd_element.mimetype.substring(0, mtd_element.mimetype.indexOf("/"));
 			var ext = reference.path.substring(reference.path.lastIndexOf("."), reference.path.length);
 			master_as_preview_url = pathindex.metadatas.getFileURL(file_hash, "master_as_preview", "default" + ext);
-		}
+		}*/
 
-		if (mtd_element.previews) {
-			var previews = mtd_element.previews;
+		if (mtdsummary.previews) {
+			var previews = mtdsummary.previews;
 			var has_image_thumbnail = (previews.full_size_thumbnail != null) | (previews.cartridge_thumbnail != null) | (previews.icon_thumbnail != null);
 
+			var preview = null;
+
 			if ((previews.video_lq_pvw != null) | (previews.video_sd_pvw != null) | (previews.video_hd_pvw != null) | (master_as_preview_type == "video")) {
-				//Video
-				var url_image = null;
+				/** Video */
+				//var url_image = null;
 				if (has_image_thumbnail) {
-					url_image = prepareImage(file_hash, previews, "cartridge_thumbnail", true);
+					//url_image = prepareImage(file_hash, previews, "cartridge_thumbnail", true);
 				}
 
 				var medias = [];
@@ -71,20 +72,21 @@ pathindex.reactMetadataFull = React.createClass({
 					media.label = "LQ";
 					medias.push(media);
 				}
-				content = content + metadatas.view.video.prepare(file_hash, 640, 360, url_image, medias);
+				//content = content + metadatas.view.video.prepare(file_hash, 640, 360, url_image, medias);
 			} else if ((previews.audio_pvw != null) | (master_as_preview_type == "audio")) {
-				//Audio
+				/** Audio */
 				if (master_as_preview_type == "audio") {
-					content = content + metadatas.view.audio.prepare(file_hash, master_as_preview_url);
+					//content = content + metadatas.view.audio.prepare(file_hash, master_as_preview_url);
 				} else {
 					var url = pathindex.metadatas.getFileURL(file_hash, previews.audio_pvw.type, previews.audio_pvw.file);
-					content = content + metadatas.view.audio.prepare(file_hash, url);
+					//content = content + metadatas.view.audio.prepare(file_hash, url);
 				}
 				if (has_image_thumbnail) {
-					content = content + prepareImage(file_hash, previews);
+					//content = content + prepareImage(file_hash, previews);
 				}
 			} else if ((previews.full_size_thumbnail != null) | (previews.cartridge_thumbnail != null) | (previews.icon_thumbnail != null)) {
-				content = content + prepareImage(file_hash, previews);
+				/** Image */
+				preview = (<pathindex.metadatas.Image file_hash={file_hash} previews={previews} />);
 			}
 		} else {
 			//Only master_as_preview (maybe a small element)
@@ -92,27 +94,35 @@ pathindex.reactMetadataFull = React.createClass({
 				var media = {};
 				media.url = master_as_preview_url;
 				media.label = "Original";
-				content = content + metadatas.view.video.prepare(file_hash, 640, 360, null, [media]);
+				//content = content + metadatas.view.video.prepare(file_hash, 640, 360, null, [media]);
 			} else if (master_as_preview_type == "audio") {
-				content = content + metadatas.view.audio.prepare(file_hash, master_as_preview_url, null);
+				//content = content + metadatas.view.audio.prepare(file_hash, master_as_preview_url, null);
 			}
-			 //It never be an image as master, this may be
-			 //security/confidentiality problems.
+			//It never be an image as master, this may be
+			//security/confidentiality problems.
+		}
+		
+		var analyser_results = [];
+		if (mtdsummary.summaries) {
+			for (var analyser in mtdsummary.summaries) {
+				analyser_results.push(
+					<blockquote key={analyser} style={{marginTop: "1em"}}>
+						<p>
+							{mtdsummary.summaries[analyser]}
+						</p>
+						<small>
+							{analyser}
+						</small>
+					</blockquote>
+				);
+			}
 		}
 
-		for ( var analyser in mtd_element) {
-			if ((analyser == "mimetype") | (analyser == "master_as_preview") | (analyser == "previews")) {
-				//Don't show that
-				continue;
-			}
-			content = content + '<blockquote style="margin-top:1em;">';
-			content = content + '<p>' + mtd_element[analyser] + '</p>';
-			content = content + '<small>' + analyser + '</small>';
-			content = content + '</blockquote>';
-		}
-		*/
 		return (
-			<div>itemcontent</div>
+			<div>
+				{preview}
+				{analyser_results}
+			</div>
 		);
 	}
 });

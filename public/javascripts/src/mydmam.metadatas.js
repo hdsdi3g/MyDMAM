@@ -33,18 +33,6 @@
 })(window.mydmam);
 
 /**
- * getURL
- */
-(function(metadatas) {
-	metadatas.getURL = function(file_hash, file_type, file_name) {
-		if (!metadatas.url.metadatafile) {
-			return "";
-		}
-		return metadatas.url.metadatafile.replace("filehashparam1", file_hash).replace("typeparam2", file_type).replace("fileparam3", file_name);
-	};
-})(window.mydmam.metadatas);
-
-/**
  * Prepare view function for video, audio and image.
  */
 (function(metadatas) {
@@ -128,72 +116,6 @@
 		content = content + i18n('browser.loadingplayer');
 		content = content + '</div>';
 		return content;
-	};
-})(window.mydmam.metadatas);
-
-/**
- * Prepare view image
- */
-(function(metadatas) {
-	metadatas.view.image = {};
-	metadatas.view.image.prepare = function(file_hash, url, htmlclass, width, height) {
-		var content = '';
-		content = content + '<div style="margin-bottom: 1em;">';
-		if ((width > 0) & (height > 0)) {
-			content = content + '<img id="' + file_hash.substr(0, 8) + '" src="' + url + '" class="' + htmlclass + '" alt="' + width + 'x' + height + '" data-src="holder.js/' + width + 'x' + height + '" style="width: ' + width + 'px; height: ' + height + 'px;"/>';
-		} else {
-			content = content + '<img id="' + file_hash.substr(0, 8) + '" src="' + url + '" class="' + htmlclass + '" data-src="holder.js"/>';
-		}
-		content = content + '</div>';
-		return content;
-	};
-})(window.mydmam.metadatas);
-
-/**
- * display : the code to display in page
- */
-(function(metadatas) {
-
-	var prepareImage = function(file_hash, previews, _prefered_size, just_url) {
-		var prefered_size = _prefered_size;
-		var getReturn = function(thumbnail) {
-			var url = metadatas.getURL(file_hash, thumbnail.type, thumbnail.file);
-			if (just_url) {
-				return url;
-			}
-			return metadatas.view.image.prepare(file_hash, url, "img-polaroid", thumbnail.options.width, thumbnail.options.height);
-		};
-
-		if (prefered_size == null) {
-			prefered_size = "full_size_thumbnail";
-		}
-
-		if (prefered_size === "full_size_thumbnail") {
-			if (previews.full_size_thumbnail) {
-				return getReturn(previews.full_size_thumbnail);
-			} else {
-				prefered_size = "cartridge_thumbnail";
-			}
-		}
-
-		if (prefered_size === "cartridge_thumbnail") {
-			if (previews.cartridge_thumbnail) {
-				return getReturn(previews.cartridge_thumbnail);
-			} else {
-				prefered_size = "icon_thumbnail";
-			}
-		}
-
-		if (prefered_size === "icon_thumbnail") {
-			if (previews.icon_thumbnail) {
-				return getReturn(previews.icon_thumbnail);
-			}
-		} else {
-			return null;
-		}
-	};
-
-	metadatas.display = function(reference, mtd_element, method) {
 	};
 })(window.mydmam.metadatas);
 

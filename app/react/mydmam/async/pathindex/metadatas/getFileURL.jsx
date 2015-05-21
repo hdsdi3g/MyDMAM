@@ -15,7 +15,7 @@
  * 
 */
 
-metadatas.getFileURL = function(mtd_element) {
+metadatas.getFileURL = function(file_hash, file_type, file_name) {
 	if (!mydmam.metadatas.url.metadatafile) {
 		return "";
 	}
