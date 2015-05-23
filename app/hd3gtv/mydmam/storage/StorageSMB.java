@@ -196,8 +196,6 @@ public class StorageSMB extends StorageURILoginPassword {
 			}
 			
 			StringBuffer sb = new StringBuffer();
-			sb.append("smb://");
-			sb.append(configuration.host);
 			sb.append(root_path.substring(0, root_path.length() - 1));
 			sb.append(newpath);
 			
