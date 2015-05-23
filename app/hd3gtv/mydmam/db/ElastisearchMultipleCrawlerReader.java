@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.db;
 
+import hd3gtv.log2.Log2;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -118,6 +120,10 @@ public class ElastisearchMultipleCrawlerReader {
 			SearchHit[] hits;
 			SearchResponse response;
 			for (int pos_response = 0; pos_response < items.length; pos_response++) {
+				if (items[pos_response].isFailure()) {
+					Log2.log.error("Search failed", new Exception(items[pos_response].getFailureMessage()));
+					continue;
+				}
 				response = items[pos_response].getResponse();
 				if (response == null) {
 					continue;

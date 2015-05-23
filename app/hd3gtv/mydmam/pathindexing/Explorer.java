@@ -31,9 +31,12 @@ import hd3gtv.tools.GsonIgnoreStrategy;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
@@ -315,6 +318,19 @@ public class Explorer {
 		private DirectoryContent() {
 		}
 		
+		private void sortByStorageNames() {
+			List<Map.Entry<String, SourcePathIndexerElement>> entries = new ArrayList<Map.Entry<String, SourcePathIndexerElement>>(directory_content.entrySet());
+			Collections.sort(entries, new Comparator<Map.Entry<String, SourcePathIndexerElement>>() {
+				public int compare(Map.Entry<String, SourcePathIndexerElement> a, Map.Entry<String, SourcePathIndexerElement> b) {
+					return a.getValue().storagename.compareTo(b.getValue().storagename);
+				}
+			});
+			directory_content.clear();
+			for (Map.Entry<String, SourcePathIndexerElement> entry : entries) {
+				directory_content.put(entry.getKey(), entry.getValue());
+			}
+		}
+		
 		public JsonObject toJson() {
 			JsonObject jo = new JsonObject();
 			jo.addProperty("size", directory_size);
@@ -407,6 +423,12 @@ public class Explorer {
 				}
 				
 				if (parent_key != null) {
+					if (parent_key.equalsIgnoreCase(SourcePathIndexerElement.ROOT_DIRECTORY_KEY)) {
+						/**
+						 * Manual sort root dir list (ES can't sort this).
+						 */
+						directorycontent.sortByStorageNames();
+					}
 					map_dir_list.put(parent_key, directorycontent);
 				}
 				return true;
