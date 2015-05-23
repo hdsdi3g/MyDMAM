@@ -109,6 +109,12 @@ public class JsCompile {
 			}
 			file_list.add(child);
 		}
+		Collections.sort(file_list, new Comparator<VirtualFile>() {
+			public int compare(VirtualFile o1, VirtualFile o2) {
+				return o1.getName().compareToIgnoreCase(o2.getName());
+			}
+		});
+		
 		return file_list;
 	}
 	
@@ -375,7 +381,7 @@ public class JsCompile {
 				list.add(real_file.getParentFile().getName() + "/" + real_file.getName());
 			}
 		}
-		
+		Collections.sort(list);
 		return list;
 	}
 	
