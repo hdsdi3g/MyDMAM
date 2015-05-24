@@ -35,7 +35,9 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import play.Play;
@@ -96,22 +98,38 @@ public class JsCompile {
 	/**
 	 * Get all items named and on this path, from all modules, and not only the first.
 	 */
-	public static List<VirtualFile> getAllfromRelativePath(String path, boolean must_exists, boolean must_directory) {
-		List<VirtualFile> file_list = new ArrayList<VirtualFile>();
-		VirtualFile child;
+	public static List<VirtualFileModule> getAllfromRelativePath(String path, boolean must_exists, boolean must_directory) {
+		List<VirtualFileModule> file_list = new ArrayList<VirtualFileModule>();
+		
+		LinkedHashMap<VirtualFile, String> path_modules = new LinkedHashMap<VirtualFile, String>();
 		for (VirtualFile vfile : Play.roots) {
-			child = vfile.child(path);
+			/**
+			 * 1st pass : add all paths (main and modules).
+			 */
+			path_modules.put(vfile, "internal");
+		}
+		for (Map.Entry<String, VirtualFile> entry : Play.modules.entrySet()) {
+			/**
+			 * 2nd pass : overload enties with modules names.
+			 */
+			path_modules.put(entry.getValue(), entry.getKey());
+		}
+		
+		VirtualFile child;
+		for (Map.Entry<VirtualFile, String> entry : path_modules.entrySet()) {
+			child = entry.getKey().child(path);
 			if (must_exists & (child.exists() == false)) {
 				continue;
 			}
 			if (must_directory & (child.isDirectory() == false)) {
 				continue;
 			}
-			file_list.add(child);
+			file_list.add(new VirtualFileModule(child, entry.getValue()));
 		}
-		Collections.sort(file_list, new Comparator<VirtualFile>() {
-			public int compare(VirtualFile o1, VirtualFile o2) {
-				return o1.getName().compareToIgnoreCase(o2.getName());
+		
+		Collections.sort(file_list, new Comparator<VirtualFileModule>() {
+			public int compare(VirtualFileModule o1, VirtualFileModule o2) {
+				return o1.getVfile().getName().compareToIgnoreCase(o2.getVfile().getName());
 			}
 		});
 		
@@ -140,11 +158,11 @@ public class JsCompile {
 		List<VirtualFile> file_list = new ArrayList<VirtualFile>();
 		
 		List<VirtualFile> sources_file_list = new ArrayList<VirtualFile>();
-		List<VirtualFile> main_dirs = getAllfromRelativePath(PUBLIC_JAVASCRIPT_DIRECTORY + "/" + SOURCE_DIRECTORY, true, true);
+		List<VirtualFileModule> main_dirs = getAllfromRelativePath(PUBLIC_JAVASCRIPT_DIRECTORY + "/" + SOURCE_DIRECTORY, true, true);
 		List<VirtualFile> child_content;
 		
 		for (int pos_md = 0; pos_md < main_dirs.size(); pos_md++) {
-			child_content = main_dirs.get(pos_md).list();
+			child_content = main_dirs.get(pos_md).getVfile().list();
 			for (int pos = 0; pos < child_content.size(); pos++) {
 				if (child_content.get(pos).isDirectory()) {
 					continue;

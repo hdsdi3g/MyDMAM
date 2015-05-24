@@ -86,10 +86,10 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 	public void reload() {
 		Log2.log.debug("Reload Async classes");
 		
-		List<VirtualFile> main_dirs = JsCompile.getAllfromRelativePath(ASYNC_CLASS_PATH, true, true);
+		List<VirtualFileModule> main_dirs = JsCompile.getAllfromRelativePath(ASYNC_CLASS_PATH, true, true);
 		List<VirtualFile> class_vfiles = new ArrayList<VirtualFile>();
 		for (int pos = 0; pos < main_dirs.size(); pos++) {
-			class_vfiles.addAll(main_dirs.get(pos).list());
+			class_vfiles.addAll(main_dirs.get(pos).getVfile().list());
 		}
 		
 		List<AsyncJSController> all_js_controllers = new ArrayList<AsyncJSController>();

@@ -65,7 +65,7 @@ public class JSXTransformer {
 	
 	public static final String JSXTRANSFORMER_PATH = "/public/javascripts/lib/JSXTransformer-0.13.2.js";
 	public static final String JSX_SRC = "/app/react";
-	public static final String JSX_CLASSDEF_NAME = "_package.jsx";
+	public static final String JSX_CLASSDEF_NAME = "_package";
 	
 	public static final JSXTransformer global;
 	private static final Gson gson_simple;
@@ -313,10 +313,12 @@ public class JSXTransformer {
 		return current_dirs.containsAll(declared_dirs) & declared_dirs.containsAll(current_dirs);
 	}
 	
-	private static void recursiveList(List<JSXItem> list, File from, File jsx_root_dir) {
+	private static void recursiveList(List<JSXItem> list, File from, File jsx_root_dir, String module_name) {
+		final String JSX_FILE_NAME = JSX_CLASSDEF_NAME + "_" + module_name + ".jsx";
+		
 		File[] current_list_files = from.listFiles(new FileFilter() {
 			public boolean accept(File pathname) {
-				return pathname.getName().endsWith(".jsx") & (pathname.getName().equals(JSX_CLASSDEF_NAME) == false);
+				return pathname.getName().endsWith(".jsx") & (pathname.getName().equals(JSX_FILE_NAME) == false);
 			}
 		});
 		File[] current_list_dirs = from.listFiles(new FileFilter() {
@@ -332,7 +334,7 @@ public class JSXTransformer {
 			Log2Dump dump = new Log2Dump();
 			dump.add("react directory", from);
 			
-			File header_file = new File(from.getAbsolutePath() + File.separator + JSX_CLASSDEF_NAME);
+			File header_file = new File(from.getAbsolutePath() + File.separator + JSX_FILE_NAME);
 			if (header_file.exists() == false) {
 				Log2.log.debug("Create new JSX header file for new directory", dump);
 				list.add(makeJSXAHeaderFile(current_list_dirs, header_file, jsx_root_dir));
@@ -350,15 +352,15 @@ public class JSXTransformer {
 			list.add(new JSXItem(current_list_files[pos], jsx_root_dir));
 		}
 		for (int pos = 0; pos < current_list_dirs.length; pos++) {
-			recursiveList(list, current_list_dirs[pos], jsx_root_dir);
+			recursiveList(list, current_list_dirs[pos], jsx_root_dir, module_name);
 		}
 	}
 	
 	private static List<JSXItem> getAllJSXItems() {
 		List<JSXItem> result = new ArrayList<JSXTransformer.JSXItem>();
-		List<VirtualFile> main_dirs = JsCompile.getAllfromRelativePath(JSX_SRC, true, true);
+		List<VirtualFileModule> main_dirs = JsCompile.getAllfromRelativePath(JSX_SRC, true, true);
 		for (int pos = 0; pos < main_dirs.size(); pos++) {
-			recursiveList(result, main_dirs.get(pos).getRealFile(), main_dirs.get(pos).getRealFile());
+			recursiveList(result, main_dirs.get(pos).getVfile().getRealFile(), main_dirs.get(pos).getVfile().getRealFile(), main_dirs.get(pos).getModule_name());
 		}
 		return result;
 	}

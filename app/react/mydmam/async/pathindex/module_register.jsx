@@ -44,7 +44,7 @@ var searchResult = function(result) {
 };
 
 /**
- * We don't wait the document.ready because we sure the mydmam.module.f code is already loaded. 
+ * We don't wait the document.ready because we are sure the mydmam.module.f code is already loaded. 
  */
 mydmam.module.register("PathIndexView", {
 	processViewSearchResult: searchResult,
