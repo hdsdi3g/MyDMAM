@@ -16,6 +16,9 @@
 */
 
 metadatas.ImageURL = function(file_hash, thumbnail) {
+	if (thumbnail == null) {
+		return null;
+	}
 	return metadatas.getFileURL(file_hash, thumbnail.type, thumbnail.file);
 };
 
@@ -49,6 +52,10 @@ var chooseTheCorrectImageToDisplay = function(previews, prefered_size) {
 	return null;
 };
 
+metadatas.chooseTheCorrectImageURL = function(file_hash, previews, prefered_size) {
+	return metadatas.ImageURL(file_hash, chooseTheCorrectImageToDisplay(previews, prefered_size));
+};
+
 metadatas.Image = React.createClass({
 	render: function() {
 		var file_hash = this.props.file_hash;
@@ -56,6 +63,10 @@ metadatas.Image = React.createClass({
 		var prefered_size = this.props.prefered_size;
 
 		var preview = chooseTheCorrectImageToDisplay(previews, prefered_size);
+
+		if (preview === null) {
+			return null;
+		}
 
 		var url = metadatas.ImageURL(file_hash, preview);
 		var width = preview.options.width;

@@ -223,6 +223,7 @@ browser.Nelements=%s éléments
 browser.goback=Retour
 browser.search=Recherche intégrée
 browser.loadingplayer=Chargement du lecteur...
+browser.cantloadingplayer=Impossible de charger le lecteur. Essayez avec un autre navigateur web.
 browser.inputselect.loading=Chargement... 
 browser.inputselect.errorduringloading=Erreur pendant le chargement !
 browser.inputselect.cantfoundcurrentdir=Impossible de trouver le dossier courant.
