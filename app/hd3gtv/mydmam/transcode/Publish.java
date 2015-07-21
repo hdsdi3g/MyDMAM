@@ -49,6 +49,7 @@ public class Publish extends WorkerNG {
 	
 	private String workername;
 	private long maxpresencewaittime;
+	private long waittimesizedetection;
 	private File sourcelocalfiles;
 	private String deststorage;
 	private Execprocess process;
@@ -67,6 +68,7 @@ public class Publish extends WorkerNG {
 		}
 		
 		maxpresencewaittime = Configuration.global.getValue("transcoding_probe", "maxpresencewaittime", 300l) * 1000l;
+		waittimesizedetection = Configuration.global.getValue("transcoding_probe", "waittimesizedetection", 1l) * 1000l;
 		
 		try {
 			sourcelocalfiles = new File(Configuration.global.getValue("transcoding_probe", "sourcelocalfiles", null));
@@ -161,14 +163,14 @@ public class Publish extends WorkerNG {
 			}
 			if (source_file.length() != old_size) {
 				old_size = source_file.length();
-				Thread.sleep(1000);
+				Thread.sleep(waittimesizedetection);
 			} else {
-				Thread.sleep(1000);
+				Thread.sleep(waittimesizedetection);
 				if (source_file.length() == old_size) {
 					break;
 				} else {
 					old_size = source_file.length();
-					Thread.sleep(1000);
+					Thread.sleep(waittimesizedetection);
 				}
 			}
 		}
