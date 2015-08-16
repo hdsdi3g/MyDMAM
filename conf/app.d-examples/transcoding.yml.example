@@ -97,3 +97,15 @@ transcodingprofiles:
     convert_personalizedsize_alpha : 
         command : "<%$INPUTFILE%>[0] -thumbnail <%$THUMBNAILSIZE%> -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size <%$CHECKERBOARDSIZE%> -resize <%$THUMBNAILSIZE%> pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
+
+watchfoldertranscoder:
+    example1:
+        source_storage: StorageIn
+        targets:
+            -
+                storage: StorageOut
+                profile: ffmpeg_lowres_lq
+        time_to_wait_growing_file: 1000
+        time_to_sleep_between_scans: 10000
+        min_file_size: 10000
+        temp_directory: /tmp

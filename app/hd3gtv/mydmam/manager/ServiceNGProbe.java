@@ -24,6 +24,7 @@ import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.transcode.Publish;
+import hd3gtv.mydmam.transcode.watchfolder.WatchFolderTranscoder;
 import hd3gtv.mydmam.useraction.UAManager;
 
 public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
@@ -48,6 +49,8 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		startAllServices();
 	}
 	
+	private WatchFolderTranscoder wf_trancoder;
+	
 	@Override
 	protected void startService() throws Exception {
 		AppManager manager = getManager();
@@ -62,10 +65,13 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		
 		UAManager.createWorkers(manager);
 		
+		wf_trancoder = new WatchFolderTranscoder(manager);
+		
 		MyDMAMModulesManager.declareAllModuleWorkerElement(manager);
 	}
 	
 	protected void stopService() throws Exception {
+		wf_trancoder.stopAllWatchFolders();
 	}
 	
 }

@@ -28,4 +28,15 @@ public class ConfigurationItem {
 		this.referer = referer;
 	}
 	
+	public LinkedHashMap<String, ConfigurationItem> getSubConfigurationItem() {
+		if (content == null) {
+			return new LinkedHashMap<String, ConfigurationItem>();
+		}
+		if (content.isEmpty()) {
+			return new LinkedHashMap<String, ConfigurationItem>();
+		}
+		LinkedHashMap<String, ConfigurationItem> result = new LinkedHashMap<String, ConfigurationItem>();
+		// TODO
+		return result;
+	}
 }
