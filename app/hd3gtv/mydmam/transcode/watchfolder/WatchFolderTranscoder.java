@@ -21,6 +21,7 @@ import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.transcode.TranscodeProfile;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,9 +43,14 @@ public class WatchFolderTranscoder {
 			return;
 		}
 		
-		HashMap<String, ConfigurationItem> all_confs = Configuration.global.getElement("watchfoldertranscoder");
+		if (TranscodeProfile.isConfigured() == false) {
+			Log2.log.error("No transcoding configuration definited, cancel WatchFolderTranscoder loading", null);
+			return;
+		}
 		
-		if (all_confs.isEmpty()) {
+		HashMap<String, ConfigurationItem> all_wf_confs = Configuration.global.getElement("watchfoldertranscoder");
+		
+		if (all_wf_confs.isEmpty()) {
 			return;
 		}
 		
@@ -52,14 +58,14 @@ public class WatchFolderTranscoder {
 		wf_group = new ThreadGroup("Watch Folder Transcoders");
 		wf_group.setDaemon(true);
 		
-		for (Map.Entry<String, ConfigurationItem> entry : all_confs.entrySet()) {
+		for (Map.Entry<String, ConfigurationItem> entry : all_wf_confs.entrySet()) {
 			try {
-				/*WatchFolderEntry wf_entry = new WatchFolderEntry(entry.getKey(), entry.getValue().content);
+				WatchFolderEntry wf_entry = new WatchFolderEntry(entry.getKey(), all_wf_confs);
 				wf_entries.add(wf_entry);
 				Thread t = new Thread(wf_group, wf_entry);
 				t.setDaemon(true);
 				t.setName("Watch Folder for " + entry.getKey());
-				t.start();*/
+				t.start();
 			} catch (Exception e) {
 				Log2.log.error("Can't load watchfolder", e, new Log2Dump("name", entry.getKey()));
 			}

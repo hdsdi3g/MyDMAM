@@ -36,25 +36,20 @@ public final class WorkerCapablitiesExporter {
 	@GsonIgnore
 	List<String> storages_available;
 	
-	// String name;
-	
-	// String category;
-	
-	// JsonObject parameters;
-	
 	@GsonIgnore
 	Class<? extends JobContext> job_context_avaliable;
+	
+	@GsonIgnore
+	public List<String> hooked_names;
 	
 	@SuppressWarnings("unused")
 	private WorkerCapablitiesExporter() {
 	}
 	
 	WorkerCapablitiesExporter(WorkerCapablities capablities) {
-		// this.category = capablities.getCategory();
-		// this.name = capablities.getName();
-		// parameters = capablities.getParameters();
 		storages_available = capablities.getStoragesAvaliable();
 		job_context_avaliable = capablities.getJobContextClass();
+		hooked_names = capablities.getHookedNames();
 	}
 	
 	static class Serializer implements JsonSerializer<WorkerCapablitiesExporter>, JsonDeserializer<WorkerCapablitiesExporter> {
@@ -68,6 +63,7 @@ public final class WorkerCapablitiesExporter {
 			JsonObject jo = json.getAsJsonObject();
 			result.storages_available = AppManager.getSimpleGson().fromJson(jo.get("storages_available"), al_string_typeOfT);
 			result.job_context_avaliable = AppManager.getGson().fromJson(jo.get("job_context_avaliable"), class_jobcontext_typeOfT);
+			result.hooked_names = AppManager.getGson().fromJson(jo.get("hooked_names"), al_string_typeOfT);
 			return result;
 		}
 		
@@ -75,6 +71,7 @@ public final class WorkerCapablitiesExporter {
 			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
 			result.add("storages_available", AppManager.getSimpleGson().toJsonTree(src.storages_available, al_string_typeOfT));
 			result.add("job_context_avaliable", AppManager.getGson().toJsonTree(src.job_context_avaliable, class_jobcontext_typeOfT));
+			result.add("hooked_names", AppManager.getGson().toJsonTree(src.hooked_names, al_string_typeOfT));
 			return result;
 		}
 		

@@ -28,6 +28,14 @@ public abstract class WorkerCapablities {
 	
 	public abstract Class<? extends JobContext> getJobContextClass();
 	
+	/**
+	 * Usefull to declare Profile names, process names... Use the same workflow as StoragesAvaliable.
+	 * @return can be null or empty
+	 */
+	public List<String> getHookedNames() {
+		return null;
+	}
+	
 	final boolean isAssignableFrom(JobContext context) {
 		if (context == null) {
 			return false;
@@ -59,6 +67,21 @@ public abstract class WorkerCapablities {
 			}
 		}
 		
+		/**
+		 * Need to test Hooked names, item need some Hooked names.
+		 */
+		if (context.hookednames != null) {
+			List<String> this_hooked_names = getHookedNames();
+			if (this_hooked_names == null) {
+				return false;
+			}
+			for (int pos = 0; pos < context.hookednames.size(); pos++) {
+				if (this_hooked_names.contains(context.hookednames.get(pos)) == false) {
+					return false;
+				}
+			}
+		}
+		
 		return true;
 	}
 	
@@ -85,6 +108,14 @@ public abstract class WorkerCapablities {
 			}
 		}
 		
+		List<String> hookednames = getHookedNames();
+		if (hookednames != null) {
+			for (int pos = 0; pos < hookednames.size(); pos++) {
+				sb.append("HookedName:");
+				sb.append(hookednames.get(pos));
+				sb.append(" ");
+			}
+		}
 		return sb.toString().trim();
 	}
 	
@@ -106,4 +137,21 @@ public abstract class WorkerCapablities {
 		return result;
 	}
 	
+	public static List<WorkerCapablities> createList(final Class<? extends JobContext> context, final List<String> storages_avaliable, final List<String> hooked_names) {
+		ArrayList<WorkerCapablities> result = new ArrayList<WorkerCapablities>(1);
+		result.add(new WorkerCapablities() {
+			public List<String> getStoragesAvaliable() {
+				return storages_avaliable;
+			}
+			
+			public Class<? extends JobContext> getJobContextClass() {
+				return context;
+			}
+			
+			public List<String> getHookedNames() {
+				return hooked_names;
+			}
+		});
+		return result;
+	}
 }

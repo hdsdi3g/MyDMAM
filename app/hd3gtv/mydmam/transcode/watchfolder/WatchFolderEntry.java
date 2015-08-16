@@ -16,11 +16,16 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.mydmam.transcode.TranscodeProfile;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 class WatchFolderEntry implements Runnable {
@@ -38,31 +43,52 @@ class WatchFolderEntry implements Runnable {
 	class Target {
 		String storage;
 		String profile;
+		
+		Target init(LinkedHashMap<String, ?> conf) throws Exception {
+			if (conf.containsKey(storage) == false) {
+				throw new NullPointerException("\"storage\" can't to be null");
+			}
+			storage = (String) conf.get("storage");
+			Storage.getByName(storage).testStorageConnection();
+			
+			if (conf.containsKey(profile) == false) {
+				throw new NullPointerException("\"profile\" can't to be null");
+			}
+			profile = (String) conf.get("profile");
+			
+			if (TranscodeProfile.getTranscodeProfile(profile) == null) {
+				throw new NullPointerException("Can't found transcode profile \"" + profile + "\" in \"" + name + "\" watch folder configuration");
+			}
+			return this;
+		}
+		
 	}
 	
-	WatchFolderEntry(String name, HashMap<String, ConfigurationItem> configuration) {
+	WatchFolderEntry(String name, HashMap<String, ConfigurationItem> all_wf_confs) throws Exception {
 		this.name = name;
 		
-		/*source_storage = (String) configuration.get("source_storage");
-		time_to_wait_growing_file = (Long) configuration.get("time_to_wait_growing_file");
-		time_to_sleep_between_scans = (Long) configuration.get("time_to_sleep_between_scans");
-		min_file_size = (Long) configuration.get("min_file_size");
-		temp_directory = (String) configuration.get("temp_directory");*/
-		// List<Target> targets;
+		source_storage = Configuration.getValue(all_wf_confs, name, "source_storage", "");
+		Storage.getByName(source_storage).testStorageConnection();
+		
+		List<LinkedHashMap<String, ?>> c_targets = Configuration.getValuesList(all_wf_confs, name, "targets");
+		if (c_targets == null) {
+			throw new NullPointerException("\"targets\" can't to be null, in " + name + " watchfolder");
+		}
+		if (c_targets.isEmpty()) {
+			throw new IndexOutOfBoundsException("\"targets\" can't to be empty, in " + name + " watchfolder");
+		}
+		List<Target> targets = new ArrayList<WatchFolderEntry.Target>(c_targets.size());
+		
+		for (int pos = 0; pos < c_targets.size(); pos++) {
+			targets.add(new Target().init(c_targets.get(pos)));
+		}
+		
+		time_to_wait_growing_file = Configuration.getValue(all_wf_confs, name, "time_to_wait_growing_file", 1000);
+		time_to_sleep_between_scans = Configuration.getValue(all_wf_confs, name, "time_to_sleep_between_scans", 10000);
+		min_file_size = Configuration.getValue(all_wf_confs, name, "min_file_size", 10000);
+		temp_directory = Configuration.getValue(all_wf_confs, name, "temp_directory", System.getProperty("java.io.tmpdir"));
+		
 	}
-	
-	/*
-	    : LocalhostDebug
-	    targets:
-	        -
-	            storage: LocalhostDebugOut
-	            profile: ffmpeg_lowres_lq
-	    time_to_wait_growing_file: 1000
-	    time_to_sleep_between_scans: 10000
-	    min_file_size: 10000
-	    temp_directory: /tmp
-
-	* */
 	
 	synchronized void stopWatchfolderScans() {
 		want_to_stop = true;
@@ -76,6 +102,31 @@ class WatchFolderEntry implements Runnable {
 		try {
 			while (want_to_stop == false) {
 				// TODO
+				
+				/**
+				 * Scan
+				 */
+				
+				/**
+				 * Check founded files
+				 */
+				
+				/**
+				 * Check active files
+				 */
+				
+				/**
+				 * Process active files: analyst
+				 */
+				
+				/**
+				 * Process active files: transcoding task
+				 */
+				
+				/*
+				If a file is founded, lock it in Cassandra, check presence status in Cassandra, and update it. Update ES pathindex entry.
+				If a file is validated, create Job for manage it. Job neededstorages must be set & check.
+				Job perform an analysis Metadata review, and create, if needed, some transcoding Jobs following associated params.*/
 				
 				sleep_time = time_to_sleep_between_scans;
 				while (sleep_time > 0 & (want_to_stop == false)) {

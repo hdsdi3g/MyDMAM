@@ -57,6 +57,11 @@ public abstract class JobContext {
 	 */
 	public @GsonIgnore List<String> neededstorages;
 	
+	/**
+	 * @return can be null or empty
+	 */
+	public @GsonIgnore List<String> hookednames;
+	
 	final static class Serializer implements JsonSerializer<JobContext>, JsonDeserializer<JobContext> {
 		
 		Type type_String_AL = new TypeToken<ArrayList<String>>() {
@@ -69,6 +74,7 @@ public abstract class JobContext {
 				JobContext result = AppManager.instanceClassForName(context_class, JobContext.class);
 				result.contextFromJson(json.getAsJsonObject("content"));
 				result.neededstorages = AppManager.getGson().fromJson(json.get("neededstorages"), type_String_AL);
+				result.hookednames = AppManager.getGson().fromJson(json.get("hookednames"), type_String_AL);
 				return result;
 			} catch (Exception e) {
 				Log2.log.error("Can't deserialize", e, new Log2Dump("json source", jejson.toString()));
@@ -85,6 +91,7 @@ public abstract class JobContext {
 			}
 			result.add("content", context_content);
 			result.add("neededstorages", AppManager.getGson().toJsonTree(src.neededstorages));
+			result.add("hookednames", AppManager.getGson().toJsonTree(src.hookednames));
 			return result;
 		}
 	}
@@ -130,6 +137,19 @@ public abstract class JobContext {
 				for (int pos = 0; pos < storagesneeded_sorted.size(); pos++) {
 					sb.append("/storage:");
 					sb.append(storagesneeded_sorted.get(pos));
+				}
+			}
+			
+			if (context.hookednames != null) {
+				/**
+				 * Copy hookednames for not alter actual order in Context.
+				 */
+				ArrayList<String> hookednames_sorted = new ArrayList<String>();
+				hookednames_sorted.addAll(context.hookednames);
+				Collections.sort(hookednames_sorted);
+				for (int pos = 0; pos < hookednames_sorted.size(); pos++) {
+					sb.append("/hookname:");
+					sb.append(hookednames_sorted.get(pos));
 				}
 			}
 			
