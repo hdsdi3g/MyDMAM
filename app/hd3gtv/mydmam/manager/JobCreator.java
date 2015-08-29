@@ -67,7 +67,7 @@ abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 				} else {
 					job.setName(job_name + " (" + (pos_dc + 1) + "/" + contexts.size() + ")");
 				}
-				job.setRequireCompletedJob(require);
+				job.setRequiredCompletedJob(require);
 				createJobsInternal(mutator, job, require);
 				job.publish(mutator);
 				require = job;

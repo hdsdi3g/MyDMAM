@@ -42,7 +42,7 @@ public class TranscoderWorker extends WorkerNG {
 			
 			@Override
 			public List<String> getStoragesAvaliable() {
-				return Storage.getLocalAccessStoragesName();
+				return Storage.getAllStoragesNames();
 			}
 			
 			public Class<? extends JobContext> getJobContextClass() {
@@ -60,7 +60,7 @@ public class TranscoderWorker extends WorkerNG {
 	}
 	
 	public WorkerCategory getWorkerCategory() {
-		return WorkerCategory.CONVERTING;
+		return WorkerCategory.INTERNAL;
 	}
 	
 	public String getWorkerLongName() {
@@ -89,7 +89,13 @@ public class TranscoderWorker extends WorkerNG {
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		JobContextTranscoder transcode_context = (JobContextTranscoder) context;
 		List<String> profiles_to_transcode = transcode_context.hookednames;
+		
+		// TODO get (download) original file if needed in temp directory.
+		
 		for (int pos = 0; pos < profiles_to_transcode.size(); pos++) {
+			if (stop_process) {
+				return;
+			}
 			TranscodeProfile transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));
 			// TODO ...
 		}

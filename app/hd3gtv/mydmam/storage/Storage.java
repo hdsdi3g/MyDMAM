@@ -138,6 +138,10 @@ public abstract class Storage implements Log2Dumpable {
 		return declared_storages_local_access;
 	}
 	
+	public static ArrayList<String> getAllStoragesNames() {
+		return new ArrayList<String>(declared_storages_by_name.keySet());
+	}
+	
 	public static void testAllStoragesConnection() {
 		for (int pos = 0; pos < declared_storages.size(); pos++) {
 			Log2Dump dump = new Log2Dump();

@@ -27,8 +27,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class WatchFolderTranscoder {
+	
+	static final int TTL_CASSANDRA = (int) TimeUnit.HOURS.toSeconds(24);
+	static final long TTL_ES = TimeUnit.HOURS.toMillis(24);
 	
 	private AppManager manager;
 	
@@ -60,7 +64,7 @@ public class WatchFolderTranscoder {
 		
 		for (Map.Entry<String, ConfigurationItem> entry : all_wf_confs.entrySet()) {
 			try {
-				WatchFolderEntry wf_entry = new WatchFolderEntry(entry.getKey(), all_wf_confs);
+				WatchFolderEntry wf_entry = new WatchFolderEntry(manager, entry.getKey(), all_wf_confs);
 				wf_entries.add(wf_entry);
 				Thread t = new Thread(wf_group, wf_entry);
 				t.setDaemon(true);
@@ -70,6 +74,14 @@ public class WatchFolderTranscoder {
 				Log2.log.error("Can't load watchfolder", e, new Log2Dump("name", entry.getKey()));
 			}
 		}
+		
+		manager.workerRegister(new DeleteSourceFileWorker());
+		
+		/**
+		 * TODO Watchfolder configuration should ask video and/or audio presence.
+		 * TODO n Transcoding workers
+		 * TODO Create the delete Job which require the Terminated status for all transcoding jobs.
+		 */
 	}
 	
 	public void stopAllWatchFolders() {

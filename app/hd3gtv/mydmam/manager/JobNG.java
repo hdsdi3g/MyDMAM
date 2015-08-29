@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.json.simple.parser.ParseException;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -123,7 +125,6 @@ public final class JobNG implements Log2Dumpable {
 	private long expiration_date;
 	private long max_execution_time;
 	private static final long default_max_execution_time = 1000 * 3600 * 24;
-	private String require_key;
 	private long create_date;
 	private boolean delete_after_completed;
 	private String instance_status_creator_key;
@@ -132,6 +133,8 @@ public final class JobNG implements Log2Dumpable {
 	
 	@GsonIgnore
 	private JobContext context;
+	@GsonIgnore
+	private List<String> required_keys;
 	
 	/**
 	 * Activity vars
@@ -159,6 +162,7 @@ public final class JobNG implements Log2Dumpable {
 		expiration_date = System.currentTimeMillis() + (default_max_execution_time * 10);
 		max_execution_time = default_max_execution_time;
 		status = JobStatus.WAITING;
+		required_keys = new ArrayList<String>(1);
 		
 		instance_status_creator_key = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getInstanceNamePid();
 		instance_status_creator_hostname = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getHostName();
@@ -184,28 +188,59 @@ public final class JobNG implements Log2Dumpable {
 		return this;
 	}
 	
-	public JobNG setRequireCompletedJob(JobNG require) {
-		if (require != null) {
-			require_key = require.key;
+	public JobNG setRequiredCompletedJob(JobNG... require) {
+		if (require == null) {
+			return this;
+		}
+		if (require.length == 0) {
+			return this;
+		}
+		required_keys = new ArrayList<String>(require.length);
+		for (int pos = 0; pos < require.length; pos++) {
+			required_keys.add(require[pos].key);
+		}
+		return this;
+	}
+	
+	public JobNG setRequiredCompletedJob(Iterable<JobNG> require) {
+		if (require == null) {
+			return this;
+		}
+		if (require.iterator().hasNext() == false) {
+			/**
+			 * No first item == no items
+			 */
+			return this;
+		}
+		required_keys = new ArrayList<String>();
+		for (Iterator<JobNG> iterator = require.iterator(); iterator.hasNext();) {
+			JobNG job = iterator.next();
+			required_keys.add(job.key);
 		}
 		return this;
 	}
 	
 	boolean isRequireIsDone() throws ConnectionException {
-		if (require_key == null) {
+		if (required_keys == null) {
 			return true;
 		}
-		ColumnList<String> cols = keyspace.prepareQuery(CF_QUEUE).getKey(require_key).withColumnSlice("status").execute().getResult();
-		if (cols == null) {
-			return false;
-		}
-		if (cols.isEmpty()) {
-			return false;
-		}
-		if (cols.getStringValue("status", JobStatus.WAITING.name()).equals(JobStatus.DONE.name())) {
+		if (required_keys.isEmpty()) {
 			return true;
 		}
-		return false;
+		
+		Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(required_keys).withColumnSlice("status").execute().getResult();
+		if (rows == null) {
+			return false;
+		}
+		if (rows.isEmpty()) {
+			return false;
+		}
+		for (Row<String, String> row : rows) {
+			if (row.getColumns().getStringValue("status", JobStatus.WAITING.name()).equals(JobStatus.DONE.name()) == false) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	boolean isTooOldjob() {
@@ -326,10 +361,14 @@ public final class JobNG implements Log2Dumpable {
 		return context;
 	}
 	
-	public void publish() throws ConnectionException {
+	/**
+	 * @return this
+	 */
+	public JobNG publish() throws ConnectionException {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		publish(mutator);
 		mutator.execute();
+		return this;
 	}
 	
 	/**
@@ -343,12 +382,16 @@ public final class JobNG implements Log2Dumpable {
 		priority = rows.getResult().size() + 1;
 	}
 	
-	public void publish(MutationBatch mutator) throws ConnectionException {
+	/**
+	 * @return this
+	 */
+	public JobNG publish(MutationBatch mutator) throws ConnectionException {
 		create_date = System.currentTimeMillis();
 		if (urgent) {
 			setMaxPriority();
 		}
 		saveChanges(mutator);
+		return this;
 	}
 	
 	/**
@@ -373,9 +416,17 @@ public final class JobNG implements Log2Dumpable {
 	}
 	
 	static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
+		private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
+		}.getType();
+		
 		public JobNG deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext jcontext) throws JsonParseException {
 			JsonObject json = (JsonObject) jejson;
 			JobNG job = AppManager.getSimpleGson().fromJson(json, JobNG.class);
+			if (json.has("required_keys")) {
+				job.required_keys = AppManager.getSimpleGson().fromJson(json.get("required_keys"), al_string_typeOfT);
+			} else {
+				job.required_keys = new ArrayList<String>(1);
+			}
 			job.context = AppManager.getGson().fromJson(json.get("context"), JobContext.class);
 			job.processing_error = AppManager.getGson().fromJson(json.get("processing_error"), GsonThrowable.class);
 			return job;
@@ -383,6 +434,7 @@ public final class JobNG implements Log2Dumpable {
 		
 		public JsonElement serialize(JobNG src, Type typeOfSrc, JsonSerializationContext jcontext) {
 			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
+			result.add("required_keys", AppManager.getSimpleGson().toJsonTree(src.required_keys));
 			result.add("context", AppManager.getGson().toJsonTree(src.context, JobContext.class));
 			result.add("processing_error", AppManager.getGson().toJsonTree(src.processing_error));
 			return result;
@@ -843,7 +895,7 @@ public final class JobNG implements Log2Dumpable {
 		dump.addDate("update_date", update_date);
 		dump.addDate("start_date", start_date);
 		dump.addDate("end_date", end_date);
-		dump.add("require_key", require_key);
+		dump.add("required_keys", required_keys);
 		dump.add("delete_after_completed", delete_after_completed);
 		dump.add("executor", instance_status_executor_key);
 		dump.add("creator", instance_status_creator_key);

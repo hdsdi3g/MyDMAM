@@ -31,7 +31,7 @@ import com.google.gson.JsonObject;
 public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 	
 	public enum WorkerCategory {
-		INDEXING, METADATA, EXTERNAL_MODULE, USERACTION, CONVERTING, INTERNAL
+		INDEXING, METADATA, EXTERNAL_MODULE, USERACTION, INTERNAL
 	}
 	
 	public abstract WorkerCategory getWorkerCategory();
