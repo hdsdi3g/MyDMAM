@@ -16,26 +16,60 @@
 */
 package hd3gtv.mydmam.transcode;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
+import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
+
 public class TranscoderWorker extends WorkerNG {
 	
-	private List<WorkerCapablities> capabilities;
+	public static void declareTranscoders(AppManager manager) throws NullPointerException, IOException {
+		if (TranscodeProfile.isConfigured() == false) {
+			return;
+		}
+		
+		// TODO if configured, map profiles and transcoder count, else:
+		
+		List<TranscodeProfile> all_profiles = TranscodeProfile.getAllTranscodeProfiles();
+		manager.workerRegister(new TranscoderWorker(all_profiles, new File(Configuration.global.getValue("????", "temp_directory", System.getProperty("java.io.tmpdir")))));
+		// TODO get temp dir...
+	}
 	
-	public TranscoderWorker(final List<TranscodeProfile> profiles) {
+	private List<WorkerCapablities> capabilities;
+	private Explorer explorer;
+	private File temp_directory;
+	
+	public TranscoderWorker(final List<TranscodeProfile> profiles, File temp_directory) throws NullPointerException, IOException {
+		explorer = new Explorer();
 		if (profiles == null) {
 			throw new NullPointerException("\"profiles\" can't to be null");
 		}
 		if (profiles.isEmpty()) {
 			throw new NullPointerException("\"profiles\" can't to be empty");
 		}
+		
+		this.temp_directory = temp_directory;
+		if (temp_directory == null) {
+			throw new NullPointerException("\"temp_directory\" can't to be null");
+		}
+		CopyMove.checkExistsCanRead(temp_directory);
+		CopyMove.checkIsDirectory(temp_directory);
+		CopyMove.checkIsWritable(temp_directory);
 		
 		capabilities = new ArrayList<WorkerCapablities>(profiles.size());
 		capabilities.add(new WorkerCapablities() {
@@ -88,20 +122,82 @@ public class TranscoderWorker extends WorkerNG {
 	@Override
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		JobContextTranscoder transcode_context = (JobContextTranscoder) context;
-		List<String> profiles_to_transcode = transcode_context.hookednames;
 		
-		// TODO get (download) original file if needed in temp directory.
-		
-		for (int pos = 0; pos < profiles_to_transcode.size(); pos++) {
-			if (stop_process) {
-				return;
-			}
-			TranscodeProfile transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));
-			// TODO ...
+		/**
+		 * Recover source file from local or distant storage.
+		 */
+		SourcePathIndexerElement pi_item = explorer.getelementByIdkey(transcode_context.source_pathindex_key);
+		if (pi_item == null) {
+			throw new NullPointerException("Can't found source file in index");
 		}
 		
 		if (stop_process) {
 			return;
 		}
+		
+		File physical_source = Storage.getLocalFile(pi_item);
+		boolean download_temp = false;
+		if (physical_source == null) {
+			download_temp = true;
+			try {
+				physical_source = Storage.getDistantFile(pi_item, temp_directory);
+			} catch (IOException e) {
+				throw new IOException("Can't download found file to temp directory", e);
+			}
+		}
+		
+		if (stop_process) {
+			return;
+		}
+		
+		// Container container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
+		
+		File local_dest_dir = Storage.getLocalFile(SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name));
+		
+		List<String> profiles_to_transcode = transcode_context.hookednames;
+		
+		TranscodeProfile transcode_profile;
+		ProcessConfiguration process;
+		File temp_output_file;
+		for (int pos = 0; pos < profiles_to_transcode.size(); pos++) {
+			if (stop_process) {
+				return;
+			}
+			transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));
+			
+			temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));
+			
+			// TODO refactor TranscodeProfile: add excutable name to conf, and link executable name and file to execute in conf.
+			process = transcode_profile.createProcessConfiguration(null, physical_source, temp_output_file);
+			
+			// TODO start transcode, with progression
+			
+			if (transcode_profile.getOutputformat().isFaststarted()) {
+				// TODO faststart
+			}
+			
+			// TODO add prefix/suffix for output file + recreate sub dir
+			if (local_dest_dir != null) {
+				FileUtils.moveFile(temp_output_file, new File(local_dest_dir.getAbsolutePath() + File.separator + physical_source.getName() + transcode_profile.getExtension("")));
+			} else if (stop_process == false) {
+				AbstractFile distant_file = Storage.getByName(transcode_context.dest_storage_name).getRootPath().getAbstractFile("/" + physical_source.getName() + transcode_profile.getExtension(""));
+				FileUtils.copyFile(temp_output_file, distant_file.getOutputStream(0xFFFF));
+				distant_file.close();
+				FileUtils.forceDelete(temp_output_file);
+			}
+		}
+		
+		if (stop_process) {
+			return;
+		}
+		
+		if (download_temp) {
+			try {
+				FileUtils.forceDelete(physical_source);
+			} catch (Exception e) {
+				throw new IOException("Can't delete temp file", e);
+			}
+		}
+		
 	}
 }

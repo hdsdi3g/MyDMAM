@@ -20,21 +20,40 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
+import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.IgnoreFiles;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.storage.StorageCrawler;
+import hd3gtv.mydmam.transcode.JobContextTranscoder;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
+import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
+import org.elasticsearch.ElasticsearchException;
+
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.recipes.locks.BusyLockException;
@@ -48,15 +67,18 @@ class WatchFolderEntry implements Runnable {
 	private long time_to_wait_growing_file;
 	private long time_to_sleep_between_scans;
 	private long min_file_size;
-	private String temp_directory;
+	private File temp_directory;
 	private List<Target> targets;
 	private AppManager manager;
+	private Explorer explorer;
 	
 	private transient boolean want_to_stop;
 	
 	class Target {
 		String storage;
 		String profile;
+		
+		// TODO add prefix/suffix for output file + recreate sub dir
 		
 		Target init(LinkedHashMap<String, ?> conf) throws Exception {
 			if (conf.containsKey(storage) == false) {
@@ -76,11 +98,24 @@ class WatchFolderEntry implements Runnable {
 			return this;
 		}
 		
+		JobNG prepareTranscodeJob(String path_index_key, String simple_file_name, MutationBatch mutator) throws ConnectionException {
+			JobContextTranscoder job_transcode = new JobContextTranscoder();
+			job_transcode.source_pathindex_key = path_index_key;
+			job_transcode.dest_storage_name = storage;
+			job_transcode.neededstorages = Arrays.asList(storage);
+			/** transcoding profile name */
+			job_transcode.hookednames = Arrays.asList(profile);
+			// TODO add prefix/suffix for output file + recreate sub dir
+			
+			return AppManager.createJob(job_transcode).setCreator(getClass()).setName("Transcode from watchfolder " + simple_file_name).publish(mutator);
+		}
+		
 	}
 	
 	WatchFolderEntry(AppManager manager, String name, HashMap<String, ConfigurationItem> all_wf_confs) throws Exception {
 		this.manager = manager;
 		this.name = name;
+		explorer = new Explorer();
 		
 		source_storage = Configuration.getValue(all_wf_confs, name, "source_storage", "");
 		Storage.getByName(source_storage).testStorageConnection();
@@ -101,8 +136,10 @@ class WatchFolderEntry implements Runnable {
 		time_to_wait_growing_file = Configuration.getValue(all_wf_confs, name, "time_to_wait_growing_file", 1000);
 		time_to_sleep_between_scans = Configuration.getValue(all_wf_confs, name, "time_to_sleep_between_scans", 10000);
 		min_file_size = Configuration.getValue(all_wf_confs, name, "min_file_size", 10000);
-		temp_directory = Configuration.getValue(all_wf_confs, name, "temp_directory", System.getProperty("java.io.tmpdir"));
-		
+		temp_directory = new File(Configuration.getValue(all_wf_confs, name, "temp_directory", System.getProperty("java.io.tmpdir")));
+		CopyMove.checkExistsCanRead(temp_directory);
+		CopyMove.checkIsDirectory(temp_directory);
+		CopyMove.checkIsWritable(temp_directory);
 	}
 	
 	synchronized void stopWatchfolderScans() {
@@ -118,6 +155,9 @@ class WatchFolderEntry implements Runnable {
 		}
 		
 		public boolean onFoundFile(AbstractFile file, String storagename) {
+			if (file.length() < min_file_size) {
+				return true;
+			}
 			founded.add(new AbstractFoundedFile(file, storagename));
 			return true;
 		}
@@ -171,6 +211,7 @@ class WatchFolderEntry implements Runnable {
 		AbstractFoundedFile db_entry_file;
 		AbstractFoundedFile active_file;
 		AbstractFoundedFile validated_file;
+		ElasticsearchBulkOperation bulk;
 		List<AbstractFoundedFile> present_in_db = new ArrayList<AbstractFoundedFile>(1);
 		List<AbstractFoundedFile> new_files_to_add = new ArrayList<AbstractFoundedFile>(1);
 		List<AbstractFoundedFile> active_files = new ArrayList<AbstractFoundedFile>(1);
@@ -221,7 +262,20 @@ class WatchFolderEntry implements Runnable {
 						}
 					}
 					
-					WatchFolderDB.push(new_files_to_add);
+					if (new_files_to_add.isEmpty() == false) {
+						WatchFolderDB.push(new_files_to_add);
+						bulk = Elasticsearch.prepareBulk();
+						try {
+							explorer.refreshStoragePath(bulk, Arrays.asList(SourcePathIndexerElement.prepareStorageElement(source_storage)), false);
+							bulk.terminateBulk();
+						} catch (Exception e) {
+							if (e instanceof ElasticsearchException) {
+								Log2.log.error("Trouble during Elasticsearch updating", e);
+							} else {
+								throw e;
+							}
+						}
+					}
 					
 					if (active_files.isEmpty()) {
 						continue;
@@ -284,7 +338,6 @@ class WatchFolderEntry implements Runnable {
 						
 						if (db_entry_file.last_checked + time_to_wait_growing_file < System.currentTimeMillis()) {
 							validated_files.add(db_entry_file);
-							active_file.status = Status.IN_PROCESSING;
 						} else {
 							Log2.log.debug("This file has stopped to grow, wait the time to validate", db_entry_file);
 						}
@@ -339,8 +392,9 @@ class WatchFolderEntry implements Runnable {
 					Log2.log.error("Can't access to Cassandra", e);
 				}
 			}
-		} catch (InterruptedException e) {
-			Log2.log.error("Can't sleep", e, new Log2Dump("name", name));
+		} catch (Exception e) {
+			Log2.log.error("Fatal exception", e, new Log2Dump("name", name));
+			AdminMailAlert.create("Fatal and not managed exception for WatchFolder", true).addDump(new Log2Dump("watch folder name", name)).setManager(manager).setThrowable(e).send();
 		}
 	}
 	
@@ -348,29 +402,86 @@ class WatchFolderEntry implements Runnable {
 		/**
 		 * Refresh ES pathindex for this file
 		 */
+		SourcePathIndexerElement pi_item = explorer.getelementByIdkey(validated_file.getPathIndexKey());
+		if (pi_item != null) {
+			if ((pi_item.date != validated_file.date) | (pi_item.size != validated_file.size)) {
+				try {
+					ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+					bulk.getConfiguration().setRefresh(true);
+					explorer.refreshCurrentStoragePath(bulk, Arrays.asList(pi_item), true);
+					bulk.terminateBulk();
+					pi_item = explorer.getelementByIdkey(validated_file.getPathIndexKey());
+				} catch (Exception e) {
+					Log2.log.error("Can't update ES index", e, validated_file);
+					return;
+				}
+			}
+		} else {
+			Log2.log.error("Can't found current item in ES", null, validated_file);
+			return;
+		}
 		
 		/**
 		 * Perform File Validation for manage it and release it (and obviously validate it in Cassandra).
 		 * Process active files: analyst
 		 */
+		validated_file.status = Status.IN_PROCESSING;
+		WatchFolderDB.push(Arrays.asList(validated_file));
+		
+		File physical_source = Storage.getLocalFile(pi_item);
+		boolean download_temp = false;
+		if (physical_source == null) {
+			download_temp = true;
+			try {
+				physical_source = Storage.getDistantFile(pi_item, temp_directory);
+			} catch (IOException e) {
+				Log2.log.error("Can't download found file to temp directory", e, validated_file);
+				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).addDump(validated_file).setThrowable(e).send();
+				return;
+			}
+		}
+		
+		Container indexing_result = null;
+		try {
+			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+			MetadataIndexingOperation indexing = new MetadataIndexingOperation(physical_source).setReference(pi_item).setLimit(MetadataIndexingLimit.ANALYST);
+			indexing_result = indexing.doIndexing();
+			ContainerOperations.save(indexing_result, true, bulk);
+			bulk.terminateBulk();
+		} catch (Exception e) {
+			Log2.log.error("Can't analyst MTD", null, validated_file);
+			validated_file.status = Status.ERROR;
+			WatchFolderDB.push(Arrays.asList(validated_file));
+			return;
+		}
+		
+		if (download_temp) {
+			try {
+				FileUtils.forceDelete(physical_source);
+			} catch (Exception e) {
+				Log2.log.error("Can't delete temp file", e, validated_file);
+				AdminMailAlert.create("Can't delete temp file", false).addDump(validated_file).setThrowable(e).send();
+			}
+		}
 		
 		/**
 		 * Process active files: transcoding jobs
-		 * Job neededstorages and hookednames (transcoding profile name) must be set & check.
 		 */
-		/*JobContextTranscoder job_transcode = new JobContextTranscoder();
-		// TODO job_transcode
-		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		// indexing_result.getSummary().getMimetype();
 		
-		JobNG new_job = AppManager.createJob(job_transcode).setCreator(getClass()).setName("Transcode from watchfolder " + validated_file.getName()).publish(mutator);
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		ArrayList<JobNG> jobs_to_watch = new ArrayList<JobNG>(targets.size());
+		for (int pos = 0; pos < targets.size(); pos++) {
+			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), mutator));
+		}
 		
 		JobContextWFDeleteSourceFile delete_source = new JobContextWFDeleteSourceFile();
 		delete_source.neededstorages = Arrays.asList(validated_file.storage_name);
 		delete_source.path = validated_file.path;
 		delete_source.storage = validated_file.storage_name;
 		
-		AppManager.createJob(delete_source).setCreator(getClass()).setName("Delete watchfolder source " + validated_file.getName()).setRequiredCompletedJob(new_job).setDeleteAfterCompleted()
+		AppManager.createJob(delete_source).setCreator(getClass()).setName("Delete watchfolder source " + validated_file.getName()).setRequiredCompletedJob(jobs_to_watch).setDeleteAfterCompleted()
 				.publish(mutator);
-		mutator.execute();*/
+		mutator.execute();
 	}
 }

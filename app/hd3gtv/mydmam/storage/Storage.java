@@ -20,6 +20,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.metadata.container.ContainerOrigin;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
 
@@ -33,6 +34,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 public abstract class Storage implements Log2Dumpable {
 	
@@ -129,6 +133,38 @@ public abstract class Storage implements Log2Dumpable {
 			return null;
 		}
 		return new File(base_path.getPath() + element.currentpath.replaceAll("/", File.separator));
+	}
+	
+	/**
+	 * @return never null. Always download it.
+	 *         Name based on MTD key.
+	 *         Free feel to delete if after.
+	 */
+	public static File getDistantFile(SourcePathIndexerElement element, File temp_directory) throws IOException {
+		CopyMove.checkExistsCanRead(temp_directory);
+		CopyMove.checkIsDirectory(temp_directory);
+		CopyMove.checkIsWritable(temp_directory);
+		
+		if ((temp_directory.getFreeSpace()) > 0 & (temp_directory.getFreeSpace() < element.size)) {
+			throw new IOException("No space left on " + temp_directory.getAbsolutePath() + " (" + temp_directory.getFreeSpace() + " bytes)");
+		}
+		
+		String base_name = ContainerOrigin.fromSource(element, null).getUniqueElementKey();
+		String ext = FilenameUtils.getExtension(element.currentpath);
+		if (ext.equals("") == false) {
+			ext = "." + ext;
+		}
+		File result = new File(temp_directory.getAbsolutePath() + File.separator + base_name + ext);
+		
+		if (result.exists()) {
+			FileUtils.forceDelete(result);
+		}
+		
+		AbstractFile distant_file = Storage.getByName(element.storagename).getRootPath().getAbstractFile(element.currentpath);
+		FileUtils.copyInputStreamToFile(distant_file.getInputStream(0xFFFF), result);
+		distant_file.close();
+		
+		return result;
 	}
 	
 	/**

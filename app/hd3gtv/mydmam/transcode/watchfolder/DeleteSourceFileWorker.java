@@ -26,6 +26,7 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -52,6 +53,16 @@ class DeleteSourceFileWorker extends WorkerNG {
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		JobContextWFDeleteSourceFile order = (JobContextWFDeleteSourceFile) context;
 		
+		SourcePathIndexerElement spie = new SourcePathIndexerElement();
+		spie.storagename = order.storage;
+		spie.currentpath = order.path;
+		spie.directory = false;
+		
+		/**
+		 * Switch "Processed" to file.
+		 */
+		WatchFolderDB.switchStatus(spie.prepare_key(), Status.PROCESSED);
+		
 		/**
 		 * Delete physically the file.
 		 */
@@ -64,15 +75,13 @@ class DeleteSourceFileWorker extends WorkerNG {
 		
 		/**
 		 * Delete the pathindex entry for this file.
+		 * (don't delete mtd, the robot will doing this regularly, via @see ContainerOperations.purge_orphan_metadatas();
 		 */
 		Explorer explorer = new Explorer();
 		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
-		SourcePathIndexerElement spie = new SourcePathIndexerElement();
-		spie.storagename = order.storage;
-		spie.currentpath = order.path;
-		spie.directory = false;
 		explorer.deleteStoragePath(bulk, Arrays.asList(spie));
 		bulk.terminateBulk();
+		
 	}
 	
 	protected void forceStopProcess() throws Exception {

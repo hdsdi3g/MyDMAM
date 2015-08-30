@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.ColumnList;
 
 public class AbstractFoundedFile implements AbstractFile {
 	
@@ -41,14 +41,14 @@ public class AbstractFoundedFile implements AbstractFile {
 	Status status = Status.DETECTED;
 	long last_checked;
 	
-	AbstractFoundedFile(Row<String, String> db_row) {
-		path_index_key = db_row.getKey();
-		path = db_row.getColumns().getStringValue("path", "/");
-		storage_name = db_row.getColumns().getStringValue("storage_name", "");
-		date = db_row.getColumns().getLongValue("date", 0l);
-		size = db_row.getColumns().getLongValue("size", 0l);
-		status = Status.valueOf(db_row.getColumns().getStringValue("status", Status.DETECTED.name()));
-		last_checked = db_row.getColumns().getLongValue("last_checked", System.currentTimeMillis());
+	AbstractFoundedFile(String row_key, ColumnList<String> cols) {
+		path_index_key = row_key;
+		path = cols.getStringValue("path", "/");
+		storage_name = cols.getStringValue("storage_name", "");
+		date = cols.getLongValue("date", 0l);
+		size = cols.getLongValue("size", 0l);
+		status = Status.valueOf(cols.getStringValue("status", Status.DETECTED.name()));
+		last_checked = cols.getLongValue("last_checked", System.currentTimeMillis());
 	}
 	
 	void saveToCassandra(MutationBatch mutator) {

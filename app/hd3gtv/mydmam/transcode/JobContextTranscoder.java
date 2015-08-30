@@ -25,6 +25,8 @@ public class JobContextTranscoder extends JobContext {
 	public String source_pathindex_key;
 	public String dest_storage_name;
 	
+	// TODO add prefix/suffix for output file + recreate sub dir
+	
 	public JsonObject contextToJson() {
 		JsonObject jo = new JsonObject();
 		jo.addProperty("source_pathindex_key", source_pathindex_key);

@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @SuppressWarnings("unchecked")
@@ -160,6 +161,14 @@ public class TranscodeProfile implements Log2Dumpable {
 			return profiles.get(name);
 		}
 		return null;
+	}
+	
+	public static List<TranscodeProfile> getAllTranscodeProfiles() {
+		ArrayList<TranscodeProfile> result = new ArrayList<TranscodeProfile>(profiles.size());
+		for (Map.Entry<String, TranscodeProfile> entry : profiles.entrySet()) {
+			result.add(entry.getValue());
+		}
+		return result;
 	}
 	
 	/**

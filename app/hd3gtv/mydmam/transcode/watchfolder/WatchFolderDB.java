@@ -22,12 +22,12 @@ import hd3gtv.mydmam.db.CassandraDb;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.gson.JsonParser;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
@@ -37,7 +37,7 @@ public class WatchFolderDB {
 	
 	static final ColumnFamily<String, String> CF_WATCHFOLDERS = new ColumnFamily<String, String>("WatchFolders", StringSerializer.get(), StringSerializer.get());
 	private static Keyspace keyspace;
-	private static JsonParser parser = new JsonParser();
+	// private static JsonParser parser = new JsonParser();
 	
 	static {
 		try {
@@ -73,7 +73,7 @@ public class WatchFolderDB {
 		List<AbstractFoundedFile> result = new ArrayList<AbstractFoundedFile>(items_to_check.size());
 		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getKeySlice(key_slice).execute();
 		for (Row<String, String> row : rows.getResult()) {
-			result.add(new AbstractFoundedFile(row));
+			result.add(new AbstractFoundedFile(row.getKey(), row.getColumns()));
 		}
 		return result;
 	}
@@ -86,6 +86,16 @@ public class WatchFolderDB {
 		for (int pos = 0; pos < files.size(); pos++) {
 			files.get(pos).saveToCassandra(mutator);
 		}
+		mutator.execute();
+	}
+	
+	static void switchStatus(String path_index_key, AbstractFoundedFile.Status new_status) throws ConnectionException {
+		OperationResult<ColumnList<String>> row = keyspace.prepareQuery(CF_WATCHFOLDERS).getKey(path_index_key).execute();
+		AbstractFoundedFile a_file = new AbstractFoundedFile(path_index_key, row.getResult());
+		a_file.status = new_status;
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		a_file.saveToCassandra(mutator);
 		mutator.execute();
 	}
 	
