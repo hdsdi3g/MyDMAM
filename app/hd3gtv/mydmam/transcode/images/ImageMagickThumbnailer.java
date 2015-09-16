@@ -16,7 +16,12 @@
 */
 package hd3gtv.mydmam.transcode.images;
 
-import hd3gtv.configuration.Configuration;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
@@ -31,12 +36,6 @@ import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.images.ImageAttributeGeometry.Compare;
 import hd3gtv.tools.ExecprocessGettext;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 	
@@ -65,7 +64,6 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		public static final String profile_name = "convert_icon";
 	}
 	
-	private String convert_bin;
 	private TranscodeProfile tprofile_opaque;
 	private TranscodeProfile tprofile_alpha;
 	private Class<? extends EntryRenderer> root_entry_class;
@@ -102,7 +100,6 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		if (preview_type == null) {
 			throw new NullPointerException("\"preview_type\" can't to be null");
 		}
-		convert_bin = Configuration.global.getValue("transcoding", "convert_bin", "convert");
 		
 		if (TranscodeProfile.isConfigured()) {
 			tprofile_opaque = TranscodeProfile.getTranscodeProfile(profile_name);
@@ -115,7 +112,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 	}
 	
 	public boolean isEnabled() {
-		return (new File(convert_bin)).exists() & (tprofile_opaque != null);
+		return tprofile_opaque != null;
 	}
 	
 	public String getLongName() {
@@ -196,7 +193,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		}
 		
 		RenderedFile element = new RenderedFile(root_entry_class.getSimpleName().toLowerCase(), tprofile.getExtension("jpg"));
-		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(convert_bin, physical_source, element.getTempFile());
+		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(physical_source, element.getTempFile());
 		process_conf.getInitialParams().addAll(ImageMagickAnalyser.convert_limits_params);
 		process_conf.getParamTags().put("ICCPROFILE", icc_profile.getAbsolutePath());
 		if (is_personalizedsize) {

@@ -1,0 +1,5 @@
+executables:
+    ffmpeg : /usr/bin/ffmpeg
+    ffprobe : /usr/bin/ffprobe
+    qtfaststart : /usr/bin/qt-faststart
+    convert : /usr/bin/convert

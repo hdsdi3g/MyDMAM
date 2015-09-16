@@ -16,6 +16,7 @@
 */
 package hd3gtv.tools;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -37,7 +38,7 @@ public class ExecprocessGettext {
 	private Exception lasterror;
 	private boolean exitcodemusttobe0;
 	
-	public ExecprocessGettext(String executable, ArrayList<String> param) {
+	public ExecprocessGettext(File executable, ArrayList<String> param) {
 		event = new Event();
 		runprocess = new Execprocess(executable, param, event);
 		resultstdout = new StringBuffer();

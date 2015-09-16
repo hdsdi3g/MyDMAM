@@ -16,23 +16,23 @@
 */
 package hd3gtv.mydmam.transcode.images;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
-import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.tools.ExecprocessBadExecutionException;
-import hd3gtv.tools.ExecprocessGettext;
-
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.tools.ExecprocessBadExecutionException;
+import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.ExecBinaryPath;
 
 public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 	
@@ -105,12 +105,6 @@ public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 		}
 	}
 	
-	private String convert_bin;
-	
-	public ImageMagickAnalyser() {
-		convert_bin = Configuration.global.getValue("transcoding", "convert_bin", "convert");
-	}
-	
 	public EntryAnalyser process(Container container) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		ExecprocessGettext process = null;
@@ -119,7 +113,7 @@ public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 			param.add(container.getPhysicalSource().getPath() + "[0]");
 			param.add("json:-");
 			
-			process = new ExecprocessGettext(convert_bin, param);
+			process = new ExecprocessGettext(ExecBinaryPath.get("convert"), param);
 			process.setEndlinewidthnewline(true);
 			process.start();
 			
@@ -137,7 +131,7 @@ public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 					param.addAll(convert_limits_params);
 					param.add(container.getPhysicalSource().getPath() + "[0]");
 					param.add("iptctext:-");
-					process = new ExecprocessGettext(convert_bin, param);
+					process = new ExecprocessGettext(ExecBinaryPath.get("convert"), param);
 					process.setEndlinewidthnewline(true);
 					process.setExitcodemusttobe0(false);
 					process.start();
@@ -182,7 +176,12 @@ public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 	}
 	
 	public boolean isEnabled() {
-		return (new File(convert_bin)).exists();
+		try {
+			ExecBinaryPath.get("convert");
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
 	}
 	
 	public String getLongName() {

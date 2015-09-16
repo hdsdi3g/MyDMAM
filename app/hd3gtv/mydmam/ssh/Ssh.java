@@ -16,11 +16,6 @@
 */
 package hd3gtv.mydmam.ssh;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.tools.ExecprocessGettext;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,6 +31,12 @@ import com.jcraft.jsch.Logger;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.UserInfo;
+
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.manager.InstanceStatus;
+import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.ExecBinaryPath;
 
 public class Ssh {
 	
@@ -144,7 +145,7 @@ public class Ssh {
 			ArrayList<String> params = new ArrayList<String>();
 			params.add("600");
 			params.add(private_key);
-			ExecprocessGettext exec = new ExecprocessGettext("chmod", params);
+			ExecprocessGettext exec = new ExecprocessGettext(ExecBinaryPath.get("chmod"), params);
 			exec.start();
 		}
 		

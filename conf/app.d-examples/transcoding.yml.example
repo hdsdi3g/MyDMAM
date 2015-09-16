@@ -1,8 +1,4 @@
 transcoding:
-    apply: prod
-    ffmpeg_bin : /usr/bin/ffmpeg
-    ffprobe_bin : /usr/bin/ffprobe
-    qtfaststart_bin : /usr/bin/qt-faststart
     ffmpeg_displayrawmessages : false
 
 transcoding_probe:
@@ -22,9 +18,11 @@ transcodingprofiles:
         command : "-progress <%$PROGRESSFILE%> -i <%$INPUTFILE%> -i <%$VAR=logo%> -s 640x360 -codec:v h264 -b:v 400k -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
         logo : /opt/logo 16-9 720x576.png
         extension : mp4
+        executable : ffmpeg
     ffmpeg_snapshot_first : 
         command : "-i <%$INPUTFILE%> -y -vf <%$FILTERS%> -frames:v 1 <%$OUTPUTFILE%>"
         extension : png
+        executable : ffmpeg
     ffmpeg_lowres_lq : 
         command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -vf <%$FILTERS%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 384x216 -codec:v h264 -b:v 200k -g 250 -bf 3 -codec:a libfaac -b:a 64k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
@@ -32,6 +30,7 @@ transcodingprofiles:
             width : 384
             height : 216
             faststart : true
+        executable : ffmpeg
     ffmpeg_lowres_sd : 
         command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -vf <%$FILTERS%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 640x360 -codec:v h264 -b:v 400k -g 250 -bf 3 -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
@@ -39,6 +38,7 @@ transcodingprofiles:
             width : 640
             height : 360
             faststart : true
+        executable : ffmpeg
     ffmpeg_lowres_hd : 
         command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -vf <%$FILTERS%> -strict -2 -pix_fmt yuv420p -aspect 16:9 -s 1280x720 -codec:v h264 -b:v 3500k -g 250 -bf 3 -codec:a libfaac -b:a 256k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
@@ -46,14 +46,17 @@ transcodingprofiles:
             width : 1280
             height : 720
             faststart : true
+        executable : ffmpeg
     ffmpeg_lowres_audio : 
         command : "-i <%$INPUTFILE%> -y -progress <%$PROGRESSFILE%> -codec:a libfaac -b:a 96k -ac 2 -f mp4 <%$OUTPUTFILE%>"
         extension : aac
         output : 
             faststart : true
+        executable : ffmpeg
     ffmpeg_album_artwork : 
         command : "-i <%$INPUTFILE%> -y -q:v 1 -vcodec mjpeg -f image2 <%$OUTPUTFILE%>"
         extension : jpg
+        executable : ffmpeg
 
     convert_full_display : 
         command : "<%$INPUTFILE%>[0] -thumbnail 800x800 -profile <%$ICCPROFILE%> -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
@@ -61,42 +64,50 @@ transcodingprofiles:
         output : 
             width : 800
             height : 800
+        executable : convert
     convert_cartridge : 
         command : "<%$INPUTFILE%>[0] -thumbnail 300x300 -profile <%$ICCPROFILE%> -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
         output : 
             width : 300
             height : 300
+        executable : convert
     convert_icon : 
         command : "<%$INPUTFILE%>[0] -thumbnail 64x64 -profile <%$ICCPROFILE%> -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 4:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
         output : 
             width : 64
             height : 64
+        executable : convert
     convert_full_display_alpha : 
         command : "<%$INPUTFILE%>[0] -thumbnail 800x800 -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size 1600x1600 -resize 800x800 pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
         output : 
             width : 800
             height : 800
+        executable : convert
     convert_cartridge_alpha : 
         command : "<%$INPUTFILE%>[0] -thumbnail 300x300 -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size 600x600 -resize 300x300 pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
         output : 
             width : 300
             height : 300
+        executable : convert
     convert_icon_alpha : 
         command : "<%$INPUTFILE%>[0] -thumbnail 64x64 -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size 128x128 -resize 64x64 pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 4:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
         output : 
             width : 64
             height : 64
+        executable : convert
     convert_personalizedsize : 
         command : "<%$INPUTFILE%>[0] -thumbnail <%$THUMBNAILSIZE%> -profile <%$ICCPROFILE%> -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
+        executable : convert
     convert_personalizedsize_alpha : 
         command : "<%$INPUTFILE%>[0] -thumbnail <%$THUMBNAILSIZE%> -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size <%$CHECKERBOARDSIZE%> -resize <%$THUMBNAILSIZE%> pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
+        executable : convert
 
 watchfoldertranscoder:
     example1:

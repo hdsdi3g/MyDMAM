@@ -16,6 +16,13 @@
 */
 package hd3gtv.mydmam.transcode;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.io.FileUtils;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
@@ -28,13 +35,6 @@ import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.io.FileUtils;
 
 public class TranscoderWorker extends WorkerNG {
 	
@@ -167,13 +167,15 @@ public class TranscoderWorker extends WorkerNG {
 			
 			temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));
 			
-			// TODO refactor TranscodeProfile: add excutable name to conf, and link executable name and file to execute in conf.
-			process = transcode_profile.createProcessConfiguration(null, physical_source, temp_output_file);
+			process = transcode_profile.createProcessConfiguration(physical_source, temp_output_file);
 			
 			// TODO start transcode, with progression
 			
 			if (transcode_profile.getOutputformat().isFaststarted()) {
-				// TODO faststart
+				File fast_started_file = new File(temp_output_file.getAbsolutePath() + "-faststart" + transcode_profile.getExtension(""));
+				Publish.faststartFile(temp_output_file, fast_started_file);
+				FileUtils.forceDelete(temp_output_file);
+				temp_output_file = fast_started_file;
 			}
 			
 			// TODO add prefix/suffix for output file + recreate sub dir

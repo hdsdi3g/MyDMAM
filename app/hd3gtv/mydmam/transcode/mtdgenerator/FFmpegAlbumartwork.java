@@ -16,7 +16,8 @@
 */
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
-import hd3gtv.configuration.Configuration;
+import java.io.IOException;
+
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
@@ -29,12 +30,8 @@ import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
-import java.io.File;
-import java.io.IOException;
-
 public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 	
-	private String ffmpeg_bin;
 	private TranscodeProfile tprofile;
 	
 	public static class Albumartwork extends EntryRenderer {
@@ -45,14 +42,13 @@ public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 	}
 	
 	public FFmpegAlbumartwork() {
-		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		if (TranscodeProfile.isConfigured()) {
 			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg_album_artwork");
 		}
 	}
 	
 	public boolean isEnabled() {
-		return (new File(ffmpeg_bin)).exists() & (tprofile != null);
+		return (tprofile != null);
 	}
 	
 	public boolean canProcessThis(String mimetype) {
@@ -85,7 +81,7 @@ public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 		
 		RenderedFile element = new RenderedFile("album_artwork", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.createProcessConfiguration(ffmpeg_bin, container.getPhysicalSource(), element.getTempFile()).prepareExecprocess();
+		ExecprocessGettext process = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile()).prepareExecprocess();
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();

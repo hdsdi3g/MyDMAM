@@ -16,21 +16,6 @@
 */
 package hd3gtv.mydmam.transcode;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.manager.AppManager;
-import hd3gtv.mydmam.manager.JobContext;
-import hd3gtv.mydmam.manager.JobNG;
-import hd3gtv.mydmam.manager.JobProgression;
-import hd3gtv.mydmam.manager.WorkerCapablities;
-import hd3gtv.mydmam.manager.WorkerNG;
-import hd3gtv.mydmam.storage.AbstractFile;
-import hd3gtv.mydmam.storage.Storage;
-import hd3gtv.tools.Execprocess;
-import hd3gtv.tools.ExecprocessGettext;
-import hd3gtv.tools.Timecode;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -42,6 +27,22 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.manager.WorkerCapablities;
+import hd3gtv.mydmam.manager.WorkerNG;
+import hd3gtv.mydmam.storage.AbstractFile;
+import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.tools.ExecBinaryPath;
+import hd3gtv.tools.Execprocess;
+import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.Timecode;
 
 public class Publish extends WorkerNG {
 	
@@ -217,11 +218,9 @@ public class Publish extends WorkerNG {
 		dump.add("dest_file", dest_file_ffmpeg);
 		dump.add("progress_file", progress_file);
 		dump.add("profile", profile);
-		dump.add("exec", Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg"));
 		Log2.log.debug("Prepare execprocess", dump);
 		
-		this.process = profile.createProcessConfiguration(Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg"), source_file, dest_file_ffmpeg).setProgressFile(progress_file)
-				.prepareExecprocess(events);
+		this.process = profile.createProcessConfiguration(source_file, dest_file_ffmpeg).setProgressFile(progress_file).prepareExecprocess(events);
 		
 		dump = new Log2Dump();
 		dump.addAll(context_publish);
@@ -308,7 +307,7 @@ public class Publish extends WorkerNG {
 		dump.add("dest_file", dest_file);
 		Log2.log.debug("Fast start", dump);
 		
-		ExecprocessGettext process = new ExecprocessGettext(Configuration.global.getValue("transcoding", "qtfaststart_bin", "qt-faststart"), param);
+		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("qt-faststart"), param);
 		process.setEndlinewidthnewline(true);
 		process.start();
 		

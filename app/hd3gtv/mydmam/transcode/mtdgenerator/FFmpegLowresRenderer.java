@@ -16,7 +16,15 @@
 */
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
-import hd3gtv.configuration.Configuration;
+import java.awt.Point;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.JobNG;
@@ -41,18 +49,7 @@ import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst.Interlacing;
 
-import java.awt.Point;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
 public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker {
-	
-	private String ffmpeg_bin;
 	
 	private TranscodeProfile transcode_profile;
 	private PreviewType preview_type;
@@ -61,7 +58,6 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 	private Class<? extends JobContextFFmpegLowresRenderer> context_class;
 	
 	public FFmpegLowresRenderer(Class<? extends JobContextFFmpegLowresRenderer> context_class, PreviewType preview_type, boolean audio_only) throws InstantiationException, IllegalAccessException {
-		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		this.context_class = context_class;
 		if (context_class == null) {
 			throw new NullPointerException("\"context_class\" can't to be null");
@@ -90,7 +86,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 	}
 	
 	public boolean isEnabled() {
-		return (new File(ffmpeg_bin)).exists() & (transcode_profile != null);
+		return (transcode_profile != null);
 	}
 	
 	public boolean canProcessThis(String mimetype) {
@@ -158,7 +154,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		
 		FFmpegEvents events = new FFmpegEvents(job_progress.getJobKey() + ": " + origin.getName());
 		
-		ProcessConfiguration process_conf = transcode_profile.createProcessConfiguration(ffmpeg_bin, origin, temp_element.getTempFile());
+		ProcessConfiguration process_conf = transcode_profile.createProcessConfiguration(origin, temp_element.getTempFile());
 		
 		ArrayList<String> filters = new ArrayList<String>();
 		FFmpegInterlacingStats interlace_stats = container.getByClass(FFmpegInterlacingStats.class);

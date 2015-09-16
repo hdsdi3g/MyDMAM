@@ -17,6 +17,7 @@
 package hd3gtv.tools;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -29,7 +30,7 @@ import java.util.Locale;
 /**
  * @author hdsdi3g
  * @version 1.01 set public constructor
- * 			1.1 Add OutputStreamHandler
+ *          1.1 Add OutputStreamHandler
  */
 public class Execprocess extends Thread {
 	
@@ -55,9 +56,9 @@ public class Execprocess extends Thread {
 	
 	private ExecprocessOutputstream outputstreamhandler;
 	
-	public Execprocess(String execname, ArrayList<String> param, ExecprocessEvent events) {
+	public Execprocess(File execname, ArrayList<String> param, ExecprocessEvent events) {
 		processinfo = new ArrayList<String>();
-		processinfo.add(execname);
+		processinfo.add(execname.getPath());
 		if (param != null) {
 			processinfo.addAll(param);
 		}
@@ -77,7 +78,7 @@ public class Execprocess extends Thread {
 		
 	}
 	
-	public Execprocess(String execname, ArrayList<String> param) {
+	public Execprocess(File execname, ArrayList<String> param) {
 		this(execname, param, null);
 	}
 	

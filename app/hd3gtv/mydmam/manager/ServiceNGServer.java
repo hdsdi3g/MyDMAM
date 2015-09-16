@@ -16,12 +16,12 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.io.File;
+import java.util.ArrayList;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.Execprocess;
-
-import java.io.File;
-import java.util.ArrayList;
 
 public class ServiceNGServer extends ServiceNG {
 	
@@ -56,7 +56,7 @@ public class ServiceNGServer extends ServiceNG {
 			p_play.add("-Dservice.config.verboseload=" + config_verboseload);
 		}
 		
-		process_play = new Execprocess(f_playdeploy.getPath() + File.separator + "play", p_play, new ExecprocessEventServicelog("play"));
+		process_play = new Execprocess(new File(f_playdeploy.getPath() + File.separator + "play"), p_play, new ExecprocessEventServicelog("play"));
 		process_play.start();
 	}
 	

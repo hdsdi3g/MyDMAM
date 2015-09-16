@@ -16,23 +16,6 @@
 */
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
-import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.validation.Comparator;
-import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
-import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
-import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
-import hd3gtv.tools.ExecprocessBadExecutionException;
-import hd3gtv.tools.ExecprocessGettext;
-import hd3gtv.tools.Timecode;
-import hd3gtv.tools.VideoConst;
-
-import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -47,16 +30,31 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.validation.Comparator;
+import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
+import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
+import hd3gtv.tools.ExecprocessBadExecutionException;
+import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.ExecBinaryPath;
+import hd3gtv.tools.Timecode;
+import hd3gtv.tools.VideoConst;
+
 public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 	
-	private String ffprobe_bin;
-	
-	public FFprobeAnalyser() {
-		ffprobe_bin = Configuration.global.getValue("transcoding", "ffprobe_bin", "ffprobe");
-	}
-	
 	public boolean isEnabled() {
-		return (new File(ffprobe_bin)).exists();
+		try {
+			ExecBinaryPath.get("ffprobe");
+			return true;
+		} catch (Exception e) {
+		}
+		return false;
 	}
 	
 	public EntryAnalyser process(Container container) throws Exception {
@@ -69,7 +67,7 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		param.add("-i");
 		param.add(container.getPhysicalSource().getPath());
 		
-		ExecprocessGettext process = new ExecprocessGettext(ffprobe_bin, param);
+		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("ffprobe"), param);
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();

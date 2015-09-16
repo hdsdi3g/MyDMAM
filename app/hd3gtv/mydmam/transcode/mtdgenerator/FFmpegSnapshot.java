@@ -16,7 +16,9 @@
 */
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
-import hd3gtv.configuration.Configuration;
+import java.io.IOException;
+import java.util.ArrayList;
+
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
@@ -32,13 +34,8 @@ import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.VideoConst.Interlacing;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-
 public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 	
-	private String ffmpeg_bin;
 	private TranscodeProfile tprofile;
 	
 	public static class Snapshot extends EntryRenderer {
@@ -49,14 +46,13 @@ public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 	}
 	
 	public FFmpegSnapshot() {
-		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		if (TranscodeProfile.isConfigured()) {
 			tprofile = TranscodeProfile.getTranscodeProfile("ffmpeg_snapshot_first");
 		}
 	}
 	
 	public boolean isEnabled() {
-		return (new File(ffmpeg_bin)).exists() & (tprofile != null);
+		return (tprofile != null);
 	}
 	
 	public boolean canProcessThis(String mimetype) {
@@ -84,7 +80,7 @@ public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 		
 		RenderedFile element = new RenderedFile("snap", tprofile.getExtension("png"));
 		
-		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(ffmpeg_bin, container.getPhysicalSource(), element.getTempFile());
+		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile());
 		
 		ArrayList<String> filters = new ArrayList<String>();
 		if (ffprobe.getDuration().getValue() > 10) {

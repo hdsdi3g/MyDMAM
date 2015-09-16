@@ -1,5 +1,9 @@
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
@@ -10,26 +14,25 @@ import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.VideoConst.Interlacing;
 import hd3gtv.tools.VideoConst.Resolution;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 	
-	private String ffmpeg_bin;
 	private int framecount;
 	
 	public FFmpegInterlacingDetection() {
-		ffmpeg_bin = Configuration.global.getValue("transcoding", "ffmpeg_bin", "ffmpeg");
 		framecount = Configuration.global.getValue("transcoding", "ffmpeg_interlacing_detection_framecount", 1000);
 	}
 	
 	public boolean isEnabled() {
-		return (new File(ffmpeg_bin)).exists();
+		try {
+			ExecBinaryPath.get("ffmpeg");
+			return true;
+		} catch (Exception e) {
+		}
+		return false;
 	}
 	
 	public boolean canProcessThis(String mimetype) {
@@ -102,7 +105,7 @@ public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 		param.add("-y");
 		param.add("-");
 		
-		ExecprocessGettext process = new ExecprocessGettext(ffmpeg_bin, param);
+		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("ffmpeg"), param);
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();

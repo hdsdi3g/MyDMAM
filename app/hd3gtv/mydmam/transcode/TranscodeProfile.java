@@ -16,15 +16,6 @@
 */
 package hd3gtv.mydmam.transcode;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.configuration.ConfigurationItem;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.tools.Execprocess;
-import hd3gtv.tools.ExecprocessEvent;
-import hd3gtv.tools.ExecprocessGettext;
-
 import java.awt.Point;
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +24,16 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.ConfigurationItem;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.tools.ExecBinaryPath;
+import hd3gtv.tools.Execprocess;
+import hd3gtv.tools.ExecprocessEvent;
+import hd3gtv.tools.ExecprocessGettext;
 
 @SuppressWarnings("unchecked")
 public class TranscodeProfile implements Log2Dumpable {
@@ -48,6 +49,7 @@ public class TranscodeProfile implements Log2Dumpable {
 	private ArrayList<String> params;
 	private String extension;
 	private OutputFormat outputformat;
+	private File executable;
 	
 	private String name;
 	
@@ -102,6 +104,11 @@ public class TranscodeProfile implements Log2Dumpable {
 							throw new IOException("Can't load transcoding/" + entry.getKey() + "/output node");
 						}
 					}
+					
+					if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "executable") == false) {
+						throw new NullPointerException("Missing executable name for transcoding/" + entry.getKey());
+					}
+					profile.executable = ExecBinaryPath.get(Configuration.getValue(tp_list, entry.getKey(), "executable", null));
 					
 					if (profile.name == null) {
 						throw new NullPointerException("\"profile_name\" can't to be null : check configuration.");
@@ -274,7 +281,6 @@ public class TranscodeProfile implements Log2Dumpable {
 	}
 	
 	public class ProcessConfiguration implements Log2Dumpable {
-		private String executable;
 		private File input_file;
 		private File output_file;
 		private ArrayList<String> initial_params;
@@ -282,10 +288,9 @@ public class TranscodeProfile implements Log2Dumpable {
 		private File progress_file;
 		private HashMap<String, String> param_tags;
 		
-		private ProcessConfiguration(String executable, File input_file, File output_file) {
+		private ProcessConfiguration(File input_file, File output_file) {
 			this.input_file = input_file;
 			this.output_file = output_file;
-			this.executable = executable;
 			param_tags = new HashMap<String, String>();
 			initial_params = new ArrayList<String>();
 		}
@@ -370,17 +375,18 @@ public class TranscodeProfile implements Log2Dumpable {
 		}
 	}
 	
-	public ProcessConfiguration createProcessConfiguration(String executable, File input_file, File output_file) {
-		if (executable == null) {
-			throw new NullPointerException("\"executable\" can't to be null");
-		}
+	public ProcessConfiguration createProcessConfiguration(File input_file, File output_file) {
 		if (input_file == null) {
 			throw new NullPointerException("\"input_file\" can't to be null");
 		}
 		if (output_file == null) {
 			throw new NullPointerException("\"output_file\" can't to be null");
 		}
-		return new ProcessConfiguration(executable, input_file, output_file);
+		return new ProcessConfiguration(input_file, output_file);
+	}
+	
+	public File getExecutable() {
+		return executable;
 	}
 	
 }
