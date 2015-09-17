@@ -78,6 +78,10 @@ public class Execprocess extends Thread {
 		
 	}
 	
+	public ExecprocessEvent getEvents() {
+		return events;
+	}
+	
 	public Execprocess(File execname, ArrayList<String> param) {
 		this(execname, param, null);
 	}

@@ -16,6 +16,25 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.io.FileUtils;
+import org.elasticsearch.ElasticsearchException;
+
+import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.ConsistencyLevel;
+import com.netflix.astyanax.recipes.locks.BusyLockException;
+import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
+import com.netflix.astyanax.recipes.locks.StaleLockException;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
@@ -38,27 +57,10 @@ import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.storage.StorageCrawler;
 import hd3gtv.mydmam.transcode.JobContextTranscoder;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
 import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.io.FileUtils;
-import org.elasticsearch.ElasticsearchException;
-
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.ConsistencyLevel;
-import com.netflix.astyanax.recipes.locks.BusyLockException;
-import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
-import com.netflix.astyanax.recipes.locks.StaleLockException;
+import hd3gtv.tools.Timecode;
 
 class WatchFolderEntry implements Runnable {
 	
@@ -98,15 +100,15 @@ class WatchFolderEntry implements Runnable {
 			return this;
 		}
 		
-		JobNG prepareTranscodeJob(String path_index_key, String simple_file_name, MutationBatch mutator) throws ConnectionException {
+		JobNG prepareTranscodeJob(String path_index_key, String simple_file_name, Timecode duration, MutationBatch mutator) throws ConnectionException {
 			JobContextTranscoder job_transcode = new JobContextTranscoder();
 			job_transcode.source_pathindex_key = path_index_key;
 			job_transcode.dest_storage_name = storage;
 			job_transcode.neededstorages = Arrays.asList(storage);
 			/** transcoding profile name */
 			job_transcode.hookednames = Arrays.asList(profile);
+			job_transcode.setDuration(duration);
 			// TODO add prefix/suffix for output file + recreate sub dir
-			
 			return AppManager.createJob(job_transcode).setCreator(getClass()).setName("Transcode from watchfolder " + simple_file_name).publish(mutator);
 		}
 		
@@ -137,6 +139,9 @@ class WatchFolderEntry implements Runnable {
 		time_to_sleep_between_scans = Configuration.getValue(all_wf_confs, name, "time_to_sleep_between_scans", 10000);
 		min_file_size = Configuration.getValue(all_wf_confs, name, "min_file_size", 10000);
 		temp_directory = new File(Configuration.getValue(all_wf_confs, name, "temp_directory", System.getProperty("java.io.tmpdir")));
+		
+		// TODO Watchfolder configuration should ask video and/or audio presence.
+		
 		CopyMove.checkExistsCanRead(temp_directory);
 		CopyMove.checkIsDirectory(temp_directory);
 		CopyMove.checkIsWritable(temp_directory);
@@ -437,6 +442,7 @@ class WatchFolderEntry implements Runnable {
 			} catch (IOException e) {
 				Log2.log.error("Can't download found file to temp directory", e, validated_file);
 				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).addDump(validated_file).setThrowable(e).send();
+				validated_file.status = Status.ERROR;
 				return;
 			}
 		}
@@ -467,12 +473,20 @@ class WatchFolderEntry implements Runnable {
 		/**
 		 * Process active files: transcoding jobs
 		 */
-		// indexing_result.getSummary().getMimetype();
+		FFprobe ffprobe = indexing_result.getByClass(FFprobe.class);
+		if (ffprobe == null) {
+			Log2.log.error("No ffprobe indexing informations for item", null, validated_file);
+			AdminMailAlert.create("No ffprobe indexing informations for item", false).addDump(validated_file).send();
+			validated_file.status = Status.ERROR;
+			return;
+		}
+		// TODO check video and/or audio presence.
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		ArrayList<JobNG> jobs_to_watch = new ArrayList<JobNG>(targets.size());
+		
 		for (int pos = 0; pos < targets.size(); pos++) {
-			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), mutator));
+			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), ffprobe.getDuration(), mutator));
 		}
 		
 		JobContextWFDeleteSourceFile delete_source = new JobContextWFDeleteSourceFile();

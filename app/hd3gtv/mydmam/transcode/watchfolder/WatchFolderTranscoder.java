@@ -16,18 +16,18 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class WatchFolderTranscoder {
 	
@@ -77,11 +77,6 @@ public class WatchFolderTranscoder {
 		
 		manager.workerRegister(new DeleteSourceFileWorker());
 		
-		/**
-		 * TODO Watchfolder configuration should ask video and/or audio presence.
-		 * TODO n Transcoding workers
-		 * TODO Create the delete Job which require the Terminated status for all transcoding jobs.
-		 */
 	}
 	
 	public void stopAllWatchFolders() {

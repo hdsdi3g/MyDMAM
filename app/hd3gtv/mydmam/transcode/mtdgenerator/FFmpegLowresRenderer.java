@@ -37,12 +37,11 @@ import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.transcode.FFmpegEvents;
-import hd3gtv.mydmam.transcode.FFmpegProgress;
-import hd3gtv.mydmam.transcode.FFmpegProgressCallback;
 import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
+import hd3gtv.mydmam.transcode.TranscodeProgress;
+import hd3gtv.mydmam.transcode.TranscodeProgressFFmpeg;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.Execprocess;
@@ -106,7 +105,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 	}
 	
 	private Execprocess process;
-	private FFmpegProgress progress;
+	private TranscodeProgress progress;
 	private boolean stop;
 	
 	public EntryRenderer standaloneProcess(File origin, final JobProgression job_progress, Container container, JobContextMetadataRenderer renderer_context) throws Exception {
@@ -129,32 +128,13 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		RenderedFile progress_file = new RenderedFile("video_progress", "txt");
 		RenderedFile temp_element = new RenderedFile(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
 		
-		FFmpegProgressCallback callback = new FFmpegProgressCallback() {
-			
-			public void updateProgression(float position, float duration, float performance_fps, int frame, int dup_frames, int drop_frames) {
-				ffmpeg_renderer_context.performance_fps = performance_fps;
-				ffmpeg_renderer_context.frame = frame;
-				ffmpeg_renderer_context.dup_frames = dup_frames;
-				ffmpeg_renderer_context.drop_frames = drop_frames;
-				job_progress.updateProgress(Math.round(position), (int) Math.round(Math.ceil(duration)));
-			}
-			
-			public Timecode getSourceDuration() {
-				return new Timecode(ffmpeg_renderer_context.source_duration, ffmpeg_renderer_context.source_fps);
-			}
-			
-			public String getJobKey() {
-				return job_progress.getJobKey();
-			}
-			
-		};
-		
-		progress = new FFmpegProgress(progress_file.getTempFile(), callback);
-		progress.start();
-		
-		FFmpegEvents events = new FFmpegEvents(job_progress.getJobKey() + ": " + origin.getName());
-		
 		ProcessConfiguration process_conf = transcode_profile.createProcessConfiguration(origin, temp_element.getTempFile());
+		
+		progress = process_conf.getProgress();
+		if (progress == null) {
+			progress = new TranscodeProgressFFmpeg();
+		}
+		progress.init(progress_file.getTempFile(), job_progress, ffmpeg_renderer_context).startWatching();
 		
 		ArrayList<String> filters = new ArrayList<String>();
 		FFmpegInterlacingStats interlace_stats = container.getByClass(FFmpegInterlacingStats.class);
@@ -187,7 +167,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 		
 		process_conf.getParamTags().put("FILTERS", sb_filters.toString());
-		process = process_conf.setProgressFile(progress_file.getTempFile()).prepareExecprocess(events);
+		process = process_conf.setProgressFile(progress_file.getTempFile()).prepareExecprocess(job_progress.getJobKey() + ": " + origin.getName());
 		
 		Log2Dump dump = new Log2Dump();
 		dump.add("job", job_progress.getJobKey());
@@ -207,7 +187,10 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 		
 		if (process.getExitvalue() != 0) {
-			throw new IOException("Bad ffmpeg execution: " + events.getLast_message());
+			if (process_conf.getEvent() != null) {
+				throw new IOException("Bad ffmpeg execution: " + process_conf.getEvent().getLast_message());
+			}
+			throw new IOException("Bad ffmpeg execution");
 		}
 		
 		job_progress.updateStep(2, 3);

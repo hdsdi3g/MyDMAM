@@ -1,5 +1,6 @@
 transcoding:
     ffmpeg_displayrawmessages : false
+    temp_directory : /tmp
 
 transcoding_probe:
     maxpresencewaittime : 300

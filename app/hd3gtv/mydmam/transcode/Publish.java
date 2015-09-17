@@ -39,6 +39,7 @@ import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessGettext;
@@ -54,9 +55,9 @@ public class Publish extends WorkerNG {
 	private File sourcelocalfiles;
 	private String deststorage;
 	private Execprocess process;
-	private FFmpegProgress progress;
 	private File templocaldir;
 	private boolean stop;
+	private TranscodeProgress transcode_progress;
 	
 	public static void createPublishJob(String mediaid, Timecode duration, String program_name, Class<?> referer) throws ConnectionException {
 		JobNG job = AppManager.createJob(new JobContextPublishing(mediaid, duration, program_name));
@@ -189,29 +190,6 @@ public class Publish extends WorkerNG {
 		File progress_file = new File(dest_file_ffmpeg.getPath() + "-progress.txt");
 		progress_file.delete();
 		
-		FFmpegProgressCallback progress_callback = new FFmpegProgressCallback() {
-			public void updateProgression(float position, float duration, float performance_fps, int frame, int dup_frames, int drop_frames) {
-				context_publish.performance_fps = performance_fps;
-				context_publish.frame = frame;
-				context_publish.dup_frames = dup_frames;
-				context_publish.drop_frames = drop_frames;
-				progression.updateProgress(Math.round(position), (int) Math.round(Math.ceil(duration)));
-			}
-			
-			public Timecode getSourceDuration() {
-				return context_publish.duration;
-			}
-			
-			public String getJobKey() {
-				return progression.getJobKey();
-			}
-		};
-		
-		progress = new FFmpegProgress(progress_file, progress_callback);
-		progress.start();
-		
-		FFmpegEvents events = new FFmpegEvents("tmp-" + progression.getJobKey());
-		
 		Log2Dump dump = new Log2Dump();
 		dump.addAll(context_publish);
 		dump.add("source_file", source_file);
@@ -220,7 +198,15 @@ public class Publish extends WorkerNG {
 		dump.add("profile", profile);
 		Log2.log.debug("Prepare execprocess", dump);
 		
-		this.process = profile.createProcessConfiguration(source_file, dest_file_ffmpeg).setProgressFile(progress_file).prepareExecprocess(events);
+		ProcessConfiguration process_conf = profile.createProcessConfiguration(source_file, dest_file_ffmpeg).setProgressFile(progress_file);
+		
+		transcode_progress = process_conf.getProgress();
+		if (transcode_progress == null) {
+			transcode_progress = new TranscodeProgressFFmpeg();
+		}
+		transcode_progress.init(progress_file, progression, context_publish).startWatching();
+		
+		this.process = process_conf.prepareExecprocess("tmp-" + progression.getJobKey());
 		
 		dump = new Log2Dump();
 		dump.addAll(context_publish);
@@ -232,7 +218,7 @@ public class Publish extends WorkerNG {
 		
 		process.run();
 		
-		progress.stopWatching();
+		transcode_progress.stopWatching();
 		progress_file.delete();
 		
 		if (stop) {
@@ -240,7 +226,10 @@ public class Publish extends WorkerNG {
 		}
 		
 		if (process.getExitvalue() != 0) {
-			throw new IOException("Bad ffmpeg execution: " + events.getLast_message());
+			if (process_conf.getEvent() != null) {
+				throw new IOException("Bad ffmpeg execution: " + process_conf.getEvent().getLast_message());
+			}
+			throw new IOException("Bad ffmpeg execution");
 		}
 		
 		progression.updateStep(3, 5);
@@ -289,8 +278,8 @@ public class Publish extends WorkerNG {
 	
 	public synchronized void forceStopProcess() throws Exception {
 		stop = true;
-		if (progress != null) {
-			progress.stopWatching();
+		if (transcode_progress != null) {
+			transcode_progress.stopWatching();
 		}
 		if (process != null) {
 			process.kill();

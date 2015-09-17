@@ -16,12 +16,14 @@
 */
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
-import hd3gtv.mydmam.metadata.JobContextMetadataRenderer;
-import hd3gtv.mydmam.metadata.container.EntryRenderer;
-
 import com.google.gson.JsonObject;
 
-public abstract class JobContextFFmpegLowresRenderer extends JobContextMetadataRenderer {
+import hd3gtv.mydmam.metadata.JobContextMetadataRenderer;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.transcode.ProgressForJobContextFFmpegBased;
+import hd3gtv.tools.Timecode;
+
+public abstract class JobContextFFmpegLowresRenderer extends JobContextMetadataRenderer implements ProgressForJobContextFFmpegBased {
 	
 	boolean faststarted;
 	float source_fps;
@@ -61,4 +63,23 @@ public abstract class JobContextFFmpegLowresRenderer extends JobContextMetadataR
 	
 	abstract Class<? extends EntryRenderer> getEntryRendererClass();
 	
+	public void setPerformance_fps(float performance_fps) {
+		this.performance_fps = performance_fps;
+	}
+	
+	public void setFrame(int frame) {
+		this.frame = frame;
+	}
+	
+	public void setDupFrame(int dup_frames) {
+		this.dup_frames = dup_frames;
+	}
+	
+	public void setDropFrame(int drop_frames) {
+		this.drop_frames = drop_frames;
+	}
+	
+	public Timecode getSourceDuration() {
+		return new Timecode(source_duration, source_fps);
+	}
 }

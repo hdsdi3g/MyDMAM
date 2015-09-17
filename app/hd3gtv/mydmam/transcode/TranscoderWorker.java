@@ -35,6 +35,7 @@ import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
+import hd3gtv.tools.Execprocess;
 
 public class TranscoderWorker extends WorkerNG {
 	
@@ -43,11 +44,11 @@ public class TranscoderWorker extends WorkerNG {
 			return;
 		}
 		
+		// TODO n Transcoding workers
 		// TODO if configured, map profiles and transcoder count, else:
 		
 		List<TranscodeProfile> all_profiles = TranscodeProfile.getAllTranscodeProfiles();
-		manager.workerRegister(new TranscoderWorker(all_profiles, new File(Configuration.global.getValue("????", "temp_directory", System.getProperty("java.io.tmpdir")))));
-		// TODO get temp dir...
+		manager.workerRegister(new TranscoderWorker(all_profiles, new File(Configuration.global.getValue("transcoding", "temp_directory", System.getProperty("java.io.tmpdir")))));
 	}
 	
 	private List<WorkerCapablities> capabilities;
@@ -119,7 +120,8 @@ public class TranscoderWorker extends WorkerNG {
 		return capabilities;
 	}
 	
-	@Override
+	private TranscodeProgress tprogress;
+	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		JobContextTranscoder transcode_context = (JobContextTranscoder) context;
 		
@@ -157,8 +159,11 @@ public class TranscoderWorker extends WorkerNG {
 		List<String> profiles_to_transcode = transcode_context.hookednames;
 		
 		TranscodeProfile transcode_profile;
-		ProcessConfiguration process;
+		ProcessConfiguration process_configuration;
+		Execprocess process;
 		File temp_output_file;
+		File progress_file = null;
+		
 		for (int pos = 0; pos < profiles_to_transcode.size(); pos++) {
 			if (stop_process) {
 				return;
@@ -167,9 +172,39 @@ public class TranscoderWorker extends WorkerNG {
 			
 			temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));
 			
-			process = transcode_profile.createProcessConfiguration(physical_source, temp_output_file);
+			process_configuration = transcode_profile.createProcessConfiguration(physical_source, temp_output_file);
 			
-			// TODO start transcode, with progression
+			/**
+			 * @see FFmpegLowresRenderer
+			 *      process_conf.getParamTags().put("FILTERS", sb_filters.toString());
+			 */
+			process = process_configuration.setProgressFile(progress_file).prepareExecprocess(progression.getJobKey());
+			
+			if (process_configuration.wantAProgressFile()) {
+				progress_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "progress.txt");
+				
+				tprogress = process_configuration.getProgress();
+				tprogress.init(progress_file, progression, context);
+				tprogress.startWatching();
+			} else {
+				progress_file = null;
+			}
+			
+			process.run();
+			
+			if (progress_file != null) {
+				tprogress.stopWatching();
+				if (progress_file.exists()) {
+					FileUtils.forceDelete(progress_file);
+				}
+			}
+			
+			if (process.getExitvalue() != 0) {
+				if (process_configuration.getEvent() != null) {
+					throw new IOException("Bad ffmpeg execution: " + process_configuration.getEvent().getLast_message());
+				}
+				throw new IOException("Bad ffmpeg execution");
+			}
 			
 			if (transcode_profile.getOutputformat().isFaststarted()) {
 				File fast_started_file = new File(temp_output_file.getAbsolutePath() + "-faststart" + transcode_profile.getExtension(""));

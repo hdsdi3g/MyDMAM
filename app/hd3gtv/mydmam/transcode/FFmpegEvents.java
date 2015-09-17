@@ -16,23 +16,20 @@
 */
 package hd3gtv.mydmam.transcode;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.tools.ExecprocessEvent;
-
 import java.io.IOException;
 
-public class FFmpegEvents implements ExecprocessEvent {
+import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+
+public class FFmpegEvents extends ExecprocessTranscodeEvent {
 	
 	boolean display_raw_ffmpegmessages;
 	
-	private String jobref;
-	
 	private String last_message;
 	
-	public FFmpegEvents(String jobref) {
+	public FFmpegEvents() {
+		super();
 		display_raw_ffmpegmessages = Configuration.global.getValueBoolean("transcoding", "ffmpeg_displayrawmessages");
-		this.jobref = jobref;
 	}
 	
 	public void onStart() {

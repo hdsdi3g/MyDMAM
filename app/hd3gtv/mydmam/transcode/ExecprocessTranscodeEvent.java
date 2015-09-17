@@ -11,19 +11,24 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
 package hd3gtv.mydmam.transcode;
 
-import hd3gtv.tools.Timecode;
+import hd3gtv.tools.ExecprocessEvent;
 
-public interface FFmpegProgressCallback {
+public abstract class ExecprocessTranscodeEvent implements ExecprocessEvent {
 	
-	String getJobKey();
+	protected String jobref;
 	
-	Timecode getSourceDuration();
+	public ExecprocessTranscodeEvent() {
+	}
 	
-	void updateProgression(float position, float duration, float performance_fps, int frame, int dup_frames, int drop_frames);
+	public void setJobRef(String jobref) {
+		this.jobref = jobref;
+	}
+	
+	public abstract String getLast_message();
 	
 }

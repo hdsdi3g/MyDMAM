@@ -32,7 +32,6 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
-import hd3gtv.tools.ExecprocessEvent;
 import hd3gtv.tools.ExecprocessGettext;
 
 @SuppressWarnings("unchecked")
@@ -50,14 +49,24 @@ public class TranscodeProfile implements Log2Dumpable {
 	private String extension;
 	private OutputFormat outputformat;
 	private File executable;
+	private String executable_name;
 	
 	private String name;
 	
 	private static LinkedHashMap<String, TranscodeProfile> profiles;
+	private static LinkedHashMap<String, Class<? extends ExecprocessTranscodeEvent>> executables_events;
+	private static LinkedHashMap<String, Class<? extends TranscodeProgress>> executables_transcode_progress;
 	
 	static {
+		executables_events = new LinkedHashMap<String, Class<? extends ExecprocessTranscodeEvent>>(1);
+		executables_events.put("ffmpeg", ExecprocessTranscodeEvent.class);
+		
+		executables_transcode_progress = new LinkedHashMap<String, Class<? extends TranscodeProgress>>(1);
+		executables_transcode_progress.put("ffmpeg", TranscodeProgressFFmpeg.class);
+		
 		try {
 			profiles = new LinkedHashMap<String, TranscodeProfile>();
+			
 			if (isConfigured()) {
 				HashMap<String, ConfigurationItem> tp_list = Configuration.global.getElement("transcodingprofiles");
 				
@@ -108,6 +117,8 @@ public class TranscodeProfile implements Log2Dumpable {
 					if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "executable") == false) {
 						throw new NullPointerException("Missing executable name for transcoding/" + entry.getKey());
 					}
+					
+					profile.executable_name = Configuration.getValue(tp_list, entry.getKey(), "executable", null);
 					profile.executable = ExecBinaryPath.get(Configuration.getValue(tp_list, entry.getKey(), "executable", null));
 					
 					if (profile.name == null) {
@@ -134,6 +145,7 @@ public class TranscodeProfile implements Log2Dumpable {
 				}
 				
 				Log2.log.debug("Set transcoding configuration", dump);
+				
 			}
 		} catch (Exception e) {
 			Log2.log.error("Can't load transcoding configuration", e);
@@ -287,6 +299,8 @@ public class TranscodeProfile implements Log2Dumpable {
 		
 		private File progress_file;
 		private HashMap<String, String> param_tags;
+		private ExecprocessTranscodeEvent event;
+		private TranscodeProgress progress;
 		
 		private ProcessConfiguration(File input_file, File output_file) {
 			this.input_file = input_file;
@@ -300,6 +314,15 @@ public class TranscodeProfile implements Log2Dumpable {
 			return this;
 		}
 		
+		public boolean wantAProgressFile() {
+			for (int pos = 0; pos < params.size(); pos++) {
+				if (params.get(pos).equals(TAG_PROGRESSFILE)) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
 		public HashMap<String, String> getParamTags() {
 			return param_tags;
 		}
@@ -308,12 +331,40 @@ public class TranscodeProfile implements Log2Dumpable {
 			return initial_params;
 		}
 		
-		public Execprocess prepareExecprocess(ExecprocessEvent events) throws IOException {
-			return new Execprocess(executable, makeCommandline(), events);
+		public ExecprocessTranscodeEvent getEvent() {
+			return event;
+		}
+		
+		public Execprocess prepareExecprocess(String job_ref) throws IOException {
+			
+			if (executables_transcode_progress.containsKey(executable_name)) {
+				try {
+					progress = executables_transcode_progress.get(job_ref).newInstance();
+				} catch (Exception e) {
+					Log2.log.error("Can't load TranscodeProgress new instance", e, new Log2Dump("executable_name", executable_name));
+				}
+			}
+			
+			if (executables_events.containsKey(executable_name)) {
+				try {
+					event = executables_events.get(executable_name).newInstance();
+					event.setJobRef(job_ref);
+					return new Execprocess(executable, makeCommandline(), event);
+				} catch (Exception e) {
+					Log2.log.error("Can't load ExecprocessEvent new instance", e, new Log2Dump("executable_name", executable_name));
+					return new Execprocess(executable, makeCommandline(), null);
+				}
+			}
+			
+			return new Execprocess(executable, makeCommandline(), null);
 		}
 		
 		public ExecprocessGettext prepareExecprocess() throws IOException {
 			return new ExecprocessGettext(executable, makeCommandline());
+		}
+		
+		public TranscodeProgress getProgress() {
+			return progress;
 		}
 		
 		private ArrayList<String> makeCommandline() throws IOException {
