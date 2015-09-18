@@ -42,6 +42,9 @@ public class TranscodeProgressFFmpeg extends TranscodeProgress {
 		if (context instanceof ProgressForJobContextFFmpegBased) {
 			progress_context = (ProgressForJobContextFFmpegBased) context;
 			Timecode tc_source = progress_context.getSourceDuration();
+			if (tc_source == null) {
+				throw new NullPointerException("No source duration extracted from profile");
+			}
 			source_duration = tc_source.getValue();
 			fps = tc_source.getFps();
 		}

@@ -38,7 +38,10 @@ public class JobContextTranscoder extends JobContext implements ProgressForJobCo
 		JsonObject jo = new JsonObject();
 		jo.addProperty("source_pathindex_key", source_pathindex_key);
 		jo.addProperty("dest_storage_name", dest_storage_name);
-		jo.addProperty("duration", duration.toString());
+		if (duration != null) {
+			jo.addProperty("duration", duration.toString());
+			jo.addProperty("source_fps", duration.getFps());
+		}
 		if (frame > -1) {
 			JsonObject jo_progress = new JsonObject();
 			jo_progress.addProperty("performance_fps", performance_fps);
@@ -54,7 +57,13 @@ public class JobContextTranscoder extends JobContext implements ProgressForJobCo
 		source_pathindex_key = json_object.get("source_pathindex_key").getAsString();
 		dest_storage_name = json_object.get("dest_storage_name").getAsString();
 		
-		duration = new Timecode(json_object.get("duration").getAsString(), 25);
+		if (json_object.has("duration")) {
+			if (json_object.has("source_fps")) {
+				duration = new Timecode(json_object.get("duration").getAsString(), json_object.get("source_fps").getAsFloat());
+			} else {
+				duration = new Timecode(json_object.get("duration").getAsString(), 25);
+			}
+		}
 		if (json_object.has("progress")) {
 			JsonObject jo_progress = json_object.get("progress").getAsJsonObject();
 			performance_fps = jo_progress.get("performance_fps").getAsFloat();

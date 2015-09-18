@@ -110,6 +110,9 @@ public class TranscoderWorker extends WorkerNG {
 	
 	protected synchronized void forceStopProcess() throws Exception {
 		stop_process = true;
+		if (process != null) {
+			process.kill();
+		}
 	}
 	
 	protected boolean isActivated() {
@@ -120,7 +123,7 @@ public class TranscoderWorker extends WorkerNG {
 		return capabilities;
 	}
 	
-	private TranscodeProgress tprogress;
+	private Execprocess process;
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		JobContextTranscoder transcode_context = (JobContextTranscoder) context;
@@ -160,12 +163,13 @@ public class TranscoderWorker extends WorkerNG {
 		
 		TranscodeProfile transcode_profile;
 		ProcessConfiguration process_configuration;
-		Execprocess process;
+		TranscodeProgress tprogress;
 		File temp_output_file;
 		File progress_file = null;
 		
 		for (int pos = 0; pos < profiles_to_transcode.size(); pos++) {
 			if (stop_process) {
+				process = null;
 				return;
 			}
 			transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));
@@ -173,12 +177,6 @@ public class TranscoderWorker extends WorkerNG {
 			temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));
 			
 			process_configuration = transcode_profile.createProcessConfiguration(physical_source, temp_output_file);
-			
-			/**
-			 * @see FFmpegLowresRenderer
-			 *      process_conf.getParamTags().put("FILTERS", sb_filters.toString());
-			 */
-			process = process_configuration.setProgressFile(progress_file).prepareExecprocess(progression.getJobKey());
 			
 			if (process_configuration.wantAProgressFile()) {
 				progress_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "progress.txt");
@@ -188,12 +186,25 @@ public class TranscoderWorker extends WorkerNG {
 				tprogress.startWatching();
 			} else {
 				progress_file = null;
+				tprogress = null;
 			}
+			
+			progression.updateStep(pos + 1, profiles_to_transcode.size());
+			
+			/**
+			 * @see FFmpegLowresRenderer, if it's a video file
+			 *      process_conf.getParamTags().put("FILTERS", sb_filters.toString());
+			 */
+			process = process_configuration.setProgressFile(progress_file).prepareExecprocess(progression.getJobKey());
+			
+			progression.update("Transcode source file with " + transcode_profile.getName() + " (" + transcode_profile.getExecutable().getName() + ")");
 			
 			process.run();
 			
-			if (progress_file != null) {
+			if (tprogress != null) {
 				tprogress.stopWatching();
+			}
+			if (progress_file != null) {
 				if (progress_file.exists()) {
 					FileUtils.forceDelete(progress_file);
 				}
@@ -201,19 +212,32 @@ public class TranscoderWorker extends WorkerNG {
 			
 			if (process.getExitvalue() != 0) {
 				if (process_configuration.getEvent() != null) {
-					throw new IOException("Bad ffmpeg execution: " + process_configuration.getEvent().getLast_message());
+					throw new IOException("Bad transcoder execution: " + process_configuration.getEvent().getLast_message());
 				}
-				throw new IOException("Bad ffmpeg execution");
+				throw new IOException("Bad transcoder execution");
+			}
+			
+			process = null;
+			
+			if (stop_process) {
+				return;
 			}
 			
 			if (transcode_profile.getOutputformat().isFaststarted()) {
+				progression.update("Faststart transcoded file");
 				File fast_started_file = new File(temp_output_file.getAbsolutePath() + "-faststart" + transcode_profile.getExtension(""));
 				Publish.faststartFile(temp_output_file, fast_started_file);
 				FileUtils.forceDelete(temp_output_file);
 				temp_output_file = fast_started_file;
 			}
 			
+			if (stop_process) {
+				return;
+			}
+			
 			// TODO add prefix/suffix for output file + recreate sub dir
+			
+			progression.update("Move transcoded file to destination");
 			if (local_dest_dir != null) {
 				FileUtils.moveFile(temp_output_file, new File(local_dest_dir.getAbsolutePath() + File.separator + physical_source.getName() + transcode_profile.getExtension("")));
 			} else if (stop_process == false) {

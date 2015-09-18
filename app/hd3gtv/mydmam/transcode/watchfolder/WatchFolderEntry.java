@@ -100,6 +100,9 @@ class WatchFolderEntry implements Runnable {
 			return this;
 		}
 		
+		/**
+		 * @param duration can be null
+		 */
 		JobNG prepareTranscodeJob(String path_index_key, String simple_file_name, Timecode duration, MutationBatch mutator) throws ConnectionException {
 			JobContextTranscoder job_transcode = new JobContextTranscoder();
 			job_transcode.source_pathindex_key = path_index_key;
@@ -111,7 +114,6 @@ class WatchFolderEntry implements Runnable {
 			// TODO add prefix/suffix for output file + recreate sub dir
 			return AppManager.createJob(job_transcode).setCreator(getClass()).setName("Transcode from watchfolder " + simple_file_name).publish(mutator);
 		}
-		
 	}
 	
 	WatchFolderEntry(AppManager manager, String name, HashMap<String, ConfigurationItem> all_wf_confs) throws Exception {
@@ -473,20 +475,25 @@ class WatchFolderEntry implements Runnable {
 		/**
 		 * Process active files: transcoding jobs
 		 */
+		Timecode duration = null;
+		
+		// TODO check video and/or audio presence.
+		
 		FFprobe ffprobe = indexing_result.getByClass(FFprobe.class);
 		if (ffprobe == null) {
 			Log2.log.error("No ffprobe indexing informations for item", null, validated_file);
 			AdminMailAlert.create("No ffprobe indexing informations for item", false).addDump(validated_file).send();
 			validated_file.status = Status.ERROR;
 			return;
+		} else {
+			duration = ffprobe.getDuration();
 		}
-		// TODO check video and/or audio presence.
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		ArrayList<JobNG> jobs_to_watch = new ArrayList<JobNG>(targets.size());
 		
 		for (int pos = 0; pos < targets.size(); pos++) {
-			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), ffprobe.getDuration(), mutator));
+			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), duration, mutator));
 		}
 		
 		JobContextWFDeleteSourceFile delete_source = new JobContextWFDeleteSourceFile();
