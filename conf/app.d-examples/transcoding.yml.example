@@ -121,3 +121,4 @@ watchfoldertranscoder:
         time_to_sleep_between_scans: 10000
         min_file_size: 10000
         temp_directory: /tmp
+        must_contain: [video, audio] # or "video", or ["video"], or "audio" for audio only. In lowercase.

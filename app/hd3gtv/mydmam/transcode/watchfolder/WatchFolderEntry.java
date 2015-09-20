@@ -73,6 +73,11 @@ class WatchFolderEntry implements Runnable {
 	private List<Target> targets;
 	private AppManager manager;
 	private Explorer explorer;
+	private List<MustContainType> must_contain;
+	
+	public enum MustContainType {
+		video, audio
+	}
 	
 	private transient boolean want_to_stop;
 	
@@ -142,7 +147,18 @@ class WatchFolderEntry implements Runnable {
 		min_file_size = Configuration.getValue(all_wf_confs, name, "min_file_size", 10000);
 		temp_directory = new File(Configuration.getValue(all_wf_confs, name, "temp_directory", System.getProperty("java.io.tmpdir")));
 		
-		// TODO Watchfolder configuration should ask video and/or audio presence.
+		must_contain = new ArrayList<WatchFolderEntry.MustContainType>(2);
+		Object raw_must_contain = Configuration.getRawValue(all_wf_confs, name, "must_contain");
+		if (raw_must_contain != null) {
+			if (raw_must_contain instanceof String) {
+				must_contain.add(MustContainType.valueOf((String) raw_must_contain));
+			} else if (raw_must_contain instanceof ArrayList) {
+				ArrayList<?> al_raw_must_contain = (ArrayList<?>) raw_must_contain;
+				for (int pos_almc = 0; pos_almc < al_raw_must_contain.size(); pos_almc++) {
+					must_contain.add(MustContainType.valueOf((String) al_raw_must_contain.get(pos_almc)));
+				}
+			}
+		}
 		
 		CopyMove.checkExistsCanRead(temp_directory);
 		CopyMove.checkIsDirectory(temp_directory);
@@ -477,15 +493,25 @@ class WatchFolderEntry implements Runnable {
 		 */
 		Timecode duration = null;
 		
-		// TODO check video and/or audio presence.
-		
 		FFprobe ffprobe = indexing_result.getByClass(FFprobe.class);
-		if (ffprobe == null) {
-			Log2.log.error("No ffprobe indexing informations for item", null, validated_file);
-			AdminMailAlert.create("No ffprobe indexing informations for item", false).addDump(validated_file).send();
-			validated_file.status = Status.ERROR;
-			return;
-		} else {
+		
+		if (must_contain.contains(MustContainType.video.name()) | must_contain.contains(MustContainType.audio.name())) {
+			if (ffprobe == null) {
+				Log2.log.error("Invalid file dropped in watchfolder: it must be a media file", null, validated_file);
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file", false).addDump(validated_file).send();
+				validated_file.status = Status.ERROR;
+				return;
+			} else if (must_contain.contains(MustContainType.video.name()) & (ffprobe.hasVideo() == false)) {
+				Log2.log.error("Invalid file dropped in watchfolder: it must have a video track", null, validated_file);
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track", false).addDump(validated_file).send();
+				validated_file.status = Status.ERROR;
+				return;
+			} else if (must_contain.contains(MustContainType.audio.name()) & (ffprobe.hasAudio() == false)) {
+				Log2.log.error("Invalid file dropped in watchfolder: it must have an audio track", null, validated_file);
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track", false).addDump(validated_file).send();
+				validated_file.status = Status.ERROR;
+				return;
+			}
 			duration = ffprobe.getDuration();
 		}
 		
