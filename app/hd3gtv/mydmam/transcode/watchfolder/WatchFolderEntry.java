@@ -84,17 +84,21 @@ class WatchFolderEntry implements Runnable {
 	class Target {
 		String storage;
 		String profile;
-		
-		// TODO add prefix/suffix for output file + recreate sub dir
+		String dest_file_prefix;
+		String dest_file_suffix;
+		boolean keep_input_dir_to_dest;
 		
 		Target init(LinkedHashMap<String, ?> conf) throws Exception {
-			if (conf.containsKey(storage) == false) {
+			if (conf.containsKey("storage") == false) {
 				throw new NullPointerException("\"storage\" can't to be null");
 			}
-			storage = (String) conf.get("storage");
-			Storage.getByName(storage).testStorageConnection();
 			
-			if (conf.containsKey(profile) == false) {
+			storage = (String) conf.get("storage");
+			if (Storage.getAllStoragesNames().contains(storage)) {
+				throw new IOException("Can't found storage declaration \"" + storage + "\"");
+			}
+			
+			if (conf.containsKey("profile") == false) {
 				throw new NullPointerException("\"profile\" can't to be null");
 			}
 			profile = (String) conf.get("profile");
@@ -102,13 +106,26 @@ class WatchFolderEntry implements Runnable {
 			if (TranscodeProfile.getTranscodeProfile(profile) == null) {
 				throw new NullPointerException("Can't found transcode profile \"" + profile + "\" in \"" + name + "\" watch folder configuration");
 			}
+			
+			if (conf.containsKey("dest_file_prefix")) {
+				dest_file_prefix = (String) conf.get("dest_file_prefix");
+			}
+			if (conf.containsKey("dest_file_suffix")) {
+				dest_file_suffix = (String) conf.get("dest_file_suffix");
+			}
+			
+			keep_input_dir_to_dest = false;
+			if (conf.containsKey("keep_input_dir_to_dest")) {
+				keep_input_dir_to_dest = (Boolean) conf.get("keep_input_dir_to_dest");
+			}
+			
 			return this;
 		}
 		
 		/**
 		 * @param duration can be null
 		 */
-		JobNG prepareTranscodeJob(String path_index_key, String simple_file_name, Timecode duration, MutationBatch mutator) throws ConnectionException {
+		JobNG prepareTranscodeJob(String path_index_key, String simple_file_name, String source_sub_directory, Timecode duration, MutationBatch mutator) throws ConnectionException {
 			JobContextTranscoder job_transcode = new JobContextTranscoder();
 			job_transcode.source_pathindex_key = path_index_key;
 			job_transcode.dest_storage_name = storage;
@@ -116,7 +133,11 @@ class WatchFolderEntry implements Runnable {
 			/** transcoding profile name */
 			job_transcode.hookednames = Arrays.asList(profile);
 			job_transcode.setDuration(duration);
-			// TODO add prefix/suffix for output file + recreate sub dir
+			job_transcode.dest_file_prefix = dest_file_prefix;
+			job_transcode.dest_file_suffix = dest_file_suffix;
+			if (keep_input_dir_to_dest) {
+				job_transcode.dest_sub_directory = source_sub_directory;
+			}
 			return AppManager.createJob(job_transcode).setCreator(getClass()).setName("Transcode from watchfolder " + simple_file_name).publish(mutator);
 		}
 	}
@@ -518,8 +539,9 @@ class WatchFolderEntry implements Runnable {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		ArrayList<JobNG> jobs_to_watch = new ArrayList<JobNG>(targets.size());
 		
+		String sub_dir_name = validated_file.path.substring(0, validated_file.path.length() - (validated_file.getName().length() + 1));
 		for (int pos = 0; pos < targets.size(); pos++) {
-			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), duration, mutator));
+			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), sub_dir_name, duration, mutator));
 		}
 		
 		JobContextWFDeleteSourceFile delete_source = new JobContextWFDeleteSourceFile();

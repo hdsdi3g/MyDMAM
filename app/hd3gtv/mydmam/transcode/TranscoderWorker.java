@@ -24,6 +24,8 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
@@ -157,7 +159,7 @@ public class TranscoderWorker extends WorkerNG {
 		
 		// Container container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
 		
-		File local_dest_dir = Storage.getLocalFile(SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name));
+		final File local_dest_dir = Storage.getLocalFile(SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name));
 		
 		List<String> profiles_to_transcode = transcode_context.hookednames;
 		
@@ -199,6 +201,12 @@ public class TranscoderWorker extends WorkerNG {
 			
 			progression.update("Transcode source file with " + transcode_profile.getName() + " (" + transcode_profile.getExecutable().getName() + ")");
 			
+			Log2Dump dump = new Log2Dump();
+			dump.add("physical_source", physical_source);
+			dump.add("profile", transcode_profile.getName());
+			dump.add("temp_output_file", temp_output_file);
+			Log2.log.info("Transcode file", dump);
+			
 			process.run();
 			
 			if (tprogress != null) {
@@ -226,6 +234,12 @@ public class TranscoderWorker extends WorkerNG {
 			if (transcode_profile.getOutputformat().isFaststarted()) {
 				progression.update("Faststart transcoded file");
 				File fast_started_file = new File(temp_output_file.getAbsolutePath() + "-faststart" + transcode_profile.getExtension(""));
+				
+				dump = new Log2Dump();
+				dump.add("temp_output_file", temp_output_file);
+				dump.add("fast_started_file", fast_started_file);
+				Log2.log.info("Faststart file", dump);
+				
 				Publish.faststartFile(temp_output_file, fast_started_file);
 				FileUtils.forceDelete(temp_output_file);
 				temp_output_file = fast_started_file;
@@ -235,15 +249,68 @@ public class TranscoderWorker extends WorkerNG {
 				return;
 			}
 			
-			// TODO add prefix/suffix for output file + recreate sub dir
+			if (transcode_context.dest_file_prefix == null) {
+				transcode_context.dest_file_prefix = "";
+			}
+			if (transcode_context.dest_file_suffix == null) {
+				transcode_context.dest_file_suffix = "";
+			}
 			
 			progression.update("Move transcoded file to destination");
+			
 			if (local_dest_dir != null) {
-				FileUtils.moveFile(temp_output_file, new File(local_dest_dir.getAbsolutePath() + File.separator + physical_source.getName() + transcode_profile.getExtension("")));
-			} else if (stop_process == false) {
-				AbstractFile distant_file = Storage.getByName(transcode_context.dest_storage_name).getRootPath().getAbstractFile("/" + physical_source.getName() + transcode_profile.getExtension(""));
+				File local_full_dest_dir = local_dest_dir.getAbsoluteFile();
+				if (transcode_context.dest_sub_directory != null) {
+					File dir_to_create = new File(local_full_dest_dir.getAbsolutePath() + transcode_context.dest_sub_directory);
+					FileUtils.forceMkdir(dir_to_create);
+					local_full_dest_dir = dir_to_create;
+				}
+				
+				StringBuilder full_file = new StringBuilder();
+				full_file.append(local_full_dest_dir.getPath());
+				full_file.append(File.separator);
+				full_file.append(transcode_context.dest_file_prefix);
+				full_file.append(physical_source.getName());
+				full_file.append(transcode_context.dest_file_suffix);
+				full_file.append(transcode_profile.getExtension(""));
+				
+				File dest_file = new File(full_file.toString());
+				dump = new Log2Dump();
+				dump.add("temp_output_file", temp_output_file);
+				dump.add("dest_file", dest_file);
+				Log2.log.debug("Move transcoded file to destination", dump);
+				
+				FileUtils.moveFile(temp_output_file, dest_file);
+			} else {
+				AbstractFile root_path = Storage.getByName(transcode_context.dest_storage_name).getRootPath();
+				
+				StringBuilder full_dest_dir = new StringBuilder();
+				if (transcode_context.dest_sub_directory != null) {
+					String[] dirs_to_create = transcode_context.dest_sub_directory.split("/");
+					for (int pos_dtc = 0; pos_dtc < dirs_to_create.length; pos_dtc++) {
+						full_dest_dir.append("/");
+						full_dest_dir.append(dirs_to_create[pos_dtc]);
+						root_path.mkdir(full_dest_dir.toString());
+					}
+				}
+				
+				full_dest_dir.append("/");
+				full_dest_dir.append(transcode_context.dest_file_prefix);
+				full_dest_dir.append(physical_source.getName());
+				full_dest_dir.append(transcode_context.dest_file_suffix);
+				full_dest_dir.append(transcode_profile.getExtension(""));
+				
+				AbstractFile distant_file = root_path.getAbstractFile(full_dest_dir.toString());
+				
+				dump = new Log2Dump();
+				dump.add("temp_output_file", temp_output_file);
+				dump.add("storage_dest", transcode_context.dest_storage_name);
+				dump.add("full_dest_dir", full_dest_dir.toString());
+				Log2.log.debug("Move transcoded file to destination", dump);
+				
 				FileUtils.copyFile(temp_output_file, distant_file.getOutputStream(0xFFFF));
-				distant_file.close();
+				
+				root_path.close();
 				FileUtils.forceDelete(temp_output_file);
 			}
 		}

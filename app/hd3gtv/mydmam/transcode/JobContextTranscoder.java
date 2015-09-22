@@ -26,7 +26,9 @@ public class JobContextTranscoder extends JobContext implements ProgressForJobCo
 	public String source_pathindex_key;
 	public String dest_storage_name;
 	
-	// TODO add prefix/suffix for output file + recreate sub dir
+	public String dest_file_prefix;
+	public String dest_file_suffix;
+	public String dest_sub_directory;
 	
 	Timecode duration;
 	float performance_fps;
@@ -38,6 +40,17 @@ public class JobContextTranscoder extends JobContext implements ProgressForJobCo
 		JsonObject jo = new JsonObject();
 		jo.addProperty("source_pathindex_key", source_pathindex_key);
 		jo.addProperty("dest_storage_name", dest_storage_name);
+		
+		if (dest_file_prefix != null) {
+			jo.addProperty("dest_file_prefix", dest_file_prefix);
+		}
+		if (dest_file_suffix != null) {
+			jo.addProperty("dest_file_suffix", dest_file_suffix);
+		}
+		if (dest_sub_directory != null) {
+			jo.addProperty("dest_sub_directory", dest_sub_directory);
+		}
+		
 		if (duration != null) {
 			jo.addProperty("duration", duration.toString());
 			jo.addProperty("source_fps", duration.getFps());
@@ -56,6 +69,16 @@ public class JobContextTranscoder extends JobContext implements ProgressForJobCo
 	public void contextFromJson(JsonObject json_object) {
 		source_pathindex_key = json_object.get("source_pathindex_key").getAsString();
 		dest_storage_name = json_object.get("dest_storage_name").getAsString();
+		
+		if (json_object.has("dest_file_prefix")) {
+			dest_file_prefix = json_object.get("dest_file_prefix").getAsString();
+		}
+		if (json_object.has("dest_file_suffix")) {
+			dest_file_suffix = json_object.get("dest_file_suffix").getAsString();
+		}
+		if (json_object.has("dest_sub_directory")) {
+			dest_sub_directory = json_object.get("dest_sub_directory").getAsString();
+		}
 		
 		if (json_object.has("duration")) {
 			if (json_object.has("source_fps")) {
