@@ -110,6 +110,13 @@ transcodingprofiles:
         extension : jpg
         executable : convert
 
+transcodingworkers:
+    temp_directory: /tmp
+    instances:
+        -
+            profiles: [ffmpeg_lowres_lq]
+            count: 1
+
 watchfoldertranscoder:
     example1:
         source_storage: StorageIn

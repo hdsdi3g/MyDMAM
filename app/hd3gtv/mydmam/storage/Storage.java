@@ -16,14 +16,6 @@
 */
 package hd3gtv.mydmam.storage;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.metadata.container.ContainerOrigin;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,9 +26,18 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.metadata.container.ContainerOrigin;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
 
 public abstract class Storage implements Log2Dumpable {
 	
@@ -135,6 +136,8 @@ public abstract class Storage implements Log2Dumpable {
 		return new File(base_path.getPath() + element.currentpath.replaceAll("/", File.separator));
 	}
 	
+	private static final Random random = new Random();
+	
 	/**
 	 * @return never null. Always download it.
 	 *         Name based on MTD key.
@@ -157,7 +160,18 @@ public abstract class Storage implements Log2Dumpable {
 		File result = new File(temp_directory.getAbsolutePath() + File.separator + base_name + ext);
 		
 		if (result.exists()) {
-			FileUtils.forceDelete(result);
+			File new_result = new File(temp_directory.getAbsolutePath() + File.separator + base_name + "_" + (random.nextInt(100)) + ext);
+			while (new_result.exists()) {
+				new_result = new File(temp_directory.getAbsolutePath() + File.separator + base_name + "_" + (random.nextInt(1000000)) + ext);
+			}
+			
+			Log2Dump dump = new Log2Dump();
+			dump.add("element", element);
+			dump.add("new_result", new_result);
+			Log2.log.debug("Temp local file is actually in service, clone it", dump);
+			
+			FileUtils.copyFile(result, new_result);
+			return new_result;
 		}
 		
 		AbstractFile distant_file = Storage.getByName(element.storagename).getRootPath().getAbstractFile(element.currentpath);

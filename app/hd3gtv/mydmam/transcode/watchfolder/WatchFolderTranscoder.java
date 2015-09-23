@@ -34,14 +34,11 @@ public class WatchFolderTranscoder {
 	static final int TTL_CASSANDRA = (int) TimeUnit.HOURS.toSeconds(24);
 	static final long TTL_ES = TimeUnit.HOURS.toMillis(24);
 	
-	private AppManager manager;
-	
 	private ThreadGroup wf_group;
 	
 	private List<WatchFolderEntry> wf_entries;
 	
 	public WatchFolderTranscoder(AppManager manager) {
-		this.manager = manager;
 		
 		if (Configuration.global.isElementExists("watchfoldertranscoder") == false) {
 			return;
@@ -76,7 +73,6 @@ public class WatchFolderTranscoder {
 		}
 		
 		manager.workerRegister(new DeleteSourceFileWorker());
-		
 	}
 	
 	public void stopAllWatchFolders() {

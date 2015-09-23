@@ -19,6 +19,8 @@ package hd3gtv.mydmam.transcode;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -41,16 +43,53 @@ import hd3gtv.tools.Execprocess;
 
 public class TranscoderWorker extends WorkerNG {
 	
+	@SuppressWarnings("unchecked")
 	public static void declareTranscoders(AppManager manager) throws NullPointerException, IOException {
 		if (TranscodeProfile.isConfigured() == false) {
 			return;
 		}
+		if (Configuration.global.isElementExists("transcodingworkers") == false) {
+			return;
+		}
 		
-		// TODO n Transcoding workers
-		// TODO if configured, map profiles and transcoder count, else:
+		File temp_dir = new File(Configuration.global.getValue("transcodingworkers", "temp_directory", System.getProperty("java.io.tmpdir")));
+		FileUtils.forceMkdir(temp_dir);
 		
-		List<TranscodeProfile> all_profiles = TranscodeProfile.getAllTranscodeProfiles();
-		manager.workerRegister(new TranscoderWorker(all_profiles, new File(Configuration.global.getValue("transcoding", "temp_directory", System.getProperty("java.io.tmpdir")))));
+		List<LinkedHashMap<String, ?>> transc_conf = Configuration.global.getListMapValues("transcodingworkers", "instances");
+		
+		for (int pos_instance = 0; pos_instance < transc_conf.size(); pos_instance++) {
+			int count = 1;
+			if (transc_conf.get(pos_instance).containsKey("count")) {
+				count = (Integer) transc_conf.get(pos_instance).get("count");
+			}
+			
+			Object raw_profile = transc_conf.get(pos_instance).get("profiles");
+			
+			TranscodeProfile profile;
+			if (raw_profile instanceof String) {
+				profile = TranscodeProfile.getTranscodeProfile((String) raw_profile);
+				if (profile == null) {
+					throw new IOException("Can't found profile \"" + (String) raw_profile + "\"");
+				}
+				for (int pos_count = 0; pos_count < count; pos_count++) {
+					manager.workerRegister(new TranscoderWorker(Arrays.asList(profile), temp_dir));
+				}
+			} else if (raw_profile instanceof ArrayList<?>) {
+				ArrayList<String> profiles_name = (ArrayList<String>) raw_profile;
+				ArrayList<TranscodeProfile> profiles = new ArrayList<TranscodeProfile>(profiles_name.size());
+				
+				for (int pos_profile_name = 0; pos_profile_name < profiles_name.size(); pos_profile_name++) {
+					profile = TranscodeProfile.getTranscodeProfile(profiles_name.get(pos_profile_name));
+					if (profile == null) {
+						throw new IOException("Can't found profile \"" + (String) raw_profile + "\"");
+					}
+					profiles.add(profile);
+				}
+				for (int pos_count = 0; pos_count < count; pos_count++) {
+					manager.workerRegister(new TranscoderWorker(profiles, temp_dir));
+				}
+			}
+		}
 	}
 	
 	private List<WorkerCapablities> capabilities;
