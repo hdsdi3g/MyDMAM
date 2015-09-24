@@ -4,7 +4,7 @@ service:
     brokercleanjobs : true
     administrator_mail : Me <me@domain.com>
     notifications_scan: true
-    # demo_worker: true
+    # debug_multiple_workers: false
     # 
     # Full/off hours configuration
     # CyclicJobCreator with only_off_hours parameter, use "fullhours" syntax.

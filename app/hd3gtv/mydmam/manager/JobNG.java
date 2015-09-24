@@ -16,16 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.db.DeployColumnDef;
-import hd3gtv.tools.GsonIgnore;
-import hd3gtv.tools.StoppableProcessing;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,6 +51,16 @@ import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.IndexQuery;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.serializers.StringSerializer;
+
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.db.DeployColumnDef;
+import hd3gtv.tools.GsonIgnore;
+import hd3gtv.tools.StoppableProcessing;
 
 /**
  * Use AppManager to for create job.
@@ -197,7 +197,14 @@ public final class JobNG implements Log2Dumpable {
 		}
 		required_keys = new ArrayList<String>(require.length);
 		for (int pos = 0; pos < require.length; pos++) {
+			if (require[pos] == null) {
+				continue;
+			}
 			required_keys.add(require[pos].key);
+		}
+		
+		if (required_keys.isEmpty()) {
+			required_keys = null;
 		}
 		return this;
 	}

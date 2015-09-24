@@ -16,11 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.manager.JobNG.JobStatus;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +26,11 @@ import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.recipes.locks.BusyLockException;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.manager.JobNG.JobStatus;
 
 class BrokerNG {
 	
@@ -243,6 +243,7 @@ class BrokerNG {
 				List<WorkerNG> workers;
 				WorkerNG best_job_worker = null;
 				JobContext context;
+				boolean some_jobs_to_execute;
 				
 				while (stop_queue == false) {
 					if (first_start == false) {
@@ -268,6 +269,58 @@ class BrokerNG {
 							available_classes_names.add(available_class.getName());
 						}
 					}
+					
+					/**
+					 * 1st pass: check if there are some waiting jobs to process here, before to try lock.
+					 */
+					waiting_jobs = JobNG.Utility.getJobsByStatus(JobStatus.WAITING);
+					some_jobs_to_execute = false;
+					
+					for (int pos_wj = 0; pos_wj < waiting_jobs.size(); pos_wj++) {
+						current_job = waiting_jobs.get(pos_wj);
+						
+						context = current_job.getContext();
+						if (available_classes_names.contains(context.getClass().getName()) == false) {
+							/**
+							 * Can't process this job (no workers for this).
+							 */
+							continue;
+						}
+						
+						if (current_job.isTooOldjob()) {
+							/**
+							 * This job is to old !
+							 */
+							continue;
+						}
+						
+						if (current_job.isRequireIsDone() == false) {
+							/**
+							 * If the job require the processing done of another job.
+							 */
+							continue;
+						}
+						
+						workers = available_workers_capablities.get(context.getClass());
+						
+						for (int pos_wr = 0; pos_wr < workers.size(); pos_wr++) {
+							if (workers.get(pos_wr).canProcessThis(context)) {
+								/**
+								 * This is actually the best job found.
+								 */
+								some_jobs_to_execute = true;
+								break;
+							}
+						}
+					}
+					
+					if (some_jobs_to_execute == false) {
+						continue;
+					}
+					
+					/**
+					 * 2nd pass: there are some waiting jobs to process here, try to lock and execute.
+					 */
 					lock = null;
 					try {
 						/**
