@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.manager;
 
+import org.apache.log4j.LogManager;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -56,6 +58,7 @@ public abstract class ServiceNG {
 					Log2.log.error("Fatal service stopping", e);
 					AdminMailAlert.create("Can't stop the service", true).setThrowable(e).send();
 				}
+				LogManager.shutdown();
 			}
 		};
 		t.setName("Shutdown Hook");

@@ -4,6 +4,9 @@ service:
     brokercleanjobs : true
     administrator_mail : Me <me@domain.com>
     notifications_scan: true
+    # log_show_debug_caller: false
+    # log_show_normal_caller: false
+    # log_show_warn_caller: false
     # debug_multiple_workers: false
     # 
     # Full/off hours configuration
