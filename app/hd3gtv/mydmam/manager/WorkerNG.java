@@ -16,17 +16,15 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.MyDMAM;
-
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import com.google.gson.JsonObject;
+
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
 
 public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 	
@@ -66,36 +64,9 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 	public WorkerNG() {
 	}
 	
-	private String computeKey() {
-		StringBuffer sb = new StringBuffer();
-		sb.append(manager.getInstance_status().getAppName());
-		sb.append(manager.getInstance_status().getHostName());
-		sb.append(manager.getInstance_status().getInstanceName());
-		sb.append(getClass().getName());
-		sb.append(getWorkerCategory().name());
-		sb.append(getWorkerLongName());
-		sb.append(getWorkerVendorName());
-		List<WorkerCapablities> cap = getWorkerCapablities();
-		if (cap != null) {
-			for (int pos = 0; pos < cap.size(); pos++) {
-				sb.append("/cap:");
-				sb.append(cap.get(pos).toString());
-			}
-		}
-		
-		try {
-			MessageDigest md;
-			md = MessageDigest.getInstance("MD5");
-			md.update(sb.toString().getBytes());
-			return "worker:" + MyDMAM.byteToString(md.digest());
-		} catch (Exception e) {
-			return "worker:" + UUID.randomUUID().toString();
-		}
-	}
-	
 	void setManager(AppManager manager) {
 		this.manager = manager;
-		reference_key = computeKey();
+		reference_key = "worker:" + UUID.randomUUID().toString();
 		lifecyle = new LifeCycle(this);
 		stopreason = StopReason.full_functionnal;
 		exporter = new WorkerExporter(this);
@@ -142,7 +113,9 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 		ExecutorWatchDog current_executor_watch_dog;
 		
 		private Executor(JobNG job, WorkerNG reference) {
-			setName("Worker for " + job.getKey() + " (" + getWorkerCategory() + ")");
+			// setName("Worker for " + job.getKey() + " (" + getWorkerCategory() + ")");
+			setName(reference.reference_key + "/" + reference.getClass().getSimpleName() + "/" + getWorkerCategory());
+			
 			this.job = job;
 			this.reference = reference;
 			setDaemon(true);

@@ -16,6 +16,19 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.netflix.astyanax.MutationBatch;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
@@ -31,19 +44,6 @@ import hd3gtv.mydmam.useraction.UAConfigurator;
 import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
 import hd3gtv.mydmam.useraction.UAWorker;
 import hd3gtv.tools.GsonIgnoreStrategy;
-
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.netflix.astyanax.MutationBatch;
 
 public final class AppManager implements InstanceActionReceiver {
 	
@@ -118,6 +118,7 @@ public final class AppManager implements InstanceActionReceiver {
 	
 	private volatile static HashMap<String, Class<?>> instance_class_name;
 	private volatile static ArrayList<String> not_found_class_name;
+	
 	static {
 		instance_class_name = new HashMap<String, Class<?>>();
 		not_found_class_name = new ArrayList<String>();
@@ -348,35 +349,8 @@ public final class AppManager implements InstanceActionReceiver {
 		return false;
 	}
 	
-	Map<Class<? extends JobContext>, List<WorkerNG>> getAllCurrentWaitingWorkersByCapablitiesJobContextClasses() {
-		Map<Class<? extends JobContext>, List<WorkerNG>> capablities_classes_workers = new HashMap<Class<? extends JobContext>, List<WorkerNG>>();
-		WorkerNG worker;
-		List<Class<? extends JobContext>> current_capablities;
-		List<WorkerNG> workers_for_capablity;
-		Class<? extends JobContext> current_capablity;
-		
-		for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
-			worker = enabled_workers.get(pos_wr);
-			if (worker.getLifecyle().getState() != WorkerState.WAITING) {
-				continue;
-			}
-			current_capablities = worker.getWorkerCapablitiesJobContextClasses();
-			if (current_capablities == null) {
-				continue;
-			}
-			for (int pos_cc = 0; pos_cc < current_capablities.size(); pos_cc++) {
-				current_capablity = current_capablities.get(pos_cc);
-				if (capablities_classes_workers.containsKey(current_capablity) == false) {
-					capablities_classes_workers.put(current_capablity, new ArrayList<WorkerNG>(1));
-				}
-				workers_for_capablity = capablities_classes_workers.get(current_capablity);
-				if (workers_for_capablity.contains(worker) == false) {
-					workers_for_capablity.add(worker);
-				}
-			}
-		}
-		
-		return capablities_classes_workers;
+	List<WorkerNG> getEnabledWorkers() {
+		return Collections.unmodifiableList(enabled_workers);
 	}
 	
 	List<UAWorker> getAllActiveUAWorkers() {

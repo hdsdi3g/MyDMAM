@@ -19,6 +19,8 @@ package hd3gtv.mydmam.manager;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -681,6 +683,9 @@ public final class JobNG implements Log2Dumpable {
 			return getJobsStatusByKeys(keys);
 		}
 		
+		/**
+		 * Storted by priority
+		 */
 		static List<JobNG> getJobsByStatus(JobStatus status) throws ConnectionException {
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(status.name());
@@ -695,7 +700,24 @@ public final class JobNG implements Log2Dumpable {
 				JobNG new_job = JobNG.Utility.importFromDatabase(row.getColumns());
 				result.add(new_job);
 			}
+			
+			Collections.sort(result, job_priority_comparator);
+			
 			return result;
+		}
+		
+		private static JobPriorityComparator job_priority_comparator = new JobPriorityComparator();
+		
+		private static class JobPriorityComparator implements Comparator<JobNG> {
+			public int compare(JobNG o1, JobNG o2) {
+				if (o1.priority == o2.priority) {
+					return 0;
+				} else if (o1.priority < o2.priority) {
+					return 1;
+				} else {
+					return -1;
+				}
+			}
 		}
 		
 		/**

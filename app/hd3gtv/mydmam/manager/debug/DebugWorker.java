@@ -18,6 +18,7 @@ package hd3gtv.mydmam.manager.debug;
 
 import java.io.File;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 
@@ -31,10 +32,15 @@ import hd3gtv.mydmam.manager.WorkerNG;
 
 public class DebugWorker extends WorkerNG {
 	
-	private static int sleep_time = 1;
-	private static int nb_tasks_by_core = 4;
+	private static int sleep_time = 10;
+	private static int nb_tasks_by_core = 8;
 	private static File datalog;
 	private static String instance_name;
+	private static final Random random;
+	
+	static {
+		random = new Random();
+	}
 	
 	public static void declareWorkers(AppManager manager) throws Exception {
 		if (Configuration.global.isElementKeyExists("service", "debug_multiple_workers") == false) {
@@ -52,13 +58,13 @@ public class DebugWorker extends WorkerNG {
 		datalog = new File("debug_worker.log");
 		instance_name = manager.getInstance_status().getInstanceNamePid();
 		
-		FileUtils.writeStringToFile(datalog, Log2Event.dateLog(System.currentTimeMillis()) + "\tinit\t" + instance_name + "\t\n", true);
+		FileUtils.writeStringToFile(datalog, Log2Event.dateLog(System.currentTimeMillis()) + "\tinit\t" + instance_name + "\t\t\n", true);
 		
 		String job_key;
 		for (int pos = 0; pos < cores; pos++) {
 			for (int pos_c = 0; pos_c < nb_tasks_by_core; pos_c++) {
 				job_key = AppManager.createJob(new JobContextDebug()).setCreator(DebugWorker.class).setDeleteAfterCompleted().setName("Debug").publish().getKey();
-				FileUtils.writeStringToFile(datalog, Log2Event.dateLog(System.currentTimeMillis()) + "\tcreate\t" + instance_name + "\t" + job_key + "\n", true);
+				FileUtils.writeStringToFile(datalog, Log2Event.dateLog(System.currentTimeMillis()) + "\tcreate\t" + instance_name + "\t" + job_key + "\t\n", true);
 			}
 		}
 	}
@@ -80,11 +86,12 @@ public class DebugWorker extends WorkerNG {
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
-		FileUtils.writeStringToFile(datalog, Log2Event.dateLog(System.currentTimeMillis()) + "\texec\t" + instance_name + "\t" + progression.getJobKey() + "\n", true);
-		
+		FileUtils.writeStringToFile(datalog,
+				Log2Event.dateLog(System.currentTimeMillis()) + "\texec\t" + instance_name + "\t" + progression.getJobKey() + "\t" + Thread.currentThread().getName() + "\n", true);
+				
 		for (int pos = 0; pos < sleep_time * 10; pos++) {
-			progression.updateProgress((pos + 1) * 10, sleep_time);
-			Thread.sleep(100);
+			progression.updateProgress((pos + 1) * 10, sleep_time * 10);
+			Thread.sleep(random.nextInt(1000) + 1);
 		}
 	}
 	
