@@ -194,11 +194,6 @@ class BrokerNG {
 							mutator = null;
 						}
 						
-						if (queue_new_jobs != null) {
-							if (queue_new_jobs.isAlive()) {
-								Log2.log.debug("Stat time queue", queue_new_jobs.stat_time.getStatisticTimeResult());
-							}
-						}
 					}
 					
 					if (stop_queue) {
@@ -220,12 +215,10 @@ class BrokerNG {
 	
 	private class QueueNewJobs extends Thread {
 		boolean stop_queue;
-		StatisticsTime stat_time;
 		
 		public QueueNewJobs() {
 			setName("Queue new jobs for Broker " + manager.getInstance_status().getInstanceNamePid());
 			setDaemon(true);
-			stat_time = new StatisticsTime();
 		}
 		
 		public void run() {
@@ -331,7 +324,6 @@ class BrokerNG {
 						lock.expireLockAfter(500, TimeUnit.MILLISECONDS);
 						lock.failOnStaleLock(false);
 						lock.acquire();
-						stat_time.startMeasure();
 						
 						/**
 						 * Get all waiting jobs for this category profile.
@@ -399,7 +391,6 @@ class BrokerNG {
 							 * Not found a valid job
 							 */
 							lock.release();
-							stat_time.endMeasure();
 							continue;
 						}
 						
@@ -411,7 +402,6 @@ class BrokerNG {
 						mutator.execute();
 						
 						lock.release();
-						stat_time.endMeasure();
 						
 						active_jobs.add(best_job);
 						
@@ -425,13 +415,12 @@ class BrokerNG {
 						/**
 						 * The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
 						 */
-						Log2.log.error("Can't lock CF: abandoned lock.", e, stat_time.getStatisticTimeResult());
+						Log2.log.error("Can't lock CF: abandoned lock.", e);
 					} catch (BusyLockException e) {
-						Log2.log.debug("Can't lock CF, it's currently locked.", stat_time.getStatisticTimeResult());
+						Log2.log.debug("Can't lock CF, it's currently locked.");
 					} finally {
 						if (lock != null) {
 							lock.release();
-							stat_time.endMeasure();
 						}
 					}
 				}
