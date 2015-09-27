@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.manager.StatisticsTime;
-
 import org.elasticsearch.action.WriteConsistencyLevel;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -36,6 +32,9 @@ import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.unit.TimeValue;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+
 /**
  * @see BulkRequestBuilder
  */
@@ -43,15 +42,12 @@ public final class ElasticsearchBulkOperation {
 	
 	private Client client;
 	private int window_update_size = 500;
-	private StatisticsTime stat_time;
 	private BulkRequestBuilder bulk_request_builder;
 	
 	ElasticsearchBulkOperation() {
 		this.client = Elasticsearch.getClient();
-		stat_time = new StatisticsTime();
 		bulk_request_builder = client.prepareBulk();
 		bulkconfiguration = new BulkConfiguration();
-		stat_time = new StatisticsTime();
 	}
 	
 	public int getWindowUpdateSize() {
@@ -74,8 +70,6 @@ public final class ElasticsearchBulkOperation {
 		final BulkRequest bu_r = bulk_request_builder.request();
 		
 		BulkResponse bulkresponse = null;
-		stat_time.startMeasure();
-		boolean it_was_hard = false;
 		
 		bulkresponse = Elasticsearch.withRetry(new ElasticsearchWithRetry<BulkResponse>() {
 			public BulkResponse call(Client client) throws NoNodeAvailableException {
@@ -88,13 +82,7 @@ public final class ElasticsearchBulkOperation {
 				dump = new Log2Dump();
 				dump.add("failure message", bulkresponse.buildFailureMessage());
 				Log2.log.error("Errors during update database", null, dump);
-			} else {
-				stat_time.endMeasure();
 			}
-		}
-		
-		if (it_was_hard) {
-			Log2.log.debug("Current bulk stat time", stat_time.getStatisticTimeResult());
 		}
 		
 		bulk_request_builder.request().requests().clear();
@@ -150,7 +138,6 @@ public final class ElasticsearchBulkOperation {
 	public void terminateBulk() {
 		if (bulk_request_builder.numberOfActions() > 0) {
 			execute();
-			Log2.log.debug("Bulk stat time", stat_time.getStatisticTimeResult());
 		}
 	}
 	

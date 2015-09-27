@@ -16,6 +16,13 @@
 */
 package hd3gtv.mydmam.metadata;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
@@ -36,13 +43,6 @@ import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererAudio;
 import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererHD;
 import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererLQ;
 import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererSD;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 public class MetadataCenter {
 	
@@ -175,9 +175,10 @@ public class MetadataCenter {
 			return;
 		}
 		if (provider.isEnabled() == false) {
-			Log2.log.info("Provider " + provider.getLongName() + " is disabled");
 			return;
 		}
+		
+		Log2.log.info("Load provider " + provider.getLongName());
 		try {
 			ContainerOperations.declareEntryType(provider.getRootEntryClass());
 		} catch (Exception e) {

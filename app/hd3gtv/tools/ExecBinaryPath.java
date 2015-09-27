@@ -45,14 +45,16 @@ public class ExecBinaryPath {
 		
 		Map<String, String> values = Configuration.global.getValues("executables");
 		
-		File exec = null;
-		for (Map.Entry<String, String> entry : values.entrySet()) {
-			exec = new File(entry.getValue());
-			if (validExec(exec)) {
-				declared_in_configuration.put(entry.getKey(), exec);
-				continue;
+		if (values != null) {
+			File exec = null;
+			for (Map.Entry<String, String> entry : values.entrySet()) {
+				exec = new File(entry.getValue());
+				if (validExec(exec)) {
+					declared_in_configuration.put(entry.getKey(), exec);
+					continue;
+				}
+				Log2.log.error("Invalid declared_in_configuration executable", new FileNotFoundException(exec.getPath()), new Log2Dump("Key[" + entry.getKey() + "]", exec));
 			}
-			Log2.log.error("Invalid declared_in_configuration executable", new FileNotFoundException(exec.getPath()), new Log2Dump("Key[" + entry.getKey() + "]", exec));
 		}
 	}
 	

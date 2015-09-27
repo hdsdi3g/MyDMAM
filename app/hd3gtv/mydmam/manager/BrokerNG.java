@@ -17,6 +17,8 @@
 package hd3gtv.mydmam.manager;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +33,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.JobNG.JobStatus;
+import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 
 class BrokerNG {
 	
@@ -194,11 +197,6 @@ class BrokerNG {
 							mutator = null;
 						}
 						
-						if (queue_new_jobs != null) {
-							if (queue_new_jobs.isAlive()) {
-								Log2.log.debug("Stat time queue", queue_new_jobs.stat_time.getStatisticTimeResult());
-							}
-						}
 					}
 					
 					if (stop_queue) {
@@ -220,12 +218,10 @@ class BrokerNG {
 	
 	private class QueueNewJobs extends Thread {
 		boolean stop_queue;
-		StatisticsTime stat_time;
 		
 		public QueueNewJobs() {
 			setName("Queue new jobs for Broker " + manager.getInstance_status().getInstanceNamePid());
 			setDaemon(true);
-			stat_time = new StatisticsTime();
 		}
 		
 		public void run() {
@@ -233,15 +229,21 @@ class BrokerNG {
 			boolean first_start = true;
 			try {
 				MutationBatch mutator = null;
-				Map<Class<? extends JobContext>, List<WorkerNG>> available_workers_capablities;
-				ArrayList<String> available_classes_names;
+				HashMap<Class<? extends JobContext>, List<WorkerNG>> available_workers_capablities = new HashMap<Class<? extends JobContext>, List<WorkerNG>>();
+				ArrayList<String> available_classes_names = new ArrayList<String>();
+				
+				List<WorkerNG> enabled_workers;
+				WorkerNG worker;
+				List<Class<? extends JobContext>> current_capablities;
+				List<WorkerNG> workers_for_capablity;
+				Class<? extends JobContext> current_capablity;
+				
 				ColumnPrefixDistributedRowLock<String> lock;
 				List<JobNG> waiting_jobs;
-				int best_priority;
-				JobNG best_job = null;
+				LinkedHashMap<JobNG, WorkerNG> best_jobs_worker = new LinkedHashMap<JobNG, WorkerNG>();
+				
 				JobNG current_job = null;
 				List<WorkerNG> workers;
-				WorkerNG best_job_worker = null;
 				JobContext context;
 				boolean some_jobs_to_execute;
 				
@@ -254,20 +256,41 @@ class BrokerNG {
 					}
 					first_start = false;
 					
-					available_workers_capablities = manager.getAllCurrentWaitingWorkersByCapablitiesJobContextClasses();
-					
-					if (available_workers_capablities.isEmpty()) {
-						continue;
-					}
-					
 					/**
 					 * Prepare a list with all JobContext classes names that can be process.
 					 */
-					available_classes_names = new ArrayList<String>();
-					for (Class<? extends JobContext> available_class : available_workers_capablities.keySet()) {
-						if (available_classes_names.contains(available_class.getName()) == false) {
-							available_classes_names.add(available_class.getName());
+					available_classes_names.clear();
+					available_workers_capablities.clear();
+					
+					enabled_workers = manager.getEnabledWorkers();
+					for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
+						worker = enabled_workers.get(pos_wr);
+						if (worker.getLifecyle().getState() != WorkerState.WAITING) {
+							continue;
 						}
+						current_capablities = worker.getWorkerCapablitiesJobContextClasses();
+						if (current_capablities == null) {
+							continue;
+						}
+						for (int pos_cc = 0; pos_cc < current_capablities.size(); pos_cc++) {
+							current_capablity = current_capablities.get(pos_cc);
+							
+							if (available_classes_names.contains(current_capablity.getName()) == false) {
+								available_classes_names.add(current_capablity.getName());
+							}
+							
+							if (available_workers_capablities.containsKey(current_capablity) == false) {
+								available_workers_capablities.put(current_capablity, new ArrayList<WorkerNG>(1));
+							}
+							workers_for_capablity = available_workers_capablities.get(current_capablity);
+							if (workers_for_capablity.contains(worker) == false) {
+								workers_for_capablity.add(worker);
+							}
+						}
+					}
+					
+					if (available_classes_names.isEmpty()) {
+						continue;
 					}
 					
 					/**
@@ -331,31 +354,19 @@ class BrokerNG {
 						lock.expireLockAfter(500, TimeUnit.MILLISECONDS);
 						lock.failOnStaleLock(false);
 						lock.acquire();
-						stat_time.startMeasure();
 						
 						/**
 						 * Get all waiting jobs for this category profile.
 						 */
 						waiting_jobs = JobNG.Utility.getJobsByStatus(JobStatus.WAITING);
-						best_priority = Integer.MIN_VALUE;
-						best_job = null;
-						current_job = null;
-						workers = null;
-						best_job_worker = null;
-						context = null;
+						best_jobs_worker.clear();
 						mutator = null;
 						
 						/**
-						 * For this jobs, found the best to start.
+						 * For this jobs, found the best to start (Try to start a maximum of jobs)
 						 */
 						for (int pos_wj = 0; pos_wj < waiting_jobs.size(); pos_wj++) {
 							current_job = waiting_jobs.get(pos_wj);
-							if (current_job.getPriority() < best_priority) {
-								/**
-								 * This job priority is not the best for the moment
-								 */
-								continue;
-							}
 							
 							context = current_job.getContext();
 							if (available_classes_names.contains(context.getClass().getName()) == false) {
@@ -372,6 +383,20 @@ class BrokerNG {
 								continue;
 							}
 							
+							workers = available_workers_capablities.get(context.getClass());
+							
+							if (workers.isEmpty()) {
+								continue;
+							}
+							
+							worker = null;
+							for (int pos_wr = 0; pos_wr < workers.size(); pos_wr++) {
+								if (workers.get(pos_wr).canProcessThis(context)) {
+									worker = workers.get(pos_wr);
+									break;
+								}
+							}
+							
 							if (current_job.isRequireIsDone() == false) {
 								/**
 								 * If the job require the processing done of another job.
@@ -379,27 +404,22 @@ class BrokerNG {
 								continue;
 							}
 							
-							workers = available_workers_capablities.get(context.getClass());
-							
-							for (int pos_wr = 0; pos_wr < workers.size(); pos_wr++) {
-								if (workers.get(pos_wr).canProcessThis(context)) {
-									/**
-									 * This is actually the best job found.
-									 */
-									best_priority = current_job.getPriority();
-									best_job = current_job;
-									best_job_worker = workers.get(pos_wr);
-									break;
-								}
-							}
+							/**
+							 * This is actually the best jobs found.
+							 */
+							best_jobs_worker.put(current_job, worker);
+							workers.remove(worker);
 						}
 						
-						if (best_job == null) {
+						/**
+						 * Now, start all selected jobs, if exists.
+						 */
+						
+						if (best_jobs_worker.isEmpty()) {
 							/**
 							 * Not found a valid job
 							 */
 							lock.release();
-							stat_time.endMeasure();
 							continue;
 						}
 						
@@ -407,15 +427,18 @@ class BrokerNG {
 						 * Prepare job.
 						 */
 						mutator = CassandraDb.prepareMutationBatch();
-						best_job.prepareProcessing(mutator);
+						for (JobNG job : best_jobs_worker.keySet()) {
+							job.prepareProcessing(mutator);
+						}
 						mutator.execute();
 						
 						lock.release();
-						stat_time.endMeasure();
 						
-						active_jobs.add(best_job);
+						active_jobs.addAll(best_jobs_worker.keySet());
 						
-						best_job_worker.internalProcess(best_job);
+						for (Map.Entry<JobNG, WorkerNG> entry : best_jobs_worker.entrySet()) {
+							entry.getValue().internalProcess(entry.getKey());
+						}
 						
 						if (stop_queue) {
 							return;
@@ -425,13 +448,12 @@ class BrokerNG {
 						/**
 						 * The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
 						 */
-						Log2.log.error("Can't lock CF: abandoned lock.", e, stat_time.getStatisticTimeResult());
+						Log2.log.error("Can't lock CF: abandoned lock.", e);
 					} catch (BusyLockException e) {
-						Log2.log.debug("Can't lock CF, it's currently locked.", stat_time.getStatisticTimeResult());
+						Log2.log.debug("Can't lock CF, it's currently locked.");
 					} finally {
 						if (lock != null) {
 							lock.release();
-							stat_time.endMeasure();
 						}
 					}
 				}
