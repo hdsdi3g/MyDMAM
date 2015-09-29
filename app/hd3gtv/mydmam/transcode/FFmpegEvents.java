@@ -23,6 +23,7 @@ import hd3gtv.log2.Log2;
 
 public class FFmpegEvents extends ExecprocessTranscodeEvent {
 	
+	@Deprecated
 	boolean display_raw_ffmpegmessages;
 	
 	private String last_message;
@@ -39,26 +40,26 @@ public class FFmpegEvents extends ExecprocessTranscodeEvent {
 	}
 	
 	public void onKill() {
-		Log2.log.error("FFmpeg is killed for " + jobref, null);
+		Log2.log.error("FFmpeg is killed for " + jobref, null); // TODO add log messages...
 	}
 	
 	public void onError(IOException ioe) {
-		Log2.log.error("FFmpeg error for " + jobref, ioe);
+		Log2.log.error("FFmpeg error for " + jobref, ioe); // TODO add log messages...
 	}
 	
 	public void onError(InterruptedException ie) {
-		Log2.log.error("FFmpeg threads error for " + jobref, ie);
+		Log2.log.error("FFmpeg threads error for " + jobref, ie); // TODO add log messages...
 	}
 	
 	public void onStdout(String message) {
 		if (display_raw_ffmpegmessages) {
-			System.out.println("[" + jobref + "] " + message);
+			System.out.println("[" + jobref + "] " + message); // TODO add log messages...
 		}
 	}
 	
 	public void onStderr(String message) {
 		if (display_raw_ffmpegmessages) {
-			System.out.println("[" + jobref + "] " + message);
+			System.out.println("[" + jobref + "] " + message); // TODO add log messages...
 		}
 		last_message = message;
 	}

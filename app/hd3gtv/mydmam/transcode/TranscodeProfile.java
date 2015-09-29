@@ -69,6 +69,7 @@ public class TranscodeProfile implements Log2Dumpable {
 			
 			if (isConfigured()) {
 				HashMap<String, ConfigurationItem> tp_list = Configuration.global.getElement("transcodingprofiles");
+				// TODO add log messages...
 				
 				if (tp_list.isEmpty()) {
 					Log2.log.error("Can't found \"profile\" element in transcoding block in XML configuration", null);
@@ -170,7 +171,7 @@ public class TranscodeProfile implements Log2Dumpable {
 	 */
 	public static TranscodeProfile getTranscodeProfile(String name) {
 		if (isConfigured() == false) {
-			Log2.log.error("TranscodeProfile is not configured", new NullPointerException());
+			Log2.log.error("TranscodeProfile is not configured", new NullPointerException()); // TODO add log messages...
 			return null;
 		}
 		if (name == null) {
@@ -341,7 +342,7 @@ public class TranscodeProfile implements Log2Dumpable {
 				try {
 					progress = executables_transcode_progress.get(job_ref).newInstance();
 				} catch (Exception e) {
-					Log2.log.error("Can't load TranscodeProgress new instance", e, new Log2Dump("executable_name", executable_name));
+					Log2.log.error("Can't load TranscodeProgress new instance", e, new Log2Dump("executable_name", executable_name)); // TODO add log messages...
 				}
 			}
 			
@@ -351,7 +352,7 @@ public class TranscodeProfile implements Log2Dumpable {
 					event.setJobRef(job_ref);
 					return new Execprocess(executable, makeCommandline(), event);
 				} catch (Exception e) {
-					Log2.log.error("Can't load ExecprocessEvent new instance", e, new Log2Dump("executable_name", executable_name));
+					Log2.log.error("Can't load ExecprocessEvent new instance", e, new Log2Dump("executable_name", executable_name)); // TODO add log messages...
 					return new Execprocess(executable, makeCommandline(), null);
 				}
 			}

@@ -59,7 +59,7 @@ public abstract class TranscodeProgress {
 			try {
 				Thread.sleep(100);
 			} catch (Exception e) {
-				Log2.log.error("Can't stop thread", e);
+				Log2.log.error("Can't stop thread", e); // TODO add log messages...
 			}
 		}
 		internal = null;
@@ -83,7 +83,7 @@ public abstract class TranscodeProgress {
 			try {
 				processAnalystProgressFile(progressfile, progression, context);
 			} catch (Exception e) {
-				Log2.log.error("Error during progress analyst", e);
+				Log2.log.error("Error during progress analyst", e); // TODO add log messages...
 			}
 		}
 	}

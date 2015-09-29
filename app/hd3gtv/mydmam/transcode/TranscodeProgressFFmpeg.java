@@ -93,7 +93,7 @@ public class TranscodeProgressFFmpeg extends TranscodeProgress {
 					last_drop_frames = line.substring(12);
 				} else if (line.equals("progress=end")) {
 					reader.close();
-					Log2.log.debug("Watch ffmpeg progress is ended");
+					Log2.log.debug("Watch ffmpeg progress is ended"); // TODO add log messages...
 					return;
 				}
 			}

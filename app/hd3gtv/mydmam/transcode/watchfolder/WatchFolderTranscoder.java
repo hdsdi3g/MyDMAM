@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
-import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
@@ -45,7 +44,7 @@ public class WatchFolderTranscoder {
 		}
 		
 		if (TranscodeProfile.isConfigured() == false) {
-			Log2.log.error("No transcoding configuration definited, cancel WatchFolderTranscoder loading", null);
+			Loggers.WatchFolder.error("No transcoding configuration definited, cancel WatchFolderTranscoder loading");
 			return;
 		}
 		

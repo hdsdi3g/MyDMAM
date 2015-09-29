@@ -37,7 +37,6 @@ import com.netflix.astyanax.recipes.locks.StaleLockException;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
-import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -538,8 +537,7 @@ class WatchFolderEntry implements Runnable {
 			try {
 				physical_source = Storage.getDistantFile(pi_item, temp_directory);
 			} catch (IOException e) {
-				// XXX log... et continuer
-				Log2.log.error("Can't download found file to temp directory", e, validated_file);
+				Loggers.WatchFolder.error("Can't download found file to temp directory " + name + " for " + validated_file, e);
 				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).addDump(validated_file).setThrowable(e).send();
 				validated_file.status = Status.ERROR;
 				return;
@@ -548,13 +546,14 @@ class WatchFolderEntry implements Runnable {
 		
 		Container indexing_result = null;
 		try {
+			Loggers.WatchFolder.trace("Save item to ES " + name + " for " + validated_file);
 			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 			MetadataIndexingOperation indexing = new MetadataIndexingOperation(physical_source).setReference(pi_item).setLimit(MetadataIndexingLimit.ANALYST);
 			indexing_result = indexing.doIndexing();
 			ContainerOperations.save(indexing_result, true, bulk);
 			bulk.terminateBulk();
 		} catch (Exception e) {
-			Log2.log.error("Can't analyst MTD", null, validated_file);
+			Loggers.WatchFolder.error("Can't analyst MTD " + name + " for " + validated_file, e);
 			validated_file.status = Status.ERROR;
 			WatchFolderDB.push(Arrays.asList(validated_file));
 			return;
@@ -562,9 +561,10 @@ class WatchFolderEntry implements Runnable {
 		
 		if (download_temp) {
 			try {
+				Loggers.WatchFolder.trace("Delete temp file " + name + " for " + validated_file + " file: " + physical_source);
 				FileUtils.forceDelete(physical_source);
 			} catch (Exception e) {
-				Log2.log.error("Can't delete temp file", e, validated_file);
+				Loggers.WatchFolder.error("Can't delete temp file " + name + " for " + validated_file, e);
 				AdminMailAlert.create("Can't delete temp file", false).addDump(validated_file).setThrowable(e).send();
 			}
 		}
@@ -578,17 +578,17 @@ class WatchFolderEntry implements Runnable {
 		
 		if (must_contain.contains(MustContainType.video.name()) | must_contain.contains(MustContainType.audio.name())) {
 			if (ffprobe == null) {
-				Log2.log.error("Invalid file dropped in watchfolder: it must be a media file", null, validated_file);
+				Loggers.WatchFolder.error("Invalid file dropped in watchfolder: it must be a media file " + name + " for " + validated_file);
 				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file", false).addDump(validated_file).send();
 				validated_file.status = Status.ERROR;
 				return;
 			} else if (must_contain.contains(MustContainType.video.name()) & (ffprobe.hasVideo() == false)) {
-				Log2.log.error("Invalid file dropped in watchfolder: it must have a video track", null, validated_file);
+				Loggers.WatchFolder.error("Invalid file dropped in watchfolder: it must have a video track " + name + " for " + validated_file);
 				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track", false).addDump(validated_file).send();
 				validated_file.status = Status.ERROR;
 				return;
 			} else if (must_contain.contains(MustContainType.audio.name()) & (ffprobe.hasAudio() == false)) {
-				Log2.log.error("Invalid file dropped in watchfolder: it must have an audio track", null, validated_file);
+				Loggers.WatchFolder.error("Invalid file dropped in watchfolder: it must have an audio track " + name + " for " + validated_file);
 				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track", false).addDump(validated_file).send();
 				validated_file.status = Status.ERROR;
 				return;
@@ -600,6 +600,9 @@ class WatchFolderEntry implements Runnable {
 		ArrayList<JobNG> jobs_to_watch = new ArrayList<JobNG>(targets.size());
 		
 		String sub_dir_name = validated_file.path.substring(0, validated_file.path.length() - (validated_file.getName().length() + 1));
+		
+		Loggers.WatchFolder.trace("Prepare all transcode jobs " + name + " for " + validated_file + ", in " + sub_dir_name);
+		
 		for (int pos = 0; pos < targets.size(); pos++) {
 			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), sub_dir_name, duration, mutator));
 		}
@@ -609,8 +612,11 @@ class WatchFolderEntry implements Runnable {
 		delete_source.path = validated_file.path;
 		delete_source.storage = validated_file.storage_name;
 		
+		Loggers.WatchFolder.trace("Prepare delete source job " + name + " for " + validated_file + " " + delete_source.contextToJson());
+		
 		AppManager.createJob(delete_source).setCreator(getClass()).setName("Delete watchfolder source " + validated_file.getName()).setRequiredCompletedJob(jobs_to_watch).setDeleteAfterCompleted()
 				.publish(mutator);
+				
 		mutator.execute();
 	}
 }

@@ -28,6 +28,7 @@ import org.apache.commons.io.FileUtils;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
@@ -53,6 +54,8 @@ public class TranscoderWorker extends WorkerNG {
 		}
 		
 		File temp_dir = new File(Configuration.global.getValue("transcodingworkers", "temp_directory", System.getProperty("java.io.tmpdir")));
+		Loggers.Transcoder.debug("Init Transcoder workers with this tmp dir: " + temp_dir);
+		
 		FileUtils.forceMkdir(temp_dir);
 		
 		List<LinkedHashMap<String, ?>> transc_conf = Configuration.global.getListMapValues("transcodingworkers", "instances");
@@ -66,13 +69,16 @@ public class TranscoderWorker extends WorkerNG {
 			Object raw_profile = transc_conf.get(pos_instance).get("profiles");
 			
 			TranscodeProfile profile;
+			TranscoderWorker transcoderworker;
 			if (raw_profile instanceof String) {
 				profile = TranscodeProfile.getTranscodeProfile((String) raw_profile);
 				if (profile == null) {
 					throw new IOException("Can't found profile \"" + (String) raw_profile + "\"");
 				}
 				for (int pos_count = 0; pos_count < count; pos_count++) {
-					manager.workerRegister(new TranscoderWorker(Arrays.asList(profile), temp_dir));
+					Loggers.Transcoder.trace("Create transcoder worker for " + profile);
+					transcoderworker = new TranscoderWorker(Arrays.asList(profile), temp_dir);
+					manager.workerRegister(transcoderworker);
 				}
 			} else if (raw_profile instanceof ArrayList<?>) {
 				ArrayList<String> profiles_name = (ArrayList<String>) raw_profile;
@@ -86,7 +92,9 @@ public class TranscoderWorker extends WorkerNG {
 					profiles.add(profile);
 				}
 				for (int pos_count = 0; pos_count < count; pos_count++) {
-					manager.workerRegister(new TranscoderWorker(profiles, temp_dir));
+					Loggers.Transcoder.trace("Create transcoder worker for " + profiles);
+					transcoderworker = new TranscoderWorker(profiles, temp_dir);
+					manager.workerRegister(transcoderworker);
 				}
 			}
 		}
@@ -96,7 +104,7 @@ public class TranscoderWorker extends WorkerNG {
 	private Explorer explorer;
 	private File temp_directory;
 	
-	public TranscoderWorker(final List<TranscodeProfile> profiles, File temp_directory) throws NullPointerException, IOException {
+	private TranscoderWorker(final List<TranscodeProfile> profiles, File temp_directory) throws NullPointerException, IOException {
 		explorer = new Explorer();
 		if (profiles == null) {
 			throw new NullPointerException("\"profiles\" can't to be null");
@@ -113,11 +121,13 @@ public class TranscoderWorker extends WorkerNG {
 		CopyMove.checkIsDirectory(temp_directory);
 		CopyMove.checkIsWritable(temp_directory);
 		
+		Loggers.Transcoder.trace("New transcoder temp_directory " + temp_directory);
+		
 		capabilities = new ArrayList<WorkerCapablities>(profiles.size());
 		capabilities.add(new WorkerCapablities() {
 			
-			@Override
 			public List<String> getStoragesAvaliable() {
+				Loggers.Transcoder.trace("New transcoder storages " + Storage.getAllStoragesNames());
 				return Storage.getAllStoragesNames();
 			}
 			
@@ -130,6 +140,7 @@ public class TranscoderWorker extends WorkerNG {
 				for (int pos = 0; pos < profiles.size(); pos++) {
 					names.add(profiles.get(pos).getName());
 				}
+				Loggers.Transcoder.trace("New transcoder hooked names / profiles " + names);
 				return names;
 			}
 		});
@@ -151,7 +162,10 @@ public class TranscoderWorker extends WorkerNG {
 	
 	protected synchronized void forceStopProcess() throws Exception {
 		stop_process = true;
+		Loggers.Transcoder.debug("Wan't to stop process " + process.getCommandline());
+		
 		if (process != null) {
+			Loggers.Transcoder.warn("Wan't to kill process " + process.getCommandline());
 			process.kill();
 		}
 	}
@@ -168,6 +182,8 @@ public class TranscoderWorker extends WorkerNG {
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		JobContextTranscoder transcode_context = (JobContextTranscoder) context;
+		
+		// TODO add log messages...
 		
 		/**
 		 * Recover source file from local or distant storage.
