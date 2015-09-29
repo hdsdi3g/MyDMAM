@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.CassandraDb;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +30,9 @@ import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.CassandraDb;
+
 public class WatchFolderDB {
 	
 	static final ColumnFamily<String, String> CF_WATCHFOLDERS = new ColumnFamily<String, String>("WatchFolders", StringSerializer.get(), StringSerializer.get());
@@ -41,9 +41,11 @@ public class WatchFolderDB {
 	
 	static {
 		try {
+			Loggers.WatchFolder.debug("Check Cassandra configuration");
 			keyspace = CassandraDb.getkeyspace();
 			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
 			if (CassandraDb.isColumnFamilyExists(keyspace, CF_WATCHFOLDERS.getName()) == false) {
+				Loggers.WatchFolder.info("Create Cassandra CF " + CF_WATCHFOLDERS.getName());
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_WATCHFOLDERS.getName(), false);
 				// String queue_name = CF_WATCHFOLDERS.getName();
 				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "status", queue_name + "_status", DeployColumnDef.ColType_AsciiType);
@@ -54,7 +56,7 @@ public class WatchFolderDB {
 				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "indexingdebug", queue_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't init database CFs", e);
+			Loggers.WatchFolder.error("Can't init database CF", e);
 		}
 	}
 	
@@ -84,6 +86,9 @@ public class WatchFolderDB {
 		}
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		for (int pos = 0; pos < files.size(); pos++) {
+			if (Loggers.WatchFolder.isTraceEnabled()) {
+				Loggers.WatchFolder.trace("Save FoundedFile in DB " + files.get(pos).storage_name + ":" + files.get(pos).path);
+			}
 			files.get(pos).saveToCassandra(mutator);
 		}
 		mutator.execute();
@@ -96,6 +101,11 @@ public class WatchFolderDB {
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		a_file.saveToCassandra(mutator);
+		
+		if (Loggers.WatchFolder.isDebugEnabled()) {
+			Loggers.WatchFolder.debug("Switch FoundedFile status: " + path_index_key + " is now " + new_status);
+			Loggers.WatchFolder.debug(" for this file: " + a_file.storage_name + ":" + a_file.path);
+		}
 		mutator.execute();
 	}
 	

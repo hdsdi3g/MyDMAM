@@ -39,6 +39,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
@@ -119,6 +120,16 @@ class WatchFolderEntry implements Runnable {
 				keep_input_dir_to_dest = (Boolean) conf.get("keep_input_dir_to_dest");
 			}
 			
+			if (Loggers.WatchFolder.isDebugEnabled()) {
+				LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+				log.put("storage", storage);
+				log.put("profile", profile);
+				log.put("dest_file_prefix", dest_file_prefix);
+				log.put("dest_file_suffix", dest_file_suffix);
+				log.put("keep_input_dir_to_dest", keep_input_dir_to_dest);
+				Loggers.WatchFolder.debug("Init watchfolder target: " + log.toString());
+			}
+			
 			return this;
 		}
 		
@@ -138,6 +149,11 @@ class WatchFolderEntry implements Runnable {
 			if (keep_input_dir_to_dest) {
 				job_transcode.dest_sub_directory = source_sub_directory;
 			}
+			
+			if (Loggers.WatchFolder.isDebugEnabled()) {
+				Loggers.WatchFolder.info("Prepare Transcode Job: " + job_transcode.contextToJson().toString());
+			}
+			
 			return AppManager.createJob(job_transcode).setCreator(getClass()).setName("Transcode from watchfolder " + simple_file_name).publish(mutator);
 		}
 	}
@@ -184,6 +200,24 @@ class WatchFolderEntry implements Runnable {
 		CopyMove.checkExistsCanRead(temp_directory);
 		CopyMove.checkIsDirectory(temp_directory);
 		CopyMove.checkIsWritable(temp_directory);
+		
+		if (Loggers.WatchFolder.isInfoEnabled()) {
+			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+			log.put("name", name);
+			log.put("source_storage", source_storage);
+			log.put("targets", targets.size());
+			log.put("time_to_wait_growing_file", time_to_wait_growing_file);
+			log.put("time_to_sleep_between_scans", time_to_sleep_between_scans);
+			log.put("min_file_size", min_file_size);
+			log.put("must_contain", must_contain);
+			log.put("temp_directory", temp_directory);
+			Loggers.WatchFolder.info("Load watchfolder entry " + log);
+		}
+		
+	}
+	
+	public String getName() {
+		return name;
 	}
 	
 	synchronized void stopWatchfolderScans() {
@@ -202,6 +236,7 @@ class WatchFolderEntry implements Runnable {
 			if (file.length() < min_file_size) {
 				return true;
 			}
+			Loggers.WatchFolder.debug("Found file: " + storagename + ":" + file.getPath());
 			founded.add(new AbstractFoundedFile(file, storagename));
 			return true;
 		}
@@ -234,11 +269,13 @@ class WatchFolderEntry implements Runnable {
 		}
 		
 		public boolean onStartSearch(AbstractFile search_root_path) {
+			Loggers.WatchFolder.debug("Start search for " + name + " in " + search_root_path.getPath());
 			founded.clear();
 			return true;
 		}
 		
 		public void onEndSearch() {
+			Loggers.WatchFolder.debug("End search for " + name);
 		}
 		
 		public String getCurrentWorkingDir() {
@@ -273,12 +310,15 @@ class WatchFolderEntry implements Runnable {
 				}
 				try {
 					
+					Loggers.WatchFolder.trace("Start scan for " + name);
+					
 					/**
 					 * Scan
 					 * Regular push dirlist to Cassandra presence status CF, for all instances
 					 */
 					Storage.getByName(source_storage).dirList(crawler);
 					if (crawler.founded.isEmpty()) {
+						Loggers.WatchFolder.trace("No items founded in " + name);
 						continue;
 					}
 					
@@ -293,15 +333,19 @@ class WatchFolderEntry implements Runnable {
 					
 					for (int pos = 0; pos < crawler.founded.size(); pos++) {
 						founded_file = crawler.founded.get(pos);
+						Loggers.WatchFolder.trace("Founded file in " + name + ": " + founded_file.path);
+						
 						if (present_in_db.contains(founded_file)) {
 							/**
 							 * File to check
 							 */
+							Loggers.WatchFolder.trace("Founded file is active in " + name + ": " + founded_file.path);
 							active_files.add(founded_file);
 						} else {
 							/**
 							 * New file to add
 							 */
+							Loggers.WatchFolder.trace("New founded file in " + name + ": " + founded_file.path);
 							new_files_to_add.add(founded_file);
 						}
 					}
@@ -310,11 +354,12 @@ class WatchFolderEntry implements Runnable {
 						WatchFolderDB.push(new_files_to_add);
 						bulk = Elasticsearch.prepareBulk();
 						try {
+							Loggers.WatchFolder.trace("Refresh ES index in " + name + " for storage " + source_storage);
 							explorer.refreshStoragePath(bulk, Arrays.asList(SourcePathIndexerElement.prepareStorageElement(source_storage)), false);
 							bulk.terminateBulk();
 						} catch (Exception e) {
 							if (e instanceof ElasticsearchException) {
-								Log2.log.error("Trouble during Elasticsearch updating", e);
+								Loggers.WatchFolder.error("Trouble during Elasticsearch updating", e);
 							} else {
 								throw e;
 							}
@@ -322,12 +367,15 @@ class WatchFolderEntry implements Runnable {
 					}
 					
 					if (active_files.isEmpty()) {
+						Loggers.WatchFolder.trace("No active files for " + name);
 						continue;
 					}
 					
 					/**
 					 * Check actived files => if file is still static => feed validated files list
 					 */
+					Loggers.WatchFolder.trace("Check actived files for " + name);
+					
 					validated_files.clear();
 					
 					for (int pos = active_files.size() - 1; pos > -1; pos--) {
@@ -338,6 +386,7 @@ class WatchFolderEntry implements Runnable {
 							/**
 							 * Ignore error files
 							 */
+							Loggers.WatchFolder.trace("Ignore file for " + name + ": " + db_entry_file);
 							active_files.remove(pos);
 							continue;
 						}
@@ -345,6 +394,7 @@ class WatchFolderEntry implements Runnable {
 							/**
 							 * Ignore validated files, but refresh db entries.
 							 */
+							Loggers.WatchFolder.trace("Ignore validated files, but refresh db entries for " + name + ": " + db_entry_file);
 							continue;
 						}
 						if (db_entry_file.status != Status.PROCESSED) {
@@ -359,7 +409,7 @@ class WatchFolderEntry implements Runnable {
 							/**
 							 * The found file has shrink !
 							 */
-							Log2.log.info("Watch folder \"" + name + "\" has found a shrinked file", active_file);
+							Loggers.WatchFolder.info("Found a shrinked file in " + name + ": " + active_file);
 							continue;
 						}
 						
@@ -369,7 +419,7 @@ class WatchFolderEntry implements Runnable {
 							 * The found file is going back to the past !
 							 * With 10 seconds of margin.
 							 */
-							Log2.log.info("Watch folder \"" + name + "\" has found a file who is going back to the past", active_file);
+							Loggers.WatchFolder.info("Found file is going back to the past in " + name + ": " + active_file);
 							continue;
 						}
 						
@@ -377,13 +427,15 @@ class WatchFolderEntry implements Runnable {
 							/**
 							 * The found file has been updated.
 							 */
+							Loggers.WatchFolder.trace("Found file has been updated in " + name + ": " + active_file);
 							continue;
 						}
 						
 						if (db_entry_file.last_checked + time_to_wait_growing_file < System.currentTimeMillis()) {
+							Loggers.WatchFolder.trace("Set found file to validated files in " + name + ": " + db_entry_file);
 							validated_files.add(db_entry_file);
 						} else {
-							Log2.log.debug("This file has stopped to grow, wait the time to validate", db_entry_file);
+							Loggers.WatchFolder.trace("This file has stopped to grow, wait the time to validate in " + name + ": " + db_entry_file);
 						}
 						active_file.last_checked = db_entry_file.last_checked;
 					}
@@ -391,15 +443,18 @@ class WatchFolderEntry implements Runnable {
 					WatchFolderDB.push(active_files);
 					
 					/**
-					 * For all validate files,
+					 * For all validated files,
 					 * Lock it in Cassandra, and process it.
 					 */
+					Loggers.WatchFolder.debug("For all validated files (" + validated_files.size() + "), lock it in Cassandra, and process it, in " + name);
 					
 					for (int pos = 0; pos < validated_files.size(); pos++) {
 						validated_file = validated_files.get(pos);
 						lock = null;
 						try {
 							try {
+								Loggers.WatchFolder.trace("Set CF Lock by " + name + " for " + validated_file);
+								
 								lock = WatchFolderDB.prepareLock(validated_file.getPathIndexKey());
 								lock.withConsistencyLevel(ConsistencyLevel.CL_ALL);
 								lock.expireLockAfter(500, TimeUnit.MILLISECONDS);
@@ -408,16 +463,18 @@ class WatchFolderEntry implements Runnable {
 								
 								performFoundAndValidatedFile(validated_file);
 								
+								Loggers.WatchFolder.trace("Release CF Lock by " + name + " for " + validated_file);
 								lock.release();
 							} catch (StaleLockException e) {
 								/**
 								 * The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
 								 */
-								Log2.log.error("Can't lock key: abandoned lock", e, validated_file);
+								Loggers.WatchFolder.warn("Can't lock key: abandoned lock in " + name + " for " + validated_file, e);
 							} catch (BusyLockException e) {
-								Log2.log.debug("Can't lock key, it's currently locked.", validated_file);
+								Loggers.WatchFolder.debug("Can't lock key, it's currently locked in " + name + " for " + validated_file, e);
 							} finally {
 								if (lock != null) {
+									Loggers.WatchFolder.trace("Lock release " + name + " for " + validated_file);
 									lock.release();
 								}
 							}
@@ -425,7 +482,7 @@ class WatchFolderEntry implements Runnable {
 							if (e instanceof ConnectionException) {
 								throw (ConnectionException) e;
 							} else {
-								Log2.log.error("Unknow exception with Cassandra, may be a fatal problem", e);
+								Loggers.WatchFolder.error("Unknow exception with Cassandra, may be a fatal problem " + name, e);
 								AdminMailAlert.create("Unknow exception with Cassandra, may be a fatal problem with it", true).addDump(validated_file).setThrowable(e).setManager(manager).send();
 								return;
 							}
@@ -433,11 +490,11 @@ class WatchFolderEntry implements Runnable {
 					}
 					
 				} catch (ConnectionException e) {
-					Log2.log.error("Can't access to Cassandra", e);
+					Loggers.WatchFolder.error("Can't access to Cassandra " + name, e);
 				}
 			}
 		} catch (Exception e) {
-			Log2.log.error("Fatal exception", e, new Log2Dump("name", name));
+			Loggers.WatchFolder.error("Fatal exception " + name, e);
 			AdminMailAlert.create("Fatal and not managed exception for WatchFolder", true).addDump(new Log2Dump("watch folder name", name)).setManager(manager).setThrowable(e).send();
 		}
 	}
@@ -450,18 +507,20 @@ class WatchFolderEntry implements Runnable {
 		if (pi_item != null) {
 			if ((pi_item.date != validated_file.date) | (pi_item.size != validated_file.size)) {
 				try {
+					Loggers.WatchFolder.trace("Refresh ES pathindex for this file in " + name + " for " + validated_file);
+					
 					ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 					bulk.getConfiguration().setRefresh(true);
 					explorer.refreshCurrentStoragePath(bulk, Arrays.asList(pi_item), true);
 					bulk.terminateBulk();
 					pi_item = explorer.getelementByIdkey(validated_file.getPathIndexKey());
 				} catch (Exception e) {
-					Log2.log.error("Can't update ES index", e, validated_file);
+					Loggers.WatchFolder.error("Can't update ES index " + name + " for " + validated_file, e);
 					return;
 				}
 			}
 		} else {
-			Log2.log.error("Can't found current item in ES", null, validated_file);
+			Loggers.WatchFolder.error("Can't found current item in ES " + name + " for " + validated_file);
 			return;
 		}
 		
@@ -479,6 +538,7 @@ class WatchFolderEntry implements Runnable {
 			try {
 				physical_source = Storage.getDistantFile(pi_item, temp_directory);
 			} catch (IOException e) {
+				// XXX log... et continuer
 				Log2.log.error("Can't download found file to temp directory", e, validated_file);
 				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).addDump(validated_file).setThrowable(e).send();
 				validated_file.status = Status.ERROR;

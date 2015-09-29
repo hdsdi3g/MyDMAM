@@ -16,6 +16,11 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobContext;
@@ -27,10 +32,6 @@ import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 
 class DeleteSourceFileWorker extends WorkerNG {
 	
@@ -68,6 +69,9 @@ class DeleteSourceFileWorker extends WorkerNG {
 		 */
 		AbstractFile root = Storage.getByName(order.storage).getRootPath();
 		boolean delete_ok = root.getAbstractFile(order.path).delete();
+		
+		Loggers.WatchFolder.info("Delete source file: " + order.storage + ":" + order.path);
+		
 		root.close();
 		if (delete_ok == false) {
 			throw new IOException("Can't delete file \"" + order.storage + ":" + order.path + "\"");
@@ -77,6 +81,8 @@ class DeleteSourceFileWorker extends WorkerNG {
 		 * Delete the pathindex entry for this file.
 		 * (don't delete mtd, the robot will doing this regularly, via @see ContainerOperations.purge_orphan_metadatas();
 		 */
+		Loggers.WatchFolder.debug("Delete pathindex entry for file: " + spie.storagename + ":" + spie.currentpath);
+		
 		Explorer explorer = new Explorer();
 		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 		explorer.deleteStoragePath(bulk, Arrays.asList(spie));

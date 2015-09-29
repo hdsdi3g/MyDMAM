@@ -27,6 +27,8 @@ import org.apache.log4j.Logger;
 public final class Loggers {
 	
 	public final static Logger LogTest = Logger.getLogger("mydmam.LogTest");
+	public final static Logger WatchFolder = Logger.getLogger("mydmam.WatchFolder");
+	public final static Logger Transcoder = Logger.getLogger("mydmam.Transcoder");
 	
 	public static Map<String, Level> getAllLevels() {
 		HashMap<String, Level> result = new HashMap<String, Level>();

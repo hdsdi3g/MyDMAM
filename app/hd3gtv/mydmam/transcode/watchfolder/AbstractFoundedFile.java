@@ -16,17 +16,19 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.storage.AbstractFile;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
+
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.AbstractFile;
 
 public class AbstractFoundedFile implements AbstractFile {
 	
@@ -70,13 +72,20 @@ public class AbstractFoundedFile implements AbstractFile {
 	
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
-		dump.add("storage_name", storage_name);
-		dump.add("path", path);
-		dump.addDate("date", date);
-		dump.add("size", size);
-		dump.add("status", status);
-		dump.addDate("last_checked", last_checked);
+		dump.add("empty", "empty");
 		return dump;
+	}
+	
+	public String toString() {
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		log.put("storage_name", storage_name);
+		log.put("path", path);
+		log.put("date", Log2Event.dateLog(date));
+		log.put("size", size);
+		log.put("status", status);
+		log.put("last_checked", Log2Event.dateLog(last_checked));
+		log.put("getPathIndexKey", getPathIndexKey());
+		return log.toString();
 	}
 	
 	private transient String path_index_key;
