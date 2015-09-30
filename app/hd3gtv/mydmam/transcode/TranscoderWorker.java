@@ -26,8 +26,6 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
@@ -183,7 +181,7 @@ public class TranscoderWorker extends WorkerNG {
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		JobContextTranscoder transcode_context = (JobContextTranscoder) context;
 		
-		// TODO add log messages...
+		Loggers.Transcoder.debug("Recover source file from local or distant storage " + transcode_context.contextToJson().toString());
 		
 		/**
 		 * Recover source file from local or distant storage.
@@ -197,6 +195,7 @@ public class TranscoderWorker extends WorkerNG {
 			return;
 		}
 		
+		Loggers.Transcoder.debug("Get physical_source from storage " + transcode_context.contextToJson().toString());
 		File physical_source = Storage.getLocalFile(pi_item);
 		boolean download_temp = false;
 		if (physical_source == null) {
@@ -207,7 +206,7 @@ public class TranscoderWorker extends WorkerNG {
 				throw new IOException("Can't download found file to temp directory", e);
 			}
 		}
-		
+		// XXX
 		if (stop_process) {
 			return;
 		}
@@ -256,11 +255,11 @@ public class TranscoderWorker extends WorkerNG {
 			
 			progression.update("Transcode source file with " + transcode_profile.getName() + " (" + transcode_profile.getExecutable().getName() + ")");
 			
-			Log2Dump dump = new Log2Dump();
-			dump.add("physical_source", physical_source);
-			dump.add("profile", transcode_profile.getName());
-			dump.add("temp_output_file", temp_output_file);
-			Log2.log.info("Transcode file", dump);
+			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+			log.put("physical_source", physical_source);
+			log.put("profile", transcode_profile.getName());
+			log.put("temp_output_file", temp_output_file);
+			Loggers.Transcoder.info("Transcode file " + log.toString());
 			
 			process.run();
 			
@@ -290,12 +289,13 @@ public class TranscoderWorker extends WorkerNG {
 				progression.update("Faststart transcoded file");
 				File fast_started_file = new File(temp_output_file.getAbsolutePath() + "-faststart" + transcode_profile.getExtension(""));
 				
-				dump = new Log2Dump();
-				dump.add("temp_output_file", temp_output_file);
-				dump.add("fast_started_file", fast_started_file);
-				Log2.log.info("Faststart file", dump);
+				log = new LinkedHashMap<String, Object>();
+				log.put("temp_output_file", temp_output_file);
+				log.put("fast_started_file", fast_started_file);
+				Loggers.Transcoder.info("Faststart file " + log);
 				
 				Publish.faststartFile(temp_output_file, fast_started_file);
+				Loggers.Transcoder.debug("Delete temp_output_file " + temp_output_file);
 				FileUtils.forceDelete(temp_output_file);
 				temp_output_file = fast_started_file;
 			}
@@ -330,10 +330,10 @@ public class TranscoderWorker extends WorkerNG {
 				full_file.append(transcode_profile.getExtension(""));
 				
 				File dest_file = new File(full_file.toString());
-				dump = new Log2Dump();
-				dump.add("temp_output_file", temp_output_file);
-				dump.add("dest_file", dest_file);
-				Log2.log.debug("Move transcoded file to destination", dump);
+				log = new LinkedHashMap<String, Object>();
+				log.put("temp_output_file", temp_output_file);
+				log.put("dest_file", dest_file);
+				Loggers.Transcoder.debug("Move transcoded file to destination " + log);
 				
 				FileUtils.moveFile(temp_output_file, dest_file);
 			} else {
@@ -357,15 +357,17 @@ public class TranscoderWorker extends WorkerNG {
 				
 				AbstractFile distant_file = root_path.getAbstractFile(full_dest_dir.toString());
 				
-				dump = new Log2Dump();
-				dump.add("temp_output_file", temp_output_file);
-				dump.add("storage_dest", transcode_context.dest_storage_name);
-				dump.add("full_dest_dir", full_dest_dir.toString());
-				Log2.log.debug("Move transcoded file to destination", dump);
+				log = new LinkedHashMap<String, Object>();
+				log.put("temp_output_file", temp_output_file);
+				log.put("storage_dest", transcode_context.dest_storage_name);
+				log.put("full_dest_dir", full_dest_dir.toString());
+				Loggers.Transcoder.debug("Move transcoded file to destination " + log);
 				
 				FileUtils.copyFile(temp_output_file, distant_file.getOutputStream(0xFFFF));
 				
 				root_path.close();
+				
+				Loggers.Transcoder.debug("Delete temp_output_file" + temp_output_file);
 				FileUtils.forceDelete(temp_output_file);
 			}
 		}
@@ -376,6 +378,7 @@ public class TranscoderWorker extends WorkerNG {
 		
 		if (download_temp) {
 			try {
+				Loggers.Transcoder.debug("Delete physical_source" + physical_source);
 				FileUtils.forceDelete(physical_source);
 			} catch (Exception e) {
 				throw new IOException("Can't delete temp file", e);
