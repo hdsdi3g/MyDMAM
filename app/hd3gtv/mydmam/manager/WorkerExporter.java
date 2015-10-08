@@ -16,14 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.manager.WorkerNG.WorkerCategory;
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +38,14 @@ import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.manager.WorkerNG.WorkerCategory;
+import hd3gtv.tools.GsonIgnore;
+
 public final class WorkerExporter implements Log2Dumpable {
 	
 	/**
@@ -54,6 +54,7 @@ public final class WorkerExporter implements Log2Dumpable {
 	private static final ColumnFamily<String, String> CF_WORKERS = new ColumnFamily<String, String>("mgrWorkers", StringSerializer.get(), StringSerializer.get());
 	
 	private static Keyspace keyspace;
+	
 	static {
 		try {
 			keyspace = CassandraDb.getkeyspace();
@@ -98,7 +99,7 @@ public final class WorkerExporter implements Log2Dumpable {
 		} catch (ConnectionException e) {
 			manager.getServiceException().onCassandraError(e);
 		}
-		Log2.log.debug("Update worker status", new Log2Dump("took", System.currentTimeMillis() - start_time));
+		Log2.log.debug("Update worker status", new Log2Dump("took", System.currentTimeMillis() - start_time));// XXX est tres souvent appele !
 	}
 	
 	public static List<WorkerExporter> getAllWorkerStatus() throws Exception {

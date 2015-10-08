@@ -76,6 +76,7 @@ class BrokerNG {
 		if (isAlive()) {
 			return;
 		}
+		// TODO log
 		queue_operations = new QueueOperations();
 		queue_operations.start();
 		queue_new_jobs = new QueueNewJobs();
@@ -83,6 +84,7 @@ class BrokerNG {
 	}
 	
 	synchronized void askStop() {
+		// TODO log
 		if (queue_operations != null) {
 			queue_operations.stop_queue = true;
 		}

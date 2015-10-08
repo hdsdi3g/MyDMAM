@@ -16,13 +16,13 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-
 import java.util.concurrent.TimeUnit;
 
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.log2.Log2;
 
 public final class CyclicJobCreator extends JobCreator {
 	
@@ -105,4 +105,5 @@ public final class CyclicJobCreator extends JobCreator {
 			Log2.log.info("Change next date", this);
 		}
 	}
+	
 }

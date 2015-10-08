@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.log4j.Level;
+
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -35,6 +37,7 @@ import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Filter;
 import hd3gtv.log2.Log2FilterType;
 import hd3gtv.log2.Log2Level;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
@@ -159,7 +162,7 @@ public final class AppManager implements InstanceActionReceiver {
 			if (instance_class_name.containsKey(class_name)) {
 				instance_class_name.remove(class_name);
 			}
-			Log2.log.error("Can't load class", e, new Log2Dump("class_name", class_name));
+			Loggers.Manager.error("Can't load class: " + class_name, e);
 		}
 		return null;
 	}
@@ -207,6 +210,8 @@ public final class AppManager implements InstanceActionReceiver {
 		}
 		worker.setManager(this);
 		enabled_workers.add(worker);
+		
+		Loggers.Manager.debug("Register worker: " + worker.toString());
 	}
 	
 	public void cyclicJobsRegister(CyclicJobCreator cyclic_creator) {
@@ -214,6 +219,7 @@ public final class AppManager implements InstanceActionReceiver {
 			throw new NullPointerException("\"cyclic_creator\" can't to be null");
 		}
 		broker.getDeclared_cyclics().add(cyclic_creator);
+		Loggers.Manager.debug("Register cyclic job creator: " + cyclic_creator.toString());
 	}
 	
 	public void triggerJobsRegister(TriggerJobCreator trigger_creator) {
@@ -221,6 +227,7 @@ public final class AppManager implements InstanceActionReceiver {
 			throw new NullPointerException("\"trigger_creator\" can't to be null");
 		}
 		broker.getDeclared_triggers().add(trigger_creator);
+		Loggers.Manager.debug("Register trigger job creator: " + trigger_creator.toString());
 	}
 	
 	class ServiceException {
@@ -231,27 +238,42 @@ public final class AppManager implements InstanceActionReceiver {
 		}
 		
 		public void onError(Exception e, String error_name, WorkerNG worker) {
+			Loggers.Manager.debug("Service exception error (" + error_name + "), a mail will be send. Worker: " + worker, e);
+			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager).setThrowable(e);
 			alert.addDump(worker.getExporter()).send();
 		}
 		
 		private void onAppManagerError(Exception e, String error_name) {
+			Loggers.Manager.debug("App manager error (" + error_name + "), a mail will be send", e);
+			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, true).setManager(manager).setThrowable(e);
 			alert.addDump(instance_status).send();
 		}
 		
 		void onQueueServiceError(Exception e, String error_name, String service_name) {
+			Loggers.Manager.debug("Queue service error (" + error_name + ") for service \"" + service_name + "\"; a mail will be send", e);
+			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager).setThrowable(e);
 			alert.addToMessagecontent("Service name: " + service_name);
 			alert.addDump(instance_status).send();
 		}
 		
 		void onCassandraError(Exception e) {
+			Loggers.Manager.debug("Cassandra error", e);
+			
 			AdminMailAlert alert = AdminMailAlert.create("Cassandra error", false).setManager(manager).setThrowable(e);
 			alert.addDump(instance_status).send();
 		}
 		
 		void onQueueJobProblem(String error_name, List<JobNG> jobs) {
+			if (Loggers.Manager.isDebugEnabled()) {
+				Loggers.Manager.debug("Queue job problem (" + error_name + ") a mail will be send");
+				for (int pos = 0; pos < jobs.size(); pos++) {
+					Loggers.Manager.trace("Job in queue:\t" + jobs.get(pos).toString());
+				}
+			}
+			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager);
 			for (int pos = 0; pos < jobs.size(); pos++) {
 				alert.addDump(jobs.get(pos));
@@ -260,6 +282,8 @@ public final class AppManager implements InstanceActionReceiver {
 		}
 		
 		void onMaxExecJobTime(JobNG job) {
+			Loggers.Manager.debug("Max exec time for job: " + job);
+			
 			AdminMailAlert alert = AdminMailAlert.create("A job has an execution time too long", false).setManager(manager);
 			alert.addDump(job);
 			alert.addDump(instance_status).send();
@@ -271,16 +295,20 @@ public final class AppManager implements InstanceActionReceiver {
 	}
 	
 	public void startAll() {
+		Loggers.Manager.debug("Start " + enabled_workers.size() + " worker(s)");
+		
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			enabled_workers.get(pos).getLifecyle().enable();
 		}
 		if (broker == null) {
 			broker = new BrokerNG(this);
 		}
+		Loggers.Manager.debug("Start broker");
 		broker.start();
 		if (updater == null) {
 			updater = new Updater(this);
 		}
+		Loggers.Manager.debug("Start updater");
 		updater.start();
 	}
 	
@@ -294,6 +322,7 @@ public final class AppManager implements InstanceActionReceiver {
 		if (updater == null) {
 			updater = new Updater(this);
 		}
+		Loggers.Manager.debug("Start just updater");
 		updater.start();
 	}
 	
@@ -302,23 +331,28 @@ public final class AppManager implements InstanceActionReceiver {
 	 */
 	public void stopAll() {
 		if (updater != null) {
+			Loggers.Manager.debug("Stop updater");
 			updater.stopUpdate();
 		}
 		if (broker != null) {
+			Loggers.Manager.debug("Stop broker");
 			broker.askStop();
 		}
 		
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
+			Loggers.Manager.debug("Stop worker " + enabled_workers.get(pos));
 			enabled_workers.get(pos).getLifecyle().askToStopAndRefuseNewJobs();
 		}
 		try {
 			for (int pos = 0; pos < enabled_workers.size(); pos++) {
+				Loggers.Manager.trace("Wait worker to stop... " + enabled_workers.get(pos));
 				while (enabled_workers.get(pos).getLifecyle().getState() == WorkerState.PENDING_STOP) {
 					Thread.sleep(10);
 				}
 			}
 			
 			if (updater != null) {
+				Loggers.Manager.debug("Wait updater to stop...");
 				while (updater.isAlive()) {
 					Thread.sleep(10);
 				}
@@ -326,6 +360,7 @@ public final class AppManager implements InstanceActionReceiver {
 			updater = null;
 			
 			if (broker != null) {
+				Loggers.Manager.debug("Wait broker to stop...");
 				while (broker.isAlive()) {
 					Thread.sleep(10);
 				}
@@ -339,13 +374,16 @@ public final class AppManager implements InstanceActionReceiver {
 	boolean isWorkingToShowUIStatus() {
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			if (enabled_workers.get(pos).getLifecyle().getState() == WorkerState.PROCESSING) {
+				Loggers.Manager.trace("isWorkingToShowUIStatus ? true");
 				return true;
 			}
 			if (enabled_workers.get(pos).getLifecyle().getState() == WorkerState.PENDING_STOP) {
+				Loggers.Manager.trace("isWorkingToShowUIStatus ? true");
 				return true;
 			}
 		}
 		
+		Loggers.Manager.trace("isWorkingToShowUIStatus ? false");
 		return false;
 	}
 	
@@ -374,7 +412,7 @@ public final class AppManager implements InstanceActionReceiver {
 		try {
 			return new JobNG(context);
 		} catch (ClassNotFoundException e) {
-			Log2.log.error("The context origin class is invalid, don't forget it will be (de)serialized.", e);
+			Loggers.Manager.error("The context origin class (" + context.getClass() + ") is invalid, don't forget it will be (de)serialized.", e);
 			return null;
 		}
 	}
@@ -420,7 +458,9 @@ public final class AppManager implements InstanceActionReceiver {
 						
 						InstanceAction.getAllPendingInstancesAction(pending_actions);
 						if (pending_actions.isEmpty() == false) {
+							Loggers.Manager.debug("Get some pending actions (" + pending_actions.size() + ")");
 							boolean pending_refresh = processInstanceAction(pending_actions);
+							
 							if (pending_refresh & (stop_update == false)) {
 								next_refresh_date = System.currentTimeMillis() + ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000) + 1000;
 								Thread.sleep(1000);
@@ -461,7 +501,7 @@ public final class AppManager implements InstanceActionReceiver {
 				
 				if (target_class_name.equals(AppManager.class.getSimpleName())) {
 					if (ref_key.equals(instance_status.getInstanceNamePid())) {
-						Log2.log.info("Do an instance action on manager", current_instance_action);
+						Loggers.Manager.info("Do an instance action on manager: " + current_instance_action);
 						doAnAction(current_instance_action.getOrder());
 						current_instance_action.delete(mutator);
 						is_action = true;
@@ -470,7 +510,7 @@ public final class AppManager implements InstanceActionReceiver {
 				} else if (target_class_name.equals(WorkerNG.class.getSimpleName())) {
 					for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
 						if (ref_key.equals(enabled_workers.get(pos_wr).getReferenceKey())) {
-							Log2.log.info("Do an instance action on worker", current_instance_action);
+							Loggers.Manager.info("Do an instance action on worker: " + current_instance_action);
 							enabled_workers.get(pos_wr).doAnAction(order);
 							current_instance_action.delete(mutator);
 							is_action = true;
@@ -480,7 +520,7 @@ public final class AppManager implements InstanceActionReceiver {
 				} else if (target_class_name.equals(CyclicJobCreator.class.getSimpleName())) {
 					for (int pos_dc = 0; pos_dc < declared_cyclics.size(); pos_dc++) {
 						if (ref_key.equals(declared_cyclics.get(pos_dc).getReference_key())) {
-							Log2.log.info("Do an instance action on cyclic", current_instance_action);
+							Loggers.Manager.info("Do an instance action on cyclic: " + current_instance_action);
 							declared_cyclics.get(pos_dc).doAnAction(order);
 							current_instance_action.delete(mutator);
 							is_action = true;
@@ -490,7 +530,7 @@ public final class AppManager implements InstanceActionReceiver {
 				} else if (target_class_name.equals(TriggerJobCreator.class.getSimpleName())) {
 					for (int pos_dt = 0; pos_dt < declared_triggers.size(); pos_dt++) {
 						if (ref_key.equals(declared_triggers.get(pos_dt).getReference_key())) {
-							Log2.log.info("Do an instance action on trigger", current_instance_action);
+							Loggers.Manager.info("Do an instance action on trigger: " + current_instance_action);
 							declared_triggers.get(pos_dt).doAnAction(order);
 							current_instance_action.delete(mutator);
 							is_action = true;
@@ -498,7 +538,7 @@ public final class AppManager implements InstanceActionReceiver {
 						}
 					}
 				} else {
-					Log2.log.error("An instance action is not plugged to a known class", new ClassNotFoundException(target_class_name), current_instance_action);
+					Loggers.Manager.error("An instance action (" + current_instance_action + ") is not plugged to a known class (" + target_class_name + ")");
 				}
 			}
 			
@@ -510,6 +550,10 @@ public final class AppManager implements InstanceActionReceiver {
 	}
 	
 	public void doAnAction(JsonObject order) {
+		if (Loggers.Manager.isDebugEnabled()) {
+			Loggers.Manager.debug("Receive new action : " + order.toString());
+		}
+		
 		if (order.has("broker")) {
 			if (order.get("broker").getAsString().equals("start")) {
 				broker.start();
@@ -539,11 +583,18 @@ public final class AppManager implements InstanceActionReceiver {
 			}
 			Log2.log.info("Change log2 filters", new Log2Dump("raw", order.toString()));
 		}
+		if (order.has("loggersfilters")) {
+			JsonArray ja_loggersfilters = order.get("loggersfilters").getAsJsonArray();
+			for (int pos_ja = 0; pos_ja < ja_loggersfilters.size(); pos_ja++) {
+				JsonObject jo_filter = ja_loggersfilters.get(pos_ja).getAsJsonObject();
+				String logger_name = jo_filter.get("logger_name").getAsString().trim();
+				String new_level = jo_filter.get("new_level").getAsString().trim();
+				Loggers.changeLevel(logger_name, Level.toLevel(new_level, Level.OFF));
+			}
+			Loggers.displayCurrentConfiguration();
+		}
 	}
 	
-	/**
-	 * Configure this with
-	 */
 	static boolean isActuallyOffHours() {
 		if (Configuration.global.isElementKeyExists("service", "fullhours") == false) {
 			return false;

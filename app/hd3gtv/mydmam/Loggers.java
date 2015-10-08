@@ -26,9 +26,10 @@ import org.apache.log4j.Logger;
 
 public final class Loggers {
 	
-	public final static Logger LogTest = Logger.getLogger("mydmam.LogTest");
 	public final static Logger WatchFolder = Logger.getLogger("mydmam.WatchFolder");
 	public final static Logger Transcoder = Logger.getLogger("mydmam.Transcoder");
+	public final static Logger Manager = Logger.getLogger("mydmam.Manager");
+	public final static Logger Loggers = Logger.getLogger("mydmam.Loggers");
 	
 	public static Map<String, Level> getAllLevels() {
 		HashMap<String, Level> result = new HashMap<String, Level>();
@@ -49,19 +50,21 @@ public final class Loggers {
 	 * For all declared Loggers, even outside this code.
 	 */
 	public static void changeLevel(String logger_name, Level new_level) {
+		Loggers.info("Change level for " + logger_name + ": " + new_level);
 		Logger l = Logger.getLogger(logger_name);
 		l.setLevel(new_level);
 	}
 	
 	public static void changeRootLevel(Level new_level) {
+		Loggers.info("Change root level: " + new_level);
 		Logger.getRootLogger().setLevel(new_level);
 	}
 	
 	public static void displayCurrentConfiguration() {
-		if (LogTest.isDebugEnabled()) {
-			LogTest.debug("Show log level configuration:");
+		if (Loggers.isDebugEnabled()) {
+			Loggers.debug("Show log level configuration:");
 			
-			LogTest.debug("root: " + LogManager.getRootLogger().getEffectiveLevel());
+			Loggers.debug("root: " + LogManager.getRootLogger().getEffectiveLevel());
 			
 			@SuppressWarnings("unchecked")
 			Enumeration<Logger> all_loggers = LogManager.getCurrentLoggers();
@@ -69,7 +72,7 @@ public final class Loggers {
 			Logger item;
 			while (all_loggers.hasMoreElements()) {
 				item = all_loggers.nextElement();
-				LogTest.debug(item.getName() + ": " + item.getEffectiveLevel());
+				Loggers.debug(item.getName() + ": " + item.getEffectiveLevel());
 			}
 			
 		}

@@ -64,6 +64,12 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 	public WorkerNG() {
 	}
 	
+	@Override
+	public String toString() {
+		// TODO Auto-generated method stub
+		return super.toString();
+	}
+	
 	void setManager(AppManager manager) {
 		this.manager = manager;
 		reference_key = "worker:" + UUID.randomUUID().toString();

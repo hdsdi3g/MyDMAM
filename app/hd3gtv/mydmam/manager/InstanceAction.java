@@ -16,14 +16,8 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,6 +34,14 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
+
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.tools.GsonIgnore;
 
 public final class InstanceAction implements Log2Dumpable {
 	
@@ -144,6 +146,17 @@ public final class InstanceAction implements Log2Dumpable {
 			result.add("order", src.order);
 			return result;
 		}
+	}
+	
+	public String toString() {
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		log.put("key", key);
+		log.put("target_class_name", target_class_name);
+		log.put("target_reference_key", target_reference_key);
+		log.put("order", order);
+		log.put("created_at", Log2Event.dateLog(created_at));
+		log.put("caller", caller);
+		return log.toString();
 	}
 	
 	public Log2Dump getLog2Dump() {

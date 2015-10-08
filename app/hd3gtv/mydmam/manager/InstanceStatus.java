@@ -16,21 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.configuration.GitInfo;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.log2.Log2Filter;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.useraction.UAFunctionalityContext;
-import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
-import hd3gtv.mydmam.useraction.UAManager;
-import hd3gtv.mydmam.useraction.UAWorker;
-import hd3gtv.tools.GsonIgnore;
-import hd3gtv.tools.TimeUtils;
-
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Type;
@@ -44,8 +29,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import play.Play;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
@@ -65,11 +48,29 @@ import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.AllRowsQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.GitInfo;
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.log2.Log2Filter;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.useraction.UAFunctionalityContext;
+import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
+import hd3gtv.mydmam.useraction.UAManager;
+import hd3gtv.mydmam.useraction.UAWorker;
+import hd3gtv.tools.GsonIgnore;
+import hd3gtv.tools.TimeUtils;
+import play.Play;
+
 public final class InstanceStatus implements Log2Dumpable {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	
 	private static Keyspace keyspace;
+	
 	static {
 		try {
 			keyspace = CassandraDb.getkeyspace();
@@ -78,7 +79,7 @@ public final class InstanceStatus implements Log2Dumpable {
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_INSTANCES.getName(), false);
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't init database CFs", e);
+			Loggers.Manager.error("Can't init database CFs", e);
 		}
 	}
 	
@@ -208,6 +209,8 @@ public final class InstanceStatus implements Log2Dumpable {
 	}
 	
 	InstanceStatus populateFromThisInstance(AppManager manager) {
+		// TODO if (Loggers.Manager.isDebugEnabled()) { Loggers.Manager.debug(
+		
 		this.manager = manager;
 		classpath = current_classpath;
 		instance_name = current_instance_name;
@@ -250,6 +253,7 @@ public final class InstanceStatus implements Log2Dumpable {
 	 * @return this
 	 */
 	InstanceStatus refresh(boolean push_to_db) {
+		// TODO if (Loggers.Manager.isDebugEnabled()) { Loggers.Manager.debug(
 		app_name = manager.getAppName();
 		uptime = System.currentTimeMillis() - AppManager.starttime;
 		threadstacktraces.clear();
@@ -279,7 +283,7 @@ public final class InstanceStatus implements Log2Dumpable {
 				mutator.withRow(CF_INSTANCES, instance_name_pid).putColumn(COL_NAME_UA_LIST, AppManager.getGson().toJson(useraction_functionality_list, al_uafunctionalitydefinintion_typeOfT), TTL);
 				mutator.withRow(CF_INSTANCES, instance_name_pid).putColumn("source", AppManager.getGson().toJson(this), TTL);
 				mutator.execute();
-				Log2.log.debug("Update instance status", new Log2Dump("took", System.currentTimeMillis() - start_time));
+				Loggers.Manager.debug("Update instance status took " + (System.currentTimeMillis() - start_time));
 			} catch (ConnectionException e) {
 				manager.getServiceException().onCassandraError(e);
 			}
