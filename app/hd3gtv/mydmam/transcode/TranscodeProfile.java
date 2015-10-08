@@ -27,15 +27,13 @@ import java.util.Map;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessGettext;
 
 @SuppressWarnings("unchecked")
-public class TranscodeProfile implements Log2Dumpable {
+public class TranscodeProfile {
 	
 	private static final String TAG_PROGRESSFILE = "<%$PROGRESSFILE%>";
 	private static final String TAG_INPUTFILE = "<%$INPUTFILE%>";
@@ -69,87 +67,80 @@ public class TranscodeProfile implements Log2Dumpable {
 			
 			if (isConfigured()) {
 				HashMap<String, ConfigurationItem> tp_list = Configuration.global.getElement("transcodingprofiles");
-				// TODO add log messages...
 				
 				if (tp_list.isEmpty()) {
-					Log2.log.error("Can't found \"profile\" element in transcoding block in XML configuration", null);
-				}
-				
-				String profile_name;
-				String profile_extension;
-				String param;
-				for (Map.Entry<String, ConfigurationItem> entry : tp_list.entrySet()) {
-					profile_name = entry.getKey();
+					Loggers.Transcoder.error("\"transcodingprofiles\" configuration can't be empty");
+				} else {
 					
-					TranscodeProfile profile = new TranscodeProfile(profile_name);
-					String[] params = Configuration.getValue(tp_list, entry.getKey(), "command", null).trim().split(" ");
-					for (int pos_par = 0; pos_par < params.length; pos_par++) {
-						param = params[pos_par].trim();
-						if (param.length() == 0) {
-							continue;
-						}
-						if (param.startsWith(TranscodeProfile.TAG_STARTVAR) & param.endsWith(TranscodeProfile.TAG_ENDVAR)) {
-							param = param.substring(TranscodeProfile.TAG_STARTVAR.length(), param.length() - TranscodeProfile.TAG_ENDVAR.length());
-							param = Configuration.getValue(tp_list, entry.getKey(), param, null);
-							if (param == null) {
-								throw new NullPointerException("Can't found " + params[pos_par] + " param variable");
+					String profile_name;
+					String profile_extension;
+					String param;
+					for (Map.Entry<String, ConfigurationItem> entry : tp_list.entrySet()) {
+						profile_name = entry.getKey();
+						
+						TranscodeProfile profile = new TranscodeProfile(profile_name);
+						String[] params = Configuration.getValue(tp_list, entry.getKey(), "command", null).trim().split(" ");
+						for (int pos_par = 0; pos_par < params.length; pos_par++) {
+							param = params[pos_par].trim();
+							if (param.length() == 0) {
+								continue;
 							}
-							param = param.trim();
+							if (param.startsWith(TranscodeProfile.TAG_STARTVAR) & param.endsWith(TranscodeProfile.TAG_ENDVAR)) {
+								param = param.substring(TranscodeProfile.TAG_STARTVAR.length(), param.length() - TranscodeProfile.TAG_ENDVAR.length());
+								param = Configuration.getValue(tp_list, entry.getKey(), param, null);
+								if (param == null) {
+									throw new NullPointerException("Can't found " + params[pos_par] + " param variable");
+								}
+								param = param.trim();
+							}
+							profile.params.add(param);
 						}
-						profile.params.add(param);
-					}
-					
-					profile_extension = Configuration.getValue(tp_list, entry.getKey(), "extension", null);
-					if (profile_extension != null) {
-						if (profile_extension.equals("") == false) {
-							profile.extension = profile_extension;
+						
+						profile_extension = Configuration.getValue(tp_list, entry.getKey(), "extension", null);
+						if (profile_extension != null) {
+							if (profile_extension.equals("") == false) {
+								profile.extension = profile_extension;
+							}
 						}
-					}
-					
-					if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "output")) {
-						try {
-							Object o_output = tp_list.get(entry.getKey()).content.get("output");
-							profile.outputformat = profile.new OutputFormat((LinkedHashMap<String, ?>) o_output);
-						} catch (Exception e) {
-							throw new IOException("Can't load transcoding/" + entry.getKey() + "/output node");
+						
+						if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "output")) {
+							try {
+								Object o_output = tp_list.get(entry.getKey()).content.get("output");
+								profile.outputformat = profile.new OutputFormat((LinkedHashMap<String, ?>) o_output);
+							} catch (Exception e) {
+								throw new IOException("Can't load transcoding/" + entry.getKey() + "/output node");
+							}
 						}
-					}
-					
-					if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "executable") == false) {
-						throw new NullPointerException("Missing executable name for transcoding/" + entry.getKey());
-					}
-					
-					profile.executable_name = Configuration.getValue(tp_list, entry.getKey(), "executable", null);
-					profile.executable = ExecBinaryPath.get(Configuration.getValue(tp_list, entry.getKey(), "executable", null));
-					
-					if (profile.name == null) {
-						throw new NullPointerException("\"profile_name\" can't to be null : check configuration.");
-					}
-					
-					boolean founded = false;
-					for (int pos = 0; pos < profile.params.size(); pos++) {
-						if (profile.params.get(pos).contains(TAG_OUTPUTFILE)) {
-							founded = true;
-							break;
+						
+						if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "executable") == false) {
+							throw new NullPointerException("Missing executable name for transcoding/" + entry.getKey());
 						}
+						
+						profile.executable_name = Configuration.getValue(tp_list, entry.getKey(), "executable", null);
+						profile.executable = ExecBinaryPath.get(Configuration.getValue(tp_list, entry.getKey(), "executable", null));
+						
+						if (profile.name == null) {
+							throw new NullPointerException("\"profile_name\" can't to be null : check configuration.");
+						}
+						
+						boolean founded = false;
+						for (int pos = 0; pos < profile.params.size(); pos++) {
+							if (profile.params.get(pos).contains(TAG_OUTPUTFILE)) {
+								founded = true;
+								break;
+							}
+						}
+						if (founded == false) {
+							throw new NullPointerException("No " + TAG_OUTPUTFILE + " in command check configuration.");
+						}
+						
+						profiles.put(profile_name, profile);
+						Loggers.Transcoder.debug("Declared transcoding profile: " + profile_name + " > " + profile.toString());
 					}
-					if (founded == false) {
-						throw new NullPointerException("No " + TAG_OUTPUTFILE + " in command check configuration.");
-					}
-					
-					profiles.put(profile_name, profile);
 				}
-				
-				Log2Dump dump = new Log2Dump();
-				for (Map.Entry<String, TranscodeProfile> entry : profiles.entrySet()) {
-					dump.addAll(entry.getValue());
-				}
-				
-				Log2.log.debug("Set transcoding configuration", dump);
-				
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't load transcoding configuration", e);
+			Loggers.Transcoder.error("Can't load transcoding configuration", e);
 		}
 	}
 	
@@ -171,7 +162,7 @@ public class TranscodeProfile implements Log2Dumpable {
 	 */
 	public static TranscodeProfile getTranscodeProfile(String name) {
 		if (isConfigured() == false) {
-			Log2.log.error("TranscodeProfile is not configured", new NullPointerException()); // TODO add log messages...
+			Loggers.Transcoder.error("TranscodeProfile is not configured");
 			return null;
 		}
 		if (name == null) {
@@ -219,6 +210,8 @@ public class TranscodeProfile implements Log2Dumpable {
 		sb.append(getName());
 		sb.append("\t");
 		
+		sb.append(executable.getPath());
+		sb.append(" ");
 		for (int pos = 0; pos < params.size(); pos++) {
 			if (params.get(pos).split(" ").length > 1) {
 				sb.append("\"");
@@ -230,30 +223,19 @@ public class TranscodeProfile implements Log2Dumpable {
 			sb.append(" ");
 		}
 		
-		return sb.toString().trim();
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump("profile", name);
-		StringBuffer sb = new StringBuffer();
-		for (int pos = 0; pos < params.size(); pos++) {
-			sb.append(params.get(pos));
-			sb.append(" ");
-		}
+		sb.append("\t[");
+		sb.append(extension);
+		sb.append("]\t");
+		sb.append(outputformat);
 		
-		dump.add("commandline", sb.toString().trim());
-		dump.add("extension", extension);
-		if (outputformat != null) {
-			dump.addAll(outputformat.getLog2Dump());
-		}
-		return dump;
+		return sb.toString().trim();
 	}
 	
 	public OutputFormat getOutputformat() {
 		return outputformat;
 	}
 	
-	public class OutputFormat implements Log2Dumpable {
+	public class OutputFormat {
 		private int width = -1;
 		private int height = -1;
 		private boolean faststarted = false;
@@ -281,19 +263,20 @@ public class TranscodeProfile implements Log2Dumpable {
 			return faststarted;
 		}
 		
-		public Log2Dump getLog2Dump() {
-			Log2Dump dump = new Log2Dump();
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			
 			if (width > 0 | height > 0) {
-				dump.add("resolution", width + "x" + height);
+				sb.append("resolution: " + width + "x" + height);
 			}
 			if (faststarted) {
-				dump.add("faststarted", faststarted);
+				sb.append(" faststarted");
 			}
-			return dump;
+			return sb.toString();
 		}
 	}
 	
-	public class ProcessConfiguration implements Log2Dumpable {
+	public class ProcessConfiguration {
 		private File input_file;
 		private File output_file;
 		private ArrayList<String> initial_params;
@@ -342,7 +325,7 @@ public class TranscodeProfile implements Log2Dumpable {
 				try {
 					progress = executables_transcode_progress.get(job_ref).newInstance();
 				} catch (Exception e) {
-					Log2.log.error("Can't load TranscodeProgress new instance", e, new Log2Dump("executable_name", executable_name)); // TODO add log messages...
+					Loggers.Transcoder.error("Can't load TranscodeProgress new instance with executable_name: " + executable_name, e);
 				}
 			}
 			
@@ -352,7 +335,7 @@ public class TranscodeProfile implements Log2Dumpable {
 					event.setJobRef(job_ref);
 					return new Execprocess(executable, makeCommandline(), event);
 				} catch (Exception e) {
-					Log2.log.error("Can't load ExecprocessEvent new instance", e, new Log2Dump("executable_name", executable_name)); // TODO add log messages...
+					Loggers.Transcoder.error("Can't load ExecprocessEvent new instance with executable_name: " + executable_name, e);
 					return new Execprocess(executable, makeCommandline(), null);
 				}
 			}
@@ -406,25 +389,22 @@ public class TranscodeProfile implements Log2Dumpable {
 			return cmdline;
 		}
 		
-		public Log2Dump getLog2Dump() {
-			Log2Dump dump = new Log2Dump("profile", name);
+		public String toString() {
+			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 			try {
-				StringBuffer sb = new StringBuffer();
-				ArrayList<String> cmd = makeCommandline();
-				for (int pos = 0; pos < cmd.size(); pos++) {
-					sb.append(cmd.get(pos));
-					sb.append(" ");
-				}
-				dump.add("commandline", sb.toString().trim());
+				log.put("commandline", makeCommandline());
 			} catch (IOException e) {
-				dump.add("commandline", e);
+				log.put("cant make commandline", e.getMessage());
 			}
-			dump.add("extension", extension);
-			if (outputformat != null) {
-				dump.addAll(outputformat.getLog2Dump());
-			}
-			return dump;
+			log.put("input_file", input_file);
+			log.put("output_file", output_file);
+			log.put("progress_file", progress_file);
+			log.put("param_tags", param_tags);
+			log.put("progress", progress.getClass());
+			log.put("event", event.getClass());
+			return log.toString();
 		}
+		
 	}
 	
 	public ProcessConfiguration createProcessConfiguration(File input_file, File output_file) {

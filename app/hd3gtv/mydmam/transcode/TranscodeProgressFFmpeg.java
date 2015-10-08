@@ -22,7 +22,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 
-import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.tools.Timecode;
@@ -93,7 +93,7 @@ public class TranscodeProgressFFmpeg extends TranscodeProgress {
 					last_drop_frames = line.substring(12);
 				} else if (line.equals("progress=end")) {
 					reader.close();
-					Log2.log.debug("Watch ffmpeg progress is ended"); // TODO add log messages...
+					Loggers.Transcoder.debug("Watch ffmpeg progress is ended");
 					return;
 				}
 			}

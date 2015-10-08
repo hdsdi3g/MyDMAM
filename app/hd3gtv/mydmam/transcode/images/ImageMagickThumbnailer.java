@@ -201,7 +201,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 			process_conf.getParamTags().put("CHECKERBOARDSIZE", (image_attributes.geometry.width * 2) + "x" + (image_attributes.geometry.height * 2));
 		}
 		ExecprocessGettext process = process_conf.prepareExecprocess();
-		Log2.log.debug("Start conversion", process_conf);
+		Log2.log.debug("Start conversion", new Log2Dump("process_conf", process_conf.toString()));
 		process.start();
 		
 		EntryRenderer thumbnail = root_entry_class.newInstance();

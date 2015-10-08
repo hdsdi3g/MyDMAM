@@ -18,20 +18,11 @@ package hd3gtv.mydmam.transcode;
 
 import java.io.IOException;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.Loggers;
 
 public class FFmpegEvents extends ExecprocessTranscodeEvent {
 	
-	@Deprecated
-	boolean display_raw_ffmpegmessages;
-	
 	private String last_message;
-	
-	public FFmpegEvents() {
-		super();
-		display_raw_ffmpegmessages = Configuration.global.getValueBoolean("transcoding", "ffmpeg_displayrawmessages");
-	}
 	
 	public void onStart() {
 	}
@@ -40,26 +31,26 @@ public class FFmpegEvents extends ExecprocessTranscodeEvent {
 	}
 	
 	public void onKill() {
-		Log2.log.error("FFmpeg is killed for " + jobref, null); // TODO add log messages...
+		Loggers.Transcoder.error("FFmpeg is killed for " + jobref);
 	}
 	
 	public void onError(IOException ioe) {
-		Log2.log.error("FFmpeg error for " + jobref, ioe); // TODO add log messages...
+		Loggers.Transcoder.error("FFmpeg error for " + jobref, ioe);
 	}
 	
 	public void onError(InterruptedException ie) {
-		Log2.log.error("FFmpeg threads error for " + jobref, ie); // TODO add log messages...
+		Loggers.Transcoder.error("FFmpeg threads error for " + jobref, ie);
 	}
 	
 	public void onStdout(String message) {
-		if (display_raw_ffmpegmessages) {
-			System.out.println("[" + jobref + "] " + message); // TODO add log messages...
+		if (Loggers.Transcoder.isTraceEnabled()) {
+			Loggers.Transcoder.trace("ffmpeg-stdout [" + jobref + "] " + message);
 		}
 	}
 	
 	public void onStderr(String message) {
-		if (display_raw_ffmpegmessages) {
-			System.out.println("[" + jobref + "] " + message); // TODO add log messages...
+		if (Loggers.Transcoder.isTraceEnabled()) {
+			Loggers.Transcoder.trace("ffmpeg-stderr [" + jobref + "] " + message);
 		}
 		last_message = message;
 	}

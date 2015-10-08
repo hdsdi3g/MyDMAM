@@ -206,7 +206,7 @@ public class TranscoderWorker extends WorkerNG {
 				throw new IOException("Can't download found file to temp directory", e);
 			}
 		}
-		// XXX
+		
 		if (stop_process) {
 			return;
 		}
@@ -214,6 +214,9 @@ public class TranscoderWorker extends WorkerNG {
 		// Container container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
 		
 		final File local_dest_dir = Storage.getLocalFile(SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name));
+		
+		Loggers.Transcoder.debug("physical_source is " + physical_source.getPath());
+		Loggers.Transcoder.debug("local_dest_dir is " + local_dest_dir.getPath());
 		
 		List<String> profiles_to_transcode = transcode_context.hookednames;
 		
@@ -228,16 +231,26 @@ public class TranscoderWorker extends WorkerNG {
 				process = null;
 				return;
 			}
+			if (profiles_to_transcode.size() > 1) {
+				Loggers.Transcoder.debug("Transcode step: " + (pos + 1) + "/" + profiles_to_transcode.size());
+			}
+			
 			transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));
+			Loggers.Transcoder.debug("Get transcode_profile: " + transcode_profile.getName());
 			
 			temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));
+			Loggers.Transcoder.debug("Get temp_output_file: " + temp_output_file.getPath());
 			
 			process_configuration = transcode_profile.createProcessConfiguration(physical_source, temp_output_file);
+			if (Loggers.Transcoder.isDebugEnabled()) {
+				Loggers.Transcoder.debug("process_configuration: " + process_configuration);
+			}
 			
 			if (process_configuration.wantAProgressFile()) {
 				progress_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "progress.txt");
 				
 				tprogress = process_configuration.getProgress();
+				Loggers.Transcoder.debug("Process configuration want a progress: " + tprogress.getClass().getName());
 				tprogress.init(progress_file, progression, context);
 				tprogress.startWatching();
 			} else {
@@ -251,6 +264,7 @@ public class TranscoderWorker extends WorkerNG {
 			 * @see FFmpegLowresRenderer, if it's a video file
 			 *      process_conf.getParamTags().put("FILTERS", sb_filters.toString());
 			 */
+			Loggers.Transcoder.debug("Prepare prepareExecprocess for process_configuration");
 			process = process_configuration.setProgressFile(progress_file).prepareExecprocess(progression.getJobKey());
 			
 			progression.update("Transcode source file with " + transcode_profile.getName() + " (" + transcode_profile.getExecutable().getName() + ")");
@@ -263,11 +277,14 @@ public class TranscoderWorker extends WorkerNG {
 			
 			process.run();
 			
+			Loggers.Transcoder.debug("Transcoding is ended");
+			
 			if (tprogress != null) {
 				tprogress.stopWatching();
 			}
 			if (progress_file != null) {
 				if (progress_file.exists()) {
+					Loggers.Transcoder.debug("Progress file exists, remove it: " + progress_file.getPath());
 					FileUtils.forceDelete(progress_file);
 				}
 			}
@@ -276,7 +293,7 @@ public class TranscoderWorker extends WorkerNG {
 				if (process_configuration.getEvent() != null) {
 					throw new IOException("Bad transcoder execution: " + process_configuration.getEvent().getLast_message());
 				}
-				throw new IOException("Bad transcoder execution");
+				throw new IOException("Bad transcoder execution (exit value is: " + process.getExitvalue() + ")");
 			}
 			
 			process = null;
@@ -317,6 +334,8 @@ public class TranscoderWorker extends WorkerNG {
 				File local_full_dest_dir = local_dest_dir.getAbsoluteFile();
 				if (transcode_context.dest_sub_directory != null) {
 					File dir_to_create = new File(local_full_dest_dir.getAbsolutePath() + transcode_context.dest_sub_directory);
+					Loggers.Transcoder.debug("Force mkdir " + dir_to_create);
+					
 					FileUtils.forceMkdir(dir_to_create);
 					local_full_dest_dir = dir_to_create;
 				}

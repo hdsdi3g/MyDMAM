@@ -209,6 +209,7 @@ public class Publish extends WorkerNG {
 		transcode_progress.init(progress_file, progression, context_publish).startWatching();
 		
 		this.process = process_conf.prepareExecprocess("tmp-" + progression.getJobKey());
+		Loggers.Transcoder.debug("process_conf: " + process_conf);
 		
 		Loggers.Transcoder.info("Publish transcode " + context_publish.contextToJson().toString() + " " + process.getCommandline());
 		

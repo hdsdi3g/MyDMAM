@@ -18,7 +18,7 @@ package hd3gtv.mydmam.transcode;
 
 import java.io.File;
 
-import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
 
@@ -55,12 +55,16 @@ public abstract class TranscodeProgress {
 		if (internal == null) {
 			return;
 		}
-		while (internal.isAlive()) {
-			try {
-				Thread.sleep(100);
-			} catch (Exception e) {
-				Log2.log.error("Can't stop thread", e); // TODO add log messages...
+		if (internal.isAlive()) {
+			Loggers.Transcoder.debug("Stop watch transcode progress for: " + progressfile.getPath());
+			while (internal.isAlive()) {
+				try {
+					Thread.sleep(100);
+				} catch (Exception e) {
+					Loggers.Transcoder.warn("Can't stop thread", e);
+				}
 			}
+			Loggers.Transcoder.debug("Watch transcode progress for: " + progressfile.getPath() + " is stopped");
 		}
 		internal = null;
 	}
@@ -71,6 +75,7 @@ public abstract class TranscodeProgress {
 		internal.setName("TranscodeProgress for " + progression.getJobKey());
 		stopthread = false;
 		internal.start();
+		Loggers.Transcoder.debug("Start watch transcode progress for: " + progressfile.getPath());
 	}
 	
 	/**
@@ -83,7 +88,7 @@ public abstract class TranscodeProgress {
 			try {
 				processAnalystProgressFile(progressfile, progression, context);
 			} catch (Exception e) {
-				Log2.log.error("Error during progress analyst", e); // TODO add log messages...
+				Loggers.Transcoder.error("Error during progress analyst", e);
 			}
 		}
 	}

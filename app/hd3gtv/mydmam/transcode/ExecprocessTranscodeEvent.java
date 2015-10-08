@@ -22,9 +22,6 @@ public abstract class ExecprocessTranscodeEvent implements ExecprocessEvent {
 	
 	protected String jobref;
 	
-	public ExecprocessTranscodeEvent() {
-	}
-	
 	public void setJobRef(String jobref) {
 		this.jobref = jobref;
 	}
