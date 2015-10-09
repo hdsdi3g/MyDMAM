@@ -30,7 +30,8 @@ import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.JobNG.JobStatus;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
@@ -76,7 +77,12 @@ class BrokerNG {
 		if (isAlive()) {
 			return;
 		}
-		// TODO log
+		if (Loggers.Broker.isDebugEnabled()) {
+			Loggers.Broker.debug("Start Broker");
+		} else {
+			Loggers.Manager.debug("Start Broker");
+		}
+		
 		queue_operations = new QueueOperations();
 		queue_operations.start();
 		queue_new_jobs = new QueueNewJobs();
@@ -84,7 +90,12 @@ class BrokerNG {
 	}
 	
 	synchronized void askStop() {
-		// TODO log
+		if (Loggers.Broker.isDebugEnabled()) {
+			Loggers.Broker.debug("Stop Broker");
+		} else {
+			Loggers.Manager.debug("Stop Broker");
+		}
+		
 		if (queue_operations != null) {
 			queue_operations.stop_queue = true;
 		}
@@ -105,6 +116,7 @@ class BrokerNG {
 		
 		public QueueOperations() {
 			setName("Queue operations for Broker " + manager.getInstance_status().getInstanceNamePid());
+			Loggers.Broker.debug("Init queue operations thread for " + manager.getInstance_status().getInstanceNamePid());
 			setDaemon(true);
 		}
 		
@@ -132,6 +144,7 @@ class BrokerNG {
 							job = active_jobs.get(pos);
 							if (job.isDeleteAfterCompleted() && job.isThisStatus(JobStatus.DONE, JobStatus.CANCELED)) {
 								if ((job.getEndDate() + GRACE_PERIOD_TO_REMOVE_DELETED_AFTER_COMPLETED_JOB) < System.currentTimeMillis()) {
+									Loggers.Broker.trace("Remove job from active_jobs [" + job.getKey() + "] " + job.getName() + ";\treason: DAC " + job.getStatus());
 									job.delete(mutator);
 									active_jobs.remove(pos);
 								} else {
@@ -140,10 +153,12 @@ class BrokerNG {
 							} else {
 								job.saveChanges(mutator);
 								if (job.isThisStatus(JobStatus.DONE, JobStatus.STOPPED, JobStatus.CANCELED, JobStatus.ERROR, JobStatus.TOO_LONG_DURATION)) {
+									Loggers.Broker.trace("Remove job from active_jobs [" + job.getKey() + "] " + job.getName() + ";\treason: " + job.getStatus());
 									active_jobs.remove(pos);
 								}
 							}
 							if (job.isThisStatus(JobStatus.DONE)) {
+								Loggers.Broker.trace("Pull trigger for job [" + job.getKey() + "] " + job.getName());
 								TriggerJobCreator.doneJob(job, mutator);
 							}
 						}
@@ -163,7 +178,7 @@ class BrokerNG {
 								if (mutator == null) {
 									mutator = CassandraDb.prepareMutationBatch();
 								}
-								Log2.log.debug("Cyclic create jobs", cyclic_creator);
+								Loggers.Broker.debug("Cyclic create jobs [" + cyclic_creator.getReference_key() + "] " + cyclic_creator.getLongName());
 								cyclic_creator.createJobs(mutator);
 							}
 						}
@@ -182,16 +197,20 @@ class BrokerNG {
 						time_spacer = 0;
 						
 						if (declared_triggers.isEmpty() == false) {
+							Loggers.Broker.debug("Prepare trigger hooks create jobs (" + declared_triggers.size() + " items) since " + Log2Event.dateLog(precedent_date_trigger));
 							TriggerJobCreator.prepareTriggerHooksCreateJobs(declared_triggers, precedent_date_trigger, mutator);
 							precedent_date_trigger = System.currentTimeMillis();
 						}
 						
 						if (active_clean_jobs) {
+							Loggers.Broker.debug("Watch old abandoned jobs...");
 							jobs = JobNG.Utility.watchOldAbandonedJobs(mutator, manager.getInstance_status());
 							if (jobs.isEmpty() == false) {
+								Loggers.Broker.debug("Watch old abandoned jobs: there are too old jobs (" + jobs.size() + ") in queue:\t" + jobs);
 								manager.getServiceException().onQueueJobProblem("There are too old jobs in queue", jobs);
 							}
-							JobNG.Utility.removeMaxDateForPostponedJobs(mutator, manager.getInstance_status());
+							Loggers.Broker.debug("Remove max date for postponed jobs for " + manager.getInstance_status().getHostName());
+							JobNG.Utility.removeMaxDateForPostponedJobs(mutator, manager.getInstance_status().getHostName());
 						}
 						
 						if (mutator.isEmpty() == false) {
@@ -223,6 +242,7 @@ class BrokerNG {
 		
 		public QueueNewJobs() {
 			setName("Queue new jobs for Broker " + manager.getInstance_status().getInstanceNamePid());
+			Loggers.Broker.debug("Init queue new jobs thread for " + manager.getInstance_status().getInstanceNamePid());
 			setDaemon(true);
 		}
 		
@@ -265,6 +285,8 @@ class BrokerNG {
 					available_workers_capablities.clear();
 					
 					enabled_workers = manager.getEnabledWorkers();
+					Loggers.Broker.trace("Get get waiting workers and list all capablities...");
+					
 					for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
 						worker = enabled_workers.get(pos_wr);
 						if (worker.getLifecyle().getState() != WorkerState.WAITING) {
@@ -295,9 +317,8 @@ class BrokerNG {
 						continue;
 					}
 					
-					/**
-					 * 1st pass: check if there are some waiting jobs to process here, before to try lock.
-					 */
+					Loggers.Broker.trace("1st pass: check if there are some waiting jobs to process here, before to try lock.");
+					
 					waiting_jobs = JobNG.Utility.getJobsByStatus(JobStatus.WAITING);
 					some_jobs_to_execute = false;
 					
@@ -343,23 +364,20 @@ class BrokerNG {
 						continue;
 					}
 					
-					/**
-					 * 2nd pass: there are some waiting jobs to process here, try to lock and execute.
-					 */
+					Loggers.Broker.trace("2nd pass: there are some waiting jobs to process here, try to lock and execute.");
+					
 					lock = null;
 					try {
-						/**
-						 * Prepare and acquire lock for CF
-						 */
+						Loggers.Broker.trace("Prepare and acquire lock for CF.");
+						
 						lock = JobNG.prepareLock();
 						lock.withConsistencyLevel(ConsistencyLevel.CL_ALL);
 						lock.expireLockAfter(500, TimeUnit.MILLISECONDS);
 						lock.failOnStaleLock(false);
 						lock.acquire();
 						
-						/**
-						 * Get all waiting jobs for this category profile.
-						 */
+						Loggers.Broker.trace("Get all waiting jobs for this category profile.");
+						
 						waiting_jobs = JobNG.Utility.getJobsByStatus(JobStatus.WAITING);
 						best_jobs_worker.clear();
 						mutator = null;
@@ -418,27 +436,26 @@ class BrokerNG {
 						 */
 						
 						if (best_jobs_worker.isEmpty()) {
-							/**
-							 * Not found a valid job
-							 */
+							Loggers.Broker.trace("Not found a valid job, release lock");
+							
 							lock.release();
 							continue;
 						}
 						
-						/**
-						 * Prepare job.
-						 */
 						mutator = CassandraDb.prepareMutationBatch();
 						for (JobNG job : best_jobs_worker.keySet()) {
+							Loggers.Broker.debug("Prepare new job:\t" + job.toString());
 							job.prepareProcessing(mutator);
 						}
 						mutator.execute();
 						
+						Loggers.Broker.trace("Release lock");
 						lock.release();
 						
 						active_jobs.addAll(best_jobs_worker.keySet());
 						
 						for (Map.Entry<JobNG, WorkerNG> entry : best_jobs_worker.entrySet()) {
+							Loggers.Broker.trace("Start new job [" + entry.getKey().getKey() + "] " + entry.getKey().getName());
 							entry.getValue().internalProcess(entry.getKey());
 						}
 						
@@ -450,11 +467,12 @@ class BrokerNG {
 						/**
 						 * The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
 						 */
-						Log2.log.error("Can't lock CF: abandoned lock.", e);
+						Loggers.Broker.error("Can't lock CF: abandoned lock", e);
 					} catch (BusyLockException e) {
-						Log2.log.debug("Can't lock CF, it's currently locked.");
+						Loggers.Broker.warn("Can't lock CF, it's currently locked", e);
 					} finally {
 						if (lock != null) {
+							Loggers.Broker.warn("Finally, release lock");
 							lock.release();
 						}
 					}

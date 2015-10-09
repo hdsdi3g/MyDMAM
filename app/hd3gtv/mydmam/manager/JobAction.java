@@ -16,12 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +31,15 @@ import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.tools.GsonIgnore;
+
 public class JobAction implements Log2Dumpable {
+	
+	// TODO Loggers
 	
 	private enum Order {
 		delete, stop, setinwait, cancel, hipriority, noexpiration, postponed

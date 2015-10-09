@@ -38,9 +38,9 @@ import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerCategory;
@@ -63,7 +63,7 @@ public final class WorkerExporter implements Log2Dumpable {
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_WORKERS.getName(), false);
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't init database CFs", e);
+			Loggers.Manager.error("Can't init database CFs", e);
 		}
 	}
 	
@@ -91,6 +91,7 @@ public final class WorkerExporter implements Log2Dumpable {
 				we = workers.get(pos).getExporter();
 				we.update();
 				mutator.withRow(CF_WORKERS, we.reference_key).putColumn("source", AppManager.getGson().toJson(we), InstanceStatus.TTL);
+				Loggers.Manager.trace("Update worker status [" + we.reference_key + "], " + we.worker_class + " (" + we.long_name + ")");
 			}
 			
 			if (mutator.isEmpty() == false) {
@@ -99,7 +100,8 @@ public final class WorkerExporter implements Log2Dumpable {
 		} catch (ConnectionException e) {
 			manager.getServiceException().onCassandraError(e);
 		}
-		Log2.log.debug("Update worker status", new Log2Dump("took", System.currentTimeMillis() - start_time));// XXX est tres souvent appele !
+		
+		Loggers.Manager.debug("Update all workers status, took " + (System.currentTimeMillis() - start_time) + " ms");
 	}
 	
 	public static List<WorkerExporter> getAllWorkerStatus() throws Exception {

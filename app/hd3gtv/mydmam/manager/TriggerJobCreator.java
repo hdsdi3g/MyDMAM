@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +31,10 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.tools.GsonIgnore;
+
 public final class TriggerJobCreator extends JobCreator {
 	
 	private static Keyspace keyspace;
@@ -48,7 +48,7 @@ public final class TriggerJobCreator extends JobCreator {
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_DONE_JOBS.getName(), false);
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't init database CFs", e);
+			Loggers.Manager.error("Can't init database CFs", e);
 		}
 	}
 	

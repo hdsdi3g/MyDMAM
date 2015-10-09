@@ -16,11 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -36,6 +31,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.GsonIgnore;
 
 /**
  * Full configuration for a Job
@@ -77,7 +76,7 @@ public abstract class JobContext {
 				result.hookednames = AppManager.getGson().fromJson(json.get("hookednames"), type_String_AL);
 				return result;
 			} catch (Exception e) {
-				Log2.log.error("Can't deserialize", e, new Log2Dump("json source", jejson.toString()));
+				Loggers.Manager.error("Can't deserialize json source:\t" + jejson.toString(), e);
 				throw new JsonParseException("Invalid context class: " + jejson.toString(), e);
 			}
 		}
@@ -158,7 +157,7 @@ public abstract class JobContext {
 				md.update(sb.toString().getBytes());
 				return "jobcontext:" + MyDMAM.byteToString(md.digest());
 			} catch (Exception e) {
-				Log2.log.error("Can't compute digest", e);
+				Loggers.Manager.error("Can't compute digest", e);
 				return sb.toString();
 			}
 		}

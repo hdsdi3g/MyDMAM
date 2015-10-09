@@ -20,6 +20,7 @@ import org.apache.log4j.LogManager;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 
@@ -37,15 +38,15 @@ public abstract class ServiceNG {
 		Thread t = new Thread() {
 			public void run() {
 				try {
-					Log2.log.info("Request shutdown application");
+					Loggers.Manager.info("Request shutdown application");
 					Thread tkill = new Thread() {
 						public void run() {
 							try {
 								sleep(5000);
-								Log2.log.error("Request KILL application", null);
+								Loggers.Manager.error("Request KILL application");
 								System.exit(2);
 							} catch (Exception e) {
-								Log2.log.error("Fatal service killing", e);
+								Loggers.Manager.error("Fatal service killing", e);
 								System.exit(2);
 							}
 						}
@@ -55,7 +56,7 @@ public abstract class ServiceNG {
 					tkill.start();
 					stopAllServices();
 				} catch (Exception e) {
-					Log2.log.error("Fatal service stopping", e);
+					Loggers.Manager.error("Fatal service stopping", e);
 					AdminMailAlert.create("Can't stop the service", true).setThrowable(e).send();
 				}
 				LogManager.shutdown();
@@ -87,6 +88,7 @@ public abstract class ServiceNG {
 		}
 		
 		public void run() {
+			Loggers.Manager.debug("Start service thread");
 			want_stop_service = false;
 			try {
 				if (Configuration.global.isElementExists("service")) {
@@ -96,7 +98,7 @@ public abstract class ServiceNG {
 							uiframe = new UIFrame(uititle, manager);
 							uiframe.display();
 						} catch (Exception e) {
-							Log2.log.error("Can't display UI", e);
+							Loggers.Manager.error("Can't display UI", e);
 						}
 					}
 				}
@@ -109,9 +111,11 @@ public abstract class ServiceNG {
 					manager.startJustService();
 				}
 				
+				Loggers.Manager.debug("Manager is loaded");
 				while (want_stop_service == false) {
 					sleep(10);
 				}
+				Loggers.Manager.info("Stop service required");
 				
 				stopService();
 				
@@ -131,6 +135,7 @@ public abstract class ServiceNG {
 	protected abstract void stopService() throws Exception;
 	
 	public void startAllServices() {
+		Loggers.Manager.debug("Start all services...");
 		if (servicethread == null) {
 			servicethread = new ServiceThread();
 		}
@@ -140,6 +145,7 @@ public abstract class ServiceNG {
 	}
 	
 	public synchronized void stopAllServices() {
+		Loggers.Manager.debug("Stop all services...");
 		if (servicethread == null) {
 			return;
 		}
@@ -151,9 +157,9 @@ public abstract class ServiceNG {
 				}
 				Thread.sleep(10);
 			}
-			Log2.log.error("Can't wait for stopping ServiceManager...", null);
+			Loggers.Manager.error("Can't wait for stopping services...");
 		} catch (Exception e) {
-			Log2.log.error("ServiceManager stop execution error...", e);
+			Loggers.Manager.error("Services stop execution error...", e);
 		}
 		servicethread = null;
 	}

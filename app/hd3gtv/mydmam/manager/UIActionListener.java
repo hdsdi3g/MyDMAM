@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -26,6 +24,8 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 
 import javax.swing.JOptionPane;
+
+import hd3gtv.mydmam.Loggers;
 
 class UIActionListener implements ActionListener, WindowListener, MouseListener {
 	
@@ -80,7 +80,7 @@ class UIActionListener implements ActionListener, WindowListener, MouseListener 
 	}
 	
 	public void windowClosed(WindowEvent e) {
-		Log2.log.info("User close application");
+		Loggers.Manager.info("User close application");
 		frame.manager.stopAll();
 		System.exit(0);
 	}

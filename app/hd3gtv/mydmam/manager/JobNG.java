@@ -57,6 +57,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -88,9 +89,11 @@ public final class JobNG implements Log2Dumpable {
 				CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "indexingdebug", queue_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't init database CFs", e);
+			Loggers.Manager.error("Can't init database CFs", e);
 		}
 	}
+	
+	// TODO Loggers
 	
 	static ColumnPrefixDistributedRowLock<String> prepareLock() {
 		return new ColumnPrefixDistributedRowLock<String>(keyspace, CF_QUEUE, "BROKER_LOCK");
@@ -538,6 +541,10 @@ public final class JobNG implements Log2Dumpable {
 		return key;
 	}
 	
+	public String getName() {
+		return name;
+	}
+	
 	private void exportToDatabase(ColumnListMutation<String> mutator) {
 		/**
 		 * POSTPONED | WAITING
@@ -604,10 +611,10 @@ public final class JobNG implements Log2Dumpable {
 			return result;
 		}
 		
-		static void removeMaxDateForPostponedJobs(MutationBatch mutator, InstanceStatus instance_status) throws ConnectionException {
+		static void removeMaxDateForPostponedJobs(MutationBatch mutator, String creator_hostname) throws ConnectionException {
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(JobStatus.POSTPONED.name());
-			index_query.addExpression().whereColumn("creator_hostname").equals().value(instance_status.getHostName());
+			index_query.addExpression().whereColumn("creator_hostname").equals().value(creator_hostname);
 			index_query.addExpression().whereColumn("expiration_date").lessThan().value(System.currentTimeMillis() + default_max_execution_time);
 			index_query.withColumnSlice("source", "context_class");
 			

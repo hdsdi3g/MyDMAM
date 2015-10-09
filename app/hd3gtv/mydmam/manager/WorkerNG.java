@@ -25,8 +25,11 @@ import com.google.gson.JsonObject;
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.Loggers;
 
 public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
+	
+	// XXX add log Loggers.Worker
 	
 	public enum WorkerCategory {
 		INDEXING, METADATA, EXTERNAL_MODULE, USERACTION, INTERNAL
@@ -66,8 +69,21 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 	
 	@Override
 	public String toString() {
-		// TODO Auto-generated method stub
-		return super.toString();
+		StringBuilder sb = new StringBuilder();
+		sb.append("[");
+		sb.append(reference_key);
+		sb.append("] ");
+		sb.append(getClass().getName());
+		sb.append(" ");
+		sb.append(stopreason);
+		sb.append(" ");
+		if (current_executor != null) {
+			sb.append(" job:");
+			sb.append(current_executor.job.getKey());
+		} else {
+			sb.append(" job:null");
+		}
+		return sb.toString();
 	}
 	
 	void setManager(AppManager manager) {
@@ -321,14 +337,14 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 	public final void doAnAction(JsonObject order) {
 		if (order.has("state")) {
 			if (order.get("state").getAsString().equals("enable")) {
+				Loggers.Manager.info("Enable worker:\t" + this);
 				lifecyle.enable();
-				Log2.log.info("Enable worker", this);
 			} else if (order.get("state").getAsString().equals("disable")) {
+				Loggers.Manager.info("Disable worker:\t" + this);
 				lifecyle.askToStopAndRefuseNewJobs();
-				Log2.log.info("Disable worker", this);
 			} else if (order.get("state").getAsString().equals("stop")) {
+				Loggers.Manager.info("Stop current job:\t" + this);
 				lifecyle.justAskToStop();
-				Log2.log.info("Stop current job", this);
 			}
 		}
 		

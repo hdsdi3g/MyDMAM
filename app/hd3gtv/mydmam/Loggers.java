@@ -17,22 +17,24 @@
 package hd3gtv.mydmam;
 
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.JsonObject;
+
 public final class Loggers {
 	
-	public final static Logger WatchFolder = Logger.getLogger("mydmam.WatchFolder");
-	public final static Logger Transcoder = Logger.getLogger("mydmam.Transcoder");
-	public final static Logger Manager = Logger.getLogger("mydmam.Manager");
-	public final static Logger Loggers = Logger.getLogger("mydmam.Loggers");
+	public final static Logger Manager = Logger.getLogger("mydmam.manager");
+	public final static Logger Broker = Logger.getLogger("mydmam.broker");
+	public final static Logger Worker = Logger.getLogger("mydmam.worker");
+	public final static Logger WatchFolder = Logger.getLogger("mydmam.watchFolder");
+	public final static Logger Transcoder = Logger.getLogger("mydmam.transcoder");
+	public final static Logger Loggers = Logger.getLogger("mydmam.loggers");
 	
-	public static Map<String, Level> getAllLevels() {
-		HashMap<String, Level> result = new HashMap<String, Level>();
+	public static JsonObject getAllLevels() {
+		JsonObject result = new JsonObject();
 		
 		@SuppressWarnings("unchecked")
 		Enumeration<Logger> all_loggers = LogManager.getCurrentLoggers();
@@ -40,7 +42,7 @@ public final class Loggers {
 		Logger item;
 		while (all_loggers.hasMoreElements()) {
 			item = all_loggers.nextElement();
-			result.put(item.getName(), item.getEffectiveLevel());
+			result.addProperty(item.getName(), item.getEffectiveLevel().toString());
 		}
 		
 		return result;

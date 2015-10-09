@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.configuration.GitInfo;
-import hd3gtv.log2.Log2;
-
 import java.awt.Button;
 import java.awt.Color;
 import java.awt.Frame;
@@ -29,6 +26,9 @@ import java.awt.Rectangle;
 import java.awt.geom.Ellipse2D;
 
 import javax.swing.ImageIcon;
+
+import hd3gtv.configuration.GitInfo;
+import hd3gtv.mydmam.Loggers;
 
 class UIFrame extends Frame {
 	
@@ -80,7 +80,7 @@ class UIFrame extends Frame {
 			setIconImage(new ImageIcon("public/img/app.gif").getImage());
 			/*TrayIcon Window*/
 		} catch (Exception e) {
-			Log2.log.error("Can't load icon", e);
+			Loggers.Manager.error("Can't load icon", e);
 		}
 		setVisible(true);
 		
@@ -115,7 +115,7 @@ class UIFrame extends Frame {
 					sleep(500);
 				}
 			} catch (InterruptedException e) {
-				Log2.log.error("UIFrame status check sleep problem", e);
+				Loggers.Manager.error("UIFrame status check sleep problem", e);
 			}
 		}
 	}

@@ -16,10 +16,10 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.tools.ExecprocessEvent;
-
 import java.io.IOException;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.tools.ExecprocessEvent;
 
 public class ExecprocessEventServicelog implements ExecprocessEvent {
 	
@@ -30,31 +30,31 @@ public class ExecprocessEventServicelog implements ExecprocessEvent {
 	}
 	
 	public void onStart() {
-		Log2.log.info("Start " + execname + " process");
+		Loggers.Manager.info("Start " + execname + " process");
 	}
 	
 	public void onEnd() {
-		Log2.log.info("End of " + execname + " process");
+		Loggers.Manager.info("End of " + execname + " process");
 	}
 	
 	public void onKill() {
-		Log2.log.info("Terminate of " + execname + " process");
+		Loggers.Manager.info("Terminate of " + execname + " process");
 	}
 	
 	public void onError(IOException ioe) {
-		Log2.log.error("Error with " + execname, ioe);
+		Loggers.Manager.error("Error with " + execname, ioe);
 	}
 	
 	public void onError(InterruptedException ie) {
-		Log2.log.error("Error with " + execname, ie);
+		Loggers.Manager.warn("Error with " + execname, ie);
 	}
 	
 	public void onStdout(String message) {
-		Log2.log.rawEvent(execname, message, false);
+		Loggers.Manager.debug(execname + ":stdout\t" + message);
 	}
 	
 	public void onStderr(String message) {
-		Log2.log.rawEvent(execname, message, true);
+		Loggers.Manager.warn(execname + ":stderr\t" + message);
 	}
 	
 }

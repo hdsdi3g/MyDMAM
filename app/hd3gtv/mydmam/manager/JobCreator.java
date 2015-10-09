@@ -16,18 +16,18 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnore;
-
 import java.util.ArrayList;
 import java.util.UUID;
 
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.tools.GsonIgnore;
 
 abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 	
@@ -115,6 +115,10 @@ abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 	protected void createJobsInternal(MutationBatch mutator, JobNG job, JobNG require) throws ConnectionException {
 	}
 	
+	public String getLongName() {
+		return long_name;
+	}
+	
 	/**
 	 * @param contexts will be dependant (the second need the first, the third need the second, ... the first is the most prioritary)
 	 * @throws ClassNotFoundException a context can't to be serialized
@@ -168,17 +172,17 @@ abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 		if (order.has("activity")) {
 			if (order.get("activity").getAsString().equals("enable")) {
 				setEnabled(true);
-				Log2.log.info("Enable job creator", this);
+				Loggers.Manager.info("Enable job creator:\t" + this.toString());
 			} else if (order.get("activity").getAsString().equals("disable")) {
 				setEnabled(false);
-				Log2.log.info("Disable job creator", this);
+				Loggers.Manager.info("Disable job creator:\t" + this.toString());
 			} else if (order.get("activity").getAsString().equals("createjobs")) {
 				try {
 					MutationBatch mutator = CassandraDb.prepareMutationBatch();
 					createJobs(mutator);
 					if (mutator.isEmpty() == false) {
 						mutator.execute();
-						Log2.log.info("Create jobs", this);
+						Loggers.Manager.info("Create jobs:\t" + this.toString());
 					}
 				} catch (ConnectionException e) {
 					manager.getServiceException().onCassandraError(e);

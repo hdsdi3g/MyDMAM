@@ -209,8 +209,6 @@ public final class InstanceStatus implements Log2Dumpable {
 	}
 	
 	InstanceStatus populateFromThisInstance(AppManager manager) {
-		// TODO if (Loggers.Manager.isDebugEnabled()) { Loggers.Manager.debug(
-		
 		this.manager = manager;
 		classpath = current_classpath;
 		instance_name = current_instance_name;
@@ -244,6 +242,7 @@ public final class InstanceStatus implements Log2Dumpable {
 		} catch (SocketException e) {
 		}
 		
+		Loggers.Manager.debug("Populate instance status from AppManager");
 		refresh(false);
 		
 		return this;
@@ -253,7 +252,6 @@ public final class InstanceStatus implements Log2Dumpable {
 	 * @return this
 	 */
 	InstanceStatus refresh(boolean push_to_db) {
-		// TODO if (Loggers.Manager.isDebugEnabled()) { Loggers.Manager.debug(
 		app_name = manager.getAppName();
 		uptime = System.currentTimeMillis() - AppManager.starttime;
 		threadstacktraces.clear();
@@ -303,6 +301,7 @@ public final class InstanceStatus implements Log2Dumpable {
 			result.add("declared_cyclics", AppManager.getGson().toJsonTree(src.declared_cyclics, al_cyclicjobscreator_typeOfT));
 			result.add("declared_triggers", AppManager.getGson().toJsonTree(src.declared_triggers, al_triggerjobscreator_typeOfT));
 			result.add("log2filters", AppManager.getGson().toJsonTree(Log2.log.getFilters(), al_log2filter_typeOfT));
+			result.add("loggersfilters", Loggers.getAllLevels());
 			result.addProperty("uptime_from", TimeUtils.secondsToYWDHMS(src.uptime / 1000));
 			return result;
 		}

@@ -35,10 +35,10 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnore;
@@ -58,7 +58,7 @@ public final class InstanceAction implements Log2Dumpable {
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_ACTION.getName(), false);
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't init database CFs", e);
+			Loggers.Manager.error("Can't init database CFs", e);
 		}
 	}
 	
@@ -103,7 +103,7 @@ public final class InstanceAction implements Log2Dumpable {
 		mutator.withRow(CF_ACTION, new_instance_action.key).putColumn("source", AppManager.getGson().toJson(new_instance_action), TTL);
 		mutator.execute();
 		
-		Log2.log.info("Create manager action", new_instance_action);
+		Loggers.Manager.info("Create manager action:\t" + new_instance_action.toString());
 	}
 	
 	static void getAllPendingInstancesAction(final List<InstanceAction> current_item_list) throws Exception {
