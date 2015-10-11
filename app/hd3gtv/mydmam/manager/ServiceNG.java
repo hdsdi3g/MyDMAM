@@ -19,7 +19,6 @@ package hd3gtv.mydmam.manager;
 import org.apache.log4j.LogManager;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
@@ -122,9 +121,9 @@ public abstract class ServiceNG {
 				manager.stopAll();
 				
 			} catch (InterruptedException e) {
-				Log2.log.error("Violent stop service", e);
+				Loggers.Manager.error("Violent stop service", e);
 			} catch (Exception e) {
-				Log2.log.error("ServiceManager execution error...", e);
+				Loggers.Manager.error("ServiceManager execution error...", e);
 				AdminMailAlert.create("Runtime Error Service", true).setThrowable(e).setManager(manager).send();
 			}
 		}
