@@ -29,6 +29,7 @@ public final class Loggers {
 	public final static Logger Manager = Logger.getLogger("mydmam.manager");
 	public final static Logger Broker = Logger.getLogger("mydmam.broker");
 	public final static Logger Worker = Logger.getLogger("mydmam.worker");
+	public final static Logger Job = Logger.getLogger("mydmam.job");
 	public final static Logger WatchFolder = Logger.getLogger("mydmam.watchFolder");
 	public final static Logger Transcoder = Logger.getLogger("mydmam.transcoder");
 	public final static Logger Loggers = Logger.getLogger("mydmam.loggers");

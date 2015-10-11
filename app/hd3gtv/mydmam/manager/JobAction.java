@@ -31,15 +31,11 @@ import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnore;
 
-public class JobAction implements Log2Dumpable {
-	
-	// TODO Loggers
+public class JobAction {
 	
 	private enum Order {
 		delete, stop, setinwait, cancel, hipriority, noexpiration, postponed
@@ -62,6 +58,7 @@ public class JobAction implements Log2Dumpable {
 		String worker_reg;
 		for (int pos = 0; pos < jobs.size(); pos++) {
 			job = jobs.get(pos);
+			Loggers.Job.info("Do action on job (caller " + caller + "):\t" + job);
 			
 			switch (order) {
 			case delete:
@@ -107,10 +104,6 @@ public class JobAction implements Log2Dumpable {
 		
 		if (mutator.isEmpty() == false) {
 			mutator.execute();
-			
-			Log2Dump dump = getLog2Dump();
-			dump.add("caller", caller);
-			Log2.log.info("Action on jobs", dump);
 		}
 		
 		return result;
@@ -133,13 +126,6 @@ public class JobAction implements Log2Dumpable {
 			result.add("jobs_keys", AppManager.getGson().toJsonTree(src.jobs_keys, al_String_typeOfT));
 			return result;
 		}
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("jobs_keys", jobs_keys);
-		dump.add("order", order);
-		return dump;
 	}
 	
 }

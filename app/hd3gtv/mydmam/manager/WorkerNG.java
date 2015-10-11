@@ -22,14 +22,9 @@ import java.util.UUID;
 
 import com.google.gson.JsonObject;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.Loggers;
 
-public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
-	
-	// XXX add log Loggers.Worker
+public abstract class WorkerNG implements InstanceActionReceiver {
 	
 	public enum WorkerCategory {
 		INDEXING, METADATA, EXTERNAL_MODULE, USERACTION, INTERNAL
@@ -65,6 +60,7 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 	private AppManager manager;
 	
 	public WorkerNG() {
+		Loggers.Worker.debug("Create worker " + getClass().getName());
 	}
 	
 	@Override
@@ -74,7 +70,9 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 		sb.append(reference_key);
 		sb.append("] ");
 		sb.append(getClass().getName());
-		sb.append(" ");
+		sb.append(" \"");
+		sb.append(getWorkerLongName());
+		sb.append("\" ");
 		sb.append(stopreason);
 		sb.append(" ");
 		if (current_executor != null) {
@@ -83,6 +81,15 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 		} else {
 			sb.append(" job:null");
 		}
+		return sb.toString();
+	}
+	
+	private String toStringLight() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("[");
+		sb.append(reference_key);
+		sb.append("] ");
+		sb.append(getClass().getSimpleName());
 		return sb.toString();
 	}
 	
@@ -123,6 +130,9 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 		List<WorkerCapablities> current_capablities = getWorkerCapablities();
 		for (int pos_cc = 0; pos_cc < current_capablities.size(); pos_cc++) {
 			if (current_capablities.get(pos_cc).isAssignableFrom(context)) {
+				if (Loggers.Worker.isTraceEnabled()) {
+					Loggers.Worker.trace("Worker " + toStringLight() + " can process\t" + context.toString());
+				}
 				return true;
 			}
 		}
@@ -141,6 +151,9 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 			this.job = job;
 			this.reference = reference;
 			setDaemon(true);
+			if (Loggers.Worker.isDebugEnabled()) {
+				Loggers.Worker.debug("Init worker executor for " + reference.toStringLight());
+			}
 			if (job.hasAMaxExecutionTime()) {
 				current_executor_watch_dog = new ExecutorWatchDog(this);
 			}
@@ -151,34 +164,42 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 				current_executor_watch_dog.start();
 			}
 			try {
-				Log2.log.debug("Start processing", job);
+				if (Loggers.Worker.isInfoEnabled()) {
+					if (job.isDeleteAfterCompleted() & Loggers.Worker.isDebugEnabled()) {
+						Loggers.Worker.debug("Start processing DelAftCom job for worker " + reference.toStringLight() + ":\t" + job.toString());
+					} else {
+						Loggers.Worker.info("Start processing job for worker " + reference.toStringLight() + ":\t" + job.toString());
+					}
+				}
 				job.saveChanges();
 				
 				workerProcessJob(job.startProcessing(manager, reference), job.getContext());
 				
 				if (job.isMaxExecutionTimeIsReached()) {
+					Loggers.Worker.warn("Job processing has reach the max execution time, for worker " + reference.toStringLight() + ":\t" + job.toString());
 					job.endProcessing_TooLongDuration();
 					manager.getServiceException().onMaxExecJobTime(job);
-					Log2.log.error("Max execution time is reached", null, job);
 				} else {
 					switch (stopreason) {
 					case full_functionnal:
+						if (Loggers.Worker.isDebugEnabled()) {
+							Loggers.Worker.debug("Job processing is done, for worker " + reference.toStringLight() + ":\t" + job.toString());
+						}
 						job.endProcessing_Done();
-						Log2.log.debug("End processing", job);
 						break;
 					case refuse_new_jobs:
+						Loggers.Worker.warn("Job processing is stopped, for worker (and it will refuse new jobs) " + reference.toStringLight() + ":\t" + job.toString());
 						job.endProcessing_Stopped();
-						Log2.log.debug("Stop execution", job);
 						break;
 					case simple_job_stop:
+						Loggers.Worker.warn("This job processing is stopped, for worker " + reference.toStringLight() + ":\t" + job.toString());
 						job.endProcessing_Stopped();
-						Log2.log.debug("Stop execution", job);
 						stopreason = StopReason.full_functionnal;
 						break;
 					}
 				}
 			} catch (Exception e) {
-				Log2.log.error("Processing error", e, job);
+				Loggers.Worker.error("Error during job processing, for worker " + reference.toStringLight() + ":\t" + job.toString(), e);
 				job.endProcessing_Error(e);
 				manager.getServiceException().onError(e, "Error during processing", reference);
 			}
@@ -192,6 +213,7 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 				this.executor = executor;
 				setName("ExecutorWatchDog for " + executor.getName());
 				setDaemon(true);
+				Loggers.Worker.debug("Init ExecutorWatchDog for worker " + executor.reference.toString());
 			}
 			
 			public void run() {
@@ -204,7 +226,7 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 						sleep(1000);
 					}
 				} catch (Exception e) {
-					Log2.log.error("Can't monitor Executor", e);
+					Loggers.Worker.error("Can't monitor Executor for worker " + executor.reference.toString(), e);
 				}
 			}
 		}
@@ -215,20 +237,35 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 		
 		private LifeCycle(WorkerNG reference) {
 			this.reference = reference;
+			if (Loggers.Worker.isDebugEnabled()) {
+				Loggers.Worker.debug("Init life cycle for worker " + reference.toStringLight());
+			}
 		}
 		
 		final WorkerState getState() {
 			if (isActivated() == false) {
+				if (Loggers.Worker.isTraceEnabled()) {
+					Loggers.Worker.trace("Worker state is disactived " + reference.toStringLight());
+				}
 				return WorkerState.DISACTIVATED;
 			}
 			if (current_executor != null) {
 				if (current_executor.isAlive()) {
 					switch (stopreason) {
 					case full_functionnal:
+						if (Loggers.Worker.isTraceEnabled()) {
+							Loggers.Worker.trace("Worker state is PROCESSING " + reference.toStringLight());
+						}
 						return WorkerState.PROCESSING;
 					case refuse_new_jobs:
+						if (Loggers.Worker.isTraceEnabled()) {
+							Loggers.Worker.trace("Worker state is PENDING_STOP and refuse_new_jobs " + reference.toStringLight());
+						}
 						return WorkerState.PENDING_STOP;
 					case simple_job_stop:
+						if (Loggers.Worker.isTraceEnabled()) {
+							Loggers.Worker.trace("Worker state is PENDING_STOP and simple_job_stop " + reference.toStringLight());
+						}
 						return WorkerState.PENDING_STOP;
 					}
 				} else {
@@ -237,16 +274,28 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 			}
 			switch (stopreason) {
 			case full_functionnal:
+				if (Loggers.Worker.isTraceEnabled()) {
+					Loggers.Worker.trace("Worker state is WAITING new jobs " + reference.toStringLight());
+				}
 				return WorkerState.WAITING;
 			case refuse_new_jobs:
+				if (Loggers.Worker.isTraceEnabled()) {
+					Loggers.Worker.trace("Worker state is STOPPED and refuse new jobs " + reference.toStringLight());
+				}
 				return WorkerState.STOPPED;
 			case simple_job_stop:
+				if (Loggers.Worker.isTraceEnabled()) {
+					Loggers.Worker.trace("Worker state is STOP current job " + reference.toStringLight());
+				}
 				return WorkerState.WAITING;
 			}
 			return WorkerState.WAITING;
 		}
 		
 		final void enable() {
+			if (Loggers.Worker.isTraceEnabled()) {
+				Loggers.Worker.trace("Set state to enable " + reference.toStringLight());
+			}
 			stopreason = StopReason.full_functionnal;
 		}
 		
@@ -254,21 +303,24 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 			if (getState() == WorkerState.PROCESSING) {
 				try {
 					if (current_executor != null) {
-						Log2.log.debug("Force stop process", current_executor.job);
+						Loggers.Worker.info("Force stop process " + reference.toStringLight() + " for job:\t" + current_executor.job);
 					}
 					forceStopProcess();
 				} catch (Exception e) {
+					Loggers.Worker.error("Can't stop (forced) process " + reference.toStringLight() + " for job:\t" + current_executor.job, e);
 					manager.getServiceException().onError(e, "Can't stop current process", reference);
 				}
 			}
 		}
 		
 		final void askToStopAndRefuseNewJobs() {
+			Loggers.Worker.debug("Switch worker state to askToStopAndRefuseNewJobs " + reference.toStringLight());
 			askToStop();
 			stopreason = StopReason.refuse_new_jobs;
 		}
 		
 		final void justAskToStop() {
+			Loggers.Worker.debug("Switch worker state to justAskToStop " + reference.toStringLight());
 			askToStop();
 			stopreason = StopReason.simple_job_stop;
 		}
@@ -321,17 +373,6 @@ public abstract class WorkerNG implements Log2Dumpable, InstanceActionReceiver {
 			return null;
 		}
 		return current_executor.job;
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.addAll(exporter);
-		if (current_executor != null) {
-			dump.add("executor", current_executor.getName() + " [" + current_executor.getId() + "]");
-			dump.add("executor is alive", current_executor.isAlive());
-		}
-		dump.add("stopreason", stopreason);
-		return dump;
 	}
 	
 	public final void doAnAction(JsonObject order) {

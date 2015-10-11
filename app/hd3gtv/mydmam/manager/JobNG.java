@@ -54,9 +54,7 @@ import com.netflix.astyanax.query.IndexQuery;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
@@ -68,7 +66,7 @@ import hd3gtv.tools.StoppableProcessing;
 /**
  * Use AppManager to for create job.
  */
-public final class JobNG implements Log2Dumpable {
+public final class JobNG {
 	
 	private static final ColumnFamily<String, String> CF_QUEUE = new ColumnFamily<String, String>("mgrQueue", StringSerializer.get(), StringSerializer.get());
 	private static Keyspace keyspace;
@@ -92,8 +90,6 @@ public final class JobNG implements Log2Dumpable {
 			Loggers.Manager.error("Can't init database CFs", e);
 		}
 	}
-	
-	// TODO Loggers
 	
 	static ColumnPrefixDistributedRowLock<String> prepareLock() {
 		return new ColumnPrefixDistributedRowLock<String>(keyspace, CF_QUEUE, "BROKER_LOCK");
@@ -176,6 +172,10 @@ public final class JobNG implements Log2Dumpable {
 		update_date = -1;
 		start_date = -1;
 		end_date = -1;
+		
+		if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Create Job:\t" + toString());
+		}
 	}
 	
 	public JobNG setName(String name) {
@@ -377,6 +377,9 @@ public final class JobNG implements Log2Dumpable {
 	 * @return this
 	 */
 	public JobNG publish() throws ConnectionException {
+		if (Loggers.Job.isInfoEnabled()) {
+			Loggers.Job.info("Publish new job:\t" + toString());
+		}
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		publish(mutator);
 		mutator.execute();
@@ -403,6 +406,9 @@ public final class JobNG implements Log2Dumpable {
 			setMaxPriority();
 		}
 		saveChanges(mutator);
+		if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Prepare publish:\t" + toString());
+		}
 		return this;
 	}
 	
@@ -412,6 +418,9 @@ public final class JobNG implements Log2Dumpable {
 	 * @throws ConnectionException
 	 */
 	void saveChanges() throws ConnectionException {
+		if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Save changes:\t" + toString());
+		}
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		saveChanges(mutator);
 		mutator.execute();
@@ -423,6 +432,9 @@ public final class JobNG implements Log2Dumpable {
 	 * @throws ConnectionException
 	 */
 	void saveChanges(MutationBatch mutator) {
+		if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Prepare save actual changes:\t" + toString());
+		}
 		update_date = System.currentTimeMillis();
 		exportToDatabase(mutator.withRow(CF_QUEUE, key));
 	}
@@ -476,6 +488,9 @@ public final class JobNG implements Log2Dumpable {
 		instance_status_executor_key = manager.getInstance_status().getInstanceNamePid();
 		instance_status_executor_hostname = manager.getInstance_status().getHostName();
 		progression = new JobProgression(this);
+		if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Start processing:\t" + toString());
+		}
 		return progression;
 	}
 	
@@ -519,6 +534,9 @@ public final class JobNG implements Log2Dumpable {
 	}
 	
 	void delete(MutationBatch mutator) throws ConnectionException {
+		if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Prepare delete job:\t" + toString());
+		}
 		mutator.withRow(CF_QUEUE, key).delete();
 	}
 	
@@ -577,6 +595,10 @@ public final class JobNG implements Log2Dumpable {
 		 */
 		mutator.putColumn("indexingdebug", 1, ttl);
 		mutator.putColumn("source", AppManager.getGson().toJson(this), ttl);
+		
+		if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Prepare export to db job:\t" + toString() + " with ttl " + ttl);
+		}
 	}
 	
 	public static final class Utility {
@@ -589,6 +611,9 @@ public final class JobNG implements Log2Dumpable {
 		}
 		
 		static List<JobNG> watchOldAbandonedJobs(MutationBatch mutator, InstanceStatus instance_status) throws ConnectionException {
+			if (Loggers.Job.isDebugEnabled()) {
+				Loggers.Job.debug("Search old abandoned jobs");
+			}
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
 			index_query.addExpression().whereColumn("creator_hostname").equals().value(instance_status.getHostName());
@@ -608,10 +633,16 @@ public final class JobNG implements Log2Dumpable {
 				job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
 				result.add(job);
 			}
+			if (Loggers.Job.isInfoEnabled()) {
+				Loggers.Job.info("Found old abandoned jobs:\t" + result);
+			}
 			return result;
 		}
 		
 		static void removeMaxDateForPostponedJobs(MutationBatch mutator, String creator_hostname) throws ConnectionException {
+			if (Loggers.Job.isDebugEnabled()) {
+				Loggers.Job.debug("Search for remove max date for postponed jobs");
+			}
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(JobStatus.POSTPONED.name());
 			index_query.addExpression().whereColumn("creator_hostname").equals().value(creator_hostname);
@@ -626,26 +657,20 @@ public final class JobNG implements Log2Dumpable {
 				JobNG job = JobNG.Utility.importFromDatabase(row.getColumns());
 				job.expiration_date = System.currentTimeMillis() + (default_max_execution_time * 7);
 				job.update_date = System.currentTimeMillis();
+				if (Loggers.Job.isDebugEnabled()) {
+					Loggers.Job.info("Remove max date for this postponed job:\t" + job);
+				}
 				job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
 			}
 		}
 		
 		public static void truncateAllJobs() throws ConnectionException {
+			Loggers.Job.info("Truncate all jobs from DB");
 			CassandraDb.truncateColumnFamilyString(keyspace, CF_QUEUE.getName());
 		}
 		
-		public static void removeJobsByStatus(MutationBatch mutator, JobStatus status) throws ConnectionException {
-			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
-			index_query.addExpression().whereColumn("status").equals().value(status.name());
-			index_query.withColumnSlice("status");
-			
-			OperationResult<Rows<String, String>> rows = index_query.execute();
-			for (Row<String, String> row : rows.getResult()) {
-				mutator.withRow(CF_QUEUE, row.getKey()).delete();
-			}
-		}
-		
 		public static void dropJobsQueueCF() throws ConnectionException {
+			Loggers.Job.info("Drop CF " + CF_QUEUE.getName() + " from DB");
 			CassandraDb.dropColumnFamilyString(keyspace, CF_QUEUE.getName());
 		}
 		
@@ -731,6 +756,7 @@ public final class JobNG implements Log2Dumpable {
 		 * @return deleted raw json jobs
 		 */
 		public static List<JsonObject> deleteJobsByStatus(JobStatus status) throws ConnectionException {
+			Loggers.Job.info("Remove all jobs by status (" + status + ") from DB");
 			ArrayList<JsonObject> result = new ArrayList<JsonObject>();
 			
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
@@ -745,6 +771,9 @@ public final class JobNG implements Log2Dumpable {
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
 			for (Row<String, String> row : rows.getResult()) {
 				result.add(parser.parse(row.getColumns().getStringValue("source", "{}")).getAsJsonObject());
+				if (Loggers.Job.isInfoEnabled()) {
+					Loggers.Job.info("Remove job by status (" + status + "): [" + row.getKey() + "]");
+				}
 				mutator.withRow(CF_QUEUE, row.getKey()).delete();
 			}
 			mutator.execute();
@@ -896,12 +925,10 @@ public final class JobNG implements Log2Dumpable {
 			
 			if (jobs_keys_in_errors.isEmpty() == false) {
 				Exception e = new Exception("Trouble with some processed jobs");
-				Log2Dump errors = new Log2Dump();
 				List<JobNG> error_jobs = getJobsByKeys(jobs_keys_in_errors);
 				for (int pos = 0; pos < error_jobs.size(); pos++) {
-					errors.addAll(error_jobs.get(pos));
+					Loggers.Job.error("Trouble with processed job (" + (pos + 1) + "/" + error_jobs.size() + "):\t" + error_jobs.get(pos));
 				}
-				Log2.log.error("Some jobs are trouble", e, errors);
 				throw e;
 			}
 		}

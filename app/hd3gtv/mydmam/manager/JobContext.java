@@ -20,6 +20,7 @@ import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import com.google.common.reflect.TypeToken;
@@ -164,4 +165,12 @@ public abstract class JobContext {
 		
 	}
 	
+	public final String toString() {
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		log.put("classname", getClass().getName());
+		log.put("context", contextToJson());
+		log.put("neededstorages", neededstorages);
+		log.put("hookednames", hookednames);
+		return log.toString();
+	}
 }

@@ -276,7 +276,7 @@ public final class AppManager implements InstanceActionReceiver {
 			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager);
 			for (int pos = 0; pos < jobs.size(); pos++) {
-				alert.addDump(jobs.get(pos));
+				alert.addDump(jobs.get(pos).getLog2Dump());
 			}
 			alert.addDump(instance_status).send();
 		}
@@ -285,7 +285,7 @@ public final class AppManager implements InstanceActionReceiver {
 			Loggers.Manager.debug("Max exec time for job: " + job);
 			
 			AdminMailAlert alert = AdminMailAlert.create("A job has an execution time too long", false).setManager(manager);
-			alert.addDump(job);
+			alert.addDump(job.getLog2Dump());
 			alert.addDump(instance_status).send();
 		}
 	}
