@@ -18,9 +18,6 @@
 */
 package hd3gtv.mydmam.web;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -37,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.JavaScriptException;
@@ -49,17 +47,17 @@ import org.mozilla.javascript.commonjs.module.provider.ModuleSourceProvider;
 import org.mozilla.javascript.commonjs.module.provider.SoftCachingModuleScriptProvider;
 import org.mozilla.javascript.commonjs.module.provider.UrlModuleSourceProvider;
 
-import play.exceptions.UnexpectedException;
-import play.libs.IO;
-import play.mvc.Router;
-import play.vfs.VirtualFile;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import controllers.AsyncJavascript;
+import hd3gtv.mydmam.Loggers;
+import play.exceptions.UnexpectedException;
+import play.libs.IO;
+import play.mvc.Router;
+import play.vfs.VirtualFile;
 
 public class JSXTransformer {
 	
@@ -111,7 +109,7 @@ public class JSXTransformer {
 			transform = (Function) exports.get("transform", topLevelScope);
 			is_init = true;
 		} catch (Exception e) {
-			Log2.log.error("Can't load JSXTransformer", e);
+			Loggers.Play.error("Can't load JSXTransformer", e);
 		} finally {
 			Context.exit();
 		}
@@ -271,17 +269,13 @@ public class JSXTransformer {
 			read_header_file = new BufferedReader(new FileReader(header_file));
 			first_line = read_header_file.readLine();
 		} catch (Exception e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("header_file", header_file);
-			Log2.log.error("Can't check JSX file", e, dump);
+			Loggers.Play.error("Can't check JSX file, header_file: " + header_file, e);
 			return false;
 		} finally {
 			try {
 				read_header_file.close();
 			} catch (IOException e) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("header_file", header_file);
-				Log2.log.error("Can't check JSX file", e, dump);
+				Loggers.Play.error("Can't check JSX file, header_file: " + header_file, e);
 				return false;
 			}
 		}
@@ -331,18 +325,16 @@ public class JSXTransformer {
 			/**
 			 * Create a header file for declaring subdirs as vars.
 			 */
-			Log2Dump dump = new Log2Dump();
-			dump.add("react directory", from);
 			
 			File header_file = new File(from.getAbsolutePath() + File.separator + JSX_FILE_NAME);
 			if (header_file.exists() == false) {
-				Log2.log.debug("Create new JSX header file for new directory", dump);
+				Loggers.Play.debug("Create new JSX header file for new directory: " + from);
 				list.add(makeJSXAHeaderFile(current_list_dirs, header_file, jsx_root_dir));
 			} else {
 				if (checkJSXAHeaderFile(current_list_dirs, header_file, jsx_root_dir)) {
 					list.add(new JSXItem(header_file, jsx_root_dir));
 				} else {
-					Log2.log.debug("Rewrite current JSX header file for renamed directory", dump);
+					Loggers.Play.debug("Rewrite current JSX header file for renamed directory: " + from);
 					list.add(makeJSXAHeaderFile(current_list_dirs, header_file, jsx_root_dir));
 				}
 			}
@@ -416,13 +408,14 @@ public class JSXTransformer {
 				return (name.startsWith("ZZZZZZZZZZZZZZZ.react.") && name.endsWith(".jsx.js"));
 			}
 		});
-		Log2Dump dump = new Log2Dump();
+		
 		for (int pos = 0; pos < old_transformed_jsxfiles.length; pos++) {
-			dump.add("file", old_transformed_jsxfiles[pos]);
-			dump.add("delete", old_transformed_jsxfiles[pos].delete());
-		}
-		if (old_transformed_jsxfiles.length > 0) {
-			Log2.log.debug("Purge transformed jsx files temp", dump);
+			Loggers.Play.debug("Purge transformed jsx file temp: " + old_transformed_jsxfiles[pos]);
+			try {
+				FileUtils.forceDelete(old_transformed_jsxfiles[pos]);
+			} catch (Exception e) {
+				Loggers.Play.warn("Can't delete jsx file temp: " + old_transformed_jsxfiles[pos], e);
+			}
 		}
 		
 		if (JsCompile.COMPILE_JS == false) {
@@ -442,25 +435,23 @@ public class JSXTransformer {
 						+ getJSXContentFromURLList(jsx_file.realfile, jsx_file.getRessourceName(), true, false);
 				dest_js_file = new File(js_dest_dir_path + "/" + "ZZZZZZZZZZZZZZZ.react." + jsx_file.getRessourceName() + ".js");
 				
-				dump = new Log2Dump();
-				dump.add("jsx_file", jsx_file.realfile);
-				dump.add("jsx_ressource", jsx_file.getRessourceName());
-				dump.add("dest_js_file", dest_js_file);
-				Log2.log.debug("Transform JSX File", dump);
+				if (Loggers.Play.isDebugEnabled()) {
+					Loggers.Play.info("Transform JSX file " + jsx_file.realfile + ", ressource: " + jsx_file.getRessourceName() + ", dest_js_file: " + dest_js_file);
+				}
 				
 				fw = new FileWriter(dest_js_file);
 				fw.write(js_content);
 				fw.close();
 				fw = null;
 			} catch (Exception e) {
-				Log2.log.error("Can't transform JSX", e, new Log2Dump("file", jsx_file.realfile));
+				Loggers.Play.error("Can't transform JSX file:" + jsx_file.realfile, e);
 				continue;
 			} finally {
 				if (fw != null) {
 					try {
 						fw.close();
 					} catch (Exception e) {
-						Log2.log.error("Can't close FileWriter", e);
+						Loggers.Play.error("Can't close FileWriter", e);
 					}
 				}
 			}

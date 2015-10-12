@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,6 +48,8 @@ import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+import hd3gtv.mydmam.Loggers;
+
 public class BackupDb {
 	
 	public static boolean mode_debug = false;
@@ -72,7 +71,6 @@ public class BackupDb {
 			String cfname;
 			ColumnFamily<String, String> cf;
 			File outfile;
-			Log2Dump dump;
 			BackupDbCassandra exportcassandra;
 			for (int pos = 0; pos < l_cdf.size(); pos++) {
 				cfd = l_cdf.get(pos);
@@ -80,10 +78,7 @@ public class BackupDb {
 				cf = new ColumnFamily<String, String>(cfname, StringSerializer.get(), StringSerializer.get());
 				outfile = new File(basepath + "_cs_" + cfname + ".xml");
 				
-				dump = new Log2Dump();
-				dump.add("name", cfname);
-				dump.add("outfile", outfile);
-				Log2.log.info("Start backup Cassandra Column Family", dump);
+				Loggers.Cassandra.info("Start backup Cassandra Column Family, name: " + cfname + ", outfile: " + outfile);
 				
 				exportcassandra = new BackupDbCassandra(keyspace, cfd, outfile);
 				
@@ -91,9 +86,9 @@ public class BackupDb {
 				
 				if (result) {
 					exportcassandra.closeDocument();
-					Log2.log.info("End backup", new Log2Dump("keys", exportcassandra.getCount()));
+					Loggers.Cassandra.info("End backup, keys" + exportcassandra.getCount());
 				} else {
-					Log2.log.error("End backup...", null);
+					Loggers.Cassandra.error("End backup...");
 				}
 			}
 		}
@@ -112,17 +107,13 @@ public class BackupDb {
 			
 			ElastisearchCrawlerReader crawler_reader;
 			File outfile;
-			Log2Dump dump;
 			BackupDbElasticsearch exportes;
 			String index_name;
 			for (int pos = 0; pos < index_names.size(); pos++) {
 				index_name = index_names.get(pos);
 				outfile = new File(basepath + "_es_" + index_name + ".xml");
 				
-				dump = new Log2Dump();
-				dump.add("index", index_names.get(pos));
-				dump.add("outfile", outfile);
-				Log2.log.info("Start backup ElasticSearch Index", dump);
+				Loggers.ElasticSearch.info("Start backup ElasticSearch Index with index: " + index_names.get(pos) + " and outfile: " + outfile);
 				
 				GetSettingsResponse settings = admin_client.getSettings(new GetSettingsRequest().indices(index_name)).actionGet();
 				GetMappingsResponse mapping = admin_client.getMappings(new GetMappingsRequest().indices(index_name)).actionGet();
@@ -134,7 +125,7 @@ public class BackupDb {
 				crawler_reader.allReader(exportes);
 				
 				exportes.closeDocument();
-				Log2.log.info("End backup", new Log2Dump("keys", exportes.getCount()));
+				Loggers.ElasticSearch.info("End backup with " + exportes.getCount() + " keys");
 			}
 		}
 	}

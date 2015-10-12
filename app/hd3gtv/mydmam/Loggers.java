@@ -27,12 +27,17 @@ import com.google.gson.JsonObject;
 public final class Loggers {
 	
 	public final static Logger Manager = Logger.getLogger("mydmam.manager");
+	public final static Logger ClusterStatus = Logger.getLogger("mydmam.clusterstatus");
 	public final static Logger Broker = Logger.getLogger("mydmam.broker");
 	public final static Logger Worker = Logger.getLogger("mydmam.worker");
 	public final static Logger Job = Logger.getLogger("mydmam.job");
-	public final static Logger WatchFolder = Logger.getLogger("mydmam.watchFolder");
+	public final static Logger WatchFolder = Logger.getLogger("mydmam.watchfolder");
 	public final static Logger Transcoder = Logger.getLogger("mydmam.transcoder");
 	public final static Logger Loggers = Logger.getLogger("mydmam.loggers");
+	public final static Logger Cassandra = Logger.getLogger("mydmam.cassandra");
+	public final static Logger ORM = Logger.getLogger("mydmam.orm");
+	public final static Logger ElasticSearch = Logger.getLogger("mydmam.elasticsearch");
+	public final static Logger Play = Logger.getLogger("mydmam.play");
 	
 	public static JsonObject getAllLevels() {
 		JsonObject result = new JsonObject();

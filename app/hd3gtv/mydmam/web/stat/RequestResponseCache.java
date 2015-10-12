@@ -16,8 +16,19 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.ContainerOrigin;
@@ -27,27 +38,13 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Explorer.DirectoryContent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
-
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import play.cache.Cache;
 import play.jobs.JobsPlugin;
-
-import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
 
 public class RequestResponseCache {
 	
 	public static final int DEFAULT_DIRLIST_PAGE_SIZE = 500;
 	private static final String CACHE_PREFIX_NAME = RequestResponseCache.class.getSimpleName() + "_";
-	static final boolean DISPLAY_VERBOSE_LOG = true;
 	
 	private static Explorer explorer;
 	
@@ -94,9 +91,7 @@ public class RequestResponseCache {
 						continue;
 					}
 					
-					if (DISPLAY_VERBOSE_LOG) {
-						Log2.log.debug("Cache force delete", new Log2Dump("cache_key", cache_key));
-					}
+					Loggers.Play.debug("Cache force delete, cache_key: " + cache_key);
 					Cache.safeDelete(cache_key);
 					// continue;
 				}
@@ -130,11 +125,7 @@ public class RequestResponseCache {
 			cache_key = CACHE_PREFIX_NAME + cache_factory.getClass().getSimpleName() + "_" + entry.getKey();
 			cache_value = cache_factory.serializeThis(entry.getValue());
 			Cache.set(cache_key, cache_value, WebCacheInvalidation.CACHING_CLIENT_TTL);
-			if (DISPLAY_VERBOSE_LOG) {
-				Log2Dump dump = new Log2Dump("cache_key", cache_key);
-				dump.add("cache_value", cache_value);
-				Log2.log.debug("Cache set", dump);
-			}
+			Loggers.Play.debug("Cache set, key: " + cache_key + ", value: " + cache_value);
 		}
 		
 		for (Map.Entry<String, RequestResponseCacheExpirableItem<E>> entry : missing_values_return.entrySet()) {

@@ -3,14 +3,6 @@
 */
 package controllers;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.auth.AuthenticationBackend;
-import hd3gtv.mydmam.auth.AuthenticationUser;
-import hd3gtv.mydmam.auth.Authenticator;
-import hd3gtv.mydmam.auth.InvalidAuthenticatorUserException;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Date;
@@ -19,6 +11,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.auth.AuthenticationBackend;
+import hd3gtv.mydmam.auth.AuthenticationUser;
+import hd3gtv.mydmam.auth.Authenticator;
+import hd3gtv.mydmam.auth.InvalidAuthenticatorUserException;
 import models.ACLGroup;
 import models.ACLUser;
 import models.BlackListIP;
@@ -33,9 +35,6 @@ import play.libs.Time;
 import play.mvc.Before;
 import play.mvc.Controller;
 import play.mvc.Http;
-
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
 
 /**
  * Imported from Play Secure Module
@@ -115,17 +114,18 @@ public class Secure extends Controller {
 		// Log2.log.debug("Update privileges in session", new Log2Dump("raw json", gson.toJson(privileges)));
 	}
 	
-	private static void getSessionPrivilegesListToDump(Log2Dump dump) {
+	private static void getSessionPrivilegesListToDump(StringBuilder sb) {
+		sb.append(" ");
 		String session_privileges = session.get("privileges");
 		if (session_privileges == null) {
-			dump.add("privileges", "(null)");
+			sb.append("privileges: (null)");
 			return;
 		}
 		
 		String raw_privileges = Crypto.decryptAES(session_privileges);
 		ArrayList<String> privileges = gson.fromJson(raw_privileges, type_alstring);
 		if (privileges.isEmpty()) {
-			dump.add("privileges", "(empty)");
+			sb.append("privileges: (empty)");
 			return;
 		}
 		long ttl_date = 0;
@@ -137,7 +137,7 @@ public class Secure extends Controller {
 				privileges.remove(pos);
 			}
 		}
-		StringBuffer sb = new StringBuffer();
+		sb.append("privileges: ");
 		for (int pos = 0; pos < privileges.size(); pos++) {
 			sb.append(privileges.get(pos));
 			if (pos + 1 < privileges.size()) {
@@ -145,9 +145,9 @@ public class Secure extends Controller {
 			}
 		}
 		
-		dump.add("privileges", sb.toString());
 		if (ttl_date > 0) {
-			dump.addDate("privileges ttl", ttl_date);
+			sb.append("privileges ttl: ");
+			sb.append(Log2Event.dateLog(ttl_date));
 		}
 	}
 	
@@ -161,12 +161,12 @@ public class Secure extends Controller {
 			return;
 		}
 		
-		Log2Dump dump = new Log2Dump();
-		dump.addAll(getUserSessionInformation());
+		StringBuilder sb = new StringBuilder();
 		for (int pos = 0; pos < chech_values.length; pos++) {
-			dump.add("chech", chech_values[pos]);
+			sb.append(" chech: ");
+			sb.append(chech_values[pos]);
 		}
-		Log2.log.security("Check failed: hack tentative", new Exception(""), dump);
+		Loggers.Play.error("Check failed: hack tentative. " + getUserSessionInformation() + sb.toString());
 		forbidden();
 	}
 	
@@ -194,9 +194,10 @@ public class Secure extends Controller {
 		return isSessionHasThisPrivilege(privileges.toArray(new String[privileges.size()]));
 	}
 	
-	private static Log2Dump getUserSessionInformation() {
-		Log2Dump dump = new Log2Dump();
-		StringBuffer sb = new StringBuffer();
+	private static String getUserSessionInformation() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("request: ");
+		
 		if (request.isLoopback == false) {
 			sb.append(request.remoteAddress);
 		} else {
@@ -221,12 +222,13 @@ public class Secure extends Controller {
 		sb.append(" > ");
 		sb.append(request.action);
 		
-		dump.add("request", sb);
+		sb.append(" username: ");
+		sb.append(session.get("username"));
+		sb.append(" longname: ");
+		sb.append(session.get("longname"));
+		getSessionPrivilegesListToDump(sb);
 		
-		dump.add("username", session.get("username"));
-		dump.add("longname", session.get("longname"));
-		getSessionPrivilegesListToDump(dump);
-		return dump;
+		return sb.toString();
 	}
 	
 	/**
@@ -314,11 +316,7 @@ public class Secure extends Controller {
 		}
 		
 		if (BlackListIP.validThisIP(remote_address) == false) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("username", username);
-			dump.add("domainidx", domainidx);
-			dump.add("remote_address", remote_address);
-			Log2.log.debug("Refuse IP addr for user", dump);
+			Loggers.Play.warn("Refuse IP addr for user username: " + username + ", domainidx: " + domainidx + ", remote_address: " + remote_address);
 			rejectUser();
 			return;
 		}
@@ -337,11 +335,7 @@ public class Secure extends Controller {
 				authuser = AuthenticationBackend.authenticate(username, password);
 			}
 		} catch (InvalidAuthenticatorUserException e) {
-			Log2Dump dump = getUserSessionInformation();
-			dump.add("username", username);
-			dump.add("domainidx", domainidx);
-			dump.add("cause", e.getMessage());
-			Log2.log.security("Can't login", dump);
+			Loggers.Play.error("Can't login username: " + username + ", domainidx: " + domainidx + ", cause: " + e.getMessage() + " " + getUserSessionInformation());
 		}
 		
 		if (authuser == null) {
@@ -363,10 +357,7 @@ public class Secure extends Controller {
 		BlackListIP.releaseIP(remote_address);
 		
 		if (acluser.locked_account) {
-			Log2Dump dump = getUserSessionInformation();
-			dump.add("username", username);
-			dump.add("domainidx", domainidx);
-			Log2.log.security("Locked account for user", dump);
+			Loggers.Play.error("Locked account for user: " + username + ", domainidx: " + domainidx + " " + getUserSessionInformation());
 			rejectUser();
 		}
 		
@@ -419,11 +410,11 @@ public class Secure extends Controller {
 	
 	public static void logout() throws Throwable {
 		try {
-			Log2.log.security("User went tries to sign off", getUserSessionInformation());
+			Loggers.Play.error("User went tries to sign off: " + getUserSessionInformation());
 			session.clear();
 			response.removeCookie("rememberme");
 		} catch (Exception e) {
-			Log2.log.security("Error during sign off", e, getUserSessionInformation());
+			Loggers.Play.error("Error during sign off: " + getUserSessionInformation());
 			throw e;
 		}
 		flash.success("secure.logout");
@@ -431,7 +422,7 @@ public class Secure extends Controller {
 	}
 	
 	private static void redirectToOriginalURL() throws Throwable {
-		Log2.log.security("User has a successful authentication", getUserSessionInformation());
+		Loggers.Play.info("User has a successful authentication: " + getUserSessionInformation());
 		
 		String url = flash.get("url");
 		if (url == null) {

@@ -16,11 +16,6 @@
 */
 package models;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.useraction.UAFunctionalityContext;
-import hd3gtv.mydmam.useraction.UAManager;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +28,9 @@ import javax.persistence.OneToMany;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.useraction.UAFunctionalityContext;
+import hd3gtv.mydmam.useraction.UAManager;
 import play.data.validation.Required;
 import play.db.jpa.GenericModel;
 
@@ -90,7 +88,7 @@ public class ACLRole extends GenericModel {
 			
 			return result;
 		} catch (Exception e) {
-			Log2.log.error("Can't extract privileges from DB", e, new Log2Dump("raw privileges", privileges));
+			Loggers.Play.error("Can't extract privileges from DB: " + privileges, e);
 			return new ArrayList<String>(1);
 		}
 		
@@ -120,7 +118,7 @@ public class ACLRole extends GenericModel {
 			
 			return result;
 		} catch (Exception e) {
-			Log2.log.error("Can't extract functionalities from DB", e, new Log2Dump("raw functionalities", functionalities));
+			Loggers.Play.error("Can't extract functionalities from DB: " + functionalities, e);
 			return new ArrayList<String>(1);
 		}
 	}

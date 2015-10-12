@@ -16,11 +16,6 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.configuration.ConfigurationClusterItem;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +39,10 @@ import com.netflix.astyanax.partitioner.Murmur3Partitioner;
 import com.netflix.astyanax.recipes.reader.AllRowsReader;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.ConfigurationClusterItem;
+import hd3gtv.mydmam.Loggers;
 
 public class CassandraDb {
 	
@@ -77,13 +76,11 @@ public class CassandraDb {
 			clusterservers = Configuration.global.getClusterConfiguration("cassandra", "rcp_cluster", "127.0.0.1", 9160);
 			default_keyspacename = Configuration.global.getValue("cassandra", "keyspace", null);
 			
-			Log2Dump dump = new Log2Dump();
-			dump.add("clustername", clustername);
+			Loggers.Cassandra.info("Cassandra client configuration, keyspace: " + default_keyspacename + ", clustername: " + clustername);
+			
 			for (ConfigurationClusterItem item : clusterservers) {
-				dump.addAll(item);
+				Loggers.Cassandra.info("Cassandra client configuration, cluster item: " + item.address + ":" + item.port);
 			}
-			dump.add("keyspacename", default_keyspacename);
-			Log2.log.info("Cassandra client configuration", dump);
 			
 			ConnectionPoolConfigurationImpl connexionpool = new ConnectionPoolConfigurationImpl("mydmam-" + clustername);
 			connexionpool.setPort(9160);
@@ -115,7 +112,7 @@ public class CassandraDb {
 			cluster = contextcluster.getClient();
 			
 		} catch (Exception e) {
-			Log2.log.error("Can't load Cassandra client configuration", e);
+			Loggers.Cassandra.error("Can't load Cassandra client configuration", e);
 		}
 	}
 	
@@ -158,14 +155,13 @@ public class CassandraDb {
 		ctx.start();
 		Keyspace keyspace = ctx.getClient();
 		
-		keyspace.createKeyspace(ImmutableMap
-				.<String, Object> builder()
+		keyspace.createKeyspace(ImmutableMap.<String, Object> builder()
 				.put("strategy_options",
 						ImmutableMap.<String, Object> builder().put("replication_factor", String.valueOf(Configuration.global.getValue("cassandra", "default_replication_factor", 1))).build())
 				.put("strategy_class", "SimpleStrategy").build());
-		
+				
 		cluster.getKeyspace(keyspacename).describeKeyspace();
-		Log2.log.info("Create Keyspace", new Log2Dump("keyspacename", keyspacename));
+		Loggers.Cassandra.info("Create Keyspace " + keyspacename);
 	}
 	
 	public static MutationBatch prepareMutationBatch() throws ConnectionException {
@@ -185,7 +181,7 @@ public class CassandraDb {
 	 */
 	public static void createColumnFamilyString(String keyspacename, String cfname, boolean has_long_grace_period) throws ConnectionException {
 		Keyspace keyspace = getkeyspace(keyspacename);
-		Log2.log.info("Create ColumnFamily " + cfname + " in " + keyspace.getKeyspaceName());
+		Loggers.Cassandra.info("Create ColumnFamily " + cfname + " in " + keyspace.getKeyspaceName());
 		ColumnFamily<String, String> cf = ColumnFamily.newColumnFamily(cfname, StringSerializer.get(), StringSerializer.get());
 		keyspace.createColumnFamily(cf, null);
 		
@@ -208,7 +204,7 @@ public class CassandraDb {
 		}
 		keyspace.updateColumnFamily(cf, metadatas);
 		
-		Log2.log.info("ColumnFamily " + cfname + " is created");
+		Loggers.Cassandra.info("ColumnFamily " + cfname + " is created");
 	}
 	
 	public static void truncateColumnFamilyString(Keyspace keyspace, String cfname) throws ConnectionException {
@@ -288,7 +284,7 @@ public class CassandraDb {
 			keyspace.describeKeyspace();
 		} catch (ConnectionException e) {
 			if (e.getMessage().endsWith("InvalidRequestException(why:Keyspace '" + default_keyspacename + "' does not exist)")) {
-				Log2.log.info("Create keyspace");
+				Loggers.Cassandra.info("Create keyspace " + default_keyspacename);
 				createKeyspace(default_keyspacename);
 			} else {
 				throw e;

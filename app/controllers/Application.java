@@ -16,19 +16,6 @@
 */
 package controllers;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.RenderedFile;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.container.EntrySummary;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.useraction.Basket;
-import hd3gtv.mydmam.web.PartialContent;
-import hd3gtv.mydmam.web.search.SearchQuery;
-import hd3gtv.mydmam.web.search.SearchRequest;
-import hd3gtv.mydmam.web.stat.Stat;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,6 +27,21 @@ import java.util.Properties;
 
 import org.elasticsearch.indices.IndexMissingException;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.metadata.container.EntrySummary;
+import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.useraction.Basket;
+import hd3gtv.mydmam.web.PartialContent;
+import hd3gtv.mydmam.web.search.SearchQuery;
+import hd3gtv.mydmam.web.search.SearchRequest;
+import hd3gtv.mydmam.web.stat.Stat;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
@@ -47,10 +49,6 @@ import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.Http.Header;
 import play.mvc.With;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 @With(Secure.class)
 public class Application extends Controller {
@@ -70,7 +68,7 @@ public class Application extends Controller {
 		try {
 			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
 		} catch (Exception e) {
-			Log2.log.error("Can't get user basket", e);
+			Loggers.Play.error("Can't get user basket", e);
 		}
 		String list_external_positions_storages = MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
 		
@@ -125,7 +123,7 @@ public class Application extends Controller {
 				JobsPlugin.executor.submit(new UserBasket.AsyncCleanBasket(basket));
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't get user basket", e);
+			Loggers.Play.error("Can't get user basket", e);
 		}
 		
 		render(title, current_basket_content);
@@ -192,12 +190,9 @@ public class Application extends Controller {
 				element = ContainerOperations.getMetadataFile(filehash, type, file, false);
 			}
 		} catch (IOException e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("filehash", filehash);
-			dump.add("type", type);
-			dump.add("file", file);
-			Log2.log.error("Can't get the file", e, dump);
+			Loggers.Play.error("Can't get the file, filehash: " + filehash + ", type:" + type + ", file: " + file, e);
 		} catch (IndexMissingException e) {
+			Loggers.Play.warn("Index mising", e);
 		}
 		
 		if (element == null) {

@@ -16,13 +16,6 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.configuration.ConfigurationClusterItem;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.status.ElasticsearchStatus;
-import hd3gtv.mydmam.manager.InstanceStatus;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +48,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.ConfigurationClusterItem;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.status.ElasticsearchStatus;
+import hd3gtv.mydmam.manager.InstanceStatus;
+
 @SuppressWarnings("unchecked")
 public class Elasticsearch {
 	
@@ -70,7 +70,7 @@ public class Elasticsearch {
 			try {
 				client.close();
 			} catch (Exception e) {
-				Log2.log.error("Can't close properly client", e);
+				Loggers.ElasticSearch.error("Can't close properly client", e);
 			}
 		}
 		try {
@@ -96,11 +96,11 @@ public class Elasticsearch {
 			client = new TransportClient(settings.build());
 			client.addTransportAddresses(transportadresses);
 		} catch (Exception e) {
-			Log2.log.error("Can't load client configuration", e);
+			Loggers.ElasticSearch.error("Can't load client configuration", e);
 			try {
 				client.close();
 			} catch (Exception e1) {
-				Log2.log.error("Can't close client", e1);
+				Loggers.ElasticSearch.error("Can't close client", e1);
 			}
 		}
 	}
@@ -116,6 +116,7 @@ public class Elasticsearch {
 	}
 	
 	public static ElasticsearchBulkOperation prepareBulk() {
+		Loggers.ElasticSearch.debug("Prepare bulk");
 		return new ElasticsearchBulkOperation();
 	}
 	
@@ -139,6 +140,7 @@ public class Elasticsearch {
 	 */
 	public static void deleteIndexRequest(final String index_name) throws ElasticsearchException {
 		try {
+			Loggers.ElasticSearch.info("Delete index " + index_name);
 			Elasticsearch.withRetry(new ElasticsearchWithRetry<Void>() {
 				public Void call(Client client) throws NoNodeAvailableException {
 					client.admin().indices().delete(new DeleteIndexRequest(index_name)).actionGet();
@@ -189,6 +191,7 @@ public class Elasticsearch {
 			 */
 			return;
 		}
+		Loggers.ElasticSearch.debug("Enable TTL for index " + index_name + ": " + type);
 		GetMappingsRequest request = new GetMappingsRequest().indices(index_name);
 		ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetaData>> global_mapping = getClient().admin().indices().getMappings(request).actionGet().getMappings();
 		
@@ -253,6 +256,7 @@ public class Elasticsearch {
 	}
 	
 	public static boolean addMappingToIndex(final String index_name, final String type, final String json_mapping_source) {
+		Loggers.ElasticSearch.info("Add mapping to index: " + index_name + ", type: " + type + ", mapping_source: " + json_mapping_source);
 		return Elasticsearch.withRetry(new ElasticsearchWithRetry<Boolean>() {
 			public Boolean call(Client client) throws NoNodeAvailableException {
 				// Inspired by http://stackoverflow.com/questions/22071198/adding-mapping-to-a-type-from-java-how-do-i-do-it
@@ -277,7 +281,7 @@ public class Elasticsearch {
 					 */
 					Thread.sleep(pos_retry * 100);
 				} catch (InterruptedException e1) {
-					Log2.log.error("Stop sleep", e1);
+					Loggers.ElasticSearch.warn("Stop sleep", e1);
 					return null;
 				}
 				if (pos_retry == (max_retry - 2)) {
@@ -289,7 +293,7 @@ public class Elasticsearch {
 					/**
 					 * The last try has failed, throw error.
 					 */
-					Log2.log.error("The last (" + max_retry + ") try has failed, throw error", e);
+					Loggers.ElasticSearch.error("The last (" + max_retry + ") try has failed, throw error", e);
 					throw e;
 				}
 			}

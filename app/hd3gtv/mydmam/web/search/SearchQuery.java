@@ -16,20 +16,6 @@
 */
 package hd3gtv.mydmam.web.search;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
-import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
-import hd3gtv.mydmam.db.ElastisearchStatSearch;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.web.AsyncJSManager;
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
-import hd3gtv.tools.GsonIgnore;
-import hd3gtv.tools.GsonIgnoreStrategy;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +35,19 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
+import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
+import hd3gtv.mydmam.db.ElastisearchStatSearch;
+import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.web.AsyncJSManager;
+import hd3gtv.mydmam.web.AsyncJSResponseObject;
+import hd3gtv.mydmam.web.AsyncJSSerializer;
+import hd3gtv.tools.GsonIgnore;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 public final class SearchQuery implements AsyncJSResponseObject, ElastisearchStatSearch {
 	
@@ -282,7 +281,7 @@ public final class SearchQuery implements AsyncJSResponseObject, ElastisearchSta
 			try {
 				crawl.setQuery(query).allReader(this, reference);
 			} catch (Exception e) {
-				Log2.log.error("Can't search", e, new Log2Dump("q", q));
+				Loggers.Play.error("Can't search, q: " + q, e);
 			}
 			return results.isEmpty() == false;
 		}

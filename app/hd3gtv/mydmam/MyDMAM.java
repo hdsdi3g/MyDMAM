@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Modifier;
@@ -48,6 +45,9 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2;
 
 public class MyDMAM {
 	
@@ -160,9 +160,9 @@ public class MyDMAM {
 			cipher.init(Cipher.ENCRYPT_MODE, skeySpec, salt);
 			return;
 		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+			Loggers.Manager.fatal("Can't found MessageDigest or Cipher Algorithm", e);
 		} catch (NoSuchProviderException e) {
-			e.printStackTrace();
+			Loggers.Manager.fatal("Can't found MessageDigest or Cipher Provider", e);
 		} catch (InvalidKeyException e) {
 			if (e.getMessage().equals("Illegal key size")) {
 				System.err.println("");
@@ -176,19 +176,22 @@ public class MyDMAM {
 				System.err.println("");
 				System.err.println("Unzip, and copy US_export_policy.jar and local_policy.jar to this directory:");
 				System.err.println("");
-				System.out.println(" " + System.getProperty("java.home") + "/lib/security/");
+				System.err.println(" " + System.getProperty("java.home") + "/lib/security/");
 				System.err.println("");
 				System.err.println("Overwrite the actual jar files");
 				System.err.println("--------~~~~~~==============~~~~~~--------");
 				System.err.println("");
+				Loggers.Manager.fatal(
+						"JCE no found ! Download JCE from http://www.oracle.com/technetwork/java/javase/downloads/index.html, and unzip in " + System.getProperty("java.home") + "/lib/security/");
 			} else {
-				e.printStackTrace();
+				Loggers.Manager.fatal("Invalid Cipher key", e);
 			}
 		} catch (InvalidAlgorithmParameterException e) {
-			e.printStackTrace();
+			Loggers.Manager.fatal("Invalid Cipher Parameter", e);
 		} catch (NoSuchPaddingException e) {
-			e.printStackTrace();
+			Loggers.Manager.fatal("Invalid Cipher Padding", e);
 		}
+		Loggers.Manager.fatal("Check your Java environment, and the JCE configuration. MyDMAM can't work without it.");
 		System.exit(1);
 	}
 	

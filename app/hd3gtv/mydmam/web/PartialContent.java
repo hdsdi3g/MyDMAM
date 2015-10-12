@@ -6,14 +6,12 @@
 */
 package hd3gtv.mydmam.web;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.File;
 import java.io.RandomAccessFile;
 
 import org.jboss.netty.handler.stream.ChunkedFile;
 
+import hd3gtv.mydmam.Loggers;
 import play.exceptions.UnexpectedException;
 import play.mvc.Http.Header;
 import play.mvc.Http.Request;
@@ -52,10 +50,7 @@ public class PartialContent extends Result {
 			if (start <= end) {
 				long contentLength = end - start + 1;
 				
-				Log2Dump dump = new Log2Dump();
-				dump.add("start", start);
-				dump.add("contentLength", contentLength);
-				Log2.log.debug("Partial download", dump);
+				Loggers.Play.debug("Partial download, start: " + start + ", contentLength: " + contentLength);
 				
 				response.setHeader("Content-Length", contentLength + "");
 				response.setHeader("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);

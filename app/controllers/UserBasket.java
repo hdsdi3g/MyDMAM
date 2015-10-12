@@ -16,12 +16,6 @@
 */
 package controllers;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
-import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.useraction.Basket;
-import hd3gtv.mydmam.web.stat.Stat;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,6 +23,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
+import ext.MydmamExtensions;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.useraction.Basket;
+import hd3gtv.mydmam.web.stat.Stat;
 import models.UserProfile;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -36,11 +39,6 @@ import play.i18n.Messages;
 import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-
-import ext.MydmamExtensions;
 
 @With(Secure.class)
 @SuppressWarnings("unchecked")
@@ -53,7 +51,7 @@ public class UserBasket extends Controller {
 		try {
 			renderJSON(Basket.getBasketForCurrentPlayUser().getSelectedContentJson());
 		} catch (Exception e) {
-			Log2.log.error("Can't access to basket", e);
+			Loggers.Play.error("Can't access to basket", e);
 			renderJSON("[]");
 		}
 	}
@@ -71,7 +69,7 @@ public class UserBasket extends Controller {
 				basket.setSelectedContent(params.getAll("current[]"));
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't access to basket", e);
+			Loggers.Play.error("Can't access to basket", e);
 		}
 		renderJSON("[]");
 	}

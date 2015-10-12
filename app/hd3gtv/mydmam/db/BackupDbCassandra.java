@@ -16,13 +16,10 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.apache.commons.codec.DecoderException;
@@ -47,6 +44,10 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
+
+import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 
 class BackupDbCassandra extends DefaultHandler implements ErrorHandler, AllRowsFoundRow {
 	
@@ -137,11 +138,11 @@ class BackupDbCassandra extends DefaultHandler implements ErrorHandler, AllRowsF
 		if (qName.equalsIgnoreCase("columnfamily")) {
 			String cfname = attributes.getValue("name");
 			
-			Log2Dump dump = new Log2Dump();
-			dump.add("keyspace", attributes.getValue("keyspace"));
-			dump.add("name", cfname);
-			dump.addDate("created", Long.parseLong(attributes.getValue("created")));
-			Log2.log.info("Start import XML for restore Cassandra Column Family", dump);
+			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+			log.put("keyspace", attributes.getValue("keyspace"));
+			log.put("name", cfname);
+			log.put("created", Log2Event.dateLog(Long.parseLong(attributes.getValue("created"))));
+			Loggers.Cassandra.info("Start import XML for restore Cassandra Column Family:" + log);
 			
 			try {
 				boolean iscfexists = CassandraDb.isColumnFamilyExists(keyspace, cfname);
@@ -152,7 +153,7 @@ class BackupDbCassandra extends DefaultHandler implements ErrorHandler, AllRowsF
 					CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), cfname, true);
 				}
 			} catch (ConnectionException e) {
-				Log2.log.error("Prepare column family", e, dump);
+				Loggers.Cassandra.error("Prepare column family: " + log, e);
 				return;
 			}
 			mutator_key_count = 0;
@@ -190,9 +191,7 @@ class BackupDbCassandra extends DefaultHandler implements ErrorHandler, AllRowsF
 			return;
 		}
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("qName", qName);
-		Log2.log.error("Unknow start qName", null, dump);
+		Loggers.Cassandra.error("Unknow start qName " + qName);
 	}
 	
 	public void endElement(String uri, String localName, String qName) throws SAXException {
@@ -223,7 +222,7 @@ class BackupDbCassandra extends DefaultHandler implements ErrorHandler, AllRowsF
 						mutator.withRow(columnfamily, key_name).putColumn(col_name, quotedprintablecodec.decode(rawtext.toString().getBytes()));
 					}
 				} catch (DecoderException e) {
-					Log2.log.error("Bad column content decoding", e, new Log2Dump("raw content", rawtext.toString()));
+					Loggers.Cassandra.error("Bad column content decoding: " + rawtext.toString(), e);
 					e.printStackTrace();
 				}
 				return;
@@ -232,21 +231,19 @@ class BackupDbCassandra extends DefaultHandler implements ErrorHandler, AllRowsF
 		} catch (ConnectionException e) {
 			throw new SAXException("Can't access to CassandraDb", e);
 		}
-		Log2Dump dump = new Log2Dump();
-		dump.add("qName", qName);
-		Log2.log.error("Unknow end qName", null, dump);
+		Loggers.Cassandra.error("Unknow end qName " + qName);
 	}
 	
 	public void error(SAXParseException e) throws SAXException {
-		Log2.log.error("XML Parsing error", e);
+		Loggers.Cassandra.error("XML Parsing error", e);
 	}
 	
 	public void fatalError(SAXParseException e) throws SAXException {
-		Log2.log.error("XML Parsing error", e);
+		Loggers.Cassandra.error("XML Parsing error", e);
 	}
 	
 	public void warning(SAXParseException e) throws SAXException {
-		Log2.log.error("XML Parsing warning", e);
+		Loggers.Cassandra.error("XML Parsing warning", e);
 	}
 	
 	public void characters(char[] ch, int start, int length) throws SAXException {

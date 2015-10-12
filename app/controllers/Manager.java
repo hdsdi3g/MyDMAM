@@ -16,7 +16,12 @@
 */
 package controllers;
 
-import hd3gtv.log2.Log2;
+import java.util.Map;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.status.ClusterStatus;
 import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
 import hd3gtv.mydmam.db.status.StatusReport;
@@ -26,9 +31,6 @@ import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.manager.JobAction;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.WorkerExporter;
-
-import java.util.Map;
-
 import play.Play;
 import play.PlayPlugin;
 import play.cache.Cache;
@@ -38,9 +40,6 @@ import play.i18n.Messages;
 import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 
 @With(Secure.class)
 public class Manager extends Controller {
@@ -60,7 +59,7 @@ public class Manager extends Controller {
 	
 	@Check("showManager")
 	public static void purgeplaycache() throws Exception {
-		Log2.log.info("Purge Play cache");
+		Loggers.Play.info("Purge Play cache");
 		Cache.clear();
 		redirect("Manager.playjobs");
 	}

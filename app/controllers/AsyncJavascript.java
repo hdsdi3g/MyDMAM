@@ -16,15 +16,14 @@
 */
 package controllers;
 
-import hd3gtv.log2.Log2;
+import java.io.FileNotFoundException;
+import java.util.Date;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.web.AsyncJSManager;
 import hd3gtv.mydmam.web.JSXTransformer;
 import hd3gtv.mydmam.web.JSXTransformer.JSXItem;
 import hd3gtv.mydmam.web.JsCompile;
-
-import java.io.FileNotFoundException;
-import java.util.Date;
-
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.Controller;
@@ -65,7 +64,7 @@ public class AsyncJavascript extends Controller {
 			renderText(jsx_compiled);
 			
 		} catch (Exception e) {
-			Log2.log.error("JSX Transformer Error", e);
+			Loggers.Play.error("JSX Transformer Error", e);
 		}
 	}
 	

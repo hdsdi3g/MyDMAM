@@ -16,16 +16,9 @@
 */
 package hd3gtv.mydmam.web;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.GsonIgnoreStrategy;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import play.vfs.VirtualFile;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -33,6 +26,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import controllers.Secure;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.GsonIgnoreStrategy;
+import play.vfs.VirtualFile;
 
 @SuppressWarnings("rawtypes")
 public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> implements AsyncJSGsonProvider {
@@ -84,7 +81,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 	
 	@SuppressWarnings("unchecked")
 	public void reload() {
-		Log2.log.debug("Reload Async classes");
+		Loggers.Play.debug("Reload Async classes");
 		
 		List<VirtualFileModule> main_dirs = JsCompile.getAllfromRelativePath(ASYNC_CLASS_PATH, true, true);
 		List<VirtualFile> class_vfiles = new ArrayList<VirtualFile>();
@@ -102,18 +99,18 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 			try {
 				class_candidate = Class.forName(ASYNC_PACKAGE_NAME + "." + name.substring(0, name.length() - ".java".length()));
 			} catch (Exception e) {
-				Log2.log.error("Invalid class loading", e);
+				Loggers.Play.error("Invalid class loading", e);
 				continue;
 			}
 			if (AsyncJSController.class.isAssignableFrom(class_candidate)) {
 				try {
 					all_js_controllers.add((AsyncJSController) class_candidate.newInstance());
 				} catch (Exception e) {
-					Log2.log.error("Invalid class instancing", e);
+					Loggers.Play.error("Invalid class instancing", e);
 					continue;
 				}
 			} else {
-				Log2.log.debug("Class declaration is not a valid expected type", new Log2Dump("java file", class_vfiles.get(pos).getRealFile()));
+				Loggers.Play.debug("Class declaration is not a valid expected type, java file: " + class_vfiles.get(pos).getRealFile());
 			}
 		}
 		
@@ -131,7 +128,6 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 		AsyncJSControllerVerb<AsyncJSRequestObject, AsyncJSResponseObject> verb;
 		HashMap<String, AsyncJSControllerVerb<Rq, Rp>> map_managed_verbs;
 		HashMap<String, List<String>> map_privileges_verbs;
-		Log2Dump dump = new Log2Dump();
 		
 		for (int pos_ctrl = 0; pos_ctrl < all_js_controllers.size(); pos_ctrl++) {
 			controller = all_js_controllers.get(pos_ctrl);
@@ -145,15 +141,14 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 				all_verbs.add((AsyncJSControllerVerb<Rq, Rp>) verb);
 				map_privileges_verbs.put(verb.getVerbName(), verb.getMandatoryPrivileges());
 				all_privileges_names.addAll(verb.getMandatoryPrivileges());
-				dump.add("controller", controller.getRequestName() + "/" + verb.getVerbName());
+				
+				Loggers.Play.debug("Declare all AsyncJS controller: " + controller.getRequestName() + "/" + verb.getVerbName());
 			}
 			declarations.put(controller.getRequestName(), map_managed_verbs);
 			controllers_mandatory_privileges.put(controller.getRequestName(), controller.getMandatoryPrivileges());
 			all_privileges_names.addAll(controller.getMandatoryPrivileges());
 			verbs_mandatory_privileges.put(controller.getRequestName(), map_privileges_verbs);
 		}
-		
-		Log2.log.debug("Declare all AsyncJS controllers", dump);
 		
 		/**
 		 * Prepare serialisation engine
@@ -186,10 +181,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 					/**
 					 * Twice declaration for this serializer class, but not with the same serializer !
 					 */
-					dump = new Log2Dump();
-					dump.add("class", enclosing_class);
-					dump.add("serializer", map_serializers.get(pos).getClass());
-					Log2.log.debug("Duplicate serializer entry !", dump);
+					Loggers.Play.debug("Duplicate serializer entry ! class: " + enclosing_class + ", serializer:" + map_serializers.get(pos).getClass());
 					continue;
 				}
 				serializer_enclosing_classes.add(enclosing_class);
@@ -210,10 +202,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 					/**
 					 * Twice declaration for this deserializer class, but not with the same deserializer !
 					 */
-					dump = new Log2Dump();
-					dump.add("class", enclosing_class);
-					dump.add("serializer", map_deserializers.get(pos).getClass());
-					Log2.log.debug("Duplicate deserializer entry !", dump);
+					Loggers.Play.debug("Duplicate deserializer entry ! class: " + enclosing_class + ", serializer:" + map_deserializers.get(pos).getClass());
 					continue;
 				}
 				deserializer_enclosing_classes.add(enclosing_class);
@@ -226,14 +215,14 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 			try {
 				serializer_enclosing_classes.get(pos).newInstance();
 			} catch (Exception e) {
-				Log2.log.error("Can't instance (for serializing test) class", e, new Log2Dump("class name", serializer_enclosing_classes.get(pos).getName()));
+				Loggers.Play.error("Can't instance (for serializing test) class: " + serializer_enclosing_classes.get(pos).getName(), e);
 			}
 		}
 		for (int pos = 0; pos < deserializer_enclosing_classes.size(); pos++) {
 			try {
 				deserializer_enclosing_classes.get(pos).newInstance();
 			} catch (Exception e) {
-				Log2.log.error("Can't instance (for deserializing test) class", e, new Log2Dump("class name", deserializer_enclosing_classes.get(pos).getName()));
+				Loggers.Play.error("Can't instance (for deserializing test) class: " + deserializer_enclosing_classes.get(pos).getName(), e);
 			}
 		}
 		
@@ -294,11 +283,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 		try {
 			response = verb_ctrl.onRequest(request_object);
 		} catch (Exception e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("request_name", request_name);
-			dump.add("verb", verb);
-			dump.add("request", request_content.toString());
-			Log2.log.error("Can't process request", e, dump);
+			Loggers.Play.error("Can't process request: " + request_name + ", verb: " + verb + ", request:\t" + request_content.toString(), e);
 			response = verb_ctrl.failResponse();
 		}
 		

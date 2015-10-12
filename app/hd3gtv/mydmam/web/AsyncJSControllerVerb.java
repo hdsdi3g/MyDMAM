@@ -16,11 +16,10 @@
 */
 package hd3gtv.mydmam.web;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.util.Collections;
 import java.util.List;
+
+import hd3gtv.mydmam.Loggers;
 
 public abstract class AsyncJSControllerVerb<Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> {
 	
@@ -72,7 +71,7 @@ public abstract class AsyncJSControllerVerb<Rq extends AsyncJSRequestObject, Rp 
 		try {
 			return getResponseClass().newInstance();
 		} catch (Exception e) {
-			Log2.log.error("Can't to create an empty response", e, new Log2Dump("class", getResponseClass().getName()));
+			Loggers.Play.error("Can't to create an empty response, class: " + getResponseClass().getName(), e);
 			return null;
 		}
 	}

@@ -16,10 +16,10 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.log2.Log2;
-
 import com.google.common.base.Function;
 import com.netflix.astyanax.model.Row;
+
+import hd3gtv.mydmam.Loggers;
 
 class AllRowsHandlerBridge implements Function<Row<String, String>, Boolean> {
 	
@@ -33,7 +33,7 @@ class AllRowsHandlerBridge implements Function<Row<String, String>, Boolean> {
 		try {
 			handler.onFoundRow(row);
 		} catch (Exception e) {
-			Log2.log.error("Error during AllRowsReader", e);
+			Loggers.Cassandra.error("Error during AllRowsReader", e);
 			return false;
 		}
 		return true;

@@ -32,8 +32,7 @@ import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.unit.TimeValue;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 
 /**
  * @see BulkRequestBuilder
@@ -63,9 +62,7 @@ public final class ElasticsearchBulkOperation {
 	}
 	
 	private void execute() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("numberOfActions", bulk_request_builder.numberOfActions());
-		Log2.log.debug("Prepare to update database", dump);
+		Loggers.ElasticSearch.debug("Prepare to update database with numberOfActions: " + bulk_request_builder.numberOfActions());
 		
 		final BulkRequest bu_r = bulk_request_builder.request();
 		
@@ -79,9 +76,7 @@ public final class ElasticsearchBulkOperation {
 		
 		if (bulkresponse != null) {
 			if (bulkresponse.hasFailures()) {
-				dump = new Log2Dump();
-				dump.add("failure message", bulkresponse.buildFailureMessage());
-				Log2.log.error("Errors during update database", null, dump);
+				Loggers.ElasticSearch.error("Errors during update database: " + bulkresponse.buildFailureMessage());
 			}
 		}
 		
@@ -137,6 +132,7 @@ public final class ElasticsearchBulkOperation {
 	
 	public void terminateBulk() {
 		if (bulk_request_builder.numberOfActions() > 0) {
+			Loggers.ElasticSearch.debug("Terminate bulk");
 			execute();
 		}
 	}

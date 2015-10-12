@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.log2.Log2;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +32,8 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortBuilder;
+
+import hd3gtv.mydmam.Loggers;
 
 public class ElastisearchMultipleCrawlerReader {
 	
@@ -121,7 +121,7 @@ public class ElastisearchMultipleCrawlerReader {
 			SearchResponse response;
 			for (int pos_response = 0; pos_response < items.length; pos_response++) {
 				if (items[pos_response].isFailure()) {
-					Log2.log.error("Search failed", new Exception(items[pos_response].getFailureMessage()));
+					Loggers.ElasticSearch.warn("Search failed", new Exception(items[pos_response].getFailureMessage()));
 					continue;
 				}
 				response = items[pos_response].getResponse();
@@ -143,6 +143,7 @@ public class ElastisearchMultipleCrawlerReader {
 			/**
 			 * No items == no callbacks
 			 */
+			Loggers.ElasticSearch.debug("Index missing", ime);
 			return;
 		}
 	}

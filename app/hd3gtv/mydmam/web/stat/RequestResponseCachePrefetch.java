@@ -16,11 +16,10 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.util.List;
 import java.util.concurrent.Callable;
+
+import hd3gtv.mydmam.Loggers;
 
 class RequestResponseCachePrefetch<E> implements Callable<Boolean> {
 	
@@ -33,12 +32,7 @@ class RequestResponseCachePrefetch<E> implements Callable<Boolean> {
 	}
 	
 	public Boolean call() throws Exception {
-		if (RequestResponseCache.DISPLAY_VERBOSE_LOG) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("cache_reference_tags", cache_reference_tags);
-			dump.add("factory", factory.getClass());
-			Log2.log.debug("Prefetch items", dump);
-		}
+		Loggers.Play.debug("Prefetch items with cache_reference_tags: " + cache_reference_tags + ", factory: " + factory.getClass());
 		RequestResponseCache.getItems(cache_reference_tags, factory);
 		return true;
 	}

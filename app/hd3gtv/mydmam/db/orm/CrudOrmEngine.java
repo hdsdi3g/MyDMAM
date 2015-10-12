@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.db.orm;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.CassandraDb;
-
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Collection;
@@ -35,6 +31,9 @@ import com.netflix.astyanax.recipes.locks.BusyLockException;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
 import com.netflix.astyanax.serializers.StringSerializer;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.CassandraDb;
 
 public class CrudOrmEngine<T extends CrudOrmModel> {
 	
@@ -70,7 +69,7 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 	public final void saveInternalElement() throws IOException, ConnectionException {
 		if (element.key == null) {
 			element.key = UUID.randomUUID().toString();
-			Log2.log.debug("Generate manual key", new Log2Dump("key", element.key));
+			Loggers.ORM.debug("Generate manual key: " + element.key);
 		}
 		
 		if (element.createdate == null) {
@@ -199,11 +198,11 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 			return true;
 		} catch (StaleLockException e) {
 			// The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
-			Log2.log.error("Can't lock : abandoned lock...", e, new Log2Dump("class", element.getClass().getName()));
+			Loggers.ORM.warn("Can't lock: abandoned lock for class " + element.getClass().getName(), e);
 		} catch (BusyLockException e) {
-			Log2.log.error("Can't lock, this category is currently locked...", e, new Log2Dump("class", element.getClass().getName()));
+			Loggers.ORM.warn("Can't lock, this category is currently locked for class " + element.getClass().getName(), e);
 		} catch (Exception e) {
-			Log2.log.error("Generic error", e, new Log2Dump("class", element.getClass().getName()));
+			Loggers.ORM.warn("Generic error for class " + element.getClass().getName(), e);
 		} finally {
 			releaseLock();
 		}
@@ -217,7 +216,7 @@ public class CrudOrmEngine<T extends CrudOrmModel> {
 			}
 			lock = null;
 		} catch (Exception e) {
-			Log2.log.error("Can't relase properly lock", e, new Log2Dump("class", element.getClass().getName()));
+			Loggers.ORM.warn("Can't relase properly lock for class " + element.getClass().getName(), e);
 		}
 	}
 	

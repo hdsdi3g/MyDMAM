@@ -16,15 +16,6 @@
 */
 package controllers;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
-import hd3gtv.mydmam.db.orm.CrudOrmModel;
-import hd3gtv.mydmam.db.orm.ModelClassResolver;
-import hd3gtv.mydmam.db.orm.ORMFormField;
-import hd3gtv.mydmam.db.orm.annotations.AuthorisedForAdminController;
-import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
-
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -38,6 +29,13 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.db.orm.CrudOrmModel;
+import hd3gtv.mydmam.db.orm.ModelClassResolver;
+import hd3gtv.mydmam.db.orm.ORMFormField;
+import hd3gtv.mydmam.db.orm.annotations.AuthorisedForAdminController;
+import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import play.Play;
 import play.data.binding.Binder;
 import play.data.binding.ParamNode;
@@ -138,7 +136,7 @@ public class Admin extends Controller {
 							}
 							jfile.close();
 						} catch (IOException e) {
-							Log2.log.error("Can't load/open jar file " + classpathelements.get(i), e);
+							Loggers.Play.error("Can't load/open jar file " + classpathelements.get(i), e);
 						}
 					} else {
 						File directoryclass = new File(classpathelements.get(i));
@@ -169,11 +167,11 @@ public class Admin extends Controller {
 						
 						all_crud_models.put(classname.toLowerCase(), candidate.getCanonicalName());
 					} catch (ClassNotFoundException e) {
-						Log2.log.error("Class not found " + classes_to_test.get(pos_classes), e);
+						Loggers.Play.error("Class not found " + classes_to_test.get(pos_classes), e);
 					}
 				}
 			} catch (Exception e) {
-				Log2.log.error("Can't load modules", e);
+				Loggers.Play.error("Can't load modules", e);
 			}
 		}
 		
@@ -194,10 +192,8 @@ public class Admin extends Controller {
 			} else {
 				message = Messages.all(play.i18n.Lang.get()).getProperty("crud.error");
 			}
-			Log2Dump dump = new Log2Dump();
-			dump.add("Done", "crud.field." + objtype + "." + targetmethod + ".done");
-			dump.add("Error", "crud.field." + objtype + "." + targetmethod + ".error");
-			Log2.log.info("Don't forget to add missing message items", dump);
+			Loggers.Play.info("Don't forget to add missing message items, Done: crud.field." + objtype + "." + targetmethod + ".done");
+			Loggers.Play.info("Don't forget to add missing message items, Error: crud.field." + objtype + "." + targetmethod + ".error");
 		}
 		
 		if (e != null) {
@@ -210,9 +206,7 @@ public class Admin extends Controller {
 		String message = Messages.all(play.i18n.Lang.get()).getProperty("crud.field." + objtype + ".issaved");
 		if (message == null) {
 			message = Messages.all(play.i18n.Lang.get()).getProperty("crud.done");
-			Log2Dump dump = new Log2Dump();
-			dump.add("Done", "crud.field." + objtype + ".issaved");
-			Log2.log.info("Don't forget to add missing message items", dump);
+			Loggers.Play.info("Don't forget to add missing message items, Done: crud.field." + objtype + ".issaved");
 		}
 		return message;
 	}
@@ -311,10 +305,10 @@ public class Admin extends Controller {
 			method.invoke(element);
 			flash.success(getActionFlashMessage(objtype, action, null));
 		} catch (InvocationTargetException e) {
-			Log2.log.error("Error during remove invoke", e.getTargetException());
+			Loggers.Play.error("Error during remove invoke", e.getTargetException());
 			flash.error(getActionFlashMessage(objtype, action, e.getTargetException()));
 		} catch (Exception e) {
-			Log2.log.error("Error during invoke", e);
+			Loggers.Play.error("Error during invoke", e);
 			flash.error(getActionFlashMessage(objtype, action, e));
 		}
 		redirect("Admin.index", objtype);

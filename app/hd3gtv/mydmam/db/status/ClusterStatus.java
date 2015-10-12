@@ -16,15 +16,15 @@
 */
 package hd3gtv.mydmam.db.status;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.mail.AdminMailAlert;
-import hd3gtv.mydmam.manager.AppManager;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.mail.AdminMailAlert;
+import hd3gtv.mydmam.manager.AppManager;
 
 public class ClusterStatus {
 	
@@ -123,7 +123,7 @@ public class ClusterStatus {
 		if (messages_list.isEmpty() == false) {
 			Log2Dump dump = new Log2Dump();
 			dump.add("messages_list", messages_list);
-			Log2.log.info("Status change", dump);
+			Loggers.ClusterStatus.info("Status change: " + messages_list);
 			
 			AdminMailAlert.create("Watching cluster status, state is changing", false).addToMessagecontent(messages_list).setManager(manager).send();
 		}

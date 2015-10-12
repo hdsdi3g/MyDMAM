@@ -16,9 +16,15 @@
 */
 package ext;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -26,20 +32,12 @@ import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.web.JSXTransformer;
 import hd3gtv.mydmam.web.JsCompile;
 import hd3gtv.mydmam.web.Privileges;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import models.ACLGroup;
 import models.ACLRole;
 import models.ACLUser;
 import play.i18n.Messages;
 import play.jobs.Job;
 import play.jobs.OnApplicationStart;
-
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 @SuppressWarnings("rawtypes")
 @OnApplicationStart
@@ -57,7 +55,7 @@ public class Bootstrap extends Job {
 		
 		String actual_locales_lang = null;
 		Set<String> actual_messages_string;
-		Log2Dump dump;
+		StringBuilder sb;
 		boolean has_missing = false;
 		
 		for (Map.Entry<String, Properties> entry_messages_locale : Messages.locales.entrySet()) {
@@ -70,28 +68,28 @@ public class Bootstrap extends Job {
 			actual_messages_string = entry_messages_locale.getValue().stringPropertyNames();
 			actual_locales_lang = entry_messages_locale.getKey();
 			
-			dump = new Log2Dump();
+			sb = new StringBuilder();
 			has_missing = false;
 			for (String string : actual_messages_string) {
 				if (first_locales_messages_string.contains(string) == false) {
-					dump.add("missing", string);
+					sb.append(" missing: " + string);
 					has_missing = true;
 				}
 			}
 			if (has_missing) {
-				Log2.log.error("Missing Messages strings in messages." + first_locales_lang + " lang (declared in messages." + actual_locales_lang + ")", null, dump);
+				Loggers.Play.error("Missing Messages strings in messages." + first_locales_lang + " lang (declared in messages." + actual_locales_lang + ") " + sb.toString());
 			}
 			
-			dump = new Log2Dump();
+			sb = new StringBuilder();
 			has_missing = false;
 			for (String string : first_locales_messages_string) {
 				if (actual_messages_string.contains(string) == false) {
-					dump.add("missing", string);
+					sb.append(" missing: " + string);
 					has_missing = true;
 				}
 			}
 			if (has_missing) {
-				Log2.log.error("Missing Messages strings in messages." + actual_locales_lang + " lang (declared in messages." + first_locales_lang + ")", null, dump);
+				Loggers.Play.error("Missing Messages strings in messages." + actual_locales_lang + " lang (declared in messages." + first_locales_lang + ") " + sb.toString());
 			}
 		}
 		
@@ -184,7 +182,7 @@ public class Bootstrap extends Job {
 		try {
 			AuthenticationBackend.checkFirstPlayBoot();
 		} catch (Exception e) {
-			Log2.log.error("Invalid authentication backend configuration", e);
+			Loggers.Play.error("Invalid authentication backend configuration", e);
 		}
 		
 		JsCompile.purgeBinDirectory();
@@ -194,7 +192,7 @@ public class Bootstrap extends Job {
 		try {
 			CassandraDb.getkeyspace();
 		} catch (ConnectionException e) {
-			Log2.log.error("Can't access to keyspace", e);
+			Loggers.Play.error("Can't access to keyspace", e);
 		}
 	}
 }

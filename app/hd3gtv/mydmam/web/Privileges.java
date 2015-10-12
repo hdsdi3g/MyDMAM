@@ -17,9 +17,6 @@
 
 package hd3gtv.mydmam.web;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.MyDMAM;
-
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -35,12 +32,14 @@ import java.util.jar.JarFile;
 
 import org.json.simple.JSONArray;
 
+import controllers.Check;
+import controllers.Secure;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import play.Play;
 import play.mvc.Controller;
 import play.mvc.With;
 import play.vfs.VirtualFile;
-import controllers.Check;
-import controllers.Secure;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class Privileges {
@@ -107,7 +106,7 @@ public class Privileges {
 						}
 						jfile.close();
 					} catch (IOException e) {
-						Log2.log.error("Can't load/open jar file " + classpathelements.get(i), e);
+						Loggers.Play.error("Can't load/open jar file " + classpathelements.get(i), e);
 					}
 				} else {
 					File directoryclass = new File(classpathelements.get(i));
@@ -179,11 +178,11 @@ public class Privileges {
 						}
 					}
 				} catch (ClassNotFoundException e) {
-					Log2.log.error("Class not found " + classes_to_test.get(pos_classes), e);
+					Loggers.Play.error("Class not found " + classes_to_test.get(pos_classes), e);
 				}
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't load modules", e);
+			Loggers.Play.error("Can't load modules", e);
 		}
 		
 		AsyncJSManager.global.putAllPrivilegesNames(all_privileges);

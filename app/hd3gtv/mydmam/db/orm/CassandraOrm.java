@@ -16,13 +16,6 @@
 */
 package hd3gtv.mydmam.db.orm;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.db.DeployColumnDef;
-import hd3gtv.mydmam.db.orm.annotations.CassandraIndexed;
-
 import java.io.IOException;
 import java.io.InvalidClassException;
 import java.io.Serializable;
@@ -54,6 +47,12 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.IndexQuery;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.db.DeployColumnDef;
+import hd3gtv.mydmam.db.orm.annotations.CassandraIndexed;
 
 @SuppressWarnings("unchecked")
 public class CassandraOrm<T extends OrmModel> {
@@ -92,10 +91,7 @@ public class CassandraOrm<T extends OrmModel> {
 					createColumnFamily();
 					mutator.execute();
 				} catch (IOException e2) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("referer", e);
-					dump.add("columnfamily", this.columnfamily.getName());
-					Log2.log.error("Can't create ColumnFamily", e2, dump);
+					Loggers.ORM.error("Can't create ColumnFamily " + this.columnfamily.getName() + ", referer: " + e.getMessage(), e2);
 				}
 			} else {
 				throw e;
@@ -229,9 +225,9 @@ public class CassandraOrm<T extends OrmModel> {
 			try {
 				result.add(field);
 			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
+				Loggers.ORM.warn("Generic error", e);
 			} catch (SecurityException e) {
-				e.printStackTrace();
+				Loggers.ORM.warn("Generic error", e);
 			}
 		}
 		
@@ -257,11 +253,7 @@ public class CassandraOrm<T extends OrmModel> {
 			try {
 				pushColumn(ormobject.key, ttl, fields.get(pos_df).getName(), this.reference.getField(fields.get(pos_df).getName()).get(ormobject));
 			} catch (IllegalAccessException e) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("ormobject", ormobject);
-				dump.add("ormobject.class", ormobject.getClass());
-				dump.add("fields.name", fields.get(pos_df).getName());
-				Log2.log.error("Grave problem with ORM object", e, dump);
+				Loggers.ORM.error("Grave problem with ORM object " + ormobject + "(" + ormobject.getClass().getName() + ") field name: " + fields.get(pos_df).getName(), e);
 			} catch (NoSuchFieldException e) {
 				e.printStackTrace();
 			}
@@ -553,7 +545,7 @@ public class CassandraOrm<T extends OrmModel> {
 	
 	public void dropColumnFamily() throws ConnectionException {
 		if (isColumnFamilyExists()) {
-			Log2.log.info("Drop " + columnfamily.getName() + " CF");
+			Loggers.ORM.info("Drop " + columnfamily.getName() + " CF");
 			CassandraDb.dropColumnFamilyString(CassandraDb.getkeyspace(), columnfamily.getName());
 		}
 	}
@@ -650,53 +642,6 @@ public class CassandraOrm<T extends OrmModel> {
 	 */
 	public void delete(T element) throws ConnectionException {
 		delete(element.key);
-	}
-	
-	/**
-	 * Used for special internal ORM debugging.
-	 */
-	public static void autotest() throws Exception {
-		int count = 1000;
-		
-		CassandraOrm<AutotestOrm> cassandraorm = new CassandraOrm<AutotestOrm>(AutotestOrm.class, AutotestOrm.CF);
-		cassandraorm.prepareColumnlistnames();
-		
-		Log2Dump dump = new Log2Dump();
-		for (int pos = 0; pos < cassandraorm.column_names.length; pos++) {
-			dump.add("cols", cassandraorm.column_names[pos]);
-		}
-		Log2.log.debug("List cols", dump);
-		
-		if (cassandraorm.isColumnFamilyExists()) {
-			Log2.log.debug("Column family exist !");
-		}
-		
-		cassandraorm.createColumnFamily();
-		
-		for (int pos = 0; pos < count; pos++) {
-			cassandraorm.pushObject(AutotestOrm.populate(pos), 3600);
-		}
-		cassandraorm.executeMutation();
-		
-		final ArrayList<AutotestOrm> elements = new ArrayList<AutotestOrm>();
-		CassandraOrmExporter<AutotestOrm> orm_expr = new CassandraOrmExporter<AutotestOrm>() {
-			public boolean exportFromCassandra(AutotestOrm element) {
-				elements.add(element);
-				return true;
-			}
-		};
-		cassandraorm.pullAllObjectsToExporter(orm_expr);
-		
-		if (elements.size() != count) {
-			throw new Exception("Missing elements ! " + String.valueOf(elements.size() - count));
-		}
-		for (int pos = 0; pos < elements.size(); pos++) {
-			if (elements.get(pos).check(elements.get(pos).iamanindex) == false) {
-				throw new Exception("Bad element ! " + elements.get(pos).key);
-			}
-		}
-		
-		cassandraorm.dropColumnFamily();
 	}
 	
 	/**

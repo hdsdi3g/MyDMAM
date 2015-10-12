@@ -18,10 +18,10 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.log2.Log2;
-
 import com.netflix.astyanax.retry.BoundedExponentialBackoff;
 import com.netflix.astyanax.retry.RetryPolicy;
+
+import hd3gtv.mydmam.Loggers;
 
 public class BoundedExponentialBackoffLog extends BoundedExponentialBackoff {
 	
@@ -48,7 +48,7 @@ public class BoundedExponentialBackoffLog extends BoundedExponentialBackoff {
 			return;
 		}
 		super.failure(e);
-		Log2.log.error("Lost Cassandra connection", e);
+		Loggers.Cassandra.error("Lost Cassandra connection during a BoundedExponentialBackoffLog", e);
 	}
 	
 	public RetryPolicy duplicate() {

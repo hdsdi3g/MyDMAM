@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.db;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Date;
@@ -43,6 +40,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
+
+import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
 
 class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, ElastisearchCrawlerHit {
 	
@@ -160,7 +160,7 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 			count++;
 			return true;
 		} catch (Exception e) {
-			Log2.log.error("Can't write to XML document", e);
+			Loggers.ElasticSearch.error("Can't write to XML document", e);
 			return false;
 		}
 	}
@@ -196,10 +196,7 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 		if (qName.equalsIgnoreCase("index")) {
 			index_name = attributes.getValue("name");
 			
-			Log2Dump dump = new Log2Dump();
-			dump.add("name", index_name);
-			dump.addDate("created", Long.parseLong(attributes.getValue("created")));
-			Log2.log.info("Start import XML for restore ElasticSearch Index", dump);
+			Loggers.ElasticSearch.info("Start import XML for restore ElasticSearch Index with name " + index_name + ", created " + Log2Event.dateLog(Long.parseLong(attributes.getValue("created"))));
 			
 			if (purgebefore) {
 				Elasticsearch.deleteIndexRequest(index_name);
@@ -224,9 +221,7 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 			return;
 		}
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("qName", qName);
-		Log2.log.error("Unknow start qName", null, dump);
+		Loggers.ElasticSearch.error("Unknow start qName " + qName);
 	}
 	
 	public void endElement(String uri, String localName, String qName) throws SAXException {
@@ -271,9 +266,7 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 		} catch (DecoderException e) {
 			throw new SAXException("Bad XML content decoding", e);
 		}
-		Log2Dump dump = new Log2Dump();
-		dump.add("qName", qName);
-		Log2.log.error("Unknow end qName", null, dump);
+		Loggers.ElasticSearch.error("Unknow end qName " + qName);
 	}
 	
 	private String getContent() throws DecoderException {
@@ -281,15 +274,15 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 	}
 	
 	public void error(SAXParseException e) throws SAXException {
-		Log2.log.error("XML Parsing error", e);
+		Loggers.ElasticSearch.error("XML Parsing error", e);
 	}
 	
 	public void fatalError(SAXParseException e) throws SAXException {
-		Log2.log.error("XML Parsing error", e);
+		Loggers.ElasticSearch.error("XML Parsing error", e);
 	}
 	
 	public void warning(SAXParseException e) throws SAXException {
-		Log2.log.error("XML Parsing warning", e);
+		Loggers.ElasticSearch.error("XML Parsing warning", e);
 	}
 	
 	public void characters(char[] ch, int start, int length) throws SAXException {

@@ -16,12 +16,6 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.metadata.container.ContainerPreview;
-import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.tools.GsonIgnoreStrategy;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +25,12 @@ import org.elasticsearch.indices.IndexMissingException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.container.ContainerPreview;
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 /**
  * User do a global request.
@@ -238,9 +238,9 @@ public class Stat {
 			}
 			
 		} catch (IndexMissingException e) {
-			Log2.log.error("Some ES indexes are missing: database has not items for this", e);
+			Loggers.Play.error("Some ES indexes are missing: database has not items for this", e);
 		} catch (Exception e) {
-			Log2.log.error("General error", e);
+			Loggers.Play.error("General error", e);
 		}
 		return result;
 	}

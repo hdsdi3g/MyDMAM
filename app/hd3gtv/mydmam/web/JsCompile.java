@@ -16,11 +16,6 @@
 */
 package hd3gtv.mydmam.web;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.configuration.GitInfo;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -40,11 +35,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.io.FileUtils;
+
+import com.yahoo.platform.yui.compressor.JavaScriptCompressor;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.GitInfo;
+import hd3gtv.mydmam.Loggers;
 import play.Play;
 import play.vfs.VirtualFile;
 import yuiforkorgmozillajavascript.ErrorReporter;
-
-import com.yahoo.platform.yui.compressor.JavaScriptCompressor;
 
 /**
  * "Binary" is optimzed version of a javascript commented source file.
@@ -201,7 +201,7 @@ public class JsCompile {
 						file_list.add(binaryfile);
 						must_concat = true;
 					} catch (IOException e) {
-						Log2.log.error("Can't create binary JS file", e);
+						Loggers.Play.error("Can't create binary JS file", e);
 						file_list.add(sourcefile);
 					}
 				}
@@ -211,7 +211,7 @@ public class JsCompile {
 					file_list.add(binaryfile);
 					must_concat = true;
 				} catch (IOException e) {
-					Log2.log.error("Can't create binary JS file", e);
+					Loggers.Play.error("Can't create binary JS file", e);
 					file_list.add(sourcefile);
 				}
 			}
@@ -231,7 +231,7 @@ public class JsCompile {
 				sb.append(git.getCommit());
 			}
 		} catch (IOException e) {
-			Log2.log.error("Can't found git repository", e, new Log2Dump("Play application path", Play.applicationPath));
+			Loggers.Play.error("Can't found git repository in play application path: " + Play.applicationPath, e);
 		}
 		sb.append(".min.js");
 		
@@ -270,7 +270,7 @@ public class JsCompile {
 				}
 				fso.close();
 			} catch (IOException e) {
-				Log2.log.error("Can't write compiled file", e);
+				Loggers.Play.error("Can't write compiled file", e);
 				return file_list;
 			}
 		}
@@ -288,23 +288,11 @@ public class JsCompile {
 		}
 		
 		public void error(String arg0, String arg1, int arg2, String arg3, int arg4) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("arg0", arg0);
-			dump.add("arg1", arg1);
-			dump.add("arg2", arg2);
-			dump.add("arg3", arg3);
-			dump.add("arg4", arg4);
-			Log2.log.error("Rhino error during javascript parsing", null, dump);
+			Loggers.Play.error("Rhino error during javascript parsing, arg0: " + arg0 + ", arg1: " + arg1 + ", arg2: " + arg2 + ", arg3: " + arg3 + ", arg4: " + arg4);
 		}
 		
 		public yuiforkorgmozillajavascript.EvaluatorException runtimeError(String arg0, String arg1, int arg2, String arg3, int arg4) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("arg0", arg0);
-			dump.add("arg1", arg1);
-			dump.add("arg2", arg2);
-			dump.add("arg3", arg3);
-			dump.add("arg4", arg4);
-			Log2.log.error("Rhino error during javascript parsing", null, dump);
+			Loggers.Play.error("Rhino error during javascript parsing, arg0: " + arg0 + ", arg1: " + arg1 + ", arg2: " + arg2 + ", arg3: " + arg3 + ", arg4: " + arg4);
 			return null;
 		}
 		
@@ -331,7 +319,7 @@ public class JsCompile {
 				warning_log.println();
 				warning_log.close();
 			} catch (IOException e) {
-				Log2.log.error("Can't write warning log", e);
+				Loggers.Play.error("Can't write warning log", e);
 			}
 		}
 	}
@@ -352,7 +340,7 @@ public class JsCompile {
 		
 		compiled_db.put(binaryfile.getName(), new Db(sourcefile));
 		if (COMPILE_JS) {
-			Log2.log.debug("Compile JS file", new Log2Dump("source", sourcefile.getRealFile()));
+			Loggers.Play.debug("Compile JS file: " + sourcefile.getRealFile());
 		}
 	}
 	
@@ -362,8 +350,7 @@ public class JsCompile {
 			return;
 		}
 		List<VirtualFile> list = binary_dir.list();
-		File realfile;
-		Log2Dump dump = new Log2Dump();
+		File realfile = null;
 		boolean has_purge = false;
 		for (int pos = 0; pos < list.size(); pos++) {
 			realfile = list.get(pos).getRealFile();
@@ -373,12 +360,15 @@ public class JsCompile {
 			if (realfile.isHidden()) {
 				continue;
 			}
-			dump.add("file", realfile);
-			dump.add("delete", realfile.delete());
 			has_purge = true;
 		}
 		if (has_purge) {
-			Log2.log.debug("Purge compiled js files temp", dump);
+			Loggers.Play.info("Purge compiled js file temp: " + realfile);
+			try {
+				FileUtils.forceDelete(realfile);
+			} catch (Exception e) {
+				Loggers.Play.warn("Can't delete compiled js file temp: " + realfile, e);
+			}
 		}
 	}
 	
@@ -415,7 +405,7 @@ public class JsCompile {
 			compressor.compress(sw, 80, true, false, true, false);
 			return sw.toString();
 		} catch (Exception e) {
-			Log2.log.error("Can't compile on the fly", e, new Log2Dump("raw content", content));
+			Loggers.Play.error("Can't compile on the fly, content: " + content, e);
 			return content;
 		}
 	}

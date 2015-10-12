@@ -16,17 +16,15 @@
 */
 package models;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.web.acaddr.AccessControlAddresses;
-import hd3gtv.mydmam.web.acaddr.AccessControlAddresses.AccessControlAddressesStatus;
-
 import java.util.Date;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.web.acaddr.AccessControlAddresses;
+import hd3gtv.mydmam.web.acaddr.AccessControlAddresses.AccessControlAddressesStatus;
 import play.data.validation.Required;
 import play.db.jpa.GenericModel;
 
@@ -72,7 +70,7 @@ public class BlackListIP extends GenericModel {
 			return true;
 		}
 		if (status == AccessControlAddressesStatus.BLACK) {
-			Log2.log.debug("User try to login from blacklisted addr", new Log2Dump("address", address));
+			Loggers.Play.debug("User try to login from blacklisted addr: " + address);
 			return false;
 		}
 		
@@ -86,29 +84,21 @@ public class BlackListIP extends GenericModel {
 		}
 		
 		if (bl.attempt > max_attempt_for_blocking_addr) {
-			/**
-			 * Too many attempt from this IP, "user" will get the fuck off.
-			 */
+			Loggers.Play.debug("Too many attempt from this IP, \"user\" will get the fuck off, addr: " + address);
 			return false;
 		}
 		
 		if (bl.attempt <= grace_attempt_count) {
-			/**
-			 * "user" can try login now.
-			 */
+			Loggers.Play.debug("\"user\" can try login now, addr: " + address);
 			return true;
 		}
 		
 		if ((bl.last_attempt.getTime() + (long) ((bl.attempt - grace_attempt_count) * grace_period_factor_time * 1000)) > (System.currentTimeMillis())) {
-			/**
-			 * "user" must wait some time before retry.
-			 */
+			Loggers.Play.debug("\"user\" must wait some time before retry, addr: " + address);
 			return false;
 		}
 		
-		/**
-		 * "user" has some attempts, It wait time, but now, it can try to login now.
-		 */
+		Loggers.Play.debug("\"user\" has some attempts, It wait time, but now, it can try to login now, addr: " + address);
 		return true;
 	}
 	
