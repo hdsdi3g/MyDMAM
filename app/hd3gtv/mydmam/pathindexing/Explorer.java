@@ -39,7 +39,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
-import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
@@ -212,7 +211,7 @@ public class Explorer {
 			}
 			return results.get(_id);
 		} catch (Exception e) {
-			Log2.log.error("Can't found in ES", e);
+			Loggers.Pathindex.error("Can't found in ES", e);
 			return null;
 		}
 	}
