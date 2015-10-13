@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -30,6 +26,9 @@ import java.io.InputStreamReader;
 import java.util.Calendar;
 
 import org.json.simple.parser.ParseException;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 
 public class ImporterCDFinder extends Importer {
 	
@@ -102,10 +101,7 @@ public class ImporterCDFinder extends Importer {
 						element.date = date.getTimeInMillis();
 						last_valid_date = element.date;
 					} catch (Exception e) {
-						Log2Dump dump = new Log2Dump();
-						dump.add("cols[1]", cols[1]);
-						dump.add("cols[3]", cols[3]);
-						Log2.log.error("CDFinder date analyser", e, dump);
+						Loggers.Pathindex.error("CDFinder date analyser, cols[1] " + cols[1] + ", cols[3] " + cols[3], e);
 					}
 				}
 				
@@ -153,7 +149,7 @@ public class ImporterCDFinder extends Importer {
 		try {
 			elementpush.onFoundElement(SourcePathIndexerElement.prepareStorageElement(poolname));
 		} catch (Exception e) {
-			Log2.log.error("Can't push to ES root storage", e);
+			Loggers.Pathindex.error("Can't push to ES root storage", e);
 		}
 		
 		return count;

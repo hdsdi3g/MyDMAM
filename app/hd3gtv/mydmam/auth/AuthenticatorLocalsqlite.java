@@ -17,12 +17,6 @@
 
 package hd3gtv.mydmam.auth;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.BCrypt;
-import hd3gtv.tools.BCryptTest;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +37,13 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.junit.Assert;
+
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.BCrypt;
+import hd3gtv.tools.BCryptTest;
 
 public class AuthenticatorLocalsqlite implements Authenticator {
 	
@@ -217,10 +218,11 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 		return DriverManager.getConnection("jdbc:sqlite:" + dbfile.getPath());
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("local file", dbfile);
-		return dump;
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("local file: ");
+		sb.append(dbfile);
+		return sb.toString();
 	}
 	
 	public File getDbfile() {
@@ -244,7 +246,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 			
 			return baos.toByteArray();
 		} catch (Exception e) {
-			Log2.log.error("Can't prepare password", e);
+			Loggers.Auth.error("Can't prepare password", e);
 		}
 		return null;
 	}
@@ -260,7 +262,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 			
 			return BCrypt.checkpw(candidate_password, new String(baos.toByteArray()));
 		} catch (Exception e) {
-			Log2.log.error("Can't extract hashed password", e);
+			Loggers.Auth.error("Can't extract hashed password", e);
 		}
 		return false;
 	}
@@ -484,20 +486,25 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	/**
 	 * @return null if user is unknow
 	 */
-	public Log2Dump getUserInformations(String username) throws SQLException {
+	public String getUserInformations(String username) throws SQLException {
 		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("SELECT name, created, updated, enabled FROM users WHERE login = ?");
 		pstatement.setString(1, username);
 		ResultSet res = pstatement.executeQuery();
 		while (res.next()) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("user", username);
-			dump.add("name", res.getString("name"));
-			dump.addDate("created", res.getDate("created").getTime());
-			dump.addDate("updated", res.getDate("updated").getTime());
-			dump.add("enabled", res.getBoolean("enabled"));
+			StringBuilder sb = new StringBuilder();
+			sb.append("user: ");
+			sb.append(username);
+			sb.append(", name: ");
+			sb.append(res.getString("name"));
+			sb.append(", created: ");
+			sb.append(Log2Event.dateLog(res.getDate("created").getTime()));
+			sb.append(", updated: ");
+			sb.append(Log2Event.dateLog(res.getDate("updated").getTime()));
+			sb.append(", enabled: ");
+			sb.append(res.getBoolean("enabled"));
 			connection.close();
-			return dump;
+			return sb.toString();
 		}
 		
 		connection.close();

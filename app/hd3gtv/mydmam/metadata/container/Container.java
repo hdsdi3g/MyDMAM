@@ -16,13 +16,6 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
-import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,6 +24,13 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.elasticsearch.ElasticsearchException;
+
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 
 /**
  * Store all Metadatas references for a StorageIndex element, and (de)serialize from/to json.
@@ -139,6 +139,7 @@ public class Container implements Log2Dumpable {
 		ContainerOperations.save(this, false, es_bulk);
 	}
 	
+	@Deprecated
 	public Log2Dump getLog2Dump() {
 		Log2Dump dump = new Log2Dump();
 		dump.add("mtd.key", mtd_key);
@@ -150,6 +151,23 @@ public class Container implements Log2Dumpable {
 			dump.add("metadata." + containerEntries.get(pos).getES_Type(), ContainerOperations.getGson().toJson(containerEntries.get(pos)));
 		}
 		return dump;
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("mtd.key: ");
+		sb.append(mtd_key);
+		if (origin != null) {
+			sb.append(", origin.key: ");
+			sb.append(origin.key);
+			sb.append(", origin.storage: ");
+			sb.append(origin.storage);
+		}
+		for (int pos = 0; pos < containerEntries.size(); pos++) {
+			sb.append(", metadata." + containerEntries.get(pos).getES_Type() + ": ");
+			sb.append(ContainerOperations.getGson().toJson(containerEntries.get(pos)));
+		}
+		return sb.toString();
 	}
 	
 	public File getPhysicalSource() throws IOException {

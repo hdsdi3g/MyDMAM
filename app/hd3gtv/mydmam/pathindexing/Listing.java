@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.IgnoreFiles;
@@ -37,7 +37,7 @@ class Listing implements StorageCrawler {
 		try {
 			elementpush.onRemoveFile(storagename, path);
 		} catch (Exception e) {
-			Log2.log.error("Can't process not found element", e);
+			Loggers.Pathindex.error("Can't process not found element", e);
 		}
 	}
 	
@@ -74,7 +74,7 @@ class Listing implements StorageCrawler {
 				count++;
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't process found element", e);
+			Loggers.Pathindex.error("Can't process found element", e);
 		}
 		return true;
 	}
@@ -138,7 +138,7 @@ class Listing implements StorageCrawler {
 			}
 			return true;
 		} catch (Exception e) {
-			Log2.log.error("Can't process found root element", e);
+			Loggers.Pathindex.error("Can't process found root element", e);
 			return false;
 		}
 	}

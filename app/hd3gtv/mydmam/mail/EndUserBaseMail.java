@@ -16,14 +16,6 @@
 */
 package hd3gtv.mydmam.mail;
 
-import groovy.lang.Writable;
-import groovy.text.SimpleTemplateEngine;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.module.MessagesOutsidePlay;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -36,16 +28,21 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.mail.internet.InternetAddress;
 
 import org.codehaus.groovy.control.CompilationFailedException;
 
+import groovy.lang.Writable;
+import groovy.text.SimpleTemplateEngine;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.module.MessagesOutsidePlay;
+import hd3gtv.mydmam.module.MyDMAMModulesManager;
+
 /**
  * With Groovy engine front-end (outside Play scope). Ignore Jar files content, but manage Play modules.
  */
-public class EndUserBaseMail implements Log2Dumpable {
+public class EndUserBaseMail {
 	
 	private static MailCenter mailcenter;
 	private static LinkedHashMap<String, File> templates;
@@ -70,7 +67,6 @@ public class EndUserBaseMail implements Log2Dumpable {
 		String module_name;
 		String template_name;
 		String tpl_path;
-		Log2Dump new_templates = new Log2Dump();
 		for (Map.Entry<String, File> conf_dir_entry : conf_dirs.entrySet()) {
 			module_name = conf_dir_entry.getKey();
 			templates_directories = new File(conf_dir_entry.getValue() + File.separator + TEMPLATE_BASE_PATH);
@@ -103,21 +99,16 @@ public class EndUserBaseMail implements Log2Dumpable {
 					template_name = template_directory.getName();
 					if (templates.containsKey(template_name) == false) {
 						templates.put(template_name, template_directory);
-						new_templates.add("template", "\"" + template_name + "\" from \"" + module_name + "\" module in \"" + template_directory.getAbsolutePath() + "\"");
+						Loggers.Mail.debug("Import mail template: \"" + template_name + "\" from \"" + module_name + "\" module in \"" + template_directory.getAbsolutePath() + "\"");
 					} else {
 						throw new Exception("Template directory with the name \"" + template_name + "\" is already added.");
 					}
 				} catch (Exception e) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("path", template_directory);
-					dump.add("module", module_name);
-					Log2.log.error("Can't use/import template directory: ", e, dump);
+					Loggers.Mail.error("Can't use/import template directory, path: " + template_directory + ", module: " + module_name, e);
 				}
 			}
 			
 		}
-		
-		Log2.log.debug("Import mail templates", new_templates);
 	}
 	
 	private Locale locale;
@@ -151,12 +142,15 @@ public class EndUserBaseMail implements Log2Dumpable {
 		return this;
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("to", to);
-		dump.add("locale", locale);
-		dump.add("template_directory", template_directory);
-		return dump;
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("to: ");
+		sb.append(to);
+		sb.append(", locale: ");
+		sb.append(locale);
+		sb.append(", template_directory: ");
+		sb.append(template_directory);
+		return sb.toString();
 	}
 	
 	public void send() {
@@ -195,15 +189,12 @@ public class EndUserBaseMail implements Log2Dumpable {
 			mail.setHtmltext(process(new File(template_directory.getPath() + File.separator + TEMPLATE_HTML_FILE), all_mail_vars));
 			
 			mail.setMailPriority(priority);
+			
+			Loggers.Mail.info("Send an user mail, " + toString() + "\t" + mail_vars);
 			mail.send();
 			
-			Log2Dump dump = getLog2Dump();
-			for (Entry<String, Object> entry : mail_vars.entrySet()) {
-				dump.add("mail_vars: " + (String) entry.getKey(), entry.getValue());
-			}
-			Log2.log.info("Send an user mail", dump);
 		} catch (Exception e) {
-			Log2.log.error("Fail to send an user mail", e, this);
+			Loggers.Mail.error("Fail to send an user mail, " + toString() + "\t" + mail_vars, e);
 		}
 	}
 	
@@ -234,7 +225,7 @@ public class EndUserBaseMail implements Log2Dumpable {
 					content.add(line.trim());
 				}
 			} catch (IOException e) {
-				Log2.log.error("Can't convert text stream", e);
+				Loggers.Mail.error("Can't convert text stream", e);
 				return null;
 			}
 			if (content.size() > 0) {

@@ -23,7 +23,6 @@ import java.util.Set;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
@@ -44,8 +43,6 @@ import play.jobs.OnApplicationStart;
 public class Bootstrap extends Job {
 	
 	public void doJob() {
-		Configuration.importLog2Configuration(Configuration.global, false);
-		
 		/**
 		 * Compare Messages entries between languages
 		 */

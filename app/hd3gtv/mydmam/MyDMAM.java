@@ -47,7 +47,6 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
 
 public class MyDMAM {
 	
@@ -270,7 +269,7 @@ public class MyDMAM {
 				return (new File(classpathelements[i]).getParentFile());
 			}
 		}
-		Log2.log.error("Can't found MyDMAM Play application", new FileNotFoundException(new File("").getAbsolutePath()));
+		Loggers.Manager.error("Can't found MyDMAM Play application", new FileNotFoundException(new File("").getAbsolutePath()));
 		return new File("");
 	}
 	

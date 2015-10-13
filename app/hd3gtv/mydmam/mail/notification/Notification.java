@@ -17,18 +17,6 @@
 
 package hd3gtv.mydmam.mail.notification;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
-import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
-import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
-import hd3gtv.mydmam.db.orm.CrudOrmModel;
-import hd3gtv.mydmam.mail.EndUserBaseMail;
-import hd3gtv.mydmam.mail.MailPriority;
-import hd3gtv.mydmam.manager.JobNG;
-import hd3gtv.mydmam.manager.JobNG.JobStatus;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,8 +27,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.CRC32;
-
-import models.UserProfile;
 
 import javax.mail.internet.InternetAddress;
 
@@ -54,12 +40,24 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
 
-import play.i18n.Lang;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
+import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.db.orm.CrudOrmModel;
+import hd3gtv.mydmam.mail.EndUserBaseMail;
+import hd3gtv.mydmam.mail.MailPriority;
+import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.manager.JobNG.JobStatus;
+import models.UserProfile;
+import play.i18n.Lang;
 
 public class Notification {
 	
@@ -583,7 +581,7 @@ public class Notification {
 						bulk.add(bulk.getClient().prepareIndex(ES_INDEX, ES_DEFAULT_TYPE, notification.key).setSource(record.toString()).setRefresh(true).setTTL(MAXIMAL_NOTIFICATION_LIFETIME));
 					}
 				} catch (Exception e) {
-					Log2.log.error("Can't import Notification", e);
+					Loggers.Mail.error("Can't import Notification", e);
 					return false;
 				}
 				return true;
@@ -746,7 +744,7 @@ public class Notification {
 				try {
 					notification.importFromDb(hit.getId(), Elasticsearch.getJSONFromSimpleResponse(hit));
 				} catch (Exception e) {
-					Log2.log.error("Can't import from ES", e);
+					Loggers.Mail.error("Can't import from ES", e);
 					return false;
 				}
 				will_close_notification = false;

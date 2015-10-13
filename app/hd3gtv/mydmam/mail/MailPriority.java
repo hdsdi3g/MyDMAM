@@ -17,10 +17,10 @@
 
 package hd3gtv.mydmam.mail;
 
-import hd3gtv.log2.Log2;
-
 import javax.mail.Message;
 import javax.mail.MessagingException;
+
+import hd3gtv.mydmam.Loggers;
 
 public enum MailPriority {
 	LOWEST, NORMAL, HIGHEST;
@@ -36,7 +36,7 @@ public enum MailPriority {
 			}
 			return message;
 		} catch (MessagingException e) {
-			Log2.log.error("Can't update mail priority", e);
+			Loggers.Mail.error("Can't update mail priority", e);
 		}
 		return null;
 		

@@ -16,18 +16,11 @@
 */
 package hd3gtv.configuration;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2FilterType;
-import hd3gtv.log2.Log2Level;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -35,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.yaml.snakeyaml.Yaml;
+
+import hd3gtv.mydmam.Loggers;
 
 public class Configuration {
 	
@@ -55,10 +50,8 @@ public class Configuration {
 		try {
 			global = new Configuration(global_configuration_directory);
 		} catch (IOException e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("user-set", System.getProperty("service.config.path", "null"));
-			dump.add("default", (new File("conf/app.d")).getAbsolutePath());
-			Log2.log.error("Problem while load configuration documents", e, dump);
+			Loggers.Configuration.fatal(
+					"Problem while load configuration documents, user-set: " + System.getProperty("service.config.path", "null") + ", default: " + (new File("conf/app.d")).getAbsolutePath(), e);
 			System.exit(1);
 		}
 	}
@@ -88,9 +81,7 @@ public class Configuration {
 		for (int pos = 0; pos < files.length; pos++) {
 			fis = new FileInputStream(files[pos]);
 			
-			if (System.getProperty("service.config.verboseload", "").equalsIgnoreCase("true")) {
-				Log2.log.info("Load configuration file", new Log2Dump("file", files[pos]));
-			}
+			Loggers.Configuration.debug("Load configuration file: " + files[pos]);
 			
 			for (Object data : yaml.loadAll(fis)) {
 				if ((data instanceof LinkedHashMap<?, ?>) == false) {
@@ -176,21 +167,29 @@ public class Configuration {
 		return baseelement.get(elementname).content.containsKey(key);
 	}
 	
-	private static Log2Dump getLog2Dump(HashMap<String, ConfigurationItem> baseelement, String elementname, String key, Object defaultvalue) {
+	private static String getDebugString(HashMap<String, ConfigurationItem> baseelement, String elementname, String key, Object defaultvalue) {
 		if (isElementExists(baseelement, elementname) == false) {
-			return null;
+			return "";
 		}
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("element", baseelement.get(elementname).referer + "/" + elementname + "/" + key);
+		StringBuilder sb = new StringBuilder();
+		sb.append("element: ");
+		sb.append(baseelement.get(elementname).referer);
+		sb.append("/");
+		sb.append(elementname);
+		sb.append("/");
+		sb.append(key);
+		
+		sb.append(", value: ");
 		if (isElementKeyExists(baseelement, elementname, key)) {
-			dump.add("value", baseelement.get(elementname).content.get(key));
+			sb.append(baseelement.get(elementname).content.get(key));
 		} else {
-			dump.add("value", "(empty)");
+			sb.append("(empty)");
 		}
-		dump.add("expected", defaultvalue);
+		sb.append(", expected: ");
+		sb.append(defaultvalue);
 		
-		return dump;
+		return sb.toString();
 	}
 	
 	public String getValue(String elementname, String key, String defaultvalue) {
@@ -209,7 +208,7 @@ public class Configuration {
 		} else if (value instanceof Boolean) {
 			return String.valueOf((Boolean) value);
 		} else {
-			Log2.log.error("Bad configuration value : not a string", null, getLog2Dump(baseelement, elementname, key, defaultvalue));
+			Loggers.Configuration.warn("Bad configuration value : not a string; " + getDebugString(baseelement, elementname, key, defaultvalue));
 			return defaultvalue;
 		}
 	}
@@ -231,7 +230,7 @@ public class Configuration {
 						try {
 							port = Integer.valueOf(clusterdef[pos_cluster].substring(colonpos + 1));
 						} catch (NumberFormatException e) {
-							Log2.log.error("Bad port definition : " + clusterdef[pos_cluster].substring(colonpos + 1) + " is not an integer", e);
+							Loggers.Configuration.warn("Bad port definition : " + clusterdef[pos_cluster].substring(colonpos + 1) + " is not an integer", e);
 							port = defaultport;
 						}
 					} else {
@@ -265,7 +264,7 @@ public class Configuration {
 		if (value instanceof Integer) {
 			return (Integer) value;
 		} else {
-			Log2.log.error("Bad configuration value : not an integer", null, getLog2Dump(baseelement, elementname, key, defaultvalue));
+			Loggers.Configuration.warn("Bad configuration value : not an integer; " + getDebugString(baseelement, elementname, key, defaultvalue));
 			return defaultvalue;
 		}
 	}
@@ -285,7 +284,7 @@ public class Configuration {
 		} else if (value instanceof Integer) {
 			return (Integer) value;
 		} else {
-			Log2.log.error("Bad configuration value : not a long", null, getLog2Dump(baseelement, elementname, key, defaultvalue));
+			Loggers.Configuration.warn("Bad configuration value : not a long; " + getDebugString(baseelement, elementname, key, defaultvalue));
 			return defaultvalue;
 		}
 	}
@@ -307,7 +306,7 @@ public class Configuration {
 		} else if (value instanceof Integer) {
 			return (Integer) value;
 		} else {
-			Log2.log.error("Bad configuration value : not a double", null, getLog2Dump(baseelement, elementname, key, defaultvalue));
+			Loggers.Configuration.warn("Bad configuration value : not a double; " + getDebugString(baseelement, elementname, key, defaultvalue));
 			return defaultvalue;
 		}
 	}
@@ -339,7 +338,7 @@ public class Configuration {
 		} else if (value instanceof String) {
 			return ((String) value).equalsIgnoreCase("yes");
 		} else {
-			Log2.log.error("Bad configuration value : not a boolean", null, getLog2Dump(baseelement, elementname, key, null));
+			Loggers.Configuration.warn("Bad configuration value : not a boolean; " + getDebugString(baseelement, elementname, key, null));
 			return false;
 		}
 	}
@@ -447,91 +446,6 @@ public class Configuration {
 		return result;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public static void importLog2Configuration(Configuration configuration, boolean logrotate_enabled) {
-		try {
-			/**
-			 * Redirect STDOUT/ERR to log file.
-			 */
-			String outfilename = System.getProperty("service.redirectouterr", "");
-			if (outfilename.equals("") == false) {
-				File outfile = new File(outfilename);
-				System.out.println("Redirect standard out and error out to " + outfile.getAbsolutePath());
-				FileOutputStream fos = new FileOutputStream(outfile, true);
-				PrintStream ps = new PrintStream(fos);
-				System.setErr(ps);
-				System.setOut(ps);
-				System.out.println("Redirect standard out and error out to " + outfile.getAbsolutePath());
-			}
-			
-		} catch (IOException e) {
-			e.printStackTrace();
-			return;
-		}
-		
-		if (configuration.isElementExists("log2") == false) {
-			return;
-		}
-		
-		if (logrotate_enabled) {
-			new Log2Rotate();
-		}
-		
-		if (isElementKeyExists(configuration.configuration, "log2", "filter") == false) {
-			return;
-		}
-		
-		try {
-			Object o_filters = configuration.configuration.get("log2").content.get("filter");
-			ArrayList<?> filter_list = (ArrayList<?>) o_filters;
-			
-			LinkedHashMap<String, ?> filter_def;
-			String filter_level;
-			Log2Level level;
-			String filter_for;
-			Log2FilterType filtertype;
-			String filter_type;
-			for (int pos = 0; pos < filter_list.size(); pos++) {
-				filter_def = (LinkedHashMap<String, ?>) filter_list.get(pos);
-				filter_for = (String) filter_def.get("for");
-				
-				filter_level = (String) filter_def.get("level");
-				if (filter_level.equalsIgnoreCase("DEBUG")) {
-					level = Log2Level.DEBUG;
-				} else if (filter_level.equalsIgnoreCase("INFO")) {
-					level = Log2Level.INFO;
-				} else if (filter_level.equalsIgnoreCase("ERROR")) {
-					level = Log2Level.ERROR;
-				} else if (filter_level.equalsIgnoreCase("SECURITY")) {
-					level = Log2Level.SECURITY;
-				} else if (filter_level.equalsIgnoreCase("NONE")) {
-					level = Log2Level.NONE;
-				} else {
-					throw new Exception("Unknown " + filter_level + " level");
-				}
-				
-				filter_type = (String) filter_def.get("type");
-				if (filter_type.equalsIgnoreCase("HIDE")) {
-					filtertype = Log2FilterType.HIDE;
-				} else if (filter_type.equalsIgnoreCase("ONE_LINE")) {
-					filtertype = Log2FilterType.ONE_LINE;
-				} else if (filter_type.equalsIgnoreCase("NO_DUMP")) {
-					filtertype = Log2FilterType.NO_DUMP;
-				} else if (filter_type.equalsIgnoreCase("DEFAULT")) {
-					filtertype = Log2FilterType.DEFAULT;
-				} else if (filter_type.equalsIgnoreCase("VERBOSE_CALLER")) {
-					filtertype = Log2FilterType.VERBOSE_CALLER;
-				} else {
-					throw new Exception("Unknown " + filter_type + " filter type");
-				}
-				
-				Log2.log.createFilter(filter_for, level, filtertype);
-			}
-		} catch (Exception e) {
-			Log2.log.error("Bad log filter configuration : check syntax", e);
-		}
-	}
-	
 	public List<LinkedHashMap<String, ?>> getListMapValues(String elementname, String key) {
 		return getValuesList(configuration, elementname, key);
 	}
@@ -545,7 +459,7 @@ public class Configuration {
 		Object o = element.content.get(key);
 		
 		if ((o instanceof ArrayList<?>) == false) {
-			Log2.log.error("Element " + elementname + "/" + key + " is not a list.", null);
+			Loggers.Configuration.error("Element " + elementname + "/" + key + " is not a list.");
 			return null;
 		}
 		
@@ -556,7 +470,7 @@ public class Configuration {
 		for (int pos = 0; pos < rawlist.size(); pos++) {
 			o = rawlist.get(pos);
 			if ((o instanceof LinkedHashMap) == false) {
-				Log2.log.error("Element " + elementname + "/" + key + " pos " + (pos + 1) + "/" + rawlist.size() + " is not a map", null);
+				Loggers.Configuration.warn("Element " + elementname + "/" + key + " pos " + (pos + 1) + "/" + rawlist.size() + " is not a map", null);
 				continue;
 			}
 			result.add((LinkedHashMap<String, ?>) o);
@@ -581,7 +495,7 @@ public class Configuration {
 		Object o = element.content.get(key);
 		
 		if ((o instanceof ArrayList<?>) == false) {
-			Log2.log.error("Element " + elementname + "/" + key + " is not a list.", null);
+			Loggers.Configuration.error("Element " + elementname + "/" + key + " is not a list.");
 			return null;
 		}
 		
@@ -592,7 +506,7 @@ public class Configuration {
 		for (int pos = 0; pos < rawlist.size(); pos++) {
 			o = rawlist.get(pos);
 			if ((o instanceof List) == false) {
-				Log2.log.error("Element " + elementname + "/" + key + " pos " + (pos + 1) + "/" + rawlist.size() + " is not a list", null);
+				Loggers.Configuration.warn("Element " + elementname + "/" + key + " pos " + (pos + 1) + "/" + rawlist.size() + " is not a list");
 				continue;
 			}
 			result.add((List) o);

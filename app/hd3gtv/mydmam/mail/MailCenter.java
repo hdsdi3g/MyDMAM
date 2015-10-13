@@ -17,9 +17,6 @@
 
 package hd3gtv.mydmam.mail;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-
 import java.util.Date;
 import java.util.Properties;
 
@@ -31,6 +28,9 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
+
 public class MailCenter {
 	
 	private static MailCenter global;
@@ -40,7 +40,7 @@ public class MailCenter {
 		try {
 			global.from = new InternetAddress(Configuration.global.getValue("javamail", "from", "root@localhost"));
 		} catch (AddressException e) {
-			Log2.log.error("Can't set form address", e);
+			Loggers.Mail.error("Can't set form address", e);
 			throw new NullPointerException("Invalid Javamail configuration");
 		}
 		global.port = Configuration.global.getValue("javamail", "port", 587);
@@ -102,7 +102,7 @@ public class MailCenter {
 			// message.setHeader("List-ID", );
 			return result;
 		} catch (MessagingException e) {
-			Log2.log.error("Can't prepare message", e);
+			Loggers.Mail.error("Can't prepare message", e);
 		}
 		return null;
 	}

@@ -16,8 +16,14 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.AppManager;
@@ -27,13 +33,6 @@ import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.storage.Storage;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class PathScan extends WorkerNG {
 	
@@ -45,16 +44,8 @@ public class PathScan extends WorkerNG {
 		importer = new ImporterStorage(storage);
 		importer.setCurrentworkingdir(current_working_directory);
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("storage", storage);
 		String cwd = importer.getCurrentworkingdir();
-		if (cwd != null) {
-			dump.add("current_working_directory", cwd);
-		}
-		if (limit_to_current_directory) {
-			dump.add("limited to current directory", limit_to_current_directory);
-		}
-		Log2.log.info("Indexing storage", dump);
+		Loggers.Pathindex.info("Indexing storage: " + storage + ", current working directory: " + cwd + ", limit to current directory: " + limit_to_current_directory);
 		
 		importer.setLimit_to_current_directory(limit_to_current_directory);
 		importer.index(bulk);

@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.module;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
@@ -29,6 +25,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
 import play.i18n.Lang;
 import play.utils.OrderSafeProperties;
 
@@ -81,7 +79,7 @@ public class MessagesOutsidePlay {
 					}
 				}
 			} catch (Exception e) {
-				Log2.log.error("Can't import module message files", e, new Log2Dump("module name", module_name));
+				Loggers.Module.error("Can't import module message files, module_name: " + module_name, e);
 			}
 		}
 		
@@ -114,24 +112,19 @@ public class MessagesOutsidePlay {
 				continue;
 			}
 			
-			boolean has_problems = false;
-			Log2Dump dump = new Log2Dump();
 			for (Object current_messages_key : current_messages.keySet()) {
 				if (comparable_messages.containsKey(current_messages_key) == false) {
-					has_problems = true;
 					module_name = map_key_sourcemessage.get((String) current_messages_key);
-					dump.add("missing message", "\"" + (String) current_messages_key + "\" in " + module_name + " module, conf/message." + comparable_locale.getLanguage() + " file");
+					Loggers.Module.warn("Missing message keys, please check messages files \"" + (String) current_messages_key + "\" in " + module_name + " module, conf/message."
+							+ comparable_locale.getLanguage() + " file");
 				}
 			}
 			for (Object comparable_messages_key : comparable_messages.keySet()) {
 				if (current_messages.containsKey(comparable_messages_key) == false) {
-					has_problems = true;
 					module_name = map_key_sourcemessage.get((String) comparable_messages_key);
-					dump.add("missing message", "\"" + (String) comparable_messages_key + "\" in " + module_name + " module, conf/message." + current_locale.getLanguage() + " file");
+					Loggers.Module.warn("Missing message keys, please check messages files \"" + (String) comparable_messages_key + "\" in " + module_name + " module, conf/message."
+							+ current_locale.getLanguage() + " file");
 				}
-			}
-			if (has_problems) {
-				Log2.log.error("Missing messages keys, please check messages files", null, dump);
 			}
 		}
 		

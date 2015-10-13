@@ -16,15 +16,11 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2FilterType;
-import hd3gtv.log2.Log2Level;
+import java.util.ArrayList;
+
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.tools.ApplicationArgs;
-
-import java.util.ArrayList;
 
 public class MainClass {
 	
@@ -33,11 +29,7 @@ public class MainClass {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-		Configuration.importLog2Configuration(Configuration.global, false);
-		
 		MyDMAM.testIllegalKeySize();
-		
-		Log2.log.createFilter("hd3gtv.mydmam.transcode.TranscodeProfileManager.refreshProfileslist", Log2Level.INFO, Log2FilterType.HIDE);
 		
 		ApplicationArgs appargs = new ApplicationArgs(args);
 		

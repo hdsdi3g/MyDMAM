@@ -16,19 +16,6 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
-import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
-import hd3gtv.mydmam.mail.notification.Notification;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.useraction.UACreationRequest;
-import hd3gtv.tools.ApplicationArgs;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -62,6 +49,18 @@ import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
+import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
+import hd3gtv.mydmam.mail.notification.Notification;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.useraction.UACreationRequest;
+import hd3gtv.tools.ApplicationArgs;
 
 public class CliModuleOperateDatabase implements CliModule {
 	
@@ -286,7 +285,7 @@ public class CliModuleOperateDatabase implements CliModule {
 			}
 		}
 		if (args.getParamExist("-clean")) {
-			Log2.log.info("Start clean operations");
+			Loggers.CLI.info("Start clean operations");
 			ContainerOperations.purge_orphan_metadatas();
 			return;
 		}
@@ -325,10 +324,7 @@ public class CliModuleOperateDatabase implements CliModule {
 					throw new FileNotFoundException(f_source.getAbsolutePath());
 				}
 				
-				Log2Dump dump = new Log2Dump();
-				dump.add("source", f_source);
-				dump.add("dest", dest);
-				Log2.log.info("Export h2 base", dump);
+				Loggers.CLI.info("Export h2 base, source: " + f_source + ", dest: " + dest);
 				
 				Connection conn = null;
 				try {
@@ -358,10 +354,7 @@ public class CliModuleOperateDatabase implements CliModule {
 					throw new FileNotFoundException(source.getAbsolutePath());
 				}
 				
-				Log2Dump dump = new Log2Dump();
-				dump.add("source", source);
-				dump.add("dest", new File(dest + ".h2.db"));
-				Log2.log.info("Export h2 base", dump);
+				Loggers.CLI.info("Export h2 base, source: " + source + ", dest: " + new File(dest + ".h2.db"));
 				
 				Connection conn = null;
 				try {

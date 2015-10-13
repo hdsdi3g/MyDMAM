@@ -1,14 +1,14 @@
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.log2.Log2;
+import java.io.File;
+import java.util.List;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.auth.AuthenticationUser;
 import hd3gtv.mydmam.auth.Authenticator;
 import hd3gtv.mydmam.auth.AuthenticatorLocalsqlite;
 import hd3gtv.tools.ApplicationArgs;
-
-import java.io.File;
-import java.util.List;
 
 public class CliModuleAuthenticatorLocal implements CliModule {
 	
@@ -100,7 +100,7 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 			}
 			db.createUser(username, password1, longname, (disabled == false));
 			
-			Log2.log.info("Add user", db.getUserInformations(username));
+			Loggers.CLI.info("Add user, " + db.getUserInformations(username));
 			return;
 		}
 		if (args.getParamExist("-login")) {
@@ -113,9 +113,9 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 			}
 			AuthenticationUser user = db.getUser(username, getPassword("Enter " + username + " password: "));
 			if (user == null) {
-				Log2.log.error("Can't found " + username + " in database", null);
+				Loggers.CLI.error("Can't found " + username + " in database");
 			} else {
-				Log2.log.info("Test login", user);
+				Loggers.CLI.info("Test login, " + user);
 			}
 			return;
 		}
@@ -186,7 +186,7 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 				System.exit(1);
 				return;
 			}
-			Log2.log.info("About user", db.getUserInformations(username));
+			Loggers.CLI.info("About user: " + db.getUserInformations(username));
 			return;
 		}
 		if (args.getParamExist("-passwd")) {
@@ -240,7 +240,7 @@ public class CliModuleAuthenticatorLocal implements CliModule {
 				System.exit(2);
 			}
 			
-			Log2.log.info("Rename user", db.getUserInformations(username));
+			Loggers.CLI.info("Rename user: " + db.getUserInformations(username));
 			return;
 		}
 		

@@ -32,27 +32,24 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.UserInfo;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.ExecBinaryPath;
+import hd3gtv.tools.ExecprocessGettext;
 
 public class Ssh {
 	
 	private static Ssh global;
-	private static boolean debug_ssh_mode = false;
 	
 	static {
 		JSch.setLogger(new Logger() {
 			
 			public boolean isEnabled(int level) {
-				if (debug_ssh_mode) {
-					return true;
-				} else if (level == DEBUG) {
-					return false;
-				} else if (level == INFO) {
-					return false;
+				if (level == DEBUG) {
+					return Loggers.Ssh.isTraceEnabled();
+				}
+				if (level == INFO) {
+					return Loggers.Ssh.isDebugEnabled();
 				} else {
 					return true;
 				}
@@ -61,22 +58,22 @@ public class Ssh {
 			public void log(int level, String message) {
 				switch (level) {
 				case DEBUG:
-					Log2.log.debug(message);
+					Loggers.Ssh.trace("[JSch]\t" + message);
 					break;
 				case INFO:
-					Log2.log.debug(message);
+					Loggers.Ssh.debug("[JSch]\t" + message);
 					break;
 				case WARN:
-					Log2.log.info(message);
+					Loggers.Ssh.warn("[JSch]\t" + message);
 					break;
 				case ERROR:
-					Log2.log.error(message, null);
+					Loggers.Ssh.error("[JSch]\t" + message);
 					break;
 				case FATAL:
-					Log2.log.error(message, null);
+					Loggers.Ssh.fatal("[JSch]\t" + message);
 					break;
 				default:
-					Log2.log.info(message);
+					Loggers.Ssh.debug("[JSch]\t" + message);
 					break;
 				}
 			}
@@ -149,11 +146,7 @@ public class Ssh {
 			exec.start();
 		}
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("Public key", new File(public_key));
-		dump.add("Private key", new File(private_key));
-		dump.add("Finger print", kpair.getFingerPrint());
-		Log2.log.info("Generate SSH Keys for MyDMAM", dump);
+		Loggers.Ssh.info("Generate SSH Keys for MyDMAM, public key: " + new File(public_key) + ", private key: " + new File(private_key) + ", finger print: " + kpair.getFingerPrint());
 	}
 	
 	public Ssh declareHost(String host, int port, String username, final String password, String connection_name, boolean create_remote_authorized_file) throws JSchException, IOException {
@@ -250,7 +243,7 @@ public class Ssh {
 	
 	public boolean isRemoteExists(String connection_name) {
 		if (store.exists(connection_name) == false) {
-			Log2.log.debug("Remote connection don't exists. You can create it with CLI ssh functions", new Log2Dump("connection_name", connection_name));
+			Loggers.Ssh.debug("Remote connection don't exists. You can create it with CLI ssh functions, connection_name: " + connection_name);
 			return false;
 		}
 		return true;
@@ -258,7 +251,7 @@ public class Ssh {
 	
 	private class Interactive implements UserInfo, UIKeyboardInteractive {
 		public String getPassword() {
-			Log2.log.debug("Request password from ssh server...");
+			Loggers.Ssh.debug("Request password from ssh server...");
 			return passwd;
 		}
 		
@@ -266,7 +259,7 @@ public class Ssh {
 			if (message.equals(known_hosts + " does not exist.\nAre you sure you want to create it?")) {
 				return true;
 			}
-			Log2.log.debug(message);
+			Loggers.Ssh.debug(message);
 			return false;
 		}
 		
@@ -277,22 +270,22 @@ public class Ssh {
 		}
 		
 		public String getPassphrase() {
-			Log2.log.debug("Request passphrase from ssh server...");
+			Loggers.Ssh.debug("Request passphrase from ssh server...");
 			return null;
 		}
 		
 		public boolean promptPassphrase(String message) {
-			Log2.log.debug(message);
+			Loggers.Ssh.debug(message);
 			return true;
 		}
 		
 		public boolean promptPassword(String message) {
-			Log2.log.debug(message);
+			Loggers.Ssh.debug(message);
 			return true;
 		}
 		
 		public void showMessage(String message) {
-			Log2.log.debug(message);
+			Loggers.Ssh.debug(message);
 		}
 		
 		public String[] promptKeyboardInteractive(String destination, String name, String instruction, String[] prompt, boolean[] echo) {

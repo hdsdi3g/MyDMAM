@@ -16,14 +16,6 @@
 */
 package hd3gtv.mydmam.mail;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.log2.Log2Event;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.manager.AppManager;
-
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -31,7 +23,15 @@ import java.util.ArrayList;
 
 import javax.mail.internet.InternetAddress;
 
-public class AdminMailAlert implements Log2Dumpable {
+import hd3gtv.configuration.Configuration;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.manager.AppManager;
+
+public class AdminMailAlert {
 	
 	private static MailCenter mailcenter;
 	private static String hostname;
@@ -44,7 +44,7 @@ public class AdminMailAlert implements Log2Dumpable {
 			workername = Configuration.global.getValue("service", "workername", "(no set)");
 			admin_addr = new InternetAddress(Configuration.global.getValue("service", "administrator_mail", "root@localhost"));
 		} catch (Exception e) {
-			Log2.log.error("Can't init message alert", e);
+			Loggers.Mail.error("Can't init message alert", e);
 		}
 		
 		try {
@@ -261,22 +261,29 @@ public class AdminMailAlert implements Log2Dumpable {
 			
 			mail.send();
 			
-			Log2.log.info("Send an alert mail", this);
+			Loggers.Mail.info("Send an alert mail: " + this);
 		} catch (Exception e) {
-			Log2.log.error("Fail to send an alert mail !", e, this);
+			Loggers.Mail.error("Fail to send an alert mail ! " + this, e);
 		}
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump finaldump = new Log2Dump();
-		finaldump.add("to", admin_addr);
-		finaldump.add("subject", subject);
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("to: ");
+		sb.append(admin_addr);
+		sb.append(", subject: ");
+		sb.append(subject);
+		
 		if (caller != null) {
-			finaldump.add("caller", caller);
+			sb.append(", caller: ");
+			sb.append(caller);
 		}
 		if (throwable != null) {
-			finaldump.add("throwable", throwable);
+			sb.append(", throwable: ");
+			sb.append(throwable);
 		}
-		return finaldump;
+		
+		return sb.toString();
 	}
+	
 }

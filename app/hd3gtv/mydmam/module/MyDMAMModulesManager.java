@@ -16,21 +16,6 @@
 */
 package hd3gtv.mydmam.module;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.cli.CliModule;
-import hd3gtv.mydmam.manager.AppManager;
-import hd3gtv.mydmam.manager.CyclicJobCreator;
-import hd3gtv.mydmam.manager.TriggerJobCreator;
-import hd3gtv.mydmam.manager.WorkerNG;
-import hd3gtv.mydmam.pathindexing.Importer;
-import hd3gtv.mydmam.pathindexing.Importer.SearchPreProcessor;
-import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
-import hd3gtv.mydmam.web.MenuEntry;
-import hd3gtv.mydmam.web.search.SearchResult;
-import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
-
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
@@ -49,11 +34,24 @@ import java.util.jar.JarFile;
 
 import org.elasticsearch.search.SearchHit;
 
-import play.Play;
-import play.vfs.VirtualFile;
-
 import com.google.common.io.Files;
 import com.google.gson.Gson;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.CyclicJobCreator;
+import hd3gtv.mydmam.manager.TriggerJobCreator;
+import hd3gtv.mydmam.manager.WorkerNG;
+import hd3gtv.mydmam.pathindexing.Importer;
+import hd3gtv.mydmam.pathindexing.Importer.SearchPreProcessor;
+import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
+import hd3gtv.mydmam.web.MenuEntry;
+import hd3gtv.mydmam.web.search.SearchResult;
+import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
+import play.Play;
+import play.vfs.VirtualFile;
 
 public class MyDMAMModulesManager {
 	
@@ -95,7 +93,7 @@ public class MyDMAMModulesManager {
 						}
 						jfile.close();
 					} catch (IOException e) {
-						Log2.log.error("Can't load/open jar file " + classpathelements[i], e);
+						Loggers.Module.error("Can't load/open jar file " + classpathelements[i], e);
 					}
 				} else {
 					File directoryclass = new File(classpathelements[i]);
@@ -125,16 +123,16 @@ public class MyDMAMModulesManager {
 						MODULES.add((MyDMAMModule) module_loader);
 					}
 				} catch (ClassNotFoundException e) {
-					Log2.log.error("Class not found " + classes_to_test.get(pos_classes), e);
+					Loggers.Module.error("Class not found " + classes_to_test.get(pos_classes), e);
 				} catch (InstantiationException e) {
-					Log2.log.error("Unvalid class " + classes_to_test.get(pos_classes), e);
+					Loggers.Module.error("Unvalid class " + classes_to_test.get(pos_classes), e);
 				} catch (IllegalAccessException e) {
-					Log2.log.error("Can't access to class " + classes_to_test.get(pos_classes), e);
+					Loggers.Module.error("Can't access to class " + classes_to_test.get(pos_classes), e);
 				}
 			}
 			
 		} catch (Exception e) {
-			Log2.log.error("Can't load modules", e);
+			Loggers.Module.error("Can't load modules", e);
 		}
 	}
 	
@@ -160,7 +158,7 @@ public class MyDMAMModulesManager {
 				CopyMove.checkExistsCanRead(app_module_path);
 				CopyMove.checkIsDirectory(app_module_path);
 			} catch (Exception e) {
-				Log2.log.error("Can't found MyDMAM /modules directory", e);
+				Loggers.Module.error("Can't found MyDMAM /modules directory", e);
 				return all_conf_directories;
 			}
 			
@@ -192,7 +190,7 @@ public class MyDMAMModulesManager {
 					CopyMove.checkIsDirectory(conf_dir);
 					all_conf_directories.put(modules_link_files[pos].getName(), conf_dir);
 				} catch (IOException e) {
-					Log2.log.error("Can't read module desc file and found module conf directory", e, new Log2Dump("file", modules_link_files[pos]));
+					Loggers.Module.error("Can't read module desc file and found module conf directory, file: " + modules_link_files[pos], e);
 				}
 			}
 		}
@@ -353,10 +351,8 @@ public class MyDMAMModulesManager {
 				}
 				for (int pos_estype = 0; pos_estype < es_type_handled.size(); pos_estype++) {
 					if (search_engines_pre_processing.containsKey(es_type_handled.get(pos_estype))) {
-						Log2Dump dump = new Log2Dump();
-						dump.add("es_type_handled", es_type_handled.get(pos_estype));
-						dump.add("module", MODULES.get(pos_module).getClass().getName());
-						Log2.log.error("Twice modules declares the same ES Type for user search", null, dump);
+						Loggers.Module.error("Twice modules declares the same ES Type for user search, es_type_handled: " + es_type_handled.get(pos_estype) + ", module: "
+								+ MODULES.get(pos_module).getClass().getName());
 						continue;
 					}
 					search_engines_pre_processing.put(es_type_handled.get(pos_estype), MODULES.get(pos_module));

@@ -17,10 +17,6 @@
 
 package hd3gtv.mydmam.auth;
 
-import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -33,9 +29,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
 
-import models.ACLUser;
-
 import org.apache.commons.net.util.Base64;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
+import models.ACLUser;
 
 public class AuthenticationBackend {
 	
@@ -43,7 +41,7 @@ public class AuthenticationBackend {
 		try {
 			refreshConfiguration();
 		} catch (Exception e) {
-			Log2.log.error("Error with loading authentication configuration", e);
+			Loggers.Auth.error("Error with loading authentication configuration", e);
 		}
 	}
 	
@@ -107,7 +105,7 @@ public class AuthenticationBackend {
 				
 				authenticators_domains.add(domain);
 			} else {
-				Log2.log.error("Can't import \"auth/backend\" " + (pos + 1) + " configuration item", null, new Log2Dump("item", configuration_element.toString()));
+				Loggers.Auth.error("Can't import \"auth/backend\" " + (pos + 1) + " configuration item: " + configuration_element);
 			}
 		}
 		
@@ -143,18 +141,14 @@ public class AuthenticationBackend {
 		}
 		
 		AuthenticationUser authenticationUser;
-		Log2Dump dump;
-		dump = new Log2Dump();
-		dump.add("username", username);
-		dump.addAll(authenticator);
 		try {
 			authenticationUser = authenticator.getUser(username, password);
 			if (authenticationUser != null) {
-				Log2.log.debug("Valid user found for this authentication method", dump);
+				Loggers.Auth.debug("Valid user found for this authentication method, username: " + username + ", " + authenticator);
 				return authenticationUser;
 			}
 		} catch (IOException e) {
-			Log2.log.error("Invalid authentication method", e, dump);
+			Loggers.Auth.error("Invalid authentication method: " + username + ", " + authenticator, e);
 		}
 		return null;
 	}
@@ -164,22 +158,15 @@ public class AuthenticationBackend {
 	 */
 	public static AuthenticationUser authenticate(String username, String password) throws InvalidAuthenticatorUserException {
 		AuthenticationUser authenticationUser;
-		Log2Dump dump = new Log2Dump();
 		for (int pos = 0; pos < authenticators.size(); pos++) {
 			try {
-				dump = new Log2Dump();
-				dump.add("authenticator", authenticators.get(pos));
 				
 				authenticationUser = authenticate(authenticators.get(pos), username, password);
 				if (authenticationUser != null) {
 					return authenticationUser;
 				}
 			} catch (InvalidAuthenticatorUserException e) {
-				dump.add("cause", e.getMessage());
-				if (e.getCause() != null) {
-					dump.add("from", e.getCause().getMessage());
-				}
-				Log2.log.debug("Invalid user for this authentication method", dump);
+				Loggers.Auth.debug("Invalid user for this authentication method, authenticator: " + authenticators.get(pos), e);
 			}
 		}
 		throw new InvalidAuthenticatorUserException("Can't authenticate with " + username);
@@ -217,12 +204,9 @@ public class AuthenticationBackend {
 			fw.write("Note: you haven't need a local authenticator if you set another backend and if you grant some new administrators\r\n");
 			fw.close();
 			
-			Log2Dump dump = new Log2Dump();
-			dump.add("login", ACLUser.ADMIN_NAME);
-			dump.add("password file", textfile.getAbsoluteFile());
-			dump.add("local database", authenticatorlocalsqlite.getDbfile());
-			Log2.log.security("Create Play administrator account", dump);
-			
+			Loggers.Auth.info(
+					"Create Play administrator account, login: " + ACLUser.ADMIN_NAME + ", password file: " + textfile.getAbsoluteFile() + ", local database: " + authenticatorlocalsqlite.getDbfile());
+					
 		} else if (authenticatorlocalsqlite.isEnabledUser(ACLUser.ADMIN_NAME) == false) {
 			throw new Exception("User " + ACLUser.ADMIN_NAME + " is disabled in sqlite file !");
 		}

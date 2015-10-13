@@ -18,7 +18,6 @@
 package hd3gtv.mydmam.auth;
 
 import static javax.naming.directory.SearchControls.SUBTREE_SCOPE;
-import hd3gtv.log2.Log2Dump;
 
 import java.io.IOException;
 import java.util.Hashtable;
@@ -33,6 +32,8 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
+
+import hd3gtv.log2.Log2Dump;
 
 class AuthenticatorActivedirectory implements Authenticator {
 	
@@ -157,12 +158,15 @@ class AuthenticatorActivedirectory implements Authenticator {
 		
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("domain", domain);
-		dump.add("server", server);
-		dump.add("ldap_port", ldap_port);
-		return dump;
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("domain: ");
+		sb.append(domain);
+		sb.append(", server: ");
+		sb.append(server);
+		sb.append(", ldap_port: ");
+		sb.append(ldap_port);
+		return sb.toString();
 	}
 	
 }

@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2FilterType;
-import hd3gtv.log2.Log2Level;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -41,8 +38,6 @@ public class CliModuleStorageIndex implements CliModule {
 			if (args.getParamExist("-storage") == false) {
 				throw new NullPointerException("-storage param must to be set");
 			}
-			Log2.log.createFilter("", Log2Level.ERROR, Log2FilterType.DEFAULT);
-			
 			Explorer explorer = new Explorer();
 			
 			for (int pos = 0; pos < SourcePathIndexerElement.TOSTRING_HEADERS.length; pos++) {

@@ -16,8 +16,10 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import java.io.File;
+import java.io.FileNotFoundException;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.MetadataIndexer;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
@@ -26,9 +28,6 @@ import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
-
-import java.io.File;
-import java.io.FileNotFoundException;
 
 public class CliModuleMetadata implements CliModule {
 	
@@ -56,7 +55,7 @@ public class CliModuleMetadata implements CliModule {
 			
 			Container result;
 			File[] files = dir_testformats.listFiles();
-			Log2Dump dump = new Log2Dump();
+			
 			for (int pos = 0; pos < files.length; pos++) {
 				if (files[pos].isDirectory()) {
 					continue;
@@ -74,10 +73,8 @@ public class CliModuleMetadata implements CliModule {
 				spie.storagename = "MyDMAM-CLI-Request";
 				
 				result = new MetadataIndexingOperation(files[pos]).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
-				dump.add("Item", files[pos]);
-				dump.addAll(result);
+				Loggers.CLI.info("Item: " + files[pos] + ", result: " + result);
 			}
-			Log2.log.info("Result", dump);
 			
 			return;
 		} else if (args.getParamExist("-refresh")) {
@@ -100,16 +97,14 @@ public class CliModuleMetadata implements CliModule {
 			Explorer explorer = new Explorer();
 			
 			if (explorer.countDirectoryContentElements(root_indexing.prepare_key()) == 0) {
-				Log2Dump dump = new Log2Dump();
-				dump.addAll(root_indexing);
-				Log2.log.info("Empty/not found element to scan metadatas", dump);
+				Loggers.CLI.info("Empty/not found element to scan metadatas: " + root_indexing.toString());
 				return;
 			}
 			MetadataIndexer metadataIndexer = new MetadataIndexer(true);
 			metadataIndexer.process(root_indexing, 0);
 			return;
 		} else if (args.getParamExist("-clean")) {
-			Log2.log.info("Start clean operations");
+			Loggers.CLI.info("Start clean operations");
 			ContainerOperations.purge_orphan_metadatas();
 			return;
 		}

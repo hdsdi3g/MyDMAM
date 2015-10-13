@@ -16,8 +16,6 @@
 */
 package hd3gtv.configuration;
 
-import hd3gtv.log2.Log2;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,6 +23,8 @@ import java.io.IOException;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+
+import hd3gtv.mydmam.Loggers;
 
 public class GitInfo {
 	
@@ -96,7 +96,7 @@ public class GitInfo {
 			}
 			throw new FileNotFoundException();
 		} catch (IOException e) {
-			Log2.log.error("Can't access to local code git repository", e);
+			Loggers.Manager.error("Can't access to local code git repository", e);
 			return null;
 		}
 	}

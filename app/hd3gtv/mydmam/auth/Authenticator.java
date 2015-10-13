@@ -17,11 +17,9 @@
 
 package hd3gtv.mydmam.auth;
 
-import hd3gtv.log2.Log2Dumpable;
-
 import java.io.IOException;
 
-public interface Authenticator extends Log2Dumpable {
+public interface Authenticator {
 	
 	/**
 	 * @return null if user & password are invalid, unknow, lock...

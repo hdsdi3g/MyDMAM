@@ -16,19 +16,6 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
-import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
-import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
-import hd3gtv.mydmam.db.ElastisearchCrawlerMultipleHits;
-import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
-import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
-import hd3gtv.mydmam.web.search.SearchQuery;
-import hd3gtv.mydmam.web.stat.Stat;
-import hd3gtv.tools.GsonIgnore;
-import hd3gtv.tools.GsonIgnoreStrategy;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,6 +38,20 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+
+import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
+import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
+import hd3gtv.mydmam.db.ElastisearchCrawlerMultipleHits;
+import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
+import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
+import hd3gtv.mydmam.web.search.SearchQuery;
+import hd3gtv.mydmam.web.stat.Stat;
+import hd3gtv.tools.GsonIgnore;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class Explorer {
 	
@@ -438,7 +439,7 @@ public class Explorer {
 		try {
 			searches.allReader(crawler);
 		} catch (Exception e) {
-			Log2.log.error("Can't crawl from ES", e);
+			Loggers.Pathindex.error("Can't crawl from ES", e);
 		}
 		
 		return map_dir_list;

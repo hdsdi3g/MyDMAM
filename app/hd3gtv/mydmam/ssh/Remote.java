@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.ssh;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +25,9 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
-public class Remote implements Log2Dumpable {
+import hd3gtv.mydmam.Loggers;
+
+public class Remote {
 	
 	private Session session;
 	private String command;
@@ -85,7 +83,7 @@ public class Remote implements Log2Dumpable {
 		if (channel == null) {
 			return;
 		}
-		Log2.log.info("Kill ssh process", this);
+		Loggers.Ssh.info("Kill ssh process, " + toString());
 		channel.sendSignal("KILL");
 	}
 	
@@ -146,13 +144,17 @@ public class Remote implements Log2Dumpable {
 		
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("connection_name", connection_name);
-		dump.add("ssh-user", session.getUserName());
-		dump.add("ssh-host", session.getHost());
-		dump.add("command", command);
-		return dump;
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("connection_name: ");
+		sb.append(connection_name);
+		sb.append(", ssh-user: ");
+		sb.append(session.getUserName());
+		sb.append(", ssh-host: ");
+		sb.append(session.getHost());
+		sb.append(", command: ");
+		sb.append(command);
+		return sb.toString();
 	}
 	
 }

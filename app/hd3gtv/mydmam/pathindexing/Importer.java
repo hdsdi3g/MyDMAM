@@ -16,18 +16,18 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
-import hd3gtv.mydmam.web.search.SearchResult;
-import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.search.SearchHit;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.web.search.SearchResult;
+import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
 
 public abstract class Importer {
 	
@@ -40,7 +40,7 @@ public abstract class Importer {
 			Elasticsearch.enableTTL(ES_INDEX, ES_TYPE_FILE);
 			Elasticsearch.enableTTL(ES_INDEX, ES_TYPE_DIRECTORY);
 		} catch (Exception e) {
-			Log2.log.error("Can't to set TTL for ES", e);
+			Loggers.Pathindex.error("Can't to set TTL for ES", e);
 		}
 	}
 	

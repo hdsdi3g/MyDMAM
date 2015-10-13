@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.CassandraDb;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,12 +26,13 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.CassandraDb;
+
 public class WebCacheInvalidation {
 	
 	public static final int CACHING_CASSANDRA_TTL_SEC = 60 * 60;
 	public static final String CACHING_CLIENT_TTL = "60mn";
-	
-	// public static final long CACHING_LOCAL_CASSANDRA_INVALIDATION_TTL = 5;
 	
 	private static final ColumnFamily<String, String> CF_CACHEINVALIDATION = new ColumnFamily<String, String>("cacheInvalidation", StringSerializer.get(), StringSerializer.get());
 	
@@ -49,7 +46,7 @@ public class WebCacheInvalidation {
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_CACHEINVALIDATION.getName(), false);
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't init database CFs", e);
+			Loggers.Pathindex.error("Can't init database CFs", e);
 		}
 	}
 	
@@ -67,8 +64,6 @@ public class WebCacheInvalidation {
 		if (storages_name.isEmpty()) {
 			return;
 		}
-		Log2Dump dump = new Log2Dump();
-		dump.add("storages_name", storages_name);
 		try {
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
 			for (int pos = 0; pos < storages_name.size(); pos++) {
@@ -78,10 +73,9 @@ public class WebCacheInvalidation {
 				mutator.withRow(CF_CACHEINVALIDATION, storages_name.get(pos)).putColumn("last_refresh", System.currentTimeMillis(), CACHING_CASSANDRA_TTL_SEC);
 			}
 			mutator.execute();
-			
-			Log2.log.debug("Add invalidation(s)", dump);
+			Loggers.Pathindex.debug("Add invalidation(s), storages_name: " + storages_name);
 		} catch (Exception e) {
-			Log2.log.error("Can't add invalidation", e, dump);
+			Loggers.Pathindex.error("Can't add invalidation, storages_name: " + storages_name, e);
 		}
 	}
 	
@@ -104,13 +98,12 @@ public class WebCacheInvalidation {
 			}
 			return col.getLongValue("last_refresh", 0l);
 		} catch (Exception e) {
-			Log2.log.error("Can't add invalidation", e);
+			Loggers.Pathindex.error("Can't add invalidation", e);
 		}
 		
 		return 0;
 	}
 	
-	// private Cache<String, Long> internal_invalidation_cache;
 	private InternalCacheLoader cache_loader;
 	
 	private class InternalCacheLoader extends CacheLoader<String, Long> {
@@ -120,37 +113,16 @@ public class WebCacheInvalidation {
 	}
 	
 	public WebCacheInvalidation() {
-		/*CacheBuilder<Object, Object> graphs = CacheBuilder.newBuilder();
-		graphs.expireAfterWrite(CACHING_LOCAL_CASSANDRA_INVALIDATION_TTL, TimeUnit.SECONDS);*/
 		cache_loader = new InternalCacheLoader();
-		// internal_invalidation_cache = graphs.build(cache_loader);
 	}
 	
 	public long getLastInvalidationDate(String storagename) {
-		/*if (storagename == null) {
-			long min_value = System.currentTimeMillis();
-			// Root storage (only dir list can be updated), search the min cached values.
-			if (internal_invalidation_cache.size() > 0) {
-				ConcurrentMap<String, Long> ddd = internal_invalidation_cache.asMap();
-				for (Map.Entry<String, Long> entry : ddd.entrySet()) {
-					if (min_value > entry.getValue()) {
-						// Search the oldest refresh date cached (root storages are not so many added or removed).
-						min_value = entry.getValue();
-					}
-				}
-			}
-			return min_value;
-		}*/
-		
 		try {
-			Long result /*= internal_invalidation_cache.getIfPresent(storagename)*/;
-			// if (result == null) {
+			Long result;
 			result = cache_loader.load(storagename);
-			// internal_invalidation_cache.put(storagename, result);
-			// }
 			return result;
 		} catch (Exception e) {
-			Log2.log.error("Can't get last value", e, new Log2Dump("storagename", storagename));
+			Loggers.Pathindex.error("Can't get last value, storagename: " + storagename, e);
 			return 0;
 		}
 	}

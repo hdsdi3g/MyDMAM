@@ -16,8 +16,14 @@
 */
 package hd3gtv.mydmam.mail.notification;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.indices.IndexMissingException;
+
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
@@ -26,19 +32,13 @@ import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import org.elasticsearch.indices.IndexMissingException;
-
 public class NotificationWorker extends WorkerNG {
 	
 	static {
 		try {
 			Elasticsearch.enableTTL(Notification.ES_INDEX, Notification.ES_DEFAULT_TYPE);
 		} catch (IOException e) {
-			Log2.log.error("Can't to set TTL for ES", e);
+			Loggers.Mail.error("Can't to set TTL for ES", e);
 		}
 	}
 	
