@@ -16,16 +16,13 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
  * A set of Metadata items.
  */
-public class Containers implements Log2Dumpable {
+public class Containers {
 	
 	private HashMap<String, Container> map_mtd_key_item;
 	private HashMap<String, Container> map_pathindex_key_item;
@@ -74,13 +71,17 @@ public class Containers implements Log2Dumpable {
 		return map_pathindex_key_item.get(mtd_key);
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
 		for (int pos = 0; pos < all_items.size(); pos++) {
-			dump.add("List position", (pos + 1) + "/" + all_items.size());
-			dump.addAll(all_items.get(pos));
+			sb.append("\tList ");
+			sb.append(pos + 1);
+			sb.append("/");
+			sb.append(all_items.size());
+			sb.append(": ");
+			sb.append(all_items.get(pos));
 		}
-		return dump;
+		return sb.toString();
 	}
 	
 	public HashMap<String, Container> getMapPathindexKeyItems() {

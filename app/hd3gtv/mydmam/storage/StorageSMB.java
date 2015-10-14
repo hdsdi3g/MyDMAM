@@ -16,15 +16,14 @@
 */
 package hd3gtv.mydmam.storage;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import jcifs.smb.NtlmPasswordAuthentication;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
@@ -46,12 +45,6 @@ public class StorageSMB extends StorageURILoginPassword {
 		root_path = sb.toString();
 		/*
 		configuration.relative_path = file.getPath();*/
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = super.getLog2Dump();
-		dump.add("configuration", configuration.toString());
-		return dump;
 	}
 	
 	class AbstractFileSmb implements AbstractFile {
@@ -82,7 +75,7 @@ public class StorageSMB extends StorageURILoginPassword {
 				}
 				return abstractlist;
 			} catch (SmbException e) {
-				Log2.log.error("Can't list files", e, this);
+				Loggers.Storage_SMB.error("Can't list files, " + this, e);
 				return null;
 			}
 		}
@@ -91,7 +84,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			try {
 				return file.canRead();
 			} catch (SmbException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 				return false;
 			}
 		}
@@ -103,7 +96,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			try {
 				return file.canWrite();
 			} catch (SmbException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 				return false;
 			}
 		}
@@ -116,7 +109,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			try {
 				return file.isDirectory();
 			} catch (SmbException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 				return false;
 			}
 		}
@@ -125,7 +118,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			try {
 				return file.isFile();
 			} catch (SmbException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 				return false;
 			}
 		}
@@ -134,7 +127,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			try {
 				return file.isHidden();
 			} catch (SmbException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 				return false;
 			}
 		}
@@ -161,7 +154,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			try {
 				return file.length();
 			} catch (SmbException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 				return -1;
 			}
 		}
@@ -173,7 +166,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			try {
 				return new BufferedInputStream(file.getInputStream(), buffersize);
 			} catch (IOException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 			}
 			return null;
 		}
@@ -185,7 +178,7 @@ public class StorageSMB extends StorageURILoginPassword {
 			try {
 				return new BufferedOutputStream(file.getOutputStream(), buffersize);
 			} catch (IOException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 			}
 			return null;
 		}
@@ -209,7 +202,7 @@ public class StorageSMB extends StorageURILoginPassword {
 				}
 			} catch (IOException e) {
 				/** Maybe a security problem */
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 				return null;
 			}
 		}
@@ -227,7 +220,7 @@ public class StorageSMB extends StorageURILoginPassword {
 				file.renameTo(newfile);
 				return new AbstractFileSmb(newfile);
 			} catch (SmbException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 				return null;
 			}
 		}
@@ -248,7 +241,7 @@ public class StorageSMB extends StorageURILoginPassword {
 				newfile.mkdir();
 				return new AbstractFileSmb(newfile);
 			} catch (SmbException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
 				return null;
 			}
 		}
@@ -274,7 +267,7 @@ public class StorageSMB extends StorageURILoginPassword {
 				currentfile.delete();
 				return true;
 			} catch (SmbException e) {
-				Log2.log.error("Can't delete file", e);
+				Loggers.Storage_SMB.error("Can't delete file", e);
 				return false;
 			}
 		}

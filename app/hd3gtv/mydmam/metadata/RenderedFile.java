@@ -16,21 +16,6 @@
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.log2.LogHandlerToLogfile;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.metadata.container.EntrySummary;
-import hd3gtv.mydmam.metadata.container.RenderedContent;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.storage.Storage;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,12 +28,29 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 
 import com.eaio.uuid.UUID;
+
+import hd3gtv.log2.Log2;
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.log2.LogHandlerToLogfile;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.manager.InstanceStatus;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.metadata.container.EntrySummary;
+import hd3gtv.mydmam.metadata.container.RenderedContent;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.Storage;
 
 public class RenderedFile implements Log2Dumpable {
 	
@@ -111,7 +113,7 @@ public class RenderedFile implements Log2Dumpable {
 			
 			random = new Random();
 		} catch (Exception e) {
-			Log2.log.error("Can't init, check configuration on metadata_analysing.temp/local_directory", e);
+			Loggers.Metadata.error("Can't init, check configuration on metadata_analysing.temp/local_directory", e);
 		}
 		
 	}
@@ -301,14 +303,14 @@ public class RenderedFile implements Log2Dumpable {
 		dump.add("rendered_mime", rendered_mime);
 		commit_log.info("Mime", dump);
 		
-		dump = new Log2Dump();
-		dump.add("metadata_reference_id", metadata_reference_id);
-		dump.add("source_element", container.getOrigin());
-		dump.add("renderer name", generatorrenderer.getLongName());
-		dump.add("rendered_file", rendered_file);
-		dump.add("rendered_mime", rendered_mime);
-		dump.add("rendered_digest", rendered_digest);
-		Log2.log.debug("Consolidate rendered file", dump);
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		log.put("metadata_reference_id", metadata_reference_id);
+		log.put("source_element", container.getOrigin());
+		log.put("renderer name", generatorrenderer.getLongName());
+		log.put("rendered_file", rendered_file);
+		log.put("rendered_mime", rendered_mime);
+		log.put("rendered_digest", rendered_digest);
+		Loggers.Metadata.debug("Consolidate rendered file: " + log);
 		
 		consolidated = true;
 		
@@ -415,10 +417,7 @@ public class RenderedFile implements Log2Dumpable {
 		File from_dir = new File(sb_from_directory.toString()).getCanonicalFile();
 		File dest_dir = new File(sb_dest_directory.toString()).getCanonicalFile();
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("from", from_dir);
-		dump.add("to", dest_dir);
-		Log2.log.debug("Prepare operation", dump);
+		Loggers.Metadata.debug("Prepare operation, from: " + from_dir + ", to: " + dest_dir);
 		
 		/**
 		 * Create sub directories.
@@ -490,12 +489,12 @@ public class RenderedFile implements Log2Dumpable {
 			String file_digest = MyDMAM.byteToString(mdigest.digest());
 			
 			if (file_digest.equalsIgnoreCase(result.rendered_digest) == false) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("source", sb_rendered_file);
-				dump.add("source", file_digest);
-				dump.add("expected", content);
-				dump.add("expected", result.rendered_digest);
-				Log2.log.error("Invalid " + digest_algorithm + " check", null, dump);
+				LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+				log.put("source", sb_rendered_file);
+				log.put("source", file_digest);
+				log.put("expected", content);
+				log.put("expected", result.rendered_digest);
+				Loggers.Metadata.error("Invalid " + digest_algorithm + " check, " + log);
 				throw new FileNotFoundException("Rendered file has not the expected content " + sb_rendered_file.toString());
 			}
 		}
@@ -571,17 +570,13 @@ public class RenderedFile implements Log2Dumpable {
 		base_dir_lvl2.delete();
 		
 		if (base_dir_lvl2.exists()) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("directory", base_dir_lvl2);
-			Log2.log.error("Can't delete", null, dump);
+			Loggers.Metadata.warn("Can't delete directory: " + base_dir_lvl2);
 		}
 		
 		if (base_dir_lvl1.list().length == 0) {
 			base_dir_lvl1.delete();
 			if (base_dir_lvl1.exists()) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("directory", base_dir_lvl1);
-				Log2.log.error("Can't delete", null, dump);
+				Loggers.Metadata.warn("Can't delete directory: " + base_dir_lvl1);
 			}
 		}
 	}
@@ -597,9 +592,7 @@ public class RenderedFile implements Log2Dumpable {
 			allrootelements = temp_directory.getCanonicalFile().getParentFile().listFiles();
 			for (int pos = 0; pos < allrootelements.length; pos++) {
 				if (allrootelements[pos].isDirectory() == false) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("directory", allrootelements[pos]);
-					Log2.log.info("Element is not a directory, delete it", dump);
+					Loggers.Metadata.info("Element is not a directory, delete it, directory: " + allrootelements[pos]);
 					allrootelements[pos].delete();
 					continue;
 				}
@@ -609,17 +602,13 @@ public class RenderedFile implements Log2Dumpable {
 					 * Purge hidden files.
 					 */
 					if (mtddir[pos_mtd].isHidden()) {
-						Log2Dump dump = new Log2Dump();
-						dump.add("directory", mtddir[pos_mtd]);
-						Log2.log.info("Element is not a directory, delete it", dump);
+						Loggers.Metadata.info("Element is not a directory, delete it, directory: " + mtddir[pos_mtd]);
 						mtddir[pos_mtd].delete();
 					}
 				}
 				mtddir = allrootelements[pos].listFiles();
 				if (mtddir.length == 0) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("directory", allrootelements[pos]);
-					Log2.log.info("Directory is empty, delete it", dump);
+					Loggers.Metadata.info("Directory is empty, delete it, directory: " + allrootelements[pos]);
 					allrootelements[pos].delete();
 				}
 			}
@@ -641,9 +630,7 @@ public class RenderedFile implements Log2Dumpable {
 				continue;
 			}
 			if (allrootelements[pos].isDirectory() == false) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("rootelements", allrootelements[pos]);
-				Log2.log.info("Element is not a directory, delete it", dump);
+				Loggers.Metadata.info("Element is not a directory, delete it, directory: " + allrootelements[pos]);
 				allrootelements[pos].delete();
 				continue;
 			}
@@ -652,9 +639,7 @@ public class RenderedFile implements Log2Dumpable {
 				/**
 				 * Remove empty dir.
 				 */
-				Log2Dump dump = new Log2Dump();
-				dump.add("rootelements", allrootelements[pos]);
-				Log2.log.info("Directory is empty delete it", dump);
+				Loggers.Metadata.info("Directory is empty delete it, rootelements: " + allrootelements[pos]);
 				allrootelements[pos].delete();
 				continue;
 			}
@@ -666,9 +651,7 @@ public class RenderedFile implements Log2Dumpable {
 					continue;
 				}
 				if (mtddir[pos_mtd].isDirectory() == false) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("mtddir", mtddir[pos_mtd]);
-					Log2.log.info("Element is not a directory, delete it", dump);
+					Loggers.Metadata.info("Element is not a directory, delete it, mtddir: " + mtddir[pos_mtd]);
 					mtddir[pos_mtd].delete();
 					continue;
 				}
@@ -676,7 +659,7 @@ public class RenderedFile implements Log2Dumpable {
 				
 				Container container = ContainerOperations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.type);
 				if (container == null) {
-					Log2.log.info("Delete all metadata references for directory", new Log2Dump("mtd key", element_source_key));
+					Loggers.Metadata.info("Delete all metadata references for directory, mtd key: " + element_source_key);
 					purge(element_source_key);
 					continue;
 				}
@@ -723,7 +706,7 @@ public class RenderedFile implements Log2Dumpable {
 						/**
 						 * Delete old rendered file
 						 */
-						Log2.log.info("Delete old metadata file", new Log2Dump("file", mtdfiles[pos_mtdf]));
+						Loggers.Metadata.info("Delete old metadata file: " + mtdfiles[pos_mtdf]);
 						mtdfiles[pos_mtdf].delete();
 						/**
 						 * Delete MD5 file

@@ -25,9 +25,7 @@ import java.util.List;
 
 import org.elasticsearch.ElasticsearchException;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
@@ -35,7 +33,7 @@ import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 /**
  * Store all Metadatas references for a StorageIndex element, and (de)serialize from/to json.
  */
-public class Container implements Log2Dumpable {
+public class Container {
 	
 	private ContainerOrigin origin;
 	private String mtd_key;
@@ -63,10 +61,7 @@ public class Container implements Log2Dumpable {
 		if (containerEntry.getOrigin() == null) {
 			containerEntry.setOrigin(origin);
 		} else if (origin.equals(containerEntry.getOrigin()) == false) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("candidate", containerEntry);
-			dump.add("reference origin", origin);
-			Log2.log.error("Divergent origins", null, dump);
+			Loggers.Metadata.error("Divergent origins, candidate: " + containerEntry + ", reference origin: " + origin);
 			throw new NullPointerException("Can't add entry " + containerEntry.getES_Type() + ", incompatible origins");
 		}
 		containerEntry.container = this;
@@ -128,7 +123,7 @@ public class Container implements Log2Dumpable {
 		try {
 			WebCacheInvalidation.addInvalidation(this.getOrigin().getPathindexElement().storagename);
 		} catch (FileNotFoundException e) {
-			Log2.log.error("Can't found origin pathindexElement", e, this);
+			Loggers.Metadata.error("Can't found origin pathindexElement, " + this, e);
 		}
 	}
 	
@@ -137,20 +132,6 @@ public class Container implements Log2Dumpable {
 	 */
 	public void save(ElasticsearchBulkOperation es_bulk) throws ElasticsearchException {
 		ContainerOperations.save(this, false, es_bulk);
-	}
-	
-	@Deprecated
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("mtd.key", mtd_key);
-		if (origin != null) {
-			dump.add("origin.key", origin.key);
-			dump.add("origin.storage", origin.storage);
-		}
-		for (int pos = 0; pos < containerEntries.size(); pos++) {
-			dump.add("metadata." + containerEntries.get(pos).getES_Type(), ContainerOperations.getGson().toJson(containerEntries.get(pos)));
-		}
-		return dump;
 	}
 	
 	public String toString() {

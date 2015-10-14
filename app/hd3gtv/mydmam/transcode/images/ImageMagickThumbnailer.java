@@ -130,7 +130,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 	public EntryRenderer process(Container container) throws Exception {
 		ImageAttributes image_attributes = container.getByClass(ImageAttributes.class);
 		if (image_attributes == null) {
-			Log2.log.debug("No image_attributes for this container", container);
+			Log2.log.debug("No image_attributes for this container: " + container);
 			return null;
 		}
 		

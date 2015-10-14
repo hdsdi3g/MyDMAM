@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.storage;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -29,6 +26,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 
 public class StorageLocalFile extends Storage {
 	
@@ -42,10 +42,13 @@ public class StorageLocalFile extends Storage {
 		return root;
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = super.getLog2Dump();
-		dump.add("root", root);
-		return dump;
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("root: ");
+		sb.append(root);
+		sb.append("\tStorage\t");
+		sb.append(super.toString());
+		return sb.toString();
 	}
 	
 	class Localfile implements AbstractFile {
@@ -123,7 +126,7 @@ public class StorageLocalFile extends Storage {
 			try {
 				return new BufferedInputStream(new FileInputStream(file), buffersize);
 			} catch (IOException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_Local.error("Can't access to file, " + this, e);
 			}
 			return null;
 		}
@@ -135,7 +138,7 @@ public class StorageLocalFile extends Storage {
 			try {
 				return new BufferedOutputStream(new FileOutputStream(file), buffersize);
 			} catch (IOException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_Local.error("Can't access to file, " + this, e);
 			}
 			return null;
 		}
@@ -157,7 +160,7 @@ public class StorageLocalFile extends Storage {
 				}
 			} catch (IOException e) {
 				/** Maybe a security problem */
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_Local.error("Can't access to file, " + this, e);
 				return null;
 			}
 			return newfile;

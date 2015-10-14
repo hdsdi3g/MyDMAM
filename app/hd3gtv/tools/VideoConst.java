@@ -17,12 +17,13 @@
 
 package hd3gtv.tools;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.awt.Point;
 
+import org.apache.log4j.Logger;
+
 public final class VideoConst {
+	
+	public final static Logger Log = Logger.getLogger(VideoConst.class);
 	
 	public enum Systemvideo {
 		PAL, NTSC, CINEMA, OTHER, CINEMA_SCAN, HFR_PAL, HFR_NTSC, HFR_CINEMA_SCAN;
@@ -318,14 +319,12 @@ public final class VideoConst {
 	}
 	
 	public enum Interlacing {
-		Progressive,
-		/**
-		 * odd
-		 */
-		TopFieldFirst,
-		/**
-		 * even
-		 */
+		Progressive, /**
+						 * odd
+						 */
+		TopFieldFirst, /**
+						 * even
+						 */
 		BottomFieldFirst, Unknow;
 	}
 	
@@ -631,7 +630,7 @@ public final class VideoConst {
 			try {
 				ivalue = Integer.parseInt(intvalue);
 			} catch (NumberFormatException e) {
-				Log2.log.error("Can't parse audio frequency value", e, new Log2Dump("rawvalue", value));
+				Log.error("Can't parse audio frequency value, rawvalue: " + value, e);
 				return null;
 			}
 			if (ivalue == 48000) {

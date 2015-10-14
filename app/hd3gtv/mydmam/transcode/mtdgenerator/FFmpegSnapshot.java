@@ -119,7 +119,7 @@ public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				Log2Dump dump = new Log2Dump();
-				dump.addAll(container);
+				dump.add("", container.toString());
 				if (process.getRunprocess().getExitvalue() == 1) {
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					Log2.log.error("Invalid data found when processing input", null, dump);

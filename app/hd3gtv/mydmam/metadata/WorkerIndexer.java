@@ -16,8 +16,12 @@
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
@@ -28,11 +32,6 @@ import hd3gtv.mydmam.metadata.MetadataCenter.MetadataConfigurationItem;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.JobContextPathScan;
 import hd3gtv.mydmam.storage.Storage;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 
 /**
  * Used for regular analysts
@@ -51,10 +50,10 @@ public class WorkerIndexer extends WorkerNG {
 		analysis_indexers = new ArrayList<MetadataIndexer>();
 		lastindexeddatesforstoragenames = new HashMap<String, Long>();
 		
-		Log2Dump dump = new Log2Dump();
 		for (int pos = 0; pos < MetadataCenter.conf_items.size(); pos++) {
 			MetadataConfigurationItem item = MetadataCenter.conf_items.get(pos);
-			dump.add("configuration item", item);
+			
+			Loggers.Metadata.debug("Set metadata configuration item: " + item);
 			
 			JobContextMetadataAnalyst analyst = new JobContextMetadataAnalyst();
 			analyst.neededstorages = Arrays.asList(item.storage_label_name);
@@ -70,7 +69,6 @@ public class WorkerIndexer extends WorkerNG {
 			
 			lastindexeddatesforstoragenames.put(item.storage_label_name, 0l);
 		}
-		Log2.log.debug("Set metadata configuration", dump);
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {

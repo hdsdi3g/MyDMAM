@@ -302,7 +302,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 				try {
 					return WorkerRenderer.createJob(container.getOrigin().getPathindexElement(), "FFmpeg lowres for metadatas", renderer_context, source);
 				} catch (FileNotFoundException e) {
-					Log2.log.error("Can't found valid element", e, container);
+					Log2.log.error("Can't found valid element: " + container, e);
 				}
 				return null;
 			}

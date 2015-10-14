@@ -32,14 +32,12 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.container.ContainerOrigin;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
 
-public abstract class Storage implements Log2Dumpable {
+public abstract class Storage {
 	
 	private static final List<Storage> declared_storages;
 	private static final Map<String, Storage> declared_storages_by_name;
@@ -78,7 +76,7 @@ public abstract class Storage implements Log2Dumpable {
 				}
 				declared_storages.add(storage);
 			} catch (Exception e) {
-				Log2.log.error("Can't setup storage, check configuration", e);
+				Loggers.Storage.error("Can't setup storage, check configuration", e);
 			}
 		}
 		
@@ -165,10 +163,7 @@ public abstract class Storage implements Log2Dumpable {
 				new_result = new File(temp_directory.getAbsolutePath() + File.separator + base_name + "_" + (random.nextInt(1000000)) + ext);
 			}
 			
-			Log2Dump dump = new Log2Dump();
-			dump.add("element", element);
-			dump.add("new_result", new_result);
-			Log2.log.debug("Temp local file is actually in service, clone it", dump);
+			Loggers.Storage.debug("Temp local file is actually in service, clone it; element: " + element + ", new_result: " + new_result);
 			
 			FileUtils.copyFile(result, new_result);
 			return new_result;
@@ -194,13 +189,10 @@ public abstract class Storage implements Log2Dumpable {
 	
 	public static void testAllStoragesConnection() {
 		for (int pos = 0; pos < declared_storages.size(); pos++) {
-			Log2Dump dump = new Log2Dump();
 			try {
-				dump = new Log2Dump();
-				dump.add("name", declared_storages.get(pos).name);
 				declared_storages.get(pos).testStorageConnection();
 			} catch (Exception e) {
-				Log2.log.error("Fail to test storage", e, dump);
+				Loggers.Storage.error("Fail to test storage: " + declared_storages.get(pos).name, e);
 			}
 		}
 	}
@@ -221,16 +213,21 @@ public abstract class Storage implements Log2Dumpable {
 	private int period;
 	private File mounted;
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("name", name);
-		dump.add("type", getClass().getName());
-		dump.add("regular_indexing", regular_indexing);
-		dump.add("period", period);
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("name: ");
+		sb.append(name);
+		sb.append(", type: ");
+		sb.append(getClass().getName());
+		sb.append(", regular_indexing: ");
+		sb.append(regular_indexing);
+		sb.append(", period: ");
+		sb.append(period);
 		if (mounted != null) {
-			dump.add("mounted", mounted);
+			sb.append(", mounted: ");
+			sb.append(mounted);
 		}
-		return dump;
+		return sb.toString();
 	}
 	
 	public String getName() {
@@ -391,9 +388,7 @@ public abstract class Storage implements Log2Dumpable {
 		} catch (NullPointerException e) {
 			throw e;
 		} catch (IOException e) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("storagename", name);
-			Log2.log.error("Error while open an access to storage", e, dump);
+			Loggers.Storage.error("Error while open an access to storagename: " + name, e);
 		}
 		listing.onEndSearch();
 	}

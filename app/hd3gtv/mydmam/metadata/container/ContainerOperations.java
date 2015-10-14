@@ -16,23 +16,6 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
-import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
-import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
-import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
-import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
-import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.RenderedFile;
-import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.pathindexing.IndexingEvent;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
-import hd3gtv.tools.GsonIgnoreStrategy;
-import hd3gtv.tools.StoppableProcessing;
-
 import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -54,6 +37,22 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
+import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
+import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
+import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
+import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.IndexingEvent;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
+import hd3gtv.tools.GsonIgnoreStrategy;
+import hd3gtv.tools.StoppableProcessing;
 
 /**
  * Import and exports Container items from and to database.
@@ -95,7 +94,7 @@ public class ContainerOperations {
 		try {
 			declareEntryType(EntrySummary.class);
 		} catch (Exception e) {
-			Log2.log.error("Can't declare (de)serializer for EntrySummary", e);
+			Loggers.Metadata.error("Can't declare (de)serializer for EntrySummary", e);
 		}
 		gson_builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Serializer());
 		gson_builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
@@ -126,8 +125,8 @@ public class ContainerOperations {
 		return gson;
 	}
 	
-	public synchronized static void declareEntryType(Class<? extends ContainerEntry> entry_class) throws NullPointerException, InstantiationException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+	public synchronized static void declareEntryType(Class<? extends ContainerEntry> entry_class)
+			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		if (entry_class == null) {
 			throw new NullPointerException("\"entry_class\" can't to be null");
 		}
@@ -143,8 +142,8 @@ public class ContainerOperations {
 		gson = gson_builder.create();
 	}
 	
-	public synchronized static void declareSelfSerializingType(Class<? extends SelfSerializing> selfserializing_class) throws NullPointerException, InstantiationException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+	public synchronized static void declareSelfSerializingType(Class<? extends SelfSerializing> selfserializing_class)
+			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		if (selfserializing_class == null) {
 			throw new NullPointerException("\"selfserializing_class\" can't to be null");
 		}
@@ -152,8 +151,8 @@ public class ContainerOperations {
 		gson = gson_builder.create();
 	}
 	
-	private synchronized static SelfSerializing declareType(Class<? extends SelfSerializing> selfserializing_class) throws NullPointerException, InstantiationException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+	private synchronized static SelfSerializing declareType(Class<? extends SelfSerializing> selfserializing_class)
+			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		if (selfserializing_class == null) {
 			throw new NullPointerException("\"selfserializing_class\" can't to be null");
 		}
@@ -250,9 +249,7 @@ public class ContainerOperations {
 					}
 				}
 				if (unknow_types.isEmpty() == false) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("list", unknow_types);
-					Log2.log.error("Unknow types", null, dump);
+					Loggers.Metadata.error("Unknow types, list: " + unknow_types);
 					throw new NullPointerException("Can't found some types");
 				}
 			}
@@ -316,9 +313,7 @@ public class ContainerOperations {
 		reader.allReader(new HitReader(result, unknow_types));
 		
 		if (unknow_types.isEmpty() == false) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("unknow_types", unknow_types);
-			Log2.log.error("Can't found some declared types retrieved by search", null, dump);
+			Loggers.Metadata.error("Can't found some declared types retrieved by search, unknow_types: " + unknow_types);
 		}
 		return result;
 	}
@@ -357,9 +352,7 @@ public class ContainerOperations {
 		multiple_reader.allReader(new HitReader(result, unknow_types));
 		
 		if (unknow_types.isEmpty() == false) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("unknow_types", unknow_types);
-			Log2.log.error("Can't found some declared types retrieved by search", null, dump);
+			Loggers.Metadata.error("Can't found some declared types retrieved by search, unknow_types: " + unknow_types);
 		}
 		return result;
 	}
@@ -456,7 +449,7 @@ public class ContainerOperations {
 			if (elementcount_by_storage.containsKey(origin.storage) == false) {
 				elementcount_by_storage.put(origin.storage, explorer.countStorageContentElements(origin.storage));
 				if (elementcount_by_storage.get(origin.storage) == 0) {
-					Log2.log.info("Missing storage item in datatabase", new Log2Dump("storagename", origin.storage));
+					Loggers.Metadata.info("Missing storage item in datatabase, storagename: " + origin.storage);
 				}
 			}
 			return elementcount_by_storage.get(origin.storage) > 0;
@@ -503,7 +496,7 @@ public class ContainerOperations {
 			reader.allReader(hit_purge);
 			es_bulk.terminateBulk();
 			
-			Log2.log.info("Start cleaning rendered elements");
+			Loggers.Metadata.info("Start cleaning rendered elements");
 			
 			RenderedFile.purge_orphan_metadatas_files();
 			
@@ -517,12 +510,7 @@ public class ContainerOperations {
 	 * @param root_dest
 	 */
 	public static void copyMoveMetadatas(SourcePathIndexerElement from, String dest_storage, String dest_parent_path, boolean copy, StoppableProcessing stoppable) throws Exception {
-		Log2Dump dump = new Log2Dump();
-		dump.add("from", from);
-		dump.add("dest_storage", dest_storage);
-		dump.add("dest_path", dest_parent_path);
-		dump.add("copy", copy);
-		Log2.log.debug("Prepare copy/move", dump);
+		Loggers.Metadata.debug("Prepare copy/move, from: " + from + ", dest_storage: " + dest_storage + ", dest_parent_path: " + dest_parent_path + ", copy: " + copy);
 		
 		Explorer explorer = new Explorer();
 		CopyMoveMetadatas cmm;
@@ -557,12 +545,8 @@ public class ContainerOperations {
 			this.copy = copy;
 			this.stoppable = stoppable;
 			
-			Log2Dump dump = new Log2Dump();
-			dump.add("root_from_currentpath", root_from_currentpath);
-			dump.add("dest_storage", dest_storage);
-			dump.add("dest_parent_path", dest_parent_path);
-			dump.add("copy", copy);
-			Log2.log.debug("Init CopyMoveMetadatas", dump);
+			Loggers.Metadata.debug(
+					"Init CopyMoveMetadatas, root_from_currentpath: " + root_from_currentpath + ", dest_storage: " + dest_storage + ", dest_parent_path: " + dest_parent_path + ", copy: " + copy);
 		}
 		
 		/**
@@ -582,15 +566,15 @@ public class ContainerOperations {
 			String mtd_key_source = container.getMtd_key();
 			String dest_path = dest_parent_path + element.currentpath.substring(root_from_currentpath.length());
 			
-			Log2Dump dump = new Log2Dump();
-			dump.add("source", element);
-			dump.add("dest_storage", dest_storage);
-			dump.add("dest_parent_path", dest_parent_path);
-			dump.add("dest_path", dest_path);
-			dump.add("mtd_key_source", mtd_key_source);
-			dump.add("mtd_key_dest", container.getMtd_key());
-			dump.add("root_from_currentpath", root_from_currentpath);
-			Log2.log.debug("Copy/move mtd", dump);
+			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+			log.put("source", element);
+			log.put("dest_storage", dest_storage);
+			log.put("dest_parent_path", dest_parent_path);
+			log.put("dest_path", dest_path);
+			log.put("mtd_key_source", mtd_key_source);
+			log.put("mtd_key_dest", container.getMtd_key());
+			log.put("root_from_currentpath", root_from_currentpath);
+			Loggers.Metadata.debug("Copy/move mtd: " + log);
 			
 			/**
 			 * Change origin for each entry
@@ -650,9 +634,7 @@ public class ContainerOperations {
 		}
 		
 		if (unknow_types.isEmpty() == false) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("unknow_types", unknow_types);
-			Log2.log.error("Can't found some declared types retrieved by get", null, dump);
+			Loggers.Metadata.error("Can't found some declared types retrieved by get, unknow_types: " + unknow_types);
 		}
 		return result;
 	}

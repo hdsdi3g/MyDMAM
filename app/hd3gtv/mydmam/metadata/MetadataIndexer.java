@@ -16,8 +16,15 @@
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.indices.IndexMissingException;
+
+import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobNG;
@@ -30,13 +37,6 @@ import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 import hd3gtv.mydmam.storage.Storage;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.elasticsearch.indices.IndexMissingException;
 
 public class MetadataIndexer implements IndexingEvent {
 	
@@ -68,10 +68,7 @@ public class MetadataIndexer implements IndexingEvent {
 		stop_analysis = false;
 		es_bulk = Elasticsearch.prepareBulk();
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("item", item);
-		dump.addDate("min_index_date", min_index_date);
-		Log2.log.debug("Prepare", dump);
+		Loggers.Metadata.debug("Prepare, item: " + item + ", min_index_date: " + Log2Event.dateLog(min_index_date));
 		
 		if (item.directory) {
 			explorer.getAllSubElementsFromElementKey(item.prepare_key(), min_index_date, this);
@@ -130,10 +127,7 @@ public class MetadataIndexer implements IndexingEvent {
 						RenderedFile.purge(container.getMtd_key());
 						ContainerOperations.requestDelete(container, es_bulk);
 						
-						Log2Dump dump = new Log2Dump();
-						dump.addAll(element);
-						dump.addAll(container);
-						Log2.log.debug("Obsolete analysis", dump);
+						Loggers.Metadata.debug("Obsolete analysis, " + container + "; Element " + element);
 						
 						must_analyst = true;
 						container = null;
@@ -154,11 +148,7 @@ public class MetadataIndexer implements IndexingEvent {
 			return false;
 		}
 		
-		Log2Dump dump = new Log2Dump();
-		dump.addAll(element);
-		dump.add("physical_source", physical_source);
-		dump.add("force_refresh", force_refresh);
-		Log2.log.debug("Analyst this", dump);
+		Loggers.Metadata.debug("Analyst this, " + element + ", physical_source: " + physical_source + ", force_refresh: " + force_refresh);
 		
 		/**
 		 * Test if real file exists and if it's valid
@@ -170,18 +160,11 @@ public class MetadataIndexer implements IndexingEvent {
 			if (container != null) {
 				ContainerOperations.requestDelete(container, es_bulk);
 				RenderedFile.purge(container.getMtd_key());
-				
-				dump = new Log2Dump();
-				dump.add("physical_source", physical_source);
-				dump.addAll(container);
-				Log2.log.debug("Delete obsolete analysis : original file isn't exists", dump);
+				Loggers.Metadata.debug("Delete obsolete analysis : original file isn't exists, physical_source: " + physical_source + ", " + container);
 			}
 			
 			es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_key));
-			dump = new Log2Dump();
-			dump.add("key", element_key);
-			dump.add("physical_source", physical_source);
-			Log2.log.debug("Delete path element: original file isn't exists", dump);
+			Loggers.Metadata.debug("Delete path element: original file isn't exists, key: " + element_key + ", physical_source: " + physical_source);
 			
 			if (physical_source.getParentFile().exists() == false) {
 				if (element.parentpath == null) {
@@ -191,10 +174,7 @@ public class MetadataIndexer implements IndexingEvent {
 					return true;
 				}
 				es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, element.parentpath));
-				dump = new Log2Dump();
-				dump.add("key", element.parentpath);
-				dump.add("physical_source parent", physical_source.getParentFile());
-				Log2.log.debug("Delete parent path element: original directory isn't exists", dump);
+				Loggers.Metadata.debug("Delete parent path element: original directory isn't exists, key: " + element.parentpath + ", physical_source parent: " + physical_source.getParentFile());
 			}
 			
 			return true;

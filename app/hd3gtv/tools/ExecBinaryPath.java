@@ -22,11 +22,13 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
 
 public class ExecBinaryPath {
+	
+	public final static Logger Log = Logger.getLogger(ExecBinaryPath.class);
 	
 	private ExecBinaryPath() {
 	}
@@ -53,7 +55,7 @@ public class ExecBinaryPath {
 					declared_in_configuration.put(entry.getKey(), exec);
 					continue;
 				}
-				Log2.log.error("Invalid declared_in_configuration executable", new FileNotFoundException(exec.getPath()), new Log2Dump("Key[" + entry.getKey() + "]", exec));
+				Log.error("Invalid declared_in_configuration executable: Key[" + entry.getKey() + "] " + exec, new FileNotFoundException(exec.getPath()));
 			}
 		}
 	}

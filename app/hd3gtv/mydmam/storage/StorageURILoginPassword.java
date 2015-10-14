@@ -25,7 +25,14 @@ abstract class StorageURILoginPassword extends Storage {
 	}
 	
 	public String toString() {
-		return this.getClass().getSimpleName() + ":" + configuration.toString();
+		StringBuilder sb = new StringBuilder();
+		sb.append("class: ");
+		sb.append(this.getClass().getSimpleName());
+		sb.append(", URI: ");
+		sb.append(configuration.toString());
+		sb.append("\tStorage\t");
+		sb.append(super.toString());
+		return sb.toString();
 	}
 	
 }

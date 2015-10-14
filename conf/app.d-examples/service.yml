@@ -23,30 +23,3 @@ javamail:
     starttls : true
     username : me
     password : mypasswd
-
-log2:
-    filter:
-        -
-            for: hd3gtv.mydmam.pathindexing
-            level: INFO
-            type: DEFAULT
-        -
-            for: hd3gtv.mydmam.manager
-            level: INFO
-            type: DEFAULT
-        -
-            for: hd3gtv.mydmam.ssh.SshLogger
-            level: INFO
-            type: HIDE
-        -
-            for: hd3gtv.mydmam.db
-            level: INFO
-            type: DEFAULT
-        -
-            for: hd3gtv.mydmam.web.stat
-            level: INFO
-            type: DEFAULT
-    rotate_file: /var/log/mydmam/server.log 
-    rotate_maxsize: 1000000
-    rotate_maxfilelogs: 10
-

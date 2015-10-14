@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.storage;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -32,6 +29,9 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
+
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 
 public class StorageFTP extends StorageURILoginPassword {
 	
@@ -61,12 +61,6 @@ public class StorageFTP extends StorageURILoginPassword {
 		} else {
 			root_path = "/";
 		}
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = super.getLog2Dump();
-		dump.add("configuration", configuration.toString());
-		return dump;
 	}
 	
 	class AbstractFileFtp implements AbstractFile {
@@ -161,7 +155,7 @@ public class StorageFTP extends StorageURILoginPassword {
 				
 				return al_ablist;
 			} catch (IOException e) {
-				Log2.log.error("Can't list files", e, this);
+				Loggers.Storage_FTP.error("Can't list files, " + this, e);
 				return null;
 			}
 		}
@@ -215,7 +209,7 @@ public class StorageFTP extends StorageURILoginPassword {
 					ftpclient.disconnect();
 				}
 			} catch (IOException e) {
-				Log2.log.error("Can't disconnect to FTP server", e, this);
+				Loggers.Storage_FTP.error("Can't disconnect to FTP server, " + this, e);
 			}
 		}
 		
@@ -323,7 +317,7 @@ public class StorageFTP extends StorageURILoginPassword {
 				}
 				return new FTPClosableInputStream(is, buffersize);
 			} catch (IOException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_FTP.error("Can't access to file, " + this, e);
 			}
 			return null;
 		}
@@ -361,7 +355,7 @@ public class StorageFTP extends StorageURILoginPassword {
 				}
 				return new FTPClosableOutputStream(os, buffersize);
 			} catch (IOException e) {
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_FTP.error("Can't access to file, " + this, e);
 			}
 			return null;
 		}
@@ -388,7 +382,7 @@ public class StorageFTP extends StorageURILoginPassword {
 				}
 			} catch (IOException e) {
 				/** Maybe a security problem */
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_FTP.error("Can't access to file, " + this, e);
 				return null;
 			}
 		}
@@ -413,7 +407,7 @@ public class StorageFTP extends StorageURILoginPassword {
 				}
 			} catch (IOException e) {
 				/** Maybe a security problem */
-				Log2.log.error("Can't access to file", e, this);
+				Loggers.Storage_FTP.error("Can't access to file, " + this, e);
 				return null;
 			}
 		}
@@ -481,7 +475,7 @@ public class StorageFTP extends StorageURILoginPassword {
 				}
 				return ftpclient.removeDirectory(fullpath);
 			} catch (IOException e) {
-				Log2.log.error("Can't delete file", e);
+				Loggers.Storage_FTP.error("Can't delete file", e);
 				return false;
 			}
 		}
@@ -496,7 +490,7 @@ public class StorageFTP extends StorageURILoginPassword {
 			try {
 				reconnect();
 			} catch (IOException e1) {
-				Log2.log.error("Can't delete file (reconnect)", e1);
+				Loggers.Storage_FTP.error("Can't delete file (reconnect)", e1);
 				return false;
 			}
 			
@@ -506,7 +500,7 @@ public class StorageFTP extends StorageURILoginPassword {
 				try {
 					return ftpclient.deleteFile(fullpath);
 				} catch (IOException e) {
-					Log2.log.error("Can't delete file", e);
+					Loggers.Storage_FTP.error("Can't delete file", e);
 					return false;
 				}
 			}

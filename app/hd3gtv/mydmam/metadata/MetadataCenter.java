@@ -24,8 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.transcode.images.ImageMagickAnalyser;
@@ -83,7 +82,7 @@ public class MetadataCenter {
 				try {
 					limit = MetadataIndexingLimit.valueOf(((String) conf.get("limit")).toUpperCase());
 				} catch (IllegalArgumentException e) {
-					Log2.log.error("Bad enum value for limit", e, new Log2Dump("to", apply_to));
+					Loggers.Metadata.error("Bad enum value for limit, to: " + apply_to);
 				}
 			}
 			
@@ -99,7 +98,7 @@ public class MetadataCenter {
 							throw new ClassNotFoundException(c.getName() + " is not a MetadataGenerator");
 						}
 					} catch (ClassNotFoundException e) {
-						Log2.log.error("Invalid/not found class for blacklist", e, new Log2Dump("to", apply_to));
+						Loggers.Metadata.error("Invalid/not found class for blacklist, to: " + apply_to);
 					}
 				}
 			}
@@ -166,7 +165,7 @@ public class MetadataCenter {
 			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererHD.class, PreviewType.video_hd_pvw, false));
 			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererAudio.class, PreviewType.audio_pvw, true));
 		} catch (Exception e) {
-			Log2.log.error("Can't instanciate Providers", e);
+			Loggers.Metadata.error("Can't instanciate Providers", e);
 		}
 	}
 	
@@ -178,11 +177,11 @@ public class MetadataCenter {
 			return;
 		}
 		
-		Log2.log.info("Load provider " + provider.getLongName());
+		Loggers.Metadata.info("Load provider " + provider.getLongName());
 		try {
 			ContainerOperations.declareEntryType(provider.getRootEntryClass());
 		} catch (Exception e) {
-			Log2.log.error("Can't declare (de)serializer from Entry provider " + provider.getLongName(), e);
+			Loggers.Metadata.error("Can't declare (de)serializer from Entry provider " + provider.getLongName(), e);
 			return;
 		}
 		
@@ -201,7 +200,7 @@ public class MetadataCenter {
 		} else if (provider instanceof MetadataGeneratorRenderer) {
 			metadataGeneratorRenderers.add((MetadataGeneratorRenderer) provider);
 		} else {
-			Log2.log.error("Can't add unrecognized provider", null);
+			Loggers.Metadata.error("Can't add unrecognized provider", null);
 		}
 	}
 	

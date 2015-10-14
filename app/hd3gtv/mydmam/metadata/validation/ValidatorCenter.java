@@ -16,13 +16,13 @@
 */
 package hd3gtv.mydmam.metadata.validation;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Add OR relation between validators
@@ -104,7 +104,7 @@ public class ValidatorCenter {
 		List<Validator> current_list;
 		Validator current;
 		List<RejectCause> rejects = null;
-		Log2Dump dump = new Log2Dump();
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		boolean passed;
 		
 		for (int pos_lists = 0; pos_lists < validators_lists.size(); pos_lists++) {
@@ -126,15 +126,15 @@ public class ValidatorCenter {
 					passed = true;
 					break;
 				} else {
-					dump.add("trial " + (pos_list + 1), "___");
-					dump.addAll(RejectCause.getAllLog2Dump(rejects));
+					log.put("trial " + (pos_list + 1), "___");
+					log.putAll(RejectCause.getAllLogDebug(rejects));
 				}
 			}
 			if (passed == false) {
-				Log2.log.debug("Fail to validate analysis", dump);
+				Loggers.Metadata.debug("Fail to validate analysis: " + log);
 				return false;
 			} else {
-				dump = new Log2Dump();
+				log.clear();
 			}
 		}
 		return true;

@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.storage;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -32,6 +29,9 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
 
+import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
+
 public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 	
 	String path;
@@ -44,12 +44,6 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 		}
 		
 		path = configuration.relative_path.replaceAll("/", "").toUpperCase();
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = super.getLog2Dump();
-		dump.add("configuration", configuration.toString());
-		return dump;
 	}
 	
 	class AbstractFileFtpBCST implements AbstractFile {
@@ -237,7 +231,7 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 					}
 					return new BufferedInputStream(is, buffersize);
 				} catch (IOException e) {
-					Log2.log.error("Can't download file", e, this);
+					Loggers.Storage_FTPBCFT.error("Can't download file, " + this, e);
 				}
 				System.err.println("Connected 5");
 				return null;
@@ -256,7 +250,7 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 					}
 					return new BufferedOutputStream(is, buffersize);
 				} catch (IOException e) {
-					Log2.log.error("Can't upload file", e, this);
+					Loggers.Storage_FTPBCFT.error("Can't upload file, " + this, e);
 				}
 				return null;
 			}
@@ -283,7 +277,7 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 					ftpclient.disconnect();
 					return result;
 				} catch (IOException e) {
-					Log2.log.error("Can't delete file", e, this);
+					Loggers.Storage_FTPBCFT.error("Can't delete file, " + this, e);
 				}
 				return false;
 			}
@@ -309,7 +303,7 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 				ftpclient.disconnect();
 				return absfiles;
 			} catch (IOException e) {
-				Log2.log.error("Can't dirlist", e, this);
+				Loggers.Storage_FTPBCFT.error("Can't dirlist, " + this, e);
 			}
 			return null;
 		}

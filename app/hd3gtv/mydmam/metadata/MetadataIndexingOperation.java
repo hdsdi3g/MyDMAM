@@ -16,8 +16,13 @@
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.metadata.MetadataCenter.MetadataConfigurationItem;
 import hd3gtv.mydmam.metadata.container.Container;
@@ -26,12 +31,6 @@ import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class MetadataIndexingOperation {
 	private File physical_source;
@@ -72,18 +71,15 @@ public class MetadataIndexingOperation {
 		/**
 		 * Just get Mime type
 		 */
-		MIMETYPE,
-		/**
-		 * MimeType + all analysers
-		 */
-		ANALYST,
-		/**
-		 * MimeType + all analysers + all simple renderers
-		 */
-		SIMPLERENDERS,
-		/**
-		 * Full, but you need to set a CreateJobList
-		 */
+		MIMETYPE, /**
+					 * MimeType + all analysers
+					 */
+		ANALYST, /**
+					 * MimeType + all analysers + all simple renderers
+					 */
+		SIMPLERENDERS, /**
+						 * Full, but you need to set a CreateJobList
+						 */
 		NOLIMITS
 	}
 	
@@ -180,11 +176,8 @@ public class MetadataIndexingOperation {
 					}
 					container.addEntry(entry_analyser);
 				} catch (Exception e) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("analyser class", metadataGeneratorAnalyser);
-					dump.add("analyser name", metadataGeneratorAnalyser.getLongName());
-					dump.add("physical_source", physical_source);
-					Log2.log.error("Can't analyst/render file", e, dump);
+					Loggers.Metadata.error("Can't analyst/render file, " + "analyser class: " + metadataGeneratorAnalyser + ", analyser name: " + metadataGeneratorAnalyser.getLongName()
+							+ ", physical_source: " + physical_source, e);
 				}
 			}
 		}
@@ -216,11 +209,8 @@ public class MetadataIndexingOperation {
 					container.getSummary().addPreviewsFromEntryRenderer(entry_renderer, container, metadataGeneratorRenderer);
 					container.addEntry(entry_renderer);
 				} catch (Exception e) {
-					Log2Dump dump = new Log2Dump();
-					dump.add("provider class", metadataGeneratorRenderer);
-					dump.add("provider name", metadataGeneratorRenderer.getLongName());
-					dump.add("physical_source", physical_source);
-					Log2.log.error("Can't analyst/render file", e, dump);
+					Loggers.Metadata.error("Can't analyst/render file, " + "provider class: " + metadataGeneratorRenderer + ", provider name: " + metadataGeneratorRenderer.getLongName()
+							+ ", physical_source: " + physical_source, e);
 				}
 			}
 		}

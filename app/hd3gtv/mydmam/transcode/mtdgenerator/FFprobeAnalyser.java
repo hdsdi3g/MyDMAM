@@ -40,9 +40,9 @@ import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
+import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
-import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst;
 
@@ -74,7 +74,7 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				Log2Dump dump = new Log2Dump();
-				dump.addAll(container);
+				dump.add("", container.toString());
 				if (process.getRunprocess().getExitvalue() == 1) {
 					dump.add("stderr", process.getResultstderr().toString().trim());
 					Log2.log.error("Invalid data found when processing input", null, dump);

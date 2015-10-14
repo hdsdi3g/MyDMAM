@@ -16,15 +16,14 @@
 */
 package hd3gtv.mydmam.metadata.validation;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import com.jayway.jsonpath.JsonPath;
 
-public class RejectCause implements Log2Dumpable {
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+
+public class RejectCause {
 	
 	private Class<? extends EntryAnalyser> generatorAnalyser;
 	private String source;
@@ -45,39 +44,46 @@ public class RejectCause implements Log2Dumpable {
 		}
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("entry type", generatorAnalyser.getName());
-		dump.add("rule", constraint.rule);
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append("entry type, : ");
+		sb.append(generatorAnalyser.getName());
+		sb.append(", rule: ");
+		sb.append(constraint.rule);
 		List<Object> values = JsonPath.read(source, constraint.rule);
 		if (values == null) {
-			dump.add("value", "(null)");
-			return dump;
+			sb.append(", value: (null)");
+			return sb.toString();
 		} else if (values.isEmpty()) {
-			dump.add("value", "(not found)");
-			return dump;
+			sb.append(", value: (not found)");
+			return sb.toString();
 		} else if (values.size() == 1) {
-			dump.add("value", values.get(0));
+			sb.append(", value: ");
+			sb.append(values.get(0));
 		} else {
-			dump.add("values", values);
+			sb.append(", values: ");
+			sb.append(values);
 		}
-		dump.add("comparator", constraint.comparator.name());
-		dump.add("reference", constraint.getReference());
-		return dump;
+		sb.append(", comparator: ");
+		sb.append(constraint.comparator.name());
+		sb.append(", reference: ");
+		sb.append(constraint.getReference());
+		
+		return sb.toString();
 	}
 	
-	public static Log2Dump getAllLog2Dump(List<RejectCause> causes) {
+	public static LinkedHashMap<String, Object> getAllLogDebug(List<RejectCause> causes) {
 		if (causes == null) {
 			return null;
 		}
 		if (causes.isEmpty()) {
 			return null;
 		}
-		Log2Dump dump = new Log2Dump();
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		for (int pos_res = 0; pos_res < causes.size(); pos_res++) {
-			dump.add("cause " + (pos_res + 1) + ":", "____");
-			dump.addAll(causes.get(pos_res));
+			log.put("cause " + (pos_res + 1) + ":", causes.get(pos_res));
 		}
-		return dump;
+		return log;
 	}
 }

@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.metadata.RenderedFile;
-import hd3gtv.tools.GsonIgnore;
-
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -28,6 +24,10 @@ import java.util.List;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.RenderedFile;
+import hd3gtv.tools.GsonIgnore;
 
 public abstract class EntryRenderer extends ContainerEntry {
 	
@@ -104,7 +104,7 @@ public abstract class EntryRenderer extends ContainerEntry {
 		try {
 			entry = getClass().newInstance();
 		} catch (Exception e) {
-			Log2.log.error("Can't instanciate this Entry", e);
+			Loggers.Metadata.error("Can't instanciate this Entry", e);
 			return null;
 		}
 		entry.content = gson.fromJson(source.get("content").getAsJsonArray(), type_l_RenderedContent_OfT);

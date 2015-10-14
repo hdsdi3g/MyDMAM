@@ -33,8 +33,14 @@ public final class Loggers {
 	public final static Logger Job = Logger.getLogger("mydmam.job");
 	public final static Logger WatchFolder = Logger.getLogger("mydmam.watchfolder");
 	public final static Logger Transcoder = Logger.getLogger("mydmam.transcoder");
+	public final static Logger Storage = Logger.getLogger("mydmam.storage");
+	public final static Logger Storage_FTP = Logger.getLogger("mydmam.storage.ftp");
+	public final static Logger Storage_FTPBCFT = Logger.getLogger("mydmam.storage.ftpbcst");
+	public final static Logger Storage_Local = Logger.getLogger("mydmam.storage.local");
+	public final static Logger Storage_SMB = Logger.getLogger("mydmam.storage.smb");
 	public final static Logger Loggers = Logger.getLogger("mydmam.loggers");
 	public final static Logger Cassandra = Logger.getLogger("mydmam.cassandra");
+	public final static Logger Metadata = Logger.getLogger("mydmam.metadata");
 	public final static Logger ORM = Logger.getLogger("mydmam.orm");
 	public final static Logger ElasticSearch = Logger.getLogger("mydmam.elasticsearch");
 	public final static Logger Play = Logger.getLogger("mydmam.play");
