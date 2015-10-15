@@ -41,11 +41,11 @@ public class WatchFolderDB {
 	
 	static {
 		try {
-			Loggers.WatchFolder.debug("Check Cassandra configuration");
+			Loggers.Transcode_WatchFolder.debug("Check Cassandra configuration");
 			keyspace = CassandraDb.getkeyspace();
 			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
 			if (CassandraDb.isColumnFamilyExists(keyspace, CF_WATCHFOLDERS.getName()) == false) {
-				Loggers.WatchFolder.info("Create Cassandra CF " + CF_WATCHFOLDERS.getName());
+				Loggers.Transcode_WatchFolder.info("Create Cassandra CF " + CF_WATCHFOLDERS.getName());
 				CassandraDb.createColumnFamilyString(default_keyspacename, CF_WATCHFOLDERS.getName(), false);
 				// String queue_name = CF_WATCHFOLDERS.getName();
 				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "status", queue_name + "_status", DeployColumnDef.ColType_AsciiType);
@@ -56,7 +56,7 @@ public class WatchFolderDB {
 				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "indexingdebug", queue_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
 			}
 		} catch (Exception e) {
-			Loggers.WatchFolder.error("Can't init database CF", e);
+			Loggers.Transcode_WatchFolder.error("Can't init database CF", e);
 		}
 	}
 	
@@ -86,8 +86,8 @@ public class WatchFolderDB {
 		}
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		for (int pos = 0; pos < files.size(); pos++) {
-			if (Loggers.WatchFolder.isTraceEnabled()) {
-				Loggers.WatchFolder.trace("Save FoundedFile in DB " + files.get(pos).storage_name + ":" + files.get(pos).path);
+			if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
+				Loggers.Transcode_WatchFolder.trace("Save FoundedFile in DB " + files.get(pos).storage_name + ":" + files.get(pos).path);
 			}
 			files.get(pos).saveToCassandra(mutator);
 		}
@@ -102,9 +102,9 @@ public class WatchFolderDB {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		a_file.saveToCassandra(mutator);
 		
-		if (Loggers.WatchFolder.isDebugEnabled()) {
-			Loggers.WatchFolder.debug("Switch FoundedFile status: " + path_index_key + " is now " + new_status);
-			Loggers.WatchFolder.debug(" for this file: " + a_file.storage_name + ":" + a_file.path);
+		if (Loggers.Transcode_WatchFolder.isDebugEnabled()) {
+			Loggers.Transcode_WatchFolder.debug("Switch FoundedFile status: " + path_index_key + " is now " + new_status);
+			Loggers.Transcode_WatchFolder.debug(" for this file: " + a_file.storage_name + ":" + a_file.path);
 		}
 		mutator.execute();
 	}

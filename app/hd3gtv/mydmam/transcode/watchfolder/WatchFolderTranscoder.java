@@ -44,7 +44,7 @@ public class WatchFolderTranscoder {
 		}
 		
 		if (TranscodeProfile.isConfigured() == false) {
-			Loggers.WatchFolder.error("No transcoding configuration definited, cancel WatchFolderTranscoder loading");
+			Loggers.Transcode_WatchFolder.error("No transcoding configuration definited, cancel WatchFolderTranscoder loading");
 			return;
 		}
 		
@@ -63,17 +63,17 @@ public class WatchFolderTranscoder {
 				WatchFolderEntry wf_entry = new WatchFolderEntry(manager, entry.getKey(), all_wf_confs);
 				wf_entries.add(wf_entry);
 				
-				Loggers.WatchFolder.info("Start watchfolder " + entry.getKey());
+				Loggers.Transcode_WatchFolder.info("Start watchfolder " + entry.getKey());
 				Thread t = new Thread(wf_group, wf_entry);
 				t.setDaemon(true);
 				t.setName("Watch Folder for " + entry.getKey());
 				t.start();
 			} catch (Exception e) {
-				Loggers.WatchFolder.error("Can't load watchfolder " + entry.getKey(), e);
+				Loggers.Transcode_WatchFolder.error("Can't load watchfolder " + entry.getKey(), e);
 			}
 		}
 		
-		Loggers.WatchFolder.debug("Declare DeleteSourceFileWorker to manager");
+		Loggers.Transcode_WatchFolder.debug("Declare DeleteSourceFileWorker to manager");
 		manager.workerRegister(new DeleteSourceFileWorker());
 	}
 	
@@ -82,21 +82,21 @@ public class WatchFolderTranscoder {
 			return;
 		}
 		
-		Loggers.WatchFolder.info("Stop all " + wf_entries.size() + " watchfolders");
+		Loggers.Transcode_WatchFolder.info("Stop all " + wf_entries.size() + " watchfolders");
 		for (int pos = 0; pos < wf_entries.size(); pos++) {
 			wf_entries.get(pos).stopWatchfolderScans();
 		}
 		
-		Loggers.WatchFolder.debug("Wait stop for all watchfolders");
+		Loggers.Transcode_WatchFolder.debug("Wait stop for all watchfolders");
 		try {
 			while (wf_group.activeCount() > 0) {
-				if (Loggers.WatchFolder.isTraceEnabled()) {
-					Loggers.WatchFolder.trace("Wait " + wf_group.activeCount() + " watchfolder to stop");
+				if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
+					Loggers.Transcode_WatchFolder.trace("Wait " + wf_group.activeCount() + " watchfolder to stop");
 				}
 				Thread.sleep(500);
 			}
 		} catch (InterruptedException e) {
-			Loggers.WatchFolder.error("Can't wait all stopping threads", e);
+			Loggers.Transcode_WatchFolder.error("Can't wait all stopping threads", e);
 		}
 	}
 }

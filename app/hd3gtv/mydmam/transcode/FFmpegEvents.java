@@ -31,26 +31,26 @@ public class FFmpegEvents extends ExecprocessTranscodeEvent {
 	}
 	
 	public void onKill() {
-		Loggers.Transcoder.error("FFmpeg is killed for " + jobref);
+		Loggers.Transcode.error("FFmpeg is killed for " + jobref);
 	}
 	
 	public void onError(IOException ioe) {
-		Loggers.Transcoder.error("FFmpeg error for " + jobref, ioe);
+		Loggers.Transcode.error("FFmpeg error for " + jobref, ioe);
 	}
 	
 	public void onError(InterruptedException ie) {
-		Loggers.Transcoder.error("FFmpeg threads error for " + jobref, ie);
+		Loggers.Transcode.error("FFmpeg threads error for " + jobref, ie);
 	}
 	
 	public void onStdout(String message) {
-		if (Loggers.Transcoder.isTraceEnabled()) {
-			Loggers.Transcoder.trace("ffmpeg-stdout [" + jobref + "] " + message);
+		if (Loggers.Transcode.isTraceEnabled()) {
+			Loggers.Transcode.trace("ffmpeg-stdout [" + jobref + "] " + message);
 		}
 	}
 	
 	public void onStderr(String message) {
-		if (Loggers.Transcoder.isTraceEnabled()) {
-			Loggers.Transcoder.trace("ffmpeg-stderr [" + jobref + "] " + message);
+		if (Loggers.Transcode.isTraceEnabled()) {
+			Loggers.Transcode.trace("ffmpeg-stderr [" + jobref + "] " + message);
 		}
 		last_message = message;
 	}

@@ -52,7 +52,7 @@ public class TranscoderWorker extends WorkerNG {
 		}
 		
 		File temp_dir = new File(Configuration.global.getValue("transcodingworkers", "temp_directory", System.getProperty("java.io.tmpdir")));
-		Loggers.Transcoder.debug("Init Transcoder workers with this tmp dir: " + temp_dir);
+		Loggers.Transcode.debug("Init Transcoder workers with this tmp dir: " + temp_dir);
 		
 		FileUtils.forceMkdir(temp_dir);
 		
@@ -74,7 +74,7 @@ public class TranscoderWorker extends WorkerNG {
 					throw new IOException("Can't found profile \"" + (String) raw_profile + "\"");
 				}
 				for (int pos_count = 0; pos_count < count; pos_count++) {
-					Loggers.Transcoder.trace("Create transcoder worker for " + profile);
+					Loggers.Transcode.trace("Create transcoder worker for " + profile);
 					transcoderworker = new TranscoderWorker(Arrays.asList(profile), temp_dir);
 					manager.workerRegister(transcoderworker);
 				}
@@ -90,7 +90,7 @@ public class TranscoderWorker extends WorkerNG {
 					profiles.add(profile);
 				}
 				for (int pos_count = 0; pos_count < count; pos_count++) {
-					Loggers.Transcoder.trace("Create transcoder worker for " + profiles);
+					Loggers.Transcode.trace("Create transcoder worker for " + profiles);
 					transcoderworker = new TranscoderWorker(profiles, temp_dir);
 					manager.workerRegister(transcoderworker);
 				}
@@ -119,13 +119,13 @@ public class TranscoderWorker extends WorkerNG {
 		CopyMove.checkIsDirectory(temp_directory);
 		CopyMove.checkIsWritable(temp_directory);
 		
-		Loggers.Transcoder.trace("New transcoder temp_directory " + temp_directory);
+		Loggers.Transcode.trace("New transcoder temp_directory " + temp_directory);
 		
 		capabilities = new ArrayList<WorkerCapablities>(profiles.size());
 		capabilities.add(new WorkerCapablities() {
 			
 			public List<String> getStoragesAvaliable() {
-				Loggers.Transcoder.trace("New transcoder storages " + Storage.getAllStoragesNames());
+				Loggers.Transcode.trace("New transcoder storages " + Storage.getAllStoragesNames());
 				return Storage.getAllStoragesNames();
 			}
 			
@@ -138,7 +138,7 @@ public class TranscoderWorker extends WorkerNG {
 				for (int pos = 0; pos < profiles.size(); pos++) {
 					names.add(profiles.get(pos).getName());
 				}
-				Loggers.Transcoder.trace("New transcoder hooked names / profiles " + names);
+				Loggers.Transcode.trace("New transcoder hooked names / profiles " + names);
 				return names;
 			}
 		});
@@ -160,10 +160,10 @@ public class TranscoderWorker extends WorkerNG {
 	
 	protected synchronized void forceStopProcess() throws Exception {
 		stop_process = true;
-		Loggers.Transcoder.debug("Wan't to stop process " + process.getCommandline());
+		Loggers.Transcode.debug("Wan't to stop process " + process.getCommandline());
 		
 		if (process != null) {
-			Loggers.Transcoder.warn("Wan't to kill process " + process.getCommandline());
+			Loggers.Transcode.warn("Wan't to kill process " + process.getCommandline());
 			process.kill();
 		}
 	}
@@ -181,7 +181,7 @@ public class TranscoderWorker extends WorkerNG {
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
 		JobContextTranscoder transcode_context = (JobContextTranscoder) context;
 		
-		Loggers.Transcoder.debug("Recover source file from local or distant storage " + transcode_context.contextToJson().toString());
+		Loggers.Transcode.debug("Recover source file from local or distant storage " + transcode_context.contextToJson().toString());
 		
 		/**
 		 * Recover source file from local or distant storage.
@@ -195,7 +195,7 @@ public class TranscoderWorker extends WorkerNG {
 			return;
 		}
 		
-		Loggers.Transcoder.debug("Get physical_source from storage " + transcode_context.contextToJson().toString());
+		Loggers.Transcode.debug("Get physical_source from storage " + transcode_context.contextToJson().toString());
 		File physical_source = Storage.getLocalFile(pi_item);
 		boolean download_temp = false;
 		if (physical_source == null) {
@@ -215,8 +215,8 @@ public class TranscoderWorker extends WorkerNG {
 		
 		final File local_dest_dir = Storage.getLocalFile(SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name));
 		
-		Loggers.Transcoder.debug("physical_source is " + physical_source.getPath());
-		Loggers.Transcoder.debug("local_dest_dir is " + local_dest_dir.getPath());
+		Loggers.Transcode.debug("physical_source is " + physical_source.getPath());
+		Loggers.Transcode.debug("local_dest_dir is " + local_dest_dir.getPath());
 		
 		List<String> profiles_to_transcode = transcode_context.hookednames;
 		
@@ -232,25 +232,25 @@ public class TranscoderWorker extends WorkerNG {
 				return;
 			}
 			if (profiles_to_transcode.size() > 1) {
-				Loggers.Transcoder.debug("Transcode step: " + (pos + 1) + "/" + profiles_to_transcode.size());
+				Loggers.Transcode.debug("Transcode step: " + (pos + 1) + "/" + profiles_to_transcode.size());
 			}
 			
 			transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));
-			Loggers.Transcoder.debug("Get transcode_profile: " + transcode_profile.getName());
+			Loggers.Transcode.debug("Get transcode_profile: " + transcode_profile.getName());
 			
 			temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));
-			Loggers.Transcoder.debug("Get temp_output_file: " + temp_output_file.getPath());
+			Loggers.Transcode.debug("Get temp_output_file: " + temp_output_file.getPath());
 			
 			process_configuration = transcode_profile.createProcessConfiguration(physical_source, temp_output_file);
-			if (Loggers.Transcoder.isDebugEnabled()) {
-				Loggers.Transcoder.debug("process_configuration: " + process_configuration);
+			if (Loggers.Transcode.isDebugEnabled()) {
+				Loggers.Transcode.debug("process_configuration: " + process_configuration);
 			}
 			
 			if (process_configuration.wantAProgressFile()) {
 				progress_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "progress.txt");
 				
 				tprogress = process_configuration.getProgress();
-				Loggers.Transcoder.debug("Process configuration want a progress: " + tprogress.getClass().getName());
+				Loggers.Transcode.debug("Process configuration want a progress: " + tprogress.getClass().getName());
 				tprogress.init(progress_file, progression, context);
 				tprogress.startWatching();
 			} else {
@@ -264,7 +264,7 @@ public class TranscoderWorker extends WorkerNG {
 			 * @see FFmpegLowresRenderer, if it's a video file
 			 *      process_conf.getParamTags().put("FILTERS", sb_filters.toString());
 			 */
-			Loggers.Transcoder.debug("Prepare prepareExecprocess for process_configuration");
+			Loggers.Transcode.debug("Prepare prepareExecprocess for process_configuration");
 			process = process_configuration.setProgressFile(progress_file).prepareExecprocess(progression.getJobKey());
 			
 			progression.update("Transcode source file with " + transcode_profile.getName() + " (" + transcode_profile.getExecutable().getName() + ")");
@@ -273,18 +273,18 @@ public class TranscoderWorker extends WorkerNG {
 			log.put("physical_source", physical_source);
 			log.put("profile", transcode_profile.getName());
 			log.put("temp_output_file", temp_output_file);
-			Loggers.Transcoder.info("Transcode file " + log.toString());
+			Loggers.Transcode.info("Transcode file " + log.toString());
 			
 			process.run();
 			
-			Loggers.Transcoder.debug("Transcoding is ended");
+			Loggers.Transcode.debug("Transcoding is ended");
 			
 			if (tprogress != null) {
 				tprogress.stopWatching();
 			}
 			if (progress_file != null) {
 				if (progress_file.exists()) {
-					Loggers.Transcoder.debug("Progress file exists, remove it: " + progress_file.getPath());
+					Loggers.Transcode.debug("Progress file exists, remove it: " + progress_file.getPath());
 					FileUtils.forceDelete(progress_file);
 				}
 			}
@@ -309,10 +309,10 @@ public class TranscoderWorker extends WorkerNG {
 				log = new LinkedHashMap<String, Object>();
 				log.put("temp_output_file", temp_output_file);
 				log.put("fast_started_file", fast_started_file);
-				Loggers.Transcoder.info("Faststart file " + log);
+				Loggers.Transcode.info("Faststart file " + log);
 				
 				Publish.faststartFile(temp_output_file, fast_started_file);
-				Loggers.Transcoder.debug("Delete temp_output_file " + temp_output_file);
+				Loggers.Transcode.debug("Delete temp_output_file " + temp_output_file);
 				FileUtils.forceDelete(temp_output_file);
 				temp_output_file = fast_started_file;
 			}
@@ -334,7 +334,7 @@ public class TranscoderWorker extends WorkerNG {
 				File local_full_dest_dir = local_dest_dir.getAbsoluteFile();
 				if (transcode_context.dest_sub_directory != null) {
 					File dir_to_create = new File(local_full_dest_dir.getAbsolutePath() + transcode_context.dest_sub_directory);
-					Loggers.Transcoder.debug("Force mkdir " + dir_to_create);
+					Loggers.Transcode.debug("Force mkdir " + dir_to_create);
 					
 					FileUtils.forceMkdir(dir_to_create);
 					local_full_dest_dir = dir_to_create;
@@ -352,7 +352,7 @@ public class TranscoderWorker extends WorkerNG {
 				log = new LinkedHashMap<String, Object>();
 				log.put("temp_output_file", temp_output_file);
 				log.put("dest_file", dest_file);
-				Loggers.Transcoder.debug("Move transcoded file to destination " + log);
+				Loggers.Transcode.debug("Move transcoded file to destination " + log);
 				
 				FileUtils.moveFile(temp_output_file, dest_file);
 			} else {
@@ -380,13 +380,13 @@ public class TranscoderWorker extends WorkerNG {
 				log.put("temp_output_file", temp_output_file);
 				log.put("storage_dest", transcode_context.dest_storage_name);
 				log.put("full_dest_dir", full_dest_dir.toString());
-				Loggers.Transcoder.debug("Move transcoded file to destination " + log);
+				Loggers.Transcode.debug("Move transcoded file to destination " + log);
 				
 				FileUtils.copyFile(temp_output_file, distant_file.getOutputStream(0xFFFF));
 				
 				root_path.close();
 				
-				Loggers.Transcoder.debug("Delete temp_output_file" + temp_output_file);
+				Loggers.Transcode.debug("Delete temp_output_file" + temp_output_file);
 				FileUtils.forceDelete(temp_output_file);
 			}
 		}
@@ -397,7 +397,7 @@ public class TranscoderWorker extends WorkerNG {
 		
 		if (download_temp) {
 			try {
-				Loggers.Transcoder.debug("Delete physical_source" + physical_source);
+				Loggers.Transcode.debug("Delete physical_source" + physical_source);
 				FileUtils.forceDelete(physical_source);
 			} catch (Exception e) {
 				throw new IOException("Can't delete temp file", e);

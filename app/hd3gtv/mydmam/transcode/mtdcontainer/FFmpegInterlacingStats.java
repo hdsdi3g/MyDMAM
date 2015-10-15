@@ -1,19 +1,17 @@
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
-import hd3gtv.tools.VideoConst.Interlacing;
-
 import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-public class FFmpegInterlacingStats extends EntryAnalyser implements Log2Dumpable {
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.SelfSerializing;
+import hd3gtv.tools.VideoConst.Interlacing;
+
+public class FFmpegInterlacingStats extends EntryAnalyser {
 	
 	private int tff_detection;
 	private int bff_detection;
@@ -89,13 +87,19 @@ public class FFmpegInterlacingStats extends EntryAnalyser implements Log2Dumpabl
 		return interlacing;
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump result = super.getLog2Dump();
-		result.add("tff_detection", tff_detection);
-		result.add("bff_detection", bff_detection);
-		result.add("pfr_detection", pfr_detection);
-		result.add("und", und_detection);
-		result.add("interlacing", interlacing);
-		return result;
+	public String toString() {
+		StringBuilder sb = new StringBuilder(super.toString());
+		sb.append(", tff: ");
+		sb.append(tff_detection);
+		sb.append(", bff: ");
+		sb.append(bff_detection);
+		sb.append(", pfr: ");
+		sb.append(pfr_detection);
+		sb.append(", und: ");
+		sb.append(und_detection);
+		sb.append(", interlacing: ");
+		sb.append(interlacing);
+		return sb.toString();
 	}
+	
 }

@@ -30,8 +30,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
@@ -73,16 +72,10 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 			process.start();
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("", container.toString());
 				if (process.getRunprocess().getExitvalue() == 1) {
-					dump.add("stderr", process.getResultstderr().toString().trim());
-					Log2.log.error("Invalid data found when processing input", null, dump);
+					Loggers.Transcode_Metadata.error("Invalid data found when processing input, " + process + ", " + container);
 				} else {
-					dump.add("stdout", process.getResultstdout().toString().trim());
-					dump.add("stderr", process.getResultstderr().toString().trim());
-					dump.add("exitcode", process.getRunprocess().getExitvalue());
-					Log2.log.error("Problem with ffprobe", null, dump);
+					Loggers.Transcode_Metadata.error("Problem with ffprobe, " + process + ", " + container);
 				}
 			}
 			throw e;
@@ -295,7 +288,7 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 					}
 				}
 			} catch (ParseException e) {
-				Log2.log.error("Can't parse date", e, new Log2Dump("tags", tags.toString()));
+				Loggers.Transcode_Metadata.error("Can't parse date, tags: " + tags, e);
 			}
 		}
 		
@@ -478,7 +471,7 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 			}
 			
 			if (video_webbrowser_validation.validate(container)) {
-				Log2.log.debug("YES ??");
+				Loggers.Transcode_Metadata.debug("YES ??");
 				return true;
 			} else if (audio_webbrowser_validation.validate(container)) {
 				return true;

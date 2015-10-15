@@ -70,7 +70,7 @@ class DeleteSourceFileWorker extends WorkerNG {
 		AbstractFile root = Storage.getByName(order.storage).getRootPath();
 		boolean delete_ok = root.getAbstractFile(order.path).delete();
 		
-		Loggers.WatchFolder.info("Delete source file: " + order.storage + ":" + order.path);
+		Loggers.Transcode_WatchFolder.info("Delete source file: " + order.storage + ":" + order.path);
 		
 		root.close();
 		if (delete_ok == false) {
@@ -81,7 +81,7 @@ class DeleteSourceFileWorker extends WorkerNG {
 		 * Delete the pathindex entry for this file.
 		 * (don't delete mtd, the robot will doing this regularly, via @see ContainerOperations.purge_orphan_metadatas();
 		 */
-		Loggers.WatchFolder.debug("Delete pathindex entry for file: " + spie.storagename + ":" + spie.currentpath);
+		Loggers.Transcode_WatchFolder.debug("Delete pathindex entry for file: " + spie.storagename + ":" + spie.currentpath);
 		
 		Explorer explorer = new Explorer();
 		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();

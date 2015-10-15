@@ -31,8 +31,9 @@ public final class Loggers {
 	public final static Logger Broker = Logger.getLogger("mydmam.broker");
 	public final static Logger Worker = Logger.getLogger("mydmam.worker");
 	public final static Logger Job = Logger.getLogger("mydmam.job");
-	public final static Logger WatchFolder = Logger.getLogger("mydmam.watchfolder");
-	public final static Logger Transcoder = Logger.getLogger("mydmam.transcoder");
+	public final static Logger Transcode = Logger.getLogger("mydmam.transcode");
+	public final static Logger Transcode_Metadata = Logger.getLogger("mydmam.transcoder.mtd");
+	public final static Logger Transcode_WatchFolder = Logger.getLogger("mydmam.transcode.watchfolder");
 	public final static Logger Storage = Logger.getLogger("mydmam.storage");
 	public final static Logger Storage_FTP = Logger.getLogger("mydmam.storage.ftp");
 	public final static Logger Storage_FTPBCFT = Logger.getLogger("mydmam.storage.ftpbcst");
@@ -54,7 +55,6 @@ public final class Loggers {
 	
 	public static JsonObject getAllLevels() {
 		JsonObject result = new JsonObject();
-		
 		@SuppressWarnings("unchecked")
 		Enumeration<Logger> all_loggers = LogManager.getCurrentLoggers();
 		

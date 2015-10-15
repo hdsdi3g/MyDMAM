@@ -16,11 +16,10 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+
+import hd3gtv.mydmam.Loggers;
 
 public class Format extends FFprobeNode {
 	
@@ -101,8 +100,7 @@ public class Format extends FFprobeNode {
 		try {
 			return new Integer(getBit_rate()).floatValue() / 1000f;
 		} catch (Exception e) {
-			Log2Dump dump = new Log2Dump("raw bitrate", getParam("bitrate").getAsString());
-			Log2.log.error("Can't extract bitrate", e, dump);
+			Loggers.Transcode_Metadata.error("Can't extract bitrate, raw: " + getParam("bitrate").getAsString(), e);
 		}
 		return -1;
 	}

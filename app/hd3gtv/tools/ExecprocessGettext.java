@@ -50,6 +50,21 @@ public class ExecprocessGettext {
 		exitcodemusttobe0 = true;
 	}
 	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("command: \"");
+		sb.append(runprocess.getCommandline());
+		sb.append("\", exitcode: ");
+		sb.append(runprocess.getExitvalue());
+		sb.append(", stdout: \"");
+		sb.append(resultstdout);
+		sb.append("\", stderr: \"");
+		sb.append(resultstderr);
+		sb.append("\", killed: ");
+		sb.append(killed);
+		return sb.toString();
+	}
+	
 	public boolean isEndlinewidthnewline() {
 		return endlinewidthnewline;
 	}

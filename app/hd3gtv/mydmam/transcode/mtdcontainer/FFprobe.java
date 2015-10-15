@@ -17,14 +17,6 @@
 
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
-import hd3gtv.tools.Timecode;
-import hd3gtv.tools.VideoConst.Framerate;
-import hd3gtv.tools.VideoConst.Resolution;
-
 import java.awt.Point;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -34,6 +26,13 @@ import java.util.List;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.SelfSerializing;
+import hd3gtv.tools.Timecode;
+import hd3gtv.tools.VideoConst.Framerate;
+import hd3gtv.tools.VideoConst.Resolution;
 
 public class FFprobe extends EntryAnalyser {
 	
@@ -198,7 +197,7 @@ public class FFprobe extends EntryAnalyser {
 						duration = new Timecode(format.getParam("duration").getAsFloat(), framerate.getNumericValue());
 					}
 				} catch (Exception e) {
-					Log2.log.error("Can't extract duration", e, new Log2Dump("duration", format.getParam("duration").getAsString()));
+					Loggers.Transcode_Metadata.error("Can't extract duration: " + format.getParam("duration").getAsString(), e);
 				}
 			} else {
 				duration = new Timecode("00:00:00:01", framerate.getNumericValue());

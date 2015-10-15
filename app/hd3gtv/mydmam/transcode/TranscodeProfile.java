@@ -69,7 +69,7 @@ public class TranscodeProfile {
 				HashMap<String, ConfigurationItem> tp_list = Configuration.global.getElement("transcodingprofiles");
 				
 				if (tp_list.isEmpty()) {
-					Loggers.Transcoder.error("\"transcodingprofiles\" configuration can't be empty");
+					Loggers.Transcode.error("\"transcodingprofiles\" configuration can't be empty");
 				} else {
 					
 					String profile_name;
@@ -135,12 +135,12 @@ public class TranscodeProfile {
 						}
 						
 						profiles.put(profile_name, profile);
-						Loggers.Transcoder.debug("Declared transcoding profile: " + profile_name + " > " + profile.toString());
+						Loggers.Transcode.debug("Declared transcoding profile: " + profile_name + " > " + profile.toString());
 					}
 				}
 			}
 		} catch (Exception e) {
-			Loggers.Transcoder.error("Can't load transcoding configuration", e);
+			Loggers.Transcode.error("Can't load transcoding configuration", e);
 		}
 	}
 	
@@ -162,7 +162,7 @@ public class TranscodeProfile {
 	 */
 	public static TranscodeProfile getTranscodeProfile(String name) {
 		if (isConfigured() == false) {
-			Loggers.Transcoder.error("TranscodeProfile is not configured");
+			Loggers.Transcode.error("TranscodeProfile is not configured");
 			return null;
 		}
 		if (name == null) {
@@ -325,7 +325,7 @@ public class TranscodeProfile {
 				try {
 					progress = executables_transcode_progress.get(job_ref).newInstance();
 				} catch (Exception e) {
-					Loggers.Transcoder.error("Can't load TranscodeProgress new instance with executable_name: " + executable_name, e);
+					Loggers.Transcode.error("Can't load TranscodeProgress new instance with executable_name: " + executable_name, e);
 				}
 			}
 			
@@ -335,7 +335,7 @@ public class TranscodeProfile {
 					event.setJobRef(job_ref);
 					return new Execprocess(executable, makeCommandline(), event);
 				} catch (Exception e) {
-					Loggers.Transcoder.error("Can't load ExecprocessEvent new instance with executable_name: " + executable_name, e);
+					Loggers.Transcode.error("Can't load ExecprocessEvent new instance with executable_name: " + executable_name, e);
 					return new Execprocess(executable, makeCommandline(), null);
 				}
 			}

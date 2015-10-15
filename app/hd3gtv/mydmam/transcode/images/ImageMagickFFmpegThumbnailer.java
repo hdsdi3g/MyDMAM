@@ -19,7 +19,7 @@ package hd3gtv.mydmam.transcode.images;
 import java.io.File;
 import java.util.List;
 
-import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.PreviewType;
@@ -67,13 +67,13 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 			snapshot = media_source_container.getByClass(Snapshot.class);
 		}
 		if (snapshot == null) {
-			Log2.log.debug("No snapshot or artwork found from this container: " + media_source_container);
+			Loggers.Transcode.debug("No snapshot or artwork found from this container: " + media_source_container);
 			return null;
 		}
 		
 		List<String> filenames = snapshot.getContentFileNames();
 		if (filenames.isEmpty()) {
-			Log2.log.debug("snapshot or artwork list from this container is empty: " + media_source_container);
+			Loggers.Transcode.debug("snapshot or artwork list from this container is empty: " + media_source_container);
 			return null;
 		}
 		RenderedFile snapshot_rfile = snapshot.getRenderedFile(filenames.get(0), true);
@@ -86,7 +86,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		
 		ImageAttributes image_attributes = snapshot_file_container.getByClass(ImageAttributes.class);
 		if (image_attributes == null) {
-			Log2.log.debug("No image_attributes for the snapshot file container: " + snapshot_file_container);
+			Loggers.Transcode.debug("No image_attributes for the snapshot file container: " + snapshot_file_container);
 			return null;
 		}
 		return subProcess(media_source_container, physical_source, image_attributes);

@@ -56,15 +56,15 @@ public abstract class TranscodeProgress {
 			return;
 		}
 		if (internal.isAlive()) {
-			Loggers.Transcoder.debug("Stop watch transcode progress for: " + progressfile.getPath());
+			Loggers.Transcode.debug("Stop watch transcode progress for: " + progressfile.getPath());
 			while (internal.isAlive()) {
 				try {
 					Thread.sleep(100);
 				} catch (Exception e) {
-					Loggers.Transcoder.warn("Can't stop thread", e);
+					Loggers.Transcode.warn("Can't stop thread", e);
 				}
 			}
-			Loggers.Transcoder.debug("Watch transcode progress for: " + progressfile.getPath() + " is stopped");
+			Loggers.Transcode.debug("Watch transcode progress for: " + progressfile.getPath() + " is stopped");
 		}
 		internal = null;
 	}
@@ -75,7 +75,7 @@ public abstract class TranscodeProgress {
 		internal.setName("TranscodeProgress for " + progression.getJobKey());
 		stopthread = false;
 		internal.start();
-		Loggers.Transcoder.debug("Start watch transcode progress for: " + progressfile.getPath());
+		Loggers.Transcode.debug("Start watch transcode progress for: " + progressfile.getPath());
 	}
 	
 	/**
@@ -88,7 +88,7 @@ public abstract class TranscodeProgress {
 			try {
 				processAnalystProgressFile(progressfile, progression, context);
 			} catch (Exception e) {
-				Loggers.Transcoder.error("Error during progress analyst", e);
+				Loggers.Transcode.error("Error during progress analyst", e);
 			}
 		}
 	}

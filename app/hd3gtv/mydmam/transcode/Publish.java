@@ -103,7 +103,7 @@ public class Publish extends WorkerNG {
 		log.put("sourcelocalfiles", sourcelocalfiles);
 		log.put("deststorage", deststorage);
 		log.put("templocaldir", templocaldir);
-		Loggers.Transcoder.info("Init Publish " + log.toString());
+		Loggers.Transcode.info("Init Publish " + log.toString());
 	}
 	
 	protected void workerProcessJob(final JobProgression progression, JobContext context) throws Exception {
@@ -126,7 +126,7 @@ public class Publish extends WorkerNG {
 		
 		progression.update("Attente de la présence du media...");
 		progression.updateStep(0, 5);
-		Loggers.Transcoder.debug("Publish wait media " + context_publish.contextToJson().toString());
+		Loggers.Transcode.debug("Publish wait media " + context_publish.contextToJson().toString());
 		
 		/**
 		 * Wait & with cancel if too long time.
@@ -155,7 +155,7 @@ public class Publish extends WorkerNG {
 		}
 		progression.updateStep(1, 5);
 		progression.update("Media en cours de copie, attente de sa disponiblité pour son traitement...");
-		Loggers.Transcoder.debug("Publish media is copying " + context_publish.contextToJson().toString());
+		Loggers.Transcode.debug("Publish media is copying " + context_publish.contextToJson().toString());
 		
 		/**
 		 * Wait copy
@@ -165,7 +165,7 @@ public class Publish extends WorkerNG {
 			if (stop) {
 				return;
 			}
-			Loggers.Transcoder.trace("Publish media size is growing " + context_publish.contextToJson().toString() + " / " + source_file.length());
+			Loggers.Transcode.trace("Publish media size is growing " + context_publish.contextToJson().toString() + " / " + source_file.length());
 			if (source_file.length() != old_size) {
 				old_size = source_file.length();
 				Thread.sleep(waittimesizedetection);
@@ -198,7 +198,7 @@ public class Publish extends WorkerNG {
 		log.put("dest_file", dest_file_ffmpeg);
 		log.put("progress_file", progress_file);
 		log.put("profile", profile);
-		Loggers.Transcoder.debug("Publish prepare transcoding " + context_publish.contextToJson().toString() + " " + log.toString());
+		Loggers.Transcode.debug("Publish prepare transcoding " + context_publish.contextToJson().toString() + " " + log.toString());
 		
 		ProcessConfiguration process_conf = profile.createProcessConfiguration(source_file, dest_file_ffmpeg).setProgressFile(progress_file);
 		
@@ -209,16 +209,16 @@ public class Publish extends WorkerNG {
 		transcode_progress.init(progress_file, progression, context_publish).startWatching();
 		
 		this.process = process_conf.prepareExecprocess("tmp-" + progression.getJobKey());
-		Loggers.Transcoder.debug("process_conf: " + process_conf);
+		Loggers.Transcode.debug("process_conf: " + process_conf);
 		
-		Loggers.Transcoder.info("Publish transcode " + context_publish.contextToJson().toString() + " " + process.getCommandline());
+		Loggers.Transcode.info("Publish transcode " + context_publish.contextToJson().toString() + " " + process.getCommandline());
 		
 		process.run();
 		
 		transcode_progress.stopWatching();
 		progress_file.delete();
 		
-		Loggers.Transcoder.debug("Publish end transcoding " + context_publish.contextToJson().toString());
+		Loggers.Transcode.debug("Publish end transcoding " + context_publish.contextToJson().toString());
 		
 		if (stop) {
 			return;
@@ -234,7 +234,7 @@ public class Publish extends WorkerNG {
 		progression.updateStep(3, 5);
 		progression.update("Finalisation du traitement");
 		
-		Loggers.Transcoder.debug("Publish fast start file " + context_publish.contextToJson().toString());
+		Loggers.Transcode.debug("Publish fast start file " + context_publish.contextToJson().toString());
 		
 		/**
 		 * qt-faststart convert
@@ -251,7 +251,7 @@ public class Publish extends WorkerNG {
 		progression.update("Publication du média");
 		progression.updateProgress(1, 1);
 		
-		Loggers.Transcoder.debug("Publish upload media to end dest " + context_publish.contextToJson().toString());
+		Loggers.Transcode.debug("Publish upload media to end dest " + context_publish.contextToJson().toString());
 		
 		/**
 		 * End storage move
@@ -277,7 +277,7 @@ public class Publish extends WorkerNG {
 		
 		progression.updateStep(5, 5);
 		progression.update("Publication terminée");
-		Loggers.Transcoder.debug("Publish done " + context_publish.contextToJson().toString());
+		Loggers.Transcode.debug("Publish done " + context_publish.contextToJson().toString());
 	}
 	
 	public synchronized void forceStopProcess() throws Exception {
@@ -298,13 +298,13 @@ public class Publish extends WorkerNG {
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		log.put("source_file", source_file);
 		log.put("dest_file", dest_file);
-		Loggers.Transcoder.debug("Fast start file: " + log);
+		Loggers.Transcode.debug("Fast start file: " + log);
 		
 		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("qt-faststart"), param);
 		process.setEndlinewidthnewline(true);
 		process.start();
 		
-		Loggers.Transcoder.debug("Fast start file done: " + process.getResultstdout());
+		Loggers.Transcode.debug("Fast start file done: " + process.getResultstdout());
 		source_file.delete();
 	}
 	

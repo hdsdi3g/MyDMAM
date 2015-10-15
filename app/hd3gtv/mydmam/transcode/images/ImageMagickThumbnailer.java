@@ -22,8 +22,7 @@ import java.io.FilenameFilter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
@@ -87,7 +86,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		}
 		
 		if (icc_profile == null) {
-			Log2.log.error("Can't found icc profile file in conf directory.", new FileNotFoundException("conf/srgb.icc"));
+			Loggers.Transcode.error("Can't found icc profile file in conf directory.", new FileNotFoundException("conf/srgb.icc"));
 		}
 	}
 	
@@ -130,7 +129,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 	public EntryRenderer process(Container container) throws Exception {
 		ImageAttributes image_attributes = container.getByClass(ImageAttributes.class);
 		if (image_attributes == null) {
-			Log2.log.debug("No image_attributes for this container: " + container);
+			Loggers.Transcode.debug("No image_attributes for this container: " + container);
 			return null;
 		}
 		
@@ -159,11 +158,8 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 					/**
 					 * full, but img < icon => nope
 					 */
-					Log2Dump dump = new Log2Dump();
-					dump.add("Source", container);
-					dump.add("physical_source", physical_source);
-					dump.add("output format", tprofile.getOutputformat());
-					Log2.log.debug("Image size is too litte to fit in this profile", dump);
+					Loggers.Transcode.debug(
+							"Image size (full) is too litte to fit in this profile, source: " + container + ", physical_source: " + physical_source + ", output format: " + tprofile.getOutputformat());
 					return null;
 				}
 				if (image_attributes.alpha == null) {
@@ -178,11 +174,8 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 				/**
 				 * cartridge, but img < cartridge => nope
 				 */
-				Log2Dump dump = new Log2Dump();
-				dump.add("Source", container);
-				dump.add("physical_source", physical_source);
-				dump.add("output format", tprofile.getOutputformat());
-				Log2.log.debug("Image size is too litte to fit in this profile", dump);
+				Loggers.Transcode.debug("Image size (cartridge) is too litte to fit in this profile, source: " + container + ", physical_source: " + physical_source + ", output format: "
+						+ tprofile.getOutputformat());
 				return null;
 			}
 		} else if (root_entry_class == null) {
@@ -201,7 +194,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 			process_conf.getParamTags().put("CHECKERBOARDSIZE", (image_attributes.geometry.width * 2) + "x" + (image_attributes.geometry.height * 2));
 		}
 		ExecprocessGettext process = process_conf.prepareExecprocess();
-		Log2.log.debug("Start conversion", new Log2Dump("process_conf", process_conf.toString()));
+		Loggers.Transcode.debug("Start conversion, process_conf: " + process_conf.toString());
 		process.start();
 		
 		EntryRenderer thumbnail = root_entry_class.newInstance();
@@ -209,11 +202,11 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
 		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByClass(ImageAttributes.class);
 		if (thumbnail_image_attributes == null) {
-			Log2.log.debug("No image_attributes for the snapshot file container", thumbnail_image_attributes);
+			Loggers.Transcode.debug("No image_attributes for the snapshot file container: " + thumbnail_image_attributes);
 			return null;
 		}
 		if (thumbnail_image_attributes.geometry == null) {
-			Log2.log.debug("No image_attributes.geometry for the snapshot file container", thumbnail_image_attributes);
+			Loggers.Transcode.debug("No image_attributes.geometry for the snapshot file container: " + thumbnail_image_attributes);
 			return null;
 		}
 		thumbnail.getOptions().addProperty("height", thumbnail_image_attributes.geometry.height);

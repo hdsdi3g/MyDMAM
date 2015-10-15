@@ -24,15 +24,14 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
-import hd3gtv.tools.ExecBinaryPath;
 
 public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 	
@@ -158,14 +157,7 @@ public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 			return ia;
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("param", param);
-				if (process != null) {
-					dump.add("stdout", process.getResultstdout().toString().trim());
-					dump.add("stderr", process.getResultstderr().toString().trim());
-					dump.add("exitcode", process.getRunprocess().getExitvalue());
-				}
-				Log2.log.error("Problem with convert", null, dump);
+				Loggers.Transcode.error("Problem with convert, " + process + ", " + container);
 			}
 			throw e;
 		}

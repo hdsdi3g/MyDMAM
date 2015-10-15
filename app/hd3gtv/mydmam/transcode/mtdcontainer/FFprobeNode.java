@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +23,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.container.SelfSerializing;
 
 abstract class FFprobeNode implements SelfSerializing {
 	
@@ -74,11 +73,7 @@ abstract class FFprobeNode implements SelfSerializing {
 			if (entry.getValue().isJsonPrimitive()) {
 				item.params.put(entry.getKey(), entry.getValue().getAsJsonPrimitive());
 			} else {
-				Log2Dump dump = new Log2Dump();
-				dump.add("key", entry.getKey());
-				dump.add("value", entry.getValue().toString());
-				dump.add("source", source.toString());
-				Log2.log.debug("Item is not a primitive !", dump);
+				Loggers.Transcode_Metadata.debug("Item is not a primitive ! " + "key: " + entry.getKey() + ", value: " + entry.getValue().toString() + ", source: " + source.toString());
 			}
 		}
 		return item;

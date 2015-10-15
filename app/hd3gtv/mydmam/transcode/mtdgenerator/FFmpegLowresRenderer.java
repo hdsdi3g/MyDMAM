@@ -25,8 +25,7 @@ import java.util.List;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.metadata.FutureCreateJobs;
@@ -169,14 +168,9 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		process_conf.getParamTags().put("FILTERS", sb_filters.toString());
 		process = process_conf.setProgressFile(progress_file.getTempFile()).prepareExecprocess(job_progress.getJobKey() + ": " + origin.getName());
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("job", job_progress.getJobKey());
-		dump.add("origin", origin);
-		dump.add("temp_file", temp_element.getTempFile());
-		dump.add("transcode_profile", transcode_profile);
-		dump.add("commandline", process.getCommandline());
-		Log2.log.info("Start ffmpeg", dump);
-		
+		Loggers.Transcode_Metadata.info("Start ffmpeg, " + "job: " + job_progress.getJobKey() + ", origin: " + origin + ", temp_file: " + temp_element.getTempFile() + ", transcode_profile: "
+				+ transcode_profile + ", commandline: \"" + process.getCommandline() + "\"");
+				
 		process.run();
 		
 		progress.stopWatching();
@@ -288,7 +282,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 				try {
 					renderer_context = context_class.newInstance();
 				} catch (Exception e) {
-					Log2.log.error("Impossible error", e);
+					Loggers.Transcode_Metadata.error("Impossible error", e);
 					return null;
 				}
 				renderer_context.source_fps = timecode.getFps();
@@ -302,7 +296,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 				try {
 					return WorkerRenderer.createJob(container.getOrigin().getPathindexElement(), "FFmpeg lowres for metadatas", renderer_context, source);
 				} catch (FileNotFoundException e) {
-					Log2.log.error("Can't found valid element: " + container, e);
+					Loggers.Transcode_Metadata.error("Can't found valid element: " + container, e);
 				}
 				return null;
 			}

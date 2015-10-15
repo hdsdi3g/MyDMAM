@@ -18,8 +18,7 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
@@ -87,16 +86,10 @@ public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 			process.start();
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
-				Log2Dump dump = new Log2Dump();
-				dump.add("", container.toString());
 				if (process.getRunprocess().getExitvalue() == 1) {
-					dump.add("stderr", process.getResultstderr().toString().trim());
-					Log2.log.error("Invalid data found when processing input", null, dump);
+					Loggers.Transcode_Metadata.error("Invalid data found when processing input, " + process + ", " + container);
 				} else {
-					dump.add("stdout", process.getResultstdout().toString().trim());
-					dump.add("stderr", process.getResultstderr().toString().trim());
-					dump.add("exitcode", process.getRunprocess().getExitvalue());
-					Log2.log.error("Problem with ffmpeg", null, dump);
+					Loggers.Transcode_Metadata.error("Problem with ffmpeg, " + process + ", " + container);
 				}
 			}
 			throw e;
