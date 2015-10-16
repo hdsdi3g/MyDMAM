@@ -37,10 +37,6 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
-import hd3gtv.mydmam.useraction.UACapabilityDefinition;
-import hd3gtv.mydmam.useraction.UAConfigurator;
-import hd3gtv.mydmam.useraction.UAFunctionalityDefinintion;
-import hd3gtv.mydmam.useraction.UAWorker;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 public final class AppManager implements InstanceActionReceiver {
@@ -73,9 +69,6 @@ public final class AppManager implements InstanceActionReceiver {
 		/**
 		 * Outside of this package serializers
 		 */
-		builder.registerTypeAdapter(UAFunctionalityDefinintion.class, new UAFunctionalityDefinintion.Serializer());
-		builder.registerTypeAdapter(UACapabilityDefinition.class, new UACapabilityDefinition.Serializer());
-		builder.registerTypeAdapter(UAConfigurator.class, new UAConfigurator.JsonUtils());
 		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
 		simple_gson = builder.create();
 		
@@ -384,23 +377,6 @@ public final class AppManager implements InstanceActionReceiver {
 	
 	List<WorkerNG> getEnabledWorkers() {
 		return Collections.unmodifiableList(enabled_workers);
-	}
-	
-	List<UAWorker> getAllActiveUAWorkers() {
-		ArrayList<UAWorker> uaworkers = new ArrayList<UAWorker>();
-		WorkerNG worker;
-		
-		for (int pos_wr = 0; pos_wr < enabled_workers.size(); pos_wr++) {
-			worker = enabled_workers.get(pos_wr);
-			if (worker.getLifecyle().isThisState(WorkerState.WAITING, WorkerState.PROCESSING) == false) {
-				continue;
-			}
-			if ((worker instanceof UAWorker) == false) {
-				continue;
-			}
-			uaworkers.add((UAWorker) worker);
-		}
-		return uaworkers;
 	}
 	
 	public static JobNG createJob(JobContext context) {

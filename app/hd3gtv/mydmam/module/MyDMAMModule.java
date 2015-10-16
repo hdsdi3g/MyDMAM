@@ -16,21 +16,19 @@
 */
 package hd3gtv.mydmam.module;
 
-import hd3gtv.mydmam.cli.CliModule;
-import hd3gtv.mydmam.manager.AppManager;
-import hd3gtv.mydmam.manager.CyclicJobCreator;
-import hd3gtv.mydmam.manager.TriggerJobCreator;
-import hd3gtv.mydmam.manager.WorkerNG;
-import hd3gtv.mydmam.useraction.UAFunctionalityContext;
-import hd3gtv.mydmam.web.MenuEntry;
-import hd3gtv.mydmam.web.search.SearchResult;
-import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.search.SearchHit;
 
+import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.CyclicJobCreator;
+import hd3gtv.mydmam.manager.TriggerJobCreator;
+import hd3gtv.mydmam.manager.WorkerNG;
+import hd3gtv.mydmam.web.MenuEntry;
+import hd3gtv.mydmam.web.search.SearchResult;
+import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
 import play.PlayPlugin;
 
 public abstract class MyDMAMModule extends PlayPlugin implements SearchResultPreProcessor {
@@ -79,7 +77,4 @@ public abstract class MyDMAMModule extends PlayPlugin implements SearchResultPre
 		return null;
 	}
 	
-	public List<UAFunctionalityContext> getUAfunctionality() {
-		return null;
-	}
 }

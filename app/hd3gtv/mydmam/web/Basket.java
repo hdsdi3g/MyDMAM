@@ -14,12 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.useraction;
-
-import hd3gtv.log2.Log2;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+package hd3gtv.mydmam.web;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -27,8 +22,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import models.UserProfile;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
@@ -41,6 +34,11 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import controllers.Secure;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import models.UserProfile;
 
 public class Basket {
 	
@@ -59,7 +57,7 @@ public class Basket {
 				CassandraDb.createColumnFamilyString(CassandraDb.getDefaultKeyspacename(), CF_BASKETS.getName(), false);
 			}
 		} catch (Exception e) {
-			Log2.log.error("Can't prepare Cassandra connection", e);
+			Loggers.Manager.error("Can't prepare Cassandra connection for Basket", e);
 		}
 	}
 	

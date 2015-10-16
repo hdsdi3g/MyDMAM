@@ -35,7 +35,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.container.ContainerOrigin;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
+import hd3gtv.tools.CopyMove;
 
 public abstract class Storage {
 	

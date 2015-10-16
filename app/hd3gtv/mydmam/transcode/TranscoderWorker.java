@@ -37,7 +37,7 @@ import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
-import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
+import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.Execprocess;
 
 public class TranscoderWorker extends WorkerNG {

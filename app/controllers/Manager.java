@@ -109,21 +109,6 @@ public class Manager extends Controller {
 		renderJSON(result);
 	}
 	
-	@Check("showManager")
-	public static void allavailabilities() throws Exception {
-		renderJSON(InstanceStatus.getAllAvailabilitiesAsJsonString());
-		
-		/**
-		 * Only for accelerate debugging and remove get data time from db
-		 */
-		String result = Cache.get("InstanceStatus.getAllAvailabilitiesAsJsonString", String.class);
-		if (result == null) {
-			result = InstanceStatus.getAllAvailabilitiesAsJsonString();
-			Cache.set("InstanceStatus.getAllAvailabilitiesAsJsonString", result, "30mn");
-		}
-		renderJSON(result);
-	}
-	
 	@Check("showJobs")
 	public static void jobs() throws Exception {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("manager.jobs.pagename"));

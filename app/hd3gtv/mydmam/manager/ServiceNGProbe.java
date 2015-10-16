@@ -27,7 +27,6 @@ import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscoderWorker;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderTranscoder;
-import hd3gtv.mydmam.useraction.UAManager;
 
 public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	
@@ -64,8 +63,6 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		WorkerIndexer mwi = new WorkerIndexer(manager);
 		manager.workerRegister(mwi);
 		manager.workerRegister(new WorkerRenderer(mwi));
-		
-		UAManager.createWorkers(manager);
 		
 		wf_trancoder = new WatchFolderTranscoder(manager);
 		

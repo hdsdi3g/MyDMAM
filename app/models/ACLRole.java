@@ -29,8 +29,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.useraction.UAFunctionalityContext;
-import hd3gtv.mydmam.useraction.UAManager;
 import play.data.validation.Required;
 import play.db.jpa.GenericModel;
 
@@ -124,16 +122,7 @@ public class ACLRole extends GenericModel {
 	}
 	
 	public List<String> getFunctionalitiesBasenameList() {
-		List<String> f_list = getFunctionalitiesList();
-		UAFunctionalityContext functionality;
-		for (int pos = 0; pos < f_list.size(); pos++) {
-			functionality = UAManager.getByName(f_list.get(pos));
-			if (functionality == null) {
-				continue;
-			}
-			f_list.set(pos, functionality.getMessageBaseName());
-		}
-		return f_list;
+		return new ArrayList<String>();
 	}
 	
 }

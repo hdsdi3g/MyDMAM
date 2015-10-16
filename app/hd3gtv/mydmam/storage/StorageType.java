@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.storage;
 
-import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,6 +23,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import hd3gtv.tools.CopyMove;
 
 abstract class StorageType {
 	

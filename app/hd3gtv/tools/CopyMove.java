@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 26 févr. 2015
  * 
 */
-package hd3gtv.mydmam.useraction.fileoperation;
+package hd3gtv.tools;
 
 import hd3gtv.log2.Log2;
 import hd3gtv.log2.Log2Dump;

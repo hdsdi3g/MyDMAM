@@ -17,17 +17,6 @@
 
 package hd3gtv.mydmam.db.orm;
 
-import hd3gtv.mydmam.db.orm.annotations.ExcludeForView;
-import hd3gtv.mydmam.db.orm.annotations.HiddenCompactView;
-import hd3gtv.mydmam.db.orm.annotations.PointerTo;
-import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
-import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
-import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
-import hd3gtv.mydmam.db.orm.annotations.TypeLongText;
-import hd3gtv.mydmam.db.orm.annotations.TypeNavigatorInputSelection;
-import hd3gtv.mydmam.db.orm.annotations.TypePassword;
-import hd3gtv.mydmam.db.orm.annotations.TypeSelectAsyncOptions;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -42,6 +31,16 @@ import javax.persistence.Transient;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
+
+import hd3gtv.mydmam.db.orm.annotations.ExcludeForView;
+import hd3gtv.mydmam.db.orm.annotations.HiddenCompactView;
+import hd3gtv.mydmam.db.orm.annotations.PointerTo;
+import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
+import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
+import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
+import hd3gtv.mydmam.db.orm.annotations.TypeLongText;
+import hd3gtv.mydmam.db.orm.annotations.TypeNavigatorInputSelection;
+import hd3gtv.mydmam.db.orm.annotations.TypePassword;
 
 public class ORMFormField {
 	
@@ -147,13 +146,6 @@ public class ORMFormField {
 						}
 					}
 					ormformfield.options = conf;
-				} else if (field.isAnnotationPresent(TypeSelectAsyncOptions.class)) {
-					ormformfield.type = "select";
-					TypeSelectAsyncOptions field_conf = field.getAnnotation(TypeSelectAsyncOptions.class);
-					HashMap<String, Object> conf = new HashMap<String, Object>(4);
-					conf.put("multiple", field_conf.multiple());
-					ormformfield.options = conf;
-					ormformfield.class_referer = field_conf.target_class().getName();
 				} else if (field.getType().isEnum()) {
 					ormformfield.type = "enum";
 					HashMap<String, Object> conf = new HashMap<String, Object>(4);

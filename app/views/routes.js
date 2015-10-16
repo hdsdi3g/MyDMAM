@@ -47,7 +47,6 @@ mydmam.async.url = "@{AsyncJavascript.index()}";
 #{secure.check 'showManager'}
 	mydmam.manager.url.allinstances = "@{Manager.allinstances()}";
 	mydmam.manager.url.allworkers = "@{Manager.allworkers()}";
-	mydmam.manager.url.allavailabilities = "@{Manager.allavailabilities()}";
 #{/secure.check}
 
 #{secure.check 'actionManager'}
@@ -66,11 +65,5 @@ mydmam.async.url = "@{AsyncJavascript.index()}";
 mydmam.notification.url.notificationresolveusers = "@{UserNotifications.notificationresolveusers}";
 mydmam.notification.url.notificationupdateread = "@{UserNotifications.notificationupdateread(key='keyparam1')}";
 mydmam.notification.url.associatedjobs = "@{UserNotifications.associatedjobs}";
-
-#{secure.check 'userAction'}
-mydmam.useraction.url.create = "@{UserAction.create()}";
-mydmam.useraction.url.currentavailabilities = "@{UserAction.currentavailabilities()}";
-mydmam.useraction.url.optionsforselectform = "@{UserAction.optionsforselectform()}";
-#{/secure.check}
 
 })(window.mydmam);

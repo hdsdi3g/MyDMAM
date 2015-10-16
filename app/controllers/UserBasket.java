@@ -30,7 +30,7 @@ import ext.MydmamExtensions;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.useraction.Basket;
+import hd3gtv.mydmam.web.Basket;
 import hd3gtv.mydmam.web.stat.Stat;
 import models.UserProfile;
 import play.data.validation.Required;

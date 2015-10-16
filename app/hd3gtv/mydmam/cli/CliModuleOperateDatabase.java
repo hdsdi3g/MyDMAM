@@ -32,9 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.sort.SortOrder;
 import org.h2.engine.Constants;
 import org.h2.store.fs.FileUtils;
 import org.h2.tools.RunScript;
@@ -55,11 +52,7 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
-import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
-import hd3gtv.mydmam.mail.notification.Notification;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.useraction.UACreationRequest;
 import hd3gtv.tools.ApplicationArgs;
 
 public class CliModuleOperateDatabase implements CliModule {
@@ -289,28 +282,6 @@ public class CliModuleOperateDatabase implements CliModule {
 			ContainerOperations.purge_orphan_metadatas();
 			return;
 		}
-		if (args.getParamExist("-ualog")) {
-			long since = 0;
-			if (args.getSimpleParamValue("-ualog").equals("0") == false) {
-				since = (System.currentTimeMillis() / (1000l * 60l)) - Long.parseLong(args.getSimpleParamValue("-ualog"));
-			}
-			
-			ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
-			request.setIndices(Notification.ES_INDEX);
-			request.setTypes(UACreationRequest.ES_TYPE);
-			request.setQuery(QueryBuilders.rangeQuery("created_at").gte(since));
-			request.addSort("created_at", SortOrder.ASC);
-			request.setPageSize(1000);
-			
-			request.allReader(new ElastisearchCrawlerHit() {
-				public boolean onFoundHit(SearchHit hit) {
-					System.out.println(hit.getSourceAsString());
-					return true;
-				}
-			});
-			
-			return;
-		}
 		
 		if (args.getParamExist("-h2")) {
 			org.h2.Driver.load();
@@ -401,10 +372,6 @@ public class CliModuleOperateDatabase implements CliModule {
 		System.out.println("Usage for H2 (Play internal db serverless):");
 		System.out.println(" " + getCliModuleName() + " -h2 -export filename.sql");
 		System.out.println(" " + getCliModuleName() + " -h2 -import filename.sql");
-		System.out.println();
-		System.out.println(" " + getCliModuleName() + " -ualog from");
-		System.out.println("  from: in minutes, or 0 for dump all (limited to 1000 lines max)");
-		System.out.println("  Dump User Action log in JSON");
 	}
 	
 }

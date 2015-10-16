@@ -59,7 +59,7 @@ import hd3gtv.mydmam.transcode.JobContextTranscoder;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
-import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
+import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.Timecode;
 
 class WatchFolderEntry implements Runnable {

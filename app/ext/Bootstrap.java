@@ -27,7 +27,6 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.useraction.UAManager;
 import hd3gtv.mydmam.web.JSXTransformer;
 import hd3gtv.mydmam.web.JsCompile;
 import hd3gtv.mydmam.web.Privileges;
@@ -115,17 +114,12 @@ public class Bootstrap extends Job {
 		if (role_admim == null) {
 			role_admim = new ACLRole(ACLRole.ADMIN_NAME);
 			role_admim.privileges = Privileges.getJSONAllPrivileges().toJSONString();
-			role_admim.functionalities = UAManager.getGson().toJson(UAManager.getAllDeclaredFunctionalitiesClassname());
+			role_admim.functionalities = "{}";
 			role_admim.save();
 		} else {
 			List<String> privileges = role_admim.getPrivilegesList();
 			if (privileges.size() != Privileges.getAllPrivileges().size()) {
 				role_admim.privileges = Privileges.getJSONAllPrivileges().toJSONString();
-				role_admim.save();
-			}
-			List<String> functionalities = role_admim.getFunctionalitiesList();
-			if (functionalities.size() != UAManager.getAllDeclaredFunctionalitiesCount()) {
-				role_admim.functionalities = UAManager.getGson().toJson(UAManager.getAllDeclaredFunctionalitiesClassname());
 				role_admim.save();
 			}
 		}

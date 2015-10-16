@@ -46,10 +46,10 @@ import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.Importer.SearchPreProcessor;
-import hd3gtv.mydmam.useraction.fileoperation.CopyMove;
 import hd3gtv.mydmam.web.MenuEntry;
 import hd3gtv.mydmam.web.search.SearchResult;
 import hd3gtv.mydmam.web.search.SearchResultPreProcessor;
+import hd3gtv.tools.CopyMove;
 import play.Play;
 import play.vfs.VirtualFile;
 
