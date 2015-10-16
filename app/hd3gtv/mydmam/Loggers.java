@@ -28,8 +28,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
-import com.google.gson.JsonObject;
-
 public final class Loggers {
 	
 	public final static Logger Manager = Logger.getLogger("mydmam.manager");
@@ -59,7 +57,7 @@ public final class Loggers {
 	public final static Logger Ssh = Logger.getLogger("mydmam.ssh");
 	public final static Logger Pathindex = Logger.getLogger("mydmam.pathindex");
 	
-	public static JsonObject getAllLevels() {
+	/*public static JsonObject getAllLevels() {
 		JsonObject result = new JsonObject();
 		@SuppressWarnings("unchecked")
 		Enumeration<Logger> all_loggers = LogManager.getCurrentLoggers();
@@ -71,12 +69,12 @@ public final class Loggers {
 		}
 		
 		return result;
-	}
+	}*/
 	
 	/**
 	 * For all declared Loggers, even outside this code.
 	 */
-	public static void changeLevel(String logger_name, Level new_level) {
+	/*public static void changeLevel(String logger_name, Level new_level) {
 		Logger_log.info("Change level for " + logger_name + ": " + new_level);
 		Logger l = Logger.getLogger(logger_name);
 		l.setLevel(new_level);
@@ -85,7 +83,7 @@ public final class Loggers {
 	public static void changeRootLevel(Level new_level) {
 		Logger_log.info("Change root level: " + new_level);
 		Logger.getRootLogger().setLevel(new_level);
-	}
+	}*/
 	
 	private static class LogLevelItem {
 		String name;

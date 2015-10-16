@@ -22,12 +22,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-import org.apache.log4j.Level;
-
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.MutationBatch;
 
@@ -528,7 +525,7 @@ public final class AppManager implements InstanceActionReceiver {
 				broker.askStop();
 			}
 		}
-		if (order.has("loggersfilters")) {
+		/*if (order.has("loggersfilters")) {
 			JsonArray ja_loggersfilters = order.get("loggersfilters").getAsJsonArray();
 			for (int pos_ja = 0; pos_ja < ja_loggersfilters.size(); pos_ja++) {
 				JsonObject jo_filter = ja_loggersfilters.get(pos_ja).getAsJsonObject();
@@ -537,7 +534,7 @@ public final class AppManager implements InstanceActionReceiver {
 				Loggers.changeLevel(logger_name, Level.toLevel(new_level, Level.OFF));
 			}
 			Loggers.displayCurrentConfiguration();
-		}
+		}*/
 	}
 	
 	static boolean isActuallyOffHours() {

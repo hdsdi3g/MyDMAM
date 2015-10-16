@@ -279,7 +279,6 @@ public final class InstanceStatus {
 			result.add("declared_cyclics", AppManager.getGson().toJsonTree(src.declared_cyclics, al_cyclicjobscreator_typeOfT));
 			result.add("declared_triggers", AppManager.getGson().toJsonTree(src.declared_triggers, al_triggerjobscreator_typeOfT));
 			result.add("log2filters", new JsonArray());
-			result.add("loggersfilters", Loggers.getAllLevels());
 			result.addProperty("uptime_from", TimeUtils.secondsToYWDHMS(src.uptime / 1000));
 			return result;
 		}
