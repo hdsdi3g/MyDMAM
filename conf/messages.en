@@ -58,6 +58,7 @@ service.threadslist=Threads list
 service.instanceslist=Instances liste
 service.clusterstatus.report.pagename=Clusters status
 service.playjobs.purgecache=Purge Play Cache
+service.playjobs.refreshlogconf=Refresh log configuration
 
 manager.pagename=Service manager
 manager.loading=Loading...

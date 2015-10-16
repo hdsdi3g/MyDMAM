@@ -65,6 +65,13 @@ public class Manager extends Controller {
 	}
 	
 	@Check("showManager")
+	public static void refreshlogconf() throws Exception {
+		Loggers.Play.info("Manual refresh log configuration");
+		Loggers.refreshLogConfiguration();
+		redirect("Manager.playjobs");
+	}
+	
+	@Check("showManager")
 	public static void clusterstatus() {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.clusterstatus.report.pagename"));
 		ClusterStatus cluster_status = new ClusterStatus();

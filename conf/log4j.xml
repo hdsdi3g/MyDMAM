@@ -31,7 +31,7 @@
 	<logger name="mydmam">
 		<level value="INFO" />
 	</logger>
-	
+		
 	<!-- Global/defalut definition, and level filter for some lib like Astyanax, Elasticsearch, Play... -->
 	<root>
 		<priority value="WARN" />

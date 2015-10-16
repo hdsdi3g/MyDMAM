@@ -16,12 +16,14 @@
 */
 package hd3gtv.mydmam.manager;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
+import hd3gtv.tools.CopyMove;
 
 public abstract class ServiceNG {
 	
@@ -37,15 +39,15 @@ public abstract class ServiceNG {
 		Thread t = new Thread() {
 			public void run() {
 				try {
-					Loggers.Manager.info("Request shutdown application");
+					Loggers.Manager.log(Level.ALL, "Request shutdown application");
 					Thread tkill = new Thread() {
 						public void run() {
 							try {
 								sleep(5000);
-								Loggers.Manager.error("Request KILL application");
+								Loggers.Manager.log(Level.ALL, "Request KILL application");
 								System.exit(2);
 							} catch (Exception e) {
-								Loggers.Manager.error("Fatal service killing", e);
+								Loggers.Manager.log(Level.ALL, "Fatal service killing", e);
 								System.exit(2);
 							}
 						}
@@ -65,6 +67,33 @@ public abstract class ServiceNG {
 		Runtime.getRuntime().addShutdownHook(t);
 		
 		manager = new AppManager(app_name);
+		
+		Thread watch_log_conf = new Thread() {
+			public void run() {
+				try {
+					Loggers.Manager.debug("Init watchdog");
+					
+					CopyMove.checkExistsCanRead(Loggers.log4j_xml_configuration_file);
+					
+					long last_check_date = Loggers.log4j_xml_configuration_file.lastModified();
+					while (true) {
+						Thread.sleep(1000);
+						
+						Loggers.Manager.trace("Loop watch last XML date");
+						if (last_check_date != Loggers.log4j_xml_configuration_file.lastModified()) {
+							Loggers.Manager.info("XML file has changed, start refresh from: " + Loggers.log4j_xml_configuration_file);
+							Loggers.refreshLogConfiguration();
+							last_check_date = Loggers.log4j_xml_configuration_file.lastModified();
+						}
+					}
+				} catch (Exception e) {
+				
+				}
+			}
+		};
+		watch_log_conf.setName("Watchdog change configuration loggers");
+		watch_log_conf.setDaemon(true);
+		watch_log_conf.start();
 		
 		startAllServices();
 	}
