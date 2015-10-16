@@ -16,10 +16,7 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-
-public class RenderedContent implements Log2Dumpable {
+public class RenderedContent {
 	
 	public String hash;
 	public String name;
@@ -27,16 +24,5 @@ public class RenderedContent implements Log2Dumpable {
 	public String mime;
 	public long date;
 	public long size;
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("name", name);
-		dump.add("hash", hash);
-		dump.add("producer", producer);
-		dump.add("mime", mime);
-		dump.add("date", date);
-		dump.add("size", size);
-		return dump;
-	}
 	
 }

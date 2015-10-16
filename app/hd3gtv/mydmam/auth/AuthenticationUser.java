@@ -17,9 +17,7 @@
 
 package hd3gtv.mydmam.auth;
 
-import hd3gtv.log2.Log2Dumpable;
-
-public interface AuthenticationUser extends Log2Dumpable {
+public interface AuthenticationUser {
 	
 	public String getFullName();
 	

@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.Loggers;
 import jcifs.smb.NtlmPasswordAuthentication;
 import jcifs.smb.SmbException;
@@ -57,10 +56,6 @@ public class StorageSMB extends StorageURILoginPassword {
 		
 		private AbstractFileSmb(SmbFile file) {
 			this.file = file;
-		}
-		
-		public Log2Dump getLog2Dump() {
-			return new Log2Dump("smbfile", file.getPath());
 		}
 		
 		public List<AbstractFile> listFiles() {

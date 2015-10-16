@@ -54,7 +54,6 @@ import com.netflix.astyanax.query.IndexQuery;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
@@ -120,14 +119,17 @@ public final class JobNG {
 	 * Declaration & configuration vars
 	 */
 	private String key;
+	@SuppressWarnings("unused")
 	private Class<?> creator;
 	private boolean urgent;
 	private String name;
 	private long expiration_date;
 	private long max_execution_time;
 	private static final long default_max_execution_time = 1000 * 3600 * 24;
+	@SuppressWarnings("unused")
 	private long create_date;
 	private boolean delete_after_completed;
+	@SuppressWarnings("unused")
 	private String instance_status_creator_key;
 	private String instance_status_creator_hostname;
 	private int priority;
@@ -147,7 +149,9 @@ public final class JobNG {
 	private long start_date;
 	private long end_date;
 	private String worker_reference;
+	@SuppressWarnings("unused")
 	private Class<?> worker_class;
+	@SuppressWarnings("unused")
 	private String instance_status_executor_key;
 	@SuppressWarnings("unused")
 	private String instance_status_executor_hostname;
@@ -942,33 +946,4 @@ public final class JobNG {
 		return worker_reference;
 	}
 	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("key", key);
-		dump.add("creator", creator);
-		dump.add("urgent", urgent);
-		dump.add("max_execution_time", max_execution_time);
-		dump.add("name", name);
-		dump.add("priority", priority);
-		dump.add("context", AppManager.getGson().toJson(context, JobContext.class));
-		dump.add("status", status);
-		dump.add("progression", progression);
-		dump.addDate("create_date", create_date);
-		dump.addDate("expiration_date", expiration_date);
-		dump.addDate("update_date", update_date);
-		dump.addDate("start_date", start_date);
-		dump.addDate("end_date", end_date);
-		dump.add("required_keys", required_keys);
-		dump.add("delete_after_completed", delete_after_completed);
-		dump.add("executor", instance_status_executor_key);
-		dump.add("creator", instance_status_creator_key);
-		if (processing_error != null) {
-			dump.add("processing error", processing_error.getPrintedStackTrace());
-		}
-		dump.add("worker_reference", worker_reference);
-		if (worker_class != null) {
-			dump.add("worker_class", worker_class.getName());
-		}
-		return dump;
-	}
 }

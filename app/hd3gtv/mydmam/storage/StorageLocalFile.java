@@ -27,7 +27,6 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.Loggers;
 
 public class StorageLocalFile extends Storage {
@@ -69,10 +68,6 @@ public class StorageLocalFile extends Storage {
 				abstractlist.add(new Localfile(list[pos]));
 			}
 			return abstractlist;
-		}
-		
-		public Log2Dump getLog2Dump() {
-			return new Log2Dump("file", file);
 		}
 		
 		public boolean canRead() {

@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.storage;
 
-import hd3gtv.log2.Log2Dumpable;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.util.List;
@@ -25,7 +23,7 @@ import java.util.List;
 /**
  * Caution : this API is not thread safe !
  */
-public interface AbstractFile extends Log2Dumpable {
+public interface AbstractFile {
 	
 	public List<AbstractFile> listFiles();
 	

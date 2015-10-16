@@ -29,7 +29,6 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
 
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.Loggers;
 
 public class StorageFTPBroadcastServer extends StorageURILoginPassword {
@@ -119,10 +118,6 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 			return false;
 		}
 		
-		public Log2Dump getLog2Dump() {
-			return new Log2Dump("ftp-nexio", getPath());
-		}
-		
 		private FTPClient connectMe() throws IOException {
 			FTPClient ftpclient = new FTPClient();
 			ftpclient.connect(configuration.host, configuration.port);
@@ -164,12 +159,6 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 				this.referer = referer;
 				this.size = size;
 				ftpclient = null;
-			}
-			
-			public Log2Dump getLog2Dump() {
-				Log2Dump dump = new Log2Dump();
-				dump.add("ftp-broadcast-file", name + "\t" + configuration.toString());
-				return dump;
 			}
 			
 			public List<AbstractFile> listFiles() {

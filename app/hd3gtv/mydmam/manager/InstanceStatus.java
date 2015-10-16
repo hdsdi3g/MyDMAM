@@ -44,8 +44,6 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.GitInfo;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -53,7 +51,7 @@ import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.TimeUtils;
 import play.Play;
 
-public final class InstanceStatus implements Log2Dumpable {
+public final class InstanceStatus {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	
@@ -143,12 +141,16 @@ public final class InstanceStatus implements Log2Dumpable {
 	private String app_name;
 	private String app_version;
 	private long uptime;
+	@SuppressWarnings("unused")
 	private long next_updater_refresh_date;
 	private @GsonIgnore ArrayList<ThreadStackTrace> threadstacktraces;
+	@SuppressWarnings("unused")
 	private String java_version;
 	private String host_name;
 	private ArrayList<String> host_addresses;
+	@SuppressWarnings("unused")
 	private boolean brokeralive;
+	@SuppressWarnings("unused")
 	private boolean is_off_hours;
 	private @GsonIgnore ArrayList<CyclicJobCreator> declared_cyclics;
 	private @GsonIgnore ArrayList<TriggerJobCreator> declared_triggers;
@@ -313,26 +315,6 @@ public final class InstanceStatus implements Log2Dumpable {
 	
 	public static String getThisInstanceNamePid() {
 		return current_instance_name_pid;
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("app_name", app_name);
-		dump.add("instance_name", instance_name);
-		dump.add("instance_name_pid", instance_name_pid);
-		dump.add("app_version", app_version);
-		dump.add("java_version", java_version);
-		dump.add("brokeralive", brokeralive);
-		if (next_updater_refresh_date > 0) {
-			dump.addDate("next_updater_refresh_date", next_updater_refresh_date);
-		}
-		dump.add("is_off_hours", is_off_hours);
-		dump.add("uptime (sec)", uptime / 1000);
-		dump.add("host_name", host_name);
-		dump.add("host_addresses", host_addresses);
-		dump.add("declared_cyclics", declared_cyclics);
-		dump.add("declared_triggers", declared_triggers);
-		return dump;
 	}
 	
 	public static void truncate() throws ConnectionException {

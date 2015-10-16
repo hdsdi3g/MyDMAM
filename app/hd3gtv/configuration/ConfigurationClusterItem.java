@@ -16,10 +16,7 @@
 */
 package hd3gtv.configuration;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-
-public class ConfigurationClusterItem implements Log2Dumpable {
+public class ConfigurationClusterItem {
 	
 	public String address;
 	public int port;
@@ -27,10 +24,6 @@ public class ConfigurationClusterItem implements Log2Dumpable {
 	ConfigurationClusterItem(String address, int port) {
 		this.address = address;
 		this.port = port;
-	}
-	
-	public Log2Dump getLog2Dump() {
-		return new Log2Dump("clusterhost", address + ":" + port);
 	}
 	
 }

@@ -16,10 +16,6 @@
 */
 package hd3gtv.tools;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.mydmam.manager.JobProgression;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -33,6 +29,9 @@ import java.util.zip.CRC32;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+
+import hd3gtv.log2.Log2;
+import hd3gtv.mydmam.manager.JobProgression;
 
 public class CopyMove {
 	
@@ -127,10 +126,10 @@ public class CopyMove {
 			if (source.renameTo(moveto)) {
 				return;
 			} else {
-				Log2Dump dump = new Log2Dump();
+				/*Log2Dump dump = new Log2Dump();
 				dump.add("source", source);
 				dump.add("moveto", moveto);
-				Log2.log.debug("Can't simply move, do a copy + move operation", dump);
+				Log2.log.debug("Can't simply move, do a copy + move operation", dump);*/
 			}
 		}
 		
@@ -223,16 +222,15 @@ public class CopyMove {
 	
 	private void copyFile(File source_file, File destination_file) throws IOException {
 		if (destination_file.exists()) {
-			Log2Dump dump = new Log2Dump();
-			dump.add("source_file", source_file);
-			dump.add("destination_file", destination_file);
-			dump.add("delete_after_copy", delete_after_copy);
+			// dump.add("source_file", source_file);
+			// dump.add("destination_file", destination_file);
+			// dump.add("delete_after_copy", delete_after_copy);
 			
 			if (fileexistspolicy == FileExistsPolicy.IGNORE) {
-				Log2.log.debug("Destination file exists, ignore copy/move", dump);
+				// Log2.log.debug("Destination file exists, ignore copy/move", dump);
 				return;
 			} else if (fileexistspolicy == FileExistsPolicy.OVERWRITE) {
-				Log2.log.debug("Destination file exists, overwrite it", dump);
+				// Log2.log.debug("Destination file exists, overwrite it", dump);
 				FileUtils.forceDelete(destination_file);
 			} else if (fileexistspolicy == FileExistsPolicy.RENAME) {
 				// destination_file
@@ -259,8 +257,8 @@ public class CopyMove {
 					destination_file = new File(sb.toString());
 					cursor++;
 				}
-				dump.add("new destination file name", destination_file);
-				Log2.log.debug("Destination file exists, change destionation name", dump);
+				// dump.add("new destination file name", destination_file);
+				// Log2.log.debug("Destination file exists, change destionation name", dump);
 			}
 		}
 		/**

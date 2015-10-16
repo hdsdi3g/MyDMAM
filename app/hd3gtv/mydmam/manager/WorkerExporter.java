@@ -38,15 +38,13 @@ import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerCategory;
 import hd3gtv.tools.GsonIgnore;
 
-public final class WorkerExporter implements Log2Dumpable {
+public final class WorkerExporter {
 	
 	/**
 	 * Start of static realm
@@ -204,17 +202,4 @@ public final class WorkerExporter implements Log2Dumpable {
 		return AppManager.getPrettyGson().toJson(this);
 	}
 	
-	public Log2Dump getLog2Dump() {
-		update();
-		Log2Dump dump = new Log2Dump();
-		dump.add("worker_class", worker_class);
-		dump.add("long_name", long_name);
-		dump.add("category", category);
-		dump.add("vendor_name", vendor_name);
-		dump.add("reference_key", reference_key);
-		dump.add("current_job_key", current_job_key);
-		dump.add("state", state);
-		dump.add("manager_reference", manager_reference);
-		return dump;
-	}
 }

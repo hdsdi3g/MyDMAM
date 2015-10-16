@@ -229,14 +229,14 @@ public final class AppManager implements InstanceActionReceiver {
 			Loggers.Manager.debug("Service exception error (" + error_name + "), a mail will be send. Worker: " + worker, e);
 			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager).setThrowable(e);
-			alert.addDump(worker.getExporter()).send();
+			alert.send();
 		}
 		
 		private void onAppManagerError(Exception e, String error_name) {
 			Loggers.Manager.debug("App manager error (" + error_name + "), a mail will be send", e);
 			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, true).setManager(manager).setThrowable(e);
-			alert.addDump(instance_status).send();
+			alert.send();
 		}
 		
 		void onQueueServiceError(Exception e, String error_name, String service_name) {
@@ -244,14 +244,14 @@ public final class AppManager implements InstanceActionReceiver {
 			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager).setThrowable(e);
 			alert.addToMessagecontent("Service name: " + service_name);
-			alert.addDump(instance_status).send();
+			alert.send();
 		}
 		
 		void onCassandraError(Exception e) {
 			Loggers.Manager.debug("Cassandra error", e);
 			
 			AdminMailAlert alert = AdminMailAlert.create("Cassandra error", false).setManager(manager).setThrowable(e);
-			alert.addDump(instance_status).send();
+			alert.send();
 		}
 		
 		void onQueueJobProblem(String error_name, List<JobNG> jobs) {
@@ -263,18 +263,14 @@ public final class AppManager implements InstanceActionReceiver {
 			}
 			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager);
-			for (int pos = 0; pos < jobs.size(); pos++) {
-				alert.addDump(jobs.get(pos).getLog2Dump());
-			}
-			alert.addDump(instance_status).send();
+			alert.send();
 		}
 		
 		void onMaxExecJobTime(JobNG job) {
 			Loggers.Manager.debug("Max exec time for job: " + job);
 			
 			AdminMailAlert alert = AdminMailAlert.create("A job has an execution time too long", false).setManager(manager);
-			alert.addDump(job.getLog2Dump());
-			alert.addDump(instance_status).send();
+			alert.send();
 		}
 	}
 	

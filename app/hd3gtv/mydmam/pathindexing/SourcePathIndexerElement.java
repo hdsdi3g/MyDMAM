@@ -16,11 +16,6 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.db.Elasticsearch;
-
 import java.io.Serializable;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -32,7 +27,10 @@ import org.elasticsearch.search.SearchHit;
 
 import com.google.gson.JsonObject;
 
-public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, JsonSerializer<SourcePathIndexerElement>*/{
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.Elasticsearch;
+
+public class SourcePathIndexerElement implements Serializable/*, JsonSerializer<SourcePathIndexerElement>*/ {
 	
 	private static final long serialVersionUID = -3421843205650861824L;
 	
@@ -91,7 +89,7 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 	
 	public static final String[] TOSTRING_HEADERS = { "Element key", "Storage index name", "Directory", "Full path", "Id", "Size", "Element date", "Element name", "Simple name", "Extension",
 			"Indexing date", "Parent key" };
-	
+			
 	public String toString() {
 		return toString(" ");
 	}
@@ -351,22 +349,6 @@ public class SourcePathIndexerElement implements Serializable, Log2Dumpable/*, J
 		element.parentpath = null;
 		element.dateindex = 0;
 		return element;
-	}
-	
-	@Override
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("storagename", storagename);
-		dump.add("currentpath", currentpath);
-		dump.add("id", id);
-		dump.add("size", size);
-		dump.addDate("date", date);
-		dump.add("directory", directory);
-		dump.add("parentpath", parentpath);
-		dump.addDate("dateindex", dateindex);
-		dump.add("sanitised path", this.sanitisePathToFilename());
-		dump.add("key", this.prepare_key());
-		return dump;
 	}
 	
 }

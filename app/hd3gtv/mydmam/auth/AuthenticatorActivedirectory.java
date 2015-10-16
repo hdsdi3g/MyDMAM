@@ -33,8 +33,6 @@ import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 
-import hd3gtv.log2.Log2Dump;
-
 class AuthenticatorActivedirectory implements Authenticator {
 	
 	private String domain;
@@ -117,7 +115,7 @@ class AuthenticatorActivedirectory implements Authenticator {
 	
 	class ActivedirectoryUser implements AuthenticationUser {
 		
-		private String distinguishedName;
+		// private String distinguishedName;
 		private String userprincipal;
 		private String commonname;
 		private String mail;
@@ -125,19 +123,10 @@ class AuthenticatorActivedirectory implements Authenticator {
 		private ActivedirectoryUser(Attributes attr) throws NamingException {
 			userprincipal = (String) attr.get("userPrincipalName").get();
 			commonname = (String) attr.get("cn").get();
-			distinguishedName = (String) attr.get("distinguishedName").get();
+			// distinguishedName = (String) attr.get("distinguishedName").get();
 			if (attr.get("mail") != null) {
 				mail = (String) attr.get("mail").get();
 			}
-		}
-		
-		public Log2Dump getLog2Dump() {
-			Log2Dump dump = new Log2Dump();
-			dump.add("distinguishedName", distinguishedName);
-			dump.add("userPrincipal", userprincipal);
-			dump.add("commonName", commonname);
-			dump.add("mail", mail);
-			return dump;
 		}
 		
 		public String getFullName() {

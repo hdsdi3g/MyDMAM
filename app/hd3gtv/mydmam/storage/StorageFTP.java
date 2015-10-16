@@ -30,7 +30,6 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
 
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.Loggers;
 
 public class StorageFTP extends StorageURILoginPassword {
@@ -123,15 +122,6 @@ public class StorageFTP extends StorageURILoginPassword {
 			if (file.isDirectory() & (path.endsWith("/") == false)) {
 				this.path = path + "/";
 			}
-		}
-		
-		public Log2Dump getLog2Dump() {
-			Log2Dump dump = new Log2Dump();
-			dump.add("root_path", root_path);
-			dump.add("path", path);
-			dump.add("ftpclient", ftpclient.getClass().getName());
-			dump.add("configuration", configuration.toString());
-			return dump;
 		}
 		
 		public List<AbstractFile> listFiles() {

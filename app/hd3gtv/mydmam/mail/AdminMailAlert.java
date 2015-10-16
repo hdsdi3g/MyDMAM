@@ -24,8 +24,6 @@ import java.util.ArrayList;
 import javax.mail.internet.InternetAddress;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -69,7 +67,6 @@ public class AdminMailAlert {
 	
 	private Throwable throwable;
 	private String basemessage;
-	private ArrayList<Log2Dump> dumps;
 	private AppManager manager;
 	private StringBuffer subject;
 	private StackTraceElement caller;
@@ -80,20 +77,6 @@ public class AdminMailAlert {
 	public AdminMailAlert setThrowable(Throwable throwable) {
 		this.throwable = throwable;
 		return this;
-	}
-	
-	public AdminMailAlert addDump(Log2Dump dump) {
-		if (dumps == null) {
-			dumps = new ArrayList<Log2Dump>();
-		}
-		if (dump != null) {
-			dumps.add(dump);
-		}
-		return this;
-	}
-	
-	public AdminMailAlert addDump(Log2Dumpable dump) {
-		return addDump(dump.getLog2Dump());
 	}
 	
 	/**
@@ -213,13 +196,6 @@ public class AdminMailAlert {
 				plaintext.append("\r\n");
 				Log2Event.throwableToString(throwable, plaintext, "\r\n");
 				plaintext.append("\r\n");
-			}
-			
-			if (dumps != null) {
-				for (int pos = 0; pos < dumps.size(); pos++) {
-					dumps.get(pos).dumptoString(plaintext, "\r\n");
-					plaintext.append("\r\n");
-				}
 			}
 			
 			plaintext.append("\r\n");

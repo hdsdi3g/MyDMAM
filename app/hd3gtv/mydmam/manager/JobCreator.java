@@ -23,24 +23,24 @@ import com.google.gson.JsonObject;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnore;
 
-abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
+abstract class JobCreator implements InstanceActionReceiver {
 	
 	transient protected AppManager manager;
 	private Class<?> creator;
 	private boolean enabled;
 	private String long_name;
+	@SuppressWarnings("unused")
 	private String vendor_name;
+	
 	@GsonIgnore
 	ArrayList<Declaration> declarations;
 	private String reference_key;
 	
-	class Declaration implements Log2Dumpable {
+	class Declaration {
 		ArrayList<JobContext> contexts;
 		String job_name;
 		
@@ -74,14 +74,6 @@ abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 			}
 		}
 		
-		public Log2Dump getLog2Dump() {
-			Log2Dump dump = new Log2Dump();
-			dump.add("job_name", job_name);
-			for (int pos = 0; pos < contexts.size(); pos++) {
-				dump.add("context", AppManager.getGson().toJson(contexts.get(pos), JobContext.class));
-			}
-			return dump;
-		}
 	}
 	
 	public JobCreator(AppManager manager) {
@@ -151,17 +143,6 @@ abstract class JobCreator implements Log2Dumpable, InstanceActionReceiver {
 		for (int pos = 0; pos < declarations.size(); pos++) {
 			declarations.get(pos).createJobs(mutator);
 		}
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("reference_key", reference_key);
-		dump.add("creator", creator);
-		dump.add("enabled", enabled);
-		dump.add("long_name", long_name);
-		dump.add("vendor_name", vendor_name);
-		dump.add("declarations", declarations);
-		return dump;
 	}
 	
 	final String getReference_key() {

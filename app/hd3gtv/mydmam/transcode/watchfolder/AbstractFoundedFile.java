@@ -25,7 +25,6 @@ import java.util.Objects;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
 
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
@@ -68,12 +67,6 @@ public class AbstractFoundedFile implements AbstractFile {
 		date = found_file.lastModified();
 		size = found_file.length();
 		last_checked = System.currentTimeMillis();
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("empty", "empty");
-		return dump;
 	}
 	
 	public String toString() {

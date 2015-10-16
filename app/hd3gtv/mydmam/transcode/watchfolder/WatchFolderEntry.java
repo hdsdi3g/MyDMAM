@@ -37,7 +37,6 @@ import com.netflix.astyanax.recipes.locks.StaleLockException;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
@@ -482,7 +481,7 @@ class WatchFolderEntry implements Runnable {
 								throw (ConnectionException) e;
 							} else {
 								Loggers.Transcode_WatchFolder.error("Unknow exception with Cassandra, may be a fatal problem " + name, e);
-								AdminMailAlert.create("Unknow exception with Cassandra, may be a fatal problem with it", true).addDump(validated_file).setThrowable(e).setManager(manager).send();
+								AdminMailAlert.create("Unknow exception with Cassandra, may be a fatal problem with it", true).setThrowable(e).setManager(manager).send();
 								return;
 							}
 						}
@@ -494,7 +493,7 @@ class WatchFolderEntry implements Runnable {
 			}
 		} catch (Exception e) {
 			Loggers.Transcode_WatchFolder.error("Fatal exception " + name, e);
-			AdminMailAlert.create("Fatal and not managed exception for WatchFolder", true).addDump(new Log2Dump("watch folder name", name)).setManager(manager).setThrowable(e).send();
+			AdminMailAlert.create("Fatal and not managed exception for WatchFolder " + name, true).setManager(manager).setThrowable(e).send();
 		}
 	}
 	
@@ -538,7 +537,7 @@ class WatchFolderEntry implements Runnable {
 				physical_source = Storage.getDistantFile(pi_item, temp_directory);
 			} catch (IOException e) {
 				Loggers.Transcode_WatchFolder.error("Can't download found file to temp directory " + name + " for " + validated_file, e);
-				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).addDump(validated_file).setThrowable(e).send();
+				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).setThrowable(e).send();
 				validated_file.status = Status.ERROR;
 				return;
 			}
@@ -565,7 +564,7 @@ class WatchFolderEntry implements Runnable {
 				FileUtils.forceDelete(physical_source);
 			} catch (Exception e) {
 				Loggers.Transcode_WatchFolder.error("Can't delete temp file " + name + " for " + validated_file, e);
-				AdminMailAlert.create("Can't delete temp file", false).addDump(validated_file).setThrowable(e).send();
+				AdminMailAlert.create("Can't delete temp file", false).setThrowable(e).send();
 			}
 		}
 		
@@ -579,17 +578,17 @@ class WatchFolderEntry implements Runnable {
 		if (must_contain.contains(MustContainType.video.name()) | must_contain.contains(MustContainType.audio.name())) {
 			if (ffprobe == null) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must be a media file " + name + " for " + validated_file);
-				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file", false).addDump(validated_file).send();
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file", false).send();
 				validated_file.status = Status.ERROR;
 				return;
 			} else if (must_contain.contains(MustContainType.video.name()) & (ffprobe.hasVideo() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have a video track " + name + " for " + validated_file);
-				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track", false).addDump(validated_file).send();
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track", false).send();
 				validated_file.status = Status.ERROR;
 				return;
 			} else if (must_contain.contains(MustContainType.audio.name()) & (ffprobe.hasAudio() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have an audio track " + name + " for " + validated_file);
-				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track", false).addDump(validated_file).send();
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track", false).send();
 				validated_file.status = Status.ERROR;
 				return;
 			}

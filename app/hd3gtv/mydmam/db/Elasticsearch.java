@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
@@ -50,7 +49,6 @@ import com.google.gson.JsonParser;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationClusterItem;
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.status.ElasticsearchStatus;
 import hd3gtv.mydmam.manager.InstanceStatus;
@@ -85,14 +83,22 @@ public class Elasticsearch {
 			settings.put("node.name", InstanceStatus.getThisInstanceNamePid());
 			settings.put("client.transport.ping_timeout", 10, TimeUnit.SECONDS);
 			
-			Log2Dump dump = new Log2Dump();
-			dump.add("clustername", clustername);
+			// dump.add("clustername", clustername);
 			
 			transportadresses = new InetSocketTransportAddress[clusterservers.size()];
 			for (int pos = 0; pos < clusterservers.size(); pos++) {
 				transportadresses[pos] = new InetSocketTransportAddress(clusterservers.get(pos).address, clusterservers.get(pos).port);
-				dump.addAll(clusterservers.get(pos));
+				// dump.addAll(clusterservers.get(pos));
 			}
+			// TODO add log message for ES
+			/*
+			 * 	ClusterStateResponse csr = client.admin().cluster().prepareState().execute().actionGet();
+			dump.add("get-clustername", csr.getClusterName().toString());
+			} else {
+			dump.add("get-clustername", "<disconnected>");
+			
+			 * */
+			
 			client = new TransportClient(settings.build());
 			client.addTransportAddresses(transportadresses);
 		} catch (Exception e) {
@@ -122,17 +128,6 @@ public class Elasticsearch {
 	
 	public static ElasticsearchMultiGetRequest prepareMultiGetRequest() {
 		return new ElasticsearchMultiGetRequest(getClient());
-	}
-	
-	public static Log2Dump getDump() {
-		Log2Dump dump = new Log2Dump();
-		if (client != null) {
-			ClusterStateResponse csr = client.admin().cluster().prepareState().execute().actionGet();
-			dump.add("get-clustername", csr.getClusterName().toString());
-		} else {
-			dump.add("get-clustername", "<disconnected>");
-		}
-		return dump;
 	}
 	
 	/**

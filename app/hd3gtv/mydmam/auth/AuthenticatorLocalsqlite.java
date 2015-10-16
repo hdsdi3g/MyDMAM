@@ -38,7 +38,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.junit.Assert;
 
-import hd3gtv.log2.Log2Dump;
 import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -293,13 +292,6 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 					connection.close();
 					
 					return new AuthenticationUser() {
-						public Log2Dump getLog2Dump() {
-							Log2Dump dump = new Log2Dump();
-							dump.add("username", username);
-							dump.add("name", name);
-							dump.add("dbfile", dbfile);
-							return dump;
-						}
 						
 						public String getSourceName() {
 							return "sqlite:" + dbfile.getPath();

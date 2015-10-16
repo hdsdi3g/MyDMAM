@@ -18,12 +18,10 @@ package hd3gtv.mydmam.transcode;
 
 import com.google.gson.JsonObject;
 
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.Log2Dumpable;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.tools.Timecode;
 
-public class JobContextPublishing extends JobContext implements Log2Dumpable, ProgressForJobContextFFmpegBased {
+public class JobContextPublishing extends JobContext implements ProgressForJobContextFFmpegBased {
 	
 	String mediaid;
 	Timecode duration;
@@ -80,18 +78,6 @@ public class JobContextPublishing extends JobContext implements Log2Dumpable, Pr
 			dup_frames = jo_progress.get("dup_frames").getAsInt();
 			drop_frames = jo_progress.get("drop_frames").getAsInt();
 		}
-	}
-	
-	public Log2Dump getLog2Dump() {
-		Log2Dump dump = new Log2Dump();
-		dump.add("mediaid", mediaid);
-		dump.add("duration", duration);
-		dump.add("program_name", program_name);
-		dump.add("performance_fps", performance_fps);
-		dump.add("frame", frame);
-		dump.add("dup_frames", dup_frames);
-		dump.add("drop_frames", drop_frames);
-		return dump;
 	}
 	
 	public void setPerformance_fps(float performance_fps) {
