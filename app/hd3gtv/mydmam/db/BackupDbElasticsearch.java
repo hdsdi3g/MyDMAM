@@ -41,7 +41,6 @@ import com.google.gson.GsonBuilder;
 import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 
-import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 
 class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, ElastisearchCrawlerHit {
@@ -196,7 +195,7 @@ class BackupDbElasticsearch extends DefaultHandler implements ErrorHandler, Elas
 		if (qName.equalsIgnoreCase("index")) {
 			index_name = attributes.getValue("name");
 			
-			Loggers.ElasticSearch.info("Start import XML for restore ElasticSearch Index with name " + index_name + ", created " + Log2Event.dateLog(Long.parseLong(attributes.getValue("created"))));
+			Loggers.ElasticSearch.info("Start import XML for restore ElasticSearch Index with name " + index_name + ", created " + Loggers.dateLog(Long.parseLong(attributes.getValue("created"))));
 			
 			if (purgebefore) {
 				Elasticsearch.deleteIndexRequest(index_name);

@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
 
 import com.google.gson.JsonArray;
@@ -29,6 +27,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.GsonIgnore;
 
 public final class GsonThrowable {
 	
@@ -74,8 +75,6 @@ public final class GsonThrowable {
 		return result;
 	}
 	
-	final static String NEW_LINE = System.getProperty("line.separator");
-	
 	private static String toJsonString(JsonObject src) {
 		StringBuffer sb = new StringBuffer();
 		
@@ -86,7 +85,7 @@ public final class GsonThrowable {
 				sb.append(src.get("message").getAsString());
 			}
 		}
-		sb.append(NEW_LINE);
+		sb.append(MyDMAM.LINESEPARATOR);
 		
 		JsonArray ja_stack = src.get("stacktrace").getAsJsonArray();
 		JsonObject jo_trace;
@@ -114,7 +113,7 @@ public final class GsonThrowable {
 			} else {
 				sb.append("(Unknown Source)");
 			}
-			sb.append(NEW_LINE);
+			sb.append(MyDMAM.LINESEPARATOR);
 		}
 		if (src.get("cause").isJsonNull() == false) {
 			sb.append("Caused by: ");

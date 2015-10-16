@@ -45,7 +45,6 @@ import com.netflix.astyanax.serializers.StringSerializer;
 import com.sun.org.apache.xml.internal.serialize.OutputFormat;
 import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 
-import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 
@@ -141,7 +140,7 @@ class BackupDbCassandra extends DefaultHandler implements ErrorHandler, AllRowsF
 			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 			log.put("keyspace", attributes.getValue("keyspace"));
 			log.put("name", cfname);
-			log.put("created", Log2Event.dateLog(Long.parseLong(attributes.getValue("created"))));
+			log.put("created", Loggers.dateLog(Long.parseLong(attributes.getValue("created"))));
 			Loggers.Cassandra.info("Start import XML for restore Cassandra Column Family:" + log);
 			
 			try {

@@ -25,7 +25,7 @@ import java.util.Objects;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
 
-import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
 
@@ -73,10 +73,10 @@ public class AbstractFoundedFile implements AbstractFile {
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		log.put("storage_name", storage_name);
 		log.put("path", path);
-		log.put("date", Log2Event.dateLog(date));
+		log.put("date", Loggers.dateLog(date));
 		log.put("size", size);
 		log.put("status", status);
-		log.put("last_checked", Log2Event.dateLog(last_checked));
+		log.put("last_checked", Loggers.dateLog(last_checked));
 		log.put("getPathIndexKey", getPathIndexKey());
 		return log.toString();
 	}

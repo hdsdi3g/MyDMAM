@@ -15,7 +15,6 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.auth.AuthenticationUser;
@@ -147,7 +146,7 @@ public class Secure extends Controller {
 		
 		if (ttl_date > 0) {
 			sb.append("privileges ttl: ");
-			sb.append(Log2Event.dateLog(ttl_date));
+			sb.append(Loggers.dateLog(ttl_date));
 		}
 	}
 	

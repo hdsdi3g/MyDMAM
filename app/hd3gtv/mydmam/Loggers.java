@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Enumeration;
 
 import org.apache.log4j.Level;
@@ -98,4 +100,34 @@ public final class Loggers {
 			
 		}
 	}
+	
+	public static void throwableToString(Throwable error, StringBuffer append, String newline) {
+		if (append == null) {
+			return;
+		}
+		
+		if (error == null) {
+			return;
+		}
+		
+		for (int i = 0; i < error.getStackTrace().length; i++) {
+			append.append("    at ");
+			append.append(error.getStackTrace()[i].toString());
+			if (i + 1 < error.getStackTrace().length) {
+				append.append(newline);
+			}
+		}
+		
+		if (error.getCause() != null) {
+			append.append("  ");
+			append.append(error.getCause().getMessage());
+			append.append(newline);
+			throwableToString(error.getCause(), append, newline);
+		}
+	}
+	
+	public static final String dateLog(long date) {
+		return new SimpleDateFormat("yyyy/MM/dd HH:mm:ss,SSS").format(new Date(date));
+	}
+	
 }

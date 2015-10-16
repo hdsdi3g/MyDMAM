@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.elasticsearch.indices.IndexMissingException;
 
-import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
@@ -68,7 +67,7 @@ public class MetadataIndexer implements IndexingEvent {
 		stop_analysis = false;
 		es_bulk = Elasticsearch.prepareBulk();
 		
-		Loggers.Metadata.debug("Prepare, item: " + item + ", min_index_date: " + Log2Event.dateLog(min_index_date));
+		Loggers.Metadata.debug("Prepare, item: " + item + ", min_index_date: " + Loggers.dateLog(min_index_date));
 		
 		if (item.directory) {
 			explorer.getAllSubElementsFromElementKey(item.prepare_key(), min_index_date, this);

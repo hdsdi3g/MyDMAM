@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import javax.mail.internet.InternetAddress;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.AppManager;
@@ -194,7 +193,7 @@ public class AdminMailAlert {
 				plaintext.append(": ");
 				plaintext.append(throwable.getMessage());
 				plaintext.append("\r\n");
-				Log2Event.throwableToString(throwable, plaintext, "\r\n");
+				Loggers.throwableToString(throwable, plaintext, "\r\n");
 				plaintext.append("\r\n");
 			}
 			

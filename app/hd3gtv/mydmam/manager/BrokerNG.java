@@ -30,7 +30,6 @@ import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.JobNG.JobStatus;
@@ -197,7 +196,7 @@ class BrokerNG {
 						time_spacer = 0;
 						
 						if (declared_triggers.isEmpty() == false) {
-							Loggers.Broker.debug("Prepare trigger hooks create jobs (" + declared_triggers.size() + " items) since " + Log2Event.dateLog(precedent_date_trigger));
+							Loggers.Broker.debug("Prepare trigger hooks create jobs (" + declared_triggers.size() + " items) since " + Loggers.dateLog(precedent_date_trigger));
 							TriggerJobCreator.prepareTriggerHooksCreateJobs(declared_triggers, precedent_date_trigger, mutator);
 							precedent_date_trigger = System.currentTimeMillis();
 						}

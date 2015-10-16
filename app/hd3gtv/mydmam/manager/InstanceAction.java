@@ -35,7 +35,6 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
-import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -152,7 +151,7 @@ public final class InstanceAction {
 		log.put("target_class_name", target_class_name);
 		log.put("target_reference_key", target_reference_key);
 		log.put("order", order);
-		log.put("created_at", Log2Event.dateLog(created_at));
+		log.put("created_at", Loggers.dateLog(created_at));
 		log.put("caller", caller);
 		return log.toString();
 	}

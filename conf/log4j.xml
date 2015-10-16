@@ -29,7 +29,7 @@
 
 	<!-- Personalized filter levels for some loggers -->
 	<logger name="mydmam">
-		<level value="TRACE" />
+		<level value="INFO" />
 	</logger>
 	
 	<!-- Global/defalut definition, and level filter for some lib like Astyanax, Elasticsearch, Play... -->

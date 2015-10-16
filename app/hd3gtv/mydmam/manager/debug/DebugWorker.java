@@ -23,7 +23,7 @@ import java.util.Random;
 import org.apache.commons.io.FileUtils;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.log2.Log2Event;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
@@ -58,13 +58,13 @@ public class DebugWorker extends WorkerNG {
 		datalog = new File("debug_worker.log");
 		instance_name = manager.getInstance_status().getInstanceNamePid();
 		
-		FileUtils.writeStringToFile(datalog, Log2Event.dateLog(System.currentTimeMillis()) + "\tinit\t" + instance_name + "\t\t\n", true);
+		FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\tinit\t" + instance_name + "\t\t\n", true);
 		
 		String job_key;
 		for (int pos = 0; pos < cores; pos++) {
 			for (int pos_c = 0; pos_c < nb_tasks_by_core; pos_c++) {
 				job_key = AppManager.createJob(new JobContextDebug()).setCreator(DebugWorker.class).setDeleteAfterCompleted().setName("Debug").publish().getKey();
-				FileUtils.writeStringToFile(datalog, Log2Event.dateLog(System.currentTimeMillis()) + "\tcreate\t" + instance_name + "\t" + job_key + "\t\n", true);
+				FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\tcreate\t" + instance_name + "\t" + job_key + "\t\n", true);
 			}
 		}
 	}
@@ -86,8 +86,8 @@ public class DebugWorker extends WorkerNG {
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
-		FileUtils.writeStringToFile(datalog,
-				Log2Event.dateLog(System.currentTimeMillis()) + "\texec\t" + instance_name + "\t" + progression.getJobKey() + "\t" + Thread.currentThread().getName() + "\n", true);
+		FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\texec\t" + instance_name + "\t" + progression.getJobKey() + "\t" + Thread.currentThread().getName() + "\n",
+				true);
 				
 		for (int pos = 0; pos < sleep_time * 10; pos++) {
 			progression.updateProgress((pos + 1) * 10, sleep_time * 10);

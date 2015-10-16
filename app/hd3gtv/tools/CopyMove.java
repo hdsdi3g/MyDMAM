@@ -30,7 +30,6 @@ import java.util.zip.CRC32;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
-import hd3gtv.log2.Log2;
 import hd3gtv.mydmam.manager.JobProgression;
 
 public class CopyMove {
@@ -301,10 +300,10 @@ public class CopyMove {
 			throw new IOException("Failed to copy full contents from '" + source_file + "' to '" + destination_file + "'");
 		}
 		if (destination_file.setExecutable(source_file.canExecute()) == false) {
-			Log2.log.error("Can't set Executable status to dest file", new IOException(destination_file.getPath()));
+			// Log2.log.error("Can't set Executable status to dest file", new IOException(destination_file.getPath()));
 		}
 		if (destination_file.setLastModified(source_file.lastModified()) == false) {
-			Log2.log.error("Can't set LastModified status to dest file", new IOException(destination_file.getPath()));
+			// Log2.log.error("Can't set LastModified status to dest file", new IOException(destination_file.getPath()));
 		}
 	}
 	

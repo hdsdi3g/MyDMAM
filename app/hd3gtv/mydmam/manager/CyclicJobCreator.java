@@ -22,7 +22,6 @@ import com.google.gson.JsonObject;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 
 public final class CyclicJobCreator extends JobCreator {
@@ -103,7 +102,7 @@ public final class CyclicJobCreator extends JobCreator {
 		}
 		if (order.has("setnextdate")) {
 			next_date_to_create_jobs = order.get("setnextdate").getAsLong();
-			Loggers.Manager.debug("Change cyclic next date: " + Log2Event.dateLog(next_date_to_create_jobs));
+			Loggers.Manager.debug("Change cyclic next date: " + Loggers.dateLog(next_date_to_create_jobs));
 		}
 		Loggers.Manager.info("Change cyclic: " + toString());
 	}

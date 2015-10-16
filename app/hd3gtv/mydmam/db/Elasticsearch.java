@@ -83,21 +83,13 @@ public class Elasticsearch {
 			settings.put("node.name", InstanceStatus.getThisInstanceNamePid());
 			settings.put("client.transport.ping_timeout", 10, TimeUnit.SECONDS);
 			
-			// dump.add("clustername", clustername);
+			Loggers.ElasticSearch.info("Elasticsearch client configuration, clustername: " + clustername);
 			
 			transportadresses = new InetSocketTransportAddress[clusterservers.size()];
 			for (int pos = 0; pos < clusterservers.size(); pos++) {
 				transportadresses[pos] = new InetSocketTransportAddress(clusterservers.get(pos).address, clusterservers.get(pos).port);
-				// dump.addAll(clusterservers.get(pos));
+				Loggers.ElasticSearch.info("Elasticsearch client configuration, cluster item: " + clusterservers.get(pos));
 			}
-			// TODO add log message for ES
-			/*
-			 * 	ClusterStateResponse csr = client.admin().cluster().prepareState().execute().actionGet();
-			dump.add("get-clustername", csr.getClusterName().toString());
-			} else {
-			dump.add("get-clustername", "<disconnected>");
-			
-			 * */
 			
 			client = new TransportClient(settings.build());
 			client.addTransportAddresses(transportadresses);

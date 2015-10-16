@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.db.status;
 
-import hd3gtv.mydmam.db.Elasticsearch;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -41,6 +39,9 @@ import org.elasticsearch.common.hppc.ObjectIntOpenHashMap;
 import org.elasticsearch.common.hppc.cursors.ObjectIntCursor;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.transport.TransportAddress;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.Elasticsearch;
 
 public class ElasticsearchStatus {
 	
@@ -72,7 +73,7 @@ public class ElasticsearchStatus {
 		ArrayList<TransportAddress> current_connected_nodes = convertList(client.connectedNodes());
 		if (current_connected_nodes.isEmpty()) {
 			if (last_status_full_disconnected == false) {
-				referer.onGrave(getClass(), "No connected nodes." + ClusterStatus.NEW_LINE);
+				referer.onGrave(getClass(), "No connected nodes." + MyDMAM.LINESEPARATOR);
 				last_status_full_disconnected = true;
 				last_cluster_health_status = null;
 			}
@@ -80,7 +81,7 @@ public class ElasticsearchStatus {
 		}
 		if (last_status_full_disconnected) {
 			last_status_full_disconnected = false;
-			referer.onRecovered(getClass(), "Cluster is now connected." + ClusterStatus.NEW_LINE);
+			referer.onRecovered(getClass(), "Cluster is now connected." + MyDMAM.LINESEPARATOR);
 		}
 		
 		ArrayList<TransportAddress> current_listed_nodes = convertList(client.listedNodes());
@@ -124,12 +125,12 @@ public class ElasticsearchStatus {
 		if (last_cluster_health_status != null) {
 			if (last_cluster_health_status.ordinal() < current_cluster_health_status.ordinal()) {
 				if (current_cluster_health_status == ClusterHealthStatus.YELLOW) {
-					referer.onWarning(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + ClusterStatus.NEW_LINE);
+					referer.onWarning(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + MyDMAM.LINESEPARATOR);
 				} else if (current_cluster_health_status == ClusterHealthStatus.RED) {
-					referer.onGrave(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + ClusterStatus.NEW_LINE);
+					referer.onGrave(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + MyDMAM.LINESEPARATOR);
 				}
 			} else if (last_cluster_health_status.ordinal() > current_cluster_health_status.ordinal()) {
-				referer.onRecovered(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + ClusterStatus.NEW_LINE);
+				referer.onRecovered(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + MyDMAM.LINESEPARATOR);
 			}
 		}
 		last_cluster_health_status = current_cluster_health_status;
@@ -153,7 +154,7 @@ public class ElasticsearchStatus {
 				continue;
 			}
 			sb.append("Invalid node: " + current_invalid_nodes.get(pos));
-			sb.append(ClusterStatus.NEW_LINE);
+			sb.append(MyDMAM.LINESEPARATOR);
 		}
 		
 		for (int pos = 0; pos < current_missing_nodes.size(); pos++) {
@@ -161,7 +162,7 @@ public class ElasticsearchStatus {
 				continue;
 			}
 			sb.append("Missing node: " + current_missing_nodes.get(pos));
-			sb.append(ClusterStatus.NEW_LINE);
+			sb.append(MyDMAM.LINESEPARATOR);
 		}
 		
 		if (sb.length() > 0) {
@@ -171,11 +172,11 @@ public class ElasticsearchStatus {
 		
 		if (current_invalid_nodes.isEmpty() & (last_invalid_nodes.isEmpty() == false)) {
 			sb.append("All invalid nodes are now recovered.");
-			sb.append(ClusterStatus.NEW_LINE);
+			sb.append(MyDMAM.LINESEPARATOR);
 		}
 		if (current_missing_nodes.isEmpty() & (last_missing_nodes.isEmpty() == false)) {
 			sb.append("All missing nodes are now retrieved.");
-			sb.append(ClusterStatus.NEW_LINE);
+			sb.append(MyDMAM.LINESEPARATOR);
 		}
 		if (sb.length() > 0) {
 			referer.onRecovered(getClass(), sb.toString());

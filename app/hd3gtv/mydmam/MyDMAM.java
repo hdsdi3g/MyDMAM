@@ -50,6 +50,8 @@ import hd3gtv.configuration.Configuration;
 
 public class MyDMAM {
 	
+	public static final String LINESEPARATOR = System.getProperty("line.separator");
+	
 	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2015";
 	
 	/**

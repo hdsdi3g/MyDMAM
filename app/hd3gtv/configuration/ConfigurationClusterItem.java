@@ -26,4 +26,12 @@ public class ConfigurationClusterItem {
 		this.port = port;
 	}
 	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(address);
+		sb.append(":");
+		sb.append(port);
+		return sb.toString();
+	}
+	
 }

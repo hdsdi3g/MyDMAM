@@ -36,9 +36,6 @@ import org.apache.commons.io.FileUtils;
 
 import com.eaio.uuid.UUID;
 
-import hd3gtv.log2.Log2;
-import hd3gtv.log2.Log2Dump;
-import hd3gtv.log2.LogHandlerToLogfile;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.InstanceStatus;
@@ -121,8 +118,7 @@ public class RenderedFile {
 		return digest_algorithm;
 	}
 	
-	@Deprecated
-	private Log2 commit_log; // TODO replace with a flat file
+	private File commit_log_file;
 	
 	private String extension;
 	private File rendered_file;
@@ -170,19 +166,27 @@ public class RenderedFile {
 			}
 		}
 		
-		File commit_log_file = new File(temp_directory.getAbsolutePath() + File.separator + uuid.toString() + "-commit.log");
+		commit_log_file = new File(temp_directory.getAbsolutePath() + File.separator + uuid.toString() + "-commit.log");
 		commit_log_files.add(commit_log_file);
-		commit_log = new Log2(new LogHandlerToLogfile(commit_log_file, 0xFFFFF, 100));
+		
+		FileUtils.touch(commit_log_file);
 		
 		temp_file = new File(sb.toString());
 		if (temp_file.createNewFile()) {
 			temp_file.delete();
 		}
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("rendered_base_file_name", rendered_base_file_name);
-		dump.add("extension", extension);
-		commit_log.info("Prepare temporary file", dump);
+		writeToCommitLog("Prepare temporary file, rendered_base_file_name: " + rendered_base_file_name + ",  extension: " + extension);
+	}
+	
+	private void writeToCommitLog(String message) {
+		try {
+			String caller = new Throwable().getStackTrace()[1].toString();
+			Loggers.Metadata.debug("Write to commit log (" + commit_log_file.getName() + ") " + message);
+			FileUtils.writeStringToFile(commit_log_file, Loggers.dateLog(System.currentTimeMillis()) + " at " + caller + "\t" + message + MyDMAM.LINESEPARATOR, true);
+		} catch (IOException e) {
+			Loggers.Metadata.error("Can't write to commit log (" + commit_log_file.getName() + ") this message:\t" + message);
+		}
 	}
 	
 	private RenderedFile() {
@@ -247,9 +251,7 @@ public class RenderedFile {
 			/**
 			 * Search an available file name
 			 */
-			Log2Dump dump = new Log2Dump();
-			dump.add("rendered_file", rendered_file);
-			commit_log.info("Searching new temporary file name...", dump);
+			writeToCommitLog("Searching new temporary file name... rendered_file: " + rendered_file);
 			
 			rendered_file = nextRandomFile(f_base_directory_dest);
 		}
@@ -260,48 +262,36 @@ public class RenderedFile {
 		} catch (NoSuchAlgorithmException e) {
 		}
 		
-		Log2Dump dump = new Log2Dump();
-		dump.add("temp_file", temp_file);
-		dump.add("rendered_file", rendered_file);
-		commit_log.info("Prepare consolidate", dump);
+		writeToCommitLog("Prepare consolidate, temp_file: " + temp_file + ", rendered_file: " + rendered_file);
 		
 		BufferedInputStream source_stream = new BufferedInputStream(new FileInputStream(temp_file), 0xFFF);
 		OutputStream dest_stream = new FileOutputStream(rendered_file);
 		int len;
 		byte[] buffer = new byte[0xFFF];
 		
-		commit_log.info("Start copy");
+		writeToCommitLog("Start copy");
 		while ((len = source_stream.read(buffer)) > 0) {
 			dest_stream.write(buffer, 0, len);
 			mdigest.update(buffer, 0, len);
 		}
-		commit_log.info("End copy");
+		writeToCommitLog("End copy");
 		dest_stream.close();
 		source_stream.close();
 		
-		dump = new Log2Dump();
-		dump.add("temp_file", temp_file);
-		dump.add("ok", temp_file.delete());
-		commit_log.info("Delete temp file", dump);
+		writeToCommitLog("Delete temp file: " + temp_file + ", ok: " + temp_file.delete());
 		
 		rendered_digest = MyDMAM.byteToString(mdigest.digest());
 		
-		dump = new Log2Dump();
-		dump.add("rendered_file", rendered_file);
-		dump.add("rendered_digest", rendered_digest);
-		commit_log.info("Digest", dump);
+		writeToCommitLog("Digest, rendered_file: " + rendered_file + ", rendered_digest: " + rendered_digest);
 		
 		FileWriter fw = new FileWriter(new File(rendered_file + "." + digest_algorithm.toLowerCase()));
 		fw.write(rendered_digest + "\r\n");
 		fw.close();
-		commit_log.info("Write digest side-car");
+		writeToCommitLog("Write digest side-car");
 		
 		rendered_mime = MimeExtract.getMime(rendered_file);
 		
-		dump = new Log2Dump();
-		dump.add("rendered_file", rendered_file);
-		dump.add("rendered_mime", rendered_mime);
-		commit_log.info("Mime", dump);
+		writeToCommitLog("Mime, rendered_file: " + rendered_file + ", rendered_mime: " + rendered_mime);
 		
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		log.put("metadata_reference_id", metadata_reference_id);
@@ -314,8 +304,7 @@ public class RenderedFile {
 		
 		consolidated = true;
 		
-		dump = new Log2Dump();
-		commit_log.info("End consolidate", dump);
+		writeToCommitLog("End consolidate");
 		
 		export_to_entry(entry_renderer, container);
 		return entry_renderer;

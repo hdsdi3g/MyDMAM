@@ -38,7 +38,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.junit.Assert;
 
-import hd3gtv.log2.Log2Event;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.BCrypt;
@@ -490,9 +489,9 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 			sb.append(", name: ");
 			sb.append(res.getString("name"));
 			sb.append(", created: ");
-			sb.append(Log2Event.dateLog(res.getDate("created").getTime()));
+			sb.append(Loggers.dateLog(res.getDate("created").getTime()));
 			sb.append(", updated: ");
-			sb.append(Log2Event.dateLog(res.getDate("updated").getTime()));
+			sb.append(Loggers.dateLog(res.getDate("updated").getTime()));
 			sb.append(", enabled: ");
 			sb.append(res.getBoolean("enabled"));
 			connection.close();

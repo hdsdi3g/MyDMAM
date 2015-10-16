@@ -16,17 +16,17 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.log2.Log2Event;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.storage.Storage;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.Storage;
 
 public class ContainerOrigin {
 	
@@ -48,7 +48,7 @@ public class ContainerOrigin {
 		sb.append(" (");
 		sb.append(storage);
 		sb.append(") ");
-		sb.append(Log2Event.dateLog(date));
+		sb.append(Loggers.dateLog(date));
 		sb.append("; ");
 		sb.append(size);
 		sb.append("b");

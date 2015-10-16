@@ -22,12 +22,11 @@ import java.util.List;
 import java.util.Map;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.AppManager;
 
 public class ClusterStatus {
-	
-	final static String NEW_LINE = System.getProperty("line.separator");
 	
 	public enum ClusterType {
 		ELASTICSEARCH;
@@ -102,7 +101,7 @@ public class ClusterStatus {
 				sb.append(message_event.provider);
 				sb.append(": ");
 				sb.append(message_event.message.trim());
-				sb.append(NEW_LINE);
+				sb.append(MyDMAM.LINESEPARATOR);
 			}
 			if (sb.length() == 0) {
 				continue;
