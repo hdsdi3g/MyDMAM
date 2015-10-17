@@ -71,7 +71,7 @@ public final class Loggers {
 		return result;
 	}*/
 	
-	/**
+	/*
 	 * For all declared Loggers, even outside this code.
 	 */
 	/*public static void changeLevel(String logger_name, Level new_level) {
