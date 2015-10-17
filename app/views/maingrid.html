@@ -43,12 +43,6 @@
 	<script src="@{'/public/javascripts/lib/jquery.dataTables.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	<script src="@{'/public/javascripts/lib/selectize-0.11.2.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	
-	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-	<!--[if lt IE 9]>
-		<script src="@{'/public/javascripts/lib/html5shiv-3.7.0.min.js'}" type="text/javascript" charset="UTF-8"></script>
-		<script src="@{'/public/javascripts/lib/es5-shim-2.0.8.min.js'}"></script>
-	<![endif]-->
-
 	%{ if (play.mode.toString() == "DEV"){ }%
 		<script src="@{'/public/javascripts/lib/react-0.13.2.js'}" type="text/javascript" charset="UTF-8"></script>
 	%{ } else { }%
