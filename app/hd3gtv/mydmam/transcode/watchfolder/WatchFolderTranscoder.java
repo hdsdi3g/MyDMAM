@@ -66,7 +66,7 @@ public class WatchFolderTranscoder {
 				Loggers.Transcode_WatchFolder.info("Start watchfolder " + entry.getKey());
 				Thread t = new Thread(wf_group, wf_entry);
 				t.setDaemon(true);
-				t.setName("Watch Folder for " + entry.getKey());
+				t.setName("WF:" + entry.getKey());
 				t.start();
 			} catch (Exception e) {
 				Loggers.Transcode_WatchFolder.error("Can't load watchfolder " + entry.getKey(), e);

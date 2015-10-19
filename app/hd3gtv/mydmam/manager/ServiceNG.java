@@ -112,7 +112,7 @@ public abstract class ServiceNG {
 	private class ServiceThread extends Thread {
 		
 		public ServiceThread() {
-			setName("MyDMAM Service");
+			setName("Service");
 		}
 		
 		public void run() {

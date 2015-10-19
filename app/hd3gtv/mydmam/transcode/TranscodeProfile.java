@@ -135,7 +135,7 @@ public class TranscodeProfile {
 						}
 						
 						profiles.put(profile_name, profile);
-						Loggers.Transcode.debug("Declared transcoding profile: " + profile_name + " > " + profile.toString());
+						Loggers.Transcode.debug("Declared transcoding profile:\t" + profile.toString());
 					}
 				}
 			}

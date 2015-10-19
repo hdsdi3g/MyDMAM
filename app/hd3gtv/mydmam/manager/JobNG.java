@@ -637,7 +637,7 @@ public final class JobNG {
 				job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
 				result.add(job);
 			}
-			if (Loggers.Job.isInfoEnabled()) {
+			if (Loggers.Job.isInfoEnabled() & result.isEmpty() == false) {
 				Loggers.Job.info("Found old abandoned jobs:\t" + result);
 			}
 			return result;

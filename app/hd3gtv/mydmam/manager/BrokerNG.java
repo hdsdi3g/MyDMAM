@@ -466,12 +466,12 @@ class BrokerNG {
 						/**
 						 * The row contains a stale or these can either be manually clean up or automatically cleaned up (and ignored) by calling failOnStaleLock(false)
 						 */
-						Loggers.Broker.error("Can't lock CF: abandoned lock", e);
+						Loggers.Broker.debug("Can't lock CF: abandoned lock", e);
 					} catch (BusyLockException e) {
-						Loggers.Broker.warn("Can't lock CF, it's currently locked", e);
+						Loggers.Broker.debug("Can't lock CF, it's currently locked", e);
 					} finally {
 						if (lock != null) {
-							Loggers.Broker.warn("Finally, release lock");
+							Loggers.Broker.trace("Finally, release lock");
 							lock.release();
 						}
 					}

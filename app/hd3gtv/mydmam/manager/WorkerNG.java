@@ -87,9 +87,8 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 	private String toStringLight() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
-		sb.append(reference_key);
-		sb.append("] ");
-		sb.append(getClass().getSimpleName());
+		sb.append(reference_key.substring(0, 20));
+		sb.append("...]");
 		return sb.toString();
 	}
 	
@@ -145,8 +144,7 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 		ExecutorWatchDog current_executor_watch_dog;
 		
 		private Executor(JobNG job, WorkerNG reference) {
-			// setName("Worker for " + job.getKey() + " (" + getWorkerCategory() + ")");
-			setName(reference.reference_key + "/" + reference.getClass().getSimpleName() + "/" + getWorkerCategory());
+			setName("WorkerExec:" + getWorkerCategory() + ":" + reference.getClass().getSimpleName() + "/" + job.getKey().substring(0, 12));
 			
 			this.job = job;
 			this.reference = reference;
@@ -166,7 +164,7 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 			try {
 				if (Loggers.Worker.isInfoEnabled()) {
 					if (job.isDeleteAfterCompleted() & Loggers.Worker.isDebugEnabled()) {
-						Loggers.Worker.debug("Start processing DelAftCom job for worker " + reference.toStringLight() + ":\t" + job.toString());
+						Loggers.Worker.debug("Start processing DeleAfteComptd job for worker " + reference.toStringLight() + ":\t" + job.toString());
 					} else {
 						Loggers.Worker.info("Start processing job for worker " + reference.toStringLight() + ":\t" + job.toString());
 					}
