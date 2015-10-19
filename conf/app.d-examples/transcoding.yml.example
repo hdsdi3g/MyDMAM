@@ -1,6 +1,3 @@
-transcoding:
-    temp_directory : /tmp
-
 transcoding_probe:
     maxpresencewaittime : 300
     sourcelocalfiles : /mnt/storage1

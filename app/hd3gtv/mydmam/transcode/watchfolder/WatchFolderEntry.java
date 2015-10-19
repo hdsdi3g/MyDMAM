@@ -91,9 +91,11 @@ class WatchFolderEntry implements Runnable {
 			if (conf.containsKey("storage") == false) {
 				throw new NullPointerException("\"storage\" can't to be null");
 			}
+			Loggers.Transcode_WatchFolder.trace("Init entry (target) from confguration: " + conf);
 			
 			storage = (String) conf.get("storage");
-			if (Storage.getAllStoragesNames().contains(storage)) {
+			if (Storage.getAllStoragesNames().contains(storage) == false) {
+				Loggers.Transcode_WatchFolder.trace("Actual configured storages: " + Storage.getAllStoragesNames());
 				throw new IOException("Can't found storage declaration \"" + storage + "\"");
 			}
 			
@@ -345,6 +347,7 @@ class WatchFolderEntry implements Runnable {
 							 */
 							Loggers.Transcode_WatchFolder.trace("New founded file in " + name + ": " + founded_file.path);
 							new_files_to_add.add(founded_file);
+							// XXX can't continue... block here
 						}
 					}
 					

@@ -22,7 +22,7 @@ public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 	private int framecount;
 	
 	public FFmpegInterlacingDetection() {
-		framecount = Configuration.global.getValue("transcoding", "ffmpeg_interlacing_detection_framecount", 1000);
+		framecount = Configuration.global.getValue("metadata_analysing", "ffmpeg_interlacing_detection_framecount", 1000);
 	}
 	
 	public boolean isEnabled() {
