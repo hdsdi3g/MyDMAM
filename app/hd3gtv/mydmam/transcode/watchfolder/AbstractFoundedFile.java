@@ -46,17 +46,20 @@ public class AbstractFoundedFile implements AbstractFile {
 		path_index_key = row_key;
 		path = cols.getStringValue("path", "/");
 		storage_name = cols.getStringValue("storage_name", "");
-		date = cols.getLongValue("date", 0l);
-		size = cols.getLongValue("size", 0l);
+		date = cols.getLongValue("filedate", 0l);
+		size = cols.getLongValue("filesize", 0l);
 		status = Status.valueOf(cols.getStringValue("status", Status.DETECTED.name()));
 		last_checked = cols.getLongValue("last_checked", System.currentTimeMillis());
 	}
 	
 	void saveToCassandra(MutationBatch mutator) {
+		if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
+			Loggers.Transcode_WatchFolder.trace("Prepare saveToCassandra for:\t" + this);
+		}
 		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("path", path, WatchFolderTranscoder.TTL_CASSANDRA);
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("storage", storage_name, WatchFolderTranscoder.TTL_CASSANDRA);
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("date", date, WatchFolderTranscoder.TTL_CASSANDRA);
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("size", size, WatchFolderTranscoder.TTL_CASSANDRA);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("storage_name", storage_name, WatchFolderTranscoder.TTL_CASSANDRA);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("filedate", date, WatchFolderTranscoder.TTL_CASSANDRA);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("filesize", size, WatchFolderTranscoder.TTL_CASSANDRA);
 		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("status", status.name(), WatchFolderTranscoder.TTL_CASSANDRA);
 		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("last_checked", last_checked, WatchFolderTranscoder.TTL_CASSANDRA);
 	}
@@ -103,6 +106,7 @@ public class AbstractFoundedFile implements AbstractFile {
 			return false;
 		}
 		if ((obj instanceof AbstractFoundedFile) == false) {
+			Loggers.Transcode_WatchFolder.warn("Invalid class/not instanceof, for equals test with this: " + getClass() + ", and obj: " + obj.getClass());
 			return false;
 		}
 		return ((AbstractFoundedFile) obj).hashCode() == hashCode();

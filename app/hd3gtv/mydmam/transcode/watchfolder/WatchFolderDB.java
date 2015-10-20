@@ -65,17 +65,24 @@ public class WatchFolderDB {
 	
 	static List<AbstractFoundedFile> get(List<AbstractFoundedFile> items_to_check) throws ConnectionException {
 		if (items_to_check.isEmpty()) {
+			Loggers.Transcode_WatchFolder.trace("Get from DB, but items_to_check list is empty");
 			return new ArrayList<AbstractFoundedFile>(1);
 		}
 		List<String> key_slice = new ArrayList<String>(items_to_check.size());
 		for (int pos = 0; pos < items_to_check.size(); pos++) {
 			key_slice.add(items_to_check.get(pos).getPathIndexKey());
+			if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
+				Loggers.Transcode_WatchFolder.trace("Get from DB, prepare request\t" + items_to_check.get(pos).getPathIndexKey());
+			}
 		}
 		
 		List<AbstractFoundedFile> result = new ArrayList<AbstractFoundedFile>(items_to_check.size());
 		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getKeySlice(key_slice).execute();
 		for (Row<String, String> row : rows.getResult()) {
 			result.add(new AbstractFoundedFile(row.getKey(), row.getColumns()));
+			if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
+				Loggers.Transcode_WatchFolder.trace("Get FoundedFile from DB result\t" + result.get(result.size() - 1));
+			}
 		}
 		return result;
 	}
@@ -87,7 +94,7 @@ public class WatchFolderDB {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		for (int pos = 0; pos < files.size(); pos++) {
 			if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
-				Loggers.Transcode_WatchFolder.trace("Save FoundedFile in DB " + files.get(pos).storage_name + ":" + files.get(pos).path);
+				Loggers.Transcode_WatchFolder.trace("Save FoundedFile in DB\t" + files.get(pos));
 			}
 			files.get(pos).saveToCassandra(mutator);
 		}

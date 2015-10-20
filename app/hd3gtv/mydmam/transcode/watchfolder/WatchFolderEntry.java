@@ -173,7 +173,7 @@ class WatchFolderEntry implements Runnable {
 		if (c_targets.isEmpty()) {
 			throw new IndexOutOfBoundsException("\"targets\" can't to be empty, in " + name + " watchfolder");
 		}
-		List<Target> targets = new ArrayList<WatchFolderEntry.Target>(c_targets.size());
+		targets = new ArrayList<WatchFolderEntry.Target>(c_targets.size());
 		
 		for (int pos = 0; pos < c_targets.size(); pos++) {
 			targets.add(new Target().init(c_targets.get(pos)));
@@ -236,7 +236,7 @@ class WatchFolderEntry implements Runnable {
 			if (file.length() < min_file_size) {
 				return true;
 			}
-			Loggers.Transcode_WatchFolder.debug("Found file: " + storagename + ":" + file.getPath());
+			Loggers.Transcode_WatchFolder.debug("Search has found a file: " + storagename + ":" + file.getPath());
 			founded.add(new AbstractFoundedFile(file, storagename));
 			return true;
 		}
@@ -269,13 +269,13 @@ class WatchFolderEntry implements Runnable {
 		}
 		
 		public boolean onStartSearch(AbstractFile search_root_path) {
-			Loggers.Transcode_WatchFolder.debug("Start search for " + name + " in " + search_root_path.getPath());
+			Loggers.Transcode_WatchFolder.debug("Start search for \"" + name + "\" in " + search_root_path.getPath());
 			founded.clear();
 			return true;
 		}
 		
 		public void onEndSearch() {
-			Loggers.Transcode_WatchFolder.debug("End search for " + name);
+			// Loggers.Transcode_WatchFolder.debug("End search for " + name);
 		}
 		
 		public String getCurrentWorkingDir() {
@@ -322,6 +322,13 @@ class WatchFolderEntry implements Runnable {
 						continue;
 					}
 					
+					if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
+						Loggers.Transcode_WatchFolder.trace("Dump founded file list");
+						for (int pos = 0; pos < crawler.founded.size(); pos++) {
+							Loggers.Transcode_WatchFolder.trace("Founded file: " + crawler.founded.get(pos));
+						}
+					}
+					
 					/**
 					 * Check founded files
 					 * If a file is founded... nothing special.
@@ -333,7 +340,7 @@ class WatchFolderEntry implements Runnable {
 					
 					for (int pos = 0; pos < crawler.founded.size(); pos++) {
 						founded_file = crawler.founded.get(pos);
-						Loggers.Transcode_WatchFolder.trace("Founded file in " + name + ": " + founded_file.path);
+						Loggers.Transcode_WatchFolder.trace("Founded file in " + name + ": " + founded_file);
 						
 						if (present_in_db.contains(founded_file)) {
 							/**
@@ -347,7 +354,6 @@ class WatchFolderEntry implements Runnable {
 							 */
 							Loggers.Transcode_WatchFolder.trace("New founded file in " + name + ": " + founded_file.path);
 							new_files_to_add.add(founded_file);
-							// XXX can't continue... block here
 						}
 					}
 					
@@ -398,11 +404,11 @@ class WatchFolderEntry implements Runnable {
 							Loggers.Transcode_WatchFolder.trace("Ignore validated files, but refresh db entries for " + name + ": " + db_entry_file);
 							continue;
 						}
-						if (db_entry_file.status != Status.PROCESSED) {
+						if (db_entry_file.status != Status.DETECTED) {
 							/**
 							 * All enums should have been tested...
 							 */
-							throw new NullPointerException("Impossible status");
+							throw new NullPointerException("Impossible status:\t" + db_entry_file);
 						}
 						
 						if (active_file.size < db_entry_file.size) {
@@ -483,8 +489,8 @@ class WatchFolderEntry implements Runnable {
 							if (e instanceof ConnectionException) {
 								throw (ConnectionException) e;
 							} else {
-								Loggers.Transcode_WatchFolder.error("Unknow exception with Cassandra, may be a fatal problem " + name, e);
-								AdminMailAlert.create("Unknow exception with Cassandra, may be a fatal problem with it", true).setThrowable(e).setManager(manager).send();
+								Loggers.Transcode_WatchFolder.error("Unknow exception for " + name, e);
+								AdminMailAlert.create("Unknow exception, may be a fatal problem with WatchFolder " + name, true).setThrowable(e).setManager(manager).send();
 								return;
 							}
 						}
