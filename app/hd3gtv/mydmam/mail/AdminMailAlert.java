@@ -35,11 +35,13 @@ public class AdminMailAlert {
 	private static String workername;
 	private static InternetAddress admin_addr;
 	
+	private static final String NO_ADMIN_ADDR = "noset@noset.noset";
+	
 	static {
 		try {
 			mailcenter = MailCenter.getGlobal();
 			workername = Configuration.global.getValue("service", "workername", "(no set)");
-			admin_addr = new InternetAddress(Configuration.global.getValue("service", "administrator_mail", "root@localhost"));
+			admin_addr = new InternetAddress(Configuration.global.getValue("service", "administrator_mail", NO_ADMIN_ADDR));
 		} catch (Exception e) {
 			Loggers.Mail.error("Can't init message alert", e);
 		}
@@ -135,6 +137,11 @@ public class AdminMailAlert {
 	}
 	
 	public void send() {
+		if (admin_addr.equals(NO_ADMIN_ADDR)) {
+			Loggers.Mail.info("No admin mail is declared: no mail will be send.");
+			return;
+		}
+		
 		try {
 			
 			/**
