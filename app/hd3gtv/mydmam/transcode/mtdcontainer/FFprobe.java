@@ -28,6 +28,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.tools.Timecode;
@@ -303,6 +304,13 @@ public class FFprobe extends EntryAnalyser {
 			return true;
 		}
 		return false;
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("ffprobe: ");
+		sb.append(ContainerOperations.getGson().toJson(this));
+		return sb.toString();
 	}
 	
 }

@@ -93,4 +93,15 @@ public abstract class TranscodeProgress {
 		}
 	}
 	
+	File getProgressfile() {
+		return progressfile;
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("progressfile: ");
+		sb.append(progressfile.getAbsolutePath());
+		return sb.toString();
+	}
+	
 }

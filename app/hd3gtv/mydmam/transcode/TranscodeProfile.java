@@ -57,7 +57,7 @@ public class TranscodeProfile {
 	
 	static {
 		executables_events = new LinkedHashMap<String, Class<? extends ExecprocessTranscodeEvent>>(1);
-		executables_events.put("ffmpeg", ExecprocessTranscodeEvent.class);
+		executables_events.put("ffmpeg", FFmpegEvents.class);
 		
 		executables_transcode_progress = new LinkedHashMap<String, Class<? extends TranscodeProgress>>(1);
 		executables_transcode_progress.put("ffmpeg", TranscodeProgressFFmpeg.class);
@@ -281,7 +281,6 @@ public class TranscodeProfile {
 		private File output_file;
 		private ArrayList<String> initial_params;
 		
-		private File progress_file;
 		private HashMap<String, String> param_tags;
 		private ExecprocessTranscodeEvent event;
 		private TranscodeProgress progress;
@@ -291,11 +290,6 @@ public class TranscodeProfile {
 			this.output_file = output_file;
 			param_tags = new HashMap<String, String>();
 			initial_params = new ArrayList<String>();
-		}
-		
-		public ProcessConfiguration setProgressFile(File progress_file) {
-			this.progress_file = progress_file;
-			return this;
 		}
 		
 		public boolean wantAProgressFile() {
@@ -315,19 +309,14 @@ public class TranscodeProfile {
 			return initial_params;
 		}
 		
+		/**
+		 * Event will be ready after prepareExecprocess() call.
+		 */
 		public ExecprocessTranscodeEvent getEvent() {
 			return event;
 		}
 		
 		public Execprocess prepareExecprocess(String job_ref) throws IOException {
-			
-			if (executables_transcode_progress.containsKey(executable_name)) {
-				try {
-					progress = executables_transcode_progress.get(job_ref).newInstance();
-				} catch (Exception e) {
-					Loggers.Transcode.error("Can't load TranscodeProgress new instance with executable_name: " + executable_name, e);
-				}
-			}
 			
 			if (executables_events.containsKey(executable_name)) {
 				try {
@@ -348,7 +337,16 @@ public class TranscodeProfile {
 		}
 		
 		public TranscodeProgress getProgress() {
-			return progress;
+			if (executables_transcode_progress.containsKey(executable_name)) {
+				try {
+					progress = executables_transcode_progress.get(executable_name).newInstance();
+					return progress;
+				} catch (Exception e) {
+					Loggers.Transcode.error("Can't load TranscodeProgress new instance with executable_name: " + executable_name, e);
+					return null;
+				}
+			}
+			throw new NullPointerException("Can't found a TranscodeProgress for executable_name: " + executable_name);
 		}
 		
 		private ArrayList<String> makeCommandline() throws IOException {
@@ -371,8 +369,8 @@ public class TranscodeProfile {
 				} else if (param.equals(TAG_OUTPUTFILE)) {
 					cmdline.add(output_file.getCanonicalPath());
 				} else if (param.equals(TAG_PROGRESSFILE)) {
-					if (progress_file != null) {
-						cmdline.add(progress_file.getCanonicalPath());
+					if (progress != null) {
+						cmdline.add(progress.getProgressfile().getCanonicalPath());
 					} else {
 						cmdline.add(System.getProperty("java.io.tmpdir") + File.separator + "progress.txt");
 					}
@@ -398,10 +396,14 @@ public class TranscodeProfile {
 			}
 			log.put("input_file", input_file);
 			log.put("output_file", output_file);
-			log.put("progress_file", progress_file);
+			log.put("progress", progress);
 			log.put("param_tags", param_tags);
-			log.put("progress", progress.getClass());
-			log.put("event", event.getClass());
+			if (progress != null) {
+				log.put("progress", progress.getClass());
+			}
+			if (event != null) {
+				log.put("event", event.getClass());
+			}
 			return log.toString();
 		}
 		

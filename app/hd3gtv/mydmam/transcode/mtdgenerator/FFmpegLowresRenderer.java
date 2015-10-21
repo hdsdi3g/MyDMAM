@@ -170,7 +170,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 		
 		process_conf.getParamTags().put("FILTERS", sb_filters.toString());
-		process = process_conf.setProgressFile(progress_file.getTempFile()).prepareExecprocess(job_progress.getJobKey() + ": " + origin.getName());
+		process = process_conf.prepareExecprocess(job_progress.getJobKey() + ": " + origin.getName());
 		
 		Loggers.Transcode_Metadata.info("Start ffmpeg, " + "job: " + job_progress.getJobKey() + ", origin: " + origin + ", temp_file: " + temp_element.getTempFile() + ", transcode_profile: "
 				+ transcode_profile + ", commandline: \"" + process.getCommandline() + "\"");

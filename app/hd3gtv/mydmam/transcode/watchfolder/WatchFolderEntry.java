@@ -402,6 +402,7 @@ class WatchFolderEntry implements Runnable {
 							 * Ignore validated files, but refresh db entries.
 							 */
 							Loggers.Transcode_WatchFolder.trace("Ignore validated files, but refresh db entries for " + name + ": " + db_entry_file);
+							active_files.set(pos, db_entry_file);
 							continue;
 						}
 						if (db_entry_file.status != Status.DETECTED) {
@@ -448,6 +449,10 @@ class WatchFolderEntry implements Runnable {
 					}
 					
 					WatchFolderDB.push(active_files);
+					
+					if (validated_files.isEmpty()) {
+						continue;
+					}
 					
 					/**
 					 * For all validated files,
@@ -584,24 +589,30 @@ class WatchFolderEntry implements Runnable {
 		
 		FFprobe ffprobe = indexing_result.getByClass(FFprobe.class);
 		
-		if (must_contain.contains(MustContainType.video.name()) | must_contain.contains(MustContainType.audio.name())) {
+		if (ffprobe != null) {
+			Loggers.Transcode_WatchFolder.debug("Analyst file result, " + ffprobe);
+		}
+		
+		if (must_contain.contains(MustContainType.video) | must_contain.contains(MustContainType.audio)) {
 			if (ffprobe == null) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must be a media file " + name + " for " + validated_file);
 				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file", false).send();
 				validated_file.status = Status.ERROR;
 				return;
-			} else if (must_contain.contains(MustContainType.video.name()) & (ffprobe.hasVideo() == false)) {
+			} else if (must_contain.contains(MustContainType.video) & (ffprobe.hasVideo() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have a video track " + name + " for " + validated_file);
 				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track", false).send();
 				validated_file.status = Status.ERROR;
 				return;
-			} else if (must_contain.contains(MustContainType.audio.name()) & (ffprobe.hasAudio() == false)) {
+			} else if (must_contain.contains(MustContainType.audio) & (ffprobe.hasAudio() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have an audio track " + name + " for " + validated_file);
 				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track", false).send();
 				validated_file.status = Status.ERROR;
 				return;
 			}
 			duration = ffprobe.getDuration();
+		} else {
+			Loggers.Transcode_WatchFolder.debug("WF entry (" + name + ") don't required a media file");
 		}
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();

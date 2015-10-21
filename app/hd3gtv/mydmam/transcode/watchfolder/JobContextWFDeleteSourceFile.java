@@ -16,9 +16,9 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
-import hd3gtv.mydmam.manager.JobContext;
-
 import com.google.gson.JsonObject;
+
+import hd3gtv.mydmam.manager.JobContext;
 
 public class JobContextWFDeleteSourceFile extends JobContext {
 	
@@ -29,7 +29,7 @@ public class JobContextWFDeleteSourceFile extends JobContext {
 		JsonObject jo = new JsonObject();
 		jo.addProperty("storage", storage);
 		jo.addProperty("path", path);
-		return null;
+		return jo;
 	}
 	
 	public void contextFromJson(JsonObject json_object) {

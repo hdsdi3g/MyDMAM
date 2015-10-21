@@ -24,9 +24,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
@@ -212,8 +215,8 @@ public class TranscoderWorker extends WorkerNG {
 		}
 		
 		// Container container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
-		
-		final File local_dest_dir = Storage.getLocalFile(SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name));
+		SourcePathIndexerElement dest_storage = SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name);
+		final File local_dest_dir = Storage.getLocalFile(dest_storage);
 		
 		Loggers.Transcode.debug("physical_source is " + physical_source.getPath());
 		Loggers.Transcode.debug("local_dest_dir is " + local_dest_dir.getPath());
@@ -262,10 +265,12 @@ public class TranscoderWorker extends WorkerNG {
 			
 			/**
 			 * @see FFmpegLowresRenderer, if it's a video file
-			 *      process_conf.getParamTags().put("FILTERS", sb_filters.toString());
+			 *      process_configuration.getParamTags().put("FILTERS", sb_filters.toString());
 			 */
+			process_configuration.getParamTags().put("FILTERS", "null");
+			
 			Loggers.Transcode.debug("Prepare prepareExecprocess for process_configuration");
-			process = process_configuration.setProgressFile(progress_file).prepareExecprocess(progression.getJobKey());
+			process = process_configuration.prepareExecprocess(progression.getJobKey());
 			
 			progression.update("Transcode source file with " + transcode_profile.getName() + " (" + transcode_profile.getExecutable().getName() + ")");
 			
@@ -273,6 +278,8 @@ public class TranscoderWorker extends WorkerNG {
 			log.put("physical_source", physical_source);
 			log.put("profile", transcode_profile.getName());
 			log.put("temp_output_file", temp_output_file);
+			log.put("commandline", process.getCommandline());
+			
 			Loggers.Transcode.info("Transcode file " + log.toString());
 			
 			process.run();
@@ -312,8 +319,6 @@ public class TranscoderWorker extends WorkerNG {
 				Loggers.Transcode.info("Faststart file " + log);
 				
 				Publish.faststartFile(temp_output_file, fast_started_file);
-				Loggers.Transcode.debug("Delete temp_output_file " + temp_output_file);
-				FileUtils.forceDelete(temp_output_file);
 				temp_output_file = fast_started_file;
 			}
 			
@@ -344,7 +349,7 @@ public class TranscoderWorker extends WorkerNG {
 				full_file.append(local_full_dest_dir.getPath());
 				full_file.append(File.separator);
 				full_file.append(transcode_context.dest_file_prefix);
-				full_file.append(physical_source.getName());
+				full_file.append(FilenameUtils.getBaseName(physical_source.getPath()));
 				full_file.append(transcode_context.dest_file_suffix);
 				full_file.append(transcode_profile.getExtension(""));
 				
@@ -370,7 +375,7 @@ public class TranscoderWorker extends WorkerNG {
 				
 				full_dest_dir.append("/");
 				full_dest_dir.append(transcode_context.dest_file_prefix);
-				full_dest_dir.append(physical_source.getName());
+				full_dest_dir.append(FilenameUtils.getBaseName(physical_source.getPath()));
 				full_dest_dir.append(transcode_context.dest_file_suffix);
 				full_dest_dir.append(transcode_profile.getExtension(""));
 				
@@ -390,6 +395,16 @@ public class TranscoderWorker extends WorkerNG {
 				FileUtils.forceDelete(temp_output_file);
 			}
 		}
+		
+		if (stop_process) {
+			return;
+		}
+		
+		Loggers.Transcode.debug("Refresh dest storage index: " + dest_storage);
+		Explorer explorer = new Explorer();
+		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+		explorer.refreshCurrentStoragePath(bulk, Arrays.asList(dest_storage), true);
+		bulk.terminateBulk();
 		
 		if (stop_process) {
 			return;

@@ -87,7 +87,6 @@ class DeleteSourceFileWorker extends WorkerNG {
 		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 		explorer.deleteStoragePath(bulk, Arrays.asList(spie));
 		bulk.terminateBulk();
-		
 	}
 	
 	protected void forceStopProcess() throws Exception {

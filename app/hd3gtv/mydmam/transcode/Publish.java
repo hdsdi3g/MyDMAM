@@ -27,6 +27,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
+
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.configuration.Configuration;
@@ -200,7 +202,7 @@ public class Publish extends WorkerNG {
 		log.put("profile", profile);
 		Loggers.Transcode.debug("Publish prepare transcoding " + context_publish.contextToJson().toString() + " " + log.toString());
 		
-		ProcessConfiguration process_conf = profile.createProcessConfiguration(source_file, dest_file_ffmpeg).setProgressFile(progress_file);
+		ProcessConfiguration process_conf = profile.createProcessConfiguration(source_file, dest_file_ffmpeg);
 		
 		transcode_progress = process_conf.getProgress();
 		if (transcode_progress == null) {
@@ -290,6 +292,10 @@ public class Publish extends WorkerNG {
 		}
 	}
 	
+	/**
+	 * @param dest_file will be deleted at the end.
+	 * @throws Exception
+	 */
 	public static void faststartFile(File source_file, File dest_file) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add(source_file.getPath());
@@ -298,14 +304,15 @@ public class Publish extends WorkerNG {
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		log.put("source_file", source_file);
 		log.put("dest_file", dest_file);
-		Loggers.Transcode.debug("Fast start file: " + log);
+		Loggers.Transcode.debug("Faststart file: " + log);
 		
-		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("qt-faststart"), param);
+		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("qtfaststart"), param);
 		process.setEndlinewidthnewline(true);
 		process.start();
 		
+		FileUtils.forceDelete(source_file);
+		
 		Loggers.Transcode.debug("Fast start file done: " + process.getResultstdout());
-		source_file.delete();
 	}
 	
 	public WorkerCategory getWorkerCategory() {
