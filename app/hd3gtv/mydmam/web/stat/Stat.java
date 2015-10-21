@@ -238,7 +238,7 @@ public class Stat {
 			}
 			
 		} catch (IndexMissingException e) {
-			Loggers.Play.error("Some ES indexes are missing: database has not items for this", e);
+			Loggers.Play.warn("Some ES indexes are missing: database has not items for this: " + e.getMessage());
 		} catch (Exception e) {
 			Loggers.Play.error("General error", e);
 		}

@@ -87,12 +87,10 @@
 		content = content + '<ul class="nav nav-tabs">';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrsummary") + '"><a href="#mgrsummary" class="btnmanager">' + i18n('manager.summary.title') + '</a></li>';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrworkers") + '"><a href="#mgrworkers" class="btnmanager">' + i18n('manager.workers.title') + '</a></li>';
-		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgruafunctlist") + '"><a href="#mgruafunctlist" class="btnmanager">' + i18n('manager.uafunctlist.title') + '</a></li>';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrcyclic") + '"><a href="#mgrcyclic" class="btnmanager">' + i18n('manager.cyclic.title') + '</a></li>';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrtriggers") + '"><a href="#mgrtriggers" class="btnmanager">' + i18n('manager.trigger.title') + '</a></li>';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrthreads") + '"><a href="#mgrthreads" class="btnmanager">' + i18n('manager.threads.title') + '</a></li>';
 		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrclasspaths") + '"><a href="#mgrclasspaths" class="btnmanager">' + i18n('manager.classpaths.title') + '</a></li>';
-		content = content + '<li class="' + getActiveClassIfThisTabIsUserSelected("#mgrlog2filters") + '"><a href="#mgrlog2filters" class="btnmanager">' + i18n('manager.log2filters.title') + '</a></li>';
 
 		content = content + '<li class="pull-right"><a href="#mgrsummary" class="btnrefresh"><i class="icon-refresh"></i>' + '</a></li>';
 		content = content + '</ul>';
@@ -144,19 +142,6 @@
 		content = content + '</div>'; // tab-pane
 
 		/**
-		 * Prepare block for Useraction Functionality List
-		 */
-		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgruafunctlist") + '" id="mgruafunctlist">';
-		content = content + '</div>'; // tab-pane
-
-		/**
-		 * Show Log2filters
-		 */
-		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrlog2filters") + '" id="mgrlog2filters">';
-		content = content + manager.prepareLog2filters(rawdata);
-		content = content + '</div>'; // tab-pane
-
-		/**
 		 * Show Workers status
 		 */
 		content = content + '<div class="tab-pane ' + getActiveClassIfThisTabIsUserSelected("#mgrworkers") + '" id="mgrworkers">';
@@ -200,24 +185,6 @@
 		if (manager.hasInstanceAction()) {
 			manager.setBtnActionClick(query_destination);
 		}
-
-		manager.setBtnForLog2filters(query_destination);
-
-		manager.drawUseractionFunctionalityList("#mgruafunctlist", rawdata, function() {
-			$(query_destination + ' table.setdatatable').dataTable({
-				"bPaginate": false,
-				"bLengthChange": false,
-				"bSort": true,
-				"bInfo": false,
-				"bAutoWidth": false,
-				"bFilter": true,
-			});
-			$(query_destination + ' table.setdatatable').removeClass('setdatatable');
-
-			if (manager.hasInstanceAction()) {
-				manager.setBtnActionClick(query_destination);
-			}
-		});
 
 	};
 })(window.mydmam.manager);
@@ -667,185 +634,3 @@
 
 })(window.mydmam.manager);
 
-/**
- * prepareLog2filters(instances) addLog2filterFormItems(baseclassname, level, filtertype)
- */
-(function(manager) {
-	manager.prepareLog2filters = function(instances) {
-		var content = '';
-		content = content + '<table class="table table-striped table-bordered table-hover table-condensed setdatatableAAAAAAAAAAAAAAAAAAAAA">';
-		content = content + '<thead>';
-		content = content + '<th>' + i18n('manager.log2filters.th.instances') + '</th>';
-		content = content + '<th>' + i18n('manager.log2filters.th.filters') + '</th>';
-		content = content + '<th>' + i18n('manager.log2filters.th.btncheck') + '</th>';
-		content = content + '</thead>';
-		content = content + '<tbody>';
-
-		for (var pos_i = 0; pos_i < instances.length; pos_i++) {
-			var instance = instances[pos_i];
-			var log2filters = instance.log2filters;
-
-			content = content + '<tr>';
-
-			content = content + '<td>';
-			content = content + mydmam.manager.prepareInstanceNameCell(instance);
-			content = content + '</td>';
-
-			content = content + '<td>';
-			for (var pos_l2 = 0; pos_l2 < log2filters.length; pos_l2++) {
-				var log2filter = log2filters[pos_l2];
-				content = content + manager.addLog2filterFormItems(log2filter.baseclassname, log2filter.level, log2filter.filtertype);
-				content = content + ' <button class="btn btn-danger btn-mini btnmgrremovelog2filter" style="margin-bottom: 10px;"><i class="icon-minus icon-white"></i></button>';
-				content = content + '<br>';
-			}
-
-			content = content + manager.addLog2filterFormItems("", "", "");
-			content = content + ' <button class="btn btn-success btn-mini btnmgraddlog2filter" style="margin-bottom: 10px;"><i class="icon-plus icon-white"></i></button>';
-
-			content = content + '</td>';
-
-			content = content + '<td>';
-
-			content = content + '<p><button class="btn btn-mini btn-primary btnsetlog2filters" ';
-			content = content + 'data-instanceref="' + instance.instance_name_pid + '" ';
-			content = content + '><i class="icon-ok icon-white"></i> ' + i18n("manager.log2filters.validate") + '</button></p>';
-
-			content = content + '<p><button class="btn btn-mini btncopylogfilterconf">';
-			content = content + '<i class="icon-download"></i> ' + i18n("manager.log2filters.copyconf") + '</button></p>';
-
-			content = content + '</td>';
-			content = content + '</tr>';
-		}
-
-		content = content + '</tbody>';
-		content = content + '</table>';
-		return content;
-	};
-
-	manager.addLog2filterFormItems = function(baseclassname, level, filtertype) {
-		var prepare_select_level = function(actual_value) {
-			var levels = ["NONE", "DEBUG", "INFO", "ERROR", "SECURITY"];
-			var content = '';
-			content = content + '<select class="input-small sellog2level">';
-			for (var pos = 0; pos < levels.length; pos++) {
-				content = content + '<option value="' + levels[pos] + '"';
-				if (actual_value === levels[pos]) {
-					content = content + ' selected';
-				}
-				content = content + '>' + i18n('manager.log2filters.level.' + levels[pos]) + '</option>';
-			}
-			content = content + '</select>';
-			return content;
-		};
-
-		var prepare_select_filtertype = function(actual_value) {
-			var levels = ["HIDE", "ONE_LINE", "NO_DUMP", "DEFAULT", "VERBOSE_CALLER"];
-			var content = '';
-			content = content + '<select class="input-medium sellog2filtertype">';
-			for (var pos = 0; pos < levels.length; pos++) {
-				content = content + '<option value="' + levels[pos] + '"';
-				if (actual_value === levels[pos]) {
-					content = content + ' selected';
-				}
-				content = content + '>' + i18n('manager.log2filters.filtertype.' + levels[pos]) + '</option>';
-			}
-			content = content + '</select>';
-			return content;
-		};
-
-		var content = '';
-		content = content + '<span class="inputlog2filter">';
-		content = content + '<input type="text" spellcheck="false" class="input-xxlarge log2classname" value="' + baseclassname + '" placeholder="' + i18n('manager.log2filters.classnameplaceholder') + '" />';
-		content = content + ' ' + prepare_select_level(level) + '';
-		content = content + ' ' + prepare_select_filtertype(filtertype) + '';
-		content = content + '</span>';
-		return content;
-	};
-})(window.mydmam.manager);
-
-/**
- * setBtnForLog2filters()
- */
-(function(manager) {
-	manager.setBtnForLog2filters = function(query_destination) {
-
-		var getFilters = function(jq_tr) {
-			var jq_all_spaninput = jq_tr.find("span.inputlog2filter");
-			var filters = [];
-			jq_all_spaninput.each(function() {
-				var filter = {
-					baseclassname: $(this).children("input.log2classname").val().trim(),
-					level: $(this).children("select.sellog2level").val(),
-					filtertype: $(this).children("select.sellog2filtertype").val()
-				};
-				if (filter.baseclassname === '') {
-					return;
-				}
-				filters.push(filter);
-			});
-			return filters;
-		};
-
-		var btnsetlog2filters_click = function() {
-			var button = $(this);
-			if (button.hasClass("disabled")) {
-				return;
-			}
-			var jq_tr = button.parent().parent().parent();// p > td > tr
-			var beforesend = function() {
-				button.addClass("disabled");
-			};
-			var error = function() {
-				/**
-				 * No error handle.
-				 */
-			};
-			var success = function() {
-				button.removeClass("disabled");
-			};
-			manager.doAction("AppManager", $(this).data("instanceref"), "log2filters", getFilters(jq_tr), beforesend, error, success);
-		};
-
-		var btncopylogfilterconf_click = function() {
-			$(query_destination + ' textarea.log2filterconf').remove();
-
-			var filters = getFilters($(this).parent().parent().parent()); // p >
-			// td >
-			// tr
-
-			var content = '';
-			content = content + '<textarea class="input-block-level log2filterconf" style="margin-top: 1em; font-size: 8px; line-height: 1.3em; height: 15em; overflow: none;" spellcheck="false">';
-			content = content + 'log2:' + "\n";
-			content = content + '    filter:' + "\n";
-			for (var pos_f = 0; pos_f < filters.length; pos_f++) {
-				content = content + '        -' + "\n";
-				content = content + '            for: ' + filters[pos_f].baseclassname + "\n";
-				content = content + '            level: ' + filters[pos_f].level + "\n";
-				content = content + '            type: ' + filters[pos_f].filtertype + "\n";
-			}
-			content = content + '</textarea>';
-			$(this).after(content);
-			$(this).next().select();
-		};
-
-		var btnmgrremovelog2filter_click = function() {
-			$(this).prev().remove(); // span
-			$(this).next().remove(); // br
-			$(this).remove(); // button
-		};
-
-		var btnmgraddlog2filter_click = function() {
-			var content = '';
-			content = content + ' <button class="btn btn-danger btn-mini btnmgrremovelog2filter" style="margin-bottom: 10px;"><i class="icon-minus icon-white"></i></button>';
-			content = content + '<br>';
-			content = content + manager.addLog2filterFormItems("", "", "") + " ";
-			$(this).before(content);
-			manager.setBtnForLog2filters(query_destination);
-		};
-
-		$(query_destination + ' button.btnsetlog2filters').click(btnsetlog2filters_click).removeClass("btnsetlog2filters");
-		$(query_destination + ' button.btncopylogfilterconf').click(btncopylogfilterconf_click).removeClass("btncopylogfilterconf");
-		$(query_destination + ' button.btnmgrremovelog2filter').click(btnmgrremovelog2filter_click).removeClass("btnmgrremovelog2filter");
-		$(query_destination + ' button.btnmgraddlog2filter').click(btnmgraddlog2filter_click).removeClass("btnmgraddlog2filter");
-	};
-})(window.mydmam.manager);
