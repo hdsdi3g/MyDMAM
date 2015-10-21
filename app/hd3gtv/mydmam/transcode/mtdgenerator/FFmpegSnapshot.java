@@ -102,11 +102,15 @@ public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 		filters.add("scale=iw*sar:ih");
 		
 		StringBuilder sb_filters = new StringBuilder();
-		for (int pos_flt = 0; pos_flt < filters.size(); pos_flt++) {
-			sb_filters.append(filters.get(pos_flt));
-			if (pos_flt + 1 < filters.size()) {
-				sb_filters.append(",");
+		if (filters.isEmpty() == false) {
+			for (int pos_flt = 0; pos_flt < filters.size(); pos_flt++) {
+				sb_filters.append(filters.get(pos_flt));
+				if (pos_flt + 1 < filters.size()) {
+					sb_filters.append(",");
+				}
 			}
+		} else {
+			sb_filters.append("null");
 		}
 		
 		process_conf.getParamTags().put("FILTERS", sb_filters.toString());
