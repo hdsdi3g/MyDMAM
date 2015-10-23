@@ -99,4 +99,8 @@ public class WatchFolderTranscoder {
 			Loggers.Transcode_WatchFolder.error("Can't wait all stopping threads", e);
 		}
 	}
+	
+	public List<WatchFolderEntry> getDeclaredWatchfolders() {// TODO add to Instance status
+		return wf_entries;
+	}
 }

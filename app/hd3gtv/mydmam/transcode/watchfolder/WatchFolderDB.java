@@ -19,6 +19,8 @@ package hd3gtv.mydmam.transcode.watchfolder;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
@@ -32,6 +34,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class WatchFolderDB {
 	
@@ -60,6 +63,16 @@ public class WatchFolderDB {
 		}
 	}
 	
+	static Gson gson_simple;
+	
+	static {
+		GsonBuilder builder = new GsonBuilder();
+		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		gson_simple = builder.create();
+	}
+	
 	private WatchFolderDB() {
 	}
 	
@@ -78,6 +91,19 @@ public class WatchFolderDB {
 		
 		List<AbstractFoundedFile> result = new ArrayList<AbstractFoundedFile>(items_to_check.size());
 		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getKeySlice(key_slice).execute();
+		for (Row<String, String> row : rows.getResult()) {
+			result.add(new AbstractFoundedFile(row.getKey(), row.getColumns()));
+			if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
+				Loggers.Transcode_WatchFolder.trace("Get FoundedFile from DB result\t" + result.get(result.size() - 1));
+			}
+		}
+		return result;
+	}
+	
+	static ArrayList<AbstractFoundedFile> getAll() throws ConnectionException {
+		ArrayList<AbstractFoundedFile> result = new ArrayList<AbstractFoundedFile>();
+		
+		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getAllRows().execute();
 		for (Row<String, String> row : rows.getResult()) {
 			result.add(new AbstractFoundedFile(row.getKey(), row.getColumns()));
 			if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {

@@ -41,6 +41,7 @@ public class AbstractFoundedFile implements AbstractFile {
 	long size;
 	Status status = Status.DETECTED;
 	long last_checked;
+	// TODO add List<> dest & job
 	
 	AbstractFoundedFile(String row_key, ColumnList<String> cols) {
 		path_index_key = row_key;

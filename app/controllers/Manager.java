@@ -136,6 +136,12 @@ public class Manager extends Controller {
 		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(since)));
 	}
 	
+	@Check("showJobs")
+	public static void watchfolders() throws Exception {
+		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("manager.watchfolders.pagename"));
+		render();
+	}
+	
 	private static String getCaller() throws Exception {
 		StringBuffer caller = new StringBuffer();
 		caller.append(User.getUserProfile().key);

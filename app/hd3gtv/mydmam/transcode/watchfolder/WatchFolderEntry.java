@@ -624,6 +624,8 @@ class WatchFolderEntry implements Runnable {
 		
 		for (int pos = 0; pos < targets.size(); pos++) {
 			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), sub_dir_name, duration, mutator));
+			// TODO add List<> dest << targets.get(pos).storage
+			// TODO add List<> jobs << job key
 		}
 		
 		JobContextWFDeleteSourceFile delete_source = new JobContextWFDeleteSourceFile();
