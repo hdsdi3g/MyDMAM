@@ -223,21 +223,21 @@ public final class AppManager implements InstanceActionReceiver {
 		}
 		
 		public void onError(Exception e, String error_name, WorkerNG worker) {
-			Loggers.Manager.debug("Service exception error (" + error_name + "), a mail will be send. Worker: " + worker, e);
+			Loggers.Manager.warn("Service exception error (" + error_name + "), a mail will be send. Worker: " + worker, e);
 			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager).setThrowable(e);
 			alert.send();
 		}
 		
 		private void onAppManagerError(Exception e, String error_name) {
-			Loggers.Manager.debug("App manager error (" + error_name + "), a mail will be send", e);
+			Loggers.Manager.warn("App manager error (" + error_name + "), a mail will be send", e);
 			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, true).setManager(manager).setThrowable(e);
 			alert.send();
 		}
 		
 		void onQueueServiceError(Exception e, String error_name, String service_name) {
-			Loggers.Manager.debug("Queue service error (" + error_name + ") for service \"" + service_name + "\"; a mail will be send", e);
+			Loggers.Manager.warn("Queue service error (" + error_name + ") for service \"" + service_name + "\"; a mail will be send", e);
 			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager).setThrowable(e);
 			alert.addToMessagecontent("Service name: " + service_name);
@@ -245,7 +245,7 @@ public final class AppManager implements InstanceActionReceiver {
 		}
 		
 		void onCassandraError(Exception e) {
-			Loggers.Manager.debug("Cassandra error", e);
+			Loggers.Manager.warn("Cassandra error", e);
 			
 			AdminMailAlert alert = AdminMailAlert.create("Cassandra error", false).setManager(manager).setThrowable(e);
 			alert.send();
@@ -264,7 +264,7 @@ public final class AppManager implements InstanceActionReceiver {
 		}
 		
 		void onMaxExecJobTime(JobNG job) {
-			Loggers.Manager.debug("Max exec time for job: " + job);
+			Loggers.Manager.warn("Max exec time for job: " + job);
 			
 			AdminMailAlert alert = AdminMailAlert.create("A job has an execution time too long", false).setManager(manager);
 			alert.send();
