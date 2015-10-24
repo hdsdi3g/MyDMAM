@@ -416,6 +416,11 @@ class BrokerNG {
 								}
 							}
 							
+							if (worker == null) {
+								Loggers.Broker.trace("Can't found an avaliable worker for this context: " + context.getClass());
+								continue;
+							}
+							
 							if (current_job.isRequireIsDone() == false) {
 								/**
 								 * If the job require the processing done of another job.
