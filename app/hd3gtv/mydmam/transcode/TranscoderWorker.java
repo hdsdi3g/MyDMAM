@@ -309,17 +309,19 @@ public class TranscoderWorker extends WorkerNG {
 				return;
 			}
 			
-			if (transcode_profile.getOutputformat().isFaststarted()) {
-				progression.update("Faststart transcoded file");
-				File fast_started_file = new File(temp_output_file.getAbsolutePath() + "-faststart" + transcode_profile.getExtension(""));
-				
-				log = new LinkedHashMap<String, Object>();
-				log.put("temp_output_file", temp_output_file);
-				log.put("fast_started_file", fast_started_file);
-				Loggers.Transcode.info("Faststart file " + log);
-				
-				Publish.faststartFile(temp_output_file, fast_started_file);
-				temp_output_file = fast_started_file;
+			if (transcode_profile.getOutputformat() != null) {
+				if (transcode_profile.getOutputformat().isFaststarted()) {
+					progression.update("Faststart transcoded file");
+					File fast_started_file = new File(temp_output_file.getAbsolutePath() + "-faststart" + transcode_profile.getExtension(""));
+					
+					log = new LinkedHashMap<String, Object>();
+					log.put("temp_output_file", temp_output_file);
+					log.put("fast_started_file", fast_started_file);
+					Loggers.Transcode.info("Faststart file " + log);
+					
+					Publish.faststartFile(temp_output_file, fast_started_file);
+					temp_output_file = fast_started_file;
+				}
 			}
 			
 			if (stop_process) {

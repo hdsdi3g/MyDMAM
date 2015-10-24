@@ -241,6 +241,9 @@ public class TranscodeProfile {
 		private boolean faststarted = false;
 		
 		private OutputFormat(LinkedHashMap<String, ?> configuration_item) {
+			if (configuration_item == null) {
+				return;
+			}
 			try {
 				width = (Integer) configuration_item.get("width");
 			} catch (Exception e) {

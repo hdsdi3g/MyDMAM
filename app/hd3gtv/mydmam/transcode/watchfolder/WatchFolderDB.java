@@ -136,8 +136,8 @@ public class WatchFolderDB {
 		a_file.saveToCassandra(mutator);
 		
 		if (Loggers.Transcode_WatchFolder.isDebugEnabled()) {
-			Loggers.Transcode_WatchFolder.debug("Switch FoundedFile status: " + path_index_key + " is now " + new_status);
-			Loggers.Transcode_WatchFolder.debug(" for this file: " + a_file.storage_name + ":" + a_file.path);
+			// FIXME why not storage_name and path ?
+			Loggers.Transcode_WatchFolder.debug("Switch FoundedFile status: " + path_index_key + " is now " + new_status + " for this file: " + a_file.storage_name + ":" + a_file.path);
 		}
 		mutator.execute();
 	}
