@@ -106,6 +106,8 @@ public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 		
 		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("ffmpeg"), param);
 		process.setEndlinewidthnewline(true);
+		Loggers.Transcode.debug("Start FFmpeg Interlacing detection\t" + process.getRunprocess().getCommandline());
+		
 		try {
 			process.start();
 		} catch (IOException e) {
@@ -129,8 +131,10 @@ public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 			if (current_line.startsWith("[Parsed_idet_0 @") == false) {
 				continue;
 			}
-			// [Parsed_idet_0 @ 0x7f844b700000] Single frame detection: TFF:16 BFF:0 Progressive:0 Undetermined:8
-			// [Parsed_idet_0 @ 0x7f844b700000] Multi frame detection: TFF:24 BFF:0 Progressive:0 Undetermined:0
+			// [Parsed_idet_0 @ 0x7f8818f01e20] Repeated Fields: Neither: 1129 Top: 0 Bottom: 0
+			// [Parsed_idet_0 @ 0x7f8818f01e20] Single frame detection: TFF: 227 BFF: 214 Progressive: 578 Undetermined: 110
+			// [Parsed_idet_0 @ 0x7f8818f01e20] Multi frame detection: TFF: 249 BFF: 256 Progressive: 589 Undetermined: 35
+			
 			item = current_line.substring(current_line.indexOf("]") + 1).trim();
 			if (item.startsWith("Single frame detection:")) {
 				item_single = item.substring("Single frame detection:".length()).trim();

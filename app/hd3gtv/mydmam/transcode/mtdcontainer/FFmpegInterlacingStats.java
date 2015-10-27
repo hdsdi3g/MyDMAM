@@ -5,6 +5,7 @@ import java.util.List;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
@@ -27,20 +28,22 @@ public class FFmpegInterlacingStats extends EntryAnalyser {
 		if ((single_detection_value == null) | (multi_detection_value == null)) {
 			return null;
 		}
+		Loggers.Transcode.debug("Parse FFmpeg result for Interlacing analyst, single_detection_value: \"" + single_detection_value + "\", multi_detection_value: \"" + multi_detection_value + "\".");
+		
 		FFmpegInterlacingStats stats = new FFmpegInterlacingStats();
-		String[] items = single_detection_value.split(" ");
-		stats.tff_detection = Integer.parseInt(items[0].split(":")[1]);
-		stats.bff_detection = Integer.parseInt(items[1].split(":")[1]);
-		stats.pfr_detection = Integer.parseInt(items[2].split(":")[1]);
-		stats.und_detection = Integer.parseInt(items[3].split(":")[1]);
+		String[] items = single_detection_value.split(":");
+		stats.tff_detection = Integer.parseInt(items[1].trim().split(" ")[0]);
+		stats.bff_detection = Integer.parseInt(items[2].trim().split(" ")[0]);
+		stats.pfr_detection = Integer.parseInt(items[3].trim().split(" ")[0]);
+		stats.und_detection = Integer.parseInt(items[4].trim().split(" ")[0]);
 		
 		int analysed_frames_count = stats.tff_detection + stats.bff_detection + stats.pfr_detection + stats.und_detection;
 		
-		items = multi_detection_value.split(" ");
-		stats.tff_detection += Integer.parseInt(items[0].split(":")[1]);
-		stats.bff_detection += Integer.parseInt(items[1].split(":")[1]);
-		stats.pfr_detection += Integer.parseInt(items[2].split(":")[1]);
-		stats.und_detection += Integer.parseInt(items[3].split(":")[1]);
+		items = multi_detection_value.split(":");
+		stats.tff_detection += Integer.parseInt(items[1].trim().split(" ")[0]);
+		stats.bff_detection += Integer.parseInt(items[2].trim().split(" ")[0]);
+		stats.pfr_detection += Integer.parseInt(items[3].trim().split(" ")[0]);
+		stats.und_detection += Integer.parseInt(items[4].trim().split(" ")[0]);
 		
 		stats.tff_detection = stats.tff_detection / 2;
 		stats.bff_detection = stats.bff_detection / 2;
