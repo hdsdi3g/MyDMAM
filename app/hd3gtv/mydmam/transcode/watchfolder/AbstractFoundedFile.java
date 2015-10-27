@@ -172,7 +172,7 @@ public class AbstractFoundedFile implements AbstractFile {
 	
 	public String getName() {
 		if (path.lastIndexOf("/") > 0) {
-			path = path.substring(path.lastIndexOf("/") + 1, path.length());
+			return path.substring(path.lastIndexOf("/") + 1, path.length());
 		}
 		return path.substring(1);
 	}

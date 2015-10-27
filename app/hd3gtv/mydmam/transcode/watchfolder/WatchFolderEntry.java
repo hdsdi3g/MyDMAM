@@ -630,10 +630,8 @@ class WatchFolderEntry implements Runnable {
 		
 		JobContextWFDeleteSourceFile delete_source = new JobContextWFDeleteSourceFile();
 		delete_source.neededstorages = Arrays.asList(validated_file.storage_name);
-		delete_source.path = validated_file.path;// FIXME invalid path ?
+		delete_source.path = validated_file.path;
 		delete_source.storage = validated_file.storage_name;
-		
-		// FIXME invalid validated_file.getName() ? with sub dir WF ?
 		
 		Loggers.Transcode_WatchFolder.trace("Prepare delete source job " + name + " for " + validated_file + " " + delete_source.contextToJson());
 		
