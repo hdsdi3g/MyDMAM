@@ -18,13 +18,21 @@ package hd3gtv.mydmam.transcode;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
@@ -80,6 +88,7 @@ public class TranscoderWorker extends WorkerNG {
 					Loggers.Transcode.trace("Create transcoder worker for " + profile);
 					transcoderworker = new TranscoderWorker(Arrays.asList(profile), temp_dir);
 					manager.workerRegister(transcoderworker);
+					manager.getInstance_status().setDeclaredTranscoderWorker(transcoderworker);
 				}
 			} else if (raw_profile instanceof ArrayList<?>) {
 				ArrayList<String> profiles_name = (ArrayList<String>) raw_profile;
@@ -96,6 +105,7 @@ public class TranscoderWorker extends WorkerNG {
 					Loggers.Transcode.trace("Create transcoder worker for " + profiles);
 					transcoderworker = new TranscoderWorker(profiles, temp_dir);
 					manager.workerRegister(transcoderworker);
+					manager.getInstance_status().setDeclaredTranscoderWorker(transcoderworker);
 				}
 			}
 		}
@@ -163,7 +173,6 @@ public class TranscoderWorker extends WorkerNG {
 	
 	protected synchronized void forceStopProcess() throws Exception {
 		stop_process = true;
-		Loggers.Transcode.debug("Wan't to stop process " + process.getCommandline());
 		
 		if (process != null) {
 			Loggers.Transcode.warn("Wan't to kill process " + process.getCommandline());
@@ -419,6 +428,50 @@ public class TranscoderWorker extends WorkerNG {
 			} catch (Exception e) {
 				throw new IOException("Can't delete temp file", e);
 			}
+		}
+	}
+	
+	public static class SerializerMap implements JsonSerializer<LinkedHashMap<String, TranscoderWorker>> {
+		
+		public JsonElement serialize(LinkedHashMap<String, TranscoderWorker> src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject jo = new JsonObject();
+			if (src == null) {
+				return jo;
+			}
+			if (src.isEmpty()) {
+				return jo;
+			}
+			
+			JsonObject transcoders = new JsonObject();
+			JsonObject profiles = new JsonObject();
+			
+			HashSet<String> profiles_names = new HashSet<String>();
+			
+			JsonObject jo_transcoder;
+			TranscoderWorker transcoder_worker;
+			for (Map.Entry<String, TranscoderWorker> entry : src.entrySet()) {
+				jo_transcoder = new JsonObject();
+				transcoder_worker = entry.getValue();
+				
+				jo_transcoder.addProperty("temp_directory", transcoder_worker.temp_directory.getAbsolutePath());
+				jo_transcoder.addProperty("temp_directory_freespace", transcoder_worker.temp_directory.getFreeSpace());
+				
+				for (int pos_tw_cap = 0; pos_tw_cap < transcoder_worker.capabilities.size(); pos_tw_cap++) {
+					profiles_names.addAll(transcoder_worker.capabilities.get(pos_tw_cap).getHookedNames());
+					jo_transcoder.add("profiles", AppManager.getSimpleGson().toJsonTree(transcoder_worker.capabilities.get(pos_tw_cap).getHookedNames()));
+					jo_transcoder.add("storages", AppManager.getSimpleGson().toJsonTree(transcoder_worker.capabilities.get(pos_tw_cap).getStoragesAvaliable()));
+				}
+				
+				transcoders.add(entry.getKey(), jo_transcoder);
+			}
+			
+			for (String profile_name : profiles_names) {
+				profiles.add(profile_name, AppManager.getSimpleGson().toJsonTree(TranscodeProfile.getTranscodeProfile(profile_name)));
+			}
+			
+			jo.add("transcoders", transcoders);
+			jo.add("profiles", profiles);
+			return jo;
 		}
 		
 	}

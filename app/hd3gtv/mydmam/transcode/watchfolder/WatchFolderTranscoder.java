@@ -18,7 +18,6 @@ package hd3gtv.mydmam.transcode.watchfolder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -33,9 +32,8 @@ public class WatchFolderTranscoder {
 	static final int TTL_CASSANDRA = (int) TimeUnit.HOURS.toSeconds(24);
 	static final long TTL_ES = TimeUnit.HOURS.toMillis(24);
 	
-	private ThreadGroup wf_group;
-	
-	private List<WatchFolderEntry> wf_entries;
+	private transient ThreadGroup wf_group;
+	private ArrayList<WatchFolderEntry> wf_entries;
 	
 	public WatchFolderTranscoder(AppManager manager) {
 		
@@ -60,14 +58,11 @@ public class WatchFolderTranscoder {
 		
 		for (Map.Entry<String, ConfigurationItem> entry : all_wf_confs.entrySet()) {
 			try {
-				WatchFolderEntry wf_entry = new WatchFolderEntry(manager, entry.getKey(), all_wf_confs);
-				wf_entries.add(wf_entry);
-				
 				Loggers.Transcode_WatchFolder.info("Start watchfolder " + entry.getKey());
-				Thread t = new Thread(wf_group, wf_entry);
-				t.setDaemon(true);
-				t.setName("WF:" + entry.getKey());
-				t.start();
+				WatchFolderEntry wf_entry = new WatchFolderEntry(manager, wf_group, entry.getKey(), all_wf_confs);
+				wf_entry.start();
+				
+				wf_entries.add(wf_entry);
 			} catch (Exception e) {
 				Loggers.Transcode_WatchFolder.error("Can't load watchfolder " + entry.getKey(), e);
 			}
@@ -75,6 +70,8 @@ public class WatchFolderTranscoder {
 		
 		Loggers.Transcode_WatchFolder.debug("Declare DeleteSourceFileWorker to manager");
 		manager.workerRegister(new DeleteSourceFileWorker());
+		
+		manager.getInstance_status().setDeclaredWatchFolders(wf_entries);
 	}
 	
 	public void stopAllWatchFolders() {
@@ -100,7 +97,4 @@ public class WatchFolderTranscoder {
 		}
 	}
 	
-	public List<WatchFolderEntry> getDeclaredWatchfolders() {// TODO add to Instance status
-		return wf_entries;
-	}
 }

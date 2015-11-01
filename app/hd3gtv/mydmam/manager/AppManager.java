@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import com.google.common.reflect.TypeToken;
@@ -34,6 +35,9 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
+import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.TranscoderWorker;
+import hd3gtv.mydmam.transcode.watchfolder.WatchFolderEntry;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 public final class AppManager implements InstanceActionReceiver {
@@ -67,6 +71,12 @@ public final class AppManager implements InstanceActionReceiver {
 		 * Outside of this package serializers
 		 */
 		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		builder.registerTypeAdapter(new TypeToken<ArrayList<WatchFolderEntry>>() {
+		}.getType(), new WatchFolderEntry.SerializerList());
+		builder.registerTypeAdapter(new TypeToken<LinkedHashMap<String, TranscoderWorker>>() {
+		}.getType(), new TranscoderWorker.SerializerMap());
+		builder.registerTypeAdapter(TranscodeProfile.class, new TranscodeProfile.Serializer());
+		
 		simple_gson = builder.create();
 		
 		/**

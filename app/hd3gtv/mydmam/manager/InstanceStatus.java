@@ -26,6 +26,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.google.common.reflect.TypeToken;
@@ -47,6 +48,8 @@ import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.transcode.TranscoderWorker;
+import hd3gtv.mydmam.transcode.watchfolder.WatchFolderEntry;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.TimeUtils;
 import play.Play;
@@ -154,6 +157,9 @@ public final class InstanceStatus {
 	private boolean is_off_hours;
 	private @GsonIgnore ArrayList<CyclicJobCreator> declared_cyclics;
 	private @GsonIgnore ArrayList<TriggerJobCreator> declared_triggers;
+	@SuppressWarnings("unused")
+	private ArrayList<WatchFolderEntry> declared_watchfolders;
+	private LinkedHashMap<String, TranscoderWorker> declared_transcoder_workers;
 	
 	public class ThreadStackTrace {
 		String name;
@@ -268,6 +274,17 @@ public final class InstanceStatus {
 		}
 		
 		return this;
+	}
+	
+	public void setDeclaredWatchFolders(ArrayList<WatchFolderEntry> declared_watchfolders) {
+		this.declared_watchfolders = declared_watchfolders;
+	}
+	
+	public void setDeclaredTranscoderWorker(TranscoderWorker transcoder_worker) {
+		if (declared_transcoder_workers == null) {
+			declared_transcoder_workers = new LinkedHashMap<String, TranscoderWorker>();
+		}
+		declared_transcoder_workers.put(((WorkerNG) transcoder_worker).getReferenceKey(), transcoder_worker);
 	}
 	
 	static class Serializer implements JsonSerializer<InstanceStatus> {

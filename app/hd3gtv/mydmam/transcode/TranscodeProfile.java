@@ -19,11 +19,19 @@ package hd3gtv.mydmam.transcode;
 import java.awt.Point;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
@@ -267,15 +275,19 @@ public class TranscodeProfile {
 		}
 		
 		public String toString() {
-			StringBuilder sb = new StringBuilder();
-			
-			if (width > 0 | height > 0) {
-				sb.append("resolution: " + width + "x" + height);
+			return toJson().toString();
+		}
+		
+		JsonObject toJson() {
+			JsonObject jo = new JsonObject();
+			if (width > -1) {
+				jo.addProperty("width", width);
 			}
-			if (faststarted) {
-				sb.append(" faststarted");
+			if (height > -1) {
+				jo.addProperty("height", height);
 			}
-			return sb.toString();
+			jo.addProperty("faststarted", faststarted);
+			return jo;
 		}
 	}
 	
@@ -424,6 +436,22 @@ public class TranscodeProfile {
 	
 	public File getExecutable() {
 		return executable;
+	}
+	
+	public static class Serializer implements JsonSerializer<TranscodeProfile> {
+		
+		public JsonElement serialize(TranscodeProfile src, Type typeOfSrc, JsonSerializationContext context) {
+			if (src == null) {
+				return null;
+			}
+			JsonObject element = new JsonObject();
+			element.addProperty("executable_name", src.executable_name);
+			element.addProperty("executable", src.executable.getAbsolutePath());
+			element.addProperty("params", StringUtils.join(src.params, " "));
+			element.addProperty("extension", src.extension);
+			element.add("outputformat", src.outputformat.toJson());
+			return element;
+		}
 	}
 	
 }

@@ -386,7 +386,6 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 				lifecyle.justAskToStop();
 			}
 		}
-		
 	}
 	
 }

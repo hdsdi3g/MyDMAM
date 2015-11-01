@@ -18,6 +18,7 @@ package hd3gtv.mydmam.transcode.watchfolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,6 +29,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.elasticsearch.ElasticsearchException;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ConsistencyLevel;
@@ -61,7 +67,7 @@ import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.Timecode;
 
-class WatchFolderEntry implements Runnable {
+public class WatchFolderEntry extends Thread {
 	
 	private String name;
 	private String source_storage;
@@ -78,7 +84,7 @@ class WatchFolderEntry implements Runnable {
 		video, audio
 	}
 	
-	private transient boolean want_to_stop;
+	private boolean want_to_stop;
 	
 	class Target {
 		String storage;
@@ -158,7 +164,10 @@ class WatchFolderEntry implements Runnable {
 		}
 	}
 	
-	WatchFolderEntry(AppManager manager, String name, HashMap<String, ConfigurationItem> all_wf_confs) throws Exception {
+	WatchFolderEntry(AppManager manager, ThreadGroup thread_group, String name, HashMap<String, ConfigurationItem> all_wf_confs) throws Exception {
+		super(thread_group, "WatchFolder:" + name);
+		setDaemon(true);
+		
 		this.manager = manager;
 		this.name = name;
 		explorer = new Explorer();
@@ -214,10 +223,6 @@ class WatchFolderEntry implements Runnable {
 			Loggers.Transcode_WatchFolder.info("Load watchfolder entry " + log);
 		}
 		
-	}
-	
-	public String getName() {
-		return name;
 	}
 	
 	synchronized void stopWatchfolderScans() {
@@ -640,4 +645,37 @@ class WatchFolderEntry implements Runnable {
 				
 		mutator.execute();
 	}
+	
+	public static class SerializerList implements JsonSerializer<ArrayList<WatchFolderEntry>> {
+		
+		public JsonElement serialize(ArrayList<WatchFolderEntry> src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonArray ja = new JsonArray();
+			
+			if (src == null) {
+				return ja;
+			}
+			
+			WatchFolderEntry entry;
+			JsonObject jo_entry;
+			for (int pos = 0; pos < src.size(); pos++) {
+				entry = src.get(pos);
+				jo_entry = new JsonObject();
+				jo_entry.addProperty("name", entry.name);
+				jo_entry.addProperty("source_storage", entry.source_storage);
+				jo_entry.add("targets", AppManager.getSimpleGson().toJsonTree(entry.targets));
+				jo_entry.add("must_contain", AppManager.getSimpleGson().toJsonTree(entry.must_contain));
+				jo_entry.addProperty("temp_directory", entry.temp_directory.getAbsolutePath());
+				jo_entry.addProperty("temp_directory_freespace", entry.temp_directory.getFreeSpace());
+				jo_entry.addProperty("min_file_size", entry.min_file_size);
+				jo_entry.addProperty("time_to_sleep_between_scans", entry.time_to_sleep_between_scans);
+				jo_entry.addProperty("time_to_wait_growing_file", entry.time_to_wait_growing_file);
+				jo_entry.addProperty("want_to_stop", entry.want_to_stop);
+				jo_entry.addProperty("isalive", entry.isAlive());
+				ja.add(jo_entry);
+			}
+			return ja;
+		}
+		
+	}
+	
 }
