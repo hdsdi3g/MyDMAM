@@ -182,7 +182,18 @@ manager.jobs.context=Context data:
 manager.jobs.tableisempty=No job for the selected state.
 manager.action.error=Can't add this action to instance.
 job.progressionmessage.null=(no set)
+
 manager.watchfolders.pagename=Watchfolders
+manager.watchfolders.status.DETECTED=Detected
+manager.watchfolders.status.IN_PROCESSING=In processing
+manager.watchfolders.status.PROCESSED=Processed
+manager.watchfolders.status.ERROR=In error
+manager.watchfolders.table.file=File
+manager.watchfolders.table.filedate=File date
+manager.watchfolders.table.size=Size
+manager.watchfolders.table.lastchecked=Updated
+manager.watchfolders.table.status=Status
+manager.watchfolders.table.jobs=Associated jobs
 
 application.navigate=Storage
 

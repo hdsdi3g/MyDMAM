@@ -16,9 +16,12 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
+import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 import hd3gtv.mydmam.web.AsyncJSGsonProvider;
 import hd3gtv.mydmam.web.AsyncJSSerializer;
@@ -40,7 +43,17 @@ public class AsyncJSWatchfolderListVerb extends AsyncJSControllerVerb<AsyncJSWat
 	public AsyncJSWatchfolderResponseList onRequest(AsyncJSWatchfolderRequestList request) throws Exception {
 		AsyncJSWatchfolderResponseList list = new AsyncJSWatchfolderResponseList();
 		list.items = WatchFolderDB.getAll();
-		// list. TODO request and store all jobs linked to all items
+		if (list.items.isEmpty()) {
+			list.jobs = new HashMap<String, JobNG>(1);
+			return list;
+		}
+		
+		ArrayList<String> all_jobs = new ArrayList<String>(list.items.size());
+		for (int pos = 0; pos < list.items.size(); pos++) {
+			all_jobs.addAll(list.items.get(pos).map_job_target.keySet());
+		}
+		list.jobs = JobNG.Utility.getJobsMapByKeys(all_jobs);
+		
 		return list;
 	}
 	

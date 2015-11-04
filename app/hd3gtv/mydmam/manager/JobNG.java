@@ -826,7 +826,7 @@ public final class JobNG {
 		/**
 		 * @return never null if keys is not empty
 		 */
-		public static List<JobNG> getJobsByKeys(Collection<String> keys) throws ConnectionException {
+		public static List<JobNG> getJobsListByKeys(Collection<String> keys) throws ConnectionException {
 			if (keys == null) {
 				return null;
 			}
@@ -844,6 +844,32 @@ public final class JobNG {
 					continue;
 				}
 				result.add(AppManager.getGson().fromJson(source, JobNG.class));
+			}
+			return result;
+		}
+		
+		/**
+		 * @return never null if keys is not empty
+		 * @see getJobsListByKeys
+		 */
+		public static Map<String, JobNG> getJobsMapByKeys(Collection<String> keys) throws ConnectionException {
+			if (keys == null) {
+				return null;
+			}
+			if (keys.size() == 0) {
+				return null;
+			}
+			HashMap<String, JobNG> result = new HashMap<String, JobNG>(keys.size());
+			Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(keys).withColumnSlice("source", "context_class").execute().getResult();
+			for (Row<String, String> row : rows) {
+				String source = row.getColumns().getStringValue("source", "{}");
+				if (source.equals("{}")) {
+					continue;
+				}
+				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+					continue;
+				}
+				result.put(row.getKey(), AppManager.getGson().fromJson(source, JobNG.class));
 			}
 			return result;
 		}
@@ -929,7 +955,7 @@ public final class JobNG {
 			
 			if (jobs_keys_in_errors.isEmpty() == false) {
 				Exception e = new Exception("Trouble with some processed jobs");
-				List<JobNG> error_jobs = getJobsByKeys(jobs_keys_in_errors);
+				List<JobNG> error_jobs = getJobsListByKeys(jobs_keys_in_errors);
 				for (int pos = 0; pos < error_jobs.size(); pos++) {
 					Loggers.Job.error("Trouble with processed job (" + (pos + 1) + "/" + error_jobs.size() + "):\t" + error_jobs.get(pos));
 				}

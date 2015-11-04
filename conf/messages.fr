@@ -182,7 +182,18 @@ manager.jobs.context=Données du contexte :
 manager.jobs.tableisempty=Aucun job pour l'état selectionné. 
 manager.action.error=Impossible d'ajouter une action pour cette instance.
 job.progressionmessage.null=(non défini)
-manager.watchfolders.pagename=Watchfolders
+
+manager.watchfolders.pagename=Dossiers surveillés
+manager.watchfolders.status.DETECTED=Détecté
+manager.watchfolders.status.IN_PROCESSING=En traitement
+manager.watchfolders.status.PROCESSED=Traité
+manager.watchfolders.status.ERROR=En erreur
+manager.watchfolders.table.file=Fichier
+manager.watchfolders.table.filedate=Date du fichier
+manager.watchfolders.table.size=Taille
+manager.watchfolders.table.lastchecked=Mise à jour
+manager.watchfolders.table.status=Etat
+manager.watchfolders.table.jobs=Jobs associés
 
 application.navigate=Stockage
 

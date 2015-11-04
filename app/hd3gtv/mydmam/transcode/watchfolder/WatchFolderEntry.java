@@ -558,6 +558,7 @@ public class WatchFolderEntry extends Thread {
 				Loggers.Transcode_WatchFolder.error("Can't download found file to temp directory " + name + " for " + validated_file, e);
 				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).setThrowable(e).send();
 				validated_file.status = Status.ERROR;
+				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			}
 		}
@@ -603,16 +604,19 @@ public class WatchFolderEntry extends Thread {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must be a media file " + name + " for " + validated_file);
 				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file", false).send();
 				validated_file.status = Status.ERROR;
+				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			} else if (must_contain.contains(MustContainType.video) & (ffprobe.hasVideo() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have a video track " + name + " for " + validated_file);
 				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track", false).send();
 				validated_file.status = Status.ERROR;
+				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			} else if (must_contain.contains(MustContainType.audio) & (ffprobe.hasAudio() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have an audio track " + name + " for " + validated_file);
 				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track", false).send();
 				validated_file.status = Status.ERROR;
+				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			}
 			duration = ffprobe.getDuration();
@@ -627,11 +631,13 @@ public class WatchFolderEntry extends Thread {
 		
 		Loggers.Transcode_WatchFolder.trace("Prepare all transcode jobs " + name + " for " + validated_file + ", in " + sub_dir_name);
 		
+		JobNG new_job;
 		for (int pos = 0; pos < targets.size(); pos++) {
-			jobs_to_watch.add(targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), sub_dir_name, duration, mutator));
-			// TODO add List<> dest << targets.get(pos).storage
-			// TODO add List<> jobs << job key
+			new_job = targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), sub_dir_name, duration, mutator);
+			jobs_to_watch.add(new_job);
+			validated_file.map_job_target.put(new_job.getKey(), targets.get(pos).storage + ":" + targets.get(pos).profile);
 		}
+		WatchFolderDB.push(Arrays.asList(validated_file));
 		
 		JobContextWFDeleteSourceFile delete_source = new JobContextWFDeleteSourceFile();
 		delete_source.neededstorages = Arrays.asList(validated_file.storage_name);

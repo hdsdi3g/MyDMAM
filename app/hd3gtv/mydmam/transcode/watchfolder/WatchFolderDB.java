@@ -63,7 +63,8 @@ public class WatchFolderDB {
 		}
 	}
 	
-	static Gson gson_simple;
+	static final Gson gson_simple;
+	static final Gson gson;
 	
 	static {
 		GsonBuilder builder = new GsonBuilder();
@@ -71,6 +72,9 @@ public class WatchFolderDB {
 		builder.addDeserializationExclusionStrategy(ignore_strategy);
 		builder.addSerializationExclusionStrategy(ignore_strategy);
 		gson_simple = builder.create();
+		
+		builder.registerTypeAdapter(AbstractFoundedFile.class, new AbstractFoundedFile.Serializer());
+		gson = builder.create();
 	}
 	
 	private WatchFolderDB() {

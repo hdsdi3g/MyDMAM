@@ -18,18 +18,31 @@ package hd3gtv.mydmam.transcode.watchfolder;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
+import hd3gtv.tools.GsonIgnore;
 
 public class AbstractFoundedFile implements AbstractFile {
+	
+	private static final Type type_hashmap_string_string = new TypeToken<HashMap<String, String>>() {
+	}.getType();
 	
 	enum Status {
 		DETECTED, IN_PROCESSING, PROCESSED, ERROR
@@ -41,7 +54,9 @@ public class AbstractFoundedFile implements AbstractFile {
 	long size;
 	Status status = Status.DETECTED;
 	long last_checked;
-	// TODO add List<> dest & job
+	
+	@GsonIgnore
+	HashMap<String, String> map_job_target;
 	
 	AbstractFoundedFile(String row_key, ColumnList<String> cols) {
 		path_index_key = row_key;
@@ -51,6 +66,7 @@ public class AbstractFoundedFile implements AbstractFile {
 		size = cols.getLongValue("filesize", 0l);
 		status = Status.valueOf(cols.getStringValue("status", Status.DETECTED.name()));
 		last_checked = cols.getLongValue("last_checked", System.currentTimeMillis());
+		map_job_target = WatchFolderDB.gson_simple.fromJson(cols.getStringValue("map_job_target", "{}"), type_hashmap_string_string);
 	}
 	
 	void saveToCassandra(MutationBatch mutator) {
@@ -63,6 +79,7 @@ public class AbstractFoundedFile implements AbstractFile {
 		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("filesize", size, WatchFolderTranscoder.TTL_CASSANDRA);
 		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("status", status.name(), WatchFolderTranscoder.TTL_CASSANDRA);
 		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("last_checked", last_checked, WatchFolderTranscoder.TTL_CASSANDRA);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("map_job_target", WatchFolderDB.gson_simple.toJson(map_job_target), WatchFolderTranscoder.TTL_CASSANDRA);
 	}
 	
 	AbstractFoundedFile(AbstractFile found_file, String storage_name) {
@@ -71,6 +88,7 @@ public class AbstractFoundedFile implements AbstractFile {
 		date = found_file.lastModified();
 		size = found_file.length();
 		last_checked = System.currentTimeMillis();
+		map_job_target = new HashMap<String, String>(1);
 	}
 	
 	public String toString() {
@@ -82,6 +100,7 @@ public class AbstractFoundedFile implements AbstractFile {
 		log.put("status", status);
 		log.put("last_checked", Loggers.dateLog(last_checked));
 		log.put("getPathIndexKey", getPathIndexKey());
+		log.put("map_job_target", map_job_target);
 		return log.toString();
 	}
 	
@@ -224,6 +243,21 @@ public class AbstractFoundedFile implements AbstractFile {
 	 */
 	public boolean delete() {
 		return false;
+	}
+	
+	static class Serializer implements JsonSerializer<AbstractFoundedFile>, JsonDeserializer<AbstractFoundedFile> {
+		
+		public AbstractFoundedFile deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			AbstractFoundedFile result = WatchFolderDB.gson_simple.fromJson(json, AbstractFoundedFile.class);
+			result.map_job_target = WatchFolderDB.gson_simple.fromJson(json.getAsJsonObject().get("map_job_target"), type_hashmap_string_string);
+			return result;
+		}
+		
+		public JsonElement serialize(AbstractFoundedFile src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonElement result = WatchFolderDB.gson_simple.toJsonTree(src);
+			result.getAsJsonObject().add("map_job_target", WatchFolderDB.gson_simple.toJsonTree(src.map_job_target));
+			return result;
+		}
 	}
 	
 }

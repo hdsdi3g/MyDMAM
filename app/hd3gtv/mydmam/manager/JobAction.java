@@ -47,7 +47,7 @@ public class JobAction {
 	public JsonObject doAction(String caller) throws ConnectionException {
 		JsonObject result = new JsonObject();
 		
-		List<JobNG> jobs = JobNG.Utility.getJobsByKeys(jobs_keys);
+		List<JobNG> jobs = JobNG.Utility.getJobsListByKeys(jobs_keys);
 		if (jobs == null) {
 			return result;
 		}

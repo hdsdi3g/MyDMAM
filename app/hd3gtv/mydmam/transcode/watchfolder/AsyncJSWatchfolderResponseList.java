@@ -18,11 +18,15 @@ package hd3gtv.mydmam.transcode.watchfolder;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Map;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 
+import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.web.AsyncJSResponseObject;
 import hd3gtv.mydmam.web.AsyncJSSerializer;
 import hd3gtv.tools.GsonIgnore;
@@ -31,15 +35,23 @@ public class AsyncJSWatchfolderResponseList implements AsyncJSResponseObject {
 	
 	@GsonIgnore
 	ArrayList<AbstractFoundedFile> items;
-	// TODO add List<> jobs (status, progress, steps)
+	
+	@GsonIgnore
+	Map<String, JobNG> jobs;
 	
 	static Type type_List_AbstractFoundedFile = new TypeToken<ArrayList<AbstractFoundedFile>>() {
+	}.getType();
+	
+	static Type type_List_JobsNG = new TypeToken<Map<String, JobNG>>() {
 	}.getType();
 	
 	static class Serializer implements AsyncJSSerializer<AsyncJSWatchfolderResponseList> {
 		
 		public JsonElement serialize(AsyncJSWatchfolderResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-			return WatchFolderDB.gson_simple.toJsonTree(src.items, type_List_AbstractFoundedFile);
+			JsonObject result = new JsonObject();
+			result.add("items", WatchFolderDB.gson.toJsonTree(src.items, type_List_AbstractFoundedFile));
+			result.add("jobs", AppManager.getGson().toJsonTree(src.jobs, type_List_JobsNG));
+			return result;
 		}
 		
 		public Class<AsyncJSWatchfolderResponseList> getEnclosingClass() {

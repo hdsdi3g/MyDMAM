@@ -17,12 +17,13 @@
 watchfolders.table =  React.createClass({
 	loadActualItemList: function() {
 		mydmam.async.request("watchfolders", "list", {}, function(data) {
-				this.setState({items: data});
+				this.setState({items: data.items, jobs: data.jobs});
 		}.bind(this));
 	},
 	getInitialState: function() {
 		return {
 			items: [],
+			jobs: {},
 		};
 	},
 	componentDidMount: function() {
@@ -36,33 +37,15 @@ watchfolders.table =  React.createClass({
 	},
 	render: function() {
 		var items = this.state.items;
+		var jobs = this.state.jobs;
+
 		var items = items.sort(function(a, b) {
 		    return a.last_checked - b.last_checked;
 		});
 
 		var table_lines = [];
 		for (pos in items) {
-			var abstract_founded_file = items[pos];
-
-			var tr_classes = classNames({
-			    'error': abstract_founded_file.status === "ERROR",
-			    'warning': abstract_founded_file.status === "IN_PROCESSING",
-			    'info': abstract_founded_file.status === "DETECTED",
-			    /*'success': abstract_founded_file.status === "PROCESSED",*/
-			});
-
-			table_lines.push(<tr key={pos} className={tr_classes}>
-				<td>
-					<mydmam.async.pathindex.reactStoragePathLink
-						storagename={abstract_founded_file.storage_name}
-						path={abstract_founded_file.path}
-						add_link={abstract_founded_file.status !== "PROCESSED"} />
-				</td>
-				<td><mydmam.async.pathindex.reactDate date={abstract_founded_file.date} /></td>
-				<td><mydmam.async.pathindex.reactFileSize size={abstract_founded_file.size} /></td>
-				<td><mydmam.async.pathindex.reactDate date={abstract_founded_file.last_checked} /></td>
-				<td>{abstract_founded_file.status}</td>
-			</tr>);
+			table_lines.push(<watchfolders.AbstractFoundedFile key={pos} abstract_founded_file={items[pos]} jobs={jobs} />);
 		}
 		if (table_lines.length === 0){
 			table_lines.push(<tr key="0"><td>No items</td></tr>);
@@ -70,11 +53,12 @@ watchfolders.table =  React.createClass({
 		return (<table className="table table-striped table-bordered table-hover table-condensed">
 			<thead>
 				<tr>
-					<th>F</th>
-					<th>D</th>
-					<th>S</th>
-					<th>LC</th>
-					<th>St</th>
+					<th>{i18n("manager.watchfolders.table.file")}</th>
+					<th>{i18n("manager.watchfolders.table.filedate")}</th>
+					<th>{i18n("manager.watchfolders.table.size")}</th>
+					<th>{i18n("manager.watchfolders.table.lastchecked")}</th>
+					<th>{i18n("manager.watchfolders.table.status")}</th>
+					<th>{i18n("manager.watchfolders.table.jobs")}</th>
 				</tr>
 			</thead>
 			<tbody>	
