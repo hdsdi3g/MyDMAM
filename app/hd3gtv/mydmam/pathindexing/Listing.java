@@ -123,7 +123,7 @@ class Listing implements StorageCrawler {
 		};
 	}
 	
-	public boolean onStartSearch(AbstractFile file) {
+	public boolean onStartSearch(String storage_name, AbstractFile file) {
 		if (referer.stop == true) {
 			return false;
 		}

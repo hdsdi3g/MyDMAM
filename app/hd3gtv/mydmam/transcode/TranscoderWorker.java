@@ -46,6 +46,7 @@ import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
+import hd3gtv.mydmam.storage.DistantFileRecovery;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.tools.CopyMove;
@@ -209,26 +210,18 @@ public class TranscoderWorker extends WorkerNG {
 		
 		Loggers.Transcode.debug("Get physical_source from storage " + transcode_context.contextToJson().toString());
 		File physical_source = Storage.getLocalFile(pi_item);
-		boolean download_temp = false;
 		if (physical_source == null) {
-			download_temp = true;
-			try {
-				physical_source = Storage.getDistantFile(pi_item, temp_directory);
-			} catch (IOException e) {
-				throw new IOException("Can't download found file to temp directory", e);
-			}
+			physical_source = DistantFileRecovery.getFile(pi_item, true);
 		}
 		
 		if (stop_process) {
 			return;
 		}
 		
-		// Container container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
 		SourcePathIndexerElement dest_storage = SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name);
-		final File local_dest_dir = Storage.getLocalFile(dest_storage);
 		
+		// Container container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
 		Loggers.Transcode.debug("physical_source is " + physical_source.getPath());
-		Loggers.Transcode.debug("local_dest_dir is " + local_dest_dir.getPath());
 		
 		List<String> profiles_to_transcode = transcode_context.hookednames;
 		
@@ -343,12 +336,17 @@ public class TranscoderWorker extends WorkerNG {
 			if (transcode_context.dest_file_suffix == null) {
 				transcode_context.dest_file_suffix = "";
 			}
+			if (transcode_context.dest_sub_directory == null) {
+				transcode_context.dest_sub_directory = "";
+			}
 			
 			progression.update("Move transcoded file to destination");
 			
+			File local_dest_dir = Storage.getLocalFile(dest_storage);
+			
 			if (local_dest_dir != null) {
 				File local_full_dest_dir = local_dest_dir.getAbsoluteFile();
-				if (transcode_context.dest_sub_directory != null) {
+				if (transcode_context.dest_sub_directory.equals("") == false) {
 					File dir_to_create = new File(local_full_dest_dir.getAbsolutePath() + transcode_context.dest_sub_directory);
 					Loggers.Transcode.debug("Force mkdir " + dir_to_create);
 					
@@ -360,7 +358,7 @@ public class TranscoderWorker extends WorkerNG {
 				full_file.append(local_full_dest_dir.getPath());
 				full_file.append(File.separator);
 				full_file.append(transcode_context.dest_file_prefix);
-				full_file.append(FilenameUtils.getBaseName(physical_source.getPath()));
+				full_file.append(FilenameUtils.getBaseName(pi_item.currentpath));
 				full_file.append(transcode_context.dest_file_suffix);
 				full_file.append(transcode_profile.getExtension(""));
 				
@@ -375,7 +373,7 @@ public class TranscoderWorker extends WorkerNG {
 				AbstractFile root_path = Storage.getByName(transcode_context.dest_storage_name).getRootPath();
 				
 				StringBuilder full_dest_dir = new StringBuilder();
-				if (transcode_context.dest_sub_directory != null) {
+				if (transcode_context.dest_sub_directory.equals("") == false) {
 					String[] dirs_to_create = transcode_context.dest_sub_directory.split("/");
 					for (int pos_dtc = 0; pos_dtc < dirs_to_create.length; pos_dtc++) {
 						full_dest_dir.append("/");
@@ -386,7 +384,7 @@ public class TranscoderWorker extends WorkerNG {
 				
 				full_dest_dir.append("/");
 				full_dest_dir.append(transcode_context.dest_file_prefix);
-				full_dest_dir.append(FilenameUtils.getBaseName(physical_source.getPath()));
+				full_dest_dir.append(FilenameUtils.getBaseName(pi_item.currentpath));
 				full_dest_dir.append(transcode_context.dest_file_suffix);
 				full_dest_dir.append(transcode_profile.getExtension(""));
 				
@@ -421,14 +419,6 @@ public class TranscoderWorker extends WorkerNG {
 			return;
 		}
 		
-		if (download_temp) {
-			try {
-				Loggers.Transcode.debug("Delete physical_source" + physical_source);
-				FileUtils.forceDelete(physical_source);
-			} catch (Exception e) {
-				throw new IOException("Can't delete temp file", e);
-			}
-		}
 	}
 	
 	public static class SerializerMap implements JsonSerializer<LinkedHashMap<String, TranscoderWorker>> {

@@ -30,6 +30,7 @@ import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
+import hd3gtv.mydmam.storage.DistantFileRecovery;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
 
@@ -68,7 +69,10 @@ class DeleteSourceFileWorker extends WorkerNG {
 		 * Delete physically the file.
 		 */
 		AbstractFile root = Storage.getByName(order.storage).getRootPath();
-		boolean delete_ok = root.getAbstractFile(order.path).delete();
+		AbstractFile source_file = root.getAbstractFile(order.path);
+		spie.size = source_file.length();
+		spie.date = source_file.lastModified();
+		boolean delete_ok = source_file.delete();
 		
 		Loggers.Transcode_WatchFolder.info("Delete source file: " + order.storage + ":" + order.path);
 		
@@ -87,6 +91,8 @@ class DeleteSourceFileWorker extends WorkerNG {
 		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 		explorer.deleteStoragePath(bulk, Arrays.asList(spie));
 		bulk.terminateBulk();
+		
+		DistantFileRecovery.manuallyReleaseFile(spie);
 	}
 	
 	protected void forceStopProcess() throws Exception {

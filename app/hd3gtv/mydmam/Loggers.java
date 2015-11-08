@@ -43,6 +43,7 @@ public final class Loggers {
 	public final static Logger Storage_FTPBCFT = Logger.getLogger("mydmam.storage.ftpbcst");
 	public final static Logger Storage_Local = Logger.getLogger("mydmam.storage.local");
 	public final static Logger Storage_SMB = Logger.getLogger("mydmam.storage.smb");
+	public final static Logger Storage_DFR = Logger.getLogger("mydmam.storage.dfr");
 	public final static Logger Logger_log = Logger.getLogger("mydmam.loggers");
 	public final static Logger Cassandra = Logger.getLogger("mydmam.cassandra");
 	public final static Logger Metadata = Logger.getLogger("mydmam.metadata");

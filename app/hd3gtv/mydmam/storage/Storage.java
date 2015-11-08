@@ -26,14 +26,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.container.ContainerOrigin;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.CopyMove;
 
@@ -132,48 +127,6 @@ public abstract class Storage {
 			return null;
 		}
 		return new File(base_path.getPath() + element.currentpath.replaceAll("/", File.separator));
-	}
-	
-	private static final Random random = new Random();
-	
-	/**
-	 * @return never null. Always download it.
-	 *         Name based on MTD key.
-	 *         Free feel to delete if after.
-	 */
-	public static File getDistantFile(SourcePathIndexerElement element, File temp_directory) throws IOException {
-		CopyMove.checkExistsCanRead(temp_directory);
-		CopyMove.checkIsDirectory(temp_directory);
-		CopyMove.checkIsWritable(temp_directory);
-		
-		if ((temp_directory.getFreeSpace()) > 0 & (temp_directory.getFreeSpace() < element.size)) {
-			throw new IOException("No space left on " + temp_directory.getAbsolutePath() + " (" + temp_directory.getFreeSpace() + " bytes)");
-		}
-		
-		String base_name = ContainerOrigin.fromSource(element, null).getUniqueElementKey();
-		String ext = FilenameUtils.getExtension(element.currentpath);
-		if (ext.equals("") == false) {
-			ext = "." + ext;
-		}
-		File result = new File(temp_directory.getAbsolutePath() + File.separator + base_name + ext);
-		
-		if (result.exists()) {
-			File new_result = new File(temp_directory.getAbsolutePath() + File.separator + base_name + "_" + (random.nextInt(100)) + ext);
-			while (new_result.exists()) {
-				new_result = new File(temp_directory.getAbsolutePath() + File.separator + base_name + "_" + (random.nextInt(1000000)) + ext);
-			}
-			
-			Loggers.Storage.debug("Temp local file is actually in service, clone it; element: " + element + ", new_result: " + new_result);
-			
-			FileUtils.copyFile(result, new_result);
-			return new_result;
-		}
-		
-		AbstractFile distant_file = Storage.getByName(element.storagename).getRootPath().getAbstractFile(element.currentpath);
-		FileUtils.copyInputStreamToFile(distant_file.getInputStream(0xFFFF), result);
-		distant_file.close();
-		
-		return result;
 	}
 	
 	/**
@@ -363,7 +316,7 @@ public abstract class Storage {
 				}
 			}
 			
-			if (listing.onStartSearch(root_path) == false) {
+			if (listing.onStartSearch(name, root_path) == false) {
 				root_path.close();
 				return;
 			}

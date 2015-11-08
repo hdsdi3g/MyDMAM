@@ -1,4 +1,5 @@
 storage:
+    # temp_directory: /tmp
     definitions:
         -
             name: Storage1

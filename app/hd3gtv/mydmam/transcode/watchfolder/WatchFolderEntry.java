@@ -26,7 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.io.FileUtils;
 import org.elasticsearch.ElasticsearchException;
 
 import com.google.gson.JsonArray;
@@ -57,6 +56,7 @@ import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
+import hd3gtv.mydmam.storage.DistantFileRecovery;
 import hd3gtv.mydmam.storage.IgnoreFiles;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.storage.StorageCrawler;
@@ -64,7 +64,6 @@ import hd3gtv.mydmam.transcode.JobContextTranscoder;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
-import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.Timecode;
 
 public class WatchFolderEntry extends Thread {
@@ -74,7 +73,6 @@ public class WatchFolderEntry extends Thread {
 	private long time_to_wait_growing_file;
 	private long time_to_sleep_between_scans;
 	private long min_file_size;
-	private File temp_directory;
 	private List<Target> targets;
 	private AppManager manager;
 	private Explorer explorer;
@@ -191,7 +189,6 @@ public class WatchFolderEntry extends Thread {
 		time_to_wait_growing_file = Configuration.getValue(all_wf_confs, name, "time_to_wait_growing_file", 1000);
 		time_to_sleep_between_scans = Configuration.getValue(all_wf_confs, name, "time_to_sleep_between_scans", 10000);
 		min_file_size = Configuration.getValue(all_wf_confs, name, "min_file_size", 10000);
-		temp_directory = new File(Configuration.getValue(all_wf_confs, name, "temp_directory", System.getProperty("java.io.tmpdir")));
 		
 		must_contain = new ArrayList<WatchFolderEntry.MustContainType>(2);
 		Object raw_must_contain = Configuration.getRawValue(all_wf_confs, name, "must_contain");
@@ -206,10 +203,6 @@ public class WatchFolderEntry extends Thread {
 			}
 		}
 		
-		CopyMove.checkExistsCanRead(temp_directory);
-		CopyMove.checkIsDirectory(temp_directory);
-		CopyMove.checkIsWritable(temp_directory);
-		
 		if (Loggers.Transcode_WatchFolder.isInfoEnabled()) {
 			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 			log.put("name", name);
@@ -219,7 +212,6 @@ public class WatchFolderEntry extends Thread {
 			log.put("time_to_sleep_between_scans", time_to_sleep_between_scans);
 			log.put("min_file_size", min_file_size);
 			log.put("must_contain", must_contain);
-			log.put("temp_directory", temp_directory);
 			Loggers.Transcode_WatchFolder.info("Load watchfolder entry " + log);
 		}
 		
@@ -273,8 +265,8 @@ public class WatchFolderEntry extends Thread {
 			return IgnoreFiles.default_list;
 		}
 		
-		public boolean onStartSearch(AbstractFile search_root_path) {
-			Loggers.Transcode_WatchFolder.debug("Start search for \"" + name + "\" in " + search_root_path.getPath());
+		public boolean onStartSearch(String storage_name, AbstractFile search_root_path) {
+			Loggers.Transcode_WatchFolder.debug("Start search for \"" + name + "\" in " + storage_name + ":" + search_root_path.getPath());
 			founded.clear();
 			return true;
 		}
@@ -427,7 +419,6 @@ public class WatchFolderEntry extends Thread {
 						}
 						
 						if ((active_file.date / 10000) < (db_entry_file.date / 10000)) {
-							active_file.status = Status.ERROR;
 							/**
 							 * The found file is going back to the past !
 							 * With 10 seconds of margin.
@@ -549,12 +540,10 @@ public class WatchFolderEntry extends Thread {
 		WatchFolderDB.push(Arrays.asList(validated_file));
 		
 		File physical_source = Storage.getLocalFile(pi_item);
-		boolean download_temp = false;
 		if (physical_source == null) {
-			download_temp = true;
 			try {
-				physical_source = Storage.getDistantFile(pi_item, temp_directory);
-			} catch (IOException e) {
+				physical_source = DistantFileRecovery.getFile(pi_item, false);
+			} catch (Exception e) {
 				Loggers.Transcode_WatchFolder.error("Can't download found file to temp directory " + name + " for " + validated_file, e);
 				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).setThrowable(e).send();
 				validated_file.status = Status.ERROR;
@@ -576,16 +565,6 @@ public class WatchFolderEntry extends Thread {
 			validated_file.status = Status.ERROR;
 			WatchFolderDB.push(Arrays.asList(validated_file));
 			return;
-		}
-		
-		if (download_temp) {
-			try {
-				Loggers.Transcode_WatchFolder.trace("Delete temp file " + name + " for " + validated_file + " file: " + physical_source);
-				FileUtils.forceDelete(physical_source);
-			} catch (Exception e) {
-				Loggers.Transcode_WatchFolder.error("Can't delete temp file " + name + " for " + validated_file, e);
-				AdminMailAlert.create("Can't delete temp file", false).setThrowable(e).send();
-			}
 		}
 		
 		/**
@@ -670,8 +649,6 @@ public class WatchFolderEntry extends Thread {
 				jo_entry.addProperty("source_storage", entry.source_storage);
 				jo_entry.add("targets", AppManager.getSimpleGson().toJsonTree(entry.targets));
 				jo_entry.add("must_contain", AppManager.getSimpleGson().toJsonTree(entry.must_contain));
-				jo_entry.addProperty("temp_directory", entry.temp_directory.getAbsolutePath());
-				jo_entry.addProperty("temp_directory_freespace", entry.temp_directory.getFreeSpace());
 				jo_entry.addProperty("min_file_size", entry.min_file_size);
 				jo_entry.addProperty("time_to_sleep_between_scans", entry.time_to_sleep_between_scans);
 				jo_entry.addProperty("time_to_wait_growing_file", entry.time_to_wait_growing_file);

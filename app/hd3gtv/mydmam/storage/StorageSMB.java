@@ -233,10 +233,15 @@ public class StorageSMB extends StorageURILoginPassword {
 				return null;
 			}
 			try {
-				newfile.mkdir();
+				if (newfile.exists() == false) {
+					newfile.mkdir();
+				} else if (newfile.isDirectory() == false | newfile.canRead() == false | newfile.canWrite() == false) {
+					Loggers.Storage_SMB.error("newfile exists, but it's not a valid directory: " + newfile.getPath());
+					return null;
+				}
 				return new AbstractFileSmb(newfile);
 			} catch (SmbException e) {
-				Loggers.Storage_SMB.error("Can't access to file, " + this, e);
+				Loggers.Storage_SMB.error("Can't access to file: " + newfile.getPath(), e);
 				return null;
 			}
 		}

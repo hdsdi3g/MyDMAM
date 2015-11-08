@@ -46,7 +46,7 @@ public interface StorageCrawler {
 	/**
 	 * @return false for stop
 	 */
-	boolean onStartSearch(AbstractFile search_root_path);
+	boolean onStartSearch(String storage_name, AbstractFile search_root_path);
 	
 	void onEndSearch();
 	
