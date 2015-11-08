@@ -83,13 +83,17 @@ public class Elasticsearch {
 			settings.put("node.name", InstanceStatus.getThisInstanceNamePid());
 			settings.put("client.transport.ping_timeout", 10, TimeUnit.SECONDS);
 			
-			Loggers.ElasticSearch.info("Elasticsearch client configuration, clustername: " + clustername);
+			StringBuilder sb = new StringBuilder();
+			sb.append("Elasticsearch client configuration, clustername: ");
+			sb.append(clustername);
 			
 			transportadresses = new InetSocketTransportAddress[clusterservers.size()];
 			for (int pos = 0; pos < clusterservers.size(); pos++) {
 				transportadresses[pos] = new InetSocketTransportAddress(clusterservers.get(pos).address, clusterservers.get(pos).port);
-				Loggers.ElasticSearch.info("Elasticsearch client configuration, cluster item: " + clusterservers.get(pos));
+				sb.append(", ");
+				sb.append(clusterservers.get(pos));
 			}
+			Loggers.ElasticSearch.info(sb.toString());
 			
 			client = new TransportClient(settings.build());
 			client.addTransportAddresses(transportadresses);

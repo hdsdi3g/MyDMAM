@@ -76,10 +76,19 @@ public class CassandraDb {
 			clusterservers = Configuration.global.getClusterConfiguration("cassandra", "rcp_cluster", "127.0.0.1", 9160);
 			default_keyspacename = Configuration.global.getValue("cassandra", "keyspace", null);
 			
-			Loggers.Cassandra.info("Cassandra client configuration, keyspace: " + default_keyspacename + ", clustername: " + clustername);
-			
-			for (ConfigurationClusterItem item : clusterservers) {
-				Loggers.Cassandra.info("Cassandra client configuration, cluster item: " + item.address + ":" + item.port);
+			if (Loggers.Cassandra.isInfoEnabled()) {
+				StringBuilder sb = new StringBuilder();
+				sb.append("Cassandra client configuration, keyspace: ");
+				sb.append(default_keyspacename);
+				sb.append(", clustername: ");
+				sb.append(clustername);
+				for (ConfigurationClusterItem item : clusterservers) {
+					sb.append(", ");
+					sb.append(item.address);
+					sb.append(":");
+					sb.append(item.port);
+				}
+				Loggers.Cassandra.info(sb.toString().trim());
 			}
 			
 			ConnectionPoolConfigurationImpl connexionpool = new ConnectionPoolConfigurationImpl("mydmam-" + clustername);
