@@ -14,7 +14,7 @@
 		</filter>
 	</appender> 
 
-	<!-- Send all errors messages to stderr -->
+	<!-- Send all warn/errors messages to stderr -->
 	<appender name="console-stderr" class="org.apache.log4j.ConsoleAppender"> 
 		<param name="Target" value="System.err"/> 
 		<layout class="org.apache.log4j.PatternLayout">
@@ -29,13 +29,7 @@
 
 	<!-- Personalized filter levels for some loggers -->
 	<logger name="mydmam">
-		<level value="WARN" />
-	</logger>
-	<logger name="mydmam.transcode">
-		<level value="DEBUG" />
-	</logger>
-	<logger name="mydmam.storage.dfr">
-		<level value="DEBUG" />
+		<level value="INFO" />
 	</logger>
 	
 	<!-- Global/defalut definition, and level filter for some lib like Astyanax, Elasticsearch, Play... -->

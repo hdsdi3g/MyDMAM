@@ -11,6 +11,7 @@ conf/app.d/*
 conf/application.conf
 conf/dependencies.yml
 conf/*.db
+conf/log4j.xml
 public/img/personalized/*
 Test.java
 play-new-password.txt
@@ -20,4 +21,3 @@ play-new-password.txt
 public/javascripts/src/react.*.jsx.js
 logs/
 server.pid
-
