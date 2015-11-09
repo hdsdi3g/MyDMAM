@@ -1,43 +1,78 @@
 # MyDMAM Startup scripts
-Used with Debian 8 and SystemD
+Used with Debian 8 and Systemd
+
+See the [MyDMAM website setup](http://mydmam.org/setup/) instructions for more informations.
 
 ## Preparation
 - check Git
-- check Java JRE Oracle, the same as installed for ElasticSearch
+- check Java JRE Oracle, the same as installed for ElasticSearch.
 - check FFmpeg, ImageMagick... if needed.
-- check mydmam configuration (conf/app.d/*.yml, conf/application.conf, conf/dependencies.yml and conf/log4j.xml)
-- check dest log directory (mkdir /var/log/mydmam)
-- check the presence of unzipped directory for Play 1
-- check the "chmod +x" for all *.sh files here (startup)
+- check mydmam configuration (`conf/app.d/*.yml`, `conf/application.conf`, `conf/dependencies.yml` and `conf/log4j.xml`).
+- check dest log directory (`mkdir /var/log/mydmam`).
+- check the presence of unzipped directory for Play 1, and PATH presence.
+- check the `chmod +x` for all *.sh files here (startup)
 
 ## Setup
-- Check configuration vars for precompile.sh file ($BASEPATH, $PLAYPATH and $PLAY_JAR).
+- Check configuration vars for `setup-debian.sh` file (`$BASEPATH`, `$PLAYPATH` and `$PLAY_JAR`).
 Don't forget, it's Play which is responsible for compilation.
-- ./precompile.sh
+- `./setup-debian.sh setup`
 
 And For Probe and/or Server:
-- cp (this directory)/server.service /usr/lib/systemd/mydmam-server.service (for enable Server in service)
-- systemctl enable /usr/lib/systemd/mydmam-server.service
-- systemctl daemon-reload
-- systemctl start mydmam-server
+
+- `cp (this directory)/server.service` `usr/lib/systemd/mydmam-server.service` (for enable Server in service)
+- `systemctl enable /usr/lib/systemd/mydmam-server.service`
+- `systemctl daemon-reload`
+- `systemctl start mydmam-server`
 
 Check with
-- systemctl status mydmam-server and
-- tail -f /var/log/mydmam/mydmam.log
+
+- `systemctl status mydmam-server` and
+- `tail -f /var/log/mydmam/mydmam.log`
 - Your mails
 
+And set CLI:
+
+- `ln -s (this directory)/cli-run.sh /bin/mydmam-cli`
+- `chmod +x (this directory)/cli-run.sh`
+
 ## Update
+
 See [MyDMAM changelogs](http://mydmam.org/category/changelogs) before updating...
+
 - use Git with mydmam app
 - change Play directory
 - update-alternative for new Java JRE
-- change all Jars in mydmam/lib directory
+- change all Jars in `mydmam/lib` directory
 - upgrade ES and/or Cassandra version
 
-Activate this with a simple ./precompile.sh
+Activate this with a simple `./precompile.sh`
 Edit it before run if you want to change Play version.
 Restart with
-- systemctl daemon-reload
-- systemctl stop mydmam-{server|probe}
-- systemctl start mydmam-{server|probe}
-- systemctl status mydmam-{server|probe}
+
+- `systemctl daemon-reload`
+- `systemctl stop mydmam-{server|probe}`
+- `systemctl start mydmam-{server|probe}`
+- `systemctl status mydmam-{server|probe}`
+
+## Tips
+### Setup Java 
+
+- unpack Oracle’s version somewhere, like in `/opt`
+- `update-alternatives --install /usr/bin/java java (extracted directory)/bin/java 2000`
+
+If Debian install some others JRE, check with
+`update-alternatives --display java`
+if your JRE has the best priority (we set 2000 here).
+
+Don’t forget to setup the *Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files*, free downloadable from [Oracle website](http://www.oracle.com/technetwork/java/javase/downloads/index.html), else the startup script will throw a fatal exception. See the message for known the exact location to extract the files, often here: `(extracted JRE directory)/jre/lib/security/`.
+
+### Update Java
+
+- `update-alternatives --remove java $(realpath /etc/alternatives/java)`
+- `update-alternatives --install /usr/bin/java java (extracted directory for new JRE)/bin/java 2000`
+
+Check with
+
+- `update-alternatives --display java`
+- `java -version`
+- Unpack *Java Cryptography Extension (JCE*)
