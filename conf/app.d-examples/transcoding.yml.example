@@ -105,6 +105,11 @@ transcodingprofiles:
         command : "<%$INPUTFILE%>[0] -thumbnail <%$THUMBNAILSIZE%> -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size <%$CHECKERBOARDSIZE%> -resize <%$THUMBNAILSIZE%> pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 2:1:1 -quality 80 <%$OUTPUTFILE%>"
         extension : jpg
         executable : convert
+#    tar_test : 
+#        command : "cf <%$OUTPUTFILE%> <%$INPUTFILE%>"
+#        extension : tar
+#        executable : tar
+#        # current_directory_mode: input # none | input | output
 
 transcodingworkers:
     temp_directory: /tmp

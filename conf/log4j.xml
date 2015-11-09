@@ -32,10 +32,10 @@
 		<level value="WARN" />
 	</logger>
 	<logger name="mydmam.transcode">
-		<level value="INFO" />
+		<level value="DEBUG" />
 	</logger>
 	<logger name="mydmam.storage.dfr">
-		<level value="TRACE" />
+		<level value="DEBUG" />
 	</logger>
 	
 	<!-- Global/defalut definition, and level filter for some lib like Astyanax, Elasticsearch, Play... -->

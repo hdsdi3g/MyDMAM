@@ -281,7 +281,7 @@ public class TranscoderWorker extends WorkerNG {
 			log.put("profile", transcode_profile.getName());
 			log.put("temp_output_file", temp_output_file);
 			log.put("commandline", process.getCommandline());
-			
+			log.put("cwd", process.getWorkingDirectory());
 			Loggers.Transcode.info("Transcode file " + log.toString());
 			
 			process.run();

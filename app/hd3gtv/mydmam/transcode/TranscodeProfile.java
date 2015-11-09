@@ -29,6 +29,7 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
@@ -56,6 +57,19 @@ public class TranscodeProfile {
 	private OutputFormat outputformat;
 	private File executable;
 	private String executable_name;
+	
+	public enum CurrentDirectoryMode {
+		/**
+		 * Don't CWD process
+		 */
+		none,
+		/** CWD to the input file directory */
+		input,
+		/** CWD to the output file directory */
+		output,
+	}
+	
+	private CurrentDirectoryMode current_directory_mode = CurrentDirectoryMode.none;
 	
 	private String name;
 	
@@ -122,6 +136,10 @@ public class TranscodeProfile {
 						
 						if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "executable") == false) {
 							throw new NullPointerException("Missing executable name for transcoding/" + entry.getKey());
+						}
+						
+						if (Configuration.isElementKeyExists(tp_list, entry.getKey(), "current_directory_mode")) {
+							profile.current_directory_mode = CurrentDirectoryMode.valueOf(Configuration.getValue(tp_list, entry.getKey(), "current_directory_mode", "none"));
 						}
 						
 						profile.executable_name = Configuration.getValue(tp_list, entry.getKey(), "executable", null);
@@ -231,10 +249,19 @@ public class TranscodeProfile {
 			sb.append(" ");
 		}
 		
+		if (current_directory_mode != CurrentDirectoryMode.none) {
+			sb.append(", current_directory_mode: ");
+			sb.append(current_directory_mode);
+		}
+		
 		sb.append("\t[");
 		sb.append(extension);
-		sb.append("]\t");
-		sb.append(outputformat);
+		sb.append("]");
+		
+		if (outputformat != null) {
+			sb.append("\t");
+			sb.append(outputformat);
+		}
 		
 		return sb.toString().trim();
 	}
@@ -332,23 +359,37 @@ public class TranscodeProfile {
 		}
 		
 		public Execprocess prepareExecprocess(String job_ref) throws IOException {
-			
+			Execprocess process;
 			if (executables_events.containsKey(executable_name)) {
 				try {
 					event = executables_events.get(executable_name).newInstance();
 					event.setJobRef(job_ref);
-					return new Execprocess(executable, makeCommandline(), event);
+					process = new Execprocess(executable, makeCommandline(), event);
 				} catch (Exception e) {
 					Loggers.Transcode.error("Can't load ExecprocessEvent new instance with executable_name: " + executable_name, e);
-					return new Execprocess(executable, makeCommandline(), null);
+					process = new Execprocess(executable, makeCommandline(), null);
 				}
+			} else {
+				process = new Execprocess(executable, makeCommandline(), null);
 			}
 			
-			return new Execprocess(executable, makeCommandline(), null);
+			if (current_directory_mode == CurrentDirectoryMode.input) {
+				process.setWorkingDirectory(input_file.getParentFile());
+			} else if (current_directory_mode == CurrentDirectoryMode.output) {
+				process.setWorkingDirectory(output_file.getParentFile());
+			}
+			return process;
 		}
 		
 		public ExecprocessGettext prepareExecprocess() throws IOException {
-			return new ExecprocessGettext(executable, makeCommandline());
+			ExecprocessGettext process = new ExecprocessGettext(executable, makeCommandline());
+			
+			if (current_directory_mode == CurrentDirectoryMode.input) {
+				process.setWorkingDirectory(input_file.getParentFile());
+			} else if (current_directory_mode == CurrentDirectoryMode.output) {
+				process.setWorkingDirectory(output_file.getParentFile());
+			}
+			return process;
 		}
 		
 		public TranscodeProgress getProgress() {
@@ -371,6 +412,15 @@ public class TranscodeProfile {
 				cmdline.addAll(initial_params);
 			}
 			
+			String input_file_path = input_file.getCanonicalPath();
+			String output_file_path = output_file.getCanonicalPath();
+			
+			if (current_directory_mode == CurrentDirectoryMode.input) {
+				input_file_path = input_file.getName();
+			} else if (current_directory_mode == CurrentDirectoryMode.output) {
+				output_file_path = output_file.getName();
+			}
+			
 			String param;
 			
 			for (int pos = 0; pos < params.size(); pos++) {
@@ -379,10 +429,10 @@ public class TranscodeProfile {
 					if (input_file.getCanonicalPath() == null) {
 						cmdline.add(param.replace(TAG_INPUTFILE, "-"));
 					} else {
-						cmdline.add(param.replace(TAG_INPUTFILE, input_file.getCanonicalPath()));
+						cmdline.add(param.replace(TAG_INPUTFILE, input_file_path));
 					}
 				} else if (param.equals(TAG_OUTPUTFILE)) {
-					cmdline.add(output_file.getCanonicalPath());
+					cmdline.add(output_file_path);
 				} else if (param.equals(TAG_PROGRESSFILE)) {
 					if (progress != null) {
 						cmdline.add(progress.getProgressfile().getCanonicalPath());
@@ -419,6 +469,15 @@ public class TranscodeProfile {
 			if (event != null) {
 				log.put("event", event.getClass());
 			}
+			
+			if (current_directory_mode != CurrentDirectoryMode.none) {
+				log.put("current_directory_mode", current_directory_mode);
+				if (current_directory_mode == CurrentDirectoryMode.input) {
+					log.put("cwd", input_file.getParentFile());
+				} else if (current_directory_mode == CurrentDirectoryMode.output) {
+					log.put("cwd", output_file.getParentFile());
+				}
+			}
 			return log.toString();
 		}
 		
@@ -449,7 +508,12 @@ public class TranscodeProfile {
 			element.addProperty("executable", src.executable.getAbsolutePath());
 			element.addProperty("params", StringUtils.join(src.params, " "));
 			element.addProperty("extension", src.extension);
-			element.add("outputformat", src.outputformat.toJson());
+			if (src.outputformat != null) {
+				element.add("outputformat", src.outputformat.toJson());
+			} else {
+				element.add("outputformat", JsonNull.INSTANCE);
+			}
+			element.addProperty("current_directory_mode", src.current_directory_mode.name());
 			return element;
 		}
 	}

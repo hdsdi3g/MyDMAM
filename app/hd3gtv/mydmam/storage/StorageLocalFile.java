@@ -86,8 +86,10 @@ public class StorageLocalFile extends Storage {
 		}
 		
 		public String getPath() {
-			String subpath = "/" + file.getPath().substring(root.getPath().length());
-			if (File.separator.equals("\\")) {
+			String subpath = file.getPath().substring(root.getPath().length());
+			if (subpath.equals("")) {
+				return "/";
+			} else if (File.separator.equals("\\")) {
 				return subpath.replaceAll("\\", "/");
 			} else {
 				return subpath;

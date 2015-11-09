@@ -53,6 +53,7 @@ public class Execprocess extends Thread {
 	private ExecprocessStringresult stderr;
 	
 	private String commandline;
+	private File working_directory;
 	
 	private ExecprocessOutputstream outputstreamhandler;
 	
@@ -78,6 +79,13 @@ public class Execprocess extends Thread {
 		
 	}
 	
+	public void setWorkingDirectory(File working_directory) throws IOException {
+		CopyMove.checkExistsCanRead(working_directory);
+		CopyMove.checkIsDirectory(working_directory);
+		
+		this.working_directory = working_directory;
+	}
+	
 	public ExecprocessEvent getEvents() {
 		return events;
 	}
@@ -88,6 +96,10 @@ public class Execprocess extends Thread {
 	
 	public String getCommandline() {
 		return commandline;
+	}
+	
+	public File getWorkingDirectory() {
+		return working_directory;
 	}
 	
 	public void setOutputstreamhandler(ExecprocessOutputstream outputstreamhandler) {
@@ -106,6 +118,10 @@ public class Execprocess extends Thread {
 		
 		pb = new ProcessBuilder(processinfo);
 		pb.environment().put("LANG", Locale.getDefault().getLanguage() + "_" + Locale.getDefault().getCountry() + "." + Charset.forName("UTF-8"));
+		
+		if (working_directory != null) {
+			pb.directory(working_directory);
+		}
 		
 		try {
 			process = pb.start();

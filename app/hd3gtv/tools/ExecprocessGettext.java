@@ -77,6 +77,10 @@ public class ExecprocessGettext {
 		return killed;
 	}
 	
+	public void setWorkingDirectory(File working_directory) throws IOException {
+		runprocess.setWorkingDirectory(working_directory);
+	}
+	
 	public void setOutputstreamhandler(ExecprocessOutputstream outputstreamhandler) {
 		runprocess.setOutputstreamhandler(outputstreamhandler);
 	}
