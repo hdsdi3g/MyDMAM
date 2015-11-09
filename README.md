@@ -5,7 +5,7 @@ Used with Debian 8 and SystemD
 - check Git
 - check Java JRE Oracle, the same as installed for ElasticSearch
 - check FFmpeg, ImageMagick... if needed.
-- check mydmam configuration (conf/app.d/*.yml, conf/application.conf and dependencies.yml)
+- check mydmam configuration (conf/app.d/*.yml, conf/application.conf, conf/dependencies.yml and conf/log4j.xml)
 - check dest log directory (mkdir /var/log/mydmam)
 - check the presence of unzipped directory for Play 1
 - check the "chmod +x" for all *.sh files here (startup)
