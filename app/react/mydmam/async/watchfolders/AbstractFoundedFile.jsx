@@ -32,6 +32,9 @@ watchfolders.AbstractFoundedFile =  React.createClass({
 
 		var linked_jobs = [];
 		for (job_key in abstract_founded_file.map_job_target) {
+			if (jobs[job_key] == null) {
+				continue;
+			}
 			var target = abstract_founded_file.map_job_target[job_key];
 			var target_profile = target.substring(target.indexOf(":") + 1, target.length);
 			var target_storage = target.substring(0, target.indexOf(":"));

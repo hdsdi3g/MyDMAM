@@ -370,7 +370,9 @@ public class TranscodeProfile {
 					process = new Execprocess(executable, makeCommandline(), null);
 				}
 			} else {
-				process = new Execprocess(executable, makeCommandline(), null);
+				event = new GenericEvents(executable_name);
+				event.setJobRef(job_ref);
+				process = new Execprocess(executable, makeCommandline(), event);
 			}
 			
 			if (current_directory_mode == CurrentDirectoryMode.input) {

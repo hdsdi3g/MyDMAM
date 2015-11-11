@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.transcode;
 
+import java.io.File;
 import java.io.IOException;
 
 import hd3gtv.mydmam.Loggers;
@@ -23,16 +24,6 @@ import hd3gtv.mydmam.Loggers;
 public class FFmpegEvents extends ExecprocessTranscodeEvent {
 	
 	private String last_message;
-	
-	public void onStart() {
-	}
-	
-	public void onEnd() {
-	}
-	
-	public void onKill() {
-		Loggers.Transcode.error("FFmpeg is killed for " + jobref);
-	}
 	
 	public void onError(IOException ioe) {
 		Loggers.Transcode.error("FFmpeg error for " + jobref, ioe);
@@ -57,5 +48,21 @@ public class FFmpegEvents extends ExecprocessTranscodeEvent {
 	
 	public String getLast_message() {
 		return last_message;
+	}
+	
+	public void onStart(String commandline, File working_directory) {
+		if (working_directory != null) {
+			Loggers.Transcode.info("start ffmpeg: " + commandline + "\t in " + working_directory);
+		} else {
+			Loggers.Transcode.info("start ffmpeg: " + commandline);
+		}
+	}
+	
+	public void onEnd(int exitvalue, long execution_duration) {
+		Loggers.Transcode.debug("End ffmpeg execution, after " + (double) execution_duration / 1000d + " sec");
+	}
+	
+	public void onKill(long execution_duration) {
+		Loggers.Transcode.error("FFmpeg is killed for " + jobref + ", after " + (double) execution_duration / 1000d + " sec");
 	}
 }

@@ -90,6 +90,10 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		}
 	}
 	
+	public static File getICCProfile() {
+		return icc_profile;
+	}
+	
 	public ImageMagickThumbnailer(Class<? extends EntryRenderer> root_entry_class, PreviewType preview_type, String profile_name) {
 		this.root_entry_class = root_entry_class;
 		if (root_entry_class == null) {

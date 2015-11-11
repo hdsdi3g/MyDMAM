@@ -49,6 +49,7 @@ import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.DistantFileRecovery;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.Execprocess;
 
@@ -270,6 +271,7 @@ public class TranscoderWorker extends WorkerNG {
 			 *      process_configuration.getParamTags().put("FILTERS", sb_filters.toString());
 			 */
 			process_configuration.getParamTags().put("FILTERS", "null");
+			process_configuration.getParamTags().put("ICCPROFILE", ImageMagickThumbnailer.getICCProfile().getAbsolutePath());
 			
 			Loggers.Transcode.debug("Prepare prepareExecprocess for process_configuration");
 			process = process_configuration.prepareExecprocess(progression.getJobKey());
@@ -280,9 +282,9 @@ public class TranscoderWorker extends WorkerNG {
 			log.put("physical_source", physical_source);
 			log.put("profile", transcode_profile.getName());
 			log.put("temp_output_file", temp_output_file);
-			log.put("commandline", process.getCommandline());
-			log.put("cwd", process.getWorkingDirectory());
-			Loggers.Transcode.info("Transcode file " + log.toString());
+			// log.put("commandline", process.getCommandline());
+			// log.put("cwd", process.getWorkingDirectory());
+			Loggers.Transcode.debug("Transcode file " + log.toString());
 			
 			process.run();
 			
@@ -300,7 +302,7 @@ public class TranscoderWorker extends WorkerNG {
 			
 			if (process.getExitvalue() != 0) {
 				if (process_configuration.getEvent() != null) {
-					throw new IOException("Bad transcoder execution: " + process_configuration.getEvent().getLast_message());
+					throw new IOException("Bad transcoder execution: \"" + process_configuration.getEvent().getLast_message() + "\"\t from \"" + process.getCommandline() + "\"");
 				}
 				throw new IOException("Bad transcoder execution (exit value is: " + process.getExitvalue() + ")");
 			}
