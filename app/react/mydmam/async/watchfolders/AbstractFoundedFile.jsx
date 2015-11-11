@@ -15,6 +15,10 @@
  * 
 */
 watchfolders.AbstractFoundedFile =  React.createClass({
+	btnDelete: function(e) {
+		e.preventDefault();
+		this.props.onDelete(this.props.abstract_founded_file);
+	},
 	render: function() {
 		var abstract_founded_file = this.props.abstract_founded_file;
 		var jobs = this.props.jobs;
@@ -56,6 +60,7 @@ watchfolders.AbstractFoundedFile =  React.createClass({
 			<td><mydmam.async.pathindex.reactDate date={abstract_founded_file.last_checked} /></td>
 			<td>{i18n("manager.watchfolders.status." + abstract_founded_file.status)}</td>
 			<td>{linked_jobs}</td>
+			<td><button className="btn btn-mini btn-danger pull-right" onClick={this.btnDelete}><i className="icon-remove icon-white" /></button></td>
 		</tr>);
 	},
 });

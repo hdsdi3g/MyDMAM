@@ -19,6 +19,7 @@ package controllers.asyncjs;
 import java.util.Arrays;
 import java.util.List;
 
+import hd3gtv.mydmam.transcode.watchfolder.AsyncJSWatchfolderRemoveVerb;
 import hd3gtv.mydmam.transcode.watchfolder.AsyncJSWatchfolderListVerb;
 import hd3gtv.mydmam.web.AsyncJSController;
 import hd3gtv.mydmam.web.AsyncJSControllerVerb;
@@ -33,7 +34,7 @@ public class AsyncWatchfolders extends AsyncJSController {
 	
 	@SuppressWarnings("unchecked")
 	public <V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> List<V> getManagedVerbs() {
-		return (List<V>) Arrays.asList(new AsyncJSWatchfolderListVerb());
+		return (List<V>) Arrays.asList(new AsyncJSWatchfolderListVerb(), new AsyncJSWatchfolderRemoveVerb());
 	}
 	
 	public List<String> getMandatoryPrivileges() {

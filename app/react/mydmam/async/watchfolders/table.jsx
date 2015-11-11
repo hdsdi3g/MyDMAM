@@ -17,7 +17,7 @@
 watchfolders.table =  React.createClass({
 	loadActualItemList: function() {
 		mydmam.async.request("watchfolders", "list", {}, function(data) {
-				this.setState({items: data.items, jobs: data.jobs});
+			this.setState({items: data.items, jobs: data.jobs});
 		}.bind(this));
 	},
 	getInitialState: function() {
@@ -28,12 +28,36 @@ watchfolders.table =  React.createClass({
 	},
 	componentDidMount: function() {
 		this.loadActualItemList();
-		//this.state.interval = setInterval(this.loadActualItemList, 1000); //TODO remetre !
+		this.state.interval = setInterval(this.loadActualItemList, 1000);
 	},
 	componentWillUnmount: function() {
 		if (this.state.interval) {
 			clearInterval(this.state.interval);
 		}
+	},
+	onDelete: function(abstract_founded_file) {
+		var storage_name = abstract_founded_file.storage_name;
+		var path = abstract_founded_file.path;
+		var key = md5(storage_name + ":" + path);
+
+		var pos_state_item = -1;
+		for (pos in this.state.items) {
+			if (this.state.items[pos].storage_name === storage_name && this.state.items[pos].path === path) {
+				pos_state_item = pos;
+				break;
+			}
+		}
+
+		this.state.items.splice(pos_state_item, 1);
+		this.setState({items : this.state.items});
+
+		if (this.state.interval) {
+			clearInterval(this.state.interval);
+		}
+
+		mydmam.async.request("watchfolders", "remove", {key: key}, function(data) {
+			this.setState({interval : setInterval(this.loadActualItemList, 1000)});
+		}.bind(this));
 	},
 	render: function() {
 		var items = this.state.items;
@@ -45,11 +69,9 @@ watchfolders.table =  React.createClass({
 
 		var table_lines = [];
 		for (pos in items) {
-			table_lines.push(<watchfolders.AbstractFoundedFile key={pos} abstract_founded_file={items[pos]} jobs={jobs} />);
+			table_lines.push(<watchfolders.AbstractFoundedFile key={pos} abstract_founded_file={items[pos]} jobs={jobs} onDelete={this.onDelete} />);
 		}
-		if (table_lines.length === 0){
-			table_lines.push(<tr key="0"><td>No items</td></tr>);
-		}
+
 		return (<table className="table table-striped table-bordered table-hover table-condensed">
 			<thead>
 				<tr>
@@ -59,6 +81,7 @@ watchfolders.table =  React.createClass({
 					<th>{i18n("manager.watchfolders.table.lastchecked")}</th>
 					<th>{i18n("manager.watchfolders.table.status")}</th>
 					<th>{i18n("manager.watchfolders.table.jobs")}</th>
+					<th></th>
 				</tr>
 			</thead>
 			<tbody>	

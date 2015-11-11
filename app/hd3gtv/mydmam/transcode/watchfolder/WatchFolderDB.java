@@ -104,6 +104,20 @@ public class WatchFolderDB {
 		return result;
 	}
 	
+	static void remove(String item_key) throws ConnectionException {
+		if (item_key == null) {
+			throw new NullPointerException("Null item_key");
+		}
+		if (item_key.isEmpty()) {
+			throw new NullPointerException("No item_key");
+		}
+		Loggers.Transcode_WatchFolder.trace("Delete entry from DB, item_key: " + item_key);
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		mutator.withRow(CF_WATCHFOLDERS, item_key).delete();
+		mutator.execute();
+	}
+	
 	static ArrayList<AbstractFoundedFile> getAll() throws ConnectionException {
 		ArrayList<AbstractFoundedFile> result = new ArrayList<AbstractFoundedFile>();
 		
