@@ -152,16 +152,6 @@ public class ExecprocessGettext {
 	/** ********************************************** */
 	private class Event implements ExecprocessEvent {
 		
-		public void onEnd() {
-		}
-		
-		public void onStart() {
-		}
-		
-		public void onKill() {
-			killed = true;
-		}
-		
 		public void onError(InterruptedException ie) {
 			if (lasterror != null) {
 				lasterror.printStackTrace();
@@ -188,6 +178,16 @@ public class ExecprocessGettext {
 			if (endlinewidthnewline) {
 				resultstdout.append(LINESEPARATOR);
 			}
+		}
+		
+		public void onStart(String commandline, File working_directory) {
+		}
+		
+		public void onEnd(int exitvalue, long execution_duration) {
+		}
+		
+		public void onKill(long execution_duration) {
+			killed = true;
 		}
 		
 	}

@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.io.File;
 import java.io.IOException;
 
 import hd3gtv.mydmam.Loggers;
@@ -29,16 +30,16 @@ public class ExecprocessEventServicelog implements ExecprocessEvent {
 		this.execname = execname;
 	}
 	
-	public void onStart() {
-		Loggers.Manager.info("Start " + execname + " process");
+	public void onStart(String commandline, File working_directory) {
+		Loggers.Manager.info("Start " + execname + " process: \t" + commandline);
 	}
 	
-	public void onEnd() {
-		Loggers.Manager.info("End of " + execname + " process");
+	public void onEnd(int exitvalue, long execution_duration) {
+		Loggers.Manager.info("End of " + execname + " process after " + (double) execution_duration / 1000d + " sec");
 	}
 	
-	public void onKill() {
-		Loggers.Manager.info("Terminate of " + execname + " process");
+	public void onKill(long execution_duration) {
+		Loggers.Manager.info("Terminate of " + execname + " process after " + (double) execution_duration / 1000d + " sec");
 	}
 	
 	public void onError(IOException ioe) {

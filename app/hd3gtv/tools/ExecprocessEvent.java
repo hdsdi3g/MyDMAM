@@ -16,47 +16,33 @@
 */
 package hd3gtv.tools;
 
+import java.io.File;
 import java.io.IOException;
 
-/**
- * @author hdsdi3g
- * @version 1.0
- */
 public interface ExecprocessEvent {
 	
 	/**
-	 * L'execution commence
+	 * On start execution.
+	 * @param working_directory maybe null
 	 */
-	public void onStart();
+	public void onStart(String commandline, File working_directory);
 	
 	/**
-	 * L'execution se termine
+	 * On normal end exec.
 	 */
-	public void onEnd();
+	public void onEnd(int exitvalue, long execution_duration);
 	
 	/**
-	 * On a tuer le processus.
+	 * On manual kill process.
 	 */
-	public void onKill();
+	public void onKill(long execution_duration);
 	
-	/**
-	 * On a renconte une erreur
-	 */
 	public void onError(IOException ioe);
 	
-	/**
-	 * On a renconte une erreur
-	 */
 	public void onError(InterruptedException ie);
 	
-	/**
-	 * Le process donne des donnes sur sa sortie standart
-	 */
 	public void onStdout(String message);
 	
-	/**
-	 * Le process donne des donnes sur sa sortie erreur
-	 */
 	public void onStderr(String message);
 	
 }

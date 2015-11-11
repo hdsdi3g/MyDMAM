@@ -110,7 +110,7 @@ public class Execprocess extends Thread {
 		starttime = System.currentTimeMillis();
 		
 		if (events != null) {
-			events.onStart();
+			events.onStart(commandline, working_directory);
 		}
 		
 		exitvalue = -1;
@@ -162,7 +162,7 @@ public class Execprocess extends Thread {
 			status = STATE_END;
 		}
 		if (events != null) {
-			events.onEnd();
+			events.onEnd(exitvalue, System.currentTimeMillis() - starttime);
 		}
 	}
 	
@@ -179,7 +179,7 @@ public class Execprocess extends Thread {
 			status = STATE_KILL;
 			process.destroy();
 			if (events != null) {
-				events.onKill();
+				events.onKill(System.currentTimeMillis() - starttime);
 			}
 		}
 	}
