@@ -138,7 +138,7 @@ public class AdminMailAlert {
 	
 	public void send() {
 		if (admin_addr.getAddress().equals(NO_ADMIN_ADDR)) {
-			Loggers.Mail.warn("No admin mail is declared: no mail will be send. Subject: " + basemessage + "\tMessage: " + messagecontent, throwable);
+			Loggers.Mail.info("No admin mail is declared: no mails will be send.");
 			return;
 		}
 		

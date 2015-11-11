@@ -232,8 +232,12 @@ public final class AppManager implements InstanceActionReceiver {
 			this.manager = manager;
 		}
 		
-		public void onError(Exception e, String error_name, WorkerNG worker) {
-			Loggers.Manager.warn("Service exception error (" + error_name + "), a mail will be send. Worker: " + worker, e);
+		public void onError(Exception e, String error_name, WorkerNG worker, JobNG job) {
+			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+			log.put(">", error_name);
+			log.put("worker", worker.getReferenceKey());
+			log.put("job", job.toStringLight());
+			Loggers.Manager.warn("Worker error: " + log, e);
 			
 			AdminMailAlert alert = AdminMailAlert.create(error_name, false).setManager(manager).setThrowable(e);
 			alert.send();

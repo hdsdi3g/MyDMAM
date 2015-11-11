@@ -968,6 +968,18 @@ public final class JobNG {
 		return AppManager.getPrettyGson().toJson(this);
 	}
 	
+	public String toStringLight() {
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		log.put("key", getKey());
+		log.put("name", getName());
+		if (getContext() != null) {
+			log.put("context", getContext().getClass().getName());
+			log.put("hookednames", getContext().hookednames);
+			log.put("neededstorages", getContext().neededstorages);
+		}
+		return log.toString();
+	}
+	
 	String getWorker_reference() {
 		return worker_reference;
 	}

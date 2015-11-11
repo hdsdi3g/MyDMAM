@@ -84,7 +84,7 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 		return sb.toString();
 	}
 	
-	private String toStringLight() {
+	String toStringLight() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[");
 		sb.append(reference_key.substring(0, 20));
@@ -166,7 +166,13 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 					if (job.isDeleteAfterCompleted() & Loggers.Worker.isDebugEnabled()) {
 						Loggers.Worker.debug("Start processing DeleAfteComptd job for worker " + reference.toStringLight() + ":\t" + job.toString());
 					} else {
-						Loggers.Worker.info("Start processing job for worker " + reference.toStringLight() + ":\t" + job.toString());
+						String job_log;
+						if (Loggers.Worker.isDebugEnabled()) {
+							job_log = job.toString();
+						} else {
+							job_log = job.toStringLight();
+						}
+						Loggers.Worker.info("Start processing job " + reference.toStringLight() + ", job: " + job_log);
 					}
 				}
 				job.saveChanges();
@@ -197,9 +203,8 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 					}
 				}
 			} catch (Exception e) {
-				Loggers.Worker.error("Error during job processing, for worker " + reference.toStringLight() + ":\t" + job.toString(), e);
 				job.endProcessing_Error(e);
-				manager.getServiceException().onError(e, "Error during processing", reference);
+				manager.getServiceException().onError(e, "Error during processing", reference, job);
 			}
 			current_executor = null;
 		}
@@ -305,8 +310,11 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 					}
 					forceStopProcess();
 				} catch (Exception e) {
-					Loggers.Worker.error("Can't stop (forced) process " + reference.toStringLight() + " for job:\t" + current_executor.job, e);
-					manager.getServiceException().onError(e, "Can't stop current process", reference);
+					if (current_executor != null) {
+						manager.getServiceException().onError(e, "Can't stop current process", reference, current_executor.job);
+					} else {
+						manager.getServiceException().onError(e, "Can't stop current process", reference, null);
+					}
 				}
 			}
 		}
