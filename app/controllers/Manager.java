@@ -86,6 +86,9 @@ public class Manager extends Controller {
 		render();
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	@Check("showManager")
 	public static void allinstances() throws Exception {
 		renderJSON(InstanceStatus.Gatherer.getAllInstancesJsonString());
@@ -101,6 +104,9 @@ public class Manager extends Controller {
 		renderJSON(result);
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	@Check("showManager")
 	public static void allworkers() throws Exception {
 		renderJSON(WorkerExporter.getAllWorkerStatusJson());
@@ -116,6 +122,9 @@ public class Manager extends Controller {
 		renderJSON(result);
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	@Check("showJobs")
 	public static void jobs() throws Exception {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("manager.jobs.pagename"));
@@ -123,11 +132,17 @@ public class Manager extends Controller {
 		render(actual_jobs);
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	@Check("showJobs")
 	public static void alljobs() throws Exception {
 		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(0)));
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	@Check("showJobs")
 	public static void recentupdatedjobs(@Required Long since) throws Exception {
 		if (Validation.hasErrors()) {
@@ -136,12 +151,18 @@ public class Manager extends Controller {
 		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(since)));
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	@Check("showJobs")
 	public static void watchfolders() throws Exception {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("manager.watchfolders.pagename"));
 		render();
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	private static String getCaller() throws Exception {
 		StringBuffer caller = new StringBuffer();
 		caller.append(User.getUserProfile().key);
@@ -154,6 +175,9 @@ public class Manager extends Controller {
 		return caller.toString();
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	@Check("actionManager")
 	public static void instanceaction(@Required String target_class_name, @Required String target_reference_key, @Required String json_order) throws Exception {
 		if (Validation.hasErrors()) {
@@ -163,6 +187,9 @@ public class Manager extends Controller {
 		renderJSON("[]");
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	@Check("actionJobs")
 	public static void jobaction(@Required String requestactions) throws Exception {
 		if (Validation.hasErrors()) {

@@ -11,47 +11,49 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
 package hd3gtv.mydmam.manager;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.manager.AsyncJSBrokerRequestAction.Order;
+import hd3gtv.mydmam.web.AsyncJSControllerVerb;
+import hd3gtv.mydmam.web.AsyncJSDeserializer;
+import hd3gtv.mydmam.web.AsyncJSGsonProvider;
+import hd3gtv.mydmam.web.AsyncJSSerializer;
 
-/**
- * @deprecated
- */
-public class JobAction {
+public class AsyncJSBrokerVerbAction extends AsyncJSControllerVerb<AsyncJSBrokerRequestAction, AsyncJSBrokerResponseAction> {
 	
-	private enum Order {
-		delete, stop, setinwait, cancel, hipriority, noexpiration, postponed
+	public String getVerbName() {
+		return "action";
 	}
 	
-	private @GsonIgnore ArrayList<String> jobs_keys;
-	private Order order;
+	public Class<AsyncJSBrokerRequestAction> getRequestClass() {
+		return AsyncJSBrokerRequestAction.class;
+	}
 	
-	public JsonObject doAction(String caller) throws ConnectionException {
-		JsonObject result = new JsonObject();
+	public Class<AsyncJSBrokerResponseAction> getResponseClass() {
+		return AsyncJSBrokerResponseAction.class;
+	}
+	
+	public AsyncJSBrokerResponseAction onRequest(AsyncJSBrokerRequestAction request, String caller) throws Exception {
+		AsyncJSBrokerResponseAction result = new AsyncJSBrokerResponseAction();
+		result.modified_jobs = new HashMap<String, JobNG>(request.jobs_keys.size());
 		
-		List<JobNG> jobs = JobNG.Utility.getJobsListByKeys(jobs_keys);
+		List<JobNG> jobs = JobNG.Utility.getJobsListByKeys(request.jobs_keys);
 		if (jobs == null) {
+			return result;
+		}
+		if (jobs.isEmpty()) {
 			return result;
 		}
 		
@@ -61,9 +63,9 @@ public class JobAction {
 		String worker_reg;
 		for (int pos = 0; pos < jobs.size(); pos++) {
 			job = jobs.get(pos);
-			Loggers.Job.info("Do action on job (caller " + caller + "):\t" + job);
+			Loggers.Job.info("Do action on job (caller " + getUserProfile().key + " " + caller + "):\t" + job.toStringLight());
 			
-			switch (order) {
+			switch (request.order) {
 			case delete:
 				job.delete(mutator);
 				break;
@@ -99,9 +101,9 @@ public class JobAction {
 				break;
 			}
 			
-			if (order != JobAction.Order.delete) {
+			if (request.order != Order.delete) {
 				job.saveChanges(mutator);
-				result.add(job.getKey(), AppManager.getGson().toJsonTree(job));
+				result.modified_jobs.put(job.getKey(), job);
 			}
 		}
 		
@@ -112,23 +114,15 @@ public class JobAction {
 		return result;
 	}
 	
-	static class Serializer implements JsonSerializer<JobAction>, JsonDeserializer<JobAction> {
-		
-		private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-		}.getType();
-		
-		public JobAction deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			JsonObject jo = json.getAsJsonObject();
-			JobAction result = AppManager.getSimpleGson().fromJson(json, JobAction.class);
-			result.jobs_keys = AppManager.getGson().fromJson(jo.get("jobs_keys"), al_String_typeOfT);
-			return result;
-		}
-		
-		public JsonElement serialize(JobAction src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = AppManager.getPrettyGson().toJsonTree(src).getAsJsonObject();
-			result.add("jobs_keys", AppManager.getGson().toJsonTree(src.jobs_keys, al_String_typeOfT));
-			return result;
-		}
+	public List<String> getMandatoryPrivileges() {
+		return Arrays.asList("actionBroker");
 	}
 	
+	public List<? extends AsyncJSDeserializer<?>> getJsonDeserializers(AsyncJSGsonProvider gson_provider) {
+		return Arrays.asList(new AsyncJSBrokerRequestAction.Deserializer());
+	}
+	
+	public List<? extends AsyncJSSerializer<?>> getJsonSerializers(AsyncJSGsonProvider gson_provider) {
+		return Arrays.asList(new AsyncJSBrokerResponseAction.Serializer());
+	}
 }
