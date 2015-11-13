@@ -39,7 +39,11 @@ public class AsyncJavascript extends Controller {
 			response.status = Application.HTTP_not_found;
 			renderJSON("{}");
 		}
-		renderJSON(AsyncJSManager.global.doRequest(request));
+		if (Controller.request.isLoopback == false) {
+			renderJSON(AsyncJSManager.global.doRequest(request, Controller.request.remoteAddress));
+		} else {
+			renderJSON(AsyncJSManager.global.doRequest(request, "loopback"));
+		}
 	}
 	
 	public static void dynamicCompileJSX(@Required String ressource_name) {

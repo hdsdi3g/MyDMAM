@@ -40,7 +40,7 @@ public class AsyncJSWatchfolderListVerb extends AsyncJSControllerVerb<AsyncJSWat
 		return AsyncJSWatchfolderResponseList.class;
 	}
 	
-	public AsyncJSWatchfolderResponseList onRequest(AsyncJSWatchfolderRequestList request) throws Exception {
+	public AsyncJSWatchfolderResponseList onRequest(AsyncJSWatchfolderRequestList request, String caller) throws Exception {
 		AsyncJSWatchfolderResponseList list = new AsyncJSWatchfolderResponseList();
 		list.items = WatchFolderDB.getAll();
 		if (list.items.isEmpty()) {

@@ -32,7 +32,7 @@ public class VerbEditComment extends AsyncJSControllerVerb<Comment, CommentList>
 		return CommentList.class;
 	}
 	
-	public CommentList onRequest(Comment request) throws Exception {
+	public CommentList onRequest(Comment request, String caller) throws Exception {
 		FakeDB.update(request);
 		
 		CommentList result = new CommentList();

@@ -16,14 +16,14 @@
 */
 package controllers.asyncjs;
 
+import java.util.Arrays;
+import java.util.List;
+
 import hd3gtv.mydmam.web.AsyncJSController;
 import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 import hd3gtv.mydmam.web.AsyncJSRequestObject;
 import hd3gtv.mydmam.web.AsyncJSResponseObject;
 import hd3gtv.mydmam.web.search.SearchVerb;
-
-import java.util.Arrays;
-import java.util.List;
 
 public class AsyncSearch extends AsyncJSController {
 	
@@ -39,4 +39,5 @@ public class AsyncSearch extends AsyncJSController {
 	public List<String> getMandatoryPrivileges() {
 		return Arrays.asList("navigate");
 	}
+	
 }

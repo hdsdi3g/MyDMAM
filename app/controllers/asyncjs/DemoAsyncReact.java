@@ -16,11 +16,6 @@
 */
 package controllers.asyncjs;
 
-import hd3gtv.mydmam.web.AsyncJSController;
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,6 +23,10 @@ import controllers.asyncjs.demoreact.VerbAddComment;
 import controllers.asyncjs.demoreact.VerbDelComment;
 import controllers.asyncjs.demoreact.VerbEditComment;
 import controllers.asyncjs.demoreact.VerbGetCommentList;
+import hd3gtv.mydmam.web.AsyncJSController;
+import hd3gtv.mydmam.web.AsyncJSControllerVerb;
+import hd3gtv.mydmam.web.AsyncJSRequestObject;
+import hd3gtv.mydmam.web.AsyncJSResponseObject;
 
 public class DemoAsyncReact extends AsyncJSController {
 	
