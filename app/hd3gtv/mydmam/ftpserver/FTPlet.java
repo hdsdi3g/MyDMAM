@@ -19,7 +19,6 @@ package hd3gtv.mydmam.ftpserver;
 import java.io.IOException;
 import java.util.HashSet;
 
-import org.apache.ftpserver.filesystem.nativefs.impl.NativeFtpFile;
 import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.FtpReply;
 import org.apache.ftpserver.ftplet.FtpRequest;
@@ -29,10 +28,12 @@ import org.apache.ftpserver.ftplet.FtpletContext;
 import org.apache.ftpserver.ftplet.FtpletResult;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.ftpserver.Session.Action;
 
 public class FTPlet implements Ftplet {
 	
 	private static final HashSet<String> ignore_commands;
+	private static final HashSet<String> valid_commands;
 	
 	static {
 		ignore_commands = new HashSet<String>();
@@ -48,21 +49,33 @@ public class FTPlet implements Ftplet {
 		ignore_commands.add("MKD");
 		ignore_commands.add("OPTS");
 		ignore_commands.add("CWD");
+		
+		valid_commands = new HashSet<String>();
+		for (int pos = 0; pos < Action.values().length; pos++) {
+			valid_commands.add(Action.values()[pos].name());
+		}
 	}
 	
 	public void init(FtpletContext ftpletContext) throws FtpException {
 	}
 	
-	public void destroy() {
-	}
-	
-	@Override
-	public FtpletResult beforeCommand(FtpSession session, FtpRequest request) throws FtpException, IOException {
-		// TODO Auto-generated method stub
+	public FtpletResult onConnect(FtpSession session) throws FtpException, IOException {
+		Session.create(session);
 		return null;
 	}
 	
-	@Override
+	public FtpletResult onDisconnect(FtpSession session) throws FtpException, IOException {
+		Session.get(session).commit();
+		return null;
+	}
+	
+	public void destroy() {
+	}
+	
+	public FtpletResult beforeCommand(FtpSession session, FtpRequest request) throws FtpException, IOException {
+		return null;
+	}
+	
 	public FtpletResult afterCommand(FtpSession session, FtpRequest request, FtpReply reply) throws FtpException, IOException {
 		if (session.getUser() == null) {
 			return null;
@@ -73,22 +86,11 @@ public class FTPlet implements Ftplet {
 		if (ignore_commands.contains(request.getCommand())) {
 			return null;
 		}
-		System.err.println(((NativeFtpFile) session.getFileSystemView().getWorkingDirectory()).getAbsolutePath()); // "/"
-		System.err.println(((NativeFtpFile) session.getFileSystemView().getWorkingDirectory()).getPhysicalFile()); // "/tmp"
-		// TODO triggers : discard { DELE, REST }, add/update { STOR }, get { RETR }, session.getSessionId()
-		Loggers.FTPserver.info("After cmd: " + session.getUser().getName() + ":" + session.getClientAddress().getHostString() + " " + request.getCommand() + " > " + request.getArgument());
-		return null;
-	}
-	
-	@Override
-	public FtpletResult onConnect(FtpSession session) throws FtpException, IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
-	public FtpletResult onDisconnect(FtpSession session) throws FtpException, IOException {
-		// TODO Auto-generated method stub
+		if (valid_commands.contains(request.getCommand()) == false) {
+			Loggers.FTPserver.warn("Unknow FTP command: " + request.getCommand() + " " + request.getArgument());
+			return null;
+		}
+		Session.get(session).pushActivity(session, request);
 		return null;
 	}
 	

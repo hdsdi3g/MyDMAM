@@ -18,7 +18,6 @@ package hd3gtv.mydmam.ftpserver;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.manager.ServiceNGFTPServer;
 
 public class MainClass {
 	

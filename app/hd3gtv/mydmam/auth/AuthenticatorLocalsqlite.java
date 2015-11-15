@@ -17,10 +17,8 @@
 
 package hd3gtv.mydmam.auth;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -31,29 +29,15 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-
 import org.junit.Assert;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.BCrypt;
 import hd3gtv.tools.BCryptTest;
 
 public class AuthenticatorLocalsqlite implements Authenticator {
 	
 	private File dbfile;
-	
-	private IvParameterSpec salt;
-	private SecretKey skeySpec;
-	private String master_password_key;
-	
-	static {
-		MyDMAM.testIllegalKeySize();
-	}
+	private Password password;
 	
 	public static void doInternalSecurityAutotest() throws Exception {
 		System.out.println("Do BCrypt test...");
@@ -153,15 +137,10 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	 */
 	public AuthenticatorLocalsqlite(File dbfile, String master_password_key) throws IOException {
 		try {
-			MessageDigest md = MessageDigest.getInstance("SHA-256", "BC");
-			byte[] key = md.digest(master_password_key.getBytes("UTF-8"));
-			
-			skeySpec = new SecretKeySpec(key, "AES");
-			salt = new IvParameterSpec(key, 0, 16);
+			password = new Password(master_password_key);
 		} catch (Exception e) {
 			throw new IOException("Can't init digest password", e);
 		}
-		this.master_password_key = master_password_key;
 		
 		try {
 			Class.forName("org.sqlite.JDBC");
@@ -228,48 +207,14 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 	}
 	
 	public String getMaster_password_key() {
-		return master_password_key;
-	}
-	
-	private byte[] getHashedPassword(String clear_password) {
-		try {
-			byte[] hashed = (BCrypt.hashpw(clear_password, BCrypt.gensalt(10))).getBytes("UTF-8");
-			
-			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
-			cipher.init(Cipher.ENCRYPT_MODE, skeySpec, salt);
-			
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			baos.write(cipher.update(hashed));
-			baos.write(cipher.doFinal());
-			
-			return baos.toByteArray();
-		} catch (Exception e) {
-			Loggers.Auth.error("Can't prepare password", e);
-		}
-		return null;
-	}
-	
-	private boolean checkPassword(String candidate_password, byte[] raw_password) {
-		try {
-			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
-			cipher.init(Cipher.DECRYPT_MODE, skeySpec, salt);
-			
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			baos.write(cipher.update(raw_password));
-			baos.write(cipher.doFinal());
-			
-			return BCrypt.checkpw(candidate_password, new String(baos.toByteArray()));
-		} catch (Exception e) {
-			Loggers.Auth.error("Can't extract hashed password", e);
-		}
-		return false;
+		return password.getMaster_password_key();
 	}
 	
 	public void createUser(String username, String password, String longname, boolean enabled) throws SQLException {
 		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("INSERT INTO users (login, password, name, created, updated, enabled) values (?,?,?,?,?,?);");
 		pstatement.setString(1, username);
-		pstatement.setBytes(2, getHashedPassword(password));
+		pstatement.setBytes(2, this.password.getHashedPassword(password));
 		pstatement.setString(3, longname);
 		pstatement.setDate(4, new Date(System.currentTimeMillis()));
 		pstatement.setDate(5, new Date(System.currentTimeMillis()));
@@ -286,7 +231,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 			
 			ResultSet res = pstatement.executeQuery();
 			while (res.next()) {
-				if (checkPassword(password, res.getBytes("password"))) {
+				if (this.password.checkPassword(password, res.getBytes("password"))) {
 					final String name = res.getString("name");
 					connection.close();
 					
@@ -417,7 +362,7 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 		Connection connection = createConnection();
 		PreparedStatement pstatement = connection.prepareStatement("UPDATE users SET updated = ?, password = ?, enabled = ?  WHERE login = ?");
 		pstatement.setDate(1, new Date(System.currentTimeMillis()));
-		pstatement.setBytes(2, getHashedPassword(password));
+		pstatement.setBytes(2, this.password.getHashedPassword(password));
 		pstatement.setBoolean(3, enabled);
 		pstatement.setString(4, username);
 		pstatement.executeUpdate();

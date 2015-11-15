@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.manager;
+package hd3gtv.mydmam.ftpserver;
 
 import java.util.HashMap;
 
@@ -24,8 +24,8 @@ import org.apache.ftpserver.FtpServerFactory;
 import org.apache.ftpserver.ftplet.Ftplet;
 import org.apache.ftpserver.listener.ListenerFactory;
 
-import hd3gtv.mydmam.ftpserver.FTPUserManager;
-import hd3gtv.mydmam.ftpserver.FTPlet;
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.manager.ServiceNG;
 
 public class ServiceNGFTPServer extends ServiceNG {
 	
@@ -54,14 +54,14 @@ public class ServiceNGFTPServer extends ServiceNG {
 		factory.setDataConnectionConfiguration(dccf.createDataConnectionConfiguration());
 		serverFactory.addListener("default", factory.createListener());
 		
-		FTPUserManager ftpum = new FTPUserManager();
+		FTPUserManager ftpum = new FTPUserManager(Configuration.global.getValue("ftpserver", "domain", ""));
 		serverFactory.setUserManager(ftpum);
 		
 		HashMap<String, Ftplet> ftplets = new HashMap<String, Ftplet>(1);
-		ftplets.put("aaaa", new FTPlet());
+		ftplets.put("default", new FTPlet());
 		serverFactory.setFtplets(ftplets);
 		
-		FtpServer server = serverFactory.createServer();
+		server = serverFactory.createServer();
 		server.start();
 	}
 	

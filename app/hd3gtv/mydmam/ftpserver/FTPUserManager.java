@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.util.HashMap;
-
 import org.apache.ftpserver.ftplet.Authentication;
 import org.apache.ftpserver.ftplet.AuthenticationFailedException;
 import org.apache.ftpserver.ftplet.FtpException;
@@ -27,31 +25,17 @@ import org.apache.ftpserver.usermanager.UsernamePasswordAuthentication;
 
 public class FTPUserManager implements UserManager {
 	
-	HashMap<String, User> users;
+	private String domain;
 	
-	public FTPUserManager() {
-		users = new HashMap<String, User>(1);
-		users.put("test", new FTPUser());
+	public FTPUserManager(String domain) {
+		this.domain = domain;
+		if (domain == null) {
+			throw new NullPointerException("\"domain\" can't to be null");
+		}
 	}
 	
 	public User getUserByName(String username) throws FtpException {
-		return users.get(username);
-	}
-	
-	public String[] getAllUserNames() throws FtpException {
-		return (String[]) users.keySet().toArray();
-	}
-	
-	public void delete(String username) throws FtpException {
-		users.remove(username);
-	}
-	
-	public void save(User user) throws FtpException {
-		users.put(user.getName(), user);
-	}
-	
-	public boolean doesExist(String username) throws FtpException {
-		return users.containsKey(username);
+		return FTPUser.getUserByName(username, domain);
 	}
 	
 	public User authenticate(Authentication authentication) throws AuthenticationFailedException {
@@ -59,13 +43,39 @@ public class FTPUserManager implements UserManager {
 			throw new AuthenticationFailedException("Can't manage " + authentication.getClass().getSimpleName() + " auth class.");
 		}
 		UsernamePasswordAuthentication auth = (UsernamePasswordAuthentication) authentication;
-		// System.out.println("IP: " + auth.getUserMetadata().getInetAddress()); "/127.0.0.1"
-		// System.out.println(auth.getUsername() + ":" + auth.getPassword());
-		return users.get("test");
+		
+		User user = FTPUser.getUserByName(auth.getUsername(), domain);
+		if (user == null) {
+			return null;
+		}
+		if (((FTPUser) user).validPassword(auth)) {
+			return user;
+		}
+		return null;
 	}
 	
 	public String getAdminName() throws FtpException {
 		throw new FtpException("No admin here");
+	}
+	
+	public String[] getAllUserNames() throws FtpException {
+		// return (String[]) users.keySet().toArray();
+		throw new FtpException("Not implemented");
+	}
+	
+	public void delete(String username) throws FtpException {
+		// users.remove(username);
+		throw new FtpException("Not implemented");
+	}
+	
+	public void save(User user) throws FtpException {
+		// users.put(user.getName(), user);
+		throw new FtpException("Not implemented");
+	}
+	
+	public boolean doesExist(String username) throws FtpException {
+		// return users.containsKey(username);
+		throw new FtpException("Not implemented");
 	}
 	
 	public boolean isAdmin(String username) throws FtpException {
