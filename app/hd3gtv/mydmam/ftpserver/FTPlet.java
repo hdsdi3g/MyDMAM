@@ -19,6 +19,7 @@ package hd3gtv.mydmam.ftpserver;
 import java.io.IOException;
 import java.util.HashSet;
 
+import org.apache.ftpserver.filesystem.nativefs.impl.NativeFtpFile;
 import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.FtpReply;
 import org.apache.ftpserver.ftplet.FtpRequest;
@@ -72,7 +73,8 @@ public class FTPlet implements Ftplet {
 		if (ignore_commands.contains(request.getCommand())) {
 			return null;
 		}
-		System.err.println(session.getFileSystemView().getWorkingDirectory().getAbsolutePath());
+		System.err.println(((NativeFtpFile) session.getFileSystemView().getWorkingDirectory()).getAbsolutePath()); // "/"
+		System.err.println(((NativeFtpFile) session.getFileSystemView().getWorkingDirectory()).getPhysicalFile()); // "/tmp"
 		// TODO triggers : discard { DELE, REST }, add/update { STOR }, get { RETR }, session.getSessionId()
 		Loggers.FTPserver.info("After cmd: " + session.getUser().getName() + ":" + session.getClientAddress().getHostString() + " " + request.getCommand() + " > " + request.getArgument());
 		return null;
