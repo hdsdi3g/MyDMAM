@@ -57,6 +57,7 @@ public final class Loggers {
 	public final static Logger Module = Logger.getLogger("mydmam.module");
 	public final static Logger Ssh = Logger.getLogger("mydmam.ssh");
 	public final static Logger Pathindex = Logger.getLogger("mydmam.pathindex");
+	public final static Logger FTPserver = Logger.getLogger("mydmam.ftpserver");
 	
 	/*public static JsonObject getAllLevels() {
 		JsonObject result = new JsonObject();
