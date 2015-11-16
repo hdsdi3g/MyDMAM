@@ -42,6 +42,10 @@ public class FTPUser implements User {
 	private boolean enabled;
 	private File home_directory;
 	
+	private long last_activity; // TODO populate
+	private long last_loggon; // TODO populate
+	private long create_date; // TODO populate
+	
 	static {
 		try {
 			password = new Password(Configuration.global.getValue("ftpserver", "master_password_key", ""));
@@ -109,6 +113,7 @@ public class FTPUser implements User {
 	}
 	
 	public static FTPUser getUserByName(String user_name, String domain) {
+		String user_id = "ftpuser:" + domain + "#" + user_name;
 		return null; // TODO
 	}
 	

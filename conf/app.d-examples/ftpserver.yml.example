@@ -1,2 +1,11 @@
 ftpserver:
-    # master_password_key: "change me please"
+    master_password_key: "change me please"
+
+ftpserverinstances:
+    default:                           # the "domain" name for group users name to avoid conflicts if you want multiple same user name.
+        listen: 21                     # FTP port to listen. 21 by default. Must be open in firewall and NATed.
+        active: 0.0.0.0:20             # The FTP adress and port to transfert datas. Port should be listen port - 1. 20 by default. Must be open in firewall and NATed.
+        idle: 300                      # How much time to wait ?
+        passive-internal: 0.0.0.0      # The address to listen passive connection. Address should be the same as active. Must be open in firewall and NATed.
+        passive-external: 0.0.0.0      # The external, public, IP address to access to this server. FTP server will send this to clients during passive data transferts.
+        passive-ports: 30000-40000     # The internal TCP ports range to use for passive data transferts. Must be open in firewall and NATed.

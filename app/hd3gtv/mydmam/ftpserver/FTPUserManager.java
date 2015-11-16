@@ -27,6 +27,9 @@ public class FTPUserManager implements UserManager {
 	
 	private String domain;
 	
+	/**
+	 * @param domain can be empty
+	 */
 	public FTPUserManager(String domain) {
 		this.domain = domain;
 		if (domain == null) {

@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 
+/**
+ * @deprecated
+ */
 public class SlicedQueueLists<T extends Delayed> {
 	
 	private volatile ArrayList<T> list;

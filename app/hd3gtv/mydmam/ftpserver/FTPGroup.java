@@ -19,10 +19,7 @@ package hd3gtv.mydmam.ftpserver;
 import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
-
-import javax.mail.internet.InternetAddress;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
@@ -68,15 +65,14 @@ public class FTPGroup {
 	private boolean disabled_group; // TODO do this
 	private long account_expiration_trash_duration; // TODO do this
 	private long account_expiration_purge_duration; // TODO do this
+	private boolean account_expiration_based_on_last_activity;
 	private long ttl_activity; // TODO do this
-	
-	private LinkedHashMap<InternetAddress, Locale> mail_adresses_callback_on_expiration; // TODO do this
-	private LinkedHashMap<InternetAddress, Locale> mail_adresses_callback_on_download; // TODO do this
-	private LinkedHashMap<InternetAddress, Locale> mail_adresses_callback_on_upload; // TODO do this
 	
 	private File base_working_dir;
 	private long min_disk_space_before_warn;// TODO watching thread for this
 	private long min_disk_space_before_stop;// TODO watching thread for this
+	
+	// TODO can disable live update
 	
 	/**
 	 * Set null for disable.
