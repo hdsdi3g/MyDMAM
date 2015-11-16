@@ -34,10 +34,12 @@ public class ServiceNGFTPServer extends ServiceNG {
 	}
 	
 	private FtpServer server;
+	private FTPOperations operations;
 	
 	protected void startService() throws Exception {
 		FtpServerFactory serverFactory = new FtpServerFactory();
 		
+		// TODO from conf
 		ListenerFactory factory = new ListenerFactory();
 		factory.setPort(2221);
 		
@@ -63,6 +65,9 @@ public class ServiceNGFTPServer extends ServiceNG {
 		
 		server = serverFactory.createServer();
 		server.start();
+		
+		operations = FTPOperations.get();
+		operations.start();
 	}
 	
 	protected void stopService() throws Exception {
@@ -70,6 +75,11 @@ public class ServiceNGFTPServer extends ServiceNG {
 			server.stop();
 		}
 		server = null;
+		
+		if (operations != null) {
+			operations.stop();
+		}
+		operations = null;
 	}
 	
 	protected boolean startBroker() {

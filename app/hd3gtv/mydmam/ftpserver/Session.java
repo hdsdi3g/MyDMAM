@@ -17,6 +17,8 @@
 package hd3gtv.mydmam.ftpserver;
 
 import java.util.List;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.ftpserver.filesystem.nativefs.impl.NativeFtpFile;
 import org.apache.ftpserver.ftplet.FtpException;
@@ -35,7 +37,7 @@ public class Session {
 	
 	static Session create(FtpSession ftp_session) {
 		Session session = new Session();
-		session.key = ftp_session.getSessionId().toString();
+		session.key = "ftpsession-" + ftp_session.getSessionId().toString();
 		session.client_host = ftp_session.getClientAddress().getHostString();
 		session.login_time = ftp_session.getLoginTime().getTime();
 		session.user_id = ((FTPUser) ftp_session.getUser()).getUserId();
@@ -63,13 +65,14 @@ public class Session {
 		DELE, REST, STOR, RETR
 	}
 	
-	public class SessionActivity {
+	public class SessionActivity implements Delayed {
 		private String activity_key;
 		private String working_directory;
 		private Action action;
 		private String session_key;
 		private String session_user_id;
 		private String argument;
+		private long creation_date;
 		
 		private SessionActivity(String working_directory, String command, String argument) {
 			this.working_directory = working_directory;
@@ -85,11 +88,28 @@ public class Session {
 			session_key = key;
 			session_user_id = user_id;
 			
-			activity_key = key + "-" + System.currentTimeMillis();
+			creation_date = System.currentTimeMillis();
+			activity_key = key + "-" + creation_date;
 		}
 		
 		void save() {
 			// TODO
+		}
+		
+		@Override
+		public long getDelay(TimeUnit unit) {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+		
+		public int compareTo(Delayed o) {
+			if (this.creation_date < ((SessionActivity) o).creation_date) {
+				return -1;
+			}
+			if (this.creation_date > ((SessionActivity) o).creation_date) {
+				return 1;
+			}
+			return 0;
 		}
 	}
 	

@@ -54,6 +54,9 @@ public class FTPUser implements User {
 	private FTPUser() {
 	}
 	
+	/**
+	 * @param domain can be empty, but not null.
+	 */
 	public static FTPUser create(String user_name, String clear_password, String group_name, String domain, File home_directory) throws IOException {
 		FTPUser user = new FTPUser();
 		
@@ -87,7 +90,7 @@ public class FTPUser implements User {
 		}
 		
 		user.enabled = true;
-		user.user_id = domain + "#" + user_name;
+		user.user_id = "ftpuser:" + domain + "#" + user_name;
 		
 		user.home_directory = home_directory;
 		if (home_directory == null) {
