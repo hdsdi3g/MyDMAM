@@ -17,13 +17,17 @@
 package hd3gtv.mydmam.ftpserver;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.tools.CopyMove;
 
 public class FTPGroup {
 	
@@ -72,26 +76,60 @@ public class FTPGroup {
 	private long min_disk_space_before_warn;// TODO watching thread for this
 	private long min_disk_space_before_stop;// TODO watching thread for this
 	
-	// TODO can disable live update
-	
 	/**
 	 * Set null for disable.
+	 * If domain_isolation, will index like storagename:/domain/userName
+	 * Else, will index like storagename:/domain#userName or storagename:/userName if no domain
 	 */
-	private String pathindex_storagename_for_live_update; // TODO do this
+	private String pathindex_storagename_for_live_update;
 	
 	/**
 	 * Set true for set user storage like /base_working_dir/domain/userName
 	 * Set false for indexing ftp content like /base_working_dir/domain#userName
 	 * If no domain, user storage will be like /base_working_dir/userName
-	 * -
-	 * If live pathindexing,
-	 * Set true will index like storagename:/domain/userName
-	 * Set false will index like storagename:/domain#userName or storagename:/userName if no domain
 	 */
-	private boolean domain_isolation; // TODO do this
+	private boolean domain_isolation;
 	
 	private FTPGroup(String group_name, LinkedHashMap<String, ?> conf) throws Exception {
 		// TODO
 	}
 	
+	/**
+	 * Create it if needed.
+	 */
+	File getUserHomeDirectory(FTPUser user) throws NullPointerException, IOException {
+		StringBuilder sb = new StringBuilder();
+		sb.append(base_working_dir.getAbsolutePath());
+		sb.append(File.separator);
+		if (user.getDomain().equals("") == false) {
+			if (domain_isolation) {
+				sb.append(user.getDomain());
+				sb.append(File.separator);
+			} else {
+				sb.append(user.getDomain());
+				sb.append("#");
+			}
+		}
+		sb.append(user.getName());
+		
+		File home_directory = new File(sb.toString());
+		
+		if (home_directory.exists()) {
+			CopyMove.checkExistsCanRead(home_directory);
+			CopyMove.checkIsDirectory(home_directory);
+			CopyMove.checkIsWritable(home_directory);
+		} else {
+			FileUtils.forceMkdir(home_directory);
+		}
+		
+		return home_directory;
+	}
+	
+	boolean isDisabled() {
+		return disabled_group;
+	}
+	
+	String getPathindexStoragenameLiveUpdate() {
+		return pathindex_storagename_for_live_update;
+	}
 }

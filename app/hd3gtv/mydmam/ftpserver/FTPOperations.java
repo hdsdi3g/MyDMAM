@@ -16,11 +16,13 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.util.ArrayList;
-import java.util.concurrent.DelayQueue;
+import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.ftpserver.Session.SessionActivity;
+import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
+import hd3gtv.mydmam.pathindexing.Explorer;
 
 public class FTPOperations {
 	
@@ -61,15 +63,27 @@ public class FTPOperations {
 		}
 	}
 	
-	private SlicedQueueLists<SessionActivity> pending_activities;
+	private HashSet<Session> opened_sessions;
 	
 	private FTPOperations() {
-		pending_activities = new SlicedQueueLists<Session.SessionActivity>();
+		opened_sessions = new HashSet<Session>();
 	}
 	
-	public void pushActivity(SessionActivity activity) {
-		pending_activities.push(activity);
+	synchronized void addSession(Session session) {
+		if (opened_sessions.contains(session)) {
+			return;
+		}
+		if (session.getUser().getGroup().getPathindexStoragenameLiveUpdate() != null) {
+			opened_sessions.add(session);
+		}
 	}
+	
+	synchronized void closeSession(Session session) {
+		opened_sessions.remove(session);
+	}
+	
+	private static Explorer explorer = new Explorer();
+	public static final long DELAY_2_INDEX_FOR_PATHINDEX = TimeUnit.SECONDS.toMillis(60);
 	
 	private class Internal extends Thread {
 		
@@ -81,20 +95,41 @@ public class FTPOperations {
 		public void run() {
 			stop = false;
 			
+			HashSet<FTPUser> current_active_users = new HashSet<FTPUser>(1);
+			ElasticsearchBulkOperation bulk_op;
+			
 			try {
-				DelayQueue<SessionActivity> bulk = new DelayQueue<Session.SessionActivity>();
-				ArrayList<SessionActivity> valid_list = new ArrayList<Session.SessionActivity>();
-				
 				while (stop == false) {
-					pending_activities.pullNextSlice(bulk, valid_list);
-					
-					for (int pos = 0; pos < valid_list.size(); pos++) {
-						valid_list.get(pos); // TODO SessionActivity
+					synchronized (opened_sessions) {
+						current_active_users.clear();
+						for (Session session : opened_sessions) {
+							current_active_users.add(session.getUser());
+						}
 					}
+					
+					bulk_op = Elasticsearch.prepareBulk();
+					
+					for (FTPUser ftpuser : current_active_users) {
+						if (ftpuser.getLastPathIndexRefreshed() + DELAY_2_INDEX_FOR_PATHINDEX < System.currentTimeMillis()) {
+							// TODO live index
+							// String storage_name = .getPathindexStoragenameLiveUpdate();
+							// explorer.refreshCurrentStoragePath(bulk_op, elements, purge_before);
+							// explorer.refreshStoragePath(bulk_op, elements, purge_before);
+							ftpuser.setLastPathIndexRefreshed();
+						}
+					}
+					
+					// TODO *regular* index for all group has pathindex_storagename_for_live_update, but not from current_active_users
+					bulk_op.terminateBulk();
 					
 					// TODO Group checks tasks
 					
-					sleep(1000);
+					for (int pos_sleep = 0; pos_sleep < 10 * 60 * 10; pos_sleep++) {
+						if (stop) {
+							return;
+						}
+						sleep(100);
+					}
 				}
 			} catch (InterruptedException e) {
 				Loggers.FTPserver.error("Can't sleep", e);

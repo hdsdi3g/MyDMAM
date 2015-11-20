@@ -16,10 +16,6 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.util.List;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.ftpserver.filesystem.nativefs.impl.NativeFtpFile;
 import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.FtpRequest;
@@ -27,17 +23,20 @@ import org.apache.ftpserver.ftplet.FtpSession;
 
 public class Session {
 	
-	private String key;
+	private String session_key;
 	private String client_host;
 	private long login_time;
 	private String user_id;
+	private long creation_date;
+	
+	private transient FTPUser user;
 	
 	private Session() {
 	}
 	
 	static Session create(FtpSession ftp_session) {
 		Session session = new Session();
-		session.key = "ftpsession-" + ftp_session.getSessionId().toString();
+		session.session_key = "ftpsession-" + ftp_session.getSessionId().toString();
 		session.client_host = ftp_session.getClientAddress().getHostString();
 		session.login_time = ftp_session.getLoginTime().getTime();
 		session.user_id = ((FTPUser) ftp_session.getUser()).getUserId();
@@ -57,70 +56,54 @@ public class Session {
 		// TODO
 	}
 	
-	void commit() {
+	void close() {
 		// TODO
+		FTPOperations.get().closeSession(this);
+	}
+	
+	FTPUser getUser() {
+		if (user == null) {
+			user = FTPUser.getUserId(user_id);
+		}
+		return user;
 	}
 	
 	enum Action {
-		DELE, REST, STOR, RETR
+		DELE, REST, STOR, RETR, APPE, RMD, RNFR, RNTO, MKD;
 	}
 	
-	public class SessionActivity implements Delayed {
+	public class SessionActivity {
 		private String activity_key;
 		private String working_directory;
 		private Action action;
 		private String session_key;
 		private String session_user_id;
 		private String argument;
-		private long creation_date;
+		private long activity_date;
 		
-		private SessionActivity(String working_directory, String command, String argument) {
-			this.working_directory = working_directory;
-			if (working_directory == null) {
-				throw new NullPointerException("\"working_directory\" can't to be null");
-			}
-			this.argument = argument;
-			if (argument == null) {
-				throw new NullPointerException("\"argument\" can't to be null");
-			}
+		private SessionActivity(Session reference, FtpSession session, FtpRequest request) throws FtpException {
+			working_directory = ((NativeFtpFile) session.getFileSystemView().getWorkingDirectory()).getAbsolutePath();
+			argument = request.getArgument();
 			
-			this.action = Action.valueOf(command);
-			session_key = key;
-			session_user_id = user_id;
+			action = Action.valueOf(request.getCommand());
+			session_key = reference.session_key;
+			session_user_id = reference.user_id;
 			
-			creation_date = System.currentTimeMillis();
-			activity_key = key + "-" + creation_date;
+			activity_date = System.currentTimeMillis();
+			activity_key = session_key + "-" + activity_date;
+			
+			if (action != Action.REST & action != Action.RETR) {
+				FTPOperations.get().addSession(reference);
+			}
 		}
 		
 		void save() {
 			// TODO
 		}
-		
-		@Override
-		public long getDelay(TimeUnit unit) {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-		
-		public int compareTo(Delayed o) {
-			if (this.creation_date < ((SessionActivity) o).creation_date) {
-				return -1;
-			}
-			if (this.creation_date > ((SessionActivity) o).creation_date) {
-				return 1;
-			}
-			return 0;
-		}
 	}
 	
 	void pushActivity(FtpSession session, FtpRequest request) throws FtpException {
-		SessionActivity activity = new SessionActivity(((NativeFtpFile) session.getFileSystemView().getWorkingDirectory()).getAbsolutePath(), request.getCommand(), request.getArgument());
-		activity.save();
-	}
-	
-	List<SessionActivity> getSessionActivities() {
-		// TODO
-		return null;
+		new SessionActivity(this, session, request).save();
 	}
 	
 }

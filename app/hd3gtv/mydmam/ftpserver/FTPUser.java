@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
@@ -28,7 +27,6 @@ import org.apache.ftpserver.usermanager.UsernamePasswordAuthentication;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.Password;
-import hd3gtv.tools.CopyMove;
 
 public class FTPUser implements User {
 	
@@ -40,11 +38,14 @@ public class FTPUser implements User {
 	private String group_name;
 	private String domain;
 	private boolean enabled;
-	private File home_directory;
+	private long create_date;
+	private long update_date;
+	private long last_path_index_refreshed;
 	
-	private long last_activity; // TODO populate
-	private long last_loggon; // TODO populate
-	private long create_date; // TODO populate
+	/**
+	 * populateGroup will init it.
+	 */
+	private transient FTPGroup group;
 	
 	static {
 		try {
@@ -61,7 +62,7 @@ public class FTPUser implements User {
 	/**
 	 * @param domain can be empty, but not null.
 	 */
-	public static FTPUser create(String user_name, String clear_password, String group_name, String domain, File home_directory) throws IOException {
+	public static FTPUser create(String user_name, String clear_password, String group_name, String domain) throws IOException {
 		FTPUser user = new FTPUser();
 		
 		user.user_name = user_name;
@@ -71,6 +72,7 @@ public class FTPUser implements User {
 		if (user_name.isEmpty()) {
 			throw new NullPointerException("\"user_name\" can't to be empty");
 		}
+		// TODO check bad chars in user_name
 		
 		user.obscured_password = password.getHashedPassword(clear_password);
 		if (clear_password == null) {
@@ -94,16 +96,10 @@ public class FTPUser implements User {
 		}
 		
 		user.enabled = true;
-		user.user_id = "ftpuser:" + domain + "#" + user_name;
+		user.user_id = makeUserId(user_name, domain);
 		
-		user.home_directory = home_directory;
-		if (home_directory == null) {
-			throw new NullPointerException("\"home_directory\" can't to be null");
-		}
-		
-		CopyMove.checkExistsCanRead(home_directory);
-		CopyMove.checkIsDirectory(home_directory);
-		CopyMove.checkIsWritable(home_directory);
+		user.create_date = System.currentTimeMillis();
+		user.update_date = user.create_date;
 		
 		return user;
 	}
@@ -112,8 +108,25 @@ public class FTPUser implements User {
 		return password.checkPassword(auth.getPassword(), this.obscured_password);
 	}
 	
+	private void populateGroup() {
+		if (group == null) {
+			group = FTPGroup.getFromName(group_name);
+			if (group == null) {
+				throw new NullPointerException("Can't found declared group \"" + group_name + "\".");
+			}
+		}
+	}
+	
+	private static String makeUserId(String user_name, String domain) {
+		return "ftpuser:" + domain + "#" + user_name;
+	}
+	
 	public static FTPUser getUserByName(String user_name, String domain) {
-		String user_id = "ftpuser:" + domain + "#" + user_name;
+		return getUserId(makeUserId(user_name, domain));
+	}
+	
+	public static FTPUser getUserId(String user_id) {
+		// TODO get User, check if user is disabled, populateGroup(); check if group is disabled , group.getUserHomeDirectory(user)
 		return null; // TODO
 	}
 	
@@ -151,11 +164,37 @@ public class FTPUser implements User {
 	}
 	
 	public String getHomeDirectory() {
-		return home_directory.getAbsolutePath();
+		populateGroup();
+		try {
+			return group.getUserHomeDirectory(this).getAbsolutePath();
+		} catch (Exception e) {
+			Loggers.FTPserver.error("Can't get home directory for user " + user_id + " (" + user_name + ")", e);
+		}
+		return null;
 	}
 	
 	String getUserId() {
 		return user_id;
+	}
+	
+	/**
+	 * @return never null, maybe empty
+	 */
+	String getDomain() {
+		return domain;
+	}
+	
+	FTPGroup getGroup() {
+		populateGroup();
+		return group;
+	}
+	
+	long getLastPathIndexRefreshed() {
+		return last_path_index_refreshed;
+	}
+	
+	void setLastPathIndexRefreshed() {
+		last_path_index_refreshed = System.currentTimeMillis();
 	}
 	
 }

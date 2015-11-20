@@ -27,29 +27,13 @@ import org.apache.ftpserver.ftplet.Ftplet;
 import org.apache.ftpserver.ftplet.FtpletContext;
 import org.apache.ftpserver.ftplet.FtpletResult;
 
-import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.ftpserver.Session.Action;
 
 public class FTPlet implements Ftplet {
 	
-	private static final HashSet<String> ignore_commands;
 	private static final HashSet<String> valid_commands;
 	
 	static {
-		ignore_commands = new HashSet<String>();
-		ignore_commands.add("PASS");
-		ignore_commands.add("SYST");
-		ignore_commands.add("FEAT");
-		ignore_commands.add("PWD");
-		ignore_commands.add("TYPE");
-		ignore_commands.add("TYPE");
-		ignore_commands.add("EPSV");
-		ignore_commands.add("LIST");
-		ignore_commands.add("QUIT");
-		ignore_commands.add("MKD");
-		ignore_commands.add("OPTS");
-		ignore_commands.add("CWD");
-		
 		valid_commands = new HashSet<String>();
 		for (int pos = 0; pos < Action.values().length; pos++) {
 			valid_commands.add(Action.values()[pos].name());
@@ -60,12 +44,12 @@ public class FTPlet implements Ftplet {
 	}
 	
 	public FtpletResult onConnect(FtpSession session) throws FtpException, IOException {
-		Session.create(session);
+		session.setAttribute("dbsession", Session.create(session));
 		return null;
 	}
 	
 	public FtpletResult onDisconnect(FtpSession session) throws FtpException, IOException {
-		Session.get(session).commit();
+		getSessionFromServer(session).close();
 		return null;
 	}
 	
@@ -76,6 +60,18 @@ public class FTPlet implements Ftplet {
 		return null;
 	}
 	
+	private static Session getSessionFromServer(FtpSession ftpsession) {
+		Object _session = ftpsession.getAttribute("dbsession");
+		if (_session == null) {
+			return Session.get(ftpsession);
+		}
+		if (_session instanceof Session) {
+			return (Session) _session;
+		} else {
+			return Session.get(ftpsession);
+		}
+	}
+	
 	public FtpletResult afterCommand(FtpSession session, FtpRequest request, FtpReply reply) throws FtpException, IOException {
 		if (session.getUser() == null) {
 			return null;
@@ -83,14 +79,11 @@ public class FTPlet implements Ftplet {
 		if (request.hasArgument() == false) {
 			return null;
 		}
-		if (ignore_commands.contains(request.getCommand())) {
-			return null;
-		}
 		if (valid_commands.contains(request.getCommand()) == false) {
-			Loggers.FTPserver.warn("Unknow FTP command: " + request.getCommand() + " " + request.getArgument());
 			return null;
 		}
-		Session.get(session).pushActivity(session, request);
+		
+		getSessionFromServer(session).pushActivity(session, request);
 		return null;
 	}
 	
