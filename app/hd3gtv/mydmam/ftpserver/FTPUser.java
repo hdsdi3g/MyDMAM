@@ -17,6 +17,8 @@
 package hd3gtv.mydmam.ftpserver;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.ftpserver.ftplet.Authority;
@@ -24,30 +26,44 @@ import org.apache.ftpserver.ftplet.AuthorizationRequest;
 import org.apache.ftpserver.ftplet.User;
 import org.apache.ftpserver.usermanager.UsernamePasswordAuthentication;
 
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.serializers.StringSerializer;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.Password;
+import hd3gtv.mydmam.db.CassandraDb;
 
 public class FTPUser implements User {
 	
+	private static final ColumnFamily<String, String> CF_USER = new ColumnFamily<String, String>("ftpServerUser", StringSerializer.get(), StringSerializer.get());
+	private static Keyspace keyspace;
 	private transient static Password password;
 	
-	private String user_id;
-	private String user_name;
-	private byte[] obscured_password;
-	private String group_name;
-	private String domain;
-	private boolean enabled;
-	private long create_date;
-	private long update_date;
-	private long last_path_index_refreshed;
-	
-	/**
-	 * populateGroup will init it.
-	 */
-	private transient FTPGroup group;
-	
 	static {
+		try {
+			keyspace = CassandraDb.getkeyspace();
+			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
+			if (CassandraDb.isColumnFamilyExists(keyspace, CF_USER.getName()) == false) {
+				CassandraDb.createColumnFamilyString(default_keyspacename, CF_USER.getName(), true);
+				// String queue_name = CF_FTPUSER.getName();
+				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_USER, "last_login", CF_USER.getName() + "_last_login", DeployColumnDef.ColType_LongType);
+				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "creator_hostname", queue_name + "_creator_hostname", DeployColumnDef.ColType_UTF8Type);
+				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "expiration_date", queue_name + "_expiration_date", DeployColumnDef.ColType_LongType);
+				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "update_date", queue_name + "_update_date", DeployColumnDef.ColType_LongType);
+				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "delete", queue_name + "_delete", DeployColumnDef.ColType_Int32Type);
+				// CassandraDb.declareIndexedColumn(CassandraDb.getkeyspace(), CF_QUEUE, "indexingdebug", queue_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
+			}
+		} catch (Exception e) {
+			Loggers.FTPserver.error("Can't init database CFs", e);
+		}
+		
 		try {
 			password = new Password(Configuration.global.getValue("ftpserver", "master_password_key", ""));
 		} catch (Exception e) {
@@ -56,10 +72,27 @@ public class FTPUser implements User {
 		}
 	}
 	
+	private String user_id;
+	private String user_name;
+	private byte[] obscured_password;
+	private String group_name;
+	private String domain;
+	private boolean disabled;
+	private long create_date;
+	private long update_date;
+	private long last_path_index_refreshed;
+	private long last_login;
+	
+	/**
+	 * populateGroup will init it.
+	 */
+	private transient FTPGroup group;
+	
 	private FTPUser() {
 	}
 	
 	/**
+	 * Don't forget to save.
 	 * @param domain can be empty, but not null.
 	 */
 	public static FTPUser create(String user_name, String clear_password, String group_name, String domain) throws IOException {
@@ -95,17 +128,24 @@ public class FTPUser implements User {
 			throw new NullPointerException("\"group_name\" can't to be empty");
 		}
 		
-		user.enabled = true;
+		user.disabled = false;
 		user.user_id = makeUserId(user_name, domain);
 		
 		user.create_date = System.currentTimeMillis();
 		user.update_date = user.create_date;
+		user.last_login = 0;
 		
 		return user;
 	}
 	
-	public boolean validPassword(UsernamePasswordAuthentication auth) {
+	boolean validPassword(UsernamePasswordAuthentication auth) {
 		return password.checkPassword(auth.getPassword(), this.obscured_password);
+	}
+	
+	FTPUser updateLastLogin() throws ConnectionException {
+		last_login = System.currentTimeMillis();
+		save();
+		return this;
 	}
 	
 	private void populateGroup() {
@@ -121,13 +161,68 @@ public class FTPUser implements User {
 		return "ftpuser:" + domain + "#" + user_name;
 	}
 	
-	public static FTPUser getUserByName(String user_name, String domain) {
-		return getUserId(makeUserId(user_name, domain));
+	public static FTPUser getUserByName(String user_name, String domain) throws ConnectionException {
+		return getUserId(makeUserId(user_name, domain), true);
 	}
 	
-	public static FTPUser getUserId(String user_id) {
-		// TODO get User, check if user is disabled, populateGroup(); check if group is disabled , group.getUserHomeDirectory(user)
-		return null; // TODO
+	public static FTPUser getUserId(String user_id, boolean only_valid_users) throws ConnectionException {
+		ColumnList<String> row = keyspace.prepareQuery(CF_USER).getKey(user_id).execute().getResult();
+		if (row.isEmpty()) {
+			return null;
+		}
+		FTPUser user = new FTPUser();
+		user.importFromDb(user_id, row);
+		user.populateGroup();
+		
+		if (only_valid_users == false) {
+			return user;
+		}
+		if (user.disabled) {
+			Loggers.FTPserver.warn("User is disabled: " + user_id);
+			return null;
+		}
+		if (user.group.isDisabled()) {
+			Loggers.FTPserver.warn("User's group (" + user.group.getName() + ") is disabled for " + user_id);
+			return null;
+		}
+		try {
+			user.group.getUserHomeDirectory(user);
+		} catch (Exception e) {
+			Loggers.FTPserver.error("Can't load user home directory for " + user_id, e);
+			return null;
+		}
+		return user;
+	}
+	
+	private void importFromDb(String key, ColumnList<String> cols) {
+		user_id = key;
+		user_name = cols.getStringValue("user_name", "");
+		obscured_password = cols.getByteArrayValue("obscured_password", new byte[0]);
+		group_name = cols.getStringValue("group_name", "");
+		domain = cols.getStringValue("domain", "");
+		disabled = cols.getBooleanValue("disabled", false);
+		create_date = cols.getLongValue("create_date", -1l);
+		update_date = cols.getLongValue("update_date", -1l);
+		last_path_index_refreshed = cols.getLongValue("last_path_index_refreshed", -1l);
+		last_login = cols.getLongValue("last_login", -1l);
+	}
+	
+	public void save() throws ConnectionException {
+		MutationBatch mutator = keyspace.prepareMutationBatch();
+		save(mutator);
+		mutator.execute();
+	}
+	
+	public void save(MutationBatch mutator) throws ConnectionException {
+		mutator.withRow(CF_USER, user_id).putColumn("user_name", user_name);
+		mutator.withRow(CF_USER, user_id).putColumn("obscured_password", obscured_password);
+		mutator.withRow(CF_USER, user_id).putColumn("group_name", group_name);
+		mutator.withRow(CF_USER, user_id).putColumn("domain", domain);
+		mutator.withRow(CF_USER, user_id).putColumn("disabled", disabled);
+		mutator.withRow(CF_USER, user_id).putColumn("create_date", create_date);
+		mutator.withRow(CF_USER, user_id).putColumn("update_date", update_date);
+		mutator.withRow(CF_USER, user_id).putColumn("last_path_index_refreshed", last_path_index_refreshed);
+		mutator.withRow(CF_USER, user_id).putColumn("last_login", last_login);
 	}
 	
 	public String getName() {
@@ -160,7 +255,7 @@ public class FTPUser implements User {
 	}
 	
 	public boolean getEnabled() {
-		return enabled;
+		return disabled == false;
 	}
 	
 	public String getHomeDirectory() {
@@ -193,8 +288,89 @@ public class FTPUser implements User {
 		return last_path_index_refreshed;
 	}
 	
-	void setLastPathIndexRefreshed() {
+	FTPUser setLastPathIndexRefreshed() {
 		last_path_index_refreshed = System.currentTimeMillis();
+		return this;
 	}
+	
+	/*ArrayList<Session> getSessionsForUser() {
+		if (sessions != null) {
+		}
+		return sessions;
+	}*/
+	
+	static class ExpiredUser {
+		String group_name;
+		String user_id;
+		long date;
+		
+		private ExpiredUser(String group_name, String user_id, long date) {
+			this.group_name = group_name;
+			this.user_id = user_id;
+			this.date = date;
+		}
+		
+	}
+	
+	/**
+	 * @param groups_ttl Group id -> ttl (in msec)
+	 * @return group id -> last_login, never null
+	 */
+	
+	static List<ExpiredUser> getTrashableUsers() throws ConnectionException {
+		HashMap<String, Long> groups_ttl = FTPGroup.getDeclaredGroupsTTLTrash();
+		HashMap<String, Boolean> group_activity_last_login = FTPGroup.getDeclaredGroupsExpirationBasedOnLastActivity();
+		
+		List<ExpiredUser> result = new ArrayList<FTPUser.ExpiredUser>();
+		Rows<String, String> rows = keyspace.prepareQuery(CF_USER).getAllRows().withColumnSlice("last_login", "group_name", "create_date").execute().getResult();
+		
+		String group_name;
+		long ttl_eq_now;
+		long date;
+		for (Row<String, String> row : rows) {
+			group_name = row.getColumns().getStringValue("group_name", "");
+			if (groups_ttl.containsKey(group_name) == false) {
+				continue;
+			}
+			ttl_eq_now = System.currentTimeMillis() - groups_ttl.get(group_name);
+			
+			if (group_activity_last_login.get(group_name)) {
+				date = row.getColumns().getLongValue("last_login", 0l);
+				if (date < 1) {
+					/**
+					 * User has never login.
+					 */
+					continue;
+				}
+			} else {
+				date = row.getColumns().getLongValue("create_date", 0l);
+			}
+			if (date < ttl_eq_now) {
+				result.add(new ExpiredUser(group_name, row.getKey(), date));
+			}
+		}
+		return result;
+	}
+	
+	static List<ExpiredUser> getPurgableUsers(List<ExpiredUser> trashable_users) {
+		HashMap<String, Long> groups_ttl = FTPGroup.getDeclaredGroupsTTLPurge();
+		
+		List<ExpiredUser> result = new ArrayList<FTPUser.ExpiredUser>();
+		ExpiredUser user;
+		long ttl_eq_now;
+		for (int pos = 0; pos < trashable_users.size(); pos++) {
+			user = trashable_users.get(pos);
+			if (groups_ttl.containsKey(user.group_name) == false) {
+				continue;
+			}
+			ttl_eq_now = System.currentTimeMillis() - groups_ttl.get(user.group_name);
+			if (user.date < ttl_eq_now) {
+				result.add(user);
+			}
+		}
+		return result;
+	}
+	
+	// TODO if delete user, delete sessions and delete activities
 	
 }

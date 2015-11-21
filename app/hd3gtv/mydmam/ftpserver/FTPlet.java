@@ -27,6 +27,9 @@ import org.apache.ftpserver.ftplet.Ftplet;
 import org.apache.ftpserver.ftplet.FtpletContext;
 import org.apache.ftpserver.ftplet.FtpletResult;
 
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.ftpserver.Session.Action;
 
 public class FTPlet implements Ftplet {
@@ -44,12 +47,20 @@ public class FTPlet implements Ftplet {
 	}
 	
 	public FtpletResult onConnect(FtpSession session) throws FtpException, IOException {
-		session.setAttribute("dbsession", Session.create(session));
+		try {
+			session.setAttribute("dbsession", Session.create(session));
+		} catch (Exception e) {
+			Loggers.FTPserver.warn("Can't create session for " + session.getUser().getName() + " " + session.getSessionId(), e);
+		}
 		return null;
 	}
 	
 	public FtpletResult onDisconnect(FtpSession session) throws FtpException, IOException {
-		getSessionFromServer(session).close();
+		try {
+			getSessionFromServer(session).flush().close();
+		} catch (Exception e) {
+			Loggers.FTPserver.warn("Can't flush/close session for " + session.getUser().getName() + " " + session.getSessionId(), e);
+		}
 		return null;
 	}
 	
@@ -60,7 +71,7 @@ public class FTPlet implements Ftplet {
 		return null;
 	}
 	
-	private static Session getSessionFromServer(FtpSession ftpsession) {
+	private static Session getSessionFromServer(FtpSession ftpsession) throws ConnectionException {
 		Object _session = ftpsession.getAttribute("dbsession");
 		if (_session == null) {
 			return Session.get(ftpsession);
@@ -83,7 +94,12 @@ public class FTPlet implements Ftplet {
 			return null;
 		}
 		
-		getSessionFromServer(session).pushActivity(session, request);
+		try {
+			getSessionFromServer(session).pushActivity(session, request);
+		} catch (ConnectionException e) {
+			Loggers.FTPserver.warn("Can't get session entry for " + session.getUser().getName() + " " + session.getSessionId(), e);
+		}
+		
 		return null;
 	}
 	

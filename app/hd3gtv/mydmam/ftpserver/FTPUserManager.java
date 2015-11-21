@@ -23,6 +23,10 @@ import org.apache.ftpserver.ftplet.User;
 import org.apache.ftpserver.ftplet.UserManager;
 import org.apache.ftpserver.usermanager.UsernamePasswordAuthentication;
 
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.mydmam.Loggers;
+
 public class FTPUserManager implements UserManager {
 	
 	private String domain;
@@ -38,7 +42,11 @@ public class FTPUserManager implements UserManager {
 	}
 	
 	public User getUserByName(String username) throws FtpException {
-		return FTPUser.getUserByName(username, domain);
+		try {
+			return FTPUser.getUserByName(username, domain);
+		} catch (ConnectionException e) {
+			throw new FtpException("Can't access to db", e);
+		}
 	}
 	
 	public User authenticate(Authentication authentication) throws AuthenticationFailedException {
@@ -47,12 +55,16 @@ public class FTPUserManager implements UserManager {
 		}
 		UsernamePasswordAuthentication auth = (UsernamePasswordAuthentication) authentication;
 		
-		User user = FTPUser.getUserByName(auth.getUsername(), domain);
-		if (user == null) {
-			return null;
-		}
-		if (((FTPUser) user).validPassword(auth)) {
-			return user;
+		try {
+			FTPUser user = FTPUser.getUserByName(auth.getUsername(), domain);
+			if (user == null) {
+				return null;
+			}
+			if (user.validPassword(auth)) {
+				return user.updateLastLogin();
+			}
+		} catch (ConnectionException e) {
+			Loggers.FTPserver.error("Can't access to db", e);
 		}
 		return null;
 	}

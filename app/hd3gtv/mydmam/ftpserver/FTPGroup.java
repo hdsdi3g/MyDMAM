@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.ftpserver;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -33,29 +34,57 @@ public class FTPGroup {
 	
 	private static LinkedHashMap<String, FTPGroup> declared_groups;
 	
+	private static HashMap<String, Long> declared_groups_ttl_trash;
+	private static HashMap<String, Long> declared_groups_ttl_purge;
+	private static HashMap<String, Boolean> declared_groups_expiration_based_on_last_activity;
+	
 	private static void init_group() {
 		declared_groups = new LinkedHashMap<String, FTPGroup>();
+		declared_groups_ttl_trash = new HashMap<String, Long>();
+		declared_groups_ttl_purge = new HashMap<String, Long>();
+		declared_groups_expiration_based_on_last_activity = new HashMap<String, Boolean>();
+		
 		if (Configuration.global.isElementExists("ftpservergroups") == false) {
 			return;
 		}
 		HashMap<String, ConfigurationItem> all_groups_confs = Configuration.global.getElement("ftpservergroups");
 		
 		String group_name;
+		FTPGroup group;
 		for (Map.Entry<String, ConfigurationItem> entry : all_groups_confs.entrySet()) {
 			group_name = entry.getKey();
 			try {
-				declared_groups.put(group_name, new FTPGroup(group_name, entry.getValue().content));
+				group = new FTPGroup(group_name, all_groups_confs);
+				declared_groups.put(group_name, group);
+				
+				if (group.account_expiration_trash_duration > 0) {
+					declared_groups_ttl_trash.put(group_name, (long) group.account_expiration_trash_duration * 1000);
+					declared_groups_ttl_purge.put(group_name, (long) group.account_expiration_purge_duration * 1000);
+					declared_groups_expiration_based_on_last_activity.put(group_name, group.account_expiration_based_on_last_activity);
+				}
 			} catch (Exception e) {
 				Loggers.FTPserver.error("Can't import group declaration (" + group_name + " ) from configuration", e);
 			}
 		}
 	}
 	
-	public static LinkedHashMap<String, FTPGroup> getDeclaredGroups() {
+	static LinkedHashMap<String, FTPGroup> getDeclaredGroups() {
 		if (declared_groups == null) {
 			init_group();
 		}
 		return declared_groups;
+	}
+	
+	static HashMap<String, Long> getDeclaredGroupsTTLTrash() {
+		return declared_groups_ttl_trash;
+	}
+	
+	static HashMap<String, Long> getDeclaredGroupsTTLPurge() {
+		return declared_groups_ttl_purge;
+	}
+	
+	static HashMap<String, Boolean> getDeclaredGroupsExpirationBasedOnLastActivity() {
+		return declared_groups_expiration_based_on_last_activity;
 	}
 	
 	public static FTPGroup getFromName(String group_name) {
@@ -65,12 +94,20 @@ public class FTPGroup {
 		return declared_groups.get(group_name);
 	}
 	
-	private String name; // TODO do this
-	private boolean disabled_group; // TODO do this
-	private long account_expiration_trash_duration; // TODO do this
-	private long account_expiration_purge_duration; // TODO do this
+	private String name;
+	private boolean disabled_group;
+	
+	/**
+	 * Always purge_duration >= trash_duration, in sec
+	 */
+	private int account_expiration_trash_duration;
+	
+	/**
+	 * Always purge_duration >= trash_duration, in sec
+	 */
+	private int account_expiration_purge_duration;
+	
 	private boolean account_expiration_based_on_last_activity;
-	private long ttl_activity; // TODO do this
 	
 	private File base_working_dir;
 	private long min_disk_space_before_warn;// TODO watching thread for this
@@ -90,8 +127,34 @@ public class FTPGroup {
 	 */
 	private boolean domain_isolation;
 	
-	private FTPGroup(String group_name, LinkedHashMap<String, ?> conf) throws Exception {
-		// TODO
+	private FTPGroup(String group_name, HashMap<String, ConfigurationItem> all_groups_confs) throws Exception {
+		name = group_name;
+		disabled_group = Configuration.getValueBoolean(all_groups_confs, group_name, "disabled");
+		account_expiration_trash_duration = Configuration.getValue(all_groups_confs, group_name, "account_expiration_trash_duration", 0);
+		account_expiration_purge_duration = Configuration.getValue(all_groups_confs, group_name, "account_expiration_purge_duration", 0);
+		if (account_expiration_purge_duration < account_expiration_trash_duration) {
+			account_expiration_purge_duration = account_expiration_trash_duration;
+			Loggers.FTPserver.warn("FTP group definition: account_expiration_purge_duration can't < account_expiration_trash_duration, for " + group_name);
+		}
+		account_expiration_based_on_last_activity = Configuration.getValueBoolean(all_groups_confs, group_name, "account_expiration_based_on_last_activity");
+		base_working_dir = new File(Configuration.getValue(all_groups_confs, group_name, "base_working_dir", ""));
+		
+		if (base_working_dir.getPath().equalsIgnoreCase(new File("").getPath())) {
+			throw new FileNotFoundException("\"base_working_dir\" is no set in configuration");
+		}
+		if (base_working_dir.exists()) {
+			CopyMove.checkExistsCanRead(base_working_dir);
+			CopyMove.checkIsDirectory(base_working_dir);
+			CopyMove.checkIsWritable(base_working_dir);
+		} else {
+			FileUtils.forceMkdir(base_working_dir);
+		}
+		
+		min_disk_space_before_warn = Configuration.getValue(all_groups_confs, group_name, "min_disk_space_before_warn", 0);
+		min_disk_space_before_stop = Configuration.getValue(all_groups_confs, group_name, "min_disk_space_before_stop", 0);
+		
+		pathindex_storagename_for_live_update = Configuration.getValue(all_groups_confs, group_name, "pathindex_storagename_for_live_update", null);
+		domain_isolation = Configuration.getValueBoolean(all_groups_confs, group_name, "domain_isolation");
 	}
 	
 	/**
@@ -127,6 +190,10 @@ public class FTPGroup {
 	
 	boolean isDisabled() {
 		return disabled_group;
+	}
+	
+	String getName() {
+		return name;
 	}
 	
 	String getPathindexStoragenameLiveUpdate() {
