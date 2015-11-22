@@ -29,6 +29,7 @@ import java.security.Security;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -51,6 +52,21 @@ import hd3gtv.configuration.Configuration;
 public class MyDMAM {
 	
 	public static final String LINESEPARATOR = System.getProperty("line.separator");
+	
+	/**
+	 * Transform accents to non accented (ascii) version.
+	 */
+	public static final Pattern PATTERN_Combining_Diacritical_Marks = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+	
+	/**
+	 * Transform accents to non accented (ascii) version, and remove all spaces chars.
+	 */
+	public final static Pattern PATTERN_Combining_Diacritical_Marks_Spaced = Pattern.compile("[\\p{InCombiningDiacriticalMarks}\\s]+");
+	
+	/**
+	 * Remove all non char/number like #@-"ı\r\n\t\t,\\;.?&'(§°*$%+=... BUT keep "_"
+	 */
+	public final static Pattern PATTERN_Special_Chars = Pattern.compile("[^\\w]");
 	
 	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2015";
 	

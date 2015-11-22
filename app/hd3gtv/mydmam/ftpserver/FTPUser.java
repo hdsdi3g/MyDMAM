@@ -17,8 +17,10 @@
 package hd3gtv.mydmam.ftpserver;
 
 import java.io.IOException;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.apache.ftpserver.ftplet.Authority;
@@ -37,6 +39,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.Password;
 import hd3gtv.mydmam.db.CassandraDb;
 
@@ -93,6 +96,7 @@ public class FTPUser implements User {
 	
 	/**
 	 * Don't forget to save.
+	 * @param user_name can be changed (chars filtered). Check after the process the definitive user_name.
 	 * @param domain can be empty, but not null.
 	 */
 	public static FTPUser create(String user_name, String clear_password, String group_name, String domain) throws IOException {
@@ -105,7 +109,17 @@ public class FTPUser implements User {
 		if (user_name.isEmpty()) {
 			throw new NullPointerException("\"user_name\" can't to be empty");
 		}
-		// TODO check bad chars in user_name
+		
+		user.user_name = MyDMAM.PATTERN_Combining_Diacritical_Marks_Spaced.matcher(Normalizer.normalize(user.user_name, Normalizer.Form.NFD)).replaceAll("");
+		user.user_name = MyDMAM.PATTERN_Special_Chars.matcher(Normalizer.normalize(user.user_name, Normalizer.Form.NFD)).replaceAll("");
+		user.user_name = user.user_name.trim().toLowerCase();
+		
+		if (user_name.equalsIgnoreCase(user.user_name) == false) {
+			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+			log.put("orignal", user_name);
+			log.put("transformed", user.user_name);
+			Loggers.FTPserver.info("User name will be transformed during the creation process " + log);
+		}
 		
 		user.obscured_password = password.getHashedPassword(clear_password);
 		if (clear_password == null) {
@@ -352,7 +366,7 @@ public class FTPUser implements User {
 		return result;
 	}
 	
-	static List<ExpiredUser> getPurgableUsers(List<ExpiredUser> trashable_users) {
+	static List<ExpiredUser> getPurgeableUsers(List<ExpiredUser> trashable_users) {
 		HashMap<String, Long> groups_ttl = FTPGroup.getDeclaredGroupsTTLPurge();
 		
 		List<ExpiredUser> result = new ArrayList<FTPUser.ExpiredUser>();
@@ -371,6 +385,6 @@ public class FTPUser implements User {
 		return result;
 	}
 	
-	// TODO if delete user, delete sessions and delete activities
+	// TODO if delete user, delete activities
 	
 }

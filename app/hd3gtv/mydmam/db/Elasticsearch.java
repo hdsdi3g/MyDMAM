@@ -21,7 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
@@ -331,6 +333,36 @@ public class Elasticsearch {
 			return 0;
 		}
 		return response.getCount();
+	}
+	
+	public static EmptyActionListener createEmptyActionListener(Logger logger, Class<?> source) {
+		if (logger == null) {
+			throw new NullPointerException("\"logger\" can't to be null");
+		}
+		if (source == null) {
+			throw new NullPointerException("\"source\" can't to be null");
+		}
+		return new EmptyActionListener(logger, source);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private static class EmptyActionListener implements ActionListener {
+		
+		private Logger logger;
+		private Class<?> source;
+		
+		public EmptyActionListener(Logger logger, Class<?> source) {
+			this.logger = logger;
+			this.source = source;
+		}
+		
+		public void onResponse(Object response) {
+		}
+		
+		public void onFailure(Throwable e) {
+			logger.warn("ES generic error, can't execute action submitted by " + source.getName(), e);
+		}
+		
 	}
 	
 }

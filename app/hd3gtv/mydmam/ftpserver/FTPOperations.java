@@ -33,11 +33,6 @@ import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class FTPOperations {
 	
-	// TODO lower TTLs for activities
-	// TODO Push to ES all User activities history, and Disable flush.
-	// TODO Remove Session, keep Activity
-	// TODO set ES ttl by group (long or short)
-	
 	private static final Gson gson;
 	// private static final Gson simple_gson;
 	// private static final Gson pretty_gson;
@@ -122,23 +117,23 @@ public class FTPOperations {
 		}
 	}
 	
-	private HashSet<Session> opened_sessions;
+	private HashSet<FTPUser> active_users;
 	
 	private FTPOperations() {
-		opened_sessions = new HashSet<Session>();
+		active_users = new HashSet<FTPUser>();
 	}
 	
-	synchronized void addSession(Session session) throws ConnectionException {
-		if (opened_sessions.contains(session)) {
+	synchronized void addActiveUser(FTPUser ftp_user) {
+		if (active_users.contains(ftp_user)) {
 			return;
 		}
-		if (session.getUser().getGroup().getPathindexStoragenameLiveUpdate() != null) {
-			opened_sessions.add(session);
+		if (ftp_user.getGroup().getPathindexStoragenameLiveUpdate() != null) {
+			active_users.add(ftp_user);
 		}
 	}
 	
-	synchronized void closeSession(Session session) {
-		opened_sessions.remove(session);
+	synchronized void removeActiveUser(FTPUser ftp_user) {
+		active_users.remove(ftp_user);
 	}
 	
 	private static Explorer explorer = new Explorer();
@@ -157,16 +152,14 @@ public class FTPOperations {
 			HashSet<FTPUser> current_active_users = new HashSet<FTPUser>(1);
 			ElasticsearchBulkOperation bulk_op;
 			List<ExpiredUser> trashable_users;
-			List<ExpiredUser> purgable_users;
+			List<ExpiredUser> purgeable_users;
 			
 			try {
 				while (stop == false) {
 					try {
-						synchronized (opened_sessions) {
+						synchronized (active_users) {
 							current_active_users.clear();
-							for (Session session : opened_sessions) {
-								current_active_users.add(session.getUser());
-							}
+							current_active_users.addAll(active_users);
 						}
 						
 						bulk_op = Elasticsearch.prepareBulk();
@@ -188,10 +181,12 @@ public class FTPOperations {
 						trashable_users = FTPUser.getTrashableUsers();
 						// TODO disable user account + move (trash/domain#userid-purgedate)
 						
-						purgable_users = FTPUser.getPurgableUsers(trashable_users);
+						purgeable_users = FTPUser.getPurgeableUsers(trashable_users);
 						// TODO remove user account + search all domain#userid-* and delete it
 						
-						// TODO Group checks tasks: min_disk_space_before_warn/stop
+						for (FTPGroup group : FTPGroup.getDeclaredGroups().values()) {
+							group.checkFreeSpace();
+						}
 						
 					} catch (ConnectionException e) {
 						Loggers.FTPserver.error("Can't access to db", e);

@@ -27,10 +27,7 @@ import org.apache.ftpserver.ftplet.Ftplet;
 import org.apache.ftpserver.ftplet.FtpletContext;
 import org.apache.ftpserver.ftplet.FtpletResult;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
-import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.ftpserver.Session.Action;
+import hd3gtv.mydmam.ftpserver.FTPActivity.Action;
 
 public class FTPlet implements Ftplet {
 	
@@ -47,20 +44,11 @@ public class FTPlet implements Ftplet {
 	}
 	
 	public FtpletResult onConnect(FtpSession session) throws FtpException, IOException {
-		try {
-			session.setAttribute("dbsession", Session.create(session));
-		} catch (Exception e) {
-			Loggers.FTPserver.warn("Can't create session for " + session.getUser().getName() + " " + session.getSessionId(), e);
-		}
 		return null;
 	}
 	
 	public FtpletResult onDisconnect(FtpSession session) throws FtpException, IOException {
-		try {
-			getSessionFromServer(session).flush().close();
-		} catch (Exception e) {
-			Loggers.FTPserver.warn("Can't flush/close session for " + session.getUser().getName() + " " + session.getSessionId(), e);
-		}
+		FTPOperations.get().removeActiveUser((FTPUser) session.getUser());
 		return null;
 	}
 	
@@ -69,18 +57,6 @@ public class FTPlet implements Ftplet {
 	
 	public FtpletResult beforeCommand(FtpSession session, FtpRequest request) throws FtpException, IOException {
 		return null;
-	}
-	
-	private static Session getSessionFromServer(FtpSession ftpsession) throws ConnectionException {
-		Object _session = ftpsession.getAttribute("dbsession");
-		if (_session == null) {
-			return Session.get(ftpsession);
-		}
-		if (_session instanceof Session) {
-			return (Session) _session;
-		} else {
-			return Session.get(ftpsession);
-		}
 	}
 	
 	public FtpletResult afterCommand(FtpSession session, FtpRequest request, FtpReply reply) throws FtpException, IOException {
@@ -93,12 +69,7 @@ public class FTPlet implements Ftplet {
 		if (valid_commands.contains(request.getCommand()) == false) {
 			return null;
 		}
-		
-		try {
-			getSessionFromServer(session).pushActivity(session, request);
-		} catch (ConnectionException e) {
-			Loggers.FTPserver.warn("Can't get session entry for " + session.getUser().getName() + " " + session.getSessionId(), e);
-		}
+		FTPActivity.push(session, request);
 		
 		return null;
 	}

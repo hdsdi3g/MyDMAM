@@ -20,7 +20,6 @@ import java.io.Serializable;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
-import java.util.regex.Pattern;
 
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.search.SearchHit;
@@ -131,8 +130,6 @@ public class SourcePathIndexerElement implements Serializable/*, JsonSerializer<
 		return sb.toString();
 	}
 	
-	private static final Pattern combining_diacritical_marks = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
-	
 	/**
 	 * remove accents, underscores from path
 	 */
@@ -156,7 +153,7 @@ public class SourcePathIndexerElement implements Serializable/*, JsonSerializer<
 				filename = currentpath.substring(poslastslash + 1);
 			}
 		}
-		String filename_normalized = combining_diacritical_marks.matcher(Normalizer.normalize(filename, Normalizer.Form.NFD)).replaceAll("").trim().toLowerCase();
+		String filename_normalized = MyDMAM.PATTERN_Combining_Diacritical_Marks.matcher(Normalizer.normalize(filename, Normalizer.Form.NFD)).replaceAll("").trim().toLowerCase();
 		
 		StringBuffer sb = new StringBuffer();
 		char[] filename_chr = filename_normalized.toCharArray();
@@ -212,7 +209,7 @@ public class SourcePathIndexerElement implements Serializable/*, JsonSerializer<
 			filename = filename.substring(poslastslash + 1);
 		}
 		
-		String filename_normalized = combining_diacritical_marks.matcher(Normalizer.normalize(filename, Normalizer.Form.NFD)).replaceAll("").trim().toLowerCase();
+		String filename_normalized = MyDMAM.PATTERN_Combining_Diacritical_Marks.matcher(Normalizer.normalize(filename, Normalizer.Form.NFD)).replaceAll("").trim().toLowerCase();
 		
 		StringBuffer sb = new StringBuffer();
 		char[] filename_chr = filename_normalized.toCharArray();

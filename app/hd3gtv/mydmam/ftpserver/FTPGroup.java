@@ -28,9 +28,14 @@ import org.apache.commons.io.FileUtils;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.tools.CopyMove;
+import hd3gtv.tools.FreeDiskSpaceWarningException;
 
 public class FTPGroup {
+	
+	// TODO Publish in InstanceStatus
+	// TODO enable/disable groups in instance status
 	
 	private static LinkedHashMap<String, FTPGroup> declared_groups;
 	
@@ -110,8 +115,8 @@ public class FTPGroup {
 	private boolean account_expiration_based_on_last_activity;
 	
 	private File base_working_dir;
-	private long min_disk_space_before_warn;// TODO watching thread for this
-	private long min_disk_space_before_stop;// TODO watching thread for this
+	private long min_disk_space_before_warn;
+	private long min_disk_space_before_stop;
 	
 	/**
 	 * Set null for disable.
@@ -126,6 +131,8 @@ public class FTPGroup {
 	 * If no domain, user storage will be like /base_working_dir/userName
 	 */
 	private boolean domain_isolation;
+	
+	private boolean short_activity_log;
 	
 	private FTPGroup(String group_name, HashMap<String, ConfigurationItem> all_groups_confs) throws Exception {
 		name = group_name;
@@ -155,6 +162,8 @@ public class FTPGroup {
 		
 		pathindex_storagename_for_live_update = Configuration.getValue(all_groups_confs, group_name, "pathindex_storagename_for_live_update", null);
 		domain_isolation = Configuration.getValueBoolean(all_groups_confs, group_name, "domain_isolation");
+		
+		short_activity_log = Configuration.getValueBoolean(all_groups_confs, group_name, "short_activity_log");
 	}
 	
 	/**
@@ -188,7 +197,7 @@ public class FTPGroup {
 		return home_directory;
 	}
 	
-	boolean isDisabled() {
+	synchronized boolean isDisabled() {
 		return disabled_group;
 	}
 	
@@ -199,4 +208,45 @@ public class FTPGroup {
 	String getPathindexStoragenameLiveUpdate() {
 		return pathindex_storagename_for_live_update;
 	}
+	
+	public boolean isShortActivityLog() {
+		return short_activity_log;
+	}
+	
+	private transient long last_free_space;
+	
+	/**
+	 * Check only if group is enabled.
+	 */
+	void checkFreeSpace() {
+		if (disabled_group) {
+			return;
+		}
+		long actual_free_space = 0;
+		try {
+			if (min_disk_space_before_warn > 0) {
+				if (min_disk_space_before_stop > 0) {
+					actual_free_space = FreeDiskSpaceWarningException.check(base_working_dir, min_disk_space_before_warn, min_disk_space_before_stop);
+				} else {
+					actual_free_space = FreeDiskSpaceWarningException.check(base_working_dir, min_disk_space_before_warn);
+				}
+			} else if (min_disk_space_before_stop > 0) {
+				actual_free_space = FreeDiskSpaceWarningException.check(base_working_dir, min_disk_space_before_stop, min_disk_space_before_stop);
+			}
+		} catch (FreeDiskSpaceWarningException fdswe) {
+			Loggers.FTPserver.warn("Check storage free space for group " + name, fdswe);
+			if (last_free_space <= actual_free_space) {
+				/**
+				 * More free space, don't alert.
+				 */
+				AdminMailAlert.create("Check storage free space for group " + name, false).setThrowable(fdswe).send();
+			}
+		} catch (IOException ioe) {
+			Loggers.FTPserver.error("Not enough free space: disable group " + name, ioe);
+			AdminMailAlert.create("Not enough free space: disable group " + name, false).setThrowable(ioe).send();
+			disabled_group = true;
+		}
+		last_free_space = actual_free_space;
+	}
+	
 }

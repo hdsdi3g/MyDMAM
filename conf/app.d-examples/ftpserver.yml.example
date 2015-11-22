@@ -22,4 +22,5 @@ ftpservergroups:
         # min_disk_space_before_stop: 10000000       # In bytes. This current instance of MyDMAM will be stopped if base_working_dir is full.
         # pathindex_storagename_for_live_update: FTP Group 1  # set if you want to indexing FTP accounts, with this storage name
         # domain_isolation: false                    # If you want use separate directories for each domain (by example if base_working_dir is splitted between with differents mounts).
+        # short_activity_log: false                  # Set true if you don't want keep FTP activities logs during a long time.
     # you can add many groups

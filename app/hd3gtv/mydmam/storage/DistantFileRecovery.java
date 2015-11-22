@@ -18,7 +18,6 @@ package hd3gtv.mydmam.storage;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +30,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.container.ContainerOrigin;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.CopyMove;
+import hd3gtv.tools.FreeDiskSpaceWarningException;
 
 public class DistantFileRecovery {
 	
@@ -78,9 +78,7 @@ public class DistantFileRecovery {
 	 * @return never null. Download if needed. Has a TTL ! Name based on MTD key.
 	 */
 	public static File getFile(SourcePathIndexerElement element, boolean use_current_thread_status_to_check_the_needs_for_this_file) throws Exception {
-		if ((temp_directory.getFreeSpace()) > 0 & (temp_directory.getFreeSpace() < element.size)) {
-			throw new IOException("No space left on " + temp_directory.getAbsolutePath() + " (" + temp_directory.getFreeSpace() + " bytes)");
-		}
+		FreeDiskSpaceWarningException.check(temp_directory, element.size);
 		
 		String base_name_unique_element_key = ContainerOrigin.fromSource(element, null).getUniqueElementKey();
 		
