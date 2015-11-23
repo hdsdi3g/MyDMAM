@@ -72,6 +72,22 @@ class BrokerNG {
 		return declared_triggers;
 	}
 	
+	void cyclicJobsRegister(CyclicJobCreator cyclic_creator) {
+		if (cyclic_creator == null) {
+			throw new NullPointerException("\"cyclic_creator\" can't to be null");
+		}
+		declared_cyclics.add(cyclic_creator);
+		Loggers.Manager.debug("Register cyclic job creator: " + cyclic_creator.toString());
+	}
+	
+	void triggerJobsRegister(TriggerJobCreator trigger_creator) {
+		if (trigger_creator == null) {
+			throw new NullPointerException("\"trigger_creator\" can't to be null");
+		}
+		declared_triggers.add(trigger_creator);
+		Loggers.Manager.debug("Register trigger job creator: " + trigger_creator.toString());
+	}
+	
 	void start() {
 		if (isAlive()) {
 			return;
@@ -114,8 +130,8 @@ class BrokerNG {
 		boolean stop_queue;
 		
 		public QueueOperations() {
-			setName("Queue operations for Broker " + manager.getInstance_status().getInstanceNamePid());
-			Loggers.Broker.debug("Init queue operations thread for " + manager.getInstance_status().getInstanceNamePid());
+			setName("Queue operations for Broker " + manager.getInstanceStatus().getInstanceNamePid());
+			Loggers.Broker.debug("Init queue operations thread for " + manager.getInstanceStatus().getInstanceNamePid());
 			setDaemon(true);
 		}
 		
@@ -177,7 +193,7 @@ class BrokerNG {
 								if (mutator == null) {
 									mutator = CassandraDb.prepareMutationBatch();
 								}
-								Loggers.Broker.debug("Cyclic create jobs [" + cyclic_creator.getReference_key() + "] " + cyclic_creator.getLongName());
+								Loggers.Broker.debug("Cyclic create jobs [" + cyclic_creator.getReferenceKey() + "] " + cyclic_creator.getLongName());
 								cyclic_creator.createJobs(mutator);
 							}
 						}
@@ -203,13 +219,13 @@ class BrokerNG {
 						
 						if (active_clean_jobs) {
 							Loggers.Broker.debug("Watch old abandoned jobs...");
-							jobs = JobNG.Utility.watchOldAbandonedJobs(mutator, manager.getInstance_status());
+							jobs = JobNG.Utility.watchOldAbandonedJobs(mutator, manager.getInstanceStatus());
 							if (jobs.isEmpty() == false) {
 								Loggers.Broker.debug("Watch old abandoned jobs: there are too old jobs (" + jobs.size() + ") in queue:\t" + jobs);
 								manager.getServiceException().onQueueJobProblem("There are too old jobs in queue", jobs);
 							}
-							Loggers.Broker.debug("Remove max date for postponed jobs for " + manager.getInstance_status().getHostName());
-							JobNG.Utility.removeMaxDateForPostponedJobs(mutator, manager.getInstance_status().getHostName());
+							Loggers.Broker.debug("Remove max date for postponed jobs for " + manager.getInstanceStatus().getHostName());
+							JobNG.Utility.removeMaxDateForPostponedJobs(mutator, manager.getInstanceStatus().getHostName());
 						}
 						
 						if (mutator.isEmpty() == false) {
@@ -240,8 +256,8 @@ class BrokerNG {
 		boolean stop_queue;
 		
 		public QueueNewJobs() {
-			setName("Queue new jobs for Broker " + manager.getInstance_status().getInstanceNamePid());
-			Loggers.Broker.debug("Init queue new jobs thread for " + manager.getInstance_status().getInstanceNamePid());
+			setName("Queue new jobs for Broker " + manager.getInstanceStatus().getInstanceNamePid());
+			Loggers.Broker.debug("Init queue new jobs thread for " + manager.getInstanceStatus().getInstanceNamePid());
 			setDaemon(true);
 		}
 		

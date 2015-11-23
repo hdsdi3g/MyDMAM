@@ -93,7 +93,11 @@ public final class CyclicJobCreator extends JobCreator {
 	
 	static JobCreatorSerializer<CyclicJobCreator> serializer = new JobCreatorSerializer<CyclicJobCreator>(CyclicJobCreator.class);
 	
-	public void doAnAction(JsonObject order) {
+	public Class<? extends InstanceActionReceiver> getClassToCallback() {
+		return CyclicJobCreator.class;
+	}
+	
+	public void doAnAction(JsonObject order) throws Exception {
 		super.doAnAction(order);
 		
 		if (order.has("setperiod")) {
@@ -104,7 +108,12 @@ public final class CyclicJobCreator extends JobCreator {
 			next_date_to_create_jobs = order.get("setnextdate").getAsLong();
 			Loggers.Manager.debug("Change cyclic next date: " + Loggers.dateLog(next_date_to_create_jobs));
 		}
+		
 		Loggers.Manager.info("Change cyclic: " + toString());
+	}
+	
+	public Class<?> getInstanceStatusItemReferenceClass() {
+		return CyclicJobCreator.class;
 	}
 	
 }

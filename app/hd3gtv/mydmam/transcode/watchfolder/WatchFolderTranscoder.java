@@ -69,9 +69,7 @@ public class WatchFolderTranscoder {
 		}
 		
 		Loggers.Transcode_WatchFolder.debug("Declare DeleteSourceFileWorker to manager");
-		manager.workerRegister(new DeleteSourceFileWorker());
-		
-		manager.getInstance_status().setDeclaredWatchFolders(wf_entries);
+		manager.register(new DeleteSourceFileWorker());
 	}
 	
 	public void stopAllWatchFolders() {

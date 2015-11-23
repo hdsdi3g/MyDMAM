@@ -152,7 +152,7 @@ public class AdminMailAlert {
 			}
 			if (manager != null) {
 				subject.append("[");
-				subject.append(manager.getInstance_status().getAppName());
+				subject.append(manager.getInstanceStatus().getAppName());
 				subject.append("] ");
 			}
 			subject.append("General error: ");
@@ -225,9 +225,9 @@ public class AdminMailAlert {
 			plaintext.append("\r\n");
 			
 			if (manager != null) {
-				plaintext.append(manager.getInstance_status().getInstanceName());
+				plaintext.append(manager.getInstanceStatus().getInstanceName());
 				plaintext.append(" - version ");
-				plaintext.append(manager.getInstance_status().getAppVersion());
+				plaintext.append(manager.getInstanceStatus().getAppVersion());
 				plaintext.append("\r\n");
 				plaintext.append(MyDMAM.APP_COPYRIGHT);
 				plaintext.append("\r\n");

@@ -75,7 +75,7 @@ public class PathScan extends WorkerNG {
 			JobContextPathScan context = new JobContextPathScan();
 			context.neededstorages = Arrays.asList(storages.get(pos).getName());
 			cyclicjobcreator.add("Index " + storages.get(pos).getName() + " storage", context);
-			manager.cyclicJobsRegister(cyclicjobcreator);
+			manager.register(cyclicjobcreator);
 		}
 		return this;
 	}

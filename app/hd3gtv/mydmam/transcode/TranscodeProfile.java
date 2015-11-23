@@ -37,12 +37,14 @@ import com.google.gson.JsonSerializer;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.manager.InstanceStatusItem;
+import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessGettext;
 
 @SuppressWarnings("unchecked")
-public class TranscodeProfile {
+public class TranscodeProfile implements InstanceStatusItem {
 	
 	private static final String TAG_PROGRESSFILE = "<%$PROGRESSFILE%>";
 	private static final String TAG_INPUTFILE = "<%$INPUTFILE%>";
@@ -161,6 +163,7 @@ public class TranscodeProfile {
 						}
 						
 						profiles.put(profile_name, profile);
+						
 						Loggers.Transcode.debug("Declared transcoding profile:\t" + profile.toString());
 					}
 				}
@@ -518,6 +521,18 @@ public class TranscodeProfile {
 			element.addProperty("current_directory_mode", src.current_directory_mode.name());
 			return element;
 		}
+	}
+	
+	public JsonElement getInstanceStatusItem() {
+		return WatchFolderDB.gson.toJsonTree(this);
+	}
+	
+	public String getReferenceKey() {
+		return name;
+	}
+	
+	public Class<?> getInstanceStatusItemReferenceClass() {
+		return TranscodeProfile.class;
 	}
 	
 }

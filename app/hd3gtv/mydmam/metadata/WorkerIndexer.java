@@ -65,7 +65,7 @@ public class WorkerIndexer extends WorkerNG {
 			TriggerJobCreator trigger_creator = new TriggerJobCreator(manager, context_hook);
 			trigger_creator.setOptions(this.getClass(), "Pathindex metadata indexer", "MyDMAM Internal");
 			trigger_creator.add("Analyst directory", analyst);
-			manager.triggerJobsRegister(trigger_creator);
+			manager.register(trigger_creator);
 			
 			lastindexeddatesforstoragenames.put(item.storage_label_name, 0l);
 		}

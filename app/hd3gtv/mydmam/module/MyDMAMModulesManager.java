@@ -42,6 +42,8 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
+import hd3gtv.mydmam.manager.InstanceActionReceiver;
+import hd3gtv.mydmam.manager.InstanceStatusItem;
 import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.pathindexing.Importer;
@@ -218,26 +220,42 @@ public class MyDMAMModulesManager {
 		List<WorkerNG> elements_worker;
 		List<CyclicJobCreator> elements_cyclic;
 		List<TriggerJobCreator> elements_trigger;
+		List<InstanceActionReceiver> elements_instance_action;
+		List<InstanceStatusItem> elements_instance_status_item;
 		
 		for (int pos = 0; pos < MODULES.size(); pos++) {
 			elements_worker = MODULES.get(pos).getWorkers();
 			if (elements_worker != null) {
 				for (int pos_worker = 0; pos_worker < elements_worker.size(); pos_worker++) {
-					manager.workerRegister(elements_worker.get(pos_worker));
+					manager.register(elements_worker.get(pos_worker));
 				}
 			}
 			
 			elements_cyclic = MODULES.get(pos).getCyclicsCreateJobs(manager);
 			if (elements_cyclic != null) {
 				for (int pos_cyclic = 0; pos_cyclic < elements_cyclic.size(); pos_cyclic++) {
-					manager.cyclicJobsRegister(elements_cyclic.get(pos_cyclic));
+					manager.register(elements_cyclic.get(pos_cyclic));
 				}
 			}
 			
 			elements_trigger = MODULES.get(pos).getTriggersWorker(manager);
 			if (elements_trigger != null) {
 				for (int pos_trigger = 0; pos_trigger < elements_trigger.size(); pos_trigger++) {
-					manager.triggerJobsRegister(elements_trigger.get(pos_trigger));
+					manager.register(elements_trigger.get(pos_trigger));
+				}
+			}
+			
+			elements_instance_action = MODULES.get(pos).getSpecificInstanceActionReceiver();
+			if (elements_instance_action != null) {
+				for (int pos_is = 0; pos_is < elements_instance_action.size(); pos_is++) {
+					manager.registerInstanceActionReceiver(elements_instance_action.get(pos_is));
+				}
+			}
+			
+			elements_instance_status_item = MODULES.get(pos).getSpecificInstanceStatusItem();
+			if (elements_instance_status_item != null) {
+				for (int pos_is = 0; pos_is < elements_instance_status_item.size(); pos_is++) {
+					manager.getInstanceStatus().registerInstanceStatusItem(elements_instance_status_item.get(pos_is));
 				}
 			}
 		}

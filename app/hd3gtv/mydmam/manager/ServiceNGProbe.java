@@ -57,12 +57,12 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		AppManager manager = getManager();
 		
 		new NotificationWorker(manager);
-		manager.workerRegister(new Publish());
-		manager.workerRegister(new PathScan().cyclicJobsRegister(manager));
+		manager.register(new Publish());
+		manager.register(new PathScan().cyclicJobsRegister(manager));
 		
 		WorkerIndexer mwi = new WorkerIndexer(manager);
-		manager.workerRegister(mwi);
-		manager.workerRegister(new WorkerRenderer(mwi));
+		manager.register(mwi);
+		manager.register(new WorkerRenderer(mwi));
 		
 		wf_trancoder = new WatchFolderTranscoder(manager);
 		

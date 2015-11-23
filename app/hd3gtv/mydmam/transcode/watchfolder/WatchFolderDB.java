@@ -34,6 +34,8 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.TranscoderWorker;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class WatchFolderDB {
@@ -64,16 +66,21 @@ public class WatchFolderDB {
 	}
 	
 	static final Gson gson_simple;
-	static final Gson gson;
+	public static final Gson gson;
 	
 	static {
 		GsonBuilder builder = new GsonBuilder();
+		builder.serializeNulls();
 		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
 		builder.addDeserializationExclusionStrategy(ignore_strategy);
 		builder.addSerializationExclusionStrategy(ignore_strategy);
 		gson_simple = builder.create();
 		
 		builder.registerTypeAdapter(AbstractFoundedFile.class, new AbstractFoundedFile.Serializer());
+		builder.registerTypeAdapter(WatchFolderEntry.class, new WatchFolderEntry.Serializer());
+		builder.registerTypeAdapter(TranscoderWorker.class, new TranscoderWorker.Serializer());
+		builder.registerTypeAdapter(TranscodeProfile.class, new TranscodeProfile.Serializer());
+		
 		gson = builder.create();
 	}
 	

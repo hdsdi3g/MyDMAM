@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
@@ -52,12 +53,12 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 		full_functionnal, refuse_new_jobs, simple_job_stop
 	}
 	
-	private LifeCycle lifecyle;
+	private transient LifeCycle lifecyle;
 	private volatile Executor current_executor;
-	private String reference_key;
+	private transient String reference_key;
 	private volatile StopReason stopreason;
-	private WorkerExporter exporter;
-	private AppManager manager;
+	private transient WorkerExporter exporter;
+	private transient AppManager manager;
 	
 	public WorkerNG() {
 		Loggers.Worker.debug("Create worker " + getClass().getName());
@@ -97,7 +98,7 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 		reference_key = "worker:" + UUID.randomUUID().toString();
 		lifecyle = new LifeCycle(this);
 		stopreason = StopReason.full_functionnal;
-		exporter = new WorkerExporter(this);
+		exporter = new WorkerExporter(this, manager);
 	}
 	
 	final WorkerExporter getExporter() {
@@ -358,16 +359,16 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 		current_executor.start();
 	}
 	
-	final String getReferenceKey() {
+	public final String getReferenceKey() {
 		return reference_key;
 	}
 	
 	final JsonObject getManagerReference() {
 		JsonObject jo = new JsonObject();
-		jo.addProperty("app_name", manager.getInstance_status().getAppName());
-		jo.addProperty("host_name", manager.getInstance_status().getHostName());
-		jo.addProperty("instance_name", manager.getInstance_status().getInstanceName());
-		jo.addProperty("instance_ref", manager.getInstance_status().getInstanceNamePid());
+		jo.addProperty("app_name", manager.getInstanceStatus().getAppName());
+		jo.addProperty("host_name", manager.getInstanceStatus().getHostName());
+		jo.addProperty("instance_name", manager.getInstanceStatus().getInstanceName());
+		jo.addProperty("instance_ref", manager.getInstanceStatus().getInstanceNamePid());
 		return jo;
 	}
 	
@@ -381,7 +382,8 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 		return current_executor.job;
 	}
 	
-	public final void doAnAction(JsonObject order) {
+	@Override
+	public final void doAnAction(JsonObject order) throws Exception {
 		if (order.has("state")) {
 			if (order.get("state").getAsString().equals("enable")) {
 				Loggers.Manager.info("Enable worker:\t" + this);
@@ -394,6 +396,14 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 				lifecyle.justAskToStop();
 			}
 		}
+	}
+	
+	public Class<? extends InstanceActionReceiver> getClassToCallback() {
+		return WorkerNG.class;
+	}
+	
+	public JsonElement exportSpecificInstanceStatusItems() {
+		return null;
 	}
 	
 }

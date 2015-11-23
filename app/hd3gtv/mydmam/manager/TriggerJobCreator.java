@@ -114,4 +114,12 @@ public final class TriggerJobCreator extends JobCreator {
 	
 	static Serializer serializer = new Serializer();
 	
+	public Class<? extends InstanceActionReceiver> getClassToCallback() {
+		return TriggerJobCreator.class;
+	}
+	
+	public Class<?> getInstanceStatusItemReferenceClass() {
+		return TriggerJobCreator.class;
+	}
+	
 }

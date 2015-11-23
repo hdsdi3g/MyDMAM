@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.manager;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -103,30 +104,59 @@ public final class InstanceAction {
 		Loggers.Manager.info("Create manager action:\t" + new_instance_action.toString());
 	}
 	
-	static void getAllPendingInstancesAction(final List<InstanceAction> current_item_list) throws Exception {
-		current_item_list.clear();
+	static boolean performInstanceActions(ArrayList<InstanceActionReceiver> all_receviers) throws Exception {
+		final List<InstanceAction> pending_actions = new ArrayList<InstanceAction>(1);
 		
 		CassandraDb.allRowsReader(CF_ACTION, new AllRowsFoundRow() {
 			public void onFoundRow(Row<String, String> row) throws Exception {
-				current_item_list.add(AppManager.getGson().fromJson(row.getColumns().getColumnByName("source").getStringValue(), InstanceAction.class));
+				pending_actions.add(AppManager.getGson().fromJson(row.getColumns().getColumnByName("source").getStringValue(), InstanceAction.class));
 			}
 		});
+		
+		if (pending_actions.isEmpty()) {
+			return false;
+		}
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		
+		for (int pos_pa = 0; pos_pa < pending_actions.size(); pos_pa++) {
+			InstanceAction current_instance_action = pending_actions.get(pos_pa);
+			current_instance_action.delete(mutator);
+			String target_class_name = current_instance_action.target_class_name;
+			
+			InstanceActionReceiver recevier = null;
+			for (int pos_rcv = 0; pos_rcv < all_receviers.size(); pos_rcv++) {
+				if (all_receviers.get(pos_rcv).getClassToCallback().getSimpleName().equalsIgnoreCase(target_class_name)) {
+					if (all_receviers.get(pos_rcv).getReferenceKey().equalsIgnoreCase(current_instance_action.target_reference_key)) {
+						recevier = all_receviers.get(pos_rcv);
+						break;
+					}
+				}
+			}
+			
+			if (recevier == null) {
+				Loggers.Manager.error("An instance action can't be executed: no valid target " + current_instance_action);
+				continue;
+			}
+			
+			Loggers.Manager.info("Do an Instance Action " + current_instance_action);
+			
+			try {
+				recevier.doAnAction(current_instance_action.order);
+			} catch (Exception e) {
+				Loggers.Manager.error("Problem with an Instance Action " + current_instance_action, e);
+			}
+		}
+		
+		if (mutator.isEmpty() == false) {
+			mutator.execute();
+		}
+		
+		return true;
 	}
 	
 	void delete(MutationBatch mutator) {
 		mutator.withRow(CF_ACTION, key).delete();
-	}
-	
-	JsonObject getOrder() {
-		return order;
-	}
-	
-	public String getTargetClassname() {
-		return target_class_name;
-	}
-	
-	String getTarget_reference_key() {
-		return target_reference_key;
 	}
 	
 	static class Serializer implements JsonSerializer<InstanceAction>, JsonDeserializer<InstanceAction> {

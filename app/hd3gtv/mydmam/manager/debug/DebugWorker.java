@@ -52,11 +52,11 @@ public class DebugWorker extends WorkerNG {
 		
 		int cores = Runtime.getRuntime().availableProcessors();
 		for (int pos = 0; pos < cores; pos++) {
-			manager.workerRegister(new DebugWorker());
+			manager.register(new DebugWorker());
 		}
 		
 		datalog = new File("debug_worker.log");
-		instance_name = manager.getInstance_status().getInstanceNamePid();
+		instance_name = manager.getInstanceStatus().getInstanceNamePid();
 		
 		FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\tinit\t" + instance_name + "\t\t\n", true);
 		

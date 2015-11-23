@@ -44,7 +44,7 @@ import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerCategory;
 import hd3gtv.tools.GsonIgnore;
 
-public final class WorkerExporter {
+public final class WorkerExporter implements InstanceStatusItem {
 	
 	/**
 	 * Start of static realm
@@ -102,7 +102,7 @@ public final class WorkerExporter {
 		Loggers.Manager.debug("Update all workers status, took " + (System.currentTimeMillis() - start_time) + " ms");
 	}
 	
-	public static List<WorkerExporter> getAllWorkerStatus() throws Exception {
+	/*public static List<WorkerExporter> getAllWorkerStatus() throws Exception {
 		final List<WorkerExporter> result = new ArrayList<WorkerExporter>();
 		CassandraDb.allRowsReader(CF_WORKERS, new AllRowsFoundRow() {
 			public void onFoundRow(Row<String, String> row) throws Exception {
@@ -110,7 +110,7 @@ public final class WorkerExporter {
 			}
 		});
 		return result;
-	}
+	}*/
 	
 	public static String getAllWorkerStatusJson() throws Exception {
 		final JsonArray result = new JsonArray();
@@ -136,6 +136,8 @@ public final class WorkerExporter {
 	String worker_class;
 	WorkerNG.WorkerState state;
 	String reference_key;
+	
+	@Deprecated
 	JsonObject manager_reference;
 	String current_job_key;
 	
@@ -146,7 +148,7 @@ public final class WorkerExporter {
 	private WorkerExporter() {
 	}
 	
-	WorkerExporter(WorkerNG worker) {
+	WorkerExporter(WorkerNG worker, AppManager manager) {
 		this.worker = worker;
 		capablities = new ArrayList<WorkerCapablitiesExporter>();
 		List<WorkerCapablities> workercapablities = worker.getWorkerCapablities();
@@ -162,6 +164,7 @@ public final class WorkerExporter {
 		reference_key = worker.getReferenceKey();
 		manager_reference = worker.getManagerReference();
 		update();
+		manager.getInstanceStatus().registerInstanceStatusItem(this);
 	}
 	
 	private synchronized void update() {
@@ -202,4 +205,17 @@ public final class WorkerExporter {
 		return AppManager.getPrettyGson().toJson(this);
 	}
 	
+	public JsonElement getInstanceStatusItem() {
+		JsonObject jo = AppManager.getGson().toJsonTree(this).getAsJsonObject();
+		jo.add("specific", worker.exportSpecificInstanceStatusItems());
+		return jo;
+	}
+	
+	public String getReferenceKey() {
+		return reference_key;
+	}
+	
+	public Class<?> getInstanceStatusItemReferenceClass() {
+		return WorkerNG.class;
+	}
 }

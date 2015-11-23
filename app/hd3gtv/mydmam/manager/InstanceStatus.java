@@ -26,7 +26,6 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.google.common.reflect.TypeToken;
@@ -48,8 +47,6 @@ import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.transcode.TranscoderWorker;
-import hd3gtv.mydmam.transcode.watchfolder.WatchFolderEntry;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.TimeUtils;
 import play.Play;
@@ -87,10 +84,6 @@ public final class InstanceStatus {
 	private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
 	}.getType();
 	private static Type al_threadstacktrace_typeOfT = new TypeToken<ArrayList<ThreadStackTrace>>() {
-	}.getType();
-	private static Type al_cyclicjobscreator_typeOfT = new TypeToken<ArrayList<CyclicJobCreator>>() {
-	}.getType();
-	private static Type al_triggerjobscreator_typeOfT = new TypeToken<ArrayList<TriggerJobCreator>>() {
 	}.getType();
 	
 	static {
@@ -144,22 +137,14 @@ public final class InstanceStatus {
 	private String app_name;
 	private String app_version;
 	private long uptime;
-	@SuppressWarnings("unused")
-	private long next_updater_refresh_date;
 	private @GsonIgnore ArrayList<ThreadStackTrace> threadstacktraces;
 	@SuppressWarnings("unused")
 	private String java_version;
 	private String host_name;
 	private ArrayList<String> host_addresses;
-	@SuppressWarnings("unused")
-	private boolean brokeralive;
-	@SuppressWarnings("unused")
-	private boolean is_off_hours;
-	private @GsonIgnore ArrayList<CyclicJobCreator> declared_cyclics;
-	private @GsonIgnore ArrayList<TriggerJobCreator> declared_triggers;
-	@SuppressWarnings("unused")
-	private ArrayList<WatchFolderEntry> declared_watchfolders;
-	private LinkedHashMap<String, TranscoderWorker> declared_transcoder_workers;
+	
+	@GsonIgnore
+	private ArrayList<InstanceStatusItem> all_items;
 	
 	public class ThreadStackTrace {
 		String name;
@@ -215,9 +200,6 @@ public final class InstanceStatus {
 		java_version = current_java_version;
 		host_name = current_host_name;
 		threadstacktraces = new ArrayList<InstanceStatus.ThreadStackTrace>();
-		brokeralive = manager.getBroker().isAlive();
-		is_off_hours = AppManager.isActuallyOffHours();
-		next_updater_refresh_date = manager.getNextUpdaterRefreshDate();
 		
 		host_addresses = new ArrayList<String>();
 		try {
@@ -239,24 +221,34 @@ public final class InstanceStatus {
 		} catch (SocketException e) {
 		}
 		
+		all_items = new ArrayList<InstanceStatusItem>();
+		all_items.add(manager);
+		
 		Loggers.Manager.debug("Populate instance status from AppManager");
 		refresh(false);
 		
 		return this;
 	}
 	
+	public void registerInstanceStatusItem(InstanceStatusItem item) {
+		if (item == null) {
+			throw new NullPointerException("\"item\" can't to be null");
+		}
+		if (item.getReferenceKey() == null) {
+			throw new NullPointerException("\"instance status item name\" can't to be null");
+		}
+		all_items.add(item);
+	}
+	
 	/**
 	 * @return this
 	 */
-	InstanceStatus refresh(boolean push_to_db) {
+	InstanceStatus
+	
+	refresh(boolean push_to_db) {
 		app_name = manager.getAppName();
 		uptime = System.currentTimeMillis() - AppManager.starttime;
 		threadstacktraces.clear();
-		brokeralive = manager.getBroker().isAlive();
-		is_off_hours = AppManager.isActuallyOffHours();
-		declared_cyclics = manager.getBroker().getDeclared_cyclics();
-		declared_triggers = manager.getBroker().getDeclared_triggers();
-		next_updater_refresh_date = manager.getNextUpdaterRefreshDate();
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
 			threadstacktraces.add(new ThreadStackTrace().importThread(entry.getKey(), entry.getValue()));
 		}
@@ -276,27 +268,31 @@ public final class InstanceStatus {
 		return this;
 	}
 	
-	public void setDeclaredWatchFolders(ArrayList<WatchFolderEntry> declared_watchfolders) {
-		this.declared_watchfolders = declared_watchfolders;
-	}
-	
-	public void setDeclaredTranscoderWorker(TranscoderWorker transcoder_worker) {
-		if (declared_transcoder_workers == null) {
-			declared_transcoder_workers = new LinkedHashMap<String, TranscoderWorker>();
-		}
-		declared_transcoder_workers.put(((WorkerNG) transcoder_worker).getReferenceKey(), transcoder_worker);
-	}
-	
 	static class Serializer implements JsonSerializer<InstanceStatus> {
 		public JsonElement serialize(InstanceStatus src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
 			result.add("classpath", AppManager.getGson().toJsonTree(src.classpath, al_string_typeOfT));
 			result.add("threadstacktraces", AppManager.getGson().toJsonTree(src.threadstacktraces, al_threadstacktrace_typeOfT));
 			result.add("host_addresses", AppManager.getGson().toJsonTree(src.host_addresses, al_string_typeOfT));
-			result.add("declared_cyclics", AppManager.getGson().toJsonTree(src.declared_cyclics, al_cyclicjobscreator_typeOfT));
-			result.add("declared_triggers", AppManager.getGson().toJsonTree(src.declared_triggers, al_triggerjobscreator_typeOfT));
-			result.add("log2filters", new JsonArray());
 			result.addProperty("uptime_from", TimeUtils.secondsToYWDHMS(src.uptime / 1000));
+			
+			JsonArray items = new JsonArray();
+			InstanceStatusItem is_item;
+			
+			for (int pos = 0; pos < src.all_items.size(); pos++) {
+				is_item = src.all_items.get(pos);
+				JsonObject item = new JsonObject();
+				try {
+					item.addProperty("key", is_item.getReferenceKey());
+					item.addProperty("class", is_item.getInstanceStatusItemReferenceClass().getSimpleName());
+					item.add("content", is_item.getInstanceStatusItem());
+					items.add(item);
+				} catch (Exception e) {
+					Loggers.Manager.error("Can't get InstanceStatusItem for " + is_item.getReferenceKey(), e);
+				}
+			}
+			result.add("items", items);
+			
 			return result;
 		}
 	}
@@ -352,7 +348,7 @@ public final class InstanceStatus {
 		}
 		
 		public static InstanceStatus getDefaultManagerInstanceStatus() {
-			return manager.getInstance_status();
+			return manager.getInstanceStatus();
 		}
 		
 		public static String getAllInstancesJsonString() {
@@ -369,7 +365,7 @@ public final class InstanceStatus {
 				manager.getServiceException().onCassandraError(e);
 			}
 			
-			result.add(AppManager.getGson().toJsonTree(manager.getInstance_status().refresh(false)));
+			result.add(AppManager.getGson().toJsonTree(manager.getInstanceStatus().refresh(false)));
 			return result.toString();
 		}
 		

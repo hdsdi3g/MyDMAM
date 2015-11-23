@@ -19,6 +19,7 @@ package hd3gtv.mydmam.manager;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -27,7 +28,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnore;
 
-abstract class JobCreator implements InstanceActionReceiver {
+abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem {
 	
 	transient protected AppManager manager;
 	private Class<?> creator;
@@ -145,25 +146,25 @@ abstract class JobCreator implements InstanceActionReceiver {
 		}
 	}
 	
-	final String getReference_key() {
+	public final String getReferenceKey() {
 		return reference_key;
 	}
 	
-	public void doAnAction(JsonObject order) {
+	public void doAnAction(JsonObject order) throws Exception {
 		if (order.has("activity")) {
 			if (order.get("activity").getAsString().equals("enable")) {
 				setEnabled(true);
-				Loggers.Manager.info("Enable job creator:\t" + this.toString());
+				Loggers.Manager.info("Enable job creator:\t" + toString());
 			} else if (order.get("activity").getAsString().equals("disable")) {
 				setEnabled(false);
-				Loggers.Manager.info("Disable job creator:\t" + this.toString());
+				Loggers.Manager.info("Disable job creator:\t" + toString());
 			} else if (order.get("activity").getAsString().equals("createjobs")) {
 				try {
 					MutationBatch mutator = CassandraDb.prepareMutationBatch();
 					createJobs(mutator);
 					if (mutator.isEmpty() == false) {
 						mutator.execute();
-						Loggers.Manager.info("Create jobs:\t" + this.toString());
+						Loggers.Manager.info("Create jobs:\t" + toString());
 					}
 				} catch (ConnectionException e) {
 					manager.getServiceException().onCassandraError(e);
@@ -172,4 +173,7 @@ abstract class JobCreator implements InstanceActionReceiver {
 		}
 	}
 	
+	public JsonElement getInstanceStatusItem() {
+		return AppManager.getGson().toJsonTree(this);
+	}
 }

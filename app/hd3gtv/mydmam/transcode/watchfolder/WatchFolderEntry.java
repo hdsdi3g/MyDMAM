@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.ElasticsearchException;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
@@ -48,6 +47,7 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.InstanceStatusItem;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
@@ -66,7 +66,7 @@ import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
 import hd3gtv.tools.Timecode;
 
-public class WatchFolderEntry extends Thread {
+public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 	
 	private String name;
 	private String source_storage;
@@ -215,6 +215,7 @@ public class WatchFolderEntry extends Thread {
 			Loggers.Transcode_WatchFolder.info("Load watchfolder entry " + log);
 		}
 		
+		manager.getInstanceStatus().registerInstanceStatusItem(this);
 	}
 	
 	synchronized void stopWatchfolderScans() {
@@ -631,34 +632,38 @@ public class WatchFolderEntry extends Thread {
 		mutator.execute();
 	}
 	
-	public static class SerializerList implements JsonSerializer<ArrayList<WatchFolderEntry>> {
+	public static class Serializer implements JsonSerializer<WatchFolderEntry> {
 		
-		public JsonElement serialize(ArrayList<WatchFolderEntry> src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonArray ja = new JsonArray();
-			
-			if (src == null) {
-				return ja;
+		public JsonElement serialize(WatchFolderEntry entry, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject jo_entry = new JsonObject();
+			if (entry == null) {
+				return jo_entry;
 			}
 			
-			WatchFolderEntry entry;
-			JsonObject jo_entry;
-			for (int pos = 0; pos < src.size(); pos++) {
-				entry = src.get(pos);
-				jo_entry = new JsonObject();
-				jo_entry.addProperty("name", entry.name);
-				jo_entry.addProperty("source_storage", entry.source_storage);
-				jo_entry.add("targets", AppManager.getSimpleGson().toJsonTree(entry.targets));
-				jo_entry.add("must_contain", AppManager.getSimpleGson().toJsonTree(entry.must_contain));
-				jo_entry.addProperty("min_file_size", entry.min_file_size);
-				jo_entry.addProperty("time_to_sleep_between_scans", entry.time_to_sleep_between_scans);
-				jo_entry.addProperty("time_to_wait_growing_file", entry.time_to_wait_growing_file);
-				jo_entry.addProperty("want_to_stop", entry.want_to_stop);
-				jo_entry.addProperty("isalive", entry.isAlive());
-				ja.add(jo_entry);
-			}
-			return ja;
+			jo_entry.addProperty("name", entry.name);
+			jo_entry.addProperty("source_storage", entry.source_storage);
+			jo_entry.add("targets", AppManager.getSimpleGson().toJsonTree(entry.targets));
+			jo_entry.add("must_contain", AppManager.getSimpleGson().toJsonTree(entry.must_contain));
+			jo_entry.addProperty("min_file_size", entry.min_file_size);
+			jo_entry.addProperty("time_to_sleep_between_scans", entry.time_to_sleep_between_scans);
+			jo_entry.addProperty("time_to_wait_growing_file", entry.time_to_wait_growing_file);
+			jo_entry.addProperty("want_to_stop", entry.want_to_stop);
+			jo_entry.addProperty("isalive", entry.isAlive());
+			return jo_entry;
 		}
 		
+	}
+	
+	public JsonElement getInstanceStatusItem() {
+		return WatchFolderDB.gson.toJsonTree(this);
+	}
+	
+	public String getReferenceKey() {
+		return name;
+	}
+	
+	public Class<?> getInstanceStatusItemReferenceClass() {
+		return WatchFolderEntry.class;
 	}
 	
 }

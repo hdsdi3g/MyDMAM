@@ -24,6 +24,8 @@ import org.elasticsearch.search.SearchHit;
 import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.CyclicJobCreator;
+import hd3gtv.mydmam.manager.InstanceActionReceiver;
+import hd3gtv.mydmam.manager.InstanceStatusItem;
 import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.web.MenuEntry;
@@ -77,4 +79,11 @@ public abstract class MyDMAMModule extends PlayPlugin implements SearchResultPre
 		return null;
 	}
 	
+	public List<InstanceActionReceiver> getSpecificInstanceActionReceiver() {
+		return null;
+	}
+	
+	public List<InstanceStatusItem> getSpecificInstanceStatusItem() {
+		return null;
+	}
 }

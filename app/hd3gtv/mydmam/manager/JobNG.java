@@ -489,8 +489,8 @@ public final class JobNG {
 		status = JobStatus.PROCESSING;
 		worker_class = worker.getClass();
 		worker_reference = worker.getReferenceKey();
-		instance_status_executor_key = manager.getInstance_status().getInstanceNamePid();
-		instance_status_executor_hostname = manager.getInstance_status().getHostName();
+		instance_status_executor_key = manager.getInstanceStatus().getInstanceNamePid();
+		instance_status_executor_hostname = manager.getInstanceStatus().getHostName();
 		progression = new JobProgression(this);
 		if (Loggers.Job.isDebugEnabled()) {
 			Loggers.Job.debug("Start processing:\t" + toString());
