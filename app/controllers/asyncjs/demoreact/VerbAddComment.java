@@ -32,7 +32,7 @@ public class VerbAddComment extends AsyncJSControllerVerb<NewComment, CommentLis
 		return CommentList.class;
 	}
 	
-	public CommentList onRequest(NewComment request, String caller) throws Exception {
+	public CommentList onRequest(NewComment request) throws Exception {
 		FakeDB.add(request);
 		CommentList result = new CommentList();
 		result.commentlist = FakeDB.getAll();

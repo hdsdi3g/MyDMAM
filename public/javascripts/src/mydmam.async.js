@@ -22,7 +22,6 @@
  */
 (function(mydmam) {
 	mydmam.async = {};
-	mydmam.async.controllers = {};
 
 	/**
 	 * @return null

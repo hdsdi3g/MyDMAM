@@ -16,6 +16,10 @@
 */
 package controllers.asyncjs.demoreact;
 
+import hd3gtv.mydmam.web.AsyncJSControllerVerb;
+import hd3gtv.mydmam.web.AsyncJSGsonProvider;
+import hd3gtv.mydmam.web.AsyncJSSerializer;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,10 +29,6 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
-
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-import hd3gtv.mydmam.web.AsyncJSGsonProvider;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
 
 public class VerbGetCommentList extends AsyncJSControllerVerb<GetList, CommentList> {
 	
@@ -40,7 +40,7 @@ public class VerbGetCommentList extends AsyncJSControllerVerb<GetList, CommentLi
 		return Collections.emptyList();
 	}
 	
-	public CommentList onRequest(GetList request, String caller) throws Exception {
+	public CommentList onRequest(GetList request) throws Exception {
 		CommentList response = new CommentList();
 		response.commentlist = FakeDB.getAll();
 		return response;
@@ -49,8 +49,8 @@ public class VerbGetCommentList extends AsyncJSControllerVerb<GetList, CommentLi
 	private static final Type type_CommentList = new TypeToken<ArrayList<Comment>>() {
 	}.getType();
 	
-	public List<AsyncJSSerializer<CommentList>> getJsonSerializers(final AsyncJSGsonProvider gson_provider) {
-		List<AsyncJSSerializer<CommentList>> result = new ArrayList<AsyncJSSerializer<CommentList>>();
+	public List<AsyncJSSerializer<?>> getJsonSerializers(final AsyncJSGsonProvider gson_provider) {
+		List<AsyncJSSerializer<?>> result = new ArrayList<AsyncJSSerializer<?>>();
 		result.add(new AsyncJSSerializer<CommentList>() {
 			
 			public Class<CommentList> getEnclosingClass() {

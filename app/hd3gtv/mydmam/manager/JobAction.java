@@ -35,9 +35,6 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnore;
 
-/**
- * @deprecated
- */
 public class JobAction {
 	
 	private enum Order {

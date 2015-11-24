@@ -16,6 +16,12 @@
 */
 package hd3gtv.mydmam.web.stat;
 
+import hd3gtv.mydmam.metadata.container.ContainerPreview;
+import hd3gtv.mydmam.web.AsyncJSControllerVerb;
+import hd3gtv.mydmam.web.AsyncJSDeserializer;
+import hd3gtv.mydmam.web.AsyncJSGsonProvider;
+import hd3gtv.mydmam.web.AsyncJSSerializer;
+
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
@@ -23,12 +29,6 @@ import java.util.List;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
-
-import hd3gtv.mydmam.metadata.container.ContainerPreview;
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-import hd3gtv.mydmam.web.AsyncJSDeserializer;
-import hd3gtv.mydmam.web.AsyncJSGsonProvider;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
 
 public class AsyncStatVerbs extends AsyncJSControllerVerb<AsyncStatRequest, AsyncStatResult> {
 	
@@ -44,7 +44,7 @@ public class AsyncStatVerbs extends AsyncJSControllerVerb<AsyncStatRequest, Asyn
 		return AsyncStatResult.class;
 	}
 	
-	public AsyncStatResult onRequest(AsyncStatRequest request, String caller) throws Exception {
+	public AsyncStatResult onRequest(AsyncStatRequest request) throws Exception {
 		return new Stat(request).getResult();
 	}
 	

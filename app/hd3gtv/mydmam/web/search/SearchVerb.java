@@ -16,12 +16,12 @@
 */
 package hd3gtv.mydmam.web.search;
 
-import java.util.Arrays;
-import java.util.List;
-
 import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 import hd3gtv.mydmam.web.AsyncJSGsonProvider;
 import hd3gtv.mydmam.web.AsyncJSSerializer;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class SearchVerb extends AsyncJSControllerVerb<SearchRequest, SearchQuery> {
 	
@@ -37,7 +37,7 @@ public class SearchVerb extends AsyncJSControllerVerb<SearchRequest, SearchQuery
 		return SearchQuery.class;
 	}
 	
-	public SearchQuery onRequest(SearchRequest request, String caller) throws Exception {
+	public SearchQuery onRequest(SearchRequest request) throws Exception {
 		return new SearchQuery().search(request);
 	}
 	
