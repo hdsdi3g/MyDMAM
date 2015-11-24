@@ -28,6 +28,7 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.tools.CopyMove;
 
 public class StorageLocalFile extends Storage {
 	
@@ -35,6 +36,13 @@ public class StorageLocalFile extends Storage {
 	
 	StorageLocalFile(File root) {
 		this.root = root;
+	}
+	
+	public StorageLocalFile(File root, String name, boolean regular_indexing, int period) throws IOException {
+		this.root = root;
+		CopyMove.checkExistsCanRead(root);
+		CopyMove.checkIsDirectory(root);
+		overloadInternalParams(name, regular_indexing, period, null);
 	}
 	
 	File getRoot() {

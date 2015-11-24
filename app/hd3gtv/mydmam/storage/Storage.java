@@ -41,6 +41,10 @@ public abstract class Storage {
 	
 	static {
 		declared_storages = new ArrayList<Storage>();
+		declared_storages_by_name = new HashMap<String, Storage>();
+		declared_storages_local_access = new ArrayList<String>();
+		regular_indexing_storages = new ArrayList<Storage>();
+		
 		List<LinkedHashMap<String, ?>> raw_defs = Configuration.global.getListMapValues("storage", "definitions");
 		
 		LinkedHashMap<String, ?> storage_def;
@@ -69,31 +73,27 @@ public abstract class Storage {
 					CopyMove.checkExistsCanRead(storage.mounted);
 					CopyMove.checkIsDirectory(storage.mounted);
 				}
-				declared_storages.add(storage);
+				
+				registerStorage(storage);
 			} catch (Exception e) {
 				Loggers.Storage.error("Can't setup storage, check configuration", e);
 			}
 		}
 		
-		declared_storages_by_name = new HashMap<String, Storage>();
-		for (int pos = 0; pos < declared_storages.size(); pos++) {
-			declared_storages_by_name.put(declared_storages.get(pos).name, declared_storages.get(pos));
+	}
+	
+	public static void registerStorage(Storage new_storage) {
+		declared_storages.add(new_storage);
+		declared_storages_by_name.put(new_storage.name, new_storage);
+		
+		if (new_storage instanceof StorageLocalFile) {
+			declared_storages_local_access.add(new_storage.name);
+		} else if (new_storage.mounted != null) {
+			declared_storages_local_access.add(new_storage.name);
 		}
 		
-		declared_storages_local_access = new ArrayList<String>();
-		for (int pos = 0; pos < declared_storages.size(); pos++) {
-			if (declared_storages.get(pos) instanceof StorageLocalFile) {
-				declared_storages_local_access.add(declared_storages.get(pos).name);
-			} else if (declared_storages.get(pos).mounted != null) {
-				declared_storages_local_access.add(declared_storages.get(pos).name);
-			}
-		}
-		
-		regular_indexing_storages = new ArrayList<Storage>();
-		for (int pos = 0; pos < declared_storages.size(); pos++) {
-			if (declared_storages.get(pos).regular_indexing && (declared_storages.get(pos).period > 0)) {
-				regular_indexing_storages.add(declared_storages.get(pos));
-			}
+		if (new_storage.regular_indexing && (new_storage.period > 0)) {
+			regular_indexing_storages.add(new_storage);
 		}
 	}
 	
@@ -165,6 +165,18 @@ public abstract class Storage {
 	private boolean regular_indexing;
 	private int period;
 	private File mounted;
+	
+	protected Storage overloadInternalParams(String name, boolean regular_indexing, int period, File mounted) throws IOException {
+		this.name = name;
+		this.regular_indexing = regular_indexing;
+		this.period = period;
+		this.mounted = mounted;
+		if (mounted != null) {
+			CopyMove.checkExistsCanRead(mounted);
+			CopyMove.checkIsDirectory(mounted);
+		}
+		return this;
+	}
 	
 	public String toString() {
 		StringBuilder sb = new StringBuilder();

@@ -15,12 +15,12 @@ ftpservergroups:
     group1:                           # rule for a group of FTP accounts, apply only for this current instance.
         base_working_dir: /var/ftp    # Location for all FTP accounts
         disabled: false               # true for disable all logins for this group
-        # account_expiration_trash_duration: 300     # seconds to wait before move to trash an old FTP account
-        # account_expiration_purge_duration: 120     # seconds to wait before DELETE an old FTP account
+        # account_expiration_trash_duration: 86400     # seconds to wait before move to trash an old FTP account
+        # account_expiration_purge_duration: 604800    # seconds to wait before DELETE an old FTP account
         # account_expiration_based_on_last_activity: false  # set true if expiration is based on last login or false for creation date
         # min_disk_space_before_warn: 100000000      # In bytes. A warn will be send if base_working_dir is nearly full
         # min_disk_space_before_stop: 10000000       # In bytes. This current instance of MyDMAM will be stopped if base_working_dir is full.
-        # pathindex_storagename_for_live_update: FTP Group 1  # set if you want to indexing FTP accounts, with this storage name
+        # pathindex_storagename: FTP Group 1         # set if you want to indexing FTP accounts, with this storage name
         # domain_isolation: false                    # If you want use separate directories for each domain (by example if base_working_dir is splitted between with differents mounts).
         # short_activity_log: false                  # Set true if you don't want keep FTP activities logs during a long time.
     # you can add many groups

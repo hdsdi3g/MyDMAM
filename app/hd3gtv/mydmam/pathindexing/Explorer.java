@@ -475,11 +475,15 @@ public class Explorer {
 	}
 	
 	/**
-	 * Don't use Bridge, but use StorageManager and PathScan.
+	 * Use StorageManager and PathScan.
 	 * Recursive.
 	 */
-	public void refreshStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
+	public void refreshStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements, boolean purge_before, long forced_ttl) throws Exception {
 		PathScan pathscan = new PathScan();
+		
+		if (forced_ttl > 0) {
+			pathscan.setForcedTTL(forced_ttl);
+		}
 		
 		ArrayList<String> storages = new ArrayList<String>();
 		for (int pos = 0; pos < elements.size(); pos++) {
@@ -505,6 +509,14 @@ public class Explorer {
 		}
 		
 		WebCacheInvalidation.addInvalidation(storages);
+	}
+	
+	/**
+	 * Use StorageManager and PathScan.
+	 * Recursive.
+	 */
+	public void refreshStoragePath(ElasticsearchBulkOperation bulk_op, List<SourcePathIndexerElement> elements, boolean purge_before) throws Exception {
+		refreshStoragePath(bulk_op, elements, purge_before, 0);
 	}
 	
 	/**

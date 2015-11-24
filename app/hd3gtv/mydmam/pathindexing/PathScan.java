@@ -37,11 +37,17 @@ import hd3gtv.mydmam.storage.Storage;
 public class PathScan extends WorkerNG {
 	
 	private ImporterStorage importer;
+	private long forced_ttl = 0;
 	
 	void refreshIndex(ElasticsearchBulkOperation bulk, String storage_index_label, String current_working_directory, boolean limit_to_current_directory) throws Exception {
 		Storage storage = Storage.getByName(storage_index_label);
 		
 		importer = new ImporterStorage(storage);
+		
+		if (forced_ttl > 0) {
+			importer.setTTL(forced_ttl);
+		}
+		
 		importer.setCurrentworkingdir(current_working_directory);
 		
 		String cwd = importer.getCurrentworkingdir();
@@ -49,6 +55,7 @@ public class PathScan extends WorkerNG {
 		
 		importer.setLimit_to_current_directory(limit_to_current_directory);
 		importer.index(bulk);
+		
 		importer = null;
 	};
 	
@@ -56,6 +63,13 @@ public class PathScan extends WorkerNG {
 		if (importer != null) {
 			importer.stopScan();
 		}
+	}
+	
+	/**
+	 * Ignore configuration period and internal grace time.
+	 */
+	public void setForcedTTL(long forced_ttl) {
+		this.forced_ttl = forced_ttl;
 	}
 	
 	/**

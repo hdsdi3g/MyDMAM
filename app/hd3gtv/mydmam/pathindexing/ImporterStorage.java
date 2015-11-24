@@ -16,11 +16,11 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
-import hd3gtv.mydmam.storage.Storage;
-
 import java.io.IOException;
 
 import org.json.simple.parser.ParseException;
+
+import hd3gtv.mydmam.storage.Storage;
 
 public class ImporterStorage extends Importer {
 	
@@ -39,6 +39,13 @@ public class ImporterStorage extends Importer {
 			throw new NullPointerException("\"storage\" can't to be null");
 		}
 		this.ttl = 1000 * storage.getPeriod() * grace_time_ttl;
+	}
+	
+	/**
+	 * Replace storage period and grace time
+	 */
+	void setTTL(long ttl) {
+		this.ttl = ttl;
 	}
 	
 	public synchronized void stopScan() {

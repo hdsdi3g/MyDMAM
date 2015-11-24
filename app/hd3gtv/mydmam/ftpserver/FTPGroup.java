@@ -34,11 +34,12 @@ import com.google.gson.JsonObject;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.ftpserver.FTPUser.FTPSimpleUser;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceActionReceiver;
 import hd3gtv.mydmam.manager.InstanceStatusItem;
+import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.mydmam.storage.StorageLocalFile;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.FreeDiskSpaceWarningException;
 
@@ -130,7 +131,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 	 * If domain_isolation, will index like storagename:/domain/userName
 	 * Else, will index like storagename:/domain#userName or storagename:/userName if no domain
 	 */
-	private String pathindex_storagename_for_live_update;
+	private String pathindex_storagename;
 	
 	/**
 	 * Set true for set user storage like /base_working_dir/domain/userName
@@ -168,7 +169,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		
 		min_disk_space_before_warn = Configuration.getValue(all_groups_confs, group_name, "min_disk_space_before_warn", 0);
 		min_disk_space_before_stop = Configuration.getValue(all_groups_confs, group_name, "min_disk_space_before_stop", 0);
-		pathindex_storagename_for_live_update = Configuration.getValue(all_groups_confs, group_name, "pathindex_storagename_for_live_update", null);
+		pathindex_storagename = Configuration.getValue(all_groups_confs, group_name, "pathindex_storagename", null);
 		domain_isolation = Configuration.getValueBoolean(all_groups_confs, group_name, "domain_isolation");
 		short_activity_log = Configuration.getValueBoolean(all_groups_confs, group_name, "short_activity_log");
 		trash_directory = new File(Configuration.getValue(all_groups_confs, group_name, "trash_directory", base_working_dir.getAbsolutePath() + File.separator + "_trash"));
@@ -181,9 +182,19 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 			FileUtils.forceMkdir(trash_directory);
 		}
 		
+		if (pathindex_storagename != null) {
+			Storage.registerStorage(new StorageLocalFile(base_working_dir, pathindex_storagename, false, 3600));
+		}
 	}
 	
 	private File makeUserHomeDirectoryPath(String user_name, String user_domain) {
+		if (user_name == null) {
+			throw new NullPointerException("\"user_name\" can't to be null");
+		}
+		if (user_domain == null) {
+			throw new NullPointerException("\"user_domain\" can't to be null");
+		}
+		
 		StringBuilder sb = new StringBuilder();
 		sb.append(base_working_dir.getAbsolutePath());
 		sb.append(File.separator);
@@ -227,6 +238,13 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 	}
 	
 	void deleteUserHomeDirectory(FTPUser user) throws NullPointerException, IOException {
+		if (user.getName() == null) {
+			throw new NullPointerException("\"user.getName()\" can't to be null");
+		}
+		if (user.getDomain() == null) {
+			throw new NullPointerException("\"user.getDomain()\" can't to be null");
+		}
+		
 		File home_directory = makeUserHomeDirectoryPath(user.getName(), user.getDomain());
 		if (home_directory.exists()) {
 			FileUtils.forceDelete(home_directory);
@@ -238,25 +256,10 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		}
 	}
 	
-	private static class OnlyDirsFileFilter implements FileFilter {
-		public boolean accept(File pathname) {
-			return pathname.isDirectory() & pathname.isHidden() == false;
-		}
-	}
-	
-	private static OnlyDirsFileFilter onlydirsfilefilter = new OnlyDirsFileFilter();
-	
-	private void listAllActualUsersInDomain(ArrayList<FTPSimpleUser> users, String domain) {
-		File[] all_users_files = new File(base_working_dir + File.separator + "#" + domain).listFiles(onlydirsfilefilter);
-		for (int pos = 0; pos < all_users_files.length; pos++) {
-			users.add(getExpiredUserFromAnUserDir(all_users_files[pos]));
-		}
-	}
-	
 	/**
 	 * @return simple user.
 	 */
-	private FTPSimpleUser getExpiredUserFromAnUserDir(File user_content_dir) {
+	private FTPUser getExpiredUserFromAnUserDir(File user_content_dir) {
 		String group_name = name;
 		
 		String dirname = user_content_dir.getName();
@@ -272,10 +275,31 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		return FTPUser.createSimpleUser(group_name, user_name, domain);
 	}
 	
-	List<FTPSimpleUser> listAllActualUsers() {
-		ArrayList<FTPSimpleUser> users = new ArrayList<FTPSimpleUser>();
+	private ValidUserDirsFileFilter valid_user_dirs = new ValidUserDirsFileFilter();
+	
+	private class ValidUserDirsFileFilter implements FileFilter {
+		public boolean accept(File pathname) {
+			if (pathname.isDirectory() == false) {
+				return false;
+			}
+			if (pathname.getAbsolutePath().equals(trash_directory.getAbsolutePath())) {
+				return false;
+			}
+			return pathname.isHidden() == false;
+		}
+	}
+	
+	private void listAllActualUsersInDomain(ArrayList<FTPUser> users, String domain) {
+		File[] all_users_files = new File(base_working_dir + File.separator + "#" + domain).listFiles(valid_user_dirs);
+		for (int pos = 0; pos < all_users_files.length; pos++) {
+			users.add(getExpiredUserFromAnUserDir(all_users_files[pos]));
+		}
+	}
+	
+	List<FTPUser> listAllActualUsers() {
+		ArrayList<FTPUser> users = new ArrayList<FTPUser>();
 		
-		File[] all_users_files = base_working_dir.listFiles(onlydirsfilefilter);
+		File[] all_users_files = base_working_dir.listFiles(valid_user_dirs);
 		
 		File dir;
 		for (int pos = 0; pos < all_users_files.length; pos++) {
@@ -304,8 +328,8 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		return name;
 	}
 	
-	String getPathindexStoragenameLiveUpdate() {
-		return pathindex_storagename_for_live_update;
+	String getPathindexStoragename() {
+		return pathindex_storagename;
 	}
 	
 	public boolean isShortActivityLog() {
@@ -378,7 +402,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		jo.addProperty("base_working_dir", base_working_dir.getAbsolutePath());
 		jo.addProperty("min_disk_space_before_warn", min_disk_space_before_warn);
 		jo.addProperty("min_disk_space_before_stop", min_disk_space_before_stop);
-		jo.addProperty("pathindex_storagename_for_live_update", pathindex_storagename_for_live_update);
+		jo.addProperty("pathindex_storagename", pathindex_storagename);
 		jo.addProperty("domain_isolation", domain_isolation);
 		jo.addProperty("short_activity_log", short_activity_log);
 		jo.addProperty("last_free_space", last_free_space);

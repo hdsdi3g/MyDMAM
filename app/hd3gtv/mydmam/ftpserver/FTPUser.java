@@ -83,7 +83,6 @@ public class FTPUser implements User {
 	private boolean disabled;
 	private long create_date;
 	private long update_date;
-	private long last_path_index_refreshed;
 	private long last_login;
 	
 	/**
@@ -217,7 +216,6 @@ public class FTPUser implements User {
 		disabled = cols.getBooleanValue("disabled", false);
 		create_date = cols.getLongValue("create_date", -1l);
 		update_date = cols.getLongValue("update_date", -1l);
-		last_path_index_refreshed = cols.getLongValue("last_path_index_refreshed", -1l);
 		last_login = cols.getLongValue("last_login", -1l);
 	}
 	
@@ -235,7 +233,6 @@ public class FTPUser implements User {
 		mutator.withRow(CF_USER, user_id).putColumn("disabled", disabled);
 		mutator.withRow(CF_USER, user_id).putColumn("create_date", create_date);
 		mutator.withRow(CF_USER, user_id).putColumn("update_date", update_date);
-		mutator.withRow(CF_USER, user_id).putColumn("last_path_index_refreshed", last_path_index_refreshed);
 		mutator.withRow(CF_USER, user_id).putColumn("last_login", last_login);
 	}
 	
@@ -300,15 +297,6 @@ public class FTPUser implements User {
 	FTPGroup getGroup() {
 		populateGroup();
 		return group;
-	}
-	
-	long getLastPathIndexRefreshed() {
-		return last_path_index_refreshed;
-	}
-	
-	FTPUser setLastPathIndexRefreshed() {
-		last_path_index_refreshed = System.currentTimeMillis();
-		return this;
 	}
 	
 	private transient long trash_date;
@@ -380,40 +368,35 @@ public class FTPUser implements User {
 		mutator.withRow(CF_USER, user_id).delete();
 	}
 	
-	class FTPSimpleUser extends FTPUser {
-		public FTPSimpleUser(String _group_name, String _user_name, String _domain) {
-			disabled = true;
-			domain = _domain;
-			group_name = _group_name;
-			populateGroup();
-			user_name = _user_name;
-			user_id = makeUserId(_user_name, _domain);
+	/**
+	 * Check if user exists in Db and it's group/domain is the same with Db.
+	 */
+	boolean isValidInDB() throws ConnectionException {
+		ColumnList<String> col = keyspace.prepareQuery(CF_USER).getKey(user_id).withColumnSlice("group_name", "domain").execute().getResult();
+		if (col.isEmpty()) {
+			return false;
 		}
-		
-		/**
-		 * Check if user exists in Db and it's group/domain is the same with Db.
-		 */
-		boolean isValidInDB() throws ConnectionException {
-			ColumnList<String> col = keyspace.prepareQuery(CF_USER).getKey(user_id).withColumnSlice("group_name", "domain").execute().getResult();
-			if (col.isEmpty()) {
-				return false;
-			}
-			if (group_name.equals(col.getStringValue("group_name", "")) == false) {
-				return false;
-			}
-			if (domain.equals(col.getStringValue("domain", "")) == false) {
-				return false;
-			}
-			return true;
+		if (group_name.equals(col.getStringValue("group_name", "")) == false) {
+			return false;
 		}
+		if (domain.equals(col.getStringValue("domain", "")) == false) {
+			return false;
+		}
+		return true;
 	}
 	
 	/**
 	 * It will be set disabled (it's not a real user).
 	 */
-	static FTPSimpleUser createSimpleUser(String group_name, String user_name, String domain) {
+	static FTPUser createSimpleUser(String group_name, String user_name, String domain) {
 		FTPUser u = new FTPUser();
-		return u.new FTPSimpleUser(group_name, user_name, domain);
+		u.disabled = true;
+		u.domain = domain;
+		u.group_name = group_name;
+		u.populateGroup();
+		u.user_name = user_name;
+		u.user_id = makeUserId(user_name, domain);
+		return u;
 	}
 	
 }
