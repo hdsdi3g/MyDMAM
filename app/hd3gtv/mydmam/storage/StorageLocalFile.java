@@ -58,6 +58,10 @@ public class StorageLocalFile extends Storage {
 			this.file = file;
 		}
 		
+		public File getRealFile() {
+			return file;
+		}
+		
 		public List<AbstractFile> listFiles() {
 			File[] list = file.listFiles();
 			if (list == null) {
