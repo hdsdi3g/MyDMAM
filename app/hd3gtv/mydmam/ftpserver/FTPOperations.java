@@ -16,18 +16,21 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
-import hd3gtv.mydmam.ftpserver.FTPUser.ExpiredUser;
+import hd3gtv.mydmam.ftpserver.FTPUser.FTPSimpleUser;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
@@ -151,8 +154,10 @@ public class FTPOperations {
 			
 			HashSet<FTPUser> current_active_users = new HashSet<FTPUser>(1);
 			ElasticsearchBulkOperation bulk_op;
-			List<ExpiredUser> trashable_users;
-			List<ExpiredUser> purgeable_users;
+			MutationBatch mutator;
+			List<FTPUser> trashable_users;
+			List<FTPUser> purgeable_users;
+			List<FTPSimpleUser> actual_users;
 			
 			try {
 				while (stop == false) {
@@ -179,13 +184,45 @@ public class FTPOperations {
 						bulk_op.terminateBulk();
 						
 						trashable_users = FTPUser.getTrashableUsers();
-						// TODO disable user account + move (trash/domain#userid-purgedate)
 						
-						purgeable_users = FTPUser.getPurgeableUsers(trashable_users);
-						// TODO remove user account + search all domain#userid-* and delete it
+						if (trashable_users.isEmpty() == false) {
+							try {
+								mutator = CassandraDb.prepareMutationBatch();
+								for (int pos = 0; pos < trashable_users.size(); pos++) {
+									trashable_users.get(pos).setDisabled(true);
+									trashable_users.get(pos).save(mutator);
+									trashable_users.get(pos).getGroup().trashUserHomeDirectory(trashable_users.get(pos));
+								}
+								mutator.execute();
+								
+								purgeable_users = FTPUser.getPurgeableUsers(trashable_users);
+								if (purgeable_users.isEmpty() == false) {
+									mutator = CassandraDb.prepareMutationBatch();
+									for (int pos = 0; pos < purgeable_users.size(); pos++) {
+										purgeable_users.get(pos).removeUser(mutator);
+										purgeable_users.get(pos).getGroup().deleteUserHomeDirectory(purgeable_users.get(pos));
+									}
+									mutator.execute();
+								}
+							} catch (Exception e) {
+								Loggers.FTPserver.error("Can't do clean (trash/purge) operations", e);
+							}
+						}
 						
 						for (FTPGroup group : FTPGroup.getDeclaredGroups().values()) {
 							group.checkFreeSpace();
+							
+							try {
+								actual_users = group.listAllActualUsers();
+								for (int pos = 0; pos < actual_users.size(); pos++) {
+									if (actual_users.get(pos).isValidInDB() == false) {
+										actual_users.get(pos).getGroup().deleteUserHomeDirectory(actual_users.get(pos));
+									}
+								}
+							} catch (IOException e) {
+								Loggers.FTPserver.error("Can't do clean (orphan directory) operations", e);
+								e.printStackTrace();
+							}
 						}
 						
 					} catch (ConnectionException e) {

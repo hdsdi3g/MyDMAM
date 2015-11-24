@@ -22,6 +22,8 @@ import org.apache.ftpserver.filesystem.nativefs.impl.NativeFtpFile;
 import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.FtpRequest;
 import org.apache.ftpserver.ftplet.FtpSession;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryRequestBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
@@ -61,9 +63,6 @@ public class FTPActivity {
 	private String argument;
 	private long activity_date;
 	
-	/*private static final Type al_SessionActivity = new TypeToken<ArrayList<SessionActivity>>() {
-	}.getType();*/
-	
 	private FTPActivity() {
 	}
 	
@@ -93,6 +92,12 @@ public class FTPActivity {
 		if (activity.action != Action.REST & activity.action != Action.RETR) {
 			FTPOperations.get().addActiveUser((FTPUser) session.getUser());
 		}
+	}
+	
+	static void purgeUserActivity(String user_id) {
+		DeleteByQueryRequestBuilder request = Elasticsearch.getClient().prepareDeleteByQuery(ES_INDEX).setTypes(ES_TYPE);
+		request.setQuery(QueryBuilders.termQuery("user_id", user_id));
+		Elasticsearch.deleteByQuery(request.request());
 	}
 	
 }

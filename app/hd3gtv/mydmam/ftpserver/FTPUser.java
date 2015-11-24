@@ -171,7 +171,7 @@ public class FTPUser implements User {
 		}
 	}
 	
-	private static String makeUserId(String user_name, String domain) {
+	static String makeUserId(String user_name, String domain) {
 		return "ftpuser:" + domain + "#" + user_name;
 	}
 	
@@ -200,7 +200,7 @@ public class FTPUser implements User {
 			return null;
 		}
 		try {
-			user.group.getUserHomeDirectory(user);
+			user.group.getUserHomeDirectory(user.user_name, user.domain);
 		} catch (Exception e) {
 			Loggers.FTPserver.error("Can't load user home directory for " + user_id, e);
 			return null;
@@ -272,10 +272,14 @@ public class FTPUser implements User {
 		return disabled == false;
 	}
 	
+	public void setDisabled(boolean disabled) {
+		this.disabled = disabled;
+	}
+	
 	public String getHomeDirectory() {
 		populateGroup();
 		try {
-			return group.getUserHomeDirectory(this).getAbsolutePath();
+			return group.getUserHomeDirectory(user_name, domain).getAbsolutePath();
 		} catch (Exception e) {
 			Loggers.FTPserver.error("Can't get home directory for user " + user_id + " (" + user_name + ")", e);
 		}
@@ -307,36 +311,14 @@ public class FTPUser implements User {
 		return this;
 	}
 	
-	/*ArrayList<Session> getSessionsForUser() {
-		if (sessions != null) {
-		}
-		return sessions;
-	}*/
+	private transient long trash_date;
 	
-	static class ExpiredUser {
-		String group_name;
-		String user_id;
-		long date;
-		
-		private ExpiredUser(String group_name, String user_id, long date) {
-			this.group_name = group_name;
-			this.user_id = user_id;
-			this.date = date;
-		}
-		
-	}
-	
-	/**
-	 * @param groups_ttl Group id -> ttl (in msec)
-	 * @return group id -> last_login, never null
-	 */
-	
-	static List<ExpiredUser> getTrashableUsers() throws ConnectionException {
+	static List<FTPUser> getTrashableUsers() throws ConnectionException {
 		HashMap<String, Long> groups_ttl = FTPGroup.getDeclaredGroupsTTLTrash();
 		HashMap<String, Boolean> group_activity_last_login = FTPGroup.getDeclaredGroupsExpirationBasedOnLastActivity();
 		
-		List<ExpiredUser> result = new ArrayList<FTPUser.ExpiredUser>();
-		Rows<String, String> rows = keyspace.prepareQuery(CF_USER).getAllRows().withColumnSlice("last_login", "group_name", "create_date").execute().getResult();
+		List<FTPUser> result = new ArrayList<FTPUser>();
+		Rows<String, String> rows = keyspace.prepareQuery(CF_USER).getAllRows().execute().getResult();
 		
 		String group_name;
 		long ttl_eq_now;
@@ -359,18 +341,22 @@ public class FTPUser implements User {
 			} else {
 				date = row.getColumns().getLongValue("create_date", 0l);
 			}
+			
 			if (date < ttl_eq_now) {
-				result.add(new ExpiredUser(group_name, row.getKey(), date));
+				FTPUser user = new FTPUser();
+				user.importFromDb(row.getKey(), row.getColumns());
+				user.trash_date = date;
+				result.add(user);
 			}
 		}
 		return result;
 	}
 	
-	static List<ExpiredUser> getPurgeableUsers(List<ExpiredUser> trashable_users) {
+	static List<FTPUser> getPurgeableUsers(List<FTPUser> trashable_users) {
 		HashMap<String, Long> groups_ttl = FTPGroup.getDeclaredGroupsTTLPurge();
 		
-		List<ExpiredUser> result = new ArrayList<FTPUser.ExpiredUser>();
-		ExpiredUser user;
+		List<FTPUser> result = new ArrayList<FTPUser>();
+		FTPUser user;
 		long ttl_eq_now;
 		for (int pos = 0; pos < trashable_users.size(); pos++) {
 			user = trashable_users.get(pos);
@@ -378,13 +364,56 @@ public class FTPUser implements User {
 				continue;
 			}
 			ttl_eq_now = System.currentTimeMillis() - groups_ttl.get(user.group_name);
-			if (user.date < ttl_eq_now) {
+			if (user.trash_date < ttl_eq_now) {
 				result.add(user);
 			}
 		}
 		return result;
 	}
 	
-	// TODO if delete user, delete activities
+	/**
+	 * And purge activity.
+	 * Don't touch to user's content.
+	 */
+	public void removeUser(MutationBatch mutator) {
+		FTPActivity.purgeUserActivity(user_id);
+		mutator.withRow(CF_USER, user_id).delete();
+	}
+	
+	class FTPSimpleUser extends FTPUser {
+		public FTPSimpleUser(String _group_name, String _user_name, String _domain) {
+			disabled = true;
+			domain = _domain;
+			group_name = _group_name;
+			populateGroup();
+			user_name = _user_name;
+			user_id = makeUserId(_user_name, _domain);
+		}
+		
+		/**
+		 * Check if user exists in Db and it's group/domain is the same with Db.
+		 */
+		boolean isValidInDB() throws ConnectionException {
+			ColumnList<String> col = keyspace.prepareQuery(CF_USER).getKey(user_id).withColumnSlice("group_name", "domain").execute().getResult();
+			if (col.isEmpty()) {
+				return false;
+			}
+			if (group_name.equals(col.getStringValue("group_name", "")) == false) {
+				return false;
+			}
+			if (domain.equals(col.getStringValue("domain", "")) == false) {
+				return false;
+			}
+			return true;
+		}
+	}
+	
+	/**
+	 * It will be set disabled (it's not a real user).
+	 */
+	static FTPSimpleUser createSimpleUser(String group_name, String user_name, String domain) {
+		FTPUser u = new FTPUser();
+		return u.new FTPSimpleUser(group_name, user_name, domain);
+	}
 	
 }

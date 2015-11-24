@@ -37,6 +37,7 @@ public class ServiceNGFTPServer extends ServiceNG {
 	public ServiceNGFTPServer(String[] args) throws Exception {
 		super(args, "Apache FTP Server service handler");
 		servers = new ArrayList<FtpServer>();
+		FTPGroup.registerAppManager(getManager());
 	}
 	
 	private ArrayList<FtpServer> servers;

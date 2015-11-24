@@ -30,6 +30,8 @@ import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -312,6 +314,17 @@ public class Elasticsearch {
 		return withRetry(new ElasticsearchWithRetry<IndexResponse>() {
 			public IndexResponse call(Client client) throws NoNodeAvailableException {
 				return client.index(request).actionGet();
+			}
+		});
+	}
+	
+	/**
+	 * With retry
+	 */
+	public static DeleteByQueryResponse deleteByQuery(final DeleteByQueryRequest request) {
+		return withRetry(new ElasticsearchWithRetry<DeleteByQueryResponse>() {
+			public DeleteByQueryResponse call(Client client) throws NoNodeAvailableException {
+				return client.deleteByQuery(request).actionGet();
 			}
 		});
 	}
