@@ -19,25 +19,26 @@ package controllers.asyncjs;
 import java.util.Arrays;
 import java.util.List;
 
+import hd3gtv.mydmam.manager.AsyncJSBrokerVerbAction;
+import hd3gtv.mydmam.manager.AsyncJSBrokerVerbList;
 import hd3gtv.mydmam.web.AsyncJSController;
 import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 import hd3gtv.mydmam.web.AsyncJSRequestObject;
 import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.search.SearchVerb;
 
-public class AsyncSearch extends AsyncJSController {
+public class AsyncBroker extends AsyncJSController {
 	
 	public String getRequestName() {
-		return "search";
+		return "broker";
 	}
 	
 	@SuppressWarnings("unchecked")
 	public <V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> List<V> getManagedVerbs() {
-		return (List<V>) Arrays.asList(new SearchVerb());
+		return (List<V>) Arrays.asList(new AsyncJSBrokerVerbList(), new AsyncJSBrokerVerbAction());
 	}
 	
 	public List<String> getMandatoryPrivileges() {
-		return Arrays.asList("navigate");
+		return Arrays.asList("showBroker");
 	}
 	
 }

@@ -32,7 +32,7 @@ public class VerbDelComment extends AsyncJSControllerVerb<DeleteComment, Comment
 		return CommentList.class;
 	}
 	
-	public CommentList onRequest(DeleteComment request) throws Exception {
+	public CommentList onRequest(DeleteComment request, String caller) throws Exception {
 		FakeDB.delete(request.key);
 		CommentList result = new CommentList();
 		result.commentlist = FakeDB.getAll();

@@ -27,9 +27,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.mydmam.storage.StorageLocalFile.Localfile;
 import hd3gtv.tools.CopyMove;
 
 public abstract class Storage {
@@ -346,7 +349,7 @@ public abstract class Storage {
 		listing.onEndSearch();
 	}
 	
-	private boolean recursiveDirectorySearch(List<AbstractFile> files, StorageCrawler listing, IgnoreFiles rules, int width_crawl_allowed) {
+	private boolean recursiveDirectorySearch(List<AbstractFile> files, StorageCrawler listing, IgnoreFiles rules, int width_crawl_allowed) throws IOException {
 		if (width_crawl_allowed == 0) {
 			return false;
 		}
@@ -360,6 +363,8 @@ public abstract class Storage {
 			return true;
 		}
 		ArrayList<AbstractFile> dirs = new ArrayList<AbstractFile>();
+		
+		File local_file;
 		
 		/**
 		 * First, the files, and the dirs
@@ -379,6 +384,17 @@ public abstract class Storage {
 					continue;
 				}
 			}
+			
+			if (files.get(pos) instanceof Localfile) {
+				local_file = ((Localfile) files.get(pos)).getRealFile();
+				if (FileUtils.isSymlink(local_file)) {
+					/**
+					 * This file is a local file, and it's a symlink...
+					 */
+					continue;
+				}
+			}
+			
 			if (files.get(pos).isDirectory()) {
 				if (listing.canSelectdirInSearch()) {
 					if (listing.onFoundFile(files.get(pos), name) == false) {

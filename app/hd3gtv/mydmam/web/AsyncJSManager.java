@@ -18,7 +18,9 @@ package hd3gtv.mydmam.web;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -55,13 +57,24 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 		global = new AsyncJSManager();
 	}
 	
+	/**
+	 * ControllerRequestName -> VerbName -> Verb
+	 */
 	private HashMap<String, HashMap<String, AsyncJSControllerVerb<Rq, Rp>>> declarations;
 	private Gson gson;
 	
+	/**
+	 * ControllerRequestName -> ControllerMandatoryPrivileges
+	 */
 	private HashMap<String, List<String>> controllers_mandatory_privileges;
+	
+	/**
+	 * ControllerRequestName -> VerbName -> all Verbs MandatoryPrivileges;
+	 */
 	private HashMap<String, HashMap<String, List<String>>> verbs_mandatory_privileges;
 	
 	/**
+	 * ControllerMandatoryPrivileges for all Controllers and for all Verbs
 	 * Beware, maybe duplicates entries.
 	 */
 	private List<String> all_privileges_names;
@@ -229,7 +242,10 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 		gson = builder.create();
 	}
 	
-	public String doRequest(String raw_json_request) throws SecurityException, ClassNotFoundException {
+	/**
+	 * @param caller an IP/host name/loopback
+	 */
+	public String doRequest(String raw_json_request, String caller) throws SecurityException, ClassNotFoundException {
 		/**
 		 * Extract Json
 		 */
@@ -281,7 +297,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 		 */
 		Rp response = null;
 		try {
-			response = verb_ctrl.onRequest(request_object);
+			response = verb_ctrl.onRequest(request_object, caller);
 		} catch (Exception e) {
 			Loggers.Play.error("Can't process request: " + request_name + ", verb: " + verb + ", request:\t" + request_content.toString(), e);
 			response = verb_ctrl.failResponse();
@@ -300,6 +316,66 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 				mergue_with_list.add(all_privileges_names.get(pos));
 			}
 		}
+	}
+	
+	/**
+	 * @return controller -> verbs
+	 */
+	public HashMap<String, ArrayList<String>> getAllControllersVerbsForThisUser() {
+		HashMap<String, ArrayList<String>> result = new HashMap<String, ArrayList<String>>();
+		HashSet<String> privileges = new HashSet<String>(Secure.getSessionPrivileges());
+		
+		ArrayList<String> selected_controllers = new ArrayList<String>(controllers_mandatory_privileges.size());
+		
+		String controler_name;
+		String verb_name;
+		
+		List<String> mandatory_privileges;
+		for (Map.Entry<String, List<String>> controller_privileges : controllers_mandatory_privileges.entrySet()) {
+			controler_name = controller_privileges.getKey();
+			mandatory_privileges = controller_privileges.getValue();
+			if (mandatory_privileges.isEmpty()) {
+				selected_controllers.add(controler_name);
+			} else {
+				for (int pos = 0; pos < mandatory_privileges.size(); pos++) {
+					if (privileges.contains(mandatory_privileges.get(pos))) {
+						selected_controllers.add(controler_name);
+						break;
+					}
+				}
+			}
+		}
+		
+		HashMap<String, List<String>> current_verbs_mandatory_privileges;
+		for (int pos_sc = 0; pos_sc < selected_controllers.size(); pos_sc++) {
+			controler_name = selected_controllers.get(pos_sc);
+			current_verbs_mandatory_privileges = verbs_mandatory_privileges.get(controler_name);
+			
+			for (Map.Entry<String, List<String>> verb_privileges : current_verbs_mandatory_privileges.entrySet()) {
+				verb_name = verb_privileges.getKey();
+				
+				mandatory_privileges = verb_privileges.getValue();
+				if (mandatory_privileges.isEmpty()) {
+					if (result.containsKey(controler_name) == false) {
+						result.put(controler_name, new ArrayList<String>(1));
+					}
+					result.get(controler_name).add(verb_name);
+					
+				} else {
+					for (int pos = 0; pos < mandatory_privileges.size(); pos++) {
+						if (privileges.contains(mandatory_privileges.get(pos))) {
+							if (result.containsKey(controler_name) == false) {
+								result.put(controler_name, new ArrayList<String>(1));
+							}
+							result.get(controler_name).add(verb_name);
+							break;
+						}
+					}
+				}
+			}
+			
+		}
+		return result;
 	}
 	
 	public Gson getGson() {

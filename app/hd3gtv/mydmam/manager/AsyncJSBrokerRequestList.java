@@ -14,29 +14,12 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package controllers.asyncjs.demoreact;
+package hd3gtv.mydmam.manager;
 
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
+import hd3gtv.mydmam.web.AsyncJSRequestObject;
 
-public class VerbAddComment extends AsyncJSControllerVerb<NewComment, CommentList> {
+public class AsyncJSBrokerRequestList implements AsyncJSRequestObject {
 	
-	public String getVerbName() {
-		return "add";
-	}
-	
-	public Class<NewComment> getRequestClass() {
-		return NewComment.class;
-	}
-	
-	public Class<CommentList> getResponseClass() {
-		return CommentList.class;
-	}
-	
-	public CommentList onRequest(NewComment request, String caller) throws Exception {
-		FakeDB.add(request);
-		CommentList result = new CommentList();
-		result.commentlist = FakeDB.getAll();
-		return result;
-	}
+	long since;
 	
 }

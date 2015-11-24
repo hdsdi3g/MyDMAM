@@ -19,7 +19,10 @@ package hd3gtv.mydmam.web;
 import java.util.Collections;
 import java.util.List;
 
+import controllers.Secure;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import models.UserProfile;
 
 public abstract class AsyncJSControllerVerb<Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> {
 	
@@ -60,9 +63,10 @@ public abstract class AsyncJSControllerVerb<Rq extends AsyncJSRequestObject, Rp 
 	public abstract Class<Rp> getResponseClass();
 	
 	/**
+	 * @param caller an IP/hostname/loopback
 	 * @return never null
 	 */
-	public abstract Rp onRequest(Rq request) throws Exception;
+	public abstract Rp onRequest(Rq request, String caller) throws Exception;
 	
 	/**
 	 * @return never null
@@ -74,6 +78,13 @@ public abstract class AsyncJSControllerVerb<Rq extends AsyncJSRequestObject, Rp 
 			Loggers.Play.error("Can't to create an empty response, class: " + getResponseClass().getName(), e);
 			return null;
 		}
+	}
+	
+	protected static UserProfile getUserProfile() throws Exception {
+		String username = Secure.connected();
+		String key = UserProfile.prepareKey(username);
+		CrudOrmEngine<UserProfile> engine = UserProfile.getORMEngine(key);
+		return engine.getInternalElement();
 	}
 	
 }
