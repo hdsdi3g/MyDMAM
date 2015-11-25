@@ -181,7 +181,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 					/**
 					 * Twice declaration for this serializer class, but not with the same serializer !
 					 */
-					Loggers.Play.debug("Duplicate serializer entry ! class: " + enclosing_class + ", serializer:" + map_serializers.get(pos).getClass());
+					Loggers.Play.warn("Duplicate serializer entry ! class: " + enclosing_class + ", serializer:" + map_serializers.get(pos).getClass());
 					continue;
 				}
 				serializer_enclosing_classes.add(enclosing_class);
@@ -202,7 +202,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 					/**
 					 * Twice declaration for this deserializer class, but not with the same deserializer !
 					 */
-					Loggers.Play.debug("Duplicate deserializer entry ! class: " + enclosing_class + ", serializer:" + map_deserializers.get(pos).getClass());
+					Loggers.Play.warn("Duplicate deserializer entry ! class: " + enclosing_class + ", serializer:" + map_deserializers.get(pos).getClass());
 					continue;
 				}
 				deserializer_enclosing_classes.add(enclosing_class);

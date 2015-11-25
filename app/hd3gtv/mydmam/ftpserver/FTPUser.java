@@ -120,26 +120,26 @@ public class FTPUser implements User {
 			Loggers.FTPserver.info("User name will be transformed during the creation process " + log);
 		}
 		
-		user.obscured_password = password.getHashedPassword(clear_password);
 		if (clear_password == null) {
 			throw new NullPointerException("\"clear_password\" can't to be null");
 		}
 		if (clear_password.isEmpty()) {
 			throw new NullPointerException("\"clear_password\" can't to be empty");
 		}
+		user.obscured_password = password.getHashedPassword(clear_password);
 		
-		user.domain = domain;
 		if (domain == null) {
 			throw new NullPointerException("\"domain\" can't to be null");
 		}
+		user.domain = domain;
 		
-		user.group_name = group_name;
 		if (group_name == null) {
 			throw new NullPointerException("\"group_name\" can't to be null");
 		}
 		if (group_name.isEmpty()) {
 			throw new NullPointerException("\"group_name\" can't to be empty");
 		}
+		user.group_name = group_name;
 		
 		user.disabled = false;
 		user.user_id = makeUserId(user_name, domain);
@@ -207,7 +207,7 @@ public class FTPUser implements User {
 		return user;
 	}
 	
-	private void importFromDb(String key, ColumnList<String> cols) {
+	private FTPUser importFromDb(String key, ColumnList<String> cols) {
 		user_id = key;
 		user_name = cols.getStringValue("user_name", "");
 		obscured_password = cols.getByteArrayValue("obscured_password", new byte[0]);
@@ -217,6 +217,7 @@ public class FTPUser implements User {
 		create_date = cols.getLongValue("create_date", -1l);
 		update_date = cols.getLongValue("update_date", -1l);
 		last_login = cols.getLongValue("last_login", -1l);
+		return this;
 	}
 	
 	public void save() throws ConnectionException {
@@ -236,8 +237,23 @@ public class FTPUser implements User {
 		mutator.withRow(CF_USER, user_id).putColumn("last_login", last_login);
 	}
 	
+	void changePassword(String clear_password) {
+		if (clear_password == null) {
+			throw new NullPointerException("\"clear_password\" can't to be null");
+		}
+		if (clear_password.isEmpty()) {
+			throw new NullPointerException("\"clear_password\" can't to be empty");
+		}
+		obscured_password = password.getHashedPassword(clear_password);
+		update_date = System.currentTimeMillis();
+	}
+	
 	public String getName() {
 		return user_name;
+	}
+	
+	String getGroupName() {
+		return group_name;
 	}
 	
 	/**
@@ -269,8 +285,21 @@ public class FTPUser implements User {
 		return disabled == false;
 	}
 	
+	long getCreateDate() {
+		return create_date;
+	}
+	
+	long getUpdateDate() {
+		return update_date;
+	}
+	
+	long getLastLogin() {
+		return last_login;
+	}
+	
 	public void setDisabled(boolean disabled) {
 		this.disabled = disabled;
+		update_date = System.currentTimeMillis();
 	}
 	
 	public String getHomeDirectory() {
@@ -297,6 +326,19 @@ public class FTPUser implements User {
 	FTPGroup getGroup() {
 		populateGroup();
 		return group;
+	}
+	
+	static ArrayList<AJSUser> getAllAJSUsers() throws ConnectionException {
+		ArrayList<AJSUser> result = new ArrayList<AJSUser>();
+		Rows<String, String> rows = keyspace.prepareQuery(CF_USER).getAllRows().execute().getResult();
+		result.ensureCapacity(rows.size() + 1);
+		
+		FTPUser user = new FTPUser();
+		for (Row<String, String> row : rows) {
+			user.importFromDb(row.getKey(), row.getColumns());
+			result.add(AJSUser.fromFTPUser(user));
+		}
+		return result;
 	}
 	
 	private transient long trash_date;
@@ -366,6 +408,18 @@ public class FTPUser implements User {
 	public void removeUser(MutationBatch mutator) {
 		FTPActivity.purgeUserActivity(user_id);
 		mutator.withRow(CF_USER, user_id).delete();
+	}
+	
+	/**
+	 * And purge activity.
+	 * Don't touch to user's content.
+	 * @throws ConnectionException
+	 */
+	public void removeUser() throws ConnectionException {
+		FTPActivity.purgeUserActivity(user_id);
+		MutationBatch mutator = keyspace.prepareMutationBatch();
+		mutator.withRow(CF_USER, user_id).delete();
+		mutator.execute();
 	}
 	
 	/**

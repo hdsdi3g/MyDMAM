@@ -61,6 +61,9 @@ public class Password {
 		return master_password_key;
 	}
 	
+	/**
+	 * @return AES(BCrypt(clear_password, 10), SHA256(master_password_key))
+	 */
 	public byte[] getHashedPassword(String clear_password) {
 		try {
 			byte[] hashed = (BCrypt.hashpw(clear_password, BCrypt.gensalt(10))).getBytes("UTF-8");

@@ -26,6 +26,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Security;
+import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -67,6 +68,8 @@ public class MyDMAM {
 	 * Remove all non char/number like #@-"ı\r\n\t\t,\\;.?&'(§°*$%+=... BUT keep "_"
 	 */
 	public final static Pattern PATTERN_Special_Chars = Pattern.compile("[^\\w]");
+	
+	public static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
 	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2015";
 	
