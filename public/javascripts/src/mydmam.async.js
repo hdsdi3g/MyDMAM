@@ -28,6 +28,13 @@
 	 * @return null
 	 */
 	mydmam.async.request = function(name, verb, content, response_callback, error_callback) {
+		if (mydmam.async.isAvaliable(name, verb) === false) {
+			if (error_callback) {
+				error_callback();
+			}
+			return;
+		}
+
 		var encoded_request = JSON.stringify({
 			name: name,
 			verb: verb,
@@ -53,4 +60,15 @@
 		});
 	};
 	
+	/**
+	 * @param verb is not mandatory
+	 * @return boolean
+	 */
+	mydmam.async.isAvaliable = function(name, verb) {
+		if ((verb != null) & (mydmam.async.controllers[name] != null)) {
+			return (mydmam.async.controllers[name].indexOf(verb) > -1);
+		}
+		return (mydmam.async.controllers[name] != null);
+	};
+
 })(window.mydmam);
