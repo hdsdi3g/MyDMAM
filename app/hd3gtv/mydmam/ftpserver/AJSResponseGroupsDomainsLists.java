@@ -16,29 +16,26 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSerializationContext;
-
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
 
-public class AJSResponseUserList implements AsyncJSResponseObject {
+public class AJSResponseGroupsDomainsLists implements AsyncJSResponseObject {
 	
-	ArrayList<AJSUser> users;
+	private static ArrayList<String> _groups;
+	private static ArrayList<String> _domains;
 	
-	static class Serializer implements AsyncJSSerializer<AJSResponseUserList> {
-		
-		public JsonElement serialize(AJSResponseUserList src, Type typeOfSrc, JsonSerializationContext context) {
-			return FTPOperations.getGson().toJsonTree(src.users, AJSUser.type_List_User);
-		}
-		
-		public Class<AJSResponseUserList> getEnclosingClass() {
-			return AJSResponseUserList.class;
-		}
-		
+	static {
+		_groups = Configuration.global.getValues("ftpserveradmin", "groups", null);
+		_domains = Configuration.global.getValues("ftpserveradmin", "domains", null);
 	}
 	
+	ArrayList<String> groups;
+	ArrayList<String> domains;
+	
+	public AJSResponseGroupsDomainsLists() {
+		groups = _groups;
+		domains = _domains;
+	}
 }

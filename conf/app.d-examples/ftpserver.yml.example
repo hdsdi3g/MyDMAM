@@ -9,7 +9,7 @@ ftpserverinstances:
         passive-internal: 0.0.0.0      # The address to listen passive connection. Address should be the same as active. Must be open in firewall and NATed.
         passive-external: 0.0.0.0      # The external, public, IP address to access to this server. FTP server will send this to clients during passive data transferts.
         passive-ports: 30000-40000     # The internal TCP ports range to use for passive data transferts. Must be open in firewall and NATed.
-
+    # you can add many domains, plugged on others IP addresses (FTP don't has virtualhosts like HTTP).
 
 ftpservergroups:
     group1:                           # rule for a group of FTP accounts, apply only for this current instance.
@@ -24,3 +24,9 @@ ftpservergroups:
         # domain_isolation: false                    # If you want use separate directories for each domain (by example if base_working_dir is splitted between with differents mounts).
         # short_activity_log: false                  # Set true if you don't want keep FTP activities logs during a long time.
     # you can add many groups
+
+# Play Server configuration for create FTP Users, and assign it a group and a domain
+ftpserveradmin:
+    groups: [group1]                 # this must follow ftpservergroups configuration keys.
+    # domains: [dom1, dom2]          # You don't need to add, else need follow ftpserverinstances configuration keys;
+                                     # Domains are usefull for add several same users name plugged on differents FTP Servers (instances)

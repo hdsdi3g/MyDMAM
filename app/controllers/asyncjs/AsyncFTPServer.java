@@ -22,6 +22,7 @@ import java.util.List;
 import hd3gtv.mydmam.ftpserver.AJSVerbAdminExportSessions;
 import hd3gtv.mydmam.ftpserver.AJSVerbAdminOperationUser;
 import hd3gtv.mydmam.ftpserver.AJSVerbAllUsers;
+import hd3gtv.mydmam.ftpserver.AJSVerbGroupsDomainsLists;
 import hd3gtv.mydmam.ftpserver.AJSVerbRecentActivities;
 import hd3gtv.mydmam.web.AsyncJSController;
 import hd3gtv.mydmam.web.AsyncJSControllerVerb;
@@ -36,7 +37,7 @@ public class AsyncFTPServer extends AsyncJSController {
 	
 	@SuppressWarnings("unchecked")
 	public <V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> List<V> getManagedVerbs() {
-		return (List<V>) Arrays.asList(new AJSVerbAllUsers(), new AJSVerbAdminExportSessions(), new AJSVerbAdminOperationUser(), new AJSVerbRecentActivities());
+		return (List<V>) Arrays.asList(new AJSVerbAllUsers(), new AJSVerbAdminExportSessions(), new AJSVerbAdminOperationUser(), new AJSVerbRecentActivities(), new AJSVerbGroupsDomainsLists());
 	}
 	
 	public List<String> getMandatoryPrivileges() {
