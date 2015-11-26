@@ -4,12 +4,14 @@
 
 # Home page
 GET     /                                       Application.index
+GET		/my										Application.indexjs
 
 # Ignore favicon requests
 GET     /favicon.ico                            404
 
 # Map static resources from the /app/public folder to the /public path
 GET     /public/                                staticDir:public
+
 GET		/raw-jsx/{ressource_name}				AsyncJavascript.dynamicCompileJSX
 
 GET		/login									Secure.login

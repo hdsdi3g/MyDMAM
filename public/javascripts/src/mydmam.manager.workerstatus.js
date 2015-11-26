@@ -300,7 +300,7 @@
  * set_btn_event_in_collapse(query_destination)
  */
 (function(workerstatus) {
-	btn_event_in_collapse = function() {
+	var btn_event_in_collapse = function() {
 		var query_destination = $(this).data("query_destination");
 		var row_class = $(this).data("collapsetarget");
 

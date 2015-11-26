@@ -61,6 +61,7 @@
 	};
 	
 	/**
+	 * If you outrepassing this, Play will block you, because it do also this check.
 	 * @param verb is not mandatory
 	 * @return boolean
 	 */

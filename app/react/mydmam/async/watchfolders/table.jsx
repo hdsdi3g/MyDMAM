@@ -90,3 +90,5 @@ watchfolders.table =  React.createClass({
 		</table>);
 	},
 });
+
+mydmam.routes.push("watchfolders", "watchfolders", watchfolders.table, [{name: "watchfolders", verb: "list"}]);

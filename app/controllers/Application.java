@@ -241,4 +241,8 @@ public class Application extends Controller {
 		renderJSON(result.toString());
 	}
 	
+	public static void indexjs() {
+		render();
+	}
+	
 }

@@ -48,10 +48,13 @@
 	%{ } else { }%
 		<script src="@{'/public/javascripts/lib/react-0.13.2.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	%{ } }%
+		<script src="@{'/public/javascripts/lib/rlite-1.1.1.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	
 	#{list hd3gtv.mydmam.web.JsCompile.getURLlist(), as:'item'}
 		#{script src:item, charset:'utf-8' /}
 	#{/list}
+	
+	<script type="text/javascript" charset="UTF-8"><!-- #{include 'routes.js'/} --></script>
 	
 	%{ if (hd3gtv.mydmam.web.JsCompile.COMPILE_JS == false){ }%
 		#{list hd3gtv.mydmam.web.JSXTransformer.getJSXURLList(), as:'item'}
@@ -59,7 +62,6 @@
 		#{/list}
 	%{ } }%
 
-	<script type="text/javascript" charset="UTF-8"><!-- #{include 'routes.js'/} --></script>
 	<script src="@{Application.i18n()}" type="text/javascript" charset="UTF-8"></script>
 	
 	#{get 'moreScripts' /}
