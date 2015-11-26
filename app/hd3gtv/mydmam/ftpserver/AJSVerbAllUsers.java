@@ -38,7 +38,7 @@ public class AJSVerbAllUsers extends AsyncJSControllerVerb<AsyncJSObjectVoid, AJ
 		return AJSResponseUserList.class;
 	}
 	
-	public AJSResponseUserList onRequest(AsyncJSObjectVoid request) throws Exception {
+	public AJSResponseUserList onRequest(AsyncJSObjectVoid request, String caller) throws Exception {
 		AJSResponseUserList ul = new AJSResponseUserList();
 		ul.users = FTPUser.getAllAJSUsers();
 		return ul;

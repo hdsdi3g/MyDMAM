@@ -35,7 +35,7 @@ public class AJSVerbAdminOperationUser extends AsyncJSControllerVerb<AJSRequestA
 		return AJSResponseAdminOperationUser.class;
 	}
 	
-	public AJSResponseAdminOperationUser onRequest(AJSRequestAdminOperationUser request) throws Exception {
+	public AJSResponseAdminOperationUser onRequest(AJSRequestAdminOperationUser request, String caller) throws Exception {
 		AJSResponseAdminOperationUser response = new AJSResponseAdminOperationUser();
 		
 		switch (request.operation) {

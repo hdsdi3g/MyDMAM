@@ -37,7 +37,7 @@ public class AJSVerbRecentActivities extends AsyncJSControllerVerb<AJSRequestRec
 		return AJSResponseActivities.class;
 	}
 	
-	public AJSResponseActivities onRequest(AJSRequestRecent request) throws Exception {
+	public AJSResponseActivities onRequest(AJSRequestRecent request, String caller) throws Exception {
 		AJSResponseActivities response = new AJSResponseActivities();
 		response.activities = FTPActivity.getRecentActivities(request.user_id, request.last_time);
 		return response;

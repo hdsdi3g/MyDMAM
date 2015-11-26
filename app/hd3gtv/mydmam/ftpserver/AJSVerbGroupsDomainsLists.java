@@ -36,7 +36,7 @@ public class AJSVerbGroupsDomainsLists extends AsyncJSControllerVerb<AsyncJSObje
 		return AJSResponseGroupsDomainsLists.class;
 	}
 	
-	public AJSResponseGroupsDomainsLists onRequest(AsyncJSObjectVoid request) throws Exception {
+	public AJSResponseGroupsDomainsLists onRequest(AsyncJSObjectVoid request, String caller) throws Exception {
 		return new AJSResponseGroupsDomainsLists();
 	}
 	

@@ -35,7 +35,7 @@ public class AJSVerbAdminExportSessions extends AsyncJSControllerVerb<AJSRequest
 		return AJSResponseAdminExportSessions.class;
 	}
 	
-	public AJSResponseAdminExportSessions onRequest(AJSRequestAdminExportSessions request) throws Exception {
+	public AJSResponseAdminExportSessions onRequest(AJSRequestAdminExportSessions request, String caller) throws Exception {
 		AJSResponseAdminExportSessions result = new AJSResponseAdminExportSessions();
 		result.raw_sessions = FTPActivity.getAllUserActivitiesCSV(request.user_id);
 		return result;
