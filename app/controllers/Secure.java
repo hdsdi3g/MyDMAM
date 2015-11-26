@@ -71,7 +71,7 @@ public class Secure extends Controller {
 		users_pending_privileges_change.put(username, System.currentTimeMillis() + ttl_duration);
 	}
 	
-	private static ArrayList<String> getSessionPrivileges() {
+	public static ArrayList<String> getSessionPrivileges() {
 		String username = session.get("username");
 		if (users_pending_privileges_change.containsKey(username)) {
 			users_pending_privileges_change.remove(username);

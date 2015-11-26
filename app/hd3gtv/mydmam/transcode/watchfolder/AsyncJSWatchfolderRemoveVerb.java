@@ -32,7 +32,7 @@ public class AsyncJSWatchfolderRemoveVerb extends AsyncJSControllerVerb<AsyncJSW
 		return AsyncJSWatchfolderResponseRemove.class;
 	}
 	
-	public AsyncJSWatchfolderResponseRemove onRequest(AsyncJSWatchfolderRequestRemove request) throws Exception {
+	public AsyncJSWatchfolderResponseRemove onRequest(AsyncJSWatchfolderRequestRemove request, String caller) throws Exception {
 		WatchFolderDB.remove(request.key);
 		return new AsyncJSWatchfolderResponseRemove();
 	}

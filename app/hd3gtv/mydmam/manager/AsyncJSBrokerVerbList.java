@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.web.search;
+package hd3gtv.mydmam.manager;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,26 +23,27 @@ import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 import hd3gtv.mydmam.web.AsyncJSGsonProvider;
 import hd3gtv.mydmam.web.AsyncJSSerializer;
 
-public class SearchVerb extends AsyncJSControllerVerb<SearchRequest, SearchQuery> {
+public class AsyncJSBrokerVerbList extends AsyncJSControllerVerb<AsyncJSBrokerRequestList, AsyncJSBrokerResponseList> {
 	
 	public String getVerbName() {
-		return "query";
+		return "list";
 	}
 	
-	public Class<SearchRequest> getRequestClass() {
-		return SearchRequest.class;
+	public Class<AsyncJSBrokerRequestList> getRequestClass() {
+		return AsyncJSBrokerRequestList.class;
 	}
 	
-	public Class<SearchQuery> getResponseClass() {
-		return SearchQuery.class;
+	public Class<AsyncJSBrokerResponseList> getResponseClass() {
+		return AsyncJSBrokerResponseList.class;
 	}
 	
-	public SearchQuery onRequest(SearchRequest request, String caller) throws Exception {
-		return new SearchQuery().search(request);
+	public AsyncJSBrokerResponseList onRequest(AsyncJSBrokerRequestList request, String caller) throws Exception {
+		AsyncJSBrokerResponseList result = new AsyncJSBrokerResponseList();
+		result.list = JobNG.Utility.getJobsFromUpdateDate(request.since);
+		return result;
 	}
 	
 	public List<? extends AsyncJSSerializer<?>> getJsonSerializers(AsyncJSGsonProvider gson_provider) {
-		return Arrays.asList(SearchQuery.serializer);
+		return Arrays.asList(new AsyncJSBrokerResponseList.Serializer());
 	}
-	
 }

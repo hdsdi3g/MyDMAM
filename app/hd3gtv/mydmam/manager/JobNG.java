@@ -970,13 +970,21 @@ public final class JobNG {
 	
 	public String toStringLight() {
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
-		log.put("key", getKey());
 		log.put("name", getName());
 		if (getContext() != null) {
-			log.put("context", getContext().getClass().getName());
-			log.put("hookednames", getContext().hookednames);
-			log.put("neededstorages", getContext().neededstorages);
+			log.put("context", getContext().getClass().getSimpleName());
+			if (getContext().hookednames != null) {
+				if (getContext().hookednames.isEmpty() == false) {
+					log.put("hookednames", getContext().hookednames);
+				}
+			}
+			if (getContext().neededstorages != null) {
+				if (getContext().neededstorages.isEmpty() == false) {
+					log.put("neededstorages", getContext().neededstorages);
+				}
+			}
 		}
+		log.put("key", getKey());
 		return log.toString();
 	}
 	

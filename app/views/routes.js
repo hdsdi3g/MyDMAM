@@ -20,6 +20,7 @@
 mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 
 mydmam.async.url = "@{AsyncJavascript.index()}";	
+mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson().toJson(hd3gtv.mydmam.web.AsyncJSManager.global.getAllControllersVerbsForThisUser())); }% ;
 
 #{secure.check 'navigate'}
 	mydmam.metadatas.url.navigate = "@{Application.navigate()}";
