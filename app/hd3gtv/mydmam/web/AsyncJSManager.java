@@ -16,17 +16,20 @@
 */
 package hd3gtv.mydmam.web;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
+import controllers.Check;
 import controllers.Secure;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -41,7 +44,6 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 	public static final AsyncJSManager<?, ?, ?> global;
 	private static final Gson gson_simple;
 	private static final GsonIgnoreStrategy ignore_strategy;
-	private static final JsonParser parser;
 	
 	static {
 		GsonBuilder builder = new GsonBuilder();
@@ -51,8 +53,6 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 		builder.serializeNulls();
 		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
 		gson_simple = builder.create();
-		
-		parser = new JsonParser();
 		
 		global = new AsyncJSManager();
 	}
@@ -115,9 +115,12 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 				Loggers.Play.error("Invalid class loading", e);
 				continue;
 			}
+			
 			if (AsyncJSController.class.isAssignableFrom(class_candidate)) {
 				try {
-					all_js_controllers.add((AsyncJSController) class_candidate.newInstance());
+					AsyncJSController js_controller = (AsyncJSController) class_candidate.newInstance();
+					all_js_controllers.add(js_controller);
+					// searchStaticMethods(js_controller);
 				} catch (Exception e) {
 					Loggers.Play.error("Invalid class instancing", e);
 					continue;
@@ -245,15 +248,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 	/**
 	 * @param caller an IP/host name/loopback
 	 */
-	public String doRequest(String raw_json_request, String caller) throws SecurityException, ClassNotFoundException {
-		/**
-		 * Extract Json
-		 */
-		JsonObject json_request = parser.parse(raw_json_request).getAsJsonObject();
-		String request_name = json_request.get("name").getAsString();
-		String verb = json_request.get("verb").getAsString();
-		JsonObject request_content = json_request.get("content").getAsJsonObject();
-		
+	public String doRequest(String request_name, String verb, String request, String caller) throws SecurityException, ClassNotFoundException {
 		/**
 		 * Check request privilege
 		 */
@@ -290,7 +285,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 		/**
 		 * Deserialise request
 		 */
-		Rq request_object = gson.fromJson(request_content, verb_ctrl.getRequestClass());
+		Rq request_object = gson.fromJson(request, verb_ctrl.getRequestClass());
 		
 		/**
 		 * Execute request
@@ -299,7 +294,7 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 		try {
 			response = verb_ctrl.onRequest(request_object, caller);
 		} catch (Exception e) {
-			Loggers.Play.error("Can't process request: " + request_name + ", verb: " + verb + ", request:\t" + request_content.toString(), e);
+			Loggers.Play.error("Can't process request: " + request_name + ", verb: " + verb + ", request:\t" + request, e);
 			response = verb_ctrl.failResponse();
 		}
 		
@@ -385,4 +380,39 @@ public class AsyncJSManager<V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends 
 	public Gson getGsonSimple() {
 		return gson_simple;
 	}
+	
+	public static void searchStaticMethods(AsyncJSController controller) {
+		Method[] methods = controller.getClass().getMethods();
+		
+		Method m;
+		for (int pos = 0; pos < methods.length; pos++) {
+			m = methods[pos];
+			if (m.isAnnotationPresent(AJSVerb.class) == false) {
+				continue;
+			}
+			// System.out.println(controller.getClass().getSimpleName()); DemoAsyncReact
+			// System.out.println(m.getName()); testStaticMethod
+			// System.out.println(m.getAnnotation(AJSVerb.class).value()); testverb
+			// System.out.println(m.getReturnType()); // class java.net.URL
+			// System.out.println(Arrays.asList(m.getParameterTypes())); // [class java.util.UUID]
+			if (m.isAnnotationPresent(Check.class)) {
+				// System.out.println(Arrays.asList(m.getAnnotation(Check.class).value())); // [demoAsync2]
+			}
+			// System.out.println(Arrays.asList(m.getExceptionTypes())); // [class java.net.MalformedURLException]
+			Object in = UUID.randomUUID();
+			try {
+				Object out = m.invoke(controller, in);
+				System.out.println(((URL) out).getProtocol());
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.getTargetException().printStackTrace();
+			}
+			
+		}
+		System.out.println();
+	}
+	
 }

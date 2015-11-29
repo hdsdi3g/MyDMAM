@@ -16,13 +16,18 @@
 */
 package controllers.asyncjs;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
+import controllers.Check;
 import controllers.asyncjs.demoreact.VerbAddComment;
 import controllers.asyncjs.demoreact.VerbDelComment;
 import controllers.asyncjs.demoreact.VerbEditComment;
 import controllers.asyncjs.demoreact.VerbGetCommentList;
+import hd3gtv.mydmam.web.AJSVerb;
 import hd3gtv.mydmam.web.AsyncJSController;
 import hd3gtv.mydmam.web.AsyncJSControllerVerb;
 import hd3gtv.mydmam.web.AsyncJSRequestObject;
@@ -42,4 +47,11 @@ public class DemoAsyncReact extends AsyncJSController {
 	public List<String> getMandatoryPrivileges() {
 		return Arrays.asList("demoAsync");
 	}
+	
+	@AJSVerb("testverb")
+	@Check("demoAsync2")
+	public URL testStaticMethod(UUID input) throws MalformedURLException {
+		return new URL("ddddd");
+	}
+	
 }

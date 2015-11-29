@@ -20,11 +20,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -281,12 +279,6 @@ public class JsCompile {
 	
 	private static class CompilerErrorReporter implements ErrorReporter {
 		
-		File warning_file;
-		
-		public CompilerErrorReporter(File warning_file) {
-			this.warning_file = warning_file;
-		}
-		
 		public void error(String arg0, String arg1, int arg2, String arg3, int arg4) {
 			Loggers.Play.error("Rhino error during javascript parsing, arg0: " + arg0 + ", arg1: " + arg1 + ", arg2: " + arg2 + ", arg3: " + arg3 + ", arg4: " + arg4);
 		}
@@ -297,30 +289,10 @@ public class JsCompile {
 		}
 		
 		public void warning(String arg0, String arg1, int arg2, String arg3, int arg4) {
-			if (warning_file == null) {
+			if (Loggers.Play.isTraceEnabled() == false) {
 				return;
 			}
-			try {
-				FileWriter fw = new FileWriter(warning_file, true);
-				PrintWriter warning_log = new PrintWriter(fw);
-				warning_log.println(arg0);
-				if (arg1 != null) {
-					warning_log.println(arg1);
-				}
-				if (arg2 > -1) {
-					warning_log.println(arg2);
-				}
-				if (arg3 != null) {
-					warning_log.println(arg3);
-				}
-				if (arg4 > -1) {
-					warning_log.println(arg4);
-				}
-				warning_log.println();
-				warning_log.close();
-			} catch (IOException e) {
-				Loggers.Play.error("Can't write warning log", e);
-			}
+			Loggers.Play.trace("Rhino warn during javascript parsing, arg0: " + arg0 + ", arg1: " + arg1 + ", arg2: " + arg2 + ", arg3: " + arg3 + ", arg4: " + arg4);
 		}
 	}
 	
@@ -328,14 +300,14 @@ public class JsCompile {
 		File warning_file = new File(binaryfile.getRealFile().getAbsolutePath() + "-warning.txt");
 		warning_file.delete();
 		
-		CompilerErrorReporter compiler_error_reporter = new CompilerErrorReporter(warning_file);
+		CompilerErrorReporter compiler_error_reporter = new CompilerErrorReporter();
 		
 		InputStreamReader in = new InputStreamReader(new FileInputStream(sourcefile.getRealFile()));
 		JavaScriptCompressor compressor = new JavaScriptCompressor(in, compiler_error_reporter);
 		in.close();
 		
 		OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(binaryfile.getRealFile()));
-		compressor.compress(out, 200, true, Play.mode.isDev(), true, false);
+		compressor.compress(out, 200, true, false, true, false);
 		out.close();
 		
 		compiled_db.put(binaryfile.getName(), new Db(sourcefile));
@@ -400,7 +372,7 @@ public class JsCompile {
 		try {
 			StringReader sr = new StringReader(content);
 			JavaScriptCompressor compressor;
-			compressor = new JavaScriptCompressor(sr, new CompilerErrorReporter(null));
+			compressor = new JavaScriptCompressor(sr, new CompilerErrorReporter());
 			StringWriter sw = new StringWriter(content.length());
 			compressor.compress(sw, 80, true, false, true, false);
 			return sw.toString();

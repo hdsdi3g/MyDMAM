@@ -21,8 +21,8 @@
  * Functions to exchange Jsons with Play direclty.
  */
 (function(mydmam) {
-	mydmam.async = {};
-	mydmam.async.controllers = {};
+	if(!mydmam.async){mydmam.async = {};}
+	if(!mydmam.async.controllers){mydmam.async.controllers = {};}
 
 	/**
 	 * @return null
@@ -35,18 +35,12 @@
 			return;
 		}
 
-		var encoded_request = JSON.stringify({
-			name: name,
-			verb: verb,
-			content: content,
-		});
-		
 		$.ajax({
-			url: mydmam.async.url,
+			url: mydmam.async.url.replace("nameparam1", name).replace("verbparam2", verb),
 			type: "POST",
 			dataType: 'json',
 			data: {
-				request: encoded_request,
+				jsonrq: JSON.stringify(content)
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
 				/**

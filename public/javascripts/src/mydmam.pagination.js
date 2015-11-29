@@ -23,6 +23,7 @@
  * Prepare consts and vars.
  */
 (function(mydmam) {
+	if(!mydmam){mydmam = {};}
 	mydmam.pagination = {};
 })(window.mydmam);
 

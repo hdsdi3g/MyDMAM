@@ -14,12 +14,28 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2015
  * 
 }*
+
+mydmam = {};
+
 /** Define URLs for JS functions */
 (function(mydmam) {
 
+mydmam.urlimgs = {};
+mydmam.async = {};
+mydmam.metadatas = {};
+mydmam.metadatas.url = {};
+mydmam.stat = {};
+mydmam.basket = {};
+mydmam.basket.url = {};
+mydmam.basket.allusers = {};
+mydmam.manager = {};
+mydmam.manager.url = {};
+mydmam.notification = {};
+mydmam.notification.url = {};
+
 mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 
-mydmam.async.url = "@{AsyncJavascript.index()}";	
+mydmam.async.url = "@{AsyncJavascript.index(name='nameparam1',verb='verbparam2')}";	
 mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson().toJson(hd3gtv.mydmam.web.AsyncJSManager.global.getAllControllersVerbsForThisUser())); }% ;
 
 #{secure.check 'navigate'}
@@ -41,7 +57,6 @@ mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson(
 	#{secure.check 'adminUsers'}
 		mydmam.basket.allusers.ajaxurl = "@{UserBasket.basket_admin_action}";
 	#{/secure.check}
-	
 	mydmam.async.baseURLsearch = "@{Application.search(q='param1query',from='param2from')}";
 #{/secure.check}
 

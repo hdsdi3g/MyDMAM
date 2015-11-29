@@ -20,7 +20,7 @@
  * Define stand-alone mydmam functions.
  */
 (function(mydmam) {
-	mydmam.format = {};
+	if(!mydmam.format){mydmam.format = {};}
 
 	var addZeros = function(text) {
 		var returntext = '00' + text;

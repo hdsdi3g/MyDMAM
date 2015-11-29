@@ -23,8 +23,8 @@
  * Prepare consts and vars.
  */
 (function(mydmam) {
-	mydmam.navigator = {};
+	if(!mydmam.navigator){mydmam.navigator = {};}
+	if(!mydmam.navigator.url){mydmam.navigator.url = {};}
+
 	var navigator = mydmam.navigator;
-	navigator.url = {};
-	mydmam.navigator.inputselect = {};
 })(window.mydmam);

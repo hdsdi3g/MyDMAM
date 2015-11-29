@@ -23,13 +23,14 @@
  * Prepare consts and vars.
  */
 (function(mydmam) {
-	mydmam.metadatas = {};
+	if(!mydmam.metadatas){mydmam.metadatas = {};}
+	if(!mydmam.metadatas.url){mydmam.metadatas.url = {};}
+	if(!mydmam.metadatas.displaymethod){mydmam.metadatas.displaymethod = {};}
+
 	var metadatas = mydmam.metadatas;
 
-	metadatas.displaymethod = {};
 	metadatas.displaymethod.NAVIGATE_SHOW_ELEMENT = 0;
 
-	metadatas.url = {};
 })(window.mydmam);
 
 /**

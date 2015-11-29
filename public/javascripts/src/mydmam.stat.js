@@ -20,7 +20,9 @@
  * Prepare consts and vars.
  */
 (function(mydmam) {
-	mydmam.stat = {};
+	if(!mydmam.stat){mydmam.stat = {};}
+	if(!mydmam.stat.url){mydmam.stat.url = {};}
+
 	var stat = mydmam.stat;
 	stat.DEFAULT_PAGE_SIZE = 500;
 
@@ -33,7 +35,6 @@
 	stat.SCOPE_COUNT_ITEMS = "countitems";
 	stat.SCOPE_ONLYDIRECTORIES = "onlydirs";
 
-	stat.url = "";
 })(window.mydmam);
 
 /**

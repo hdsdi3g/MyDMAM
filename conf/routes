@@ -4,7 +4,7 @@
 
 # Home page
 GET     /                                       Application.index
-GET		/my										Application.indexjs
+GET		/!										Application.indexjs
 
 # Ignore favicon requests
 GET     /favicon.ico                            404
@@ -55,7 +55,7 @@ POST	/user/basket/create						User.basket_create
 POST	/user/basket/switch						User.basket_switch_selected
 POST	/user/basket/admin						User.basket_admin_action
 
-POST	/asyncjs								AsyncJavascript.index
+POST	/asyncjs/{name}/{verb}					AsyncJavascript.index
 
 # Catch all
 *       /{controller}/{action}                  {controller}.{action}

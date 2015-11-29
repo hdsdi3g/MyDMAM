@@ -11,16 +11,25 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-/*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
+package hd3gtv.mydmam.web;
 
-(function(mydmam) {
-	if(!mydmam.manager){mydmam.manager = {};}
-	if(!mydmam.manager.url){mydmam.manager.url = {};}
-	if(!mydmam.manager.workerstatus){mydmam.manager.workerstatus = {};}
-	if(!mydmam.manager.jobcreator){mydmam.manager.jobcreator = {};}
-	if(!mydmam.manager.jobs){mydmam.manager.jobs = {};}
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-})(window.mydmam);
+/**
+ * Used to set a object will not be gson-ed automatically, but manually.
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.METHOD })
+public @interface AJSVerb {
+	/**
+	 * @return verb name
+	 */
+	String value();
+	
+}

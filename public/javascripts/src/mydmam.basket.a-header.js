@@ -20,14 +20,15 @@
  * Prepare consts and vars.
  */
 (function(mydmam) {
-	mydmam.basket = {};
-	mydmam.basket.content = {};
-	mydmam.basket.content.backend = {};
-	mydmam.basket.allusers = {};
+	if(!mydmam.basket){mydmam.basket = {};}
+	if(!mydmam.basket.content){mydmam.basket.content = {};}
+	if(!mydmam.basket.content.backend ){mydmam.basket.content.backend  = {};}
+	if(!mydmam.basket.allusers){mydmam.basket.allusers = {};}
+	if(!mydmam.basket.url){mydmam.basket.url = {};}
+
 	mydmam.basket.currentname = "";
 	mydmam.basket.LOCALSTORAGE_CONTENT_KEYNAME = "basket-content";
 	mydmam.basket.LOCALSTORAGE_LASTUPDATE_KEYNAME = "basket-lastupdate";
 	mydmam.basket.CACHE_DURATION = 60;
 	/** in sec */
-	mydmam.basket.url = {};
 })(window.mydmam);

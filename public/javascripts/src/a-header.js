@@ -11,10 +11,18 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2014-2015
  * 
  */
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
+
+/**
+ * Init mydmam global object.
+ */
+if(!mydmam){mydmam = {};}
+if(!mydmam.module){mydmam.module = {};}
+if(!mydmam.routes){mydmam.routes = {};}
+if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 
 /**
  * Pre-definited strings functions. Init mydmam global object.
@@ -43,8 +51,6 @@
 		return JSON.parse(this.getItem(key));
 	};
 
-	window.mydmam = {};
-
 	window.keycodemap = {
 		down : 40,
 		up : 38,
@@ -52,8 +58,6 @@
 		backspace : 8,
 		esc : 27,
 	};
-
-	mydmam.urlimgs = {};
 
 	if (window.console == null) {
 		window.console = {};
@@ -68,8 +72,6 @@
 			 */
 		};
 	}
-	
-	mydmam.module = {};
 	
 })(window);
 
@@ -181,3 +183,55 @@
 	module.f.i18nExternalPosition = firstValidCallback("i18nExternalPosition");
 	
 })(window.mydmam.module);
+
+/**
+ * JS Route System
+ */
+(function(routes) {
+	var base = {};
+
+	/**
+	 * @param async_needs [{name: AsyncJSControllerName, verb: AsyncJSControllerVerb}, ], used to check if user can acces to some controllers, via async.isAvaliable().
+	 */
+	routes.push = function(route_name, path, react_top_level_class, async_needs) {
+		if (async_needs != null) {
+			for (var pos in async_needs) {
+				var async_need = async_needs[pos];
+				if (async_need.name == null) {
+					console.error("Name param missing for async_need", async_need);
+				}
+				if (async_need.verb == null) {
+					console.error("Verb param missing for async_need", async_need);
+				}
+				if (mydmam.async.isAvaliable(async_need.name, async_need.verb) == false) {
+					console.log("No rights for", async_need);
+					return;
+				}
+			}
+		}
+
+		base[route_name] = {};
+		base[route_name].path = path;
+		base[route_name].react_top_level_class = react_top_level_class;
+	};
+
+	/**
+	 * @param callback, like function(route_name, rlite.params)
+	 */
+	routes.populate = function(rlite, callback) {
+		for (var route_name in base) {
+			rlite.add(base[route_name].path, function () {
+				callback(route_name, rlite.params);
+			});
+		}
+	};
+
+	routes.getReactTopLevelClassByRouteName = function(route_name) {
+		if (base[route_name]) {
+			return base[route_name].react_top_level_class;
+		}
+		return null;
+	};
+	
+})(window.mydmam.routes);
+

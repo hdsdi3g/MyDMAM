@@ -34,16 +34,20 @@ import play.vfs.VirtualFile;
 @With(Secure.class)
 public class AsyncJavascript extends Controller {
 	
-	public static void index(@Required String request) throws Exception {
+	public static void index(@Required String name, @Required String verb, @Required String jsonrq) throws Exception {
 		if (Validation.hasErrors()) {
 			response.status = Application.HTTP_not_found;
 			renderJSON("{}");
 		}
+		
+		// AsyncJSManager.searchStaticMethods(new DemoAsyncReact());
+		
 		if (Controller.request.isLoopback == false) {
-			renderJSON(AsyncJSManager.global.doRequest(request, Controller.request.remoteAddress));
+			renderJSON(AsyncJSManager.global.doRequest(name, verb, jsonrq, Controller.request.remoteAddress));
 		} else {
-			renderJSON(AsyncJSManager.global.doRequest(request, "loopback"));
+			renderJSON(AsyncJSManager.global.doRequest(name, verb, jsonrq, "loopback"));
 		}
+		renderJSON("{}");
 	}
 	
 	public static void dynamicCompileJSX(@Required String ressource_name) {

@@ -37,10 +37,10 @@ routes.Backbone = React.createClass({
 		var hash = location.hash || '#';
 		this.props.rlite.run(hash.slice(1));
 	},
-	onChangePage: function(react_top_level_class, params) {
-		this.setState({dest: react_top_level_class, params: params});
+	onChangePage: function(route_name, params) {
+		this.setState({dest: route_name, params: params});
 	},
-  	componentDidMount: function() {
+  	componentWillMount: function() {//
   		var r = this.props.rlite;
   		
 		r.add('', function () {
@@ -60,8 +60,10 @@ routes.Backbone = React.createClass({
   	},
 	render: function() {
 		if (this.state.dest) {
-			var ReactTopLevelClass = this.state.dest;
-			return (<ReactTopLevelClass />);
+			var ReactTopLevelClass = routes.getReactTopLevelClassByRouteName(this.state.dest);
+			if (ReactTopLevelClass) {
+				return (<ReactTopLevelClass />);
+			}
 		}
 
 		return (<span>

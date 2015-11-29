@@ -17,8 +17,8 @@
 /*jshint eqnull:true, loopfunc:true, shadow:true, jquery:true */
 
 (function(mydmam) {
-	mydmam.notification = {};
-	mydmam.notification.url = {};
+	if(!mydmam.notification){mydmam.notification = {};}
+	if(!mydmam.notification.url){mydmam.notification.url = {};}
 })(window.mydmam);
 
 /**
