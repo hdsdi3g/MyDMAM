@@ -215,14 +215,18 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 		base[route_name].react_top_level_class = react_top_level_class;
 	};
 
+	var callbackFactory = function(callback, route_name) {
+		return function(r) {
+			callback(route_name, r.params);
+		};
+	};
+
 	/**
 	 * @param callback, like function(route_name, rlite.params)
 	 */
 	routes.populate = function(rlite, callback) {
 		for (var route_name in base) {
-			rlite.add(base[route_name].path, function () {
-				callback(route_name, rlite.params);
-			});
+			rlite.add(base[route_name].path, callbackFactory(callback, route_name));
 		}
 	};
 

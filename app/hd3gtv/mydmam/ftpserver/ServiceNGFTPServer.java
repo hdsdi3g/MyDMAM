@@ -53,9 +53,12 @@ public class ServiceNGFTPServer extends ServiceNG {
 			return;
 		}
 		
+		HashMap<String, Ftplet> ftplets = new HashMap<String, Ftplet>(1);
+		ftplets.put("default", new FTPlet());
+		
 		for (Map.Entry<String, ConfigurationItem> entry : all_instances_confs.entrySet()) {
 			try {
-				FtpServer server = ftpServerFactory(entry.getKey(), all_instances_confs);
+				FtpServer server = ftpServerFactory(entry.getKey(), all_instances_confs, ftplets);
 				server.start();
 				servers.add(server);
 			} catch (Exception e) {
@@ -86,7 +89,7 @@ public class ServiceNGFTPServer extends ServiceNG {
 		return false;
 	}
 	
-	private FtpServer ftpServerFactory(String name, HashMap<String, ConfigurationItem> all_instances_confs) throws Exception {
+	private FtpServer ftpServerFactory(String name, HashMap<String, ConfigurationItem> all_instances_confs, HashMap<String, Ftplet> ftplets) throws Exception {
 		FtpServerFactory server_factory = new FtpServerFactory();
 		
 		ListenerFactory factory = new ListenerFactory();
@@ -118,9 +121,6 @@ public class ServiceNGFTPServer extends ServiceNG {
 			server_factory.setUserManager(ftpum);
 		}
 		server_factory.setUserManager(ftpum);
-		
-		HashMap<String, Ftplet> ftplets = new HashMap<String, Ftplet>(1);
-		ftplets.put(name, new FTPlet());
 		server_factory.setFtplets(ftplets);
 		
 		return server_factory.createServer();

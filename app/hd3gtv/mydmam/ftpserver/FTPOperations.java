@@ -210,7 +210,7 @@ public class FTPOperations {
 							/**
 							 * Trash/purge operations
 							 */
-							trashable_users = FTPUser.getTrashableUsers();
+							trashable_users = FTPUser.getTrashableUsers();// FIXME set disabled new users
 							if (trashable_users.isEmpty() == false) {
 								mutator = CassandraDb.prepareMutationBatch();
 								for (int pos = 0; pos < trashable_users.size(); pos++) {
@@ -220,7 +220,7 @@ public class FTPOperations {
 								}
 								mutator.execute();
 								
-								purgeable_users = FTPUser.getPurgeableUsers(trashable_users);
+								purgeable_users = FTPUser.getPurgeableUsers(trashable_users);// FIXME want to delete new users
 								if (purgeable_users.isEmpty() == false) {
 									mutator = CassandraDb.prepareMutationBatch();
 									for (int pos = 0; pos < purgeable_users.size(); pos++) {

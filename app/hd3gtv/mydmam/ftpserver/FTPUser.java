@@ -181,6 +181,7 @@ public class FTPUser implements User {
 	public static FTPUser getUserId(String user_id, boolean only_valid_users) throws ConnectionException {
 		ColumnList<String> row = keyspace.prepareQuery(CF_USER).getKey(user_id).execute().getResult();
 		if (row.isEmpty()) {
+			Loggers.FTPserver.debug("Can't found user id DB: " + user_id);
 			return null;
 		}
 		FTPUser user = new FTPUser();
@@ -220,13 +221,14 @@ public class FTPUser implements User {
 		return this;
 	}
 	
-	public void save() throws ConnectionException {
+	public FTPUser save() throws ConnectionException {
 		MutationBatch mutator = keyspace.prepareMutationBatch();
 		save(mutator);
 		mutator.execute();
+		return this;
 	}
 	
-	public void save(MutationBatch mutator) throws ConnectionException {
+	public FTPUser save(MutationBatch mutator) throws ConnectionException {
 		mutator.withRow(CF_USER, user_id).putColumn("user_name", user_name);
 		mutator.withRow(CF_USER, user_id).putColumn("obscured_password", obscured_password);
 		mutator.withRow(CF_USER, user_id).putColumn("group_name", group_name);
@@ -235,6 +237,7 @@ public class FTPUser implements User {
 		mutator.withRow(CF_USER, user_id).putColumn("create_date", create_date);
 		mutator.withRow(CF_USER, user_id).putColumn("update_date", update_date);
 		mutator.withRow(CF_USER, user_id).putColumn("last_login", last_login);
+		return this;
 	}
 	
 	void changePassword(String clear_password) {
@@ -331,7 +334,6 @@ public class FTPUser implements User {
 	static ArrayList<AJSUser> getAllAJSUsers() throws ConnectionException {
 		ArrayList<AJSUser> result = new ArrayList<AJSUser>();
 		Rows<String, String> rows = keyspace.prepareQuery(CF_USER).getAllRows().execute().getResult();
-		result.ensureCapacity(rows.size() + 1);
 		
 		FTPUser user = new FTPUser();
 		for (Row<String, String> row : rows) {
@@ -362,6 +364,8 @@ public class FTPUser implements User {
 			
 			if (group_activity_last_login.get(group_name)) {
 				date = row.getColumns().getLongValue("last_login", 0l);
+				// Loggers.FTPserver.info("last_login " + date);
+				
 				if (date < 1) {
 					/**
 					 * User has never login.

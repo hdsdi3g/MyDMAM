@@ -20,6 +20,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 
 import hd3gtv.mydmam.web.AsyncJSResponseObject;
@@ -27,12 +28,15 @@ import hd3gtv.mydmam.web.AsyncJSSerializer;
 
 public class AJSResponseUserList implements AsyncJSResponseObject {
 	
-	ArrayList<AJSUser> users;
+	ArrayList<AJSUser> users = new ArrayList<AJSUser>(1);
 	
 	static class Serializer implements AsyncJSSerializer<AJSResponseUserList> {
 		
 		public JsonElement serialize(AJSResponseUserList src, Type typeOfSrc, JsonSerializationContext context) {
-			return FTPOperations.getGson().toJsonTree(src.users, AJSUser.type_List_User);
+			JsonObject result = new JsonObject();
+			result.add("users", FTPOperations.getGson().toJsonTree(src.users, AJSUser.type_List_User));
+			
+			return result;
 		}
 		
 		public Class<AJSResponseUserList> getEnclosingClass() {

@@ -40,7 +40,7 @@ routes.Backbone = React.createClass({
 	onChangePage: function(route_name, params) {
 		this.setState({dest: route_name, params: params});
 	},
-  	componentWillMount: function() {//
+  	componentWillMount: function() {
   		var r = this.props.rlite;
   		
 		r.add('', function () {
@@ -52,22 +52,30 @@ routes.Backbone = React.createClass({
 			this.setState({dest: r.params.content});
 		}.bind(this));*/
 
-  		window.addEventListener('hashchange', this.processHash);
 		this.processHash();
   	},
-  	componentWillUnmount: function() {
+   	componentDidMount: function() {//
+  		window.addEventListener('hashchange', this.processHash);
+   	},
+ 	componentWillUnmount: function() {
   		window.removeEventListener('hashchange', this.processHash);
   	},
 	render: function() {
+		var main = null;
+
 		if (this.state.dest) {
 			var ReactTopLevelClass = routes.getReactTopLevelClassByRouteName(this.state.dest);
 			if (ReactTopLevelClass) {
-				return (<ReactTopLevelClass />);
+				main = <ReactTopLevelClass />;
 			}
 		}
 
-		return (<span>
-			<div><a href="#watchfolders">Lien</a></div>
-		</span>);
+		var links = (<div className="btn-group">
+			<a className="btn" href="#">Home</a>
+			<a className="btn" href="#watchfolders">Watchfolders</a>
+			<a className="btn" href="#ftpserver">FTP Server</a>
+		</div>);
+
+		return (<div>{main}<hr />{links}</div>);
 	}
 });

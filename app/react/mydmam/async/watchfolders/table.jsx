@@ -26,9 +26,9 @@ watchfolders.table =  React.createClass({
 			jobs: {},
 		};
 	},
-	componentDidMount: function() {
+	componentWillMount: function() {
 		this.loadActualItemList();
-		this.state.interval = setInterval(this.loadActualItemList, 1000);
+		this.setState({interval: setInterval(this.loadActualItemList, 1000)});
 	},
 	componentWillUnmount: function() {
 		if (this.state.interval) {

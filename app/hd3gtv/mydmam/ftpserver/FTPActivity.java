@@ -19,6 +19,7 @@ package hd3gtv.mydmam.ftpserver;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +29,6 @@ import org.apache.ftpserver.filesystem.nativefs.impl.NativeFtpFile;
 import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.FtpRequest;
 import org.apache.ftpserver.ftplet.FtpSession;
-import org.elasticsearch.action.deletebyquery.DeleteByQueryRequestBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -42,8 +42,8 @@ import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 
 public class FTPActivity {
 	
-	private static final int TTL_LONG_ACTIVITY = (int) TimeUnit.DAYS.toMillis(365 * 2);
-	private static final int TTL_SHORT_ACTIVITY = (int) TimeUnit.DAYS.toMillis(30 * 1);
+	private static final int TTL_LONG_ACTIVITY = (int) TimeUnit.DAYS.toSeconds(365 * 2);
+	private static final int TTL_SHORT_ACTIVITY = (int) TimeUnit.DAYS.toSeconds(30 * 1);
 	
 	private static final String ES_INDEX = "ftpserver";
 	private static final String ES_TYPE = "ftpserverlogactivity";
@@ -63,19 +63,29 @@ public class FTPActivity {
 	private transient String activity_key;
 	
 	private String session_key;
-	@SuppressWarnings("unused")
 	private String client_host;
 	private long login_time;
-	@SuppressWarnings("unused")
 	private String user_id;
-	@SuppressWarnings("unused")
 	private String working_directory;
 	private Action action;
-	@SuppressWarnings("unused")
 	private String argument;
 	private long activity_date;
 	
 	private FTPActivity() {
+	}
+	
+	public String toString() {
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		log.put("activity_key", activity_key);
+		log.put("session_key", session_key);
+		log.put("client_host", client_host);
+		log.put("login_time", new Date(login_time));
+		log.put("user_id", user_id);
+		log.put("working_directory", working_directory);
+		log.put("action", action);
+		log.put("argument", argument);
+		log.put("activity_date", activity_date);
+		return log.toString();
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -93,14 +103,22 @@ public class FTPActivity {
 		activity.action = Action.valueOf(request.getCommand());
 		activity.argument = request.getArgument();
 		
+		if (Loggers.FTPserver.isTraceEnabled()) {
+			Loggers.FTPserver.trace("Push FTP Activity: " + activity);
+		}
+		
 		long ttl = TTL_LONG_ACTIVITY;
 		if (user.getGroup().isShortActivityLog()) {
 			ttl = TTL_SHORT_ACTIVITY;
 		}
 		
-		Elasticsearch.getClient().prepareIndex(ES_INDEX, ES_TYPE, activity.activity_key).setSource(FTPOperations.getGson().toJson(activity)).setTTL(ttl)
-				.execute(Elasticsearch.createEmptyActionListener(Loggers.FTPserver, FTPActivity.class));
-				
+		try {
+			Elasticsearch.getClient().prepareIndex(ES_INDEX, ES_TYPE, activity.activity_key).setSource(FTPOperations.getGson().toJson(activity)).setTTL(ttl)
+					.execute(Elasticsearch.createEmptyActionListener(Loggers.FTPserver, FTPActivity.class));
+		} catch (Exception e) {
+			Loggers.FTPserver.warn("Error during store activity in DB: " + e);
+		}
+		
 		if (activity.action != Action.REST & activity.action != Action.RETR) {
 			FTPOperations.get().addActiveUser((FTPUser) session.getUser());
 		}
@@ -117,9 +135,9 @@ public class FTPActivity {
 	}
 	
 	static void purgeUserActivity(String user_id) {
-		DeleteByQueryRequestBuilder request = Elasticsearch.getClient().prepareDeleteByQuery(ES_INDEX).setTypes(ES_TYPE);
-		request.setQuery(searchByUserId(user_id));
-		Elasticsearch.deleteByQuery(request.request());
+		Loggers.FTPserver.info("Purge user activity: " + user_id);
+		// (ES_INDEX).setTypes(ES_TYPE); request.setQuery(searchByUserId(user_id));
+		// TODO re-implement DeleteByQuery with search + bulk
 	}
 	
 	private static String[] getCSVLine(Map<String, Object> source) {

@@ -30,8 +30,6 @@ import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
-import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -321,17 +319,6 @@ public class Elasticsearch {
 	/**
 	 * With retry
 	 */
-	public static DeleteByQueryResponse deleteByQuery(final DeleteByQueryRequest request) {
-		return withRetry(new ElasticsearchWithRetry<DeleteByQueryResponse>() {
-			public DeleteByQueryResponse call(Client client) throws NoNodeAvailableException {
-				return client.deleteByQuery(request).actionGet();
-			}
-		});
-	}
-	
-	/**
-	 * With retry
-	 */
 	public static long countRequest(final String index, final QueryBuilder query, final String... types) {
 		CountResponse response = withRetry(new ElasticsearchWithRetry<CountResponse>() {
 			public CountResponse call(Client client) throws NoNodeAvailableException {
@@ -370,6 +357,13 @@ public class Elasticsearch {
 		}
 		
 		public void onResponse(Object response) {
+			if (logger.isTraceEnabled()) {
+				if (response instanceof IndexResponse) {
+					logger.trace("ES has correctly executed the action submitted by " + source.getSimpleName() + ", v" + ((IndexResponse) response).getVersion());
+				} else {
+					logger.trace("ES has correctly executed the action submitted by " + source.getSimpleName() + " " + response.toString());
+				}
+			}
 		}
 		
 		public void onFailure(Throwable e) {

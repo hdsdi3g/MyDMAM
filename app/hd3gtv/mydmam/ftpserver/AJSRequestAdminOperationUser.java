@@ -35,8 +35,9 @@ public class AJSRequestAdminOperationUser implements AsyncJSRequestObject {
 		CREATE, DELETE, CH_PASSWORD, TOGGLE_ENABLE;
 	}
 	
-	FTPUser createFTPUser() throws IOException {
-		return FTPUser.create(user_name, clear_password, group_name, domain);
+	FTPUser createFTPUser() throws IOException, ConnectionException {
+		FTPUser user = FTPUser.create(user_name, clear_password, group_name, domain);
+		return user.save();
 	}
 	
 	void delete() throws ConnectionException {
