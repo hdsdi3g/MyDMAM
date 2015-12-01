@@ -24,6 +24,7 @@ site.errorpage.applicationerror=Application error
 site.errorpage.oops=Oops, an error occured
 site.errorpage.exception=This exception has been logged with id
 site.logintips=
+site.vendor=
 
 filesizeunitshort=b
 filesizeunitlong=bytes
@@ -486,6 +487,14 @@ crud.field.userprofile.selectedbasketname=Selected basket
 crud.field.userprofile.keep_index_deleted_basket_items=Keep deleted items index in the baskets
 
 mailtemplate.please_not_respond=Thank you not to answer to this email.
+
+ftpserver.addusermail.title=Creating FTP account
+ftpserver.addusermail.logonsetup=Here logon information:
+ftpserver.addusermail.login=User name:
+ftpserver.addusermail.password=Password:
+ftpserver.addusermail.host=FTP server:
+ftpserver.addusermail.uri=Direct link (URI):
+ftpserver.addusermail.useaclassicalftpclient=Use a generic FTP client to access the server.
 
 # Privileges
 acl.privileges.name.acl=Manage permissions

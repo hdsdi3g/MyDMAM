@@ -21,20 +21,31 @@ ftpserver.hasUserAdminRights = function() {
 
 ftpserver.BtnAddUserForm = React.createClass({
 	render: function() {
-		return (<a href="#ftpserver/add" className="btn btn-primary"><i className="icon-plus icon-white"></i> Add user</a>);
+		return (<a href="#ftpserver/add" className="btn btn-primary btn-small"><i className="icon-plus icon-white"></i> Add user</a>);
 	}
 });
+
+var generatePassword = function() {
+	var generated_password = "";
+	var possible = "abcdefghijkmnopqrstuvwxyz23456789";
+	for (var i = 0; i < 8; i++) {
+		generated_password += possible.charAt(Math.floor(Math.random() * possible.length));
+	}
+	return generated_password;
+}
 
 ftpserver.AddUser = React.createClass({
 	getInitialState: function() {
 		return {
 			groups: null,
 			domains: null,
+			display_password_generator: false,
+			generated_password: null,
 		};
 	},
 	loadActualConfig: function() {
 		mydmam.async.request("ftpserver", "groupdomainlists", {}, function(data) {
-			this.setState(data);
+			this.setState({groups: data.groups, domains: data.domains});
 		}.bind(this));
 	},
 	componentWillMount: function() {
@@ -61,6 +72,17 @@ ftpserver.AddUser = React.createClass({
 			React.findDOMNode(this.refs.user_name).value = data.user_name;
 			this.setState({done: data.done});
 		}.bind(this));
+	},
+	toogleBtnDisplayGeneratePasswordForm: function() {
+		var generated_password = generatePassword();
+		this.setState({display_password_generator: ! this.state.display_password_generator, generated_password: generated_password});
+		React.findDOMNode(this.refs.password).value = generated_password;
+	},
+	generatePasswordBtn: function() {
+		var generated_password = generatePassword();
+		this.setState({generated_password: generated_password});
+		React.findDOMNode(this.refs.inputgeneratedpassword).value = generated_password;
+		React.findDOMNode(this.refs.password).value = generated_password;
 	},
 	render: function() {
 		var groups = this.state.groups;
@@ -93,6 +115,20 @@ ftpserver.AddUser = React.createClass({
 			}
 		}
 
+		var generate_password_form = null;
+		if (this.state.display_password_generator) {
+			generate_password_form = (<FormControlGroup label="Generate password">
+			    <div className="input-append">
+					<input type="text" disabled="disabled" readOnly="readonly" ref="inputgeneratedpassword" defaultValue={this.state.generated_password} />
+			    	<button className="btn" type="button" onClick={this.generatePasswordBtn}><i className="icon-repeat"></i></button>
+			    </div>
+			</FormControlGroup>);
+		}
+		var btn_display_generate_password_form_classes = classNames({
+			btn: true,
+			active: this.state.display_password_generator,
+		});
+
 		return (<mydmam.async.PageHeaderTitle title="Add FTP user">
 			{user_is_created}
 			<form className="form-horizontal" onSubmit={this.onAddUserBtnClick}>
@@ -100,8 +136,12 @@ ftpserver.AddUser = React.createClass({
 					<input type="text" placeholder="User name" ref="user_name" />
 				</FormControlGroup>
 				<FormControlGroup label="Password">
-					<input type="password" placeholder="Password" ref="password" />
+				    <div className="input-append">
+				    	<input type="password" placeholder="Password" ref="password" defaultValue={this.state.generated_password} />
+				    	<button className={btn_display_generate_password_form_classes} type="button" onClick={this.toogleBtnDisplayGeneratePasswordForm}><i className="icon-arrow-down"></i></button>
+				    </div>
 				</FormControlGroup>
+				{generate_password_form}
 				<FormControlGroup label="Group">
 					<select ref="group">{select_list_group}</select>
 				</FormControlGroup>
@@ -123,3 +163,4 @@ mydmam.routes.push("ftpserver-addUser", "ftpserver/add", ftpserver.AddUser, [
 	{name: "ftpserver", verb: "adminoperationuser"},
 	{name: "ftpserver", verb: "groupdomainlists"}
 ]);	
+

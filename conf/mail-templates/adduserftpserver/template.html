@@ -1,0 +1,55 @@
+<!-- <% /*
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2015
+ * 
+*/ %> -->
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8">
+	<style>
+	 body {
+	 	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	 }
+	 .title {
+	 	font-family: Bitter, Georgia, serif;
+	 	font-weight: bold;
+	 	color: #4AB534;
+	 }
+	 .informations {
+	 	font-family: "Monaco", "Lucia Console", "Courier New", Monospace, Courier;
+	 }
+	</style>
+</head>
+<body>
+	<span class="title">${messages.get("ftpserver.addusermail.title")}</span></span><br>
+	<hr style="height:3px; background-color:#992626">
+	<p>
+		${messages.get("ftpserver.addusermail.logonsetup")}
+		<ul>
+			<li>${messages.get("ftpserver.addusermail.login")} <span class="informations">${login}</span>
+			<li>${messages.get("ftpserver.addusermail.password")} <span class="informations">${password}</span>
+			<li>${messages.get("ftpserver.addusermail.host")} <span class="informations">${host}</span>
+			<li>${messages.get("ftpserver.addusermail.uri")} <a href="${uri}">${uri}</a>
+		</ul>
+		${messages.get("ftpserver.addusermail.useaclassicalftpclient")}
+	</p>
+	<div style="background-color:#3d9999; color:#FFFFFF; padding:7pt;" class="footer">
+		<p>
+			<i>${messages.get("mailtemplate.please_not_respond")}</i>
+		</p>
+	</div>
+	<br>
+	<span style="font-size:0.9em;">${messages.get("site.name")} ${messages.get("site.vendor")}</span>
+</body>
+</html>

@@ -113,3 +113,95 @@ async.PageHeaderTitle = React.createClass({
 	}
 });
 
+async.BtnEnableDisable = React.createClass({
+	propTypes: {
+		simplelabel: React.PropTypes.bool.isRequired,
+		enabled: React.PropTypes.bool.isRequired,
+		labelenabled: React.PropTypes.string.isRequired,
+		labeldisabled: React.PropTypes.string.isRequired,
+		onEnable: React.PropTypes.func,
+		onDisable: React.PropTypes.func,
+		reference: React.PropTypes.string,
+		iconcircle: React.PropTypes.bool,
+	},
+	getInitialState: function() {
+		return {pending_changes: false};
+	},
+	onClickSetEnable: function() {
+		if (this.state.pending_changes) {
+			return;
+		}
+		this.setState({pending_changes: true});
+		this.props.onEnable(this.props.reference);
+	},
+	onClickSetDisable: function() {
+		if (this.state.pending_changes) {
+			return;
+		}
+		this.setState({pending_changes: true});
+		this.props.onDisable(this.props.reference);
+	},
+	componentWillReceiveProps: function() {
+		this.setState({pending_changes: false});
+	},
+	render: function() {
+		var class_name_icon = classNames({
+			"icon-white":        this.props.enabled,
+			"icon-stop":         this.props.enabled & !this.props.iconcircle,
+			"icon-play":        !this.props.enabled & !this.props.iconcircle,
+			"icon-ok-circle":    this.props.enabled &  this.props.iconcircle,
+			"icon-ban-circle":  !this.props.enabled &  this.props.iconcircle,
+		});
+
+		if (this.props.simplelabel) {
+			if (this.props.enabled) {
+				return (<span><strong>{this.props.labelenabled}</strong></span>);
+			} else {
+				return (<span className="muted"><strong>{this.props.labeldisabled}</strong></span>);
+			}
+		}
+		 
+		if (this.props.enabled) {
+			var btn_classes = classNames("btn", "btn-mini", "btn-danger", {
+				disabled: this.state.pending_changes,
+			});
+			return (<button className={btn_classes} onClick={this.onClickSetDisable}><i className={class_name_icon}></i> {this.props.labelenabled}</button>);
+		} else {
+			var btn_classes = classNames("btn", "btn-mini", {
+				disabled: this.state.pending_changes,
+			});
+			return (<button className={btn_classes} onClick={this.onClickSetEnable}><i className={class_name_icon}></i> {this.props.labeldisabled}</button>);
+		}
+	},
+});
+
+async.BtnDelete = React.createClass({
+	propTypes: {
+		label: React.PropTypes.string,
+		enabled: React.PropTypes.bool.isRequired,
+		onClickDelete: React.PropTypes.func.isRequired,
+		reference: React.PropTypes.string,
+	},
+	getInitialState: function() {
+		return {pending_changes: false};
+	},
+	onClickDelete: function() {
+		if (this.state.pending_changes) {
+			return;
+		}
+		if (!this.props.enabled) {
+			return;
+		}
+		this.setState({pending_changes: true});
+		this.props.onClickDelete(this.props.reference);
+	},
+	componentWillReceiveProps: function() {
+		this.setState({pending_changes: false});
+	},
+	render: function() {
+		var btn_classes = classNames("btn", "btn-mini", "btn-danger", {
+			disabled: this.state.pending_changes | !this.props.enabled,
+		});
+		return (<button className={btn_classes} onClick={this.onClickDelete}><i className="icon-trash icon-white"></i> {this.props.label}</button>);
+	},
+});

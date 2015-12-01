@@ -160,6 +160,10 @@ public final class Loggers {
 		return new SimpleDateFormat("yyyy/MM/dd HH:mm:ss,SSS").format(new Date(date));
 	}
 	
+	public static final String dateFilename(long date) {
+		return new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS").format(new Date(date));
+	}
+	
 	public static final File log4j_xml_configuration_file = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath() + File.separator + "conf" + File.separator + "log4j.xml");
 	
 	public static void refreshLogConfiguration() {

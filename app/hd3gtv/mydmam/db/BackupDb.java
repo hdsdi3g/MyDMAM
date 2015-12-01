@@ -19,15 +19,20 @@ package hd3gtv.mydmam.db;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
@@ -49,6 +54,7 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.tools.CopyMove;
 
 public class BackupDb {
 	
@@ -180,6 +186,69 @@ public class BackupDb {
 			parse(new BackupDbElasticsearch(purgebefore, esttl), xmlfile);
 		} else {
 			throw new SAXException("Can't detect XML root element parser type");
+		}
+	}
+	
+	public void backupCF(String basepath, String cf_name) {
+		try {
+			File file_basepath = new File(basepath);
+			if (file_basepath.exists()) {
+				CopyMove.checkExistsCanRead(file_basepath);
+				CopyMove.checkIsDirectory(file_basepath);
+				CopyMove.checkIsWritable(file_basepath);
+			} else {
+				FileUtils.forceMkdir(file_basepath);
+			}
+			
+			Keyspace keyspace = CassandraDb.getkeyspace();
+			List<ColumnFamilyDefinition> l_cdf = keyspace.describeKeyspace().getColumnFamilyList();
+			
+			ColumnFamilyDefinition cfd = null;
+			for (int pos = 0; pos < l_cdf.size(); pos++) {
+				cfd = l_cdf.get(pos);
+				if (cf_name.equals(cfd.getName())) {
+					break;
+				}
+			}
+			if (cfd == null) {
+				Loggers.Cassandra.debug("Backup CF " + cf_name + " canceled: CF don't exists");
+				return;
+			}
+			
+			ColumnFamily<String, String> cf = new ColumnFamily<String, String>(cf_name, StringSerializer.get(), StringSerializer.get());
+			File outfile = new File(file_basepath.getAbsolutePath() + File.separator + "backup_cs_" + cf_name + ".xml");
+			Loggers.Cassandra.info("Start backup Cassandra Column Family, name: " + cf_name + ", outfile: " + outfile);
+			BackupDbCassandra exportcassandra = new BackupDbCassandra(keyspace, cfd, outfile);
+			
+			boolean result = CassandraDb.allRowsReader(cf, exportcassandra);
+			exportcassandra.closeDocument();
+			
+			if (result == false) {
+				Loggers.Cassandra.error("Backup failed...");
+				return;
+			}
+			
+			Loggers.Cassandra.debug("Start compress backup CF file: " + outfile.getPath());
+			GZIPOutputStream gzos = null;
+			FileInputStream fis = null;
+			try {
+				fis = new FileInputStream(outfile);
+				gzos = new GZIPOutputStream(
+						new FileOutputStream(new File(file_basepath.getAbsolutePath() + File.separator + "backup_cs_" + cf_name + "_" + Loggers.dateFilename(System.currentTimeMillis()) + ".xml.gz")));
+				IOUtils.copy(fis, gzos);
+				fis.close();
+				gzos.close();
+				FileUtils.forceDelete(outfile);
+			} catch (IOException e) {
+				Loggers.Cassandra.error("Can't compress backup file during backup", e);
+			} finally {
+				IOUtils.closeQuietly(fis);
+				IOUtils.closeQuietly(gzos);
+			}
+			
+			Loggers.Cassandra.debug("End backup, keys " + exportcassandra.getCount());
+		} catch (Exception ce) {
+			Loggers.Cassandra.error("Can't backup Cassandra CF " + cf_name + " in " + basepath);
 		}
 	}
 	

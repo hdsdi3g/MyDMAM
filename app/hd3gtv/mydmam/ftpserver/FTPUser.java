@@ -41,6 +41,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.Password;
+import hd3gtv.mydmam.db.BackupDb;
 import hd3gtv.mydmam.db.CassandraDb;
 
 public class FTPUser implements User {
@@ -455,6 +456,15 @@ public class FTPUser implements User {
 		u.user_name = user_name;
 		u.user_id = makeUserId(user_name, domain);
 		return u;
+	}
+	
+	static void backupCF() {
+		BackupDb bdb = new BackupDb();
+		String basepath = Configuration.global.getValue("ftpserveradmin", "backupdir", "");
+		if (basepath.equals("")) {
+			return;
+		}
+		bdb.backupCF(basepath, CF_USER.getName());
 	}
 	
 }
