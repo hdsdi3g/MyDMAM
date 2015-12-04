@@ -54,7 +54,7 @@ routes.Backbone = React.createClass({
 
 		this.processHash();
   	},
-   	componentDidMount: function() {//
+   	componentDidMount: function() {
   		window.addEventListener('hashchange', this.processHash);
    	},
  	componentWillUnmount: function() {
@@ -66,7 +66,7 @@ routes.Backbone = React.createClass({
 		if (this.state.dest) {
 			var ReactTopLevelClass = routes.getReactTopLevelClassByRouteName(this.state.dest);
 			if (ReactTopLevelClass) {
-				main = <ReactTopLevelClass />;
+				main = <ReactTopLevelClass params={this.state.params} />;
 			}
 		}
 

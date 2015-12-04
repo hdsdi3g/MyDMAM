@@ -96,17 +96,17 @@ public class FTPUser implements User {
 	
 	/**
 	 * Don't forget to save.
-	 * @param user_name can be changed (chars filtered). Check after the process the definitive user_name.
+	 * @param non_checked_user_name can be changed (chars filtered). Check after the process the definitive user_name.
 	 * @param domain can be empty, but not null.
 	 */
-	public static FTPUser create(String user_name, String clear_password, String group_name, String domain) throws IOException {
+	public static FTPUser create(String non_checked_user_name, String clear_password, String group_name, String domain) throws IOException {
 		FTPUser user = new FTPUser();
 		
-		user.user_name = user_name;
-		if (user_name == null) {
+		user.user_name = non_checked_user_name;
+		if (non_checked_user_name == null) {
 			throw new NullPointerException("\"user_name\" can't to be null");
 		}
-		if (user_name.isEmpty()) {
+		if (non_checked_user_name.isEmpty()) {
 			throw new NullPointerException("\"user_name\" can't to be empty");
 		}
 		
@@ -114,9 +114,9 @@ public class FTPUser implements User {
 		user.user_name = MyDMAM.PATTERN_Special_Chars.matcher(Normalizer.normalize(user.user_name, Normalizer.Form.NFD)).replaceAll("");
 		user.user_name = user.user_name.trim().toLowerCase();
 		
-		if (user_name.equalsIgnoreCase(user.user_name) == false) {
+		if (non_checked_user_name.equalsIgnoreCase(user.user_name) == false) {
 			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
-			log.put("orignal", user_name);
+			log.put("orignal", non_checked_user_name);
 			log.put("transformed", user.user_name);
 			Loggers.FTPserver.info("User name will be transformed during the creation process " + log);
 		}
@@ -143,7 +143,7 @@ public class FTPUser implements User {
 		user.group_name = group_name;
 		
 		user.disabled = false;
-		user.user_id = makeUserId(user_name, domain);
+		user.user_id = makeUserId(user.user_name, domain);
 		
 		user.create_date = System.currentTimeMillis();
 		user.update_date = user.create_date;
@@ -179,7 +179,7 @@ public class FTPUser implements User {
 		return getUserId(makeUserId(user_name, domain), true);
 	}
 	
-	public static FTPUser getUserId(String user_id, boolean only_valid_users) throws ConnectionException {
+	static FTPUser getUserId(String user_id, boolean only_valid_users) throws ConnectionException {
 		ColumnList<String> row = keyspace.prepareQuery(CF_USER).getKey(user_id).execute().getResult();
 		if (row.isEmpty()) {
 			Loggers.FTPserver.debug("Can't found user id DB: " + user_id);
@@ -187,15 +187,17 @@ public class FTPUser implements User {
 		}
 		FTPUser user = new FTPUser();
 		user.importFromDb(user_id, row);
-		user.populateGroup();
 		
 		if (only_valid_users == false) {
 			return user;
 		}
+		
 		if (user.disabled) {
 			Loggers.FTPserver.warn("User is disabled: " + user_id);
 			return null;
 		}
+		
+		user.populateGroup();
 		if (user.group.isDisabled()) {
 			Loggers.FTPserver.warn("User's group (" + user.group.getName() + ") is disabled for " + user_id);
 			return null;

@@ -162,13 +162,16 @@ async.BtnEnableDisable = React.createClass({
 		}
 		 
 		if (this.props.enabled) {
-			var btn_classes = classNames("btn", "btn-mini", "btn-danger", {
+			var btn_classes = classNames("btn", "btn-mini", {
 				disabled: this.state.pending_changes,
+				"btn-danger": !this.props.iconcircle,
+				"btn-success": this.props.iconcircle,
 			});
 			return (<button className={btn_classes} onClick={this.onClickSetDisable}><i className={class_name_icon}></i> {this.props.labelenabled}</button>);
 		} else {
 			var btn_classes = classNames("btn", "btn-mini", {
 				disabled: this.state.pending_changes,
+				"btn-success": !this.props.iconcircle,
 			});
 			return (<button className={btn_classes} onClick={this.onClickSetEnable}><i className={class_name_icon}></i> {this.props.labeldisabled}</button>);
 		}
@@ -204,4 +207,39 @@ async.BtnDelete = React.createClass({
 		});
 		return (<button className={btn_classes} onClick={this.onClickDelete}><i className="icon-trash icon-white"></i> {this.props.label}</button>);
 	},
+});
+
+async.ButtonSort = React.createClass({
+	handleClick: function(e) {
+		e.preventDefault();
+		this.props.onChangeState(this.props.colname, this.props.order);
+	},
+	render: function() {
+		var is_up = false;
+		var is_down = false;
+		var btn_active = false;
+
+		if (this.props.order != null) {
+			is_up = (this.props.order === 'asc');
+			is_down = (this.props.order === 'desc');
+			btn_active = true;
+		}
+
+		var btn_classes = classNames({
+		    'btn': true, 'btn-mini': true, 'pull-right': true,
+	    	'active': btn_active,
+		});
+		var icon_classes = classNames({
+			'pull-right': true,
+		    'icon-chevron-up': is_up,
+		    'icon-chevron-down': is_down,
+		    'icon-minus': ((is_up === false) & (is_down === false)),
+		});
+
+		return (
+			<button className={btn_classes} onClick={this.handleClick}>
+				<i className={icon_classes}></i>
+			</button>
+		);
+	}
 });

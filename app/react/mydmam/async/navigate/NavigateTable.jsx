@@ -54,6 +54,8 @@ navigate.NavigateTable = React.createClass({
 			dircontent.push(newitem);
 		}
 
+		var ButtonSort = mydmam.async.ButtonSort;
+
 		var thead = null;
 		if (reference.storagename) {
 			var order_path = (this.state.sorted_col === 'path' ? this.state.sorted_order : null);
@@ -62,9 +64,9 @@ navigate.NavigateTable = React.createClass({
 
 			thead = (
 				<thead><tr>
-					<td><navigate.ButtonSort onChangeState={this.handleChangeSort} colname="path" order={order_path} /></td>
-					<td className="pathindex-col-size"><navigate.ButtonSort onChangeState={this.handleChangeSort} colname="size" order={order_size} /></td>
-					<td className="pathindex-col-date"><navigate.ButtonSort onChangeState={this.handleChangeSort} colname="date" order={order_date} /></td>
+					<td><ButtonSort onChangeState={this.handleChangeSort} colname="path" order={order_path} /></td>
+					<td className="pathindex-col-size"><ButtonSort onChangeState={this.handleChangeSort} colname="size" order={order_size} /></td>
+					<td className="pathindex-col-date"><ButtonSort onChangeState={this.handleChangeSort} colname="date" order={order_date} /></td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr></thead>
@@ -150,7 +152,7 @@ navigate.NavigateTable = React.createClass({
 				}
 				if (element_items_total != null) {
 					if (element_items_total === 0) {
-						title += i18n('browser.emptydir');
+						title += " " + i18n('browser.emptydir');
 					} else if (element_items_total == 1) {
 						title += ' - ' + i18n('browser.oneelement');
 					} else {

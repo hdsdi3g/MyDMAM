@@ -16,21 +16,16 @@
 */
 
 ftpserver.UserList = React.createClass({
-	loadActualUsersList: function() {
-		mydmam.async.request("ftpserver", "allusers", {}, function(data) {
-			this.setState({users: data.users});
-		}.bind(this));
-	},
 	getInitialState: function() {
 		return {
 			users: null,
 			delete_enabled: false,
+			sorted_col: null,
+			sorted_order: null,
 		};
 	},
 	componentWillMount: function() {
-		this.loadActualUsersList();
-	},
-	componentWillUnmount: function() {
+		this.onWantRefreshAll();
 	},
 	onWantRefreshAll: function() {
 		mydmam.async.request("ftpserver", "allusers", {}, function(data) {
@@ -40,16 +35,52 @@ ftpserver.UserList = React.createClass({
 	onUnLockDelete: function() {
 		this.setState({delete_enabled: React.findDOMNode(this.refs.cb_unlockdelete).checked});
 	},
+	onChangeColSort: function(colname, previous_order) {
+		var order = null;
+		if (previous_order == null) {
+			order = "desc";
+		} else if (previous_order === "desc") {
+			order = "asc";
+		}
+		this.setState({
+			sorted_col: colname,
+			sorted_order: order,
+		});
+	},
+	sortUsers: function() {
+		return this.state.users.slice().sort(function(a, b) {
+			if (this.state.sorted_col == null | this.state.sorted_order == null) {
+			    return a.user_name > b.user_name;
+			}
+			var comp_a;
+			var comp_b;
+			switch (this.state.sorted_col) {
+			    case "user": 		comp_a = a.user_id; 	comp_b = b.user_id;		break;
+			    case "group": 		comp_a = a.group_name;	comp_b = b.group_name;	break;
+			    case "created": 	comp_a = a.create_date;	comp_b = b.create_date;	break;
+			    case "updated": 	comp_a = a.update_date;	comp_b = b.update_date;	break;
+			    case "lastlogin": 	comp_a = a.last_login;	comp_b = b.last_login; 	break;
+			    case "enabled": 	comp_a = a.enabled;		comp_b = b.enabled; 	break;
+			}
+			if (this.state.sorted_order === "asc") {
+				return comp_a > comp_b;
+			} else {
+				return comp_a < comp_b;
+			}
+		}.bind(this));
+	},
+	getCurrentColSort: function(colname) {
+		return this.state.sorted_col === colname ? this.state.sorted_order : null;
+	},
 	render: function() {
-		var users = this.state.users;
-
-		if (users == null) {
+		if (this.state.users == null) {
 			return (<mydmam.async.PageHeaderTitle title="FTP user list" fluid="true">
 				<mydmam.async.PageLoadingProgressBar />
 			</mydmam.async.PageHeaderTitle>);
 		}
 
 		var isAdmin = ftpserver.hasUserAdminRights();
+		var users = this.sortUsers();
 
 		var table_lines = [];
 		for (pos_user in users) {
@@ -61,18 +92,6 @@ ftpserver.UserList = React.createClass({
 			BtnAdduser = (<ftpserver.BtnAddUserForm />);
 		}
 
-		/*<thead>
-				<tr>
-					<th>{i18n("manager.watchfolders.table.file")}</th>
-					<th>{i18n("manager.watchfolders.table.filedate")}</th>
-					<th>{i18n("manager.watchfolders.table.size")}</th>
-					<th>{i18n("manager.watchfolders.table.lastchecked")}</th>
-					<th>{i18n("manager.watchfolders.table.status")}</th>
-					<th>{i18n("manager.watchfolders.table.jobs")}</th>
-					<th></th>
-				</tr>
-			</thead>*/
-
 		if (table_lines.length === 0) {
 			return (<mydmam.async.PageHeaderTitle title="FTP user list" fluid="true">
 				<mydmam.async.AlertInfoBox>No FTP users!</mydmam.async.AlertInfoBox>
@@ -80,11 +99,41 @@ ftpserver.UserList = React.createClass({
 			</mydmam.async.PageHeaderTitle>);
 		}
 
+		var ButtonSort = mydmam.async.ButtonSort;
+
 		return (<mydmam.async.PageHeaderTitle title="FTP user list" fluid="true">
 			{BtnAdduser}
+			<button className="btn btn-small" onClick={this.onWantRefreshAll} style={{marginLeft: 5}}><i className="icon-refresh"></i></button>
 			<label className="checkbox pull-right"><input type="checkbox" onClick={this.onUnLockDelete} ref="cb_unlockdelete" />Unlock delete</label>
 			<hr />
-			<table className="table table-striped table-bordered table-hover table-condensed">
+			<table className="table table-striped table-hover table-bordered table-condensed">
+				<thead>
+					<tr>
+						<th>
+							User
+							<ButtonSort onChangeState={this.onChangeColSort} colname="user" order={this.getCurrentColSort("user")} />
+						</th>
+						<th>
+							Group
+							<ButtonSort onChangeState={this.onChangeColSort} colname="group" order={this.getCurrentColSort("group")} />
+						</th>
+						<th>
+							Created at
+							<ButtonSort onChangeState={this.onChangeColSort} colname="created" order={this.getCurrentColSort("created")} />
+						</th>
+						<th>
+							Updated at
+							<ButtonSort onChangeState={this.onChangeColSort} colname="updated" order={this.getCurrentColSort("updated")} />
+						</th>
+						<th>
+							Last login at
+							<ButtonSort onChangeState={this.onChangeColSort} colname="lastlogin" order={this.getCurrentColSort("lastlogin")} />
+						</th>
+						<th>
+							<ButtonSort onChangeState={this.onChangeColSort} colname="enabled" order={this.getCurrentColSort("enabled")} />
+						</th>
+					</tr>
+				</thead>
 				<tbody>	
 					{table_lines}
 				</tbody>	
@@ -122,9 +171,12 @@ ftpserver.UserLine = React.createClass({
 			domain = "default";
 		}
 
-		var btn_delete = null;
+		var btns_admin = null;
 		if (ftpserver.hasUserAdminRights()) {
-			btn_delete = (<mydmam.async.BtnDelete label="Delete" enabled={this.props.delete_enabled} onClickDelete={this.onDelete} reference={user.user_id} />);
+			btns_admin = (<span style={{marginLeft: 5}}>
+				<a className="btn btn-mini" style={{marginRight: 5}} href={"#ftpserver/edit/" + this.props.user.user_id}>Change password</a>
+				<mydmam.async.BtnDelete label="Delete" enabled={this.props.delete_enabled} onClickDelete={this.onDelete} reference={user.user_id} />
+			</span>);
 		}
 
 		return (<tr>
@@ -134,10 +186,10 @@ ftpserver.UserLine = React.createClass({
 			<td>
 				<span className="label label-inverse">{user.group_name}</span>
 			</td>
-			<td><mydmam.async.pathindex.reactDate date={user.create_date} i18nlabel="Cre." /></td>
-			<td><mydmam.async.pathindex.reactDate date={user.update_date} i18nlabel="Upd." /></td>
-			<td><mydmam.async.pathindex.reactDate date={user.last_login} i18nlabel="LLog." /></td>
-			<td><mydmam.async.BtnEnableDisable
+			<td><mydmam.async.pathindex.reactDate date={user.create_date} style={{}} /></td>
+			<td><mydmam.async.pathindex.reactDate date={user.update_date} style={{}} /></td>
+			<td><mydmam.async.pathindex.reactDate date={user.last_login} style={{}} /></td>
+			<td><span className="pull-right"><mydmam.async.BtnEnableDisable
 				simplelabel={!ftpserver.hasUserAdminRights()}
 				enabled={user.enabled}
 				labelenabled="Enabled"
@@ -146,9 +198,8 @@ ftpserver.UserLine = React.createClass({
 				onEnable={this.onToogleEnableDisable}
 				onDisable={this.onToogleEnableDisable}
 				reference={user.user_id} />
-				&nbsp;
-				{btn_delete}
-			</td>
+				{btns_admin}
+			</span></td>
 		</tr>);
 	},	
 });
