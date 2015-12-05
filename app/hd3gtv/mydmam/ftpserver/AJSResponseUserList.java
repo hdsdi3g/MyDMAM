@@ -16,21 +16,13 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
-
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
-
-public class AJSResponseUserList implements AsyncJSResponseObject {
+public class AJSResponseUserList {
 	
 	ArrayList<AJSUser> users = new ArrayList<AJSUser>(1);
 	
-	static class Serializer implements AsyncJSSerializer<AJSResponseUserList> {
+	/*static class Serializer implements AsyncJSSerializer<AJSResponseUserList> {// TODO ADD to AJS
 		
 		public JsonElement serialize(AJSResponseUserList src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = new JsonObject();
@@ -43,6 +35,6 @@ public class AJSResponseUserList implements AsyncJSResponseObject {
 			return AJSResponseUserList.class;
 		}
 		
-	}
+	}*/
 	
 }

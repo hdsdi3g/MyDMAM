@@ -16,11 +16,6 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,8 +26,12 @@ import java.util.Map;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
-public final class AsyncStatResult implements AsyncJSResponseObject {
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+
+public final class AsyncStatResult {
 	
 	private LinkedHashMap<String, AsyncStatResultElement> selected_path_elements;
 	
@@ -106,7 +105,7 @@ public final class AsyncStatResult implements AsyncJSResponseObject {
 				s_element.reference = dir_list_entry.getValue();
 				if (sub_items_count_items & s_element.reference.directory) {
 					element_key = s_element.reference.prepare_key();
-					count_result = Stat.request_response_cache.countDirectoryContentElements(Arrays.asList(element_key));
+					count_result = PathElementStat.request_response_cache.countDirectoryContentElements(Arrays.asList(element_key));
 					if (count_result.containsKey(element_key)) {
 						s_element.items_total = count_result.get(element_key);
 					}
@@ -143,7 +142,7 @@ public final class AsyncStatResult implements AsyncJSResponseObject {
 		}
 	}
 	
-	static class Serializer implements AsyncJSSerializer<AsyncStatResult> {
+	public static class Serializer implements JsonSerializer<AsyncStatResult> {
 		public JsonElement serialize(AsyncStatResult src, Type typeOfSrc, JsonSerializationContext context) {
 			Map<String, AsyncStatResultElement> items = new HashMap<String, AsyncStatResultElement>(src.selected_path_elements.size() + 1);
 			for (Map.Entry<String, AsyncStatResultElement> entry : src.selected_path_elements.entrySet()) {
@@ -152,15 +151,12 @@ public final class AsyncStatResult implements AsyncJSResponseObject {
 				}
 				items.put(entry.getKey(), entry.getValue());
 			}
-			return Stat.gson.toJsonTree(items);
+			return PathElementStat.gson.toJsonTree(items);
 		}
 		
-		public Class<AsyncStatResult> getEnclosingClass() {
-			return AsyncStatResult.class;
-		}
 	}
 	
 	public String toJSONString() {
-		return Stat.gson.toJson(this);
+		return PathElementStat.gson.toJson(this);
 	}
 }

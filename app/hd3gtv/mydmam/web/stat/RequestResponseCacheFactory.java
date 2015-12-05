@@ -43,7 +43,7 @@ public abstract class RequestResponseCacheFactory<E> {
 	final String serializeThis(RequestResponseCacheExpirableItem<E> item) throws Exception {
 		JsonObject result = item.getCacheStatus();
 		result.add("item", toJson(item.getItem()));
-		return Stat.gson_simple.toJson(result);
+		return PathElementStat.gson_simple.toJson(result);
 	}
 	
 	private Type RequestResponseExpirableItem_typeOfT = new TypeToken<RequestResponseCacheExpirableItem<E>>() {
@@ -54,7 +54,7 @@ public abstract class RequestResponseCacheFactory<E> {
 	 */
 	final RequestResponseCacheExpirableItem<E> deserializeThis(String raw_json_value) throws Exception {
 		JsonObject jo_ei = json_parser.parse(raw_json_value).getAsJsonObject();
-		RequestResponseCacheExpirableItem<E> result = Stat.gson_simple.fromJson(jo_ei, RequestResponseExpirableItem_typeOfT);
+		RequestResponseCacheExpirableItem<E> result = PathElementStat.gson_simple.fromJson(jo_ei, RequestResponseExpirableItem_typeOfT);
 		result.setItem(fromJson(jo_ei.get("item")));
 		return result;
 	}

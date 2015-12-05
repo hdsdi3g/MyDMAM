@@ -17,30 +17,21 @@
 package hd3gtv.mydmam.transcode.watchfolder;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 import hd3gtv.mydmam.manager.JobNG;
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-import hd3gtv.mydmam.web.AsyncJSGsonProvider;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
 
-public class AsyncJSWatchfolderListVerb extends AsyncJSControllerVerb<AsyncJSWatchfolderRequestList, AsyncJSWatchfolderResponseList> {
+public class AsyncJSWatchfolderListVerb {// TODO refactoring
 	
 	public String getVerbName() {
 		return "list";
-	}
-	
-	public Class<AsyncJSWatchfolderRequestList> getRequestClass() {
-		return AsyncJSWatchfolderRequestList.class;
 	}
 	
 	public Class<AsyncJSWatchfolderResponseList> getResponseClass() {
 		return AsyncJSWatchfolderResponseList.class;
 	}
 	
-	public AsyncJSWatchfolderResponseList onRequest(AsyncJSWatchfolderRequestList request, String caller) throws Exception {
+	public AsyncJSWatchfolderResponseList onRequest(String caller) throws Exception {
 		AsyncJSWatchfolderResponseList list = new AsyncJSWatchfolderResponseList();
 		list.items = WatchFolderDB.getAll();
 		if (list.items.isEmpty()) {
@@ -57,8 +48,8 @@ public class AsyncJSWatchfolderListVerb extends AsyncJSControllerVerb<AsyncJSWat
 		return list;
 	}
 	
-	public List<? extends AsyncJSSerializer<?>> getJsonSerializers(AsyncJSGsonProvider gson_provider) {
+	/*public List<? extends AsyncJSSerializer<?>> getJsonSerializers(AsyncJSGsonProvider gson_provider) {// TODO ADD to AJS
 		return Arrays.asList(new AsyncJSWatchfolderResponseList.Serializer());
-	}
+	}*/
 	
 }

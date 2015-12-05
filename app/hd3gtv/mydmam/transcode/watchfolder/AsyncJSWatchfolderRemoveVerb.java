@@ -16,9 +16,7 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-
-public class AsyncJSWatchfolderRemoveVerb extends AsyncJSControllerVerb<AsyncJSWatchfolderRequestRemove, AsyncJSWatchfolderResponseRemove> {
+public class AsyncJSWatchfolderRemoveVerb {// TODO refactoring
 	
 	public String getVerbName() {
 		return "remove";
@@ -28,13 +26,9 @@ public class AsyncJSWatchfolderRemoveVerb extends AsyncJSControllerVerb<AsyncJSW
 		return AsyncJSWatchfolderRequestRemove.class;
 	}
 	
-	public Class<AsyncJSWatchfolderResponseRemove> getResponseClass() {
-		return AsyncJSWatchfolderResponseRemove.class;
-	}
-	
-	public AsyncJSWatchfolderResponseRemove onRequest(AsyncJSWatchfolderRequestRemove request, String caller) throws Exception {
+	public void onRequest(AsyncJSWatchfolderRequestRemove request, String caller) throws Exception {
 		WatchFolderDB.remove(request.key);
-		return new AsyncJSWatchfolderResponseRemove();
+		return;
 	}
 	
 }

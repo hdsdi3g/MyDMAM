@@ -232,7 +232,7 @@ public class ACL extends Controller {
 		List<ACLGroup> selectedgroups = null;
 		List<ACLGroup> groups = ACLGroup.findAll();
 		List<String> selectedprivileges = null;
-		List<String> privileges = Privileges.getAllPrivileges();
+		List<String> privileges = Privileges.getAllSortedPrivileges();
 		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
 	}
 	
@@ -252,7 +252,7 @@ public class ACL extends Controller {
 			}
 		}
 		List<ACLGroup> groups = ACLGroup.findAll();
-		List<String> privileges = Privileges.getAllPrivileges();
+		List<String> privileges = Privileges.getAllSortedPrivileges();
 		
 		render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
 	}
@@ -287,7 +287,7 @@ public class ACL extends Controller {
 			List<ACLGroup> selectedgroups = null;
 			List<ACLGroup> groups = ACLGroup.findAll();
 			List<String> selectedprivileges = null;
-			List<String> privileges = Privileges.getAllPrivileges();
+			List<String> privileges = Privileges.getAllSortedPrivileges();
 			render("ACL/formrole.html", title, name, selectedgroups, groups, selectedprivileges, privileges);
 			return;
 		}

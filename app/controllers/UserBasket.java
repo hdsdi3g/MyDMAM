@@ -31,7 +31,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.web.Basket;
-import hd3gtv.mydmam.web.stat.Stat;
+import hd3gtv.mydmam.web.stat.PathElementStat;
 import models.UserProfile;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -251,9 +251,9 @@ public class UserBasket extends Controller {
 		String all_pathindexelements = "{}";
 		if (list_pathindexkeys.isEmpty() == false) {
 			String[] array_scopes_element = new String[1];
-			array_scopes_element[0] = Stat.SCOPE_PATHINFO;
-			Stat stat = new Stat(list_pathindexkeys, Arrays.asList(array_scopes_element), null);
-			all_pathindexelements = stat.getResult().toJSONString();
+			array_scopes_element[0] = PathElementStat.SCOPE_PATHINFO;
+			PathElementStat pathElementStat = new PathElementStat(list_pathindexkeys, Arrays.asList(array_scopes_element), null);
+			all_pathindexelements = pathElementStat.getResult().toJSONString();
 		}
 		
 		String all_baskets = gson.toJson(map_all_users_baskets);

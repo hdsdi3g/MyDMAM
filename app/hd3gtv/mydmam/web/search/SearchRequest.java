@@ -16,9 +16,7 @@
 */
 package hd3gtv.mydmam.web.search;
 
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-
-public class SearchRequest implements AsyncJSRequestObject {
+public class SearchRequest {
 	
 	String q;
 	

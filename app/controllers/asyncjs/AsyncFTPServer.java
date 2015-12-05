@@ -19,26 +19,18 @@ package controllers.asyncjs;
 import java.util.Arrays;
 import java.util.List;
 
-import hd3gtv.mydmam.ftpserver.AJSVerbAdminExportSessions;
-import hd3gtv.mydmam.ftpserver.AJSVerbAdminOperationUser;
-import hd3gtv.mydmam.ftpserver.AJSVerbAllUsers;
-import hd3gtv.mydmam.ftpserver.AJSVerbGroupsDomainsLists;
-import hd3gtv.mydmam.ftpserver.AJSVerbRecentActivities;
-import hd3gtv.mydmam.web.AsyncJSController;
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
+import hd3gtv.mydmam.web.AJSController;
 
-public class AsyncFTPServer extends AsyncJSController {
+public class AsyncFTPServer extends AJSController {// TODO refactoring
 	
 	public String getRequestName() {
 		return "ftpserver";
 	}
 	
-	@SuppressWarnings("unchecked")
+	/*@SuppressWarnings("unchecked")
 	public <V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> List<V> getManagedVerbs() {
 		return (List<V>) Arrays.asList(new AJSVerbAllUsers(), new AJSVerbAdminExportSessions(), new AJSVerbAdminOperationUser(), new AJSVerbRecentActivities(), new AJSVerbGroupsDomainsLists());
-	}
+	}*/
 	
 	public List<String> getMandatoryPrivileges() {
 		return Arrays.asList("ftpServer", "adminFtpServer");

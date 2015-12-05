@@ -16,10 +16,8 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-
-public class AsyncJSBrokerRequestList implements AsyncJSRequestObject {
+public class AsyncJSBrokerRequestList {
 	
-	long since;
+	public long since;
 	
 }

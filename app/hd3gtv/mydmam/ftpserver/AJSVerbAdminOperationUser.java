@@ -26,12 +26,12 @@ import javax.mail.internet.InternetAddress;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
+import hd3gtv.mydmam.web.AJSController;
 import models.UserProfile;
 import play.i18n.Lang;
 import play.jobs.JobsPlugin;
 
-public class AJSVerbAdminOperationUser extends AsyncJSControllerVerb<AJSRequestAdminOperationUser, AJSResponseAdminOperationUser> {
+public class AJSVerbAdminOperationUser {// TODO refactoring
 	
 	public String getVerbName() {
 		return "adminoperationuser";
@@ -53,7 +53,7 @@ public class AJSVerbAdminOperationUser extends AsyncJSControllerVerb<AJSRequestA
 			FTPUser ftp_user = request.createFTPUser();
 			response.user_name = ftp_user.getName();
 			response.done = true;
-			JobsPlugin.executor.submit(new SendMailAfterSave(ftp_user, request.clear_password, getUserProfile()));
+			JobsPlugin.executor.submit(new SendMailAfterSave(ftp_user, request.clear_password, AJSController.getUserProfile()));
 			break;
 		case DELETE:
 			request.delete();

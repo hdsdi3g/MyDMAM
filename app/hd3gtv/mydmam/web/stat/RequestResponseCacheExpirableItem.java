@@ -65,7 +65,7 @@ final class RequestResponseCacheExpirableItem<E> {
 	}
 	
 	final JsonObject getCacheStatus() {
-		return Stat.gson_simple.toJsonTree(this).getAsJsonObject();
+		return PathElementStat.gson_simple.toJsonTree(this).getAsJsonObject();
 	}
 	
 }

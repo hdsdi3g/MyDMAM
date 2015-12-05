@@ -14,11 +14,9 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package controllers.asyncjs.demoreact;
+package controllers.asyncjs.demo;
 
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-
-public class NewComment implements AsyncJSRequestObject {
-	String text;
-	String author;
+public class NewComment {
+	public String text;
+	public String author;
 }

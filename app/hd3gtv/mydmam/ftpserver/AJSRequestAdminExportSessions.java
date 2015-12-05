@@ -16,9 +16,7 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-
-public class AJSRequestAdminExportSessions implements AsyncJSRequestObject {
+public class AJSRequestAdminExportSessions {
 	
 	public String user_id;
 	

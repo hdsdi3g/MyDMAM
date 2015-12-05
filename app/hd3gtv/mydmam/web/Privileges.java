@@ -24,7 +24,9 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.JarEntry;
@@ -44,10 +46,10 @@ import play.vfs.VirtualFile;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class Privileges {
 	
-	private static List<String> all_privileges;
+	private static HashSet<String> all_privileges;
 	
 	static {
-		all_privileges = new ArrayList<String>();
+		all_privileges = new HashSet<String>();
 		try {
 			List<String> classes_to_test = new ArrayList<String>();
 			
@@ -172,9 +174,7 @@ public class Privileges {
 						}
 						checks = ((Check) candidate_method_check).value();
 						for (int pos_checks = 0; pos_checks < checks.length; pos_checks++) {
-							if (all_privileges.contains(checks[pos_checks]) == false) {
-								all_privileges.add(checks[pos_checks]);
-							}
+							all_privileges.add(checks[pos_checks]);
 						}
 					}
 				} catch (ClassNotFoundException e) {
@@ -185,11 +185,17 @@ public class Privileges {
 			Loggers.Play.error("Can't load modules", e);
 		}
 		
-		AsyncJSManager.global.putAllPrivilegesNames(all_privileges);
+		AJSController.putAllPrivilegesNames(all_privileges);
 	}
 	
-	public static List<String> getAllPrivileges() {
+	public static HashSet<String> getAllPrivileges() {
 		return all_privileges;
+	}
+	
+	public static List<String> getAllSortedPrivileges() {
+		ArrayList list = new ArrayList<String>(all_privileges);
+		Collections.sort(list);
+		return list;
 	}
 	
 	public static JSONArray getJSONAllPrivileges() {

@@ -36,7 +36,7 @@ mydmam.notification.url = {};
 mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
 
 mydmam.async.url = "@{AsyncJavascript.index(name='nameparam1',verb='verbparam2')}";	
-mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson().toJson(hd3gtv.mydmam.web.AsyncJSManager.global.getAllControllersVerbsForThisUser())); }% ;
+mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson().toJson(hd3gtv.mydmam.web.AJSController.getAllControllersVerbsForThisUser())); }% ;
 
 #{secure.check 'navigate'}
 	mydmam.metadatas.url.navigate = "@{Application.navigate()}";

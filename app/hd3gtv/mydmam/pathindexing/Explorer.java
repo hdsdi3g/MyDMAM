@@ -48,7 +48,7 @@ import hd3gtv.mydmam.db.ElastisearchCrawlerMultipleHits;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
 import hd3gtv.mydmam.web.search.SearchQuery;
-import hd3gtv.mydmam.web.stat.Stat;
+import hd3gtv.mydmam.web.stat.PathElementStat;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
@@ -358,7 +358,7 @@ public class Explorer {
 	 * @param search only search with this text. Can be null.
 	 * @param sort, can be null: default for directory and path.
 	 * @return never null, _id parent key > element key > element
-	 * @see Stat
+	 * @see PathElementStat
 	 */
 	public LinkedHashMap<String, DirectoryContent> getDirectoryContentByIdkeys(List<String> _ids, int from, int fetch_size, boolean only_directories, String search, List<SortBuilder> sort) {
 		if (_ids == null) {

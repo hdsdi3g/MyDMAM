@@ -19,9 +19,7 @@ package hd3gtv.mydmam.ftpserver;
 import java.util.Arrays;
 import java.util.List;
 
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-
-public class AJSVerbAdminExportSessions extends AsyncJSControllerVerb<AJSRequestAdminExportSessions, AJSResponseAdminExportSessions> {
+public class AJSVerbAdminExportSessions {// TODO refactoring
 	
 	public String getVerbName() {
 		return "adminexportsession";

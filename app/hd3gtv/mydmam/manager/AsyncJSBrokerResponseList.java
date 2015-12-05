@@ -16,29 +16,10 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.lang.reflect.Type;
-
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
 
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
-
-public class AsyncJSBrokerResponseList implements AsyncJSResponseObject {
+public class AsyncJSBrokerResponseList {
 	
-	JsonObject list;
-	
-	static class Serializer implements AsyncJSSerializer<AsyncJSBrokerResponseList> {
-		
-		public Class<AsyncJSBrokerResponseList> getEnclosingClass() {
-			return AsyncJSBrokerResponseList.class;
-		}
-		
-		public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-			return src.list;
-		}
-		
-	}
+	public JsonObject list;
 	
 }

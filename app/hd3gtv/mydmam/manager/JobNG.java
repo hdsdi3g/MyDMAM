@@ -311,30 +311,30 @@ public final class JobNG {
 	
 	private transient ActionUtils actionUtils;
 	
-	ActionUtils getActionUtils() {
+	public ActionUtils getActionUtils() {
 		if (actionUtils == null) {
 			actionUtils = new ActionUtils();
 		}
 		return actionUtils;
 	}
 	
-	class ActionUtils {
+	public class ActionUtils {
 		
-		void setDontExpiration() {
+		public void setDontExpiration() {
 			delete_after_completed = false;
 			expiration_date = System.currentTimeMillis() + (default_max_execution_time * 10);
 			max_execution_time = default_max_execution_time;
 			update_date = System.currentTimeMillis();
 		}
 		
-		void setPostponed() {
+		public void setPostponed() {
 			setWaiting();
 			status = JobStatus.POSTPONED;
 			urgent = false;
 			priority = 0;
 		}
 		
-		void setWaiting() {
+		public void setWaiting() {
 			status = JobStatus.WAITING;
 			update_date = System.currentTimeMillis();
 			progression = null;
@@ -343,17 +343,17 @@ public final class JobNG {
 			end_date = -1;
 		}
 		
-		void setCancel() {
+		public void setCancel() {
 			update_date = System.currentTimeMillis();
 			status = JobStatus.CANCELED;
 		}
 		
-		void setStopped() {
+		public void setStopped() {
 			status = JobStatus.STOPPED;
 			update_date = System.currentTimeMillis();
 		}
 		
-		void setMaxPriority() throws ConnectionException {
+		public void setMaxPriority() throws ConnectionException {
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
 			index_query.withColumnSlice("status", "name");
@@ -435,7 +435,7 @@ public final class JobNG {
 	 * If job is actually POSTPONED, PROCESSING or PREPARING, changes will be canceled by the executor worker.
 	 * @throws ConnectionException
 	 */
-	void saveChanges(MutationBatch mutator) {
+	public void saveChanges(MutationBatch mutator) {
 		if (Loggers.Job.isDebugEnabled()) {
 			Loggers.Job.debug("Prepare save actual changes:\t" + toString());
 		}
@@ -537,7 +537,7 @@ public final class JobNG {
 		return end_date;
 	}
 	
-	void delete(MutationBatch mutator) throws ConnectionException {
+	public void delete(MutationBatch mutator) throws ConnectionException {
 		if (Loggers.Job.isDebugEnabled()) {
 			Loggers.Job.debug("Prepare delete job:\t" + toString());
 		}
@@ -988,7 +988,7 @@ public final class JobNG {
 		return log.toString();
 	}
 	
-	String getWorker_reference() {
+	public String getWorker_reference() {
 		return worker_reference;
 	}
 	

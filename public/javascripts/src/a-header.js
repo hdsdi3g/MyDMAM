@@ -194,25 +194,12 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 	 * @param async_needs [{name: AsyncJSControllerName, verb: AsyncJSControllerVerb}, ], used to check if user can acces to some controllers, via async.isAvaliable().
 	 */
 	routes.push = function(route_name, path, react_top_level_class, async_needs) {
-		if (async_needs != null) {
-			for (var pos in async_needs) {
-				var async_need = async_needs[pos];
-				if (async_need.name == null) {
-					console.error("Name param missing for async_need", async_need);
-				}
-				if (async_need.verb == null) {
-					console.error("Verb param missing for async_need", async_need);
-				}
-				if (mydmam.async.isAvaliable(async_need.name, async_need.verb) == false) {
-					console.log("No rights for", async_need);
-					return;
-				}
-			}
-		}
-
 		base[route_name] = {};
 		base[route_name].path = path;
 		base[route_name].react_top_level_class = react_top_level_class;
+		if (async_needs) {
+			base[route_name].async_needs = async_needs;
+		}
 	};
 
 	var callbackFactory = function(callback, route_name) {
@@ -226,6 +213,22 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 	 */
 	routes.populate = function(rlite, callback) {
 		for (var route_name in base) {
+			var async_needs = base[route_name].async_needs;
+			if (async_needs != null) {
+				for (var pos in async_needs) {
+					var async_need = async_needs[pos];
+					if (async_need.name == null) {
+						console.error("Name param missing for async_need", async_need);
+					}
+					if (async_need.verb == null) {
+						console.error("Verb param missing for async_need", async_need);
+					}
+				}
+				if (mydmam.async.isAvaliable(async_need.name, async_need.verb) == false) {
+					console.log("No rights for", async_need);
+					continue;
+				}
+			}
 			rlite.add(base[route_name].path, callbackFactory(callback, route_name));
 		}
 	};

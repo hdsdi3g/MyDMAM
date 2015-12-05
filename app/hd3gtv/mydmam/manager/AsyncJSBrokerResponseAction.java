@@ -16,35 +16,13 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.lang.reflect.Type;
 import java.util.HashMap;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSerializationContext;
-
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
 import hd3gtv.tools.GsonIgnore;
 
-public class AsyncJSBrokerResponseAction implements AsyncJSResponseObject {
+public class AsyncJSBrokerResponseAction {
 	
 	@GsonIgnore
-	HashMap<String, JobNG> modified_jobs;
-	
-	static class Serializer implements AsyncJSSerializer<AsyncJSBrokerResponseAction> {
-		
-		private static Type hm_StringJob_typeOfT = new TypeToken<HashMap<String, JobNG>>() {
-		}.getType();
-		
-		public Class<AsyncJSBrokerResponseAction> getEnclosingClass() {
-			return AsyncJSBrokerResponseAction.class;
-		}
-		
-		public JsonElement serialize(AsyncJSBrokerResponseAction src, Type typeOfSrc, JsonSerializationContext context) {
-			return AppManager.getGson().toJsonTree(src.modified_jobs, hm_StringJob_typeOfT);
-		}
-		
-	}
+	public HashMap<String, JobNG> modified_jobs;
 	
 }

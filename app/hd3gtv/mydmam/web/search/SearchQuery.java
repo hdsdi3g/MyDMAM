@@ -35,6 +35,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -43,13 +44,11 @@ import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchStatSearch;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.web.AsyncJSManager;
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
+import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
-public final class SearchQuery implements AsyncJSResponseObject, ElastisearchStatSearch {
+public final class SearchQuery implements ElastisearchStatSearch {
 	
 	public enum SearchMode {
 		BY_ID, BY_ALL_WORDS, BY_FULL_TEXT, BY_FUZZY;
@@ -105,15 +104,11 @@ public final class SearchQuery implements AsyncJSResponseObject, ElastisearchSta
 	@SuppressWarnings("unused")
 	private SearchMode mode = null;
 	
-	public static class Serializer implements AsyncJSSerializer<SearchQuery> {
+	public static class Serializer implements JsonSerializer<SearchQuery> {
 		public JsonElement serialize(SearchQuery src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = AsyncJSManager.global.getGsonSimple().toJsonTree(src).getAsJsonObject();
-			result.add("results", AsyncJSManager.global.getGsonSimple().toJsonTree(src.results, type_Resultlist));
+			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
+			result.add("results", AJSController.gson_simple.toJsonTree(src.results, type_Resultlist));
 			return result;
-		}
-		
-		public Class<SearchQuery> getEnclosingClass() {
-			return SearchQuery.class;
 		}
 	}
 	

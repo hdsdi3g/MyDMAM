@@ -430,4 +430,14 @@ public class Secure extends Controller {
 		redirect(url);
 	}
 	
+	/**
+	 * @return public addr/host name/"loopback"
+	 */
+	public static String getRequestAddress() {
+		if (Controller.request.isLoopback == false) {
+			return Controller.request.remoteAddress;
+		} else {
+			return "loopback";
+		}
+	}
 }

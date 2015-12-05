@@ -65,7 +65,7 @@ public final class WorkerExporter implements InstanceStatusItem {
 		}
 	}
 	
-	static WorkerExporter getWorkerStatusByKey(String worker_key) throws ConnectionException {
+	public static WorkerExporter getWorkerStatusByKey(String worker_key) throws ConnectionException {
 		ColumnList<String> cols = keyspace.prepareQuery(CF_WORKERS).getKey(worker_key).withColumnSlice("source").execute().getResult();
 		if (cols.isEmpty()) {
 			return null;
@@ -165,6 +165,10 @@ public final class WorkerExporter implements InstanceStatusItem {
 		manager_reference = worker.getManagerReference();
 		update();
 		manager.getInstanceStatus().registerInstanceStatusItem(this);
+	}
+	
+	public String getCurrent_job_key() {
+		return current_job_key;
 	}
 	
 	private synchronized void update() {

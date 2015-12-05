@@ -14,10 +14,13 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.transcode.watchfolder;
+package controllers.asyncjs.demo;
 
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
+import java.util.List;
 
-public class AsyncJSWatchfolderResponseRemove implements AsyncJSResponseObject {
+import hd3gtv.tools.GsonIgnore;
 
+public class CommentList {
+	@GsonIgnore
+	public List<Comment> commentlist;
 }

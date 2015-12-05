@@ -19,9 +19,8 @@ package hd3gtv.mydmam.ftpserver;
 import java.util.ArrayList;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
 
-public class AJSResponseGroupsDomainsLists implements AsyncJSResponseObject {
+public class AJSResponseGroupsDomainsLists {
 	
 	private static ArrayList<String> _groups;
 	private static ArrayList<String> _domains;

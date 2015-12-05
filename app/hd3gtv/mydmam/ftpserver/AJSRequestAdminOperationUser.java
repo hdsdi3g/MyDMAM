@@ -20,9 +20,7 @@ import java.io.IOException;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-
-public class AJSRequestAdminOperationUser implements AsyncJSRequestObject {
+public class AJSRequestAdminOperationUser {
 	
 	public String user_id;
 	public String user_name;

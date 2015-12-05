@@ -16,9 +16,7 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-
-public class AJSRequestRecent implements AsyncJSRequestObject {
+public class AJSRequestRecent {
 	
 	String user_id;
 	

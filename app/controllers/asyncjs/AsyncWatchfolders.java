@@ -19,23 +19,18 @@ package controllers.asyncjs;
 import java.util.Arrays;
 import java.util.List;
 
-import hd3gtv.mydmam.transcode.watchfolder.AsyncJSWatchfolderRemoveVerb;
-import hd3gtv.mydmam.transcode.watchfolder.AsyncJSWatchfolderListVerb;
-import hd3gtv.mydmam.web.AsyncJSController;
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
+import hd3gtv.mydmam.web.AJSController;
 
-public class AsyncWatchfolders extends AsyncJSController {
+public class AsyncWatchfolders extends AJSController {// TODO refactoring
 	
 	public String getRequestName() {
 		return "watchfolders";
 	}
 	
-	@SuppressWarnings("unchecked")
-	public <V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> List<V> getManagedVerbs() {
-		return (List<V>) Arrays.asList(new AsyncJSWatchfolderListVerb(), new AsyncJSWatchfolderRemoveVerb());
-	}
+	/*	@SuppressWarnings("unchecked")
+		public <V extends AsyncJSControllerVerb<Rq, Rp>, Rq extends AsyncJSRequestObject, Rp extends AsyncJSResponseObject> List<V> getManagedVerbs() {
+			return (List<V>) Arrays.asList(new AsyncJSWatchfolderListVerb(), new AsyncJSWatchfolderRemoveVerb());
+		}*/
 	
 	public List<String> getMandatoryPrivileges() {
 		return Arrays.asList("showJobs");

@@ -14,30 +14,15 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package controllers.asyncjs.demoreact;
+package hd3gtv.mydmam.web;
 
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class VerbEditComment extends AsyncJSControllerVerb<Comment, CommentList> {
-	
-	public String getVerbName() {
-		return "edit";
-	}
-	
-	public Class<Comment> getRequestClass() {
-		return Comment.class;
-	}
-	
-	public Class<CommentList> getResponseClass() {
-		return CommentList.class;
-	}
-	
-	public CommentList onRequest(Comment request, String caller) throws Exception {
-		FakeDB.update(request);
-		
-		CommentList result = new CommentList();
-		result.commentlist = FakeDB.getAll();
-		return result;
-	}
-	
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.METHOD })
+public @interface AJSIgnore {
+
 }

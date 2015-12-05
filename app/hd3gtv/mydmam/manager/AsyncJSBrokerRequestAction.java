@@ -16,45 +16,19 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-
-import hd3gtv.mydmam.web.AsyncJSDeserializer;
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
 import hd3gtv.tools.GsonIgnore;
 
-public class AsyncJSBrokerRequestAction implements AsyncJSRequestObject {
+public class AsyncJSBrokerRequestAction {
 	
-	enum Order {
+	public enum Order {
 		delete, stop, setinwait, cancel, hipriority, noexpiration, postponed
 	}
 	
 	@GsonIgnore
-	ArrayList<String> jobs_keys;
+	public ArrayList<String> jobs_keys;
 	
-	Order order;
-	
-	static class Deserializer implements AsyncJSDeserializer<AsyncJSBrokerRequestAction> {
-		
-		private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-		}.getType();
-		
-		public AsyncJSBrokerRequestAction deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			JsonObject jo = json.getAsJsonObject();
-			AsyncJSBrokerRequestAction result = AppManager.getSimpleGson().fromJson(json, AsyncJSBrokerRequestAction.class);
-			result.jobs_keys = AppManager.getGson().fromJson(jo.get("jobs_keys"), al_String_typeOfT);
-			return result;
-		}
-		
-		public Class<AsyncJSBrokerRequestAction> getEnclosingClass() {
-			return AsyncJSBrokerRequestAction.class;
-		}
-	}
+	public Order order;
 	
 }

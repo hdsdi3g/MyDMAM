@@ -16,20 +16,18 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.mydmam.web.AsyncJSDeserializer;
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
 
-public class AsyncStatRequest implements AsyncJSRequestObject {
+import hd3gtv.tools.GsonIgnore;
+
+public class AsyncStatRequest {
 	
 	@GsonIgnore
 	List<String> pathelementskeys;
@@ -48,19 +46,15 @@ public class AsyncStatRequest implements AsyncJSRequestObject {
 	static Type type_List_Sort = new TypeToken<ArrayList<SortDirListing>>() {
 	}.getType();
 	
-	static class Deserializer implements AsyncJSDeserializer<AsyncStatRequest> {
+	public static class Deserializer implements JsonDeserializer<AsyncStatRequest> {
 		
-		public AsyncStatRequest deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			AsyncStatRequest result = Stat.gson_simple.fromJson(json, AsyncStatRequest.class);
-			result.pathelementskeys = Stat.gson_simple.fromJson(json.getAsJsonObject().get("pathelementskeys"), type_List_String);
-			result.scopes_element = Stat.gson_simple.fromJson(json.getAsJsonObject().get("scopes_element"), type_List_String);
-			result.scopes_subelements = Stat.gson_simple.fromJson(json.getAsJsonObject().get("scopes_subelements"), type_List_String);
-			result.sort = Stat.gson_simple.fromJson(json.getAsJsonObject().get("sort"), type_List_Sort);
+		public AsyncStatRequest deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) {
+			AsyncStatRequest result = PathElementStat.gson_simple.fromJson(json, AsyncStatRequest.class);
+			result.pathelementskeys = PathElementStat.gson_simple.fromJson(json.getAsJsonObject().get("pathelementskeys"), type_List_String);
+			result.scopes_element = PathElementStat.gson_simple.fromJson(json.getAsJsonObject().get("scopes_element"), type_List_String);
+			result.scopes_subelements = PathElementStat.gson_simple.fromJson(json.getAsJsonObject().get("scopes_subelements"), type_List_String);
+			result.sort = PathElementStat.gson_simple.fromJson(json.getAsJsonObject().get("sort"), type_List_Sort);
 			return result;
-		}
-		
-		public Class<AsyncStatRequest> getEnclosingClass() {
-			return AsyncStatRequest.class;
 		}
 		
 	}

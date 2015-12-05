@@ -356,12 +356,12 @@ public class RequestResponseCache {
 		}
 		
 		protected JsonElement toJson(ContainersSummaryCachedItem item) throws Exception {
-			return Stat.gson_simple.toJsonTree(item);
+			return PathElementStat.gson_simple.toJsonTree(item);
 		}
 		
 		protected ContainersSummaryCachedItem fromJson(JsonElement value) throws Exception {
-			ContainersSummaryCachedItem result = Stat.gson_simple.fromJson(value, ContainersSummaryCachedItem.class);
-			result.summary = Stat.gson_simple.fromJson(value.getAsJsonObject().get("summary"), map_string_object_typeOfT);
+			ContainersSummaryCachedItem result = PathElementStat.gson_simple.fromJson(value, ContainersSummaryCachedItem.class);
+			result.summary = PathElementStat.gson_simple.fromJson(value.getAsJsonObject().get("summary"), map_string_object_typeOfT);
 			return result;
 		}
 		

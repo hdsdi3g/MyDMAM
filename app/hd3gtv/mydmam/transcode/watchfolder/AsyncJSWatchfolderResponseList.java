@@ -21,17 +21,11 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
 
-import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobNG;
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
 import hd3gtv.tools.GsonIgnore;
 
-public class AsyncJSWatchfolderResponseList implements AsyncJSResponseObject {
+public class AsyncJSWatchfolderResponseList {
 	
 	@GsonIgnore
 	ArrayList<AbstractFoundedFile> items;
@@ -45,7 +39,7 @@ public class AsyncJSWatchfolderResponseList implements AsyncJSResponseObject {
 	static Type type_List_JobsNG = new TypeToken<Map<String, JobNG>>() {
 	}.getType();
 	
-	static class Serializer implements AsyncJSSerializer<AsyncJSWatchfolderResponseList> {
+	/*static class Serializer implements AsyncJSSerializer<AsyncJSWatchfolderResponseList> {// TODO ADD to AJS
 		
 		public JsonElement serialize(AsyncJSWatchfolderResponseList src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = new JsonObject();
@@ -58,5 +52,5 @@ public class AsyncJSWatchfolderResponseList implements AsyncJSResponseObject {
 			return AsyncJSWatchfolderResponseList.class;
 		}
 		
-	}
+	}*/
 }

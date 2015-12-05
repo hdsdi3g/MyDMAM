@@ -19,24 +19,17 @@ package hd3gtv.mydmam.ftpserver;
 import java.util.Arrays;
 import java.util.List;
 
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-import hd3gtv.mydmam.web.AsyncJSObjectVoid;
-
-public class AJSVerbGroupsDomainsLists extends AsyncJSControllerVerb<AsyncJSObjectVoid, AJSResponseGroupsDomainsLists> {
+public class AJSVerbGroupsDomainsLists {// TODO refactoring
 	
 	public String getVerbName() {
 		return "groupdomainlists";
-	}
-	
-	public Class<AsyncJSObjectVoid> getRequestClass() {
-		return AsyncJSObjectVoid.class;
 	}
 	
 	public Class<AJSResponseGroupsDomainsLists> getResponseClass() {
 		return AJSResponseGroupsDomainsLists.class;
 	}
 	
-	public AJSResponseGroupsDomainsLists onRequest(AsyncJSObjectVoid request, String caller) throws Exception {
+	public AJSResponseGroupsDomainsLists onRequest(String caller) throws Exception {
 		return new AJSResponseGroupsDomainsLists();
 	}
 	

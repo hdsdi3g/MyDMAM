@@ -20,7 +20,7 @@ import java.io.FileNotFoundException;
 import java.util.Date;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.web.AsyncJSManager;
+import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.JSXTransformer;
 import hd3gtv.mydmam.web.JSXTransformer.JSXItem;
 import hd3gtv.mydmam.web.JsCompile;
@@ -40,12 +40,10 @@ public class AsyncJavascript extends Controller {
 			renderJSON("{}");
 		}
 		
-		// AsyncJSManager.searchStaticMethods(new DemoAsyncReact());
-		
-		if (Controller.request.isLoopback == false) {
-			renderJSON(AsyncJSManager.global.doRequest(name, verb, jsonrq, Controller.request.remoteAddress));
-		} else {
-			renderJSON(AsyncJSManager.global.doRequest(name, verb, jsonrq, "loopback"));
+		try {
+			renderJSON(AJSController.doRequest(name, verb, jsonrq));
+		} catch (Exception e) {
+			Loggers.Play.error("Can't process AJS request name: " + name + ", verb: " + verb + ", jsonrq: " + jsonrq, e);
 		}
 		renderJSON("{}");
 	}
@@ -74,6 +72,11 @@ public class AsyncJavascript extends Controller {
 		} catch (Exception e) {
 			Loggers.Play.error("JSX Transformer Error", e);
 		}
+	}
+	
+	@Check("debugAJS")
+	public static void rawlist() throws Exception {
+		renderJSON(AJSController.dumpAll());
 	}
 	
 }

@@ -16,14 +16,7 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.util.Arrays;
-import java.util.List;
-
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
-import hd3gtv.mydmam.web.AsyncJSGsonProvider;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
-
-public class AJSVerbRecentActivities extends AsyncJSControllerVerb<AJSRequestRecent, AJSResponseActivities> {
+public class AJSVerbRecentActivities {// TODO refactoring
 	
 	public String getVerbName() {
 		return "recentactivities";
@@ -43,8 +36,8 @@ public class AJSVerbRecentActivities extends AsyncJSControllerVerb<AJSRequestRec
 		return response;
 	}
 	
-	public List<? extends AsyncJSSerializer<?>> getJsonSerializers(AsyncJSGsonProvider gson_provider) {
+	/*public List<? extends AsyncJSSerializer<?>> getJsonSerializers(AsyncJSGsonProvider gson_provider) {// TODO ADD to AJS
 		return Arrays.asList(new AJSResponseActivities.Serializer());
-	}
+	}*/
 	
 }

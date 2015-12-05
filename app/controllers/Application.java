@@ -41,7 +41,7 @@ import hd3gtv.mydmam.web.Basket;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.mydmam.web.search.SearchRequest;
-import hd3gtv.mydmam.web.stat.Stat;
+import hd3gtv.mydmam.web.stat.PathElementStat;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
@@ -98,18 +98,18 @@ public class Application extends Controller {
 			scopes_subelements.addAll(Arrays.asList(params.getAll("scopes_subelements[]")));
 		}
 		
-		Stat stat = new Stat(fileshashs, scopes_element, scopes_subelements);
-		stat.setJsonSearch(params.get("search"));
+		PathElementStat pathElementStat = new PathElementStat(fileshashs, scopes_element, scopes_subelements);
+		pathElementStat.setJsonSearch(params.get("search"));
 		try {
-			stat.setPageFrom(Integer.parseInt(params.get("page_from")));
+			pathElementStat.setPageFrom(Integer.parseInt(params.get("page_from")));
 		} catch (Exception e) {
 		}
 		try {
-			stat.setPageSize(Integer.parseInt(params.get("page_size")));
+			pathElementStat.setPageSize(Integer.parseInt(params.get("page_size")));
 		} catch (Exception e) {
 		}
 		
-		String result = stat.getResult().toJSONString();
+		String result = pathElementStat.getResult().toJSONString();
 		renderJSON(result);
 	}
 	

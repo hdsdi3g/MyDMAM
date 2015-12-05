@@ -16,9 +16,7 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-
-public class AJSResponseAdminOperationUser implements AsyncJSResponseObject {
+public class AJSResponseAdminOperationUser {
 	
 	boolean done;
 	

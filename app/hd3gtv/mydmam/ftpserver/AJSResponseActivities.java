@@ -20,20 +20,15 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSerializationContext;
 
-import hd3gtv.mydmam.web.AsyncJSResponseObject;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
-
-public class AJSResponseActivities implements AsyncJSResponseObject {
+public class AJSResponseActivities {
 	
 	ArrayList<FTPActivity> activities;
 	
 	static Type type_List_FTPActivity = new TypeToken<ArrayList<FTPActivity>>() {
 	}.getType();
 	
-	static class Serializer implements AsyncJSSerializer<AJSResponseActivities> {
+	/*static class Serializer implements AsyncJSSerializer<AJSResponseActivities> {// TODO ADD to AJS
 		
 		public JsonElement serialize(AJSResponseActivities src, Type typeOfSrc, JsonSerializationContext context) {
 			return FTPOperations.getGson().toJsonTree(src.activities, type_List_FTPActivity);
@@ -43,6 +38,6 @@ public class AJSResponseActivities implements AsyncJSResponseObject {
 			return AJSResponseActivities.class;
 		}
 		
-	}
+	}*/
 	
 }

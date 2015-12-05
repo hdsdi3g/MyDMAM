@@ -14,29 +14,22 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package controllers.asyncjs.demoreact;
+package controllers.ajs;
 
-import hd3gtv.mydmam.web.AsyncJSControllerVerb;
+import controllers.Check;
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.mydmam.web.search.SearchQuery;
+import hd3gtv.mydmam.web.search.SearchRequest;
 
-public class VerbAddComment extends AsyncJSControllerVerb<NewComment, CommentList> {
+public class Search extends AJSController {
 	
-	public String getVerbName() {
-		return "add";
+	static {
+		AJSController.registerTypeAdapter(SearchQuery.class, SearchQuery.serializer);
 	}
 	
-	public Class<NewComment> getRequestClass() {
-		return NewComment.class;
-	}
-	
-	public Class<CommentList> getResponseClass() {
-		return CommentList.class;
-	}
-	
-	public CommentList onRequest(NewComment request, String caller) throws Exception {
-		FakeDB.add(request);
-		CommentList result = new CommentList();
-		result.commentlist = FakeDB.getAll();
-		return result;
+	@Check("navigate")
+	public static SearchQuery query(SearchRequest request) throws Exception {
+		return new SearchQuery().search(request);
 	}
 	
 }

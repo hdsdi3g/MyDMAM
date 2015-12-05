@@ -16,9 +16,7 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
-import hd3gtv.mydmam.web.AsyncJSRequestObject;
-
-public class AsyncJSWatchfolderRequestRemove implements AsyncJSRequestObject {
+public class AsyncJSWatchfolderRequestRemove {
 	
 	String key;
 	

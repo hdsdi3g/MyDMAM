@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package controllers.asyncjs.demoreact;
+package controllers.asyncjs.demo;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,7 +42,7 @@ public class FakeDB {
 		add(v);
 	}
 	
-	static void add(NewComment comment) {
+	public static void add(NewComment comment) {
 		Comment c = new Comment();
 		c.author = comment.author;
 		c.text = comment.text;
@@ -50,7 +50,7 @@ public class FakeDB {
 		comments.add(c);
 	}
 	
-	static void delete(String key) {
+	public static void delete(String key) {
 		for (int pos = comments.size() - 1; pos > -1; pos--) {
 			if (comments.get(pos).key.equals(key)) {
 				comments.remove(pos);
@@ -59,7 +59,7 @@ public class FakeDB {
 		}
 	}
 	
-	static void update(Comment comment) {
+	public static void update(Comment comment) {
 		for (int pos = 0; pos < comments.size(); pos++) {
 			if (comments.get(pos).key.equals(comment.key)) {
 				comments.set(pos, comment);
@@ -68,7 +68,7 @@ public class FakeDB {
 		}
 	}
 	
-	static List<Comment> getAll() {
+	public static List<Comment> getAll() {
 		return Collections.unmodifiableList(comments);
 	}
 	

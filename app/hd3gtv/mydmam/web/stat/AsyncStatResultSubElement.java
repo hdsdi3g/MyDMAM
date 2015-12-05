@@ -16,16 +16,16 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.web.AsyncJSSerializer;
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
 import java.util.Map;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.tools.GsonIgnore;
 
 public class AsyncStatResultSubElement {
 	
@@ -37,18 +37,15 @@ public class AsyncStatResultSubElement {
 	
 	Map<String, Object> mtdsummary;
 	
-	static class Serializer implements AsyncJSSerializer<AsyncStatResultSubElement> {
+	public static class Serializer implements JsonSerializer<AsyncStatResultSubElement> {
 		public JsonElement serialize(AsyncStatResultSubElement src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = Stat.gson_simple.toJsonTree(src).getAsJsonObject();
+			JsonObject result = PathElementStat.gson_simple.toJsonTree(src).getAsJsonObject();
 			if (src.reference != null) {
 				result.add("reference", src.reference.toGson());
 			}
 			return result;
 		}
 		
-		public Class<AsyncStatResultSubElement> getEnclosingClass() {
-			return AsyncStatResultSubElement.class;
-		}
 	}
 	
 	boolean isEmpty() {

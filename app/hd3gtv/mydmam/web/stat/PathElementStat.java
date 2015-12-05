@@ -48,7 +48,7 @@ import hd3gtv.tools.GsonIgnoreStrategy;
  * RequestResponseCache cache results -> db requests
  * WebCacheInvalidation cache invalidation result -> less Cassandra requests
  */
-public class Stat {
+public class PathElementStat {
 	
 	public static final String SCOPE_DIRLIST = "dirlist";
 	public static final String SCOPE_PATHINFO = "pathinfo";
@@ -97,7 +97,7 @@ public class Stat {
 	private int page_size = 100;
 	private String search;
 	
-	Stat(AsyncStatRequest request) throws IndexOutOfBoundsException, NullPointerException {
+	public PathElementStat(AsyncStatRequest request) throws IndexOutOfBoundsException, NullPointerException {
 		this(request.pathelementskeys, request.scopes_element, request.scopes_subelements);
 		setJsonSearch(request.search);
 		if (request.page_from > 0) {
@@ -109,7 +109,7 @@ public class Stat {
 		setDirListSort(request.sort);
 	}
 	
-	public Stat(List<String> pathelementskeys, List<String> scopes_element, List<String> scopes_subelements) throws IndexOutOfBoundsException, NullPointerException {
+	public PathElementStat(List<String> pathelementskeys, List<String> scopes_element, List<String> scopes_subelements) throws IndexOutOfBoundsException, NullPointerException {
 		if (pathelementskeys != null) {
 			if (pathelementskeys.isEmpty()) {
 				throw new IndexOutOfBoundsException("pathelementskeys");
@@ -135,7 +135,7 @@ public class Stat {
 		result = new AsyncStatResult(pathelementskeys);
 	}
 	
-	public Stat setPageFrom(int page_from) throws IndexOutOfBoundsException {
+	public PathElementStat setPageFrom(int page_from) throws IndexOutOfBoundsException {
 		if (page_from < 0) {
 			throw new IndexOutOfBoundsException("Too low: " + page_from);
 		}
@@ -144,7 +144,7 @@ public class Stat {
 		return this;
 	}
 	
-	public Stat setPageSize(int page_size) throws IndexOutOfBoundsException {
+	public PathElementStat setPageSize(int page_size) throws IndexOutOfBoundsException {
 		if (page_size < 1) {
 			throw new IndexOutOfBoundsException("Too low: " + page_size);
 		}
@@ -153,7 +153,7 @@ public class Stat {
 		return this;
 	}
 	
-	public Stat setJsonSearch(String json_search) {
+	public PathElementStat setJsonSearch(String json_search) {
 		if (json_search == null) {
 			return this;
 		}
@@ -166,7 +166,7 @@ public class Stat {
 		return this;
 	}
 	
-	public Stat setDirListSort(List<SortDirListing> request_dir_list_sort) {
+	public PathElementStat setDirListSort(List<SortDirListing> request_dir_list_sort) {
 		if (request_dir_list_sort == null) {
 			return this;
 		}

@@ -16,15 +16,15 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.mydmam.web.AsyncJSSerializer;
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
 import java.util.Map;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import hd3gtv.tools.GsonIgnore;
 
 public class AsyncStatResultElement extends AsyncStatResultSubElement {
 	
@@ -52,19 +52,16 @@ public class AsyncStatResultElement extends AsyncStatResultSubElement {
 	
 	Boolean search_return_nothing;
 	
-	static class Serializer implements AsyncJSSerializer<AsyncStatResultElement> {
+	public static class Serializer implements JsonSerializer<AsyncStatResultElement> {
 		public JsonElement serialize(AsyncStatResultElement src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = Stat.gson_simple.toJsonTree(src).getAsJsonObject();
+			JsonObject result = PathElementStat.gson_simple.toJsonTree(src).getAsJsonObject();
 			if (src.reference != null) {
 				result.add("reference", src.reference.toGson());
 			}
-			result.add("items", Stat.gson.toJsonTree(src.items));
+			result.add("items", PathElementStat.gson.toJsonTree(src.items));
 			return result;
 		}
 		
-		public Class<AsyncStatResultElement> getEnclosingClass() {
-			return AsyncStatResultElement.class;
-		}
 	}
 	
 	boolean isEmpty() {
