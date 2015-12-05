@@ -30,8 +30,8 @@ public class AJSResponseGroupsDomainsLists {
 		_domains = Configuration.global.getValues("ftpserveradmin", "domains", null);
 	}
 	
-	ArrayList<String> groups;
-	ArrayList<String> domains;
+	public ArrayList<String> groups;
+	public ArrayList<String> domains;
 	
 	public AJSResponseGroupsDomainsLists() {
 		groups = _groups;

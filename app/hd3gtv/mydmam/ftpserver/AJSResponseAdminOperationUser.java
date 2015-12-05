@@ -18,8 +18,8 @@ package hd3gtv.mydmam.ftpserver;
 
 public class AJSResponseAdminOperationUser {
 	
-	boolean done;
+	public boolean done;
 	
-	String user_name;
+	public String user_name;
 	
 }

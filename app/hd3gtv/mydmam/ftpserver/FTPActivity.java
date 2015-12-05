@@ -154,7 +154,7 @@ public class FTPActivity {
 		return result;
 	}
 	
-	static String getAllUserActivitiesCSV(String user_id) throws Exception {
+	public static String getAllUserActivitiesCSV(String user_id) throws Exception {
 		if (Elasticsearch.isIndexExists(ES_INDEX) == false) {
 			return "";
 		}
@@ -182,7 +182,7 @@ public class FTPActivity {
 		return sw.toString();
 	}
 	
-	static ArrayList<FTPActivity> getRecentActivities(String user_id, long last_time) throws Exception {
+	public static ArrayList<FTPActivity> getRecentActivities(String user_id, long last_time) throws Exception {
 		final ArrayList<FTPActivity> ftp_activity = new ArrayList<FTPActivity>();
 		
 		if (Elasticsearch.isIndexExists(ES_INDEX) == false) {

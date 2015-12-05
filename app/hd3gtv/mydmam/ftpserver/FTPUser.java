@@ -325,7 +325,7 @@ public class FTPUser implements User {
 	/**
 	 * @return never null, maybe empty
 	 */
-	String getDomain() {
+	public String getDomain() {
 		return domain;
 	}
 	
@@ -334,7 +334,7 @@ public class FTPUser implements User {
 		return group;
 	}
 	
-	static ArrayList<AJSUser> getAllAJSUsers() throws ConnectionException {
+	public static ArrayList<AJSUser> getAllAJSUsers() throws ConnectionException {
 		ArrayList<AJSUser> result = new ArrayList<AJSUser>();
 		Rows<String, String> rows = keyspace.prepareQuery(CF_USER).getAllRows().execute().getResult();
 		
@@ -460,7 +460,7 @@ public class FTPUser implements User {
 		return u;
 	}
 	
-	static void backupCF() {
+	public static void backupCF() {
 		BackupDb bdb = new BackupDb();
 		String basepath = Configuration.global.getValue("ftpserveradmin", "backupdir", "");
 		if (basepath.equals("")) {

@@ -18,6 +18,6 @@ package hd3gtv.mydmam.ftpserver;
 
 public class AJSResponseAdminExportSessions {
 	
-	String raw_sessions;
+	public String raw_sessions;
 	
 }

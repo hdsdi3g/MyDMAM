@@ -18,8 +18,8 @@ package hd3gtv.mydmam.ftpserver;
 
 public class AJSRequestRecent {
 	
-	String user_id;
+	public String user_id;
 	
-	long last_time = 0;
+	public long last_time = 0;
 	
 }

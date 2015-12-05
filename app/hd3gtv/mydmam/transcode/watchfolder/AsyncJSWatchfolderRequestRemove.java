@@ -18,6 +18,6 @@ package hd3gtv.mydmam.transcode.watchfolder;
 
 public class AsyncJSWatchfolderRequestRemove {
 	
-	String key;
+	public String key;
 	
 }

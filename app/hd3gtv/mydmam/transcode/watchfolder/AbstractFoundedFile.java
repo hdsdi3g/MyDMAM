@@ -44,19 +44,19 @@ public class AbstractFoundedFile implements AbstractFile {
 	private static final Type type_hashmap_string_string = new TypeToken<HashMap<String, String>>() {
 	}.getType();
 	
-	enum Status {
+	public enum Status {
 		DETECTED, IN_PROCESSING, PROCESSED, ERROR
 	}
 	
-	String path;
-	String storage_name;
-	long date;
-	long size;
-	Status status = Status.DETECTED;
-	long last_checked;
+	public String path;
+	public String storage_name;
+	public long date;
+	public long size;
+	public Status status = Status.DETECTED;
+	public long last_checked;
 	
 	@GsonIgnore
-	HashMap<String, String> map_job_target;
+	public HashMap<String, String> map_job_target;
 	
 	AbstractFoundedFile(String row_key, ColumnList<String> cols) {
 		path_index_key = row_key;

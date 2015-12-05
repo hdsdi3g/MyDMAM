@@ -20,21 +20,6 @@ import java.util.ArrayList;
 
 public class AJSResponseUserList {
 	
-	ArrayList<AJSUser> users = new ArrayList<AJSUser>(1);
-	
-	/*static class Serializer implements AsyncJSSerializer<AJSResponseUserList> {// TODO ADD to AJS
-		
-		public JsonElement serialize(AJSResponseUserList src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = new JsonObject();
-			result.add("users", FTPOperations.getGson().toJsonTree(src.users, AJSUser.type_List_User));
-			
-			return result;
-		}
-		
-		public Class<AJSResponseUserList> getEnclosingClass() {
-			return AJSResponseUserList.class;
-		}
-		
-	}*/
+	public ArrayList<AJSUser> users = new ArrayList<AJSUser>(1);
 	
 }

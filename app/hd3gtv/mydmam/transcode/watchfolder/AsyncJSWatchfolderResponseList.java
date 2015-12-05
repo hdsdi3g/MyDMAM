@@ -16,11 +16,8 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Map;
-
-import com.google.common.reflect.TypeToken;
 
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.tools.GsonIgnore;
@@ -28,29 +25,9 @@ import hd3gtv.tools.GsonIgnore;
 public class AsyncJSWatchfolderResponseList {
 	
 	@GsonIgnore
-	ArrayList<AbstractFoundedFile> items;
+	public ArrayList<AbstractFoundedFile> items;
 	
 	@GsonIgnore
-	Map<String, JobNG> jobs;
+	public Map<String, JobNG> jobs;
 	
-	static Type type_List_AbstractFoundedFile = new TypeToken<ArrayList<AbstractFoundedFile>>() {
-	}.getType();
-	
-	static Type type_List_JobsNG = new TypeToken<Map<String, JobNG>>() {
-	}.getType();
-	
-	/*static class Serializer implements AsyncJSSerializer<AsyncJSWatchfolderResponseList> {// TODO ADD to AJS
-		
-		public JsonElement serialize(AsyncJSWatchfolderResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = new JsonObject();
-			result.add("items", WatchFolderDB.gson.toJsonTree(src.items, type_List_AbstractFoundedFile));
-			result.add("jobs", AppManager.getGson().toJsonTree(src.jobs, type_List_JobsNG));
-			return result;
-		}
-		
-		public Class<AsyncJSWatchfolderResponseList> getEnclosingClass() {
-			return AsyncJSWatchfolderResponseList.class;
-		}
-		
-	}*/
 }

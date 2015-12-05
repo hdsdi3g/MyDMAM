@@ -14,38 +14,82 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.ftpserver;
+package controllers.ajs;
 
-import java.util.Arrays;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 
 import javax.mail.internet.InternetAddress;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import controllers.Check;
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.ftpserver.AJSRequestAdminExportSessions;
+import hd3gtv.mydmam.ftpserver.AJSRequestAdminOperationUser;
+import hd3gtv.mydmam.ftpserver.AJSRequestRecent;
+import hd3gtv.mydmam.ftpserver.AJSResponseActivities;
+import hd3gtv.mydmam.ftpserver.AJSResponseAdminExportSessions;
+import hd3gtv.mydmam.ftpserver.AJSResponseAdminOperationUser;
+import hd3gtv.mydmam.ftpserver.AJSResponseGroupsDomainsLists;
+import hd3gtv.mydmam.ftpserver.AJSResponseUserList;
+import hd3gtv.mydmam.ftpserver.AJSUser;
+import hd3gtv.mydmam.ftpserver.FTPActivity;
+import hd3gtv.mydmam.ftpserver.FTPOperations;
+import hd3gtv.mydmam.ftpserver.FTPUser;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import hd3gtv.mydmam.web.AJSController;
 import models.UserProfile;
 import play.i18n.Lang;
 import play.jobs.JobsPlugin;
 
-public class AJSVerbAdminOperationUser {// TODO refactoring
+public class FTPServer extends AJSController {
 	
-	public String getVerbName() {
-		return "adminoperationuser";
+	static Type type_List_FTPActivity = new TypeToken<ArrayList<FTPActivity>>() {
+	}.getType();
+	static Type type_List_User = new TypeToken<ArrayList<AJSUser>>() {
+	}.getType();
+	
+	static {
+		AJSController.registerTypeAdapter(AJSResponseActivities.class, new JsonSerializer<AJSResponseActivities>() {
+			public JsonElement serialize(AJSResponseActivities src, Type typeOfSrc, JsonSerializationContext context) {
+				return FTPOperations.getGson().toJsonTree(src.activities, type_List_FTPActivity);
+			}
+		});
+		
+		AJSController.registerTypeAdapter(AJSResponseUserList.class, new JsonSerializer<AJSResponseUserList>() {
+			public JsonElement serialize(AJSResponseUserList src, Type typeOfSrc, JsonSerializationContext context) {
+				JsonObject result = new JsonObject();
+				result.add("users", FTPOperations.getGson().toJsonTree(src.users, type_List_User));
+				return result;
+			}
+		});
+		
 	}
 	
-	public Class<AJSRequestAdminOperationUser> getRequestClass() {
-		return AJSRequestAdminOperationUser.class;
+	@Check({ "ftpServer", "adminFtpServer" })
+	public static AJSResponseActivities recentactivities(AJSRequestRecent request) throws Exception {
+		AJSResponseActivities response = new AJSResponseActivities();
+		response.activities = FTPActivity.getRecentActivities(request.user_id, request.last_time);
+		return response;
 	}
 	
-	public Class<AJSResponseAdminOperationUser> getResponseClass() {
-		return AJSResponseAdminOperationUser.class;
+	@Check("adminFtpServer")
+	public static AJSResponseAdminExportSessions adminExportSession(AJSRequestAdminExportSessions request) throws Exception {
+		AJSResponseAdminExportSessions result = new AJSResponseAdminExportSessions();
+		result.raw_sessions = FTPActivity.getAllUserActivitiesCSV(request.user_id);
+		return result;
 	}
 	
-	public AJSResponseAdminOperationUser onRequest(AJSRequestAdminOperationUser request, String caller) throws Exception {
+	@Check("adminFtpServer")
+	public static AJSResponseAdminOperationUser adminOperationUser(AJSRequestAdminOperationUser request) throws Exception {
 		AJSResponseAdminOperationUser response = new AJSResponseAdminOperationUser();
 		
 		switch (request.operation) {
@@ -78,7 +122,7 @@ public class AJSVerbAdminOperationUser {// TODO refactoring
 		return response;
 	}
 	
-	private class SendMailAfterSave implements Callable<Void> {
+	private static class SendMailAfterSave implements Callable<Void> {
 		
 		FTPUser ftp_user;
 		String clear_password;
@@ -129,7 +173,7 @@ public class AJSVerbAdminOperationUser {// TODO refactoring
 		
 	}
 	
-	private class BackupAfterSave implements Callable<Void> {
+	private static class BackupAfterSave implements Callable<Void> {
 		
 		public Void call() throws Exception {
 			FTPUser.backupCF();
@@ -138,8 +182,16 @@ public class AJSVerbAdminOperationUser {// TODO refactoring
 		
 	}
 	
-	public List<String> getMandatoryPrivileges() {
-		return Arrays.asList("adminFtpServer");
+	@Check({ "ftpServer", "adminFtpServer" })
+	public static AJSResponseUserList allUsers() throws Exception {
+		AJSResponseUserList ul = new AJSResponseUserList();
+		ul.users = FTPUser.getAllAJSUsers();
+		return ul;
+	}
+	
+	@Check("adminFtpServer")
+	public static AJSResponseGroupsDomainsLists groupDomainLists() throws Exception {
+		return new AJSResponseGroupsDomainsLists();
 	}
 	
 }

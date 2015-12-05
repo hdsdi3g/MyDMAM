@@ -33,12 +33,12 @@ public class AJSRequestAdminOperationUser {
 		CREATE, DELETE, CH_PASSWORD, TOGGLE_ENABLE;
 	}
 	
-	FTPUser createFTPUser() throws IOException, ConnectionException {
+	public FTPUser createFTPUser() throws IOException, ConnectionException {
 		FTPUser user = FTPUser.create(user_name, clear_password, group_name, domain);
 		return user.save();
 	}
 	
-	void delete() throws ConnectionException {
+	public void delete() throws ConnectionException {
 		FTPUser user = FTPUser.getUserId(user_id, false);
 		if (user == null) {
 			return;
@@ -46,7 +46,7 @@ public class AJSRequestAdminOperationUser {
 		user.removeUser();
 	}
 	
-	void chPassword() throws ConnectionException {
+	public void chPassword() throws ConnectionException {
 		FTPUser user = FTPUser.getUserId(user_id, false);
 		if (user == null) {
 			throw new NullPointerException("\"user\" can't to be null");
@@ -55,7 +55,7 @@ public class AJSRequestAdminOperationUser {
 		user.save();
 	}
 	
-	void toggleEnable() throws ConnectionException {
+	public void toggleEnable() throws ConnectionException {
 		FTPUser user = FTPUser.getUserId(user_id, false);
 		if (user == null) {
 			throw new NullPointerException("Can't found \"user\"");

@@ -16,28 +16,10 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-
-import com.google.common.reflect.TypeToken;
 
 public class AJSResponseActivities {
 	
-	ArrayList<FTPActivity> activities;
-	
-	static Type type_List_FTPActivity = new TypeToken<ArrayList<FTPActivity>>() {
-	}.getType();
-	
-	/*static class Serializer implements AsyncJSSerializer<AJSResponseActivities> {// TODO ADD to AJS
-		
-		public JsonElement serialize(AJSResponseActivities src, Type typeOfSrc, JsonSerializationContext context) {
-			return FTPOperations.getGson().toJsonTree(src.activities, type_List_FTPActivity);
-		}
-		
-		public Class<AJSResponseActivities> getEnclosingClass() {
-			return AJSResponseActivities.class;
-		}
-		
-	}*/
+	public ArrayList<FTPActivity> activities;
 	
 }

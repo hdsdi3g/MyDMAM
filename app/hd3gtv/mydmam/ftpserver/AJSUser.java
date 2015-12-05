@@ -16,21 +16,16 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-
-import com.google.common.reflect.TypeToken;
-
 public class AJSUser {
 	
-	String user_id;
-	String user_name;
-	String group_name;
-	String domain;
-	boolean enabled;
-	long create_date;
-	long update_date;
-	long last_login;
+	public String user_id;
+	public String user_name;
+	public String group_name;
+	public String domain;
+	public boolean enabled;
+	public long create_date;
+	public long update_date;
+	public long last_login;
 	
 	static AJSUser fromFTPUser(FTPUser ftp_user) {
 		AJSUser user = new AJSUser();
@@ -44,8 +39,5 @@ public class AJSUser {
 		user.last_login = ftp_user.getLastLogin();
 		return user;
 	}
-	
-	static Type type_List_User = new TypeToken<ArrayList<AJSUser>>() {
-	}.getType();
 	
 }

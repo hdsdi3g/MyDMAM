@@ -111,7 +111,7 @@ public class WatchFolderDB {
 		return result;
 	}
 	
-	static void remove(String item_key) throws ConnectionException {
+	public static void remove(String item_key) throws ConnectionException {
 		if (item_key == null) {
 			throw new NullPointerException("Null item_key");
 		}
@@ -125,7 +125,7 @@ public class WatchFolderDB {
 		mutator.execute();
 	}
 	
-	static ArrayList<AbstractFoundedFile> getAll() throws ConnectionException {
+	public static ArrayList<AbstractFoundedFile> getAll() throws ConnectionException {
 		ArrayList<AbstractFoundedFile> result = new ArrayList<AbstractFoundedFile>();
 		
 		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getAllRows().execute();
