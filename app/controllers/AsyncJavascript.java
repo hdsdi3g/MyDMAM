@@ -74,9 +74,4 @@ public class AsyncJavascript extends Controller {
 		}
 	}
 	
-	@Check("debugAJS")
-	public static void rawlist() throws Exception {
-		renderJSON(AJSController.dumpAll());
-	}
-	
 }

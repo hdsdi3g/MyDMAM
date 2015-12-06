@@ -34,6 +34,7 @@ mydmam.notification = {};
 mydmam.notification.url = {};
 
 mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
+mydmam.urlimgs.github_favicon = "@{'/public/img/github-favicon.ico'}";
 
 mydmam.async.url = "@{AsyncJavascript.index(name='nameparam1',verb='verbparam2')}";	
 mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson().toJson(hd3gtv.mydmam.web.AJSController.getAllControllersVerbsForThisUser())); }% ;

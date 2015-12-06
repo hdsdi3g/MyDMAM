@@ -243,3 +243,35 @@ async.ButtonSort = React.createClass({
 		);
 	}
 });
+
+async.JavaClassNameLink = React.createClass({
+	render: function() {
+		var javaclass = this.props.javaclass;
+		if (javaclass == null) {
+			return (<strong><em className="muted">Void</em></strong>);
+		}
+
+		var version = this.props.version;
+		if (version == null) {
+			return (<span>{javaclass}</span>);
+		}
+
+		var href = "https://github.com/hdsdi3g/MyDMAM/blob/" + version.substring(version.lastIndexOf(" ") + 1) + "/app/" + javaclass.replace(/\./g, "/") + ".java";
+
+		var icon_style = {
+			height: 14,
+			lineHeight: 14,
+			marginTop: 1,
+			verticalAlign: "text-top",
+			width: 14,
+		};
+
+		return (<span>
+			<a href={href} target="_blank">
+				<img src={mydmam.urlimgs.github_favicon} style={icon_style} />
+			</a>
+			&nbsp;
+			{javaclass.substring(javaclass.lastIndexOf(".") + 1)}
+		</span>);
+	},
+});

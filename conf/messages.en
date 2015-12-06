@@ -496,6 +496,13 @@ ftpserver.addusermail.host=FTP server:
 ftpserver.addusermail.uri=Direct link (URI):
 ftpserver.addusermail.useaclassicalftpclient=Use a generic FTP client to access the server.
 
+ajscontroller.debugpage.title=Debug page
+ajscontroller.debugpage.controller=Controller
+ajscontroller.debugpage.verb=Verb
+ajscontroller.debugpage.parametertype=Parameter type
+ajscontroller.debugpage.returntype=Return type
+ajscontroller.debugpage.privileges=Privileges
+
 # Privileges
 acl.privileges.name.acl=Manage permissions
 acl.privileges.name.adminCrud=Manage CRUD objects

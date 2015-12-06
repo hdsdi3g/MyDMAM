@@ -98,11 +98,6 @@ public class AJSController {
 	}
 	
 	@AJSIgnore
-	public static String dumpAll() {
-		return gson_pretty.toJson(controllers);
-	}
-	
-	@AJSIgnore
 	public static void registerTypeAdapter(Type type, Object typeAdapter) {
 		gson_builder.registerTypeAdapter(type, typeAdapter);
 		gson = gson_builder.create();
@@ -113,6 +108,11 @@ public class AJSController {
 		for (AJSControllerItem item : controllers.values()) {
 			item.putAllPrivilegesNames(mergue_with_list);
 		}
+	}
+	
+	@AJSIgnore
+	public static HashMap<String, AJSControllerItem> getControllers() {
+		return controllers;
 	}
 	
 	/**
