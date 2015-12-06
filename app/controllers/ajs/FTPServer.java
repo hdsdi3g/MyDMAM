@@ -32,11 +32,9 @@ import com.google.gson.JsonSerializer;
 
 import controllers.Check;
 import hd3gtv.configuration.Configuration;
-import hd3gtv.mydmam.ftpserver.AJSRequestAdminExportSessions;
 import hd3gtv.mydmam.ftpserver.AJSRequestAdminOperationUser;
 import hd3gtv.mydmam.ftpserver.AJSRequestRecent;
 import hd3gtv.mydmam.ftpserver.AJSResponseActivities;
-import hd3gtv.mydmam.ftpserver.AJSResponseAdminExportSessions;
 import hd3gtv.mydmam.ftpserver.AJSResponseAdminOperationUser;
 import hd3gtv.mydmam.ftpserver.AJSResponseGroupsDomainsLists;
 import hd3gtv.mydmam.ftpserver.AJSResponseUserList;
@@ -79,13 +77,6 @@ public class FTPServer extends AJSController {
 		AJSResponseActivities response = new AJSResponseActivities();
 		response.activities = FTPActivity.getRecentActivities(request.user_id, request.last_time);
 		return response;
-	}
-	
-	@Check("adminFtpServer")
-	public static AJSResponseAdminExportSessions adminExportSession(AJSRequestAdminExportSessions request) throws Exception {
-		AJSResponseAdminExportSessions result = new AJSResponseAdminExportSessions();
-		result.raw_sessions = FTPActivity.getAllUserActivitiesCSV(request.user_id);
-		return result;
 	}
 	
 	@Check("adminFtpServer")

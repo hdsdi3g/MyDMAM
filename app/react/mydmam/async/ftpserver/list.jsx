@@ -173,8 +173,32 @@ ftpserver.UserLine = React.createClass({
 
 		var btns_admin = null;
 		if (ftpserver.hasUserAdminRights()) {
+			var ftp_export = null;
+			if (mydmam.manager.url_ftpserver_export_user_sessions) {
+
+				var btn_export_classes = classNames("btn", "btn-mini", {
+					"disabled": user.last_login == 0,
+				});
+				if (user.last_login > 0) {
+					var url = mydmam.manager.url_ftpserver_export_user_sessions.replace("keyparam1", md5(user.user_id));
+					ftp_export = (<a className={btn_export_classes} style={{marginRight: 5}} href={url}>
+						<i className="icon-download"></i>&nbsp;
+						Sessions
+					</a>);
+				} else {
+					ftp_export = (<button className={btn_export_classes} style={{marginRight: 5}}>
+						<i className="icon-download"></i>&nbsp;
+						Sessions
+					</button>);
+				}
+			}
+
 			btns_admin = (<span style={{marginLeft: 5}}>
-				<a className="btn btn-mini" style={{marginRight: 5}} href={"#ftpserver/edit/" + this.props.user.user_id}>Change password</a>
+				<a className="btn btn-mini btn-warning" style={{marginRight: 5}} href={"#ftpserver/edit/" + this.props.user.user_id}>
+					<i className="icon-edit icon-white"></i>&nbsp;
+					Ch. Password
+				</a>
+				{ftp_export}
 				<mydmam.async.BtnDelete label="Delete" enabled={this.props.delete_enabled} onClickDelete={this.onDelete} reference={user.user_id} />
 			</span>);
 		}
@@ -189,15 +213,16 @@ ftpserver.UserLine = React.createClass({
 			<td><mydmam.async.pathindex.reactDate date={user.create_date} style={{}} /></td>
 			<td><mydmam.async.pathindex.reactDate date={user.update_date} style={{}} /></td>
 			<td><mydmam.async.pathindex.reactDate date={user.last_login} style={{}} /></td>
-			<td><span className="pull-right"><mydmam.async.BtnEnableDisable
-				simplelabel={!ftpserver.hasUserAdminRights()}
-				enabled={user.enabled}
-				labelenabled="Enabled"
-				labeldisabled="Disabled"
-				iconcircle={true}
-				onEnable={this.onToogleEnableDisable}
-				onDisable={this.onToogleEnableDisable}
-				reference={user.user_id} />
+			<td><span className="pull-right">
+				<mydmam.async.BtnEnableDisable
+					simplelabel={!ftpserver.hasUserAdminRights()}
+					enabled={user.enabled}
+					labelenabled="Enabled"
+					labeldisabled="Disabled"
+					iconcircle={true}
+					onEnable={this.onToogleEnableDisable}
+					onDisable={this.onToogleEnableDisable}
+					reference={user.user_id} />
 				{btns_admin}
 			</span></td>
 		</tr>);

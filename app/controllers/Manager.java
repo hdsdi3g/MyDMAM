@@ -18,6 +18,8 @@ package controllers;
 
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
@@ -25,6 +27,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.status.ClusterStatus;
 import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
 import hd3gtv.mydmam.db.status.StatusReport;
+import hd3gtv.mydmam.ftpserver.FTPActivity;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
@@ -198,6 +201,27 @@ public class Manager extends Controller {
 		JobAction action = AppManager.getGson().fromJson(requestactions, JobAction.class);
 		JsonElement result = action.doAction(getCaller());
 		renderJSON(result.toString());
+	}
+	
+	@Check("adminFtpServer")
+	public static void ftpserver_export_user_sessions(@Required String user_session_ref) throws Exception {
+		if (Validation.hasErrors()) {
+			notFound();
+		}
+		
+		response.contentType = "text/csv";
+		String contentDisposition = "%1$s; filename*=UTF-8''%2$s; filename=\"%2$s\"";
+		
+		response.setHeader("Content-Disposition", String.format(contentDisposition, "attachment", "FTP_activity_" + Loggers.dateFilename(System.currentTimeMillis()) + ".csv"));
+		
+		try {
+			FTPActivity.getAllUserActivitiesCSV(user_session_ref, response.out);
+		} catch (Exception e) {
+			if (e.getMessage().equals("noindex")) {
+				renderText("(No data)");
+			}
+		}
+		IOUtils.closeQuietly(response.out);
 	}
 	
 }

@@ -40,7 +40,7 @@ public class AJSController {
 	public static final String ASYNC_CLASS_PATH = "/app/controllers/ajs";
 	public static final String ASYNC_PACKAGE_NAME = "controllers.ajs";
 	public static final Gson gson_simple;
-	private static final Gson gson_pretty;
+	// private static final Gson gson_pretty;
 	private static final GsonBuilder gson_builder;
 	
 	static Gson gson;
@@ -54,7 +54,7 @@ public class AJSController {
 		gson_builder.serializeNulls();
 		gson_builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
 		gson_simple = gson_builder.create();
-		gson_pretty = gson_builder.setPrettyPrinting().create();
+		// gson_pretty = gson_builder.setPrettyPrinting().create();
 		gson = gson_builder.create();
 		
 		/**

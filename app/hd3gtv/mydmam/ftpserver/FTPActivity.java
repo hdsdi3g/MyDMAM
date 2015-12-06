@@ -16,7 +16,8 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
-import java.io.StringWriter;
+import java.io.OutputStream;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -27,6 +28,7 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVStrategy;
 import org.apache.ftpserver.filesystem.nativefs.impl.NativeFtpFile;
 import org.apache.ftpserver.ftplet.FtpException;
+import org.apache.ftpserver.ftplet.FtpFile;
 import org.apache.ftpserver.ftplet.FtpRequest;
 import org.apache.ftpserver.ftplet.FtpSession;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -57,7 +59,32 @@ public class FTPActivity {
 	}
 	
 	enum Action {
-		DELE, REST, STOR, RETR, APPE, RMD, RNFR, RNTO, MKD;
+		DELE, REST, STOR, RETR, APPE, RMD, RNTO, RNFR, MKD;
+		
+		String toLogString() {
+			switch (this) {
+			case DELE:
+				return "delete";
+			case REST:
+				return "restore";
+			case STOR:
+				return "store";
+			case RETR:
+				return "retrieve";
+			case APPE:
+				return "append";
+			case RMD:
+				return "rmdir";
+			case RNTO:
+				return "rename_to";
+			case RNFR:
+				return "rename_from";
+			case MKD:
+				return "mkdir";
+			default:
+				return "Other";
+			}
+		}
 	}
 	
 	private transient String activity_key;
@@ -70,6 +97,9 @@ public class FTPActivity {
 	private Action action;
 	private String argument;
 	private long activity_date;
+	private String user_session_ref;
+	private long file_size;
+	private long file_offset;
 	
 	private FTPActivity() {
 	}
@@ -81,10 +111,13 @@ public class FTPActivity {
 		log.put("client_host", client_host);
 		log.put("login_time", new Date(login_time));
 		log.put("user_id", user_id);
+		log.put("user_session_ref", user_session_ref);
 		log.put("working_directory", working_directory);
 		log.put("action", action);
 		log.put("argument", argument);
 		log.put("activity_date", activity_date);
+		log.put("file_size", file_size);
+		log.put("file_offset", file_offset);
 		return log.toString();
 	}
 	
@@ -100,8 +133,34 @@ public class FTPActivity {
 		FTPUser user = (FTPUser) session.getUser();
 		activity.user_id = user.getUserId();
 		activity.working_directory = ((NativeFtpFile) session.getFileSystemView().getWorkingDirectory()).getAbsolutePath();
+		
 		activity.action = Action.valueOf(request.getCommand());
-		activity.argument = request.getArgument();
+		if (activity.action == Action.RNFR) {
+			activity.argument = request.getArgument() + " >";
+		} else if (activity.action == Action.RNTO) {
+			activity.argument = "> " + request.getArgument();
+		} else {
+			activity.argument = request.getArgument();
+		}
+		
+		if (activity.action != Action.MKD & activity.action != Action.RMD) {
+			FtpFile ftp_file = session.getFileSystemView().getFile(activity.argument);
+			if (ftp_file != null) {
+				if (ftp_file.doesExist() & ftp_file.isFile()) {
+					activity.file_size = ftp_file.getSize();
+				}
+			}
+			activity.file_offset = session.getFileOffset();
+		}
+		
+		try {
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			md.update(activity.user_id.getBytes("UTF-8"));
+			activity.user_session_ref = MyDMAM.byteToString(md.digest());
+		} catch (Exception e) {
+			Loggers.FTPserver.error("Can't compute digest", e);
+			activity.user_session_ref = activity.user_id;
+		}
 		
 		if (Loggers.FTPserver.isTraceEnabled()) {
 			Loggers.FTPserver.trace("Push FTP Activity: " + activity);
@@ -124,51 +183,54 @@ public class FTPActivity {
 		}
 	}
 	
-	private static QueryBuilder searchByUserId(String user_id) {
-		if (user_id == null) {
+	private static QueryBuilder searchByUserSessionRef(String user_session_ref) {
+		if (user_session_ref == null) {
 			throw new NullPointerException("\"user_id\" can't to be null");
 		}
-		if (user_id.isEmpty()) {
+		if (user_session_ref.isEmpty()) {
 			throw new NullPointerException("\"user_id\" can't to be empty");
 		}
-		return QueryBuilders.termQuery("user_id", user_id);
+		return QueryBuilders.termQuery("user_session_ref", user_session_ref);
 	}
 	
-	static void purgeUserActivity(String user_id) {
-		Loggers.FTPserver.info("Purge user activity: " + user_id);
-		// (ES_INDEX).setTypes(ES_TYPE); request.setQuery(searchByUserId(user_id));
+	static void purgeUserActivity(String user_session_ref) {
+		Loggers.FTPserver.info("Purge user activity: " + user_session_ref);
+		// (ES_INDEX).setTypes(ES_TYPE); request.setQuery(searchByUserId(user_session_ref));
 		// TODO re-implement DeleteByQuery with search + bulk
 	}
 	
 	private static String[] getCSVLine(Map<String, Object> source) {
-		String[] result = new String[8];
+		ArrayList<String> result = new ArrayList<String>();
 		long activity_date = (Long) source.get("activity_date");
-		result[0] = MyDMAM.DATE_TIME_FORMAT.format(new Date(activity_date));
-		result[1] = (String) source.get("session_key");
-		result[2] = (String) source.get("user_id");
-		result[3] = Action.valueOf((String) source.get("action")).name();
-		result[4] = (String) source.get("working_directory");
-		result[5] = (String) source.get("argument");
-		result[6] = String.valueOf(Math.round((activity_date - (Long) source.get("login_time")) / 1000));
-		result[7] = (String) source.get("client_host");
-		return result;
+		
+		result.add(MyDMAM.DATE_TIME_FORMAT.format(new Date(activity_date)));
+		result.add((String) source.get("session_key"));
+		result.add((String) source.get("user_id"));
+		result.add((String) source.get("user_session_ref"));
+		result.add(Action.valueOf((String) source.get("action")).toLogString());
+		result.add((String) source.get("working_directory"));
+		result.add((String) source.get("argument"));
+		result.add(String.valueOf(source.get("file_size")));
+		result.add(String.valueOf(source.get("file_offset")));
+		result.add(String.valueOf(Math.round((activity_date - (Long) source.get("login_time")) / 1000)));
+		result.add((String) source.get("client_host"));
+		return result.toArray(new String[result.size()]);
 	}
 	
-	public static String getAllUserActivitiesCSV(String user_id) throws Exception {
+	public static void getAllUserActivitiesCSV(String user_session_ref, OutputStream destination) throws Exception {
 		if (Elasticsearch.isIndexExists(ES_INDEX) == false) {
-			return "";
+			throw new Exception("noindex");
 		}
 		
 		CSVStrategy strategy = new CSVStrategy(';', '\"', '#', '\\', true, true, true, true);
-		StringWriter sw = new StringWriter();
-		final CSVPrinter printer = new CSVPrinter(sw).setStrategy(strategy);
+		final CSVPrinter printer = new CSVPrinter(destination).setStrategy(strategy);
 		
-		printer.println(new String[] { "Date", "Session", "User id", "Action", "Working Directory", "Argument", "Sec after login", "Client" });
+		printer.println(new String[] { "Date", "Session", "User id", "User session ref", "Action", "Working Directory", "Argument", "File size", "File offset", "Sec after login", "Client" });
 		
 		ElastisearchCrawlerReader ecr = Elasticsearch.createCrawlerReader();
 		ecr.setIndices(ES_INDEX);
 		ecr.setTypes(ES_TYPE);
-		ecr.setQuery(searchByUserId(user_id));
+		ecr.setQuery(searchByUserSessionRef(user_session_ref));
 		ecr.addSort("activity_date", SortOrder.ASC);
 		
 		ecr.allReader(new ElastisearchCrawlerHit() {
@@ -178,11 +240,9 @@ public class FTPActivity {
 				return true;
 			}
 		});
-		
-		return sw.toString();
 	}
 	
-	public static ArrayList<FTPActivity> getRecentActivities(String user_id, long last_time) throws Exception {
+	public static ArrayList<FTPActivity> getRecentActivities(String user_session_ref, long last_time) throws Exception {
 		final ArrayList<FTPActivity> ftp_activity = new ArrayList<FTPActivity>();
 		
 		if (Elasticsearch.isIndexExists(ES_INDEX) == false) {
@@ -192,8 +252,8 @@ public class FTPActivity {
 		QueryBuilder querybuilder = null;
 		if (last_time > 0) {
 			querybuilder = QueryBuilders.rangeQuery("activity_date").gt(last_time);
-			if (user_id != null) {
-				querybuilder = QueryBuilders.boolQuery().must(querybuilder).must(searchByUserId(user_id));
+			if (user_session_ref != null) {
+				querybuilder = QueryBuilders.boolQuery().must(querybuilder).must(searchByUserSessionRef(user_session_ref));
 			}
 			if (Elasticsearch.countRequest(ES_INDEX, querybuilder, ES_TYPE) == 0) {
 				querybuilder = null;
@@ -201,7 +261,7 @@ public class FTPActivity {
 		}
 		
 		if (querybuilder == null) {
-			querybuilder = searchByUserId(user_id);
+			querybuilder = searchByUserSessionRef(user_session_ref);
 		}
 		
 		ElastisearchCrawlerReader ecr = Elasticsearch.createCrawlerReader();
