@@ -58,7 +58,9 @@ public class FTPServer extends AJSController {
 	static {
 		AJSController.registerTypeAdapter(AJSResponseActivities.class, new JsonSerializer<AJSResponseActivities>() {
 			public JsonElement serialize(AJSResponseActivities src, Type typeOfSrc, JsonSerializationContext context) {
-				return FTPOperations.getGson().toJsonTree(src.activities, type_List_FTPActivity);
+				JsonObject result = new JsonObject();
+				result.add("activities", FTPOperations.getGson().toJsonTree(src.activities, type_List_FTPActivity));
+				return result;
 			}
 		});
 		
@@ -75,7 +77,7 @@ public class FTPServer extends AJSController {
 	@Check({ "ftpServer", "adminFtpServer" })
 	public static AJSResponseActivities recentactivities(AJSRequestRecent request) throws Exception {
 		AJSResponseActivities response = new AJSResponseActivities();
-		response.activities = FTPActivity.getRecentActivities(request.user_id, request.last_time);
+		response.activities = FTPActivity.getRecentActivities(request.user_session_ref, request.max_items);
 		return response;
 	}
 	

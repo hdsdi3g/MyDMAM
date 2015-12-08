@@ -242,7 +242,7 @@ public class FTPActivity {
 		});
 	}
 	
-	public static ArrayList<FTPActivity> getRecentActivities(String user_session_ref, long last_time) throws Exception {
+	public static ArrayList<FTPActivity> getRecentActivities(String user_session_ref, int max_items) throws Exception {
 		final ArrayList<FTPActivity> ftp_activity = new ArrayList<FTPActivity>();
 		
 		if (Elasticsearch.isIndexExists(ES_INDEX) == false) {
@@ -250,7 +250,7 @@ public class FTPActivity {
 		}
 		
 		QueryBuilder querybuilder = null;
-		if (last_time > 0) {
+		/*if (last_time > 0) {
 			querybuilder = QueryBuilders.rangeQuery("activity_date").gt(last_time);
 			if (user_session_ref != null) {
 				querybuilder = QueryBuilders.boolQuery().must(querybuilder).must(searchByUserSessionRef(user_session_ref));
@@ -258,7 +258,7 @@ public class FTPActivity {
 			if (Elasticsearch.countRequest(ES_INDEX, querybuilder, ES_TYPE) == 0) {
 				querybuilder = null;
 			}
-		}
+		}*/
 		
 		if (querybuilder == null) {
 			querybuilder = searchByUserSessionRef(user_session_ref);
@@ -269,7 +269,11 @@ public class FTPActivity {
 		ecr.setTypes(ES_TYPE);
 		ecr.setQuery(querybuilder);
 		ecr.addSort("activity_date", SortOrder.DESC);
-		ecr.setMaximumSize(100);
+		if (max_items > 0 & max_items < 100) {
+			ecr.setMaximumSize(max_items);
+		} else {
+			ecr.setMaximumSize(100);
+		}
 		
 		ecr.allReader(new ElastisearchCrawlerHit() {
 			

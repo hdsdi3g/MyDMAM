@@ -22,6 +22,7 @@ ftpserver.UserList = React.createClass({
 			delete_enabled: false,
 			sorted_col: null,
 			sorted_order: null,
+			show_last_activity: [],
 		};
 	},
 	componentWillMount: function() {
@@ -72,6 +73,20 @@ ftpserver.UserList = React.createClass({
 	getCurrentColSort: function(colname) {
 		return this.state.sorted_col === colname ? this.state.sorted_order : null;
 	},
+	onLastActivityToogle: function(user) {
+		var user_id = user.user_id;
+		var current_show_last_activity = this.state.show_last_activity.slice();
+		var pos = current_show_last_activity.indexOf(user_id);
+		if (pos > -1) {
+			current_show_last_activity.splice(pos, 1);
+		} else {
+			current_show_last_activity.push(user_id);
+		}
+		this.setState({show_last_activity: current_show_last_activity});
+	},
+	isPresentInLastActivityToogle: function(user) {
+		return this.state.show_last_activity.indexOf(user.user_id) > -1
+	},
 	render: function() {
 		if (this.state.users == null) {
 			return (<mydmam.async.PageHeaderTitle title="FTP user list" fluid="true">
@@ -84,7 +99,21 @@ ftpserver.UserList = React.createClass({
 
 		var table_lines = [];
 		for (pos_user in users) {
-			table_lines.push(<ftpserver.UserLine key={pos_user} user={users[pos_user]} onWantRefreshAll={this.onWantRefreshAll} delete_enabled={this.state.delete_enabled} />);
+			var user = users[pos_user];
+			var present_in_last_activity_toogle = this.isPresentInLastActivityToogle(user);
+			table_lines.push(<ftpserver.UserLine
+				key={pos_user}
+				user={user}
+				onWantRefreshAll={this.onWantRefreshAll}
+				delete_enabled={this.state.delete_enabled}
+				present_in_last_activity_toogle={present_in_last_activity_toogle}
+				onLastActivityToogle={this.onLastActivityToogle} />);
+
+			if (present_in_last_activity_toogle) {
+				table_lines.push(<tr key={pos_user + "_lat"}>
+					<td colSpan="5"><ftpserver.ActivityList user_id={user.user_id} /></td>
+				</tr>);
+			}
 		}
 		
 		var BtnAdduser = null;
@@ -203,29 +232,69 @@ ftpserver.UserLine = React.createClass({
 			</span>);
 		}
 
+		var btn_last_activity_toogle = null;
+		if (user.last_login > 0) {
+			btn_last_activity_toogle = (<span className="pull-right"><ftpserver.BtnLastActivityToogle
+				user={user}
+				onLastActivityToogle={this.props.onLastActivityToogle}
+				present_in_last_activity_toogle={this.props.present_in_last_activity_toogle} />
+			</span>);
+		}
+
+		var first_case_content = (<span>
+			<strong>{user.domain}</strong> :: {user.user_name}
+			{btn_last_activity_toogle}
+		</span>);
+
+		var first_case = (<td>{first_case_content}</td>);
+		if (this.props.present_in_last_activity_toogle) {
+			first_case = (<td rowSpan="2">{first_case_content}</td>);
+		}
+
 		return (<tr>
-			<td>
-				<strong>{user.domain}</strong> :: {user.user_name}
-			</td>
+			{first_case}
 			<td>
 				<span className="label label-inverse">{user.group_name}</span>
 			</td>
 			<td><mydmam.async.pathindex.reactDate date={user.create_date} style={{}} /></td>
 			<td><mydmam.async.pathindex.reactDate date={user.update_date} style={{}} /></td>
 			<td><mydmam.async.pathindex.reactDate date={user.last_login} style={{}} /></td>
-			<td><span className="pull-right">
-				<mydmam.async.BtnEnableDisable
-					simplelabel={!ftpserver.hasUserAdminRights()}
-					enabled={user.enabled}
-					labelenabled="Enabled"
-					labeldisabled="Disabled"
-					iconcircle={true}
-					onEnable={this.onToogleEnableDisable}
-					onDisable={this.onToogleEnableDisable}
-					reference={user.user_id} />
-				{btns_admin}
-			</span></td>
+			<td>
+				<span className="pull-right">
+					<mydmam.async.BtnEnableDisable
+						simplelabel={!ftpserver.hasUserAdminRights()}
+						enabled={user.enabled}
+						labelenabled="Enabled"
+						labeldisabled="Disabled"
+						iconcircle={true}
+						onEnable={this.onToogleEnableDisable}
+						onDisable={this.onToogleEnableDisable}
+						reference={user.user_id} />
+					{btns_admin}
+				</span>
+			</td>
 		</tr>);
 	},	
 });
 
+ftpserver.BtnLastActivityToogle = React.createClass({
+	onLastActivityToogle: function() {
+		this.props.onLastActivityToogle(this.props.user);
+	},
+	render: function() {
+		var class_name = classNames("btn", "btn-mini", {
+			"active": this.props.present_in_last_activity_toogle,
+		});
+
+		var icon = null;
+		if (this.props.present_in_last_activity_toogle) {
+			icon = (<i className="icon-chevron-up"></i>);
+		} else {
+			icon = (<i className="icon-chevron-down"></i>);
+		}
+
+		return (<button className={class_name} onClick={this.onLastActivityToogle}>
+			{icon}
+		</button>);
+	},
+});

@@ -495,6 +495,15 @@ ftpserver.addusermail.password=Password:
 ftpserver.addusermail.host=FTP server:
 ftpserver.addusermail.uri=Direct link (URI):
 ftpserver.addusermail.useaclassicalftpclient=Use a generic FTP client to access the server.
+ftpserver.activities.actionenum.DELE=Delete
+ftpserver.activities.actionenum.REST=Restart retrieve
+ftpserver.activities.actionenum.STOR=Send
+ftpserver.activities.actionenum.RETR=Retrieve
+ftpserver.activities.actionenum.APPE=Append transfer
+ftpserver.activities.actionenum.RMD=Delete directory
+ftpserver.activities.actionenum.RNTO=Rename with this name
+ftpserver.activities.actionenum.RNFR=Rename this file
+ftpserver.activities.actionenum.MKD=Make a directory
 
 ajscontroller.debugpage.title=Debug page
 ajscontroller.debugpage.controller=Controller
