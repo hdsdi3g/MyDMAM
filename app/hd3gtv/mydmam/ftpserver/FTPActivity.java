@@ -47,8 +47,8 @@ import hd3gtv.mydmam.web.search.SearchQuery;
 
 public class FTPActivity {
 	
-	private static final int TTL_LONG_ACTIVITY = (int) TimeUnit.DAYS.toSeconds(365 * 2);
-	private static final int TTL_SHORT_ACTIVITY = (int) TimeUnit.DAYS.toSeconds(30 * 1);
+	private static final long TTL_LONG_ACTIVITY = TimeUnit.DAYS.toMillis(365 * 2);
+	private static final long TTL_SHORT_ACTIVITY = TimeUnit.DAYS.toMillis(30 * 1);
 	
 	private static final String ES_INDEX = "ftpserver";
 	private static final String ES_TYPE = "ftpserverlogactivity";
@@ -267,12 +267,6 @@ public class FTPActivity {
 		}
 		
 		if (searched_action_type != SearchBySelectActionType.ALL) {
-			/*BoolQueryBuilder boolqb_actions = QueryBuilders.boolQuery();
-			List<String> actions = searched_action_type.toActionString();
-			for (int pos = 0; pos < actions.size(); pos++) {
-				boolqb_actions.should(QueryBuilders.termQuery("action", actions.get(pos).toLowerCase()));
-			}
-			boolquerybuilder.must(boolqb_actions);*/
 			boolquerybuilder.must(QueryBuilders.termsQuery("action", searched_action_type.toActionString()));
 		}
 		
@@ -286,6 +280,7 @@ public class FTPActivity {
 		} else {
 			ecr.setMaximumSize(100);
 		}
+		// ecr.setDisplayTTLForEachResult(true);
 		
 		ecr.allReader(new ElastisearchCrawlerHit() {
 			

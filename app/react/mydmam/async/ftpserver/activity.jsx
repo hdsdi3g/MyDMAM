@@ -91,6 +91,9 @@ ftpserver.ActivityList = React.createClass({
 		if (activities == null) {
 			return (<mydmam.async.PageLoadingProgressBar />);
 		}
+		if (activities.length === 0) {
+			return (<mydmam.async.AlertInfoBox>No activities</mydmam.async.AlertInfoBox>);
+		}
 
 		var lines = [];
 		for(var pos in activities) {
