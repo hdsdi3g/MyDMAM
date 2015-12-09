@@ -33,6 +33,7 @@ import javax.mail.internet.InternetAddress;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -916,7 +917,9 @@ public class Notification {
 			
 			return notifications;
 		} catch (IndexMissingException e) {
-			return new ArrayList<Map<String, Object>>(0);
+			return new ArrayList<Map<String, Object>>(1);
+		} catch (SearchPhaseExecutionException e) {
+			return new ArrayList<Map<String, Object>>(1);
 		}
 	}
 	
@@ -941,6 +944,8 @@ public class Notification {
 			
 			return notifications;
 		} catch (IndexMissingException e) {
+			return new ArrayList<Map<String, Object>>(1);
+		} catch (SearchPhaseExecutionException e) {
 			return new ArrayList<Map<String, Object>>(1);
 		}
 	}

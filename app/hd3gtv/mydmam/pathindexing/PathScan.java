@@ -79,6 +79,7 @@ public class PathScan extends WorkerNG {
 		if (Storage.hasRegularIndexing() == false) {
 			return this;
 		}
+		Loggers.Pathindex.debug("Load Cyclics for regular path indexing");
 		
 		List<Storage> storages = Storage.getRegularIndexingStorages();
 		CyclicJobCreator cyclicjobcreator;

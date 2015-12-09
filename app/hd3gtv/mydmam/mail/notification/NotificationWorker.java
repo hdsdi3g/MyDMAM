@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
 import hd3gtv.configuration.Configuration;
@@ -99,6 +100,11 @@ public class NotificationWorker extends WorkerNG {
 			 * Empty Db, ignore this.
 			 */
 			progression.update("Database (ES) is not definited");
+		} catch (SearchPhaseExecutionException e) {
+			/**
+			 * Empty Db, ignore this.
+			 */
+			progression.update("Database (ES) is emtpy");
 		}
 	}
 	

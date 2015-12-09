@@ -27,6 +27,7 @@ import java.util.Map;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
@@ -501,6 +502,7 @@ public class ContainerOperations {
 			RenderedFile.purge_orphan_metadatas_files();
 			
 		} catch (IndexMissingException ime) {
+		} catch (SearchPhaseExecutionException e) {
 		}
 	}
 	

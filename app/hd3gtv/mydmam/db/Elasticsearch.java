@@ -182,7 +182,8 @@ public class Elasticsearch {
 			/**
 			 * No index, no enable ttl.
 			 */
-			return;
+			Loggers.ElasticSearch.info("Create index " + index_name);
+			createIndex(index_name);
 		}
 		Loggers.ElasticSearch.debug("Enable TTL for index " + index_name + ": " + type);
 		GetMappingsRequest request = new GetMappingsRequest().indices(index_name);
@@ -202,9 +203,8 @@ public class Elasticsearch {
 				}
 			} else {
 				/**
-				 * No actual mapping for this type in index, no enable ttl.
+				 * No actual mapping for this type in index, but create it during enabling ttl.
 				 */
-				return;
 			}
 		}
 		addMappingToIndex(index_name, type, "{\"_ttl\": {\"enabled\": true}}");
@@ -370,6 +370,16 @@ public class Elasticsearch {
 			logger.warn("ES generic error, can't execute action submitted by " + source.getName(), e);
 		}
 		
+	}
+	
+	/**
+	 * @return -1 if not TTL
+	 */
+	public static long extractTTLfromHit(SearchHit hit) {
+		if (hit.getFields().containsKey("_ttl") == false) {
+			return -1;
+		}
+		return (Long) hit.getFields().get("_ttl").getValue();
 	}
 	
 }

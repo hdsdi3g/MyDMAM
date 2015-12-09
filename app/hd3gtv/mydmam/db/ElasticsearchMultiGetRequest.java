@@ -23,6 +23,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.get.MultiGetItemResponse;
 import org.elasticsearch.action.get.MultiGetRequestBuilder;
 import org.elasticsearch.action.get.MultiGetResponse;
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.common.Nullable;
@@ -129,6 +130,8 @@ public class ElasticsearchMultiGetRequest {
 			}
 			return result;
 		} catch (IndexMissingException ime) {
+			return new ArrayList<GetResponse>(1);
+		} catch (SearchPhaseExecutionException e) {
 			return new ArrayList<GetResponse>(1);
 		}
 	}

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
 import hd3gtv.mydmam.Loggers;
@@ -133,6 +134,8 @@ public class MetadataIndexer implements IndexingEvent {
 					}
 				}
 			} catch (IndexMissingException ime) {
+				must_analyst = true;
+			} catch (SearchPhaseExecutionException e) {
 				must_analyst = true;
 			}
 		}

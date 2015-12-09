@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
 import com.google.gson.Gson;
@@ -192,7 +193,9 @@ public class Application extends Controller {
 		} catch (IOException e) {
 			Loggers.Play.error("Can't get the file, filehash: " + filehash + ", type:" + type + ", file: " + file, e);
 		} catch (IndexMissingException e) {
-			Loggers.Play.warn("Index mising", e);
+			Loggers.Play.debug("Index mising", e);
+		} catch (SearchPhaseExecutionException e) {
+			Loggers.Play.debug("No datas", e);
 		}
 		
 		if (element == null) {

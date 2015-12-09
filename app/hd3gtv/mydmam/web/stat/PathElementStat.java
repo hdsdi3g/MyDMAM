@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
 import com.google.gson.Gson;
@@ -239,6 +240,8 @@ public class PathElementStat {
 			
 		} catch (IndexMissingException e) {
 			Loggers.Play.warn("Some ES indexes are missing: database has not items for this: " + e.getMessage());
+		} catch (SearchPhaseExecutionException e) {
+			Loggers.Play.warn("Database has not items for this: " + e.getMessage());
 		} catch (Exception e) {
 			Loggers.Play.error("General error", e);
 		}

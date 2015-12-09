@@ -23,6 +23,7 @@ import java.util.List;
 import org.elasticsearch.action.search.MultiSearchRequestBuilder;
 import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.MultiSearchResponse.Item;
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
@@ -145,6 +146,8 @@ public class ElastisearchMultipleCrawlerReader {
 			 */
 			Loggers.ElasticSearch.debug("Index missing", ime);
 			return;
+		} catch (SearchPhaseExecutionException e) {
+			Loggers.ElasticSearch.debug("No datas", e);
 		}
 	}
 	

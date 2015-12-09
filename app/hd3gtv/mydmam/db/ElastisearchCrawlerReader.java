@@ -18,6 +18,7 @@ package hd3gtv.mydmam.db;
 
 import java.util.ArrayList;
 
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -28,6 +29,8 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.sort.SortOrder;
+
+import hd3gtv.mydmam.Loggers;
 
 public class ElastisearchCrawlerReader {
 	
@@ -50,6 +53,8 @@ public class ElastisearchCrawlerReader {
 	private int from;
 	private int max_size;
 	private SearchType searchtype;
+	private boolean retrive_ttl;
+	private boolean display_ttl_for_each_result;
 	
 	ElastisearchCrawlerReader() {
 		client = Elasticsearch.getClient();
@@ -78,6 +83,19 @@ public class ElastisearchCrawlerReader {
 			throw new NullPointerException("\"query\" can't to be null");
 		}
 		return this;
+	}
+	
+	/**
+	 * get result with hit.getFields().
+	 */
+	public ElastisearchCrawlerReader setRetriveTTL(boolean retrive_ttl) {
+		this.retrive_ttl = retrive_ttl;
+		return this;
+	}
+	
+	public ElastisearchCrawlerReader setDisplayTTLForEachResult(boolean display_ttl_for_each_result) {
+		this.display_ttl_for_each_result = display_ttl_for_each_result;
+		return setRetriveTTL(true);
 	}
 	
 	public ElastisearchCrawlerReader addSort(String field, SortOrder order) {
@@ -134,6 +152,10 @@ public class ElastisearchCrawlerReader {
 			throw new NullPointerException("\"crawler\" can't to be null");
 		}
 		
+		if (display_ttl_for_each_result) {
+			Loggers.ElasticSearch.warn("\"display_ttl_for_each_result\" is set, verbose messages will be displayed...");
+		}
+		
 		try {
 			SearchRequestBuilder request = client.prepareSearch();
 			if (indices != null) {
@@ -160,6 +182,9 @@ public class ElastisearchCrawlerReader {
 			if (searchtype != null) {
 				request.setSearchType(searchtype);
 			}
+			if (retrive_ttl) {
+				request.addFields("_ttl", "_source");
+			}
 			
 			SearchResponse response = execute(request);
 			
@@ -181,9 +206,34 @@ public class ElastisearchCrawlerReader {
 			int totalhits = count_remaining;
 			
 			boolean can_continue = true;
+			long ttl;
+			SearchHit hit;
 			while (can_continue) {
 				for (int pos = 0; pos < hits.length; pos++) {
-					if (crawler.onFoundHit(hits[pos]) == false) {
+					hit = hits[pos];
+					
+					if (display_ttl_for_each_result) {
+						ttl = Elasticsearch.extractTTLfromHit(hit);
+						System.out.print("DISPLAY_TTL [");
+						System.out.print(hit.getIndex());
+						System.out.print("]\t[");
+						System.out.print(hit.getType());
+						System.out.print("]\t[");
+						System.out.print(hit.getId());
+						System.out.print("]\tv");
+						System.out.print(hit.version());
+						if (ttl > 0) {
+							System.out.print("\t");
+							System.out.print(ttl / 1000);
+							System.out.print(" sec\t");
+							System.out.print(Loggers.dateLog(System.currentTimeMillis() + ttl));
+						} else {
+							System.out.print("\tNO TTL\t");
+						}
+						System.out.println();
+					}
+					
+					if (crawler.onFoundHit(hit) == false) {
 						return;
 					}
 					
@@ -204,10 +254,9 @@ public class ElastisearchCrawlerReader {
 				}
 			}
 		} catch (IndexMissingException ime) {
-			/**
-			 * No items == no callbacks
-			 */
-			return;
+			Loggers.ElasticSearch.debug("Missing index during Crawler reader: no callbacks", ime);
+		} catch (SearchPhaseExecutionException epee) {
+			Loggers.ElasticSearch.debug("Problem during Crawler reader (maybe shard failures / no data): no callbacks", epee);
 		}
 	}
 	
