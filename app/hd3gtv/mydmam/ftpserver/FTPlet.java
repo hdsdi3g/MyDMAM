@@ -16,9 +16,13 @@
 */
 package hd3gtv.mydmam.ftpserver;
 
+import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.util.HashSet;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.ftpserver.filesystem.nativefs.impl.NativeFtpFile;
 import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.FtpReply;
 import org.apache.ftpserver.ftplet.FtpRequest;
@@ -56,6 +60,33 @@ public class FTPlet implements Ftplet {
 	}
 	
 	public FtpletResult beforeCommand(FtpSession session, FtpRequest request) throws FtpException, IOException {
+		if (request.getCommand().equals("RMD")) {
+			NativeFtpFile selected_file = (NativeFtpFile) session.getFileSystemView().getFile(request.getArgument());
+			File real_file = selected_file.getPhysicalFile();
+			if (real_file.exists() == false | real_file.isDirectory() == false | real_file.canWrite() == false) {
+				return null;
+			}
+			
+			/**
+			 * Search no hidden files
+			 */
+			if (real_file.listFiles(new FileFilter() {
+				
+				public boolean accept(File pathname) {
+					return pathname.isHidden() == false;
+				}
+			}).length > 0) {
+				/**
+				 * Don't force delete
+				 */
+				return null;
+			}
+			
+			/**
+			 * No files / no visible file (== maybe some hidden files), clean dir.
+			 */
+			FileUtils.cleanDirectory(real_file);
+		}
 		return null;
 	}
 	
