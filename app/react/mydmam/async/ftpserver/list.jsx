@@ -286,15 +286,8 @@ ftpserver.BtnLastActivityToogle = React.createClass({
 			"active": this.props.present_in_last_activity_toogle,
 		});
 
-		var icon = null;
-		if (this.props.present_in_last_activity_toogle) {
-			icon = (<i className="icon-chevron-up"></i>);
-		} else {
-			icon = (<i className="icon-chevron-down"></i>);
-		}
-
 		return (<button className={class_name} onClick={this.onLastActivityToogle}>
-			{icon}
+			<i className="icon-chevron-down"></i>
 		</button>);
 	},
 });

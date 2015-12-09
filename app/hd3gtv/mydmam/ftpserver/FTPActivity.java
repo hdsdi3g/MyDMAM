@@ -31,6 +31,7 @@ import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.FtpFile;
 import org.apache.ftpserver.ftplet.FtpRequest;
 import org.apache.ftpserver.ftplet.FtpSession;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -41,6 +42,8 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
+import hd3gtv.mydmam.ftpserver.AJSRequestRecent.SearchBySelectActionType;
+import hd3gtv.mydmam.web.search.SearchQuery;
 
 public class FTPActivity {
 	
@@ -183,12 +186,15 @@ public class FTPActivity {
 		}
 	}
 	
+	/**
+	 * @param user_session_ref is null, return null;
+	 */
 	private static QueryBuilder searchByUserSessionRef(String user_session_ref) {
 		if (user_session_ref == null) {
-			throw new NullPointerException("\"user_id\" can't to be null");
+			return null;
 		}
 		if (user_session_ref.isEmpty()) {
-			throw new NullPointerException("\"user_id\" can't to be empty");
+			return null;
 		}
 		return QueryBuilders.termQuery("user_session_ref", user_session_ref);
 	}
@@ -242,32 +248,38 @@ public class FTPActivity {
 		});
 	}
 	
-	public static ArrayList<FTPActivity> getRecentActivities(String user_session_ref, int max_items) throws Exception {
+	public static ArrayList<FTPActivity> getRecentActivities(String user_session_ref, int max_items, String user_searched_text, SearchBySelectActionType searched_action_type) throws Exception {
 		final ArrayList<FTPActivity> ftp_activity = new ArrayList<FTPActivity>();
 		
 		if (Elasticsearch.isIndexExists(ES_INDEX) == false) {
 			return ftp_activity;
 		}
 		
-		QueryBuilder querybuilder = null;
-		/*if (last_time > 0) {
-			querybuilder = QueryBuilders.rangeQuery("activity_date").gt(last_time);
-			if (user_session_ref != null) {
-				querybuilder = QueryBuilders.boolQuery().must(querybuilder).must(searchByUserSessionRef(user_session_ref));
-			}
-			if (Elasticsearch.countRequest(ES_INDEX, querybuilder, ES_TYPE) == 0) {
-				querybuilder = null;
-			}
-		}*/
+		BoolQueryBuilder boolquerybuilder = QueryBuilders.boolQuery();
+		String search_text = SearchQuery.cleanUserTextSearch(user_searched_text);
+		if (search_text != null) {
+			boolquerybuilder.must(QueryBuilders.wildcardQuery("argument", "*" + search_text.toLowerCase() + "*"));
+		}
 		
-		if (querybuilder == null) {
-			querybuilder = searchByUserSessionRef(user_session_ref);
+		QueryBuilder qb_search_by_user = searchByUserSessionRef(user_session_ref);
+		if (qb_search_by_user != null) {
+			boolquerybuilder.must(qb_search_by_user);
+		}
+		
+		if (searched_action_type != SearchBySelectActionType.ALL) {
+			/*BoolQueryBuilder boolqb_actions = QueryBuilders.boolQuery();
+			List<String> actions = searched_action_type.toActionString();
+			for (int pos = 0; pos < actions.size(); pos++) {
+				boolqb_actions.should(QueryBuilders.termQuery("action", actions.get(pos).toLowerCase()));
+			}
+			boolquerybuilder.must(boolqb_actions);*/
+			boolquerybuilder.must(QueryBuilders.termsQuery("action", searched_action_type.toActionString()));
 		}
 		
 		ElastisearchCrawlerReader ecr = Elasticsearch.createCrawlerReader();
 		ecr.setIndices(ES_INDEX);
 		ecr.setTypes(ES_TYPE);
-		ecr.setQuery(querybuilder);
+		ecr.setQuery(boolquerybuilder);
 		ecr.addSort("activity_date", SortOrder.DESC);
 		if (max_items > 0 & max_items < 100) {
 			ecr.setMaximumSize(max_items);

@@ -77,7 +77,7 @@ public class FTPServer extends AJSController {
 	@Check({ "ftpServer", "adminFtpServer" })
 	public static AJSResponseActivities recentactivities(AJSRequestRecent request) throws Exception {
 		AJSResponseActivities response = new AJSResponseActivities();
-		response.activities = FTPActivity.getRecentActivities(request.user_session_ref, request.max_items);
+		response.activities = FTPActivity.getRecentActivities(request.user_session_ref, request.max_items, request.searched_text, request.searched_action_type);
 		return response;
 	}
 	

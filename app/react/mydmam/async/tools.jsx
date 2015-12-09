@@ -275,3 +275,35 @@ async.JavaClassNameLink = React.createClass({
 		</span>);
 	},
 });
+
+async.SearchInputBox = React.createClass({
+	getInitialState: function() {
+		return {timer: null};
+	},
+	onTimerDone: function() {
+		this.setState({timer: null});
+		this.props.onKeyPress(React.findDOMNode(this.refs.inputbox).value);
+	},
+	onKeyPress: function() {
+		if (this.state.timer) {
+			clearInterval(this.state.timer);
+		}
+		this.setState({timer: setTimeout(this.onTimerDone, 500)});
+	},
+	componentWillUnmount: function() {
+		if (this.state.timer) {
+			clearInterval(this.state.timer);
+		}
+	},
+	render: function() {
+		return (<span style={{"fontSize" : 13}}><input
+			type="text"
+			ref="inputbox"
+			placeholder={i18n("maingrid.search")}
+			className="input-medium search-query"
+			style={this.props.style}
+			onKeyUp={this.onKeyPress} />
+		</span>);
+	}
+
+});
