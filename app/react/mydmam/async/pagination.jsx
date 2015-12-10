@@ -14,6 +14,65 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
+
+if(!async.pagination){async.pagination = {};}
+
+var pagination = async.pagination;
+
+pagination.PageButton = React.createClass({
+	handleClick: function(e) {
+		if (!this.props.onClickButton) {
+			return;
+		}
+		e.preventDefault();
+		var alt = false;
+		if (e.altKey) {
+			alt = true;
+		}
+		this.props.onClickButton(this.props.num, alt);
+	},
+	render: function() {
+		if (this.props.currentpage === this.props.num) {
+		    return (<li className="active"><span>{this.props.num}</span></li>);
+		}
+
+	    return (<li>
+		    	<a href={this.props.linkHref} onClick={this.handleClick}>{this.props.num}</a>
+			</li>);
+	}
+});
+
+pagination.PagePreviousNext = React.createClass({
+	handleClick: function(e) {
+		if (!this.props.onClickButton) {
+			return;
+		}
+		e.preventDefault();
+		var alt = false;
+		if (e.altKey) {
+			alt = true;
+		}
+		this.props.onClickButton(this.props.num, alt);
+	},
+	render: function() {
+		if (this.props.direction === "previous") {
+		    return (<li>
+			    	<a href={this.props.linkHref} onClick={this.handleClick}>&laquo; {i18n("search.previous")}</a>
+				</li>);
+		} else {
+		    return (<li>
+			    	<a href={this.props.linkHref} onClick={this.handleClick}>{i18n("search.next")} &raquo;</a>
+				</li>);
+		}
+	}
+});
+
+pagination.PageSpacer = React.createClass({
+	render: function() {
+		return (<li className="active"><span>&hellip;</span></li>);
+	}
+});
+
 var PagePreviousNext = pagination.PagePreviousNext;
 var PageSpacer = pagination.PageSpacer;
 var PageButton = pagination.PageButton;
