@@ -109,9 +109,11 @@ ftpserver.AddUser = React.createClass({
 				<button type="submit" className="btn btn-success"><i className="icon-ok icon-white"></i> {label_submit}</button>
 			</FormControlGroup>);
 
-			items.push(<FormControlGroup key="2">
-				<a type="cancel" className="btn btn-info" href="#ftpserver"><i className="icon-th-list icon-white"></i> Back to the user list</a>
-			</FormControlGroup>);
+			if (user_id != null) {
+				items.push(<FormControlGroup key="2">
+					<a type="cancel" className="btn btn-info" href="#ftpserver"><i className="icon-th-list icon-white"></i> {i18n("ftpserver.adduser.goback")}</a>
+				</FormControlGroup>);
+			}
 			return items;
 		};
 
@@ -120,7 +122,7 @@ ftpserver.AddUser = React.createClass({
 				if (this.state.done) {
 					return (<mydmam.async.AlertInfoBox title={label_ok} />);
 				} else {
-					return (<mydmam.async.AlertErrorBox title="Warning">{label_fail}</mydmam.async.AlertErrorBox>);
+					return (<mydmam.async.AlertErrorBox title={i18n("ftpserver.adduser.warning")}>{label_fail}</mydmam.async.AlertErrorBox>);
 				}
 			}
 			return null;
@@ -145,39 +147,43 @@ ftpserver.AddUser = React.createClass({
 			}
 
 			return (<div>
-				{getAlertInfoBox("User is created", "Can't create user")}
+				{getAlertInfoBox(i18n("ftpserver.adduser.iscreated"), i18n("ftpserver.adduser.cantcreate"))}
 				<form className="form-horizontal" onSubmit={this.onAddUserBtnClick}>
-					<FormControlGroup label="User name">
-						<input type="text" placeholder="User name" ref="user_name" />
+					<FormControlGroup label={i18n("ftpserver.adduser.username")}>
+						<input type="text" placeholder={i18n("ftpserver.adduser.username")} ref="user_name" />
 					</FormControlGroup>
 					<FormControlGroup label="Password">
 					    <div className="input-append">
-					    	<input type="password" placeholder="Password" ref="password" defaultValue={this.state.generated_password} />
-					    	<button className={btn_display_generate_password_form_classes} type="button" onClick={this.toogleBtnDisplayGeneratePasswordForm}><i className="icon-arrow-down"></i></button>
+					    	<input type="password" placeholder={i18n("ftpserver.adduser.password")} ref="password" defaultValue={this.state.generated_password} />
+					    	<button className={btn_display_generate_password_form_classes} type="button" onClick={this.toogleBtnDisplayGeneratePasswordForm}>
+					    		<i className="icon-arrow-down"></i>
+					    	</button>
 					    </div>
 					</FormControlGroup>
 					{generate_password_form}
-					<FormControlGroup label="Group">
+					<FormControlGroup label={i18n("ftpserver.adduser.group")}>
 						<select ref="group">{select_list_group}</select>
 					</FormControlGroup>
-					<FormControlGroup label="Domain">
+					<FormControlGroup label={i18n("ftpserver.adduser.domain")}>
 						<select ref="domain">{select_list_domain}</select>
 					</FormControlGroup>
-					{submit_buttons("Create")}
+					{submit_buttons(i18n("ftpserver.adduser.create"))}
 				</form>
 			</div>);
 		} else {
-			return (<mydmam.async.PageHeaderTitle title="Change password for FTP user" fluid="true">
-				{getAlertInfoBox("User is updated", "Can't update user")}
+			return (<mydmam.async.PageHeaderTitle title={i18n("ftpserver.chpassword.title")} fluid="true">
+				{getAlertInfoBox(i18n("ftpserver.chpassword.updated"),i18n("ftpserver.chpassword.noupdated"))}
 				<form className="form-horizontal" onSubmit={this.onAddUserBtnClick}>
-					<FormControlGroup label="Password">
+					<FormControlGroup label={i18n("ftpserver.adduser.password")}>
 					    <div className="input-append">
-					    	<input type="password" placeholder="Password" ref="password" defaultValue={this.state.generated_password} />
-					    	<button className={btn_display_generate_password_form_classes} type="button" onClick={this.toogleBtnDisplayGeneratePasswordForm}><i className="icon-arrow-down"></i></button>
+					    	<input type="password" placeholder={i18n("ftpserver.adduser.password")} ref="password" defaultValue={this.state.generated_password} />
+					    	<button className={btn_display_generate_password_form_classes} type="button" onClick={this.toogleBtnDisplayGeneratePasswordForm}>
+					    		<i className="icon-arrow-down"></i>
+					    	</button>
 					    </div>
 					</FormControlGroup>
 					{generate_password_form}
-					{submit_buttons("Update")}
+					{submit_buttons(i18n("ftpserver.chpassword.update"))}
 				</form>
 			</mydmam.async.PageHeaderTitle>);
 		}

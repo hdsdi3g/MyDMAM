@@ -105,14 +105,14 @@ ftpserver.ActivityList = React.createClass({
 		var no_activity_label = null;
 		if (activities.length === 0) {
 			if (this.state.searched_text == null & this.state.searched_action_type == "ALL") {
-				return (<mydmam.async.AlertInfoBox>No activities</mydmam.async.AlertInfoBox>);
+				return (<mydmam.async.AlertInfoBox>{i18n("ftpserver.activities.emptylist")}</mydmam.async.AlertInfoBox>);
 			}
-			no_activity_label = (<mydmam.async.AlertInfoBox>No activities to display with this search.</mydmam.async.AlertInfoBox>);
+			no_activity_label = (<mydmam.async.AlertInfoBox>{i18n("ftpserver.activities.noresults")}</mydmam.async.AlertInfoBox>);
 		}
 
 		var th_display_user = null;
 		if (this.props.user_id == null) {
-			th_display_user = (<th>User</th>);
+			th_display_user = (<th>{i18n("ftpserver.activities.user")}</th>);
 		}
 
 		var lines = [];
@@ -122,9 +122,13 @@ ftpserver.ActivityList = React.createClass({
 			var size_offset = null;
 			if (activity.file_size > 0) {
 				if (activity.file_offset > 0) {
-					size_offset = (<span style={{marginLeft: 5}} className="label label-important pull-right">{activity.file_offset} bytes / {activity.file_size} bytes</span>);
+					size_offset = (<span style={{marginLeft: 5}} className="label label-important pull-right">
+						{i18n("ftpserver.activities.bytes", activity.file_offset)} / {i18n("ftpserver.activities.bytes", activity.file_size)}
+					</span>);
 				} else {
-					size_offset = (<span style={{marginLeft: 5}} className="label label-important pull-right">{activity.file_size} bytes</span>);
+					size_offset = (<span style={{marginLeft: 5}} className="label label-important pull-right">
+						{i18n("ftpserver.activities.bytes", activity.file_size)}
+					</span>);
 				}
 			}
 
@@ -140,7 +144,7 @@ ftpserver.ActivityList = React.createClass({
 				<td>
 					<span style={{backgroundColor: "#" + activity.session_key.substring(0,6), borderRadius: 5, paddingRight: 12, marginRight: 5, border: "1px solid black"}}>&nbsp;</span>
 					<mydmam.async.pathindex.reactDate date={activity.activity_date} style={{marginRight: 5}} />
-					<mydmam.async.pathindex.reactSinceDate date={activity.activity_date} i18nlabel="Since" />
+					<mydmam.async.pathindex.reactSinceDate date={activity.activity_date} i18nlabel="ftpserver.activities.since" />
 				</td>
 				<td>
 					<span className="badge badge-info">{i18n("ftpserver.activities.actionenum." + activity.action)}</span>		
@@ -160,17 +164,17 @@ ftpserver.ActivityList = React.createClass({
 		if (activities.length >= 20) {
 			if (this.state.max_items < 100) {
 				button_show_next_items = (<button className="btn btn-mini btn-block" style={{marginBottom: "2em"}} onClick={this.onWantExpandList}>
-					<i className="icon-arrow-down"></i> Next <i className="icon-arrow-down"></i>
+					<i className="icon-arrow-down"></i> {i18n("ftpserver.activities.next")} <i className="icon-arrow-down"></i>
 				</button>);
 			} else {
 				button_show_next_items = (<button className="btn btn-mini btn-block disabled" style={{marginBottom: "2em"}}>
-					Limited to display a max items ({this.state.max_items}).
+					{i18n("ftpserver.activities.nextdisabled", this.state.max_items)}
 				</button>);
 			}
 		}
 
 		return (<div>
-			<span className="lead" style={{marginLeft: "0.5em"}}>Activity and sessions</span>
+			<span className="lead" style={{marginLeft: "0.5em"}}>{i18n("ftpserver.activities.activityandsessions")}</span>
 		    <form className="form-search pull-right">
 				<select ref="select_action" onChange={this.onSelectActionTypeChange}>
 					<option key="ALL" value="ALL">		{i18n("ftpserver.activities.search_by_select.ALL")}</option>
@@ -187,10 +191,10 @@ ftpserver.ActivityList = React.createClass({
 				<thead>
 					<tr>
 						{th_display_user}
-						<th>Session color &bull; session date &bull; since logon time</th>
-						<th>Action</th>
-						<th>Directory &bull; Name &bull; Size</th>
-						<th>Client IP</th>
+						<th>{i18n("ftpserver.activities.session.color")} &bull; {i18n("ftpserver.activities.session.date")}</th>
+						<th>{i18n("ftpserver.activities.title.action")}</th>
+						<th>{i18n("ftpserver.activities.title.directory")} &bull; {i18n("ftpserver.activities.title.name")} &bull; {i18n("ftpserver.activities.title.size")}</th>
+						<th>{i18n("ftpserver.activities.title.clientip")}</th>
 					</tr>
 				</thead>
 				<tbody>

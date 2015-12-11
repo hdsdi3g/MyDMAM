@@ -20,23 +20,23 @@ ftpserver.MainPage = React.createClass({
 		var content = [];
 
 		content.push({
-			i18nlabel: "Activity",
+			i18nlabel: "ftpserver.tab.activity",
 			content: (<ftpserver.ActivityList />)
 		});
 
 		content.push({
-			i18nlabel: "Users",
+			i18nlabel: "ftpserver.tab.users",
 			content: (<ftpserver.UserList />)
 		});
 
 		if (ftpserver.hasUserAdminRights()) {
 			content.push({
-				i18nlabel: "Add user",
+				i18nlabel: "ftpserver.tab.adduser",
 				content: (<ftpserver.AddUser params={{}} />),
 			});
 		}
 
-		return (<mydmam.async.PageHeaderTitle title="FTP Server supervision" fluid="true" tabs={content} />);
+		return (<mydmam.async.PageHeaderTitle title={i18n("ftpserver.pagename")} fluid="true" tabs={content} />);
 	},
 });
 
@@ -142,45 +142,47 @@ ftpserver.UserList = React.createClass({
 		}
 		
 		if (table_lines.length === 0) {
-			return (<mydmam.async.PageHeaderTitle title="FTP user list" fluid="true">
-				<mydmam.async.AlertInfoBox>No FTP users!</mydmam.async.AlertInfoBox>
+			return (<div>
+				<mydmam.async.AlertInfoBox>
+					{i18n("ftpserver.userlist.nousers")}
+				</mydmam.async.AlertInfoBox>
 				{BtnAdduser}
-			</mydmam.async.PageHeaderTitle>);
+			</div>);
 		}
 
 		var ButtonSort = mydmam.async.ButtonSort;
 
 		return (<div>
-			Current user list
+			{i18n("ftpserver.userlist.current")}
 			<form className="form-inline pull-right">
 				<button className="btn btn-small" onClick={this.onWantRefreshAll} style={{marginRight: "1em"}}>
-					<i className="icon-refresh"></i> Refresh user list
+					<i className="icon-refresh"></i> {i18n("ftpserver.userlist.refresh")}
 				</button>
 				<label className="checkbox"><input type="checkbox" onClick={this.onUnLockDelete} ref="cb_unlockdelete" />
-					Unlock delete
+					{i18n("ftpserver.userlist.unlockdelete")}
 				</label>
 			</form>
 			<table className="table table-striped table-hover table-bordered table-condensed">
 				<thead>
 					<tr>
 						<th>
-							User
+							{i18n("ftpserver.userlist.table.title.user")}
 							<ButtonSort onChangeState={this.onChangeColSort} colname="user" order={this.getCurrentColSort("user")} />
 						</th>
 						<th>
-							Group
+							{i18n("ftpserver.userlist.table.title.group")}
 							<ButtonSort onChangeState={this.onChangeColSort} colname="group" order={this.getCurrentColSort("group")} />
 						</th>
 						<th>
-							Created at
+							{i18n("ftpserver.userlist.table.title.createdat")}
 							<ButtonSort onChangeState={this.onChangeColSort} colname="created" order={this.getCurrentColSort("created")} />
 						</th>
 						<th>
-							Updated at
+							{i18n("ftpserver.userlist.table.title.updatedat")}
 							<ButtonSort onChangeState={this.onChangeColSort} colname="updated" order={this.getCurrentColSort("updated")} />
 						</th>
 						<th>
-							Last login at
+							{i18n("ftpserver.userlist.table.title.lastloginat")}
 							<ButtonSort onChangeState={this.onChangeColSort} colname="lastlogin" order={this.getCurrentColSort("lastlogin")} />
 						</th>
 						<th>
@@ -235,12 +237,12 @@ ftpserver.UserLine = React.createClass({
 					var url = mydmam.manager.url_ftpserver_export_user_sessions.replace("keyparam1", md5(user.user_id));
 					ftp_export = (<a className={btn_export_classes} style={{marginRight: 5}} href={url}>
 						<i className="icon-download"></i>&nbsp;
-						Sessions
+						{i18n("ftpserver.userlist.table.btnsessions")}
 					</a>);
 				} else {
 					ftp_export = (<button className={btn_export_classes} style={{marginRight: 5}}>
 						<i className="icon-download"></i>&nbsp;
-						Sessions
+						{i18n("ftpserver.userlist.table.btnsessions")}
 					</button>);
 				}
 			}
@@ -248,10 +250,10 @@ ftpserver.UserLine = React.createClass({
 			btns_admin = (<span style={{marginLeft: 5}}>
 				<a className="btn btn-mini btn-warning" style={{marginRight: 5}} href={"#ftpserver/edit/" + this.props.user.user_id}>
 					<i className="icon-edit icon-white"></i>&nbsp;
-					Ch. Password
+					{i18n("ftpserver.userlist.table.btnchpassword")}
 				</a>
 				{ftp_export}
-				<mydmam.async.BtnDelete label="Delete" enabled={this.props.delete_enabled} onClickDelete={this.onDelete} reference={user.user_id} />
+				<mydmam.async.BtnDelete label={i18n("ftpserver.userlist.table.delete")} enabled={this.props.delete_enabled} onClickDelete={this.onDelete} reference={user.user_id} />
 			</span>);
 		}
 
@@ -287,8 +289,8 @@ ftpserver.UserLine = React.createClass({
 					<mydmam.async.BtnEnableDisable
 						simplelabel={!ftpserver.hasUserAdminRights()}
 						enabled={user.enabled}
-						labelenabled="Enabled"
-						labeldisabled="Disabled"
+						labelenabled={i18n("ftpserver.userlist.table.enabled")}
+						labeldisabled={i18n("ftpserver.userlist.table.disabled")}
 						iconcircle={true}
 						onEnable={this.onToogleEnableDisable}
 						onDisable={this.onToogleEnableDisable}
