@@ -19,12 +19,6 @@ ftpserver.hasUserAdminRights = function() {
 	return mydmam.async.isAvaliable("ftpserver", "adminoperationuser") & mydmam.async.isAvaliable("ftpserver", "groupdomainlists");
 };
 
-ftpserver.BtnAddUserForm = React.createClass({
-	render: function() {
-		return (<a href="#ftpserver/add" className="btn btn-primary btn-small"><i className="icon-plus icon-white"></i> Add user</a>);
-	}
-});
-
 var generatePassword = function() {
 	var generated_password = "";
 	var possible = "abcdefghijkmnopqrstuvwxyz23456789";
@@ -150,7 +144,7 @@ ftpserver.AddUser = React.createClass({
 				select_list_domain.push(<option key={pos} value={domains[pos]}>{domains[pos]}</option>);
 			}
 
-			return (<mydmam.async.PageHeaderTitle title="Add FTP user">
+			return (<div>
 				{getAlertInfoBox("User is created", "Can't create user")}
 				<form className="form-horizontal" onSubmit={this.onAddUserBtnClick}>
 					<FormControlGroup label="User name">
@@ -171,9 +165,9 @@ ftpserver.AddUser = React.createClass({
 					</FormControlGroup>
 					{submit_buttons("Create")}
 				</form>
-			</mydmam.async.PageHeaderTitle>);
+			</div>);
 		} else {
-			return (<mydmam.async.PageHeaderTitle title="Change password for FTP user">
+			return (<mydmam.async.PageHeaderTitle title="Change password for FTP user" fluid="true">
 				{getAlertInfoBox("User is updated", "Can't update user")}
 				<form className="form-horizontal" onSubmit={this.onAddUserBtnClick}>
 					<FormControlGroup label="Password">
@@ -189,11 +183,6 @@ ftpserver.AddUser = React.createClass({
 		}
 	}
 });
-
-mydmam.routes.push("ftpserver-addUser", "ftpserver/add", ftpserver.AddUser, [
-	{name: "ftpserver", verb: "adminoperationuser"},
-	{name: "ftpserver", verb: "groupdomainlists"}
-]);	
 
 mydmam.routes.push("ftpserver-editUser", "ftpserver/edit/:userid", ftpserver.AddUser, [
 	{name: "ftpserver", verb: "adminoperationuser"},

@@ -55,7 +55,7 @@
 	};
 	mydmam.format.justdate = formatDate_JustDate;
 
-	var secondsToYWDHMS = function(seconds) {
+	mydmam.format.secondsToYWDHMS = function(seconds) {
 		if (seconds === 0) {
 			return "0";
 		}
@@ -137,7 +137,7 @@
 		if (delta < 0) {
 			i18n_label = i18n_neg;
 		}
-		return i18n(i18n_label, secondsToYWDHMS(Math.abs(delta)));
+		return i18n(i18n_label, mydmam.format.secondsToYWDHMS(Math.abs(delta)));
 	};
 
 	var numberformat = null;

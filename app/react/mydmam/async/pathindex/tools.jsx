@@ -111,6 +111,31 @@ pathindex.reactDate = React.createClass({
 	},
 });
 
+pathindex.reactSinceDate = React.createClass({
+	render: function() {
+		if (!this.props.date) {
+			return null;
+		}
+		var label = null;
+		if (this.props.i18nlabel) {
+			label = i18n(this.props.i18nlabel) + " ";
+		}
+		var style = {marginLeft: 5};
+		if (this.props.style) {
+			style = this.props.style;
+		}
+
+		var since = mydmam.format.secondsToYWDHMS((new Date().getTime() - this.props.date) / 1000);
+		if (since < 0) {
+			return null;
+		}
+
+		return (<span className="label" style={style}>
+			<i className="icon-time icon-white" style={{marginTop: 0}}></i>&nbsp;{label}{since}
+		</span>);
+	},
+});
+
 /**
  * Transform "application/x-dummy" to "application-dummy", and translate it.
  */

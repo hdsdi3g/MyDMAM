@@ -104,6 +104,10 @@ public class FTPActivity {
 	private long file_size;
 	private long file_offset;
 	
+	private String user_name;
+	private String user_domain;
+	private String user_group;
+	
 	private FTPActivity() {
 	}
 	
@@ -114,6 +118,9 @@ public class FTPActivity {
 		log.put("client_host", client_host);
 		log.put("login_time", new Date(login_time));
 		log.put("user_id", user_id);
+		log.put("user_name", user_name);
+		log.put("user_domain", user_domain);
+		log.put("user_group", user_group);
 		log.put("user_session_ref", user_session_ref);
 		log.put("working_directory", working_directory);
 		log.put("action", action);
@@ -136,6 +143,9 @@ public class FTPActivity {
 		FTPUser user = (FTPUser) session.getUser();
 		activity.user_id = user.getUserId();
 		activity.working_directory = ((NativeFtpFile) session.getFileSystemView().getWorkingDirectory()).getAbsolutePath();
+		activity.user_name = user.getName();
+		activity.user_domain = user.getDomain();
+		activity.user_group = user.getGroupName();
 		
 		activity.action = Action.valueOf(request.getCommand());
 		if (activity.action == Action.RNFR) {
@@ -211,7 +221,9 @@ public class FTPActivity {
 		
 		result.add(MyDMAM.DATE_TIME_FORMAT.format(new Date(activity_date)));
 		result.add((String) source.get("session_key"));
-		result.add((String) source.get("user_id"));
+		result.add((String) source.get("user_name"));
+		result.add((String) source.get("user_domain"));
+		result.add((String) source.get("user_group"));
 		result.add((String) source.get("user_session_ref"));
 		result.add(Action.valueOf((String) source.get("action")).toLogString());
 		result.add((String) source.get("working_directory"));
@@ -231,8 +243,9 @@ public class FTPActivity {
 		CSVStrategy strategy = new CSVStrategy(';', '\"', '#', '\\', true, true, true, true);
 		final CSVPrinter printer = new CSVPrinter(destination).setStrategy(strategy);
 		
-		printer.println(new String[] { "Date", "Session", "User id", "User session ref", "Action", "Working Directory", "Argument", "File size", "File offset", "Sec after login", "Client" });
-		
+		printer.println(new String[] { "Date", "Session", "User name", "User domain", "User group", "User session ref", "Action", "Working Directory", "Argument", "File size", "File offset",
+				"Sec after login", "Client" });
+				
 		ElastisearchCrawlerReader ecr = Elasticsearch.createCrawlerReader();
 		ecr.setIndices(ES_INDEX);
 		ecr.setTypes(ES_TYPE);
@@ -258,7 +271,14 @@ public class FTPActivity {
 		BoolQueryBuilder boolquerybuilder = QueryBuilders.boolQuery();
 		String search_text = SearchQuery.cleanUserTextSearch(user_searched_text);
 		if (search_text != null) {
-			boolquerybuilder.must(QueryBuilders.wildcardQuery("argument", "*" + search_text.toLowerCase() + "*"));
+			if (user_session_ref == null) {
+				BoolQueryBuilder bqb_text = QueryBuilders.boolQuery();
+				bqb_text.should(QueryBuilders.wildcardQuery("argument", "*" + search_text.toLowerCase() + "*"));
+				bqb_text.should(QueryBuilders.wildcardQuery("user_name", "*" + search_text.toLowerCase() + "*"));
+				boolquerybuilder.must(bqb_text);
+			} else {
+				boolquerybuilder.must(QueryBuilders.wildcardQuery("argument", "*" + search_text.toLowerCase() + "*"));
+			}
 		}
 		
 		QueryBuilder qb_search_by_user = searchByUserSessionRef(user_session_ref);

@@ -15,6 +15,33 @@
  * 
 */
 
+ftpserver.MainPage = React.createClass({
+	render: function() {
+		var content = [];
+
+		content.push({
+			i18nlabel: "Activity",
+			content: (<ftpserver.ActivityList />)
+		});
+
+		content.push({
+			i18nlabel: "Users",
+			content: (<ftpserver.UserList />)
+		});
+
+		if (ftpserver.hasUserAdminRights()) {
+			content.push({
+				i18nlabel: "Add user",
+				content: (<ftpserver.AddUser params={{}} />),
+			});
+		}
+
+		return (<mydmam.async.PageHeaderTitle title="FTP Server supervision" fluid="true" tabs={content} />);
+	},
+});
+
+mydmam.routes.push("ftpserver-MainPage", "ftpserver", ftpserver.MainPage, [{name: "ftpserver", verb: "allusers"}]);	
+
 ftpserver.UserList = React.createClass({
 	getInitialState: function() {
 		return {
@@ -89,9 +116,7 @@ ftpserver.UserList = React.createClass({
 	},
 	render: function() {
 		if (this.state.users == null) {
-			return (<mydmam.async.PageHeaderTitle title="FTP user list" fluid="true">
-				<mydmam.async.PageLoadingProgressBar />
-			</mydmam.async.PageHeaderTitle>);
+			return (<mydmam.async.PageLoadingProgressBar />);
 		}
 
 		var isAdmin = ftpserver.hasUserAdminRights();
@@ -116,11 +141,6 @@ ftpserver.UserList = React.createClass({
 			}
 		}
 		
-		var BtnAdduser = null;
-		if (isAdmin) {
-			BtnAdduser = (<ftpserver.BtnAddUserForm />);
-		}
-
 		if (table_lines.length === 0) {
 			return (<mydmam.async.PageHeaderTitle title="FTP user list" fluid="true">
 				<mydmam.async.AlertInfoBox>No FTP users!</mydmam.async.AlertInfoBox>
@@ -130,11 +150,16 @@ ftpserver.UserList = React.createClass({
 
 		var ButtonSort = mydmam.async.ButtonSort;
 
-		return (<mydmam.async.PageHeaderTitle title="FTP user list" fluid="true">
-			{BtnAdduser}
-			<button className="btn btn-small" onClick={this.onWantRefreshAll} style={{marginLeft: 5}}><i className="icon-refresh"></i></button>
-			<label className="checkbox pull-right"><input type="checkbox" onClick={this.onUnLockDelete} ref="cb_unlockdelete" />Unlock delete</label>
-			<hr />
+		return (<div>
+			Current user list
+			<form className="form-inline pull-right">
+				<button className="btn btn-small" onClick={this.onWantRefreshAll} style={{marginRight: "1em"}}>
+					<i className="icon-refresh"></i> Refresh user list
+				</button>
+				<label className="checkbox"><input type="checkbox" onClick={this.onUnLockDelete} ref="cb_unlockdelete" />
+					Unlock delete
+				</label>
+			</form>
 			<table className="table table-striped table-hover table-bordered table-condensed">
 				<thead>
 					<tr>
@@ -167,11 +192,9 @@ ftpserver.UserList = React.createClass({
 					{table_lines}
 				</tbody>	
 			</table>
-		</mydmam.async.PageHeaderTitle>);
+		</div>);
 	},
 });
-
-mydmam.routes.push("ftpserver-ShowUserList", "ftpserver", ftpserver.UserList, [{name: "ftpserver", verb: "allusers"}]);	
 
 ftpserver.UserLine = React.createClass({
 	onAction: function(request) {

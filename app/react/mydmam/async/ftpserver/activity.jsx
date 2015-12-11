@@ -27,11 +27,13 @@ ftpserver.ActivityList = React.createClass({
 	},
 	onWantRefresh: function() {
 		var request = {
-			user_session_ref: md5(this.props.user_id),
 			max_items: this.state.max_items,
 			searched_text: this.state.searched_text,
 			searched_action_type: this.state.searched_action_type,
 		};
+		if (this.props.user_id) {
+			request.user_session_ref = md5(this.props.user_id);
+		}
 
 		mydmam.async.request("ftpserver", "recentactivities", request, function(data) {
 			this.setState({activities: data.activities});
@@ -39,11 +41,13 @@ ftpserver.ActivityList = React.createClass({
 	},
 	onWantExpandList: function() {
 		var request = {
-			user_session_ref: md5(this.props.user_id),
 			max_items: this.state.max_items + 20,
 			searched_text: this.state.searched_text,
 			searched_action_type: this.state.searched_action_type,
 		};
+		if (this.props.user_id) {
+			request.user_session_ref = md5(this.props.user_id);
+		}
 
 		mydmam.async.request("ftpserver", "recentactivities", request, function(data) {
 			this.setState({activities: data.activities, max_items: request.max_items});
@@ -66,22 +70,28 @@ ftpserver.ActivityList = React.createClass({
 			searched_text = null;
 		}
 		var request = {
-			user_session_ref: md5(this.props.user_id),
 			max_items: this.state.max_items,
 			searched_text: searched_text,
 			searched_action_type: this.state.searched_action_type,
 		};
+		if (this.props.user_id) {
+			request.user_session_ref = md5(this.props.user_id);
+		}
+
 		mydmam.async.request("ftpserver", "recentactivities", request, function(data) {
 			this.setState({activities: data.activities, searched_text: request.searched_text});
 		}.bind(this));
 	},
 	onSelectActionTypeChange: function() {
 		var request = {
-			user_session_ref: md5(this.props.user_id),
 			max_items: this.state.max_items,
 			searched_text: this.state.searched_text,
 			searched_action_type: React.findDOMNode(this.refs.select_action).value,
 		};
+		if (this.props.user_id) {
+			request.user_session_ref = md5(this.props.user_id);
+		}
+
 		mydmam.async.request("ftpserver", "recentactivities", request, function(data) {
 			this.setState({activities: data.activities, searched_action_type: request.searched_action_type});
 		}.bind(this));
@@ -91,8 +101,18 @@ ftpserver.ActivityList = React.createClass({
 		if (activities == null) {
 			return (<mydmam.async.PageLoadingProgressBar />);
 		}
+
+		var no_activity_label = null;
 		if (activities.length === 0) {
-			return (<mydmam.async.AlertInfoBox>No activities</mydmam.async.AlertInfoBox>);
+			if (this.state.searched_text == null & this.state.searched_action_type == "ALL") {
+				return (<mydmam.async.AlertInfoBox>No activities</mydmam.async.AlertInfoBox>);
+			}
+			no_activity_label = (<mydmam.async.AlertInfoBox>No activities to display with this search.</mydmam.async.AlertInfoBox>);
+		}
+
+		var th_display_user = null;
+		if (this.props.user_id == null) {
+			th_display_user = (<th>User</th>);
 		}
 
 		var lines = [];
@@ -102,27 +122,31 @@ ftpserver.ActivityList = React.createClass({
 			var size_offset = null;
 			if (activity.file_size > 0) {
 				if (activity.file_offset > 0) {
-					size_offset = (<span style={{marginLeft: 5}} className="label label-important">{activity.file_offset} bytes / {activity.file_size} bytes</span>);
+					size_offset = (<span style={{marginLeft: 5}} className="label label-important pull-right">{activity.file_offset} bytes / {activity.file_size} bytes</span>);
 				} else {
-					size_offset = (<span style={{marginLeft: 5}} className="label label-important">{activity.file_size} bytes</span>);
+					size_offset = (<span style={{marginLeft: 5}} className="label label-important pull-right">{activity.file_size} bytes</span>);
 				}
 			}
 
+			var td_display_user = null;
+			if (this.props.user_id == null) {
+				td_display_user = (<td>
+					<strong>{activity.user_domain}</strong> :: {activity.user_name} <span className="label label-inverse pull-right">{activity.user_group}</span>
+				</td>);
+			}
+
 			lines.push(<tr key={pos}>
+				{td_display_user}
 				<td>
 					<span style={{backgroundColor: "#" + activity.session_key.substring(0,6), borderRadius: 5, paddingRight: 12, marginRight: 5, border: "1px solid black"}}>&nbsp;</span>
 					<mydmam.async.pathindex.reactDate date={activity.activity_date} style={{marginRight: 5}} />
-					<span className="label">
-						<i className="icon-time icon-white" style={{marginTop: 0}}></i> {Math.round((activity.activity_date - activity.login_time) / 1000)} sec
-					</span>
+					<mydmam.async.pathindex.reactSinceDate date={activity.activity_date} i18nlabel="Since" />
 				</td>
 				<td>
 					<span className="badge badge-info">{i18n("ftpserver.activities.actionenum." + activity.action)}</span>		
 				</td>
 				<td>
-					<code style={{whiteSpace: "normal", color: "black"}}>{activity.working_directory}</code>
-				</td>
-				<td>
+					<code style={{whiteSpace: "normal", color: "#080"}}>{activity.working_directory}</code>
 					<code style={{whiteSpace: "normal", color: "black"}}>{activity.argument}</code>
 					{size_offset}
 				</td>
@@ -133,11 +157,18 @@ ftpserver.ActivityList = React.createClass({
 		}
 
 		var button_show_next_items = null;
-		if (this.state.max_items < 100) {
-			button_show_next_items = (<button className="btn btn-mini btn-block" style={{marginBottom: "2em"}} onClick={this.onWantExpandList}>
-				<i className="icon-arrow-down"></i> Next <i className="icon-arrow-down"></i>
-			</button>);
+		if (activities.length >= 20) {
+			if (this.state.max_items < 100) {
+				button_show_next_items = (<button className="btn btn-mini btn-block" style={{marginBottom: "2em"}} onClick={this.onWantExpandList}>
+					<i className="icon-arrow-down"></i> Next <i className="icon-arrow-down"></i>
+				</button>);
+			} else {
+				button_show_next_items = (<button className="btn btn-mini btn-block disabled" style={{marginBottom: "2em"}}>
+					Limited to display a max items ({this.state.max_items}).
+				</button>);
+			}
 		}
+
 		return (<div>
 			<span className="lead" style={{marginLeft: "0.5em"}}>Activity and sessions</span>
 		    <form className="form-search pull-right">
@@ -155,10 +186,10 @@ ftpserver.ActivityList = React.createClass({
 			<table style={{marginBottom: "1em"}} className="table table-striped table-hover table-bordered table-condensed">
 				<thead>
 					<tr>
+						{th_display_user}
 						<th>Session color &bull; session date &bull; since logon time</th>
 						<th>Action</th>
-						<th>Directory</th>
-						<th>Name &bull; size</th>
+						<th>Directory &bull; Name &bull; Size</th>
 						<th>Client IP</th>
 					</tr>
 				</thead>
@@ -166,6 +197,7 @@ ftpserver.ActivityList = React.createClass({
 					{lines}
 				</tbody>
 			</table>
+			{no_activity_label}
 			{button_show_next_items}
 		</div>);
 	},

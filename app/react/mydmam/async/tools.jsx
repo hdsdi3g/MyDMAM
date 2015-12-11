@@ -84,35 +84,6 @@ async.FormControlGroup = React.createClass({
 	}
 });
 
-async.PageHeaderTitle = React.createClass({
-	componentDidMount: function() {
-		if (this.props.title) {
-			document.title = this.props.title + " :: " + i18n("site.name");
-		} else {
-			document.title = i18n("site.name");
-		}
-	},
-	componentWillUnmount: function() {
-		document.title = i18n("site.name");
-	},
-	render: function() {
-		var p_lead = null;
-		if (this.props.title) {
-			p_lead = (<p className="lead">{this.props.title}</p>);
-		}
-
-		var main_class_name = classNames("container");
-		if (this.props.fluid) {
-			main_class_name = classNames("container-fluid");
-		}
-
-		return (<div className={main_class_name}>
-			{p_lead}
-			<div>{this.props.children}</div>
-		</div>);
-	}
-});
-
 async.BtnEnableDisable = React.createClass({
 	propTypes: {
 		simplelabel: React.PropTypes.bool.isRequired,
@@ -305,5 +276,123 @@ async.SearchInputBox = React.createClass({
 			onKeyUp={this.onKeyPress} />
 		</span>);
 	}
+});
 
+async.NavTabsLink = React.createClass({
+	onClick: function(e) {
+		e.preventDefault();
+		this.props.onActiveChange(this.props.pos);
+		$(React.findDOMNode(this.refs.tab)).blur();
+	},
+	render: function() {
+		var icon = null;
+		if (this.props.icon) {
+			icon = (<span><i className={this.props.icon}></i>&nbsp;</span>);
+		}
+		var label = null;
+		if (this.props.i18nlabel) {
+			label = i18n(this.props.i18nlabel);
+		}
+		return (<a href={location.hash} onClick={this.onClick} ref="tab">{icon}{label}</a>);
+	},
+});
+
+async.NavTabs = React.createClass({
+	onActiveChange: function(new_pos) {
+		if (new_pos < 0) {
+			return;
+		}
+		if (new_pos > this.props.content.length) {
+			return;
+		}
+		this.props.onChange(new_pos);
+	},
+	render: function() {
+		if (this.props.content == null) {
+			return (<span />);
+		}
+		if (this.props.content.length === 0) {
+			return (<span />);
+		}
+
+		var content = [];
+		for (var pos in this.props.content) {
+			var item = this.props.content[pos];
+			var li_class = classNames({
+				"active": 		(this.props.active == pos),
+				"pull-right": 	item.pullright,
+			});
+			content.push(<li className={li_class} key={pos}>
+				<async.NavTabsLink pos={pos} i18nlabel={item.i18nlabel} icon={item.icon} onActiveChange={this.onActiveChange} />
+			</li>);
+		}
+
+		return (<ul className="nav nav-tabs">
+			{content}
+		</ul>);
+	},
+});
+
+async.PageHeaderTitle = React.createClass({
+	getInitialState: function() {
+		return {active_tab: 0};
+	},
+	componentDidMount: function() {
+		this.setDocumentTitle();
+	},
+	componentDidUpdate: function(dd) {
+		this.setDocumentTitle();
+	},
+	setDocumentTitle: function() {
+		var tab_name = "";
+
+		if (this.props.tabs) {
+			tab_name = this.props.tabs[this.state.active_tab].i18nlabel;
+			if (tab_name) {
+				tab_name = i18n(tab_name) + " :: ";
+			}
+		}
+
+		var new_title = null;
+		if (this.props.title) {
+			new_title = tab_name + this.props.title + " :: " + i18n("site.name");
+		} else {
+			new_title = tab_name + i18n("site.name");
+		}
+		if (document.title != new_title) {
+			document.title = new_title
+		}
+	},
+	componentWillUnmount: function() {
+		document.title = i18n("site.name");
+	},
+	onChangeTab: function(new_pos){
+		this.setState({active_tab: new_pos});
+	},
+	render: function() {
+		var p_lead = null;
+		if (this.props.title) {
+			p_lead = (<p className="lead">{this.props.title}</p>);
+		}
+
+		var main_class_name = classNames("container");
+		if (this.props.fluid) {
+			main_class_name = classNames("container-fluid");
+		}
+
+		var tabs_content = null;
+		var selected_content = null;
+		if (this.props.tabs) {
+			var navtabscontent = this.props.tabs;
+			tabs_content = (<mydmam.async.NavTabs content={navtabscontent} onChange={this.onChangeTab} active={this.state.active_tab} />);
+			selected_content = this.props.tabs[this.state.active_tab].content;
+		}
+
+		return (<div className={main_class_name}>
+			{p_lead}
+			{tabs_content}
+			<div>{selected_content}</div>
+			<div>{this.props.children}</div>
+		</div>);
+	}
 });
