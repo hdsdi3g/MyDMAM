@@ -322,6 +322,13 @@ public class FTPUser implements User {
 		return user_id;
 	}
 	
+	public String toString() {
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		log.put("user_id", user_id);
+		log.put("group", group);
+		return log.toString();
+	}
+	
 	/**
 	 * @return never null, maybe empty
 	 */
@@ -409,21 +416,17 @@ public class FTPUser implements User {
 	}
 	
 	/**
-	 * And purge activity.
 	 * Don't touch to user's content.
 	 */
 	public void removeUser(MutationBatch mutator) {
-		FTPActivity.purgeUserActivity(user_id);
 		mutator.withRow(CF_USER, user_id).delete();
 	}
 	
 	/**
-	 * And purge activity.
 	 * Don't touch to user's content.
 	 * @throws ConnectionException
 	 */
 	public void removeUser() throws ConnectionException {
-		FTPActivity.purgeUserActivity(user_id);
 		MutationBatch mutator = keyspace.prepareMutationBatch();
 		mutator.withRow(CF_USER, user_id).delete();
 		mutator.execute();
@@ -435,12 +438,15 @@ public class FTPUser implements User {
 	boolean isValidInDB() throws ConnectionException {
 		ColumnList<String> col = keyspace.prepareQuery(CF_USER).getKey(user_id).withColumnSlice("group_name", "domain").execute().getResult();
 		if (col.isEmpty()) {
+			Loggers.FTPserver.trace("Invalid user " + this + " in db: not in db");
 			return false;
 		}
 		if (group_name.equals(col.getStringValue("group_name", "")) == false) {
+			Loggers.FTPserver.trace("Invalid user " + this + " in db: invalid group name");
 			return false;
 		}
 		if (domain.equals(col.getStringValue("domain", "")) == false) {
+			Loggers.FTPserver.trace("Invalid user " + this + " in db: invalid domain");
 			return false;
 		}
 		return true;

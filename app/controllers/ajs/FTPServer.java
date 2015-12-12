@@ -95,6 +95,7 @@ public class FTPServer extends AJSController {
 		case DELETE:
 			request.delete();
 			response.done = true;
+			JobsPlugin.executor.submit(new DeleteUserActivities(request.user_id));
 			break;
 		case CH_PASSWORD:
 			request.chPassword();
@@ -170,6 +171,24 @@ public class FTPServer extends AJSController {
 		
 		public Void call() throws Exception {
 			FTPUser.backupCF();
+			return null;
+		}
+		
+	}
+	
+	private static class DeleteUserActivities implements Callable<Void> {
+		
+		String user_id;
+		
+		public DeleteUserActivities(String user_id) {
+			this.user_id = user_id;
+			if (user_id == null) {
+				throw new NullPointerException("\"user_id\" can't to be null");
+			}
+		}
+		
+		public Void call() throws Exception {
+			FTPActivity.purgeUserActivity(user_id);
 			return null;
 		}
 		

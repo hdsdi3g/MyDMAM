@@ -143,6 +143,13 @@ public final class ElasticsearchBulkOperation {
 		return this;
 	}
 	
+	public IndexRequestBuilder indexRequest() {
+		refresh();
+		IndexRequestBuilder request = new IndexRequestBuilder(client);
+		bulk_request_builder.add(request.request());
+		return request;
+	}
+	
 	public ElasticsearchBulkOperation add(IndexRequestBuilder request) {
 		bulk_request_builder.add(request.request());
 		refresh();
@@ -161,6 +168,13 @@ public final class ElasticsearchBulkOperation {
 		return this;
 	}
 	
+	public DeleteRequestBuilder deleteRequest() {
+		refresh();
+		DeleteRequestBuilder request = new DeleteRequestBuilder(client);
+		bulk_request_builder.add(request.request());
+		return request;
+	}
+	
 	public ElasticsearchBulkOperation add(UpdateRequest request) {
 		bulk_request_builder.add(request);
 		refresh();
@@ -171,6 +185,13 @@ public final class ElasticsearchBulkOperation {
 		bulk_request_builder.add(request.request());
 		refresh();
 		return this;
+	}
+	
+	public UpdateRequestBuilder updateRequest() {
+		refresh();
+		UpdateRequestBuilder request = new UpdateRequestBuilder(client);
+		bulk_request_builder.add(request.request());
+		return request;
 	}
 	
 	public ElasticsearchBulkOperation add(byte[] data, int from, int length, boolean contentUnsafe) throws Exception {

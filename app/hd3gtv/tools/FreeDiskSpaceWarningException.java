@@ -63,7 +63,6 @@ public class FreeDiskSpaceWarningException extends IOException {
 		}
 		
 		long free_space = item.getFreeSpace();
-		
 		if (warning_threshold > free_space) {
 			throw new FreeDiskSpaceWarningException("Not much free space left on " + item.getAbsolutePath() + ", actually " + free_space + " bytes");
 		}

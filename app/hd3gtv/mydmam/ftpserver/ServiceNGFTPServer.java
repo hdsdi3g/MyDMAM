@@ -18,6 +18,7 @@ package hd3gtv.mydmam.ftpserver;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.ftpserver.DataConnectionConfigurationFactory;
@@ -58,9 +59,7 @@ public class ServiceNGFTPServer extends ServiceNG {
 		
 		for (Map.Entry<String, ConfigurationItem> entry : all_instances_confs.entrySet()) {
 			try {
-				FtpServer server = ftpServerFactory(entry.getKey(), all_instances_confs, ftplets);
-				server.start();
-				servers.add(server);
+				servers.add(ftpServerFactory(entry.getKey(), all_instances_confs, ftplets));
 			} catch (Exception e) {
 				Loggers.FTPserver.error("Can't load FTP server instance " + entry.getKey(), e);
 			}
@@ -92,22 +91,32 @@ public class ServiceNGFTPServer extends ServiceNG {
 	private FtpServer ftpServerFactory(String name, HashMap<String, ConfigurationItem> all_instances_confs, HashMap<String, Ftplet> ftplets) throws Exception {
 		FtpServerFactory server_factory = new FtpServerFactory();
 		
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		
 		ListenerFactory factory = new ListenerFactory();
 		factory.setPort(Configuration.getValue(all_instances_confs, name, "listen", 21));
+		log.put("port", factory.getPort());
 		
 		DataConnectionConfigurationFactory dccf = new DataConnectionConfigurationFactory();
 		dccf.setActiveEnabled(true);
 		dccf.setActiveIpCheck(true);
+		log.put("active", dccf.isActiveEnabled());
+		log.put("active IP check", dccf.isActiveIpCheck());
 		
 		ConfigurationClusterItem local = Configuration.getClusterConfiguration(all_instances_confs, name, "active", "0.0.0.0", 20).get(0);
 		dccf.setActiveLocalAddress(local.address);
 		dccf.setActiveLocalPort(local.port);
+		log.put("active local", dccf.getActiveLocalAddress() + ":" + dccf.getActiveLocalPort());
 		
 		dccf.setIdleTime(Configuration.getValue(all_instances_confs, name, "idle", 21));
+		log.put("Idle time", dccf.getIdleTime());
+		
 		dccf.setImplicitSsl(false);
 		dccf.setPassiveAddress(Configuration.getValue(all_instances_confs, name, "passive-internal", "0.0.0.0"));
 		dccf.setPassiveExternalAddress(Configuration.getValue(all_instances_confs, name, "passive-external", "0.0.0.0"));
 		dccf.setPassivePorts(Configuration.getValue(all_instances_confs, name, "passive-ports", "30000-40000"));
+		log.put("passive", dccf.getPassiveAddress() + ">" + dccf.getPassiveExternalAddress());
+		log.put("passive ports", dccf.getPassivePorts());
 		
 		factory.setDataConnectionConfiguration(dccf.createDataConnectionConfiguration());
 		
@@ -121,9 +130,15 @@ public class ServiceNGFTPServer extends ServiceNG {
 			server_factory.setUserManager(ftpum);
 		}
 		server_factory.setUserManager(ftpum);
+		log.put("User Manager", ftpum);
+		
 		server_factory.setFtplets(ftplets);
 		
-		return server_factory.createServer();
+		Loggers.FTPserver.info("Start FTP Server: " + log);
+		
+		FtpServer server = server_factory.createServer();
+		server.start();
+		return server;
 	}
 	
 }

@@ -80,6 +80,10 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		}
 	}
 	
+	public String toString() {
+		return name;
+	}
+	
 	static LinkedHashMap<String, FTPGroup> getDeclaredGroups() {
 		return declared_groups;
 	}
@@ -253,7 +257,10 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		File user_trash = new File(trash_directory.getAbsolutePath() + File.separator + home_directory.getName());
 		if (user_trash.exists()) {
 			FileUtils.forceDelete(user_trash);
+			return;
 		}
+		
+		Loggers.FTPserver.warn("Can't found \"" + home_directory + "\" or \"" + user_trash + "\" for delete user (" + user + ") home directory");
 	}
 	
 	/**
@@ -268,8 +275,8 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		String domain = "";
 		
 		if (pos_hash > -1) {
-			domain = dirname.substring(0, pos_hash - 1);
-			user_name = dirname.substring(pos_hash);
+			domain = dirname.substring(0, pos_hash);
+			user_name = dirname.substring(pos_hash + 1);
 		}
 		
 		return FTPUser.createSimpleUser(group_name, user_name, domain);
@@ -370,6 +377,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 			disabled_group = true;
 		}
 		last_free_space = actual_free_space;
+		Loggers.FTPserver.debug("Do a check free space for group: " + this + ", " + (last_free_space / (1024 * 1024)) + " Mb remaining.");
 	}
 	
 	public Class<?> getInstanceStatusItemReferenceClass() {

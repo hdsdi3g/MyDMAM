@@ -40,6 +40,8 @@ import org.elasticsearch.search.sort.SortOrder;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.db.ElasticsearchCrawlerToBulk;
+import hd3gtv.mydmam.db.ElasticsearchCrawlerToDelete;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.ftpserver.AJSRequestRecent.SearchBySelectActionType;
@@ -209,10 +211,19 @@ public class FTPActivity {
 		return QueryBuilders.termQuery("user_session_ref", user_session_ref);
 	}
 	
-	static void purgeUserActivity(String user_session_ref) {
-		Loggers.FTPserver.info("Purge user activity: " + user_session_ref);
-		// (ES_INDEX).setTypes(ES_TYPE); request.setQuery(searchByUserId(user_session_ref));
-		// TODO re-implement DeleteByQuery with search + bulk
+	public static void purgeUserActivity(String user_id) throws Exception {
+		Loggers.FTPserver.info("Purge user activity: " + user_id);
+		
+		String user_session_ref = null;
+		MessageDigest md = MessageDigest.getInstance("MD5");
+		md.update(user_id.getBytes("UTF-8"));
+		user_session_ref = MyDMAM.byteToString(md.digest());
+		
+		ElasticsearchCrawlerToBulk bulk_delete = Elasticsearch.createCrawlerToBulk();
+		bulk_delete.setIndices(ES_INDEX);
+		bulk_delete.setTypes(ES_TYPE);
+		bulk_delete.setQuery(searchByUserSessionRef(user_session_ref));
+		bulk_delete.process(new ElasticsearchCrawlerToDelete());
 	}
 	
 	private static String[] getCSVLine(Map<String, Object> source) {

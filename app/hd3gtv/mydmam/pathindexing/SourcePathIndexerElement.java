@@ -90,7 +90,7 @@ public class SourcePathIndexerElement implements Serializable/*, JsonSerializer<
 			"Indexing date", "Parent key" };
 			
 	public String toString() {
-		return toString(" ");
+		return storagename + ":" + currentpath;
 	}
 	
 	public String toString(String separator) {

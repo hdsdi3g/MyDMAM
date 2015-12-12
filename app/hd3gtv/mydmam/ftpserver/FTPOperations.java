@@ -37,8 +37,8 @@ import hd3gtv.tools.GsonIgnoreStrategy;
 public class FTPOperations {
 	
 	private static Explorer explorer = new Explorer();
-	private static final long DELAY_ACTIVE_GROUPS_PATHINDEXING = TimeUnit.SECONDS.toMillis(60);
-	private static final long DELAY_BACKGROUD_OPERATIONS = TimeUnit.MINUTES.toMillis(1); // XXX set to 10
+	private static final long DELAY_ACTIVE_GROUPS_PATHINDEXING = TimeUnit.SECONDS.toMillis(30);// XXX set to 60 after debug
+	private static final long DELAY_BACKGROUD_OPERATIONS = TimeUnit.MINUTES.toMillis(1); // XXX set to 10 after debug
 	
 	private static final Gson gson;
 	// private static final Gson simple_gson;
@@ -56,33 +56,7 @@ public class FTPOperations {
 		builder.addDeserializationExclusionStrategy(ignore_strategy);
 		builder.addSerializationExclusionStrategy(ignore_strategy);
 		
-		/*builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
-		builder.registerTypeAdapter(new TypeToken<ArrayList<WatchFolderEntry>>() {
-		}.getType(), new WatchFolderEntry.SerializerList());
-		builder.registerTypeAdapter(new TypeToken<LinkedHashMap<String, TranscoderWorker>>() {
-		}.getType(), new TranscoderWorker.SerializerMap());
-		builder.registerTypeAdapter(TranscodeProfile.class, new TranscodeProfile.Serializer());*/
-		
-		// simple_gson = builder.create();
-		
-		/*builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus.Serializer());
-		builder.registerTypeAdapter(InstanceAction.class, new InstanceAction.Serializer());
-		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
-		builder.registerTypeAdapter(JobAction.class, new JobAction.Serializer());
-		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
-		builder.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
-		builder.registerTypeAdapter(WorkerExporter.class, new WorkerExporter.Serializer());
-		
-		builder.registerTypeAdapter(JobContext.class, new JobContext.Serializer());
-		builder.registerTypeAdapter(new TypeToken<ArrayList<JobContext>>() {
-		}.getType(), new JobContext.SerializerList());
-		
-		builder.registerTypeAdapter(JobCreatorDeclarationSerializer.class, new JobCreatorDeclarationSerializer());
-		builder.registerTypeAdapter(TriggerJobCreator.class, TriggerJobCreator.serializer);
-		builder.registerTypeAdapter(CyclicJobCreator.class, CyclicJobCreator.serializer);*/
-		
 		gson = builder.create();
-		// pretty_gson = builder.setPrettyPrinting().create();
 	}
 	
 	public static FTPOperations get() {
@@ -102,7 +76,7 @@ public class FTPOperations {
 	
 	public void start() {
 		stop();
-		
+		Loggers.FTPserver.info("Start FTP Operations watchdog");
 		internal = new Internal();
 		internal.start();
 	}
@@ -115,6 +89,7 @@ public class FTPOperations {
 			return;
 		}
 		stop = true;
+		Loggers.FTPserver.info("Stop FTP Operations watchdog");
 		try {
 			while (internal.isAlive()) {
 				Thread.sleep(100);
@@ -130,17 +105,24 @@ public class FTPOperations {
 		active_users_with_group_pathindex = new HashSet<FTPUser>();
 	}
 	
+	/**
+	 * An active user do write operations throw the FTP server.
+	 */
 	synchronized void addActiveUser(FTPUser ftp_user) {
 		if (active_users_with_group_pathindex.contains(ftp_user)) {
 			return;
 		}
 		if (ftp_user.getGroup().getPathindexStoragename() != null) {
+			Loggers.FTPserver.debug("Add active user: " + ftp_user);
 			active_users_with_group_pathindex.add(ftp_user);
 		}
 	}
 	
 	synchronized void removeActiveUser(FTPUser ftp_user) {
-		active_users_with_group_pathindex.remove(ftp_user);
+		if (active_users_with_group_pathindex.contains(ftp_user)) {
+			Loggers.FTPserver.debug("Remove active user: " + ftp_user);
+			active_users_with_group_pathindex.remove(ftp_user);
+		}
 	}
 	
 	private class Internal extends Thread {
@@ -154,6 +136,7 @@ public class FTPOperations {
 			stop = false;
 			
 			HashSet<FTPGroup> current_active_user_groups = new HashSet<FTPGroup>(1);
+			ArrayList<String> users_list = new ArrayList<String>();
 			List<SourcePathIndexerElement> storages_active_group_to_refresh = new ArrayList<SourcePathIndexerElement>();
 			List<SourcePathIndexerElement> storages_regular_to_refresh = new ArrayList<SourcePathIndexerElement>();
 			List<SourcePathIndexerElement> storages_to_force_refresh = new ArrayList<SourcePathIndexerElement>();
@@ -162,17 +145,26 @@ public class FTPOperations {
 			List<FTPUser> trashable_users;
 			List<FTPUser> purgeable_users;
 			List<FTPUser> actual_users;
-			long next_backgroud_operations = 0; // System.currentTimeMillis() + DELAY_BACKGROUD_OPERATIONS; TODO SET
+			long next_backgroud_operations = 0;// System.currentTimeMillis() + DELAY_BACKGROUD_OPERATIONS; //XXX set after debug
 			SourcePathIndexerElement storage;
 			
 			try {
 				while (stop == false) {
 					try {
+						
+						/**
+						 * Get an immutable current active user groups list
+						 */
+						current_active_user_groups.clear();
+						users_list.clear();
 						synchronized (active_users_with_group_pathindex) {
-							current_active_user_groups.clear();
 							for (FTPUser ftpuser : active_users_with_group_pathindex) {
 								current_active_user_groups.add(ftpuser.getGroup());
+								users_list.add(ftpuser.toString());
 							}
+						}
+						if (Loggers.FTPserver.isTraceEnabled() & users_list.isEmpty() == false) {
+							Loggers.FTPserver.trace("Active users: " + users_list + ", active groups: " + current_active_user_groups);
 						}
 						
 						if (current_active_user_groups.isEmpty() == false) {
@@ -185,7 +177,11 @@ public class FTPOperations {
 								storage = SourcePathIndexerElement.prepareStorageElement(ftpgroup.getPathindexStoragename());
 								if (storages_active_group_to_refresh.contains(storage) == false) {
 									storages_to_force_refresh.add(storage);
+									
 								}
+							}
+							if (Loggers.FTPserver.isTraceEnabled() & storages_to_force_refresh.isEmpty() == false) {
+								Loggers.FTPserver.trace("Storage list to force refresh: " + storages_to_force_refresh);
 							}
 							
 							/**
@@ -197,6 +193,9 @@ public class FTPOperations {
 								if (storages_to_force_refresh.contains(storage) == false) {
 									storages_active_group_to_refresh.add(storage);
 								}
+							}
+							if (Loggers.FTPserver.isTraceEnabled() & storages_active_group_to_refresh.isEmpty() == false) {
+								Loggers.FTPserver.trace("Storage active group to force refresh: " + storages_active_group_to_refresh);
 							}
 							
 							explorer.refreshStoragePath(bulk_op, storages_active_group_to_refresh, false, DELAY_ACTIVE_GROUPS_PATHINDEXING * 2);
@@ -212,22 +211,26 @@ public class FTPOperations {
 							 */
 							trashable_users = FTPUser.getTrashableUsers();// FIXME set disabled new users
 							if (trashable_users.isEmpty() == false) {
+								Loggers.FTPserver.info("Some user content needs to send to trash: " + trashable_users);
+								
 								mutator = CassandraDb.prepareMutationBatch();
 								for (int pos = 0; pos < trashable_users.size(); pos++) {
 									trashable_users.get(pos).setDisabled(true);
 									trashable_users.get(pos).save(mutator);
-									trashable_users.get(pos).getGroup().trashUserHomeDirectory(trashable_users.get(pos));
+									// trashable_users.get(pos).getGroup().trashUserHomeDirectory(trashable_users.get(pos)); //XXX set
 								}
-								mutator.execute();
+								// mutator.execute(); //XXX set
 								
 								purgeable_users = FTPUser.getPurgeableUsers(trashable_users);// FIXME want to delete new users
 								if (purgeable_users.isEmpty() == false) {
+									Loggers.FTPserver.info("Some user content needs to purge: " + purgeable_users);
+									
 									mutator = CassandraDb.prepareMutationBatch();
 									for (int pos = 0; pos < purgeable_users.size(); pos++) {
 										purgeable_users.get(pos).removeUser(mutator);
-										purgeable_users.get(pos).getGroup().deleteUserHomeDirectory(purgeable_users.get(pos));
+										// purgeable_users.get(pos).getGroup().deleteUserHomeDirectory(purgeable_users.get(pos)); //XXX set
 									}
-									mutator.execute();
+									// mutator.execute(); //XXX set
 								}
 							} /** end trash operation */
 								
@@ -245,9 +248,14 @@ public class FTPOperations {
 								 * Orphan directories
 								 */
 								actual_users = group.listAllActualUsers();
+								if (Loggers.FTPserver.isTraceEnabled()) {
+									Loggers.FTPserver.trace("Actual users for group " + group + ": " + actual_users);
+								}
+								
 								for (int pos = 0; pos < actual_users.size(); pos++) {
 									if (actual_users.get(pos).isValidInDB() == false) {
 										group.deleteUserHomeDirectory(actual_users.get(pos));
+										Loggers.FTPserver.info("Group \"" + group.getName() + "\" has an orphan directory: " + actual_users.get(pos));
 									}
 								}
 								
@@ -266,6 +274,10 @@ public class FTPOperations {
 							} /** end for each groups */
 								
 							if (storages_regular_to_refresh.isEmpty() == false) {
+								if (Loggers.FTPserver.isTraceEnabled()) {
+									Loggers.FTPserver.debug("Regular pathindex refresh: " + storages_regular_to_refresh);
+								}
+								
 								bulk_op = Elasticsearch.prepareBulk();
 								explorer.refreshStoragePath(bulk_op, storages_regular_to_refresh, false, DELAY_BACKGROUD_OPERATIONS * 5);
 								bulk_op.terminateBulk();

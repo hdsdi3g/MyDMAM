@@ -97,4 +97,7 @@ public class FTPUserManager implements UserManager {
 		return false;
 	}
 	
+	public String toString() {
+		return "domain: " + domain;
+	}
 }
