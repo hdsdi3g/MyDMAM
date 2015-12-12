@@ -37,8 +37,8 @@ import hd3gtv.tools.GsonIgnoreStrategy;
 public class FTPOperations {
 	
 	private static Explorer explorer = new Explorer();
-	private static final long DELAY_ACTIVE_GROUPS_PATHINDEXING = TimeUnit.SECONDS.toMillis(30);// XXX set to 60 after debug
-	private static final long DELAY_BACKGROUD_OPERATIONS = TimeUnit.MINUTES.toMillis(1); // XXX set to 10 after debug
+	private static final long DELAY_ACTIVE_GROUPS_PATHINDEXING = TimeUnit.SECONDS.toMillis(60);
+	private static final long DELAY_BACKGROUD_OPERATIONS = TimeUnit.MINUTES.toMillis(10);
 	
 	private static final Gson gson;
 	// private static final Gson simple_gson;
@@ -142,10 +142,11 @@ public class FTPOperations {
 			List<SourcePathIndexerElement> storages_to_force_refresh = new ArrayList<SourcePathIndexerElement>();
 			ElasticsearchBulkOperation bulk_op;
 			MutationBatch mutator;
-			List<FTPUser> trashable_users;
-			List<FTPUser> purgeable_users;
+			List<FTPUser> expirable_users = new ArrayList<FTPUser>(1);
+			List<FTPUser> trashable_users = new ArrayList<FTPUser>(1);
+			List<FTPUser> purgeable_users = new ArrayList<FTPUser>(1);
 			List<FTPUser> actual_users;
-			long next_backgroud_operations = 0;// System.currentTimeMillis() + DELAY_BACKGROUD_OPERATIONS; //XXX set after debug
+			long next_backgroud_operations = System.currentTimeMillis() + DELAY_BACKGROUD_OPERATIONS;
 			SourcePathIndexerElement storage;
 			
 			try {
@@ -209,29 +210,36 @@ public class FTPOperations {
 							/**
 							 * Trash/purge operations
 							 */
-							trashable_users = FTPUser.getTrashableUsers();// FIXME set disabled new users
-							if (trashable_users.isEmpty() == false) {
-								Loggers.FTPserver.info("Some user content needs to send to trash: " + trashable_users);
+							FTPUser.getExpirableUsers(expirable_users);
+							if (expirable_users.isEmpty() == false) {
+								FTPUser.getTrashableUsers(expirable_users, trashable_users);
+								FTPUser.getPurgeableUsers(expirable_users, purgeable_users);
 								
 								mutator = CassandraDb.prepareMutationBatch();
-								for (int pos = 0; pos < trashable_users.size(); pos++) {
-									trashable_users.get(pos).setDisabled(true);
-									trashable_users.get(pos).save(mutator);
-									// trashable_users.get(pos).getGroup().trashUserHomeDirectory(trashable_users.get(pos)); //XXX set
-								}
-								// mutator.execute(); //XXX set
 								
-								purgeable_users = FTPUser.getPurgeableUsers(trashable_users);// FIXME want to delete new users
+								if (trashable_users.isEmpty() == false) {
+									Loggers.FTPserver.info("Some user content needs to send to trash: " + trashable_users);
+									
+									for (int pos = 0; pos < trashable_users.size(); pos++) {
+										trashable_users.get(pos).setDisabled(true);
+										trashable_users.get(pos).save(mutator);
+										trashable_users.get(pos).getGroup().trashUserHomeDirectory(trashable_users.get(pos));
+										FTPActivity.purgeUserActivity(trashable_users.get(pos).getUserId());
+									}
+								}
+								
 								if (purgeable_users.isEmpty() == false) {
-									Loggers.FTPserver.info("Some user content needs to purge: " + purgeable_users);
+									Loggers.FTPserver.info("Some user content needs to be purged: " + purgeable_users);
 									
 									mutator = CassandraDb.prepareMutationBatch();
 									for (int pos = 0; pos < purgeable_users.size(); pos++) {
 										purgeable_users.get(pos).removeUser(mutator);
-										// purgeable_users.get(pos).getGroup().deleteUserHomeDirectory(purgeable_users.get(pos)); //XXX set
+										purgeable_users.get(pos).getGroup().deleteUserHomeDirectory(purgeable_users.get(pos));
+										FTPActivity.purgeUserActivity(purgeable_users.get(pos).getUserId());
 									}
-									// mutator.execute(); //XXX set
 								}
+								
+								mutator.execute();
 							} /** end trash operation */
 								
 							/**

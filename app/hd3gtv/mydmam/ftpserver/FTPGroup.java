@@ -227,6 +227,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 			CopyMove.checkIsDirectory(home_directory);
 			CopyMove.checkIsWritable(home_directory);
 		} else {
+			Loggers.FTPserver.debug("Create user home directory: " + home_directory);
 			FileUtils.forceMkdir(home_directory);
 		}
 		return home_directory;
@@ -237,7 +238,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		if (home_directory.exists() == false) {
 			return;
 		}
-		File dest = new File(trash_directory.getAbsolutePath() + File.separator + home_directory.getName() + File.separator + System.currentTimeMillis());
+		File dest = new File(trash_directory.getAbsolutePath() + File.separator + home_directory.getName() + File.separator + Loggers.dateFilename(System.currentTimeMillis()));
 		FileUtils.moveDirectory(home_directory, dest);
 	}
 	
@@ -266,19 +267,38 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 	/**
 	 * @return simple user.
 	 */
-	private FTPUser getExpiredUserFromAnUserDir(File user_content_dir) {
+	private FTPUser getExpiredUserFromAnUserDir(File user_content_dir) throws IOException {
 		String group_name = name;
+		String user_name = null;
+		String domain = null;
 		
-		String dirname = user_content_dir.getName();
-		int pos_hash = dirname.indexOf("#");
-		String user_name = dirname;
-		String domain = "";
-		
-		if (pos_hash > -1) {
-			domain = dirname.substring(0, pos_hash);
-			user_name = dirname.substring(pos_hash + 1);
+		if (domain_isolation) {
+			if (base_working_dir.getAbsolutePath().equals(user_content_dir.getParentFile().getParentFile().getAbsolutePath()) == false) {
+				throw new IOException("Invalid parent path, base_working_dir: " + base_working_dir + ", user_content_dir: " + user_content_dir);
+			}
+			
+			user_name = user_content_dir.getName();
+			domain = user_content_dir.getParentFile().getName();
+			if (domain.indexOf("#") == 0) {
+				domain = domain.substring(1);
+			} else {
+				Loggers.FTPserver.warn("Invalid file name for an user_content_dir: " + user_content_dir);
+			}
+		} else {
+			if (base_working_dir.getAbsolutePath().equals(user_content_dir.getParentFile().getAbsolutePath()) == false) {
+				throw new IOException("Invalid parent path, base_working_dir: " + base_working_dir + ", user_content_dir: " + user_content_dir);
+			}
+			
+			String dirname = user_content_dir.getName();
+			int pos_hash = dirname.indexOf("#");
+			user_name = dirname;
+			domain = "";
+			
+			if (pos_hash > -1) {
+				domain = dirname.substring(0, pos_hash);
+				user_name = dirname.substring(pos_hash + 1);
+			}
 		}
-		
 		return FTPUser.createSimpleUser(group_name, user_name, domain);
 	}
 	
@@ -296,14 +316,14 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		}
 	}
 	
-	private void listAllActualUsersInDomain(ArrayList<FTPUser> users, String domain) {
+	private void listAllActualUsersInDomain(ArrayList<FTPUser> users, String domain) throws IOException {
 		File[] all_users_files = new File(base_working_dir + File.separator + "#" + domain).listFiles(valid_user_dirs);
 		for (int pos = 0; pos < all_users_files.length; pos++) {
 			users.add(getExpiredUserFromAnUserDir(all_users_files[pos]));
 		}
 	}
 	
-	List<FTPUser> listAllActualUsers() {
+	List<FTPUser> listAllActualUsers() throws IOException {
 		ArrayList<FTPUser> users = new ArrayList<FTPUser>();
 		
 		File[] all_users_files = base_working_dir.listFiles(valid_user_dirs);

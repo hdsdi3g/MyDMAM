@@ -325,7 +325,9 @@ public class FTPUser implements User {
 	public String toString() {
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		log.put("user_id", user_id);
-		log.put("group", group);
+		if (group != null) {
+			log.put("group", group);
+		}
 		return log.toString();
 	}
 	
@@ -355,11 +357,14 @@ public class FTPUser implements User {
 	
 	private transient long trash_date;
 	
-	static List<FTPUser> getTrashableUsers() throws ConnectionException {
+	/**
+	 * Search in db and retrive potientally expirable users.
+	 */
+	static void getExpirableUsers(List<FTPUser> result) throws ConnectionException {
 		HashMap<String, Long> groups_ttl = FTPGroup.getDeclaredGroupsTTLTrash();
 		HashMap<String, Boolean> group_activity_last_login = FTPGroup.getDeclaredGroupsExpirationBasedOnLastActivity();
 		
-		List<FTPUser> result = new ArrayList<FTPUser>();
+		result.clear();
 		Rows<String, String> rows = keyspace.prepareQuery(CF_USER).getAllRows().execute().getResult();
 		
 		String group_name;
@@ -393,13 +398,22 @@ public class FTPUser implements User {
 				result.add(user);
 			}
 		}
-		return result;
 	}
 	
-	static List<FTPUser> getPurgeableUsers(List<FTPUser> trashable_users) {
+	static void getTrashableUsers(List<FTPUser> expirable_users, List<FTPUser> result) throws ConnectionException {
+		result.clear();
+		for (int pos = 0; pos < expirable_users.size(); pos++) {
+			if (expirable_users.get(pos).disabled) {
+				continue;
+			}
+			result.add(expirable_users.get(pos));
+		}
+	}
+	
+	static List<FTPUser> getPurgeableUsers(List<FTPUser> trashable_users, List<FTPUser> result) throws ConnectionException {
 		HashMap<String, Long> groups_ttl = FTPGroup.getDeclaredGroupsTTLPurge();
 		
-		List<FTPUser> result = new ArrayList<FTPUser>();
+		result.clear();
 		FTPUser user;
 		long ttl_eq_now;
 		for (int pos = 0; pos < trashable_users.size(); pos++) {
