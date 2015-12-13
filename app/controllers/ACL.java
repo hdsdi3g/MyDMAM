@@ -23,11 +23,12 @@ import java.util.List;
 
 import com.google.gson.Gson;
 
+import hd3gtv.mydmam.accesscontrol.AccessControl;
+import hd3gtv.mydmam.accesscontrol.AccessControlEntry;
 import hd3gtv.mydmam.web.Privileges;
 import models.ACLGroup;
 import models.ACLRole;
 import models.ACLUser;
-import models.BlackListIP;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
@@ -321,30 +322,24 @@ public class ACL extends Controller {
 	}
 	
 	@Check("acl")
-	public static void showblacklistips() {
+	public static void showblacklistips() throws Exception {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("acl.pagename.showblacklistips"));
-		List<BlackListIP> blacklistips = BlackListIP.findAll();
+		List<AccessControlEntry> blacklistips = AccessControlEntry.getAll();
 		
-		int max_attempt_for_blocking_addr = BlackListIP.max_attempt_for_blocking_addr;
-		int grace_attempt_count = BlackListIP.grace_attempt_count;
-		int grace_period_factor_time = BlackListIP.grace_period_factor_time;
+		int max_attempt_for_blocking_addr = AccessControl.max_attempt_for_blocking_addr;
+		int grace_attempt_count = AccessControl.grace_attempt_count;
+		int grace_period_factor_time = AccessControl.grace_period_factor_time;
 		
 		render(title, blacklistips, max_attempt_for_blocking_addr, grace_attempt_count, grace_period_factor_time);
 	}
 	
 	@Check("acl")
-	public static void deleteblacklistip(@Required String address) {
+	public static void deleteblacklistip(@Required String address) throws Exception {
 		if (Validation.hasErrors()) {
 			redirect("ACL.showblacklistips");
 		}
-		
-		BlackListIP blacklist = BlackListIP.findById(address);
-		if (blacklist == null) {
-			redirect("ACL.showblacklistips");
-		}
-		
-		blacklist.delete();
+		AccessControlEntry.delete(address);
 		redirect("ACL.showblacklistips");
 	}
 	

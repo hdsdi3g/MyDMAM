@@ -14,13 +14,13 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.web.acaddr;
+package hd3gtv.mydmam.accesscontrol;
 
 import java.util.List;
 
-class AccessControlAddressesNeverblock extends AccessControlAddresses {
+class AccessControlAddressesWhite extends AccessControlAddresses {
 	
-	AccessControlAddressesNeverblock(List<String> addrlist) {
+	AccessControlAddressesWhite(List<String> addrlist) {
 		super(addrlist);
 	}
 	

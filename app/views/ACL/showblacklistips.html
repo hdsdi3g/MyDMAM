@@ -24,21 +24,25 @@
             <th>&{'acl.blacklistip.last_attempt'}</th>
             <th>&{'acl.blacklistip.last_attempt_username'}</th>
             <th>&{'acl.blacklistip.attempt'}</th>
+            <th></th>
 		</tr>
     </thead>
     <tbody>
     #{list items:blacklistips, as:'element'}
 		<tr>
 			<td>
-				${element.address}
-				<a href="@{ACL.deleteblacklistip(element.address)}" class="btn btn-mini btn-danger"><i class="icon-ok icon-white"></i></a>
+				${element.getAddress()}
+				<a href="@{ACL.deleteblacklistip(element.getAddress())}" class="btn btn-mini btn-danger"><i class="icon-ok icon-white"></i></a>
 			</td>
-			<td>${element.first_attempt}</td>
-			<td>${element.last_attempt}</td>
+			<td>${element.getFirstAttemptDate().asdate('dd MMMM yyyy HH:mm:ss')}</td>
+			<td>${element.getLastAttemptDate().asdate('dd MMMM yyyy HH:mm:ss')}</td>
 			<td>
-				<a href="@{ACL.edituser(element.last_attempt_username)}">${element.last_attempt_username}</a>
+				<a href="@{ACL.edituser(element.getLastAttemptUsername())}">${element.getLastAttemptUsername()}</a>
 			</td>
-			<td>${element.attempt}/${max_attempt_for_blocking_addr}</td>
+			<td>${element.getAttempt()}/${max_attempt_for_blocking_addr}</td>
+			<td>
+				<code>${element.statusForThisIP()}</code>
+			<td>
 		</tr>
     #{/list}
     </tbody>

@@ -30,6 +30,7 @@ import org.apache.log4j.xml.DOMConfigurator;
 
 public final class Loggers {
 	
+	public final static Logger _MyDMAM_Root = Logger.getLogger("mydmam");
 	public final static Logger Manager = Logger.getLogger("mydmam.manager");
 	public final static Logger ClusterStatus = Logger.getLogger("mydmam.clusterstatus");
 	public final static Logger Broker = Logger.getLogger("mydmam.broker");
@@ -58,6 +59,7 @@ public final class Loggers {
 	public final static Logger Ssh = Logger.getLogger("mydmam.ssh");
 	public final static Logger Pathindex = Logger.getLogger("mydmam.pathindex");
 	public final static Logger FTPserver = Logger.getLogger("mydmam.ftpserver");
+	public final static Logger AccessControl = Logger.getLogger("mydmam.accesscontrol");
 	
 	/*public static JsonObject getAllLevels() {
 		JsonObject result = new JsonObject();

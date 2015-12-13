@@ -120,7 +120,7 @@ public class FTPOperations {
 	
 	synchronized void removeActiveUser(FTPUser ftp_user) {
 		if (active_users_with_group_pathindex.contains(ftp_user)) {
-			Loggers.FTPserver.debug("Remove active user: " + ftp_user);
+			Loggers.FTPserver.trace("Remove active user: " + ftp_user);
 			active_users_with_group_pathindex.remove(ftp_user);
 		}
 	}

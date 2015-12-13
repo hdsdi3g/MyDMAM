@@ -128,4 +128,11 @@ public class CIDRUtils {
 		
 		return (st == -1 || st == 0) && (te == -1 || te == 0);
 	}
+	
+	public String toString() {
+		if (startAddress.equals(endAddress)) {
+			return startAddress.getHostAddress();
+		}
+		return startAddress.getHostAddress() + "/" + endAddress.getHostAddress();
+	}
 }

@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.web.acaddr;
+package hd3gtv.mydmam.accesscontrol;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ public abstract class AccessControlAddresses {
 			try {
 				addr_list.add(new CIDRUtils(addrlist.get(pos)));
 			} catch (UnknownHostException e) {
-				Loggers.Play.error("Invalid addr notation (CIDR IPv4/IPv6 only), addr: " + addrlist.get(pos), e);
+				Loggers.AccessControl.error("Invalid addr notation (CIDR IPv4/IPv6 only), addr: " + addrlist.get(pos), e);
 			}
 		}
 	}
@@ -71,16 +71,7 @@ public abstract class AccessControlAddresses {
 	private ArrayList<CIDRUtils> addr_list;
 	
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		for (int pos = 0; pos < addr_list.size(); pos++) {
-			sb.append(this.getClass().getSimpleName());
-			sb.append("\t");
-			sb.append(addr_list.get(pos).getNetworkAddress());
-			sb.append(" -> ");
-			sb.append(addr_list.get(pos).getBroadcastAddress());
-		}
-		
-		return sb.toString();
+		return this.getClass().getSimpleName() + ": " + addr_list.toString();
 	}
 	
 	boolean isInRange(String addr) {
@@ -90,7 +81,7 @@ public abstract class AccessControlAddresses {
 					return true;
 				}
 			} catch (UnknownHostException e) {
-				Loggers.Play.error("Invalid addr: " + addr, e);
+				Loggers.AccessControl.error("Invalid addr: " + addr, e);
 			}
 		}
 		return false;
@@ -101,8 +92,8 @@ public abstract class AccessControlAddresses {
 	static {
 		access_control_list = new ArrayList<AccessControlAddresses>();
 		
-		if (Configuration.global.isElementKeyExists("auth", "access_control_addresses")) {
-			List<LinkedHashMap<String, ?>> access_control_addresses_list = Configuration.global.getListMapValues("auth", "access_control_addresses");
+		if (Configuration.global.isElementKeyExists("access_control", "addresses")) {
+			List<LinkedHashMap<String, ?>> access_control_addresses_list = Configuration.global.getListMapValues("access_control", "addresses");
 			
 			LinkedHashMap<String, ?> aca_map;
 			for (int pos = 0; pos < access_control_addresses_list.size(); pos++) {
@@ -113,9 +104,7 @@ public abstract class AccessControlAddresses {
 			}
 			
 			if (access_control_list.size() > 0) {
-				for (int pos = 0; pos < access_control_list.size(); pos++) {
-					Loggers.Play.info("Set access control address: " + access_control_list.get(pos).toString());
-				}
+				Loggers.AccessControl.info("Set access control address: " + access_control_list);
 			}
 		}
 	}

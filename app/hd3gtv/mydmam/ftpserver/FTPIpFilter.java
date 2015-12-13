@@ -14,14 +14,33 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.web.acaddr;
+package hd3gtv.mydmam.ftpserver;
 
-import java.util.List;
+import java.net.InetAddress;
 
-class AccessControlAddressesWhite extends AccessControlAddresses {
+import org.apache.ftpserver.ipfilter.IpFilter;
+
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.accesscontrol.AccessControl;
+
+public class FTPIpFilter implements IpFilter {
 	
-	AccessControlAddressesWhite(List<String> addrlist) {
-		super(addrlist);
+	private static final FTPIpFilter filter;
+	
+	static {
+		filter = new FTPIpFilter();
+	}
+	
+	public static FTPIpFilter getFilter() {
+		return filter;
+	}
+	
+	private FTPIpFilter() {
+	}
+	
+	public boolean accept(InetAddress address) {
+		Loggers.FTPserver.trace("IPFilter: " + address.getHostAddress());
+		return AccessControl.validThisIP(address.getHostAddress());
 	}
 	
 }

@@ -26,6 +26,7 @@ import org.apache.ftpserver.usermanager.UsernamePasswordAuthentication;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.accesscontrol.AccessControl;
 
 public class FTPUserManager implements UserManager {
 	
@@ -55,13 +56,21 @@ public class FTPUserManager implements UserManager {
 		}
 		UsernamePasswordAuthentication auth = (UsernamePasswordAuthentication) authentication;
 		
+		String addr = auth.getUserMetadata().getInetAddress().getHostAddress();
+		String username = auth.getUsername();
+		String login_name = FTPUser.makeUserId(username, domain);
+		
 		try {
-			FTPUser user = FTPUser.getUserByName(auth.getUsername(), domain);
+			FTPUser user = FTPUser.getUserByName(username, domain);
 			if (user == null) {
+				AccessControl.failedAttempt(addr, login_name);
 				return null;
 			}
 			if (user.validPassword(auth)) {
+				AccessControl.releaseIP(addr);
 				return user.updateLastLogin();
+			} else {
+				AccessControl.failedAttempt(addr, login_name);
 			}
 		} catch (ConnectionException e) {
 			Loggers.FTPserver.error("Can't access to db", e);

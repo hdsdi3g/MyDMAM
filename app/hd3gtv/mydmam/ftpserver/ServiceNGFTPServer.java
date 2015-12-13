@@ -93,10 +93,6 @@ public class ServiceNGFTPServer extends ServiceNG {
 		
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		
-		ListenerFactory factory = new ListenerFactory();
-		factory.setPort(Configuration.getValue(all_instances_confs, name, "listen", 21));
-		log.put("port", factory.getPort());
-		
 		DataConnectionConfigurationFactory dccf = new DataConnectionConfigurationFactory();
 		dccf.setActiveEnabled(true);
 		dccf.setActiveIpCheck(true);
@@ -117,6 +113,11 @@ public class ServiceNGFTPServer extends ServiceNG {
 		dccf.setPassivePorts(Configuration.getValue(all_instances_confs, name, "passive-ports", "30000-40000"));
 		log.put("passive", dccf.getPassiveAddress() + ">" + dccf.getPassiveExternalAddress());
 		log.put("passive ports", dccf.getPassivePorts());
+		
+		ListenerFactory factory = new ListenerFactory();
+		factory.setPort(Configuration.getValue(all_instances_confs, name, "listen", 21));
+		factory.setIpFilter(FTPIpFilter.getFilter());
+		log.put("port", factory.getPort());
 		
 		factory.setDataConnectionConfiguration(dccf.createDataConnectionConfiguration());
 		

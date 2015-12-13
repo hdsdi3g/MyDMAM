@@ -94,6 +94,23 @@ public class FTPUser implements User {
 	private FTPUser() {
 	}
 	
+	public boolean equals(Object obj) {
+		if (user_id == null) {
+			return false;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if ((obj instanceof FTPUser) == false) {
+			return false;
+		}
+		return user_id.equals(((FTPUser) obj).user_id);
+	}
+	
+	public int hashCode() {
+		return user_id.hashCode();
+	}
+	
 	/**
 	 * Don't forget to save.
 	 * @param non_checked_user_name can be changed (chars filtered). Check after the process the definitive user_name.

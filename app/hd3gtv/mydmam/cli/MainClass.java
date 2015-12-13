@@ -18,6 +18,9 @@ package hd3gtv.mydmam.cli;
 
 import java.util.ArrayList;
 
+import org.apache.log4j.Level;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.tools.ApplicationArgs;
@@ -28,12 +31,14 @@ public class MainClass {
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
+		Loggers._MyDMAM_Root.setLevel(Level.WARN);
 		
 		MyDMAM.testIllegalKeySize();
 		
 		ApplicationArgs appargs = new ApplicationArgs(args);
 		
 		ArrayList<CliModule> modules = new ArrayList<CliModule>();
+		modules.add(new CliModuleAccessControl());
 		modules.add(new CliModuleAuthenticatorLocal());
 		modules.add(new CliModuleSsh());
 		modules.add(new CliModuleStorageManager());

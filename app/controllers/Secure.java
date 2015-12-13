@@ -16,13 +16,13 @@ import com.google.gson.Gson;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.accesscontrol.AccessControl;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.auth.AuthenticationUser;
 import hd3gtv.mydmam.auth.Authenticator;
 import hd3gtv.mydmam.auth.InvalidAuthenticatorUserException;
 import models.ACLGroup;
 import models.ACLUser;
-import models.BlackListIP;
 import models.UserProfile;
 import play.Play;
 import play.data.validation.Required;
@@ -314,7 +314,7 @@ public class Secure extends Controller {
 			return;
 		}
 		
-		if (BlackListIP.validThisIP(remote_address) == false) {
+		if (AccessControl.validThisIP(remote_address) == false) {
 			Loggers.Play.warn("Refuse IP addr for user username: " + username + ", domainidx: " + domainidx + ", remote_address: " + remote_address);
 			rejectUser();
 			return;
@@ -338,7 +338,7 @@ public class Secure extends Controller {
 		}
 		
 		if (authuser == null) {
-			BlackListIP.failedAttempt(remote_address, username);
+			AccessControl.failedAttempt(remote_address, username);
 			rejectUser();
 		}
 		
@@ -353,7 +353,7 @@ public class Secure extends Controller {
 			acluser = new ACLUser(group_guest, authuser.getSourceName(), username, authuser.getFullName());
 		}
 		
-		BlackListIP.releaseIP(remote_address);
+		AccessControl.releaseIP(remote_address);
 		
 		if (acluser.locked_account) {
 			Loggers.Play.error("Locked account for user: " + username + ", domainidx: " + domainidx + " " + getUserSessionInformation());
