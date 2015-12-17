@@ -242,7 +242,9 @@ async.JavaClassNameLink = React.createClass({
 				<img src={mydmam.urlimgs.github_favicon} style={icon_style} />
 			</a>
 			&nbsp;
-			{javaclass.substring(javaclass.lastIndexOf(".") + 1)}
+			<abbr title={javaclass}>
+				{javaclass.substring(javaclass.lastIndexOf(".") + 1)}
+			</abbr>
 		</span>);
 	},
 });

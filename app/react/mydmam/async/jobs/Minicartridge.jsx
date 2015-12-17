@@ -27,39 +27,11 @@ jobs.Minicartridge =  React.createClass({
 		urgent
 		*/
 
-		var progression_bar = null;
-		var last_message = null;
-		var step = null;
-
-		if (job.progression) {
-			var width = 0;
-			if (job.progression.progress_size > 0) {
-				width = (Math.round(job.progression.progress / job.progression.progress_size) * 100) + "%";
-			}
-
-			progression_bar = (
-				<div className="progress" style={{height: "12px", marginBottom: 0}}>
-					<div className="bar" style={{width: width}} />
-				</div>
-			);
-
-			last_message = (<em><i className="icon-comment"/> {job.progression.last_message}</em>);
-
-			if ((job.progression.step > 0) & (job.progression.step_count > 0)) {
-				step = (<strong className="pull-right">
-						{job.progression.step}
-						<i className="icon-arrow-right" />
-						{job.progression.step_count}
-					</strong>
-				);
-			}
-		}
 
 		return (<div>
 				<small>
-					{job.name}{step}
-					{progression_bar}
-					{last_message}
+					{job.name}
+					<mydmam.async.broker.JobProgression job={job} />
 				</small>
 			</div>);
 	},

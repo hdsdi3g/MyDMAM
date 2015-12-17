@@ -74,6 +74,7 @@ routes.Backbone = React.createClass({
 			<a className="btn" href="#">Home</a>
 			<a className="btn" href="#watchfolders">Watchfolders</a>
 			<a className="btn" href="#ftpserver">FTP Server</a>
+			<a className="btn" href="#broker">JobList</a>
 			<a className="btn" href="#debugpage">Debug Page</a>
 		</div>);
 

@@ -32,6 +32,7 @@ import com.netflix.astyanax.MutationBatch;
 
 import controllers.Check;
 import controllers.Secure;
+import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.AppManager;
@@ -81,6 +82,11 @@ public class Broker extends AJSController {
 		AsyncJSBrokerResponseList result = new AsyncJSBrokerResponseList();
 		result.list = JobNG.Utility.getJobsFromUpdateDate(request.since);
 		return result;
+	}
+	
+	@Check("showBroker")
+	public static String appversion() throws Exception {
+		return GitInfo.getFromRoot().getActualRepositoryInformation();
 	}
 	
 	@Check("actionBroker")
