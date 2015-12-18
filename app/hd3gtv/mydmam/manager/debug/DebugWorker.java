@@ -26,14 +26,15 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
 
 public class DebugWorker extends WorkerNG {
 	
-	private static int sleep_time = 10;
-	private static int nb_tasks_by_core = 8;
+	// private static int sleep_time = 10;
+	private static int nb_tasks_by_core = 1;
 	private static File datalog;
 	private static String instance_name;
 	private static final Random random;
@@ -89,9 +90,20 @@ public class DebugWorker extends WorkerNG {
 		FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\texec\t" + instance_name + "\t" + progression.getJobKey() + "\t" + Thread.currentThread().getName() + "\n",
 				true);
 				
-		for (int pos = 0; pos < sleep_time * 10; pos++) {
-			progression.updateProgress((pos + 1) * 10, sleep_time * 10);
-			Thread.sleep(random.nextInt(1000) + 1);
+		progression.incrStepCount();
+		for (int pos = 0; pos < 100; pos++) {
+			progression.updateProgress(pos, 100);
+			// XXX Thread.sleep(random.nextInt(1000) + 1);
+		}
+		progression.incrStep();
+		progression.update("Sleep is done, now, create the next job...");
+		
+		if (random.nextInt(2) == 0) {
+			JobNG job = AppManager.createJob(new JobContextDebug()).setCreator(DebugWorker.class).setDeleteAfterCompleted().setName("Debug after load");
+			if (random.nextInt(4) == 0) {
+				job.setUrgent();
+			}
+			// XXX job.publish();
 		}
 	}
 	

@@ -134,6 +134,28 @@ span.external-pathindex-position {
     margin-left: 5px;
 }
 
+div.hover-focus {
+    padding-top: 5px;
+}
+
+/*div.hover-focus div.nomargin {
+    margin-left: 5px;
+}*/
+
+div.hover-focus:hover {
+    background-color: rgb(243, 243, 243);
+}
+
+div.hover-focus div.btn-toolbar {
+    margin-bottom: 0px;
+    margin-top: 0px;
+}
+
+/*div.hover-focus div.pagination i {
+    margin-top: -1px;
+}*/
+
+
 /* ============================================================================== */	
 
 .accordion-toggle {
@@ -161,150 +183,3 @@ span.external-pathindex-position {
     position: relative;
 }
 
-/* ================================================================================ */
-@media (min-width: 768px) {
-	div.modal {
-		margin-left: -350px;
-		width: 700px;	
-	}
-}
-
-div.modal-body p.lead {
- 	margin-top: 0.5em;
-	margin-bottom: 0.5em;
-}
-
-#uacreationmodal div.modal-body {
- 	padding-top: 0em;
- 	/*max-height: inherit;*/
-}
-
-#uacreationmodal button.btn-mini.ua-creation-start {
-	float: right;
-	margin-top: 3px;
-	margin-right: 8px;
-}
-
-/*#uacreationmodal {
-	position: fixed;
-	top: 4em;
-}*/
-
-#uacreationmodal div.ua-dropdown.btn-group > .btn:first-child {
-    border-radius: 4px;
-}
-
-#uacreation div.ua-dropdown.btn-group > .btn:first-child {
-    border-radius: 4px;
-}
-
-div.ua-dropdown li.nav-header {
-	line-height: 12px;
-}
-
-.selectize-path-item {
-	background-color: #fff !important;
-    background-image: none !important;
-    border: 0px !important;
-    border-radius: 0px !important;
-    box-shadow: none !important;
-    color: #000 !important;
-    text-shadow: none !important;
-    margin: 0 !important;
-    padding: 1px 0px !important;
-}
-
-/**
- * ==============================================================================
- * Navigator input selection functions (MyDMAM NIS)
- * The most of this is imported from Bootstrap 2 css.
- */
-
-input.mynis {
-	display: none;
-}
-
-div.mynis div.inputbox:after {
-    clear: left;
-    content: " ";
-    display: block;
-}
-
-div.mynis div.inputbox {
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
-    transition: border 0.2s linear 0s, box-shadow 0.2s linear 0s;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    box-sizing: border-box;
-    display: inline-block;
-    overflow: hidden;
-    padding-top: 4px;
-    padding-bottom: 2px;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-bottom: -5px;
-    position: relative;
-    width: 100%;
-    z-index: 1;
-    background: none repeat scroll 0 0 #ffffff;
-    cursor: text;
-    display: inline-block;
-}
-
-div.mynis div.inputbox.inputerror {
-    border-color: #e9322d;
-    box-shadow: 0 0 6px #f8b9b7;
-}
-
-div.mynis div.inputbox div.actualselection {
-    display: inline-block;
-}
-
-div.mynis div.inputbox div.placeholder {
-    display: inline-block;
-    color: #AAA;
-    font-style: italic;
-}
-
-div.mynis div.inputbox div.placeholder i {
-    margin-top: 2px;
-    opacity: 0.4;
-}
-
-div.mynis div.inputbox > input {
-	background: none repeat scroll 0 0 rgba(0, 0, 0, 0) !important;
-    border: 0 none !important;
-    box-shadow: none !important;
-    display: inline-block !important;
-    line-height: inherit !important;
-    margin: 0px 0px 3px 4px; !important;
-    max-height: none !important;
-    max-width: 100% !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    text-indent: 0 !important;
-}
-
-div.mynis div.dropdownbox {
-	z-index: 1000;
-	box-sizing: border-box;
-	position: absolute;
-}
-
-div.mynis div.dropdownbox ul.dropdown-menu {
-	overflow-y: auto;
-	max-height: 15em;
-    min-width: 200px;
-}
-
-div.mynis div.dropdownbox ul.dropdown-menu a.dropdownitem.hovered {
-	background-color: #0081c2;
-	background-image: linear-gradient(to bottom, #08c, #0077b3);
-	background-repeat: repeat-x;
-	color: #fff;
-	text-decoration: none;
-}
-
-div.mynis div.dropdownbox ul.dropdown-menu a.dropdownitem.hovered i {
-	background-image: url("../img/glyphicons-halflings-white.png");
-}

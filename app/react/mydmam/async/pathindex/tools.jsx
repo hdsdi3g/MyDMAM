@@ -99,12 +99,15 @@ pathindex.reactDate = React.createClass({
 		if (!this.props.date) {
 			return null;
 		}
+		if (this.props.date == 0) {
+			return null;
+		}
 		var label = null;
-		if (this.props.i18nlabel) {
+		if (this.props.i18nlabel != null) {
 			label = i18n(this.props.i18nlabel) + " ";
 		}
 		var style = {marginLeft: 5};
-		if (this.props.style) {
+		if (this.props.style != null) {
 			style = this.props.style;
 		}
 		return (<span className="label" style={style}>{label}{mydmam.format.fulldate(this.props.date)}</span>);
@@ -114,6 +117,9 @@ pathindex.reactDate = React.createClass({
 pathindex.reactSinceDate = React.createClass({
 	render: function() {
 		if (!this.props.date) {
+			return null;
+		}
+		if (this.props.date == 0) {
 			return null;
 		}
 		var label = null;
@@ -127,7 +133,7 @@ pathindex.reactSinceDate = React.createClass({
 
 		var since = mydmam.format.secondsToYWDHMS((new Date().getTime() - this.props.date) / 1000);
 		if (since < 0) {
-			return null;
+			return <pathindex.reactDate date={this.props.date} i18nlabel={this.props.i18nlabel} style={this.props.style} />;
 		}
 
 		return (<span className="label" style={style}>
