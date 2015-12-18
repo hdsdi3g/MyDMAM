@@ -93,17 +93,17 @@ public class DebugWorker extends WorkerNG {
 		progression.incrStepCount();
 		for (int pos = 0; pos < 100; pos++) {
 			progression.updateProgress(pos, 100);
-			// XXX Thread.sleep(random.nextInt(1000) + 1);
+			Thread.sleep(random.nextInt(1000) + 1);
 		}
 		progression.incrStep();
 		progression.update("Sleep is done, now, create the next job...");
 		
-		if (random.nextInt(2) == 0) {
+		if (random.nextBoolean()) {
 			JobNG job = AppManager.createJob(new JobContextDebug()).setCreator(DebugWorker.class).setDeleteAfterCompleted().setName("Debug after load");
 			if (random.nextInt(4) == 0) {
 				job.setUrgent();
 			}
-			// XXX job.publish();
+			job.publish();
 		}
 	}
 	

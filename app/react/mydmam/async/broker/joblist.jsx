@@ -371,7 +371,6 @@ broker.JobCartridge = React.createClass({
 		return (<div className="row-fluid hover-focus">
 			<div className="span3 nomargin">
 				{broker.getStatusLabel(job)} <strong>{job.name}</strong>
-				<button className="btn btn-mini pull-right"><i className="icon-chevron-down"></i></button>
 			</div>
 			<div className="span3 nomargin">
 				<mydmam.async.pathindex.reactSinceDate i18nlabel="update_date" date={job.update_date} /> {delete_after_completed} {priority}

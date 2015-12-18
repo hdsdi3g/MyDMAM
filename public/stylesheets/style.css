@@ -136,6 +136,10 @@ span.external-pathindex-position {
 
 div.hover-focus {
     padding-top: 5px;
+    margin-left: -10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    cursor: pointer;
 }
 
 /*div.hover-focus div.nomargin {
