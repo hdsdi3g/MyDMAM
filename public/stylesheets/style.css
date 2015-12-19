@@ -140,6 +140,11 @@ div.hover-focus {
     padding-left: 10px;
     padding-right: 10px;
     cursor: pointer;
+    border-radius: 6px;
+    border-top: 1px solid #FFF;
+    border-left: 1px solid #FFF;
+    border-right: 1px solid #FFF;
+    border-bottom: 1px solid #F3F3F3;
 }
 
 /*div.hover-focus div.nomargin {
@@ -148,6 +153,7 @@ div.hover-focus {
 
 div.hover-focus:hover {
     background-color: rgb(243, 243, 243);
+    border: 1px solid #EEE;
 }
 
 div.hover-focus div.btn-toolbar {

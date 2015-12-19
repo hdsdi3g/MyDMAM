@@ -96,15 +96,15 @@ public class DebugWorker extends WorkerNG {
 			Thread.sleep(random.nextInt(1000) + 1);
 		}
 		progression.incrStep();
-		progression.update("Sleep is done, now, create the next job...");
+		progression.update("Sleep is done...");
 		
+		JobNG job = AppManager.createJob(new JobContextDebug()).setCreator(DebugWorker.class).setDeleteAfterCompleted().setName("Debug after load");
 		if (random.nextBoolean()) {
-			JobNG job = AppManager.createJob(new JobContextDebug()).setCreator(DebugWorker.class).setDeleteAfterCompleted().setName("Debug after load");
-			if (random.nextInt(4) == 0) {
-				job.setUrgent();
-			}
-			job.publish();
+			job.setUrgent();
+			Thread.sleep(random.nextInt(2000) + 1);
 		}
+		progression.update("...create the next job");
+		job.publish();
 	}
 	
 	protected void forceStopProcess() throws Exception {
