@@ -125,9 +125,27 @@ code.json span.jsontitle {
     font-size: 95%;
 }
 
-code.stacktrace {
+div.stacktrace {
+    display: block;
+    line-height: 1.3em;
+    font-family: Monaco,Menlo,Consolas,"Courier New",monospace;
+    border-radius: 3px;
     color: rgb(70, 70, 255);
     font-size: 0.8em;
+    overflow-y: scroll;
+    margin-top: 6px;
+    margin-left: -100px;
+    margin-right: -20px;
+    margin-bottom: 6px;
+    background-color: #f7f7f9;
+    border: 1px solid #e1e1e8;
+    padding: 2px 4px;
+    white-space: nowrap;
+    cursor: auto;
+}
+
+div.stacktrace a {
+    border-bottom: 1px dotted rgb(70, 70, 255);
 }
 
 span.external-pathindex-position {
@@ -154,6 +172,11 @@ div.hover-focus {
 div.hover-focus:hover {
     background-color: rgb(243, 243, 243);
     border: 1px solid #EEE;
+}
+
+div.hover-focus.stacked {
+    background-color: rgb(250, 250, 250);
+    border: 1px dotted #CCC;
 }
 
 div.hover-focus div.btn-toolbar {

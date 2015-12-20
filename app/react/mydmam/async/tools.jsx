@@ -215,7 +215,25 @@ async.ButtonSort = React.createClass({
 	}
 });
 
+async.makeGitHubLink = function(version, javaclass) {
+	if (javaclass == null) {
+		return null;
+	}
+	if (version == null | ((javaclass.indexOf("hd3gtv.") != 0) & (javaclass.indexOf("controllers.") != 0))) {
+		return null;
+	}
+	var dollar_pos = javaclass.indexOf("$");
+	if (dollar_pos > -1) {
+		javaclass = javaclass.substring(0, dollar_pos);
+	}
+
+	return "https://github.com/hdsdi3g/MyDMAM/blob/" + version.substring(version.lastIndexOf(" ") + 1) + "/app/" + javaclass.replace(/\./g, "/") + ".java";
+}
+
 async.JavaClassNameLink = React.createClass({
+	onClickLink: function(e) {
+		e.stopPropagation();
+	},
 	render: function() {
 		var javaclass = this.props.javaclass;
 		if (javaclass == null) {
@@ -223,11 +241,11 @@ async.JavaClassNameLink = React.createClass({
 		}
 
 		var version = this.props.version;
-		if (version == null) {
+		var href = async.makeGitHubLink(version, javaclass);
+
+		if (href == null) {
 			return (<span>{javaclass}</span>);
 		}
-
-		var href = "https://github.com/hdsdi3g/MyDMAM/blob/" + version.substring(version.lastIndexOf(" ") + 1) + "/app/" + javaclass.replace(/\./g, "/") + ".java";
 
 		var icon_style = {
 			height: 14,
@@ -238,14 +256,74 @@ async.JavaClassNameLink = React.createClass({
 		};
 
 		return (<span>
-			<a href={href} target="_blank">
+			<a href={href} target="_blank" onClick={this.onClickLink}>
 				<img src={mydmam.urlimgs.github_favicon} style={icon_style} />
+				&nbsp;
+				<abbr title={javaclass}>
+					{javaclass.substring(javaclass.lastIndexOf(".") + 1)}
+				</abbr>
 			</a>
-			&nbsp;
-			<abbr title={javaclass}>
-				{javaclass.substring(javaclass.lastIndexOf(".") + 1)}
-			</abbr>
 		</span>);
+	},
+});
+
+async.JavaStackTrace = React.createClass({
+	onClickLink: function(e) {
+		e.stopPropagation();
+	},
+	getStacktrace: function(processing_error, i) {
+		var lines = [];
+		lines.push(<div key={i++}>{processing_error["class"]}: {processing_error.message}</div>);
+		for (var pos = 0; pos < processing_error.stacktrace.length; pos++) {
+			var trace = processing_error.stacktrace[pos];
+
+			if (trace.line === -2) {
+				lines.push(<div key={i++}>
+					&nbsp;at&nbsp;{trace["class"]}.{trace.method}(Native Method)
+				</div>);
+			} else if (trace.file) {
+				var url = async.makeGitHubLink(this.props.version, trace["class"]);
+
+				if (trace.line >= 0) {
+					if (url) {
+						lines.push(<div key={i++}>
+							&nbsp;at&nbsp;{trace["class"]}.{trace.method}(<a href={url + "#L" + trace.line} target="_blank">{trace.file}:{trace.line}</a>)
+						</div>);
+					} else {
+						lines.push(<div key={i++}>
+							&nbsp;at&nbsp;{trace["class"]}.{trace.method}({trace.file}:{trace.line})
+						</div>);
+					}
+				} else {
+					if (url) {
+						lines.push(<div key={i++}>
+							&nbsp;at&nbsp;{trace["class"]}.{trace.method}(<a href={url} target="_blank">{trace.file}</a>)
+						</div>);
+					} else {
+						lines.push(<div key={i++}>
+							&nbsp;at&nbsp;{trace["class"]}.{trace.method}({trace.file})
+						</div>);
+					}
+				}
+			} else {
+				lines.push(<div key={i++}>
+					&nbsp;at&nbsp;{trace["class"]}.{trace.method}(Unknown Source)
+				</div>);
+			}
+		}
+		
+		if (processing_error.cause) {
+			lines.push(<div key={i++}>Caused by:</div>);
+			return lines.concat(broker.getStacktrace(processing_error.cause, i));
+		}
+		return lines;
+	},
+	render: function() {
+		if (this.props.processing_error == null) {
+			return null;
+		}
+
+		return (<div className="stacktrace" onClick={this.onClickLink}>{this.getStacktrace(this.props.processing_error, 0)}</div>);
 	},
 });
 

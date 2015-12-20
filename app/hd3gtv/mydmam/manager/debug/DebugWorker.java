@@ -19,6 +19,7 @@ package hd3gtv.mydmam.manager.debug;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 
@@ -103,8 +104,13 @@ public class DebugWorker extends WorkerNG {
 			job.setUrgent();
 			Thread.sleep(random.nextInt(2000) + 1);
 		}
+		job.setExpirationTime(1, TimeUnit.DAYS).setMaxExecutionTime(10, TimeUnit.MINUTES);
 		progression.update("...create the next job");
 		job.publish();
+		
+		if (random.nextBoolean()) {
+			throw new Exception("Test exception !");
+		}
 	}
 	
 	protected void forceStopProcess() throws Exception {
