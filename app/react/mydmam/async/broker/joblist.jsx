@@ -243,7 +243,7 @@ broker.JobProgression = React.createClass({
 		var step = null;
 
 		if (job.progression) {
-			var width = 0;
+			var width = "100%";
 			if (job.progression.progress_size > 0) {
 				width = ((job.progression.progress * 100) / job.progression.progress_size);
 				if (width > 98) {
