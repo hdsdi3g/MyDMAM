@@ -36,6 +36,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
@@ -54,6 +55,7 @@ import com.netflix.astyanax.query.IndexQuery;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+import controllers.Secure;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
@@ -106,6 +108,10 @@ public final class JobNG {
 	
 	public enum JobStatus {
 		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
+	}
+	
+	public enum AlterJobOrderName {
+		delete, stop, setinwait, cancel, hipriority, noexpiration, postponed
 	}
 	
 	@SuppressWarnings("unused")
@@ -309,61 +315,6 @@ public final class JobNG {
 		return this;
 	}
 	
-	private transient ActionUtils actionUtils;
-	
-	public ActionUtils getActionUtils() {
-		if (actionUtils == null) {
-			actionUtils = new ActionUtils();
-		}
-		return actionUtils;
-	}
-	
-	public class ActionUtils {
-		
-		public void setDontExpiration() {
-			delete_after_completed = false;
-			expiration_date = System.currentTimeMillis() + (default_max_execution_time * 10);
-			max_execution_time = default_max_execution_time;
-			update_date = System.currentTimeMillis();
-		}
-		
-		public void setPostponed() {
-			setWaiting();
-			status = JobStatus.POSTPONED;
-			urgent = false;
-			priority = 0;
-		}
-		
-		public void setWaiting() {
-			status = JobStatus.WAITING;
-			update_date = System.currentTimeMillis();
-			progression = null;
-			processing_error = null;
-			start_date = -1;
-			end_date = -1;
-		}
-		
-		public void setCancel() {
-			update_date = System.currentTimeMillis();
-			status = JobStatus.CANCELED;
-		}
-		
-		public void setStopped() {
-			status = JobStatus.STOPPED;
-			update_date = System.currentTimeMillis();
-		}
-		
-		public void setMaxPriority() throws ConnectionException {
-			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
-			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
-			index_query.withColumnSlice("status", "name");
-			OperationResult<Rows<String, String>> rows = index_query.execute();
-			priority = rows.getResult().size() + 1;
-			urgent = true;
-			update_date = System.currentTimeMillis();
-		}
-	}
-	
 	public JobNG setDeleteAfterCompleted() {
 		delete_after_completed = true;
 		return this;
@@ -559,6 +510,21 @@ public final class JobNG {
 		return false;
 	}
 	
+	static boolean isThisStatus(String status_name, JobStatus... statuses) {
+		if (statuses == null) {
+			return false;
+		}
+		if (statuses.length == 0) {
+			return false;
+		}
+		for (int pos = 0; pos < statuses.length; pos++) {
+			if (status_name.equalsIgnoreCase(statuses[pos].toString())) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	public String getKey() {
 		return key;
 	}
@@ -602,6 +568,47 @@ public final class JobNG {
 		
 		if (Loggers.Job.isDebugEnabled()) {
 			Loggers.Job.debug("Prepare export to db job:\t" + toString() + " with ttl " + ttl);
+		}
+	}
+	
+	private static void exportToDatabase(ColumnListMutation<String> mutator, JsonObject json_job) {
+		boolean delete_after_completed = json_job.get("delete_after_completed").getAsBoolean();
+		String status = json_job.get("status").getAsString();
+		
+		/**
+		 * POSTPONED | WAITING
+		 */
+		int ttl = TTL_WAITING;
+		
+		if (delete_after_completed && isThisStatus(status, JobStatus.DONE, JobStatus.CANCELED)) {
+			/**
+			 * Short ttl if Broker is closed before it can delete this.
+			 */
+			ttl = TTL_DELETE_AFTER_COMPLETED;
+		} else if (isThisStatus(status, JobStatus.TOO_OLD, JobStatus.CANCELED, JobStatus.STOPPED, JobStatus.ERROR, JobStatus.TOO_LONG_DURATION)) {
+			ttl = TTL_TROUBLES;
+		} else if (isThisStatus(status, JobStatus.PREPARING)) {
+			ttl = TTL_PREPARING;
+		} else if (isThisStatus(status, JobStatus.DONE)) {
+			ttl = TTL_DONE;
+		} else if (isThisStatus(status, JobStatus.PROCESSING)) {
+			ttl = TTL_PROCESSING;
+		}
+		
+		mutator.putColumn("context_class", json_job.get("context").getAsJsonObject().get("classname").getAsString(), ttl);
+		mutator.putColumn("status", status, ttl);
+		mutator.putColumn("creator_hostname", json_job.get("instance_status_creator_hostname").getAsString(), ttl);
+		mutator.putColumn("expiration_date", json_job.get("expiration_date").getAsLong(), ttl);
+		mutator.putColumn("update_date", json_job.get("update_date").getAsLong(), ttl);
+		mutator.putColumn("delete_after_completed", delete_after_completed, ttl);
+		/**
+		 * Workaround for Cassandra index select bug.
+		 */
+		mutator.putColumn("indexingdebug", 1, ttl);
+		mutator.putColumn("source", json_job.toString(), ttl);
+		
+		if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Prepare export to db job (for json):\t" + json_job.toString() + " with ttl " + ttl);
 		}
 	}
 	
@@ -785,6 +792,115 @@ public final class JobNG {
 			return result;
 		}
 		
+		public static JsonObject alterJobsByStatus(JobStatus status, AlterJobOrderName order) throws ConnectionException {
+			JsonObject result = new JsonObject();
+			
+			int count = 1;
+			while (count > 0) {
+				Loggers.Manager.debug("alterJobsByStatus loop IndexQuery/MutationBatch (" + count + ")");
+				
+				MutationBatch mutator = CassandraDb.prepareMutationBatch();
+				IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
+				index_query.addExpression().whereColumn("status").equals().value(status.name());
+				index_query.withColumnSlice("source");
+				
+				OperationResult<Rows<String, String>> rows = index_query.execute();
+				count = 0;
+				for (Row<String, String> row : rows.getResult()) {
+					count++;
+					alterJobsFromJson(row.getKey(), row.getColumns(), mutator, order, result);
+				}
+				mutator.execute();
+			}
+			
+			return result;
+		}
+		
+		public static JsonObject alterJobByKey(String job_key, AlterJobOrderName order) throws ConnectionException {
+			JsonObject result = new JsonObject();
+			ColumnList<String> cols = keyspace.prepareQuery(CF_QUEUE).getRow(job_key).withColumnSlice("source").execute().getResult();
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			alterJobsFromJson(job_key, cols, mutator, order, result);
+			mutator.execute();
+			return result;
+		}
+		
+		private static void alterJobsFromJson(String job_key, ColumnList<String> cols, MutationBatch mutator, AlterJobOrderName order, JsonObject result) throws ConnectionException {
+			String source = cols.getStringValue("source", "{}");
+			if (source.equals("{}")) {
+				return;
+			}
+			JsonObject current = parser.parse(source).getAsJsonObject();
+			
+			switch (order) {
+			case delete:
+				mutator.withRow(CF_QUEUE, job_key).delete();
+				result.add(current.get("key").getAsString(), JsonNull.INSTANCE);
+				return;
+			case stop:
+				String worker_ref = current.get("worker_reference").getAsString();
+				WorkerExporter worker_exporter = WorkerExporter.getWorkerStatusByKey(worker_ref);
+				if (worker_exporter == null) {
+					current.addProperty("status", JobStatus.STOPPED.toString());
+					current.addProperty("update_date", System.currentTimeMillis());
+				} else if (worker_exporter.getCurrent_job_key() == null) {
+					current.addProperty("status", JobStatus.STOPPED.toString());
+					current.addProperty("update_date", System.currentTimeMillis());
+				} else if (worker_exporter.getCurrent_job_key().equals(job_key)) {
+					JsonObject json_order = new JsonObject();
+					json_order.addProperty("state", "stop");
+					InstanceAction.addNew("WorkerNG", worker_ref, json_order, Secure.getRequestAddress());
+				} else {
+					current.addProperty("status", JobStatus.STOPPED.toString());
+					current.addProperty("update_date", System.currentTimeMillis());
+				}
+				break;
+			case setinwait:
+				current.addProperty("status", JobStatus.WAITING.toString());
+				current.addProperty("update_date", System.currentTimeMillis());
+				current.add("progression", JsonNull.INSTANCE);
+				current.add("processing_error", JsonNull.INSTANCE);
+				current.addProperty("start_date", -1);
+				current.addProperty("end_date", -1);
+				break;
+			case cancel:
+				current.addProperty("update_date", System.currentTimeMillis());
+				current.addProperty("status", JobStatus.CANCELED.toString());
+				break;
+			case postponed:
+				current.addProperty("status", JobStatus.POSTPONED.toString());
+				current.addProperty("urgent", false);
+				current.addProperty("priority", 0);
+				current.addProperty("update_date", System.currentTimeMillis());
+				current.add("progression", JsonNull.INSTANCE);
+				current.add("processing_error", JsonNull.INSTANCE);
+				current.addProperty("start_date", -1);
+				current.addProperty("end_date", -1);
+				break;
+			case hipriority:
+				IndexQuery<String, String> index_query_hip = null;
+				OperationResult<Rows<String, String>> rows_hip = null;
+				index_query_hip = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
+				index_query_hip.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
+				index_query_hip.withColumnSlice("status", "name");
+				rows_hip = index_query_hip.execute();
+				
+				current.addProperty("priority", rows_hip.getResult().size() + 1);
+				current.addProperty("urgent", true);
+				current.addProperty("update_date", System.currentTimeMillis());
+				break;
+			case noexpiration:
+				current.addProperty("delete_after_completed", false);
+				current.addProperty("expiration_date", System.currentTimeMillis() + (default_max_execution_time * 10));
+				current.addProperty("max_execution_time", default_max_execution_time);
+				current.addProperty("update_date", System.currentTimeMillis());
+				break;
+			}
+			
+			result.add(current.get("key").getAsString(), current);
+			exportToDatabase(mutator.withRow(CF_QUEUE, job_key), current);
+		}
+		
 		/**
 		 * @return never null if keys is not empty
 		 */
@@ -962,6 +1078,7 @@ public final class JobNG {
 				throw e;
 			}
 		}
+		
 	}
 	
 	public String toString() {

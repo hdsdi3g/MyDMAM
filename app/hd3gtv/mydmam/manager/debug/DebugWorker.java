@@ -17,6 +17,8 @@
 package hd3gtv.mydmam.manager.debug;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +33,7 @@ import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
+import hd3gtv.mydmam.storage.Storage;
 
 public class DebugWorker extends WorkerNG {
 	
@@ -40,8 +43,12 @@ public class DebugWorker extends WorkerNG {
 	private static String instance_name;
 	private static final Random random;
 	
+	private static String test_storage_name;
+	private static ArrayList<JobNG> required_tests = new ArrayList<JobNG>();
+	
 	static {
 		random = new Random();
+		test_storage_name = Storage.getAllStoragesNames().get(0);
 	}
 	
 	public static void declareWorkers(AppManager manager) throws Exception {
@@ -62,11 +69,10 @@ public class DebugWorker extends WorkerNG {
 		
 		FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\tinit\t" + instance_name + "\t\t\n", true);
 		
-		String job_key;
 		for (int pos = 0; pos < cores; pos++) {
 			for (int pos_c = 0; pos_c < nb_tasks_by_core; pos_c++) {
-				job_key = AppManager.createJob(new JobContextDebug()).setCreator(DebugWorker.class).setDeleteAfterCompleted().setName("Debug").publish().getKey();
-				FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\tcreate\t" + instance_name + "\t" + job_key + "\t\n", true);
+				required_tests.add(AppManager.createJob(new JobContextDebug()).setCreator(DebugWorker.class).setName("Debug").publish());
+				// FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\tcreate\t" + instance_name + "\t" + job_key + "\t\n", true);
 			}
 		}
 	}
@@ -84,13 +90,13 @@ public class DebugWorker extends WorkerNG {
 	}
 	
 	public List<WorkerCapablities> getWorkerCapablities() {
-		return WorkerCapablities.createList(JobContextDebug.class);
+		return WorkerCapablities.createList(JobContextDebug.class, Arrays.asList(test_storage_name), Arrays.asList("foo", "bar"));
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
-		FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\texec\t" + instance_name + "\t" + progression.getJobKey() + "\t" + Thread.currentThread().getName() + "\n",
-				true);
-				
+		// FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\texec\t" + instance_name + "\t" + progression.getJobKey() + "\t" + Thread.currentThread().getName() +
+		// "\n", true);
+		
 		progression.incrStepCount();
 		for (int pos = 0; pos < 100; pos++) {
 			progression.updateProgress(pos, 100);
@@ -99,13 +105,14 @@ public class DebugWorker extends WorkerNG {
 		progression.incrStep();
 		progression.update("Sleep is done...");
 		
-		JobNG job = AppManager.createJob(new JobContextDebug()).setCreator(DebugWorker.class).setDeleteAfterCompleted().setName("Debug after load");
+		JobNG job = AppManager.createJob(new JobContextDebug(test_storage_name, "bar")).setCreator(DebugWorker.class).setDeleteAfterCompleted().setName("Debug after load");
 		if (random.nextBoolean()) {
 			job.setUrgent();
 			Thread.sleep(random.nextInt(2000) + 1);
 		}
 		job.setExpirationTime(1, TimeUnit.DAYS).setMaxExecutionTime(10, TimeUnit.MINUTES);
 		progression.update("...create the next job");
+		// job.setRequiredCompletedJob(required_tests); TODO
 		job.publish();
 		
 		if (random.nextBoolean()) {

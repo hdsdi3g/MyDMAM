@@ -16,19 +16,30 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.util.ArrayList;
-
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.manager.JobNG.AlterJobOrderName;
+import hd3gtv.mydmam.manager.JobNG.JobStatus;
 
 public class AsyncJSBrokerRequestAction {
 	
-	public enum Order {
-		delete, stop, setinwait, cancel, hipriority, noexpiration, postponed
+	public String job_key;
+	
+	public JobStatus all_status;
+	
+	public AlterJobOrderName order;
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Order: ");
+		sb.append(order);
+		if (job_key != null) {
+			sb.append(", job_key: ");
+			sb.append(job_key);
+		}
+		if (all_status != null) {
+			sb.append(", all_status: ");
+			sb.append(all_status);
+		}
+		return sb.toString();
 	}
-	
-	@GsonIgnore
-	public ArrayList<String> jobs_keys;
-	
-	public Order order;
 	
 }

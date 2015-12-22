@@ -14,6 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
+//TODO add manual full refresh button
 
 broker.Jobs = React.createClass({
 	getInitialState: function() {
@@ -21,27 +22,51 @@ broker.Jobs = React.createClass({
 			selected_tab: 0,
 			joblist: {},
 			since: 0,
+			last_full_refresh: 0,
 			interval: null,
 		};
 	},
 	onTabChange: function(new_tab, selected_status) {
 		this.setState({selected_tab: new_tab});
 	},
+	onActionTabClick: function(action, status_name) {
+		var request = {
+			all_status: status_name,
+			order: action,
+		};
+		mydmam.async.request("broker", "action", request, function(data) {
+			console.log(action, status_name, data); //XXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxx
+		});
+	},
+	onActionButtonClick: function(job, action_name) {
+		var request = {
+			job_key: job.key,
+			order: action_name,
+		};
+		mydmam.async.request("broker", "action", request, function(data) {
+			console.log(job, action_name, data); //XXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxx
+		});
+	},
 	componentWillMount: function() {
 		this.updateJobList();
 	},
 	componentDidMount: function(){
-		this.setState({interval: setInterval(this.updateJobList, 3000)});// SET OFF FOR DISABLE
+		this.setState({interval: setInterval(this.updateJobList, 3000)});
 	},
 	componentWillUnmount: function() {
 		if (this.state.interval) {
-			clearInterval(this.state.interval);// SET OFF FOR DISABLE
+			clearInterval(this.state.interval);
 		}
 	},
 	updateJobList: function() {
-		mydmam.async.request("broker", "list", {since: this.state.since}, function(data) {
-			if (this.state.since == 0) {
-				this.setState({joblist: data, since: Date.now()});
+		var since = this.state.since;
+		if (Date.now() - this.state.last_full_refresh > (5 * 60 * 1000)) {
+			since = 0;
+		}
+		
+		mydmam.async.request("broker", "list", {since: since}, function(data) {
+			if (since == 0) {
+				this.setState({joblist: data, since: Date.now(), last_full_refresh: Date.now()});
 			} else {
 				if (Object.keys(data).length == 0){
 					return;
@@ -54,10 +79,12 @@ broker.Jobs = React.createClass({
 		}.bind(this));
 	},
 	render: function(){
+		var action_avaliable = mydmam.async.isAvaliable("broker", "action");
+
 		return (
 			<mydmam.async.PageHeaderTitle title={i18n("Job list")} fluid="true">
-				<broker.NavTabs selected_tab={this.state.selected_tab} onTabChange={this.onTabChange} joblist={this.state.joblist} />
-				<broker.JobListCartridges joblist={this.state.joblist} selected_tab={this.state.selected_tab} />
+				<broker.NavTabs selected_tab={this.state.selected_tab} onActionTabClick={this.onActionTabClick} onTabChange={this.onTabChange} joblist={this.state.joblist} action_avaliable={action_avaliable} />
+				<broker.JobListCartridges joblist={this.state.joblist} selected_tab={this.state.selected_tab} onActionButtonClick={this.onActionButtonClick} action_avaliable={action_avaliable} />
 			</mydmam.async.PageHeaderTitle>
 		);
 	},
@@ -88,22 +115,38 @@ broker.status = {
 		tab: 9,	i18n_tab_name: "manager.jobs.status.POSTPONED",			badge_class: null,				btns: ["setinwait", "noexpiration", "delete"],	},
 };
 
-/*		
-		var btndelete = createBtn('', 'icon-trash', 'manager.jobs.btn.delete', 'delete');
-		var btnstop = createBtn('', 'icon-stop ', 'manager.jobs.btn.stop', 'stop');
-		var btnsetinwait = createBtn('', 'icon-inbox', 'manager.jobs.btn.setinwait', 'setinwait');
-		var btncancel = createBtn('', 'icon-off', 'manager.jobs.btn.cancel', 'cancel');
-		var btnhipriority = createBtn('', 'icon-warning-sign', 'manager.jobs.btn.hipriority', 'hipriority');
-		var btnpostponed = createBtn('', 'icon-step-forward', 'manager.jobs.btn.postponed', 'postponed');
-		
-		var btnnoexpiration = '';
-		if ((job.expiration_date - job.create_date) < mydmam.manager.jobs.default_max_expiration_time) {
-			btnnoexpiration = createBtn('', 'icon-calendar', 'manager.jobs.btn.noexpiration', 'noexpiration');
-		}
-*/
-
 broker.NavTabs = React.createClass({
-	render: function(){
+	getInitialState: function() {
+		return {
+			display_drop_down_action: false,
+		};
+	},
+	componentWillReceiveProps: function(nextProps){
+		if (this.props.action_avaliable == false) {
+			return;
+		}
+		this.updateDisplayDropDownAction(nextProps);
+	},
+	updateDisplayDropDownAction: function(props) {
+		if (this.props.action_avaliable == false) {
+			return;
+		}
+		for (var job_key in props.joblist){
+			var job = props.joblist[job_key];
+			if (broker.status[job.status].tab == props.selected_tab) {
+				this.setState({display_drop_down_action: true})
+				return;
+			}
+		}
+		this.setState({display_drop_down_action: false})
+	},
+	componentWillMount: function() {
+		if (this.props.action_avaliable == false) {
+			return;
+		}
+		this.updateDisplayDropDownAction(this.props);
+	},
+	render: function() {
 		var tabs_count = {0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0};
 
 		for (var job_key in this.props.joblist){
@@ -114,6 +157,7 @@ broker.NavTabs = React.createClass({
 		var tabs = [];
 		for (var status_name in broker.status) { 
 			var status = broker.status[status_name];
+			 
 			tabs.push(<broker.Tab
 				i18n_tab_name={status.i18n_tab_name}
 				tab_index={status.tab}
@@ -123,6 +167,17 @@ broker.NavTabs = React.createClass({
 				tabs_count={tabs_count}
 				key={status_name} />
 			);
+		}
+
+		if (this.state.display_drop_down_action & this.props.action_avaliable) {
+			var selected_status_tab = null;
+			for (var status_name in broker.status) {
+				if (this.props.selected_tab == broker.status[status_name].tab) {
+					selected_status_tab = status_name;
+					break;
+				}
+			}
+			tabs.push(<broker.NavTabDropDownAction key="action" selected_status_tab={selected_status_tab} onActionTabClick={this.props.onActionTabClick} />);
 		}
 
 		return (<ul className="nav nav-tabs">{tabs}</ul>);
@@ -158,6 +213,76 @@ broker.Tab = React.createClass({
 	},
 });
 
+broker.NavTabDropDownAction = React.createClass({
+	getInitialState: function() {
+		return {
+			active_dropdown_action_tab: false,
+		};
+	},
+    hide: function() {
+		document.removeEventListener("click", this.hide);
+    	this.setState({active_dropdown_action_tab: false});
+    },
+	componentWillUnmount: function () {
+		if (this.state.active_dropdown_action_tab) {
+			document.removeEventListener("click", this.hide);
+		}
+	},
+	onDropDownActionClick: function(e) {
+		e.preventDefault();
+		$(React.findDOMNode(this.refs.tab)).blur();
+		if (this.state.active_dropdown_action_tab) {
+			document.removeEventListener("click", this.hide);
+		} else {
+			document.addEventListener("click", this.hide);
+		}
+		this.setState({active_dropdown_action_tab: ! this.state.active_dropdown_action_tab});
+	},
+	onMenuClick_postponed: function(e) {	this.props.onActionTabClick("postponed", 	this.props.selected_status_tab);	},
+	onMenuClick_cancel: function(e) {		this.props.onActionTabClick("cancel", 		this.props.selected_status_tab);	},
+	onMenuClick_noexpiration: function(e) {	this.props.onActionTabClick("noexpiration", this.props.selected_status_tab);	},
+	onMenuClick_delete: function(e) {		this.props.onActionTabClick("delete", 		this.props.selected_status_tab);	},
+	onMenuClick_stop: function(e) {			this.props.onActionTabClick("stop", 		this.props.selected_status_tab);	},
+	onMenuClick_setinwait: function(e) {	this.props.onActionTabClick("setinwait", 	this.props.selected_status_tab);	},
+	render: function() {
+		var status = this.props.selected_status_tab;
+		var button_names_for_status = broker.status[status].btns;
+
+		var buttons = [];
+		for (var pos in button_names_for_status) {
+			var name = button_names_for_status[pos];
+			var label = " " + i18n("manager.jobs.btn." + name);
+			if (name == "postponed") {
+				buttons.push(<li key={name} onClick={this.onMenuClick_postponed}>	<a href={location.hash}><i className="icon-step-forward"></i>{label}	</a></li>); }
+			else if (name == "cancel") {	
+				buttons.push(<li key={name} onClick={this.onMenuClick_cancel}>		<a href={location.hash}><i className="icon-off"></i>{label}				</a></li>); }
+			else if (name == "noexpiration") {
+				buttons.push(<li key={name} onClick={this.onMenuClick_noexpiration}><a href={location.hash}><i className="icon-calendar"></i>{label}		</a></li>); }
+			else if (name == "delete") {
+				buttons.push(<li key={name} onClick={this.onMenuClick_delete}>		<a href={location.hash}><i className="icon-trash"></i>{label}			</a></li>); }
+			else if (name == "stop") {
+				buttons.push(<li key={name} onClick={this.onMenuClick_stop}>		<a href={location.hash}><i className="icon-stop"></i>{label}			</a></li>); }
+			else if (name == "setinwait") {
+				buttons.push(<li key={name} onClick={this.onMenuClick_setinwait}>	<a href={location.hash}><i className="icon-inbox"></i>{label}			</a></li>); }
+		}
+
+		if (buttons.length == 0) {
+			return null;
+		}
+
+		var dropdown_class = classNames("dropdown", "pull-right", {
+			"open": this.state.active_dropdown_action_tab,
+		});
+
+		return (<li key="action" ref="tab" className={dropdown_class}>
+			<a className="dropdown-toggle" href={location.hash} onClick={this.onDropDownActionClick}>For each <b className="caret"></b></a>
+			<ul className="dropdown-menu">
+				{buttons}
+			</ul>
+		</li>);
+	},
+});
+
 broker.JobListCartridges = React.createClass({
 	getInitialState: function() {
 		return {version: null, }
@@ -170,6 +295,7 @@ broker.JobListCartridges = React.createClass({
 	render: function() {
 		var joblist = this.props.joblist;
 		var selected_tab = this.props.selected_tab;
+		var max_display_jobs_reached = false;
 
 		var selected_jobs = [];
 		for (var job_key in this.props.joblist){
@@ -178,6 +304,11 @@ broker.JobListCartridges = React.createClass({
 				continue;
 			}
 			selected_jobs.push(job);
+
+			if (selected_jobs.length > 49) {
+				max_display_jobs_reached = true;
+				break;
+			}
 		}
 
 		if (selected_tab == broker.status.WAITING.tab) {
@@ -210,10 +341,22 @@ broker.JobListCartridges = React.createClass({
 					}
 				}
 			}
-			cartridges.push(<broker.JobCartridge key={job.key} job={job} version={this.state.version} required_jobs={required_jobs} />);
+			cartridges.push(<broker.JobCartridge
+				key={job.key}
+				job={job}
+				version={this.state.version}
+				required_jobs={required_jobs}
+				action_avaliable={this.props.action_avaliable}
+				onActionButtonClick={this.props.onActionButtonClick} />);
+		}
+
+		var too_many_jobs = null;
+		if (max_display_jobs_reached) {
+			too_many_jobs = (<mydmam.async.AlertBox title="Too many jobs to list here">You can actually see only {selected_jobs.length} jobs.</mydmam.async.AlertBox>);
 		}
 
 		return (<div>
+			{too_many_jobs}
 			{cartridges}
 		</div>);
 	},	
@@ -251,32 +394,32 @@ broker.JobProgression = React.createClass({
 				} else {
 					width = width + "%";
 				}
-
-				var progress_class_names = classNames("progress", {
-					"progress-striped": job.status === 'PREPARING'
-						| job.status === 'PROCESSING'
-						| job.status === 'STOPPED'
-						| job.status === 'TOO_LONG_DURATION'
-						| job.status === 'ERROR',
-					"active": job.status === 'PROCESSING',
-					"progress-warning": job.status === 'CANCELED',
-					"progress-danger": job.status === 'STOPPED'
-						| job.status === 'TOO_LONG_DURATION'
-						| job.status === 'ERROR'
-						| job.status === 'TOO_OLD',
-					"progress-success": job.status === 'DONE',
-					"progress-info": job.status === 'WAITING'
-						| job.status === 'PREPARING'
-						| job.status === 'PROCESSING'
-						| job.status === 'POSTPONED',
-				});
-
-				progression_bar = (
-					<div className={progress_class_names} style={{height: "12px", marginBottom: 0}}>
-						<div className="bar" style={{width: width}} />
-					</div>
-				);
 			}
+
+			var progress_class_names = classNames("progress", {
+				"progress-striped": job.status === 'PREPARING'
+					| job.status === 'PROCESSING'
+					| job.status === 'STOPPED'
+					| job.status === 'TOO_LONG_DURATION'
+					| job.status === 'ERROR',
+				"active": job.status === 'PROCESSING',
+				"progress-warning": job.status === 'CANCELED',
+				"progress-danger": job.status === 'STOPPED'
+					| job.status === 'TOO_LONG_DURATION'
+					| job.status === 'ERROR'
+					| job.status === 'TOO_OLD',
+				"progress-success": job.status === 'DONE',
+				"progress-info": job.status === 'WAITING'
+					| job.status === 'PREPARING'
+					| job.status === 'PROCESSING'
+					| job.status === 'POSTPONED',
+			});
+
+			progression_bar = (
+				<div className={progress_class_names} style={{height: "12px", marginBottom: 0}}>
+					<div className="bar" style={{width: width}} />
+				</div>
+			);
 
 			if (job.progression.last_message) {
 				last_message = (<em><i className="icon-comment"/> {job.progression.last_message}</em>);
@@ -336,17 +479,17 @@ broker.JobCartridgeActionButtons = React.createClass({
 
 			if (name == "hipriority") {
 				buttons.push(<button key={name} className={btn_class} style={btn_style} onClick={this.onClickButton_hipriority}>	<i className="icon-warning-sign"></i>{label}</button>); }
-			if (name == "postponed") {
+			else if (name == "postponed") {
 				buttons.push(<button key={name} className={btn_class} style={btn_style} onClick={this.onClickButton_postponed}>	<i className="icon-step-forward"></i>{label}</button>); }
-			if (name == "cancel") {	
+			else if (name == "cancel") {	
 				buttons.push(<button key={name} className={btn_class} style={btn_style} onClick={this.onClickButton_cancel}>	<i className="icon-off"></i>{label}</button>); }
-			if (name == "noexpiration") {
+			else if (name == "noexpiration") {
 				buttons.push(<button key={name} className={btn_class} style={btn_style} onClick={this.onClickButton_noexpiration}>	<i className="icon-calendar"></i>{label}</button>); }
-			if (name == "delete") {
-					buttons.push(<button key={name} className={btn_class} style={btn_style} onClick={this.onClickButton_delete}>	<i className="icon-trash"></i>{label}</button>); }
-			if (name == "stop") {
-					buttons.push(<button key={name} className={btn_class} style={btn_style} onClick={this.onClickButton_stop}>	<i className="icon-stop"></i>{label}</button>); }
-			if (name == "setinwait") {
+			else if (name == "delete") {
+				buttons.push(<button key={name} className={btn_class} style={btn_style} onClick={this.onClickButton_delete}>	<i className="icon-trash"></i>{label}</button>); }
+			else if (name == "stop") {
+				buttons.push(<button key={name} className={btn_class} style={btn_style} onClick={this.onClickButton_stop}>	<i className="icon-stop"></i>{label}</button>); }
+			else if (name == "setinwait") {
 				buttons.push(<button key={name} className={btn_class} style={btn_style} onClick={this.onClickButton_setinwait}>	<i className="icon-inbox"></i>{label}</button>); }
 		}
 
@@ -379,20 +522,22 @@ broker.JobCartridge = React.createClass({
 		this.setState({stacked: !this.state.stacked});
 	},
 	onActionButtonClick: function(action_name) {
-		console.log(this.props.job, action_name);
-		/*hipriority") postponed"); cancel");	 noexpiration delete");	stop");	},setinwait"); TODO btns*/
+		this.props.onActionButtonClick(this.props.job, action_name);
+	},
+	onClickDoNothing: function(e) {
+		e.stopPropagation();
 	},
 	render: function() {
 		var job = this.props.job;
 		var required_jobs = this.props.required_jobs;
 
-		// TODO job.context
 		// TODO required_jobs
 
 		var creator = null;
 		var dates_start_end = null;
 		var processing_error = null;
 		var worker_ref = null;
+		var context = null;
 
 		if (this.state.stacked) {
 			var max_execution_time = null;
@@ -404,6 +549,9 @@ broker.JobCartridge = React.createClass({
 				}
 			}
 
+			/**
+			 * Display dates
+			 */
 			creator = (<div>
 				<div style={{marginTop: 5}}>
 					<mydmam.async.pathindex.reactDate i18nlabel="create_date" date={job.create_date} style={{marginLeft: 0}} />
@@ -440,8 +588,54 @@ broker.JobCartridge = React.createClass({
 			}
 			dates_start_end = (<div>{dates_start_end_content}</div>);
 
+			/**
+			 * Display Stacktrace
+			 */
 			processing_error = (<mydmam.async.JavaStackTrace processing_error={job.processing_error} version={this.props.version} />);
 
+			/**
+			 * Display context
+			 */
+			var context_content = null;
+			var context_content_json = JSON.stringify(job.context.content, null, " ");
+			if (context_content_json != "{}") {
+				context_content = (<code className="json" onClick={this.onClickDoNothing}>
+					<i className="icon-indent-left"></i>
+					<span className="jsontitle"> Données du contexte : </span>
+					{context_content_json}
+				</code>);	
+			}
+
+			var context_neededstorages = null;
+			if (job.context.neededstorages) {
+				var label = "Target storage:";
+				if (job.context.neededstorages.length > 1) {
+					label = "Target storages:";
+				}
+				context_neededstorages = (<span>{label} <span className="badge badge-warning"><i className="icon-hdd icon-white"></i> {job.context.neededstorages.join(", ")}</span></span>);
+			}
+
+			var context_hookednames = null;
+			if (job.context.hookednames) {
+				var label = "Hooked name:";
+				if (job.context.hookednames.length > 1) {
+					label = "Hooked names:";
+				}
+				context_hookednames = (<span>{label} <span className="badge badge-inverse"><i className="icon-tags icon-white"></i> {job.context.hookednames.join(", ")}</span></span>);
+			}
+
+			context = (<div style={{marginBottom: 7}}>
+				<div style={{marginTop: 5}}>
+					Context Class: <mydmam.async.JavaClassNameLink javaclass={job.context.classname} version={this.props.version} />
+				</div>
+				<div style={{marginTop: 5}}>{context_neededstorages}</div>
+				<div style={{marginTop: 5}}>{context_hookednames}</div>
+				<div style={{marginTop: 7}}>{context_content}</div>
+			</div>);
+
+			/**
+			 * Display references
+			 */
 			var job_ref = (<div style={{marginTop: 5}}>
 				Job ref: <span>{broker.displayKey(job.key, true)}</span>
 			</div>);
@@ -505,6 +699,11 @@ broker.JobCartridge = React.createClass({
 			"stacked": this.state.stacked,
 		});
 
+		var action_buttons = null;
+		if (this.props.action_avaliable) {
+			action_buttons = (<broker.JobCartridgeActionButtons status={job.status} stacked={this.state.stacked} onActionButtonClick={this.onActionButtonClick} />);
+		}
+
 		return (<div className={main_div_classname} onClick={this.onToogleCartridgeSize}>
 			<div className="span3 nomargin">
 				<strong>{job.name}</strong>
@@ -516,12 +715,13 @@ broker.JobCartridge = React.createClass({
 			</div>
 			<div className="span3 nomargin">
 				{div_3rd_zone}
+				{context}
 				{processing_error}
 			</div>
 			<div className="span3 nomargin">
 				{instance_status_executor_key}
 				{worker_ref}
-			    <broker.JobCartridgeActionButtons status={job.status} stacked={this.state.stacked} onActionButtonClick={this.onActionButtonClick} />
+			    {action_buttons}
 			</div>
 		</div>);
 

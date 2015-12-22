@@ -20,7 +20,6 @@ import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import hd3gtv.mydmam.Loggers;
@@ -31,7 +30,6 @@ import hd3gtv.mydmam.ftpserver.FTPActivity;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.mydmam.manager.JobAction;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.WorkerExporter;
 import play.Play;
@@ -195,12 +193,7 @@ public class Manager extends Controller {
 	 */
 	@Check("actionJobs")
 	public static void jobaction(@Required String requestactions) throws Exception {
-		if (Validation.hasErrors()) {
-			renderJSON("[\"validation error\"]");
-		}
-		JobAction action = AppManager.getGson().fromJson(requestactions, JobAction.class);
-		JsonElement result = action.doAction(getCaller());
-		renderJSON(result.toString());
+		renderJSON("{}");
 	}
 	
 	@Check("adminFtpServer")

@@ -16,13 +16,13 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.util.HashMap;
+import com.google.gson.JsonObject;
 
 import hd3gtv.tools.GsonIgnore;
 
 public class AsyncJSBrokerResponseAction {
 	
 	@GsonIgnore
-	public HashMap<String, JobNG> modified_jobs;
+	public JsonObject modified_jobs;
 	
 }

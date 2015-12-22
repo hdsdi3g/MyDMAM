@@ -117,6 +117,7 @@ code.json {
     display: block;
     color: rgb(18,96,23);
     line-height: 1.3em;
+    cursor: auto;
 }
 
 code.json span.jsontitle {
