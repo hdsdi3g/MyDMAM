@@ -18,7 +18,10 @@ package hd3gtv.mydmam.cli;
 
 import java.util.ArrayList;
 
+import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -31,6 +34,12 @@ public class MainClass {
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
+		Logger.getRootLogger().removeAllAppenders();
+		ConsoleAppender console_appender = new ConsoleAppender();
+		console_appender.setTarget(ConsoleAppender.SYSTEM_ERR);
+		console_appender.setLayout(new PatternLayout("%-5p ‹%t› “%m”%n ‣ %C.%M(%F:%L)%n"));
+		console_appender.activateOptions();
+		Logger.getRootLogger().addAppender(console_appender);
 		Loggers._MyDMAM_Root.setLevel(Level.WARN);
 		
 		MyDMAM.testIllegalKeySize();
