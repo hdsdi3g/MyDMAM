@@ -32,6 +32,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -118,12 +119,25 @@ public class JSXTransformer {
 		if (is_init == false) {
 			throw new InstantiationError("JSXTransformer is not instantiated correctly");
 		}
-		Context.enter();
 		try {
-			NativeObject result = (NativeObject) transform.call(ctx, topLevelScope, exports, new String[] { jsx });
-			return result.get("code").toString();
-		} finally {
-			Context.exit();
+			Context.enter();
+			try {
+				NativeObject result = (NativeObject) transform.call(ctx, topLevelScope, exports, new String[] { jsx });
+				return result.get("code").toString();
+			} finally {
+				Context.exit();
+			}
+		} catch (Error e) {
+			if (Loggers.Play.isDebugEnabled()) {
+				int jsx_len = 100;
+				if (jsx.length() < jsx_len) {
+					jsx_len = jsx.length();
+				}
+				Loggers.Play.error("JSX Transformer error: " + jsx.substring(jsx_len), e);
+			} else {
+				Loggers.Play.error("JSX Transformer error", e);
+			}
+			throw e;
 		}
 	}
 	
@@ -151,6 +165,16 @@ public class JSXTransformer {
 			try {
 				return _transform(jsx);
 			} catch (JavaScriptException e) {
+				LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+				log.put("message", e.getMessage());
+				log.put("source name", e.sourceName());
+				log.put("line source", e.lineSource());
+				log.put("line number", e.lineNumber());
+				log.put("column number", e.columnNumber());
+				log.put("script stack trace", e.getScriptStackTrace());
+				log.put("details", e.details());
+				Loggers.Play.error("JSX Transformer JavaScriptException " + log, e);
+				
 				String v_file_content = jsx;
 				v_file_content = v_file_content.replaceAll("/r", "");
 				String[] lines = v_file_content.split("\n");
