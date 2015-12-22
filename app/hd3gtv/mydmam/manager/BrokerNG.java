@@ -44,12 +44,11 @@ class BrokerNG {
 	private static final int GRACE_PERIOD_TO_REMOVE_DELETED_AFTER_COMPLETED_JOB = 1000 * 30;
 	
 	private AppManager manager;
-	private QueueOperations queue_operations;
-	private QueueNewJobs queue_new_jobs;
 	private volatile List<JobNG> active_jobs;
 	private volatile ArrayList<CyclicJobCreator> declared_cyclics;
 	private volatile ArrayList<TriggerJobCreator> declared_triggers;
 	private boolean active_clean_jobs;
+	private QueueWatchDog watch_dog;
 	
 	BrokerNG(AppManager manager) {
 		this.manager = manager;
@@ -62,6 +61,7 @@ class BrokerNG {
 		} else {
 			active_clean_jobs = true;
 		}
+		watch_dog = new QueueWatchDog();
 	}
 	
 	ArrayList<CyclicJobCreator> getDeclared_cyclics() {
@@ -92,38 +92,18 @@ class BrokerNG {
 		if (isAlive()) {
 			return;
 		}
-		if (Loggers.Broker.isDebugEnabled()) {
-			Loggers.Broker.debug("Start Broker");
-		} else {
-			Loggers.Manager.debug("Start Broker");
-		}
-		
-		queue_operations = new QueueOperations();
-		queue_operations.start();
-		queue_new_jobs = new QueueNewJobs();
-		queue_new_jobs.start();
+		watch_dog = new QueueWatchDog();
+		watch_dog.start();
 	}
 	
 	synchronized void askStop() {
-		if (Loggers.Broker.isDebugEnabled()) {
-			Loggers.Broker.debug("Stop Broker");
-		} else {
-			Loggers.Manager.debug("Stop Broker");
-		}
-		
-		if (queue_operations != null) {
-			queue_operations.stop_queue = true;
-		}
-		if (queue_new_jobs != null) {
-			queue_new_jobs.stop_queue = true;
+		if (isAlive()) {
+			watch_dog.waitToStop();
 		}
 	}
 	
 	boolean isAlive() {
-		if ((queue_operations == null) | (queue_new_jobs == null)) {
-			return false;
-		}
-		return queue_operations.isAlive() | queue_new_jobs.isAlive();
+		return watch_dog.isAlive();
 	}
 	
 	private class QueueOperations extends Thread {
@@ -239,11 +219,6 @@ class BrokerNG {
 						return;
 					}
 					
-					if (queue_new_jobs != null) {
-						if (queue_new_jobs.isAlive() == false) {
-							throw new Exception("Queue for new jobs is terminated, stop operations");
-						}
-					}
 					Thread.sleep(QUEUE_SLEEP_TIME);
 				}
 			} catch (Exception e) {
@@ -503,4 +478,94 @@ class BrokerNG {
 		}
 	}
 	
+	/**
+	 * Start, watch and stop Operations and NewJobs
+	 */
+	private class QueueWatchDog extends Thread {
+		
+		private boolean stop_watch;
+		
+		public void waitToStop() {
+			try {
+				stop_watch = true;
+				while (isAlive()) {
+					Thread.sleep(100);
+				}
+			} catch (InterruptedException e) {
+				Loggers.Broker.error("Can't wait to stop", e);
+			}
+		}
+		
+		private void nonBlocking10secSleep() throws InterruptedException {
+			for (int pos = 0; pos < 1000; pos++) {
+				if (stop_watch) {
+					return;
+				}
+				Thread.sleep(10);
+			}
+		}
+		
+		public void run() {
+			try {
+				/**
+				 * Start zone
+				 */
+				if (Loggers.Broker.isDebugEnabled()) {
+					Loggers.Broker.debug("Start Broker");
+				}
+				
+				QueueOperations queue_operations = new QueueOperations();
+				queue_operations.start();
+				
+				QueueNewJobs queue_new_jobs = new QueueNewJobs();
+				queue_new_jobs.start();
+				
+				stop_watch = false;
+				
+				while (stop_watch == false) {
+					if (queue_operations.isAlive() == false) {
+						Loggers.Broker.warn("QueueOperations thread is not alive...");
+						nonBlocking10secSleep();
+						if (stop_watch) {
+							break;
+						}
+						queue_operations = new QueueOperations();
+						queue_operations.start();
+					}
+					
+					if (queue_new_jobs.isAlive() == false) {
+						Loggers.Broker.warn("QueueNewJobs thread is not alive...");
+						nonBlocking10secSleep();
+						if (stop_watch) {
+							break;
+						}
+						queue_new_jobs = new QueueNewJobs();
+						queue_new_jobs.start();
+					}
+					
+					Thread.sleep(10);
+				}
+				
+				/**
+				 * Stop zone
+				 */
+				if (Loggers.Broker.isDebugEnabled()) {
+					Loggers.Broker.debug("Stop Broker");
+				}
+				
+				queue_operations.stop_queue = true;
+				queue_new_jobs.stop_queue = true;
+				
+				while (queue_operations.isAlive()) {
+					Thread.sleep(10);
+				}
+				while (queue_new_jobs.isAlive()) {
+					Thread.sleep(10);
+				}
+				
+			} catch (InterruptedException e) {
+				Loggers.Broker.error("Can't sleep watchdog", e);
+			}
+		}
+	}
 }
