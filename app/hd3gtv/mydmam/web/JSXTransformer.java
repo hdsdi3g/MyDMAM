@@ -65,7 +65,6 @@ public class JSXTransformer {
 	
 	public static final String JSXTRANSFORMER_PATH = "/public/javascripts/lib/JSXTransformer-0.13.2.js";
 	public static final String JSX_SRC = "/app/react";
-	public static final String JSX_CLASSDEF_NAME = "_package";
 	
 	public static final JSXTransformer global;
 	private static final Gson gson_simple;
@@ -295,9 +294,9 @@ public class JSXTransformer {
 		
 		for (int pos = 0; pos < all_jsx_dirs_simple_path.size(); pos++) {
 			jsx_dir = all_jsx_dirs_simple_path.get(pos).substring(1).replaceAll(File.separator, ".");
-			sb.append("if(!");
+			sb.append("if(!window.");
 			sb.append(jsx_dir);
-			sb.append("){");
+			sb.append("){window.");
 			sb.append(jsx_dir);
 			sb.append(" = {};}");
 			sb.append(MyDMAM.LINESEPARATOR);
