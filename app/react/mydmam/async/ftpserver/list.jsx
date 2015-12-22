@@ -146,7 +146,6 @@ ftpserver.UserList = React.createClass({
 				<mydmam.async.AlertInfoBox>
 					{i18n("ftpserver.userlist.nousers")}
 				</mydmam.async.AlertInfoBox>
-				{BtnAdduser}
 			</div>);
 		}
 
