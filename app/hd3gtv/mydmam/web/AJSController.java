@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.web;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,7 +87,12 @@ public class AJSController {
 			}
 			
 			if (AJSController.class.isAssignableFrom(class_candidate)) {
+				if (isControllerIsEnabled(class_candidate) == false) {
+					Loggers.Play.debug("Controller " + class_candidate.getName() + " is currently disabled.");
+					continue;
+				}
 				item = new AJSControllerItem(class_candidate);
+				
 				if (item.isEmpty() == false) {
 					controllers.put(class_candidate.getSimpleName().toLowerCase(), item);
 				}
@@ -95,6 +102,38 @@ public class AJSController {
 			}
 		}
 		
+	}
+	
+	private static boolean isControllerIsEnabled(Class<?> controller) {
+		try {
+			Method[] ms = controller.getMethods();
+			Method m = null;
+			for (int pos = 0; pos < ms.length; pos++) {
+				if (ms[pos].getName().equalsIgnoreCase("isEnabled")) {
+					m = ms[pos];
+				}
+			}
+			
+			if (m == null) {
+				return true;
+			}
+			
+			int mod = m.getModifiers();
+			if (Modifier.isPublic(mod) == false | Modifier.isStatic(mod) == false) {
+				return true;
+			}
+			if (Modifier.isAbstract(mod) | Modifier.isInterface(mod) | Modifier.isNative(mod) | Modifier.isStrict(mod) | Modifier.isSynchronized(mod)) {
+				return true;
+			}
+			if (m.getReturnType() == boolean.class | m.getReturnType() == Boolean.class) {
+				return (Boolean) m.invoke(null);
+			} else {
+				Loggers.Play.warn("Invalid return type in check is AJS controller is enabled, for " + controller + " (" + m.getReturnType() + ")");
+			}
+		} catch (Exception e) {
+			Loggers.Play.error("Can't check if AJSContoller is enabled for " + controller, e);
+		}
+		return true;
 	}
 	
 	@AJSIgnore

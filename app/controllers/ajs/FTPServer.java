@@ -74,6 +74,10 @@ public class FTPServer extends AJSController {
 		
 	}
 	
+	public static boolean isEnabled() {
+		return Configuration.global.isElementExists("ftpserveradmin");
+	}
+	
 	@Check({ "ftpServer", "adminFtpServer" })
 	public static AJSResponseActivities recentactivities(AJSRequestRecent request) throws Exception {
 		AJSResponseActivities response = new AJSResponseActivities();

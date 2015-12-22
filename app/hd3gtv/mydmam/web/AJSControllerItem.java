@@ -51,6 +51,9 @@ class AJSControllerItem {
 		int mod;
 		for (int pos = 0; pos < raw_methods.length; pos++) {
 			m = raw_methods[pos];
+			if (m.getName().equalsIgnoreCase("isenabled")) {
+				continue;
+			}
 			mod = m.getModifiers();
 			if (Modifier.isPublic(mod) == false | Modifier.isStatic(mod) == false) {
 				continue;
