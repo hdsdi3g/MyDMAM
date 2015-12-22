@@ -135,7 +135,7 @@ public class JSXTransformer {
 				}
 				Loggers.Play.error("JSX Transformer error: " + jsx.substring(jsx_len), e);
 			} else {
-				Loggers.Play.error("JSX Transformer error", e);
+				Loggers.Play.error("JSX Transformer error: " + e.getMessage());
 			}
 			throw e;
 		}
@@ -172,8 +172,14 @@ public class JSXTransformer {
 				log.put("line number", e.lineNumber());
 				log.put("column number", e.columnNumber());
 				log.put("script stack trace", e.getScriptStackTrace());
+				int jsx_len = 100;
+				if (jsx.length() < jsx_len) {
+					jsx_len = jsx.length();
+				}
 				log.put("details", e.details());
-				Loggers.Play.error("JSX Transformer JavaScriptException " + log, e);
+				log.put("jsx", jsx.substring(0, jsx_len));
+				log.put("message", e.getMessage());
+				Loggers.Play.error("JSX Transformer JavaScriptException " + log);
 				
 				String v_file_content = jsx;
 				v_file_content = v_file_content.replaceAll("/r", "");
