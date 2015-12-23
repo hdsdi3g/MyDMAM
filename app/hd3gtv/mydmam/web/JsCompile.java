@@ -47,10 +47,12 @@ import yuiforkorgmozillajavascript.ErrorReporter;
 /**
  * "Binary" is optimzed version of a javascript commented source file.
  */
+@Deprecated
 public class JsCompile {
 	
 	public static final String PUBLIC_JAVASCRIPT_DIRECTORY = "/public/javascripts";
 	public static final String SOURCE_DIRECTORY = "src";
+	public static final String JSX_DIRECTORY = "jsx";
 	public static final String BINARY_DIRECTORY = "bin";
 	
 	private static final ConcurrentHashMap<String, Db> compiled_db = new ConcurrentHashMap<String, JsCompile.Db>();

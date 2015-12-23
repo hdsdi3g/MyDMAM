@@ -27,6 +27,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.web.JSDatabase;
 import hd3gtv.mydmam.web.JSXTransformer;
 import hd3gtv.mydmam.web.JsCompile;
 import hd3gtv.mydmam.web.Privileges;
@@ -174,6 +175,15 @@ public class Bootstrap extends Job {
 			AuthenticationBackend.checkFirstPlayBoot();
 		} catch (Exception e) {
 			Loggers.Play.error("Invalid authentication backend configuration", e);
+		}
+		
+		try {
+			JSDatabase.init();
+			Loggers.Play.info("Altered JS files: " + JSDatabase.getAlteredFiles());
+			Loggers.Play.info("New JS files: " + JSDatabase.getNewFiles());
+			JSDatabase.saveAll();
+		} catch (Exception e) {
+			Loggers.Play.error("Can't load all JS Databases", e);
 		}
 		
 		JsCompile.purgeBinDirectory();
