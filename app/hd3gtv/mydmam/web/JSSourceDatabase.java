@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -43,40 +42,30 @@ import com.google.gson.JsonSerializer;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
-import play.Play;
-import play.vfs.VirtualFile;
 
-public class JSDatabase {
+public class JSSourceDatabase {
 	
 	private static final String BASE_CONF_DIRECTORY = File.separator + "conf";
 	
 	private static final String BASE_SOURCE_DIRECTORY_JSX = "/app/react";
 	private static final String BASE_SOURCE_DIRECTORY_VANILLA_JS = "/public/javascripts/src";
-	private static final String BASE_TRANSFORMED_DIRECTORY_JSX = "/public/javascripts/jsx";
-	private static final String BASE_REDUCED_DIRECTORY_JS = "/public/javascripts/bin";
 	
-	/*private static File getDeclarationFile(File transformed_jsx_directory, String module_name) {
-		return new File(transformed_jsx_directory + File.separator + "_declarations_" + module_name + ".jsx");
-	}*/
-	
-	@GsonIgnore
-	private static final ArrayList<JSDatabase> modules_databases;
 	private static final Gson gson_simple;
 	private static final Gson gson;
 	
-	private static final Type type_HM_db = new TypeToken<HashMap<String, JSDatabaseEntry>>() {
+	private static final Type type_HM_db = new TypeToken<HashMap<String, JSSourceDatabaseEntry>>() {
 	}.getType();
 	
-	private final static class Serializer implements JsonSerializer<JSDatabase>, JsonDeserializer<JSDatabase> {
+	private final static class Serializer implements JsonSerializer<JSSourceDatabase>, JsonDeserializer<JSSourceDatabase> {
 		
-		public JsonElement serialize(JSDatabase src, Type typeOfSrc, JsonSerializationContext context) {
+		public JsonElement serialize(JSSourceDatabase src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = gson_simple.toJsonTree(src).getAsJsonObject();
 			result.add("entries", gson_simple.toJsonTree(src.entries, type_HM_db));
 			return result;
 		}
 		
-		public JSDatabase deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			JSDatabase result = gson_simple.fromJson(jejson, JSDatabase.class);
+		public JSSourceDatabase deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			JSSourceDatabase result = gson_simple.fromJson(jejson, JSSourceDatabase.class);
 			result.entries = gson_simple.fromJson(jejson.getAsJsonObject().get("entries"), type_HM_db);
 			return result;
 		}
@@ -84,8 +73,6 @@ public class JSDatabase {
 	}
 	
 	static {
-		modules_databases = new ArrayList<JSDatabase>(1);
-		
 		GsonBuilder builder = new GsonBuilder();
 		builder.serializeNulls();
 		
@@ -94,66 +81,41 @@ public class JSDatabase {
 		builder.addSerializationExclusionStrategy(ignore_strategy);
 		gson_simple = builder.create();
 		
-		builder.registerTypeAdapter(JSDatabase.class, new Serializer());
+		builder.registerTypeAdapter(JSSourceDatabase.class, new Serializer());
 		builder.setPrettyPrinting();
 		gson = builder.create();
-	}
-	
-	public static void init() throws ClassNotFoundException, IOException {
-		for (VirtualFile vfile : Play.roots) {
-			/**
-			 * 1st pass : get only main, the first.
-			 */
-			modules_databases.add(JSDatabase.create("internal", vfile.getRealFile().getAbsoluteFile()));
-			break;
-		}
-		for (Map.Entry<String, VirtualFile> entry : Play.modules.entrySet()) {
-			/**
-			 * 2nd pass : get the modules paths and names.
-			 */
-			if (entry.getKey().startsWith("_")) {
-				continue;
-			}
-			modules_databases.add(JSDatabase.create(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile()));
-		}
 	}
 	
 	private transient File dbfile;
 	private transient String module_name;
 	private transient File module_path;
-	private HashMap<String, JSDatabaseEntry> entries;
+	@GsonIgnore
+	private HashMap<String, JSSourceDatabaseEntry> entries;
 	
-	private static JSDatabase create(String module_name, File module_path) throws IOException {
-		if (module_name == null) {
-			throw new NullPointerException("\"module_name\" can't to be null");
-		}
-		if (module_path == null) {
-			throw new NullPointerException("\"module_path\" can't to be null");
-		}
-		
-		JSDatabase jsdb = null;
-		File dbfile = new File(module_path.getPath() + BASE_CONF_DIRECTORY + File.separator + "jsfiles.json");
+	static JSSourceDatabase create(JSSourceModule source_module) throws IOException {
+		JSSourceDatabase jsdb = null;
+		File dbfile = new File(source_module.getModulePath().getPath() + BASE_CONF_DIRECTORY + File.separator + "jsfiles.json");
 		
 		if (dbfile.exists() == false) {
-			jsdb = new JSDatabase();
+			jsdb = new JSSourceDatabase();
 			jsdb.dbfile = dbfile;
-			jsdb.module_name = module_name;
-			jsdb.module_path = module_path;
-			jsdb.entries = new HashMap<String, JSDatabaseEntry>();
+			jsdb.module_name = source_module.getModuleName();
+			jsdb.module_path = source_module.getModulePath();
+			jsdb.entries = new HashMap<String, JSSourceDatabaseEntry>();
 			jsdb.save();
 		} else {
-			jsdb = gson.fromJson(FileUtils.readFileToString(dbfile), JSDatabase.class);
+			jsdb = gson.fromJson(FileUtils.readFileToString(dbfile), JSSourceDatabase.class);
 			jsdb.dbfile = dbfile;
-			jsdb.module_name = module_name;
-			jsdb.module_path = module_path;
+			jsdb.module_name = source_module.getModuleName();
+			jsdb.module_path = source_module.getModulePath();
 		}
 		return jsdb;
 	}
 	
-	private JSDatabase() {
+	private JSSourceDatabase() {
 	}
 	
-	private void save() throws IOException {
+	void save() throws IOException {
 		FileUtils.write(dbfile, gson.toJson(this));
 	}
 	
@@ -161,11 +123,11 @@ public class JSDatabase {
 	 * Remove old/invalid db entries.
 	 * @return it can be maybe deleted files !
 	 */
-	public ArrayList<JSDatabaseEntry> checkAndClean() {
-		ArrayList<JSDatabaseEntry> result = new ArrayList<JSDatabaseEntry>();
+	ArrayList<JSSourceDatabaseEntry> checkAndClean() {
+		ArrayList<JSSourceDatabaseEntry> result = new ArrayList<JSSourceDatabaseEntry>();
 		ArrayList<String> remove_this = new ArrayList<String>();
 		
-		for (Map.Entry<String, JSDatabaseEntry> entry : entries.entrySet()) {
+		for (Map.Entry<String, JSSourceDatabaseEntry> entry : entries.entrySet()) {
 			try {
 				entry.getValue().checkRealFile(module_path);
 			} catch (FileNotFoundException e) {
@@ -185,8 +147,8 @@ public class JSDatabase {
 		return result;
 	}
 	
-	public ArrayList<JSDatabaseEntry> newEntries() {
-		ArrayList<JSDatabaseEntry> new_files = new ArrayList<JSDatabaseEntry>();
+	ArrayList<JSSourceDatabaseEntry> newEntries() {
+		ArrayList<JSSourceDatabaseEntry> new_files = new ArrayList<JSSourceDatabaseEntry>();
 		
 		File_Filter file_filter = new File_Filter();
 		File founded;
@@ -197,10 +159,10 @@ public class JSDatabase {
 			FileUtils.listFilesAndDirs(source_vanilla_js, file_filter, TrueFileFilter.INSTANCE);
 			for (int pos = 0; pos < file_filter.all_files.size(); pos++) {
 				founded = file_filter.all_files.get(pos);
-				key_name = JSDatabaseEntry.makeKeyName(module_path, founded);
+				key_name = JSSourceDatabaseEntry.makeKeyName(module_path, founded);
 				if (entries.containsKey(key_name) == false) {
-					JSDatabaseEntry entry;
-					entry = new JSDatabaseEntry(module_path, founded, BASE_SOURCE_DIRECTORY_VANILLA_JS);
+					JSSourceDatabaseEntry entry;
+					entry = new JSSourceDatabaseEntry(module_path, founded, BASE_SOURCE_DIRECTORY_VANILLA_JS);
 					entries.put(key_name, entry);
 					new_files.add(entry);
 				}
@@ -213,10 +175,10 @@ public class JSDatabase {
 			FileUtils.listFilesAndDirs(source_jsx, file_filter, TrueFileFilter.INSTANCE);
 			for (int pos = 0; pos < file_filter.all_files.size(); pos++) {
 				founded = file_filter.all_files.get(pos);
-				key_name = JSDatabaseEntry.makeKeyName(module_path, founded);
+				key_name = JSSourceDatabaseEntry.makeKeyName(module_path, founded);
 				if (entries.containsKey(key_name) == false) {
-					JSDatabaseEntry entry;
-					entry = new JSDatabaseEntry(module_path, founded, BASE_SOURCE_DIRECTORY_JSX);
+					JSSourceDatabaseEntry entry;
+					entry = new JSSourceDatabaseEntry(module_path, founded, BASE_SOURCE_DIRECTORY_JSX);
 					entries.put(key_name, entry);
 					new_files.add(entry);
 				}
@@ -243,50 +205,6 @@ public class JSDatabase {
 			}
 			all_files.add(file);
 			return file.isDirectory();
-		}
-	}
-	
-	/**
-	 * @return module name -> file list
-	 */
-	public static LinkedHashMap<String, ArrayList<JSDatabaseEntry>> getAlteredFiles() {
-		LinkedHashMap<String, ArrayList<JSDatabaseEntry>> result = new LinkedHashMap<String, ArrayList<JSDatabaseEntry>>();
-		JSDatabase db;
-		ArrayList<JSDatabaseEntry> entries;
-		for (int pos = 0; pos < modules_databases.size(); pos++) {
-			db = modules_databases.get(pos);
-			entries = db.checkAndClean();
-			if (entries.isEmpty() == false) {
-				result.put(db.module_name, entries);
-			}
-		}
-		return result;
-	}
-	
-	/**
-	 * @return module name -> file list
-	 */
-	public static LinkedHashMap<String, ArrayList<JSDatabaseEntry>> getNewFiles() {
-		LinkedHashMap<String, ArrayList<JSDatabaseEntry>> result = new LinkedHashMap<String, ArrayList<JSDatabaseEntry>>();
-		JSDatabase db;
-		ArrayList<JSDatabaseEntry> entries;
-		for (int pos = 0; pos < modules_databases.size(); pos++) {
-			db = modules_databases.get(pos);
-			entries = db.newEntries();
-			if (entries.isEmpty() == false) {
-				result.put(db.module_name, entries);
-			}
-		}
-		return result;
-	}
-	
-	public static void saveAll() {
-		for (int pos = 0; pos < modules_databases.size(); pos++) {
-			try {
-				modules_databases.get(pos).save();
-			} catch (IOException e) {
-				Loggers.Play.error("Can't save entries");
-			}
 		}
 	}
 	

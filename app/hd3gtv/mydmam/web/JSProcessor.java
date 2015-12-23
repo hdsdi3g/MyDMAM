@@ -134,6 +134,7 @@ public class JSProcessor {
 		StringWriter sw = new StringWriter();
 		compressor.compress(sw, 80, true, false, true, false);
 		output = sw.toString();
+		input = output;
 	}
 	
 	/**
@@ -145,6 +146,7 @@ public class JSProcessor {
 		try {
 			NativeObject result = (NativeObject) transform.call(ctx, topLevelScope, exports, new String[] { input });
 			output = result.get("code").toString();
+			input = output;
 		} finally {
 			Context.exit();
 		}
