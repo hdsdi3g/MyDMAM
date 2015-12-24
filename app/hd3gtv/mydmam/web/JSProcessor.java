@@ -106,30 +106,20 @@ public class JSProcessor {
 	
 	private String input;
 	private String output;
-	private String ref;
-	
-	public JSProcessor(String input, String ref) {
-		this.input = input;
-		if (input == null) {
-			throw new NullPointerException("\"input\" can't to be null");
-		}
-		this.ref = ref;
-		if (ref == null) {
-			throw new NullPointerException("\"ref\" can't to be null");
-		}
-		
-	}
+	private File filename;
 	
 	public JSProcessor(File filename) throws NullPointerException, IOException {
+		this.filename = filename;
 		if (filename == null) {
-			throw new NullPointerException("\"input\" can't to be null");
+			throw new NullPointerException("\"filename\" can't to be null");
 		}
 		CopyMove.checkExistsCanRead(filename);
 		input = FileUtils.readFileToString(filename);
+		output = "";
 	}
 	
 	public void reduceJS() throws Exception {
-		Loggers.Play.debug("Reduce JS: " + ref);
+		Loggers.Play.trace("Reduce JS: " + filename.getPath());
 		JavaScriptCompressor compressor = new JavaScriptCompressor(new StringReader(input), rhino_compiler_error_reporter);
 		StringWriter sw = new StringWriter();
 		compressor.compress(sw, 80, true, false, true, false);
@@ -141,7 +131,7 @@ public class JSProcessor {
 	 * Not thread safe !
 	 */
 	public void transformJSX() throws Exception {
-		Loggers.Play.debug("Transform JSX: " + ref);
+		Loggers.Play.trace("Transform JSX: " + filename.getPath());
 		Context.enter();
 		try {
 			NativeObject result = (NativeObject) transform.call(ctx, topLevelScope, exports, new String[] { input });
@@ -153,8 +143,21 @@ public class JSProcessor {
 	}
 	
 	public void writeTo(File filename) throws IOException {
-		Loggers.Play.debug("Write " + ref + " to " + filename);
+		Loggers.Play.trace("Write " + filename.getPath() + " processed to " + filename);
 		FileUtils.write(filename, output, false);
+	}
+	
+	public void wrapTransformationError(Exception e) {
+		// TODO manage error return to JS file / log
+		// output= !! input!!
+		input = output;
+		
+	}
+	
+	public void wrapScopeDeclaration(String source_scope) {
+		// output = source_scope ... input
+		// TODO add JS scope wrapper
+		input = output;
 	}
 	
 }

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.CopyMove;
 
 public class JSSourceModule {
@@ -83,46 +84,6 @@ public class JSSourceModule {
 		return module_path;
 	}
 	
-	private File computeTransformedFilepath(JSSourceDatabaseEntry entry) {
-		// TODO move this to DBEntry
-		File source_file = entry.getRealFile(module_path);
-		String source_base_name = FilenameUtils.getBaseName(source_file.getPath());
-		String source_scope = entry.computeJSScope();
-		
-		StringBuilder sb = new StringBuilder();
-		sb.append(transformed_directory.getPath());
-		sb.append(File.separator);
-		if (source_scope != null) {
-			sb.append(source_scope);
-		} else {
-			sb.append("_");
-		}
-		sb.append(".");
-		sb.append(source_base_name);
-		sb.append(".js");
-		return new File(sb.toString());
-	}
-	
-	private File computeReducedFilepath(JSSourceDatabaseEntry entry) {
-		// TODO move this to DBEntry
-		File source_file = entry.getRealFile(module_path);
-		String source_base_name = FilenameUtils.getBaseName(source_file.getPath());
-		String source_scope = entry.computeJSScope();
-		
-		StringBuilder sb = new StringBuilder();
-		sb.append(reduced_directory.getPath());
-		sb.append(File.separator);
-		if (source_scope != null) {
-			sb.append(source_scope);
-		} else {
-			sb.append("_");
-		}
-		sb.append(".");
-		sb.append(source_base_name);
-		sb.append(".js");
-		return new File(sb.toString());
-	}
-	
 	void processSources() throws IOException {
 		if (altered_source_files.isEmpty() & new_source_files.isEmpty()) {
 			return;
@@ -140,17 +101,25 @@ public class JSSourceModule {
 		File reduced_file;
 		for (int pos = 0; pos < altered_source_files.size(); pos++) {
 			entry = altered_source_files.get(pos);
-			transformed_file = computeTransformedFilepath(entry);
+			transformed_file = entry.computeTransformedFilepath(module_path, transformed_directory);
 			FileUtils.deleteQuietly(transformed_file);
 			
-			reduced_file = computeReducedFilepath(entry);
+			reduced_file = entry.computeReducedFilepath(module_path, reduced_directory);
 			FileUtils.deleteQuietly(reduced_file);
 		}
 		
+		/**
+		 * Group old file to re-process and new files
+		 */
 		ArrayList<JSSourceDatabaseEntry> must_process_source_files = new ArrayList<JSSourceDatabaseEntry>();
 		must_process_source_files.addAll(new_source_files);
 		must_process_source_files.addAll(altered_source_files);
 		
+		/**
+		 * For each (re) process source file:
+		 * - Transform JSX if needed
+		 * - Reduce JS
+		 */
 		JSProcessor processor;
 		File source_file;
 		String source_scope;
@@ -162,25 +131,33 @@ public class JSSourceModule {
 			processor = new JSProcessor(source_file);
 			
 			if (FilenameUtils.isExtension(source_file.getPath(), "jsx")) {
-				// TODO manage error return to JS file / log
-				processor.transformJSX();
-				transformed_file = computeTransformedFilepath(entry);
+				try {
+					processor.transformJSX();
+				} catch (Exception e) {
+					processor.wrapTransformationError(e);
+				}
+				transformed_file = entry.computeTransformedFilepath(module_path, transformed_directory);
 				processor.writeTo(transformed_file);
 			}
 			
-			// TODO add JS scope wrapper
-			// source_scope
+			processor.wrapScopeDeclaration(source_scope);
 			
-			// TODO manage error return to JS file / log
-			processor.reduceJS();
-			reduced_file = computeReducedFilepath(entry);
+			try {
+				processor.reduceJS();
+			} catch (Exception e) {
+				Loggers.Play.error("Can't reduce JS source: " + entry, e);
+				continue;
+			}
+			reduced_file = entry.computeReducedFilepath(module_path, reduced_directory);
 			processor.writeTo(reduced_file);
+			
 		}
 		
 		/**
 		 * Create JS header
 		 */
 		
+		// TODO set *all* to allfiles_concated_file, after sort it by file name
 	}
 	
 	// TODO Controler Side

@@ -141,10 +141,41 @@ public class JSSourceDatabaseEntry {
 		return new File(module_path.getPath() + File.separator + relative_root_name + relative_file_name);
 	}
 	
-	// TODO populate
-	transient File transformed_version;
+	private transient File transformed_version;
 	
-	// TODO populate
-	transient File reduced_version;
+	private File computeOutputFilepath(File module_path, File output_directory) {
+		File source_file = getRealFile(module_path);
+		String source_base_name = FilenameUtils.getBaseName(source_file.getPath());
+		String source_scope = computeJSScope();
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append(output_directory.getPath());
+		sb.append(File.separator);
+		if (source_scope != null) {
+			sb.append(source_scope);
+		} else {
+			sb.append("_");
+		}
+		sb.append(".");
+		sb.append(source_base_name);
+		sb.append(".js");
+		return new File(sb.toString());
+	}
+	
+	File computeTransformedFilepath(File module_path, File transformed_directory) {
+		if (transformed_version == null) {
+			transformed_version = computeOutputFilepath(module_path, transformed_directory);
+		}
+		return transformed_version;
+	}
+	
+	private transient File reduced_version;
+	
+	File computeReducedFilepath(File module_path, File reduced_directory) {
+		if (reduced_version == null) {
+			reduced_version = computeOutputFilepath(module_path, reduced_directory);
+		}
+		return reduced_version;
+	}
 	
 }
