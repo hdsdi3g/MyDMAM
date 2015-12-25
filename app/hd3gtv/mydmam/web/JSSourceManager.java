@@ -34,6 +34,8 @@ public class JSSourceManager {
 	}
 	
 	public static void init() throws Exception {
+		js_modules.clear();
+		
 		for (VirtualFile vfile : Play.roots) {
 			/**
 			 * 1st pass : get only main, the first.
@@ -48,7 +50,7 @@ public class JSSourceManager {
 			if (entry.getKey().startsWith("_")) {
 				continue;
 			}
-			js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile()));
+			// js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile())); //XXX activate
 		}
 		
 		for (int pos = 0; pos < js_modules.size(); pos++) {
@@ -99,5 +101,7 @@ public class JSSourceManager {
 	// TODO Controler Side
 	
 	// TODO View side (link)
+	
+	// TODO add options in play page (switch dev/prod, force refresh)
 	
 }

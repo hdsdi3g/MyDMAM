@@ -367,21 +367,5 @@ public class JsCompile {
 		return list;
 	}
 	
-	/**
-	 * Beware, this operation TAKE TIME and MEMORY (because it must instance a Javascript interpreter).
-	 */
-	public static String compileJSOnTheFly(String content) {
-		try {
-			StringReader sr = new StringReader(content);
-			JavaScriptCompressor compressor;
-			compressor = new JavaScriptCompressor(sr, new CompilerErrorReporter());
-			StringWriter sw = new StringWriter(content.length());
-			compressor.compress(sw, 80, true, false, true, false);
-			return sw.toString();
-		} catch (Exception e) {
-			Loggers.Play.error("Can't compile on the fly, content: " + content, e);
-			return content;
-		}
-	}
 	
 }

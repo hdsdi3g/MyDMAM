@@ -87,6 +87,7 @@ public class JSSourceDatabase {
 	}
 	
 	private transient File dbfile;
+	@SuppressWarnings("unused")
 	private transient String module_name;
 	private transient File module_path;
 	@GsonIgnore
@@ -131,11 +132,12 @@ public class JSSourceDatabase {
 			try {
 				entry.getValue().checkRealFile(module_path);
 			} catch (FileNotFoundException e) {
-				Loggers.Play.debug("Deleted file for JSDB entry: " + entry.getValue(), e);
+				Loggers.Play.info("Deleted file for JSDB entry: " + entry.getValue() + " (" + e.getMessage() + ")");
 				remove_this.add(entry.getKey());
 				result.add(entry.getValue());
 			} catch (IOException e) {
-				Loggers.Play.debug("Altered file for JSDB entry: " + entry.getValue(), e);
+				Loggers.Play.debug("Altered file for JSDB entry: " + entry.getValue() + " (" + e.getMessage() + ")");
+				entry.getValue().refresh(module_path);
 				result.add(entry.getValue());
 			}
 		}
@@ -206,6 +208,12 @@ public class JSSourceDatabase {
 			all_files.add(file);
 			return file.isDirectory();
 		}
+	}
+	
+	ArrayList<JSSourceDatabaseEntry> getSortedEntries() {
+		ArrayList<JSSourceDatabaseEntry> items = new ArrayList<JSSourceDatabaseEntry>(entries.values());
+		items.sort(JSSourceDatabaseEntry.COMPARATOR);
+		return items;
 	}
 	
 }

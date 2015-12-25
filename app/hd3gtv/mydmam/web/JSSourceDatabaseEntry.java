@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.MessageDigest;
+import java.util.Comparator;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -36,15 +37,30 @@ public class JSSourceDatabaseEntry {
 	JSSourceDatabaseEntry() {
 	}
 	
+	/**
+	 * Like "mydmam/async/pathindex/tools.jsx"
+	 */
 	private String relative_file_name;
+	
+	/**
+	 * Like "/app/react"
+	 */
 	private String relative_root_name;
 	private long size;
 	private long date;
 	private String hash;
 	
+	/**
+	 * @param module_path like "/opt/mydmam-my-super-module"
+	 * @param real_file like "/opt/mydmam-my-super-module/app/react/a_js_scope/myfile.js"
+	 * @param relative_root_name like "/app/react"
+	 */
 	JSSourceDatabaseEntry(File module_path, File real_file, String relative_root_name) {
 		this.relative_root_name = relative_root_name;
-		relative_file_name = real_file.getAbsolutePath().substring(module_path.getAbsolutePath().length() + relative_root_name.length());
+		if (relative_root_name.endsWith(File.separator)) {
+			relative_root_name = relative_root_name.substring(0, relative_root_name.length() - 1);
+		}
+		relative_file_name = real_file.getAbsolutePath().substring(module_path.getAbsolutePath().length() + relative_root_name.length() + 1);
 		
 		size = real_file.length();
 		date = real_file.lastModified();
@@ -56,7 +72,7 @@ public class JSSourceDatabaseEntry {
 	}
 	
 	void checkRealFile(File module_path) throws FileNotFoundException, IOException {
-		File real_file = new File(module_path.getPath() + File.separator + relative_root_name + relative_file_name);
+		File real_file = new File(module_path.getPath() + File.separator + relative_root_name + File.separator + relative_file_name);
 		if (real_file.exists() == false) {
 			throw new FileNotFoundException(real_file.getPath());
 		}
@@ -74,7 +90,17 @@ public class JSSourceDatabaseEntry {
 		if (hash.equalsIgnoreCase(new_md5) == false) {
 			throw new IOException("File as changed for " + real_file.getPath() + " (" + hash.substring(0, 5) + "... -> " + new_md5.substring(0, 5) + "...)");
 		}
-		return;
+	}
+	
+	void refresh(File module_path) {
+		File real_file = new File(module_path.getPath() + File.separator + relative_root_name + File.separator + relative_file_name);
+		size = real_file.length();
+		date = real_file.lastModified();
+		try {
+			hash = makeMD5(real_file);
+		} catch (IOException e) {
+			Loggers.Play.error("Can't compute MD5", e);
+		}
 	}
 	
 	static String makeKeyName(File module_path, File source) {
@@ -87,7 +113,7 @@ public class JSSourceDatabaseEntry {
 			md.update(source.getBytes());
 			return MyDMAM.byteToString(md.digest());
 		} catch (Exception e) {
-			Loggers.Play.error("Can't compute MD5");
+			Loggers.Play.error("Can't compute MD5", e);
 			return "";
 		}
 	}
@@ -114,13 +140,13 @@ public class JSSourceDatabaseEntry {
 		} catch (IOException e) {
 			throw e;
 		} catch (Exception e) {
-			Loggers.Play.error("Can't compute MD5");
+			Loggers.Play.error("Can't compute MD5", e);
 			return "";
 		}
 	}
 	
 	public String toString() {
-		return relative_root_name + relative_file_name;
+		return relative_root_name + File.separator + relative_file_name;
 	}
 	
 	/**
@@ -133,15 +159,9 @@ public class JSSourceDatabaseEntry {
 		return null;
 	}
 	
-	String getRelative_file_name() {
-		return relative_file_name;
-	}
-	
 	File getRealFile(File module_path) {
-		return new File(module_path.getPath() + File.separator + relative_root_name + relative_file_name);
+		return new File(module_path.getPath() + File.separator + relative_root_name + File.separator + relative_file_name);
 	}
-	
-	private transient File transformed_version;
 	
 	private File computeOutputFilepath(File module_path, File output_directory) {
 		File source_file = getRealFile(module_path);
@@ -153,14 +173,16 @@ public class JSSourceDatabaseEntry {
 		sb.append(File.separator);
 		if (source_scope != null) {
 			sb.append(source_scope);
+			sb.append(".");
 		} else {
 			sb.append("_");
 		}
-		sb.append(".");
 		sb.append(source_base_name);
 		sb.append(".js");
 		return new File(sb.toString());
 	}
+	
+	private transient File transformed_version;
 	
 	File computeTransformedFilepath(File module_path, File transformed_directory) {
 		if (transformed_version == null) {
@@ -176,6 +198,18 @@ public class JSSourceDatabaseEntry {
 			reduced_version = computeOutputFilepath(module_path, reduced_directory);
 		}
 		return reduced_version;
+	}
+	
+	static final SortComparator COMPARATOR = new SortComparator();
+	
+	static class SortComparator implements Comparator<JSSourceDatabaseEntry> {
+		private SortComparator() {
+		}
+		
+		public int compare(JSSourceDatabaseEntry o1, JSSourceDatabaseEntry o2) {
+			return o1.relative_file_name.compareTo(o2.relative_file_name);
+		}
+		
 	}
 	
 }

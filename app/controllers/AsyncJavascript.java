@@ -63,8 +63,16 @@ public class AsyncJavascript extends Controller {
 			}
 			
 			String jsx_compiled = JSXTransformer.getJSXContentFromURLList(v_file.getRealFile(), ressource_name, true, true);
+			/*if (request.headers.containsKey("accept-encoding")) {
+				if (request.headers.get("accept-encoding").values.contains("gzip")) {
+					response.setHeader("Content-Encoding", "gzip");
+					//TODO send GZIP
+					// renderBinary(is);
+				}
+			}*/
 			response.setHeader("Content-Length", jsx_compiled.length() + "");
 			response.setHeader("Content-Type", "text/javascript");
+			// response.setHeader("Cache-Control", "max-age=300"); //TODO set a long time by default, and add a generated URL ?date for each requests.
 			response.setHeader("Etag", etag);
 			response.setHeader("Last-Modified", Utils.getHttpDateFormatter().format(new Date(last_modified)));
 			renderText(jsx_compiled);

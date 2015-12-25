@@ -39,6 +39,7 @@ import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.web.Basket;
+import hd3gtv.mydmam.web.JSSourceManager;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.mydmam.web.search.SearchRequest;
@@ -125,6 +126,12 @@ public class Application extends Controller {
 			}
 		} catch (Exception e) {
 			Loggers.Play.error("Can't get user basket", e);
+		}
+		
+		try {
+			JSSourceManager.init(); // FIXME remove this !
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		
 		render(title, current_basket_content);
