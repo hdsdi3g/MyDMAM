@@ -20,8 +20,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +38,7 @@ import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.web.AJSControllerItem.Verb;
 import hd3gtv.tools.GsonIgnoreStrategy;
 import models.UserProfile;
+import play.Play;
 import play.vfs.VirtualFile;
 
 public class AJSController {
@@ -62,7 +66,7 @@ public class AJSController {
 		/**
 		 * Get all class files from all ASYNC_CLASS_PATH directory, module by module.
 		 */
-		List<VirtualFileModule> main_dirs = JsCompile.getAllfromRelativePath(ASYNC_CLASS_PATH, true, true);
+		List<VirtualFileModule> main_dirs = getAllfromRelativePath(ASYNC_CLASS_PATH, true, true);
 		List<VirtualFile> class_vfiles = new ArrayList<VirtualFile>();
 		for (int pos = 0; pos < main_dirs.size(); pos++) {
 			class_vfiles.addAll(main_dirs.get(pos).getVfile().list());
@@ -102,6 +106,47 @@ public class AJSController {
 			}
 		}
 		
+	}
+	
+	/**
+	 * Get all items named and on this path, from all modules, and not only the first.
+	 */
+	private static List<VirtualFileModule> getAllfromRelativePath(String path, boolean must_exists, boolean must_directory) {
+		List<VirtualFileModule> file_list = new ArrayList<VirtualFileModule>();
+		
+		LinkedHashMap<VirtualFile, String> path_modules = new LinkedHashMap<VirtualFile, String>();
+		for (VirtualFile vfile : Play.roots) {
+			/**
+			 * 1st pass : add all paths (main and modules).
+			 */
+			path_modules.put(vfile, "internal");
+		}
+		for (Map.Entry<String, VirtualFile> entry : Play.modules.entrySet()) {
+			/**
+			 * 2nd pass : overload enties with modules names.
+			 */
+			path_modules.put(entry.getValue(), entry.getKey());
+		}
+		
+		VirtualFile child;
+		for (Map.Entry<VirtualFile, String> entry : path_modules.entrySet()) {
+			child = entry.getKey().child(path);
+			if (must_exists & (child.exists() == false)) {
+				continue;
+			}
+			if (must_directory & (child.isDirectory() == false)) {
+				continue;
+			}
+			file_list.add(new VirtualFileModule(child, entry.getValue()));
+		}
+		
+		Collections.sort(file_list, new Comparator<VirtualFileModule>() {
+			public int compare(VirtualFileModule o1, VirtualFileModule o2) {
+				return o1.getVfile().getName().compareToIgnoreCase(o2.getVfile().getName());
+			}
+		});
+		
+		return file_list;
 	}
 	
 	private static boolean isControllerIsEnabled(Class<?> controller) {

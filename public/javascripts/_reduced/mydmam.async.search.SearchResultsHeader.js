@@ -1,0 +1,6 @@
+(function(a){a.SearchResultsHeader=React.createClass({displayName:"SearchResultsHeader",render:function(){if(this.props.results.results.length==0){return(React.createElement("div",{className:"alert alert-info"},React.createElement("h4",null,i18n("search.noresults")),i18n("search.noresultsfor")," ",React.createElement("strong",null,this.props.results.q),React.createElement("br",null),React.createElement("small",null,"(",this.props.results.duration/1000," ",i18n("search.seconds"),")"),"."));
+}else{var b=(React.createElement("span",null,i18n("search.oneresult")));var c=null;
+if(this.props.results.total_items_count>1){b=(React.createElement("span",null,this.props.results.total_items_count," ",i18n("search.results")));
+if(this.props.results.pagecount>1){c=(React.createElement("span",null,i18n("search.pageXonY",this.props.results.from,this.props.results.pagecount)));
+}}return(React.createElement("p",null,React.createElement("small",{className:"muted"},b," ",c," (",this.props.results.duration/1000," ",i18n("search.seconds"),")"),React.createElement("br",null),React.createElement("small",null,i18n("search.method."+this.props.results.mode.toLowerCase()))));
+}}});})(window.mydmam.async.search);

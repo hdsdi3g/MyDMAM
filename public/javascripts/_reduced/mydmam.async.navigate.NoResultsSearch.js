@@ -1,0 +1,2 @@
+(function(a){a.NoResultsSearch=React.createClass({displayName:"NoResultsSearch",render:function(){return(React.createElement("div",{className:"alert alert-info"},React.createElement("h4",null,i18n("search.noresults"))));
+}});})(window.mydmam.async.navigate);

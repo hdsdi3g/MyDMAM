@@ -28,8 +28,6 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.web.JSSourceManager;
-import hd3gtv.mydmam.web.JSXTransformer;
-import hd3gtv.mydmam.web.JsCompile;
 import hd3gtv.mydmam.web.Privileges;
 import models.ACLGroup;
 import models.ACLRole;
@@ -182,10 +180,6 @@ public class Bootstrap extends Job {
 		} catch (Exception e) {
 			Loggers.Play.error("Can't load all JS Databases", e);
 		}
-		
-		JsCompile.purgeBinDirectory();
-		JSXTransformer.transformAllJSX();
-		JsCompile.prepareFiles();
 		
 		try {
 			CassandraDb.getkeyspace();
