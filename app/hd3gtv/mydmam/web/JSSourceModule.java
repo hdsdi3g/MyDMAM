@@ -16,23 +16,26 @@
 */
 package hd3gtv.mydmam.web;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 
+import controllers.AsyncJavascript;
 import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.CopyMove;
 import play.libs.IO;
+import play.mvc.Router;
+import play.vfs.VirtualFile;
 
 public class JSSourceModule {
 	
@@ -43,14 +46,15 @@ public class JSSourceModule {
 	private ArrayList<JSSourceDatabaseEntry> altered_source_files;
 	private ArrayList<JSSourceDatabaseEntry> new_source_files;
 	
-	private static final String BASE_TRANSFORMED_DIRECTORY_JSX = "/public/javascripts/_transformed";
-	private static final String BASE_REDUCED_DIRECTORY_JS = "/public/javascripts/_reduced";
+	static final String BASE_TRANSFORMED_DIRECTORY_JS = "/public/javascripts/_transformed";
+	static final String BASE_REDUCED_DIRECTORY_JS = "/public/javascripts/_reduced";
 	
 	private File transformed_directory;
 	private File reduced_directory;
 	private File allfiles_concated_file;
 	private File declaration_file;
 	private File reduced_declaration_file;
+	// private ArrayList<String> all_reduced_relative_path;
 	
 	JSSourceModule(String module_name, File module_path) throws IOException {
 		this.module_name = module_name;
@@ -62,7 +66,7 @@ public class JSSourceModule {
 			throw new NullPointerException("\"module_path\" can't to be null");
 		}
 		
-		transformed_directory = new File(module_path + File.separator + BASE_TRANSFORMED_DIRECTORY_JSX);
+		transformed_directory = new File(module_path + File.separator + BASE_TRANSFORMED_DIRECTORY_JS);
 		if (transformed_directory.exists()) {
 			CopyMove.checkExistsCanRead(transformed_directory);
 			CopyMove.checkIsDirectory(transformed_directory);
@@ -80,10 +84,8 @@ public class JSSourceModule {
 			FileUtils.forceMkdir(reduced_directory);
 		}
 		
-		allfiles_concated_file = new File(reduced_directory.getPath() + File.separator + "reduced.js");
+		allfiles_concated_file = new File(reduced_directory.getPath() + File.separator + "_" + module_name + "_" + "concated.js.gz");
 		database = JSSourceDatabase.create(this);
-		altered_source_files = database.checkAndClean();
-		new_source_files = database.newEntries();
 	}
 	
 	String getModuleName() {
@@ -95,7 +97,10 @@ public class JSSourceModule {
 	}
 	
 	void processSources() throws IOException {
-		if (altered_source_files.isEmpty() & new_source_files.isEmpty()) {
+		altered_source_files = database.checkAndClean();
+		new_source_files = database.newEntries();
+		
+		if (altered_source_files.isEmpty() & new_source_files.isEmpty() & allfiles_concated_file.exists()) {
 			return;
 		}
 		
@@ -141,7 +146,7 @@ public class JSSourceModule {
 			source_scope = entry.computeJSScope();
 			source_file = entry.getRealFile(module_path);
 			
-			processor = new JSProcessor(source_file);
+			processor = new JSProcessor(source_file, module_name, module_path.getAbsolutePath());
 			
 			transformed_file = entry.computeTransformedFilepath(module_path, transformed_directory);
 			if (FilenameUtils.isExtension(source_file.getPath(), "jsx")) {
@@ -165,9 +170,8 @@ public class JSSourceModule {
 			/**
 			 * Write current processed file. If this file is not processed, it will be a simple copy here.
 			 */
-			processor.writeTo(transformed_file);// TODO can set optionnal
+			processor.writeTo(transformed_file);
 			
-			// TODO can set optionnal
 			try {
 				/**
 				 * Reduce the JS to a production standard.
@@ -179,15 +183,14 @@ public class JSSourceModule {
 			}
 			reduced_file = entry.computeReducedFilepath(module_path, reduced_directory);
 			processor.writeTo(reduced_file);
-			
 		}
 		
 		/**
 		 * Get all source items
 		 */
-		// TODO optionnal if new_source_files.isEmpty() (because the old scope don't need to be refreshed), but force refresh on boot (no risks)
-		ArrayList<JSSourceDatabaseEntry> all_entries = database.getSortedEntries();
 		ArrayList<String> source_scopes = new ArrayList<String>();
+		ArrayList<JSSourceDatabaseEntry> all_entries = database.getSortedEntries();
+		
 		String scope;
 		StringBuilder parent_scope;
 		for (int pos_ae = 0; pos_ae < all_entries.size(); pos_ae++) {
@@ -228,9 +231,9 @@ public class JSSourceModule {
 		 */
 		if (source_scopes.isEmpty() == false) {
 			declaration_file = createDeclarationFile(source_scopes);
-			reduced_declaration_file = new File(reduced_directory + File.separator + "_declarations.js");
+			reduced_declaration_file = new File(reduced_directory + File.separator + "_" + module_name + "_" + "declarations.js");
 			
-			processor = new JSProcessor(declaration_file);
+			processor = new JSProcessor(declaration_file, module_name, module_path.getAbsolutePath());
 			try {
 				processor.reduceJS();
 				processor.writeTo(reduced_declaration_file);
@@ -243,15 +246,11 @@ public class JSSourceModule {
 		/**
 		 * Concate all reduced files
 		 */
-		// TODO optionnal
-		FileOutputStream concated_out_stream = new FileOutputStream(allfiles_concated_file);
-		FileOutputStream concated_out_stream_gzipped = new FileOutputStream(new File(allfiles_concated_file + ".gz"));
+		FileOutputStream concated_out_stream_gzipped = new FileOutputStream(allfiles_concated_file);
 		try {
 			GZIPOutputStream gz_concated_out_stream_gzipped = new GZIPOutputStream(concated_out_stream_gzipped, 0xFFFF);
-			BufferedOutputStream buffered_concated_out_stream = new BufferedOutputStream(concated_out_stream, 0xFFFF);
 			
 			if (reduced_declaration_file != null) {
-				FileUtils.copyFile(reduced_declaration_file, buffered_concated_out_stream);
 				FileUtils.copyFile(reduced_declaration_file, gz_concated_out_stream_gzipped);
 			}
 			
@@ -263,16 +262,12 @@ public class JSSourceModule {
 				} catch (IOException e) {
 					Loggers.Play.error("Can't found reduced file: " + reduced_file, e);
 				}
-				FileUtils.copyFile(reduced_file, buffered_concated_out_stream);
 				FileUtils.copyFile(reduced_file, gz_concated_out_stream_gzipped);
 			}
 			
-			buffered_concated_out_stream.flush();
-			concated_out_stream.flush();
 			gz_concated_out_stream_gzipped.finish();
 			concated_out_stream_gzipped.flush();
 		} catch (Exception e) {
-			IOUtils.closeQuietly(concated_out_stream);
 			IOUtils.closeQuietly(concated_out_stream_gzipped);
 			Loggers.Play.error("Can't make concated file: " + allfiles_concated_file, e);
 			if (e instanceof IOException) {
@@ -283,12 +278,10 @@ public class JSSourceModule {
 		database.save();
 	}
 	
-	// TODO Controler Side
-	// TODO View side (link)
 	// TODO change loggers and add module_name ref
 	
 	private File createDeclarationFile(ArrayList<String> source_scopes) {
-		File declare_file = new File(transformed_directory + File.separator + "_declarations.js");
+		File declare_file = new File(transformed_directory + File.separator + "_" + module_name + "_" + "declarations.js");
 		
 		StringBuilder sb = new StringBuilder();
 		sb.append("// MYDMAM JS DECLARATION FILE\n");
@@ -318,6 +311,40 @@ public class JSSourceModule {
 		
 		IO.writeContent(sb.toString(), declare_file);
 		return declare_file;
+	}
+	
+	public String getConcatedFileRelativeURL() {
+		HashMap<String, Object> args = new HashMap<String, Object>(2);
+		args.put("name", allfiles_concated_file.getName());
+		args.put("suffix_date", allfiles_concated_file.lastModified() / 1000);
+		return Router.reverse(AsyncJavascript.class.getName() + "." + "JavascriptRessource", args).url;
+	}
+	
+	ArrayList<String> getTransformedFilesRelativeURLs() {
+		ArrayList<JSSourceDatabaseEntry> all_entries = database.getSortedEntries();
+		ArrayList<String> results = new ArrayList<String>(all_entries.size() + 1);
+		String url;
+		
+		if (declaration_file != null) {
+			if (declaration_file.exists()) {
+				url = Router.reverse(VirtualFile.open(declaration_file));
+				results.add(url);
+			} else {
+				Loggers.Play.warn("This module declaration_file don't exists: " + declaration_file);
+			}
+		}
+		
+		File transformed_file;
+		for (int pos = 0; pos < all_entries.size(); pos++) {
+			transformed_file = all_entries.get(pos).computeTransformedFilepath(module_path, transformed_directory);
+			if (transformed_file.exists() == false) {
+				Loggers.Play.warn("A transformed file don't exists: " + transformed_file);
+				continue;
+			}
+			url = Router.reverse(VirtualFile.open(transformed_file));
+			results.add(url);
+		}
+		return results;
 	}
 	
 }

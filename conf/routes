@@ -12,7 +12,8 @@ GET     /favicon.ico                            404
 # Map static resources from the /app/public folder to the /public path
 GET     /public/                                staticDir:public
 
-GET		/raw-jsx/{ressource_name}				AsyncJavascript.dynamicCompileJSX
+GET		/staticjs/{suffix_date}/{name}			AsyncJavascript.JavascriptRessource
+GET		/staticjs/{name}						AsyncJavascript.JavascriptRessource
 
 GET		/login									Secure.login
 POST	/login									Secure.authenticate

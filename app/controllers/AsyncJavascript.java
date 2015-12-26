@@ -16,20 +16,21 @@
 */
 package controllers;
 
-import java.io.FileNotFoundException;
+import java.io.File;
+import java.io.IOException;
 import java.util.Date;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.web.AJSController;
-import hd3gtv.mydmam.web.JSXTransformer;
-import hd3gtv.mydmam.web.JSXTransformer.JSXItem;
-import hd3gtv.mydmam.web.JsCompile;
+import hd3gtv.mydmam.web.JSSourceManager;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
 import play.utils.Utils;
-import play.vfs.VirtualFile;
 
 @With(Secure.class)
 public class AsyncJavascript extends Controller {
@@ -48,38 +49,52 @@ public class AsyncJavascript extends Controller {
 		renderJSON("{}");
 	}
 	
-	public static void dynamicCompileJSX(@Required String ressource_name) {
-		try {
-			VirtualFile v_file = JsCompile.getTheFirstFromRelativePath(JSXItem.getRelativePathFromRessourceName(ressource_name), true, false);
-			if (v_file == null) {
-				throw new FileNotFoundException(ressource_name);
-			}
-			String etag = v_file.getRealFile().lastModified() + "--";
-			long last_modified = v_file.getRealFile().lastModified();
-			
-			if (request.isModified(etag, last_modified) == false) {
-				response.setHeader("Etag", etag);
-				notModified();
-			}
-			
-			String jsx_compiled = JSXTransformer.getJSXContentFromURLList(v_file.getRealFile(), ressource_name, true, true);
-			/*if (request.headers.containsKey("accept-encoding")) {
-				if (request.headers.get("accept-encoding").values.contains("gzip")) {
-					response.setHeader("Content-Encoding", "gzip");
-					//TODO send GZIP
-					// renderBinary(is);
-				}
-			}*/
-			response.setHeader("Content-Length", jsx_compiled.length() + "");
-			response.setHeader("Content-Type", "text/javascript");
-			// response.setHeader("Cache-Control", "max-age=300"); //TODO set a long time by default, and add a generated URL ?date for each requests.
-			response.setHeader("Etag", etag);
-			response.setHeader("Last-Modified", Utils.getHttpDateFormatter().format(new Date(last_modified)));
-			renderText(jsx_compiled);
-			
-		} catch (Exception e) {
-			Loggers.Play.error("JSX Transformer Error", e);
+	public static void JavascriptRessource(@Required String name, Long suffix_date) {
+		if (Validation.hasErrors()) {
+			badRequest();
 		}
+		
+		File ressource_file = JSSourceManager.getPhysicalFileFromRessourceName(name);
+		if (ressource_file == null) {
+			notFound();
+		}
+		long last_modified = ressource_file.lastModified();
+		
+		String etag = last_modified + "--";
+		
+		if (suffix_date != null) {
+			if (suffix_date > 0) {
+				response.setHeader("Cache-Control", "max-age=864000");
+			}
+		}
+		
+		if (request.isModified(etag, last_modified) == false) {
+			response.setHeader("Etag", etag);
+			notModified();
+		}
+		
+		if (FilenameUtils.isExtension(ressource_file.getName(), "gz")) {
+			if (request.headers.containsKey("accept-encoding") == false) {
+				badRequest("// Your browser don't accept encoding files.");
+			}
+			if (request.headers.get("accept-encoding").value().indexOf("gzip") == -1) {
+				badRequest("// Your browser don't accept GZipped files.");
+			}
+			response.setHeader("Content-Encoding", "gzip");
+		}
+		
+		response.setHeader("Content-Length", ressource_file.length() + "");
+		response.setHeader("Content-Type", "text/javascript");
+		response.setHeader("Etag", etag);
+		response.setHeader("Last-Modified", Utils.getHttpDateFormatter().format(new Date(last_modified)));
+		
+		try {
+			FileUtils.copyFile(ressource_file, response.out);
+		} catch (IOException e) {
+			Loggers.Play.error("Can't response (send) js file: " + ressource_file, e);
+			notFound();
+		}
+		ok();
 	}
 	
 }

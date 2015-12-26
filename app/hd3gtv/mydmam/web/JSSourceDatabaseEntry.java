@@ -146,6 +146,10 @@ public class JSSourceDatabaseEntry {
 	}
 	
 	public String toString() {
+		return getRelativePath();
+	}
+	
+	String getRelativePath() {
 		return relative_root_name + File.separator + relative_file_name;
 	}
 	

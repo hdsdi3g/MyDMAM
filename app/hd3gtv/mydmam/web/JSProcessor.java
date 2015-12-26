@@ -110,15 +110,25 @@ public class JSProcessor {
 	private String input;
 	private String output;
 	private File filename;
+	private String module_name;
+	private String module_path;
 	
-	public JSProcessor(File filename) throws NullPointerException, IOException {
+	public JSProcessor(File filename, String module_name, String module_path) throws NullPointerException, IOException {
+		this.module_name = module_name;
+		if (module_name == null) {
+			throw new NullPointerException("\"module_name\" can't to be null");
+		}
+		this.module_path = module_path;
+		if (module_path == null) {
+			throw new NullPointerException("\"module_path\" can't to be null");
+		}
 		this.filename = filename;
 		if (filename == null) {
 			throw new NullPointerException("\"filename\" can't to be null");
 		}
 		CopyMove.checkExistsCanRead(filename);
 		input = FileUtils.readFileToString(filename);
-		output = "";
+		output = input;
 	}
 	
 	public void reduceJS() throws Exception {
@@ -205,17 +215,39 @@ public class JSProcessor {
 			int colon = error_message.indexOf(":", "Error: Parse Error: Line ".length());
 			int line_num = Integer.parseInt(error_message.substring("Error: Parse Error: Line ".length(), colon));
 			error_message = "Line " + line_num + ": " + error_message.substring(colon + 2);
+			if (line_num - 5 > -1) {
+				error_line = error_line + (line_num - 4) + " >   " + escapeAll(lines[line_num - 5]) + "\\n";
+			}
+			if (line_num - 4 > -1) {
+				error_line = error_line + (line_num - 3) + " >   " + escapeAll(lines[line_num - 4]) + "\\n";
+			}
+			if (line_num - 3 > -1) {
+				error_line = error_line + (line_num - 2) + " >   " + escapeAll(lines[line_num - 3]) + "\\n";
+			}
 			if (line_num - 2 > -1) {
-				error_line = error_line + (line_num - 1) + " > " + escapeAll(lines[line_num - 2]) + "\\n";
+				error_line = error_line + (line_num - 1) + " >   " + escapeAll(lines[line_num - 2]) + "\\n";
 			}
 			if ((line_num - 1 > 0) & (line_num - 1 < lines.length)) {
-				error_line = error_line + (line_num) + " > " + escapeAll(lines[line_num - 1]) + "\\n";
+				error_line = error_line + (line_num) + " >>> " + escapeAll(lines[line_num - 1]) + "\\n";
 			}
 			if (line_num < lines.length) {
-				error_line = error_line + (line_num + 1) + " > " + escapeAll(lines[line_num]);
+				error_line = error_line + (line_num + 1) + " >   " + escapeAll(lines[line_num]) + "\\n";
+			}
+			if (line_num + 1 < lines.length) {
+				error_line = error_line + (line_num + 2) + " >   " + escapeAll(lines[line_num + 1]) + "\\n";
+			}
+			if (line_num + 2 < lines.length) {
+				error_line = error_line + (line_num + 3) + " >   " + escapeAll(lines[line_num + 2]) + "\\n";
+			}
+			if (line_num + 3 < lines.length) {
+				error_line = error_line + (line_num + 4) + " >   " + escapeAll(lines[line_num + 3]);
 			}
 		} else {
 			Loggers.Play.error("Unknow transformation error", e);
+		}
+		
+		if (error_message.indexOf("(file:") > -1) {
+			error_message = error_message.substring(0, error_message.lastIndexOf("(file:")).trim();
 		}
 		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -224,20 +256,12 @@ public class JSProcessor {
 		pw.println("new function(){");
 		pw.println("	$(document).ready(function() {");
 		pw.println("		var message = {}");
-		pw.println("		message.from = \"" + filename + "\";");
+		pw.println("		message.from = \"" + module_name + " module: " + filename.getAbsolutePath().substring(module_path.length()) + "\";");
 		pw.println("		message.text = \"" + error_message + "\";");
 		pw.println("		message.line = \"" + error_line + "\";");
 		pw.println("		jsx_error_messages.push(message);");
 		pw.println("	});");
 		pw.println("}();");
-		pw.println();
-		pw.println("// SOURCE FILE");
-		for (int pos = 0; pos < lines.length; pos++) {
-			pw.print("// ");
-			pw.print(pos + 1);
-			pw.print(" ");
-			pw.println(lines[pos]);
-		}
 		pw.close();
 		output = new String(baos.toByteArray());
 		input = output;

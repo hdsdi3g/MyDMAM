@@ -16,9 +16,16 @@
 */
 package hd3gtv.mydmam.web;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Map;
 
+import org.apache.commons.io.FilenameUtils;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
+import hd3gtv.tools.CopyMove;
 import play.Play;
 import play.vfs.VirtualFile;
 
@@ -28,14 +35,21 @@ public class JSSourceManager {
 	}
 	
 	private static final ArrayList<JSSourceModule> js_modules;
+	private static final ArrayList<String> list_urls;
+	private static boolean js_dev_mode;
 	
 	static {
 		js_modules = new ArrayList<JSSourceModule>(1);
+		list_urls = new ArrayList<String>(1);
+		js_dev_mode = Configuration.global.getValueBoolean("play", "js_dev_mode");
 	}
 	
 	public static void init() throws Exception {
-		js_modules.clear();
+		if (isJsDevMode()) {
+			Loggers.Play.info("JS Source manager is in dev mode.");
+		}
 		
+		js_modules.clear();
 		for (VirtualFile vfile : Play.roots) {
 			/**
 			 * 1st pass : get only main, the first.
@@ -50,57 +64,64 @@ public class JSSourceManager {
 			if (entry.getKey().startsWith("_")) {
 				continue;
 			}
-			// js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile())); //XXX activate
+			js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile()));
 		}
 		
-		for (int pos = 0; pos < js_modules.size(); pos++) {
-			js_modules.get(pos).processSources();
-		}
-		
-		/*Loggers.Play.info("Altered JS files: " + JSSourceDatabase.getAlteredFiles());
-		Loggers.Play.info("New JS files: " + JSSourceDatabase.getNewFiles());
-		JSSourceDatabase.saveAll();*/
-		
-		/*
-		 * 
-		 * 	public ArrayList<JSSourceDatabaseEntry> getAlteredFiles() {
-		ArrayList<JSSourceDatabaseEntry> result = new ArrayList<JSSourceDatabaseEntry>();
-		JSSourceDatabase db;
-		ArrayList<JSSourceDatabaseEntry> entries;
-		entries = checkAndClean();
-		if (entries.isEmpty() == false) {
-			result.put(module_name, entries);
-		}
-		return result;
-		}
-		
-		public static ArrayList<JSSourceDatabaseEntry> getNewFiles() {
-		ArrayList<JSSourceDatabaseEntry> result = new ArrayList<JSSourceDatabaseEntry>();
-		JSSourceDatabase db;
-		ArrayList<JSSourceDatabaseEntry> entries;
-		db = modules_databases.get(pos);
-		entries = db.newEntries();
-		if (entries.isEmpty() == false) {
-			result.put(db.module_name, entries);
-		}
-		return result;
-		}
-		 * 
-		 * */
-		
-		/*for (int pos = 0; pos < js_databases.size(); pos++) {
-			try {
-				js_databases.get(pos).save();
-			} catch (IOException e) {
-				Loggers.Play.error("Can't save entries");
-			}
-		}*/
-		
+		refreshAllSources();
 	}
 	
-	// TODO Controler Side
+	private static void refreshAllSources() throws Exception {
+		synchronized (list_urls) {
+			list_urls.clear();
+			for (int pos = 0; pos < js_modules.size(); pos++) {
+				js_modules.get(pos).processSources();
+				if (isJsDevMode()) {
+					list_urls.addAll(js_modules.get(pos).getTransformedFilesRelativeURLs());
+				} else {
+					list_urls.add(js_modules.get(pos).getConcatedFileRelativeURL());
+				}
+			}
+		}
+	}
 	
-	// TODO View side (link)
+	public static File getPhysicalFileFromRessourceName(String ressource_name) {
+		String base_dir = JSSourceModule.BASE_REDUCED_DIRECTORY_JS;
+		if (isJsDevMode()) {
+			base_dir = JSSourceModule.BASE_TRANSFORMED_DIRECTORY_JS;
+		}
+		
+		VirtualFile ressource_file = VirtualFile.search(Play.roots, base_dir + File.separator + FilenameUtils.getName(ressource_name));
+		if (ressource_file == null) {
+			return null;
+		}
+		File result = ressource_file.getRealFile();
+		try {
+			CopyMove.checkExistsCanRead(result);
+			if (result.isFile() == false) {
+				throw new FileNotFoundException("File \"" + result + "\" exists, but is not a file.");
+			}
+			
+		} catch (Exception e) {
+			Loggers.Play.warn("Invalid JS ressource: " + ressource_name, e);
+			return null;
+		}
+		return result;
+	}
+	
+	public static ArrayList<String> getURLs() {
+		if (isJsDevMode()) {
+			try {
+				refreshAllSources();
+			} catch (Exception e) {
+				Loggers.Play.warn("Can't refresh all JS source in dev mode", e);
+			}
+		}
+		return list_urls;
+	}
+	
+	private static boolean isJsDevMode() {
+		return js_dev_mode;
+	}
 	
 	// TODO add options in play page (switch dev/prod, force refresh)
 	

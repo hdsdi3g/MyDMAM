@@ -42,26 +42,15 @@
 	<script src="@{'/public/javascripts/lib/md5.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	<script src="@{'/public/javascripts/lib/jquery.dataTables.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	<script src="@{'/public/javascripts/lib/selectize-0.11.2.min.js'}" type="text/javascript" charset="UTF-8"></script>
-	
-	%{ if (play.mode.toString() == "DEV"){ }%
-		<script src="@{'/public/javascripts/lib/react-0.13.2.js'}" type="text/javascript" charset="UTF-8"></script>
-	%{ } else { }%
-		<script src="@{'/public/javascripts/lib/react-0.13.2.min.js'}" type="text/javascript" charset="UTF-8"></script>
-	%{ } }%
-		<script src="@{'/public/javascripts/lib/rlite-1.1.1.min.js'}" type="text/javascript" charset="UTF-8"></script>
+	<script src="@{'/public/javascripts/lib/react-0.13.2.min.js'}" type="text/javascript" charset="UTF-8"></script>
+	<script src="@{'/public/javascripts/lib/rlite-1.1.1.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	
 	<script type="text/javascript" charset="UTF-8"><!-- #{include 'routes.js'/} --></script>
 	
-	#{list hd3gtv.mydmam.web.JsCompile.getURLlist(), as:'item'}
-		#{script src:item, charset:'utf-8' /}
+	#{list hd3gtv.mydmam.web.JSSourceManager.getURLs(), as:'item'}
+		<script src="&{item}" type="text/javascript" charset="UTF-8"></script>
 	#{/list}
 	
-	%{ if (hd3gtv.mydmam.web.JsCompile.COMPILE_JS == false){ }%
-		#{list hd3gtv.mydmam.web.JSXTransformer.getJSXURLList(), as:'item'}
-			<script src="&{item}" type="text/javascript" charset="UTF-8"></script>
-		#{/list}
-	%{ } }%
-
 	<script src="@{Application.i18n()}" type="text/javascript" charset="UTF-8"></script>
 	
 	#{get 'moreScripts' /}
@@ -100,7 +89,7 @@ $(document).ready(function() {
 		
 		if (jsx_error_messages.length > 0) {
 			for (pos = 0; pos < jsx_error_messages.length; pos++) {
-				console.log("Error in " + jsx_error_messages[pos].from + " from server side:\n" + jsx_error_messages[pos].text + "\n" + jsx_error_messages[pos].line);
+				console.log("Error in " + jsx_error_messages[pos].from + "\n\n" + jsx_error_messages[pos].text + "\n\n" + jsx_error_messages[pos].line);
 			}
 		}
     });
