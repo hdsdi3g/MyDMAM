@@ -171,6 +171,10 @@ public class JSSourceDatabaseEntry {
 		return new File(module_path.getPath() + File.separator + relative_root_name + File.separator + relative_file_name);
 	}
 	
+	String getHash() {
+		return hash;
+	}
+	
 	private File computeOutputFilepath(File module_path, File output_directory) {
 		File source_file = getRealFile(module_path);
 		String source_base_name = FilenameUtils.getBaseName(source_file.getPath());

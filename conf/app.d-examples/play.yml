@@ -1,6 +1,5 @@
 play:
     deploy: /opt/play
-    compile_javascript: true
     # js_dev_mode: true # disable optimized JS source, and check, at each request, the status (new/update/delete) for all JS sources, and transform JSX if needed.
                       # js_dev_mode is mandatory if you want change JS files on the fly (else, you must reboot Play for see changes).
 
