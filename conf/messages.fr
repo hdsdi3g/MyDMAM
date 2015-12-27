@@ -470,6 +470,9 @@ userprofile.baskets.admin.rawview.modal.cancel=Annuler
 userprofile.baskets.admin.rawview.modal.save=Enregister
 userprofile.baskets.admin.rawview.modal.warning=Attention !
 userprofile.baskets.admin.rawview.modal.cantfoundsomeitems=Impossible de trouver cet/ces element(s) dans les stockages :
+userprofile.drifttime.value=Décallage de temps avec le serveur : %s sec
+userprofile.drifttime.server=Le serveur est actuellement le %s
+userprofile.drifttime.warn=A cause de ce décallage, les informations de dates et de temps sur le site peuvent être erronées.
 
 userprofile.mailtemplate.mailtest=Test d'envoi de mail
 userprofile.mailtemplate.testmessage=Ce mail a été envoyé pour vérifier le bon fonctionnement du moteur de mail, ainsi que votre capacité à pouvoir recevoir et lire ce mail.

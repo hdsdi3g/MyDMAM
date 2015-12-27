@@ -470,6 +470,9 @@ userprofile.baskets.admin.rawview.modal.cancel=Cancel
 userprofile.baskets.admin.rawview.modal.save=Save
 userprofile.baskets.admin.rawview.modal.warning=Warning!
 userprofile.baskets.admin.rawview.modal.cantfoundsomeitems=Could not find this/these item(s) in storage:
+userprofile.drifttime.value=Drift time with the server: %s sec
+userprofile.drifttime.server=The server is now the %s
+userprofile.drifttime.warn=Because of this shift, the information dates and time on the site may be incorrect.
 
 userprofile.mailtemplate.mailtest=Send test mail
 userprofile.mailtemplate.testmessage=This email was sent to check the proper functioning of the mail engine, as well as your ability to receive and read this email.
