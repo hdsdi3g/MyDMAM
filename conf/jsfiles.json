@@ -56,13 +56,6 @@
       "date": 1432484652000,
       "hash": "67276890e747b92dbc3f10e94d2f4182"
     },
-    "jsfile:abc7b6700474cec508a7f2a6cc24bd9a": {
-      "relative_file_name": "_declarations_internal.jsx",
-      "relative_root_name": "/app/react",
-      "size": 1006,
-      "date": 1451008585000,
-      "hash": "9fa7190426c73f2ab3e57f62cc92e7a3"
-    },
     "jsfile:ff033711ddbb54dba6b3ed5f0344c869": {
       "relative_file_name": "mydmam/async/navigate/BreadCrumb.jsx",
       "relative_root_name": "/app/react",

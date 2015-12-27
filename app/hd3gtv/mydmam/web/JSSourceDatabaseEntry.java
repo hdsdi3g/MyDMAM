@@ -67,12 +67,14 @@ public class JSSourceDatabaseEntry {
 		try {
 			hash = makeMD5(real_file);
 		} catch (IOException e) {
-			Loggers.Play.error("Can't open JS file: " + real_file, e);
+			Loggers.Play_JSSource.error("Can't open JS file: " + real_file, e);
 		}
 	}
 	
 	void checkRealFile(File module_path) throws FileNotFoundException, IOException {
 		File real_file = new File(module_path.getPath() + File.separator + relative_root_name + File.separator + relative_file_name);
+		Loggers.Play_JSSource.trace("Check file " + real_file + " (module_path: " + module_path + ")");
+		
 		if (real_file.exists() == false) {
 			throw new FileNotFoundException(real_file.getPath());
 		}
@@ -94,12 +96,13 @@ public class JSSourceDatabaseEntry {
 	
 	void refresh(File module_path) {
 		File real_file = new File(module_path.getPath() + File.separator + relative_root_name + File.separator + relative_file_name);
+		Loggers.Play_JSSource.trace("Refresh file " + real_file + " (module_path: " + module_path + ")");
 		size = real_file.length();
 		date = real_file.lastModified();
 		try {
 			hash = makeMD5(real_file);
 		} catch (IOException e) {
-			Loggers.Play.error("Can't compute MD5", e);
+			Loggers.Play_JSSource.error("Can't compute MD5", e);
 		}
 	}
 	
@@ -113,7 +116,7 @@ public class JSSourceDatabaseEntry {
 			md.update(source.getBytes());
 			return MyDMAM.byteToString(md.digest());
 		} catch (Exception e) {
-			Loggers.Play.error("Can't compute MD5", e);
+			Loggers.Play_JSSource.error("Can't compute MD5", e);
 			return "";
 		}
 	}
@@ -122,6 +125,7 @@ public class JSSourceDatabaseEntry {
 	 * @param source Read line by line the file, and avoid to end-line chars problems.
 	 */
 	private static String makeMD5(File source) throws IOException {
+		Loggers.Play_JSSource.trace("Check MD5 for file " + source);
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			InputStream in = null;
@@ -140,7 +144,7 @@ public class JSSourceDatabaseEntry {
 		} catch (IOException e) {
 			throw e;
 		} catch (Exception e) {
-			Loggers.Play.error("Can't compute MD5", e);
+			Loggers.Play_JSSource.error("Can't compute MD5", e);
 			return "";
 		}
 	}

@@ -91,7 +91,7 @@ public class AsyncJavascript extends Controller {
 		try {
 			FileUtils.copyFile(ressource_file, response.out);
 		} catch (IOException e) {
-			Loggers.Play.error("Can't response (send) js file: " + ressource_file, e);
+			Loggers.Play_JSSource.error("Can't response (send) js file: " + ressource_file, e);
 			notFound();
 		}
 		ok();

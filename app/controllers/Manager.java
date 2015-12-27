@@ -32,6 +32,7 @@ import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.WorkerExporter;
+import hd3gtv.mydmam.web.JSSourceManager;
 import play.Play;
 import play.PlayPlugin;
 import play.cache.Cache;
@@ -55,7 +56,9 @@ public class Manager extends Controller {
 		}
 		String rawplaystatus = plugin.getStatus();
 		
-		render(rawplaystatus);
+		Boolean is_js_dev_mode = JSSourceManager.isJsDevMode();
+		
+		render(rawplaystatus, is_js_dev_mode);
 	}
 	
 	@Check("showManager")
@@ -69,6 +72,21 @@ public class Manager extends Controller {
 	public static void refreshlogconf() throws Exception {
 		Loggers.Play.info("Manual refresh log configuration");
 		Loggers.refreshLogConfiguration();
+		redirect("Manager.playjobs");
+	}
+	
+	@Check("showManager")
+	public static void switchjsdevmode() throws Exception {
+		JSSourceManager.switchSetJsDevMode();
+		Loggers.Play_JSSource.info("Switch JS dev mode to " + JSSourceManager.isJsDevMode());
+		JSSourceManager.refreshAllSources();
+		redirect("Manager.playjobs");
+	}
+	
+	@Check("showManager")
+	public static void purgejs() throws Exception {
+		Loggers.Play_JSSource.info("Purge and remake all JS computed");
+		JSSourceManager.purgeAll();
 		redirect("Manager.playjobs");
 	}
 	

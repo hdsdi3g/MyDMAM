@@ -46,7 +46,7 @@ public class JSSourceManager {
 	
 	public static void init() throws Exception {
 		if (isJsDevMode()) {
-			Loggers.Play.info("JS Source manager is in dev mode.");
+			Loggers.Play_JSSource.info("JS Source manager is in dev mode.");
 		}
 		
 		js_modules.clear();
@@ -70,8 +70,10 @@ public class JSSourceManager {
 		refreshAllSources();
 	}
 	
-	private static void refreshAllSources() throws Exception {
+	public static void refreshAllSources() throws Exception {
 		synchronized (list_urls) {
+			Loggers.Play_JSSource.debug("Do a refresh for all sources from all modules.");
+			
 			list_urls.clear();
 			for (int pos = 0; pos < js_modules.size(); pos++) {
 				js_modules.get(pos).processSources();
@@ -85,6 +87,10 @@ public class JSSourceManager {
 	}
 	
 	public static File getPhysicalFileFromRessourceName(String ressource_name) {
+		if (Loggers.Play_JSSource.isTraceEnabled()) {
+			Loggers.Play_JSSource.trace("Get physical file: " + ressource_name);
+		}
+		
 		String base_dir = JSSourceModule.BASE_REDUCED_DIRECTORY_JS;
 		if (isJsDevMode()) {
 			base_dir = JSSourceModule.BASE_TRANSFORMED_DIRECTORY_JS;
@@ -102,7 +108,7 @@ public class JSSourceManager {
 			}
 			
 		} catch (Exception e) {
-			Loggers.Play.warn("Invalid JS ressource: " + ressource_name, e);
+			Loggers.Play_JSSource.warn("Invalid JS ressource: " + ressource_name, e);
 			return null;
 		}
 		return result;
@@ -113,16 +119,28 @@ public class JSSourceManager {
 			try {
 				refreshAllSources();
 			} catch (Exception e) {
-				Loggers.Play.warn("Can't refresh all JS source in dev mode", e);
+				Loggers.Play_JSSource.warn("Can't refresh all JS source in dev mode", e);
 			}
 		}
 		return list_urls;
 	}
 	
-	private static boolean isJsDevMode() {
+	public static boolean isJsDevMode() {
 		return js_dev_mode;
 	}
 	
-	// TODO add options in play page (switch dev/prod, force refresh)
+	public static void switchSetJsDevMode() throws Exception {
+		js_dev_mode = !js_dev_mode;
+	}
+	
+	/**
+	 * Like a Play reboot with json's file db delete.
+	 */
+	public static void purgeAll() throws Exception {
+		for (int pos = 0; pos < js_modules.size(); pos++) {
+			js_modules.get(pos).purgeDatabase();
+		}
+		init();
+	}
 	
 }

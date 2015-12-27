@@ -54,9 +54,10 @@ public class JSSourceModule {
 	private File allfiles_concated_file;
 	private File declaration_file;
 	private File reduced_declaration_file;
-	// private ArrayList<String> all_reduced_relative_path;
 	
 	JSSourceModule(String module_name, File module_path) throws IOException {
+		Loggers.Play_JSSource.debug("Init source module, module_name: " + module_name + ", module_path: " + module_path);
+		
 		this.module_name = module_name;
 		if (module_name == null) {
 			throw new NullPointerException("\"module_name\" can't to be null");
@@ -88,6 +89,14 @@ public class JSSourceModule {
 		database = JSSourceDatabase.create(this);
 	}
 	
+	/**
+	 * This will not functionnal after this.
+	 */
+	void purgeDatabase() throws IOException {
+		FileUtils.forceDelete(database.getDbfile());
+		database = null;
+	}
+	
 	String getModuleName() {
 		return module_name;
 	}
@@ -97,6 +106,8 @@ public class JSSourceModule {
 	}
 	
 	void processSources() throws IOException {
+		Loggers.Play_JSSource.debug("Do a process source, module_name: " + module_name);
+		
 		altered_source_files = database.checkAndClean();
 		new_source_files = database.newEntries();
 		
@@ -105,12 +116,17 @@ public class JSSourceModule {
 		}
 		
 		if (allfiles_concated_file.exists()) {
+			Loggers.Play_JSSource.debug("allfiles_concated_file exists, remove it, module_name: " + module_name + ", allfiles_concated_file: " + allfiles_concated_file);
 			FileUtils.forceDelete(allfiles_concated_file);
 		}
 		
 		/**
 		 * Remove old transformed and reduced files.
 		 */
+		if (altered_source_files.isEmpty() == false & Loggers.Play_JSSource.isDebugEnabled()) {
+			Loggers.Play_JSSource.debug("Remove old transformed and reduced files (" + altered_source_files.size() + " sources), module_name: " + module_name);
+		}
+		
 		JSSourceDatabaseEntry entry;
 		File transformed_file;
 		File reduced_file;
@@ -138,6 +154,9 @@ public class JSSourceModule {
 		 * - Transform JSX if needed
 		 * - Reduce JS
 		 */
+		if (must_process_source_files.isEmpty() == false & Loggers.Play_JSSource.isDebugEnabled()) {
+			Loggers.Play_JSSource.debug("(Re) process source files, module_name: " + module_name);
+		}
 		JSProcessor processor;
 		File source_file;
 		String source_scope;
@@ -178,7 +197,7 @@ public class JSSourceModule {
 				 */
 				processor.reduceJS();
 			} catch (Exception e) {
-				Loggers.Play.error("Can't reduce JS source: " + entry, e);
+				Loggers.Play_JSSource.error("Can't reduce JS source: " + entry + ", module_name: " + module_name, e);
 				return;
 			}
 			reduced_file = entry.computeReducedFilepath(module_path, reduced_directory);
@@ -230,6 +249,9 @@ public class JSSourceModule {
 		 * Create JS header for all scopes.
 		 */
 		if (source_scopes.isEmpty() == false) {
+			if (Loggers.Play_JSSource.isDebugEnabled()) {
+				Loggers.Play_JSSource.debug("Create JS header for all scopes, module_name: " + module_name);
+			}
 			declaration_file = createDeclarationFile(source_scopes);
 			reduced_declaration_file = new File(reduced_directory + File.separator + "_" + module_name + "_" + "declarations.js");
 			
@@ -238,7 +260,7 @@ public class JSSourceModule {
 				processor.reduceJS();
 				processor.writeTo(reduced_declaration_file);
 			} catch (Exception e) {
-				Loggers.Play.error("Can't reduce declaration file source: " + declaration_file, e);
+				Loggers.Play_JSSource.error("Can't reduce declaration file source: " + declaration_file + ", module_name: " + module_name, e);
 				return;
 			}
 		}
@@ -246,6 +268,9 @@ public class JSSourceModule {
 		/**
 		 * Concate all reduced files
 		 */
+		if (Loggers.Play_JSSource.isDebugEnabled()) {
+			Loggers.Play_JSSource.debug("Concate all reduced files to a GZip file, allfiles_concated_file: " + allfiles_concated_file + ", module_name: " + module_name);
+		}
 		FileOutputStream concated_out_stream_gzipped = new FileOutputStream(allfiles_concated_file);
 		try {
 			GZIPOutputStream gz_concated_out_stream_gzipped = new GZIPOutputStream(concated_out_stream_gzipped, 0xFFFF);
@@ -260,7 +285,7 @@ public class JSSourceModule {
 				try {
 					CopyMove.checkExistsCanRead(reduced_file);
 				} catch (IOException e) {
-					Loggers.Play.error("Can't found reduced file: " + reduced_file, e);
+					Loggers.Play_JSSource.error("Can't found reduced file: " + reduced_file, e);
 				}
 				FileUtils.copyFile(reduced_file, gz_concated_out_stream_gzipped);
 			}
@@ -269,7 +294,7 @@ public class JSSourceModule {
 			concated_out_stream_gzipped.flush();
 		} catch (Exception e) {
 			IOUtils.closeQuietly(concated_out_stream_gzipped);
-			Loggers.Play.error("Can't make concated file: " + allfiles_concated_file, e);
+			Loggers.Play_JSSource.error("Can't make concated file: " + allfiles_concated_file + ", module_name: " + module_name, e);
 			if (e instanceof IOException) {
 				throw (IOException) e;
 			}
@@ -277,8 +302,6 @@ public class JSSourceModule {
 		
 		database.save();
 	}
-	
-	// TODO change loggers and add module_name ref
 	
 	private File createDeclarationFile(ArrayList<String> source_scopes) {
 		File declare_file = new File(transformed_directory + File.separator + "_" + module_name + "_" + "declarations.js");
@@ -309,6 +332,9 @@ public class JSSourceModule {
 			sb.append("\n");
 		}
 		
+		if (Loggers.Play_JSSource.isDebugEnabled()) {
+			Loggers.Play_JSSource.debug("Create declaration file: " + declare_file + ", source_scopes: " + source_scopes + ", module_name: " + module_name);
+		}
 		IO.writeContent(sb.toString(), declare_file);
 		return declare_file;
 	}
@@ -330,7 +356,7 @@ public class JSSourceModule {
 				url = Router.reverse(VirtualFile.open(declaration_file));
 				results.add(url);
 			} else {
-				Loggers.Play.warn("This module declaration_file don't exists: " + declaration_file);
+				Loggers.Play_JSSource.warn("This module declaration_file don't exists: " + declaration_file + ", module_name: " + module_name);
 			}
 		}
 		
@@ -338,7 +364,7 @@ public class JSSourceModule {
 		for (int pos = 0; pos < all_entries.size(); pos++) {
 			transformed_file = all_entries.get(pos).computeTransformedFilepath(module_path, transformed_directory);
 			if (transformed_file.exists() == false) {
-				Loggers.Play.warn("A transformed file don't exists: " + transformed_file);
+				Loggers.Play_JSSource.warn("A transformed file don't exists: " + transformed_file);
 				continue;
 			}
 			url = Router.reverse(VirtualFile.open(transformed_file));

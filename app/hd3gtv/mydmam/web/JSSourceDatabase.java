@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -87,7 +88,6 @@ public class JSSourceDatabase {
 	}
 	
 	private transient File dbfile;
-	@SuppressWarnings("unused")
 	private transient String module_name;
 	private transient File module_path;
 	@GsonIgnore
@@ -116,7 +116,12 @@ public class JSSourceDatabase {
 	private JSSourceDatabase() {
 	}
 	
+	File getDbfile() {
+		return dbfile;
+	}
+	
 	void save() throws IOException {
+		Loggers.Play_JSSource.debug("Save database: " + dbfile + " (module: " + module_name + ")");
 		FileUtils.write(dbfile, gson.toJson(this));
 	}
 	
@@ -125,6 +130,8 @@ public class JSSourceDatabase {
 	 * @return it can be maybe deleted files !
 	 */
 	ArrayList<JSSourceDatabaseEntry> checkAndClean() {
+		Loggers.Play_JSSource.trace("Do a check and clean: " + dbfile + " (module: " + module_name + ")");
+		
 		ArrayList<JSSourceDatabaseEntry> result = new ArrayList<JSSourceDatabaseEntry>();
 		ArrayList<String> remove_this = new ArrayList<String>();
 		
@@ -132,11 +139,11 @@ public class JSSourceDatabase {
 			try {
 				entry.getValue().checkRealFile(module_path);
 			} catch (FileNotFoundException e) {
-				Loggers.Play.info("Deleted file for JSDB entry: " + entry.getValue() + " (" + e.getMessage() + ")");
+				Loggers.Play_JSSource.info("Deleted file for JSDB entry: " + entry.getValue() + " (" + e.getMessage() + ")");
 				remove_this.add(entry.getKey());
 				result.add(entry.getValue());
 			} catch (IOException e) {
-				Loggers.Play.debug("Altered file for JSDB entry: " + entry.getValue() + " (" + e.getMessage() + ")");
+				Loggers.Play_JSSource.debug("Altered file for JSDB entry: " + entry.getValue() + " (" + e.getMessage() + ")");
 				entry.getValue().refresh(module_path);
 				result.add(entry.getValue());
 			}
@@ -146,10 +153,18 @@ public class JSSourceDatabase {
 			entries.remove(key);
 		}
 		
+		if ((result.isEmpty() == false | remove_this.isEmpty() == false) & Loggers.Play_JSSource.isDebugEnabled()) {
+			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+			log.put("result", result);
+			log.put("remove_this", remove_this);
+			Loggers.Play_JSSource.debug("Check and clean results for " + dbfile + " (module: " + module_name + ") " + log);
+		}
+		
 		return result;
 	}
 	
 	ArrayList<JSSourceDatabaseEntry> newEntries() {
+		Loggers.Play_JSSource.trace("Do a new entries check: " + dbfile + " (module: " + module_name + ")");
 		ArrayList<JSSourceDatabaseEntry> new_files = new ArrayList<JSSourceDatabaseEntry>();
 		
 		File_Filter file_filter = new File_Filter();
@@ -185,6 +200,10 @@ public class JSSourceDatabase {
 					new_files.add(entry);
 				}
 			}
+		}
+		
+		if (new_files.isEmpty() == false & Loggers.Play_JSSource.isDebugEnabled()) {
+			Loggers.Play_JSSource.debug("New entries check results for " + dbfile + " (module: " + module_name + ") " + new_files);
 		}
 		
 		return new_files;

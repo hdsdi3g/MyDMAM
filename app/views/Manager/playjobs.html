@@ -26,6 +26,12 @@
 	<div>
 		<a href="@{Manager.refreshlogconf()}"><i class="icon-fire"></i> &{'service.playjobs.refreshlogconf'}</a>
 	</div>
+	<div>
+		<a href="@{Manager.switchjsdevmode()}"><i class="icon-fire"></i> &{'service.playjobs.switchjsdevmode'}, &{'service.playjobs.switchjsdevmode.status'}: ${is_js_dev_mode.toBooleanIcon().raw()}</a>
+	</div>
+	<div>
+		<a href="@{Manager.purgejs()}"><i class="icon-fire"></i> &{'service.playjobs.purgejs'}</a>
+	</div>
 </div>
 <script type="text/javascript" charset="UTF-8">
 <!--

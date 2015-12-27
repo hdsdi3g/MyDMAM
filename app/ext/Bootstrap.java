@@ -178,7 +178,7 @@ public class Bootstrap extends Job {
 		try {
 			JSSourceManager.init();
 		} catch (Exception e) {
-			Loggers.Play.error("Can't load all JS Databases", e);
+			Loggers.Play_JSSource.error("Can't init", e);
 		}
 		
 		try {

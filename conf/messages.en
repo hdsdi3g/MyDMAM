@@ -60,6 +60,9 @@ service.instanceslist=Instances liste
 service.clusterstatus.report.pagename=Clusters status
 service.playjobs.purgecache=Purge Play Cache
 service.playjobs.refreshlogconf=Refresh log configuration
+service.playjobs.switchjsdevmode=Switch JS dev mode
+service.playjobs.switchjsdevmode.status=actually in dev mode
+service.playjobs.purgejs=Purge et re-make all computed JS files
 
 manager.pagename=Service manager
 manager.loading=Loading...
