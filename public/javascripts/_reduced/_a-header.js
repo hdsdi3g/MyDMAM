@@ -18,6 +18,6 @@ b.f.i18nExternalPosition=d("i18nExternalPosition");})(window.mydmam.module);(fun
 b.push=function(d,f,e,g){c[d]={};c[d].path=f;c[d].react_top_level_class=e;if(g){c[d].async_needs=g;
 }};var a=function(e,d){return function(f){e(d,f.params);};};b.populate=function(d,i){for(var e in c){var g=c[e].async_needs;
 if(g!=null){for(var h in g){var f=g[h];if(f.name==null){console.error("Name param missing for async_need",f);
-}if(f.verb==null){console.error("Verb param missing for async_need",f);}}if(mydmam.async.isAvaliable(f.name,f.verb)==false){console.log("No rights for",f);
-continue;}}d.add(c[e].path,a(i,e));}};b.getReactTopLevelClassByRouteName=function(d){if(c[d]){return c[d].react_top_level_class;
+}if(f.verb==null){console.error("Verb param missing for async_need",f);}}if(mydmam.async.isAvaliable(f.name,f.verb)==false){continue;
+}}d.add(c[e].path,a(i,e));}};b.getReactTopLevelClassByRouteName=function(d){if(c[d]){return c[d].react_top_level_class;
 }return null;};})(window.mydmam.routes);

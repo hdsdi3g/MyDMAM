@@ -225,7 +225,7 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 					}
 				}
 				if (mydmam.async.isAvaliable(async_need.name, async_need.verb) == false) {
-					console.log("No rights for", async_need);
+					// console.log("No rights for", async_need);
 					continue;
 				}
 			}

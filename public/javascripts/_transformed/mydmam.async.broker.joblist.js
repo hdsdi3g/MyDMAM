@@ -275,7 +275,7 @@ broker.NavTabDropDownAction = React.createClass({displayName: "NavTabDropDownAct
 		});
 
 		return (React.createElement("li", {key: "action", ref: "tab", className: dropdown_class}, 
-			React.createElement("a", {className: "dropdown-toggle", href: location.hash, onClick: this.onDropDownActionClick}, "For each ", React.createElement("b", {className: "caret"})), 
+			React.createElement("a", {className: "dropdown-toggle", href: location.hash, onClick: this.onDropDownActionClick}, i18n("manager.jobs.foreachbtntable"), " ", React.createElement("b", {className: "caret"})), 
 			React.createElement("ul", {className: "dropdown-menu"}, 
 				buttons
 			)
@@ -352,7 +352,7 @@ broker.JobListCartridges = React.createClass({displayName: "JobListCartridges",
 
 		var too_many_jobs = null;
 		if (max_display_jobs_reached) {
-			too_many_jobs = (React.createElement(mydmam.async.AlertBox, {title: "Too many jobs to list here"}, "You can actually see only ", selected_jobs.length, " jobs."));
+			too_many_jobs = (React.createElement(mydmam.async.AlertBox, {title: i18n("manager.jobs.toomanyjobs")}, i18n("manager.jobs.limitedjoblist", selected_jobs.length)));
 		}
 
 		return (React.createElement("div", null, 
@@ -557,10 +557,10 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 					React.createElement(mydmam.async.pathindex.reactDate, {i18nlabel: "create_date", date: job.create_date, style: {marginLeft: 0}})
 				), 
 				React.createElement("div", {style: {marginTop: 4}}, 
-					React.createElement("span", {className: "label label-info"}, React.createElement("i", {className: "icon-cog icon-white"}), " Created by ", job.instance_status_creator_key)
+					React.createElement("span", {className: "label label-info"}, React.createElement("i", {className: "icon-cog icon-white"}), " ", i18n("manager.jobs.createdbysimple", job.instance_status_creator_key))
 				), 
 				React.createElement("div", {style: {marginTop: 4}}, 
-					"Class creator: ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.creator, version: this.props.version})
+					i18n("manager.jobs.classcreator"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.creator, version: this.props.version})
 				), 
 				React.createElement("div", {style: {marginTop: 4, marginBottom: 8}}, 
 					max_execution_time
@@ -578,7 +578,7 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 					));		
 					dates_start_end_content.push(React.createElement("div", {style: {marginTop: 5}, key: "deltadate"}, 
 						React.createElement("span", {className: "label", style: {marginLeft: 5}}, 
-							React.createElement("i", {className: "icon-time icon-white"}), " ", (job.end_date - job.start_date) / 1000 + " sec."
+							React.createElement("i", {className: "icon-time icon-white"}), i18n("manager.jobs.secs", (job.end_date - job.start_date) / 1000)
 						)
 					));
 					dates_start_end_content.push(React.createElement("div", {style: {marginTop: 5}, key: "sinceedate"}, 
@@ -601,32 +601,32 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 			if (context_content_json != "{}") {
 				context_content = (React.createElement("code", {className: "json", onClick: this.onClickDoNothing}, 
 					React.createElement("i", {className: "icon-indent-left"}), 
-					React.createElement("span", {className: "jsontitle"}, " Données du contexte : "), 
+					React.createElement("span", {className: "jsontitle"}, " ", i18n("manager.jobs.context")), 
 					context_content_json
 				));	
 			}
 
 			var context_neededstorages = null;
 			if (job.context.neededstorages) {
-				var label = "Target storage:";
+				var label = "manager.jobs.targetstorage";
 				if (job.context.neededstorages.length > 1) {
-					label = "Target storages:";
+					label = "manager.jobs.targetstorages";
 				}
-				context_neededstorages = (React.createElement("span", null, label, " ", React.createElement("span", {className: "badge badge-warning"}, React.createElement("i", {className: "icon-hdd icon-white"}), " ", job.context.neededstorages.join(", "))));
+				context_neededstorages = (React.createElement("span", null, i18n(label), " ", React.createElement("span", {className: "badge badge-warning"}, React.createElement("i", {className: "icon-hdd icon-white"}), " ", job.context.neededstorages.join(", "))));
 			}
 
 			var context_hookednames = null;
 			if (job.context.hookednames) {
-				var label = "Hooked name:";
+				var label = "manager.jobs.hookedname";
 				if (job.context.hookednames.length > 1) {
-					label = "Hooked names:";
+					label = "manager.jobs.hookednames";
 				}
-				context_hookednames = (React.createElement("span", null, label, " ", React.createElement("span", {className: "badge badge-inverse"}, React.createElement("i", {className: "icon-tags icon-white"}), " ", job.context.hookednames.join(", "))));
+				context_hookednames = (React.createElement("span", null, i18n(label), " ", React.createElement("span", {className: "badge badge-inverse"}, React.createElement("i", {className: "icon-tags icon-white"}), " ", job.context.hookednames.join(", "))));
 			}
 
 			context = (React.createElement("div", {style: {marginBottom: 7}}, 
 				React.createElement("div", {style: {marginTop: 5}}, 
-					"Context Class: ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.context.classname, version: this.props.version})
+					i18n("manager.jobs.contextclass"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.context.classname, version: this.props.version})
 				), 
 				React.createElement("div", {style: {marginTop: 5}}, context_neededstorages), 
 				React.createElement("div", {style: {marginTop: 5}}, context_hookednames), 
@@ -637,16 +637,16 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 			 * Display references
 			 */
 			var job_ref = (React.createElement("div", {style: {marginTop: 5}}, 
-				"Job ref: ", React.createElement("span", null, broker.displayKey(job.key, true))
+				i18n("manager.jobs.jref"), " ", React.createElement("span", null, broker.displayKey(job.key, true))
 			));
 
 			if (job.worker_reference != null & job.worker_class != null) {
 				worker_ref = (React.createElement("div", {className: "span7"}, 
 					React.createElement("div", {style: {marginTop: 5}}, 
-						"Worker ref: ", React.createElement("span", null, broker.displayKey(job.worker_reference, true))
+						i18n("manager.jobs.wref"), " ", React.createElement("span", null, broker.displayKey(job.worker_reference, true))
 					), 
 					React.createElement("div", {style: {marginTop: 5}}, 
-						"Class executor: ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.worker_class, version: this.props.version})
+						i18n("manager.jobs.classexec"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.worker_class, version: this.props.version})
 					), 
 					job_ref
 				));
@@ -730,4 +730,4 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 
 })(window.mydmam.async.broker);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: e60e030dc96762811889fa6b0cc6b147
+// Source hash: 0fdc3c0480a34d981abd13f8a188cd51

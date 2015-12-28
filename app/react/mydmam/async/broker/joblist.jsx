@@ -275,7 +275,7 @@ broker.NavTabDropDownAction = React.createClass({
 		});
 
 		return (<li key="action" ref="tab" className={dropdown_class}>
-			<a className="dropdown-toggle" href={location.hash} onClick={this.onDropDownActionClick}>For each <b className="caret"></b></a>
+			<a className="dropdown-toggle" href={location.hash} onClick={this.onDropDownActionClick}>{i18n("manager.jobs.foreachbtntable")} <b className="caret"></b></a>
 			<ul className="dropdown-menu">
 				{buttons}
 			</ul>
@@ -352,7 +352,7 @@ broker.JobListCartridges = React.createClass({
 
 		var too_many_jobs = null;
 		if (max_display_jobs_reached) {
-			too_many_jobs = (<mydmam.async.AlertBox title="Too many jobs to list here">You can actually see only {selected_jobs.length} jobs.</mydmam.async.AlertBox>);
+			too_many_jobs = (<mydmam.async.AlertBox title={i18n("manager.jobs.toomanyjobs")}>{i18n("manager.jobs.limitedjoblist", selected_jobs.length)}</mydmam.async.AlertBox>);
 		}
 
 		return (<div>
@@ -557,10 +557,10 @@ broker.JobCartridge = React.createClass({
 					<mydmam.async.pathindex.reactDate i18nlabel="create_date" date={job.create_date} style={{marginLeft: 0}} />
 				</div>
 				<div style={{marginTop: 4}}>
-					<span className="label label-info"><i className="icon-cog icon-white"></i> Created by {job.instance_status_creator_key}</span>
+					<span className="label label-info"><i className="icon-cog icon-white"></i> {i18n("manager.jobs.createdbysimple", job.instance_status_creator_key)}</span>
 				</div>
 				<div style={{marginTop: 4}}>
-					Class creator: <mydmam.async.JavaClassNameLink javaclass={job.creator} version={this.props.version} />
+					{i18n("manager.jobs.classcreator")} <mydmam.async.JavaClassNameLink javaclass={job.creator} version={this.props.version} />
 				</div>
 				<div style={{marginTop: 4, marginBottom: 8}}>
 					{max_execution_time}
@@ -578,7 +578,7 @@ broker.JobCartridge = React.createClass({
 					</div>);		
 					dates_start_end_content.push(<div style={{marginTop: 5}} key="deltadate">
 						<span className="label" style={{marginLeft: 5}}>
-							<i className="icon-time icon-white"></i>&nbsp;{(job.end_date - job.start_date) / 1000 + " sec."}
+							<i className="icon-time icon-white"></i>{i18n("manager.jobs.secs", (job.end_date - job.start_date) / 1000)}
 						</span>
 					</div>);
 					dates_start_end_content.push(<div style={{marginTop: 5}} key="sinceedate">
@@ -601,32 +601,32 @@ broker.JobCartridge = React.createClass({
 			if (context_content_json != "{}") {
 				context_content = (<code className="json" onClick={this.onClickDoNothing}>
 					<i className="icon-indent-left"></i>
-					<span className="jsontitle"> Données du contexte : </span>
+					<span className="jsontitle"> {i18n("manager.jobs.context")}</span>
 					{context_content_json}
 				</code>);	
 			}
 
 			var context_neededstorages = null;
 			if (job.context.neededstorages) {
-				var label = "Target storage:";
+				var label = "manager.jobs.targetstorage";
 				if (job.context.neededstorages.length > 1) {
-					label = "Target storages:";
+					label = "manager.jobs.targetstorages";
 				}
-				context_neededstorages = (<span>{label} <span className="badge badge-warning"><i className="icon-hdd icon-white"></i> {job.context.neededstorages.join(", ")}</span></span>);
+				context_neededstorages = (<span>{i18n(label)} <span className="badge badge-warning"><i className="icon-hdd icon-white"></i> {job.context.neededstorages.join(", ")}</span></span>);
 			}
 
 			var context_hookednames = null;
 			if (job.context.hookednames) {
-				var label = "Hooked name:";
+				var label = "manager.jobs.hookedname";
 				if (job.context.hookednames.length > 1) {
-					label = "Hooked names:";
+					label = "manager.jobs.hookednames";
 				}
-				context_hookednames = (<span>{label} <span className="badge badge-inverse"><i className="icon-tags icon-white"></i> {job.context.hookednames.join(", ")}</span></span>);
+				context_hookednames = (<span>{i18n(label)} <span className="badge badge-inverse"><i className="icon-tags icon-white"></i> {job.context.hookednames.join(", ")}</span></span>);
 			}
 
 			context = (<div style={{marginBottom: 7}}>
 				<div style={{marginTop: 5}}>
-					Context Class: <mydmam.async.JavaClassNameLink javaclass={job.context.classname} version={this.props.version} />
+					{i18n("manager.jobs.contextclass")} <mydmam.async.JavaClassNameLink javaclass={job.context.classname} version={this.props.version} />
 				</div>
 				<div style={{marginTop: 5}}>{context_neededstorages}</div>
 				<div style={{marginTop: 5}}>{context_hookednames}</div>
@@ -637,16 +637,16 @@ broker.JobCartridge = React.createClass({
 			 * Display references
 			 */
 			var job_ref = (<div style={{marginTop: 5}}>
-				Job ref: <span>{broker.displayKey(job.key, true)}</span>
+				{i18n("manager.jobs.jref")} <span>{broker.displayKey(job.key, true)}</span>
 			</div>);
 
 			if (job.worker_reference != null & job.worker_class != null) {
 				worker_ref = (<div className="span7">
 					<div style={{marginTop: 5}}>
-						Worker ref: <span>{broker.displayKey(job.worker_reference, true)}</span>
+						{i18n("manager.jobs.wref")} <span>{broker.displayKey(job.worker_reference, true)}</span>
 					</div>
 					<div style={{marginTop: 5}}>
-						Class executor: <mydmam.async.JavaClassNameLink javaclass={job.worker_class} version={this.props.version} />
+						{i18n("manager.jobs.classexec")} <mydmam.async.JavaClassNameLink javaclass={job.worker_class} version={this.props.version} />
 					</div>
 					{job_ref}
 				</div>);
