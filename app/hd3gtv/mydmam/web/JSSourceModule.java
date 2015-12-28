@@ -50,7 +50,6 @@ public class JSSourceModule {
 	private File transformed_directory;
 	private File reduced_directory;
 	private File allfiles_concated_file;
-	private File declaration_file;
 	private File reduced_declaration_file;
 	
 	JSSourceModule(String module_name, File module_path) throws IOException {
@@ -84,6 +83,7 @@ public class JSSourceModule {
 		}
 		
 		allfiles_concated_file = new File(reduced_directory.getPath() + File.separator + "_" + module_name + "_" + "concated.js.gz");
+		reduced_declaration_file = new File(reduced_directory + File.separator + "_" + module_name + "_" + "declarations.js");
 		database = JSSourceDatabase.create(this);
 	}
 	
@@ -104,7 +104,7 @@ public class JSSourceModule {
 	}
 	
 	void processSources() throws IOException {
-		Loggers.Play_JSSource.debug("Do a process source, module_name: " + module_name);
+		Loggers.Play_JSSource.debug("Process source, module_name: " + module_name);
 		
 		altered_source_files = database.checkAndClean();
 		new_source_files = database.newEntries();
@@ -250,9 +250,8 @@ public class JSSourceModule {
 			if (Loggers.Play_JSSource.isDebugEnabled()) {
 				Loggers.Play_JSSource.debug("Create JS header for all scopes, module_name: " + module_name);
 			}
-			declaration_file = createDeclarationFile(source_scopes);
-			reduced_declaration_file = new File(reduced_directory + File.separator + "_" + module_name + "_" + "declarations.js");
-			
+			File declaration_file = new File(transformed_directory + File.separator + "_" + module_name + "_" + "declarations.js");
+			createDeclarationFile(declaration_file, source_scopes);
 			processor = new JSProcessor(declaration_file, module_name, module_path.getAbsolutePath());
 			try {
 				processor.reduceJS();
@@ -273,7 +272,7 @@ public class JSSourceModule {
 		try {
 			GZIPOutputStream gz_concated_out_stream_gzipped = new GZIPOutputStream(concated_out_stream_gzipped, 0xFFFF);
 			
-			if (reduced_declaration_file != null) {
+			if (reduced_declaration_file.exists()) {
 				FileUtils.copyFile(reduced_declaration_file, gz_concated_out_stream_gzipped);
 			}
 			
@@ -301,9 +300,7 @@ public class JSSourceModule {
 		database.save();
 	}
 	
-	private File createDeclarationFile(ArrayList<String> source_scopes) {
-		File declare_file = new File(transformed_directory + File.separator + "_" + module_name + "_" + "declarations.js");
-		
+	private void createDeclarationFile(File declare_file, ArrayList<String> source_scopes) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("// MYDMAM JS DECLARATION FILE\n");
 		sb.append("// ");
@@ -330,7 +327,6 @@ public class JSSourceModule {
 			Loggers.Play_JSSource.debug("Create declaration file: " + declare_file + ", source_scopes: " + source_scopes + ", module_name: " + module_name);
 		}
 		IO.writeContent(sb.toString(), declare_file);
-		return declare_file;
 	}
 	
 	public String getConcatedFileRelativeURL() {
@@ -345,13 +341,9 @@ public class JSSourceModule {
 		ArrayList<String> results = new ArrayList<String>(all_entries.size() + 1);
 		String url;
 		
-		if (declaration_file != null) {
-			if (declaration_file.exists()) {
-				url = Router.reverse(VirtualFile.open(declaration_file));
-				results.add(url);
-			} else {
-				Loggers.Play_JSSource.warn("This module declaration_file don't exists: " + declaration_file + ", module_name: " + module_name);
-			}
+		if (reduced_declaration_file.exists()) {
+			url = Router.reverse(VirtualFile.open(reduced_declaration_file));
+			results.add(url);
 		}
 		
 		File transformed_file;

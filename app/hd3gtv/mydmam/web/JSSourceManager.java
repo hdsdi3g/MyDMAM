@@ -72,7 +72,7 @@ public class JSSourceManager {
 	
 	public static void refreshAllSources() throws Exception {
 		synchronized (list_urls) {
-			Loggers.Play_JSSource.debug("Do a refresh for all sources from all modules.");
+			Loggers.Play_JSSource.debug("Refresh for all sources from all modules.");
 			
 			list_urls.clear();
 			for (int pos = 0; pos < js_modules.size(); pos++) {

@@ -130,7 +130,7 @@ public class JSSourceDatabase {
 	 * @return it can be maybe deleted files !
 	 */
 	ArrayList<JSSourceDatabaseEntry> checkAndClean() {
-		Loggers.Play_JSSource.trace("Do a check and clean: " + dbfile + " (module: " + module_name + ")");
+		Loggers.Play_JSSource.trace("Check and clean: " + dbfile + " (module: " + module_name + ")");
 		
 		ArrayList<JSSourceDatabaseEntry> result = new ArrayList<JSSourceDatabaseEntry>();
 		ArrayList<String> remove_this = new ArrayList<String>();
@@ -164,7 +164,7 @@ public class JSSourceDatabase {
 	}
 	
 	ArrayList<JSSourceDatabaseEntry> newEntries() {
-		Loggers.Play_JSSource.trace("Do a new entries check: " + dbfile + " (module: " + module_name + ")");
+		Loggers.Play_JSSource.trace("New entries check: " + dbfile + " (module: " + module_name + ")");
 		ArrayList<JSSourceDatabaseEntry> new_files = new ArrayList<JSSourceDatabaseEntry>();
 		
 		File_Filter file_filter = new File_Filter();
