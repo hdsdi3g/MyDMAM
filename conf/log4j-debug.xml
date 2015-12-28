@@ -6,7 +6,7 @@
 		<param name="Target" value="System.out"/> 
 		<layout class="org.apache.log4j.PatternLayout">
 			<!-- param name="ConversionPattern" value="%d{ISO8601} %-5p %c &#8249;%t&#8250;&#9;%m&#9;%n" / -->
-			<param name="ConversionPattern" value="%d{ISO8601} %-5p &#8249;%t&#8250;&#9;&#8220;%m&#8221;%n &#8227; %C.%M(%F:%L)%n%n" />
+			<param name="ConversionPattern" value="%d{ISO8601} %-5p %c &#8249;%t&#8250;&#9;&#8220;%m&#8221;%n &#8227; %C.%M(%F:%L)%n%n" />
 		</layout>
 		<filter class="org.apache.log4j.varia.LevelRangeFilter">
 			<param name="LevelMin" value="TRACE" />
@@ -19,7 +19,7 @@
 		<param name="Target" value="System.err"/> 
 		<layout class="org.apache.log4j.PatternLayout">
 			<!-- param name="ConversionPattern" value="%d{ISO8601} %-5p %c &#8249;%t&#8250;&#9;%m&#9;%n" / -->
-			<param name="ConversionPattern" value="%d{ISO8601} %-5p &#8249;%t&#8250;&#9;&#8220;%m&#8221;%n &#8227; %C.%M(%F:%L)%n%n" />
+			<param name="ConversionPattern" value="%d{ISO8601} %-5p %c &#8249;%t&#8250;&#9;&#8220;%m&#8221;%n &#8227; %C.%M(%F:%L)%n%n" />
 		</layout>
 		<filter class="org.apache.log4j.varia.LevelRangeFilter">
 			<param name="LevelMin" value="WARN" />
