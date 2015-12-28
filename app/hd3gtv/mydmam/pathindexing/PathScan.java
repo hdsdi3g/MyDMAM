@@ -49,11 +49,22 @@ public class PathScan extends WorkerNG {
 		}
 		
 		importer.setCurrentworkingdir(current_working_directory);
+		importer.setLimit_to_current_directory(limit_to_current_directory);
 		
 		String cwd = importer.getCurrentworkingdir();
-		Loggers.Pathindex.info("Indexing storage: " + storage + ", current working directory: " + cwd + ", limit to current directory: " + limit_to_current_directory);
+		StringBuilder sb = new StringBuilder();
+		sb.append("Indexing storage: ");
+		sb.append(storage);
+		if (cwd != null) {
+			sb.append(", current working directory: ");
+			sb.append(cwd);
+		}
+		if (limit_to_current_directory) {
+			sb.append(", limit to current directory: ");
+			sb.append(limit_to_current_directory);
+		}
+		Loggers.Pathindex.info(sb.toString());
 		
-		importer.setLimit_to_current_directory(limit_to_current_directory);
 		importer.index(bulk);
 		
 		importer = null;

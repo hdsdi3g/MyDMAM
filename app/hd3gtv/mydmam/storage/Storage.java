@@ -186,11 +186,15 @@ public abstract class Storage {
 		sb.append("name: ");
 		sb.append(name);
 		sb.append(", type: ");
-		sb.append(getClass().getName());
-		sb.append(", regular_indexing: ");
-		sb.append(regular_indexing);
-		sb.append(", period: ");
-		sb.append(period);
+		sb.append(getClass().getSimpleName());
+		if (regular_indexing) {
+			sb.append(", regular_indexing: ");
+			sb.append(regular_indexing);
+		}
+		if (period > 0) {
+			sb.append(", period: ");
+			sb.append(period);
+		}
 		if (mounted != null) {
 			sb.append(", mounted: ");
 			sb.append(mounted);
