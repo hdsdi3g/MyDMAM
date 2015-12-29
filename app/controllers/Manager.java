@@ -27,10 +27,8 @@ import hd3gtv.mydmam.db.status.ClusterStatus;
 import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
 import hd3gtv.mydmam.db.status.StatusReport;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
-import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.WorkerExporter;
 import hd3gtv.mydmam.web.JSSourceManager;
 import play.Play;
@@ -144,44 +142,6 @@ public class Manager extends Controller {
 	/**
 	 * @deprecated
 	 */
-	@Check("showJobs")
-	public static void jobs() throws Exception {
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("manager.jobs.pagename"));
-		String actual_jobs = AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(0));
-		render(actual_jobs);
-	}
-	
-	/**
-	 * @deprecated
-	 */
-	@Check("showJobs")
-	public static void alljobs() throws Exception {
-		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(0)));
-	}
-	
-	/**
-	 * @deprecated
-	 */
-	@Check("showJobs")
-	public static void recentupdatedjobs(@Required Long since) throws Exception {
-		if (Validation.hasErrors()) {
-			renderJSON("[\"validation error\"]");
-		}
-		renderJSON(AppManager.getGson().toJson(JobNG.Utility.getJobsFromUpdateDate(since)));
-	}
-	
-	/**
-	 * @deprecated
-	 */
-	@Check("showJobs")
-	public static void watchfolders() throws Exception {
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("manager.watchfolders.pagename"));
-		render();
-	}
-	
-	/**
-	 * @deprecated
-	 */
 	private static String getCaller() throws Exception {
 		StringBuffer caller = new StringBuffer();
 		caller.append(User.getUserProfile().key);
@@ -204,14 +164,6 @@ public class Manager extends Controller {
 		}
 		InstanceAction.addNew(target_class_name, target_reference_key, new JsonParser().parse(json_order).getAsJsonObject(), getCaller());
 		renderJSON("[]");
-	}
-	
-	/**
-	 * @deprecated
-	 */
-	@Check("actionJobs")
-	public static void jobaction(@Required String requestactions) throws Exception {
-		renderJSON("{}");
 	}
 	
 	@Check("adminFtpServer")

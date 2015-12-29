@@ -131,13 +131,13 @@ pathindex.reactSinceDate = React.createClass({
 			style = this.props.style;
 		}
 
-		var since = mydmam.format.secondsToYWDHMS((new Date().getTime() - this.props.date) / 1000);
+		var since = Math.round((new Date().getTime() - this.props.date) / 1000);
 		if (since < 0) {
 			return <pathindex.reactDate date={this.props.date} i18nlabel={this.props.i18nlabel} style={this.props.style} />;
 		}
 
 		return (<span className="label" style={style}>
-			<i className="icon-time icon-white" style={{marginTop: 0}}></i>&nbsp;{label}{since}
+			<i className="icon-time icon-white" style={{marginTop: 0}}></i>&nbsp;{label}{mydmam.format.secondsToYWDHMS(since)}
 		</span>);
 	},
 });

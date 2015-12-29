@@ -112,7 +112,7 @@ public class DebugWorker extends WorkerNG {
 		}
 		job.setExpirationTime(1, TimeUnit.DAYS).setMaxExecutionTime(10, TimeUnit.MINUTES);
 		progression.update("...create the next job");
-		// job.setRequiredCompletedJob(required_tests); TODO
+		// job.setRequiredCompletedJob(required_tests);
 		job.publish();
 		
 		if (random.nextBoolean()) {

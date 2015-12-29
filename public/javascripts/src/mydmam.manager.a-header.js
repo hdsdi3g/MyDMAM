@@ -21,6 +21,5 @@
 	if(!mydmam.manager.url){mydmam.manager.url = {};}
 	if(!mydmam.manager.workerstatus){mydmam.manager.workerstatus = {};}
 	if(!mydmam.manager.jobcreator){mydmam.manager.jobcreator = {};}
-	if(!mydmam.manager.jobs){mydmam.manager.jobs = {};}
 
 })(window.mydmam);

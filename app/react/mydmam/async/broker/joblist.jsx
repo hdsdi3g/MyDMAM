@@ -14,7 +14,6 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-//TODO add manual full refresh button
 
 broker.Jobs = React.createClass({
 	getInitialState: function() {
@@ -34,18 +33,28 @@ broker.Jobs = React.createClass({
 			all_status: status_name,
 			order: action,
 		};
-		mydmam.async.request("broker", "action", request, function(data) {
-			console.log(action, status_name, data); //XXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxx
-		});
+		document.body.style.cursor = 'wait';
+		mydmam.async.request("broker", "action", request, this.onActionAlterJoblist);
 	},
 	onActionButtonClick: function(job, action_name) {
 		var request = {
 			job_key: job.key,
 			order: action_name,
 		};
-		mydmam.async.request("broker", "action", request, function(data) {
-			console.log(job, action_name, data); //XXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxx
-		});
+		document.body.style.cursor = 'wait';
+		mydmam.async.request("broker", "action", request, this.onActionAlterJoblist);
+	},
+	onActionAlterJoblist: function (altered_items) {
+		var new_joblist = jQuery.extend({}, this.state.joblist);
+		for (var key in altered_items) {
+			if (altered_items[key] == null) {
+				delete new_joblist[key];
+			} else {
+				new_joblist[key] = altered_items[key];
+			}
+		}
+		this.setState({joblist: new_joblist});
+		document.body.style.cursor = 'default';
 	},
 	componentWillMount: function() {
 		this.updateJobList();
@@ -82,7 +91,7 @@ broker.Jobs = React.createClass({
 		var action_avaliable = mydmam.async.isAvaliable("broker", "action");
 
 		return (
-			<mydmam.async.PageHeaderTitle title={i18n("Job list")} fluid="true">
+			<mydmam.async.PageHeaderTitle title={i18n("manager.jobs.joblist")} fluid="true">
 				<broker.NavTabs selected_tab={this.state.selected_tab} onActionTabClick={this.onActionTabClick} onTabChange={this.onTabChange} joblist={this.state.joblist} action_avaliable={action_avaliable} />
 				<broker.JobListCartridges joblist={this.state.joblist} selected_tab={this.state.selected_tab} onActionButtonClick={this.onActionButtonClick} action_avaliable={action_avaliable} />
 			</mydmam.async.PageHeaderTitle>
@@ -338,6 +347,8 @@ broker.JobListCartridges = React.createClass({
 					var required_key = job.required_keys[pos_rk];
 					if (joblist[required_key]) {
 						required_jobs.push(joblist[required_key]);
+					} else {
+						required_jobs.push({key: required_key});
 					}
 				}
 			}
@@ -531,15 +542,53 @@ broker.JobCartridge = React.createClass({
 		var job = this.props.job;
 		var required_jobs = this.props.required_jobs;
 
-		// TODO required_jobs
-
 		var creator = null;
+		var require = null;
 		var dates_start_end = null;
 		var processing_error = null;
 		var worker_ref = null;
 		var context = null;
 
 		if (this.state.stacked) {
+
+			/**
+			 * Display require
+			 */
+			if (required_jobs.length > 0) {
+				var require_list = [];
+				for (var pos in required_jobs) {
+					if (required_jobs[pos].status) {
+						var status_broker = broker.status[required_jobs[pos].status];
+						var status_broker_class = classNames("badge", status_broker.badge_class);
+
+						require_list.push(<div key={pos}>
+							<i className="icon-hand-right" style={{marginLeft: 5}}></i>
+							<strong style={{marginLeft: 8, marginRight: 8}}>
+								{required_jobs[pos].name}
+							</strong>
+							<span className={status_broker_class} style={{marginRight: 8}}>
+								{i18n(status_broker.i18n_tab_name)}
+							</span>
+							{broker.displayKey(required_jobs[pos].key, true)}
+						</div>);
+					} else {
+						require_list.push(<div key={pos}>
+							<i className="icon-trash" style={{marginLeft: 5}}></i>
+							<strong style={{marginLeft: 8, marginRight: 8}}>
+								{i18n("manager.jobs.deletedjob")}
+							</strong>
+						</div>);
+					}
+				};
+				require = (<div className="well well-small">
+					<i className="icon-tasks"></i>&nbsp;
+					{i18n("manager.jobs.require")}
+					<div style={{marginLeft: 8}}>
+						{require_list}
+					</div>
+				</div>);
+			}
+
 			var max_execution_time = null;
 			if (job.max_execution_time < (1000 * 3600 * 24)) {
 				if (job.max_execution_time > (3600 * 1000)) {
@@ -554,7 +603,7 @@ broker.JobCartridge = React.createClass({
 			 */
 			creator = (<div>
 				<div style={{marginTop: 5}}>
-					<mydmam.async.pathindex.reactDate i18nlabel="create_date" date={job.create_date} style={{marginLeft: 0}} />
+					<mydmam.async.pathindex.reactDate i18nlabel="manager.jobs.createdate" date={job.create_date} style={{marginLeft: 0}} />
 				</div>
 				<div style={{marginTop: 4}}>
 					<span className="label label-info"><i className="icon-cog icon-white"></i> {i18n("manager.jobs.createdbysimple", job.instance_status_creator_key)}</span>
@@ -570,19 +619,19 @@ broker.JobCartridge = React.createClass({
 			var dates_start_end_content = [];
 			if (job.start_date > 0) {
 				dates_start_end_content.push(<div style={{marginTop: 5}} key="sdate">
-					<mydmam.async.pathindex.reactDate i18nlabel="start_date" date={job.start_date} />
+					<mydmam.async.pathindex.reactDate i18nlabel="manager.jobs.start_date" date={job.start_date} />
 				</div>);				
 				if (job.end_date > 0) {
 					dates_start_end_content.push(<div style={{marginTop: 5}} key="edate">
-						<mydmam.async.pathindex.reactDate i18nlabel="end_date" date={job.end_date} />
+						<mydmam.async.pathindex.reactDate i18nlabel="manager.jobs.end_date" date={job.end_date} />
 					</div>);		
 					dates_start_end_content.push(<div style={{marginTop: 5}} key="deltadate">
 						<span className="label" style={{marginLeft: 5}}>
-							<i className="icon-time icon-white"></i>{i18n("manager.jobs.secs", (job.end_date - job.start_date) / 1000)}
+							<i className="icon-time icon-white"></i>&nbsp;{i18n("manager.jobs.duration", Math.round((job.end_date - job.start_date) / 1000))}
 						</span>
 					</div>);
 					dates_start_end_content.push(<div style={{marginTop: 5}} key="sinceedate">
-						<mydmam.async.pathindex.reactSinceDate i18nlabel="end_date" date={job.end_date} />
+						<mydmam.async.pathindex.reactSinceDate i18nlabel="manager.jobs.end_date_for" date={job.end_date} />
 					</div>);
 				}
 			}
@@ -708,9 +757,10 @@ broker.JobCartridge = React.createClass({
 			<div className="span3 nomargin">
 				<strong>{job.name}</strong>
 				{creator}
+				{require}
 			</div>
 			<div className="span3 nomargin">
-				<mydmam.async.pathindex.reactSinceDate i18nlabel="update_date" date={job.update_date} /> {delete_after_completed} {priority}
+				<mydmam.async.pathindex.reactSinceDate i18nlabel="manager.jobs.update_date" date={job.update_date} /> {delete_after_completed} {priority}
 				{dates_start_end}
 			</div>
 			<div className="span3 nomargin">

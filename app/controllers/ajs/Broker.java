@@ -74,7 +74,7 @@ public class Broker extends AJSController {
 		Loggers.Job.info("Do action on job(s), caller: " + AJSController.getUserProfile().key + " [" + Secure.getRequestAddress() + "], " + request);
 		
 		if (request.job_key != null) {
-			JobNG.Utility.alterJobByKey(request.job_key, request.order);
+			result.modified_jobs = JobNG.Utility.alterJobByKey(request.job_key, request.order);
 		} else if (request.all_status != null) {
 			result.modified_jobs = JobNG.Utility.alterJobsByStatus(request.all_status, request.order);
 		}

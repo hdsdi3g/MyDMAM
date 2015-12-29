@@ -5,6 +5,6 @@
 b.add("",function(){this.setState({dest:null,params:null});}.bind(this));a.populate(b,this.onChangePage);
 this.processHash();},componentDidMount:function(){window.addEventListener("hashchange",this.processHash);
 },componentWillUnmount:function(){window.removeEventListener("hashchange",this.processHash);
-},render:function(){var b=null;if(this.state.dest){var d=a.getReactTopLevelClassByRouteName(this.state.dest);
-if(d){b=React.createElement(d,{params:this.state.params});}}var c=(React.createElement("div",{className:"btn-group"},React.createElement("a",{className:"btn",href:"#"},"Home"),React.createElement("a",{className:"btn",href:"#watchfolders"},"Watchfolders"),React.createElement("a",{className:"btn",href:"#ftpserver"},"FTP Server"),React.createElement("a",{className:"btn",href:"#broker"},"JobList"),React.createElement("a",{className:"btn",href:"#debugpage"},"Debug Page")));
-return(React.createElement("div",null,b,React.createElement("hr",null),c));}});})(window.mydmam.routes);
+},render:function(){var b=null;if(this.state.dest){var c=a.getReactTopLevelClassByRouteName(this.state.dest);
+if(c){return React.createElement(c,{params:this.state.params});}}return(React.createElement("div",null,"Nothing here..."));
+}});})(window.mydmam.routes);

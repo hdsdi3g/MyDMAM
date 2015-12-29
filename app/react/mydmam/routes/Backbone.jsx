@@ -66,18 +66,10 @@ routes.Backbone = React.createClass({
 		if (this.state.dest) {
 			var ReactTopLevelClass = routes.getReactTopLevelClassByRouteName(this.state.dest);
 			if (ReactTopLevelClass) {
-				main = <ReactTopLevelClass params={this.state.params} />;
+				return <ReactTopLevelClass params={this.state.params} />;
 			}
 		}
 
-		var links = (<div className="btn-group">
-			<a className="btn" href="#">Home</a>
-			<a className="btn" href="#watchfolders">Watchfolders</a>
-			<a className="btn" href="#ftpserver">FTP Server</a>
-			<a className="btn" href="#broker">JobList</a>
-			<a className="btn" href="#debugpage">Debug Page</a>
-		</div>);
-
-		return (<div>{main}<hr />{links}</div>);
+		return (<div>Nothing here...</div>);
 	}
 });

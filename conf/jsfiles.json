@@ -14,13 +14,6 @@
       "date": 1447281328000,
       "hash": "3074199de23c347614dce3928e5ccdd7"
     },
-    "jsfile:14ae96d20f980310f4e46317832f337a": {
-      "relative_file_name": "mydmam.manager.jobs.js",
-      "relative_root_name": "/public/javascripts/src",
-      "size": 17430,
-      "date": 1427558361000,
-      "hash": "752ef86eaaba9011f17eda861751b9e0"
-    },
     "jsfile:6993cab1841c756c7031796d0e001257": {
       "relative_file_name": "mydmam.manager.js",
       "relative_root_name": "/public/javascripts/src",
@@ -38,9 +31,9 @@
     "jsfile:c3a1e40a9b006a81c582dd71ae889a1b": {
       "relative_file_name": "mydmam.manager.a-header.js",
       "relative_root_name": "/public/javascripts/src",
-      "size": 982,
-      "date": 1448758505000,
-      "hash": "fc26cdfbc5536e6c6ce407704c2e76b8"
+      "size": 929,
+      "date": 1451349524000,
+      "hash": "846bcaeba56151f8bf09fe88a712427a"
     },
     "jsfile:2e362ef64e4179d31ee996d4601255be": {
       "relative_file_name": "mydmam.basket.content.backend.js",
@@ -122,9 +115,9 @@
     "jsfile:331d972c57b6740a7a6755bf9efc988f": {
       "relative_file_name": "mydmam/async/broker/joblist.jsx",
       "relative_root_name": "/app/react",
-      "size": 26062,
-      "date": 1451321250000,
-      "hash": "0fdc3c0480a34d981abd13f8a188cd51"
+      "size": 27645,
+      "date": 1451347494000,
+      "hash": "563011e1ba4bbf76244bc797b299bac9"
     },
     "jsfile:1df1553ecbf8ad37e4575038b01aa258": {
       "relative_file_name": "a-header.js",
@@ -150,9 +143,9 @@
     "jsfile:d73fbb9b0b191d657c2756e0a518235a": {
       "relative_file_name": "mydmam/routes/Backbone.jsx",
       "relative_root_name": "/app/react",
-      "size": 2316,
-      "date": 1450298506000,
-      "hash": "da4760bd6ec6028542467542fe8e5d3b"
+      "size": 1998,
+      "date": 1451348492000,
+      "hash": "9eb3df7b3a1ff207aa467bfdf4bb1a7b"
     },
     "jsfile:4cd6c09949d0bb3ecc58393cabad3244": {
       "relative_file_name": "mydmam/async/ftpserver/list.jsx",
@@ -280,13 +273,6 @@
       "date": 1449705977000,
       "hash": "72fb2037954d707d32076c55e9536632"
     },
-    "jsfile:7ddf8506d7071dea4046df13ce7e6d67": {
-      "relative_file_name": "mydmam.manager.jobs.view.js",
-      "relative_root_name": "/public/javascripts/src",
-      "size": 21004,
-      "date": 1425566360000,
-      "hash": "cf46227c4e8003b3507cd0376b947ac5"
-    },
     "jsfile:227cfc8985814ad467f951eb1c6abf64": {
       "relative_file_name": "mydmam/async/search/found.jsx",
       "relative_root_name": "/app/react",
@@ -367,9 +353,9 @@
     "jsfile:7b291e4daf3e615d8c672832a8fbf0fb": {
       "relative_file_name": "mydmam/async/pathindex/tools.jsx",
       "relative_root_name": "/app/react",
-      "size": 5366,
-      "date": 1450400298000,
-      "hash": "fda0e6bacd709d90b492a070be399a7f"
+      "size": 5378,
+      "date": 1451347468000,
+      "hash": "3edd3e447a915eb64a97c7ea6c447344"
     }
   }
 }

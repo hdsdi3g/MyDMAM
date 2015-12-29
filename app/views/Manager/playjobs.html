@@ -20,18 +20,24 @@
 		
 	<pre>${rawplaystatus}</pre>
 	
-	<div>
+	<p>
 		<a href="@{Manager.purgeplaycache()}"><i class="icon-fire"></i> &{'service.playjobs.purgecache'}</a>
-	</div>
-	<div>
-		<a href="@{Manager.refreshlogconf()}"><i class="icon-fire"></i> &{'service.playjobs.refreshlogconf'}</a>
-	</div>
-	<div>
-		<a href="@{Manager.switchjsdevmode()}"><i class="icon-fire"></i> &{'service.playjobs.switchjsdevmode'}, &{'service.playjobs.switchjsdevmode.status'}: ${is_js_dev_mode.toBooleanIcon().raw()}</a>
-	</div>
-	<div>
+	</p>
+	<p>
+		<a href="@{Manager.refreshlogconf()}"><i class="icon-refresh"></i> &{'service.playjobs.refreshlogconf'}</a>
+	</p>
+	<p>
+		<a href="@{Manager.switchjsdevmode()}"><i class="icon-plane"></i> &{'service.playjobs.switchjsdevmode'},</a> &{'service.playjobs.switchjsdevmode.status'}: ${is_js_dev_mode.toBooleanIcon().raw()}
+	</p>
+	<p>
 		<a href="@{Manager.purgejs()}"><i class="icon-fire"></i> &{'service.playjobs.purgejs'}</a>
-	</div>
+	</p>
+#{secure.check 'debugAJS'}
+	<p>
+		<a href="@{Application.indexjs()}#debugpage"><i class="icon-list-alt"></i> &{'service.playjobs.ajsdebugpage'}</a>
+	</p>
+#{/secure.check}
+
 </div>
 <script type="text/javascript" charset="UTF-8">
 <!--

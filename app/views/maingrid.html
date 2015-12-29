@@ -238,13 +238,13 @@ $(document).ready(function() {
 							&{'service.menuinfrastructure'}
 						</li>
 						<li>
-							<a href="@{Manager.watchfolders()}"><i class="icon-folder-open"></i> &{'manager.watchfolders.pagename'}</a>
+							<a href="@{Application.indexjs()}#watchfolders"><i class="icon-folder-open"></i> &{'manager.watchfolders.pagename'}</a>
 						</li>
 						<li>
-							<a href="@{Manager.jobs()}"><i class="icon-tasks"></i> &{'manager.jobs.pagename'}</a>
+							<a href="@{Application.indexjs()}#broker"><i class="icon-tasks"></i> &{'manager.jobs.pagename'}</a>
 						</li>
 					#{/secure.check}
-					
+
 					#{secure.check 'showManager'}
 						<li>
 							<a href="@{Manager.index()}"><i class="icon-hdd"></i> &{'manager.pagename'}</a>
@@ -254,6 +254,12 @@ $(document).ready(function() {
 						</li>
 						<li>
 							<a href="@{Manager.playjobs()}"><i class="icon-info-sign"></i> &{'service.playjobs.pagename'}</a>
+						</li>
+					#{/secure.check}
+
+					#{secure.check 'ftpServer'}
+						<li>
+							<a href="@{Application.indexjs()}#ftpserver"><i class="icon-random"></i> &{'ftpserver.pagename'}</a>
 						</li>
 					#{/secure.check}
 					

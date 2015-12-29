@@ -70,16 +70,6 @@ mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson(
 	mydmam.manager.url.instanceaction = "@{Manager.instanceaction()}";
 #{/secure.check}
 	
-#{secure.check 'showJobs'}
-	mydmam.manager.url.alljobs = "@{Manager.alljobs()}";
-	mydmam.manager.url.recentupdatedjobs = "@{Manager.recentupdatedjobs()}";
-#{/secure.check}
-
-#{secure.check 'actionJobs'}
-	mydmam.manager.url.jobaction = "@{Manager.jobaction()}";
-#{/secure.check}
-
-
 #{secure.check 'adminFtpServer'}
 	mydmam.manager.url_ftpserver_export_user_sessions = "@{Manager.ftpserver_export_user_sessions(user_session_ref='keyparam1')}";
 #{/secure.check}

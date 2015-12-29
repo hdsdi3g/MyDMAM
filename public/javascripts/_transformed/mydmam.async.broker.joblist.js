@@ -14,7 +14,6 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-//TODO add manual full refresh button
 
 broker.Jobs = React.createClass({displayName: "Jobs",
 	getInitialState: function() {
@@ -34,18 +33,28 @@ broker.Jobs = React.createClass({displayName: "Jobs",
 			all_status: status_name,
 			order: action,
 		};
-		mydmam.async.request("broker", "action", request, function(data) {
-			console.log(action, status_name, data); //XXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxx
-		});
+		document.body.style.cursor = 'wait';
+		mydmam.async.request("broker", "action", request, this.onActionAlterJoblist);
 	},
 	onActionButtonClick: function(job, action_name) {
 		var request = {
 			job_key: job.key,
 			order: action_name,
 		};
-		mydmam.async.request("broker", "action", request, function(data) {
-			console.log(job, action_name, data); //XXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxxXXXxxxx
-		});
+		document.body.style.cursor = 'wait';
+		mydmam.async.request("broker", "action", request, this.onActionAlterJoblist);
+	},
+	onActionAlterJoblist: function (altered_items) {
+		var new_joblist = jQuery.extend({}, this.state.joblist);
+		for (var key in altered_items) {
+			if (altered_items[key] == null) {
+				delete new_joblist[key];
+			} else {
+				new_joblist[key] = altered_items[key];
+			}
+		}
+		this.setState({joblist: new_joblist});
+		document.body.style.cursor = 'default';
 	},
 	componentWillMount: function() {
 		this.updateJobList();
@@ -82,7 +91,7 @@ broker.Jobs = React.createClass({displayName: "Jobs",
 		var action_avaliable = mydmam.async.isAvaliable("broker", "action");
 
 		return (
-			React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("Job list"), fluid: "true"}, 
+			React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("manager.jobs.joblist"), fluid: "true"}, 
 				React.createElement(broker.NavTabs, {selected_tab: this.state.selected_tab, onActionTabClick: this.onActionTabClick, onTabChange: this.onTabChange, joblist: this.state.joblist, action_avaliable: action_avaliable}), 
 				React.createElement(broker.JobListCartridges, {joblist: this.state.joblist, selected_tab: this.state.selected_tab, onActionButtonClick: this.onActionButtonClick, action_avaliable: action_avaliable})
 			)
@@ -338,6 +347,8 @@ broker.JobListCartridges = React.createClass({displayName: "JobListCartridges",
 					var required_key = job.required_keys[pos_rk];
 					if (joblist[required_key]) {
 						required_jobs.push(joblist[required_key]);
+					} else {
+						required_jobs.push({key: required_key});
 					}
 				}
 			}
@@ -531,15 +542,53 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 		var job = this.props.job;
 		var required_jobs = this.props.required_jobs;
 
-		// TODO required_jobs
-
 		var creator = null;
+		var require = null;
 		var dates_start_end = null;
 		var processing_error = null;
 		var worker_ref = null;
 		var context = null;
 
 		if (this.state.stacked) {
+
+			/**
+			 * Display require
+			 */
+			if (required_jobs.length > 0) {
+				var require_list = [];
+				for (var pos in required_jobs) {
+					if (required_jobs[pos].status) {
+						var status_broker = broker.status[required_jobs[pos].status];
+						var status_broker_class = classNames("badge", status_broker.badge_class);
+
+						require_list.push(React.createElement("div", {key: pos}, 
+							React.createElement("i", {className: "icon-hand-right", style: {marginLeft: 5}}), 
+							React.createElement("strong", {style: {marginLeft: 8, marginRight: 8}}, 
+								required_jobs[pos].name
+							), 
+							React.createElement("span", {className: status_broker_class, style: {marginRight: 8}}, 
+								i18n(status_broker.i18n_tab_name)
+							), 
+							broker.displayKey(required_jobs[pos].key, true)
+						));
+					} else {
+						require_list.push(React.createElement("div", {key: pos}, 
+							React.createElement("i", {className: "icon-trash", style: {marginLeft: 5}}), 
+							React.createElement("strong", {style: {marginLeft: 8, marginRight: 8}}, 
+								i18n("manager.jobs.deletedjob")
+							)
+						));
+					}
+				};
+				require = (React.createElement("div", {className: "well well-small"}, 
+					React.createElement("i", {className: "icon-tasks"}), " ", 
+					i18n("manager.jobs.require"), 
+					React.createElement("div", {style: {marginLeft: 8}}, 
+						require_list
+					)
+				));
+			}
+
 			var max_execution_time = null;
 			if (job.max_execution_time < (1000 * 3600 * 24)) {
 				if (job.max_execution_time > (3600 * 1000)) {
@@ -554,7 +603,7 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 			 */
 			creator = (React.createElement("div", null, 
 				React.createElement("div", {style: {marginTop: 5}}, 
-					React.createElement(mydmam.async.pathindex.reactDate, {i18nlabel: "create_date", date: job.create_date, style: {marginLeft: 0}})
+					React.createElement(mydmam.async.pathindex.reactDate, {i18nlabel: "manager.jobs.createdate", date: job.create_date, style: {marginLeft: 0}})
 				), 
 				React.createElement("div", {style: {marginTop: 4}}, 
 					React.createElement("span", {className: "label label-info"}, React.createElement("i", {className: "icon-cog icon-white"}), " ", i18n("manager.jobs.createdbysimple", job.instance_status_creator_key))
@@ -570,19 +619,19 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 			var dates_start_end_content = [];
 			if (job.start_date > 0) {
 				dates_start_end_content.push(React.createElement("div", {style: {marginTop: 5}, key: "sdate"}, 
-					React.createElement(mydmam.async.pathindex.reactDate, {i18nlabel: "start_date", date: job.start_date})
+					React.createElement(mydmam.async.pathindex.reactDate, {i18nlabel: "manager.jobs.start_date", date: job.start_date})
 				));				
 				if (job.end_date > 0) {
 					dates_start_end_content.push(React.createElement("div", {style: {marginTop: 5}, key: "edate"}, 
-						React.createElement(mydmam.async.pathindex.reactDate, {i18nlabel: "end_date", date: job.end_date})
+						React.createElement(mydmam.async.pathindex.reactDate, {i18nlabel: "manager.jobs.end_date", date: job.end_date})
 					));		
 					dates_start_end_content.push(React.createElement("div", {style: {marginTop: 5}, key: "deltadate"}, 
 						React.createElement("span", {className: "label", style: {marginLeft: 5}}, 
-							React.createElement("i", {className: "icon-time icon-white"}), i18n("manager.jobs.secs", (job.end_date - job.start_date) / 1000)
+							React.createElement("i", {className: "icon-time icon-white"}), " ", i18n("manager.jobs.duration", Math.round((job.end_date - job.start_date) / 1000))
 						)
 					));
 					dates_start_end_content.push(React.createElement("div", {style: {marginTop: 5}, key: "sinceedate"}, 
-						React.createElement(mydmam.async.pathindex.reactSinceDate, {i18nlabel: "end_date", date: job.end_date})
+						React.createElement(mydmam.async.pathindex.reactSinceDate, {i18nlabel: "manager.jobs.end_date_for", date: job.end_date})
 					));
 				}
 			}
@@ -707,10 +756,11 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 		return (React.createElement("div", {className: main_div_classname, onClick: this.onToogleCartridgeSize}, 
 			React.createElement("div", {className: "span3 nomargin"}, 
 				React.createElement("strong", null, job.name), 
-				creator
+				creator, 
+				require
 			), 
 			React.createElement("div", {className: "span3 nomargin"}, 
-				React.createElement(mydmam.async.pathindex.reactSinceDate, {i18nlabel: "update_date", date: job.update_date}), " ", delete_after_completed, " ", priority, 
+				React.createElement(mydmam.async.pathindex.reactSinceDate, {i18nlabel: "manager.jobs.update_date", date: job.update_date}), " ", delete_after_completed, " ", priority, 
 				dates_start_end
 			), 
 			React.createElement("div", {className: "span3 nomargin"}, 
@@ -730,4 +780,4 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 
 })(window.mydmam.async.broker);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: 0fdc3c0480a34d981abd13f8a188cd51
+// Source hash: 563011e1ba4bbf76244bc797b299bac9
