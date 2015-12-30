@@ -85,6 +85,8 @@ abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem 
 		enabled = true;
 		declarations = new ArrayList<Declaration>();
 		reference_key = getClass().getName().toLowerCase() + ":" + UUID.randomUUID().toString();
+		
+		manager.getInstanceStatus().registerInstanceStatusItem(this);
 	}
 	
 	public final JobCreator setOptions(Class<?> creator, String long_name, String vendor_name) {
