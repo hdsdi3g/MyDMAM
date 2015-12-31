@@ -28,8 +28,6 @@ import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
 import hd3gtv.mydmam.db.status.StatusReport;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
 import hd3gtv.mydmam.manager.InstanceAction;
-import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.mydmam.manager.WorkerExporter;
 import hd3gtv.mydmam.web.JSSourceManager;
 import play.Play;
 import play.PlayPlugin;
@@ -101,42 +99,6 @@ public class Manager extends Controller {
 	public static void index() {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("manager.pagename"));
 		render();
-	}
-	
-	/**
-	 * @deprecated
-	 */
-	@Check("showManager")
-	public static void allinstances() throws Exception {
-		renderJSON(InstanceStatus.Gatherer.getAllInstancesJsonString());
-		
-		/**
-		 * Only for accelerate debugging and remove get data time from db
-		 */
-		String result = Cache.get("InstanceStatus.Gatherer.getAllInstancesJsonString", String.class);
-		if (result == null) {
-			result = InstanceStatus.Gatherer.getAllInstancesJsonString();
-			Cache.set("InstanceStatus.Gatherer.getAllInstancesJsonString", result, "30mn");
-		}
-		renderJSON(result);
-	}
-	
-	/**
-	 * @deprecated
-	 */
-	@Check("showManager")
-	public static void allworkers() throws Exception {
-		renderJSON(WorkerExporter.getAllWorkerStatusJson());
-		
-		/**
-		 * Only for accelerate debugging and remove get data time from db
-		 */
-		String result = Cache.get("WorkerExporter.getAllWorkerStatusJson", String.class);
-		if (result == null) {
-			result = WorkerExporter.getAllWorkerStatusJson();
-			Cache.set("WorkerExporter.getAllWorkerStatusJson", result, "30mn");
-		}
-		renderJSON(result);
 	}
 	
 	/**

@@ -14,6 +14,13 @@
       "date": 1447281328000,
       "hash": "3074199de23c347614dce3928e5ccdd7"
     },
+    "jsfile:629658be2d25f690a358268ca5da9b63": {
+      "relative_file_name": "mydmam/async/manager/view.jsx",
+      "relative_root_name": "/app/react",
+      "size": 1049,
+      "date": 1451521388000,
+      "hash": "b248de7ac9631f5a554a5a9c3bfd4efb"
+    },
     "jsfile:6993cab1841c756c7031796d0e001257": {
       "relative_file_name": "mydmam.manager.js",
       "relative_root_name": "/public/javascripts/src",

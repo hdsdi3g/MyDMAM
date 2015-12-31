@@ -76,6 +76,8 @@ public final class TriggerJobCreator extends JobCreator {
 		}
 	}
 	
+	// TODO get all done jobs to AsyncJS
+	
 	/**
 	 * End of static realm
 	 */
