@@ -175,8 +175,8 @@ public final class JobNG {
 		status = JobStatus.WAITING;
 		required_keys = new ArrayList<String>(1);
 		
-		instance_status_creator_key = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getInstanceNamePid();
-		instance_status_creator_hostname = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getHostName();
+		instance_status_creator_key = InstanceStatus.getStatic().summary.getInstanceNamePid();
+		instance_status_creator_hostname = InstanceStatus.getStatic().summary.getHostName();
 		progression = null;
 		processing_error = null;
 		update_date = -1;
@@ -440,8 +440,8 @@ public final class JobNG {
 		status = JobStatus.PROCESSING;
 		worker_class = worker.getClass();
 		worker_reference = worker.getReferenceKey();
-		instance_status_executor_key = manager.getInstanceStatus().getInstanceNamePid();
-		instance_status_executor_hostname = manager.getInstanceStatus().getHostName();
+		instance_status_executor_key = manager.getInstanceStatus().summary.getInstanceNamePid();
+		instance_status_executor_hostname = manager.getInstanceStatus().summary.getHostName();
 		progression = new JobProgression(this);
 		if (Loggers.Job.isDebugEnabled()) {
 			Loggers.Job.debug("Start processing:\t" + toString());
@@ -627,7 +627,7 @@ public final class JobNG {
 			}
 			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
 			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
-			index_query.addExpression().whereColumn("creator_hostname").equals().value(instance_status.getHostName());
+			index_query.addExpression().whereColumn("creator_hostname").equals().value(instance_status.summary.getHostName());
 			index_query.addExpression().whereColumn("expiration_date").lessThan().value(System.currentTimeMillis());
 			index_query.withColumnSlice("source", "context_class");
 			

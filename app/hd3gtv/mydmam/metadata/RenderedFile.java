@@ -88,9 +88,9 @@ public class RenderedFile {
 			StringBuffer sb = new StringBuffer();
 			sb.append(temp_directory.getCanonicalPath());
 			sb.append(File.separator);
-			sb.append(InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getInstanceName());
+			sb.append(InstanceStatus.getStatic().summary.getInstanceName());
 			sb.append("-");
-			sb.append(InstanceStatus.getThisCurrentPID());
+			sb.append(InstanceStatus.getStatic().summary.getPID());
 			temp_directory = new File(sb.toString());
 			temp_directory.mkdirs();
 			

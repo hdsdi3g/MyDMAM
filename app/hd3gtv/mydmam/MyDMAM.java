@@ -40,9 +40,12 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
@@ -266,6 +269,59 @@ public class MyDMAM {
 			}
 		}
 	}
+	
+	public static void registerJsonArrayAndObjectSerializer(GsonBuilder gson_builder) {
+		gson_builder.registerTypeAdapter(JsonArray.class, new MyDMAM.GsonJsonArraySerializer());
+		gson_builder.registerTypeAdapter(JsonObject.class, new MyDMAM.GsonJsonObjectSerializer());
+	}
+	
+	/**
+	 * Direct (de)serializer.
+	 */
+	public static class GsonJsonArraySerializer implements JsonSerializer<JsonArray>, JsonDeserializer<JsonArray> {
+		
+		public JsonElement serialize(JsonArray src, Type typeOfSrc, JsonSerializationContext context) {
+			if (src == null) {
+				return null;
+			}
+			return src;
+		}
+		
+		public JsonArray deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			try {
+				return json.getAsJsonArray();
+			} catch (Exception e) {
+				Loggers.Manager.error("Can't deserialize JsonArray", e);
+				return null;
+			}
+		}
+	}
+	
+	/**
+	 * Direct (de)serializer.
+	 */
+	public static class GsonJsonObjectSerializer implements JsonSerializer<JsonObject>, JsonDeserializer<JsonObject> {
+		
+		public JsonElement serialize(JsonObject src, Type typeOfSrc, JsonSerializationContext context) {
+			if (src == null) {
+				return null;
+			}
+			return src;
+		}
+		
+		public JsonObject deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			try {
+				return json.getAsJsonObject();
+			} catch (Exception e) {
+				Loggers.Manager.error("Can't deserialize JsonObject", e);
+				return null;
+			}
+		}
+	}
+	
+	/**
+	 * Direct (de)serializer.
+	 */
 	
 	/**
 	 * Search application.conf in classpath, and return the /mydmam main directory.

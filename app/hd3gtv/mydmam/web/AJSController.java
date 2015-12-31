@@ -59,6 +59,7 @@ public class AJSController {
 		gson_builder.addSerializationExclusionStrategy(ignore_strategy);
 		gson_builder.serializeNulls();
 		gson_builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		MyDMAM.registerJsonArrayAndObjectSerializer(gson_builder);
 		gson_simple = gson_builder.create();
 		// gson_pretty = gson_builder.setPrettyPrinting().create();
 		gson = gson_builder.create();

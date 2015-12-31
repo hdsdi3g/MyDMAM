@@ -65,7 +65,7 @@ public class DebugWorker extends WorkerNG {
 		}
 		
 		datalog = new File("debug_worker.log");
-		instance_name = manager.getInstanceStatus().getInstanceNamePid();
+		instance_name = manager.getInstanceStatus().summary.getInstanceNamePid();
 		
 		FileUtils.writeStringToFile(datalog, Loggers.dateLog(System.currentTimeMillis()) + "\tinit\t" + instance_name + "\t\t\n", true);
 		

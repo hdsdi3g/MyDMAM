@@ -71,15 +71,18 @@ public class MetadataIndexingOperation {
 		/**
 		 * Just get Mime type
 		 */
-		MIMETYPE, /**
-					 * MimeType + all analysers
-					 */
-		ANALYST, /**
-					 * MimeType + all analysers + all simple renderers
-					 */
-		SIMPLERENDERS, /**
-						 * Full, but you need to set a CreateJobList
-						 */
+		MIMETYPE,
+		/**
+		 * MimeType + all analysers
+		 */
+		ANALYST,
+		/**
+		 * MimeType + all analysers + all simple renderers
+		 */
+		SIMPLERENDERS,
+		/**
+		 * Full, but you need to set a CreateJobList
+		 */
 		NOLIMITS
 	}
 	
@@ -147,7 +150,7 @@ public class MetadataIndexingOperation {
 			reference.currentpath = physical_source.getCanonicalPath();
 			reference.date = physical_source.lastModified();
 			reference.directory = false;
-			reference.storagename = "standalone-" + InstanceStatus.getThisInstanceNamePid();
+			reference.storagename = "standalone-" + InstanceStatus.getStatic().summary.getInstanceNamePid();
 			reference.parentpath = physical_source.getParentFile().getAbsolutePath();
 		}
 		

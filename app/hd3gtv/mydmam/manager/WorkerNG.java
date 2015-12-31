@@ -365,10 +365,10 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 	
 	final JsonObject getManagerReference() {
 		JsonObject jo = new JsonObject();
-		jo.addProperty("app_name", manager.getInstanceStatus().getAppName());
-		jo.addProperty("host_name", manager.getInstanceStatus().getHostName());
-		jo.addProperty("instance_name", manager.getInstanceStatus().getInstanceName());
-		jo.addProperty("instance_ref", manager.getInstanceStatus().getInstanceNamePid());
+		jo.addProperty("app_name", manager.getInstanceStatus().summary.getAppName());
+		jo.addProperty("host_name", manager.getInstanceStatus().summary.getHostName());
+		jo.addProperty("instance_name", manager.getInstanceStatus().summary.getInstanceName());
+		jo.addProperty("instance_ref", manager.getInstanceStatus().summary.getInstanceNamePid());
 		return jo;
 	}
 	

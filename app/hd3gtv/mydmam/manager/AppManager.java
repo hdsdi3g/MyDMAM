@@ -73,12 +73,10 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		/**
 		 * Inside of this package serializers
 		 */
-		builder.registerTypeAdapter(InstanceStatus.class, new InstanceStatus.Serializer());
 		builder.registerTypeAdapter(InstanceAction.class, new InstanceAction.Serializer());
 		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
 		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
 		builder.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
-		builder.registerTypeAdapter(WorkerExporter.class, new WorkerExporter.Serializer());
 		
 		builder.registerTypeAdapter(JobContext.class, new JobContext.Serializer());
 		builder.registerTypeAdapter(new TypeToken<ArrayList<JobContext>>() {
@@ -177,7 +175,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		service_exception = new ServiceException(this);
 		enabled_workers = new ArrayList<WorkerNG>();
 		broker = new BrokerNG(this);
-		instance_status = new InstanceStatus().populateFromThisInstance(this);
+		instance_status = new InstanceStatus(this);
 		updater = new Updater(this);
 	}
 	
@@ -413,7 +411,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		long next_refresh_date;
 		
 		public Updater(AppManager referer) {
-			setName("Updater for " + instance_status.getInstanceNamePid());
+			setName("Updater for " + instance_status.summary.getInstanceNamePid());
 			setDaemon(true);
 			this.referer = referer;
 		}
@@ -424,7 +422,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 				while (stop_update == false) {
 					next_refresh_date = System.currentTimeMillis() + (SLEEP_COUNT_UPDATE * SLEEP_BASE_TIME_UPDATE * 1000);
 					
-					instance_status.refresh(true);
+					instance_status.refresh();
 					WorkerExporter.updateWorkerStatus(enabled_workers, referer);
 					
 					for (int pos = 0; pos < SLEEP_COUNT_UPDATE; pos++) {
@@ -438,7 +436,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 						if (pending_actions & (stop_update == false)) {
 							next_refresh_date = System.currentTimeMillis() + ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000) + 1000;
 							Thread.sleep(1000);
-							instance_status.refresh(true);
+							instance_status.refresh();
 							WorkerExporter.updateWorkerStatus(enabled_workers, referer);
 						}
 						
@@ -499,7 +497,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	}
 	
 	public String getReferenceKey() {
-		return instance_status.getInstanceNamePid();
+		return instance_status.summary.getInstanceNamePid();
 	}
 	
 	public synchronized JsonElement getInstanceStatusItem() {

@@ -82,7 +82,7 @@ public class Elasticsearch {
 			List<ConfigurationClusterItem> clusterservers = Configuration.global.getClusterConfiguration("elasticsearch", "transport", "127.0.0.1", 9300);
 			ImmutableSettings.Builder settings = ImmutableSettings.builder();
 			settings.put("cluster.name", clustername);
-			settings.put("node.name", InstanceStatus.getThisInstanceNamePid());
+			settings.put("node.name", InstanceStatus.getStatic().summary.getInstanceNamePid());
 			settings.put("client.transport.ping_timeout", 10, TimeUnit.SECONDS);
 			
 			StringBuilder sb = new StringBuilder();

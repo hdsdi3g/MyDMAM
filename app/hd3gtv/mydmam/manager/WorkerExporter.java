@@ -16,32 +16,19 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.manager.WorkerNG.WorkerCategory;
 import hd3gtv.tools.GsonIgnore;
 
 public final class WorkerExporter implements InstanceStatusItem {
@@ -89,7 +76,7 @@ public final class WorkerExporter implements InstanceStatusItem {
 				we = workers.get(pos).getExporter();
 				we.update();
 				mutator.withRow(CF_WORKERS, we.reference_key).putColumn("source", AppManager.getGson().toJson(we), InstanceStatus.TTL);
-				Loggers.Manager.trace("Update worker status [" + we.reference_key + "], " + we.worker_class + " (" + we.long_name + ")");
+				Loggers.Manager.trace("Update worker status [" + we.reference_key + "], " + we.worker_class);
 			}
 			
 			if (mutator.isEmpty() == false) {
@@ -102,27 +89,6 @@ public final class WorkerExporter implements InstanceStatusItem {
 		Loggers.Manager.debug("Update all workers status, took " + (System.currentTimeMillis() - start_time) + " ms");
 	}
 	
-	/*public static List<WorkerExporter> getAllWorkerStatus() throws Exception {
-		final List<WorkerExporter> result = new ArrayList<WorkerExporter>();
-		CassandraDb.allRowsReader(CF_WORKERS, new AllRowsFoundRow() {
-			public void onFoundRow(Row<String, String> row) throws Exception {
-				result.add(AppManager.getGson().fromJson(row.getColumns().getColumnByName("source").getStringValue(), WorkerExporter.class));
-			}
-		});
-		return result;
-	}*/
-	
-	public static String getAllWorkerStatusJson() throws Exception {
-		final JsonArray result = new JsonArray();
-		final JsonParser parser = new JsonParser();
-		CassandraDb.allRowsReader(CF_WORKERS, new AllRowsFoundRow() {
-			public void onFoundRow(Row<String, String> row) throws Exception {
-				result.add(parser.parse(row.getColumns().getColumnByName("source").getStringValue()));
-			}
-		});
-		return result.toString();
-	}
-	
 	/**
 	 * Start of dynamic realm
 	 */
@@ -130,19 +96,10 @@ public final class WorkerExporter implements InstanceStatusItem {
 	@GsonIgnore
 	transient WorkerNG worker;
 	
-	WorkerCategory category;
-	String long_name;
-	String vendor_name;
 	String worker_class;
 	WorkerNG.WorkerState state;
 	String reference_key;
-	
-	@Deprecated
-	JsonObject manager_reference;
 	String current_job_key;
-	
-	@GsonIgnore
-	ArrayList<WorkerCapablitiesExporter> capablities;
 	
 	@SuppressWarnings("unused")
 	private WorkerExporter() {
@@ -150,19 +107,8 @@ public final class WorkerExporter implements InstanceStatusItem {
 	
 	WorkerExporter(WorkerNG worker, AppManager manager) {
 		this.worker = worker;
-		capablities = new ArrayList<WorkerCapablitiesExporter>();
-		List<WorkerCapablities> workercapablities = worker.getWorkerCapablities();
-		if (workercapablities != null) {
-			for (int pos = 0; pos < workercapablities.size(); pos++) {
-				capablities.add(workercapablities.get(pos).getExporter());
-			}
-		}
-		category = worker.getWorkerCategory();
-		long_name = worker.getWorkerLongName();
-		vendor_name = worker.getWorkerVendorName();
 		worker_class = worker.getClass().getName();
 		reference_key = worker.getReferenceKey();
-		manager_reference = worker.getManagerReference();
 		update();
 		manager.getInstanceStatus().registerInstanceStatusItem(this);
 	}
@@ -182,26 +128,6 @@ public final class WorkerExporter implements InstanceStatusItem {
 		} else {
 			current_job_key = null;
 		}
-	}
-	
-	static class Serializer implements JsonSerializer<WorkerExporter>, JsonDeserializer<WorkerExporter> {
-		private static Type al_wcs_typeOfT = new TypeToken<ArrayList<WorkerCapablitiesExporter>>() {
-		}.getType();
-		
-		public WorkerExporter deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			WorkerExporter result = AppManager.getSimpleGson().fromJson(json, WorkerExporter.class);
-			JsonObject jo = json.getAsJsonObject();
-			result.capablities = AppManager.getGson().fromJson(jo.get("capablities"), al_wcs_typeOfT);
-			return result;
-		}
-		
-		public JsonElement serialize(WorkerExporter src, Type typeOfSrc, JsonSerializationContext context) {
-			src.update();
-			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
-			result.add("capablities", AppManager.getGson().toJsonTree(src.capablities, al_wcs_typeOfT));
-			return result;
-		}
-		
 	}
 	
 	public String toString() {

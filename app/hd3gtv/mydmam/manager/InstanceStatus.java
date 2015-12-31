@@ -18,7 +18,6 @@ package hd3gtv.mydmam.manager;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.Type;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -28,13 +27,12 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Map;
 
-import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
+import com.google.gson.JsonPrimitive;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -47,17 +45,47 @@ import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnore;
-import hd3gtv.tools.TimeUtils;
+import hd3gtv.tools.GsonIgnoreStrategy;
 import play.Play;
 
 public final class InstanceStatus {
 	
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	
+	public enum CF_COLS {
+		COL_THREADS, COL_CLASSPATH, COL_SUMMARY, COL_ITEMS;
+		
+		public String toString() {
+			switch (this) {
+			case COL_THREADS:
+				return "threadstacktraces";
+			case COL_CLASSPATH:
+				return "classpath";
+			case COL_SUMMARY:
+				return "summary";
+			case COL_ITEMS:
+				return "items";
+			default:
+				return "none";
+			}
+		}
+	}
+	
 	private static Keyspace keyspace;
 	
+	private static final Gson gson;
+	
+	/*private static Type type_instance_status_item = new TypeToken<ArrayList<InstanceStatusItem>>() {
+	}.getType();*/
+	
 	static {
+		GsonBuilder builder = new GsonBuilder();
+		builder.serializeNulls();
+		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		gson = builder.create();
+		
 		try {
 			keyspace = CassandraDb.getkeyspace();
 			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
@@ -73,23 +101,43 @@ public final class InstanceStatus {
 	 * In sec.
 	 */
 	static final int TTL = 120;
-	private static final ArrayList<String> current_classpath;
-	private static final String current_instance_name;
-	private static final String current_instance_name_pid;
-	private static final String current_pid;
-	private static final String current_app_version;
-	private static final String current_java_version;
-	private static String current_host_name;
 	
-	private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();
-	private static Type al_threadstacktrace_typeOfT = new TypeToken<ArrayList<ThreadStackTrace>>() {
-	}.getType();
+	private static InstanceStatus is_static;
 	
-	static {
+	/**
+	 * @return an InstanceStatus gathered
+	 */
+	public static InstanceStatus getStatic() {
+		if (is_static == null) {
+			String name = "Gatherer";
+			if (Play.initialized) {
+				name = "This Play instance";
+			}
+			is_static = new AppManager(name).getInstanceStatus();
+		}
+		return is_static;
+	}
+	
+	private transient AppManager manager;
+	
+	public final Summary summary;
+	
+	private JsonArray classpath;
+	
+	private ArrayList<InstanceStatusItem> items;
+	
+	public InstanceStatus(AppManager manager) {
+		this.manager = manager;
+		if (manager == null) {
+			throw new NullPointerException("\"manager\" can't to be null");
+		}
+		summary = new Summary();
+		items = new ArrayList<InstanceStatusItem>();
+		items.add(manager);
+		
 		String java_classpath = System.getProperty("java.class.path");
 		String[] classpath_lines = java_classpath.split(System.getProperty("path.separator"));
-		current_classpath = new ArrayList<String>(classpath_lines.length);
+		classpath = new JsonArray();
 		for (int pos = 0; pos < classpath_lines.length; pos++) {
 			File file = new File(classpath_lines[pos]);
 			StringBuffer sb_classpath = new StringBuffer();
@@ -98,60 +146,115 @@ public final class InstanceStatus {
 			sb_classpath.append(file.getParentFile().getName());
 			sb_classpath.append("/");
 			sb_classpath.append(file.getName());
-			current_classpath.add(sb_classpath.toString().toLowerCase());
+			classpath.add(new JsonPrimitive(sb_classpath.toString().toLowerCase()));
 		}
-		
-		try {
-			current_host_name = InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e)
-		
-		{
-			current_host_name = "";
-		}
-		
-		current_instance_name = Configuration.global.getValue("service", "workername", "unknown-pleaseset-" + String.valueOf(System.currentTimeMillis()));
-		
-		String instance_raw = ManagementFactory.getRuntimeMXBean().getName();
-		current_pid = instance_raw.substring(0, instance_raw.indexOf("@"));
-		current_instance_name_pid = current_instance_name + "#" + current_pid + "@" + current_host_name;
-		
-		GitInfo git = GitInfo.getFromRoot();
-		if (git != null)
-		
-		{
-			current_app_version = git.getBranch() + " " + git.getCommit();
-		} else
-		
-		{
-			current_app_version = "unknow";
-		}
-		current_java_version = System.getProperty("java.version");
-		
 	}
 	
-	private transient AppManager manager;
+	public class Summary {
+		private String instance_name;
+		private String pid;
+		private String instance_name_pid;
+		private String app_version;
+		@SuppressWarnings("unused")
+		private String java_version;
+		private String host_name;
+		private ArrayList<String> host_addresses;
+		
+		/**
+		 * Only if manager is set
+		 */
+		private String app_name;
+		
+		/**
+		 * Only if manager is set
+		 */
+		@SuppressWarnings("unused")
+		private long starttime;
+		
+		public Summary() {
+			try {
+				host_name = InetAddress.getLocalHost().getHostName();
+			} catch (UnknownHostException e) {
+				host_name = "";
+				Loggers.Manager.warn("Can't extract host name", e);
+			}
+			
+			instance_name = Configuration.global.getValue("service", "workername", "unknown-pleaseset-" + String.valueOf(System.currentTimeMillis()));
+			String instance_raw = ManagementFactory.getRuntimeMXBean().getName();
+			pid = instance_raw.substring(0, instance_raw.indexOf("@"));
+			instance_name_pid = instance_name + "#" + pid + "@" + host_name;
+			
+			GitInfo git = GitInfo.getFromRoot();
+			if (git != null) {
+				app_version = git.getBranch() + " " + git.getCommit();
+			} else {
+				app_version = "unknow";
+			}
+			java_version = System.getProperty("java.version");
+			
+			host_addresses = new ArrayList<String>();
+			try {
+				Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+				while (interfaces.hasMoreElements()) {
+					NetworkInterface currentInterface = interfaces.nextElement();
+					Enumeration<InetAddress> addresses = currentInterface.getInetAddresses();
+					while (addresses.hasMoreElements()) {
+						InetAddress currentAddress = addresses.nextElement();
+						if (currentInterface.getName().equals("lo0") | currentInterface.getName().equals("lo")) {
+							continue;
+						}
+						if (currentAddress instanceof Inet6Address) {
+							continue;
+						}
+						host_addresses.add(currentInterface.getName() + " " + currentAddress.getHostAddress());
+					}
+				}
+			} catch (SocketException e) {
+			}
+			
+			if (manager != null) {
+				app_name = manager.getAppName();
+				starttime = AppManager.starttime;
+			}
+		}
+		
+		public String getHostName() {
+			return host_name;
+		}
+		
+		public String getInstanceNamePid() {
+			return instance_name_pid;
+		}
+		
+		public String getInstanceName() {
+			return instance_name;
+		}
+		
+		public String getAppName() {
+			return app_name;
+		}
+		
+		public String getAppVersion() {
+			return app_version;
+		}
+		
+		public String getPID() {
+			return pid;
+		}
+	}
 	
-	private ArrayList<String> classpath;
-	private String instance_name;
-	private String instance_name_pid;
-	private String app_name;
-	private String app_version;
-	private long uptime;
-	private @GsonIgnore ArrayList<ThreadStackTrace> threadstacktraces;
-	@SuppressWarnings("unused")
-	private String java_version;
-	private String host_name;
-	private ArrayList<String> host_addresses;
-	
-	@GsonIgnore
-	private ArrayList<InstanceStatusItem> all_items;
-	
-	public class ThreadStackTrace {
+	private static class ThreadStackTrace {
+		@SuppressWarnings("unused")
 		String name;
+		@SuppressWarnings("unused")
 		long id;
+		@SuppressWarnings("unused")
 		String classname;
+		@SuppressWarnings("unused")
 		String state;
+		@SuppressWarnings("unused")
 		boolean isdaemon;
+		@SuppressWarnings("unused")
 		String execpoint;
 		
 		private ThreadStackTrace importThread(Thread t, StackTraceElement[] stes) {
@@ -191,45 +294,6 @@ public final class InstanceStatus {
 		
 	}
 	
-	InstanceStatus populateFromThisInstance(AppManager manager) {
-		this.manager = manager;
-		classpath = current_classpath;
-		instance_name = current_instance_name;
-		instance_name_pid = current_instance_name_pid;
-		app_version = current_app_version;
-		java_version = current_java_version;
-		host_name = current_host_name;
-		threadstacktraces = new ArrayList<InstanceStatus.ThreadStackTrace>();
-		
-		host_addresses = new ArrayList<String>();
-		try {
-			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-			while (interfaces.hasMoreElements()) {
-				NetworkInterface currentInterface = interfaces.nextElement();
-				Enumeration<InetAddress> addresses = currentInterface.getInetAddresses();
-				while (addresses.hasMoreElements()) {
-					InetAddress currentAddress = addresses.nextElement();
-					if (currentInterface.getName().equals("lo0") | currentInterface.getName().equals("lo")) {
-						continue;
-					}
-					if (currentAddress instanceof Inet6Address) {
-						continue;
-					}
-					host_addresses.add(currentInterface.getName() + " " + currentAddress.getHostAddress());
-				}
-			}
-		} catch (SocketException e) {
-		}
-		
-		all_items = new ArrayList<InstanceStatusItem>();
-		all_items.add(manager);
-		
-		Loggers.Manager.debug("Populate instance status from AppManager");
-		refresh(false);
-		
-		return this;
-	}
-	
 	public void registerInstanceStatusItem(InstanceStatusItem item) {
 		if (item == null) {
 			throw new NullPointerException("\"item\" can't to be null");
@@ -237,96 +301,62 @@ public final class InstanceStatus {
 		if (item.getReferenceKey() == null) {
 			throw new NullPointerException("\"instance status item name\" can't to be null");
 		}
-		all_items.add(item);
+		items.add(item);
 	}
 	
-	/**
-	 * @return this
-	 */
-	InstanceStatus
-	
-	refresh(boolean push_to_db) {
-		app_name = manager.getAppName();
-		uptime = System.currentTimeMillis() - AppManager.starttime;
-		threadstacktraces.clear();
+	public static JsonArray getThreadstacktraces() {
+		JsonArray threadstacktraces = new JsonArray();
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
-			threadstacktraces.add(new ThreadStackTrace().importThread(entry.getKey(), entry.getValue()));
+			threadstacktraces.add(gson.toJsonTree(new ThreadStackTrace().importThread(entry.getKey(), entry.getValue())));
 		}
-		
-		if (push_to_db) {
-			try {
-				long start_time = System.currentTimeMillis();
-				MutationBatch mutator = CassandraDb.prepareMutationBatch();
-				mutator.withRow(CF_INSTANCES, instance_name_pid).putColumn("source", AppManager.getGson().toJson(this), TTL);
-				mutator.execute();
-				Loggers.Manager.debug("Update instance status took " + (System.currentTimeMillis() - start_time));
-			} catch (ConnectionException e) {
-				manager.getServiceException().onCassandraError(e);
-			}
-		}
-		
-		return this;
+		return threadstacktraces;
 	}
 	
-	static class Serializer implements JsonSerializer<InstanceStatus> {
-		public JsonElement serialize(InstanceStatus src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
-			result.add("classpath", AppManager.getGson().toJsonTree(src.classpath, al_string_typeOfT));
-			result.add("threadstacktraces", AppManager.getGson().toJsonTree(src.threadstacktraces, al_threadstacktrace_typeOfT));
-			result.add("host_addresses", AppManager.getGson().toJsonTree(src.host_addresses, al_string_typeOfT));
-			result.addProperty("uptime_from", TimeUtils.secondsToYWDHMS(src.uptime / 1000));
-			
-			JsonArray items = new JsonArray();
-			InstanceStatusItem is_item;
-			
-			for (int pos = 0; pos < src.all_items.size(); pos++) {
-				is_item = src.all_items.get(pos);
-				JsonObject item = new JsonObject();
-				try {
-					item.addProperty("key", is_item.getReferenceKey());
-					item.addProperty("class", is_item.getInstanceStatusItemReferenceClass().getSimpleName());
-					item.add("content", is_item.getInstanceStatusItem());
-					items.add(item);
-				} catch (Exception e) {
-					Loggers.Manager.error("Can't get InstanceStatusItem for " + is_item.getReferenceKey(), e);
-				}
+	public JsonArray getClasspath() {
+		return classpath;
+	}
+	
+	public JsonArray getItems() {
+		JsonArray ja_items = new JsonArray();
+		JsonObject jo;
+		InstanceStatusItem item;
+		for (int pos = 0; pos < items.size(); pos++) {
+			jo = new JsonObject();
+			item = items.get(pos);
+			try {
+				jo.addProperty("key", item.getReferenceKey());
+				jo.addProperty("class", item.getInstanceStatusItemReferenceClass().getSimpleName());
+				jo.add("content", item.getInstanceStatusItem());
+			} catch (Exception e) {
+				jo.addProperty("error", e.getMessage());
+				Loggers.Manager.warn("Can't get InstanceStatusItem for " + item.getReferenceKey(), e);
 			}
-			result.add("items", items);
+			ja_items.add(jo);
+		}
+		return ja_items;
+	}
+	
+	void refresh() {
+		try {
+			long start_time = System.currentTimeMillis();
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			String key = summary.instance_name_pid;
+			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_SUMMARY.toString(), gson.toJson(summary), TTL);
+			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_THREADS.toString(), getThreadstacktraces().toString(), TTL);
+			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_CLASSPATH.toString(), classpath.toString(), TTL);
+			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_ITEMS.toString(), getItems().toString(), TTL);
+			mutator.execute();
 			
-			return result;
+			if (Loggers.Manager.isTraceEnabled()) {
+				Loggers.Manager.trace("Update instance status took " + (System.currentTimeMillis() - start_time));
+			}
+		} catch (ConnectionException e) {
+			manager.getServiceException().onCassandraError(e);
 		}
 	}
 	
 	public String toString() {
-		return AppManager.getPrettyGson().toJson(this);
-	}
-	
-	public String getHostName() {
-		return host_name;
-	}
-	
-	public String getInstanceNamePid() {
-		return instance_name_pid;
-	}
-	
-	public String getInstanceName() {
-		return instance_name;
-	}
-	
-	public String getAppName() {
-		return app_name;
-	}
-	
-	public String getAppVersion() {
-		return app_version;
-	}
-	
-	public static String getThisCurrentPID() {
-		return current_pid;
-	}
-	
-	public static String getThisInstanceNamePid() {
-		return current_instance_name_pid;
+		return gson.toJson(this.summary);
 	}
 	
 	public static void truncate() throws ConnectionException {
@@ -334,41 +364,30 @@ public final class InstanceStatus {
 	}
 	
 	/**
-	 * For get some manager tools, without start a manager.
+	 * @return raw Cassandra items.
 	 */
-	public static class Gatherer {
-		private static final AppManager manager;
-		
-		static {
-			String name = "Gatherer";
-			if (Play.initialized) {
-				name = "This Play instance";
-			}
-			manager = new AppManager(name);
+	public JsonObject getAll(final CF_COLS col_name) {
+		if (col_name == null) {
+			throw new NullPointerException("\"col_name\" can't to be null");
 		}
 		
-		public static InstanceStatus getDefaultManagerInstanceStatus() {
-			return manager.getInstanceStatus();
-		}
+		final JsonObject result = new JsonObject();
+		final JsonParser parser = new JsonParser();
 		
-		public static String getAllInstancesJsonString() {
-			final JsonArray result = new JsonArray();
-			final JsonParser parser = new JsonParser();
-			
-			try {
-				CassandraDb.allRowsReader(CF_INSTANCES, new AllRowsFoundRow() {
-					public void onFoundRow(Row<String, String> row) throws Exception {
-						result.add(parser.parse(row.getColumns().getStringValue("source", "{}")));
+		try {
+			CassandraDb.allRowsReader(CF_INSTANCES, new AllRowsFoundRow() {
+				public void onFoundRow(Row<String, String> row) throws Exception {
+					String value = row.getColumns().getStringValue(col_name.toString(), "null");
+					if (value.equals("null")) {
+						return;
 					}
-				}, "source");
-			} catch (Exception e) {
-				manager.getServiceException().onCassandraError(e);
-			}
-			
-			result.add(AppManager.getGson().toJsonTree(manager.getInstanceStatus().refresh(false)));
-			return result.toString();
+					result.add(row.getKey(), parser.parse(value));
+				}
+			}, col_name.toString());
+		} catch (Exception e) {
+			manager.getServiceException().onCassandraError(e);
 		}
-		
+		return result;
 	}
 	
 }

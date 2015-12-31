@@ -126,8 +126,8 @@ public class Ssh {
 	}
 	
 	private void generateKeys() throws JSchException, IOException {
-		String instance_name = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getInstanceName();
-		String host_name = InstanceStatus.Gatherer.getDefaultManagerInstanceStatus().getHostName();
+		String instance_name = InstanceStatus.getStatic().summary.getInstanceName();
+		String host_name = InstanceStatus.getStatic().summary.getHostName();
 		String comment = "mydmam-" + instance_name + "@" + host_name;
 		
 		JSch jsch = new JSch();

@@ -110,8 +110,8 @@ class BrokerNG {
 		boolean stop_queue;
 		
 		public QueueOperations() {
-			setName("Queue operations for Broker " + manager.getInstanceStatus().getInstanceNamePid());
-			Loggers.Broker.debug("Init queue operations thread for " + manager.getInstanceStatus().getInstanceNamePid());
+			setName("Queue operations for Broker " + manager.getInstanceStatus().summary.getInstanceNamePid());
+			Loggers.Broker.debug("Init queue operations thread for " + manager.getInstanceStatus().summary.getInstanceNamePid());
 			setDaemon(true);
 		}
 		
@@ -204,8 +204,8 @@ class BrokerNG {
 								Loggers.Broker.debug("Watch old abandoned jobs: there are too old jobs (" + jobs.size() + ") in queue:\t" + jobs);
 								manager.getServiceException().onQueueJobProblem("There are too old jobs in queue", jobs);
 							}
-							Loggers.Broker.debug("Remove max date for postponed jobs for " + manager.getInstanceStatus().getHostName());
-							JobNG.Utility.removeMaxDateForPostponedJobs(mutator, manager.getInstanceStatus().getHostName());
+							Loggers.Broker.debug("Remove max date for postponed jobs for " + manager.getInstanceStatus().summary.getHostName());
+							JobNG.Utility.removeMaxDateForPostponedJobs(mutator, manager.getInstanceStatus().summary.getHostName());
 						}
 						
 						if (mutator.isEmpty() == false) {
@@ -231,8 +231,8 @@ class BrokerNG {
 		boolean stop_queue;
 		
 		public QueueNewJobs() {
-			setName("Queue new jobs for Broker " + manager.getInstanceStatus().getInstanceNamePid());
-			Loggers.Broker.debug("Init queue new jobs thread for " + manager.getInstanceStatus().getInstanceNamePid());
+			setName("Queue new jobs for Broker " + manager.getInstanceStatus().summary.getInstanceNamePid());
+			Loggers.Broker.debug("Init queue new jobs thread for " + manager.getInstanceStatus().summary.getInstanceNamePid());
 			setDaemon(true);
 		}
 		
