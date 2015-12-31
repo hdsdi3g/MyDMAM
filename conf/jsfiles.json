@@ -14,13 +14,6 @@
       "date": 1447281328000,
       "hash": "3074199de23c347614dce3928e5ccdd7"
     },
-    "jsfile:629658be2d25f690a358268ca5da9b63": {
-      "relative_file_name": "mydmam/async/manager/view.jsx",
-      "relative_root_name": "/app/react",
-      "size": 1049,
-      "date": 1451521388000,
-      "hash": "b248de7ac9631f5a554a5a9c3bfd4efb"
-    },
     "jsfile:6993cab1841c756c7031796d0e001257": {
       "relative_file_name": "mydmam.manager.js",
       "relative_root_name": "/public/javascripts/src",
@@ -189,6 +182,13 @@
       "date": 1432409474000,
       "hash": "a4f90f37554cb484feaec06408a09545"
     },
+    "jsfile:b7d91545766920a3de285aba8fb98ffa": {
+      "relative_file_name": "mydmam/async/manager/Summaries.jsx",
+      "relative_root_name": "/app/react",
+      "size": 3193,
+      "date": 1451579856000,
+      "hash": "f44bdfceabaef81a1ee73aa07a6fac32"
+    },
     "jsfile:443eb424ffd752530719098e172eff4c": {
       "relative_file_name": "mydmam.basket.a-header.js",
       "relative_root_name": "/public/javascripts/src",
@@ -258,6 +258,20 @@
       "size": 748,
       "date": 1432409474000,
       "hash": "c9ccdb08c2ec58f3e537362e231c5091"
+    },
+    "jsfile:0f9d92afb6e36b2ba525d38703dd6f0f": {
+      "relative_file_name": "mydmam/async/manager/Classpaths.jsx",
+      "relative_root_name": "/app/react",
+      "size": 3554,
+      "date": 1451583128000,
+      "hash": "eb881265572f48101a1ed62a36bc2808"
+    },
+    "jsfile:020b7cab317b8f90a9bb2a9106ba04ea": {
+      "relative_file_name": "mydmam/async/manager/Header.jsx",
+      "relative_root_name": "/app/react",
+      "size": 1923,
+      "date": 1451579410000,
+      "hash": "462cc3db8bb812d211afdd0b3bf8c43e"
     },
     "jsfile:e3dcad62de20b45b8628c5fd4516d4a9": {
       "relative_file_name": "helloworld.jsx",

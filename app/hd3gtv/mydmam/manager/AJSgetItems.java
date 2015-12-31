@@ -14,24 +14,12 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
+package hd3gtv.mydmam.manager;
 
-manager.View = React.createClass({
-	getInitialState: function() {
-		return {
-		};
-	},
-	componentWillMount: function() {
-	},
-	componentDidMount: function(){
-	},
-	componentWillUnmount: function() {
-	},
-	render: function(){
-		return (
-			<mydmam.async.PageHeaderTitle title={i18n("manager.instances")} fluid="true">
-			</mydmam.async.PageHeaderTitle>
-		);
-	},
-});
+import java.util.ArrayList;
 
-//mydmam.routes.push("broker-Jobs", "broker", manager.View, [{name: "broker", verb: "list"}]);	
+public class AJSgetItems {
+	
+	public ArrayList<String> refs;
+	
+}

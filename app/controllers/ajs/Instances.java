@@ -16,17 +16,26 @@
 */
 package controllers.ajs;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 
 import controllers.Check;
+import hd3gtv.mydmam.manager.AJSgetItems;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.web.AJSController;
 
 public class Instances extends AJSController {
 	
-	/*private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();*/
+	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
+	}.getType();
 	
 	/*private static Type hm_StringJob_typeOfT = new TypeToken<HashMap<String, JobNG>>() {
 	}.getType();*/
@@ -41,15 +50,17 @@ public class Instances extends AJSController {
 			}
 		});*/
 		
-		/*AJSController.registerTypeAdapter(InstanceStatusResponse.class, new JsonSerializer<InstanceStatusResponse>() {
-			public JsonElement serialize(InstanceStatusResponse src, Type typeOfSrc, JsonSerializationContext context) {
-				return src.list;
+		AJSController.registerTypeAdapter(AJSgetItems.class, new JsonDeserializer<AJSgetItems>() {
+			public AJSgetItems deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+				AJSgetItems result = new AJSgetItems();
+				result.refs = AppManager.getSimpleGson().fromJson(json.getAsJsonObject().get("refs").getAsJsonArray(), al_String_typeOfT);
+				return result;
 			}
-		})*/;
+		});
 	}
 	
 	/**
-	 * @return raw Cassandra json items.
+	 * @return instance ref -> raw JS
 	 */
 	@Check("showInstances")
 	public static JsonObject allSummaries() {
@@ -59,7 +70,7 @@ public class Instances extends AJSController {
 	}
 	
 	/**
-	 * @return raw Cassandra json items.
+	 * @return instance ref -> raw JS
 	 */
 	@Check("showInstances")
 	public static JsonObject allThreads() {
@@ -69,7 +80,7 @@ public class Instances extends AJSController {
 	}
 	
 	/**
-	 * @return raw Cassandra json items.
+	 * @return instance ref -> raw JS
 	 */
 	@Check("showInstances")
 	public static JsonObject allClasspaths() {
@@ -79,12 +90,21 @@ public class Instances extends AJSController {
 	}
 	
 	/**
-	 * @return raw Cassandra json items.
+	 * @return instance ref -> raw JS
 	 */
 	@Check("showInstances")
 	public static JsonObject allItems() {
 		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_ITEMS);
 		result.add(current.summary.getInstanceNamePid(), current.getItems());
+		return result;
+	}
+	
+	/**
+	 * @return instance ref -> CF -> raw JS
+	 */
+	@Check("showInstances")
+	public static JsonObject byrefs(AJSgetItems items) {
+		JsonObject result = current.getByKeys(items.refs, true);
 		return result;
 	}
 	

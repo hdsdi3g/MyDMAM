@@ -250,10 +250,13 @@ $(document).ready(function() {
 						</li>
 					#{/secure.check}
 
-					#{secure.check 'showManager'}
+					#{secure.check 'showInstances'}
 						<li>
-							<a href="@{Manager.index()}"><i class="icon-hdd"></i> &{'manager.pagename'}</a>
+							<a href="@{Application.indexjs()}#manager/summary"><i class="icon-hdd"></i> &{'manager.pagename'}</a>
 						</li>
+					#{/secure.check}
+					
+					#{secure.check 'showManager'}
 						<li>
 							<a href="@{Manager.clusterstatus()}"><i class="icon-globe"></i> &{'service.clusterstatus.report.pagename'}</a>
 						</li>

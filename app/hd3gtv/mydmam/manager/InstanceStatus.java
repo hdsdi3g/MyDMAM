@@ -24,7 +24,9 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
@@ -36,8 +38,11 @@ import com.google.gson.JsonPrimitive;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.Configuration;
@@ -157,8 +162,25 @@ public final class InstanceStatus {
 		private String app_version;
 		@SuppressWarnings("unused")
 		private String java_version;
+		@SuppressWarnings("unused")
+		private String java_vendor;
 		private String host_name;
 		private ArrayList<String> host_addresses;
+		
+		@SuppressWarnings("unused")
+		private String os_arch;
+		@SuppressWarnings("unused")
+		private String os_name;
+		@SuppressWarnings("unused")
+		private String os_version;
+		@SuppressWarnings("unused")
+		private String user_country;
+		@SuppressWarnings("unused")
+		private String user_language;
+		@SuppressWarnings("unused")
+		private String user_name;
+		@SuppressWarnings("unused")
+		private String user_timezone;
 		
 		/**
 		 * Only if manager is set
@@ -190,7 +212,15 @@ public final class InstanceStatus {
 			} else {
 				app_version = "unknow";
 			}
-			java_version = System.getProperty("java.version");
+			java_version = System.getProperty("java.version", "0");
+			java_vendor = System.getProperty("java.vendor", "(No set)");
+			os_arch = System.getProperty("os.arch", "(No set)");
+			os_name = System.getProperty("os.name", "(No set)");
+			os_version = System.getProperty("os.version", "(No set)");
+			user_country = System.getProperty("user.country", "(No set)");
+			user_language = System.getProperty("user.language", "(No set)");
+			user_name = System.getProperty("user.name", "(No set)");
+			user_timezone = System.getProperty("user.timezone", "(No set)");
 			
 			host_addresses = new ArrayList<String>();
 			try {
@@ -387,6 +417,48 @@ public final class InstanceStatus {
 		} catch (Exception e) {
 			manager.getServiceException().onCassandraError(e);
 		}
+		return result;
+	}
+	
+	/**
+	 * @return raw Cassandra items.
+	 */
+	public JsonObject getByKeys(ArrayList<String> refs, boolean add_static_instance) {
+		if (refs == null) {
+			throw new NullPointerException("\"refs\" can't to be null");
+		}
+		
+		final JsonObject result = new JsonObject();
+		final JsonParser parser = new JsonParser();
+		
+		List<String> col_names = Arrays.asList(CF_COLS.COL_SUMMARY.toString(), CF_COLS.COL_ITEMS.toString());
+		
+		try {
+			Rows<String, String> rows = keyspace.prepareQuery(CF_INSTANCES).getKeySlice(refs).withColumnSlice(col_names).execute().getResult();
+			
+			for (Row<String, String> row : rows) {
+				JsonObject item = new JsonObject();
+				ColumnList<String> cols = row.getColumns();
+				for (Column<String> col : cols) {
+					String value = col.getStringValue();
+					if (value != null) {
+						item.add(col.getName(), parser.parse(value));
+					}
+				}
+				result.add(row.getKey(), item);
+			}
+		} catch (Exception e) {
+			manager.getServiceException().onCassandraError(e);
+		}
+		
+		if (add_static_instance) {
+			JsonObject item = new JsonObject();
+			getStatic();
+			item.add(CF_COLS.COL_SUMMARY.toString(), AppManager.getSimpleGson().toJsonTree(is_static.summary));
+			item.add(CF_COLS.COL_ITEMS.toString(), is_static.getItems());
+			result.add(is_static.summary.getInstanceNamePid(), item);
+		}
+		
 		return result;
 	}
 	
