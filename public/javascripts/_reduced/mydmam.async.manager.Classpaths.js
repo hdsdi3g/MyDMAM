@@ -8,5 +8,4 @@ b=e.instance_name+" ("+e.app_name+") "+e.host_name;}else{b=i18n("manager.classpa
 }}}if(f.length>0){mydmam.async.request("instances","byrefs",{refs:f},function(j){for(var k in f){if(j[f[k]]==null){j[f[k]]="nope";
 }}this.setState({instances:jQuery.extend({},this.state.instances,j)});}.bind(this));
 }return(React.createElement("table",{className:"table table-bordered table-striped table-condensed"},React.createElement("thead",null,React.createElement("tr",null,React.createElement("th",null,i18n("manager.classpath.missing")),React.createElement("th",null,i18n("manager.classpath.missingin")))),React.createElement("tbody",null,d)));
-}});a.InstanceClasspath=React.createClass({displayName:"InstanceClasspath",render:function(){return null;
 }});})(window.mydmam.async.manager);

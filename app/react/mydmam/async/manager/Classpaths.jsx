@@ -80,20 +80,6 @@ manager.Classpaths = React.createClass({
 			}.bind(this));
 		}
 
-		/*<thead>
-					<tr>
-						<th>{i18n("manager.instance.host")}</th>
-						<th>{i18n("manager.instance.manager")}</th>
-						<th>{i18n("manager.instance.version")}</th>
-						<th>{i18n("manager.instance.uptime")}</th>
-						<th>{i18n("manager.instance.jvm")}</th>
-						<th>{i18n("manager.instance.addr")}</th>
-						<th>{i18n("manager.instance.os")}</th>
-						<th>{i18n("manager.instance.user")}</th>
-					</tr>
-				*/
-			//items.push(<manager.InstanceClasspath key={instance_ref} instance={this.state.list[instance_ref]} />);
-
 		return (
 			<table className="table table-bordered table-striped table-condensed">
 				<thead>
@@ -109,10 +95,3 @@ manager.Classpaths = React.createClass({
 		);
 	},
 });
-
-manager.InstanceClasspath = React.createClass({
-	render: function() {
-		return null;
-	},
-});
-

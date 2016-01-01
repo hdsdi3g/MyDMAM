@@ -79,6 +79,10 @@ manager.classpath=Classpaths
 manager.classpath.notfound=Introuvable
 manager.classpath.missing=Manquant
 manager.classpath.missingin=Dans
+manager.instancepane=Instances
+manager.items=Elements
+manager.threads=Threads
+
 # manager.loading=Chargement...
 # manager.nodetectedmodule=Aucune instance détectée
 # manager.summary.title=Résumé des instances

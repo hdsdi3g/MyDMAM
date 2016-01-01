@@ -149,6 +149,18 @@ div.stacktrace a {
     border-bottom: 1px dotted rgb(70, 70, 255);
 }
 
+div.thread-stacktrace {
+    font-family: Monaco,Menlo,Consolas,"Courier New",monospace;
+    font-size: 85%;
+    margin-right: 5px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    margin-left: 15px;
+    padding-left: 15px;
+    border-left: 5px solid #EEE;  
+}
+
+
 span.external-pathindex-position {
     margin-left: 5px;
 }

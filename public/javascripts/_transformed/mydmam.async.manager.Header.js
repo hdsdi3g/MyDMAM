@@ -15,39 +15,66 @@
  * 
 */
 
+manager.PageSummaries = React.createClass({displayName: "PageSummaries",
+	render: function(){
+		return (
+			React.createElement(manager.Header, {page: "summary"})
+		);
+	},
+});
+manager.PageClasspath = React.createClass({displayName: "PageClasspath",
+	render: function(){
+		return (
+			React.createElement(manager.Header, {page: "classpath"})
+		);
+	},
+});
+manager.PageThreads = React.createClass({displayName: "PageThreads",
+	render: function() {
+		return (
+			React.createElement(manager.Header, {page: "threads"})
+		);
+	},
+});
+manager.PageItems = React.createClass({displayName: "PageItems",
+	render: function() {
+		return (
+			React.createElement(manager.Header, {page: "items"})
+		);
+	},
+});
+
+mydmam.routes.push("manager-PageSummaries", "manager/summary", 	manager.PageSummaries, [{name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-PageClasspath", "manager/classpath", manager.PageClasspath, [{name: "instances", verb: "allclasspaths"}, {name: "instances", verb: "byrefs"}]);	
+mydmam.routes.push("manager-PageThreads", 	"manager/threads", 	manager.PageThreads, [{name: "instances", verb: "allthreads"}, {name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-PageItems", 	"manager/items", 	manager.PageItems, [{name: "instances", verb: "allitems"}, {name: "instances", verb: "allsummaries"}]);	
+
 manager.Header = React.createClass({displayName: "Header",
 	render: function(){
 		var show_this = null;
-		if (this.props.params) {
-			if (this.props.params.tab) {
-				if (this.props.params.tab == "summary") {
-					show_this = (React.createElement(manager.Summaries, null));
-				} else if (this.props.params.tab == "classpath") {
-					show_this = (React.createElement(manager.Classpaths, null));
-				}
-			}
-		}
-
-		//allitems
-		//allthreads
-
-		if (show_this == null) {
-			show_this = (React.createElement(manager.InstancesSummaries, null));
+		if (this.props.page == "summary") {
+			show_this = (React.createElement(manager.Summaries, null));
+		} else if (this.props.page == "classpath") {
+			show_this = (React.createElement(manager.Classpaths, null));
+		} else if (this.props.page == "threads") {
+			show_this = (React.createElement(manager.Threads, null));
+		} else if (this.props.page == "items") {
+			show_this = (React.createElement(manager.Items, null));
 		}
 
 		return (
 			React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("manager.pagename"), fluid: "true"}, 
 				React.createElement("ul", {className: "nav nav-tabs"}, 
 					React.createElement(manager.HeaderTab, {href: "#manager/summary", i18nlabel: "manager.summaries"}), 
-					React.createElement(manager.HeaderTab, {href: "#manager/classpath", i18nlabel: "manager.classpath"})
+					React.createElement(manager.HeaderTab, {href: "#manager/items", 	i18nlabel: "manager.items"}), 
+					React.createElement(manager.HeaderTab, {href: "#manager/threads", 	i18nlabel: "manager.threads"}), 
+					React.createElement(manager.HeaderTab, {href: "#manager/classpath", i18nlabel: "manager.classpath"})	
 				), 
 				show_this
 			)
 		);
 	},
 });
-
-mydmam.routes.push("manager", "manager/:tab", manager.Header, [{name: "instances", verb: "allsummaries"}]);	
 
 manager.HeaderTab = React.createClass({displayName: "HeaderTab",
 	onClick: function(e) {
@@ -66,6 +93,85 @@ manager.HeaderTab = React.createClass({displayName: "HeaderTab",
 	},
 });
 
+manager.InstancesNavList = React.createClass({displayName: "InstancesNavList",
+	getInitialState: function() {
+		return {
+			list: {},
+			instance_selected: null,
+		};
+	},
+	componentWillMount: function() {
+		mydmam.async.request("instances", "allsummaries", null, function(list) {
+			this.setState({list: list});
+		}.bind(this));
+	},
+	onSelectInstance: function(ref) {
+		this.props.onSelectInstance(ref);
+		this.setState({instance_selected: ref});
+	},
+	onSelectItem: function(ref) {
+		this.props.onSelectItem(ref);
+	},
+	render: function() {
+		var instances = [];
+		for (var key in this.state.list) {
+			var summary = this.state.list[key];
+			var li_class = classNames({
+				active: this.state.instance_selected == key,
+			});
+			instances.push(React.createElement("li", {key: key, className: li_class}, 
+				React.createElement(manager.InstancesNavListElement, {reference: key, onSelect: this.onSelectInstance}, 
+					summary.instance_name, " ", React.createElement("small", null, "(", summary.app_name, ")")
+				)
+			));
+		}
+
+		var item_list_i18n_title = null;
+		if (this.props.item_list_i18n_title) {
+			item_list_i18n_title = (React.createElement("li", {className: "nav-header"}, i18n(this.props.item_list_i18n_title)));			
+		}
+
+		var items = [];
+		for (var pos in this.props.items) {
+			var item = this.props.items[pos];
+			items.push(React.createElement("li", {key: pos}, 
+				React.createElement(manager.InstancesNavListElement, {reference: pos, onSelect: this.onSelectItem}, 
+					item
+				)
+			));
+		}
+
+		return (React.createElement("div", {className: "row-fluid"}, 
+			React.createElement("div", {className: "span4"}, 
+			 	React.createElement("div", {className: "well", style: {padding: "8px 0"}}, 
+				    React.createElement("ul", {className: "nav nav-list"}, 
+				    	React.createElement("li", {className: "nav-header"}, i18n("manager.instancepane")), 
+					    instances, 
+				    	item_list_i18n_title, 
+				    	items
+				    )
+			    )
+			), 
+			React.createElement("div", {className: "span8"}, 
+				this.props.children
+			)
+		));
+	},
+});
+
+manager.InstancesNavListElement = React.createClass({displayName: "InstancesNavListElement",
+	onClick: function(e) {
+		e.preventDefault();
+		this.props.onSelect(this.props.reference);
+		$(React.findDOMNode(this.refs.tab)).blur();
+	},
+	render: function() {
+		return (React.createElement("a", {href: location.href, ref: "tab", onClick: this.onClick}, 
+			this.props.children
+		));
+	},
+});
+
 })(window.mydmam.async.manager);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: 462cc3db8bb812d211afdd0b3bf8c43e
+// Source hash: 34fa665231fed1d3c713b89867c9941b
