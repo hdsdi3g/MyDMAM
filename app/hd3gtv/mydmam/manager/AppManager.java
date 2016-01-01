@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -55,7 +56,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	static final long starttime;
 	
 	static {
-		starttime = System.currentTimeMillis();
+		starttime = ManagementFactory.getRuntimeMXBean().getStartTime();
 		GsonBuilder builder = new GsonBuilder();
 		builder.serializeNulls();
 		

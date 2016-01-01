@@ -58,7 +58,7 @@ manager.Threads = React.createClass({
 			var thread = current_threads[pos];
 			var daemon = null;
 			if (thread.isdaemon) {
-				daemon = (<span className="badge">DAEMON</span>);
+				daemon = (<span><span className="badge badge-important">DAEMON</span>&nbsp;</span>);
 			}
 
 			var stacktrace = [];
@@ -76,7 +76,11 @@ manager.Threads = React.createClass({
 					<a href={location.hash} onClick={this.onGotoTheTop}><i className=" icon-arrow-up" style={{marginRight: 5, marginTop: 5}}></i></a>
 					{thread.name}
 				</h4>
-				<span className="badge badge-inverse">#{thread.id}</span> <span className="label label-info">{thread.state}</span> {daemon}<br />
+				<span className="badge badge-inverse">#{thread.id}</span>&nbsp;
+				<span className="label label-info">{thread.state}</span>&nbsp;
+				{daemon}
+				<span className="label">Time: {thread.cpu_time_ms / 1000} sec</span>
+				<br />
 				<div className="thread-stacktrace">
 					{stacktrace}
 				</div>

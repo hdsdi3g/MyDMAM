@@ -93,6 +93,16 @@ public class Instances extends AJSController {
 	 * @return instance ref -> raw JS
 	 */
 	@Check("showInstances")
+	public static JsonObject allPerfStats() {
+		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_PERFSTATS);
+		result.add(current.summary.getInstanceNamePid(), current.getPerfStats());
+		return result;
+	}
+	
+	/**
+	 * @return instance ref -> raw JS
+	 */
+	@Check("showInstances")
 	public static JsonObject allItems() {
 		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_ITEMS);
 		result.add(current.summary.getInstanceNamePid(), current.getItems());
@@ -104,8 +114,14 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonObject byrefs(AJSgetItems items) {
-		JsonObject result = current.getByKeys(items.refs, true);
+		JsonObject result = current.getByKeys(items.refs);
 		return result;
+	}
+	
+	@Check("showInstances")
+	public static void truncate() throws Exception {
+		InstanceStatus.truncate();
+		Thread.sleep(300);
 	}
 	
 }

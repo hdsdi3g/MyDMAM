@@ -43,13 +43,27 @@ manager.PageItems = React.createClass({
 		);
 	},
 });
+manager.PagePerfstats = React.createClass({
+	render: function() {
+		return (
+			<manager.Header page="perfstats" />
+		);
+	},
+});
 
 mydmam.routes.push("manager-PageSummaries", "manager/summary", 	manager.PageSummaries, [{name: "instances", verb: "allsummaries"}]);	
 mydmam.routes.push("manager-PageClasspath", "manager/classpath", manager.PageClasspath, [{name: "instances", verb: "allclasspaths"}, {name: "instances", verb: "byrefs"}]);	
 mydmam.routes.push("manager-PageThreads", 	"manager/threads", 	manager.PageThreads, [{name: "instances", verb: "allthreads"}, {name: "instances", verb: "allsummaries"}]);	
 mydmam.routes.push("manager-PageItems", 	"manager/items", 	manager.PageItems, [{name: "instances", verb: "allitems"}, {name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-PagePerfstats", "manager/perfstats", manager.PagePerfstats, [{name: "instances", verb: "allperfstats"}]);	
 
 manager.Header = React.createClass({
+	truncateDb: function(e) {
+		e.preventDefault();
+		mydmam.async.request("instances", "truncate", null, function(){
+			window.location.reload();
+		}.bind(this));
+	},
 	render: function(){
 		var show_this = null;
 		if (this.props.page == "summary") {
@@ -60,6 +74,8 @@ manager.Header = React.createClass({
 			show_this = (<manager.Threads />);
 		} else if (this.props.page == "items") {
 			show_this = (<manager.Items />);
+		} else if (this.props.page == "perfstats") {
+			show_this = (<manager.Perfstats />);
 		}
 
 		return (
@@ -68,7 +84,11 @@ manager.Header = React.createClass({
 					<manager.HeaderTab href="#manager/summary" i18nlabel="manager.summaries" />
 					<manager.HeaderTab href="#manager/items" 	i18nlabel="manager.items" />
 					<manager.HeaderTab href="#manager/threads" 	i18nlabel="manager.threads" />
-					<manager.HeaderTab href="#manager/classpath" i18nlabel="manager.classpath" />	
+					<manager.HeaderTab href="#manager/perfstats" i18nlabel="manager.perfstats" />
+					<manager.HeaderTab href="#manager/classpath" i18nlabel="manager.classpath" />
+					<li className="pull-right">
+						<a href={location.hash} onClick={this.truncateDb}>{i18n("manager.truncate")}</a>
+					</li>
 				</ul>
 				{show_this}
 			</mydmam.async.PageHeaderTitle>

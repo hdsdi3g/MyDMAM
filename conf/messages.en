@@ -82,6 +82,11 @@ manager.classpath.missingin=In
 manager.instancepane=Instances
 manager.items=Items
 manager.threads=Threads
+manager.truncate=Truncate
+manager.truncate.message=The database truncate is made, please refresh this page.
+manager.perfstats=Performance
+manager.perfstats.since=Up to date since
+
 # manager.loading=Loading...
 # manager.nodetectedmodule=No instance detected
 # manager.summary.title=Instance summary

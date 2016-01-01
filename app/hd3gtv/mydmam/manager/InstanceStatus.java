@@ -17,7 +17,11 @@
 package hd3gtv.mydmam.manager;
 
 import java.io.File;
+import java.lang.management.ClassLoadingMXBean;
+import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.OperatingSystemMXBean;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -58,7 +62,7 @@ public final class InstanceStatus {
 	private static final ColumnFamily<String, String> CF_INSTANCES = new ColumnFamily<String, String>("mgrInstances", StringSerializer.get(), StringSerializer.get());
 	
 	public enum CF_COLS {
-		COL_THREADS, COL_CLASSPATH, COL_SUMMARY, COL_ITEMS;
+		COL_THREADS, COL_CLASSPATH, COL_SUMMARY, COL_ITEMS, COL_PERFSTATS;
 		
 		public String toString() {
 			switch (this) {
@@ -70,6 +74,8 @@ public final class InstanceStatus {
 				return "summary";
 			case COL_ITEMS:
 				return "items";
+			case COL_PERFSTATS:
+				return "perfstats";
 			default:
 				return "none";
 			}
@@ -124,11 +130,8 @@ public final class InstanceStatus {
 	}
 	
 	private transient AppManager manager;
-	
 	public final Summary summary;
-	
 	private JsonArray classpath;
-	
 	private ArrayList<InstanceStatusItem> items;
 	
 	public InstanceStatus(AppManager manager) {
@@ -181,15 +184,14 @@ public final class InstanceStatus {
 		private String user_name;
 		@SuppressWarnings("unused")
 		private String user_timezone;
+		@SuppressWarnings("unused")
+		private int cpucount;
 		
 		/**
 		 * Only if manager is set
 		 */
 		private String app_name;
 		
-		/**
-		 * Only if manager is set
-		 */
 		@SuppressWarnings("unused")
 		private long starttime;
 		
@@ -221,6 +223,8 @@ public final class InstanceStatus {
 			user_language = System.getProperty("user.language", "(No set)");
 			user_name = System.getProperty("user.name", "(No set)");
 			user_timezone = System.getProperty("user.timezone", "(No set)");
+			cpucount = Runtime.getRuntime().availableProcessors();
+			starttime = ManagementFactory.getRuntimeMXBean().getStartTime();
 			
 			host_addresses = new ArrayList<String>();
 			try {
@@ -244,7 +248,6 @@ public final class InstanceStatus {
 			
 			if (manager != null) {
 				app_name = manager.getAppName();
-				starttime = AppManager.starttime;
 			}
 		}
 		
@@ -276,7 +279,6 @@ public final class InstanceStatus {
 	private static class ThreadStackTrace {
 		@SuppressWarnings("unused")
 		String name;
-		@SuppressWarnings("unused")
 		long id;
 		@SuppressWarnings("unused")
 		String classname;
@@ -286,6 +288,8 @@ public final class InstanceStatus {
 		boolean isdaemon;
 		@SuppressWarnings("unused")
 		String execpoint;
+		@SuppressWarnings("unused")
+		long cpu_time_ms = -1;
 		
 		private ThreadStackTrace importThread(Thread t, StackTraceElement[] stes) {
 			name = t.getName();
@@ -293,6 +297,11 @@ public final class InstanceStatus {
 			classname = t.getClass().getName();
 			state = t.getState().toString();
 			isdaemon = t.isDaemon();
+			if (ManagementFactory.getThreadMXBean().isThreadCpuTimeSupported()) {
+				if (ManagementFactory.getThreadMXBean().isThreadCpuTimeEnabled()) {
+					cpu_time_ms = ManagementFactory.getThreadMXBean().getThreadCpuTime(id) / (1000 * 1000);
+				}
+			}
 			
 			StringBuffer sb = new StringBuffer();
 			for (int pos = 0; pos < stes.length; pos++) {
@@ -321,7 +330,6 @@ public final class InstanceStatus {
 			execpoint = sb.toString();
 			return this;
 		}
-		
 	}
 	
 	public void registerInstanceStatusItem(InstanceStatusItem item) {
@@ -366,6 +374,65 @@ public final class InstanceStatus {
 		return ja_items;
 	}
 	
+	public JsonObject getPerfStats() {
+		JsonObject result = new JsonObject();
+		result.addProperty("now", System.currentTimeMillis());
+		result.addProperty("pid", summary.pid);
+		result.addProperty("instance_name", summary.instance_name);
+		result.addProperty("host_name", summary.host_name);
+		result.addProperty("maxMemory", Runtime.getRuntime().maxMemory());
+		result.addProperty("totalMemory", Runtime.getRuntime().totalMemory());
+		result.addProperty("freeMemory", Runtime.getRuntime().freeMemory());
+		
+		ClassLoadingMXBean clmxb = ManagementFactory.getClassLoadingMXBean();
+		result.addProperty("getUnloadedClassCount", clmxb.getUnloadedClassCount());
+		result.addProperty("getTotalLoadedClassCount", clmxb.getTotalLoadedClassCount());
+		result.addProperty("getLoadedClassCount", clmxb.getLoadedClassCount());
+		
+		MemoryMXBean mmvb = ManagementFactory.getMemoryMXBean();
+		result.addProperty("getObjectPendingFinalizationCount", mmvb.getObjectPendingFinalizationCount());
+		result.addProperty("nonHeapUsed", mmvb.getNonHeapMemoryUsage().getUsed());
+		result.addProperty("heapUsed", mmvb.getHeapMemoryUsage().getUsed());
+		
+		JsonArray ja_gc = new JsonArray();
+		List<GarbageCollectorMXBean> m_gc = ManagementFactory.getGarbageCollectorMXBeans();
+		for (int pos = 0; pos < m_gc.size(); pos++) {
+			JsonObject jo_gc = new JsonObject();
+			jo_gc.addProperty("name", m_gc.get(pos).getName());
+			jo_gc.addProperty("time", m_gc.get(pos).getCollectionTime());
+			jo_gc.addProperty("count", m_gc.get(pos).getCollectionCount());
+			ja_gc.add(jo_gc);
+		}
+		result.add("gc", ja_gc);
+		
+		// List<MemoryPoolMXBean> m_pools = ManagementFactory.getMemoryPoolMXBeans();
+		// m_pools.get(0).
+		// List<MemoryManagerMXBean> m_managers = ManagementFactory.getMemoryManagerMXBeans();
+		// m_managers.get(0).getName()
+		// m_managers.get(0).getMemoryPoolNames()
+		
+		OperatingSystemMXBean os_mxb = ManagementFactory.getOperatingSystemMXBean();
+		result.addProperty("getSystemLoadAverage", os_mxb.getSystemLoadAverage());
+		
+		try {
+			Class.forName("com.sun.management.OperatingSystemMXBean");
+			JsonObject jo_os = new JsonObject();
+			com.sun.management.OperatingSystemMXBean os_sun = (com.sun.management.OperatingSystemMXBean) os_mxb;
+			jo_os.addProperty("getCommittedVirtualMemorySize", os_sun.getCommittedVirtualMemorySize());
+			jo_os.addProperty("getFreePhysicalMemorySize", os_sun.getFreePhysicalMemorySize());
+			jo_os.addProperty("getFreeSwapSpaceSize", os_sun.getFreeSwapSpaceSize());
+			jo_os.addProperty("getProcessCpuLoad", os_sun.getProcessCpuLoad());
+			jo_os.addProperty("getProcessCpuTime", os_sun.getProcessCpuTime());
+			jo_os.addProperty("getSystemCpuLoad", os_sun.getSystemCpuLoad());
+			jo_os.addProperty("getTotalPhysicalMemorySize", os_sun.getTotalPhysicalMemorySize());
+			jo_os.addProperty("getTotalSwapSpaceSize", os_sun.getTotalSwapSpaceSize());
+			result.add("os", jo_os);
+		} catch (ClassNotFoundException e) {
+		}
+		
+		return result;
+	}
+	
 	void refresh() {
 		try {
 			long start_time = System.currentTimeMillis();
@@ -375,6 +442,7 @@ public final class InstanceStatus {
 			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_THREADS.toString(), getThreadstacktraces().toString(), TTL);
 			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_CLASSPATH.toString(), classpath.toString(), TTL);
 			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_ITEMS.toString(), getItems().toString(), TTL);
+			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_PERFSTATS.toString(), getPerfStats().toString(), TTL);
 			mutator.execute();
 			
 			if (Loggers.Manager.isTraceEnabled()) {
@@ -423,7 +491,7 @@ public final class InstanceStatus {
 	/**
 	 * @return raw Cassandra items.
 	 */
-	public JsonObject getByKeys(ArrayList<String> refs, boolean add_static_instance) {
+	public JsonObject getByKeys(ArrayList<String> refs) {
 		if (refs == null) {
 			throw new NullPointerException("\"refs\" can't to be null");
 		}
@@ -451,11 +519,13 @@ public final class InstanceStatus {
 			manager.getServiceException().onCassandraError(e);
 		}
 		
-		if (add_static_instance) {
+		if (refs.contains(getStatic().summary.getInstanceNamePid())) {
 			JsonObject item = new JsonObject();
-			getStatic();
 			item.add(CF_COLS.COL_SUMMARY.toString(), AppManager.getSimpleGson().toJsonTree(is_static.summary));
 			item.add(CF_COLS.COL_ITEMS.toString(), is_static.getItems());
+			item.add(CF_COLS.COL_CLASSPATH.toString(), is_static.getClasspath());
+			item.add(CF_COLS.COL_PERFSTATS.toString(), is_static.getPerfStats());
+			item.add(CF_COLS.COL_THREADS.toString(), InstanceStatus.getThreadstacktraces());
 			result.add(is_static.summary.getInstanceNamePid(), item);
 		}
 		

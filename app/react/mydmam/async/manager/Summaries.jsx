@@ -80,11 +80,11 @@ manager.InstanceSummary = React.createClass({
 
 		return (<tr>
 			<td>{this.props.instance.host_name}<br />
-				<small className="muted">PID {this.props.instance.pid}</small>
+				<small className="muted">P:{this.props.instance.pid} C:{this.props.instance.cpucount}</small>
 			</td>
 			<td>
 				{this.props.instance.instance_name}<br />
-				{this.props.instance.app_name}
+				<em>{this.props.instance.app_name}</em>
 			</td>
 			<td>
 				{this.props.instance.app_version}

@@ -82,7 +82,10 @@ manager.classpath.missingin=Dans
 manager.instancepane=Instances
 manager.items=Elements
 manager.threads=Threads
-
+manager.truncate=Purge
+manager.truncate.message=La purge de la base est effectuée, veuillez rafraichir la page.
+manager.perfstats=Performance
+manager.perfstats.since=A jour depuis
 # manager.loading=Chargement...
 # manager.nodetectedmodule=Aucune instance détectée
 # manager.summary.title=Résumé des instances

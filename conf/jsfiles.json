@@ -10,9 +10,9 @@
     "jsfile:175778f76bb56a1db91f98e9642ba9c3": {
       "relative_file_name": "mydmam/async/manager/Items.jsx",
       "relative_root_name": "/app/react",
-      "size": 916,
-      "date": 1451613260000,
-      "hash": "9db3d3e4f92256a25da45802a99f11d4"
+      "size": 999,
+      "date": 1451623644000,
+      "hash": "4eb13f4cb25c78e1159a6e521c57762f"
     },
     "jsfile:99edda8fb3cf15cac439d1467da9ad37": {
       "relative_file_name": "mydmam/async/watchfolders/AbstractFoundedFile.jsx",
@@ -192,9 +192,9 @@
     "jsfile:b7d91545766920a3de285aba8fb98ffa": {
       "relative_file_name": "mydmam/async/manager/Summaries.jsx",
       "relative_root_name": "/app/react",
-      "size": 3193,
-      "date": 1451579856000,
-      "hash": "f44bdfceabaef81a1ee73aa07a6fac32"
+      "size": 3233,
+      "date": 1451673401000,
+      "hash": "033e0ff3f222f40cb5f939e3101c3817"
     },
     "jsfile:443eb424ffd752530719098e172eff4c": {
       "relative_file_name": "mydmam.basket.a-header.js",
@@ -262,9 +262,9 @@
     "jsfile:f6b9b08a31ae812200b9d3e475a85f2f": {
       "relative_file_name": "mydmam/async/manager/Threads.jsx",
       "relative_root_name": "/app/react",
-      "size": 3064,
-      "date": 1451623124000,
-      "hash": "b0253fcfea8734464941047bad38d40a"
+      "size": 3161,
+      "date": 1451672964000,
+      "hash": "54651b728bebd1c1f2e546f7ecf54824"
     },
     "jsfile:6e165e59546092c5b6a102b02ce1ba9a": {
       "relative_file_name": "mydmam/async/search/makeURLsearch.jsx",
@@ -283,9 +283,9 @@
     "jsfile:020b7cab317b8f90a9bb2a9106ba04ea": {
       "relative_file_name": "mydmam/async/manager/Header.jsx",
       "relative_root_name": "/app/react",
-      "size": 5237,
-      "date": 1451619040000,
-      "hash": "34fa665231fed1d3c713b89867c9941b"
+      "size": 5966,
+      "date": 1451673385000,
+      "hash": "ffb3ebe896649b231eec7a0a1a9de001"
     },
     "jsfile:e3dcad62de20b45b8628c5fd4516d4a9": {
       "relative_file_name": "helloworld.jsx",
@@ -307,6 +307,13 @@
       "size": 5623,
       "date": 1449705977000,
       "hash": "72fb2037954d707d32076c55e9536632"
+    },
+    "jsfile:b483c4b77f8fad954e75110b6b392239": {
+      "relative_file_name": "mydmam/async/manager/Perfstats.jsx",
+      "relative_root_name": "/app/react",
+      "size": 5259,
+      "date": 1451682971000,
+      "hash": "49112c56949042fd21852696fdfff8b1"
     },
     "jsfile:227cfc8985814ad467f951eb1c6abf64": {
       "relative_file_name": "mydmam/async/search/found.jsx",
