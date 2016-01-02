@@ -112,11 +112,11 @@ public class Instances extends AJSController {
 	/**
 	 * @return instance ref -> CF -> raw JS
 	 */
-	@Check("showInstances")
+	/*@Check("showInstances")
 	public static JsonObject byrefs(AJSgetItems items) {
 		JsonObject result = current.getByKeys(items.refs);
 		return result;
-	}
+	}*/
 	
 	@Check("showInstances")
 	public static void truncate() throws Exception {

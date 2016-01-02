@@ -86,7 +86,7 @@ manager.truncate=Truncate
 manager.truncate.message=The database truncate is made, please refresh this page.
 manager.perfstats=Performance
 manager.perfstats.since=Up to date since
-
+manager.items.AppManager.next_updater_refresh_date=Next refresh date for Manager:
 # manager.loading=Loading...
 # manager.nodetectedmodule=No instance detected
 # manager.summary.title=Instance summary

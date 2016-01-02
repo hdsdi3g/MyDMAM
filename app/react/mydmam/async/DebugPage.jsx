@@ -26,6 +26,7 @@ async.DebugPage = React.createClass({
 		mydmam.async.request("debugpage", "showcontrollers", {}, function(data) {
 			this.setState({ajscontrollers: data.controllers, version: data.version});
 		}.bind(this));
+		mydmam.module.dumpList();
 	},
 	render: function() {
 		var ajscontrollers = this.state.ajscontrollers;

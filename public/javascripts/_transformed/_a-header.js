@@ -115,7 +115,7 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 	};
 	
 	module.dumpList = function() {
-		console.log(modules);
+		console.log("JS modules dump list", modules);
 	};
 	
 	module.getCallbacks = function(callback_name) {
@@ -181,6 +181,7 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 	module.f.processViewSearchResult = firstValidCallback("processViewSearchResult");
 	module.f.wantToHaveResolvedExternalPositions = firstValidCallback("wantToHaveResolvedExternalPositions");
 	module.f.i18nExternalPosition = firstValidCallback("i18nExternalPosition");
+	module.f.managerInstancesItems = firstValidCallback("managerInstancesItems");
 	
 })(window.mydmam.module);
 

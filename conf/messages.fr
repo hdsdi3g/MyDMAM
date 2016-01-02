@@ -86,6 +86,7 @@ manager.truncate=Purge
 manager.truncate.message=La purge de la base est effectuée, veuillez rafraichir la page.
 manager.perfstats=Performance
 manager.perfstats.since=A jour depuis
+manager.items.AppManager.next_updater_refresh_date=Prochaine date de rafraichissement du Manager :
 # manager.loading=Chargement...
 # manager.nodetectedmodule=Aucune instance détectée
 # manager.summary.title=Résumé des instances

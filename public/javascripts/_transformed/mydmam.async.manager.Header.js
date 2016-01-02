@@ -15,49 +15,29 @@
  * 
 */
 
-manager.PageSummaries = React.createClass({displayName: "PageSummaries",
-	render: function(){
-		return (
-			React.createElement(manager.Header, {page: "summary"})
-		);
-	},
-});
-manager.PageClasspath = React.createClass({displayName: "PageClasspath",
-	render: function(){
-		return (
-			React.createElement(manager.Header, {page: "classpath"})
-		);
-	},
-});
-manager.PageThreads = React.createClass({displayName: "PageThreads",
-	render: function() {
-		return (
-			React.createElement(manager.Header, {page: "threads"})
-		);
-	},
-});
-manager.PageItems = React.createClass({displayName: "PageItems",
-	render: function() {
-		return (
-			React.createElement(manager.Header, {page: "items"})
-		);
-	},
-});
-manager.PagePerfstats = React.createClass({displayName: "PagePerfstats",
-	render: function() {
-		return (
-			React.createElement(manager.Header, {page: "perfstats"})
-		);
-	},
-});
-
-mydmam.routes.push("manager-PageSummaries", "manager/summary", 	manager.PageSummaries, [{name: "instances", verb: "allsummaries"}]);	
-mydmam.routes.push("manager-PageClasspath", "manager/classpath", manager.PageClasspath, [{name: "instances", verb: "allclasspaths"}, {name: "instances", verb: "byrefs"}]);	
-mydmam.routes.push("manager-PageThreads", 	"manager/threads", 	manager.PageThreads, [{name: "instances", verb: "allthreads"}, {name: "instances", verb: "allsummaries"}]);	
-mydmam.routes.push("manager-PageItems", 	"manager/items", 	manager.PageItems, [{name: "instances", verb: "allitems"}, {name: "instances", verb: "allsummaries"}]);	
-mydmam.routes.push("manager-PagePerfstats", "manager/perfstats", manager.PagePerfstats, [{name: "instances", verb: "allperfstats"}]);	
-
 manager.Header = React.createClass({displayName: "Header",
+	getInitialState: function() {
+		return {
+			summaries: {},
+			interval: null,
+		};
+	},
+	componentWillMount: function() {
+		this.refresh();
+	},
+	refresh: function() {
+		mydmam.async.request("instances", "allsummaries", null, function(summaries) {
+			this.setState({summaries: summaries});
+		}.bind(this));
+	},
+	componentDidMount: function(){
+		this.setState({interval: setInterval(this.refresh, 10000)});
+	},
+	componentWillUnmount: function() {
+		if (this.state.interval) {
+			clearInterval(this.state.interval);
+		}
+	},
 	truncateDb: function(e) {
 		e.preventDefault();
 		mydmam.async.request("instances", "truncate", null, function(){
@@ -65,17 +45,21 @@ manager.Header = React.createClass({displayName: "Header",
 		}.bind(this));
 	},
 	render: function(){
+		if (this.state.summaries == null) {
+			show_this = (React.createElement(mydmam.async.PageLoadingProgressBar, null));
+		}
+
 		var show_this = null;
-		if (this.props.page == "summary") {
-			show_this = (React.createElement(manager.Summaries, null));
-		} else if (this.props.page == "classpath") {
-			show_this = (React.createElement(manager.Classpaths, null));
-		} else if (this.props.page == "threads") {
-			show_this = (React.createElement(manager.Threads, null));
-		} else if (this.props.page == "items") {
-			show_this = (React.createElement(manager.Items, null));
-		} else if (this.props.page == "perfstats") {
-			show_this = (React.createElement(manager.Perfstats, null));
+		if (location.hash.indexOf("#manager/summary") == 0) {
+			show_this = (React.createElement(manager.Summaries, {summaries: this.state.summaries}));
+		} else if (location.hash.indexOf("#manager/classpath") == 0) {
+			show_this = (React.createElement(manager.Classpaths, {summaries: this.state.summaries}));
+		} else if (location.hash.indexOf("#manager/threads") == 0) {
+			show_this = (React.createElement(manager.Threads, {summaries: this.state.summaries}));
+		} else if (location.hash.indexOf("#manager/items") == 0) {
+			show_this = (React.createElement(manager.Items, {summaries: this.state.summaries}));
+		} else if (location.hash.indexOf("#manager/perfstats") == 0) {
+			show_this = (React.createElement(manager.Perfstats, {summaries: this.state.summaries}));
 		}
 
 		return (
@@ -96,6 +80,12 @@ manager.Header = React.createClass({displayName: "Header",
 	},
 });
 
+mydmam.routes.push("manager-PageSummaries", "manager/summary", manager.Header, [{name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-PageClasspath", "manager/classpath", manager.Header, [{name: "instances", verb: "allclasspaths"}, {name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-PageThreads", 	"manager/threads", manager.Header, [{name: "instances", verb: "allthreads"}, {name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-PageItems", 	"manager/items", manager.Header, [{name: "instances", verb: "allitems"}, {name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-PagePerfstats", "manager/perfstats", manager.Header, [{name: "instances", verb: "allperfstats"}]);	
+
 manager.HeaderTab = React.createClass({displayName: "HeaderTab",
 	onClick: function(e) {
 		//e.preventDefault();
@@ -108,73 +98,7 @@ manager.HeaderTab = React.createClass({displayName: "HeaderTab",
 		});
 
 		return (React.createElement("li", {className: li_class}, 
-			React.createElement("a", {href: this.props.href}, i18n(this.props.i18nlabel))
-		));
-	},
-});
-
-manager.InstancesNavList = React.createClass({displayName: "InstancesNavList",
-	getInitialState: function() {
-		return {
-			list: {},
-			instance_selected: null,
-		};
-	},
-	componentWillMount: function() {
-		mydmam.async.request("instances", "allsummaries", null, function(list) {
-			this.setState({list: list});
-		}.bind(this));
-	},
-	onSelectInstance: function(ref) {
-		this.props.onSelectInstance(ref);
-		this.setState({instance_selected: ref});
-	},
-	onSelectItem: function(ref) {
-		this.props.onSelectItem(ref);
-	},
-	render: function() {
-		var instances = [];
-		for (var key in this.state.list) {
-			var summary = this.state.list[key];
-			var li_class = classNames({
-				active: this.state.instance_selected == key,
-			});
-			instances.push(React.createElement("li", {key: key, className: li_class}, 
-				React.createElement(manager.InstancesNavListElement, {reference: key, onSelect: this.onSelectInstance}, 
-					summary.instance_name, " ", React.createElement("small", null, "(", summary.app_name, ")")
-				)
-			));
-		}
-
-		var item_list_i18n_title = null;
-		if (this.props.item_list_i18n_title) {
-			item_list_i18n_title = (React.createElement("li", {className: "nav-header"}, i18n(this.props.item_list_i18n_title)));			
-		}
-
-		var items = [];
-		for (var pos in this.props.items) {
-			var item = this.props.items[pos];
-			items.push(React.createElement("li", {key: pos}, 
-				React.createElement(manager.InstancesNavListElement, {reference: pos, onSelect: this.onSelectItem}, 
-					item
-				)
-			));
-		}
-
-		return (React.createElement("div", {className: "row-fluid"}, 
-			React.createElement("div", {className: "span4"}, 
-			 	React.createElement("div", {className: "well", style: {padding: "8px 0"}}, 
-				    React.createElement("ul", {className: "nav nav-list"}, 
-				    	React.createElement("li", {className: "nav-header"}, i18n("manager.instancepane")), 
-					    instances, 
-				    	item_list_i18n_title, 
-				    	items
-				    )
-			    )
-			), 
-			React.createElement("div", {className: "span8"}, 
-				this.props.children
-			)
+			React.createElement("a", {href: this.props.href, onClick: this.onClick, ref: "tab"}, i18n(this.props.i18nlabel))
 		));
 	},
 });
@@ -194,4 +118,4 @@ manager.InstancesNavListElement = React.createClass({displayName: "InstancesNavL
 
 })(window.mydmam.async.manager);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: ffb3ebe896649b231eec7a0a1a9de001
+// Source hash: 7fa54d777933079baabaaaeab1f338d7

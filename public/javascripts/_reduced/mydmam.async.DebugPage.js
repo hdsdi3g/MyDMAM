@@ -1,6 +1,7 @@
 (function(a){a.DebugPage=React.createClass({displayName:"DebugPage",getInitialState:function(){return{ajscontrollers:null,version:null};
 },componentWillMount:function(){mydmam.async.request("debugpage","showcontrollers",{},function(b){this.setState({ajscontrollers:b.controllers,version:b.version});
-}.bind(this));},render:function(){var f=this.state.ajscontrollers;if(f==null){return(React.createElement(mydmam.async.PageLoadingProgressBar,null));
+}.bind(this));mydmam.module.dumpList();},render:function(){var f=this.state.ajscontrollers;
+if(f==null){return(React.createElement(mydmam.async.PageLoadingProgressBar,null));
 }var d=[];for(var g in f){var c=f[g];d.push(React.createElement("tr",{key:"c:"+g},React.createElement("td",{rowSpan:Object.keys(c.verbs).length+1},React.createElement("strong",{className:"text-info"},React.createElement(a.JavaClassNameLink,{javaclass:c.controller_class,version:this.state.version})))));
 for(var i in c.verbs){var h=c.verbs[i];var e=[];for(var b in h.mandatory_privileges){e.push(h.mandatory_privileges[b]);
 }d.push(React.createElement("tr",{key:"c:"+g+":v:"+i},React.createElement("td",null,i),React.createElement("td",null,React.createElement(mydmam.async.JavaClassNameLink,{javaclass:h.parameter_type,version:this.state.version})),React.createElement("td",null,React.createElement(mydmam.async.JavaClassNameLink,{javaclass:h.return_type,version:this.state.version})),React.createElement("td",{className:"muted"},e.join(" / "))));
