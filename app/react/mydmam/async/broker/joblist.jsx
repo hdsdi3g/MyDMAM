@@ -57,6 +57,9 @@ broker.Jobs = React.createClass({
 		document.body.style.cursor = 'default';
 	},
 	componentWillMount: function() {
+		mydmam.async.request("instances", "appversion", null, function(version) {
+			mydmam.async.appversion = version;
+		}.bind(this));
 		this.updateJobList();
 	},
 	componentDidMount: function(){
@@ -293,14 +296,6 @@ broker.NavTabDropDownAction = React.createClass({
 });
 
 broker.JobListCartridges = React.createClass({
-	getInitialState: function() {
-		return {version: null, }
-	},
-	componentWillMount: function() {
-		mydmam.async.request("broker", "appversion", {}, function(data) {
-			this.setState({version: data});
-		}.bind(this));
-	},
 	render: function() {
 		var joblist = this.props.joblist;
 		var selected_tab = this.props.selected_tab;
@@ -355,7 +350,6 @@ broker.JobListCartridges = React.createClass({
 			cartridges.push(<broker.JobCartridge
 				key={job.key}
 				job={job}
-				version={this.state.version}
 				required_jobs={required_jobs}
 				action_avaliable={this.props.action_avaliable}
 				onActionButtonClick={this.props.onActionButtonClick} />);
@@ -377,7 +371,12 @@ broker.displayKey = function(key, react_return) {
 	if (!key) {
 		return null;
 	}
-	var short_value = key.substring(key.lastIndexOf(":") + 1, key.lastIndexOf(":") + 9) + '.';
+	var short_value = key;
+	if (key.indexOf(":") > -1) {
+		short_value = key.substring(key.lastIndexOf(":") + 1, key.lastIndexOf(":") + 9) + '.';
+	} else if (key.indexOf("#") > -1) {
+		short_value = key.substring(key.indexOf("#") + 1, key.length);
+	}
 	if (react_return) {
 		return (<abbr title={key}>
 			<code>
@@ -522,6 +521,45 @@ broker.JobCartridgeActionButtons = React.createClass({
 	},	
 });
 
+broker.displayContext = function(context) {
+	var context_content = null;
+	var context_content_json = JSON.stringify(context.content, null, " ");
+	if (context_content_json != "{}") {
+		context_content = (<code className="json" onClick={this.onClickDoNothing}>
+			<i className="icon-indent-left"></i>
+			<span className="jsontitle"> {i18n("manager.jobs.context")}</span>
+			{context_content_json}
+		</code>);	
+	}
+
+	var context_neededstorages = null;
+	if (context.neededstorages) {
+		var label = "manager.jobs.targetstorage";
+		if (context.neededstorages.length > 1) {
+			label = "manager.jobs.targetstorages";
+		}
+		context_neededstorages = (<span>{i18n(label)} <span className="badge badge-warning"><i className="icon-hdd icon-white"></i> {context.neededstorages.join(", ")}</span></span>);
+	}
+
+	var context_hookednames = null;
+	if (context.hookednames) {
+		var label = "manager.jobs.hookedname";
+		if (context.hookednames.length > 1) {
+			label = "manager.jobs.hookednames";
+		}
+		context_hookednames = (<span>{i18n(label)} <span className="badge badge-inverse"><i className="icon-tags icon-white"></i> {context.hookednames.join(", ")}</span></span>);
+	}
+
+	return (<div style={{marginBottom: 7}}>
+		<div style={{marginTop: 5}}>
+			{i18n("manager.jobs.contextclass")} <mydmam.async.JavaClassNameLink javaclass={context.classname} />
+		</div>
+		<div style={{marginTop: 5}}>{context_neededstorages}</div>
+		<div style={{marginTop: 5}}>{context_hookednames}</div>
+		<div style={{marginTop: 7}}>{context_content}</div>
+	</div>);
+};
+
 broker.JobCartridge = React.createClass({
 	getInitialState: function() {
 		return {
@@ -609,7 +647,7 @@ broker.JobCartridge = React.createClass({
 					<span className="label label-info"><i className="icon-cog icon-white"></i> {i18n("manager.jobs.createdbysimple", job.instance_status_creator_key)}</span>
 				</div>
 				<div style={{marginTop: 4}}>
-					{i18n("manager.jobs.classcreator")} <mydmam.async.JavaClassNameLink javaclass={job.creator} version={this.props.version} />
+					{i18n("manager.jobs.classcreator")} <mydmam.async.JavaClassNameLink javaclass={job.creator} />
 				</div>
 				<div style={{marginTop: 4, marginBottom: 8}}>
 					{max_execution_time}
@@ -640,47 +678,9 @@ broker.JobCartridge = React.createClass({
 			/**
 			 * Display Stacktrace
 			 */
-			processing_error = (<mydmam.async.JavaStackTrace processing_error={job.processing_error} version={this.props.version} />);
+			processing_error = (<mydmam.async.JavaStackTrace processing_error={job.processing_error} />);
 
-			/**
-			 * Display context
-			 */
-			var context_content = null;
-			var context_content_json = JSON.stringify(job.context.content, null, " ");
-			if (context_content_json != "{}") {
-				context_content = (<code className="json" onClick={this.onClickDoNothing}>
-					<i className="icon-indent-left"></i>
-					<span className="jsontitle"> {i18n("manager.jobs.context")}</span>
-					{context_content_json}
-				</code>);	
-			}
-
-			var context_neededstorages = null;
-			if (job.context.neededstorages) {
-				var label = "manager.jobs.targetstorage";
-				if (job.context.neededstorages.length > 1) {
-					label = "manager.jobs.targetstorages";
-				}
-				context_neededstorages = (<span>{i18n(label)} <span className="badge badge-warning"><i className="icon-hdd icon-white"></i> {job.context.neededstorages.join(", ")}</span></span>);
-			}
-
-			var context_hookednames = null;
-			if (job.context.hookednames) {
-				var label = "manager.jobs.hookedname";
-				if (job.context.hookednames.length > 1) {
-					label = "manager.jobs.hookednames";
-				}
-				context_hookednames = (<span>{i18n(label)} <span className="badge badge-inverse"><i className="icon-tags icon-white"></i> {job.context.hookednames.join(", ")}</span></span>);
-			}
-
-			context = (<div style={{marginBottom: 7}}>
-				<div style={{marginTop: 5}}>
-					{i18n("manager.jobs.contextclass")} <mydmam.async.JavaClassNameLink javaclass={job.context.classname} version={this.props.version} />
-				</div>
-				<div style={{marginTop: 5}}>{context_neededstorages}</div>
-				<div style={{marginTop: 5}}>{context_hookednames}</div>
-				<div style={{marginTop: 7}}>{context_content}</div>
-			</div>);
+			context = broker.displayContext(job.context);
 
 			/**
 			 * Display references
@@ -695,7 +695,7 @@ broker.JobCartridge = React.createClass({
 						{i18n("manager.jobs.wref")} <span>{broker.displayKey(job.worker_reference, true)}</span>
 					</div>
 					<div style={{marginTop: 5}}>
-						{i18n("manager.jobs.classexec")} <mydmam.async.JavaClassNameLink javaclass={job.worker_class} version={this.props.version} />
+						{i18n("manager.jobs.classexec")} <mydmam.async.JavaClassNameLink javaclass={job.worker_class} />
 					</div>
 					{job_ref}
 				</div>);

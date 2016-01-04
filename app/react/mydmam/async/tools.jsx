@@ -215,11 +215,45 @@ async.ButtonSort = React.createClass({
 	}
 });
 
-async.makeGitHubLink = function(version, javaclass) {
+async.LabelBoolean = React.createClass({
+	propTypes: {
+		label_true: 	React.PropTypes.string.isRequired,
+		label_false: 	React.PropTypes.string.isRequired,
+		value: 			React.PropTypes.bool.isRequired,
+		inverse: 		React.PropTypes.bool,
+	},
+	render: function() {
+		var value = this.props.value;
+		var inverse = false;
+		if (this.props.inverse) {
+			inverse = true;
+		}
+
+		var label = i18n(this.props.label_false);
+		if (value) {
+			label = i18n(this.props.label_true);
+		}
+
+		var span_class = classNames("badge", {
+			"badge-success": value == inverse,
+			"badge-important": value != inverse,
+		});
+		var icon = classNames("icon-white", {
+			"icon-remove-circle": ! value,
+			"icon-ok-circle": value,
+		});
+
+		return (<span className={span_class}><i className={icon}></i> {label}</span>)
+	},
+});
+
+async.appversion = "master master";
+
+async.makeGitHubLink = function(javaclass) {
 	if (javaclass == null) {
 		return null;
 	}
-	if (version == null | ((javaclass.indexOf("hd3gtv.") != 0) & (javaclass.indexOf("controllers.") != 0))) {
+	if ((javaclass.indexOf("hd3gtv.") != 0) & (javaclass.indexOf("controllers.") != 0)) {
 		return null;
 	}
 	var dollar_pos = javaclass.indexOf("$");
@@ -227,7 +261,7 @@ async.makeGitHubLink = function(version, javaclass) {
 		javaclass = javaclass.substring(0, dollar_pos);
 	}
 
-	return "https://github.com/hdsdi3g/MyDMAM/blob/" + version.substring(version.lastIndexOf(" ") + 1) + "/app/" + javaclass.replace(/\./g, "/") + ".java";
+	return "https://github.com/hdsdi3g/MyDMAM/blob/" + async.appversion.substring(async.appversion.lastIndexOf(" ") + 1) + "/app/" + javaclass.replace(/\./g, "/") + ".java";
 }
 
 async.JavaClassNameLink = React.createClass({
@@ -240,8 +274,7 @@ async.JavaClassNameLink = React.createClass({
 			return (<strong><em className="muted">Void</em></strong>);
 		}
 
-		var version = this.props.version;
-		var href = async.makeGitHubLink(version, javaclass);
+		var href = async.makeGitHubLink(javaclass);
 
 		if (href == null) {
 			return (<span>{javaclass}</span>);
@@ -282,7 +315,7 @@ async.JavaStackTrace = React.createClass({
 					&nbsp;at&nbsp;{trace["class"]}.{trace.method}(Native Method)
 				</div>);
 			} else if (trace.file) {
-				var url = async.makeGitHubLink(this.props.version, trace["class"]);
+				var url = async.makeGitHubLink(trace["class"]);
 
 				if (trace.line >= 0) {
 					if (url) {

@@ -1,5 +1,6 @@
 (function(a){a.Header=React.createClass({displayName:"Header",getInitialState:function(){return{summaries:{},interval:null};
-},componentWillMount:function(){this.refresh();},refresh:function(){mydmam.async.request("instances","allsummaries",null,function(b){this.setState({summaries:b});
+},componentWillMount:function(){this.refresh();mydmam.async.request("instances","appversion",null,function(b){mydmam.async.appversion=b;
+}.bind(this));},refresh:function(){mydmam.async.request("instances","allsummaries",null,function(b){this.setState({summaries:b});
 }.bind(this));},componentDidMount:function(){this.setState({interval:setInterval(this.refresh,10000)});
 },componentWillUnmount:function(){if(this.state.interval){clearInterval(this.state.interval);
 }},truncateDb:function(b){b.preventDefault();mydmam.async.request("instances","truncate",null,function(){window.location.reload();

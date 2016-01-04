@@ -57,6 +57,9 @@ broker.Jobs = React.createClass({displayName: "Jobs",
 		document.body.style.cursor = 'default';
 	},
 	componentWillMount: function() {
+		mydmam.async.request("instances", "appversion", null, function(version) {
+			mydmam.async.appversion = version;
+		}.bind(this));
 		this.updateJobList();
 	},
 	componentDidMount: function(){
@@ -293,14 +296,6 @@ broker.NavTabDropDownAction = React.createClass({displayName: "NavTabDropDownAct
 });
 
 broker.JobListCartridges = React.createClass({displayName: "JobListCartridges",
-	getInitialState: function() {
-		return {version: null, }
-	},
-	componentWillMount: function() {
-		mydmam.async.request("broker", "appversion", {}, function(data) {
-			this.setState({version: data});
-		}.bind(this));
-	},
 	render: function() {
 		var joblist = this.props.joblist;
 		var selected_tab = this.props.selected_tab;
@@ -355,7 +350,6 @@ broker.JobListCartridges = React.createClass({displayName: "JobListCartridges",
 			cartridges.push(React.createElement(broker.JobCartridge, {
 				key: job.key, 
 				job: job, 
-				version: this.state.version, 
 				required_jobs: required_jobs, 
 				action_avaliable: this.props.action_avaliable, 
 				onActionButtonClick: this.props.onActionButtonClick}));
@@ -377,7 +371,12 @@ broker.displayKey = function(key, react_return) {
 	if (!key) {
 		return null;
 	}
-	var short_value = key.substring(key.lastIndexOf(":") + 1, key.lastIndexOf(":") + 9) + '.';
+	var short_value = key;
+	if (key.indexOf(":") > -1) {
+		short_value = key.substring(key.lastIndexOf(":") + 1, key.lastIndexOf(":") + 9) + '.';
+	} else if (key.indexOf("#") > -1) {
+		short_value = key.substring(key.indexOf("#") + 1, key.length);
+	}
 	if (react_return) {
 		return (React.createElement("abbr", {title: key}, 
 			React.createElement("code", null, 
@@ -522,6 +521,45 @@ broker.JobCartridgeActionButtons = React.createClass({displayName: "JobCartridge
 	},	
 });
 
+broker.displayContext = function(context) {
+	var context_content = null;
+	var context_content_json = JSON.stringify(context.content, null, " ");
+	if (context_content_json != "{}") {
+		context_content = (React.createElement("code", {className: "json", onClick: this.onClickDoNothing}, 
+			React.createElement("i", {className: "icon-indent-left"}), 
+			React.createElement("span", {className: "jsontitle"}, " ", i18n("manager.jobs.context")), 
+			context_content_json
+		));	
+	}
+
+	var context_neededstorages = null;
+	if (context.neededstorages) {
+		var label = "manager.jobs.targetstorage";
+		if (context.neededstorages.length > 1) {
+			label = "manager.jobs.targetstorages";
+		}
+		context_neededstorages = (React.createElement("span", null, i18n(label), " ", React.createElement("span", {className: "badge badge-warning"}, React.createElement("i", {className: "icon-hdd icon-white"}), " ", context.neededstorages.join(", "))));
+	}
+
+	var context_hookednames = null;
+	if (context.hookednames) {
+		var label = "manager.jobs.hookedname";
+		if (context.hookednames.length > 1) {
+			label = "manager.jobs.hookednames";
+		}
+		context_hookednames = (React.createElement("span", null, i18n(label), " ", React.createElement("span", {className: "badge badge-inverse"}, React.createElement("i", {className: "icon-tags icon-white"}), " ", context.hookednames.join(", "))));
+	}
+
+	return (React.createElement("div", {style: {marginBottom: 7}}, 
+		React.createElement("div", {style: {marginTop: 5}}, 
+			i18n("manager.jobs.contextclass"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: context.classname})
+		), 
+		React.createElement("div", {style: {marginTop: 5}}, context_neededstorages), 
+		React.createElement("div", {style: {marginTop: 5}}, context_hookednames), 
+		React.createElement("div", {style: {marginTop: 7}}, context_content)
+	));
+};
+
 broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 	getInitialState: function() {
 		return {
@@ -609,7 +647,7 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 					React.createElement("span", {className: "label label-info"}, React.createElement("i", {className: "icon-cog icon-white"}), " ", i18n("manager.jobs.createdbysimple", job.instance_status_creator_key))
 				), 
 				React.createElement("div", {style: {marginTop: 4}}, 
-					i18n("manager.jobs.classcreator"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.creator, version: this.props.version})
+					i18n("manager.jobs.classcreator"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.creator})
 				), 
 				React.createElement("div", {style: {marginTop: 4, marginBottom: 8}}, 
 					max_execution_time
@@ -640,47 +678,9 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 			/**
 			 * Display Stacktrace
 			 */
-			processing_error = (React.createElement(mydmam.async.JavaStackTrace, {processing_error: job.processing_error, version: this.props.version}));
+			processing_error = (React.createElement(mydmam.async.JavaStackTrace, {processing_error: job.processing_error}));
 
-			/**
-			 * Display context
-			 */
-			var context_content = null;
-			var context_content_json = JSON.stringify(job.context.content, null, " ");
-			if (context_content_json != "{}") {
-				context_content = (React.createElement("code", {className: "json", onClick: this.onClickDoNothing}, 
-					React.createElement("i", {className: "icon-indent-left"}), 
-					React.createElement("span", {className: "jsontitle"}, " ", i18n("manager.jobs.context")), 
-					context_content_json
-				));	
-			}
-
-			var context_neededstorages = null;
-			if (job.context.neededstorages) {
-				var label = "manager.jobs.targetstorage";
-				if (job.context.neededstorages.length > 1) {
-					label = "manager.jobs.targetstorages";
-				}
-				context_neededstorages = (React.createElement("span", null, i18n(label), " ", React.createElement("span", {className: "badge badge-warning"}, React.createElement("i", {className: "icon-hdd icon-white"}), " ", job.context.neededstorages.join(", "))));
-			}
-
-			var context_hookednames = null;
-			if (job.context.hookednames) {
-				var label = "manager.jobs.hookedname";
-				if (job.context.hookednames.length > 1) {
-					label = "manager.jobs.hookednames";
-				}
-				context_hookednames = (React.createElement("span", null, i18n(label), " ", React.createElement("span", {className: "badge badge-inverse"}, React.createElement("i", {className: "icon-tags icon-white"}), " ", job.context.hookednames.join(", "))));
-			}
-
-			context = (React.createElement("div", {style: {marginBottom: 7}}, 
-				React.createElement("div", {style: {marginTop: 5}}, 
-					i18n("manager.jobs.contextclass"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.context.classname, version: this.props.version})
-				), 
-				React.createElement("div", {style: {marginTop: 5}}, context_neededstorages), 
-				React.createElement("div", {style: {marginTop: 5}}, context_hookednames), 
-				React.createElement("div", {style: {marginTop: 7}}, context_content)
-			));
+			context = broker.displayContext(job.context);
 
 			/**
 			 * Display references
@@ -695,7 +695,7 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 						i18n("manager.jobs.wref"), " ", React.createElement("span", null, broker.displayKey(job.worker_reference, true))
 					), 
 					React.createElement("div", {style: {marginTop: 5}}, 
-						i18n("manager.jobs.classexec"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.worker_class, version: this.props.version})
+						i18n("manager.jobs.classexec"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: job.worker_class})
 					), 
 					job_ref
 				));
@@ -780,4 +780,4 @@ broker.JobCartridge = React.createClass({displayName: "JobCartridge",
 
 })(window.mydmam.async.broker);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: 563011e1ba4bbf76244bc797b299bac9
+// Source hash: 621b2333d7d82de6f74488281534803b

@@ -131,6 +131,10 @@ manager.Items = React.createClass({
 		$("html, body").scrollTop(0);
 	},
 	render: function() {
+
+		/**
+		 * Left panel
+		 */
 		var display_instance_list = [];
 		for (var instance_key in this.state.items) {
 			var items = this.state.items[instance_key];
@@ -170,15 +174,45 @@ manager.Items = React.createClass({
 			</manager.SelectNavItemInstance>));
 		}
 
-		var items_to_display = [];
+		/**
+		 * Items
+		 */
+		var display_items = [];
 		for (var instance_key in this.state.items) {
+			if (this.state.selected_instances.indexOf(instance_key) == -1) {
+				continue;
+			}
 			var items = this.state.items[instance_key];
+
+			/**
+			 * Display title
+			 */
+			var summary = this.props.summaries[instance_key];
+			if (summary != null) {
+				display_items.push(<h3 key={instance_key + "-title"} style={{marginBottom: 6}}>
+					{summary.instance_name}&nbsp;
+					<small>
+						&bull; {summary.app_name} &bull; {summary.pid}@{summary.host_name}
+					</small>
+				</h3>);
+			} else {
+				display_items.push(<h3 key={instance_key + "-title"} style={{marginBottom: 6}}>
+					{instance_key}
+				</h3>);
+			}
+
 			for (var pos_items in items) {
 				var json_item = items[pos_items];
+				var item_class = json_item["class"];
+				if (this.state.selected_item_classes.indexOf(item_class) == -1) {
+					continue;
+				}
 				var item = mydmam.module.f.managerInstancesItems(json_item);
 				if (item == null) {
+					/**
+					 * Display default view: raw json
+					 */
 					item = (<div>
-						<span className="label label-inverse"><i className="icon-barcode icon-white"></i> {json_item.key}</span>
 						<code className="json" style={{marginTop: 10}}>
 							<i className="icon-indent-left"></i>
 							<span className="jsontitle"> {json_item["class"]} </span>
@@ -186,9 +220,22 @@ manager.Items = React.createClass({
 						</code>
 					</div>);
 				}
-				items_to_display.push(<div key={md5(instance_key + " " + pos_items)} style={{marginBottom: 12}}>{item}</div>);
+
+				/**
+				 * Add view in list.
+				 */
+				display_items.push(<div key={md5(instance_key + " " + pos_items)} style={{marginBottom: 26, marginLeft: 10}}>
+					<div className="pull-right">{mydmam.async.broker.displayKey(json_item.key, true)}</div>
+					<h4>
+						<a href={location.hash} onClick={this.onGotoTheTop}><i className=" icon-arrow-up" style={{marginRight: 5, marginTop: 5}}></i></a>
+						{item_class}
+					</h4>
+					<div className="instance-item-block">
+						{item}
+					</div>
+				</div>);
 			}
-			items_to_display.push(<hr key={instance_key} style={{marginBottom: 10}} />);
+			display_items.push(<hr key={instance_key + "-hr"} style={{marginBottom: 10}} />);
 		}
 
 		return (<div className="row-fluid">
@@ -199,7 +246,8 @@ manager.Items = React.createClass({
 				    {display_item_classes_list}
 			    </div>
 			</div>
-			<div className="span9">
+			<div className="span9" style={{marginLeft: 15}}>
+				{display_items}
 			</div>
 		</div>);
 	},
@@ -235,9 +283,52 @@ mydmam.module.register("AppManager", {
 			return null;
 		}
 		return (<div>
-			Broker alive: {item.content.brokeralive ? "yes" : "no"}<br />
-			Off hours: {item.content.is_off_hours ? "yes" : "no"}<br />
+			<mydmam.async.LabelBoolean label_true={i18n("manager.items.AppManager.broker.on")} label_false={i18n("manager.items.AppManager.broker.off")} value={item.content.brokeralive} inverse={true} />&nbsp;
+			<mydmam.async.LabelBoolean label_true={i18n("manager.items.AppManager.inoffhours")} label_false={i18n("manager.items.AppManager.innormalhours")} value={item.content.is_off_hours} />&nbsp;
 			<mydmam.async.pathindex.reactDate date={item.content.next_updater_refresh_date} i18nlabel={i18n("manager.items.AppManager.next_updater_refresh_date")} style={{marginLeft: 0}} />
 		</div>);
 	}
 });
+
+mydmam.module.register("CyclicJobCreator", {
+	managerInstancesItems: function(item) {
+		if (item["class"] != "CyclicJobCreator") {
+			return null;
+		}
+		var content = item.content;
+
+		var declaration_list = [];
+		for (var pos in content.declarations) {
+			var declaration = content.declarations[pos];
+			
+			var context_list = [];
+			for (var pos_ctx in declaration.contexts) {
+				var context = declaration.contexts[pos_ctx];
+				context_list.push(<div key={pos_ctx} style={{marginLeft: 10}}>
+					{mydmam.async.broker.displayContext(context)}
+				</div>);
+			}
+			declaration_list.push(<div key={pos} style={{marginLeft: 12}}>
+				<strong>&bull; {declaration.job_name}</strong><br />
+				{context_list}
+			</div>);
+		}
+
+		return (<div>
+			<strong>{content.long_name} :: {content.vendor_name}</strong><br />
+			<mydmam.async.LabelBoolean label_true={i18n("manager.items.CyclicJobCreator.enabled")} label_false={i18n("manager.items.CyclicJobCreator.disabled")} value={content.enabled} inverse={true} />&nbsp;
+			<mydmam.async.pathindex.reactDate date={content.next_date_to_create_jobs} i18nlabel={i18n("manager.items.CyclicJobCreator.next_date_to_create_jobs")} style={{marginLeft: 0}} />&nbsp;
+			<mydmam.async.LabelBoolean label_true={i18n("manager.items.CyclicJobCreator.onlyoff")} label_false={i18n("manager.items.CyclicJobCreator.norestricted")} value={content.only_off_hours} />&nbsp;
+			<br />
+			{i18n("manager.items.CyclicJobCreator.period", content.period / 1000)}
+			<br />
+			{i18n("manager.items.CyclicJobCreator.creator")} <mydmam.async.JavaClassNameLink javaclass={content.creator} />
+			<div style={{marginTop: 16}}>
+				<i className="icon-th-list"></i> {i18n("manager.items.CyclicJobCreator.declarations")}<br />
+				{declaration_list}
+			</div>
+		</div>);
+	}
+});
+
+//TODO WORKER !

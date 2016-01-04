@@ -27,6 +27,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
 import controllers.Check;
+import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.manager.AJSgetItems;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceStatus;
@@ -122,6 +123,11 @@ public class Instances extends AJSController {
 	public static void truncate() throws Exception {
 		InstanceStatus.truncate();
 		Thread.sleep(300);
+	}
+	
+	@Check("showInstances")
+	public static String appversion() throws Exception {
+		return GitInfo.getFromRoot().getActualRepositoryInformation();
 	}
 	
 }

@@ -24,6 +24,9 @@ manager.Header = React.createClass({
 	},
 	componentWillMount: function() {
 		this.refresh();
+		mydmam.async.request("instances", "appversion", null, function(version) {
+			mydmam.async.appversion = version;
+		}.bind(this));
 	},
 	refresh: function() {
 		mydmam.async.request("instances", "allsummaries", null, function(summaries) {

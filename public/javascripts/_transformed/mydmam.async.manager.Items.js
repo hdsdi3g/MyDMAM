@@ -131,6 +131,10 @@ manager.Items = React.createClass({displayName: "Items",
 		$("html, body").scrollTop(0);
 	},
 	render: function() {
+
+		/**
+		 * Left panel
+		 */
 		var display_instance_list = [];
 		for (var instance_key in this.state.items) {
 			var items = this.state.items[instance_key];
@@ -170,15 +174,45 @@ manager.Items = React.createClass({displayName: "Items",
 			)));
 		}
 
-		var items_to_display = [];
+		/**
+		 * Items
+		 */
+		var display_items = [];
 		for (var instance_key in this.state.items) {
+			if (this.state.selected_instances.indexOf(instance_key) == -1) {
+				continue;
+			}
 			var items = this.state.items[instance_key];
+
+			/**
+			 * Display title
+			 */
+			var summary = this.props.summaries[instance_key];
+			if (summary != null) {
+				display_items.push(React.createElement("h3", {key: instance_key + "-title", style: {marginBottom: 6}}, 
+					summary.instance_name, " ", 
+					React.createElement("small", null, 
+						"• ", summary.app_name, " • ", summary.pid, "@", summary.host_name
+					)
+				));
+			} else {
+				display_items.push(React.createElement("h3", {key: instance_key + "-title", style: {marginBottom: 6}}, 
+					instance_key
+				));
+			}
+
 			for (var pos_items in items) {
 				var json_item = items[pos_items];
+				var item_class = json_item["class"];
+				if (this.state.selected_item_classes.indexOf(item_class) == -1) {
+					continue;
+				}
 				var item = mydmam.module.f.managerInstancesItems(json_item);
 				if (item == null) {
+					/**
+					 * Display default view: raw json
+					 */
 					item = (React.createElement("div", null, 
-						React.createElement("span", {className: "label label-inverse"}, React.createElement("i", {className: "icon-barcode icon-white"}), " ", json_item.key), 
 						React.createElement("code", {className: "json", style: {marginTop: 10}}, 
 							React.createElement("i", {className: "icon-indent-left"}), 
 							React.createElement("span", {className: "jsontitle"}, " ", json_item["class"], " "), 
@@ -186,9 +220,22 @@ manager.Items = React.createClass({displayName: "Items",
 						)
 					));
 				}
-				items_to_display.push(React.createElement("div", {key: md5(instance_key + " " + pos_items), style: {marginBottom: 12}}, item));
+
+				/**
+				 * Add view in list.
+				 */
+				display_items.push(React.createElement("div", {key: md5(instance_key + " " + pos_items), style: {marginBottom: 26, marginLeft: 10}}, 
+					React.createElement("div", {className: "pull-right"}, mydmam.async.broker.displayKey(json_item.key, true)), 
+					React.createElement("h4", null, 
+						React.createElement("a", {href: location.hash, onClick: this.onGotoTheTop}, React.createElement("i", {className: " icon-arrow-up", style: {marginRight: 5, marginTop: 5}})), 
+						item_class
+					), 
+					React.createElement("div", {className: "instance-item-block"}, 
+						item
+					)
+				));
 			}
-			items_to_display.push(React.createElement("hr", {key: instance_key, style: {marginBottom: 10}}));
+			display_items.push(React.createElement("hr", {key: instance_key + "-hr", style: {marginBottom: 10}}));
 		}
 
 		return (React.createElement("div", {className: "row-fluid"}, 
@@ -199,7 +246,8 @@ manager.Items = React.createClass({displayName: "Items",
 				    display_item_classes_list
 			    )
 			), 
-			React.createElement("div", {className: "span9"}
+			React.createElement("div", {className: "span9", style: {marginLeft: 15}}, 
+				display_items
 			)
 		));
 	},
@@ -235,13 +283,55 @@ mydmam.module.register("AppManager", {
 			return null;
 		}
 		return (React.createElement("div", null, 
-			"Broker alive: ", item.content.brokeralive ? "yes" : "no", React.createElement("br", null), 
-			"Off hours: ", item.content.is_off_hours ? "yes" : "no", React.createElement("br", null), 
+			React.createElement(mydmam.async.LabelBoolean, {label_true: i18n("manager.items.AppManager.broker.on"), label_false: i18n("manager.items.AppManager.broker.off"), value: item.content.brokeralive, inverse: true}), " ", 
+			React.createElement(mydmam.async.LabelBoolean, {label_true: i18n("manager.items.AppManager.inoffhours"), label_false: i18n("manager.items.AppManager.innormalhours"), value: item.content.is_off_hours}), " ", 
 			React.createElement(mydmam.async.pathindex.reactDate, {date: item.content.next_updater_refresh_date, i18nlabel: i18n("manager.items.AppManager.next_updater_refresh_date"), style: {marginLeft: 0}})
+		));
+	}
+});
+
+mydmam.module.register("CyclicJobCreator", {
+	managerInstancesItems: function(item) {
+		if (item["class"] != "CyclicJobCreator") {
+			return null;
+		}
+		var content = item.content;
+
+		var declaration_list = [];
+		for (var pos in content.declarations) {
+			var declaration = content.declarations[pos];
+			
+			var context_list = [];
+			for (var pos_ctx in declaration.contexts) {
+				var context = declaration.contexts[pos_ctx];
+				context_list.push(React.createElement("div", {key: pos_ctx, style: {marginLeft: 10}}, 
+					mydmam.async.broker.displayContext(context)
+				));
+			//[{"contexts":[{"classname":"hd3gtv.mydmam.pathindexing.JobContextPathScan","content":{},"neededstorages":["Downloads"],"hookednames":null}]}]
+			}
+			declaration_list.push(React.createElement("div", {key: pos, style: {marginLeft: 12}}, 
+				React.createElement("strong", null, "• ", declaration.job_name), React.createElement("br", null), 
+				context_list
+			));
+		}
+
+		return (React.createElement("div", null, 
+			React.createElement("strong", null, content.long_name, " :: ", content.vendor_name), React.createElement("br", null), 
+			React.createElement(mydmam.async.LabelBoolean, {label_true: i18n("manager.items.CyclicJobCreator.enabled"), label_false: i18n("manager.items.CyclicJobCreator.disabled"), value: content.enabled, inverse: true}), " ", 
+			React.createElement(mydmam.async.pathindex.reactDate, {date: content.next_date_to_create_jobs, i18nlabel: i18n("manager.items.CyclicJobCreator.next_date_to_create_jobs"), style: {marginLeft: 0}}), " ", 
+			React.createElement(mydmam.async.LabelBoolean, {label_true: i18n("manager.items.CyclicJobCreator.onlyoff"), label_false: i18n("manager.items.CyclicJobCreator.norestricted"), value: content.only_off_hours}), " ", 
+			React.createElement("br", null), 
+			i18n("manager.items.CyclicJobCreator.period", content.period / 1000), 
+			React.createElement("br", null), 
+			i18n("manager.items.CyclicJobCreator.creator"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: content.creator}), 
+			React.createElement("div", {style: {marginTop: 16}}, 
+				React.createElement("i", {className: "icon-th-list"}), " ", i18n("manager.items.CyclicJobCreator.declarations"), React.createElement("br", null), 
+				declaration_list
+			)
 		));
 	}
 });
 
 })(window.mydmam.async.manager);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: e10d5a9d11a7bc1843700d40c43c1e81
+// Source hash: d19d89bec4f622d55ba1c8de98513bd3
