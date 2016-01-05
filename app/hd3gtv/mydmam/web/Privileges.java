@@ -32,7 +32,8 @@ import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import org.json.simple.JSONArray;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonPrimitive;
 
 import controllers.Check;
 import controllers.Secure;
@@ -46,10 +47,11 @@ import play.vfs.VirtualFile;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class Privileges {
 	
-	private static HashSet<String> all_privileges;
+	private static final List<String> privileges;
+	private static final String privileges_json_array;
 	
 	static {
-		all_privileges = new HashSet<String>();
+		HashSet<String> all_privileges = new HashSet<String>();
 		try {
 			List<String> classes_to_test = new ArrayList<String>();
 			
@@ -186,30 +188,32 @@ public class Privileges {
 		}
 		
 		AJSController.putAllPrivilegesNames(all_privileges);
-	}
-	
-	public static HashSet<String> getAllPrivileges() {
-		return all_privileges;
+		
+		ArrayList list = new ArrayList<String>(all_privileges);
+		Collections.sort(list);
+		privileges = Collections.unmodifiableList(list);
+		
+		JsonArray ja_privileges = new JsonArray();
+		for (int pos = 0; pos < privileges.size(); pos++) {
+			ja_privileges.add(new JsonPrimitive(privileges.get(pos)));
+		}
+		privileges_json_array = ja_privileges.toString();
 	}
 	
 	public static List<String> getAllSortedPrivileges() {
-		ArrayList list = new ArrayList<String>(all_privileges);
-		Collections.sort(list);
-		return list;
+		return privileges;
 	}
 	
-	public static JSONArray getJSONAllPrivileges() {
-		JSONArray ja = new JSONArray();
-		ja.addAll(all_privileges);
-		return ja;
+	public static String getJSONArrayStringPrivileges() {
+		return privileges_json_array;
 	}
 	
-	public static JSONArray getJSONPrivileges(String[] privilegenames) {
-		JSONArray ja = new JSONArray();
+	public static String getJSONStringPrivileges(String[] privilegenames) {
+		JsonArray ja = new JsonArray();
 		for (int pos = 0; pos < privilegenames.length; pos++) {
-			ja.add(privilegenames[pos]);
+			ja.add(new JsonPrimitive(privilegenames[pos]));
 		}
-		return ja;
+		return ja.toString();
 	}
 	
 }

@@ -305,7 +305,7 @@ public class ACL extends Controller {
 		role.privileges = null;
 		if (selectedprivilegenames != null) {
 			if (selectedprivilegenames.length > 0) {
-				role.privileges = Privileges.getJSONPrivileges(selectedprivilegenames).toJSONString();
+				role.privileges = Privileges.getJSONStringPrivileges(selectedprivilegenames);
 			}
 		}
 		

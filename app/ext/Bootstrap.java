@@ -112,13 +112,13 @@ public class Bootstrap extends Job {
 		ACLRole role_admim = ACLRole.findById(ACLRole.ADMIN_NAME);
 		if (role_admim == null) {
 			role_admim = new ACLRole(ACLRole.ADMIN_NAME);
-			role_admim.privileges = Privileges.getJSONAllPrivileges().toJSONString();
+			role_admim.privileges = Privileges.getJSONArrayStringPrivileges();
 			role_admim.functionalities = "{}";
 			role_admim.save();
 		} else {
 			List<String> privileges = role_admim.getPrivilegesList();
-			if (privileges.size() != Privileges.getAllPrivileges().size()) {
-				role_admim.privileges = Privileges.getJSONAllPrivileges().toJSONString();
+			if (privileges.containsAll(Privileges.getAllSortedPrivileges()) == false) {
+				role_admim.privileges = Privileges.getJSONArrayStringPrivileges();
 				role_admim.save();
 			}
 		}
