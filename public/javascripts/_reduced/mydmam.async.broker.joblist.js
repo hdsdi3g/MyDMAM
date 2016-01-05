@@ -89,13 +89,13 @@ var j=null;var e=null;if(f){j=" "+i18n("manager.jobs.btn."+b);e={marginBottom:7}
 }}}}}}}}if(h.length==0){return(React.createElement("div",null));}else{if(h.length==1){if(f){return(React.createElement("div",{className:"pull-right span4"},h[0]));
 }else{return(React.createElement("div",{className:"pull-right"},h[0]));}}}if(f){return(React.createElement("div",{className:"pull-right span4"},h));
 }return(React.createElement("div",{className:"btn-toolbar pull-right"},React.createElement("div",{className:"btn-group"},h)));
-}});a.displayContext=function(e){var c=null;var f=JSON.stringify(e.content,null," ");
+}});a.displayContext=function(e){var c=null;if(e.content!=null){var f=JSON.stringify(e.content,null," ");
 if(f!="{}"){c=(React.createElement("code",{className:"json",onClick:this.onClickDoNothing},React.createElement("i",{className:"icon-indent-left"}),React.createElement("span",{className:"jsontitle"}," ",i18n("manager.jobs.context")),f));
-}var g=null;if(e.neededstorages){var d="manager.jobs.targetstorage";if(e.neededstorages.length>1){d="manager.jobs.targetstorages";
-}g=(React.createElement("span",null,i18n(d)," ",React.createElement("span",{className:"badge badge-warning"},React.createElement("i",{className:"icon-hdd icon-white"})," ",e.neededstorages.join(", "))));
+}c=(React.createElement("div",{style:{marginTop:7}},c));}var g=null;if(e.neededstorages){var d="manager.jobs.targetstorage";
+if(e.neededstorages.length>1){d="manager.jobs.targetstorages";}g=(React.createElement("span",null,i18n(d)," ",React.createElement("span",{className:"badge badge-warning"},React.createElement("i",{className:"icon-hdd icon-white"})," ",e.neededstorages.join(", "))));
 }var b=null;if(e.hookednames){var d="manager.jobs.hookedname";if(e.hookednames.length>1){d="manager.jobs.hookednames";
 }b=(React.createElement("span",null,i18n(d)," ",React.createElement("span",{className:"badge badge-inverse"},React.createElement("i",{className:"icon-tags icon-white"})," ",e.hookednames.join(", "))));
-}return(React.createElement("div",{style:{marginBottom:7}},React.createElement("div",{style:{marginTop:5}},i18n("manager.jobs.contextclass")," ",React.createElement(mydmam.async.JavaClassNameLink,{javaclass:e.classname})),React.createElement("div",{style:{marginTop:5}},g),React.createElement("div",{style:{marginTop:5}},b),React.createElement("div",{style:{marginTop:7}},c)));
+}return(React.createElement("div",{style:{marginBottom:7}},React.createElement("div",{style:{marginTop:5}},i18n("manager.jobs.contextclass")," ",React.createElement(mydmam.async.JavaClassNameLink,{javaclass:e.classname})),React.createElement("div",{style:{marginTop:5}},g),React.createElement("div",{style:{marginTop:5}},b),c));
 };a.JobCartridge=React.createClass({displayName:"JobCartridge",getInitialState:function(){return{stacked:false};
 },onToogleCartridgeSize:function(b){b.preventDefault();this.setState({stacked:!this.state.stacked});
 },onActionButtonClick:function(b){this.props.onActionButtonClick(this.props.job,b);

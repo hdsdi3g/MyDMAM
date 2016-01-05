@@ -18,6 +18,7 @@ package hd3gtv.mydmam.manager;
 
 import java.util.List;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.Keyspace;
@@ -135,8 +136,23 @@ public final class WorkerExporter implements InstanceStatusItem {
 		return AppManager.getPrettyGson().toJson(this);
 	}
 	
+	private transient JsonArray ja_capablities;
+	
 	public JsonElement getInstanceStatusItem() {
 		JsonObject jo = AppManager.getGson().toJsonTree(this).getAsJsonObject();
+		
+		if (ja_capablities == null) {
+			ja_capablities = new JsonArray();
+			List<WorkerCapablities> capablities = worker.getWorkerCapablities();
+			for (int pos = 0; pos < capablities.size(); pos++) {
+				ja_capablities.add(AppManager.getGson().toJsonTree(capablities.get(pos).getExporter()));
+			}
+		}
+		
+		jo.addProperty("long_name", worker.getWorkerLongName());
+		jo.addProperty("vendor", worker.getWorkerVendorName());
+		jo.addProperty("category", worker.getWorkerCategory().toString());
+		jo.add("capablities", ja_capablities);
 		jo.add("specific", worker.exportSpecificInstanceStatusItems());
 		return jo;
 	}

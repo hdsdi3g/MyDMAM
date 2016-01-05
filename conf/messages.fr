@@ -99,6 +99,7 @@ manager.items.CyclicJobCreator.onlyoff=Seulement en heures creuses
 manager.items.CyclicJobCreator.norestricted=Pas de restriction d'horaires
 manager.items.CyclicJobCreator.creator=Créé par :
 manager.items.CyclicJobCreator.declarations=Jobs à créer :
+manager.items.worker.capablities=Capacités :
 
 manager.jobs.pagename=Liste des jobs
 manager.jobs.status.WAITING=En attente

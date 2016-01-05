@@ -523,13 +523,16 @@ broker.JobCartridgeActionButtons = React.createClass({
 
 broker.displayContext = function(context) {
 	var context_content = null;
-	var context_content_json = JSON.stringify(context.content, null, " ");
-	if (context_content_json != "{}") {
-		context_content = (<code className="json" onClick={this.onClickDoNothing}>
-			<i className="icon-indent-left"></i>
-			<span className="jsontitle"> {i18n("manager.jobs.context")}</span>
-			{context_content_json}
-		</code>);	
+	if (context.content != null) {
+		var context_content_json = JSON.stringify(context.content, null, " ");
+		if (context_content_json != "{}") {
+			context_content = (<code className="json" onClick={this.onClickDoNothing}>
+				<i className="icon-indent-left"></i>
+				<span className="jsontitle"> {i18n("manager.jobs.context")}</span>
+				{context_content_json}
+			</code>);	
+		}
+		context_content = (<div style={{marginTop: 7}}>{context_content}</div>);
 	}
 
 	var context_neededstorages = null;
@@ -556,7 +559,7 @@ broker.displayContext = function(context) {
 		</div>
 		<div style={{marginTop: 5}}>{context_neededstorages}</div>
 		<div style={{marginTop: 5}}>{context_hookednames}</div>
-		<div style={{marginTop: 7}}>{context_content}</div>
+		{context_content}
 	</div>);
 };
 

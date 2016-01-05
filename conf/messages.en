@@ -99,6 +99,7 @@ manager.items.CyclicJobCreator.onlyoff=Only in off hours
 manager.items.CyclicJobCreator.norestricted=No time restricted
 manager.items.CyclicJobCreator.creator=Created by:
 manager.items.CyclicJobCreator.declarations=Jobs to create:
+manager.items.worker.capablities=Capablities:
 
 manager.jobs.pagename=Jobs list
 manager.jobs.status.WAITING=Waiting

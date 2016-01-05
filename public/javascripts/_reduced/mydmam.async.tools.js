@@ -35,6 +35,8 @@ return(React.createElement("button",{className:e,onClick:this.handleClick},React
 var b=false;if(this.props.inverse){b=true;}var c=i18n(this.props.label_false);if(f){c=i18n(this.props.label_true);
 }var e=classNames("badge",{"badge-success":f==b,"badge-important":f!=b});var d=classNames("icon-white",{"icon-remove-circle":!f,"icon-ok-circle":f});
 return(React.createElement("span",{className:e},React.createElement("i",{className:d})," ",c));
+}});a.JsonCode=React.createClass({displayName:"JsonCode",propTypes:{i18nlabel:React.PropTypes.string.isRequired,json:React.PropTypes.string.isRequired},render:function(){var b=(React.createElement("span",{className:"jsontitle"}," ",i18n(this.props.i18nlabel)," "));
+return(React.createElement("div",null,React.createElement("code",{className:"json",style:{marginTop:10}},React.createElement("i",{className:"icon-indent-left"}),b,JSON.stringify(this.props.json,null," "))));
 }});a.appversion="master master";a.makeGitHubLink=function(c){if(c==null){return null;
 }if((c.indexOf("hd3gtv.")!=0)&(c.indexOf("controllers.")!=0)){return null;}var b=c.indexOf("$");
 if(b>-1){c=c.substring(0,b);}return"https://github.com/hdsdi3g/MyDMAM/blob/"+a.appversion.substring(a.appversion.lastIndexOf(" ")+1)+"/app/"+c.replace(/\./g,"/")+".java";

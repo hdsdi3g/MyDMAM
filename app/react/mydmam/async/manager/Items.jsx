@@ -331,4 +331,43 @@ mydmam.module.register("CyclicJobCreator", {
 	}
 });
 
-//TODO WORKER !
+mydmam.module.register("WorkerNG", {
+	managerInstancesItems: function(item) {
+		if (item["class"] != "WorkerNG") {
+			return null;
+		}
+		var content = item.content;
+
+		var current_job_key = null;
+		if (content.current_job_key != null) {
+			current_job_key = mydmam.async.broker.displayKey(content.current_job_key, true);
+		}
+
+		var capablities_list = [];
+		for (var pos in content.capablities) {
+			var declaration = content.capablities[pos];
+			capablities_list.push(<div key={pos} style={{marginLeft: 16}}>
+				{mydmam.async.broker.displayContext(declaration)}
+			</div>);
+		}
+
+		var specific = null;
+		if (content.specific != null) {
+			specific = (<div style={{marginTop: 10}}>
+				<mydmam.async.JsonCode i18nlabel="manager.items.worker.specific" json={content.specific} />
+			</div>);
+		}
+
+		return (<div>
+			<strong>{content.long_name} :: {content.vendor}</strong> ({content.category}) <mydmam.async.JavaClassNameLink javaclass={content.worker_class} /><br />
+			<span className="badge badge-info">{content.state}</span> {current_job_key}<br />
+			<div style={{marginTop: 16}}>
+				<i className="icon-th-list"></i> {i18n("manager.items.worker.capablities")}<br />
+				{capablities_list}
+			</div>
+			{specific}
+		</div>);
+
+	}
+});
+

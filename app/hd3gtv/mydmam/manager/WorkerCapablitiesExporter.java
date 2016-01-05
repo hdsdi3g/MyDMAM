@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.tools.GsonIgnore;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,25 +29,27 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
+import hd3gtv.tools.GsonIgnore;
+
 public final class WorkerCapablitiesExporter {
 	
 	@GsonIgnore
-	List<String> storages_available;
+	List<String> neededstorages;
 	
 	@GsonIgnore
-	Class<? extends JobContext> job_context_avaliable;
+	Class<? extends JobContext> classname;
 	
 	@GsonIgnore
-	public List<String> hooked_names;
+	public List<String> hookednames;
 	
 	@SuppressWarnings("unused")
 	private WorkerCapablitiesExporter() {
 	}
 	
 	WorkerCapablitiesExporter(WorkerCapablities capablities) {
-		storages_available = capablities.getStoragesAvaliable();
-		job_context_avaliable = capablities.getJobContextClass();
-		hooked_names = capablities.getHookedNames();
+		neededstorages = capablities.getStoragesAvaliable();
+		classname = capablities.getJobContextClass();
+		hookednames = capablities.getHookedNames();
 	}
 	
 	static class Serializer implements JsonSerializer<WorkerCapablitiesExporter>, JsonDeserializer<WorkerCapablitiesExporter> {
@@ -61,17 +61,17 @@ public final class WorkerCapablitiesExporter {
 		public WorkerCapablitiesExporter deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			WorkerCapablitiesExporter result = AppManager.getSimpleGson().fromJson(json, WorkerCapablitiesExporter.class);
 			JsonObject jo = json.getAsJsonObject();
-			result.storages_available = AppManager.getSimpleGson().fromJson(jo.get("storages_available"), al_string_typeOfT);
-			result.job_context_avaliable = AppManager.getGson().fromJson(jo.get("job_context_avaliable"), class_jobcontext_typeOfT);
-			result.hooked_names = AppManager.getGson().fromJson(jo.get("hooked_names"), al_string_typeOfT);
+			result.neededstorages = AppManager.getSimpleGson().fromJson(jo.get("neededstorages"), al_string_typeOfT);
+			result.classname = AppManager.getGson().fromJson(jo.get("classname"), class_jobcontext_typeOfT);
+			result.hookednames = AppManager.getGson().fromJson(jo.get("hookednames"), al_string_typeOfT);
 			return result;
 		}
 		
 		public JsonElement serialize(WorkerCapablitiesExporter src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
-			result.add("storages_available", AppManager.getSimpleGson().toJsonTree(src.storages_available, al_string_typeOfT));
-			result.add("job_context_avaliable", AppManager.getGson().toJsonTree(src.job_context_avaliable, class_jobcontext_typeOfT));
-			result.add("hooked_names", AppManager.getGson().toJsonTree(src.hooked_names, al_string_typeOfT));
+			result.add("neededstorages", AppManager.getSimpleGson().toJsonTree(src.neededstorages, al_string_typeOfT));
+			result.add("classname", AppManager.getGson().toJsonTree(src.classname, class_jobcontext_typeOfT));
+			result.add("hookednames", AppManager.getGson().toJsonTree(src.hookednames, al_string_typeOfT));
 			return result;
 		}
 		

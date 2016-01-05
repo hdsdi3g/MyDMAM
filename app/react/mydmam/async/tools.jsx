@@ -247,6 +247,24 @@ async.LabelBoolean = React.createClass({
 	},
 });
 
+async.JsonCode = React.createClass({
+	propTypes: {
+		i18nlabel:		React.PropTypes.string.isRequired,
+		json: 			React.PropTypes.string.isRequired,
+	},
+	render: function() {
+		var i18nlabel = (<span className="jsontitle"> {i18n(this.props.i18nlabel)} </span>);
+
+		return (<div>
+			<code className="json" style={{marginTop: 10}}>
+				<i className="icon-indent-left"></i>
+				{i18nlabel}
+				{JSON.stringify(this.props.json, null, " ")}
+			</code>
+		</div>);
+	},
+});
+
 async.appversion = "master master";
 
 async.makeGitHubLink = function(javaclass) {
