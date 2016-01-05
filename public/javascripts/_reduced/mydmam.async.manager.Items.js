@@ -10,9 +10,9 @@ this.setState({selected_instances:f});}}},onSelectItemClasses:function(c,d){if(c
 if(d){b=this.getAllClassesNames();}this.setState({selected_item_classes:b});return;
 }var e=this.state.selected_item_classes.slice();if(e.indexOf(c)==-1&&d){e.push(c);
 this.setState({selected_item_classes:e});}else{if(e.indexOf(c)>-1&&(d==false)){e.splice(e.indexOf(c),1);
-this.setState({selected_item_classes:e});}}},getAllClassesNames:function(c){if(c==null){c=this.state.items;
-}var b=[];for(var f in c){var c=c[f];for(var e in c){var d=c[e]["class"];if(b.indexOf(d)==-1){b.push(d);
-}}}return b;},onGotoTheTop:function(b){b.preventDefault();$("html, body").scrollTop(0);
+this.setState({selected_item_classes:e});}}},getAllClassesNames:function(g){if(g==null){g=this.state.items;
+}var c=[];for(var f in g){var b=g[f];for(var e in b){var d=b[e]["class"];if(c.indexOf(d)==-1){c.push(d);
+}}}return c;},onGotoTheTop:function(b){b.preventDefault();$("html, body").scrollTop(0);
 },render:function(){var c=[];for(var f in this.state.items){var i=this.state.items[f];
 var h=this.props.summaries[f];var l=this.state.selected_instances.indexOf(f)>-1;var k=f;
 if(h!=null){k=(React.createElement("span",null,h.instance_name," ",React.createElement("small",null,"(",h.app_name,")")));

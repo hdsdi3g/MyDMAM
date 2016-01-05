@@ -110,13 +110,13 @@ manager.Items = React.createClass({
 			this.setState({selected_item_classes: actual});
 		}
 	},
-	getAllClassesNames: function(items) {
-		if (items == null) {
-			items = this.state.items;
+	getAllClassesNames: function(all_items) {
+		if (all_items == null) {
+			all_items = this.state.items;
 		}
 		var item_classes = [];
-		for (var instance_key in items) {
-			var items = items[instance_key];
+		for (var instance_key in all_items) {
+			var items = all_items[instance_key];
 			for (var pos_items in items) {
 				var item_class = items[pos_items]["class"];
 				if (item_classes.indexOf(item_class) == -1) {
