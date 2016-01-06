@@ -10,9 +10,9 @@
     "jsfile:175778f76bb56a1db91f98e9642ba9c3": {
       "relative_file_name": "mydmam/async/manager/Items.jsx",
       "relative_root_name": "/app/react",
-      "size": 12494,
-      "date": 1452031628000,
-      "hash": "bf8726fca0680c1a5f56698d0e2d9b61"
+      "size": 12318,
+      "date": 1452087147000,
+      "hash": "f9eddc11490e09285862583bf18b975c"
     },
     "jsfile:99edda8fb3cf15cac439d1467da9ad37": {
       "relative_file_name": "mydmam/async/watchfolders/AbstractFoundedFile.jsx",
@@ -129,9 +129,9 @@
     "jsfile:331d972c57b6740a7a6755bf9efc988f": {
       "relative_file_name": "mydmam/async/broker/joblist.jsx",
       "relative_root_name": "/app/react",
-      "size": 27607,
-      "date": 1452031559000,
-      "hash": "fd426fa715c39893ae84eb8eadac6ac3"
+      "size": 28401,
+      "date": 1452091131000,
+      "hash": "ed7b6a7fc0283f7cac667eaac0421bf9"
     },
     "jsfile:1df1553ecbf8ad37e4575038b01aa258": {
       "relative_file_name": "a-header.js",

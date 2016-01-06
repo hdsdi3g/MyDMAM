@@ -541,7 +541,19 @@ broker.displayContext = function(context) {
 		if (context.neededstorages.length > 1) {
 			label = "manager.jobs.targetstorages";
 		}
-		context_neededstorages = (<span>{i18n(label)} <span className="badge badge-warning"><i className="icon-hdd icon-white"></i> {context.neededstorages.join(", ")}</span></span>);
+		var cs_needs = [];
+		for (var pos_ns in context.neededstorages) {
+			if (context.neededstorages.length > 3) {
+				cs_needs.push(<div key={pos_ns}>
+					<span className="badge badge-warning" style={{marginLeft: 8}}><i className="icon-hdd icon-white"></i> {context.neededstorages[pos_ns]}</span>
+				</div>);
+			} else {
+				cs_needs.push(<span className="badge badge-warning" key={pos_ns} style={{marginLeft: 8}}><i className="icon-hdd icon-white"></i> {context.neededstorages[pos_ns]}</span>);
+			}
+		}
+		context_neededstorages = (<span>{i18n(label)}
+			{cs_needs}
+		</span>);
 	}
 
 	var context_hookednames = null;
@@ -550,7 +562,19 @@ broker.displayContext = function(context) {
 		if (context.hookednames.length > 1) {
 			label = "manager.jobs.hookednames";
 		}
-		context_hookednames = (<span>{i18n(label)} <span className="badge badge-inverse"><i className="icon-tags icon-white"></i> {context.hookednames.join(", ")}</span></span>);
+		var cx_hooks = [];
+		for (var pos_cx in context.hookednames) {
+			if (context.hookednames.length > 1) {
+				cs_needs.push(<div key={pos_ns}>
+					<span className="badge badge-inverse" style={{marginLeft: 8}}><i className="icon-tags icon-white"></i> {context.hookednames[pos_cx]}</span>
+				</div>);
+			} else {
+				cs_needs.push(<span className="badge badge-inverse" key={pos_ns} style={{marginLeft: 8}}><i className="icon-tags icon-white"></i> {context.hookednames[pos_cx]}</span>);
+			}
+		}
+		context_hookednames = (<span>{i18n(label)}
+			{cx_hooks}
+		</span>);
 	}
 
 	return (<div style={{marginBottom: 7}}>
