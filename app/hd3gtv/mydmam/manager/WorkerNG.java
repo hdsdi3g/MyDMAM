@@ -227,7 +227,7 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 							forceStopProcess();
 							return;
 						}
-						sleep(1000);
+						sleep(10);
 					}
 				} catch (Exception e) {
 					Loggers.Worker.error("Can't monitor Executor for worker " + executor.reference.toString(), e);

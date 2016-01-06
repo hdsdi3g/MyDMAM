@@ -149,6 +149,7 @@ public abstract class ServiceNG {
 				
 				manager.stopAll();
 				
+				Loggers.Manager.info("Thanks for using MyDMAM");
 			} catch (InterruptedException e) {
 				Loggers.Manager.error("Violent stop service", e);
 			} catch (Exception e) {
@@ -179,7 +180,7 @@ public abstract class ServiceNG {
 		}
 		want_stop_service = true;
 		try {
-			for (int pos = 0; pos < 100; pos++) {
+			for (int pos = 0; pos < 200; pos++) {
 				if (servicethread.isAlive() == false) {
 					return;
 				}

@@ -17,10 +17,10 @@
 package hd3gtv.mydmam.db.status;
 
 import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.tools.StoppableThread;
 
 public class ClusterStatusService extends ClusterStatus {
 	
-	private boolean dostop;
 	private Watch watch;
 	private int sleep_time = 5000; // 5 sec
 	private AppManager manager;
@@ -34,24 +34,18 @@ public class ClusterStatusService extends ClusterStatus {
 		return watch.isAlive();
 	}
 	
-	private class Watch extends Thread {
+	private class Watch extends StoppableThread {
 		public Watch() {
-			setDaemon(true);
-			setName("Watch all clusters status");
+			super("Watch all clusters status");
 		}
 		
 		public void run() {
-			dostop = false;
-			while (dostop == false) {
+			while (isWantToRun()) {
 				try {
 					refresh(manager);
 				} catch (Exception e) {
 				}
-				try {
-					sleep(sleep_time);
-				} catch (InterruptedException e) {
-					return;
-				}
+				stoppableSleep(sleep_time);
 			}
 		}
 	}
@@ -64,6 +58,6 @@ public class ClusterStatusService extends ClusterStatus {
 	}
 	
 	public synchronized void stop() {
-		dostop = true;
+		watch.wantToStop();
 	}
 }

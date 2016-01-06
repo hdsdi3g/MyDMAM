@@ -33,6 +33,7 @@ import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.GsonIgnoreStrategy;
+import hd3gtv.tools.StoppableThread;
 
 public class FTPOperations {
 	
@@ -71,13 +72,13 @@ public class FTPOperations {
 		return simple_gson;
 	}*/
 	
-	private boolean stop;
 	private Internal internal;
 	
 	public void start() {
 		stop();
 		Loggers.FTPserver.info("Start FTP Operations watchdog");
 		internal = new Internal();
+		internal.setLogger(Loggers.FTPserver);
 		internal.start();
 	}
 	
@@ -88,15 +89,8 @@ public class FTPOperations {
 		if (internal == null) {
 			return;
 		}
-		stop = true;
 		Loggers.FTPserver.info("Stop FTP Operations watchdog");
-		try {
-			while (internal.isAlive()) {
-				Thread.sleep(100);
-			}
-		} catch (InterruptedException e) {
-			Loggers.FTPserver.warn("Can't sleep during stop", e);
-		}
+		internal.waitToStop();
 	}
 	
 	private HashSet<FTPUser> active_users_with_group_pathindex;
@@ -125,16 +119,13 @@ public class FTPOperations {
 		}
 	}
 	
-	private class Internal extends Thread {
+	private class Internal extends StoppableThread {
 		
 		public Internal() {
-			setName("FTPWatchdog");
-			setDaemon(true);
+			super("FTPWatchdog");
 		}
 		
 		public void run() {
-			stop = false;
-			
 			HashSet<FTPGroup> current_active_user_groups = new HashSet<FTPGroup>(1);
 			ArrayList<String> users_list = new ArrayList<String>();
 			List<SourcePathIndexerElement> storages_active_group_to_refresh = new ArrayList<SourcePathIndexerElement>();
@@ -149,160 +140,156 @@ public class FTPOperations {
 			long next_backgroud_operations = System.currentTimeMillis() + DELAY_BACKGROUD_OPERATIONS;
 			SourcePathIndexerElement storage;
 			
-			try {
-				while (stop == false) {
-					try {
+			while (isWantToRun()) {
+				try {
+					
+					/**
+					 * Get an immutable current active user groups list
+					 */
+					current_active_user_groups.clear();
+					users_list.clear();
+					synchronized (active_users_with_group_pathindex) {
+						for (FTPUser ftpuser : active_users_with_group_pathindex) {
+							current_active_user_groups.add(ftpuser.getGroup());
+							users_list.add(ftpuser.toString());
+						}
+					}
+					if (Loggers.FTPserver.isTraceEnabled() & users_list.isEmpty() == false) {
+						Loggers.FTPserver.trace("Active users: " + users_list + ", active groups: " + current_active_user_groups);
+					}
+					
+					if (current_active_user_groups.isEmpty() == false) {
+						bulk_op = Elasticsearch.prepareBulk();
+						/**
+						 * Search active groups recently added => force refresh
+						 */
+						storages_to_force_refresh.clear();
+						for (FTPGroup ftpgroup : current_active_user_groups) {
+							storage = SourcePathIndexerElement.prepareStorageElement(ftpgroup.getPathindexStoragename());
+							if (storages_active_group_to_refresh.contains(storage) == false) {
+								storages_to_force_refresh.add(storage);
+								
+							}
+						}
+						if (Loggers.FTPserver.isTraceEnabled() & storages_to_force_refresh.isEmpty() == false) {
+							Loggers.FTPserver.trace("Storage list to force refresh: " + storages_to_force_refresh);
+						}
 						
 						/**
-						 * Get an immutable current active user groups list
+						 * Previously active groups added => normal refresh
 						 */
-						current_active_user_groups.clear();
-						users_list.clear();
-						synchronized (active_users_with_group_pathindex) {
-							for (FTPUser ftpuser : active_users_with_group_pathindex) {
-								current_active_user_groups.add(ftpuser.getGroup());
-								users_list.add(ftpuser.toString());
+						storages_active_group_to_refresh.clear();
+						for (FTPGroup ftpgroup : current_active_user_groups) {
+							storage = SourcePathIndexerElement.prepareStorageElement(ftpgroup.getPathindexStoragename());
+							if (storages_to_force_refresh.contains(storage) == false) {
+								storages_active_group_to_refresh.add(storage);
 							}
 						}
-						if (Loggers.FTPserver.isTraceEnabled() & users_list.isEmpty() == false) {
-							Loggers.FTPserver.trace("Active users: " + users_list + ", active groups: " + current_active_user_groups);
+						if (Loggers.FTPserver.isTraceEnabled() & storages_active_group_to_refresh.isEmpty() == false) {
+							Loggers.FTPserver.trace("Storage active group to force refresh: " + storages_active_group_to_refresh);
 						}
 						
-						if (current_active_user_groups.isEmpty() == false) {
+						explorer.refreshStoragePath(bulk_op, storages_active_group_to_refresh, false, DELAY_ACTIVE_GROUPS_PATHINDEXING * 2);
+						explorer.refreshStoragePath(bulk_op, storages_to_force_refresh, true, DELAY_ACTIVE_GROUPS_PATHINDEXING * 2);
+						bulk_op.terminateBulk();
+					}
+					
+					if (next_backgroud_operations < System.currentTimeMillis()) {
+						next_backgroud_operations = System.currentTimeMillis() + DELAY_BACKGROUD_OPERATIONS;
+						
+						/**
+						 * Trash/purge operations
+						 */
+						FTPUser.getExpirableUsers(expirable_users);
+						if (expirable_users.isEmpty() == false) {
+							FTPUser.getTrashableUsers(expirable_users, trashable_users);
+							FTPUser.getPurgeableUsers(expirable_users, purgeable_users);
+							
+							mutator = CassandraDb.prepareMutationBatch();
+							
+							if (trashable_users.isEmpty() == false) {
+								Loggers.FTPserver.info("Some user content needs to send to trash: " + trashable_users);
+								
+								for (int pos = 0; pos < trashable_users.size(); pos++) {
+									trashable_users.get(pos).setDisabled(true);
+									trashable_users.get(pos).save(mutator);
+									trashable_users.get(pos).getGroup().trashUserHomeDirectory(trashable_users.get(pos));
+									FTPActivity.purgeUserActivity(trashable_users.get(pos).getUserId());
+								}
+							}
+							
+							if (purgeable_users.isEmpty() == false) {
+								Loggers.FTPserver.info("Some user content needs to be purged: " + purgeable_users);
+								
+								mutator = CassandraDb.prepareMutationBatch();
+								for (int pos = 0; pos < purgeable_users.size(); pos++) {
+									purgeable_users.get(pos).removeUser(mutator);
+									purgeable_users.get(pos).getGroup().deleteUserHomeDirectory(purgeable_users.get(pos));
+									FTPActivity.purgeUserActivity(purgeable_users.get(pos).getUserId());
+								}
+							}
+							
+							mutator.execute();
+						} /** end trash operation */
+							
+						/**
+						 * Group operations
+						 */
+						storages_regular_to_refresh.clear();
+						for (FTPGroup group : FTPGroup.getDeclaredGroups().values()) {
+							/**
+							 * Free space
+							 */
+							group.checkFreeSpace();
+							
+							/**
+							 * Orphan directories
+							 */
+							actual_users = group.listAllActualUsers();
+							if (Loggers.FTPserver.isTraceEnabled()) {
+								Loggers.FTPserver.trace("Actual users for group " + group + ": " + actual_users);
+							}
+							
+							for (int pos = 0; pos < actual_users.size(); pos++) {
+								if (actual_users.get(pos).isValidInDB() == false) {
+									group.deleteUserHomeDirectory(actual_users.get(pos));
+									Loggers.FTPserver.info("Group \"" + group.getName() + "\" has an orphan directory: " + actual_users.get(pos));
+								}
+							}
+							
+							/**
+							 * Refresh pathindex
+							 */
+							if (group.getPathindexStoragename() != null) {
+								if (current_active_user_groups.contains(group) == false) {
+									/**
+									 * Configuration set a pathindexing, and group is not active.
+									 */
+									storages_regular_to_refresh.add(SourcePathIndexerElement.prepareStorageElement(group.getPathindexStoragename()));
+								}
+							}
+							
+						} /** end for each groups */
+							
+						if (storages_regular_to_refresh.isEmpty() == false) {
+							if (Loggers.FTPserver.isTraceEnabled()) {
+								Loggers.FTPserver.debug("Regular pathindex refresh: " + storages_regular_to_refresh);
+							}
+							
 							bulk_op = Elasticsearch.prepareBulk();
-							/**
-							 * Search active groups recently added => force refresh
-							 */
-							storages_to_force_refresh.clear();
-							for (FTPGroup ftpgroup : current_active_user_groups) {
-								storage = SourcePathIndexerElement.prepareStorageElement(ftpgroup.getPathindexStoragename());
-								if (storages_active_group_to_refresh.contains(storage) == false) {
-									storages_to_force_refresh.add(storage);
-									
-								}
-							}
-							if (Loggers.FTPserver.isTraceEnabled() & storages_to_force_refresh.isEmpty() == false) {
-								Loggers.FTPserver.trace("Storage list to force refresh: " + storages_to_force_refresh);
-							}
-							
-							/**
-							 * Previously active groups added => normal refresh
-							 */
-							storages_active_group_to_refresh.clear();
-							for (FTPGroup ftpgroup : current_active_user_groups) {
-								storage = SourcePathIndexerElement.prepareStorageElement(ftpgroup.getPathindexStoragename());
-								if (storages_to_force_refresh.contains(storage) == false) {
-									storages_active_group_to_refresh.add(storage);
-								}
-							}
-							if (Loggers.FTPserver.isTraceEnabled() & storages_active_group_to_refresh.isEmpty() == false) {
-								Loggers.FTPserver.trace("Storage active group to force refresh: " + storages_active_group_to_refresh);
-							}
-							
-							explorer.refreshStoragePath(bulk_op, storages_active_group_to_refresh, false, DELAY_ACTIVE_GROUPS_PATHINDEXING * 2);
-							explorer.refreshStoragePath(bulk_op, storages_to_force_refresh, true, DELAY_ACTIVE_GROUPS_PATHINDEXING * 2);
+							explorer.refreshStoragePath(bulk_op, storages_regular_to_refresh, false, DELAY_BACKGROUD_OPERATIONS * 5);
 							bulk_op.terminateBulk();
 						}
 						
-						if (next_backgroud_operations < System.currentTimeMillis()) {
-							next_backgroud_operations = System.currentTimeMillis() + DELAY_BACKGROUD_OPERATIONS;
-							
-							/**
-							 * Trash/purge operations
-							 */
-							FTPUser.getExpirableUsers(expirable_users);
-							if (expirable_users.isEmpty() == false) {
-								FTPUser.getTrashableUsers(expirable_users, trashable_users);
-								FTPUser.getPurgeableUsers(expirable_users, purgeable_users);
-								
-								mutator = CassandraDb.prepareMutationBatch();
-								
-								if (trashable_users.isEmpty() == false) {
-									Loggers.FTPserver.info("Some user content needs to send to trash: " + trashable_users);
-									
-									for (int pos = 0; pos < trashable_users.size(); pos++) {
-										trashable_users.get(pos).setDisabled(true);
-										trashable_users.get(pos).save(mutator);
-										trashable_users.get(pos).getGroup().trashUserHomeDirectory(trashable_users.get(pos));
-										FTPActivity.purgeUserActivity(trashable_users.get(pos).getUserId());
-									}
-								}
-								
-								if (purgeable_users.isEmpty() == false) {
-									Loggers.FTPserver.info("Some user content needs to be purged: " + purgeable_users);
-									
-									mutator = CassandraDb.prepareMutationBatch();
-									for (int pos = 0; pos < purgeable_users.size(); pos++) {
-										purgeable_users.get(pos).removeUser(mutator);
-										purgeable_users.get(pos).getGroup().deleteUserHomeDirectory(purgeable_users.get(pos));
-										FTPActivity.purgeUserActivity(purgeable_users.get(pos).getUserId());
-									}
-								}
-								
-								mutator.execute();
-							} /** end trash operation */
-								
-							/**
-							 * Group operations
-							 */
-							storages_regular_to_refresh.clear();
-							for (FTPGroup group : FTPGroup.getDeclaredGroups().values()) {
-								/**
-								 * Free space
-								 */
-								group.checkFreeSpace();
-								
-								/**
-								 * Orphan directories
-								 */
-								actual_users = group.listAllActualUsers();
-								if (Loggers.FTPserver.isTraceEnabled()) {
-									Loggers.FTPserver.trace("Actual users for group " + group + ": " + actual_users);
-								}
-								
-								for (int pos = 0; pos < actual_users.size(); pos++) {
-									if (actual_users.get(pos).isValidInDB() == false) {
-										group.deleteUserHomeDirectory(actual_users.get(pos));
-										Loggers.FTPserver.info("Group \"" + group.getName() + "\" has an orphan directory: " + actual_users.get(pos));
-									}
-								}
-								
-								/**
-								 * Refresh pathindex
-								 */
-								if (group.getPathindexStoragename() != null) {
-									if (current_active_user_groups.contains(group) == false) {
-										/**
-										 * Configuration set a pathindexing, and group is not active.
-										 */
-										storages_regular_to_refresh.add(SourcePathIndexerElement.prepareStorageElement(group.getPathindexStoragename()));
-									}
-								}
-								
-							} /** end for each groups */
-								
-							if (storages_regular_to_refresh.isEmpty() == false) {
-								if (Loggers.FTPserver.isTraceEnabled()) {
-									Loggers.FTPserver.debug("Regular pathindex refresh: " + storages_regular_to_refresh);
-								}
-								
-								bulk_op = Elasticsearch.prepareBulk();
-								explorer.refreshStoragePath(bulk_op, storages_regular_to_refresh, false, DELAY_BACKGROUD_OPERATIONS * 5);
-								bulk_op.terminateBulk();
-							}
-							
-						} /** end next_backgroud_operations */
-							
-					} catch (ConnectionException e) {
-						Loggers.FTPserver.warn("Can't access to db", e);
-					} catch (Exception e) {
-						Loggers.FTPserver.error("General operation error", e);
-					}
-					
-					sleep(DELAY_ACTIVE_GROUPS_PATHINDEXING);
+					} /** end next_backgroud_operations */
+						
+				} catch (ConnectionException e) {
+					Loggers.FTPserver.warn("Can't access to db", e);
+				} catch (Exception e) {
+					Loggers.FTPserver.error("General operation error", e);
 				}
-			} catch (InterruptedException e) {
-				Loggers.FTPserver.error("Can't sleep", e);
+				
+				stoppableSleep(DELAY_ACTIVE_GROUPS_PATHINDEXING);
 			}
 		}
 	}

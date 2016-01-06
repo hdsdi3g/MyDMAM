@@ -1061,11 +1061,11 @@ public final class JobNG {
 					}
 				}
 				
-				for (int pos = 0; pos < 30; pos++) {
+				for (int pos = 0; pos < 300; pos++) {
 					if (stoppable.isWantToStopCurrentProcessing()) {
 						break;
 					}
-					Thread.sleep(100);
+					Thread.sleep(10);
 				}
 			}
 			

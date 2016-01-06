@@ -36,6 +36,7 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.tools.GsonIgnoreStrategy;
+import hd3gtv.tools.StoppableThread;
 
 public final class AppManager implements InstanceActionReceiver, InstanceStatusItem {
 	
@@ -349,14 +350,14 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 			for (int pos = 0; pos < enabled_workers.size(); pos++) {
 				Loggers.Manager.trace("Wait worker to stop... " + enabled_workers.get(pos));
 				while (enabled_workers.get(pos).getLifecyle().getState() == WorkerState.PENDING_STOP) {
-					Thread.sleep(10);
+					Thread.sleep(1);
 				}
 			}
 			
 			if (updater != null) {
 				Loggers.Manager.debug("Wait updater to stop...");
 				while (updater.isAlive()) {
-					Thread.sleep(10);
+					Thread.sleep(1);
 				}
 			}
 			updater = null;
@@ -364,7 +365,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 			if (broker != null) {
 				Loggers.Manager.debug("Wait broker to stop...");
 				while (broker.isAlive()) {
-					Thread.sleep(10);
+					Thread.sleep(1);
 				}
 			}
 			broker = null;
@@ -406,42 +407,40 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		return instance_status;
 	}
 	
-	private class Updater extends Thread {
-		boolean stop_update;
+	private class Updater extends StoppableThread {
 		AppManager referer;
 		long next_refresh_date;
 		
 		public Updater(AppManager referer) {
-			setName("Updater for " + instance_status.summary.getInstanceNamePid());
-			setDaemon(true);
+			super("Updater for " + instance_status.summary.getInstanceNamePid());
 			this.referer = referer;
+			setLogger(Loggers.Manager);
 		}
 		
 		public void run() {
-			stop_update = false;
 			try {
-				while (stop_update == false) {
+				while (isWantToRun()) {
 					next_refresh_date = System.currentTimeMillis() + (SLEEP_COUNT_UPDATE * SLEEP_BASE_TIME_UPDATE * 1000);
 					
 					instance_status.refresh();
 					WorkerExporter.updateWorkerStatus(enabled_workers, referer);
 					
 					for (int pos = 0; pos < SLEEP_COUNT_UPDATE; pos++) {
-						if (stop_update) {
+						if (isWantToStop()) {
 							return;
 						}
 						next_refresh_date = System.currentTimeMillis() + ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000);
 						
 						boolean pending_actions = InstanceAction.performInstanceActions(all_instance_action_receviers);
 						
-						if (pending_actions & (stop_update == false)) {
+						if (pending_actions & isWantToRun()) {
 							next_refresh_date = System.currentTimeMillis() + ((SLEEP_COUNT_UPDATE - pos) * SLEEP_BASE_TIME_UPDATE * 1000) + 1000;
-							Thread.sleep(1000);
+							stoppableSleep(1000);
 							instance_status.refresh();
 							WorkerExporter.updateWorkerStatus(enabled_workers, referer);
 						}
 						
-						Thread.sleep(SLEEP_BASE_TIME_UPDATE * 1000);
+						stoppableSleep(SLEEP_BASE_TIME_UPDATE * 1000);
 					}
 				}
 			} catch (Exception e) {
@@ -450,7 +449,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		}
 		
 		public synchronized void stopUpdate() {
-			this.stop_update = true;
+			wantToStop();
 			next_refresh_date = 0;
 		}
 		

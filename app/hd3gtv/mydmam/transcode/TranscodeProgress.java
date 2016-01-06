@@ -59,7 +59,7 @@ public abstract class TranscodeProgress {
 			Loggers.Transcode.debug("Stop watch transcode progress for: " + progressfile.getPath());
 			while (internal.isAlive()) {
 				try {
-					Thread.sleep(100);
+					Thread.sleep(10);
 				} catch (Exception e) {
 					Loggers.Transcode.warn("Can't stop thread", e);
 				}

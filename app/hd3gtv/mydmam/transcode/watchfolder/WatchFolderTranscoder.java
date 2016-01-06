@@ -85,10 +85,10 @@ public class WatchFolderTranscoder {
 		Loggers.Transcode_WatchFolder.debug("Wait stop for all watchfolders");
 		try {
 			while (wf_group.activeCount() > 0) {
-				if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
+				/*if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
 					Loggers.Transcode_WatchFolder.trace("Wait " + wf_group.activeCount() + " watchfolder to stop");
-				}
-				Thread.sleep(500);
+				}*/
+				Thread.sleep(10);
 			}
 		} catch (InterruptedException e) {
 			Loggers.Transcode_WatchFolder.error("Can't wait all stopping threads", e);

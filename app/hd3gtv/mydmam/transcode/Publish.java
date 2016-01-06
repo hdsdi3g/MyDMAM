@@ -144,7 +144,7 @@ public class Publish extends WorkerNG {
 					break;
 				}
 			}
-			Thread.sleep(1000);
+			Thread.sleep(10);
 		}
 		
 		if (source_file.exists() == false) {
