@@ -439,6 +439,16 @@ public final class InstanceStatus {
 		}
 	}
 	
+	void removeCurrentInstanceFromDb() {
+		try {
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			mutator.withRow(CF_INSTANCES, summary.instance_name_pid).delete();
+			mutator.execute();
+		} catch (ConnectionException e) {
+			manager.getServiceException().onCassandraError(e);
+		}
+	}
+	
 	public String toString() {
 		return gson.toJson(this.summary);
 	}

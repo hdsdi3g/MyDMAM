@@ -149,6 +149,8 @@ public abstract class ServiceNG {
 				
 				manager.stopAll();
 				
+				manager.getInstanceStatus().removeCurrentInstanceFromDb();
+				
 				Loggers.Manager.info("Thanks for using MyDMAM");
 			} catch (InterruptedException e) {
 				Loggers.Manager.error("Violent stop service", e);
