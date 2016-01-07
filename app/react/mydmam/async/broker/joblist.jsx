@@ -751,7 +751,7 @@ broker.JobCartridge = React.createClass({
 
 		var div_3rd_zone = null;
 		if (job.status === 'WAITING' | job.status === 'TOO_OLD') {
-			div_3rd_zone = (<mydmam.async.pathindex.reactDate i18nlabel="expiration_date" date={job.expiration_date} />);
+			div_3rd_zone = (<mydmam.async.pathindex.reactDate i18nlabel="manager.jobs.expiration_date" date={job.expiration_date} />);
 		} else if (job.status === 'PROCESSING'
 			 | job.status === 'DONE'
 			 | job.status === 'STOPPED'

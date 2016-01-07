@@ -478,3 +478,44 @@ manager.Classpaths = React.createClass({
 		);
 	},
 });
+
+/*
+ * ============ Lastjobs =============
+ */
+manager.Lastjobs = React.createClass({
+	getInitialState: function() {
+		return {
+			list: {},
+		};
+	},
+	componentWillMount: function() {
+		mydmam.async.request("instances", "alldonejobs", null, function(list) {
+			list.sort(function (a, b) {
+				return a.update_date < b.update_date;
+			});
+			this.setState({list: list});
+		}.bind(this));
+	},
+	render: function() {
+		var broker = mydmam.async.broker;
+
+		var joblist = [];
+		for (var pos in this.state.list) {
+			var job = this.state.list[pos];
+
+			joblist.push(<div key={job.key}>
+				<div className="donejoblistitem">
+					<mydmam.async.JavaClassNameLink javaclass={job.context.classname} />
+					<broker.JobCartridge job={job} required_jobs={[]} action_avaliable={null} onActionButtonClick={null} />
+				</div>
+			</div>);
+		}
+
+		return (<div>
+			<p>
+				<em>{i18n("manager.lastjobs.descr")}</em>
+			</p>
+			{joblist}
+		</div>);
+	},
+}); 

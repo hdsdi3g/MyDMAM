@@ -2,7 +2,8 @@
 },componentWillMount:function(){this.refresh(true);},refresh:function(b){mydmam.async.request("instances","allitems",null,function(c){var d=this.state.selected_instances;
 if(b){d=[];for(var e in c){d.push(e);}selected_item_classes=this.getAllClassesNames(c);
 }this.setState({items:c,selected_instances:d,selected_item_classes:selected_item_classes});
-}.bind(this));},componentDidMount:function(){},componentWillUnmount:function(){if(this.state.interval){clearInterval(this.state.interval);
+}.bind(this));},componentDidMount:function(){this.setState({interval:setInterval(this.refresh,10000)});
+},componentWillUnmount:function(){if(this.state.interval){clearInterval(this.state.interval);
 }},onSelectInstance:function(e,d){if(e=="_all"){var b=[];if(d){for(var c in this.state.items){b.push(c);
 }}this.setState({selected_instances:b});return;}var f=this.state.selected_instances.slice();
 if(f.indexOf(e)==-1&&d){f.push(e);this.setState({selected_instances:f});}else{if(f.indexOf(e)>-1&&(d==false)){f.splice(f.indexOf(e),1);

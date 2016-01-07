@@ -20,6 +20,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 
 import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -31,6 +32,7 @@ import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.manager.AJSgetItems;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceStatus;
+import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.web.AJSController;
 
 public class Instances extends AJSController {
@@ -44,7 +46,8 @@ public class Instances extends AJSController {
 	private static final InstanceStatus current;
 	
 	static {
-		current = InstanceStatus.getStatic();
+		current = new AppManager("This Play instance").getInstanceStatus();
+		
 		/*AJSController.registerTypeAdapter(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
 			public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
 				return src.list;
@@ -108,6 +111,14 @@ public class Instances extends AJSController {
 		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_ITEMS);
 		result.add(current.summary.getInstanceNamePid(), current.getItems());
 		return result;
+	}
+	
+	/**
+	 * @return [job]
+	 */
+	@Check("showInstances")
+	public static JsonArray allDoneJobs() throws Exception {
+		return TriggerJobCreator.getAllDoneJobs();
 	}
 	
 	/**

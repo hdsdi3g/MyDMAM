@@ -169,7 +169,6 @@ div.instance-item-block {
     border-left: 5px solid #EEE;  
 }
 
-
 span.external-pathindex-position {
     margin-left: 5px;
 }
@@ -210,6 +209,11 @@ div.hover-focus div.btn-toolbar {
     margin-top: -1px;
 }*/
 
+div.donejoblistitem div.row-fluid {
+    margin: 10px 0px 10px 20px;
+    padding-right: 10px;
+    width: inherit;
+}
 
 /* ============================================================================== */	
 

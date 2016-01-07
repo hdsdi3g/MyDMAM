@@ -20,18 +20,22 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnore;
 
@@ -76,7 +80,19 @@ public final class TriggerJobCreator extends JobCreator {
 		}
 	}
 	
-	// TODO get all done jobs to AsyncJS
+	private static final JsonParser parser = new JsonParser();
+	
+	public static JsonArray getAllDoneJobs() throws Exception {
+		final JsonArray ja = new JsonArray();
+		
+		CassandraDb.allRowsReader(CF_DONE_JOBS, new AllRowsFoundRow() {
+			public void onFoundRow(Row<String, String> row) throws Exception {
+				ja.add(parser.parse(row.getColumns().getColumnByName("source").getStringValue()));
+			}
+		}, "source");
+		
+		return ja;
+	}
 	
 	/**
 	 * End of static realm

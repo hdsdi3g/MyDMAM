@@ -63,7 +63,7 @@ manager.Items = React.createClass({
 		}.bind(this));
 	},
 	componentDidMount: function(){
-		//this.setState({interval: setInterval(this.refresh, 10000)});
+		this.setState({interval: setInterval(this.refresh, 10000)});
 	},
 	componentWillUnmount: function() {
 		if (this.state.interval) {

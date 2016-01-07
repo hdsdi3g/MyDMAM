@@ -120,7 +120,7 @@ if(f.worker_reference!=null&f.worker_class!=null){p=(React.createElement("div",{
 }else{p=(React.createElement("div",{className:"span7"},n));}}var d=null;if(f.delete_after_completed){d=(React.createElement("span",{className:"label label-inverse"},i18n("manager.jobs.delete_after_completed")));
 }var u=null;if(f.priority>0){var v=null;if(f.urgent){v=(React.createElement("i",{className:"icon-warning-sign icon-white"}));
 }u=(React.createElement("span",{className:"badge badge-important"},v," ",i18n("manager.jobs.priority",f.priority)));
-}var c=null;if(f.status==="WAITING"|f.status==="TOO_OLD"){c=(React.createElement(mydmam.async.pathindex.reactDate,{i18nlabel:"expiration_date",date:f.expiration_date}));
+}var c=null;if(f.status==="WAITING"|f.status==="TOO_OLD"){c=(React.createElement(mydmam.async.pathindex.reactDate,{i18nlabel:"manager.jobs.expiration_date",date:f.expiration_date}));
 }else{if(f.status==="PROCESSING"|f.status==="DONE"|f.status==="STOPPED"|f.status==="TOO_LONG_DURATION"|f.status==="CANCELED"|f.status==="POSTPONED"|f.status==="ERROR"){c=(React.createElement(a.JobProgression,{job:f}));
 }}var o=null;if(f.instance_status_executor_key){if(this.state.stacked){o=(React.createElement("span",{className:"label label-info"},React.createElement("i",{className:"icon-cog icon-white"})," by ",f.instance_status_executor_key));
 }else{o=(React.createElement("span",{className:"label label-info"},React.createElement("i",{className:"icon-cog icon-white"})," by ",f.instance_status_executor_key.substring(0,f.instance_status_executor_key.indexOf("#"))));

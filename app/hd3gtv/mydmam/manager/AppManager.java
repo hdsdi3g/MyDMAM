@@ -185,6 +185,13 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		return app_name;
 	}
 	
+	void setAppName(String app_name) {
+		this.app_name = app_name;
+		if (app_name == null) {
+			throw new NullPointerException("\"app_name\" can't to be null");
+		}
+	}
+	
 	public BrokerNG getBroker() {
 		return broker;
 	}

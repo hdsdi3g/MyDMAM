@@ -55,7 +55,6 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnoreStrategy;
-import play.Play;
 
 public final class InstanceStatus {
 	
@@ -112,22 +111,6 @@ public final class InstanceStatus {
 	 * In sec.
 	 */
 	static final int TTL = 120;
-	
-	private static InstanceStatus is_static;
-	
-	/**
-	 * @return an InstanceStatus gathered
-	 */
-	public static InstanceStatus getStatic() {
-		if (is_static == null) {
-			String name = "Gatherer";
-			if (Play.initialized) {
-				name = "This Play instance";
-			}
-			is_static = new AppManager(name).getInstanceStatus();
-		}
-		return is_static;
-	}
 	
 	private transient AppManager manager;
 	public final Summary summary;
@@ -488,6 +471,18 @@ public final class InstanceStatus {
 		return result;
 	}
 	
+	private static AppManager static_manager;
+	
+	/**
+	 * @return an InstanceStatus gathered
+	 */
+	public static InstanceStatus getStatic() {
+		if (static_manager == null) {
+			static_manager = new AppManager("Gatherer");
+		}
+		return static_manager.getInstanceStatus();
+	}
+	
 	/**
 	 * @return raw Cassandra items.
 	 */
@@ -520,13 +515,15 @@ public final class InstanceStatus {
 		}
 		
 		if (refs.contains(getStatic().summary.getInstanceNamePid())) {
+			InstanceStatus static_status = static_manager.getInstanceStatus();
+			
 			JsonObject item = new JsonObject();
-			item.add(CF_COLS.COL_SUMMARY.toString(), AppManager.getSimpleGson().toJsonTree(is_static.summary));
-			item.add(CF_COLS.COL_ITEMS.toString(), is_static.getItems());
-			item.add(CF_COLS.COL_CLASSPATH.toString(), is_static.getClasspath());
-			item.add(CF_COLS.COL_PERFSTATS.toString(), is_static.getPerfStats());
+			item.add(CF_COLS.COL_SUMMARY.toString(), AppManager.getSimpleGson().toJsonTree(static_status.summary));
+			item.add(CF_COLS.COL_ITEMS.toString(), static_status.getItems());
+			item.add(CF_COLS.COL_CLASSPATH.toString(), static_status.getClasspath());
+			item.add(CF_COLS.COL_PERFSTATS.toString(), static_status.getPerfStats());
 			item.add(CF_COLS.COL_THREADS.toString(), InstanceStatus.getThreadstacktraces());
-			result.add(is_static.summary.getInstanceNamePid(), item);
+			result.add(static_status.summary.getInstanceNamePid(), item);
 		}
 		
 		return result;

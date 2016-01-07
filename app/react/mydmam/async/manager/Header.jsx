@@ -63,14 +63,17 @@ manager.Header = React.createClass({
 			show_this = (<manager.Items summaries={this.state.summaries} />);
 		} else if (location.hash.indexOf("#manager/perfstats") == 0) {
 			show_this = (<manager.Perfstats summaries={this.state.summaries} />);
+		} else if (location.hash.indexOf("#manager/lastjobs") == 0) {
+			show_this = (<manager.Lastjobs summaries={this.state.summaries} />);
 		}
 
 		return (
 			<mydmam.async.PageHeaderTitle title={i18n("manager.pagename")} fluid="true">
 				<ul className="nav nav-tabs">
-					<manager.HeaderTab href="#manager/summary" i18nlabel="manager.summaries" />
-					<manager.HeaderTab href="#manager/items" 	i18nlabel="manager.items" />
-					<manager.HeaderTab href="#manager/threads" 	i18nlabel="manager.threads" />
+					<manager.HeaderTab href="#manager/summary"   i18nlabel="manager.summaries" />
+					<manager.HeaderTab href="#manager/items" 	 i18nlabel="manager.items" />
+					<manager.HeaderTab href="#manager/lastjobs"  i18nlabel="manager.lastjobs" />
+					<manager.HeaderTab href="#manager/threads" 	 i18nlabel="manager.threads" />
 					<manager.HeaderTab href="#manager/perfstats" i18nlabel="manager.perfstats" />
 					<manager.HeaderTab href="#manager/classpath" i18nlabel="manager.classpath" />
 					<li className="pull-right">
@@ -83,11 +86,12 @@ manager.Header = React.createClass({
 	},
 });
 
-mydmam.routes.push("manager-PageSummaries", "manager/summary", manager.Header, [{name: "instances", verb: "allsummaries"}]);	
-mydmam.routes.push("manager-PageClasspath", "manager/classpath", manager.Header, [{name: "instances", verb: "allclasspaths"}, {name: "instances", verb: "allsummaries"}]);	
-mydmam.routes.push("manager-PageThreads", 	"manager/threads", manager.Header, [{name: "instances", verb: "allthreads"}, {name: "instances", verb: "allsummaries"}]);	
-mydmam.routes.push("manager-PageItems", 	"manager/items", manager.Header, [{name: "instances", verb: "allitems"}, {name: "instances", verb: "allsummaries"}]);	
-mydmam.routes.push("manager-PagePerfstats", "manager/perfstats", manager.Header, [{name: "instances", verb: "allperfstats"}]);	
+mydmam.routes.push("manager-Summaries", "manager/summary",		manager.Header, [{name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-Classpath", "manager/classpath", 	manager.Header, [{name: "instances", verb: "allclasspaths"}, {name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-Lastjobs", 	"manager/lastjobs", 	manager.Header, [{name: "instances", verb: "alldonejobs"}, {name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-Threads", 	"manager/threads", 		manager.Header, [{name: "instances", verb: "allthreads"}, {name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-Items", 	"manager/items", 		manager.Header, [{name: "instances", verb: "allitems"}, {name: "instances", verb: "allsummaries"}]);	
+mydmam.routes.push("manager-Perfstats", "manager/perfstats", 	manager.Header, [{name: "instances", verb: "allperfstats"}]);	
 
 manager.HeaderTab = React.createClass({
 	onClick: function(e) {

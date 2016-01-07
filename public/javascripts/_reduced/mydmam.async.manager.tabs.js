@@ -49,4 +49,9 @@ if(g.indexOf(c[h])==-1){var b=f;if(this.props.summaries[f]){if(this.props.summar
 b=e.instance_name+" ("+e.app_name+") "+e.host_name;}else{b=i18n("manager.classpath.notfound")+" :: "+f;
 }}else{b=i18n("manager.classpath.notfound")+" :: "+f;}d.push(React.createElement("tr",{key:md5(c[h]+f)},React.createElement("td",null,c[h]),React.createElement("td",null,b)));
 }}}return(React.createElement("table",{className:"table table-bordered table-striped table-condensed"},React.createElement("thead",null,React.createElement("tr",null,React.createElement("th",null,i18n("manager.classpath.missing")),React.createElement("th",null,i18n("manager.classpath.missingin")))),React.createElement("tbody",null,d)));
+}});a.Lastjobs=React.createClass({displayName:"Lastjobs",getInitialState:function(){return{list:{}};
+},componentWillMount:function(){mydmam.async.request("instances","alldonejobs",null,function(b){b.sort(function(d,c){return d.update_date<c.update_date;
+});this.setState({list:b});}.bind(this));},render:function(){var b=mydmam.async.broker;
+var c=[];for(var e in this.state.list){var d=this.state.list[e];c.push(React.createElement("div",{key:d.key},React.createElement("div",{className:"donejoblistitem"},React.createElement(mydmam.async.JavaClassNameLink,{javaclass:d.context.classname}),React.createElement(b.JobCartridge,{job:d,required_jobs:[],action_avaliable:null,onActionButtonClick:null}))));
+}return(React.createElement("div",null,React.createElement("p",null,React.createElement("em",null,i18n("manager.lastjobs.descr"))),c));
 }});})(window.mydmam.async.manager);

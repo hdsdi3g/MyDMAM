@@ -173,6 +173,8 @@ manager.jobs.joblist=Liste des jobs
 manager.jobs.require=Requiert:
 manager.jobs.deletedjob=Job supprimé !
 manager.action.error=Impossible d'ajouter une action pour cette instance.
+manager.lastjobs=Derniers jobs
+manager.lastjobs.descr=Liste du dernier job executé pour chaque contexte.
 job.progressionmessage.null=(non défini)
 
 manager.watchfolders.pagename=Dossiers surveillés

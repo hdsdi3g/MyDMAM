@@ -173,6 +173,8 @@ manager.jobs.joblist=Job List
 manager.jobs.require=Require:
 manager.jobs.deletedjob=Deleted job !
 manager.action.error=Can't add this action to instance.
+manager.lastjobs=Last jobs
+manager.lastjobs.descr=The last executed job list for each context.
 job.progressionmessage.null=(no set)
 
 manager.watchfolders.pagename=Watchfolders
