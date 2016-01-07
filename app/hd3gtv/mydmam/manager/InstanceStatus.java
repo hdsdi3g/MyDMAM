@@ -29,13 +29,16 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
@@ -445,14 +448,14 @@ public final class InstanceStatus {
 	}
 	
 	/**
-	 * @return raw Cassandra items.
+	 * @return raw Cassandra items, but sorted by key names.
 	 */
 	public JsonObject getAll(final CF_COLS col_name) {
 		if (col_name == null) {
 			throw new NullPointerException("\"col_name\" can't to be null");
 		}
-		
-		final JsonObject result = new JsonObject();
+		final HashMap<String, JsonElement> raw_items = new HashMap<String, JsonElement>();
+		final ArrayList<String> keys = new ArrayList<String>();
 		final JsonParser parser = new JsonParser();
 		
 		try {
@@ -462,12 +465,21 @@ public final class InstanceStatus {
 					if (value.equals("null")) {
 						return;
 					}
-					result.add(row.getKey(), parser.parse(value));
+					raw_items.put(row.getKey(), parser.parse(value));
+					keys.add(row.getKey());
 				}
 			}, col_name.toString());
 		} catch (Exception e) {
 			manager.getServiceException().onCassandraError(e);
 		}
+		
+		Collections.sort(keys);
+		
+		JsonObject result = new JsonObject();
+		for (int pos = 0; pos < keys.size(); pos++) {
+			result.add(keys.get(pos), raw_items.get(keys.get(pos)));
+		}
+		
 		return result;
 	}
 	
