@@ -15,8 +15,9 @@ var f;var k;for(var j in i){k=i[j];try{var f=k.callback.apply(this,arguments);if
 }}catch(h){console.error(h,k.name,e);}}return null;};};b.f={};b.f.helloworld=c("helloworld");
 b.f.processViewSearchResult=d("processViewSearchResult");b.f.wantToHaveResolvedExternalPositions=d("wantToHaveResolvedExternalPositions");
 b.f.i18nExternalPosition=d("i18nExternalPosition");b.f.managerInstancesItems=d("managerInstancesItems");
-})(window.mydmam.module);(function(b){var c={};b.push=function(d,f,e,g){c[d]={};c[d].path=f;
-c[d].react_top_level_class=e;if(g){c[d].async_needs=g;}};var a=function(e,d){return function(f){e(d,f.params);
+b.f.managerInstancesItemsDescr=d("managerInstancesItemsDescr");})(window.mydmam.module);
+(function(b){var c={};b.push=function(d,f,e,g){c[d]={};c[d].path=f;c[d].react_top_level_class=e;
+if(g){c[d].async_needs=g;}};var a=function(e,d){return function(f){e(d,f.params);
 };};b.populate=function(d,i){for(var e in c){var g=c[e].async_needs;if(g!=null){for(var h in g){var f=g[h];
 if(f.name==null){console.error("Name param missing for async_need",f);}if(f.verb==null){console.error("Verb param missing for async_need",f);
 }}if(mydmam.async.isAvaliable(f.name,f.verb)==false){continue;}}d.add(c[e].path,a(i,e));

@@ -182,6 +182,7 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 	module.f.wantToHaveResolvedExternalPositions = firstValidCallback("wantToHaveResolvedExternalPositions");
 	module.f.i18nExternalPosition = firstValidCallback("i18nExternalPosition");
 	module.f.managerInstancesItems = firstValidCallback("managerInstancesItems");
+	module.f.managerInstancesItemsDescr = firstValidCallback("managerInstancesItemsDescr");
 	
 })(window.mydmam.module);
 

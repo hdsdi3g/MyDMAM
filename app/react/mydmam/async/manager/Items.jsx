@@ -15,55 +15,44 @@
  * 
 */
 
-
-/*
- * This file is part of MyDMAM.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- * 
- * Copyright (C) hdsdi3g for hd3g.tv 2015
- * 
-*/
-
 manager.Items = React.createClass({
 	getInitialState: function() {
 		return {
 			items: {},
 			interval: null,
+			user_has_change_checks: false,
 			selected_instances: [],
 			selected_item_classes: [],
 		};
 	},
 	componentWillMount: function() {
-		this.refresh(true);
+		this.refresh();
 	},
-	refresh: function(select_all) {
+	refresh: function() {
 		mydmam.async.request("instances", "allitems", null, function(items) {
-			var selected_instances = this.state.selected_instances;
-			if (select_all) {
-				selected_instances = [];
-				for (var instance_key in items) {
-					selected_instances.push(instance_key);
-				}
-				selected_item_classes = this.getAllClassesNames(items);
-			}
 			this.setState({
 				items: items,
-				selected_instances: selected_instances,
-				selected_item_classes: selected_item_classes,
 			});
+			if (this.state.user_has_change_checks == false) {
+				var selected_instances = [];
+				for (var instance_key in items) {
+					if (items[instance_key].length > 0) {
+						if (items[instance_key][0].content) {
+							if (items[instance_key][0].content.brokeralive) {
+								selected_instances.push(instance_key);
+							}
+						}
+					}
+				}
+				this.setState({
+					selected_instances: selected_instances,
+					selected_item_classes: this.getAllClassesNames(items),
+				});
+			}
 		}.bind(this));
 	},
 	componentDidMount: function(){
-		this.setState({interval: setInterval(this.refresh, 10000)});
+		this.setState({interval: setInterval(this.refresh, 5000)});
 	},
 	componentWillUnmount: function() {
 		if (this.state.interval) {
@@ -78,17 +67,26 @@ manager.Items = React.createClass({
 					all.push(instance_key);
 				}
 			}
-			this.setState({selected_instances: all});
+			this.setState({
+				selected_instances: all,
+				user_has_change_checks: true,
+			});
 			return;
 		}
 
 		var actual = this.state.selected_instances.slice();
 		if (actual.indexOf(instance_ref) == -1 && add) {
 			actual.push(instance_ref);
-			this.setState({selected_instances: actual});
+			this.setState({
+				selected_instances: actual,
+				user_has_change_checks: true,
+			});
 		} else if (actual.indexOf(instance_ref) > -1 && (add == false)) {
 			actual.splice(actual.indexOf(instance_ref), 1);
-			this.setState({selected_instances: actual});
+			this.setState({
+				selected_instances: actual,
+				user_has_change_checks: true,
+			});
 		}
 	},
 	onSelectItemClasses: function(class_name, add) {
@@ -97,17 +95,26 @@ manager.Items = React.createClass({
 			if (add) {
 				all = this.getAllClassesNames();
 			}
-			this.setState({selected_item_classes: all});
+			this.setState({
+				selected_item_classes: all,
+				user_has_change_checks: true,
+			});
 			return;
 		}
 
 		var actual = this.state.selected_item_classes.slice();
 		if (actual.indexOf(class_name) == -1 && add) {
 			actual.push(class_name);
-			this.setState({selected_item_classes: actual});
+			this.setState({
+				selected_item_classes: actual,
+				user_has_change_checks: true,
+			});
 		} else if (actual.indexOf(class_name) > -1 && (add == false)) {
 			actual.splice(actual.indexOf(class_name), 1);
-			this.setState({selected_item_classes: actual});
+			this.setState({
+				selected_item_classes: actual,
+				user_has_change_checks: true,
+			});
 		}
 	},
 	getAllClassesNames: function(all_items) {
@@ -127,11 +134,15 @@ manager.Items = React.createClass({
 		return item_classes;
 	},
 	onGotoTheTop: function(e) {
+		var absolute = React.findDOMNode(this.refs.items_container).getBoundingClientRect().y;
 		e.preventDefault();
-		$("html, body").scrollTop(0);
+		$("html, body").scrollTop($("html, body").scrollTop() + absolute - 50);
+	},
+	onGoToItemBlock: function(reference) {
+		var absolute = React.findDOMNode(this.refs[reference]).getBoundingClientRect().y;
+		$("html, body").scrollTop($("html, body").scrollTop() + absolute - 50);
 	},
 	render: function() {
-
 		/**
 		 * Left panel
 		 */
@@ -152,7 +163,7 @@ manager.Items = React.createClass({
 		if (display_instance_list.length > 1) {
 			var checked = this.state.selected_instances.length == display_instance_list.length;
 			display_instance_list.splice(0, 0, (<manager.SelectNavItemInstance key="_all" onClick={this.onSelectInstance} reference="_all" checked={checked}>
-				ALL
+				<em>{i18n("manager.items.chooseall")}</em>
 			</manager.SelectNavItemInstance>));
 		}
 
@@ -170,7 +181,7 @@ manager.Items = React.createClass({
 		if (display_item_classes_list.length > 1) {
 			var checked = this.state.selected_item_classes.length == display_item_classes_list.length;
 			display_item_classes_list.splice(0, 0, (<manager.SelectNavItemInstance key="_all" onClick={this.onSelectItemClasses} reference="_all" checked={checked}>
-				ALL
+				<em>{i18n("manager.items.chooseall")}</em>
 			</manager.SelectNavItemInstance>));
 		}
 
@@ -178,6 +189,7 @@ manager.Items = React.createClass({
 		 * Items
 		 */
 		var display_items = [];
+		var summary_table_items = [];
 		for (var instance_key in this.state.items) {
 			if (this.state.selected_instances.indexOf(instance_key) == -1) {
 				continue;
@@ -188,6 +200,7 @@ manager.Items = React.createClass({
 			 * Display title
 			 */
 			var summary = this.props.summaries[instance_key];
+			var summary_td_table = (<span>{instance_key}</span>);
 			if (summary != null) {
 				display_items.push(<h3 key={instance_key + "-title"} style={{marginBottom: 6}}>
 					{summary.instance_name}&nbsp;
@@ -195,6 +208,12 @@ manager.Items = React.createClass({
 						&bull; {summary.app_name} &bull; {summary.pid}@{summary.host_name}
 					</small>
 				</h3>);
+				summary_td_table = (<span>
+					{summary.instance_name}&nbsp;
+					<small className="muted">
+						({summary.app_name})
+					</small>
+				</span>);
 			} else {
 				display_items.push(<h3 key={instance_key + "-title"} style={{marginBottom: 6}}>
 					{instance_key}
@@ -224,7 +243,8 @@ manager.Items = React.createClass({
 				/**
 				 * Add view in list.
 				 */
-				display_items.push(<div key={md5(instance_key + " " + pos_items)} style={{marginBottom: 26, marginLeft: 10}}>
+				var ref = md5(instance_key + " " + pos_items);
+				display_items.push(<div key={ref} ref={ref} style={{marginBottom: 26, marginLeft: 10}}>
 					<div className="pull-right">{mydmam.async.broker.displayKey(json_item.key, true)}</div>
 					<h4>
 						<a href={location.hash} onClick={this.onGotoTheTop}><i className=" icon-arrow-up" style={{marginRight: 5, marginTop: 5}}></i></a>
@@ -234,46 +254,98 @@ manager.Items = React.createClass({
 						{item}
 					</div>
 				</div>);
+
+				/**
+				 * Add line to summary table
+				 */
+				var descr = mydmam.module.f.managerInstancesItemsDescr(json_item);
+				if (descr == null) {
+					descr = (<em>{i18n("manager.items.summarytable.descr.noset")}</em>);
+				}
+				summary_table_items.push(<tr key={ref}>
+					<td>
+						{summary_td_table}
+					</td>
+					<td>
+						{item_class}
+					</td>
+					<td>
+						<manager.btnArrowGoToItemBlock onGoToItemBlock={this.onGoToItemBlock} reference={ref}>
+							<i className="icon-arrow-down" style={{marginTop: 2}}></i>&nbsp;
+							{descr}
+						</manager.btnArrowGoToItemBlock>
+					</td>
+				</tr>);
 			}
 			display_items.push(<hr key={instance_key + "-hr"} style={{marginBottom: 10}} />);
 		}
 
+		var table_summary_items = null;
+		if (summary_table_items.length > 0) {
+			table_summary_items = (<div>
+				<table className="table table-bordered table-striped table-condensed table-hover">
+					<thead>
+						<tr>
+							<th>{i18n("manager.items.summarytable.instance")}</th>
+							<th>{i18n("manager.items.summarytable.item")}</th>
+							<th>{i18n("manager.items.summarytable.descr")}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{summary_table_items}
+					</tbody>
+				</table>
+				<hr />
+			</div>);
+		}
+
 		return (<div className="row-fluid">
 			<div className="span3">
-			 	<div className="well" style={{padding: 8}}>
-				    {display_instance_list}
-				    <hr />
-				    {display_item_classes_list}
+			 	<div className="well instancesnavlists">
+				 	<pre>
+	 					<strong>{i18n("manager.items.chooseinstancelist")}</strong>
+				    	{display_instance_list}
+					</pre>
+						<hr />
+				 	<pre>
+	 					<strong>{i18n("manager.items.chooseitemlist")}</strong>
+				    	{display_item_classes_list}
+					</pre>
 			    </div>
 			</div>
-			<div className="span9" style={{marginLeft: 15}}>
+			<div className="span9" style={{marginLeft: 15}} ref="items_container">
+				{table_summary_items}
 				{display_items}
 			</div>
 		</div>);
 	},
 });
 
-manager.SelectNavItemInstance = React.createClass({
-	getInitialState: function() {
-		return {
-			checked: this.props.checked,
-		};
-	},
-	componentWillReceiveProps: function(nextProps) {
-		this.setState({checked: nextProps.checked});
-	},
-	onClick: function (e) {
+manager.btnArrowGoToItemBlock = React.createClass({
+	onGoto: function (e) {
 		e.preventDefault();
-		this.props.onClick(this.props.reference, ! this.state.checked);
-		this.setState({checked: ! this.state.checked});
+		$(React.findDOMNode(this.refs.a)).blur();
+		this.props.onGoToItemBlock(this.props.reference);
 	},
  	render: function() {
+ 		return (<a href={location.hash} onClick={this.onGoto} ref="a" style={{color: "inherit"}}>
+ 			{this.props.children}
+ 		</a>);
+	},
+});
 
+manager.SelectNavItemInstance = React.createClass({
+	onClick: function (e) {
+		e.preventDefault();
+		$(React.findDOMNode(this.refs.a)).blur();
+		this.props.onClick(this.props.reference, ! this.props.checked);
+	},
+ 	render: function() {
  		return (<div>
- 			<label className="checkbox" onClick={this.onClick} >
-				<input type="checkbox" ref="cb" checked={this.state.checked} onChange={this.onClick} /> {this.props.children}
-			</label>
-		</div>);
+ 			<a href={location.hash} onClick={this.onClick} ref="a">
+	 			{this.props.checked ? "[X]" : "[ ]"} {this.props.children}
+	 		</a>
+	 	</div>);
 	},
 });
 
@@ -287,7 +359,13 @@ mydmam.module.register("AppManager", {
 			<mydmam.async.LabelBoolean label_true={i18n("manager.items.AppManager.inoffhours")} label_false={i18n("manager.items.AppManager.innormalhours")} value={item.content.is_off_hours} />&nbsp;
 			<mydmam.async.pathindex.reactDate date={item.content.next_updater_refresh_date} i18nlabel={i18n("manager.items.AppManager.next_updater_refresh_date")} style={{marginLeft: 0}} />
 		</div>);
-	}
+	},
+	managerInstancesItemsDescr: function(item) {
+		if (item["class"] != "AppManager") {
+			return null;
+		}
+		return i18n("manager.items.AppManager.descr");
+	},
 });
 
 mydmam.module.register("CyclicJobCreator", {
@@ -328,7 +406,21 @@ mydmam.module.register("CyclicJobCreator", {
 				{declaration_list}
 			</div>
 		</div>);
-	}
+	},
+	managerInstancesItemsDescr: function(item) {
+		if (item["class"] != "CyclicJobCreator") {
+			return null;
+		}
+		var content = item.content;
+
+		var declaration_list = [];
+		for (var pos in content.declarations) {
+			var declaration = content.declarations[pos];
+			declaration_list.push(declaration.job_name);
+		}
+		
+		return declaration_list.join(", ");
+	},
 });
 
 mydmam.module.register("WorkerNG", {
@@ -368,6 +460,12 @@ mydmam.module.register("WorkerNG", {
 			{specific}
 		</div>);
 
-	}
+	},
+	managerInstancesItemsDescr: function(item) {
+		if (item["class"] != "WorkerNG") {
+			return null;
+		}
+		return item.content.long_name;
+	},
 });
 

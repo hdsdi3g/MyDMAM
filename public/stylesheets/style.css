@@ -215,6 +215,36 @@ div.donejoblistitem div.row-fluid {
     width: inherit;
 }
 
+div.instancesnavlists {
+    padding: 12px;
+}
+
+div.instancesnavlists pre {
+    background-color: inherit;
+    border-radius: inherit;
+    padding: 0px;
+    border: 0;
+    font-size: 90%;
+    line-height: 20px;
+    margin: 0;
+}
+
+div.instancesnavlists a {
+    color: inherit;
+}
+
+div.instancesnavlists a:hover {
+   text-decoration: none;
+   color: #C00;
+}
+
+div.instancesnavlists hr {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+
+
 /* ============================================================================== */	
 
 .accordion-toggle {
