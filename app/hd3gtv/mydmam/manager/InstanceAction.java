@@ -22,11 +22,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.Keyspace;
@@ -104,6 +106,24 @@ public final class InstanceAction {
 		Loggers.Manager.info("Create manager action:\t" + new_instance_action.toString());
 	}
 	
+	private static final JsonParser parser = new JsonParser();
+	
+	public static JsonArray getAllPending() throws Exception {
+		final JsonArray ja = new JsonArray();
+		
+		CassandraDb.allRowsReader(CF_ACTION, new AllRowsFoundRow() {
+			public void onFoundRow(Row<String, String> row) throws Exception {
+				ja.add(parser.parse(row.getColumns().getColumnByName("source").getStringValue()));
+			}
+		}, "source");
+		
+		return ja;
+	}
+	
+	public static void truncate() throws ConnectionException {
+		CassandraDb.truncateColumnFamilyString(keyspace, CF_ACTION.getName());
+	}
+	
 	static boolean performInstanceActions(ArrayList<InstanceActionReceiver> all_receviers) throws Exception {
 		final List<InstanceAction> pending_actions = new ArrayList<InstanceAction>(1);
 		
@@ -139,13 +159,13 @@ public final class InstanceAction {
 				continue;
 			}
 			
-			Loggers.Manager.info("Do an Instance Action " + current_instance_action);
+			/*Loggers.Manager.info("Do an Instance Action " + current_instance_action); XXX remetre !!
 			
 			try {
 				recevier.doAnAction(current_instance_action.order);
 			} catch (Exception e) {
 				Loggers.Manager.error("Problem with an Instance Action " + current_instance_action, e);
-			}
+			}*/
 		}
 		
 		if (mutator.isEmpty() == false) {

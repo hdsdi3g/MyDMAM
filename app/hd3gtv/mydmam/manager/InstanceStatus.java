@@ -28,7 +28,6 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -45,11 +44,8 @@ import com.google.gson.JsonPrimitive;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.Configuration;
@@ -503,52 +499,6 @@ public final class InstanceStatus {
 			static_manager = new AppManager("Gatherer");
 		}
 		return static_manager.getInstanceStatus();
-	}
-	
-	/**
-	 * @return raw Cassandra items.
-	 */
-	public JsonObject getByKeys(ArrayList<String> refs) {
-		if (refs == null) {
-			throw new NullPointerException("\"refs\" can't to be null");
-		}
-		
-		final JsonObject result = new JsonObject();
-		final JsonParser parser = new JsonParser();
-		
-		List<String> col_names = Arrays.asList(CF_COLS.COL_SUMMARY.toString(), CF_COLS.COL_ITEMS.toString());
-		
-		try {
-			Rows<String, String> rows = keyspace.prepareQuery(CF_INSTANCES).getKeySlice(refs).withColumnSlice(col_names).execute().getResult();
-			
-			for (Row<String, String> row : rows) {
-				JsonObject item = new JsonObject();
-				ColumnList<String> cols = row.getColumns();
-				for (Column<String> col : cols) {
-					String value = col.getStringValue();
-					if (value != null) {
-						item.add(col.getName(), parser.parse(value));
-					}
-				}
-				result.add(row.getKey(), item);
-			}
-		} catch (Exception e) {
-			manager.getServiceException().onCassandraError(e);
-		}
-		
-		if (refs.contains(getStatic().summary.getInstanceNamePid())) {
-			InstanceStatus static_status = static_manager.getInstanceStatus();
-			
-			JsonObject item = new JsonObject();
-			item.add(CF_COLS.COL_SUMMARY.toString(), AppManager.getSimpleGson().toJsonTree(static_status.summary));
-			item.add(CF_COLS.COL_ITEMS.toString(), static_status.getItems());
-			item.add(CF_COLS.COL_CLASSPATH.toString(), static_status.getClasspath());
-			item.add(CF_COLS.COL_PERFSTATS.toString(), static_status.getPerfStats());
-			item.add(CF_COLS.COL_THREADS.toString(), InstanceStatus.getThreadstacktraces());
-			result.add(static_status.summary.getInstanceNamePid(), item);
-		}
-		
-		return result;
 	}
 	
 }

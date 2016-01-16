@@ -54,4 +54,10 @@ b=e.instance_name+" ("+e.app_name+") "+e.host_name;}else{b=i18n("manager.classpa
 });this.setState({list:b});}.bind(this));},render:function(){var b=mydmam.async.broker;
 var c=[];for(var e in this.state.list){var d=this.state.list[e];c.push(React.createElement("div",{key:d.key},React.createElement("div",{className:"donejoblistitem"},React.createElement(mydmam.async.JavaClassNameLink,{javaclass:d.context.classname}),React.createElement(b.JobCartridge,{job:d,required_jobs:[],action_avaliable:null,onActionButtonClick:null}))));
 }return(React.createElement("div",null,React.createElement("p",null,React.createElement("em",null,i18n("manager.lastjobs.descr"))),c));
+}});a.PendingActions=React.createClass({displayName:"PendingActions",getInitialState:function(){return{list:{},interval:null};
+},componentWillMount:function(){this.refresh();},refresh:function(){mydmam.async.request("instances","allpendingactions",null,function(b){b.sort(function(d,c){return d.created_at<c.created_at;
+});this.setState({list:b});}.bind(this));},componentDidMount:function(){this.setState({interval:setInterval(this.refresh,5000)});
+},componentWillUnmount:function(){if(this.state.interval){clearInterval(this.state.interval);
+}},render:function(){if(this.state.list.length==0){return(React.createElement("p",null,React.createElement("em",null,i18n("manager.pendingactions.nothing"))));
+}var c=[];for(var d in this.state.list){var b=this.state.list[d];}return(React.createElement("div",null,React.createElement("p",null,React.createElement("em",null,i18n("manager.pendingactions.descr"))),c));
 }});})(window.mydmam.async.manager);

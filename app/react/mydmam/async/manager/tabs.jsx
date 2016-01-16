@@ -519,3 +519,66 @@ manager.Lastjobs = React.createClass({
 		</div>);
 	},
 }); 
+
+/*
+ * ============ Pending actions =============
+ */
+manager.PendingActions = React.createClass({
+	getInitialState: function() {
+		return {
+			list: {},
+			interval: null,
+		};
+	},
+	componentWillMount: function() {
+		this.refresh();
+	},
+	refresh: function() {
+		mydmam.async.request("instances", "allpendingactions", null, function(list) {
+			list.sort(function (a, b) {
+				return a.created_at < b.created_at;
+			});
+			this.setState({list: list});
+		}.bind(this));
+	},
+	componentDidMount: function(){
+		this.setState({interval: setInterval(this.refresh, 5000)});
+	},
+	componentWillUnmount: function() {
+		if (this.state.interval) {
+			clearInterval(this.state.interval);
+		}
+	},
+	render: function() {
+		if (this.state.list.length == 0) {
+			return (<p>
+				<em>{i18n("manager.pendingactions.nothing")}</em>
+			</p>);
+		}
+		
+		var actionlist = [];
+		for (var pos in this.state.list) {
+			var action = this.state.list[pos];
+			/*key
+			target_class_name
+			target_reference_key
+			caller
+			created_at
+			order
+			*/
+			/*joblist.push(<div key={job.key}>
+				<div className="donejoblistitem">
+					<mydmam.async.JavaClassNameLink javaclass={job.context.classname} />
+					<broker.JobCartridge job={job} required_jobs={[]} action_avaliable={null} onActionButtonClick={null} />
+				</div>
+			</div>);*/
+		}
+
+		return (<div>
+			<p>
+				<em>{i18n("manager.pendingactions.descr")}</em>
+			</p>
+			{actionlist}
+		</div>);
+	},
+}); 

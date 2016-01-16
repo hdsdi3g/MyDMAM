@@ -320,10 +320,6 @@ public class MyDMAM {
 	}
 	
 	/**
-	 * Direct (de)serializer.
-	 */
-	
-	/**
 	 * Search application.conf in classpath, and return the /mydmam main directory.
 	 */
 	public static final File APP_ROOT_PLAY_DIRECTORY;

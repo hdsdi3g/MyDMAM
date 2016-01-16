@@ -64,7 +64,9 @@ manager.Header = React.createClass({
 		} else if (location.hash.indexOf("#manager/perfstats") == 0) {
 			show_this = (<manager.Perfstats summaries={this.state.summaries} />);
 		} else if (location.hash.indexOf("#manager/lastjobs") == 0) {
-			show_this = (<manager.Lastjobs summaries={this.state.summaries} />);
+			show_this = (<manager.Lastjobs />);
+		} else if (location.hash.indexOf("#manager/pendingactions") == 0) {
+			show_this = (<manager.PendingActions />);
 		}
 
 		return (
@@ -72,6 +74,7 @@ manager.Header = React.createClass({
 				<ul className="nav nav-tabs">
 					<manager.HeaderTab href="#manager/summary"   i18nlabel="manager.summaries" />
 					<manager.HeaderTab href="#manager/items" 	 i18nlabel="manager.items" />
+					<manager.HeaderTab href="#manager/pendingactions"  i18nlabel="manager.pendingactions" />
 					<manager.HeaderTab href="#manager/lastjobs"  i18nlabel="manager.lastjobs" />
 					<manager.HeaderTab href="#manager/threads" 	 i18nlabel="manager.threads" />
 					<manager.HeaderTab href="#manager/perfstats" i18nlabel="manager.perfstats" />
@@ -92,6 +95,7 @@ mydmam.routes.push("manager-Lastjobs", 	"manager/lastjobs", 	manager.Header, [{n
 mydmam.routes.push("manager-Threads", 	"manager/threads", 		manager.Header, [{name: "instances", verb: "allthreads"}, {name: "instances", verb: "allsummaries"}]);	
 mydmam.routes.push("manager-Items", 	"manager/items", 		manager.Header, [{name: "instances", verb: "allitems"}, {name: "instances", verb: "allsummaries"}]);	
 mydmam.routes.push("manager-Perfstats", "manager/perfstats", 	manager.Header, [{name: "instances", verb: "allperfstats"}]);	
+mydmam.routes.push("manager-PendingActions", "manager/pendingactions", 	manager.Header, [{name: "instances", verb: "allpendingactions"}]);	
 
 manager.HeaderTab = React.createClass({
 	onClick: function(e) {
@@ -122,3 +126,22 @@ manager.InstancesNavListElement = React.createClass({
 		</a>);
 	},
 });
+
+manager.canCreateInstanceAction = function() {
+	return mydmam.async.isAvaliable("instances", "instanceaction");
+};
+
+manager.createInstanceAction = function(target_class_name, target_reference_key, json_order, callback) {
+	if (manager.canCreateInstanceAction() == false) {
+		console.err("Can't create instance action, missing controller instanceaction", target_class_name, target_reference_key, json_order);
+		return;
+	}
+
+	var action = {
+		target_class_name: target_class_name,
+		target_reference_key: target_reference_key,
+		json_order: json_order,
+	};
+
+	mydmam.async.request("instances", "instanceaction", action, callback);
+};

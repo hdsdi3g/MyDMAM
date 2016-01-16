@@ -354,10 +354,30 @@ mydmam.module.register("AppManager", {
 		if (item["class"] != "AppManager") {
 			return null;
 		}
+
+		var on_toogle = function(toogle) {
+			manager.createInstanceAction("AppManager", item.key, {broker: toogle});
+		};
+
 		return (<div>
-			<mydmam.async.LabelBoolean label_true={i18n("manager.items.AppManager.broker.on")} label_false={i18n("manager.items.AppManager.broker.off")} value={item.content.brokeralive} inverse={true} />&nbsp;
-			<mydmam.async.LabelBoolean label_true={i18n("manager.items.AppManager.inoffhours")} label_false={i18n("manager.items.AppManager.innormalhours")} value={item.content.is_off_hours} />&nbsp;
-			<mydmam.async.pathindex.reactDate date={item.content.next_updater_refresh_date} i18nlabel={i18n("manager.items.AppManager.next_updater_refresh_date")} style={{marginLeft: 0}} />
+			<mydmam.async.BtnEnableDisable
+					simplelabel={!manager.canCreateInstanceAction()}
+					enabled={item.content.brokeralive}
+					labelenabled={i18n("manager.items.AppManager.broker.on")}
+					labeldisabled={i18n("manager.items.AppManager.broker.off")}
+					onEnable={on_toogle}
+					onDisable={on_toogle}
+					reference={item.content.brokeralive ? "stop" : "start"} />
+			&nbsp;
+			<mydmam.async.LabelBoolean
+				label_true={i18n("manager.items.AppManager.inoffhours")}
+				label_false={i18n("manager.items.AppManager.innormalhours")}
+				value={item.content.is_off_hours} />
+			&nbsp;
+			<mydmam.async.pathindex.reactDate
+				date={item.content.next_updater_refresh_date}
+				i18nlabel={i18n("manager.items.AppManager.next_updater_refresh_date")}
+				style={{marginLeft: 0}} />
 		</div>);
 	},
 	managerInstancesItemsDescr: function(item) {

@@ -116,8 +116,7 @@ async.BtnEnableDisable = React.createClass({
 		this.setState({pending_changes: false});
 	},
 	render: function() {
-		var class_name_icon = classNames({
-			"icon-white":        this.props.enabled,
+		var class_name_icon = classNames("icon-white", {
 			"icon-stop":         this.props.enabled & !this.props.iconcircle,
 			"icon-play":        !this.props.enabled & !this.props.iconcircle,
 			"icon-ok-circle":    this.props.enabled &  this.props.iconcircle,

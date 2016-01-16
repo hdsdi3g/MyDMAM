@@ -10,9 +10,9 @@
     "jsfile:175778f76bb56a1db91f98e9642ba9c3": {
       "relative_file_name": "mydmam/async/manager/Items.jsx",
       "relative_root_name": "/app/react",
-      "size": 14941,
-      "date": 1452210733000,
-      "hash": "a2704b8e4d38928493ef690bd0f2ff5d"
+      "size": 15270,
+      "date": 1452974189000,
+      "hash": "552aaa704141708b183bc3cc43f955c8"
     },
     "jsfile:99edda8fb3cf15cac439d1467da9ad37": {
       "relative_file_name": "mydmam/async/watchfolders/AbstractFoundedFile.jsx",
@@ -59,9 +59,9 @@
     "jsfile:901b1803e1b1fe65a01d52d2c845d02e": {
       "relative_file_name": "mydmam/async/manager/tabs.jsx",
       "relative_root_name": "/app/react",
-      "size": 15364,
-      "date": 1452178152000,
-      "hash": "1ba86be9f1faae1558dc2dfc46f407e6"
+      "size": 16698,
+      "date": 1452970785000,
+      "hash": "f2ba7c3972d82a892303fc7779568d1a"
     },
     "jsfile:ff033711ddbb54dba6b3ed5f0344c869": {
       "relative_file_name": "mydmam/async/navigate/BreadCrumb.jsx",
@@ -150,9 +150,9 @@
     "jsfile:3079ca5b4b6b65aa12ea004be3f1d8f4": {
       "relative_file_name": "mydmam/async/tools.jsx",
       "relative_root_name": "/app/react",
-      "size": 14323,
-      "date": 1452031113000,
-      "hash": "1f883a363ddabf03d8ce989d4ab241c7"
+      "size": 14293,
+      "date": 1452973833000,
+      "hash": "9f7e2a568a3c17113b8ce59737af2ecf"
     },
     "jsfile:d73fbb9b0b191d657c2756e0a518235a": {
       "relative_file_name": "mydmam/routes/Backbone.jsx",
@@ -269,9 +269,9 @@
     "jsfile:020b7cab317b8f90a9bb2a9106ba04ea": {
       "relative_file_name": "mydmam/async/manager/Header.jsx",
       "relative_root_name": "/app/react",
-      "size": 4894,
-      "date": 1452173997000,
-      "hash": "945b448c9003d46e33567ab2996c214e"
+      "size": 5840,
+      "date": 1452972578000,
+      "hash": "8677e53c8795d947daf84ebe50fddec9"
     },
     "jsfile:e3dcad62de20b45b8628c5fd4516d4a9": {
       "relative_file_name": "helloworld.jsx",

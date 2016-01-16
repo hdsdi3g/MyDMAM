@@ -14,7 +14,7 @@ if(this.props.label){b=(React.createElement("label",{className:"control-label"},
 },onClickSetEnable:function(){if(this.state.pending_changes){return;}this.setState({pending_changes:true});
 this.props.onEnable(this.props.reference);},onClickSetDisable:function(){if(this.state.pending_changes){return;
 }this.setState({pending_changes:true});this.props.onDisable(this.props.reference);
-},componentWillReceiveProps:function(){this.setState({pending_changes:false});},render:function(){var b=classNames({"icon-white":this.props.enabled,"icon-stop":this.props.enabled&!this.props.iconcircle,"icon-play":!this.props.enabled&!this.props.iconcircle,"icon-ok-circle":this.props.enabled&this.props.iconcircle,"icon-ban-circle":!this.props.enabled&this.props.iconcircle});
+},componentWillReceiveProps:function(){this.setState({pending_changes:false});},render:function(){var b=classNames("icon-white",{"icon-stop":this.props.enabled&!this.props.iconcircle,"icon-play":!this.props.enabled&!this.props.iconcircle,"icon-ok-circle":this.props.enabled&this.props.iconcircle,"icon-ban-circle":!this.props.enabled&this.props.iconcircle});
 if(this.props.simplelabel){if(this.props.enabled){return(React.createElement("span",null,React.createElement("strong",null,this.props.labelenabled)));
 }else{return(React.createElement("span",{className:"muted"},React.createElement("strong",null,this.props.labeldisabled)));
 }}if(this.props.enabled){var c=classNames("btn","btn-mini",{disabled:this.state.pending_changes,"btn-danger":!this.props.iconcircle,"btn-success":this.props.iconcircle});

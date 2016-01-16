@@ -21,16 +21,14 @@ import java.util.ArrayList;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 
 import controllers.Check;
+import controllers.Secure;
 import hd3gtv.configuration.GitInfo;
-import hd3gtv.mydmam.manager.AJSgetItems;
 import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.AsyncJSInstanceActionRequest;
+import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.web.AJSController;
@@ -53,14 +51,6 @@ public class Instances extends AJSController {
 				return src.list;
 			}
 		});*/
-		
-		AJSController.registerTypeAdapter(AJSgetItems.class, new JsonDeserializer<AJSgetItems>() {
-			public AJSgetItems deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-				AJSgetItems result = new AJSgetItems();
-				result.refs = AppManager.getSimpleGson().fromJson(json.getAsJsonObject().get("refs").getAsJsonArray(), al_String_typeOfT);
-				return result;
-			}
-		});
 	}
 	
 	/**
@@ -122,23 +112,28 @@ public class Instances extends AJSController {
 	}
 	
 	/**
-	 * @return instance ref -> CF -> raw JS
+	 * @return [action]
 	 */
-	/*@Check("showInstances")
-	public static JsonObject byrefs(AJSgetItems items) {
-		JsonObject result = current.getByKeys(items.refs);
-		return result;
-	}*/
+	@Check("showInstances")
+	public static JsonArray allPendingActions() throws Exception {
+		return InstanceAction.getAllPending();
+	}
 	
 	@Check("showInstances")
 	public static void truncate() throws Exception {
 		InstanceStatus.truncate();
+		InstanceAction.truncate();
 		Thread.sleep(300);
 	}
 	
 	@Check("showInstances")
 	public static String appversion() throws Exception {
 		return GitInfo.getFromRoot().getActualRepositoryInformation();
+	}
+	
+	@Check("doInstanceAction")
+	public static void instanceAction(AsyncJSInstanceActionRequest action) throws Exception {
+		action.doAction(getUserProfile().key + " " + Secure.getRequestAddress());
 	}
 	
 }
