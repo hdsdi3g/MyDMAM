@@ -559,25 +559,35 @@ manager.PendingActions = React.createClass({
 		var actionlist = [];
 		for (var pos in this.state.list) {
 			var action = this.state.list[pos];
-			/*key
-			target_class_name
-			target_reference_key
-			caller
-			created_at
-			order
-			*/
-			/*joblist.push(<div key={job.key}>
-				<div className="donejoblistitem">
-					<mydmam.async.JavaClassNameLink javaclass={job.context.classname} />
-					<broker.JobCartridge job={job} required_jobs={[]} action_avaliable={null} onActionButtonClick={null} />
+			actionlist.push(<div key={action.key}>
+				{mydmam.async.broker.displayKey(action.key, true)}
+				<mydmam.async.pathindex.reactDate
+					date={action.created_at}
+					i18nlabel={i18n("manager.pendingactions.at")} />
+				<span className="label label-inverse" style={{marginLeft: 10}}>
+					{i18n("manager.pendingactions.by", action.caller)}
+				</span>
+				<div style={{marginTop: 10}}>
+					<span className="label label-info">
+						{i18n("manager.pendingactions.for", action.target_reference_key)}
+					</span>
 				</div>
-			</div>);*/
+				<h5>{i18n("manager.pendingactions.order")}</h5>
+				<div>
+					<code className="json" style={{marginTop: 10}}>
+						<i className="icon-indent-left"></i>
+						<span className="jsontitle"> {action.target_class_name} </span>
+						{JSON.stringify(action.order, null, " ")}
+					</code>
+				</div>
+				<hr />
+			</div>);
 		}
 
 		return (<div>
-			<p>
-				<em>{i18n("manager.pendingactions.descr")}</em>
-			</p>
+			<h4>
+				{i18n("manager.pendingactions.descr")}
+			</h4>
 			{actionlist}
 		</div>);
 	},
