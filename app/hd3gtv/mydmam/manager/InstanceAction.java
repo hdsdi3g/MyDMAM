@@ -159,13 +159,13 @@ public final class InstanceAction {
 				continue;
 			}
 			
-			/*Loggers.Manager.info("Do an Instance Action " + current_instance_action); XXX remetre !!
+			Loggers.Manager.info("Do an Instance Action " + current_instance_action);
 			
 			try {
 				recevier.doAnAction(current_instance_action.order);
 			} catch (Exception e) {
 				Loggers.Manager.error("Problem with an Instance Action " + current_instance_action, e);
-			}*/
+			}
 		}
 		
 		if (mutator.isEmpty() == false) {

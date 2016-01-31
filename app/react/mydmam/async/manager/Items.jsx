@@ -395,6 +395,26 @@ mydmam.module.register("CyclicJobCreator", {
 		}
 		var content = item.content;
 
+		var on_toogle_enable_disable = function(toogle) {
+			manager.createInstanceAction("CyclicJobCreator", item.key, {activity: toogle});
+		};
+
+		var btn_label_enable_disable = (<mydmam.async.BtnEnableDisable
+			simplelabel={!manager.canCreateInstanceAction()}
+			enabled={content.enabled}
+			labelenabled={i18n("manager.items.CyclicJobCreator.enabled")}
+			labeldisabled={i18n("manager.items.CyclicJobCreator.disabled")}
+			onEnable={on_toogle_enable_disable}
+			onDisable={on_toogle_enable_disable}
+			reference={content.enabled ? "disable" : "enable"} />);
+
+		var on_do_create = function() {
+			manager.createInstanceAction("CyclicJobCreator", item.key, {activity: "createjobs"});
+		};
+
+		// setperiod xxxx
+		// setnextdate xxxx
+
 		var declaration_list = [];
 		for (var pos in content.declarations) {
 			var declaration = content.declarations[pos];
@@ -414,7 +434,7 @@ mydmam.module.register("CyclicJobCreator", {
 
 		return (<div>
 			<strong>{content.long_name} :: {content.vendor_name}</strong><br />
-			<mydmam.async.LabelBoolean label_true={i18n("manager.items.CyclicJobCreator.enabled")} label_false={i18n("manager.items.CyclicJobCreator.disabled")} value={content.enabled} inverse={true} />&nbsp;
+			{btn_label_enable_disable}&nbsp;
 			<mydmam.async.pathindex.reactDate date={content.next_date_to_create_jobs} i18nlabel={i18n("manager.items.CyclicJobCreator.next_date_to_create_jobs")} style={{marginLeft: 0}} />&nbsp;
 			<mydmam.async.LabelBoolean label_true={i18n("manager.items.CyclicJobCreator.onlyoff")} label_false={i18n("manager.items.CyclicJobCreator.norestricted")} value={content.only_off_hours} />&nbsp;
 			<br />
