@@ -249,7 +249,7 @@ async.LabelBoolean = React.createClass({
 async.JsonCode = React.createClass({
 	propTypes: {
 		i18nlabel:		React.PropTypes.string.isRequired,
-		json: 			React.PropTypes.string.isRequired,
+		json: 			React.PropTypes.object.isRequired,
 	},
 	render: function() {
 		var i18nlabel = (<span className="jsontitle"> {i18n(this.props.i18nlabel)} </span>);

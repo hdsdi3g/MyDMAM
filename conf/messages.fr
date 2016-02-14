@@ -115,6 +115,17 @@ manager.items.CyclicJobCreator.norestricted=Pas de restriction d'horaires
 manager.items.CyclicJobCreator.creator=Créé par :
 manager.items.CyclicJobCreator.declarations=Jobs à créer :
 manager.items.worker.capablities=Capacités :
+manager.items.worker.specific=Configuration spécifique
+manager.items.watchfolderentry.source=Stockage source :
+manager.items.watchfolderentry.mustcontain=Doit contenir au minimum :
+manager.items.watchfolderentry.mustcontain.video=une piste video
+manager.items.watchfolderentry.mustcontain.audio=une piste audio
+manager.items.watchfolderentry.targets=Destinations :
+manager.items.watchfolderentry.keep_input_dir_to_dest.true=Conserver l'arborescence source en destination
+manager.items.watchfolderentry.keep_input_dir_to_dest.false=Ne pas conserver d'arborescence dans la destination
+manager.items.watchfolderentry.target.storage=Stockage de destination :
+manager.items.watchfolderentry.target.profile=Profile :
+manager.items.watchfolderentry.target.prefixsuffix=Prefixe : "%s"; suffixe : "%s".
 
 manager.jobs.pagename=Liste des jobs
 manager.jobs.status.WAITING=En attente

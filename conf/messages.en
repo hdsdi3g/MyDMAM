@@ -115,6 +115,17 @@ manager.items.CyclicJobCreator.norestricted=No time restricted
 manager.items.CyclicJobCreator.creator=Created by:
 manager.items.CyclicJobCreator.declarations=Jobs to create:
 manager.items.worker.capablities=Capablities:
+manager.items.worker.specific=Specific configuration
+manager.items.watchfolderentry.source=Source storage:
+manager.items.watchfolderentry.mustcontain=Must contain at least:
+manager.items.watchfolderentry.mustcontain.video=a video track
+manager.items.watchfolderentry.mustcontain.audio=an audio track
+manager.items.watchfolderentry.targets=Targets:
+manager.items.watchfolderentry.keep_input_dir_to_dest.true=Keep the source folders to destination
+manager.items.watchfolderentry.keep_input_dir_to_dest.false=Don't keep the source folders to destination
+manager.items.watchfolderentry.target.storage=Destination storage:
+manager.items.watchfolderentry.target.profile=Profile:
+manager.items.watchfolderentry.target.prefixsuffix=Prefix: "%s"; suffix: "%s".
 
 manager.jobs.pagename=Jobs list
 manager.jobs.status.WAITING=Waiting
