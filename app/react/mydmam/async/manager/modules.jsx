@@ -221,16 +221,40 @@ mydmam.module.register("WatchFolderEntry", {
 			</div>);
 		}
 
+		var want_to_stop = null;
+		if (content.want_to_stop) {
+			want_to_stop = (<p>
+				<mydmam.async.LabelBoolean
+					value={true}
+					label_true={i18n("manager.items.watchfolderentry.want_to_stop")}
+					label_false={i18n("manager.items.watchfolderentry.want_to_stop")} />
+			</p>);
+		}
+
+		var on_toogle_enable_disable = function(){};
+
+		var btn_label_enable_disable = (<mydmam.async.BtnEnableDisable
+			//simplelabel={!manager.canCreateInstanceAction()}
+			simplelabel={true}
+			enabled={content.isalive}
+			labelenabled={i18n("manager.items.watchfolderentry.enabled")}
+			labeldisabled={i18n("manager.items.watchfolderentry.disabled")}
+			onEnable={on_toogle_enable_disable}
+			onDisable={on_toogle_enable_disable}
+			reference={content.isalive ? "disable" : "enable"} />);
+
 		return (<div>
+			<p>
+				{btn_label_enable_disable}
+			</p>
 			{i18n("manager.items.watchfolderentry.source")} <span className="badge badge-warning">{content.source_storage}</span>
+			{want_to_stop}
 			{must_contain_div}
 			{target_block}<br />
 
 			{i18n("manager.items.watchfolderentry.min_file_size")} <mydmam.async.pathindex.reactFileSize size={content.min_file_size} /><br />
-			{i18n("manager.items.watchfolderentry.time_to_sleep_between_scans")} <span className="label">{content.time_to_sleep_between_scans / 1000}</span><br />
-			{i18n("manager.items.watchfolderentry.time_to_wait_growing_file")} <span className="label">{content.time_to_wait_growing_file / 1000}</span><br />
-			{i18n("manager.items.watchfolderentry.want_to_stop")} {content.want_to_stop}
-			{i18n("manager.items.watchfolderentry.isalive")} {content.isalive}
+			<span className="label">{i18n("manager.items.watchfolderentry.time_to_sleep_between_scans", content.time_to_sleep_between_scans / 1000)}</span><br />
+			<span className="label">{i18n("manager.items.watchfolderentry.time_to_wait_growing_file", content.time_to_wait_growing_file / 1000)}</span><br />
 		</div>);
 	},
 	managerInstancesItemsDescr: function(item) {
@@ -241,21 +265,6 @@ mydmam.module.register("WatchFolderEntry", {
 	},
 });
 
-/*
-{
- "executable_name": "convert",
- "executable": "/.../bin/convert",
- "params": "<%$INPUTFILE%>[0] -thumbnail 64x64 -profile <%$ICCPROFILE%> null: ( -brightness-contrast 30x60 -size 128x128 -resize 64x64 pattern:CHECKERBOARD ) -compose Dst_Over -layers composite -strip -density 72x72 -units PixelsPerInch -interlace plane -sampling-factor 4:1:1 -quality 80 <%$OUTPUTFILE%>",
- "extension": "jpg",
- "outputformat": {
-  "width": 64,
-  "height": 64,
-  "faststarted": false
- },
- "current_directory_mode": "none"
-}
-*/
-
 mydmam.module.register("TranscodeProfile", {
 	managerInstancesItems: function(item) {
 		if (item["class"] != "TranscodeProfile") {
@@ -263,7 +272,51 @@ mydmam.module.register("TranscodeProfile", {
 		}
 		var content = item.content;
 
+		var params = content.params;
+		var cmd_line = [];
+		var nb_car = params.length;
+		var pos = 0;
+		while (pos < params.length) {
+			var first_index = params.indexOf("<%$", pos);
+			var last_index = params.indexOf("%>", pos);
+			if (pos != first_index) {
+				cmd_line.push(params.substring(pos, first_index));
+			}
+			cmd_line.push(params.substring(first_index, last_index + 2));
+			pos = last_index + 2;
+		}
+		var react_cmd_line = [];
+		for (var pos in cmd_line) {
+			var param = cmd_line[pos];
+			var span_class = classNames({
+				"cmd_var": param.indexOf("<%$") == 0,
+			});
+			react_cmd_line.push(<span key={pos} className={span_class}>
+				{param}
+			</span>);
+		}
+
+		var cdm = null;
+		if (content.current_directory_mode != "none") {
+			cdm = (<span className="label label-warning">{i18n("manager.items.TranscodeProfile.current_directory_mode." + content.current_directory_mode)}</span>);
+		}
+
+		var outputformat = null;
+		if (content.outputformat != null) {
+			outputformat = (<div style={{marginTop: 10}}>
+				<mydmam.async.JsonCode i18nlabel="manager.items.TranscodeProfile.outputformat" json={content.outputformat} />
+			</div>);
+		}
+
 		return (<div>
+			<p>
+				{i18n("manager.items.TranscodeProfile.executable_name")} <span className="label label-info">{content.executable_name}</span>
+				<span style={{marginLeft: 5, marginRight: 3}}>&bull;</span>
+				{i18n("manager.items.TranscodeProfile.extension")} <span className="label label-success">.{content.extension}</span><br />
+				{cdm}
+			</p>
+			<code className="commandline"><span className="executable">{content.executable}</span> {react_cmd_line}</code>
+			{outputformat}
 		</div>);
 	},
 	managerInstancesItemsDescr: function(item) {
@@ -274,3 +327,51 @@ mydmam.module.register("TranscodeProfile", {
 	},
 });
 
+mydmam.module.register("FTPGroup", {
+	managerInstancesItems: function(item) {
+		if (item["class"] != "FTPGroup") {
+			return null;
+		}
+		var content = item.content;
+
+		var disabled = null;
+		if (content.disabled_group) {
+			disabled = (<p><span className="label label-error">{i18n("manager.items.FTPGroup.disabled_group")}</span></p>);
+		}
+
+		var expirations = null;
+		if (content.account_expiration_trash_duration > 0 | content.account_expiration_purge_duration > 0) {
+			expirations = (<p>
+				<span className="label">{i18n("manager.items.FTPGroup.account_expiration_trash_duration", content.account_expiration_trash_duration / 1000)}</span><br />
+				<span className="label">{i18n("manager.items.FTPGroup.account_expiration_purge_duration", content.account_expiration_purge_duration / 1000)}</span><br />
+				<span className="label">{i18n("manager.items.FTPGroup.account_expiration_based_on_last_activity." + content.account_expiration_based_on_last_activity)}</span>
+			</p>);
+		}
+		var domain_isolation = null;
+		if (content.domain_isolation) {
+			domain_isolation = (<em>{i18n("manager.items.FTPGroup.domain_isolation")}</em>);
+		}
+		var short_activity_log = null;
+		if (content.short_activity_log == false) {
+			short_activity_log = (<div><span className="badge badge-important">{i18n("manager.items.FTPGroup.long_activity_log")}</span></div>);
+		}
+		return (<div>
+			{disabled}
+			<strong>{i18n("manager.items.FTPGroup.base_working_dir", content.base_working_dir)}</strong>{domain_isolation}<br />
+			{i18n("manager.items.FTPGroup.pathindex_storagename")} <span className="label label-warning">{content.pathindex_storagename}</span><br />
+
+			{i18n("manager.items.FTPGroup.last_free_space")} <mydmam.async.pathindex.reactFileSize size={content.last_free_space} /><br />
+			{i18n("manager.items.FTPGroup.min_disk_space_before_warn")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_warn} /><br />
+			{i18n("manager.items.FTPGroup.min_disk_space_before_stop")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_stop} /><br />
+			{expirations}
+			{short_activity_log}
+			{i18n("manager.items.FTPGroup.trash_directory", content.trash_directory)}<br />
+		</div>);
+	},
+	managerInstancesItemsDescr: function(item) {
+		if (item["class"] != "FTPGroup") {
+			return null;
+		}
+		return i18n("manager.items.FTPGroup.key", item.key);
+	},
+});

@@ -1,7 +1,8 @@
 (function(a){a.Items=React.createClass({displayName:"Items",getInitialState:function(){return{items:{},interval:null,user_has_change_checks:false,selected_instances:[],selected_item_classes:[]};
-},componentWillMount:function(){this.refresh();},refresh:function(){mydmam.async.request("instances","allitems",null,function(b){this.setState({items:b});
-if(this.state.user_has_change_checks==false){var c=[];for(var d in b){if(b[d].length>0){if(b[d][0].content){if(b[d][0].content.brokeralive){c.push(d);
-}}}}this.setState({selected_instances:c,selected_item_classes:this.getAllClassesNames(b)});
+},componentWillMount:function(){this.refresh();},refresh:function(){var c=function(e,d){return e["class"]+e.key>d["class"]+d.key;
+};var b=function(e){var d=[];for(var f in e){d[f]=e[f].sort(c);}return d;};mydmam.async.request("instances","allitems",null,function(d){this.setState({items:b(d)});
+if(this.state.user_has_change_checks==false){var e=[];var g=Object.keys(d).length;
+var h=1;for(var f in d){if(h>=g){break;}h++;e.push(f);}this.setState({selected_instances:e,selected_item_classes:this.getAllClassesNames(d)});
 }}.bind(this));},componentDidMount:function(){this.setState({interval:setInterval(this.refresh,5000)});
 },componentWillUnmount:function(){if(this.state.interval){clearInterval(this.state.interval);
 }},onSelectInstance:function(e,d){if(e=="_all"){var b=[];if(d){for(var c in this.state.items){b.push(c);
@@ -30,7 +31,7 @@ c=(React.createElement("span",null,g.instance_name," ",React.createElement("sma
 }else{s.push(React.createElement("h3",{key:t+"-title",style:{marginBottom:6}},t));
 }for(var b in m){var o=m[b];var p=o["class"];if(this.state.selected_item_classes.indexOf(p)==-1){continue;
 }var r=mydmam.module.f.managerInstancesItems(o);if(r==null){r=(React.createElement("div",null,React.createElement("code",{className:"json",style:{marginTop:10}},React.createElement("i",{className:"icon-indent-left"}),React.createElement("span",{className:"jsontitle"}," ",o["class"]," "),JSON.stringify(o.content,null," "))));
-}var e=md5(t+" "+b);s.push(React.createElement("div",{key:e,ref:e,style:{marginBottom:26,marginLeft:10}},React.createElement("div",{className:"pull-right"},mydmam.async.broker.displayKey(o.key,true)),React.createElement("h4",null,React.createElement("a",{href:location.hash,onClick:this.onGotoTheTop},React.createElement("i",{className:" icon-arrow-up",style:{marginRight:5,marginTop:5}})),p),React.createElement("div",{className:"instance-item-block"},r)));
+}var e=md5(t+" "+b);s.push(React.createElement("div",{key:e,ref:e,style:{marginBottom:26,marginLeft:10}},React.createElement("h4",null,React.createElement("a",{href:location.hash,onClick:this.onGotoTheTop},React.createElement("i",{className:" icon-arrow-up",style:{marginRight:5,marginTop:5}})),p,React.createElement("span",{style:{marginLeft:"0.5em"}},mydmam.async.broker.displayKey(o.key,true))),React.createElement("div",{className:"instance-item-block"},r)));
 var n=mydmam.module.f.managerInstancesItemsDescr(o);if(n==null){n=(React.createElement("em",null,i18n("manager.items.summarytable.descr.noset")));
 }l.push(React.createElement("tr",{key:e},React.createElement("td",null,c),React.createElement("td",null,p),React.createElement("td",null,React.createElement(a.btnArrowGoToItemBlock,{onGoToItemBlock:this.onGoToItemBlock,reference:e},React.createElement("i",{className:"icon-arrow-down",style:{marginTop:2}})," ",n))));
 }s.push(React.createElement("hr",{key:t+"-hr",style:{marginBottom:10}}));}var k=null;

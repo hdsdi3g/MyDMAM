@@ -243,7 +243,33 @@ div.instancesnavlists hr {
     margin-bottom: 5px;
 }
 
+h4 abbr {
+    font-weight: normal;
+}
 
+code.commandline {
+    white-space: pre-wrap;
+    display: block;
+    color: #DFDFDF;
+    background-color: #1A1B1B;
+    line-height: 1.5em;
+    cursor: auto;
+    border: 0px;
+    border-radius: 3px;
+    padding: 6px 8px;
+}
+
+code.commandline span.executable {
+    color: #FFD;
+}
+
+code.commandline span.cmd_var {
+    color: #F99;
+    background-color: #444;
+    border-radius: 3px;
+    padding-left: 2px;
+    padding-right: 2px;
+}
 
 /* ============================================================================== */	
 

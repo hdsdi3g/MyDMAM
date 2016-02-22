@@ -29,20 +29,31 @@ manager.Items = React.createClass({
 		this.refresh();
 	},
 	refresh: function() {
+		var sortItems = function(a , b) {
+			return a["class"] + a.key > b["class"] + b.key;
+		};
+		var preSortItem = function(items) {
+			var result = [];
+			for (var instance_key in items) {
+				result[instance_key] = items[instance_key].sort(sortItems);
+			}
+			return result;
+		};
+
 		mydmam.async.request("instances", "allitems", null, function(items) {
 			this.setState({
-				items: items,
+				items: preSortItem(items),
 			});
 			if (this.state.user_has_change_checks == false) {
 				var selected_instances = [];
+				var num_items = Object.keys(items).length;
+				var pos = 1;
 				for (var instance_key in items) {
-					if (items[instance_key].length > 0) {
-						if (items[instance_key][0].content) {
-							if (items[instance_key][0].content.brokeralive) {
-								selected_instances.push(instance_key);
-							}
-						}
+					if (pos >= num_items) {
+						break;
 					}
+					pos++;
+					selected_instances.push(instance_key);
 				}
 				this.setState({
 					selected_instances: selected_instances,
@@ -245,10 +256,10 @@ manager.Items = React.createClass({
 				 */
 				var ref = md5(instance_key + " " + pos_items);
 				display_items.push(<div key={ref} ref={ref} style={{marginBottom: 26, marginLeft: 10}}>
-					<div className="pull-right">{mydmam.async.broker.displayKey(json_item.key, true)}</div>
 					<h4>
 						<a href={location.hash} onClick={this.onGotoTheTop}><i className=" icon-arrow-up" style={{marginRight: 5, marginTop: 5}}></i></a>
 						{item_class}
+						<span style={{marginLeft: "0.5em"}}>{mydmam.async.broker.displayKey(json_item.key, true)}</span>
 					</h4>
 					<div className="instance-item-block">
 						{item}
