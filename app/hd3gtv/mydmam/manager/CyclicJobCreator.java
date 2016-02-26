@@ -48,7 +48,7 @@ public final class CyclicJobCreator extends JobCreator {
 	
 	synchronized void setEnabled(boolean enabled) {
 		super.setEnabled(enabled);
-		if (isEnabled() == true) {
+		if (isEnabled() == false) {
 			period = 0;
 		} else {
 			period = origin_period;

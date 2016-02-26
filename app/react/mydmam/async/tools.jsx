@@ -179,6 +179,28 @@ async.BtnDelete = React.createClass({
 	},
 });
 
+async.SimpleBtn = React.createClass({
+	propTypes: {
+		enabled: React.PropTypes.bool.isRequired,
+		onClick: React.PropTypes.func.isRequired,
+		reference: React.PropTypes.string,
+		btncolor: React.PropTypes.string,
+	},
+	onClick: function() {
+		if (!this.props.enabled) {
+			return;
+		}
+		this.props.onClick(this.props.reference);
+	},
+	render: function() {
+		var btn_classes = classNames("btn", "btn-mini", this.props.btncolor, {
+			disabled: !this.props.enabled,
+		});
+		return (<button className={btn_classes} onClick={this.onClick}>{this.props.children}</button>);
+	},
+});
+
+
 async.ButtonSort = React.createClass({
 	handleClick: function(e) {
 		e.preventDefault();

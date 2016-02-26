@@ -54,6 +54,74 @@ mydmam.module.register("AppManager", {
 	},
 });
 
+manager.jobcreatorutils = {};
+var jobcreatorutils = manager.jobcreatorutils;
+
+jobcreatorutils.createButtonKitToogleEnableDisable = function(item, java_class) {
+	var on_toogle_enable_disable = function(toogle) {
+		manager.createInstanceAction(java_class, item.key, {activity: toogle});
+	};
+
+	return (<mydmam.async.BtnEnableDisable
+		simplelabel={!manager.canCreateInstanceAction()}
+		enabled={item.content.enabled}
+		labelenabled={i18n("manager.items.jobcreatorutils.enabled")}
+		labeldisabled={i18n("manager.items.jobcreatorutils.disabled")}
+		onEnable={on_toogle_enable_disable}
+		onDisable={on_toogle_enable_disable}
+		reference={item.content.enabled ? "disable" : "enable"} />
+	);
+};
+
+jobcreatorutils.createButtonKitCreateJob = function(item, java_class) {
+		var on_do_create = function() {
+			manager.createInstanceAction(java_class, item.key, {activity: "createjobs"});
+		};
+
+		return (<mydmam.async.SimpleBtn
+				enabled={item.content.enabled}
+				onClick={on_do_create}
+				reference={item.content.enabled ? "disable" : "enable"}
+				btncolor="btn-primary">
+			<i className="icon-plus icon-white"></i> {i18n("manager.items.jobcreatorutils.createjob")}
+		</mydmam.async.SimpleBtn>);
+}
+
+jobcreatorutils.getDeclarationList = function(declarations) {
+	var declaration_list = [];
+	for (var pos in declarations) {
+		var declaration = declarations[pos];
+		
+		var context_list = [];
+		for (var pos_ctx in declaration.contexts) {
+			var context = declaration.contexts[pos_ctx];
+			context_list.push(<div key={pos_ctx} style={{marginLeft: 10}}>
+				{mydmam.async.broker.displayContext(context)}
+			</div>);
+		}
+		declaration_list.push(<div key={pos} style={{marginLeft: 12}}>
+			<strong>&bull; {declaration.job_name}</strong><br />
+			{context_list}
+		</div>);
+	}
+	return declaration_list;
+}
+
+mydmam.module.register("jobcreatorutils", {
+	managerInstancesItemsDescr: function(item) {
+		if (item["class"] != "CyclicJobCreator" &
+			item["class"] != "TriggerJobCreator") {
+			return null;
+		}
+		var declaration_list = [];
+		for (var pos in item.content.declarations) {
+			var declaration = item.content.declarations[pos];
+			declaration_list.push(declaration.job_name);
+		}
+		return declaration_list.join(", ");
+	},
+});
+
 mydmam.module.register("CyclicJobCreator", {
 	managerInstancesItems: function(item) {
 		if (item["class"] != "CyclicJobCreator") {
@@ -61,73 +129,54 @@ mydmam.module.register("CyclicJobCreator", {
 		}
 		var content = item.content;
 
-		var on_toogle_enable_disable = function(toogle) {
-			manager.createInstanceAction("CyclicJobCreator", item.key, {activity: toogle});
-		};
-
-		var btn_label_enable_disable = (<mydmam.async.BtnEnableDisable
-			simplelabel={!manager.canCreateInstanceAction()}
-			enabled={content.enabled}
-			labelenabled={i18n("manager.items.CyclicJobCreator.enabled")}
-			labeldisabled={i18n("manager.items.CyclicJobCreator.disabled")}
-			onEnable={on_toogle_enable_disable}
-			onDisable={on_toogle_enable_disable}
-			reference={content.enabled ? "disable" : "enable"} />);
-
-		var on_do_create = function() {
-			manager.createInstanceAction("CyclicJobCreator", item.key, {activity: "createjobs"});
-		};
-
 		// setperiod xxxx
 		// setnextdate xxxx
 
-		var declaration_list = [];
-		for (var pos in content.declarations) {
-			var declaration = content.declarations[pos];
-			
-			var context_list = [];
-			for (var pos_ctx in declaration.contexts) {
-				var context = declaration.contexts[pos_ctx];
-				context_list.push(<div key={pos_ctx} style={{marginLeft: 10}}>
-					{mydmam.async.broker.displayContext(context)}
-				</div>);
-			}
-			declaration_list.push(<div key={pos} style={{marginLeft: 12}}>
-				<strong>&bull; {declaration.job_name}</strong><br />
-				{context_list}
-			</div>);
-		}
-
 		return (<div>
 			<strong>{content.long_name} :: {content.vendor_name}</strong><br />
-			{btn_label_enable_disable}&nbsp;
+			{jobcreatorutils.createButtonKitToogleEnableDisable(item, "CyclicJobCreator")} {jobcreatorutils.createButtonKitCreateJob(item, "CyclicJobCreator")}&nbsp;
 			<mydmam.async.pathindex.reactDate date={content.next_date_to_create_jobs} i18nlabel={i18n("manager.items.CyclicJobCreator.next_date_to_create_jobs")} style={{marginLeft: 0}} />&nbsp;
 			<mydmam.async.LabelBoolean label_true={i18n("manager.items.CyclicJobCreator.onlyoff")} label_false={i18n("manager.items.CyclicJobCreator.norestricted")} value={content.only_off_hours} />&nbsp;
 			<br />
 			{i18n("manager.items.CyclicJobCreator.period", content.period / 1000)}
 			<br />
-			{i18n("manager.items.CyclicJobCreator.creator")} <mydmam.async.JavaClassNameLink javaclass={content.creator} />
+			{i18n("manager.items.jobcreatorutils.creator")} <mydmam.async.JavaClassNameLink javaclass={content.creator} />
 			<div style={{marginTop: 16}}>
-				<i className="icon-th-list"></i> {i18n("manager.items.CyclicJobCreator.declarations")}<br />
-				{declaration_list}
+				<i className="icon-th-list"></i> {i18n("manager.items.jobcreatorutils.declarations")}<br />
+				{jobcreatorutils.getDeclarationList(content.declarations)}
 			</div>
 		</div>);
 	},
-	managerInstancesItemsDescr: function(item) {
-		if (item["class"] != "CyclicJobCreator") {
+});
+
+mydmam.module.register("TriggerJobCreator", {
+	managerInstancesItems: function(item) {
+		if (item["class"] != "TriggerJobCreator") {
 			return null;
 		}
 		var content = item.content;
 
-		var declaration_list = [];
-		for (var pos in content.declarations) {
-			var declaration = content.declarations[pos];
-			declaration_list.push(declaration.job_name);
-		}
-		
-		return declaration_list.join(", ");
+		return (<div>
+			<strong>{content.long_name} :: {content.vendor_name}</strong><br />
+			
+			{jobcreatorutils.createButtonKitToogleEnableDisable(item, "TriggerJobCreator")} {jobcreatorutils.createButtonKitCreateJob(item, "TriggerJobCreator")}<br />
+			
+			{i18n("manager.items.jobcreatorutils.creator")} <mydmam.async.JavaClassNameLink javaclass={content.creator} />
+
+			<div style={{marginTop: 16}}>
+				<i className="icon-th-list"></i> {i18n("manager.items.TriggerJobCreator.context_hook")}<br />
+				{mydmam.async.broker.displayContext(content.context_hook)}
+				{i18n("manager.items.TriggerJobCreator.context_hook_trigger_key")} {mydmam.async.broker.displayKey(content.context_hook_trigger_key, true)}<br />
+			</div>
+
+			<div style={{marginTop: 16}}>
+				<i className="icon-th-list"></i> {i18n("manager.items.jobcreatorutils.declarations")}<br />
+				{jobcreatorutils.getDeclarationList(content.declarations)}
+			</div>
+		</div>);
 	},
 });
+
 
 mydmam.module.register("WorkerNG", {
 	managerInstancesItems: function(item) {

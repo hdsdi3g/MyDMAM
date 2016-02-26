@@ -54,6 +54,74 @@ mydmam.module.register("AppManager", {
 	},
 });
 
+manager.jobcreatorutils = {};
+var jobcreatorutils = manager.jobcreatorutils;
+
+jobcreatorutils.createButtonKitToogleEnableDisable = function(item, java_class) {
+	var on_toogle_enable_disable = function(toogle) {
+		manager.createInstanceAction(java_class, item.key, {activity: toogle});
+	};
+
+	return (React.createElement(mydmam.async.BtnEnableDisable, {
+		simplelabel: !manager.canCreateInstanceAction(), 
+		enabled: item.content.enabled, 
+		labelenabled: i18n("manager.items.jobcreatorutils.enabled"), 
+		labeldisabled: i18n("manager.items.jobcreatorutils.disabled"), 
+		onEnable: on_toogle_enable_disable, 
+		onDisable: on_toogle_enable_disable, 
+		reference: item.content.enabled ? "disable" : "enable"})
+	);
+};
+
+jobcreatorutils.createButtonKitCreateJob = function(item, java_class) {
+		var on_do_create = function() {
+			manager.createInstanceAction(java_class, item.key, {activity: "createjobs"});
+		};
+
+		return (React.createElement(mydmam.async.SimpleBtn, {
+				enabled: item.content.enabled, 
+				onClick: on_do_create, 
+				reference: item.content.enabled ? "disable" : "enable", 
+				btncolor: "btn-primary"}, 
+			React.createElement("i", {className: "icon-plus icon-white"}), " ", i18n("manager.items.jobcreatorutils.createjob")
+		));
+}
+
+jobcreatorutils.getDeclarationList = function(declarations) {
+	var declaration_list = [];
+	for (var pos in declarations) {
+		var declaration = declarations[pos];
+		
+		var context_list = [];
+		for (var pos_ctx in declaration.contexts) {
+			var context = declaration.contexts[pos_ctx];
+			context_list.push(React.createElement("div", {key: pos_ctx, style: {marginLeft: 10}}, 
+				mydmam.async.broker.displayContext(context)
+			));
+		}
+		declaration_list.push(React.createElement("div", {key: pos, style: {marginLeft: 12}}, 
+			React.createElement("strong", null, "• ", declaration.job_name), React.createElement("br", null), 
+			context_list
+		));
+	}
+	return declaration_list;
+}
+
+mydmam.module.register("jobcreatorutils", {
+	managerInstancesItemsDescr: function(item) {
+		if (item["class"] != "CyclicJobCreator" &
+			item["class"] != "TriggerJobCreator") {
+			return null;
+		}
+		var declaration_list = [];
+		for (var pos in item.content.declarations) {
+			var declaration = item.content.declarations[pos];
+			declaration_list.push(declaration.job_name);
+		}
+		return declaration_list.join(", ");
+	},
+});
+
 mydmam.module.register("CyclicJobCreator", {
 	managerInstancesItems: function(item) {
 		if (item["class"] != "CyclicJobCreator") {
@@ -61,73 +129,54 @@ mydmam.module.register("CyclicJobCreator", {
 		}
 		var content = item.content;
 
-		var on_toogle_enable_disable = function(toogle) {
-			manager.createInstanceAction("CyclicJobCreator", item.key, {activity: toogle});
-		};
-
-		var btn_label_enable_disable = (React.createElement(mydmam.async.BtnEnableDisable, {
-			simplelabel: !manager.canCreateInstanceAction(), 
-			enabled: content.enabled, 
-			labelenabled: i18n("manager.items.CyclicJobCreator.enabled"), 
-			labeldisabled: i18n("manager.items.CyclicJobCreator.disabled"), 
-			onEnable: on_toogle_enable_disable, 
-			onDisable: on_toogle_enable_disable, 
-			reference: content.enabled ? "disable" : "enable"}));
-
-		var on_do_create = function() {
-			manager.createInstanceAction("CyclicJobCreator", item.key, {activity: "createjobs"});
-		};
-
 		// setperiod xxxx
 		// setnextdate xxxx
 
-		var declaration_list = [];
-		for (var pos in content.declarations) {
-			var declaration = content.declarations[pos];
-			
-			var context_list = [];
-			for (var pos_ctx in declaration.contexts) {
-				var context = declaration.contexts[pos_ctx];
-				context_list.push(React.createElement("div", {key: pos_ctx, style: {marginLeft: 10}}, 
-					mydmam.async.broker.displayContext(context)
-				));
-			}
-			declaration_list.push(React.createElement("div", {key: pos, style: {marginLeft: 12}}, 
-				React.createElement("strong", null, "• ", declaration.job_name), React.createElement("br", null), 
-				context_list
-			));
-		}
-
 		return (React.createElement("div", null, 
 			React.createElement("strong", null, content.long_name, " :: ", content.vendor_name), React.createElement("br", null), 
-			btn_label_enable_disable, " ", 
+			jobcreatorutils.createButtonKitToogleEnableDisable(item, "CyclicJobCreator"), " ", jobcreatorutils.createButtonKitCreateJob(item, "CyclicJobCreator"), " ", 
 			React.createElement(mydmam.async.pathindex.reactDate, {date: content.next_date_to_create_jobs, i18nlabel: i18n("manager.items.CyclicJobCreator.next_date_to_create_jobs"), style: {marginLeft: 0}}), " ", 
 			React.createElement(mydmam.async.LabelBoolean, {label_true: i18n("manager.items.CyclicJobCreator.onlyoff"), label_false: i18n("manager.items.CyclicJobCreator.norestricted"), value: content.only_off_hours}), " ", 
 			React.createElement("br", null), 
 			i18n("manager.items.CyclicJobCreator.period", content.period / 1000), 
 			React.createElement("br", null), 
-			i18n("manager.items.CyclicJobCreator.creator"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: content.creator}), 
+			i18n("manager.items.jobcreatorutils.creator"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: content.creator}), 
 			React.createElement("div", {style: {marginTop: 16}}, 
-				React.createElement("i", {className: "icon-th-list"}), " ", i18n("manager.items.CyclicJobCreator.declarations"), React.createElement("br", null), 
-				declaration_list
+				React.createElement("i", {className: "icon-th-list"}), " ", i18n("manager.items.jobcreatorutils.declarations"), React.createElement("br", null), 
+				jobcreatorutils.getDeclarationList(content.declarations)
 			)
 		));
 	},
-	managerInstancesItemsDescr: function(item) {
-		if (item["class"] != "CyclicJobCreator") {
+});
+
+mydmam.module.register("TriggerJobCreator", {
+	managerInstancesItems: function(item) {
+		if (item["class"] != "TriggerJobCreator") {
 			return null;
 		}
 		var content = item.content;
 
-		var declaration_list = [];
-		for (var pos in content.declarations) {
-			var declaration = content.declarations[pos];
-			declaration_list.push(declaration.job_name);
-		}
-		
-		return declaration_list.join(", ");
+		return (React.createElement("div", null, 
+			React.createElement("strong", null, content.long_name, " :: ", content.vendor_name), React.createElement("br", null), 
+			
+			jobcreatorutils.createButtonKitToogleEnableDisable(item, "TriggerJobCreator"), " ", jobcreatorutils.createButtonKitCreateJob(item, "TriggerJobCreator"), React.createElement("br", null), 
+			
+			i18n("manager.items.jobcreatorutils.creator"), " ", React.createElement(mydmam.async.JavaClassNameLink, {javaclass: content.creator}), 
+
+			React.createElement("div", {style: {marginTop: 16}}, 
+				React.createElement("i", {className: "icon-th-list"}), " ", i18n("manager.items.TriggerJobCreator.context_hook"), React.createElement("br", null), 
+				mydmam.async.broker.displayContext(content.context_hook), 
+				i18n("manager.items.TriggerJobCreator.context_hook_trigger_key"), " ", mydmam.async.broker.displayKey(content.context_hook_trigger_key, true), React.createElement("br", null)
+			), 
+
+			React.createElement("div", {style: {marginTop: 16}}, 
+				React.createElement("i", {className: "icon-th-list"}), " ", i18n("manager.items.jobcreatorutils.declarations"), React.createElement("br", null), 
+				jobcreatorutils.getDeclarationList(content.declarations)
+			)
+		));
 	},
 });
+
 
 mydmam.module.register("WorkerNG", {
 	managerInstancesItems: function(item) {
@@ -378,4 +427,4 @@ mydmam.module.register("FTPGroup", {
 
 })(window.mydmam.async.manager);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: 02e9b80b20a225bf1c15dbb31262e1d3
+// Source hash: 2b9b7eae2711850d4ba1089072b26481

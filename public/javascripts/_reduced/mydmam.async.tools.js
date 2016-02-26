@@ -26,6 +26,9 @@ return(React.createElement("button",{className:c,onClick:this.onClickSetEnable},
 }this.setState({pending_changes:true});this.props.onClickDelete(this.props.reference);
 },componentWillReceiveProps:function(){this.setState({pending_changes:false});},render:function(){var b=classNames("btn","btn-mini","btn-danger",{disabled:this.state.pending_changes|!this.props.enabled});
 return(React.createElement("button",{className:b,onClick:this.onClickDelete},React.createElement("i",{className:"icon-trash icon-white"})," ",this.props.label));
+}});a.SimpleBtn=React.createClass({displayName:"SimpleBtn",propTypes:{enabled:React.PropTypes.bool.isRequired,onClick:React.PropTypes.func.isRequired,reference:React.PropTypes.string,btncolor:React.PropTypes.string},onClick:function(){if(!this.props.enabled){return;
+}this.props.onClick(this.props.reference);},render:function(){var b=classNames("btn","btn-mini",this.props.btncolor,{disabled:!this.props.enabled});
+return(React.createElement("button",{className:b,onClick:this.onClick},this.props.children));
 }});a.ButtonSort=React.createClass({displayName:"ButtonSort",handleClick:function(b){b.preventDefault();
 this.props.onChangeState(this.props.colname,this.props.order);},render:function(){var c=false;
 var b=false;var d=false;if(this.props.order!=null){c=(this.props.order==="asc");b=(this.props.order==="desc");
