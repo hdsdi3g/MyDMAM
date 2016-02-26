@@ -21,26 +21,12 @@
       "date": 1447281328000,
       "hash": "3074199de23c347614dce3928e5ccdd7"
     },
-    "jsfile:6993cab1841c756c7031796d0e001257": {
-      "relative_file_name": "mydmam.manager.js",
-      "relative_root_name": "/public/javascripts/src",
-      "size": 24607,
-      "date": 1445464508000,
-      "hash": "56e931f654238f098f15dc5c427b6f21"
-    },
     "jsfile:c6d632656021215f1f50cdb2fda6cd18": {
       "relative_file_name": "mydmam/async/watchfolders/table.jsx",
       "relative_root_name": "/app/react",
       "size": 2927,
       "date": 1448829558000,
       "hash": "6eefb1353637aad907b788d23be94aab"
-    },
-    "jsfile:c3a1e40a9b006a81c582dd71ae889a1b": {
-      "relative_file_name": "mydmam.manager.a-header.js",
-      "relative_root_name": "/public/javascripts/src",
-      "size": 929,
-      "date": 1451349524000,
-      "hash": "846bcaeba56151f8bf09fe88a712427a"
     },
     "jsfile:2e362ef64e4179d31ee996d4601255be": {
       "relative_file_name": "mydmam.basket.content.backend.js",
@@ -83,13 +69,6 @@
       "size": 732,
       "date": 1445637397000,
       "hash": "8ce97396e43e03cb763343c16a4b5d52"
-    },
-    "jsfile:fec0ec0e2b0a1ed081e6853e5131e9fa": {
-      "relative_file_name": "mydmam.manager.workerstatus.js",
-      "relative_root_name": "/public/javascripts/src",
-      "size": 11857,
-      "date": 1448567680000,
-      "hash": "00d465f3d410f8e63796eeff109f44a3"
     },
     "jsfile:e0f58af3bdd3dae5b4c0d49df57af815": {
       "relative_file_name": "mydmam/async/ftpserver/activity.jsx",
@@ -167,13 +146,6 @@
       "size": 10324,
       "date": 1450826258000,
       "hash": "d209cfebde77fb9fcce2ff819e3f235d"
-    },
-    "jsfile:58ccc51f5852fa7eb8da27afb05d0e02": {
-      "relative_file_name": "mydmam.manager.jobcreator.js",
-      "relative_root_name": "/public/javascripts/src",
-      "size": 10654,
-      "date": 1427558361000,
-      "hash": "feadc5e557f21cf153e5ba973da35c44"
     },
     "jsfile:fcfc446ec3eb97ed1adb735b6785e523": {
       "relative_file_name": "mydmam/async/jobs/Minicartridge.jsx",

@@ -20,14 +20,11 @@ import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 
-import com.google.gson.JsonParser;
-
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.status.ClusterStatus;
 import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
 import hd3gtv.mydmam.db.status.StatusReport;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
-import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.web.JSSourceManager;
 import play.Play;
 import play.PlayPlugin;
@@ -99,33 +96,6 @@ public class Manager extends Controller {
 	public static void index() {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("manager.pagename"));
 		render();
-	}
-	
-	/**
-	 * @deprecated
-	 */
-	private static String getCaller() throws Exception {
-		StringBuffer caller = new StringBuffer();
-		caller.append(User.getUserProfile().key);
-		caller.append(" ");
-		if (request.isLoopback == false) {
-			caller.append(request.remoteAddress);
-		} else {
-			caller.append("loopback");
-		}
-		return caller.toString();
-	}
-	
-	/**
-	 * @deprecated
-	 */
-	@Check("actionManager")
-	public static void instanceaction(@Required String target_class_name, @Required String target_reference_key, @Required String json_order) throws Exception {
-		if (Validation.hasErrors()) {
-			renderJSON("[\"validation error\"]");
-		}
-		InstanceAction.addNew(target_class_name, target_reference_key, new JsonParser().parse(json_order).getAsJsonObject(), getCaller());
-		renderJSON("[]");
 	}
 	
 	@Check("adminFtpServer")

@@ -16,10 +16,6 @@
 */
 package controllers.ajs;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -35,8 +31,8 @@ import hd3gtv.mydmam.web.AJSController;
 
 public class Instances extends AJSController {
 	
-	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();
+	/*private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
+	}.getType();*/
 	
 	/*private static Type hm_StringJob_typeOfT = new TypeToken<HashMap<String, JobNG>>() {
 	}.getType();*/
