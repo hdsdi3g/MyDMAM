@@ -50,39 +50,40 @@ public abstract class Storage {
 		
 		List<LinkedHashMap<String, ?>> raw_defs = Configuration.global.getListMapValues("storage", "definitions");
 		
-		LinkedHashMap<String, ?> storage_def;
-		Storage storage;
-		for (int pos_l = 0; pos_l < raw_defs.size(); pos_l++) {
-			storage_def = raw_defs.get(pos_l);
-			try {
-				storage = StorageType.getByDefinitionConfiguration(storage_def);
-				if (storage == null) {
-					throw new NullPointerException("Can't load storage");
+		if (raw_defs != null) {
+			LinkedHashMap<String, ?> storage_def;
+			Storage storage;
+			for (int pos_l = 0; pos_l < raw_defs.size(); pos_l++) {
+				storage_def = raw_defs.get(pos_l);
+				try {
+					storage = StorageType.getByDefinitionConfiguration(storage_def);
+					if (storage == null) {
+						throw new NullPointerException("Can't load storage");
+					}
+					storage.name = (String) storage_def.get("name");
+					
+					storage.regular_indexing = false;
+					if (storage_def.containsKey("regular_indexing")) {
+						storage.regular_indexing = (Boolean) storage_def.get("regular_indexing");
+					}
+					
+					storage.period = 3600;
+					if (storage_def.containsKey("period")) {
+						storage.period = (Integer) storage_def.get("period");
+					}
+					
+					if (storage_def.containsKey("mounted")) {
+						storage.mounted = new File((String) storage_def.get("mounted")).getCanonicalFile();
+						CopyMove.checkExistsCanRead(storage.mounted);
+						CopyMove.checkIsDirectory(storage.mounted);
+					}
+					
+					registerStorage(storage);
+				} catch (Exception e) {
+					Loggers.Storage.error("Can't setup storage, check configuration", e);
 				}
-				storage.name = (String) storage_def.get("name");
-				
-				storage.regular_indexing = false;
-				if (storage_def.containsKey("regular_indexing")) {
-					storage.regular_indexing = (Boolean) storage_def.get("regular_indexing");
-				}
-				
-				storage.period = 3600;
-				if (storage_def.containsKey("period")) {
-					storage.period = (Integer) storage_def.get("period");
-				}
-				
-				if (storage_def.containsKey("mounted")) {
-					storage.mounted = new File((String) storage_def.get("mounted")).getCanonicalFile();
-					CopyMove.checkExistsCanRead(storage.mounted);
-					CopyMove.checkIsDirectory(storage.mounted);
-				}
-				
-				registerStorage(storage);
-			} catch (Exception e) {
-				Loggers.Storage.error("Can't setup storage, check configuration", e);
 			}
 		}
-		
 	}
 	
 	public static void registerStorage(Storage new_storage) {
