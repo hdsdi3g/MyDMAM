@@ -27,10 +27,9 @@ ftpservergroups:
 
 # Play Server configuration for create FTP Users, and assign it a group and a domain
 ftpserveradmin:
-    # backupdir: /var/backup         # Destination for Cassandra backups. Do a backup at each admin operation.
-    groups: [group1]                 # this must follow ftpservergroups configuration keys.
-    # domains: [dom1, dom2]          # You don't need to add, else need follow ftpserverinstances configuration keys;
-                                     # Domains are usefull for add several same users name plugged on differents FTP Servers (instances)
+    # backupdir: /var/backups/mydmam # Destination for Cassandra backups. Do a backup at each admin operation.
+    groups: [group1]                 # This must follow ftpservergroups configuration keys.
+    domains: [default]               # This must follow ftpserverinstances configuration keys. Domains are usefull for add several same users name plugged on differents FTP Servers (instances).
 
 ftpserveradmin_hostsbydomain:
     default:                         # Same domains names as set in ftpserverinstances
