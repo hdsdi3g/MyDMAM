@@ -164,6 +164,12 @@ public class FTPServer extends AJSController {
 					}
 				}
 			}
+			if (mail_vars.containsKey("host") == false) {
+				mail_vars.put("host", "(no set in configuration for this domain)");
+			}
+			if (mail_vars.containsKey("uri") == false) {
+				mail_vars.put("uri", "(no set in configuration for this domain)");
+			}
 			
 			mail.send(mail_vars);
 			return null;
