@@ -104,7 +104,8 @@ public class ServiceNGFTPServer extends ServiceNG {
 		dccf.setActiveLocalPort(local.port);
 		log.put("active local", dccf.getActiveLocalAddress() + ":" + dccf.getActiveLocalPort());
 		
-		dccf.setIdleTime(Configuration.getValue(all_instances_confs, name, "idle", 21));
+		int idle = Configuration.getValue(all_instances_confs, name, "idle", 300);
+		dccf.setIdleTime(idle);
 		log.put("Idle time", dccf.getIdleTime());
 		
 		dccf.setImplicitSsl(false);
@@ -117,6 +118,7 @@ public class ServiceNGFTPServer extends ServiceNG {
 		ListenerFactory factory = new ListenerFactory();
 		factory.setPort(Configuration.getValue(all_instances_confs, name, "listen", 21));
 		factory.setIpFilter(FTPIpFilter.getFilter());
+		factory.setIdleTimeout(idle);
 		log.put("port", factory.getPort());
 		
 		factory.setDataConnectionConfiguration(dccf.createDataConnectionConfiguration());
