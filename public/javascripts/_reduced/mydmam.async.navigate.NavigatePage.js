@@ -21,9 +21,9 @@ if(b!=null){var b=b.toUpperCase();if(d==="size"){c=[{colname:"directory",order:"
 }var b=this.state.stat[md5(this.state.pathindex)];if(!b){return;}if(b.reference.directory){this.navigateTo(this.state.pathindex,0,this.state.default_page_size,null);
 }},render:function(){var f=this.state.stat[md5(this.state.pathindex)];if(!f){return(React.createElement("div",null));
 }var h=0;if(f.items){for(var i in f.items){var b=f.items[i];if(b.reference){if(b.reference.dateindex){h=b.reference.dateindex;
-break;}}}}var g=null;if(f.reference){g=f.reference.storagename;}var j=null;if(f.reference){j=f.reference.path;
-}var d=null;if(f.items_total&!f.search_return_nothing){d=(React.createElement(mydmam.async.pagination.reactBlock,{pagecount:Math.ceil(f.items_total/f.items_page_size),currentpage:f.items_page_from+1,onClickButton:this.handlePaginationSwitchPage}));
-}var e=null;if(f.search_return_nothing){e=(React.createElement(a.NoResultsSearch,null));
-}var c=false;if(this.state.inputboxsearch){c=this.state.inputboxsearch.value!="";
+break;}}}}var g=null;var j=null;if(f.reference){g=f.reference.storagename;j=f.reference.path;
+}var e=null;var d=null;if(f.search_return_nothing){e=(React.createElement(a.NoResultsSearch,null));
+}else{if(f.items_total){d=(React.createElement(mydmam.async.pagination.reactBlock,{pagecount:Math.ceil(f.items_total/f.items_page_size),currentpage:f.items_page_from+1,onClickButton:this.handlePaginationSwitchPage}));
+}}var c=false;if(this.state.inputboxsearch){c=this.state.inputboxsearch.value!="";
 }return(React.createElement("div",null,React.createElement(a.BreadCrumb,{storagename:g,path:j,navigate:this.handleOnClickANavigateToNewDest}),React.createElement(a.HeaderItem,{stat:f,first_item_dateindex:h,pathindexkey:md5(this.state.pathindex),navigate:this.handleOnClickANavigateToNewDest,is_in_search:c,externalpos:this.state.externalpos}),React.createElement(mydmam.async.pathindex.reactMetadataFull,{reference:f.reference,mtdsummary:f.mtdsummary,navigate:this.handleOnClickANavigateToNewDest}),React.createElement(a.NavigateTable,{stat:f,navigate:this.handleOnClickANavigateToNewDest,changeOrderSort:this.handlechangeOrderSort,externalpos:this.state.externalpos}),d,e,React.createElement(a.SearchBox,{changeStateInputbox:this.handleChangeSearchBox})));
 }});})(window.mydmam.async.navigate);

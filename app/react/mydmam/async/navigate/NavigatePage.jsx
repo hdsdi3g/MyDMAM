@@ -190,27 +190,23 @@ navigate.NavigatePage = React.createClass({
 			}
 		}
 		var storagename = null;
-		if (stat.reference) {
-			storagename = stat.reference.storagename;
-		}
 		var path = null;
 		if (stat.reference) {
+			storagename = stat.reference.storagename;
 			path = stat.reference.path;
 		}
 		
+		var noresult = null;
 		var display_pagination = null;
-		if (stat.items_total & !stat.search_return_nothing) {
+		if (stat.search_return_nothing) {
+			noresult = (<navigate.NoResultsSearch />);
+		} else if (stat.items_total) {
 			display_pagination = (
 				<mydmam.async.pagination.reactBlock
 					pagecount={Math.ceil(stat.items_total / stat.items_page_size)}
 					currentpage={stat.items_page_from + 1}
 					onClickButton={this.handlePaginationSwitchPage} />
 			);
-		}
-
-		var noresult = null;
-		if (stat.search_return_nothing) {
-			noresult = (<navigate.NoResultsSearch />);
 		}
 
 		var is_in_search = false;
