@@ -80,7 +80,7 @@ public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 		
 		RenderedFile element = new RenderedFile("album_artwork", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile()).prepareExecprocess();
+		ExecprocessGettext process = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile(), container).prepareExecprocess();
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();

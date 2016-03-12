@@ -18,6 +18,7 @@
 package hd3gtv.tools;
 
 import java.awt.Point;
+import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 
@@ -319,13 +320,55 @@ public final class VideoConst {
 	}
 	
 	public enum Interlacing {
-		Progressive, /**
-						 * odd
-						 */
-		TopFieldFirst, /**
-						 * even
-						 */
+		Progressive,
+		/**
+		 * odd
+		 */
+		TopFieldFirst,
+		/**
+		 * even
+		 */
 		BottomFieldFirst, Unknow;
+		
+		public static Interlacing getFromString(String val) {
+			if (val == null) {
+				return Interlacing.Unknow;
+			}
+			if (val.equals("")) {
+				return Interlacing.Unknow;
+			}
+			switch (val.toLowerCase()) {
+			case "1":
+				return Interlacing.TopFieldFirst;
+			case "-1":
+				return Interlacing.BottomFieldFirst;
+			case "0":
+				return Interlacing.Progressive;
+			case "top":
+				return Interlacing.TopFieldFirst;
+			case "bottom":
+				return Interlacing.BottomFieldFirst;
+			case "progressive":
+				return Interlacing.Progressive;
+			case "tff":
+				return Interlacing.TopFieldFirst;
+			case "bff":
+				return Interlacing.BottomFieldFirst;
+			case "p":
+				return Interlacing.Progressive;
+			case "odd":
+				return Interlacing.TopFieldFirst;
+			case "even":
+				return Interlacing.BottomFieldFirst;
+			case "topfieldfirst":
+				return Interlacing.TopFieldFirst;
+			case "bottomfieldfirst":
+				return Interlacing.BottomFieldFirst;
+			default:
+				return Interlacing.Unknow;
+			}
+		}
+		
 	}
 	
 	public static String audioChannelCounttoString(int channelcount) {
@@ -675,4 +718,45 @@ public final class VideoConst {
 			return OTHER;
 		}
 	}
+	
+	public static class AudioRoutingStream {
+		/**
+		 * Absolute position from source.
+		 */
+		public ArrayList<Integer> source_channel;
+		
+		private AudioRoutingStream(String audio_map) {
+			String[] map = audio_map.split("-");
+			if (map.length == 0) {
+				throw new IndexOutOfBoundsException("No configured map");
+			}
+			source_channel = new ArrayList<Integer>(map.length);
+			for (int pos_map = 0; pos_map < map.length; pos_map++) {
+				source_channel.add(Integer.valueOf(map[pos_map]));
+			}
+		}
+		
+		public String toString() {
+			return source_channel.toString();
+		}
+	}
+	
+	/**
+	 * @param value like "1-2 3-4 5 6 7 8-9-10-11"
+	 * @return null, or had valid values.
+	 */
+	public static ArrayList<AudioRoutingStream> parseAudioRoutingStream(String value) throws NumberFormatException, IndexOutOfBoundsException {
+		String[] audio_maps = value.trim().split(" ");
+		if (audio_maps.length == 0) {
+			return null;
+		}
+		ArrayList<AudioRoutingStream> result = new ArrayList<AudioRoutingStream>(audio_maps.length);
+		
+		for (int pos = 0; pos < audio_maps.length; pos++) {
+			result.add(new AudioRoutingStream(audio_maps[pos]));
+		}
+		
+		return result;
+	}
+	
 }

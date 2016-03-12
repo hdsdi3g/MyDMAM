@@ -202,7 +202,7 @@ public class Publish extends WorkerNG {
 		log.put("profile", profile);
 		Loggers.Transcode.debug("Publish prepare transcoding " + context_publish.contextToJson().toString() + " " + log.toString());
 		
-		ProcessConfiguration process_conf = profile.createProcessConfiguration(source_file, dest_file_ffmpeg);
+		ProcessConfiguration process_conf = profile.createProcessConfiguration(source_file, dest_file_ffmpeg, null);
 		
 		transcode_progress = process_conf.getProgress();
 		if (transcode_progress == null) {

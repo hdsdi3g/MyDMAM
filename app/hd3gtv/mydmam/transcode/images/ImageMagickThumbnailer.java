@@ -190,7 +190,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		}
 		
 		RenderedFile element = new RenderedFile(root_entry_class.getSimpleName().toLowerCase(), tprofile.getExtension("jpg"));
-		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(physical_source, element.getTempFile());
+		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(physical_source, element.getTempFile(), container);
 		process_conf.getInitialParams().addAll(ImageMagickAnalyser.convert_limits_params);
 		process_conf.getParamTags().put("ICCPROFILE", icc_profile.getAbsolutePath());
 		if (is_personalizedsize) {

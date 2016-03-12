@@ -38,10 +38,15 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.InstanceStatusItem;
+import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
+import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.VideoConst;
+import hd3gtv.tools.VideoConst.AudioRoutingStream;
+import hd3gtv.tools.VideoConst.Interlacing;
 
 @SuppressWarnings("unchecked")
 public class TranscodeProfile implements InstanceStatusItem {
@@ -78,6 +83,7 @@ public class TranscodeProfile implements InstanceStatusItem {
 	private static LinkedHashMap<String, TranscodeProfile> profiles;
 	private static LinkedHashMap<String, Class<? extends ExecprocessTranscodeEvent>> executables_events;
 	private static LinkedHashMap<String, Class<? extends TranscodeProgress>> executables_transcode_progress;
+	// TODO create API for command line hook alteration, by executable
 	
 	static {
 		executables_events = new LinkedHashMap<String, Class<? extends ExecprocessTranscodeEvent>>(1);
@@ -277,6 +283,9 @@ public class TranscodeProfile implements InstanceStatusItem {
 		private int width = -1;
 		private int height = -1;
 		private boolean faststarted = false;
+		private Interlacing interlacing = Interlacing.Unknow;
+		private ArrayList<AudioRoutingStream> audio_map;
+		private File overlay;
 		
 		private OutputFormat(LinkedHashMap<String, ?> configuration_item) {
 			if (configuration_item == null) {
@@ -294,8 +303,39 @@ public class TranscodeProfile implements InstanceStatusItem {
 				faststarted = (Boolean) configuration_item.get("faststart");
 			} catch (Exception e) {
 			}
+			try {
+				interlacing = Interlacing.getFromString((String) configuration_item.get("interlacing"));
+			} catch (Exception e) {
+			}
+			try {
+				String raw_audio_map = (String) configuration_item.get("audio_map");
+				try {
+					audio_map = VideoConst.parseAudioRoutingStream(raw_audio_map);
+				} catch (Exception e) {
+					Loggers.Transcode.error("Invalid configuration syntax for audio_map in a transcoding profile: " + raw_audio_map, e);
+					throw e;
+				}
+				
+			} catch (Exception e) {
+			}
+			try {
+				String overlay_file = (String) configuration_item.get("overlay");
+				try {
+					overlay = new File(overlay_file);
+					CopyMove.checkExistsCanRead(overlay);
+				} catch (Exception e) {
+					Loggers.Transcode.error("Can't found valid overlay file: " + overlay_file, e);
+					overlay = null;
+					throw e;
+				}
+				
+			} catch (Exception e) {
+			}
 		}
 		
+		/**
+		 * Never null.
+		 */
 		public Point getResolution() {
 			return new Point(width, height);
 		}
@@ -308,6 +348,27 @@ public class TranscodeProfile implements InstanceStatusItem {
 			return toJson().toString();
 		}
 		
+		/**
+		 * Never null.
+		 */
+		public Interlacing getInterlacing() {
+			return interlacing;
+		}
+		
+		/**
+		 * May be null.
+		 */
+		public ArrayList<AudioRoutingStream> getAudioMap() {
+			return audio_map;
+		}
+		
+		/**
+		 * May be null.
+		 */
+		public File getOverlay() {
+			return overlay;
+		}
+		
 		JsonObject toJson() {
 			JsonObject jo = new JsonObject();
 			if (width > -1) {
@@ -315,6 +376,15 @@ public class TranscodeProfile implements InstanceStatusItem {
 			}
 			if (height > -1) {
 				jo.addProperty("height", height);
+			}
+			if (interlacing != Interlacing.Unknow) {
+				jo.addProperty("interlacing", interlacing.name());
+			}
+			if (audio_map != null) {
+				jo.addProperty("audio_map", audio_map.toString());
+			}
+			if (overlay != null) {
+				jo.addProperty("overlay", overlay.getAbsolutePath());
 			}
 			jo.addProperty("faststarted", faststarted);
 			return jo;
@@ -325,14 +395,16 @@ public class TranscodeProfile implements InstanceStatusItem {
 		private File input_file;
 		private File output_file;
 		private ArrayList<String> initial_params;
+		private Container source_metadatas_container;
 		
 		private HashMap<String, String> param_tags;
 		private ExecprocessTranscodeEvent event;
 		private TranscodeProgress progress;
 		
-		private ProcessConfiguration(File input_file, File output_file) {
+		private ProcessConfiguration(File input_file, File output_file, Container source_metadatas_container) {
 			this.input_file = input_file;
 			this.output_file = output_file;
+			this.source_metadatas_container = source_metadatas_container;
 			param_tags = new HashMap<String, String>();
 			initial_params = new ArrayList<String>();
 		}
@@ -428,6 +500,11 @@ public class TranscodeProfile implements InstanceStatusItem {
 			
 			String param;
 			
+			// TODO insert command line hook alteration, based on executable, output format and source_metadatas_container
+			// getOutputformat().audio_map
+			// getOutputformat().interlacing
+			// getOutputformat().overlay
+			
 			for (int pos = 0; pos < params.size(); pos++) {
 				param = params.get(pos);
 				if (param.contains(TAG_INPUTFILE)) {
@@ -488,14 +565,17 @@ public class TranscodeProfile implements InstanceStatusItem {
 		
 	}
 	
-	public ProcessConfiguration createProcessConfiguration(File input_file, File output_file) {
+	/**
+	 * @param source_metadatas_container is not mantatory
+	 */
+	public ProcessConfiguration createProcessConfiguration(File input_file, File output_file, Container source_metadatas_container) {
 		if (input_file == null) {
 			throw new NullPointerException("\"input_file\" can't to be null");
 		}
 		if (output_file == null) {
 			throw new NullPointerException("\"output_file\" can't to be null");
 		}
-		return new ProcessConfiguration(input_file, output_file);
+		return new ProcessConfiguration(input_file, output_file, source_metadatas_container);
 	}
 	
 	public File getExecutable() {

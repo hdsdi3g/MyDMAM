@@ -127,7 +127,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		RenderedFile progress_file = new RenderedFile("video_progress", "txt");
 		RenderedFile temp_element = new RenderedFile(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
 		
-		ProcessConfiguration process_conf = transcode_profile.createProcessConfiguration(origin, temp_element.getTempFile());
+		ProcessConfiguration process_conf = transcode_profile.createProcessConfiguration(origin, temp_element.getTempFile(), container);
 		
 		progress = process_conf.getProgress();
 		if (progress == null) {

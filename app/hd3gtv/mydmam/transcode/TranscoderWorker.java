@@ -41,6 +41,8 @@ import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.AbstractFile;
@@ -224,7 +226,7 @@ public class TranscoderWorker extends WorkerNG {
 		
 		SourcePathIndexerElement dest_storage = SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name);
 		
-		// Container container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
+		Container container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
 		Loggers.Transcode.debug("physical_source is " + physical_source.getPath());
 		
 		List<String> profiles_to_transcode = transcode_context.hookednames;
@@ -250,7 +252,7 @@ public class TranscoderWorker extends WorkerNG {
 			temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));
 			Loggers.Transcode.debug("Get temp_output_file: " + temp_output_file.getPath());
 			
-			process_configuration = transcode_profile.createProcessConfiguration(physical_source, temp_output_file);
+			process_configuration = transcode_profile.createProcessConfiguration(physical_source, temp_output_file, container);
 			if (Loggers.Transcode.isDebugEnabled()) {
 				Loggers.Transcode.debug("process_configuration: " + process_configuration);
 			}

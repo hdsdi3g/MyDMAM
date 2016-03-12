@@ -79,7 +79,7 @@ public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 		
 		RenderedFile element = new RenderedFile("snap", tprofile.getExtension("png"));
 		
-		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile());
+		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile(), container);
 		
 		ArrayList<String> filters = new ArrayList<String>();
 		if (ffprobe.getDuration().getValue() > 10) {
