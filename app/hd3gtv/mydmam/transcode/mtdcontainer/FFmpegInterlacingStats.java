@@ -18,7 +18,7 @@ public class FFmpegInterlacingStats extends EntryAnalyser {
 	private int bff_detection;
 	private int pfr_detection;
 	private int und_detection;
-	Interlacing interlacing;
+	Interlacing interlacing = Interlacing.Unknow;
 	
 	/**
 	 * @param single_detection_value: "TFF:16 BFF:0 Progressive:0 Undetermined:8"

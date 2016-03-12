@@ -83,7 +83,7 @@ public class TranscodeProfile implements InstanceStatusItem {
 	private static LinkedHashMap<String, TranscodeProfile> profiles;
 	private static LinkedHashMap<String, Class<? extends ExecprocessTranscodeEvent>> executables_events;
 	private static LinkedHashMap<String, Class<? extends TranscodeProgress>> executables_transcode_progress;
-	// TODO create API for command line hook alteration, by executable
+	private static LinkedHashMap<String, CommandLineModifierFFmpeg> executables_command_line_modifier;
 	
 	static {
 		executables_events = new LinkedHashMap<String, Class<? extends ExecprocessTranscodeEvent>>(1);
@@ -91,6 +91,9 @@ public class TranscodeProfile implements InstanceStatusItem {
 		
 		executables_transcode_progress = new LinkedHashMap<String, Class<? extends TranscodeProgress>>(1);
 		executables_transcode_progress.put("ffmpeg", TranscodeProgressFFmpeg.class);
+		
+		executables_command_line_modifier = new LinkedHashMap<String, CommandLineModifierFFmpeg>(1);
+		executables_command_line_modifier.put("ffmpeg", new CommandLineModifierFFmpeg());
 		
 		try {
 			profiles = new LinkedHashMap<String, TranscodeProfile>();
@@ -499,12 +502,6 @@ public class TranscodeProfile implements InstanceStatusItem {
 			}
 			
 			String param;
-			
-			// TODO insert command line hook alteration, based on executable, output format and source_metadatas_container
-			// getOutputformat().audio_map
-			// getOutputformat().interlacing
-			// getOutputformat().overlay
-			
 			for (int pos = 0; pos < params.size(); pos++) {
 				param = params.get(pos);
 				if (param.contains(TAG_INPUTFILE)) {
@@ -529,6 +526,10 @@ public class TranscodeProfile implements InstanceStatusItem {
 				} else {
 					cmdline.add(param);
 				}
+			}
+			
+			if (executables_command_line_modifier.containsKey(executable_name)) {
+				executables_command_line_modifier.get(executable_name).modify(cmdline, getOutputformat(), source_metadatas_container);
 			}
 			
 			return cmdline;
