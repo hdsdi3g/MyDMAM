@@ -297,14 +297,7 @@ public class FFprobe extends EntryAnalyser {
 	}
 	
 	public boolean hasVerticalBlankIntervalInImage() {
-		Resolution res = getStandardizedVideoResolution();
-		if (res == Resolution.SD_480_VBI) {
-			return true;
-		}
-		if (res == Resolution.SD_576_VBI) {
-			return true;
-		}
-		return false;
+		return getStandardizedVideoResolution().isVerticalBlankIntervalResolution();
 	}
 	
 	public String toString() {

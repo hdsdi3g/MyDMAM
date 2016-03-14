@@ -403,6 +403,42 @@ public final class VideoConst {
 	public enum Resolution {
 		SQCIF, QCIF, CIF, CIF4, CIF9, CIF16, VGA, SD_480, SD_480_VBI, SD_576, SD_576_VBI, HD_720, HD_HALF_1080, HD_1080, DCI_2K_FLAT, DCI_2K_SCOPE, DCI_2K_FULL, DCI_4K_NATIVE, DCI_4K_FLAT, DCI_4K_SCOPE, DCI_4K_FULL, DCI_4K_ACADEMY, UHD_4K, UHD_8K, OTHER;
 		
+		/**
+		 * @param value like 123x456 or ":" or "/" or "-" or "_"
+		 */
+		public static Resolution parseResolution(String value) throws NumberFormatException {
+			if (value == null) {
+				return Resolution.OTHER;
+			}
+			if (value.equals("")) {
+				return Resolution.OTHER;
+			}
+			
+			int x = 0;
+			int y = 0;
+			if (value.indexOf("x") > -1) {
+				x = Integer.parseInt(value.split("x")[0]);
+				y = Integer.parseInt(value.split("x")[1]);
+			} else if (value.indexOf(":") > -1) {
+				x = Integer.parseInt(value.split(":")[0]);
+				y = Integer.parseInt(value.split(":")[1]);
+			} else if (value.indexOf("/") > -1) {
+				x = Integer.parseInt(value.split("/")[0]);
+				y = Integer.parseInt(value.split("/")[1]);
+			} else if (value.indexOf("-") > -1) {
+				x = Integer.parseInt(value.split("-")[0]);
+				y = Integer.parseInt(value.split("-")[1]);
+			} else if (value.indexOf("_") > -1) {
+				x = Integer.parseInt(value.split("_")[0]);
+				y = Integer.parseInt(value.split("_")[1]);
+			}
+			return getResolution(x, y);
+		}
+		
+		public static Resolution getResolution(Point res) {
+			return getResolution(res.x, res.y);
+		}
+		
 		public static Resolution getResolution(int width, int height) {
 			if (width == 128 && height == 96) {
 				return SQCIF;
@@ -479,8 +515,8 @@ public final class VideoConst {
 			return OTHER;
 		}
 		
-		public static Point getResolution(Resolution resolution) {
-			switch (resolution) {
+		public Point getResolution() {
+			switch (this) {
 			case SQCIF:
 				return new Point(128, 96);
 			case QCIF:
@@ -535,6 +571,14 @@ public final class VideoConst {
 			return null;
 		}
 		
+		public int getX_width() {
+			return getResolution().x;
+		}
+		
+		public int getY_height() {
+			return getResolution().y;
+		}
+		
 		/**
 		 * @return like "SD", "HD", "2K Scope"...
 		 */
@@ -585,6 +629,15 @@ public final class VideoConst {
 			return "";
 		}
 		
+		public boolean isVerticalBlankIntervalResolution() {
+			if (this == SD_480_VBI) {
+				return true;
+			} else if (this == SD_576_VBI) {
+				return true;
+			} else {
+				return false;
+			}
+		}
 	}
 	
 	/**

@@ -27,6 +27,7 @@ import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
 import hd3gtv.tools.VideoConst.AudioRoutingStream;
 import hd3gtv.tools.VideoConst.Interlacing;
+import hd3gtv.tools.VideoConst.Resolution;
 
 public class CommandLineModifierFFmpeg implements CommandLineModifier {
 	
@@ -135,8 +136,15 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 			}
 		}
 		
+		if (ffprobe.hasVideo() == false) {
+			return;
+		}
+		
 		/**
-		 * Interlacing management
+		 * Interlacing management, like
+		 * -vf scale=720:576:interl=1,setfield=tff,fieldorder=bff,setfield=bff,setdar=dar=16/9
+		 * or
+		 * -vf scale=720:576,yadif=0:1:0,setdar=dar=16/9
 		 */
 		FFmpegInterlacingStats source_interlacing_stats = source_container.getByClass(FFmpegInterlacingStats.class);
 		Interlacing input_interlacing = null;
@@ -147,8 +155,97 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 		}
 		
 		Interlacing output_interlacing = current_profile_output_format.getInterlacing();
-		if (output_interlacing != Interlacing.Unknow && input_interlacing != Interlacing.Unknow) {
-			// TODO
+		if (input_interlacing != Interlacing.Unknow && output_interlacing != Interlacing.Unknow && current_profile_output_format.getResolution().x > 0) {
+			StringBuilder vf_filters_chain = new StringBuilder();
+			
+			/**
+			 * Scaling with interlacing conservation
+			 */
+			String input_resolution = ffprobe.getVideoResolution().x + "x" + ffprobe.getVideoResolution().y;
+			String output_resolution = null;
+			if (current_profile_output_format.getResolution() == null) {
+				if (current_params.contains("-s")) {
+					output_resolution = current_params.get(current_params.indexOf("-s") + 1);
+				}
+			} else {
+				input_resolution = current_profile_output_format.getResolution().x + "x" + current_profile_output_format.getResolution().y;
+			}
+			
+			if (output_resolution != null) {
+				if (output_resolution.equals(input_resolution) == false) {
+					
+					boolean source_vbi = ffprobe.hasVerticalBlankIntervalInImage();
+					boolean dest_vbi = Resolution.parseResolution(output_resolution).isVerticalBlankIntervalResolution();
+					if (source_vbi && dest_vbi == false) {
+						/**
+						 * Cut the 32 lines from the top.
+						 */
+						vf_filters_chain.append(",crop=w=in_w:h=in_h-32:x=0:y=32");
+					}
+					
+					/**
+					 * Source will be scaled
+					 */
+					vf_filters_chain.append(",scale=");
+					vf_filters_chain.append(output_resolution);
+					
+					if (input_interlacing != Interlacing.Progressive && output_interlacing != Interlacing.Progressive) {
+						/**
+						 * Interlaced -> Interlaced
+						 */
+						vf_filters_chain.append(":interl=1");
+					}
+				}
+			}
+			
+			/**
+			 * Invert frame interlacing order or deinterlace
+			 */
+			if (input_interlacing == Interlacing.TopFieldFirst && output_interlacing == Interlacing.BottomFieldFirst) {
+				/**
+				 * TopFieldFirst -> BottomFieldFirst
+				 */
+				vf_filters_chain.append(",setfield=tff,fieldorder=bff,setfield=bff");
+			} else if (input_interlacing == Interlacing.BottomFieldFirst && output_interlacing == Interlacing.TopFieldFirst) {
+				/**
+				 * BottomFieldFirst -> TopFieldFirst
+				 */
+				vf_filters_chain.append(",setfield=bff,fieldorder=tff,setfield=tff");
+			} else if (input_interlacing == Interlacing.TopFieldFirst && output_interlacing == Interlacing.Progressive) {
+				/**
+				 * TopFieldFirst -> Progressive (de-interlaced)
+				 */
+				vf_filters_chain.append(",yadif=0:0:0");// XXX if out fps is > in fps, deinterlace to field
+			} else if (input_interlacing == Interlacing.BottomFieldFirst && output_interlacing == Interlacing.Progressive) {
+				/**
+				 * BottomFieldFirst -> Progressive (de-interlaced)
+				 */
+				vf_filters_chain.append(",yadif=0:1:0");// XXX if out fps is > in fps, deinterlace to field
+			}
+			
+			/**
+			 * Set correct aspect ratio
+			 */
+			if (current_params.contains("-aspect")) {
+				vf_filters_chain.append(",setdar=dar=");
+				vf_filters_chain.append(current_params.get(current_params.indexOf("-aspect") + 1).replaceAll(":", "/"));
+			} else {
+				try {
+					String source_dar = ffprobe.getStreamsByCodecType("video").get(0).getParam("display_aspect_ratio").getAsString();
+					vf_filters_chain.append(",setdar=dar=");
+					vf_filters_chain.append(source_dar.replaceAll(":", "/"));
+				} catch (NullPointerException e) {
+				}
+			}
+			
+			if (vf_filters_chain.length() > 0) {
+				insert_pos = current_params.lastIndexOf("-i") + 1;
+				current_params.add(insert_pos++, "-vf");
+				/**
+				 * remove the first ","
+				 */
+				current_params.add(insert_pos++, vf_filters_chain.toString().substring(1));
+			}
 		}
 		
 		/**
