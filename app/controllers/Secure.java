@@ -256,7 +256,12 @@ public class Secure extends Controller {
 	static void checkAccess() throws Throwable {
 		// Authent
 		if (!session.contains("username")) {
-			flash.put("url", "GET".equals(request.method) ? request.url : Play.ctxPath + "/"); // seems a good default
+			String url = "GET".equals(request.method) ? request.url : Play.ctxPath;
+			if (url.endsWith("/")) {
+				flash.put("url", url);
+			} else {
+				flash.put("url", url + "/");
+			}
 			login();
 		}
 		
