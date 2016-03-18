@@ -39,6 +39,9 @@ http.port=9001
 # you're serving it from. This parameter has no effect when deployed as a
 # war, because the path will be handled by the application server.
 # http.path=/
+#
+# Reverse Proxies IP addresses.
+# XForwardedSupport=127.0.0.1,...
 
 # Session configuration
 # ~~~~~~~~~~~~~~~~~~~~~~
