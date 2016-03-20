@@ -63,8 +63,7 @@ public class WorkerIndexer extends WorkerNG {
 			JobContextPathScan context_hook = new JobContextPathScan();
 			context_hook.neededstorages = Arrays.asList(item.storage_label_name);
 			TriggerJobCreator trigger_creator = new TriggerJobCreator(manager, context_hook);
-			trigger_creator.setOptions(this.getClass(), "Pathindex metadata indexer", "MyDMAM Internal");
-			trigger_creator.add("Analyst " + item.storage_label_name + " storage", analyst);
+			trigger_creator.createThis("Analyst " + item.storage_label_name + " storage", this.getClass(), "Pathindex metadata indexer", "MyDMAM Internal", analyst);
 			manager.register(trigger_creator);
 			
 			lastindexeddatesforstoragenames.put(item.storage_label_name, 0l);

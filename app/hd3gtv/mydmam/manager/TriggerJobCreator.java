@@ -17,88 +17,16 @@
 package hd3gtv.mydmam.manager;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.List;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.serializers.StringSerializer;
 
-import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
-import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnore;
 
 public final class TriggerJobCreator extends JobCreator {
 	
-	private static Keyspace keyspace;
-	private static final ColumnFamily<String, String> CF_DONE_JOBS = new ColumnFamily<String, String>("mgrDoneJobs", StringSerializer.get(), StringSerializer.get());
-	
-	static {
-		try {
-			keyspace = CassandraDb.getkeyspace();
-			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
-			if (CassandraDb.isColumnFamilyExists(keyspace, CF_DONE_JOBS.getName()) == false) {
-				CassandraDb.createColumnFamilyString(default_keyspacename, CF_DONE_JOBS.getName(), false);
-			}
-		} catch (Exception e) {
-			Loggers.Manager.error("Can't init database CFs", e);
-		}
-	}
-	
-	static void doneJob(JobNG job, MutationBatch mutator) {
-		if (job.getContext() == null) {
-			return;
-		}
-		String key = JobContext.Utility.prepareContextKeyForTrigger(job.getContext());
-		mutator.withRow(CF_DONE_JOBS, key).putColumn("source", AppManager.getGson().toJson(job), JobNG.TTL_WAITING);
-		mutator.withRow(CF_DONE_JOBS, key).putColumn("end_date", job.getEndDate(), JobNG.TTL_WAITING);
-	}
-	
-	static void prepareTriggerHooksCreateJobs(List<TriggerJobCreator> triggers, long precedent_date, MutationBatch mutator) throws ConnectionException {
-		HashMap<String, TriggerJobCreator> map_triggers = new HashMap<String, TriggerJobCreator>();
-		for (int pos = 0; pos < triggers.size(); pos++) {
-			map_triggers.put(triggers.get(pos).context_hook_trigger_key, triggers.get(pos));
-		}
-		
-		Rows<String, String> rows = keyspace.prepareQuery(CF_DONE_JOBS).getKeySlice(map_triggers.keySet()).withColumnSlice("end_date").execute().getResult();
-		for (int pos = 0; pos < rows.size(); pos++) {
-			long last_date = rows.getRowByIndex(pos).getColumns().getLongValue("end_date", 0l);
-			if (last_date > precedent_date) {
-				map_triggers.get(rows.getRowByIndex(pos).getKey()).createJobs(mutator);
-			}
-		}
-	}
-	
-	private static final JsonParser parser = new JsonParser();
-	
-	public static JsonArray getAllDoneJobs() throws Exception {
-		final JsonArray ja = new JsonArray();
-		
-		CassandraDb.allRowsReader(CF_DONE_JOBS, new AllRowsFoundRow() {
-			public void onFoundRow(Row<String, String> row) throws Exception {
-				ja.add(parser.parse(row.getColumns().getColumnByName("source").getStringValue()));
-			}
-		}, "source");
-		
-		return ja;
-	}
-	
-	/**
-	 * End of static realm
-	 */
-	
-	// private JobContext context_hook;
 	private String context_hook_trigger_key;
 	private @GsonIgnore JobContext context_hook;
 	
@@ -110,6 +38,10 @@ public final class TriggerJobCreator extends JobCreator {
 		}
 		context_hook_trigger_key = JobContext.Utility.prepareContextKeyForTrigger(context_hook);
 		this.context_hook = context_hook;
+	}
+	
+	public String getContextHookTriggerKey() {
+		return context_hook_trigger_key;
 	}
 	
 	static class Serializer extends JobCreatorSerializer<TriggerJobCreator> {

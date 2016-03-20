@@ -46,6 +46,11 @@ public final class CyclicJobCreator extends JobCreator {
 		}
 	}
 	
+	void setLastDateCreatedJobLikeThis(long last_date) {
+		next_date_to_create_jobs = last_date + period;
+		Loggers.Manager.info("Cyclic \"" + this.getJobName() + "\" has manually set a next_date_to_create_jobs at " + Loggers.dateLog(next_date_to_create_jobs));
+	}
+	
 	synchronized void setEnabled(boolean enabled) {
 		super.setEnabled(enabled);
 		if (isEnabled() == false) {

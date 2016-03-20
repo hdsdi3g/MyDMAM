@@ -37,8 +37,15 @@ abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem 
 	@SuppressWarnings("unused")
 	private String vendor_name;
 	
+	/**
+	 * Only one
+	 */
 	@GsonIgnore
 	ArrayList<Declaration> declarations;
+	
+	@GsonIgnore
+	private Declaration current_declaration;
+	
 	private String reference_key;
 	
 	class Declaration {
@@ -83,17 +90,10 @@ abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem 
 			throw new NullPointerException("\"manager\" can't to be null");
 		}
 		enabled = true;
-		declarations = new ArrayList<Declaration>();
+		declarations = new ArrayList<Declaration>(1);
 		reference_key = getClass().getName().toLowerCase() + ":" + UUID.randomUUID().toString();
 		
 		manager.getInstanceStatus().registerInstanceStatusItem(this);
-	}
-	
-	public final JobCreator setOptions(Class<?> creator, String long_name, String vendor_name) {
-		this.creator = creator;
-		this.long_name = long_name;
-		this.vendor_name = vendor_name;
-		return this;
 	}
 	
 	/**
@@ -114,11 +114,15 @@ abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem 
 		return long_name;
 	}
 	
+	String getJobName() {
+		return current_declaration.job_name;
+	}
+	
 	/**
 	 * @param contexts will be dependant (the second need the first, the third need the second, ... the first is the most prioritary)
 	 * @throws ClassNotFoundException a context can't to be serialized
 	 */
-	public final JobCreator add(String job_name, JobContext... contexts) throws ClassNotFoundException {
+	public final JobCreator createThis(String job_name, Class<?> creator, String long_name, String vendor_name, JobContext... contexts) throws ClassNotFoundException {
 		if (job_name == null) {
 			throw new NullPointerException("\"job_name\" can't to be null");
 		}
@@ -134,7 +138,16 @@ abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem 
 		for (int pos = 0; pos < contexts.length; pos++) {
 			new JobNG(contexts[pos]);
 		}
-		declarations.add(new Declaration(job_name, contexts));
+		
+		this.creator = creator;
+		this.long_name = long_name;
+		this.vendor_name = vendor_name;
+		
+		if (declarations.isEmpty() == false) {
+			declarations.clear();
+		}
+		current_declaration = new Declaration(job_name, contexts);
+		declarations.add(current_declaration);
 		return this;
 	}
 	
@@ -143,13 +156,27 @@ abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem 
 	}
 	
 	void createJobs(MutationBatch mutator) throws ConnectionException {
-		for (int pos = 0; pos < declarations.size(); pos++) {
-			declarations.get(pos).createJobs(mutator);
+		if (current_declaration != null) {
+			current_declaration.createJobs(mutator);
 		}
 	}
 	
 	public final String getReferenceKey() {
 		return reference_key;
+	}
+	
+	/**
+	 * Call createThis() before this !
+	 * @return the same key like CF_DONE_JOBS.key
+	 */
+	String getFirstContextKey() throws NullPointerException {
+		if (current_declaration == null) {
+			throw new NullPointerException("Job creator has not be configured correctly");
+		}
+		if (current_declaration.contexts.isEmpty()) {
+			throw new NullPointerException("Job creator has not be configured correctly");
+		}
+		return JobContext.Utility.prepareContextKeyForTrigger(current_declaration.contexts.get(0));
 	}
 	
 	public void doAnAction(JsonObject order) throws Exception {

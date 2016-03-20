@@ -24,9 +24,9 @@ import controllers.Secure;
 import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.AsyncJSInstanceActionRequest;
+import hd3gtv.mydmam.manager.BrokerNG;
 import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.web.AJSController;
 
 public class Instances extends AJSController {
@@ -104,7 +104,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonArray allDoneJobs() throws Exception {
-		return TriggerJobCreator.getAllDoneJobs();
+		return BrokerNG.getAllDoneJobs();
 	}
 	
 	/**

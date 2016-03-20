@@ -48,13 +48,11 @@ public class NotificationWorker extends WorkerNG {
 	public NotificationWorker(AppManager manager) throws Exception {
 		if (isActivated()) {
 			CyclicJobCreator cyclic_cleaner = new CyclicJobCreator(manager, 1, TimeUnit.HOURS, true);
-			cyclic_cleaner.setOptions(getClass(), "Close old notifications", "Internal MyDMAM");
-			cyclic_cleaner.add("Close old notifications", new JobContextNotificationClean());
+			cyclic_cleaner.createThis("Close old notifications", getClass(), "Close old notifications", "Internal MyDMAM", new JobContextNotificationClean());
 			manager.register(cyclic_cleaner);
 			
 			CyclicJobCreator cyclic_alerter = new CyclicJobCreator(manager, 10, TimeUnit.MINUTES, false);
-			cyclic_alerter.setOptions(getClass(), "Notifications alerter", "Internal MyDMAM");
-			cyclic_alerter.add("Notifications alerter", new JobContextNotificationAlert());
+			cyclic_alerter.createThis("Notifications alerter", getClass(), "Notifications alerter", "Internal MyDMAM", new JobContextNotificationAlert());
 			manager.register(cyclic_alerter);
 		}
 		
