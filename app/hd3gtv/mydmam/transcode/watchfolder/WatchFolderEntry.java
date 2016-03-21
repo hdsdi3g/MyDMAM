@@ -546,7 +546,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				physical_source = DistantFileRecovery.getFile(pi_item, false);
 			} catch (Exception e) {
 				Loggers.Transcode_WatchFolder.error("Can't download found file to temp directory " + name + " for " + validated_file, e);
-				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).setThrowable(e).send();
+				AdminMailAlert.create("Can't download watch folder found file to temp directory " + name + " for " + validated_file, false).setThrowable(e).send();
 				validated_file.status = Status.ERROR;
 				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
@@ -582,19 +582,19 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		if (must_contain.contains(MustContainType.video) | must_contain.contains(MustContainType.audio)) {
 			if (ffprobe == null) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must be a media file " + name + " for " + validated_file);
-				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file", false).send();
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file " + name + " for " + validated_file, false).send();
 				validated_file.status = Status.ERROR;
 				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			} else if (must_contain.contains(MustContainType.video) & (ffprobe.hasVideo() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have a video track " + name + " for " + validated_file);
-				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track", false).send();
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track " + name + " for " + validated_file, false).send();
 				validated_file.status = Status.ERROR;
 				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			} else if (must_contain.contains(MustContainType.audio) & (ffprobe.hasAudio() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have an audio track " + name + " for " + validated_file);
-				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track", false).send();
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track " + name + " for " + validated_file, false).send();
 				validated_file.status = Status.ERROR;
 				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
