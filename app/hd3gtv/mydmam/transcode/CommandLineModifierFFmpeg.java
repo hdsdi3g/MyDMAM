@@ -145,6 +145,11 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 		 * -vf scale=720:576:interl=1,setfield=tff,fieldorder=bff,setfield=bff,setdar=dar=16/9
 		 * or
 		 * -vf scale=720:576,yadif=0:1:0,setdar=dar=16/9
+		 * AND
+		 * Overlay insertion, like
+		 * -i <> -filter_complex '[0:0]yadif=0:1:0[2:0];[1:0]scale=1920x1080,[2:0]overlay'
+		 * or
+		 * -i <> -filter_complex '[0:0]scale=720:576:interl=1,setfield=tff,fieldorder=bff,setfield=bff,setdar=dar=16/9[2:0];[1:0]scale=1920x1080,[2:0]overlay'
 		 */
 		FFmpegInterlacingStats source_interlacing_stats = source_container.getByClass(FFmpegInterlacingStats.class);
 		Interlacing input_interlacing = null;
@@ -154,25 +159,32 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 			input_interlacing = Interlacing.Unknow;
 		}
 		
+		String source_resolution = ffprobe.getVideoResolution().x + "x" + ffprobe.getVideoResolution().y;
+		
+		File overlay_file = current_profile_output_format.getOverlay();
+		
 		Interlacing output_interlacing = current_profile_output_format.getInterlacing();
 		if (input_interlacing != Interlacing.Unknow && output_interlacing != Interlacing.Unknow && current_profile_output_format.getResolution().x > 0) {
 			StringBuilder vf_filters_chain = new StringBuilder();
 			
+			if (overlay_file != null) {
+				vf_filters_chain.append("[0:" + ffprobe.getStreamsByCodecType("video").get(0).getIndex() + "]");
+			}
+			
 			/**
 			 * Scaling with interlacing conservation
 			 */
-			String input_resolution = ffprobe.getVideoResolution().x + "x" + ffprobe.getVideoResolution().y;
 			String output_resolution = null;
 			if (current_profile_output_format.getResolution() == null) {
 				if (current_params.contains("-s")) {
 					output_resolution = current_params.get(current_params.indexOf("-s") + 1);
 				}
 			} else {
-				input_resolution = current_profile_output_format.getResolution().x + "x" + current_profile_output_format.getResolution().y;
+				source_resolution = current_profile_output_format.getResolution().x + "x" + current_profile_output_format.getResolution().y;
 			}
 			
 			if (output_resolution != null) {
-				if (output_resolution.equals(input_resolution) == false) {
+				if (output_resolution.equals(source_resolution) == false) {
 					
 					boolean source_vbi = ffprobe.hasVerticalBlankIntervalInImage();
 					boolean dest_vbi = Resolution.parseResolution(output_resolution).isVerticalBlankIntervalResolution();
@@ -180,13 +192,13 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 						/**
 						 * Cut the 32 lines from the top.
 						 */
-						vf_filters_chain.append(",crop=w=in_w:h=in_h-32:x=0:y=32");
+						vf_filters_chain.append("crop=w=in_w:h=in_h-32:x=0:y=32,");
 					}
 					
 					/**
 					 * Source will be scaled
 					 */
-					vf_filters_chain.append(",scale=");
+					vf_filters_chain.append("scale=");
 					vf_filters_chain.append(output_resolution);
 					
 					if (input_interlacing != Interlacing.Progressive && output_interlacing != Interlacing.Progressive) {
@@ -195,6 +207,7 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 						 */
 						vf_filters_chain.append(":interl=1");
 					}
+					vf_filters_chain.append(",");
 				}
 			}
 			
@@ -205,56 +218,84 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 				/**
 				 * TopFieldFirst -> BottomFieldFirst
 				 */
-				vf_filters_chain.append(",setfield=tff,fieldorder=bff,setfield=bff");
+				vf_filters_chain.append("setfield=tff,fieldorder=bff,setfield=bff,");
 			} else if (input_interlacing == Interlacing.BottomFieldFirst && output_interlacing == Interlacing.TopFieldFirst) {
 				/**
 				 * BottomFieldFirst -> TopFieldFirst
 				 */
-				vf_filters_chain.append(",setfield=bff,fieldorder=tff,setfield=tff");
+				vf_filters_chain.append("setfield=bff,fieldorder=tff,setfield=tff,");
 			} else if (input_interlacing == Interlacing.TopFieldFirst && output_interlacing == Interlacing.Progressive) {
 				/**
 				 * TopFieldFirst -> Progressive (de-interlaced)
 				 */
-				vf_filters_chain.append(",yadif=0:0:0");// XXX if out fps is > in fps, deinterlace to field
+				vf_filters_chain.append("yadif=0:0:0,");// XXX if out fps is > in fps, deinterlace to field
 			} else if (input_interlacing == Interlacing.BottomFieldFirst && output_interlacing == Interlacing.Progressive) {
 				/**
 				 * BottomFieldFirst -> Progressive (de-interlaced)
 				 */
-				vf_filters_chain.append(",yadif=0:1:0");// XXX if out fps is > in fps, deinterlace to field
+				vf_filters_chain.append("yadif=0:1:0,");// XXX if out fps is > in fps, deinterlace to field
 			}
 			
 			/**
 			 * Set correct aspect ratio
 			 */
 			if (current_params.contains("-aspect")) {
-				vf_filters_chain.append(",setdar=dar=");
+				vf_filters_chain.append("setdar=dar=");
 				vf_filters_chain.append(current_params.get(current_params.indexOf("-aspect") + 1).replaceAll(":", "/"));
+				vf_filters_chain.append(",");
 			} else {
 				try {
 					String source_dar = ffprobe.getStreamsByCodecType("video").get(0).getParam("display_aspect_ratio").getAsString();
-					vf_filters_chain.append(",setdar=dar=");
+					vf_filters_chain.append("setdar=dar=");
 					vf_filters_chain.append(source_dar.replaceAll(":", "/"));
+					vf_filters_chain.append(",");
 				} catch (NullPointerException e) {
 				}
 			}
 			
+			if (overlay_file != null) {
+				if (vf_filters_chain.toString().endsWith(",")) {
+					vf_filters_chain.setLength(vf_filters_chain.length() - 1);
+				}
+				vf_filters_chain.append("[2:0];[1:0]scale=" + source_resolution + ",[2:0]overlay");
+			}
+			
 			if (vf_filters_chain.length() > 0) {
 				insert_pos = current_params.lastIndexOf("-i") + 1;
-				current_params.add(insert_pos++, "-vf");
+				
+				if (overlay_file != null) {
+					current_params.add(insert_pos++, "-i");
+					current_params.add(insert_pos++, overlay_file.getAbsolutePath());
+					current_params.add(insert_pos++, "-filter_complex");
+				} else {
+					current_params.add(insert_pos++, "-vf");
+				}
+				
 				/**
-				 * remove the first ","
+				 * remove the last ","
 				 */
-				current_params.add(insert_pos++, vf_filters_chain.toString().substring(1));
+				if (vf_filters_chain.toString().endsWith(",")) {
+					current_params.add(insert_pos++, vf_filters_chain.toString().substring(1));
+				} else {
+					current_params.add(insert_pos++, vf_filters_chain.toString());
+				}
 			}
+		} else if (overlay_file != null) {
+			/**
+			 * Insert logo without interlacing management, like
+			 * -filter_complex [1:0]scale=1280x720,[0:0]overlay
+			 */
+			insert_pos = current_params.lastIndexOf("-i") + 1;
+			current_params.add(insert_pos++, "-i");
+			current_params.add(insert_pos++, overlay_file.getAbsolutePath());
+			current_params.add(insert_pos++, "-filter_complex");
+			StringBuilder vf_filters_chain = new StringBuilder();
+			vf_filters_chain.append("[1:0]scale=");
+			vf_filters_chain.append(source_resolution);
+			vf_filters_chain.append(",[2:0]overlay");
+			current_params.add(insert_pos++, vf_filters_chain.toString());
 		}
 		
-		/**
-		 * Overlay insertion
-		 */
-		File overlay_file = current_profile_output_format.getOverlay();
-		if (overlay_file != null) {
-			// TODO
-		}
 	}
 	
 }
