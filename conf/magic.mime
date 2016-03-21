@@ -103,6 +103,9 @@
 5	string	omfi	application/omfi
 66	string	sesx	application/vnd.adobe.audition.project
 
+# HDMV (h264 MPEG TS Stream)
+4       belong             0x47400010     video/mp2t
+
 #------------------------------------------------------------------------------
 # Localstuff:  file(1) magic for locally observed files
 # Add any locally observed files here.
