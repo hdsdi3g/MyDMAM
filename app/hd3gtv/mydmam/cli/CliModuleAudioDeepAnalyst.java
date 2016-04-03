@@ -16,18 +16,25 @@
 */
 package hd3gtv.mydmam.cli;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.TimeZone;
 
-import org.rrd4j.ConsolFun;
-import org.rrd4j.DsType;
-import org.rrd4j.core.RrdDb;
-import org.rrd4j.core.RrdDef;
-import org.rrd4j.core.Sample;
-import org.rrd4j.graph.RrdGraph;
-import org.rrd4j.graph.RrdGraphDef;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.DateAxis;
+import org.jfree.chart.axis.LogarithmicAxis;
+import org.jfree.chart.plot.ValueMarker;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.general.SeriesException;
+import org.jfree.data.time.FixedMillisecond;
+import org.jfree.data.time.TimeSeries;
+import org.jfree.data.time.TimeSeriesCollection;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.ApplicationArgs;
@@ -128,58 +135,144 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			Loggers.Transcode.debug("FFmpeg is killed, after " + (double) execution_duration / 1000d + " sec");
 		}
 		
-		private RrdDb rrdDb;
-		private long start;
-		private long end;
+		TimeSeries series_momentary;
+		TimeSeries series_short_term;
+		TimeSeries series_integrated;
+		TimeSeries series_true_peak_per_frame;
 		
 		public FFmpegDAEvents() throws Exception {
-			(new File("test.rrd")).delete();
-			
-			RrdDef rrdDef = new RrdDef("test.rrd", 300);
-			rrdDef.addArchive(ConsolFun.AVERAGE, 0.5, 1, 30);
-			rrdDef.addArchive(ConsolFun.AVERAGE, 0.5, 2, 60);
-			rrdDef.addArchive(ConsolFun.AVERAGE, 0.5, 10, 60);
-			rrdDef.addArchive(ConsolFun.AVERAGE, 0.5, 100, 60);
-			rrdDef.addArchive(ConsolFun.MAX, 0.5, 1, 60);
-			rrdDef.addDatasource("momentary", DsType.GAUGE, 10, 0, 200);
-			// rrdDef.addDatasource("outbytes", DsType.GAUGE, 600, 0, Double.NaN);
-			start = System.currentTimeMillis();
-			rrdDb = new RrdDb(rrdDef);
+			series_momentary = new TimeSeries("Momentary");
+			series_short_term = new TimeSeries("Short term");
+			series_integrated = new TimeSeries("Integrated");
+			series_true_peak_per_frame = new TimeSeries("True peak");
 		}
 		
 		public void onEnd(int exitvalue, long execution_duration) {
 			Loggers.Transcode.debug("End ffmpeg execution, after " + (double) execution_duration / 1000d + " sec");
+			
+			TimeSeriesCollection tsc = new TimeSeriesCollection();
+			tsc.addSeries(series_integrated);
+			tsc.addSeries(series_short_term);
+			tsc.addSeries(series_momentary);
+			tsc.addSeries(series_true_peak_per_frame);
+			
+			JFreeChart timechart = ChartFactory.createTimeSeriesChart("", "", "dBFS", tsc, true, false, false);
+			timechart.setAntiAlias(true);
+			timechart.setBackgroundPaint(Color.black);
+			timechart.getLegend().setBackgroundPaint(Color.black);
+			
+			XYPlot plot = timechart.getXYPlot();
+			
+			plot.setBackgroundPaint(Color.black);
+			
+			XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer(0);
+			renderer.setBaseLegendTextPaint(Color.GRAY);
+			
+			/**
+			 * series_integrated
+			 */
+			renderer.setSeriesPaint(0, Color.BLUE);
+			BasicStroke thick_stroke = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+			renderer.setSeriesStroke(0, thick_stroke);
+			
+			/**
+			 * series_short_term
+			 */
+			renderer.setSeriesPaint(1, Color.ORANGE);
+			/**
+			 * series_momentary
+			 */
+			renderer.setSeriesPaint(2, Color.RED);
+			/**
+			 * series_true_peak_per_frame
+			 */
+			renderer.setSeriesPaint(3, Color.DARK_GRAY);
+			
+			/**
+			 * Time units
+			 */
+			DateAxis time_axis = (DateAxis) plot.getDomainAxis();
+			// time_axis.setAxisLinePaint(Color.GRAY);
+			time_axis.setAxisLineVisible(false);
+			time_axis.setLabelPaint(Color.GRAY);
+			time_axis.setTickLabelPaint(Color.GRAY);
+			time_axis.setLowerMargin(0);
+			time_axis.setUpperMargin(0);
+			time_axis.setTimeZone(TimeZone.getTimeZone("GMT"));
+			time_axis.setMinorTickMarksVisible(true);
+			time_axis.setMinorTickCount(10);
+			time_axis.setMinorTickMarkInsideLength(5);
+			time_axis.setMinorTickMarkOutsideLength(0);
+			
+			/**
+			 * Display the -23 line
+			 */
+			ValueMarker zero_pos = new ValueMarker(-23);
+			zero_pos.setLabel("-23");
+			zero_pos.setLabelPaint(Color.CYAN);
+			// zero_pos.setStroke(Stroke);
+			zero_pos.setAlpha(0.5f);
+			zero_pos.setLabelBackgroundColor(Color.CYAN);
+			zero_pos.setPaint(Color.CYAN);
+			zero_pos.setOutlinePaint(Color.CYAN);
+			
+			float dash[] = { 5.0f };
+			BasicStroke dash_stroke = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f);
+			zero_pos.setStroke(dash_stroke);
+			plot.addRangeMarker(zero_pos);
+			
+			LogarithmicAxis rangeAxis = new LogarithmicAxis("dB LU");
+			rangeAxis.centerRange(0d);
+			rangeAxis.setAllowNegativesFlag(true);
+			rangeAxis.setRange(-80, 0);
+			rangeAxis.setLabelPaint(Color.GRAY);
+			rangeAxis.setAxisLineVisible(false);
+			rangeAxis.setTickLabelPaint(Color.GRAY);
+			// rangeAxis.setVerticalTickLabels(true);
+			
+			plot.setRangeAxis(rangeAxis);
+			plot.setOutlinePaint(Color.GRAY);
+			
+			timechart.setTextAntiAlias(true);
+			
+			int width = 1000;
+			int height = 600;
 			try {
-				rrdDb.close();
-				(new File("test.png")).delete();
-				
-				// then create a graph definition
-				RrdGraphDef gDef = new RrdGraphDef();
-				gDef.setWidth(800);
-				gDef.setHeight(400);
-				gDef.setFilename("test.png");
-				gDef.setStartTime(start);
-				gDef.setEndTime(end);
-				gDef.setTitle("My Title");
-				gDef.setVerticalLabel("db ABS");
-				
-				gDef.datasource("momentary", "test.rrd", "momentary", ConsolFun.AVERAGE);
-				gDef.hrule(50, Color.GREEN, "hrule");
-				gDef.setImageFormat("png");
-				
-				new RrdGraph(gDef);
+				File out_file = new File("TimeChart-5.jpeg");
+				out_file.delete();
+				ChartUtilities.saveChartAsJPEG(out_file, timechart, width, height);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 		
 		public void onStderr(String message) {
-			System.out.println(message);
+			// System.out.println(message);
 			if (message.startsWith("[Parsed_ebur128_0 @ ") == false) {
 				return;
 			}
 			if (message.endsWith(" Summary:")) {
 				// TODO parse end summary results
+				/*
+				 * WARN : can't get this beacause if (message.startsWith("[Parsed_ebur128_0 @ ") == false) { return
+				 * 
+				[Parsed_ebur128_0 @ 0x7f9944800000] Summary:
+				
+				Integrated loudness:
+				I:          -9.1 LUFS
+				Threshold: -19.3 LUFS
+				
+				Loudness range:
+				LRA:         3.9 LU
+				Threshold: -29.3 LUFS
+				LRA low:   -11.4 LUFS
+				LRA high:   -7.4 LUFS
+				
+				True peak:
+				Peak:        0.5 dBFS
+				 * 
+				 * 
+				 * */
 				return;
 			}
 			String[] line = message.substring(message.indexOf("]") + 1).trim().split(" ");
@@ -201,69 +294,73 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			 * [t:, 102.9, M:, -10.3, S:, -10.0, I:, -9.6, LUFS, LRA:, 4.6, LU, FTPK:, -3.9, -2.6, dBFS, TPK:, 0.3, 0.4, dBFS]
 			 */
 			float time = 0;
-			float momentary = 0;
-			float short_term = 0;
-			float integrated = 0;
-			float loudness_range = 0;
-			float true_peak_per_frame_L = 0;
-			float true_peak_per_frame_R = 0;
-			float true_peak_L = 0;
-			float true_peak_R = 0;
+			Float momentary = 0f;
+			Float short_term = 0f;
+			Float integrated = 0f;
+			Float true_peak_per_frame_L = 0f;
+			Float true_peak_per_frame_R = 0f;
 			
 			String entry;
 			for (int pos = 0; pos < entries.size(); pos++) {
 				entry = entries.get(pos);
 				if (entry.equalsIgnoreCase("t:")) {
-					time = Float.parseFloat(entries.get(pos + 1));
+					time = protectedParseFloat(entries.get(pos + 1));
 				} else if (entry.equalsIgnoreCase("M:")) {
-					momentary = Float.parseFloat(entries.get(pos + 1));
+					momentary = protectedParseFloat(entries.get(pos + 1));
 				} else if (entry.equalsIgnoreCase("S:")) {
-					short_term = Float.parseFloat(entries.get(pos + 1));
+					short_term = protectedParseFloat(entries.get(pos + 1));
 				} else if (entry.equalsIgnoreCase("I:")) {
-					integrated = Float.parseFloat(entries.get(pos + 1));
-				} else if (entry.equalsIgnoreCase("LRA:")) {
-					loudness_range = Float.parseFloat(entries.get(pos + 1));
+					integrated = protectedParseFloat(entries.get(pos + 1));
 				} else if (entry.equalsIgnoreCase("FTPK:")) {
-					true_peak_per_frame_L = Float.parseFloat(entries.get(pos + 1));
-					true_peak_per_frame_R = Float.parseFloat(entries.get(pos + 2));
-				} else if (entry.equalsIgnoreCase("TPK:")) {
-					true_peak_L = Float.parseFloat(entries.get(pos + 1));
-					true_peak_R = Float.parseFloat(entries.get(pos + 2));
+					true_peak_per_frame_L = protectedParseFloat(entries.get(pos + 1));
+					true_peak_per_frame_R = protectedParseFloat(entries.get(pos + 2));
 				} else {
 					continue;
 				}
 			}
 			
-			// System.out.println(entries);
-			/*System.out.print(time);
-			System.out.print(" ");
+			System.out.print(time);
+			System.out.print("\t\t");
 			System.out.print(momentary);
-			System.out.print(" ");
+			System.out.print("M\t");
 			System.out.print(short_term);
-			System.out.print(" ");
+			System.out.print("S\t");
 			System.out.print(integrated);
-			System.out.print(" ");
-			System.out.print(loudness_range);
-			System.out.print(" ");
-			System.out.print(true_peak_per_frame_L);
-			System.out.print(" ");
-			System.out.print(true_peak_per_frame_R);
-			System.out.print(" ");
-			System.out.print(true_peak_L);
-			System.out.print(" ");
-			System.out.print(true_peak_R);
-			System.out.println();*/
+			System.out.print("I\t");
+			System.out.print(Math.max(true_peak_per_frame_L, true_peak_per_frame_R));
+			System.out.print("FTPK");
+			System.out.println();
 			
-			Sample sample;
-			end = start + Math.round(time * 1000);
 			try {
-				sample = rrdDb.createSample();
-				sample.setTime(end);
-				sample.setValue("momentary", Math.abs(momentary));// XXX
-				sample.update();
-			} catch (IOException e) {
+				FixedMillisecond now = new FixedMillisecond(Math.round(Math.ceil(time * 1000f)));
+				if (momentary == 0) {
+					momentary = -100f;
+				}
+				series_momentary.add(now, momentary);
+				
+				if (short_term == 0) {
+					short_term = -100f;
+				}
+				series_short_term.add(now, short_term);
+				series_integrated.add(now, integrated);
+				series_true_peak_per_frame.add(now, Math.max(true_peak_per_frame_L, true_peak_per_frame_R));
+			} catch (SeriesException e) {
 				e.printStackTrace();
+				return;
 			}
 		}
+		
 	}
+	
+	/**
+	 * @return MIN_VALUE if NaN
+	 */
+	public static float protectedParseFloat(String value) {
+		try {
+			return Float.parseFloat(value);
+		} catch (NumberFormatException e) {
+			return Float.MIN_VALUE;
+		}
+	}
+	
 }
