@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.TimeZone;
 
+import org.apache.commons.io.FileUtils;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
@@ -37,6 +38,7 @@ import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
@@ -62,12 +64,12 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			params.add("-i");
 			params.add(input_file.getAbsolutePath());
 			params.add("-filter_complex");
-			params.add("ebur128=peak=true");
+			params.add("ebur128=peak=true,astats,silencedetect=n=-20dB:d=1");
 			params.add("-vn");
 			params.add("-f");
 			params.add("null");
 			params.add("/dev/null");
-			FFmpegDAEvents ffdae = new FFmpegDAEvents();
+			FFmpegDAEvents ffdae = new FFmpegDAEvents(1000, 600, -80f, -23f, new File("TimeChart.jpeg"), 0.8f);
 			Execprocess process = new Execprocess(ExecBinaryPath.get("ffmpeg"), params, ffdae);
 			
 			Thread t = new Thread() {
@@ -135,12 +137,33 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			Loggers.Transcode.debug("FFmpeg is killed, after " + (double) execution_duration / 1000d + " sec");
 		}
 		
-		TimeSeries series_momentary;
-		TimeSeries series_short_term;
-		TimeSeries series_integrated;
-		TimeSeries series_true_peak_per_frame;
+		private TimeSeries series_momentary;
+		private TimeSeries series_short_term;
+		private TimeSeries series_integrated;
+		private TimeSeries series_true_peak_per_frame;
+		private float lufs_range;
+		private int image_width;
+		private int image_height;
+		private float lufs_ref;
+		private File output_file;
+		private float jpg_compression_ratio;
+		private FFmpegAudioDeepAnalyst ffmpeg_da_result;
 		
-		public FFmpegDAEvents() throws Exception {
+		public FFmpegDAEvents(int image_width, int image_height, float lufs_depth, float lufs_ref, File output_file, float jpg_compression_ratio) throws Exception {
+			this.lufs_range = lufs_depth;
+			this.image_width = image_width;
+			this.image_height = image_height;
+			this.lufs_ref = lufs_ref;
+			this.output_file = output_file;
+			if (output_file == null) {
+				throw new NullPointerException("\"output_file\" can't to be null");
+			}
+			if (output_file.exists() & output_file.isFile()) {
+				FileUtils.forceDelete(output_file);
+			}
+			this.jpg_compression_ratio = jpg_compression_ratio;
+			ffmpeg_da_result = new FFmpegAudioDeepAnalyst();
+			
 			series_momentary = new TimeSeries("Momentary");
 			series_short_term = new TimeSeries("Short term");
 			series_integrated = new TimeSeries("Integrated");
@@ -150,13 +173,15 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 		public void onEnd(int exitvalue, long execution_duration) {
 			Loggers.Transcode.debug("End ffmpeg execution, after " + (double) execution_duration / 1000d + " sec");
 			
+			System.out.println("RESULT :\t" + ffmpeg_da_result.toString());// XXX
+			
 			TimeSeriesCollection tsc = new TimeSeriesCollection();
 			tsc.addSeries(series_integrated);
 			tsc.addSeries(series_short_term);
 			tsc.addSeries(series_momentary);
 			tsc.addSeries(series_true_peak_per_frame);
 			
-			JFreeChart timechart = ChartFactory.createTimeSeriesChart("", "", "dBFS", tsc, true, false, false);
+			JFreeChart timechart = ChartFactory.createTimeSeriesChart("", "", "", tsc, true, false, false);
 			timechart.setAntiAlias(true);
 			timechart.setBackgroundPaint(Color.black);
 			timechart.getLegend().setBackgroundPaint(Color.black);
@@ -192,7 +217,6 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			 * Time units
 			 */
 			DateAxis time_axis = (DateAxis) plot.getDomainAxis();
-			// time_axis.setAxisLinePaint(Color.GRAY);
 			time_axis.setAxisLineVisible(false);
 			time_axis.setLabelPaint(Color.GRAY);
 			time_axis.setTickLabelPaint(Color.GRAY);
@@ -207,10 +231,9 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			/**
 			 * Display the -23 line
 			 */
-			ValueMarker zero_pos = new ValueMarker(-23);
-			zero_pos.setLabel("-23");
+			ValueMarker zero_pos = new ValueMarker(lufs_ref);
+			zero_pos.setLabel(String.valueOf(lufs_ref));
 			zero_pos.setLabelPaint(Color.CYAN);
-			// zero_pos.setStroke(Stroke);
 			zero_pos.setAlpha(0.5f);
 			zero_pos.setLabelBackgroundColor(Color.CYAN);
 			zero_pos.setPaint(Color.CYAN);
@@ -224,102 +247,151 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			LogarithmicAxis rangeAxis = new LogarithmicAxis("dB LU");
 			rangeAxis.centerRange(0d);
 			rangeAxis.setAllowNegativesFlag(true);
-			rangeAxis.setRange(-80, 0);
+			rangeAxis.setRange(lufs_range, 0);
 			rangeAxis.setLabelPaint(Color.GRAY);
 			rangeAxis.setAxisLineVisible(false);
 			rangeAxis.setTickLabelPaint(Color.GRAY);
-			// rangeAxis.setVerticalTickLabels(true);
 			
 			plot.setRangeAxis(rangeAxis);
 			plot.setOutlinePaint(Color.GRAY);
 			
 			timechart.setTextAntiAlias(true);
 			
-			int width = 1000;
-			int height = 600;
 			try {
-				File out_file = new File("TimeChart-5.jpeg");
-				out_file.delete();
-				ChartUtilities.saveChartAsJPEG(out_file, timechart, width, height);
+				ChartUtilities.saveChartAsJPEG(output_file, jpg_compression_ratio, timechart, image_width, image_height);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 		
+		/**
+		 * Internal var for ffmpeg return analyst string
+		 */
+		private String[] splited_line;
+		private ArrayList<String> line_entries = new ArrayList<String>(20);
+		private Float entry_time = 0f;
+		private Float entry_momentary = 0f;
+		private Float entry_short_term = 0f;
+		private Float entry_integrated = 0f;
+		private Float entry_true_peak_per_frame_L = 0f;
+		private Float entry_true_peak_per_frame_R = 0f;
+		
+		private boolean ebur128_summary_block = false;
+		
 		public void onStderr(String message) {
-			// System.out.println(message);
-			if (message.startsWith("[Parsed_ebur128_0 @ ") == false) {
+			if (ebur128_summary_block) {
+				parseEbur128Summary(message);
 				return;
 			}
-			if (message.endsWith(" Summary:")) {
-				// TODO parse end summary results
-				/*
-				 * WARN : can't get this beacause if (message.startsWith("[Parsed_ebur128_0 @ ") == false) { return
-				 * 
-				[Parsed_ebur128_0 @ 0x7f9944800000] Summary:
-				
+			
+			if (message.startsWith("[Parsed_ebur128_0 @ ")) {
+				if (message.endsWith(" Summary:")) {
+					ebur128_summary_block = true;
+				} else {
+					parseEbur128Line(message);
+				}
+			} else {
+				// TODO others analyst "[silencedetect @ " and "[Parsed_astats_1 @ "
+				System.out.println(message);// XXX
+			}
+		}
+		
+		private boolean ebur128_summary_block_loudness_range = false;
+		
+		private void parseEbur128Summary(String message) {
+			message = message.trim();
+			if (message.equals("")) {
+				return;
+			}
+			
+			splited_line = message.split(":");
+			
+			/*
+			 * Parse this :
 				Integrated loudness:
-				I:          -9.1 LUFS
-				Threshold: -19.3 LUFS
+				I:         -17.5 LUFS
+				Threshold: -27.5 LUFS
 				
 				Loudness range:
-				LRA:         3.9 LU
-				Threshold: -29.3 LUFS
-				LRA low:   -11.4 LUFS
-				LRA high:   -7.4 LUFS
+				LRA:        20.7 LU
+				Threshold: -37.2 LUFS
+				LRA low:   -37.2 LUFS
+				LRA high:  -16.5 LUFS
 				
 				True peak:
-				Peak:        0.5 dBFS
-				 * 
-				 * 
-				 * */
-				return;
+				Peak:       -0.2 dBFS
+			 * 
+			 */
+			if (splited_line[0].equals("Integrated loudness")) {
+				ebur128_summary_block_loudness_range = false;
+			} else if (splited_line[0].equals("I")) {
+				ffmpeg_da_result.integrated_loudness = protectedParseFloat(splited_line[1].trim().split(" ")[0]);
+			} else if (splited_line[0].equals("Threshold")) {
+				if (ebur128_summary_block_loudness_range) {
+					ffmpeg_da_result.loudness_range_threshold = protectedParseFloat(splited_line[1].trim().split(" ")[0]);
+				} else {
+					ffmpeg_da_result.integrated_loudness_threshold = protectedParseFloat(splited_line[1].trim().split(" ")[0]);
+				}
+			} else if (splited_line[0].equals("Loudness range")) {
+				ebur128_summary_block_loudness_range = true;
+			} else if (splited_line[0].equals("LRA")) {
+				ffmpeg_da_result.loudness_range_LRA = protectedParseFloat(splited_line[1].trim().split(" ")[0]);
+			} else if (splited_line[0].equals("LRA low")) {
+				ffmpeg_da_result.loudness_range_LRA_low = protectedParseFloat(splited_line[1].trim().split(" ")[0]);
+			} else if (splited_line[0].equals("LRA high")) {
+				ffmpeg_da_result.loudness_range_LRA_high = protectedParseFloat(splited_line[1].trim().split(" ")[0]);
+			} else if (splited_line[0].equals("Peak")) {
+				ffmpeg_da_result.true_peak = protectedParseFloat(splited_line[1].trim().split(" ")[0]);
+				ebur128_summary_block = false;
 			}
-			String[] line = message.substring(message.indexOf("]") + 1).trim().split(" ");
+		}
+		
+		private void parseEbur128Line(String message) {
+			splited_line = message.substring(message.indexOf("]") + 1).trim().split(" ");
 			/**
 			 * [Parsed_ebur128_0 @ 0x7fb594000a00] t: 130.4 M: -6.9 S: -7.4 I: -9.2 LUFS LRA: 4.1 LU FTPK: -0.1 0.0 dBFS TPK: 0.3 0.4 dBFS
 			 * Convert spaces to params.
 			 */
-			ArrayList<String> entries = new ArrayList<String>(20);
-			for (int pos = 0; pos < line.length; pos++) {
-				if (line[pos].equals("")) {
+			line_entries.clear();
+			for (int pos = 0; pos < splited_line.length; pos++) {
+				if (splited_line[pos].equals("")) {
 					/**
 					 * Remove empty spaces
 					 */
 					continue;
 				}
-				entries.add(line[pos]);
+				line_entries.add(splited_line[pos]);
 			}
 			/**
 			 * [t:, 102.9, M:, -10.3, S:, -10.0, I:, -9.6, LUFS, LRA:, 4.6, LU, FTPK:, -3.9, -2.6, dBFS, TPK:, 0.3, 0.4, dBFS]
 			 */
-			float time = 0;
-			Float momentary = 0f;
-			Float short_term = 0f;
-			Float integrated = 0f;
-			Float true_peak_per_frame_L = 0f;
-			Float true_peak_per_frame_R = 0f;
+			entry_time = 0f;
+			entry_momentary = 0f;
+			entry_short_term = 0f;
+			entry_integrated = 0f;
+			entry_true_peak_per_frame_L = 0f;
+			entry_true_peak_per_frame_R = 0f;
 			
 			String entry;
-			for (int pos = 0; pos < entries.size(); pos++) {
-				entry = entries.get(pos);
+			for (int pos = 0; pos < line_entries.size(); pos++) {
+				entry = line_entries.get(pos);
 				if (entry.equalsIgnoreCase("t:")) {
-					time = protectedParseFloat(entries.get(pos + 1));
+					entry_time = protectedParseFloat(line_entries.get(pos + 1));
 				} else if (entry.equalsIgnoreCase("M:")) {
-					momentary = protectedParseFloat(entries.get(pos + 1));
+					entry_momentary = protectedParseFloat(line_entries.get(pos + 1));
 				} else if (entry.equalsIgnoreCase("S:")) {
-					short_term = protectedParseFloat(entries.get(pos + 1));
+					entry_short_term = protectedParseFloat(line_entries.get(pos + 1));
 				} else if (entry.equalsIgnoreCase("I:")) {
-					integrated = protectedParseFloat(entries.get(pos + 1));
+					entry_integrated = protectedParseFloat(line_entries.get(pos + 1));
 				} else if (entry.equalsIgnoreCase("FTPK:")) {
-					true_peak_per_frame_L = protectedParseFloat(entries.get(pos + 1));
-					true_peak_per_frame_R = protectedParseFloat(entries.get(pos + 2));
+					entry_true_peak_per_frame_L = protectedParseFloat(line_entries.get(pos + 1));
+					entry_true_peak_per_frame_R = protectedParseFloat(line_entries.get(pos + 2));
 				} else {
 					continue;
 				}
 			}
 			
-			System.out.print(time);
+			/*System.out.print(time);
 			System.out.print("\t\t");
 			System.out.print(momentary);
 			System.out.print("M\t");
@@ -329,21 +401,21 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			System.out.print("I\t");
 			System.out.print(Math.max(true_peak_per_frame_L, true_peak_per_frame_R));
 			System.out.print("FTPK");
-			System.out.println();
+			System.out.println();*/
 			
 			try {
-				FixedMillisecond now = new FixedMillisecond(Math.round(Math.ceil(time * 1000f)));
-				if (momentary == 0) {
-					momentary = -100f;
+				FixedMillisecond now = new FixedMillisecond(Math.round(Math.ceil(entry_time * 1000f)));
+				if (entry_momentary == 0) {
+					entry_momentary = protectedParseFloat(null);
 				}
-				series_momentary.add(now, momentary);
+				series_momentary.add(now, entry_momentary);
 				
-				if (short_term == 0) {
-					short_term = -100f;
+				if (entry_short_term == 0) {
+					entry_short_term = protectedParseFloat(null);
 				}
-				series_short_term.add(now, short_term);
-				series_integrated.add(now, integrated);
-				series_true_peak_per_frame.add(now, Math.max(true_peak_per_frame_L, true_peak_per_frame_R));
+				series_short_term.add(now, entry_short_term);
+				series_integrated.add(now, entry_integrated);
+				series_true_peak_per_frame.add(now, Math.max(entry_true_peak_per_frame_L, entry_true_peak_per_frame_R));
 			} catch (SeriesException e) {
 				e.printStackTrace();
 				return;
@@ -353,13 +425,15 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 	}
 	
 	/**
-	 * @return MIN_VALUE if NaN
+	 * @return -144 if NaN
 	 */
 	public static float protectedParseFloat(String value) {
 		try {
 			return Float.parseFloat(value);
+		} catch (NullPointerException e) {
+			return -144.49f;
 		} catch (NumberFormatException e) {
-			return Float.MIN_VALUE;
+			return -144.49f;
 		}
 	}
 	
