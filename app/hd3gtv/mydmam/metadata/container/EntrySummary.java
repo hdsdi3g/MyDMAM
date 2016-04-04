@@ -153,6 +153,12 @@ public final class EntrySummary extends ContainerEntry {
 		if (entry == null) {
 			return;
 		}
+		if (generator == null) {
+			throw new NullPointerException("\"generator\" can't to be null");
+		}
+		if (container == null) {
+			throw new NullPointerException("\"container\" can't to be null");
+		}
 		
 		populate_previews();
 		
