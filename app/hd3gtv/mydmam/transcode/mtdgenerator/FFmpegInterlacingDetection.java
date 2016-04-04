@@ -2,13 +2,17 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
+import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecBinaryPath;
@@ -17,7 +21,7 @@ import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.VideoConst.Interlacing;
 import hd3gtv.tools.VideoConst.Resolution;
 
-public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
+public class FFmpegInterlacingDetection implements MetadataExtractor {
 	
 	private int framecount;
 	
@@ -34,7 +38,7 @@ public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 		return false;
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		if (mimetype.equalsIgnoreCase("application/gxf")) return true;
 		if (mimetype.equalsIgnoreCase("application/lxf")) return true;
 		if (mimetype.equalsIgnoreCase("application/mxf")) return true;
@@ -56,8 +60,12 @@ public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 		return "Video interlacing detection type";
 	}
 	
-	@Override
-	public EntryAnalyser process(Container container) throws Exception {
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return processFull(container);
+	}
+	
+	public ContainerEntryResult processFull(Container container) throws Exception {
+		
 		FFprobe ffprobe = container.getByClass(FFprobe.class);
 		
 		if (ffprobe == null) {
@@ -166,7 +174,7 @@ public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 			container.getSummary().putSummaryContent(stats, "Some interlaced and progressive frames");
 			break;
 		}
-		return stats;
+		return new ContainerEntryResult(stats);
 	}
 	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
@@ -177,8 +185,12 @@ public class FFmpegInterlacingDetection implements MetadataGeneratorAnalyser {
 		return false;
 	}
 	
-	public Class<? extends EntryAnalyser> getRootEntryClass() {
-		return FFmpegInterlacingStats.class;
+	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
+		return Arrays.asList(FFmpegInterlacingStats.class);
+	}
+	
+	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
+		return null;
 	}
 	
 }

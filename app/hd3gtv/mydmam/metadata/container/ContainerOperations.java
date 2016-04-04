@@ -19,6 +19,7 @@ package hd3gtv.mydmam.metadata.container;
 import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -93,7 +94,7 @@ public class ContainerOperations {
 		gson_simple = gson_builder.create();
 		
 		try {
-			declareEntryType(EntrySummary.class);
+			declareAllEntriesType(Arrays.asList(EntrySummary.class));
 		} catch (Exception e) {
 			Loggers.Metadata.error("Can't declare (de)serializer for EntrySummary", e);
 		}
@@ -103,7 +104,7 @@ public class ContainerOperations {
 		/**
 		 * Call MetadataCenter for run static block.
 		 */
-		MetadataCenter.getAnalysers();
+		MetadataCenter.getExtractors();
 	}
 	
 	public static void setGsonPrettyPrinting() {
@@ -126,18 +127,24 @@ public class ContainerOperations {
 		return gson;
 	}
 	
-	public synchronized static void declareEntryType(Class<? extends ContainerEntry> entry_class)
+	public synchronized static void declareAllEntriesType(List<Class<? extends ContainerEntry>> entry_classes)
 			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-		if (entry_class == null) {
-			throw new NullPointerException("\"entry_class\" can't to be null");
+		if (entry_classes == null) {
+			throw new NullPointerException("\"entry_classes\" can't to be null");
 		}
-		ContainerEntry containerEntry = (ContainerEntry) declareType(entry_class);
-		declared_entries_type.put(containerEntry.getES_Type(), containerEntry);
-		
-		List<Class<? extends SelfSerializing>> dependencies = containerEntry.getSerializationDependencies();
-		if (dependencies != null) {
-			for (int pos = 0; pos < dependencies.size(); pos++) {
-				declareType(dependencies.get(pos));
+		Class<? extends ContainerEntry> entry_class = null;
+		ContainerEntry containerEntry = null;
+		List<Class<? extends SelfSerializing>> dependencies = null;
+		for (int pos_ec = 0; pos_ec < entry_classes.size(); pos_ec++) {
+			entry_class = entry_classes.get(pos_ec);
+			containerEntry = (ContainerEntry) declareType(entry_class);
+			declared_entries_type.put(containerEntry.getES_Type(), containerEntry);
+			
+			dependencies = containerEntry.getSerializationDependencies();
+			if (dependencies != null) {
+				for (int pos = 0; pos < dependencies.size(); pos++) {
+					declareType(dependencies.get(pos));
+				}
 			}
 		}
 		gson = gson_builder.create();

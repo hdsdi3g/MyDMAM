@@ -17,19 +17,23 @@
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
-public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
+public class FFmpegAlbumartwork implements MetadataExtractor {
 	
 	private TranscodeProfile tprofile;
 	
@@ -50,7 +54,7 @@ public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 		return (tprofile != null);
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		return FFprobeAnalyser.canProcessThisAudioOnly(mimetype);
 	}
 	
@@ -58,7 +62,11 @@ public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 		return "FFmpeg album artwork extracting";
 	}
 	
-	public EntryRenderer process(Container container) throws Exception {
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return null;
+	}
+	
+	public ContainerEntryResult processFull(Container container) throws Exception {
 		FFprobe ffprobe = container.getByClass(FFprobe.class);
 		if (ffprobe == null) {
 			return null;
@@ -97,15 +105,23 @@ public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 		
 		Albumartwork result = new Albumartwork();
 		element.consolidateAndExportToEntry(result, container, this);
-		return result;
+		return new ContainerEntryResult(result);
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return null;
 	}
 	
-	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return Albumartwork.class;
+	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
+		return Arrays.asList(Albumartwork.class);
+	}
+	
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		return null;
+	}
+	
+	public boolean isCanUsedInMasterAsPreview(Container container) {
+		return false;
 	}
 	
 }

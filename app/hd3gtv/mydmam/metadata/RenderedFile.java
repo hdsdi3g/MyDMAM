@@ -125,7 +125,7 @@ public class RenderedFile {
 	private File temp_file;
 	private String metadata_reference_id;
 	private String rendered_base_file_name;
-	private MetadataGeneratorRenderer generatorrenderer;
+	private MetadataExtractor metadata_extractor;
 	private boolean consolidated;
 	private String rendered_mime;
 	private String rendered_digest;
@@ -206,14 +206,14 @@ public class RenderedFile {
 		temp_file.delete();
 	}
 	
-	private void checkConsolidate(Container container, MetadataGeneratorRenderer metadataGeneratorRenderer) throws IOException {
+	private void checkConsolidate(Container container, MetadataExtractor metadata_extractor) throws IOException {
 		if (container == null) {
 			throw new NullPointerException("\"source_element\" can't to be null");
 		}
 		metadata_reference_id = container.getMtd_key();
 		
-		this.generatorrenderer = metadataGeneratorRenderer;
-		if (metadataGeneratorRenderer == null) {
+		this.metadata_extractor = metadata_extractor;
+		if (metadata_extractor == null) {
 			throw new NullPointerException("\"renderer\" can't to be null");
 		}
 		
@@ -237,12 +237,12 @@ public class RenderedFile {
 	/**
 	 * metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extension
 	 */
-	public EntryRenderer consolidateAndExportToEntry(EntryRenderer entry_renderer, Container container, MetadataGeneratorRenderer generatorrenderer) throws IOException {
+	public EntryRenderer consolidateAndExportToEntry(EntryRenderer entry_renderer, Container container, MetadataExtractor metadata_extractor) throws IOException {
 		if (consolidated) {
 			export_to_entry(entry_renderer, container);
 			return entry_renderer;
 		}
-		checkConsolidate(container, generatorrenderer);
+		checkConsolidate(container, metadata_extractor);
 		
 		File f_base_directory_dest = createBase_Directory_Dest();
 		
@@ -296,7 +296,7 @@ public class RenderedFile {
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		log.put("metadata_reference_id", metadata_reference_id);
 		log.put("source_element", container.getOrigin());
-		log.put("renderer name", generatorrenderer.getLongName());
+		log.put("renderer name", metadata_extractor.getLongName());
 		log.put("rendered_file", rendered_file);
 		log.put("rendered_mime", rendered_mime);
 		log.put("rendered_digest", rendered_digest);
@@ -321,7 +321,7 @@ public class RenderedFile {
 		rendered_content.size = rendered_file.length();
 		rendered_content.date = rendered_file.lastModified();
 		rendered_content.hash = rendered_digest;
-		rendered_content.producer = generatorrenderer.getLongName();
+		rendered_content.producer = metadata_extractor.getLongName();
 		rendered_content.mime = rendered_mime;
 		entry_renderer.addContent(rendered_content);
 	}

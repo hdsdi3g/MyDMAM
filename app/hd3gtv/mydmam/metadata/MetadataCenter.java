@@ -25,7 +25,6 @@ import java.util.Map;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.transcode.images.ImageMagickAnalyser;
 import hd3gtv.mydmam.transcode.images.ImageMagickFFmpegThumbnailer;
@@ -45,9 +44,9 @@ import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererSD;
 
 public class MetadataCenter {
 	
-	private static ArrayList<MetadataGeneratorAnalyser> metadataGeneratorAnalysers;
-	private static ArrayList<MetadataGeneratorRenderer> metadataGeneratorRenderers;
-	private static Map<String, MetadataGeneratorAnalyser> master_as_preview_mime_list_providers;
+	private static final ArrayList<MetadataExtractor> declared_extractors;
+	
+	private static Map<String, MetadataExtractor> master_as_preview_mime_list_providers;
 	static File rendering_temp_directory;
 	static File rendering_local_directory;
 	
@@ -57,7 +56,7 @@ public class MetadataCenter {
 		String storage_label_name;
 		String currentpath;
 		MetadataIndexingLimit limit = MetadataIndexingLimit.NOLIMITS;
-		ArrayList<Class<? extends MetadataGenerator>> blacklist;
+		ArrayList<Class<? extends MetadataExtractor>> blacklist;
 		
 		@SuppressWarnings("unchecked")
 		private MetadataConfigurationItem(LinkedHashMap<String, ?> conf) {
@@ -86,14 +85,14 @@ public class MetadataCenter {
 				}
 			}
 			
-			blacklist = new ArrayList<Class<? extends MetadataGenerator>>();
+			blacklist = new ArrayList<Class<? extends MetadataExtractor>>();
 			if (conf.containsKey("blacklist")) {
 				ArrayList<String> str_blacklist = (ArrayList<String>) conf.get("blacklist");
 				for (int pos_bl = 0; pos_bl < str_blacklist.size(); pos_bl++) {
 					try {
 						Class<?> c = Class.forName(str_blacklist.get(pos_bl));
-						if (MetadataGenerator.class.isAssignableFrom(c)) {
-							blacklist.add((Class<? extends MetadataGenerator>) c);
+						if (MetadataExtractor.class.isAssignableFrom(c)) {
+							blacklist.add((Class<? extends MetadataExtractor>) c);
 						} else {
 							throw new ClassNotFoundException(c.getName() + " is not a MetadataGenerator");
 						}
@@ -126,8 +125,7 @@ public class MetadataCenter {
 	}
 	
 	static {
-		metadataGeneratorAnalysers = new ArrayList<MetadataGeneratorAnalyser>();
-		metadataGeneratorRenderers = new ArrayList<MetadataGeneratorRenderer>();
+		declared_extractors = new ArrayList<MetadataExtractor>();
 		
 		master_as_preview_mime_list_providers = null;
 		conf_items = new ArrayList<MetadataCenter.MetadataConfigurationItem>();
@@ -139,7 +137,7 @@ public class MetadataCenter {
 			}
 			
 			if (Configuration.global.getValueBoolean("metadata_analysing", "master_as_preview")) {
-				master_as_preview_mime_list_providers = new HashMap<String, MetadataGeneratorAnalyser>();
+				master_as_preview_mime_list_providers = new HashMap<String, MetadataExtractor>();
 			}
 			rendering_temp_directory = new File(Configuration.global.getValue("metadata_analysing", "temp_directory", System.getProperty("java.io.tmpdir", "/tmp")));
 			rendering_local_directory = new File(Configuration.global.getValue("metadata_analysing", "local_directory", System.getProperty("user.home", "/tmp")));
@@ -169,53 +167,41 @@ public class MetadataCenter {
 		}
 	}
 	
-	private static void addProvider(MetadataGenerator provider) {
-		if (provider == null) {
+	private static void addProvider(MetadataExtractor extractor) {
+		if (extractor == null) {
 			return;
 		}
-		if (provider.isEnabled() == false) {
+		if (extractor.isEnabled() == false) {
 			return;
 		}
 		
-		Loggers.Metadata.info("Load provider " + provider.getLongName());
+		Loggers.Metadata.info("Load extractor " + extractor.getLongName());
 		try {
-			ContainerOperations.declareEntryType(provider.getRootEntryClass());
+			ContainerOperations.declareAllEntriesType(extractor.getAllRootEntryClasses());
 		} catch (Exception e) {
-			Loggers.Metadata.error("Can't declare (de)serializer from Entry provider " + provider.getLongName(), e);
+			Loggers.Metadata.error("Can't declare (de)serializer from Entry extractor " + extractor.getLongName(), e);
 			return;
 		}
 		
-		MetadataGeneratorAnalyser metadataGeneratorAnalyser;
-		if (provider instanceof MetadataGeneratorAnalyser) {
-			metadataGeneratorAnalyser = (MetadataGeneratorAnalyser) provider;
-			metadataGeneratorAnalysers.add(metadataGeneratorAnalyser);
-			if (master_as_preview_mime_list_providers != null) {
-				List<String> list = metadataGeneratorAnalyser.getMimeFileListCanUsedInMasterAsPreview();
-				if (list != null) {
-					for (int pos = 0; pos < list.size(); pos++) {
-						master_as_preview_mime_list_providers.put(list.get(pos).toLowerCase(), metadataGeneratorAnalyser);
-					}
+		declared_extractors.add(extractor);
+		if (master_as_preview_mime_list_providers != null) {
+			List<String> list = extractor.getMimeFileListCanUsedInMasterAsPreview();
+			if (list != null) {
+				for (int pos = 0; pos < list.size(); pos++) {
+					master_as_preview_mime_list_providers.put(list.get(pos).toLowerCase(), extractor);
 				}
 			}
-		} else if (provider instanceof MetadataGeneratorRenderer) {
-			metadataGeneratorRenderers.add((MetadataGeneratorRenderer) provider);
-		} else {
-			Loggers.Metadata.error("Can't add unrecognized provider", null);
 		}
 	}
 	
 	private MetadataCenter() {
 	}
 	
-	public static ArrayList<MetadataGeneratorRenderer> getRenderers() {
-		return metadataGeneratorRenderers;
+	public static ArrayList<MetadataExtractor> getExtractors() {
+		return declared_extractors;
 	}
 	
-	public static ArrayList<MetadataGeneratorAnalyser> getAnalysers() {
-		return metadataGeneratorAnalysers;
-	}
-	
-	public static Map<String, MetadataGeneratorAnalyser> getMasterAsPreviewMimeListProviders() {
+	public static Map<String, MetadataExtractor> getMasterAsPreviewMimeListProviders() {
 		return master_as_preview_mime_list_providers;
 	}
 	

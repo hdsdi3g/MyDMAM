@@ -20,11 +20,13 @@ import java.io.File;
 import java.util.List;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork.Albumartwork;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot.Snapshot;
@@ -39,7 +41,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		super(root_entry_class, preview_type, profile_name);
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		if (FFprobeAnalyser.canProcessThisVideoOnly(mimetype)) return true;
 		if (FFprobeAnalyser.canProcessThisAudioOnly(mimetype)) return true;
 		return false;
@@ -57,11 +59,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		return super.getPreviewTypeForRenderer(container, entry);
 	}
 	
-	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return super.getRootEntryClass();
-	}
-	
-	public EntryRenderer process(Container media_source_container) throws Exception {
+	public ContainerEntryResult process(Container media_source_container) throws Exception {
 		EntryRenderer snapshot = media_source_container.getByClass(Albumartwork.class);
 		if (snapshot == null) {
 			snapshot = media_source_container.getByClass(Snapshot.class);
@@ -90,5 +88,9 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 			return null;
 		}
 		return subProcess(media_source_container, physical_source, image_attributes);
+	}
+	
+	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
+		return super.getAllRootEntryClasses();
 	}
 }

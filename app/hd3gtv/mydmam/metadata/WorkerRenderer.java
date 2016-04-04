@@ -16,6 +16,14 @@
 */
 package hd3gtv.mydmam.metadata;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobNG;
@@ -24,18 +32,9 @@ import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.Storage;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class WorkerRenderer extends WorkerNG {
 	
@@ -77,9 +76,9 @@ public class WorkerRenderer extends WorkerNG {
 		
 		JobContextMetadataRenderer renderer_context = (JobContextMetadataRenderer) context;
 		
-		List<MetadataGeneratorRenderer> metadataGeneratorRenderers = MetadataCenter.getRenderers();
+		List<MetadataExtractor> metadataGeneratorRenderers = MetadataCenter.getExtractors();
 		if (metadataGeneratorRenderers.isEmpty()) {
-			throw new NullPointerException("No declared metadatas renderers");
+			throw new NullPointerException("No declared metadatas extractors");
 		}
 		
 		MetadataGeneratorRendererViaWorker _renderer = null;
@@ -126,14 +125,14 @@ public class WorkerRenderer extends WorkerNG {
 			throw new FileNotFoundException(physical_file.getPath());
 		}
 		
-		EntryRenderer rendered_entry = current_renderer.standaloneProcess(physical_file, progression, container, renderer_context);
-		if (rendered_entry == null) {
+		ContainerEntryResult result_entries = current_renderer.standaloneProcess(physical_file, progression, container, renderer_context);
+		if (result_entries == null) {
 			current_renderer = null;
 			return;
 		}
 		
-		container.getSummary().addPreviewsFromEntryRenderer(rendered_entry, container, current_renderer);
-		container.addEntry(rendered_entry);
+		container.getSummary().addPreviewsFromEntryRenderer(result_entries, container, current_renderer);
+		result_entries.addEntriesToContainer(container);
 		container.save();
 		
 		current_renderer = null;
@@ -160,7 +159,7 @@ public class WorkerRenderer extends WorkerNG {
 	}
 	
 	public List<WorkerCapablities> getWorkerCapablities() {
-		List<MetadataGeneratorRenderer> metadataGeneratorRenderers = MetadataCenter.getRenderers();
+		List<MetadataExtractor> metadataGeneratorRenderers = MetadataCenter.getExtractors();
 		if (metadataGeneratorRenderers == null) {
 			return null;
 		}
