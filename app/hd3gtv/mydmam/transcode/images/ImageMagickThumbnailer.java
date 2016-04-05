@@ -123,7 +123,7 @@ public class ImageMagickThumbnailer implements MetadataExtractor {
 	}
 	
 	public String getLongName() {
-		return "ImageMagick low-res image thumbnailer";
+		return "ImageMagick low-res image thumbnailer (" + preview_type + ")";
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {

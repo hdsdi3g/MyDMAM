@@ -52,7 +52,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 	}
 	
 	public String getLongName() {
-		return "ImageMagick low-res thumbnailer from ffmpeg snapshots and artworks";
+		return super.getLongName() + " from ffmpeg snapshots and artworks";
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
@@ -74,8 +74,13 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 			Loggers.Transcode.debug("snapshot or artwork list from this container is empty: " + media_source_container);
 			return null;
 		}
+		
 		RenderedFile snapshot_rfile = snapshot.getRenderedFile(filenames.get(0), true);
 		File physical_source = snapshot_rfile.getRendered_file();
+		
+		if (Loggers.Metadata.isDebugEnabled()) {
+			Loggers.Metadata.debug("Snapshoted file: " + physical_source);
+		}
 		
 		/**
 		 * Used for analyst previous rendered file and get an ImageAttributes for it.

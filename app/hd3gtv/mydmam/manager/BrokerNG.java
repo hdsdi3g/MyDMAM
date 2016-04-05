@@ -486,11 +486,22 @@ public class BrokerNG {
 								continue;
 							}
 							
+							if (best_jobs_worker.containsValue(worker)) {
+								/**
+								 * This worker is actually reserved by a previous job attribution, and can't to link to a new job.
+								 * This is only happend if a worker as several capabilities.
+								 */
+								continue;
+							}
+							
 							/**
 							 * This is actually the best jobs found.
 							 */
 							best_jobs_worker.put(current_job, worker);
-							workers.remove(worker);
+							
+							if (workers.remove(worker) == false) {
+								throw new Exception("Broker exception: can't remove a worker (" + worker.toStringLight() + ") from waiting workers list");
+							}
 						}
 						
 						/**
