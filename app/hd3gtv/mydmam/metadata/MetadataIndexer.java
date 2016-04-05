@@ -87,6 +87,7 @@ public class MetadataIndexer implements IndexingEvent {
 		ArrayList<JobNG> new_jobs = new ArrayList<JobNG>(current_create_job_list.size());
 		for (int pos = 0; pos < current_create_job_list.size(); pos++) {
 			new_jobs.add(current_create_job_list.get(pos).createJob());
+			Loggers.Metadata.debug("Create job for deep metadata extracting: " + new_jobs.get(pos).toStringLight());
 		}
 		return new_jobs;
 	}
@@ -217,6 +218,8 @@ public class MetadataIndexer implements IndexingEvent {
 		if (limit_processing != null) {
 			indexing.setLimit(limit_processing);
 		}
+		Loggers.Metadata.debug("Start indexing for: " + element_key + ", physical_source: " + physical_source);
+		
 		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);
 		return true;
 	}

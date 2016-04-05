@@ -182,10 +182,6 @@ public final class JobNG {
 		update_date = -1;
 		start_date = -1;
 		end_date = -1;
-		
-		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Create Job:\t" + toString());
-		}
 	}
 	
 	public JobNG setName(String name) {
@@ -333,7 +329,7 @@ public final class JobNG {
 	 */
 	public JobNG publish() throws ConnectionException {
 		if (Loggers.Job.isInfoEnabled()) {
-			Loggers.Job.info("Publish new job:\t" + toString());
+			Loggers.Job.info("Publish new job:\t" + toStringLight());
 		}
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		publish(mutator);
@@ -362,7 +358,7 @@ public final class JobNG {
 		}
 		saveChanges(mutator);
 		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Prepare publish:\t" + toString());
+			Loggers.Job.debug("Prepare publish:\t" + toStringLight());
 		}
 		return this;
 	}
@@ -373,9 +369,6 @@ public final class JobNG {
 	 * @throws ConnectionException
 	 */
 	void saveChanges() throws ConnectionException {
-		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Save changes:\t" + toString());
-		}
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		saveChanges(mutator);
 		mutator.execute();
@@ -387,9 +380,12 @@ public final class JobNG {
 	 * @throws ConnectionException
 	 */
 	public void saveChanges(MutationBatch mutator) {
-		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Prepare save actual changes:\t" + toString());
+		if (Loggers.Job.isTraceEnabled()) {
+			Loggers.Job.trace("Prepare save actual changes:\t" + toString());
+		} else if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Prepare save actual changes:\t" + toStringLight());
 		}
+		
 		update_date = System.currentTimeMillis();
 		exportToDatabase(mutator.withRow(CF_QUEUE, key));
 	}
@@ -490,7 +486,7 @@ public final class JobNG {
 	
 	public void delete(MutationBatch mutator) throws ConnectionException {
 		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Prepare delete job:\t" + toString());
+			Loggers.Job.debug("Prepare delete job:\t" + toStringLight());
 		}
 		mutator.withRow(CF_QUEUE, key).delete();
 	}
@@ -566,9 +562,10 @@ public final class JobNG {
 		mutator.putColumn("indexingdebug", 1, ttl);
 		mutator.putColumn("source", AppManager.getGson().toJson(this), ttl);
 		
-		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Prepare export to db job:\t" + toString() + " with ttl " + ttl);
+		if (Loggers.Job.isTraceEnabled()) {
+			Loggers.Job.trace("Prepare export to db job:\t" + toString() + " with ttl " + ttl);
 		}
+		
 	}
 	
 	private static void exportToDatabase(ColumnListMutation<String> mutator, JsonObject json_job) {

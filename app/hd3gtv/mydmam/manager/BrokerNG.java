@@ -379,6 +379,10 @@ public class BrokerNG {
 					waiting_jobs = JobNG.Utility.getJobsByStatus(JobStatus.WAITING);
 					some_jobs_to_execute = false;
 					
+					if (waiting_jobs.isEmpty() == false && Loggers.Broker.isDebugEnabled()) {
+						Loggers.Broker.debug("available_workers_capablities dump list\t" + available_workers_capablities);
+					}
+					
 					for (int pos_wj = 0; pos_wj < waiting_jobs.size(); pos_wj++) {
 						current_job = waiting_jobs.get(pos_wj);
 						
@@ -405,6 +409,10 @@ public class BrokerNG {
 						}
 						
 						workers = available_workers_capablities.get(context.getClass());
+						
+						// if (workers.isEmpty() == false && Loggers.Broker.isDebugEnabled()) {
+						// Loggers.Broker.debug("workers dump list avaliable for " + context.getClass() + "\t" + workers);
+						// }
 						
 						for (int pos_wr = 0; pos_wr < workers.size(); pos_wr++) {
 							if (workers.get(pos_wr).canProcessThis(context)) {
@@ -466,6 +474,10 @@ public class BrokerNG {
 								continue;
 							}
 							
+							if (Loggers.Broker.isDebugEnabled()) {
+								Loggers.Broker.debug("workers dump list avaliable for " + context.getClass() + "\t" + workers);
+							}
+							
 							worker = null;
 							for (int pos_wr = 0; pos_wr < workers.size(); pos_wr++) {
 								if (workers.get(pos_wr).canProcessThis(context)) {
@@ -517,7 +529,9 @@ public class BrokerNG {
 						
 						mutator = CassandraDb.prepareMutationBatch();
 						for (JobNG job : best_jobs_worker.keySet()) {
-							Loggers.Broker.debug("Prepare new job:\t" + job.toString());
+							if (Loggers.Job.isDebugEnabled()) {
+								Loggers.Broker.debug("Prepare new job:\t" + job.toStringLight());
+							}
 							job.prepareProcessing(mutator);
 						}
 						mutator.execute();

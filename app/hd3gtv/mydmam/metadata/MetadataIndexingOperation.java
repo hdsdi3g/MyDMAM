@@ -137,6 +137,8 @@ public class MetadataIndexingOperation {
 			entry_summary.setMimetype(MimeExtract.getMime(physical_source));
 		}
 		
+		Loggers.Metadata.debug("Indexing item " + reference + " is a " + entry_summary.getMimetype());
+		
 		if (limit == MetadataIndexingLimit.MIMETYPE) {
 			return container;
 		}
@@ -150,41 +152,49 @@ public class MetadataIndexingOperation {
 				}
 				
 				if (limit == MetadataIndexingLimit.ANALYST) {
+					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " in processFast()");
 					generator_result = metadata_extractor.processFast(container);
 				} else {
+					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " in processFull()");
 					generator_result = metadata_extractor.processFull(container);
 					
 					if ((limit == MetadataIndexingLimit.NOLIMITS) & (metadata_extractor instanceof MetadataGeneratorRendererViaWorker) & (create_job_list != null)) {
 						MetadataGeneratorRendererViaWorker renderer_via_worker = (MetadataGeneratorRendererViaWorker) metadata_extractor;
+						int before = create_job_list.size();
+						Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " do a prepareJobs()");
 						renderer_via_worker.prepareJobs(container, create_job_list);
+						
+						if (before < create_job_list.size()) {
+							for (int pos_mgrvw = before; pos_mgrvw < create_job_list.size() - 1; pos_mgrvw++) {
+								Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " will create this job: " + create_job_list.get(pos_mgrvw));
+							}
+						}
 					}
 				}
 				
 				if (generator_result == null) {
+					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " don't return result");
 					continue;
 				}
 				
 				container.getSummary().addPreviewsFromEntryRenderer(generator_result, container, metadata_extractor);
 				generator_result.addEntriesToContainer(container);
-				
 			} catch (Exception e) {
 				Loggers.Metadata.error(
 						"Can't analyst/render file, " + "analyser class: " + metadata_extractor + ", analyser name: " + metadata_extractor.getLongName() + ", physical_source: " + physical_source, e);
 			}
 		}
 		
-		if (master_as_preview_mime_list_providers != null)
-		
-		{
+		if (master_as_preview_mime_list_providers != null) {
 			String mime = container.getSummary().getMimetype().toLowerCase();
 			if (master_as_preview_mime_list_providers.containsKey(mime)) {
 				entry_summary.master_as_preview = master_as_preview_mime_list_providers.get(mime).isCanUsedInMasterAsPreview(container);
 			}
 		}
 		
-		if (limit == MetadataIndexingLimit.NOLIMITS | limit == MetadataIndexingLimit.SIMPLERENDERS)
+		Loggers.Metadata.debug("Indexing item " + reference + " will have this container: " + container.toString());
 		
-		{
+		if (limit == MetadataIndexingLimit.NOLIMITS | limit == MetadataIndexingLimit.SIMPLERENDERS) {
 			RenderedFile.cleanCurrentTempDirectory();
 		}
 		

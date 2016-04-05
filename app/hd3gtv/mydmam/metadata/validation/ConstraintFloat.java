@@ -1,5 +1,7 @@
 package hd3gtv.mydmam.metadata.validation;
 
+import hd3gtv.mydmam.Loggers;
+
 class ConstraintFloat extends Constraint {
 	
 	private float reference;
@@ -23,6 +25,7 @@ class ConstraintFloat extends Constraint {
 			} else if (value instanceof Number) {
 				float_value = ((Number) value).floatValue();
 			} else {
+				Loggers.Metadata.debug("Validation error: type mismatch, not a Float. Source: " + value.getClass() + " / " + value.toString());
 				return false;
 			}
 		}

@@ -93,6 +93,7 @@ public class MetadataCenter {
 						Class<?> c = Class.forName(str_blacklist.get(pos_bl));
 						if (MetadataExtractor.class.isAssignableFrom(c)) {
 							blacklist.add((Class<? extends MetadataExtractor>) c);
+							Loggers.Metadata.debug("Add to blacklist: " + c.getName());
 						} else {
 							throw new ClassNotFoundException(c.getName() + " is not a MetadataGenerator");
 						}
@@ -144,30 +145,30 @@ public class MetadataCenter {
 		}
 		
 		try {
-			addProvider(new ImageMagickAnalyser());
+			addExtractor(new ImageMagickAnalyser());
 			
-			addProvider(new FFprobeAnalyser());
-			addProvider(new FFmpegInterlacingDetection());
-			addProvider(new FFmpegSnapshot());
-			addProvider(new FFmpegAlbumartwork());
+			addExtractor(new FFprobeAnalyser());
+			addExtractor(new FFmpegInterlacingDetection());
+			addExtractor(new FFmpegSnapshot());
+			addExtractor(new FFmpegAlbumartwork());
 			
-			addProvider(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
-			addProvider(new ImageMagickThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
-			addProvider(new ImageMagickThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
-			addProvider(new ImageMagickFFmpegThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
-			addProvider(new ImageMagickFFmpegThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
-			addProvider(new ImageMagickFFmpegThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
+			addExtractor(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
+			addExtractor(new ImageMagickThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
+			addExtractor(new ImageMagickThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
+			addExtractor(new ImageMagickFFmpegThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
+			addExtractor(new ImageMagickFFmpegThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
+			addExtractor(new ImageMagickFFmpegThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
 			
-			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererLQ.class, PreviewType.video_lq_pvw, false));
-			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererSD.class, PreviewType.video_sd_pvw, false));
-			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererHD.class, PreviewType.video_hd_pvw, false));
-			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererAudio.class, PreviewType.audio_pvw, true));
+			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererLQ.class, PreviewType.video_lq_pvw, false));
+			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererSD.class, PreviewType.video_sd_pvw, false));
+			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererHD.class, PreviewType.video_hd_pvw, false));
+			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererAudio.class, PreviewType.audio_pvw, true));
 		} catch (Exception e) {
 			Loggers.Metadata.error("Can't instanciate Providers", e);
 		}
 	}
 	
-	private static void addProvider(MetadataExtractor extractor) {
+	private static void addExtractor(MetadataExtractor extractor) {
 		if (extractor == null) {
 			return;
 		}

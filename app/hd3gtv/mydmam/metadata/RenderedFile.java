@@ -182,10 +182,10 @@ public class RenderedFile {
 	private void writeToCommitLog(String message) {
 		try {
 			String caller = new Throwable().getStackTrace()[1].toString();
-			Loggers.Metadata.debug("Write to commit log (" + commit_log_file.getName() + ") " + message);
+			Loggers.Metadata_Commitlog.debug("Write to commit log (" + commit_log_file.getName() + ") " + message);
 			FileUtils.writeStringToFile(commit_log_file, Loggers.dateLog(System.currentTimeMillis()) + " at " + caller + "\t" + message + MyDMAM.LINESEPARATOR, true);
 		} catch (IOException e) {
-			Loggers.Metadata.error("Can't write to commit log (" + commit_log_file.getName() + ") this message:\t" + message);
+			Loggers.Metadata_Commitlog.error("Can't write to commit log (" + commit_log_file.getName() + ") this message:\t" + message);
 		}
 	}
 	
@@ -519,6 +519,10 @@ public class RenderedFile {
 	}
 	
 	public static synchronized void cleanCurrentTempDirectory() {
+		if (Loggers.Metadata.isDebugEnabled()) {
+			Loggers.Metadata.debug("Do a clean current temp directory for " + commit_log_files + " and " + temp_directory);
+		}
+		
 		for (int pos = 0; pos < commit_log_files.size(); pos++) {
 			commit_log_files.get(pos).delete();
 		}
