@@ -85,9 +85,14 @@ public class MetadataIndexer implements IndexingEvent {
 			return new ArrayList<JobNG>(1);
 		}
 		ArrayList<JobNG> new_jobs = new ArrayList<JobNG>(current_create_job_list.size());
+		JobNG new_job;
 		for (int pos = 0; pos < current_create_job_list.size(); pos++) {
-			new_jobs.add(current_create_job_list.get(pos).createJob());
-			Loggers.Metadata.debug("Create job for deep metadata extracting: " + new_jobs.get(pos).toStringLight());
+			new_job = current_create_job_list.get(pos).createJob();
+			if (new_job == null) {
+				continue;
+			}
+			new_jobs.add(new_job);
+			Loggers.Metadata.debug("Create job for deep metadata extracting: " + new_job.toStringLight());
 		}
 		return new_jobs;
 	}

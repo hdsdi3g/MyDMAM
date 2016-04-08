@@ -519,14 +519,19 @@ public class RenderedFile {
 	}
 	
 	public static synchronized void cleanCurrentTempDirectory() {
-		if (Loggers.Metadata.isDebugEnabled()) {
-			Loggers.Metadata.debug("Do a clean current temp directory for " + commit_log_files + " and " + temp_directory);
+		if (Loggers.Metadata.isDebugEnabled() & commit_log_files.isEmpty() == false) {
+			Loggers.Metadata.debug("Do a clean current temp directory for " + commit_log_files);
 		}
 		
 		for (int pos = 0; pos < commit_log_files.size(); pos++) {
 			commit_log_files.get(pos).delete();
 		}
 		commit_log_files.clear();
+		
+		if (Loggers.Metadata.isDebugEnabled()) {
+			Loggers.Metadata.debug("Do a clean current temp directory for " + temp_directory);
+		}
+		
 		temp_directory.delete();
 	}
 	

@@ -152,28 +152,29 @@ public class MetadataIndexingOperation {
 				}
 				
 				if (limit == MetadataIndexingLimit.ANALYST) {
-					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " in processFast()");
+					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFast()");
 					generator_result = metadata_extractor.processFast(container);
 				} else {
-					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " in processFull()");
+					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFull()");
 					generator_result = metadata_extractor.processFull(container);
 					
 					if ((limit == MetadataIndexingLimit.NOLIMITS) & (metadata_extractor instanceof MetadataGeneratorRendererViaWorker) & (create_job_list != null)) {
 						MetadataGeneratorRendererViaWorker renderer_via_worker = (MetadataGeneratorRendererViaWorker) metadata_extractor;
 						int before = create_job_list.size();
-						Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " do a prepareJobs()");
+						Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " do a prepareJobs()");
 						renderer_via_worker.prepareJobs(container, create_job_list);
 						
 						if (before < create_job_list.size()) {
 							for (int pos_mgrvw = before; pos_mgrvw < create_job_list.size() - 1; pos_mgrvw++) {
-								Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " will create this job: " + create_job_list.get(pos_mgrvw));
+								Loggers.Metadata
+										.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " will create this job: " + create_job_list.get(pos_mgrvw));
 							}
 						}
 					}
 				}
 				
 				if (generator_result == null) {
-					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getClass() + " don't return result");
+					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " don't return result");
 					continue;
 				}
 				
