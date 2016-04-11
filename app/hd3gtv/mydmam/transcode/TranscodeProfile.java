@@ -440,7 +440,11 @@ public class TranscodeProfile implements InstanceStatusItem {
 					cmdline.add(output_file_path);
 				} else if (param.equals(TAG_PROGRESSFILE)) {
 					if (progress != null) {
-						cmdline.add(progress.getProgressfile().getCanonicalPath());
+						if (progress.getProgressfile() == null) {
+							Loggers.Transcode.error("Progress in transcode profile !", new NullPointerException());
+						} else {
+							cmdline.add(progress.getProgressfile().getCanonicalPath());
+						}
 					} else {
 						cmdline.add(System.getProperty("java.io.tmpdir") + File.separator + "progress.txt");
 					}

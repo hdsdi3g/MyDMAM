@@ -165,7 +165,7 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 			try {
 				if (Loggers.Worker.isInfoEnabled()) {
 					if (job.isDeleteAfterCompleted() & Loggers.Worker.isDebugEnabled()) {
-						Loggers.Worker.debug("Start processing DeleAfteComptd job for worker " + reference.toStringLight() + ":\t" + job.toString());
+						Loggers.Worker.debug("Start processing DeleAfteComptd job for worker " + reference.toStringLight() + ":\t" + job.toStringLight());
 					} else {
 						String job_log;
 						if (Loggers.Worker.isDebugEnabled()) {

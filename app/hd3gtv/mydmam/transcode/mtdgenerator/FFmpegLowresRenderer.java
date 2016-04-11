@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -28,6 +29,7 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
 import hd3gtv.mydmam.metadata.FutureCreateJobs;
 import hd3gtv.mydmam.metadata.JobContextMetadataRenderer;
 import hd3gtv.mydmam.metadata.MetadataGeneratorRendererViaWorker;
@@ -35,6 +37,7 @@ import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
@@ -87,7 +90,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		return (transcode_profile != null);
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		if (audio_only) {
 			return FFprobeAnalyser.canProcessThisAudioOnly(mimetype);
 		} else {
@@ -95,7 +98,11 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 	}
 	
-	public EntryRenderer process(Container container) throws Exception {
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return null;
+	}
+	
+	public ContainerEntryResult processFull(Container container) throws Exception {
 		return null;
 	}
 	
@@ -107,7 +114,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 	private TranscodeProgress progress;
 	private boolean stop;
 	
-	public EntryRenderer standaloneProcess(File origin, final JobProgression job_progress, Container container, JobContextMetadataRenderer renderer_context) throws Exception {
+	public ContainerEntryResult standaloneProcess(File origin, final JobProgression job_progress, Container container, JobContextMetadataRenderer renderer_context) throws Exception {
 		stop = false;
 		job_progress.updateStep(1, 3);
 		
@@ -215,7 +222,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		job_progress.updateStep(3, 3);
 		job_progress.update("Converting is ended");
 		
-		return final_element.consolidateAndExportToEntry(root_entry_class.newInstance(), container, this);
+		return new ContainerEntryResult(final_element.consolidateAndExportToEntry(root_entry_class.newInstance(), container, this));
 	}
 	
 	public synchronized void stopStandaloneProcess() throws Exception {
@@ -309,12 +316,19 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		current_create_jobs_list.add(result);
 	}
 	
-	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return root_entry_class;
+	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
+		return Arrays.asList(root_entry_class);
 	}
 	
 	public Class<? extends JobContextMetadataRenderer> getContextClass() {
 		return context_class;
 	}
 	
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		return null;
+	}
+	
+	public boolean isCanUsedInMasterAsPreview(Container container) {
+		return false;
+	}
 }

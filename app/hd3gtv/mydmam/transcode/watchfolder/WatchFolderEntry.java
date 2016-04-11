@@ -49,8 +49,8 @@ import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceStatusItem;
 import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -263,7 +263,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		}
 		
 		public IgnoreFiles getRules() {
-			return IgnoreFiles.default_list;
+			return IgnoreFiles.directory_config_list;
 		}
 		
 		public boolean onStartSearch(String storage_name, AbstractFile search_root_path) {

@@ -28,7 +28,6 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobNG;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -86,8 +85,14 @@ public class MetadataIndexer implements IndexingEvent {
 			return new ArrayList<JobNG>(1);
 		}
 		ArrayList<JobNG> new_jobs = new ArrayList<JobNG>(current_create_job_list.size());
+		JobNG new_job;
 		for (int pos = 0; pos < current_create_job_list.size(); pos++) {
-			new_jobs.add(current_create_job_list.get(pos).createJob());
+			new_job = current_create_job_list.get(pos).createJob();
+			if (new_job == null) {
+				continue;
+			}
+			new_jobs.add(new_job);
+			Loggers.Metadata.debug("Create job for deep metadata extracting: " + new_job.toStringLight());
 		}
 		return new_jobs;
 	}
@@ -218,6 +223,8 @@ public class MetadataIndexer implements IndexingEvent {
 		if (limit_processing != null) {
 			indexing.setLimit(limit_processing);
 		}
+		Loggers.Metadata.debug("Start indexing for: " + element_key + ", physical_source: " + physical_source);
+		
 		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);
 		return true;
 	}

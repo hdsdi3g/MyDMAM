@@ -19,16 +19,20 @@ package hd3gtv.mydmam.transcode.images;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
+import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
@@ -36,7 +40,7 @@ import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.images.ImageAttributeGeometry.Compare;
 import hd3gtv.tools.ExecprocessGettext;
 
-public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
+public class ImageMagickThumbnailer implements MetadataExtractor {
 	
 	public static class FullDisplay extends EntryRenderer {
 		public String getES_Type() {
@@ -110,7 +114,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		}
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		return ImageMagickAnalyser.mimetype_list.contains(mimetype);
 	}
 	
@@ -119,18 +123,18 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 	}
 	
 	public String getLongName() {
-		return "ImageMagick low-res image thumbnailer";
+		return "ImageMagick low-res image thumbnailer (" + preview_type + ")";
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return preview_type;
 	}
 	
-	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return root_entry_class;
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return null;
 	}
 	
-	public EntryRenderer process(Container container) throws Exception {
+	public ContainerEntryResult processFull(Container container) throws Exception {
 		ImageAttributes image_attributes = container.getByClass(ImageAttributes.class);
 		if (image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for this container: " + container);
@@ -140,7 +144,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		return subProcess(container, container.getPhysicalSource(), image_attributes);
 	}
 	
-	protected EntryRenderer subProcess(Container container, File physical_source, ImageAttributes image_attributes) throws Exception {
+	protected ContainerEntryResult subProcess(Container container, File physical_source, ImageAttributes image_attributes) throws Exception {
 		TranscodeProfile tprofile = tprofile_opaque;
 		if (image_attributes.alpha != null) {
 			tprofile = tprofile_alpha;
@@ -216,7 +220,18 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		thumbnail.getOptions().addProperty("height", thumbnail_image_attributes.geometry.height);
 		thumbnail.getOptions().addProperty("width", thumbnail_image_attributes.geometry.width);
 		
-		return element.consolidateAndExportToEntry(thumbnail, container, this);
+		return new ContainerEntryResult(element.consolidateAndExportToEntry(thumbnail, container, this));
 	}
 	
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		return null;
+	}
+	
+	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
+		return Arrays.asList(root_entry_class);
+	}
+	
+	public boolean isCanUsedInMasterAsPreview(Container container) {
+		return false;
+	}
 }

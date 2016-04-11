@@ -20,11 +20,13 @@ import java.io.File;
 import java.util.List;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork.Albumartwork;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot.Snapshot;
@@ -39,7 +41,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		super(root_entry_class, preview_type, profile_name);
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		if (FFprobeAnalyser.canProcessThisVideoOnly(mimetype)) return true;
 		if (FFprobeAnalyser.canProcessThisAudioOnly(mimetype)) return true;
 		return false;
@@ -50,18 +52,14 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 	}
 	
 	public String getLongName() {
-		return "ImageMagick low-res thumbnailer from ffmpeg snapshots and artworks";
+		return super.getLongName() + " from ffmpeg snapshots and artworks";
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return super.getPreviewTypeForRenderer(container, entry);
 	}
 	
-	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return super.getRootEntryClass();
-	}
-	
-	public EntryRenderer process(Container media_source_container) throws Exception {
+	public ContainerEntryResult processFull(Container media_source_container) throws Exception {
 		EntryRenderer snapshot = media_source_container.getByClass(Albumartwork.class);
 		if (snapshot == null) {
 			snapshot = media_source_container.getByClass(Snapshot.class);
@@ -76,8 +74,13 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 			Loggers.Transcode.debug("snapshot or artwork list from this container is empty: " + media_source_container);
 			return null;
 		}
+		
 		RenderedFile snapshot_rfile = snapshot.getRenderedFile(filenames.get(0), true);
 		File physical_source = snapshot_rfile.getRendered_file();
+		
+		if (Loggers.Metadata.isDebugEnabled()) {
+			Loggers.Metadata.debug("Snapshoted file: " + physical_source);
+		}
 		
 		/**
 		 * Used for analyst previous rendered file and get an ImageAttributes for it.
@@ -90,5 +93,9 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 			return null;
 		}
 		return subProcess(media_source_container, physical_source, image_attributes);
+	}
+	
+	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
+		return super.getAllRootEntryClasses();
 	}
 }

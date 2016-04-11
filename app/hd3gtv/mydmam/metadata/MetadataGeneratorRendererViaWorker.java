@@ -16,14 +16,13 @@
 */
 package hd3gtv.mydmam.metadata;
 
-import hd3gtv.mydmam.manager.JobProgression;
-import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.EntryRenderer;
-
 import java.io.File;
 import java.util.List;
 
-public interface MetadataGeneratorRendererViaWorker extends MetadataGeneratorRenderer {
+import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.metadata.container.Container;
+
+public interface MetadataGeneratorRendererViaWorker extends MetadataExtractor {
 	
 	/**
 	 * Don't create jobs, just add callbacks to create new jobs to current_create_jobs_list.
@@ -35,7 +34,7 @@ public interface MetadataGeneratorRendererViaWorker extends MetadataGeneratorRen
 	 * You NEED to consolidate rendered elements.
 	 * Call RenderedFile.export_to_entry() for populate in EntryRenderer
 	 */
-	EntryRenderer standaloneProcess(File origin, JobProgression job_progress, Container container, JobContextMetadataRenderer renderer_context) throws Exception;
+	ContainerEntryResult standaloneProcess(File origin, JobProgression job_progress, Container container, JobContextMetadataRenderer renderer_context) throws Exception;
 	
 	void stopStandaloneProcess() throws Exception;
 	

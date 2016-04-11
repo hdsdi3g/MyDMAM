@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.metadata.validation;
 
+import hd3gtv.mydmam.Loggers;
+
 class ConstraintInteger extends Constraint {
 	
 	private int reference;
@@ -39,6 +41,7 @@ class ConstraintInteger extends Constraint {
 			} else if (value instanceof Number) {
 				int_value = ((Number) value).intValue();
 			} else {
+				Loggers.Metadata.debug("Validation error: type mismatch, not an Integer. Source: " + value.getClass() + " / " + value.toString());
 				return false;
 			}
 		}

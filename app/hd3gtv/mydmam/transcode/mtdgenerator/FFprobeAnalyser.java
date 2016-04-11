@@ -21,6 +21,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,10 +32,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
+import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
@@ -45,7 +49,7 @@ import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst;
 
-public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
+public class FFprobeAnalyser implements MetadataExtractor {
 	
 	public boolean isEnabled() {
 		try {
@@ -56,7 +60,11 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		return false;
 	}
 	
-	public EntryAnalyser process(Container container) throws Exception {
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return processFull(container);
+	}
+	
+	public ContainerEntryResult processFull(Container container) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-show_streams");
 		param.add("-show_format");
@@ -252,7 +260,7 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 			container.getSummary().putSummaryContent(result, sb_summary.toString().trim());
 		}
 		
-		return result;
+		return new ContainerEntryResult(result);
 	}
 	
 	private static void patchTagDate(JsonObject tags) {
@@ -374,7 +382,7 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		return false;
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		if (canProcessThisVideoOnly(mimetype)) return true;
 		if (canProcessThisAudioOnly(mimetype)) return true;
 		return false;
@@ -480,7 +488,11 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		return false;
 	}
 	
-	public Class<? extends EntryAnalyser> getRootEntryClass() {
-		return FFprobe.class;
+	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
+		return Arrays.asList(FFprobe.class);
+	}
+	
+	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
+		return null;
 	}
 }

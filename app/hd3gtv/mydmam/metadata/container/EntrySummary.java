@@ -16,9 +16,6 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
-import hd3gtv.mydmam.metadata.PreviewType;
-
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +25,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
+import hd3gtv.mydmam.metadata.PreviewType;
 
 public final class EntrySummary extends ContainerEntry {
 	
@@ -144,7 +145,21 @@ public final class EntrySummary extends ContainerEntry {
 		}
 	}
 	
-	public void addPreviewsFromEntryRenderer(EntryRenderer entry, Container container, MetadataGeneratorRenderer generator) {
+	public void addPreviewsFromEntryRenderer(ContainerEntryResult result_entries, Container container, MetadataExtractor generator) {
+		if (result_entries == null) {
+			return;
+		}
+		EntryRenderer entry = result_entries.getRenderingResult();
+		if (entry == null) {
+			return;
+		}
+		if (generator == null) {
+			throw new NullPointerException("\"generator\" can't to be null");
+		}
+		if (container == null) {
+			throw new NullPointerException("\"container\" can't to be null");
+		}
+		
 		populate_previews();
 		
 		List<String> files = entry.getContentFileNames();

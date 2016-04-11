@@ -18,6 +18,7 @@ package hd3gtv.mydmam.transcode.images;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.google.gson.JsonObject;
@@ -25,15 +26,18 @@ import com.google.gson.JsonParser;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
+import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 
-public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
+public class ImageMagickAnalyser implements MetadataExtractor {
 	
 	static final ArrayList<String> mimetype_list;
 	static final ArrayList<String> convert_limits_params;
@@ -104,7 +108,12 @@ public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 		}
 	}
 	
-	public EntryAnalyser process(Container container) throws Exception {
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return processFull(container);
+	}
+	
+	public ContainerEntryResult processFull(Container container) throws Exception {
+		
 		ArrayList<String> param = new ArrayList<String>();
 		ExecprocessGettext process = null;
 		try {
@@ -154,7 +163,7 @@ public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 			ImageAttributes ia = ContainerOperations.getGson().fromJson(result, ImageAttributes.class);
 			container.getSummary().putSummaryContent(ia, ia.createSummary());
 			
-			return ia;
+			return new ContainerEntryResult(ia);
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				Loggers.Transcode.error("Problem with convert, " + process + ", " + container);
@@ -163,7 +172,7 @@ public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 		}
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		return mimetype_list.contains(mimetype);
 	}
 	
@@ -188,7 +197,11 @@ public class ImageMagickAnalyser implements MetadataGeneratorAnalyser {
 		return false;
 	}
 	
-	public Class<? extends EntryAnalyser> getRootEntryClass() {
-		return ImageAttributes.class;
+	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
+		return Arrays.asList(ImageAttributes.class);
+	}
+	
+	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
+		return null;
 	}
 }

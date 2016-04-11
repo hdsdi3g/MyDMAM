@@ -20,6 +20,8 @@ import java.util.List;
 
 import com.jayway.jsonpath.JsonPath;
 
+import hd3gtv.mydmam.Loggers;
+
 abstract class Constraint {
 	
 	protected String rule;
@@ -48,10 +50,17 @@ abstract class Constraint {
 		if (result.isEmpty()) {
 			return false;
 		}
+		
 		for (int pos = 0; pos < result.size(); pos++) {
 			if (isInternalPassing(result.get(pos)) == false) {
+				if (Loggers.Metadata.isTraceEnabled()) {
+					Loggers.Metadata.trace("Validation test failed for [" + this.toString() + "/" + getClass().getSimpleName() + "] this=" + getReference() + " is not like item=" + result.get(pos));
+				}
 				return false;
 			}
+		}
+		if (Loggers.Metadata.isTraceEnabled()) {
+			Loggers.Metadata.trace("Validation ok for " + this.toString());
 		}
 		return true;
 	}
