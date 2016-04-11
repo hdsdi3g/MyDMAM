@@ -263,7 +263,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		}
 		
 		public IgnoreFiles getRules() {
-			return IgnoreFiles.default_list;
+			return IgnoreFiles.directory_config_list;
 		}
 		
 		public boolean onStartSearch(String storage_name, AbstractFile search_root_path) {

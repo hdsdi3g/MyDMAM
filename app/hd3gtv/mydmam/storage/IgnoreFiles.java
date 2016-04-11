@@ -36,4 +36,33 @@ public abstract class IgnoreFiles {
 		}
 	};
 	
+	public static IgnoreFiles directory_config_list = new IgnoreFiles() {
+		
+		public boolean isFileNameIsAllowed(String filename) {
+			if (filename.endsWith(".lnk")) {
+				return false;
+			}
+			if (filename.endsWith("desktop.ini")) {
+				return false;
+			}
+			if (filename.endsWith(".DS_Store")) {
+				return false;
+			}
+			if (filename.endsWith(".localized")) {
+				return false;
+			}
+			if (filename.endsWith(".Icon")) {
+				return false;
+			}
+			if (filename.endsWith("Thumbs.db")) {
+				return false;
+			}
+			return true;
+		}
+		
+		public boolean isDirNameIsAllowed(String dirname) {
+			return true;
+		}
+	};
+	
 }
