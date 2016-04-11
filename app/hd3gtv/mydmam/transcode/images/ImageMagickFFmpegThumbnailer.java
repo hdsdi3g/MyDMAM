@@ -59,7 +59,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		return super.getPreviewTypeForRenderer(container, entry);
 	}
 	
-	public ContainerEntryResult process(Container media_source_container) throws Exception {
+	public ContainerEntryResult processFull(Container media_source_container) throws Exception {
 		EntryRenderer snapshot = media_source_container.getByClass(Albumartwork.class);
 		if (snapshot == null) {
 			snapshot = media_source_container.getByClass(Snapshot.class);
