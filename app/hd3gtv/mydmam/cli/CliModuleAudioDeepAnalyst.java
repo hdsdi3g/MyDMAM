@@ -39,6 +39,8 @@ import org.jfree.data.time.TimeSeriesCollection;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystChannelStat;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystSilenceDetect;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
@@ -64,7 +66,7 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			params.add("-i");
 			params.add(input_file.getAbsolutePath());
 			params.add("-filter_complex");
-			params.add("ebur128=peak=true,astats,silencedetect=n=-20dB:d=1");
+			params.add("ebur128=peak=true,astats,silencedetect=n=-20dB:d=3");
 			params.add("-vn");
 			params.add("-f");
 			params.add("null");
@@ -85,6 +87,9 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			Runtime.getRuntime().addShutdownHook(t);
 			
 			process.run();
+			
+			ffdae.saveLUFSGraphic();
+			// System.out.println("RESULT :\t" + ffdae.ffmpeg_da_result.toString());
 			
 		} else {
 			showFullCliModuleHelp();
@@ -170,11 +175,7 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			series_true_peak_per_frame = new TimeSeries("True peak");
 		}
 		
-		public void onEnd(int exitvalue, long execution_duration) {
-			Loggers.Transcode.debug("End ffmpeg execution, after " + (double) execution_duration / 1000d + " sec");
-			
-			System.out.println("RESULT :\t" + ffmpeg_da_result.toString());// XXX
-			
+		private void saveLUFSGraphic() throws IOException {
 			TimeSeriesCollection tsc = new TimeSeriesCollection();
 			tsc.addSeries(series_integrated);
 			tsc.addSeries(series_short_term);
@@ -257,11 +258,11 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			
 			timechart.setTextAntiAlias(true);
 			
-			try {
-				ChartUtilities.saveChartAsJPEG(output_file, jpg_compression_ratio, timechart, image_width, image_height);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			ChartUtilities.saveChartAsJPEG(output_file, jpg_compression_ratio, timechart, image_width, image_height);
+		}
+		
+		public void onEnd(int exitvalue, long execution_duration) {
+			Loggers.Transcode.debug("End ffmpeg execution, after " + (double) execution_duration / 1000d + " sec");
 		}
 		
 		/**
@@ -275,8 +276,9 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 		private Float entry_integrated = 0f;
 		private Float entry_true_peak_per_frame_L = 0f;
 		private Float entry_true_peak_per_frame_R = 0f;
-		
 		private boolean ebur128_summary_block = false;
+		private FFmpegAudioDeepAnalystChannelStat current_astat;
+		private FFmpegAudioDeepAnalystSilenceDetect current_silence;
 		
 		public void onStderr(String message) {
 			if (ebur128_summary_block) {
@@ -290,9 +292,85 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 				} else {
 					parseEbur128Line(message);
 				}
+			} else if (message.startsWith("[Parsed_astats_1 @ ")) {
+				parseAstatStatment(message);
+			} else if (message.startsWith("[silencedetect @ ")) {
+				parseSilencedetectStatment(message);
+			} /*else {
+				System.out.println(message);
+				}*/
+		}
+		
+		/**
+		 * @param message "[silencedetect @ 0x7f9532700680] silence_start: 447.441" or "[silencedetect @ 0x7f9532700680] silence_end: 451.041 | silence_duration: 3.6"
+		 */
+		private void parseSilencedetectStatment(String message) {
+			message = message.trim();
+			splited_line = message.split("]");
+			message = splited_line[1].trim();
+			
+			if (message.startsWith("silence_start")) {
+				if (current_silence != null) {
+					/**
+					 * Still in silence : start + start but no end for the first start.
+					 */
+					return;
+				}
+				current_silence = new FFmpegAudioDeepAnalystSilenceDetect();
+				current_silence.parseFromFFmpegLine(message);
+			} else if (message.startsWith("silence_end")) {
+				if (current_silence == null) {
+					/**
+					 * Not in silence : end with not the start.
+					 */
+					return;
+				}
+				current_silence.parseFromFFmpegLine(message);
+				if (ffmpeg_da_result.silences == null) {
+					ffmpeg_da_result.silences = new ArrayList<FFmpegAudioDeepAnalystSilenceDetect>();
+				}
+				ffmpeg_da_result.silences.add(current_silence);
+				current_silence = null;
+			}
+			
+		}
+		
+		/**
+		 * @param message "[Parsed_astats_1 @ 0x7fb930422f80] Channel: 1" or "[Parsed_astats_1 @ 0x7fb930422f80] Max difference: 0.873830"
+		 */
+		private void parseAstatStatment(String message) {
+			message = message.trim();
+			splited_line = message.split("]");
+			message = splited_line[1].trim();
+			
+			if (message.startsWith("Channel:")) {
+				if (current_astat != null) {
+					if (ffmpeg_da_result.channels_stat == null) {
+						ffmpeg_da_result.channels_stat = new ArrayList<FFmpegAudioDeepAnalystChannelStat>(2);
+					}
+					ffmpeg_da_result.channels_stat.add(current_astat);
+				}
+				
+				current_astat = new FFmpegAudioDeepAnalystChannelStat();
+				current_astat.parseFromFFmpegLine(message);
+			} else if (message.equals("Overall")) {
+				if (current_astat != null) {
+					if (ffmpeg_da_result.channels_stat == null) {
+						ffmpeg_da_result.channels_stat = new ArrayList<FFmpegAudioDeepAnalystChannelStat>(2);
+					}
+					ffmpeg_da_result.channels_stat.add(current_astat);
+				}
+				
+				current_astat = new FFmpegAudioDeepAnalystChannelStat();
+				current_astat.channel = -1;
+			} else if (message.startsWith("Number of samples")) {
+				ffmpeg_da_result.number_of_samples = Long.parseLong(message.split(":")[1].trim());
+				ffmpeg_da_result.overall_stat = current_astat;
 			} else {
-				// TODO others analyst "[silencedetect @ " and "[Parsed_astats_1 @ "
-				System.out.println(message);// XXX
+				if (current_astat == null) {
+					Loggers.Metadata.warn("Bad ffmpeg return during AudioDeepAnalysis and astats, a value is presented without declare the current audio channel: " + message);
+				}
+				current_astat.parseFromFFmpegLine(message);
 			}
 		}
 		

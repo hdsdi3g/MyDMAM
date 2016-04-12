@@ -16,8 +16,11 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -25,6 +28,7 @@ import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.SelfSerializing;
+import hd3gtv.tools.GsonIgnore;
 
 public class FFmpegAudioDeepAnalyst extends EntryAnalyser {
 	
@@ -57,6 +61,16 @@ public class FFmpegAudioDeepAnalyst extends EntryAnalyser {
 	 */
 	public float true_peak = Float.MIN_VALUE;
 	
+	public long number_of_samples;
+	
+	@GsonIgnore
+	public ArrayList<FFmpegAudioDeepAnalystChannelStat> channels_stat;
+	
+	public FFmpegAudioDeepAnalystChannelStat overall_stat;
+	
+	@GsonIgnore
+	public ArrayList<FFmpegAudioDeepAnalystSilenceDetect> silences;
+	
 	public String toString() {
 		StringBuilder sb = new StringBuilder(super.toString());
 		sb.append(", integrated loudness: ");
@@ -73,10 +87,34 @@ public class FFmpegAudioDeepAnalyst extends EntryAnalyser {
 		sb.append(loudness_range_LRA_high);
 		sb.append(", true peak: ");
 		sb.append(true_peak);
+		
+		if (channels_stat != null) {
+			sb.append(", Channel stat: ");
+			for (int pos = 0; pos < channels_stat.size(); pos++) {
+				sb.append(channels_stat.get(pos).toString());
+			}
+		}
+		if (overall_stat != null) {
+			sb.append(", Overall channels stat: ");
+			sb.append(overall_stat.toString());
+		}
+		if (silences != null) {
+			sb.append(", Silences: ");
+			for (int pos = 0; pos < silences.size(); pos++) {
+				sb.append(silences.get(pos).toString());
+			}
+		}
 		return sb.toString();
 	}
 	
+	private static Type al_FFmpegAudioDeepAnalystChannelStat_typeOfT = new TypeToken<ArrayList<FFmpegAudioDeepAnalystChannelStat>>() {
+	}.getType();
+	private static Type al_FFmpegAudioDeepAnalystSilenceDetect_typeOfT = new TypeToken<ArrayList<FFmpegAudioDeepAnalystSilenceDetect>>() {
+	}.getType();
+	
 	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
+		current_element.add("channels_stat", gson.toJsonTree(((FFmpegAudioDeepAnalyst) _item).channels_stat, al_FFmpegAudioDeepAnalystChannelStat_typeOfT));
+		current_element.add("silences", gson.toJsonTree(((FFmpegAudioDeepAnalyst) _item).silences, al_FFmpegAudioDeepAnalystSilenceDetect_typeOfT));
 	}
 	
 	public String getES_Type() {
@@ -88,7 +126,10 @@ public class FFmpegAudioDeepAnalyst extends EntryAnalyser {
 	}
 	
 	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
-		return ContainerOperations.getGsonSimple().fromJson(source, FFmpegAudioDeepAnalyst.class);
+		FFmpegAudioDeepAnalyst ffada = ContainerOperations.getGsonSimple().fromJson(source, FFmpegAudioDeepAnalyst.class);
+		ffada.channels_stat = gson.fromJson(source.get("channels_stat"), al_FFmpegAudioDeepAnalystChannelStat_typeOfT);
+		ffada.silences = gson.fromJson(source.get("silences"), al_FFmpegAudioDeepAnalystSilenceDetect_typeOfT);
+		return ffada;
 	}
 	
 }
