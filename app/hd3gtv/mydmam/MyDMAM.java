@@ -199,7 +199,7 @@ public class MyDMAM {
 				System.err.println("");
 				System.err.println("Unzip, and copy US_export_policy.jar and local_policy.jar to this directory:");
 				System.err.println("");
-				System.err.println(" " + System.getProperty("java.home") + "/lib/security/");
+				System.err.println(" " + System.getProperty("java.home") + File.separator + "lib" + File.separator + "security");
 				System.err.println("");
 				System.err.println("Overwrite the actual jar files");
 				System.err.println("--------~~~~~~==============~~~~~~--------");

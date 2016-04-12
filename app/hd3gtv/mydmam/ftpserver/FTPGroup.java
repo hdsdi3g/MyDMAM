@@ -312,7 +312,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 			if (pathname.getAbsolutePath().equals(trash_directory.getAbsolutePath())) {
 				return false;
 			}
-			return pathname.isHidden() == false;
+			return CopyMove.isHidden(pathname) == false;
 		}
 	}
 	

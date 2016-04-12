@@ -170,7 +170,7 @@ public class MyDMAMModulesManager {
 					if (pathname.isDirectory()) {
 						return false;
 					}
-					if (pathname.isHidden()) {
+					if (CopyMove.isHidden(pathname)) {
 						return false;
 					}
 					if (pathname.canRead() == false) {

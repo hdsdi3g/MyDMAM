@@ -47,6 +47,7 @@ import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.metadata.container.RenderedContent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.tools.CopyMove;
 
 public class RenderedFile {
 	
@@ -599,7 +600,7 @@ public class RenderedFile {
 					/**
 					 * Purge hidden files.
 					 */
-					if (mtddir[pos_mtd].isHidden()) {
+					if (CopyMove.isHidden(mtddir[pos_mtd])) {
 						Loggers.Metadata.info("Element is not a directory, delete it, directory: " + mtddir[pos_mtd]);
 						mtddir[pos_mtd].delete();
 					}

@@ -41,6 +41,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
@@ -218,7 +219,7 @@ public class JSSourceDatabase {
 		}
 		
 		public boolean accept(File file) {
-			if (file.isHidden()) {
+			if (CopyMove.isHidden(file)) {
 				return false;
 			}
 			if (file.isFile() == false) {

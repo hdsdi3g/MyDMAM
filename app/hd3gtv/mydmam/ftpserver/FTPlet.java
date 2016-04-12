@@ -32,6 +32,7 @@ import org.apache.ftpserver.ftplet.FtpletContext;
 import org.apache.ftpserver.ftplet.FtpletResult;
 
 import hd3gtv.mydmam.ftpserver.FTPActivity.Action;
+import hd3gtv.tools.CopyMove;
 
 public class FTPlet implements Ftplet {
 	
@@ -73,7 +74,7 @@ public class FTPlet implements Ftplet {
 			if (real_file.listFiles(new FileFilter() {
 				
 				public boolean accept(File pathname) {
-					return pathname.isHidden() == false;
+					return CopyMove.isHidden(pathname) == false;
 				}
 			}).length > 0) {
 				/**

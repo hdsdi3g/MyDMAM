@@ -28,6 +28,7 @@ import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
+import hd3gtv.tools.CopyMove;
 
 public class CliModuleMetadata implements CliModule {
 	
@@ -60,7 +61,7 @@ public class CliModuleMetadata implements CliModule {
 				if (files[pos].isDirectory()) {
 					continue;
 				}
-				if (files[pos].isHidden()) {
+				if (CopyMove.isHidden(files[pos])) {
 					continue;
 				}
 				SourcePathIndexerElement spie = new SourcePathIndexerElement();

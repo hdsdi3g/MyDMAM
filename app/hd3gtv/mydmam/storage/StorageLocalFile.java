@@ -117,7 +117,7 @@ public class StorageLocalFile extends Storage {
 		}
 		
 		public boolean isHidden() {
-			return file.isHidden();
+			return CopyMove.isHidden(file);
 		}
 		
 		public String getName() {
