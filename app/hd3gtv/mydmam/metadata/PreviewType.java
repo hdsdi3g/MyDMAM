@@ -17,9 +17,9 @@
 package hd3gtv.mydmam.metadata;
 
 /**
- * All definitions should exists and implemented in JS (in mydmam.metadatas)
+ * All definitions should exists and implemented in JS (in mydmam.metadatas, more precisely in /mydmam/app/react/mydmam/async/pathindex/reactMetadataFull.jsx and metadata.jsx)
  */
 public enum PreviewType {
 	
-	full_size_thumbnail, video_sd_pvw, video_hd_pvw, video_lq_pvw, audio_pvw, cartridge_thumbnail, icon_thumbnail;
+	full_size_thumbnail, video_sd_pvw, video_hd_pvw, video_lq_pvw, audio_pvw, cartridge_thumbnail, icon_thumbnail, audio_graphic_deepanalyst;
 }

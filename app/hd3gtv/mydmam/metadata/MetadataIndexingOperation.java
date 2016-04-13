@@ -156,7 +156,7 @@ public class MetadataIndexingOperation {
 					generator_result = metadata_extractor.processFast(container);
 				} else {
 					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFull()");
-					generator_result = metadata_extractor.processFull(container);
+					generator_result = metadata_extractor.processFull(container);// TODO API for stoppable and track current processed file !
 					
 					if ((limit == MetadataIndexingLimit.NOLIMITS) & (metadata_extractor instanceof MetadataGeneratorRendererViaWorker) & (create_job_list != null)) {
 						MetadataGeneratorRendererViaWorker renderer_via_worker = (MetadataGeneratorRendererViaWorker) metadata_extractor;

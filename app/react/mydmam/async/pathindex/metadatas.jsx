@@ -293,3 +293,9 @@ metadatas.Audio = React.createClass({
 		);
 	}
 });
+
+/** ================================== AUDIO GRAPHIC DEEP ANALYST REAML ================================== */
+// TODO add graphic to Audio and Video blocks
+/*if (previews.audio_graphic_deepanalyst != null) {
+	//TODO insert graphic
+}*/

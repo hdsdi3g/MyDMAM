@@ -1,26 +1,12 @@
-/*
- * This file is part of MyDMAM.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- * 
- * Copyright (C) hdsdi3g for hd3g.tv 2016
- * 
-*/
-package hd3gtv.mydmam.cli;
+package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.TimeZone;
 
 import org.apache.commons.io.FileUtils;
@@ -37,86 +23,141 @@ import org.jfree.data.time.FixedMillisecond;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
+import hd3gtv.mydmam.metadata.PreviewType;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystChannelStat;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystSilenceDetect;
-import hd3gtv.tools.ApplicationArgs;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessEvent;
 
-/**
- * @deprecated
- */
-public class CliModuleAudioDeepAnalyst implements CliModule {
+public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 	
-	public String getCliModuleName() {
-		return "audioda";
+	private int silencedetect_level_threshold;
+	private int silencedetect_min_duration;
+	
+	private int image_width;
+	private int image_height;
+	private float lufs_depth;
+	private float lufs_ref;
+	private float jpg_compression_ratio;
+	
+	public FFmpegAudioDeepAnalyser() {
+		silencedetect_level_threshold = Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_silencedetect_level_threshold", -60);
+		silencedetect_min_duration = Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_silencedetect_min_duration", 3);
+		image_width = Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_image_width", 1000);
+		image_height = Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_image_height", 600);
+		lufs_depth = (float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_depth", -80f);
+		lufs_ref = (float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_ref", -23f);
+		jpg_compression_ratio = (float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_jpg_compression_ratio", 0.8f);
 	}
 	
-	public String getCliModuleShortDescr() {
-		return "Audio deep analyst and stats computing";
-	}
-	
-	public void execCliModule(ApplicationArgs args) throws Exception {
-		if (args.getParamExist("-i")) {
-			File input_file = new File(args.getSimpleParamValue("-i"));
-			CopyMove.checkExistsCanRead(input_file);
-			ArrayList<String> params = new ArrayList<String>();
-			params.add("-nostats");
-			params.add("-i");
-			params.add(input_file.getAbsolutePath());
-			params.add("-filter_complex");
-			params.add("ebur128=peak=true,astats,silencedetect=n=-20dB:d=3");
-			params.add("-vn");
-			params.add("-f");
-			params.add("null");
-			params.add("/dev/null");
-			FFmpegDAEvents ffdae = new FFmpegDAEvents(1000, 600, -80f, -23f, new File("TimeChart.jpeg"), 0.8f);
-			Execprocess process = new Execprocess(ExecBinaryPath.get("ffmpeg"), params, ffdae);
-			
-			Thread t = new Thread() {
-				public void run() {
-					try {
-						process.kill();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			};
-			t.setName("Shutdown Hook");
-			Runtime.getRuntime().addShutdownHook(t);
-			
-			process.run();
-			
-			ffdae.saveLUFSGraphic();
-			// System.out.println("RESULT :\t" + ffdae.ffmpeg_da_result.toString());
-			
-		} else {
-			showFullCliModuleHelp();
-		}
-	}
-	
-	public void showFullCliModuleHelp() {
-		System.out.println("Usage: ");
-		System.out.println(" " + getCliModuleName() + " -i <audio or video source file>");
-	}
-	
-	public boolean isFunctionnal() {
+	public boolean isEnabled() {
 		try {
 			ExecBinaryPath.get("ffprobe");
 			ExecBinaryPath.get("ffmpeg");
 			return true;
 		} catch (Exception e) {
-			Loggers.CLI.debug("Can't found ffmpeg and ffprobe: the module " + getCliModuleName() + " will not functionnal.");
-			return false;
+		}
+		return false;
+	}
+	
+	public boolean canProcessThisMimeType(String mimetype) {
+		if (FFprobeAnalyser.canProcessThisAudioOnly(mimetype) | FFprobeAnalyser.canProcessThisVideoOnly(mimetype)) {
+			return true;
+		}
+		return false;
+	}
+	
+	public String getLongName() {
+		return "Audio deep analyst and stats computing via ffmpeg";
+	}
+	
+	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
+		return Arrays.asList(FFmpegAudioDeepAnalyst.class);
+	}
+	
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		return null;
+	}
+	
+	public boolean isCanUsedInMasterAsPreview(Container container) {
+		return false;
+	}
+	
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return null;
+	}
+	
+	@Override
+	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
+		return PreviewType.audio_graphic_deepanalyst;
+	}
+	
+	public static class AudioDeepAnalystGraphic extends EntryRenderer {
+		public String getES_Type() {
+			return "ffaudiodagraphic";
 		}
 	}
 	
-	static {
-		System.setProperty("java.awt.headless", "true");
+	public ContainerEntryResult processFull(Container container) throws Exception {
+		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		
+		if (ffprobe == null) {
+			return null;
+		}
+		if (ffprobe.hasAudio() == false) {
+			return null;
+		}
+		//
+		
+		/*
+		 * 
+		private int silencedetect_level_threshold;
+		private int silencedetect_min_duration;
+		
+		private int image_width;
+		private int image_height;
+		private float lufs_depth;
+		private float lufs_ref;
+		private float jpg_compression_ratio;
+		 * 
+		 * */
+		
+		File input_file = container.getPhysicalSource();
+		CopyMove.checkExistsCanRead(input_file);
+		ArrayList<String> params = new ArrayList<String>();
+		params.add("-nostats");
+		params.add("-i");
+		params.add(input_file.getAbsolutePath());
+		params.add("-filter_complex");
+		params.add("ebur128=peak=true,astats,silencedetect=n=-20dB:d=3");// XXX
+		params.add("-vn");
+		params.add("-f");
+		params.add("null");
+		params.add("/dev/null");
+		FFmpegDAEvents ffdae = new FFmpegDAEvents(1000, 600, -80f, -23f, new File("TimeChart.jpeg"), 0.8f);// XXX
+		Execprocess process = new Execprocess(ExecBinaryPath.get("ffmpeg"), params, ffdae);
+		
+		process.run();
+		
+		ffdae.saveLUFSGraphic();
+		
+		AudioDeepAnalystGraphic entry_graphic = new AudioDeepAnalystGraphic();
+		FFmpegAudioDeepAnalyst entry_audioda = new FFmpegAudioDeepAnalyst();
+		
+		// TODO Auto-generated method stub
+		
+		return new ContainerEntryResult(entry_graphic, entry_audioda);
 	}
 	
 	private class FFmpegDAEvents implements ExecprocessEvent {
