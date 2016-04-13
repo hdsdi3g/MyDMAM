@@ -97,7 +97,7 @@ public class MetadataIndexer implements IndexingEvent {
 		return new_jobs;
 	}
 	
-	public synchronized void stop() {
+	public synchronized void stop() { // TODO set from an API ?
 		stop_analysis = true;
 	}
 	
@@ -225,7 +225,7 @@ public class MetadataIndexer implements IndexingEvent {
 		}
 		Loggers.Metadata.debug("Start indexing for: " + element_key + ", physical_source: " + physical_source);
 		
-		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);
+		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);// TODO add stoppable
 		return true;
 	}
 	

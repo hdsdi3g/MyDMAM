@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.metadata;
 
-public enum MetadataIndexingLimit {
+public enum MetadataIndexingLimit {// TODO rename this ?!
 	/**
 	 * Just get Mime type.
 	 * An Extractor will do nothing.
