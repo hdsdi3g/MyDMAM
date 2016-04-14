@@ -193,7 +193,11 @@ public class MetadataIndexingOperation {
 			}
 		}
 		
-		Loggers.Metadata.debug("Indexing item " + reference + " will have this container: " + container.toString());
+		if (Loggers.Metadata.isDebugEnabled()) {
+			Loggers.Metadata.debug("Indexing item " + reference + " will have this container: " + container.toString());
+			// XXX return error : Attempted to serialize java.lang.Class:
+			// hd3gtv.mydmam.metadata.container.RenderedContent. Forgot to register a type adapter?
+		}
 		
 		if (limit == MetadataIndexingLimit.NOLIMITS | limit == MetadataIndexingLimit.SIMPLERENDERS) {
 			RenderedFile.cleanCurrentTempDirectory();

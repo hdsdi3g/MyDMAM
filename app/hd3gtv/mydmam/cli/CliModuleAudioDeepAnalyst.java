@@ -92,6 +92,7 @@ public class CliModuleAudioDeepAnalyst implements CliModule {
 			process.run();
 			
 			ffdae.saveLUFSGraphic();
+			
 			// System.out.println("RESULT :\t" + ffdae.ffmpeg_da_result.toString());
 			
 		} else {

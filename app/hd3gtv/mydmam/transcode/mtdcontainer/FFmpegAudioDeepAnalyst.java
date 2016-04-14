@@ -71,6 +71,16 @@ public class FFmpegAudioDeepAnalyst extends EntryAnalyser {
 	@GsonIgnore
 	public ArrayList<FFmpegAudioDeepAnalystSilenceDetect> silences;
 	
+	/**
+	 * dBFS
+	 */
+	public int silencedetect_level_threshold;
+	
+	/**
+	 * dBFS
+	 */
+	public int silencedetect_min_duration;
+	
 	public String toString() {
 		StringBuilder sb = new StringBuilder(super.toString());
 		sb.append(", integrated loudness: ");

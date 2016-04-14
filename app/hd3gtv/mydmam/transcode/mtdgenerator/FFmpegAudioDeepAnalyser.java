@@ -28,6 +28,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.ContainerEntryResult;
 import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
+import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
@@ -52,12 +53,13 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 	private float jpg_compression_ratio;
 	
 	public FFmpegAudioDeepAnalyser() {
-		silencedetect_level_threshold = Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_silencedetect_level_threshold", -60);
+		silencedetect_level_threshold = -Math.abs(Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_silencedetect_level_threshold", -60));
+		
 		silencedetect_min_duration = Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_silencedetect_min_duration", 3);
 		image_width = Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_image_width", 1000);
 		image_height = Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_image_height", 600);
-		lufs_depth = (float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_depth", -80f);
-		lufs_ref = (float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_ref", -23f);
+		lufs_depth = -Math.abs((float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_depth", -80f));
+		lufs_ref = -Math.abs((float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_ref", -23f));
 		jpg_compression_ratio = (float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_jpg_compression_ratio", 0.8f);
 	}
 	
@@ -83,7 +85,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 	}
 	
 	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
-		return Arrays.asList(FFmpegAudioDeepAnalyst.class);
+		return Arrays.asList(FFmpegAudioDeepAnalyst.class, AudioDeepAnalystGraphic.class);
 	}
 	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
@@ -98,7 +100,6 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		return null;
 	}
 	
-	@Override
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return PreviewType.audio_graphic_deepanalyst;
 	}
@@ -118,20 +119,6 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		if (ffprobe.hasAudio() == false) {
 			return null;
 		}
-		//
-		
-		/*
-		 * 
-		private int silencedetect_level_threshold;
-		private int silencedetect_min_duration;
-		
-		private int image_width;
-		private int image_height;
-		private float lufs_depth;
-		private float lufs_ref;
-		private float jpg_compression_ratio;
-		 * 
-		 * */
 		
 		File input_file = container.getPhysicalSource();
 		CopyMove.checkExistsCanRead(input_file);
@@ -140,24 +127,37 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		params.add("-i");
 		params.add(input_file.getAbsolutePath());
 		params.add("-filter_complex");
-		params.add("ebur128=peak=true,astats,silencedetect=n=-20dB:d=3");// XXX
+		
+		params.add("ebur128=peak=true,astats,silencedetect=n=" + silencedetect_level_threshold + "dB:d=" + silencedetect_min_duration);
 		params.add("-vn");
 		params.add("-f");
 		params.add("null");
 		params.add("/dev/null");
-		FFmpegDAEvents ffdae = new FFmpegDAEvents(1000, 600, -80f, -23f, new File("TimeChart.jpeg"), 0.8f);// XXX
+		FFmpegDAEvents ffdae = new FFmpegDAEvents(image_width, image_height, lufs_depth, lufs_ref);
 		Execprocess process = new Execprocess(ExecBinaryPath.get("ffmpeg"), params, ffdae);
 		
-		process.run();
+		process.run();// TODO stoppable (via start)
 		
-		ffdae.saveLUFSGraphic();
+		RenderedFile rf_lufs_truepeak_graphic = new RenderedFile("lufs_truepeak_graphic", "jpg");
+		
+		ffdae.saveLUFSGraphic(rf_lufs_truepeak_graphic.getTempFile(), jpg_compression_ratio);
 		
 		AudioDeepAnalystGraphic entry_graphic = new AudioDeepAnalystGraphic();
-		FFmpegAudioDeepAnalyst entry_audioda = new FFmpegAudioDeepAnalyst();
+		entry_graphic.getOptions().addProperty("width", image_width);
+		entry_graphic.getOptions().addProperty("height", image_height);
+		entry_graphic.getOptions().addProperty("lufs_depth", lufs_depth);
+		entry_graphic.getOptions().addProperty("lufs_ref", lufs_ref);
 		
-		// TODO Auto-generated method stub
+		rf_lufs_truepeak_graphic.consolidateAndExportToEntry(entry_graphic, container, this);
 		
-		return new ContainerEntryResult(entry_graphic, entry_audioda);
+		ffdae.ffmpeg_da_result.silencedetect_level_threshold = silencedetect_level_threshold;
+		ffdae.ffmpeg_da_result.silencedetect_min_duration = silencedetect_min_duration;
+		
+		container.getSummary().putSummaryContent(ffdae.ffmpeg_da_result, ffdae.ffmpeg_da_result.integrated_loudness + " LUFS, True peak: " + ffdae.ffmpeg_da_result.true_peak + " dB");
+		
+		// TODO export or import full metadata.ffaudioda values. Must update API.
+		
+		return new ContainerEntryResult(entry_graphic, ffdae.ffmpeg_da_result);
 	}
 	
 	private class FFmpegDAEvents implements ExecprocessEvent {
@@ -194,23 +194,13 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		private int image_width;
 		private int image_height;
 		private float lufs_ref;
-		private File output_file;
-		private float jpg_compression_ratio;
 		private FFmpegAudioDeepAnalyst ffmpeg_da_result;
 		
-		public FFmpegDAEvents(int image_width, int image_height, float lufs_depth, float lufs_ref, File output_file, float jpg_compression_ratio) throws Exception {
+		public FFmpegDAEvents(int image_width, int image_height, float lufs_depth, float lufs_ref) throws Exception {
 			this.lufs_range = lufs_depth;
 			this.image_width = image_width;
 			this.image_height = image_height;
 			this.lufs_ref = lufs_ref;
-			this.output_file = output_file;
-			if (output_file == null) {
-				throw new NullPointerException("\"output_file\" can't to be null");
-			}
-			if (output_file.exists() & output_file.isFile()) {
-				FileUtils.forceDelete(output_file);
-			}
-			this.jpg_compression_ratio = jpg_compression_ratio;
 			ffmpeg_da_result = new FFmpegAudioDeepAnalyst();
 			
 			series_momentary = new TimeSeries("Momentary");
@@ -219,7 +209,14 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 			series_true_peak_per_frame = new TimeSeries("True peak");
 		}
 		
-		private void saveLUFSGraphic() throws IOException {
+		private void saveLUFSGraphic(File output_file, float jpg_compression_ratio) throws IOException {
+			if (output_file == null) {
+				throw new NullPointerException("\"output_file\" can't to be null");
+			}
+			if (output_file.exists() & output_file.isFile()) {
+				FileUtils.forceDelete(output_file);
+			}
+			
 			TimeSeriesCollection tsc = new TimeSeriesCollection();
 			tsc.addSeries(series_integrated);
 			tsc.addSeries(series_short_term);

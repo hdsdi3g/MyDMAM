@@ -32,6 +32,7 @@ public interface MetadataExtractor {
 	
 	/**
 	 * For declare all (de)serialisers that will be used by this class.
+	 * == the classes embedded in the returned ContainerEntryResult
 	 */
 	<T extends ContainerEntry> List<Class<? extends T>> getAllRootEntryClasses();
 	
