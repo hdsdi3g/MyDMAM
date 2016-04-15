@@ -151,7 +151,7 @@ var QualityTabs = React.createClass({displayName: "QualityTabs",
 
 metadatas.Video = React.createClass({displayName: "Video",
 	getInitialState: function() {
-		return {selectedquality: 0, medias: [], isbigsize: false};
+		return {selectedquality: 0, medias: [], isbigsize: false, transport: null, currentTime: null, duration: null};
 	},
 	componentDidMount: function() {
 		var master_as_preview_url = this.props.master_as_preview_url;
@@ -189,19 +189,16 @@ metadatas.Video = React.createClass({displayName: "Video",
 		this.setState({medias: medias});
 	},
 	handleChangeQuality: function(selectedquality) {
-		this.setState({selectedquality: selectedquality});
-		var video = React.findDOMNode(this.refs.videoplayer);
-		var current_time = video.currentTime;
-		video.load();
-		video.play();
-		var gototime = function() {
-			this.currentTime = current_time;
-			video.removeEventListener('loadedmetadata', gototime);
-		};
-		video.addEventListener('loadedmetadata', gototime, false);
+		this.setState({
+			selectedquality: selectedquality,
+			transport: {macro: "RELOAD_PLAY"}
+		});
 	},
 	handleSwitchSize: function(isbigsize) {
 		this.setState({isbigsize: isbigsize});
+	},
+	transportStatusChange: function(currentTime, duration, ispaused) {
+		this.setState({currentTime: currentTime, duration: duration, transport: null});
 	},
 	render: function() {
 		var file_hash = this.props.file_hash;
@@ -213,8 +210,6 @@ metadatas.Video = React.createClass({displayName: "Video",
 
 		var url = this.state.medias[this.state.selectedquality].url;
 		var poster = metadatas.chooseTheCorrectImageURL(file_hash, previews);
-		// http://www.w3.org/2010/05/video/mediaevents.html
-
 		var width = 640;
 		var height = 360;
 		var className = null;
@@ -225,11 +220,21 @@ metadatas.Video = React.createClass({displayName: "Video",
 			className = "container";
 		}
 
+		var transport_status = null;
+		if (metadatas.hasAudioGraphicDeepAnalyst(previews)) {
+			transport_status = this.transportStatusChange;
+		}
+
 		var video = (
-			React.createElement("video", {ref: "videoplayer", controls: "controls", className: className, width: width, height: height, preload: "auto", poster: poster}, 
-				i18n("browser.cantloadingplayer"), 
-				React.createElement("source", {src: url})
-			)
+			React.createElement(pathindex.Mediaplayer, {
+				transport: this.state.transport, 
+				transport_status: transport_status, 
+				className: className, 
+				width: width, 
+				height: height, 
+				poster: poster, 
+				cantloadingplayerexcuse: i18n("browser.cantloadingplayer"), 
+				source_url: url})
 		);
 
 		var content = null;
@@ -253,7 +258,8 @@ metadatas.Video = React.createClass({displayName: "Video",
 
 		return (
 			React.createElement("div", {style: {marginBottom: "1em"}}, 
-				content
+				content, 
+				React.createElement(metadatas.AudioGraphicDeepAnalyst, {previews: previews, file_hash: file_hash, currentTime: this.state.currentTime, duration: this.state.duration})
 			)
 		);
 	}
@@ -262,6 +268,12 @@ metadatas.Video = React.createClass({displayName: "Video",
 /** ================================== AUDIO REAML ================================== */
 
 metadatas.Audio = React.createClass({displayName: "Audio",
+	getInitialState: function() {
+		return {currentTime: null, duration: null};
+	},
+	transportStatusChange: function(currentTime, duration, ispaused) {
+		this.setState({currentTime: currentTime, duration: duration});
+	},
 	render: function() {
 		var file_hash = this.props.file_hash;
 		var previews = this.props.mtdsummary.previews;
@@ -280,12 +292,17 @@ metadatas.Audio = React.createClass({displayName: "Audio",
 			return null;
 		}
 
+		var transport_status = null;
+		if (metadatas.hasAudioGraphicDeepAnalyst(previews)) {
+			transport_status = this.transportStatusChange;
+		}
+
 		return (
 			React.createElement("div", {style: {marginBottom: "1em"}}, 
-				React.createElement("audio", {controls: "controls", preload: "auto"}, 
-					i18n("browser.cantloadingplayer"), 
-					React.createElement("source", {src: url})
-				), 
+				React.createElement(pathindex.Mediaplayer, {transport_status: transport_status, audio_only: true, cantloadingplayerexcuse: i18n("browser.cantloadingplayer"), source_url: url}), 
+				
+				React.createElement(metadatas.AudioGraphicDeepAnalyst, {previews: previews, file_hash: file_hash, currentTime: this.state.currentTime, duration: this.state.duration}), 
+
 				React.createElement("div", {className: "pull-right"}, 
 					React.createElement(metadatas.Image, {file_hash: file_hash, previews: previews, prefered_size: "cartridge_thumbnail"})
 				)
@@ -294,12 +311,73 @@ metadatas.Audio = React.createClass({displayName: "Audio",
 	}
 });
 
-/** ================================== AUDIO GRAPHIC DEEP ANALYST REAML ================================== */
-// TODO add graphic to Audio and Video blocks
-/*if (previews.audio_graphic_deepanalyst != null) {
-	//TODO insert graphic
-}*/
+/** ================================== AUDIO DEEP ANALYST VIEWS ================================== */
+metadatas.hasAudioGraphicDeepAnalyst = function(previews) {
+	return !(previews.audio_graphic_deepanalyst == null);
+};
+
+metadatas.AudioGraphicDeepAnalyst = React.createClass({displayName: "AudioGraphicDeepAnalyst",
+	getInitialState: function() {
+		return {
+			last_bar_position: -1,
+		};
+	},
+	componentDidUpdate: function() {
+		if (this.props.duration == null) {
+			return;
+		}
+		if (this.props.duration == 0) {
+			return;
+		}
+		var position = this.props.currentTime / this.props.duration;
+		var width = this.props.previews.audio_graphic_deepanalyst.options.width;
+		var height = this.props.previews.audio_graphic_deepanalyst.options.height;
+		var left_start = 60;
+		var top_start = 10;
+		var bottom_stop = height - (top_start + 50);
+		var right_stop = width - (left_start + 12);
+
+		var internal_width = right_stop;
+
+		var bar_position = Math.floor(internal_width * position) + left_start;
+
+		if (this.state.last_bar_position == bar_position) {
+			return;
+		}
+
+		var canvas = React.findDOMNode(this.refs.player_cursor);
+		var ref_width = canvas.width;
+		var ref_height = canvas.height;
+		
+		var ctx = canvas.getContext("2d");
+		ctx.fillStyle = "#FFFFFF";
+		ctx.clearRect(0, 0, width, height);
+		ctx.fillRect(bar_position,top_start, 2, bottom_stop);
+		
+		this.setState({last_bar_position: bar_position});
+	},
+	render: function() {
+		var previews = this.props.previews;
+		if (previews.audio_graphic_deepanalyst == null) {
+			return null;
+		}
+		var file_hash = this.props.file_hash;
+
+		var graphic_url = metadatas.getFileURL(file_hash, previews.audio_graphic_deepanalyst.type, previews.audio_graphic_deepanalyst.file);
+
+		var options = previews.audio_graphic_deepanalyst.options;
+
+		return (React.createElement("div", {style: {marginTop: "1em", marginBottom: "1em"}}, 
+			React.createElement("div", {style: {width: options.width, height: options.height}}, 
+			    React.createElement("div", {style: {width:"100%", height:"100%", position:"relative"}}, 
+					React.createElement("img", {src: graphic_url, alt: options.width + "x" + options.height, style: {width:"100%", height:"100%", position:"absolute", top:0, left:0}}), 
+					React.createElement("canvas", {ref: "player_cursor", style: {width:"100%", height:"100%", position:"absolute", top:0, left:0}, width: options.width, height: options.height})
+			    )
+			)
+		));
+	}
+});
 
 })(window.mydmam.async.pathindex);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: 563fe0eb8bfd4169d947edb3ac8104a4
+// Source hash: f0efbd1fa5aadfffe24850792b6a345c
