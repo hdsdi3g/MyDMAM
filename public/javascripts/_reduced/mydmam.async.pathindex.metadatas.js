@@ -8,7 +8,7 @@
 };d.Image=React.createClass({displayName:"Image",render:function(){var h=this.props.file_hash;
 var j=this.props.previews;var g=this.props.prefered_size;var l=c(j,g);if(l===null){return null;
 }var f=d.ImageURL(h,l);var i=l.options.width;var e=l.options.height;var k=null;if((i>0)&(e>0)){k=(React.createElement("img",{src:f,className:"img-polaroid",alt:i+"x"+e,style:{width:i,height:e}}));
-}else{k=(React.createElement("img",{src:f,className:"img-polaroid"}));}return(React.createElement("div",{style:{marginBottom:"1em"}},k));
+}else{k=(React.createElement("img",{src:f,className:"img-polaroid"}));}return(React.createElement("div",{style:{marginBottom:"1em"}},React.createElement(d.AudioGraphicDeepAnalyst,{previews:j,file_hash:h,currentTime:null,duration:null}),k));
 }});var a=React.createClass({displayName:"QualityTabs",handleClickSwitchSize:function(e){e.preventDefault();
 this.props.onSwitchSize(!this.props.isbigsize);},handleClickSwitchQuality:function(e){e.preventDefault();
 this.props.onChangeQuality($(e.currentTarget).data("qualid"));},render:function(){var f="icon-resize-full";
@@ -47,5 +47,6 @@ var i=p-(j+50);var h=f-(e+12);var l=h;var m=Math.floor(l*k)+e;if(this.state.last
 q.fillStyle="#FFFFFF";q.clearRect(0,0,f,p);q.fillRect(m,j,2,i);this.setState({last_bar_position:m});
 },render:function(){var h=this.props.previews;if(h.audio_graphic_deepanalyst==null){return null;
 }var f=this.props.file_hash;var g=d.getFileURL(f,h.audio_graphic_deepanalyst.type,h.audio_graphic_deepanalyst.file);
-var e=h.audio_graphic_deepanalyst.options;return(React.createElement("div",{style:{marginTop:"1em",marginBottom:"1em"}},React.createElement("div",{style:{width:e.width,height:e.height}},React.createElement("div",{style:{width:"100%",height:"100%",position:"relative"}},React.createElement("img",{src:g,alt:e.width+"x"+e.height,style:{width:"100%",height:"100%",position:"absolute",top:0,left:0}}),React.createElement("canvas",{ref:"player_cursor",style:{width:"100%",height:"100%",position:"absolute",top:0,left:0},width:e.width,height:e.height})))));
+var e=h.audio_graphic_deepanalyst.options;var i=(React.createElement("div",{style:{marginTop:"1em",marginBottom:"1em"}},React.createElement("img",{src:g,alt:e.width+"x"+e.height,style:{width:e.width,height:e.height}})));
+if(this.props.duration==null){return i;}if(this.props.duration==0){return i;}return(React.createElement("div",{style:{marginTop:"1em",marginBottom:"1em"}},React.createElement("div",{style:{width:e.width,height:e.height}},React.createElement("div",{style:{width:"100%",height:"100%",position:"relative"}},React.createElement("img",{src:g,alt:e.width+"x"+e.height,style:{width:"100%",height:"100%",position:"absolute",top:0,left:0}}),";",React.createElement("canvas",{ref:"player_cursor",style:{width:"100%",height:"100%",position:"absolute",top:0,left:0},width:e.width,height:e.height})))));
 }});})(window.mydmam.async.pathindex);

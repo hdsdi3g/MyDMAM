@@ -93,7 +93,7 @@ public class WorkerIndexer extends WorkerNG {
 			} else {
 				lastindexeddatesforstoragenames.put(storagename, 0l);
 			}
-			metadataIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, analyst_context.currentpath)), min_index_date);
+			metadataIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, analyst_context.currentpath)), min_index_date, progression);
 			analysis_indexers.remove(metadataIndexer);
 		}
 	}

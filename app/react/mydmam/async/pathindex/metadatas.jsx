@@ -98,6 +98,7 @@ metadatas.Image = React.createClass({
 
 		return (
 			<div style={{marginBottom: "1em"}}>
+				<metadatas.AudioGraphicDeepAnalyst previews={previews} file_hash={file_hash} currentTime={null} duration={null} />
 				{image}
 			</div>
 		);
@@ -367,10 +368,21 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 
 		var options = previews.audio_graphic_deepanalyst.options;
 
+		var graphic = (<div style={{marginTop: "1em", marginBottom: "1em"}}>
+			<img src={graphic_url} alt={options.width + "x" + options.height} style={{width:options.width, height:options.height}} />
+		</div>);
+
+		if (this.props.duration == null) {
+			return graphic;
+		}
+		if (this.props.duration == 0) {
+			return graphic;
+		}
+
 		return (<div style={{marginTop: "1em", marginBottom: "1em"}}>
 			<div style={{width: options.width, height: options.height}}>
 			    <div style={{width:"100%", height:"100%", position:"relative"}}>
-					<img src={graphic_url} alt={options.width + "x" + options.height} style={{width:"100%", height:"100%", position:"absolute", top:0, left:0}} />
+					<img src={graphic_url} alt={options.width + "x" + options.height} style={{width:"100%", height:"100%", position:"absolute", top:0, left:0}} />;
 					<canvas ref="player_cursor" style={{width:"100%", height:"100%", position:"absolute", top:0, left:0}} width={options.width} height={options.height} />
 			    </div>
 			</div>

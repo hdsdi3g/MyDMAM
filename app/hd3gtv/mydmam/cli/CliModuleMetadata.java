@@ -103,7 +103,7 @@ public class CliModuleMetadata implements CliModule {
 				return;
 			}
 			MetadataIndexer metadataIndexer = new MetadataIndexer(true);
-			metadataIndexer.process(root_indexing, 0);
+			metadataIndexer.process(root_indexing, 0, null);
 			return;
 		} else if (args.getParamExist("-clean")) {
 			Loggers.CLI.info("Start clean operations");

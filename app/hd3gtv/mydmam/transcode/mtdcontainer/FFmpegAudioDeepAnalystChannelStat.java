@@ -102,7 +102,10 @@ public class FFmpegAudioDeepAnalystChannelStat {
 			throw new IndexOutOfBoundsException("Invalid input: " + line);
 		}
 		String name = content[0].trim();
-		Number value = NumberUtils.createNumber(content[1].trim());
+		Number value = -144.49f;
+		if (content[1].trim().equals("-inf") == false) {
+			value = NumberUtils.createNumber(content[1].trim());
+		}
 		
 		if (name.startsWith("Channel")) {
 			channel = value.intValue();
