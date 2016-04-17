@@ -199,9 +199,9 @@
     "jsfile:ca088506f37ff18a061f48ccc4ea70f8": {
       "relative_file_name": "mydmam/async/pathindex/mediaplayer.jsx",
       "relative_root_name": "/app/react",
-      "size": 3395,
-      "date": 1460757238000,
-      "hash": "b31236858bdb7ee16c704e9f1922b796"
+      "size": 3682,
+      "date": 1460932348000,
+      "hash": "30477c23f8f41d5f472392cb8de3ce25"
     },
     "jsfile:d8579c58ae3cc0b7fd62a533c099e6eb": {
       "relative_file_name": "mydmam.stat.js",
@@ -318,9 +318,9 @@
     "jsfile:c89c622e66ee11c2c1285ac3ccb0d39b": {
       "relative_file_name": "mydmam/async/pathindex/metadatas.jsx",
       "relative_root_name": "/app/react",
-      "size": 11706,
-      "date": 1460803894000,
-      "hash": "d7cd12211659a9f8384f367eded76e67"
+      "size": 12904,
+      "date": 1460933898000,
+      "hash": "62a0223127b4efa78e5ff86645cbb27f"
     },
     "jsfile:85a44789b2f9cca8441c9d4d28843098": {
       "relative_file_name": "mydmam/async/pathindex/reactExternalPosition.jsx",

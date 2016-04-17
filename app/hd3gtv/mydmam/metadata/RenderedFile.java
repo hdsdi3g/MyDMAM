@@ -56,6 +56,8 @@ public class RenderedFile {
 	private static volatile Random random;
 	private static volatile ArrayList<File> commit_log_files;
 	
+	// TODO change sub dirs by AB/CD/EFGHI instead of AB/CDEFGHI
+	
 	static {
 		try {
 			commit_log_files = new ArrayList<File>();

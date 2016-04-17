@@ -98,7 +98,12 @@ metadatas.Image = React.createClass({
 
 		return (
 			<div style={{marginBottom: "1em"}}>
-				<metadatas.AudioGraphicDeepAnalyst previews={previews} file_hash={file_hash} currentTime={null} duration={null} />
+				<metadatas.AudioGraphicDeepAnalyst
+					previews={previews}
+					file_hash={file_hash}
+					currentTime={null}
+					duration={null}
+					goToNewTime={null} />
 				{image}
 			</div>
 		);
@@ -201,6 +206,11 @@ metadatas.Video = React.createClass({
 	transportStatusChange: function(currentTime, duration, ispaused) {
 		this.setState({currentTime: currentTime, duration: duration, transport: null});
 	},
+	goToNewTime: function(new_time) {
+		this.setState({
+			transport: {gototime: new_time}
+		});
+	},
 	render: function() {
 		var file_hash = this.props.file_hash;
 		var previews = this.props.mtdsummary.previews;
@@ -260,7 +270,12 @@ metadatas.Video = React.createClass({
 		return (
 			<div style={{marginBottom: "1em"}}>
 				{content}
-				<metadatas.AudioGraphicDeepAnalyst previews={previews} file_hash={file_hash} currentTime={this.state.currentTime} duration={this.state.duration} />
+				<metadatas.AudioGraphicDeepAnalyst
+					previews={previews}
+					file_hash={file_hash}
+					currentTime={this.state.currentTime}
+					duration={this.state.duration}
+					goToNewTime={this.goToNewTime} />
 			</div>
 		);
 	}
@@ -270,10 +285,15 @@ metadatas.Video = React.createClass({
 
 metadatas.Audio = React.createClass({
 	getInitialState: function() {
-		return {currentTime: null, duration: null};
+		return {currentTime: null, duration: null, transport: null};
 	},
 	transportStatusChange: function(currentTime, duration, ispaused) {
-		this.setState({currentTime: currentTime, duration: duration});
+		this.setState({currentTime: currentTime, duration: duration, transport: null});
+	},
+	goToNewTime: function(new_time) {
+		this.setState({
+			transport: {gototime: new_time}
+		});
 	},
 	render: function() {
 		var file_hash = this.props.file_hash;
@@ -300,9 +320,19 @@ metadatas.Audio = React.createClass({
 
 		return (
 			<div style={{marginBottom: "1em"}}>
-				<pathindex.Mediaplayer transport_status={transport_status} audio_only={true} cantloadingplayerexcuse={i18n("browser.cantloadingplayer")} source_url={url} />
+				<pathindex.Mediaplayer
+					transport={this.state.transport}
+					transport_status={transport_status}
+					audio_only={true}
+					cantloadingplayerexcuse={i18n("browser.cantloadingplayer")}
+					source_url={url} />
 				
-				<metadatas.AudioGraphicDeepAnalyst previews={previews} file_hash={file_hash} currentTime={this.state.currentTime} duration={this.state.duration} />
+				<metadatas.AudioGraphicDeepAnalyst
+					previews={previews}
+					file_hash={file_hash}
+					currentTime={this.state.currentTime}
+					duration={this.state.duration} 
+					goToNewTime={this.goToNewTime} />
 
 				<div className="pull-right">
 					<metadatas.Image file_hash={file_hash} previews={previews} prefered_size="cartridge_thumbnail" />
@@ -322,6 +352,27 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 		return {
 			last_bar_position: -1,
 		};
+	},
+	clickCanvas: function(event) {
+		if (this.props.duration == null | this.props.goToNewTime == null) {
+			return;
+		}
+		if (this.props.duration == 0) {
+			return;
+		}
+
+		var canvas = React.findDOMNode(this.refs.player_cursor);
+		var rect = canvas.getBoundingClientRect();
+	    var cursor_xpos = event.clientX - rect.left;
+
+		var width = this.props.previews.audio_graphic_deepanalyst.options.width;
+		var left_start = 60;
+		var right_stop = width - (left_start + 12);
+	    var cursor_time_pos = cursor_xpos - left_start;
+
+	    if ((cursor_time_pos >= 0) && (cursor_time_pos <= right_stop)) {
+	    	this.props.goToNewTime(this.props.duration * (cursor_time_pos / right_stop));
+	    }
 	},
 	componentDidUpdate: function() {
 		if (this.props.duration == null) {
@@ -383,7 +434,11 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 			<div style={{width: options.width, height: options.height}}>
 			    <div style={{width:"100%", height:"100%", position:"relative"}}>
 					<img src={graphic_url} alt={options.width + "x" + options.height} style={{width:"100%", height:"100%", position:"absolute", top:0, left:0}} />;
-					<canvas ref="player_cursor" style={{width:"100%", height:"100%", position:"absolute", top:0, left:0}} width={options.width} height={options.height} />
+					<canvas ref="player_cursor"
+						onClick={this.clickCanvas}
+						style={{width:"100%", height:"100%", position:"absolute", top:0, left:0, cursor: "text"}} 
+						width={options.width}
+						height={options.height} />
 			    </div>
 			</div>
 		</div>);

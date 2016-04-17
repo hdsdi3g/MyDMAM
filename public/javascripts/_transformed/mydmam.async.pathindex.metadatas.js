@@ -98,7 +98,12 @@ metadatas.Image = React.createClass({displayName: "Image",
 
 		return (
 			React.createElement("div", {style: {marginBottom: "1em"}}, 
-				React.createElement(metadatas.AudioGraphicDeepAnalyst, {previews: previews, file_hash: file_hash, currentTime: null, duration: null}), 
+				React.createElement(metadatas.AudioGraphicDeepAnalyst, {
+					previews: previews, 
+					file_hash: file_hash, 
+					currentTime: null, 
+					duration: null, 
+					goToNewTime: null}), 
 				image
 			)
 		);
@@ -201,6 +206,11 @@ metadatas.Video = React.createClass({displayName: "Video",
 	transportStatusChange: function(currentTime, duration, ispaused) {
 		this.setState({currentTime: currentTime, duration: duration, transport: null});
 	},
+	goToNewTime: function(new_time) {
+		this.setState({
+			transport: {gototime: new_time}
+		});
+	},
 	render: function() {
 		var file_hash = this.props.file_hash;
 		var previews = this.props.mtdsummary.previews;
@@ -260,7 +270,12 @@ metadatas.Video = React.createClass({displayName: "Video",
 		return (
 			React.createElement("div", {style: {marginBottom: "1em"}}, 
 				content, 
-				React.createElement(metadatas.AudioGraphicDeepAnalyst, {previews: previews, file_hash: file_hash, currentTime: this.state.currentTime, duration: this.state.duration})
+				React.createElement(metadatas.AudioGraphicDeepAnalyst, {
+					previews: previews, 
+					file_hash: file_hash, 
+					currentTime: this.state.currentTime, 
+					duration: this.state.duration, 
+					goToNewTime: this.goToNewTime})
 			)
 		);
 	}
@@ -270,10 +285,15 @@ metadatas.Video = React.createClass({displayName: "Video",
 
 metadatas.Audio = React.createClass({displayName: "Audio",
 	getInitialState: function() {
-		return {currentTime: null, duration: null};
+		return {currentTime: null, duration: null, transport: null};
 	},
 	transportStatusChange: function(currentTime, duration, ispaused) {
-		this.setState({currentTime: currentTime, duration: duration});
+		this.setState({currentTime: currentTime, duration: duration, transport: null});
+	},
+	goToNewTime: function(new_time) {
+		this.setState({
+			transport: {gototime: new_time}
+		});
 	},
 	render: function() {
 		var file_hash = this.props.file_hash;
@@ -300,9 +320,19 @@ metadatas.Audio = React.createClass({displayName: "Audio",
 
 		return (
 			React.createElement("div", {style: {marginBottom: "1em"}}, 
-				React.createElement(pathindex.Mediaplayer, {transport_status: transport_status, audio_only: true, cantloadingplayerexcuse: i18n("browser.cantloadingplayer"), source_url: url}), 
+				React.createElement(pathindex.Mediaplayer, {
+					transport: this.state.transport, 
+					transport_status: transport_status, 
+					audio_only: true, 
+					cantloadingplayerexcuse: i18n("browser.cantloadingplayer"), 
+					source_url: url}), 
 				
-				React.createElement(metadatas.AudioGraphicDeepAnalyst, {previews: previews, file_hash: file_hash, currentTime: this.state.currentTime, duration: this.state.duration}), 
+				React.createElement(metadatas.AudioGraphicDeepAnalyst, {
+					previews: previews, 
+					file_hash: file_hash, 
+					currentTime: this.state.currentTime, 
+					duration: this.state.duration, 
+					goToNewTime: this.goToNewTime}), 
 
 				React.createElement("div", {className: "pull-right"}, 
 					React.createElement(metadatas.Image, {file_hash: file_hash, previews: previews, prefered_size: "cartridge_thumbnail"})
@@ -322,6 +352,27 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({displayName: "AudioGraphi
 		return {
 			last_bar_position: -1,
 		};
+	},
+	clickCanvas: function(event) {
+		if (this.props.duration == null | this.props.goToNewTime == null) {
+			return;
+		}
+		if (this.props.duration == 0) {
+			return;
+		}
+
+		var canvas = React.findDOMNode(this.refs.player_cursor);
+		var rect = canvas.getBoundingClientRect();
+	    var cursor_xpos = event.clientX - rect.left;
+
+		var width = this.props.previews.audio_graphic_deepanalyst.options.width;
+		var left_start = 60;
+		var right_stop = width - (left_start + 12);
+	    var cursor_time_pos = cursor_xpos - left_start;
+
+	    if ((cursor_time_pos >= 0) && (cursor_time_pos <= right_stop)) {
+	    	this.props.goToNewTime(this.props.duration * (cursor_time_pos / right_stop));
+	    }
 	},
 	componentDidUpdate: function() {
 		if (this.props.duration == null) {
@@ -383,7 +434,11 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({displayName: "AudioGraphi
 			React.createElement("div", {style: {width: options.width, height: options.height}}, 
 			    React.createElement("div", {style: {width:"100%", height:"100%", position:"relative"}}, 
 					React.createElement("img", {src: graphic_url, alt: options.width + "x" + options.height, style: {width:"100%", height:"100%", position:"absolute", top:0, left:0}}), ";", 
-					React.createElement("canvas", {ref: "player_cursor", style: {width:"100%", height:"100%", position:"absolute", top:0, left:0}, width: options.width, height: options.height})
+					React.createElement("canvas", {ref: "player_cursor", 
+						onClick: this.clickCanvas, 
+						style: {width:"100%", height:"100%", position:"absolute", top:0, left:0, cursor: "text"}, 
+						width: options.width, 
+						height: options.height})
 			    )
 			)
 		));
@@ -392,4 +447,4 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({displayName: "AudioGraphi
 
 })(window.mydmam.async.pathindex);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: d7cd12211659a9f8384f367eded76e67
+// Source hash: 62a0223127b4efa78e5ff86645cbb27f

@@ -50,6 +50,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 	private int image_height;
 	private float lufs_depth;
 	private float lufs_ref;
+	private float truepeak_ref;
 	private float jpg_compression_ratio;
 	
 	public FFmpegAudioDeepAnalyser() {
@@ -60,6 +61,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		image_height = Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_image_height", 600);
 		lufs_depth = -Math.abs((float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_depth", -80f));
 		lufs_ref = -Math.abs((float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_ref", -23f));
+		truepeak_ref = -Math.abs((float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_truepeak_ref", -3f));
 		jpg_compression_ratio = (float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_jpg_compression_ratio", 0.8f);
 	}
 	
@@ -133,7 +135,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		params.add("-f");
 		params.add("null");
 		params.add("/dev/null");
-		FFmpegDAEvents ffdae = new FFmpegDAEvents(image_width, image_height, lufs_depth, lufs_ref);
+		FFmpegDAEvents ffdae = new FFmpegDAEvents(image_width, image_height, lufs_depth, lufs_ref, truepeak_ref);
 		Execprocess process = new Execprocess(ExecBinaryPath.get("ffmpeg"), params, ffdae);
 		
 		process.run();// TODO stoppable (via start)
@@ -147,6 +149,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		entry_graphic.getOptions().addProperty("height", image_height);
 		entry_graphic.getOptions().addProperty("lufs_depth", lufs_depth);
 		entry_graphic.getOptions().addProperty("lufs_ref", lufs_ref);
+		entry_graphic.getOptions().addProperty("truepeak_ref", truepeak_ref);
 		
 		rf_lufs_truepeak_graphic.consolidateAndExportToEntry(entry_graphic, container, this);
 		
@@ -194,13 +197,16 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		private int image_width;
 		private int image_height;
 		private float lufs_ref;
+		private float truepeak_ref;
 		private FFmpegAudioDeepAnalyst ffmpeg_da_result;
 		
-		public FFmpegDAEvents(int image_width, int image_height, float lufs_depth, float lufs_ref) throws Exception {
+		public FFmpegDAEvents(int image_width, int image_height, float lufs_depth, float lufs_ref, float truepeak_ref) throws Exception {
 			this.lufs_range = lufs_depth;
 			this.image_width = image_width;
 			this.image_height = image_height;
 			this.lufs_ref = lufs_ref;
+			this.truepeak_ref = truepeak_ref;
+			
 			ffmpeg_da_result = new FFmpegAudioDeepAnalyst();
 			
 			series_momentary = new TimeSeries("Momentary");
@@ -274,17 +280,30 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 			 * Display the -23 line
 			 */
 			ValueMarker zero_pos = new ValueMarker(lufs_ref);
-			zero_pos.setLabel(String.valueOf(lufs_ref));
+			zero_pos.setLabel("   " + String.valueOf(lufs_ref));
 			zero_pos.setLabelPaint(Color.CYAN);
 			zero_pos.setAlpha(0.5f);
 			zero_pos.setLabelBackgroundColor(Color.CYAN);
 			zero_pos.setPaint(Color.CYAN);
 			zero_pos.setOutlinePaint(Color.CYAN);
 			
+			/**
+			 * Display the -3 line
+			 */
+			ValueMarker zero_pos2 = new ValueMarker(truepeak_ref);
+			zero_pos2.setLabel("   " + String.valueOf(truepeak_ref));
+			zero_pos2.setLabelPaint(Color.CYAN);
+			zero_pos2.setAlpha(0.5f);
+			zero_pos2.setLabelBackgroundColor(Color.CYAN);
+			zero_pos2.setPaint(Color.CYAN);
+			zero_pos2.setOutlinePaint(Color.CYAN);
+			
 			float dash[] = { 5.0f };
 			BasicStroke dash_stroke = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f);
 			zero_pos.setStroke(dash_stroke);
+			zero_pos2.setStroke(dash_stroke);
 			plot.addRangeMarker(zero_pos);
+			plot.addRangeMarker(zero_pos2);
 			
 			LogarithmicAxis rangeAxis = new LogarithmicAxis("dB LU");
 			rangeAxis.centerRange(0d);

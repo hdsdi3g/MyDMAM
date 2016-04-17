@@ -61,11 +61,12 @@ pathindex.Mediaplayer = React.createClass({
 		if (transport == null) {
 			return;
 		}
+		var video = React.findDOMNode(this.refs.videoplayer);
+
 		if (transport.macro) {
 			if (transport.macro == "RELOAD_PLAY") {
 				/** Player URL has changed. Get current the position, reload, play, and goto to the last position. */
 
-				var video = React.findDOMNode(this.refs.videoplayer);
 				video.removeEventListener('timeupdate', this.refresh_transport_status);
 
 				var current_time = video.currentTime;
@@ -79,6 +80,12 @@ pathindex.Mediaplayer = React.createClass({
 				};
 				video.addEventListener('loadedmetadata', gototime, false);
 			}
+		} else if (transport.gototime != null) {
+			//if (video.paused == false) {
+				//video.removeEventListener('timeupdate', this.refresh_transport_status);
+				video.currentTime = transport.gototime;
+				//video.addEventListener('timeupdate', this.refresh_transport_status, false);
+			//}
 		}
 	},
 	render: function() {

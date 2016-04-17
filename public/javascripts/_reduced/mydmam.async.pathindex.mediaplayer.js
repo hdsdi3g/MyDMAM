@@ -3,10 +3,11 @@
 b.addEventListener("timeupdate",this.refresh_transport_status,false);}},componentWillUnmount:function(){var b=React.findDOMNode(this.refs.videoplayer);
 b.removeEventListener("timeupdate",this.refresh_transport_status);},refresh_transport_status:function(){if(this.props.transport_status==null){return;
 }var b=React.findDOMNode(this.refs.videoplayer);this.props.transport_status(b.currentTime,b.duration,b.paused);
-},componentWillReceiveProps:function(d){var g=d.transport;if(g==null){return;}if(g.macro){if(g.macro=="RELOAD_PLAY"){var c=React.findDOMNode(this.refs.videoplayer);
-c.removeEventListener("timeupdate",this.refresh_transport_status);var f=c.currentTime;
-c.load();c.play();var e=this.refresh_transport_status;var b=function(){this.currentTime=f;
+},componentWillReceiveProps:function(d){var g=d.transport;if(g==null){return;}var c=React.findDOMNode(this.refs.videoplayer);
+if(g.macro){if(g.macro=="RELOAD_PLAY"){c.removeEventListener("timeupdate",this.refresh_transport_status);
+var f=c.currentTime;c.load();c.play();var e=this.refresh_transport_status;var b=function(){this.currentTime=f;
 c.removeEventListener("loadedmetadata",b);c.addEventListener("timeupdate",e,false);
-};c.addEventListener("loadedmetadata",b,false);}}},render:function(){if(this.props.audio_only){return(React.createElement("audio",{ref:"videoplayer",controls:"controls",preload:"auto"},this.props.cantloadingplayerexcuse,React.createElement("source",{src:this.props.source_url})));
+};c.addEventListener("loadedmetadata",b,false);}}else{if(g.gototime!=null){c.currentTime=g.gototime;
+}}},render:function(){if(this.props.audio_only){return(React.createElement("audio",{ref:"videoplayer",controls:"controls",preload:"auto"},this.props.cantloadingplayerexcuse,React.createElement("source",{src:this.props.source_url})));
 }else{return(React.createElement("video",{ref:"videoplayer",controls:"controls",className:this.props.className,width:this.props.width,height:this.props.height,preload:"auto",poster:this.props.poster},this.props.cantloadingplayerexcuse,React.createElement("source",{src:this.props.source_url})));
 }}});})(window.mydmam.async.pathindex);
