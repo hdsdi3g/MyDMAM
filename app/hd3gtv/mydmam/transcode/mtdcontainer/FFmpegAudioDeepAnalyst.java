@@ -142,4 +142,7 @@ public class FFmpegAudioDeepAnalyst extends EntryAnalyser {
 		return ffada;
 	}
 	
+	public boolean canBeSendedToWebclients() {
+		return true;
+	}
 }

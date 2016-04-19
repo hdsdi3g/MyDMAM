@@ -100,10 +100,7 @@ metadatas.Image = React.createClass({
 			<div style={{marginBottom: "1em"}}>
 				<metadatas.AudioGraphicDeepAnalyst
 					previews={previews}
-					file_hash={file_hash}
-					currentTime={null}
-					duration={null}
-					goToNewTime={null} />
+					file_hash={file_hash} />
 				{image}
 			</div>
 		);
@@ -410,6 +407,7 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 	},
 	render: function() {
 		var previews = this.props.previews;
+
 		if (previews.audio_graphic_deepanalyst == null) {
 			return null;
 		}
@@ -420,7 +418,8 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 		var options = previews.audio_graphic_deepanalyst.options;
 
 		var graphic = (<div style={{marginTop: "1em", marginBottom: "1em"}}>
-			<img src={graphic_url} alt={options.width + "x" + options.height} style={{width:options.width, height:options.height}} />
+			<metadatas.AudioStatsDeepAnalyst file_hash={file_hash} lufs_ref={options.lufs_ref} truepeak_ref={options.truepeak_ref} />
+			<div><img src={graphic_url} alt={options.width + "x" + options.height} style={{width:options.width, height:options.height}} /></div>
 		</div>);
 
 		if (this.props.duration == null) {
@@ -431,6 +430,8 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 		}
 
 		return (<div style={{marginTop: "1em", marginBottom: "1em"}}>
+			<metadatas.AudioStatsDeepAnalyst file_hash={file_hash} lufs_ref={options.lufs_ref} truepeak_ref={options.truepeak_ref} />
+
 			<div style={{width: options.width, height: options.height}}>
 			    <div style={{width:"100%", height:"100%", position:"relative"}}>
 					<img src={graphic_url} alt={options.width + "x" + options.height} style={{width:"100%", height:"100%", position:"absolute", top:0, left:0}} />;
@@ -441,6 +442,122 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 						height={options.height} />
 			    </div>
 			</div>
+		</div>);
+	}
+});
+
+metadatas.AudioStatsDeepAnalyst = React.createClass({
+	getInitialState: function() {
+		return {
+			analyst_result: null,
+			show_bottom_panel: false,
+		};
+	},
+	componentWillMount: function() {
+		mydmam.async.request("stat", "metadataanalystresults", {pathelementkey: this.props.file_hash, mtype: "ffaudioda"}, function(data) {
+			this.setState({analyst_result: data});
+		}.bind(this));
+	},
+	toogleBottomPanel: function() {
+		this.setState({show_bottom_panel: ! this.state.show_bottom_panel});
+	},
+	render: function() {
+		var integrated_loudness = "-inf";
+		var integrated_loudness_threshold = "0 dB";
+		var loudness_range_LRA = "-inf";
+		var loudness_range_threshold = "0 dB";
+		var loudness_range_LRA_low = "-inf";
+		var loudness_range_LRA_high = "-inf";
+		var true_peak = "-inf";
+
+		var integrated_loudness_warn_style = {color: "#777"};
+		var true_peak_warn_style = {color: "#777"};
+
+		if (this.state.analyst_result != null) {
+			integrated_loudness = this.state.analyst_result.integrated_loudness;
+			integrated_loudness_threshold = this.state.analyst_result.integrated_loudness_threshold;
+			loudness_range_LRA = this.state.analyst_result.loudness_range_LRA;
+			loudness_range_threshold = this.state.analyst_result.loudness_range_threshold;
+			loudness_range_LRA_low = this.state.analyst_result.loudness_range_LRA_low;
+			loudness_range_LRA_high = this.state.analyst_result.loudness_range_LRA_high;
+			true_peak = this.state.analyst_result.true_peak;
+
+			if ((integrated_loudness - 2) > this.props.lufs_ref) {
+				integrated_loudness_warn_style = {color: "#F00"};
+			} else if ((integrated_loudness + 2) < this.props.lufs_ref) {
+				integrated_loudness_warn_style = {color: "#F0F"};
+			} else {
+				integrated_loudness_warn_style = {color: "#0F0"};
+			}
+
+			if (true_peak > this.props.truepeak_ref) {
+				true_peak_warn_style = {color: "#F00"};
+			} else {
+				true_peak_warn_style = {color: "#0F0"};
+			}
+		}
+
+		var bottom_panel_icon = "+";
+		var bottom_panel = null;
+		if (this.state.show_bottom_panel & (this.state.analyst_result != null)) {
+			bottom_panel_icon = "-";
+			bottom_panel = (<div style={{
+					padding: 12,
+					backgroundColor: "#333",
+					color: "#fff",
+					fontFamily: "Tahoma, Arial",
+					width: "300pt",
+					fontWeight: "bold",
+				}}>
+				{this.state.analyst_result.number_of_samples} <br />
+				{this.state.analyst_result.overall_stat}<br />
+				{this.state.analyst_result.channels_stat}<br />
+			</div>);
+		}
+
+		return (<div className="clearfix" style={{margin: "1em"}}>
+			<div style={{
+					padding: 12,
+					backgroundColor: "#333",
+					color: "#fff",
+					fontFamily: "Tahoma, Arial",
+					width: "300pt",
+					fontWeight: "bold",
+				}}>
+				<div style={{left: "0px", top: "12px", position: "relative", float: "left", fontSize: "56px"}}><span style={integrated_loudness_warn_style}>{integrated_loudness}</span></div>
+				<div style={{left: "0px", top: "0px", position: "relative", float: "left", fontSize: "16px", color: "#666", }}>&nbsp;LUFS</div>
+				<div style={{left: "18px", top: "22px", position: "relative", float: "left", fontSize: "28px", }}><span style={true_peak_warn_style}>{true_peak}</span></div>
+				<div style={{left: "-30px", top: "0px", position: "relative", float: "left", fontSize: "16px", color: "#666"}}>&nbsp;dB&nbsp;TPK</div>
+
+				<div style={{left: "-5px", top: "0px", position: "relative", float: "left", lineHeight: "15px", color: "rgb(148, 104, 83)"}}>
+					<span style={{fontWeight: "normal",}}>High</span>
+					<br />
+					<span>LRA</span>
+					<br />
+					<span style={{fontWeight: "normal",}}>Low</span>
+				</div>
+				<div style={{left: "5px", top: "0px", position: "relative", float: "left", lineHeight: "15px", color: "rgb(187, 109, 71)"}}>
+					<span>{loudness_range_LRA_high}</span>
+					<br />
+					<span>&Delta; {loudness_range_LRA}</span>
+					<br />
+					<span>{loudness_range_LRA_low}</span>
+				</div>
+				<div style={{left: "0px", top: "5px", position: "relative", float: "clear",fontWeight: "normal", lineHeight: "20px", color: "rgb(84, 114, 148)"}}>
+					Thresholds / integrated loudness: <span style={{fontWeight: "bold"}}>{integrated_loudness_threshold}</span> &bull; range: <span style={{fontWeight: "bold"}}>{loudness_range_threshold}</span>
+					<span style={{float: "right",
+							border: "1px solid rgb(84, 114, 148)",
+							padding: "0px 6px 3px 7px",
+							marginTop: "2px", marginRight: "-12px", marginBottom: "0px",
+							cursor: "pointer",
+							width: "11px",
+							textAlign: "center",}}
+						onClick={this.toogleBottomPanel} >
+						{bottom_panel_icon}
+					</span>
+				</div>
+			</div>
+			{bottom_panel}
 		</div>);
 	}
 });

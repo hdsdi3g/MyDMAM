@@ -100,10 +100,7 @@ metadatas.Image = React.createClass({displayName: "Image",
 			React.createElement("div", {style: {marginBottom: "1em"}}, 
 				React.createElement(metadatas.AudioGraphicDeepAnalyst, {
 					previews: previews, 
-					file_hash: file_hash, 
-					currentTime: null, 
-					duration: null, 
-					goToNewTime: null}), 
+					file_hash: file_hash}), 
 				image
 			)
 		);
@@ -410,6 +407,7 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({displayName: "AudioGraphi
 	},
 	render: function() {
 		var previews = this.props.previews;
+
 		if (previews.audio_graphic_deepanalyst == null) {
 			return null;
 		}
@@ -420,7 +418,8 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({displayName: "AudioGraphi
 		var options = previews.audio_graphic_deepanalyst.options;
 
 		var graphic = (React.createElement("div", {style: {marginTop: "1em", marginBottom: "1em"}}, 
-			React.createElement("img", {src: graphic_url, alt: options.width + "x" + options.height, style: {width:options.width, height:options.height}})
+			React.createElement(metadatas.AudioStatsDeepAnalyst, {file_hash: file_hash, lufs_ref: options.lufs_ref, truepeak_ref: options.truepeak_ref}), 
+			React.createElement("div", null, React.createElement("img", {src: graphic_url, alt: options.width + "x" + options.height, style: {width:options.width, height:options.height}}))
 		));
 
 		if (this.props.duration == null) {
@@ -431,6 +430,8 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({displayName: "AudioGraphi
 		}
 
 		return (React.createElement("div", {style: {marginTop: "1em", marginBottom: "1em"}}, 
+			React.createElement(metadatas.AudioStatsDeepAnalyst, {file_hash: file_hash, lufs_ref: options.lufs_ref, truepeak_ref: options.truepeak_ref}), 
+
 			React.createElement("div", {style: {width: options.width, height: options.height}}, 
 			    React.createElement("div", {style: {width:"100%", height:"100%", position:"relative"}}, 
 					React.createElement("img", {src: graphic_url, alt: options.width + "x" + options.height, style: {width:"100%", height:"100%", position:"absolute", top:0, left:0}}), ";", 
@@ -445,6 +446,122 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({displayName: "AudioGraphi
 	}
 });
 
+metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDeepAnalyst",
+	getInitialState: function() {
+		return {
+			analyst_result: null,
+			show_bottom_panel: false,
+		};
+	},
+	componentWillMount: function() {
+		mydmam.async.request("stat", "metadataanalystresults", {pathelementkey: this.props.file_hash, mtype: "ffaudioda"}, function(data) {
+			this.setState({analyst_result: data});
+		}.bind(this));
+	},
+	toogleBottomPanel: function() {
+		this.setState({show_bottom_panel: ! this.state.show_bottom_panel});
+	},
+	render: function() {
+		var integrated_loudness = "-inf";
+		var integrated_loudness_threshold = "0 dB";
+		var loudness_range_LRA = "-inf";
+		var loudness_range_threshold = "0 dB";
+		var loudness_range_LRA_low = "-inf";
+		var loudness_range_LRA_high = "-inf";
+		var true_peak = "-inf";
+
+		var integrated_loudness_warn_style = {color: "#777"};
+		var true_peak_warn_style = {color: "#777"};
+
+		if (this.state.analyst_result != null) {
+			integrated_loudness = this.state.analyst_result.integrated_loudness;
+			integrated_loudness_threshold = this.state.analyst_result.integrated_loudness_threshold;
+			loudness_range_LRA = this.state.analyst_result.loudness_range_LRA;
+			loudness_range_threshold = this.state.analyst_result.loudness_range_threshold;
+			loudness_range_LRA_low = this.state.analyst_result.loudness_range_LRA_low;
+			loudness_range_LRA_high = this.state.analyst_result.loudness_range_LRA_high;
+			true_peak = this.state.analyst_result.true_peak;
+
+			if ((integrated_loudness - 2) > this.props.lufs_ref) {
+				integrated_loudness_warn_style = {color: "#F00"};
+			} else if ((integrated_loudness + 2) < this.props.lufs_ref) {
+				integrated_loudness_warn_style = {color: "#F0F"};
+			} else {
+				integrated_loudness_warn_style = {color: "#0F0"};
+			}
+
+			if (true_peak > this.props.truepeak_ref) {
+				true_peak_warn_style = {color: "#F00"};
+			} else {
+				true_peak_warn_style = {color: "#0F0"};
+			}
+		}
+
+		var bottom_panel_icon = "+";
+		var bottom_panel = null;
+		if (this.state.show_bottom_panel & (this.state.analyst_result != null)) {
+			bottom_panel_icon = "-";
+			bottom_panel = (React.createElement("div", {style: {
+					padding: 12,
+					backgroundColor: "#333",
+					color: "#fff",
+					fontFamily: "Tahoma, Arial",
+					width: "300pt",
+					fontWeight: "bold",
+				}}, 
+				this.state.analyst_result.number_of_samples, " ", React.createElement("br", null), 
+				this.state.analyst_result.overall_stat, React.createElement("br", null), 
+				this.state.analyst_result.channels_stat, React.createElement("br", null)
+			));
+		}
+
+		return (React.createElement("div", {className: "clearfix", style: {margin: "1em"}}, 
+			React.createElement("div", {style: {
+					padding: 12,
+					backgroundColor: "#333",
+					color: "#fff",
+					fontFamily: "Tahoma, Arial",
+					width: "300pt",
+					fontWeight: "bold",
+				}}, 
+				React.createElement("div", {style: {left: "0px", top: "12px", position: "relative", float: "left", fontSize: "56px"}}, React.createElement("span", {style: integrated_loudness_warn_style}, integrated_loudness)), 
+				React.createElement("div", {style: {left: "0px", top: "0px", position: "relative", float: "left", fontSize: "16px", color: "#666", }}, " LUFS"), 
+				React.createElement("div", {style: {left: "18px", top: "22px", position: "relative", float: "left", fontSize: "28px", }}, React.createElement("span", {style: true_peak_warn_style}, true_peak)), 
+				React.createElement("div", {style: {left: "-30px", top: "0px", position: "relative", float: "left", fontSize: "16px", color: "#666"}}, " dB TPK"), 
+
+				React.createElement("div", {style: {left: "-5px", top: "0px", position: "relative", float: "left", lineHeight: "15px", color: "rgb(148, 104, 83)"}}, 
+					React.createElement("span", {style: {fontWeight: "normal",}}, "High"), 
+					React.createElement("br", null), 
+					React.createElement("span", null, "LRA"), 
+					React.createElement("br", null), 
+					React.createElement("span", {style: {fontWeight: "normal",}}, "Low")
+				), 
+				React.createElement("div", {style: {left: "5px", top: "0px", position: "relative", float: "left", lineHeight: "15px", color: "rgb(187, 109, 71)"}}, 
+					React.createElement("span", null, loudness_range_LRA_high), 
+					React.createElement("br", null), 
+					React.createElement("span", null, "Δ ", loudness_range_LRA), 
+					React.createElement("br", null), 
+					React.createElement("span", null, loudness_range_LRA_low)
+				), 
+				React.createElement("div", {style: {left: "0px", top: "5px", position: "relative", float: "clear",fontWeight: "normal", lineHeight: "20px", color: "rgb(84, 114, 148)"}}, 
+					"Thresholds / integrated loudness: ", React.createElement("span", {style: {fontWeight: "bold"}}, integrated_loudness_threshold), " • range: ", React.createElement("span", {style: {fontWeight: "bold"}}, loudness_range_threshold), 
+					React.createElement("span", {style: {float: "right",
+							border: "1px solid rgb(84, 114, 148)",
+							padding: "0px 6px 3px 7px",
+							marginTop: "2px", marginRight: "-12px", marginBottom: "0px",
+							cursor: "pointer",
+							width: "11px",
+							textAlign: "center",}, 
+						onClick: this.toogleBottomPanel}, 
+						bottom_panel_icon
+					)
+				)
+			), 
+			bottom_panel
+		));
+	}
+});
+
 })(window.mydmam.async.pathindex);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: 62a0223127b4efa78e5ff86645cbb27f
+// Source hash: edd432b75e86a942a65b57acf9dd4fd3

@@ -174,7 +174,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		}
 		
 		public void onStdout(String message) {
-			System.out.println(message);
+			// System.out.println(message);
 		}
 		
 		public void onStart(String commandline, File working_directory) {
