@@ -210,6 +210,54 @@ public class ContainerOperations {
 		return result;
 	}
 	
+	/**
+	 * Simple and light request. No deserializing.
+	 */
+	public static JsonObject getRawByMtdKeyForOnlyOneTypeAndCheckedToBeSendedToWebclients(String pathelement_key, String type) throws NullPointerException {
+		if (pathelement_key == null) {
+			throw new NullPointerException("\"mtd_key\" can't to be null");
+		}
+		if (type == null) {
+			throw new NullPointerException("\"type\" can't to be null");
+		}
+		if (declared_entries_type.containsKey(type) == false) {
+			throw new NullPointerException("Can't found type: " + type);
+		}
+		
+		if ((declared_entries_type.get(type) instanceof EntryAnalyser) == false) {
+			return null;
+		}
+		
+		EntryAnalyser analyser = (EntryAnalyser) declared_entries_type.get(type);
+		if (analyser.canBeSendedToWebclients() == false) {
+			return null;
+		}
+		
+		ElastisearchCrawlerReader reader = Elasticsearch.createCrawlerReader();
+		reader.setIndices(ES_INDEX);
+		reader.setTypes(type);
+		reader.setQuery(QueryBuilders.termQuery("origin.key", pathelement_key));
+		reader.setMaximumSize(1);
+		
+		final ArrayList<JsonObject> results = new ArrayList<JsonObject>(1);
+		try {
+			reader.allReader(new ElastisearchCrawlerHit() {
+				public boolean onFoundHit(SearchHit hit) throws Exception {
+					results.add(Elasticsearch.getJSONFromSimpleResponse(hit));
+					return false;
+				}
+			});
+		} catch (Exception e) {
+			Loggers.Metadata.warn("Can't get from db", e);
+			return null;
+		}
+		
+		if (results.isEmpty()) {
+			return null;
+		}
+		return results.get(0);
+	}
+	
 	public static Container getByPathIndexId(String pathelement_key) throws Exception {
 		if (pathelement_key == null) {
 			throw new NullPointerException("\"pathelement_key\" can't to be null");
