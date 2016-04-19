@@ -56,8 +56,6 @@ public class RenderedFile {
 	private static volatile Random random;
 	private static volatile ArrayList<File> commit_log_files;
 	
-	// TODO change sub dirs by AB/CD/EFGHI instead of AB/CDEFGHI
-	
 	static {
 		try {
 			commit_log_files = new ArrayList<File>();
@@ -540,7 +538,7 @@ public class RenderedFile {
 		temp_directory.delete();
 	}
 	
-	public static void purge(String metadata_reference_id) {// TODO
+	public static void purge(String metadata_reference_id) {
 		if (metadata_reference_id == null) {
 			throw new NullPointerException("\"mtd_id\" can't to be null");
 		}
@@ -675,7 +673,7 @@ public class RenderedFile {
 					subrootfiles[pos_sroot].delete();
 					continue;
 				}
-				// System.out.println(subrootfiles[pos_sroot]);// XXX
+				
 				mtddir = subrootfiles[pos_sroot].listFiles();
 				if (mtddir.length == 0) {
 					/**

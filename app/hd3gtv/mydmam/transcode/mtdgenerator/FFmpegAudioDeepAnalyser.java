@@ -158,8 +158,6 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		
 		container.getSummary().putSummaryContent(ffdae.ffmpeg_da_result, ffdae.ffmpeg_da_result.integrated_loudness + " LUFS, True peak: " + ffdae.ffmpeg_da_result.true_peak + " dB");
 		
-		// TODO export or import full metadata.ffaudioda values. Must update API.
-		
 		return new ContainerEntryResult(entry_graphic, ffdae.ffmpeg_da_result);
 	}
 	
