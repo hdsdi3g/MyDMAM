@@ -430,7 +430,7 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 		}
 
 		return (<div style={{marginTop: "1em", marginBottom: "1em"}}>
-			<metadatas.AudioStatsDeepAnalyst file_hash={file_hash} lufs_ref={options.lufs_ref} truepeak_ref={options.truepeak_ref} />
+			<metadatas.AudioStatsDeepAnalyst goToNewTime={this.props.goToNewTime} file_hash={file_hash} lufs_ref={options.lufs_ref} truepeak_ref={options.truepeak_ref} />
 
 			<div style={{width: options.width, height: options.height}}>
 			    <div style={{width:"100%", height:"100%", position:"relative"}}>
@@ -451,7 +451,7 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 		return {
 			analyst_result: null,
 			show_audio_stat_channel: "Overall",
-			show_bottom_panel: true, //TODO set to false
+			show_bottom_panel: false,
 		};
 	},
 	componentWillMount: function() {
@@ -477,6 +477,7 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 
 		var integrated_loudness_warn_style = {color: "#777"};
 		var true_peak_warn_style = {color: "#777"};
+		var silence_label_warn = null;
 
 		if (this.state.analyst_result != null) {
 			integrated_loudness = this.state.analyst_result.integrated_loudness;
@@ -500,6 +501,20 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 			} else {
 				true_peak_warn_style = {color: "#0F0"};
 			}
+
+			if (this.state.analyst_result.silences) {
+				var label = "Silences warn";
+				if (this.state.analyst_result.silences.length == 1) {
+					label = "Silence warn";
+				}
+				silence_label_warn = (<span style={{backgroundColor: "#A00",
+					color: "#FAA",
+					fontWeight: "bold",
+					borderRadius: 4,
+					marginLeft: "8px",
+					padding: "1px 7px 2px 6px",
+					letterSpacing: "-0.5" }}>{label}</span>);
+			}
 		}
 
 		var bottom_panel_icon = "+";
@@ -509,7 +524,33 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 
 			var silence_block = null;
 			if (this.state.analyst_result.silences) {
-				silence_block = (<p>Silences to show !</p>); //TODO silence...
+				var silences = this.state.analyst_result.silences;
+				var silence_block_content = [];
+				for (var pos in silences) {
+					var silence_entry = silences[pos];
+					if (silence_entry.to == 0) {
+						/** audio file end by a silence */
+						silence_block_content.push(<tr key={pos}>
+							<td colSpan="3">Ends by silence from <metadatas.ButtonSilenceGotoPlay timevalue={silence_entry.from} onGotoSilence={this.props.goToNewTime} /></td>
+						</tr>);
+					} else {
+						silence_block_content.push(<tr key={pos}>
+							<td>{Math.abs(pos) + 1 /*To force interpretate pos in a number */}</td>
+							<td style={{textAlign: "center"}}><metadatas.ButtonSilenceGotoPlay timevalue={silence_entry.from} onGotoSilence={this.props.goToNewTime} /></td>
+							<td style={{textAlign: "center"}}>&rarr; <metadatas.ButtonSilenceGotoPlay timevalue={silence_entry.to} onGotoSilence={this.props.goToNewTime} /></td>
+							<td style={{textAlign: "center"}}>&Delta; <metadatas.ButtonSilenceGotoPlay timevalue={silence_entry.to - silence_entry.from} /></td>
+						</tr>);
+					}
+				}
+				silence_block = (<div style={{marginBottom: "6px", color: "#bbb"}}>
+					<em>Detected silences:</em>
+					<table style={{marginLeft: "6px", }}>
+						<tbody>
+							{silence_block_content}
+						</tbody>
+					</table>
+					<small>Silence detect level threshold: <strong>{this.state.analyst_result.silencedetect_level_threshold}</strong> dBFS during <strong>{this.state.analyst_result.silencedetect_min_duration}</strong> sec.</small> 
+				</div>);
 			}
 
 			var btn_stat_channels = [];
@@ -525,7 +566,7 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 
 			var audio_stat_block = null;
 			var createBlockAudioStat = function(stat) {
-				var dc_offset = "" + stat.dc_offset;
+				var dc_offset = "" + stat.dc_offset.toFixed(6);
 				if (stat.dc_offset >= 0) {
 					dc_offset = "+" + dc_offset;
 				}
@@ -552,20 +593,20 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 			}
 
 			bottom_panel = (<div style={{
-					padding: 12,
+					padding: "0px 12px 12px",
 					backgroundColor: "#333",
 					color: "#887",
 					fontFamily: "Tahoma, Arial",
 					width: "300pt",
 				}}>
 				{silence_block}
-				<div style={{marginBottom: "6px", }}>{btn_stat_channels}</div>
+				<div style={{marginBottom: "6px", marginTop: "0px", paddingTop: "10px", }}>{btn_stat_channels}</div>
 				{audio_stat_block}
 				<span style={{fontWeight: "bold", color: "rgb(92,200,90)", }}>{this.state.analyst_result.number_of_samples}</span>&nbsp;samples
 			</div>);
 		}
 
-		return (<div className="clearfix" style={{margin: "1em"}}>
+		return (<div className="clearfix" style={{marginBottom: "1em"}}>
 			<div style={{
 					padding: "12px 12px 7px",
 					backgroundColor: "#333",
@@ -603,7 +644,8 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 				</div>
 				<br style={{"float": "clear"}} />
 				<div style={{left: "0px", top: "5px", marginTop:"33px", fontWeight: "normal", lineHeight: "20px", color: "rgb(84, 114, 148)"}}>
-					Thresholds / integrated loudness: <span style={{fontWeight: "bold"}}>{integrated_loudness_threshold}</span> &bull; range: <span style={{fontWeight: "bold"}}>{loudness_range_threshold}</span>
+					Integrated threshold: <span style={{fontWeight: "bold"}}>{integrated_loudness_threshold}</span>, range: <span style={{fontWeight: "bold"}}>{loudness_range_threshold}</span>
+					{silence_label_warn}
 					<span style={{"float": "right",
 							padding: "0px 6px 3px 7px",
 							border: "1px solid #888",
@@ -646,5 +688,24 @@ metadatas.ButtonChooseAudioStatBlock = React.createClass({
 		}
 
 		return (<span onClick={this.btnClick} style={style}>{channel_name}</span>);
+	}
+});
+
+metadatas.ButtonSilenceGotoPlay = React.createClass({
+	btnClick: function() {
+		if (this.props.onGotoSilence) {
+			this.props.onGotoSilence(this.props.timevalue / 1000);
+		}
+	},
+	render: function() {
+		var style = {fontWeight: "bold"};
+		if (this.props.onGotoSilence) {
+			style.color = "#bbb";
+			style.borderBottom = "1px dotted #ccc";
+			style.cursor = "pointer";
+		}
+		var label = mydmam.format.msecToHMSms(this.props.timevalue);
+
+		return (<span onClick={this.btnClick} style={style}>{label}</span>);
 	}
 });

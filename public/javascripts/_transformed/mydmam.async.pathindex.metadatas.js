@@ -430,7 +430,7 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({displayName: "AudioGraphi
 		}
 
 		return (React.createElement("div", {style: {marginTop: "1em", marginBottom: "1em"}}, 
-			React.createElement(metadatas.AudioStatsDeepAnalyst, {file_hash: file_hash, lufs_ref: options.lufs_ref, truepeak_ref: options.truepeak_ref}), 
+			React.createElement(metadatas.AudioStatsDeepAnalyst, {goToNewTime: this.props.goToNewTime, file_hash: file_hash, lufs_ref: options.lufs_ref, truepeak_ref: options.truepeak_ref}), 
 
 			React.createElement("div", {style: {width: options.width, height: options.height}}, 
 			    React.createElement("div", {style: {width:"100%", height:"100%", position:"relative"}}, 
@@ -451,7 +451,7 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 		return {
 			analyst_result: null,
 			show_audio_stat_channel: "Overall",
-			show_bottom_panel: true, //TODO set to false
+			show_bottom_panel: false,
 		};
 	},
 	componentWillMount: function() {
@@ -477,6 +477,7 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 
 		var integrated_loudness_warn_style = {color: "#777"};
 		var true_peak_warn_style = {color: "#777"};
+		var silence_label_warn = null;
 
 		if (this.state.analyst_result != null) {
 			integrated_loudness = this.state.analyst_result.integrated_loudness;
@@ -500,6 +501,20 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 			} else {
 				true_peak_warn_style = {color: "#0F0"};
 			}
+
+			if (this.state.analyst_result.silences) {
+				var label = "Silences warn";
+				if (this.state.analyst_result.silences.length == 1) {
+					label = "Silence warn";
+				}
+				silence_label_warn = (React.createElement("span", {style: {backgroundColor: "#A00",
+					color: "#FAA",
+					fontWeight: "bold",
+					borderRadius: 4,
+					marginLeft: "8px",
+					padding: "1px 7px 2px 6px",
+					letterSpacing: "-0.5"}}, label));
+			}
 		}
 
 		var bottom_panel_icon = "+";
@@ -509,7 +524,33 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 
 			var silence_block = null;
 			if (this.state.analyst_result.silences) {
-				silence_block = (React.createElement("p", null, "Silences to show !")); //TODO silence...
+				var silences = this.state.analyst_result.silences;
+				var silence_block_content = [];
+				for (var pos in silences) {
+					var silence_entry = silences[pos];
+					if (silence_entry.to == 0) {
+						/** audio file end by a silence */
+						silence_block_content.push(React.createElement("tr", {key: pos}, 
+							React.createElement("td", {colSpan: "3"}, "Ends by silence from ", React.createElement(metadatas.ButtonSilenceGotoPlay, {timevalue: silence_entry.from, onGotoSilence: this.props.goToNewTime}))
+						));
+					} else {
+						silence_block_content.push(React.createElement("tr", {key: pos}, 
+							React.createElement("td", null, Math.abs(pos) + 1/*To force interpretate pos in a number */), 
+							React.createElement("td", {style: {textAlign: "center"}}, React.createElement(metadatas.ButtonSilenceGotoPlay, {timevalue: silence_entry.from, onGotoSilence: this.props.goToNewTime})), 
+							React.createElement("td", {style: {textAlign: "center"}}, "→ ", React.createElement(metadatas.ButtonSilenceGotoPlay, {timevalue: silence_entry.to, onGotoSilence: this.props.goToNewTime})), 
+							React.createElement("td", {style: {textAlign: "center"}}, "Δ ", React.createElement(metadatas.ButtonSilenceGotoPlay, {timevalue: silence_entry.to - silence_entry.from}))
+						));
+					}
+				}
+				silence_block = (React.createElement("div", {style: {marginBottom: "6px", color: "#bbb"}}, 
+					React.createElement("em", null, "Detected silences:"), 
+					React.createElement("table", {style: {marginLeft: "6px", }}, 
+						React.createElement("tbody", null, 
+							silence_block_content
+						)
+					), 
+					React.createElement("small", null, "Silence detect level threshold: ", React.createElement("strong", null, this.state.analyst_result.silencedetect_level_threshold), " dBFS during ", React.createElement("strong", null, this.state.analyst_result.silencedetect_min_duration), " sec.")
+				));
 			}
 
 			var btn_stat_channels = [];
@@ -525,7 +566,7 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 
 			var audio_stat_block = null;
 			var createBlockAudioStat = function(stat) {
-				var dc_offset = "" + stat.dc_offset;
+				var dc_offset = "" + stat.dc_offset.toFixed(6);
 				if (stat.dc_offset >= 0) {
 					dc_offset = "+" + dc_offset;
 				}
@@ -552,20 +593,20 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 			}
 
 			bottom_panel = (React.createElement("div", {style: {
-					padding: 12,
+					padding: "0px 12px 12px",
 					backgroundColor: "#333",
 					color: "#887",
 					fontFamily: "Tahoma, Arial",
 					width: "300pt",
 				}}, 
 				silence_block, 
-				React.createElement("div", {style: {marginBottom: "6px", }}, btn_stat_channels), 
+				React.createElement("div", {style: {marginBottom: "6px", marginTop: "0px", paddingTop: "10px", }}, btn_stat_channels), 
 				audio_stat_block, 
 				React.createElement("span", {style: {fontWeight: "bold", color: "rgb(92,200,90)", }}, this.state.analyst_result.number_of_samples), " samples"
 			));
 		}
 
-		return (React.createElement("div", {className: "clearfix", style: {margin: "1em"}}, 
+		return (React.createElement("div", {className: "clearfix", style: {marginBottom: "1em"}}, 
 			React.createElement("div", {style: {
 					padding: "12px 12px 7px",
 					backgroundColor: "#333",
@@ -603,7 +644,8 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 				), 
 				React.createElement("br", {style: {"float": "clear"}}), 
 				React.createElement("div", {style: {left: "0px", top: "5px", marginTop:"33px", fontWeight: "normal", lineHeight: "20px", color: "rgb(84, 114, 148)"}}, 
-					"Thresholds / integrated loudness: ", React.createElement("span", {style: {fontWeight: "bold"}}, integrated_loudness_threshold), " • range: ", React.createElement("span", {style: {fontWeight: "bold"}}, loudness_range_threshold), 
+					"Integrated threshold: ", React.createElement("span", {style: {fontWeight: "bold"}}, integrated_loudness_threshold), ", range: ", React.createElement("span", {style: {fontWeight: "bold"}}, loudness_range_threshold), 
+					silence_label_warn, 
 					React.createElement("span", {style: {"float": "right",
 							padding: "0px 6px 3px 7px",
 							border: "1px solid #888",
@@ -648,6 +690,26 @@ metadatas.ButtonChooseAudioStatBlock = React.createClass({displayName: "ButtonCh
 		return (React.createElement("span", {onClick: this.btnClick, style: style}, channel_name));
 	}
 });
+
+metadatas.ButtonSilenceGotoPlay = React.createClass({displayName: "ButtonSilenceGotoPlay",
+	btnClick: function() {
+		if (this.props.onGotoSilence) {
+			this.props.onGotoSilence(this.props.timevalue / 1000);
+		}
+	},
+	render: function() {
+		var style = {fontWeight: "bold"};
+		if (this.props.onGotoSilence) {
+			style.color = "#bbb";
+			style.borderBottom = "1px dotted #ccc";
+			style.cursor = "pointer";
+		}
+		var label = mydmam.format.msecToHMSms(this.props.timevalue);
+
+		return (React.createElement("span", {onClick: this.btnClick, style: style}, label));
+	}
+});
+
 })(window.mydmam.async.pathindex);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: be756ddbf43a55927ffdee01dcf11a2d
+// Source hash: 431dc108608d03af112939d26ec9c3d7

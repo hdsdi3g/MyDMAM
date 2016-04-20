@@ -157,7 +157,24 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		ffdae.ffmpeg_da_result.silencedetect_level_threshold = silencedetect_level_threshold;
 		ffdae.ffmpeg_da_result.silencedetect_min_duration = silencedetect_min_duration;
 		
-		container.getSummary().putSummaryContent(ffdae.ffmpeg_da_result, ffdae.ffmpeg_da_result.integrated_loudness + " LUFS, True peak: " + ffdae.ffmpeg_da_result.true_peak + " dB");
+		StringBuilder summay = new StringBuilder();
+		
+		summay.append(ffdae.ffmpeg_da_result.integrated_loudness);
+		summay.append(" LUFS, True peak: ");
+		summay.append(ffdae.ffmpeg_da_result.true_peak);
+		summay.append(" dB");
+		
+		if (ffdae.ffmpeg_da_result.silences != null) {
+			summay.append(", ");
+			summay.append(ffdae.ffmpeg_da_result.silences.size());
+			if (ffdae.ffmpeg_da_result.silences.size() > 1) {
+				summay.append(" silences detected");
+			} else {
+				summay.append(" silence detected");
+			}
+		}
+		
+		container.getSummary().putSummaryContent(ffdae.ffmpeg_da_result, summay.toString());
 		
 		return new ContainerEntryResult(entry_graphic, ffdae.ffmpeg_da_result);
 	}
