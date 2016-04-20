@@ -450,7 +450,8 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 	getInitialState: function() {
 		return {
 			analyst_result: null,
-			show_bottom_panel: false,
+			show_audio_stat_channel: "Overall",
+			show_bottom_panel: true, //TODO set to false
 		};
 	},
 	componentWillMount: function() {
@@ -461,14 +462,18 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 	toogleBottomPanel: function() {
 		this.setState({show_bottom_panel: ! this.state.show_bottom_panel});
 	},
+	onChooseAudioStatBlock: function(channel_name) {
+		this.setState({show_audio_stat_channel: channel_name});
+	},
 	render: function() {
-		var integrated_loudness = "-inf";
-		var integrated_loudness_threshold = "0 dB";
-		var loudness_range_LRA = "-inf";
-		var loudness_range_threshold = "0 dB";
-		var loudness_range_LRA_low = "-inf";
-		var loudness_range_LRA_high = "-inf";
-		var true_peak = "-inf";
+		var no_value = (React.createElement("span", null, "-∞"));
+		var integrated_loudness = no_value;
+		var integrated_loudness_threshold = no_value;
+		var loudness_range_LRA = no_value;
+		var loudness_range_threshold = no_value;
+		var loudness_range_LRA_low = no_value;
+		var loudness_range_LRA_high = no_value;
+		var true_peak = no_value;
 
 		var integrated_loudness_warn_style = {color: "#777"};
 		var true_peak_warn_style = {color: "#777"};
@@ -501,53 +506,108 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 		var bottom_panel = null;
 		if (this.state.show_bottom_panel & (this.state.analyst_result != null)) {
 			bottom_panel_icon = "-";
+
+			var silence_block = null;
+			if (this.state.analyst_result.silences) {
+				silence_block = (React.createElement("p", null, "Silences to show !")); //TODO silence...
+			}
+
+			var btn_stat_channels = [];
+			btn_stat_channels.push(React.createElement(metadatas.ButtonChooseAudioStatBlock, {selected: this.state.show_audio_stat_channel == "Overall", key: 0, channel: "Overall", onChooseAudioStatBlock: this.onChooseAudioStatBlock}));
+			for (var pos in this.state.analyst_result.channels_stat) {
+				var channel_name = pos;
+				btn_stat_channels.push(
+					React.createElement("span", {key: pos + 1}, 
+						React.createElement(metadatas.ButtonChooseAudioStatBlock, {channel: channel_name, selected: this.state.show_audio_stat_channel == channel_name, onChooseAudioStatBlock: this.onChooseAudioStatBlock})
+					)
+				);
+			}
+
+			var audio_stat_block = null;
+			var createBlockAudioStat = function(stat) {
+				var dc_offset = "" + stat.dc_offset;
+				if (stat.dc_offset >= 0) {
+					dc_offset = "+" + dc_offset;
+				}
+				return (React.createElement("div", {style: {marginLeft: "6px", }}, 
+					React.createElement("div", null, "DC Offset: ", React.createElement("strong", {style: {color: "rgb(212, 228, 166)", }}, dc_offset)), 
+					React.createElement("div", null, "Level: min ", React.createElement("strong", {style: {color: "rgb(106, 127, 138)", }}, stat.min_level), ", max ", React.createElement("strong", {style: {color: "rgb(106, 127, 138)", }}, stat.max_level)), 
+					React.createElement("div", null, "Difference: min ", React.createElement("strong", {style: {color: "rgb(121, 141, 147)", }}, stat.min_difference), ", max ", React.createElement("strong", {style: {color: "rgb(121, 141, 147)", }}, stat.max_difference), ", mean ", React.createElement("strong", {style: {color: "rgb(121, 141, 147)", }}, stat.mean_difference)), 
+					React.createElement("div", null, "Peak level: ", React.createElement("strong", {style: {color: "rgb(247, 165, 87)", }}, stat.peak_level.toFixed(2)), " dBFS, count: ", React.createElement("strong", {style: {color: "rgb(247, 165, 87)", }}, stat.peak_count)), 
+					React.createElement("div", null, "RMS (dBFS): level ", React.createElement("strong", {style: {color: "rgb(167,121,80)", }}, stat.rms_level.toFixed(2)), ", peak ", React.createElement("strong", {style: {color: "rgb(167,121,80)", }}, stat.rms_peak.toFixed(2)), ", trough ", React.createElement("strong", {style: {color: "rgb(167,121,80)", }}, stat.rms_trough.toFixed(2))), 
+					React.createElement("div", null, "Crest factor: ", React.createElement("strong", {style: {color: "rgb(78,105,137)", }}, stat.crest_factor.toFixed(2)), ", flat factor: ", React.createElement("strong", {style: {color: "rgb(78,105,137)", }}, stat.flat_factor.toFixed(2)))
+				));
+			};
+
+			if (this.state.show_audio_stat_channel == "Overall") {
+				audio_stat_block = createBlockAudioStat(this.state.analyst_result.overall_stat);
+			} else {
+				for (var pos in this.state.analyst_result.channels_stat) {
+					var channel_name = pos;
+					if (this.state.show_audio_stat_channel == channel_name) {
+						audio_stat_block = createBlockAudioStat(this.state.analyst_result.channels_stat[pos]);
+						break;
+					}
+				}
+			}
+
 			bottom_panel = (React.createElement("div", {style: {
 					padding: 12,
 					backgroundColor: "#333",
-					color: "#fff",
+					color: "#887",
 					fontFamily: "Tahoma, Arial",
 					width: "300pt",
-					fontWeight: "bold",
 				}}, 
-				this.state.analyst_result.number_of_samples, " ", React.createElement("br", null), 
-				this.state.analyst_result.overall_stat, React.createElement("br", null), 
-				this.state.analyst_result.channels_stat, React.createElement("br", null)
+				silence_block, 
+				React.createElement("div", {style: {marginBottom: "6px", }}, btn_stat_channels), 
+				audio_stat_block, 
+				React.createElement("span", {style: {fontWeight: "bold", color: "rgb(92,200,90)", }}, this.state.analyst_result.number_of_samples), " samples"
 			));
 		}
 
 		return (React.createElement("div", {className: "clearfix", style: {margin: "1em"}}, 
 			React.createElement("div", {style: {
-					padding: 12,
+					padding: "12px 12px 7px",
 					backgroundColor: "#333",
 					color: "#fff",
 					fontFamily: "Tahoma, Arial",
 					width: "300pt",
 					fontWeight: "bold",
 				}}, 
-				React.createElement("div", {style: {left: "0px", top: "12px", position: "relative", float: "left", fontSize: "56px"}}, React.createElement("span", {style: integrated_loudness_warn_style}, integrated_loudness)), 
-				React.createElement("div", {style: {left: "0px", top: "0px", position: "relative", float: "left", fontSize: "16px", color: "#666", }}, " LUFS"), 
-				React.createElement("div", {style: {left: "18px", top: "22px", position: "relative", float: "left", fontSize: "28px", }}, React.createElement("span", {style: true_peak_warn_style}, true_peak)), 
-				React.createElement("div", {style: {left: "-30px", top: "0px", position: "relative", float: "left", fontSize: "16px", color: "#666"}}, " dB TPK"), 
+				React.createElement("div", {style: {left: "0px", top: "12px", position: "relative", "float": "left", fontSize: "56px"}}, 
+					React.createElement("span", {style: integrated_loudness_warn_style}, integrated_loudness)
+				), 
+				React.createElement("div", {style: {left: "0px", top: "0px", position: "relative", "float": "left", fontSize: "16px", color: "#666", }}, 
+					" LUFS"
+				), 
+				React.createElement("div", {style: {left: "18px", top: "22px", position: "relative", "float": "left", fontSize: "28px", }}, 
+					React.createElement("span", {style: true_peak_warn_style}, true_peak)
+				), 
+				React.createElement("div", {style: {left: "-30px", top: "0px", position: "relative", "float": "left", fontSize: "16px", color: "#666"}}, 
+					" dB TPK"
+				), 
 
-				React.createElement("div", {style: {left: "-5px", top: "0px", position: "relative", float: "left", lineHeight: "15px", color: "rgb(148, 104, 83)"}}, 
+				React.createElement("div", {style: {left: "-5px", top: "0px", position: "relative", "float": "left", lineHeight: "15px", color: "rgb(148, 104, 83)"}}, 
 					React.createElement("span", {style: {fontWeight: "normal",}}, "High"), 
 					React.createElement("br", null), 
 					React.createElement("span", null, "LRA"), 
 					React.createElement("br", null), 
 					React.createElement("span", {style: {fontWeight: "normal",}}, "Low")
 				), 
-				React.createElement("div", {style: {left: "5px", top: "0px", position: "relative", float: "left", lineHeight: "15px", color: "rgb(187, 109, 71)"}}, 
+				React.createElement("div", {style: {left: "5px", top: "0px", position: "relative", "float": "left", lineHeight: "15px", color: "rgb(187, 109, 71)"}}, 
 					React.createElement("span", null, loudness_range_LRA_high), 
 					React.createElement("br", null), 
 					React.createElement("span", null, "Δ ", loudness_range_LRA), 
 					React.createElement("br", null), 
 					React.createElement("span", null, loudness_range_LRA_low)
 				), 
-				React.createElement("div", {style: {left: "0px", top: "5px", position: "relative", float: "clear",fontWeight: "normal", lineHeight: "20px", color: "rgb(84, 114, 148)"}}, 
+				React.createElement("br", {style: {"float": "clear"}}), 
+				React.createElement("div", {style: {left: "0px", top: "5px", marginTop:"33px", fontWeight: "normal", lineHeight: "20px", color: "rgb(84, 114, 148)"}}, 
 					"Thresholds / integrated loudness: ", React.createElement("span", {style: {fontWeight: "bold"}}, integrated_loudness_threshold), " • range: ", React.createElement("span", {style: {fontWeight: "bold"}}, loudness_range_threshold), 
-					React.createElement("span", {style: {float: "right",
-							border: "1px solid rgb(84, 114, 148)",
+					React.createElement("span", {style: {"float": "right",
 							padding: "0px 6px 3px 7px",
+							border: "1px solid #888",
+							color: "#888",
 							marginTop: "2px", marginRight: "-12px", marginBottom: "0px",
 							cursor: "pointer",
 							width: "11px",
@@ -562,6 +622,32 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({displayName: "AudioStatsDee
 	}
 });
 
+metadatas.ButtonChooseAudioStatBlock = React.createClass({displayName: "ButtonChooseAudioStatBlock",
+	btnClick: function() {
+		this.props.onChooseAudioStatBlock(this.props.channel);
+	},
+	render: function() {
+		var style = {border: "1px solid #222",
+			padding: "3px 6px",
+			marginRight: "2px",
+			color: "#bba",
+			cursor: "pointer",
+		};
+
+		if (this.props.selected) {
+			style.border = "1px solid #888";
+			style.color = "#eee";
+		}
+
+		var channel_name = this.props.channel;
+		if (channel_name != "Overall") {
+			channel_name++;
+			channel_name = "Ch. " + channel_name;
+		}
+
+		return (React.createElement("span", {onClick: this.btnClick, style: style}, channel_name));
+	}
+});
 })(window.mydmam.async.pathindex);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: edd432b75e86a942a65b57acf9dd4fd3
+// Source hash: be756ddbf43a55927ffdee01dcf11a2d

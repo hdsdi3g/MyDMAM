@@ -450,7 +450,8 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 	getInitialState: function() {
 		return {
 			analyst_result: null,
-			show_bottom_panel: false,
+			show_audio_stat_channel: "Overall",
+			show_bottom_panel: true, //TODO set to false
 		};
 	},
 	componentWillMount: function() {
@@ -461,14 +462,18 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 	toogleBottomPanel: function() {
 		this.setState({show_bottom_panel: ! this.state.show_bottom_panel});
 	},
+	onChooseAudioStatBlock: function(channel_name) {
+		this.setState({show_audio_stat_channel: channel_name});
+	},
 	render: function() {
-		var integrated_loudness = "-inf";
-		var integrated_loudness_threshold = "0 dB";
-		var loudness_range_LRA = "-inf";
-		var loudness_range_threshold = "0 dB";
-		var loudness_range_LRA_low = "-inf";
-		var loudness_range_LRA_high = "-inf";
-		var true_peak = "-inf";
+		var no_value = (<span>-&infin;</span>);
+		var integrated_loudness = no_value;
+		var integrated_loudness_threshold = no_value;
+		var loudness_range_LRA = no_value;
+		var loudness_range_threshold = no_value;
+		var loudness_range_LRA_low = no_value;
+		var loudness_range_LRA_high = no_value;
+		var true_peak = no_value;
 
 		var integrated_loudness_warn_style = {color: "#777"};
 		var true_peak_warn_style = {color: "#777"};
@@ -501,63 +506,145 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 		var bottom_panel = null;
 		if (this.state.show_bottom_panel & (this.state.analyst_result != null)) {
 			bottom_panel_icon = "-";
+
+			var silence_block = null;
+			if (this.state.analyst_result.silences) {
+				silence_block = (<p>Silences to show !</p>); //TODO silence...
+			}
+
+			var btn_stat_channels = [];
+			btn_stat_channels.push(<metadatas.ButtonChooseAudioStatBlock selected={this.state.show_audio_stat_channel == "Overall"} key={0} channel="Overall" onChooseAudioStatBlock={this.onChooseAudioStatBlock} />);
+			for (var pos in this.state.analyst_result.channels_stat) {
+				var channel_name = pos;
+				btn_stat_channels.push(
+					<span key={pos + 1}>
+						<metadatas.ButtonChooseAudioStatBlock channel={channel_name} selected={this.state.show_audio_stat_channel == channel_name} onChooseAudioStatBlock={this.onChooseAudioStatBlock} />
+					</span>
+				);
+			}
+
+			var audio_stat_block = null;
+			var createBlockAudioStat = function(stat) {
+				var dc_offset = "" + stat.dc_offset;
+				if (stat.dc_offset >= 0) {
+					dc_offset = "+" + dc_offset;
+				}
+				return (<div style={{marginLeft: "6px", }}>
+					<div>DC Offset: <strong style={{color: "rgb(212, 228, 166)", }}>{dc_offset}</strong></div>
+					<div>Level: min <strong style={{color: "rgb(106, 127, 138)", }}>{stat.min_level}</strong>, max <strong style={{color: "rgb(106, 127, 138)", }}>{stat.max_level}</strong></div>
+					<div>Difference: min <strong style={{color: "rgb(121, 141, 147)", }}>{stat.min_difference}</strong>, max <strong style={{color: "rgb(121, 141, 147)", }}>{stat.max_difference}</strong>, mean <strong style={{color: "rgb(121, 141, 147)", }}>{stat.mean_difference}</strong></div>
+					<div>Peak level: <strong style={{color: "rgb(247, 165, 87)", }}>{stat.peak_level.toFixed(2)}</strong> dBFS, count: <strong style={{color: "rgb(247, 165, 87)", }}>{stat.peak_count}</strong></div>
+					<div>RMS (dBFS): level <strong style={{color: "rgb(167,121,80)", }}>{stat.rms_level.toFixed(2)}</strong>, peak <strong style={{color: "rgb(167,121,80)", }}>{stat.rms_peak.toFixed(2)}</strong>, trough <strong style={{color: "rgb(167,121,80)", }}>{stat.rms_trough.toFixed(2)}</strong></div>
+					<div>Crest factor: <strong style={{color: "rgb(78,105,137)", }}>{stat.crest_factor.toFixed(2)}</strong>, flat factor: <strong style={{color: "rgb(78,105,137)", }}>{stat.flat_factor.toFixed(2)}</strong></div>
+				</div>);
+			};
+
+			if (this.state.show_audio_stat_channel == "Overall") {
+				audio_stat_block = createBlockAudioStat(this.state.analyst_result.overall_stat);
+			} else {
+				for (var pos in this.state.analyst_result.channels_stat) {
+					var channel_name = pos;
+					if (this.state.show_audio_stat_channel == channel_name) {
+						audio_stat_block = createBlockAudioStat(this.state.analyst_result.channels_stat[pos]);
+						break;
+					}
+				}
+			}
+
 			bottom_panel = (<div style={{
 					padding: 12,
 					backgroundColor: "#333",
-					color: "#fff",
+					color: "#887",
 					fontFamily: "Tahoma, Arial",
 					width: "300pt",
-					fontWeight: "bold",
 				}}>
-				{this.state.analyst_result.number_of_samples} <br />
-				{this.state.analyst_result.overall_stat}<br />
-				{this.state.analyst_result.channels_stat}<br />
+				{silence_block}
+				<div style={{marginBottom: "6px", }}>{btn_stat_channels}</div>
+				{audio_stat_block}
+				<span style={{fontWeight: "bold", color: "rgb(92,200,90)", }}>{this.state.analyst_result.number_of_samples}</span>&nbsp;samples
 			</div>);
 		}
 
 		return (<div className="clearfix" style={{margin: "1em"}}>
 			<div style={{
-					padding: 12,
+					padding: "12px 12px 7px",
 					backgroundColor: "#333",
 					color: "#fff",
 					fontFamily: "Tahoma, Arial",
 					width: "300pt",
 					fontWeight: "bold",
 				}}>
-				<div style={{left: "0px", top: "12px", position: "relative", float: "left", fontSize: "56px"}}><span style={integrated_loudness_warn_style}>{integrated_loudness}</span></div>
-				<div style={{left: "0px", top: "0px", position: "relative", float: "left", fontSize: "16px", color: "#666", }}>&nbsp;LUFS</div>
-				<div style={{left: "18px", top: "22px", position: "relative", float: "left", fontSize: "28px", }}><span style={true_peak_warn_style}>{true_peak}</span></div>
-				<div style={{left: "-30px", top: "0px", position: "relative", float: "left", fontSize: "16px", color: "#666"}}>&nbsp;dB&nbsp;TPK</div>
+				<div style={{left: "0px", top: "12px", position: "relative", "float": "left", fontSize: "56px"}}>
+					<span style={integrated_loudness_warn_style}>{integrated_loudness}</span>
+				</div>
+				<div style={{left: "0px", top: "0px", position: "relative", "float": "left", fontSize: "16px", color: "#666", }}>
+					&nbsp;LUFS
+				</div>
+				<div style={{left: "18px", top: "22px", position: "relative", "float": "left", fontSize: "28px", }}>
+					<span style={true_peak_warn_style}>{true_peak}</span>
+				</div>
+				<div style={{left: "-30px", top: "0px", position: "relative", "float": "left", fontSize: "16px", color: "#666"}}>
+					&nbsp;dB&nbsp;TPK
+				</div>
 
-				<div style={{left: "-5px", top: "0px", position: "relative", float: "left", lineHeight: "15px", color: "rgb(148, 104, 83)"}}>
+				<div style={{left: "-5px", top: "0px", position: "relative", "float": "left", lineHeight: "15px", color: "rgb(148, 104, 83)"}}>
 					<span style={{fontWeight: "normal",}}>High</span>
 					<br />
 					<span>LRA</span>
 					<br />
 					<span style={{fontWeight: "normal",}}>Low</span>
 				</div>
-				<div style={{left: "5px", top: "0px", position: "relative", float: "left", lineHeight: "15px", color: "rgb(187, 109, 71)"}}>
+				<div style={{left: "5px", top: "0px", position: "relative", "float": "left", lineHeight: "15px", color: "rgb(187, 109, 71)"}}>
 					<span>{loudness_range_LRA_high}</span>
 					<br />
 					<span>&Delta; {loudness_range_LRA}</span>
 					<br />
 					<span>{loudness_range_LRA_low}</span>
 				</div>
-				<div style={{left: "0px", top: "5px", position: "relative", float: "clear",fontWeight: "normal", lineHeight: "20px", color: "rgb(84, 114, 148)"}}>
+				<br style={{"float": "clear"}} />
+				<div style={{left: "0px", top: "5px", marginTop:"33px", fontWeight: "normal", lineHeight: "20px", color: "rgb(84, 114, 148)"}}>
 					Thresholds / integrated loudness: <span style={{fontWeight: "bold"}}>{integrated_loudness_threshold}</span> &bull; range: <span style={{fontWeight: "bold"}}>{loudness_range_threshold}</span>
-					<span style={{float: "right",
-							border: "1px solid rgb(84, 114, 148)",
+					<span style={{"float": "right",
 							padding: "0px 6px 3px 7px",
+							border: "1px solid #888",
+							color: "#888",
 							marginTop: "2px", marginRight: "-12px", marginBottom: "0px",
 							cursor: "pointer",
 							width: "11px",
 							textAlign: "center",}}
-						onClick={this.toogleBottomPanel} >
+						onClick={this.toogleBottomPanel}>
 						{bottom_panel_icon}
 					</span>
 				</div>
 			</div>
 			{bottom_panel}
 		</div>);
+	}
+});
+
+metadatas.ButtonChooseAudioStatBlock = React.createClass({
+	btnClick: function() {
+		this.props.onChooseAudioStatBlock(this.props.channel);
+	},
+	render: function() {
+		var style = {border: "1px solid #222",
+			padding: "3px 6px",
+			marginRight: "2px",
+			color: "#bba",
+			cursor: "pointer",
+		};
+
+		if (this.props.selected) {
+			style.border = "1px solid #888";
+			style.color = "#eee";
+		}
+
+		var channel_name = this.props.channel;
+		if (channel_name != "Overall") {
+			channel_name++;
+			channel_name = "Ch. " + channel_name;
+		}
+
+		return (<span onClick={this.btnClick} style={style}>{channel_name}</span>);
 	}
 });

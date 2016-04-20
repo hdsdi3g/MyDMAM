@@ -142,6 +142,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		
 		RenderedFile rf_lufs_truepeak_graphic = new RenderedFile("lufs_truepeak_graphic", "jpg");
 		
+		ffdae.closeLastSilence();
 		ffdae.saveLUFSGraphic(rf_lufs_truepeak_graphic.getTempFile(), jpg_compression_ratio);
 		
 		AudioDeepAnalystGraphic entry_graphic = new AudioDeepAnalystGraphic();
@@ -357,6 +358,16 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 			} /*else {
 				System.out.println(message);
 				}*/
+		}
+		
+		private void closeLastSilence() {
+			if (current_silence != null) {
+				if (ffmpeg_da_result.silences == null) {
+					ffmpeg_da_result.silences = new ArrayList<FFmpegAudioDeepAnalystSilenceDetect>();
+				}
+				ffmpeg_da_result.silences.add(current_silence);
+				current_silence = null;
+			}
 		}
 		
 		/**
