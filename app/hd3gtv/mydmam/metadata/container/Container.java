@@ -144,9 +144,17 @@ public class Container {
 			sb.append(", origin.storage: ");
 			sb.append(origin.storage);
 		}
+		
 		for (int pos = 0; pos < containerEntries.size(); pos++) {
 			sb.append(", metadata." + containerEntries.get(pos).getES_Type() + ": ");
-			sb.append(ContainerOperations.getGson().toJson(containerEntries.get(pos)));
+			try {
+				sb.append(ContainerOperations.getGson().toJson(containerEntries.get(pos)));
+			} catch (Exception e) {
+				/**
+				 * Check getAllRootEntryClasses and serializators.
+				 */
+				Loggers.Metadata.error("Problem during serialization with " + containerEntries.get(pos).getClass().getName(), e);
+			}
 		}
 		return sb.toString();
 	}

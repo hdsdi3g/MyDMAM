@@ -37,6 +37,7 @@ import org.elasticsearch.search.SearchHit;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
@@ -416,17 +417,28 @@ public class ContainerOperations {
 	/**
 	 * Only create/update. No delete operations.
 	 */
-	public static void save(Container container, boolean refresh_index_after_save, ElasticsearchBulkOperation es_bulk) {
+	public static void save(Container container, boolean refresh_index_after_save, ElasticsearchBulkOperation es_bulk) throws JsonIOException {
 		if (container == null) {
 			throw new NullPointerException("\"container\" can't to be null");
 		}
+		
 		List<ContainerEntry> containerEntries = container.getEntries();
 		ContainerEntry containerEntry;
 		
 		for (int pos = 0; pos < containerEntries.size(); pos++) {
 			containerEntry = containerEntries.get(pos);
 			IndexRequestBuilder index = es_bulk.getClient().prepareIndex(ES_INDEX, containerEntry.getES_Type(), container.getMtd_key());
-			index.setSource(gson.toJson(containerEntry));
+			
+			try {
+				index.setSource(gson.toJson(containerEntry));
+			} catch (Exception e) {
+				/**
+				 * Check getAllRootEntryClasses and serializators.
+				 */
+				Loggers.Metadata.error("Problem during serialization with " + containerEntry.getClass().getName(), e);
+				return;
+			}
+			
 			index.setRefresh(refresh_index_after_save);
 			es_bulk.add(index);
 		}
