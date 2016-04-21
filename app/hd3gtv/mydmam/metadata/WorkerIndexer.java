@@ -38,7 +38,7 @@ import hd3gtv.mydmam.storage.Storage;
  */
 public class WorkerIndexer extends WorkerNG {
 	
-	private volatile List<MetadataIndexer> analysis_indexers;
+	private volatile List<MetadataStorageIndexer> analysis_indexers;
 	
 	private HashMap<String, Long> lastindexeddatesforstoragenames;
 	private Explorer explorer = new Explorer();
@@ -47,7 +47,7 @@ public class WorkerIndexer extends WorkerNG {
 		if (isActivated() == false) {
 			return;
 		}
-		analysis_indexers = new ArrayList<MetadataIndexer>();
+		analysis_indexers = new ArrayList<MetadataStorageIndexer>();
 		lastindexeddatesforstoragenames = new HashMap<String, Long>();
 		
 		for (int pos = 0; pos < MetadataCenter.conf_items.size(); pos++) {
@@ -79,13 +79,13 @@ public class WorkerIndexer extends WorkerNG {
 			throw new IndexOutOfBoundsException("\"neededstorages\" can't to be empty");
 		}
 		String storagename;
-		MetadataIndexer metadataIndexer;
+		MetadataStorageIndexer metadataStorageIndexer;
 		
 		for (int pos = 0; pos < analyst_context.neededstorages.size(); pos++) {
 			progression.updateStep(pos + 1, analyst_context.neededstorages.size());
 			
-			metadataIndexer = new MetadataIndexer(analyst_context.force_refresh);
-			analysis_indexers.add(metadataIndexer);
+			metadataStorageIndexer = new MetadataStorageIndexer(analyst_context.force_refresh);
+			analysis_indexers.add(metadataStorageIndexer);
 			storagename = analyst_context.neededstorages.get(pos);
 			long min_index_date = 0;
 			if (lastindexeddatesforstoragenames.containsKey(storagename)) {
@@ -93,8 +93,8 @@ public class WorkerIndexer extends WorkerNG {
 			} else {
 				lastindexeddatesforstoragenames.put(storagename, 0l);
 			}
-			metadataIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, analyst_context.currentpath)), min_index_date, progression);
-			analysis_indexers.remove(metadataIndexer);
+			metadataStorageIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, analyst_context.currentpath)), min_index_date, progression);
+			analysis_indexers.remove(metadataStorageIndexer);
 		}
 	}
 	

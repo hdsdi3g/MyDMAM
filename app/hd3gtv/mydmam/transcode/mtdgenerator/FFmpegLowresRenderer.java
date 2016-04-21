@@ -47,6 +47,7 @@ import hd3gtv.mydmam.transcode.TranscodeProgressFFmpeg;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.Execprocess;
+import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst.Interlacing;
 
@@ -102,7 +103,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		return null;
 	}
 	
-	public ContainerEntryResult processFull(Container container) throws Exception {
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		return null;
 	}
 	

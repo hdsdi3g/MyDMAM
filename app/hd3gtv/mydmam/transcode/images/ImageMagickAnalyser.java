@@ -36,6 +36,7 @@ import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 
 public class ImageMagickAnalyser implements MetadataExtractor {
 	
@@ -109,10 +110,10 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 	}
 	
 	public ContainerEntryResult processFast(Container container) throws Exception {
-		return processFull(container);
+		return processFull(container, null);
 	}
 	
-	public ContainerEntryResult processFull(Container container) throws Exception {
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		
 		ArrayList<String> param = new ArrayList<String>();
 		ExecprocessGettext process = null;

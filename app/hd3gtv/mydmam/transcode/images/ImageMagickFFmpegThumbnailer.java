@@ -31,6 +31,7 @@ import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork.Albumartwork;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot.Snapshot;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFprobeAnalyser;
+import hd3gtv.tools.StoppableProcessing;
 
 /**
  * Create valid and usable thumbnails from raw ffmpeg snapshots and albums artworks.
@@ -59,7 +60,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		return super.getPreviewTypeForRenderer(container, entry);
 	}
 	
-	public ContainerEntryResult processFull(Container media_source_container) throws Exception {
+	public ContainerEntryResult processFull(Container media_source_container, StoppableProcessing stoppable) throws Exception {
 		EntryRenderer snapshot = media_source_container.getByClass(Albumartwork.class);
 		if (snapshot == null) {
 			snapshot = media_source_container.getByClass(Snapshot.class);
@@ -85,14 +86,14 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		/**
 		 * Used for analyst previous rendered file and get an ImageAttributes for it.
 		 */
-		Container snapshot_file_container = new MetadataIndexingOperation(physical_source).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
+		Container snapshot_file_container = new MetadataIndexingOperation(physical_source).setStoppable(stoppable).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
 		
 		ImageAttributes image_attributes = snapshot_file_container.getByClass(ImageAttributes.class);
 		if (image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for the snapshot file container: " + snapshot_file_container);
 			return null;
 		}
-		return subProcess(media_source_container, physical_source, image_attributes);
+		return subProcess(media_source_container, stoppable, physical_source, image_attributes);
 	}
 	
 	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {

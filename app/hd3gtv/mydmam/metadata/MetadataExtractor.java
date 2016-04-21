@@ -21,6 +21,7 @@ import java.util.List;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.tools.StoppableProcessing;
 
 public interface MetadataExtractor {
 	
@@ -63,7 +64,7 @@ public interface MetadataExtractor {
 	 * Call RenderedFile.export_to_entry() for populate in EntryRenderer.
 	 * @return null if no result.
 	 */
-	ContainerEntryResult processFull(Container container) throws Exception;
+	ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception;
 	
 	/**
 	 * @return JS side parser name for display this render, or null.

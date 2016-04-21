@@ -40,6 +40,7 @@ import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessEvent;
+import hd3gtv.tools.StoppableProcessing;
 
 public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 	
@@ -112,7 +113,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		}
 	}
 	
-	public ContainerEntryResult processFull(Container container) throws Exception {
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		FFprobe ffprobe = container.getByClass(FFprobe.class);
 		
 		if (ffprobe == null) {
@@ -138,7 +139,18 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		FFmpegDAEvents ffdae = new FFmpegDAEvents(image_width, image_height, lufs_depth, lufs_ref, truepeak_ref);
 		Execprocess process = new Execprocess(ExecBinaryPath.get("ffmpeg"), params, ffdae);
 		
-		process.run();// TODO stoppable (via start)
+		process.start();
+		
+		while (process.isAlive() & (stoppable.isWantToStopCurrentProcessing() == false)) {
+			Thread.sleep(100);
+		}
+		
+		if (stoppable.isWantToStopCurrentProcessing()) {
+			if (process.isAlive()) {
+				process.kill();
+			}
+			return null;
+		}
 		
 		RenderedFile rf_lufs_truepeak_graphic = new RenderedFile("lufs_truepeak_graphic", "jpg");
 		
@@ -202,7 +214,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		}
 		
 		public void onKill(long execution_duration) {
-			Loggers.Transcode.debug("FFmpeg is killed, after " + (double) execution_duration / 1000d + " sec");
+			Loggers.Transcode.warn("FFmpeg is killed, after " + (double) execution_duration / 1000d + " sec");
 		}
 		
 		private TimeSeries series_momentary;

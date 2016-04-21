@@ -18,6 +18,7 @@ import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.VideoConst.Interlacing;
 import hd3gtv.tools.VideoConst.Resolution;
 
@@ -61,10 +62,10 @@ public class FFmpegInterlacingDetection implements MetadataExtractor {
 	}
 	
 	public ContainerEntryResult processFast(Container container) throws Exception {
-		return processFull(container);
+		return processFull(container, null);
 	}
 	
-	public ContainerEntryResult processFull(Container container) throws Exception {
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		
 		FFprobe ffprobe = container.getByClass(FFprobe.class);
 		

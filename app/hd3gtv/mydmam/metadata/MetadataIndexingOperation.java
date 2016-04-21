@@ -29,6 +29,7 @@ import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOrigin;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.tools.StoppableProcessing;
 
 public class MetadataIndexingOperation {
 	private File physical_source;
@@ -39,6 +40,12 @@ public class MetadataIndexingOperation {
 	private Map<String, MetadataExtractor> master_as_preview_mime_list_providers;
 	private ArrayList<MetadataExtractor> current_metadata_extractors;
 	
+	private StoppableProcessing stoppable = new StoppableProcessing() {
+		public boolean isWantToStopCurrentProcessing() {
+			return false;
+		}
+	};
+	
 	@SuppressWarnings("unchecked")
 	public MetadataIndexingOperation(File physical_source) {
 		this.physical_source = physical_source;
@@ -48,6 +55,13 @@ public class MetadataIndexingOperation {
 		limit = MetadataIndexingLimit.NOLIMITS;
 		master_as_preview_mime_list_providers = MetadataCenter.getMasterAsPreviewMimeListProviders();
 		current_metadata_extractors = (ArrayList<MetadataExtractor>) MetadataCenter.getExtractors().clone();
+	}
+	
+	public MetadataIndexingOperation setStoppable(StoppableProcessing stoppable) {
+		if (stoppable != null) {
+			this.stoppable = stoppable;
+		}
+		return this;
 	}
 	
 	public MetadataIndexingOperation setReference(SourcePathIndexerElement reference) {
@@ -156,7 +170,7 @@ public class MetadataIndexingOperation {
 					generator_result = metadata_extractor.processFast(container);
 				} else {
 					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFull()");
-					generator_result = metadata_extractor.processFull(container);// TODO API for stoppable and track current processed file !
+					generator_result = metadata_extractor.processFull(container, stoppable);
 					
 					if ((limit == MetadataIndexingLimit.NOLIMITS) & (metadata_extractor instanceof MetadataGeneratorRendererViaWorker) & (create_job_list != null)) {
 						MetadataGeneratorRendererViaWorker renderer_via_worker = (MetadataGeneratorRendererViaWorker) metadata_extractor;

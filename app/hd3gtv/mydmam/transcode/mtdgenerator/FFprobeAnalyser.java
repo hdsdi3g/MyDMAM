@@ -46,6 +46,7 @@ import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst;
 
@@ -61,10 +62,10 @@ public class FFprobeAnalyser implements MetadataExtractor {
 	}
 	
 	public ContainerEntryResult processFast(Container container) throws Exception {
-		return processFull(container);
+		return processFull(container, null);
 	}
 	
-	public ContainerEntryResult processFull(Container container) throws Exception {
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-show_streams");
 		param.add("-show_format");

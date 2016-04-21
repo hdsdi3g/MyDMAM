@@ -37,8 +37,9 @@ import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.tools.StoppableProcessing;
 
-public class MetadataIndexer {
+public class MetadataStorageIndexer implements StoppableProcessing {
 	
 	private Explorer explorer;
 	private boolean force_refresh;
@@ -48,7 +49,7 @@ public class MetadataIndexer {
 	private MetadataIndexingLimit limit_processing;
 	private ArrayList<SourcePathIndexerElement> process_list;
 	
-	public MetadataIndexer(boolean force_refresh) throws Exception {
+	public MetadataStorageIndexer(boolean force_refresh) throws Exception {
 		explorer = new Explorer();
 		this.force_refresh = force_refresh;
 		current_create_job_list = new ArrayList<FutureCreateJobs>();
@@ -78,7 +79,7 @@ public class MetadataIndexer {
 				}
 				
 				public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
-					if (stop_analysis) {
+					if (isWantToStopCurrentProcessing()) {
 						return false;
 					}
 					if (element.directory == false) {
@@ -108,7 +109,7 @@ public class MetadataIndexer {
 			if (progression != null) {
 				progression.updateProgress(pos, process_list.size());
 			}
-			if (processFoundedElement(process_list.get(pos)) == false | stop_analysis) {
+			if (processFoundedElement(process_list.get(pos)) == false | isWantToStopCurrentProcessing()) {
 				break;
 			}
 		}
@@ -131,10 +132,6 @@ public class MetadataIndexer {
 			Loggers.Metadata.debug("Create job for deep metadata extracting: " + new_job.toStringLight());
 		}
 		return new_jobs;
-	}
-	
-	public synchronized void stop() { // TODO set from an API ?
-		stop_analysis = true;
 	}
 	
 	private boolean processFoundedElement(SourcePathIndexerElement element) throws Exception {
@@ -226,7 +223,7 @@ public class MetadataIndexer {
 			throw new IOException("Can't read " + physical_source.getPath());
 		}
 		
-		if (stop_analysis) {
+		if (isWantToStopCurrentProcessing()) {
 			return false;
 		}
 		
@@ -253,13 +250,22 @@ public class MetadataIndexer {
 		indexing.setReference(element);
 		indexing.setCreateJobList(current_create_job_list);
 		indexing.importConfiguration();
+		indexing.setStoppable(this);
 		if (limit_processing != null) {
 			indexing.setLimit(limit_processing);
 		}
 		Loggers.Metadata.debug("Start indexing for: " + element_key + ", physical_source: " + physical_source);
 		
-		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);// TODO add stoppable
+		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);
 		return true;
+	}
+	
+	public synchronized void stop() {
+		stop_analysis = true;
+	}
+	
+	public synchronized boolean isWantToStopCurrentProcessing() {
+		return stop_analysis;
 	}
 	
 }
