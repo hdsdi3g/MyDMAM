@@ -165,7 +165,7 @@ public class MetadataIndexingOperation {
 					continue;
 				}
 				
-				if (limit == MetadataIndexingLimit.ANALYST) {
+				if (limit == MetadataIndexingLimit.FAST) {
 					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFast()");
 					generator_result = metadata_extractor.processFast(container);
 				} else {
@@ -213,7 +213,7 @@ public class MetadataIndexingOperation {
 			// hd3gtv.mydmam.metadata.container.RenderedContent. Forgot to register a type adapter?
 		}
 		
-		if (limit == MetadataIndexingLimit.NOLIMITS | limit == MetadataIndexingLimit.SIMPLERENDERS) {
+		if (limit == MetadataIndexingLimit.NOLIMITS | limit == MetadataIndexingLimit.FULL) {
 			RenderedFile.cleanCurrentTempDirectory();
 		}
 		

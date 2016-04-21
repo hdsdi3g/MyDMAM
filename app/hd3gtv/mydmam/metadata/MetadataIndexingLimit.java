@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.metadata;
 
-public enum MetadataIndexingLimit {// TODO rename this ?!
+public enum MetadataIndexingLimit {
 	/**
 	 * Just get Mime type.
 	 * An Extractor will do nothing.
@@ -24,17 +24,17 @@ public enum MetadataIndexingLimit {// TODO rename this ?!
 	MIMETYPE,
 	
 	/**
-	 * MimeType + only analyst
+	 * MimeType + processFast
 	 */
-	ANALYST,
+	FAST,
 	
 	/**
-	 * MimeType + analyst + simple rendering
+	 * MimeType + processFull
 	 */
-	SIMPLERENDERS,
+	FULL,
 	
 	/**
-	 * Full, with the need to set a CreateJobList
+	 * MimeType + processFull + with the need to set a CreateJobList
 	 */
 	NOLIMITS,
 	

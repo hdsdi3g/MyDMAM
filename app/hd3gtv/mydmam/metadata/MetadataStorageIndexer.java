@@ -99,7 +99,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		}
 		
 		es_bulk = Elasticsearch.prepareBulk();
-		if (limit_processing == MetadataIndexingLimit.MIMETYPE | limit_processing == MetadataIndexingLimit.ANALYST) {
+		if (limit_processing == MetadataIndexingLimit.MIMETYPE | limit_processing == MetadataIndexingLimit.FAST) {
 			es_bulk.setWindowUpdateSize(50);
 		} else {
 			es_bulk.setWindowUpdateSize(1);

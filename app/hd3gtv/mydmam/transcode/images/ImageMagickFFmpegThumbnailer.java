@@ -86,7 +86,7 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		/**
 		 * Used for analyst previous rendered file and get an ImageAttributes for it.
 		 */
-		Container snapshot_file_container = new MetadataIndexingOperation(physical_source).setStoppable(stoppable).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
+		Container snapshot_file_container = new MetadataIndexingOperation(physical_source).setStoppable(stoppable).setLimit(MetadataIndexingLimit.FAST).doIndexing();
 		
 		ImageAttributes image_attributes = snapshot_file_container.getByClass(ImageAttributes.class);
 		if (image_attributes == null) {

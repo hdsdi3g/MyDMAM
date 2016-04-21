@@ -208,7 +208,7 @@ public class ImageMagickThumbnailer implements MetadataExtractor {
 		
 		EntryRenderer thumbnail = root_entry_class.newInstance();
 		
-		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
+		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).setLimit(MetadataIndexingLimit.FAST).doIndexing();
 		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByClass(ImageAttributes.class);
 		if (thumbnail_image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for the snapshot file container: " + thumbnail_image_attributes);
