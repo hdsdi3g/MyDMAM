@@ -63,7 +63,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		lufs_depth = -Math.abs((float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_depth", -80f));
 		lufs_ref = -Math.abs((float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_lufs_ref", -23f));
 		truepeak_ref = -Math.abs((float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_truepeak_ref", -3f));
-		jpg_compression_ratio = (float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_jpg_compression_ratio", 0.8f);
+		jpg_compression_ratio = (float) Configuration.global.getValue("metadata_analysing", "ffmpeg_audioda_jpg_compression_ratio", 0.95f);
 	}
 	
 	public boolean isEnabled() {

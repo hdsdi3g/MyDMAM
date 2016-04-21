@@ -131,16 +131,28 @@
 		return sb;
 	};
 
-	mydmam.format.msecToHMSms = function(msec) {
+	mydmam.format.msecToHMSms = function(msec, always_display_hours_min, no_display_msec) {
 		if (msec === 0) {
-			return "0.000";
+			if (always_display_hours_min) {
+				if (no_display_msec) {
+					return "00:00:00";
+				} else {
+					return "00:00:00.000";
+				}
+			} else {
+				if (no_display_msec) {
+					return "00";
+				} else {
+					return "0.000";
+				}
+			}
 		}
 		var sb = '';
 
 		var sec = msec / 1000;
 
 		var hrs = Math.floor(sec / 3600);
-		if (hrs >= 1) {
+		if (hrs >= 1 | always_display_hours_min) {
 			if (hrs < 10) {
 				sb = sb.append(0);
 			}
@@ -152,7 +164,7 @@
 		var diff_hours = Math.floor(_diff_hours); // en heures
 		var min = (_diff_hours - diff_hours) * 60;
 
-		if (min >= 1 | hrs >= 1) {
+		if (min >= 1 | hrs >= 1 | always_display_hours_min) {
 			if (min < 10) {
 				sb = sb.append(0);
 			}
@@ -167,7 +179,11 @@
 			sb = sb.append(0);
 		}
 
-		sb = sb.append(secresult.toFixed(3));
+		if (no_display_msec) {
+			sb = sb.append(Math.floor(secresult));
+		} else {
+			sb = sb.append(secresult.toFixed(3));
+		}
 
 		return sb;
 	};

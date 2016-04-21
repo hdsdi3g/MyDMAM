@@ -10,4 +10,4 @@ c.removeEventListener("loadedmetadata",b);c.addEventListener("timeupdate",e,fals
 };c.addEventListener("loadedmetadata",b,false);}}else{if(g.gototime!=null){c.currentTime=g.gototime;
 }}},render:function(){if(this.props.audio_only){return(React.createElement("audio",{ref:"videoplayer",controls:"controls",preload:"auto"},this.props.cantloadingplayerexcuse,React.createElement("source",{src:this.props.source_url})));
 }else{return(React.createElement("video",{ref:"videoplayer",controls:"controls",className:this.props.className,width:this.props.width,height:this.props.height,preload:"auto",poster:this.props.poster},this.props.cantloadingplayerexcuse,React.createElement("source",{src:this.props.source_url})));
-}}});})(window.mydmam.async.pathindex);
+}}});})(window.mydmam.async.pathindex.metadatas);
