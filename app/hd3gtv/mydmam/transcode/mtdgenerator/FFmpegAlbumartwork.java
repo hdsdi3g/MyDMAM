@@ -32,6 +32,7 @@ import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 
 public class FFmpegAlbumartwork implements MetadataExtractor {
 	
@@ -66,7 +67,7 @@ public class FFmpegAlbumartwork implements MetadataExtractor {
 		return null;
 	}
 	
-	public ContainerEntryResult processFull(Container container) throws Exception {
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		FFprobe ffprobe = container.getByClass(FFprobe.class);
 		if (ffprobe == null) {
 			return null;

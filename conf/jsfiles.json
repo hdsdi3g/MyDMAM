@@ -1,5 +1,12 @@
 {
   "entries": {
+    "jsfile:950a4621525e048ff671b2eca76ac031": {
+      "relative_file_name": "mydmam/async/pathindex/metadatas/metadatas.jsx",
+      "relative_root_name": "/app/react",
+      "size": 915,
+      "date": 1461272300000,
+      "hash": "613a9edb972a5ee43b221ed505ed88d9"
+    },
     "jsfile:1a278d0a9942bf822dc63a242a7cfad8": {
       "relative_file_name": "mydmam/async/search/SearchResults.jsx",
       "relative_root_name": "/app/react",
@@ -94,9 +101,9 @@
     "jsfile:0b35f733fd15e917eea54c31dadb3a90": {
       "relative_file_name": "mydmam.format.js",
       "relative_root_name": "/public/javascripts/src",
-      "size": 4130,
-      "date": 1449791517000,
-      "hash": "8436659c250033d2275260a2b122d37a"
+      "size": 5310,
+      "date": 1461274509000,
+      "hash": "c615f6445dbe9589997b24b83133a5fa"
     },
     "jsfile:f1eb7ca96b6dc283fdd2f0cf09924e0d": {
       "relative_file_name": "mydmam.metadatas.js",
@@ -140,6 +147,20 @@
       "date": 1451348492000,
       "hash": "9eb3df7b3a1ff207aa467bfdf4bb1a7b"
     },
+    "jsfile:bfc5e4e95c251621e63ca324a9c8b76b": {
+      "relative_file_name": "mydmam/async/pathindex/metadatas/audio.jsx",
+      "relative_root_name": "/app/react",
+      "size": 2272,
+      "date": 1461275531000,
+      "hash": "e31db89e260cddee1e2596764b03d23b"
+    },
+    "jsfile:8dad5e3c08394cefbdbbf19ef5005e5e": {
+      "relative_file_name": "mydmam/async/pathindex/metadatas/image.jsx",
+      "relative_root_name": "/app/react",
+      "size": 2659,
+      "date": 1461275401000,
+      "hash": "646e2f9e70888e63e03338847fb55259"
+    },
     "jsfile:4cd6c09949d0bb3ecc58393cabad3244": {
       "relative_file_name": "mydmam/async/ftpserver/list.jsx",
       "relative_root_name": "/app/react",
@@ -168,6 +189,13 @@
       "date": 1432409474000,
       "hash": "a4f90f37554cb484feaec06408a09545"
     },
+    "jsfile:403f651dcf5b764c3b8e3ca70dbd896d": {
+      "relative_file_name": "mydmam/async/pathindex/metadatas/audio-deep-analyst.jsx",
+      "relative_root_name": "/app/react",
+      "size": 15405,
+      "date": 1461274852000,
+      "hash": "450024714e976d0b14716468aa98d623"
+    },
     "jsfile:443eb424ffd752530719098e172eff4c": {
       "relative_file_name": "mydmam.basket.a-header.js",
       "relative_root_name": "/public/javascripts/src",
@@ -188,6 +216,13 @@
       "size": 2870,
       "date": 1451768427000,
       "hash": "c8324d32b18fce9109bc472a1dcba11f"
+    },
+    "jsfile:7a0f841f7321d2232688569162ecd4bf": {
+      "relative_file_name": "mydmam/async/pathindex/metadatas/mediaplayer.jsx",
+      "relative_root_name": "/app/react",
+      "size": 3682,
+      "date": 1461272283000,
+      "hash": "a71f9dfc32bea9a0e1e4999937954b77"
     },
     "jsfile:cf409549f79e9b858d8fe9b843e2dbaa": {
       "relative_file_name": "a.classnames.js",
@@ -213,9 +248,9 @@
     "jsfile:e320fd8fb314b64f01dc4fc7f39b8427": {
       "relative_file_name": "mydmam/async/pathindex/reactMetadataFull.jsx",
       "relative_root_name": "/app/react",
-      "size": 3213,
-      "date": 1433110120000,
-      "hash": "1ccf04055a7bb47c36e47aa993b3699a"
+      "size": 3380,
+      "date": 1461013422000,
+      "hash": "f186c06c500662a04b63bf070fb49c10"
     },
     "jsfile:0d6e9f6b574a1c2f7dc44d567be461c5": {
       "relative_file_name": "mydmam/async/navigate/to.jsx",
@@ -237,6 +272,13 @@
       "size": 748,
       "date": 1432409474000,
       "hash": "c9ccdb08c2ec58f3e537362e231c5091"
+    },
+    "jsfile:d7d0e2321b94982198e9524cba658a03": {
+      "relative_file_name": "mydmam/async/pathindex/metadatas/video.jsx",
+      "relative_root_name": "/app/react",
+      "size": 5241,
+      "date": 1461272293000,
+      "hash": "b188090644847e8631435982b51bab65"
     },
     "jsfile:020b7cab317b8f90a9bb2a9106ba04ea": {
       "relative_file_name": "mydmam/async/manager/Header.jsx",
@@ -307,13 +349,6 @@
       "size": 3412,
       "date": 1432409474000,
       "hash": "038ded3bd9f0a52f9522eed7f39b2e9a"
-    },
-    "jsfile:c89c622e66ee11c2c1285ac3ccb0d39b": {
-      "relative_file_name": "mydmam/async/pathindex/metadatas.jsx",
-      "relative_root_name": "/app/react",
-      "size": 8183,
-      "date": 1449706157000,
-      "hash": "379e45c912c2754e5e80a394a2b739bb"
     },
     "jsfile:85a44789b2f9cca8441c9d4d28843098": {
       "relative_file_name": "mydmam/async/pathindex/reactExternalPosition.jsx",

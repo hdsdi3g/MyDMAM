@@ -33,6 +33,7 @@ import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Cartridge;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.FullDisplay;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Icon;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAudioDeepAnalyser;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegInterlacingDetection;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot;
@@ -163,6 +164,8 @@ public class MetadataCenter {
 			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererSD.class, PreviewType.video_sd_pvw, false));
 			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererHD.class, PreviewType.video_hd_pvw, false));
 			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererAudio.class, PreviewType.audio_pvw, true));
+			
+			addExtractor(new FFmpegAudioDeepAnalyser());
 		} catch (Exception e) {
 			Loggers.Metadata.error("Can't instanciate Providers", e);
 		}

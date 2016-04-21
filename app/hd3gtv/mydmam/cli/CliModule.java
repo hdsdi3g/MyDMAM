@@ -28,4 +28,7 @@ public interface CliModule {
 	
 	public void showFullCliModuleHelp();
 	
+	public default boolean isFunctionnal() {
+		return true;
+	}
 }

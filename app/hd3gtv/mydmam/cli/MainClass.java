@@ -58,7 +58,6 @@ public class MainClass {
 		modules.add(new CliModuleCopyDirStruct());
 		modules.add(new CliModuleBroker());
 		modules.add(new CliModuleMetadata());
-		
 		modules.addAll(MyDMAMModulesManager.getAllCliModules());
 		
 		String modulename = appargs.getFirstAction();
@@ -68,6 +67,9 @@ public class MainClass {
 			System.out.println("=============================");
 			System.out.println("Available modules:");
 			for (int pos = 0; pos < modules.size(); pos++) {
+				if (modules.get(pos).isFunctionnal() == false) {
+					continue;
+				}
 				System.out.print(" * ");
 				System.out.print(modules.get(pos).getCliModuleName());
 				System.out.print(" (");
@@ -84,6 +86,9 @@ public class MainClass {
 			System.out.println("MyDMAM Command line interface");
 			System.out.println("=============================");
 			for (int pos = 0; pos < modules.size(); pos++) {
+				if (modules.get(pos).isFunctionnal() == false) {
+					continue;
+				}
 				if (modules.get(pos).getCliModuleName().equalsIgnoreCase(modulename)) {
 					System.out.println("Help for module " + modulename);
 					System.out.println();
@@ -96,6 +101,9 @@ public class MainClass {
 		}
 		
 		for (int pos = 0; pos < modules.size(); pos++) {
+			if (modules.get(pos).isFunctionnal() == false) {
+				continue;
+			}
 			if (modules.get(pos).getCliModuleName().equalsIgnoreCase(modulename)) {
 				modules.get(pos).execCliModule(appargs);
 				System.exit(0);

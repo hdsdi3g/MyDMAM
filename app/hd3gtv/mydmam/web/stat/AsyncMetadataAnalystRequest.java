@@ -11,31 +11,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2016
+ * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-package hd3gtv.mydmam.metadata;
+package hd3gtv.mydmam.web.stat;
 
-public enum MetadataIndexingLimit {// TODO rename this ?!
-	/**
-	 * Just get Mime type.
-	 * An Extractor will do nothing.
-	 */
-	MIMETYPE,
+public class AsyncMetadataAnalystRequest {
 	
-	/**
-	 * MimeType + only analyst
-	 */
-	ANALYST,
-	
-	/**
-	 * MimeType + analyst + simple rendering
-	 */
-	SIMPLERENDERS,
-	
-	/**
-	 * Full, with the need to set a CreateJobList
-	 */
-	NOLIMITS,
+	public String pathelementkey;
+	public String mtype;
 	
 }

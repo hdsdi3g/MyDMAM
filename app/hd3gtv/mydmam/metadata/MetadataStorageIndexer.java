@@ -28,6 +28,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -36,8 +37,9 @@ import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 import hd3gtv.mydmam.storage.Storage;
+import hd3gtv.tools.StoppableProcessing;
 
-public class MetadataIndexer implements IndexingEvent {
+public class MetadataStorageIndexer implements StoppableProcessing {
 	
 	private Explorer explorer;
 	private boolean force_refresh;
@@ -45,11 +47,13 @@ public class MetadataIndexer implements IndexingEvent {
 	private ElasticsearchBulkOperation es_bulk;
 	private List<FutureCreateJobs> current_create_job_list;
 	private MetadataIndexingLimit limit_processing;
+	private ArrayList<SourcePathIndexerElement> process_list;
 	
-	public MetadataIndexer(boolean force_refresh) throws Exception {
+	public MetadataStorageIndexer(boolean force_refresh) throws Exception {
 		explorer = new Explorer();
 		this.force_refresh = force_refresh;
 		current_create_job_list = new ArrayList<FutureCreateJobs>();
+		process_list = new ArrayList<SourcePathIndexerElement>();
 	}
 	
 	public void setLimitProcessing(MetadataIndexingLimit limit_processing) {
@@ -59,21 +63,54 @@ public class MetadataIndexer implements IndexingEvent {
 	/**
 	 * @return new created jobs, never null
 	 */
-	public List<JobNG> process(SourcePathIndexerElement item, long min_index_date) throws Exception {
+	public List<JobNG> process(SourcePathIndexerElement item, long min_index_date, JobProgression progression) throws Exception {
 		if (item == null) {
 			return new ArrayList<JobNG>(1);
 		}
 		
 		stop_analysis = false;
-		es_bulk = Elasticsearch.prepareBulk();
 		
 		Loggers.Metadata.debug("Prepare, item: " + item + ", min_index_date: " + Loggers.dateLog(min_index_date));
 		
 		if (item.directory) {
-			explorer.getAllSubElementsFromElementKey(item.prepare_key(), min_index_date, this);
+			explorer.getAllSubElementsFromElementKey(item.prepare_key(), min_index_date, new IndexingEvent() {
+				
+				public void onRemoveFile(String storagename, String path) throws Exception {
+				}
+				
+				public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
+					if (isWantToStopCurrentProcessing()) {
+						return false;
+					}
+					if (element.directory == false) {
+						process_list.add(element);
+					}
+					return true;
+				}
+			});
 		} else {
-			if (onFoundElement(item) == false) {
+			if (processFoundedElement(item) == false) {
 				return new ArrayList<JobNG>(1);
+			}
+		}
+		
+		if (process_list.isEmpty()) {
+			return new ArrayList<JobNG>(1);
+		}
+		
+		es_bulk = Elasticsearch.prepareBulk();
+		if (limit_processing == MetadataIndexingLimit.MIMETYPE | limit_processing == MetadataIndexingLimit.ANALYST) {
+			es_bulk.setWindowUpdateSize(50);
+		} else {
+			es_bulk.setWindowUpdateSize(1);
+		}
+		
+		for (int pos = 0; pos < process_list.size(); pos++) {
+			if (progression != null) {
+				progression.updateProgress(pos, process_list.size());
+			}
+			if (processFoundedElement(process_list.get(pos)) == false | isWantToStopCurrentProcessing()) {
+				break;
 			}
 		}
 		
@@ -97,14 +134,7 @@ public class MetadataIndexer implements IndexingEvent {
 		return new_jobs;
 	}
 	
-	public synchronized void stop() {
-		stop_analysis = true;
-	}
-	
-	public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
-		if (stop_analysis) {
-			return false;
-		}
+	private boolean processFoundedElement(SourcePathIndexerElement element) throws Exception {
 		if (element.directory) {
 			return true;
 		}
@@ -193,7 +223,7 @@ public class MetadataIndexer implements IndexingEvent {
 			throw new IOException("Can't read " + physical_source.getPath());
 		}
 		
-		if (stop_analysis) {
+		if (isWantToStopCurrentProcessing()) {
 			return false;
 		}
 		
@@ -220,6 +250,7 @@ public class MetadataIndexer implements IndexingEvent {
 		indexing.setReference(element);
 		indexing.setCreateJobList(current_create_job_list);
 		indexing.importConfiguration();
+		indexing.setStoppable(this);
 		if (limit_processing != null) {
 			indexing.setLimit(limit_processing);
 		}
@@ -229,7 +260,12 @@ public class MetadataIndexer implements IndexingEvent {
 		return true;
 	}
 	
-	public void onRemoveFile(String storagename, String path) throws Exception {
+	public synchronized void stop() {
+		stop_analysis = true;
+	}
+	
+	public synchronized boolean isWantToStopCurrentProcessing() {
+		return stop_analysis;
 	}
 	
 }

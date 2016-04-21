@@ -236,7 +236,7 @@ public class RenderedFile {
 	}
 	
 	/**
-	 * metadata_reference_id[0-2]/metadata_reference_id[2-]/renderedbasefilename_RandomValue.extension
+	 * metadata_reference_id[0-2]/metadata_reference_id[2-4]/metadata_reference_id[4-]/renderedbasefilename_RandomValue.extension
 	 */
 	public EntryRenderer consolidateAndExportToEntry(EntryRenderer entry_renderer, Container container, MetadataExtractor metadata_extractor) throws IOException {
 		if (consolidated) {
@@ -245,7 +245,21 @@ public class RenderedFile {
 		}
 		checkConsolidate(container, metadata_extractor);
 		
-		File f_base_directory_dest = createBase_Directory_Dest();
+		StringBuffer sb_base_directory_dest = new StringBuffer();
+		sb_base_directory_dest.append(local_directory.getCanonicalPath());
+		sb_base_directory_dest.append(File.separator);
+		sb_base_directory_dest.append(metadata_reference_id.substring(0, 6));
+		sb_base_directory_dest.append(File.separator);
+		sb_base_directory_dest.append(metadata_reference_id.substring(6, 8));
+		sb_base_directory_dest.append(File.separator);
+		sb_base_directory_dest.append(metadata_reference_id.substring(8));
+		String base_directory_dest = sb_base_directory_dest.toString();
+		
+		File f_base_directory_dest = new File(base_directory_dest);
+		f_base_directory_dest.mkdirs();
+		if (f_base_directory_dest.exists() == false) {
+			throw new IOException("Can't create dest directory: " + sb_base_directory_dest.toString());
+		}
 		
 		rendered_file = nextRandomFile(f_base_directory_dest);
 		while (rendered_file.exists()) {
@@ -327,23 +341,6 @@ public class RenderedFile {
 		entry_renderer.addContent(rendered_content);
 	}
 	
-	private File createBase_Directory_Dest() throws IOException {
-		StringBuffer sb_base_directory_dest = new StringBuffer();
-		sb_base_directory_dest.append(local_directory.getCanonicalPath());
-		sb_base_directory_dest.append(File.separator);
-		sb_base_directory_dest.append(metadata_reference_id.substring(0, 6));
-		sb_base_directory_dest.append(File.separator);
-		sb_base_directory_dest.append(metadata_reference_id.substring(6));
-		String base_directory_dest = sb_base_directory_dest.toString();
-		
-		File f_base_directory_dest = new File(base_directory_dest);
-		f_base_directory_dest.mkdirs();
-		if (f_base_directory_dest.exists() == false) {
-			throw new IOException("Can't create dest directory: " + sb_base_directory_dest.toString());
-		}
-		return f_base_directory_dest;
-	}
-	
 	private File nextRandomFile(File f_base_directory_dest) throws IOException {
 		StringBuffer sb_rendered_file = new StringBuffer();
 		sb_rendered_file.append(f_base_directory_dest.getAbsolutePath());
@@ -395,14 +392,18 @@ public class RenderedFile {
 		sb_from_directory.append(File.separator);
 		sb_from_directory.append(metadata_reference_id_from.substring(0, 6));
 		sb_from_directory.append(File.separator);
-		sb_from_directory.append(metadata_reference_id_from.substring(6));
+		sb_from_directory.append(metadata_reference_id_from.substring(6, 8));
+		sb_from_directory.append(File.separator);
+		sb_from_directory.append(metadata_reference_id_from.substring(8));
 		
 		StringBuilder sb_dest_directory = new StringBuilder();
 		sb_dest_directory.append(local_directory.getCanonicalPath());
 		sb_dest_directory.append(File.separator);
 		sb_dest_directory.append(metadata_reference_id_dest.substring(0, 6));
 		sb_dest_directory.append(File.separator);
-		sb_dest_directory.append(metadata_reference_id_dest.substring(6));
+		sb_dest_directory.append(metadata_reference_id_dest.substring(6, 8));
+		sb_dest_directory.append(File.separator);
+		sb_dest_directory.append(metadata_reference_id_dest.substring(8));
 		
 		File from_dir = new File(sb_from_directory.toString()).getCanonicalFile();
 		File dest_dir = new File(sb_dest_directory.toString()).getCanonicalFile();
@@ -448,7 +449,9 @@ public class RenderedFile {
 		sb_rendered_file.append(File.separator);
 		sb_rendered_file.append(metadata_reference_id.substring(0, 6));
 		sb_rendered_file.append(File.separator);
-		sb_rendered_file.append(metadata_reference_id.substring(6));
+		sb_rendered_file.append(metadata_reference_id.substring(6, 8));
+		sb_rendered_file.append(File.separator);
+		sb_rendered_file.append(metadata_reference_id.substring(8));
 		sb_rendered_file.append(File.separator);
 		sb_rendered_file.append(content.name);
 		result.rendered_file = new File(sb_rendered_file.toString());
@@ -555,21 +558,36 @@ public class RenderedFile {
 		}
 		
 		sb_base_directory_dest.append(File.separator);
-		sb_base_directory_dest.append(metadata_reference_id.substring(6));
+		sb_base_directory_dest.append(metadata_reference_id.substring(6, 8));
 		
 		File base_dir_lvl2 = new File(sb_base_directory_dest.toString());
 		if (base_dir_lvl2.exists() == false) {
 			return;
 		}
 		
-		File[] deleteall = base_dir_lvl2.listFiles();
+		sb_base_directory_dest.append(File.separator);
+		sb_base_directory_dest.append(metadata_reference_id.substring(8));
+		
+		File base_dir_lvl3 = new File(sb_base_directory_dest.toString());
+		if (base_dir_lvl3.exists() == false) {
+			return;
+		}
+		
+		File[] deleteall = base_dir_lvl3.listFiles();
 		for (int pos = 0; pos < deleteall.length; pos++) {
 			deleteall[pos].delete();
 		}
-		base_dir_lvl2.delete();
+		base_dir_lvl3.delete();
 		
-		if (base_dir_lvl2.exists()) {
-			Loggers.Metadata.warn("Can't delete directory: " + base_dir_lvl2);
+		if (base_dir_lvl3.exists()) {
+			Loggers.Metadata.warn("Can't delete directory: " + base_dir_lvl3);
+		}
+		
+		if (base_dir_lvl2.list().length == 0) {
+			base_dir_lvl2.delete();
+			if (base_dir_lvl2.exists()) {
+				Loggers.Metadata.warn("Can't delete directory: " + base_dir_lvl2);
+			}
 		}
 		
 		if (base_dir_lvl1.list().length == 0) {
@@ -622,9 +640,13 @@ public class RenderedFile {
 		
 		allrootelements = local_directory.getCanonicalFile().listFiles();
 		File[] mtdfiles;
+		File[] subrootfiles;
 		String element_source_key;
 		
 		for (int pos = 0; pos < allrootelements.length; pos++) {
+			/**
+			 * Level 1
+			 */
 			if (allrootelements[pos].exists() == false) {
 				continue;
 			}
@@ -633,8 +655,9 @@ public class RenderedFile {
 				allrootelements[pos].delete();
 				continue;
 			}
-			mtddir = allrootelements[pos].listFiles();
-			if (mtddir.length == 0) {
+			
+			subrootfiles = allrootelements[pos].listFiles();
+			if (subrootfiles.length == 0) {
 				/**
 				 * Remove empty dir.
 				 */
@@ -642,75 +665,98 @@ public class RenderedFile {
 				allrootelements[pos].delete();
 				continue;
 			}
-			for (int pos_mtd = 0; pos_mtd < mtddir.length; pos_mtd++) {
-				if (allrootelements[pos].exists() == false) {
-					break;
-				}
-				if (mtddir[pos_mtd].exists() == false) {
-					continue;
-				}
-				if (mtddir[pos_mtd].isDirectory() == false) {
-					Loggers.Metadata.info("Element is not a directory, delete it, mtddir: " + mtddir[pos_mtd]);
-					mtddir[pos_mtd].delete();
-					continue;
-				}
-				element_source_key = allrootelements[pos].getName() + mtddir[pos_mtd].getName();
-				
-				Container container = ContainerOperations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.type);
-				if (container == null) {
-					Loggers.Metadata.info("Delete all metadata references for directory, mtd key: " + element_source_key);
-					purge(element_source_key);
-					continue;
-				}
-				
-				mtdfiles = mtddir[pos_mtd].listFiles(new FilenameFilter() {
-					public boolean accept(File dir, String name) {
-						if (name.toLowerCase().endsWith("." + digest_algorithm.toLowerCase())) return false;
-						return true;
-					}
-				});
-				
-				if (mtdfiles == null) {
-					continue;
-				}
-				
-				ArrayList<String> elements_name = new ArrayList<String>();
-				
-				container = ContainerOperations.getByMtdKey(element_source_key);
-				List<ContainerEntry> containerEntries = container.getEntries();
-				EntryRenderer current_entry;
+			for (int pos_sroot = 0; pos_sroot < subrootfiles.length; pos_sroot++) {
 				/**
-				 * Get all rendered files references from db
+				 * Level 2
 				 */
-				for (int pos_entry = 0; pos_entry < containerEntries.size(); pos_entry++) {
-					if ((containerEntries.get(pos_entry) instanceof EntryRenderer) == false) {
+				if (subrootfiles[pos_sroot].isDirectory() == false) {
+					Loggers.Metadata.info("Element is not a directory, delete it, directory: " + subrootfiles[pos_sroot]);
+					subrootfiles[pos_sroot].delete();
+					continue;
+				}
+				
+				mtddir = subrootfiles[pos_sroot].listFiles();
+				if (mtddir.length == 0) {
+					/**
+					 * Remove empty dir.
+					 */
+					Loggers.Metadata.info("Directory is empty delete it, subrootfiles: " + subrootfiles[pos_sroot]);
+					subrootfiles[pos_sroot].delete();
+					continue;
+				}
+				for (int pos_mtd = 0; pos_mtd < mtddir.length; pos_mtd++) {
+					/**
+					 * Level 3
+					 */
+					if (subrootfiles[pos_sroot].exists() == false) {
+						break;
+					}
+					if (mtddir[pos_mtd].exists() == false) {
 						continue;
 					}
-					current_entry = (EntryRenderer) containerEntries.get(pos_entry);
-					elements_name.addAll(current_entry.getContentFileNames());
-				}
-				
-				/**
-				 * Search for each real rendered file, a presence in database.
-				 */
-				for (int pos_mtdf = 0; pos_mtdf < mtdfiles.length; pos_mtdf++) {
-					boolean founded = false;
-					for (int pos_dbf = 0; pos_dbf < elements_name.size(); pos_dbf++) {
-						if (mtdfiles[pos_mtdf].getName().equals(elements_name.get(pos_dbf))) {
-							founded = true;
-							break;
-						}
+					if (mtddir[pos_mtd].isDirectory() == false) {
+						Loggers.Metadata.info("Element is not a directory, delete it, mtddir: " + mtddir[pos_mtd]);
+						mtddir[pos_mtd].delete();
+						continue;
 					}
-					if (founded == false) {
-						/**
-						 * Delete old rendered file
-						 */
-						Loggers.Metadata.info("Delete old metadata file: " + mtdfiles[pos_mtdf]);
-						mtdfiles[pos_mtdf].delete();
-						/**
-						 * Delete MD5 file
-						 */
-						(new File(mtdfiles[pos_mtdf].getPath() + "." + digest_algorithm.toLowerCase())).delete();
+					element_source_key = allrootelements[pos].getName() + subrootfiles[pos_sroot].getName() + mtddir[pos_mtd].getName();
+					
+					Container container = ContainerOperations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.type);
+					if (container == null) {
+						Loggers.Metadata.info("Delete all metadata references for directory, mtd key: " + element_source_key);
+						purge(element_source_key);
+						continue;
+					}
+					
+					mtdfiles = mtddir[pos_mtd].listFiles(new FilenameFilter() {
+						public boolean accept(File dir, String name) {
+							if (name.toLowerCase().endsWith("." + digest_algorithm.toLowerCase())) return false;
+							return true;
+						}
+					});
+					
+					if (mtdfiles == null) {
+						continue;
+					}
+					
+					ArrayList<String> elements_name = new ArrayList<String>();
+					
+					container = ContainerOperations.getByMtdKey(element_source_key);
+					List<ContainerEntry> containerEntries = container.getEntries();
+					EntryRenderer current_entry;
+					/**
+					 * Get all rendered files references from db
+					 */
+					for (int pos_entry = 0; pos_entry < containerEntries.size(); pos_entry++) {
+						if ((containerEntries.get(pos_entry) instanceof EntryRenderer) == false) {
+							continue;
+						}
+						current_entry = (EntryRenderer) containerEntries.get(pos_entry);
+						elements_name.addAll(current_entry.getContentFileNames());
+					}
+					
+					/**
+					 * Search for each real rendered file, a presence in database.
+					 */
+					for (int pos_mtdf = 0; pos_mtdf < mtdfiles.length; pos_mtdf++) {
+						boolean founded = false;
+						for (int pos_dbf = 0; pos_dbf < elements_name.size(); pos_dbf++) {
+							if (mtdfiles[pos_mtdf].getName().equals(elements_name.get(pos_dbf))) {
+								founded = true;
+								break;
+							}
+						}
+						if (founded == false) {
+							/**
+							 * Delete old rendered file
+							 */
+							Loggers.Metadata.info("Delete old metadata file: " + mtdfiles[pos_mtdf]);
+							mtdfiles[pos_mtdf].delete();
+							/**
+							 * Delete MD5 file
+							 */
+							(new File(mtdfiles[pos_mtdf].getPath() + "." + digest_algorithm.toLowerCase())).delete();
+						}
 					}
 				}
 			}
