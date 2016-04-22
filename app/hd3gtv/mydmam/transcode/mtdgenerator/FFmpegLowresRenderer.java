@@ -46,6 +46,7 @@ import hd3gtv.mydmam.transcode.TranscodeProgress;
 import hd3gtv.mydmam.transcode.TranscodeProgressFFmpeg;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
+import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.Timecode;
@@ -143,6 +144,9 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 		progress.init(progress_file.getTempFile(), job_progress, ffmpeg_renderer_context).startWatching();
 		
+		/**
+		 * Video filters
+		 */
 		ArrayList<String> filters = new ArrayList<String>();
 		FFmpegInterlacingStats interlace_stats = container.getByClass(FFmpegInterlacingStats.class);
 		if (interlace_stats != null) {
@@ -178,6 +182,39 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 		
 		process_conf.getParamTags().put("FILTERS", sb_filters.toString());
+		
+		/**
+		 * Audio filter (channel map)
+		 */
+		if (ffprobe.hasAudio()) {
+			List<Stream> audio_streams = ffprobe.getStreamsByCodecType("audio");
+			
+			if (audio_streams.size() == 1) {
+				/**
+				 * Source has only one stream
+				 * -filter_complex "nullsink"
+				 */
+				process_conf.getParamTags().put("AUDIOMAPFILTER", "anullsink");
+			} else if (audio_streams.get(0).getAudioChannelCount() == 1 && audio_streams.get(1).getAudioChannelCount() == 1) {
+				/**
+				 * Channel 1 and 2 are mono => regroup to stereo.
+				 * -filter_complex "[0:1][0:2]amerge=inputs=2"
+				 */
+				process_conf.getParamTags().put("AUDIOMAPFILTER", audio_streams.get(0).getMapReference(0) + audio_streams.get(1).getMapReference(0) + "amerge=inputs=2");
+			} else {
+				/**
+				 * Source is too complex to import it correctly. We will only take the first stream.
+				 * -filter_complex "nullsink"
+				 */
+				process_conf.getParamTags().put("AUDIOMAPFILTER", "anullsink");
+			}
+		} else {
+			/**
+			 * No audio. No process.
+			 */
+			process_conf.getParamTags().put("AUDIOMAPFILTER", "nullsink");
+		}
+		
 		process = process_conf.prepareExecprocess(job_progress.getJobKey() + ": " + origin.getName());
 		
 		Loggers.Transcode_Metadata.info("Start ffmpeg, " + "job: " + job_progress.getJobKey() + ", origin: " + origin + ", temp_file: " + temp_element.getTempFile() + ", transcode_profile: "

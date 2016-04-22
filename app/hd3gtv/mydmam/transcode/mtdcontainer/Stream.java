@@ -101,6 +101,14 @@ public class Stream extends FFprobeNode {
 		return internal.index;
 	}
 	
+	/**
+	 * @param input_pos can be 0 if ffmpeg will not open other streams.
+	 * @return "[2:3]" => "[input_pos:index]"
+	 */
+	public String getMapReference(int input_pos) {
+		return "[" + input_pos + ":" + internal.index + "]";
+	}
+	
 	public boolean isIgnored() {
 		return internal.ignore_stream;
 	}
@@ -141,6 +149,22 @@ public class Stream extends FFprobeNode {
 			cache_audiosampling = AudioSampling.parseAS(getParam("sample_rate").getAsString());
 		}
 		return cache_audiosampling;
+	}
+	
+	private transient int audio_channel_count = -1;
+	
+	public int getAudioChannelCount() {
+		if (audio_channel_count > -1) {
+			return audio_channel_count;
+		}
+		if (getCodec_type().equals("audio") == false) {
+			return -1;
+		}
+		if (hasMultipleParams("channels") == false) {
+			return 0;
+		}
+		audio_channel_count = getParam("channels").getAsInt();
+		return audio_channel_count;
 	}
 	
 	/**

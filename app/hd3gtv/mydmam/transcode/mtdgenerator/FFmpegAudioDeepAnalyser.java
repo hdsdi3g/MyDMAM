@@ -36,6 +36,7 @@ import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystChannelStat;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystSilenceDetect;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
+import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
@@ -123,15 +124,80 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 			return null;
 		}
 		
+		/**
+		 * ffmpeg -nostats -i <> -filter_complex [0:1][0:2]amerge=inputs=2,ebur128=peak=true:metadata=1,silencedetect=n=-60dB:d=3 -filter_complex
+		 * [0:1][0:2][0:3][0:4][0:5][0:6][0:7][0:8]amerge=inputs=8,astats -vn -f null /dev/null
+		 */
+		
 		File input_file = container.getPhysicalSource();
 		CopyMove.checkExistsCanRead(input_file);
 		ArrayList<String> params = new ArrayList<String>();
 		params.add("-nostats");
 		params.add("-i");
 		params.add(input_file.getAbsolutePath());
-		params.add("-filter_complex");
 		
-		params.add("ebur128=peak=true,astats,silencedetect=n=" + silencedetect_level_threshold + "dB:d=" + silencedetect_min_duration);
+		String silencedetect = "silencedetect=n=" + silencedetect_level_threshold + "dB:d=" + silencedetect_min_duration;
+		
+		/**
+		 * Audio stream map/choose
+		 **/
+		List<Stream> audio_streams = ffprobe.getStreamsByCodecType("audio");
+		
+		if (audio_streams.size() == 1) {
+			/**
+			 * Source has only one stream
+			 */
+			params.add("-filter_complex");
+			params.add("ebur128=peak=true,astats," + silencedetect);
+		} else {
+			/**
+			 * Source has multiple streams
+			 */
+			boolean all_streams_are_mono = true;
+			for (int pos = 0; pos < audio_streams.size(); pos++) {
+				if (audio_streams.get(pos).getAudioChannelCount() > 1) {
+					all_streams_are_mono = false;
+					break;
+				}
+			}
+			
+			if (all_streams_are_mono) {
+				params.add("-filter_complex");
+				/**
+				 * Make Stereo with the 2 first mono channels and send to ebur128 + silencedetect
+				 * [0:1][0:2]amerge=inputs=2,ebur128=peak=true:metadata=1,silencedetect=n=-60dB:d=3
+				 */
+				params.add(audio_streams.get(0).getMapReference(0) + audio_streams.get(1).getMapReference(0) + "amerge=inputs=2,ebur128=peak=true," + silencedetect);
+				
+				params.add("-filter_complex");
+				/**
+				 * [0:1][0:2][0:3][0:4][0:5][0:6][0:7][0:8]amerge=inputs=8,astats
+				 */
+				StringBuilder cmdline = new StringBuilder();
+				for (int pos = 0; pos < audio_streams.size(); pos++) {
+					cmdline.append(audio_streams.get(pos).getMapReference(0));
+				}
+				cmdline.append("amerge=inputs=");
+				cmdline.append(audio_streams.size());
+				cmdline.append(",astats");
+				params.add(cmdline.toString());
+			} else {
+				StringBuilder log_file_struct = new StringBuilder();
+				for (int pos = 0; pos < audio_streams.size(); pos++) {
+					log_file_struct.append(audio_streams.get(pos).getAudioChannelCount());
+					log_file_struct.append(" ");
+				}
+				
+				Loggers.Metadata.warn("Analyser " + getClass().getSimpleName() + " can't import multiple multichannel audio streams like in \"" + input_file.getAbsolutePath()
+						+ "\" file. Only the first stream will be imported. This is the channel map for this file {" + log_file_struct.toString().trim() + "}");
+				/**
+				 * Source is too complex to import. We will only take the first stream.
+				 */
+				params.add("-filter_complex");
+				params.add("ebur128=peak=true,astats," + silencedetect);
+			}
+		}
+		
 		params.add("-vn");
 		params.add("-f");
 		params.add("null");
@@ -374,15 +440,15 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 				return;
 			}
 			
-			if (message.startsWith("[Parsed_ebur128_0 @ ")) {
+			if (message.startsWith("[Parsed_ebur128_")) {
 				if (message.endsWith(" Summary:")) {
 					ebur128_summary_block = true;
 				} else {
 					parseEbur128Line(message);
 				}
-			} else if (message.startsWith("[Parsed_astats_1 @ ")) {
+			} else if (message.startsWith("[Parsed_astats_")) {
 				parseAstatStatment(message);
-			} else if (message.startsWith("[silencedetect @ ")) {
+			} else if (message.startsWith("[silencedetect")) {
 				parseSilencedetectStatment(message);
 			} /*else {
 				System.out.println(message);

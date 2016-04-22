@@ -375,6 +375,7 @@ acl.blacklistip.grace_period_factor_time=Factor delay time (sec) pending timed b
 mime.video-mpeg=MPEG Video
 mime.application-pdf=PDF Document
 mime.text-xml=XML
+mime.text-plain=Plain text
 mime.video-flv=Flash video
 mime.video-mp4=Video MPEG4
 mime.application-bzip2=Bzip2 archive

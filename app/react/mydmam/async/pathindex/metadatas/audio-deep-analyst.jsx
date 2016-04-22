@@ -161,13 +161,13 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 		var silence_label_warn = null;
 
 		if (this.state.analyst_result != null) {
-			integrated_loudness = this.state.analyst_result.integrated_loudness;
-			integrated_loudness_threshold = this.state.analyst_result.integrated_loudness_threshold;
-			loudness_range_LRA = this.state.analyst_result.loudness_range_LRA;
-			loudness_range_threshold = this.state.analyst_result.loudness_range_threshold;
-			loudness_range_LRA_low = this.state.analyst_result.loudness_range_LRA_low;
-			loudness_range_LRA_high = this.state.analyst_result.loudness_range_LRA_high;
-			true_peak = this.state.analyst_result.true_peak;
+			integrated_loudness = this.state.analyst_result.integrated_loudness.toFixed(1);
+			integrated_loudness_threshold = this.state.analyst_result.integrated_loudness_threshold.toFixed(1);
+			loudness_range_LRA = this.state.analyst_result.loudness_range_LRA.toFixed(1);
+			loudness_range_threshold = this.state.analyst_result.loudness_range_threshold.toFixed(1);
+			loudness_range_LRA_low = this.state.analyst_result.loudness_range_LRA_low.toFixed(1);
+			loudness_range_LRA_high = this.state.analyst_result.loudness_range_LRA_high.toFixed(1);
+			true_peak = this.state.analyst_result.true_peak.toFixed(1);
 
 			if ((integrated_loudness - 2) > this.props.lufs_ref) {
 				integrated_loudness_warn_style = {color: "#F00"};
@@ -280,7 +280,7 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 					width: "300pt",
 				}}>
 				{silence_block}
-				<div style={{marginBottom: "6px", marginTop: "0px", paddingTop: "10px", }}>{btn_stat_channels}</div>
+				<div style={{marginBottom: "6px", marginTop: "0px", paddingTop: "5px", lineHeight: "30px"}}>{btn_stat_channels}</div>
 				{audio_stat_block}
 				<span style={{fontWeight: "bold", color: "rgb(92,200,90)", }}>{this.state.analyst_result.number_of_samples}</span>&nbsp;samples
 			</div>);
@@ -364,7 +364,7 @@ metadatas.ButtonChooseAudioStatBlock = React.createClass({
 		var channel_name = this.props.channel;
 		if (channel_name != "Overall") {
 			channel_name++;
-			channel_name = "Ch. " + channel_name;
+			channel_name = "# " + channel_name;
 		}
 
 		return (<span onClick={this.btnClick} style={style}>{channel_name}</span>);

@@ -375,6 +375,7 @@ acl.blacklistip.grace_period_factor_time=Facteur de durée (sec) d'attente du bl
 mime.video-mpeg=Vidéo MPEG
 mime.application-pdf=Document PDF
 mime.text-xml=XML
+mime.text-plain=Texte seul
 mime.video-flv=Vidéo Flash
 mime.video-mp4=Vidéo MPEG4
 mime.application-bzip2=Archive Bzip2
