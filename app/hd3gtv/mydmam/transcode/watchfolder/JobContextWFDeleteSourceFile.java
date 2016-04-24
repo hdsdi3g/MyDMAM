@@ -16,25 +16,40 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+
+import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 
 public class JobContextWFDeleteSourceFile extends JobContext {
 	
+	static Type type_List_String = new TypeToken<ArrayList<String>>() {
+	}.getType();
+	
 	String storage;
 	String path;
+	
+	/**
+	 * List of pathindex keys
+	 */
+	ArrayList<String> send_to;
 	
 	public JsonObject contextToJson() {
 		JsonObject jo = new JsonObject();
 		jo.addProperty("storage", storage);
 		jo.addProperty("path", path);
+		jo.add("send_to", AppManager.getSimpleGson().toJsonTree(send_to, type_List_String));
 		return jo;
 	}
 	
 	public void contextFromJson(JsonObject json_object) {
 		storage = json_object.get("storage").getAsString();
 		path = json_object.get("path").getAsString();
+		send_to = AppManager.getSimpleGson().fromJson(json_object.get("send_to"), type_List_String);
 	}
 	
 }

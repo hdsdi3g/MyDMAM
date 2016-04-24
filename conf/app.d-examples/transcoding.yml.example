@@ -128,6 +128,7 @@ watchfoldertranscoder:
                 #dest_file_prefix: F_
                 #dest_file_suffix: _S
                 #keep_input_dir_to_dest: true
+                #copy_source_file_to_dest: true
         time_to_wait_growing_file: 1000
         time_to_sleep_between_scans: 10000
         min_file_size: 10000

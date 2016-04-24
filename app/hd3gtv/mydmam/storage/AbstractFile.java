@@ -18,12 +18,13 @@ package hd3gtv.mydmam.storage;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.Closeable;
 import java.util.List;
 
 /**
  * Caution : this API is not thread safe !
  */
-public interface AbstractFile {
+public interface AbstractFile extends Closeable {
 	
 	public List<AbstractFile> listFiles();
 	

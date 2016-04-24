@@ -18,6 +18,7 @@ package hd3gtv.mydmam.transcode.watchfolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.IOUtils;
 import org.elasticsearch.ElasticsearchException;
 
 import com.google.gson.JsonElement;
@@ -90,6 +92,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		String dest_file_prefix;
 		String dest_file_suffix;
 		boolean keep_input_dir_to_dest;
+		boolean copy_source_file_to_dest;
 		
 		Target init(LinkedHashMap<String, ?> conf) throws Exception {
 			if (conf.containsKey("storage") == false) {
@@ -124,6 +127,11 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				keep_input_dir_to_dest = (Boolean) conf.get("keep_input_dir_to_dest");
 			}
 			
+			copy_source_file_to_dest = false;
+			if (conf.containsKey("copy_source_file_to_dest")) {
+				copy_source_file_to_dest = (Boolean) conf.get("copy_source_file_to_dest");
+			}
+			
 			if (Loggers.Transcode_WatchFolder.isDebugEnabled()) {
 				LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 				log.put("storage", storage);
@@ -131,6 +139,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				log.put("dest_file_prefix", dest_file_prefix);
 				log.put("dest_file_suffix", dest_file_suffix);
 				log.put("keep_input_dir_to_dest", keep_input_dir_to_dest);
+				log.put("copy_source_file_to_dest", copy_source_file_to_dest);
 				Loggers.Transcode_WatchFolder.debug("Init watchfolder target: " + log.toString());
 			}
 			
@@ -160,6 +169,25 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			
 			return AppManager.createJob(job_transcode).setCreator(getClass()).setName("Transcode from watchfolder " + simple_file_name).publish(mutator);
 		}
+		
+		private void addToCopySourceFileList(ArrayList<String> send_source_to_dest, ArrayList<String> send_source_to_dest_storages_names, String source_sub_directory) {
+			if (copy_source_file_to_dest == false) {
+				return;
+			}
+			String spie_key = SourcePathIndexerElement.prepareStorageElement(storage).prepare_key();
+			
+			if (keep_input_dir_to_dest) {
+				spie_key = SourcePathIndexerElement.prepare_key(storage, source_sub_directory);
+			}
+			if (send_source_to_dest.contains(spie_key) == false) {
+				send_source_to_dest.add(spie_key);
+			}
+			
+			if (send_source_to_dest_storages_names.contains(storage) == false) {
+				send_source_to_dest_storages_names.add(storage);
+			}
+		}
+		
 	}
 	
 	WatchFolderEntry(AppManager manager, ThreadGroup thread_group, String name, HashMap<String, ConfigurationItem> all_wf_confs) throws Exception {
@@ -437,6 +465,13 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 						}
 						
 						if (db_entry_file.last_checked + time_to_wait_growing_file < System.currentTimeMillis()) {
+							if (canIReadThisFile(db_entry_file) == false) {
+								/**
+								 * Something lock this file. Maybe a Windows copy process ?
+								 */
+								Loggers.Transcode_WatchFolder.trace("Found file is currently locked (can't open it) in " + name + ": " + active_file);
+								continue;
+							}
 							Loggers.Transcode_WatchFolder.trace("Set found file to validated files in " + name + ": " + db_entry_file);
 							validated_files.add(db_entry_file);
 						} else {
@@ -612,10 +647,13 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		Loggers.Transcode_WatchFolder.trace("Prepare all transcode jobs " + name + " for " + validated_file + ", in " + sub_dir_name);
 		
 		JobNG new_job;
+		ArrayList<String> send_source_to_dest = new ArrayList<String>();
+		ArrayList<String> send_source_to_dest_storages_names = new ArrayList<String>();
 		for (int pos = 0; pos < targets.size(); pos++) {
 			new_job = targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), sub_dir_name, duration, mutator);
 			jobs_to_watch.add(new_job);
 			validated_file.map_job_target.put(new_job.getKey(), targets.get(pos).storage + ":" + targets.get(pos).profile);
+			targets.get(pos).addToCopySourceFileList(send_source_to_dest, send_source_to_dest_storages_names, sub_dir_name);
 		}
 		WatchFolderDB.push(Arrays.asList(validated_file));
 		
@@ -623,6 +661,10 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		delete_source.neededstorages = Arrays.asList(validated_file.storage_name);
 		delete_source.path = validated_file.path;
 		delete_source.storage = validated_file.storage_name;
+		delete_source.send_to = send_source_to_dest;
+		if (send_source_to_dest_storages_names.isEmpty() == false) {
+			delete_source.neededstorages.addAll(send_source_to_dest_storages_names);
+		}
 		
 		Loggers.Transcode_WatchFolder.trace("Prepare delete source job " + name + " for " + validated_file + " " + delete_source.contextToJson());
 		
@@ -630,6 +672,30 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				.publish(mutator);
 				
 		mutator.execute();
+	}
+	
+	/**
+	 * Try to read the first byte of the founded file.
+	 */
+	private static boolean canIReadThisFile(AbstractFoundedFile file) {
+		InputStream i_stream = null;
+		AbstractFile a_file = null;
+		try {
+			a_file = Storage.getByName(file.storage_name).getRootPath().getAbstractFile(file.path);
+			i_stream = a_file.getInputStream(0xFF);
+			i_stream.read();
+			i_stream.close();
+			a_file.close();
+			return true;
+		} catch (IOException e1) {
+			Loggers.Transcode_WatchFolder.trace("Can't read file: " + file.storage_name + ":" + file.path, e1);
+		} catch (Exception e2) {
+			Loggers.Transcode_WatchFolder.warn("Error during file reading test: " + file.storage_name + ":" + file.path, e2);
+		} finally {
+			IOUtils.closeQuietly(i_stream);
+			IOUtils.closeQuietly(a_file);
+		}
+		return false;
 	}
 	
 	public static class Serializer implements JsonSerializer<WatchFolderEntry> {

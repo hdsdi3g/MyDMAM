@@ -16,9 +16,16 @@
 */
 package hd3gtv.mydmam.transcode.watchfolder;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
@@ -53,6 +60,8 @@ class DeleteSourceFileWorker extends WorkerNG {
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
+		is_stop = false;
+		
 		JobContextWFDeleteSourceFile order = (JobContextWFDeleteSourceFile) context;
 		
 		SourcePathIndexerElement spie = new SourcePathIndexerElement();
@@ -64,6 +73,28 @@ class DeleteSourceFileWorker extends WorkerNG {
 		 * Switch "Processed" to file.
 		 */
 		WatchFolderDB.switchStatus(spie.prepare_key(), Status.PROCESSED);
+		
+		Explorer explorer = new Explorer();
+		
+		if (order.send_to != null) {
+			if (order.send_to.isEmpty() == false) {
+				LinkedHashMap<String, SourcePathIndexerElement> send_to_map = explorer.getelementByIdkeys(order.send_to);
+				if (send_to_map.isEmpty() == false) {
+					ArrayList<SourcePathIndexerElement> send_to = new ArrayList<SourcePathIndexerElement>(send_to_map.values());
+					
+					for (int pos = 0; pos < send_to.size(); pos++) {
+						progression.updateStep(pos, send_to.size());
+						progression.update("Copy source file to " + send_to.get(pos));
+						sendSourceTo(spie, send_to.get(pos));
+					}
+					if (is_stop) {
+						return;
+					}
+					progression.updateStep(send_to.size(), send_to.size());
+					progression.update("Copy source file operation is ended");
+				}
+			}
+		}
 		
 		/**
 		 * Delete physically the file.
@@ -87,7 +118,6 @@ class DeleteSourceFileWorker extends WorkerNG {
 		 */
 		Loggers.Transcode_WatchFolder.debug("Delete pathindex entry for file: " + spie.storagename + ":" + spie.currentpath);
 		
-		Explorer explorer = new Explorer();
 		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
 		explorer.deleteStoragePath(bulk, Arrays.asList(spie));
 		bulk.terminateBulk();
@@ -95,7 +125,46 @@ class DeleteSourceFileWorker extends WorkerNG {
 		DistantFileRecovery.manuallyReleaseFile(spie);
 	}
 	
+	private void sendSourceTo(SourcePathIndexerElement source, SourcePathIndexerElement dest) throws Exception {
+		if (is_stop) {
+			return;
+		}
+		Loggers.Transcode_WatchFolder.debug("Copy source file: " + source.storagename + ":" + source.currentpath + " to: " + dest);
+		
+		File physical_source = Storage.getLocalFile(source);
+		if (physical_source == null) {
+			try {
+				physical_source = DistantFileRecovery.getFile(source, true);
+			} catch (Exception e) {
+				throw new Exception("Can't download source file to temp directory " + source.toString(), e);
+			}
+		}
+		
+		if (is_stop) {
+			return;
+		}
+		
+		try {
+			File dest_dir = Storage.getLocalFile(dest);
+			if (dest_dir == null) {
+				AbstractFile af = Storage.getByName(dest.storagename).getRootPath().getAbstractFile(dest.currentpath + "/" + physical_source.getName());
+				OutputStream of_os = af.getOutputStream(65536);
+				FileUtils.copyFile(physical_source, of_os);
+				IOUtils.closeQuietly(of_os);
+				IOUtils.closeQuietly(af);
+			} else {
+				FileUtils.copyFile(physical_source, new File(dest_dir.getAbsolutePath() + File.separator + physical_source.getName()));
+			}
+		} catch (Exception e) {
+			throw new Exception("Can't copy source file to dest " + physical_source.getPath() + " -> " + dest.toString(), e);
+		}
+		
+	}
+	
+	private boolean is_stop;
+	
 	protected void forceStopProcess() throws Exception {
+		is_stop = true;
 	}
 	
 	protected boolean isActivated() {
