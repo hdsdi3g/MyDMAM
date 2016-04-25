@@ -210,6 +210,7 @@ public class FFprobe extends EntryAnalyser {
 	private transient Cache cache;
 	
 	/**
+	 * @param like audio or video
 	 * @return null if there are not stream with codec_type.
 	 */
 	public List<Stream> getStreamsByCodecType(String codec_type) {

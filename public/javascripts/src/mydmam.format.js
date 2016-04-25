@@ -131,6 +131,63 @@
 		return sb;
 	};
 
+	mydmam.format.msecToHMSms = function(msec, always_display_hours_min, no_display_msec) {
+		if (msec === 0) {
+			if (always_display_hours_min) {
+				if (no_display_msec) {
+					return "00:00:00";
+				} else {
+					return "00:00:00.000";
+				}
+			} else {
+				if (no_display_msec) {
+					return "00";
+				} else {
+					return "0.000";
+				}
+			}
+		}
+		var sb = '';
+
+		var sec = msec / 1000;
+
+		var hrs = Math.floor(sec / 3600);
+		if (hrs >= 1 | always_display_hours_min) {
+			if (hrs < 10) {
+				sb = sb.append(0);
+			}
+			sb = sb.append(hrs);
+			sb = sb.append(":");
+		}
+		
+		var _diff_hours = sec / 3600;
+		var diff_hours = Math.floor(_diff_hours); // en heures
+		var min = (_diff_hours - diff_hours) * 60;
+
+		if (min >= 1 | hrs >= 1 | always_display_hours_min) {
+			if (min < 10) {
+				sb = sb.append(0);
+			}
+			sb = sb.append(Math.floor(min));
+			sb = sb.append(":");
+		}
+
+		var secresult = (min - Math.floor(min)) * 60;
+		//var secresult = Math.round((min - Math.floor(min)) * 60);
+
+		if (secresult < 10) {
+			sb = sb.append(0);
+		}
+
+		if (no_display_msec) {
+			sb = sb.append(Math.floor(secresult));
+		} else {
+			sb = sb.append(secresult.toFixed(3));
+		}
+
+		return sb;
+	};
+
 	mydmam.format.timeAgo = function(epoch_since_date, i18n_pos, i18n_neg) {
 		var delta = (new Date().getTime() - epoch_since_date) / 1000;
 		var i18n_label = i18n_pos;

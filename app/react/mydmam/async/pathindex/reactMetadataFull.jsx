@@ -45,6 +45,8 @@ pathindex.reactMetadataFull = React.createClass({
 				preview = (<pathindex.metadatas.Audio file_hash={file_hash} mtdsummary={mtdsummary} reference={reference} master_as_preview_url={master_as_preview_url} />);
 			} else if ((previews.full_size_thumbnail != null) | (previews.cartridge_thumbnail != null) | (previews.icon_thumbnail != null)) {
 				preview = (<pathindex.metadatas.Image file_hash={file_hash} previews={previews} />);
+			} else if (previews.audio_graphic_deepanalyst != null) {
+				preview = (<pathindex.metadatas.AudioGraphicDeepAnalyst previews={previews} file_hash={file_hash} />);
 			}
 		} else {
 			//Only master_as_preview (maybe a small element)

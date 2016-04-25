@@ -12,6 +12,12 @@ if(g>0){q=q.append(g);if(g>1){q=q.append(" "+i18n("timeunit.weeks")+" ");}else{q
 if(w<10){q=q.append(0);}q=q.append(w);q=q.append(":");var o=m/3600;var l=Math.floor(o);
 var k=(o-l)*60;if(k<10){q=q.append(0);}q=q.append(Math.floor(k));q=q.append(":");
 var i=Math.round((k-Math.floor(k))*60);if(i<10){q=q.append(0);}q=q.append(i);return q;
-};a.format.timeAgo=function(i,h,g){var k=(new Date().getTime()-i)/1000;var j=h;if(k<0){j=g;
-}return i18n(j,a.format.secondsToYWDHMS(Math.abs(k)));};var b=null;if(window.Intl){b=new window.Intl.NumberFormat();
-}a.format.number=function(g){if(b){return b.format(g);}else{return g;}};})(window.mydmam);
+};a.format.msecToHMSms=function(g,l,h){if(g===0){if(l){if(h){return"00:00:00";}else{return"00:00:00.000";
+}}else{if(h){return"00";}else{return"0.000";}}}var o="";var m=g/1000;var p=Math.floor(m/3600);
+if(p>=1|l){if(p<10){o=o.append(0);}o=o.append(p);o=o.append(":");}var n=m/3600;var k=Math.floor(n);
+var j=(n-k)*60;if(j>=1|p>=1|l){if(j<10){o=o.append(0);}o=o.append(Math.floor(j));
+o=o.append(":");}var i=(j-Math.floor(j))*60;if(i<10){o=o.append(0);}if(h){o=o.append(Math.floor(i));
+}else{o=o.append(i.toFixed(3));}return o;};a.format.timeAgo=function(i,h,g){var k=(new Date().getTime()-i)/1000;
+var j=h;if(k<0){j=g;}return i18n(j,a.format.secondsToYWDHMS(Math.abs(k)));};var b=null;
+if(window.Intl){b=new window.Intl.NumberFormat();}a.format.number=function(g){if(b){return b.format(g);
+}else{return g;}};})(window.mydmam);

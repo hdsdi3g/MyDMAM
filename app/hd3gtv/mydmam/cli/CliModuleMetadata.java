@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataIndexer;
+import hd3gtv.mydmam.metadata.MetadataStorageIndexer;
 import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
 import hd3gtv.mydmam.metadata.container.Container;
@@ -73,7 +73,7 @@ public class CliModuleMetadata implements CliModule {
 				spie.size = files[pos].length();
 				spie.storagename = "MyDMAM-CLI-Request";
 				
-				result = new MetadataIndexingOperation(files[pos]).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
+				result = new MetadataIndexingOperation(files[pos]).setLimit(MetadataIndexingLimit.FAST).doIndexing();
 				System.out.println(" == " + files[pos] + " == ");
 				System.out.println(result);
 				System.out.println();
@@ -103,8 +103,8 @@ public class CliModuleMetadata implements CliModule {
 				Loggers.CLI.info("Empty/not found element to scan metadatas: " + root_indexing.toString());
 				return;
 			}
-			MetadataIndexer metadataIndexer = new MetadataIndexer(true);
-			metadataIndexer.process(root_indexing, 0);
+			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(true);
+			metadataStorageIndexer.process(root_indexing, 0, null);
 			return;
 		} else if (args.getParamExist("-clean")) {
 			Loggers.CLI.info("Start clean operations");

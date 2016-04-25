@@ -10,7 +10,7 @@ metadata_analysing:
     #       blacklist:
     #           - full.class.name, like "hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer", used to ignore processing this it.
     #                              This class must extends MetadataGenerator.
-    #       limit: MIMETYPE # this is a MetadataIndexingLimit from MIMETYPE, ANALYST, SIMPLERENDERS or NOLIMITS
+    #       limit: MIMETYPE # this is a MetadataIndexingLimit from MIMETYPE, FAST, FULL or NOLIMITS
 
     # This is only for this host:
     temp_directory: /tmp

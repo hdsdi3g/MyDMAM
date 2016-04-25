@@ -35,4 +35,12 @@ public abstract class EntryAnalyser extends ContainerEntry {
 		return jo;
 	}
 	
+	/**
+	 * @return true if you wan't get JSON raw data in webclient side.
+	 *         Don't set true if sometimes it contains sensitive data like some path, names or things that the end user does not have to see.
+	 */
+	public boolean canBeSendedToWebclients() {
+		return false;
+	}
+	
 }

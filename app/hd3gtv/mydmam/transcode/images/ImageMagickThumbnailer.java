@@ -39,6 +39,7 @@ import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.images.ImageAttributeGeometry.Compare;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 
 public class ImageMagickThumbnailer implements MetadataExtractor {
 	
@@ -134,17 +135,17 @@ public class ImageMagickThumbnailer implements MetadataExtractor {
 		return null;
 	}
 	
-	public ContainerEntryResult processFull(Container container) throws Exception {
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		ImageAttributes image_attributes = container.getByClass(ImageAttributes.class);
 		if (image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for this container: " + container);
 			return null;
 		}
 		
-		return subProcess(container, container.getPhysicalSource(), image_attributes);
+		return subProcess(container, stoppable, container.getPhysicalSource(), image_attributes);
 	}
 	
-	protected ContainerEntryResult subProcess(Container container, File physical_source, ImageAttributes image_attributes) throws Exception {
+	protected ContainerEntryResult subProcess(Container container, StoppableProcessing stoppable, File physical_source, ImageAttributes image_attributes) throws Exception {
 		TranscodeProfile tprofile = tprofile_opaque;
 		if (image_attributes.alpha != null) {
 			tprofile = tprofile_alpha;
@@ -207,7 +208,7 @@ public class ImageMagickThumbnailer implements MetadataExtractor {
 		
 		EntryRenderer thumbnail = root_entry_class.newInstance();
 		
-		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
+		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).setLimit(MetadataIndexingLimit.FAST).doIndexing();
 		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByClass(ImageAttributes.class);
 		if (thumbnail_image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for the snapshot file container: " + thumbnail_image_attributes);

@@ -557,7 +557,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		try {
 			Loggers.Transcode_WatchFolder.trace("Save item to ES " + name + " for " + validated_file);
 			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
-			MetadataIndexingOperation indexing = new MetadataIndexingOperation(physical_source).setReference(pi_item).setLimit(MetadataIndexingLimit.ANALYST);
+			MetadataIndexingOperation indexing = new MetadataIndexingOperation(physical_source).setReference(pi_item).setLimit(MetadataIndexingLimit.FAST);
 			indexing_result = indexing.doIndexing();
 			ContainerOperations.save(indexing_result, true, bulk);
 			bulk.terminateBulk();

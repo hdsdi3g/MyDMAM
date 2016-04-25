@@ -46,6 +46,7 @@ import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst;
 
@@ -61,10 +62,10 @@ public class FFprobeAnalyser implements MetadataExtractor {
 	}
 	
 	public ContainerEntryResult processFast(Container container) throws Exception {
-		return processFull(container);
+		return processFull(container, null);
 	}
 	
-	public ContainerEntryResult processFull(Container container) throws Exception {
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-show_streams");
 		param.add("-show_format");
@@ -400,11 +401,18 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		translated_codecs_names.setProperty("mpeg2video", "MPEG2");
 		translated_codecs_names.setProperty("mx5p", "MPEG2/4:2:2");
 		translated_codecs_names.setProperty("mpeg", "MPEG");
+		translated_codecs_names.setProperty("wmv3", "WMV9");
+		translated_codecs_names.setProperty("apch", "Apple ProRes 422 HQ");
+		translated_codecs_names.setProperty("apcn", "Apple ProRes 422");
+		translated_codecs_names.setProperty("apcs", "Apple ProRes 422 LT");
+		translated_codecs_names.setProperty("apco", "Apple ProRes 422 Proxy");
+		translated_codecs_names.setProperty("ap4h", "Apple ProRes 4444");
+		
 		translated_codecs_names.setProperty("mp2", "MPEG/L2");
 		translated_codecs_names.setProperty("mp3", "MP3");
-		translated_codecs_names.setProperty("wmv3", "WMV9");
 		translated_codecs_names.setProperty("wmav2", "WMA9");
 		translated_codecs_names.setProperty("aac", "AAC");
+		translated_codecs_names.setProperty("mp4a", "AAC");
 		translated_codecs_names.setProperty("eac3", "EAC3");
 		translated_codecs_names.setProperty("ec-3", "EAC3");
 		translated_codecs_names.setProperty("pcm_s16le", "PCM 16b");
@@ -412,11 +420,8 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		translated_codecs_names.setProperty("pcm_s16be", "PCM 16b/BE");
 		translated_codecs_names.setProperty("pcm_s24le", "PCM 24b");
 		translated_codecs_names.setProperty("pcm_s24be", "PCM 24b/BE");
-		translated_codecs_names.setProperty("apch", "Apple ProRes 422 HQ");
-		translated_codecs_names.setProperty("apcn", "Apple ProRes 422");
-		translated_codecs_names.setProperty("apcs", "Apple ProRes 422 LT");
-		translated_codecs_names.setProperty("apco", "Apple ProRes 422 Proxy");
-		translated_codecs_names.setProperty("ap4h", "Apple ProRes 4444");
+		translated_codecs_names.setProperty("pcm_f32le", "PCM 32b float");
+		translated_codecs_names.setProperty("pcm_f32be", "PCM 32b float/BE");
 	}
 	
 	public static String translateCodecName(String ffmpeg_name) {

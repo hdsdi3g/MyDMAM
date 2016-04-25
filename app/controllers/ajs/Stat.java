@@ -19,12 +19,15 @@ package controllers.ajs;
 import java.lang.reflect.Type;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import controllers.Check;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.ContainerPreview;
 import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.mydmam.web.stat.AsyncMetadataAnalystRequest;
 import hd3gtv.mydmam.web.stat.AsyncStatRequest;
 import hd3gtv.mydmam.web.stat.AsyncStatResult;
 import hd3gtv.mydmam.web.stat.AsyncStatResultElement;
@@ -52,4 +55,24 @@ public class Stat extends AJSController {
 	public static AsyncStatResult cache(AsyncStatRequest request) {
 		return new PathElementStat(request).getResult();
 	}
+	
+	@Check("navigate")
+	public static JsonObject metadataAnalystResults(AsyncMetadataAnalystRequest request) {
+		if (request == null) {
+			return null;
+		} else if (request.pathelementkey == null) {
+			return null;
+		} else if (request.mtype == null) {
+			return null;
+		}
+		JsonObject result = ContainerOperations.getRawByMtdKeyForOnlyOneTypeAndCheckedToBeSendedToWebclients(request.pathelementkey, request.mtype);
+		if (result == null) {
+			return null;
+		}
+		if (result.has("origin")) {
+			result.remove("origin");
+		}
+		return result;
+	}
+	
 }
