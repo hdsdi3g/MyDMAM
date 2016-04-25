@@ -132,9 +132,12 @@ public class MetadataCenter {
 		conf_items = new ArrayList<MetadataCenter.MetadataConfigurationItem>();
 		
 		if (Configuration.global.isElementExists("metadata_analysing")) {
-			List<LinkedHashMap<String, ?>> list_conf = Configuration.global.getListMapValues("metadata_analysing", "items");
-			for (int pos_item = 0; pos_item < list_conf.size(); pos_item++) {
-				conf_items.add(new MetadataConfigurationItem(list_conf.get(pos_item)));
+			if (Configuration.global.isElementKeyExists("metadata_analysing", "items")) {
+				List<LinkedHashMap<String, ?>> list_conf = Configuration.global.getListMapValues("metadata_analysing", "items");
+				for (int pos_item = 0; pos_item < list_conf.size(); pos_item++) {
+					conf_items.add(new MetadataConfigurationItem(list_conf.get(pos_item)));
+				}
+				
 			}
 			
 			if (Configuration.global.getValueBoolean("metadata_analysing", "master_as_preview")) {
