@@ -178,15 +178,21 @@ public class MetadataCenter {
 		if (extractor == null) {
 			return;
 		}
+		
 		if (extractor.isEnabled() == false) {
-			return;
+			Loggers.Metadata.debug("Load disabled extractor " + extractor.getLongName());
+		} else {
+			Loggers.Metadata.info("Load extractor " + extractor.getLongName());
 		}
 		
-		Loggers.Metadata.info("Load extractor " + extractor.getLongName());
 		try {
 			ContainerOperations.declareAllEntriesType(extractor.getAllRootEntryClasses());
 		} catch (Exception e) {
 			Loggers.Metadata.error("Can't declare (de)serializer from Entry extractor " + extractor.getLongName(), e);
+			return;
+		}
+		
+		if (extractor.isEnabled() == false) {
 			return;
 		}
 		
