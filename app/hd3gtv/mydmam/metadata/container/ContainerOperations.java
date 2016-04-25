@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -509,41 +508,59 @@ public class ContainerOperations {
 			elementcount_by_storage = new HashMap<String, Long>();
 		}
 		
-		/**
-		 * Protect to no remove all mtd if pathindexing is empty for a storage.
-		 * https://github.com/hdsdi3g/MyDMAM/issues/7
-		 */
-		boolean containsStorageInBase(ContainerOrigin origin) {
-			if (elementcount_by_storage.containsKey(origin.storage) == false) {
-				elementcount_by_storage.put(origin.storage, explorer.countStorageContentElements(origin.storage));
-				if (elementcount_by_storage.get(origin.storage) == 0) {
-					Loggers.Metadata.info("Missing storage item in datatabase, storagename: " + origin.storage);
-				}
-			}
-			return elementcount_by_storage.get(origin.storage) > 0;
-		}
-		
 		public boolean onFoundHit(SearchHit hit) {
-			if (declared_entries_type.containsKey(hit.getType()) == false) {
-				return true;
-			}
-			ContainerEntry containerEntry = gson.fromJson(hit.getSourceAsString(), declared_entries_type.get(hit.getType()).getClass());
-			Container container = new Container(hit.getId(), containerEntry.getOrigin());
 			
-			try {
-				container.getOrigin().getPathindexElement();
-				return true;
-			} catch (FileNotFoundException e) {
+			JsonObject entry = Elasticsearch.getJSONFromSimpleResponse(hit);
+			if (entry.has("origin")) {
+				JsonObject origin = entry.get("origin").getAsJsonObject();
+				
+				/**
+				 * Is item is actually indexed ?
+				 */
+				if (origin.has("key")) {
+					String origin_key = origin.get("key").getAsString();
+					if (explorer.getelementByIdkey(origin_key) != null) {
+						return true;
+					}
+				} else {
+					Loggers.Metadata.warn("Bad metadata origin entry founded during purge: " + hit.getId() + "/" + hit.getType() + "/" + hit.getSourceAsString());
+				}
+				
+				/**
+				 * Protect to no remove all mtd if pathindexing is empty for a storage.
+				 * https://github.com/hdsdi3g/MyDMAM/issues/7
+				 */
+				if (origin.has("storage")) {
+					String origin_storage = origin.get("storage").getAsString();
+					if (elementcount_by_storage.containsKey(origin_storage) == false) {
+						elementcount_by_storage.put(origin_storage, explorer.countStorageContentElements(origin_storage));
+						if (elementcount_by_storage.get(origin_storage) == 0) {
+							Loggers.Metadata.info("Missing storage item in datatabase, storagename: " + origin_storage);
+						}
+					}
+					if (elementcount_by_storage.get(origin_storage) == 0) {
+						/**
+						 * Empty storage !!
+						 */
+						return true;
+					}
+				} else {
+					Loggers.Metadata.warn("Bad metadata origin entry founded during purge: " + hit.getId() + "/" + hit.getType() + "/" + hit.getSourceAsString());
+				}
+			} else {
+				Loggers.Metadata.warn("Bad metadata entry founded during purge: " + hit.getId() + "/" + hit.getType() + "/" + hit.getSourceAsString());
 			}
 			
-			if (containsStorageInBase(container.getOrigin()) == false) {
-				return true;
-			}
 			/**
-			 * This storage is not empty... Source file is really deleted, we can delete metadatas, and associated rendered files.
+			 * This storage is not empty and source file is really deleted, we can delete metadatas, and associated rendered files.
 			 */
-			requestDelete(container, es_bulk);
-			RenderedFile.purge(container.getMtd_key());
+			if (Loggers.Metadata.isTraceEnabled()) {
+				Loggers.Metadata.trace("Purge: request delete for " + hit.getId() + "/" + hit.getType());
+			}
+			
+			es_bulk.add(es_bulk.getClient().prepareDelete(ES_INDEX, hit.getType(), hit.getId()));
+			
+			RenderedFile.purge(hit.getId());
 			
 			return true;
 		}
@@ -569,7 +586,9 @@ public class ContainerOperations {
 			RenderedFile.purge_orphan_metadatas_files();
 			
 		} catch (IndexMissingException ime) {
+			Loggers.Metadata.warn("Can't purge orphan metadatas: " + ES_INDEX + " index is not present", ime);
 		} catch (SearchPhaseExecutionException e) {
+			Loggers.Metadata.warn("Can't purge orphan metadatas", e);
 		}
 	}
 	

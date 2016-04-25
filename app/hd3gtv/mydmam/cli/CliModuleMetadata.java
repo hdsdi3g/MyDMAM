@@ -20,9 +20,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataStorageIndexer;
 import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
+import hd3gtv.mydmam.metadata.MetadataStorageIndexer;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
