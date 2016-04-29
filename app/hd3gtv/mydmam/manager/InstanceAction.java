@@ -141,7 +141,6 @@ public final class InstanceAction {
 		
 		for (int pos_pa = 0; pos_pa < pending_actions.size(); pos_pa++) {
 			InstanceAction current_instance_action = pending_actions.get(pos_pa);
-			current_instance_action.delete(mutator);
 			String target_class_name = current_instance_action.target_class_name;
 			
 			InstanceActionReceiver recevier = null;
@@ -155,11 +154,15 @@ public final class InstanceAction {
 			}
 			
 			if (recevier == null) {
-				Loggers.Manager.error("An instance action can't be executed: no valid target " + current_instance_action);
+				if (Loggers.Manager.isDebugEnabled()) {
+					Loggers.Manager.debug("An instance action exists in database but this Instance is not concerned " + current_instance_action);
+				}
 				continue;
 			}
 			
 			Loggers.Manager.info("Do an Instance Action " + current_instance_action);
+			
+			current_instance_action.delete(mutator);
 			
 			try {
 				recevier.doAnAction(current_instance_action.order);
