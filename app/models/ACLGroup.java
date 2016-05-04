@@ -17,17 +17,23 @@
 
 import java.util.List;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 
+import hd3gtv.mydmam.auth.DbAccountExtractor;
+import hd3gtv.mydmam.auth.SelfExtractor;
 import play.data.validation.Required;
 import play.db.jpa.GenericModel;
+import play.db.jpa.JPABase;
 
 @Entity
-public class ACLGroup extends GenericModel {
+public class ACLGroup extends GenericModel implements SelfExtractor {
 	
 	public static final String ADMIN_NAME = "administrators";
 	public static final String NEWUSERS_NAME = "new_users";
@@ -53,6 +59,18 @@ public class ACLGroup extends GenericModel {
 		this.users.add(newuser);
 		this.save();
 		return this;
+	}
+	
+	public <T extends JPABase> T save() {
+		DbAccountExtractor.extractor.save();
+		return super.save();
+	}
+	
+	public Element exportToXML(Document document) {
+		Element root = document.createElement("aclgroup");
+		root.setAttribute("name", name);
+		root.setAttribute("role", role.name);
+		return root;
 	}
 	
 }

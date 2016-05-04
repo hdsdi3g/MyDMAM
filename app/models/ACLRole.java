@@ -19,6 +19,9 @@ package models;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -29,11 +32,14 @@ import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.auth.DbAccountExtractor;
+import hd3gtv.mydmam.auth.SelfExtractor;
 import play.data.validation.Required;
 import play.db.jpa.GenericModel;
+import play.db.jpa.JPABase;
 
 @Entity
-public class ACLRole extends GenericModel {
+public class ACLRole extends GenericModel implements SelfExtractor {
 	
 	public static final String ADMIN_NAME = "administrator";
 	public static final String GUEST_NAME = "guest";
@@ -123,6 +129,25 @@ public class ACLRole extends GenericModel {
 	
 	public List<String> getFunctionalitiesBasenameList() {
 		return new ArrayList<String>();
+	}
+	
+	public <T extends JPABase> T save() {
+		DbAccountExtractor.extractor.save();
+		return super.save();
+	}
+	
+	public Element exportToXML(Document document) {
+		Element root = document.createElement("aclrole");
+		root.setAttribute("name", name);
+		
+		List<String> p_list = getPrivilegesList();
+		for (int pos = 0; pos < p_list.size(); pos++) {
+			Element p = document.createElement("privilege");
+			p.setAttribute("name", p_list.get(pos));
+			root.appendChild(p);
+		}
+		
+		return root;
 	}
 	
 }

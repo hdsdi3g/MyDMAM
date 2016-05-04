@@ -12,6 +12,7 @@ conf/application.conf
 conf/dependencies.yml
 conf/*.db
 conf/log4j.xml
+conf/account_export.xml
 public/img/personalized/*
 Test.java
 play-new-password.txt

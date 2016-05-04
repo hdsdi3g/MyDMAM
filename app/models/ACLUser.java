@@ -17,15 +17,21 @@
 
 import java.util.Date;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 
+import hd3gtv.mydmam.auth.DbAccountExtractor;
+import hd3gtv.mydmam.auth.SelfExtractor;
 import play.data.validation.Required;
 import play.db.jpa.GenericModel;
+import play.db.jpa.JPABase;
 
 @Entity
-public class ACLUser extends GenericModel {
+public class ACLUser extends GenericModel implements SelfExtractor {
 	
 	public static final String ADMIN_NAME = "admin";
 	
@@ -67,6 +73,25 @@ public class ACLUser extends GenericModel {
 		createdate = new Date();
 		lasteditdate = new Date();
 		locked_account = false;
+	}
+	
+	public <T extends JPABase> T save() {
+		DbAccountExtractor.extractor.save();
+		return super.save();
+	}
+	
+	public Element exportToXML(Document document) {
+		Element root = document.createElement("acluser");
+		root.setAttribute("login", login);
+		root.setAttribute("sourcename", sourcename);
+		root.setAttribute("fullname", fullname);
+		root.setAttribute("group", group.name);
+		root.setAttribute("lastloginipsource", lastloginipsource);
+		root.setAttribute("createdate", String.valueOf(createdate.getTime()));
+		root.setAttribute("lastlogindate", String.valueOf(lastlogindate.getTime()));
+		root.setAttribute("lasteditdate", String.valueOf(lasteditdate.getTime()));
+		root.setAttribute("locked_account", String.valueOf(locked_account));
+		return root;
 	}
 	
 }

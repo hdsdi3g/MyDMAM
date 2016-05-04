@@ -26,6 +26,7 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthenticationBackend;
+import hd3gtv.mydmam.auth.DbAccountExtractor;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.web.JSSourceManager;
 import hd3gtv.mydmam.web.Privileges;
@@ -186,5 +187,7 @@ public class Bootstrap extends Job {
 		} catch (ConnectionException e) {
 			Loggers.Play.error("Can't access to keyspace", e);
 		}
+		
+		DbAccountExtractor.extractor.save();
 	}
 }

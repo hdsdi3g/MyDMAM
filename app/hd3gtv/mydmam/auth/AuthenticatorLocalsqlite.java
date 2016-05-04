@@ -29,12 +29,16 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import org.apache.commons.codec.binary.Base64;
 import org.junit.Assert;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.BCryptTest;
 
-public class AuthenticatorLocalsqlite implements Authenticator {
+public class AuthenticatorLocalsqlite implements Authenticator, SelfExtractor {
 	
 	private File dbfile;
 	private Password password;
@@ -445,6 +449,35 @@ public class AuthenticatorLocalsqlite implements Authenticator {
 		
 		connection.close();
 		return null;
+	}
+	
+	@Override
+	public Element exportToXML(Document document) {
+		Element root = document.createElement("sqlite");
+		root.setAttribute("file", dbfile.getPath());
+		
+		try {
+			Connection connection = createConnection();
+			PreparedStatement pstatement = connection.prepareStatement("SELECT login, name, created, updated, enabled, password FROM users");
+			
+			ResultSet res = pstatement.executeQuery();
+			while (res.next()) {
+				Element user = document.createElement("user");
+				user.setAttribute("login", res.getString("login"));
+				user.setAttribute("name", res.getString("name"));
+				user.setAttribute("created", String.valueOf(res.getDate("created").getTime()));
+				user.setAttribute("updated", String.valueOf(res.getDate("updated").getTime()));
+				user.setAttribute("enabled", String.valueOf(res.getBoolean("enabled")));
+				user.setAttribute("password", Base64.encodeBase64String(res.getBytes("password")));
+				root.appendChild(user);
+			}
+			pstatement.close();
+			connection.close();
+		} catch (SQLException e) {
+			Loggers.Play.warn("Can't open sqlite database", e);
+		}
+		
+		return root;
 	}
 	
 }

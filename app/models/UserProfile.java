@@ -17,8 +17,17 @@
 
 package models;
 
+import java.util.Locale;
+import java.util.concurrent.Callable;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import javax.mail.internet.InternetAddress;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.auth.AuthenticationUser;
+import hd3gtv.mydmam.auth.SelfExtractor;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import hd3gtv.mydmam.db.orm.CrudOrmModel;
 import hd3gtv.mydmam.db.orm.annotations.AuthorisedForAdminController;
@@ -27,18 +36,12 @@ import hd3gtv.mydmam.db.orm.annotations.PublishedMethod;
 import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
 import hd3gtv.mydmam.db.orm.annotations.TypeEmail;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
-
-import java.util.Locale;
-import java.util.concurrent.Callable;
-
-import javax.mail.internet.InternetAddress;
-
 import play.data.validation.Email;
 import play.data.validation.Required;
 import play.i18n.Lang;
 
 @AuthorisedForAdminController
-public class UserProfile extends CrudOrmModel {
+public class UserProfile extends CrudOrmModel implements SelfExtractor {
 	
 	@ReadOnly
 	public String longname;
@@ -88,8 +91,8 @@ public class UserProfile extends CrudOrmModel {
 	}
 	
 	private static String cleanFileName(String value) {
-		return value.replace(".", "-").replace("%", "-").replace("@", "_").replace("#", "-").replace("$", "-").replace("&", "-").replace("*", "-").replace("'", "-").replace("/", "-")
-				.replace("?", "-").replace("^", "-").replace("`", "-").replace("{", "-").replace("|", "-").replace("}", "-").replace("~", "-");
+		return value.replace(".", "-").replace("%", "-").replace("@", "_").replace("#", "-").replace("$", "-").replace("&", "-").replace("*", "-").replace("'", "-").replace("/", "-").replace("?", "-")
+				.replace("^", "-").replace("`", "-").replace("{", "-").replace("|", "-").replace("}", "-").replace("~", "-");
 	}
 	
 	/**
@@ -166,4 +169,13 @@ public class UserProfile extends CrudOrmModel {
 		return true;
 	}
 	
+	public Element exportToXML(Document document) {
+		Element root = document.createElement("userprofile");
+		root.setAttribute("longname", longname);
+		root.setAttribute("email", email);
+		root.setAttribute("language", language);
+		root.setAttribute("selectedbasketname", selectedbasketname);
+		root.setAttribute("keep_index_deleted_basket_items", String.valueOf(keep_index_deleted_basket_items));
+		return root;
+	}
 }
