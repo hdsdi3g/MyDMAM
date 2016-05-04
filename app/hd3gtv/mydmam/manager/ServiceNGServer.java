@@ -19,6 +19,8 @@ package hd3gtv.mydmam.manager;
 import java.io.File;
 import java.util.ArrayList;
 
+import org.apache.commons.lang.SystemUtils;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.Execprocess;
@@ -56,7 +58,12 @@ public class ServiceNGServer extends ServiceNG {
 			p_play.add("-Dservice.config.verboseload=" + config_verboseload);
 		}
 		
-		process_play = new Execprocess(new File(f_playdeploy.getPath() + File.separator + "play"), p_play, new ExecprocessEventServicelog("play"));
+		File play_exec = new File(f_playdeploy.getPath() + File.separator + "play");
+		if (SystemUtils.IS_OS_WINDOWS) {
+			play_exec = new File(f_playdeploy.getPath() + File.separator + "play.bat");
+		}
+		
+		process_play = new Execprocess(play_exec, p_play, new ExecprocessEventServicelog("play"));
 		process_play.start();
 	}
 	
