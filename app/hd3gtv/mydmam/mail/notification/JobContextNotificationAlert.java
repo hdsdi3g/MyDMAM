@@ -16,10 +16,13 @@
 */
 package hd3gtv.mydmam.mail.notification;
 
-import hd3gtv.mydmam.manager.JobContext;
-
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.manager.JobContext;
+
+/**
+ * @deprecated
+ */
 public class JobContextNotificationAlert extends JobContext {
 	
 	public JsonObject contextToJson() {

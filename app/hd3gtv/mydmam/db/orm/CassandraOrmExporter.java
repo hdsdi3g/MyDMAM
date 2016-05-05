@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.db.orm;
 
+/**
+ * @deprecated
+ */
 public abstract class CassandraOrmExporter<T extends OrmModel> {
 	
 	/**

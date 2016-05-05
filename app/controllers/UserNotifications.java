@@ -16,11 +16,6 @@
 */
 package controllers;
 
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
-import hd3gtv.mydmam.mail.notification.Notification;
-import hd3gtv.mydmam.mail.notification.NotifyReason;
-import hd3gtv.mydmam.manager.JobNG;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,6 +23,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import com.google.gson.JsonObject;
+
+import ext.MydmamExtensions;
+import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.mail.notification.Notification;
+import hd3gtv.mydmam.mail.notification.NotifyReason;
+import hd3gtv.mydmam.manager.JobNG;
 import models.UserProfile;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -36,10 +38,9 @@ import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
 
-import com.google.gson.JsonObject;
-
-import ext.MydmamExtensions;
-
+/**
+ * @deprecated
+ */
 @With(Secure.class)
 @SuppressWarnings("unchecked")
 public class UserNotifications extends Controller {

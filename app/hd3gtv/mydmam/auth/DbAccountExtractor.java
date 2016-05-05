@@ -30,6 +30,9 @@ import models.ACLRole;
 import models.ACLUser;
 import models.UserProfile;
 
+/**
+ * @deprecated
+ */
 public class DbAccountExtractor {
 	
 	public static final DbAccountExtractor extractor;

@@ -38,6 +38,9 @@ import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.With;
 
+/**
+ * @deprecated
+ */
 @With(Secure.class)
 public class User extends Controller {
 	

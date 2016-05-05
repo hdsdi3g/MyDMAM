@@ -17,6 +17,9 @@
 
 package hd3gtv.mydmam.db.orm;
 
+/**
+ * @deprecated
+ */
 public interface ModelClassResolver {
 	
 	/**

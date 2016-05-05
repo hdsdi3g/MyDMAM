@@ -35,6 +35,9 @@ import com.netflix.astyanax.serializers.StringSerializer;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 
+/**
+ * @deprecated
+ */
 public class CrudOrmEngine<T extends CrudOrmModel> {
 	
 	private T element;

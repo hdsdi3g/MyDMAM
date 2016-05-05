@@ -35,6 +35,10 @@ import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.With;
 
+/**
+ * @deprecated
+ * 			+ views
+ */
 @With(Secure.class)
 public class ACL extends Controller {
 	

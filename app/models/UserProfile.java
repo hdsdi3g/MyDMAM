@@ -40,6 +40,9 @@ import play.data.validation.Email;
 import play.data.validation.Required;
 import play.i18n.Lang;
 
+/**
+ * @deprecated
+ */
 @AuthorisedForAdminController
 public class UserProfile extends CrudOrmModel implements SelfExtractor {
 	

@@ -33,6 +33,9 @@ import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
 
+/**
+ * @deprecated
+ */
 public class NotificationWorker extends WorkerNG {
 	
 	static {

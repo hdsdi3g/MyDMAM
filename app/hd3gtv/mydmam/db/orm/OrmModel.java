@@ -20,6 +20,7 @@ import hd3gtv.mydmam.db.CassandraDb;
 
 /**
  * Don't forget to set to public var;
+ * @deprecated
  */
 public abstract class OrmModel {
 	

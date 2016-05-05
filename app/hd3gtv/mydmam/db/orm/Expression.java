@@ -29,6 +29,9 @@ import com.netflix.astyanax.serializers.IntegerSerializer;
 import com.netflix.astyanax.serializers.LongSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+/**
+ * @deprecated
+ */
 public class Expression {
 	
 	private ExpressionOperator operator;

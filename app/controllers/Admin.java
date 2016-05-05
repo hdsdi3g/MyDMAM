@@ -47,6 +47,10 @@ import play.mvc.Controller;
 import play.mvc.With;
 import play.vfs.VirtualFile;
 
+/**
+ * @deprecated
+ * 			+ views
+ */
 @With(Secure.class)
 public class Admin extends Controller {
 	

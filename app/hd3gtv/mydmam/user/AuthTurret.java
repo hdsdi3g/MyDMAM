@@ -14,16 +14,32 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2016
  * 
 */
-package hd3gtv.mydmam.auth;
+package hd3gtv.mydmam.user;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import com.google.gson.Gson;
+import com.netflix.astyanax.model.ColumnFamily;
 
-/**
- * @deprecated
- */
-public interface SelfExtractor {
+public class AuthTurret {
 	
-	public Element exportToXML(Document document);
+	// TODO get an User from login + Password (+ domain)
+	// TODO create new User
 	
+	// TODO import conf
+	// TODO domain isolation or not
+	
+	private Gson gson_simple;
+	private Gson gson;
+	private ColumnFamily<String, String> user_cf;
+	
+	public Gson getGson() {
+		return gson;
+	}
+	
+	public Gson getGsonSimple() {
+		return gson_simple;
+	}
+	
+	public ColumnFamily<String, String> getUserCF() {
+		return user_cf;
+	}
 }

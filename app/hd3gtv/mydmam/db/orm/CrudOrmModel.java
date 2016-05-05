@@ -16,14 +16,15 @@
 */
 package hd3gtv.mydmam.db.orm;
 
-import hd3gtv.mydmam.db.orm.annotations.HiddenCompactView;
-import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
-
 import java.util.Date;
 import java.util.zip.CRC32;
 
+import hd3gtv.mydmam.db.orm.annotations.HiddenCompactView;
+import hd3gtv.mydmam.db.orm.annotations.ReadOnly;
+
 /**
  * Don't forget to set extended class to public.
+ * @deprecated
  */
 public abstract class CrudOrmModel extends OrmModel {
 	

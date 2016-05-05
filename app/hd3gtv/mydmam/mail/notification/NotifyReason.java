@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.mail.notification;
 
+/**
+ * @deprecated
+ */
 public enum NotifyReason {
 	ERROR, DONE, READED, CLOSED, COMMENTED;
 	

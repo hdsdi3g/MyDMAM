@@ -11,25 +11,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2016
  * 
 */
-package hd3gtv.mydmam.mail.notification;
+package hd3gtv.mydmam.user;
 
-import com.google.gson.JsonObject;
-
-import hd3gtv.mydmam.manager.JobContext;
-
-/**
- * @deprecated
- */
-public class JobContextNotificationClean extends JobContext {
+public class UserActivity {
 	
-	public JsonObject contextToJson() {
-		return null;
-	}
-	
-	public void contextFromJson(JsonObject json_object) {
-	}
+	// TODO import/export db
 	
 }

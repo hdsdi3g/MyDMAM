@@ -32,6 +32,9 @@ import play.data.validation.Required;
 import play.db.jpa.GenericModel;
 import play.db.jpa.JPABase;
 
+/**
+ * @deprecated
+ */
 @Entity
 public class ACLGroup extends GenericModel implements SelfExtractor {
 	

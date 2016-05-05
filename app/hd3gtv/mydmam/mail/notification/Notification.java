@@ -60,6 +60,9 @@ import hd3gtv.mydmam.manager.JobNG.JobStatus;
 import models.UserProfile;
 import play.i18n.Lang;
 
+/**
+ * @deprecated
+ */
 public class Notification {
 	
 	public static final String ES_INDEX = "notifications";

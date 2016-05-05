@@ -16,6 +16,9 @@
 */
 package hd3gtv.mydmam.db.orm;
 
+/**
+ * @deprecated
+ */
 public enum ExpressionOperator {
 	
 	equals, greaterthan, greaterthanequals, lessthan, lessthanequals;

@@ -54,6 +54,9 @@ import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.DeployColumnDef;
 import hd3gtv.mydmam.db.orm.annotations.CassandraIndexed;
 
+/**
+ * @deprecated
+ */
 @SuppressWarnings("unchecked")
 public class CassandraOrm<T extends OrmModel> {
 	

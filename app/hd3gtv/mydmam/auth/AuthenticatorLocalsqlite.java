@@ -38,6 +38,9 @@ import org.junit.Assert;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.BCryptTest;
 
+/**
+ * @deprecated
+ */
 public class AuthenticatorLocalsqlite implements Authenticator, SelfExtractor {
 	
 	private File dbfile;

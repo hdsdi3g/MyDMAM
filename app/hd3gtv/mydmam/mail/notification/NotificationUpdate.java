@@ -16,13 +16,14 @@
 */
 package hd3gtv.mydmam.mail.notification;
 
-import hd3gtv.mydmam.db.orm.CrudOrmModel;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import hd3gtv.mydmam.db.orm.CrudOrmModel;
+
 /**
  * Store all pending notifications actions
+ * @deprecated
  */
 public class NotificationUpdate extends CrudOrmModel {
 	

@@ -40,6 +40,9 @@ import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.orm.CrudOrmEngine;
 import models.UserProfile;
 
+/**
+ * @deprecated
+ */
 public class Basket {
 	
 	/**

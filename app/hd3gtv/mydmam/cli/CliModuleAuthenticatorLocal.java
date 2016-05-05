@@ -10,6 +10,9 @@ import hd3gtv.mydmam.auth.Authenticator;
 import hd3gtv.mydmam.auth.AuthenticatorLocalsqlite;
 import hd3gtv.tools.ApplicationArgs;
 
+/**
+ * @deprecated
+ */
 public class CliModuleAuthenticatorLocal implements CliModule {
 	
 	private static File default_localauth_dbfile = new File("auth.db");

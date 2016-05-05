@@ -42,6 +42,9 @@ import hd3gtv.mydmam.db.orm.annotations.TypeLongText;
 import hd3gtv.mydmam.db.orm.annotations.TypeNavigatorInputSelection;
 import hd3gtv.mydmam.db.orm.annotations.TypePassword;
 
+/**
+ * @deprecated
+ */
 public class ORMFormField {
 	
 	private static Gson gson = new Gson();
