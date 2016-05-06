@@ -129,7 +129,7 @@ public class Instances extends AJSController {
 	
 	@Check("doInstanceAction")
 	public static void instanceAction(AsyncJSInstanceActionRequest action) throws Exception {
-		action.doAction(getUserProfile().key + " " + Secure.getRequestAddress());
+		action.doAction(getUserProfile().getKey() + " " + Secure.getRequestAddress());
 	}
 	
 }

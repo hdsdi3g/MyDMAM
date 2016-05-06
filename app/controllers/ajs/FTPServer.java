@@ -32,6 +32,7 @@ import com.google.gson.JsonSerializer;
 
 import controllers.Check;
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.auth.UserNG;
 import hd3gtv.mydmam.ftpserver.AJSRequestAdminOperationUser;
 import hd3gtv.mydmam.ftpserver.AJSRequestRecent;
 import hd3gtv.mydmam.ftpserver.AJSResponseActivities;
@@ -44,7 +45,6 @@ import hd3gtv.mydmam.ftpserver.FTPOperations;
 import hd3gtv.mydmam.ftpserver.FTPUser;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import hd3gtv.mydmam.web.AJSController;
-import models.UserProfile;
 import play.i18n.Lang;
 import play.jobs.JobsPlugin;
 
@@ -124,28 +124,28 @@ public class FTPServer extends AJSController {
 		
 		FTPUser ftp_user;
 		String clear_password;
-		UserProfile user;
+		UserNG user;
 		
-		public SendMailAfterSave(FTPUser ftp_user, String clear_password, UserProfile user) {
+		public SendMailAfterSave(FTPUser ftp_user, String clear_password, UserNG user) {
 			this.ftp_user = ftp_user;
 			this.clear_password = clear_password;
 			this.user = user;
 		}
 		
 		public Void call() throws Exception {
-			if (user.email == null) {
+			if (user.getEmailAddr() == null) {
 				return null;
 			}
-			if (user.email.equals("")) {
+			if (user.getEmailAddr().equals("")) {
 				return null;
 			}
-			InternetAddress email_addr = new InternetAddress(user.email);
+			InternetAddress email_addr = new InternetAddress(user.getEmailAddr());
 			
 			EndUserBaseMail mail;
-			if (user.language == null) {
+			if (user.getLanguage() == null) {
 				mail = new EndUserBaseMail(Locale.getDefault(), email_addr, "adduserftpserver");
 			} else {
-				mail = new EndUserBaseMail(Lang.getLocale(user.language), email_addr, "adduserftpserver");
+				mail = new EndUserBaseMail(Lang.getLocale(user.getLanguage()), email_addr, "adduserftpserver");
 			}
 			HashMap<String, Object> mail_vars = new HashMap<String, Object>();
 			mail_vars.put("login", ftp_user.getName());

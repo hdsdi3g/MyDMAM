@@ -74,7 +74,6 @@ public class MainClass {
 		
 		ArrayList<CliModule> modules = new ArrayList<CliModule>();
 		modules.add(new CliModuleAccessControl());
-		modules.add(new CliModuleAuthenticatorLocal());
 		modules.add(new CliModuleSsh());
 		modules.add(new CliModuleStorageManager());
 		modules.add(new CliModuleCDFinderPathIndexer());

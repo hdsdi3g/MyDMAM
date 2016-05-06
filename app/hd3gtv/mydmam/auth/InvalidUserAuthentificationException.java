@@ -1,12 +1,12 @@
 package hd3gtv.mydmam.auth;
 
-public class InvalidAuthenticatorUserException extends Exception {
+public class InvalidUserAuthentificationException extends Exception {
 	
-	InvalidAuthenticatorUserException(String message, Throwable cause) {
+	InvalidUserAuthentificationException(String message, Throwable cause) {
 		super(message, cause);
 	}
 	
-	InvalidAuthenticatorUserException(String message) {
+	InvalidUserAuthentificationException(String message) {
 		super(message);
 	}
 	

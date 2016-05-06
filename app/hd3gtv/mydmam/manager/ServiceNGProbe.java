@@ -18,7 +18,6 @@ package hd3gtv.mydmam.manager;
 
 import hd3gtv.mydmam.db.status.ClusterStatusEvents;
 import hd3gtv.mydmam.db.status.ClusterStatusService;
-import hd3gtv.mydmam.mail.notification.NotificationWorker;
 import hd3gtv.mydmam.metadata.WorkerIndexer;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
@@ -55,7 +54,6 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	protected void startService() throws Exception {
 		AppManager manager = getManager();
 		
-		new NotificationWorker(manager);
 		manager.register(new Publish());
 		manager.register(new PathScan().cyclicJobsRegister(manager));
 		

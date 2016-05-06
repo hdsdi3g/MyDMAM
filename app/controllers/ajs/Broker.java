@@ -71,7 +71,7 @@ public class Broker extends AJSController {
 	public static AsyncJSBrokerResponseAction action(AsyncJSBrokerRequestAction request) throws Exception {
 		AsyncJSBrokerResponseAction result = new AsyncJSBrokerResponseAction();
 		
-		Loggers.Job.info("Do action on job(s), caller: " + AJSController.getUserProfile().key + " [" + Secure.getRequestAddress() + "], " + request);
+		Loggers.Job.info("Do action on job(s), caller: " + AJSController.getUserProfile().getKey() + " [" + Secure.getRequestAddress() + "], " + request);
 		
 		if (request.job_key != null) {
 			result.modified_jobs = JobNG.Utility.alterJobByKey(request.job_key, request.order);

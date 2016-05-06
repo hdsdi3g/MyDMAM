@@ -21,11 +21,14 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.util.Random;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.net.util.Base64;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -98,4 +101,15 @@ public class Password {
 		return false;
 	}
 	
+	/**
+	 * @return 12 first chars of Base64(SHA-264(random(1024b)))
+	 */
+	public static String passwordGenerator() throws NoSuchAlgorithmException, NoSuchProviderException {
+		MessageDigest md = MessageDigest.getInstance("SHA-256");
+		Random r = new Random();
+		byte[] fill = new byte[1024];
+		r.nextBytes(fill);
+		byte[] key = md.digest(fill);
+		return new String(Base64.encodeBase64String(key)).substring(0, 12);
+	}
 }

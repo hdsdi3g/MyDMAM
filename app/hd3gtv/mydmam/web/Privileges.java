@@ -47,7 +47,7 @@ import play.vfs.VirtualFile;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class Privileges {
 	
-	private static final List<String> privileges;
+	private static final List<String> privileges;// TODO add callers list for each privilege
 	private static final String privileges_json_array;
 	
 	static {

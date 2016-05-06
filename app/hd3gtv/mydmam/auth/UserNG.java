@@ -14,15 +14,21 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2016
  * 
 */
-package hd3gtv.mydmam.user;
+package hd3gtv.mydmam.auth;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Properties;
+
+import javax.mail.internet.InternetAddress;
 
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.MutationBatch;
+
+import hd3gtv.mydmam.mail.EndUserBaseMail;
+import play.i18n.Lang;
 
 public class UserNG {
 	
@@ -31,6 +37,8 @@ public class UserNG {
 	private String login;
 	private String fullname;
 	private String domain;
+	private String language;
+	private String email_addr;
 	private byte[] protected_password;
 	
 	private long lasteditdate;
@@ -72,17 +80,41 @@ public class UserNG {
 		// TODO like update lasteditdate
 	}
 	
-	void doLoginOperations(String loginipsource) {
-		// TODO like update lastlogindate ...
+	void doLoginOperations(String loginipsource, String language, String email_addr) {
+		this.lastloginipsource = loginipsource;
+		this.language = language;
+		this.email_addr = email_addr;
+		this.lastlogindate = System.currentTimeMillis();
+	}
+	
+	public String getFullname() {
+		return fullname;
+	}
+	
+	public String getEmailAddr() {
+		return email_addr;
 	}
 	
 	public boolean isLockedAccount() {
 		return locked_account;
 	}
 	
+	public String getLanguage() {
+		return language;
+	}
+	
 	public ArrayList<GroupNG> getUserGroups() {
 		// TODO lazy load
 		return user_groups;
+	}
+	
+	public String getKey() {
+		return key;
+	}
+	
+	public String toString() {
+		// TODO Auto-generated method stub
+		return super.toString();
 	}
 	
 	public Properties getProperties() {
@@ -113,6 +145,20 @@ public class UserNG {
 	public HashSet<String> getUser_groups_roles_privileges() {
 		// TODO lazy load
 		return user_groups_roles_privileges;
+	}
+	
+	public void sendTestMail() throws Exception {
+		// TODO create button for send a mail
+		InternetAddress email_addr = new InternetAddress(this.email_addr);
+		
+		EndUserBaseMail mail;
+		if (language == null) {
+			mail = new EndUserBaseMail(Locale.getDefault(), email_addr, "usertestmail");
+		} else {
+			mail = new EndUserBaseMail(Lang.getLocale(language), email_addr, "usertestmail");
+		}
+		
+		mail.send();
 	}
 	
 	// TODO import/export db

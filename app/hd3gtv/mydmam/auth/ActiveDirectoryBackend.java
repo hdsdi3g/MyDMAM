@@ -33,7 +33,9 @@ import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 
-class AuthenticatorActivedirectory implements Authenticator {
+class ActiveDirectoryBackend {
+	
+	// TODO load AD groups, load from conf
 	
 	private String domain;
 	private String server;
@@ -41,7 +43,7 @@ class AuthenticatorActivedirectory implements Authenticator {
 	
 	private static final String[] userAttributes = { "distinguishedName", "cn", "name", "uid", "sn", "givenname", "memberOf", "samaccountname", "userPrincipalName", "mail" };
 	
-	public AuthenticatorActivedirectory(String domain, String server, int ldap_port) {
+	public ActiveDirectoryBackend(String domain, String server, int ldap_port) {
 		this.domain = domain;
 		if (domain == null) {
 			throw new NullPointerException("\"domain\" can't to be null");
@@ -69,7 +71,7 @@ class AuthenticatorActivedirectory implements Authenticator {
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public AuthenticationUser getUser(String username, String password) throws NullPointerException, IOException, InvalidAuthenticatorUserException {
+	public ADUser getUser(String username, String password) throws NullPointerException, IOException, InvalidUserAuthentificationException {
 		if (username == null) {
 			throw new NullPointerException("\"username\" can't to be null");
 		}
@@ -101,7 +103,7 @@ class AuthenticatorActivedirectory implements Authenticator {
 					Attributes attr = answer.next().getAttributes();
 					Attribute user = attr.get("userPrincipalName");
 					if (user != null) {
-						return new ActivedirectoryUser(attr);
+						return new ADUser(attr);
 					}
 				}
 			}
@@ -109,40 +111,30 @@ class AuthenticatorActivedirectory implements Authenticator {
 		} catch (CommunicationException e) {
 			throw new IOException("Failed to connect to " + server + ":" + String.valueOf(ldap_port), e);
 		} catch (NamingException e) {
-			throw new InvalidAuthenticatorUserException("Failed to authenticate " + username + "@" + domain + " through " + server, e);
+			throw new InvalidUserAuthentificationException("Failed to authenticate " + username + "@" + domain + " through " + server, e);
 		}
 	}
 	
-	class ActivedirectoryUser implements AuthenticationUser {
+	class ADUser {
 		
 		// private String distinguishedName;
+		/**
+		 * Login
+		 */
 		private String userprincipal;
+		/**
+		 * FullName
+		 */
 		private String commonname;
 		private String mail;
 		
-		private ActivedirectoryUser(Attributes attr) throws NamingException {
+		private ADUser(Attributes attr) throws NamingException {
 			userprincipal = (String) attr.get("userPrincipalName").get();
 			commonname = (String) attr.get("cn").get();
 			// distinguishedName = (String) attr.get("distinguishedName").get();
 			if (attr.get("mail") != null) {
 				mail = (String) attr.get("mail").get();
 			}
-		}
-		
-		public String getFullName() {
-			return commonname;
-		}
-		
-		public String getLogin() {
-			return userprincipal;
-		}
-		
-		public String getSourceName() {
-			return "Active Directory";
-		}
-		
-		public String getMail() {
-			return mail;
 		}
 		
 	}

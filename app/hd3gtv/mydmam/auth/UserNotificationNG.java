@@ -14,10 +14,8 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2016
  * 
 */
-package hd3gtv.mydmam.user;
+package hd3gtv.mydmam.auth;
 
 public class UserNotificationNG {
-	
-	// TODO import/export db
-	
+
 }

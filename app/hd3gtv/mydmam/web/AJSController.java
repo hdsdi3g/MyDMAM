@@ -32,12 +32,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import controllers.Secure;
+import ext.Bootstrap;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.auth.UserNG;
 import hd3gtv.mydmam.web.AJSControllerItem.Verb;
 import hd3gtv.tools.GsonIgnoreStrategy;
-import models.UserProfile;
 import play.Play;
 import play.vfs.VirtualFile;
 
@@ -223,11 +223,8 @@ public class AJSController {
 	}
 	
 	@AJSIgnore
-	public static UserProfile getUserProfile() throws Exception {
-		String username = Secure.connected();
-		String key = UserProfile.prepareKey(username);
-		CrudOrmEngine<UserProfile> engine = UserProfile.getORMEngine(key);
-		return engine.getInternalElement();
+	public static UserNG getUserProfile() throws Exception {
+		return Bootstrap.auth.getByUserKey(Secure.connected());
 	}
 	
 	@AJSIgnore

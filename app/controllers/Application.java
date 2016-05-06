@@ -38,7 +38,6 @@ import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.web.Basket;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.mydmam.web.search.SearchRequest;
@@ -46,7 +45,6 @@ import hd3gtv.mydmam.web.stat.PathElementStat;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
-import play.jobs.JobsPlugin;
 import play.mvc.Controller;
 import play.mvc.Http.Header;
 import play.mvc.With;
@@ -66,11 +64,6 @@ public class Application extends Controller {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("application.navigate"));
 		
 		String current_basket_content = "[]";
-		try {
-			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
-		} catch (Exception e) {
-			Loggers.Play.error("Can't get user basket", e);
-		}
 		String list_external_positions_storages = MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
 		
 		render(current_basket_content, list_external_positions_storages);
@@ -117,15 +110,6 @@ public class Application extends Controller {
 	public static void index() {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		String current_basket_content = "[]";
-		try {
-			Basket basket = Basket.getBasketForCurrentPlayUser();
-			current_basket_content = basket.getSelectedContentJson();
-			if (basket.isKeepIndexDeletedBasketItems() == false) {
-				JobsPlugin.executor.submit(new UserBasket.AsyncCleanBasket(basket));
-			}
-		} catch (Exception e) {
-			Loggers.Play.error("Can't get user basket", e);
-		}
 		render(title, current_basket_content);
 	}
 	
