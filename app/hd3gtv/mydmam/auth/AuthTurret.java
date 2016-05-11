@@ -16,26 +16,83 @@
 */
 package hd3gtv.mydmam.auth;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.Properties;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.serializers.StringSerializer;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class AuthTurret {
 	
-	// TODO get an User from login + Password (+ domain)
-	// TODO create new User
-	
-	// TODO import conf
-	// TODO domain isolation or not
-	
+	private static final ColumnFamily<String, String> CF_AUTH = new ColumnFamily<String, String>("mgrAuth", StringSerializer.get(), StringSerializer.get());
 	private static final String ADMIN_USER_NAME = "admin";
 	private static final String ADMIN_ROLE_NAME = "administrator";
 	private static final String GUEST_USER_NAME = "guest";
 	private static final String GROUP_ADMIN_NAME = "administrators";
 	private static final String GROUP_NEWUSERS_NAME = "new_users";
 	
-	public AuthTurret() {
+	private Gson gson_simple;// TODO set
+	private Gson gson;// TODO set
+	
+	private Keyspace keyspace;
+	
+	// TODO create new User
+	// TODO import conf
+	// TODO domain isolation or not
+	
+	public AuthTurret(Keyspace keyspace) throws ConnectionException {
+		
+		/**
+		 * Load Cassandra access
+		 */
+		this.keyspace = keyspace;
+		if (keyspace == null) {
+			throw new NullPointerException("\"keyspace\" can't to be null");
+		}
+		if (CassandraDb.isColumnFamilyExists(keyspace, CF_AUTH.getName()) == false) {
+			CassandraDb.createColumnFamilyString(keyspace.getKeyspaceName(), CF_AUTH.getName(), false);
+		}
+		
+		/**
+		 * Init Gson tools
+		 */
+		GsonBuilder builder = new GsonBuilder();
+		builder.serializeNulls();
+		
+		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		
+		/**
+		 * Outside of this package serializers
+		 */
+		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		
+		gson_simple = builder.create();
+		
+		/**
+		 * Inside of this package serializers
+		 */
+		builder.registerTypeAdapter(Properties.class, new PropertiesSerializer());
+		gson = builder.create();
+		
 		/**
 		 * Peuplate DB ACLs:
 		 * TODO import & destroy XML account_export file:
@@ -71,6 +128,57 @@ public class AuthTurret {
 			throw new Exception("User " + ACLUser.ADMIN_NAME + " is disabled in sqlite file !");
 		}
 		 * */
+	}
+	
+	private class PropertiesSerializer implements JsonSerializer<Properties>, JsonDeserializer<Properties> {
+		
+		public Properties deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			JsonObject src = json.getAsJsonObject();
+			Properties result = new Properties();
+			
+			for (Map.Entry<String, JsonElement> entry : src.entrySet()) {
+				result.setProperty(entry.getKey(), entry.getValue().getAsJsonPrimitive().getAsString());
+			}
+			
+			return result;
+		}
+		
+		public JsonElement serialize(Properties src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = new JsonObject();
+			Object value;
+			for (Map.Entry<Object, Object> entry : src.entrySet()) {
+				value = entry.getValue();
+				if (value == null) {
+					continue;
+				} else {
+					result.addProperty((String) entry.getKey(), (String) value);
+				}
+			}
+			return result;
+		}
+	}
+	
+	public Gson getGson() {
+		return gson;
+	}
+	
+	public Gson getGsonSimple() {
+		return gson_simple;
+	}
+	
+	public boolean isForceSelectDomain() {
+		// TODO from conf
+		return false;
+	}
+	
+	public ArrayList<String> declaredDomainList() {
+		// TODO from conf
+		return new ArrayList<String>();
+	}
+	
+	public UserNG getByUserKey(String user_key) {
+		// TODO
+		return null;
 	}
 	
 	public UserNG authenticate(String remote_address, String username, String password, String domain, String language) throws InvalidUserAuthentificationException {
@@ -123,32 +231,4 @@ public class AuthTurret {
 		throw new InvalidAuthenticatorUserException("Can't authenticate with " + username);*/
 		return null;
 	}
-	
-	private Gson gson_simple;// TODO set
-	private Gson gson;// TODO set
-	private ColumnFamily<String, String> user_cf;// TODO set
-	
-	public Gson getGson() {
-		return gson;
-	}
-	
-	public Gson getGsonSimple() {
-		return gson_simple;
-	}
-	
-	public boolean isForceSelectDomain() {
-		// TODO from conf
-		return false;
-	}
-	
-	public ArrayList<String> declaredDomainList() {
-		// TODO from conf
-		return new ArrayList<String>();
-	}
-	
-	public UserNG getByUserKey(String user_key) {
-		// TODO
-		return null;
-	}
-	
 }

@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.auth;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -24,8 +25,10 @@ import java.util.Properties;
 
 import javax.mail.internet.InternetAddress;
 
+import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonObject;
-import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.model.ColumnList;
 
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import play.i18n.Lang;
@@ -50,13 +53,71 @@ public class UserNG {
 	private JsonObject preferencies;
 	private Properties properties;
 	private LinkedHashMap<String, BasketNG> baskets;
-	private ArrayList<UserActivity> activity;
+	private ArrayList<UserActivity> activities;
 	private ArrayList<UserNotificationNG> notifications;
 	
-	private ArrayList<RoleNG> user_groups_roles;
-	private HashSet<String> user_groups_roles_privileges;
+	private transient ArrayList<RoleNG> user_groups_roles;
+	private transient HashSet<String> user_groups_roles_privileges;
+	private transient AuthTurret turret;
+	
+	private static Type al_group_typeOfT = new TypeToken<ArrayList<GroupNG>>() {
+	}.getType();
+	private static Type linmap_string_basket_typeOfT = new TypeToken<LinkedHashMap<String, BasketNG>>() {
+	}.getType();
+	private static Type al_useractivity_typeOfT = new TypeToken<ArrayList<UserActivity>>() {
+	}.getType();
+	private static Type al_usernotification_typeOfT = new TypeToken<ArrayList<UserNotificationNG>>() {
+	}.getType();
+	
+	// TODO Gson (de) serializers
+	// TODO import db
+	// TODO CRUD
+	
+	UserNG save(ColumnListMutation<String> mutator) {
+		mutator.putColumnIfNotNull("login", login);
+		mutator.putColumnIfNotNull("fullname", fullname);
+		mutator.putColumnIfNotNull("domain", domain);
+		mutator.putColumnIfNotNull("language", language);
+		mutator.putColumnIfNotNull("email_addr", email_addr);
+		mutator.putColumnIfNotNull("protected_password", protected_password);
+		mutator.putColumnIfNotNull("lasteditdate", lasteditdate);
+		mutator.putColumnIfNotNull("lastlogindate", lastlogindate);
+		mutator.putColumnIfNotNull("lastloginipsource", lastloginipsource);
+		mutator.putColumnIfNotNull("locked_account", locked_account);
+		
+		if (user_groups != null) {
+			mutator.putColumnIfNotNull("user_groups", turret.getGson().toJson(user_groups, al_group_typeOfT));
+		}
+		if (properties != null) {
+			mutator.putColumnIfNotNull("properties", turret.getGson().toJson(properties));
+		}
+		if (baskets != null) {
+			mutator.putColumnIfNotNull("baskets", turret.getGson().toJson(baskets, linmap_string_basket_typeOfT));
+		}
+		if (activities != null) {
+			mutator.putColumnIfNotNull("activities", turret.getGson().toJson(activities, al_useractivity_typeOfT));
+		}
+		if (notifications != null) {
+			mutator.putColumnIfNotNull("notifications", turret.getGson().toJson(notifications, al_usernotification_typeOfT));
+		}
+		if (preferencies != null) {
+			mutator.putColumnIfNotNull("preferencies", preferencies.toString());
+		}
+		
+		return this;
+	}
+	
+	UserNG loadFromDb(String key, ColumnList<String> cols) {
+		// TODO
+		return this;
+	}
 	
 	UserNG(AuthTurret turret, String key, boolean load_from_db) {
+		this.turret = turret;
+		if (turret == null) {
+			throw new NullPointerException("\"turret\" can't to be null");
+		}
+		
 		// TODO Auto-generated constructor stub
 	}
 	
@@ -70,10 +131,6 @@ public class UserNG {
 		// TODO
 		// TODO lazy load preferencies
 		return null;
-	}
-	
-	void save(MutationBatch mutator) {
-		// TODO
 	}
 	
 	void doUpdateOperations() {
@@ -129,7 +186,7 @@ public class UserNG {
 	
 	public ArrayList<UserActivity> getActivity() {
 		// TODO lazy load
-		return activity;
+		return activities;
 	}
 	
 	public ArrayList<UserNotificationNG> getNotifications() {
@@ -160,9 +217,5 @@ public class UserNG {
 		
 		mail.send();
 	}
-	
-	// TODO import/export db
-	
-	// TODO CRUD
 	
 }

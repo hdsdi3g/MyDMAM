@@ -35,10 +35,14 @@ import play.jobs.OnApplicationStart;
 @OnApplicationStart
 public class Bootstrap extends Job {
 	
-	public static final AuthTurret auth;
+	public static AuthTurret auth;
 	
 	static {
-		auth = new AuthTurret();
+		try {
+			auth = new AuthTurret(CassandraDb.getkeyspace());
+		} catch (ConnectionException e) {
+			Loggers.Play.error("Can't access to Cassandra");
+		}
 	}
 	
 	public void doJob() {

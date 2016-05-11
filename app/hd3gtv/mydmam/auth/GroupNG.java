@@ -16,17 +16,47 @@
 */
 package hd3gtv.mydmam.auth;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
 
+import com.google.common.reflect.TypeToken;
+import com.netflix.astyanax.ColumnListMutation;
+
 public class GroupNG {
 	
-	private String name;
+	private String key;
+	private String group_name;
 	private ArrayList<RoleNG> group_roles;
-	private HashSet<String> group_roles_privileges;
-	private ArrayList<UserNG> users_group;
 	
-	// TODO import/export db
+	private transient HashSet<String> group_roles_privileges;
+	private transient ArrayList<UserNG> users_group;
+	private transient AuthTurret turret;
+	
+	private static Type al_role_typeOfT = new TypeToken<ArrayList<RoleNG>>() {
+	}.getType();
+	
+	GroupNG save(ColumnListMutation<String> mutator) {
+		mutator.putColumnIfNotNull("group_name", group_name);
+		if (group_roles != null) {
+			mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(group_roles, al_role_typeOfT));
+		}
+		return this;
+	}
+	
+	GroupNG(AuthTurret turret, String key, boolean load_from_db) {
+		this.turret = turret;
+		if (turret == null) {
+			throw new NullPointerException("\"turret\" can't to be null");
+		}
+	}
+	
+	public String getKey() {
+		return key;
+	}
+	
+	// TODO import db
 	
 	// TODO CRUD
+	// TODO Gson (de) serializers
 }
