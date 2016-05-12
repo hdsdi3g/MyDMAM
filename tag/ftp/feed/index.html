@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>FTP &#8211; MyDMAM Project</title>
+	<atom:link href="http://mydmam.org/tag/ftp/feed/" rel="self" type="application/rss+xml" />
+	<link>http://mydmam.org</link>
+	<description>Another way of looking a Digital Media Asset Management</description>
+	<lastBuildDate>Fri, 29 Apr 2016 14:51:05 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>hourly</sy:updatePeriod>
+	<sy:updateFrequency>1</sy:updateFrequency>
+	
+
+<image>
+	<url>http://mydmam.org/wp-content/uploads/2016/05/cropped-Favicon-MyDMAM-tres-grande-zoom-32x32.png</url>
+	<title>FTP &#8211; MyDMAM Project</title>
+	<link>http://mydmam.org</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<item>
+		<title>Git master branch update v0.14</title>
+		<link>http://mydmam.org/2016/03/git-master-branch-update-v0-14/</link>
+		<pubDate>Sat, 05 Mar 2016 22:33:17 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[AsyncJS]]></category>
+		<category><![CDATA[FTP]]></category>
+		<category><![CDATA[log4j]]></category>
+		<category><![CDATA[React]]></category>
+		<category><![CDATA[Watchfolder]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=456</guid>
+		<description><![CDATA[A very BIG update. MyDMAM is not dead ! New functionalities: Create a distributed transcoding watchfolder system (#115, #114, #143) Add an integrated and controlled FTP Server (via an Apache FtpServer handler) (#157 and #175) Enhancements and refactoring: Add AsyncJS/React router and implement/refactor several JS Pages (#159, #154, #109, #134 and #167) Refactor all dirlists with loop protection (#128) Refactor JS/JSX processing operation code [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>A very BIG update. MyDMAM is not dead !</p>
+<p>New functionalities:</p>
+<ul>
+<li>Create a <strong>distributed transcoding watchfolder system</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/115" target="_blank">#115</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/114" target="_blank">#114</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/143" target="_blank">#143</a>)</li>
+<li>Add an integrated and controlled <strong>FTP Server</strong> (via an Apache FtpServer handler) (<a href="https://github.com/hdsdi3g/MyDMAM/issues/157" target="_blank">#157</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/175" target="_blank">#175</a>)</li>
+</ul>
+<p>Enhancements and refactoring:</p>
+<ul>
+<li>Add AsyncJS/React router and implement/refactor several JS Pages (<a href="https://github.com/hdsdi3g/MyDMAM/issues/159" target="_blank">#159</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/154" target="_blank">#154</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/109" target="_blank">#109</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/134" target="_blank">#134</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/167" target="_blank">#167</a>)</li>
+<li>Refactor all dirlists with loop protection (<a href="https://github.com/hdsdi3g/MyDMAM/issues/128" target="_blank">#128</a>)</li>
+<li>Refactor JS/JSX processing operation code (<a href="https://github.com/hdsdi3g/MyDMAM/issues/168" target="_blank">#168</a>)</li>
+<li>Remove Log2 logging for log4j and refactor all log systems (<a href="https://github.com/hdsdi3g/MyDMAM/issues/141" target="_blank">#141</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/152" target="_blank">#152,</a> <a href="https://github.com/hdsdi3g/MyDMAM/issues/153" target="_blank">#153</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/165" target="_blank">#165</a>)</li>
+<li>Improve AppManager Instance Action / Status, and upgrade to a real API for this (<a href="https://github.com/hdsdi3g/MyDMAM/issues/158" target="_blank">#158</a>)</li>
+<li>Extract BlockedIPs/access control from Play to a generic tool (<a href="https://github.com/hdsdi3g/MyDMAM/issues/163" target="_blank">#163</a>)</li>
+<li>Create a &#8220;Stoppable Thread&#8221; for all services Threads and all sleep needs (<a href="https://github.com/hdsdi3g/MyDMAM/issues/170" target="_blank">#170</a>)</li>
+<li>Display drift date for user compared to current server date (<a href="https://github.com/hdsdi3g/MyDMAM/issues/169" target="_blank">#169</a>)</li>
+</ul>
+<p>Bug correction:</p>
+<ul>
+<li>Remove IE 8 JS support (<a href="https://github.com/hdsdi3g/MyDMAM/issues/113" target="_blank">#113</a>)</li>
+<li>Desactivate admin mail with just remove service.administrator_mail in configuration (<a href="https://github.com/hdsdi3g/MyDMAM/issues/145" target="_blank">#145</a>)</li>
+<li>ffmpeg upgrade, remove strict and add vf null in command line and example config files (<a href="https://github.com/hdsdi3g/MyDMAM/issues/146" target="_blank">#146</a>)</li>
+<li>Bug with Broker: NPE if a worker is waiting a new job and there a some waiting jobs that it can&#8217;t manage (<a href="https://github.com/hdsdi3g/MyDMAM/issues/147" target="_blank">#147</a>)</li>
+<li>Play 1.4.x compatibility checking (<a href="https://github.com/hdsdi3g/MyDMAM/issues/150" target="_blank">#150</a>)</li>
+<li>Loosing a Cassandra node can break broker (TokenRangeOfflineException) (<a href="https://github.com/hdsdi3g/MyDMAM/issues/160" target="_blank">#160</a>)</li>
+<li>Stacktraces and ES errors with some bad chars during a search (<a href="https://github.com/hdsdi3g/MyDMAM/issues/161" target="_blank">#161</a>)</li>
+<li>Create ES Index during TTL enabling (<a href="https://github.com/hdsdi3g/MyDMAM/issues/162" target="_blank">#162</a>)</li>
+<li>Pagination don&#8217;t works in Navigator pages (<a href="https://github.com/hdsdi3g/MyDMAM/issues/164" target="_blank">#164</a>)</li>
+<li>Play can&#8217;t load JSX from module (<a href="https://github.com/hdsdi3g/MyDMAM/issues/166" target="_blank">#166</a>)</li>
+<li>Can&#8217;t upgrade privileges admin list (<a href="https://github.com/hdsdi3g/MyDMAM/issues/172" target="_blank">#172</a>)</li>
+<li>No storage configuration cause a NPE (<a href="https://github.com/hdsdi3g/MyDMAM/issues/174" target="_blank">#174</a>)</li>
+</ul>
+]]></content:encoded>
+			</item>
+	</channel>
+</rss>
+
+<!-- Performance optimized by W3 Total Cache. Learn more: http://www.w3-edge.com/wordpress-plugins/
+
+Minified using disk
+Page Caching using disk: enhanced
+Database Caching 5/9 queries in 0.002 seconds using disk
+Object Caching 374/379 objects using disk
+
+ Served from: mydmam.org @ 2016-05-12 20:27:15 by W3 Total Cache -->

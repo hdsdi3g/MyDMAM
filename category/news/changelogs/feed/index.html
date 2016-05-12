@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>Changelogs &#8211; MyDMAM Project</title>
+	<atom:link href="http://mydmam.org/category/news/changelogs/feed/" rel="self" type="application/rss+xml" />
+	<link>http://mydmam.org</link>
+	<description>Another way of looking a Digital Media Asset Management</description>
+	<lastBuildDate>Fri, 29 Apr 2016 14:51:05 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>hourly</sy:updatePeriod>
+	<sy:updateFrequency>1</sy:updateFrequency>
+	
+
+<image>
+	<url>http://mydmam.org/wp-content/uploads/2016/05/cropped-Favicon-MyDMAM-tres-grande-zoom-32x32.png</url>
+	<title>Changelogs &#8211; MyDMAM Project</title>
+	<link>http://mydmam.org</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<item>
+		<title>Git master branch update v0.16</title>
+		<link>http://mydmam.org/2016/04/git-master-branch-update-v0-16/</link>
+		<pubDate>Fri, 29 Apr 2016 14:36:41 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[CLI]]></category>
+		<category><![CDATA[EBU R128]]></category>
+		<category><![CDATA[ffmpeg]]></category>
+		<category><![CDATA[LUFS]]></category>
+		<category><![CDATA[Manager]]></category>
+		<category><![CDATA[Metadata]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=466</guid>
+		<description><![CDATA[It&#8217;s a new version and it adds a new wonderful function (#176): Audio Deep Analysis. It retrieve loudness (LUFS) history for any media file (audio and video). The analyst is in the backend side, and it displays results in web interface some audio stats (like LU, True Peak, DC offset, RMS average&#8230;) and an interactive [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>It&#8217;s a new version and it adds a new wonderful function (<a href="https://github.com/hdsdi3g/MyDMAM/issues/176" target="_blank">#176</a>): <strong>Audio Deep Analysis</strong>. It retrieve loudness (LUFS) history for any media file (audio and video). The analyst is in the backend side, and it displays results in web interface some audio stats (like LU, True Peak, DC offset, RMS average&#8230;) and an interactive graphic. The backend engine is <a href="https://github.com/jiixyj/libebur128" target="_blank">libebur128</a> via ffmpeg and the graphic engine is <a href="http://www.jfree.org/jfreechart/" target="_blank">jFreeChart</a>.</p>
+<p>This update also bring some bug corrections and improvements:</p>
+<ul>
+<li>Add trace, verbose and quiet options for CLI (<a href="https://github.com/hdsdi3g/MyDMAM/issues/192" target="_blank">#192</a>)</li>
+<li>Correct Windows issues (<a href="https://github.com/hdsdi3g/MyDMAM/issues/188" target="_blank">#188</a>)</li>
+<li>Upgrade and clean Metadata API (<a href="https://github.com/hdsdi3g/MyDMAM/issues/189" target="_blank">#189</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/190" target="_blank">#190,</a> <a href="https://github.com/hdsdi3g/MyDMAM/issues/191" target="_blank">#191</a>)</li>
+<li>Bug during create manager actions: orders don&#8217;t works (<a href="https://github.com/hdsdi3g/MyDMAM/issues/193" target="_blank">#193</a>)</li>
+</ul>
+<p>And now, an example:</p>
+<p><a href="http://mydmam.org/2016/04/git-master-branch-update-v0-16/audio-da/" rel="attachment wp-att-472"><img class="alignnone wp-image-472 size-full" src="http://mydmam.org/wp-content/uploads/2016/04/audio-da.jpg" alt="Audio Deep Analysis example" width="1019" height="914" srcset="http://mydmam.org/wp-content/uploads/2016/04/audio-da.jpg 1019w, http://mydmam.org/wp-content/uploads/2016/04/audio-da-300x269.jpg 300w, http://mydmam.org/wp-content/uploads/2016/04/audio-da-768x689.jpg 768w" sizes="(max-width: 1019px) 100vw, 1019px" /></a></p>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.15</title>
+		<link>http://mydmam.org/2016/04/git-master-branch-update-v0-15/</link>
+		<pubDate>Mon, 11 Apr 2016 19:54:40 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[Cyclic]]></category>
+		<category><![CDATA[Metadata]]></category>
+		<category><![CDATA[Watchfolder]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=462</guid>
+		<description><![CDATA[A new update with some corrections and little enhancements: Protect double Cyclic execute during Probe reboot (#151) Correct Webserver bugs with reverse proxy + SSL (#179, #180) Correct a lot of grave bugs with Metadatas (#181, #185, #183) for preparing #176 Correct some problems with Watchfolder (#182, #187) Ignoring Thumbs.db files (#187) This update don&#8217;t break the actual working and don&#8217;t [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>A new update with some corrections and little enhancements:</p>
+<ul>
+<li>Protect double Cyclic execute during Probe reboot (<a href="https://github.com/hdsdi3g/MyDMAM/issues/151" target="_blank">#151</a>)</li>
+<li>Correct Webserver bugs with reverse proxy + SSL (<a href="https://github.com/hdsdi3g/MyDMAM/issues/179" target="_blank">#179</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/180" target="_blank">#180</a>)</li>
+<li>Correct a lot of grave bugs with Metadatas (<a href="https://github.com/hdsdi3g/MyDMAM/issues/181" target="_blank">#181</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/185" target="_blank">#185</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/183" target="_blank">#183</a>) for preparing <a href="https://github.com/hdsdi3g/MyDMAM/issues/176" target="_blank">#176</a></li>
+<li>Correct some problems with Watchfolder (<a href="https://github.com/hdsdi3g/MyDMAM/issues/182" target="_blank">#182</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/187" target="_blank">#187</a>)</li>
+<li>Ignoring Thumbs.db files (<a href="https://github.com/hdsdi3g/MyDMAM/issues/187" target="_blank">#187</a>)</li>
+</ul>
+<p>This update don&#8217;t break the actual working and don&#8217;t need to change configuration files.</p>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.14</title>
+		<link>http://mydmam.org/2016/03/git-master-branch-update-v0-14/</link>
+		<pubDate>Sat, 05 Mar 2016 22:33:17 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[AsyncJS]]></category>
+		<category><![CDATA[FTP]]></category>
+		<category><![CDATA[log4j]]></category>
+		<category><![CDATA[React]]></category>
+		<category><![CDATA[Watchfolder]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=456</guid>
+		<description><![CDATA[A very BIG update. MyDMAM is not dead ! New functionalities: Create a distributed transcoding watchfolder system (#115, #114, #143) Add an integrated and controlled FTP Server (via an Apache FtpServer handler) (#157 and #175) Enhancements and refactoring: Add AsyncJS/React router and implement/refactor several JS Pages (#159, #154, #109, #134 and #167) Refactor all dirlists with loop protection (#128) Refactor JS/JSX processing operation code [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>A very BIG update. MyDMAM is not dead !</p>
+<p>New functionalities:</p>
+<ul>
+<li>Create a <strong>distributed transcoding watchfolder system</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/115" target="_blank">#115</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/114" target="_blank">#114</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/143" target="_blank">#143</a>)</li>
+<li>Add an integrated and controlled <strong>FTP Server</strong> (via an Apache FtpServer handler) (<a href="https://github.com/hdsdi3g/MyDMAM/issues/157" target="_blank">#157</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/175" target="_blank">#175</a>)</li>
+</ul>
+<p>Enhancements and refactoring:</p>
+<ul>
+<li>Add AsyncJS/React router and implement/refactor several JS Pages (<a href="https://github.com/hdsdi3g/MyDMAM/issues/159" target="_blank">#159</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/154" target="_blank">#154</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/109" target="_blank">#109</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/134" target="_blank">#134</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/167" target="_blank">#167</a>)</li>
+<li>Refactor all dirlists with loop protection (<a href="https://github.com/hdsdi3g/MyDMAM/issues/128" target="_blank">#128</a>)</li>
+<li>Refactor JS/JSX processing operation code (<a href="https://github.com/hdsdi3g/MyDMAM/issues/168" target="_blank">#168</a>)</li>
+<li>Remove Log2 logging for log4j and refactor all log systems (<a href="https://github.com/hdsdi3g/MyDMAM/issues/141" target="_blank">#141</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/152" target="_blank">#152,</a> <a href="https://github.com/hdsdi3g/MyDMAM/issues/153" target="_blank">#153</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/165" target="_blank">#165</a>)</li>
+<li>Improve AppManager Instance Action / Status, and upgrade to a real API for this (<a href="https://github.com/hdsdi3g/MyDMAM/issues/158" target="_blank">#158</a>)</li>
+<li>Extract BlockedIPs/access control from Play to a generic tool (<a href="https://github.com/hdsdi3g/MyDMAM/issues/163" target="_blank">#163</a>)</li>
+<li>Create a &#8220;Stoppable Thread&#8221; for all services Threads and all sleep needs (<a href="https://github.com/hdsdi3g/MyDMAM/issues/170" target="_blank">#170</a>)</li>
+<li>Display drift date for user compared to current server date (<a href="https://github.com/hdsdi3g/MyDMAM/issues/169" target="_blank">#169</a>)</li>
+</ul>
+<p>Bug correction:</p>
+<ul>
+<li>Remove IE 8 JS support (<a href="https://github.com/hdsdi3g/MyDMAM/issues/113" target="_blank">#113</a>)</li>
+<li>Desactivate admin mail with just remove service.administrator_mail in configuration (<a href="https://github.com/hdsdi3g/MyDMAM/issues/145" target="_blank">#145</a>)</li>
+<li>ffmpeg upgrade, remove strict and add vf null in command line and example config files (<a href="https://github.com/hdsdi3g/MyDMAM/issues/146" target="_blank">#146</a>)</li>
+<li>Bug with Broker: NPE if a worker is waiting a new job and there a some waiting jobs that it can&#8217;t manage (<a href="https://github.com/hdsdi3g/MyDMAM/issues/147" target="_blank">#147</a>)</li>
+<li>Play 1.4.x compatibility checking (<a href="https://github.com/hdsdi3g/MyDMAM/issues/150" target="_blank">#150</a>)</li>
+<li>Loosing a Cassandra node can break broker (TokenRangeOfflineException) (<a href="https://github.com/hdsdi3g/MyDMAM/issues/160" target="_blank">#160</a>)</li>
+<li>Stacktraces and ES errors with some bad chars during a search (<a href="https://github.com/hdsdi3g/MyDMAM/issues/161" target="_blank">#161</a>)</li>
+<li>Create ES Index during TTL enabling (<a href="https://github.com/hdsdi3g/MyDMAM/issues/162" target="_blank">#162</a>)</li>
+<li>Pagination don&#8217;t works in Navigator pages (<a href="https://github.com/hdsdi3g/MyDMAM/issues/164" target="_blank">#164</a>)</li>
+<li>Play can&#8217;t load JSX from module (<a href="https://github.com/hdsdi3g/MyDMAM/issues/166" target="_blank">#166</a>)</li>
+<li>Can&#8217;t upgrade privileges admin list (<a href="https://github.com/hdsdi3g/MyDMAM/issues/172" target="_blank">#172</a>)</li>
+<li>No storage configuration cause a NPE (<a href="https://github.com/hdsdi3g/MyDMAM/issues/174" target="_blank">#174</a>)</li>
+</ul>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.13</title>
+		<link>http://mydmam.org/2015/05/git-master-branch-update-v0-13/</link>
+		<pubDate>Sat, 23 May 2015 19:44:03 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[Cache]]></category>
+		<category><![CDATA[Configuration]]></category>
+		<category><![CDATA[Java 8]]></category>
+		<category><![CDATA[Preview]]></category>
+		<category><![CDATA[React]]></category>
+		<category><![CDATA[Storage]]></category>
+		<category><![CDATA[StorageIndex]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=403</guid>
+		<description><![CDATA[Hello React ! This new version introduce this JS lib created by Facebook. All the JS API was updated, and there are some improvement for this. This version is now fully functional with Java 8, but can be working with Java 7. Storage configuration files are now very different from the previous version. This format [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>Hello <a href="http://facebook.github.io/react/" target="_blank">React</a> ! This new version introduce this JS lib created by Facebook. All the JS API was updated, and there are some improvement for this.</p>
+<p>This version is now fully functional with Java 8, but can be working with Java 7.</p>
+<p>Storage configuration files are now very different from the previous version. This format is more compact, all in one file and one tree and mergue all storageindex declarations. Java Storage API is a bit different.</p>
+<p>New functionalities and refactoring:</p>
+<ul>
+<li><strong>React</strong>/JS for Play (<a href="https://github.com/hdsdi3g/MyDMAM/issues/97" target="_blank">#97</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/103" target="_blank">#103</a>)</li>
+<li>Import and export SQL files with <strong>Play H2 db</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/106" target="_blank">#106</a>)</li>
+<li>Refactor module call for <strong>Play 1.3</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/107" target="_blank">#107</a>)</li>
+<li>Add Play <strong>Cache purge</strong> option in web view (<a href="https://github.com/hdsdi3g/MyDMAM/issues/108" target="_blank">#108</a>)</li>
+<li><strong>Refactor Metadata Preview</strong> with React (<a href="https://github.com/hdsdi3g/MyDMAM/issues/109" target="_blank">#109</a>), this is not actually closed. There is some works to do.</li>
+<li>Refactor <strong>Storage API</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/91" target="_blank">#91</a>)</li>
+</ul>
+<p>Bug correction:</p>
+<ul>
+<li>Strange stacktrace with Broker (<a href="https://github.com/hdsdi3g/MyDMAM/issues/100" target="_blank">#100</a>)</li>
+<li>Troubles with Server startup Play (<a href="https://github.com/hdsdi3g/MyDMAM/issues/104" target="_blank">#104</a>)</li>
+<li>CLI user list &amp; disable options don&#8217;t works (<a href="https://github.com/hdsdi3g/MyDMAM/issues/105" target="_blank">#105</a>)</li>
+<li>Bug with SMB client and getPath (<a href="https://github.com/hdsdi3g/MyDMAM/issues/110" target="_blank">#110</a>)</li>
+<li>Bug with JSX and Play prod mode (<a href="https://github.com/hdsdi3g/MyDMAM/issues/111" target="_blank">#111</a>)</li>
+<li>Refactor Javascript/Groovy templates (<a href="https://github.com/hdsdi3g/MyDMAM/issues/98" target="_blank">#98</a>)</li>
+</ul>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.12</title>
+		<link>http://mydmam.org/2015/03/git-master-branch-update-v0-12/</link>
+		<pubDate>Sat, 28 Mar 2015 16:00:09 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=388</guid>
+		<description><![CDATA[New functions: Add User Action file operations (#87) Security: protect brute-force passwords attacks (#94) and set white/black IP lists. And some improvements: Use Play Cache for Stat function (#90) for a better performance, correct #96 Metadata API: limit regular metadata analysis and rendering (#84) and correct bug with metadata configuration (#86) New CLI functions: can delete jobs by status in CLI (#93) and [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>New functions:</p>
+<ul>
+<li>Add <strong>User Action file operations</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/87" target="_blank">#87</a>)</li>
+<li><strong>Security: protect brute-force passwords attacks</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/94" target="_blank">#94</a>) and set white/black IP lists.</li>
+</ul>
+<p>And some improvements:</p>
+<ul>
+<li><strong>Use <strong>Play Cache for Stat function</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/90" target="_blank">#90</a>) for a better performance</strong>, correct <a href="https://github.com/hdsdi3g/MyDMAM/issues/96" target="_blank">#96</a></li>
+<li><strong>Metadata</strong> API: limit regular metadata analysis and rendering (<a href="https://github.com/hdsdi3g/MyDMAM/issues/84" target="_blank">#84</a>) and correct bug with metadata configuration (<a href="https://github.com/hdsdi3g/MyDMAM/issues/86" target="_blank">#86</a>)</li>
+<li><strong>New CLI functions</strong>: can delete jobs by status in CLI (<a href="https://github.com/hdsdi3g/MyDMAM/issues/93" target="_blank">#93</a>) and display available SQLite auth backends via configuration (<a href="https://github.com/hdsdi3g/MyDMAM/issues/95" target="_blank">#95</a>)</li>
+<li>Correct bugs with ES client (Add retry for some ES operation) (<a href="https://github.com/hdsdi3g/MyDMAM/issues/88" target="_blank">#88</a>)</li>
+<li>Javascript code cleaning, with Eclipse JS (<a href="https://github.com/hdsdi3g/MyDMAM/issues/89" target="_blank">#89</a>)</li>
+</ul>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.11</title>
+		<link>http://mydmam.org/2015/02/git-master-branch-update-v0-11/</link>
+		<pubDate>Thu, 19 Feb 2015 16:44:11 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[bug correcting]]></category>
+		<category><![CDATA[ffmpeg]]></category>
+		<category><![CDATA[ImageMagick]]></category>
+		<category><![CDATA[Metadata]]></category>
+		<category><![CDATA[StorageIndex]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=353</guid>
+		<description><![CDATA[A maintenance version with some metadata analysis/rendering improvements : Analysing and rendering graphic files (#32) with the help of ImageMagick Correct bugs with GitInfo and mydmam-cli (#81), and views (#85) ffmpeg backend is now smarter: VBI, entrelacing, better snapshots (#83) Limit regular metadata analysis and rendering (#84), see below. Beware to upgrade, storageindexes.yml is updated, with a new key, metadata_analysing.]]></description>
+				<content:encoded><![CDATA[<p>A maintenance version with some metadata analysis/rendering improvements :</p>
+<ul>
+<li><strong>Analysing and rendering</strong> graphic files (<a href="https://github.com/hdsdi3g/MyDMAM/issues/32" target="_blank">#32</a>) with the help of <strong>ImageMagick</strong></li>
+<li>Correct bugs with <strong>GitInfo</strong> and mydmam-cli (<a href="https://github.com/hdsdi3g/MyDMAM/issues/81" target="_blank">#81</a>), and views (<a href="https://github.com/hdsdi3g/MyDMAM/issues/85" target="_blank">#85</a>)</li>
+<li><strong>ffmpeg</strong> backend is now smarter: VBI, <strong>entrelacing</strong>, better snapshots (<a href="https://github.com/hdsdi3g/MyDMAM/issues/83" target="_blank">#83</a>)</li>
+<li>Limit regular metadata analysis and rendering (<a href="https://github.com/hdsdi3g/MyDMAM/issues/84" target="_blank">#84</a>), see below.</li>
+</ul>
+<p>Beware to upgrade, <a href="https://github.com/hdsdi3g/MyDMAM/blob/master/conf/app.d-examples/storageindex.yml.example" target="_blank"><strong>storageindexes.yml</strong></a> is updated, with a new key, <em>metadata_analysing.</em></p>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.10</title>
+		<link>http://mydmam.org/2015/01/git-master-branch-update-v0-10-2/</link>
+		<pubDate>Tue, 20 Jan 2015 00:47:43 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[lib jar]]></category>
+		<category><![CDATA[Manager]]></category>
+		<category><![CDATA[TaskQueue]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=347</guid>
+		<description><![CDATA[New version for ending the big refactoring. Refactoring code (#80) End task queue refactoring (#78). Now, you can change Log2 messages verbosing for all instances via website, UserAction can have need more Storages access, Indexing is better stable (no more ES errors), add &#8220;off hours&#8221; configuration for cyclic creating job. Upgrade informations: Please update log2 lib [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>New version for ending the big refactoring.</p>
+<ul>
+<li>Refactoring code (<a href="https://github.com/hdsdi3g/MyDMAM/issues/80">#80</a>)</li>
+<li><strong>End task queue refactoring</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/78">#78</a>). Now, you can change Log2 messages verbosing for all instances via website, UserAction can have need more Storages access, <strong>Indexing is better stable</strong> (no more ES errors), add &#8220;off hours&#8221; configuration for cyclic creating job.</li>
+</ul>
+<p>Upgrade informations:</p>
+<ul>
+<li>Please update <a href="https://github.com/hdsdi3g/Log2/releases/tag/3.0" target="_blank">log2 lib</a> to v3.0 (via GitHub, or via <a href="http://mydmam.org/dwl/lib.tar.gz" target="_blank">dependencies tarball</a>).</li>
+<li>You can use service.yml with <em>fullhour</em> syntax.</li>
+</ul>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.9</title>
+		<link>http://mydmam.org/2015/01/git-master-branch-update-v0-9/</link>
+		<pubDate>Fri, 02 Jan 2015 15:38:51 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[Basket sytem]]></category>
+		<category><![CDATA[Elasticsearch]]></category>
+		<category><![CDATA[Manager]]></category>
+		<category><![CDATA[TaskQueue]]></category>
+		<category><![CDATA[User Action]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=341</guid>
+		<description><![CDATA[A new version with a lot of changes for the new year ! Correct some bugs (#66, #70, #71, #74, #75) Implement the User Action engine (#61 and #76) Speed up baskets functions with Cassandra backend (#67) Refactor notification mail (#68 and #69) Add databases cluster status (#73), for check ES status, and add hibernate function if ES cluster is not [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>A new version with a lot of changes for the new year !</p>
+<ul>
+<li>Correct some bugs (<a href="https://github.com/hdsdi3g/MyDMAM/issues/78">#66</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/70">#70</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/71">#71</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/74">#74</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/75">#75</a>)</li>
+<li>Implement the <strong>User Action</strong> engine (<a href="https://github.com/hdsdi3g/MyDMAM/issues/61">#61</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/76">#76</a>)</li>
+<li>Speed up <strong>baskets</strong> functions with Cassandra backend (<a href="https://github.com/hdsdi3g/MyDMAM/issues/67">#67</a>)</li>
+<li>Refactor notification mail (<a href="https://github.com/hdsdi3g/MyDMAM/issues/68">#68</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/69">#69</a>)</li>
+<li>Add databases cluster status (<a href="https://github.com/hdsdi3g/MyDMAM/issues/73">#73</a>), for check ES status, and add <strong>hibernate function</strong> if ES cluster is not functional.</li>
+<li>Change user rights on the fly (<a href="https://github.com/hdsdi3g/MyDMAM/issues/72">#72</a>)</li>
+<li><strong>Re-implement and refactor all TaskQueue system</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/78">#78</a>) to allow more opportunities later with User Action.</li>
+</ul>
+<p>So, actually, no real visible changes for user. The old queue system is deactivated and it will be removed soon. #78 is not completed, some improvements will come.</p>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.8</title>
+		<link>http://mydmam.org/2014/09/git-master-branch-update-v0-8/</link>
+		<pubDate>Wed, 17 Sep 2014 20:18:06 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[Elasticsearch]]></category>
+		<category><![CDATA[Metadata]]></category>
+		<category><![CDATA[XmlData]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=320</guid>
+		<description><![CDATA[Not new functions, but big Metadata refactoring with Gson for (de)serialising objects (#62), add a little update with XmlData (#65) and correct a mistake with ES configuration (#63). Add more restrictions on code quality with Eclipse, like add SuppressWarnings annotations. &#160;]]></description>
+				<content:encoded><![CDATA[<p>Not new functions, but big <strong>Metadata refactoring</strong> with Gson for (de)serialising objects (<a href="https://github.com/hdsdi3g/MyDMAM/issues/62" target="_blank">#62</a>), add a little update with <strong>XmlData</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/65" target="_blank">#65</a>) and correct a mistake with <strong>ES configuration</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/63" target="_blank">#63</a>).</p>
+<p>Add more restrictions on code quality with Eclipse, like add <em>SuppressWarnings</em> annotations.</p>
+<p>&nbsp;</p>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.7</title>
+		<link>http://mydmam.org/2014/08/git-master-branch-update-v0-7/</link>
+		<pubDate>Sat, 02 Aug 2014 21:52:42 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[Basket sytem]]></category>
+		<category><![CDATA[Beta]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=314</guid>
+		<description><![CDATA[New functionality: Basket sytem (#52) for add search results and navigation items in virtual baskets (with admin function for manage all users baskets). Moreover, navigation has now a pagination for large directories. Bug correction: Stat function doesn&#8217;t works with AJAX if there is only 1 item asked (#59). Little improvement: Clean roles and add icons to web pages (#60).]]></description>
+				<content:encoded><![CDATA[<p>New functionality: <strong>Basket sytem</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/52" target="_blank">#52</a>) for add search results and navigation items in virtual baskets (with admin function for manage all users baskets). Moreover, navigation has now a <em>pagination</em> for large directories.</p>
+<p>Bug correction: <strong>Stat</strong> function doesn&#8217;t works with AJAX if there is only 1 item asked (<a href="https://github.com/hdsdi3g/MyDMAM/issues/59" target="_blank">#59</a>).</p>
+<p>Little improvement: Clean roles and add icons to web pages (<a href="https://github.com/hdsdi3g/MyDMAM/issues/60" target="_blank">#60</a>).</p>
+]]></content:encoded>
+			</item>
+	</channel>
+</rss>
+
+<!-- Performance optimized by W3 Total Cache. Learn more: http://www.w3-edge.com/wordpress-plugins/
+
+Minified using disk
+Page Caching using disk: enhanced
+Database Caching 6/14 queries in 0.004 seconds using disk
+Object Caching 740/791 objects using disk
+
+ Served from: mydmam.org @ 2016-05-12 20:27:12 by W3 Total Cache -->

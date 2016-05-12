@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>React &#8211; MyDMAM Project</title>
+	<atom:link href="http://mydmam.org/tag/react/feed/" rel="self" type="application/rss+xml" />
+	<link>http://mydmam.org</link>
+	<description>Another way of looking a Digital Media Asset Management</description>
+	<lastBuildDate>Fri, 29 Apr 2016 14:51:05 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>hourly</sy:updatePeriod>
+	<sy:updateFrequency>1</sy:updateFrequency>
+	
+
+<image>
+	<url>http://mydmam.org/wp-content/uploads/2016/05/cropped-Favicon-MyDMAM-tres-grande-zoom-32x32.png</url>
+	<title>React &#8211; MyDMAM Project</title>
+	<link>http://mydmam.org</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<item>
+		<title>Git master branch update v0.14</title>
+		<link>http://mydmam.org/2016/03/git-master-branch-update-v0-14/</link>
+		<pubDate>Sat, 05 Mar 2016 22:33:17 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[AsyncJS]]></category>
+		<category><![CDATA[FTP]]></category>
+		<category><![CDATA[log4j]]></category>
+		<category><![CDATA[React]]></category>
+		<category><![CDATA[Watchfolder]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=456</guid>
+		<description><![CDATA[A very BIG update. MyDMAM is not dead ! New functionalities: Create a distributed transcoding watchfolder system (#115, #114, #143) Add an integrated and controlled FTP Server (via an Apache FtpServer handler) (#157 and #175) Enhancements and refactoring: Add AsyncJS/React router and implement/refactor several JS Pages (#159, #154, #109, #134 and #167) Refactor all dirlists with loop protection (#128) Refactor JS/JSX processing operation code [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>A very BIG update. MyDMAM is not dead !</p>
+<p>New functionalities:</p>
+<ul>
+<li>Create a <strong>distributed transcoding watchfolder system</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/115" target="_blank">#115</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/114" target="_blank">#114</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/143" target="_blank">#143</a>)</li>
+<li>Add an integrated and controlled <strong>FTP Server</strong> (via an Apache FtpServer handler) (<a href="https://github.com/hdsdi3g/MyDMAM/issues/157" target="_blank">#157</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/175" target="_blank">#175</a>)</li>
+</ul>
+<p>Enhancements and refactoring:</p>
+<ul>
+<li>Add AsyncJS/React router and implement/refactor several JS Pages (<a href="https://github.com/hdsdi3g/MyDMAM/issues/159" target="_blank">#159</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/154" target="_blank">#154</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/109" target="_blank">#109</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/134" target="_blank">#134</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/167" target="_blank">#167</a>)</li>
+<li>Refactor all dirlists with loop protection (<a href="https://github.com/hdsdi3g/MyDMAM/issues/128" target="_blank">#128</a>)</li>
+<li>Refactor JS/JSX processing operation code (<a href="https://github.com/hdsdi3g/MyDMAM/issues/168" target="_blank">#168</a>)</li>
+<li>Remove Log2 logging for log4j and refactor all log systems (<a href="https://github.com/hdsdi3g/MyDMAM/issues/141" target="_blank">#141</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/152" target="_blank">#152,</a> <a href="https://github.com/hdsdi3g/MyDMAM/issues/153" target="_blank">#153</a> and <a href="https://github.com/hdsdi3g/MyDMAM/issues/165" target="_blank">#165</a>)</li>
+<li>Improve AppManager Instance Action / Status, and upgrade to a real API for this (<a href="https://github.com/hdsdi3g/MyDMAM/issues/158" target="_blank">#158</a>)</li>
+<li>Extract BlockedIPs/access control from Play to a generic tool (<a href="https://github.com/hdsdi3g/MyDMAM/issues/163" target="_blank">#163</a>)</li>
+<li>Create a &#8220;Stoppable Thread&#8221; for all services Threads and all sleep needs (<a href="https://github.com/hdsdi3g/MyDMAM/issues/170" target="_blank">#170</a>)</li>
+<li>Display drift date for user compared to current server date (<a href="https://github.com/hdsdi3g/MyDMAM/issues/169" target="_blank">#169</a>)</li>
+</ul>
+<p>Bug correction:</p>
+<ul>
+<li>Remove IE 8 JS support (<a href="https://github.com/hdsdi3g/MyDMAM/issues/113" target="_blank">#113</a>)</li>
+<li>Desactivate admin mail with just remove service.administrator_mail in configuration (<a href="https://github.com/hdsdi3g/MyDMAM/issues/145" target="_blank">#145</a>)</li>
+<li>ffmpeg upgrade, remove strict and add vf null in command line and example config files (<a href="https://github.com/hdsdi3g/MyDMAM/issues/146" target="_blank">#146</a>)</li>
+<li>Bug with Broker: NPE if a worker is waiting a new job and there a some waiting jobs that it can&#8217;t manage (<a href="https://github.com/hdsdi3g/MyDMAM/issues/147" target="_blank">#147</a>)</li>
+<li>Play 1.4.x compatibility checking (<a href="https://github.com/hdsdi3g/MyDMAM/issues/150" target="_blank">#150</a>)</li>
+<li>Loosing a Cassandra node can break broker (TokenRangeOfflineException) (<a href="https://github.com/hdsdi3g/MyDMAM/issues/160" target="_blank">#160</a>)</li>
+<li>Stacktraces and ES errors with some bad chars during a search (<a href="https://github.com/hdsdi3g/MyDMAM/issues/161" target="_blank">#161</a>)</li>
+<li>Create ES Index during TTL enabling (<a href="https://github.com/hdsdi3g/MyDMAM/issues/162" target="_blank">#162</a>)</li>
+<li>Pagination don&#8217;t works in Navigator pages (<a href="https://github.com/hdsdi3g/MyDMAM/issues/164" target="_blank">#164</a>)</li>
+<li>Play can&#8217;t load JSX from module (<a href="https://github.com/hdsdi3g/MyDMAM/issues/166" target="_blank">#166</a>)</li>
+<li>Can&#8217;t upgrade privileges admin list (<a href="https://github.com/hdsdi3g/MyDMAM/issues/172" target="_blank">#172</a>)</li>
+<li>No storage configuration cause a NPE (<a href="https://github.com/hdsdi3g/MyDMAM/issues/174" target="_blank">#174</a>)</li>
+</ul>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.13</title>
+		<link>http://mydmam.org/2015/05/git-master-branch-update-v0-13/</link>
+		<pubDate>Sat, 23 May 2015 19:44:03 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
+		<category><![CDATA[Cache]]></category>
+		<category><![CDATA[Configuration]]></category>
+		<category><![CDATA[Java 8]]></category>
+		<category><![CDATA[Preview]]></category>
+		<category><![CDATA[React]]></category>
+		<category><![CDATA[Storage]]></category>
+		<category><![CDATA[StorageIndex]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=403</guid>
+		<description><![CDATA[Hello React ! This new version introduce this JS lib created by Facebook. All the JS API was updated, and there are some improvement for this. This version is now fully functional with Java 8, but can be working with Java 7. Storage configuration files are now very different from the previous version. This format [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>Hello <a href="http://facebook.github.io/react/" target="_blank">React</a> ! This new version introduce this JS lib created by Facebook. All the JS API was updated, and there are some improvement for this.</p>
+<p>This version is now fully functional with Java 8, but can be working with Java 7.</p>
+<p>Storage configuration files are now very different from the previous version. This format is more compact, all in one file and one tree and mergue all storageindex declarations. Java Storage API is a bit different.</p>
+<p>New functionalities and refactoring:</p>
+<ul>
+<li><strong>React</strong>/JS for Play (<a href="https://github.com/hdsdi3g/MyDMAM/issues/97" target="_blank">#97</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/103" target="_blank">#103</a>)</li>
+<li>Import and export SQL files with <strong>Play H2 db</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/106" target="_blank">#106</a>)</li>
+<li>Refactor module call for <strong>Play 1.3</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/107" target="_blank">#107</a>)</li>
+<li>Add Play <strong>Cache purge</strong> option in web view (<a href="https://github.com/hdsdi3g/MyDMAM/issues/108" target="_blank">#108</a>)</li>
+<li><strong>Refactor Metadata Preview</strong> with React (<a href="https://github.com/hdsdi3g/MyDMAM/issues/109" target="_blank">#109</a>), this is not actually closed. There is some works to do.</li>
+<li>Refactor <strong>Storage API</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/91" target="_blank">#91</a>)</li>
+</ul>
+<p>Bug correction:</p>
+<ul>
+<li>Strange stacktrace with Broker (<a href="https://github.com/hdsdi3g/MyDMAM/issues/100" target="_blank">#100</a>)</li>
+<li>Troubles with Server startup Play (<a href="https://github.com/hdsdi3g/MyDMAM/issues/104" target="_blank">#104</a>)</li>
+<li>CLI user list &amp; disable options don&#8217;t works (<a href="https://github.com/hdsdi3g/MyDMAM/issues/105" target="_blank">#105</a>)</li>
+<li>Bug with SMB client and getPath (<a href="https://github.com/hdsdi3g/MyDMAM/issues/110" target="_blank">#110</a>)</li>
+<li>Bug with JSX and Play prod mode (<a href="https://github.com/hdsdi3g/MyDMAM/issues/111" target="_blank">#111</a>)</li>
+<li>Refactor Javascript/Groovy templates (<a href="https://github.com/hdsdi3g/MyDMAM/issues/98" target="_blank">#98</a>)</li>
+</ul>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Projet d&#8217;integration JSX avec Play</title>
+		<link>http://mydmam.org/2015/04/projet-dintegration-jsx-avec-play/</link>
+		<pubDate>Thu, 02 Apr 2015 18:23:28 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[News]]></category>
+		<category><![CDATA[JSX]]></category>
+		<category><![CDATA[React]]></category>
+		<category><![CDATA[Rhino]]></category>
+		<category><![CDATA[Views]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=392</guid>
+		<description><![CDATA[La prochaine itération de développement sera d&#8217;intégrer React de Facebook, une bibliothèque de vues/templeting en JS, qui permet notamment de découper une grosse application en blocs de codes indépendants et réutilisables ; c&#8217;est notamment le moteur visuel du site Instagram. L&#8217;intégration portera sur la compilation JSX par Play via Mozilla Rhino, un compilateur JS en [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>La prochaine itération de développement sera d&#8217;intégrer <a href="http://facebook.github.io/react/">React</a> de Facebook, une bibliothèque de vues/templeting en JS, qui permet notamment de découper une grosse application en blocs de codes indépendants et réutilisables ; c&#8217;est notamment le moteur visuel du site <em>Instagram</em>.</p>
+<p>L&#8217;intégration portera sur la compilation JSX par Play via <a href="https://github.com/mozilla/rhino">Mozilla Rhino</a>, un compilateur JS en Java, en plus de l&#8217;optimisation YUI qui sera toujours faite à la fin.</p>
+<p>Le défi sera d&#8217;intégrer au milieu de la structure JS/JQuery un arbre React et de le faire interagir avec le reste. Il est probable que React communiquera avec Play via un seul contrôleur (ou en tout cas via une abstraction des routes) afin d&#8217;éviter la très laide implémentation de déclaration <a href="https://github.com/hdsdi3g/MyDMAM/blob/master/app/views/routes.js">route.js</a>.</p>
+]]></content:encoded>
+			</item>
+	</channel>
+</rss>
+
+<!-- Performance optimized by W3 Total Cache. Learn more: http://www.w3-edge.com/wordpress-plugins/
+
+Minified using disk
+Page Caching using disk: enhanced
+Database Caching 5/9 queries in 0.002 seconds using disk
+Object Caching 456/463 objects using disk
+
+ Served from: mydmam.org @ 2016-05-12 20:27:15 by W3 Total Cache -->

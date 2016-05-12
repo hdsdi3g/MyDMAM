@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<!--[if IE 7]>
+<html class="ie ie7" lang="en-US">
+<![endif]-->
+<!--[if IE 8]>
+<html class="ie ie8" lang="en-US">
+<![endif]-->
+<!--[if !(IE 7) | !(IE 8)  ]><!-->
+<html lang="en-US">
+<!--<![endif]-->
+<head><link rel="stylesheet" type="text/css" href="../../wp-content/cache/minify/000000/bcxJCoAwDAXQC1miJxJJfyVqk9IGxNs74MKFuwd_GIjNVkFQc2EQt0apmno30F6CW_Bd3FGf5HVIQLwKC7xMvNIoyjRDUYVN2z-7nvIR85Sp-bHhM7-fX58.css" media="all" />
+
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Java 8 | MyDMAM Project</title>
+	<link rel="profile" href="http://gmpg.org/xfn/11">
+	<link rel="pingback" href="http://mydmam.org/xmlrpc.php">
+	<!--[if lt IE 9]>
+	<script src="http://mydmam.org/wp-content/themes/mydmam/js/html5.js"></script>
+	<![endif]-->
+	<link rel="alternate" type="application/rss+xml" title="MyDMAM Project &raquo; Feed" href="../../feed/index.html" />
+<link rel="alternate" type="application/rss+xml" title="MyDMAM Project &raquo; Comments Feed" href="http://mydmam.org/comments/feed/" />
+<link rel="alternate" type="application/rss+xml" title="MyDMAM Project &raquo; Java 8 Tag Feed" href="feed/index.html" />
+		<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"https:\/\/s.w.org\/images\/core\/emoji\/72x72\/","ext":".png","source":{"concatemoji":"http:\/\/mydmam.org\/wp-includes\/js\/wp-emoji-release.min.js?ver=be63b55bd13097cdf910707a9a52c072"}};
+			!function(a,b,c){function d(a){var c,d,e,f=b.createElement("canvas"),g=f.getContext&&f.getContext("2d"),h=String.fromCharCode;if(!g||!g.fillText)return!1;switch(g.textBaseline="top",g.font="600 32px Arial",a){case"flag":return g.fillText(h(55356,56806,55356,56826),0,0),f.toDataURL().length>3e3;case"diversity":return g.fillText(h(55356,57221),0,0),c=g.getImageData(16,16,1,1).data,d=c[0]+","+c[1]+","+c[2]+","+c[3],g.fillText(h(55356,57221,55356,57343),0,0),c=g.getImageData(16,16,1,1).data,e=c[0]+","+c[1]+","+c[2]+","+c[3],d!==e;case"simple":return g.fillText(h(55357,56835),0,0),0!==g.getImageData(16,16,1,1).data[0];case"unicode8":return g.fillText(h(55356,57135),0,0),0!==g.getImageData(16,16,1,1).data[0]}return!1}function e(a){var c=b.createElement("script");c.src=a,c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var f,g,h,i;for(i=Array("simple","flag","unicode8","diversity"),c.supports={everything:!0,everythingExceptFlag:!0},h=0;h<i.length;h++)c.supports[i[h]]=d(i[h]),c.supports.everything=c.supports.everything&&c.supports[i[h]],"flag"!==i[h]&&(c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&c.supports[i[h]]);c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&!c.supports.flag,c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.everything||(g=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",g,!1),a.addEventListener("load",g,!1)):(a.attachEvent("onload",g),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),f=c.source||{},f.concatemoji?e(f.concatemoji):f.wpemoji&&f.twemoji&&(e(f.twemoji),e(f.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+
+
+<link rel='stylesheet' id='twentythirteen-fonts-css'  href='http://fonts.googleapis.com/css?family=Source+Sans+Pro%3A300%2C400%2C700%2C300italic%2C400italic%2C700italic%7CBitter%3A400%2C700&amp;subset=latin%2Clatin-ext' type='text/css' media='all' />
+
+
+<!--[if lt IE 9]>
+<link rel='stylesheet' id='twentythirteen-ie-css'  href='http://mydmam.org/wp-content/themes/mydmam/css/ie.css?ver=2013-07-18' type='text/css' media='all' />
+<![endif]-->
+
+<!-- This site uses the Google Analytics by MonsterInsights plugin v5.5 - Universal disabled - https://www.monsterinsights.com/ -->
+<script type="text/javascript">
+
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-43522802-1']);
+	_gaq.push(['_gat._forceSSL']);
+	_gaq.push(['_trackPageview']);
+
+	(function () {
+		var ga = document.createElement('script');
+		ga.type = 'text/javascript';
+		ga.async = true;
+		ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+		var s = document.getElementsByTagName('script')[0];
+		s.parentNode.insertBefore(ga, s);
+	})();
+
+</script>
+<!-- / Google Analytics by MonsterInsights -->
+<script type="text/javascript" src="../../wp-content/cache/minify/000000/M9bPKixNLarUMYYydHMz04sSS1L1cjPzAA.js"></script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var cnArgs = {"ajaxurl":"http:\/\/mydmam.org\/wp-admin\/admin-ajax.php","hideEffect":"fade","onScroll":"","onScrollOffset":"100","cookieName":"cookie_notice_accepted","cookieValue":"TRUE","cookieTime":"7862400","cookiePath":"\/","cookieDomain":""};
+/* ]]> */
+</script>
+<script type="text/javascript" src="../../wp-content/cache/minify/000000/M9RPzs_PzkzVzcsvyUxO1c8q1k8rys8rAQA.js"></script>
+<link rel='https://api.w.org/' href='http://mydmam.org/wp-json/' />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="../../xmlrpc.php%3Frsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="../../wp-includes/wlwmanifest.xml" /> 
+
+<script type="text/javascript">
+(function(url){
+	if(/(?:Chrome\/26\.0\.1410\.63 Safari\/537\.31|WordfenceTestMonBot)/.test(navigator.userAgent)){ return; }
+	var addEvent = function(evt, handler) {
+		if (window.addEventListener) {
+			document.addEventListener(evt, handler, false);
+		} else if (window.attachEvent) {
+			document.attachEvent('on' + evt, handler);
+		}
+	};
+	var removeEvent = function(evt, handler) {
+		if (window.removeEventListener) {
+			document.removeEventListener(evt, handler, false);
+		} else if (window.detachEvent) {
+			document.detachEvent('on' + evt, handler);
+		}
+	};
+	var evts = 'contextmenu dblclick drag dragend dragenter dragleave dragover dragstart drop keydown keypress keyup mousedown mousemove mouseout mouseover mouseup mousewheel scroll'.split(' ');
+	var logHuman = function() {
+		var wfscr = document.createElement('script');
+		wfscr.type = 'text/javascript';
+		wfscr.async = true;
+		wfscr.src = url + '&r=' + Math.random();
+		(document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(wfscr);
+		for (var i = 0; i < evts.length; i++) {
+			removeEvent(evts[i], logHuman);
+		}
+	};
+	for (var i = 0; i < evts.length; i++) {
+		addEvent(evts[i], logHuman);
+	}
+})('//mydmam.org/?wordfence_logHuman=1&hid=10A27197723A631CAC347B6426361AD9');
+</script><style type='text/css'>img#wpstats{display:none}</style>	<style type="text/css" id="twentythirteen-header-css">
+			.site-header {
+			background: url(../../wp-content/uploads/2013/12/Entete-MyDMAM-site-01.png) no-repeat scroll top;
+			background-size: 1600px auto;
+		}
+			.site-title,
+		.site-description {
+			position: absolute;
+			clip: rect(1px 1px 1px 1px); /* IE7 */
+			clip: rect(1px, 1px, 1px, 1px);
+		}
+		</style>
+	<link rel="icon" href="../../wp-content/uploads/2016/05/cropped-Favicon-MyDMAM-tres-grande-zoom-32x32.png" sizes="32x32" />
+<link rel="icon" href="../../wp-content/uploads/2016/05/cropped-Favicon-MyDMAM-tres-grande-zoom-192x192.png" sizes="192x192" />
+<link rel="apple-touch-icon-precomposed" href="../../wp-content/uploads/2016/05/cropped-Favicon-MyDMAM-tres-grande-zoom-180x180.png" />
+<meta name="msapplication-TileImage" content="http://mydmam.org/wp-content/uploads/2016/05/cropped-Favicon-MyDMAM-tres-grande-zoom-270x270.png" />
+</head>
+
+<body class="archive tag tag-java-8 tag-43 single-author">
+	<div id="page" class="hfeed site">
+		<header id="masthead" class="site-header" role="banner">
+			<a class="home-link" href="../../index.html" title="MyDMAM Project" rel="home">
+				<h1 class="site-title">MyDMAM Project</h1>
+				<h2 class="site-description">Another way of looking a Digital Media Asset Management</h2>
+			</a>
+
+			<div id="navbar" class="navbar">
+				<nav id="site-navigation" class="navigation main-navigation" role="navigation">
+					<h3 class="menu-toggle">Menu</h3>
+					<a class="screen-reader-text skip-link" href="index.html#content" title="Skip to content">Skip to content</a>
+					<div class="menu-menu-1-container"><ul id="menu-menu-1" class="nav-menu"><li id="menu-item-286" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-286"><a href="../../index.html">Welcome</a>
+<ul class="sub-menu">
+	<li id="menu-item-284" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-284"><a href="../../index.html%3Fp=190.html">Introducing</a></li>
+	<li id="menu-item-285" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-285"><a href="../../index.html%3Fp=64.html">Présentation du projet</a></li>
+	<li id="menu-item-287" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-287"><a href="../../index.html%3Fp=89.html">Questions fréquentes</a></li>
+</ul>
+</li>
+<li id="menu-item-375" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-375"><a href="../../category/news/index.html">News</a></li>
+<li id="menu-item-105" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-105"><a href="../../index.html%3Fp=67.html">Downloads</a>
+<ul class="sub-menu">
+	<li id="menu-item-265" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-265"><a href="../../index.html%3Fp=262.html">Offline website mode</a></li>
+</ul>
+</li>
+<li id="menu-item-169" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-169"><a href="../../index.html%3Fp=15.html">Setup</a>
+<ul class="sub-menu">
+	<li id="menu-item-225" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-225"><a href="../../index.html%3Fp=223.html">ACL et Authentification (fr)</a></li>
+	<li id="menu-item-275" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-275"><a title="Setup a Play hosting through in a subdirectory in Apache SSL virtualhost" href="../../index.html%3Fp=270.html">Play through Apache SSL</a></li>
+</ul>
+</li>
+<li id="menu-item-243" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-243"><a href="../../index.html%3Fp=136.html">Developments</a>
+<ul class="sub-menu">
+	<li id="menu-item-259" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-259"><a title="Version français and english version" href="../../index.html%3Fp=255.html">Licence</a></li>
+	<li id="menu-item-288" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-288"><a href="https://github.com/hdsdi3g/MyDMAM" onclick="_gaq.push(['_trackEvent', 'outbound-widget', 'https://github.com/hdsdi3g/MyDMAM', 'GitHub']);" >GitHub</a></li>
+	<li id="menu-item-293" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-293"><a href="../../category/news/changelogs/index.html">Changelogs</a></li>
+	<li id="menu-item-226" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-226"><a href="../../index.html%3Fp=178.html">Development setup</a></li>
+	<li id="menu-item-371" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-371"><a href="../../index.html%3Fp=368.html">Analyse et rendu des Metadatas</a></li>
+</ul>
+</li>
+<li id="menu-item-39" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-39"><a href="../../index.html%3Fp=30.html">Contact</a>
+<ul class="sub-menu">
+	<li id="menu-item-48" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-48"><a href="http://hd3g.tv" onclick="_gaq.push(['_trackEvent', 'outbound-widget', 'http://hd3g.tv', 'Author&#8217;s Blog (fr)']);" >Author&#8217;s Blog (fr)</a></li>
+	<li id="menu-item-47" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-47"><a href="https://twitter.com/MyDMAM" onclick="_gaq.push(['_trackEvent', 'outbound-widget', 'https://twitter.com/MyDMAM', 'Twitter']);" >Twitter</a></li>
+</ul>
+</li>
+</ul></div>					<form role="search" method="get" class="search-form" action="../../index.html">
+				<label>
+					<span class="screen-reader-text">Search for:</span>
+					<input type="search" class="search-field" placeholder="Search &hellip;" value="" name="s" />
+				</label>
+				<input type="submit" class="search-submit" value="Search" />
+			</form>				</nav><!-- #site-navigation -->
+			</div><!-- #navbar -->
+		</header><!-- #masthead -->
+
+		<div id="main" class="site-main">
+
+	<div id="primary" class="content-area">
+		<div id="content" class="site-content" role="main">
+
+					<header class="archive-header">
+				<h1 class="archive-title">Tag Archives: Java 8</h1>
+
+							</header><!-- .archive-header -->
+
+										
+<article id="post-403" class="post-403 post type-post status-publish format-standard hentry category-changelogs category-news tag-cache tag-configuration tag-java-8 tag-preview tag-react tag-storage tag-storageindex">
+	<header class="entry-header">
+		
+				<h1 class="entry-title">
+			<a href="../../index.html%3Fp=403.html" rel="bookmark">Git master branch update v0.13</a>
+		</h1>
+		
+		<div class="entry-meta">
+			<span class="date"><a href="../../index.html%3Fp=403.html" title="Permalink to Git master branch update v0.13" rel="bookmark"><time class="entry-date" datetime="2015-05-23T21:44:03+00:00">05/23/2015</time></a></span><span class="categories-links"><a href="../../category/news/changelogs/index.html" rel="category tag">Changelogs</a>, <a href="../../category/news/index.html" rel="category tag">News</a></span><span class="tags-links"><a href="../cache/index.html" rel="tag">Cache</a>, <a href="../configuration/index.html" rel="tag">Configuration</a>, <a href="index.html" rel="tag">Java 8</a>, <a href="../preview/index.html" rel="tag">Preview</a>, <a href="../react/index.html" rel="tag">React</a>, <a href="../storage/index.html" rel="tag">Storage</a>, <a href="../storageindex/index.html" rel="tag">StorageIndex</a></span><span class="author vcard"><a class="url fn n" href="http://mydmam.org/author/fabien/" title="View all posts by hdsdi3g" rel="author">hdsdi3g</a></span>					</div><!-- .entry-meta -->
+	</header><!-- .entry-header -->
+
+		<div class="entry-content">
+		<p>Hello <a href="http://facebook.github.io/react/" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'http://facebook.github.io/react/', 'React']);" target="_blank">React</a> ! This new version introduce this JS lib created by Facebook. All the JS API was updated, and there are some improvement for this.</p>
+<p>This version is now fully functional with Java 8, but can be working with Java 7.</p>
+<p>Storage configuration files are now very different from the previous version. This format is more compact, all in one file and one tree and mergue all storageindex declarations. Java Storage API is a bit different.</p>
+<p>New functionalities and refactoring:</p>
+<ul>
+<li><strong>React</strong>/JS for Play (<a href="https://github.com/hdsdi3g/MyDMAM/issues/97" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/97', '#97']);" target="_blank">#97</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/103" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/103', '#103']);" target="_blank">#103</a>)</li>
+<li>Import and export SQL files with <strong>Play H2 db</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/106" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/106', '#106']);" target="_blank">#106</a>)</li>
+<li>Refactor module call for <strong>Play 1.3</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/107" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/107', '#107']);" target="_blank">#107</a>)</li>
+<li>Add Play <strong>Cache purge</strong> option in web view (<a href="https://github.com/hdsdi3g/MyDMAM/issues/108" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/108', '#108']);" target="_blank">#108</a>)</li>
+<li><strong>Refactor Metadata Preview</strong> with React (<a href="https://github.com/hdsdi3g/MyDMAM/issues/109" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/109', '#109']);" target="_blank">#109</a>), this is not actually closed. There is some works to do.</li>
+<li>Refactor <strong>Storage API</strong> (<a href="https://github.com/hdsdi3g/MyDMAM/issues/91" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/91', '#91']);" target="_blank">#91</a>)</li>
+</ul>
+<p>Bug correction:</p>
+<ul>
+<li>Strange stacktrace with Broker (<a href="https://github.com/hdsdi3g/MyDMAM/issues/100" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/100', '#100']);" target="_blank">#100</a>)</li>
+<li>Troubles with Server startup Play (<a href="https://github.com/hdsdi3g/MyDMAM/issues/104" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/104', '#104']);" target="_blank">#104</a>)</li>
+<li>CLI user list &amp; disable options don&#8217;t works (<a href="https://github.com/hdsdi3g/MyDMAM/issues/105" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/105', '#105']);" target="_blank">#105</a>)</li>
+<li>Bug with SMB client and getPath (<a href="https://github.com/hdsdi3g/MyDMAM/issues/110" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/110', '#110']);" target="_blank">#110</a>)</li>
+<li>Bug with JSX and Play prod mode (<a href="https://github.com/hdsdi3g/MyDMAM/issues/111" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/111', '#111']);" target="_blank">#111</a>)</li>
+<li>Refactor Javascript/Groovy templates (<a href="https://github.com/hdsdi3g/MyDMAM/issues/98" onclick="_gaq.push(['_trackEvent', 'outbound-article', 'https://github.com/hdsdi3g/MyDMAM/issues/98', '#98']);" target="_blank">#98</a>)</li>
+</ul>
+			</div><!-- .entry-content -->
+	
+	<footer class="entry-meta">
+		
+			</footer><!-- .entry-meta -->
+</article><!-- #post -->
+			
+			
+		
+		</div><!-- #content -->
+	</div><!-- #primary -->
+
+
+		</div><!-- #main -->
+		<footer id="colophon" class="site-footer" role="contentinfo">
+				<div id="secondary" class="sidebar-container" role="complementary">
+		<div class="widget-area">
+			<aside id="search-2" class="widget widget_search"><form role="search" method="get" class="search-form" action="../../index.html">
+				<label>
+					<span class="screen-reader-text">Search for:</span>
+					<input type="search" class="search-field" placeholder="Search &hellip;" value="" name="s" />
+				</label>
+				<input type="submit" class="search-submit" value="Search" />
+			</form></aside>		<aside id="recent-posts-3" class="widget widget_recent_entries">		<h3 class="widget-title">Recent Posts</h3>		<ul>
+					<li>
+				<a href="../../index.html%3Fp=466.html">Git master branch update v0.16</a>
+						</li>
+					<li>
+				<a href="../../index.html%3Fp=462.html">Git master branch update v0.15</a>
+						</li>
+					<li>
+				<a href="../../index.html%3Fp=456.html">Git master branch update v0.14</a>
+						</li>
+					<li>
+				<a href="../../index.html%3Fp=442.html">MyDMAM a 3 ans</a>
+						</li>
+					<li>
+				<a href="../../index.html%3Fp=419.html">Elasticsearch v2 is here !</a>
+						</li>
+				</ul>
+		</aside>		<aside id="archives-2" class="widget widget_archive"><h3 class="widget-title">Archives</h3>		<ul>
+			<li><a href='../../2016/04/index.html'>April 2016</a></li>
+	<li><a href='../../2016/03/index.html'>March 2016</a></li>
+	<li><a href='../../2015/12/index.html'>December 2015</a></li>
+	<li><a href='../../2015/10/index.html'>October 2015</a></li>
+	<li><a href='../../2015/05/index.html'>May 2015</a></li>
+	<li><a href='../../2015/04/index.html'>April 2015</a></li>
+	<li><a href='../../2015/03/index.html'>March 2015</a></li>
+	<li><a href='../../2015/02/index.html'>February 2015</a></li>
+	<li><a href='../../2015/01/index.html'>January 2015</a></li>
+	<li><a href='../../2014/12/index.html'>December 2014</a></li>
+	<li><a href='../../2014/09/index.html'>September 2014</a></li>
+	<li><a href='../../2014/08/index.html'>August 2014</a></li>
+	<li><a href='../../2014/07/index.html'>July 2014</a></li>
+	<li><a href='../../2014/06/index.html'>June 2014</a></li>
+	<li><a href='../../2014/05/index.html'>May 2014</a></li>
+		</ul>
+		</aside><aside id="categories-2" class="widget widget_categories"><h3 class="widget-title">Categories</h3>		<ul>
+	<li class="cat-item cat-item-15"><a href="../../category/news/changelogs/index.html" title="Git changelogs">Changelogs</a>
+</li>
+	<li class="cat-item cat-item-30"><a href="../../category/news/index.html" title="Projet news and general announcements.">News</a>
+</li>
+		</ul>
+</aside><aside id="wpt-latest-tweets-2" class="widget wpt-latest-tweets"><div class="wpt-header"><div class='wpt-follow-button'><a href='https://twitter.com/mydmam' class='twitter-follow-button wpt-right' data-width='30px' data-show-screen-name='false' data-size='large' data-show-count='false' data-lang='en'>Follow @mydmam</a></div>
+		</p>
+		<img src='https://pbs.twimg.com/profile_images/427239272941244418/jcR8fe0F_normal.png' alt='' class='wpt-twitter-avatar wpt-left ' />
+		<span class='wpt-twitter-name'>MyDMAM Project</span><br />
+		<span class='wpt-twitter-id'><a href='https://twitter.com/mydmam'>@mydmam</a></span>
+		</p></div><ul>
+<li class="lang-en">Site: Git master branch update v0.16 https://t.co/DfDek7rUq1<br /><span class='wpt-tweet-time'><a href="http://twitter.com/mydmam/status/726058932171591680">about 2 weeks ago</a></span>  </li>
+<li class="lang-en">Site: Git master branch update v0.15 https://t.co/iS4Y42V6OD<br /><span class='wpt-tweet-time'><a href="http://twitter.com/mydmam/status/719615908847689728">about 1 month ago</a></span>  </li>
+<li class="lang-en">Correct documentation for Play + Apache &amp; reverse-proxy https://t.co/XXf4hBxadV (correct https://t.co/ni2SPuznLl)<br /><span class='wpt-tweet-time'><a href="http://twitter.com/mydmam/status/710848907362897921">about 2 months ago</a></span>  </li>
+<li class="lang-fr">Autour de MyDMAM : développer un logiciel libre - https://t.co/Li0G6MRpDx<br /><span class='wpt-tweet-time'><a href="http://twitter.com/mydmam/status/710219038182547457">about 2 months ago</a></span>  </li>
+<li class="lang-en">Site: Git master branch update v0.14 https://t.co/oowLzBX17z<br /><span class='wpt-tweet-time'><a href="http://twitter.com/mydmam/status/706247333609132032">about 2 months ago</a></span>  </li>
+</ul>
+</aside>		</div><!-- .widget-area -->
+	</div><!-- #secondary -->
+
+			<div class="site-info">
+&copy; mydmam.org / hd3g.tv 2013 &bull;
+Licenced under the <a rel="external" href="http://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA 3.0 Unported</a> and <a rel="external" href="http://www.gnu.org/copyleft/fdl.html">GFDL</a>.
+<br>
+Site powered by <a rel="external" href="http://wordpress.org">WordPress</a>, dressed with Twenty Thirteen, hosted at <a rel="external" href="http://www.ovh.com/">OVH</a>.
+				<!-- 				<a href="http://wordpress.org/" title="Semantic Personal Publishing Platform">Proudly powered by WordPress</a> -->
+			</div><!-- .site-info -->
+		</footer><!-- #colophon -->
+	</div><!-- #page -->
+
+	<a class = "github-ribbon" href="https://github.com/hdsdi3g/MyDMAM" target = "_blank" ><img style="position: fixed; top: 0; right: 0; border: 0;z-index:100000" src="http://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png" alt="Fork me on GitHub" /></a><script type='text/javascript' src='http://s0.wp.com/wp-content/js/devicepx-jetpack.js?ver=201619'></script>
+<script type="text/javascript" src="../../wp-content/cache/minify/000000/M9HPTSzOzyuq1MvNzNMx1s8qLE0FcZAEDfRzK1NyE3P1s4r100rzkksy8_OKdUz0ywt0U3OTUlNAigA.js"></script>
+<script type='text/javascript' src='https://platform.twitter.com/widgets.js?ver=be63b55bd13097cdf910707a9a52c072'></script>
+<script type='text/javascript' src='http://stats.wp.com/e-201619.js' async defer></script>
+<script type='text/javascript'>
+	_stq = window._stq || [];
+	_stq.push([ 'view', {v:'ext',j:'1:4.0.2',blog:'104858173',post:'0',tz:'2',srv:'mydmam.org'} ]);
+	_stq.push([ 'clickTrackerInit', '104858173', '0' ]);
+</script>
+
+			<div id="cookie-notice" class="cn-top wp-default" style="color: #fff; background-color: #000;"><div class="cookie-notice-container"><span id="cn-notice-text">This site use cookies to ensure that we give you the best experience on our website. If you continue to use this site we will assume that you are happy with it.</span><a href="index.html#" id="cn-accept-cookie" data-cookie-set="accept" class="cn-set-cookie button wp-default">Ok</a>
+				</div>
+			</div></body>
+</html>
+<!-- Performance optimized by W3 Total Cache. Learn more: http://www.w3-edge.com/wordpress-plugins/
+
+Minified using disk
+Page Caching using disk: enhanced
+Database Caching 10/15 queries in 0.004 seconds using disk
+Object Caching 1305/1319 objects using disk
+
+ Served from: mydmam.org @ 2016-05-12 20:18:41 by W3 Total Cache -->

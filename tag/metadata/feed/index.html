@@ -8,22 +8,80 @@
 	>
 
 <channel>
-	<title>MyDMAM Project &#187; Metadata</title>
+	<title>Metadata &#8211; MyDMAM Project</title>
 	<atom:link href="http://mydmam.org/tag/metadata/feed/" rel="self" type="application/rss+xml" />
 	<link>http://mydmam.org</link>
 	<description>Another way of looking a Digital Media Asset Management</description>
-	<lastBuildDate>Thu, 19 Feb 2015 16:44:11 +0000</lastBuildDate>
+	<lastBuildDate>Fri, 29 Apr 2016 14:51:05 +0000</lastBuildDate>
 	<language>en-US</language>
 	<sy:updatePeriod>hourly</sy:updatePeriod>
 	<sy:updateFrequency>1</sy:updateFrequency>
 	
+
+<image>
+	<url>http://mydmam.org/wp-content/uploads/2016/05/cropped-Favicon-MyDMAM-tres-grande-zoom-32x32.png</url>
+	<title>Metadata &#8211; MyDMAM Project</title>
+	<link>http://mydmam.org</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
 	<item>
+		<title>Git master branch update v0.16</title>
+		<link>http://mydmam.org/2016/04/git-master-branch-update-v0-16/</link>
+		<pubDate>Fri, 29 Apr 2016 14:36:41 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[CLI]]></category>
+		<category><![CDATA[EBU R128]]></category>
+		<category><![CDATA[ffmpeg]]></category>
+		<category><![CDATA[LUFS]]></category>
+		<category><![CDATA[Manager]]></category>
+		<category><![CDATA[Metadata]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=466</guid>
+		<description><![CDATA[It&#8217;s a new version and it adds a new wonderful function (#176): Audio Deep Analysis. It retrieve loudness (LUFS) history for any media file (audio and video). The analyst is in the backend side, and it displays results in web interface some audio stats (like LU, True Peak, DC offset, RMS average&#8230;) and an interactive [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>It&#8217;s a new version and it adds a new wonderful function (<a href="https://github.com/hdsdi3g/MyDMAM/issues/176" target="_blank">#176</a>): <strong>Audio Deep Analysis</strong>. It retrieve loudness (LUFS) history for any media file (audio and video). The analyst is in the backend side, and it displays results in web interface some audio stats (like LU, True Peak, DC offset, RMS average&#8230;) and an interactive graphic. The backend engine is <a href="https://github.com/jiixyj/libebur128" target="_blank">libebur128</a> via ffmpeg and the graphic engine is <a href="http://www.jfree.org/jfreechart/" target="_blank">jFreeChart</a>.</p>
+<p>This update also bring some bug corrections and improvements:</p>
+<ul>
+<li>Add trace, verbose and quiet options for CLI (<a href="https://github.com/hdsdi3g/MyDMAM/issues/192" target="_blank">#192</a>)</li>
+<li>Correct Windows issues (<a href="https://github.com/hdsdi3g/MyDMAM/issues/188" target="_blank">#188</a>)</li>
+<li>Upgrade and clean Metadata API (<a href="https://github.com/hdsdi3g/MyDMAM/issues/189" target="_blank">#189</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/190" target="_blank">#190,</a> <a href="https://github.com/hdsdi3g/MyDMAM/issues/191" target="_blank">#191</a>)</li>
+<li>Bug during create manager actions: orders don&#8217;t works (<a href="https://github.com/hdsdi3g/MyDMAM/issues/193" target="_blank">#193</a>)</li>
+</ul>
+<p>And now, an example:</p>
+<p><a href="http://mydmam.org/2016/04/git-master-branch-update-v0-16/audio-da/" rel="attachment wp-att-472"><img class="alignnone wp-image-472 size-full" src="http://mydmam.org/wp-content/uploads/2016/04/audio-da.jpg" alt="Audio Deep Analysis example" width="1019" height="914" srcset="http://mydmam.org/wp-content/uploads/2016/04/audio-da.jpg 1019w, http://mydmam.org/wp-content/uploads/2016/04/audio-da-300x269.jpg 300w, http://mydmam.org/wp-content/uploads/2016/04/audio-da-768x689.jpg 768w" sizes="(max-width: 1019px) 100vw, 1019px" /></a></p>
+]]></content:encoded>
+			</item>
+		<item>
+		<title>Git master branch update v0.15</title>
+		<link>http://mydmam.org/2016/04/git-master-branch-update-v0-15/</link>
+		<pubDate>Mon, 11 Apr 2016 19:54:40 +0000</pubDate>
+		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
+				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[Cyclic]]></category>
+		<category><![CDATA[Metadata]]></category>
+		<category><![CDATA[Watchfolder]]></category>
+
+		<guid isPermaLink="false">http://mydmam.org/?p=462</guid>
+		<description><![CDATA[A new update with some corrections and little enhancements: Protect double Cyclic execute during Probe reboot (#151) Correct Webserver bugs with reverse proxy + SSL (#179, #180) Correct a lot of grave bugs with Metadatas (#181, #185, #183) for preparing #176 Correct some problems with Watchfolder (#182, #187) Ignoring Thumbs.db files (#187) This update don&#8217;t break the actual working and don&#8217;t [&#8230;]]]></description>
+				<content:encoded><![CDATA[<p>A new update with some corrections and little enhancements:</p>
+<ul>
+<li>Protect double Cyclic execute during Probe reboot (<a href="https://github.com/hdsdi3g/MyDMAM/issues/151" target="_blank">#151</a>)</li>
+<li>Correct Webserver bugs with reverse proxy + SSL (<a href="https://github.com/hdsdi3g/MyDMAM/issues/179" target="_blank">#179</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/180" target="_blank">#180</a>)</li>
+<li>Correct a lot of grave bugs with Metadatas (<a href="https://github.com/hdsdi3g/MyDMAM/issues/181" target="_blank">#181</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/185" target="_blank">#185</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/183" target="_blank">#183</a>) for preparing <a href="https://github.com/hdsdi3g/MyDMAM/issues/176" target="_blank">#176</a></li>
+<li>Correct some problems with Watchfolder (<a href="https://github.com/hdsdi3g/MyDMAM/issues/182" target="_blank">#182</a>, <a href="https://github.com/hdsdi3g/MyDMAM/issues/187" target="_blank">#187</a>)</li>
+<li>Ignoring Thumbs.db files (<a href="https://github.com/hdsdi3g/MyDMAM/issues/187" target="_blank">#187</a>)</li>
+</ul>
+<p>This update don&#8217;t break the actual working and don&#8217;t need to change configuration files.</p>
+]]></content:encoded>
+			</item>
+		<item>
 		<title>Git master branch update v0.11</title>
 		<link>http://mydmam.org/2015/02/git-master-branch-update-v0-11/</link>
-		<comments>http://mydmam.org/2015/02/git-master-branch-update-v0-11/#comments</comments>
 		<pubDate>Thu, 19 Feb 2015 16:44:11 +0000</pubDate>
 		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
 				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
 		<category><![CDATA[bug correcting]]></category>
 		<category><![CDATA[ffmpeg]]></category>
 		<category><![CDATA[ImageMagick]]></category>
@@ -41,16 +99,14 @@
 </ul>
 <p>Beware to upgrade, <a href="https://github.com/hdsdi3g/MyDMAM/blob/master/conf/app.d-examples/storageindex.yml.example" target="_blank"><strong>storageindexes.yml</strong></a> is updated, with a new key, <em>metadata_analysing.</em></p>
 ]]></content:encoded>
-			<wfw:commentRss>http://mydmam.org/2015/02/git-master-branch-update-v0-11/feed/</wfw:commentRss>
-		<slash:comments>0</slash:comments>
-		</item>
+			</item>
 		<item>
 		<title>Git master branch update v0.8</title>
 		<link>http://mydmam.org/2014/09/git-master-branch-update-v0-8/</link>
-		<comments>http://mydmam.org/2014/09/git-master-branch-update-v0-8/#comments</comments>
 		<pubDate>Wed, 17 Sep 2014 20:18:06 +0000</pubDate>
 		<dc:creator><![CDATA[hdsdi3g]]></dc:creator>
 				<category><![CDATA[Changelogs]]></category>
+		<category><![CDATA[News]]></category>
 		<category><![CDATA[Elasticsearch]]></category>
 		<category><![CDATA[Metadata]]></category>
 		<category><![CDATA[XmlData]]></category>
@@ -61,9 +117,7 @@
 <p>Add more restrictions on code quality with Eclipse, like add <em>SuppressWarnings</em> annotations.</p>
 <p>&nbsp;</p>
 ]]></content:encoded>
-			<wfw:commentRss>http://mydmam.org/2014/09/git-master-branch-update-v0-8/feed/</wfw:commentRss>
-		<slash:comments>0</slash:comments>
-		</item>
+			</item>
 	</channel>
 </rss>
 
@@ -71,7 +125,7 @@
 
 Minified using disk
 Page Caching using disk: enhanced
-Database Caching using disk
-Object Caching 292/299 objects using disk
+Database Caching 5/9 queries in 0.002 seconds using disk
+Object Caching 491/499 objects using disk
 
- Served from: mydmam.org @ 2015-02-19 17:51:03 by W3 Total Cache -->
+ Served from: mydmam.org @ 2016-05-12 20:27:14 by W3 Total Cache -->
