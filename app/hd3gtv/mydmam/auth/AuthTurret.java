@@ -18,6 +18,8 @@ package hd3gtv.mydmam.auth;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 
@@ -28,13 +30,16 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnoreStrategy;
@@ -50,6 +55,7 @@ public class AuthTurret {
 	
 	private Gson gson_simple;// TODO set
 	private Gson gson;// TODO set
+	final JsonParser parser = new JsonParser();
 	
 	private Keyspace keyspace;
 	
@@ -166,6 +172,52 @@ public class AuthTurret {
 		return gson_simple;
 	}
 	
+	ColumnFamilyQuery<String, String> prepareQuery() {
+		return keyspace.prepareQuery(CF_AUTH);
+	}
+	
+	void onConnectionException(ConnectionException e) {
+		Loggers.Auth.warn("Can't access to database", e);
+	}
+	
+	public ArrayList<RoleNG> getRolesByGroupList(ArrayList<GroupNG> groups) {
+		HashMap<RoleNG, Object> result = new HashMap<RoleNG, Object>();
+		
+		groups.forEach(group -> {
+			group.getGroupRoles().forEach(role -> {
+				result.put(role, this);
+			});
+		});
+		
+		return new ArrayList<RoleNG>(result.keySet());
+	}
+	
+	public HashSet<String> getPrivilegesByRoleList(ArrayList<RoleNG> roles) {
+		HashSet<String> result = new HashSet<String>();
+		
+		roles.forEach(role -> {
+			role.getPrivileges().forEach(privilege -> {
+				result.add(privilege);
+			});
+		});
+		
+		return result;
+	}
+	
+	public HashSet<String> getPrivilegesByGroupList(ArrayList<GroupNG> groups) {
+		HashSet<String> result = new HashSet<String>();
+		
+		groups.forEach(group -> {
+			group.getGroupRoles().forEach(role -> {
+				role.getPrivileges().forEach(privilege -> {
+					result.add(privilege);
+				});
+			});
+		});
+		
+		return result;
+	}
+	
 	public boolean isForceSelectDomain() {
 		// TODO from conf
 		return false;
@@ -176,9 +228,39 @@ public class AuthTurret {
 		return new ArrayList<String>();
 	}
 	
+	// TODO cache vars + cache ttl + reset cache
+	
 	public UserNG getByUserKey(String user_key) {
 		// TODO
 		return null;
+	}
+	
+	public GroupNG getByGroupKey(String group_key) {
+		// TODO
+		return null;
+	}
+	
+	public RoleNG getByRoleKey(String role_key) {
+		// TODO
+		return null;
+	}
+	
+	public HashMap<String, UserNG> getAllUsers() {
+		HashMap<String, UserNG> result = new HashMap<String, UserNG>();
+		// TODO
+		return result;
+	}
+	
+	public HashMap<String, GroupNG> getAllGroups() {
+		HashMap<String, GroupNG> result = new HashMap<String, GroupNG>();
+		// TODO
+		return result;
+	}
+	
+	public HashMap<String, RoleNG> getAllRoles() {
+		HashMap<String, RoleNG> result = new HashMap<String, RoleNG>();
+		// TODO
+		return result;
 	}
 	
 	public UserNG authenticate(String remote_address, String username, String password, String domain, String language) throws InvalidUserAuthentificationException {

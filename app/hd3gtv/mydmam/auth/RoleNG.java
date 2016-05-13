@@ -21,7 +21,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonObject;
 import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.ColumnList;
 
 public class RoleNG {
 	
@@ -44,18 +47,73 @@ public class RoleNG {
 		return this;
 	}
 	
+	RoleNG loadFromDb(ColumnList<String> cols) {
+		if (cols.isEmpty()) {
+			return this;
+		}
+		role_name = cols.getStringValue("role_name", null);
+		
+		if (cols.getColumnByName("privileges") != null) {
+			privileges = turret.getGson().fromJson(cols.getColumnByName("privileges").getStringValue(), hashset_privileges_typeOfT);
+		}
+		
+		return this;
+	}
+	
 	RoleNG(AuthTurret turret, String key, boolean load_from_db) {
 		this.turret = turret;
 		if (turret == null) {
 			throw new NullPointerException("\"turret\" can't to be null");
 		}
+		this.key = key;
+		if (key == null) {
+			throw new NullPointerException("\"key\" can't to be null");
+		}
+		if (load_from_db) {
+			try {
+				loadFromDb(turret.prepareQuery().getKey(key).execute().getResult());
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
+			}
+		}
+	}
+	
+	public HashSet<String> getPrivileges() {
+		synchronized (privileges) {
+			if (privileges == null) {
+				privileges = new HashSet<String>(1);
+				ColumnList<String> cols;
+				try {
+					cols = turret.prepareQuery().getKey(key).withColumnSlice("privileges").execute().getResult();
+					if (cols.getColumnByName("privileges").hasValue()) {
+						privileges = turret.getGson().fromJson(cols.getColumnByName("privileges").getStringValue(), hashset_privileges_typeOfT);
+					}
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
+		}
+		return privileges;
 	}
 	
 	public String getKey() {
 		return key;
 	}
 	
-	// TODO import db
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(key);
+		sb.append(", ");
+		sb.append(role_name);
+		return sb.toString();
+	}
+	
+	public JsonObject exportForAdmin() {
+		JsonObject jo = new JsonObject();
+		jo.addProperty("role_name", role_name);
+		jo.add("privileges", turret.getGson().toJsonTree(getPrivileges()));
+		return jo;
+	}
 	
 	// TODO CRUD
 	// TODO Gson (de) serializers

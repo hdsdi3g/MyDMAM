@@ -18,6 +18,7 @@ package hd3gtv.mydmam.auth;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -28,6 +29,8 @@ import javax.mail.internet.InternetAddress;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
 
 import hd3gtv.mydmam.mail.EndUserBaseMail;
@@ -60,20 +63,25 @@ public class UserNG {
 	private transient HashSet<String> user_groups_roles_privileges;
 	private transient AuthTurret turret;
 	
-	private static Type al_group_typeOfT = new TypeToken<ArrayList<GroupNG>>() {
-	}.getType();
 	private static Type linmap_string_basket_typeOfT = new TypeToken<LinkedHashMap<String, BasketNG>>() {
 	}.getType();
 	private static Type al_useractivity_typeOfT = new TypeToken<ArrayList<UserActivity>>() {
 	}.getType();
 	private static Type al_usernotification_typeOfT = new TypeToken<ArrayList<UserNotificationNG>>() {
 	}.getType();
+	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
+	}.getType();
 	
-	// TODO Gson (de) serializers
-	// TODO import db
 	// TODO CRUD
 	
+	/**
+	 * This cols names will always be imported from db.
+	 */
+	private static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(
+			Arrays.asList("login", "fullname", "domain", "language", "email_addr", "protected_password", "lasteditdate", "lastlogindate", "lastloginipsource", "locked_account", "user_groups"));
+			
 	UserNG save(ColumnListMutation<String> mutator) {
+		
 		mutator.putColumnIfNotNull("login", login);
 		mutator.putColumnIfNotNull("fullname", fullname);
 		mutator.putColumnIfNotNull("domain", domain);
@@ -86,7 +94,8 @@ public class UserNG {
 		mutator.putColumnIfNotNull("locked_account", locked_account);
 		
 		if (user_groups != null) {
-			mutator.putColumnIfNotNull("user_groups", turret.getGson().toJson(user_groups, al_group_typeOfT));
+			// TODO create group by names
+			// mutator.putColumnIfNotNull("user_groups", turret.getGson().toJson(user_groups, al_group_typeOfT));
 		}
 		if (properties != null) {
 			mutator.putColumnIfNotNull("properties", turret.getGson().toJson(properties));
@@ -107,8 +116,50 @@ public class UserNG {
 		return this;
 	}
 	
-	UserNG loadFromDb(String key, ColumnList<String> cols) {
-		// TODO
+	UserNG loadFromDb(ColumnList<String> cols) {
+		if (cols.isEmpty()) {
+			return this;
+		}
+		login = cols.getStringValue("login", null);
+		fullname = cols.getStringValue("fullname", null);
+		domain = cols.getStringValue("domain", null);
+		language = cols.getStringValue("language", null);
+		email_addr = cols.getStringValue("email_addr", null);
+		protected_password = cols.getByteArrayValue("protected_password", null);
+		lasteditdate = cols.getLongValue("lasteditdate", 0l);
+		lastlogindate = cols.getLongValue("lastlogindate", 0l);
+		lastloginipsource = cols.getStringValue("lastloginipsource", null);
+		locked_account = cols.getBooleanValue("locked_account", false);
+		
+		Column<String> col = null;
+		col = cols.getColumnByName("user_groups");
+		if (col != null) {
+			// user_groups = turret.getGson().fromJson(col.getStringValue(), al_group_typeOfT);
+			// TODO set group by names
+		}
+		
+		col = cols.getColumnByName("properties");
+		if (col != null) {
+			properties = turret.getGson().fromJson(col.getStringValue(), Properties.class);
+		}
+		col = cols.getColumnByName("baskets");
+		if (col != null) {
+			baskets = turret.getGson().fromJson(col.getStringValue(), linmap_string_basket_typeOfT);
+		}
+		col = cols.getColumnByName("activities");
+		if (col != null) {
+			activities = turret.getGson().fromJson(col.getStringValue(), al_useractivity_typeOfT);
+		}
+		col = cols.getColumnByName("notifications");
+		if (col != null) {
+			notifications = turret.getGson().fromJson(col.getStringValue(), al_usernotification_typeOfT);
+		}
+		
+		col = cols.getColumnByName("preferencies");
+		if (col != null) {
+			preferencies = turret.parser.parse(col.getStringValue()).getAsJsonObject();
+		}
+		
 		return this;
 	}
 	
@@ -117,26 +168,233 @@ public class UserNG {
 		if (turret == null) {
 			throw new NullPointerException("\"turret\" can't to be null");
 		}
+		this.key = key;
+		if (key == null) {
+			throw new NullPointerException("\"key\" can't to be null");
+		}
 		
-		// TODO Auto-generated constructor stub
+		if (load_from_db) {
+			try {
+				loadFromDb(turret.prepareQuery().getKey(key).withColumnSlice(COLS_NAMES_LIMITED_TO_DB_IMPORT).execute().getResult());
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
+			}
+		}
 	}
 	
+	public ArrayList<GroupNG> getUserGroups() {
+		synchronized (user_groups) {
+			if (user_groups == null) {
+				user_groups = new ArrayList<GroupNG>(1);
+				ColumnList<String> cols;
+				try {
+					cols = turret.prepareQuery().getKey(key).withColumnSlice("user_groups").execute().getResult();
+					if (cols.getColumnByName("user_groups").hasValue()) {
+						// user_groups = turret.getGson().fromJson(cols.getColumnByName("user_groups").getStringValue(), al_group_typeOfT);
+						// TODO get group by names
+					}
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
+		}
+		return user_groups;
+	}
+	
+	public String getKey() {
+		return key;
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(key);
+		sb.append(", ");
+		sb.append(login);
+		sb.append("@");
+		sb.append(domain);
+		sb.append(" (");
+		sb.append(fullname);
+		sb.append("/");
+		sb.append(language);
+		sb.append(")");
+		return sb.toString();
+	}
+	
+	public Properties getProperties() {
+		synchronized (properties) {
+			if (properties == null) {
+				properties = new Properties();
+				ColumnList<String> cols;
+				try {
+					cols = turret.prepareQuery().getKey(key).withColumnSlice("properties").execute().getResult();
+					if (cols.getColumnByName("properties").hasValue()) {
+						properties = turret.getGson().fromJson(cols.getColumnByName("properties").getStringValue(), Properties.class);
+					}
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
+		}
+		
+		return properties;
+	}
+	
+	public LinkedHashMap<String, BasketNG> getBaskets() {
+		synchronized (baskets) {
+			if (baskets == null) {
+				baskets = new LinkedHashMap<String, BasketNG>(1);
+				ColumnList<String> cols;
+				try {
+					cols = turret.prepareQuery().getKey(key).withColumnSlice("baskets").execute().getResult();
+					if (cols.getColumnByName("baskets").hasValue()) {
+						baskets = turret.getGson().fromJson(cols.getColumnByName("baskets").getStringValue(), linmap_string_basket_typeOfT);
+					}
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
+		}
+		return baskets;
+	}
+	
+	public ArrayList<UserActivity> getActivities() {
+		synchronized (activities) {
+			if (activities == null) {
+				activities = new ArrayList<UserActivity>();
+				ColumnList<String> cols;
+				try {
+					cols = turret.prepareQuery().getKey(key).withColumnSlice("activities").execute().getResult();
+					if (cols.getColumnByName("activities").hasValue()) {
+						activities = turret.getGson().fromJson(cols.getColumnByName("activities").getStringValue(), al_useractivity_typeOfT);
+					}
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
+		}
+		return activities;
+	}
+	
+	public JsonObject getPreferencies() {
+		synchronized (preferencies) {
+			if (preferencies == null) {
+				preferencies = new JsonObject();
+				ColumnList<String> cols;
+				try {
+					cols = turret.prepareQuery().getKey(key).withColumnSlice("preferencies").execute().getResult();
+					if (cols.getColumnByName("preferencies").hasValue()) {
+						preferencies = turret.parser.parse(cols.getColumnByName("preferencies").getStringValue()).getAsJsonObject();
+					}
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
+		}
+		return preferencies;
+	}
+	
+	public ArrayList<UserNotificationNG> getNotifications() {
+		synchronized (notifications) {
+			if (notifications == null) {
+				notifications = new ArrayList<UserNotificationNG>();
+				ColumnList<String> cols;
+				try {
+					cols = turret.prepareQuery().getKey(key).withColumnSlice("notifications").execute().getResult();
+					if (cols.getColumnByName("notifications").hasValue()) {
+						notifications = turret.getGson().fromJson(cols.getColumnByName("notifications").getStringValue(), al_usernotification_typeOfT);
+					}
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
+		}
+		return notifications;
+	}
+	
+	public ArrayList<RoleNG> getUser_groups_roles() {
+		if (user_groups_roles == null) {
+			synchronized (user_groups_roles) {
+				user_groups_roles = turret.getRolesByGroupList(getUserGroups());
+			}
+		}
+		return user_groups_roles;
+	}
+	
+	public HashSet<String> getUser_groups_roles_privileges() {
+		if (user_groups_roles_privileges == null) {
+			synchronized (user_groups_roles_privileges) {
+				user_groups_roles_privileges = turret.getPrivilegesByGroupList(getUserGroups());
+			}
+		}
+		return user_groups_roles_privileges;
+	}
+	
+	public void sendTestMail() throws Exception {
+		// TODO create button for send a mail
+		InternetAddress email_addr = new InternetAddress(this.email_addr);
+		
+		EndUserBaseMail mail;
+		if (language == null) {
+			mail = new EndUserBaseMail(Locale.getDefault(), email_addr, "usertestmail");
+		} else {
+			mail = new EndUserBaseMail(Lang.getLocale(language), email_addr, "usertestmail");
+		}
+		
+		mail.send();
+	}
+	
+	/**
+	 * Don't forget to add Key for identify user
+	 */
 	public JsonObject exportForAdmin() {
-		// TODO
-		// TODO lazy load preferencies
-		return null;
+		JsonObject result = new JsonObject();
+		result.addProperty("login", login);
+		result.addProperty("fullname", fullname);
+		result.addProperty("domain", domain);
+		result.addProperty("language", language);
+		result.addProperty("email_addr", email_addr);
+		result.addProperty("lasteditdate", lasteditdate);
+		result.addProperty("lastlogindate", lastlogindate);
+		result.addProperty("lastloginipsource", lastloginipsource);
+		result.addProperty("locked_account", locked_account);
+		result.add("preferencies", getPreferencies());
+		result.add("properties", turret.getGson().toJsonTree(getProperties()));
+		result.add("baskets", turret.getGson().toJsonTree(getBaskets(), linmap_string_basket_typeOfT));
+		result.add("activities", turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT));
+		result.add("notifications", turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT));
+		
+		JsonObject jo_groups = new JsonObject();
+		getUserGroups().forEach(group -> {
+			jo_groups.add(group.getKey(), group.exportForAdmin());
+		});
+		result.add("user_groups", jo_groups);
+		
+		return result;
 	}
 	
 	public JsonObject exportForWebUser() {
-		// TODO
-		// TODO lazy load preferencies
-		return null;
+		JsonObject result = new JsonObject();
+		result.addProperty("login", login);
+		result.addProperty("fullname", fullname);
+		result.addProperty("domain", domain);
+		result.addProperty("language", language);
+		result.addProperty("email_addr", email_addr);
+		result.addProperty("lasteditdate", lasteditdate);
+		result.addProperty("lastlogindate", lastlogindate);
+		result.addProperty("lastloginipsource", lastloginipsource);
+		result.add("preferencies", getPreferencies());
+		result.add("baskets", turret.getGson().toJsonTree(getBaskets(), linmap_string_basket_typeOfT));
+		result.add("activities", turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT));
+		result.add("notifications", turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT));
+		return result;
 	}
 	
+	// TODO use this...
 	void doUpdateOperations() {
-		// TODO like update lasteditdate
+		this.lasteditdate = System.currentTimeMillis();
 	}
 	
+	// TODO use this...
 	void doLoginOperations(String loginipsource, String language, String email_addr) {
 		this.lastloginipsource = loginipsource;
 		this.language = language;
@@ -159,63 +417,4 @@ public class UserNG {
 	public String getLanguage() {
 		return language;
 	}
-	
-	public ArrayList<GroupNG> getUserGroups() {
-		// TODO lazy load
-		return user_groups;
-	}
-	
-	public String getKey() {
-		return key;
-	}
-	
-	public String toString() {
-		// TODO Auto-generated method stub
-		return super.toString();
-	}
-	
-	public Properties getProperties() {
-		// TODO lazy load
-		return properties;
-	}
-	
-	public LinkedHashMap<String, BasketNG> getBaskets() {
-		// TODO lazy load
-		return baskets;
-	}
-	
-	public ArrayList<UserActivity> getActivity() {
-		// TODO lazy load
-		return activities;
-	}
-	
-	public ArrayList<UserNotificationNG> getNotifications() {
-		// TODO lazy load
-		return notifications;
-	}
-	
-	public ArrayList<RoleNG> getUser_groups_roles() {
-		// TODO lazy load
-		return user_groups_roles;
-	}
-	
-	public HashSet<String> getUser_groups_roles_privileges() {
-		// TODO lazy load
-		return user_groups_roles_privileges;
-	}
-	
-	public void sendTestMail() throws Exception {
-		// TODO create button for send a mail
-		InternetAddress email_addr = new InternetAddress(this.email_addr);
-		
-		EndUserBaseMail mail;
-		if (language == null) {
-			mail = new EndUserBaseMail(Locale.getDefault(), email_addr, "usertestmail");
-		} else {
-			mail = new EndUserBaseMail(Lang.getLocale(language), email_addr, "usertestmail");
-		}
-		
-		mail.send();
-	}
-	
 }

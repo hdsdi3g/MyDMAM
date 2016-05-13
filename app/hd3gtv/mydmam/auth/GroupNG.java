@@ -18,10 +18,12 @@ package hd3gtv.mydmam.auth;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashSet;
 
 import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonObject;
 import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.ColumnList;
 
 public class GroupNG {
 	
@@ -29,17 +31,30 @@ public class GroupNG {
 	private String group_name;
 	private ArrayList<RoleNG> group_roles;
 	
-	private transient HashSet<String> group_roles_privileges;
 	private transient ArrayList<UserNG> users_group;
 	private transient AuthTurret turret;
 	
-	private static Type al_role_typeOfT = new TypeToken<ArrayList<RoleNG>>() {
+	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
 	}.getType();
 	
 	GroupNG save(ColumnListMutation<String> mutator) {
 		mutator.putColumnIfNotNull("group_name", group_name);
 		if (group_roles != null) {
-			mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(group_roles, al_role_typeOfT));
+			// mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(group_roles, al_role_typeOfT));
+			// TODO set roles by names
+		}
+		return this;
+	}
+	
+	GroupNG loadFromDb(ColumnList<String> cols) {
+		if (cols.isEmpty()) {
+			return this;
+		}
+		group_name = cols.getStringValue("group_name", null);
+		
+		if (cols.getColumnByName("group_roles") != null) {
+			// group_roles = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_role_typeOfT);
+			// TODO get roles by names
 		}
 		return this;
 	}
@@ -49,14 +64,58 @@ public class GroupNG {
 		if (turret == null) {
 			throw new NullPointerException("\"turret\" can't to be null");
 		}
+		this.key = key;
+		if (key == null) {
+			throw new NullPointerException("\"key\" can't to be null");
+		}
+		if (load_from_db) {
+			try {
+				loadFromDb(turret.prepareQuery().getKey(key).execute().getResult());
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
+			}
+		}
+	}
+	
+	public ArrayList<RoleNG> getGroupRoles() {
+		synchronized (group_roles) {
+			if (group_roles == null) {
+				group_roles = new ArrayList<RoleNG>(1);
+				ColumnList<String> cols;
+				try {
+					cols = turret.prepareQuery().getKey(key).withColumnSlice("group_roles").execute().getResult();
+					if (cols.getColumnByName("group_roles").hasValue()) {
+						// group_roles = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_role_typeOfT);
+						// TODO get roles by names
+					}
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
+		}
+		return group_roles;
 	}
 	
 	public String getKey() {
 		return key;
 	}
 	
-	// TODO import db
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(key);
+		sb.append(", ");
+		sb.append(group_name);
+		return sb.toString();
+	}
+	
+	public JsonObject exportForAdmin() {
+		JsonObject jo = new JsonObject();
+		jo.addProperty("group_name", group_name);
+		getGroupRoles().forEach(role -> {
+			jo.add(role.getKey(), role.exportForAdmin());
+		});
+		return jo;
+	}
 	
 	// TODO CRUD
-	// TODO Gson (de) serializers
 }
