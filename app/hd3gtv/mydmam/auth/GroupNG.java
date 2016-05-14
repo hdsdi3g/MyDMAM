@@ -18,6 +18,8 @@ package hd3gtv.mydmam.auth;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonObject;
@@ -37,11 +39,21 @@ public class GroupNG {
 	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
 	}.getType();
 	
+	// TODO group key must start with "group:"
+	
+	/**
+	 * This cols names will always be imported from db.
+	 */
+	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(Arrays.asList("group_name", "group_roles"));
+	
 	GroupNG save(ColumnListMutation<String> mutator) {
 		mutator.putColumnIfNotNull("group_name", group_name);
 		if (group_roles != null) {
-			// mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(group_roles, al_role_typeOfT));
-			// TODO set roles by names
+			ArrayList<String> roles_keys = new ArrayList<String>(group_roles.size() + 1);
+			group_roles.forEach(role -> {
+				roles_keys.add(role.getKey());
+			});
+			mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(roles_keys, al_String_typeOfT));
 		}
 		return this;
 	}
@@ -53,8 +65,11 @@ public class GroupNG {
 		group_name = cols.getStringValue("group_name", null);
 		
 		if (cols.getColumnByName("group_roles") != null) {
-			// group_roles = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_role_typeOfT);
-			// TODO get roles by names
+			ArrayList<String> roles_keys = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT);
+			group_roles = new ArrayList<RoleNG>(roles_keys.size() + 1);
+			roles_keys.forEach(role_key -> {
+				group_roles.add(turret.getByRoleKey(role_key));
+			});
 		}
 		return this;
 	}
@@ -85,8 +100,10 @@ public class GroupNG {
 				try {
 					cols = turret.prepareQuery().getKey(key).withColumnSlice("group_roles").execute().getResult();
 					if (cols.getColumnByName("group_roles").hasValue()) {
-						// group_roles = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_role_typeOfT);
-						// TODO get roles by names
+						ArrayList<String> roles_keys = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT);
+						roles_keys.forEach(role_key -> {
+							group_roles.add(turret.getByRoleKey(role_key));
+						});
 					}
 				} catch (ConnectionException e) {
 					turret.onConnectionException(e);
@@ -117,5 +134,5 @@ public class GroupNG {
 		return jo;
 	}
 	
-	// TODO CRUD
+	// TODO U/D
 }

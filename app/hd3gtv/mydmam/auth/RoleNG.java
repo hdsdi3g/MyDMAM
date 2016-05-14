@@ -18,6 +18,7 @@ package hd3gtv.mydmam.auth;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 
 import com.google.common.reflect.TypeToken;
@@ -38,6 +39,13 @@ public class RoleNG {
 	
 	private static Type hashset_privileges_typeOfT = new TypeToken<HashSet<String>>() {
 	}.getType();
+	
+	// TODO role key must start with "role:"
+	
+	/**
+	 * This cols names will always be imported from db.
+	 */
+	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(Arrays.asList("role_name", "privileges"));
 	
 	RoleNG save(ColumnListMutation<String> mutator) {
 		mutator.putColumnIfNotNull("role_name", role_name);
@@ -115,8 +123,6 @@ public class RoleNG {
 		return jo;
 	}
 	
-	// TODO CRUD
-	// TODO Gson (de) serializers
-	
-	// @see Privileges.getAllSortedPrivileges()
+	// TODO U/D
+	// TODO @see Privileges.getAllSortedPrivileges()
 }

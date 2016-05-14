@@ -47,6 +47,7 @@ public class UserNG {
 	private String email_addr;
 	private byte[] protected_password;
 	
+	private long createdate;
 	private long lasteditdate;
 	private long lastlogindate;
 	private String lastloginipsource;
@@ -72,12 +73,13 @@ public class UserNG {
 	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
 	}.getType();
 	
-	// TODO CRUD
+	// TODO Delete
+	// TODO user key must start with "user:"
 	
 	/**
 	 * This cols names will always be imported from db.
 	 */
-	private static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(
+	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(
 			Arrays.asList("login", "fullname", "domain", "language", "email_addr", "protected_password", "lasteditdate", "lastlogindate", "lastloginipsource", "locked_account", "user_groups"));
 			
 	UserNG save(ColumnListMutation<String> mutator) {
@@ -89,13 +91,17 @@ public class UserNG {
 		mutator.putColumnIfNotNull("email_addr", email_addr);
 		mutator.putColumnIfNotNull("protected_password", protected_password);
 		mutator.putColumnIfNotNull("lasteditdate", lasteditdate);
+		mutator.putColumnIfNotNull("createdate", createdate);
 		mutator.putColumnIfNotNull("lastlogindate", lastlogindate);
 		mutator.putColumnIfNotNull("lastloginipsource", lastloginipsource);
 		mutator.putColumnIfNotNull("locked_account", locked_account);
 		
 		if (user_groups != null) {
-			// TODO create group by names
-			// mutator.putColumnIfNotNull("user_groups", turret.getGson().toJson(user_groups, al_group_typeOfT));
+			ArrayList<String> group_keys = new ArrayList<String>(user_groups.size() + 1);
+			user_groups.forEach(group -> {
+				group_keys.add(group.getKey());
+			});
+			mutator.putColumnIfNotNull("user_groups", turret.getGson().toJson(group_keys, al_String_typeOfT));
 		}
 		if (properties != null) {
 			mutator.putColumnIfNotNull("properties", turret.getGson().toJson(properties));
@@ -127,6 +133,7 @@ public class UserNG {
 		email_addr = cols.getStringValue("email_addr", null);
 		protected_password = cols.getByteArrayValue("protected_password", null);
 		lasteditdate = cols.getLongValue("lasteditdate", 0l);
+		createdate = cols.getLongValue("createdate", 0l);
 		lastlogindate = cols.getLongValue("lastlogindate", 0l);
 		lastloginipsource = cols.getStringValue("lastloginipsource", null);
 		locked_account = cols.getBooleanValue("locked_account", false);
@@ -134,8 +141,11 @@ public class UserNG {
 		Column<String> col = null;
 		col = cols.getColumnByName("user_groups");
 		if (col != null) {
-			// user_groups = turret.getGson().fromJson(col.getStringValue(), al_group_typeOfT);
-			// TODO set group by names
+			ArrayList<String> group_keys = turret.getGson().fromJson(col.getStringValue(), al_String_typeOfT);
+			user_groups = new ArrayList<GroupNG>(group_keys.size() + 1);
+			group_keys.forEach(group_key -> {
+				user_groups.add(turret.getByGroupKey(group_key));
+			});
 		}
 		
 		col = cols.getColumnByName("properties");
@@ -182,6 +192,63 @@ public class UserNG {
 		}
 	}
 	
+	/**
+	 * New simple user
+	 */
+	UserNG(AuthTurret turret, String login, String domain) {
+		this.turret = turret;
+		if (turret == null) {
+			throw new NullPointerException("\"turret\" can't to be null");
+		}
+		this.login = login;
+		if (login == null) {
+			throw new NullPointerException("\"login\" can't to be null");
+		}
+		this.domain = domain;
+		if (domain == null) {
+			throw new NullPointerException("\"domain\" can't to be null");
+		}
+		key = "user:" + login + "%" + domain;
+		createdate = System.currentTimeMillis();
+	}
+	
+	UserNG update(String fullname, String language, String email_addr, boolean locked_account) {
+		this.fullname = fullname;
+		if (fullname == null) {
+			throw new NullPointerException("\"fullname\" can't to be null");
+		}
+		this.language = language;
+		if (language == null) {
+			throw new NullPointerException("\"language\" can't to be null");
+		}
+		this.email_addr = email_addr;
+		if (email_addr == null) {
+			throw new NullPointerException("\"email_addr\" can't to be null");
+		}
+		this.locked_account = locked_account;
+		lasteditdate = System.currentTimeMillis();
+		return this;
+	}
+	
+	UserNG update(ArrayList<GroupNG> groups) {
+		if (groups == null) {
+			throw new NullPointerException("\"groups\" can't to be null");
+		}
+		this.user_groups = groups;
+		lasteditdate = System.currentTimeMillis();
+		return this;
+	}
+	
+	UserNG chpassword(String clear_text_password) {
+		if (clear_text_password == null) {
+			throw new NullPointerException("\"clear_text_password\" can't to be null");
+		}
+		
+		protected_password = turret.getPassword().getHashedPassword(clear_text_password);
+		lasteditdate = System.currentTimeMillis();
+		return this;
+	}
+	
 	public ArrayList<GroupNG> getUserGroups() {
 		synchronized (user_groups) {
 			if (user_groups == null) {
@@ -190,8 +257,10 @@ public class UserNG {
 				try {
 					cols = turret.prepareQuery().getKey(key).withColumnSlice("user_groups").execute().getResult();
 					if (cols.getColumnByName("user_groups").hasValue()) {
-						// user_groups = turret.getGson().fromJson(cols.getColumnByName("user_groups").getStringValue(), al_group_typeOfT);
-						// TODO get group by names
+						ArrayList<String> group_keys = turret.getGson().fromJson(cols.getColumnByName("user_groups").getStringValue(), al_String_typeOfT);
+						group_keys.forEach(group_key -> {
+							user_groups.add(turret.getByGroupKey(group_key));
+						});
 					}
 				} catch (ConnectionException e) {
 					turret.onConnectionException(e);
@@ -353,6 +422,7 @@ public class UserNG {
 		result.addProperty("domain", domain);
 		result.addProperty("language", language);
 		result.addProperty("email_addr", email_addr);
+		result.addProperty("createdate", createdate);
 		result.addProperty("lasteditdate", lasteditdate);
 		result.addProperty("lastlogindate", lastlogindate);
 		result.addProperty("lastloginipsource", lastloginipsource);
@@ -379,6 +449,7 @@ public class UserNG {
 		result.addProperty("domain", domain);
 		result.addProperty("language", language);
 		result.addProperty("email_addr", email_addr);
+		result.addProperty("createdate", createdate);
 		result.addProperty("lasteditdate", lasteditdate);
 		result.addProperty("lastlogindate", lastlogindate);
 		result.addProperty("lastloginipsource", lastloginipsource);
@@ -387,11 +458,6 @@ public class UserNG {
 		result.add("activities", turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT));
 		result.add("notifications", turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT));
 		return result;
-	}
-	
-	// TODO use this...
-	void doUpdateOperations() {
-		this.lasteditdate = System.currentTimeMillis();
 	}
 	
 	// TODO use this...

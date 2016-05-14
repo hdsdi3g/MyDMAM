@@ -16,12 +16,16 @@
 */
 package hd3gtv.mydmam.auth;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -36,11 +40,13 @@ import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
@@ -53,17 +59,18 @@ public class AuthTurret {
 	private static final String GROUP_ADMIN_NAME = "administrators";
 	private static final String GROUP_NEWUSERS_NAME = "new_users";
 	
-	private Gson gson_simple;// TODO set
-	private Gson gson;// TODO set
+	private Gson gson_simple;
+	private Gson gson;
 	final JsonParser parser = new JsonParser();
+	private Password password;
 	
 	private Keyspace keyspace;
+	private Cache cache;
 	
-	// TODO create new User
 	// TODO import conf
 	// TODO domain isolation or not
 	
-	public AuthTurret(Keyspace keyspace) throws ConnectionException {
+	public AuthTurret(Keyspace keyspace) throws ConnectionException, NoSuchAlgorithmException, NoSuchProviderException, UnsupportedEncodingException {
 		
 		/**
 		 * Load Cassandra access
@@ -98,6 +105,10 @@ public class AuthTurret {
 		 */
 		builder.registerTypeAdapter(Properties.class, new PropertiesSerializer());
 		gson = builder.create();
+		
+		password = new Password("");// TODO from conf
+		
+		cache = new Cache(this, TimeUnit.MINUTES.toMillis(10));// TODO from conf
 		
 		/**
 		 * Peuplate DB ACLs:
@@ -172,6 +183,10 @@ public class AuthTurret {
 		return gson_simple;
 	}
 	
+	Password getPassword() {
+		return password;
+	}
+	
 	ColumnFamilyQuery<String, String> prepareQuery() {
 		return keyspace.prepareQuery(CF_AUTH);
 	}
@@ -228,40 +243,155 @@ public class AuthTurret {
 		return new ArrayList<String>();
 	}
 	
-	// TODO cache vars + cache ttl + reset cache
-	
 	public UserNG getByUserKey(String user_key) {
-		// TODO
-		return null;
+		return cache.getAll_users().get(user_key);
 	}
 	
 	public GroupNG getByGroupKey(String group_key) {
-		// TODO
-		return null;
+		return cache.getAll_groups().get(group_key);
 	}
 	
 	public RoleNG getByRoleKey(String role_key) {
-		// TODO
-		return null;
+		return cache.getAll_roles().get(role_key);
 	}
 	
 	public HashMap<String, UserNG> getAllUsers() {
-		HashMap<String, UserNG> result = new HashMap<String, UserNG>();
-		// TODO
-		return result;
+		return cache.getAll_users();
 	}
 	
 	public HashMap<String, GroupNG> getAllGroups() {
-		HashMap<String, GroupNG> result = new HashMap<String, GroupNG>();
-		// TODO
-		return result;
+		return cache.getAll_groups();
 	}
 	
 	public HashMap<String, RoleNG> getAllRoles() {
-		HashMap<String, RoleNG> result = new HashMap<String, RoleNG>();
-		// TODO
-		return result;
+		return cache.getAll_roles();
 	}
+	
+	private class Cache {
+		private long last_groups_fetch_date;
+		private long last_users_fetch_date;
+		private long last_roles_fetch_date;
+		private long ttl;
+		private HashMap<String, UserNG> all_users;
+		private HashMap<String, GroupNG> all_groups;
+		private HashMap<String, RoleNG> all_roles;
+		private AuthTurret referer;
+		
+		public Cache(AuthTurret referer, long ttl) {
+			this.ttl = ttl;
+			this.referer = referer;
+			if (referer == null) {
+				throw new NullPointerException("\"referer\" can't to be null");
+			}
+			
+			last_groups_fetch_date = 0;
+			last_users_fetch_date = 0;
+			last_roles_fetch_date = 0;
+			all_users = new HashMap<String, UserNG>();
+			all_groups = new HashMap<String, GroupNG>();
+			all_roles = new HashMap<String, RoleNG>();
+			
+		}
+		
+		public HashMap<String, GroupNG> getAll_groups() {
+			if (last_groups_fetch_date + ttl < System.currentTimeMillis()) {
+				synchronized (all_groups) {
+					Loggers.Auth.debug("Do a Group cache refresh");
+					last_groups_fetch_date = System.currentTimeMillis();
+					
+					try {
+						CassandraDb.allRowsReader(CF_AUTH, new AllRowsFoundRow() {
+							
+							public void onFoundRow(Row<String, String> row) throws Exception {
+								if (row.getKey().startsWith("group:") == false) {
+									return;
+								}
+								if (all_groups.containsKey(row.getKey())) {
+									all_groups.get(row.getKey()).loadFromDb(row.getColumns());
+								} else {
+									GroupNG group = new GroupNG(referer, row.getKey(), false);
+									group.loadFromDb(row.getColumns());
+									all_groups.put(row.getKey(), group);
+								}
+							}
+						}, GroupNG.COLS_NAMES_LIMITED_TO_DB_IMPORT);
+					} catch (ConnectionException e1) {
+						onConnectionException(e1);
+					} catch (Exception e) {
+						Loggers.Auth.warn("Generic error during all rows", e);
+					}
+				}
+			}
+			return all_groups;
+		}
+		
+		public HashMap<String, RoleNG> getAll_roles() {
+			if (last_roles_fetch_date + ttl < System.currentTimeMillis()) {
+				synchronized (all_roles) {
+					Loggers.Auth.debug("Do a Role cache refresh");
+					last_roles_fetch_date = System.currentTimeMillis();
+					
+					try {
+						CassandraDb.allRowsReader(CF_AUTH, new AllRowsFoundRow() {
+							
+							public void onFoundRow(Row<String, String> row) throws Exception {
+								if (row.getKey().startsWith("role:") == false) {
+									return;
+								}
+								if (all_roles.containsKey(row.getKey())) {
+									all_roles.get(row.getKey()).loadFromDb(row.getColumns());
+								} else {
+									RoleNG role = new RoleNG(referer, row.getKey(), false);
+									role.loadFromDb(row.getColumns());
+									all_roles.put(row.getKey(), role);
+								}
+							}
+						}, RoleNG.COLS_NAMES_LIMITED_TO_DB_IMPORT);
+					} catch (ConnectionException e1) {
+						onConnectionException(e1);
+					} catch (Exception e) {
+						Loggers.Auth.warn("Generic error during all rows", e);
+					}
+				}
+			}
+			return all_roles;
+		}
+		
+		public HashMap<String, UserNG> getAll_users() {
+			if (last_users_fetch_date + ttl < System.currentTimeMillis()) {
+				synchronized (all_users) {
+					Loggers.Auth.debug("Do an User cache refresh");
+					last_users_fetch_date = System.currentTimeMillis();
+					
+					try {
+						CassandraDb.allRowsReader(CF_AUTH, new AllRowsFoundRow() {
+							
+							public void onFoundRow(Row<String, String> row) throws Exception {
+								if (row.getKey().startsWith("user:") == false) {
+									return;
+								}
+								if (all_users.containsKey(row.getKey())) {
+									all_users.get(row.getKey()).loadFromDb(row.getColumns());
+								} else {
+									UserNG user = new UserNG(referer, row.getKey(), false);
+									user.loadFromDb(row.getColumns());
+									all_users.put(row.getKey(), user);
+								}
+							}
+						}, UserNG.COLS_NAMES_LIMITED_TO_DB_IMPORT);
+					} catch (ConnectionException e1) {
+						onConnectionException(e1);
+					} catch (Exception e) {
+						Loggers.Auth.warn("Generic error during all rows", e);
+					}
+				}
+			}
+			return all_users;
+		}
+		
+	}
+	
+	// TODO resetCache after C/U/D
 	
 	public UserNG authenticate(String remote_address, String username, String password, String domain, String language) throws InvalidUserAuthentificationException {
 		if (remote_address == null) {
