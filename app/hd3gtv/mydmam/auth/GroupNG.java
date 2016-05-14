@@ -22,7 +22,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
@@ -70,6 +72,8 @@ public class GroupNG {
 			roles_keys.forEach(role_key -> {
 				group_roles.add(turret.getByRoleKey(role_key));
 			});
+		} else {
+			group_roles = null;
 		}
 		return this;
 	}
@@ -90,6 +94,29 @@ public class GroupNG {
 				turret.onConnectionException(e);
 			}
 		}
+	}
+	
+	/**
+	 * Create simple group
+	 */
+	GroupNG(String group_name) {
+		this.group_name = group_name;
+		if (group_name == null) {
+			throw new NullPointerException("\"group_name\" can't to be null");
+		}
+		key = "group:" + group_name;
+	}
+	
+	public String getGroupName() {
+		return group_name;
+	}
+	
+	GroupNG update(ArrayList<RoleNG> group_roles) {
+		if (group_roles == null) {
+			throw new NullPointerException("\"group_roles\" can't to be null");
+		}
+		this.group_roles = group_roles;
+		return this;
 	}
 	
 	public ArrayList<RoleNG> getGroupRoles() {
@@ -128,11 +155,32 @@ public class GroupNG {
 	public JsonObject exportForAdmin() {
 		JsonObject jo = new JsonObject();
 		jo.addProperty("group_name", group_name);
+		
+		JsonArray ja_roles = new JsonArray();
 		getGroupRoles().forEach(role -> {
-			jo.add(role.getKey(), role.exportForAdmin());
+			ja_roles.add(new JsonPrimitive(role.getKey()));
 		});
+		jo.add("group_roles", ja_roles);
+		
 		return jo;
 	}
 	
-	// TODO U/D
+	void delete(ColumnListMutation<String> mutator) {
+		turret.getAllUsers().forEach((user_key, user) -> {
+			user.getUserGroups().remove(this);
+		});
+		mutator.delete();
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		// TODO Auto-generated method stub
+		return super.equals(obj);
+	}
+	
+	@Override
+	public int hashCode() {
+		// TODO Auto-generated method stub
+		return super.hashCode();
+	}
 }

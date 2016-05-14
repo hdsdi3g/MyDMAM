@@ -27,7 +27,9 @@ import java.util.Properties;
 import javax.mail.internet.InternetAddress;
 
 import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
@@ -72,9 +74,6 @@ public class UserNG {
 	}.getType();
 	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
 	}.getType();
-	
-	// TODO Delete
-	// TODO user key must start with "user:"
 	
 	/**
 	 * This cols names will always be imported from db.
@@ -146,31 +145,46 @@ public class UserNG {
 			group_keys.forEach(group_key -> {
 				user_groups.add(turret.getByGroupKey(group_key));
 			});
+		} else {
+			user_groups = new ArrayList<>();
 		}
 		
 		col = cols.getColumnByName("properties");
 		if (col != null) {
 			properties = turret.getGson().fromJson(col.getStringValue(), Properties.class);
+		} else {
+			properties = null;
 		}
+		
 		col = cols.getColumnByName("baskets");
 		if (col != null) {
 			baskets = turret.getGson().fromJson(col.getStringValue(), linmap_string_basket_typeOfT);
+		} else {
+			baskets = null;
 		}
 		col = cols.getColumnByName("activities");
 		if (col != null) {
 			activities = turret.getGson().fromJson(col.getStringValue(), al_useractivity_typeOfT);
+		} else {
+			activities = null;
 		}
+		
 		col = cols.getColumnByName("notifications");
 		if (col != null) {
 			notifications = turret.getGson().fromJson(col.getStringValue(), al_usernotification_typeOfT);
+		} else {
+			notifications = null;
 		}
 		
 		col = cols.getColumnByName("preferencies");
 		if (col != null) {
 			preferencies = turret.parser.parse(col.getStringValue()).getAsJsonObject();
+		} else {
+			preferencies = null;
 		}
 		
 		return this;
+		
 	}
 	
 	UserNG(AuthTurret turret, String key, boolean load_from_db) {
@@ -213,18 +227,18 @@ public class UserNG {
 	}
 	
 	UserNG update(String fullname, String language, String email_addr, boolean locked_account) {
-		this.fullname = fullname;
 		if (fullname == null) {
 			throw new NullPointerException("\"fullname\" can't to be null");
 		}
-		this.language = language;
+		this.fullname = fullname;
 		if (language == null) {
 			throw new NullPointerException("\"language\" can't to be null");
 		}
-		this.email_addr = email_addr;
+		this.language = language;
 		if (email_addr == null) {
 			throw new NullPointerException("\"email_addr\" can't to be null");
 		}
+		this.email_addr = email_addr;
 		this.locked_account = locked_account;
 		lasteditdate = System.currentTimeMillis();
 		return this;
@@ -433,11 +447,11 @@ public class UserNG {
 		result.add("activities", turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT));
 		result.add("notifications", turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT));
 		
-		JsonObject jo_groups = new JsonObject();
+		JsonArray ja_groups = new JsonArray();
 		getUserGroups().forEach(group -> {
-			jo_groups.add(group.getKey(), group.exportForAdmin());
+			ja_groups.add(new JsonPrimitive(group.getKey()));
 		});
-		result.add("user_groups", jo_groups);
+		result.add("user_groups", ja_groups);
 		
 		return result;
 	}
@@ -482,5 +496,21 @@ public class UserNG {
 	
 	public String getLanguage() {
 		return language;
+	}
+	
+	void delete(ColumnListMutation<String> mutator) {
+		mutator.delete();
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		// TODO Auto-generated method stub
+		return super.equals(obj);
+	}
+	
+	@Override
+	public int hashCode() {
+		// TODO Auto-generated method stub
+		return super.hashCode();
 	}
 }

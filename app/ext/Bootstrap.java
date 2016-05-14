@@ -16,6 +16,9 @@
 */
 package ext;
 
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -42,6 +45,8 @@ public class Bootstrap extends Job {
 			auth = new AuthTurret(CassandraDb.getkeyspace());
 		} catch (ConnectionException e) {
 			Loggers.Play.error("Can't access to Cassandra");
+		} catch (NoSuchAlgorithmException | NoSuchProviderException | UnsupportedEncodingException e) {
+			Loggers.Play.error("Can't load Secure");
 		}
 	}
 	

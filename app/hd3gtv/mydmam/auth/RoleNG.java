@@ -63,6 +63,8 @@ public class RoleNG {
 		
 		if (cols.getColumnByName("privileges") != null) {
 			privileges = turret.getGson().fromJson(cols.getColumnByName("privileges").getStringValue(), hashset_privileges_typeOfT);
+		} else {
+			privileges = null;
 		}
 		
 		return this;
@@ -84,6 +86,25 @@ public class RoleNG {
 				turret.onConnectionException(e);
 			}
 		}
+	}
+	
+	/**
+	 * Create simple role
+	 */
+	RoleNG(String role_name) {
+		if (role_name == null) {
+			throw new NullPointerException("\"role_name\" can't to be null");
+		}
+		this.role_name = role_name;
+		this.key = "role:" + role_name;
+	}
+	
+	RoleNG update(HashSet<String> privileges) {
+		if (privileges == null) {
+			throw new NullPointerException("\"privileges\" can't to be null");
+		}
+		this.privileges = privileges;
+		return this;
 	}
 	
 	public HashSet<String> getPrivileges() {
@@ -123,6 +144,23 @@ public class RoleNG {
 		return jo;
 	}
 	
-	// TODO U/D
+	void delete(ColumnListMutation<String> mutator) {
+		turret.getAllGroups().forEach((group_key, group) -> {
+			group.getGroupRoles().remove(this);
+		});
+		mutator.delete();
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		// TODO Auto-generated method stub
+		return super.equals(obj);
+	}
+	
+	@Override
+	public int hashCode() {
+		// TODO Auto-generated method stub
+		return super.hashCode();
+	}
 	// TODO @see Privileges.getAllSortedPrivileges()
 }

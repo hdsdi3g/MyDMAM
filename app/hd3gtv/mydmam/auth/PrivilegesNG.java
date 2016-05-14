@@ -15,7 +15,7 @@
  * 
 */
 
-package hd3gtv.mydmam.web;
+package hd3gtv.mydmam.auth;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -39,16 +39,16 @@ import controllers.Check;
 import controllers.Secure;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.web.AJSController;
 import play.Play;
 import play.mvc.Controller;
 import play.mvc.With;
 import play.vfs.VirtualFile;
 
-@SuppressWarnings({ "rawtypes", "unchecked" })
-public class Privileges {
+public class PrivilegesNG {
 	
-	private static final List<String> privileges;// TODO add callers list for each privilege
-	private static final String privileges_json_array;
+	// private static final List<String> privileges;// TODO add callers list for each privilege
+	// private static final String privileges_json_array;
 	
 	static {
 		HashSet<String> all_privileges = new HashSet<String>();
@@ -191,22 +191,22 @@ public class Privileges {
 		
 		ArrayList list = new ArrayList<String>(all_privileges);
 		Collections.sort(list);
-		privileges = Collections.unmodifiableList(list);
+		/*privileges = Collections.unmodifiableList(list);
 		
 		JsonArray ja_privileges = new JsonArray();
 		for (int pos = 0; pos < privileges.size(); pos++) {
 			ja_privileges.add(new JsonPrimitive(privileges.get(pos)));
 		}
-		privileges_json_array = ja_privileges.toString();
+		privileges_json_array = ja_privileges.toString();*/
 	}
 	
-	public static List<String> getAllSortedPrivileges() {
+	/*public static List<String> getAllSortedPrivileges() {
 		return privileges;
-	}
+	}*/
 	
-	public static String getJSONArrayStringPrivileges() {
+	/*public static String getJSONArrayStringPrivileges() {
 		return privileges_json_array;
-	}
+	}*/
 	
 	public static String getJSONStringPrivileges(String[] privilegenames) {
 		JsonArray ja = new JsonArray();
