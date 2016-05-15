@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +111,8 @@ public class AJSController {
 	/**
 	 * Get all items named and on this path, from all modules, and not only the first.
 	 */
-	private static List<VirtualFileModule> getAllfromRelativePath(String path, boolean must_exists, boolean must_directory) {
+	@AJSIgnore
+	public static List<VirtualFileModule> getAllfromRelativePath(String path, boolean must_exists, boolean must_directory) {
 		List<VirtualFileModule> file_list = new ArrayList<VirtualFileModule>();
 		
 		LinkedHashMap<VirtualFile, String> path_modules = new LinkedHashMap<VirtualFile, String>();
@@ -186,13 +186,6 @@ public class AJSController {
 	public static void registerTypeAdapter(Type type, Object typeAdapter) {
 		gson_builder.registerTypeAdapter(type, typeAdapter);
 		gson = gson_builder.create();
-	}
-	
-	@AJSIgnore
-	public static void putAllPrivilegesNames(HashSet<String> mergue_with_list) {
-		for (AJSControllerItem item : controllers.values()) {
-			item.putAllPrivilegesNames(mergue_with_list);
-		}
 	}
 	
 	@AJSIgnore

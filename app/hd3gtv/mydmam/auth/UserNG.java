@@ -502,15 +502,17 @@ public class UserNG {
 		mutator.delete();
 	}
 	
-	@Override
 	public boolean equals(Object obj) {
-		// TODO Auto-generated method stub
-		return super.equals(obj);
+		if (obj == null) {
+			return false;
+		}
+		if ((obj instanceof UserNG) == false) {
+			return false;
+		}
+		return key.equals(((UserNG) obj).key);
 	}
 	
-	@Override
 	public int hashCode() {
-		// TODO Auto-generated method stub
-		return super.hashCode();
+		return key.hashCode();
 	}
 }

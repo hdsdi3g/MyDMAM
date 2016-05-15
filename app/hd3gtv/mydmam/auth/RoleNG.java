@@ -151,16 +151,18 @@ public class RoleNG {
 		mutator.delete();
 	}
 	
-	@Override
 	public boolean equals(Object obj) {
-		// TODO Auto-generated method stub
-		return super.equals(obj);
+		if (obj == null) {
+			return false;
+		}
+		if ((obj instanceof RoleNG) == false) {
+			return false;
+		}
+		return key.equals(((RoleNG) obj).key);
 	}
 	
-	@Override
 	public int hashCode() {
-		// TODO Auto-generated method stub
-		return super.hashCode();
+		return key.hashCode();
 	}
-	// TODO @see Privileges.getAllSortedPrivileges()
+	
 }

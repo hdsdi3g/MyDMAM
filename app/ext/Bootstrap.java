@@ -16,9 +16,6 @@
 */
 package ext;
 
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -39,16 +36,6 @@ import play.jobs.OnApplicationStart;
 public class Bootstrap extends Job {
 	
 	public static AuthTurret auth;
-	
-	static {
-		try {
-			auth = new AuthTurret(CassandraDb.getkeyspace());
-		} catch (ConnectionException e) {
-			Loggers.Play.error("Can't access to Cassandra");
-		} catch (NoSuchAlgorithmException | NoSuchProviderException | UnsupportedEncodingException e) {
-			Loggers.Play.error("Can't load Secure");
-		}
-	}
 	
 	public void doJob() {
 		/**
@@ -109,6 +96,14 @@ public class Bootstrap extends Job {
 			CassandraDb.getkeyspace();
 		} catch (ConnectionException e) {
 			Loggers.Play.error("Can't access to keyspace", e);
+		}
+		
+		try {
+			auth = new AuthTurret(CassandraDb.getkeyspace());
+		} catch (ConnectionException e) {
+			Loggers.Play.error("Can't access to Cassandra");
+		} catch (Exception e) {
+			Loggers.Play.error("Can't load Auth (secure)");
 		}
 		
 		try {

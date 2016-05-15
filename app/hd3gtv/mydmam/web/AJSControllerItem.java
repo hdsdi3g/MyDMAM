@@ -22,7 +22,6 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import com.google.gson.JsonObject;
@@ -180,10 +179,12 @@ class AJSControllerItem {
 		return verbs.isEmpty();
 	}
 	
-	void putAllPrivilegesNames(HashSet<String> mergue_with_list) {
-		for (Verb verb : verbs.values()) {
-			mergue_with_list.addAll(verb.mandatory_privileges);
-		}
+	void mergueAllPrivileges() {
+		verbs.forEach((verb_name, verb) -> {
+			verb.mandatory_privileges.forEach(privilege -> {
+				PrivilegeNG.createAndGetPrivilege(privilege).addController(controller_class, verb.method);
+			});
+		});
 	}
 	
 	ArrayList<String> getAllAccessibleUserVerbsName(ArrayList<String> session_privileges) {
