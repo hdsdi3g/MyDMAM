@@ -17,10 +17,12 @@
 package hd3gtv.mydmam.metadata;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
@@ -244,6 +246,21 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			 * Ignore this file, it's deleted !
 			 */
 			return true;
+		}
+		
+		/**
+		 * Read the file first byte for check if this file can be read.
+		 */
+		FileInputStream fis = null;
+		try {
+			fis = new FileInputStream(physical_source);
+			fis.read();
+		} catch (Exception e) {
+			Loggers.Metadata.debug("Can't start index: " + element_key + ", physical_source: " + physical_source, e);
+			IOUtils.closeQuietly(fis);
+			return true;
+		} finally {
+			IOUtils.closeQuietly(fis);
 		}
 		
 		MetadataIndexingOperation indexing = new MetadataIndexingOperation(physical_source);
