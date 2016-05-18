@@ -20,6 +20,7 @@ package hd3gtv.mydmam.auth;
 import static javax.naming.directory.SearchControls.SUBTREE_SCOPE;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Hashtable;
 
 import javax.naming.CommunicationException;
@@ -117,26 +118,61 @@ class ActiveDirectoryBackend {
 	
 	class ADUser {
 		
-		// private String distinguishedName;
 		/**
-		 * Login
+		 * Login, like "user@DOMAIN"
 		 */
 		private String userprincipal;
 		/**
-		 * FullName
+		 * User's Full Name
 		 */
 		private String commonname;
+		/**
+		 * User's mail
+		 */
 		private String mail;
+		
+		/**
+		 * User's group (root group)
+		 */
+		private String group;
 		
 		private ADUser(Attributes attr) throws NamingException {
 			userprincipal = (String) attr.get("userPrincipalName").get();
 			commonname = (String) attr.get("cn").get();
-			// distinguishedName = (String) attr.get("distinguishedName").get();
+			
+			/*NamingEnumeration<? extends Attribute> na = attr.getAll();
+			Attribute next;
+			while (na.hasMore()) {
+				next = na.next();
+				System.out.print(next.getID());
+				System.out.print("\t\t");
+				System.out.println(next.get());
+			}*/
+			
 			if (attr.get("mail") != null) {
 				mail = (String) attr.get("mail").get();
 			}
+			
+			String dn_values = (String) attr.get("distinguishedName").get();
+			Arrays.asList(dn_values.split(",")).forEach(v -> {
+				if (v.toLowerCase().startsWith("ou")) {
+					group = v.substring(3);
+				}
+			});
 		}
 		
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			sb.append("userprincipal: ");
+			sb.append(userprincipal);
+			sb.append(", commonname: ");
+			sb.append(commonname);
+			sb.append(", group: ");
+			sb.append(group);
+			sb.append(", mail: ");
+			sb.append(mail);
+			return sb.toString();
+		}
 	}
 	
 	public String toString() {

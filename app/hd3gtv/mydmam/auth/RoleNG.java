@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.auth;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -33,14 +32,10 @@ public class RoleNG {
 	private String role_name;
 	private HashSet<String> privileges;
 	
-	private transient ArrayList<GroupNG> role_groups;
-	private transient ArrayList<UserNG> role_groups_users;
 	private transient AuthTurret turret;
 	
 	private static Type hashset_privileges_typeOfT = new TypeToken<HashSet<String>>() {
 	}.getType();
-	
-	// TODO role key must start with "role:"
 	
 	/**
 	 * This cols names will always be imported from db.

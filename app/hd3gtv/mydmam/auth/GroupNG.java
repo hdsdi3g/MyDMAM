@@ -35,13 +35,10 @@ public class GroupNG {
 	private String group_name;
 	private ArrayList<RoleNG> group_roles;
 	
-	private transient ArrayList<UserNG> users_group;
 	private transient AuthTurret turret;
 	
 	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
 	}.getType();
-	
-	// TODO group key must start with "group:"
 	
 	/**
 	 * This cols names will always be imported from db.
