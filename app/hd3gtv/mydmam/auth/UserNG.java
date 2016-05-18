@@ -38,7 +38,7 @@ import com.netflix.astyanax.model.ColumnList;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import play.i18n.Lang;
 
-public class UserNG {
+public class UserNG implements AuthEntry {
 	
 	private String key;
 	
@@ -80,8 +80,8 @@ public class UserNG {
 	 */
 	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(
 			Arrays.asList("login", "fullname", "domain", "language", "email_addr", "protected_password", "lasteditdate", "lastlogindate", "lastloginipsource", "locked_account", "user_groups"));
-			
-	UserNG save(ColumnListMutation<String> mutator) {
+	
+	public void save(ColumnListMutation<String> mutator) {
 		
 		mutator.putColumnIfNotNull("login", login);
 		mutator.putColumnIfNotNull("fullname", fullname);
@@ -117,8 +117,6 @@ public class UserNG {
 		if (preferencies != null) {
 			mutator.putColumnIfNotNull("preferencies", preferencies.toString());
 		}
-		
-		return this;
 	}
 	
 	UserNG loadFromDb(ColumnList<String> cols) {
@@ -498,7 +496,7 @@ public class UserNG {
 		return language;
 	}
 	
-	void delete(ColumnListMutation<String> mutator) {
+	public void delete(ColumnListMutation<String> mutator) {
 		mutator.delete();
 	}
 	

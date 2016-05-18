@@ -29,7 +29,7 @@ import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
 
-public class GroupNG {
+public class GroupNG implements AuthEntry {
 	
 	private String key;
 	private String group_name;
@@ -45,7 +45,7 @@ public class GroupNG {
 	 */
 	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(Arrays.asList("group_name", "group_roles"));
 	
-	GroupNG save(ColumnListMutation<String> mutator) {
+	public void save(ColumnListMutation<String> mutator) {
 		mutator.putColumnIfNotNull("group_name", group_name);
 		if (group_roles != null) {
 			ArrayList<String> roles_keys = new ArrayList<String>(group_roles.size() + 1);
@@ -54,7 +54,6 @@ public class GroupNG {
 			});
 			mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(roles_keys, al_String_typeOfT));
 		}
-		return this;
 	}
 	
 	GroupNG loadFromDb(ColumnList<String> cols) {
@@ -162,7 +161,7 @@ public class GroupNG {
 		return jo;
 	}
 	
-	void delete(ColumnListMutation<String> mutator) {
+	public void delete(ColumnListMutation<String> mutator) {
 		turret.getAllUsers().forEach((user_key, user) -> {
 			user.getUserGroups().remove(this);
 		});

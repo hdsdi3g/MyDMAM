@@ -26,7 +26,7 @@ import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
 
-public class RoleNG {
+public class RoleNG implements AuthEntry {
 	
 	private String key;
 	private String role_name;
@@ -42,12 +42,11 @@ public class RoleNG {
 	 */
 	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(Arrays.asList("role_name", "privileges"));
 	
-	RoleNG save(ColumnListMutation<String> mutator) {
+	public void save(ColumnListMutation<String> mutator) {
 		mutator.putColumnIfNotNull("role_name", role_name);
 		if (privileges != null) {
 			mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(privileges, hashset_privileges_typeOfT));
 		}
-		return this;
 	}
 	
 	RoleNG loadFromDb(ColumnList<String> cols) {
@@ -139,7 +138,7 @@ public class RoleNG {
 		return jo;
 	}
 	
-	void delete(ColumnListMutation<String> mutator) {
+	public void delete(ColumnListMutation<String> mutator) {
 		turret.getAllGroups().forEach((group_key, group) -> {
 			group.getGroupRoles().remove(this);
 		});

@@ -38,6 +38,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Row;
@@ -293,6 +294,16 @@ public class AuthTurret {
 			
 		}
 		
+		private synchronized void resetCache() {
+			last_groups_fetch_date = 0;
+			last_users_fetch_date = 0;
+			last_roles_fetch_date = 0;
+			
+			all_users.clear();
+			all_groups.clear();
+			all_roles.clear();
+		}
+		
 		public HashMap<String, GroupNG> getAll_groups() {
 			if (last_groups_fetch_date + ttl < System.currentTimeMillis()) {
 				synchronized (all_groups) {
@@ -391,8 +402,6 @@ public class AuthTurret {
 		
 	}
 	
-	// TODO resetCache after C/U/D
-	
 	public UserNG authenticate(String remote_address, String username, String password, String domain, String language) throws InvalidUserAuthentificationException {
 		if (remote_address == null) {
 			throw new NullPointerException("\"remote_address\" can't to be null");
@@ -443,4 +452,65 @@ public class AuthTurret {
 		throw new InvalidAuthenticatorUserException("Can't authenticate with " + username);*/
 		return null;
 	}
+	
+	/**
+	 * Create + save
+	 */
+	public UserNG createUser(String login, String domain) throws ConnectionException {
+		UserNG newuser = new UserNG(this, login, domain);
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		newuser.save(mutator.withRow(CF_AUTH, newuser.getKey()));
+		mutator.execute();
+		cache.resetCache();
+		return newuser;
+	}
+	
+	/**
+	 * Create + save
+	 */
+	public GroupNG createGroup(String group_name) throws ConnectionException {
+		GroupNG newgroup = new GroupNG(group_name);
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		newgroup.save(mutator.withRow(CF_AUTH, newgroup.getKey()));
+		mutator.execute();
+		cache.resetCache();
+		return newgroup;
+	}
+	
+	/**
+	 * Create + save
+	 */
+	public RoleNG createRole(String role_name) throws ConnectionException {
+		RoleNG newrole = new RoleNG(role_name);
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		newrole.save(mutator.withRow(CF_AUTH, newrole.getKey()));
+		mutator.execute();
+		cache.resetCache();
+		return newrole;
+	}
+	
+	/**
+	 * Just save
+	 */
+	public void saveAll(ArrayList<AuthEntry> items) throws ConnectionException {
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		items.forEach(item -> {
+			item.save(mutator.withRow(CF_AUTH, item.getKey()));
+		});
+		mutator.execute();
+		cache.resetCache();
+	}
+	
+	/**
+	 * Juste delete
+	 */
+	public void deleteAll(ArrayList<AuthEntry> items) throws ConnectionException {
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		items.forEach(item -> {
+			item.delete(mutator.withRow(CF_AUTH, item.getKey()));
+		});
+		mutator.execute();
+		cache.resetCache();
+	}
+	
 }

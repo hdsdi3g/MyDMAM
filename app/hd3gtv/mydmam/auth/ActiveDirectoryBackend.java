@@ -36,7 +36,7 @@ import javax.naming.ldap.LdapContext;
 
 class ActiveDirectoryBackend {
 	
-	// TODO load AD groups, load from conf
+	// TODO load from conf
 	
 	private String domain;
 	private String server;
@@ -121,20 +121,20 @@ class ActiveDirectoryBackend {
 		/**
 		 * Login, like "user@DOMAIN"
 		 */
-		private String userprincipal;
+		public String userprincipal;
 		/**
 		 * User's Full Name
 		 */
-		private String commonname;
+		public String commonname;
 		/**
 		 * User's mail
 		 */
-		private String mail;
+		public String mail;
 		
 		/**
 		 * User's group (root group)
 		 */
-		private String group;
+		public String group;
 		
 		private ADUser(Attributes attr) throws NamingException {
 			userprincipal = (String) attr.get("userPrincipalName").get();
