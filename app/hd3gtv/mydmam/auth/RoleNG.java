@@ -20,6 +20,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonObject;
@@ -96,11 +97,11 @@ public class RoleNG implements AuthEntry {
 		this.key = "role:" + role_name;
 	}
 	
-	RoleNG update(HashSet<String> privileges) {
+	RoleNG update(Set<String> privileges) {
 		if (privileges == null) {
 			throw new NullPointerException("\"privileges\" can't to be null");
 		}
-		this.privileges = privileges;
+		this.privileges = new HashSet<String>(privileges);
 		return this;
 	}
 	

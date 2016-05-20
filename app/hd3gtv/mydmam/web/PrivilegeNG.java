@@ -24,6 +24,7 @@ import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -193,6 +194,10 @@ public class PrivilegeNG {
 			jo.add(k, v.getControllers());
 		});
 		return jo;
+	}
+	
+	public static Set<String> getAllPrivilegesName() {
+		return all_privileges.keySet();
 	}
 	
 }

@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -279,6 +280,15 @@ public class UserNG implements AuthEntry {
 			}
 		}
 		return user_groups;
+	}
+	
+	public UserNG setUserGroups(List<GroupNG> user_groups) {
+		if (user_groups == null) {
+			throw new NullPointerException("\"user_groups\" can't to be null");
+		}
+		
+		this.user_groups = new ArrayList<GroupNG>(user_groups);
+		return this;
 	}
 	
 	public String getKey() {

@@ -20,6 +20,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 
 import com.google.common.reflect.TypeToken;
 import com.netflix.astyanax.ColumnListMutation;
@@ -106,11 +107,11 @@ public class GroupNG implements AuthEntry {
 		return group_name;
 	}
 	
-	GroupNG update(ArrayList<RoleNG> group_roles) {
+	GroupNG update(List<RoleNG> group_roles) {
 		if (group_roles == null) {
 			throw new NullPointerException("\"group_roles\" can't to be null");
 		}
-		this.group_roles = group_roles;
+		this.group_roles = new ArrayList<RoleNG>(group_roles);
 		return this;
 	}
 	

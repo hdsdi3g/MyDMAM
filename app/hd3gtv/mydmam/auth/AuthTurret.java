@@ -16,14 +16,18 @@
 */
 package hd3gtv.mydmam.auth;
 
-import java.io.UnsupportedEncodingException;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -46,20 +50,18 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.mail.AdminMailAlert;
+import hd3gtv.mydmam.web.PrivilegeNG;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class AuthTurret {
 	
 	private static final ColumnFamily<String, String> CF_AUTH = new ColumnFamily<String, String>("mgrAuth", StringSerializer.get(), StringSerializer.get());
-	private static final String ADMIN_USER_NAME = "admin";
-	private static final String ADMIN_ROLE_NAME = "administrator";
-	private static final String GUEST_USER_NAME = "guest";
-	private static final String GROUP_ADMIN_NAME = "administrators";
-	private static final String GROUP_NEWUSERS_NAME = "new_users";
 	
 	private Gson gson_simple;
 	private Gson gson;
@@ -69,10 +71,9 @@ public class AuthTurret {
 	private Keyspace keyspace;
 	private Cache cache;
 	
-	// TODO import conf
 	// TODO domain isolation or not
 	
-	public AuthTurret(Keyspace keyspace) throws ConnectionException, NoSuchAlgorithmException, NoSuchProviderException, UnsupportedEncodingException {
+	public AuthTurret(Keyspace keyspace) throws ConnectionException, NoSuchAlgorithmException, NoSuchProviderException, IOException {
 		
 		/**
 		 * Load Cassandra access
@@ -113,40 +114,110 @@ public class AuthTurret {
 		cache = new Cache(this, TimeUnit.MINUTES.toMillis(10));// TODO from conf
 		
 		/**
-		 * Peuplate DB ACLs:
-		 * TODO import & destroy XML account_export file:
-		 * new File(Configuration.getGlobalConfigurationDirectory().getParent() + File.separator + "account_export.xml")
-		 * TODO create admin role if needed, grant all privilege if it't not the actual case
-		 * TODO create guest role if needed
-		 * TODO create admin group if needed
-		 * TODO create newusers group if needed
-		 * TODO create admin user if needed, and create a password file:
+		 * Import & destroy XML account_export file
 		 */
-		/*
+		File account_export = new File(Configuration.getGlobalConfigurationDirectory().getParent() + File.separator + "account_export.xml");
+		if (account_export.exists()) {
+			Loggers.Auth.info("You should remove account_export xml file... (" + account_export.getAbsolutePath() + ")");
+		}
+		
+		/**
+		 * Peuplate DB Default users
+		 */
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		
+		/** Create admin role if needed */
+		RoleNG default_admin_role = new RoleNG("All privileges");
+		RoleNG admin_role = getByRoleKey(default_admin_role.getKey());
+		if (admin_role == null) {
+			Loggers.Auth.info("Admin role is absent, create it.");
+			default_admin_role.update(PrivilegeNG.getAllPrivilegesName());
+			default_admin_role.save(mutator.withRow(CF_AUTH, default_admin_role.getKey()));
+			cache.all_roles.put(default_admin_role.getKey(), default_admin_role);
+			admin_role = default_admin_role;
+		} else {
+			/** Grant all privilege if it't not the actual case */
+			if (admin_role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {
+				Loggers.Auth.info("Admin role not containt all and same privileges, update it.");
+				admin_role.update(PrivilegeNG.getAllPrivilegesName());
+				admin_role.save(mutator.withRow(CF_AUTH, admin_role.getKey()));
+				cache.all_roles.put(admin_role.getKey(), admin_role);
+			}
+		}
+		
+		/**
+		 * Create guest role if needed
+		 */
+		RoleNG default_guest_role = new RoleNG("Default");
+		if (getByRoleKey(default_guest_role.getKey()) == null) {
+			Loggers.Auth.info("Default role is absent, create it.");
+			default_guest_role.save(mutator.withRow(CF_AUTH, default_guest_role.getKey()));
+			cache.all_roles.put(default_guest_role.getKey(), default_guest_role);
+		}
+		
+		/**
+		 * Create admin group if needed
+		 */
+		GroupNG default_admin_group = new GroupNG("Administrators");
+		if (getByGroupKey(default_admin_group.getKey()) == null) {
+			Loggers.Auth.info("Admin group is absent, create it.");
+			default_admin_group.update(Arrays.asList(admin_role));
+			default_admin_group.save(mutator.withRow(CF_AUTH, default_admin_group.getKey()));
+			cache.all_groups.put(default_admin_group.getKey(), default_admin_group);
+		}
+		
+		/**
+		 * Create newusers group if needed
+		 */
+		GroupNG default_newusers_group = new GroupNG("New users");
+		if (getByGroupKey(default_newusers_group.getKey()) == null) {
+			Loggers.Auth.info("Admin group is absent, create it.");
+			default_newusers_group.update(Arrays.asList(getByRoleKey(default_guest_role.getKey())));
+			default_newusers_group.save(mutator.withRow(CF_AUTH, default_newusers_group.getKey()));
+			cache.all_groups.put(default_newusers_group.getKey(), default_newusers_group);
+		}
+		
+		/**
+		 * Create admin user if needed, and create a password file:
+		 */
+		UserNG default_admin_user = new UserNG(this, "admin", "local");
+		if (getByUserKey(default_admin_user.getKey()) == null) {
+			Loggers.Auth.info("Admin user is absent, create it.");
+			default_admin_user.chpassword(createAdminPasswordTextFile("admin"));
+			default_admin_user.update("Default administrator", Locale.getDefault().getLanguage(), AdminMailAlert.getAdminAddr("root@localhost"), false);
+			default_admin_user.setUserGroups(Arrays.asList(getByGroupKey(default_admin_group.getKey())));
+			default_admin_user.save(mutator.withRow(CF_AUTH, default_admin_user.getKey()));
+			cache.all_users.put(default_admin_user.getKey(), default_admin_user);
+		}
+		
+		if (mutator.isEmpty() == false) {
+			mutator.execute();
+		}
+	}
+	
+	/**
+	 * @return clear text generated password
+	 */
+	public String createAdminPasswordTextFile(String admin_loggin) throws NoSuchAlgorithmException, NoSuchProviderException, IOException {
 		String newpassword = Password.passwordGenerator();
-		authenticatorlocalsqlite.createUser(ACLUser.ADMIN_NAME, newpassword, "Local Admin", true);
 		
 		File textfile = new File("play-new-password.txt");
 		FileWriter fw = new FileWriter(textfile, false);
-		fw.write("Admin login: " + ACLUser.ADMIN_NAME + "\r\n");
+		fw.write("Admin login: " + admin_loggin + "\r\n");
 		fw.write("Admin password: " + newpassword + "\r\n");
 		fw.write("\r\n");
 		fw.write("You should remove this file after keeping this password..\r\n");
 		fw.write("\r\n");
-		fw.write("You can change this password with mydmam-cli:\r\n");
+		/*fw.write("You can change this password with mydmam-cli:\r\n");
 		fw.write("$ mydmam-cli localauth -f " + authenticatorlocalsqlite.getDbfile().getAbsolutePath() + " -key " + authenticatorlocalsqlite.getMaster_password_key() + " -passwd -u "
-				+ ACLUser.ADMIN_NAME + "\r\n");
 		fw.write("\r\n");
+		*/
 		fw.write("Note: you haven't need a local authenticator if you set another backend and if you grant some new administrators\r\n");
 		fw.close();
 		
-		Loggers.Auth.info(
-				"Create Play administrator account, login: " + ACLUser.ADMIN_NAME + ", password file: " + textfile.getAbsoluteFile() + ", local database: " + authenticatorlocalsqlite.getDbfile());
-				
-		if (authenticatorlocalsqlite.isEnabledUser(ACLUser.ADMIN_NAME) == false) {
-			throw new Exception("User " + ACLUser.ADMIN_NAME + " is disabled in sqlite file !");
-		}
-		 * */
+		Loggers.Auth.info("Create admin password file account, password file: " + textfile.getAbsoluteFile());
+		
+		return newpassword;
 	}
 	
 	private class PropertiesSerializer implements JsonSerializer<Properties>, JsonDeserializer<Properties> {
@@ -241,8 +312,7 @@ public class AuthTurret {
 	}
 	
 	public ArrayList<String> declaredDomainList() {
-		// TODO from conf
-		return new ArrayList<String>();
+		return cache.getAll_domains();
 	}
 	
 	public UserNG getByUserKey(String user_key) {
@@ -277,6 +347,8 @@ public class AuthTurret {
 		private HashMap<String, UserNG> all_users;
 		private HashMap<String, GroupNG> all_groups;
 		private HashMap<String, RoleNG> all_roles;
+		private ArrayList<String> all_domains;
+		
 		private AuthTurret referer;
 		
 		public Cache(AuthTurret referer, long ttl) {
@@ -292,6 +364,7 @@ public class AuthTurret {
 			all_users = new HashMap<String, UserNG>();
 			all_groups = new HashMap<String, GroupNG>();
 			all_roles = new HashMap<String, RoleNG>();
+			all_domains = new ArrayList<String>();
 			
 		}
 		
@@ -303,6 +376,7 @@ public class AuthTurret {
 			all_users.clear();
 			all_groups.clear();
 			all_roles.clear();
+			all_domains.clear();
 		}
 		
 		public HashMap<String, GroupNG> getAll_groups() {
@@ -374,7 +448,7 @@ public class AuthTurret {
 				synchronized (all_users) {
 					Loggers.Auth.debug("Do an User cache refresh");
 					last_users_fetch_date = System.currentTimeMillis();
-					
+					all_domains.clear();
 					try {
 						CassandraDb.allRowsReader(CF_AUTH, new AllRowsFoundRow() {
 							
@@ -382,13 +456,20 @@ public class AuthTurret {
 								if (row.getKey().startsWith("user:") == false) {
 									return;
 								}
+								UserNG user;
 								if (all_users.containsKey(row.getKey())) {
-									all_users.get(row.getKey()).loadFromDb(row.getColumns());
+									user = all_users.get(row.getKey());
+									user.loadFromDb(row.getColumns());
 								} else {
-									UserNG user = new UserNG(referer, row.getKey(), false);
+									user = new UserNG(referer, row.getKey(), false);
 									user.loadFromDb(row.getColumns());
 									all_users.put(row.getKey(), user);
 								}
+								user.getUserGroups().forEach(group -> {
+									if (all_domains.contains(group) == false) {
+										all_domains.add(group.getKey());
+									}
+								});
 							}
 						}, UserNG.COLS_NAMES_LIMITED_TO_DB_IMPORT);
 					} catch (ConnectionException e1) {
@@ -399,6 +480,11 @@ public class AuthTurret {
 				}
 			}
 			return all_users;
+		}
+		
+		public ArrayList<String> getAll_domains() {
+			getAll_users();
+			return all_domains;
 		}
 		
 	}
