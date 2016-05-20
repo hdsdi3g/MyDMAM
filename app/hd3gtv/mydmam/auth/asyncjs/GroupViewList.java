@@ -16,6 +16,35 @@
 */
 package hd3gtv.mydmam.auth.asyncjs;
 
-public class GroupViewList {
+import java.lang.reflect.Type;
+import java.util.LinkedHashMap;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.tools.GsonIgnore;
+
+public class GroupViewList {
+	
+	@GsonIgnore
+	public LinkedHashMap<String, GroupView> groups;
+	
+	private static Type lhm_s_uv_typeOfT = new TypeToken<LinkedHashMap<String, GroupView>>() {
+	}.getType();
+	
+	public static class Serializer implements JsonSerializer<GroupViewList> {
+		
+		@Override
+		public JsonElement serialize(GroupViewList src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
+			result.add("groups", AJSController.gson_simple.toJsonTree(src.groups, lhm_s_uv_typeOfT));
+			return result;
+		}
+		
+	}
+	
 }

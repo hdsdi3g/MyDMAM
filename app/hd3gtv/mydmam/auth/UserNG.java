@@ -27,14 +27,13 @@ import java.util.Properties;
 import javax.mail.internet.InternetAddress;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
 
+import hd3gtv.mydmam.auth.asyncjs.UserView;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import play.i18n.Lang;
 
@@ -66,13 +65,13 @@ public class UserNG implements AuthEntry {
 	private transient HashSet<String> user_groups_roles_privileges;
 	private transient AuthTurret turret;
 	
-	private static Type linmap_string_basket_typeOfT = new TypeToken<LinkedHashMap<String, BasketNG>>() {
+	public static final Type linmap_string_basket_typeOfT = new TypeToken<LinkedHashMap<String, BasketNG>>() {
 	}.getType();
-	private static Type al_useractivity_typeOfT = new TypeToken<ArrayList<UserActivity>>() {
+	public static final Type al_useractivity_typeOfT = new TypeToken<ArrayList<UserActivity>>() {
 	}.getType();
-	private static Type al_usernotification_typeOfT = new TypeToken<ArrayList<UserNotificationNG>>() {
+	public static final Type al_usernotification_typeOfT = new TypeToken<ArrayList<UserNotificationNG>>() {
 	}.getType();
-	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
+	public static final Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
 	}.getType();
 	
 	/**
@@ -80,7 +79,7 @@ public class UserNG implements AuthEntry {
 	 */
 	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(
 			Arrays.asList("login", "fullname", "domain", "language", "email_addr", "protected_password", "lasteditdate", "lastlogindate", "lastloginipsource", "locked_account", "user_groups"));
-	
+			
 	public void save(ColumnListMutation<String> mutator) {
 		
 		mutator.putColumnIfNotNull("login", login);
@@ -411,7 +410,6 @@ public class UserNG implements AuthEntry {
 	}
 	
 	public void sendTestMail() throws Exception {
-		// TODO create button for send a mail
 		InternetAddress email_addr = new InternetAddress(this.email_addr);
 		
 		EndUserBaseMail mail;
@@ -424,51 +422,51 @@ public class UserNG implements AuthEntry {
 		mail.send();
 	}
 	
-	/**
-	 * Don't forget to add Key for identify user
-	 */
-	public JsonObject exportForAdmin() {
-		JsonObject result = new JsonObject();
-		result.addProperty("login", login);
-		result.addProperty("fullname", fullname);
-		result.addProperty("domain", domain);
-		result.addProperty("language", language);
-		result.addProperty("email_addr", email_addr);
-		result.addProperty("createdate", createdate);
-		result.addProperty("lasteditdate", lasteditdate);
-		result.addProperty("lastlogindate", lastlogindate);
-		result.addProperty("lastloginipsource", lastloginipsource);
-		result.addProperty("locked_account", locked_account);
-		result.add("preferencies", getPreferencies());
-		result.add("properties", turret.getGson().toJsonTree(getProperties()));
-		result.add("baskets", turret.getGson().toJsonTree(getBaskets(), linmap_string_basket_typeOfT));
-		result.add("activities", turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT));
-		result.add("notifications", turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT));
+	public UserView export(boolean complete, boolean admin_view) {
+		UserView result = new UserView();
+		if (admin_view) {
+			result.key = this.key;
+			result.login = this.login;
+			result.domain = this.domain;
+			result.createdate = this.createdate;
+			result.lasteditdate = this.lasteditdate;
+			result.lastlogindate = this.lastlogindate;
+			result.lastloginipsource = this.lastloginipsource;
+			result.locked_account = this.locked_account;
+			result.user_groups = new ArrayList<String>();
+			getUserGroups().forEach(group -> {
+				result.user_groups.add(group.getKey());
+			});
+		}
 		
-		JsonArray ja_groups = new JsonArray();
-		getUserGroups().forEach(group -> {
-			ja_groups.add(new JsonPrimitive(group.getKey()));
-		});
-		result.add("user_groups", ja_groups);
+		result.fullname = this.fullname;
+		result.language = this.language;
+		result.email_addr = this.email_addr;
 		
-		return result;
-	}
-	
-	public JsonObject exportForWebUser() {
-		JsonObject result = new JsonObject();
-		result.addProperty("login", login);
-		result.addProperty("fullname", fullname);
-		result.addProperty("domain", domain);
-		result.addProperty("language", language);
-		result.addProperty("email_addr", email_addr);
-		result.addProperty("createdate", createdate);
-		result.addProperty("lasteditdate", lasteditdate);
-		result.addProperty("lastlogindate", lastlogindate);
-		result.addProperty("lastloginipsource", lastloginipsource);
-		result.add("preferencies", getPreferencies());
-		result.add("baskets", turret.getGson().toJsonTree(getBaskets(), linmap_string_basket_typeOfT));
-		result.add("activities", turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT));
-		result.add("notifications", turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT));
+		if (complete) {
+			result.preferencies = getPreferencies();
+			result.properties = turret.getGson().toJsonTree(getProperties()).getAsJsonObject();
+			result.baskets = turret.getGson().toJsonTree(getBaskets(), linmap_string_basket_typeOfT).getAsJsonObject();
+			result.activities = turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT).getAsJsonArray();
+			result.notifications = turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT).getAsJsonArray();
+		} else {
+			if (preferencies != null) {
+				result.preferencies = preferencies;
+			}
+			if (properties != null) {
+				result.properties = turret.getGson().toJsonTree(properties).getAsJsonObject();
+			}
+			if (baskets != null) {
+				result.baskets = turret.getGson().toJsonTree(baskets, linmap_string_basket_typeOfT).getAsJsonObject();
+			}
+			if (activities != null) {
+				result.activities = turret.getGson().toJsonTree(activities, al_useractivity_typeOfT).getAsJsonArray();
+			}
+			if (notifications != null) {
+				result.notifications = turret.getGson().toJsonTree(notifications, al_usernotification_typeOfT).getAsJsonArray();
+			}
+		}
+		
 		return result;
 	}
 	

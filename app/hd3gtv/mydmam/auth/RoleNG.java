@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.auth;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -25,6 +26,8 @@ import com.google.gson.JsonObject;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
+
+import hd3gtv.mydmam.auth.asyncjs.RoleView;
 
 public class RoleNG implements AuthEntry {
 	
@@ -136,6 +139,19 @@ public class RoleNG implements AuthEntry {
 		jo.addProperty("role_name", role_name);
 		jo.add("privileges", turret.getGson().toJsonTree(getPrivileges()));
 		return jo;
+	}
+	
+	public RoleView export() {
+		RoleView result = new RoleView();
+		result.role_name = role_name;
+		result.key = key;
+		result.privileges = new ArrayList<String>();
+		
+		getPrivileges().forEach(privilege -> {
+			result.privileges.add(privilege);
+		});
+		
+		return result;
 	}
 	
 	public void delete(ColumnListMutation<String> mutator) {

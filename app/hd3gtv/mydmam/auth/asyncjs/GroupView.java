@@ -16,6 +16,34 @@
 */
 package hd3gtv.mydmam.auth.asyncjs;
 
-public class GroupView {
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.tools.GsonIgnore;
+
+public class GroupView {
+	
+	public String key;
+	public String group_name;
+	
+	@GsonIgnore
+	public ArrayList<String> group_roles;
+	
+	public static class Serializer implements JsonSerializer<GroupView> {
+		
+		@Override
+		public JsonElement serialize(GroupView src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
+			result.add("group_roles", AJSController.gson_simple.toJsonTree(src.group_roles));
+			return result;
+		}
+		
+	}
+	
 }

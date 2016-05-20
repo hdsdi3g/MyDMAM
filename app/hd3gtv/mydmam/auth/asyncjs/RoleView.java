@@ -16,6 +16,34 @@
 */
 package hd3gtv.mydmam.auth.asyncjs;
 
-public class RoleView {
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.tools.GsonIgnore;
+
+public class RoleView {
+	
+	public String key;
+	public String role_name;
+	
+	@GsonIgnore
+	public ArrayList<String> privileges;
+	
+	public static class Serializer implements JsonSerializer<RoleView> {
+		
+		@Override
+		public JsonElement serialize(RoleView src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
+			result.add("privileges", AJSController.gson_simple.toJsonTree(src.privileges));
+			return result;
+		}
+		
+	}
+	
 }

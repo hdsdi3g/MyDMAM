@@ -23,6 +23,7 @@ import java.security.NoSuchProviderException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -504,7 +505,7 @@ public class AuthTurret {
 	/**
 	 * Juste delete
 	 */
-	public void deleteAll(ArrayList<AuthEntry> items) throws ConnectionException {
+	public void deleteAll(List<AuthEntry> items) throws ConnectionException {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		items.forEach(item -> {
 			item.delete(mutator.withRow(CF_AUTH, item.getKey()));

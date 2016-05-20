@@ -16,6 +16,50 @@
 */
 package hd3gtv.mydmam.auth.asyncjs;
 
-public class UserView {
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.tools.GsonIgnore;
+
+public class UserView {
+	
+	public String key;
+	public String login;
+	public String fullname;
+	public String domain;
+	public String language;
+	public String email_addr;
+	public long createdate;
+	public long lasteditdate;
+	public long lastlogindate;
+	public String lastloginipsource;
+	public boolean locked_account;
+	
+	@GsonIgnore
+	public ArrayList<String> user_groups;
+	
+	public JsonObject preferencies;
+	public JsonObject properties;
+	public JsonObject baskets;
+	public JsonArray activities;
+	public JsonArray notifications;
+	
+	public static class Serializer implements JsonSerializer<UserView> {
+		
+		@Override
+		public JsonElement serialize(UserView src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
+			result.add("user_groups", AJSController.gson_simple.toJsonTree(src.user_groups));
+			return result;
+		}
+		
+	}
+	
 }

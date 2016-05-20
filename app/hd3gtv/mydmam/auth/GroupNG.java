@@ -22,12 +22,11 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
+
+import hd3gtv.mydmam.auth.asyncjs.GroupView;
 
 public class GroupNG implements AuthEntry {
 	
@@ -148,17 +147,17 @@ public class GroupNG implements AuthEntry {
 		return sb.toString();
 	}
 	
-	public JsonObject exportForAdmin() {
-		JsonObject jo = new JsonObject();
-		jo.addProperty("group_name", group_name);
+	public GroupView export() {
+		GroupView result = new GroupView();
+		result.group_name = group_name;
+		result.key = key;
+		result.group_roles = new ArrayList<String>();
 		
-		JsonArray ja_roles = new JsonArray();
 		getGroupRoles().forEach(role -> {
-			ja_roles.add(new JsonPrimitive(role.getKey()));
+			result.group_roles.add(role.getKey());
 		});
-		jo.add("group_roles", ja_roles);
 		
-		return jo;
+		return result;
 	}
 	
 	public void delete(ColumnListMutation<String> mutator) {

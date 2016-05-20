@@ -16,10 +16,17 @@
 */
 package controllers.ajs;
 
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import controllers.Check;
-import hd3gtv.mydmam.auth.asyncjs.BasketList;
+import ext.Bootstrap;
+import hd3gtv.mydmam.auth.GroupNG;
+import hd3gtv.mydmam.auth.RoleNG;
+import hd3gtv.mydmam.auth.UserNG;
 import hd3gtv.mydmam.auth.asyncjs.BasketRename;
 import hd3gtv.mydmam.auth.asyncjs.BasketUpdate;
 import hd3gtv.mydmam.auth.asyncjs.GroupChRole;
@@ -31,13 +38,21 @@ import hd3gtv.mydmam.auth.asyncjs.RoleView;
 import hd3gtv.mydmam.auth.asyncjs.RoleViewList;
 import hd3gtv.mydmam.auth.asyncjs.UserChGroup;
 import hd3gtv.mydmam.auth.asyncjs.UserChPassword;
-import hd3gtv.mydmam.auth.asyncjs.UserNotificationsList;
 import hd3gtv.mydmam.auth.asyncjs.UserView;
 import hd3gtv.mydmam.auth.asyncjs.UserViewList;
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.PrivilegeNG;
 
 public class Auth extends AJSController {
+	
+	static {
+		AJSController.registerTypeAdapter(UserView.class, new UserView.Serializer());
+		AJSController.registerTypeAdapter(UserViewList.class, new UserViewList.Serializer());
+		AJSController.registerTypeAdapter(GroupView.class, new GroupView.Serializer());
+		AJSController.registerTypeAdapter(GroupViewList.class, new GroupViewList.Serializer());
+		AJSController.registerTypeAdapter(RoleView.class, new RoleView.Serializer());
+		AJSController.registerTypeAdapter(RoleViewList.class, new RoleViewList.Serializer());
+	}
 	
 	@Check("authAdmin")
 	public static UserView userCreate(NewUser user) throws Exception {
@@ -46,17 +61,30 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static UserView userGet(String key) throws Exception {
-		return null;// TODO
+		UserNG user = Bootstrap.auth.getByUserKey(key);
+		if (user == null) {
+			return null;
+		}
+		return user.export(true, true);
 	}
 	
 	@Check("authAdmin")
 	public static UserViewList userList() throws Exception {
-		return null;// TODO
+		UserViewList result = new UserViewList();
+		result.users = new LinkedHashMap<String, UserView>();
+		Bootstrap.auth.getAllUsers().forEach((k, v) -> {
+			result.users.put(k, v.export(false, true));
+		});
+		return result;
 	}
 	
 	@Check("authAdmin")
-	public static void userDelete(String key) throws Exception {
-		// TODO
+	public static UserViewList userDelete(String key) throws Exception {
+		UserNG user = Bootstrap.auth.getByUserKey(key);
+		if (user != null) {
+			Bootstrap.auth.deleteAll(Arrays.asList(user));
+		}
+		return userList();
 	}
 	
 	@Check("authAdmin")
@@ -81,11 +109,21 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static GroupViewList groupList() throws Exception {
-		return null;// TODO
+		GroupViewList result = new GroupViewList();
+		result.groups = new LinkedHashMap<String, GroupView>();
+		Bootstrap.auth.getAllGroups().forEach((k, v) -> {
+			result.groups.put(k, v.export());
+		});
+		return result;
 	}
 	
 	@Check("authAdmin")
-	public static void groupDelete(String key) throws Exception {
+	public static GroupViewList groupDelete(String key) throws Exception {
+		GroupNG group = Bootstrap.auth.getByGroupKey(key);
+		if (group != null) {
+			Bootstrap.auth.deleteAll(Arrays.asList(group));
+		}
+		return groupList();
 	}
 	
 	@Check("authAdmin")
@@ -100,12 +138,21 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static RoleViewList roleList() throws Exception {
-		return null;// TODO
+		RoleViewList result = new RoleViewList();
+		result.roles = new LinkedHashMap<String, RoleView>();
+		Bootstrap.auth.getAllRoles().forEach((k, v) -> {
+			result.roles.put(k, v.export());
+		});
+		return result;
 	}
 	
 	@Check("authAdmin")
-	public static void roleDelete(String keg) throws Exception {
-		// TODO
+	public static RoleViewList roleDelete(String key) throws Exception {
+		RoleNG role = Bootstrap.auth.getByRoleKey(key);
+		if (role != null) {
+			Bootstrap.auth.deleteAll(Arrays.asList(role));
+		}
+		return roleList();
 	}
 	
 	@Check("authAdmin")
@@ -119,46 +166,52 @@ public class Auth extends AJSController {
 	}
 	
 	public static JsonObject getPreferencies() throws Exception {
-		return new JsonObject();// TODO
+		return AJSController.getUserProfile().getPreferencies();
 	}
 	
-	public static UserView changePassword(UserChPassword new_passwd) throws Exception {
+	public static UserView changePassword(String new_clear_text_passwd) throws Exception {
 		return null;// TODO
 	}
 	
-	public static UserView sendTestMail() throws Exception {
-		return null;// TODO
+	public static void sendTestMail() throws Exception {
+		AJSController.getUserProfile().sendTestMail();
 	}
 	
-	public static UserView changeUserMail() throws Exception {
+	public static UserView changeUserMail(String new_mail_addr) throws Exception {
 		return null;// TODO
 	}
 	
 	public static JsonObject getActivities() throws Exception {
-		return null;// TODO
+		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getActivities(), UserNG.al_useractivity_typeOfT).getAsJsonObject();
 	}
 	
-	public static BasketList basketsList() throws Exception {
-		return null;// TODO
+	public static JsonObject basketsList() throws Exception {
+		// TODO
+		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
-	public static BasketList basketPush(BasketUpdate update) throws Exception {
-		return null;// TODO
+	public static JsonObject basketPush(BasketUpdate update) throws Exception {
+		// TODO
+		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
-	public static BasketList basketDelete(String basket_key) throws Exception {
-		return null;// TODO
+	public static JsonObject basketDelete(String basket_key) throws Exception {
+		// TODO
+		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
-	public static BasketList basketRename(BasketRename rename) throws Exception {
-		return null;// TODO
+	public static JsonObject basketRename(BasketRename rename) throws Exception {
+		// TODO
+		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
-	public static UserNotificationsList notificationsList() throws Exception {
-		return null;// TODO
+	public static JsonArray notificationsList() throws Exception {
+		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
 	}
 	
-	public static UserNotificationsList notificationCheck(String notification_key) throws Exception {
-		return null;// TODO
+	public static JsonArray notificationCheck(String notification_key) throws Exception {
+		// TODO
+		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
 	}
+	
 }

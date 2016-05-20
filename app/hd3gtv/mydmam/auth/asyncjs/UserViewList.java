@@ -16,6 +16,35 @@
 */
 package hd3gtv.mydmam.auth.asyncjs;
 
-public class UserViewList {
+import java.lang.reflect.Type;
+import java.util.LinkedHashMap;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.tools.GsonIgnore;
+
+public class UserViewList {
+	
+	@GsonIgnore
+	public LinkedHashMap<String, UserView> users;
+	
+	private static Type lhm_s_uv_typeOfT = new TypeToken<LinkedHashMap<String, UserView>>() {
+	}.getType();
+	
+	public static class Serializer implements JsonSerializer<UserViewList> {
+		
+		@Override
+		public JsonElement serialize(UserViewList src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
+			result.add("users", AJSController.gson_simple.toJsonTree(src.users, lhm_s_uv_typeOfT));
+			return result;
+		}
+		
+	}
+	
 }
