@@ -19,6 +19,41 @@
  */
 package hd3gtv.mydmam.auth.asyncjs;
 
-public class NewUser {
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.tools.GsonIgnore;
+
+public class NewUser {
+	
+	public String login;
+	public String fullname;
+	public String domain;
+	public String email_addr;
+	public String password;
+	public boolean locked_account;
+	
+	@GsonIgnore
+	public ArrayList<String> user_groups;
+	
+	private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
+	}.getType();
+	
+	public static class Deserializer implements JsonDeserializer<NewUser> {
+		
+		public NewUser deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			NewUser result = AJSController.gson_simple.fromJson(json, NewUser.class);
+			result.user_groups = AJSController.gson_simple.fromJson(json.getAsJsonObject().get("user_groups"), al_string_typeOfT);
+			return result;
+		}
+		
+	}
+	
 }

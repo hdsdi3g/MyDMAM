@@ -19,7 +19,6 @@ package hd3gtv.mydmam.auth;
 
 import static javax.naming.directory.SearchControls.SUBTREE_SCOPE;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Hashtable;
 
@@ -34,17 +33,22 @@ import javax.naming.directory.SearchResult;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 
+import hd3gtv.mydmam.Loggers;
+
 class ActiveDirectoryBackend {
-	
-	// TODO load from conf
 	
 	private String domain;
 	private String server;
 	private int ldap_port;
+	// private AuthTurret turret;
 	
 	private static final String[] userAttributes = { "distinguishedName", "cn", "name", "uid", "sn", "givenname", "memberOf", "samaccountname", "userPrincipalName", "mail" };
 	
-	public ActiveDirectoryBackend(String domain, String server, int ldap_port) {
+	ActiveDirectoryBackend(/*AuthTurret turret,*/ String domain, String server, int ldap_port) {
+		/*this.turret = turret;
+		if (turret == null) {
+			throw new NullPointerException("\"turret\" can't to be null");
+		}*/
 		this.domain = domain;
 		if (domain == null) {
 			throw new NullPointerException("\"domain\" can't to be null");
@@ -72,7 +76,7 @@ class ActiveDirectoryBackend {
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public ADUser getUser(String username, String password) throws NullPointerException, IOException, InvalidUserAuthentificationException {
+	ADUser getUser(String username, String password) {
 		if (username == null) {
 			throw new NullPointerException("\"username\" can't to be null");
 		}
@@ -104,22 +108,27 @@ class ActiveDirectoryBackend {
 					Attributes attr = answer.next().getAttributes();
 					Attribute user = attr.get("userPrincipalName");
 					if (user != null) {
-						return new ADUser(attr);
+						return new ADUser(username, attr);
 					}
 				}
 			}
-			return null;
 		} catch (CommunicationException e) {
-			throw new IOException("Failed to connect to " + server + ":" + String.valueOf(ldap_port), e);
+			Loggers.Auth.error("Failed to connect to " + server + ":" + String.valueOf(ldap_port), e);
 		} catch (NamingException e) {
-			throw new InvalidUserAuthentificationException("Failed to authenticate " + username + "@" + domain + " through " + server, e);
+			Loggers.Auth.debug("Failed to authenticate " + username + "@" + domain + " through " + server, e);
 		}
+		return null;
 	}
 	
 	class ADUser {
 		
 		/**
-		 * Login, like "user@DOMAIN"
+		 * login, like "user"
+		 */
+		public String username;
+		
+		/**
+		 * Full login, like "user@DOMAIN"
 		 */
 		public String userprincipal;
 		/**
@@ -136,7 +145,8 @@ class ActiveDirectoryBackend {
 		 */
 		public String group;
 		
-		private ADUser(Attributes attr) throws NamingException {
+		private ADUser(String username, Attributes attr) throws NamingException {
+			this.username = username;
 			userprincipal = (String) attr.get("userPrincipalName").get();
 			commonname = (String) attr.get("cn").get();
 			
@@ -161,6 +171,10 @@ class ActiveDirectoryBackend {
 			});
 		}
 		
+		public String getDomain() {
+			return domain;
+		}
+		
 		public String toString() {
 			StringBuilder sb = new StringBuilder();
 			sb.append("userprincipal: ");
@@ -173,6 +187,7 @@ class ActiveDirectoryBackend {
 			sb.append(mail);
 			return sb.toString();
 		}
+		
 	}
 	
 	public String toString() {

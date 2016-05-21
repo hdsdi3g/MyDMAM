@@ -52,11 +52,15 @@ public class Auth extends AJSController {
 		AJSController.registerTypeAdapter(GroupViewList.class, new GroupViewList.Serializer());
 		AJSController.registerTypeAdapter(RoleView.class, new RoleView.Serializer());
 		AJSController.registerTypeAdapter(RoleViewList.class, new RoleViewList.Serializer());
+		AJSController.registerTypeAdapter(NewUser.class, new NewUser.Deserializer());
+		
 	}
 	
 	@Check("authAdmin")
-	public static UserView userCreate(NewUser user) throws Exception {
-		return null;// TODO
+	public static UserView userCreate(NewUser newuser) throws Exception {
+		newuser.login = newuser.login.toLowerCase().trim();
+		newuser.domain = newuser.domain.toLowerCase().trim();
+		return Bootstrap.auth.createUserIfNotExists(newuser).export(true, true);
 	}
 	
 	@Check("authAdmin")

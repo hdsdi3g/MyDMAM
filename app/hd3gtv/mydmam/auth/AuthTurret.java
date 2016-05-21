@@ -26,11 +26,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -53,10 +57,13 @@ import com.netflix.astyanax.serializers.StringSerializer;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.auth.ActiveDirectoryBackend.ADUser;
+import hd3gtv.mydmam.auth.asyncjs.NewUser;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.web.PrivilegeNG;
+import hd3gtv.tools.BreakReturnException;
 import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class AuthTurret {
@@ -70,6 +77,10 @@ public class AuthTurret {
 	
 	private Keyspace keyspace;
 	private Cache cache;
+	
+	private LinkedHashMap<String, ActiveDirectoryBackend> auth_backend_by_domain;
+	
+	private GroupNG default_newusers_group;
 	
 	// TODO domain isolation or not
 	
@@ -110,6 +121,9 @@ public class AuthTurret {
 		gson = builder.create();
 		
 		password = new Password("");// TODO from conf
+		
+		auth_backend_by_domain = new LinkedHashMap<String, ActiveDirectoryBackend>(1);
+		// TODO load AD from conf
 		
 		cache = new Cache(this, TimeUnit.MINUTES.toMillis(10));// TODO from conf
 		
@@ -164,17 +178,21 @@ public class AuthTurret {
 			default_admin_group.update(Arrays.asList(admin_role));
 			default_admin_group.save(mutator.withRow(CF_AUTH, default_admin_group.getKey()));
 			cache.all_groups.put(default_admin_group.getKey(), default_admin_group);
+		} else {
+			default_admin_group = getByGroupKey(default_admin_group.getKey());
 		}
 		
 		/**
 		 * Create newusers group if needed
 		 */
-		GroupNG default_newusers_group = new GroupNG("New users");
+		default_newusers_group = new GroupNG("New users");
 		if (getByGroupKey(default_newusers_group.getKey()) == null) {
 			Loggers.Auth.info("Admin group is absent, create it.");
 			default_newusers_group.update(Arrays.asList(getByRoleKey(default_guest_role.getKey())));
 			default_newusers_group.save(mutator.withRow(CF_AUTH, default_newusers_group.getKey()));
 			cache.all_groups.put(default_newusers_group.getKey(), default_newusers_group);
+		} else {
+			default_newusers_group = getByGroupKey(default_newusers_group.getKey());
 		}
 		
 		/**
@@ -193,6 +211,7 @@ public class AuthTurret {
 		if (mutator.isEmpty() == false) {
 			mutator.execute();
 		}
+		
 	}
 	
 	/**
@@ -364,8 +383,12 @@ public class AuthTurret {
 			all_users = new HashMap<String, UserNG>();
 			all_groups = new HashMap<String, GroupNG>();
 			all_roles = new HashMap<String, RoleNG>();
-			all_domains = new ArrayList<String>();
 			
+			all_domains = new ArrayList<String>();
+			all_domains.add("local");
+			auth_backend_by_domain.forEach((domain, auth) -> {
+				all_domains.add(domain);
+			});
 		}
 		
 		private synchronized void resetCache() {
@@ -376,7 +399,6 @@ public class AuthTurret {
 			all_users.clear();
 			all_groups.clear();
 			all_roles.clear();
-			all_domains.clear();
 		}
 		
 		public HashMap<String, GroupNG> getAll_groups() {
@@ -448,7 +470,6 @@ public class AuthTurret {
 				synchronized (all_users) {
 					Loggers.Auth.debug("Do an User cache refresh");
 					last_users_fetch_date = System.currentTimeMillis();
-					all_domains.clear();
 					try {
 						CassandraDb.allRowsReader(CF_AUTH, new AllRowsFoundRow() {
 							
@@ -465,11 +486,6 @@ public class AuthTurret {
 									user.loadFromDb(row.getColumns());
 									all_users.put(row.getKey(), user);
 								}
-								user.getUserGroups().forEach(group -> {
-									if (all_domains.contains(group) == false) {
-										all_domains.add(group.getKey());
-									}
-								});
 							}
 						}, UserNG.COLS_NAMES_LIMITED_TO_DB_IMPORT);
 					} catch (ConnectionException e1) {
@@ -483,68 +499,153 @@ public class AuthTurret {
 		}
 		
 		public ArrayList<String> getAll_domains() {
-			getAll_users();
 			return all_domains;
 		}
 		
 	}
 	
-	public UserNG authenticate(String remote_address, String username, String password, String domain, String language) throws InvalidUserAuthentificationException {
+	public UserNG authenticateWithThisDomain(String remote_address, String username, String clear_text_password, String domain, String language) throws ConnectionException {
 		if (remote_address == null) {
 			throw new NullPointerException("\"remote_address\" can't to be null");
 		}
 		if (username == null) {
 			throw new NullPointerException("\"username\" can't to be null");
 		}
-		if (password == null) {
-			throw new NullPointerException("\"password\" can't to be null");
+		if (clear_text_password == null) {
+			throw new NullPointerException("\"clear_text_password\" can't to be null");
 		}
 		if (domain == null) {
-			return authenticate(remote_address, username, password, language);
+			return authenticate(remote_address, username, clear_text_password, language);
 		}
 		if (domain.trim().isEmpty()) {
-			return authenticate(remote_address, username, password, language);
+			return authenticate(remote_address, username, clear_text_password, language);
 		}
-		// TODO authenticate for domain
-		/*try {
-			authenticationUser = authenticator.getUser(username, password);
-			if (authenticationUser != null) {
-				Loggers.Auth.debug("Valid user found for this authentication method, username: " + username + ", " + authenticator);
-				return authenticationUser;
-			}
-		} catch (IOException e) {
-			Loggers.Auth.error("Invalid authentication method: " + username + ", " + authenticator, e);
-		}*/
 		
-		// TODO if user don't exists in db, add it (w/o password) in new_user group
-		// TODO sync user long name, email, groups, and last-edit if user is from AD
-		// TODO set user.doLoginOperations(remote_address, language) + save
-		
-		return null;
-	}
-	
-	public UserNG authenticate(String remote_address, String username, String password, String language) throws InvalidUserAuthentificationException {
-		// TODO authenticate for each domain
-		/*for (int pos = 0; pos < authenticators.size(); pos++) {
-			try {
-				
-				authenticationUser = authenticate(authenticators.get(pos), username, password);
-				if (authenticationUser != null) {
-					return authenticationUser;
-				}
-			} catch (InvalidAuthenticatorUserException e) {
-				Loggers.Auth.debug("Invalid user for this authentication method, authenticator: " + authenticators.get(pos), e);
+		if (auth_backend_by_domain.containsKey(domain)) {
+			return syncADUser(auth_backend_by_domain.get(domain).getUser(username, clear_text_password), remote_address, language);
+		} else if (domain.equalsIgnoreCase("local")) {
+			UserNG result = getByUserKey(UserNG.computeUserKey(username, "local"));
+			if (result == null) {
+				Loggers.Auth.warn("Can't found this user to local auth system " + result.getKey());
+				return null;
 			}
+			if (result.isLockedAccount()) {
+				Loggers.Auth.warn("This user has its account locked in database " + result.getKey());
+				return null;
+			}
+			if (result.checkValidPassword(clear_text_password) == false) {
+				Loggers.Auth.warn("Invalid password proposed for " + result.getKey());
+				return null;
+			}
+			result.doLoginOperations(remote_address, language);
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			result.save(mutator.withRow(CF_AUTH, result.getKey()));
+			mutator.execute();
+			return result;
+		} else {
+			Loggers.Auth.warn("Unknow domain name for auth " + domain);
 		}
-		throw new InvalidAuthenticatorUserException("Can't authenticate with " + username);*/
+		
 		return null;
 	}
 	
 	/**
-	 * Create + save
+	 * Import an backend extracted user to MyDMAM UserNG system.
+	 * If user don't exists in db, add it (w/o password) in new_user group
+	 * Sync user long name, email, groups, and last-edit if user is from AD
 	 */
-	public UserNG createUser(String login, String domain) throws ConnectionException {
-		UserNG newuser = new UserNG(this, login, domain);
+	private UserNG syncADUser(ADUser aduser, String remote_address, String language) throws ConnectionException {
+		if (aduser == null) {
+			return null;
+		}
+		UserNG result = getByUserKey(UserNG.computeUserKey(aduser.username, aduser.getDomain()));
+		if (result == null) {
+			result = new UserNG(this, aduser.username, aduser.getDomain());
+			result.postCreate(aduser.commonname, aduser.mail);
+			result.getUserGroups().add(default_newusers_group);
+		} else if (result.isLockedAccount()) {
+			Loggers.Auth.warn("This user has its account locked in database " + result.getKey());
+			return null;
+		}
+		
+		result.doLoginOperations(remote_address, language);
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		
+		if (aduser.group != null) {
+			if (aduser.group.trim().isEmpty() == false) {
+				GroupNG current_backend_group = new GroupNG(aduser.group);
+				if (getByGroupKey(current_backend_group.getKey()) == null) {
+					current_backend_group.save(mutator.withRow(CF_AUTH, current_backend_group.getKey()));
+				} else {
+					current_backend_group = getByGroupKey(current_backend_group.getKey());
+				}
+				
+				if (result.getUserGroups().contains(current_backend_group) == false) {
+					result.getUserGroups().add(current_backend_group);
+				}
+			}
+		}
+		
+		result.save(mutator.withRow(CF_AUTH, result.getKey()));
+		mutator.execute();
+		return result;
+	}
+	
+	public UserNG authenticate(String remote_address, String username, String clear_text_password, String language) throws ConnectionException {
+		/**
+		 * Try to authenticate with "local" domain
+		 */
+		UserNG result = authenticateWithThisDomain(remote_address, username, clear_text_password, "local", language);
+		
+		if (result != null) {
+			return result;
+		}
+		
+		try {
+			auth_backend_by_domain.forEach((domain, auth) -> {
+				/**
+				 * Try to log with any backends
+				 */
+				ADUser thisresult = auth.getUser(username, clear_text_password);
+				if (thisresult != null) {
+					throw new BreakReturnException(thisresult);
+				}
+			});
+		} catch (BreakReturnException e) {
+			return syncADUser(e.get(ADUser.class), remote_address, language);
+		}
+		
+		return result;
+	}
+	
+	public UserNG createUserIfNotExists(NewUser request) throws ConnectionException, IndexOutOfBoundsException, AddressException {
+		UserNG user = getByUserKey(UserNG.computeUserKey(request.login, request.domain));
+		if (user != null) {
+			throw new IndexOutOfBoundsException("User " + request.login + "@" + request.domain + " exists");
+		}
+		
+		final UserNG newuser = new UserNG(this, request.login, request.domain);
+		if (request.password != null && request.domain.equals("local")) {
+			newuser.chpassword(request.password);
+		}
+		
+		String mail = null;
+		if (request.email_addr != null) {
+			mail = new InternetAddress(request.email_addr).getAddress();
+		}
+		newuser.postCreate(request.fullname, mail);
+		newuser.setLocked_account(request.locked_account);
+		
+		if (request.user_groups != null) {
+			request.user_groups.forEach(group_name -> {
+				GroupNG group = getByGroupKey(GroupNG.computeGroupKey(group_name));
+				if (group != null) {
+					newuser.getUserGroups().add(group);
+				}
+			});
+		}
+		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		newuser.save(mutator.withRow(CF_AUTH, newuser.getKey()));
 		mutator.execute();
@@ -555,6 +656,7 @@ public class AuthTurret {
 	/**
 	 * Create + save
 	 */
+	@Deprecated
 	public GroupNG createGroup(String group_name) throws ConnectionException {
 		GroupNG newgroup = new GroupNG(group_name);
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
@@ -567,6 +669,7 @@ public class AuthTurret {
 	/**
 	 * Create + save
 	 */
+	@Deprecated
 	public RoleNG createRole(String role_name) throws ConnectionException {
 		RoleNG newrole = new RoleNG(role_name);
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();

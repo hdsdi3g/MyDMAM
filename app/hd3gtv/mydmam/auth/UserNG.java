@@ -34,6 +34,7 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.asyncjs.UserView;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import play.i18n.Lang;
@@ -204,6 +205,10 @@ public class UserNG implements AuthEntry {
 		}
 	}
 	
+	public static String computeUserKey(String login, String domain) {
+		return "user:" + login + "%" + domain;
+	}
+	
 	/**
 	 * New simple user
 	 */
@@ -220,7 +225,7 @@ public class UserNG implements AuthEntry {
 		if (domain == null) {
 			throw new NullPointerException("\"domain\" can't to be null");
 		}
-		key = "user:" + login + "%" + domain;
+		key = computeUserKey(login, domain);
 		createdate = System.currentTimeMillis();
 	}
 	
@@ -259,6 +264,18 @@ public class UserNG implements AuthEntry {
 		protected_password = turret.getPassword().getHashedPassword(clear_text_password);
 		lasteditdate = System.currentTimeMillis();
 		return this;
+	}
+	
+	boolean checkValidPassword(String clear_text_password_candidate) {
+		if (protected_password == null) {
+			Loggers.Auth.debug("Password is not set for " + key);
+			return false;
+		}
+		if (protected_password.length == 0) {
+			Loggers.Auth.debug("Password has no datas for " + key);
+			return false;
+		}
+		return turret.getPassword().checkPassword(clear_text_password_candidate, protected_password);
 	}
 	
 	public ArrayList<GroupNG> getUserGroups() {
@@ -480,12 +497,15 @@ public class UserNG implements AuthEntry {
 		return result;
 	}
 	
-	// TODO use this...
-	void doLoginOperations(String loginipsource, String language, String email_addr) {
+	void doLoginOperations(String loginipsource, String language) {
 		this.lastloginipsource = loginipsource;
 		this.language = language;
-		this.email_addr = email_addr;
 		this.lastlogindate = System.currentTimeMillis();
+	}
+	
+	void postCreate(String fullname, String email_addr) {
+		this.fullname = fullname;
+		this.email_addr = email_addr;
 	}
 	
 	public String getFullname() {
@@ -498,6 +518,10 @@ public class UserNG implements AuthEntry {
 	
 	public boolean isLockedAccount() {
 		return locked_account;
+	}
+	
+	void setLocked_account(boolean locked_account) {
+		this.locked_account = locked_account;
 	}
 	
 	public String getLanguage() {

@@ -17,7 +17,6 @@ import ext.Bootstrap;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.accesscontrol.AccessControl;
-import hd3gtv.mydmam.auth.InvalidUserAuthentificationException;
 import hd3gtv.mydmam.auth.UserNG;
 import play.Play;
 import play.data.validation.Required;
@@ -306,23 +305,20 @@ public class Secure extends Controller {
 		
 		UserNG authuser = null;
 		
-		try {
-			if (Bootstrap.auth.isForceSelectDomain()) {
-				String domain_name = null;
-				
-				try {
-					domain_name = Bootstrap.auth.declaredDomainList().get(Integer.valueOf(domainidx));
-				} catch (Exception e) {
-				}
-				authuser = Bootstrap.auth.authenticate(remote_address, username, password, domain_name, Lang.getLocale().getLanguage());
-			} else {
-				authuser = Bootstrap.auth.authenticate(remote_address, username, password, Lang.getLocale().getLanguage());
+		if (Bootstrap.auth.isForceSelectDomain()) {
+			String domain_name = null;
+			
+			try {
+				domain_name = Bootstrap.auth.declaredDomainList().get(Integer.valueOf(domainidx));
+			} catch (Exception e) {
 			}
-		} catch (InvalidUserAuthentificationException e) {
-			Loggers.Play.error("Can't login username: " + username + ", domainidx: " + domainidx + ", cause: " + e.getMessage() + " " + getUserSessionInformation());
+			authuser = Bootstrap.auth.authenticateWithThisDomain(remote_address, username.trim().toLowerCase(), password, domain_name, Lang.getLocale().getLanguage());
+		} else {
+			authuser = Bootstrap.auth.authenticate(remote_address, username.trim().toLowerCase(), password, Lang.getLocale().getLanguage());
 		}
 		
 		if (authuser == null) {
+			Loggers.Play.error("Can't login username: " + username + ", domainidx: " + domainidx + ", " + getUserSessionInformation());
 			AccessControl.failedAttempt(remote_address, username);
 			rejectUser();
 		}
@@ -330,11 +326,6 @@ public class Secure extends Controller {
 		username = authuser.getKey();
 		
 		AccessControl.releaseIP(remote_address);
-		
-		if (authuser.isLockedAccount()) {
-			Loggers.Play.error("Locked account for user: " + username + ", domainidx: " + domainidx + " " + getUserSessionInformation());
-			rejectUser();
-		}
 		
 		session.put("username", Crypto.encryptAES(username));
 		session.put("longname", Crypto.encryptAES(authuser.getFullname()));
