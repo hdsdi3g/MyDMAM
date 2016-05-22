@@ -53,7 +53,9 @@ public class Auth extends AJSController {
 		AJSController.registerTypeAdapter(RoleView.class, new RoleView.Serializer());
 		AJSController.registerTypeAdapter(RoleViewList.class, new RoleViewList.Serializer());
 		AJSController.registerTypeAdapter(NewUser.class, new NewUser.Deserializer());
-		
+		AJSController.registerTypeAdapter(UserChGroup.class, new UserChGroup.Deserializer());
+		AJSController.registerTypeAdapter(GroupChRole.class, new GroupChRole.Deserializer());
+		AJSController.registerTypeAdapter(RoleChPrivileges.class, new RoleChPrivileges.Deserializer());
 	}
 	
 	@Check("authAdmin")
@@ -93,22 +95,22 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static UserView userChangePassword(UserChPassword chpassword) throws Exception {
-		return null;// TODO
+		return Bootstrap.auth.changeUserPassword(chpassword).export(true, true);
 	}
 	
 	@Check("authAdmin")
 	public static UserView userToogleLock(String key) throws Exception {
-		return null;// TODO
+		return Bootstrap.auth.changeUserToogleLock(key).export(true, true);
 	}
 	
 	@Check("authAdmin")
 	public static UserView userChangeGroup(UserChGroup chgroup) throws Exception {
-		return null;// TODO
+		return Bootstrap.auth.changeUserGroups(chgroup).export(true, true);
 	}
 	
 	@Check("authAdmin")
 	public static GroupView groupCreate(String new_group_name) throws Exception {
-		return null;// TODO
+		return Bootstrap.auth.createGroup(new_group_name).export();
 	}
 	
 	@Check("authAdmin")
@@ -132,12 +134,12 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static GroupView groupChangeRoles(GroupChRole ch_group) throws Exception {
-		return null;// TODO
+		return Bootstrap.auth.changeGroupRoles(ch_group).export();
 	}
 	
 	@Check("authAdmin")
 	public static RoleView roleCreate(String new_role_name) throws Exception {
-		return null;// TODO
+		return Bootstrap.auth.createRole(new_role_name).export();
 	}
 	
 	@Check("authAdmin")
@@ -161,7 +163,7 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static RoleView roleChangePrivilege(RoleChPrivileges new_privileges) throws Exception {
-		return null;// TODO
+		return Bootstrap.auth.changeRolePrivileges(new_privileges).export();
 	}
 	
 	@Check("authAdmin")
@@ -174,7 +176,10 @@ public class Auth extends AJSController {
 	}
 	
 	public static UserView changePassword(String new_clear_text_passwd) throws Exception {
-		return null;// TODO
+		UserChPassword chpassword = new UserChPassword();
+		chpassword.user_key = AJSController.getUserProfile().getKey();
+		chpassword.password = new_clear_text_passwd;
+		return Bootstrap.auth.changeUserPassword(chpassword).export(true, false);
 	}
 	
 	public static void sendTestMail() throws Exception {
@@ -182,7 +187,7 @@ public class Auth extends AJSController {
 	}
 	
 	public static UserView changeUserMail(String new_mail_addr) throws Exception {
-		return null;// TODO
+		return Bootstrap.auth.changeUserMail(AJSController.getUserProfile().getKey(), new_mail_addr).export(true, false);
 	}
 	
 	public static JsonObject getActivities() throws Exception {

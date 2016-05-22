@@ -17,5 +17,8 @@
 package hd3gtv.mydmam.auth.asyncjs;
 
 public class UserChPassword {
-
+	
+	public String user_key;
+	public String password;
+	
 }

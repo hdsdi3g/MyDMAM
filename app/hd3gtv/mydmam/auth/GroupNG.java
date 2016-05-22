@@ -168,6 +168,7 @@ public class GroupNG implements AuthEntry {
 	public void delete(ColumnListMutation<String> mutator) {
 		turret.getAllUsers().forEach((user_key, user) -> {
 			user.getUserGroups().remove(this);
+			user.update();
 		});
 		mutator.delete();
 	}

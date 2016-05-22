@@ -247,11 +247,7 @@ public class UserNG implements AuthEntry {
 		return this;
 	}
 	
-	UserNG update(ArrayList<GroupNG> groups) {
-		if (groups == null) {
-			throw new NullPointerException("\"groups\" can't to be null");
-		}
-		this.user_groups = groups;
+	UserNG update() {
 		lasteditdate = System.currentTimeMillis();
 		return this;
 	}
@@ -262,7 +258,11 @@ public class UserNG implements AuthEntry {
 		}
 		
 		protected_password = turret.getPassword().getHashedPassword(clear_text_password);
-		lasteditdate = System.currentTimeMillis();
+		return this;
+	}
+	
+	UserNG setEmailAddr(String email_addr) {
+		this.email_addr = email_addr;
 		return this;
 	}
 	

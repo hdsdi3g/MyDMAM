@@ -58,7 +58,11 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.ActiveDirectoryBackend.ADUser;
+import hd3gtv.mydmam.auth.asyncjs.GroupChRole;
 import hd3gtv.mydmam.auth.asyncjs.NewUser;
+import hd3gtv.mydmam.auth.asyncjs.RoleChPrivileges;
+import hd3gtv.mydmam.auth.asyncjs.UserChGroup;
+import hd3gtv.mydmam.auth.asyncjs.UserChPassword;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
@@ -392,13 +396,31 @@ public class AuthTurret {
 		}
 		
 		private synchronized void resetCache() {
-			last_groups_fetch_date = 0;
 			last_users_fetch_date = 0;
+			last_groups_fetch_date = 0;
 			last_roles_fetch_date = 0;
 			
 			all_users.clear();
 			all_groups.clear();
 			all_roles.clear();
+		}
+		
+		void updateManuallyCache(UserNG user) {
+			all_users.put(user.getKey(), user);
+		}
+		
+		void updateManuallyCache(GroupNG group) {
+			last_users_fetch_date = 0;
+			all_users.clear();
+			all_groups.put(group.getKey(), group);
+		}
+		
+		void updateManuallyCache(RoleNG role) {
+			last_users_fetch_date = 0;
+			all_users.clear();
+			last_groups_fetch_date = 0;
+			all_groups.clear();
+			all_roles.put(role.getKey(), role);
 		}
 		
 		public HashMap<String, GroupNG> getAll_groups() {
@@ -526,7 +548,7 @@ public class AuthTurret {
 		} else if (domain.equalsIgnoreCase("local")) {
 			UserNG result = getByUserKey(UserNG.computeUserKey(username, "local"));
 			if (result == null) {
-				Loggers.Auth.warn("Can't found this user to local auth system " + result.getKey());
+				Loggers.Auth.warn("Can't found this user to local auth system " + username + "@" + domain);
 				return null;
 			}
 			if (result.isLockedAccount()) {
@@ -646,36 +668,167 @@ public class AuthTurret {
 			});
 		}
 		
+		Loggers.Auth.info("Create new user: " + newuser.toString());
+		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		newuser.save(mutator.withRow(CF_AUTH, newuser.getKey()));
 		mutator.execute();
-		cache.resetCache();
+		cache.updateManuallyCache(newuser);
 		return newuser;
 	}
 	
-	/**
-	 * Create + save
-	 */
-	@Deprecated
+	public UserNG changeUserPassword(UserChPassword request) throws ConnectionException {
+		UserNG user = getByUserKey(request.user_key);
+		if (user == null) {
+			throw new NullPointerException("User " + request.user_key + " don't exists");
+		}
+		user.chpassword(request.password);
+		user.update();
+		
+		Loggers.Auth.info("Change password for user: " + user.toString());
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		user.save(mutator.withRow(CF_AUTH, user.getKey()));
+		mutator.execute();
+		cache.updateManuallyCache(user);
+		return user;
+	}
+	
+	public UserNG changeUserToogleLock(String key) throws ConnectionException {
+		UserNG user = getByUserKey(key);
+		if (user == null) {
+			throw new NullPointerException("User " + key + " don't exists");
+		}
+		user.setLocked_account(user.isLockedAccount() == false);
+		user.update();
+		
+		Loggers.Auth.info("Toogle user lock: " + user.toString());
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		user.save(mutator.withRow(CF_AUTH, user.getKey()));
+		mutator.execute();
+		cache.updateManuallyCache(user);
+		return user;
+	}
+	
+	public UserNG changeUserMail(String user_key, String email_addr) throws ConnectionException, AddressException {
+		UserNG user = getByUserKey(user_key);
+		if (user == null) {
+			throw new NullPointerException("User " + user_key + " don't exists");
+		}
+		String mail = null;
+		if (email_addr != null) {
+			mail = new InternetAddress(email_addr).getAddress();
+		}
+		user.setEmailAddr(mail);
+		user.update();
+		
+		Loggers.Auth.info("Change user mail: " + user.toString());
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		user.save(mutator.withRow(CF_AUTH, user.getKey()));
+		mutator.execute();
+		cache.updateManuallyCache(user);
+		return user;
+	}
+	
+	public UserNG changeUserGroups(UserChGroup request) throws ConnectionException {
+		UserNG user = getByUserKey(request.user_key);
+		if (user == null) {
+			throw new NullPointerException("User " + request.user_key + " don't exists");
+		}
+		if (request.user_groups == null) {
+			return user;
+		}
+		
+		user.getUserGroups().clear();
+		request.user_groups.forEach(group_name -> {
+			GroupNG group = getByGroupKey(GroupNG.computeGroupKey(group_name));
+			if (group != null) {
+				user.getUserGroups().add(group);
+			}
+		});
+		user.update();
+		
+		Loggers.Auth.info("Change user groups: " + user.toString());
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		user.save(mutator.withRow(CF_AUTH, user.getKey()));
+		mutator.execute();
+		cache.updateManuallyCache(user);
+		return user;
+	}
+	
 	public GroupNG createGroup(String group_name) throws ConnectionException {
 		GroupNG newgroup = new GroupNG(group_name);
+		
+		Loggers.Auth.info("Create group: " + newgroup.toString());
+		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		newgroup.save(mutator.withRow(CF_AUTH, newgroup.getKey()));
 		mutator.execute();
-		cache.resetCache();
+		cache.updateManuallyCache(newgroup);
 		return newgroup;
 	}
 	
-	/**
-	 * Create + save
-	 */
-	@Deprecated
+	public GroupNG changeGroupRoles(GroupChRole request) throws ConnectionException {
+		GroupNG group = getByGroupKey(request.group_key);
+		if (group == null) {
+			throw new NullPointerException("Group " + request.group_key + " don't exists");
+		}
+		if (request.group_roles == null) {
+			return group;
+		}
+		
+		group.getGroupRoles().clear();
+		request.group_roles.forEach(role_name -> {
+			RoleNG role = getByRoleKey(RoleNG.computeRoleKey(role_name));
+			if (role != null) {
+				group.getGroupRoles().add(role);
+			}
+		});
+		
+		Loggers.Auth.info("Change roles for a group: " + group.toString());
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		group.save(mutator.withRow(CF_AUTH, group.getKey()));
+		mutator.execute();
+		cache.updateManuallyCache(group);
+		return group;
+	}
+	
+	public RoleNG changeRolePrivileges(RoleChPrivileges request) throws ConnectionException {
+		RoleNG role = getByRoleKey(request.role_key);
+		if (role == null) {
+			throw new NullPointerException("Role " + request.role_key + " don't exists");
+		}
+		if (request.privileges == null) {
+			return role;
+		}
+		
+		role.getPrivileges().clear();
+		request.privileges.forEach(privilege -> {
+			role.getPrivileges().add(privilege);
+		});
+		
+		Loggers.Auth.info("Change privileges for a role: " + role.toString());
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		role.save(mutator.withRow(CF_AUTH, role.getKey()));
+		mutator.execute();
+		cache.updateManuallyCache(role);
+		return role;
+	}
+	
 	public RoleNG createRole(String role_name) throws ConnectionException {
 		RoleNG newrole = new RoleNG(role_name);
+		
+		Loggers.Auth.info("Save new role: " + newrole.toString());
+		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		newrole.save(mutator.withRow(CF_AUTH, newrole.getKey()));
 		mutator.execute();
-		cache.resetCache();
+		cache.updateManuallyCache(newrole);
 		return newrole;
 	}
 	
@@ -685,6 +838,9 @@ public class AuthTurret {
 	public void saveAll(ArrayList<AuthEntry> items) throws ConnectionException {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		items.forEach(item -> {
+			if (Loggers.Auth.isDebugEnabled()) {
+				Loggers.Auth.debug("Save: " + item.toString());
+			}
 			item.save(mutator.withRow(CF_AUTH, item.getKey()));
 		});
 		mutator.execute();
@@ -697,6 +853,9 @@ public class AuthTurret {
 	public void deleteAll(List<AuthEntry> items) throws ConnectionException {
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		items.forEach(item -> {
+			if (Loggers.Auth.isDebugEnabled()) {
+				Loggers.Auth.debug("Delete: " + item.toString());
+			}
 			item.delete(mutator.withRow(CF_AUTH, item.getKey()));
 		});
 		mutator.execute();

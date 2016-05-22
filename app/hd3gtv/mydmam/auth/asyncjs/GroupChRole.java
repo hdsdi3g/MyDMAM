@@ -16,6 +16,36 @@
 */
 package hd3gtv.mydmam.auth.asyncjs;
 
-public class GroupChRole {
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.tools.GsonIgnore;
+
+public class GroupChRole {
+	
+	public String group_key;
+	
+	@GsonIgnore
+	public ArrayList<String> group_roles;
+	
+	private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
+	}.getType();
+	
+	public static class Deserializer implements JsonDeserializer<GroupChRole> {
+		
+		public GroupChRole deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			GroupChRole result = AJSController.gson_simple.fromJson(json, GroupChRole.class);
+			result.group_roles = AJSController.gson_simple.fromJson(json.getAsJsonObject().get("group_roles"), al_string_typeOfT);
+			return result;
+		}
+		
+	}
+	
 }

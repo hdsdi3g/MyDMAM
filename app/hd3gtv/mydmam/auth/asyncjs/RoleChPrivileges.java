@@ -16,6 +16,35 @@
 */
 package hd3gtv.mydmam.auth.asyncjs;
 
-public class RoleChPrivileges {
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.tools.GsonIgnore;
+
+public class RoleChPrivileges {
+	public String role_key;
+	
+	@GsonIgnore
+	public ArrayList<String> privileges;
+	
+	private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
+	}.getType();
+	
+	public static class Deserializer implements JsonDeserializer<RoleChPrivileges> {
+		
+		public RoleChPrivileges deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			RoleChPrivileges result = AJSController.gson_simple.fromJson(json, RoleChPrivileges.class);
+			result.privileges = AJSController.gson_simple.fromJson(json.getAsJsonObject().get("privileges"), al_string_typeOfT);
+			return result;
+		}
+		
+	}
+	
 }
