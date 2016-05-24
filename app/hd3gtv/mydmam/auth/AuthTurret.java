@@ -19,6 +19,8 @@ package hd3gtv.mydmam.auth;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -29,7 +31,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -41,9 +42,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.Keyspace;
@@ -78,6 +79,7 @@ public class AuthTurret {
 	private Gson gson;
 	final JsonParser parser = new JsonParser();
 	private Password password;
+	private boolean force_select_domain;
 	
 	private Keyspace keyspace;
 	private Cache cache;
@@ -85,8 +87,6 @@ public class AuthTurret {
 	private LinkedHashMap<String, ActiveDirectoryBackend> auth_backend_by_domain;
 	
 	private GroupNG default_newusers_group;
-	
-	// TODO domain isolation or not
 	
 	public AuthTurret(Keyspace keyspace) throws ConnectionException, NoSuchAlgorithmException, NoSuchProviderException, IOException {
 		
@@ -124,15 +124,49 @@ public class AuthTurret {
 		builder.registerTypeAdapter(Properties.class, new PropertiesSerializer());
 		gson = builder.create();
 		
-		password = new Password("");// TODO from conf
+		/**
+		 * Password API init
+		 */
+		String master_password_key = Configuration.global.getValue("auth", "master_password_key", "");
+		if (master_password_key.equals("")) {
+			throw new NullPointerException("No auth.master_password_key are definited");
+		}
+		password = new Password(master_password_key);
 		
-		auth_backend_by_domain = new LinkedHashMap<String, ActiveDirectoryBackend>(1);
-		// TODO load AD from conf
-		
-		cache = new Cache(this, TimeUnit.MINUTES.toMillis(10));// TODO from conf
+		if (Configuration.global.isElementKeyExists("auth", "backend")) {
+			throw new IOException("Invalid configuration: auth.backend is present, instead of auth.backends, with a new syntax.");
+		}
 		
 		/**
-		 * Import & destroy XML account_export file
+		 * Auth backend init
+		 */
+		auth_backend_by_domain = new LinkedHashMap<String, ActiveDirectoryBackend>(1);
+		
+		if (Configuration.global.isElementKeyExists("auth", "backends")) {
+			List<LinkedHashMap<String, ?>> conf_backends = Configuration.global.getListMapValues("auth", "backends");
+			conf_backends.forEach(item -> {
+				String source = (String) item.get("source");
+				if (source.equalsIgnoreCase("ad") == false) {
+					Loggers.Auth.warn("Invalid auth.backends.source conf: only \"ad\" source is avaliable");
+					return;
+				}
+				String server = (String) item.get("server");
+				String domain = (String) item.get("domain");
+				Integer port = (Integer) item.get("port");
+				ActiveDirectoryBackend adb = new ActiveDirectoryBackend(domain, server, port);
+				auth_backend_by_domain.put(domain, adb);
+			});
+		}
+		
+		/**
+		 * Internal utils init
+		 */
+		cache = new Cache(this, TimeUnit.MINUTES.toMillis(Configuration.global.getValue("auth", "cache_ttl", 10)));
+		
+		force_select_domain = Configuration.global.getValueBoolean("auth", "force_select_domain");
+		
+		/**
+		 * Check account_export file
 		 */
 		File account_export = new File(Configuration.getGlobalConfigurationDirectory().getParent() + File.separator + "account_export.xml");
 		if (account_export.exists()) {
@@ -246,28 +280,27 @@ public class AuthTurret {
 	private class PropertiesSerializer implements JsonSerializer<Properties>, JsonDeserializer<Properties> {
 		
 		public Properties deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			JsonObject src = json.getAsJsonObject();
 			Properties result = new Properties();
-			
-			for (Map.Entry<String, JsonElement> entry : src.entrySet()) {
-				result.setProperty(entry.getKey(), entry.getValue().getAsJsonPrimitive().getAsString());
+			StringReader sr = new StringReader(json.getAsString());
+			try {
+				result.load(sr);
+			} catch (IOException e) {
+				Loggers.Auth.warn("Can't deserialize properties", e);
 			}
 			
 			return result;
 		}
 		
 		public JsonElement serialize(Properties src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = new JsonObject();
-			Object value;
-			for (Map.Entry<Object, Object> entry : src.entrySet()) {
-				value = entry.getValue();
-				if (value == null) {
-					continue;
-				} else {
-					result.addProperty((String) entry.getKey(), (String) value);
-				}
+			StringWriter pw = new StringWriter();
+			try {
+				src.store(pw, null);
+			} catch (IOException e) {
+				Loggers.Auth.warn("Can't serialize properties", e);
 			}
-			return result;
+			pw.flush();
+			
+			return new JsonPrimitive(pw.toString());
 		}
 	}
 	
@@ -330,8 +363,7 @@ public class AuthTurret {
 	}
 	
 	public boolean isForceSelectDomain() {
-		// TODO from conf
-		return false;
+		return force_select_domain;
 	}
 	
 	public ArrayList<String> declaredDomainList() {

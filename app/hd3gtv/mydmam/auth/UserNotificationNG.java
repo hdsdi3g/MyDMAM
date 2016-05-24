@@ -17,5 +17,5 @@
 package hd3gtv.mydmam.auth;
 
 public class UserNotificationNG {
-	// TODO
+	// TODO UserNotificationNG
 }

@@ -12,15 +12,9 @@ play:
 
 auth:
     force_select_domain: false
-    # change this for separate in database user profiles between play setups
-    user_scope_isolation: default
-#    privileges_ttl: 10
-    backend:
-        -
-            source: local
-            path: conf/auth.db
-            masterkey: asecretkey
-            label: Local auth
+    cache_ttl: 10   # in minutes
+    master_password_key: "change me please"   # all instances should have the same master_password_key if you want to login/create accounts/change password accross multiple instances. Only use for local auth.
+#    backends:
 #        -
 #            source: ad
 #            domain: mydomain.local

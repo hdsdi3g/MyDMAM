@@ -195,22 +195,22 @@ public class Auth extends AJSController {
 	}
 	
 	public static JsonObject basketsList() throws Exception {
-		// TODO
+		// TODO basketsList
 		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketPush(BasketUpdate update) throws Exception {
-		// TODO
+		// TODO basketPush
 		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketDelete(String basket_key) throws Exception {
-		// TODO
+		// TODO basketDelete
 		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketRename(BasketRename rename) throws Exception {
-		// TODO
+		// TODO basketRename
 		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
@@ -219,7 +219,7 @@ public class Auth extends AJSController {
 	}
 	
 	public static JsonArray notificationCheck(String notification_key) throws Exception {
-		// TODO
+		// TODO notificationCheck
 		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
 	}
 	
