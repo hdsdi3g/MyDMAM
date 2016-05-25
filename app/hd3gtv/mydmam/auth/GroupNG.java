@@ -27,6 +27,7 @@ import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.asyncjs.GroupView;
 
 public class GroupNG implements AuthEntry {
@@ -46,6 +47,7 @@ public class GroupNG implements AuthEntry {
 	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(Arrays.asList("group_name", "group_roles"));
 	
 	public void save(ColumnListMutation<String> mutator) {
+		Loggers.Auth.trace("Save Group " + key);
 		mutator.putColumnIfNotNull("group_name", group_name);
 		if (group_roles != null) {
 			ArrayList<String> roles_keys = new ArrayList<String>(group_roles.size() + 1);
@@ -59,6 +61,9 @@ public class GroupNG implements AuthEntry {
 	GroupNG loadFromDb(ColumnList<String> cols) {
 		if (cols.isEmpty()) {
 			return this;
+		}
+		if (Loggers.Auth.isTraceEnabled()) {
+			Loggers.Auth.trace("loadFromDb " + key);
 		}
 		group_name = cols.getStringValue("group_name", null);
 		
@@ -123,6 +128,9 @@ public class GroupNG implements AuthEntry {
 		synchronized (group_roles) {
 			if (group_roles == null) {
 				group_roles = new ArrayList<RoleNG>(1);
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getGroupRoles from db " + key);
+				}
 				ColumnList<String> cols;
 				try {
 					cols = turret.prepareQuery().getKey(key).withColumnSlice("group_roles").execute().getResult();
@@ -168,7 +176,10 @@ public class GroupNG implements AuthEntry {
 	public void delete(ColumnListMutation<String> mutator) {
 		turret.getAllUsers().forEach((user_key, user) -> {
 			user.getUserGroups().remove(this);
-			user.update();
+			user.updateLastEditTime();
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("Remove group " + key + " from User " + user_key);
+			}
 		});
 		mutator.delete();
 	}

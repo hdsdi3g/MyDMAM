@@ -83,6 +83,7 @@ public class UserNG implements AuthEntry {
 			Arrays.asList("login", "fullname", "domain", "language", "email_addr", "protected_password", "lasteditdate", "lastlogindate", "lastloginipsource", "locked_account", "user_groups"));
 			
 	public void save(ColumnListMutation<String> mutator) {
+		Loggers.Auth.trace("Save User " + key);
 		
 		mutator.putColumnIfNotNull("login", login);
 		mutator.putColumnIfNotNull("fullname", fullname);
@@ -182,8 +183,10 @@ public class UserNG implements AuthEntry {
 			preferencies = null;
 		}
 		
+		if (Loggers.Auth.isTraceEnabled()) {
+			Loggers.Auth.trace("Load User from db: " + toString());
+		}
 		return this;
-		
 	}
 	
 	UserNG(AuthTurret turret, String key, boolean load_from_db) {
@@ -244,10 +247,14 @@ public class UserNG implements AuthEntry {
 		this.email_addr = email_addr;
 		this.locked_account = locked_account;
 		lasteditdate = System.currentTimeMillis();
+		
+		if (Loggers.Auth.isDebugEnabled()) {
+			Loggers.Auth.debug("Update User: " + toString());
+		}
 		return this;
 	}
 	
-	UserNG update() {
+	UserNG updateLastEditTime() {
 		lasteditdate = System.currentTimeMillis();
 		return this;
 	}
@@ -258,6 +265,10 @@ public class UserNG implements AuthEntry {
 		}
 		
 		protected_password = turret.getPassword().getHashedPassword(clear_text_password);
+		
+		if (Loggers.Auth.isDebugEnabled()) {
+			Loggers.Auth.debug("Ch User password: " + toString());
+		}
 		return this;
 	}
 	
@@ -275,12 +286,17 @@ public class UserNG implements AuthEntry {
 			Loggers.Auth.debug("Password has no datas for " + key);
 			return false;
 		}
+		
+		Loggers.Auth.debug("Do check user password: " + key);
 		return turret.getPassword().checkPassword(clear_text_password_candidate, protected_password);
 	}
 	
 	public ArrayList<GroupNG> getUserGroups() {
 		synchronized (user_groups) {
 			if (user_groups == null) {
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getUserGroups from db " + key);
+				}
 				user_groups = new ArrayList<GroupNG>(1);
 				ColumnList<String> cols;
 				try {
@@ -331,6 +347,9 @@ public class UserNG implements AuthEntry {
 		synchronized (properties) {
 			if (properties == null) {
 				properties = new Properties();
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getProperties from db " + key);
+				}
 				ColumnList<String> cols;
 				try {
 					cols = turret.prepareQuery().getKey(key).withColumnSlice("properties").execute().getResult();
@@ -350,6 +369,9 @@ public class UserNG implements AuthEntry {
 		synchronized (baskets) {
 			if (baskets == null) {
 				baskets = new LinkedHashMap<String, BasketNG>(1);
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getBaskets from db " + key);
+				}
 				ColumnList<String> cols;
 				try {
 					cols = turret.prepareQuery().getKey(key).withColumnSlice("baskets").execute().getResult();
@@ -368,6 +390,9 @@ public class UserNG implements AuthEntry {
 		synchronized (activities) {
 			if (activities == null) {
 				activities = new ArrayList<UserActivity>();
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getActivities from db " + key);
+				}
 				ColumnList<String> cols;
 				try {
 					cols = turret.prepareQuery().getKey(key).withColumnSlice("activities").execute().getResult();
@@ -386,6 +411,9 @@ public class UserNG implements AuthEntry {
 		synchronized (preferencies) {
 			if (preferencies == null) {
 				preferencies = new JsonObject();
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getPreferencies from db " + key);
+				}
 				ColumnList<String> cols;
 				try {
 					cols = turret.prepareQuery().getKey(key).withColumnSlice("preferencies").execute().getResult();
@@ -404,6 +432,9 @@ public class UserNG implements AuthEntry {
 		synchronized (notifications) {
 			if (notifications == null) {
 				notifications = new ArrayList<UserNotificationNG>();
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getNotifications from db " + key);
+				}
 				ColumnList<String> cols;
 				try {
 					cols = turret.prepareQuery().getKey(key).withColumnSlice("notifications").execute().getResult();
@@ -421,6 +452,9 @@ public class UserNG implements AuthEntry {
 	public ArrayList<RoleNG> getUser_groups_roles() {
 		if (user_groups_roles == null) {
 			synchronized (user_groups_roles) {
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getUser_groups_roles from db " + key);
+				}
 				user_groups_roles = turret.getRolesByGroupList(getUserGroups());
 			}
 		}
@@ -430,6 +464,9 @@ public class UserNG implements AuthEntry {
 	public HashSet<String> getUser_groups_roles_privileges() {
 		if (user_groups_roles_privileges == null) {
 			synchronized (user_groups_roles_privileges) {
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getUser_groups_roles_privileges from db " + key);
+				}
 				user_groups_roles_privileges = turret.getPrivilegesByGroupList(getUserGroups());
 			}
 		}
@@ -437,6 +474,10 @@ public class UserNG implements AuthEntry {
 	}
 	
 	public void sendTestMail() throws Exception {
+		if (Loggers.Auth.isDebugEnabled()) {
+			Loggers.Auth.debug("Send test mail " + toString());
+		}
+		
 		InternetAddress email_addr = new InternetAddress(this.email_addr);
 		
 		EndUserBaseMail mail;
@@ -501,6 +542,9 @@ public class UserNG implements AuthEntry {
 		this.lastloginipsource = loginipsource;
 		this.language = language;
 		this.lastlogindate = System.currentTimeMillis();
+		if (Loggers.Auth.isTraceEnabled()) {
+			Loggers.Auth.trace("Do login operations " + key);
+		}
 	}
 	
 	void postCreate(String fullname, String email_addr) {
@@ -529,6 +573,9 @@ public class UserNG implements AuthEntry {
 	}
 	
 	public void delete(ColumnListMutation<String> mutator) {
+		if (Loggers.Auth.isTraceEnabled()) {
+			Loggers.Auth.trace("Delete user " + key);
+		}
 		mutator.delete();
 	}
 	

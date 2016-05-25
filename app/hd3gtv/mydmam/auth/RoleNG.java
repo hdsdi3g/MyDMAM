@@ -23,11 +23,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonObject;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.asyncjs.RoleView;
 
 public class RoleNG implements AuthEntry {
@@ -47,6 +47,7 @@ public class RoleNG implements AuthEntry {
 	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(Arrays.asList("role_name", "privileges"));
 	
 	public void save(ColumnListMutation<String> mutator) {
+		Loggers.Auth.trace("Save Role " + key);
 		mutator.putColumnIfNotNull("role_name", role_name);
 		if (privileges != null) {
 			mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(privileges, hashset_privileges_typeOfT));
@@ -109,6 +110,9 @@ public class RoleNG implements AuthEntry {
 		synchronized (privileges) {
 			if (privileges == null) {
 				privileges = new HashSet<String>(1);
+				if (Loggers.Auth.isTraceEnabled()) {
+					Loggers.Auth.trace("getPrivileges from db " + key);
+				}
 				ColumnList<String> cols;
 				try {
 					cols = turret.prepareQuery().getKey(key).withColumnSlice("privileges").execute().getResult();
@@ -139,13 +143,6 @@ public class RoleNG implements AuthEntry {
 		return sb.toString();
 	}
 	
-	public JsonObject exportForAdmin() {
-		JsonObject jo = new JsonObject();
-		jo.addProperty("role_name", role_name);
-		jo.add("privileges", turret.getGson().toJsonTree(getPrivileges()));
-		return jo;
-	}
-	
 	public RoleView export() {
 		RoleView result = new RoleView();
 		result.role_name = role_name;
@@ -162,6 +159,9 @@ public class RoleNG implements AuthEntry {
 	public void delete(ColumnListMutation<String> mutator) {
 		turret.getAllGroups().forEach((group_key, group) -> {
 			group.getGroupRoles().remove(this);
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("Remove role " + key + " from Group " + group_key);
+			}
 		});
 		mutator.delete();
 	}

@@ -123,6 +123,15 @@ public class PrivilegeNG {
 		AJSController.getControllers().forEach((k, v) -> {
 			v.mergueAllPrivileges();
 		});
+		
+		if (Loggers.Auth.isDebugEnabled()) {
+			ArrayList<String> al = new ArrayList<>();
+			all_privileges.forEach((name, privilege) -> {
+				al.add(name);
+			});
+			Loggers.Auth.debug("Actual Privilege list: " + al);
+		}
+		
 	}
 	
 	static PrivilegeNG createAndGetPrivilege(String privilege_name) {

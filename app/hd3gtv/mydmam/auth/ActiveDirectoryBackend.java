@@ -108,6 +108,9 @@ class ActiveDirectoryBackend {
 					Attributes attr = answer.next().getAttributes();
 					Attribute user = attr.get("userPrincipalName");
 					if (user != null) {
+						if (Loggers.Auth.isDebugEnabled()) {
+							Loggers.Auth.trace("Valid user founded from " + toString() + ", user: " + username);
+						}
 						return new ADUser(username, attr);
 					}
 				}
@@ -192,7 +195,7 @@ class ActiveDirectoryBackend {
 	
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append("domain: ");
+		sb.append("Type: ad, domain: ");
 		sb.append(domain);
 		sb.append(", server: ");
 		sb.append(server);

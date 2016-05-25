@@ -155,6 +155,9 @@ public class AuthTurret {
 				Integer port = (Integer) item.get("port");
 				ActiveDirectoryBackend adb = new ActiveDirectoryBackend(domain, server, port);
 				auth_backend_by_domain.put(domain, adb);
+				if (Loggers.Auth.isDebugEnabled()) {
+					Loggers.Auth.debug("AD configuration loaded: " + adb.toString());
+				}
 			});
 		}
 		
@@ -170,7 +173,7 @@ public class AuthTurret {
 		 */
 		File account_export = new File(Configuration.getGlobalConfigurationDirectory().getParent() + File.separator + "account_export.xml");
 		if (account_export.exists()) {
-			Loggers.Auth.info("You should remove account_export xml file... (" + account_export.getAbsolutePath() + ")");
+			Loggers.Auth.warn("You should remove account_export xml file... (" + account_export.getAbsolutePath() + ")");
 		}
 		
 		/**
@@ -336,7 +339,7 @@ public class AuthTurret {
 		return new ArrayList<RoleNG>(result.keySet());
 	}
 	
-	public HashSet<String> getPrivilegesByRoleList(ArrayList<RoleNG> roles) {
+	/*public HashSet<String> getPrivilegesByRoleList(ArrayList<RoleNG> roles) {
 		HashSet<String> result = new HashSet<String>();
 		
 		roles.forEach(role -> {
@@ -346,7 +349,7 @@ public class AuthTurret {
 		});
 		
 		return result;
-	}
+	}*/
 	
 	public HashSet<String> getPrivilegesByGroupList(ArrayList<GroupNG> groups) {
 		HashSet<String> result = new HashSet<String>();
@@ -425,9 +428,15 @@ public class AuthTurret {
 			auth_backend_by_domain.forEach((domain, auth) -> {
 				all_domains.add(domain);
 			});
+			if (Loggers.Auth.isDebugEnabled()) {
+				Loggers.Auth.debug("Init cache, ttl: " + ttl + ", domains: " + all_domains);
+			}
 		}
 		
 		private synchronized void resetCache() {
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("Reset db cache");
+			}
 			last_users_fetch_date = 0;
 			last_groups_fetch_date = 0;
 			last_roles_fetch_date = 0;
@@ -438,16 +447,26 @@ public class AuthTurret {
 		}
 		
 		void updateManuallyCache(UserNG user) {
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("updateManuallyCache db for: " + user.getKey());
+			}
 			all_users.put(user.getKey(), user);
 		}
 		
 		void updateManuallyCache(GroupNG group) {
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("updateManuallyCache db for: " + group.getKey());
+			}
 			last_users_fetch_date = 0;
 			all_users.clear();
 			all_groups.put(group.getKey(), group);
 		}
 		
 		void updateManuallyCache(RoleNG role) {
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("updateManuallyCache db for: " + role.getKey());
+			}
+			
 			last_users_fetch_date = 0;
 			all_users.clear();
 			last_groups_fetch_date = 0;
@@ -715,7 +734,7 @@ public class AuthTurret {
 			throw new NullPointerException("User " + request.user_key + " don't exists");
 		}
 		user.chpassword(request.password);
-		user.update();
+		user.updateLastEditTime();
 		
 		Loggers.Auth.info("Change password for user: " + user.toString());
 		
@@ -732,7 +751,7 @@ public class AuthTurret {
 			throw new NullPointerException("User " + key + " don't exists");
 		}
 		user.setLocked_account(user.isLockedAccount() == false);
-		user.update();
+		user.updateLastEditTime();
 		
 		Loggers.Auth.info("Toogle user lock: " + user.toString());
 		
@@ -753,7 +772,7 @@ public class AuthTurret {
 			mail = new InternetAddress(email_addr).getAddress();
 		}
 		user.setEmailAddr(mail);
-		user.update();
+		user.updateLastEditTime();
 		
 		Loggers.Auth.info("Change user mail: " + user.toString());
 		
@@ -780,7 +799,7 @@ public class AuthTurret {
 				user.getUserGroups().add(group);
 			}
 		});
-		user.update();
+		user.updateLastEditTime();
 		
 		Loggers.Auth.info("Change user groups: " + user.toString());
 		
