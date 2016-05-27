@@ -35,7 +35,20 @@ import play.jobs.OnApplicationStart;
 @OnApplicationStart
 public class Bootstrap extends Job {
 	
-	public static AuthTurret auth;
+	private static AuthTurret auth;
+	
+	public static AuthTurret getAuth() {
+		if (auth == null) {
+			try {
+				auth = new AuthTurret(CassandraDb.getkeyspace());
+			} catch (ConnectionException e) {
+				Loggers.Play.error("Can't access to Cassandra", e);
+			} catch (Exception e) {
+				Loggers.Play.error("Can't load Auth (secure)", e);
+			}
+		}
+		return auth;
+	}
 	
 	public void doJob() {
 		/**
@@ -96,14 +109,6 @@ public class Bootstrap extends Job {
 			CassandraDb.getkeyspace();
 		} catch (ConnectionException e) {
 			Loggers.Play.error("Can't access to keyspace", e);
-		}
-		
-		try {
-			auth = new AuthTurret(CassandraDb.getkeyspace());
-		} catch (ConnectionException e) {
-			Loggers.Play.error("Can't access to Cassandra");
-		} catch (Exception e) {
-			Loggers.Play.error("Can't load Auth (secure)");
 		}
 		
 		try {

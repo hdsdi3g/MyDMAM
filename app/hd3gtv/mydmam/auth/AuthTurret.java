@@ -70,6 +70,7 @@ import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.web.PrivilegeNG;
 import hd3gtv.tools.BreakReturnException;
 import hd3gtv.tools.GsonIgnoreStrategy;
+import play.Play;
 
 public class AuthTurret {
 	
@@ -176,83 +177,86 @@ public class AuthTurret {
 			Loggers.Auth.warn("You should remove account_export xml file... (" + account_export.getAbsolutePath() + ")");
 		}
 		
-		/**
-		 * Peuplate DB Default users
-		 */
-		MutationBatch mutator = CassandraDb.prepareMutationBatch();
-		
-		/** Create admin role if needed */
-		RoleNG default_admin_role = new RoleNG("All privileges");
-		RoleNG admin_role = getByRoleKey(default_admin_role.getKey());
-		if (admin_role == null) {
-			Loggers.Auth.info("Admin role is absent, create it.");
-			default_admin_role.update(PrivilegeNG.getAllPrivilegesName());
-			default_admin_role.save(mutator.withRow(CF_AUTH, default_admin_role.getKey()));
-			cache.all_roles.put(default_admin_role.getKey(), default_admin_role);
-			admin_role = default_admin_role;
-		} else {
-			/** Grant all privilege if it't not the actual case */
-			if (admin_role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {
-				Loggers.Auth.info("Admin role not containt all and same privileges, update it.");
-				admin_role.update(PrivilegeNG.getAllPrivilegesName());
-				admin_role.save(mutator.withRow(CF_AUTH, admin_role.getKey()));
-				cache.all_roles.put(admin_role.getKey(), admin_role);
-			}
-		}
-		
-		/**
-		 * Create guest role if needed
-		 */
-		RoleNG default_guest_role = new RoleNG("Default");
-		if (getByRoleKey(default_guest_role.getKey()) == null) {
-			Loggers.Auth.info("Default role is absent, create it.");
-			default_guest_role.save(mutator.withRow(CF_AUTH, default_guest_role.getKey()));
-			cache.all_roles.put(default_guest_role.getKey(), default_guest_role);
-		}
-		
-		/**
-		 * Create admin group if needed
-		 */
-		GroupNG default_admin_group = new GroupNG("Administrators");
-		if (getByGroupKey(default_admin_group.getKey()) == null) {
-			Loggers.Auth.info("Admin group is absent, create it.");
-			default_admin_group.update(Arrays.asList(admin_role));
-			default_admin_group.save(mutator.withRow(CF_AUTH, default_admin_group.getKey()));
-			cache.all_groups.put(default_admin_group.getKey(), default_admin_group);
-		} else {
-			default_admin_group = getByGroupKey(default_admin_group.getKey());
-		}
-		
-		/**
-		 * Create newusers group if needed
-		 */
 		default_newusers_group = new GroupNG("New users");
-		if (getByGroupKey(default_newusers_group.getKey()) == null) {
-			Loggers.Auth.info("Admin group is absent, create it.");
-			default_newusers_group.update(Arrays.asList(getByRoleKey(default_guest_role.getKey())));
-			default_newusers_group.save(mutator.withRow(CF_AUTH, default_newusers_group.getKey()));
-			cache.all_groups.put(default_newusers_group.getKey(), default_newusers_group);
+		if (Play.initialized) {
+			/**
+			 * Peuplate DB Default users
+			 */
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			
+			/** Create admin role if needed */
+			RoleNG default_admin_role = new RoleNG("All privileges");
+			RoleNG admin_role = getByRoleKey(default_admin_role.getKey());
+			if (admin_role == null) {
+				Loggers.Auth.info("Admin role is absent, create it.");
+				default_admin_role.update(PrivilegeNG.getAllPrivilegesName());
+				default_admin_role.save(mutator.withRow(CF_AUTH, default_admin_role.getKey()));
+				cache.all_roles.put(default_admin_role.getKey(), default_admin_role);
+				admin_role = default_admin_role;
+			} else {
+				/** Grant all privilege if it't not the actual case */
+				if (admin_role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {
+					Loggers.Auth.info("Admin role not containt all and same privileges, update it.");
+					admin_role.update(PrivilegeNG.getAllPrivilegesName());
+					admin_role.save(mutator.withRow(CF_AUTH, admin_role.getKey()));
+					cache.all_roles.put(admin_role.getKey(), admin_role);
+				}
+			}
+			
+			/**
+			 * Create guest role if needed
+			 */
+			RoleNG default_guest_role = new RoleNG("Default");
+			if (getByRoleKey(default_guest_role.getKey()) == null) {
+				Loggers.Auth.info("Default role is absent, create it.");
+				default_guest_role.save(mutator.withRow(CF_AUTH, default_guest_role.getKey()));
+				cache.all_roles.put(default_guest_role.getKey(), default_guest_role);
+			}
+			
+			/**
+			 * Create admin group if needed
+			 */
+			GroupNG default_admin_group = new GroupNG("Administrators");
+			if (getByGroupKey(default_admin_group.getKey()) == null) {
+				Loggers.Auth.info("Admin group is absent, create it.");
+				default_admin_group.update(Arrays.asList(admin_role));
+				default_admin_group.save(mutator.withRow(CF_AUTH, default_admin_group.getKey()));
+				cache.all_groups.put(default_admin_group.getKey(), default_admin_group);
+			} else {
+				default_admin_group = getByGroupKey(default_admin_group.getKey());
+			}
+			
+			/**
+			 * Create newusers group if needed
+			 */
+			if (getByGroupKey(default_newusers_group.getKey()) == null) {
+				Loggers.Auth.info("Admin group is absent, create it.");
+				default_newusers_group.update(Arrays.asList(getByRoleKey(default_guest_role.getKey())));
+				default_newusers_group.save(mutator.withRow(CF_AUTH, default_newusers_group.getKey()));
+				cache.all_groups.put(default_newusers_group.getKey(), default_newusers_group);
+			} else {
+				default_newusers_group = getByGroupKey(default_newusers_group.getKey());
+			}
+			
+			/**
+			 * Create admin user if needed, and create a password file:
+			 */
+			UserNG default_admin_user = new UserNG(this, "admin", "local");
+			if (getByUserKey(default_admin_user.getKey()) == null) {
+				Loggers.Auth.info("Admin user is absent, create it.");
+				default_admin_user.chpassword(createAdminPasswordTextFile("admin"));
+				default_admin_user.update("Default administrator", Locale.getDefault().getLanguage(), AdminMailAlert.getAdminAddr("root@localhost"), false);
+				default_admin_user.setUserGroups(Arrays.asList(getByGroupKey(default_admin_group.getKey())));
+				default_admin_user.save(mutator.withRow(CF_AUTH, default_admin_user.getKey()));
+				cache.all_users.put(default_admin_user.getKey(), default_admin_user);
+			}
+			
+			if (mutator.isEmpty() == false) {
+				mutator.execute();
+			}
 		} else {
-			default_newusers_group = getByGroupKey(default_newusers_group.getKey());
+			Loggers.Auth.debug("Play is not running, skip create default accounts.");
 		}
-		
-		/**
-		 * Create admin user if needed, and create a password file:
-		 */
-		UserNG default_admin_user = new UserNG(this, "admin", "local");
-		if (getByUserKey(default_admin_user.getKey()) == null) {
-			Loggers.Auth.info("Admin user is absent, create it.");
-			default_admin_user.chpassword(createAdminPasswordTextFile("admin"));
-			default_admin_user.update("Default administrator", Locale.getDefault().getLanguage(), AdminMailAlert.getAdminAddr("root@localhost"), false);
-			default_admin_user.setUserGroups(Arrays.asList(getByGroupKey(default_admin_group.getKey())));
-			default_admin_user.save(mutator.withRow(CF_AUTH, default_admin_user.getKey()));
-			cache.all_users.put(default_admin_user.getKey(), default_admin_user);
-		}
-		
-		if (mutator.isEmpty() == false) {
-			mutator.execute();
-		}
-		
 	}
 	
 	/**

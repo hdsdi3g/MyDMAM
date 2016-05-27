@@ -62,12 +62,12 @@ public class Auth extends AJSController {
 	public static UserView userCreate(NewUser newuser) throws Exception {
 		newuser.login = newuser.login.toLowerCase().trim();
 		newuser.domain = newuser.domain.toLowerCase().trim();
-		return Bootstrap.auth.createUserIfNotExists(newuser).export(true, true);
+		return Bootstrap.getAuth().createUserIfNotExists(newuser).export(true, true);
 	}
 	
 	@Check("authAdmin")
 	public static UserView userGet(String key) throws Exception {
-		UserNG user = Bootstrap.auth.getByUserKey(key);
+		UserNG user = Bootstrap.getAuth().getByUserKey(key);
 		if (user == null) {
 			return null;
 		}
@@ -78,7 +78,7 @@ public class Auth extends AJSController {
 	public static UserViewList userList() throws Exception {
 		UserViewList result = new UserViewList();
 		result.users = new LinkedHashMap<String, UserView>();
-		Bootstrap.auth.getAllUsers().forEach((k, v) -> {
+		Bootstrap.getAuth().getAllUsers().forEach((k, v) -> {
 			result.users.put(k, v.export(false, true));
 		});
 		return result;
@@ -86,38 +86,38 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static UserViewList userDelete(String key) throws Exception {
-		UserNG user = Bootstrap.auth.getByUserKey(key);
+		UserNG user = Bootstrap.getAuth().getByUserKey(key);
 		if (user != null) {
-			Bootstrap.auth.deleteAll(Arrays.asList(user));
+			Bootstrap.getAuth().deleteAll(Arrays.asList(user));
 		}
 		return userList();
 	}
 	
 	@Check("authAdmin")
 	public static UserView userChangePassword(UserChPassword chpassword) throws Exception {
-		return Bootstrap.auth.changeUserPassword(chpassword).export(true, true);
+		return Bootstrap.getAuth().changeUserPassword(chpassword).export(true, true);
 	}
 	
 	@Check("authAdmin")
 	public static UserView userToogleLock(String key) throws Exception {
-		return Bootstrap.auth.changeUserToogleLock(key).export(true, true);
+		return Bootstrap.getAuth().changeUserToogleLock(key).export(true, true);
 	}
 	
 	@Check("authAdmin")
 	public static UserView userChangeGroup(UserChGroup chgroup) throws Exception {
-		return Bootstrap.auth.changeUserGroups(chgroup).export(true, true);
+		return Bootstrap.getAuth().changeUserGroups(chgroup).export(true, true);
 	}
 	
 	@Check("authAdmin")
 	public static GroupView groupCreate(String new_group_name) throws Exception {
-		return Bootstrap.auth.createGroup(new_group_name).export();
+		return Bootstrap.getAuth().createGroup(new_group_name).export();
 	}
 	
 	@Check("authAdmin")
 	public static GroupViewList groupList() throws Exception {
 		GroupViewList result = new GroupViewList();
 		result.groups = new LinkedHashMap<String, GroupView>();
-		Bootstrap.auth.getAllGroups().forEach((k, v) -> {
+		Bootstrap.getAuth().getAllGroups().forEach((k, v) -> {
 			result.groups.put(k, v.export());
 		});
 		return result;
@@ -125,28 +125,28 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static GroupViewList groupDelete(String key) throws Exception {
-		GroupNG group = Bootstrap.auth.getByGroupKey(key);
+		GroupNG group = Bootstrap.getAuth().getByGroupKey(key);
 		if (group != null) {
-			Bootstrap.auth.deleteAll(Arrays.asList(group));
+			Bootstrap.getAuth().deleteAll(Arrays.asList(group));
 		}
 		return groupList();
 	}
 	
 	@Check("authAdmin")
 	public static GroupView groupChangeRoles(GroupChRole ch_group) throws Exception {
-		return Bootstrap.auth.changeGroupRoles(ch_group).export();
+		return Bootstrap.getAuth().changeGroupRoles(ch_group).export();
 	}
 	
 	@Check("authAdmin")
 	public static RoleView roleCreate(String new_role_name) throws Exception {
-		return Bootstrap.auth.createRole(new_role_name).export();
+		return Bootstrap.getAuth().createRole(new_role_name).export();
 	}
 	
 	@Check("authAdmin")
 	public static RoleViewList roleList() throws Exception {
 		RoleViewList result = new RoleViewList();
 		result.roles = new LinkedHashMap<String, RoleView>();
-		Bootstrap.auth.getAllRoles().forEach((k, v) -> {
+		Bootstrap.getAuth().getAllRoles().forEach((k, v) -> {
 			result.roles.put(k, v.export());
 		});
 		return result;
@@ -154,16 +154,16 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static RoleViewList roleDelete(String key) throws Exception {
-		RoleNG role = Bootstrap.auth.getByRoleKey(key);
+		RoleNG role = Bootstrap.getAuth().getByRoleKey(key);
 		if (role != null) {
-			Bootstrap.auth.deleteAll(Arrays.asList(role));
+			Bootstrap.getAuth().deleteAll(Arrays.asList(role));
 		}
 		return roleList();
 	}
 	
 	@Check("authAdmin")
 	public static RoleView roleChangePrivilege(RoleChPrivileges new_privileges) throws Exception {
-		return Bootstrap.auth.changeRolePrivileges(new_privileges).export();
+		return Bootstrap.getAuth().changeRolePrivileges(new_privileges).export();
 	}
 	
 	@Check("authAdmin")
@@ -179,7 +179,7 @@ public class Auth extends AJSController {
 		UserChPassword chpassword = new UserChPassword();
 		chpassword.user_key = AJSController.getUserProfile().getKey();
 		chpassword.password = new_clear_text_passwd;
-		return Bootstrap.auth.changeUserPassword(chpassword).export(true, false);
+		return Bootstrap.getAuth().changeUserPassword(chpassword).export(true, false);
 	}
 	
 	public static void sendTestMail() throws Exception {
@@ -187,40 +187,40 @@ public class Auth extends AJSController {
 	}
 	
 	public static UserView changeUserMail(String new_mail_addr) throws Exception {
-		return Bootstrap.auth.changeUserMail(AJSController.getUserProfile().getKey(), new_mail_addr).export(true, false);
+		return Bootstrap.getAuth().changeUserMail(AJSController.getUserProfile().getKey(), new_mail_addr).export(true, false);
 	}
 	
 	public static JsonObject getActivities() throws Exception {
-		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getActivities(), UserNG.al_useractivity_typeOfT).getAsJsonObject();
+		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getActivities(), UserNG.al_useractivity_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketsList() throws Exception {
 		// TODO basketsList
-		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
+		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketPush(BasketUpdate update) throws Exception {
 		// TODO basketPush
-		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
+		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketDelete(String basket_key) throws Exception {
 		// TODO basketDelete
-		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
+		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketRename(BasketRename rename) throws Exception {
 		// TODO basketRename
-		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
+		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonArray notificationsList() throws Exception {
-		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
+		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
 	}
 	
 	public static JsonArray notificationCheck(String notification_key) throws Exception {
 		// TODO notificationCheck
-		return Bootstrap.auth.getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
+		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
 	}
 	
 }

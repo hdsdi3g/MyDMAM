@@ -72,7 +72,7 @@ public class Secure extends Controller {
 			} else if (privileges.get(pos).startsWith("ttl-")) {
 				long ttl_date = Long.valueOf(privileges.get(pos).substring(4));
 				if (System.currentTimeMillis() > ttl_date) {
-					setPrivilegesInSession(Bootstrap.auth.getByUserKey(username).getUser_groups_roles_privileges());
+					setPrivilegesInSession(Bootstrap.getAuth().getByUserKey(username).getUser_groups_roles_privileges());
 					return getSessionPrivileges();
 				}
 				privileges.remove(pos);
@@ -276,8 +276,9 @@ public class Secure extends Controller {
 		}
 		flash.keep("url");
 		
-		boolean force_select_domain = Bootstrap.auth.isForceSelectDomain();
-		List<String> authenticators_domains = Bootstrap.auth.declaredDomainList();
+		System.out.println(Bootstrap.getAuth());
+		boolean force_select_domain = Bootstrap.getAuth().isForceSelectDomain();
+		List<String> authenticators_domains = Bootstrap.getAuth().declaredDomainList();
 		
 		render(force_select_domain, authenticators_domains);
 	}
@@ -305,16 +306,16 @@ public class Secure extends Controller {
 		
 		UserNG authuser = null;
 		
-		if (Bootstrap.auth.isForceSelectDomain()) {
+		if (Bootstrap.getAuth().isForceSelectDomain()) {
 			String domain_name = null;
 			
 			try {
-				domain_name = Bootstrap.auth.declaredDomainList().get(Integer.valueOf(domainidx));
+				domain_name = Bootstrap.getAuth().declaredDomainList().get(Integer.valueOf(domainidx));
 			} catch (Exception e) {
 			}
-			authuser = Bootstrap.auth.authenticateWithThisDomain(remote_address, username.trim().toLowerCase(), password, domain_name, Lang.getLocale().getLanguage());
+			authuser = Bootstrap.getAuth().authenticateWithThisDomain(remote_address, username.trim().toLowerCase(), password, domain_name, Lang.getLocale().getLanguage());
 		} else {
-			authuser = Bootstrap.auth.authenticate(remote_address, username.trim().toLowerCase(), password, Lang.getLocale().getLanguage());
+			authuser = Bootstrap.getAuth().authenticate(remote_address, username.trim().toLowerCase(), password, Lang.getLocale().getLanguage());
 		}
 		
 		if (authuser == null) {

@@ -217,7 +217,7 @@ public class AJSController {
 	
 	@AJSIgnore
 	public static UserNG getUserProfile() throws Exception {
-		return Bootstrap.auth.getByUserKey(Secure.connected());
+		return Bootstrap.getAuth().getByUserKey(Secure.connected());
 	}
 	
 	@AJSIgnore
