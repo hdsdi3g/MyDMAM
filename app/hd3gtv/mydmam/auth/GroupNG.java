@@ -100,7 +100,11 @@ public class GroupNG implements AuthEntry {
 	/**
 	 * Create simple group
 	 */
-	GroupNG(String group_name) {
+	GroupNG(AuthTurret turret, String group_name) {
+		this.turret = turret;
+		if (turret == null) {
+			throw new NullPointerException("\"turret\" can't to be null");
+		}
 		this.group_name = group_name;
 		if (group_name == null) {
 			throw new NullPointerException("\"group_name\" can't to be null");
@@ -125,24 +129,24 @@ public class GroupNG implements AuthEntry {
 	}
 	
 	public ArrayList<RoleNG> getGroupRoles() {
-		synchronized (group_roles) {
-			if (group_roles == null) {
-				group_roles = new ArrayList<RoleNG>(1);
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getGroupRoles from db " + key);
-				}
-				ColumnList<String> cols;
-				try {
-					cols = turret.prepareQuery().getKey(key).withColumnSlice("group_roles").execute().getResult();
+		if (group_roles == null) {
+			group_roles = new ArrayList<RoleNG>(1);
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getGroupRoles from db " + key);
+			}
+			ColumnList<String> cols;
+			try {
+				cols = turret.prepareQuery().getKey(key).withColumnSlice("group_roles").execute().getResult();
+				if (cols.getColumnNames().contains("group_roles")) {
 					if (cols.getColumnByName("group_roles").hasValue()) {
 						ArrayList<String> roles_keys = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT);
 						roles_keys.forEach(role_key -> {
 							group_roles.add(turret.getByRoleKey(role_key));
 						});
 					}
-				} catch (ConnectionException e) {
-					turret.onConnectionException(e);
 				}
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
 			}
 		}
 		return group_roles;

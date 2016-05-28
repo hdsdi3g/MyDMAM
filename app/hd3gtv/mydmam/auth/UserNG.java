@@ -292,24 +292,24 @@ public class UserNG implements AuthEntry {
 	}
 	
 	public ArrayList<GroupNG> getUserGroups() {
-		synchronized (user_groups) {
-			if (user_groups == null) {
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getUserGroups from db " + key);
-				}
-				user_groups = new ArrayList<GroupNG>(1);
-				ColumnList<String> cols;
-				try {
-					cols = turret.prepareQuery().getKey(key).withColumnSlice("user_groups").execute().getResult();
+		if (user_groups == null) {
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getUserGroups from db " + key);
+			}
+			user_groups = new ArrayList<GroupNG>(1);
+			ColumnList<String> cols;
+			try {
+				cols = turret.prepareQuery().getKey(key).withColumnSlice("user_groups").execute().getResult();
+				if (cols.getColumnNames().contains("user_groups")) {
 					if (cols.getColumnByName("user_groups").hasValue()) {
 						ArrayList<String> group_keys = turret.getGson().fromJson(cols.getColumnByName("user_groups").getStringValue(), al_String_typeOfT);
 						group_keys.forEach(group_key -> {
 							user_groups.add(turret.getByGroupKey(group_key));
 						});
 					}
-				} catch (ConnectionException e) {
-					turret.onConnectionException(e);
 				}
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
 			}
 		}
 		return user_groups;
@@ -344,21 +344,21 @@ public class UserNG implements AuthEntry {
 	}
 	
 	public Properties getProperties() {
-		synchronized (properties) {
-			if (properties == null) {
-				properties = new Properties();
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getProperties from db " + key);
-				}
-				ColumnList<String> cols;
-				try {
-					cols = turret.prepareQuery().getKey(key).withColumnSlice("properties").execute().getResult();
+		if (properties == null) {
+			properties = new Properties();
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getProperties from db " + key);
+			}
+			ColumnList<String> cols;
+			try {
+				cols = turret.prepareQuery().getKey(key).withColumnSlice("properties").execute().getResult();
+				if (cols.getColumnNames().contains("properties")) {
 					if (cols.getColumnByName("properties").hasValue()) {
 						properties = turret.getGson().fromJson(cols.getColumnByName("properties").getStringValue(), Properties.class);
 					}
-				} catch (ConnectionException e) {
-					turret.onConnectionException(e);
 				}
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
 			}
 		}
 		
@@ -366,84 +366,84 @@ public class UserNG implements AuthEntry {
 	}
 	
 	public LinkedHashMap<String, BasketNG> getBaskets() {
-		synchronized (baskets) {
-			if (baskets == null) {
-				baskets = new LinkedHashMap<String, BasketNG>(1);
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getBaskets from db " + key);
-				}
-				ColumnList<String> cols;
-				try {
-					cols = turret.prepareQuery().getKey(key).withColumnSlice("baskets").execute().getResult();
+		if (baskets == null) {
+			baskets = new LinkedHashMap<String, BasketNG>(1);
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getBaskets from db " + key);
+			}
+			ColumnList<String> cols;
+			try {
+				cols = turret.prepareQuery().getKey(key).withColumnSlice("baskets").execute().getResult();
+				if (cols.getColumnNames().contains("baskets")) {
 					if (cols.getColumnByName("baskets").hasValue()) {
 						baskets = turret.getGson().fromJson(cols.getColumnByName("baskets").getStringValue(), linmap_string_basket_typeOfT);
 					}
-				} catch (ConnectionException e) {
-					turret.onConnectionException(e);
 				}
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
 			}
 		}
 		return baskets;
 	}
 	
 	public ArrayList<UserActivity> getActivities() {
-		synchronized (activities) {
-			if (activities == null) {
-				activities = new ArrayList<UserActivity>();
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getActivities from db " + key);
-				}
-				ColumnList<String> cols;
-				try {
-					cols = turret.prepareQuery().getKey(key).withColumnSlice("activities").execute().getResult();
+		if (activities == null) {
+			activities = new ArrayList<UserActivity>();
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getActivities from db " + key);
+			}
+			ColumnList<String> cols;
+			try {
+				cols = turret.prepareQuery().getKey(key).withColumnSlice("activities").execute().getResult();
+				if (cols.getColumnNames().contains("activities")) {
 					if (cols.getColumnByName("activities").hasValue()) {
 						activities = turret.getGson().fromJson(cols.getColumnByName("activities").getStringValue(), al_useractivity_typeOfT);
 					}
-				} catch (ConnectionException e) {
-					turret.onConnectionException(e);
 				}
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
 			}
 		}
 		return activities;
 	}
 	
 	public JsonObject getPreferencies() {
-		synchronized (preferencies) {
-			if (preferencies == null) {
-				preferencies = new JsonObject();
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getPreferencies from db " + key);
-				}
-				ColumnList<String> cols;
-				try {
-					cols = turret.prepareQuery().getKey(key).withColumnSlice("preferencies").execute().getResult();
+		if (preferencies == null) {
+			preferencies = new JsonObject();
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getPreferencies from db " + key);
+			}
+			ColumnList<String> cols;
+			try {
+				cols = turret.prepareQuery().getKey(key).withColumnSlice("preferencies").execute().getResult();
+				if (cols.getColumnNames().contains("preferencies")) {
 					if (cols.getColumnByName("preferencies").hasValue()) {
 						preferencies = turret.parser.parse(cols.getColumnByName("preferencies").getStringValue()).getAsJsonObject();
 					}
-				} catch (ConnectionException e) {
-					turret.onConnectionException(e);
 				}
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
 			}
 		}
 		return preferencies;
 	}
 	
 	public ArrayList<UserNotificationNG> getNotifications() {
-		synchronized (notifications) {
-			if (notifications == null) {
-				notifications = new ArrayList<UserNotificationNG>();
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getNotifications from db " + key);
-				}
-				ColumnList<String> cols;
-				try {
-					cols = turret.prepareQuery().getKey(key).withColumnSlice("notifications").execute().getResult();
+		if (notifications == null) {
+			notifications = new ArrayList<UserNotificationNG>();
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getNotifications from db " + key);
+			}
+			ColumnList<String> cols;
+			try {
+				cols = turret.prepareQuery().getKey(key).withColumnSlice("notifications").execute().getResult();
+				if (cols.getColumnNames().contains("notifications")) {
 					if (cols.getColumnByName("notifications").hasValue()) {
 						notifications = turret.getGson().fromJson(cols.getColumnByName("notifications").getStringValue(), al_usernotification_typeOfT);
 					}
-				} catch (ConnectionException e) {
-					turret.onConnectionException(e);
 				}
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
 			}
 		}
 		return notifications;
@@ -451,24 +451,20 @@ public class UserNG implements AuthEntry {
 	
 	public ArrayList<RoleNG> getUser_groups_roles() {
 		if (user_groups_roles == null) {
-			synchronized (user_groups_roles) {
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getUser_groups_roles from db " + key);
-				}
-				user_groups_roles = turret.getRolesByGroupList(getUserGroups());
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getUser_groups_roles from db " + key);
 			}
+			user_groups_roles = turret.getRolesByGroupList(getUserGroups());
 		}
 		return user_groups_roles;
 	}
 	
 	public HashSet<String> getUser_groups_roles_privileges() {
 		if (user_groups_roles_privileges == null) {
-			synchronized (user_groups_roles_privileges) {
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getUser_groups_roles_privileges from db " + key);
-				}
-				user_groups_roles_privileges = turret.getPrivilegesByGroupList(getUserGroups());
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getUser_groups_roles_privileges from db " + key);
 			}
+			user_groups_roles_privileges = turret.getPrivilegesByGroupList(getUserGroups());
 		}
 		return user_groups_roles_privileges;
 	}

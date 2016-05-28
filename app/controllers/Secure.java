@@ -201,8 +201,6 @@ public class Secure extends Controller {
 		
 		sb.append(" username: ");
 		sb.append(Crypto.decryptAES(session.get("username")));
-		sb.append(" longname: ");
-		sb.append(Crypto.decryptAES(session.get("longname")));
 		getSessionPrivilegesListToDump(sb);
 		
 		return sb.toString();
@@ -276,7 +274,6 @@ public class Secure extends Controller {
 		}
 		flash.keep("url");
 		
-		System.out.println(Bootstrap.getAuth());
 		boolean force_select_domain = Bootstrap.getAuth().isForceSelectDomain();
 		List<String> authenticators_domains = Bootstrap.getAuth().declaredDomainList();
 		
@@ -329,7 +326,6 @@ public class Secure extends Controller {
 		AccessControl.releaseIP(remote_address);
 		
 		session.put("username", Crypto.encryptAES(username));
-		session.put("longname", Crypto.encryptAES(authuser.getFullname()));
 		
 		setPrivilegesInSession(authuser.getUser_groups_roles_privileges());
 		

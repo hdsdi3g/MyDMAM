@@ -177,7 +177,7 @@ public class AuthTurret {
 			Loggers.Auth.warn("You should remove account_export xml file... (" + account_export.getAbsolutePath() + ")");
 		}
 		
-		default_newusers_group = new GroupNG("New users");
+		default_newusers_group = new GroupNG(this, "New users");
 		if (Play.initialized) {
 			/**
 			 * Peuplate DB Default users
@@ -185,7 +185,7 @@ public class AuthTurret {
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
 			
 			/** Create admin role if needed */
-			RoleNG default_admin_role = new RoleNG("All privileges");
+			RoleNG default_admin_role = new RoleNG(this, "All privileges");
 			RoleNG admin_role = getByRoleKey(default_admin_role.getKey());
 			if (admin_role == null) {
 				Loggers.Auth.info("Admin role is absent, create it.");
@@ -195,8 +195,8 @@ public class AuthTurret {
 				admin_role = default_admin_role;
 			} else {
 				/** Grant all privilege if it't not the actual case */
-				if (admin_role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {
-					Loggers.Auth.info("Admin role not containt all and same privileges, update it.");
+				if (admin_role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {// XXX
+					Loggers.Auth.info("Admin role not containt all and same privileges, update it. " + admin_role.getPrivileges() + " / " + PrivilegeNG.getAllPrivilegesName());
 					admin_role.update(PrivilegeNG.getAllPrivilegesName());
 					admin_role.save(mutator.withRow(CF_AUTH, admin_role.getKey()));
 					cache.all_roles.put(admin_role.getKey(), admin_role);
@@ -206,7 +206,7 @@ public class AuthTurret {
 			/**
 			 * Create guest role if needed
 			 */
-			RoleNG default_guest_role = new RoleNG("Default");
+			RoleNG default_guest_role = new RoleNG(this, "Default");
 			if (getByRoleKey(default_guest_role.getKey()) == null) {
 				Loggers.Auth.info("Default role is absent, create it.");
 				default_guest_role.save(mutator.withRow(CF_AUTH, default_guest_role.getKey()));
@@ -216,7 +216,7 @@ public class AuthTurret {
 			/**
 			 * Create admin group if needed
 			 */
-			GroupNG default_admin_group = new GroupNG("Administrators");
+			GroupNG default_admin_group = new GroupNG(this, "Administrators");
 			if (getByGroupKey(default_admin_group.getKey()) == null) {
 				Loggers.Auth.info("Admin group is absent, create it.");
 				default_admin_group.update(Arrays.asList(admin_role));
@@ -651,7 +651,7 @@ public class AuthTurret {
 		
 		if (aduser.group != null) {
 			if (aduser.group.trim().isEmpty() == false) {
-				GroupNG current_backend_group = new GroupNG(aduser.group);
+				GroupNG current_backend_group = new GroupNG(this, aduser.group);
 				if (getByGroupKey(current_backend_group.getKey()) == null) {
 					current_backend_group.save(mutator.withRow(CF_AUTH, current_backend_group.getKey()));
 				} else {
@@ -815,7 +815,7 @@ public class AuthTurret {
 	}
 	
 	public GroupNG createGroup(String group_name) throws ConnectionException {
-		GroupNG newgroup = new GroupNG(group_name);
+		GroupNG newgroup = new GroupNG(this, group_name);
 		
 		Loggers.Auth.info("Create group: " + newgroup.toString());
 		
@@ -876,7 +876,7 @@ public class AuthTurret {
 	}
 	
 	public RoleNG createRole(String role_name) throws ConnectionException {
-		RoleNG newrole = new RoleNG(role_name);
+		RoleNG newrole = new RoleNG(this, role_name);
 		
 		Loggers.Auth.info("Save new role: " + newrole.toString());
 		

@@ -50,7 +50,7 @@ public class RoleNG implements AuthEntry {
 		Loggers.Auth.trace("Save Role " + key);
 		mutator.putColumnIfNotNull("role_name", role_name);
 		if (privileges != null) {
-			mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(privileges, hashset_privileges_typeOfT));
+			mutator.putColumnIfNotNull("privileges", turret.getGson().toJson(privileges, hashset_privileges_typeOfT));
 		}
 	}
 	
@@ -90,7 +90,11 @@ public class RoleNG implements AuthEntry {
 	/**
 	 * Create simple role
 	 */
-	RoleNG(String role_name) {
+	RoleNG(AuthTurret turret, String role_name) {
+		this.turret = turret;
+		if (turret == null) {
+			throw new NullPointerException("\"turret\" can't to be null");
+		}
 		if (role_name == null) {
 			throw new NullPointerException("\"role_name\" can't to be null");
 		}
@@ -107,21 +111,21 @@ public class RoleNG implements AuthEntry {
 	}
 	
 	public HashSet<String> getPrivileges() {
-		synchronized (privileges) {
-			if (privileges == null) {
-				privileges = new HashSet<String>(1);
-				if (Loggers.Auth.isTraceEnabled()) {
-					Loggers.Auth.trace("getPrivileges from db " + key);
-				}
-				ColumnList<String> cols;
-				try {
-					cols = turret.prepareQuery().getKey(key).withColumnSlice("privileges").execute().getResult();
+		if (privileges == null) {
+			privileges = new HashSet<String>(1);
+			if (Loggers.Auth.isTraceEnabled()) {
+				Loggers.Auth.trace("getPrivileges from db " + key);
+			}
+			ColumnList<String> cols;
+			try {
+				cols = turret.prepareQuery().getKey(key).withColumnSlice("privileges").execute().getResult();
+				if (cols.getColumnNames().contains("privileges")) {
 					if (cols.getColumnByName("privileges").hasValue()) {
 						privileges = turret.getGson().fromJson(cols.getColumnByName("privileges").getStringValue(), hashset_privileges_typeOfT);
 					}
-				} catch (ConnectionException e) {
-					turret.onConnectionException(e);
 				}
+			} catch (ConnectionException e) {
+				turret.onConnectionException(e);
 			}
 		}
 		return privileges;
