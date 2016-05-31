@@ -328,6 +328,8 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		if (mimetype.equalsIgnoreCase("video/x-dv")) return true;
 		if (mimetype.equalsIgnoreCase("video/vc1")) return true;
 		if (mimetype.equalsIgnoreCase("video/ogg")) return true;
+		if (mimetype.equalsIgnoreCase("video/webm")) return true;
+		if (mimetype.equalsIgnoreCase("video/x-matroska")) return true;
 		if (mimetype.equalsIgnoreCase("video/mp2p")) return true;
 		if (mimetype.equalsIgnoreCase("video/h264")) return true;
 		if (mimetype.equalsIgnoreCase("video/x-flv")) return true;
