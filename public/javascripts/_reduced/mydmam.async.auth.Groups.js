@@ -1,0 +1,10 @@
+(function(a){a.Groups=React.createClass({displayName:"Groups",getInitialState:function(){return{grouplist:{},rolelist:{}};
+},componentWillMount:function(){mydmam.async.request("auth","grouplist",null,function(b){this.setState({grouplist:b.groups});
+}.bind(this));mydmam.async.request("auth","rolelist",null,function(b){this.setState({rolelist:b.roles});
+}.bind(this));},render:function(){var e=this.state.grouplist;var f=this.state.rolelist;
+var b=[];var c={};var d=function(i,k){var g=[];for(pos in k){var j=k[pos];if(f[j]){var h=f[j].privileges;
+for(pos_p in h){if(c[i].indexOf(h[pos_p])==-1){c[i].push(h[pos_p]);}}g.push(React.createElement("li",{key:pos},f[j].role_name));
+}else{g.push(React.createElement("li",{key:pos},k[pos]));}}return g;};for(group_key in e){c[group_key]=[];
+b.push(React.createElement("tr",{key:group_key},React.createElement("td",null,e[group_key].group_name),React.createElement("td",null,React.createElement("ul",{style:{marginLeft:0,marginBottom:0}},d(group_key,e[group_key].group_roles))),React.createElement("td",null,React.createElement("ul",{style:{marginLeft:0,marginBottom:0}},a.roleList(c[group_key])))));
+}return(React.createElement("div",null,React.createElement("table",{className:"table table-bordered table-striped table-condensed"},React.createElement("thead",null,React.createElement("tr",null,React.createElement("th",null,i18n("auth.group")),React.createElement("th",null,i18n("auth.roles")),React.createElement("th",null,i18n("auth.privileges")))),React.createElement("tbody",null,b))));
+}});})(window.mydmam.async.auth);

@@ -108,6 +108,10 @@ public class AJSController {
 		
 	}
 	
+	public static Gson getGson() {
+		return gson;
+	}
+	
 	/**
 	 * Get all items named and on this path, from all modules, and not only the first.
 	 */

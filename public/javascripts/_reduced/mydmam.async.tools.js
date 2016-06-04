@@ -14,7 +14,7 @@ if(this.props.label){b=(React.createElement("label",{className:"control-label"},
 },onClickSetEnable:function(){if(this.state.pending_changes){return;}this.setState({pending_changes:true});
 this.props.onEnable(this.props.reference);},onClickSetDisable:function(){if(this.state.pending_changes){return;
 }this.setState({pending_changes:true});this.props.onDisable(this.props.reference);
-},componentWillReceiveProps:function(){this.setState({pending_changes:false});},render:function(){var b=classNames("icon-white",{"icon-stop":this.props.enabled&!this.props.iconcircle,"icon-play":!this.props.enabled&!this.props.iconcircle,"icon-ok-circle":this.props.enabled&this.props.iconcircle,"icon-ban-circle":!this.props.enabled&this.props.iconcircle});
+},componentWillReceiveProps:function(){this.setState({pending_changes:false});},render:function(){var b=classNames({"icon-white":!(!this.props.enabled&this.props.iconcircle),"icon-stop":this.props.enabled&!this.props.iconcircle,"icon-play":!this.props.enabled&!this.props.iconcircle,"icon-ok-circle":this.props.enabled&this.props.iconcircle,"icon-ban-circle":!this.props.enabled&this.props.iconcircle});
 if(this.props.simplelabel){if(this.props.enabled){return(React.createElement("span",null,React.createElement("strong",null,this.props.labelenabled)));
 }else{return(React.createElement("span",{className:"muted"},React.createElement("strong",null,this.props.labeldisabled)));
 }}if(this.props.enabled){var c=classNames("btn","btn-mini",{disabled:this.state.pending_changes,"btn-danger":!this.props.iconcircle,"btn-success":this.props.iconcircle});
@@ -81,4 +81,6 @@ if(this.props.title){c=(React.createElement("p",{className:"lead"},this.props.ti
 }var b=classNames("container");if(this.props.fluid){b=classNames("container-fluid");
 }var d=null;var e=null;if(this.props.tabs){var f=this.props.tabs;d=(React.createElement(mydmam.async.NavTabs,{content:f,onChange:this.onChangeTab,active:this.state.active_tab}));
 e=this.props.tabs[this.state.active_tab].content;}return(React.createElement("div",{className:b},c,d,React.createElement("div",null,e),React.createElement("div",null,this.props.children)));
+}});a.HeaderTab=React.createClass({displayName:"HeaderTab",onClick:function(b){$(React.findDOMNode(this.refs.tab)).blur();
+},render:function(){var b=classNames({active:this.props.href==location.hash});return(React.createElement("li",{className:b},React.createElement("a",{href:this.props.href,onClick:this.onClick,ref:"tab"},i18n(this.props.i18nlabel))));
 }});})(window.mydmam.async);

@@ -72,13 +72,13 @@ manager.Header = React.createClass({
 		return (
 			<mydmam.async.PageHeaderTitle title={i18n("manager.pagename")} fluid="true">
 				<ul className="nav nav-tabs">
-					<manager.HeaderTab href="#manager/summary"   i18nlabel="manager.summaries" />
-					<manager.HeaderTab href="#manager/items" 	 i18nlabel="manager.items" />
-					<manager.HeaderTab href="#manager/pendingactions"  i18nlabel="manager.pendingactions" />
-					<manager.HeaderTab href="#manager/lastjobs"  i18nlabel="manager.lastjobs" />
-					<manager.HeaderTab href="#manager/threads" 	 i18nlabel="manager.threads" />
-					<manager.HeaderTab href="#manager/perfstats" i18nlabel="manager.perfstats" />
-					<manager.HeaderTab href="#manager/classpath" i18nlabel="manager.classpath" />
+					<mydmam.async.HeaderTab href="#manager/summary"   i18nlabel="manager.summaries" />
+					<mydmam.async.HeaderTab href="#manager/items" 	 i18nlabel="manager.items" />
+					<mydmam.async.HeaderTab href="#manager/pendingactions"  i18nlabel="manager.pendingactions" />
+					<mydmam.async.HeaderTab href="#manager/lastjobs"  i18nlabel="manager.lastjobs" />
+					<mydmam.async.HeaderTab href="#manager/threads" 	 i18nlabel="manager.threads" />
+					<mydmam.async.HeaderTab href="#manager/perfstats" i18nlabel="manager.perfstats" />
+					<mydmam.async.HeaderTab href="#manager/classpath" i18nlabel="manager.classpath" />
 					<li className="pull-right">
 						<a href={location.hash} onClick={this.truncateDb}>{i18n("manager.truncate")}</a>
 					</li>
@@ -96,23 +96,6 @@ mydmam.routes.push("manager-Threads", 	"manager/threads", 		manager.Header, [{na
 mydmam.routes.push("manager-Items", 	"manager/items", 		manager.Header, [{name: "instances", verb: "allitems"}, {name: "instances", verb: "allsummaries"}]);	
 mydmam.routes.push("manager-Perfstats", "manager/perfstats", 	manager.Header, [{name: "instances", verb: "allperfstats"}]);	
 mydmam.routes.push("manager-PendingActions", "manager/pendingactions", 	manager.Header, [{name: "instances", verb: "allpendingactions"}]);	
-
-manager.HeaderTab = React.createClass({
-	onClick: function(e) {
-		//e.preventDefault();
-		//this.props.onActiveChange(this.props.pos);
-		$(React.findDOMNode(this.refs.tab)).blur();
-	},
-	render: function(){
-		var li_class = classNames({
-			"active": this.props.href == location.hash
-		});
-
-		return (<li className={li_class}>
-			<a href={this.props.href} onClick={this.onClick} ref="tab">{i18n(this.props.i18nlabel)}</a>
-		</li>);
-	},
-});
 
 manager.InstancesNavListElement = React.createClass({
 	onClick: function(e) {

@@ -100,7 +100,7 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static UserView userToogleLock(String key) throws Exception {
-		return Bootstrap.getAuth().changeUserToogleLock(key).export(true, true);
+		return Bootstrap.getAuth().changeUserToogleLock(key).export(false, true);
 	}
 	
 	@Check("authAdmin")

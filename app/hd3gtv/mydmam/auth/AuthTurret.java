@@ -378,6 +378,7 @@ public class AuthTurret {
 	}
 	
 	public UserNG getByUserKey(String user_key) {
+		// Loggers.Auth.trace("getByUserKey: " + user_key);
 		return cache.getAll_users().get(user_key);
 	}
 	

@@ -116,7 +116,8 @@ async.BtnEnableDisable = React.createClass({
 		this.setState({pending_changes: false});
 	},
 	render: function() {
-		var class_name_icon = classNames("icon-white", {
+		var class_name_icon = classNames({
+			"icon-white":       !(!this.props.enabled &  this.props.iconcircle),
 			"icon-stop":         this.props.enabled & !this.props.iconcircle,
 			"icon-play":        !this.props.enabled & !this.props.iconcircle,
 			"icon-ok-circle":    this.props.enabled &  this.props.iconcircle,
@@ -547,4 +548,21 @@ async.PageHeaderTitle = React.createClass({
 			<div>{this.props.children}</div>
 		</div>);
 	}
+});
+
+async.HeaderTab = React.createClass({
+	onClick: function(e) {
+		//e.preventDefault();
+		//this.props.onActiveChange(this.props.pos);
+		$(React.findDOMNode(this.refs.tab)).blur();
+	},
+	render: function(){
+		var li_class = classNames({
+			"active": this.props.href == location.hash
+		});
+
+		return (<li className={li_class}>
+			<a href={this.props.href} onClick={this.onClick} ref="tab">{i18n(this.props.i18nlabel)}</a>
+		</li>);
+	},
 });

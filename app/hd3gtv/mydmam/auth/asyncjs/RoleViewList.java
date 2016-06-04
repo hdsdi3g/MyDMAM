@@ -41,7 +41,7 @@ public class RoleViewList {
 		@Override
 		public JsonElement serialize(RoleViewList src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
-			result.add("roles", AJSController.gson_simple.toJsonTree(src.roles, lhm_s_uv_typeOfT));
+			result.add("roles", AJSController.getGson().toJsonTree(src.roles, lhm_s_uv_typeOfT));
 			return result;
 		}
 		

@@ -41,7 +41,7 @@ public class GroupViewList {
 		@Override
 		public JsonElement serialize(GroupViewList src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
-			result.add("groups", AJSController.gson_simple.toJsonTree(src.groups, lhm_s_uv_typeOfT));
+			result.add("groups", AJSController.getGson().toJsonTree(src.groups, lhm_s_uv_typeOfT));
 			return result;
 		}
 		

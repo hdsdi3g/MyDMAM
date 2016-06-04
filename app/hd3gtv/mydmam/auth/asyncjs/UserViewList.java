@@ -41,7 +41,7 @@ public class UserViewList {
 		@Override
 		public JsonElement serialize(UserViewList src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
-			result.add("users", AJSController.gson_simple.toJsonTree(src.users, lhm_s_uv_typeOfT));
+			result.add("users", AJSController.getGson().toJsonTree(src.users, lhm_s_uv_typeOfT));
 			return result;
 		}
 		

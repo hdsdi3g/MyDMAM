@@ -19,12 +19,16 @@ package hd3gtv.mydmam.web;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import controllers.Check;
 import controllers.Secure;
@@ -74,6 +78,8 @@ class AJSControllerItem {
 			}
 		}
 	}
+	
+	private static final JsonParser parser = new JsonParser();
 	
 	class Verb {
 		
@@ -133,7 +139,49 @@ class AJSControllerItem {
 		String invoke(String json_request) {
 			Object request = null;
 			if (parameter_type != null) {
-				request = AJSController.gson.fromJson(json_request, parameter_type);
+				try {
+					JsonElement raw_json = parser.parse(json_request);
+					
+					if (parameter_type == String.class) {
+						request = raw_json.getAsString();
+					} else if (parameter_type == Integer.class) {
+						request = raw_json.getAsInt();
+					} else if (parameter_type == Long.class) {
+						request = raw_json.getAsLong();
+					} else if (parameter_type == Float.class) {
+						request = raw_json.getAsFloat();
+					} else if (parameter_type == Double.class) {
+						request = raw_json.getAsDouble();
+					} else if (parameter_type == Short.class) {
+						request = raw_json.getAsShort();
+					} else if (parameter_type == BigDecimal.class) {
+						request = raw_json.getAsBigDecimal();
+					} else if (parameter_type == BigInteger.class) {
+						request = raw_json.getAsBigInteger();
+					} else if (parameter_type == Boolean.class) {
+						request = raw_json.getAsBoolean();
+					} else if (parameter_type == Byte.class) {
+						request = raw_json.getAsByte();
+					} else if (parameter_type == Character.class) {
+						request = raw_json.getAsCharacter();
+					} else if (parameter_type == Number.class) {
+						request = raw_json.getAsNumber();
+					} else {
+						request = AJSController.gson.fromJson(raw_json, parameter_type);
+					}
+				} catch (Exception e) {
+					Loggers.Play.warn("Can't extract AJS request for " + controller_class + "." + method.getName() + "() with \"" + json_request + "\"", e);
+					
+					if (return_type != null) {
+						try {
+							return AJSController.gson.toJson(return_type.newInstance(), return_type);
+						} catch (Exception e1) {
+							Loggers.Play.error("Can't create return object during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e1);
+						}
+					} else {
+						return new JsonObject().toString();
+					}
+				}
 			}
 			
 			Object response = null;

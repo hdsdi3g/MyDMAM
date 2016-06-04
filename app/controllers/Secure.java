@@ -341,7 +341,7 @@ public class Secure extends Controller {
 	
 	public static void logout() throws Throwable {
 		try {
-			Loggers.Play.error("User went tries to sign off: " + getUserSessionInformation());
+			Loggers.Play.info("User went tries to sign off: " + getUserSessionInformation());
 			session.clear();
 			response.removeCookie("rememberme");
 		} catch (Exception e) {
