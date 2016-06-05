@@ -109,11 +109,7 @@ public class GroupNG implements AuthEntry {
 		if (group_name == null) {
 			throw new NullPointerException("\"group_name\" can't to be null");
 		}
-		key = computeGroupKey(group_name);
-	}
-	
-	public static String computeGroupKey(String group_name) {
-		return "group:" + group_name;
+		key = "group:" + group_name;
 	}
 	
 	public String getGroupName() {

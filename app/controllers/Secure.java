@@ -319,7 +319,7 @@ public class Secure extends Controller {
 		}
 		
 		if (authuser == null) {
-			Loggers.Play.error("Can't login username: " + username + ", domainidx: " + domainidx + ", " + getUserSessionInformation());// XXX
+			Loggers.Play.error("Can't login username: " + username + ", domainidx: " + domainidx + ", " + getUserSessionInformation());
 			AccessControl.failedAttempt(remote_address, username);
 			rejectUser();
 		}

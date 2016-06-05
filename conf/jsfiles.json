@@ -10,9 +10,9 @@
     "jsfile:7a0d76b8bb193841c6f39d244fab4e55": {
       "relative_file_name": "mydmam/async/auth/Groups.jsx",
       "relative_root_name": "/app/react",
-      "size": 2770,
-      "date": 1465073068000,
-      "hash": "cacf70197b61fe1c2cb2fa02ed2bcb73"
+      "size": 7245,
+      "date": 1465159582000,
+      "hash": "2633c23eba1eaeb71d32dbe37fcfef96"
     },
     "jsfile:1a278d0a9942bf822dc63a242a7cfad8": {
       "relative_file_name": "mydmam/async/search/SearchResults.jsx",
@@ -360,9 +360,9 @@
     "jsfile:1a6461016f3e9ab349b0cd1070963bdb": {
       "relative_file_name": "mydmam/async/auth/Roles.jsx",
       "relative_root_name": "/app/react",
-      "size": 6312,
-      "date": 1465131742000,
-      "hash": "4cb0c806266158ba14f3cf3cbd73aab0"
+      "size": 6396,
+      "date": 1465158416000,
+      "hash": "220cefc726420cca4d2f213c877037e2"
     },
     "jsfile:18620ae0834e1eb4d1a2368b34ba1cf7": {
       "relative_file_name": "mydmam/async/ftpserver/admin.jsx",

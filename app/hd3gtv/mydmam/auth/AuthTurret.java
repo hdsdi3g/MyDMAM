@@ -203,7 +203,7 @@ public class AuthTurret {
 				admin_role = default_admin_role;
 			} else {
 				/** Grant all privilege if it't not the actual case */
-				if (admin_role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {// XXX
+				if (admin_role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {
 					Loggers.Auth.info("Admin role not containt all and same privileges, update it. " + admin_role.getPrivileges() + " / " + PrivilegeNG.getAllPrivilegesName());
 					admin_role.update(PrivilegeNG.getAllPrivilegesName());
 					admin_role.save(mutator.withRow(CF_AUTH, admin_role.getKey()));
@@ -745,8 +745,8 @@ public class AuthTurret {
 		newuser.setLocked_account(request.locked_account);
 		
 		if (request.user_groups != null) {
-			request.user_groups.forEach(group_name -> {
-				GroupNG group = getByGroupKey(GroupNG.computeGroupKey(group_name));
+			request.user_groups.forEach(group_key -> {
+				GroupNG group = getByGroupKey(group_key);
 				if (group != null) {
 					newuser.getUserGroups().add(group);
 				}
@@ -827,8 +827,8 @@ public class AuthTurret {
 		}
 		
 		user.getUserGroups().clear();
-		request.user_groups.forEach(group_name -> {
-			GroupNG group = getByGroupKey(GroupNG.computeGroupKey(group_name));
+		request.user_groups.forEach(group_key -> {
+			GroupNG group = getByGroupKey(group_key);
 			if (group != null) {
 				user.getUserGroups().add(group);
 			}
@@ -866,8 +866,8 @@ public class AuthTurret {
 		}
 		
 		group.getGroupRoles().clear();
-		request.group_roles.forEach(role_name -> {
-			RoleNG role = getByRoleKey(RoleNG.computeRoleKey(role_name));
+		request.group_roles.forEach(role_key -> {
+			RoleNG role = getByRoleKey(role_key);
 			if (role != null) {
 				group.getGroupRoles().add(role);
 			}

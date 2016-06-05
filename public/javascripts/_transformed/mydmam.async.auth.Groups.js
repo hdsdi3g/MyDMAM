@@ -61,7 +61,7 @@ auth.Groups = React.createClass({displayName: "Groups",
 
 			items.push(React.createElement("tr", {key: group_key}, 
 				React.createElement("td", null, 
-					grouplist[group_key].group_name
+					React.createElement("a", {href: "#auth/group/edit/" + group_key}, grouplist[group_key].group_name)
 				), 
 				React.createElement("td", null, 
 					React.createElement("ul", {style: {marginLeft: 0, marginBottom: 0}}, 
@@ -77,6 +77,7 @@ auth.Groups = React.createClass({displayName: "Groups",
 		}
 
 		return (React.createElement("div", null, 
+			React.createElement("p", null, React.createElement("a", {href: "#auth/group/create", className: "btn btn-small btn-success"}, i18n("auth.groupcreate"))), 
 			React.createElement("table", {className: "table table-bordered table-striped table-condensed"}, 
 				React.createElement("thead", null, 
 					React.createElement("tr", null, 
@@ -93,10 +94,144 @@ auth.Groups = React.createClass({displayName: "Groups",
 	}
 });
 
-//	public static GroupView groupCreate(String new_group_name) throws Exception {
-//	public static GroupViewList groupDelete(String key) throws Exception {
-//	public static GroupView groupChangeRoles(GroupChRole ch_group) throws Exception {
+auth.GroupCreate = React.createClass({displayName: "GroupCreate",
+	onAddBtnClick: function(e){
+		var new_group_name = React.findDOMNode(this.refs.group_name).value;
+		mydmam.async.request("auth", "groupcreate", new_group_name, function(created) {
+			window.location = "#auth/groups";
+		}.bind(this));
+	},
+	render: function(){
+		var FormControlGroup = mydmam.async.FormControlGroup;
+
+		return (
+			React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("auth.groupcreate"), fluid: "false"}, 
+				React.createElement("form", {className: "form-horizontal", onSubmit: this.onAddBtnClick}, 
+					React.createElement(FormControlGroup, {label: i18n("auth.groupname")}, 
+						React.createElement("input", {type: "text", placeholder: i18n("auth.groupname"), ref: "group_name"})
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("button", {type: "submit", className: "btn btn-success"}, React.createElement("i", {className: "icon-ok icon-white"}), " ", i18n("auth.create"))
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("a", {type: "cancel", className: "btn btn-info", href: "#auth/groups"}, React.createElement("i", {className: "icon-chevron-left icon-white"}), " ", i18n("auth.goback"))
+					)
+				)
+			)
+		);
+	},
+});
+
+auth.GroupEdit = React.createClass({displayName: "GroupEdit",
+	getInitialState: function() {
+		return {
+			roles_full_list: [],
+			roles: [],
+			group_name: "",
+		};
+	},
+	onEditBtnClick: function(e){
+		var group_key = this.props.params.group_key;
+
+		mydmam.async.request("auth", "groupchangeroles", {group_roles: this.state.roles, group_key: group_key}, function(list) {
+			window.location = "#auth/groups";
+		}.bind(this));
+
+	},
+	onChangeGroup: function(role, present) {
+		var new_roles = [];
+		if (present) {
+			new_roles = this.state.roles.slice(0);
+			new_roles.push(role);
+		} else {
+			for (pos in this.state.roles) {
+				if (this.state.roles[pos] != role) {
+					new_roles.push(this.state.roles[pos]);
+				}
+			}
+		}
+		this.setState({roles: new_roles});
+	},
+	onDeleteBtnClick: function(e){
+		var group_key = this.props.params.group_key;
+		if (window.confirm(i18n("auth.confirmremove", this.state.group_name))) {
+			mydmam.async.request("auth", "groupdelete", group_key, function(list) {
+				window.location = "#auth/groups";
+			}.bind(this));
+		}
+	},
+	componentWillMount: function() {
+		var group_key = this.props.params.group_key;
+
+		mydmam.async.request("auth", "grouplist", null, function(grouplist) {
+			if (grouplist.groups[group_key]) {
+				this.setState({group_name: grouplist.groups[group_key].group_name, roles: grouplist.groups[group_key].group_roles});
+			} else {
+				window.location = "#auth/groups";
+			}
+		}.bind(this));
+
+		mydmam.async.request("auth", "rolelist", null, function(rolelist) {
+			var list = [];
+			for (pos in rolelist.roles) {
+				list.push({
+					name: rolelist.roles[pos].role_name,
+					key: rolelist.roles[pos].key
+				});
+			}
+			this.setState({roles_full_list: list.sort(function(a, b) {
+				return a.name < b.name;
+			})});
+		}.bind(this));
+
+	},
+	render: function(){
+		var group_key = this.props.params.group_key;
+		var FormControlGroup = mydmam.async.FormControlGroup;
+		var roles_full_list = this.state.roles_full_list;
+		var roles = this.state.roles;
+
+		var cb_list = [];
+
+		for (pos in roles_full_list) {
+			var role = roles_full_list[pos];
+			var is_checked = roles.indexOf(role.key) > -1;
+			cb_list.push(React.createElement(mydmam.async.CheckboxItem, {key: role.key, checked: is_checked, reference: role.key, onChangeCheck: this.onChangeGroup}, 
+				role.name
+			));
+		}
+
+		return (
+			React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("auth.groupedit", this.state.group_name), fluid: "false"}, 
+				React.createElement("form", {className: "form-horizontal", onSubmit: this.onEditBtnClick}, 
+					React.createElement(FormControlGroup, {label: i18n("auth.roles")}, 
+						cb_list
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("button", {type: "submit", className: "btn btn-success"}, React.createElement("i", {className: "icon-ok icon-white"}), " ", i18n("auth.save"))
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("a", {type: "cancel", className: "btn btn-info", href: "#auth/groups"}, React.createElement("i", {className: "icon-chevron-left icon-white"}), " ", i18n("auth.goback"))
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("a", {className: "btn btn-danger btn-mini", onClick: this.onDeleteBtnClick}, React.createElement("i", {className: "icon-remove icon-white"}), " ", i18n("auth.remove"))
+					)
+				)
+			)
+		);
+
+	}
+});
+
+
+mydmam.routes.push("auth-group-create", "auth/group/create",			auth.GroupCreate, [{name: "auth", verb: "usercreate"}]);	
+mydmam.routes.push("auth-group-edit", "auth/group/edit/:group_key",		auth.GroupEdit, [{name: "auth", verb: "usercreate"}]);	
 
 })(window.mydmam.async.auth);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: cacf70197b61fe1c2cb2fa02ed2bcb73
+// Source hash: 2633c23eba1eaeb71d32dbe37fcfef96

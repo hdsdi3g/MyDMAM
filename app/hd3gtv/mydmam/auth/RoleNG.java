@@ -99,7 +99,7 @@ public class RoleNG implements AuthEntry {
 			throw new NullPointerException("\"role_name\" can't to be null");
 		}
 		this.role_name = role_name;
-		this.key = computeRoleKey(role_name);
+		this.key = "role:" + role_name;
 	}
 	
 	RoleNG update(Set<String> privileges) {
@@ -129,10 +129,6 @@ public class RoleNG implements AuthEntry {
 			}
 		}
 		return privileges;
-	}
-	
-	public static String computeRoleKey(String role_name) {
-		return "role:" + role_name;
 	}
 	
 	public String getKey() {

@@ -17,8 +17,14 @@
 
 auth.roleList = function (list) {
 	var ctrl_list = [];
+	var items = [];
+
 	for (pos in list) {
-		ctrl_list.push(<li key={pos}>{list[pos]}</li>);
+		items.push(list[pos]);
+	}
+	items.sort();
+	for (pos in items) {
+		ctrl_list.push(<li key={pos}>{items[pos]}</li>);
 	}
 	return ctrl_list;
 };

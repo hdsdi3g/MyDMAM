@@ -18,7 +18,7 @@ package hd3gtv.mydmam.auth;
 
 import com.netflix.astyanax.ColumnListMutation;
 
-interface AuthEntry {
+public interface AuthEntry {
 	
 	void delete(ColumnListMutation<String> mutator);
 	
