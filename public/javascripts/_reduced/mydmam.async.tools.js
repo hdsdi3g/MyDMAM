@@ -21,7 +21,9 @@ if(this.props.simplelabel){if(this.props.enabled){return(React.createElement("sp
 return(React.createElement("button",{className:c,onClick:this.onClickSetDisable},React.createElement("i",{className:b})," ",this.props.labelenabled));
 }else{var c=classNames("btn","btn-mini",{disabled:this.state.pending_changes,"btn-success":!this.props.iconcircle});
 return(React.createElement("button",{className:c,onClick:this.onClickSetEnable},React.createElement("i",{className:b})," ",this.props.labeldisabled));
-}}});a.BtnDelete=React.createClass({displayName:"BtnDelete",propTypes:{label:React.PropTypes.string,enabled:React.PropTypes.bool.isRequired,onClickDelete:React.PropTypes.func.isRequired,reference:React.PropTypes.string},getInitialState:function(){return{pending_changes:false};
+}}});a.CheckboxItem=React.createClass({displayName:"CheckboxItem",propTypes:{reference:React.PropTypes.string.isRequired,checked:React.PropTypes.bool.isRequired,onChangeCheck:React.PropTypes.func.isRequired},onClickCB:function(b){$(React.findDOMNode(this.refs.cb)).blur();
+this.props.onChangeCheck(this.props.reference,!this.props.checked);},render:function(){return(React.createElement("label",{className:"checkbox"},React.createElement("input",{type:"checkbox",ref:"cb",defaultChecked:this.props.checked,onChange:this.onClickCB})," ",this.props.children));
+}});a.BtnDelete=React.createClass({displayName:"BtnDelete",propTypes:{label:React.PropTypes.string,enabled:React.PropTypes.bool.isRequired,onClickDelete:React.PropTypes.func.isRequired,reference:React.PropTypes.string},getInitialState:function(){return{pending_changes:false};
 },onClickDelete:function(){if(this.state.pending_changes){return;}if(!this.props.enabled){return;
 }this.setState({pending_changes:true});this.props.onClickDelete(this.props.reference);
 },componentWillReceiveProps:function(){this.setState({pending_changes:false});},render:function(){var b=classNames("btn","btn-mini","btn-danger",{disabled:this.state.pending_changes|!this.props.enabled});

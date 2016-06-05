@@ -199,9 +199,12 @@ public class Secure extends Controller {
 		sb.append(" > ");
 		sb.append(request.action);
 		
-		sb.append(" username: ");
-		sb.append(Crypto.decryptAES(session.get("username")));
-		getSessionPrivilegesListToDump(sb);
+		String username = session.get("username");
+		if (username != null) {
+			sb.append(" username: ");
+			sb.append(Crypto.decryptAES(session.get("username")));
+			getSessionPrivilegesListToDump(sb);
+		}
 		
 		return sb.toString();
 	}
@@ -316,7 +319,7 @@ public class Secure extends Controller {
 		}
 		
 		if (authuser == null) {
-			Loggers.Play.error("Can't login username: " + username + ", domainidx: " + domainidx + ", " + getUserSessionInformation());
+			Loggers.Play.error("Can't login username: " + username + ", domainidx: " + domainidx + ", " + getUserSessionInformation());// XXX
 			AccessControl.failedAttempt(remote_address, username);
 			rejectUser();
 		}

@@ -122,9 +122,9 @@
     "jsfile:96b62587c6ead6509fe360dffa880cc5": {
       "relative_file_name": "mydmam/async/auth/Privileges.jsx",
       "relative_root_name": "/app/react",
-      "size": 1584,
-      "date": 1465066195000,
-      "hash": "53545b731388ab23f2c98635253c4300"
+      "size": 1683,
+      "date": 1465126178000,
+      "hash": "72637997a500b03fde6765a8c3ac697a"
     },
     "jsfile:0b35f733fd15e917eea54c31dadb3a90": {
       "relative_file_name": "mydmam.format.js",
@@ -164,9 +164,9 @@
     "jsfile:3079ca5b4b6b65aa12ea004be3f1d8f4": {
       "relative_file_name": "mydmam/async/tools.jsx",
       "relative_root_name": "/app/react",
-      "size": 15364,
-      "date": 1465072912000,
-      "hash": "16efb74d6f709408448425bd15d22dcf"
+      "size": 15936,
+      "date": 1465131527000,
+      "hash": "7270959b0001fc3f7be0856d1add2a56"
     },
     "jsfile:d73fbb9b0b191d657c2756e0a518235a": {
       "relative_file_name": "mydmam/routes/Backbone.jsx",
@@ -360,9 +360,9 @@
     "jsfile:1a6461016f3e9ab349b0cd1070963bdb": {
       "relative_file_name": "mydmam/async/auth/Roles.jsx",
       "relative_root_name": "/app/react",
-      "size": 1899,
-      "date": 1465069831000,
-      "hash": "87a300d22d893f7cdc6749ffed3cac60"
+      "size": 6312,
+      "date": 1465131742000,
+      "hash": "4cb0c806266158ba14f3cf3cbd73aab0"
     },
     "jsfile:18620ae0834e1eb4d1a2368b34ba1cf7": {
       "relative_file_name": "mydmam/async/ftpserver/admin.jsx",

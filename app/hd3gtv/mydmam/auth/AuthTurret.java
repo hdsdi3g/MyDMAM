@@ -174,7 +174,15 @@ public class AuthTurret {
 		 */
 		File account_export = new File(Configuration.getGlobalConfigurationDirectory().getParent() + File.separator + "account_export.xml");
 		if (account_export.exists()) {
-			Loggers.Auth.warn("You should remove account_export xml file... (" + account_export.getAbsolutePath() + ")");
+			Loggers.Auth.warn("You should remove account_export file... (" + account_export.getAbsolutePath() + ")");
+		}
+		
+		/**
+		 * Check "play-new-password.txt" file
+		 */
+		File playnewpassword = new File("play-new-password.txt");
+		if (playnewpassword.exists()) {
+			Loggers.Auth.warn("You should remove play-new-password file... (" + playnewpassword.getAbsolutePath() + ")");
 		}
 		
 		default_newusers_group = new GroupNG(this, "New users");
@@ -257,6 +265,27 @@ public class AuthTurret {
 		} else {
 			Loggers.Auth.debug("Play is not running, skip create default accounts.");
 		}
+	}
+	
+	public String resetAdminPassword() throws ConnectionException, NoSuchAlgorithmException, NoSuchProviderException, IOException {
+		UserNG default_admin_user = getByUserKey((new UserNG(this, "admin", "local").getKey()));
+		if (default_admin_user == null) {
+			Loggers.Auth.error("Admin user is absent, please restart a Play instance for recreate it.");
+		}
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		
+		Loggers.Auth.info("Reset Admin password.");
+		
+		String new_password = createAdminPasswordTextFile("admin");
+		default_admin_user.chpassword(new_password);
+		default_admin_user.setLocked_account(false);
+		default_admin_user.updateLastEditTime();
+		default_admin_user.save(mutator.withRow(CF_AUTH, default_admin_user.getKey()));
+		
+		cache.all_users.put(default_admin_user.getKey(), default_admin_user);
+		mutator.execute();
+		
+		return new_password;
 	}
 	
 	/**

@@ -22,7 +22,11 @@ auth.Privileges = React.createClass({
 		};
 	},
 	componentWillMount: function() {
-		mydmam.async.request("auth", "getallprivilegeslist", null, function(fulllist) {
+		mydmam.async.request("auth", "getallprivilegeslist", null, function(rawfulllist) {
+			var fulllist = {};
+			for (p in rawfulllist) {
+				fulllist[p] = rawfulllist[p].sort();
+			}
 			this.setState({fulllist: fulllist});
 		}.bind(this));
 	},

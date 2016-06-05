@@ -43,7 +43,7 @@ auth.Roles = React.createClass({displayName: "Roles",
 		for (role_key in rolelist) {
 			items.push(React.createElement("tr", {key: role_key}, 
 				React.createElement("td", null, 
-					rolelist[role_key].role_name
+					React.createElement("a", {href: "#auth/role/edit/" + role_key}, rolelist[role_key].role_name)
 				), 
 				React.createElement("td", null, 
 					React.createElement("ul", {style: {marginLeft: 0, marginBottom: 0}}, 
@@ -54,6 +54,7 @@ auth.Roles = React.createClass({displayName: "Roles",
 		}
 
 		return (React.createElement("div", null, 
+			React.createElement("p", null, React.createElement("a", {href: "#auth/role/create", className: "btn btn-small btn-success"}, i18n("auth.rolecreate"))), 
 			React.createElement("table", {className: "table table-bordered table-striped table-condensed"}, 
 				React.createElement("thead", null, 
 					React.createElement("tr", null, 
@@ -69,10 +70,139 @@ auth.Roles = React.createClass({displayName: "Roles",
 	}
 });
 
-//	public static RoleView roleCreate(String new_role_name) throws Exception {
-//	public static RoleViewList roleDelete(String key) throws Exception {
-//	public static RoleView roleChangePrivilege(RoleChPrivileges new_privileges) throws Exception {
+auth.RoleCreate = React.createClass({displayName: "RoleCreate",
+	onAddBtnClick: function(e){
+		var new_role_name = React.findDOMNode(this.refs.role_name).value;
+		mydmam.async.request("auth", "rolecreate", new_role_name, function(created) {
+			window.location = "#auth/roles";
+		}.bind(this));
+	},
+	render: function(){
+		var FormControlGroup = mydmam.async.FormControlGroup;
+
+		return (
+			React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("auth.rolecreate"), fluid: "false"}, 
+				React.createElement("form", {className: "form-horizontal", onSubmit: this.onAddBtnClick}, 
+					React.createElement(FormControlGroup, {label: i18n("auth.rolename")}, 
+						React.createElement("input", {type: "text", placeholder: i18n("auth.rolename"), ref: "role_name"})
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("button", {type: "submit", className: "btn btn-success"}, React.createElement("i", {className: "icon-ok icon-white"}), " ", i18n("auth.create"))
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("a", {type: "cancel", className: "btn btn-info", href: "#auth/roles"}, React.createElement("i", {className: "icon-chevron-left icon-white"}), " ", i18n("auth.goback"))
+					)
+				)
+			)
+		);
+	},
+});
+
+auth.RoleEdit = React.createClass({displayName: "RoleEdit",
+	getInitialState: function() {
+		return {
+			privileges_full_list: [],
+			privileges: [],
+			role_name: "",
+		};
+	},
+	onEditBtnClick: function(e){
+		var role_key = this.props.params.role_key;
+
+		mydmam.async.request("auth", "rolechangeprivilege", {privileges: this.state.privileges, role_key: role_key}, function(list) {
+			window.location = "#auth/roles";
+		}.bind(this));
+
+	},
+	onChangePrivilege: function(privilege, present) {
+		var new_privileges = [];
+		if (present) {
+			new_privileges = this.state.privileges.slice(0);
+			new_privileges.push(privilege);
+		} else {
+			for (pos in this.state.privileges) {
+				if (this.state.privileges[pos] != privilege) {
+					new_privileges.push(this.state.privileges[pos]);
+				}
+			}
+		}
+		this.setState({privileges: new_privileges});
+	},
+	onDeleteBtnClick: function(e){
+		var role_key = this.props.params.role_key;
+		if (window.confirm(i18n("auth.confirmremove", this.state.role_name))) {
+			mydmam.async.request("auth", "roledelete", role_key, function(list) {
+				window.location = "#auth/roles";
+			}.bind(this));
+		}
+	},
+	componentWillMount: function() {
+		var role_key = this.props.params.role_key;
+
+		mydmam.async.request("auth", "rolelist", null, function(rolelist) {
+			if (rolelist.roles[role_key]) {
+				this.setState({role_name: rolelist.roles[role_key].rolename, privileges: rolelist.roles[role_key].privileges});
+			} else {
+				window.location = "#auth/roles";
+			}
+		}.bind(this));
+
+		mydmam.async.request("auth", "getallprivilegeslist", null, function(privileges_full_list) {
+			var list = [];
+			for (p in privileges_full_list) {
+				list.push(p);
+			}
+			this.setState({privileges_full_list: list.sort()});
+		}.bind(this));
+
+	},
+	render: function(){
+		var role_key = this.props.params.role_key;
+		var FormControlGroup = mydmam.async.FormControlGroup;
+		var privileges_full_list = this.state.privileges_full_list;
+		var privileges = this.state.privileges;
+
+		var cb_list = [];
+
+		for (pos in privileges_full_list) {
+			var p = privileges_full_list[pos];
+			var is_checked = privileges.indexOf(p) > -1;
+			cb_list.push(React.createElement(mydmam.async.CheckboxItem, {key: p, checked: is_checked, reference: p, onChangeCheck: this.onChangePrivilege}, 
+				p
+			));
+		}
+
+		return (
+			React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("auth.roleedit", this.state.role_name), fluid: "false"}, 
+				React.createElement("form", {className: "form-horizontal", onSubmit: this.onEditBtnClick}, 
+					React.createElement(FormControlGroup, {label: i18n("auth.privileges")}, 
+						cb_list
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("button", {type: "submit", className: "btn btn-success"}, React.createElement("i", {className: "icon-ok icon-white"}), " ", i18n("auth.save"))
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("a", {type: "cancel", className: "btn btn-info", href: "#auth/roles"}, React.createElement("i", {className: "icon-chevron-left icon-white"}), " ", i18n("auth.goback"))
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("a", {className: "btn btn-danger btn-mini", onClick: this.onDeleteBtnClick}, React.createElement("i", {className: "icon-remove icon-white"}), " ", i18n("auth.remove"))
+					)
+				)
+			)
+		);
+
+	}
+});
+
+
+mydmam.routes.push("auth-role-create", "auth/role/create",			auth.RoleCreate, [{name: "auth", verb: "usercreate"}]);	
+mydmam.routes.push("auth-role-edit", "auth/role/edit/:role_key",	auth.RoleEdit, [{name: "auth", verb: "usercreate"}]);	
 
 })(window.mydmam.async.auth);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: 87a300d22d893f7cdc6749ffed3cac60
+// Source hash: 4cb0c806266158ba14f3cf3cbd73aab0

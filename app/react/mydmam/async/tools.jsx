@@ -149,6 +149,25 @@ async.BtnEnableDisable = React.createClass({
 	},
 });
 
+async.CheckboxItem = React.createClass({
+	propTypes: {
+		reference: React.PropTypes.string.isRequired,
+		checked: React.PropTypes.bool.isRequired,
+		onChangeCheck: React.PropTypes.func.isRequired,
+	},
+	onClickCB: function(e) {
+   		$(React.findDOMNode(this.refs.cb)).blur();
+   		this.props.onChangeCheck(this.props.reference, !this.props.checked);
+	},
+	render: function() {
+		return (
+			<label className="checkbox">
+	        	<input type="checkbox" ref="cb" defaultChecked={this.props.checked} onChange={this.onClickCB} /> {this.props.children}
+			</label>
+		);
+	}
+});
+
 async.BtnDelete = React.createClass({
 	propTypes: {
 		label: React.PropTypes.string,
