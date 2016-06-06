@@ -28,9 +28,10 @@ import com.google.gson.JsonParseException;
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.tools.GsonIgnore;
 
-public class UserChGroup {
+public class UserAdminUpdate {
 	
 	public String user_key;
+	public String new_password;
 	
 	@GsonIgnore
 	public ArrayList<String> user_groups;
@@ -38,10 +39,10 @@ public class UserChGroup {
 	private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
 	}.getType();
 	
-	public static class Deserializer implements JsonDeserializer<UserChGroup> {
+	public static class Deserializer implements JsonDeserializer<UserAdminUpdate> {
 		
-		public UserChGroup deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			UserChGroup result = AJSController.gson_simple.fromJson(json, UserChGroup.class);
+		public UserAdminUpdate deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			UserAdminUpdate result = AJSController.gson_simple.fromJson(json, UserAdminUpdate.class);
 			result.user_groups = AJSController.gson_simple.fromJson(json.getAsJsonObject().get("user_groups"), al_string_typeOfT);
 			return result;
 		}

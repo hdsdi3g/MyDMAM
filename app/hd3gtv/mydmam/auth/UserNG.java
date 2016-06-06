@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.auth;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -509,7 +511,14 @@ public class UserNG implements AuthEntry {
 		
 		if (complete) {
 			result.preferencies = getPreferencies();
-			result.properties = turret.getGson().toJsonTree(getProperties()).getAsJsonObject();
+			StringWriter sw = new StringWriter();
+			try {
+				getProperties().store(sw, null);
+			} catch (IOException e) {
+				Loggers.Auth.error("Can't export Properties to String", e);
+			}
+			result.properties = sw.toString();
+			
 			result.baskets = turret.getGson().toJsonTree(getBaskets(), linmap_string_basket_typeOfT).getAsJsonObject();
 			result.activities = turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT).getAsJsonArray();
 			result.notifications = turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT).getAsJsonArray();
@@ -518,7 +527,13 @@ public class UserNG implements AuthEntry {
 				result.preferencies = preferencies;
 			}
 			if (properties != null) {
-				result.properties = turret.getGson().toJsonTree(properties).getAsJsonObject();
+				StringWriter sw = new StringWriter();
+				try {
+					getProperties().store(sw, null);
+				} catch (IOException e) {
+					Loggers.Auth.error("Can't export Properties to String", e);
+				}
+				result.properties = sw.toString();
 			}
 			if (baskets != null) {
 				result.baskets = turret.getGson().toJsonTree(baskets, linmap_string_basket_typeOfT).getAsJsonObject();
@@ -543,9 +558,10 @@ public class UserNG implements AuthEntry {
 		}
 	}
 	
-	void postCreate(String fullname, String email_addr) {
+	void postCreate(String fullname, String email_addr, String language) {
 		this.fullname = fullname;
 		this.email_addr = email_addr;
+		this.language = language;
 	}
 	
 	public String getFullname() {

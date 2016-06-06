@@ -52,6 +52,10 @@ auth.Users = React.createClass({displayName: "Users",
 				} else {
 					ctrl_list.push(React.createElement("span", {key: pos, style: {marginRight: 5}}, group_key));
 				}
+				
+				if (pos + 1 < list.length) {
+					ctrl_list.push(React.createElement("span", {key: pos + "dot", style: {marginRight: 5}}, "•"));
+				}
 			}
 			return ctrl_list;
 		};
@@ -61,11 +65,11 @@ auth.Users = React.createClass({displayName: "Users",
 			var user = userlist[user_key];
 			items.push(React.createElement("tr", {key: user_key}, 
 				React.createElement("td", null, 
-					user.fullname
+					React.createElement("a", {href: "#auth/user/edit/" + user_key.replace("%","::")}, user.fullname)
 				), 
 				React.createElement("td", null, 
 					user.login, " ", 
-					React.createElement("small", {className: "muted"}, "%", user.domain), " "
+					React.createElement("small", {className: "muted pull-right"}, user.domain), " "
 				), 
 				React.createElement("td", null, 
 					user.language
@@ -98,11 +102,14 @@ auth.Users = React.createClass({displayName: "Users",
 		}
 
 		return (React.createElement("div", null, 
+			React.createElement("p", null, React.createElement("a", {href: "#auth/user/create", className: "btn btn-small btn-success"}, i18n("auth.usercreate"))), 
 			React.createElement("table", {className: "table table-bordered table-striped table-condensed"}, 
 				React.createElement("thead", null, 
 					React.createElement("tr", null, 
 						React.createElement("th", null, i18n("auth.userlongname")), 
-						React.createElement("th", null, i18n("auth.username"), " / ", i18n("auth.domain")), 
+						React.createElement("th", null, i18n("auth.username"), 
+							React.createElement("span", {className: "pull-right"}, i18n("auth.domain"))
+						), 
 						React.createElement("th", null, i18n("auth.lang")), 
 						React.createElement("th", null, i18n("auth.email")), 
 						React.createElement("th", null, i18n("auth.lasteditdate")), 
@@ -119,11 +126,270 @@ auth.Users = React.createClass({displayName: "Users",
 	}
 });
 
-//	public static UserViewList userDelete(String key) throws Exception {
-//	public static UserView userCreate(NewUser newuser) throws Exception {
-//	public static UserView userGet(String key) throws Exception {
-//	public static UserView userChangePassword(UserChPassword chpassword) throws Exception {
-//	public static UserView userChangeGroup(UserChGroup chgroup) throws Exception {
+
+auth.UserCreate = React.createClass({displayName: "UserCreate",
+	getInitialState: function() {
+		return {
+			locked_account: false,
+			domain_list: [],
+			user_domain: "local",
+			user_groups: [],
+			group_full_list: [],
+		};
+	},
+	componentWillMount: function() {
+		//var group_key = this.props.params.group_key;
+
+		mydmam.async.request("auth", "domainlist", null, function(domain_list) {
+			this.setState({domain_list: domain_list});
+		}.bind(this));
+
+		mydmam.async.request("auth", "grouplist", null, function(grouplist) {
+			this.setState({group_full_list: grouplist.groups});
+		}.bind(this));
+	},
+	onChangeLockedAccount: function(text, checked){
+		this.setState({locked_account: checked});
+	},
+	onChangeDomain: function(domain, checked){
+		if (checked) {
+			this.setState({user_domain: domain});
+		} else {
+			this.setState({user_domain: null});
+		}
+	},
+	onChangeGroup: function(group_key, present) {
+		var user_groups = [];
+		if (present) {
+			user_groups = this.state.user_groups.slice(0);
+			user_groups.push(group_key);
+		} else {
+			for (pos in this.state.user_groups) {
+				if (this.state.user_groups[pos] != group_key) {
+					user_groups.push(this.state.user_groups[pos]);
+				}
+			}
+		}
+		this.setState({user_groups: user_groups});
+	},
+	onAddBtnClick: function(e) {
+		var password  = React.findDOMNode(this.refs.password).value;
+		var password2 = React.findDOMNode(this.refs.password2).value;
+		if (password != password2) {
+			React.findDOMNode(this.refs.password).value = "";
+			React.findDOMNode(this.refs.password2).value = "";
+			return;
+		}
+
+		var new_user = {
+			login: React.findDOMNode(this.refs.login).value,
+			fullname: React.findDOMNode(this.refs.fullname).value,
+			email_addr: React.findDOMNode(this.refs.email_addr).value,
+			password: password,
+			locked_account: this.state.locked_account,
+			domain: this.state.user_domain,
+			user_groups: this.state.user_groups,
+		}
+
+		mydmam.async.request("auth", "usercreate", new_user, function(new_user) {
+			window.location = "#auth/users";
+		}.bind(this));
+	},
+	render: function(){
+		var FormControlGroup = mydmam.async.FormControlGroup;
+		var CheckboxItem = mydmam.async.CheckboxItem;
+
+		var cb_domain = [];
+		var domain_list = this.state.domain_list;
+		for (pos in domain_list) {
+			var domain = domain_list[pos];
+			var is_checked = (domain == this.state.user_domain);
+			cb_domain.push(React.createElement(CheckboxItem, {key: domain, checked: is_checked, reference: domain, onChangeCheck: this.onChangeDomain}, 
+				domain
+			));
+		}
+
+		var cb_groups = [];
+		var group_full_list = this.state.group_full_list;
+		for (group_key in group_full_list) {
+			var is_checked = this.state.user_groups.indexOf(group_key) > -1;
+			cb_groups.push(React.createElement(CheckboxItem, {key: group_key, checked: is_checked, reference: group_key, onChangeCheck: this.onChangeGroup}, 
+				group_full_list[group_key].group_name
+			));
+		}
+
+		return (
+			React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("auth.usercreate"), fluid: "false"}, 
+				React.createElement("form", {className: "form-horizontal", onSubmit: this.onAddBtnClick}, 
+					React.createElement(FormControlGroup, {label: i18n("auth.fullname")}, 
+						React.createElement("input", {type: "text", placeholder: i18n("auth.fullname"), ref: "fullname"})
+					), 
+					React.createElement(FormControlGroup, {label: i18n("auth.email_addr")}, 
+						React.createElement("input", {type: "email", placeholder: i18n("auth.email_addr"), ref: "email_addr"})
+					), 
+					React.createElement(FormControlGroup, {label: i18n("auth.login")}, 
+						React.createElement("input", {type: "text", placeholder: i18n("auth.login"), ref: "login"})
+					), 
+					React.createElement(FormControlGroup, {label: i18n("auth.password")}, 
+						React.createElement("input", {type: "password", placeholder: i18n("auth.password"), ref: "password"})
+					), 
+					React.createElement(FormControlGroup, {label: i18n("auth.password2")}, 
+						React.createElement("input", {type: "password", placeholder: i18n("auth.password2"), ref: "password2"})
+					), 
+					React.createElement(FormControlGroup, {label: i18n("auth.locked_account")}, 
+						React.createElement(CheckboxItem, {checked: this.state.locked_account, reference: "locked_account", onChangeCheck: this.onChangeLockedAccount}, 
+							i18n("auth.locked_account_help")
+						)
+					), 
+					React.createElement(FormControlGroup, {label: i18n("auth.domain")}, 
+						cb_domain
+					), 
+					React.createElement(FormControlGroup, {label: i18n("auth.groups")}, 
+						cb_groups
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("button", {type: "submit", className: "btn btn-success"}, React.createElement("i", {className: "icon-ok icon-white"}), " ", i18n("auth.create"))
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("a", {type: "cancel", className: "btn btn-info", href: "#auth/users"}, React.createElement("i", {className: "icon-chevron-left icon-white"}), " ", i18n("auth.goback"))
+					)
+				)
+			)
+		);
+	},
+});
+
+auth.UserEdit = React.createClass({displayName: "UserEdit",
+	getInitialState: function() {
+		return {
+			user_groups: [],
+			group_full_list: [],
+			user: null,
+		};
+	},
+	componentWillMount: function() {
+		var user_key = this.props.params.user_key.replace("::","%");
+
+		mydmam.async.request("auth", "userget", user_key, function(user) {
+			this.setState({user: user, user_groups: user.user_groups});
+		}.bind(this));
+
+		mydmam.async.request("auth", "grouplist", null, function(grouplist) {
+			this.setState({group_full_list: grouplist.groups});
+		}.bind(this));
+	},
+	onChangeGroup: function(group_key, present) {
+		var user_groups = [];
+		if (present) {
+			user_groups = this.state.user_groups.slice(0);
+			user_groups.push(group_key);
+		} else {
+			for (pos in this.state.user_groups) {
+				if (this.state.user_groups[pos] != group_key) {
+					user_groups.push(this.state.user_groups[pos]);
+				}
+			}
+		}
+		this.setState({user_groups: user_groups});
+	},
+	onUpdBtnClick: function(e) {
+		var password  = React.findDOMNode(this.refs.password).value;
+		var password2 = React.findDOMNode(this.refs.password2).value;
+		if (password && password2) {
+			if (password != password2) {
+				React.findDOMNode(this.refs.password).value = "";
+				React.findDOMNode(this.refs.password2).value = "";
+				return;
+			}
+		} else {
+			password = "";
+		}	
+
+		var update_user = {
+			user_key: this.props.params.user_key.replace("::","%"),
+			new_password: password,
+			user_groups: this.state.user_groups,
+		}
+
+		mydmam.async.request("auth", "useradminupdate", update_user, function(user) {
+			window.location = "#auth/users";
+		}.bind(this));
+	},
+	onDeleteBtnClick: function(e){
+		if (window.confirm(i18n("auth.confirmremoveaccount", this.state.user.fullname))) {
+			mydmam.async.request("auth", "userdelete", this.props.params.user_key.replace("::","%"), function(list) {
+				window.location = "#auth/users";
+			}.bind(this));
+		}
+	},
+	render: function(){
+		var FormControlGroup = mydmam.async.FormControlGroup;
+		var CheckboxItem = mydmam.async.CheckboxItem;
+		var user = this.state.user;
+		if (user == null) {
+			return (
+				React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("auth.userupdate"), fluid: "false"}, 
+				React.createElement(mydmam.async.PageLoadingProgressBar, null)
+			)
+			);
+		}
+
+		var is_local_user = (user.domain == "local");
+		var password_form = null;
+		if (is_local_user) {
+			var password_form = (React.createElement("span", null, 
+				React.createElement(FormControlGroup, {label: i18n("auth.password")}, 
+					React.createElement("input", {type: "password", placeholder: i18n("auth.password"), ref: "password"})
+				), 
+				React.createElement(FormControlGroup, {label: i18n("auth.password2")}, 
+					React.createElement("input", {type: "password", placeholder: i18n("auth.password2"), ref: "password2"})
+				)
+			));
+		} else {
+			/** Domain users can't change passwords here */
+			var password_form = (React.createElement("span", null, 
+				React.createElement("input", {type: "hidden", value: "", ref: "password"}), React.createElement("input", {type: "hidden", value: "", ref: "password2"})
+			));
+		}
+
+		var cb_groups = [];
+		var group_full_list = this.state.group_full_list;
+		for (group_key in group_full_list) {
+			var is_checked = this.state.user_groups.indexOf(group_key) > -1;
+			cb_groups.push(React.createElement(CheckboxItem, {key: group_key, checked: is_checked, reference: group_key, onChangeCheck: this.onChangeGroup}, 
+				group_full_list[group_key].group_name
+			));
+		}
+
+		return (
+			React.createElement(mydmam.async.PageHeaderTitle, {title: i18n("auth.userupdate", user.fullname), fluid: "false"}, 
+				React.createElement("form", {className: "form-horizontal", onSubmit: this.onUpdBtnClick}, 
+					password_form, 
+					React.createElement(FormControlGroup, {label: i18n("auth.groups")}, 
+						cb_groups
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("button", {type: "submit", className: "btn btn-success"}, React.createElement("i", {className: "icon-ok icon-white"}), " ", i18n("auth.update"))
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("a", {type: "cancel", className: "btn btn-info", href: "#auth/users"}, React.createElement("i", {className: "icon-chevron-left icon-white"}), " ", i18n("auth.goback"))
+					), 
+
+					React.createElement(FormControlGroup, null, 
+						React.createElement("a", {className: "btn btn-danger btn-mini", onClick: this.onDeleteBtnClick}, React.createElement("i", {className: "icon-remove icon-white"}), " ", i18n("auth.remove"))
+					)
+				)
+			)
+		);
+	},
+});
+
+mydmam.routes.push("auth-user-create", "auth/user/create",			auth.UserCreate, [{name: "auth", verb: "usercreate"}]);	
+mydmam.routes.push("auth-user-view", "auth/user/edit/:user_key",	auth.UserEdit, [{name: "auth", verb: "usercreate"}]);	
 
 // All	
 //	public static JsonObject getPreferencies() throws Exception {
@@ -140,4 +406,4 @@ auth.Users = React.createClass({displayName: "Users",
 
 })(window.mydmam.async.auth);
 // Generated by hd3gtv.mydmam.web.JSProcessor for the module internal
-// Source hash: 1ea0f96943dfb2477de9f1fd5603165d
+// Source hash: 5d4435a90946d99ec11d556ae6c2e6cb

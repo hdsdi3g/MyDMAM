@@ -36,8 +36,7 @@ import hd3gtv.mydmam.auth.asyncjs.NewUser;
 import hd3gtv.mydmam.auth.asyncjs.RoleChPrivileges;
 import hd3gtv.mydmam.auth.asyncjs.RoleView;
 import hd3gtv.mydmam.auth.asyncjs.RoleViewList;
-import hd3gtv.mydmam.auth.asyncjs.UserChGroup;
-import hd3gtv.mydmam.auth.asyncjs.UserChPassword;
+import hd3gtv.mydmam.auth.asyncjs.UserAdminUpdate;
 import hd3gtv.mydmam.auth.asyncjs.UserView;
 import hd3gtv.mydmam.auth.asyncjs.UserViewList;
 import hd3gtv.mydmam.web.AJSController;
@@ -53,7 +52,7 @@ public class Auth extends AJSController {
 		AJSController.registerTypeAdapter(RoleView.class, new RoleView.Serializer());
 		AJSController.registerTypeAdapter(RoleViewList.class, new RoleViewList.Serializer());
 		AJSController.registerTypeAdapter(NewUser.class, new NewUser.Deserializer());
-		AJSController.registerTypeAdapter(UserChGroup.class, new UserChGroup.Deserializer());
+		AJSController.registerTypeAdapter(UserAdminUpdate.class, new UserAdminUpdate.Deserializer());
 		AJSController.registerTypeAdapter(GroupChRole.class, new GroupChRole.Deserializer());
 		AJSController.registerTypeAdapter(RoleChPrivileges.class, new RoleChPrivileges.Deserializer());
 	}
@@ -85,6 +84,11 @@ public class Auth extends AJSController {
 	}
 	
 	@Check("authAdmin")
+	public static JsonArray domainList() throws Exception {
+		return Bootstrap.getAuth().getGsonSimple().toJsonTree(Bootstrap.getAuth().getDeclaredDomainList()).getAsJsonArray();
+	}
+	
+	@Check("authAdmin")
 	public static UserViewList userDelete(String key) throws Exception {
 		UserNG user = Bootstrap.getAuth().getByUserKey(key);
 		if (user != null) {
@@ -94,18 +98,13 @@ public class Auth extends AJSController {
 	}
 	
 	@Check("authAdmin")
-	public static UserView userChangePassword(UserChPassword chpassword) throws Exception {
-		return Bootstrap.getAuth().changeUserPassword(chpassword).export(true, true);
-	}
-	
-	@Check("authAdmin")
 	public static UserView userToogleLock(String key) throws Exception {
 		return Bootstrap.getAuth().changeUserToogleLock(key).export(false, true);
 	}
 	
 	@Check("authAdmin")
-	public static UserView userChangeGroup(UserChGroup chgroup) throws Exception {
-		return Bootstrap.getAuth().changeUserGroups(chgroup).export(true, true);
+	public static UserView userAdminUpdate(UserAdminUpdate ch) throws Exception {
+		return Bootstrap.getAuth().changeAdminUserPasswordGroups(ch).export(false, true);
 	}
 	
 	@Check("authAdmin")
@@ -176,10 +175,10 @@ public class Auth extends AJSController {
 	}
 	
 	public static UserView changePassword(String new_clear_text_passwd) throws Exception {
-		UserChPassword chpassword = new UserChPassword();
-		chpassword.user_key = AJSController.getUserProfile().getKey();
-		chpassword.password = new_clear_text_passwd;
-		return Bootstrap.getAuth().changeUserPassword(chpassword).export(true, false);
+		UserAdminUpdate upd = new UserAdminUpdate();
+		upd.user_key = AJSController.getUserProfile().getKey();
+		upd.new_password = new_clear_text_passwd;
+		return Bootstrap.getAuth().changeAdminUserPasswordGroups(upd).export(true, false);
 	}
 	
 	public static void sendTestMail() throws Exception {

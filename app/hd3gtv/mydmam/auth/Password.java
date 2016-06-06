@@ -65,11 +65,61 @@ public class Password {
 	}
 	
 	/**
+	 * @throws SecurityException if clear_password is < 8 chars or not contain Upper/Lower/Digits
+	 */
+	private static String testIfPasswordIsStrong(String clear_password) throws SecurityException {
+		char[] chars = clear_password.toCharArray();
+		
+		boolean is_ok_1 = false;
+		boolean is_ok_2 = false;
+		boolean is_ok_3 = false;
+		
+		int real_char_num = 0;
+		for (int pos = 0; pos < chars.length; pos++) {
+			if (chars[pos] > 47 && chars[pos] < 58) {
+				/**
+				 * digits
+				 */
+				is_ok_1 = true;
+				real_char_num++;
+			}
+		}
+		for (int pos = 0; pos < chars.length; pos++) {
+			if (chars[pos] > 64 && chars[pos] < 91) {
+				/**
+				 * upper case
+				 */
+				is_ok_2 = true;
+				real_char_num++;
+			}
+		}
+		for (int pos = 0; pos < chars.length; pos++) {
+			if (chars[pos] > 64 && chars[pos] < 91) {
+				/**
+				 * lower case
+				 */
+				is_ok_3 = true;
+				real_char_num++;
+			}
+		}
+		
+		if (real_char_num < 8) {
+			throw new SecurityException("Invalid tested password: not enough characters");
+		}
+		
+		if ((is_ok_1 & is_ok_2) | (is_ok_2 & is_ok_3) | (is_ok_1 & is_ok_3)) {
+			return clear_password.trim();
+		}
+		
+		throw new SecurityException("Invalid tested password: missing digits, upper case or lower case");
+	}
+	
+	/**
 	 * @return AES(BCrypt(clear_password, 10), SHA256(master_password_key))
 	 */
-	public byte[] getHashedPassword(String clear_password) {
+	public byte[] getHashedPassword(String clear_password) throws SecurityException {
 		try {
-			byte[] hashed = (BCrypt.hashpw(clear_password, BCrypt.gensalt(10))).getBytes("UTF-8");
+			byte[] hashed = (BCrypt.hashpw(testIfPasswordIsStrong(clear_password), BCrypt.gensalt(10))).getBytes("UTF-8");
 			
 			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
 			cipher.init(Cipher.ENCRYPT_MODE, skeySpec, salt);
@@ -105,11 +155,15 @@ public class Password {
 	 * @return 12 first chars of Base64(SHA-264(random(1024b)))
 	 */
 	public static String passwordGenerator() throws NoSuchAlgorithmException, NoSuchProviderException {
-		MessageDigest md = MessageDigest.getInstance("SHA-256");
-		Random r = new Random();
-		byte[] fill = new byte[1024];
-		r.nextBytes(fill);
-		byte[] key = md.digest(fill);
-		return new String(Base64.encodeBase64String(key)).substring(0, 12);
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			Random r = new Random();
+			byte[] fill = new byte[1024];
+			r.nextBytes(fill);
+			byte[] key = md.digest(fill);
+			return testIfPasswordIsStrong(new String(Base64.encodeBase64String(key)).substring(0, 12));
+		} catch (SecurityException e) {
+			return passwordGenerator();
+		}
 	}
 }

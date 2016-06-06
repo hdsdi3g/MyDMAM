@@ -278,7 +278,7 @@ public class Secure extends Controller {
 		flash.keep("url");
 		
 		boolean force_select_domain = Bootstrap.getAuth().isForceSelectDomain();
-		List<String> authenticators_domains = Bootstrap.getAuth().declaredDomainList();
+		List<String> authenticators_domains = Bootstrap.getAuth().getDeclaredDomainList();
 		
 		render(force_select_domain, authenticators_domains);
 	}
@@ -310,7 +310,7 @@ public class Secure extends Controller {
 			String domain_name = null;
 			
 			try {
-				domain_name = Bootstrap.getAuth().declaredDomainList().get(Integer.valueOf(domainidx));
+				domain_name = Bootstrap.getAuth().getDeclaredDomainList().get(Integer.valueOf(domainidx));
 			} catch (Exception e) {
 			}
 			authuser = Bootstrap.getAuth().authenticateWithThisDomain(remote_address, username.trim().toLowerCase(), password, domain_name, Lang.getLocale().getLanguage());

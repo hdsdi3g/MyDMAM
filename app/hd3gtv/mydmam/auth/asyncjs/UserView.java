@@ -46,7 +46,7 @@ public class UserView {
 	public ArrayList<String> user_groups;
 	
 	public JsonObject preferencies;
-	public JsonObject properties;
+	public String properties;
 	public JsonObject baskets;
 	public JsonArray activities;
 	public JsonArray notifications;

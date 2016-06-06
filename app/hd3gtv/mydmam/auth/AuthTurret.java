@@ -62,8 +62,7 @@ import hd3gtv.mydmam.auth.ActiveDirectoryBackend.ADUser;
 import hd3gtv.mydmam.auth.asyncjs.GroupChRole;
 import hd3gtv.mydmam.auth.asyncjs.NewUser;
 import hd3gtv.mydmam.auth.asyncjs.RoleChPrivileges;
-import hd3gtv.mydmam.auth.asyncjs.UserChGroup;
-import hd3gtv.mydmam.auth.asyncjs.UserChPassword;
+import hd3gtv.mydmam.auth.asyncjs.UserAdminUpdate;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
@@ -402,7 +401,7 @@ public class AuthTurret {
 		return force_select_domain;
 	}
 	
-	public ArrayList<String> declaredDomainList() {
+	public ArrayList<String> getDeclaredDomainList() {
 		return cache.getAll_domains();
 	}
 	
@@ -668,7 +667,7 @@ public class AuthTurret {
 		UserNG result = getByUserKey(UserNG.computeUserKey(aduser.username, aduser.getDomain()));
 		if (result == null) {
 			result = new UserNG(this, aduser.username, aduser.getDomain());
-			result.postCreate(aduser.commonname, aduser.mail);
+			result.postCreate(aduser.commonname, aduser.mail, language);
 			result.getUserGroups().add(default_newusers_group);
 		} else if (result.isLockedAccount()) {
 			Loggers.Auth.warn("This user has its account locked in database " + result.getKey());
@@ -741,7 +740,7 @@ public class AuthTurret {
 		if (request.email_addr != null) {
 			mail = new InternetAddress(request.email_addr).getAddress();
 		}
-		newuser.postCreate(request.fullname, mail);
+		newuser.postCreate(request.fullname, mail, Locale.getDefault().getLanguage());
 		newuser.setLocked_account(request.locked_account);
 		
 		if (request.user_groups != null) {
@@ -762,15 +761,30 @@ public class AuthTurret {
 		return newuser;
 	}
 	
-	public UserNG changeUserPassword(UserChPassword request) throws ConnectionException {
+	public UserNG changeAdminUserPasswordGroups(UserAdminUpdate request) throws ConnectionException {
 		UserNG user = getByUserKey(request.user_key);
 		if (user == null) {
 			throw new NullPointerException("User " + request.user_key + " don't exists");
 		}
-		user.chpassword(request.password);
-		user.updateLastEditTime();
+		if (request.new_password != null) {
+			if (request.new_password.equals("") == false) {
+				user.chpassword(request.new_password);
+				Loggers.Auth.info("Change password for user: " + user.toString());
+			}
+		}
 		
-		Loggers.Auth.info("Change password for user: " + user.toString());
+		if (request.user_groups != null) {
+			user.getUserGroups().clear();
+			request.user_groups.forEach(group_key -> {
+				GroupNG group = getByGroupKey(group_key);
+				if (group != null) {
+					user.getUserGroups().add(group);
+				}
+			});
+			Loggers.Auth.info("Change user groups: " + user.toString());
+		}
+		
+		user.updateLastEditTime();
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		user.save(mutator.withRow(CF_AUTH, user.getKey()));
@@ -809,33 +823,6 @@ public class AuthTurret {
 		user.updateLastEditTime();
 		
 		Loggers.Auth.info("Change user mail: " + user.toString());
-		
-		MutationBatch mutator = CassandraDb.prepareMutationBatch();
-		user.save(mutator.withRow(CF_AUTH, user.getKey()));
-		mutator.execute();
-		cache.updateManuallyCache(user);
-		return user;
-	}
-	
-	public UserNG changeUserGroups(UserChGroup request) throws ConnectionException {
-		UserNG user = getByUserKey(request.user_key);
-		if (user == null) {
-			throw new NullPointerException("User " + request.user_key + " don't exists");
-		}
-		if (request.user_groups == null) {
-			return user;
-		}
-		
-		user.getUserGroups().clear();
-		request.user_groups.forEach(group_key -> {
-			GroupNG group = getByGroupKey(group_key);
-			if (group != null) {
-				user.getUserGroups().add(group);
-			}
-		});
-		user.updateLastEditTime();
-		
-		Loggers.Auth.info("Change user groups: " + user.toString());
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		user.save(mutator.withRow(CF_AUTH, user.getKey()));

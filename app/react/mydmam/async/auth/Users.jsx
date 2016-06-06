@@ -52,6 +52,10 @@ auth.Users = React.createClass({
 				} else {
 					ctrl_list.push(<span key={pos} style={{marginRight: 5}}>{group_key}</span>);
 				}
+				
+				if (pos + 1 < list.length) {
+					ctrl_list.push(<span key={pos + "dot"} style={{marginRight: 5}}>&bull;</span>);
+				}
 			}
 			return ctrl_list;
 		};
@@ -61,11 +65,11 @@ auth.Users = React.createClass({
 			var user = userlist[user_key];
 			items.push(<tr key={user_key}>
 				<td>
-					{user.fullname}
+					<a href={"#auth/user/edit/" + user_key.replace("%","::")}>{user.fullname}</a>
 				</td>
 				<td>
 					{user.login}&nbsp;
-					<small className="muted">%{user.domain}</small>&nbsp;
+					<small className="muted pull-right">{user.domain}</small>&nbsp;
 				</td>
 				<td>
 					{user.language}
@@ -98,11 +102,14 @@ auth.Users = React.createClass({
 		}
 
 		return (<div>
+			<p><a href="#auth/user/create" className="btn btn-small btn-success">{i18n("auth.usercreate")}</a></p>
 			<table className="table table-bordered table-striped table-condensed">
 				<thead>
 					<tr>
 						<th>{i18n("auth.userlongname")}</th>
-						<th>{i18n("auth.username")} / {i18n("auth.domain")}</th>
+						<th>{i18n("auth.username")}
+							<span className="pull-right">{i18n("auth.domain")}</span>
+						</th>
 						<th>{i18n("auth.lang")}</th>
 						<th>{i18n("auth.email")}</th>
 						<th>{i18n("auth.lasteditdate")}</th>
@@ -119,13 +126,272 @@ auth.Users = React.createClass({
 	}
 });
 
-//	public static UserViewList userDelete(String key) throws Exception {
-//	public static UserView userCreate(NewUser newuser) throws Exception {
-//	public static UserView userGet(String key) throws Exception {
-//	public static UserView userChangePassword(UserChPassword chpassword) throws Exception {
-//	public static UserView userChangeGroup(UserChGroup chgroup) throws Exception {
 
-// All	
+auth.UserCreate = React.createClass({
+	getInitialState: function() {
+		return {
+			locked_account: false,
+			domain_list: [],
+			user_domain: "local",
+			user_groups: [],
+			group_full_list: [],
+		};
+	},
+	componentWillMount: function() {
+		//var group_key = this.props.params.group_key;
+
+		mydmam.async.request("auth", "domainlist", null, function(domain_list) {
+			this.setState({domain_list: domain_list});
+		}.bind(this));
+
+		mydmam.async.request("auth", "grouplist", null, function(grouplist) {
+			this.setState({group_full_list: grouplist.groups});
+		}.bind(this));
+	},
+	onChangeLockedAccount: function(text, checked){
+		this.setState({locked_account: checked});
+	},
+	onChangeDomain: function(domain, checked){
+		if (checked) {
+			this.setState({user_domain: domain});
+		} else {
+			this.setState({user_domain: null});
+		}
+	},
+	onChangeGroup: function(group_key, present) {
+		var user_groups = [];
+		if (present) {
+			user_groups = this.state.user_groups.slice(0);
+			user_groups.push(group_key);
+		} else {
+			for (pos in this.state.user_groups) {
+				if (this.state.user_groups[pos] != group_key) {
+					user_groups.push(this.state.user_groups[pos]);
+				}
+			}
+		}
+		this.setState({user_groups: user_groups});
+	},
+	onAddBtnClick: function(e) {
+		var password  = React.findDOMNode(this.refs.password).value;
+		var password2 = React.findDOMNode(this.refs.password2).value;
+		if (password != password2) {
+			React.findDOMNode(this.refs.password).value = "";
+			React.findDOMNode(this.refs.password2).value = "";
+			return;
+		}
+
+		var new_user = {
+			login: React.findDOMNode(this.refs.login).value,
+			fullname: React.findDOMNode(this.refs.fullname).value,
+			email_addr: React.findDOMNode(this.refs.email_addr).value,
+			password: password,
+			locked_account: this.state.locked_account,
+			domain: this.state.user_domain,
+			user_groups: this.state.user_groups,
+		}
+
+		mydmam.async.request("auth", "usercreate", new_user, function(new_user) {
+			window.location = "#auth/users";
+		}.bind(this));
+	},
+	render: function(){
+		var FormControlGroup = mydmam.async.FormControlGroup;
+		var CheckboxItem = mydmam.async.CheckboxItem;
+
+		var cb_domain = [];
+		var domain_list = this.state.domain_list;
+		for (pos in domain_list) {
+			var domain = domain_list[pos];
+			var is_checked = (domain == this.state.user_domain);
+			cb_domain.push(<CheckboxItem key={domain} checked={is_checked} reference={domain} onChangeCheck={this.onChangeDomain}>
+				{domain}
+			</CheckboxItem>);
+		}
+
+		var cb_groups = [];
+		var group_full_list = this.state.group_full_list;
+		for (group_key in group_full_list) {
+			var is_checked = this.state.user_groups.indexOf(group_key) > -1;
+			cb_groups.push(<CheckboxItem key={group_key} checked={is_checked} reference={group_key} onChangeCheck={this.onChangeGroup}>
+				{group_full_list[group_key].group_name}
+			</CheckboxItem>);
+		}
+
+		return (
+			<mydmam.async.PageHeaderTitle title={i18n("auth.usercreate")} fluid="false">
+				<form className="form-horizontal" onSubmit={this.onAddBtnClick}>
+					<FormControlGroup label={i18n("auth.fullname")}>
+						<input type="text" placeholder={i18n("auth.fullname")} ref="fullname" />
+					</FormControlGroup>
+					<FormControlGroup label={i18n("auth.email_addr")}>
+						<input type="email" placeholder={i18n("auth.email_addr")} ref="email_addr" />
+					</FormControlGroup>
+					<FormControlGroup label={i18n("auth.login")}>
+						<input type="text" placeholder={i18n("auth.login")} ref="login" />
+					</FormControlGroup>
+					<FormControlGroup label={i18n("auth.password")}>
+						<input type="password" placeholder={i18n("auth.password")} ref="password" />
+					</FormControlGroup>
+					<FormControlGroup label={i18n("auth.password2")}>
+						<input type="password" placeholder={i18n("auth.password2")} ref="password2" />
+					</FormControlGroup>
+					<FormControlGroup label={i18n("auth.locked_account")}>
+						<CheckboxItem checked={this.state.locked_account} reference={"locked_account"} onChangeCheck={this.onChangeLockedAccount}>
+							{i18n("auth.locked_account_help")}
+						</CheckboxItem>
+					</FormControlGroup>
+					<FormControlGroup label={i18n("auth.domain")}>
+						{cb_domain}
+					</FormControlGroup>
+					<FormControlGroup label={i18n("auth.groups")}>
+						{cb_groups}
+					</FormControlGroup>
+
+					<FormControlGroup>
+						<button type="submit" className="btn btn-success"><i className="icon-ok icon-white"></i> {i18n("auth.create")}</button>
+					</FormControlGroup>
+
+					<FormControlGroup>
+						<a type="cancel" className="btn btn-info" href="#auth/users"><i className="icon-chevron-left icon-white"></i> {i18n("auth.goback")}</a>
+					</FormControlGroup>
+				</form>
+			</mydmam.async.PageHeaderTitle>
+		);
+	},
+});
+
+auth.UserEdit = React.createClass({
+	getInitialState: function() {
+		return {
+			user_groups: [],
+			group_full_list: [],
+			user: null,
+		};
+	},
+	componentWillMount: function() {
+		var user_key = this.props.params.user_key.replace("::","%");
+
+		mydmam.async.request("auth", "userget", user_key, function(user) {
+			this.setState({user: user, user_groups: user.user_groups});
+		}.bind(this));
+
+		mydmam.async.request("auth", "grouplist", null, function(grouplist) {
+			this.setState({group_full_list: grouplist.groups});
+		}.bind(this));
+	},
+	onChangeGroup: function(group_key, present) {
+		var user_groups = [];
+		if (present) {
+			user_groups = this.state.user_groups.slice(0);
+			user_groups.push(group_key);
+		} else {
+			for (pos in this.state.user_groups) {
+				if (this.state.user_groups[pos] != group_key) {
+					user_groups.push(this.state.user_groups[pos]);
+				}
+			}
+		}
+		this.setState({user_groups: user_groups});
+	},
+	onUpdBtnClick: function(e) {
+		var password  = React.findDOMNode(this.refs.password).value;
+		var password2 = React.findDOMNode(this.refs.password2).value;
+		if (password && password2) {
+			if (password != password2) {
+				React.findDOMNode(this.refs.password).value = "";
+				React.findDOMNode(this.refs.password2).value = "";
+				return;
+			}
+		} else {
+			password = "";
+		}	
+
+		var update_user = {
+			user_key: this.props.params.user_key.replace("::","%"),
+			new_password: password,
+			user_groups: this.state.user_groups,
+		}
+
+		mydmam.async.request("auth", "useradminupdate", update_user, function(user) {
+			window.location = "#auth/users";
+		}.bind(this));
+	},
+	onDeleteBtnClick: function(e){
+		if (window.confirm(i18n("auth.confirmremoveaccount", this.state.user.fullname))) {
+			mydmam.async.request("auth", "userdelete", this.props.params.user_key.replace("::","%"), function(list) {
+				window.location = "#auth/users";
+			}.bind(this));
+		}
+	},
+	render: function(){
+		var FormControlGroup = mydmam.async.FormControlGroup;
+		var CheckboxItem = mydmam.async.CheckboxItem;
+		var user = this.state.user;
+		if (user == null) {
+			return (
+				<mydmam.async.PageHeaderTitle title={i18n("auth.userupdate")} fluid="false">
+				<mydmam.async.PageLoadingProgressBar />
+			</mydmam.async.PageHeaderTitle>
+			);
+		}
+
+		var is_local_user = (user.domain == "local");
+		var password_form = null;
+		if (is_local_user) {
+			var password_form = (<span>
+				<FormControlGroup label={i18n("auth.password")}>
+					<input type="password" placeholder={i18n("auth.password")} ref="password" />
+				</FormControlGroup>
+				<FormControlGroup label={i18n("auth.password2")}>
+					<input type="password" placeholder={i18n("auth.password2")} ref="password2" />
+				</FormControlGroup>
+			</span>);
+		} else {
+			/** Domain users can't change passwords here */
+			var password_form = (<span>
+				<input type="hidden" value="" ref="password" /><input type="hidden" value="" ref="password2" />
+			</span>);
+		}
+
+		var cb_groups = [];
+		var group_full_list = this.state.group_full_list;
+		for (group_key in group_full_list) {
+			var is_checked = this.state.user_groups.indexOf(group_key) > -1;
+			cb_groups.push(<CheckboxItem key={group_key} checked={is_checked} reference={group_key} onChangeCheck={this.onChangeGroup}>
+				{group_full_list[group_key].group_name}
+			</CheckboxItem>);
+		}
+
+		return (
+			<mydmam.async.PageHeaderTitle title={i18n("auth.userupdate", user.fullname)} fluid="false">
+				<form className="form-horizontal" onSubmit={this.onUpdBtnClick}>
+					{password_form}
+					<FormControlGroup label={i18n("auth.groups")}>
+						{cb_groups}
+					</FormControlGroup>
+
+					<FormControlGroup>
+						<button type="submit" className="btn btn-success"><i className="icon-ok icon-white"></i> {i18n("auth.update")}</button>
+					</FormControlGroup>
+
+					<FormControlGroup>
+						<a type="cancel" className="btn btn-info" href="#auth/users"><i className="icon-chevron-left icon-white"></i> {i18n("auth.goback")}</a>
+					</FormControlGroup>
+
+					<FormControlGroup>
+						<a className="btn btn-danger btn-mini" onClick={this.onDeleteBtnClick}><i className="icon-remove icon-white"></i> {i18n("auth.remove")}</a>
+					</FormControlGroup>
+				</form>
+			</mydmam.async.PageHeaderTitle>
+		);
+	},
+});
+
+mydmam.routes.push("auth-user-create", "auth/user/create",			auth.UserCreate, [{name: "auth", verb: "usercreate"}]);	
+mydmam.routes.push("auth-user-view", "auth/user/edit/:user_key",	auth.UserEdit, [{name: "auth", verb: "usercreate"}]);	
+
+// All
 //	public static JsonObject getPreferencies() throws Exception {
 //	public static UserView changePassword(String new_clear_text_passwd) throws Exception {
 //	public static void sendTestMail() throws Exception {
