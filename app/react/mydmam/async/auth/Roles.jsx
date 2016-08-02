@@ -183,6 +183,10 @@ auth.RoleEdit = React.createClass({
 		return (
 			<mydmam.async.PageHeaderTitle title={i18n("auth.roleedit", this.state.role_name)} fluid="false">
 				<form className="form-horizontal" onSubmit={this.onEditBtnClick}>
+					<FormControlGroup label={i18n("auth.remove-label")}>
+						<a className="btn btn-danger" onClick={this.onDeleteBtnClick}><i className="icon-remove icon-white"></i> {i18n("auth.remove")}</a>
+					</FormControlGroup>
+
 					<FormControlGroup label={i18n("auth.privileges")}>
 						{cb_list}
 					</FormControlGroup>
@@ -193,10 +197,6 @@ auth.RoleEdit = React.createClass({
 
 					<FormControlGroup>
 						<a type="cancel" className="btn btn-info" href="#auth/roles"><i className="icon-chevron-left icon-white"></i> {i18n("auth.goback")}</a>
-					</FormControlGroup>
-
-					<FormControlGroup>
-						<a className="btn btn-danger btn-mini" onClick={this.onDeleteBtnClick}><i className="icon-remove icon-white"></i> {i18n("auth.remove")}</a>
 					</FormControlGroup>
 				</form>
 			</mydmam.async.PageHeaderTitle>

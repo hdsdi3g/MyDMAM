@@ -73,7 +73,7 @@ import play.Play;
 
 public class AuthTurret {
 	
-	private static final ColumnFamily<String, String> CF_AUTH = new ColumnFamily<String, String>("mgrAuth", StringSerializer.get(), StringSerializer.get());
+	static final ColumnFamily<String, String> CF_AUTH = new ColumnFamily<String, String>("mgrAuth", StringSerializer.get(), StringSerializer.get());
 	
 	private Gson gson_simple;
 	private Gson gson;
@@ -266,6 +266,10 @@ public class AuthTurret {
 		}
 	}
 	
+	Cache getCache() {
+		return cache;
+	}
+	
 	public String resetAdminPassword() throws ConnectionException, NoSuchAlgorithmException, NoSuchProviderException, IOException {
 		UserNG default_admin_user = getByUserKey((new UserNG(this, "admin", "local").getKey()));
 		if (default_admin_user == null) {
@@ -407,14 +411,23 @@ public class AuthTurret {
 	
 	public UserNG getByUserKey(String user_key) {
 		// Loggers.Auth.trace("getByUserKey: " + user_key);
+		if (cache.getAll_users().containsKey(user_key) == false) {
+			return null;
+		}
 		return cache.getAll_users().get(user_key);
 	}
 	
 	public GroupNG getByGroupKey(String group_key) {
+		if (cache.getAll_groups().containsKey(group_key) == false) {
+			return null;
+		}
 		return cache.getAll_groups().get(group_key);
 	}
 	
 	public RoleNG getByRoleKey(String role_key) {
+		if (cache.getAll_roles().containsKey(role_key) == false) {
+			return null;
+		}
 		return cache.getAll_roles().get(role_key);
 	}
 	
@@ -430,7 +443,7 @@ public class AuthTurret {
 		return cache.getAll_roles();
 	}
 	
-	private class Cache {
+	class Cache {
 		private long last_groups_fetch_date;
 		private long last_users_fetch_date;
 		private long last_roles_fetch_date;
@@ -520,15 +533,18 @@ public class AuthTurret {
 								if (row.getKey().startsWith("group:") == false) {
 									return;
 								}
+								GroupNG group;
 								if (all_groups.containsKey(row.getKey())) {
-									all_groups.get(row.getKey()).loadFromDb(row.getColumns());
+									group = all_groups.get(row.getKey());
+									group.loadFromDb(row.getColumns());
 								} else {
-									GroupNG group = new GroupNG(referer, row.getKey(), false);
+									group = new GroupNG(referer, row.getKey(), false);
 									group.loadFromDb(row.getColumns());
 									all_groups.put(row.getKey(), group);
 								}
 							}
 						}, GroupNG.COLS_NAMES_LIMITED_TO_DB_IMPORT);
+						
 					} catch (ConnectionException e1) {
 						onConnectionException(e1);
 					} catch (Exception e) {
@@ -546,21 +562,49 @@ public class AuthTurret {
 					last_roles_fetch_date = System.currentTimeMillis();
 					
 					try {
+						MutationBatch mutator = CassandraDb.prepareMutationBatch();
+						ArrayList<String> privileges_to_remove = new ArrayList<String>(1);
+						
 						CassandraDb.allRowsReader(CF_AUTH, new AllRowsFoundRow() {
 							
 							public void onFoundRow(Row<String, String> row) throws Exception {
 								if (row.getKey().startsWith("role:") == false) {
 									return;
 								}
+								RoleNG role;
 								if (all_roles.containsKey(row.getKey())) {
-									all_roles.get(row.getKey()).loadFromDb(row.getColumns());
+									role = all_roles.get(row.getKey());
+									role.loadFromDb(row.getColumns());
 								} else {
-									RoleNG role = new RoleNG(referer, row.getKey(), false);
+									role = new RoleNG(referer, row.getKey(), false);
 									role.loadFromDb(row.getColumns());
 									all_roles.put(row.getKey(), role);
 								}
+								
+								/**
+								 * Check & remove missing privileges
+								 */
+								if (role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {
+									privileges_to_remove.clear();
+									role.getPrivileges().forEach(v -> {
+										if (PrivilegeNG.getAllPrivilegesName().contains(v) == false) {
+											privileges_to_remove.add(v);
+										}
+									});
+									if (privileges_to_remove.isEmpty() == false) {
+										Loggers.Auth.info("Remove old privileges from \"" + role + "\": " + privileges_to_remove);
+										privileges_to_remove.forEach(v -> {
+											role.getPrivileges().remove(v);
+										});
+										role.save(mutator.withRow(CF_AUTH, role.getKey()));
+									}
+								}
 							}
 						}, RoleNG.COLS_NAMES_LIMITED_TO_DB_IMPORT);
+						
+						if (mutator.isEmpty() == false) {
+							mutator.execute();
+						}
 					} catch (ConnectionException e1) {
 						onConnectionException(e1);
 					} catch (Exception e) {

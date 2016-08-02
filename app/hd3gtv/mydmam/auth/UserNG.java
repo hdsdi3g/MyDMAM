@@ -32,12 +32,14 @@ import javax.mail.internet.InternetAddress;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.asyncjs.UserView;
+import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import play.i18n.Lang;
 
@@ -144,9 +146,16 @@ public class UserNG implements AuthEntry {
 		if (col != null) {
 			ArrayList<String> group_keys = turret.getGson().fromJson(col.getStringValue(), al_String_typeOfT);
 			user_groups = new ArrayList<GroupNG>(group_keys.size() + 1);
-			group_keys.forEach(group_key -> {
-				user_groups.add(turret.getByGroupKey(group_key));
-			});
+			ArrayList<String> old_group_keys = new ArrayList<>();
+			
+			checkAndSetGroups(group_keys, old_group_keys);
+			if (old_group_keys.isEmpty() == false) {
+				try {
+					saveGroups(old_group_keys);
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
 		} else {
 			user_groups = new ArrayList<>();
 		}
@@ -301,20 +310,46 @@ public class UserNG implements AuthEntry {
 			user_groups = new ArrayList<GroupNG>(1);
 			ColumnList<String> cols;
 			try {
+				ArrayList<String> old_groups_keys = new ArrayList<String>(1);
+				final ArrayList<String> groups_keys = new ArrayList<String>(1);
+				
 				cols = turret.prepareQuery().getKey(key).withColumnSlice("user_groups").execute().getResult();
 				if (cols.getColumnNames().contains("user_groups")) {
 					if (cols.getColumnByName("user_groups").hasValue()) {
-						ArrayList<String> group_keys = turret.getGson().fromJson(cols.getColumnByName("user_groups").getStringValue(), al_String_typeOfT);
-						group_keys.forEach(group_key -> {
-							user_groups.add(turret.getByGroupKey(group_key));
-						});
+						groups_keys.clear();
+						groups_keys.addAll(turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT));
+						checkAndSetGroups(groups_keys, old_groups_keys);
 					}
+				}
+				
+				if (old_groups_keys.isEmpty() == false) {
+					saveGroups(old_groups_keys);
 				}
 			} catch (ConnectionException e) {
 				turret.onConnectionException(e);
 			}
 		}
 		return user_groups;
+	}
+	
+	private void checkAndSetGroups(ArrayList<String> group_keys, ArrayList<String> old_group_keys) {
+		group_keys.forEach(group_key -> {
+			GroupNG group = turret.getByGroupKey(group_key);
+			if (group != null) {
+				user_groups.add(group);
+			} else {
+				old_group_keys.add(group_key);
+			}
+		});
+	}
+	
+	private void saveGroups(ArrayList<String> old_group_keys) throws ConnectionException {
+		Loggers.Auth.info("Missing groups for user " + this + ", remove " + old_group_keys);
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		save(mutator.withRow(AuthTurret.CF_AUTH, getKey()));
+		mutator.execute();
+		turret.getCache().updateManuallyCache(this);
 	}
 	
 	public UserNG setUserGroups(List<GroupNG> user_groups) {

@@ -24,11 +24,13 @@ import java.util.List;
 
 import com.google.common.reflect.TypeToken;
 import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.asyncjs.GroupView;
+import hd3gtv.mydmam.db.CassandraDb;
 
 public class GroupNG implements AuthEntry {
 	
@@ -70,9 +72,16 @@ public class GroupNG implements AuthEntry {
 		if (cols.getColumnByName("group_roles") != null) {
 			ArrayList<String> roles_keys = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT);
 			group_roles = new ArrayList<RoleNG>(roles_keys.size() + 1);
-			roles_keys.forEach(role_key -> {
-				group_roles.add(turret.getByRoleKey(role_key));
-			});
+			
+			ArrayList<String> old_roles_keys = new ArrayList<>();
+			checkAndSetRoles(roles_keys, old_roles_keys);
+			if (old_roles_keys.isEmpty() == false) {
+				try {
+					saveRoles(old_roles_keys);
+				} catch (ConnectionException e) {
+					turret.onConnectionException(e);
+				}
+			}
 		} else {
 			group_roles = null;
 		}
@@ -124,22 +133,49 @@ public class GroupNG implements AuthEntry {
 		return this;
 	}
 	
+	private void checkAndSetRoles(ArrayList<String> roles_keys, ArrayList<String> old_roles_keys) {
+		roles_keys.forEach(role_key -> {
+			RoleNG role = turret.getByRoleKey(role_key);
+			if (role != null) {
+				group_roles.add(role);
+			} else {
+				old_roles_keys.add(role_key);
+			}
+		});
+	}
+	
+	private void saveRoles(ArrayList<String> old_roles_keys) throws ConnectionException {
+		Loggers.Auth.info("Missing roles for group " + this + ", remove " + old_roles_keys);
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		save(mutator.withRow(AuthTurret.CF_AUTH, getKey()));
+		mutator.execute();
+		turret.getCache().updateManuallyCache(this);
+	}
+	
 	public ArrayList<RoleNG> getGroupRoles() {
 		if (group_roles == null) {
 			group_roles = new ArrayList<RoleNG>(1);
 			if (Loggers.Auth.isTraceEnabled()) {
 				Loggers.Auth.trace("getGroupRoles from db " + key);
 			}
+			
 			ColumnList<String> cols;
 			try {
+				ArrayList<String> old_roles_keys = new ArrayList<String>(1);
+				final ArrayList<String> roles_keys = new ArrayList<String>(1);
+				
 				cols = turret.prepareQuery().getKey(key).withColumnSlice("group_roles").execute().getResult();
 				if (cols.getColumnNames().contains("group_roles")) {
 					if (cols.getColumnByName("group_roles").hasValue()) {
-						ArrayList<String> roles_keys = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT);
-						roles_keys.forEach(role_key -> {
-							group_roles.add(turret.getByRoleKey(role_key));
-						});
+						roles_keys.clear();
+						roles_keys.addAll(turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT));
+						checkAndSetRoles(roles_keys, old_roles_keys);
 					}
+				}
+				
+				if (old_roles_keys.isEmpty() == false) {
+					saveRoles(old_roles_keys);
 				}
 			} catch (ConnectionException e) {
 				turret.onConnectionException(e);

@@ -232,6 +232,7 @@ auth.UserCreate = React.createClass({
 					</FormControlGroup>
 					<FormControlGroup label={i18n("auth.password")}>
 						<input type="password" placeholder={i18n("auth.password")} ref="password" />
+						<span className="help-block">{i18n("auth.password-hint")}</span>
 					</FormControlGroup>
 					<FormControlGroup label={i18n("auth.password2")}>
 						<input type="password" placeholder={i18n("auth.password2")} ref="password2" />
@@ -342,6 +343,7 @@ auth.UserEdit = React.createClass({
 			var password_form = (<span>
 				<FormControlGroup label={i18n("auth.password")}>
 					<input type="password" placeholder={i18n("auth.password")} ref="password" />
+					<span className="help-block">{i18n("auth.password-hint")}</span>
 				</FormControlGroup>
 				<FormControlGroup label={i18n("auth.password2")}>
 					<input type="password" placeholder={i18n("auth.password2")} ref="password2" />
@@ -366,6 +368,10 @@ auth.UserEdit = React.createClass({
 		return (
 			<mydmam.async.PageHeaderTitle title={i18n("auth.userupdate", user.fullname)} fluid="false">
 				<form className="form-horizontal" onSubmit={this.onUpdBtnClick}>
+					<FormControlGroup label={i18n("auth.remove-label")}>
+						<a className="btn btn-danger" onClick={this.onDeleteBtnClick}><i className="icon-remove icon-white"></i> {i18n("auth.remove")}</a>
+					</FormControlGroup>
+
 					{password_form}
 					<FormControlGroup label={i18n("auth.groups")}>
 						{cb_groups}
@@ -379,9 +385,6 @@ auth.UserEdit = React.createClass({
 						<a type="cancel" className="btn btn-info" href="#auth/users"><i className="icon-chevron-left icon-white"></i> {i18n("auth.goback")}</a>
 					</FormControlGroup>
 
-					<FormControlGroup>
-						<a className="btn btn-danger btn-mini" onClick={this.onDeleteBtnClick}><i className="icon-remove icon-white"></i> {i18n("auth.remove")}</a>
-					</FormControlGroup>
 				</form>
 			</mydmam.async.PageHeaderTitle>
 		);
