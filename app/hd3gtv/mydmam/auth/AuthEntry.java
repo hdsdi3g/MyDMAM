@@ -18,12 +18,18 @@ package hd3gtv.mydmam.auth;
 
 import com.netflix.astyanax.ColumnListMutation;
 
-public interface AuthEntry {
+public interface AuthEntry extends Comparable<AuthEntry> {
 	
 	void delete(ColumnListMutation<String> mutator);
 	
 	public String getKey();
 	
 	public void save(ColumnListMutation<String> mutator);
+	
+	public String getName();
+	
+	default public int compareTo(AuthEntry o) {
+		return getName().compareToIgnoreCase(o.getName());
+	}
 	
 }

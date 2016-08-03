@@ -102,6 +102,10 @@ public class RoleNG implements AuthEntry {
 		this.key = AuthTurret.makeKey("role", role_name);
 	}
 	
+	public String getName() {
+		return role_name;
+	}
+	
 	RoleNG update(Set<String> privileges) {
 		if (privileges == null) {
 			throw new NullPointerException("\"privileges\" can't to be null");

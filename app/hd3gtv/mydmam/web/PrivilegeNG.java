@@ -22,7 +22,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -42,10 +42,10 @@ public class PrivilegeNG {
 	public static final String PLAY_CONTROLLERS_PATH = "/app/controllers";
 	public static final String PLAY_CONTROLLERS_PACKAGE_NAME = "controllers";
 	
-	private static final HashMap<String, PrivilegeNG> all_privileges;
+	private static final LinkedHashMap<String, PrivilegeNG> all_privileges;
 	
 	static {
-		all_privileges = new HashMap<String, PrivilegeNG>();
+		all_privileges = new LinkedHashMap<String, PrivilegeNG>();
 		
 		/**
 		 * Get all class files from all PLAY_CONTROLLERS_PATH directory, module by module.

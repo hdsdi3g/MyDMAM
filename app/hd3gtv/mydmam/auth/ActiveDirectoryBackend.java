@@ -19,6 +19,7 @@ package hd3gtv.mydmam.auth;
 
 import static javax.naming.directory.SearchControls.SUBTREE_SCOPE;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 
@@ -109,7 +110,7 @@ class ActiveDirectoryBackend {
 					Attribute user = attr.get("userPrincipalName");
 					if (user != null) {
 						if (Loggers.Auth.isDebugEnabled()) {
-							Loggers.Auth.trace("Valid user founded from " + toString() + ", user: " + username);
+							Loggers.Auth.debug("Valid user founded from " + toString() + ", user: " + username);
 						}
 						return new ADUser(username, attr);
 					}
@@ -144,9 +145,10 @@ class ActiveDirectoryBackend {
 		public String mail;
 		
 		/**
-		 * User's group (root group)
+		 * User's groups (root group)
+		 * OU=MyService,OU=MyCompany => [MyService, MyCompany]
 		 */
-		public String group;
+		public ArrayList<String> organizational_units;
 		
 		private ADUser(String username, Attributes attr) throws NamingException {
 			this.username = username;
@@ -166,10 +168,12 @@ class ActiveDirectoryBackend {
 				mail = (String) attr.get("mail").get();
 			}
 			
+			organizational_units = new ArrayList<String>(1);
+			
 			String dn_values = (String) attr.get("distinguishedName").get();
 			Arrays.asList(dn_values.split(",")).forEach(v -> {
-				if (v.toLowerCase().startsWith("ou")) {
-					group = v.substring(3);
+				if (v.toLowerCase().startsWith("ou=")) {
+					organizational_units.add(v.substring(3));
 				}
 			});
 		}
@@ -184,8 +188,8 @@ class ActiveDirectoryBackend {
 			sb.append(userprincipal);
 			sb.append(", commonname: ");
 			sb.append(commonname);
-			sb.append(", group: ");
-			sb.append(group);
+			sb.append(", organizational_units: ");
+			sb.append(organizational_units);
 			sb.append(", mail: ");
 			sb.append(mail);
 			return sb.toString();

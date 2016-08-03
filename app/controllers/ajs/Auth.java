@@ -16,7 +16,10 @@
 */
 package controllers.ajs;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 
 import com.google.gson.JsonArray;
@@ -24,6 +27,7 @@ import com.google.gson.JsonObject;
 
 import controllers.Check;
 import ext.Bootstrap;
+import hd3gtv.mydmam.auth.AuthEntry;
 import hd3gtv.mydmam.auth.GroupNG;
 import hd3gtv.mydmam.auth.RoleNG;
 import hd3gtv.mydmam.auth.UserNG;
@@ -77,9 +81,11 @@ public class Auth extends AJSController {
 	public static UserViewList userList() throws Exception {
 		UserViewList result = new UserViewList();
 		result.users = new LinkedHashMap<String, UserView>();
-		Bootstrap.getAuth().getAllUsers().forEach((k, v) -> {
-			result.users.put(k, v.export(false, true));
+		
+		sortList(Bootstrap.getAuth().getAllUsers().values()).forEach(v -> {
+			result.users.put(v.getKey(), ((UserNG) v).export(false, true));
 		});
+		
 		return result;
 	}
 	
@@ -112,13 +118,30 @@ public class Auth extends AJSController {
 		return Bootstrap.getAuth().createGroup(new_group_name).export();
 	}
 	
+	private static ArrayList<AuthEntry> sortList(Collection<?> source) {
+		if (source.isEmpty()) {
+			return new ArrayList<>(1);
+		}
+		ArrayList<AuthEntry> result = new ArrayList<AuthEntry>(source.size());
+		
+		source.forEach(v -> {
+			result.add((AuthEntry) v);
+		});
+		
+		Collections.sort(result);
+		
+		return result;
+	}
+	
 	@Check("authAdmin")
 	public static GroupViewList groupList() throws Exception {
 		GroupViewList result = new GroupViewList();
 		result.groups = new LinkedHashMap<String, GroupView>();
-		Bootstrap.getAuth().getAllGroups().forEach((k, v) -> {
-			result.groups.put(k, v.export());
+		
+		sortList(Bootstrap.getAuth().getAllGroups().values()).forEach(v -> {
+			result.groups.put(v.getKey(), ((GroupNG) v).export());
 		});
+		
 		return result;
 	}
 	
@@ -145,9 +168,11 @@ public class Auth extends AJSController {
 	public static RoleViewList roleList() throws Exception {
 		RoleViewList result = new RoleViewList();
 		result.roles = new LinkedHashMap<String, RoleView>();
-		Bootstrap.getAuth().getAllRoles().forEach((k, v) -> {
-			result.roles.put(k, v.export());
+		
+		sortList(Bootstrap.getAuth().getAllRoles().values()).forEach(v -> {
+			result.roles.put(v.getKey(), ((RoleNG) v).export());
 		});
+		
 		return result;
 	}
 	
@@ -194,22 +219,18 @@ public class Auth extends AJSController {
 	}
 	
 	public static JsonObject basketsList() throws Exception {
-		// TODO basketsList
 		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketPush(BasketUpdate update) throws Exception {
-		// TODO basketPush
 		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketDelete(String basket_key) throws Exception {
-		// TODO basketDelete
 		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
 	public static JsonObject basketRename(BasketRename rename) throws Exception {
-		// TODO basketRename
 		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
 	}
 	
@@ -218,7 +239,6 @@ public class Auth extends AJSController {
 	}
 	
 	public static JsonArray notificationCheck(String notification_key) throws Exception {
-		// TODO notificationCheck
 		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
 	}
 	

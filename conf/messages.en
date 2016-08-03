@@ -312,6 +312,10 @@ auth.login=Login
 auth.locked_account=Locked account
 auth.locked_account_help=If checked, the user will not be able to log in.
 auth.update=Update
+auth.confirmremoveaccount=Do you confirm to remove this account ?
+auth.confirmremove=Do you confirm to remove this ?
+auth.save=Save
+auth.groupedit=Group settings
 
 mime.video-mpeg=MPEG Video
 mime.application-pdf=PDF Document

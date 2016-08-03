@@ -243,6 +243,10 @@ public class UserNG implements AuthEntry {
 		createdate = System.currentTimeMillis();
 	}
 	
+	public String getName() {
+		return login;
+	}
+	
 	UserNG update(String fullname, String language, String email_addr, boolean locked_account) {
 		if (fullname == null) {
 			throw new NullPointerException("\"fullname\" can't to be null");

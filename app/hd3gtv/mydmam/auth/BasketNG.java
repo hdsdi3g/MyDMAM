@@ -18,6 +18,6 @@ package hd3gtv.mydmam.auth;
 
 public class BasketNG {
 	
-	// TODO import/export db
+	// TODO BasketNG
 	
 }

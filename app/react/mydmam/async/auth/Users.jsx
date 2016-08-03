@@ -53,7 +53,7 @@ auth.Users = React.createClass({
 					ctrl_list.push(<span key={pos} style={{marginRight: 5}}>{group_key}</span>);
 				}
 				
-				if (pos + 1 < list.length) {
+				if (pos != list.length - 1) {
 					ctrl_list.push(<span key={pos + "dot"} style={{marginRight: 5}}>&bull;</span>);
 				}
 			}
@@ -72,10 +72,7 @@ auth.Users = React.createClass({
 					<small className="muted pull-right">{user.domain}</small>&nbsp;
 				</td>
 				<td>
-					{user.language}
-				</td>
-				<td>
-					{user.email_addr}
+					{user.language} &bull; <small><a href={"mailto:" + user.email_addr}>{user.email_addr}</a></small>
 				</td>
 				<td>
 					<mydmam.async.pathindex.reactDate date={user.lasteditdate} />
@@ -85,7 +82,7 @@ auth.Users = React.createClass({
 					&nbsp;<small>{user.lastloginipsource}</small>
 				</td>
 				<td>
-					{toList(user.user_groups)}
+					<small>{toList(user.user_groups)}</small>
 				</td>
 				<td>
 					<mydmam.async.BtnEnableDisable
@@ -110,8 +107,7 @@ auth.Users = React.createClass({
 						<th>{i18n("auth.username")}
 							<span className="pull-right">{i18n("auth.domain")}</span>
 						</th>
-						<th>{i18n("auth.lang")}</th>
-						<th>{i18n("auth.email")}</th>
+						<th>{i18n("auth.lang")} &bull; {i18n("auth.email")}</th>
 						<th>{i18n("auth.lasteditdate")}</th>
 						<th>{i18n("auth.lastlogin")}</th>
 						<th>{i18n("auth.groups")}</th>

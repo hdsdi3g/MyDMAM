@@ -724,37 +724,56 @@ public class AuthTurret {
 		if (aduser == null) {
 			return null;
 		}
-		UserNG result = getByUserKey(UserNG.computeUserKey(aduser.username, aduser.getDomain()));
-		if (result == null) {
-			result = new UserNG(this, aduser.username, aduser.getDomain());
-			result.postCreate(aduser.commonname, aduser.mail, language);
-			result.getUserGroups().add(default_newusers_group);
-		} else if (result.isLockedAccount()) {
-			Loggers.Auth.warn("This user has its account locked in database " + result.getKey());
+		UserNG user = getByUserKey(UserNG.computeUserKey(aduser.username, aduser.getDomain()));
+		final ArrayList<Boolean> need_to_reset_cache = new ArrayList<>(1);
+		if (user == null) {
+			user = new UserNG(this, aduser.username, aduser.getDomain());
+			user.postCreate(aduser.commonname, aduser.mail, language);
+			user.getUserGroups().add(default_newusers_group);
+			need_to_reset_cache.add(true);
+		} else if (user.isLockedAccount()) {
+			Loggers.Auth.warn("This user has its account locked in database " + user);
 			return null;
 		}
 		
+		final UserNG result = user;
 		result.doLoginOperations(remote_address, language);
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		
-		if (aduser.group != null) {
-			if (aduser.group.trim().isEmpty() == false) {
-				GroupNG current_backend_group = new GroupNG(this, aduser.group);
+		if (aduser.organizational_units != null) {
+			StringBuilder current = new StringBuilder();
+			
+			for (int pos = aduser.organizational_units.size() - 1; pos > -1; pos--) {
+				String ou = aduser.organizational_units.get(pos);
+				
+				if (ou.trim().isEmpty()) {
+					continue;
+				}
+				GroupNG current_backend_group = new GroupNG(this, current.toString() + ou);
 				if (getByGroupKey(current_backend_group.getKey()) == null) {
 					current_backend_group.save(mutator.withRow(CF_AUTH, current_backend_group.getKey()));
+					need_to_reset_cache.add(true);
 				} else {
 					current_backend_group = getByGroupKey(current_backend_group.getKey());
 				}
 				
 				if (result.getUserGroups().contains(current_backend_group) == false) {
 					result.getUserGroups().add(current_backend_group);
+					need_to_reset_cache.add(true);
 				}
+				current.append(ou);
+				current.append("/");
 			}
 		}
 		
 		result.save(mutator.withRow(CF_AUTH, result.getKey()));
 		mutator.execute();
+		
+		if (need_to_reset_cache.isEmpty() == false) {
+			cache.resetCache();
+		}
+		
 		return result;
 	}
 	

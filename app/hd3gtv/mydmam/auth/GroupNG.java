@@ -121,7 +121,7 @@ public class GroupNG implements AuthEntry {
 		key = AuthTurret.makeKey("group", group_name);
 	}
 	
-	public String getGroupName() {
+	public String getName() {
 		return group_name;
 	}
 	
