@@ -1,8 +1,0 @@
-%{
-	args = new HashMap<String, Object>();
-	args.put("objtype", _objtype);
-	args.put("targetmethod", _targetmethod);
-	args.put("key", _key);
-	play.mvc.Router.ActionDefinition ad = play.mvc.Router.reverse(_targetcontroller + ".action", args);
-	out.println(ad.url);
-}%

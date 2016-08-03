@@ -49,7 +49,7 @@ public final class Loggers {
 	public final static Logger Cassandra = Logger.getLogger("mydmam.cassandra");
 	public final static Logger Metadata = Logger.getLogger("mydmam.metadata");
 	public final static Logger Metadata_Commitlog = Logger.getLogger("mydmam.metadata.commitlog");
-	public final static Logger ORM = Logger.getLogger("mydmam.orm");
+	// public final static Logger ORM = Logger.getLogger("mydmam.orm");
 	public final static Logger ElasticSearch = Logger.getLogger("mydmam.elasticsearch");
 	public final static Logger Play = Logger.getLogger("mydmam.play");
 	public final static Logger Play_JSSource = Logger.getLogger("mydmam.play.jssource");

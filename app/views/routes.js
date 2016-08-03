@@ -46,27 +46,11 @@ mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson(
 	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
 	mydmam.stat.url = "@{Application.stat()}";
 	
-	mydmam.basket.url.push = "@{UserBasket.basket_push}";
-	mydmam.basket.url.pull = "@{UserBasket.basket_pull}";
-	mydmam.basket.url.all = "@{UserBasket.basket_get_all_user}";
-	mydmam.basket.url.selected = "@{UserBasket.basket_get_selected}";
-	mydmam.basket.url.bdelete = "@{UserBasket.basket_delete}";
-	mydmam.basket.url.truncate = "@{UserBasket.basket_truncate}";
-	mydmam.basket.url.rename = "@{UserBasket.basket_rename}";
-	mydmam.basket.url.create = "@{UserBasket.basket_create}";
-	mydmam.basket.url.switch_selected = "@{UserBasket.basket_switch_selected}";
-	#{secure.check 'adminUsers'}
-		mydmam.basket.allusers.ajaxurl = "@{UserBasket.basket_admin_action}";
-	#{/secure.check}
 	mydmam.async.baseURLsearch = "@{Application.search(q='param1query',from='param2from')}";
 #{/secure.check}
 
 #{secure.check 'adminFtpServer'}
 	mydmam.manager.url_ftpserver_export_user_sessions = "@{Manager.ftpserver_export_user_sessions(user_session_ref='keyparam1')}";
 #{/secure.check}
-
-mydmam.notification.url.notificationresolveusers = "@{UserNotifications.notificationresolveusers}";
-mydmam.notification.url.notificationupdateread = "@{UserNotifications.notificationupdateread(key='keyparam1')}";
-mydmam.notification.url.associatedjobs = "@{UserNotifications.associatedjobs}";
 
 })(window.mydmam);

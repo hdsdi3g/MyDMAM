@@ -1,6 +1,7 @@
 (function(b){b.hasUserAdminRights=function(){return mydmam.async.isAvaliable("ftpserver","adminoperationuser")&mydmam.async.isAvaliable("ftpserver","groupdomainlists");
-};var a=function(){var e="";var c="abcdefghijkmnopqrstuvwxyz23456789";for(var d=0;
-d<8;d++){e+=c.charAt(Math.floor(Math.random()*c.length));}return e;};b.AddUser=React.createClass({displayName:"AddUser",getInitialState:function(){return{groups:null,domains:null,display_password_generator:false,generated_password:null,actual_user:null};
+};var a=function(){var e="";var c="23456789abcdefghijkmnopqrstuvwxyz23456789ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+while(true){for(var d=0;d<10;d++){e+=c.charAt(Math.floor(Math.random()*c.length));
+}if((e!=e.toUpperCase())&&(e!=e.toLowerCase())){return e;}e="";}};b.AddUser=React.createClass({displayName:"AddUser",getInitialState:function(){return{groups:null,domains:null,display_password_generator:false,generated_password:null,actual_user:null};
 },componentWillMount:function(){if(this.props.params.userid==null){mydmam.async.request("ftpserver","groupdomainlists",{},function(c){this.setState({groups:c.groups,domains:c.domains});
 }.bind(this));}},onAddUserBtnClick:function(){var d=null;var c=this.props.params.userid;
 if(c==null){d={user_name:React.findDOMNode(this.refs.user_name).value,clear_password:React.findDOMNode(this.refs.password).value,group_name:React.findDOMNode(this.refs.group).value,domain:React.findDOMNode(this.refs.domain).value,operation:"CREATE"};

@@ -73,8 +73,8 @@ public class MainClass {
 		MyDMAM.testIllegalKeySize();
 		
 		ArrayList<CliModule> modules = new ArrayList<CliModule>();
+		modules.add(new CliModuleAuth());
 		modules.add(new CliModuleAccessControl());
-		modules.add(new CliModuleAuthenticatorLocal());
 		modules.add(new CliModuleSsh());
 		modules.add(new CliModuleStorageManager());
 		modules.add(new CliModuleCDFinderPathIndexer());

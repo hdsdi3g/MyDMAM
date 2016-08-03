@@ -47,7 +47,7 @@ public class DemosAsync extends AJSController {
 		});
 	}
 	
-	@Check("demoAsync2")
+	@Check("demoAsync3")
 	public static CommentList edit(Comment request) {
 		FakeDB.update(request);
 		CommentList result = new CommentList();

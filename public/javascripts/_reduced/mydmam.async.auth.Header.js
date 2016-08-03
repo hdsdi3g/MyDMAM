@@ -1,0 +1,12 @@
+(function(a){a.Header=React.createClass({displayName:"Header",render:function(){var b=null;
+if(location.hash.indexOf("#auth/users")==0){b=(React.createElement(a.Users,null));
+}else{if(location.hash.indexOf("#auth/groups")==0){b=(React.createElement(a.Groups,null));
+}else{if(location.hash.indexOf("#auth/roles")==0){b=(React.createElement(a.Roles,null));
+}else{if(location.hash.indexOf("#auth/privileges")==0){b=(React.createElement(a.Privileges,null));
+}else{b=(React.createElement("div",null,"Welcome"));}}}}return(React.createElement(mydmam.async.PageHeaderTitle,{title:i18n("auth.pagename"),fluid:"true"},React.createElement("ul",{className:"nav nav-tabs"},React.createElement(mydmam.async.HeaderTab,{href:"#auth/users",i18nlabel:"auth.users"}),React.createElement(mydmam.async.HeaderTab,{href:"#auth/groups",i18nlabel:"auth.groups"}),React.createElement(mydmam.async.HeaderTab,{href:"#auth/roles",i18nlabel:"auth.roles"}),React.createElement(mydmam.async.HeaderTab,{href:"#auth/privileges",i18nlabel:"auth.privileges"})),b));
+}});mydmam.routes.push("auth","auth",a.Header,[{name:"auth",verb:"usercreate"}]);
+mydmam.routes.push("auth-users","auth/users",a.Header,[{name:"auth",verb:"usercreate"}]);
+mydmam.routes.push("auth-groups","auth/groups",a.Header,[{name:"auth",verb:"usercreate"}]);
+mydmam.routes.push("auth-roles","auth/roles",a.Header,[{name:"auth",verb:"usercreate"}]);
+mydmam.routes.push("auth-privileges","auth/privileges",a.Header,[{name:"auth",verb:"usercreate"}]);
+})(window.mydmam.async.auth);

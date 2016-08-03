@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.db;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -311,6 +312,23 @@ public class CassandraDb {
 		allrowsreaderbuilder.forEachRow(handler_bridge);
 		if (columns != null) {
 			if (columns.length > 0) {
+				allrowsreaderbuilder.withColumnSlice(columns);
+			}
+		}
+		allrowsreaderbuilder.withIncludeEmptyRows(false);
+		return allrowsreaderbuilder.build().call();
+	}
+	
+	/**
+	 * @param columns not mandatory
+	 */
+	public static boolean allRowsReader(ColumnFamily<String, String> columnfamily, AllRowsFoundRow handler, Collection<String> columns) throws Exception {
+		AllRowsHandlerBridge handler_bridge = new AllRowsHandlerBridge(handler);
+		AllRowsReader.Builder<String, String> allrowsreaderbuilder = new AllRowsReader.Builder<String, String>(getkeyspace(), columnfamily);
+		allrowsreaderbuilder.withPartitioner(Murmur3Partitioner.get());
+		allrowsreaderbuilder.forEachRow(handler_bridge);
+		if (columns != null) {
+			if (columns.isEmpty() == false) {
 				allrowsreaderbuilder.withColumnSlice(columns);
 			}
 		}

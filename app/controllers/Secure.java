@@ -6,29 +6,22 @@ package controllers;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 
+import ext.Bootstrap;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.accesscontrol.AccessControl;
-import hd3gtv.mydmam.auth.AuthenticationBackend;
-import hd3gtv.mydmam.auth.AuthenticationUser;
-import hd3gtv.mydmam.auth.Authenticator;
-import hd3gtv.mydmam.auth.InvalidAuthenticatorUserException;
-import models.ACLGroup;
-import models.ACLUser;
-import models.UserProfile;
+import hd3gtv.mydmam.auth.UserNG;
 import play.Play;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Lang;
-import play.jobs.JobsPlugin;
 import play.libs.Crypto;
 import play.libs.Time;
 import play.mvc.Before;
@@ -43,8 +36,6 @@ public class Secure extends Controller {
 	private static Gson gson = new Gson();
 	private static Type type_alstring = new TypeToken<ArrayList<String>>() {
 	}.getType();
-	
-	private volatile static HashMap<String, Long> users_pending_privileges_change = new HashMap<String, Long>();
 	
 	private static final long ttl_duration = (Configuration.global.getValue("auth", "privileges_ttl", 60) * 60000);// 1 hour by default.
 	
@@ -67,17 +58,8 @@ public class Secure extends Controller {
 		return false;
 	}
 	
-	static void changePrivilegesForUser(String username) {
-		users_pending_privileges_change.put(username, System.currentTimeMillis() + ttl_duration);
-	}
-	
 	public static ArrayList<String> getSessionPrivileges() {
-		String username = session.get("username");
-		if (users_pending_privileges_change.containsKey(username)) {
-			users_pending_privileges_change.remove(username);
-			setPrivilegesInSession(((ACLUser) ACLUser.findById(username)).group.role.privileges);
-			return getSessionPrivileges();
-		}
+		String username = Crypto.decryptAES(session.get("username"));
 		
 		String raw_privileges = Crypto.decryptAES(session.get("privileges"));
 		ArrayList<String> privileges = gson.fromJson(raw_privileges, type_alstring);
@@ -90,7 +72,14 @@ public class Secure extends Controller {
 			} else if (privileges.get(pos).startsWith("ttl-")) {
 				long ttl_date = Long.valueOf(privileges.get(pos).substring(4));
 				if (System.currentTimeMillis() > ttl_date) {
-					setPrivilegesInSession(((ACLUser) ACLUser.findById(username)).group.role.privileges);
+					UserNG current_user = Bootstrap.getAuth().getByUserKey(username);
+					if (current_user == null) {
+						Loggers.Play.warn("Can't found connected user " + username);
+						// session.clear();
+						// response.removeCookie("rememberme");
+						return new ArrayList<>(1);
+					}
+					setPrivilegesInSession(current_user.getUser_groups_roles_privileges());
 					return getSessionPrivileges();
 				}
 				privileges.remove(pos);
@@ -99,18 +88,14 @@ public class Secure extends Controller {
 		return privileges;
 	}
 	
-	private static void setPrivilegesInSession(String database_privileges) {
-		ArrayList<String> privileges = gson.fromJson(database_privileges, type_alstring);
-		if (privileges == null) {
-			privileges = new ArrayList<String>(1);
-		}
+	private static void setPrivilegesInSession(HashSet<String> user_privileges) {
+		ArrayList<String> privileges = new ArrayList<String>(user_privileges);
 		privileges.add(String.valueOf(new Random().nextLong()) + "-rnd");
 		
 		long ttl_date = System.currentTimeMillis() + ttl_duration;
 		privileges.add("ttl-" + String.valueOf(ttl_date));
 		
 		session.put("privileges", Crypto.encryptAES(gson.toJson(privileges)));
-		// Log2.log.debug("Update privileges in session", new Log2Dump("raw json", gson.toJson(privileges)));
 	}
 	
 	private static void getSessionPrivilegesListToDump(StringBuilder sb) {
@@ -221,11 +206,12 @@ public class Secure extends Controller {
 		sb.append(" > ");
 		sb.append(request.action);
 		
-		sb.append(" username: ");
-		sb.append(session.get("username"));
-		sb.append(" longname: ");
-		sb.append(session.get("longname"));
-		getSessionPrivilegesListToDump(sb);
+		String username = session.get("username");
+		if (username != null) {
+			sb.append(" username: ");
+			sb.append(Crypto.decryptAES(session.get("username")));
+			getSessionPrivilegesListToDump(sb);
+		}
 		
 		return sb.toString();
 	}
@@ -235,7 +221,7 @@ public class Secure extends Controller {
 	 * @return
 	 */
 	public static String connected() {
-		return session.get("username");
+		return Crypto.decryptAES(session.get("username"));
 	}
 	
 	/**
@@ -291,15 +277,15 @@ public class Secure extends Controller {
 					logout();
 				}
 				if (Crypto.sign(restOfCookie).equals(sign)) {
-					session.put("username", username);
+					session.put("username", Crypto.encryptAES(username));
 					redirectToOriginalURL();
 				}
 			}
 		}
 		flash.keep("url");
 		
-		boolean force_select_domain = AuthenticationBackend.isForce_select_domain();
-		List<String> authenticators_domains = AuthenticationBackend.getAuthenticators_domains();
+		boolean force_select_domain = Bootstrap.getAuth().isForceSelectDomain();
+		List<String> authenticators_domains = Bootstrap.getAuth().getDeclaredDomainList();
 		
 		render(force_select_domain, authenticators_domains);
 	}
@@ -325,64 +311,33 @@ public class Secure extends Controller {
 			return;
 		}
 		
-		AuthenticationUser authuser = null;
+		UserNG authuser = null;
 		
-		try {
-			if (AuthenticationBackend.isForce_select_domain()) {
-				Authenticator authenticator = null;
-				try {
-					authenticator = AuthenticationBackend.getAuthenticators().get(Integer.valueOf(domainidx));
-				} catch (Exception e) {
-				}
-				authuser = AuthenticationBackend.authenticate(authenticator, username, password);
-			} else {
-				authuser = AuthenticationBackend.authenticate(username, password);
+		if (Bootstrap.getAuth().isForceSelectDomain()) {
+			String domain_name = null;
+			
+			try {
+				domain_name = Bootstrap.getAuth().getDeclaredDomainList().get(Integer.valueOf(domainidx));
+			} catch (Exception e) {
 			}
-		} catch (InvalidAuthenticatorUserException e) {
-			Loggers.Play.error("Can't login username: " + username + ", domainidx: " + domainidx + ", cause: " + e.getMessage() + " " + getUserSessionInformation());
+			authuser = Bootstrap.getAuth().authenticateWithThisDomain(remote_address, username.trim().toLowerCase(), password, domain_name, Lang.getLocale().getLanguage());
+		} else {
+			authuser = Bootstrap.getAuth().authenticate(remote_address, username.trim().toLowerCase(), password, Lang.getLocale().getLanguage());
 		}
 		
 		if (authuser == null) {
+			Loggers.Play.error("Can't login username: " + username + ", domainidx: " + domainidx + ", " + getUserSessionInformation());
 			AccessControl.failedAttempt(remote_address, username);
 			rejectUser();
 		}
 		
-		username = authuser.getLogin();
-		ACLUser acluser = ACLUser.findById(username);
-		
-		if (acluser == null) {
-			ACLGroup group_guest = ACLGroup.findById(ACLGroup.NEWUSERS_NAME);
-			if (group_guest == null) {
-				rejectUser();
-			}
-			acluser = new ACLUser(group_guest, authuser.getSourceName(), username, authuser.getFullName());
-		}
+		username = authuser.getKey();
 		
 		AccessControl.releaseIP(remote_address);
 		
-		if (acluser.locked_account) {
-			Loggers.Play.error("Locked account for user: " + username + ", domainidx: " + domainidx + " " + getUserSessionInformation());
-			rejectUser();
-		}
+		session.put("username", Crypto.encryptAES(username));
 		
-		if (acluser.fullname.equals(authuser.getFullName()) == false) {
-			acluser.fullname = authuser.getFullName();
-			acluser.lasteditdate = new Date();
-		}
-		
-		acluser.lastloginipsource = remote_address;
-		acluser.lastlogindate = new Date();
-		acluser.save();
-		
-		/**
-		 * Async db update : don't slowdown login/auth with this.
-		 */
-		JobsPlugin.executor.submit(new UserProfile.AsyncSave(authuser, Lang.getLocale().getLanguage()));
-		
-		session.put("username", acluser.login);
-		session.put("longname", acluser.fullname);
-		
-		setPrivilegesInSession(acluser.group.role.privileges);
+		setPrivilegesInSession(authuser.getUser_groups_roles_privileges());
 		
 		if (remember) {
 			Date expiration = new Date();
@@ -391,30 +346,12 @@ public class Secure extends Controller {
 			response.setCookie("rememberme", Crypto.sign(username + "-" + expiration.getTime()) + "-" + username + "-" + expiration.getTime(), duration);
 		}
 		
-		/**
-		 * Purge users_pending_privileges_change map.
-		 */
-		if (users_pending_privileges_change.containsKey(username)) {
-			users_pending_privileges_change.remove(username);
-		}
-		if (users_pending_privileges_change.isEmpty() == false) {
-			ArrayList<String> item_to_remove = new ArrayList<String>(users_pending_privileges_change.size());
-			for (Map.Entry<String, Long> entry : users_pending_privileges_change.entrySet()) {
-				if (System.currentTimeMillis() > entry.getValue()) {
-					item_to_remove.add(entry.getKey());
-				}
-			}
-			for (int pos = 0; pos < item_to_remove.size(); pos++) {
-				users_pending_privileges_change.remove(item_to_remove.get(pos));
-			}
-		}
-		
 		redirectToOriginalURL();
 	}
 	
 	public static void logout() throws Throwable {
 		try {
-			Loggers.Play.error("User went tries to sign off: " + getUserSessionInformation());
+			Loggers.Play.info("User went tries to sign off: " + getUserSessionInformation());
 			session.clear();
 			response.removeCookie("rememberme");
 		} catch (Exception e) {
