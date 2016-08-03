@@ -99,7 +99,7 @@ public class RoleNG implements AuthEntry {
 			throw new NullPointerException("\"role_name\" can't to be null");
 		}
 		this.role_name = role_name;
-		this.key = "role:" + role_name;
+		this.key = AuthTurret.makeKey("role", role_name);
 	}
 	
 	RoleNG update(Set<String> privileges) {

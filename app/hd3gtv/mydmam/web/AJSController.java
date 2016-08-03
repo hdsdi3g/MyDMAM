@@ -225,6 +225,15 @@ public class AJSController {
 	}
 	
 	@AJSIgnore
+	public static String getUserProfileLongName() throws Exception {
+		UserNG user = getUserProfile();
+		if (user == null) {
+			return "(Deleted, please log-off)";
+		}
+		return user.getFullname();
+	}
+	
+	@AJSIgnore
 	public static String doRequest(String request_name, String verb_name, String request) throws SecurityException, ClassNotFoundException {
 		
 		AJSControllerItem controller = controllers.get(request_name);

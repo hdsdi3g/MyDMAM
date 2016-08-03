@@ -311,6 +311,7 @@ auth.create=Create
 auth.login=Login
 auth.locked_account=Locked account
 auth.locked_account_help=If checked, the user will not be able to log in.
+auth.update=Update
 
 mime.video-mpeg=MPEG Video
 mime.application-pdf=PDF Document

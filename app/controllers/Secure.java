@@ -72,7 +72,14 @@ public class Secure extends Controller {
 			} else if (privileges.get(pos).startsWith("ttl-")) {
 				long ttl_date = Long.valueOf(privileges.get(pos).substring(4));
 				if (System.currentTimeMillis() > ttl_date) {
-					setPrivilegesInSession(Bootstrap.getAuth().getByUserKey(username).getUser_groups_roles_privileges());
+					UserNG current_user = Bootstrap.getAuth().getByUserKey(username);
+					if (current_user == null) {
+						Loggers.Play.warn("Can't found connected user " + username);
+						// session.clear();
+						// response.removeCookie("rememberme");
+						return new ArrayList<>(1);
+					}
+					setPrivilegesInSession(current_user.getUser_groups_roles_privileges());
 					return getSessionPrivileges();
 				}
 				privileges.remove(pos);

@@ -21,7 +21,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.ArrayList;
@@ -266,6 +268,17 @@ public class AuthTurret {
 		}
 	}
 	
+	static String makeKey(String type, String name) {
+		try {
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			md.update(name.getBytes("UTF-8"));
+			return type + ":" + MyDMAM.byteToString(md.digest());
+		} catch (NoSuchAlgorithmException e) {
+		} catch (UnsupportedEncodingException e) {
+		}
+		return null;
+	}
+	
 	Cache getCache() {
 		return cache;
 	}
@@ -410,7 +423,10 @@ public class AuthTurret {
 	}
 	
 	public UserNG getByUserKey(String user_key) {
-		// Loggers.Auth.trace("getByUserKey: " + user_key);
+		if (Loggers.Auth.isTraceEnabled()) {
+			Loggers.Auth.trace("getByUserKey: " + user_key);
+		}
+		
 		if (cache.getAll_users().containsKey(user_key) == false) {
 			return null;
 		}

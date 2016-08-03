@@ -220,7 +220,7 @@ public class UserNG implements AuthEntry {
 	}
 	
 	public static String computeUserKey(String login, String domain) {
-		return "user:" + login + "%" + domain;
+		return AuthTurret.makeKey("user", login + "%" + domain);
 	}
 	
 	/**

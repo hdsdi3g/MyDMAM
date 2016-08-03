@@ -118,7 +118,7 @@ public class GroupNG implements AuthEntry {
 		if (group_name == null) {
 			throw new NullPointerException("\"group_name\" can't to be null");
 		}
-		key = "group:" + group_name;
+		key = AuthTurret.makeKey("group", group_name);
 	}
 	
 	public String getGroupName() {
