@@ -83,6 +83,7 @@ public class TranscoderWorker extends WorkerNG {
 			if (raw_profile instanceof String) {
 				profile = TranscodeProfile.getTranscodeProfile((String) raw_profile);
 				if (profile == null) {
+					// TODO search Processing Kit
 					throw new IOException("Can't found profile \"" + (String) raw_profile + "\"");
 				}
 				for (int pos_count = 0; pos_count < count; pos_count++) {
@@ -97,13 +98,14 @@ public class TranscoderWorker extends WorkerNG {
 				for (int pos_profile_name = 0; pos_profile_name < profiles_name.size(); pos_profile_name++) {
 					profile = TranscodeProfile.getTranscodeProfile(profiles_name.get(pos_profile_name));
 					if (profile == null) {
+						// TODO search Processing Kit
 						throw new IOException("Can't found profile \"" + (String) raw_profile + "\"");
 					}
 					profiles.add(profile);
 				}
 				for (int pos_count = 0; pos_count < count; pos_count++) {
 					Loggers.Transcode.trace("Create transcoder worker for " + profiles);
-					transcoderworker = new TranscoderWorker(profiles, temp_dir);
+					transcoderworker = new TranscoderWorker(profiles, temp_dir); // TODO add Processing Kit
 					manager.register(transcoderworker);
 				}
 			}
@@ -244,7 +246,7 @@ public class TranscoderWorker extends WorkerNG {
 				Loggers.Transcode.debug("Transcode step: " + (pos + 1) + "/" + profiles_to_transcode.size());
 			}
 			
-			transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));
+			transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));// TODO search ProcessingKit
 			Loggers.Transcode.debug("Get transcode_profile: " + transcode_profile.getName());
 			
 			temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));

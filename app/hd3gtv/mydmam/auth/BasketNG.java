@@ -17,7 +17,5 @@
 package hd3gtv.mydmam.auth;
 
 public class BasketNG {
-	
-	// TODO BasketNG
-	
+
 }

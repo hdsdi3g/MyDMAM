@@ -91,7 +91,6 @@ public class AuthTurret {
 	private GroupNG default_newusers_group;
 	
 	public AuthTurret(Keyspace keyspace) throws ConnectionException, NoSuchAlgorithmException, NoSuchProviderException, IOException {
-		
 		/**
 		 * Load Cassandra access
 		 */

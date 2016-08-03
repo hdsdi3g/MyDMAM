@@ -109,6 +109,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			profile = (String) conf.get("profile");
 			
 			if (TranscodeProfile.getTranscodeProfile(profile) == null) {
+				// TODO check ProcessingKit
 				throw new NullPointerException("Can't found transcode profile \"" + profile + "\" in \"" + name + "\" watch folder configuration");
 			}
 			
