@@ -115,7 +115,7 @@ public class AuthTurret {
 		/**
 		 * Outside of this package serializers
 		 */
-		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		MyDMAM.registerBaseSerializers(builder);
 		
 		gson_simple = builder.create();
 		

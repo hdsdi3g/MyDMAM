@@ -27,6 +27,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Security;
 import java.text.SimpleDateFormat;
+import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -37,6 +38,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -50,6 +52,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
 
 import hd3gtv.configuration.Configuration;
 
@@ -242,16 +245,6 @@ public class MyDMAM {
 		
 	}
 	
-	/*private static volatile GsonBuilder gsonbuilder;
-	
-	public static Gson getGson() {
-		if (gsonbuilder == null) {
-			gsonbuilder = new GsonBuilder();
-			gsonbuilder.registerTypeAdapter(SourcePathIndexerElement.class, new SourcePathIndexerElement());
-		}
-		return gsonbuilder.create();
-	}*/
-	
 	public static class GsonClassSerializer implements JsonSerializer<Class<?>>, JsonDeserializer<Class<?>> {
 		
 		public JsonElement serialize(Class<?> src, Type typeOfSrc, JsonSerializationContext context) {
@@ -268,11 +261,6 @@ public class MyDMAM {
 				return null;
 			}
 		}
-	}
-	
-	public static void registerJsonArrayAndObjectSerializer(GsonBuilder gson_builder) {
-		gson_builder.registerTypeAdapter(JsonArray.class, new MyDMAM.GsonJsonArraySerializer());
-		gson_builder.registerTypeAdapter(JsonObject.class, new MyDMAM.GsonJsonObjectSerializer());
 	}
 	
 	/**
@@ -317,6 +305,29 @@ public class MyDMAM {
 				return null;
 			}
 		}
+	}
+	
+	public static class XMLGregorianCalendarSerializer implements JsonSerializer<XMLGregorianCalendar>, JsonDeserializer<XMLGregorianCalendar> {
+		
+		public XMLGregorianCalendar deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			GregorianCalendar gc = new GregorianCalendar();
+			gc.setTimeInMillis(json.getAsBigInteger().longValue());
+			return new XMLGregorianCalendarImpl(gc);
+		}
+		
+		public JsonElement serialize(XMLGregorianCalendar src, Type typeOfSrc, JsonSerializationContext context) {
+			return new JsonPrimitive(src.toGregorianCalendar().getTimeInMillis());
+		}
+	}
+	
+	/**
+	 * Register JsonArray, JsonObject, XMLGregorianCalendar, Class.
+	 */
+	public static void registerBaseSerializers(GsonBuilder gson_builder) {
+		gson_builder.registerTypeAdapter(JsonArray.class, new MyDMAM.GsonJsonArraySerializer());
+		gson_builder.registerTypeAdapter(JsonObject.class, new MyDMAM.GsonJsonObjectSerializer());
+		gson_builder.registerTypeAdapter(XMLGregorianCalendar.class, new MyDMAM.XMLGregorianCalendarSerializer());
+		gson_builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
 	}
 	
 	/**

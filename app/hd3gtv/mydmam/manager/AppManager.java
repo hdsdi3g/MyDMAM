@@ -68,7 +68,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		/**
 		 * Outside of this package serializers
 		 */
-		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		MyDMAM.registerBaseSerializers(builder);
 		
 		simple_gson = builder.create();
 		

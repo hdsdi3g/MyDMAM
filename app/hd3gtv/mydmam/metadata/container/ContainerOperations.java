@@ -41,6 +41,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
@@ -90,6 +91,7 @@ public class ContainerOperations {
 		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
 		gson_builder.addDeserializationExclusionStrategy(ignore_strategy);
 		gson_builder.addSerializationExclusionStrategy(ignore_strategy);
+		MyDMAM.registerBaseSerializers(gson_builder);
 		
 		gson_simple = gson_builder.create();
 		

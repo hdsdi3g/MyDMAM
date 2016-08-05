@@ -22,7 +22,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.AppManager;
 
-public class ProcessingKitEngine {
+public final class ProcessingKitEngine {
 	
 	private HashMap<String, ProcessingKit> list_cache;
 	private AppManager manager;
