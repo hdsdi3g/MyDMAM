@@ -3,3 +3,4 @@ executables:
     ffprobe : /usr/bin/ffprobe
     qtfaststart : /usr/bin/qt-faststart
     convert : /usr/bin/convert
+    mxf2raw: /usr/bin/mxf2raw

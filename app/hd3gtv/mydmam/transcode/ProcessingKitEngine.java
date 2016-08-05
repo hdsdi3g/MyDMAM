@@ -19,6 +19,7 @@ package hd3gtv.mydmam.transcode;
 import java.util.HashMap;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.AppManager;
 
 public class ProcessingKitEngine {
@@ -41,15 +42,19 @@ public class ProcessingKitEngine {
 	public ProcessingKit get(String class_name) {
 		if (list_cache.containsKey(class_name)) {
 			if (list_cache.get(class_name).isFunctionnal() == false) {
+				Loggers.Transcode.debug("Processingkit " + class_name + " is disabled.");
 				return null;
 			}
 			return list_cache.get(class_name);
 		}
 		
 		try {
-			ProcessingKit pkit = (ProcessingKit) Class.forName(class_name).newInstance();
+			Class<?> candidate = Class.forName(class_name);
+			MyDMAM.checkIsAccessibleClass(candidate, false);
+			ProcessingKit pkit = (ProcessingKit) candidate.newInstance();
 			list_cache.put(class_name, pkit);
 			if (list_cache.get(class_name).isFunctionnal() == false) {
+				Loggers.Transcode.warn("Processingkit " + class_name + " is disabled.");
 				return null;
 			}
 			if (manager != null) {

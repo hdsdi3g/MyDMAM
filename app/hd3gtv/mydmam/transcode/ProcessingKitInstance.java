@@ -17,26 +17,57 @@
 package hd3gtv.mydmam.transcode;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
-
-import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.StoppableProcessing;
 
-public interface ProcessingKitInstance {
+public abstract class ProcessingKitInstance {
 	
-	public void setJobProgression(JobProgression progression);
+	protected File temp_directory;
+	protected JobProgression progression;
+	protected StoppableProcessing stoppable;
+	protected JobContextTranscoder transcode_context;
+	protected File dest_base_directory;
 	
-	public void setStoppable(StoppableProcessing stoppable);
+	public ProcessingKitInstance(File temp_directory) throws NullPointerException, IOException {
+		this.temp_directory = temp_directory;
+		if (temp_directory == null) {
+			throw new NullPointerException("\"temp_directory\" can't to be null");
+		}
+		CopyMove.checkExistsCanRead(temp_directory);
+		CopyMove.checkIsDirectory(temp_directory);
+		CopyMove.checkIsWritable(temp_directory);
+	}
 	
-	public void setOptions(JsonObject options);
+	public final void setJobProgression(JobProgression progression) {
+		this.progression = progression;
+	}
 	
-	public void setDestDirectory(File dest_base_directory);
+	public final void setStoppable(StoppableProcessing stoppable) {
+		this.stoppable = stoppable;
+	}
 	
-	public List<File> process(File physical_source, Container source_indexing_result) throws Exception;
+	public final void setTranscodeContext(JobContextTranscoder transcode_context) {
+		this.transcode_context = transcode_context;
+	}
 	
-	public void cleanTempFiles();
+	public final void setDestDirectory(File dest_base_directory) {
+		this.dest_base_directory = dest_base_directory;
+	}
+	
+	/**
+	 * @return may be null.
+	 */
+	public abstract List<File> process(File physical_source, Container source_indexing_result) throws Exception;
+	
+	/**
+	 * Always called after process(), even it failed.
+	 * Don't touch to process() result list files.
+	 */
+	public abstract void cleanTempFiles();
 	
 }
