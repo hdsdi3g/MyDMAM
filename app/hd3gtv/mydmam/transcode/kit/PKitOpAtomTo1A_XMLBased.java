@@ -36,8 +36,10 @@ import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.transcode.ProcessingKit;
 import hd3gtv.mydmam.transcode.ProcessingKitInstance;
+import hd3gtv.mydmam.transcode.mtdcontainer.BBCBmx;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecBinaryPath;
+import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.XmlData;
@@ -96,6 +98,10 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			/**
 			 * Open XML.
 			 **/
+			if (progression != null) {
+				progression.update("Open order XML");
+			}
+			
 			XmlData order_xml = XmlData.loadFromFile(physical_source);
 			if (order_xml.getDocumentElement().getTagName().equals("wrap") == false) {
 				throw new IOException("Invalid format for XML document. Document element is <" + order_xml.getDocumentElement().getTagName() + ">");
@@ -172,13 +178,30 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			/**
 			 * Extract raw content.
 			 */
+			boolean need_to_wrap_with_ffmpeg = false;
+			
 			for (int pos = 0; pos < mxf_files.size(); pos++) {
 				Atom item = mxf_files.get(pos);
 				if (item.must_be_extracted == false) {
 					continue;
 				}
+				need_to_wrap_with_ffmpeg = true;
 				
-				String temp_file_name = FilenameUtils.getFullPath(item.path.getAbsolutePath()) + item.metadatas.getMtd_key();
+				if (progression != null) {
+					progression.update("Extract raw MXF essence (" + (pos + 1) + "/" + mxf_files.size() + ")");
+				}
+				if (stoppable != null) {
+					if (stoppable.isWantToStopCurrentProcessing() == true) {
+						return null;
+					}
+				}
+				
+				File temp_dir = item.path.getParentFile();
+				if (temp_directory != null) {
+					temp_dir = temp_directory;
+				}
+				
+				String temp_file_name = temp_dir.getAbsolutePath() + item.metadatas.getMtd_key() + "_" + (pos + 1);
 				
 				ArrayList<String> param = new ArrayList<String>();
 				param.add("--ess-out");
@@ -207,20 +230,93 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 					throw new IndexOutOfBoundsException("Cant found BMX temp file !" + raw_files_names);
 				}
 				
-				item.extracted_path = new File(raw_files_names[0]);
+				File raw_file = new File(raw_files_names[0]);
+				if (raw_file.exists() == false) {
+					throw new FileNotFoundException(raw_file.getAbsolutePath());
+				}
+				item.extracted_path = new File(temp_file_name + ".mxf");
+				raw_file.renameTo(item.extracted_path);
 			}
 			
 			/**
-			 * Start ffmpeg for rewrap
+			 * Get source timecode and name
 			 */
-			// TODO add source timecode
-			/*ffmpeg -y $ALL_STREAMS -codec:v copy -codec:a copy $ALL_MAPS -f mxf $FILE_DEST.mxf
-			ALL_STREAMS=$ALL_STREAMS" -i "$(extractStreamPath $2);
-			ALL_MAPS=$ALL_MAPS" -map 0:0";*/
+			BBCBmx bmx = mxf_files.get(0).metadatas.getByClass(BBCBmx.class);
+			String source_tc_in = bmx.getBmx().getClip().getStartTimecodes().getPhysicalSource().getValue();
+			String source_name = bmx.getBmx().getFiles().getFile().get(0).getMaterialPackages().getMaterialPackage().get(0).getName();
+			
+			File result_op1a = null;
+			if (this.dest_base_directory != null) {
+				result_op1a = new File(this.dest_base_directory.getAbsolutePath() + File.separator + mxf_files.get(0).path.getName());
+			} else if (this.transcode_context.getLocalDestDirectory() != null) {
+				result_op1a = new File(this.transcode_context.getLocalDestDirectory().getAbsolutePath() + File.separator + mxf_files.get(0).path.getName());
+			} else {
+				result_op1a = new File(mxf_files.get(0).path.getParent() + File.separator + FilenameUtils.getBaseName(mxf_files.get(0).path.getName()) + "-OP1A.mxf");
+			}
+			
+			if (need_to_wrap_with_ffmpeg) {
+				/**
+				 * Start ffmpeg for rewrap raw streams, and pipe to bmxtranswrap to set metadatas.
+				 */
+				ArrayList<String> params_streams = new ArrayList<>();
+				ArrayList<String> params_maps = new ArrayList<>();
+				for (int pos = 0; pos < mxf_files.size(); pos++) {
+					Atom item = mxf_files.get(pos);
+					params_streams.add("-i");
+					if (item.extracted_path != null) {
+						params_streams.add(item.extracted_path.getAbsolutePath());
+					} else {
+						params_streams.add(item.path.getAbsolutePath());
+					}
+					params_maps.add("-map");
+					params_maps.add(pos + ":0");
+				}
+				
+				ArrayList<String> params_ffmpeg = new ArrayList<>();
+				params_ffmpeg.add("-y");
+				params_ffmpeg.addAll(params_streams);
+				params_ffmpeg.add("-codec:v");
+				params_ffmpeg.add("copy");
+				params_ffmpeg.add("-codec:a");
+				params_ffmpeg.add("copy");
+				params_ffmpeg.addAll(params_maps);
+				params_ffmpeg.add("-f");
+				params_ffmpeg.add("mxf");
+				params_ffmpeg.add("-");
+				
+				if (progression != null) {
+					progression.update("Wrap all essences/Atom with ffmpeg");
+				}
+				if (stoppable != null) {
+					if (stoppable.isWantToStopCurrentProcessing() == true) {
+						return null;
+					}
+				}
+				
+				Execprocess ffmpeg_process = new Execprocess(ExecBinaryPath.get("ffmpeg"), params_ffmpeg);
+				ffmpeg_process.setDaemon(true);
+				ffmpeg_process.setName("ffmpeg-transc-" + source_name);
+				// ffmpeg_process.setOutputstreamhandler(outputstreamhandler);
+				
+				/*try {
+					 process.start();
+				} catch (IOException e) {
+					if (e instanceof ExecprocessBadExecutionException) {
+						 Loggers.Transcode_Metadata.error("Problem with ffmpeg wrapping, " + process);
+					}
+					throw e;
+				}*/
+			} else {
+				/**
+				 * Use bmxtranswrap for rewap atoms and set metadatas
+				 */
+				
+			}
 			
 			/**
 			 * Move to dest (ftp)
 			 */
+			
 			return null;
 		}
 		

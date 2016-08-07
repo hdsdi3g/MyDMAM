@@ -44,6 +44,7 @@ public class Execprocess extends Thread {
 	private ArrayList<String> processinfo;
 	private int exitvalue;
 	private int status;
+	private String exec_name;
 	
 	private ProcessBuilder pb;
 	private Process process;
@@ -56,6 +57,7 @@ public class Execprocess extends Thread {
 	private File working_directory;
 	
 	private ExecprocessOutputstream outputstreamhandler;
+	private ExecprocessPipedCascade pipe_cascade;
 	
 	public Execprocess(File execname, ArrayList<String> param, ExecprocessEvent events) {
 		processinfo = new ArrayList<String>();
@@ -76,7 +78,11 @@ public class Execprocess extends Thread {
 			cmdline.append(param.get(i));
 		}
 		commandline = cmdline.toString();
-		
+		exec_name = execname.getName();
+	}
+	
+	void setPipe_cascade(ExecprocessPipedCascade pipe_cascade) {
+		this.pipe_cascade = pipe_cascade;
 	}
 	
 	public void setWorkingDirectory(File working_directory) throws IOException {
@@ -96,6 +102,10 @@ public class Execprocess extends Thread {
 	
 	public String getCommandline() {
 		return commandline;
+	}
+	
+	public String getExec_name() {
+		return exec_name;
 	}
 	
 	public File getWorkingDirectory() {
@@ -135,17 +145,30 @@ public class Execprocess extends Thread {
 		
 		if (process != null) {
 			
-			if (outputstreamhandler != null) {
-				ExecprocessOutputStream eos = new ExecprocessOutputStream();
-				eos.outputstreamhandler = outputstreamhandler;
-				eos.processoutputstream = process.getOutputStream();
-				eos.start();
-			}
-			if (events != null) {
-				stdout = new ExecprocessStringresult(this, process.getInputStream(), false, events);
-				stdout.start();
+			if (pipe_cascade != null) {
+				if (pipe_cascade.hasDestDatas(this)) {
+					pipe_cascade.connectDestDatas(this, process.getOutputStream());
+				}
+				if (pipe_cascade.hasSourceDatas(this)) {
+					pipe_cascade.connectSourceDatas(this, process.getInputStream());
+				}
+				
 				stderr = new ExecprocessStringresult(this, process.getErrorStream(), true, events);
 				stderr.start();
+			} else {
+				
+				if (outputstreamhandler != null) {
+					ExecprocessOutputStream eos = new ExecprocessOutputStream();
+					eos.outputstreamhandler = outputstreamhandler;
+					eos.processoutputstream = process.getOutputStream();
+					eos.start();
+				}
+				if (events != null) {
+					stdout = new ExecprocessStringresult(this, process.getInputStream(), false, events);
+					stdout.start();
+					stderr = new ExecprocessStringresult(this, process.getErrorStream(), true, events);
+					stderr.start();
+				}
 			}
 			
 			try {
