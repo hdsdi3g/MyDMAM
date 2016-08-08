@@ -16,8 +16,6 @@
 */
 package hd3gtv.tools;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -82,13 +80,26 @@ public class ExecprocessPipedCascade {
 	public void startAll() {
 		for (int pos = list_process.size() - 1; pos > -1; pos--) {
 			list_process.get(pos).start();
-			try {
+			/*try {
 				while (pipes.get(pipes.size() - 1).isAlive() == false) {
 					Thread.sleep(10);
 				}
 			} catch (InterruptedException e) {
-			}
+			}*/
 		}
+		
+		pipes.forEach(p -> {
+			try {
+				while (p.next_process_std_in == null | p.previous_process_std_out == null) {
+					Thread.sleep(10);
+				}
+			} catch (InterruptedException e) {
+			}
+		});
+		
+		pipes.forEach(p -> {
+			p.start();
+		});
 	}
 	
 	public void kill() {
@@ -111,8 +122,10 @@ public class ExecprocessPipedCascade {
 			}
 		});
 		
+		int exit_value;
 		for (int pos = 0; pos < list_process.size(); pos++) {
-			if (list_process.get(pos).getExitvalue() != 0) {
+			exit_value = list_process.get(pos).getExitvalue();
+			if (exit_value != 0) {
 				return false;
 			}
 		}
@@ -133,21 +146,21 @@ public class ExecprocessPipedCascade {
 		return (list_process.indexOf(ref) + 1 != list_process.size());
 	}
 	
-	void connectSourceDatas(Execprocess ref, InputStream process_std_in) {
+	void connectSourceDatas(Execprocess ref, OutputStream process_std_in) {
 		log.debug("Set pipe next_process_std_in by " + ref.getExec_name());
 		pipes.get(list_process.indexOf(ref) - 1).next_process_std_in = process_std_in;
 	}
 	
-	void connectDestDatas(Execprocess ref, OutputStream process_std_out) {
+	void connectDestDatas(Execprocess ref, InputStream process_std_out) {
 		log.debug("Set pipe previous_process_std_out by " + ref.getExec_name());
 		pipes.get(list_process.indexOf(ref)).previous_process_std_out = process_std_out;
-		pipes.get(list_process.indexOf(ref)).start();
 	}
 	
 	private class Pipe extends Thread {
 		
-		private InputStream next_process_std_in;
-		private OutputStream previous_process_std_out;
+		private OutputStream next_process_std_in;
+		private InputStream previous_process_std_out;
+		private Execprocess next_process_to_stop_at_end;
 		
 		public Pipe(String previous_process, String next_process_name, int pipe_num) {
 			setDaemon(true);
@@ -157,29 +170,20 @@ public class ExecprocessPipedCascade {
 		public void run() {
 			log.debug("Start " + getName());
 			
-			BufferedInputStream source = new BufferedInputStream(next_process_std_in, 32 * 1024);
-			BufferedOutputStream dest = new BufferedOutputStream(previous_process_std_out, 32 * 1024);
-			
-			int len;
-			byte[] buffer = new byte[32 * 1024];
-			
 			try {
-				while ((len = source.read(buffer)) > 0) {
-					dest.write(buffer, 0, len);
-				}
-				dest.close();
+				IOUtils.copyLarge(previous_process_std_out, next_process_std_in);
 			} catch (IOException e) {
 				if (e.getMessage().equalsIgnoreCase("Broken pipe")) {
-					try {
-						source.close();
-					} catch (IOException e1) {
-					}
 				} else {
-					IOUtils.closeQuietly(source);
 					log.error("With streams", e);
 				}
 			}
-			IOUtils.closeQuietly(dest);
+			try {
+				next_process_std_in.flush();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			log.trace("End " + getName());
 		}
 		
 	}
@@ -196,27 +200,27 @@ public class ExecprocessPipedCascade {
 		}
 		
 		public void onStart(String commandline, File working_directory) {
-			log.info("Start piped process " + name + ": " + commandline);
+			log.info("Start process " + name + ": " + commandline);
 		}
 		
 		public void onEnd(int exitvalue, long execution_duration) {
-			log.debug("End piped process " + name + ", return " + exitvalue + " during " + (double) execution_duration / 1000d + " sec");
+			log.debug("End process " + name + ", return " + exitvalue + " during " + (double) execution_duration / 1000d + " sec");
 		}
 		
 		public void onKill(long execution_duration) {
-			log.debug("Kill piped process " + name + ", after " + (double) execution_duration / 1000d + " sec");
+			log.debug("Kill process " + name + ", after " + (double) execution_duration / 1000d + " sec");
 		}
 		
 		public void onError(IOException ioe) {
-			log.error("Piped process " + name + " has an error ", ioe);
+			log.error("Process " + name + " has an error ", ioe);
 		}
 		
 		public void onError(InterruptedException ie) {
-			log.warn("Piped process " + name + " has an error ", ie);
+			log.warn("Process " + name + " has an error ", ie);
 		}
 		
 		public void onStdout(String message) {
-			log.debug("Piped process " + name + " stdout: " + message);
+			log.debug("Process " + name + " stdout: " + message);
 		}
 		
 		public void onStderr(String message) {

@@ -39,7 +39,6 @@ import hd3gtv.mydmam.transcode.ProcessingKitInstance;
 import hd3gtv.mydmam.transcode.mtdcontainer.BBCBmx;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecBinaryPath;
-import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.XmlData;
@@ -293,19 +292,8 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 					}
 				}
 				
-				Execprocess ffmpeg_process = new Execprocess(ExecBinaryPath.get("ffmpeg"), params_ffmpeg);
-				ffmpeg_process.setDaemon(true);
-				ffmpeg_process.setName("ffmpeg-transc-" + source_name);
-				// ffmpeg_process.setOutputstreamhandler(outputstreamhandler);
+				// ExecBinaryPath.get("ffmpeg"), params_ffmpeg); //XXX
 				
-				/*try {
-					 process.start();
-				} catch (IOException e) {
-					if (e instanceof ExecprocessBadExecutionException) {
-						 Loggers.Transcode_Metadata.error("Problem with ffmpeg wrapping, " + process);
-					}
-					throw e;
-				}*/
 			} else {
 				/**
 				 * Use bmxtranswrap for rewap atoms and set metadatas

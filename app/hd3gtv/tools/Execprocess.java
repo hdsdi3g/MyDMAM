@@ -146,11 +146,11 @@ public class Execprocess extends Thread {
 		if (process != null) {
 			
 			if (pipe_cascade != null) {
-				if (pipe_cascade.hasDestDatas(this)) {
-					pipe_cascade.connectDestDatas(this, process.getOutputStream());
-				}
 				if (pipe_cascade.hasSourceDatas(this)) {
-					pipe_cascade.connectSourceDatas(this, process.getInputStream());
+					pipe_cascade.connectSourceDatas(this, process.getOutputStream());
+				}
+				if (pipe_cascade.hasDestDatas(this)) {
+					pipe_cascade.connectDestDatas(this, process.getInputStream());
 				}
 				
 				stderr = new ExecprocessStringresult(this, process.getErrorStream(), true, events);
