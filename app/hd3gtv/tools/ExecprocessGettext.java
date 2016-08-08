@@ -37,6 +37,7 @@ public class ExecprocessGettext {
 	private boolean killed;
 	private Exception lasterror;
 	private boolean exitcodemusttobe0;
+	public StoppableProcessing stoppable;
 	
 	public ExecprocessGettext(File executable, ArrayList<String> param) {
 		event = new Event();
@@ -104,13 +105,25 @@ public class ExecprocessGettext {
 	 * Lance le process
 	 * @throws IOException en cas d'erreur, de code de retour different de 0, ou si le temps d'execution est depasse.
 	 */
-	public void start() throws IOException, ExecprocessBadExecutionException {
+	public void start(StoppableProcessing stoppable) throws IOException, ExecprocessBadExecutionException {
 		try {
+			runprocess.start();
+			
+			if (stoppable == null) {
+				stoppable = new StoppableProcessing() {
+					public boolean isWantToStopCurrentProcessing() {
+						return false;
+					}
+				};
+			}
+			
 			if (maxexectime > 0) {
-				runprocess.start();
 				/** sync */
 				long maxexectime_ms = maxexectime * 1000;
 				while ((runprocess.isAlive()) | (runprocess.getUptime() < 0)) {
+					if (stoppable.isWantToStopCurrentProcessing()) {
+						runprocess.kill();
+					}
 					if (runprocess.getUptime() > maxexectime_ms) {
 						runprocess.kill();
 						throw new IOException("Max execution time reached (" + String.valueOf(maxexectime) + " sec)");
@@ -119,8 +132,12 @@ public class ExecprocessGettext {
 					}
 				}
 			} else {
-				runprocess.run();
-				/** async */
+				while (runprocess.isAlive()) {
+					if (stoppable.isWantToStopCurrentProcessing()) {
+						runprocess.kill();
+					}
+					Thread.sleep(10);
+				}
 			}
 			if ((runprocess.getExitvalue() != 0) && exitcodemusttobe0) {
 				throw new ExecprocessBadExecutionException(runprocess.getName(), runprocess.getCommandline(), runprocess.getExitvalue());
@@ -135,6 +152,14 @@ public class ExecprocessGettext {
 				throw new IOException(e);
 			}
 		}
+	}
+	
+	/**
+	 * Lance le process
+	 * @throws IOException en cas d'erreur, de code de retour different de 0, ou si le temps d'execution est depasse.
+	 */
+	public void start() throws IOException, ExecprocessBadExecutionException {
+		start(null);
 	}
 	
 	public StringBuffer getResultstdout() {

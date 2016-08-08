@@ -82,7 +82,12 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				if (process.getRunprocess().getExitvalue() == 1) {
-					Loggers.Transcode_Metadata.error("Invalid data found when processing input, " + process + ", " + container);
+					if (Loggers.Transcode_Metadata.isDebugEnabled()) {
+						Loggers.Transcode_Metadata.warn("ffprobe can't open/analyst file, " + process + ", " + container);
+					} else {
+						Loggers.Transcode_Metadata.warn("ffprobe can't open/analyst file " + container.getPhysicalSource());
+					}
+					return null;
 				} else {
 					Loggers.Transcode_Metadata.error("Problem with ffprobe, " + process + ", " + container);
 				}

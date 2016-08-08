@@ -133,6 +133,37 @@ public class ExecprocessPipedCascade {
 	}
 	
 	/**
+	 * Blocking
+	 * @return true if all process return 0.
+	 */
+	public boolean waitExec(final StoppableProcessing stoppable) {
+		
+		list_process.forEach(v -> {
+			try {
+				while (v.isAlive() && (stoppable.isWantToStopCurrentProcessing() == false)) {
+					Thread.sleep(10);
+				}
+			} catch (Exception e) {
+			}
+		});
+		
+		if (stoppable.isWantToStopCurrentProcessing()) {
+			list_process.forEach(v -> {
+				v.kill();
+			});
+		}
+		
+		int exit_value;
+		for (int pos = 0; pos < list_process.size(); pos++) {
+			exit_value = list_process.get(pos).getExitvalue();
+			if (exit_value != 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/**
 	 * @return true if ref is not the first
 	 */
 	boolean hasSourceDatas(Execprocess ref) {
@@ -160,7 +191,6 @@ public class ExecprocessPipedCascade {
 		
 		private OutputStream next_process_std_in;
 		private InputStream previous_process_std_out;
-		private Execprocess next_process_to_stop_at_end;
 		
 		public Pipe(String previous_process, String next_process_name, int pipe_num) {
 			setDaemon(true);
@@ -224,7 +254,9 @@ public class ExecprocessPipedCascade {
 		}
 		
 		public void onStderr(String message) {
-			System.err.println("[" + name + "]" + message);
+			if (log.isTraceEnabled()) {
+				System.err.println("[" + name + "]" + message);
+			}
 		}
 		
 	}

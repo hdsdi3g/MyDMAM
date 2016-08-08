@@ -62,4 +62,16 @@ public abstract class ProcessingKit implements InstanceStatusItem {
 		return jo;
 	}
 	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Class name: ");
+		sb.append(getClass().getName());
+		sb.append(", description: ");
+		sb.append(getDescription());
+		sb.append(", vendor: ");
+		sb.append(getVendor());
+		sb.append(", version: ");
+		sb.append(getVersion());
+		return sb.toString();
+	}
 }
