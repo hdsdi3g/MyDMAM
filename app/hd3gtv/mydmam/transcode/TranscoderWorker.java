@@ -284,6 +284,8 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 				process_kit = process_kits.get(profiles_to_transcode.get(pos));
 				temp_output_file = new File(
 						temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "_" + process_kit.getClass().getSimpleName());
+				FileUtils.forceMkdir(temp_output_file);
+				
 				process_kit_instance = process_kit.createInstance(temp_output_file);
 				process_kit_instance.setDestDirectory(transcode_context.getLocalDestDirectory());
 				process_kit_instance.setJobProgression(progression);
@@ -310,6 +312,8 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 					}
 					throw catched_error;
 				}
+				
+				FileUtils.forceDelete(temp_output_file);
 				
 				if (output_files != null) {
 					output_files.forEach(v -> {

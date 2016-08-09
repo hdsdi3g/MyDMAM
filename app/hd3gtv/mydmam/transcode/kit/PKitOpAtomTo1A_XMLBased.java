@@ -227,7 +227,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 					throw e;
 				}
 				
-				String[] raw_files_names = (new File(FilenameUtils.getFullPath(item.path.getAbsolutePath()))).list(new FilenameFilter() {
+				String[] raw_files_names = temp_dir.list(new FilenameFilter() {
 					
 					@Override
 					public boolean accept(File dir, String name) {
@@ -238,7 +238,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 					throw new IndexOutOfBoundsException("Cant found BMX temp file !" + Arrays.asList(raw_files_names));
 				}
 				
-				File raw_file = new File(raw_files_names[0]);
+				File raw_file = new File(temp_dir.getAbsolutePath() + File.separator + raw_files_names[0]);
 				if (raw_file.exists() == false) {
 					throw new FileNotFoundException(raw_file.getAbsolutePath());
 				}
@@ -389,7 +389,11 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			 * Delete raw temp files, if exists
 			 */
 			files_to_clean.forEach(v -> {
-				v.delete();
+				try {
+					FileUtils.forceDelete(v);
+				} catch (Exception e) {
+					Loggers.Transcode.warn("Can't clean temp file", e);
+				}
 			});
 		}
 		

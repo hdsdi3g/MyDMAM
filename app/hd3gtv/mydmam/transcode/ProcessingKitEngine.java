@@ -57,6 +57,8 @@ public final class ProcessingKitEngine {
 				Loggers.Transcode.warn("Processingkit " + class_name + " is disabled.");
 				return null;
 			}
+			Loggers.Transcode.info("Load Processingkit " + pkit);
+			
 			if (manager != null) {
 				manager.getInstanceStatus().registerInstanceStatusItem(pkit);
 			}

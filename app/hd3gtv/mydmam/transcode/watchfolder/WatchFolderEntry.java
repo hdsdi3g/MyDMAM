@@ -677,7 +677,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		
 		AppManager.createJob(delete_source).setCreator(getClass()).setName("Delete watchfolder source " + validated_file.getName()).setRequiredCompletedJob(jobs_to_watch).setDeleteAfterCompleted()
 				.publish(mutator);
-				
+		
 		mutator.execute();
 	}
 	
