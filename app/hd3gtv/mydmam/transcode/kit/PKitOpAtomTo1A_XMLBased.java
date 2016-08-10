@@ -118,6 +118,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			File file_atom_3 = new File("");
 			File file_atom_4 = new File("");
 			URL dest_archive = null;
+			String outputfile_basename = "(error).mxf";
 			
 			NodeList document_items = order_xml.getDocumentElement().getChildNodes();
 			for (int pos = 0; pos < document_items.getLength(); pos++) {
@@ -132,6 +133,8 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 					file_atom_4 = new File(FilenameUtils.getFullPath(physical_source.getAbsolutePath()) + node.getTextContent()).getCanonicalFile();
 				} else if (node.getTagName().equals("archive")) {
 					dest_archive = new URL(node.getTextContent());
+				} else if (node.getTagName().equals("mediaid")) {
+					outputfile_basename = node.getTextContent().trim() + ".mxf";
 				} else {
 					throw new IOException("Invalid element in XML Document. Element is <" + node.getTagName() + ">");
 				}
@@ -261,14 +264,14 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			String chroot_ftp = Configuration.global.getValue("PKitOpAtomTo1A_XMLBased", "chroot_ftp", "/tmp");
 			if (chroot_ftp.equals("")) {
 				if (this.dest_base_directory != null) {
-					result_op1a = new File(this.dest_base_directory.getAbsolutePath() + File.separator + mxf_files.get(0).path.getName());
+					result_op1a = new File(this.dest_base_directory.getAbsolutePath() + File.separator + outputfile_basename);
 				} else if (this.transcode_context.getLocalDestDirectory() != null) {
-					result_op1a = new File(this.transcode_context.getLocalDestDirectory().getAbsolutePath() + File.separator + mxf_files.get(0).path.getName());
+					result_op1a = new File(this.transcode_context.getLocalDestDirectory().getAbsolutePath() + File.separator + outputfile_basename);
 				} else {
-					result_op1a = new File(mxf_files.get(0).path.getParent() + File.separator + FilenameUtils.getBaseName(mxf_files.get(0).path.getName()) + "-OP1A.mxf");
+					result_op1a = new File(mxf_files.get(0).path.getParent() + File.separator + FilenameUtils.getBaseName(outputfile_basename) + "-OP1A.mxf");
 				}
 			} else {
-				result_op1a = new File(new File(chroot_ftp).getAbsolutePath() + File.separator + dest_archive.getPath() + File.separator + mxf_files.get(0).path.getName());
+				result_op1a = new File(new File(chroot_ftp).getAbsolutePath() + File.separator + dest_archive.getPath() + File.separator + outputfile_basename);
 			}
 			
 			FileUtils.forceMkdir(result_op1a.getParentFile());
