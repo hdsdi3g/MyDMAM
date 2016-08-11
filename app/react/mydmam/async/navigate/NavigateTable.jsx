@@ -88,9 +88,7 @@ navigate.NavigateTable = React.createClass({
 					name = (
 						<a
 							className="tlbdirlistitem"
-							href={url_navigate + "#" + element.storagename + ":" + element.path}
-							onClick={this.props.navigate}
-							data-navigatetarget={element.storagename + ":" + element.path}>
+							href={url_navigate + element.storagename + ":" + element.path}>
 
 							{element.path.substring(element.path.lastIndexOf("/") + 1)}
 						</a>
@@ -99,9 +97,7 @@ navigate.NavigateTable = React.createClass({
 					name = (
 						<a
 							className="tlbdirlistitem"
-							href={url_navigate + "#" + element.storagename + ":/"}
-							onClick={this.props.navigate}
-							data-navigatetarget={element.storagename + ":/"}>
+							href={url_navigate + element.storagename + ":/"}>
 
 							{element.storagename}
 						</a>
@@ -134,9 +130,7 @@ navigate.NavigateTable = React.createClass({
 						<mydmam.async.pathindex.reactBasketButton pathindexkey={elementkey} />
 						<a
 							className="tlbdirlistitem"
-							href={url_navigate + "#" + element.storagename + ":" + element.path}
-							onClick={this.props.navigate}
-							data-navigatetarget={element.storagename + ":" + element.path}>
+							href={url_navigate + element.storagename + ":" + element.path}>
 
 							{elementid}
 							{element.path.substring(element.path.lastIndexOf("/") + 1)}

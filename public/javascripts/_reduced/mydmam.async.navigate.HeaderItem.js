@@ -1,8 +1,8 @@
 (function(a){a.HeaderItem=React.createClass({displayName:"HeaderItem",render:function(){var i=mydmam.metadatas.url.navigate_react;
 var f=this.props.stat.reference;var h=this.props.stat.mtdsummary;var j=this.props.first_item_dateindex;
 if(!f){return null;}var g=null;if(f.storagename){var c=f.storagename+":"+f.path.substring(0,f.path.lastIndexOf("/"));
-if(f.path=="/"){c="";}else{if(f.path.lastIndexOf("/")===0){c=f.storagename+":/";}}var m=i+"#"+c;
-var e=(React.createElement("a",{className:"btn btn-mini btngoback",style:{marginBottom:"6px",marginRight:"1em"},href:m,title:i18n("browser.goback"),onClick:this.props.navigate,"data-navigatetarget":"../"},React.createElement("i",{className:"icon-chevron-left"})));
+if(f.path=="/"){c="";}else{if(f.path.lastIndexOf("/")===0){c=f.storagename+":/";}}var m=i+c;
+var e=(React.createElement("a",{className:"btn btn-mini btngoback",style:{marginBottom:"6px",marginRight:"1em"},href:m,title:i18n("browser.goback")},React.createElement("i",{className:"icon-chevron-left"})));
 var b=null;if(this.props.is_in_search){b=(React.createElement("span",{className:"badge badge-info",style:{marginLeft:10}},i18n("browser.search")));
 }var k=null;if(f.path!="/"){var l=f.path.substring(f.path.lastIndexOf("/")+1);if(h){k=(React.createElement("small",null,mydmam.async.pathindex.mtdTypeofElement(h)));
 }else{if(f.directory){k=(React.createElement("small",null,i18n("browser.directory")));

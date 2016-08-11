@@ -36,15 +36,13 @@ navigate.HeaderItem = React.createClass({
 			navigatetarget = reference.storagename + ":/";
 		}
 
-		var url_goback = url_navigate + "#" + navigatetarget;
+		var url_goback = url_navigate + navigatetarget;
 		var go_back = (
 			<a
 				className="btn btn-mini btngoback"
 				style={{marginBottom: "6px", marginRight: "1em"}}
 				href={url_goback}
-				title={i18n('browser.goback')}
-				onClick={this.props.navigate}
-				data-navigatetarget="../">
+				title={i18n('browser.goback')}>
 				<i className="icon-chevron-left"></i>
 			</a>
 		);

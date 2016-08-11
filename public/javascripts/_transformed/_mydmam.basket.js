@@ -151,7 +151,7 @@
 			var elementkey = $(this).data("elementkey");
 			var element = pathelementkeys_resolved[elementkey];
 			if (element.reference) {
-				$(location).attr('href', mydmam.metadatas.url.navigate + "#" + element.reference.storagename + ":" + element.reference.path);
+				$(location).attr('href', mydmam.metadatas.url.navigate_react + element.reference.storagename + ":" + element.reference.path);
 			}
 		};
 		$('button.basketpresence').each(function() {

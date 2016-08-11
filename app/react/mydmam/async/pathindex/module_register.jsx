@@ -25,7 +25,7 @@ var externalPos = function(index_name, is_directory, storagename) {
 	if (is_directory) {
 		return false;
 	}
-	if (!list_external_positions_storages) {
+	if (window.list_external_positions_storages == null) {
 		return false;
 	}
 	for (var pos = 0; pos < list_external_positions_storages.length; pos++) {

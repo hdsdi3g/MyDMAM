@@ -17,7 +17,7 @@ var i=g.reference.path.split("/");for(var j=1;j<i.length;j++){h=h+"/"+i[j];}if(g
 }h=h+' <span class="label" style="margin-left: 1em;">'+mydmam.format.fulldate(g.reference.date)+"</span>";
 $(this).html(h);}};$("span.pathelement").each(function(){$(this).html(e);});$("span.pathelement").each(c);
 return d;};})(window.mydmam.basket);(function(a){a.setNavigateButtonsEvents=function(c){var b=function(){var d=$(this).data("elementkey");
-var e=c[d];if(e.reference){$(location).attr("href",mydmam.metadatas.url.navigate+"#"+e.reference.storagename+":"+e.reference.path);
+var e=c[d];if(e.reference){$(location).attr("href",mydmam.metadatas.url.navigate_react+e.reference.storagename+":"+e.reference.path);
 }};$("button.basketpresence").each(function(){$(this).click(b);});};})(window.mydmam.basket);
 (function(a){a.setSwitchBasketButtonsEvents=function(){var b=function(d,e){document.body.style.cursor="default";
 if(d===null){return;}a.showAll(null,null);};var c=function(){var d=$(this).data("basketname");

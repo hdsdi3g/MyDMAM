@@ -8,12 +8,12 @@ var k=(this.state.sorted_col==="size"?this.state.sorted_order:null);var q=(this.
 u=(React.createElement("thead",null,React.createElement("tr",null,React.createElement("td",null,React.createElement(t,{onChangeState:this.handleChangeSort,colname:"path",order:m})),React.createElement("td",{className:"pathindex-col-size"},React.createElement(t,{onChangeState:this.handleChangeSort,colname:"size",order:k})),React.createElement("td",{className:"pathindex-col-date"},React.createElement(t,{onChangeState:this.handleChangeSort,colname:"date",order:q})),React.createElement("td",null," "),React.createElement("td",null," "))));
 }var b=[];for(var h=0;h<c.length;h++){var g=c[h].key;var f=c[h].reference;var n=c[h].items_total;
 var w=null;var l=null;var s=(React.createElement("td",null));if(f.directory){var y=null;
-if(i.storagename){y=(React.createElement("a",{className:"tlbdirlistitem",href:o+"#"+f.storagename+":"+f.path,onClick:this.props.navigate,"data-navigatetarget":f.storagename+":"+f.path},f.path.substring(f.path.lastIndexOf("/")+1)));
-}else{y=(React.createElement("a",{className:"tlbdirlistitem",href:o+"#"+f.storagename+":/",onClick:this.props.navigate,"data-navigatetarget":f.storagename+":/"},f.storagename));
+if(i.storagename){y=(React.createElement("a",{className:"tlbdirlistitem",href:o+f.storagename+":"+f.path},f.path.substring(f.path.lastIndexOf("/")+1)));
+}else{y=(React.createElement("a",{className:"tlbdirlistitem",href:o+f.storagename+":/"},f.storagename));
 }var r=null;if(n===0){r=(React.createElement("span",{className:"badge badge-success",style:{marginLeft:5}},i18n("browser.emptydir")));
 }w=(React.createElement("th",null,React.createElement(mydmam.async.pathindex.reactBasketButton,{pathindexkey:g}),y,r));
 }else{var j=null;if(f.id){j=(React.createElement("span",{className:"label label-info",style:{marginLeft:5,marginRight:5}},f.id));
-}w=(React.createElement("td",null,React.createElement(mydmam.async.pathindex.reactBasketButton,{pathindexkey:g}),React.createElement("a",{className:"tlbdirlistitem",href:o+"#"+f.storagename+":"+f.path,onClick:this.props.navigate,"data-navigatetarget":f.storagename+":"+f.path},j,f.path.substring(f.path.lastIndexOf("/")+1))));
+}w=(React.createElement("td",null,React.createElement(mydmam.async.pathindex.reactBasketButton,{pathindexkey:g}),React.createElement("a",{className:"tlbdirlistitem",href:o+f.storagename+":"+f.path},j,f.path.substring(f.path.lastIndexOf("/")+1))));
 }if(f.directory){var x=i18n("browser.storagetitle");if(i.storagename!=null){x=i18n("browser.directorytitle");
 }if(n!=null){if(n===0){x+=" "+i18n("browser.emptydir");}else{if(n==1){x+=" - "+i18n("browser.oneelement");
 }else{x+=" - "+i18n("browser.Nelements",n);}}}l=(React.createElement("td",null,React.createElement("span",{className:"label label-success"},x)));

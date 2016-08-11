@@ -41,7 +41,7 @@ navigate.BreadCrumb = React.createClass({
 				items.push(
 					<li key={pos}>
 						<span className="divider">/</span>
-						<a href={url_navigate + "#" + newpath} onClick={this.props.navigate} data-navigatetarget={newpath}>
+						<a href={url_navigate + newpath}>
 							{element_subpaths[pos]}
 						</a>
 					</li>
@@ -61,7 +61,7 @@ navigate.BreadCrumb = React.createClass({
 		if (items.length > 0) {
 			header.push(
 				<li key="storagestitle">
-					<a href={url_navigate} onClick={this.props.navigate} data-navigatetarget="">
+					<a href={url_navigate}>
 						{i18n('browser.storagestitle')}
 					</a>
 					<span className="divider">::</span>
@@ -70,7 +70,7 @@ navigate.BreadCrumb = React.createClass({
 			if (path != "/") {
 				header.push(
 					<li key="root">
-						<a href={url_navigate + "#" + storagename + ':/'} onClick={this.props.navigate} data-navigatetarget={storagename + ':/'}>
+						<a href={url_navigate + storagename + ':/'}>
 							{storagename}
 						</a>
 					</li>

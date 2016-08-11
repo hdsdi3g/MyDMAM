@@ -26,6 +26,7 @@ import com.google.gson.JsonSerializer;
 import controllers.Check;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.ContainerPreview;
+import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.stat.AsyncMetadataAnalystRequest;
 import hd3gtv.mydmam.web.stat.AsyncStatRequest;
@@ -73,6 +74,11 @@ public class Stat extends AJSController {
 			result.remove("origin");
 		}
 		return result;
+	}
+	
+	@Check("navigate")
+	public static String listExternalPositionsStorages() {
+		return MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
 	}
 	
 }

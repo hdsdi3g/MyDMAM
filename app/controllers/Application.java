@@ -47,6 +47,7 @@ import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.Http.Header;
+import play.mvc.Router;
 import play.mvc.With;
 
 @With(Secure.class)
@@ -61,16 +62,13 @@ public class Application extends Controller {
 	
 	@Check("navigate")
 	public static void navigate() {
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("application.navigate"));
-		
-		String current_basket_content = "[]";
-		String list_external_positions_storages = MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
-		
-		render(current_basket_content, list_external_positions_storages);
+		redirect(Router.getFullUrl("Application.indexjs") + "#navigate", true);
 	}
 	
 	@Check("navigate")
 	public static void stat() {
+		Loggers.Play.warn("Application.Stat calls are deprecated, use instead AsyncJS.Stat");
+		
 		ArrayList<String> fileshashs = new ArrayList<String>();
 		if (params.get("fileshashs") != null) {
 			fileshashs.add(params.get("fileshashs"));
@@ -137,6 +135,7 @@ public class Application extends Controller {
 	}
 	
 	public static void i18n() {
+		// XXX replace by Async JS
 		response.cacheFor("24h");
 		response.contentType = "application/javascript";
 		Properties ymessages = Messages.all(play.i18n.Lang.get());

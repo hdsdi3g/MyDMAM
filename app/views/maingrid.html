@@ -142,7 +142,7 @@ $(document).ready(function() {
  		<ul class="nav pull-left navbar-fixed-top-btn">
 			#{secure.check 'navigate'}
 				<li id="btnStorage">
-					<a href="@{Application.navigate()}">&{'application.navigate'}</a>
+					<a href="@{Application.indexjs()}#navigate">&{'application.navigate'}</a>
 				</li>
 			#{/secure.check}
 			

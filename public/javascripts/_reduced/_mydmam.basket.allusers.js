@@ -53,7 +53,7 @@ r=r+" &bull;";r=r+' <button class="btn btn-mini btnactionevent btntruncatebasket
 r=r+' <button class="btn btn-mini btnactionevent btnremovebasket" type="button" data-basketname="'+q+'"><i class="icon-remove"></i> '+i18n("userprofile.baskets.admin.remove")+"</button>";
 r=r+"</td>";r=r+"</tr>";return r;};var n=function(s,q,p){var r=a.pathindexelements[q];
 r=r.reference;var t=p;if(r){t=t+"<tr>";t=t+"<td>"+s+"</td>";t=t+"<td>";t=t+'<span style="font-weight: bold;">'+r.storagename+"</span>";
-t=t+" :: "+r.path.substring(0,r.path.lastIndexOf("/")+1);t=t+'<a class="tlbdirlistitem" data-elementkey="'+q+'" href="'+mydmam.metadatas.url.navigate+"#"+r.storagename+":"+r.path+'">';
+t=t+" :: "+r.path.substring(0,r.path.lastIndexOf("/")+1);t=t+'<a class="tlbdirlistitem" data-elementkey="'+q+'" href="'+mydmam.metadatas.url.navigate_react+r.storagename+":"+r.path+'">';
 t=t+r.path.substring(r.path.lastIndexOf("/")+1);t=t+"</a></td>";t=t+"<td>";if(r.directory){t=t+'<span class="label label-success">'+i18n("browser.directory")+"</span>";
 }if(r.size){t=t+'<span class="label label-important">'+r.size+"</span>";}t=t+"</td>";
 t=t+"<td>"+r.directory+r.size+"</td>";t=t+"<td>";if(r.date){t=t+'<span class="label">'+mydmam.format.fulldate(r.date)+"</span>";

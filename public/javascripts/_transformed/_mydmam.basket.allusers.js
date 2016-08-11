@@ -369,7 +369,7 @@
 				content = content + '<td>';
 				content = content + '<span style="font-weight: bold;">' + element.storagename + '</span>';
 				content = content + ' :: ' + element.path.substring(0, element.path.lastIndexOf("/") + 1);
-				content = content + '<a class="tlbdirlistitem" data-elementkey="' + itemelementkey + '" href="' + mydmam.metadatas.url.navigate + "#" + element.storagename + ":" + element.path + '">';
+				content = content + '<a class="tlbdirlistitem" data-elementkey="' + itemelementkey + '" href="' + mydmam.metadatas.url.navigate_react + element.storagename + ":" + element.path + '">';
 				content = content + element.path.substring(element.path.lastIndexOf("/") + 1);
 				content = content + '</a></td>';
 				content = content + '<td>';
