@@ -17,8 +17,10 @@
 package hd3gtv.mydmam.transcode.watchfolder;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +28,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.elasticsearch.ElasticsearchException;
@@ -646,6 +651,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		
 		if (ffprobe != null) {
 			Loggers.Transcode_WatchFolder.debug("Analyst file result, " + ffprobe);
+			duration = ffprobe.getDuration();
 		}
 		
 		if (must_contain.contains(MustContainType.video) | must_contain.contains(MustContainType.audio)) {
@@ -668,9 +674,59 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			}
-			duration = ffprobe.getDuration();
 		} else {
 			Loggers.Transcode_WatchFolder.debug("WF entry (" + name + ") don't required a media file");
+		}
+		
+		if (indexing_result.getSummary().equalsMimetype("application/zip", "application/x-compressed", "application/x-zip-compressed", "multipart/x-zip")) {
+			/**
+			 * Zip extraction in-place
+			 */
+			Loggers.Transcode_WatchFolder.info("Zip file dropped in watchfolder: extract it and delete it, " + name + " for " + validated_file);
+			AbstractFile dest_adir = null;
+			AbstractFile dest_afile = null;
+			OutputStream fos;
+			byte[] buffer = new byte[0xFFF];
+			
+			try {
+				String base_dest_path = FilenameUtils.getFullPath(pi_item.currentpath);
+				dest_adir = Storage.getByName(pi_item.storagename).getRootPath().getAbstractFile(base_dest_path);
+				
+				ZipInputStream zis = new ZipInputStream(new FileInputStream(physical_source));
+				ZipEntry zip_element = zis.getNextEntry();
+				
+				while (zip_element != null) {
+					if (zip_element.isDirectory()) {
+						zip_element = zis.getNextEntry();
+						continue;
+					}
+					String file_ext = FilenameUtils.getExtension(zip_element.getName());
+					String file_name = FilenameUtils.getBaseName(zip_element.getName()) + "." + file_ext;
+					if (file_ext.equals("")) {
+						file_name = FilenameUtils.getBaseName(zip_element.getName());
+					}
+					
+					dest_afile = dest_adir.getAbstractFile(base_dest_path + "/" + file_name);
+					fos = dest_afile.getOutputStream(0xFFF);
+					
+					int len;
+					while ((len = zis.read(buffer)) > 0) {
+						fos.write(buffer, 0, len);
+					}
+					fos.close();
+					zip_element = zis.getNextEntry();
+				}
+				zis.closeEntry();
+				zis.close();
+				validated_file.status = Status.PROCESSED;
+				FileUtils.forceDelete(physical_source);
+			} catch (IOException e) {
+				validated_file.status = Status.ERROR;
+				Loggers.Transcode_WatchFolder.error("Can't extract Zip file dropped in watchfolder: " + name + " for " + validated_file, e);
+			}
+			WatchFolderDB.push(Arrays.asList(validated_file));
+			IOUtils.closeQuietly(dest_adir);
+			return;
 		}
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
@@ -708,18 +764,23 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		WatchFolderDB.push(Arrays.asList(validated_file));
 		
 		JobContextWFDeleteSourceFile delete_source = new JobContextWFDeleteSourceFile();
-		delete_source.neededstorages = Arrays.asList(validated_file.storage_name);
+		delete_source.neededstorages = new ArrayList<>(Arrays.asList(validated_file.storage_name));
 		delete_source.path = validated_file.path;
 		delete_source.storage = validated_file.storage_name;
 		delete_source.send_to = send_source_to_dest;
 		if (send_source_to_dest_storages_names.isEmpty() == false) {
-			delete_source.neededstorages.addAll(send_source_to_dest_storages_names);
+			send_source_to_dest_storages_names.forEach(storage -> {
+				if (delete_source.neededstorages.contains(storage) == false) {
+					delete_source.neededstorages.add(storage);
+				}
+			});
 		}
 		
 		Loggers.Transcode_WatchFolder.trace("Prepare delete source job " + name + " for " + validated_file + " " + delete_source.contextToJson());
 		
-		AppManager.createJob(delete_source).setCreator(getClass()).setName("Delete watchfolder source " + validated_file.getName()).setRequiredCompletedJob(jobs_to_watch).setDeleteAfterCompleted()
-				.publish(mutator);
+		AppManager.createJob(delete_source).setCreator(
+				
+				getClass()).setName("Delete watchfolder source " + validated_file.getName()).setRequiredCompletedJob(jobs_to_watch).setDeleteAfterCompleted().publish(mutator);
 		
 		mutator.execute();
 	}

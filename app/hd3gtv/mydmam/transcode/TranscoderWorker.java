@@ -359,6 +359,7 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 				 *      process_configuration.getParamTags().put("FILTERS", sb_filters.toString());
 				 */
 				process_configuration.getParamTags().put("FILTERS", "null");
+				process_configuration.getParamTags().put("AUDIOMAPFILTER", "anull");
 				process_configuration.getParamTags().put("ICCPROFILE", ImageMagickThumbnailer.getICCProfile().getAbsolutePath());
 				
 				Loggers.Transcode.debug("Prepare prepareExecprocess for process_configuration");
