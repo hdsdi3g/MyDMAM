@@ -21,11 +21,17 @@ ftpserver.hasUserAdminRights = function() {
 
 var generatePassword = function() {
 	var generated_password = "";
-	var possible = "abcdefghijkmnopqrstuvwxyz23456789";
-	for (var i = 0; i < 8; i++) {
-		generated_password += possible.charAt(Math.floor(Math.random() * possible.length));
+	var possible = "23456789abcdefghijkmnopqrstuvwxyz23456789ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+	while (true) {
+		for (var i = 0; i < 10; i++) {
+			generated_password += possible.charAt(Math.floor(Math.random() * possible.length));
+		}
+
+		if ((generated_password != generated_password.toUpperCase()) && (generated_password != generated_password.toLowerCase())) {
+			return generated_password;
+		}
+		generated_password = "";
 	}
-	return generated_password;
 }
 
 ftpserver.AddUser = React.createClass({

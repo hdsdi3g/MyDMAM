@@ -116,7 +116,8 @@ async.BtnEnableDisable = React.createClass({
 		this.setState({pending_changes: false});
 	},
 	render: function() {
-		var class_name_icon = classNames("icon-white", {
+		var class_name_icon = classNames({
+			"icon-white":       !(!this.props.enabled &  this.props.iconcircle),
 			"icon-stop":         this.props.enabled & !this.props.iconcircle,
 			"icon-play":        !this.props.enabled & !this.props.iconcircle,
 			"icon-ok-circle":    this.props.enabled &  this.props.iconcircle,
@@ -146,6 +147,25 @@ async.BtnEnableDisable = React.createClass({
 			return (<button className={btn_classes} onClick={this.onClickSetEnable}><i className={class_name_icon}></i> {this.props.labeldisabled}</button>);
 		}
 	},
+});
+
+async.CheckboxItem = React.createClass({
+	propTypes: {
+		reference: React.PropTypes.string.isRequired,
+		checked: React.PropTypes.bool.isRequired,
+		onChangeCheck: React.PropTypes.func.isRequired,
+	},
+	onClickCB: function(e) {
+   		$(React.findDOMNode(this.refs.cb)).blur();
+   		this.props.onChangeCheck(this.props.reference, !this.props.checked);
+	},
+	render: function() {
+		return (
+			<label className="checkbox">
+	        	<input type="checkbox" ref="cb" defaultChecked={this.props.checked} onChange={this.onClickCB} /> {this.props.children}
+			</label>
+		);
+	}
 });
 
 async.BtnDelete = React.createClass({
@@ -547,4 +567,21 @@ async.PageHeaderTitle = React.createClass({
 			<div>{this.props.children}</div>
 		</div>);
 	}
+});
+
+async.HeaderTab = React.createClass({
+	onClick: function(e) {
+		//e.preventDefault();
+		//this.props.onActiveChange(this.props.pos);
+		$(React.findDOMNode(this.refs.tab)).blur();
+	},
+	render: function(){
+		var li_class = classNames({
+			"active": this.props.href == location.hash
+		});
+
+		return (<li className={li_class}>
+			<a href={this.props.href} onClick={this.onClick} ref="tab">{i18n(this.props.i18nlabel)}</a>
+		</li>);
+	},
 });

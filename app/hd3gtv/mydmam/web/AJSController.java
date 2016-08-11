@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,12 +31,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import controllers.Secure;
+import ext.Bootstrap;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.db.orm.CrudOrmEngine;
+import hd3gtv.mydmam.auth.UserNG;
 import hd3gtv.mydmam.web.AJSControllerItem.Verb;
 import hd3gtv.tools.GsonIgnoreStrategy;
-import models.UserProfile;
 import play.Play;
 import play.vfs.VirtualFile;
 
@@ -58,8 +57,7 @@ public class AJSController {
 		gson_builder.addDeserializationExclusionStrategy(ignore_strategy);
 		gson_builder.addSerializationExclusionStrategy(ignore_strategy);
 		gson_builder.serializeNulls();
-		gson_builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
-		MyDMAM.registerJsonArrayAndObjectSerializer(gson_builder);
+		MyDMAM.registerBaseSerializers(gson_builder);
 		gson_simple = gson_builder.create();
 		// gson_pretty = gson_builder.setPrettyPrinting().create();
 		gson = gson_builder.create();
@@ -109,10 +107,15 @@ public class AJSController {
 		
 	}
 	
+	public static Gson getGson() {
+		return gson;
+	}
+	
 	/**
 	 * Get all items named and on this path, from all modules, and not only the first.
 	 */
-	private static List<VirtualFileModule> getAllfromRelativePath(String path, boolean must_exists, boolean must_directory) {
+	@AJSIgnore
+	public static List<VirtualFileModule> getAllfromRelativePath(String path, boolean must_exists, boolean must_directory) {
 		List<VirtualFileModule> file_list = new ArrayList<VirtualFileModule>();
 		
 		LinkedHashMap<VirtualFile, String> path_modules = new LinkedHashMap<VirtualFile, String>();
@@ -189,13 +192,6 @@ public class AJSController {
 	}
 	
 	@AJSIgnore
-	public static void putAllPrivilegesNames(HashSet<String> mergue_with_list) {
-		for (AJSControllerItem item : controllers.values()) {
-			item.putAllPrivilegesNames(mergue_with_list);
-		}
-	}
-	
-	@AJSIgnore
 	public static HashMap<String, AJSControllerItem> getControllers() {
 		return controllers;
 	}
@@ -223,11 +219,17 @@ public class AJSController {
 	}
 	
 	@AJSIgnore
-	public static UserProfile getUserProfile() throws Exception {
-		String username = Secure.connected();
-		String key = UserProfile.prepareKey(username);
-		CrudOrmEngine<UserProfile> engine = UserProfile.getORMEngine(key);
-		return engine.getInternalElement();
+	public static UserNG getUserProfile() throws Exception {
+		return Bootstrap.getAuth().getByUserKey(Secure.connected());
+	}
+	
+	@AJSIgnore
+	public static String getUserProfileLongName() throws Exception {
+		UserNG user = getUserProfile();
+		if (user == null) {
+			return "(Deleted, please log-off)";
+		}
+		return user.getFullname();
 	}
 	
 	@AJSIgnore

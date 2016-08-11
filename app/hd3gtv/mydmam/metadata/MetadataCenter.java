@@ -32,6 +32,7 @@ import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Cartridge;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.FullDisplay;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Icon;
+import hd3gtv.mydmam.transcode.mtdgenerator.BBCBmxAnalyser;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAudioDeepAnalyser;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegInterlacingDetection;
@@ -133,9 +134,12 @@ public class MetadataCenter {
 		conf_items = new ArrayList<MetadataCenter.MetadataConfigurationItem>();
 		
 		if (Configuration.global.isElementExists("metadata_analysing")) {
-			List<LinkedHashMap<String, ?>> list_conf = Configuration.global.getListMapValues("metadata_analysing", "items");
-			for (int pos_item = 0; pos_item < list_conf.size(); pos_item++) {
-				conf_items.add(new MetadataConfigurationItem(list_conf.get(pos_item)));
+			if (Configuration.global.isElementKeyExists("metadata_analysing", "items")) {
+				List<LinkedHashMap<String, ?>> list_conf = Configuration.global.getListMapValues("metadata_analysing", "items");
+				for (int pos_item = 0; pos_item < list_conf.size(); pos_item++) {
+					conf_items.add(new MetadataConfigurationItem(list_conf.get(pos_item)));
+				}
+				
 			}
 			
 			if (Configuration.global.getValueBoolean("metadata_analysing", "master_as_preview")) {
@@ -152,6 +156,7 @@ public class MetadataCenter {
 			addExtractor(new FFmpegInterlacingDetection());
 			addExtractor(new FFmpegSnapshot());
 			addExtractor(new FFmpegAlbumartwork());
+			addExtractor(new BBCBmxAnalyser());
 			
 			addExtractor(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
 			addExtractor(new ImageMagickThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
@@ -175,15 +180,21 @@ public class MetadataCenter {
 		if (extractor == null) {
 			return;
 		}
+		
 		if (extractor.isEnabled() == false) {
-			return;
+			Loggers.Metadata.debug("Load disabled extractor " + extractor.getLongName());
+		} else {
+			Loggers.Metadata.info("Load extractor " + extractor.getLongName());
 		}
 		
-		Loggers.Metadata.info("Load extractor " + extractor.getLongName());
 		try {
 			ContainerOperations.declareAllEntriesType(extractor.getAllRootEntryClasses());
 		} catch (Exception e) {
 			Loggers.Metadata.error("Can't declare (de)serializer from Entry extractor " + extractor.getLongName(), e);
+			return;
+		}
+		
+		if (extractor.isEnabled() == false) {
 			return;
 		}
 		

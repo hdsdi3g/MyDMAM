@@ -106,6 +106,13 @@
 # HDMV (h264 MPEG TS Stream)
 4       belong             0x47400010     video/mp2t
 
+# Matroska / webm
+8       string             matroska       video/x-matroska
+24      string             matroska       video/x-matroska
+29      string             matroska       video/x-matroska
+24      string             webm           video/webm
+31      string             webm           video/webm
+
 #------------------------------------------------------------------------------
 # Localstuff:  file(1) magic for locally observed files
 # Add any locally observed files here.

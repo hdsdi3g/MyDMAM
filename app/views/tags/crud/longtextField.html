@@ -1,3 +1,0 @@
-#{field 'object.' + _name}
-    <textarea id="${field.name}" cols="48" rows="5" class="${field.errorClass}" name="${field.name}">${params[field.name]?.escape()?.raw() ?: field.error?.message == 'validation.required' ? '' : _value?.escape()?.raw()}</textarea>
-#{/field}

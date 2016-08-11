@@ -162,7 +162,7 @@ public class JSSourceDatabaseEntry {
 	 */
 	String computeJSScope() {
 		if (relative_file_name.indexOf(File.separator) > -1) {
-			return relative_file_name.substring(0, FilenameUtils.indexOfLastSeparator(relative_file_name)).replaceAll(File.separator, ".");
+			return relative_file_name.substring(0, FilenameUtils.indexOfLastSeparator(relative_file_name)).replaceAll("/", ".");
 		}
 		return null;
 	}

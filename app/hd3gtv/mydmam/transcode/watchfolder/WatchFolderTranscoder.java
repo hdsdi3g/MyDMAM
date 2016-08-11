@@ -25,6 +25,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.transcode.ProcessingKitEngine;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 
 public class WatchFolderTranscoder {
@@ -34,6 +35,8 @@ public class WatchFolderTranscoder {
 	
 	private transient ThreadGroup wf_group;
 	private ArrayList<WatchFolderEntry> wf_entries;
+	
+	private ProcessingKitEngine process_kit_engine;
 	
 	public WatchFolderTranscoder(AppManager manager) {
 		
@@ -55,11 +58,12 @@ public class WatchFolderTranscoder {
 		wf_entries = new ArrayList<WatchFolderEntry>();
 		wf_group = new ThreadGroup("Watch Folder Transcoders");
 		wf_group.setDaemon(true);
+		process_kit_engine = new ProcessingKitEngine(manager);
 		
 		for (Map.Entry<String, ConfigurationItem> entry : all_wf_confs.entrySet()) {
 			try {
 				Loggers.Transcode_WatchFolder.info("Start watchfolder " + entry.getKey());
-				WatchFolderEntry wf_entry = new WatchFolderEntry(manager, wf_group, entry.getKey(), all_wf_confs);
+				WatchFolderEntry wf_entry = new WatchFolderEntry(manager, wf_group, entry.getKey(), all_wf_confs, process_kit_engine);
 				wf_entry.start();
 				
 				wf_entries.add(wf_entry);

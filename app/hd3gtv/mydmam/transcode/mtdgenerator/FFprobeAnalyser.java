@@ -82,7 +82,12 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				if (process.getRunprocess().getExitvalue() == 1) {
-					Loggers.Transcode_Metadata.error("Invalid data found when processing input, " + process + ", " + container);
+					if (Loggers.Transcode_Metadata.isDebugEnabled()) {
+						Loggers.Transcode_Metadata.warn("ffprobe can't open/analyst file, " + process + ", " + container);
+					} else {
+						Loggers.Transcode_Metadata.warn("ffprobe can't open/analyst file " + container.getPhysicalSource());
+					}
+					return null;
 				} else {
 					Loggers.Transcode_Metadata.error("Problem with ffprobe, " + process + ", " + container);
 				}
@@ -328,6 +333,8 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		if (mimetype.equalsIgnoreCase("video/x-dv")) return true;
 		if (mimetype.equalsIgnoreCase("video/vc1")) return true;
 		if (mimetype.equalsIgnoreCase("video/ogg")) return true;
+		if (mimetype.equalsIgnoreCase("video/webm")) return true;
+		if (mimetype.equalsIgnoreCase("video/x-matroska")) return true;
 		if (mimetype.equalsIgnoreCase("video/mp2p")) return true;
 		if (mimetype.equalsIgnoreCase("video/h264")) return true;
 		if (mimetype.equalsIgnoreCase("video/x-flv")) return true;
@@ -345,6 +352,7 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		if (mimetype.equalsIgnoreCase("audio/ogg")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vorbis")) return true;
 		if (mimetype.equalsIgnoreCase("audio/quicktime")) return true;
+		if (mimetype.equalsIgnoreCase("application/mxf")) return true;
 		
 		if (mimetype.equalsIgnoreCase("audio/x-ms-wmv")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-hx-aac-adts")) return true;

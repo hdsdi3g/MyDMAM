@@ -5,6 +5,7 @@
 
 if(!window.mydmam){window.mydmam = {};}
 if(!window.mydmam.async){window.mydmam.async = {};}
+if(!window.mydmam.async.auth){window.mydmam.async.auth = {};}
 if(!window.mydmam.async.broker){window.mydmam.async.broker = {};}
 if(!window.mydmam.async.ftpserver){window.mydmam.async.ftpserver = {};}
 if(!window.mydmam.async.jobs){window.mydmam.async.jobs = {};}

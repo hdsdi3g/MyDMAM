@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -34,16 +35,15 @@ import com.google.gson.JsonSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.db.Elasticsearch;
-import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.DistantFileRecovery;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
@@ -51,8 +51,9 @@ import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.Execprocess;
+import hd3gtv.tools.StoppableProcessing;
 
-public class TranscoderWorker extends WorkerNG {
+public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 	
 	@SuppressWarnings("unchecked")
 	public static void declareTranscoders(AppManager manager) throws NullPointerException, IOException {
@@ -68,6 +69,8 @@ public class TranscoderWorker extends WorkerNG {
 		
 		FileUtils.forceMkdir(temp_dir);
 		
+		ProcessingKitEngine process_kit_engine = new ProcessingKitEngine(manager);
+		
 		List<LinkedHashMap<String, ?>> transc_conf = Configuration.global.getListMapValues("transcodingworkers", "instances");
 		
 		for (int pos_instance = 0; pos_instance < transc_conf.size(); pos_instance++) {
@@ -79,32 +82,46 @@ public class TranscoderWorker extends WorkerNG {
 			Object raw_profile = transc_conf.get(pos_instance).get("profiles");
 			
 			TranscodeProfile profile;
-			TranscoderWorker transcoderworker;
+			ProcessingKit process_kit;
 			if (raw_profile instanceof String) {
 				profile = TranscodeProfile.getTranscodeProfile((String) raw_profile);
+				process_kit = null;
 				if (profile == null) {
-					throw new IOException("Can't found profile \"" + (String) raw_profile + "\"");
+					process_kit = process_kit_engine.get((String) raw_profile);
+					if (process_kit == null) {
+						throw new IOException("Can't found profile \"" + (String) raw_profile + "\"");
+					}
 				}
 				for (int pos_count = 0; pos_count < count; pos_count++) {
-					Loggers.Transcode.trace("Create transcoder worker for " + profile);
-					transcoderworker = new TranscoderWorker(Arrays.asList(profile), temp_dir);
-					manager.register(transcoderworker);
+					Loggers.Transcode.trace("Create transcoder worker for " + raw_profile);
+					
+					if (profile != null) {
+						manager.register(new TranscoderWorker(Arrays.asList(profile), temp_dir, new ArrayList<>(1)));
+					} else if (process_kit != null) {
+						manager.register(new TranscoderWorker(new ArrayList<>(1), temp_dir, Arrays.asList(process_kit)));
+					}
 				}
 			} else if (raw_profile instanceof ArrayList<?>) {
 				ArrayList<String> profiles_name = (ArrayList<String>) raw_profile;
 				ArrayList<TranscodeProfile> profiles = new ArrayList<TranscodeProfile>(profiles_name.size());
+				ArrayList<ProcessingKit> process_kits = new ArrayList<ProcessingKit>(profiles_name.size());
 				
 				for (int pos_profile_name = 0; pos_profile_name < profiles_name.size(); pos_profile_name++) {
 					profile = TranscodeProfile.getTranscodeProfile(profiles_name.get(pos_profile_name));
+					process_kit = null;
 					if (profile == null) {
-						throw new IOException("Can't found profile \"" + (String) raw_profile + "\"");
+						process_kit = process_kit_engine.get(profiles_name.get(pos_profile_name));
+						if (process_kit == null) {
+							throw new IOException("Can't found profile \"" + profiles_name.get(pos_profile_name) + "\"");
+						}
+						process_kits.add(process_kit);
+					} else {
+						profiles.add(profile);
 					}
-					profiles.add(profile);
 				}
 				for (int pos_count = 0; pos_count < count; pos_count++) {
-					Loggers.Transcode.trace("Create transcoder worker for " + profiles);
-					transcoderworker = new TranscoderWorker(profiles, temp_dir);
-					manager.register(transcoderworker);
+					Loggers.Transcode.trace("Create transcoder worker for " + profiles + " and " + process_kits);
+					manager.register(new TranscoderWorker(profiles, temp_dir, process_kits));
 				}
 			}
 		}
@@ -119,14 +136,18 @@ public class TranscoderWorker extends WorkerNG {
 	private List<WorkerCapablities> capabilities;
 	private Explorer explorer;
 	private File temp_directory;
+	private transient HashMap<String, ProcessingKit> process_kits;
 	
-	private TranscoderWorker(final List<TranscodeProfile> profiles, File temp_directory) throws NullPointerException, IOException {
+	private TranscoderWorker(final List<TranscodeProfile> profiles, File temp_directory, final List<ProcessingKit> process_kits) throws NullPointerException, IOException {
 		explorer = new Explorer();
 		if (profiles == null) {
 			throw new NullPointerException("\"profiles\" can't to be null");
 		}
-		if (profiles.isEmpty()) {
-			throw new NullPointerException("\"profiles\" can't to be empty");
+		if (process_kits == null) {
+			throw new NullPointerException("\"process_kits\" can't to be null");
+		}
+		if (profiles.isEmpty() && process_kits.isEmpty()) {
+			throw new NullPointerException("\"profiles\" and \"process_kits\" can't to be empty");
 		}
 		
 		this.temp_directory = temp_directory;
@@ -156,9 +177,17 @@ public class TranscoderWorker extends WorkerNG {
 				for (int pos = 0; pos < profiles.size(); pos++) {
 					names.add(profiles.get(pos).getName());
 				}
-				Loggers.Transcode.trace("New transcoder hooked names / profiles " + names);
+				for (int pos = 0; pos < process_kits.size(); pos++) {
+					names.add(process_kits.get(pos).getClass().getName());
+				}
+				Loggers.Transcode.trace("New transcoder hooked names / profiles / process_kits " + names);
 				return names;
 			}
+		});
+		
+		this.process_kits = new HashMap<>(1);
+		process_kits.forEach(v -> {
+			this.process_kits.put(v.getClass().getName(), v);
 		});
 	}
 	
@@ -185,6 +214,10 @@ public class TranscoderWorker extends WorkerNG {
 		}
 	}
 	
+	public boolean isWantToStopCurrentProcessing() {
+		return stop_process;
+	}
+	
 	protected boolean isActivated() {
 		return TranscodeProfile.isConfigured();
 	}
@@ -196,7 +229,7 @@ public class TranscoderWorker extends WorkerNG {
 	private Execprocess process;
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
-		JobContextTranscoder transcode_context = (JobContextTranscoder) context;
+		final JobContextTranscoder transcode_context = (JobContextTranscoder) context;
 		
 		Loggers.Transcode.debug("Recover source file from local or distant storage " + transcode_context.contextToJson().toString());
 		
@@ -222,9 +255,6 @@ public class TranscoderWorker extends WorkerNG {
 			return;
 		}
 		
-		SourcePathIndexerElement dest_storage = SourcePathIndexerElement.prepareStorageElement(transcode_context.dest_storage_name);
-		
-		// Container container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
 		Loggers.Transcode.debug("physical_source is " + physical_source.getPath());
 		
 		List<String> profiles_to_transcode = transcode_context.hookednames;
@@ -234,6 +264,9 @@ public class TranscoderWorker extends WorkerNG {
 		TranscodeProgress tprogress;
 		File temp_output_file;
 		File progress_file = null;
+		ProcessingKit process_kit;
+		ProcessingKitInstance process_kit_instance;
+		Container container = null;
 		
 		for (int pos = 0; pos < profiles_to_transcode.size(); pos++) {
 			if (stop_process) {
@@ -244,186 +277,163 @@ public class TranscoderWorker extends WorkerNG {
 				Loggers.Transcode.debug("Transcode step: " + (pos + 1) + "/" + profiles_to_transcode.size());
 			}
 			
-			transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));
-			Loggers.Transcode.debug("Get transcode_profile: " + transcode_profile.getName());
-			
-			temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));
-			Loggers.Transcode.debug("Get temp_output_file: " + temp_output_file.getPath());
-			
-			process_configuration = transcode_profile.createProcessConfiguration(physical_source, temp_output_file);
-			if (Loggers.Transcode.isDebugEnabled()) {
-				Loggers.Transcode.debug("process_configuration: " + process_configuration);
-			}
-			
-			if (process_configuration.wantAProgressFile()) {
-				progress_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "progress.txt");
+			if (process_kits.containsKey(profiles_to_transcode.get(pos))) {
+				/**
+				 * ProcessingKit transcoding.
+				 */
+				process_kit = process_kits.get(profiles_to_transcode.get(pos));
+				temp_output_file = new File(
+						temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "_" + process_kit.getClass().getSimpleName());
+				FileUtils.forceMkdir(temp_output_file);
 				
-				tprogress = process_configuration.getProgress();
-				Loggers.Transcode.debug("Process configuration want a progress: " + tprogress.getClass().getName());
-				tprogress.init(progress_file, progression, context);
-				tprogress.startWatching();
+				process_kit_instance = process_kit.createInstance(temp_output_file);
+				process_kit_instance.setDestDirectory(transcode_context.getLocalDestDirectory());
+				process_kit_instance.setJobProgression(progression);
+				process_kit_instance.setTranscodeContext(transcode_context);
+				process_kit_instance.setStoppable(this);
+				
+				if (container == null) {
+					container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
+				}
+				
+				Exception catched_error = null;
+				List<File> output_files = null;
+				try {
+					output_files = process_kit_instance.process(physical_source, container);
+				} catch (Exception e) {
+					catched_error = e;
+				}
+				process_kit_instance.cleanTempFiles();
+				if (catched_error != null) {
+					if (output_files != null) {
+						output_files.forEach(v -> {
+							v.delete();
+						});
+					}
+					throw catched_error;
+				}
+				
+				FileUtils.forceDelete(temp_output_file);
+				
+				if (output_files != null) {
+					output_files.forEach(v -> {
+						try {
+							transcode_context.moveProcessedFileToDestDirectory(v, v.getName(), FilenameUtils.getExtension(v.getName()));
+						} catch (Exception e) {
+							Loggers.Transcode.error("Can't move processed file " + v.getPath(), e);
+						}
+					});
+				}
+				
 			} else {
-				progress_file = null;
-				tprogress = null;
-			}
-			
-			progression.updateStep(pos + 1, profiles_to_transcode.size());
-			
-			/**
-			 * @see FFmpegLowresRenderer, if it's a video file
-			 *      process_configuration.getParamTags().put("FILTERS", sb_filters.toString());
-			 */
-			process_configuration.getParamTags().put("FILTERS", "null");
-			process_configuration.getParamTags().put("ICCPROFILE", ImageMagickThumbnailer.getICCProfile().getAbsolutePath());
-			
-			Loggers.Transcode.debug("Prepare prepareExecprocess for process_configuration");
-			process = process_configuration.prepareExecprocess(progression.getJobKey());
-			
-			progression.update("Transcode source file with " + transcode_profile.getName() + " (" + transcode_profile.getExecutable().getName() + ")");
-			
-			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
-			log.put("physical_source", physical_source);
-			log.put("profile", transcode_profile.getName());
-			log.put("temp_output_file", temp_output_file);
-			// log.put("commandline", process.getCommandline());
-			// log.put("cwd", process.getWorkingDirectory());
-			Loggers.Transcode.debug("Transcode file " + log.toString());
-			
-			process.run();
-			
-			Loggers.Transcode.debug("Transcoding is ended");
-			
-			if (tprogress != null) {
-				tprogress.stopWatching();
-			}
-			if (progress_file != null) {
-				if (progress_file.exists()) {
-					Loggers.Transcode.debug("Progress file exists, remove it: " + progress_file.getPath());
-					FileUtils.forceDelete(progress_file);
-				}
-			}
-			
-			if (process.getExitvalue() != 0) {
-				if (process_configuration.getEvent() != null) {
-					throw new IOException("Bad transcoder execution: \"" + process_configuration.getEvent().getLast_message() + "\"\t from \"" + process.getCommandline() + "\"");
-				}
-				throw new IOException("Bad transcoder execution (exit value is: " + process.getExitvalue() + ")");
-			}
-			
-			process = null;
-			
-			if (stop_process) {
-				return;
-			}
-			
-			if (transcode_profile.getOutputformat() != null) {
-				if (transcode_profile.getOutputformat().isFaststarted()) {
-					progression.update("Faststart transcoded file");
-					File fast_started_file = new File(temp_output_file.getAbsolutePath() + "-faststart" + transcode_profile.getExtension(""));
-					
-					log = new LinkedHashMap<String, Object>();
-					log.put("temp_output_file", temp_output_file);
-					log.put("fast_started_file", fast_started_file);
-					Loggers.Transcode.info("Faststart file " + log);
-					
-					Publish.faststartFile(temp_output_file, fast_started_file);
-					temp_output_file = fast_started_file;
-				}
-			}
-			
-			if (stop_process) {
-				return;
-			}
-			
-			if (transcode_context.dest_file_prefix == null) {
-				transcode_context.dest_file_prefix = "";
-			}
-			if (transcode_context.dest_file_suffix == null) {
-				transcode_context.dest_file_suffix = "";
-			}
-			if (transcode_context.dest_sub_directory == null) {
-				transcode_context.dest_sub_directory = "";
-			}
-			
-			progression.update("Move transcoded file to destination");
-			
-			File local_dest_dir = Storage.getLocalFile(dest_storage);
-			
-			if (local_dest_dir != null) {
-				File local_full_dest_dir = local_dest_dir.getAbsoluteFile();
-				if (transcode_context.dest_sub_directory.equals("") == false) {
-					File dir_to_create = new File(local_full_dest_dir.getAbsolutePath() + transcode_context.dest_sub_directory);
-					Loggers.Transcode.debug("Force mkdir " + dir_to_create);
-					
-					FileUtils.forceMkdir(dir_to_create);
-					local_full_dest_dir = dir_to_create;
+				/**
+				 * Classical transcoding: 1 file in dest, with 1 exec to start.
+				 */
+				transcode_profile = TranscodeProfile.getTranscodeProfile(profiles_to_transcode.get(pos));
+				Loggers.Transcode.debug("Get transcode_profile: " + transcode_profile.getName());
+				
+				temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + transcode_profile.getExtension(""));
+				Loggers.Transcode.debug("Get temp_output_file: " + temp_output_file.getPath());
+				
+				process_configuration = transcode_profile.createProcessConfiguration(physical_source, temp_output_file);
+				if (Loggers.Transcode.isDebugEnabled()) {
+					Loggers.Transcode.debug("process_configuration: " + process_configuration);
 				}
 				
-				StringBuilder full_file = new StringBuilder();
-				full_file.append(local_full_dest_dir.getPath());
-				full_file.append(File.separator);
-				full_file.append(transcode_context.dest_file_prefix);
-				full_file.append(FilenameUtils.getBaseName(pi_item.currentpath));
-				full_file.append(transcode_context.dest_file_suffix);
-				full_file.append(transcode_profile.getExtension(""));
+				if (process_configuration.wantAProgressFile()) {
+					progress_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "progress.txt");
+					
+					tprogress = process_configuration.getProgress();
+					Loggers.Transcode.debug("Process configuration want a progress: " + tprogress.getClass().getName());
+					tprogress.init(progress_file, progression, context);
+					tprogress.startWatching();
+				} else {
+					progress_file = null;
+					tprogress = null;
+				}
 				
-				File dest_file = new File(full_file.toString());
-				log = new LinkedHashMap<String, Object>();
+				progression.updateStep(pos + 1, profiles_to_transcode.size());
+				
+				/**
+				 * @see FFmpegLowresRenderer, if it's a video file
+				 *      process_configuration.getParamTags().put("FILTERS", sb_filters.toString());
+				 */
+				process_configuration.getParamTags().put("FILTERS", "null");
+				process_configuration.getParamTags().put("ICCPROFILE", ImageMagickThumbnailer.getICCProfile().getAbsolutePath());
+				
+				Loggers.Transcode.debug("Prepare prepareExecprocess for process_configuration");
+				process = process_configuration.prepareExecprocess(progression.getJobKey());
+				
+				progression.update("Transcode source file with " + transcode_profile.getName() + " (" + transcode_profile.getExecutable().getName() + ")");
+				
+				LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+				log.put("physical_source", physical_source);
+				log.put("profile", transcode_profile.getName());
 				log.put("temp_output_file", temp_output_file);
-				log.put("dest_file", dest_file);
-				Loggers.Transcode.debug("Move transcoded file to destination " + log);
+				// log.put("commandline", process.getCommandline());
+				// log.put("cwd", process.getWorkingDirectory());
+				Loggers.Transcode.debug("Transcode file " + log.toString());
 				
-				FileUtils.moveFile(temp_output_file, dest_file);
-			} else {
-				AbstractFile root_path = Storage.getByName(transcode_context.dest_storage_name).getRootPath();
+				process.run();
 				
-				StringBuilder full_dest_dir = new StringBuilder();
-				if (transcode_context.dest_sub_directory.equals("") == false) {
-					String[] dirs_to_create = transcode_context.dest_sub_directory.split("/");
-					for (int pos_dtc = 0; pos_dtc < dirs_to_create.length; pos_dtc++) {
-						full_dest_dir.append("/");
-						full_dest_dir.append(dirs_to_create[pos_dtc]);
-						root_path.mkdir(full_dest_dir.toString());
+				Loggers.Transcode.debug("Transcoding is ended");
+				
+				if (tprogress != null) {
+					tprogress.stopWatching();
+				}
+				if (progress_file != null) {
+					if (progress_file.exists()) {
+						Loggers.Transcode.debug("Progress file exists, remove it: " + progress_file.getPath());
+						FileUtils.forceDelete(progress_file);
 					}
 				}
 				
-				full_dest_dir.append("/");
-				full_dest_dir.append(transcode_context.dest_file_prefix);
-				full_dest_dir.append(FilenameUtils.getBaseName(pi_item.currentpath));
-				full_dest_dir.append(transcode_context.dest_file_suffix);
-				full_dest_dir.append(transcode_profile.getExtension(""));
+				if (process.getExitvalue() != 0) {
+					if (process_configuration.getEvent() != null) {
+						throw new IOException("Bad transcoder execution: \"" + process_configuration.getEvent().getLast_message() + "\"\t from \"" + process.getCommandline() + "\"");
+					}
+					throw new IOException("Bad transcoder execution (exit value is: " + process.getExitvalue() + ")");
+				}
 				
-				AbstractFile distant_file = root_path.getAbstractFile(full_dest_dir.toString());
+				process = null;
 				
-				log = new LinkedHashMap<String, Object>();
-				log.put("temp_output_file", temp_output_file);
-				log.put("storage_dest", transcode_context.dest_storage_name);
-				log.put("full_dest_dir", full_dest_dir.toString());
-				Loggers.Transcode.debug("Move transcoded file to destination " + log);
+				if (stop_process) {
+					return;
+				}
 				
-				FileUtils.copyFile(temp_output_file, distant_file.getOutputStream(0xFFFF));
+				if (transcode_profile.getOutputformat() != null) {
+					if (transcode_profile.getOutputformat().isFaststarted()) {
+						progression.update("Faststart transcoded file");
+						File fast_started_file = new File(temp_output_file.getAbsolutePath() + "-faststart" + transcode_profile.getExtension(""));
+						
+						log = new LinkedHashMap<String, Object>();
+						log.put("temp_output_file", temp_output_file);
+						log.put("fast_started_file", fast_started_file);
+						Loggers.Transcode.info("Faststart file " + log);
+						
+						Publish.faststartFile(temp_output_file, fast_started_file);
+						temp_output_file = fast_started_file;
+					}
+				}
 				
-				root_path.close();
+				if (stop_process) {
+					return;
+				}
 				
-				Loggers.Transcode.debug("Delete temp_output_file" + temp_output_file);
-				FileUtils.forceDelete(temp_output_file);
+				progression.update("Move transcoded file to destination");
+				transcode_context.moveProcessedFileToDestDirectory(temp_output_file, FilenameUtils.getBaseName(pi_item.currentpath), transcode_profile.getExtension(""));
+			}
+			
+			if (stop_process) {
+				return;
+			}
+			
+			transcode_context.refreshDestDirectoryPathIndex();
+			
+			if (stop_process) {
+				return;
 			}
 		}
-		
-		if (stop_process) {
-			return;
-		}
-		
-		Loggers.Transcode.debug("Refresh dest storage index: " + dest_storage);
-		Explorer explorer = new Explorer();
-		ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
-		explorer.refreshCurrentStoragePath(bulk, Arrays.asList(dest_storage), true);
-		bulk.terminateBulk();
-		
-		if (stop_process) {
-			return;
-		}
-		
 	}
 	
 	public static class Serializer implements JsonSerializer<TranscoderWorker> {
@@ -446,4 +456,5 @@ public class TranscoderWorker extends WorkerNG {
 	public JsonElement exportSpecificInstanceStatusItems() {
 		return WatchFolderDB.gson.toJsonTree(this);
 	}
+	
 }
