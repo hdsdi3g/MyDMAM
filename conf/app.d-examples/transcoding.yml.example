@@ -1,9 +1,3 @@
-transcoding_probe:
-    maxpresencewaittime : 300
-    sourcelocalfiles : /mnt/storage1
-    deststorage : testfile
-    templocaldir : /tmp
-
 imagemagick_limits:
     memory: 256MB
     disk: 4000MB
@@ -11,11 +5,6 @@ imagemagick_limits:
     time: 120
 
 transcodingprofiles:
-    ffmpeg_vod : 
-        command : "-progress <%$PROGRESSFILE%> -i <%$INPUTFILE%> -i <%$VAR=logo%> -s 640x360 -codec:v h264 -b:v 400k -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
-        logo : /opt/logo 16-9 720x576.png
-        extension : mp4
-        executable : ffmpeg
     ffmpeg_snapshot_first : 
         command : "-i <%$INPUTFILE%> -y -vf <%$FILTERS%> -frames:v 1 <%$OUTPUTFILE%>"
         extension : png
