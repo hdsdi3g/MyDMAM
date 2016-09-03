@@ -16,6 +16,8 @@
 */
 package hd3gtv.mydmam.manager;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.bcastautomation.BCAWatcher;
 import hd3gtv.mydmam.db.status.ClusterStatusEvents;
 import hd3gtv.mydmam.db.status.ClusterStatusService;
 import hd3gtv.mydmam.metadata.WorkerIndexer;
@@ -48,6 +50,7 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 	}
 	
 	private WatchFolderTranscoder wf_trancoder;
+	private BCAWatcher bca_watcher;
 	
 	@Override
 	protected void startService() throws Exception {
@@ -63,11 +66,14 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		
 		TranscoderWorker.declareTranscoders(manager);
 		
+		bca_watcher = new BCAWatcher(manager, Configuration.global);
+		
 		MyDMAMModulesManager.declareAllModuleWorkerElement(manager);
 	}
 	
 	protected void stopService() throws Exception {
 		wf_trancoder.stopAllWatchFolders();
+		bca_watcher.stop();
 	}
 	
 }
