@@ -111,7 +111,7 @@ public class CassandraDb {
 			AstyanaxConfigurationImpl configurationimpl = new AstyanaxConfigurationImpl();
 			configurationimpl.setDiscoveryType(NodeDiscoveryType.NONE);
 			configurationimpl.setTargetCassandraVersion("1.2");
-			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(default_keyspacename, 100, 30000, 20));
+			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(default_keyspacename, 500, 60000, 50));
 			
 			builder = new AstyanaxContext.Builder().forCluster(clustername);
 			builder.withAstyanaxConfiguration(configurationimpl);
@@ -169,7 +169,7 @@ public class CassandraDb {
 				.put("strategy_options",
 						ImmutableMap.<String, Object> builder().put("replication_factor", String.valueOf(Configuration.global.getValue("cassandra", "default_replication_factor", 1))).build())
 				.put("strategy_class", "SimpleStrategy").build());
-				
+		
 		cluster.getKeyspace(keyspacename).describeKeyspace();
 		Loggers.Cassandra.info("Create Keyspace " + keyspacename);
 	}

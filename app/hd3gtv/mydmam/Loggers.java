@@ -62,6 +62,7 @@ public final class Loggers {
 	public final static Logger Pathindex = Logger.getLogger("mydmam.pathindex");
 	public final static Logger FTPserver = Logger.getLogger("mydmam.ftpserver");
 	public final static Logger AccessControl = Logger.getLogger("mydmam.accesscontrol");
+	public final static Logger BroadcastAutomation = Logger.getLogger("mydmam.bcauto");
 	
 	/*public static JsonObject getAllLevels() {
 		JsonObject result = new JsonObject();

@@ -1,0 +1,7 @@
+broadcast_automation:
+    watch_asrun: /mnt/AsRuns
+    watch_playlist: /mnt/Playlists
+    delete_asrun_after_watch: false
+    delete_playlist_after_watch: false
+    engine_class: hd3gtv.mydmam.bcastautomation.BCAMorpheus
+    max_retention_duration: 30 # in hours, no older asruns will be keeped after this duration.
