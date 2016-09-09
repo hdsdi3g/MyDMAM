@@ -48,4 +48,25 @@ public interface BCAAutomationEvent {
 	
 	String getMaterialType();
 	
+	String getAutomationType();
+	
+	default JsonObject serialize() {
+		JsonObject jo = new JsonObject();
+		jo.addProperty("startdate", getStartDate());
+		jo.addProperty("name", getName());
+		jo.addProperty("automation_id", getAutomationId());
+		jo.addProperty("file_id", getFileId());
+		jo.addProperty("recording", isRecording());
+		jo.addProperty("video_source", getVideoSource());
+		jo.addProperty("duration", getDuration().toString());
+		jo.addProperty("automation_paused", isAutomationPaused());
+		jo.addProperty("som", getSOM().toString());
+		jo.addProperty("comment", getComment());
+		jo.addProperty("channel", getChannel());
+		jo.add("other", getOtherProperties());
+		jo.addProperty("material_type", getMaterialType());
+		jo.addProperty("automation_type", getAutomationType());
+		return jo;
+	}
+	
 }

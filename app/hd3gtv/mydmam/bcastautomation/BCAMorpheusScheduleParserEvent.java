@@ -191,6 +191,10 @@ class BCAMorpheusScheduleParserEvent {
 		public String getMaterialType() {
 			return fields.getProperty("EventMaterialType", "");
 		}
+		
+		public String getAutomationType() {
+			return "Morpheus";
+		}
 	}
 	
 }

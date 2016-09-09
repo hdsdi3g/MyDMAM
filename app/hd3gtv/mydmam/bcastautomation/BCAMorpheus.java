@@ -21,6 +21,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher.AutomationEventProcessor;
 
 public class BCAMorpheus implements BCAEngine {
@@ -45,7 +48,11 @@ public class BCAMorpheus implements BCAEngine {
 		BCAMorpheusScheduleParser parser = new BCAMorpheusScheduleParser(this, asrun);
 		
 		parser.getEvents().forEach(event -> {
-			processor.onAutomationEvent(event.getBCAEvent(parser));
+			try {
+				processor.onAutomationEvent(event.getBCAEvent(parser));
+			} catch (ConnectionException e) {
+				Loggers.BroadcastAutomation.error("Can't push to database", e);
+			}
 		});
 		return parser.getEvents().size();
 	}
@@ -54,7 +61,11 @@ public class BCAMorpheus implements BCAEngine {
 		BCAMorpheusScheduleParser parser = new BCAMorpheusScheduleParser(this, playlist);
 		
 		parser.getEvents().forEach(event -> {
-			processor.onAutomationEvent(event.getBCAEvent(parser));
+			try {
+				processor.onAutomationEvent(event.getBCAEvent(parser));
+			} catch (ConnectionException e) {
+				Loggers.BroadcastAutomation.error("Can't push to database", e);
+			}
 		});
 		return parser.getEvents().size();
 	}

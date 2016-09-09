@@ -24,7 +24,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -33,10 +32,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.google.common.primitives.Longs;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.db.TimedEventStore;
+import hd3gtv.mydmam.db.TimedEventStore.TimedEvent;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceStatusItem;
 import hd3gtv.tools.CopyMove;
@@ -56,7 +59,9 @@ public class BCAWatcher implements InstanceStatusItem {
 	private AutomationEventProcessor asrun_processor;
 	private AutomationEventProcessor playlist_processor;
 	
-	public BCAWatcher(AppManager manager, Configuration configuration) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
+	private TimedEventStore database;
+	
+	public BCAWatcher(AppManager manager, Configuration configuration) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException, ConnectionException {
 		if (Configuration.global.isElementExists("broadcast_automation") == false) {
 			return;
 		}
@@ -88,6 +93,8 @@ public class BCAWatcher implements InstanceStatusItem {
 		if (delete_playlist_after_watch) {
 			CopyMove.checkIsWritable(directory_watch_playlist);
 		}
+		
+		database = new TimedEventStore(CassandraDb.getkeyspace(), "broadcastAutomationEvents", max_retention_duration);
 		
 		Loggers.BroadcastAutomation.info("Init engine watcher: " + getInstanceStatusItem().toString());
 		manager.getInstanceStatus().registerInstanceStatusItem(this);
@@ -279,8 +286,8 @@ public class BCAWatcher implements InstanceStatusItem {
 	
 	public class AutomationEventProcessor {
 		private boolean is_asrun;
-		
 		private MessageDigest md;
+		private TimedEvent t_event;
 		
 		private AutomationEventProcessor(boolean is_asrun) {
 			this.is_asrun = is_asrun;
@@ -289,9 +296,10 @@ public class BCAWatcher implements InstanceStatusItem {
 				md = MessageDigest.getInstance("MD5");
 			} catch (NoSuchAlgorithmException e) {
 			}
+			
 		}
 		
-		public void onAutomationEvent(BCAAutomationEvent event) {
+		public void onAutomationEvent(BCAAutomationEvent event) throws ConnectionException {
 			md.reset();
 			if (event.isRecording()) {
 				md.update(Longs.toByteArray(1l));
@@ -314,28 +322,22 @@ public class BCAWatcher implements InstanceStatusItem {
 			md.update(event.getName().getBytes());
 			md.update(event.getComment().getBytes());
 			md.update(event.getOtherProperties().toString().getBytes());
-			MyDMAM.byteToString(md.digest());
+			String event_key = MyDMAM.byteToString(md.digest());
 			
-			// max_retention_duration
+			if (t_event == null) {
+				t_event = database.createEvent(event_key, event.getStartDate());
+			} else {
+				t_event = t_event.createAnother(event_key, event.getStartDate());
+			}
+			t_event.getMutator().putColumn("content", event.serialize().toString());
 			
-			System.out.print(new Date(event.getStartDate()));
-			System.out.print(" ");
-			System.out.print(event.isAutomationPaused());
-			System.out.print(" ");
-			System.out.print(event.getFileId());
-			System.out.print(" ");
-			// System.out.print(event.getOtherProperties());
-			System.out.print("\t\t");
-			System.out.print(event.getName());
-			System.out.println();
-			
-			// TODO push to database
 			// TODO if not is_asrun, delete future list during import the new list, and ignore same (== key) events
 		}
 		
-		private void close() {
-			// TODO
-			System.out.println();
+		private void close() throws ConnectionException {
+			if (t_event != null) {
+				t_event.close();
+			}
 		}
 	}
 	
