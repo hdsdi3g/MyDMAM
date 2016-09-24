@@ -44,21 +44,8 @@ public class BCAMorpheus implements BCAEngine {
 		return Arrays.asList("sch");
 	}
 	
-	public int processAsRunFile(File asrun, AutomationEventProcessor processor) throws IOException {
-		BCAMorpheusScheduleParser parser = new BCAMorpheusScheduleParser(this, asrun);
-		
-		parser.getEvents().forEach(event -> {
-			try {
-				processor.onAutomationEvent(event.getBCAEvent(parser));
-			} catch (ConnectionException e) {
-				Loggers.BroadcastAutomation.error("Can't push to database", e);
-			}
-		});
-		return parser.getEvents().size();
-	}
-	
-	public int processPlaylistFile(File playlist, AutomationEventProcessor processor) throws IOException {
-		BCAMorpheusScheduleParser parser = new BCAMorpheusScheduleParser(this, playlist);
+	public int processScheduleFile(File schedule, AutomationEventProcessor processor) throws IOException {
+		BCAMorpheusScheduleParser parser = new BCAMorpheusScheduleParser(this, schedule);
 		
 		parser.getEvents().forEach(event -> {
 			try {

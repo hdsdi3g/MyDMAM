@@ -24,7 +24,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,8 +58,7 @@ public class BCAWatcher implements InstanceStatusItem {
 	private boolean delete_playlist_after_watch;
 	private long max_retention_duration;
 	
-	private AutomationEventProcessor asrun_processor;
-	private AutomationEventProcessor playlist_processor;
+	private AutomationEventProcessor processor;
 	
 	private TimedEventStore database;
 	
@@ -99,8 +100,7 @@ public class BCAWatcher implements InstanceStatusItem {
 		Loggers.BroadcastAutomation.info("Init engine watcher: " + getInstanceStatusItem().toString());
 		manager.getInstanceStatus().registerInstanceStatusItem(this);
 		
-		asrun_processor = new AutomationEventProcessor(true);
-		playlist_processor = new AutomationEventProcessor(false);
+		processor = new AutomationEventProcessor();
 		
 		watch = new Watch();
 		watch.start();
@@ -186,9 +186,8 @@ public class BCAWatcher implements InstanceStatusItem {
 			
 			while (isWantToRun()) {
 				try {
-					/**
-					 * Search and import asruns
-					 */
+					Loggers.BroadcastAutomation.trace("Loop the Search and import asruns");
+					
 					List<File> as_runs_files = Arrays.asList(directory_watch_asrun.listFiles(sff));
 					as_runs_files.sort(sfbd);
 					
@@ -199,22 +198,25 @@ public class BCAWatcher implements InstanceStatusItem {
 							if (files_dates.get(file) == file.lastModified()) {
 								return;
 							}
-						} else {
-							files_dates.put(file, file.lastModified());
 						}
+						files_dates.put(file, file.lastModified());
 						
 						try {
-							count.set(engine.processAsRunFile(file, asrun_processor));
+							Loggers.BroadcastAutomation.debug("Start process asrun file import from \"" + file.getPath() + "\"");
+							count.set(engine.processScheduleFile(file, processor));
 						} catch (Exception e) {
 							Loggers.BroadcastAutomation.warn("Can't open file", e);
 						}
 					});
 					
 					if (count.get() > 0) {
-						asrun_processor.close();
+						Loggers.BroadcastAutomation.debug("Asrun file import is done, found " + count.get() + " events");
+						
+						processor.close();
 						
 						if (delete_asrun_after_watch) {
 							as_runs_files.forEach(file -> {
+								Loggers.BroadcastAutomation.debug("Delete asrun file \"" + file.getPath() + "\"");
 								file.delete();
 								files_dates.remove(file);
 							});
@@ -234,22 +236,25 @@ public class BCAWatcher implements InstanceStatusItem {
 							if (files_dates.get(file) == file.lastModified()) {
 								return;
 							}
-						} else {
-							files_dates.put(file, file.lastModified());
 						}
+						files_dates.put(file, file.lastModified());
 						
 						try {
-							count.set(engine.processPlaylistFile(file, playlist_processor));
+							processor.prepareActualFutureEventList();
+							Loggers.BroadcastAutomation.debug("Start process playlist file import from \"" + file.getPath() + "\"");
+							count.set(engine.processScheduleFile(file, processor));
 						} catch (Exception e) {
 							Loggers.BroadcastAutomation.warn("Can't open file", e);
 						}
 					});
 					
 					if (count.get() > 0) {
-						playlist_processor.close();
+						Loggers.BroadcastAutomation.debug("Playlist file import is done, found " + count.get() + " events");
+						processor.close();
 						
 						if (delete_playlist_after_watch) {
 							playlist_files.forEach(file -> {
+								Loggers.BroadcastAutomation.debug("Delete playlist file \"" + file.getPath() + "\"");
 								file.delete();
 								files_dates.remove(file);
 							});
@@ -281,25 +286,39 @@ public class BCAWatcher implements InstanceStatusItem {
 		if (watch == null) {
 			return;
 		}
+		Loggers.BroadcastAutomation.info("Stop watching...");
 		watch.wantToStop();
 	}
 	
 	public class AutomationEventProcessor {
-		private boolean is_asrun;
 		private MessageDigest md;
 		private TimedEvent t_event;
+		private HashSet<String> actual_event_list;
 		
-		private AutomationEventProcessor(boolean is_asrun) {
-			this.is_asrun = is_asrun;
+		private AutomationEventProcessor() {
+			actual_event_list = new HashSet<>();
 			
 			try {
 				md = MessageDigest.getInstance("MD5");
 			} catch (NoSuchAlgorithmException e) {
 			}
-			
+		}
+		
+		private void prepareActualFutureEventList() throws Exception {
+			actual_event_list.clear();
+			database.getAllFutureKeys(key -> actual_event_list.add(key));
+			Loggers.BroadcastAutomation.debug("Future event list as currently " + actual_event_list.size() + " events");
 		}
 		
 		public void onAutomationEvent(BCAAutomationEvent event) throws ConnectionException {
+			if (database.isTooOld(event.getStartDate())) {
+				if (Loggers.BroadcastAutomation.isTraceEnabled()) {
+					Loggers.BroadcastAutomation.trace("Process event: event \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " is too old. It will not be added to database. "
+							+ event.serialize().toString());
+				}
+				return;
+			}
+			
 			md.reset();
 			if (event.isRecording()) {
 				md.update(Longs.toByteArray(1l));
@@ -324,6 +343,20 @@ public class BCAWatcher implements InstanceStatusItem {
 			md.update(event.getOtherProperties().toString().getBytes());
 			String event_key = MyDMAM.byteToString(md.digest());
 			
+			if (event.getStartDate() > System.currentTimeMillis()) {
+				/**
+				 * Future item, playlist
+				 */
+				if (actual_event_list.contains(event_key)) {
+					if (Loggers.BroadcastAutomation.isTraceEnabled()) {
+						Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate())
+								+ " is already added in database. " + event.serialize().toString());
+					}
+					actual_event_list.remove(event_key);
+					return;
+				}
+			}
+			
 			if (t_event == null) {
 				t_event = database.createEvent(event_key, event.getStartDate());
 			} else {
@@ -331,11 +364,18 @@ public class BCAWatcher implements InstanceStatusItem {
 			}
 			t_event.getMutator().putColumn("content", event.serialize().toString());
 			
-			// TODO if not is_asrun, delete future list during import the new list, and ignore same (== key) events
+			if (Loggers.BroadcastAutomation.isTraceEnabled()) {
+				Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " will be added in database. "
+						+ event.serialize().toString());
+			}
 		}
 		
 		private void close() throws ConnectionException {
 			if (t_event != null) {
+				actual_event_list.forEach((event_key) -> {
+					Loggers.BroadcastAutomation.trace("Process event: clean obsolete event [" + event_key + "] from database");
+					t_event.removeDatabaseEntry(event_key);
+				});
 				t_event.close();
 			}
 		}

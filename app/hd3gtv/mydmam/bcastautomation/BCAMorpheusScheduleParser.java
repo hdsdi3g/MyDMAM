@@ -217,6 +217,9 @@ class BCAMorpheusScheduleParser extends DefaultHandler implements ErrorHandler {
 		if (qName.equalsIgnoreCase("IsInvalid")) {
 			return;
 		}
+		if (qName.equalsIgnoreCase("Warnings")) {
+			return;
+		}
 		
 		Loggers.BroadcastAutomation.debug("Unknow start qName: " + qName);
 	}
@@ -289,6 +292,9 @@ class BCAMorpheusScheduleParser extends DefaultHandler implements ErrorHandler {
 			return;
 		}
 		if (qName.equalsIgnoreCase("IsInvalid")) {
+			return;
+		}
+		if (qName.equalsIgnoreCase("Warnings")) {
 			return;
 		}
 		

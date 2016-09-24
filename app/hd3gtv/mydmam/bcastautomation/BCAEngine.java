@@ -33,11 +33,6 @@ public interface BCAEngine {
 	/**
 	 * @return the event count
 	 */
-	public int processAsRunFile(File asrun, BCAWatcher.AutomationEventProcessor processor) throws IOException;
-	
-	/**
-	 * @return the event count
-	 */
-	public int processPlaylistFile(File playlist, BCAWatcher.AutomationEventProcessor processor) throws IOException;
+	public int processScheduleFile(File schedule, BCAWatcher.AutomationEventProcessor processor) throws IOException;
 	
 }

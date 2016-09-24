@@ -61,7 +61,7 @@ class BCAMorpheusScheduleParserEvent {
 		return new BCAEvent(parser);
 	}
 	
-	private class BCAEvent implements BCAAutomationEvent {
+	private class BCAEvent extends BCAAutomationEvent {
 		String channel;
 		
 		private BCAEvent(BCAMorpheusScheduleParser parser) {
@@ -155,8 +155,9 @@ class BCAMorpheusScheduleParserEvent {
 				});
 				if (result.length() == 0) {
 					som = new Timecode(0, 25);
+				} else {
+					som = new Timecode(result.toString(), 25);
 				}
-				som = new Timecode(result.toString(), 25);
 			}
 			return som;
 		}

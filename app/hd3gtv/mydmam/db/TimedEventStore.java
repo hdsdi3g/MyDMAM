@@ -19,6 +19,7 @@ package hd3gtv.mydmam.db;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.function.Consumer;
 
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
@@ -65,10 +66,14 @@ public class TimedEventStore {
 	 * @return null if event is too old.
 	 */
 	public TimedEvent createEvent(String event_key, long date) throws ConnectionException {
-		if (date < min_event_date) {
+		if (isTooOld(date)) {
 			return null;
 		}
 		return new TimedEvent(event_key, date);
+	}
+	
+	public boolean isTooOld(long date) {
+		return date < min_event_date;
 	}
 	
 	public class TimedEvent {
@@ -76,6 +81,7 @@ public class TimedEventStore {
 		private MutationBatch mutator;
 		private String event_key;
 		private long date;
+		private int computed_ttl;
 		
 		private TimedEvent(String event_key, long date) throws ConnectionException {
 			mutator = CassandraDb.prepareMutationBatch(keyspace.getKeyspaceName());
@@ -84,6 +90,7 @@ public class TimedEventStore {
 				throw new NullPointerException("\"event_key\" can't to be null");
 			}
 			this.date = date;
+			processDate();
 		}
 		
 		private TimedEvent(MutationBatch mutator, String event_key, long date) {
@@ -93,6 +100,7 @@ public class TimedEventStore {
 				throw new NullPointerException("\"event_key\" can't to be null");
 			}
 			this.date = date;
+			processDate();
 		}
 		
 		/**
@@ -100,22 +108,32 @@ public class TimedEventStore {
 		 * @return null if event is too old.
 		 */
 		public TimedEvent createAnother(String event_key, long date) {
-			if (date < min_event_date) {
+			if (isTooOld(date)) {
 				return null;
 			}
 			return new TimedEvent(mutator, event_key, date);
+		}
+		
+		private void processDate() {
+			if (System.currentTimeMillis() < date) {
+				/**
+				 * Asrun
+				 */
+				computed_ttl = default_ttl - (int) (System.currentTimeMillis() - date);
+			} else if (System.currentTimeMillis() < date) {
+				/**
+				 * Playlist
+				 */
+				computed_ttl = default_ttl + (int) (date - System.currentTimeMillis());
+			} else {
+				computed_ttl = default_ttl;
+			}
 		}
 		
 		public void close() throws ConnectionException {
 			if (mutator.isEmpty()) {
 				return;
 			}
-			mutator.withRow(cf, event_key).putColumn(col_name_event_date, date, default_ttl);
-			
-			/**
-			 * Workaround for Cassandra index select bug.
-			 */
-			mutator.withRow(cf, event_key).putColumn("indexingdebug", 1, default_ttl);
 			mutator.execute();
 		}
 		
@@ -123,8 +141,20 @@ public class TimedEventStore {
 		 * ttl is already set.
 		 */
 		public ColumnListMutation<String> getMutator() {
-			return mutator.withRow(cf, event_key).setDefaultTtl(default_ttl);// TODO check if ttl is working
+			mutator.withRow(cf, event_key).putColumn(col_name_event_date, date, computed_ttl);
+			
+			/**
+			 * Workaround for Cassandra index select bug.
+			 */
+			mutator.withRow(cf, event_key).putColumn("indexingdebug", 1, computed_ttl);
+			
+			return mutator.withRow(cf, event_key).setDefaultTtl(computed_ttl);
 		}
+		
+		public void removeDatabaseEntry(String key) {
+			mutator.withRow(cf, key).delete();
+		}
+		
 	}
 	
 	public class TimedEventFromDb {
@@ -226,6 +256,18 @@ public class TimedEventStore {
 		
 		result.sort(comparator);
 		return result;
+	}
+	
+	public void getAllFutureKeys(Consumer<String> result) throws Exception {
+		IndexQuery<String, String> index_query = keyspace.prepareQuery(cf).searchWithIndex();
+		index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
+		index_query.addExpression().whereColumn(col_name_event_date).greaterThan().value(System.currentTimeMillis());
+		
+		Rows<String, String> rows = index_query.execute().getResult();
+		
+		rows.forEach(r -> {
+			result.accept(r.getKey());
+		});
 	}
 	
 }

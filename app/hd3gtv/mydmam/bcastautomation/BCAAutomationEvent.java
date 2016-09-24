@@ -20,37 +20,37 @@ import com.google.gson.JsonObject;
 
 import hd3gtv.tools.Timecode;
 
-public interface BCAAutomationEvent {
+public abstract class BCAAutomationEvent {
 	
-	long getStartDate();
+	public abstract long getStartDate();
 	
-	String getName();
+	public abstract String getName();
 	
-	String getAutomationId();
+	public abstract String getAutomationId();
 	
-	String getFileId();
+	public abstract String getFileId();
 	
-	boolean isRecording();
+	public abstract boolean isRecording();
 	
-	String getVideoSource();
+	public abstract String getVideoSource();
 	
-	Timecode getDuration();
+	public abstract Timecode getDuration();
 	
-	boolean isAutomationPaused();
+	public abstract boolean isAutomationPaused();
 	
-	Timecode getSOM();
+	public abstract Timecode getSOM();
 	
-	String getComment();
+	public abstract String getComment();
 	
-	String getChannel();
+	public abstract String getChannel();
 	
-	JsonObject getOtherProperties();
+	public abstract JsonObject getOtherProperties();
 	
-	String getMaterialType();
+	public abstract String getMaterialType();
 	
-	String getAutomationType();
+	public abstract String getAutomationType();
 	
-	default JsonObject serialize() {
+	final JsonObject serialize() {
 		JsonObject jo = new JsonObject();
 		jo.addProperty("startdate", getStartDate());
 		jo.addProperty("name", getName());
