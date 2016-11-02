@@ -31,9 +31,8 @@ import play.i18n.Messages;
 import play.jobs.Job;
 import play.jobs.OnApplicationStart;
 
-@SuppressWarnings("rawtypes")
 @OnApplicationStart
-public class Bootstrap extends Job {
+public class Bootstrap extends Job<Void> {
 	
 	private static AuthTurret auth;
 	
@@ -116,6 +115,5 @@ public class Bootstrap extends Job {
 		} catch (Exception e) {
 			Loggers.Play_JSSource.error("Can't init", e);
 		}
-		
 	}
 }

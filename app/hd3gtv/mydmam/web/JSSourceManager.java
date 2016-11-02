@@ -47,6 +47,7 @@ public class JSSourceManager {
 	public static void init() throws Exception {
 		if (isJsDevMode()) {
 			Loggers.Play_JSSource.info("JS Source manager is in dev mode.");
+			// TODO init Babel
 		}
 		
 		js_modules.clear();

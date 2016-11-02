@@ -51,8 +51,10 @@ import yuiforkorgmozillajavascript.ErrorReporter;
  */
 public class JSProcessor {
 	
+	@Deprecated
 	private static RhinoCompilerErrorReporter rhino_compiler_error_reporter;
 	
+	@Deprecated
 	public static final String JSXTRANSFORMER_PATH = "/public/javascripts/lib/JSXTransformer-0.13.3.js";
 	private static Context ctx;
 	private static Scriptable exports;

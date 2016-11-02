@@ -16,14 +16,12 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.io.File;
-import java.util.ArrayList;
-
-import org.apache.commons.lang.SystemUtils;
-
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.Execprocess;
+import play.Play;
+import play.server.Server;
 
 public class ServiceNGServer extends ServiceNG {
 	
@@ -38,36 +36,38 @@ public class ServiceNGServer extends ServiceNG {
 	}
 	
 	protected void startService() throws Exception {
-		File f_playdeploy = new File(Configuration.global.getValue("play", "deploy", "/opt/play"));
-		
-		ArrayList<String> p_play = new ArrayList<String>();
-		p_play.add("run");
-		p_play.add(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath());
-		p_play.add("--silent");
-		
-		String config_path = System.getProperty("service.config.path", "");
-		if (config_path.equals("") == false) {
-			p_play.add("-Dservice.config.path=" + config_path);
-		}
-		String config_select_apply = System.getProperty("service.config.apply", "");
-		if (config_select_apply.equals("") == false) {
-			p_play.add("-Dservice.config.apply=" + config_select_apply);
-		}
-		String config_verboseload = System.getProperty("service.config.verboseload", "");
-		if (config_verboseload.equals("") == false) {
-			p_play.add("-Dservice.config.verboseload=" + config_verboseload);
-		}
-		
-		File play_exec = new File(f_playdeploy.getPath() + File.separator + "play");
-		if (SystemUtils.IS_OS_WINDOWS) {
-			play_exec = new File(f_playdeploy.getPath() + File.separator + "play.bat");
+		/*
+		 * java
+		 * ok -javaagent:c:\..\play\framework/play-1.3.0.jar
+		 * ok -Dservice.config.apply=debug
+		 * ok -noverify
+		 * ok -Dfile.encoding=utf-8
+		 * nope -Xdebug
+		 * nope -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n
+		 * ok -Dplay.debug=yes
+		 * nope -classpath <>
+		 * ok -Dapplication.path=C:\...\mydmam
+		 * ok -Dplay.id=
+		 * ok play.server.Server ""
+		 */
+		try {
+			Class.forName("play.modules.docviewer.DocumentationGenerator");
+		} catch (Exception e) {
+			Loggers.Play.fatal("Missing play-docviewer.jar in class path !");
+			System.exit(1);
 		}
 		
-		process_play = new Execprocess(play_exec, p_play, new ExecprocessEventServicelog("play"));
-		process_play.start();
+		System.setProperty("application.path", MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath());
+		System.setProperty("play.id", "");
+		
+		if (Configuration.global.getValueBoolean("play", "debug")) {
+			System.setProperty("play.debug", "yes");
+		}
+		
+		Server.main(new String[] {});
 	}
 	
 	protected void stopService() throws Exception {
-		process_play.kill();
+		Play.stop();
 	}
 }
