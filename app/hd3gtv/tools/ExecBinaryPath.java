@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
 
 import hd3gtv.configuration.Configuration;
@@ -35,14 +36,10 @@ public class ExecBinaryPath {
 	
 	public static final String[] PATH;
 	private static final HashMap<String, File> declared_in_configuration;
+	private final static String[] WINDOWS_EXEC_EXTENTIONS = { "exe", "com", "bat", "cmd" };
 	
 	static {
-		if (System.getenv().containsKey("PATH")) {
-			PATH = System.getenv("PATH").split(File.pathSeparator);
-		} else {
-			PATH = new String[0];
-		}
-		
+		PATH = System.getenv("PATH").split(File.pathSeparator);
 		declared_in_configuration = new HashMap<String, File>();
 		
 		Map<String, String> values = Configuration.global.getValues("executables");
@@ -61,10 +58,29 @@ public class ExecBinaryPath {
 	}
 	
 	private static boolean validExec(File exec) {
-		return exec.exists() & exec.isFile() & exec.canExecute() & exec.canRead();
+		if (exec.exists() == false) {
+			return false;
+		}
+		if (exec.isFile() == false) {
+			return false;
+		}
+		if (exec.canRead() == false) {
+			return false;
+		}
+		if (SystemUtils.IS_OS_WINDOWS) {
+			for (int pos_w_exe = 0; pos_w_exe < WINDOWS_EXEC_EXTENTIONS.length; pos_w_exe++) {
+				if (exec.getName().toLowerCase().endsWith("." + WINDOWS_EXEC_EXTENTIONS[pos_w_exe])) {
+					return true;
+				}
+			}
+			return false;
+		} else {
+			return exec.canExecute();
+		}
 	}
 	
 	/**
+	 * Can add .exe to name if OS == Windows and if missing.
 	 * @throws FileNotFoundException if exec don't exists or is not correctly declared_in_configuration.
 	 */
 	public static File get(String name) throws IOException {
@@ -81,6 +97,14 @@ public class ExecBinaryPath {
 			exec = new File(PATH[pos_path] + File.separator + name);
 			if (validExec(exec)) {
 				return exec;
+			}
+			if (SystemUtils.IS_OS_WINDOWS) {
+				for (int pos_w_exe = 0; pos_w_exe < WINDOWS_EXEC_EXTENTIONS.length; pos_w_exe++) {
+					exec = new File(PATH[pos_path] + File.separator + name + "." + WINDOWS_EXEC_EXTENTIONS[pos_w_exe]);
+					if (validExec(exec)) {
+						return exec;
+					}
+				}
 			}
 		}
 		

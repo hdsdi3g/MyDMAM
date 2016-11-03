@@ -19,7 +19,6 @@ package hd3gtv.mydmam.manager;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.Execprocess;
 import play.Play;
 import play.server.Server;
 
@@ -28,8 +27,6 @@ public class ServiceNGServer extends ServiceNG {
 	public ServiceNGServer(String[] args) throws Exception {
 		super(args, "Play Server service handler");
 	}
-	
-	private Execprocess process_play;
 	
 	protected boolean startBroker() {
 		return false;

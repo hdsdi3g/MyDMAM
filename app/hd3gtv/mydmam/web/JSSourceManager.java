@@ -37,6 +37,7 @@ public class JSSourceManager {
 	private static final ArrayList<JSSourceModule> js_modules;
 	private static final ArrayList<String> list_urls;
 	private static boolean js_dev_mode;
+	private static NodeJSBabel node_js_babel;
 	
 	static {
 		js_modules = new ArrayList<JSSourceModule>(1);
@@ -44,10 +45,17 @@ public class JSSourceManager {
 		js_dev_mode = Configuration.global.getValueBoolean("play", "js_dev_mode");
 	}
 	
+	public static NodeJSBabel getNodeJSBabel() throws Exception {
+		if (node_js_babel == null) {
+			node_js_babel = new NodeJSBabel();
+		}
+		return node_js_babel;
+	}
+	
 	public static void init() throws Exception {
 		if (isJsDevMode()) {
 			Loggers.Play_JSSource.info("JS Source manager is in dev mode.");
-			// TODO init Babel
+			getNodeJSBabel();
 		}
 		
 		js_modules.clear();

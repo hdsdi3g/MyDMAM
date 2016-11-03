@@ -22,3 +22,4 @@ play-new-password.txt
 public/javascripts/src/react.*.jsx.js
 logs/
 server.pid
+node_modules/
