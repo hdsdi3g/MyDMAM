@@ -37,7 +37,6 @@ public class JSSourceManager {
 	private static final ArrayList<JSSourceModule> js_modules;
 	private static final ArrayList<String> list_urls;
 	private static boolean js_dev_mode;
-	private static NodeJSBabel node_js_babel;
 	
 	static {
 		js_modules = new ArrayList<JSSourceModule>(1);
@@ -45,25 +44,24 @@ public class JSSourceManager {
 		js_dev_mode = Configuration.global.getValueBoolean("play", "js_dev_mode");
 	}
 	
-	public static NodeJSBabel getNodeJSBabel() throws Exception {
-		if (node_js_babel == null) {
-			node_js_babel = new NodeJSBabel();
-		}
-		return node_js_babel;
-	}
-	
 	public static void init() throws Exception {
+		NodeJSBabel node_js_babel = null;
+		
 		if (isJsDevMode()) {
 			Loggers.Play_JSSource.info("JS Source manager is in dev mode.");
-			getNodeJSBabel();
+			node_js_babel = new NodeJSBabel();
 		}
+		
+		// TODO if not isJsDevMode => use only .gz files, don't compute or check anthing.
+		
+		// TODO remove all js compiled files for git, only keep gz and sources.
 		
 		js_modules.clear();
 		for (VirtualFile vfile : Play.roots) {
 			/**
 			 * 1st pass : get only main, the first.
 			 */
-			js_modules.add(new JSSourceModule("internal", vfile.getRealFile().getAbsoluteFile()));
+			js_modules.add(new JSSourceModule("internal", vfile.getRealFile().getAbsoluteFile(), node_js_babel));
 			break;
 		}
 		for (Map.Entry<String, VirtualFile> entry : Play.modules.entrySet()) {
@@ -73,7 +71,7 @@ public class JSSourceManager {
 			if (entry.getKey().startsWith("_")) {
 				continue;
 			}
-			js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile()));
+			js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile(), node_js_babel));
 		}
 		
 		refreshAllSources();

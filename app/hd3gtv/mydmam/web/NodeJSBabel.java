@@ -162,26 +162,30 @@ public class NodeJSBabel {
 		return exec;
 	}
 	
-	public String operate(String source, Operation operation) throws IOException {
-		// Arrays.asList("--compact=true", "--minified=true", "--comments=true")
-		List<String> action = Arrays.asList();
+	private static void getCmdLineByOperation(Operation operation, ArrayList<String> action) {
 		if (operation == Operation.TRANSFORM) {
-			action = Arrays.asList("--presets", "react");
+			action.addAll(Arrays.asList("--presets", "react"));
 		} else if (operation == Operation.REDUCE) {
-			action = Arrays.asList("--presets=babili", "--no-babelrc", "--plugins=transform-remove-console");
+			action.addAll(Arrays.asList("--presets=babili", "--no-babelrc", "--plugins=transform-remove-console"));
 		} else if (operation == Operation.TRANSFORM_REDUCE) {
-			action = Arrays.asList("--presets", "react,babili", "--no-babelrc");
+			action.addAll(Arrays.asList("--presets", "react,babili", "--no-babelrc"));
 		}
+		// Arrays.asList("--compact=true", "--minified=true", "--comments=true")
+	}
+	
+	public String operate(String source, Operation operation) throws IOException, BabelException {
+		ArrayList<String> action = new ArrayList<>();
+		getCmdLineByOperation(operation, action);
 		
 		ExecprocessGettext exec = babelExec(action);
 		exec.setOutputstreamhandler(new ExecprocessOutputstreamHandler(IOUtils.toInputStream(source)));
 		try {
 			exec.start();
 		} catch (Exception e) {
-			log.error("Babel error stderr: " + exec.getResultstderr().toString().trim());
-			throw e;
+			throw BabelException.create(exec.getResultstderr().toString());
 		}
 		
 		return exec.getResultstdout().toString();
 	}
+	
 }

@@ -37,6 +37,7 @@ import play.vfs.VirtualFile;
 
 public class JSSourceModule {
 	
+	private NodeJSBabel node_js_babel;
 	private JSSourceDatabase database;
 	private String module_name;
 	private File module_path;
@@ -52,7 +53,10 @@ public class JSSourceModule {
 	private File allfiles_concated_file;
 	private File reduced_declaration_file;
 	
-	JSSourceModule(String module_name, File module_path) throws IOException {
+	/**
+	 * @param node_js_babel can be null
+	 */
+	JSSourceModule(String module_name, File module_path, NodeJSBabel node_js_babel) throws IOException {
 		Loggers.Play_JSSource.debug("Init source module, module_name: " + module_name + ", module_path: " + module_path);
 		
 		this.module_name = module_name;
@@ -63,6 +67,7 @@ public class JSSourceModule {
 		if (module_path == null) {
 			throw new NullPointerException("\"module_path\" can't to be null");
 		}
+		this.node_js_babel = node_js_babel;
 		
 		transformed_directory = new File(module_path + File.separator + BASE_TRANSFORMED_DIRECTORY_JS);
 		if (transformed_directory.exists()) {
@@ -104,6 +109,8 @@ public class JSSourceModule {
 	}
 	
 	void processSources() throws IOException {
+		// TODO prod mode: if node_js_babel==null -> don't process something.
+		
 		Loggers.Play_JSSource.debug("Process source, module_name: " + module_name);
 		
 		altered_source_files = database.checkAndClean();
@@ -163,7 +170,7 @@ public class JSSourceModule {
 			source_scope = entry.computeJSScope();
 			source_file = entry.getRealFile(module_path);
 			
-			processor = new JSProcessor(source_file, module_name, module_path.getAbsolutePath());
+			processor = new JSProcessor(source_file, module_name, module_path.getAbsolutePath(), node_js_babel);
 			
 			transformed_file = entry.computeTransformedFilepath(module_path, transformed_directory);
 			if (FilenameUtils.isExtension(source_file.getPath(), "jsx")) {
@@ -172,7 +179,7 @@ public class JSSourceModule {
 					 * Process file JSX -> vanilla JS
 					 */
 					processor.transformJSX();
-				} catch (Exception e) {
+				} catch (BabelException e) {
 					processor.wrapTransformationError(e);
 				}
 			}
@@ -194,9 +201,8 @@ public class JSSourceModule {
 				 * Reduce the JS to a production standard.
 				 */
 				processor.reduceJS();
-			} catch (Exception e) {
-				Loggers.Play_JSSource.error("Can't reduce JS source: " + entry + ", module_name: " + module_name, e);
-				return;
+			} catch (BabelException e) {
+				processor.wrapTransformationError(e);
 			}
 			reduced_file = entry.computeReducedFilepath(module_path, reduced_directory);
 			processor.writeTo(reduced_file);
@@ -252,7 +258,7 @@ public class JSSourceModule {
 			}
 			File declaration_file = new File(transformed_directory + File.separator + "_" + module_name + "_" + "declarations.js");
 			createDeclarationFile(declaration_file, source_scopes);
-			processor = new JSProcessor(declaration_file, module_name, module_path.getAbsolutePath());
+			processor = new JSProcessor(declaration_file, module_name, module_path.getAbsolutePath(), node_js_babel);
 			try {
 				processor.reduceJS();
 				processor.writeTo(reduced_declaration_file);
