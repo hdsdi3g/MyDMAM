@@ -36,12 +36,6 @@ import hd3gtv.tools.ExecprocessOutputstreamHandler;
 
 public class NodeJSBabel {
 	
-	public static void main(String[] args) throws Exception {// XXX
-		NodeJSBabel b = new NodeJSBabel();
-		System.out.println(b.operate("//TEST\r\nprocess.exit( 0 ) ;\r\nvar dd = <Hello />;\r\n", Operation.TRANSFORM));
-		System.out.println(b.operate("console.log();\r\ntest(\"aaa\");\r\n//TEST\r\n", Operation.REDUCE));
-	}
-	
 	public static final Logger log = Loggers.NodeJSBabel;
 	public static final String MIN_NODEJS_VERSION = "6.9";
 	public static final String MIN_NPM_VERSION = "3.10";
@@ -185,7 +179,9 @@ public class NodeJSBabel {
 			throw BabelException.create(exec.getResultstderr().toString());
 		}
 		
-		return exec.getResultstdout().toString();
+		String result = exec.getResultstdout().toString();
+		log.trace("Process Babel: " + source.length() + " chars to " + operation + " is now " + result.length() + " chars");
+		return result;
 	}
 	
 }

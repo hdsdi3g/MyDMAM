@@ -53,7 +53,7 @@ public class JSSourceManager {
 		}
 		
 		// TODO if not isJsDevMode => use only .gz files, don't compute or check anthing.
-		
+		// TODO parallel all processings (JSProcessor -> add to queue + queue exec)
 		// TODO remove all js compiled files for git, only keep gz and sources.
 		
 		js_modules.clear();
@@ -61,6 +61,7 @@ public class JSSourceManager {
 			/**
 			 * 1st pass : get only main, the first.
 			 */
+			Loggers.Play_JSSource.debug("Load Module " + vfile.getRealFile().getName());
 			js_modules.add(new JSSourceModule("internal", vfile.getRealFile().getAbsoluteFile(), node_js_babel));
 			break;
 		}
@@ -71,6 +72,7 @@ public class JSSourceManager {
 			if (entry.getKey().startsWith("_")) {
 				continue;
 			}
+			Loggers.Play_JSSource.debug("Load Module " + entry.getKey());
 			js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile(), node_js_babel));
 		}
 		
@@ -85,6 +87,7 @@ public class JSSourceManager {
 			for (int pos = 0; pos < js_modules.size(); pos++) {
 				js_modules.get(pos).processSources();
 				if (isJsDevMode()) {
+					Loggers.Play_JSSource.debug("Add all sources for " + js_modules.get(pos).getModuleName());
 					list_urls.addAll(js_modules.get(pos).getTransformedFilesRelativeURLs());
 				} else {
 					list_urls.add(js_modules.get(pos).getConcatedFileRelativeURL());

@@ -73,6 +73,7 @@ public class JSProcessor {
 	public void transformJSX() throws IOException, BabelException {
 		Loggers.Play_JSSource.debug("Transform JSX: " + filename.getPath() + " (module: " + module_name + " in " + module_path + ")");
 		output = node_js_babel.operate(input, Operation.TRANSFORM);
+		input = output;
 	}
 	
 	public void writeTo(File filename) throws IOException {
@@ -127,8 +128,6 @@ public class JSProcessor {
 	}
 	
 	public void wrapTransformationError(BabelException e) {
-		Loggers.Play_JSSource.warn("Babel SyntaxError for " + filename + " (module: " + module_name + " in " + module_path + ")", e);
-		
 		ArrayList<String> babel_stacktrace = e.getBabelStacktrace();
 		final StringBuffer sb = new StringBuffer();
 		
@@ -152,6 +151,12 @@ public class JSProcessor {
 		pw.close();
 		output = new String(baos.toByteArray());
 		input = output;
+		
+		if (Loggers.Play_JSSource.isDebugEnabled()) {
+			Loggers.Play_JSSource.warn("Babel " + e.getMessage() + " in " + filename + ", module: " + module_name + "\n" + sb.toString());
+		} else {
+			Loggers.Play_JSSource.warn("Babel SyntaxError for " + filename + " (module: " + module_name + " in " + module_path + ")", e);
+		}
 	}
 	
 }
