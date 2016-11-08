@@ -45,16 +45,14 @@ public class JSSourceManager {
 	}
 	
 	public static void init() throws Exception {
-		NodeJSBabel node_js_babel = null;
+		NodeJSBabel node_js_babel = new NodeJSBabel();
 		
 		if (isJsDevMode()) {
 			Loggers.Play_JSSource.info("JS Source manager is in dev mode.");
-			node_js_babel = new NodeJSBabel();
+			node_js_babel.doChecks();
 		}
 		
-		// TODO if not isJsDevMode => use only .gz files, don't compute or check anthing.
 		// TODO parallel all processings (JSProcessor -> add to queue + queue exec)
-		// TODO remove all js compiled files for git, only keep gz and sources.
 		
 		js_modules.clear();
 		for (VirtualFile vfile : Play.roots) {
@@ -81,12 +79,10 @@ public class JSSourceManager {
 	
 	public static void refreshAllSources() throws Exception {
 		synchronized (list_urls) {
-			Loggers.Play_JSSource.debug("Refresh for all sources from all modules.");
-			
 			list_urls.clear();
 			for (int pos = 0; pos < js_modules.size(); pos++) {
-				js_modules.get(pos).processSources();
 				if (isJsDevMode()) {
+					js_modules.get(pos).processSources();
 					Loggers.Play_JSSource.debug("Add all sources for " + js_modules.get(pos).getModuleName());
 					list_urls.addAll(js_modules.get(pos).getTransformedFilesRelativeURLs());
 				} else {

@@ -38,7 +38,7 @@ import play.vfs.VirtualFile;
 public class JSSourceModule {
 	
 	private NodeJSBabel node_js_babel;
-	private JSSourceDatabase database;
+	private JSSourceDatabase js_source_database;
 	private String module_name;
 	private File module_path;
 	
@@ -53,9 +53,6 @@ public class JSSourceModule {
 	private File allfiles_concated_file;
 	private File reduced_declaration_file;
 	
-	/**
-	 * @param node_js_babel can be null
-	 */
 	JSSourceModule(String module_name, File module_path, NodeJSBabel node_js_babel) throws IOException {
 		this.module_name = module_name;
 		if (module_name == null) {
@@ -66,6 +63,9 @@ public class JSSourceModule {
 			throw new NullPointerException("\"module_path\" can't to be null");
 		}
 		this.node_js_babel = node_js_babel;
+		if (node_js_babel == null) {
+			throw new NullPointerException("\"node_js_babel\" can't to be null");
+		}
 		
 		transformed_directory = new File(module_path + File.separator + BASE_TRANSFORMED_DIRECTORY_JS);
 		if (transformed_directory.exists()) {
@@ -87,10 +87,16 @@ public class JSSourceModule {
 		
 		allfiles_concated_file = new File(reduced_directory.getPath() + File.separator + "_" + module_name + "_" + "concated.js.gz");
 		reduced_declaration_file = new File(reduced_directory + File.separator + "_" + module_name + "_" + "declarations.js");
-		database = JSSourceDatabase.create(this);
 		
 		Loggers.Play_JSSource.debug("Init source module, module_name: " + module_name + ", module_path: " + module_path + ", transformed_directory: " + transformed_directory + ", reduced_directory: "
 				+ reduced_directory + ", allfiles_concated_file: " + allfiles_concated_file + ", reduced_declaration_file: " + reduced_declaration_file);
+	}
+	
+	private JSSourceDatabase getDatabase() throws IOException {
+		if (js_source_database == null) {
+			js_source_database = JSSourceDatabase.create(this);
+		}
+		return js_source_database;
 	}
 	
 	/**
@@ -99,8 +105,8 @@ public class JSSourceModule {
 	void purgeDatabase() throws IOException {
 		Loggers.Play_JSSource.info("Purge database for " + module_name);
 		
-		FileUtils.forceDelete(database.getDbfile());
-		database = null;
+		FileUtils.forceDelete(getDatabase().getDbfile());
+		js_source_database = null;
 	}
 	
 	String getModuleName() {
@@ -112,12 +118,10 @@ public class JSSourceModule {
 	}
 	
 	void processSources() throws IOException {
-		// TODO prod mode: if node_js_babel==null -> don't process something.
-		
 		Loggers.Play_JSSource.debug("Process source, module_name: " + module_name);
 		
-		altered_source_files = database.checkAndClean();
-		new_source_files = database.newEntries();
+		altered_source_files = getDatabase().checkAndClean();
+		new_source_files = getDatabase().newEntries();
 		
 		if (altered_source_files.isEmpty() & new_source_files.isEmpty() & allfiles_concated_file.exists()) {
 			return;
@@ -230,7 +234,7 @@ public class JSSourceModule {
 		 * Get all source items
 		 */
 		ArrayList<String> source_scopes = new ArrayList<String>();
-		ArrayList<JSSourceDatabaseEntry> all_entries = database.getSortedEntries();
+		ArrayList<JSSourceDatabaseEntry> all_entries = getDatabase().getSortedEntries();
 		
 		String scope;
 		StringBuilder parent_scope;
@@ -321,7 +325,7 @@ public class JSSourceModule {
 			}
 		}
 		
-		database.save();
+		getDatabase().save();
 	}
 	
 	private void createDeclarationFile(File declare_file, ArrayList<String> source_scopes) {
@@ -353,15 +357,17 @@ public class JSSourceModule {
 		IO.writeContent(sb.toString(), declare_file);
 	}
 	
-	public String getConcatedFileRelativeURL() {
+	public String getConcatedFileRelativeURL() throws IOException {
+		CopyMove.checkExistsCanRead(allfiles_concated_file);
+		
 		HashMap<String, Object> args = new HashMap<String, Object>(2);
 		args.put("name", allfiles_concated_file.getName());
 		args.put("suffix_date", allfiles_concated_file.lastModified() / 1000);
 		return Router.reverse(AsyncJavascript.class.getName() + "." + "JavascriptRessource", args).url;
 	}
 	
-	ArrayList<String> getTransformedFilesRelativeURLs() {
-		ArrayList<JSSourceDatabaseEntry> all_entries = database.getSortedEntries();
+	ArrayList<String> getTransformedFilesRelativeURLs() throws IOException {
+		ArrayList<JSSourceDatabaseEntry> all_entries = getDatabase().getSortedEntries();
 		ArrayList<String> results = new ArrayList<String>(all_entries.size() + 1);
 		String url;
 		

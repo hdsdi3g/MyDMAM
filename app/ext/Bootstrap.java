@@ -110,7 +110,7 @@ public class Bootstrap extends Job<Void> {
 			Loggers.Play.error("Can't access to keyspace", e);
 		}
 		
-		try {// TODO at java boot, with a token for detect if loaded or not.
+		try {
 			JSSourceManager.init();
 		} catch (Exception e) {
 			Loggers.Play_JSSource.error("Can't init", e);

@@ -47,12 +47,13 @@ public class NodeJSBabel {
 	}
 	
 	private File babel_js;
-	private File node_executable;
 	
-	public NodeJSBabel() throws Exception {
-		node_executable = ExecBinaryPath.get("node");
-		
+	public NodeJSBabel() {
 		babel_js = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath() + File.separator + "node_modules" + File.separator + "babel-cli" + File.separator + "bin" + File.separator + "babel.js");
+	}
+	
+	public void doChecks() throws Exception {
+		ExecBinaryPath.get("node");
 		try {
 			CopyMove.checkExistsCanRead(babel_js);
 		} catch (Exception e) {
@@ -77,7 +78,7 @@ public class NodeJSBabel {
 				FileUtils.writeLines(show_version_js, Arrays.asList("require(\"../lib/babel-node\");", "console.log(require(\"babel-core\").version);", "process.exit(0);"), false);
 			}
 			
-			ExecprocessGettext exec = new ExecprocessGettext(node_executable, Arrays.asList(show_version_js.getAbsolutePath()));
+			ExecprocessGettext exec = new ExecprocessGettext(ExecBinaryPath.get("node"), Arrays.asList(show_version_js.getAbsolutePath()));
 			exec.setWorkingDirectory(MyDMAM.APP_ROOT_PLAY_DIRECTORY);
 			exec.setEndlinewidthnewline(false);
 			exec.start();
@@ -121,13 +122,13 @@ public class NodeJSBabel {
 	
 	private void checkNodeVersion() throws IOException {
 		List<String> params = Arrays.asList("-v");
-		ExecprocessGettext exec = new ExecprocessGettext(node_executable, params);
+		ExecprocessGettext exec = new ExecprocessGettext(ExecBinaryPath.get("node"), params);
 		exec.start();
 		String node_version = exec.getResultstdout().toString().trim();
 		
 		if (MyDMAM.versionCompare(node_version, MIN_NODEJS_VERSION) < 0) {
-			throw new IOException(
-					"Current installed NodeJS version is to low (" + node_version + "). Please update it before use (>= " + MIN_NODEJS_VERSION + ") from " + node_executable.getAbsolutePath());
+			throw new IOException("Current installed NodeJS version is to low (" + node_version + "). Please update it before use (>= " + MIN_NODEJS_VERSION + ") from "
+					+ ExecBinaryPath.get("node").getAbsolutePath());
 		}
 		
 		log.debug("Use NodeJS version " + node_version);
@@ -150,7 +151,7 @@ public class NodeJSBabel {
 	private ExecprocessGettext babelExec(List<String> babel_params) throws IOException {
 		ArrayList<String> params = new ArrayList<>(Arrays.asList(babel_js.getAbsolutePath()));
 		params.addAll(babel_params);
-		ExecprocessGettext exec = new ExecprocessGettext(node_executable, params);
+		ExecprocessGettext exec = new ExecprocessGettext(ExecBinaryPath.get("node"), params);
 		exec.setWorkingDirectory(MyDMAM.APP_ROOT_PLAY_DIRECTORY);
 		exec.setEndlinewidthnewline(true);
 		return exec;

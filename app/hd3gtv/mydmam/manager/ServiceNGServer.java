@@ -16,10 +16,16 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import org.apache.commons.io.IOUtils;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import play.Play;
+import play.Play.Mode;
 import play.server.Server;
 
 public class ServiceNGServer extends ServiceNG {
@@ -62,6 +68,58 @@ public class ServiceNGServer extends ServiceNG {
 		}
 		
 		Server.main(new String[] {});
+		
+		if (Play.mode == Mode.DEV) {
+			/**
+			 * NO LAZY LOAD
+			 */
+			Thread t_load_on_boot = new Thread(new Runnable() {
+				
+				@Override
+				public void run() {
+					try {
+						while (Play.initialized == false) {
+							Thread.sleep(10);
+						}
+						
+						String port = Play.configuration.getProperty("https.port", Play.configuration.getProperty("http.port", "80"));
+						
+						StringBuilder sb = new StringBuilder();
+						sb.append("http");
+						
+						if (Play.configuration.getProperty("https.port", "").equals("") == false) {
+							sb.append("s");
+						}
+						
+						sb.append("://");
+						
+						String address = Play.configuration.getProperty("https.address", Play.configuration.getProperty("http.address", "127.0.0.1"));
+						sb.append(address);
+						
+						sb.append(":");
+						sb.append(port);
+						sb.append("/");
+						
+						URL url = new URL(sb.toString());
+						HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+						conn.setRequestMethod("GET");
+						conn.setConnectTimeout(5 * 60 * 1000);
+						conn.setReadTimeout(5 * 60 * 1000);
+						
+						Loggers.Play.debug("Connect to local Play site " + url.toString());
+						
+						conn.connect();
+						IOUtils.closeQuietly(conn.getInputStream());
+						conn.disconnect();
+					} catch (Exception e) {
+						Loggers.Play.debug("Trouble with start-on-boot http trigger", e);
+					}
+				}
+			});
+			t_load_on_boot.setName("Load on boot");
+			t_load_on_boot.setDaemon(true);
+			t_load_on_boot.start();
+		}
 	}
 	
 	protected void stopService() throws Exception {
