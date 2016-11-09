@@ -50,7 +50,9 @@ import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.tools.CopyMove;
+import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
+import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.StoppableProcessing;
 
 public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
@@ -412,7 +414,7 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 						log.put("fast_started_file", fast_started_file);
 						Loggers.Transcode.info("Faststart file " + log);
 						
-						Publish.faststartFile(temp_output_file, fast_started_file);
+						faststartFile(temp_output_file, fast_started_file);
 						temp_output_file = fast_started_file;
 					}
 				}
@@ -456,6 +458,28 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 	
 	public JsonElement exportSpecificInstanceStatusItems() {
 		return WatchFolderDB.gson.toJsonTree(this);
+	}
+	
+	/**
+	 * @param source_file will be deleted at the end.
+	 */
+	public static void faststartFile(File source_file, File dest_file) throws Exception {
+		ArrayList<String> param = new ArrayList<String>();
+		param.add(source_file.getPath());
+		param.add(dest_file.getPath());
+		
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		log.put("source_file", source_file);
+		log.put("dest_file", dest_file);
+		Loggers.Transcode.debug("Faststart file: " + log);
+		
+		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("qtfaststart"), param);
+		process.setEndlinewidthnewline(true);
+		process.start();
+		
+		FileUtils.forceDelete(source_file);
+		
+		Loggers.Transcode.debug("Fast start file done: " + process.getResultstdout());
 	}
 	
 }

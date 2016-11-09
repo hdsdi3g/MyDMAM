@@ -39,11 +39,11 @@ import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.TranscodeProgress;
 import hd3gtv.mydmam.transcode.TranscodeProgressFFmpeg;
+import hd3gtv.mydmam.transcode.TranscoderWorker;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
@@ -219,7 +219,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		
 		Loggers.Transcode_Metadata.info("Start ffmpeg, " + "job: " + job_progress.getJobKey() + ", origin: " + origin + ", temp_file: " + temp_element.getTempFile() + ", transcode_profile: "
 				+ transcode_profile + ", commandline: \"" + process.getCommandline() + "\"");
-				
+		
 		process.run();
 		
 		progress.stopWatching();
@@ -247,7 +247,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		
 		if (ffmpeg_renderer_context.faststarted) {
 			final_element = new RenderedFile(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
-			Publish.faststartFile(temp_element.getTempFile(), final_element.getTempFile());
+			TranscoderWorker.faststartFile(temp_element.getTempFile(), final_element.getTempFile());
 			temp_element.deleteTempFile();
 		} else {
 			final_element = temp_element;

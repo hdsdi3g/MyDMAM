@@ -49,8 +49,8 @@ public class JSSourceDatabase {
 	
 	private static final String BASE_CONF_DIRECTORY = File.separator + "conf";
 	
-	private static final String BASE_SOURCE_DIRECTORY_JSX = "/app/react";
-	private static final String BASE_SOURCE_DIRECTORY_VANILLA_JS = "/public/javascripts/src";
+	private static final String BASE_SOURCE_DIRECTORY_JSX = File.separator + "app" + File.separator + "react";
+	private static final String BASE_SOURCE_DIRECTORY_VANILLA_JS = File.separator + "public" + File.separator + "javascripts" + File.separator + "src";
 	
 	private static final Gson gson_simple;
 	private static final Gson gson;
@@ -81,9 +81,15 @@ public class JSSourceDatabase {
 		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
 		builder.addDeserializationExclusionStrategy(ignore_strategy);
 		builder.addSerializationExclusionStrategy(ignore_strategy);
+		
+		/**
+		 * It don't use Gson Simple...
+		 */
+		builder.registerTypeAdapter(JSSourceDatabaseEntry.class, new JSSourceDatabaseEntry.Serializer());
 		gson_simple = builder.create();
 		
 		builder.registerTypeAdapter(JSSourceDatabase.class, new Serializer());
+		
 		builder.setPrettyPrinting();
 		gson = builder.create();
 	}

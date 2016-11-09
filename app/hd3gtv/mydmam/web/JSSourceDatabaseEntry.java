@@ -16,18 +16,23 @@
 */
 package hd3gtv.mydmam.web;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.util.Comparator;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
+
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -49,6 +54,43 @@ public class JSSourceDatabaseEntry {
 	private long size;
 	private long date;
 	private String hash;
+	
+	final static class Serializer implements JsonSerializer<JSSourceDatabaseEntry>, JsonDeserializer<JSSourceDatabaseEntry> {
+		
+		public JsonElement serialize(JSSourceDatabaseEntry src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = new JsonObject();
+			if (File.separator.equals("\\")) {
+				result.addProperty("relative_file_name", src.relative_file_name.replace("\\", "/"));
+				result.addProperty("relative_root_name", src.relative_root_name.replace("\\", "/"));
+			} else {
+				result.addProperty("relative_file_name", src.relative_file_name);
+				result.addProperty("relative_root_name", src.relative_root_name);
+			}
+			result.addProperty("size", src.size);
+			result.addProperty("date", src.date);
+			result.addProperty("hash", src.hash);
+			return result;
+		}
+		
+		public JSSourceDatabaseEntry deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			JSSourceDatabaseEntry result = new JSSourceDatabaseEntry();
+			JsonObject src = jejson.getAsJsonObject();
+			
+			if (File.separator.equals("\\")) {
+				result.relative_file_name = src.get("relative_file_name").getAsString().replace("/", "\\");
+				result.relative_root_name = src.get("relative_root_name").getAsString().replace("/", "\\");
+			} else {
+				result.relative_file_name = src.get("relative_file_name").getAsString();
+				result.relative_root_name = src.get("relative_root_name").getAsString();
+			}
+			result.size = src.get("size").getAsLong();
+			result.date = src.get("date").getAsLong();
+			result.hash = src.get("hash").getAsString();
+			
+			return result;
+		}
+		
+	}
 	
 	/**
 	 * @param module_path like "/opt/mydmam-my-super-module"
@@ -73,7 +115,6 @@ public class JSSourceDatabaseEntry {
 	
 	void checkRealFile(File module_path) throws FileNotFoundException, IOException {
 		File real_file = new File(module_path.getPath() + File.separator + relative_root_name + File.separator + relative_file_name);
-		Loggers.Play_JSSource.trace("Check file " + real_file + " (module_path: " + module_path + ")");
 		
 		if (real_file.exists() == false) {
 			throw new FileNotFoundException(real_file.getPath());
@@ -85,6 +126,7 @@ public class JSSourceDatabaseEntry {
 			/**
 			 * Don't compute MD5, this file seems the same.
 			 */
+			Loggers.Play_JSSource.trace("Check file " + real_file + ": same date, this file seems the same");
 			return;
 		}
 		
@@ -92,6 +134,7 @@ public class JSSourceDatabaseEntry {
 		if (hash.equalsIgnoreCase(new_md5) == false) {
 			throw new IOException("File as changed for " + real_file.getPath() + " (" + hash.substring(0, 5) + "... -> " + new_md5.substring(0, 5) + "...)");
 		}
+		Loggers.Play_JSSource.trace("Check file " + real_file + ": same hash");
 	}
 	
 	void refresh(File module_path) {
@@ -122,25 +165,22 @@ public class JSSourceDatabaseEntry {
 	}
 	
 	/**
-	 * @param source Read line by line the file, and avoid to end-line chars problems.
+	 * @param source Read line by line the file, and avoid to end-line chars problems and empty lines.
 	 */
 	private static String makeMD5(File source) throws IOException {
-		Loggers.Play_JSSource.trace("Check MD5 for file " + source);
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");
-			InputStream in = null;
-			try {
-				in = FileUtils.openInputStream(source);
-				BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-				String line = reader.readLine();
-				while (line != null) {
-					md.update(line.getBytes());
-					line = reader.readLine();
+			
+			FileUtils.readLines(source).forEach(line -> {
+				String trimed_line = line.trim();
+				if (trimed_line.isEmpty() == false) {
+					md.update(trimed_line.getBytes());
 				}
-			} finally {
-				IOUtils.closeQuietly(in);
-			}
-			return MyDMAM.byteToString(md.digest());
+			});
+			
+			String result = MyDMAM.byteToString(md.digest());
+			Loggers.Play_JSSource.trace("Check MD5 for file " + source + ": " + result);
+			return result;
 		} catch (IOException e) {
 			throw e;
 		} catch (Exception e) {
@@ -162,7 +202,17 @@ public class JSSourceDatabaseEntry {
 	 */
 	String computeJSScope() {
 		if (relative_file_name.indexOf(File.separator) > -1) {
-			return relative_file_name.substring(0, FilenameUtils.indexOfLastSeparator(relative_file_name)).replaceAll("/", ".");
+			String scope = relative_file_name.substring(0, FilenameUtils.indexOfLastSeparator(relative_file_name));
+			StringBuffer sb = new StringBuffer();
+			for (int pos = 0; pos < scope.length(); pos++) {
+				String thischar = scope.substring(pos, pos + 1);
+				if (thischar.equals(File.separator)) {
+					sb.append(".");
+				} else {
+					sb.append(thischar);
+				}
+			}
+			return sb.toString();
 		}
 		return null;
 	}
