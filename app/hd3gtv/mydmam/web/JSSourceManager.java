@@ -52,8 +52,6 @@ public class JSSourceManager {
 			node_js_babel.doChecks();
 		}
 		
-		// TODO parallel all processings (JSProcessor -> add to queue + queue exec)
-		
 		js_modules.clear();
 		for (VirtualFile vfile : Play.roots) {
 			/**
