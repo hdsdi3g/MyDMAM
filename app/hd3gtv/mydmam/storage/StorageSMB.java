@@ -34,7 +34,11 @@ public class StorageSMB extends StorageURILoginPassword {
 	
 	StorageSMB(URILoginPasswordConfiguration configuration) {
 		super(configuration);
-		auth = new NtlmPasswordAuthentication("", configuration.login, configuration.password);
+		if (configuration.domain == null) {
+			auth = new NtlmPasswordAuthentication("", configuration.login, configuration.password);
+		} else {
+			auth = new NtlmPasswordAuthentication(configuration.domain, configuration.login, configuration.password);
+		}
 		
 		StringBuffer sb = new StringBuffer();
 		sb.append("smb://");
@@ -42,8 +46,6 @@ public class StorageSMB extends StorageURILoginPassword {
 		sb.append(configuration.relative_path);
 		sb.append("/");
 		root_path = sb.toString();
-		/*
-		configuration.relative_path = file.getPath();*/
 	}
 	
 	class AbstractFileSmb implements AbstractFile {
