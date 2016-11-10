@@ -20,6 +20,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -320,14 +324,46 @@ public class MyDMAM {
 		}
 	}
 	
+	public static class InetAddrSerializer implements JsonSerializer<InetAddress>, JsonDeserializer<InetAddress> {
+		
+		public InetAddress deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			try {
+				return InetAddress.getByName(json.getAsString());
+			} catch (UnknownHostException e) {
+				throw new JsonParseException(json.getAsString(), e);
+			}
+		}
+		
+		public JsonElement serialize(InetAddress src, Type typeOfSrc, JsonSerializationContext context) {
+			return new JsonPrimitive(src.getHostAddress());
+		}
+	}
+	
+	public static class URLSerializer implements JsonSerializer<URL>, JsonDeserializer<URL> {
+		
+		public URL deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			try {
+				return new URL(json.getAsString());
+			} catch (MalformedURLException e) {
+				throw new JsonParseException(json.getAsString(), e);
+			}
+		}
+		
+		public JsonElement serialize(URL src, Type typeOfSrc, JsonSerializationContext context) {
+			return new JsonPrimitive(src.toString());
+		}
+	}
+	
 	/**
-	 * Register JsonArray, JsonObject, XMLGregorianCalendar, Class.
+	 * Register JsonArray, JsonObject, XMLGregorianCalendar, Class, InetAddress, URL.
 	 */
 	public static void registerBaseSerializers(GsonBuilder gson_builder) {
 		gson_builder.registerTypeAdapter(JsonArray.class, new MyDMAM.GsonJsonArraySerializer());
 		gson_builder.registerTypeAdapter(JsonObject.class, new MyDMAM.GsonJsonObjectSerializer());
 		gson_builder.registerTypeAdapter(XMLGregorianCalendar.class, new MyDMAM.XMLGregorianCalendarSerializer());
 		gson_builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		gson_builder.registerTypeAdapter(InetAddress.class, new MyDMAM.InetAddrSerializer());
+		gson_builder.registerTypeAdapter(URL.class, new MyDMAM.URLSerializer());
 	}
 	
 	/**
