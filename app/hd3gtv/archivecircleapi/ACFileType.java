@@ -16,15 +16,6 @@
 */
 package hd3gtv.archivecircleapi;
 
-public class ACItemLocations {
-	
-	ACItemLocations() {
-	}
-	
-	public ACPositionType files;
-	
-	public ACAccessibility worstAccessibility;
-	
-	public ACPositionType tapes;
-	
+public enum ACFileType {
+	directory, file
 }

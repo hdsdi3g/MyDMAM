@@ -22,6 +22,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.util.LinkedHashMap;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
@@ -90,12 +92,15 @@ public class ACAPI {
 	/**
 	 * @return null if error
 	 */
-	private <T extends ACAPIResult> T request(String query, Class<T> return_class) {
+	private <T extends ACAPIResult> T request(String query, Class<T> return_class, LinkedHashMap<String, String> query_strings) {
 		if (query == null) {
 			throw new NullPointerException("\"query\" can't to be null");
 		}
 		if (return_class == null) {
 			throw new NullPointerException("\"return_class\" can't to be null");
+		}
+		if (query_strings == null) {
+			throw new NullPointerException("\"query_strings\" can't to be null");
 		}
 		
 		HttpURLConnection connection = null;
@@ -105,7 +110,24 @@ public class ACAPI {
 			full_query.append(query);
 			
 			if (log.isTraceEnabled()) {
-				full_query.append("?pretty=true");// TODO manage this correctly with //URLEncoder.encode(, "UTF-8")
+				query_strings.put("pretty", "true");
+			}
+			
+			if (query_strings.isEmpty() == false) {
+				full_query.append("?");
+				query_strings.forEach((k, v) -> {
+					try {
+						full_query.append(URLEncoder.encode(k, "UTF-8"));
+						full_query.append("=");
+						full_query.append(URLEncoder.encode(v, "UTF-8"));
+						full_query.append("&");
+					} catch (Exception e) {
+					}
+				});
+			}
+			
+			if (full_query.toString().endsWith("&")) {
+				full_query.deleteCharAt(full_query.length() - 1);
 			}
 			
 			URL url = new URL("http", host, tcp_port, full_query.toString());
@@ -173,7 +195,7 @@ public class ACAPI {
 	}
 	
 	public ACNode getNode() {
-		return request("node", ACNode.class);
+		return request("node", ACNode.class, new LinkedHashMap<>());
 	}
 	
 	public ACFile getFile(String share, String path, boolean show_location_directories) {
@@ -188,10 +210,11 @@ public class ACAPI {
 			sb.append(path);
 		}
 		
+		LinkedHashMap<String, String> args = new LinkedHashMap<>(1);
 		if (show_location_directories) {
-			sb.append("/?showLocation=true");// TODO manage this correctly
+			args.put("showLocation", "true");
 		}
 		
-		return request(sb.toString(), ACFile.class);
+		return request(sb.toString(), ACFile.class, args);
 	}
 }

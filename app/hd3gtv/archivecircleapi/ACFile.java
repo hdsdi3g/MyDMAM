@@ -39,7 +39,7 @@ public class ACFile implements ACAPIResult {
 	public String path;
 	public long creationDate = 0;
 	public long modificationDate = 0;
-	public FileType type;
+	public ACFileType type;
 	public int count = 0;
 	public int size = 0;
 	
@@ -53,6 +53,11 @@ public class ACFile implements ACAPIResult {
 	
 	@GsonIgnore
 	public ArrayList<ACFileLocations> this_locations;
+	
+	/**
+	 * Only for file
+	 */
+	public ACAccessibility accessibility;
 	
 	public ACLocationType bestLocation;
 	
@@ -78,10 +83,10 @@ public class ACFile implements ACAPIResult {
 		public ACFile deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			ACFile node = acapi.gson_simple.fromJson(json, ACFile.class);
 			JsonObject jo = json.getAsJsonObject();
-			if (node.type == FileType.directory) {
+			if (node.type == ACFileType.directory) {
 				node.files = acapi.gson_simple.fromJson(jo.get("files"), type_AL_String);
 				node.sub_locations = acapi.gson.fromJson(jo.get("locations"), ACItemLocations.class);
-			} else if (node.type == FileType.file) {
+			} else if (node.type == ACFileType.file) {
 				node.this_locations = acapi.gson.fromJson(jo.get("locations"), type_AL_ACFileLocations);
 			} else {
 				throw new NullPointerException("node");

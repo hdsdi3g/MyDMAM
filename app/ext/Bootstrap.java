@@ -22,10 +22,14 @@ import java.util.Set;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+import hd3gtv.archivecircleapi.ACAPI;
+import hd3gtv.archivecircleapi.ACNode;
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthTurret;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
 import hd3gtv.mydmam.web.JSSourceManager;
 import play.i18n.Messages;
 import play.jobs.Job;
@@ -48,6 +52,43 @@ public class Bootstrap extends Job<Void> {
 		}
 		return auth;
 	}
+	
+	private static ACAPI acapi;
+	
+	/**
+	 * @return null if not configured.
+	 */
+	public static ACAPI getACAPI() {
+		if (acapi == null) {
+			String host = Configuration.global.getValue("acapi", "host", "");
+			if (host.equals("")) {
+				return null;
+			}
+			String user = Configuration.global.getValue("acapi", "user", "");
+			String password = Configuration.global.getValue("acapi", "password", "");
+			int port = Configuration.global.getValue("acapi", "port", 8081);
+			
+			acapi = new ACAPI(host, user, password);
+			acapi.setTcp_port(port);
+			
+			ACNode node = acapi.getNode();
+			if (node == null) {
+				Loggers.Play.warn("Can't init ACAPI now");
+				return null;
+			}
+			if (Loggers.Play.isInfoEnabled() & node.nodes != null) {
+				StringBuilder sb = new StringBuilder();
+				node.nodes.forEach(n -> {
+					sb.append(n.toString());
+					sb.append(" ");
+				});
+				Loggers.Play.info("Init ACAPI with nodes [" + sb.toString().trim() + "]");
+			}
+		}
+		return acapi;
+	}
+	
+	public static BridgePathindexArchivelocation bridge_pathindex_archivelocation;
 	
 	public void doJob() {
 		/**
@@ -114,6 +155,12 @@ public class Bootstrap extends Job<Void> {
 			JSSourceManager.init();
 		} catch (Exception e) {
 			Loggers.Play_JSSource.error("Can't init", e);
+		}
+		
+		if (getACAPI() != null) {
+			bridge_pathindex_archivelocation = new BridgePathindexArchivelocation(acapi, Configuration.global.getListMapValues("acapi", "bridge"));
+		} else {
+			bridge_pathindex_archivelocation = new BridgePathindexArchivelocation();
 		}
 	}
 }

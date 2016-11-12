@@ -31,16 +31,23 @@ public class ACNodesEntry {
 	ACNodesEntry() {
 	}
 	
-	String name;
-	String description;
-	long lastStartingTime;
-	String nodeVersion;
-	boolean hasTapeDrive;
-	String path;
-	ArrayList<InetAddress> ipAddresses;
-	int httpPort;
-	int ftpPort;
-	URL url;
+	public String name;
+	public String description;
+	public long lastStartingTime;
+	public String nodeVersion;
+	public boolean hasTapeDrive;
+	public String path;
+	public ArrayList<InetAddress> ipAddresses;
+	public int httpPort;
+	public int ftpPort;
+	public URL url;
+	
+	/**
+	 * @return name
+	 */
+	public String toString() {
+		return name;
+	}
 	
 	static class Deseralizer implements JsonDeserializer<ACNodesEntry> {
 		Type type_AL_InetAddr = new TypeToken<ArrayList<InetAddress>>() {
