@@ -18,15 +18,18 @@ package controllers.ajs;
 
 import java.lang.reflect.Type;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import controllers.Check;
+import ext.Bootstrap;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.ContainerPreview;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.pathindexing.AJSFileLocationStatus;
+import hd3gtv.mydmam.pathindexing.AJSFileLocationStatusRequest;
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.stat.AsyncMetadataAnalystRequest;
 import hd3gtv.mydmam.web.stat.AsyncStatRequest;
@@ -77,8 +80,15 @@ public class Stat extends AJSController {
 	}
 	
 	@Check("navigate")
-	public static String listExternalPositionsStorages() {
-		return MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
+	public static AJSFileLocationStatus getExternalLocation(AJSFileLocationStatusRequest request) {
+		AJSFileLocationStatus response = new AJSFileLocationStatus();
+		response.getFromACAPI(Bootstrap.bridge_pathindex_archivelocation.getExternalLocation(request.storagename, request.path));
+		return response;
+	}
+	
+	@Check("navigate")
+	public static JsonArray getExternalLocationStorageList() {
+		return AJSController.gson_simple.toJsonTree(Bootstrap.bridge_pathindex_archivelocation.getExternalLocationStorageList()).getAsJsonArray();
 	}
 	
 }

@@ -31,6 +31,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
+import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.ExecprocessOutputstreamHandler;
 
@@ -138,7 +139,11 @@ public class NodeJSBabel {
 		List<String> params = Arrays.asList("-v");
 		File npm_executable = ExecBinaryPath.get("npm");
 		ExecprocessGettext exec = new ExecprocessGettext(npm_executable, params);
-		exec.start();
+		try {
+			exec.start();
+		} catch (ExecprocessBadExecutionException e) {
+			throw new IOException("Problem with node exec \"" + exec.getResultstderr().toString() + "\"", e);
+		}
 		String npm_version = exec.getResultstdout().toString().trim();
 		
 		if (MyDMAM.versionCompare(npm_version, MIN_NPM_VERSION) < 0) {
