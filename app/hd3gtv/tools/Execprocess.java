@@ -128,7 +128,9 @@ public class Execprocess extends Thread {
 		status = STATE_RUNNIG;
 		
 		pb = new ProcessBuilder(processinfo);
+		
 		pb.environment().put("LANG", Locale.getDefault().getLanguage() + "_" + Locale.getDefault().getCountry() + "." + Charset.forName("UTF-8"));
+		pb.environment().put("PATH", ExecBinaryPath.getFullPath());
 		
 		if (working_directory != null) {
 			pb.directory(working_directory);

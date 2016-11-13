@@ -6,3 +6,8 @@ executables:
     mxf2raw: /usr/bin/mxf2raw
     bmxtranswrap: /usr/bin/bmxtranswrap
 
+# Use exepath for add to current PATH (for Java only) some local or external binary path and avoid to add manually executables.
+#execpath:
+#    sets:
+#        - App/bin
+#        - App/macport/bin

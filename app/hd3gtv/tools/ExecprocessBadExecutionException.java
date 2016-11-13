@@ -26,6 +26,7 @@ public class ExecprocessBadExecutionException extends IOException {
 	private int returncode;
 	
 	ExecprocessBadExecutionException(String processname, String commandline, int returncode) {
+		super("Exec \"" + commandline + "\" return code " + returncode);
 		this.commandline = commandline;
 		this.returncode = returncode;
 		this.processname = processname;
