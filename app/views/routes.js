@@ -41,7 +41,6 @@ mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson(
 
 #{secure.check 'navigate'}
 	mydmam.metadatas.url.navigate_react = "!#navigate/";
-	mydmam.metadatas.url.resolvepositions = "@{Application.resolvepositions()}";
 	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
 	mydmam.stat.url = "@{Application.stat()}";
 	

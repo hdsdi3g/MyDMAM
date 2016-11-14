@@ -75,10 +75,6 @@ public abstract class MyDMAMModule extends PlayPlugin implements SearchResultPre
 	public void prepareSearchResult(SearchHit hit, SearchResult result) {
 	}
 	
-	public ArchivingTapeLocalisator getTapeLocalisator() {
-		return null;
-	}
-	
 	public List<InstanceActionReceiver> getSpecificInstanceActionReceiver() {
 		return null;
 	}

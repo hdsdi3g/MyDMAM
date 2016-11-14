@@ -15,8 +15,10 @@
  * 
 */
 
+//TODO refactor this
 pathindex.resolveExternalPosition = function(externalpos_request_keys, data_callback) {
-	if (!externalpos_request_keys) {
+	return;
+	/*if (!externalpos_request_keys) {
 		return;
 	}
 	if (externalpos_request_keys.length == 0) {
@@ -32,7 +34,7 @@ pathindex.resolveExternalPosition = function(externalpos_request_keys, data_call
 		error: function(jqXHR, textStatus, errorThrown) {
 			console.error(jqXHR, textStatus, errorThrown);
 		},
-	});
+	});*/
 };
 
 pathindex.reactStoragePathLink = React.createClass({

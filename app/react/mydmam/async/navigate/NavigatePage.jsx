@@ -17,11 +17,12 @@
 
 navigate.Home = React.createClass({
 	componentDidMount: function() {
-		if (window.list_external_positions_storages == null) {
+		//TODO refactor this !
+		/*if (window.list_external_positions_storages == null) {
 			mydmam.async.request("stat", "listexternalpositionsstorages", null, function(data) {
 				window.list_external_positions_storages = data;
 			});
-		}
+		}*/
 		this.setDocumentTitle();
 	},
 	componentDidUpdate: function(dd) {

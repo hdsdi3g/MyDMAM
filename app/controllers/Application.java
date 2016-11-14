@@ -21,23 +21,18 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.web.PartialContent;
 import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.mydmam.web.search.SearchRequest;
@@ -129,9 +124,8 @@ public class Application extends Controller {
 		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		
 		String results = s_results.toJsonString();
-		String list_external_positions_storages = MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
 		
-		render(title, results, list_external_positions_storages);
+		render(title, results);
 	}
 	
 	public static void i18n() {
@@ -194,36 +188,6 @@ public class Application extends Controller {
 		} catch (FileNotFoundException e) {
 			forbidden();
 		}
-	}
-	
-	@Check("navigate")
-	public static void resolvePositions() throws ConnectionException {
-		String[] keys = params.getAll("keys[]");
-		if (keys == null) {
-			renderJSON("{}");
-			return;
-		}
-		if (keys.length == 0) {
-			renderJSON("{}");
-			return;
-		}
-		
-		JsonObject result = new JsonObject();
-		Map<String, List<String>> raw_positions = MyDMAMModulesManager.getPositions(keys);
-		
-		ArrayList<String> queries_locations = new ArrayList<String>();
-		
-		for (Map.Entry<String, List<String>> position : raw_positions.entrySet()) {
-			List<String> l_locations = position.getValue();
-			for (int pos_location = 0; pos_location < l_locations.size(); pos_location++) {
-				if (queries_locations.contains(l_locations.get(pos_location)) == false) {
-					queries_locations.add(l_locations.get(pos_location));
-				}
-			}
-		}
-		result.add("positions", new Gson().toJsonTree(raw_positions));
-		result.add("locations", new Gson().toJsonTree(MyDMAMModulesManager.getPositionInformationsByTapeName(queries_locations.toArray(new String[0]))));
-		renderJSON(result.toString());
 	}
 	
 	public static void indexjs() {
