@@ -84,7 +84,7 @@ navigate.HeaderItem = React.createClass({
 
 		var external_pos = null;
 		if (reference.directory === false) {
-			external_pos = (<mydmam.async.pathindex.reactExternalPosition pathindexkey={this.props.pathindexkey} externalpos={this.props.externalpos} />);
+			//external_pos = (<mydmam.async.pathindex.reactExternalPosition pathindexkey={this.props.pathindexkey} externalpos={this.props.externalpos} />);
 		}
 
 		return (

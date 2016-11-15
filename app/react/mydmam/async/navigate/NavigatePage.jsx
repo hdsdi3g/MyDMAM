@@ -103,7 +103,7 @@ navigate.NavigatePage = React.createClass({
 			pathindex: "",
 			default_page_size: 20,
 			sort_order: [],
-			externalpos: {},
+			external_location: null,
 		};
 	},
 	navigateTo: function(pathindex, page_from, page_size, sort) {
@@ -141,8 +141,17 @@ navigate.NavigatePage = React.createClass({
 					default_page_size: page_size,
 					sort_order: sort,
 				});
+				
+				if (data[pathindex_key].reference.storagename) {
+					mydmam.async.pathindex.resolveExternalLocation(data[pathindex_key].reference.storagename, data[pathindex_key].reference.path, function(resolve_result){
+						console.log(resolve_result);//XXX
+						this.setState({
+							external_location: resolve_result,
+						});
+					}.bind(this));
+				}
 
-				var externalpos_request_keys = [];
+				/*TODO var externalpos_request_keys = [];
 				for (var response_pathindexkey in data) {
 					var this_response = data[response_pathindexkey];
 					if (!this_response.reference) {
@@ -170,14 +179,14 @@ navigate.NavigatePage = React.createClass({
 				var response_resolve_external = function(external_resolve_data) {
 					this.setState({externalpos: external_resolve_data});
 				}.bind(this);
-				mydmam.async.pathindex.resolveExternalPosition(externalpos_request_keys, response_resolve_external);
+				 mydmam.async.pathindex.resolveExternalPosition(externalpos_request_keys, response_resolve_external);
+				 */
 			} else {
 				if (page_from > 0) {
 					this.navigateTo(pathindex, 0, page_size);
 				}
 				return;
 			}
-			//window.location.hash = this.state.pathindex;
 
 			var dirname = this.state.pathindex;
 			dirname = dirname.substring(dirname.lastIndexOf("/") + 1, dirname.length);

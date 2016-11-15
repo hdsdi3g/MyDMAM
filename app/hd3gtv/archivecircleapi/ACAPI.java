@@ -203,11 +203,13 @@ public class ACAPI {
 		sb.append("file/");
 		sb.append(share);
 		
-		if (path.startsWith("/")) {
-			sb.append(path);
-		} else {
-			sb.append("/");
-			sb.append(path);
+		if (path.equals("/") == false) {
+			if (path.startsWith("/")) {
+				sb.append(path);
+			} else {
+				sb.append("/");
+				sb.append(path);
+			}
 		}
 		
 		LinkedHashMap<String, String> args = new LinkedHashMap<>(1);

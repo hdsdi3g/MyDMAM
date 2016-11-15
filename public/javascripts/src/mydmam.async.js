@@ -27,7 +27,10 @@
 	/**
 	 * @return null
 	 */
-	mydmam.async.request = function(name, verb, content, response_callback, error_callback) {
+	mydmam.async.request = function(_name, _verb, content, response_callback, error_callback) {
+		var name = _name.toLowerCase();
+		var verb = _verb.toLowerCase();
+		
 		if (mydmam.async.isAvaliable(name, verb) === false) {
 			if (error_callback) {
 				error_callback();

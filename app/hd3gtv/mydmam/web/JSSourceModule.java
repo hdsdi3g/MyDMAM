@@ -293,9 +293,7 @@ public class JSSourceModule {
 		/**
 		 * Concate all reduced files
 		 */
-		if (Loggers.Play_JSSource.isDebugEnabled()) {
-			Loggers.Play_JSSource.debug("Concate all reduced files to a GZip file, allfiles_concated_file: " + allfiles_concated_file + ", module_name: " + module_name);
-		}
+		Loggers.Play_JSSource.info("Concate all reduced files to a GZip file, allfiles_concated_file: " + allfiles_concated_file + ", module_name: " + module_name);
 		FileOutputStream concated_out_stream_gzipped = new FileOutputStream(allfiles_concated_file);
 		try {
 			GZIPOutputStream gz_concated_out_stream_gzipped = new GZIPOutputStream(concated_out_stream_gzipped, 0xFFFF);
@@ -317,6 +315,7 @@ public class JSSourceModule {
 			
 			gz_concated_out_stream_gzipped.finish();
 			concated_out_stream_gzipped.flush();
+			concated_out_stream_gzipped.close();
 		} catch (Exception e) {
 			IOUtils.closeQuietly(concated_out_stream_gzipped);
 			Loggers.Play_JSSource.error("Can't make concated file: " + allfiles_concated_file + ", module_name: " + module_name, e);

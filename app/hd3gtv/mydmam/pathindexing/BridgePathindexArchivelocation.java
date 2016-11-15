@@ -84,10 +84,12 @@ public class BridgePathindexArchivelocation {
 		} else {
 			full_path.append(b.archive_rootpath);
 		}
-		if (path.startsWith("/") == false) {
-			full_path.append("/");
+		if (path.equals("/") == false) {
+			if (path.startsWith("/") == false) {
+				full_path.append("/");
+			}
+			full_path.append(path);
 		}
-		full_path.append(path);
 		
 		return acapi.getFile(b.archive_sharename, full_path.toString(), true);
 	}

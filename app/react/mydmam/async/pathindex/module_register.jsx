@@ -15,29 +15,6 @@
  * 
 */
 
-//TODO refactor this !
-var externalPos = function(index_name, is_directory, storagename) {
-	if (!index_name | !storagename) {
-		return false;
-	}
-	if (index_name !== "pathindex") {
-		return false;
-	}
-	if (is_directory) {
-		return false;
-	}
-	
-	/* if (window.list_external_positions_storages == null) {
-		return false;
-	}
-	for (var pos = 0; pos < list_external_positions_storages.length; pos++) {
-		if (list_external_positions_storages[pos] === storagename) {
-			return true;
-		}
-	}*/
-	return false;
-};
-
 var searchResult = function(result) {
 	if (result.index !== "pathindex") {
 		return null;
@@ -50,5 +27,4 @@ var searchResult = function(result) {
  */
 mydmam.module.register("PathIndexView", {
 	processViewSearchResult: searchResult,
-	wantToHaveResolvedExternalPositions: externalPos,
 });

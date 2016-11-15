@@ -15,7 +15,27 @@
  * 
 */
 
-pathindex.reactExternalPosition = React.createClass({
+var external_location_storage_list = null;
+
+pathindex.resolveExternalLocation = function(storagename, path, onResult) {
+	if (external_location_storage_list == null) {
+		mydmam.async.request("stat", "getExternalLocationStorageList", null, function(data) {
+			external_location_storage_list = data;
+			pathindex.resolveExternalLocation(storagename, path, onResult);
+		});
+		return;
+	}
+
+	if (external_location_storage_list.indexOf(storagename) == -1) {
+		return;
+	}
+
+	mydmam.async.request("stat", "getExternalLocation", {storagename: storagename, path: path}, function(data) {
+		onResult(data);
+	});
+}
+
+pathindex.reactExternalPositionREFACTOR = React.createClass({
 	render: function() {
 		var externalpos = this.props.externalpos;
 		var pathindexkey = this.props.pathindexkey;

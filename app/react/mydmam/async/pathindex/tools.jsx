@@ -15,28 +15,6 @@
  * 
 */
 
-//TODO refactor this
-pathindex.resolveExternalPosition = function(externalpos_request_keys, data_callback) {
-	return;
-	/*if (!externalpos_request_keys) {
-		return;
-	}
-	if (externalpos_request_keys.length == 0) {
-		return;
-	}
-	$.ajax({
-		url: mydmam.metadatas.url.resolvepositions,
-		type: "POST",
-		data: {
-			"keys": externalpos_request_keys,
-		},
-		success: data_callback,
-		error: function(jqXHR, textStatus, errorThrown) {
-			console.error(jqXHR, textStatus, errorThrown);
-		},
-	});*/
-};
-
 pathindex.reactStoragePathLink = React.createClass({
 	render: function() {
 		var url_navigate = mydmam.metadatas.url.navigate_react;

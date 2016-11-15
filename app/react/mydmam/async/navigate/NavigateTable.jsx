@@ -174,7 +174,8 @@ navigate.NavigateTable = React.createClass({
 
 			var external_pos = null;
 			if (element.directory === false) {
-				external_pos = (<mydmam.async.pathindex.reactExternalPosition pathindexkey={elementkey} externalpos={this.props.externalpos} />);
+				//TODO
+				//external_pos = (<mydmam.async.pathindex.reactExternalPosition pathindexkey={elementkey} externalpos={this.props.externalpos} />);
 			}
 
 			tbody.push(

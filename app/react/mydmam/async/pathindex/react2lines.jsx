@@ -54,6 +54,7 @@ pathindex.react2lines = React.createClass({
 			currentpath = currentpath + "/" + sub_path;
 		};
 
+		//	<pathindex.reactExternalPosition pathindexkey={this.props.result.key} externalpos={this.props.externalpos} />
 
 		return (
 			<div className="pathindex">
@@ -65,8 +66,7 @@ pathindex.react2lines = React.createClass({
 				<pathindex.reactMetadata1Line stat={this.props.stat} />
 				<br />
 				<span>
-					<pathindex.reactBasketButton pathindexkey={this.props.result.key}/>
-					<pathindex.reactExternalPosition pathindexkey={this.props.result.key} externalpos={this.props.externalpos} />&nbsp;
+					<pathindex.reactBasketButton pathindexkey={this.props.result.key}/>&nbsp;
 					<strong className="storagename">
 						<a href={url_navigate + "#" + result.content.storagename + ":/"}>
 							{result.content.storagename}

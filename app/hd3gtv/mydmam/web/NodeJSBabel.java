@@ -166,7 +166,7 @@ public class NodeJSBabel {
 		if (operation == Operation.TRANSFORM) {
 			action.addAll(Arrays.asList("--presets", "react"));
 		} else if (operation == Operation.REDUCE) {
-			action.addAll(Arrays.asList("--presets=babili", "--no-babelrc", "--plugins=transform-remove-console"));
+			action.addAll(Arrays.asList("--presets=babili", "--no-babelrc"));// , "--plugins=transform-remove-console"
 		} else if (operation == Operation.TRANSFORM_REDUCE) {
 			action.addAll(Arrays.asList("--presets", "react,babili", "--no-babelrc"));
 		}
