@@ -245,8 +245,11 @@ manager.watchfolders.table.jobs=Jobs associés
 application.navigate=Stockage
 
 browser.versatileerror=Une erreur a été rencontrée pendant l'action demandé
-browser.externalposition.online=En cache
-browser.externalposition.nearline=Nearline
+browser.externallocation.online=En ligne
+browser.externallocation.nearline=Nearline
+browser.externallocation.offline=Hors ligne
+browser.externallocation.cache=Disque cache
+browser.externallocation.pack=Disque
 browser.directory=dossier
 browser.file=fichier
 browser.afile=Fichier

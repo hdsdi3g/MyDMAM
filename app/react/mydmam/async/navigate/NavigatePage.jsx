@@ -144,43 +144,11 @@ navigate.NavigatePage = React.createClass({
 				
 				if (data[pathindex_key].reference.storagename) {
 					mydmam.async.pathindex.resolveExternalLocation(data[pathindex_key].reference.storagename, data[pathindex_key].reference.path, function(resolve_result){
-						console.log(resolve_result);//XXX
 						this.setState({
 							external_location: resolve_result,
 						});
 					}.bind(this));
 				}
-
-				/*TODO var externalpos_request_keys = [];
-				for (var response_pathindexkey in data) {
-					var this_response = data[response_pathindexkey];
-					if (!this_response.reference) {
-						continue;
-					}
-					if (!this_response.reference) {
-						continue;
-					}
-					if (mydmam.module.f.wantToHaveResolvedExternalPositions("pathindex", this_response.reference.directory, this_response.reference.storagename)) {
-						externalpos_request_keys.push(response_pathindexkey);
-					}
-					if (!this_response.items) {
-						continue;
-					}
-					for (var responseitem_pathindexkey in this_response.items) {
-						var this_responseitem = this_response.items[responseitem_pathindexkey];
-						if (!this_responseitem.reference) {
-							continue;
-						}
-						if (mydmam.module.f.wantToHaveResolvedExternalPositions("pathindex", this_responseitem.reference.directory, this_responseitem.reference.storagename)) {
-							externalpos_request_keys.push(responseitem_pathindexkey);
-						}
-					}
-				}
-				var response_resolve_external = function(external_resolve_data) {
-					this.setState({externalpos: external_resolve_data});
-				}.bind(this);
-				 mydmam.async.pathindex.resolveExternalPosition(externalpos_request_keys, response_resolve_external);
-				 */
 			} else {
 				if (page_from > 0) {
 					this.navigateTo(pathindex, 0, page_size);
@@ -308,14 +276,14 @@ navigate.NavigatePage = React.createClass({
 					first_item_dateindex={first_item_dateindex}
 					pathindexkey={md5(this.state.pathindex)}
 					is_in_search={is_in_search}
-					externalpos={this.state.externalpos} />
+					external_location={this.state.external_location} />
 				<mydmam.async.pathindex.reactMetadataFull
 					reference={stat.reference}
 					mtdsummary={stat.mtdsummary} />
 				<navigate.NavigateTable
 					stat={stat}
 					changeOrderSort={this.handlechangeOrderSort}
-					externalpos={this.state.externalpos} />
+					external_location={this.state.external_location} />
 				{display_pagination}
 				{noresult}
 				<navigate.SearchBox
