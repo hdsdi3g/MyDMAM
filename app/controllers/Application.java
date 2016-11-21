@@ -56,12 +56,14 @@ public class Application extends Controller {
 	public static final int HTTP_not_implemented = 501;
 	
 	@Check("navigate")
-	public static void navigate() {
+	@Deprecated
+	public static void navigate() {// TODO remove
 		redirect(Router.getFullUrl("Application.indexjs") + "#navigate", true);
 	}
 	
 	@Check("navigate")
-	public static void stat() {
+	@Deprecated
+	public static void stat() {// TODO remove
 		Loggers.Play.warn("Application.Stat calls are deprecated, use instead AsyncJS.Stat");
 		
 		ArrayList<String> fileshashs = new ArrayList<String>();
@@ -107,7 +109,8 @@ public class Application extends Controller {
 	}
 	
 	@Check("navigate")
-	public static void search(String q, Integer from) {
+	@Deprecated
+	public static void search(String q, Integer from) {// TODO remove
 		if (from == null) {
 			from = 0;
 		}

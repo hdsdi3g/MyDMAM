@@ -15,15 +15,13 @@
  * 
 */
 search.SearchForm = React.createClass({
-	getInitialState: function() {
-		return {new_q: ""};
-	},
 	componentDidMount: function() {
-		this.setState({new_q: this.props.results.q});
 		React.findDOMNode(this.refs.q).focus();
+		React.findDOMNode(this.refs.q).value = this.getDefaultText();
 	},
-	handleChange: function(event) {
-		this.setState({new_q: React.findDOMNode(this.refs.q).value});
+	componentDidUpdate: function() {
+		React.findDOMNode(this.refs.q).focus();
+		React.findDOMNode(this.refs.q).value = this.getDefaultText();
 	},
 	handleSubmit: function(e) {
 		e.preventDefault();
@@ -33,11 +31,21 @@ search.SearchForm = React.createClass({
 		}
 		this.props.onSearchFormSubmit({q: q});
 	},
+	getDefaultText: function() {
+		var value = "";
+		if (this.props.results) {
+			value = this.props.results.q;
+			if (!value) {
+				value = "";
+			}
+		}
+		return value;
+	},
 	render: function() {
 	    return (
 	    	<form className="search-query form-search" onSubmit={this.handleSubmit}>
 				<div className="input-append">
-					<input type="text" ref="q" value={this.state.new_q} placeholder={i18n("maingrid.search")} className="search-query span10" onChange={this.handleChange} />
+					<input type="text" ref="q" placeholder={i18n("maingrid.search")} className="search-query span10" />
 					<button className="btn btn-info" type="submit">{i18n("maingrid.search")}</button>
 				</div>
 			</form>

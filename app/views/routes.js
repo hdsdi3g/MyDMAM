@@ -43,8 +43,6 @@ mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson(
 	mydmam.metadatas.url.navigate_react = "!#navigate/";
 	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
 	mydmam.stat.url = "@{Application.stat()}";
-	
-	mydmam.async.baseURLsearch = "@{Application.search(q='param1query',from='param2from')}";
 #{/secure.check}
 
 #{secure.check 'adminFtpServer'}
