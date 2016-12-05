@@ -18,25 +18,34 @@
 var external_location_storage_list = null;
 
 pathindex.resolveExternalLocation = function(storagename, path, onResult) {
+	pathindex.populateExternalLocationStorageList(function(location_storage_list) {
+		if (location_storage_list.indexOf(storagename) == -1) {
+			return;
+		}
+		mydmam.async.request("stat", "getExternalLocation", {storagename: storagename, path: path}, function(data) {
+			onResult(data);
+		});
+	});
+}
+
+pathindex.populateExternalLocationStorageList = function(onResult) {
 	if (external_location_storage_list == null) {
 		mydmam.async.request("stat", "getExternalLocationStorageList", null, function(data) {
 			external_location_storage_list = data;
-			pathindex.resolveExternalLocation(storagename, path, onResult);
+			if (onResult) {
+				onResult(data);
+			}
 		});
 		return;
 	}
 
-	if (external_location_storage_list.indexOf(storagename) == -1) {
-		return;
+	if (onResult) {
+		onResult(external_location_storage_list);
 	}
-
-	mydmam.async.request("stat", "getExternalLocation", {storagename: storagename, path: path}, function(data) {
-		onResult(data);
-	});
 }
 
 /**
- * You must call pathindex.resolveExternalLocation before this. Else it never display anything.
+ * You must call pathindex.resolveExternalLocation onResult OR populateExternalLocationStorageList before this. Else it never display anything.
  */
 pathindex.reactExternalLocation = React.createClass({
 	getInitialState: function() {
@@ -52,6 +61,13 @@ pathindex.reactExternalLocation = React.createClass({
 		pathindex.resolveExternalLocation(this.props.storagename, this.props.path, function(external_location) {
 			this.setState({external_location: external_location});
 		}.bind(this));
+	},
+	componentWillMount: function() {
+		if (this.props.auto_resolve) {
+			if (this.state.external_location == null) {
+				this.onStartSearchLocalisation();
+			}
+		}
 	},
 	render: function() {
 		if (!external_location_storage_list) {
@@ -124,7 +140,9 @@ pathindex.reactExternalLocation = React.createClass({
 		} else {
 			if (external_location_storage_list.indexOf(storagename) > -1) {
 				/** add button to get location */
-				return (<span style={{display: "inline-block", whiteSpace: "nowrap", cursor: "pointer"}} className="label label-important external-pathindex-position" onClick={this.onStartSearchLocalisation}>
+				return (<span style={{display: "inline-block", whiteSpace: "nowrap", cursor: "pointer"}}
+								className="label label-important external-pathindex-position"
+								onClick={this.onStartSearchLocalisation}>
 						<i className="icon-barcode icon-white"></i> <i className="icon-search icon-white"></i>
 				</span>);
 			}

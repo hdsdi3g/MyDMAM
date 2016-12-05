@@ -16,22 +16,9 @@
 */
 
 pathindex.react2lines = React.createClass({
-	shouldComponentUpdate: function(nextProps, nextState) {
-		if (nextProps.externalpos.positions) {
-			if (nextProps.externalpos.positions[nextProps.result.key]) {
-				return true;
-			}
-		}
-
-		if (nextProps.stat == null) {
-			return false;
-		}
-
-		return true;
-	},
 	render: function() {
 		var url_navigate = mydmam.metadatas.url.navigate_react;
-		
+
 		var result = this.props.result;
 		var directory_block = null;
 		if (result.content.directory) {
@@ -46,7 +33,7 @@ pathindex.react2lines = React.createClass({
 			sub_path = sub_paths[i];
 			path_linked.push(
 				<span key={i}>/
-					<a href={url_navigate + "#" + result.content.storagename + ':' + currentpath + "/" + sub_path}>
+					<a href={url_navigate + result.content.storagename + ':' + currentpath + "/" + sub_path}>
 						{sub_path}
 					</a>
 				</span>
@@ -54,7 +41,11 @@ pathindex.react2lines = React.createClass({
 			currentpath = currentpath + "/" + sub_path;
 		};
 
-		//	<pathindex.reactExternalPosition pathindexkey={this.props.result.key} externalpos={this.props.externalpos} />
+		var can_resolve_external_location = this.props.can_resolve_external_location;
+		var external_location = null;
+		if (can_resolve_external_location) {
+			external_location = (<pathindex.reactExternalLocation storagename={result.content.storagename} path={result.content.path} auto_resolve={true} />);
+		}
 
 		return (
 			<div className="pathindex">
@@ -66,9 +57,9 @@ pathindex.react2lines = React.createClass({
 				<pathindex.reactMetadata1Line stat={this.props.stat} />
 				<br />
 				<span>
-					<pathindex.reactBasketButton pathindexkey={this.props.result.key}/>&nbsp;
+					<pathindex.reactBasketButton pathindexkey={this.props.result.key}/> {external_location}&nbsp;
 					<strong className="storagename">
-						<a href={url_navigate + "#" + result.content.storagename + ":/"}>
+						<a href={url_navigate + result.content.storagename + ":/"}>
 							{result.content.storagename}
 						</a>
 					</strong>

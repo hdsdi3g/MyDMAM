@@ -16,12 +16,10 @@
 */
 
 //TODO Search box in menus
-//TODO Correct links for search results
-//TODO external location
 
 search.SearchResultPage = React.createClass({
 	getInitialState: function() {
-		return {stat: {}, externalpos: {}};
+		return {stat: {}, external_storages_location: []};
 	},
 	handleSearchFormSubmit: function(search_request) {
 		if (!search_request.q) {
@@ -31,6 +29,11 @@ search.SearchResultPage = React.createClass({
 	},
 	handlePaginationLinkTargeter: function(button_num) {
 		return "#" + search.urlify(this.props.results.q, button_num);
+	},
+	componentWillMount: function() {
+		mydmam.async.pathindex.populateExternalLocationStorageList(function(storages) {
+			this.setState({external_storages_location: storages});
+		}.bind(this));
 	},
 	doSubSearch: function(nextProps) {
 		var results = this.props.results.results;
@@ -59,18 +62,6 @@ search.SearchResultPage = React.createClass({
 				this.setState({stat: data});
 			}.bind(this));
 		}
-
-		/*var externalpos_request_keys = [];
-		for (var i = 0; i < results.length; i++) {
-			if (mydmam.module.f.wantToHaveResolvedExternalPositions(results[i].index, results[i].content.directory, results[i].content.storagename)) {
-				externalpos_request_keys.push(results[i].key);
-			}
-		}
-		var response_resolve_external = function(data) {
-			this.setState({externalpos: data});
-		}.bind(this);
-		
-		mydmam.async.pathindex.resolveExternalPosition(externalpos_request_keys, response_resolve_external);*/
 	},
 	componentDidMount: function() {
 		this.doSubSearch();
@@ -83,7 +74,7 @@ search.SearchResultPage = React.createClass({
 	    	<div>
 				<search.SearchForm results={this.props.results} onSearchFormSubmit={this.handleSearchFormSubmit} onSearchFormChange={this.handleSearchFormChange} />
 				<search.SearchResultsHeader results={this.props.results} />
-				<search.SearchResults results={this.props.results} stat={this.state.stat} externalpos={{}} />
+				<search.SearchResults results={this.props.results} stat={this.state.stat} external_storages_location={this.state.external_storages_location} />
 				<mydmam.async.pagination.reactBlock
 					pagecount={this.props.results.pagecount}
 					currentpage={this.props.results.from}

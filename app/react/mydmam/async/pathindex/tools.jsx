@@ -15,6 +15,20 @@
  * 
 */
 
+var searchResult = function(result) {
+	if (result.index !== "pathindex") {
+		return null;
+	}
+	return pathindex.react2lines;
+};
+
+/**
+ * We don't wait the document.ready because we are sure the mydmam.module.f code is already loaded. 
+ */
+mydmam.module.register("PathIndexView", {
+	processViewSearchResult: searchResult,
+});
+
 pathindex.reactStoragePathLink = React.createClass({
 	render: function() {
 		var url_navigate = mydmam.metadatas.url.navigate_react;
@@ -25,7 +39,7 @@ pathindex.reactStoragePathLink = React.createClass({
 
 		var storage_linked = storagename;
 		if (add_link) {
-			storage_linked = (<a href={url_navigate + "#" + storagename + ":/"}>{storagename}</a>);
+			storage_linked = (<a href={url_navigate + storagename + ":/"}>{storagename}</a>);
 		}		
 
 		var path_linked = path;
@@ -38,7 +52,7 @@ pathindex.reactStoragePathLink = React.createClass({
 				sub_path = sub_paths[i];
 				path_linked.push(
 					<span key={i}>/
-						<a href={url_navigate + "#" + storagename + ':' + currentpath + "/" + sub_path}>
+						<a href={url_navigate + storagename + ':' + currentpath + "/" + sub_path}>
 							{sub_path}
 						</a>
 					</span>
