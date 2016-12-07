@@ -16,30 +16,16 @@
 }*
 #{extends 'maingrid.html' /}
 
-<div class="container">
-	<script type="text/javascript" charset="UTF-8">
-	<!--
-	$(document).ready(function() {
-		/**
-		 * Test jquery loading
-		 */
-		$("#deleteme1").remove();
-	
-		/**
-		 * Test localStorage presence
-		 */
-		if (localStorage) {
-			$("#deleteme2").remove();
-		} else {
-			$("#navigator").remove();
-		}
-	});
-	-->
-	</script>
-	<div class="alert alert-error" id="deleteme1">&{'site.autotest.l1'}</div>
-	<div class="alert alert-error" id="deleteme2">&{'site.autotest.l2'}</div>
-	<div class="hero-unit">
-	  <h1>&{'site.name'}</h1>
-	  <p>&{'site.baseline'}</p>
-	</div>
-</div>
+<div id="reactindex"></div>
+
+<script type="text/javascript" charset="UTF-8">
+<!--
+$(document).ready(function() {
+	try {
+		mydmam.routes.loadBackbone($("#reactindex")[0]);
+	} catch (err) {
+		console.error(err);
+	}
+});
+-->
+</script>

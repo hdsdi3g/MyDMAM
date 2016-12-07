@@ -40,9 +40,8 @@ mydmam.async.url = "@{AsyncJavascript.index(name='nameparam1',verb='verbparam2')
 mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson().toJson(hd3gtv.mydmam.web.AJSController.getAllControllersVerbsForThisUser())); }% ;
 
 #{secure.check 'navigate'}
-	mydmam.metadatas.url.navigate_react = "!#navigate/";
+	mydmam.metadatas.url.navigate_react = "/#navigate/";
 	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
-	mydmam.stat.url = "@{Application.stat()}";
 #{/secure.check}
 
 #{secure.check 'adminFtpServer'}

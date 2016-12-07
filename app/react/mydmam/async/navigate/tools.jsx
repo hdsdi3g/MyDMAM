@@ -56,3 +56,13 @@ navigate.SearchBox = React.createClass({
 		return null;
 	}
 });
+
+navigate.NoResultsSearch = React.createClass({
+	render: function() {
+		return (
+			<div className="alert alert-info">
+				<h4>{i18n("search.noresults")}</h4>
+			</div>
+		);
+	}
+});

@@ -19,8 +19,6 @@ package controllers;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Properties;
 
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
@@ -34,15 +32,11 @@ import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.web.PartialContent;
-import hd3gtv.mydmam.web.search.SearchQuery;
-import hd3gtv.mydmam.web.search.SearchRequest;
-import hd3gtv.mydmam.web.stat.PathElementStat;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
 import play.mvc.Http.Header;
-import play.mvc.Router;
 import play.mvc.With;
 
 @With(Secure.class)
@@ -55,80 +49,12 @@ public class Application extends Controller {
 	public static final int HTTP_internal_error = 500;
 	public static final int HTTP_not_implemented = 501;
 	
-	@Check("navigate")
-	@Deprecated
-	public static void navigate() {// TODO remove
-		redirect(Router.getFullUrl("Application.indexjs") + "#navigate", true);
-	}
-	
-	@Check("navigate")
-	@Deprecated
-	public static void stat() {// TODO remove
-		Loggers.Play.warn("Application.Stat calls are deprecated, use instead AsyncJS.Stat");
-		
-		ArrayList<String> fileshashs = new ArrayList<String>();
-		if (params.get("fileshashs") != null) {
-			fileshashs.add(params.get("fileshashs"));
-		} else if (params.getAll("fileshashs[]") != null) {
-			fileshashs.addAll(Arrays.asList(params.getAll("fileshashs[]")));
-		}
-		
-		ArrayList<String> scopes_element = new ArrayList<String>();
-		if (params.get("scopes_element") != null) {
-			scopes_element.add(params.get("scopes_element"));
-		} else if (params.getAll("scopes_element[]") != null) {
-			scopes_element.addAll(Arrays.asList(params.getAll("scopes_element[]")));
-		}
-		
-		ArrayList<String> scopes_subelements = new ArrayList<String>();
-		if (params.get("scopes_subelements") != null) {
-			scopes_subelements.add(params.get("scopes_subelements"));
-		} else if (params.getAll("scopes_subelements[]") != null) {
-			scopes_subelements.addAll(Arrays.asList(params.getAll("scopes_subelements[]")));
-		}
-		
-		PathElementStat pathElementStat = new PathElementStat(fileshashs, scopes_element, scopes_subelements);
-		pathElementStat.setJsonSearch(params.get("search"));
-		try {
-			pathElementStat.setPageFrom(Integer.parseInt(params.get("page_from")));
-		} catch (Exception e) {
-		}
-		try {
-			pathElementStat.setPageSize(Integer.parseInt(params.get("page_size")));
-		} catch (Exception e) {
-		}
-		
-		String result = pathElementStat.getResult().toJSONString();
-		renderJSON(result);
-	}
-	
 	public static void index() {
-		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
+		// redirect(Router.getFullUrl("Application.indexjs"), true);
+		/*String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		String current_basket_content = "[]";
-		render(title, current_basket_content);
-	}
-	
-	@Check("navigate")
-	@Deprecated
-	public static void search(String q, Integer from) {// TODO remove
-		if (from == null) {
-			from = 0;
-		}
-		SearchQuery s_results = new SearchQuery();
-		s_results.search(new SearchRequest(q, from));
-		
-		if (s_results.hasResults()) {
-			// flash("q", s_results.getQ());
-			flash("pagename", s_results.getQ() + " - " + Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
-		} else {
-			flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
-		}
-		
-		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		
-		String results = s_results.toJsonString();
-		
-		render(title, results);
+		render(title, current_basket_content);*/
+		render();
 	}
 	
 	public static void i18n() {
@@ -137,10 +63,6 @@ public class Application extends Controller {
 		response.contentType = "application/javascript";
 		Properties ymessages = Messages.all(play.i18n.Lang.get());
 		render(ymessages);
-	}
-	
-	public static void redirectToHome(String oldURL) {
-		index();
 	}
 	
 	public static void iconsmap() {
@@ -193,7 +115,9 @@ public class Application extends Controller {
 		}
 	}
 	
+	@Deprecated
 	public static void indexjs() {
+		Loggers.Play.warn("Client use indexjs controller (/!#)");
 		render();
 	}
 	

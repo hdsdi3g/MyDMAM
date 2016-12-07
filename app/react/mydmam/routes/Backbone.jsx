@@ -60,16 +60,30 @@ routes.Backbone = React.createClass({
  	componentWillUnmount: function() {
   		window.removeEventListener('hashchange', this.processHash);
   	},
+  	doDirectSearch: function(q) {
+  		location.hash = "#" + mydmam.async.search.urlify(q, 0);
+	},
 	render: function() {
 		var main = null;
+
+		var search = null;
+		if (mydmam.async.isAvaliable("search", "query")) {
+			search = (<mydmam.async.SearchBox onValidation={this.doDirectSearch} />);
+		}
 
 		if (this.state.dest) {
 			var ReactTopLevelClass = routes.getReactTopLevelClassByRouteName(this.state.dest);
 			if (ReactTopLevelClass) {
-				return <ReactTopLevelClass params={this.state.params} />;
+				return (<div>
+					<ReactTopLevelClass params={this.state.params} />
+					{search}
+				</div>);
 			}
 		}
 
-		return (<div>Nothing here...</div>);
+		return (<div>
+			<mydmam.async.Home />
+			{search}
+		</div>);
 	}
 });

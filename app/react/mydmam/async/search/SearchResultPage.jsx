@@ -15,8 +15,6 @@
  * 
 */
 
-//TODO Search box in menus
-
 search.SearchResultPage = React.createClass({
 	getInitialState: function() {
 		return {stat: {}, external_storages_location: []};
@@ -90,6 +88,7 @@ search.Home = React.createClass({
 			q: null,
 			qfrom: 1,
 			results: null,
+			inputboxsearch: null,
 		};
 	},
 	doSearch: function(nextProps) {
@@ -181,4 +180,4 @@ search.urlify = function(q, qfrom) {
 	}
 };
 
-mydmam.routes.push("search-simple", "search/:q", search.Home, [{name: "search", verb: "query"}]);	
+mydmam.routes.push("search-simple", "search/:q", search.Home, [{name: "search", verb: "query"}]);
