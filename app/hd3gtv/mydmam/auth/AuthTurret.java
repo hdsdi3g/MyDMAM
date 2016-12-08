@@ -691,7 +691,9 @@ public class AuthTurret {
 		} else if (domain.equalsIgnoreCase("local")) {
 			UserNG result = getByUserKey(UserNG.computeUserKey(username, "local"));
 			if (result == null) {
-				Loggers.Auth.warn("Can't found this user to local auth system " + username + "@" + domain);
+				if (force_select_domain) {
+					Loggers.Auth.warn("Can't found this user to local auth system " + username + "@" + domain);
+				}
 				return null;
 			}
 			if (result.isLockedAccount()) {
