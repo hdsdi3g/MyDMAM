@@ -24,9 +24,6 @@ import java.util.Properties;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
-import com.google.gson.Gson;
-
-import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
@@ -63,16 +60,6 @@ public class Application extends Controller {
 		response.contentType = "application/javascript";
 		Properties ymessages = Messages.all(play.i18n.Lang.get());
 		render(ymessages);
-	}
-	
-	public static void iconsmap() {
-		response.cacheFor("600s");
-		
-		if (Configuration.global.isElementExists("iconsmap") == false) {
-			renderJSON("{}");
-		} else {
-			renderJSON((new Gson()).toJson(Configuration.global.getValues("iconsmap")));
-		}
 	}
 	
 	@Check("navigate")
