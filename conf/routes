@@ -19,7 +19,7 @@ GET		/login									Secure.login
 POST	/login									Secure.authenticate
 GET		/logout									Secure.logout
 
-GET		/i18n.js								Application.i18n
+GET		/i18n-v0.17.js							Application.i18n
 GET		/preview/{filehash}/{type}/{file}		Application.metadatafile
 
 POST	/asyncjs/{name}/{verb}					AsyncJavascript.index

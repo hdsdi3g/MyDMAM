@@ -56,7 +56,7 @@ public class Application extends Controller {
 	
 	public static void i18n() {
 		// XXX replace by Async JS
-		response.cacheFor("24h");
+		response.cacheFor("5mn");// TODO never use this shit, it's really powerfull.
 		response.contentType = "application/javascript";
 		Properties ymessages = Messages.all(play.i18n.Lang.get());
 		render(ymessages);
