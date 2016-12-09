@@ -107,7 +107,14 @@ public class ACAPI {
 		T result = null;
 		try {
 			StringBuilder full_query = new StringBuilder(BASE_URL);
-			full_query.append(query);
+			
+			String[] query_dirs = query.split("/");
+			for (int pos_q = 0; pos_q < query_dirs.length; pos_q++) {
+				if (pos_q > 0) {
+					full_query.append("/");
+				}
+				full_query.append(URLEncoder.encode(query_dirs[pos_q], "UTF-8"));
+			}
 			
 			if (log.isTraceEnabled()) {
 				query_strings.put("pretty", "true");
@@ -132,6 +139,7 @@ public class ACAPI {
 			
 			URL url = new URL("http", host, tcp_port, full_query.toString());
 			if (log.isTraceEnabled()) {
+				log.trace("full_query  : " + full_query.toString());
 				log.trace("HTTP Request: " + url.toString());
 			}
 			
@@ -140,7 +148,7 @@ public class ACAPI {
 			// connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 			// connection.setRequestProperty("Content-Length", Integer.toString(urlParameters.getBytes().length));
 			// connection.setRequestProperty("Content-Language", "en-US");
-			connection.setUseCaches(false);
+			// connection.setUseCaches(false);
 			connection.setConnectTimeout(30);
 			connection.setRequestProperty("Authorization", basic_auth);
 			
@@ -148,8 +156,10 @@ public class ACAPI {
 			if (status == 401) {
 				throw new AuthenticationException("Bad creditentials for " + url.toString());
 			} else if (status != 200) {
-				throw new IOException("Unknow status (" + status + ") for " + url.toString());
+				// throw new IOException("Unknow status (" + status + ") for " + url.toString());
 			}
+			
+			log.trace("status: " + status);
 			
 			String content_type = connection.getContentType();
 			if (content_type.toLowerCase().equals("application/json;charset=utf-8") == false) {
@@ -204,7 +214,9 @@ public class ACAPI {
 		sb.append(share);
 		
 		if (path.equals("/") == false) {
-			if (path.startsWith("/")) {
+			if (path.startsWith("//")) {
+				sb.append(path.substring(1));
+			} else if (path.startsWith("/")) {
 				sb.append(path);
 			} else {
 				sb.append("/");
@@ -215,6 +227,15 @@ public class ACAPI {
 		LinkedHashMap<String, String> args = new LinkedHashMap<>(1);
 		if (show_location_directories) {
 			args.put("showLocation", "true");
+		}
+		
+		if (log.isTraceEnabled()) {
+			LinkedHashMap<String, Object> lhm_log = new LinkedHashMap<String, Object>();
+			lhm_log.put("share", share);
+			lhm_log.put("path", path);
+			lhm_log.put("show_location_directories", show_location_directories);
+			lhm_log.put("URL part", sb.toString());
+			log.trace("Request dump " + lhm_log);
 		}
 		
 		return request(sb.toString(), ACFile.class, args);

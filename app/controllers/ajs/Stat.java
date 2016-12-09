@@ -26,6 +26,8 @@ import com.google.gson.JsonSerializer;
 
 import controllers.Check;
 import ext.Bootstrap;
+import hd3gtv.archivecircleapi.ACFile;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.ContainerPreview;
 import hd3gtv.mydmam.pathindexing.AJSFileLocationStatus;
@@ -82,7 +84,16 @@ public class Stat extends AJSController {
 	@Check("navigate")
 	public static AJSFileLocationStatus getExternalLocation(AJSFileLocationStatusRequest request) {
 		AJSFileLocationStatus response = new AJSFileLocationStatus();
-		response.getFromACAPI(Bootstrap.bridge_pathindex_archivelocation.getExternalLocation(request.storagename, request.path));
+		ACFile ac_file = Bootstrap.bridge_pathindex_archivelocation.getExternalLocation(request.storagename, request.path);
+		if (ac_file != null) {
+			if (Loggers.Play.isTraceEnabled()) {
+				Loggers.Play.trace("Get file location for " + request.storagename + ":" + request.path + " -> " + ac_file.bestLocation);
+			}
+			
+			response.getFromACAPI(ac_file);
+		} else {
+			Loggers.Play.debug("Null return for file location for " + request.storagename + ":" + request.path);
+		}
 		return response;
 	}
 	
