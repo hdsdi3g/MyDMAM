@@ -108,7 +108,7 @@ public class CliModuleMetadata implements CliModule {
 			return;
 		} else if (args.getParamExist("-clean")) {
 			Loggers.CLI.info("Start clean operations");
-			ContainerOperations.purge_orphan_metadatas();
+			ContainerOperations.purge_orphan_metadatas(args.getParamExist("-all"));
 			return;
 		}
 		
@@ -124,7 +124,8 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println(" * force re-indexing metadatas for a directory:");
 		System.out.println("   " + getCliModuleName() + " -refresh storagename:/pathindexrelative");
 		System.out.println(" * do clean operation (remove orphan metadatas):");
-		System.out.println("   " + getCliModuleName() + " -clean");
+		System.out.println("   " + getCliModuleName() + " -clean [-all]");
+		System.out.println("   with -all for remove all metadatas from empty storages and removed storages.");
 	}
 	
 }

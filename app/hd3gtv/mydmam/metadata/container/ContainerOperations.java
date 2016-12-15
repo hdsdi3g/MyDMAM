@@ -503,9 +503,11 @@ public class ContainerOperations {
 		Explorer explorer;
 		HashMap<String, Long> elementcount_by_storage;
 		ElasticsearchBulkOperation es_bulk;
+		boolean let_clean_empty_and_removed_storages;
 		
-		HitPurge(ElasticsearchBulkOperation es_bulk) {
+		HitPurge(ElasticsearchBulkOperation es_bulk, boolean let_clean_empty_and_removed_storages) {
 			this.es_bulk = es_bulk;
+			this.let_clean_empty_and_removed_storages = let_clean_empty_and_removed_storages;
 			explorer = new Explorer();
 			elementcount_by_storage = new HashMap<String, Long>();
 		}
@@ -529,22 +531,27 @@ public class ContainerOperations {
 				}
 				
 				/**
-				 * Protect to no remove all mtd if pathindexing is empty for a storage.
+				 * Protect to no remove all mtd if pathindexing is empty for a storage...
 				 * https://github.com/hdsdi3g/MyDMAM/issues/7
 				 */
 				if (origin.has("storage")) {
-					String origin_storage = origin.get("storage").getAsString();
-					if (elementcount_by_storage.containsKey(origin_storage) == false) {
-						elementcount_by_storage.put(origin_storage, explorer.countStorageContentElements(origin_storage));
-						if (elementcount_by_storage.get(origin_storage) == 0) {
-							Loggers.Metadata.info("Missing storage item in datatabase, storagename: " + origin_storage);
+					/**
+					 * ...but if the user want to remove it:
+					 */
+					if (let_clean_empty_and_removed_storages == false) {
+						String origin_storage = origin.get("storage").getAsString();
+						if (elementcount_by_storage.containsKey(origin_storage) == false) {
+							elementcount_by_storage.put(origin_storage, explorer.countStorageContentElements(origin_storage));
+							if (elementcount_by_storage.get(origin_storage) == 0) {
+								Loggers.Metadata.info("Missing storage item in datatabase, storagename: " + origin_storage);
+							}
 						}
-					}
-					if (elementcount_by_storage.get(origin_storage) == 0) {
-						/**
-						 * Empty storage !!
-						 */
-						return true;
+						if (elementcount_by_storage.get(origin_storage) == 0) {
+							/**
+							 * Empty storage !!
+							 */
+							return true;
+						}
 					}
 				} else {
 					Loggers.Metadata.warn("Bad metadata origin entry founded during purge: " + hit.getId() + "/" + hit.getType() + "/" + hit.getSourceAsString());
@@ -571,7 +578,7 @@ public class ContainerOperations {
 	/**
 	 * Delete orphan (w/o pathindex) metadatas elements
 	 */
-	public static void purge_orphan_metadatas() throws Exception {
+	public static void purge_orphan_metadatas(boolean let_clean_empty_and_removed_storages) throws Exception {
 		try {
 			ElastisearchCrawlerReader reader = Elasticsearch.createCrawlerReader();
 			reader.setIndices(ES_INDEX);
@@ -579,7 +586,7 @@ public class ContainerOperations {
 			
 			ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
 			
-			HitPurge hit_purge = new HitPurge(es_bulk);
+			HitPurge hit_purge = new HitPurge(es_bulk, let_clean_empty_and_removed_storages);
 			reader.allReader(hit_purge);
 			es_bulk.terminateBulk();
 			

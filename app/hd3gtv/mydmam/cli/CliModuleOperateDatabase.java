@@ -279,7 +279,7 @@ public class CliModuleOperateDatabase implements CliModule {
 		}
 		if (args.getParamExist("-clean")) {
 			Loggers.CLI.info("Start clean operations");
-			ContainerOperations.purge_orphan_metadatas();
+			ContainerOperations.purge_orphan_metadatas(args.getParamExist("-all"));
 			return;
 		}
 		
@@ -365,9 +365,9 @@ public class CliModuleOperateDatabase implements CliModule {
 		System.out.println("  index: the index name to use");
 		System.out.println("  type:  the type from the index to use");
 		System.out.println();
-		System.out.println("Operate usages:");
-		System.out.println(" " + getCliModuleName() + " -clean");
-		System.out.println("  Do clean operations");
+		System.out.println("Operate usages, do clean operations:");
+		System.out.println("  " + getCliModuleName() + " -clean [-all]");
+		System.out.println("  with -all for remove all metadatas from empty storages and removed storages.");
 		System.out.println();
 		System.out.println("Usage for H2 (Play internal db serverless):");
 		System.out.println(" " + getCliModuleName() + " -h2 -export filename.sql");
