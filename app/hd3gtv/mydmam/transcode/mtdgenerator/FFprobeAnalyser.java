@@ -22,6 +22,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -269,40 +270,38 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		return new ContainerEntryResult(result);
 	}
 	
+	private static final DateFormat[] formats = { new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"), new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
+			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"), new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"), new SimpleDateFormat("yyyy-MM-dd") };
+	
+	private static Date bruteForceDateParser(String date_value) {
+		for (int pos = 0; pos < formats.length; pos++) {
+			try {
+				return formats[pos].parse(date_value);
+			} catch (ParseException e) {
+			}
+		}
+		return null;
+	}
+	
 	private static void patchTagDate(JsonObject tags) {
 		if (tags == null) {
 			return;
 		}
 		String key;
 		String value;
-		DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		
 		HashMap<String, JsonPrimitive> new_values = new HashMap<String, JsonPrimitive>();
-		List<String> remove_values = new ArrayList<String>();
 		
+		Date parsed_date;
 		/**
 		 * Search and prepare changes
 		 */
 		for (Map.Entry<String, JsonElement> entry : tags.entrySet()) {
 			key = (String) entry.getKey();
 			value = entry.getValue().getAsString();
-			try {
-				if (key.equals("creation_time")) {
-					new_values.put(key, new JsonPrimitive(format.parse(value).getTime()));
-				} else if (key.equals("date")) {
-					if (value.length() == "0000-00-00T00:00:00Z".length()) {
-						new_values.put(key, new JsonPrimitive(format.parse(value.substring(0, 10) + " " + value.substring(11, 19)).getTime()));
-					} else if (value.length() == "0000-00-00 00:00:00".length()) {
-						new_values.put(key, new JsonPrimitive(format.parse(value).getTime()));
-					} else if (value.length() == "0000-00-00".length()) {
-						new_values.put(key, new JsonPrimitive(format.parse(value.substring(0, 10) + " 00:00:00").getTime()));
-					} else {
-						remove_values.add(key);
-						new_values.put(key + "-raw", new JsonPrimitive("#" + value));
-					}
-				}
-			} catch (ParseException e) {
-				Loggers.Transcode_Metadata.error("Can't parse date, tags: " + tags, e);
+			parsed_date = bruteForceDateParser(value);
+			if (parsed_date != null) {
+				new_values.put(key, new JsonPrimitive(parsed_date.getTime()));
 			}
 		}
 		
@@ -311,9 +310,6 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		 */
 		for (Map.Entry<String, JsonPrimitive> entry : new_values.entrySet()) {
 			tags.add(entry.getKey(), entry.getValue());
-		}
-		for (int pos = 0; pos < remove_values.size(); pos++) {
-			tags.remove(remove_values.get(pos));
 		}
 	}
 	

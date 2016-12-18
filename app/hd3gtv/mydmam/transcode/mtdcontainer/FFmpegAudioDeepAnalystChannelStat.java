@@ -18,6 +18,8 @@ package hd3gtv.mydmam.transcode.mtdcontainer;
 
 import org.apache.commons.lang.math.NumberUtils;
 
+import hd3gtv.mydmam.Loggers;
+
 public class FFmpegAudioDeepAnalystChannelStat {
 	
 	public String toString() {
@@ -103,8 +105,13 @@ public class FFmpegAudioDeepAnalystChannelStat {
 		}
 		String name = content[0].trim();
 		Number value = -144.49f;
-		if (content[1].trim().equals("-inf") == false) {
-			value = NumberUtils.createNumber(content[1].trim());
+		if (content[1].trim().equals("-inf") == false && (name.startsWith("Bit depth") == false)) {
+			try {
+				value = NumberUtils.createNumber(content[1].trim());
+			} catch (NumberFormatException e) {
+				Loggers.Transcode_Metadata.error("Can't parse number. Raw input: \"" + line + "\", selected entry: " + content[1]);
+				throw e;
+			}
 		}
 		
 		if (name.startsWith("Channel")) {
