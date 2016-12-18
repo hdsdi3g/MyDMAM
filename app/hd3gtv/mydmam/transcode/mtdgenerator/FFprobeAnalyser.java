@@ -351,6 +351,7 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		if (mimetype.equalsIgnoreCase("application/mxf")) return true;
 		
 		if (mimetype.equalsIgnoreCase("audio/x-ms-wmv")) return true;
+		if (mimetype.equalsIgnoreCase("audio/x-ms-wma")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-hx-aac-adts")) return true;
 		if (mimetype.equalsIgnoreCase("audio/3gpp")) return true;
 		if (mimetype.equalsIgnoreCase("audio/AMR")) return true;
