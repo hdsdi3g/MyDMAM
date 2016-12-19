@@ -20,17 +20,6 @@ search.found = function(results, dom_target) {
 		return;
 	}
 
-	/**
-	 * Create React uniq key.
-	 */
-	var createReactKey = function(result_list) {
-		for (var pos in result_list) {
-			result_list[pos].reactkey = result_list[pos].index + ":" + result_list[pos].type + ":" + result_list[pos].key;
-		};
-	}
-
-	createReactKey(results.results);
-
 	React.render(
 		<search.SearchResultPage results={results} />,
 		dom_target
@@ -81,24 +70,28 @@ search.SearchResults = React.createClass({
 		var stat = this.props.stat;
 		var external_storages_location = this.props.external_storages_location;
 
-		var resultList = this.props.results.results.map(function (result) {
+		var resultList = []
+
+		for (pos in this.props.results.results) {
+			var result = this.props.results.results[pos];
 			var ViewHander = mydmam.module.f.processViewSearchResult(result);
 			if (!ViewHander) {
 				console.error("Can't handle search result", result, stat[result.key]);
-				return (
-					<div style={{marginBottom: "1em"}} key={result.reactkey}>
+				resultList.push(
+					<div style={{marginBottom: "1em"}} key={pos}>
 						<div>Error</div>
 					</div>
 				);
 			} else {
 				var can_resolve_external_location = (external_storages_location.indexOf(result.content.storagename) > -1);
-				return (
-					<div style={{marginBottom: "1em"}} key={result.reactkey}>
+				resultList.push(
+					<div style={{marginBottom: "1em"}} key={pos}>
 						<ViewHander result={result} stat={stat[result.key]} can_resolve_external_location={can_resolve_external_location} />
 					</div>
 				);
 			}
-		});
+		}
+
 	    return (
 	    	<div>
 		        {resultList}

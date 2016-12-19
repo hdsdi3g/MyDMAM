@@ -112,15 +112,7 @@ search.Home = React.createClass({
 			from: qfrom,
 		};
 
-		var createReactKey = function(result_list) {
-			for (var pos in result_list) {
-				result_list[pos].reactkey = result_list[pos].index + ":" + result_list[pos].type + ":" + result_list[pos].key;
-			};
-		}
-
 		mydmam.async.request("search", "query", request, function(data) {
-			createReactKey(data.results);
-
 			this.setState({
 				q: data.q,
 				qfrom: data.from,
@@ -151,23 +143,24 @@ search.Home = React.createClass({
 	render: function() {
 		var results = this.state.results;
 
-		if (!results) {
-			results = {
-				q: this.state.q,
-				from: this.state.from,
-				duration: 0,
-				total_items_count: 0,
-				max_score: 0,
-				pagesize: 1,
-				pagecount: 1,
-				mode: "BY_FULL_TEXT",
-				results: [],
+		var content = null;
+		if (results) {
+			content = (<search.SearchResultPage results={results} />);
+		} else {
+			var q = this.state.q;
+			if (q != null) {
+				content = (<div>
+					<form className="search-query form-search">
+						<input value={q} readOnly={true} className="search-query span11" type="text" />
+					</form>
+					<mydmam.async.PageLoadingProgressBar />
+				</div>);
 			}
 		}
 
 		return (<div className={"container"}>
 			<p className={"lead"}>{i18n("search.pagetitle")}</p>
-			<search.SearchResultPage results={results} />
+			{content}
 		</div>);
 	}
 });
