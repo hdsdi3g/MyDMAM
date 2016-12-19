@@ -17,20 +17,10 @@
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.ContainerEntryResult;
@@ -131,10 +121,6 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		 * Patch tags dates
 		 */
 		List<Stream> streams = result.getStreams();
-		for (int pos = 0; pos < streams.size(); pos++) {
-			patchTagDate(streams.get(pos).getTags());
-		}
-		patchTagDate(result.getFormat().getTags());
 		
 		/**
 		 * Compute a summary like:
@@ -268,70 +254,6 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		}
 		
 		return new ContainerEntryResult(result);
-	}
-	
-	private static final DateFormat[] formats = { new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"), new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
-			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'") };
-	private static final DateFormat formats_ymdhms = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	private static final DateFormat formats_hms = new SimpleDateFormat("yyyy-MM-dd");
-	
-	private static Date bruteForceDateParser(String date_value) {
-		for (int pos = 0; pos < formats.length; pos++) {
-			try {
-				return formats[pos].parse(date_value);
-			} catch (ParseException e) {
-			}
-		}
-		
-		/**
-		 * UUID and date format can clash.
-		 */
-		if (date_value.length() == "yyyy-MM-dd HH:mm:ss".length()) {
-			try {
-				return formats_ymdhms.parse(date_value);
-			} catch (ParseException e) {
-			}
-		} else if (date_value.length() == "yyyy-MM-dd".length()) {
-			try {
-				return formats_hms.parse(date_value);
-			} catch (ParseException e) {
-			}
-		}
-		
-		return null;
-	}
-	
-	private static void patchTagDate(JsonObject tags) {
-		if (tags == null) {
-			return;
-		}
-		String key;
-		String value;
-		
-		HashMap<String, JsonPrimitive> new_values = new HashMap<String, JsonPrimitive>();
-		
-		Date parsed_date;
-		/**
-		 * Search and prepare changes
-		 */
-		for (Map.Entry<String, JsonElement> entry : tags.entrySet()) {
-			key = (String) entry.getKey();
-			value = entry.getValue().getAsString();
-			parsed_date = bruteForceDateParser(value);
-			if (parsed_date != null) {
-				long date = parsed_date.getTime();
-				if (date > 1) {
-					new_values.put(key, new JsonPrimitive(parsed_date.getTime()));
-				}
-			}
-		}
-		
-		/**
-		 * Apply changes
-		 */
-		for (Map.Entry<String, JsonPrimitive> entry : new_values.entrySet()) {
-			tags.add(entry.getKey(), entry.getValue());
-		}
 	}
 	
 	public String getLongName() {
