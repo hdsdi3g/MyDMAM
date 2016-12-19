@@ -446,11 +446,11 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		jo.addProperty("short_activity_log", short_activity_log);
 		jo.addProperty("last_free_space", last_free_space);
 		jo.addProperty("trash_directory", trash_directory.getAbsolutePath());
-		jo.addProperty("users_no_activity_log", _gson_simple.toJson(users_no_activity_log));
+		jo.add("users_no_activity_log", _gson_simple.toJsonTree(users_no_activity_log));
 		return jo;
 	}
 	
-	public boolean isUserHasActivityDisabled(String simple_username) {// TODO
+	public boolean isUserHasActivityDisabled(String simple_username) {
 		return users_no_activity_log.contains(simple_username);
 	}
 	

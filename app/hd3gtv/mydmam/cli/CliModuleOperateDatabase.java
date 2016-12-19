@@ -52,6 +52,7 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.ftpserver.FTPActivity;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.tools.ApplicationArgs;
 
@@ -345,6 +346,14 @@ public class CliModuleOperateDatabase implements CliModule {
 			}
 		}
 		
+		if (args.getParamExist("-ftpactivity")) {
+			String user_id = args.getSimpleParamValue("-ftpactivity");
+			if (user_id != null) {
+				FTPActivity.purgeUserActivity(user_id);
+				return;
+			}
+		}
+		
 		showFullCliModuleHelp();
 	}
 	
@@ -365,9 +374,13 @@ public class CliModuleOperateDatabase implements CliModule {
 		System.out.println("  index: the index name to use");
 		System.out.println("  type:  the type from the index to use");
 		System.out.println();
-		System.out.println("Operate usages, do clean operations:");
+		System.out.println("Metadata clean operations:");
 		System.out.println("  " + getCliModuleName() + " -clean [-all]");
 		System.out.println("  with -all for remove all metadatas from empty storages and removed storages.");
+		System.out.println();
+		System.out.println("Remove FTP activity for an account:");
+		System.out.println("  " + getCliModuleName() + " -ftpactivity ftpuserid");
+		System.out.println("  ftpuserid is like \"ftpuser:domain#user\"");
 		System.out.println();
 		System.out.println("Usage for H2 (Play internal db serverless):");
 		System.out.println(" " + getCliModuleName() + " -h2 -export filename.sql");
