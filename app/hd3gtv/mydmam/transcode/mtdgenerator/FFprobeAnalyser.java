@@ -271,7 +271,9 @@ public class FFprobeAnalyser implements MetadataExtractor {
 	}
 	
 	private static final DateFormat[] formats = { new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'"), new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
-			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"), new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"), new SimpleDateFormat("yyyy-MM-dd") };
+			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'") };
+	private static final DateFormat formats_ymdhms = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	private static final DateFormat formats_hms = new SimpleDateFormat("yyyy-MM-dd");
 	
 	private static Date bruteForceDateParser(String date_value) {
 		for (int pos = 0; pos < formats.length; pos++) {
@@ -280,6 +282,22 @@ public class FFprobeAnalyser implements MetadataExtractor {
 			} catch (ParseException e) {
 			}
 		}
+		
+		/**
+		 * UUID and date format can clash.
+		 */
+		if (date_value.length() == "yyyy-MM-dd HH:mm:ss".length()) {
+			try {
+				return formats_ymdhms.parse(date_value);
+			} catch (ParseException e) {
+			}
+		} else if (date_value.length() == "yyyy-MM-dd".length()) {
+			try {
+				return formats_hms.parse(date_value);
+			} catch (ParseException e) {
+			}
+		}
+		
 		return null;
 	}
 	
@@ -301,7 +319,10 @@ public class FFprobeAnalyser implements MetadataExtractor {
 			value = entry.getValue().getAsString();
 			parsed_date = bruteForceDateParser(value);
 			if (parsed_date != null) {
-				new_values.put(key, new JsonPrimitive(parsed_date.getTime()));
+				long date = parsed_date.getTime();
+				if (date > 1) {
+					new_values.put(key, new JsonPrimitive(parsed_date.getTime()));
+				}
 			}
 		}
 		
