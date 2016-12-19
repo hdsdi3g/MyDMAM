@@ -153,6 +153,7 @@ manager.items.FTPGroup.pathindex_storagename=Storage name for indexing:
 manager.items.FTPGroup.domain_isolation=/user domain name/
 manager.items.FTPGroup.long_activity_log=Keep activity log traces for a long time
 manager.items.FTPGroup.trash_directory=Trash directory: %s
+manager.items.FTPGroup.users_no_activity_log=No activity log for:
 
 manager.jobs.pagename=Jobs list
 manager.jobs.status.WAITING=Waiting

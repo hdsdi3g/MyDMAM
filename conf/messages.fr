@@ -153,6 +153,7 @@ manager.items.FTPGroup.pathindex_storagename=Nom du stockage pour l'indexation :
 manager.items.FTPGroup.domain_isolation=/nom du domaine de l'utilisateur/
 manager.items.FTPGroup.long_activity_log=Garde les log des activités pendant une longue période
 manager.items.FTPGroup.trash_directory=Dossier de la corbeille : %s
+manager.items.FTPGroup.users_no_activity_log=Pas de journal d'activité pour :
 
 manager.jobs.pagename=Liste des jobs
 manager.jobs.status.WAITING=En attente

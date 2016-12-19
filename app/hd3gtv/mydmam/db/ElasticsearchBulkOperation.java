@@ -124,7 +124,7 @@ public final class ElasticsearchBulkOperation {
 		}
 	}
 	
-	private void refresh() {
+	void refresh() {
 		if (bulk_request_builder.numberOfActions() > (window_update_size - 1)) {
 			execute();
 		}
@@ -143,12 +143,12 @@ public final class ElasticsearchBulkOperation {
 		return this;
 	}
 	
-	public IndexRequestBuilder indexRequest() {
+	/*public IndexRequestBuilder indexRequest() {
 		refresh();
 		IndexRequestBuilder request = new IndexRequestBuilder(client);
 		bulk_request_builder.add(request.request());
 		return request;
-	}
+	}*/
 	
 	public ElasticsearchBulkOperation add(IndexRequestBuilder request) {
 		bulk_request_builder.add(request.request());
@@ -168,12 +168,12 @@ public final class ElasticsearchBulkOperation {
 		return this;
 	}
 	
-	public DeleteRequestBuilder deleteRequest() {
+	/*public DeleteRequestBuilder deleteRequest() {
 		refresh();
 		DeleteRequestBuilder request = new DeleteRequestBuilder(client);
 		bulk_request_builder.add(request.request());
 		return request;
-	}
+	}*/
 	
 	public ElasticsearchBulkOperation add(UpdateRequest request) {
 		bulk_request_builder.add(request);
@@ -187,12 +187,12 @@ public final class ElasticsearchBulkOperation {
 		return this;
 	}
 	
-	public UpdateRequestBuilder updateRequest() {
+	/*public UpdateRequestBuilder updateRequest() {
 		refresh();
 		UpdateRequestBuilder request = new UpdateRequestBuilder(client);
 		bulk_request_builder.add(request.request());
 		return request;
-	}
+	}*/
 	
 	public ElasticsearchBulkOperation add(byte[] data, int from, int length, boolean contentUnsafe) throws Exception {
 		bulk_request_builder.add(data, from, length, contentUnsafe, null, null);
