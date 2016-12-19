@@ -19,8 +19,14 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.ContainerEntryResult;
@@ -121,6 +127,10 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		 * Patch tags dates
 		 */
 		List<Stream> streams = result.getStreams();
+		for (int pos = 0; pos < streams.size(); pos++) {
+			patchTagDate(streams.get(pos).getTags());
+		}
+		patchTagDate(result.getFormat().getTags());
 		
 		/**
 		 * Compute a summary like:
@@ -254,6 +264,33 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		}
 		
 		return new ContainerEntryResult(result);
+	}
+	
+	private static void patchTagDate(JsonObject tags) {
+		if (tags == null) {
+			return;
+		}
+		String key;
+		String value;
+		HashMap<String, JsonPrimitive> new_values = new HashMap<String, JsonPrimitive>();
+		
+		/**
+		 * Search and prepare changes
+		 */
+		for (Map.Entry<String, JsonElement> entry : tags.entrySet()) {
+			key = (String) entry.getKey();
+			value = entry.getValue().getAsString();
+			if (key.equals("creation_time") | key.equals("date")) {
+				new_values.put(key, new JsonPrimitive("date:" + value));
+			}
+		}
+		
+		/**
+		 * Apply changes
+		 */
+		for (Map.Entry<String, JsonPrimitive> entry : new_values.entrySet()) {
+			tags.add(entry.getKey(), entry.getValue());
+		}
 	}
 	
 	public String getLongName() {
