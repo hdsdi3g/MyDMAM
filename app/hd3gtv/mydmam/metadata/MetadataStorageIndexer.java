@@ -174,6 +174,9 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 				must_analyst = true;
 			} catch (SearchPhaseExecutionException e) {
 				must_analyst = true;
+			} catch (Exception e) {
+				Loggers.Metadata.warn("Invalid Container status for [" + element.toString(" ") + "]. Ignore it and restart the analyst.", e);
+				must_analyst = true;
 			}
 		}
 		
@@ -273,7 +276,10 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		}
 		Loggers.Metadata.debug("Start indexing for: " + element_key + ", physical_source: " + physical_source);
 		
-		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);
+		container = indexing.doIndexing();
+		if (stop_analysis == false) {
+			ContainerOperations.save(container, false, es_bulk);
+		}
 		return true;
 	}
 	
