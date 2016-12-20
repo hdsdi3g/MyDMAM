@@ -43,6 +43,8 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 	static final ArrayList<String> mimetype_list;
 	static final ArrayList<String> convert_limits_params;
 	
+	static int max_time_sec;
+	
 	static {
 		mimetype_list = new ArrayList<String>();
 		mimetype_list.add("image/jpeg");
@@ -77,6 +79,8 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 		mimetype_list.add("image/x-miff");
 		mimetype_list.add("image/x-sun");
 		
+		max_time_sec = 300;
+		
 		convert_limits_params = new ArrayList<String>(4);
 		if (Configuration.global.isElementExists("imagemagick_limits")) {
 			String memory = Configuration.global.getValue("imagemagick_limits", "memory", null);
@@ -105,12 +109,20 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 				convert_limits_params.add("-limit");
 				convert_limits_params.add("time");
 				convert_limits_params.add(time);
+				max_time_sec = Integer.parseInt(time);
 			}
 		}
 	}
 	
 	public ContainerEntryResult processFast(Container container) throws Exception {
-		return processFull(container, null);
+		StoppableProcessing stoppable = new StoppableProcessing() {
+			long end_time = System.currentTimeMillis() + ((long) max_time_sec * 1000l);
+			
+			public boolean isWantToStopCurrentProcessing() {
+				return System.currentTimeMillis() > end_time;
+			}
+		};
+		return processFull(container, stoppable);
 	}
 	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
@@ -124,6 +136,7 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 			
 			process = new ExecprocessGettext(ExecBinaryPath.get("convert"), param);
 			process.setEndlinewidthnewline(true);
+			process.setMaxexectime(max_time_sec);
 			process.start();
 			
 			JsonParser p = new JsonParser();
@@ -143,6 +156,7 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 					process = new ExecprocessGettext(ExecBinaryPath.get("convert"), param);
 					process.setEndlinewidthnewline(true);
 					process.setExitcodemusttobe0(false);
+					process.setMaxexectime(max_time_sec);
 					process.start();
 					
 					if (process.getRunprocess().getExitvalue() == 0) {
