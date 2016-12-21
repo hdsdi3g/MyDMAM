@@ -79,7 +79,7 @@ public abstract class ContainerEntry implements SelfSerializing {
 			source.remove("origin");
 			item = internalDeserialize(source, gson);
 			if (item == null) {
-				throw new NullPointerException("Can't deserialize json " + source.getAsString() + " in class " + getClass().getName());
+				throw new NullPointerException("Can't deserialize json " + source.toString() + " in class " + getClass().getName());
 			}
 			item.origin = gson.fromJson(j_origin, ContainerOrigin.class);
 		} else {
