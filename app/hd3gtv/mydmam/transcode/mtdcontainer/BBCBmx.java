@@ -291,4 +291,12 @@ public class BBCBmx extends EntryAnalyser {
 		}
 	}
 	
+	public ClipType getClip() {
+		return clip;
+	}
+	
+	public FileType getFile() {
+		return file;
+	}
+	
 }
