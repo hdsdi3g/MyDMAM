@@ -22,8 +22,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import hd3gtv.mydmam.Loggers;
-
 public abstract class ContainerEntry implements SelfSerializing {
 	
 	ContainerEntry() {
@@ -34,6 +32,9 @@ public abstract class ContainerEntry implements SelfSerializing {
 	transient Container container;
 	
 	public final ContainerOrigin getOrigin() {
+		if (origin == null) {
+			throw new NullPointerException("Origin is not set because this Entry is not get from database");
+		}
 		return origin;
 	}
 	
@@ -68,15 +69,16 @@ public abstract class ContainerEntry implements SelfSerializing {
 	protected abstract JsonObject internalSerialize(ContainerEntry item, Gson gson);
 	
 	public ContainerEntry deserialize(JsonObject source, Gson gson) {
-		if (source.has("origin") == false) {
-			Loggers.Metadata.error("Can't found \"origin\" json element in " + source.toString());
-			return null;
+		ContainerEntry item;
+		if (source.has("origin")) {
+			JsonElement j_origin = source.get("origin");
+			source.remove("origin");
+			item = internalDeserialize(source, gson);
+			item.origin = gson.fromJson(j_origin, ContainerOrigin.class);
+		} else {
+			item = internalDeserialize(source, gson);
 		}
 		
-		JsonElement j_origin = source.get("origin");
-		source.remove("origin");
-		ContainerEntry item = internalDeserialize(source, gson);
-		item.origin = gson.fromJson(j_origin, ContainerOrigin.class);
 		return item;
 	}
 	
