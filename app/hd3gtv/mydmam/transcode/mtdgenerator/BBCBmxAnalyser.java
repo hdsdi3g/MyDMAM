@@ -80,6 +80,8 @@ public class BBCBmxAnalyser implements MetadataExtractor {
 		BBCBmx result = new BBCBmx();
 		result.setBmx(b);
 		
+		container.getSummary().putSummaryContent(result, result.processSummary());
+		
 		return new ContainerEntryResult(result);
 	}
 	
