@@ -87,20 +87,23 @@ public class BBCBmx extends EntryAnalyser {
 			sb.append("\" ");
 		}
 		
-		sb.append("Rate: ");
-		sb.append(getMXFEditRate());
 		sb.append(" Start: ");
 		sb.append(getMXFStartTimecode());
 		sb.append(" Duration: ");
 		sb.append(getMXFDuration());
+		sb.append(" ");
+		sb.append(getMXFEditRate());
 		
-		sb.append(" Tracks: ");
+		sb.append(" ");
 		
 		List<TrackType> tracks = getTracks();
 		TrackType track;
 		for (int pos = 0; pos < tracks.size(); pos++) {
 			track = tracks.get(pos);
 			try {
+				sb.append("[CH");
+				sb.append(pos + 1);
+				sb.append("] ");
 				sb.append(toString(track));
 				sb.append(" ");
 				// track.getDataDescriptor().getAncDescriptor().getManifest().getElement().get(0).
@@ -110,17 +113,21 @@ public class BBCBmx extends EntryAnalyser {
 			}
 		}
 		
-		sb.append("Date: ");
+		sb.append("/ Date: ");
 		sb.append(MyDMAM.DATE_TIME_FORMAT.format(new Date(getMXFModifiedDate())));
 		sb.append(" ");
 		
 		String company = getMXFCompany();
+		String product = getMXFProduct();
+		if (company != null && product != null) {
+			sb.append("/ ");
+		}
+		
 		if (company != null) {
 			sb.append(company);
 			sb.append(" ");
 		}
 		
-		String product = getMXFProduct();
 		if (product != null) {
 			sb.append(product);
 		}
@@ -150,12 +157,12 @@ public class BBCBmx extends EntryAnalyser {
 		 */
 		PictureDescriptorType p_type = track.getPictureDescriptor();
 		if (p_type != null) {
-			sb.append(VideoConst.getSystemSummary((int) p_type.getDisplayWidth(), (int) p_type.getDisplayHeight(), Framerate.getFramerate(track.getEditRate())));
-			sb.append(" ");
 			sb.append(p_type.getAspectRatio());
 			sb.append(" ");
+			sb.append(VideoConst.getSystemSummary((int) p_type.getDisplayWidth(), (int) p_type.getDisplayHeight(), Framerate.getFramerate(track.getEditRate())));
+			sb.append(" ");
 			
-			sb.append("[");
+			sb.append("(");
 			try {
 				sb.append(p_type.getCdciDescriptor().getColorSiting().getValue());
 				sb.append("/");
@@ -170,7 +177,7 @@ public class BBCBmx extends EntryAnalyser {
 				sb.append(p_type.getFrameLayout().getValue());
 			} catch (NullPointerException e) {
 			}
-			sb.append("]");
+			sb.append(")");
 		}
 		
 		/**
@@ -184,8 +191,8 @@ public class BBCBmx extends EntryAnalyser {
 			sb.append("b ");
 			if (s_type.getChannelCount() > 1) {
 				sb.append(s_type.getChannelCount());
+				sb.append(" channels.");
 			}
-			sb.append(" channels.");
 		}
 		
 		return sb.toString();
