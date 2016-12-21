@@ -22,6 +22,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.Loggers;
+
 public abstract class ContainerEntry implements SelfSerializing {
 	
 	ContainerEntry() {
@@ -66,6 +68,11 @@ public abstract class ContainerEntry implements SelfSerializing {
 	protected abstract JsonObject internalSerialize(ContainerEntry item, Gson gson);
 	
 	public ContainerEntry deserialize(JsonObject source, Gson gson) {
+		if (source.has("origin") == false) {
+			Loggers.Metadata.error("Can't found \"origin\" json element in " + source.toString());
+			return null;
+		}
+		
 		JsonElement j_origin = source.get("origin");
 		source.remove("origin");
 		ContainerEntry item = internalDeserialize(source, gson);
