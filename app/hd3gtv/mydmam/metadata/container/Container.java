@@ -58,7 +58,7 @@ public class Container {
 	 * Add origin in entry, if missing.
 	 */
 	public void addEntry(ContainerEntry containerEntry) {
-		if (containerEntry.getOrigin() == null) {
+		if (containerEntry.hasOrigin() == false) {
 			containerEntry.setOrigin(origin);
 		} else if (origin.equals(containerEntry.getOrigin()) == false) {
 			Loggers.Metadata.error("Divergent origins, candidate: " + containerEntry + ", reference origin: " + origin);

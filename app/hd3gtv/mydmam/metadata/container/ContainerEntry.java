@@ -31,8 +31,12 @@ public abstract class ContainerEntry implements SelfSerializing {
 	
 	transient Container container;
 	
+	public final boolean hasOrigin() {
+		return (origin != null);
+	}
+	
 	public final ContainerOrigin getOrigin() {
-		if (origin == null) {
+		if (hasOrigin() == false) {
 			throw new NullPointerException("Origin is not set because this Entry is not get from database");
 		}
 		return origin;
