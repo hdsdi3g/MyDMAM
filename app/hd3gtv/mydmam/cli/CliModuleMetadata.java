@@ -80,8 +80,11 @@ public class CliModuleMetadata implements CliModule {
 			}
 			
 			return;
-		} else if (args.getParamExist("-refresh")) {
+		} else if (args.getParamExist("-refresh") | args.getParamExist("-index")) {
 			String raw_path = args.getSimpleParamValue("-refresh");
+			if (raw_path == null) {
+				raw_path = args.getSimpleParamValue("-index");
+			}
 			
 			if (raw_path.indexOf(":") <= 0) {
 				System.err.println("Error ! Use storage:/path syntax");
@@ -103,7 +106,7 @@ public class CliModuleMetadata implements CliModule {
 				Loggers.CLI.info("Empty/not found element to scan metadatas: " + root_indexing.toString());
 				return;
 			}
-			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(true);
+			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(args.getParamExist("-refresh"));
 			metadataStorageIndexer.process(root_indexing, 0, null);
 			return;
 		} else if (args.getParamExist("-clean")) {
@@ -121,6 +124,8 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println(" * standalone directory analysis: ");
 		System.out.println("   " + getCliModuleName() + " -a /full/path [-ptt]");
 		System.out.println("   -ptt prettify json for human reading");
+		System.out.println(" * simple indexing metadatas for a directory:");
+		System.out.println("   " + getCliModuleName() + " -index storagename:/pathindexrelative");
 		System.out.println(" * force re-indexing metadatas for a directory:");
 		System.out.println("   " + getCliModuleName() + " -refresh storagename:/pathindexrelative");
 		System.out.println(" * do clean operation (remove orphan metadatas):");
