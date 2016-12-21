@@ -62,7 +62,7 @@ public class FFmpegInterlacingDetection implements MetadataExtractor {
 	}
 	
 	public ContainerEntryResult processFast(Container container) throws Exception {
-		return processFull(container, null);
+		return null;
 	}
 	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
