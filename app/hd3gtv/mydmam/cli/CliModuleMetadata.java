@@ -80,11 +80,8 @@ public class CliModuleMetadata implements CliModule {
 			}
 			
 			return;
-		} else if (args.getParamExist("-refresh") | args.getParamExist("-index")) {
+		} else if (args.getParamExist("-refresh")) {
 			String raw_path = args.getSimpleParamValue("-refresh");
-			if (raw_path == null) {
-				raw_path = args.getSimpleParamValue("-index");
-			}
 			
 			if (raw_path.indexOf(":") <= 0) {
 				System.err.println("Error ! Use storage:/path syntax");
@@ -106,8 +103,34 @@ public class CliModuleMetadata implements CliModule {
 				Loggers.CLI.info("Empty/not found element to scan metadatas: " + root_indexing.toString());
 				return;
 			}
-			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(args.getParamExist("-refresh"));
+			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(true);
 			metadataStorageIndexer.process(root_indexing, 0, null);
+			return;
+		} else if (args.getParamExist("-index")) {
+			String raw_path = args.getSimpleParamValue("-index");
+			
+			if (raw_path.indexOf(":") <= 0) {
+				System.err.println("Error ! Use storage:/path syntax");
+				showFullCliModuleHelp();
+				return;
+			}
+			String storagename = raw_path.substring(0, raw_path.indexOf(":"));
+			String currentpath = raw_path.substring(raw_path.indexOf(":") + 1, raw_path.length());
+			if (currentpath.startsWith("/") == false) {
+				currentpath = "/" + currentpath;
+			}
+			
+			Explorer explorer = new Explorer();
+			
+			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(false);
+			int since = args.getSimpleIntegerParamValue("-since", 0);
+			long min_index_date = 0;
+			if (since > 0) {
+				min_index_date = System.currentTimeMillis() - ((long) since * 3600l * 1000l);
+			}
+			
+			metadataStorageIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, currentpath)), min_index_date, null);
+			
 			return;
 		} else if (args.getParamExist("-clean")) {
 			Loggers.CLI.info("Start clean operations");
@@ -125,7 +148,8 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println("   " + getCliModuleName() + " -a /full/path [-ptt]");
 		System.out.println("   -ptt prettify json for human reading");
 		System.out.println(" * simple indexing metadatas for a directory:");
-		System.out.println("   " + getCliModuleName() + " -index storagename:/pathindexrelative");
+		System.out.println("   " + getCliModuleName() + " -index storagename:/pathindexrelative [-since x]");
+		System.out.println("   with -since the number of hours to select the recent updated files.");
 		System.out.println(" * force re-indexing metadatas for a directory:");
 		System.out.println("   " + getCliModuleName() + " -refresh storagename:/pathindexrelative");
 		System.out.println(" * do clean operation (remove orphan metadatas):");
