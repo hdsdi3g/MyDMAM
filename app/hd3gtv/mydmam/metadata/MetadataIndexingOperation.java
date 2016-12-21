@@ -166,10 +166,10 @@ public class MetadataIndexingOperation {
 				}
 				
 				if (limit == MetadataIndexingLimit.FAST) {
-					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFast()");
+					Loggers.Metadata.info("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFast()");
 					generator_result = metadata_extractor.processFast(container);
 				} else {
-					Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFull()");
+					Loggers.Metadata.info("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFull()");
 					generator_result = metadata_extractor.processFull(container, stoppable);
 					
 					if ((limit == MetadataIndexingLimit.NOLIMITS) & (metadata_extractor instanceof MetadataGeneratorRendererViaWorker) & (create_job_list != null)) {

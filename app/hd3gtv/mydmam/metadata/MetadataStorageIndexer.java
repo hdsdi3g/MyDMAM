@@ -164,7 +164,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 						RenderedFile.purge(container.getMtd_key());
 						ContainerOperations.requestDelete(container, es_bulk);
 						
-						Loggers.Metadata.debug("Obsolete analysis, " + container + "; Element " + element);
+						Loggers.Metadata.info("Obsolete analysis, " + container + "; Element " + element);
 						
 						must_analyst = true;
 						container = null;
@@ -202,11 +202,11 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			if (container != null) {
 				ContainerOperations.requestDelete(container, es_bulk);
 				RenderedFile.purge(container.getMtd_key());
-				Loggers.Metadata.debug("Delete obsolete analysis : original file isn't exists, physical_source: " + physical_source + ", " + container);
+				Loggers.Metadata.info("Delete obsolete analysis : original file isn't exists, physical_source: " + physical_source + ", " + container);
 			}
 			
 			es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_key));
-			Loggers.Metadata.debug("Delete path element: original file isn't exists, key: " + element_key + ", physical_source: " + physical_source);
+			Loggers.Metadata.info("Delete path element: original file isn't exists, key: " + element_key + ", physical_source: " + physical_source);
 			
 			if (physical_source.getParentFile().exists() == false) {
 				if (element.parentpath == null) {
@@ -216,7 +216,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 					return true;
 				}
 				es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, element.parentpath));
-				Loggers.Metadata.debug("Delete parent path element: original directory isn't exists, key: " + element.parentpath + ", physical_source parent: " + physical_source.getParentFile());
+				Loggers.Metadata.info("Delete parent path element: original directory isn't exists, key: " + element.parentpath + ", physical_source parent: " + physical_source.getParentFile());
 			}
 			
 			return true;
@@ -259,7 +259,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			fis = new FileInputStream(physical_source);
 			fis.read();
 		} catch (Exception e) {
-			Loggers.Metadata.debug("Can't start index: " + element_key + ", physical_source: " + physical_source, e);
+			Loggers.Metadata.info("Can't start index: " + element_key + ", physical_source: " + physical_source + ", because " + e.getMessage());
 			IOUtils.closeQuietly(fis);
 			return true;
 		} finally {
