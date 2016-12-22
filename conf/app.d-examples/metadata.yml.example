@@ -19,3 +19,4 @@ metadata_analysing:
     local_directory: /mnt/shared-previews
 
     master_as_preview: true
+    # parallelized: 4  # let do multiple analysis at the same time

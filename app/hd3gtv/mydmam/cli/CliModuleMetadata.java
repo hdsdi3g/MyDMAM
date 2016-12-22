@@ -96,7 +96,7 @@ public class CliModuleMetadata implements CliModule {
 			
 			Explorer explorer = new Explorer();
 			
-			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(args.getParamExist("-refresh"));
+			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(args.getParamExist("-refresh"), args.getParamExist("-npz"));
 			int since = args.getSimpleIntegerParamValue("-since", 0);
 			long min_index_date = 0;
 			if (since > 0) {
@@ -122,9 +122,10 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println("   " + getCliModuleName() + " -a /full/path [-ptt]");
 		System.out.println("   -ptt prettify json for human reading");
 		System.out.println(" * indexing metadatas for a directory:");
-		System.out.println("   " + getCliModuleName() + " -index storagename:/pathindexrelative [-refresh] [-since x]");
+		System.out.println("   " + getCliModuleName() + " -index storagename:/pathindexrelative [-refresh] [-since x] [-npz]");
 		System.out.println(" * with -refresh to force re-indexing metadatas and");
 		System.out.println("   with -since the number of hours to select the recent updated files.");
+		System.out.println("   with -npz to not let to paralleling analysis.");
 		System.out.println(" * do clean operation (remove orphan metadatas):");
 		System.out.println("   " + getCliModuleName() + " -clean [-all]");
 		System.out.println("   with -all for remove all metadatas from empty storages and removed storages.");

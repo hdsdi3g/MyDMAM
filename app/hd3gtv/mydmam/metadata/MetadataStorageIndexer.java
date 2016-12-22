@@ -20,12 +20,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.IOUtils;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.internaltaskqueue.ITQueue;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
@@ -46,16 +52,16 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 	private Explorer explorer;
 	private boolean force_refresh;
 	private boolean stop_analysis;
-	private ElasticsearchBulkOperation es_bulk;
-	private List<FutureCreateJobs> current_create_job_list;
 	private MetadataIndexingLimit limit_processing;
 	private ArrayList<SourcePathIndexerElement> process_list;
+	private boolean no_parallelized;
+	private final Object lock = new Object();
 	
-	public MetadataStorageIndexer(boolean force_refresh) throws Exception {
+	public MetadataStorageIndexer(boolean force_refresh, boolean no_parallelized) throws Exception {
 		explorer = new Explorer();
 		this.force_refresh = force_refresh;
-		current_create_job_list = new ArrayList<FutureCreateJobs>();
 		process_list = new ArrayList<SourcePathIndexerElement>();
+		this.no_parallelized = no_parallelized;
 	}
 	
 	public void setLimitProcessing(MetadataIndexingLimit limit_processing) {
@@ -91,35 +97,75 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 				}
 			});
 		} else {
-			if (processFoundedElement(item) == false) {
-				return new ArrayList<JobNG>(1);
+			ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
+			ArrayList<FutureCreateJobs> current_create_job_list = new ArrayList<>();
+			if (processFoundedElement(item, es_bulk, current_create_job_list)) {
+				es_bulk.terminateBulk();
+				return createJobs(current_create_job_list);
 			}
+			return new ArrayList<>(1);
 		}
 		
 		if (process_list.isEmpty()) {
 			return new ArrayList<JobNG>(1);
 		}
 		
-		es_bulk = Elasticsearch.prepareBulk();
-		if (limit_processing == MetadataIndexingLimit.MIMETYPE | limit_processing == MetadataIndexingLimit.FAST) {
-			es_bulk.setWindowUpdateSize(50);
-		} else {
-			es_bulk.setWindowUpdateSize(1);
+		Loggers.Metadata.info("Start to analyst " + process_list.size() + " item(s)");
+		
+		int process_count = 1;
+		if (no_parallelized == false) {
+			process_count = (int) Configuration.global.getValue("metadata_analysing", "parallelized", 1);
 		}
 		
-		for (int pos = 0; pos < process_list.size(); pos++) {
-			if (progression != null) {
-				progression.updateProgress(pos, process_list.size());
-			}
-			if (processFoundedElement(process_list.get(pos)) == false | isWantToStopCurrentProcessing()) {
-				break;
-			}
+		ITQueue queue = new ITQueue(process_count);
+		queue.setExternalStoppable(this);
+		
+		final AtomicInteger pos = new AtomicInteger(0);
+		List<FutureCreateJobs> current_create_job_list = Collections.synchronizedList(new ArrayList<FutureCreateJobs>(1));
+		ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
+		
+		if (limit_processing == MetadataIndexingLimit.MIMETYPE | limit_processing == MetadataIndexingLimit.FAST) {
+			es_bulk.setWindowUpdateSize(100);
+			
+			/**
+			 * After each db write, invalid cache.
+			 */
+			es_bulk.onPush(() -> {
+				WebCacheInvalidation.addInvalidation(item.storagename);
+			});
+		} else {
+			es_bulk.setWindowUpdateSize(process_count);
 		}
+		
+		process_list.forEach(item_to_analyst -> {
+			queue.addToQueue(item_to_analyst, i -> {
+				if (isWantToStopCurrentProcessing()) {
+					return;
+				}
+				
+				if (processFoundedElement(i, es_bulk, current_create_job_list) == false) {
+					queue.emptyTheCurrentWaitingList();
+					return;
+				}
+				
+				if (progression != null) {
+					synchronized (lock) {
+						progression.updateProgress(pos.getAndIncrement(), process_list.size());
+					}
+				}
+			}, (i, e) -> {
+				Loggers.Metadata.warn("Can't analyst metadatas for " + i.toString(), e);
+			});
+		});
+		
+		queue.waitToEndCurrentList();
 		
 		es_bulk.terminateBulk();
 		
-		WebCacheInvalidation.addInvalidation(item.storagename);
-		
+		return createJobs(current_create_job_list);
+	}
+	
+	private ArrayList<JobNG> createJobs(List<FutureCreateJobs> current_create_job_list) throws ConnectionException {
 		if (current_create_job_list.isEmpty()) {
 			return new ArrayList<JobNG>(1);
 		}
@@ -136,7 +182,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		return new_jobs;
 	}
 	
-	private boolean processFoundedElement(SourcePathIndexerElement element) throws Exception {
+	private boolean processFoundedElement(SourcePathIndexerElement element, ElasticsearchBulkOperation es_bulk, List<FutureCreateJobs> current_create_job_list) throws Exception {
 		if (element.directory) {
 			return true;
 		}

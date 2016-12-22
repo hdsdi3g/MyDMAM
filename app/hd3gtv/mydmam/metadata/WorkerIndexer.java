@@ -84,7 +84,7 @@ public class WorkerIndexer extends WorkerNG {
 		for (int pos = 0; pos < analyst_context.neededstorages.size(); pos++) {
 			progression.updateStep(pos + 1, analyst_context.neededstorages.size());
 			
-			metadataStorageIndexer = new MetadataStorageIndexer(analyst_context.force_refresh);
+			metadataStorageIndexer = new MetadataStorageIndexer(analyst_context.force_refresh, false);
 			analysis_indexers.add(metadataStorageIndexer);
 			storagename = analyst_context.neededstorages.get(pos);
 			long min_index_date = 0;

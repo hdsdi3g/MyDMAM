@@ -42,11 +42,16 @@ public final class ElasticsearchBulkOperation {
 	private Client client;
 	private int window_update_size = 500;
 	private BulkRequestBuilder bulk_request_builder;
+	private Runnable on_push_callback;
 	
 	ElasticsearchBulkOperation() {
 		this.client = Elasticsearch.getClient();
 		bulk_request_builder = client.prepareBulk();
 		bulkconfiguration = new BulkConfiguration();
+	}
+	
+	public void onPush(Runnable on_push_callback) {
+		this.on_push_callback = on_push_callback;
 	}
 	
 	public int getWindowUpdateSize() {
@@ -81,6 +86,10 @@ public final class ElasticsearchBulkOperation {
 		}
 		
 		bulk_request_builder.request().requests().clear();
+		
+		if (on_push_callback != null) {
+			on_push_callback.run();
+		}
 	}
 	
 	private BulkConfiguration bulkconfiguration;
@@ -125,83 +134,82 @@ public final class ElasticsearchBulkOperation {
 	}
 	
 	void refresh() {
-		if (bulk_request_builder.numberOfActions() > (window_update_size - 1)) {
-			execute();
+		synchronized (bulk_request_builder) {
+			if (bulk_request_builder.numberOfActions() > (window_update_size - 1)) {
+				execute();
+			}
 		}
 	}
 	
 	public void terminateBulk() {
-		if (bulk_request_builder.numberOfActions() > 0) {
-			Loggers.ElasticSearch.debug("Terminate bulk");
-			execute();
+		synchronized (bulk_request_builder) {
+			if (bulk_request_builder.numberOfActions() > 0) {
+				Loggers.ElasticSearch.debug("Terminate bulk");
+				execute();
+			}
 		}
 	}
 	
 	public ElasticsearchBulkOperation add(IndexRequest request) {
-		bulk_request_builder.add(request);
+		synchronized (bulk_request_builder) {
+			bulk_request_builder.add(request);
+		}
 		refresh();
 		return this;
 	}
 	
-	/*public IndexRequestBuilder indexRequest() {
-		refresh();
-		IndexRequestBuilder request = new IndexRequestBuilder(client);
-		bulk_request_builder.add(request.request());
-		return request;
-	}*/
-	
 	public ElasticsearchBulkOperation add(IndexRequestBuilder request) {
-		bulk_request_builder.add(request.request());
+		synchronized (bulk_request_builder) {
+			bulk_request_builder.add(request.request());
+		}
 		refresh();
 		return this;
 	}
 	
 	public ElasticsearchBulkOperation add(DeleteRequest request) {
-		bulk_request_builder.add(request);
+		synchronized (bulk_request_builder) {
+			bulk_request_builder.add(request);
+		}
 		refresh();
 		return this;
 	}
 	
 	public ElasticsearchBulkOperation add(DeleteRequestBuilder request) {
-		bulk_request_builder.add(request.request());
+		synchronized (bulk_request_builder) {
+			bulk_request_builder.add(request.request());
+		}
 		refresh();
 		return this;
 	}
 	
-	/*public DeleteRequestBuilder deleteRequest() {
-		refresh();
-		DeleteRequestBuilder request = new DeleteRequestBuilder(client);
-		bulk_request_builder.add(request.request());
-		return request;
-	}*/
-	
 	public ElasticsearchBulkOperation add(UpdateRequest request) {
-		bulk_request_builder.add(request);
+		synchronized (bulk_request_builder) {
+			bulk_request_builder.add(request);
+		}
 		refresh();
 		return this;
 	}
 	
 	public ElasticsearchBulkOperation add(UpdateRequestBuilder request) {
-		bulk_request_builder.add(request.request());
+		synchronized (bulk_request_builder) {
+			bulk_request_builder.add(request.request());
+		}
 		refresh();
 		return this;
 	}
 	
-	/*public UpdateRequestBuilder updateRequest() {
-		refresh();
-		UpdateRequestBuilder request = new UpdateRequestBuilder(client);
-		bulk_request_builder.add(request.request());
-		return request;
-	}*/
-	
 	public ElasticsearchBulkOperation add(byte[] data, int from, int length, boolean contentUnsafe) throws Exception {
-		bulk_request_builder.add(data, from, length, contentUnsafe, null, null);
+		synchronized (bulk_request_builder) {
+			bulk_request_builder.add(data, from, length, contentUnsafe, null, null);
+		}
 		refresh();
 		return this;
 	}
 	
 	public ElasticsearchBulkOperation add(byte[] data, int from, int length, boolean contentUnsafe, @Nullable String defaultIndex, @Nullable String defaultType) throws Exception {
-		bulk_request_builder.add(data, from, length, contentUnsafe, defaultIndex, defaultType);
+		synchronized (bulk_request_builder) {
+			bulk_request_builder.add(data, from, length, contentUnsafe, defaultIndex, defaultType);
+		}
 		refresh();
 		return this;
 	}
