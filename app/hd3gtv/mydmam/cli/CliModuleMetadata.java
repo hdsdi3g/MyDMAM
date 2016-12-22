@@ -80,32 +80,6 @@ public class CliModuleMetadata implements CliModule {
 			}
 			
 			return;
-		} else if (args.getParamExist("-refresh")) {
-			String raw_path = args.getSimpleParamValue("-refresh");
-			
-			if (raw_path.indexOf(":") <= 0) {
-				System.err.println("Error ! Use storage:/path syntax");
-				showFullCliModuleHelp();
-				return;
-			}
-			
-			SourcePathIndexerElement root_indexing = new SourcePathIndexerElement();
-			
-			root_indexing.storagename = raw_path.substring(0, raw_path.indexOf(":"));
-			root_indexing.currentpath = raw_path.substring(raw_path.indexOf(":") + 1, raw_path.length());
-			if (root_indexing.currentpath.startsWith("/") == false) {
-				root_indexing.currentpath = "/" + root_indexing.currentpath;
-			}
-			
-			Explorer explorer = new Explorer();
-			
-			if (explorer.countDirectoryContentElements(root_indexing.prepare_key()) == 0) {
-				Loggers.CLI.info("Empty/not found element to scan metadatas: " + root_indexing.toString());
-				return;
-			}
-			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(true);
-			metadataStorageIndexer.process(root_indexing, 0, null);
-			return;
 		} else if (args.getParamExist("-index")) {
 			String raw_path = args.getSimpleParamValue("-index");
 			
@@ -122,7 +96,7 @@ public class CliModuleMetadata implements CliModule {
 			
 			Explorer explorer = new Explorer();
 			
-			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(false);
+			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(args.getParamExist("-refresh"));
 			int since = args.getSimpleIntegerParamValue("-since", 0);
 			long min_index_date = 0;
 			if (since > 0) {
@@ -147,11 +121,10 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println(" * standalone directory analysis: ");
 		System.out.println("   " + getCliModuleName() + " -a /full/path [-ptt]");
 		System.out.println("   -ptt prettify json for human reading");
-		System.out.println(" * simple indexing metadatas for a directory:");
-		System.out.println("   " + getCliModuleName() + " -index storagename:/pathindexrelative [-since x]");
+		System.out.println(" * indexing metadatas for a directory:");
+		System.out.println("   " + getCliModuleName() + " -index storagename:/pathindexrelative [-refresh] [-since x]");
+		System.out.println(" * with -refresh to force re-indexing metadatas and");
 		System.out.println("   with -since the number of hours to select the recent updated files.");
-		System.out.println(" * force re-indexing metadatas for a directory:");
-		System.out.println("   " + getCliModuleName() + " -refresh storagename:/pathindexrelative");
 		System.out.println(" * do clean operation (remove orphan metadatas):");
 		System.out.println("   " + getCliModuleName() + " -clean [-all]");
 		System.out.println("   with -all for remove all metadatas from empty storages and removed storages.");
