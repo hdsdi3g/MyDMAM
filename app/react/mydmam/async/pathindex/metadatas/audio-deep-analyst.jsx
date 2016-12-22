@@ -169,9 +169,9 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 			loudness_range_LRA_high = this.state.analyst_result.loudness_range_LRA_high.toFixed(1);
 			true_peak = this.state.analyst_result.true_peak.toFixed(1);
 
-			if ((integrated_loudness - 2) > this.props.lufs_ref) {
+			if (integrated_loudness > (this.props.lufs_ref + 2)) {
 				integrated_loudness_warn_style = {color: "#F00"};
-			} else if ((integrated_loudness + 2) < this.props.lufs_ref) {
+			} else if (integrated_loudness < (this.props.lufs_ref - 2)) {
 				integrated_loudness_warn_style = {color: "#F0F"};
 			} else {
 				integrated_loudness_warn_style = {color: "#0F0"};
