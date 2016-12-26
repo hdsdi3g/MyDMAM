@@ -159,6 +159,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		});
 		
 		queue.waitToEndCurrentList();
+		queue.wantToStopAll();
 		
 		es_bulk.terminateBulk();
 		

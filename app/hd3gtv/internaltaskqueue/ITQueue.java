@@ -171,9 +171,21 @@ public class ITQueue {
 		}
 	}
 	
+	/**
+	 * Blocking.
+	 */
 	public void waitToStopAll() {
 		executors.forEach(ex -> {
 			ex.waitToStop();
+		});
+	}
+	
+	/**
+	 * Non blocking.
+	 */
+	public void wantToStopAll() {
+		executors.forEach(ex -> {
+			ex.wantToStop();
 		});
 	}
 	
@@ -184,14 +196,6 @@ public class ITQueue {
 			} catch (InterruptedException e) {
 			}
 		}
-		executors.forEach(ex -> {
-			if (ex.isAlive()) {
-				try {
-					Thread.sleep(1);
-				} catch (Exception e) {
-				}
-			}
-		});
 	}
 	
 	public void emptyTheCurrentWaitingList() {
