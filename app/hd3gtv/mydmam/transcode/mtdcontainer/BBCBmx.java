@@ -87,25 +87,36 @@ public class BBCBmx extends EntryAnalyser {
 			sb.append("\" ");
 		}
 		
-		sb.append(" Start: ");
-		sb.append(getMXFStartTimecode());
-		sb.append(" Duration: ");
-		sb.append(getMXFDuration());
-		sb.append(" ");
-		sb.append(getMXFEditRate());
+		String start_tc = getMXFStartTimecode();
+		if (start_tc != null) {
+			sb.append("Start: ");
+			sb.append(start_tc);
+			sb.append(" ");
+		}
 		
-		sb.append(" ");
+		String duration = getMXFDuration();
+		if (duration != null) {
+			sb.append("Duration: ");
+			sb.append(duration);
+			sb.append(" ");
+		}
+		
+		String editrate = getMXFEditRate();
+		if (editrate != null) {
+			sb.append(editrate);
+			sb.append(" ");
+		}
 		
 		List<TrackType> tracks = getTracks();
 		TrackType track;
 		for (int pos = 0; pos < tracks.size(); pos++) {
 			track = tracks.get(pos);
 			try {
-				sb.append("[CH");
+				sb.append("[CH-");
 				sb.append(pos + 1);
-				sb.append("] ");
-				sb.append(toString(track));
 				sb.append(" ");
+				sb.append(toString(track).trim());
+				sb.append("] ");
 				// track.getDataDescriptor().getAncDescriptor().getManifest().getElement().get(0).
 				// track.getDataDescriptor().getVbiDescriptor().getManifest().getElement().get(0).getWrappingType().getValue()
 			} catch (NullPointerException e) {
@@ -119,7 +130,7 @@ public class BBCBmx extends EntryAnalyser {
 		
 		String company = getMXFCompany();
 		String product = getMXFProduct();
-		if (company != null && product != null) {
+		if (company != null || product != null) {
 			sb.append("/ ");
 		}
 		
@@ -169,8 +180,11 @@ public class BBCBmx extends EntryAnalyser {
 			} catch (NullPointerException e) {
 			}
 			try {
-				sb.append(p_type.getSignalStandard().getValue());
-				sb.append("/");
+				String si_st = p_type.getSignalStandard().getValue();
+				if (si_st.equalsIgnoreCase("none") == false) {
+					sb.append(si_st);
+					sb.append("/");
+				}
 			} catch (NullPointerException e) {
 			}
 			try {
@@ -214,35 +228,39 @@ public class BBCBmx extends EntryAnalyser {
 	}
 	
 	/**
-	 * @return like 00:56:50:00 or 00:00:00:3840. Never null: "--:--:--:--"
+	 * @return like 00:56:50:00 or 00:00:00:3840 or null
 	 */
 	public String getMXFStartTimecode() {
 		try {
 			return clip.getStartTimecodes().getMaterial().getValue();
 		} catch (NullPointerException e) {
-			return "--:--:--:--";
+			try {
+				return "physical source is " + clip.getStartTimecodes().getPhysicalSource().getValue();
+			} catch (NullPointerException e1) {
+				return null;
+			}
 		}
 	}
 	
 	/**
-	 * @return like 00:56:50:00 or 00:00:00:3840. Never null: "--:--:--:--"
+	 * @return like 00:56:50:00 or 00:00:00:3840 or null
 	 */
 	public String getMXFDuration() {
 		try {
 			return clip.getDuration().getValue();
 		} catch (NullPointerException e) {
-			return "--:--:--:--";
+			return null;
 		}
 	}
 	
 	/**
-	 * @return like 48000/1 or 25/1. Never null: "-/-"
+	 * @return like 48000/1 or 25/1 or null
 	 */
 	public String getMXFEditRate() {
 		try {
 			return clip.getEditRate();
 		} catch (NullPointerException e) {
-			return "-/-";
+			return null;
 		}
 	}
 	
