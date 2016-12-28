@@ -82,7 +82,7 @@ public class BBCBmx extends EntryAnalyser {
 		
 		String name = getMXFName();
 		if (name != null) {
-			sb.append("Name: \"");
+			sb.append("\"");
 			sb.append(name);
 			sb.append("\" ");
 		}
@@ -175,8 +175,11 @@ public class BBCBmx extends EntryAnalyser {
 			
 			sb.append("(");
 			try {
-				sb.append(p_type.getCdciDescriptor().getColorSiting().getValue());
-				sb.append("/");
+				String cdci = p_type.getCdciDescriptor().getColorSiting().getValue();
+				if (cdci.equalsIgnoreCase("none") == false) {
+					sb.append(cdci);
+					sb.append("/");
+				}
 			} catch (NullPointerException e) {
 			}
 			try {
@@ -235,7 +238,7 @@ public class BBCBmx extends EntryAnalyser {
 			return clip.getStartTimecodes().getMaterial().getValue();
 		} catch (NullPointerException e) {
 			try {
-				return "physical source is " + clip.getStartTimecodes().getPhysicalSource().getValue();
+				return clip.getStartTimecodes().getPhysicalSource().getValue() + " (from physical source)";
 			} catch (NullPointerException e1) {
 				return null;
 			}

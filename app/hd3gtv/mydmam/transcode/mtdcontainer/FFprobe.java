@@ -60,6 +60,8 @@ public class FFprobe extends EntryAnalyser {
 			for (int pos = item.streams.size() - 1; pos > -1; pos--) {
 				if (item.streams.get(pos).getCodec_type() == null) {
 					item.streams.remove(pos);
+				} else if (item.streams.get(pos).getCodec_type().equals("data")) {
+					item.streams.remove(pos);
 				}
 			}
 		}
