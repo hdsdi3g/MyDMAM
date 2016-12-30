@@ -17,15 +17,23 @@
 package hd3gtv.mydmam.transcode.images;
 
 import java.io.IOException;
+import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.io.IOUtils;
+
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.internal.Streams;
+import com.google.gson.stream.JsonReader;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.ContainerEntryResult;
 import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
@@ -139,9 +147,7 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 			process.setMaxexectime(max_time_sec);
 			process.start();
 			
-			JsonParser p = new JsonParser();
-			JsonObject result = p.parse(process.getResultstdout().toString()).getAsJsonObject();
-			result = result.get("image").getAsJsonObject();
+			JsonObject result = filter(process.getResultstdout().toString()).getAsJsonObject().get("image").getAsJsonObject();
 			
 			if (result.has("profiles")) {
 				JsonObject jo_profiles = result.get("profiles").getAsJsonObject();
@@ -219,4 +225,113 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return null;
 	}
+	
+	/**
+	 * ======= Json parser with json error protection =========
+	 */
+	
+	private static Method getLineNumber_Method;
+	private static Method getColumnNumber_Method;
+	
+	static {
+		try {
+			getLineNumber_Method = JsonReader.class.getDeclaredMethod("getLineNumber");
+			getLineNumber_Method.setAccessible(true);
+			
+			getColumnNumber_Method = JsonReader.class.getDeclaredMethod("getColumnNumber");
+			getColumnNumber_Method.setAccessible(true);
+		} catch (NoSuchMethodException e) {
+			Loggers.Transcode.error("Can't acces and change accessiblities to JsonReader methods", e);
+		}
+	}
+	
+	private static int getLineNumber(JsonReader in) {
+		try {
+			return (int) getLineNumber_Method.invoke(in);
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			throw new IndexOutOfBoundsException("Can't invoke getLineNumber in JsonReader, " + e.getMessage());
+		}
+	}
+	
+	private static int getColumnNumber(JsonReader in) {
+		try {
+			return (int) getColumnNumber_Method.invoke(in);
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			throw new IndexOutOfBoundsException("Can't invoke getColumnNumber in JsonReader, " + e.getMessage());
+		}
+	}
+	
+	private static StringReader concatLines(ArrayList<String> json_lines) {
+		StringBuilder sb = new StringBuilder();
+		json_lines.forEach(l -> {
+			sb.append(l);
+			sb.append(MyDMAM.LINESEPARATOR);
+		});
+		return new StringReader(sb.toString());
+	}
+	
+	private static JsonElement filter(String convert_json_result) throws Exception {
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		ArrayList<String> json_lines = (ArrayList) IOUtils.readLines(new StringReader(convert_json_result));
+		
+		JsonReader jr = null;
+		
+		for (int i = 0; i < 100; i++) {
+			/**
+			 * Normally a while, but... I don't want to fall in an endless loop.
+			 */
+			try {
+				jr = new JsonReader(concatLines(json_lines));
+				jr.setLenient(true);
+				return Streams.parse(jr);
+			} catch (Exception e) {
+				if (e.getCause().getMessage().toLowerCase().startsWith("expected ':'")) {
+					foundAndDeleteLine(json_lines, getLineNumber(jr) - 2);
+				} else {
+					removeLine(json_lines, getLineNumber(jr) - 1, getColumnNumber(jr));
+					
+					if (Loggers.Transcode.isDebugEnabled()) {
+						Loggers.Transcode.debug("Catch problem during json extraction: " + e.getMessage(), e);
+					}
+				}
+			}
+		}
+		
+		throw new Exception("Can't extract shity json " + convert_json_result);
+	}
+	
+	private static void foundAndDeleteLine(ArrayList<String> json_lines, int from) {
+		int to_delete_end = from;
+		
+		int spaces_in = json_lines.get(from).indexOf("\"");
+		
+		for (int pos = from + 1; pos < json_lines.size(); pos++) {
+			if (spaces_in == json_lines.get(pos).indexOf("\"")) {
+				to_delete_end = pos;
+				break;
+			}
+		}
+		
+		if (Loggers.Transcode.isDebugEnabled()) {
+			Loggers.Transcode.debug("Correct shity json: remove lines form " + (from + 1) + " to " + (to_delete_end + 1));
+		}
+		
+		ArrayList<String> removed_lines = new ArrayList<>();
+		for (int pos = 0; pos < to_delete_end - from; pos++) {
+			removed_lines.add((from + pos + 1) + "\t" + json_lines.get(from));
+			json_lines.remove(from);
+		}
+		
+		if (Loggers.Transcode.isDebugEnabled()) {
+			Loggers.Transcode.debug("Correct shity json: remove this lines " + removed_lines);
+		}
+	}
+	
+	private static void removeLine(ArrayList<String> json_lines, int line_pos, int colpos) {
+		if (Loggers.Transcode.isDebugEnabled()) {
+			Loggers.Transcode.debug("Correct shity json: remove: " + (line_pos + 1) + "/" + " c" + colpos + "\t" + json_lines.get(line_pos));
+		}
+		json_lines.remove(line_pos);
+	}
+	
 }
