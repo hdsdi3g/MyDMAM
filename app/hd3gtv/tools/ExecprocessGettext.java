@@ -126,7 +126,7 @@ public class ExecprocessGettext {
 					}
 					if (runprocess.getUptime() > maxexectime_ms) {
 						runprocess.kill();
-						throw new IOException("Max execution time reached (" + String.valueOf(maxexectime) + " sec)");
+						throw new ExecprocessTooLongTimeExecutionException(maxexectime);
 					} else {
 						Thread.sleep(100);
 					}

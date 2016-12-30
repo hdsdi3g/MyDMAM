@@ -44,6 +44,7 @@ import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.ExecprocessTooLongTimeExecutionException;
 import hd3gtv.tools.StoppableProcessing;
 
 public class ImageMagickAnalyser implements MetadataExtractor {
@@ -152,27 +153,31 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 			if (result.has("profiles")) {
 				JsonObject jo_profiles = result.get("profiles").getAsJsonObject();
 				if (jo_profiles.has("iptc")) {
-					/**
-					 * Import and inject IPTC
-					 */
-					param.clear();
-					param.addAll(convert_limits_params);
-					param.add(container.getPhysicalSource().getPath() + "[0]");
-					param.add("iptctext:-");
-					process = new ExecprocessGettext(ExecBinaryPath.get("convert"), param);
-					process.setEndlinewidthnewline(true);
-					process.setExitcodemusttobe0(false);
-					process.setMaxexectime(max_time_sec);
-					process.start();
-					
-					if (process.getRunprocess().getExitvalue() == 0) {
-						if (result.has("properties")) {
-							ImageAttributes.injectIPTCInProperties(process.getResultstdout().toString(), result.get("properties").getAsJsonObject());
-						} else {
-							JsonObject jo_properties = new JsonObject();
-							result.add("properties", jo_properties);
-							ImageAttributes.injectIPTCInProperties(process.getResultstdout().toString(), jo_properties);
+					try {
+						/**
+						 * Import and inject IPTC
+						 */
+						param.clear();
+						param.addAll(convert_limits_params);
+						param.add(container.getPhysicalSource().getPath() + "[0]");
+						param.add("iptctext:-");
+						process = new ExecprocessGettext(ExecBinaryPath.get("convert"), param);
+						process.setEndlinewidthnewline(true);
+						process.setExitcodemusttobe0(false);
+						process.setMaxexectime(max_time_sec);
+						process.start();
+						
+						if (process.getRunprocess().getExitvalue() == 0) {
+							if (result.has("properties")) {
+								ImageAttributes.injectIPTCInProperties(process.getResultstdout().toString(), result.get("properties").getAsJsonObject());
+							} else {
+								JsonObject jo_properties = new JsonObject();
+								result.add("properties", jo_properties);
+								ImageAttributes.injectIPTCInProperties(process.getResultstdout().toString(), jo_properties);
+							}
 						}
+					} catch (ExecprocessTooLongTimeExecutionException e) {
+						Loggers.Transcode.error("Can't extract IPTC with convert from \"" + container.getPhysicalSource().getPath() + "\", " + e.getMessage());
 					}
 				}
 				result.remove("profiles");
