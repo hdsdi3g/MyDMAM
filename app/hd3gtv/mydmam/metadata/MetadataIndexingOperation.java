@@ -125,6 +125,8 @@ public class MetadataIndexingOperation {
 		return this;
 	}
 	
+	// TODO redo simple analysis (like doIndexing)
+	
 	public Container doIndexing() throws Exception {
 		if (reference == null) {
 			if (physical_source.isFile() == false) {

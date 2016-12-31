@@ -102,6 +102,8 @@ public class CliModuleMetadata implements CliModule {
 			if (since > 0) {
 				min_index_date = System.currentTimeMillis() - ((long) since * 3600l * 1000l);
 			}
+			// TODO set option for redo analyst
+			// TODO can listing current analysers/renderers
 			
 			metadataStorageIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, currentpath)), min_index_date, null);
 			

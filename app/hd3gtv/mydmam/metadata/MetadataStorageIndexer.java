@@ -68,6 +68,8 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		this.limit_processing = limit_processing;
 	}
 	
+	// TODO add option for redo analyst
+	
 	/**
 	 * @return new created jobs, never null
 	 */
@@ -189,6 +191,8 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		}
 		
 		String element_key = element.prepare_key();
+		
+		// TODO add condition for redo analyst
 		
 		boolean must_analyst = false;
 		Container container = null;
@@ -324,6 +328,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		Loggers.Metadata.debug("Start indexing for: " + element_key + ", physical_source: " + physical_source);
 		
 		container = indexing.doIndexing();
+		// TODO redo analysis
 		if (stop_analysis == false) {
 			ContainerOperations.save(container, false, es_bulk);
 		}
