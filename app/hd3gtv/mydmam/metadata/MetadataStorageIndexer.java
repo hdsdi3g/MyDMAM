@@ -56,19 +56,23 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 	private ArrayList<SourcePathIndexerElement> process_list;
 	private boolean no_parallelized;
 	private final Object lock = new Object();
+	private MetadataExtractor metadata_extractor_to_reprocess;
 	
 	public MetadataStorageIndexer(boolean force_refresh, boolean no_parallelized) throws Exception {
 		explorer = new Explorer();
 		this.force_refresh = force_refresh;
 		process_list = new ArrayList<SourcePathIndexerElement>();
 		this.no_parallelized = no_parallelized;
+		metadata_extractor_to_reprocess = null;
 	}
 	
 	public void setLimitProcessing(MetadataIndexingLimit limit_processing) {
 		this.limit_processing = limit_processing;
 	}
 	
-	// TODO add option for redo analyst
+	public void setMetadataExtractorToReprocess(MetadataExtractor metadata_extractor_to_reprocess) {
+		this.metadata_extractor_to_reprocess = metadata_extractor_to_reprocess;
+	}
 	
 	/**
 	 * @return new created jobs, never null
@@ -192,8 +196,6 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		
 		String element_key = element.prepare_key();
 		
-		// TODO add condition for redo analyst
-		
 		boolean must_analyst = false;
 		Container container = null;
 		
@@ -231,7 +233,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			}
 		}
 		
-		if (must_analyst == false) {
+		if (must_analyst == false && metadata_extractor_to_reprocess == null) {
 			return true;
 		}
 		
@@ -325,11 +327,16 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		if (limit_processing != null) {
 			indexing.setLimit(limit_processing);
 		}
-		Loggers.Metadata.debug("Start indexing for: " + element_key + ", physical_source: " + physical_source);
 		
-		container = indexing.doIndexing();
-		// TODO redo analysis
-		if (stop_analysis == false) {
+		if (metadata_extractor_to_reprocess != null) {
+			Loggers.Metadata.debug("Start reindexing " + element_key + " with " + metadata_extractor_to_reprocess.getClass().getName() + " on " + physical_source);
+			container = indexing.reprocess(metadata_extractor_to_reprocess, false);
+		} else {
+			Loggers.Metadata.debug("Start indexing " + element_key + " on " + physical_source);
+			container = indexing.doIndexing();
+		}
+		
+		if (stop_analysis == false && container != null) {
 			ContainerOperations.save(container, false, es_bulk);
 		}
 		return true;

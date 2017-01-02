@@ -17,10 +17,11 @@
 package hd3gtv.mydmam.metadata;
 
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 
-public class ContainerEntryResult {
+public final class ContainerEntryResult {
 	
 	private EntryRenderer rendering_result;
 	private EntryAnalyser analyst_result;
@@ -57,6 +58,31 @@ public class ContainerEntryResult {
 		if (rendering_result != null) {
 			container.addEntry(rendering_result);
 		}
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("ContainerEntryResult ");
+		
+		if (analyst_result != null) {
+			sb.append("analyst [");
+			sb.append(analyst_result.getES_Type());
+			sb.append("] ");
+			sb.append(ContainerOperations.getGson().toJson(analyst_result));
+		}
+		
+		if (analyst_result != null && rendering_result != null) {
+			sb.append("; ");
+		}
+		
+		if (rendering_result != null) {
+			sb.append("rendering [");
+			sb.append(rendering_result.getES_Type());
+			sb.append("] ");
+			sb.append(ContainerOperations.getGson().toJson(rendering_result));
+		}
+		
+		return sb.toString();
 	}
 	
 }

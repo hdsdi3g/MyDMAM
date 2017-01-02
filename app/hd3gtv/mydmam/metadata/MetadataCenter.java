@@ -181,11 +181,7 @@ public class MetadataCenter {
 			return;
 		}
 		
-		if (extractor.isEnabled() == false) {
-			Loggers.Metadata.debug("Load disabled extractor " + extractor.getLongName());
-		} else {
-			Loggers.Metadata.info("Load extractor " + extractor.getLongName());
-		}
+		Loggers.Metadata.debug("Load extractor " + extractor.getLongName());
 		
 		try {
 			ContainerOperations.declareAllEntriesType(extractor.getAllRootEntryClasses());

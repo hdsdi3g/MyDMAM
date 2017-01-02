@@ -18,8 +18,11 @@ package hd3gtv.mydmam.cli;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Optional;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.metadata.MetadataCenter;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
 import hd3gtv.mydmam.metadata.MetadataStorageIndexer;
@@ -29,6 +32,7 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.CopyMove;
+import hd3gtv.tools.TableList;
 
 public class CliModuleMetadata implements CliModule {
 	
@@ -41,6 +45,10 @@ public class CliModuleMetadata implements CliModule {
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
+		if (args.getParamExist("-ptt")) {
+			ContainerOperations.setGsonPrettyPrinting();
+		}
+		
 		if (args.getParamExist("-a")) {
 			File dir_testformats = new File(args.getSimpleParamValue("-a"));
 			if (dir_testformats.exists() == false) {
@@ -48,10 +56,6 @@ public class CliModuleMetadata implements CliModule {
 			}
 			if (dir_testformats.isDirectory() == false) {
 				throw new FileNotFoundException(args.getSimpleParamValue("-a"));
-			}
-			
-			if (args.getParamExist("-ptt")) {
-				ContainerOperations.setGsonPrettyPrinting();
 			}
 			
 			Container result;
@@ -102,8 +106,19 @@ public class CliModuleMetadata implements CliModule {
 			if (since > 0) {
 				min_index_date = System.currentTimeMillis() - ((long) since * 3600l * 1000l);
 			}
-			// TODO set option for redo analyst
-			// TODO can listing current analysers/renderers
+			
+			String reprocess_extractor_basename = args.getSimpleParamValue("-reprocess");
+			if (reprocess_extractor_basename != null) {
+				Optional<MetadataExtractor> opts_reprocess_extractor = MetadataCenter.getExtractors().stream().filter(ex -> {
+					return reprocess_extractor_basename.equalsIgnoreCase(ex.getClass().getSimpleName());
+				}).findFirst();
+				
+				if (opts_reprocess_extractor.isPresent() == false) {
+					throw new ClassNotFoundException("Can't found -reprocess " + reprocess_extractor_basename + " in all enabled extractors");
+				}
+				
+				metadataStorageIndexer.setMetadataExtractorToReprocess(opts_reprocess_extractor.get());
+			}
 			
 			metadataStorageIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, currentpath)), min_index_date, null);
 			
@@ -112,25 +127,47 @@ public class CliModuleMetadata implements CliModule {
 			Loggers.CLI.info("Start clean operations");
 			ContainerOperations.purge_orphan_metadatas(args.getParamExist("-all"));
 			return;
+		} else if (args.getParamExist("-list")) {
+			if (args.getParamExist("-verbose")) {
+				TableList tl = new TableList(3);
+				tl.addRow("Name", "Description", "Class");
+				MetadataCenter.getExtractors().forEach(ex -> {
+					tl.addRow(ex.getClass().getSimpleName().toLowerCase(), ex.getLongName(), ex.getClass().getName());
+				});
+				tl.print();
+			} else {
+				TableList tl = new TableList(2);
+				tl.addRow("Name", "Description");
+				MetadataCenter.getExtractors().forEach(ex -> {
+					tl.addRow(ex.getClass().getSimpleName().toLowerCase(), ex.getLongName());
+				});
+				tl.print();
+			}
+			return;
 		}
-		
 		showFullCliModuleHelp();
 		
 	}
 	
 	public void showFullCliModuleHelp() {
 		System.out.println("Usage");
-		System.out.println(" * standalone directory analysis: ");
-		System.out.println("   " + getCliModuleName() + " -a /full/path [-ptt]");
-		System.out.println("   -ptt prettify json for human reading");
-		System.out.println(" * indexing metadatas for a directory:");
-		System.out.println("   " + getCliModuleName() + " -index storagename:/pathindexrelative [-refresh] [-since x] [-npz]");
-		System.out.println(" * with -refresh to force re-indexing metadatas and");
-		System.out.println("   with -since the number of hours to select the recent updated files.");
-		System.out.println("   with -npz to not let to paralleling analysis.");
-		System.out.println(" * do clean operation (remove orphan metadatas):");
-		System.out.println("   " + getCliModuleName() + " -clean [-all]");
-		System.out.println("   with -all for remove all metadatas from empty storages and removed storages.");
+		System.out.println(" * Generic usage:");
+		System.out.println("    " + getCliModuleName() + " <options> [-ptt]");
+		System.out.println("      with -ptt prettify json for human reading");
+		System.out.println(" * Standalone directory analysis:");
+		System.out.println("    " + getCliModuleName() + " -a /full/path");
+		System.out.println(" * Indexing metadatas for a directory:");
+		System.out.println("    " + getCliModuleName() + " -index storagename:/pathindexrelative [-refresh] [-since x] [-npz] [<reprocess>]");
+		System.out.println("      with -refresh to force re-indexing metadatas and");
+		System.out.println("      with -since the number of hours to select the recent updated files.");
+		System.out.println("      with -npz to not let to paralleling analysis.");
+		System.out.println("    Options for reprocess metadatas: -reprocess extractor_name");
+		System.out.println("      with extractor_name a String listed by -list");
+		System.out.println(" * List all enabled metadata extractors:");
+		System.out.println("    " + getCliModuleName() + " -list [-verbose]");
+		System.out.println(" * Do clean operation (remove orphan metadatas):");
+		System.out.println("    " + getCliModuleName() + " -clean [-all]");
+		System.out.println("      with -all for remove all metadatas from empty storages and removed storages.");
 	}
 	
 }
