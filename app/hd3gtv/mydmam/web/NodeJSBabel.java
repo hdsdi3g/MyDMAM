@@ -178,7 +178,7 @@ public class NodeJSBabel {
 		getCmdLineByOperation(operation, action);
 		
 		ExecprocessGettext exec = babelExec(action);
-		exec.setOutputstreamhandler(new ExecprocessOutputstreamHandler(IOUtils.toInputStream(source)));
+		exec.setOutputstreamhandler(new ExecprocessOutputstreamHandler(IOUtils.toInputStream(source, MyDMAM.UTF8)));
 		try {
 			exec.start();
 		} catch (Exception e) {

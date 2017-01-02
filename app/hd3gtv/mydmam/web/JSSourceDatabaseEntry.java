@@ -171,7 +171,7 @@ public class JSSourceDatabaseEntry {
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");
 			
-			FileUtils.readLines(source).forEach(line -> {
+			FileUtils.readLines(source, MyDMAM.UTF8).forEach(line -> {
 				String trimed_line = line.trim();
 				if (trimed_line.isEmpty() == false) {
 					md.update(trimed_line.getBytes());

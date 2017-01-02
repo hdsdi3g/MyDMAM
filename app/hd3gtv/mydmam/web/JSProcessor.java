@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import org.apache.commons.io.FileUtils;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.web.NodeJSBabel.Operation;
 import hd3gtv.tools.CopyMove;
 
@@ -60,7 +61,7 @@ public class JSProcessor {
 		
 		Loggers.Play_JSSource.debug("Create JSProcessor for " + filename + " (module: " + module_name + ")");
 		CopyMove.checkExistsCanRead(filename);
-		input = FileUtils.readFileToString(filename);
+		input = FileUtils.readFileToString(filename, MyDMAM.UTF8);
 		output = input;
 	}
 	
@@ -78,7 +79,7 @@ public class JSProcessor {
 	
 	public void writeTo(File filename) throws IOException {
 		Loggers.Play_JSSource.info("Write " + this.filename + " processed to " + filename + " (module: " + module_name + ")");
-		FileUtils.write(filename, output, false);
+		FileUtils.write(filename, output, MyDMAM.UTF8, false);
 	}
 	
 	public void wrapScopeDeclaration(String source_scope, String hash) {

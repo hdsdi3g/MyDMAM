@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -82,6 +83,8 @@ public class MyDMAM {
 	public static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
 	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2016";
+	
+	public static final Charset UTF8 = Charset.forName("UTF-8");
 	
 	/**
 	 * @param filename without path

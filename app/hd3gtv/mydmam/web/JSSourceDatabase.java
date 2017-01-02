@@ -41,6 +41,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
@@ -112,7 +113,7 @@ public class JSSourceDatabase {
 			jsdb.entries = new HashMap<String, JSSourceDatabaseEntry>();
 			jsdb.save();
 		} else {
-			jsdb = gson.fromJson(FileUtils.readFileToString(dbfile), JSSourceDatabase.class);
+			jsdb = gson.fromJson(FileUtils.readFileToString(dbfile, MyDMAM.UTF8), JSSourceDatabase.class);
 			jsdb.dbfile = dbfile;
 			jsdb.module_name = source_module.getModuleName();
 			jsdb.module_path = source_module.getModulePath();
@@ -129,7 +130,7 @@ public class JSSourceDatabase {
 	
 	void save() throws IOException {
 		Loggers.Play_JSSource.debug("Save database: " + dbfile + " (module: " + module_name + ")");
-		FileUtils.write(dbfile, gson.toJson(this));
+		FileUtils.write(dbfile, gson.toJson(this), MyDMAM.UTF8);
 	}
 	
 	/**
