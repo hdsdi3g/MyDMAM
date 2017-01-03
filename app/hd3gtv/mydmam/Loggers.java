@@ -38,6 +38,7 @@ public final class Loggers {
 	public final static Logger Job = Logger.getLogger("mydmam.job");
 	public final static Logger Transcode = Logger.getLogger("mydmam.transcode");
 	public final static Logger Transcode_Metadata = Logger.getLogger("mydmam.transcoder.mtd");
+	public final static Logger Transcode_Metadata_Validation = Logger.getLogger("mydmam.transcoder.mtd.validation");
 	public final static Logger Transcode_WatchFolder = Logger.getLogger("mydmam.transcode.watchfolder");
 	public final static Logger Storage = Logger.getLogger("mydmam.storage");
 	public final static Logger Storage_FTP = Logger.getLogger("mydmam.storage.ftp");

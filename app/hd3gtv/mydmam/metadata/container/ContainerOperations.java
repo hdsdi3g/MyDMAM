@@ -368,7 +368,9 @@ public class ContainerOperations {
 		
 		Containers result = new Containers();
 		
-		reader.allReader(new HitReader(result, unknow_types));
+		HitReader hr = new HitReader(result, unknow_types);
+		
+		reader.allReader(hr);
 		
 		if (unknow_types.isEmpty() == false) {
 			Loggers.Metadata.error("Can't found some declared types retrieved by search, unknow_types: " + unknow_types);
