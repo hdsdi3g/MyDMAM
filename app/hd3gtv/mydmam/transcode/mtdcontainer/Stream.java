@@ -20,7 +20,6 @@ import java.awt.Point;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.VideoConst.AudioSampling;
@@ -40,7 +39,6 @@ public class Stream extends FFprobeNode {
 		private float duration;
 		private int index;
 		private int bit_rate;
-		private boolean ignore_stream;
 	}
 	
 	private transient Internal internal;
@@ -109,15 +107,6 @@ public class Stream extends FFprobeNode {
 		return "[" + input_pos + ":" + internal.index + "]";
 	}
 	
-	public boolean isIgnored() {
-		return internal.ignore_stream;
-	}
-	
-	public void setIgnored(boolean ignore_stream) {
-		internal.ignore_stream = ignore_stream;
-		putParam("ignore_stream", new JsonPrimitive(ignore_stream));
-	}
-	
 	public Point getVideoResolution() {
 		if (hasMultipleParams("width", "height")) {
 			return new Point(getParam("width").getAsInt(), getParam("height").getAsInt());
@@ -179,40 +168,8 @@ public class Stream extends FFprobeNode {
 		return -1;
 	}
 	
-	public boolean isAValidVideoStreamOrAlbumArtwork() {
-		if (getCodec_type().equals("video") == false) {
-			return false;
-		}
-		if (hasMultipleParams("level") == false) {
-			/**
-			 * No level ? It's a real video stream.
-			 */
-			return true;
-		}
-		if (getParam("level").getAsInt() >= 0l) {
-			/**
-			 * level > 0 : video stream is a real video stream.
-			 */
-			return true;
-		}
-		if (getCodec_tag().equals("0x0000") == false) {
-			/**
-			 * codec_tag != 0x0000: this stream is correct.
-			 */
-			return true;
-		}
-		if (getParam("codec_name").getAsString().equals("mjpeg")) {
-			/**
-			 * MJPEG, but not a valid codec_tag ? this stream is an album artwork.
-			 */
-			return false;
-		}
-		if (getParam("codec_name").getAsString().equals("png")) {
-			/**
-			 * png, but not a valid codec_tag ? this stream is an album artwork.
-			 */
-			return false;
-		}
-		return true;
+	public boolean isAttachedPic() {
+		return getDisposition().attached_pic == 1;
 	}
+	
 }

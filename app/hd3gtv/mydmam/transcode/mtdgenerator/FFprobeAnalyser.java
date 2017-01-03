@@ -98,25 +98,7 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		 * Patch mime code if no video stream
 		 */
 		
-		if (result.hasVideo()) {
-			/**
-			 * Video is present and valid
-			 */
-			List<Stream> video_streams = result.getStreamsByCodecType("video");
-			for (int pos = 0; pos < video_streams.size(); pos++) {
-				if (video_streams.get(pos).isAValidVideoStreamOrAlbumArtwork()) {
-					continue;
-				} else {
-					video_streams.get(pos).setIgnored(true);
-					if (container.getSummary().getMimetype().startsWith("video")) {
-						/**
-						 * Need to correct bad mime category
-						 */
-						container.getSummary().setMimetype("audio" + container.getSummary().getMimetype().substring(5));
-					}
-				}
-			}
-		} else if (container.getSummary().getMimetype().startsWith("video")) {
+		if (container.getSummary().getMimetype().startsWith("video") && result.hasVideo() == false) {
 			/**
 			 * No video, only audio is present but with bad mime category
 			 */
@@ -143,7 +125,7 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		for (int pos = 0; pos < streams.size(); pos++) {
 			sb_summary = new StringBuffer();
 			stream = streams.get(pos);
-			if (stream.isIgnored()) {
+			if (stream.isAttachedPic()) {
 				continue;
 			}
 			String codec_name = stream.getCodec_tag_string();
@@ -434,10 +416,6 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		if (container.getSummary().equalsMimetype(mime_list_master_as_preview)) {
 			if (video_webbrowser_validation == null) {
 				video_webbrowser_validation = new ValidatorCenter();
-				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'video')].index", Comparator.EQUALS, 0);
-				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 1);
-				video_webbrowser_validation.and();
 				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
 				video_webbrowser_validation.and();
 				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac");
@@ -458,9 +436,6 @@ public class FFprobeAnalyser implements MetadataExtractor {
 			}
 			if (audio_webbrowser_validation == null) {
 				audio_webbrowser_validation = new ValidatorCenter();
-				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 0);
-				audio_webbrowser_validation.and();
-				
 				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac", "mp3");
 				audio_webbrowser_validation.and();
 				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
@@ -469,9 +444,10 @@ public class FFprobeAnalyser implements MetadataExtractor {
 			}
 			
 			if (video_webbrowser_validation.validate(container)) {
-				Loggers.Transcode_Metadata.debug("YES ??");
+				Loggers.Transcode_Metadata_Validation.debug("Master as preview (video) ok for " + container.getOrigin().toString());
 				return true;
 			} else if (audio_webbrowser_validation.validate(container)) {
+				Loggers.Transcode_Metadata_Validation.debug("Master as preview (audio) ok for " + container.getOrigin().toString());
 				return true;
 			}
 		}

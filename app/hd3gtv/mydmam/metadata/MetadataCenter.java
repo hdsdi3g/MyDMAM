@@ -153,10 +153,10 @@ public class MetadataCenter {
 			addExtractor(new ImageMagickAnalyser());
 			
 			addExtractor(new FFprobeAnalyser());
-			addExtractor(new FFmpegInterlacingDetection());
-			addExtractor(new FFmpegSnapshot());
-			addExtractor(new FFmpegAlbumartwork());
 			addExtractor(new BBCBmxAnalyser());
+			addExtractor(new FFmpegInterlacingDetection());
+			addExtractor(new FFmpegAlbumartwork());
+			addExtractor(new FFmpegSnapshot());
 			
 			addExtractor(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
 			addExtractor(new ImageMagickThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
