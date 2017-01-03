@@ -164,6 +164,8 @@ public class MetadataIndexingOperation {
 				return null;
 			}
 			
+			Loggers.Metadata.info("Reindexing item (" + limit + ") with " + metadata_extractor.getClass().getSimpleName() + " " + physical_source.getPath());
+			
 			generator_result = internalProcess(metadata_extractor, mime, container);
 		} catch (Exception e) {
 			Loggers.Metadata.error(
@@ -183,8 +185,8 @@ public class MetadataIndexingOperation {
 			}
 		}
 		
-		if (Loggers.Metadata.isInfoEnabled()) {
-			Loggers.Metadata.info("Indexing item " + reference + " with " + metadata_extractor.getClass().getSimpleName() + " will have now this entry: " + generator_result.toString());
+		if (Loggers.Metadata.isDebugEnabled()) {
+			Loggers.Metadata.debug("Indexing item " + reference + " with " + metadata_extractor.getClass().getSimpleName() + " will have now this entry: " + generator_result.toString());
 		}
 		
 		if (limit == MetadataIndexingLimit.NOLIMITS | limit == MetadataIndexingLimit.FULL) {
@@ -220,13 +222,15 @@ public class MetadataIndexingOperation {
 			entry_summary.setMimetype(MimeExtract.getMime(physical_source));
 		}
 		
-		Loggers.Metadata.debug("Indexing item " + reference + " is a " + entry_summary.getMimetype());
+		String mime = entry_summary.getMimetype();
+		
+		Loggers.Metadata.debug("Indexing item " + physical_source.getPath() + " is a " + mime);
 		
 		if (limit == MetadataIndexingLimit.MIMETYPE) {
 			return container;
 		}
 		
-		String mime = entry_summary.getMimetype();
+		Loggers.Metadata.info("Indexing item (" + limit + "): " + physical_source.getPath());
 		
 		for (int pos = 0; pos < current_metadata_extractors.size(); pos++) {
 			MetadataExtractor metadata_extractor = current_metadata_extractors.get(pos);
@@ -263,28 +267,29 @@ public class MetadataIndexingOperation {
 		ContainerEntryResult generator_result = null;
 		
 		if (limit == MetadataIndexingLimit.FAST) {
-			Loggers.Metadata.info("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFast()");
+			Loggers.Metadata.debug("Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " in processFast()");
 			generator_result = metadata_extractor.processFast(container);
 		} else {
-			Loggers.Metadata.info("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " in processFull()");
+			Loggers.Metadata.debug("Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " in processFull()");
 			generator_result = metadata_extractor.processFull(container, stoppable);
 			
 			if ((limit == MetadataIndexingLimit.NOLIMITS) & (metadata_extractor instanceof MetadataGeneratorRendererViaWorker) & (create_job_list != null)) {
 				MetadataGeneratorRendererViaWorker renderer_via_worker = (MetadataGeneratorRendererViaWorker) metadata_extractor;
 				int before = create_job_list.size();
-				Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " do a prepareJobs()");
+				Loggers.Metadata.debug("Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " do a prepareJobs()");
 				renderer_via_worker.prepareJobs(container, create_job_list);
 				
 				if (before < create_job_list.size()) {
 					for (int pos_mgrvw = before; pos_mgrvw < create_job_list.size() - 1; pos_mgrvw++) {
-						Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " will create this job: " + create_job_list.get(pos_mgrvw));
+						Loggers.Metadata.debug(
+								"Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " will create this job: " + create_job_list.get(pos_mgrvw));
 					}
 				}
 			}
 		}
 		
 		if (generator_result == null) {
-			Loggers.Metadata.debug("Indexing item " + reference + " with extractor " + metadata_extractor.getLongName() + " don't return result");
+			Loggers.Metadata.debug("Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " don't return result");
 			return null;
 		}
 		

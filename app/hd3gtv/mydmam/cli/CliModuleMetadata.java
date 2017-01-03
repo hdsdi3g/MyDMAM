@@ -18,7 +18,8 @@ package hd3gtv.mydmam.cli;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.MetadataCenter;
@@ -93,31 +94,42 @@ public class CliModuleMetadata implements CliModule {
 				return;
 			}
 			String storagename = raw_path.substring(0, raw_path.indexOf(":"));
-			String currentpath = raw_path.substring(raw_path.indexOf(":") + 1, raw_path.length());
-			if (currentpath.startsWith("/") == false) {
-				currentpath = "/" + currentpath;
+			String _currentpath = raw_path.substring(raw_path.indexOf(":") + 1, raw_path.length());
+			if (_currentpath.startsWith("/") == false) {
+				_currentpath = "/" + _currentpath;
 			}
+			final String currentpath = _currentpath;
 			
 			Explorer explorer = new Explorer();
 			
 			MetadataStorageIndexer metadataStorageIndexer = new MetadataStorageIndexer(args.getParamExist("-refresh"), args.getParamExist("-npz"));
 			int since = args.getSimpleIntegerParamValue("-since", 0);
-			long min_index_date = 0;
+			long _min_index_date = 0;
 			if (since > 0) {
-				min_index_date = System.currentTimeMillis() - ((long) since * 3600l * 1000l);
+				_min_index_date = System.currentTimeMillis() - ((long) since * 3600l * 1000l);
 			}
+			final long min_index_date = _min_index_date;
 			
 			String reprocess_extractor_basename = args.getSimpleParamValue("-reprocess");
 			if (reprocess_extractor_basename != null) {
-				Optional<MetadataExtractor> opts_reprocess_extractor = MetadataCenter.getExtractors().stream().filter(ex -> {
+				List<MetadataExtractor> reprocess_extractors = MetadataCenter.getExtractors().stream().filter(ex -> {
 					return reprocess_extractor_basename.equalsIgnoreCase(ex.getClass().getSimpleName());
-				}).findFirst();
+				}).collect(Collectors.toList());
 				
-				if (opts_reprocess_extractor.isPresent() == false) {
+				if (reprocess_extractors.isEmpty()) {
 					throw new ClassNotFoundException("Can't found -reprocess " + reprocess_extractor_basename + " in all enabled extractors");
 				}
 				
-				metadataStorageIndexer.setMetadataExtractorToReprocess(opts_reprocess_extractor.get());
+				reprocess_extractors.forEach(extr -> {
+					metadataStorageIndexer.setMetadataExtractorToReprocess(extr);
+					try {
+						Loggers.CLI.info("Reprocess with " + extr.getLongName());
+						metadataStorageIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, currentpath)), min_index_date, null);
+					} catch (Exception e) {
+						Loggers.CLI.error("Can't reprocess with " + extr.getClass().getName(), e);
+					}
+				});
+				System.exit(0);
 			}
 			
 			metadataStorageIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, currentpath)), min_index_date, null);

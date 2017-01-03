@@ -81,6 +81,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		if (item == null) {
 			return new ArrayList<JobNG>(1);
 		}
+		process_list.clear();
 		
 		stop_analysis = false;
 		
@@ -336,9 +337,17 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			container = indexing.doIndexing();
 		}
 		
-		if (stop_analysis == false && container != null) {
-			ContainerOperations.save(container, false, es_bulk);
+		if (stop_analysis) {
+			return false;
 		}
+		
+		if (container == null) {
+			Loggers.Metadata.warn("Indexing don't return results for " + element_key + " on " + physical_source);
+			return true;
+		}
+		
+		ContainerOperations.save(container, metadata_extractor_to_reprocess != null, es_bulk);
+		
 		return true;
 	}
 	
