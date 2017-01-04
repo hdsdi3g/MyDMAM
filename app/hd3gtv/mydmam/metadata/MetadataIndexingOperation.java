@@ -121,9 +121,11 @@ public class MetadataIndexingOperation {
 	/**
 	 * If setReference() is not called before, or if actual db info don't exists... it will call doIndexing().
 	 * It follow limit. It ignore blacklist.
+	 * @param cancel_if_not_found don't call doIndexing if the item is not already in database
+	 * @param skip_if_found if the metadata_extractor already exists, don't replace it.
 	 * @return the updated container or null if the actual container is not modified. YOU MUST SAVE IT IN YOUR SIDE.
 	 */
-	Container reprocess(MetadataExtractor metadata_extractor, boolean cancel_if_not_found) throws Exception {
+	Container reprocess(MetadataExtractor metadata_extractor, boolean cancel_if_not_found, boolean skip_if_found) throws Exception {
 		/**
 		 * If current blackling configuration was remove this metadata_extractor, it will re-add on current extractors list.
 		 * Needed for all doIndexing() calls: if this funct has need to call doIndexing(), it will stupid to forget to call the original extractor that user want to process.
@@ -139,13 +141,15 @@ public class MetadataIndexingOperation {
 			return doIndexing();
 		}
 		
-		Container container = null;
+		final Container container;
 		try {
 			container = ContainerOperations.getByMtdKey(ContainerOrigin.getUniqueElementKey(reference));
 		} catch (Exception e) {
 			Loggers.Metadata.warn("Can't reprocess " + reference + " because the actual container can't be get correctly from database.", e);
 			if (cancel_if_not_found == false) {
 				return doIndexing();
+			} else {
+				return null;
 			}
 		}
 		
@@ -153,6 +157,15 @@ public class MetadataIndexingOperation {
 			Loggers.Metadata.info("Can't reprocess " + reference + " because it's a new element.");
 			if (cancel_if_not_found == false) {
 				return doIndexing();
+			} else {
+				return null;
+			}
+		}
+		
+		if (skip_if_found) {
+			if (container.containAnyMatchContainerEntry(metadata_extractor.getAllRootEntryClasses().stream())) {
+				Loggers.Metadata.info("Don't reprocess " + reference + " because " + metadata_extractor.getClass().getSimpleName() + " was already done");
+				return null;
 			}
 		}
 		

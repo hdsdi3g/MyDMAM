@@ -121,7 +121,7 @@ public class CliModuleMetadata implements CliModule {
 				}
 				
 				reprocess_extractors.forEach(extr -> {
-					metadataStorageIndexer.setMetadataExtractorToReprocess(extr);
+					metadataStorageIndexer.setMetadataExtractorToReprocess(extr, args.getParamExist("-noadd"), args.getParamExist("-norefresh"));
 					try {
 						Loggers.CLI.info("Reprocess with " + extr.getLongName());
 						metadataStorageIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, currentpath)), min_index_date, null);
@@ -173,8 +173,11 @@ public class CliModuleMetadata implements CliModule {
 		System.out.println("      with -refresh to force re-indexing metadatas and");
 		System.out.println("      with -since the number of hours to select the recent updated files.");
 		System.out.println("      with -npz to not let to paralleling analysis.");
-		System.out.println("    Options for reprocess metadatas: -reprocess extractor_name");
-		System.out.println("      with extractor_name a String listed by -list");
+		System.out.println("    Options for reprocess metadatas: -reprocess extractor_name [-noadd] [-norefresh]");
+		System.out.println("      with extractor_name, a String listed by -list");
+		System.out.println("      with -noadd don't create metadatas if the item does not");
+		System.out.println("      with -norefresh don't reprocess this extractor if the element already have it");
+		System.out.println("      -noadd and -norefresh can be wanted if you just want create missing metadatas without process new files");
 		System.out.println(" * List all enabled metadata extractors:");
 		System.out.println("    " + getCliModuleName() + " -list [-verbose]");
 		System.out.println(" * Do clean operation (remove orphan metadatas):");

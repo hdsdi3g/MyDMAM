@@ -58,6 +58,9 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 	private final Object lock = new Object();
 	private MetadataExtractor metadata_extractor_to_reprocess;
 	
+	private boolean cancel_if_not_found_reprocess;
+	private boolean skip_if_found_reprocess;
+	
 	public MetadataStorageIndexer(boolean force_refresh, boolean no_parallelized) throws Exception {
 		explorer = new Explorer();
 		this.force_refresh = force_refresh;
@@ -70,8 +73,10 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		this.limit_processing = limit_processing;
 	}
 	
-	public void setMetadataExtractorToReprocess(MetadataExtractor metadata_extractor_to_reprocess) {
+	public void setMetadataExtractorToReprocess(MetadataExtractor metadata_extractor_to_reprocess, boolean cancel_if_not_found_reprocess, boolean skip_if_found_reprocess) {
 		this.metadata_extractor_to_reprocess = metadata_extractor_to_reprocess;
+		this.cancel_if_not_found_reprocess = cancel_if_not_found_reprocess;
+		this.skip_if_found_reprocess = skip_if_found_reprocess;
 	}
 	
 	/**
@@ -331,7 +336,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		
 		if (metadata_extractor_to_reprocess != null) {
 			Loggers.Metadata.debug("Start reindexing " + element_key + " with " + metadata_extractor_to_reprocess.getClass().getName() + " on " + physical_source);
-			container = indexing.reprocess(metadata_extractor_to_reprocess, false);
+			container = indexing.reprocess(metadata_extractor_to_reprocess, cancel_if_not_found_reprocess, skip_if_found_reprocess);
 		} else {
 			Loggers.Metadata.debug("Start indexing " + element_key + " on " + physical_source);
 			container = indexing.doIndexing();
@@ -342,7 +347,11 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		}
 		
 		if (container == null) {
-			Loggers.Metadata.warn("Indexing don't return results for " + element_key + " on " + physical_source);
+			if (this.skip_if_found_reprocess == false) {
+				Loggers.Metadata.warn("Indexing don't return results for " + element_key + " on " + physical_source);
+			} else {
+				Loggers.Metadata.info("Indexing don't return results for " + element_key + " on " + physical_source);
+			}
 			return true;
 		}
 		
