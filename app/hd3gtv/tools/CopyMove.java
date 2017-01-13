@@ -72,6 +72,12 @@ public class CopyMove {
 		}
 	}
 	
+	public static void checkIsFile(File element) throws FileNotFoundException {
+		if (element.isFile() == false) {
+			throw new FileNotFoundException("\"" + element.getPath() + "\" is not a file");
+		}
+	}
+	
 	public static void checkIsWritable(File element) throws IOException {
 		if (element.canWrite() == false) {
 			throw new IOException("\"" + element.getPath() + "\" is not writable");

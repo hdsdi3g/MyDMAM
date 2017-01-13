@@ -85,6 +85,7 @@ public class MainClass {
 		modules.add(new CliModuleBroker());
 		modules.add(new CliModuleMetadata());
 		modules.add(new CliModuleProcessKit());
+		modules.add(new CliModuleBCA());
 		modules.addAll(MyDMAMModulesManager.getAllCliModules());
 		
 		String modulename = appargs.getFirstAction();

@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
 import hd3gtv.mydmam.db.status.ClusterStatusEvents;
 import hd3gtv.mydmam.db.status.ClusterStatusService;
@@ -66,7 +65,7 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		
 		TranscoderWorker.declareTranscoders(manager);
 		
-		bca_watcher = new BCAWatcher(manager, Configuration.global);
+		bca_watcher = new BCAWatcher(manager);
 		
 		MyDMAMModulesManager.declareAllModuleWorkerElement(manager);
 	}

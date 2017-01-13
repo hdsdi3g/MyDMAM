@@ -5,3 +5,29 @@ broadcast_automation:
     delete_playlist_after_watch: false
     engine_class: hd3gtv.mydmam.bcastautomation.BCAMorpheus
     max_retention_duration: 30 # in hours, no older asruns will be keeped after this duration.
+
+    import_other_properties:
+      foo:
+        # get field parameter value from an event_type
+        event_type: "Default Main Event"
+        fieldparameter: "ARefInPlaylist"
+      bar:
+        # get all field parameter values for all sub events
+        fieldparameter: "PlayPage"
+      foo2:
+        # check presence (or not) of a sub event
+        event_type: "GPI_EXAMPLE"
+      bar2:
+        #  get some field parameter values from an event_type
+        event_type: "PARALLEL_REC"
+        fieldparameter: ["FileId", "StorageDevice"]
+
+    catch_json_db_file: /mnt/catch_events_occult_db.json
+    catch_playlist_to_parse: /mnt/Schedule.sch
+    catch_property: foo2
+    catch_max_min_to_check: 120
+    catch_handler: hd3gtv.elemtl.CuePointEngine
+
+elemtl:
+  servers: ["http://server1.local", "http://server2.local"]
+  event_id_by_server: ["545, "3"]

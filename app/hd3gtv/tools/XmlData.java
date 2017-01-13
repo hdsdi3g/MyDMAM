@@ -252,4 +252,10 @@ public class XmlData {
 		return getTextContentValue(node.getChildNodes(), elementname);
 	}
 	
+	public void setTextContent(Element parent, String node_name, String value) {
+		Element el = document.createElement(node_name);
+		el.setTextContent(value);
+		parent.appendChild(el);
+	}
+	
 }

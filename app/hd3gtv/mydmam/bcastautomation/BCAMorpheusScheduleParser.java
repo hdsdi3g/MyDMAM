@@ -38,6 +38,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 
 /**
@@ -45,12 +46,13 @@ import hd3gtv.mydmam.Loggers;
  */
 class BCAMorpheusScheduleParser extends DefaultHandler implements ErrorHandler {
 	
-	static final int IMAGE_DURATION = 40;
-	private BCAMorpheus bca;
+	/**
+	 * in ms
+	 * Default: 25 fps, 1/25 == 40 ms
+	 */
+	static final int IMAGE_DURATION = Configuration.global.getValue("broadcast_automation", "image_duration", 40);
 	
-	BCAMorpheusScheduleParser(BCAMorpheus bca, File schfile) throws IOException {
-		this.bca = bca;
-		
+	BCAMorpheusScheduleParser(File schfile) throws IOException {
 		try {
 			SAXParserFactory fabrique = SAXParserFactory.newInstance();
 			SAXParser parseur = fabrique.newSAXParser();
@@ -178,7 +180,7 @@ class BCAMorpheusScheduleParser extends DefaultHandler implements ErrorHandler {
 		}
 		
 		if (qName.equalsIgnoreCase("Event")) {
-			this.currentevent = new BCAMorpheusScheduleParserEvent(Integer.parseInt(attributes.getValue("Uid")), attributes.getValue("FullyQualifiedType"), bca);
+			this.currentevent = new BCAMorpheusScheduleParserEvent(Integer.parseInt(attributes.getValue("Uid")), attributes.getValue("Type"));
 			if (firsteventuid == 0) {
 				firsteventuid = Integer.parseInt(attributes.getValue("Uid"));
 			}

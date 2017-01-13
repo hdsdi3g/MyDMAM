@@ -21,11 +21,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
-import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.bcastautomation.BCAWatcher.AutomationEventProcessor;
-
 public class BCAMorpheus implements BCAEngine {
 	
 	public String getVendorName() {
@@ -33,7 +28,7 @@ public class BCAMorpheus implements BCAEngine {
 	}
 	
 	public String getName() {
-		return "Morpheus";
+		return "morpheus";
 	}
 	
 	public String getVersion() {
@@ -44,15 +39,11 @@ public class BCAMorpheus implements BCAEngine {
 		return Arrays.asList("sch");
 	}
 	
-	public int processScheduleFile(File schedule, AutomationEventProcessor processor) throws IOException {
-		BCAMorpheusScheduleParser parser = new BCAMorpheusScheduleParser(this, schedule);
+	public int processScheduleFile(File schedule, BCAAutomationEventHandler handler) throws IOException {
+		BCAMorpheusScheduleParser parser = new BCAMorpheusScheduleParser(schedule);
 		
 		parser.getEvents().forEach(event -> {
-			try {
-				processor.onAutomationEvent(event.getBCAEvent(parser));
-			} catch (ConnectionException e) {
-				Loggers.BroadcastAutomation.error("Can't push to database", e);
-			}
+			handler.onAutomationEvent(event.getBCAEvent(parser));
 		});
 		return parser.getEvents().size();
 	}

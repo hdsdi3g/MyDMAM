@@ -11,28 +11,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2016
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
 package hd3gtv.mydmam.bcastautomation;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-
-public interface BCAEngine {
+@FunctionalInterface
+public interface BCAAutomationEventHandler {
 	
-	public String getVendorName();
-	
-	public String getName();
-	
-	public String getVersion();
-	
-	public List<String> getValidFileExtension();
-	
-	/**
-	 * @return the event count
-	 */
-	public int processScheduleFile(File schedule, BCAAutomationEventHandler hanlder) throws IOException;
+	public void onAutomationEvent(BCAAutomationEvent event);
 	
 }

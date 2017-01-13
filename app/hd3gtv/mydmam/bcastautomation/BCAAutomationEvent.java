@@ -16,8 +16,11 @@
 */
 package hd3gtv.mydmam.bcastautomation;
 
+import java.util.HashMap;
+
 import com.google.gson.JsonObject;
 
+import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.tools.Timecode;
 
 public abstract class BCAAutomationEvent {
@@ -44,13 +47,16 @@ public abstract class BCAAutomationEvent {
 	
 	public abstract String getChannel();
 	
-	public abstract JsonObject getOtherProperties();
+	public abstract JsonObject getOtherProperties(HashMap<String, ConfigurationItem> import_other_properties_configuration);
 	
 	public abstract String getMaterialType();
 	
 	public abstract String getAutomationType();
 	
-	final JsonObject serialize() {
+	/**
+	 * @param import_other_properties_configuration can to be null
+	 */
+	public final JsonObject serialize(HashMap<String, ConfigurationItem> import_other_properties_configuration) {
 		JsonObject jo = new JsonObject();
 		jo.addProperty("startdate", getStartDate());
 		jo.addProperty("name", getName());
@@ -63,7 +69,9 @@ public abstract class BCAAutomationEvent {
 		jo.addProperty("som", getSOM().toString());
 		jo.addProperty("comment", getComment());
 		jo.addProperty("channel", getChannel());
-		jo.add("other", getOtherProperties());
+		if (import_other_properties_configuration != null) {
+			jo.add("other", getOtherProperties(import_other_properties_configuration));
+		}
 		jo.addProperty("material_type", getMaterialType());
 		jo.addProperty("automation_type", getAutomationType());
 		return jo;

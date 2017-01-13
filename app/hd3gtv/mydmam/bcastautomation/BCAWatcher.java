@@ -37,6 +37,7 @@ import com.google.gson.JsonObject;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -57,23 +58,24 @@ public class BCAWatcher implements InstanceStatusItem {
 	private boolean delete_asrun_after_watch;
 	private boolean delete_playlist_after_watch;
 	private long max_retention_duration;
+	private HashMap<String, ConfigurationItem> import_other_properties_configuration;
 	
 	private AutomationEventProcessor processor;
 	
 	private TimedEventStore database;
 	
-	public BCAWatcher(AppManager manager, Configuration configuration) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException, ConnectionException {
+	public BCAWatcher(AppManager manager) throws ReflectiveOperationException, IOException, ConnectionException {
 		if (Configuration.global.isElementExists("broadcast_automation") == false) {
 			return;
 		}
+		engine = getEngine();
+		
 		sleep_time = Configuration.global.getValue("broadcast_automation", "sleep_time", 1000);
 		max_retention_duration = TimeUnit.HOURS.toMillis(Configuration.global.getValue("broadcast_automation", "max_retention_duration", 24));
 		
-		String engine_class_name = Configuration.global.getValue("broadcast_automation", "engine_class", null);
-		
-		Class<?> engine_class = Class.forName(engine_class_name);
-		MyDMAM.checkIsAccessibleClass(engine_class, false);
-		engine = (BCAEngine) engine_class.newInstance();
+		if (Configuration.global.isElementKeyExists("broadcast_automation", "import_other_properties")) {
+			import_other_properties_configuration = Configuration.getElement(Configuration.global.getElement("broadcast_automation"), "import_other_properties");
+		}
 		
 		directory_watch_asrun = new File(Configuration.global.getValue("broadcast_automation", "watch_asrun", "?"));
 		directory_watch_asrun = directory_watch_asrun.getCanonicalFile();
@@ -104,6 +106,17 @@ public class BCAWatcher implements InstanceStatusItem {
 		
 		watch = new Watch();
 		watch.start();
+	}
+	
+	public static BCAEngine getEngine() throws ReflectiveOperationException {
+		String engine_class_name = Configuration.global.getValue("broadcast_automation", "engine_class", null);
+		if (engine_class_name == null) {
+			throw new NullPointerException("broadcast_automation engine_class is not definited");
+		}
+		
+		Class<?> engine_class = Class.forName(engine_class_name);
+		MyDMAM.checkIsAccessibleClass(engine_class, false);
+		return (BCAEngine) engine_class.newInstance();
 	}
 	
 	public String getReferenceKey() {
@@ -290,7 +303,7 @@ public class BCAWatcher implements InstanceStatusItem {
 		watch.wantToStop();
 	}
 	
-	public class AutomationEventProcessor {
+	public class AutomationEventProcessor implements BCAAutomationEventHandler {
 		private MessageDigest md;
 		private TimedEvent t_event;
 		private HashSet<String> actual_event_list;
@@ -310,11 +323,11 @@ public class BCAWatcher implements InstanceStatusItem {
 			Loggers.BroadcastAutomation.debug("Future event list as currently " + actual_event_list.size() + " events");
 		}
 		
-		public void onAutomationEvent(BCAAutomationEvent event) throws ConnectionException {
+		public void onAutomationEvent(BCAAutomationEvent event) {
 			if (database.isTooOld(event.getStartDate())) {
 				if (Loggers.BroadcastAutomation.isTraceEnabled()) {
 					Loggers.BroadcastAutomation.trace("Process event: event \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " is too old. It will not be added to database. "
-							+ event.serialize().toString());
+							+ event.serialize(import_other_properties_configuration).toString());
 				}
 				return;
 			}
@@ -340,7 +353,9 @@ public class BCAWatcher implements InstanceStatusItem {
 			md.update(event.getFileId().getBytes());
 			md.update(event.getName().getBytes());
 			md.update(event.getComment().getBytes());
-			md.update(event.getOtherProperties().toString().getBytes());
+			if (import_other_properties_configuration != null) {
+				md.update(event.getOtherProperties(import_other_properties_configuration).toString().getBytes());
+			}
 			String event_key = MyDMAM.byteToString(md.digest());
 			
 			if (event.getStartDate() > System.currentTimeMillis()) {
@@ -350,7 +365,7 @@ public class BCAWatcher implements InstanceStatusItem {
 				if (actual_event_list.contains(event_key)) {
 					if (Loggers.BroadcastAutomation.isTraceEnabled()) {
 						Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate())
-								+ " is already added in database. " + event.serialize().toString());
+								+ " is already added in database. " + event.serialize(import_other_properties_configuration).toString());
 					}
 					actual_event_list.remove(event_key);
 					return;
@@ -358,15 +373,20 @@ public class BCAWatcher implements InstanceStatusItem {
 			}
 			
 			if (t_event == null) {
-				t_event = database.createEvent(event_key, event.getStartDate());
+				try {
+					t_event = database.createEvent(event_key, event.getStartDate());
+				} catch (ConnectionException e) {
+					Loggers.BroadcastAutomation.warn("Can't push to database", e);
+					return;
+				}
 			} else {
 				t_event = t_event.createAnother(event_key, event.getStartDate());
 			}
-			t_event.getMutator().putColumn("content", event.serialize().toString());
+			t_event.getMutator().putColumn("content", event.serialize(import_other_properties_configuration).toString());
 			
 			if (Loggers.BroadcastAutomation.isTraceEnabled()) {
 				Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " will be added in database. "
-						+ event.serialize().toString());
+						+ event.serialize(import_other_properties_configuration).toString());
 			}
 		}
 		

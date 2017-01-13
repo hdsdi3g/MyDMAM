@@ -60,6 +60,7 @@ import com.google.gson.JsonSerializer;
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.tools.Timecode;
 
 public class MyDMAM {
 	
@@ -357,6 +358,36 @@ public class MyDMAM {
 		}
 	}
 	
+	public static class TimecodeSerializer implements JsonSerializer<Timecode>, JsonDeserializer<Timecode> {
+		
+		public Timecode deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			String raw = json.getAsString();
+			if (raw.indexOf("/") == -1) {
+				throw new JsonParseException("Missing / in Timecode: " + json.toString());
+			}
+			String[] vars = json.getAsString().split("/");
+			if (vars.length != 2) {
+				throw new JsonParseException("Too many / in Timecode: " + json.toString());
+			}
+			float fps = -1;
+			try {
+				fps = Float.parseFloat(vars[1]);
+			} catch (NumberFormatException e) {
+				throw new JsonParseException("Invalid fps in Timecode: " + json.toString(), e);
+			}
+			
+			return new Timecode(vars[0], fps);
+		}
+		
+		public JsonElement serialize(Timecode src, Type typeOfSrc, JsonSerializationContext context) {
+			if (Math.floor(src.getFps()) == Math.ceil(src.getFps())) {
+				return new JsonPrimitive(src.toString() + "/" + Math.round(src.getFps()));
+			}
+			
+			return new JsonPrimitive(src.toString() + "/" + src.getFps());
+		}
+	}
+	
 	/**
 	 * Register JsonArray, JsonObject, XMLGregorianCalendar, Class, InetAddress, URL.
 	 */
@@ -367,6 +398,7 @@ public class MyDMAM {
 		gson_builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
 		gson_builder.registerTypeAdapter(InetAddress.class, new MyDMAM.InetAddrSerializer());
 		gson_builder.registerTypeAdapter(URL.class, new MyDMAM.URLSerializer());
+		gson_builder.registerTypeAdapter(Timecode.class, new MyDMAM.TimecodeSerializer());
 	}
 	
 	/**

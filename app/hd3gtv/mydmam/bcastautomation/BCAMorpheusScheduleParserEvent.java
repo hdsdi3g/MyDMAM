@@ -16,12 +16,18 @@
 */
 package hd3gtv.mydmam.bcastautomation;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
+import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.tools.Timecode;
 
 /**
@@ -29,12 +35,10 @@ import hd3gtv.tools.Timecode;
  */
 class BCAMorpheusScheduleParserEvent {
 	
-	BCAMorpheus bca;
-	
 	Properties fields;
 	
 	int uid;
-	String fullyqualifiedtype;
+	private String type;
 	
 	int previousuid;
 	int owneruid;
@@ -50,21 +54,26 @@ class BCAMorpheusScheduleParserEvent {
 	
 	HashMap<Integer, BCAMorpheusScheduleParserEvent> events;
 	
-	BCAMorpheusScheduleParserEvent(int uid, String fullyqualifiedtype, BCAMorpheus bca) {
+	BCAMorpheusScheduleParserEvent(int uid, String type) {
 		this.uid = uid;
-		this.fullyqualifiedtype = fullyqualifiedtype;
+		this.type = type;
 		fields = new Properties();
-		this.bca = bca;
 	}
 	
 	BCAAutomationEvent getBCAEvent(BCAMorpheusScheduleParser parser) {
-		return new BCAEvent(parser);
+		return new BCAEvent(this, parser);
 	}
 	
 	private class BCAEvent extends BCAAutomationEvent {
 		String channel;
+		private BCAMorpheusScheduleParserEvent ref;
 		
-		private BCAEvent(BCAMorpheusScheduleParser parser) {
+		private BCAEvent(BCAMorpheusScheduleParserEvent ref, BCAMorpheusScheduleParser parser) {
+			this.ref = ref;
+			if (ref == null) {
+				throw new NullPointerException("\"ref\" can't to be null");
+			}
+			
 			channel = parser.getChannel();
 			if (events == null) {
 				events = new HashMap<>(1);
@@ -172,18 +181,95 @@ class BCAMorpheusScheduleParserEvent {
 		
 		JsonObject otherproperties;
 		
-		public JsonObject getOtherProperties() {
+		public JsonObject getOtherProperties(HashMap<String, ConfigurationItem> import_other_properties_configuration) {
+			if (import_other_properties_configuration == null) {
+				return null;
+			}
 			if (otherproperties == null) {
 				otherproperties = new JsonObject();
-				otherproperties.addProperty("mppid", fields.getProperty("MultipartProgrammeId", ""));
 				
-				StringBuilder result = new StringBuilder();
-				events.values().forEach(sub_event -> {
-					if (sub_event.fields.getProperty("PlayPage") != null && result.length() == 0) {
-						result.append(sub_event.fields.getProperty("PlayPage"));
+				import_other_properties_configuration.forEach((p_name, p_content_conf) -> {
+					LinkedHashMap<String, ?> p_conf = p_content_conf.content;
+					
+					final BCAMorpheusScheduleParserEvent event;
+					if (p_conf.containsKey("event_type")) {
+						/**
+						 * Get field parameter(s) value(s) from an event_type
+						 */
+						String event_type = (String) p_conf.get("event_type");
+						
+						if (event_type.equalsIgnoreCase(type)) {
+							event = ref;
+						} else {
+							Optional<BCAMorpheusScheduleParserEvent> s_event = events.values().stream().filter(ev -> {
+								return event_type.equalsIgnoreCase(ev.type);
+							}).findFirst();
+							if (s_event.isPresent()) {
+								event = s_event.get();
+							} else {
+								event = null;
+							}
+						}
+					} else {
+						event = null;
+					}
+					
+					if (p_conf.containsKey("fieldparameter") == false) {
+						/**
+						 * No fieldparameter -> we use Enabled fieldparameter by default
+						 */
+						if (event != null) {
+							otherproperties.addProperty(p_name, event.fields.getProperty("Enabled", "True").equalsIgnoreCase("True"));
+						}
+						return;
+					}
+					
+					Object o_fieldparameter = p_conf.get("fieldparameter");
+					if (o_fieldparameter instanceof String) {
+						String fieldparameter = (String) o_fieldparameter;
+						
+						if (event != null) {
+							String p = event.fields.getProperty(fieldparameter);
+							if (p != null) {
+								if (p.isEmpty() == false) {
+									otherproperties.addProperty(p_name, p);
+								}
+							}
+						} else {
+							final JsonArray ja = new JsonArray();
+							events.forEach((i, ev) -> {
+								String p = ev.fields.getProperty(fieldparameter);
+								if (p != null) {
+									if (p.isEmpty() == false) {
+										ja.add(new JsonPrimitive(p));
+									}
+								}
+							});
+							if (ja.size() > 0) {
+								otherproperties.add(p_name, ja);
+							}
+						}
+						
+					} else if (o_fieldparameter instanceof ArrayList<?>) {
+						@SuppressWarnings("unchecked")
+						ArrayList<String> fieldparameters = (ArrayList<String>) o_fieldparameter;
+						
+						JsonArray ja = new JsonArray();
+						if (event != null) {
+							fieldparameters.forEach(fp -> {
+								String p = event.fields.getProperty(fp);
+								if (p != null) {
+									if (p.isEmpty() == false) {
+										ja.add(new JsonPrimitive(p));
+									}
+								}
+							});
+						}
+						if (ja.size() > 0) {
+							otherproperties.add(p_name, ja);
+						}
 					}
 				});
-				otherproperties.addProperty("playpage", result.toString());
 			}
 			
 			return otherproperties;
