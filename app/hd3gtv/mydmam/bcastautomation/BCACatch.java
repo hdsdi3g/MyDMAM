@@ -89,6 +89,7 @@ public class BCACatch {
 		ArrayList<BCACatchEntry> to_remove = new ArrayList<>();
 		
 		entries.removeIf(en -> {
+			modified = true;
 			return en.isOld();
 		});
 		
@@ -132,7 +133,7 @@ public class BCACatch {
 			return false;
 		});
 		
-		modified = to_remove.isEmpty() == false | to_add.isEmpty() == false;
+		modified = modified | to_remove.isEmpty() == false | to_add.isEmpty() == false;
 		
 		to_remove.forEach(entry -> {
 			Loggers.BroadcastAutomation.info("Catch event moved/removed in playlist: \"" + entry.toString() + "\"");
