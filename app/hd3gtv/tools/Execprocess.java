@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 @SuppressWarnings("nls")
@@ -41,7 +42,7 @@ public class Execprocess extends Thread {
 	
 	private long starttime;
 	
-	private ArrayList<String> processinfo;
+	private List<String> processinfo;
 	private int exitvalue;
 	private int status;
 	private String exec_name;
@@ -59,7 +60,7 @@ public class Execprocess extends Thread {
 	private ExecprocessOutputstream outputstreamhandler;
 	private ExecprocessPipedCascade pipe_cascade;
 	
-	public Execprocess(File execname, ArrayList<String> param, ExecprocessEvent events) {
+	public Execprocess(File execname, List<String> param, ExecprocessEvent events) {
 		processinfo = new ArrayList<String>();
 		processinfo.add(execname.getPath());
 		if (param != null) {
@@ -96,7 +97,7 @@ public class Execprocess extends Thread {
 		return events;
 	}
 	
-	public Execprocess(File execname, ArrayList<String> param) {
+	public Execprocess(File execname, List<String> param) {
 		this(execname, param, null);
 	}
 	
@@ -127,7 +128,9 @@ public class Execprocess extends Thread {
 		status = STATE_RUNNIG;
 		
 		pb = new ProcessBuilder(processinfo);
+		
 		pb.environment().put("LANG", Locale.getDefault().getLanguage() + "_" + Locale.getDefault().getCountry() + "." + Charset.forName("UTF-8"));
+		pb.environment().put("PATH", ExecBinaryPath.getFullPath());
 		
 		if (working_directory != null) {
 			pb.directory(working_directory);

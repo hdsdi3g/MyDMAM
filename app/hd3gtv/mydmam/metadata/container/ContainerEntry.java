@@ -31,7 +31,14 @@ public abstract class ContainerEntry implements SelfSerializing {
 	
 	transient Container container;
 	
+	public final boolean hasOrigin() {
+		return (origin != null);
+	}
+	
 	public final ContainerOrigin getOrigin() {
+		if (hasOrigin() == false) {
+			throw new NullPointerException("Origin is not set because this Entry is not get from database");
+		}
 		return origin;
 	}
 	
@@ -66,10 +73,19 @@ public abstract class ContainerEntry implements SelfSerializing {
 	protected abstract JsonObject internalSerialize(ContainerEntry item, Gson gson);
 	
 	public ContainerEntry deserialize(JsonObject source, Gson gson) {
+		ContainerEntry item;
 		JsonElement j_origin = source.get("origin");
-		source.remove("origin");
-		ContainerEntry item = internalDeserialize(source, gson);
-		item.origin = gson.fromJson(j_origin, ContainerOrigin.class);
+		if (j_origin != null) {
+			source.remove("origin");
+			item = internalDeserialize(source, gson);
+			if (item == null) {
+				throw new NullPointerException("Can't deserialize json " + source.toString() + " in class " + getClass().getName());
+			}
+			item.origin = gson.fromJson(j_origin, ContainerOrigin.class);
+		} else {
+			item = internalDeserialize(source, gson);
+		}
+		
 		return item;
 	}
 	

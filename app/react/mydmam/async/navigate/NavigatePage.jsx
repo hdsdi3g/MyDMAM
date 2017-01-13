@@ -11,9 +11,84 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2015
+ * Copyright (C) hdsdi3g for hd3g.tv 2015-2016
  * 
 */
+
+navigate.Home = React.createClass({
+	componentDidMount: function() {
+		this.setDocumentTitle();
+	},
+	componentDidUpdate: function(dd) {
+		this.setDocumentTitle();
+	},
+	setDocumentTitle: function(name) {
+		var	new_title = i18n("application.navigate") + " :: " + i18n("site.name");
+		if (name) {
+			new_title = name + " :: " + new_title;
+		}
+
+		if (document.title != new_title) {
+			document.title = new_title
+		}
+	},
+	componentWillUnmount: function() {
+		document.title = i18n("site.name");
+	},
+	render: function() {
+		var target = null;
+
+		if (this.props.params.storage) {
+			var path = this.props.params.storage;
+			if (path.endsWith(":") == false) {
+				path = path + ":";
+			}
+
+			for (var p = 1; p < 21; p++) {
+				if (this.props.params["p" + p]) {
+					path = path + "/" + this.props.params["p" + p];
+				}
+			};
+
+			if (path.endsWith(":")) {
+				path = path + "/";
+			}
+
+			target = <navigate.NavigatePage pathindex_destination={path} setDocumentTitle={this.setDocumentTitle} />
+		} else {
+			target = <navigate.NavigatePage pathindex_destination="" setDocumentTitle={this.setDocumentTitle} />
+		}
+		return (
+			<div className="container-fluid">{target}</div>
+		);
+	},
+});
+
+/**
+ * Soo ugly...
+ */
+mydmam.routes.push("navigate-root", "navigate", navigate.Home, [{name: "stat", verb: "cache"}]);	
+mydmam.routes.push("navigate-subdir0", "navigate/:storage", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir1", "navigate/:storage/:p1", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir2", "navigate/:storage/:p1/:p2", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir3", "navigate/:storage/:p1/:p2/:p3", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir4", "navigate/:storage/:p1/:p2/:p3/:p4", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir5", "navigate/:storage/:p1/:p2/:p3/:p4/:p5", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir6", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir7", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir8", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir9", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir10", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir11", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir12", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir13", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir14", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13/:p14/", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir15", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13/:p14/:p15", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir16", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13/:p14/:p15/:p16", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir17", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13/:p14/:p15/:p16/:p17", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir18", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13/:p14/:p15/:p16/:p17/:p18", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir19", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13/:p14/:p15/:p16/:p17/:p18/:p19", navigate.Home, [{name: "stat", verb: "cache"}]);
+mydmam.routes.push("navigate-subdir20", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13/:p14/:p15/:p16/:p17/:p18/:p19/:p20", navigate.Home, [{name: "stat", verb: "cache"}]);
 
 navigate.NavigatePage = React.createClass({
 	getInitialState: function() {
@@ -22,7 +97,7 @@ navigate.NavigatePage = React.createClass({
 			pathindex: "",
 			default_page_size: 20,
 			sort_order: [],
-			externalpos: {},
+			external_location: null,
 		};
 	},
 	navigateTo: function(pathindex, page_from, page_size, sort) {
@@ -60,47 +135,37 @@ navigate.NavigatePage = React.createClass({
 					default_page_size: page_size,
 					sort_order: sort,
 				});
-
-				var externalpos_request_keys = [];
-				for (var response_pathindexkey in data) {
-					var this_response = data[response_pathindexkey];
-					if (!this_response.reference) {
-						continue;
-					}
-					if (!this_response.reference) {
-						continue;
-					}
-					if (mydmam.module.f.wantToHaveResolvedExternalPositions("pathindex", this_response.reference.directory, this_response.reference.storagename)) {
-						externalpos_request_keys.push(response_pathindexkey);
-					}
-					if (!this_response.items) {
-						continue;
-					}
-					for (var responseitem_pathindexkey in this_response.items) {
-						var this_responseitem = this_response.items[responseitem_pathindexkey];
-						if (!this_responseitem.reference) {
-							continue;
-						}
-						if (mydmam.module.f.wantToHaveResolvedExternalPositions("pathindex", this_responseitem.reference.directory, this_responseitem.reference.storagename)) {
-							externalpos_request_keys.push(responseitem_pathindexkey);
-						}
-					}
+				
+				if (data[pathindex_key].reference.storagename) {
+					mydmam.async.pathindex.resolveExternalLocation(data[pathindex_key].reference.storagename, data[pathindex_key].reference.path, function(resolve_result){
+						this.setState({
+							external_location: resolve_result,
+						});
+					}.bind(this));
 				}
-				var response_resolve_external = function(external_resolve_data) {
-					this.setState({externalpos: external_resolve_data});
-				}.bind(this);
-				mydmam.async.pathindex.resolveExternalPosition(externalpos_request_keys, response_resolve_external);
 			} else {
 				if (page_from > 0) {
 					this.navigateTo(pathindex, 0, page_size);
 				}
 				return;
 			}
-			window.location.hash = this.state.pathindex;
+
+			var dirname = this.state.pathindex;
+			dirname = dirname.substring(dirname.lastIndexOf("/") + 1, dirname.length);
+			if (dirname == "") {
+				dirname = this.state.pathindex.substring(0, this.state.pathindex.length - 2);
+			}
+			this.props.setDocumentTitle(dirname);
+
 		}.bind(this));
 	},
 	componentDidMount: function() {
 		this.navigateTo(this.props.pathindex_destination, 0, this.state.default_page_size);
+	},
+	componentWillUpdate: function(nextProps, nextState) {
+		if (this.props.pathindex_destination != nextProps.pathindex_destination) {
+			this.navigateTo(nextProps.pathindex_destination, 0, this.state.default_page_size);
+		}
 	},
 	handlePaginationSwitchPage: function(newpage, alt_pressed) {
 		if (alt_pressed){
@@ -108,25 +173,6 @@ navigate.NavigatePage = React.createClass({
 		} else {
 			this.navigateTo(this.state.pathindex, newpage - 1, this.state.default_page_size);
 		}
-	},
-	handleOnClickANavigateToNewDest: function(e) {
-		e.preventDefault();
-		var pathindex_target = $(e.currentTarget).data("navigatetarget");
-		if (pathindex_target === '../') {
-			/** Go to the parent directory */
-			if (this.state.pathindex === "") {
-				return;
-			}
-			if (this.state.pathindex.endsWith(":/")) {
-				pathindex_target = "";
-			} else {
-				pathindex_target = this.state.pathindex.substring(0, this.state.pathindex.lastIndexOf("/"));
-				if (pathindex_target.endsWith(":")) {
-					pathindex_target += '/';
-				}
-			}
-		}
-		this.navigateTo(pathindex_target, 0, this.state.default_page_size);
 	},
 	handlechangeOrderSort: function(colname, order) {
 		var stat_order = [];
@@ -218,24 +264,20 @@ navigate.NavigatePage = React.createClass({
 			<div>
 				<navigate.BreadCrumb
 					storagename={storagename}
-					path={path}
-					navigate={this.handleOnClickANavigateToNewDest} />
+					path={path} />
 				<navigate.HeaderItem
 					stat={stat}
 					first_item_dateindex={first_item_dateindex}
 					pathindexkey={md5(this.state.pathindex)}
-					navigate={this.handleOnClickANavigateToNewDest}
 					is_in_search={is_in_search}
-					externalpos={this.state.externalpos} />
+					external_location={this.state.external_location} />
 				<mydmam.async.pathindex.reactMetadataFull
 					reference={stat.reference}
-					mtdsummary={stat.mtdsummary}
-					navigate={this.handleOnClickANavigateToNewDest} />
+					mtdsummary={stat.mtdsummary} />
 				<navigate.NavigateTable
 					stat={stat}
-					navigate={this.handleOnClickANavigateToNewDest}
 					changeOrderSort={this.handlechangeOrderSort}
-					externalpos={this.state.externalpos} />
+					external_location={this.state.external_location} />
 				{display_pagination}
 				{noresult}
 				<navigate.SearchBox

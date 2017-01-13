@@ -23,6 +23,7 @@ ftpservergroups:
         # pathindex_storagename: FTP Group 1         # set if you want to indexing FTP accounts, with this storage name
         # domain_isolation: false                    # If you want use separate directories for each domain (by example if base_working_dir is splitted between with differents mounts).
         # short_activity_log: false                  # Set true if you don't want keep FTP activities logs during a long time.
+        # no_activity_log: [account1, account2]      # Disable activity log for this accounts. It never display an history for it !
     # you can add many groups
 
 # Play Server configuration for create FTP Users, and assign it a group and a domain

@@ -88,9 +88,7 @@ navigate.NavigateTable = React.createClass({
 					name = (
 						<a
 							className="tlbdirlistitem"
-							href={url_navigate + "#" + element.storagename + ":" + element.path}
-							onClick={this.props.navigate}
-							data-navigatetarget={element.storagename + ":" + element.path}>
+							href={url_navigate + element.storagename + ":" + element.path}>
 
 							{element.path.substring(element.path.lastIndexOf("/") + 1)}
 						</a>
@@ -99,9 +97,7 @@ navigate.NavigateTable = React.createClass({
 					name = (
 						<a
 							className="tlbdirlistitem"
-							href={url_navigate + "#" + element.storagename + ":/"}
-							onClick={this.props.navigate}
-							data-navigatetarget={element.storagename + ":/"}>
+							href={url_navigate + element.storagename + ":/"}>
 
 							{element.storagename}
 						</a>
@@ -134,9 +130,7 @@ navigate.NavigateTable = React.createClass({
 						<mydmam.async.pathindex.reactBasketButton pathindexkey={elementkey} />
 						<a
 							className="tlbdirlistitem"
-							href={url_navigate + "#" + element.storagename + ":" + element.path}
-							onClick={this.props.navigate}
-							data-navigatetarget={element.storagename + ":" + element.path}>
+							href={url_navigate + element.storagename + ":" + element.path}>
 
 							{elementid}
 							{element.path.substring(element.path.lastIndexOf("/") + 1)}
@@ -178,18 +172,13 @@ navigate.NavigateTable = React.createClass({
 				td_element_date = (<td><mydmam.async.pathindex.reactDate date={element.date} /></td>);
 			}
 
-			var external_pos = null;
-			if (element.directory === false) {
-				external_pos = (<mydmam.async.pathindex.reactExternalPosition pathindexkey={elementkey} externalpos={this.props.externalpos} />);
-			}
-
 			tbody.push(
 				<tr key={elementkey}>
 					{td_element_name}
 					{td_element_attributes}
 					{td_element_date}
 					<td>{mydmam.async.pathindex.mtdTypeofElement(dircontent[pos].mtdsummary)}</td>
-					<td>{external_pos}</td>
+					<td><mydmam.async.pathindex.reactExternalLocation storagename={element.storagename} path={element.path} /></td>
 				</tr>
 			);
 		}

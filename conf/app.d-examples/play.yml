@@ -1,7 +1,9 @@
-play:
-    deploy: /opt/play
+# play:
+    # debug: true # start play server in debug mode
     # js_dev_mode: true # disable optimized JS source, and check, at each request, the status (new/update/delete) for all JS sources, and transform JSX if needed.
-                      # js_dev_mode is mandatory if you want change JS files on the fly (else, you must reboot Play for see changes).
+                        # js_dev_mode is mandatory if you want change JS files on the fly (else, you must reboot Play for see changes).
+    # no_check_babel_at_start: true # Disable the BabelJS checks during Play booting. Speedup up to 2 seconds the boot if js_dev_mode = true (Babel & NodeJS take some time to boot).
+                                    # Useful on intense debugging, after having setup your development environment.
 
 # messages:
     # maingrid.brand: Site name

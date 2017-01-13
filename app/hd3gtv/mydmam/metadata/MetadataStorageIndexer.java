@@ -20,12 +20,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.IOUtils;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
+import hd3gtv.configuration.Configuration;
+import hd3gtv.internaltaskqueue.ITQueue;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
@@ -46,20 +52,31 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 	private Explorer explorer;
 	private boolean force_refresh;
 	private boolean stop_analysis;
-	private ElasticsearchBulkOperation es_bulk;
-	private List<FutureCreateJobs> current_create_job_list;
 	private MetadataIndexingLimit limit_processing;
 	private ArrayList<SourcePathIndexerElement> process_list;
+	private boolean no_parallelized;
+	private final Object lock = new Object();
+	private MetadataExtractor metadata_extractor_to_reprocess;
 	
-	public MetadataStorageIndexer(boolean force_refresh) throws Exception {
+	private boolean cancel_if_not_found_reprocess;
+	private boolean skip_if_found_reprocess;
+	
+	public MetadataStorageIndexer(boolean force_refresh, boolean no_parallelized) throws Exception {
 		explorer = new Explorer();
 		this.force_refresh = force_refresh;
-		current_create_job_list = new ArrayList<FutureCreateJobs>();
 		process_list = new ArrayList<SourcePathIndexerElement>();
+		this.no_parallelized = no_parallelized;
+		metadata_extractor_to_reprocess = null;
 	}
 	
 	public void setLimitProcessing(MetadataIndexingLimit limit_processing) {
 		this.limit_processing = limit_processing;
+	}
+	
+	public void setMetadataExtractorToReprocess(MetadataExtractor metadata_extractor_to_reprocess, boolean cancel_if_not_found_reprocess, boolean skip_if_found_reprocess) {
+		this.metadata_extractor_to_reprocess = metadata_extractor_to_reprocess;
+		this.cancel_if_not_found_reprocess = cancel_if_not_found_reprocess;
+		this.skip_if_found_reprocess = skip_if_found_reprocess;
 	}
 	
 	/**
@@ -69,6 +86,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		if (item == null) {
 			return new ArrayList<JobNG>(1);
 		}
+		process_list.clear();
 		
 		stop_analysis = false;
 		
@@ -91,35 +109,76 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 				}
 			});
 		} else {
-			if (processFoundedElement(item) == false) {
-				return new ArrayList<JobNG>(1);
+			ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
+			ArrayList<FutureCreateJobs> current_create_job_list = new ArrayList<>();
+			if (processFoundedElement(item, es_bulk, current_create_job_list)) {
+				es_bulk.terminateBulk();
+				return createJobs(current_create_job_list);
 			}
+			return new ArrayList<>(1);
 		}
 		
 		if (process_list.isEmpty()) {
 			return new ArrayList<JobNG>(1);
 		}
 		
-		es_bulk = Elasticsearch.prepareBulk();
-		if (limit_processing == MetadataIndexingLimit.MIMETYPE | limit_processing == MetadataIndexingLimit.FAST) {
-			es_bulk.setWindowUpdateSize(50);
-		} else {
-			es_bulk.setWindowUpdateSize(1);
+		Loggers.Metadata.info("Start to analyst " + process_list.size() + " item(s)");
+		
+		int process_count = 1;
+		if (no_parallelized == false) {
+			process_count = (int) Configuration.global.getValue("metadata_analysing", "parallelized", 1);
 		}
 		
-		for (int pos = 0; pos < process_list.size(); pos++) {
-			if (progression != null) {
-				progression.updateProgress(pos, process_list.size());
-			}
-			if (processFoundedElement(process_list.get(pos)) == false | isWantToStopCurrentProcessing()) {
-				break;
-			}
+		ITQueue queue = new ITQueue(process_count);
+		queue.setExternalStoppable(this);
+		
+		final AtomicInteger pos = new AtomicInteger(0);
+		List<FutureCreateJobs> current_create_job_list = Collections.synchronizedList(new ArrayList<FutureCreateJobs>(1));
+		ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
+		
+		if (limit_processing == MetadataIndexingLimit.MIMETYPE | limit_processing == MetadataIndexingLimit.FAST) {
+			es_bulk.setWindowUpdateSize(100);
+			
+			/**
+			 * After each db write, invalid cache.
+			 */
+			es_bulk.onPush(() -> {
+				WebCacheInvalidation.addInvalidation(item.storagename);
+			});
+		} else {
+			es_bulk.setWindowUpdateSize(process_count);
 		}
+		
+		process_list.forEach(item_to_analyst -> {
+			queue.addToQueue(item_to_analyst, i -> {
+				if (isWantToStopCurrentProcessing()) {
+					return;
+				}
+				
+				if (processFoundedElement(i, es_bulk, current_create_job_list) == false) {
+					queue.emptyTheCurrentWaitingList();
+					return;
+				}
+				
+				if (progression != null) {
+					synchronized (lock) {
+						progression.updateProgress(pos.getAndIncrement(), process_list.size());
+					}
+				}
+			}, (i, e) -> {
+				Loggers.Metadata.warn("Can't analyst metadatas for " + i.toString(), e);
+			});
+		});
+		
+		queue.waitToEndCurrentList();
+		queue.wantToStopAll();
 		
 		es_bulk.terminateBulk();
 		
-		WebCacheInvalidation.addInvalidation(item.storagename);
-		
+		return createJobs(current_create_job_list);
+	}
+	
+	private ArrayList<JobNG> createJobs(List<FutureCreateJobs> current_create_job_list) throws ConnectionException {
 		if (current_create_job_list.isEmpty()) {
 			return new ArrayList<JobNG>(1);
 		}
@@ -136,7 +195,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		return new_jobs;
 	}
 	
-	private boolean processFoundedElement(SourcePathIndexerElement element) throws Exception {
+	private boolean processFoundedElement(SourcePathIndexerElement element, ElasticsearchBulkOperation es_bulk, List<FutureCreateJobs> current_create_job_list) throws Exception {
 		if (element.directory) {
 			return true;
 		}
@@ -164,7 +223,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 						RenderedFile.purge(container.getMtd_key());
 						ContainerOperations.requestDelete(container, es_bulk);
 						
-						Loggers.Metadata.debug("Obsolete analysis, " + container + "; Element " + element);
+						Loggers.Metadata.info("Obsolete analysis, " + container + "; Element " + element);
 						
 						must_analyst = true;
 						container = null;
@@ -174,10 +233,13 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 				must_analyst = true;
 			} catch (SearchPhaseExecutionException e) {
 				must_analyst = true;
+			} catch (Exception e) {
+				Loggers.Metadata.warn("Invalid Container status for [" + element.toString(" ") + "]. Ignore it and restart the analyst.", e);
+				must_analyst = true;
 			}
 		}
 		
-		if (must_analyst == false) {
+		if (must_analyst == false && metadata_extractor_to_reprocess == null) {
 			return true;
 		}
 		
@@ -199,11 +261,11 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			if (container != null) {
 				ContainerOperations.requestDelete(container, es_bulk);
 				RenderedFile.purge(container.getMtd_key());
-				Loggers.Metadata.debug("Delete obsolete analysis : original file isn't exists, physical_source: " + physical_source + ", " + container);
+				Loggers.Metadata.info("Delete obsolete analysis : original file isn't exists, physical_source: " + physical_source + ", " + container);
 			}
 			
 			es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element_key));
-			Loggers.Metadata.debug("Delete path element: original file isn't exists, key: " + element_key + ", physical_source: " + physical_source);
+			Loggers.Metadata.info("Delete path element: original file isn't exists, key: " + element_key + ", physical_source: " + physical_source);
 			
 			if (physical_source.getParentFile().exists() == false) {
 				if (element.parentpath == null) {
@@ -213,7 +275,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 					return true;
 				}
 				es_bulk.add(es_bulk.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_DIRECTORY, element.parentpath));
-				Loggers.Metadata.debug("Delete parent path element: original directory isn't exists, key: " + element.parentpath + ", physical_source parent: " + physical_source.getParentFile());
+				Loggers.Metadata.info("Delete parent path element: original directory isn't exists, key: " + element.parentpath + ", physical_source parent: " + physical_source.getParentFile());
 			}
 			
 			return true;
@@ -256,7 +318,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			fis = new FileInputStream(physical_source);
 			fis.read();
 		} catch (Exception e) {
-			Loggers.Metadata.debug("Can't start index: " + element_key + ", physical_source: " + physical_source, e);
+			Loggers.Metadata.info("Can't start index: " + element_key + ", physical_source: " + physical_source + ", because " + e.getMessage());
 			IOUtils.closeQuietly(fis);
 			return true;
 		} finally {
@@ -271,9 +333,30 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		if (limit_processing != null) {
 			indexing.setLimit(limit_processing);
 		}
-		Loggers.Metadata.debug("Start indexing for: " + element_key + ", physical_source: " + physical_source);
 		
-		ContainerOperations.save(indexing.doIndexing(), false, es_bulk);
+		if (metadata_extractor_to_reprocess != null) {
+			Loggers.Metadata.debug("Start reindexing " + element_key + " with " + metadata_extractor_to_reprocess.getClass().getName() + " on " + physical_source);
+			container = indexing.reprocess(metadata_extractor_to_reprocess, cancel_if_not_found_reprocess, skip_if_found_reprocess);
+		} else {
+			Loggers.Metadata.debug("Start indexing " + element_key + " on " + physical_source);
+			container = indexing.doIndexing();
+		}
+		
+		if (stop_analysis) {
+			return false;
+		}
+		
+		if (container == null) {
+			if (this.skip_if_found_reprocess == false) {
+				Loggers.Metadata.warn("Indexing don't return results for " + element_key + " on " + physical_source);
+			} else {
+				Loggers.Metadata.info("Indexing don't return results for " + element_key + " on " + physical_source);
+			}
+			return true;
+		}
+		
+		ContainerOperations.save(container, metadata_extractor_to_reprocess != null, es_bulk);
+		
 		return true;
 	}
 	

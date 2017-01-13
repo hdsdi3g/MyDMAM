@@ -15,25 +15,19 @@
  * 
 */
 
-pathindex.resolveExternalPosition = function(externalpos_request_keys, data_callback) {
-	if (!externalpos_request_keys) {
-		return;
+var searchResult = function(result) {
+	if (result.index !== "pathindex") {
+		return null;
 	}
-	if (externalpos_request_keys.length == 0) {
-		return;
-	}
-	$.ajax({
-		url: mydmam.metadatas.url.resolvepositions,
-		type: "POST",
-		data: {
-			"keys": externalpos_request_keys,
-		},
-		success: data_callback,
-		error: function(jqXHR, textStatus, errorThrown) {
-			console.error(jqXHR, textStatus, errorThrown);
-		},
-	});
+	return pathindex.react2lines;
 };
+
+/**
+ * We don't wait the document.ready because we are sure the mydmam.module.f code is already loaded. 
+ */
+mydmam.module.register("PathIndexView", {
+	processViewSearchResult: searchResult,
+});
 
 pathindex.reactStoragePathLink = React.createClass({
 	render: function() {
@@ -45,7 +39,7 @@ pathindex.reactStoragePathLink = React.createClass({
 
 		var storage_linked = storagename;
 		if (add_link) {
-			storage_linked = (<a href={url_navigate + "#" + storagename + ":/"}>{storagename}</a>);
+			storage_linked = (<a href={url_navigate + storagename + ":/"}>{storagename}</a>);
 		}		
 
 		var path_linked = path;
@@ -58,7 +52,7 @@ pathindex.reactStoragePathLink = React.createClass({
 				sub_path = sub_paths[i];
 				path_linked.push(
 					<span key={i}>/
-						<a href={url_navigate + "#" + storagename + ':' + currentpath + "/" + sub_path}>
+						<a href={url_navigate + storagename + ':' + currentpath + "/" + sub_path}>
 							{sub_path}
 						</a>
 					</span>

@@ -13,12 +13,15 @@ conf/dependencies.yml
 conf/*.db
 conf/log4j.xml
 conf/account_export.xml
+conf/jsfiles.json
 public/img/personalized/*
 Test.java
 play-new-password.txt
 *.iml
 *.ipr
 *.iws
-public/javascripts/src/react.*.jsx.js
+public/javascripts/_transformed/*
+public/javascripts/_reduced/*.js
 logs/
 server.pid
+node_modules/

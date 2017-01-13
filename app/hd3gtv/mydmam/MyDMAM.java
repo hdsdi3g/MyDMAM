@@ -20,6 +20,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -78,6 +83,8 @@ public class MyDMAM {
 	public static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
 	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2016";
+	
+	public static final Charset UTF8 = Charset.forName("UTF-8");
 	
 	/**
 	 * @param filename without path
@@ -320,14 +327,46 @@ public class MyDMAM {
 		}
 	}
 	
+	public static class InetAddrSerializer implements JsonSerializer<InetAddress>, JsonDeserializer<InetAddress> {
+		
+		public InetAddress deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			try {
+				return InetAddress.getByName(json.getAsString());
+			} catch (UnknownHostException e) {
+				throw new JsonParseException(json.getAsString(), e);
+			}
+		}
+		
+		public JsonElement serialize(InetAddress src, Type typeOfSrc, JsonSerializationContext context) {
+			return new JsonPrimitive(src.getHostAddress());
+		}
+	}
+	
+	public static class URLSerializer implements JsonSerializer<URL>, JsonDeserializer<URL> {
+		
+		public URL deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			try {
+				return new URL(json.getAsString());
+			} catch (MalformedURLException e) {
+				throw new JsonParseException(json.getAsString(), e);
+			}
+		}
+		
+		public JsonElement serialize(URL src, Type typeOfSrc, JsonSerializationContext context) {
+			return new JsonPrimitive(src.toString());
+		}
+	}
+	
 	/**
-	 * Register JsonArray, JsonObject, XMLGregorianCalendar, Class.
+	 * Register JsonArray, JsonObject, XMLGregorianCalendar, Class, InetAddress, URL.
 	 */
 	public static void registerBaseSerializers(GsonBuilder gson_builder) {
 		gson_builder.registerTypeAdapter(JsonArray.class, new MyDMAM.GsonJsonArraySerializer());
 		gson_builder.registerTypeAdapter(JsonObject.class, new MyDMAM.GsonJsonObjectSerializer());
 		gson_builder.registerTypeAdapter(XMLGregorianCalendar.class, new MyDMAM.XMLGregorianCalendarSerializer());
 		gson_builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
+		gson_builder.registerTypeAdapter(InetAddress.class, new MyDMAM.InetAddrSerializer());
+		gson_builder.registerTypeAdapter(URL.class, new MyDMAM.URLSerializer());
 	}
 	
 	/**
@@ -357,4 +396,52 @@ public class MyDMAM {
 		return new File("");
 	}
 	
+	/**
+	 * Compares two version strings.
+	 * Use this instead of String.compareTo() for a non-lexicographical
+	 * comparison that works for version strings. e.g. "1.10".compareTo("1.6").
+	 * It remove the "v" char in front.
+	 * @note It does not work if "1.10" is supposed to be equal to "1.10.0".
+	 * @param str1 a string of ordinal numbers separated by decimal points.
+	 * @param str2 a string of ordinal numbers separated by decimal points.
+	 * @return The result is a negative integer if str1 is _numerically_ less than str2.
+	 *         The result is a positive integer if str1 is _numerically_ greater than str2.
+	 *         The result is zero if the strings are _numerically_ equal.
+	 * @see from http://stackoverflow.com/questions/6701948/efficient-way-to-compare-version-strings-in-java
+	 */
+	public static int versionCompare(String version1, String version2) {
+		String str1 = version1;
+		if (str1.startsWith("v")) {
+			str1 = str1.substring(1);
+		}
+		str1 = str1.trim();
+		
+		String str2 = version2;
+		if (str2.startsWith("v")) {
+			str2 = str2.substring(1);
+		}
+		str2 = str2.trim();
+		
+		String[] vals1 = str1.split("\\.");
+		String[] vals2 = str2.split("\\.");
+		int i = 0;
+		/**
+		 * Set index to first non-equal ordinal or length of shortest version string
+		 */
+		while (i < vals1.length && i < vals2.length && vals1[i].equals(vals2[i])) {
+			i++;
+		}
+		/**
+		 * Compare first non-equal ordinal number
+		 */
+		if (i < vals1.length && i < vals2.length) {
+			int diff = Integer.valueOf(vals1[i]).compareTo(Integer.valueOf(vals2[i]));
+			return Integer.signum(diff);
+		}
+		/**
+		 * The strings are equal or one string is a substring of the other
+		 * e.g. "1.2.3" = "1.2.3" or "1.2.3" < "1.2.3.4"
+		 */
+		return Integer.signum(vals1.length - vals2.length);
+	}
 }

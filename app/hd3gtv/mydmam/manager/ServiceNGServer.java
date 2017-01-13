@@ -16,14 +16,17 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.io.File;
-import java.util.ArrayList;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
-import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.io.IOUtils;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.Execprocess;
+import play.Play;
+import play.Play.Mode;
+import play.server.Server;
 
 public class ServiceNGServer extends ServiceNG {
 	
@@ -31,43 +34,95 @@ public class ServiceNGServer extends ServiceNG {
 		super(args, "Play Server service handler");
 	}
 	
-	private Execprocess process_play;
-	
 	protected boolean startBroker() {
 		return false;
 	}
 	
 	protected void startService() throws Exception {
-		File f_playdeploy = new File(Configuration.global.getValue("play", "deploy", "/opt/play"));
-		
-		ArrayList<String> p_play = new ArrayList<String>();
-		p_play.add("run");
-		p_play.add(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath());
-		p_play.add("--silent");
-		
-		String config_path = System.getProperty("service.config.path", "");
-		if (config_path.equals("") == false) {
-			p_play.add("-Dservice.config.path=" + config_path);
-		}
-		String config_select_apply = System.getProperty("service.config.apply", "");
-		if (config_select_apply.equals("") == false) {
-			p_play.add("-Dservice.config.apply=" + config_select_apply);
-		}
-		String config_verboseload = System.getProperty("service.config.verboseload", "");
-		if (config_verboseload.equals("") == false) {
-			p_play.add("-Dservice.config.verboseload=" + config_verboseload);
-		}
-		
-		File play_exec = new File(f_playdeploy.getPath() + File.separator + "play");
-		if (SystemUtils.IS_OS_WINDOWS) {
-			play_exec = new File(f_playdeploy.getPath() + File.separator + "play.bat");
+		/*
+		 * java
+		 * ok -javaagent:c:\..\play\framework/play-1.3.0.jar
+		 * ok -Dservice.config.apply=debug
+		 * ok -noverify
+		 * ok -Dfile.encoding=utf-8
+		 * nope -Xdebug
+		 * nope -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n
+		 * ok -Dplay.debug=yes
+		 * nope -classpath <>
+		 * ok -Dapplication.path=C:\...\mydmam
+		 * ok -Dplay.id=
+		 * ok play.server.Server ""
+		 */
+		try {
+			Class.forName("play.modules.docviewer.DocumentationGenerator");
+		} catch (Exception e) {
+			Loggers.Play.fatal("Missing play-docviewer.jar in class path !");
+			System.exit(1);
 		}
 		
-		process_play = new Execprocess(play_exec, p_play, new ExecprocessEventServicelog("play"));
-		process_play.start();
+		System.setProperty("application.path", MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath());
+		System.setProperty("play.id", "");
+		
+		if (Configuration.global.getValueBoolean("play", "debug")) {
+			System.setProperty("play.debug", "yes");
+		}
+		
+		Server.main(new String[] {});
+		
+		if (Play.mode == Mode.DEV) {
+			/**
+			 * NO LAZY LOAD
+			 */
+			Thread t_load_on_boot = new Thread(new Runnable() {
+				
+				@Override
+				public void run() {
+					try {
+						while (Play.initialized == false) {
+							Thread.sleep(10);
+						}
+						
+						String port = Play.configuration.getProperty("https.port", Play.configuration.getProperty("http.port", "80"));
+						
+						StringBuilder sb = new StringBuilder();
+						sb.append("http");
+						
+						if (Play.configuration.getProperty("https.port", "").equals("") == false) {
+							sb.append("s");
+						}
+						
+						sb.append("://");
+						
+						String address = Play.configuration.getProperty("https.address", Play.configuration.getProperty("http.address", "127.0.0.1"));
+						sb.append(address);
+						
+						sb.append(":");
+						sb.append(port);
+						sb.append("/");
+						
+						URL url = new URL(sb.toString());
+						HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+						conn.setRequestMethod("GET");
+						conn.setConnectTimeout(5 * 60 * 1000);
+						conn.setReadTimeout(5 * 60 * 1000);
+						
+						Loggers.Play.debug("Connect to local Play site " + url.toString());
+						
+						conn.connect();
+						IOUtils.closeQuietly(conn.getInputStream());
+						conn.disconnect();
+					} catch (Exception e) {
+						Loggers.Play.debug("Trouble with start-on-boot http trigger", e);
+					}
+				}
+			});
+			t_load_on_boot.setName("Load on boot");
+			t_load_on_boot.setDaemon(true);
+			t_load_on_boot.start();
+		}
 	}
 	
 	protected void stopService() throws Exception {
-		process_play.kill();
+		Play.stop();
 	}
 }

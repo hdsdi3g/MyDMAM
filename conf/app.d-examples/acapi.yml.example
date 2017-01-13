@@ -1,0 +1,10 @@
+acapi:
+    host: 192.168.0.1 # ACAPI hostname or IP
+    user: admin       # ACAPI username
+    password: 1234    # ACAPI password
+    port: 8081        # ACAPI http port
+    bridge: 
+        -
+            storage: MyArchiveStorage
+            share: myarchstorage
+            path: /archived

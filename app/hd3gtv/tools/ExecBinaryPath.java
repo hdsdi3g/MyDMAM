@@ -19,9 +19,13 @@ package hd3gtv.tools;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BinaryOperator;
 
+import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
 
 import hd3gtv.configuration.Configuration;
@@ -33,14 +37,28 @@ public class ExecBinaryPath {
 	private ExecBinaryPath() {
 	}
 	
-	public static final String[] PATH;
+	private static final ArrayList<String> PATHS;
 	private static final HashMap<String, File> declared_in_configuration;
+	private final static String[] WINDOWS_EXEC_EXTENTIONS = { "exe", "com", "bat", "cmd" };
 	
 	static {
-		if (System.getenv().containsKey("PATH")) {
-			PATH = System.getenv("PATH").split(File.pathSeparator);
-		} else {
-			PATH = new String[0];
+		String[] PATH = System.getenv("PATH").split(File.pathSeparator);
+		PATHS = new ArrayList<>(Arrays.asList(PATH));
+		
+		String user_home = System.getProperty("user.home");
+		
+		ArrayList<String> all_configured_execpath = Configuration.global.getValues("execpath", "sets", null);
+		if (all_configured_execpath != null) {
+			all_configured_execpath.forEach(entry -> {
+				File test = new File(entry);
+				if (test.exists() == false) {
+					test = new File(user_home + File.separator + entry);
+				}
+				
+				if (test.exists() && test.isDirectory() && test.canRead()) {
+					PATHS.add(test.getAbsolutePath());
+				}
+			});
 		}
 		
 		declared_in_configuration = new HashMap<String, File>();
@@ -60,11 +78,36 @@ public class ExecBinaryPath {
 		}
 	}
 	
+	public static String getFullPath() {
+		return PATHS.stream().reduce((BinaryOperator<String>) (left, right) -> {
+			return left + File.pathSeparator + right;
+		}).get();
+	}
+	
 	private static boolean validExec(File exec) {
-		return exec.exists() & exec.isFile() & exec.canExecute() & exec.canRead();
+		if (exec.exists() == false) {
+			return false;
+		}
+		if (exec.isFile() == false) {
+			return false;
+		}
+		if (exec.canRead() == false) {
+			return false;
+		}
+		if (SystemUtils.IS_OS_WINDOWS) {
+			for (int pos_w_exe = 0; pos_w_exe < WINDOWS_EXEC_EXTENTIONS.length; pos_w_exe++) {
+				if (exec.getName().toLowerCase().endsWith("." + WINDOWS_EXEC_EXTENTIONS[pos_w_exe])) {
+					return true;
+				}
+			}
+			return false;
+		} else {
+			return exec.canExecute();
+		}
 	}
 	
 	/**
+	 * Can add .exe to name if OS == Windows and if missing.
 	 * @throws FileNotFoundException if exec don't exists or is not correctly declared_in_configuration.
 	 */
 	public static File get(String name) throws IOException {
@@ -77,10 +120,18 @@ public class ExecBinaryPath {
 			return exec;
 		}
 		
-		for (int pos_path = 0; pos_path < PATH.length; pos_path++) {
-			exec = new File(PATH[pos_path] + File.separator + name);
+		for (int pos_path = 0; pos_path < PATHS.size(); pos_path++) {
+			exec = new File(PATHS.get(pos_path) + File.separator + name);
 			if (validExec(exec)) {
 				return exec;
+			}
+			if (SystemUtils.IS_OS_WINDOWS) {
+				for (int pos_w_exe = 0; pos_w_exe < WINDOWS_EXEC_EXTENTIONS.length; pos_w_exe++) {
+					exec = new File(PATHS.get(pos_path) + File.separator + name + "." + WINDOWS_EXEC_EXTENTIONS[pos_w_exe]);
+					if (validExec(exec)) {
+						return exec;
+					}
+				}
 			}
 		}
 		

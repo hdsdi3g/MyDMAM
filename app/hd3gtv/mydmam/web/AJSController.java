@@ -107,6 +107,7 @@ public class AJSController {
 		
 	}
 	
+	@AJSIgnore
 	public static Gson getGson() {
 		return gson;
 	}

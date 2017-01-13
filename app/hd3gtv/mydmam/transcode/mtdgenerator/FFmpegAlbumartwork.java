@@ -29,7 +29,9 @@ import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
+import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.StoppableProcessing;
@@ -56,7 +58,7 @@ public class FFmpegAlbumartwork implements MetadataExtractor {
 	}
 	
 	public boolean canProcessThisMimeType(String mimetype) {
-		return FFprobeAnalyser.canProcessThisAudioOnly(mimetype);
+		return FFprobeAnalyser.canProcessThisAudioOnly(mimetype) | mimetype.equalsIgnoreCase("video/quicktime") | mimetype.equalsIgnoreCase("video/mp4");
 	}
 	
 	public String getLongName() {
@@ -73,23 +75,17 @@ public class FFmpegAlbumartwork implements MetadataExtractor {
 			return null;
 		}
 		
-		/**
-		 * Must not have real video stream.
-		 */
-		if (ffprobe.hasVideo()) {
-			return null;
-		}
-		
-		/**
-		 * Must have fake video stream : artwork
-		 */
-		if (ffprobe.getStreamsByCodecType("video") == null) {
+		Stream artwork_stream = ffprobe.getAttachedPicStream();
+		if (artwork_stream == null) {
 			return null;
 		}
 		
 		RenderedFile element = new RenderedFile("album_artwork", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile()).prepareExecprocess();
+		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile());
+		process_conf.getParamTags().put("PICSTREAMID", "0:" + artwork_stream.getIndex());
+		
+		ExecprocessGettext process = process_conf.prepareExecprocess();
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();

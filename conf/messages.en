@@ -153,6 +153,7 @@ manager.items.FTPGroup.pathindex_storagename=Storage name for indexing:
 manager.items.FTPGroup.domain_isolation=/user domain name/
 manager.items.FTPGroup.long_activity_log=Keep activity log traces for a long time
 manager.items.FTPGroup.trash_directory=Trash directory: %s
+manager.items.FTPGroup.users_no_activity_log=No activity log for:
 
 manager.jobs.pagename=Jobs list
 manager.jobs.status.WAITING=Waiting
@@ -245,8 +246,11 @@ manager.watchfolders.table.jobs=Associated jobs
 application.navigate=Storage
 
 browser.versatileerror=An error was encountered during the requested actions
-browser.externalposition.online=Cached
-browser.externalposition.nearline=Nearline
+browser.externallocation.online=Cached
+browser.externallocation.nearline=Nearline
+browser.externallocation.offline=Offline
+browser.externallocation.cache=Cache disk
+browser.externallocation.pack=Disk
 browser.directory=directory
 browser.file=file
 browser.afile=File

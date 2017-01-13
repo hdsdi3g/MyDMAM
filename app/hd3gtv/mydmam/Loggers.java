@@ -38,6 +38,7 @@ public final class Loggers {
 	public final static Logger Job = Logger.getLogger("mydmam.job");
 	public final static Logger Transcode = Logger.getLogger("mydmam.transcode");
 	public final static Logger Transcode_Metadata = Logger.getLogger("mydmam.transcoder.mtd");
+	public final static Logger Transcode_Metadata_Validation = Logger.getLogger("mydmam.transcoder.mtd.validation");
 	public final static Logger Transcode_WatchFolder = Logger.getLogger("mydmam.transcode.watchfolder");
 	public final static Logger Storage = Logger.getLogger("mydmam.storage");
 	public final static Logger Storage_FTP = Logger.getLogger("mydmam.storage.ftp");
@@ -53,6 +54,7 @@ public final class Loggers {
 	public final static Logger ElasticSearch = Logger.getLogger("mydmam.elasticsearch");
 	public final static Logger Play = Logger.getLogger("mydmam.play");
 	public final static Logger Play_JSSource = Logger.getLogger("mydmam.play.jssource");
+	public final static Logger NodeJSBabel = Logger.getLogger("mydmam.play.babel");
 	public final static Logger Configuration = Logger.getLogger("mydmam.configuration");
 	public final static Logger Auth = Logger.getLogger("mydmam.auth");
 	public final static Logger CLI = Logger.getLogger("mydmam.cli");

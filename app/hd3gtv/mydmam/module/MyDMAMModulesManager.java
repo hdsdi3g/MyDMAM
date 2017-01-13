@@ -35,7 +35,6 @@ import java.util.jar.JarFile;
 import org.elasticsearch.search.SearchHit;
 
 import com.google.common.io.Files;
-import com.google.gson.Gson;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -388,80 +387,6 @@ public class MyDMAMModulesManager {
 			result.setContent(new HashMap<String, Object>());
 		}
 		return result;
-	}
-	
-	private volatile static List<ArchivingTapeLocalisator> tape_localisators;
-	
-	private static void populate_tape_localisators() {
-		if (tape_localisators == null) {
-			tape_localisators = new ArrayList<ArchivingTapeLocalisator>();
-			ArchivingTapeLocalisator atl;
-			for (int pos_module = 0; pos_module < MODULES.size(); pos_module++) {
-				atl = MODULES.get(pos_module).getTapeLocalisator();
-				if (atl == null) {
-					continue;
-				}
-				tape_localisators.add(atl);
-			}
-		}
-	}
-	
-	/**
-	 * Reboot Play to see changes.
-	 */
-	public static Map<String, ArchivingTapeInformation> getPositionInformationsByTapeName(String... tapenames) {
-		populate_tape_localisators();
-		
-		Map<String, ArchivingTapeInformation> result_module;
-		HashMap<String, ArchivingTapeInformation> result = new HashMap<String, ArchivingTapeInformation>();
-		for (int pos = 0; pos < tape_localisators.size(); pos++) {
-			result_module = tape_localisators.get(pos).getPositionInformationsByTapeName(tapenames);
-			if (result_module.isEmpty()) {
-				continue;
-			}
-			result.putAll(result_module);
-		}
-		return result;
-	}
-	
-	/**
-	 * Reboot Play to see changes.
-	 */
-	public static Map<String, List<String>> getPositions(String[] key) {
-		populate_tape_localisators();
-		HashMap<String, List<String>> positions = new HashMap<String, List<String>>();
-		
-		Map<String, List<String>> positions_module;
-		for (int pos = 0; pos < tape_localisators.size(); pos++) {
-			positions_module = tape_localisators.get(pos).getPositions(key);
-			if (positions_module.isEmpty()) {
-				continue;
-			}
-			positions.putAll(positions_module);
-		}
-		
-		return positions;
-	}
-	
-	private static volatile String fullliststorageindexnamejsonlistforhostedinarchiving;
-	
-	public static String getStorageIndexNameJsonListForHostedInArchiving() {
-		if (fullliststorageindexnamejsonlistforhostedinarchiving == null) {
-			populate_tape_localisators();
-			List<String> ja = new ArrayList<String>();
-			
-			List<String> ja_module;
-			for (int pos = 0; pos < tape_localisators.size(); pos++) {
-				ja_module = tape_localisators.get(pos).getStorageIndexNameListForHostedInArchiving();
-				if (ja_module.isEmpty()) {
-					continue;
-				}
-				ja.addAll(ja_module);
-			}
-			fullliststorageindexnamejsonlistforhostedinarchiving = new Gson().toJson(ja);
-		}
-		
-		return fullliststorageindexnamejsonlistforhostedinarchiving;
 	}
 	
 }

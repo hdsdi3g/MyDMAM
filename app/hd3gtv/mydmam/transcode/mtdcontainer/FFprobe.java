@@ -20,8 +20,9 @@ package hd3gtv.mydmam.transcode.mtdcontainer;
 import java.awt.Point;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
@@ -59,6 +60,8 @@ public class FFprobe extends EntryAnalyser {
 			item.streams = gson.fromJson(source.get("streams").getAsJsonArray(), streams_typeOfT);
 			for (int pos = item.streams.size() - 1; pos > -1; pos--) {
 				if (item.streams.get(pos).getCodec_type() == null) {
+					item.streams.remove(pos);
+				} else if (item.streams.get(pos).getCodec_type().equals("data")) {
 					item.streams.remove(pos);
 				}
 			}
@@ -110,182 +113,145 @@ public class FFprobe extends EntryAnalyser {
 		return format;
 	}
 	
-	private class Cache {
-		HashMap<String, List<Stream>> stream_by_codec_type;
-		Timecode duration;
-		Framerate framerate;
-		
-		Cache() {
-			/**
-			 * Streams lists by codec type
-			 */
-			stream_by_codec_type = new HashMap<String, List<Stream>>(2);
-			Stream current_stream;
-			String current_codec_type;
-			for (int pos = 0; pos < streams.size(); pos++) {
-				current_stream = streams.get(pos);
-				current_codec_type = current_stream.getCodec_type();
-				if (stream_by_codec_type.containsKey(current_codec_type) == false) {
-					stream_by_codec_type.put(current_codec_type, new ArrayList<Stream>(1));
-				}
-				stream_by_codec_type.get(current_codec_type).add(current_stream);
-			}
-			
-			/**
-			 * Framerate
-			 */
-			if (stream_by_codec_type.containsKey("video")) {
-				current_stream = stream_by_codec_type.get("video").get(0);
-				
-				String avg_frame_rate = null;
-				String r_frame_rate = null;
-				int nb_frames = 0;
-				float duration = 0f;
-				
-				/**
-				 * "r_frame_rate" : "30000/1001", "30/1", "25/1",
-				 */
-				if (current_stream.hasMultipleParams("r_frame_rate")) {
-					r_frame_rate = current_stream.getParam("r_frame_rate").getAsString();
-				}
-				
-				/**
-				 * "avg_frame_rate" : "30000/1001", "0/0", "25/1",
-				 */
-				if (current_stream.hasMultipleParams("avg_frame_rate")) {
-					avg_frame_rate = current_stream.getParam("avg_frame_rate").getAsString();
-				}
-				
-				/** "nb_frames" : "8487", */
-				if (current_stream.hasMultipleParams("nb_frames")) {
-					try {
-						nb_frames = current_stream.getParam("nb_frames").getAsInt();
-					} catch (NumberFormatException e) {
-					}
-				}
-				
-				/** "duration" : "283.182900", */
-				if (current_stream.hasMultipleParams("duration")) {
-					try {
-						duration = current_stream.getParam("duration").getAsFloat();
-					} catch (NumberFormatException e) {
-					}
-				}
-				
-				framerate = Framerate.getFramerate(r_frame_rate);
-				if (framerate == null) {
-					framerate = Framerate.getFramerate(avg_frame_rate);
-				} else if (framerate == Framerate.OTHER) {
-					if (Framerate.getFramerate(avg_frame_rate) != Framerate.OTHER) {
-						framerate = Framerate.getFramerate(avg_frame_rate);
-					}
-				}
-				if (((framerate == null) | (framerate == Framerate.OTHER)) & (nb_frames > 0) & (duration > 0f)) {
-					framerate = Framerate.getFramerate((float) Math.round(((float) nb_frames / duration) * 10f) / 10f);
-				}
-				
-				/*String frame_rate_raw = (String) stream.get("r_frame_rate");
-				if (format_name.equalsIgnoreCase("mpegts")) {
-					frame_rate_raw = (String) stream.get("avg_frame_rate");
-				}*/
-			}
-			
-			if (format.hasMultipleParams("duration")) {
-				try {
-					if (framerate == null) {
-						duration = new Timecode(format.getParam("duration").getAsFloat(), 100f);
-					} else {
-						duration = new Timecode(format.getParam("duration").getAsFloat(), framerate.getNumericValue());
-					}
-				} catch (Exception e) {
-					Loggers.Transcode_Metadata.error("Can't extract duration: " + format.getParam("duration").getAsString(), e);
-				}
-			} else {
-				duration = new Timecode("00:00:00:01", framerate.getNumericValue());
-			}
-			
-		}
-	}
-	
-	private transient Cache cache;
-	
 	/**
 	 * @param like audio or video
-	 * @return null if there are not stream with codec_type.
+	 * @return null if there are not stream with codec_type. NEVER return a "video" stream who is an attached_pic.
 	 */
 	public List<Stream> getStreamsByCodecType(String codec_type) {
-		if (cache == null) {
-			cache = new Cache();
-		}
-		if (cache.stream_by_codec_type.containsKey(codec_type)) {
-			return cache.stream_by_codec_type.get(codec_type);
+		return streams.stream().filter(s -> {
+			return s.isAttachedPic() == false && s.getCodec_type().equalsIgnoreCase(codec_type);
+		}).collect(Collectors.toList());
+	}
+	
+	public Stream getAttachedPicStream() {
+		Optional<Stream> o_result = streams.stream().filter(s -> {
+			return s.isAttachedPic() == true;
+		}).findFirst();
+		
+		if (o_result.isPresent()) {
+			return o_result.get();
 		}
 		return null;
 	}
 	
 	/**
-	 * @return if the first video stream exists and is not ignored.
+	 * @return if the first video stream exists and is not ignored. Ignore "video" streams who is an attached_pic.
 	 */
 	public boolean hasVideo() {
-		if (cache == null) {
-			cache = new Cache();
-		}
-		if (cache.stream_by_codec_type.containsKey("video") == false) {
-			return false;
-		}
-		if (cache.stream_by_codec_type.get("video").get(0).isIgnored()) {
-			return false;
-		}
-		return true;
+		return streams.stream().anyMatch(s -> {
+			return s.isAttachedPic() == false && s.getCodec_type().equalsIgnoreCase("video");
+		});
 	}
 	
 	/**
 	 * @return if the first audio stream exists and is not ignored.
 	 */
 	public boolean hasAudio() {
-		if (cache == null) {
-			cache = new Cache();
-		}
-		if (cache.stream_by_codec_type.containsKey("audio") == false) {
-			return false;
-		}
-		if (cache.stream_by_codec_type.get("audio").get(0).isIgnored()) {
-			return false;
-		}
-		return true;
+		return streams.stream().anyMatch(s -> {
+			return s.getCodec_type().equalsIgnoreCase("audio");
+		});
 	}
 	
 	public Timecode getDuration() {
-		if (cache == null) {
-			cache = new Cache();
+		Framerate framerate = getFramerate();
+		
+		if (format.hasMultipleParams("duration")) {
+			try {
+				if (framerate == null) {
+					return new Timecode(format.getParam("duration").getAsFloat(), 100f);
+				} else {
+					return new Timecode(format.getParam("duration").getAsFloat(), framerate.getNumericValue());
+				}
+			} catch (Exception e) {
+				Loggers.Transcode_Metadata.error("Can't extract duration: " + format.getParam("duration").getAsString(), e);
+			}
 		}
-		return cache.duration;
+		
+		if (framerate == null) {
+			return new Timecode("00:00:00:01", 100f);
+		} else {
+			return new Timecode("00:00:00:01", framerate.getNumericValue());
+		}
 	}
 	
 	/**
 	 * @return the first valid value if there are more one video stream.
 	 */
 	public Framerate getFramerate() {
-		if (cache == null) {
-			cache = new Cache();
-		}
-		if (cache.framerate == null) {
+		if (hasVideo() == false) {
 			return Framerate.OTHER;
 		}
-		return cache.framerate;
+		
+		Stream current_stream = getStreamsByCodecType("video").get(0);
+		
+		String avg_frame_rate = null;
+		String r_frame_rate = null;
+		int nb_frames = 0;
+		float duration = 0f;
+		
+		/**
+		 * "r_frame_rate" : "30000/1001", "30/1", "25/1",
+		 */
+		if (current_stream.hasMultipleParams("r_frame_rate")) {
+			r_frame_rate = current_stream.getParam("r_frame_rate").getAsString();
+		}
+		
+		/**
+		 * "avg_frame_rate" : "30000/1001", "0/0", "25/1",
+		 */
+		if (current_stream.hasMultipleParams("avg_frame_rate")) {
+			avg_frame_rate = current_stream.getParam("avg_frame_rate").getAsString();
+		}
+		
+		/**
+		 * "nb_frames" : "8487",
+		 */
+		if (current_stream.hasMultipleParams("nb_frames")) {
+			try {
+				nb_frames = current_stream.getParam("nb_frames").getAsInt();
+			} catch (NumberFormatException e) {
+			}
+		}
+		
+		/**
+		 * "duration" : "283.182900",
+		 */
+		if (current_stream.hasMultipleParams("duration")) {
+			try {
+				duration = current_stream.getParam("duration").getAsFloat();
+			} catch (NumberFormatException e) {
+			}
+		}
+		
+		Framerate framerate = Framerate.getFramerate(r_frame_rate);
+		if (framerate == null) {
+			framerate = Framerate.getFramerate(avg_frame_rate);
+		} else if (framerate == Framerate.OTHER) {
+			if (Framerate.getFramerate(avg_frame_rate) != Framerate.OTHER) {
+				framerate = Framerate.getFramerate(avg_frame_rate);
+			}
+		}
+		if (((framerate == null) | (framerate == Framerate.OTHER)) & (nb_frames > 0) & (duration > 0f)) {
+			framerate = Framerate.getFramerate((float) Math.round(((float) nb_frames / duration) * 10f) / 10f);
+		}
+		
+		// String frame_rate_raw = (String) stream.get("r_frame_rate");
+		// if (format_name.equalsIgnoreCase("mpegts")) {
+		// frame_rate_raw = (String) stream.get("avg_frame_rate");
+		// }
+		
+		return framerate;
 	}
 	
 	/**
 	 * @return for first video stream. Use streams[i].getVideoResolution() for specific stream.
 	 */
 	public Point getVideoResolution() {
-		if (cache == null) {
-			cache = new Cache();
+		if (hasVideo() == false) {
+			return null;
 		}
-		if (cache.stream_by_codec_type.containsKey("video")) {
-			return getStreamsByCodecType("video").get(0).getVideoResolution();
-		}
-		return null;
+		
+		return getStreamsByCodecType("video").get(0).getVideoResolution();
 	}
 	
 	public Resolution getStandardizedVideoResolution() {

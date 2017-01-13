@@ -184,7 +184,7 @@ public class RenderedFile {
 		try {
 			String caller = new Throwable().getStackTrace()[1].toString();
 			Loggers.Metadata_Commitlog.debug("Write to commit log (" + commit_log_file.getName() + ") " + message);
-			FileUtils.writeStringToFile(commit_log_file, Loggers.dateLog(System.currentTimeMillis()) + " at " + caller + "\t" + message + MyDMAM.LINESEPARATOR, true);
+			FileUtils.writeStringToFile(commit_log_file, Loggers.dateLog(System.currentTimeMillis()) + " at " + caller + "\t" + message + MyDMAM.LINESEPARATOR, MyDMAM.UTF8, true);
 		} catch (IOException e) {
 			Loggers.Metadata_Commitlog.error("Can't write to commit log (" + commit_log_file.getName() + ") this message:\t" + message);
 		}

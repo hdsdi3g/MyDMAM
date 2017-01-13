@@ -111,15 +111,12 @@ $(document).ready(function() {
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </a>
-      <a class="brand" href="@{Application.index()}">&{'maingrid.brand'}</a>
+      <a class="brand" href="@{Application.index()}#">&{'maingrid.brand'}</a>
  
  		<ul class="nav pull-right">
 			#{secure.check 'navigate'}
-		 		<li>
-			 		#{form @Application.search(), class:'navbar-search', method:'GET'}
-				  		<input type="text" id="sitesearch" class="search-query span2" placeholder="&{'maingrid.search'}" name="q" />
-				  		<input type="hidden" name="from" value="1"/>
-					#{/form}
+		 		<li class="navbar-search">
+				  	<input type="text" id="sitesearch" class="search-query span2" style="display: none;" placeholder="&{'maingrid.search'}" name="q" />
 		 		</li>
 				<li class="divider-vertical"></li>
 			#{/secure.check}
@@ -142,7 +139,7 @@ $(document).ready(function() {
  		<ul class="nav pull-left navbar-fixed-top-btn">
 			#{secure.check 'navigate'}
 				<li id="btnStorage">
-					<a href="@{Application.navigate()}">&{'application.navigate'}</a>
+					<a href="@{Application.index()}#navigate">&{'application.navigate'}</a>
 				</li>
 			#{/secure.check}
 			
@@ -223,16 +220,16 @@ $(document).ready(function() {
 							&{'service.menuinfrastructure'}
 						</li>
 						<li>
-							<a href="@{Application.indexjs()}#watchfolders"><i class="icon-folder-open"></i> &{'manager.watchfolders.pagename'}</a>
+							<a href="@{Application.index()}#watchfolders"><i class="icon-folder-open"></i> &{'manager.watchfolders.pagename'}</a>
 						</li>
 						<li>
-							<a href="@{Application.indexjs()}#broker"><i class="icon-tasks"></i> &{'manager.jobs.pagename'}</a>
+							<a href="@{Application.index()}#broker"><i class="icon-tasks"></i> &{'manager.jobs.pagename'}</a>
 						</li>
 					#{/secure.check}
 
 					#{secure.check 'showInstances'}
 						<li>
-							<a href="@{Application.indexjs()}#manager/summary"><i class="icon-hdd"></i> &{'manager.pagename'}</a>
+							<a href="@{Application.index()}#manager/summary"><i class="icon-hdd"></i> &{'manager.pagename'}</a>
 						</li>
 					#{/secure.check}
 					
@@ -247,13 +244,13 @@ $(document).ready(function() {
 
 					#{secure.check 'ftpServer'}
 						<li>
-							<a href="@{Application.indexjs()}#ftpserver"><i class="icon-random"></i> &{'ftpserver.pagename'}</a>
+							<a href="@{Application.index()}#ftpserver"><i class="icon-random"></i> &{'ftpserver.pagename'}</a>
 						</li>
 					#{/secure.check}
 					
 					#{secure.check 'authAdmin'}
 						<li>
-							<a href="@{Application.indexjs()}#auth"><i class="icon-user"></i> &{'auth.pagenamemenu'}</a>
+							<a href="@{Application.index()}#auth"><i class="icon-user"></i> &{'auth.pagenamemenu'}</a>
 						</li>
 					#{/secure.check}
 				</ul>

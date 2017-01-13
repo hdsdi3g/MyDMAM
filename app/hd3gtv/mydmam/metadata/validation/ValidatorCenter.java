@@ -129,7 +129,7 @@ public class ValidatorCenter {
 				}
 			}
 			if (passed == false) {
-				Loggers.Metadata.debug("Fail to validate analysis: " + log);
+				Loggers.Transcode_Metadata_Validation.debug("Fail to validate analysis: " + log);
 				return false;
 			} else {
 				log.clear();

@@ -388,6 +388,17 @@ mydmam.module.register("FTPGroup", {
 			disabled = (<p><span className="label label-error">{i18n("manager.items.FTPGroup.disabled_group")}</span></p>);
 		}
 
+		var freespace = null;
+		if (content.last_free_space) {
+			freespace = (<p>
+				{i18n("manager.items.FTPGroup.last_free_space")} <mydmam.async.pathindex.reactFileSize size={content.last_free_space} />
+				<br />
+				{i18n("manager.items.FTPGroup.min_disk_space_before_warn")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_warn} />
+				<br />
+				{i18n("manager.items.FTPGroup.min_disk_space_before_stop")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_stop} />
+			</p>);
+		}
+
 		var expirations = null;
 		if (content.account_expiration_trash_duration > 0 | content.account_expiration_purge_duration > 0) {
 			expirations = (<p>
@@ -404,17 +415,26 @@ mydmam.module.register("FTPGroup", {
 		if (content.short_activity_log == false) {
 			short_activity_log = (<div><span className="badge badge-important">{i18n("manager.items.FTPGroup.long_activity_log")}</span></div>);
 		}
+
+		var users_no_activity_log = null;
+		if (content.users_no_activity_log.length > 0) {
+			var users = [];
+			for (var pos in content.users_no_activity_log) {
+				var user = content.users_no_activity_log[pos];
+				users.push(<span className="label label-inverse" style={{marginRight: 5}} key={pos}>{user}</span>);
+			}
+			users_no_activity_log = (<div>{i18n("manager.items.FTPGroup.users_no_activity_log")} {users}</div>);
+		}
+
 		return (<div>
 			{disabled}
 			<strong>{i18n("manager.items.FTPGroup.base_working_dir", content.base_working_dir)}</strong>{domain_isolation}<br />
 			{i18n("manager.items.FTPGroup.pathindex_storagename")} <span className="label label-warning">{content.pathindex_storagename}</span><br />
-
-			{i18n("manager.items.FTPGroup.last_free_space")} <mydmam.async.pathindex.reactFileSize size={content.last_free_space} /><br />
-			{i18n("manager.items.FTPGroup.min_disk_space_before_warn")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_warn} /><br />
-			{i18n("manager.items.FTPGroup.min_disk_space_before_stop")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_stop} /><br />
+			{freespace}
 			{expirations}
 			{short_activity_log}
-			{i18n("manager.items.FTPGroup.trash_directory", content.trash_directory)}<br />
+			{i18n("manager.items.FTPGroup.trash_directory", content.trash_directory)}
+			{users_no_activity_log}<br />
 		</div>);
 	},
 	managerInstancesItemsDescr: function(item) {

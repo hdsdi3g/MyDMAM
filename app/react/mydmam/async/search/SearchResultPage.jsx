@@ -16,21 +16,29 @@
 */
 
 search.SearchResultPage = React.createClass({
+	getInitialState: function() {
+		return {stat: {}, external_storages_location: []};
+	},
 	handleSearchFormSubmit: function(search_request) {
 		if (!search_request.q) {
 			return;
 		}
-		/*actual_results.q = search_request.q;*/
-		window.location = search.makeURLsearch(search_request.q, 1);
+		window.location.hash = search.urlify(search_request.q, 1);
 	},
 	handlePaginationLinkTargeter: function(button_num) {
-		return search.makeURLsearch(this.state.results.q, button_num);
+		return "#" + search.urlify(this.props.results.q, button_num);
 	},
-	getInitialState: function() {
-		return {results: this.props.results, stat: {}, externalpos: {}};
+	componentWillMount: function() {
+		mydmam.async.pathindex.populateExternalLocationStorageList(function(storages) {
+			this.setState({external_storages_location: storages});
+		}.bind(this));
 	},
-	componentDidMount: function() {
-		var results = this.state.results.results;
+	doSubSearch: function(nextProps) {
+		var results = this.props.results.results;
+		if (nextProps) {
+			results = nextProps.results.results;
+		}
+
 		var stat_request_keys = [];
 		for (var i = 0; i < results.length; i++) {
 			if (results[i].index === "pathindex") {
@@ -52,30 +60,117 @@ search.SearchResultPage = React.createClass({
 				this.setState({stat: data});
 			}.bind(this));
 		}
-
-		var externalpos_request_keys = [];
-		for (var i = 0; i < results.length; i++) {
-			if (mydmam.module.f.wantToHaveResolvedExternalPositions(results[i].index, results[i].content.directory, results[i].content.storagename)) {
-				externalpos_request_keys.push(results[i].key);
-			}
-		}
-		var response_resolve_external = function(data) {
-			this.setState({externalpos: data});
-		}.bind(this);
-
-		mydmam.async.pathindex.resolveExternalPosition(externalpos_request_keys, response_resolve_external);
+	},
+	componentDidMount: function() {
+		this.doSubSearch();
+	},
+	componentWillReceiveProps: function(nextProps) {
+		this.doSubSearch(nextProps);
 	},
 	render: function() {
 	    return (
 	    	<div>
-				<search.SearchForm results={this.state.results} onSearchFormSubmit={this.handleSearchFormSubmit} onSearchFormChange={this.handleSearchFormChange} />
-				<search.SearchResultsHeader results={this.state.results} />
-				<search.SearchResults results={this.state.results} stat={this.state.stat} externalpos={this.state.externalpos} />
+				<search.SearchForm results={this.props.results} onSearchFormSubmit={this.handleSearchFormSubmit} onSearchFormChange={this.handleSearchFormChange} />
+				<search.SearchResultsHeader results={this.props.results} />
+				<search.SearchResults results={this.props.results} stat={this.state.stat} external_storages_location={this.state.external_storages_location} />
 				<mydmam.async.pagination.reactBlock
-					pagecount={this.state.results.pagecount}
-					currentpage={this.state.results.from}
+					pagecount={this.props.results.pagecount}
+					currentpage={this.props.results.from}
 					onlinkTargeter={this.handlePaginationLinkTargeter} />
 	    	</div>
 		);
 	}
 });
+
+search.Home = React.createClass({
+	getInitialState: function() {
+		return {
+			q: null,
+			qfrom: 1,
+			results: null,
+			inputboxsearch: null,
+		};
+	},
+	doSearch: function(nextProps) {
+		var props = this.props;
+		if (nextProps) {
+			props = nextProps;
+		}
+
+		var qfrom = 1;
+		if (props.params.from) {
+			qfrom = props.params.from;
+		}
+		this.setState({
+			q: decodeURIComponent(props.params.q),
+			qfrom: qfrom,
+			results: null,
+		});
+
+		var request = {
+			q: decodeURIComponent(props.params.q),
+			from: qfrom,
+		};
+
+		mydmam.async.request("search", "query", request, function(data) {
+			this.setState({
+				q: data.q,
+				qfrom: data.from,
+				results: data,
+			});
+			this.setDocumentTitle(data.q);
+		}.bind(this));
+	},
+	setDocumentTitle: function(name) {
+		var	new_title = i18n("search.pagetitle") + " :: " + i18n("site.name");
+		if (name) {
+			new_title = name + " :: " + new_title;
+		}
+
+		if (document.title != new_title) {
+			document.title = new_title
+		}
+	},
+	componentDidMount: function() {
+		this.doSearch();
+	},
+	componentWillReceiveProps: function(nextProps) {
+		this.doSearch(nextProps);
+	},
+	componentWillUnmount: function() {
+		document.title = i18n("site.name");
+	},
+	render: function() {
+		var results = this.state.results;
+
+		var content = null;
+		if (results) {
+			content = (<search.SearchResultPage results={results} />);
+		} else {
+			var q = this.state.q;
+			if (q != null) {
+				content = (<div>
+					<form className="search-query form-search">
+						<input value={q} readOnly={true} className="search-query span11" type="text" />
+					</form>
+					<mydmam.async.PageLoadingProgressBar />
+				</div>);
+			}
+		}
+
+		return (<div className={"container"}>
+			<p className={"lead"}>{i18n("search.pagetitle")}</p>
+			{content}
+		</div>);
+	}
+});
+
+search.urlify = function(q, qfrom) {
+	if (qfrom > 1) {
+		return "search/" + encodeURIComponent(q) + "?from=" + qfrom;
+	} else {
+		return "search/" + encodeURIComponent(q);
+	}
+};
+
+mydmam.routes.push("search-simple", "search/:q", search.Home, [{name: "search", verb: "query"}]);

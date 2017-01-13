@@ -22,6 +22,9 @@ public abstract class IgnoreFiles {
 	
 	public abstract boolean isDirNameIsAllowed(String dirname);
 	
+	/**
+	 * All but *.lnk files
+	 */
 	public static IgnoreFiles default_list = new IgnoreFiles() {
 		
 		public boolean isFileNameIsAllowed(String filename) {
@@ -36,6 +39,9 @@ public abstract class IgnoreFiles {
 		}
 	};
 	
+	/**
+	 * All but .lnk desktop.ini .DS_Store .localized .Icon Thumbs.db
+	 */
 	public static IgnoreFiles directory_config_list = new IgnoreFiles() {
 		
 		public boolean isFileNameIsAllowed(String filename) {

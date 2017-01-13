@@ -33,6 +33,7 @@ import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork.Albumartwork;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.StoppableProcessing;
@@ -77,6 +78,13 @@ public class FFmpegSnapshot implements MetadataExtractor {
 			return null;
 		}
 		if (ffprobe.hasVideo() == false) {
+			return null;
+		}
+		
+		/**
+		 * Skip if Albumartwork is already set
+		 */
+		if (container.getByClass(Albumartwork.class) != null) {
 			return null;
 		}
 		

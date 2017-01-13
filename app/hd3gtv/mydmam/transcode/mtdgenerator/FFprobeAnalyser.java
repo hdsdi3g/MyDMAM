@@ -17,9 +17,6 @@
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -101,25 +98,7 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		 * Patch mime code if no video stream
 		 */
 		
-		if (result.hasVideo()) {
-			/**
-			 * Video is present and valid
-			 */
-			List<Stream> video_streams = result.getStreamsByCodecType("video");
-			for (int pos = 0; pos < video_streams.size(); pos++) {
-				if (video_streams.get(pos).isAValidVideoStreamOrAlbumArtwork()) {
-					continue;
-				} else {
-					video_streams.get(pos).setIgnored(true);
-					if (container.getSummary().getMimetype().startsWith("video")) {
-						/**
-						 * Need to correct bad mime category
-						 */
-						container.getSummary().setMimetype("audio" + container.getSummary().getMimetype().substring(5));
-					}
-				}
-			}
-		} else if (container.getSummary().getMimetype().startsWith("video")) {
+		if (container.getSummary().getMimetype().startsWith("video") && result.hasVideo() == false) {
 			/**
 			 * No video, only audio is present but with bad mime category
 			 */
@@ -146,7 +125,7 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		for (int pos = 0; pos < streams.size(); pos++) {
 			sb_summary = new StringBuffer();
 			stream = streams.get(pos);
-			if (stream.isIgnored()) {
+			if (stream.isAttachedPic()) {
 				continue;
 			}
 			String codec_name = stream.getCodec_tag_string();
@@ -275,10 +254,7 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		}
 		String key;
 		String value;
-		DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		
 		HashMap<String, JsonPrimitive> new_values = new HashMap<String, JsonPrimitive>();
-		List<String> remove_values = new ArrayList<String>();
 		
 		/**
 		 * Search and prepare changes
@@ -286,23 +262,8 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		for (Map.Entry<String, JsonElement> entry : tags.entrySet()) {
 			key = (String) entry.getKey();
 			value = entry.getValue().getAsString();
-			try {
-				if (key.equals("creation_time")) {
-					new_values.put(key, new JsonPrimitive(format.parse(value).getTime()));
-				} else if (key.equals("date")) {
-					if (value.length() == "0000-00-00T00:00:00Z".length()) {
-						new_values.put(key, new JsonPrimitive(format.parse(value.substring(0, 10) + " " + value.substring(11, 19)).getTime()));
-					} else if (value.length() == "0000-00-00 00:00:00".length()) {
-						new_values.put(key, new JsonPrimitive(format.parse(value).getTime()));
-					} else if (value.length() == "0000-00-00".length()) {
-						new_values.put(key, new JsonPrimitive(format.parse(value.substring(0, 10) + " 00:00:00").getTime()));
-					} else {
-						remove_values.add(key);
-						new_values.put(key + "-raw", new JsonPrimitive("#" + value));
-					}
-				}
-			} catch (ParseException e) {
-				Loggers.Transcode_Metadata.error("Can't parse date, tags: " + tags, e);
+			if (key.equals("creation_time") | key.equals("date")) {
+				new_values.put(key, new JsonPrimitive("date:" + value));
 			}
 		}
 		
@@ -311,9 +272,6 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		 */
 		for (Map.Entry<String, JsonPrimitive> entry : new_values.entrySet()) {
 			tags.add(entry.getKey(), entry.getValue());
-		}
-		for (int pos = 0; pos < remove_values.size(); pos++) {
-			tags.remove(remove_values.get(pos));
 		}
 	}
 	
@@ -355,6 +313,7 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		if (mimetype.equalsIgnoreCase("application/mxf")) return true;
 		
 		if (mimetype.equalsIgnoreCase("audio/x-ms-wmv")) return true;
+		if (mimetype.equalsIgnoreCase("audio/x-ms-wma")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-hx-aac-adts")) return true;
 		if (mimetype.equalsIgnoreCase("audio/3gpp")) return true;
 		if (mimetype.equalsIgnoreCase("audio/AMR")) return true;
@@ -457,10 +416,6 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		if (container.getSummary().equalsMimetype(mime_list_master_as_preview)) {
 			if (video_webbrowser_validation == null) {
 				video_webbrowser_validation = new ValidatorCenter();
-				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'video')].index", Comparator.EQUALS, 0);
-				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 1);
-				video_webbrowser_validation.and();
 				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
 				video_webbrowser_validation.and();
 				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac");
@@ -481,9 +436,6 @@ public class FFprobeAnalyser implements MetadataExtractor {
 			}
 			if (audio_webbrowser_validation == null) {
 				audio_webbrowser_validation = new ValidatorCenter();
-				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 0);
-				audio_webbrowser_validation.and();
-				
 				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac", "mp3");
 				audio_webbrowser_validation.and();
 				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
@@ -492,9 +444,10 @@ public class FFprobeAnalyser implements MetadataExtractor {
 			}
 			
 			if (video_webbrowser_validation.validate(container)) {
-				Loggers.Transcode_Metadata.debug("YES ??");
+				Loggers.Transcode_Metadata_Validation.debug("Master as preview (video) ok for " + container.getOrigin().toString());
 				return true;
 			} else if (audio_webbrowser_validation.validate(container)) {
+				Loggers.Transcode_Metadata_Validation.debug("Master as preview (audio) ok for " + container.getOrigin().toString());
 				return true;
 			}
 		}

@@ -18,7 +18,7 @@ package hd3gtv.tools;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings("nls")
 /**
@@ -39,7 +39,7 @@ public class ExecprocessGettext {
 	private boolean exitcodemusttobe0;
 	public StoppableProcessing stoppable;
 	
-	public ExecprocessGettext(File executable, ArrayList<String> param) {
+	public ExecprocessGettext(File executable, List<String> param) {
 		event = new Event();
 		runprocess = new Execprocess(executable, param, event);
 		resultstdout = new StringBuffer();
@@ -126,7 +126,7 @@ public class ExecprocessGettext {
 					}
 					if (runprocess.getUptime() > maxexectime_ms) {
 						runprocess.kill();
-						throw new IOException("Max execution time reached (" + String.valueOf(maxexectime) + " sec)");
+						throw new ExecprocessTooLongTimeExecutionException(maxexectime);
 					} else {
 						Thread.sleep(100);
 					}

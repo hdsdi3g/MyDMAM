@@ -153,6 +153,7 @@ manager.items.FTPGroup.pathindex_storagename=Nom du stockage pour l'indexation :
 manager.items.FTPGroup.domain_isolation=/nom du domaine de l'utilisateur/
 manager.items.FTPGroup.long_activity_log=Garde les log des activités pendant une longue période
 manager.items.FTPGroup.trash_directory=Dossier de la corbeille : %s
+manager.items.FTPGroup.users_no_activity_log=Pas de journal d'activité pour :
 
 manager.jobs.pagename=Liste des jobs
 manager.jobs.status.WAITING=En attente
@@ -245,8 +246,11 @@ manager.watchfolders.table.jobs=Jobs associés
 application.navigate=Stockage
 
 browser.versatileerror=Une erreur a été rencontrée pendant l'action demandé
-browser.externalposition.online=En cache
-browser.externalposition.nearline=Nearline
+browser.externallocation.online=En ligne
+browser.externallocation.nearline=Nearline
+browser.externallocation.offline=Hors ligne
+browser.externallocation.cache=Disque cache
+browser.externallocation.pack=Disque
 browser.directory=dossier
 browser.file=fichier
 browser.afile=Fichier
