@@ -17,9 +17,7 @@
 package hd3gtv.mydmam.db.status;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -153,10 +151,8 @@ public class ClusterStatus {
 		all_messages_events.add(new MessageEvent(Gravity.ERROR, ClusterType.fromClass(provider), message));
 	}
 	
-	public Map<ClusterType, Map<String, StatusReport>> getAllReports() {
-		Map<ClusterType, Map<String, StatusReport>> response = new HashMap<ClusterType, Map<String, StatusReport>>(2);
-		response.put(ClusterType.ELASTICSEARCH, es_status.getLastStatusReports());
-		return response;
+	public ElasticsearchStatus getESLastStatus() {
+		return es_status;
 	}
 	
 }

@@ -16,14 +16,9 @@
 */
 package controllers;
 
-import java.util.Map;
-
 import org.apache.commons.io.IOUtils;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.db.status.ClusterStatus;
-import hd3gtv.mydmam.db.status.ClusterStatus.ClusterType;
-import hd3gtv.mydmam.db.status.StatusReport;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
 import hd3gtv.mydmam.web.JSSourceManager;
 import play.Play;
@@ -40,6 +35,7 @@ import play.mvc.With;
 public class Manager extends Controller {
 	
 	@Check("showManager")
+	@Deprecated
 	public static void playjobs() throws Exception {
 		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.playjobs.pagename"));
 		
@@ -55,6 +51,7 @@ public class Manager extends Controller {
 	}
 	
 	@Check("showManager")
+	@Deprecated
 	public static void purgeplaycache() throws Exception {
 		Loggers.Play.info("Purge Play cache");
 		Cache.clear();
@@ -62,6 +59,7 @@ public class Manager extends Controller {
 	}
 	
 	@Check("showManager")
+	@Deprecated
 	public static void refreshlogconf() throws Exception {
 		Loggers.Play.info("Manual refresh log configuration");
 		Loggers.refreshLogConfiguration();
@@ -69,6 +67,7 @@ public class Manager extends Controller {
 	}
 	
 	@Check("showManager")
+	@Deprecated
 	public static void switchjsdevmode() throws Exception {
 		JSSourceManager.switchSetJsDevMode();
 		Loggers.Play_JSSource.info("Switch JS dev mode to " + JSSourceManager.isJsDevMode());
@@ -77,19 +76,11 @@ public class Manager extends Controller {
 	}
 	
 	@Check("showManager")
+	@Deprecated
 	public static void purgejs() throws Exception {
 		Loggers.Play_JSSource.info("Purge and remake all JS computed");
 		JSSourceManager.purgeAll();
 		redirect("Manager.playjobs");
-	}
-	
-	@Check("showManager")
-	public static void clusterstatus() {
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("service.clusterstatus.report.pagename"));
-		ClusterStatus cluster_status = new ClusterStatus();
-		cluster_status.prepareReports();
-		Map<ClusterType, Map<String, StatusReport>> all_reports = cluster_status.getAllReports();
-		render(all_reports);
 	}
 	
 	@Check("showManager")

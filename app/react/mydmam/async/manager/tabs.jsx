@@ -592,3 +592,77 @@ manager.PendingActions = React.createClass({
 		</div>);
 	},
 }); 
+
+var ClusterStatusTable = React.createClass({
+	render: function() {
+		var report = this.props.report;
+		var datas = report.datas;
+		var colums_names = report.colums_names;
+
+		var headers = [];
+		//headers.push(<th key="_empty"></th>);
+		for (colname in colums_names) {
+			headers.push(<th key={colname}>{colums_names[colname]}</th>);
+		}
+
+		var lines = [];
+		for (line in datas) {
+			var data = datas[line];
+			var cols = [];
+
+			for (col in data.content) {
+				cols.push(<td key={col}>
+					{data.content[col]}
+				</td>);
+			}
+
+			lines.push(<tr key={line + "_head"}>
+				<th key="head">{data.name}</th>
+				{cols}
+			</tr>);
+
+		}
+
+		return (<table style={{width: "auto"}} className="table table-striped table-hover table-condensed table-bordered">
+			<thead><th>
+				{headers}
+			</th></thead>
+			<tbody>{lines}</tbody>
+		</table>);
+	},
+}); 
+
+
+manager.ClusterStatus = React.createClass({
+	getInitialState: function() {
+		return {
+			status: {},
+		};
+	},
+	componentWillMount: function() {
+		mydmam.async.request("instances", "esclusterstatus", null, function(status) {
+			/*list.sort(function (a, b) {
+				return a.update_date < b.update_date;
+			});*/
+			this.setState({status: status});
+		}.bind(this));
+	},
+	render: function() {
+		var status = this.state.status;
+
+		var result = [];
+		if (status.last_status_reports) {
+			for (var report in status.last_status_reports) {
+				var report_name = status.last_status_reports[report].report_name;
+				result.push(<div key={report}>
+					<h3>{report_name}</h3>
+					<ClusterStatusTable report={status.last_status_reports[report]} />
+				</div>);
+			}
+		}
+
+		return (<div>
+			{result}
+		</div>);
+	},
+}); 

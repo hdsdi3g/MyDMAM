@@ -57,7 +57,6 @@ service.playjobs.pagename=Jobs du serveur Play
 service.menuinfrastructure=Infrastructure
 service.threadslist=Liste des threads
 service.instanceslist=Liste des instances
-service.clusterstatus.report.pagename=Suivi des clusters
 service.playjobs.purgecache=Purger le cache de Play
 service.playjobs.refreshlogconf=Rafraichir la configuration des logs
 service.playjobs.switchjsdevmode=Basculer le mode JS dev
@@ -154,6 +153,7 @@ manager.items.FTPGroup.domain_isolation=/nom du domaine de l'utilisateur/
 manager.items.FTPGroup.long_activity_log=Garde les log des activités pendant une longue période
 manager.items.FTPGroup.trash_directory=Dossier de la corbeille : %s
 manager.items.FTPGroup.users_no_activity_log=Pas de journal d'activité pour :
+manager.clusterstatus=Suivi des clusters
 
 manager.jobs.pagename=Liste des jobs
 manager.jobs.status.WAITING=En attente
