@@ -233,12 +233,6 @@ $(document).ready(function() {
 						</li>
 					#{/secure.check}
 					
-					#{secure.check 'showManager'}
-						<li>
-							<a href="@{Manager.playjobs()}"><i class="icon-info-sign"></i> &{'service.playjobs.pagename'}</a>
-						</li>
-					#{/secure.check}
-
 					#{secure.check 'ftpServer'}
 						<li>
 							<a href="@{Application.index()}#ftpserver"><i class="icon-random"></i> &{'ftpserver.pagename'}</a>

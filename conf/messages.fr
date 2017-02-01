@@ -53,17 +53,7 @@ search.result.directory=Dossier
 search.previous=précédent
 search.next=suivant
 
-service.playjobs.pagename=Jobs du serveur Play
 service.menuinfrastructure=Infrastructure
-service.threadslist=Liste des threads
-service.instanceslist=Liste des instances
-service.playjobs.purgecache=Purger le cache de Play
-service.playjobs.refreshlogconf=Rafraichir la configuration des logs
-service.playjobs.switchjsdevmode=Basculer le mode JS dev
-service.playjobs.switchjsdevmode.status=actuellement en mode dev
-service.playjobs.purgejs=Purger et refaire tout les fichiers JS calculés
-service.playjobs.ajsdebugpage=Page de debug async JS
-
 manager.pagename=Instances
 manager.summaries=Résumé
 manager.instance.uptime=Uptime
@@ -154,6 +144,16 @@ manager.items.FTPGroup.long_activity_log=Garde les log des activités pendant un
 manager.items.FTPGroup.trash_directory=Dossier de la corbeille : %s
 manager.items.FTPGroup.users_no_activity_log=Pas de journal d'activité pour :
 manager.clusterstatus=Suivi des clusters
+
+manager.playserver=Serveur Play
+manager.playserver.in_js_dev=Actuellement en mode dev : compilation dynamique JS/JSX avec NodeJS et Babel.
+manager.playserver.in_js_prod=Actuellement en mode prod : fichiers JS pré-compilés et compressés.
+manager.playserver.ajsdebugpage=Page de debug async JS
+manager.playserver.purgeplaycache=Purger le cache de Play
+manager.playserver.refreshlogconf=Rafraichir la configuration des logs
+manager.playserver.switchjsdevmode=Basculer en mode JS dev
+manager.playserver.switchjsprodmode=Basculer en mode JS prod
+manager.playserver.purgejs=Purger et refaire tout les fichiers JS calculés
 
 manager.jobs.pagename=Liste des jobs
 manager.jobs.status.WAITING=En attente
