@@ -69,87 +69,13 @@ async.Home = React.createClass({
 	}
 });
 
-/*
-
-
-			%{	menu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllUserMenusEntries()
-				menu_elements.each() { if (controllers.Secure.checkview(it.privilege)) {
-			}%
-				#{if it.add_divider}
-					<li class="divider-vertical"></li>
-				#{/if}
-			<li id="&{it.btn_id}" #{if it.subitems}class="dropdown"#{/if}>
-				<a href="&{it.getPlayTargetUrl()}" #{if it.subitems}class="dropdown-toggle" data-toggle="dropdown"#{/if}>
-					&{it.title}
-					#{if it.subitems}<b class="caret"></b>#{/if}
-				</a>
-				#{if it.subitems}
-					<ul class="dropdown-menu">
-						%{	
-							it.subitems.eachWithIndex() { item, p ->
-						}%
-							<li id="&{item.btn_id}">
-								<a href="&{item.getPlayTargetUrl()}">&{item.title}</a>
-								#{if item.add_divider}
-									<li class="divider"></li>
-								#{/if}
-							</li>
-						%{
-							}
-						}%
-					</ul>
-				#{/if}
-			</li>
-			%{
-				} }
-			}%
-
-*/
-
-
-
-/*
-
-					%{	adminmenu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllAdminMenusEntries()
-						adminmenu_elements.eachWithIndex() { adminitem, p ->
-						if (controllers.Secure.checkview(adminitem.privilege)) {
-					}%
-						<li id="&{adminitem.btn_id}" #{if adminitem.subitems}class="dropdown-submenu"#{/if}>
-							<a href="&{adminitem.getPlayTargetUrl()}" #{if adminitem.subitems}tabindex="-1"#{/if}>&{adminitem.title}</a>
-							#{if adminitem.subitems}
-								<ul class="dropdown-menu">
-								%{	
-									adminitem.subitems.eachWithIndex() { sitem, i ->
-									if (controllers.Secure.checkview(sitem.privilege)) {
-								}%
-									<li id="&{sitem.btn_id}">
-										<a href="&{sitem.getPlayTargetUrl()}">&{sitem.title}</a>
-									</li>
-									#{if sitem.add_divider}
-										<li class="divider"></li>
-									#{/if}
-								%{
-									}}
-								}%
-								</ul>
-							#{/if}
-							#{if adminitem.add_divider}
-								<li class="divider"></li>
-							#{/if}
-						</li>
-						<li class="divider"></li>
-					%{
-						}}
-					}%
-
-
-
-	public String getPlayTargetUrl() {
-		try {
-			return Router.reverse(play_action).url;
-		} catch (NoRouteFoundException e) {
-			return play_action;
-		}
+async.Footer = React.createClass({
+	render: function() {
+		return (<div className="container-fluid" style={{textAlign: "center", marginTop: "1.5em"}}>
+			<small className="muted">
+				<a href="http://mydmam.org" style={{color: "#999999"}}>MyDMAM</a> {i18n("site.aboutfooter")}
+			</small>
+		</div>);
 	}
+});
 
-*/

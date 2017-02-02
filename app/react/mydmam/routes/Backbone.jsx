@@ -75,14 +75,18 @@ routes.Backbone = React.createClass({
 			var ReactTopLevelClass = routes.getReactTopLevelClassByRouteName(this.state.dest);
 			if (ReactTopLevelClass) {
 				return (<div>
+					<mydmam.async.TopMenu />
 					<ReactTopLevelClass params={this.state.params} />
+					<mydmam.async.Footer />
 					{search}
 				</div>);
 			}
 		}
 
 		return (<div>
+			<mydmam.async.TopMenu />
 			<mydmam.async.Home />
+			<mydmam.async.Footer />
 			{search}
 		</div>);
 	}
