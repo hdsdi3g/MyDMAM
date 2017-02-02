@@ -4,7 +4,6 @@
 
 # Home page
 GET     /                                       Application.index
-GET		/!										Application.indexjs
 
 # Ignore favicon requests
 GET     /favicon.ico                            404

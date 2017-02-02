@@ -25,7 +25,6 @@ import org.apache.log4j.PatternLayout;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.tools.ApplicationArgs;
 
 public class MainClass {
@@ -85,7 +84,6 @@ public class MainClass {
 		modules.add(new CliModuleBroker());
 		modules.add(new CliModuleMetadata());
 		modules.add(new CliModuleProcessKit());
-		modules.addAll(MyDMAMModulesManager.getAllCliModules());
 		
 		String modulename = appargs.getFirstAction();
 		

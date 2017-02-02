@@ -59,7 +59,6 @@ public final class Loggers {
 	public final static Logger Auth = Logger.getLogger("mydmam.auth");
 	public final static Logger CLI = Logger.getLogger("mydmam.cli");
 	public final static Logger Mail = Logger.getLogger("mydmam.mail");
-	public final static Logger Module = Logger.getLogger("mydmam.module");
 	public final static Logger Ssh = Logger.getLogger("mydmam.ssh");
 	public final static Logger Pathindex = Logger.getLogger("mydmam.pathindex");
 	public final static Logger FTPserver = Logger.getLogger("mydmam.ftpserver");

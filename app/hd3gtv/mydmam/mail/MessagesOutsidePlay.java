@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.module;
+package hd3gtv.mydmam.mail;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,6 +27,7 @@ import java.util.Properties;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import play.i18n.Lang;
 import play.utils.OrderSafeProperties;
 
@@ -39,48 +40,37 @@ public class MessagesOutsidePlay {
 	private static final Locale default_locale = Locale.ENGLISH;
 	
 	static {
-		Map<String, String> map_key_sourcemessage = new HashMap<String, String>();
-		
 		locale_messages = new HashMap<Locale, Properties>();
 		
-		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
-		
-		String module_name;
-		File conf_dir;
+		File conf_dir = MyDMAM.APP_ROOT_PLAY_CONF_DIRECTORY;
 		File message_file;
 		Locale current_locale;
 		Properties current_messages;
 		FileInputStream fis;
-		for (Map.Entry<String, File> entry : conf_dirs.entrySet()) {
-			module_name = entry.getKey();
-			conf_dir = entry.getValue();
-			try {
-				File[] modules_files = conf_dir.listFiles(new FilenameFilter() {
-					public boolean accept(File dir, String name) {
-						return name.startsWith("messages.");
-					}
-				});
-				for (int pos_mf = 0; pos_mf < modules_files.length; pos_mf++) {
-					message_file = modules_files[pos_mf];
-					current_locale = Lang.getLocale(message_file.getName().substring("messages.".length()));
-					current_messages = new OrderSafeProperties();
-					fis = new FileInputStream(message_file);
-					current_messages.load(fis);
-					fis.close();
-					
-					for (Object message_key : current_messages.keySet()) {
-						map_key_sourcemessage.put((String) message_key, module_name);
-					}
-					
-					if (locale_messages.containsKey(current_locale)) {
-						locale_messages.get(current_locale).putAll(current_messages);
-					} else {
-						locale_messages.put(current_locale, current_messages);
-					}
+		
+		try {
+			File[] modules_files = conf_dir.listFiles(new FilenameFilter() {
+				public boolean accept(File dir, String name) {
+					return name.startsWith("messages.");
 				}
-			} catch (Exception e) {
-				Loggers.Module.error("Can't import module message files, module_name: " + module_name, e);
+			});
+			for (int pos_mf = 0; pos_mf < modules_files.length; pos_mf++) {
+				message_file = modules_files[pos_mf];
+				current_locale = Lang.getLocale(message_file.getName().substring("messages.".length()));
+				current_messages = new OrderSafeProperties();
+				fis = new FileInputStream(message_file);
+				current_messages.load(fis);
+				fis.close();
+				
+				if (locale_messages.containsKey(current_locale)) {
+					locale_messages.get(current_locale).putAll(current_messages);
+				} else {
+					locale_messages.put(current_locale, current_messages);
+				}
 			}
+			
+		} catch (Exception e) {
+			Loggers.Mail.error("Can't import module message files", e);
 		}
 		
 		/**
@@ -100,7 +90,6 @@ public class MessagesOutsidePlay {
 		/**
 		 * Check if missing messages.
 		 */
-		Properties comparable_messages = null;
 		Locale comparable_locale = null;
 		for (Map.Entry<Locale, Properties> messages : locale_messages.entrySet()) {
 			current_locale = messages.getKey();
@@ -108,26 +97,9 @@ public class MessagesOutsidePlay {
 			
 			if (comparable_locale == null) {
 				comparable_locale = current_locale;
-				comparable_messages = current_messages;
 				continue;
 			}
-			
-			for (Object current_messages_key : current_messages.keySet()) {
-				if (comparable_messages.containsKey(current_messages_key) == false) {
-					module_name = map_key_sourcemessage.get((String) current_messages_key);
-					Loggers.Module.warn("Missing message keys, please check messages files \"" + (String) current_messages_key + "\" in " + module_name + " module, conf/message."
-							+ comparable_locale.getLanguage() + " file");
-				}
-			}
-			for (Object comparable_messages_key : comparable_messages.keySet()) {
-				if (current_messages.containsKey(comparable_messages_key) == false) {
-					module_name = map_key_sourcemessage.get((String) comparable_messages_key);
-					Loggers.Module.warn("Missing message keys, please check messages files \"" + (String) comparable_messages_key + "\" in " + module_name + " module, conf/message."
-							+ current_locale.getLanguage() + " file");
-				}
-			}
 		}
-		
 	}
 	
 	private Properties current_locale_messages;

@@ -17,14 +17,11 @@
 package hd3gtv.mydmam.transcode.images;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.ContainerEntryResult;
 import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
@@ -34,10 +31,10 @@ import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.images.ImageAttributeGeometry.Compare;
+import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.StoppableProcessing;
 
@@ -75,23 +72,11 @@ public class ImageMagickThumbnailer implements MetadataExtractor {
 	protected static File icc_profile;
 	
 	static {
-		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
-		File conf_dir;
-		FilenameFilter fnf = new FilenameFilter() {
-			public boolean accept(File dir, String name) {
-				return name.equals("srgb.icc");
-			}
-		};
-		for (Map.Entry<String, File> entry : conf_dirs.entrySet()) {
-			conf_dir = entry.getValue();
-			File[] modules_files = conf_dir.listFiles(fnf);
-			for (int pos_mf = 0; pos_mf < modules_files.length; pos_mf++) {
-				icc_profile = modules_files[pos_mf];
-			}
-		}
-		
-		if (icc_profile == null) {
-			Loggers.Transcode.error("Can't found icc profile file in conf directory.", new FileNotFoundException("conf/srgb.icc"));
+		icc_profile = new File(MyDMAM.APP_ROOT_PLAY_CONF_DIRECTORY + File.separator + "srgb.icc");
+		try {
+			CopyMove.checkExistsCanRead(icc_profile);
+		} catch (Exception e) {
+			Loggers.Transcode.error("Can't found icc profile file in conf directory.", e);
 		}
 	}
 	

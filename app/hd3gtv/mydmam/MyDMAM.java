@@ -390,9 +390,11 @@ public class MyDMAM {
 	 * Search application.conf in classpath, and return the /mydmam main directory.
 	 */
 	public static final File APP_ROOT_PLAY_DIRECTORY;
+	public static final File APP_ROOT_PLAY_CONF_DIRECTORY;
 	
 	static {
 		APP_ROOT_PLAY_DIRECTORY = getMyDMAMRootPlayDirectory();
+		APP_ROOT_PLAY_CONF_DIRECTORY = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getPath() + File.separator + "conf");
 	}
 	
 	private static File getMyDMAMRootPlayDirectory() {

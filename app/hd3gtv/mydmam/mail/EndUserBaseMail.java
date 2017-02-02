@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
-import java.util.Map;
 
 import javax.mail.internet.InternetAddress;
 
@@ -36,11 +35,11 @@ import org.codehaus.groovy.control.CompilationFailedException;
 import groovy.lang.Writable;
 import groovy.text.SimpleTemplateEngine;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.module.MessagesOutsidePlay;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.CopyMove;
 
 /**
- * With Groovy engine front-end (outside Play scope). Ignore Jar files content, but manage Play modules.
+ * With Groovy engine front-end (outside Play scope). Ignore Jar files content.
  */
 public class EndUserBaseMail {
 	
@@ -60,22 +59,15 @@ public class EndUserBaseMail {
 		template_engine = new SimpleTemplateEngine();
 		template_engine.setVerbose(GROOVY_VERBOSE);
 		
-		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
-		File templates_directories;
-		File[] templates_directories_content;
-		File template_directory;
-		String module_name;
-		String template_name;
-		String tpl_path;
-		for (Map.Entry<String, File> conf_dir_entry : conf_dirs.entrySet()) {
-			module_name = conf_dir_entry.getKey();
-			templates_directories = new File(conf_dir_entry.getValue() + File.separator + TEMPLATE_BASE_PATH);
-			if (templates_directories.exists() == false) {
-				continue;
-			}
-			if (templates_directories.isDirectory() == false) {
-				continue;
-			}
+		File templates_directories = new File(MyDMAM.APP_ROOT_PLAY_CONF_DIRECTORY + File.separator + TEMPLATE_BASE_PATH);
+		try {
+			CopyMove.checkExistsCanRead(templates_directories);
+			CopyMove.checkIsDirectory(templates_directories);
+			
+			File[] templates_directories_content;
+			File template_directory;
+			String template_name;
+			String tpl_path;
 			
 			/**
 			 * Test validity
@@ -99,15 +91,18 @@ public class EndUserBaseMail {
 					template_name = template_directory.getName();
 					if (templates.containsKey(template_name) == false) {
 						templates.put(template_name, template_directory);
-						Loggers.Mail.debug("Import mail template: \"" + template_name + "\" from \"" + module_name + "\" module in \"" + template_directory.getAbsolutePath() + "\"");
+						Loggers.Mail.debug("Import mail template: \"" + template_name + "\" in \"" + template_directory.getAbsolutePath() + "\"");
 					} else {
 						throw new Exception("Template directory with the name \"" + template_name + "\" is already added.");
 					}
 				} catch (Exception e) {
-					Loggers.Mail.error("Can't use/import template directory, path: " + template_directory + ", module: " + module_name, e);
+					Loggers.Mail.error("Can't use/import template directory, path: " + template_directory, e);
 				}
+				
 			}
 			
+		} catch (Exception e) {
+			Loggers.Mail.error("Can't found template directory in: " + templates_directories, e);
 		}
 	}
 	

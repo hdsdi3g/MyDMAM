@@ -47,7 +47,6 @@ public class Application extends Controller {
 	public static final int HTTP_not_implemented = 501;
 	
 	public static void index() {
-		// redirect(Router.getFullUrl("Application.indexjs"), true);
 		/*String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
 		String current_basket_content = "[]";
 		render(title, current_basket_content);*/
@@ -100,12 +99,6 @@ public class Application extends Controller {
 		} catch (FileNotFoundException e) {
 			forbidden();
 		}
-	}
-	
-	@Deprecated
-	public static void indexjs() {
-		Loggers.Play.warn("Client use indexjs controller (/!#)");
-		render();
 	}
 	
 }
