@@ -31,20 +31,20 @@ routes.loadBackbone = function(dom_target) {
 
 routes.Backbone = React.createClass({
 	getInitialState: function() {
-		return {dest: null, params: null};
+		return {dest: null, params: null, directsearch: null};
 	},
   	processHash: function() {
 		var hash = location.hash || '#';
 		this.props.rlite.run(hash.slice(1));
 	},
 	onChangePage: function(route_name, params) {
-		this.setState({dest: route_name, params: params});
+		this.setState({dest: route_name, params: params, directsearch: null});
 	},
   	componentWillMount: function() {
   		var r = this.props.rlite;
   		
 		r.add('', function () {
-			this.setState({dest: null, params: null});
+			this.setState({dest: null, params: null, directsearch: null});
 		}.bind(this));
 
 		routes.populate(r, this.onChangePage);
@@ -63,31 +63,27 @@ routes.Backbone = React.createClass({
   	doDirectSearch: function(q) {
   		location.hash = "#" + mydmam.async.search.urlify(q, 0);
 	},
+	onDirectSearch: function(q) {
+		this.setState({directsearch: q});
+	},
 	render: function() {
 		var main = null;
-
-		var search = null;
-		if (mydmam.async.isAvaliable("search", "query")) {
-			search = (<mydmam.async.SearchBox onValidation={this.doDirectSearch} />);
-		}
 
 		if (this.state.dest) {
 			var ReactTopLevelClass = routes.getReactTopLevelClassByRouteName(this.state.dest);
 			if (ReactTopLevelClass) {
 				return (<div>
-					<mydmam.async.TopMenu />
-					<ReactTopLevelClass params={this.state.params} />
+					<mydmam.async.TopMenu onDirectSearch={this.onDirectSearch} />
+					<ReactTopLevelClass params={this.state.params} directsearch={this.state.directsearch} />
 					<mydmam.async.Footer />
-					{search}
 				</div>);
 			}
 		}
 
 		return (<div>
-			<mydmam.async.TopMenu />
+			<mydmam.async.TopMenu onDirectSearch={this.doDirectSearch} />
 			<mydmam.async.Home />
 			<mydmam.async.Footer />
-			{search}
 		</div>);
 	}
 });

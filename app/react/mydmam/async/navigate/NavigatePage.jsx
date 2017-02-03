@@ -200,7 +200,7 @@ navigate.NavigatePage = React.createClass({
 		}
 		this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, stat_order);
 	},
-	handleChangeSearchBox: function(dom_inputbox) {
+	/*handleChangeSearchBox: function(dom_inputbox) {
 		if (!this.state.inputboxsearch) {
 			this.setState({
 				inputboxsearch: dom_inputbox,
@@ -213,7 +213,7 @@ navigate.NavigatePage = React.createClass({
 		if (stat.reference.directory) {
 			this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, null);
 		}
-	},
+	},*/
 	render: function() {
 		var stat = this.state.stat[md5(this.state.pathindex)];
 		if (!stat) {
@@ -280,9 +280,12 @@ navigate.NavigatePage = React.createClass({
 					external_location={this.state.external_location} />
 				{display_pagination}
 				{noresult}
-				<navigate.SearchBox
-					changeStateInputbox={this.handleChangeSearchBox} />
 			</div>
 		);
 	}
 });
+
+/*
+				<navigate.SearchBox
+					changeStateInputbox={this.handleChangeSearchBox} />
+*/

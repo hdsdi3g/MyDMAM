@@ -52,7 +52,7 @@ var DropdownMenu = React.createClass({
 
 			if (item.headeri18n) {
 				content.push(<li key={pos} className="nav-header">
-					{item.headeri18n}
+					{i18n(item.headeri18n)}
 				</li>);
 			} else {
 				content.push(<li key={pos}>
@@ -76,9 +76,14 @@ var DropdownMenu = React.createClass({
 async.TopMenu = React.createClass({
 	render: function() {
 
+		var search = null;
+		if (mydmam.async.isAvaliable("search", "query")) {
+			//search = (<mydmam.async.SearchBox onValidation={this.doDirectSearch} />);
+		}
+
 		 //#{secure.check 'navigate'}
 		var sitesearchbox = (<li className="navbar-search">
-			<input type="text" id="sitesearch" className="search-query span2" placeholder={i18n("maingrid.search")} name="q" />
+			<input type="text" className="search-query span2" placeholder={i18n("maingrid.search")} name="q" />
 		</li>);
 		var sitesearchbox_divider = divider_vertical;
 		var navigate_link = (<li>
@@ -108,7 +113,7 @@ async.TopMenu = React.createClass({
 		var admin_menu = <DropdownMenu label={i18n("maingrid.adminbtn")} items={admin_menu_items} />
 
 		return (<div className="navbar navbar-fixed-top">
-			  <div className="navbar-inner">
+			<div className="navbar-inner">
 			    <div className="container-fluid">
 					<a className="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
 						<span className="icon-bar"></span>
@@ -116,25 +121,64 @@ async.TopMenu = React.createClass({
 						<span className="icon-bar"></span>
 					</a>
 					<a className="brand" href={href_brand}>{i18n("maingrid.brand")}</a>
-			 
+		 
 			 		<ul className="nav pull-right">
 						{sitesearchbox}
 						{sitesearchbox_divider}
 						<DropdownMenu label={user_profile_long_name} items={user_dropdown_items} />
 			 		</ul>
 
-			      <div className="nav-collapse collapse">
-			 		<ul className="nav pull-left navbar-fixed-top-btn">
-						{navigate_link}
-						{navigate_link_divider}
-						{admin_menu}
-					</ul>
-			      </div>
+					<div className="nav-collapse collapse">
+				 		<ul className="nav pull-left navbar-fixed-top-btn">
+							{navigate_link}
+							{navigate_link_divider}
+							{admin_menu}
+						</ul>
+					</div>
 			    </div>
-			  </div>  
-			</div>);
+			</div>  
+		</div>);
 	}
 });
+
+
+async.SearchBox = React.createClass({
+	/*getInitialState: function() {
+		return {
+			inputbox: $("#sitesearch")[0],
+		};
+	},
+	componentDidMount: function() {
+		this.state.inputbox.value = "";
+		this.state.inputbox.addEventListener('keypress', this.onkeyPress);
+		this.state.inputbox.style.display = "block";
+	},
+	componentWillUnmount: function() {
+		this.state.inputbox.removeEventListener('keypress', this.onkeyPress);
+		this.state.inputbox.style.display = "none";
+	},
+	shouldComponentUpdate: function(nextProps, nextState) {
+	    return false;
+	},
+	onkeyPress: function(event) {
+		if (!event) {
+			event = window.event;
+		}
+    	var keyCode = event.keyCode || event.which;
+    	if (keyCode == '13') {
+      		this.props.onValidation(this.state.inputbox.value);
+      		this.state.inputbox.value = "";
+
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			event.stopPropagation();
+    	}
+	},*/
+	render: function() {
+		return null;
+	}
+});
+
 
 /*
 
