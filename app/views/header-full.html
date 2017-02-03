@@ -59,6 +59,23 @@
 	<script src="@{Application.i18n()}" type="text/javascript" charset="UTF-8"></script>
 	
 	#{get 'moreScripts' /}
+	
+	<script type="text/javascript" charset="UTF-8">
+	<!--
+	var jsx_error_messages = [];
+	
+	$(document).ready(function() {
+		$(function () {
+			if (jsx_error_messages.length > 0) {
+				for (pos = 0; pos < jsx_error_messages.length; pos++) {
+					console.log("Error in " + jsx_error_messages[pos].from + "\n\n" + jsx_error_messages[pos].text + "\n\n" + jsx_error_messages[pos].line);
+				}
+			}
+	    });
+	});
+	-->
+	</script>
+	
 </head>
 <body>
 #{doLayout /}
