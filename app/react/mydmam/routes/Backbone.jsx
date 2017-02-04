@@ -31,20 +31,20 @@ routes.loadBackbone = function(dom_target) {
 
 routes.Backbone = React.createClass({
 	getInitialState: function() {
-		return {dest: null, params: null, directsearch: null};
+		return {dest: null, params: null, q: null, };
 	},
   	processHash: function() {
 		var hash = location.hash || '#';
 		this.props.rlite.run(hash.slice(1));
 	},
 	onChangePage: function(route_name, params) {
-		this.setState({dest: route_name, params: params, directsearch: null});
+		this.setState({dest: route_name, params: params, q: null});
 	},
   	componentWillMount: function() {
   		var r = this.props.rlite;
   		
 		r.add('', function () {
-			this.setState({dest: null, params: null, directsearch: null});
+			this.setState({dest: null, params: null, q: null});
 		}.bind(this));
 
 		routes.populate(r, this.onChangePage);
@@ -64,24 +64,37 @@ routes.Backbone = React.createClass({
   		location.hash = "#" + mydmam.async.search.urlify(q, 0);
 	},
 	onDirectSearch: function(q) {
-		this.setState({directsearch: q});
+		if (q == '') {
+			q = null;
+		}
+
+		if (routes.canHandleSearch(this.state.dest)) {
+			this.setState({q: q});
+		} else if (q != null) {
+			this.doDirectSearch(q);
+		}
 	},
 	render: function() {
 		var main = null;
 
+		var display_search_inputbox = mydmam.async.isAvaliable("search", "query");
+
 		if (this.state.dest) {
 			var ReactTopLevelClass = routes.getReactTopLevelClassByRouteName(this.state.dest);
+
+			display_search_inputbox = display_search_inputbox | routes.canHandleSearch(this.state.dest);
+		
 			if (ReactTopLevelClass) {
 				return (<div>
-					<mydmam.async.TopMenu onDirectSearch={this.onDirectSearch} />
-					<ReactTopLevelClass params={this.state.params} directsearch={this.state.directsearch} />
+					<mydmam.async.TopMenu onDirectSearch={this.onDirectSearch} display_search_inputbox={display_search_inputbox} />
+					<ReactTopLevelClass params={this.state.params} q={this.state.q} />
 					<mydmam.async.Footer />
 				</div>);
 			}
 		}
 
 		return (<div>
-			<mydmam.async.TopMenu onDirectSearch={this.doDirectSearch} />
+			<mydmam.async.TopMenu onDirectSearch={this.doDirectSearch} display_search_inputbox={display_search_inputbox} />
 			<mydmam.async.Home />
 			<mydmam.async.Footer />
 		</div>);

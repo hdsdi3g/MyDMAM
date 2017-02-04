@@ -85,7 +85,7 @@ search.SearchResultPage = React.createClass({
 search.Home = React.createClass({
 	getInitialState: function() {
 		return {
-			q: null,
+			q: this.props.q,
 			qfrom: 1,
 			results: null,
 			inputboxsearch: null,
@@ -101,14 +101,20 @@ search.Home = React.createClass({
 		if (props.params.from) {
 			qfrom = props.params.from;
 		}
+
+		var q = props.q;
+		if (q == null) {
+			q = decodeURIComponent(props.params.q);
+		}
+
 		this.setState({
-			q: decodeURIComponent(props.params.q),
+			q: q,
 			qfrom: qfrom,
 			results: null,
 		});
 
 		var request = {
-			q: decodeURIComponent(props.params.q),
+			q: q,
 			from: qfrom,
 		};
 

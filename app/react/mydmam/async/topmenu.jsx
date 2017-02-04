@@ -74,22 +74,47 @@ var DropdownMenu = React.createClass({
 });
 
 async.TopMenu = React.createClass({
-	render: function() {
+	onSearchKeyPress: function(event) {
+		if (!event) {
+			event = window.event;
+		}
+    	var keyCode = event.keyCode || event.which;
+    	if (keyCode == '13') {
+    		var item = React.findDOMNode(this.refs.search);
+    		this.props.onDirectSearch(item.value);
+      		item.value = "";
 
-		var search = null;
-		if (mydmam.async.isAvaliable("search", "query")) {
-			//search = (<mydmam.async.SearchBox onValidation={this.doDirectSearch} />);
+			event.preventDefault();
+			if (event.stopImmediatePropagation) {
+				event.stopImmediatePropagation();
+			}
+			event.stopPropagation();
+    	}
+	},
+	render: function() {
+		var sitesearchbox = null;
+		var sitesearchbox_divider = null;
+		var navigate_link = null;
+		var navigate_link_divider = null;
+
+		if (this.props.display_search_inputbox) {
+			sitesearchbox = (<li className="navbar-search">
+				<input
+					type="text"
+					className="search-query span2"
+					placeholder={i18n("maingrid.search")}
+					onKeyPress={this.onSearchKeyPress}
+					ref="search" />
+			</li>);
+			sitesearchbox_divider = divider_vertical;
 		}
 
-		 //#{secure.check 'navigate'}
-		var sitesearchbox = (<li className="navbar-search">
-			<input type="text" className="search-query span2" placeholder={i18n("maingrid.search")} name="q" />
-		</li>);
-		var sitesearchbox_divider = divider_vertical;
-		var navigate_link = (<li>
-			<a href="#navigate">{i18n("application.navigate")}</a>
-		</li>);
-		var navigate_link_divider = divider_vertical;
+		if (mydmam.async.isAvaliable("stat", "cache")) {
+			navigate_link = (<li>
+				<a href="#navigate">{i18n("application.navigate")}</a>
+			</li>);
+			navigate_link_divider = divider_vertical;
+		}
 
 		var user_dropdown_items = [];
 		user_dropdown_items.push({
@@ -141,120 +166,7 @@ async.TopMenu = React.createClass({
 	}
 });
 
-
-async.SearchBox = React.createClass({
-	/*getInitialState: function() {
-		return {
-			inputbox: $("#sitesearch")[0],
-		};
-	},
-	componentDidMount: function() {
-		this.state.inputbox.value = "";
-		this.state.inputbox.addEventListener('keypress', this.onkeyPress);
-		this.state.inputbox.style.display = "block";
-	},
-	componentWillUnmount: function() {
-		this.state.inputbox.removeEventListener('keypress', this.onkeyPress);
-		this.state.inputbox.style.display = "none";
-	},
-	shouldComponentUpdate: function(nextProps, nextState) {
-	    return false;
-	},
-	onkeyPress: function(event) {
-		if (!event) {
-			event = window.event;
-		}
-    	var keyCode = event.keyCode || event.which;
-    	if (keyCode == '13') {
-      		this.props.onValidation(this.state.inputbox.value);
-      		this.state.inputbox.value = "";
-
-			event.preventDefault();
-			event.stopImmediatePropagation();
-			event.stopPropagation();
-    	}
-	},*/
-	render: function() {
-		return null;
-	}
-});
-
-
 /*
-
-
-			%{	menu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllUserMenusEntries()
-				menu_elements.each() { if (controllers.Secure.checkview(it.privilege)) {
-			}%
-				#{if it.add_divider}
-					<li className="divider-vertical"></li>
-				#{/if}
-			<li id="&{it.btn_id}" #{if it.subitems}className="dropdown"#{/if}>
-				<a href="&{it.getPlayTargetUrl()}" #{if it.subitems}className="dropdown-toggle" data-toggle="dropdown"#{/if}>
-					&{it.title}
-					#{if it.subitems}<b className="caret"></b>#{/if}
-				</a>
-				#{if it.subitems}
-					<ul className="dropdown-menu">
-						%{	
-							it.subitems.eachWithIndex() { item, p ->
-						}%
-							<li id="&{item.btn_id}">
-								<a href="&{item.getPlayTargetUrl()}">&{item.title}</a>
-								#{if item.add_divider}
-									<li className="divider"></li>
-								#{/if}
-							</li>
-						%{
-							}
-						}%
-					</ul>
-				#{/if}
-			</li>
-			%{
-				} }
-			}%
-
-*/
-
-
-
-/*
-
-					%{	adminmenu_elements = hd3gtv.mydmam.module.MyDMAMModulesManager.getAllAdminMenusEntries()
-						adminmenu_elements.eachWithIndex() { adminitem, p ->
-						if (controllers.Secure.checkview(adminitem.privilege)) {
-					}%
-						<li id="&{adminitem.btn_id}" #{if adminitem.subitems}className="dropdown-submenu"#{/if}>
-							<a href="&{adminitem.getPlayTargetUrl()}" #{if adminitem.subitems}tabindex="-1"#{/if}>&{adminitem.title}</a>
-							#{if adminitem.subitems}
-								<ul className="dropdown-menu">
-								%{	
-									adminitem.subitems.eachWithIndex() { sitem, i ->
-									if (controllers.Secure.checkview(sitem.privilege)) {
-								}%
-									<li id="&{sitem.btn_id}">
-										<a href="&{sitem.getPlayTargetUrl()}">&{sitem.title}</a>
-									</li>
-									#{if sitem.add_divider}
-										<li className="divider"></li>
-									#{/if}
-								%{
-									}}
-								}%
-								</ul>
-							#{/if}
-							#{if adminitem.add_divider}
-								<li className="divider"></li>
-							#{/if}
-						</li>
-						<li className="divider"></li>
-					%{
-						}}
-					}%
-
-
-
 	public String getPlayTargetUrl() {
 		try {
 			return Router.reverse(play_action).url;
@@ -262,5 +174,4 @@ async.SearchBox = React.createClass({
 			return play_action;
 		}
 	}
-
 */

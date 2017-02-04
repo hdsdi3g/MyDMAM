@@ -204,6 +204,24 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 		}
 	};
 
+	/** Switch on the inputbox in the top menu and redirect let requests to this route else to start classic search */
+	routes.setNeedsToRedirectSearch = function(route_name) {
+		if (base[route_name]) {
+			base[route_name].can_self_handle_search = true;
+		} else {
+			throw new Error("Route name " + route_name + " has not be created at this time !"); 
+		}
+	};
+
+	routes.canHandleSearch = function(route_name) {
+		if (base[route_name]) {
+			if (base[route_name].can_self_handle_search) {
+				return true;
+			}
+		}
+		return false;
+	};
+
 	var callbackFactory = function(callback, route_name) {
 		return function(r) {
 			callback(route_name, r.params);
@@ -227,7 +245,6 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 					}
 				}
 				if (mydmam.async.isAvaliable(async_need.name, async_need.verb) == false) {
-					// console.log("No rights for", async_need);
 					continue;
 				}
 			}

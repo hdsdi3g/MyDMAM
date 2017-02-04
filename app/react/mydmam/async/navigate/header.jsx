@@ -126,8 +126,8 @@ navigate.HeaderItem = React.createClass({
 		);
 
 		var is_in_search_label = null;
-		if (this.props.is_in_search) {
-			is_in_search_label = (<span className="badge badge-info" style={{marginLeft: 10}}>{i18n("browser.search")}</span>);
+		if (this.props.in_search != null) {
+			is_in_search_label = (<span className="badge badge-info" style={{marginLeft: 10}}>{i18n("browser.search", this.props.in_search.trim())}</span>);
 		}
 
 		var summary = null;
