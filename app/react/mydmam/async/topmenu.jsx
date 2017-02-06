@@ -21,31 +21,39 @@ var href_disconnect = "LOGOUT"; //@{Secure.logout()}
 
 var divider_vertical = (<li className="divider-vertical"></li>);
 
-/*
-async.HeaderTab = React.createClass({
+var TopMenuEntrylink = React.createClass({
 	onClick: function(e) {
-		//e.preventDefault();
-		//this.props.onActiveChange(this.props.pos);
-		$(React.findDOMNode(this.refs.tab)).blur();
+		$(React.findDOMNode(this.refs.thislink)).blur();
 	},
-	render: function(){
-		var li_class = classNames({
-			"active": this.props.href == location.hash
-		});
+	render: function() {
+		var href = this.props.href;
+		var is_dropdown = this.props.is_dropdown;
+		var is_brand = this.props.brand;
+		var label = this.props.label;
 
-		return (<li className={li_class}>
-			<a href={this.props.href} onClick={this.onClick} ref="tab">{i18n(this.props.i18nlabel)}</a>
-		</li>);
-	},
+		if (is_dropdown) {
+			return (<a className="dropdown-toggle" data-toggle="dropdown" href="#" ref="thislink" onClick={this.onClick}>
+				{label} <b className="caret"></b>
+			</a>);
+		} else {
+			if (is_brand) {
+				return (<a href={href} ref="thislink" onClick={this.onClick} className="brand">
+					{label}
+				</a>);
+			} else {
+				return (<a href={href} ref="thislink" onClick={this.onClick}>
+					{label}
+				</a>);
+			}
+		}
+	}
 });
-*/
 
 var DropdownMenu = React.createClass({
 	render: function() {
-
 		var items = this.props.items;
-
 		var content = [];
+		var active = this.props.active;
 
 		for (pos in items) {
 			var item = items[pos];
@@ -61,17 +69,40 @@ var DropdownMenu = React.createClass({
 			}
 		}
 
-		return (<li className="dropdown">
-			<a className="dropdown-toggle" data-toggle="dropdown" href="#">
-				{this.props.label}
-				<b className="caret"></b>
-			</a>
+		var li_class = classNames({
+			"active": active,
+			dropdown: true,
+		});
+
+		return (<li className={li_class}>
+			<TopMenuEntrylink is_dropdown={true} label={this.props.label} />
 			<ul className="dropdown-menu">
 				{content}
 			</ul>
 		</li>);
 	}
 });
+
+var isMenuItemIsActive = function(href_hash_to_handle) {
+	if (!location.hash) {
+		return false;
+	}
+
+	if (Array.isArray(href_hash_to_handle) == false) {
+		href_hash_to_handle = [href_hash_to_handle];
+	}
+
+	if (href_hash_to_handle.indexOf(location.hash) == -1) {
+		for (var pos in href_hash_to_handle) {
+			var href = href_hash_to_handle[pos];
+			if (location.hash.startsWith(href)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	return true;
+}
 
 async.TopMenu = React.createClass({
 	onSearchKeyPress: function(event) {
@@ -110,11 +141,17 @@ async.TopMenu = React.createClass({
 		}
 
 		if (mydmam.async.isAvaliable("stat", "cache")) {
-			navigate_link = (<li>
-				<a href="#navigate">{i18n("application.navigate")}</a>
+			var li_class = classNames({
+				"active": isMenuItemIsActive("#navigate"),
+			});
+
+			navigate_link = (<li className={li_class}>
+				<TopMenuEntrylink label={i18n("application.navigate")} href="#navigate" />
 			</li>);
 			navigate_link_divider = divider_vertical;
 		}
+
+		var user_profile_menu_active = false; // isMenuItemIsActive()
 
 		var user_dropdown_items = [];
 		user_dropdown_items.push({
@@ -123,19 +160,33 @@ async.TopMenu = React.createClass({
 			i18nlabel: "maingrid.disconnect",
 		});
 
-
-
 		var admin_menu_items = [];
+
 		admin_menu_items.push({
 			headeri18n: "service.menuinfrastructure",
 		});
 		admin_menu_items.push({href: "#watchfolders", 		icon: "icon-folder-open",	i18nlabel: "manager.watchfolders.pagename",});
 		admin_menu_items.push({href: "#broker", 			icon: "icon-tasks", 		i18nlabel: "manager.jobs.pagename",});
-		admin_menu_items.push({href: "#manager/summary", 	icon: "icon-hdd", 			i18nlabel: "manager.pagename",});
+		admin_menu_items.push({href: "#manager/summary", 	icon: "icon-hdd", 			i18nlabel: "manager.pagename",					links: ["#manager", "#debugpage"]});
 		admin_menu_items.push({href: "#ftpserver", 			icon: "icon-random", 		i18nlabel: "ftpserver.pagename",});
-		admin_menu_items.push({href: "#auth", 				icon: "icon-user", 			i18nlabel: "auth.pagenamemenu",});
+		admin_menu_items.push({href: "#auth/users",			icon: "icon-user", 			i18nlabel: "auth.pagenamemenu",					links: "#auth"});
 
-		var admin_menu = <DropdownMenu label={i18n("maingrid.adminbtn")} items={admin_menu_items} />
+		var admin_menu_href_handle = [];
+		for (var pos in admin_menu_items) {
+			var item = admin_menu_items[pos];
+			if (item.href) {
+				admin_menu_href_handle.push(item.href);
+			}
+			if (item.links) {
+				if (Array.isArray(item.links)) {
+					admin_menu_href_handle = admin_menu_href_handle.concat(item.links);
+				} else {
+					admin_menu_href_handle.push(item.links);
+				}
+			}
+		}
+
+		var admin_menu = <DropdownMenu label={i18n("maingrid.adminbtn")} items={admin_menu_items} active={isMenuItemIsActive(admin_menu_href_handle)} />
 
 		return (<div className="navbar navbar-fixed-top">
 			<div className="navbar-inner">
@@ -145,12 +196,12 @@ async.TopMenu = React.createClass({
 						<span className="icon-bar"></span>
 						<span className="icon-bar"></span>
 					</a>
-					<a className="brand" href={href_brand}>{i18n("maingrid.brand")}</a>
+					<TopMenuEntrylink label={i18n("maingrid.brand")} brand={true} href={href_brand} />
 		 
 			 		<ul className="nav pull-right">
 						{sitesearchbox}
 						{sitesearchbox_divider}
-						<DropdownMenu label={user_profile_long_name} items={user_dropdown_items} />
+						<DropdownMenu label={user_profile_long_name} items={user_dropdown_items} active={user_profile_menu_active} />
 			 		</ul>
 
 					<div className="nav-collapse collapse">
