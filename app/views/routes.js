@@ -15,37 +15,25 @@
  * 
 }*
 
-mydmam = {};
-
-/** Define URLs for JS functions */
 (function(mydmam) {
 
-mydmam.urlimgs = {};
-mydmam.async = {};
-mydmam.metadatas = {};
-mydmam.metadatas.url = {};
-mydmam.stat = {};
-mydmam.basket = {};
-mydmam.basket.url = {};
-mydmam.basket.allusers = {};
-mydmam.manager = {};
-mydmam.manager.url = {};
-mydmam.notification = {};
-mydmam.notification.url = {};
+if(!mydmam.routes){mydmam.routes = {};}
+if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 
-mydmam.urlimgs.ajaxloader = "@{'/public/img/ajax-loader.gif'}";
-mydmam.urlimgs.github_favicon = "@{'/public/img/github-favicon.ico'}";
+mydmam.routes.statics.home = "@{Application.index()}";
+mydmam.routes.statics.disconnect = "@{Secure.logout()}";
+mydmam.routes.statics.github_favicon = "@{'/public/img/github-favicon.ico'}"; 
+mydmam.routes.statics.async = "@{AsyncJavascript.index(name='nameparam1',verb='verbparam2')}";	
+mydmam.routes.statics.navigate = "@{Application.index()}#navigate/"; // TODO check navigate !
+mydmam.routes.statics.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}"; // TODO check navigate !
+mydmam.routes.statics.ftpserver_export_user_sessions = "@{Manager.ftpserver_export_user_sessions(user_session_ref='keyparam1')}"; //TODO check adminFtpServer !
 
-mydmam.async.url = "@{AsyncJavascript.index(name='nameparam1',verb='verbparam2')}";	
+/*if(!mydmam.async){mydmam.async = {};}
 mydmam.async.controllers = %{out.print(hd3gtv.mydmam.manager.AppManager.getGson().toJson(hd3gtv.mydmam.web.AJSController.getAllControllersVerbsForThisUser())); }% ;
+*/
 
-#{secure.check 'navigate'}
-	mydmam.metadatas.url.navigate_react = "@{Application.index()}#navigate/";
-	mydmam.metadatas.url.metadatafile = "@{Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')}";
-#{/secure.check}
-
-#{secure.check 'adminFtpServer'}
-	mydmam.manager.url_ftpserver_export_user_sessions = "@{Manager.ftpserver_export_user_sessions(user_session_ref='keyparam1')}";
-#{/secure.check}
+/*if(!mydmam.user){mydmam.user = {};}
+mydmam.user.long_name = "%{out.print(hd3gtv.mydmam.web.AJSController.getUserProfileLongName())}%";
+*/
 
 })(window.mydmam);

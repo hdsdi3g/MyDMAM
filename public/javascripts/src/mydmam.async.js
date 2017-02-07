@@ -39,7 +39,7 @@
 		}
 
 		$.ajax({
-			url: mydmam.async.url.replace("nameparam1", name).replace("verbparam2", verb),
+			url: mydmam.routes.reverse("async").replace("nameparam1", name).replace("verbparam2", verb),
 			type: "POST",
 			dataType: 'json',
 			data: {

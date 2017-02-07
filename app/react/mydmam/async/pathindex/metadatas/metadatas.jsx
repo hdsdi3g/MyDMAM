@@ -15,12 +15,11 @@
  * 
 */
 
-//var pathindex = mydmam.async.pathindex;
-
 metadatas.getFileURL = function(file_hash, file_type, file_name) {
-	if (!mydmam.metadatas.url.metadatafile) {
+	var url = mydmam.routes.reverse("metadatafile");
+	if (!url) {
 		return "";
 	}
-	return mydmam.metadatas.url.metadatafile.replace("filehashparam1", file_hash).replace("typeparam2", file_type).replace("fileparam3", file_name);
+	return url.replace("filehashparam1", file_hash).replace("typeparam2", file_type).replace("fileparam3", file_name);
 };
 

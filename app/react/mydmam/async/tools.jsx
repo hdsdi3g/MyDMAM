@@ -349,7 +349,7 @@ async.JavaClassNameLink = React.createClass({
 
 		return (<span>
 			<a href={href} target="_blank" onClick={this.onClickLink}>
-				<img src={mydmam.urlimgs.github_favicon} style={icon_style} />
+				<img src={mydmam.routes.reverse("github_favicon")} style={icon_style} />
 				&nbsp;
 				<abbr title={javaclass}>
 					{javaclass.substring(javaclass.lastIndexOf(".") + 1)}

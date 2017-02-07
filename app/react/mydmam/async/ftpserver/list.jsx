@@ -227,13 +227,13 @@ ftpserver.UserLine = React.createClass({
 		var btns_admin = null;
 		if (ftpserver.hasUserAdminRights()) {
 			var ftp_export = null;
-			if (mydmam.manager.url_ftpserver_export_user_sessions) {
-
+			var url_export = mydmam.routes.reverse("ftpserver_export_user_sessions");
+			if (url_export) {
 				var btn_export_classes = classNames("btn", "btn-mini", {
 					"disabled": user.last_login == 0,
 				});
 				if (user.last_login > 0) {
-					var url = mydmam.manager.url_ftpserver_export_user_sessions.replace("keyparam1", md5(user.user_id));
+					var url = url_export.replace("keyparam1", md5(user.user_id));
 					ftp_export = (<a className={btn_export_classes} style={{marginRight: 5}} href={url}>
 						<i className="icon-download"></i>&nbsp;
 						{i18n("ftpserver.userlist.table.btnsessions")}

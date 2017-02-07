@@ -15,10 +15,6 @@
  * 
  */
 
-var href_brand = "#"; // @{Application.index()}#
-var user_profile_long_name = "USER NAME"; //%{ out.println(hd3gtv.mydmam.web.AJSController.getUserProfileLongName() ) }%
-var href_disconnect = "LOGOUT"; //@{Secure.logout()}
-
 var divider_vertical = (<li className="divider-vertical"></li>);
 
 var TopMenuEntrylink = React.createClass({
@@ -155,7 +151,7 @@ async.TopMenu = React.createClass({
 
 		var user_dropdown_items = [];
 		user_dropdown_items.push({
-			href: href_disconnect,
+			href: mydmam.routes.reverse("disconnect"),
 			icon: "icon-off",
 			i18nlabel: "maingrid.disconnect",
 		});
@@ -165,28 +161,42 @@ async.TopMenu = React.createClass({
 		admin_menu_items.push({
 			headeri18n: "service.menuinfrastructure",
 		});
-		admin_menu_items.push({href: "#watchfolders", 		icon: "icon-folder-open",	i18nlabel: "manager.watchfolders.pagename",});
-		admin_menu_items.push({href: "#broker", 			icon: "icon-tasks", 		i18nlabel: "manager.jobs.pagename",});
-		admin_menu_items.push({href: "#manager/summary", 	icon: "icon-hdd", 			i18nlabel: "manager.pagename",					links: ["#manager", "#debugpage"]});
-		admin_menu_items.push({href: "#ftpserver", 			icon: "icon-random", 		i18nlabel: "ftpserver.pagename",});
-		admin_menu_items.push({href: "#auth/users",			icon: "icon-user", 			i18nlabel: "auth.pagenamemenu",					links: "#auth"});
 
-		var admin_menu_href_handle = [];
-		for (var pos in admin_menu_items) {
-			var item = admin_menu_items[pos];
-			if (item.href) {
-				admin_menu_href_handle.push(item.href);
-			}
-			if (item.links) {
-				if (Array.isArray(item.links)) {
-					admin_menu_href_handle = admin_menu_href_handle.concat(item.links);
-				} else {
-					admin_menu_href_handle.push(item.links);
-				}
-			}
+		if (mydmam.async.isAvaliable("watchfolders", "list")) {
+			admin_menu_items.push({href: "#watchfolders", 		icon: "icon-folder-open",	i18nlabel: "manager.watchfolders.pagename",});
+		}
+		if (mydmam.async.isAvaliable("broker", "list")) {
+			admin_menu_items.push({href: "#broker", 			icon: "icon-tasks", 		i18nlabel: "manager.jobs.pagename",});
+		}
+		if (mydmam.async.isAvaliable("instances", "allsummaries")) {
+			admin_menu_items.push({href: "#manager/summary", 	icon: "icon-hdd", 			i18nlabel: "manager.pagename",	links: ["#manager", "#debugpage"]});
+		}
+		if (mydmam.async.isAvaliable("ftpserver", "allusers")) {
+			admin_menu_items.push({href: "#ftpserver", 			icon: "icon-random", 		i18nlabel: "ftpserver.pagename",});
+		}
+		if (mydmam.async.isAvaliable("auth", "usercreate")) {
+			admin_menu_items.push({href: "#auth/users",			icon: "icon-user", 			i18nlabel: "auth.pagenamemenu",	links: "#auth"});
 		}
 
-		var admin_menu = <DropdownMenu label={i18n("maingrid.adminbtn")} items={admin_menu_items} active={isMenuItemIsActive(admin_menu_href_handle)} />
+		var admin_menu = null;
+		if (admin_menu_items.length > 1) {
+			var admin_menu_href_handle = [];
+
+			for (var pos in admin_menu_items) {
+				var item = admin_menu_items[pos];
+				if (item.href) {
+					admin_menu_href_handle.push(item.href);
+				}
+				if (item.links) {
+					if (Array.isArray(item.links)) {
+						admin_menu_href_handle = admin_menu_href_handle.concat(item.links);
+					} else {
+						admin_menu_href_handle.push(item.links);
+					}
+				}
+			}
+			admin_menu = <DropdownMenu label={i18n("maingrid.adminbtn")} items={admin_menu_items} active={isMenuItemIsActive(admin_menu_href_handle)} />
+		}
 
 		return (<div className="navbar navbar-fixed-top">
 			<div className="navbar-inner">
@@ -196,12 +206,12 @@ async.TopMenu = React.createClass({
 						<span className="icon-bar"></span>
 						<span className="icon-bar"></span>
 					</a>
-					<TopMenuEntrylink label={i18n("maingrid.brand")} brand={true} href={href_brand} />
+					<TopMenuEntrylink label={i18n("maingrid.brand")} brand={true} href={mydmam.routes.reverse("home") + "#"} />
 		 
 			 		<ul className="nav pull-right">
 						{sitesearchbox}
 						{sitesearchbox_divider}
-						<DropdownMenu label={user_profile_long_name} items={user_dropdown_items} active={user_profile_menu_active} />
+						<DropdownMenu label={mydmam.user.long_name} items={user_dropdown_items} active={user_profile_menu_active} />
 			 		</ul>
 
 					<div className="nav-collapse collapse">
@@ -217,12 +227,3 @@ async.TopMenu = React.createClass({
 	}
 });
 
-/*
-	public String getPlayTargetUrl() {
-		try {
-			return Router.reverse(play_action).url;
-		} catch (NoRouteFoundException e) {
-			return play_action;
-		}
-	}
-*/

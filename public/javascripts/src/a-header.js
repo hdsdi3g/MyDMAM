@@ -22,7 +22,7 @@
 if(!mydmam){mydmam = {};}
 if(!mydmam.module){mydmam.module = {};}
 if(!mydmam.routes){mydmam.routes = {};}
-if(!mydmam.urlimgs){mydmam.urlimgs = {};}
+if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 
 /**
  * Pre-definited strings functions. Init mydmam global object.
@@ -259,5 +259,9 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 		return null;
 	};
 	
+	routes.reverse = function(controler_name) {
+		return routes.statics[controler_name];
+	};
+
 })(window.mydmam.routes);
 

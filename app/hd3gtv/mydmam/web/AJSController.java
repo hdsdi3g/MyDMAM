@@ -220,12 +220,12 @@ public class AJSController {
 	}
 	
 	@AJSIgnore
-	public static UserNG getUserProfile() throws Exception {
+	public static UserNG getUserProfile() {
 		return Bootstrap.getAuth().getByUserKey(Secure.connected());
 	}
 	
 	@AJSIgnore
-	public static String getUserProfileLongName() throws Exception {
+	public static String getUserProfileLongName() {
 		UserNG user = getUserProfile();
 		if (user == null) {
 			return "(Deleted, please log-off)";

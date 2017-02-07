@@ -50,7 +50,10 @@
 		<script src="@{'/public/javascripts/lib/react-0.13.2.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	#{/else}
 
-	<script type="text/javascript" charset="UTF-8"><!-- #{include 'routes.js'/} --></script>
+	<script type="text/javascript"><!--
+	window.mydmam = %{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.toString())}%;
+	--></script>
+	<script type="text/javascript"><!-- #{include 'routes.js'/} --></script>
 	
 	#{list hd3gtv.mydmam.web.JSSourceManager.getURLs(), as:'item'}
 		<script src="&{item}" type="text/javascript" charset="UTF-8"></script>

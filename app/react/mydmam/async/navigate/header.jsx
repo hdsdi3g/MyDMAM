@@ -17,8 +17,6 @@
 
 navigate.BreadCrumb = React.createClass({
 	render: function() {
-		var url_navigate = mydmam.metadatas.url.navigate_react;
-		
 		var storagename = this.props.storagename;
 		var path = this.props.path;
 		if (storagename == null) {
@@ -41,7 +39,7 @@ navigate.BreadCrumb = React.createClass({
 				items.push(
 					<li key={pos}>
 						<span className="divider">/</span>
-						<a href={url_navigate + newpath}>
+						<a href={mydmam.routes.reverse("navigate") + newpath}>
 							{element_subpaths[pos]}
 						</a>
 					</li>
@@ -61,7 +59,7 @@ navigate.BreadCrumb = React.createClass({
 		if (items.length > 0) {
 			header.push(
 				<li key="storagestitle">
-					<a href={url_navigate}>
+					<a href={mydmam.routes.reverse("navigate")}>
 						{i18n('browser.storagestitle')}
 					</a>
 					<span className="divider">::</span>
@@ -70,7 +68,7 @@ navigate.BreadCrumb = React.createClass({
 			if (path != "/") {
 				header.push(
 					<li key="root">
-						<a href={url_navigate + storagename + ':/'}>
+						<a href={mydmam.routes.reverse("navigate") + storagename + ':/'}>
 							{storagename}
 						</a>
 					</li>
@@ -95,8 +93,6 @@ navigate.BreadCrumb = React.createClass({
 
 navigate.HeaderItem = React.createClass({
 	render: function() {
-		var url_navigate = mydmam.metadatas.url.navigate_react;
-		
 		var reference = this.props.stat.reference;
 		var mtdsummary = this.props.stat.mtdsummary;
 
@@ -114,7 +110,7 @@ navigate.HeaderItem = React.createClass({
 			navigatetarget = reference.storagename + ":/";
 		}
 
-		var url_goback = url_navigate + navigatetarget;
+		var url_goback = mydmam.routes.reverse("navigate") + navigatetarget;
 		var go_back = (
 			<a
 				className="btn btn-mini btngoback"
