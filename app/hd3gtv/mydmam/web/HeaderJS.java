@@ -79,6 +79,7 @@ public class HeaderJS {
 		Entry e_ftpsessions = new Entry();
 		e_ftpsessions.setControler("Manager.ftpserver_export_user_sessions").addControlerParam("user_session_ref", "keyparam1").setChecks("adminFtpServer").pack();
 		entries.put("ftpserver_export_user_sessions", e_ftpsessions);
+		
 	}
 	
 	private class Entry {
@@ -213,6 +214,11 @@ public class HeaderJS {
 		
 		routes.put("statics", routes_statics);
 		mydmam.put("routes", routes);
+		
+		/**
+		 * Inject configuration Messages
+		 */
+		mydmam.put("i18n", MyDMAM.getconfiguredMessages());
 		
 		return simple_gson.toJson(mydmam);
 	}

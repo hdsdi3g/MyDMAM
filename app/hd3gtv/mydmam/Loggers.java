@@ -55,6 +55,7 @@ public final class Loggers {
 	public final static Logger Play = Logger.getLogger("mydmam.play");
 	public final static Logger Play_JSSource = Logger.getLogger("mydmam.play.jssource");
 	public final static Logger NodeJSBabel = Logger.getLogger("mydmam.play.babel");
+	public final static Logger Play_i18n = Logger.getLogger("mydmam.play.i18n");
 	public final static Logger Configuration = Logger.getLogger("mydmam.configuration");
 	public final static Logger Auth = Logger.getLogger("mydmam.auth");
 	public final static Logger CLI = Logger.getLogger("mydmam.cli");

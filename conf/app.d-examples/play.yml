@@ -4,6 +4,7 @@
                         # js_dev_mode is mandatory if you want change JS files on the fly (else, you must reboot Play for see changes).
     # no_check_babel_at_start: true # Disable the BabelJS checks during Play booting. Speedup up to 2 seconds the boot if js_dev_mode = true (Babel & NodeJS take some time to boot).
                                     # Useful on intense debugging, after having setup your development environment.
+    # check_i18n_cache_files: true # Set true if you want to change the messages.<lang> files (and the associed cached files).
 
 # messages:
     # maingrid.brand: Site name

@@ -265,3 +265,34 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 
 })(window.mydmam.routes);
 
+/**
+ * Main i18n function from Play! Documentation
+ */
+var i18n = function(code) {
+	var message = mydmam.i18n[code] || i18nMessages && i18nMessages[code] || code;
+	
+    // Encode %% to handle it later
+    message = message.replace(/%%/g, "\0%\0");
+    if (arguments.length > 1) {
+        // Explicit ordered parameters
+        for (var i=1; i<arguments.length; i++) {
+            var r = new RegExp("%" + i + "\\$\\w", "g");
+            message = message.replace(r, arguments[i]);
+        }
+        // Standard ordered parameters
+        for (var i=1; i<arguments.length; i++) {
+            message = message.replace(/%\w/, arguments[i]);
+        }
+    }
+    // Decode encoded %% to single %
+    message = message.replace("\0%\0", "%");
+    // Imbricated messages
+    var imbricated = message.match(/&\{.*?\}/g);
+    if (imbricated) {
+        for (var i=0; i<imbricated.length; i++) {
+            var imbricated_code = imbricated[i].substring(2, imbricated[i].length-1).replace(/^\s*(.*?)\s*$/, "$1");
+            message = message.replace(imbricated[i], i18nMessages[imbricated_code] || "");
+        }
+    }
+    return message;
+};

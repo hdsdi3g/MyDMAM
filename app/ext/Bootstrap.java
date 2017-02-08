@@ -16,22 +16,17 @@
 */
 package ext;
 
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.archivecircleapi.ACAPI;
 import hd3gtv.archivecircleapi.ACNode;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthTurret;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
 import hd3gtv.mydmam.web.JSSourceManager;
-import play.i18n.Messages;
+import hd3gtv.mydmam.web.JSi18nCached;
 import play.jobs.Job;
 import play.jobs.OnApplicationStart;
 
@@ -90,60 +85,10 @@ public class Bootstrap extends Job<Void> {
 	
 	public static BridgePathindexArchivelocation bridge_pathindex_archivelocation;
 	
+	public static JSi18nCached i18n_cache;
+	
 	public void doJob() {
-		/**
-		 * Compare Messages entries between languages
-		 */
-		String first_locales_lang = null;
-		Properties first_locales_messages = null;
-		Set<String> first_locales_messages_string;
-		
-		String actual_locales_lang = null;
-		Set<String> actual_messages_string;
-		StringBuilder sb;
-		boolean has_missing = false;
-		
-		for (Map.Entry<String, Properties> entry_messages_locale : Messages.locales.entrySet()) {
-			if (first_locales_lang == null) {
-				first_locales_lang = entry_messages_locale.getKey();
-				first_locales_messages = entry_messages_locale.getValue();
-				continue;
-			}
-			first_locales_messages_string = first_locales_messages.stringPropertyNames();
-			actual_messages_string = entry_messages_locale.getValue().stringPropertyNames();
-			actual_locales_lang = entry_messages_locale.getKey();
-			
-			sb = new StringBuilder();
-			has_missing = false;
-			for (String string : actual_messages_string) {
-				if (first_locales_messages_string.contains(string) == false) {
-					sb.append(" missing: " + string);
-					has_missing = true;
-				}
-			}
-			if (has_missing) {
-				Loggers.Play.error("Missing Messages strings in messages." + first_locales_lang + " lang (declared in messages." + actual_locales_lang + ") " + sb.toString());
-			}
-			
-			sb = new StringBuilder();
-			has_missing = false;
-			for (String string : first_locales_messages_string) {
-				if (actual_messages_string.contains(string) == false) {
-					sb.append(" missing: " + string);
-					has_missing = true;
-				}
-			}
-			if (has_missing) {
-				Loggers.Play.error("Missing Messages strings in messages." + actual_locales_lang + " lang (declared in messages." + first_locales_lang + ") " + sb.toString());
-			}
-		}
-		
-		/**
-		 * Inject configuration Messages to Play Messages
-		 */
-		for (Map.Entry<String, Properties> entry : Messages.locales.entrySet()) {
-			entry.getValue().putAll(MyDMAM.getconfiguredMessages());
-		}
+		i18n_cache = new JSi18nCached();
 		
 		try {
 			CassandraDb.getkeyspace();
