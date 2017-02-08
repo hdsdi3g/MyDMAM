@@ -154,30 +154,6 @@ public class Secure extends Controller {
 		forbidden();
 	}
 	
-	/**
-	 * @return true if privilege is empty
-	 */
-	public static boolean checkview(String privilege) {
-		if (privilege.equals("")) {
-			return true;
-		}
-		return isSessionHasThisPrivilege(privilege);
-	}
-	
-	/**
-	 * OR test
-	 * @return true if no privileges in list
-	 */
-	public static boolean checkview(List<String> privileges) {
-		if (privileges == null) {
-			return true;
-		}
-		if (privileges.isEmpty()) {
-			return true;
-		}
-		return isSessionHasThisPrivilege(privileges.toArray(new String[privileges.size()]));
-	}
-	
 	private static String getUserSessionInformation() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("request: ");

@@ -17,15 +17,23 @@
 package hd3gtv.mydmam.web;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
+import controllers.Secure;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.tools.GsonIgnoreStrategy;
+import play.exceptions.NoRouteFoundException;
+import play.mvc.Router;
+import play.vfs.VirtualFile;
 
 public class HeaderJS {
 	
@@ -43,48 +51,136 @@ public class HeaderJS {
 		builder.addSerializationExclusionStrategy(ignore_strategy);
 		MyDMAM.registerBaseSerializers(builder);
 		
-		builder.setPrettyPrinting(); // TODO remove !
+		// builder.setPrettyPrinting();
 		
 		simple_gson = builder.create();
 		
 		entries = new LinkedHashMap<>();
 		entries.put("home", new Entry("Application.index"));
 		entries.put("disconnect", new Entry("Secure.logout"));
-		entries.put("github_favicon", new Entry("'/public/img/github-favicon.ico'"));
-		entries.put("async", new Entry("AsyncJavascript.index(name='nameparam1',verb='verbparam2')"));
-		entries.put("navigate", new Entry("Application.index()", "navigate")); // #navigate/
-		entries.put("metadatafile", new Entry("Application.metadatafile(filehash='filehashparam1',type='typeparam2',file='fileparam3')", "navigate"));
-		entries.put("ftpserver_export_user_sessions", new Entry("Manager.ftpserver_export_user_sessions(user_session_ref='keyparam1')", "adminFtpServer"));
+		
+		Entry e_github_favicon = new Entry();
+		e_github_favicon.setStaticFile("/public/img/github-favicon.ico");
+		entries.put("github_favicon", e_github_favicon);
+		
+		Entry e_asyncjavascript = new Entry();
+		e_asyncjavascript.setControler("AsyncJavascript.index").addControlerParam("name", "nameparam1").addControlerParam("verb", "verbparam2").pack();
+		entries.put("async", e_asyncjavascript);
+		
+		Entry e_navigate = new Entry();
+		e_navigate.setControler("Application.index").setChecks("navigate").pack("#navigate/");
+		entries.put("navigate", e_navigate);
+		
+		Entry e_metadatafile = new Entry();
+		e_metadatafile.setControler("Application.metadatafile").addControlerParam("filehash", "filehashparam1").addControlerParam("type", "typeparam2").addControlerParam("file", "fileparam3");
+		e_metadatafile.setChecks("navigate").pack();
+		entries.put("metadatafile", e_metadatafile);
+		
+		Entry e_ftpsessions = new Entry();
+		e_ftpsessions.setControler("Manager.ftpserver_export_user_sessions").addControlerParam("user_session_ref", "keyparam1").setChecks("adminFtpServer").pack();
+		entries.put("ftpserver_export_user_sessions", e_ftpsessions);
 	}
 	
 	private class Entry {
-		String url;
+		String controler_name;
 		ArrayList<String> checks;
+		HashMap<String, Object> controler_args;
 		
-		Entry(String controler) {
-			this(controler, null);
+		String url;
+		
+		Entry() {
+			controler_args = new HashMap<String, Object>();
+			checks = new ArrayList<>();
 		}
 		
-		Entry(String controler, String... checks) {
-			if (controler == null) {
-				throw new NullPointerException("\"controler\" can't to be null");
+		/**
+		 * It will be pack()
+		 */
+		Entry(String controler_name) {
+			checks = new ArrayList<>();
+			controler_args = new HashMap<String, Object>();
+			setControler(controler_name);
+			pack();
+		}
+		
+		/**
+		 * Needs to pack() after all.
+		 */
+		Entry setControler(String controler_name) {
+			if (controler_name == null) {
+				throw new NullPointerException("\"controler_name\" can't to be null");
 			}
-			// TODO import
+			this.controler_name = controler_name;
+			return this;
+		}
+		
+		/**
+		 * Needs to pack() after all.
+		 */
+		Entry addControlerParam(String name, Object value) {
+			controler_args.put(name, value);
+			return this;
+		}
+		
+		Entry setChecks(String... checks) {
+			if (checks == null) {
+			} else {
+				if (checks.length == 0) {
+					this.checks = new ArrayList<>();
+				} else {
+					this.checks = new ArrayList<>(Arrays.asList(checks));
+				}
+			}
+			
+			return this;
+		}
+		
+		/**
+		 * Not need to pack.
+		 */
+		void setStaticFile(String relative_file) {
+			try {
+				url = Router.reverse(VirtualFile.fromRelativePath(relative_file));
+			} catch (NoRouteFoundException e) {
+				Loggers.Play.error("Can't found route for " + relative_file);
+				url = "/";
+			}
+		}
+		
+		void pack() {
+			pack("");
+		}
+		
+		/**
+		 * @param hashtag_to_add (should be start with #)
+		 */
+		void pack(String hashtag_to_add) {
+			if (url != null) {
+				return;
+			}
+			if (hashtag_to_add == null) {
+				hashtag_to_add = "";
+			}
+			
+			try {
+				if (controler_args.isEmpty()) {
+					url = Router.reverse(controler_name).url + hashtag_to_add;
+				} else {
+					url = Router.reverse(controler_name, controler_args).url + hashtag_to_add;
+				}
+			} catch (NoRouteFoundException e) {
+				Loggers.Play.error("Can't found route for " + controler_name);
+				return;
+			}
+		}
+		
+		public String toString() {
+			return "URL: " + url + ", checks=" + checks;
 		}
 		
 	}
-	
-	/*
-	public String getPlayTargetUrl() {
-	try {
-		return Router.reverse(play_action).url;
-	} catch (NoRouteFoundException e) {
-		return play_action;
-	}
-	*/
 	
 	public String toString() {
-		// TODO make tree
 		LinkedHashMap<String, Object> mydmam = new LinkedHashMap<>(1);
 		
 		JsonObject async = new JsonObject();
@@ -95,6 +191,28 @@ public class HeaderJS {
 		
 		mydmam.put("async", async);
 		mydmam.put("user", user);
+		
+		LinkedHashMap<String, LinkedHashMap<String, String>> routes = new LinkedHashMap<>(1);
+		LinkedHashMap<String, String> routes_statics = new LinkedHashMap<>(entries.size());
+		
+		ArrayList<String> session_privileges = Secure.getSessionPrivileges();
+		
+		for (Map.Entry<String, Entry> entry : entries.entrySet()) {
+			Entry route = entry.getValue();
+			
+			if (route.checks.isEmpty() == false) {
+				if (route.checks.stream().anyMatch(p -> {
+					return session_privileges.contains(p);
+				}) == false) {
+					continue;
+				}
+			}
+			
+			routes_statics.put(entry.getKey(), route.url);
+		}
+		
+		routes.put("statics", routes_statics);
+		mydmam.put("routes", routes);
 		
 		return simple_gson.toJson(mydmam);
 	}
