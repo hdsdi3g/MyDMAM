@@ -320,6 +320,8 @@ auth.confirmremoveaccount=Confirmez-vous la suppression du compte ?
 auth.confirmremove=Confirmez-vous la suppression ?
 auth.save=Valider
 auth.groupedit=Configuration du groupe
+auth.userupdate=Compte : %s
+auth.loading=Chargement...
 
 mime.video-mpeg=Vidéo MPEG
 mime.application-pdf=Document PDF

@@ -258,21 +258,14 @@ auth.UserCreate = React.createClass({
 	},
 });
 
-auth.UserEdit = React.createClass({
+var GroupPane = React.createClass({
 	getInitialState: function() {
 		return {
-			user_groups: [],
+			user_groups: this.props.user.user_groups,
 			group_full_list: [],
-			user: null,
 		};
 	},
 	componentWillMount: function() {
-		var user_key = this.props.params.user_key.replace("::","%");
-
-		mydmam.async.request("auth", "userget", user_key, function(user) {
-			this.setState({user: user, user_groups: user.user_groups});
-		}.bind(this));
-
 		mydmam.async.request("auth", "grouplist", null, function(grouplist) {
 			this.setState({group_full_list: grouplist.groups});
 		}.bind(this));
@@ -292,6 +285,44 @@ auth.UserEdit = React.createClass({
 		this.setState({user_groups: user_groups});
 	},
 	onUpdBtnClick: function(e) {
+		var update_user = {
+			user_key: this.props.user_key,
+			user_groups: this.state.user_groups,
+		}
+
+		mydmam.async.request("auth", "useradminupdate", update_user, function(user) {
+			//TODO done action with user
+		}.bind(this));
+	},
+	render: function(){
+		var FormControlGroup = mydmam.async.FormControlGroup;
+		var CheckboxItem = mydmam.async.CheckboxItem;
+
+		var cb_groups = [];
+		var group_full_list = this.state.group_full_list;
+		for (group_key in group_full_list) {
+			var is_checked = this.state.user_groups.indexOf(group_key) > -1;
+			cb_groups.push(<CheckboxItem key={group_key} checked={is_checked} reference={group_key} onChangeCheck={this.onChangeGroup}>
+				{group_full_list[group_key].group_name}
+			</CheckboxItem>);
+		}
+
+		return (
+				<form className="form-horizontal" onSubmit={this.onUpdBtnClick}>
+					<FormControlGroup label={i18n("auth.groups")}>
+						{cb_groups}
+					</FormControlGroup>
+
+					<FormControlGroup>
+						<button type="submit" className="btn btn-success"><i className="icon-ok icon-white"></i> {i18n("auth.update")}</button>
+					</FormControlGroup>
+				</form>
+		);
+	},
+});
+
+var PasswordPane = React.createClass({
+	onUpdBtnClick: function(e) {
 		var password  = React.findDOMNode(this.refs.password).value;
 		var password2 = React.findDOMNode(this.refs.password2).value;
 		if (password && password2) {
@@ -305,13 +336,43 @@ auth.UserEdit = React.createClass({
 		}	
 
 		var update_user = {
-			user_key: this.props.params.user_key.replace("::","%"),
+			user_key: this.props.user_key,
 			new_password: password,
-			user_groups: this.state.user_groups,
 		}
 
 		mydmam.async.request("auth", "useradminupdate", update_user, function(user) {
-			window.location = "#auth/users";
+			//TODO done action with user
+		}.bind(this));
+	},
+	render: function(){
+		var FormControlGroup = mydmam.async.FormControlGroup;
+
+		return (<form className="form-horizontal" onSubmit={this.onUpdBtnClick}>
+				<FormControlGroup label={i18n("auth.password")}>
+					<input type="password" placeholder={i18n("auth.password")} ref="password" />
+					<span className="help-block">{i18n("auth.password-hint")}</span>
+				</FormControlGroup>
+				<FormControlGroup label={i18n("auth.password2")}>
+					<input type="password" placeholder={i18n("auth.password2")} ref="password2" />
+				</FormControlGroup>
+				<FormControlGroup>
+					<button type="submit" className="btn btn-success"><i className="icon-ok icon-white"></i> {i18n("auth.update")}</button>
+				</FormControlGroup>
+		</form>);
+	},
+});
+
+auth.UserEdit = React.createClass({
+	getInitialState: function() {
+		return {
+			user: null,
+		};
+	},
+	componentWillMount: function() {
+		var user_key = this.props.params.user_key.replace("::","%");
+
+		mydmam.async.request("auth", "userget", user_key, function(user) {
+			this.setState({user: user});
 		}.bind(this));
 	},
 	onDeleteBtnClick: function(e){
@@ -326,62 +387,33 @@ auth.UserEdit = React.createClass({
 		var CheckboxItem = mydmam.async.CheckboxItem;
 		var user = this.state.user;
 		if (user == null) {
-			return (
-				<mydmam.async.PageHeaderTitle title={i18n("auth.userupdate")} fluid="false">
+			return (<mydmam.async.PageHeaderTitle title={i18n("auth.loading")} fluid="false">
 				<mydmam.async.PageLoadingProgressBar />
-			</mydmam.async.PageHeaderTitle>
-			);
+			</mydmam.async.PageHeaderTitle>);
 		}
 
-		var is_local_user = (user.domain == "local");
 		var password_form = null;
-		if (is_local_user) {
-			var password_form = (<span>
-				<FormControlGroup label={i18n("auth.password")}>
-					<input type="password" placeholder={i18n("auth.password")} ref="password" />
-					<span className="help-block">{i18n("auth.password-hint")}</span>
-				</FormControlGroup>
-				<FormControlGroup label={i18n("auth.password2")}>
-					<input type="password" placeholder={i18n("auth.password2")} ref="password2" />
-				</FormControlGroup>
-			</span>);
-		} else {
-			/** Domain users can't change passwords here */
-			var password_form = (<span>
-				<input type="hidden" value="" ref="password" /><input type="hidden" value="" ref="password2" />
-			</span>);
+		if (user.domain == "local") {
+			/** Domain users can't change passwords (here) */
+			password_form = (<PasswordPane user_key={this.props.params.user_key.replace("::","%")} />);
 		}
 
-		var cb_groups = [];
-		var group_full_list = this.state.group_full_list;
-		for (group_key in group_full_list) {
-			var is_checked = this.state.user_groups.indexOf(group_key) > -1;
-			cb_groups.push(<CheckboxItem key={group_key} checked={is_checked} reference={group_key} onChangeCheck={this.onChangeGroup}>
-				{group_full_list[group_key].group_name}
-			</CheckboxItem>);
+		var group_pane = null;
+		if (this.state.user) {
+			group_pane = (<GroupPane user={this.state.user} user_key={this.props.params.user_key.replace("::","%")} />);
 		}
 
 		return (
 			<mydmam.async.PageHeaderTitle title={i18n("auth.userupdate", user.fullname)} fluid="false">
-				<form className="form-horizontal" onSubmit={this.onUpdBtnClick}>
 					<FormControlGroup label={i18n("auth.remove-label")}>
 						<a className="btn btn-danger" onClick={this.onDeleteBtnClick}><i className="icon-remove icon-white"></i> {i18n("auth.remove")}</a>
-					</FormControlGroup>
-
-					{password_form}
-					<FormControlGroup label={i18n("auth.groups")}>
-						{cb_groups}
-					</FormControlGroup>
-
-					<FormControlGroup>
-						<button type="submit" className="btn btn-success"><i className="icon-ok icon-white"></i> {i18n("auth.update")}</button>
 					</FormControlGroup>
 
 					<FormControlGroup>
 						<a type="cancel" className="btn btn-info" href="#auth/users"><i className="icon-chevron-left icon-white"></i> {i18n("auth.goback")}</a>
 					</FormControlGroup>
-
-				</form>
+				{password_form}
+				{group_pane}
 			</mydmam.async.PageHeaderTitle>
 		);
 	},
