@@ -109,7 +109,7 @@ public class Auth extends AJSController {
 	}
 	
 	@Check("authAdmin")
-	public static UserView userAdminUpdate(UserAdminUpdate ch) throws Exception {// TODO split in 2: chpassw/group
+	public static UserView userAdminUpdate(UserAdminUpdate ch) throws Exception {
 		return Bootstrap.getAuth().changeAdminUserPasswordGroups(ch).export(false, true);
 	}
 	

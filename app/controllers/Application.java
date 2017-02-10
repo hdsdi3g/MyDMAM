@@ -28,10 +28,13 @@ import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
 import ext.Bootstrap;
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
+import hd3gtv.mydmam.web.JSSourceManager;
+import hd3gtv.mydmam.web.JSi18nCached;
 import hd3gtv.mydmam.web.PartialContent;
 import play.Play;
 import play.Play.Mode;
@@ -53,6 +56,10 @@ public class Application extends Controller {
 	}
 	
 	public static void i18n() {
+		if (Play.mode == Mode.DEV && Configuration.global.getValueBoolean("play", "check_i18n_cache_files") && JSSourceManager.isJsDevMode()) {
+			Bootstrap.i18n_cache = new JSi18nCached();
+		}
+		
 		File ressource_file = Bootstrap.i18n_cache.getCachedFile(Lang.get());
 		if (ressource_file == null) {
 			notFound();

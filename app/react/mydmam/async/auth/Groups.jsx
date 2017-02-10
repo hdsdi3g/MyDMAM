@@ -18,20 +18,16 @@
 auth.Groups = React.createClass({
 	getInitialState: function() {
 		return {
-			grouplist: {},
 			rolelist: {},
 		};
 	},
 	componentWillMount: function() {
-		mydmam.async.request("auth", "grouplist", null, function(grouplist) {
-			this.setState({grouplist: grouplist.groups});
-		}.bind(this));
 		mydmam.async.request("auth", "rolelist", null, function(fulllist) {
 			this.setState({rolelist: fulllist.roles});
 		}.bind(this));
 	},
 	render: function(){
-		var grouplist = this.state.grouplist;
+		var grouplist = auth.grouplist;
 		var rolelist = this.state.rolelist;
 
 		var items = [];
@@ -98,7 +94,10 @@ auth.GroupCreate = React.createClass({
 	onAddBtnClick: function(e){
 		var new_group_name = React.findDOMNode(this.refs.group_name).value;
 		mydmam.async.request("auth", "groupcreate", new_group_name, function(created) {
-			window.location = "#auth/groups";
+			mydmam.async.request("auth", "grouplist", null, function(grouplist) {
+				auth.grouplist = grouplist.groups;
+				window.location = "#auth/groups";
+			}.bind(this));
 		}.bind(this));
 	},
 	render: function(){
@@ -158,6 +157,7 @@ auth.GroupEdit = React.createClass({
 		var group_key = this.props.params.group_key;
 		if (window.confirm(i18n("auth.confirmremove", this.state.group_name))) {
 			mydmam.async.request("auth", "groupdelete", group_key, function(list) {
+				delete auth.grouplist[group_key];
 				window.location = "#auth/groups";
 			}.bind(this));
 		}
@@ -165,13 +165,11 @@ auth.GroupEdit = React.createClass({
 	componentWillMount: function() {
 		var group_key = this.props.params.group_key;
 
-		mydmam.async.request("auth", "grouplist", null, function(grouplist) {
-			if (grouplist.groups[group_key]) {
-				this.setState({group_name: grouplist.groups[group_key].group_name, roles: grouplist.groups[group_key].group_roles});
-			} else {
-				window.location = "#auth/groups";
-			}
-		}.bind(this));
+		if (auth.grouplist[group_key]) {
+			this.setState({group_name: auth.grouplist[group_key].group_name, roles: auth.grouplist[group_key].group_roles});
+		} else {
+			window.location = "#auth/groups";
+		}
 
 		mydmam.async.request("auth", "rolelist", null, function(rolelist) {
 			var list = [];

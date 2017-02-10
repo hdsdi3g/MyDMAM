@@ -864,6 +864,16 @@ public class AuthTurret {
 			Loggers.Auth.info("Change user groups: " + user.toString());
 		}
 		
+		if (request.properties != null) {
+			StringReader sr = new StringReader(request.properties);
+			try {
+				user.getProperties().load(sr);
+				System.out.println(user.getProperties());
+				Loggers.Auth.info("Change user properties: " + user.toString());
+			} catch (IOException e) {
+				Loggers.Auth.error("Can't change user " + user.toString() + " properties");
+			}
+		}
 		user.updateLastEditTime();
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();

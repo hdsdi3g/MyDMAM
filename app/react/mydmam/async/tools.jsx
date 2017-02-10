@@ -544,7 +544,16 @@ async.PageHeaderTitle = React.createClass({
 	render: function() {
 		var p_lead = null;
 		if (this.props.title) {
-			p_lead = (<p className="lead">{this.props.title}</p>);
+			var go_back = null;
+			if (this.props.go_back_url) {
+				go_back = (<a className="btn btn-mini"
+					style={{marginBottom: "6px", marginRight: "1em"}}
+					href={this.props.go_back_url}
+					title={i18n('browser.goback')}>
+					<i className="icon-chevron-left"></i>
+				</a>);
+			}
+			p_lead = (<p className="lead">{go_back}{this.props.title}</p>);
 		}
 
 		var main_class_name = classNames("container");
@@ -577,7 +586,8 @@ async.HeaderTab = React.createClass({
 	},
 	render: function(){
 		var li_class = classNames({
-			"active": this.props.href == location.hash
+			"active": this.props.href == location.hash,
+			"pull-right": this.props.pullright,
 		});
 
 		return (<li className={li_class}>
