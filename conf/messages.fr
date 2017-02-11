@@ -26,6 +26,8 @@ site.errorpage.exception=This exception has been logged with id
 site.logintips=
 site.vendor=
 
+empty=Vide
+
 filesizeunitshort=o
 filesizeunitlong=octets
 timeunit.year=année
@@ -324,6 +326,8 @@ auth.userupdate=Compte : %s
 auth.loading=Chargement...
 auth.properties=Propriétés internes du compte
 auth.warnbeforechange=Attention à ne changer ces paramètres que si vous savez ce que vous faites.
+auth.preferences=Préférences utilisateur
+auth.preferences.last=Dernières valeurs
 
 mime.video-mpeg=Vidéo MPEG
 mime.application-pdf=Document PDF

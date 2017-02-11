@@ -377,8 +377,6 @@ var PropertiesPane = React.createClass({
 		}.bind(this));
 	},
 	render: function(){
-		//var FormControlGroup = mydmam.async.FormControlGroup;
-
 		return (<div>
 			<p>
 				<strong className="text-warning">{i18n("auth.warnbeforechange")}</strong>
@@ -396,6 +394,15 @@ var PropertiesPane = React.createClass({
 		</div>);
 	},
 });
+
+var PreferencesPane = React.createClass({
+	render: function(){
+		return (<div>
+			<mydmam.async.JsonCode i18nlabel="auth.preferences.last" json={this.props.preferences} />
+		</div>);
+	},
+});
+
 
 auth.UserEdit = React.createClass({
 	getInitialState: function() {
@@ -435,6 +442,8 @@ auth.UserEdit = React.createClass({
 			show_this = (<DeletePane user_key={user_key} />);
 		} else if (location.hash.indexOf(base_url + "/properties") == 0) {
 			show_this = (<PropertiesPane user_key={user_key} datas={user.properties} onsave={this.onRefreshUser} />);
+		} else if (location.hash.indexOf(base_url + "/preferences") == 0) {
+			show_this = (<PreferencesPane preferences={user.preferences} />);
 		} else {
 			show_this = (<mydmam.async.PageLoadingProgressBar />);
 		}
@@ -451,6 +460,7 @@ auth.UserEdit = React.createClass({
 					<mydmam.async.HeaderTab href={base_url + "/groups"}		i18nlabel="auth.groups" />
 					{tab_password}
 					<mydmam.async.HeaderTab href={base_url + "/properties"}	i18nlabel="auth.properties" />
+					<mydmam.async.HeaderTab href={base_url + "/preferences"}	i18nlabel="auth.preferences" />
 					<mydmam.async.HeaderTab href={base_url + "/remove"}		i18nlabel="auth.remove" />
 				</ul>
 				{show_this}
@@ -464,6 +474,7 @@ mydmam.routes.push("auth-user-view-groups",		"auth/user/edit/:user_key/groups",	
 mydmam.routes.push("auth-user-view-remove",		"auth/user/edit/:user_key/remove",		auth.UserEdit, [{name: "auth", verb: "usercreate"}]);	
 mydmam.routes.push("auth-user-view-password",	"auth/user/edit/:user_key/password",	auth.UserEdit, [{name: "auth", verb: "usercreate"}]);	
 mydmam.routes.push("auth-user-view-properties",	"auth/user/edit/:user_key/properties",	auth.UserEdit, [{name: "auth", verb: "usercreate"}]);	
+mydmam.routes.push("auth-user-view-preferences","auth/user/edit/:user_key/preferences",	auth.UserEdit, [{name: "auth", verb: "usercreate"}]);	
 
 // only for this user
 //	public static JsonObject getPreferencies() throws Exception {

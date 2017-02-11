@@ -296,11 +296,16 @@ async.JsonCode = React.createClass({
 	render: function() {
 		var i18nlabel = (<span className="jsontitle"> {i18n(this.props.i18nlabel)} </span>);
 
+		var json_string = JSON.stringify(this.props.json, null, " ");
+		if (json_string == "{}") {
+			json_string = (<span className="label label-inverse" style={{fontFamily: "\"Helvetica Neue\",Helvetica,Arial,sans-serif",}}>{i18n("empty")}</span>);
+		}
+		
 		return (<div>
 			<code className="json" style={{marginTop: 10}}>
 				<i className="icon-indent-left"></i>
 				{i18nlabel}
-				{JSON.stringify(this.props.json, null, " ")}
+				{json_string}
 			</code>
 		</div>);
 	},
