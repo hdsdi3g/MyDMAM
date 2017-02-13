@@ -3,7 +3,6 @@
 secure.pagetitle=Login ::
 secure.username=User
 secure.password=Password
-secure.remember=Remember me
 secure.signin=Login
 secure.error=Unable to connect
 secure.logout=You just disconnect
@@ -13,6 +12,9 @@ maingrid.disconnect=Logout
 maingrid.search=Search
 maingrid.adminbtn=Admin
 maingrid.activities=Activities
+maingrid.nojavascript.head=Warning!
+maingrid.nojavascript=Javascript in your browser is disabled. You must activate and reload the page to continue.
+maingrid.nojavascript.loading=The site is loading... If you think it's blocked, refresh it, else warn your administrator.
 
 site.name=MyDMAM
 site.baseline=Another way of looking a Digital Media Asset Management

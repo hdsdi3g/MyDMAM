@@ -46,6 +46,18 @@
 				jsonrq: JSON.stringify(content)
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
+				if (jqXHR.status == 403) {
+					/**
+					 * Disconnected
+					 */
+					if (jqXHR.responseJSON.redirect) {
+						window.location.href = jqXHR.responseJSON.redirect;
+					} else {
+						window.location.href = "/";
+					}
+					return;
+				}
+
 				/**
 				 * It never throw an error if you respect privileges and request_name/verb.
 				 */

@@ -3,7 +3,6 @@
 secure.pagetitle=Connexion ::
 secure.username=Utilisateur
 secure.password=Mot de passe
-secure.remember=Se souvenir de moi
 secure.signin=Connexion
 secure.error=Impossible de se connecter
 secure.logout=Vous venez de vous déconnecter
@@ -13,6 +12,9 @@ maingrid.disconnect=Déconnexion
 maingrid.search=Rechercher
 maingrid.adminbtn=Admin
 maingrid.activities=Activités
+maingrid.nojavascript.head=Attention !
+maingrid.nojavascript=Le javascript de votre navigateur est desactivé. Vous devez l'activer et recharger la page pour continuer.
+maingrid.nojavascript.loading=Le site est en cours de chargement... Si vous pensez qu'il est bloqué, actualisez-le, sinon avertir votre administrateur.
 
 site.name=MyDMAM
 site.baseline=Une nouvelle façon de voir un Digital Media Asset Management

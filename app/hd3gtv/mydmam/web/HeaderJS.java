@@ -19,6 +19,7 @@ package hd3gtv.mydmam.web;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -182,45 +183,50 @@ public class HeaderJS {
 	}
 	
 	public String toString() {
-		LinkedHashMap<String, Object> mydmam = new LinkedHashMap<>(1);
-		
-		JsonObject async = new JsonObject();
-		async.add("controllers", AppManager.getGson().toJsonTree(AJSController.getAllControllersVerbsForThisUser()));
-		
-		JsonObject user = new JsonObject();
-		user.addProperty("long_name", AJSController.getUserProfileLongName());
-		
-		mydmam.put("async", async);
-		mydmam.put("user", user);
-		
-		LinkedHashMap<String, LinkedHashMap<String, String>> routes = new LinkedHashMap<>(1);
-		LinkedHashMap<String, String> routes_statics = new LinkedHashMap<>(entries.size());
-		
-		ArrayList<String> session_privileges = Secure.getSessionPrivileges();
-		
-		for (Map.Entry<String, Entry> entry : entries.entrySet()) {
-			Entry route = entry.getValue();
+		try {
+			LinkedHashMap<String, Object> mydmam = new LinkedHashMap<>(1);
 			
-			if (route.checks.isEmpty() == false) {
-				if (route.checks.stream().anyMatch(p -> {
-					return session_privileges.contains(p);
-				}) == false) {
-					continue;
+			JsonObject async = new JsonObject();
+			async.add("controllers", AppManager.getGson().toJsonTree(AJSController.getAllControllersVerbsForThisUser()));
+			
+			JsonObject user = new JsonObject();
+			user.addProperty("long_name", AJSController.getUserProfileLongName());
+			
+			mydmam.put("async", async);
+			mydmam.put("user", user);
+			
+			LinkedHashMap<String, LinkedHashMap<String, String>> routes = new LinkedHashMap<>(1);
+			LinkedHashMap<String, String> routes_statics = new LinkedHashMap<>(entries.size());
+			
+			HashSet<String> session_privileges = Secure.getSessionPrivileges();
+			for (Map.Entry<String, Entry> entry : entries.entrySet()) {
+				Entry route = entry.getValue();
+				
+				if (route.checks.isEmpty() == false) {
+					if (route.checks.stream().anyMatch(p -> {
+						return session_privileges.contains(p);
+					}) == false) {
+						continue;
+					}
 				}
+				
+				routes_statics.put(entry.getKey(), route.url);
 			}
 			
-			routes_statics.put(entry.getKey(), route.url);
+			routes.put("statics", routes_statics);
+			mydmam.put("routes", routes);
+			
+			/**
+			 * Inject configuration Messages
+			 */
+			mydmam.put("i18n", MyDMAM.getconfiguredMessages());
+			
+			return simple_gson.toJson(mydmam);
+		} catch (NullPointerException | DisconnectedUser e) {
+			Loggers.Play.warn("User was disconnected: " + e.getMessage());
 		}
 		
-		routes.put("statics", routes_statics);
-		mydmam.put("routes", routes);
-		
-		/**
-		 * Inject configuration Messages
-		 */
-		mydmam.put("i18n", MyDMAM.getconfiguredMessages());
-		
-		return simple_gson.toJson(mydmam);
+		return "null";
 	}
 	
 }

@@ -50,6 +50,7 @@ import play.utils.Utils;
 public class Application extends Controller {
 	
 	public static final int HTTP_not_found = 404;
+	public static final int HTTP_unauthorized = 403;
 	
 	public static void index() {
 		render();

@@ -87,6 +87,14 @@ public class Bootstrap extends Job<Void> {
 	
 	public static JSi18nCached i18n_cache;
 	
+	public static String getSessionTTL() {
+		if (JSSourceManager.isJsDevMode()) {
+			return "24h";
+		} else {
+			return "1h";
+		}
+	}
+	
 	public void doJob() {
 		i18n_cache = new JSi18nCached();
 		

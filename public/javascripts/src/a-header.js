@@ -269,7 +269,7 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
  * Main i18n function from Play! Documentation
  */
 var i18n = function(code) {
-	var message = mydmam.i18n[code] || i18nMessages && i18nMessages[code] || code;
+	var message = mydmam.i18n && mydmam.i18n[code] || i18nMessages && i18nMessages[code] || code;
 	
     // Encode %% to handle it later
     message = message.replace(/%%/g, "\0%\0");
