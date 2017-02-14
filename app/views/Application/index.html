@@ -33,7 +33,11 @@ $(document).ready(function() {
 	try {
 		mydmam.routes.loadBackbone(document.getElementById('reactindex'));
 	} catch (err) {
-		console.error(err);
+		%{ if (play.Play.mode == play.Play.Mode.DEV) { }%
+			console.error(err);
+		%{ } else { }%
+			window.location.href = "@{Secure.login()}";
+		%{ } }%
 	}
 });
 -->

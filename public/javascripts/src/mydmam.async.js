@@ -82,3 +82,30 @@
 	};
 
 })(window.mydmam);
+
+(function(async) {
+
+	/** In ms */
+	var actual_drift = 0;
+
+	if (async.server_time) {
+		actual_drift = Date.now() - async.server_time;
+		if (window.performance) {
+			if (window.performance.timing) {
+				if (window.performance.timing.responseStart) {
+					actual_drift = window.performance.timing.responseStart - async.server_time;
+				}
+			}
+		}
+	}
+
+	/**
+	 * @return long (UNIX Time in ms)
+	 */
+	async.getTime = function() {
+		return Date.now() - actual_drift;
+	}
+
+	//console.log(actual_drift);
+
+})(window.mydmam.async);

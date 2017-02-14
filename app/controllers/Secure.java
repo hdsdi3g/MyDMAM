@@ -11,7 +11,6 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.accesscontrol.AccessControl;
 import hd3gtv.mydmam.auth.UserNG;
 import hd3gtv.mydmam.web.DisconnectedUser;
-import play.Play;
 import play.cache.Cache;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -164,12 +163,6 @@ public class Secure extends Controller {
 	@Before(unless = { "login", "authenticate", "logout" })
 	static void checkAccess() throws Throwable {
 		if (isConnected() == false) {
-			String url = "GET".equals(request.method) ? request.url : Play.ctxPath;
-			if (url.endsWith("/")) {
-				flash.put("url", url);
-			} else {
-				flash.put("url", url + "/");
-			}
 			login();
 		}
 		
@@ -184,8 +177,6 @@ public class Secure extends Controller {
 	}
 	
 	public static void login() {
-		flash.keep("url");
-		
 		boolean force_select_domain = Bootstrap.getAuth().isForceSelectDomain();
 		List<String> authenticators_domains = Bootstrap.getAuth().getDeclaredDomainList();
 		
@@ -193,7 +184,6 @@ public class Secure extends Controller {
 	}
 	
 	private static void rejectUser() throws Throwable {
-		flash.keep("url");
 		flash.error("secure.error");
 		params.flash();
 		login();
@@ -243,16 +233,17 @@ public class Secure extends Controller {
 		
 		Loggers.Play.info("User has a successful authentication: " + getUserSessionInformation());
 		
-		String url = flash.get("url");
-		if (url == null) {
-			url = Play.ctxPath + "/";
-		}
-		redirect(url);
+		redirect("Application.index");
 	}
 	
 	public static void logout() throws Throwable {
 		try {
 			Loggers.Play.info("User went tries to sign off: " + getUserSessionInformation());
+			
+			String username = connected();
+			if (username != null) {
+				Cache.delete("user:" + username + ":privileges");
+			}
 			session.clear();
 		} catch (Exception e) {
 			Loggers.Play.error("Error during sign off: " + getUserSessionInformation());
