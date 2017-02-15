@@ -42,6 +42,10 @@ public class TimedEventStore {
 	private int default_ttl;
 	private static final String col_name_event_date = "_event_date";
 	
+	public TimedEventStore(Keyspace keyspace, String cf_name) throws ConnectionException {
+		this(keyspace, cf_name, 0);
+	}
+	
 	public TimedEventStore(Keyspace keyspace, String cf_name, long max_event_age) throws ConnectionException {
 		this.keyspace = keyspace;
 		if (keyspace == null) {
@@ -57,12 +61,15 @@ public class TimedEventStore {
 			CassandraDb.declareIndexedColumn(keyspace, cf, col_name_event_date, cf_name + "_" + col_name_event_date, DeployColumnDef.ColType_LongType);
 			CassandraDb.declareIndexedColumn(keyspace, cf, "indexingdebug", cf_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
 		}
-		min_event_date = System.currentTimeMillis() - max_event_age;
-		default_ttl = (int) max_event_age;
+		if (max_event_age > 0) {
+			min_event_date = System.currentTimeMillis() - max_event_age;
+			default_ttl = (int) max_event_age;
+		}
 	}
 	
 	/**
 	 * Don't forget to close or createAnother.
+	 * You must set max_event_age in constructor.
 	 * @return null if event is too old.
 	 */
 	public TimedEvent createEvent(String event_key, long date) throws ConnectionException {
@@ -72,10 +79,19 @@ public class TimedEventStore {
 		return new TimedEvent(event_key, date);
 	}
 	
+	/**
+	 * You must set max_event_age in constructor
+	 */
 	public boolean isTooOld(long date) {
+		if (min_event_date == 0) {
+			throw new NullPointerException("You can't use this without set max_event_age in constructor");
+		}
 		return date < min_event_date;
 	}
 	
+	/**
+	 * You must set max_event_age in constructor
+	 */
 	public class TimedEvent {
 		
 		private MutationBatch mutator;
@@ -84,6 +100,10 @@ public class TimedEventStore {
 		private int computed_ttl;
 		
 		private TimedEvent(String event_key, long date) throws ConnectionException {
+			if (default_ttl == 0) {
+				throw new NullPointerException("You can't use this without set max_event_age in constructor");
+			}
+			
 			mutator = CassandraDb.prepareMutationBatch(keyspace.getKeyspaceName());
 			this.event_key = event_key;
 			if (event_key == null) {
@@ -94,6 +114,10 @@ public class TimedEventStore {
 		}
 		
 		private TimedEvent(MutationBatch mutator, String event_key, long date) {
+			if (default_ttl == 0) {
+				throw new NullPointerException("You can't use this without set max_event_age in constructor");
+			}
+			
 			this.mutator = mutator;
 			this.event_key = event_key;
 			if (event_key == null) {
@@ -184,6 +208,12 @@ public class TimedEventStore {
 			return date;
 		}
 		
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			// TODO
+			return sb.toString();
+		}
+		
 	}
 	
 	private static final EventDateComparator comparator = new EventDateComparator();
@@ -215,6 +245,13 @@ public class TimedEventStore {
 	
 	public ArrayList<TimedEventFromDb> getByKeys(Collection<String> keys) throws Exception {
 		final ArrayList<TimedEventFromDb> result = new ArrayList<>();
+		
+		if (keys == null) {
+			return result;
+		}
+		if (keys.isEmpty()) {
+			return result;
+		}
 		
 		Rows<String, String> rows = keyspace.prepareQuery(cf).getKeySlice(keys).execute().getResult();
 		rows.forEach(r -> {

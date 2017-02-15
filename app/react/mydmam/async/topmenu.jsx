@@ -147,6 +147,17 @@ async.TopMenu = React.createClass({
 			navigate_link_divider = divider_vertical;
 		}
 
+		var bca_link = null;
+		if (mydmam.async.isAvaliable("bca", "allevents")) {
+			var li_class = classNames({
+				"active": isMenuItemIsActive("#broadcastautomation"),
+			});
+
+			bca_link = (<li className={li_class}>
+				<TopMenuEntrylink label={i18n("bca.page")} href="#broadcastautomation" />
+			</li>);
+		}
+
 		var user_profile_menu_active = false; // isMenuItemIsActive()
 
 		var user_dropdown_items = [];
@@ -217,6 +228,7 @@ async.TopMenu = React.createClass({
 					<div className="nav-collapse collapse">
 				 		<ul className="nav pull-left navbar-fixed-top-btn">
 							{navigate_link}
+							{bca_link}
 							{navigate_link_divider}
 							{admin_menu}
 						</ul>

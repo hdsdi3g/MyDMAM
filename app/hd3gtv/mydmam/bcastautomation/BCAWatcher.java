@@ -50,6 +50,9 @@ import hd3gtv.tools.StoppableThread;
 
 public class BCAWatcher implements InstanceStatusItem {
 	
+	public static final String CF_NAME = "broadcastAutomationEvents";
+	public static final String DB_COL_CONTENT_NAME = "content";
+	
 	private BCAEngine engine;
 	private long sleep_time = 1000;
 	private Watch watch;
@@ -97,7 +100,7 @@ public class BCAWatcher implements InstanceStatusItem {
 			CopyMove.checkIsWritable(directory_watch_playlist);
 		}
 		
-		database = new TimedEventStore(CassandraDb.getkeyspace(), "broadcastAutomationEvents", max_retention_duration);
+		database = new TimedEventStore(CassandraDb.getkeyspace(), CF_NAME, max_retention_duration);
 		
 		Loggers.BroadcastAutomation.info("Init engine watcher: " + getInstanceStatusItem().toString());
 		manager.getInstanceStatus().registerInstanceStatusItem(this);
@@ -331,7 +334,6 @@ public class BCAWatcher implements InstanceStatusItem {
 				}
 				return;
 			}
-			
 			md.reset();
 			if (event.isRecording()) {
 				md.update(Longs.toByteArray(1l));
@@ -382,7 +384,7 @@ public class BCAWatcher implements InstanceStatusItem {
 			} else {
 				t_event = t_event.createAnother(event_key, event.getStartDate());
 			}
-			t_event.getMutator().putColumn("content", event.serialize(import_other_properties_configuration).toString());
+			t_event.getMutator().putColumn(DB_COL_CONTENT_NAME, event.serialize(import_other_properties_configuration).toString());
 			
 			if (Loggers.BroadcastAutomation.isTraceEnabled()) {
 				Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " will be added in database. "
@@ -392,6 +394,7 @@ public class BCAWatcher implements InstanceStatusItem {
 		
 		private void close() throws ConnectionException {
 			if (t_event != null) {
+				// FIXME for all future events, do a db scan and remove all removed events from actual scan
 				actual_event_list.forEach((event_key) -> {
 					Loggers.BroadcastAutomation.trace("Process event: clean obsolete event [" + event_key + "] from database");
 					t_event.removeDatabaseEntry(event_key);
