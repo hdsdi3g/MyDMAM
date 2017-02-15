@@ -36,8 +36,6 @@ navigate.NavigateTable = React.createClass({
 		this.props.changeOrderSort(colname, order);
 	},
 	render: function() {
-		var url_navigate = mydmam.metadatas.url.navigate_react;
-		
 		var items = this.props.stat.items;
 		if (!items) {
 			return null;
@@ -88,7 +86,7 @@ navigate.NavigateTable = React.createClass({
 					name = (
 						<a
 							className="tlbdirlistitem"
-							href={url_navigate + element.storagename + ":" + element.path}>
+							href={mydmam.routes.reverse("navigate") + element.storagename + ":" + element.path}>
 
 							{element.path.substring(element.path.lastIndexOf("/") + 1)}
 						</a>
@@ -97,7 +95,7 @@ navigate.NavigateTable = React.createClass({
 					name = (
 						<a
 							className="tlbdirlistitem"
-							href={url_navigate + element.storagename + ":/"}>
+							href={mydmam.routes.reverse("navigate") + element.storagename + ":/"}>
 
 							{element.storagename}
 						</a>
@@ -130,7 +128,7 @@ navigate.NavigateTable = React.createClass({
 						<mydmam.async.pathindex.reactBasketButton pathindexkey={elementkey} />
 						<a
 							className="tlbdirlistitem"
-							href={url_navigate + element.storagename + ":" + element.path}>
+							href={mydmam.routes.reverse("navigate") + element.storagename + ":" + element.path}>
 
 							{elementid}
 							{element.path.substring(element.path.lastIndexOf("/") + 1)}

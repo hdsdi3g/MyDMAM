@@ -28,10 +28,6 @@
 	<script src="@{'/public/javascripts/lib/bootstrap.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	#{get 'moreScripts' /}
 
-	<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-	<!--[if lt IE 9]>
-	  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-	<![endif]-->
 	<style type="text/css">
 		body {
 		  padding-top: 40px;
@@ -84,9 +80,6 @@
 	#{/if}
 	<input type="text" name="username" class="input-block-level" placeholder="&{'secure.username'}" value="${flash.username}">
 	<input type="password" name="password" class="input-block-level" placeholder="&{'secure.password'}">
-	<label class="checkbox">
-	  <input type="checkbox" value="remember" ${flash.remember ? 'checked="true"' : ''}> &{'secure.remember'}
-	</label>
 	<button class="btn btn-large btn-primary" type="submit">&{'secure.signin'}</button>
 	<div class="alert alert-info" style="margin-top: 1em;margin-bottom: 0em; display: none&{'site.logintips'};">&{'site.logintips'}</div>
 #{/form}

@@ -22,7 +22,7 @@
 if(!mydmam){mydmam = {};}
 if(!mydmam.module){mydmam.module = {};}
 if(!mydmam.routes){mydmam.routes = {};}
-if(!mydmam.urlimgs){mydmam.urlimgs = {};}
+if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 
 /**
  * Pre-definited strings functions. Init mydmam global object.
@@ -204,6 +204,24 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 		}
 	};
 
+	/** Switch on the inputbox in the top menu and redirect let requests to this route else to start classic search */
+	routes.setNeedsToRedirectSearch = function(route_name) {
+		if (base[route_name]) {
+			base[route_name].can_self_handle_search = true;
+		} else {
+			throw new Error("Route name " + route_name + " has not be created at this time !"); 
+		}
+	};
+
+	routes.canHandleSearch = function(route_name) {
+		if (base[route_name]) {
+			if (base[route_name].can_self_handle_search) {
+				return true;
+			}
+		}
+		return false;
+	};
+
 	var callbackFactory = function(callback, route_name) {
 		return function(r) {
 			callback(route_name, r.params);
@@ -227,7 +245,6 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 					}
 				}
 				if (mydmam.async.isAvaliable(async_need.name, async_need.verb) == false) {
-					// console.log("No rights for", async_need);
 					continue;
 				}
 			}
@@ -242,5 +259,40 @@ if(!mydmam.urlimgs){mydmam.urlimgs = {};}
 		return null;
 	};
 	
+	routes.reverse = function(controler_name) {
+		return routes.statics[controler_name];
+	};
+
 })(window.mydmam.routes);
 
+/**
+ * Main i18n function from Play! Documentation
+ */
+var i18n = function(code) {
+	var message = mydmam.i18n && mydmam.i18n[code] || i18nMessages && i18nMessages[code] || code;
+	
+    // Encode %% to handle it later
+    message = message.replace(/%%/g, "\0%\0");
+    if (arguments.length > 1) {
+        // Explicit ordered parameters
+        for (var i=1; i<arguments.length; i++) {
+            var r = new RegExp("%" + i + "\\$\\w", "g");
+            message = message.replace(r, arguments[i]);
+        }
+        // Standard ordered parameters
+        for (var i=1; i<arguments.length; i++) {
+            message = message.replace(/%\w/, arguments[i]);
+        }
+    }
+    // Decode encoded %% to single %
+    message = message.replace("\0%\0", "%");
+    // Imbricated messages
+    var imbricated = message.match(/&\{.*?\}/g);
+    if (imbricated) {
+        for (var i=0; i<imbricated.length; i++) {
+            var imbricated_code = imbricated[i].substring(2, imbricated[i].length-1).replace(/^\s*(.*?)\s*$/, "$1");
+            message = message.replace(imbricated[i], i18nMessages[imbricated_code] || "");
+        }
+    }
+    return message;
+};

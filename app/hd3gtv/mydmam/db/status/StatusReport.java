@@ -17,20 +17,24 @@
 package hd3gtv.mydmam.db.status;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 public class StatusReport {
 	
+	public final String report_name;
 	public final long creation_date;
 	public final List<String> colums_names;
-	public final Map<String, List<String>> content;
+	public final ArrayList<StatusReportTable> datas;
 	
-	public StatusReport() {
+	public StatusReport(String report_name) {
+		this.report_name = report_name;
+		if (report_name == null) {
+			throw new NullPointerException("\"report_name\" can't to be null");
+		}
 		creation_date = System.currentTimeMillis();
 		colums_names = new ArrayList<String>();
-		content = new LinkedHashMap<String, List<String>>();
+		datas = new ArrayList<>();
 	}
 	
 	StatusReport addCell(String col_name, String row_name, String separator, Object... separated_values) {
@@ -61,18 +65,21 @@ public class StatusReport {
 		if (colums_names.contains(col_name) == false) {
 			colums_names.add(col_name);
 		}
-		List<String> values = null;
-		if (content.containsKey(row_name)) {
-			values = content.get(row_name);
-		} else {
-			values = new ArrayList<String>();
-			content.put(row_name, values);
-		}
-		if (value == null) {
-			values.add("");
-		} else {
+		
+		Optional<StatusReportTable> o_table = datas.stream().filter(srt -> {
+			return srt.name.equals(row_name);
+		}).findFirst();
+		
+		StatusReportTable current = null;
+		if (o_table.isPresent() == false) {
+			ArrayList<String> values = new ArrayList<String>();
 			values.add(value);
+			current = new StatusReportTable(row_name, values);
+			datas.add(current);
+		} else {
+			o_table.get().content.add(value);
 		}
+		
 		return this;
 	}
 	

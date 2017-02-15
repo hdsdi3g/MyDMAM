@@ -32,6 +32,7 @@ public class UserAdminUpdate {
 	
 	public String user_key;
 	public String new_password;
+	public String properties;
 	
 	@GsonIgnore
 	public ArrayList<String> user_groups;

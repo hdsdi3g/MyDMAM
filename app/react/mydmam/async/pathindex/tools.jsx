@@ -31,15 +31,13 @@ mydmam.module.register("PathIndexView", {
 
 pathindex.reactStoragePathLink = React.createClass({
 	render: function() {
-		var url_navigate = mydmam.metadatas.url.navigate_react;
-
 		var storagename = this.props.storagename;
 		var path = this.props.path;
 		var add_link = this.props.add_link;
 
 		var storage_linked = storagename;
 		if (add_link) {
-			storage_linked = (<a href={url_navigate + storagename + ":/"}>{storagename}</a>);
+			storage_linked = (<a href={mydmam.routes.reverse("navigate") + storagename + ":/"}>{storagename}</a>);
 		}		
 
 		var path_linked = path;
@@ -52,7 +50,7 @@ pathindex.reactStoragePathLink = React.createClass({
 				sub_path = sub_paths[i];
 				path_linked.push(
 					<span key={i}>/
-						<a href={url_navigate + storagename + ':' + currentpath + "/" + sub_path}>
+						<a href={mydmam.routes.reverse("navigate") + storagename + ':' + currentpath + "/" + sub_path}>
 							{sub_path}
 						</a>
 					</span>

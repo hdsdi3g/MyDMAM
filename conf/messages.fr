@@ -3,7 +3,6 @@
 secure.pagetitle=Connexion ::
 secure.username=Utilisateur
 secure.password=Mot de passe
-secure.remember=Se souvenir de moi
 secure.signin=Connexion
 secure.error=Impossible de se connecter
 secure.logout=Vous venez de vous déconnecter
@@ -13,6 +12,9 @@ maingrid.disconnect=Déconnexion
 maingrid.search=Rechercher
 maingrid.adminbtn=Admin
 maingrid.activities=Activités
+maingrid.nojavascript.head=Attention !
+maingrid.nojavascript=Le javascript de votre navigateur est desactivé. Vous devez l'activer et recharger la page pour continuer.
+maingrid.nojavascript.loading=Le site est en cours de chargement... Si vous pensez qu'il est bloqué, actualisez-le, sinon avertir votre administrateur.
 
 site.name=MyDMAM
 site.baseline=Une nouvelle façon de voir un Digital Media Asset Management
@@ -25,6 +27,8 @@ site.errorpage.oops=Oops, an error occured
 site.errorpage.exception=This exception has been logged with id
 site.logintips=
 site.vendor=
+
+empty=Vide
 
 filesizeunitshort=o
 filesizeunitlong=octets
@@ -53,18 +57,7 @@ search.result.directory=Dossier
 search.previous=précédent
 search.next=suivant
 
-service.playjobs.pagename=Jobs du serveur Play
 service.menuinfrastructure=Infrastructure
-service.threadslist=Liste des threads
-service.instanceslist=Liste des instances
-service.clusterstatus.report.pagename=Suivi des clusters
-service.playjobs.purgecache=Purger le cache de Play
-service.playjobs.refreshlogconf=Rafraichir la configuration des logs
-service.playjobs.switchjsdevmode=Basculer le mode JS dev
-service.playjobs.switchjsdevmode.status=actuellement en mode dev
-service.playjobs.purgejs=Purger et refaire tout les fichiers JS calculés
-service.playjobs.ajsdebugpage=Page de debug async JS
-
 manager.pagename=Instances
 manager.summaries=Résumé
 manager.instance.uptime=Uptime
@@ -154,6 +147,17 @@ manager.items.FTPGroup.domain_isolation=/nom du domaine de l'utilisateur/
 manager.items.FTPGroup.long_activity_log=Garde les log des activités pendant une longue période
 manager.items.FTPGroup.trash_directory=Dossier de la corbeille : %s
 manager.items.FTPGroup.users_no_activity_log=Pas de journal d'activité pour :
+manager.clusterstatus=Suivi des clusters
+
+manager.playserver=Serveur Play
+manager.playserver.in_js_dev=Actuellement en mode dev : compilation dynamique JS/JSX avec NodeJS et Babel.
+manager.playserver.in_js_prod=Actuellement en mode prod : fichiers JS pré-compilés et compressés.
+manager.playserver.ajsdebugpage=Page de debug async JS
+manager.playserver.purgeplaycache=Purger le cache de Play
+manager.playserver.refreshlogconf=Rafraichir la configuration des logs
+manager.playserver.switchjsdevmode=Basculer en mode JS dev
+manager.playserver.switchjsprodmode=Basculer en mode JS prod
+manager.playserver.purgejs=Purger et refaire tout les fichiers JS calculés
 
 manager.jobs.pagename=Liste des jobs
 manager.jobs.status.WAITING=En attente
@@ -267,7 +271,7 @@ browser.emptydir=vide
 browser.oneelement=1 élément
 browser.Nelements=%s éléments
 browser.goback=Retour
-browser.search=Recherche intégrée
+browser.search=Recherche intégrée : %s
 browser.loadingplayer=Chargement du lecteur...
 browser.cantloadingplayer=Impossible de charger le lecteur. Essayez avec un autre navigateur web.
 browser.inputselect.loading=Chargement... 
@@ -286,6 +290,7 @@ auth.email_addr=Adresse mail
 auth.group=Groupe
 auth.groupcreate=Créer un nouveau groupe
 auth.groups=Groupes
+auth.groupname=Nom du nouveau groupe
 auth.lang=Langue
 auth.lasteditdate=Dernière modification
 auth.lastlogin=Dernière connexion
@@ -316,10 +321,15 @@ auth.login=Login
 auth.locked_account=Compte verrouillé
 auth.locked_account_help=Si coché, l'utilisateur ne pourra plus se connecter.
 auth.update=Mettre à jour
-auth.confirmremoveaccount=Confirmez-vous la suppression du compte ?
 auth.confirmremove=Confirmez-vous la suppression ?
 auth.save=Valider
 auth.groupedit=Configuration du groupe
+auth.userupdate=Compte : %s
+auth.loading=Chargement...
+auth.properties=Propriétés internes du compte
+auth.warnbeforechange=Attention à ne changer ces paramètres que si vous savez ce que vous faites.
+auth.preferences=Préférences utilisateur
+auth.preferences.last=Dernières valeurs
 
 mime.video-mpeg=Vidéo MPEG
 mime.application-pdf=Document PDF

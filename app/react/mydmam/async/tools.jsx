@@ -296,11 +296,16 @@ async.JsonCode = React.createClass({
 	render: function() {
 		var i18nlabel = (<span className="jsontitle"> {i18n(this.props.i18nlabel)} </span>);
 
+		var json_string = JSON.stringify(this.props.json, null, " ");
+		if (json_string == "{}") {
+			json_string = (<span className="label label-inverse" style={{fontFamily: "\"Helvetica Neue\",Helvetica,Arial,sans-serif",}}>{i18n("empty")}</span>);
+		}
+		
 		return (<div>
 			<code className="json" style={{marginTop: 10}}>
 				<i className="icon-indent-left"></i>
 				{i18nlabel}
-				{JSON.stringify(this.props.json, null, " ")}
+				{json_string}
 			</code>
 		</div>);
 	},
@@ -349,7 +354,7 @@ async.JavaClassNameLink = React.createClass({
 
 		return (<span>
 			<a href={href} target="_blank" onClick={this.onClickLink}>
-				<img src={mydmam.urlimgs.github_favicon} style={icon_style} />
+				<img src={mydmam.routes.reverse("github_favicon")} style={icon_style} />
 				&nbsp;
 				<abbr title={javaclass}>
 					{javaclass.substring(javaclass.lastIndexOf(".") + 1)}
@@ -544,7 +549,16 @@ async.PageHeaderTitle = React.createClass({
 	render: function() {
 		var p_lead = null;
 		if (this.props.title) {
-			p_lead = (<p className="lead">{this.props.title}</p>);
+			var go_back = null;
+			if (this.props.go_back_url) {
+				go_back = (<a className="btn btn-mini"
+					style={{marginBottom: "6px", marginRight: "1em"}}
+					href={this.props.go_back_url}
+					title={i18n('browser.goback')}>
+					<i className="icon-chevron-left"></i>
+				</a>);
+			}
+			p_lead = (<p className="lead">{go_back}{this.props.title}</p>);
 		}
 
 		var main_class_name = classNames("container");
@@ -577,7 +591,8 @@ async.HeaderTab = React.createClass({
 	},
 	render: function(){
 		var li_class = classNames({
-			"active": this.props.href == location.hash
+			"active": this.props.href == location.hash,
+			"pull-right": this.props.pullright,
 		});
 
 		return (<li className={li_class}>

@@ -17,8 +17,6 @@
 
 pathindex.react2lines = React.createClass({
 	render: function() {
-		var url_navigate = mydmam.metadatas.url.navigate_react;
-
 		var result = this.props.result;
 		var directory_block = null;
 		if (result.content.directory) {
@@ -33,7 +31,7 @@ pathindex.react2lines = React.createClass({
 			sub_path = sub_paths[i];
 			path_linked.push(
 				<span key={i}>/
-					<a href={url_navigate + result.content.storagename + ':' + currentpath + "/" + sub_path}>
+					<a href={mydmam.routes.reverse("navigate") + result.content.storagename + ':' + currentpath + "/" + sub_path}>
 						{sub_path}
 					</a>
 				</span>
@@ -59,7 +57,7 @@ pathindex.react2lines = React.createClass({
 				<span>
 					<pathindex.reactBasketButton pathindexkey={this.props.result.key}/> {external_location}&nbsp;
 					<strong className="storagename">
-						<a href={url_navigate + result.content.storagename + ":/"}>
+						<a href={mydmam.routes.reverse("navigate") + result.content.storagename + ":/"}>
 							{result.content.storagename}
 						</a>
 					</strong>

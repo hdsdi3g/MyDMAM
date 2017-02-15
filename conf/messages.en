@@ -3,7 +3,6 @@
 secure.pagetitle=Login ::
 secure.username=User
 secure.password=Password
-secure.remember=Remember me
 secure.signin=Login
 secure.error=Unable to connect
 secure.logout=You just disconnect
@@ -13,6 +12,9 @@ maingrid.disconnect=Logout
 maingrid.search=Search
 maingrid.adminbtn=Admin
 maingrid.activities=Activities
+maingrid.nojavascript.head=Warning!
+maingrid.nojavascript=Javascript in your browser is disabled. You must activate and reload the page to continue.
+maingrid.nojavascript.loading=The site is loading... If you think it's blocked, refresh it, else warn your administrator.
 
 site.name=MyDMAM
 site.baseline=Another way of looking a Digital Media Asset Management
@@ -25,6 +27,8 @@ site.errorpage.oops=Oops, an error occured
 site.errorpage.exception=This exception has been logged with id
 site.logintips=
 site.vendor=
+
+empty=Empty
 
 filesizeunitshort=b
 filesizeunitlong=bytes
@@ -53,18 +57,7 @@ search.result.directory=Folder
 search.previous=previous
 search.next=next
 
-service.playjobs.pagename=Play server jobs
 service.menuinfrastructure=Infrastructure
-service.threadslist=Threads list
-service.instanceslist=Instances liste
-service.clusterstatus.report.pagename=Clusters status
-service.playjobs.purgecache=Purge Play Cache
-service.playjobs.refreshlogconf=Refresh log configuration
-service.playjobs.switchjsdevmode=Switch JS dev mode
-service.playjobs.switchjsdevmode.status=actually in dev mode
-service.playjobs.purgejs=Purge et re-make all computed JS files
-service.playjobs.ajsdebugpage=Async JS debug page
-
 manager.pagename=Instances
 manager.summaries=Summary
 manager.instance.uptime=Uptime
@@ -154,6 +147,17 @@ manager.items.FTPGroup.domain_isolation=/user domain name/
 manager.items.FTPGroup.long_activity_log=Keep activity log traces for a long time
 manager.items.FTPGroup.trash_directory=Trash directory: %s
 manager.items.FTPGroup.users_no_activity_log=No activity log for:
+manager.clusterstatus=Clusters status
+
+manager.playserver=Play server
+manager.playserver.in_js_dev=Actually in dev mode: dynamic JS/JSX compilation with NodeJS and Babel.
+manager.playserver.in_js_prod=Actually in prod mode: JS files pre-compiled and compressed.
+manager.playserver.ajsdebugpage=Async JS debug page
+manager.playserver.purgeplaycache=Purge Play Cache
+manager.playserver.refreshlogconf=Refresh log configuration
+manager.playserver.switchjsdevmode=Switch to JS dev mode
+manager.playserver.switchjsprodmode=Switch to JS prod mode
+manager.playserver.purgejs=Purge et re-make all computed JS files
 
 manager.jobs.pagename=Jobs list
 manager.jobs.status.WAITING=Waiting
@@ -267,7 +271,7 @@ browser.emptydir=empty
 browser.oneelement=1 element
 browser.Nelements=%s elements
 browser.goback=Go back
-browser.search=Integrated search
+browser.search=Integrated search: %s
 browser.loadingplayer=Loading the player...
 browser.cantloadingplayer=Can't loading the player. Try with an other web browser.
 browser.inputselect.loading=Loading... 
@@ -286,6 +290,7 @@ auth.email_addr=Email address
 auth.group=Group
 auth.groupcreate=Create a new group
 auth.groups=Groups
+auth.groupname=New group name
 auth.lang=Lang
 auth.lasteditdate=Last edit date
 auth.lastlogin=Last login
@@ -316,10 +321,15 @@ auth.login=Login
 auth.locked_account=Locked account
 auth.locked_account_help=If checked, the user will not be able to log in.
 auth.update=Update
-auth.confirmremoveaccount=Do you confirm to remove this account ?
 auth.confirmremove=Do you confirm to remove this ?
 auth.save=Save
 auth.groupedit=Group settings
+auth.userupdate=Account: %
+auth.loading=Loading...
+auth.properties=Internal account properties
+auth.warnbeforechange=Be careful to change the settings only if you know what you are doing.
+auth.preferences=User preferences
+auth.preferences.last=Last values
 
 mime.video-mpeg=MPEG Video
 mime.application-pdf=PDF Document

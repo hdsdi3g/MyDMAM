@@ -23,12 +23,17 @@ import java.util.Date;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
+import com.google.gson.JsonObject;
+
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.mydmam.web.DisconnectedUser;
 import hd3gtv.mydmam.web.JSSourceManager;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.Controller;
+import play.mvc.Router;
 import play.mvc.With;
 import play.utils.Utils;
 
@@ -43,6 +48,18 @@ public class AsyncJavascript extends Controller {
 		
 		try {
 			renderJSON(AJSController.doRequest(name, verb, jsonrq));
+		} catch (DisconnectedUser e) {
+			Loggers.Play.warn("User was disconnected, " + e.getMessage() + ", can't process AJS request name: " + name + ", verb: " + verb);
+			
+			JsonObject jo = new JsonObject();
+			jo.addProperty("redirect", Router.reverse("Secure.login").url);
+			
+			String response_value = jo.toString();
+			response.status = Application.HTTP_unauthorized;
+			response.setHeader("Content-Length", response_value.getBytes(MyDMAM.UTF8).length + "");
+			response.setHeader("Content-Type", "text/javascript");
+			response.setHeader("Cache-Control", "no-cache");
+			renderText(response_value);
 		} catch (Exception e) {
 			Loggers.Play.error("Can't process AJS request name: " + name + ", verb: " + verb + ", jsonrq: " + jsonrq, e);
 		}

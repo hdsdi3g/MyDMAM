@@ -15,8 +15,27 @@
  * 
 */
 
+auth.grouplist = null;
+
 auth.Header = React.createClass({
+	getInitialState: function() {
+		return {ready: auth.grouplist != null};
+	},
+	componentWillMount: function() {
+		if (!auth.grouplist) {
+			mydmam.async.request("auth", "grouplist", null, function(grouplist) {
+				auth.grouplist = grouplist.groups;
+				this.setState({ready: true});
+			}.bind(this));
+		}
+	},
 	render: function(){
+		if (this.state.ready == false) {
+			return (<mydmam.async.PageHeaderTitle title={i18n("auth.pagename")} fluid="true">
+					<mydmam.async.PageLoadingProgressBar />
+			</mydmam.async.PageHeaderTitle>);
+		}
+
 		var show_this = null;
 		if (location.hash.indexOf("#auth/users") == 0) {
 			show_this = (<auth.Users />);

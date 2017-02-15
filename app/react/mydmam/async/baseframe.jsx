@@ -15,49 +15,6 @@
  * 
  */
 
-/**
- * Plug an external React input box, and callback if user press enter.
- * Draw nothing.
- * @see https://facebook.github.io/react/tips/use-react-with-other-libraries.html
- * @see https://facebook.github.io/react/tips/dom-event-listeners.html
- */
-async.SearchBox = React.createClass({
-	getInitialState: function() {
-		return {
-			inputbox: $("#sitesearch")[0],
-		};
-	},
-	componentDidMount: function() {
-		this.state.inputbox.value = "";
-		this.state.inputbox.addEventListener('keypress', this.onkeyPress);
-		this.state.inputbox.style.display = "block";
-	},
-	componentWillUnmount: function() {
-		this.state.inputbox.removeEventListener('keypress', this.onkeyPress);
-		this.state.inputbox.style.display = "none";
-	},
-	shouldComponentUpdate: function(nextProps, nextState) {
-	    return false;
-	},
-	onkeyPress: function(event) {
-		if (!event) {
-			event = window.event;
-		}
-    	var keyCode = event.keyCode || event.which;
-    	if (keyCode == '13') {
-      		this.props.onValidation(this.state.inputbox.value);
-      		this.state.inputbox.value = "";
-
-			event.preventDefault();
-			event.stopImmediatePropagation();
-			event.stopPropagation();
-    	}
-	},
-	render: function() {
-		return null;
-	}
-});
-
 async.Home = React.createClass({
 	render: function() {
 		return (<div className="container">
@@ -68,3 +25,14 @@ async.Home = React.createClass({
 		</div>);
 	}
 });
+
+async.Footer = React.createClass({
+	render: function() {
+		return (<div className="container-fluid" style={{textAlign: "center", marginTop: "1.5em"}}>
+			<small className="muted">
+				<a href="http://mydmam.org" style={{color: "#999999"}}>MyDMAM</a> {i18n("site.aboutfooter")}
+			</small>
+		</div>);
+	}
+});
+

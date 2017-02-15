@@ -21,7 +21,6 @@ import hd3gtv.mydmam.db.status.ClusterStatusEvents;
 import hd3gtv.mydmam.db.status.ClusterStatusService;
 import hd3gtv.mydmam.metadata.WorkerIndexer;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.transcode.TranscoderWorker;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderTranscoder;
@@ -66,8 +65,6 @@ public class ServiceNGProbe extends ServiceNG implements ClusterStatusEvents {
 		TranscoderWorker.declareTranscoders(manager);
 		
 		bca_watcher = new BCAWatcher(manager);
-		
-		MyDMAMModulesManager.declareAllModuleWorkerElement(manager);
 	}
 	
 	protected void stopService() throws Exception {

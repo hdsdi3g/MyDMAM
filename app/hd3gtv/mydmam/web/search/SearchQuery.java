@@ -18,7 +18,9 @@ package hd3gtv.mydmam.web.search;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.common.unit.Fuzziness;
@@ -43,7 +45,8 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchStatSearch;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.pathindexing.Importer;
+import hd3gtv.mydmam.pathindexing.Importer.SearchPreProcessor;
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.tools.GsonIgnore;
 import hd3gtv.tools.GsonIgnoreStrategy;
@@ -77,7 +80,7 @@ public final class SearchQuery implements ElastisearchStatSearch {
 		builder.registerTypeAdapter(SearchQuery.class, serializer);
 		internal_gson = builder.create();
 		
-		List<String> module_ES_TYPE_search = MyDMAMModulesManager.getESTypesForUserSearch();
+		List<String> module_ES_TYPE_search = new Importer.SearchPreProcessor().getESTypeForUserSearch();
 		all_search_types = module_ES_TYPE_search.toArray(new String[module_ES_TYPE_search.size()]);
 	}
 	
@@ -257,6 +260,11 @@ public final class SearchQuery implements ElastisearchStatSearch {
 		return results.isEmpty() == false;
 	}
 	
+	/**
+	 * Index -> Module
+	 */
+	private volatile static Map<String, SearchResultPreProcessor> search_engines_pre_processing;
+	
 	private class Operation implements ElastisearchCrawlerHit {
 		
 		private SearchQuery reference;
@@ -282,7 +290,35 @@ public final class SearchQuery implements ElastisearchStatSearch {
 		}
 		
 		public boolean onFoundHit(SearchHit hit) throws Exception {
-			results.add(MyDMAMModulesManager.renderSearchResult(hit));
+			
+			SearchResult result = new SearchResult(hit.getIndex(), hit.getType(), hit.getId(), hit.getSource(), hit.getScore());
+			
+			if (search_engines_pre_processing == null) {
+				search_engines_pre_processing = new HashMap<String, SearchResultPreProcessor>();
+				
+				/**
+				 * Add Pathindex
+				 */
+				SearchPreProcessor pathindex_preproc = new Importer.SearchPreProcessor();
+				List<String> es_type_handled = pathindex_preproc.getESTypeForUserSearch();
+				for (int pos_estype = 0; pos_estype < es_type_handled.size(); pos_estype++) {
+					search_engines_pre_processing.put(es_type_handled.get(pos_estype), pathindex_preproc);
+				}
+				
+			}
+			
+			SearchResultPreProcessor pre_processor = search_engines_pre_processing.get(hit.getType());
+			if (pre_processor == null) {
+				results.add(result);
+				return true;
+			}
+			pre_processor.prepareSearchResult(hit, result);
+			
+			if (result.getContent() == null) {
+				result.setContent(new HashMap<String, Object>());
+			}
+			results.add(result);
+			
 			return true;
 		}
 	}

@@ -54,9 +54,9 @@ navigate.Home = React.createClass({
 				path = path + "/";
 			}
 
-			target = <navigate.NavigatePage pathindex_destination={path} setDocumentTitle={this.setDocumentTitle} />
+			target = <navigate.NavigatePage pathindex_destination={path} setDocumentTitle={this.setDocumentTitle} q={this.props.q} />
 		} else {
-			target = <navigate.NavigatePage pathindex_destination="" setDocumentTitle={this.setDocumentTitle} />
+			target = <navigate.NavigatePage pathindex_destination="" setDocumentTitle={this.setDocumentTitle} q={this.props.q} />
 		}
 		return (
 			<div className="container-fluid">{target}</div>
@@ -90,6 +90,29 @@ mydmam.routes.push("navigate-subdir18", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:
 mydmam.routes.push("navigate-subdir19", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13/:p14/:p15/:p16/:p17/:p18/:p19", navigate.Home, [{name: "stat", verb: "cache"}]);
 mydmam.routes.push("navigate-subdir20", "navigate/:storage/:p1/:p2/:p3/:p4/:p5/:p6/:p7/:p8/:p9/:p10/:p11/:p12/:p13/:p14/:p15/:p16/:p17/:p18/:p19/:p20", navigate.Home, [{name: "stat", verb: "cache"}]);
 
+mydmam.routes.setNeedsToRedirectSearch("navigate-root");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir0");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir1");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir2");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir3");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir4");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir5");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir6");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir7");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir8");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir9");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir10");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir11");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir12");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir13");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir14");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir15");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir16");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir17");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir18");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir19");
+mydmam.routes.setNeedsToRedirectSearch("navigate-subdir20");
+
 navigate.NavigatePage = React.createClass({
 	getInitialState: function() {
 		return {
@@ -100,20 +123,17 @@ navigate.NavigatePage = React.createClass({
 			external_location: null,
 		};
 	},
-	navigateTo: function(pathindex, page_from, page_size, sort) {
+	navigateTo: function(pathindex, page_from, page_size, q, sort) {
 		var stat = mydmam.stat;
 		var pathindex_key = md5(pathindex);
 		if (sort == null) {
 			sort = this.state.sort_order;
 		}
+
 		var search = "";
-		if (this.state.inputboxsearch) {
-			if (pathindex !== this.state.pathindex) {
-				this.state.inputboxsearch.value = "";
-			}
-			search = this.state.inputboxsearch.value;
+		if (q != null) {
+			search = q;
 		}
-		search = JSON.stringify(search);
 
 		var request = {
 			pathelementskeys: [pathindex_key],
@@ -160,18 +180,25 @@ navigate.NavigatePage = React.createClass({
 		}.bind(this));
 	},
 	componentDidMount: function() {
-		this.navigateTo(this.props.pathindex_destination, 0, this.state.default_page_size);
+		this.navigateTo(this.props.pathindex_destination, 0, this.state.default_page_size, this.props.q);
 	},
 	componentWillUpdate: function(nextProps, nextState) {
-		if (this.props.pathindex_destination != nextProps.pathindex_destination) {
-			this.navigateTo(nextProps.pathindex_destination, 0, this.state.default_page_size);
+		var need_to_update = false;
+
+		need_to_update = (this.props.pathindex_destination != nextProps.pathindex_destination);
+		if (need_to_update == false) {
+			need_to_update = (this.props.q != nextProps.q);
+		}
+
+		if (need_to_update) {
+			this.navigateTo(nextProps.pathindex_destination, 0, this.state.default_page_size, nextProps.q);
 		}
 	},
 	handlePaginationSwitchPage: function(newpage, alt_pressed) {
 		if (alt_pressed){
-			this.navigateTo(this.state.pathindex, 0, this.state.default_page_size * 2);
+			this.navigateTo(this.state.pathindex, 0, this.state.default_page_size * 2, this.props.q);
 		} else {
-			this.navigateTo(this.state.pathindex, newpage - 1, this.state.default_page_size);
+			this.navigateTo(this.state.pathindex, newpage - 1, this.state.default_page_size, this.props.q);
 		}
 	},
 	handlechangeOrderSort: function(colname, order) {
@@ -198,9 +225,14 @@ navigate.NavigatePage = React.createClass({
 				];
 			}
 		}
-		this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, stat_order);
+		this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, this.props.q, stat_order);
 	},
-	handleChangeSearchBox: function(dom_inputbox) {
+	/*componentWillReceiveProps: function(nextProps) {
+		if (this.props.q != null | nextProps.q != null) {
+			nextProps
+		}
+	},
+	/*handleChangeSearchBox: function(dom_inputbox) {
 		if (!this.state.inputboxsearch) {
 			this.setState({
 				inputboxsearch: dom_inputbox,
@@ -213,7 +245,7 @@ navigate.NavigatePage = React.createClass({
 		if (stat.reference.directory) {
 			this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, null);
 		}
-	},
+	},*/
 	render: function() {
 		var stat = this.state.stat[md5(this.state.pathindex)];
 		if (!stat) {
@@ -255,11 +287,6 @@ navigate.NavigatePage = React.createClass({
 			);
 		}
 
-		var is_in_search = false;
-		if (this.state.inputboxsearch) {
-			is_in_search = this.state.inputboxsearch.value != "";
-		}
-
 		return (
 			<div>
 				<navigate.BreadCrumb
@@ -269,7 +296,7 @@ navigate.NavigatePage = React.createClass({
 					stat={stat}
 					first_item_dateindex={first_item_dateindex}
 					pathindexkey={md5(this.state.pathindex)}
-					is_in_search={is_in_search}
+					in_search={this.props.q}
 					external_location={this.state.external_location} />
 				<mydmam.async.pathindex.reactMetadataFull
 					reference={stat.reference}
@@ -280,9 +307,8 @@ navigate.NavigatePage = React.createClass({
 					external_location={this.state.external_location} />
 				{display_pagination}
 				{noresult}
-				<navigate.SearchBox
-					changeStateInputbox={this.handleChangeSearchBox} />
 			</div>
 		);
 	}
 });
+

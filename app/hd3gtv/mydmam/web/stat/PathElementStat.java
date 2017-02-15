@@ -159,10 +159,12 @@ public class PathElementStat {
 			return this;
 		}
 		search = gson.fromJson(json_search, String.class);
-		if (search.trim().equals("")) {
-			search = null;
-		} else {
-			search = search.toLowerCase();
+		if (search != null) {
+			if (search.trim().equals("")) {
+				search = null;
+			} else {
+				search = search.toLowerCase();
+			}
 		}
 		return this;
 	}

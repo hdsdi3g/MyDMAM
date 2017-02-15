@@ -61,7 +61,7 @@ public class UserNG implements AuthEntry {
 	private boolean locked_account;
 	
 	private ArrayList<GroupNG> user_groups;
-	private JsonObject preferencies;
+	private JsonObject preferences;
 	private Properties properties;
 	private LinkedHashMap<String, BasketNG> baskets;
 	private ArrayList<UserActivity> activities;
@@ -85,7 +85,7 @@ public class UserNG implements AuthEntry {
 	 */
 	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(
 			Arrays.asList("login", "fullname", "domain", "language", "email_addr", "protected_password", "lasteditdate", "lastlogindate", "lastloginipsource", "locked_account", "user_groups"));
-			
+	
 	public void save(ColumnListMutation<String> mutator) {
 		Loggers.Auth.trace("Save User " + key);
 		
@@ -120,8 +120,8 @@ public class UserNG implements AuthEntry {
 		if (notifications != null) {
 			mutator.putColumnIfNotNull("notifications", turret.getGson().toJson(notifications, al_usernotification_typeOfT));
 		}
-		if (preferencies != null) {
-			mutator.putColumnIfNotNull("preferencies", preferencies.toString());
+		if (preferences != null) {
+			mutator.putColumnIfNotNull("preferences", preferences.toString());
 		}
 	}
 	
@@ -187,11 +187,11 @@ public class UserNG implements AuthEntry {
 			notifications = null;
 		}
 		
-		col = cols.getColumnByName("preferencies");
+		col = cols.getColumnByName("preferences");
 		if (col != null) {
-			preferencies = turret.parser.parse(col.getStringValue()).getAsJsonObject();
+			preferences = turret.parser.parse(col.getStringValue()).getAsJsonObject();
 		} else {
-			preferencies = null;
+			preferences = null;
 		}
 		
 		if (Loggers.Auth.isTraceEnabled()) {
@@ -448,25 +448,25 @@ public class UserNG implements AuthEntry {
 		return activities;
 	}
 	
-	public JsonObject getPreferencies() {
-		if (preferencies == null) {
-			preferencies = new JsonObject();
+	public JsonObject getPreferences() {
+		if (preferences == null) {
+			preferences = new JsonObject();
 			if (Loggers.Auth.isTraceEnabled()) {
-				Loggers.Auth.trace("getPreferencies from db " + key);
+				Loggers.Auth.trace("getPreferences from db " + key);
 			}
 			ColumnList<String> cols;
 			try {
-				cols = turret.prepareQuery().getKey(key).withColumnSlice("preferencies").execute().getResult();
-				if (cols.getColumnNames().contains("preferencies")) {
-					if (cols.getColumnByName("preferencies").hasValue()) {
-						preferencies = turret.parser.parse(cols.getColumnByName("preferencies").getStringValue()).getAsJsonObject();
+				cols = turret.prepareQuery().getKey(key).withColumnSlice("preferences").execute().getResult();
+				if (cols.getColumnNames().contains("preferences")) {
+					if (cols.getColumnByName("preferences").hasValue()) {
+						preferences = turret.parser.parse(cols.getColumnByName("preferences").getStringValue()).getAsJsonObject();
 					}
 				}
 			} catch (ConnectionException e) {
 				turret.onConnectionException(e);
 			}
 		}
-		return preferencies;
+		return preferences;
 	}
 	
 	public ArrayList<UserNotificationNG> getNotifications() {
@@ -549,7 +549,7 @@ public class UserNG implements AuthEntry {
 		result.email_addr = this.email_addr;
 		
 		if (complete) {
-			result.preferencies = getPreferencies();
+			result.preferences = getPreferences();
 			StringWriter sw = new StringWriter();
 			try {
 				getProperties().store(sw, null);
@@ -562,8 +562,8 @@ public class UserNG implements AuthEntry {
 			result.activities = turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT).getAsJsonArray();
 			result.notifications = turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT).getAsJsonArray();
 		} else {
-			if (preferencies != null) {
-				result.preferencies = preferencies;
+			if (preferences != null) {
+				result.preferences = preferences;
 			}
 			if (properties != null) {
 				StringWriter sw = new StringWriter();

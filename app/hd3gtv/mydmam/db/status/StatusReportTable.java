@@ -1,4 +1,4 @@
-*{
+/*
  * This file is part of MyDMAM.
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -11,21 +11,27 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2015
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
-}*
-#{extends 'maingrid.html' /}
+*/
+package hd3gtv.mydmam.db.status;
 
-<div id="reactindex"></div>
+import java.util.List;
 
-<script type="text/javascript" charset="UTF-8">
-<!--
-$(document).ready(function() {
-	try {
-		mydmam.routes.loadBackbone($("#reactindex")[0]);
-	} catch (err) {
-		console.error(err);
+class StatusReportTable {
+	
+	String name;
+	List<String> content;
+	
+	StatusReportTable(String name, List<String> content) {
+		this.name = name;
+		if (name == null) {
+			throw new NullPointerException("\"name\" can't to be null");
+		}
+		this.content = content;
+		if (content == null) {
+			throw new NullPointerException("\"content\" can't to be null");
+		}
 	}
-});
--->
-</script>
+	
+}

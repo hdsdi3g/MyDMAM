@@ -11,15 +11,28 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2015-2016
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
+package hd3gtv.mydmam.web;
 
-metadatas.getFileURL = function(file_hash, file_type, file_name) {
-	var url = mydmam.routes.reverse("metadatafile");
-	if (!url) {
-		return "";
+import play.Play;
+import play.PlayPlugin;
+import play.jobs.JobsPlugin;
+
+public class PlayServerReport {
+	
+	boolean is_js_dev_mode;
+	String pluginstatus;
+	
+	public PlayServerReport() {
+		PlayPlugin plugin = Play.pluginCollection.getPluginInstance(JobsPlugin.class);
+		if (plugin != null) {
+			pluginstatus = plugin.getStatus();
+		} else {
+			pluginstatus = "(pluginCollection is disabled)";
+		}
+		is_js_dev_mode = JSSourceManager.isJsDevMode();
 	}
-	return url.replace("filehashparam1", file_hash).replace("typeparam2", file_type).replace("fileparam3", file_name);
-};
-
+	
+}

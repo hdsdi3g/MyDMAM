@@ -592,3 +592,164 @@ manager.PendingActions = React.createClass({
 		</div>);
 	},
 }); 
+
+var ClusterStatusTable = React.createClass({
+	render: function() {
+		var report = this.props.report;
+		var datas = report.datas;
+		var colums_names = report.colums_names;
+
+		var headers = [];
+		//headers.push(<th key="_empty"></th>);
+		for (colname in colums_names) {
+			headers.push(<th key={colname}>{colums_names[colname]}</th>);
+		}
+
+		var lines = [];
+		for (line in datas) {
+			var data = datas[line];
+			var cols = [];
+
+			for (col in data.content) {
+				cols.push(<td key={col}>
+					{data.content[col]}
+				</td>);
+			}
+
+			lines.push(<tr key={line + "_head"}>
+				<th key="head">{data.name}</th>
+				{cols}
+			</tr>);
+
+		}
+
+		return (<table style={{width: "auto"}} className="table table-striped table-hover table-condensed table-bordered">
+			<thead><th>
+				{headers}
+			</th></thead>
+			<tbody>{lines}</tbody>
+		</table>);
+	},
+}); 
+
+
+manager.ClusterStatus = React.createClass({
+	getInitialState: function() {
+		return {
+			status: {},
+		};
+	},
+	componentWillMount: function() {
+		mydmam.async.request("instances", "esclusterstatus", null, function(status) {
+			/*list.sort(function (a, b) {
+				return a.update_date < b.update_date;
+			});*/
+			this.setState({status: status});
+		}.bind(this));
+	},
+	render: function() {
+		var status = this.state.status;
+
+		var result = [];
+		if (status.last_status_reports) {
+			for (var report in status.last_status_reports) {
+				var report_name = status.last_status_reports[report].report_name;
+				result.push(<div key={report}>
+					<h3>{report_name}</h3>
+					<ClusterStatusTable report={status.last_status_reports[report]} />
+				</div>);
+			}
+		}
+
+		return (<div>
+			{result}
+		</div>);
+	},
+}); 
+
+manager.PlayServer = React.createClass({
+	getInitialState: function() {
+		return {
+			report: {
+				is_js_dev_mode: false,
+				pluginstatus: "Loading...",
+			},
+		};
+	},
+	componentWillMount: function() {
+		mydmam.async.request("instances", "playserver", null, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnPurgeplaycache: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: true, refreshlogconf: false, switchjsdevmode: false, purgejs: false
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnRefreshlogconf: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: false, refreshlogconf: true, switchjsdevmode: false, purgejs: false
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnSwitchjsdevmode: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: true, purgejs: false
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnPurgejs: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: false, purgejs: true
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	render: function() {
+		var js_dev_mode = (<span className="text-success">{i18n("manager.playserver.in_js_prod")}</span>);
+		var btn_label_js_dev_mode = i18n("manager.playserver.switchjsdevmode");
+
+		if (this.state.report.is_js_dev_mode) {
+			js_dev_mode = (<span className="text-error">{i18n("manager.playserver.in_js_dev")}</span>);
+			btn_label_js_dev_mode = i18n("manager.playserver.switchjsprodmode")
+		}
+
+		return (<div>
+			<p>
+				<div className="btn-group">
+					<button onClick={this.onClickBtnPurgeplaycache} className="btn">
+						<i className="icon-fire"></i> {i18n("manager.playserver.purgeplaycache")}
+					</button>
+					<button onClick={this.onClickBtnRefreshlogconf} className="btn">
+						<i className="icon-refresh"></i> {i18n("manager.playserver.refreshlogconf")}
+					</button>
+					<button onClick={this.onClickBtnSwitchjsdevmode} className="btn">
+						<i className="icon-plane"></i> {btn_label_js_dev_mode}
+					</button>
+					<button onClick={this.onClickBtnPurgejs} className="btn">
+						<i className="icon-fire"></i> {i18n("manager.playserver.purgejs")}
+					</button>
+				</div>
+			</p>
+			<p>
+				{js_dev_mode}
+			</p>
+			<p>
+				<i className="icon-list-alt"></i> <a href="#debugpage">{i18n("manager.playserver.ajsdebugpage")}</a>
+			</p>
+			<pre>{this.state.report.pluginstatus}</pre>
+		</div>);
+	},
+}); 

@@ -195,8 +195,8 @@ public class Auth extends AJSController {
 		return PrivilegeNG.dumpAllPrivileges();
 	}
 	
-	public static JsonObject getPreferencies() throws Exception {
-		return AJSController.getUserProfile().getPreferencies();
+	public static JsonObject getPreferences() throws Exception {
+		return AJSController.getUserProfile().getPreferences();
 	}
 	
 	public static UserView changePassword(String new_clear_text_passwd) throws Exception {

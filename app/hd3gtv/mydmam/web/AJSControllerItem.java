@@ -24,6 +24,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import com.google.gson.JsonElement;
@@ -119,11 +120,11 @@ class AJSControllerItem {
 			}
 		}
 		
-		boolean hasMandatoryPrivileges() {
+		boolean hasMandatoryPrivileges() throws DisconnectedUser {
 			return hasMandatoryPrivileges(Secure.getSessionPrivileges());
 		}
 		
-		boolean hasMandatoryPrivileges(ArrayList<String> session_privileges) {
+		boolean hasMandatoryPrivileges(HashSet<String> session_privileges) {
 			if (mandatory_privileges.isEmpty()) {
 				return true;
 			}
@@ -235,7 +236,7 @@ class AJSControllerItem {
 		});
 	}
 	
-	ArrayList<String> getAllAccessibleUserVerbsName(ArrayList<String> session_privileges) {
+	ArrayList<String> getAllAccessibleUserVerbsName(HashSet<String> session_privileges) {
 		ArrayList<String> result = new ArrayList<String>(verbs.size());
 		
 		for (Map.Entry<String, Verb> entry : verbs.entrySet()) {

@@ -45,7 +45,7 @@ public class UserView {
 	@GsonIgnore
 	public ArrayList<String> user_groups;
 	
-	public JsonObject preferencies;
+	public JsonObject preferences;
 	public String properties;
 	public JsonObject baskets;
 	public JsonArray activities;

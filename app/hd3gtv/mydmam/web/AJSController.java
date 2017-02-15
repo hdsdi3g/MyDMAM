@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -201,9 +202,9 @@ public class AJSController {
 	 * @return controller -> verbs
 	 */
 	@AJSIgnore
-	public static HashMap<String, ArrayList<String>> getAllControllersVerbsForThisUser() {
+	public static HashMap<String, ArrayList<String>> getAllControllersVerbsForThisUser() throws DisconnectedUser {
 		HashMap<String, ArrayList<String>> result = new HashMap<String, ArrayList<String>>();
-		ArrayList<String> session_privileges = Secure.getSessionPrivileges();
+		HashSet<String> session_privileges = Secure.getSessionPrivileges();
 		
 		String controler_name;
 		ArrayList<String> accessible_user_verbs_name;
@@ -220,12 +221,15 @@ public class AJSController {
 	}
 	
 	@AJSIgnore
-	public static UserNG getUserProfile() throws Exception {
+	public static UserNG getUserProfile() throws NullPointerException {
+		if (Secure.isConnected() == false) {
+			throw new NullPointerException("No session user");
+		}
 		return Bootstrap.getAuth().getByUserKey(Secure.connected());
 	}
 	
 	@AJSIgnore
-	public static String getUserProfileLongName() throws Exception {
+	public static String getUserProfileLongName() {
 		UserNG user = getUserProfile();
 		if (user == null) {
 			return "(Deleted, please log-off)";
@@ -234,7 +238,7 @@ public class AJSController {
 	}
 	
 	@AJSIgnore
-	public static String doRequest(String request_name, String verb_name, String request) throws SecurityException, ClassNotFoundException {
+	public static String doRequest(String request_name, String verb_name, String request) throws SecurityException, ClassNotFoundException, DisconnectedUser {
 		
 		AJSControllerItem controller = controllers.get(request_name);
 		if (controller == null) {

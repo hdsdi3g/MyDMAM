@@ -48,6 +48,11 @@ public class TableList {
 		if (elements.length != rows) {
 			throw new IllegalArgumentException();
 		}
+		for (int i = 0; i < elements.length; i++) {
+			if (elements[i] == null) {
+				throw new NullPointerException("Row element[" + i + "] can't to be null");
+			}
+		}
 		table.add(elements);
 		updateSizes(elements);
 		return this;

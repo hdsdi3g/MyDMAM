@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -343,6 +344,21 @@ public class MyDMAM {
 		}
 	}
 	
+	public static class InetSocketAddressSerializer implements JsonSerializer<InetSocketAddress>, JsonDeserializer<InetSocketAddress> {
+		
+		public InetSocketAddress deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			JsonObject jo = json.getAsJsonObject();
+			return new InetSocketAddress(jo.get("addr").getAsString(), jo.get("port").getAsInt());
+		}
+		
+		public JsonElement serialize(InetSocketAddress src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject jo = new JsonObject();
+			jo.addProperty("addr", src.getHostString());
+			jo.addProperty("port", src.getPort());
+			return jo;
+		}
+	}
+	
 	public static class URLSerializer implements JsonSerializer<URL>, JsonDeserializer<URL> {
 		
 		public URL deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
@@ -397,6 +413,7 @@ public class MyDMAM {
 		gson_builder.registerTypeAdapter(XMLGregorianCalendar.class, new MyDMAM.XMLGregorianCalendarSerializer());
 		gson_builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
 		gson_builder.registerTypeAdapter(InetAddress.class, new MyDMAM.InetAddrSerializer());
+		gson_builder.registerTypeAdapter(InetSocketAddress.class, new MyDMAM.InetSocketAddressSerializer());
 		gson_builder.registerTypeAdapter(URL.class, new MyDMAM.URLSerializer());
 		gson_builder.registerTypeAdapter(Timecode.class, new MyDMAM.TimecodeSerializer());
 	}
@@ -405,9 +422,11 @@ public class MyDMAM {
 	 * Search application.conf in classpath, and return the /mydmam main directory.
 	 */
 	public static final File APP_ROOT_PLAY_DIRECTORY;
+	public static final File APP_ROOT_PLAY_CONF_DIRECTORY;
 	
 	static {
 		APP_ROOT_PLAY_DIRECTORY = getMyDMAMRootPlayDirectory();
+		APP_ROOT_PLAY_CONF_DIRECTORY = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getPath() + File.separator + "conf");
 	}
 	
 	private static File getMyDMAMRootPlayDirectory() {

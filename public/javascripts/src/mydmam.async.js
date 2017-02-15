@@ -39,13 +39,25 @@
 		}
 
 		$.ajax({
-			url: mydmam.async.url.replace("nameparam1", name).replace("verbparam2", verb),
+			url: mydmam.routes.reverse("async").replace("nameparam1", name).replace("verbparam2", verb),
 			type: "POST",
 			dataType: 'json',
 			data: {
 				jsonrq: JSON.stringify(content)
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
+				if (jqXHR.status == 403) {
+					/**
+					 * Disconnected
+					 */
+					if (jqXHR.responseJSON.redirect) {
+						window.location.href = jqXHR.responseJSON.redirect;
+					} else {
+						window.location.href = "/";
+					}
+					return;
+				}
+
 				/**
 				 * It never throw an error if you respect privileges and request_name/verb.
 				 */
@@ -70,3 +82,30 @@
 	};
 
 })(window.mydmam);
+
+(function(async) {
+
+	/** In ms */
+	var actual_drift = 0;
+
+	if (async.server_time) {
+		actual_drift = Date.now() - async.server_time;
+		if (window.performance) {
+			if (window.performance.timing) {
+				if (window.performance.timing.responseStart) {
+					actual_drift = window.performance.timing.responseStart - async.server_time;
+				}
+			}
+		}
+	}
+
+	/**
+	 * @return long (UNIX Time in ms)
+	 */
+	async.getTime = function() {
+		return Date.now() - actual_drift;
+	}
+
+	//console.log(actual_drift);
+
+})(window.mydmam.async);
