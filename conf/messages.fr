@@ -590,3 +590,8 @@ acl.privileges.name.showManager=Voir la gestion des services
 acl.privileges.name.showJobs=Voir la liste des jobs
 acl.privileges.name.actionManager=Gérer les services
 acl.privileges.name.actionJobs=Gérer la liste des jobs
+
+# Broadcast automation
+bca.noeventstodisplay=Pas d'événements à afficher.
+bca.page=Playlist
+bca.loading=Chargement...

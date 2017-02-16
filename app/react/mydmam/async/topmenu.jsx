@@ -136,7 +136,7 @@ async.TopMenu = React.createClass({
 			sitesearchbox_divider = divider_vertical;
 		}
 
-		if (mydmam.async.isAvaliable("stat", "cache")) {
+		if (async.isAvaliable("stat", "cache")) {
 			var li_class = classNames({
 				"active": isMenuItemIsActive("#navigate"),
 			});
@@ -148,13 +148,13 @@ async.TopMenu = React.createClass({
 		}
 
 		var bca_link = null;
-		if (mydmam.async.isAvaliable("bca", "allevents")) {
+		if (async.isAvaliable("bca", "allevents")) {
 			var li_class = classNames({
-				"active": isMenuItemIsActive("#broadcastautomation"),
+				"active": isMenuItemIsActive("#" + async.bca.link),
 			});
 
 			bca_link = (<li className={li_class}>
-				<TopMenuEntrylink label={i18n("bca.page")} href="#broadcastautomation" />
+				<TopMenuEntrylink label={i18n("bca.page")} href={"#" + async.bca.link} />
 			</li>);
 		}
 

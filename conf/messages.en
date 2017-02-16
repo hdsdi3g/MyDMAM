@@ -590,3 +590,8 @@ acl.privileges.name.showManager=View service manager
 acl.privileges.name.showJobs=View the job queue
 acl.privileges.name.actionManager=Operate on service manager
 acl.privileges.name.actionJobs=Manage the job queue
+
+# Broadcast automation
+bca.noeventstodisplay=No events to display
+bca.page=Playlist
+bca.loading=Loading...

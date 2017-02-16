@@ -15,4 +15,53 @@
  * 
 */
 
-//bca.Home = 
+bca.link = "broadcastautomation";
+
+bca.Home = React.createClass({
+	getInitialState: function() {
+		return {
+			events: null,
+		};
+	},
+	componentWillMount: function() {
+		mydmam.async.request("bca", "allevents", {}, function(data) {
+			this.setState({events: data.items});
+		}.bind(this));
+	},
+	render: function() {
+		var is_loading = null;
+		var table = null;
+
+		if (this.state.events == null) {
+			is_loading = (<div className="alert alert-info">
+			      <h4>{i18n("bca.loading")}</h4>
+		    </div>);
+		} else {
+			var event_list = [];
+			for (var event_key in this.state.events) {
+				var event = this.state.events[event_key];
+				event = JSON.parse(event);
+				event_list.push(<div key={event_key}>
+					{event.startdate} {event.name} {event.duration} 
+				</div>);
+			}
+
+			if (event_list.length > 0) {
+				table = (<div>Events:<br />
+					{event_list}
+				</div>);
+			} else {
+				table = (<div className="alert alert-block">
+				      <h4>{i18n("bca.noeventstodisplay")}</h4>
+			    </div>);
+			}
+		}
+
+ 		return (<mydmam.async.PageHeaderTitle title={i18n("bca.page")} fluid="true">
+			{is_loading}
+			{table}
+		</mydmam.async.PageHeaderTitle>);
+	},
+});
+
+mydmam.routes.push("bca-home", bca.link, bca.Home, [{name: "bca", verb: "allevents"}]);
