@@ -34,7 +34,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.google.common.primitives.Longs;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
@@ -322,7 +325,9 @@ public class BCAWatcher implements InstanceStatusItem {
 		
 		private void prepareActualFutureEventList() throws Exception {
 			actual_event_list.clear();
-			database.getAllFutureKeys(key -> actual_event_list.add(key));
+			database.getAllFutureKeys(key -> {
+				actual_event_list.add(key);
+			});
 			Loggers.BroadcastAutomation.debug("Future event list as currently " + actual_event_list.size() + " events");
 		}
 		
@@ -394,12 +399,20 @@ public class BCAWatcher implements InstanceStatusItem {
 		
 		private void close() throws ConnectionException {
 			if (t_event != null) {
-				// FIXME for all future events, do a db scan and remove all removed events from actual scan
+				t_event.close();
+			}
+			
+			if (actual_event_list.isEmpty() == false) {
+				Loggers.BroadcastAutomation.debug("Start purge obsolete " + actual_event_list.size() + " event(s)");
+				
+				MutationBatch mutator = CassandraDb.prepareMutationBatch(CassandraDb.getDefaultKeyspacename());
+				ColumnFamily<String, String> cf = new ColumnFamily<String, String>(CF_NAME, StringSerializer.get(), StringSerializer.get());
+				
 				actual_event_list.forEach((event_key) -> {
 					Loggers.BroadcastAutomation.trace("Process event: clean obsolete event [" + event_key + "] from database");
-					t_event.removeDatabaseEntry(event_key);
+					mutator.withRow(cf, event_key).delete();
 				});
-				t_event.close();
+				mutator.execute();
 			}
 		}
 	}

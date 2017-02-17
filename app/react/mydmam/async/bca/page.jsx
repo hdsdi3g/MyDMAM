@@ -17,16 +17,90 @@
 
 bca.link = "broadcastautomation";
 
+var Event = React.createClass({ //TODO manage planned -> onair -> asrun
+	render: function() {
+		var event = this.props.event;
+
+		/*if (event.enddate < mydmam.async.getTime()) {
+			return (<span />);
+		}*/
+
+		//<code>{event_key}</code> 
+		
+		var label_rec = null;
+		if (event.recording) {
+			label_rec = (<span className="badge badge-important">RECORD</span>);
+		}
+
+		var label_paused = null;
+		if (event.automation_paused) {
+			label_paused = (<span className="badge badge-inverse">HOLD</span>);
+		}
+
+		var classname = classNames({
+			"muted": event.enddate < mydmam.async.getTime(),
+		});
+
+		// {mydmam.format.date(event.enddate)} {event.channel} {event.other}
+
+		return (<div className={classname} style={{borderTop: "1px solid #CCC", borderBottom: "1px solid #CCC", marginTop: "2px", paddingTop: "2px", paddingBottom: "2px", marginBottom: "2px"}}>
+			<div className="row">
+				<div className="span1">
+					<span style={{fontFamily: "Verdana", fontSize: 12,}}>{mydmam.format.date(event.startdate)}</span>
+				</div>
+				<div className="span1">
+					{label_paused}
+				</div>
+				<div className="span4">
+					<span style={{fontFamily: "Verdana", fontSize: 12,}}>{event.name}</span>
+				</div>
+				<div className="span1">
+					<span style={{fontFamily: "Verdana", fontSize: 12,}}>{event.duration}</span>
+				</div>
+				<div className="span1">
+					<span className="label label-info">{event.video_source}</span>
+				</div>
+				<div className="span4">
+					<span className="label label-success">{event.file_id}</span>
+
+					&bull; {event.som} &bull;
+				</div>
+			</div>
+			<div className="row">
+				<div className="span4 offset2">
+					<small className="muted" style={{fontFamily: "Verdana", fontSize: 10,}}>{event.material_type} :: {event.comment} :: {event.automation_id}</small>
+				</div>
+				<div className="span1 offset1">
+					{label_rec}
+				</div>
+			</div>
+		</div>);
+		//TODO if start / end is not the same date -> display new date in duration
+	},
+});
+
 bca.Home = React.createClass({
 	getInitialState: function() {
 		return {
 			events: null,
+			interval: null,
 		};
 	},
 	componentWillMount: function() {
+		this.updateAll(); //TODO add <> delta
+	},
+	updateAll: function() {
 		mydmam.async.request("bca", "allevents", {}, function(data) {
 			this.setState({events: data.items});
 		}.bind(this));
+	},
+	componentDidMount: function(){
+		//this.setState({interval: setInterval(this.updateAll, 10000)});
+	},
+	componentWillUnmount: function() {
+		if (this.state.interval) {
+			clearInterval(this.state.interval);
+		}
 	},
 	render: function() {
 		var is_loading = null;
@@ -40,10 +114,7 @@ bca.Home = React.createClass({
 			var event_list = [];
 			for (var event_key in this.state.events) {
 				var event = this.state.events[event_key];
-				event = JSON.parse(event);
-				event_list.push(<div key={event_key}>
-					{event.startdate} {event.name} {event.duration} 
-				</div>);
+				event_list.push(<Event key={event_key} event={JSON.parse(event)} />);
 			}
 
 			if (event_list.length > 0) {

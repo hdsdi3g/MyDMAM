@@ -29,7 +29,6 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.query.IndexQuery;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
@@ -58,8 +57,6 @@ public class TimedEventStore {
 		if (CassandraDb.isColumnFamilyExists(keyspace, cf_name) == false) {
 			Loggers.Cassandra.info("Create Cassandra CF " + cf_name);
 			CassandraDb.createColumnFamilyString(keyspace.getKeyspaceName(), cf_name, false);
-			CassandraDb.declareIndexedColumn(keyspace, cf, col_name_event_date, cf_name + "_" + col_name_event_date, DeployColumnDef.ColType_LongType);
-			CassandraDb.declareIndexedColumn(keyspace, cf, "indexingdebug", cf_name + "_indexingdebug", DeployColumnDef.ColType_Int32Type);
 		}
 		if (max_event_age > 0) {
 			min_event_date = System.currentTimeMillis() - max_event_age;
@@ -111,6 +108,7 @@ public class TimedEventStore {
 			}
 			this.date = date;
 			processDate();
+			getMutator().putColumn(col_name_event_date, date);
 		}
 		
 		private TimedEvent(MutationBatch mutator, String event_key, long date) {
@@ -125,6 +123,7 @@ public class TimedEventStore {
 			}
 			this.date = date;
 			processDate();
+			getMutator().putColumn(col_name_event_date, date);
 		}
 		
 		/**
@@ -165,18 +164,7 @@ public class TimedEventStore {
 		 * ttl is already set.
 		 */
 		public ColumnListMutation<String> getMutator() {
-			mutator.withRow(cf, event_key).putColumn(col_name_event_date, date, computed_ttl);
-			
-			/**
-			 * Workaround for Cassandra index select bug.
-			 */
-			mutator.withRow(cf, event_key).putColumn("indexingdebug", 1, computed_ttl);
-			
 			return mutator.withRow(cf, event_key).setDefaultTtl(computed_ttl);
-		}
-		
-		public void removeDatabaseEntry(String key) {
-			mutator.withRow(cf, key).delete();
 		}
 		
 	}
@@ -208,12 +196,6 @@ public class TimedEventStore {
 			return date;
 		}
 		
-		public String toString() {
-			StringBuilder sb = new StringBuilder();
-			// TODO
-			return sb.toString();
-		}
-		
 	}
 	
 	private static final EventDateComparator comparator = new EventDateComparator();
@@ -230,6 +212,9 @@ public class TimedEventStore {
 		}
 	}
 	
+	/**
+	 * @return sorted
+	 */
 	public ArrayList<TimedEventFromDb> getAll() throws Exception {
 		final ArrayList<TimedEventFromDb> result = new ArrayList<>();
 		
@@ -243,6 +228,9 @@ public class TimedEventStore {
 		return result;
 	}
 	
+	/**
+	 * @return sorted
+	 */
 	public ArrayList<TimedEventFromDb> getByKeys(Collection<String> keys) throws Exception {
 		final ArrayList<TimedEventFromDb> result = new ArrayList<>();
 		
@@ -263,48 +251,17 @@ public class TimedEventStore {
 	}
 	
 	/**
-	 * @return non sorted
+	 * @return non date sorted
 	 */
-	public ArrayList<String> getAllKeys() throws Exception {
-		final ArrayList<String> result = new ArrayList<>();
-		
+	public void getAllFutureKeys(Consumer<String> result) throws Exception {
 		CassandraDb.allRowsReader(cf, new AllRowsFoundRow() {
 			public void onFoundRow(Row<String, String> row) throws Exception {
-				result.add(row.getKey());
+				long date = row.getColumns().getColumnByName(col_name_event_date).getLongValue();
+				if (date > System.currentTimeMillis()) {
+					result.accept(row.getKey());
+				}
 			}
 		}, col_name_event_date);
-		
-		return result;
-	}
-	
-	public ArrayList<TimedEventFromDb> getByDateRange(long min_date, long max_date) throws Exception {
-		final ArrayList<TimedEventFromDb> result = new ArrayList<>();
-		
-		IndexQuery<String, String> index_query = keyspace.prepareQuery(cf).searchWithIndex();
-		index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
-		index_query.addExpression().whereColumn(col_name_event_date).greaterThanEquals().value(min_date);
-		index_query.addExpression().whereColumn(col_name_event_date).lessThanEquals().value(max_date);
-		
-		Rows<String, String> rows = index_query.execute().getResult();
-		
-		rows.forEach(r -> {
-			result.add(new TimedEventFromDb(r.getKey(), r.getColumns()));
-		});
-		
-		result.sort(comparator);
-		return result;
-	}
-	
-	public void getAllFutureKeys(Consumer<String> result) throws Exception {
-		IndexQuery<String, String> index_query = keyspace.prepareQuery(cf).searchWithIndex();
-		index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
-		index_query.addExpression().whereColumn(col_name_event_date).greaterThan().value(System.currentTimeMillis());
-		
-		Rows<String, String> rows = index_query.execute().getResult();
-		
-		rows.forEach(r -> {
-			result.accept(r.getKey());
-		});
 	}
 	
 }

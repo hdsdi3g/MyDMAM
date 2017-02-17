@@ -51,22 +51,6 @@ public class BCA extends AJSController {
 	}
 	
 	@Check("BCA")
-	public static LinkedHashMapStringString allkeys() throws Exception {
-		if (database == null) {
-			database = new TimedEventStore(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME);
-		}
-		
-		LinkedHashMapStringString r = new LinkedHashMapStringString();
-		r.items = new LinkedHashMap<>();
-		
-		database.getAllKeys().forEach(key -> {
-			r.items.put(key, "");
-		});
-		
-		return r;
-	}
-	
-	@Check("BCA")
 	public static LinkedHashMapStringString futureKeys() throws Exception {
 		if (database == null) {
 			database = new TimedEventStore(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME);

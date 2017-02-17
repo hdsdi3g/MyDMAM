@@ -19,6 +19,7 @@ package hd3gtv.mydmam.bcastautomation;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -61,6 +62,8 @@ class BCAMorpheusScheduleParser extends DefaultHandler implements ErrorHandler {
 			parseur.parse(is, this);
 			parseur = null;
 			fis.close();
+		} catch (FileNotFoundException e) {
+			Loggers.BroadcastAutomation.warn("Can't found playlist file " + schfile.getPath() + " " + e.getMessage());
 		} catch (ParserConfigurationException pce) {
 			throw new IOException(pce);
 		} catch (SAXException se) {

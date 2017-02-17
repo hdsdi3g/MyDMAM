@@ -58,13 +58,17 @@ public abstract class BCAAutomationEvent {
 	 */
 	public final JsonObject serialize(HashMap<String, ConfigurationItem> import_other_properties_configuration) {
 		JsonObject jo = new JsonObject();
-		jo.addProperty("startdate", getStartDate());
+		long start_date = getStartDate();
+		Timecode duration = getDuration();
+		
+		jo.addProperty("startdate", start_date);
 		jo.addProperty("name", getName());
 		jo.addProperty("automation_id", getAutomationId());
 		jo.addProperty("file_id", getFileId());
 		jo.addProperty("recording", isRecording());
 		jo.addProperty("video_source", getVideoSource());
-		jo.addProperty("duration", getDuration().toString());
+		jo.addProperty("duration", duration.toString());
+		jo.addProperty("enddate", start_date + (long) (duration.getValue() * 1000f));
 		jo.addProperty("automation_paused", isAutomationPaused());
 		jo.addProperty("som", getSOM().toString());
 		jo.addProperty("comment", getComment());
