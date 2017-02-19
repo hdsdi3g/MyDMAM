@@ -53,13 +53,17 @@ public abstract class BCAAutomationEvent {
 	
 	public abstract String getAutomationType();
 	
+	final long getLongDuration() {
+		Timecode duration = getDuration();
+		return (long) (duration.getValue() * 1000f);
+	}
+	
 	/**
 	 * @param import_other_properties_configuration can to be null
 	 */
 	public final JsonObject serialize(HashMap<String, ConfigurationItem> import_other_properties_configuration) {
 		JsonObject jo = new JsonObject();
 		long start_date = getStartDate();
-		Timecode duration = getDuration();
 		
 		jo.addProperty("startdate", start_date);
 		jo.addProperty("name", getName());
@@ -67,8 +71,8 @@ public abstract class BCAAutomationEvent {
 		jo.addProperty("file_id", getFileId());
 		jo.addProperty("recording", isRecording());
 		jo.addProperty("video_source", getVideoSource());
-		jo.addProperty("duration", duration.toString());
-		jo.addProperty("enddate", start_date + (long) (duration.getValue() * 1000f));
+		jo.addProperty("duration", getDuration().toString());
+		jo.addProperty("enddate", start_date + getLongDuration());
 		jo.addProperty("automation_paused", isAutomationPaused());
 		jo.addProperty("som", getSOM().toString());
 		jo.addProperty("comment", getComment());

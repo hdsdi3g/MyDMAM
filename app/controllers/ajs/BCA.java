@@ -23,8 +23,8 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.bcastautomation.ArrayListString;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
 import hd3gtv.mydmam.bcastautomation.LinkedHashMapStringString;
+import hd3gtv.mydmam.bcastautomation.TimedEventStore;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.db.TimedEventStore;
 import hd3gtv.mydmam.web.AJSController;
 
 /**
@@ -59,8 +59,29 @@ public class BCA extends AJSController {
 		LinkedHashMapStringString r = new LinkedHashMapStringString();
 		r.items = new LinkedHashMap<>();
 		
-		database.getAllFutureKeys(key -> {
-			r.items.put(key, "");
+		database.getAllKeys(future -> {
+			r.items.put(future, "");
+		}, aired_key -> {
+		}, nonaired_key -> {
+		});
+		
+		return r;
+	}
+	
+	@Check("BCA")
+	public static LinkedHashMapStringString pastKeys() throws Exception {
+		if (database == null) {
+			database = new TimedEventStore(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME);
+		}
+		
+		LinkedHashMapStringString r = new LinkedHashMapStringString();
+		r.items = new LinkedHashMap<>();
+		
+		database.getAllKeys(future -> {
+		}, aired_key -> {
+			r.items.put(aired_key, "aired");
+		}, nonaired_key -> {
+			r.items.put(nonaired_key, "nonaired");
 		});
 		
 		return r;

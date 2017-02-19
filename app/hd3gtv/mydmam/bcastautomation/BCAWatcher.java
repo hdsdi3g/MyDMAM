@@ -43,9 +43,8 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.bcastautomation.TimedEventStore.TimedEvent;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.db.TimedEventStore;
-import hd3gtv.mydmam.db.TimedEventStore.TimedEvent;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceStatusItem;
 import hd3gtv.tools.CopyMove;
@@ -325,10 +324,13 @@ public class BCAWatcher implements InstanceStatusItem {
 		
 		private void prepareActualFutureEventList() throws Exception {
 			actual_event_list.clear();
-			database.getAllFutureKeys(key -> {
-				actual_event_list.add(key);
+			database.getAllKeys(future -> {
+				actual_event_list.add(future);
+			}, aired_key -> {
+			}, nonaired_key -> {
+				actual_event_list.add(nonaired_key);
 			});
-			Loggers.BroadcastAutomation.debug("Future event list as currently " + actual_event_list.size() + " events");
+			Loggers.BroadcastAutomation.debug("Event list as currently " + actual_event_list.size() + " future and non-aired events");
 		}
 		
 		public void onAutomationEvent(BCAAutomationEvent event) {
@@ -381,13 +383,13 @@ public class BCAWatcher implements InstanceStatusItem {
 			
 			if (t_event == null) {
 				try {
-					t_event = database.createEvent(event_key, event.getStartDate());
+					t_event = database.createEvent(event_key, event.getStartDate(), event.getLongDuration());
 				} catch (ConnectionException e) {
 					Loggers.BroadcastAutomation.warn("Can't push to database", e);
 					return;
 				}
 			} else {
-				t_event = t_event.createAnother(event_key, event.getStartDate());
+				t_event = t_event.createAnother(event_key, event.getStartDate(), event.getLongDuration());
 			}
 			t_event.getMutator().putColumn(DB_COL_CONTENT_NAME, event.serialize(import_other_properties_configuration).toString());
 			

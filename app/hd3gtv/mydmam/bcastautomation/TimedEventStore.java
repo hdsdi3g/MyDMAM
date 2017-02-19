@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2016
  * 
 */
-package hd3gtv.mydmam.db;
+package hd3gtv.mydmam.bcastautomation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,11 +27,11 @@ import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.db.CassandraDb;
 
 public class TimedEventStore {
 	
@@ -39,7 +39,9 @@ public class TimedEventStore {
 	private ColumnFamily<String, String> cf;
 	private long min_event_date;
 	private int default_ttl;
-	private static final String col_name_event_date = "_event_date";
+	private static final String col_name_event_start_date = "_event_start_date";
+	private static final String col_name_event_end_date = "_event_end_date";
+	private static final String col_name_event_aired = "_event_aired";
 	
 	public TimedEventStore(Keyspace keyspace, String cf_name) throws ConnectionException {
 		this(keyspace, cf_name, 0);
@@ -69,21 +71,21 @@ public class TimedEventStore {
 	 * You must set max_event_age in constructor.
 	 * @return null if event is too old.
 	 */
-	public TimedEvent createEvent(String event_key, long date) throws ConnectionException {
-		if (isTooOld(date)) {
+	public TimedEvent createEvent(String event_key, long start_date, long duration) throws ConnectionException {
+		if (isTooOld(start_date)) {
 			return null;
 		}
-		return new TimedEvent(event_key, date);
+		return new TimedEvent(event_key, start_date, duration);
 	}
 	
 	/**
 	 * You must set max_event_age in constructor
 	 */
-	public boolean isTooOld(long date) {
+	public boolean isTooOld(long start_date) {
 		if (min_event_date == 0) {
 			throw new NullPointerException("You can't use this without set max_event_age in constructor");
 		}
-		return date < min_event_date;
+		return start_date < min_event_date;
 	}
 	
 	/**
@@ -93,10 +95,10 @@ public class TimedEventStore {
 		
 		private MutationBatch mutator;
 		private String event_key;
-		private long date;
+		private long start_date;
 		private int computed_ttl;
 		
-		private TimedEvent(String event_key, long date) throws ConnectionException {
+		private TimedEvent(String event_key, long start_date, long duration) throws ConnectionException {
 			if (default_ttl == 0) {
 				throw new NullPointerException("You can't use this without set max_event_age in constructor");
 			}
@@ -106,12 +108,14 @@ public class TimedEventStore {
 			if (event_key == null) {
 				throw new NullPointerException("\"event_key\" can't to be null");
 			}
-			this.date = date;
+			this.start_date = start_date;
 			processDate();
-			getMutator().putColumn(col_name_event_date, date);
+			getMutator().putColumn(col_name_event_start_date, start_date);
+			getMutator().putColumn(col_name_event_end_date, start_date + duration);
+			getMutator().putColumn(col_name_event_aired, start_date + duration < System.currentTimeMillis());
 		}
 		
-		private TimedEvent(MutationBatch mutator, String event_key, long date) {
+		private TimedEvent(MutationBatch mutator, String event_key, long start_date, long duration) {
 			if (default_ttl == 0) {
 				throw new NullPointerException("You can't use this without set max_event_age in constructor");
 			}
@@ -121,33 +125,35 @@ public class TimedEventStore {
 			if (event_key == null) {
 				throw new NullPointerException("\"event_key\" can't to be null");
 			}
-			this.date = date;
+			this.start_date = start_date;
 			processDate();
-			getMutator().putColumn(col_name_event_date, date);
+			getMutator().putColumn(col_name_event_start_date, start_date);
+			getMutator().putColumn(col_name_event_end_date, start_date + duration);
+			getMutator().putColumn(col_name_event_aired, start_date + duration < System.currentTimeMillis());
 		}
 		
 		/**
 		 * Don't forget to close or createAnother.
 		 * @return null if event is too old.
 		 */
-		public TimedEvent createAnother(String event_key, long date) {
-			if (isTooOld(date)) {
+		public TimedEvent createAnother(String event_key, long start_date, long duration) {
+			if (isTooOld(start_date)) {
 				return null;
 			}
-			return new TimedEvent(mutator, event_key, date);
+			return new TimedEvent(mutator, event_key, start_date, duration);
 		}
 		
 		private void processDate() {
-			if (System.currentTimeMillis() < date) {
+			if (System.currentTimeMillis() < start_date) {
 				/**
 				 * Asrun
 				 */
-				computed_ttl = default_ttl - (int) (System.currentTimeMillis() - date);
-			} else if (System.currentTimeMillis() < date) {
+				computed_ttl = default_ttl - (int) (System.currentTimeMillis() - start_date);
+			} else if (System.currentTimeMillis() < start_date) {
 				/**
 				 * Playlist
 				 */
-				computed_ttl = default_ttl + (int) (date - System.currentTimeMillis());
+				computed_ttl = default_ttl + (int) (start_date - System.currentTimeMillis());
 			} else {
 				computed_ttl = default_ttl;
 			}
@@ -173,13 +179,18 @@ public class TimedEventStore {
 		
 		private String event_key;
 		private ColumnList<String> cols;
-		private long date;
+		private long start_date;
+		private long end_date;
+		private boolean aired;
 		
 		private TimedEventFromDb(String event_key, ColumnList<String> cols) {
 			this.event_key = event_key;
 			this.cols = cols;
-			date = cols.getLongValue(col_name_event_date, 0l);
-			if (date == 0) {
+			start_date = cols.getLongValue(col_name_event_start_date, 0l);
+			end_date = cols.getLongValue(col_name_event_end_date, 0l);
+			aired = cols.getBooleanValue(col_name_event_aired, false);
+			
+			if (start_date == 0 | end_date == 0) {
 				throw new IndexOutOfBoundsException("No event date !");
 			}
 		}
@@ -192,20 +203,27 @@ public class TimedEventStore {
 			return cols;
 		}
 		
-		public long getDate() {
-			return date;
+		public long getStartDate() {
+			return start_date;
 		}
 		
+		public long getEndDate() {
+			return end_date;
+		}
+		
+		public boolean isAired() {
+			return aired;
+		}
 	}
 	
 	private static final EventDateComparator comparator = new EventDateComparator();
 	
 	private static class EventDateComparator implements Comparator<TimedEventFromDb> {
 		public int compare(TimedEventFromDb o1, TimedEventFromDb o2) {
-			if (o1.date < o2.date) {
+			if (o1.start_date < o2.start_date) {
 				return -1;
 			}
-			if (o1.date > o2.date) {
+			if (o1.start_date > o2.start_date) {
 				return 1;
 			}
 			return 0;
@@ -213,14 +231,15 @@ public class TimedEventStore {
 	}
 	
 	/**
-	 * @return sorted
+	 * @return sorted, but not past events no-aired
 	 */
 	public ArrayList<TimedEventFromDb> getAll() throws Exception {
 		final ArrayList<TimedEventFromDb> result = new ArrayList<>();
 		
-		CassandraDb.allRowsReader(cf, new AllRowsFoundRow() {
-			public void onFoundRow(Row<String, String> row) throws Exception {
-				result.add(new TimedEventFromDb(row.getKey(), row.getColumns()));
+		CassandraDb.allRowsReader(cf, row -> {
+			TimedEventFromDb event = new TimedEventFromDb(row.getKey(), row.getColumns());
+			if (event.aired == true || event.end_date > System.currentTimeMillis()) {
+				result.add(event);
 			}
 		});
 		
@@ -253,15 +272,22 @@ public class TimedEventStore {
 	/**
 	 * @return non date sorted
 	 */
-	public void getAllFutureKeys(Consumer<String> result) throws Exception {
-		CassandraDb.allRowsReader(cf, new AllRowsFoundRow() {
-			public void onFoundRow(Row<String, String> row) throws Exception {
-				long date = row.getColumns().getColumnByName(col_name_event_date).getLongValue();
-				if (date > System.currentTimeMillis()) {
-					result.accept(row.getKey());
+	public void getAllKeys(Consumer<String> future, Consumer<String> aired, Consumer<String> non_aired) throws Exception {
+		CassandraDb.allRowsReader(cf, row -> {
+			long end_date = row.getColumns().getColumnByName(col_name_event_end_date).getLongValue();
+			if (end_date > System.currentTimeMillis()) {
+				future.accept(row.getKey());
+			} else {
+				boolean isaired = row.getColumns().getColumnByName(col_name_event_aired).getBooleanValue();
+				if (isaired) {
+					aired.accept(row.getKey());
+				} else {
+					non_aired.accept(row.getKey());
 				}
+				
 			}
-		}, col_name_event_date);
+		}, col_name_event_end_date, col_name_event_aired);
+		
 	}
 	
 }
