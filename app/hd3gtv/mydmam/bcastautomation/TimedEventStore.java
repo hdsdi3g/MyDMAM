@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
@@ -32,6 +33,9 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.tools.TableList;
+import hd3gtv.tools.TableList.Row;
+import hd3gtv.tools.TimeUtils;
 
 public class TimedEventStore {
 	
@@ -104,23 +108,18 @@ public class TimedEventStore {
 			}
 			
 			mutator = CassandraDb.prepareMutationBatch(keyspace.getKeyspaceName());
-			this.event_key = event_key;
-			if (event_key == null) {
-				throw new NullPointerException("\"event_key\" can't to be null");
-			}
-			this.start_date = start_date;
-			processDate();
-			getMutator().putColumn(col_name_event_start_date, start_date);
-			getMutator().putColumn(col_name_event_end_date, start_date + duration);
-			getMutator().putColumn(col_name_event_aired, start_date + duration < System.currentTimeMillis());
+			init(event_key, start_date, duration);
 		}
 		
 		private TimedEvent(MutationBatch mutator, String event_key, long start_date, long duration) {
 			if (default_ttl == 0) {
 				throw new NullPointerException("You can't use this without set max_event_age in constructor");
 			}
-			
 			this.mutator = mutator;
+			init(event_key, start_date, duration);
+		}
+		
+		private void init(String event_key, long start_date, long duration) {
 			this.event_key = event_key;
 			if (event_key == null) {
 				throw new NullPointerException("\"event_key\" can't to be null");
@@ -144,7 +143,7 @@ public class TimedEventStore {
 		}
 		
 		private void processDate() {
-			if (System.currentTimeMillis() < start_date) {
+			if (System.currentTimeMillis() > start_date) {
 				/**
 				 * Asrun
 				 */
@@ -214,6 +213,31 @@ public class TimedEventStore {
 		public boolean isAired() {
 			return aired;
 		}
+		
+		/**
+		 * table size must ==
+		 */
+		public void toTable(TableList table, boolean show_key, Function<String, ArrayList<String>> raw_event_reducer) {
+			Row row = table.createRow();
+			
+			if (show_key) {
+				row.addCell(event_key);
+			}
+			
+			row.addCell(Loggers.dateLog(start_date));
+			
+			long from_next_time = end_date - System.currentTimeMillis();
+			boolean if_future = from_next_time > 0;
+			
+			if (if_future) {
+				row.addCell("+" + TimeUtils.secondsToYWDHMS(Math.abs(from_next_time) / 1000));
+			} else {
+				row.addCell("-" + TimeUtils.secondsToYWDHMS(Math.abs(from_next_time) / 1000));
+			}
+			
+			row.addCells(raw_event_reducer.apply(cols.getColumnByName(BCAWatcher.DB_COL_CONTENT_NAME).getStringValue()));
+			row.addBoolean(aired, "AIRED", "");
+		}
 	}
 	
 	private static final EventDateComparator comparator = new EventDateComparator();
@@ -241,6 +265,20 @@ public class TimedEventStore {
 			if (event.aired == true || event.end_date > System.currentTimeMillis()) {
 				result.add(event);
 			}
+		});
+		
+		result.sort(comparator);
+		return result;
+	}
+	
+	/**
+	 * @return sorted, with past events no-aired
+	 */
+	public ArrayList<TimedEventFromDb> getNonfilterdAll() throws Exception {
+		final ArrayList<TimedEventFromDb> result = new ArrayList<>();
+		
+		CassandraDb.allRowsReader(cf, row -> {
+			result.add(new TimedEventFromDb(row.getKey(), row.getColumns()));
 		});
 		
 		result.sort(comparator);

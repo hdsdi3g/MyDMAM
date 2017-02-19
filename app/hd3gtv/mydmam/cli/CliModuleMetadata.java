@@ -141,14 +141,14 @@ public class CliModuleMetadata implements CliModule {
 			return;
 		} else if (args.getParamExist("-list")) {
 			if (args.getParamExist("-verbose")) {
-				TableList tl = new TableList(3);
+				TableList tl = new TableList();
 				tl.addRow("Name", "Description", "Class");
 				MetadataCenter.getExtractors().forEach(ex -> {
 					tl.addRow(ex.getClass().getSimpleName().toLowerCase(), ex.getLongName(), ex.getClass().getName());
 				});
 				tl.print();
 			} else {
-				TableList tl = new TableList(2);
+				TableList tl = new TableList();
 				tl.addRow("Name", "Description");
 				MetadataCenter.getExtractors().forEach(ex -> {
 					tl.addRow(ex.getClass().getSimpleName().toLowerCase(), ex.getLongName());

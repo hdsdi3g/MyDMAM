@@ -18,18 +18,27 @@ package hd3gtv.mydmam.cli;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.function.Function;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.bcastautomation.BCACatch;
 import hd3gtv.mydmam.bcastautomation.BCACatchHandler;
 import hd3gtv.mydmam.bcastautomation.BCAEngine;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
+import hd3gtv.mydmam.bcastautomation.TimedEventStore;
+import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.TableList;
+import hd3gtv.tools.TableList.Row;
 
 public class CliModuleBCA implements CliModule {
 	
@@ -47,7 +56,7 @@ public class CliModuleBCA implements CliModule {
 			
 			BCAEngine engine = BCAWatcher.getEngine();
 			
-			TableList tl = new TableList(4);
+			TableList tl = new TableList();
 			
 			final HashMap<String, ConfigurationItem> import_other_properties_configuration = Configuration.getElement(Configuration.global.getElement("broadcast_automation"),
 					"import_other_properties");
@@ -70,6 +79,58 @@ public class CliModuleBCA implements CliModule {
 			
 			bcacatch.parsePlaylist(handler).save();
 			return;
+		} else if (args.getParamExist("-dump")) {
+			if (CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME) == false) {
+				System.err.println("No BCA events in database");
+				return;
+			}
+			
+			TimedEventStore database = new TimedEventStore(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME);
+			final boolean show_json = args.getParamExist("-raw");
+			final boolean show_key = args.getParamExist("-key");
+			
+			TableList table = new TableList();
+			
+			if (show_json) {
+				database.getNonfilterdAll().forEach(event -> {
+					Row row = table.createRow();
+					if (show_key) {
+						row.addCell(event.getKey());
+					}
+					row.addCell(Loggers.dateLog(event.getStartDate()));
+					row.addCell(event.getCols().getColumnByName(BCAWatcher.DB_COL_CONTENT_NAME).getStringValue());
+				});
+			} else {
+				final JsonParser p = new JsonParser();
+				Function<String, ArrayList<String>> json_reducer = (event) -> {
+					ArrayList<String> result = new ArrayList<>();
+					JsonObject jo_event = p.parse(event).getAsJsonObject();
+					result.add(jo_event.get("name").getAsString());
+					result.add(jo_event.get("duration").getAsString());
+					result.add(jo_event.get("channel").getAsString());
+					result.add(jo_event.get("file_id").getAsString());
+					result.add(jo_event.get("video_source").getAsString());
+					return result;
+				};
+				
+				database.getNonfilterdAll().forEach(event -> {
+					event.toTable(table, show_key, json_reducer);
+				});
+				
+				if (table.size() > 0) {
+					Row footer = table.createRow();
+					if (show_key) {
+						footer.addCell("Event key");
+					}
+					footer.addCells("Start date", "End date", "Name", "Duration", "Channel", "File", "Source", "Aired");
+					
+					System.out.println("Showed " + (table.size() - 1) + " events");
+				}
+			}
+			
+			table.print();
+			
+			return;
 		}
 		
 		showFullCliModuleHelp();
@@ -79,6 +140,9 @@ public class CliModuleBCA implements CliModule {
 		System.out.println("Usage (with no confirm)");
 		System.out.println(" * just parse playlist/asrun: " + getCliModuleName() + " -parse file.sch");
 		System.out.println(" * get property from playlist and do actions on match events: " + getCliModuleName() + " -propertycatch");
+		System.out.println(" * get all events actually in database: " + getCliModuleName() + " -dump [-raw] [-key]");
+		System.out.println("   with -raw for display raw content");
+		System.out.println("   with -key for display event key");
 	}
 	
 	public boolean isFunctionnal() {
