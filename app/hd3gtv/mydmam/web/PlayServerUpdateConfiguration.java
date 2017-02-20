@@ -16,8 +16,8 @@
 */
 package hd3gtv.mydmam.web;
 
+import ext.Bootstrap;
 import hd3gtv.mydmam.Loggers;
-import play.cache.Cache;
 
 public class PlayServerUpdateConfiguration {
 	
@@ -29,7 +29,7 @@ public class PlayServerUpdateConfiguration {
 	public void doAction() throws Exception {
 		if (purgeplaycache) {
 			Loggers.Play.info("Purge Play cache");
-			Cache.clear();
+			Bootstrap.clearPlayCache();
 		}
 		if (refreshlogconf) {
 			Loggers.Play.info("Manual refresh log configuration");
