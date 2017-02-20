@@ -43,7 +43,7 @@ public class BCA extends AJSController {
 		LinkedHashMapStringString r = new LinkedHashMapStringString();
 		r.items = new LinkedHashMap<>();
 		
-		database.getAll().forEach(event -> {
+		database.getFilteredAll().forEach(event -> {
 			r.items.put(event.getKey(), event.getCols().getColumnByName(BCAWatcher.DB_COL_CONTENT_NAME).getStringValue());
 		});
 		

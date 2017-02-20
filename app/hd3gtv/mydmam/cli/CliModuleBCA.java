@@ -92,7 +92,7 @@ public class CliModuleBCA implements CliModule {
 			TableList table = new TableList();
 			
 			if (show_json) {
-				database.getNonfilterdAll().forEach(event -> {
+				database.getNonFilteredAll().forEach(event -> {
 					Row row = table.createRow();
 					if (show_key) {
 						row.addCell(event.getKey());
@@ -113,7 +113,7 @@ public class CliModuleBCA implements CliModule {
 					return result;
 				};
 				
-				database.getNonfilterdAll().forEach(event -> {
+				database.getNonFilteredAll().forEach(event -> {
 					event.toTable(table, show_key, json_reducer);
 				});
 				

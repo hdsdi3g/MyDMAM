@@ -42,7 +42,11 @@ public class TimedEventStore {
 	private Keyspace keyspace;
 	private ColumnFamily<String, String> cf;
 	private long min_event_date;
-	private int default_ttl;
+	
+	/**
+	 * In ms
+	 */
+	private long default_ttl;
 	private static final String col_name_event_start_date = "_event_start_date";
 	private static final String col_name_event_end_date = "_event_end_date";
 	private static final String col_name_event_aired = "_event_aired";
@@ -51,6 +55,9 @@ public class TimedEventStore {
 		this(keyspace, cf_name, 0);
 	}
 	
+	/**
+	 * @param max_event_age in ms
+	 */
 	public TimedEventStore(Keyspace keyspace, String cf_name, long max_event_age) throws ConnectionException {
 		this.keyspace = keyspace;
 		if (keyspace == null) {
@@ -59,14 +66,16 @@ public class TimedEventStore {
 		if (cf_name == null) {
 			throw new NullPointerException("\"cf_name\" can't to be null");
 		}
+		
 		cf = new ColumnFamily<String, String>(cf_name, StringSerializer.get(), StringSerializer.get());
 		if (CassandraDb.isColumnFamilyExists(keyspace, cf_name) == false) {
 			Loggers.Cassandra.info("Create Cassandra CF " + cf_name);
 			CassandraDb.createColumnFamilyString(keyspace.getKeyspaceName(), cf_name, false);
 		}
+		
 		if (max_event_age > 0) {
 			min_event_date = System.currentTimeMillis() - max_event_age;
-			default_ttl = (int) max_event_age;
+			default_ttl = max_event_age;
 		}
 	}
 	
@@ -99,7 +108,6 @@ public class TimedEventStore {
 		
 		private MutationBatch mutator;
 		private String event_key;
-		private long start_date;
 		private int computed_ttl;
 		
 		private TimedEvent(String event_key, long start_date, long duration) throws ConnectionException {
@@ -124,8 +132,24 @@ public class TimedEventStore {
 			if (event_key == null) {
 				throw new NullPointerException("\"event_key\" can't to be null");
 			}
-			this.start_date = start_date;
-			processDate();
+			
+			if (System.currentTimeMillis() > start_date) {
+				/**
+				 * Asrun
+				 */
+				computed_ttl = (int) ((default_ttl - (System.currentTimeMillis() - start_date)) / 1000l);
+			} else if (System.currentTimeMillis() < start_date) {
+				/**
+				 * Playlist
+				 */
+				computed_ttl = (int) ((default_ttl + (start_date - System.currentTimeMillis())) / 1000l);
+			} else {
+				/**
+				 * On air (ultra rare)
+				 */
+				computed_ttl = (int) (default_ttl / 1000l);
+			}
+			
 			getMutator().putColumn(col_name_event_start_date, start_date);
 			getMutator().putColumn(col_name_event_end_date, start_date + duration);
 			getMutator().putColumn(col_name_event_aired, start_date + duration < System.currentTimeMillis());
@@ -140,22 +164,6 @@ public class TimedEventStore {
 				return null;
 			}
 			return new TimedEvent(mutator, event_key, start_date, duration);
-		}
-		
-		private void processDate() {
-			if (System.currentTimeMillis() > start_date) {
-				/**
-				 * Asrun
-				 */
-				computed_ttl = default_ttl - (int) (System.currentTimeMillis() - start_date);
-			} else if (System.currentTimeMillis() < start_date) {
-				/**
-				 * Playlist
-				 */
-				computed_ttl = default_ttl + (int) (start_date - System.currentTimeMillis());
-			} else {
-				computed_ttl = default_ttl;
-			}
 		}
 		
 		public void close() throws ConnectionException {
@@ -257,7 +265,7 @@ public class TimedEventStore {
 	/**
 	 * @return sorted, but not past events no-aired
 	 */
-	public ArrayList<TimedEventFromDb> getAll() throws Exception {
+	public ArrayList<TimedEventFromDb> getFilteredAll() throws Exception {
 		final ArrayList<TimedEventFromDb> result = new ArrayList<>();
 		
 		CassandraDb.allRowsReader(cf, row -> {
@@ -274,7 +282,7 @@ public class TimedEventStore {
 	/**
 	 * @return sorted, with past events no-aired
 	 */
-	public ArrayList<TimedEventFromDb> getNonfilterdAll() throws Exception {
+	public ArrayList<TimedEventFromDb> getNonFilteredAll() throws Exception {
 		final ArrayList<TimedEventFromDb> result = new ArrayList<>();
 		
 		CassandraDb.allRowsReader(cf, row -> {
@@ -325,7 +333,6 @@ public class TimedEventStore {
 				
 			}
 		}, col_name_event_end_date, col_name_event_aired);
-		
 	}
 	
 }
