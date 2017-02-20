@@ -16,6 +16,8 @@
 */
 package ext;
 
+import java.util.Map;
+
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.archivecircleapi.ACAPI;
@@ -27,6 +29,11 @@ import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
 import hd3gtv.mydmam.web.JSSourceManager;
 import hd3gtv.mydmam.web.JSi18nCached;
+import play.Play;
+import play.Play.Mode;
+import play.cache.Cache;
+import play.cache.CacheImpl;
+import play.cache.EhCacheImpl;
 import play.jobs.Job;
 import play.jobs.OnApplicationStart;
 
@@ -115,5 +122,89 @@ public class Bootstrap extends Job<Void> {
 		} else {
 			bridge_pathindex_archivelocation = new BridgePathindexArchivelocation();
 		}
+		
+		if (Play.mode == Mode.DEV) {
+			Cache.forcedCacheImpl = permanent_dev_cache;
+			Cache.cacheImpl = permanent_dev_cache;
+		}
 	}
+	
+	public static void clearPlayCache() {
+		if (Play.mode == Mode.DEV) {
+			permanent_dev_cache.forceClear();
+		} else {
+			Cache.clear();
+		}
+	}
+	
+	/**
+	 * A Cache that will be resist to a service restart (in case of automatic re-compilation). Only used in dev mode.
+	 */
+	private static final InternalDevCache permanent_dev_cache = new InternalDevCache();
+	
+	private static class InternalDevCache implements CacheImpl {
+		
+		EhCacheImpl eh_cache = EhCacheImpl.getInstance();
+		
+		public void stop() {
+			Loggers.Play.debug("Call stop cache will to nothing");
+		}
+		
+		public void forceClear() {
+			Loggers.Play.info("Force to clear Play internal dev cache");
+			eh_cache.clear();
+		}
+		
+		public void set(String key, Object value, int expiration) {
+			eh_cache.set(key, value, expiration);
+		}
+		
+		public boolean safeSet(String key, Object value, int expiration) {
+			return eh_cache.safeSet(key, value, expiration);
+		}
+		
+		public boolean safeReplace(String key, Object value, int expiration) {
+			return eh_cache.safeReplace(key, value, expiration);
+		}
+		
+		public boolean safeDelete(String key) {
+			return eh_cache.safeDelete(key);
+		}
+		
+		public boolean safeAdd(String key, Object value, int expiration) {
+			return eh_cache.safeAdd(key, value, expiration);
+		}
+		
+		public void replace(String key, Object value, int expiration) {
+			eh_cache.replace(key, value, expiration);
+		}
+		
+		public long incr(String key, int by) {
+			return eh_cache.incr(key, by);
+		}
+		
+		public Map<String, Object> get(String[] keys) {
+			return eh_cache.get(keys);
+		}
+		
+		public Object get(String key) {
+			return eh_cache.get(key);
+		}
+		
+		public void delete(String key) {
+			eh_cache.delete(key);
+		}
+		
+		public long decr(String key, int by) {
+			return eh_cache.decr(key, by);
+		}
+		
+		public void clear() {
+			Loggers.Play.debug("Call clear cache will to nothing");
+		}
+		
+		public void add(String key, Object value, int expiration) {
+			eh_cache.add(key, value, expiration);
+		}
+	};
 }
