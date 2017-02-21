@@ -41,7 +41,6 @@ public class TimedEventStore {
 	
 	private Keyspace keyspace;
 	private ColumnFamily<String, String> cf;
-	private long min_event_date;
 	
 	/**
 	 * In ms
@@ -74,7 +73,6 @@ public class TimedEventStore {
 		}
 		
 		if (max_event_age > 0) {
-			min_event_date = System.currentTimeMillis() - max_event_age;
 			default_ttl = max_event_age;
 		}
 	}
@@ -85,20 +83,7 @@ public class TimedEventStore {
 	 * @return null if event is too old.
 	 */
 	public TimedEvent createEvent(String event_key, long start_date, long duration) throws ConnectionException {
-		if (isTooOld(start_date)) {
-			return null;
-		}
 		return new TimedEvent(event_key, start_date, duration);
-	}
-	
-	/**
-	 * You must set max_event_age in constructor
-	 */
-	public boolean isTooOld(long start_date) {
-		if (min_event_date == 0) {
-			throw new NullPointerException("You can't use this without set max_event_age in constructor");
-		}
-		return start_date < min_event_date;
 	}
 	
 	/**
@@ -157,12 +142,8 @@ public class TimedEventStore {
 		
 		/**
 		 * Don't forget to close or createAnother.
-		 * @return null if event is too old.
 		 */
 		public TimedEvent createAnother(String event_key, long start_date, long duration) {
-			if (isTooOld(start_date)) {
-				return null;
-			}
 			return new TimedEvent(mutator, event_key, start_date, duration);
 		}
 		

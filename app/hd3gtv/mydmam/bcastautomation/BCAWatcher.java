@@ -66,8 +66,6 @@ public class BCAWatcher implements InstanceStatusItem {
 	
 	private AutomationEventProcessor processor;
 	
-	private TimedEventStore database;
-	
 	public BCAWatcher(AppManager manager) throws ReflectiveOperationException, IOException, ConnectionException {
 		if (Configuration.global.isElementExists("broadcast_automation") == false) {
 			return;
@@ -100,8 +98,6 @@ public class BCAWatcher implements InstanceStatusItem {
 		if (delete_playlist_after_watch) {
 			CopyMove.checkIsWritable(directory_watch_playlist);
 		}
-		
-		database = new TimedEventStore(CassandraDb.getkeyspace(), CF_NAME, max_retention_duration);
 		
 		Loggers.BroadcastAutomation.info("Init engine watcher: " + getInstanceStatusItem().toString());
 		manager.getInstanceStatus().registerInstanceStatusItem(this);
@@ -237,7 +233,7 @@ public class BCAWatcher implements InstanceStatusItem {
 						
 						if (delete_asrun_after_watch) {
 							all_status.stream().forEach(status -> {
-								if (database.isTooOld(status.getLastEventStartDate())) {
+								if (status.getLastEventStartDate() < (System.currentTimeMillis() - max_retention_duration)) {
 									File sch = status.getScheduleFile();
 									Loggers.BroadcastAutomation.info("Delete asrun file \"" + sch.getPath() + "\"");
 									sch.delete();
@@ -284,7 +280,7 @@ public class BCAWatcher implements InstanceStatusItem {
 						
 						if (delete_playlist_after_watch) {
 							all_status.stream().forEach(status -> {
-								if (database.isTooOld(status.getLastEventStartDate())) {
+								if (status.getLastEventStartDate() < (System.currentTimeMillis() - max_retention_duration)) {
 									File sch = status.getScheduleFile();
 									Loggers.BroadcastAutomation.info("Delete playlist file \"" + sch.getPath() + "\"");
 									sch.delete();
@@ -327,8 +323,10 @@ public class BCAWatcher implements InstanceStatusItem {
 		private MessageDigest md;
 		private TimedEvent t_event;
 		private HashSet<String> actual_event_list;
+		private TimedEventStore database;
 		
-		private AutomationEventProcessor() {
+		private AutomationEventProcessor() throws ConnectionException {
+			database = new TimedEventStore(CassandraDb.getkeyspace(), CF_NAME, max_retention_duration);
 			actual_event_list = new HashSet<>();
 			
 			try {
@@ -349,7 +347,7 @@ public class BCAWatcher implements InstanceStatusItem {
 		}
 		
 		public void onAutomationEvent(BCAAutomationEvent event) {
-			if (database.isTooOld(event.getStartDate())) {
+			if (event.getStartDate() < (System.currentTimeMillis() - max_retention_duration)) {
 				if (Loggers.BroadcastAutomation.isTraceEnabled()) {
 					Loggers.BroadcastAutomation.trace("Process event: event \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " is too old. It will not be added to database. "
 							+ event.serialize(import_other_properties_configuration).toString());
