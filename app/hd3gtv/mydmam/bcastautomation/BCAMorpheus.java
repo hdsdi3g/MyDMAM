@@ -39,13 +39,17 @@ public class BCAMorpheus implements BCAEngine {
 		return Arrays.asList("sch");
 	}
 	
-	public int processScheduleFile(File schedule, BCAAutomationEventHandler handler) throws IOException {
+	public ScheduleFileStatus processScheduleFile(File schedule, BCAAutomationEventHandler handler) throws IOException {
 		BCAMorpheusScheduleParser parser = new BCAMorpheusScheduleParser(schedule);
 		
 		parser.getEvents().forEach(event -> {
 			handler.onAutomationEvent(event.getBCAEvent(parser));
 		});
-		return parser.getEvents().size();
+		if (parser.getEvents().isEmpty() == false) {
+			return new ScheduleFileStatus(schedule, parser.getEvents().size(), parser.getEvents().get(parser.getEvents().size() - 1).notionalstarttime);
+		}
+		
+		return new ScheduleFileStatus(schedule, parser.getEvents().size(), 0);
 	}
 	
 }

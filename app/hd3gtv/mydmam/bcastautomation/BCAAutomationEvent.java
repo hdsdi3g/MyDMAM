@@ -58,6 +58,31 @@ public abstract class BCAAutomationEvent {
 		return (long) (duration.getValue() * 1000f);
 	}
 	
+	final long getEndDate() {
+		return getStartDate() + getLongDuration();
+	}
+	
+	/**
+	 * Never check if is aired or not
+	 */
+	final boolean isAsrun() {
+		return getEndDate() < System.currentTimeMillis();
+	}
+	
+	/**
+	 * Never check if is aired or not
+	 */
+	final boolean isPlaylist() {
+		return getStartDate() > System.currentTimeMillis();
+	}
+	
+	/**
+	 * Never check if is aired or not
+	 */
+	final boolean isOnair() {
+		return isAsrun() == false && isPlaylist() == false;
+	}
+	
 	/**
 	 * @param import_other_properties_configuration can to be null
 	 */

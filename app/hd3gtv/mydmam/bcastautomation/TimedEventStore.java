@@ -222,9 +222,6 @@ public class TimedEventStore {
 			return aired;
 		}
 		
-		/**
-		 * table size must ==
-		 */
 		public void toTable(TableList table, boolean show_key, Function<String, ArrayList<String>> raw_event_reducer) {
 			Row row = table.createRow();
 			
