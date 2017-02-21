@@ -20,9 +20,10 @@ bca.link = "broadcastautomation";
 var Event = React.createClass({ //TODO manage planned -> onair -> asrun
 	render: function() {
 		var event = this.props.event;
-
+		if (event == null) {
+			return null;			
+		}
 		/*if (event.enddate < mydmam.async.getTime()) {
-			return (<span />);
 		}*/
 
 		//<code>{event_key}</code> 
@@ -37,13 +38,13 @@ var Event = React.createClass({ //TODO manage planned -> onair -> asrun
 			label_paused = (<span className="badge badge-inverse">HOLD</span>);
 		}
 
-		var classname = classNames({
+		/*var classname = classNames({
 			"muted": event.enddate < mydmam.async.getTime(),
-		});
+		}); className={classname} */
 
 		// {mydmam.format.date(event.enddate)} {event.channel} {event.other}
 
-		return (<div className={classname} style={{borderTop: "1px solid #CCC", borderBottom: "1px solid #CCC", marginTop: "2px", paddingTop: "2px", paddingBottom: "2px", marginBottom: "2px"}}>
+		return (<div style={{borderTop: "1px solid #CCC", borderBottom: "1px solid #CCC", marginTop: "2px", paddingTop: "2px", paddingBottom: "2px", marginBottom: "2px"}}>
 			<div className="row">
 				<div className="span1">
 					<span style={{fontFamily: "Verdana", fontSize: 12,}}>{mydmam.format.date(event.startdate)}</span>
@@ -62,8 +63,7 @@ var Event = React.createClass({ //TODO manage planned -> onair -> asrun
 				</div>
 				<div className="span4">
 					<span className="label label-success">{event.file_id}</span>
-
-					&bull; {event.som} &bull;
+					{event.som}
 				</div>
 			</div>
 			<div className="row">
@@ -82,16 +82,40 @@ var Event = React.createClass({ //TODO manage planned -> onair -> asrun
 bca.Home = React.createClass({
 	getInitialState: function() {
 		return {
-			events: null,
 			interval: null,
+			events: null,
+			playlist_events_keys: null,
+			asruns_events_keys: null,
+			display_asuns: false,
+			display_channel: null,
 		};
 	},
 	componentWillMount: function() {
-		this.updateAll(); //TODO add <> delta
+		this.getAllEvents(); //TODO add <> delta
 	},
-	updateAll: function() {
+	getAllEvents: function() {
 		mydmam.async.request("bca", "allevents", {}, function(data) {
-			this.setState({events: data.items});
+			var rawevents = data.items;
+			var update = {
+				events: {},
+				playlist_events_keys: [],
+				asruns_events_keys: [],
+			}
+
+			for (var event_key in rawevents) {
+				var event = JSON.parse(rawevents[event_key]);
+				update.events[event_key] = event;
+
+				if (event.enddate < mydmam.async.getTime()) {
+					/** asrun */
+					update.asruns_events_keys.push(event_key);
+				} else {
+					/** onair or playlist */
+					update.playlist_events_keys.push(event_key);
+				}
+			}
+
+			this.setState(update);
 		}.bind(this));
 	},
 	componentDidMount: function(){
@@ -102,6 +126,20 @@ bca.Home = React.createClass({
 			clearInterval(this.state.interval);
 		}
 	},
+	onSwitchSchList: function(new_type) {
+		if (new_type == "_playlist") {
+			if (this.state.display_asuns == true) {
+				this.setState({display_asuns: false});
+			}
+		} else {
+			if (this.state.display_asuns == false) {
+				this.setState({display_asuns: true});
+			}
+		}
+	},
+	onSwitchChannel: function(channel) {
+		console.log(channel);
+	},
 	render: function() {
 		var is_loading = null;
 		var table = null;
@@ -111,14 +149,70 @@ bca.Home = React.createClass({
 			      <h4>{i18n("bca.loading")}</h4>
 		    </div>);
 		} else {
+			var navtabscontent = [];
 			var event_list = [];
-			for (var event_key in this.state.events) {
+			var channels = {};
+
+			var add = function(event_key) {
 				var event = this.state.events[event_key];
-				event_list.push(<Event key={event_key} event={JSON.parse(event)} />);
+				event_list.push(<Event key={event_key} event={event} />);
+				if (!channels[event.channel]) {
+					channels[event.channel] = [];
+				}
+				channels[event.channel].push(event_key);
+
+				if (this.state.display_channel) {
+					//TODO display all / by channel
+				}
+			}.bind(this);
+
+			if (this.state.display_asuns) {
+				for (var pos in this.state.asruns_events_keys) {
+					add(this.state.asruns_events_keys[pos]);
+				}
+			} else {
+				for (var pos in this.state.playlist_events_keys) {
+					add(this.state.playlist_events_keys[pos]);
+				}
+			}
+
+			var li_class_playlist = classNames({
+				"active": 		!this.state.display_asuns,
+			});
+			var li_class_asruns = classNames({
+				"active": 		this.state.display_asuns,
+			});
+
+			navtabscontent.push(<li className={li_class_playlist} key={"_playlist"}>
+				<mydmam.async.NavTabsLink pos={"_playlist"} i18nlabel={"bca.playlist"} icon={"icon-road"} onActiveChange={this.onSwitchSchList} />
+			</li>);
+			navtabscontent.push(<li className={li_class_asruns} key={"_asruns"}>
+				<mydmam.async.NavTabsLink pos={"_asruns"} i18nlabel={"bca.asruns"} icon={"icon-time"} onActiveChange={this.onSwitchSchList} />
+			</li>);
+			navtabscontent.push(<li style={{marginLeft: 30}} key={"_spacer"} />);
+
+			var channel_list = [];
+			for (var channel_name in channels) {
+				channel_list.push(channel_name);
+			}
+
+			channel_list = channel_list.reverse()
+
+			for (var pos in channel_list) {
+				var channel_name = channel_list[pos];
+				var li_class_channel = classNames("pull-right", {
+					"active": false,
+				});
+				navtabscontent.push(<li className={li_class_channel} key={"channel_" + channel_name}>
+					<mydmam.async.NavTabsLink pos={channel_name} i18nlabel={channel_name} onActiveChange={this.onSwitchChannel} />
+				</li>);
 			}
 
 			if (event_list.length > 0) {
-				table = (<div>Events:<br />
+				table = (<div>
+					<ul className="nav nav-tabs">
+						{navtabscontent}
+					</ul>
 					{event_list}
 				</div>);
 			} else {
