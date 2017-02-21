@@ -54,16 +54,27 @@ class BCAMorpheusScheduleParser extends DefaultHandler implements ErrorHandler {
 	static final int IMAGE_DURATION = Configuration.global.getValue("broadcast_automation", "image_duration", 40);
 	
 	BCAMorpheusScheduleParser(File schfile) throws IOException {
+		events = new HashMap<Integer, BCAMorpheusScheduleParserEvent>();
 		try {
-			SAXParserFactory fabrique = SAXParserFactory.newInstance();
-			SAXParser parseur = fabrique.newSAXParser();
-			InputStream fis = new BufferedInputStream(new FileInputStream(schfile), 8192);
-			InputSource is = new InputSource(fis);
-			parseur.parse(is, this);
-			parseur = null;
-			fis.close();
-		} catch (FileNotFoundException e) {
-			Loggers.BroadcastAutomation.warn("Can't found playlist file " + schfile.getPath() + " " + e.getMessage());
+			while (true) {
+				try {
+					SAXParserFactory fabrique = SAXParserFactory.newInstance();
+					SAXParser parseur = fabrique.newSAXParser();
+					InputStream fis = new BufferedInputStream(new FileInputStream(schfile), 8192);
+					InputSource is = new InputSource(fis);
+					parseur.parse(is, this);
+					parseur = null;
+					fis.close();
+					break;
+				} catch (FileNotFoundException e) {
+					Loggers.BroadcastAutomation.debug("Can't found playlist file " + schfile.getPath() + " " + e.getMessage());
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e1) {
+						break;
+					}
+				}
+			}
 		} catch (ParserConfigurationException pce) {
 			throw new IOException(pce);
 		} catch (SAXException se) {
@@ -146,7 +157,7 @@ class BCAMorpheusScheduleParser extends DefaultHandler implements ErrorHandler {
 	private int firsteventuid = 0;
 	
 	public void startDocument() throws SAXException {
-		events = new HashMap<Integer, BCAMorpheusScheduleParserEvent>();
+		events.clear();
 		rawtext = new StringBuffer();
 	}
 	
