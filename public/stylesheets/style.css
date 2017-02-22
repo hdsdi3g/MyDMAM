@@ -298,3 +298,25 @@ code.commandline span.cmd_var {
     position: relative;
 }
 
+/* ============================================================================== */
+div.bcaevent {
+    border-top: 1px solid #DDD;
+    border-bottom: 1px solid #CCC;
+    margin-top: 1px;
+    padding-top: 3px;
+
+    padding-bottom: 3px;
+    margin-bottom: 1px;
+}
+
+div.bcaevent span.other {
+    margin-left: 4px;
+    border: 1px dotted #AAA;
+    border-radius: 3px;
+    padding: 2px 4px;
+}
+
+div.bcaevent div.progress {
+    margin-bottom: 0px;
+    height: 12px;
+}

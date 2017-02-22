@@ -17,62 +17,188 @@
 
 bca.link = "broadcastautomation";
 
-var Event = React.createClass({ //TODO manage planned -> onair -> asrun
+bca.CountDown = React.createClass({
+	getInitialState: function() {
+		return {
+			interval: null,
+			count_down: null,
+		};
+	},
+	componentDidMount: function() {
+		this.updateTime();
+		this.setState({interval: setInterval(this.updateTime, 1000)});
+	},
+	componentWillUnmount: function() {
+		if (this.state.interval) {
+			clearInterval(this.state.interval);
+		}
+	},
+	updateTime: function() {
+		var enddate = this.props.enddate;
+		var count_down = enddate - mydmam.async.getTime();
+
+		if (count_down < 0) {
+			clearInterval(this.state.interval);
+			this.setState({interval: null, count_down: 0});
+			if (this.props.onDone) {
+				this.props.onDone();
+			}
+			return;
+		}
+		this.setState({count_down: count_down});
+	},
+	render: function() {
+		var style_progress = this.props.progressbar;
+		var initial_duration = this.props.duration;
+		var count_down = this.state.count_down;
+
+		var count_down_displayed = null;
+		var percent = 0;
+
+		if (count_down == null) {
+			count_down_displayed = mydmam.format.msecToHMSms(initial_duration, true, true);
+			percent = 0;
+		} else if (this.state.count_down <= 0) {
+			count_down_displayed = null;
+			percent = 101;
+		} else {
+			count_down_displayed = mydmam.format.msecToHMSms(this.state.count_down, true, true);
+			percent = Math.ceil(100 * (initial_duration - this.state.count_down) / initial_duration);
+		}
+
+		if (style_progress) {
+			if (percent == 0) {
+				return null;
+			} else if (percent == 101) {
+				return (<div className="progress progress-striped active">
+					<div className="bar bar-danger" style={{"width": "100%"}}></div>
+				</div>);
+			}
+
+			var style_done = {"width": percent + "%"};
+			var style_remaining = {"width": (100 - percent) + "%"};
+
+			return (<div className="progress">
+				<div className="bar bar-danger" style={style_done}></div>
+				<div className="bar bar-warning" style={style_remaining}></div>
+			</div>);
+		} else {
+			return (<div>
+				{count_down_displayed}
+			</div>);
+		}
+	}
+});
+
+var Event = React.createClass({
+	getInitialState: function() {
+		return {
+			event_is_done: this.props.event.enddate < mydmam.async.getTime(),
+		};
+	},
+	onEventSupposedAired: function() {
+		if (this.props.event.automation_paused == false) {
+			this.setState({event_is_done: true});
+			this.props.onAired();
+		}
+	},
 	render: function() {
 		var event = this.props.event;
 		if (event == null) {
 			return null;			
 		}
-		/*if (event.enddate < mydmam.async.getTime()) {
-		}*/
 
-		//<code>{event_key}</code> 
-		
+		var duration = (<span style={{fontFamily: "Verdana", fontSize: 12,}}>{event.duration}</span>);
+		var progressbar = null;
+
+		if (event.startdate < mydmam.async.getTime() && event.enddate > mydmam.async.getTime()) {
+			/** ON AIR */
+			duration = (<bca.CountDown progressbar={false} duration={event.enddate - event.startdate} enddate={event.enddate} onDone={this.onEventSupposedAired} />);
+			progressbar = (<bca.CountDown progressbar={true} duration={event.enddate - event.startdate} enddate={event.enddate} />);
+		}
+
 		var label_rec = null;
 		if (event.recording) {
-			label_rec = (<span className="badge badge-important">RECORD</span>);
+			label_rec = (<span className="badge badge-important pull-right" style={{marginTop: "2px"}}>REC</span>);
 		}
 
 		var label_paused = null;
 		if (event.automation_paused) {
-			label_paused = (<span className="badge badge-inverse">HOLD</span>);
+			label_paused = (<i className="icon-pause"></i>);
 		}
 
-		/*var classname = classNames({
-			"muted": event.enddate < mydmam.async.getTime(),
-		}); className={classname} */
+		var material_and_comment = null;
+		if (event.material_type || event.comment) {
+			if (event.material_type && event.comment) {
+				material_and_comment = event.material_type + " :: " + event.comment;
+			} else if (event.material_type) {
+				material_and_comment = event.material_type;
+			} else {
+				material_and_comment = event.comment;
+			}
+		}
 
-		// {mydmam.format.date(event.enddate)} {event.channel} {event.other}
+		var other = [];
+		if (event.other) {
+			for (var o_type in event.other) {
+				var o_value = event.other[o_type];
+				if (Array.isArray(o_value)) {
+					var o_values = [];
+					for (var pos in o_value) {
+						if (o_values.indexOf(o_value[pos]) == -1) {
+							o_values.push(o_value[pos]);
+						}
+					}
+					other.push(<span key={o_type} title={o_type} className="other">{o_values.join(", ")}</span>);
+				} else {
+					other.push(<span key={o_type} title={o_type} className="other">{o_value}</span>);
+				}
+			}
+		}
 
-		return (<div style={{borderTop: "1px solid #CCC", borderBottom: "1px solid #CCC", marginTop: "2px", paddingTop: "2px", paddingBottom: "2px", marginBottom: "2px"}}>
-			<div className="row">
-				<div className="span1">
-					<span style={{fontFamily: "Verdana", fontSize: 12,}}>{mydmam.format.date(event.startdate)}</span>
-				</div>
-				<div className="span1">
-					{label_paused}
+		var global_style = {};
+		if (this.state.event_is_done && this.props.is_asrun == false) {
+			global_style = {color: "#CCC"};
+		}
+
+		return (<div className="bcaevent" style={global_style}>
+			<div className="row hidden-phone hidden-tablet">
+				<div className="span2">
+					<span style={{fontFamily: "Verdana", fontSize: 12,}}>{mydmam.format.date(event.startdate)}</span> {label_paused} {label_rec}
 				</div>
 				<div className="span4">
 					<span style={{fontFamily: "Verdana", fontSize: 12,}}>{event.name}</span>
 				</div>
-				<div className="span1">
-					<span style={{fontFamily: "Verdana", fontSize: 12,}}>{event.duration}</span>
+				<div className="span1" style={{fontFamily: "Verdana", fontSize: 12,}}>
+					{duration}
 				</div>
 				<div className="span1">
 					<span className="label label-info">{event.video_source}</span>
 				</div>
 				<div className="span4">
 					<span className="label label-success">{event.file_id}</span>
-					{event.som}
+					<small>{other}</small>
 				</div>
 			</div>
-			<div className="row">
+			<div className="row hidden-phone hidden-tablet">
 				<div className="span4 offset2">
-					<small className="muted" style={{fontFamily: "Verdana", fontSize: 10,}}>{event.material_type} :: {event.comment} :: {event.automation_id}</small>
+					<small className="muted" style={{fontFamily: "Verdana", fontSize: 10,}}>{material_and_comment}</small>
 				</div>
-				<div className="span1 offset1">
-					{label_rec}
+				<div className="span1">
+					{progressbar}
 				</div>
+				<div className="span1">
+					<small className="muted">{event.automation_id}</small>
+				</div>
+				<div className="span1">
+					<small className="muted">{event.som}</small>
+				</div>
+			</div>
+
+			<div className="row visible-phone visible-tablet" style={{fontFamily: "Verdana", fontSize: 12,}}>
+				<strong>{mydmam.format.date(event.startdate)} <span style={{marginLeft: "10px"}}>{label_paused}</span> <span className="pull-right">{event.duration.substr(0, 8)}</span></strong><br />
+				{event.name}<br />
+				<small><span className="text-info">{event.video_source}</span> &bull; <span className="text-success">{event.file_id}</span></small>
 			</div>
 		</div>);
 		//TODO if start / end is not the same date -> display new date in duration
@@ -88,10 +214,11 @@ bca.Home = React.createClass({
 			asruns_events_keys: null,
 			display_asuns: false,
 			display_channel: null,
+			clock: null,
 		};
 	},
 	componentWillMount: function() {
-		this.getAllEvents(); //TODO add <> delta
+		this.getAllEvents(); //TODO add regular refresh delta
 	},
 	getAllEvents: function() {
 		mydmam.async.request("bca", "allevents", {}, function(data) {
@@ -120,6 +247,16 @@ bca.Home = React.createClass({
 	},
 	componentDidMount: function(){
 		//this.setState({interval: setInterval(this.updateAll, 10000)});
+
+		var last_time = "";
+		var updateClock = function(e) {
+			var new_time = mydmam.format.date(mydmam.async.getTime());
+			if (last_time != new_time) {
+				$(React.findDOMNode(this.refs.clock)).text(new_time);
+			}
+		}.bind(this);
+
+		this.setState({clock: setInterval(updateClock, 100)});
 	},
 	componentWillUnmount: function() {
 		if (this.state.interval) {
@@ -138,7 +275,17 @@ bca.Home = React.createClass({
 		}
 	},
 	onSwitchChannel: function(channel) {
-		console.log(channel);
+		this.setState({display_channel: channel});
+	},
+	onActualOnAirEventIsAired: function() {
+		if (this.state.interval) {
+			clearInterval(this.state.interval);
+		}
+		var refresh = function() {
+			getAllEvents();
+			//TODO add regular refresh delta
+		};
+		scope.setTimeout(refresh, 2000);
 	},
 	render: function() {
 		var is_loading = null;
@@ -155,14 +302,17 @@ bca.Home = React.createClass({
 
 			var add = function(event_key) {
 				var event = this.state.events[event_key];
-				event_list.push(<Event key={event_key} event={event} />);
 				if (!channels[event.channel]) {
 					channels[event.channel] = [];
 				}
 				channels[event.channel].push(event_key);
 
 				if (this.state.display_channel) {
-					//TODO display all / by channel
+					if (event.channel == this.state.display_channel) {
+						event_list.push(<Event key={event_key} event={event} onAired={this.onActualOnAirEventIsAired} is_asrun={this.state.display_asuns} />);
+					}
+				} else {
+					event_list.push(<Event key={event_key} event={event} onAired={this.onActualOnAirEventIsAired} is_asrun={this.state.display_asuns} />);
 				}
 			}.bind(this);
 
@@ -176,6 +326,7 @@ bca.Home = React.createClass({
 				}
 			}
 
+			/** Playlist or as-run tab selection */
 			var li_class_playlist = classNames({
 				"active": 		!this.state.display_asuns,
 			});
@@ -189,25 +340,27 @@ bca.Home = React.createClass({
 			navtabscontent.push(<li className={li_class_asruns} key={"_asruns"}>
 				<mydmam.async.NavTabsLink pos={"_asruns"} i18nlabel={"bca.asruns"} icon={"icon-time"} onActiveChange={this.onSwitchSchList} />
 			</li>);
-			navtabscontent.push(<li style={{marginLeft: 30}} key={"_spacer"} />);
 
+			/** Channel tab selection */
 			var channel_list = [];
 			for (var channel_name in channels) {
 				channel_list.push(channel_name);
 			}
 
-			channel_list = channel_list.reverse()
+			channel_list = channel_list.reverse();
 
 			for (var pos in channel_list) {
 				var channel_name = channel_list[pos];
 				var li_class_channel = classNames("pull-right", {
-					"active": false,
+					"active": channel_name == this.state.display_channel,
 				});
+
 				navtabscontent.push(<li className={li_class_channel} key={"channel_" + channel_name}>
 					<mydmam.async.NavTabsLink pos={channel_name} i18nlabel={channel_name} onActiveChange={this.onSwitchChannel} />
 				</li>);
 			}
 
+			/** Display all events */
 			if (event_list.length > 0) {
 				table = (<div>
 					<ul className="nav nav-tabs">
@@ -222,10 +375,25 @@ bca.Home = React.createClass({
 			}
 		}
 
- 		return (<mydmam.async.PageHeaderTitle title={i18n("bca.page")} fluid="true">
+		var new_title = i18n("site.name");
+		if (this.state.display_asuns) {
+			new_title = i18n("bca.asruns") + " :: " + new_title;
+		} else {
+			new_title = i18n("bca.playlist") + " :: " + new_title;
+		}
+		if (this.state.display_channel) {
+			new_title = this.state.display_channel + " :: " + new_title;
+		}
+
+		if (document.title != new_title) {
+			document.title = new_title
+		}
+
+ 		return (<div className="container">
+ 			<p className="lead">{i18n("bca.automation")} <span className="pull-right" ref="clock">{mydmam.format.date(mydmam.async.getTime())}</span></p>
 			{is_loading}
 			{table}
-		</mydmam.async.PageHeaderTitle>);
+		</div>);
 	},
 });
 
