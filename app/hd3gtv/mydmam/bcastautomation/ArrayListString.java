@@ -18,6 +18,9 @@ package hd3gtv.mydmam.bcastautomation;
 
 import java.util.ArrayList;
 
+/**
+ * @deprecated
+ */
 public class ArrayListString {
 	
 	public ArrayList<String> items;

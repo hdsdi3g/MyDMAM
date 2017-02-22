@@ -16,13 +16,19 @@
 */
 package hd3gtv.mydmam.bcastautomation;
 
-import java.util.LinkedHashMap;
+import java.io.File;
+import java.util.Comparator;
 
-/**
- * @deprecated
- */
-public class LinkedHashMapStringString {
+public class SortFileByDate implements Comparator<File> {
 	
-	public LinkedHashMap<String, String> items;
+	public int compare(File o1, File o2) {
+		if (o1.lastModified() > o2.lastModified()) {
+			return -1;
+		}
+		if (o1.lastModified() < o2.lastModified()) {
+			return 1;
+		}
+		return 0;
+	}
 	
 }

@@ -63,6 +63,8 @@ public class BCA extends AJSController {
 			r.items.put(future, "");
 		}, aired_key -> {
 		}, nonaired_key -> {
+		}, auto_pause_key -> {
+			r.items.put(auto_pause_key, "");
 		});
 		
 		return r;
@@ -82,6 +84,7 @@ public class BCA extends AJSController {
 			r.items.put(aired_key, "aired");
 		}, nonaired_key -> {
 			r.items.put(nonaired_key, "nonaired");
+		}, auto_pause_key -> {
 		});
 		
 		return r;

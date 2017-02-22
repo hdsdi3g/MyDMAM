@@ -16,13 +16,36 @@
 */
 package hd3gtv.mydmam.bcastautomation;
 
-import java.util.LinkedHashMap;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.List;
 
-/**
- * @deprecated
- */
-public class LinkedHashMapStringString {
+class SearchFileFilter implements FilenameFilter {
 	
-	public LinkedHashMap<String, String> items;
+	boolean functionnal = true;
+	List<String> ext;
+	
+	SearchFileFilter(List<String> ext) {
+		this.ext = ext;
+		
+		if (ext == null) {
+			functionnal = false;
+		}
+		if (ext.isEmpty()) {
+			functionnal = false;
+		}
+	}
+	
+	public boolean accept(File dir, String name) {
+		if (functionnal == false) {
+			return true;
+		}
+		for (int pos = 0; pos < ext.size(); pos++) {
+			if (name.toLowerCase().endsWith("." + ext.get(pos).toLowerCase())) {
+				return true;
+			}
+		}
+		return false;
+	}
 	
 }

@@ -49,6 +49,7 @@ public class TimedEventStore {
 	private static final String col_name_event_start_date = "_event_start_date";
 	private static final String col_name_event_end_date = "_event_end_date";
 	private static final String col_name_event_aired = "_event_aired";
+	private static final String col_name_event_pause_automation = "_pause_automation";
 	
 	public TimedEventStore(Keyspace keyspace, String cf_name) throws ConnectionException {
 		this(keyspace, cf_name, 0);
@@ -161,6 +162,10 @@ public class TimedEventStore {
 			return mutator.withRow(cf, event_key).setDefaultTtl(computed_ttl);
 		}
 		
+		public void setPauseAutomationEvent() {
+			getMutator().putColumn(col_name_event_pause_automation, true);
+		}
+		
 	}
 	
 	public class TimedEventFromDb {
@@ -170,6 +175,7 @@ public class TimedEventStore {
 		private long start_date;
 		private long end_date;
 		private boolean aired;
+		private boolean automation_paused;
 		
 		private TimedEventFromDb(String event_key, ColumnList<String> cols) {
 			this.event_key = event_key;
@@ -180,6 +186,11 @@ public class TimedEventStore {
 			
 			if (start_date == 0 | end_date == 0) {
 				throw new IndexOutOfBoundsException("No event date !");
+			}
+			
+			automation_paused = false;
+			if (cols.getColumnNames().contains(col_name_event_pause_automation)) {
+				automation_paused = cols.getBooleanValue(col_name_event_pause_automation, false);
 			}
 		}
 		
@@ -203,6 +214,10 @@ public class TimedEventStore {
 			return aired;
 		}
 		
+		public boolean isAutomatioPaused() {
+			return automation_paused;
+		}
+		
 		public void toTable(TableList table, boolean show_key, Function<String, ArrayList<String>> raw_event_reducer) {
 			Row row = table.createRow();
 			
@@ -222,7 +237,14 @@ public class TimedEventStore {
 			}
 			
 			row.addCells(raw_event_reducer.apply(cols.getColumnByName(BCAWatcher.DB_COL_CONTENT_NAME).getStringValue()));
-			row.addBoolean(aired, "AIRED", "");
+			
+			if (aired) {
+				row.addCell("AIRED");
+			} else if (automation_paused) {
+				row.addCell("AUTOMATION PAUSED");
+			} else {
+				row.addCell("");
+			}
 		}
 	}
 	
@@ -248,7 +270,7 @@ public class TimedEventStore {
 		
 		CassandraDb.allRowsReader(cf, row -> {
 			TimedEventFromDb event = new TimedEventFromDb(row.getKey(), row.getColumns());
-			if (event.aired == true || event.end_date > System.currentTimeMillis()) {
+			if (event.aired == true || event.end_date > System.currentTimeMillis() || event.automation_paused) {
 				result.add(event);
 			}
 		});
@@ -296,21 +318,28 @@ public class TimedEventStore {
 	/**
 	 * @return non date sorted
 	 */
-	public void getAllKeys(Consumer<String> future, Consumer<String> aired, Consumer<String> non_aired) throws Exception {
+	public void getAllKeys(Consumer<String> future, Consumer<String> aired, Consumer<String> non_aired, Consumer<String> automation_paused) throws Exception {
 		CassandraDb.allRowsReader(cf, row -> {
 			long end_date = row.getColumns().getColumnByName(col_name_event_end_date).getLongValue();
 			if (end_date > System.currentTimeMillis()) {
 				future.accept(row.getKey());
 			} else {
 				boolean isaired = row.getColumns().getColumnByName(col_name_event_aired).getBooleanValue();
+				boolean auto_pause = false;
+				
+				if (row.getColumns().getColumnNames().contains(col_name_event_pause_automation)) {
+					auto_pause = row.getColumns().getColumnByName(col_name_event_pause_automation).getBooleanValue();
+				}
+				
 				if (isaired) {
 					aired.accept(row.getKey());
+				} else if (auto_pause) {
+					automation_paused.accept(row.getKey());
 				} else {
 					non_aired.accept(row.getKey());
 				}
-				
 			}
-		}, col_name_event_end_date, col_name_event_aired);
+		}, col_name_event_end_date, col_name_event_aired, col_name_event_pause_automation);
 	}
 	
 }
