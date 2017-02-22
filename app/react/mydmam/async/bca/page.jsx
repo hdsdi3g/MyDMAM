@@ -62,7 +62,7 @@ bca.CountDown = React.createClass({
 			count_down_displayed = null;
 			percent = 101;
 		} else {
-			count_down_displayed = mydmam.format.msecToHMSms(this.state.count_down, true, true);
+			count_down_displayed = mydmam.format.msecToHMSms(this.state.count_down + 1000, true, true);
 			percent = Math.ceil(100 * (initial_duration - this.state.count_down) / initial_duration);
 		}
 
@@ -99,7 +99,7 @@ var Event = React.createClass({
 	onEventSupposedAired: function() {
 		if (this.props.event.automation_paused == false) {
 			this.setState({event_is_done: true});
-			this.props.onAired();
+			this.props.onAired(this.props.eventkey);
 		}
 	},
 	render: function() {
@@ -277,15 +277,24 @@ bca.Home = React.createClass({
 	onSwitchChannel: function(channel) {
 		this.setState({display_channel: channel});
 	},
-	onActualOnAirEventIsAired: function() {
+	onActualOnAirEventIsAired: function(event_key) {
 		if (this.state.interval) {
 			clearInterval(this.state.interval);
 		}
+
 		var refresh = function() {
-			getAllEvents();
+			this.getAllEvents();
 			//TODO add regular refresh delta
-		};
-		scope.setTimeout(refresh, 2000);
+		}.bind(this);
+		setTimeout(refresh, 2000);
+
+		var eventtoremove = this.state.playlist_events_keys.indexOf(event_key);
+		if (eventtoremove == 0) {
+			this.setState({
+				playlist_events_keys: this.state.playlist_events_keys.slice(1, this.state.playlist_events_keys.length),
+				asruns_events_keys: this.state.asruns_events_keys.slice().push(event_key),
+			});
+		}
 	},
 	render: function() {
 		var is_loading = null;
@@ -309,10 +318,10 @@ bca.Home = React.createClass({
 
 				if (this.state.display_channel) {
 					if (event.channel == this.state.display_channel) {
-						event_list.push(<Event key={event_key} event={event} onAired={this.onActualOnAirEventIsAired} is_asrun={this.state.display_asuns} />);
+						event_list.push(<Event key={event_key} event={event} eventkey={event_key} onAired={this.onActualOnAirEventIsAired} is_asrun={this.state.display_asuns} />);
 					}
 				} else {
-					event_list.push(<Event key={event_key} event={event} onAired={this.onActualOnAirEventIsAired} is_asrun={this.state.display_asuns} />);
+					event_list.push(<Event key={event_key} event={event} eventkey={event_key} onAired={this.onActualOnAirEventIsAired} is_asrun={this.state.display_asuns} />);
 				}
 			}.bind(this);
 
