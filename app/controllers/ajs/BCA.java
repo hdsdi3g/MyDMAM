@@ -20,9 +20,9 @@ import java.util.LinkedHashMap;
 
 import controllers.Check;
 import hd3gtv.configuration.Configuration;
-import hd3gtv.mydmam.bcastautomation.ArrayListString;
+import hd3gtv.mydmam.bcastautomation.AJSRequestEventsKeys;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
-import hd3gtv.mydmam.bcastautomation.LinkedHashMapStringString;
+import hd3gtv.mydmam.bcastautomation.AJSEventsList;
 import hd3gtv.mydmam.bcastautomation.TimedEventStore;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.web.AJSController;
@@ -35,12 +35,12 @@ public class BCA extends AJSController {
 	private static TimedEventStore database = null;
 	
 	@Check("BCA")
-	public static LinkedHashMapStringString allEvents() throws Exception {
+	public static AJSEventsList allEvents() throws Exception {
 		if (database == null) {
 			database = new TimedEventStore(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME);
 		}
 		
-		LinkedHashMapStringString r = new LinkedHashMapStringString();
+		AJSEventsList r = new AJSEventsList();
 		r.items = new LinkedHashMap<>();
 		
 		database.getFilteredAll().forEach(event -> {
@@ -51,52 +51,28 @@ public class BCA extends AJSController {
 	}
 	
 	@Check("BCA")
-	public static LinkedHashMapStringString futureKeys() throws Exception {
+	public static AJSEventsList allKeys() throws Exception {
 		if (database == null) {
 			database = new TimedEventStore(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME);
 		}
 		
-		LinkedHashMapStringString r = new LinkedHashMapStringString();
+		AJSEventsList r = new AJSEventsList();
 		r.items = new LinkedHashMap<>();
 		
-		database.getAllKeys(future -> {
-			r.items.put(future, "");
-		}, aired_key -> {
-		}, nonaired_key -> {
-		}, auto_pause_key -> {
-			r.items.put(auto_pause_key, "");
+		database.getAllKeys(event -> {
+			r.items.put(event, "a");
 		});
 		
 		return r;
 	}
 	
 	@Check("BCA")
-	public static LinkedHashMapStringString pastKeys() throws Exception {
+	public static AJSEventsList getEventsByKeys(AJSRequestEventsKeys keys) throws Exception {
 		if (database == null) {
 			database = new TimedEventStore(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME);
 		}
 		
-		LinkedHashMapStringString r = new LinkedHashMapStringString();
-		r.items = new LinkedHashMap<>();
-		
-		database.getAllKeys(future -> {
-		}, aired_key -> {
-			r.items.put(aired_key, "aired");
-		}, nonaired_key -> {
-			r.items.put(nonaired_key, "nonaired");
-		}, auto_pause_key -> {
-		});
-		
-		return r;
-	}
-	
-	@Check("BCA")
-	public static LinkedHashMapStringString getEventsByKeys(ArrayListString keys) throws Exception {
-		if (database == null) {
-			database = new TimedEventStore(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME);
-		}
-		
-		LinkedHashMapStringString r = new LinkedHashMapStringString();
+		AJSEventsList r = new AJSEventsList();
 		r.items = new LinkedHashMap<>();
 		
 		database.getByKeys(keys.items).forEach(event -> {

@@ -84,7 +84,6 @@
 })(window.mydmam);
 
 (function(async) {
-
 	/** In ms */
 	var actual_drift = 0;
 
@@ -105,7 +104,5 @@
 	async.getTime = function() {
 		return Date.now() - actual_drift;
 	}
-
-	//console.log(actual_drift);
-
+	
 })(window.mydmam.async);

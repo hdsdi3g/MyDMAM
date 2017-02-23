@@ -3,6 +3,8 @@
 */
 package controllers;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.List;
 
@@ -258,6 +260,12 @@ public class Secure extends Controller {
 	 */
 	public static String getRequestAddress() {
 		if (Controller.request.isLoopback == false) {
+			try {
+				if (InetAddress.getByName(Controller.request.remoteAddress).isLoopbackAddress()) {
+					return "loopback";
+				}
+			} catch (UnknownHostException e) {
+			}
 			return Controller.request.remoteAddress;
 		} else {
 			return "loopback";

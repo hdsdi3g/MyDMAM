@@ -16,13 +16,14 @@
 */
 package hd3gtv.mydmam.bcastautomation;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
-/**
- * @deprecated
- */
-public class ArrayListString {
+public class AJSEventsList {
 	
-	public ArrayList<String> items;
+	/**
+	 * key -> String raw json
+	 * or key -> "nothing"
+	 */
+	public LinkedHashMap<String, String> items;
 	
 }

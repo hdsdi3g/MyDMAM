@@ -188,7 +188,10 @@ public class HeaderJS {
 			
 			JsonObject async = new JsonObject();
 			async.add("controllers", AppManager.getGson().toJsonTree(AJSController.getAllControllersVerbsForThisUser()));
-			async.addProperty("server_time", System.currentTimeMillis());
+			
+			if (Secure.getRequestAddress().equals("loopback") == false) {
+				async.addProperty("server_time", System.currentTimeMillis());
+			}
 			
 			JsonObject user = new JsonObject();
 			user.addProperty("long_name", AJSController.getUserProfileLongName());

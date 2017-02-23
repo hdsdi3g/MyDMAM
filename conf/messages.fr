@@ -595,3 +595,14 @@ acl.privileges.name.actionJobs=Gérer la liste des jobs
 bca.noeventstodisplay=Pas d'événements à afficher.
 bca.page=Playlist
 bca.loading=Chargement...
+bca.automation=Automation
+bca.playlist=Playlist
+bca.asruns=As-runs
+
+day.0=Dimanche
+day.1=Lundi
+day.2=Mardi
+day.3=Mercredi
+day.4=Jeudi
+day.5=Vendredi
+day.6=Samedi

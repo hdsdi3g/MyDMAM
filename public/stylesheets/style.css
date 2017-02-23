@@ -319,4 +319,17 @@ div.bcaevent span.other {
 div.bcaevent div.progress {
     margin-bottom: 0px;
     height: 12px;
+    border-radius: 0px;
+    background-color: #E0DD08;
+    border: 1px solid #CCC;
+    background-image: none;
+    background-image: none;
+    background-image: none;
+    background-image: none;
+    background-image: none;
+    background-repeat: none;
+    -webkit-border-radius: 0px;
+    -moz-border-radius: 0px;
+    border-radius: 0px;
+    filter: none;
 }

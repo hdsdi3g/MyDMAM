@@ -80,7 +80,6 @@ bca.CountDown = React.createClass({
 
 			return (<div className="progress">
 				<div className="bar bar-danger" style={style_done}></div>
-				<div className="bar bar-warning" style={style_remaining}></div>
 			</div>);
 		} else {
 			return (<div>
@@ -106,6 +105,13 @@ var Event = React.createClass({
 		var event = this.props.event;
 		if (event == null) {
 			return null;			
+		}
+
+		var label_next_days = <small>&nbsp;</small>;
+		var date_event = new Date(event.startdate);
+		var event_day = date_event.getDay();
+		if (new Date().getDay() != event_day) {
+			label_next_days = (<small className="muted" style={{fontFamily: "Verdana", fontSize: 10,}}>{i18n("day." + event_day)}</small>);
 		}
 
 		var duration = (<span style={{fontFamily: "Verdana", fontSize: 12,}}>{event.duration}</span>);
@@ -181,7 +187,10 @@ var Event = React.createClass({
 				</div>
 			</div>
 			<div className="row hidden-phone hidden-tablet">
-				<div className="span4 offset2">
+				<div className="span1">
+					{label_next_days}
+				</div>
+				<div className="span4 offset1">
 					<small className="muted" style={{fontFamily: "Verdana", fontSize: 10,}}>{material_and_comment}</small>
 				</div>
 				<div className="span1">
@@ -196,12 +205,13 @@ var Event = React.createClass({
 			</div>
 
 			<div className="row visible-phone visible-tablet" style={{fontFamily: "Verdana", fontSize: 12,}}>
-				<strong>{mydmam.format.date(event.startdate)} <span style={{marginLeft: "10px"}}>{label_paused}</span> <span className="pull-right">{event.duration.substr(0, 8)}</span></strong><br />
+				<strong>{mydmam.format.date(event.startdate)} <span style={{marginLeft: "10px"}}>{label_paused}</span> {label_next_days}
+				<span className="pull-right">{event.duration.substr(0, 8)}</span></strong><br />
+
 				{event.name}<br />
 				<small><span className="text-info">{event.video_source}</span> &bull; <span className="text-success">{event.file_id}</span></small>
 			</div>
 		</div>);
-		//TODO if start / end is not the same date -> display new date in duration
 	},
 });
 
@@ -218,7 +228,7 @@ bca.Home = React.createClass({
 		};
 	},
 	componentWillMount: function() {
-		this.getAllEvents(); //TODO add regular refresh delta
+		this.getAllEvents();
 	},
 	getAllEvents: function() {
 		mydmam.async.request("bca", "allevents", {}, function(data) {
@@ -245,9 +255,99 @@ bca.Home = React.createClass({
 			this.setState(update);
 		}.bind(this));
 	},
-	componentDidMount: function(){
-		//this.setState({interval: setInterval(this.updateAll, 10000)});
+	getUpdateEventKeys: function() {
+		mydmam.async.request("bca", "allkeys", {}, function(data) {
+			var raw_events_keys = data.items;
+			
+			var keys_to_get = [];
 
+			for (var event_key in raw_events_keys) {
+				if (!this.state.events[event_key]) {
+					keys_to_get.push(event_key);
+				}
+			}
+
+			var mergueKeys = function(resolved_new_keys) {
+				var new_list = JSON.parse(JSON.stringify(this.state.events));
+
+				var keys_to_remove = [];
+
+				/** Prepare remove list */
+				for (var event_key in new_list) {
+					if (!raw_events_keys[event_key]) {
+						keys_to_remove.push(event_key);
+					}
+				}
+				/** Remove ols items */
+				for (var pos in keys_to_remove) {
+					delete new_list[keys_to_remove[pos]];
+				}
+
+				/** Add new items */
+				for (var event_key in resolved_new_keys) {
+					new_list[event_key] = JSON.parse(resolved_new_keys[event_key]);
+				}
+
+				/** Block to send to setState() */
+				var update = {
+					events: {},
+					playlist_events_keys: [],
+					asruns_events_keys: [],
+				}
+
+				/** Events start date filter */
+				var searchMin = function(list) {
+					var older_date = Number.MAX_VALUE;
+					var older_event_key = null;
+					for (var event_key in list) {
+						if (list[event_key].startdate < older_date) {
+							older_event_key = event_key;
+							older_date = list[event_key].startdate;
+						} 
+					}
+					return older_event_key;
+				}
+
+				/** Filter by older events (ugly) */
+				var event_count = Object.keys(new_list).length;
+				for (var i = 0; i < event_count; i++) {
+					var older_key = searchMin(new_list);
+					var event = new_list[older_key];
+					delete new_list[older_key];
+
+					/** Send events main list */
+					update.events[older_key] = event;
+
+					/** Send events to tables */
+					if (event.enddate < mydmam.async.getTime()) {
+						/** asrun */
+						update.asruns_events_keys.push(older_key);
+					} else {
+						/** onair or playlist */
+						update.playlist_events_keys.push(older_key);
+					}
+				}
+
+				if (Object.keys(new_list).length > 0) {
+					/** All items should be consumed */
+					console.error("PROBLEM!", new_list); //XXX remove after tests
+				}
+
+				this.setState(update);
+			}.bind(this);
+
+			if (keys_to_get.length > 0) {
+				mydmam.async.request("bca", "geteventsbykeys", {items: keys_to_get}, function(data2) {
+					mergueKeys(data2.items);
+				}.bind(this));
+			} else {
+				mergueKeys({});
+			}
+
+			//this.setState(update);
+		}.bind(this));
+	},
+	componentDidMount: function(){
 		var last_time = "";
 		var updateClock = function(e) {
 			var new_time = mydmam.format.date(mydmam.async.getTime());
@@ -256,7 +356,10 @@ bca.Home = React.createClass({
 			}
 		}.bind(this);
 
-		this.setState({clock: setInterval(updateClock, 100)});
+		if (this.state.interval) {
+			clearInterval(this.state.interval);
+		}
+		this.setState({clock: setInterval(updateClock, 100), interval: setInterval(this.getUpdateEventKeys, 5000)});
 	},
 	componentWillUnmount: function() {
 		if (this.state.interval) {
@@ -264,14 +367,26 @@ bca.Home = React.createClass({
 		}
 	},
 	onSwitchSchList: function(new_type) {
+		var change_state = null;
 		if (new_type == "_playlist") {
 			if (this.state.display_asuns == true) {
-				this.setState({display_asuns: false});
+				change_state = "pl";
 			}
 		} else {
 			if (this.state.display_asuns == false) {
-				this.setState({display_asuns: true});
+				change_state = "ar";
 			}
+		}
+
+		if (change_state != null) {
+			if (this.state.interval) {
+				clearInterval(this.state.interval);
+			}
+			setTimeout(this.getUpdateEventKeys, 100);
+			this.setState({
+				display_asuns: change_state == "ar",
+				interval: setInterval(this.getUpdateEventKeys, 5000),
+			});
 		}
 	},
 	onSwitchChannel: function(channel) {
@@ -284,16 +399,15 @@ bca.Home = React.createClass({
 
 		var refresh = function() {
 			this.getAllEvents();
-			//TODO add regular refresh delta
+			this.setState({interval: setInterval(this.getUpdateEventKeys, 5000)});
 		}.bind(this);
-		setTimeout(refresh, 2000);
+		setTimeout(refresh, 1000);
 
 		var eventtoremove = this.state.playlist_events_keys.indexOf(event_key);
 		if (eventtoremove == 0) {
-			this.setState({
-				playlist_events_keys: this.state.playlist_events_keys.slice(1, this.state.playlist_events_keys.length),
-				asruns_events_keys: this.state.asruns_events_keys.slice().push(event_key),
-			});
+			if (this.state.playlist_events_keys) {
+				this.setState({playlist_events_keys: this.state.playlist_events_keys.slice(1, this.state.playlist_events_keys.length)});
+			}
 		}
 	},
 	render: function() {
@@ -399,7 +513,11 @@ bca.Home = React.createClass({
 		}
 
  		return (<div className="container">
- 			<p className="lead">{i18n("bca.automation")} <span className="pull-right" ref="clock">{mydmam.format.date(mydmam.async.getTime())}</span></p>
+ 			<p className="lead">
+ 				{i18n("bca.automation")}
+ 				<span className="pull-right hidden-phone hidden-tablet" ref="clock">{mydmam.format.date(mydmam.async.getTime())}</span>
+ 				<span className="pull-right visible-phone visible-tablet">{mydmam.format.date(mydmam.async.getTime())}</span>
+ 			</p>
 			{is_loading}
 			{table}
 		</div>);

@@ -342,4 +342,13 @@ public class TimedEventStore {
 		}, col_name_event_end_date, col_name_event_aired, col_name_event_pause_automation);
 	}
 	
+	/**
+	 * @return non date sorted
+	 */
+	public void getAllKeys(Consumer<String> event_key) throws Exception {
+		CassandraDb.allRowsReader(cf, row -> {
+			event_key.accept(row.getKey());
+		}, col_name_event_start_date);
+	}
+	
 }
