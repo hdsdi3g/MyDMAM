@@ -309,6 +309,7 @@ auth.role.privileges=Privilèges pour ce rôle
 auth.rolecreate=Créer un nouveau rôle
 auth.rolename=Nom
 auth.roles=Rôles
+auth.roleedit=Configuration du rôle
 auth.useractivated=Activé
 auth.usercreate=Créer un nouvel utilisateur
 auth.userlongname=Nom complet

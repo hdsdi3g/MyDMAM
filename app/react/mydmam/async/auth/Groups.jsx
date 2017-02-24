@@ -151,6 +151,10 @@ auth.GroupEdit = React.createClass({
 				}
 			}
 		}
+
+		var group_key = this.props.params.group_key;
+		auth.grouplist[group_key].group_roles = new_roles;
+
 		this.setState({roles: new_roles});
 	},
 	onDeleteBtnClick: function(e){
