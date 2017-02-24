@@ -233,20 +233,35 @@ public class Secure extends Controller {
 		
 		Cache.set("user:" + username + ":privileges", authuser.getUser_groups_roles_privileges(), Bootstrap.getSessionTTL());
 		
-		Loggers.Play.info("User has a successful authentication: " + getUserSessionInformation());
+		String long_name = authuser.getFullname();
+		if (long_name == null) {
+			long_name = authuser.getName();
+		}
+		
+		Loggers.Play.info(long_name + " has a successful authentication, with privileges: " + getSessionPrivileges().toString() + ". User key: " + username);
 		
 		redirect("Application.index");
 	}
 	
 	public static void logout() throws Throwable {
 		try {
-			Loggers.Play.info("User went tries to sign off: " + getUserSessionInformation());
-			
 			String username = connected();
 			if (username != null) {
 				Cache.delete("user:" + username + ":privileges");
 			}
 			session.clear();
+			
+			UserNG user = Bootstrap.getAuth().getByUserKey(username);
+			if (user == null) {
+				Loggers.Play.info("User " + username + " went tries to sign off.");
+			} else {
+				String long_name = user.getFullname();
+				if (long_name == null) {
+					long_name = user.getName();
+				}
+				Loggers.Play.info(long_name + " went tries to sign off.");
+			}
+			
 		} catch (Exception e) {
 			Loggers.Play.error("Error during sign off: " + getUserSessionInformation());
 			throw e;
