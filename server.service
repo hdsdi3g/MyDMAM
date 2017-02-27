@@ -4,7 +4,7 @@ After=network.target auditd.service
 
 [Service]
 EnvironmentFile=/etc/default/mydmam
-ExecStart=/usr/bin/java -Dfile.encoding=UTF-8 ${CONFIG_PATH} -classpath ${CLASSPATH} hd3gtv.mydmam.server.MainClass
+ExecStart=/usr/bin/java -noverify -server -Dfile.encoding=UTF-8 ${CONFIG_PATH} -classpath ${CLASSPATH} hd3gtv.mydmam.server.MainClass
 
 [Install]
 WantedBy=multi-user.target

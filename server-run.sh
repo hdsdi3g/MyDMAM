@@ -6,5 +6,5 @@ set -e
 
 cd $BASEPATH
 
-/usr/bin/java -Dfile.encoding=UTF-8 ${CONFIG_PATH} -classpath ${CLASSPATH} hd3gtv.mydmam.server.MainClass
+/usr/bin/java -noverify -server -Dfile.encoding=UTF-8 ${CONFIG_PATH} -classpath ${CLASSPATH} hd3gtv.mydmam.server.MainClass
 
