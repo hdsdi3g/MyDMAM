@@ -68,6 +68,9 @@ public class WorkerIndexer extends WorkerNG {
 			
 			lastindexeddatesforstoragenames.put(item.storage_label_name, 0l);
 		}
+		
+		manager.register(this);
+		manager.register(new WorkerRenderer(this));
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {

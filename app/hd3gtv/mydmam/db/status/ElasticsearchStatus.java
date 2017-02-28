@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.cluster.node.info.PluginInfo;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsIndices;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsNodes;
@@ -40,23 +39,13 @@ import org.elasticsearch.common.hppc.cursors.ObjectIntCursor;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.transport.TransportAddress;
 
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 
 public class ElasticsearchStatus {
 	
-	private transient ClusterHealthStatus last_cluster_health_status = null;
-	private transient ArrayList<String> last_invalid_nodes;
-	private transient ArrayList<String> last_missing_nodes;
-	private transient final ClusterStatus referer;
 	private LinkedHashMap<String, StatusReport> last_status_reports;
-	private transient boolean last_status_full_disconnected;
 	
-	ElasticsearchStatus(ClusterStatus referer) {
-		this.referer = referer;
-		last_invalid_nodes = new ArrayList<String>();
-		last_missing_nodes = new ArrayList<String>();
-		last_status_full_disconnected = false;
+	public ElasticsearchStatus() {
 	}
 	
 	private static ArrayList<TransportAddress> convertList(ImmutableList<DiscoveryNode> list) {
@@ -67,123 +56,24 @@ public class ElasticsearchStatus {
 		return nodes;
 	}
 	
-	void refreshStatus(boolean prepare_report) {
+	public void refreshStatus() {
 		TransportClient client = Elasticsearch.getClient();
 		
 		ArrayList<TransportAddress> current_connected_nodes = convertList(client.connectedNodes());
 		if (current_connected_nodes.isEmpty()) {
-			if (last_status_full_disconnected == false) {
-				referer.onGrave(getClass(), "No connected nodes." + MyDMAM.LINESEPARATOR);
-				last_status_full_disconnected = true;
-				last_cluster_health_status = null;
-			}
 			return;
 		}
-		if (last_status_full_disconnected) {
-			last_status_full_disconnected = false;
-			referer.onRecovered(getClass(), "Cluster is now connected." + MyDMAM.LINESEPARATOR);
-		}
-		
-		ArrayList<TransportAddress> current_listed_nodes = convertList(client.listedNodes());
-		ArrayList<TransportAddress> current_filtered_nodes = convertList(client.filteredNodes());
-		
-		ArrayList<String> current_invalid_nodes = new ArrayList<String>();
-		ArrayList<String> current_missing_nodes = new ArrayList<String>();
-		
-		for (int pos_lstd = 0; pos_lstd < current_listed_nodes.size(); pos_lstd++) {
-			boolean founded = false;
-			for (int pos_cntd = 0; pos_cntd < current_connected_nodes.size(); pos_cntd++) {
-				if (current_connected_nodes.get(pos_cntd).equals(current_listed_nodes.get(pos_lstd))) {
-					founded = true;
-					break;
-				}
-			}
-			if (founded == false) {
-				TransportAddress problem_node = current_listed_nodes.get(pos_lstd);
-				for (int pos_cfilt = 0; pos_cfilt < current_filtered_nodes.size(); pos_cfilt++) {
-					if (problem_node.equals(current_filtered_nodes.get(pos_cfilt))) {
-						founded = true;
-						break;
-					}
-				}
-				if (founded) {
-					current_invalid_nodes.add(problem_node.toString());
-				} else {
-					current_missing_nodes.add(problem_node.toString());
-				}
-			}
-		}
-		
-		processInvalidAndMissingNodes(current_invalid_nodes, current_missing_nodes);
 		
 		ClusterAdminClient cluster_admin_client = client.admin().cluster();
 		ClusterStatsRequestBuilder cluster_stats_request = cluster_admin_client.prepareClusterStats();
 		ClusterStatsResponse cluster_stats_response = cluster_stats_request.execute().actionGet();
 		
-		ClusterHealthStatus current_cluster_health_status = cluster_stats_response.getStatus();
-		
-		if (last_cluster_health_status != null) {
-			if (last_cluster_health_status.ordinal() < current_cluster_health_status.ordinal()) {
-				if (current_cluster_health_status == ClusterHealthStatus.YELLOW) {
-					referer.onWarning(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + MyDMAM.LINESEPARATOR);
-				} else if (current_cluster_health_status == ClusterHealthStatus.RED) {
-					referer.onGrave(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + MyDMAM.LINESEPARATOR);
-				}
-			} else if (last_cluster_health_status.ordinal() > current_cluster_health_status.ordinal()) {
-				referer.onRecovered(getClass(), "Cluster health status is " + last_cluster_health_status.name() + " to " + current_cluster_health_status.name() + "." + MyDMAM.LINESEPARATOR);
-			}
-		}
-		last_cluster_health_status = current_cluster_health_status;
-		
-		if (prepare_report == false) {
-			return;
-		}
-		
 		last_status_reports = new LinkedHashMap<String, StatusReport>();
-		last_status_reports.put("clusterhealthstatus", new StatusReport("Cluster health status").addCell("Color", "Cluster", last_cluster_health_status.name()));
+		last_status_reports.put("clusterhealthstatus", new StatusReport("Cluster health status").addCell("Color", "Cluster", cluster_stats_response.getStatus().name()));
 		
 		processHostsNodesLists(client.connectedNodes(), client.listedNodes(), client.filteredNodes());
 		processStats(cluster_stats_response.getIndicesStats());
 		processStats(cluster_stats_response.getNodesStats());
-	}
-	
-	private void processInvalidAndMissingNodes(ArrayList<String> current_invalid_nodes, ArrayList<String> current_missing_nodes) {
-		StringBuffer sb = new StringBuffer();
-		for (int pos = 0; pos < current_invalid_nodes.size(); pos++) {
-			if (last_invalid_nodes.contains(current_invalid_nodes.get(pos))) {
-				continue;
-			}
-			sb.append("Invalid node: " + current_invalid_nodes.get(pos));
-			sb.append(MyDMAM.LINESEPARATOR);
-		}
-		
-		for (int pos = 0; pos < current_missing_nodes.size(); pos++) {
-			if (last_missing_nodes.contains(current_missing_nodes.get(pos))) {
-				continue;
-			}
-			sb.append("Missing node: " + current_missing_nodes.get(pos));
-			sb.append(MyDMAM.LINESEPARATOR);
-		}
-		
-		if (sb.length() > 0) {
-			referer.onWarning(getClass(), sb.toString());
-			sb = new StringBuffer();
-		}
-		
-		if (current_invalid_nodes.isEmpty() & (last_invalid_nodes.isEmpty() == false)) {
-			sb.append("All invalid nodes are now recovered.");
-			sb.append(MyDMAM.LINESEPARATOR);
-		}
-		if (current_missing_nodes.isEmpty() & (last_missing_nodes.isEmpty() == false)) {
-			sb.append("All missing nodes are now retrieved.");
-			sb.append(MyDMAM.LINESEPARATOR);
-		}
-		if (sb.length() > 0) {
-			referer.onRecovered(getClass(), sb.toString());
-		}
-		
-		last_invalid_nodes = current_invalid_nodes;
-		last_missing_nodes = current_missing_nodes;
 	}
 	
 	private class HostNodeState {

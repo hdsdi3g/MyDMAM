@@ -22,7 +22,6 @@ import com.google.gson.JsonObject;
 import controllers.Check;
 import controllers.Secure;
 import hd3gtv.configuration.GitInfo;
-import hd3gtv.mydmam.db.status.ClusterStatus;
 import hd3gtv.mydmam.db.status.ElasticsearchStatus;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.AsyncJSInstanceActionRequest;
@@ -138,7 +137,9 @@ public class Instances extends AJSController {
 	
 	@Check("showInstances")
 	public static ElasticsearchStatus esClusterStatus() throws Exception {
-		return new ClusterStatus().prepareReports().getESLastStatus();
+		ElasticsearchStatus es_status = new ElasticsearchStatus();
+		es_status.refreshStatus();
+		return es_status;
 	}
 	
 	@Check("showInstances")

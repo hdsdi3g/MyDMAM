@@ -170,8 +170,8 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	private String app_name;
 	private ArrayList<InstanceActionReceiver> all_instance_action_receviers;
 	
-	public AppManager(String app_name) {
-		this.app_name = app_name;
+	public AppManager() {
+		this.app_name = "Manager";
 		all_instance_action_receviers = new ArrayList<InstanceActionReceiver>();
 		all_instance_action_receviers.add(this);
 		service_exception = new ServiceException(this);
@@ -192,16 +192,16 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		}
 	}
 	
-	public BrokerNG getBroker() {
-		return broker;
-	}
-	
 	public void register(WorkerNG worker) {
 		if (worker == null) {
 			throw new NullPointerException("\"worker\" can't to be null");
 		}
 		if (worker.isActivated() == false) {
 			return;
+		} else {
+			if (broker.isAlive() == false) {
+				broker.start();
+			}
 		}
 		worker.setManager(this);
 		enabled_workers.add(worker);
@@ -211,11 +211,19 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	}
 	
 	public void register(CyclicJobCreator cyclic_creator) {
+		if (broker.isAlive() == false) {
+			broker.start();
+		}
+		
 		broker.cyclicJobsRegister(cyclic_creator);
 		all_instance_action_receviers.add(cyclic_creator);
 	}
 	
 	public void register(TriggerJobCreator trigger_creator) {
+		if (broker.isAlive() == false) {
+			broker.start();
+		}
+		
 		broker.triggerJobsRegister(trigger_creator);
 		all_instance_action_receviers.add(trigger_creator);
 	}
@@ -307,32 +315,18 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	public void startAll() {
 		Loggers.Manager.debug("Start " + enabled_workers.size() + " worker(s)");
 		
+		if (enabled_workers.isEmpty() == false && broker.isAlive() == false) {
+			broker.start();
+		}
+		
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			enabled_workers.get(pos).getLifecyle().enable();
 		}
-		if (broker == null) {
-			broker = new BrokerNG(this);
-		}
-		Loggers.Manager.debug("Start broker");
-		broker.start();
+		
 		if (updater == null) {
 			updater = new Updater(this);
 		}
 		Loggers.Manager.debug("Start updater");
-		updater.start();
-	}
-	
-	/**
-	 * Don't start broker and workers.
-	 */
-	public void startJustService() {
-		if (broker == null) {
-			broker = new BrokerNG(this);
-		}
-		if (updater == null) {
-			updater = new Updater(this);
-		}
-		Loggers.Manager.debug("Start just updater");
 		updater.start();
 	}
 	
@@ -344,7 +338,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 			Loggers.Manager.debug("Stop updater");
 			updater.stopUpdate();
 		}
-		if (broker != null) {
+		if (broker.isAlive()) {
 			Loggers.Manager.debug("Stop broker");
 			broker.askStop();
 		}
@@ -369,13 +363,12 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 			}
 			updater = null;
 			
-			if (broker != null) {
+			if (broker.isAlive()) {
 				Loggers.Manager.debug("Wait broker to stop...");
 				while (broker.isAlive()) {
 					Thread.sleep(1);
 				}
 			}
-			broker = null;
 		} catch (InterruptedException e) {
 			service_exception.onAppManagerError(e, "Can't stop all services threads");
 		}

@@ -148,6 +148,8 @@ public class BrokerNG {
 		if (isAlive()) {
 			return;
 		}
+		Loggers.Manager.debug("Start broker");
+		
 		watch_dog = new QueueWatchDog();
 		watch_dog.start();
 	}

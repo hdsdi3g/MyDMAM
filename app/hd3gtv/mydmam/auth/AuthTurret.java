@@ -128,13 +128,13 @@ public class AuthTurret {
 		/**
 		 * Password API init
 		 */
-		String master_password_key = Configuration.global.getValue("auth", "master_password_key", "");
+		String master_password_key = Configuration.global.getValue("play", "master_password_key", "");
 		if (master_password_key.equals("")) {
 			throw new NullPointerException("No auth.master_password_key are definited");
 		}
 		password = new Password(master_password_key);
 		
-		if (Configuration.global.isElementKeyExists("auth", "backend")) {
+		if (Configuration.global.isElementKeyExists("play", "backend")) {
 			throw new IOException("Invalid configuration: auth.backend is present, instead of auth.backends, with a new syntax.");
 		}
 		
@@ -143,8 +143,8 @@ public class AuthTurret {
 		 */
 		auth_backend_by_domain = new LinkedHashMap<String, ActiveDirectoryBackend>(1);
 		
-		if (Configuration.global.isElementKeyExists("auth", "backends")) {
-			List<LinkedHashMap<String, ?>> conf_backends = Configuration.global.getListMapValues("auth", "backends");
+		if (Configuration.global.isElementKeyExists("play", "backends")) {
+			List<LinkedHashMap<String, ?>> conf_backends = Configuration.global.getListMapValues("play", "backends");
 			conf_backends.forEach(item -> {
 				String source = (String) item.get("source");
 				if (source.equalsIgnoreCase("ad") == false) {
@@ -165,9 +165,9 @@ public class AuthTurret {
 		/**
 		 * Internal utils init
 		 */
-		cache = new Cache(this, TimeUnit.MINUTES.toMillis(Configuration.global.getValue("auth", "cache_ttl", 10)));
+		cache = new Cache(this, TimeUnit.MINUTES.toMillis(Configuration.global.getValue("play", "cache_ttl", 10)));
 		
-		force_select_domain = Configuration.global.getValueBoolean("auth", "force_select_domain");
+		force_select_domain = Configuration.global.getValueBoolean("play", "force_select_domain");
 		
 		/**
 		 * Check account_export file

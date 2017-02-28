@@ -1,0 +1,5 @@
+=== MyDMAM Upgrade document ===
+
+#234  Change configuration keys: move auth.* to play.*
+#234  Change Java main class for Probe/Server/FTP Server > all are now in hd3gtv.mydmam.MainClass. CLI is still the same.
+#234  Remove UIFrame

@@ -83,12 +83,9 @@ public class PathScan extends WorkerNG {
 		this.forced_ttl = forced_ttl;
 	}
 	
-	/**
-	 * @return this
-	 */
-	public PathScan cyclicJobsRegister(AppManager manager) throws ConnectionException, ClassNotFoundException {
+	public void register(AppManager manager) throws ConnectionException, ClassNotFoundException {
 		if (Storage.hasRegularIndexing() == false) {
-			return this;
+			return;
 		}
 		Loggers.Pathindex.debug("Load Cyclics for regular path indexing");
 		
@@ -102,7 +99,8 @@ public class PathScan extends WorkerNG {
 			cyclicjobcreator.createThis("Index " + storages.get(pos).getName() + " storage", getClass(), "Regular storage indexing", getWorkerVendorName(), context);
 			manager.register(cyclicjobcreator);
 		}
-		return this;
+		
+		manager.register(this);
 	}
 	
 	public WorkerCategory getWorkerCategory() {

@@ -6,14 +6,6 @@
                                     # Useful on intense debugging, after having setup your development environment.
     # check_i18n_cache_files: true # Set true if you want to change the messages.<lang> files (and the associed cached files).
 
-# messages:
-    # maingrid.brand: Site name
-    # site.name: Site name
-    # site.baseline: My wonderful Media Asset Management tool
-    # site.aboutfooter: service Name.
-    # site.logintips: Use your current login account for connect
-
-auth:
     force_select_domain: false
     cache_ttl: 10   # in minutes
     master_password_key: "change me please"   # all instances should have the same master_password_key if you want to login/create accounts/change password accross multiple instances. Only use for local auth.
@@ -23,3 +15,11 @@ auth:
 #            domain: mydomain.local
 #            server: 192.168.0.1
 #            port: 389
+
+# messages:
+    # maingrid.brand: Site name
+    # site.name: Site name
+    # site.baseline: My wonderful Media Asset Management tool
+    # site.aboutfooter: service Name.
+    # site.logintips: Use your current login account for connect
+
