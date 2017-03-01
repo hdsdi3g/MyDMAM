@@ -16,19 +16,19 @@
 */
 package hd3gtv.mydmam.auth;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.reflect.TypeToken;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.asyncjs.RoleView;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class RoleNG implements AuthEntry {
 	
@@ -37,9 +37,6 @@ public class RoleNG implements AuthEntry {
 	private HashSet<String> privileges;
 	
 	private transient AuthTurret turret;
-	
-	private static Type hashset_privileges_typeOfT = new TypeToken<HashSet<String>>() {
-	}.getType();
 	
 	/**
 	 * This cols names will always be imported from db.
@@ -50,7 +47,7 @@ public class RoleNG implements AuthEntry {
 		Loggers.Auth.trace("Save Role " + key);
 		mutator.putColumnIfNotNull("role_name", role_name);
 		if (privileges != null) {
-			mutator.putColumnIfNotNull("privileges", turret.getGson().toJson(privileges, hashset_privileges_typeOfT));
+			mutator.putColumnIfNotNull("privileges", MyDMAM.gson_kit.getGson().toJson(privileges, GsonKit.type_HashSet_String));
 		}
 	}
 	
@@ -61,7 +58,7 @@ public class RoleNG implements AuthEntry {
 		role_name = cols.getStringValue("role_name", null);
 		
 		if (cols.getColumnByName("privileges") != null) {
-			privileges = turret.getGson().fromJson(cols.getColumnByName("privileges").getStringValue(), hashset_privileges_typeOfT);
+			privileges = MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("privileges").getStringValue(), GsonKit.type_HashSet_String);
 		} else {
 			privileges = null;
 		}
@@ -125,7 +122,7 @@ public class RoleNG implements AuthEntry {
 				cols = turret.prepareQuery().getKey(key).withColumnSlice("privileges").execute().getResult();
 				if (cols.getColumnNames().contains("privileges")) {
 					if (cols.getColumnByName("privileges").hasValue()) {
-						privileges = turret.getGson().fromJson(cols.getColumnByName("privileges").getStringValue(), hashset_privileges_typeOfT);
+						privileges = MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("privileges").getStringValue(), GsonKit.type_HashSet_String);
 					}
 				}
 			} catch (ConnectionException e) {

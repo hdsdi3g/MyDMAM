@@ -25,8 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -35,7 +33,6 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
-import hd3gtv.tools.GsonIgnoreStrategy;
 import hd3gtv.tools.StoppableThread;
 
 public final class AppManager implements InstanceActionReceiver, InstanceStatusItem {
@@ -51,57 +48,26 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	 * Start of static realm
 	 * ============================================================================
 	 */
-	private static final Gson gson;
-	private static final Gson simple_gson;
-	private static final Gson pretty_gson;
 	static final long starttime;
 	
 	static {
 		starttime = ManagementFactory.getRuntimeMXBean().getStartTime();
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		
-		/**
-		 * Outside of this package serializers
-		 */
-		MyDMAM.registerBaseSerializers(builder);
-		
-		simple_gson = builder.create();
 		
 		/**
 		 * Inside of this package serializers
 		 */
-		builder.registerTypeAdapter(InstanceAction.class, new InstanceAction.Serializer());
-		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
-		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
-		builder.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
+		MyDMAM.gson_kit.registerTypeAdapter(InstanceAction.class, new InstanceAction.Serializer());
+		MyDMAM.gson_kit.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
+		MyDMAM.gson_kit.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
+		MyDMAM.gson_kit.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
 		
-		builder.registerTypeAdapter(JobContext.class, new JobContext.Serializer());
-		builder.registerTypeAdapter(new TypeToken<ArrayList<JobContext>>() {
+		MyDMAM.gson_kit.registerTypeAdapter(JobContext.class, new JobContext.Serializer());
+		MyDMAM.gson_kit.registerTypeAdapter(new TypeToken<ArrayList<JobContext>>() {
 		}.getType(), new JobContext.SerializerList());
 		
-		builder.registerTypeAdapter(JobCreatorDeclarationSerializer.class, new JobCreatorDeclarationSerializer());
-		builder.registerTypeAdapter(TriggerJobCreator.class, TriggerJobCreator.serializer);
-		builder.registerTypeAdapter(CyclicJobCreator.class, CyclicJobCreator.serializer);
-		
-		gson = builder.create();
-		pretty_gson = builder.setPrettyPrinting().create();
-	}
-	
-	public static Gson getGson() {
-		return gson;
-	}
-	
-	public static Gson getSimpleGson() {
-		return simple_gson;
-	}
-	
-	public static Gson getPrettyGson() {
-		return pretty_gson;
+		MyDMAM.gson_kit.registerTypeAdapter(JobCreatorDeclarationSerializer.class, new JobCreatorDeclarationSerializer());
+		MyDMAM.gson_kit.registerTypeAdapter(TriggerJobCreator.class, TriggerJobCreator.serializer);
+		MyDMAM.gson_kit.registerTypeAdapter(CyclicJobCreator.class, CyclicJobCreator.serializer);
 	}
 	
 	private volatile static HashMap<String, Class<?>> instance_class_name;
@@ -181,6 +147,9 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		updater = new Updater(this);
 	}
 	
+	/**
+	 * @return may be null
+	 */
 	String getAppName() {
 		return app_name;
 	}

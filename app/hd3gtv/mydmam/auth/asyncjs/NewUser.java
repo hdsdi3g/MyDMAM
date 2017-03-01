@@ -22,14 +22,14 @@ package hd3gtv.mydmam.auth.asyncjs;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 
-import hd3gtv.mydmam.web.AJSController;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class NewUser {
 	
@@ -43,14 +43,11 @@ public class NewUser {
 	@GsonIgnore
 	public ArrayList<String> user_groups;
 	
-	private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();
-	
 	public static class Deserializer implements JsonDeserializer<NewUser> {
 		
 		public NewUser deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			NewUser result = AJSController.gson_simple.fromJson(json, NewUser.class);
-			result.user_groups = AJSController.gson_simple.fromJson(json.getAsJsonObject().get("user_groups"), al_string_typeOfT);
+			NewUser result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, NewUser.class);
+			result.user_groups = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("user_groups"), GsonKit.type_ArrayList_String);
 			return result;
 		}
 		

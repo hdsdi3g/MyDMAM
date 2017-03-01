@@ -29,8 +29,6 @@ import org.apache.ftpserver.FtpServerFactory;
 import org.apache.ftpserver.ftplet.Ftplet;
 import org.apache.ftpserver.listener.ListenerFactory;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
@@ -43,7 +41,6 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.tools.GsonIgnoreStrategy;
 import hd3gtv.tools.StoppableThread;
 
 public class FTPOperations {
@@ -52,36 +49,15 @@ public class FTPOperations {
 	private static final long DELAY_ACTIVE_GROUPS_PATHINDEXING = TimeUnit.SECONDS.toMillis(60);
 	private static final long DELAY_BACKGROUD_OPERATIONS = TimeUnit.MINUTES.toMillis(10);
 	
-	private static final Gson gson;
-	// private static final Gson simple_gson;
-	// private static final Gson pretty_gson;
-	
 	private static FTPOperations global;
 	
 	static {
 		global = new FTPOperations();
-		
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		
-		gson = builder.create();
 	}
 	
 	public static FTPOperations get() {
 		return global;
 	}
-	
-	public static Gson getGson() {
-		return gson;
-	}
-	
-	/*public static Gson getSimpleGson() {
-		return simple_gson;
-	}*/
 	
 	private Internal internal;
 	

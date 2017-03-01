@@ -34,7 +34,8 @@ import com.google.gson.JsonParser;
 import controllers.Check;
 import controllers.Secure;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 class AJSControllerItem {
 	
@@ -168,14 +169,14 @@ class AJSControllerItem {
 					} else if (parameter_type == Number.class) {
 						request = raw_json.getAsNumber();
 					} else {
-						request = AJSController.gson.fromJson(raw_json, parameter_type);
+						request = MyDMAM.gson_kit.getGson().fromJson(raw_json, parameter_type);
 					}
 				} catch (Exception e) {
 					Loggers.Play.warn("Can't extract AJS request for " + controller_class + "." + method.getName() + "() with \"" + json_request + "\"", e);
 					
 					if (return_type != null) {
 						try {
-							return AJSController.gson.toJson(return_type.newInstance(), return_type);
+							return MyDMAM.gson_kit.getGson().toJson(return_type.newInstance(), return_type);
 						} catch (Exception e1) {
 							Loggers.Play.error("Can't create return object during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e1);
 						}
@@ -200,7 +201,7 @@ class AJSControllerItem {
 				Loggers.Play.error("Exception during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e.getCause());
 				if (return_type != null) {
 					try {
-						return AJSController.gson.toJson(return_type.newInstance(), return_type);
+						return MyDMAM.gson_kit.getGson().toJson(return_type.newInstance(), return_type);
 					} catch (Exception e1) {
 						Loggers.Play.error("Can't create return object during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e1);
 					}
@@ -208,7 +209,7 @@ class AJSControllerItem {
 			}
 			
 			if (return_type != null) {
-				return AJSController.gson.toJson(response, return_type);
+				return MyDMAM.gson_kit.getGson().toJson(response, return_type);
 			}
 			
 			return new JsonObject().toString();

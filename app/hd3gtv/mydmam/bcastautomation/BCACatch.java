@@ -18,7 +18,6 @@ package hd3gtv.mydmam.bcastautomation;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Optional;
@@ -26,14 +25,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.FileUtils;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonObject;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.tools.CopyMove;
 
 public class BCACatch {
@@ -48,9 +46,6 @@ public class BCACatch {
 	
 	private ArrayList<BCACatchEntry> entries;
 	
-	private static Type type_AL_BCACatchEntry = new TypeToken<ArrayList<BCACatchEntry>>() {
-	}.getType();
-	
 	public BCACatch() throws NullPointerException, IOException, ReflectiveOperationException {
 		engine = BCAWatcher.getEngine();
 		
@@ -59,7 +54,7 @@ public class BCACatch {
 		json_db_file = new File(Configuration.global.getValue("broadcast_automation", "catch_json_db_file", "catch_bca_event.json"));
 		
 		if (json_db_file.exists()) {
-			entries = AppManager.getGson().fromJson(FileUtils.readFileToString(json_db_file, MyDMAM.UTF8), type_AL_BCACatchEntry);
+			entries = MyDMAM.gson_kit.getGson().fromJson(FileUtils.readFileToString(json_db_file, MyDMAM.UTF8), GsonKit.type_ArrayList_BCACatchEntry);
 		} else {
 			entries = new ArrayList<>();
 		}
@@ -80,7 +75,7 @@ public class BCACatch {
 		if (modified == false) {
 			return;
 		}
-		FileUtils.writeStringToFile(json_db_file, AppManager.getPrettyGson().toJson(entries, type_AL_BCACatchEntry), MyDMAM.UTF8);
+		FileUtils.writeStringToFile(json_db_file, MyDMAM.gson_kit.getGson().toJson(entries, GsonKit.type_ArrayList_BCACatchEntry), MyDMAM.UTF8);// TODO pretty json
 		modified = false;
 	}
 	

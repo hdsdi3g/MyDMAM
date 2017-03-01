@@ -21,11 +21,13 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.util.ArrayList;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class ACNodesEntry {
 	ACNodesEntry() {
@@ -49,9 +51,7 @@ public class ACNodesEntry {
 		return name;
 	}
 	
-	static class Deseralizer implements JsonDeserializer<ACNodesEntry> {
-		Type type_AL_InetAddr = new TypeToken<ArrayList<InetAddress>>() {
-		}.getType();
+	public static class Deseralizer implements JsonDeserializer<ACNodesEntry> {
 		
 		ACAPI acapi;
 		
@@ -60,8 +60,8 @@ public class ACNodesEntry {
 		}
 		
 		public ACNodesEntry deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			ACNodesEntry nodes = acapi.gson_simple.fromJson(json, ACNodesEntry.class);
-			nodes.ipAddresses = acapi.gson_simple.fromJson(json.getAsJsonObject().get("ipAddresses"), type_AL_InetAddr);
+			ACNodesEntry nodes = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACNodesEntry.class);
+			nodes.ipAddresses = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("ipAddresses"), GsonKit.type_ArrayList_InetAddr);
 			return nodes;
 		}
 	}

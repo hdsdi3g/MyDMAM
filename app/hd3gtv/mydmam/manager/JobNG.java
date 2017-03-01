@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.json.simple.parser.ParseException;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -61,7 +60,8 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.DeployColumnDef;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.tools.StoppableProcessing;
 
 /**
@@ -390,34 +390,31 @@ public final class JobNG {
 		exportToDatabase(mutator.withRow(CF_QUEUE, key));
 	}
 	
-	static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
-		private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
-		}.getType();
-		
+	public static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
 		public JobNG deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext jcontext) throws JsonParseException {
 			JsonObject json = (JsonObject) jejson;
-			JobNG job = AppManager.getSimpleGson().fromJson(json, JobNG.class);
+			JobNG job = MyDMAM.gson_kit.getGsonSimple().fromJson(json, JobNG.class);
 			if (json.has("required_keys")) {
-				job.required_keys = AppManager.getSimpleGson().fromJson(json.get("required_keys"), al_string_typeOfT);
+				job.required_keys = MyDMAM.gson_kit.getGsonSimple().fromJson(json.get("required_keys"), GsonKit.type_ArrayList_String);
 			} else {
 				job.required_keys = new ArrayList<String>(1);
 			}
-			job.context = AppManager.getGson().fromJson(json.get("context"), JobContext.class);
-			job.processing_error = AppManager.getGson().fromJson(json.get("processing_error"), GsonThrowable.class);
+			job.context = MyDMAM.gson_kit.getGson().fromJson(json.get("context"), JobContext.class);
+			job.processing_error = MyDMAM.gson_kit.getGson().fromJson(json.get("processing_error"), GsonThrowable.class);
 			return job;
 		}
 		
 		public JsonElement serialize(JobNG src, Type typeOfSrc, JsonSerializationContext jcontext) {
-			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
-			result.add("required_keys", AppManager.getSimpleGson().toJsonTree(src.required_keys));
-			result.add("context", AppManager.getGson().toJsonTree(src.context, JobContext.class));
-			result.add("processing_error", AppManager.getGson().toJsonTree(src.processing_error));
+			JsonObject result = (JsonObject) MyDMAM.gson_kit.getGsonSimple().toJsonTree(src);
+			result.add("required_keys", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.required_keys));
+			result.add("context", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.context, JobContext.class));
+			result.add("processing_error", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.processing_error));
 			return result;
 		}
 	}
 	
 	public JsonObject toJson() {
-		return AppManager.getGson().toJsonTree(this).getAsJsonObject();
+		return MyDMAM.gson_kit.getGson().toJsonTree(this).getAsJsonObject();
 	}
 	
 	/**
@@ -560,7 +557,7 @@ public final class JobNG {
 		 * Workaround for Cassandra index select bug.
 		 */
 		mutator.putColumn("indexingdebug", 1, ttl);
-		mutator.putColumn("source", AppManager.getGson().toJson(this), ttl);
+		mutator.putColumn("source", MyDMAM.gson_kit.getGson().toJson(this), ttl);
 		
 		if (Loggers.Job.isTraceEnabled()) {
 			Loggers.Job.trace("Prepare export to db job:\t" + toString() + " with ttl " + ttl);
@@ -615,7 +612,7 @@ public final class JobNG {
 		 * Check before if you can instanciate the JobContext class.
 		 */
 		static JobNG importFromDatabase(ColumnList<String> columnlist) {
-			return AppManager.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), JobNG.class);
+			return MyDMAM.gson_kit.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), JobNG.class);
 		}
 		
 		static List<JobNG> watchOldAbandonedJobs(MutationBatch mutator, InstanceStatus instance_status) throws ConnectionException {
@@ -956,7 +953,7 @@ public final class JobNG {
 				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
-				result.add(AppManager.getGson().fromJson(source, JobNG.class));
+				result.add(MyDMAM.gson_kit.getGson().fromJson(source, JobNG.class));
 			}
 			return result;
 		}
@@ -982,7 +979,7 @@ public final class JobNG {
 				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
-				result.put(row.getKey(), AppManager.getGson().fromJson(source, JobNG.class));
+				result.put(row.getKey(), MyDMAM.gson_kit.getGson().fromJson(source, JobNG.class));
 			}
 			return result;
 		}
@@ -1079,7 +1076,7 @@ public final class JobNG {
 	}
 	
 	public String toString() {
-		return AppManager.getPrettyGson().toJson(this);
+		return MyDMAM.gson_kit.getGson().toJson(this);// TODO pretty json
 	}
 	
 	public String toStringLight() {

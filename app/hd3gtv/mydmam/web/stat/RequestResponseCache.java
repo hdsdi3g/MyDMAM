@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,11 +23,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.ContainerOrigin;
@@ -321,9 +321,6 @@ public class RequestResponseCache {
 		return result;
 	}
 	
-	private static Type map_string_object_typeOfT = new TypeToken<Map<String, Object>>() {
-	}.getType();
-	
 	private class ContainersSummaries_CacheFactory extends RequestResponseCacheFactory<ContainersSummaryCachedItem> {
 		
 		public HashMap<String, RequestResponseCacheExpirableItem<ContainersSummaryCachedItem>> makeValues(List<String> cache_reference_tags) throws Exception {
@@ -356,12 +353,12 @@ public class RequestResponseCache {
 		}
 		
 		protected JsonElement toJson(ContainersSummaryCachedItem item) throws Exception {
-			return PathElementStat.gson_simple.toJsonTree(item);
+			return MyDMAM.gson_kit.getGsonSimple().toJsonTree(item);
 		}
 		
 		protected ContainersSummaryCachedItem fromJson(JsonElement value) throws Exception {
-			ContainersSummaryCachedItem result = PathElementStat.gson_simple.fromJson(value, ContainersSummaryCachedItem.class);
-			result.summary = PathElementStat.gson_simple.fromJson(value.getAsJsonObject().get("summary"), map_string_object_typeOfT);
+			ContainersSummaryCachedItem result = MyDMAM.gson_kit.getGsonSimple().fromJson(value, ContainersSummaryCachedItem.class);
+			result.summary = MyDMAM.gson_kit.getGsonSimple().fromJson(value.getAsJsonObject().get("summary"), GsonKit.type_Map_String_Object);
 			return result;
 		}
 		

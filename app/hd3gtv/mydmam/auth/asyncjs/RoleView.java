@@ -24,8 +24,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-import hd3gtv.mydmam.web.AJSController;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public class RoleView {
 	
@@ -39,8 +39,8 @@ public class RoleView {
 		
 		@Override
 		public JsonElement serialize(RoleView src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
-			result.add("privileges", AJSController.gson_simple.toJsonTree(src.privileges));
+			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+			result.add("privileges", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.privileges));
 			return result;
 		}
 		

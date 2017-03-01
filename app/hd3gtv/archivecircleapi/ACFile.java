@@ -19,14 +19,15 @@ package hd3gtv.archivecircleapi;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class ACFile implements ACAPIResult {
 	
@@ -67,12 +68,7 @@ public class ACFile implements ACAPIResult {
 	ACFile() {
 	}
 	
-	static class Deseralizer implements JsonDeserializer<ACFile> {
-		Type type_AL_String = new TypeToken<ArrayList<String>>() {
-		}.getType();
-		
-		Type type_AL_ACFileLocations = new TypeToken<ArrayList<ACFileLocations>>() {
-		}.getType();
+	public static class Deseralizer implements JsonDeserializer<ACFile> {
 		
 		ACAPI acapi;
 		
@@ -81,13 +77,13 @@ public class ACFile implements ACAPIResult {
 		}
 		
 		public ACFile deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			ACFile node = acapi.gson_simple.fromJson(json, ACFile.class);
+			ACFile node = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACFile.class);
 			JsonObject jo = json.getAsJsonObject();
 			if (node.type == ACFileType.directory) {
-				node.files = acapi.gson_simple.fromJson(jo.get("files"), type_AL_String);
-				node.sub_locations = acapi.gson.fromJson(jo.get("locations"), ACItemLocations.class);
+				node.files = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("files"), GsonKit.type_ArrayList_String);
+				node.sub_locations = MyDMAM.gson_kit.getGson().fromJson(jo.get("locations"), ACItemLocations.class);
 			} else if (node.type == ACFileType.file) {
-				node.this_locations = acapi.gson.fromJson(jo.get("locations"), type_AL_ACFileLocations);
+				node.this_locations = MyDMAM.gson_kit.getGson().fromJson(jo.get("locations"), GsonKit.type_ArrayList_ACFileLocations);
 			} else {
 				throw new NullPointerException("node");
 			}

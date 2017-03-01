@@ -55,7 +55,7 @@ public class JSSourceDatabaseEntry {
 	private long date;
 	private String hash;
 	
-	final static class Serializer implements JsonSerializer<JSSourceDatabaseEntry>, JsonDeserializer<JSSourceDatabaseEntry> {
+	public final static class Serializer implements JsonSerializer<JSSourceDatabaseEntry>, JsonDeserializer<JSSourceDatabaseEntry> {
 		
 		public JsonElement serialize(JSSourceDatabaseEntry src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = new JsonObject();

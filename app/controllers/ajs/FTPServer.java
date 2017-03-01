@@ -16,19 +16,11 @@
 */
 package controllers.ajs;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.concurrent.Callable;
 
 import javax.mail.internet.InternetAddress;
-
-import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 import controllers.Check;
 import hd3gtv.configuration.Configuration;
@@ -39,9 +31,7 @@ import hd3gtv.mydmam.ftpserver.AJSResponseActivities;
 import hd3gtv.mydmam.ftpserver.AJSResponseAdminOperationUser;
 import hd3gtv.mydmam.ftpserver.AJSResponseGroupsDomainsLists;
 import hd3gtv.mydmam.ftpserver.AJSResponseUserList;
-import hd3gtv.mydmam.ftpserver.AJSUser;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
-import hd3gtv.mydmam.ftpserver.FTPOperations;
 import hd3gtv.mydmam.ftpserver.FTPUser;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import hd3gtv.mydmam.web.AJSController;
@@ -49,30 +39,6 @@ import play.i18n.Lang;
 import play.jobs.JobsPlugin;
 
 public class FTPServer extends AJSController {
-	
-	static Type type_List_FTPActivity = new TypeToken<ArrayList<FTPActivity>>() {
-	}.getType();
-	static Type type_List_User = new TypeToken<ArrayList<AJSUser>>() {
-	}.getType();
-	
-	static {
-		AJSController.registerTypeAdapter(AJSResponseActivities.class, new JsonSerializer<AJSResponseActivities>() {
-			public JsonElement serialize(AJSResponseActivities src, Type typeOfSrc, JsonSerializationContext context) {
-				JsonObject result = new JsonObject();
-				result.add("activities", FTPOperations.getGson().toJsonTree(src.activities, type_List_FTPActivity));
-				return result;
-			}
-		});
-		
-		AJSController.registerTypeAdapter(AJSResponseUserList.class, new JsonSerializer<AJSResponseUserList>() {
-			public JsonElement serialize(AJSResponseUserList src, Type typeOfSrc, JsonSerializationContext context) {
-				JsonObject result = new JsonObject();
-				result.add("users", FTPOperations.getGson().toJsonTree(src.users, type_List_User));
-				return result;
-			}
-		});
-		
-	}
 	
 	public static boolean isEnabled() {
 		return Configuration.global.isElementExists("ftpserveradmin");

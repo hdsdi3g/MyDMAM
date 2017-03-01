@@ -18,7 +18,7 @@ package hd3gtv.mydmam.manager;
 
 import com.google.gson.JsonObject;
 
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public class AsyncJSBrokerResponseAction {
 	

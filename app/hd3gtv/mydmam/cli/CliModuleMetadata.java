@@ -47,7 +47,7 @@ public class CliModuleMetadata implements CliModule {
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
 		if (args.getParamExist("-ptt")) {
-			ContainerOperations.setGsonPrettyPrinting();
+			// ContainerOperations.setGsonPrettyPrinting(); //TODO set json Pretty
 		}
 		
 		if (args.getParamExist("-a")) {

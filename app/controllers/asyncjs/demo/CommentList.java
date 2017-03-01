@@ -18,7 +18,7 @@ package controllers.asyncjs.demo;
 
 import java.util.List;
 
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public class CommentList {
 	@GsonIgnore

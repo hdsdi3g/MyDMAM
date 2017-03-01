@@ -19,14 +19,14 @@ package hd3gtv.mydmam.auth.asyncjs;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 
-import hd3gtv.mydmam.web.AJSController;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class RoleChPrivileges {
 	public String role_key;
@@ -34,14 +34,11 @@ public class RoleChPrivileges {
 	@GsonIgnore
 	public ArrayList<String> privileges;
 	
-	private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();
-	
 	public static class Deserializer implements JsonDeserializer<RoleChPrivileges> {
 		
 		public RoleChPrivileges deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			RoleChPrivileges result = AJSController.gson_simple.fromJson(json, RoleChPrivileges.class);
-			result.privileges = AJSController.gson_simple.fromJson(json.getAsJsonObject().get("privileges"), al_string_typeOfT);
+			RoleChPrivileges result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, RoleChPrivileges.class);
+			result.privileges = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("privileges"), GsonKit.type_ArrayList_String);
 			return result;
 		}
 		

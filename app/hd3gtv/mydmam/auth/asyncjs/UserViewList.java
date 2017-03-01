@@ -25,8 +25,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-import hd3gtv.mydmam.web.AJSController;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public class UserViewList {
 	
@@ -40,8 +40,8 @@ public class UserViewList {
 		
 		@Override
 		public JsonElement serialize(UserViewList src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
-			result.add("users", AJSController.getGson().toJsonTree(src.users, lhm_s_uv_typeOfT));
+			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+			result.add("users", MyDMAM.gson_kit.getGson().toJsonTree(src.users, lhm_s_uv_typeOfT));
 			return result;
 		}
 		

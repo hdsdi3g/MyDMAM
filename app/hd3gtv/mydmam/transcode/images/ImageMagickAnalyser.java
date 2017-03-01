@@ -39,7 +39,6 @@ import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
@@ -186,7 +185,7 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 			result.remove("artifacts");
 			result.remove("name");
 			
-			ImageAttributes ia = ContainerOperations.getGson().fromJson(result, ImageAttributes.class);
+			ImageAttributes ia = MyDMAM.gson_kit.getGson().fromJson(result, ImageAttributes.class);
 			container.getSummary().putSummaryContent(ia, ia.createSummary());
 			
 			return new ContainerEntryResult(ia);

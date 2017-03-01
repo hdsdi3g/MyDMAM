@@ -19,13 +19,14 @@ package hd3gtv.archivecircleapi;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class ACFileLocationPack extends ACFileLocations {
 	
@@ -38,11 +39,7 @@ public class ACFileLocationPack extends ACFileLocations {
 	@GsonIgnore
 	public ArrayList<ACPartition> partitions;
 	
-	static class Deseralizer implements JsonDeserializer<ACFileLocationPack> {
-		Type type_AL_String = new TypeToken<ArrayList<String>>() {
-		}.getType();
-		Type type_AL_ACPartition = new TypeToken<ArrayList<ACPartition>>() {
-		}.getType();
+	public static class Deseralizer implements JsonDeserializer<ACFileLocationPack> {
 		
 		ACAPI acapi;
 		
@@ -51,8 +48,8 @@ public class ACFileLocationPack extends ACFileLocations {
 		}
 		
 		public ACFileLocationPack deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			ACFileLocationPack location = acapi.gson_simple.fromJson(json, ACFileLocationPack.class);
-			location.partitions = acapi.gson_simple.fromJson(json.getAsJsonObject().get("partitions"), type_AL_ACPartition);
+			ACFileLocationPack location = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACFileLocationPack.class);
+			location.partitions = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("partitions"), GsonKit.type_ArrayList_ACPartition);
 			return location;
 		}
 	}

@@ -20,9 +20,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -33,22 +31,12 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -70,15 +58,12 @@ import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.web.PrivilegeNG;
 import hd3gtv.tools.BreakReturnException;
-import hd3gtv.tools.GsonIgnoreStrategy;
 import play.Play;
 
 public class AuthTurret {
 	
 	static final ColumnFamily<String, String> CF_AUTH = new ColumnFamily<String, String>("mgrAuth", StringSerializer.get(), StringSerializer.get());
 	
-	private Gson gson_simple;
-	private Gson gson;
 	final JsonParser parser = new JsonParser();
 	private Password password;
 	private boolean force_select_domain;
@@ -101,29 +86,6 @@ public class AuthTurret {
 		if (CassandraDb.isColumnFamilyExists(keyspace, CF_AUTH.getName()) == false) {
 			CassandraDb.createColumnFamilyString(keyspace.getKeyspaceName(), CF_AUTH.getName(), false);
 		}
-		
-		/**
-		 * Init Gson tools
-		 */
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		
-		/**
-		 * Outside of this package serializers
-		 */
-		MyDMAM.registerBaseSerializers(builder);
-		
-		gson_simple = builder.create();
-		
-		/**
-		 * Inside of this package serializers
-		 */
-		builder.registerTypeAdapter(Properties.class, new PropertiesSerializer());
-		gson = builder.create();
 		
 		/**
 		 * Password API init
@@ -326,41 +288,6 @@ public class AuthTurret {
 		Loggers.Auth.info("Create admin password file account, password file: " + textfile.getAbsoluteFile());
 		
 		return newpassword;
-	}
-	
-	private class PropertiesSerializer implements JsonSerializer<Properties>, JsonDeserializer<Properties> {
-		
-		public Properties deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			Properties result = new Properties();
-			StringReader sr = new StringReader(json.getAsString());
-			try {
-				result.load(sr);
-			} catch (IOException e) {
-				Loggers.Auth.warn("Can't deserialize properties", e);
-			}
-			
-			return result;
-		}
-		
-		public JsonElement serialize(Properties src, Type typeOfSrc, JsonSerializationContext context) {
-			StringWriter pw = new StringWriter();
-			try {
-				src.store(pw, null);
-			} catch (IOException e) {
-				Loggers.Auth.warn("Can't serialize properties", e);
-			}
-			pw.flush();
-			
-			return new JsonPrimitive(pw.toString());
-		}
-	}
-	
-	public Gson getGson() {
-		return gson;
-	}
-	
-	public Gson getGsonSimple() {
-		return gson_simple;
 	}
 	
 	Password getPassword() {

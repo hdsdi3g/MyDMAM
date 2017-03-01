@@ -11,27 +11,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.mydmam.metadata.container;
+package hd3gtv.mydmam.gson;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonSerializer;
 
-/**
- * Don't forget to declare this in Operations.
- */
-public interface SelfSerializing {
-	
-	/**
-	 * @param item from create()
-	 */
-	SelfSerializing deserialize(JsonObject source, Gson gson);
-	
-	/**
-	 * @param item must be like the same type like create()
-	 */
-	JsonObject serialize(SelfSerializing _item, Gson gson);
+public interface GsonDeSerializer<T> extends JsonSerializer<T>, JsonDeserializer<T> {
 	
 }

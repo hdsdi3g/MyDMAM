@@ -40,6 +40,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.JobNG.JobStatus;
@@ -214,7 +215,7 @@ public class BrokerNG {
 								Loggers.Broker.trace("Set done job [" + job.getKey() + "] " + job.getName());
 								if (job.getContext() != null) {
 									String key = JobContext.Utility.prepareContextKeyForTrigger(job.getContext());
-									mutator.withRow(CF_DONE_JOBS, key).putColumn("source", AppManager.getGson().toJson(job), JobNG.TTL_WAITING);
+									mutator.withRow(CF_DONE_JOBS, key).putColumn("source", MyDMAM.gson_kit.getGson().toJson(job), JobNG.TTL_WAITING);
 									mutator.withRow(CF_DONE_JOBS, key).putColumn("end_date", job.getEndDate(), JobNG.TTL_WAITING);
 								}
 							}

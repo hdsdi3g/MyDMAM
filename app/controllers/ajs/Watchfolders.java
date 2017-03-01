@@ -16,43 +16,17 @@
 */
 package controllers.ajs;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
-
-import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 import controllers.Check;
-import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobNG;
-import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile;
 import hd3gtv.mydmam.transcode.watchfolder.AsyncJSWatchfolderRequestRemove;
 import hd3gtv.mydmam.transcode.watchfolder.AsyncJSWatchfolderResponseList;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.mydmam.web.AJSController;
 
 public class Watchfolders extends AJSController {
-	
-	static Type type_List_AbstractFoundedFile = new TypeToken<ArrayList<AbstractFoundedFile>>() {
-	}.getType();
-	static Type type_List_JobsNG = new TypeToken<Map<String, JobNG>>() {
-	}.getType();
-	
-	static {
-		AJSController.registerTypeAdapter(AsyncJSWatchfolderResponseList.class, new JsonSerializer<AsyncJSWatchfolderResponseList>() {
-			public JsonElement serialize(AsyncJSWatchfolderResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-				JsonObject result = new JsonObject();
-				result.add("items", WatchFolderDB.gson.toJsonTree(src.items, type_List_AbstractFoundedFile));
-				result.add("jobs", AppManager.getGson().toJsonTree(src.jobs, type_List_JobsNG));
-				return result;
-			}
-		});
-	}
 	
 	@Check("showJobs")
 	public static AsyncJSWatchfolderResponseList list() throws Exception {

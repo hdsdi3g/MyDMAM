@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
@@ -35,7 +34,8 @@ import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 
 /**
  * Full configuration for a Job
@@ -62,10 +62,7 @@ public abstract class JobContext {
 	 */
 	public @GsonIgnore List<String> hookednames;
 	
-	final static class Serializer implements JsonSerializer<JobContext>, JsonDeserializer<JobContext> {
-		
-		Type type_String_AL = new TypeToken<ArrayList<String>>() {
-		}.getType();
+	public final static class Serializer implements JsonSerializer<JobContext>, JsonDeserializer<JobContext> {
 		
 		public JobContext deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			try {
@@ -73,8 +70,8 @@ public abstract class JobContext {
 				String context_class = json.get("classname").getAsString();
 				JobContext result = AppManager.instanceClassForName(context_class, JobContext.class);
 				result.contextFromJson(json.getAsJsonObject("content"));
-				result.neededstorages = AppManager.getGson().fromJson(json.get("neededstorages"), type_String_AL);
-				result.hookednames = AppManager.getGson().fromJson(json.get("hookednames"), type_String_AL);
+				result.neededstorages = MyDMAM.gson_kit.getGson().fromJson(json.get("neededstorages"), GsonKit.type_ArrayList_String);
+				result.hookednames = MyDMAM.gson_kit.getGson().fromJson(json.get("hookednames"), GsonKit.type_ArrayList_String);
 				return result;
 			} catch (Exception e) {
 				Loggers.Manager.error("Can't deserialize json source:\t" + jejson.toString(), e);
@@ -90,19 +87,19 @@ public abstract class JobContext {
 				context_content = new JsonObject();
 			}
 			result.add("content", context_content);
-			result.add("neededstorages", AppManager.getGson().toJsonTree(src.neededstorages));
-			result.add("hookednames", AppManager.getGson().toJsonTree(src.hookednames));
+			result.add("neededstorages", MyDMAM.gson_kit.getGson().toJsonTree(src.neededstorages));
+			result.add("hookednames", MyDMAM.gson_kit.getGson().toJsonTree(src.hookednames));
 			return result;
 		}
 	}
 	
-	final static class SerializerList implements JsonSerializer<ArrayList<JobContext>>, JsonDeserializer<ArrayList<JobContext>> {
+	public final static class SerializerList implements JsonSerializer<ArrayList<JobContext>>, JsonDeserializer<ArrayList<JobContext>> {
 		
 		public ArrayList<JobContext> deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			JsonArray ja = jejson.getAsJsonArray();
 			ArrayList<JobContext> result = new ArrayList<JobContext>();
 			for (int pos = 0; pos < ja.size(); pos++) {
-				result.add(AppManager.getGson().fromJson(ja.get(pos), JobContext.class));
+				result.add(MyDMAM.gson_kit.getGson().fromJson(ja.get(pos), JobContext.class));
 			}
 			return result;
 		}
@@ -113,7 +110,7 @@ public abstract class JobContext {
 				return ja;
 			}
 			for (int pos = 0; pos < src.size(); pos++) {
-				ja.add(AppManager.getGson().toJsonTree(src.get(pos), JobContext.class));
+				ja.add(MyDMAM.gson_kit.getGson().toJsonTree(src.get(pos), JobContext.class));
 			}
 			return ja;
 		}

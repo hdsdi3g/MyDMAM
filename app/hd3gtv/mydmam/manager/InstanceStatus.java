@@ -34,8 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -51,9 +49,9 @@ import com.netflix.astyanax.serializers.StringSerializer;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnoreStrategy;
 
 public final class InstanceStatus {
 	
@@ -82,19 +80,7 @@ public final class InstanceStatus {
 	
 	private static Keyspace keyspace;
 	
-	private static final Gson gson;
-	
-	/*private static Type type_instance_status_item = new TypeToken<ArrayList<InstanceStatusItem>>() {
-	}.getType();*/
-	
 	static {
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		gson = builder.create();
-		
 		try {
 			keyspace = CassandraDb.getkeyspace();
 			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
@@ -327,7 +313,7 @@ public final class InstanceStatus {
 	public static JsonArray getThreadstacktraces() {
 		JsonArray threadstacktraces = new JsonArray();
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
-			threadstacktraces.add(gson.toJsonTree(new ThreadStackTrace().importThread(entry.getKey(), entry.getValue())));
+			threadstacktraces.add(MyDMAM.gson_kit.getGson().toJsonTree(new ThreadStackTrace().importThread(entry.getKey(), entry.getValue())));
 		}
 		return threadstacktraces;
 	}
@@ -420,7 +406,7 @@ public final class InstanceStatus {
 			long start_time = System.currentTimeMillis();
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
 			String key = summary.instance_name_pid;
-			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_SUMMARY.toString(), gson.toJson(summary), TTL);
+			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_SUMMARY.toString(), MyDMAM.gson_kit.getGson().toJson(summary), TTL);
 			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_THREADS.toString(), getThreadstacktraces().toString(), TTL);
 			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_CLASSPATH.toString(), classpath.toString(), TTL);
 			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_ITEMS.toString(), getItems().toString(), TTL);
@@ -446,7 +432,7 @@ public final class InstanceStatus {
 	}
 	
 	public String toString() {
-		return gson.toJson(this.summary);
+		return MyDMAM.gson_kit.getGson().toJson(this.summary);
 	}
 	
 	public static void truncate() throws ConnectionException {
@@ -496,7 +482,7 @@ public final class InstanceStatus {
 	 */
 	public static InstanceStatus getStatic() {
 		if (static_manager == null) {
-			static_manager = new AppManager("Gatherer");
+			static_manager = new AppManager();
 		}
 		return static_manager.getInstanceStatus();
 	}

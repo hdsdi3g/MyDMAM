@@ -21,9 +21,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 
 /**
@@ -67,7 +67,7 @@ public class Validator {
 		List<ContainerEntry> containerEntries = container.getEntries();
 		for (int pos = 0; pos < containerEntries.size(); pos++) {
 			if (containerEntries.get(pos) instanceof EntryAnalyser) {
-				analysis_results.put(((EntryAnalyser) containerEntries.get(pos)).getClass(), ContainerOperations.getGson().toJson(containerEntries.get(pos)));
+				analysis_results.put(((EntryAnalyser) containerEntries.get(pos)).getClass(), MyDMAM.gson_kit.getGson().toJson(containerEntries.get(pos)));
 			}
 		}
 		

@@ -25,10 +25,11 @@ import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
-abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem {
+public abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem {
 	
 	transient protected AppManager manager;
 	private Class<?> creator;
@@ -48,7 +49,7 @@ abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem 
 	
 	private String reference_key;
 	
-	class Declaration {
+	public class Declaration {
 		ArrayList<JobContext> contexts;
 		String job_name;
 		
@@ -152,7 +153,7 @@ abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem 
 	}
 	
 	public String toString() {
-		return AppManager.getPrettyGson().toJson(this);
+		return MyDMAM.gson_kit.getGson().toJson(this); // TODO pretty json
 	}
 	
 	void createJobs(MutationBatch mutator) throws ConnectionException {
@@ -203,6 +204,6 @@ abstract class JobCreator implements InstanceActionReceiver, InstanceStatusItem 
 	}
 	
 	public JsonElement getInstanceStatusItem() {
-		return AppManager.getGson().toJsonTree(this);
+		return MyDMAM.gson_kit.getGson().toJsonTree(this);
 	}
 }

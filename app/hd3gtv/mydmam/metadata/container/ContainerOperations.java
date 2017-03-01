@@ -16,9 +16,7 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,8 +31,6 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
@@ -54,7 +50,6 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
-import hd3gtv.tools.GsonIgnoreStrategy;
 import hd3gtv.tools.StoppableProcessing;
 
 /**
@@ -78,97 +73,16 @@ public class ContainerOperations {
 		return (JsonObject) json.getAsJsonObject();
 	}
 	
-	private static final Map<String, ContainerEntry> declared_entries_type;
-	private static final GsonBuilder gson_builder;
-	private static volatile Gson gson;
-	private static final Gson gson_simple;
+	private static final Map<String, Class<? extends ContainerEntry>> declared_entries_type;
 	
 	static {
-		declared_entries_type = new LinkedHashMap<String, ContainerEntry>();
-		gson_builder = new GsonBuilder();
-		gson_builder.serializeNulls();
-		
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		gson_builder.addDeserializationExclusionStrategy(ignore_strategy);
-		gson_builder.addSerializationExclusionStrategy(ignore_strategy);
-		MyDMAM.registerBaseSerializers(gson_builder);
-		
-		gson_simple = gson_builder.create();
-		
-		try {
-			declareAllEntriesType(Arrays.asList(EntrySummary.class));
-		} catch (Exception e) {
-			Loggers.Metadata.error("Can't declare (de)serializer for EntrySummary", e);
-		}
-		gson_builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Serializer());
-		gson_builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
+		declared_entries_type = new LinkedHashMap<>();
+		declared_entries_type.put(EntrySummary.type, EntrySummary.class);
 		
 		/**
 		 * Call MetadataCenter for run static block.
 		 */
 		MetadataCenter.getExtractors();
-	}
-	
-	public static void setGsonPrettyPrinting() {
-		gson_builder.setPrettyPrinting();
-		gson = gson_builder.create();
-	}
-	
-	public static GsonBuilder getGsonBuilder() {
-		return gson_builder;
-	}
-	
-	public static Gson getGsonSimple() {
-		return gson_simple;
-	}
-	
-	/**
-	 * With all declared (de)serializers.
-	 */
-	public static Gson getGson() {
-		return gson;
-	}
-	
-	public synchronized static void declareAllEntriesType(List<Class<? extends ContainerEntry>> entry_classes)
-			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-		if (entry_classes == null) {
-			throw new NullPointerException("\"entry_classes\" can't to be null");
-		}
-		Class<? extends ContainerEntry> entry_class = null;
-		ContainerEntry containerEntry = null;
-		List<Class<? extends SelfSerializing>> dependencies = null;
-		for (int pos_ec = 0; pos_ec < entry_classes.size(); pos_ec++) {
-			entry_class = entry_classes.get(pos_ec);
-			containerEntry = (ContainerEntry) declareType(entry_class);
-			declared_entries_type.put(containerEntry.getES_Type(), containerEntry);
-			
-			dependencies = containerEntry.getSerializationDependencies();
-			if (dependencies != null) {
-				for (int pos = 0; pos < dependencies.size(); pos++) {
-					declareType(dependencies.get(pos));
-				}
-			}
-		}
-		gson = gson_builder.create();
-	}
-	
-	public synchronized static void declareSelfSerializingType(Class<? extends SelfSerializing> selfserializing_class)
-			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-		if (selfserializing_class == null) {
-			throw new NullPointerException("\"selfserializing_class\" can't to be null");
-		}
-		declareType(selfserializing_class);
-		gson = gson_builder.create();
-	}
-	
-	private synchronized static SelfSerializing declareType(Class<? extends SelfSerializing> selfserializing_class)
-			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-		if (selfserializing_class == null) {
-			throw new NullPointerException("\"selfserializing_class\" can't to be null");
-		}
-		SelfSerializing instance = selfserializing_class.getConstructor().newInstance();
-		SelfSerialiserBridge.registerInstance(instance);
-		return instance;
 	}
 	
 	public static Container getByMtdKey(String mtd_key) throws Exception {
@@ -206,7 +120,7 @@ public class ContainerOperations {
 			return null;
 		}
 		
-		ContainerEntry element = gson.fromJson(getresponse.getSourceAsString(), declared_entries_type.get(type).getClass());
+		ContainerEntry element = MyDMAM.gson_kit.getGson().fromJson(getresponse.getSourceAsString(), declared_entries_type.get(type).getClass());
 		Container result = new Container(mtd_key, element.getOrigin());
 		result.addEntry(element);
 		return result;
@@ -226,38 +140,42 @@ public class ContainerOperations {
 			throw new NullPointerException("Can't found type: " + type);
 		}
 		
-		if ((declared_entries_type.get(type) instanceof EntryAnalyser) == false) {
+		if ((declared_entries_type.get(type).equals(EntryAnalyser.class)) == false) {
 			return null;
 		}
 		
-		EntryAnalyser analyser = (EntryAnalyser) declared_entries_type.get(type);
-		if (analyser.canBeSendedToWebclients() == false) {
-			return null;
-		}
-		
-		ElastisearchCrawlerReader reader = Elasticsearch.createCrawlerReader();
-		reader.setIndices(ES_INDEX);
-		reader.setTypes(type);
-		reader.setQuery(QueryBuilders.termQuery("origin.key", pathelement_key));
-		reader.setMaximumSize(1);
-		
-		final ArrayList<JsonObject> results = new ArrayList<JsonObject>(1);
 		try {
-			reader.allReader(new ElastisearchCrawlerHit() {
-				public boolean onFoundHit(SearchHit hit) throws Exception {
-					results.add(Elasticsearch.getJSONFromSimpleResponse(hit));
-					return false;
-				}
-			});
-		} catch (Exception e) {
-			Loggers.Metadata.warn("Can't get from db", e);
-			return null;
+			EntryAnalyser analyser = (EntryAnalyser) declared_entries_type.get(type).newInstance();
+			if (analyser.canBeSendedToWebclients() == false) {
+				return null;
+			}
+			
+			ElastisearchCrawlerReader reader = Elasticsearch.createCrawlerReader();
+			reader.setIndices(ES_INDEX);
+			reader.setTypes(type);
+			reader.setQuery(QueryBuilders.termQuery("origin.key", pathelement_key));
+			reader.setMaximumSize(1);
+			
+			final ArrayList<JsonObject> results = new ArrayList<JsonObject>(1);
+			try {
+				reader.allReader(new ElastisearchCrawlerHit() {
+					public boolean onFoundHit(SearchHit hit) throws Exception {
+						results.add(Elasticsearch.getJSONFromSimpleResponse(hit));
+						return false;
+					}
+				});
+			} catch (Exception e) {
+				Loggers.Metadata.warn("Can't get from db", e);
+				return null;
+			}
+			
+			if (results.isEmpty()) {
+				return null;
+			}
+			return results.get(0);
+		} catch (InstantiationException | IllegalAccessException e1) {
+			throw new NullPointerException(e1.getMessage());
 		}
-		
-		if (results.isEmpty()) {
-			return null;
-		}
-		return results.get(0);
 	}
 	
 	public static Container getByPathIndexId(String pathelement_key) throws Exception {
@@ -331,7 +249,7 @@ public class ContainerOperations {
 				}
 				return true;
 			}
-			result.add(hit.getId(), gson.fromJson(hit.getSourceAsString(), declared_entries_type.get(type).getClass()));
+			result.add(hit.getId(), MyDMAM.gson_kit.getGson().fromJson(hit.getSourceAsString(), declared_entries_type.get(type)));
 			return true;
 		}
 		
@@ -343,7 +261,7 @@ public class ContainerOperations {
 				}
 				return;
 			}
-			result.add(response.getId(), gson.fromJson(response.getSourceAsString(), declared_entries_type.get(type).getClass()));
+			result.add(response.getId(), MyDMAM.gson_kit.getGson().fromJson(response.getSourceAsString(), declared_entries_type.get(type)));
 		}
 	}
 	
@@ -433,7 +351,7 @@ public class ContainerOperations {
 			IndexRequestBuilder index = es_bulk.getClient().prepareIndex(ES_INDEX, containerEntry.getES_Type(), container.getMtd_key());
 			
 			try {
-				index.setSource(gson.toJson(containerEntry));
+				index.setSource(MyDMAM.gson_kit.getGson().toJson(containerEntry));
 			} catch (Exception e) {
 				/**
 				 * Check getAllRootEntryClasses and serializators.
@@ -737,4 +655,5 @@ public class ContainerOperations {
 		}
 		return result;
 	}
+	
 }

@@ -16,12 +16,6 @@
 */
 package controllers.ajs;
 
-import java.lang.reflect.Type;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-
 import controllers.Check;
 import controllers.Secure;
 import hd3gtv.configuration.GitInfo;
@@ -34,26 +28,6 @@ import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.web.AJSController;
 
 public class Broker extends AJSController {
-	
-	/*private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();*/
-	
-	/*private static Type hm_StringJob_typeOfT = new TypeToken<HashMap<String, JobNG>>() {
-	}.getType();*/
-	
-	static {
-		AJSController.registerTypeAdapter(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
-			public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-				return src.list;
-			}
-		});
-		
-		AJSController.registerTypeAdapter(AsyncJSBrokerResponseAction.class, new JsonSerializer<AsyncJSBrokerResponseAction>() {
-			public JsonElement serialize(AsyncJSBrokerResponseAction src, Type typeOfSrc, JsonSerializationContext context) {
-				return src.modified_jobs;
-			}
-		});
-	}
 	
 	@Check("showBroker")
 	public static AsyncJSBrokerResponseList list(AsyncJSBrokerRequestList request) throws Exception {

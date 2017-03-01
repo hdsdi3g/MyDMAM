@@ -16,15 +16,6 @@
 */
 package controllers.ajs;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-
-import com.google.common.reflect.TypeToken;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-
 import controllers.Check;
 import controllers.asyncjs.demo.Comment;
 import controllers.asyncjs.demo.CommentList;
@@ -34,18 +25,6 @@ import controllers.asyncjs.demo.NewComment;
 import hd3gtv.mydmam.web.AJSController;
 
 public class DemosAsync extends AJSController {
-	
-	static {
-		AJSController.registerTypeAdapter(CommentList.class, new JsonSerializer<CommentList>() {
-			public JsonElement serialize(CommentList src, Type typeOfSrc, JsonSerializationContext context) {
-				JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
-				result.add("commentlist", AJSController.gson_simple.toJsonTree(src.commentlist, new TypeToken<ArrayList<Comment>>() {
-				}.getType()));
-				result.addProperty("hey", "ohoh");
-				return result;
-			}
-		});
-	}
 	
 	@Check("demoAsync3")
 	public static CommentList edit(Comment request) {

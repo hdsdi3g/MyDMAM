@@ -17,17 +17,16 @@
 package hd3gtv.mydmam.metadata.container;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.metadata.RenderedFile;
-import hd3gtv.tools.GsonIgnore;
 
 public abstract class EntryRenderer extends ContainerEntry {
 	
@@ -64,10 +63,6 @@ public abstract class EntryRenderer extends ContainerEntry {
 		content.add(rendered_content);
 	}
 	
-	protected final List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-		return null;
-	}
-	
 	public List<String> getContentFileNames() {
 		if (content == null) {
 			content = new ArrayList<RenderedContent>(1);
@@ -92,14 +87,11 @@ public abstract class EntryRenderer extends ContainerEntry {
 		return null;
 	}
 	
-	private Type type_l_RenderedContent_OfT = new TypeToken<List<RenderedContent>>() {
-	}.getType();
-	
 	public JsonObject getOptions() {
 		return options;
 	}
 	
-	protected final ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
+	protected final ContainerEntry internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
 		EntryRenderer entry;
 		try {
 			entry = getClass().newInstance();
@@ -107,12 +99,12 @@ public abstract class EntryRenderer extends ContainerEntry {
 			Loggers.Metadata.error("Can't instanciate this Entry", e);
 			return null;
 		}
-		entry.content = gson.fromJson(source.get("content").getAsJsonArray(), type_l_RenderedContent_OfT);
+		entry.content = gson.fromJson(source.get("content").getAsJsonArray(), GsonKit.type_List_RenderedContent);
 		entry.options = source.get("options").getAsJsonObject();
 		return entry;
 	}
 	
-	protected final JsonObject internalSerialize(ContainerEntry _item, Gson gson) {
+	protected final JsonObject internalSerialize(ContainerEntry _item, Gson gson) {// TODO move de/serializer
 		EntryRenderer src = (EntryRenderer) _item;
 		JsonObject jo = new JsonObject();
 		jo.add("options", src.options);

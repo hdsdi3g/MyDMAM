@@ -24,6 +24,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
+import hd3gtv.mydmam.MyDMAM;
+
 public abstract class ACFileLocations {
 	
 	ACFileLocations() {
@@ -31,7 +33,7 @@ public abstract class ACFileLocations {
 	
 	public String type;
 	
-	static class Deseralizer implements JsonDeserializer<ACFileLocations> {
+	public static class Deseralizer implements JsonDeserializer<ACFileLocations> {
 		ACAPI acapi;
 		
 		public Deseralizer(ACAPI acapi) {
@@ -43,11 +45,11 @@ public abstract class ACFileLocations {
 			String type = jo.get("type").getAsString();
 			
 			if (type.equalsIgnoreCase("CACHE")) {
-				return acapi.gson.fromJson(json, ACFileLocationCache.class);
+				return MyDMAM.gson_kit.getGson().fromJson(json, ACFileLocationCache.class);
 			} else if (type.equalsIgnoreCase("PACK")) {
-				return acapi.gson.fromJson(json, ACFileLocationPack.class);
+				return MyDMAM.gson_kit.getGson().fromJson(json, ACFileLocationPack.class);
 			} else if (type.equalsIgnoreCase("TAPE")) {
-				return acapi.gson.fromJson(json, ACFileLocationTape.class);
+				return MyDMAM.gson_kit.getGson().fromJson(json, ACFileLocationTape.class);
 			} else {
 				throw new JsonParseException("Unknow type: " + type);
 			}

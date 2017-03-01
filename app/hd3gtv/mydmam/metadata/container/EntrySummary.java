@@ -76,7 +76,9 @@ public final class EntrySummary extends ContainerEntry {
 	
 	public static final String MASTER_AS_PREVIEW = "master_as_preview";
 	
-	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
+	// public static
+	
+	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
 		EntrySummary entry = new EntrySummary();
 		for (Map.Entry<String, JsonElement> item : source.entrySet()) {
 			if (item.getKey().equals("previews")) {
@@ -97,7 +99,7 @@ public final class EntrySummary extends ContainerEntry {
 		return entry;
 	}
 	
-	protected JsonObject internalSerialize(ContainerEntry _item, Gson gson) {
+	protected JsonObject internalSerialize(ContainerEntry _item, Gson gson) {// TODO move de/serializer
 		EntrySummary src = (EntrySummary) _item;
 		JsonObject jo = new JsonObject();
 		
@@ -113,10 +115,6 @@ public final class EntrySummary extends ContainerEntry {
 			}
 		}
 		return jo;
-	}
-	
-	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-		return null;
 	}
 	
 	public void putSummaryContent(EntryAnalyser entry, String value) {

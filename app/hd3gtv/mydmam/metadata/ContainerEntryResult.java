@@ -16,8 +16,8 @@
 */
 package hd3gtv.mydmam.metadata;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 
@@ -68,7 +68,7 @@ public final class ContainerEntryResult {
 			sb.append("analyst [");
 			sb.append(analyst_result.getES_Type());
 			sb.append("] ");
-			sb.append(ContainerOperations.getGson().toJson(analyst_result));
+			sb.append(MyDMAM.gson_kit.getGson().toJson(analyst_result));
 		}
 		
 		if (analyst_result != null && rendering_result != null) {
@@ -79,7 +79,7 @@ public final class ContainerEntryResult {
 			sb.append("rendering [");
 			sb.append(rendering_result.getES_Type());
 			sb.append("] ");
-			sb.append(ContainerOperations.getGson().toJson(rendering_result));
+			sb.append(MyDMAM.gson_kit.getGson().toJson(rendering_result));
 		}
 		
 		return sb.toString();

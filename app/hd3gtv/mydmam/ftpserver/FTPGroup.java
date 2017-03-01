@@ -28,13 +28,13 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceActionReceiver;
@@ -429,8 +429,6 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		}
 	}
 	
-	private static final Gson _gson_simple = new Gson();
-	
 	public JsonElement getInstanceStatusItem() {
 		JsonObject jo = new JsonObject();
 		jo.addProperty("name", name);
@@ -446,7 +444,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		jo.addProperty("short_activity_log", short_activity_log);
 		jo.addProperty("last_free_space", last_free_space);
 		jo.addProperty("trash_directory", trash_directory.getAbsolutePath());
-		jo.add("users_no_activity_log", _gson_simple.toJsonTree(users_no_activity_log));
+		jo.add("users_no_activity_log", MyDMAM.gson_kit.getGsonSimple().toJsonTree(users_no_activity_log));
 		return jo;
 	}
 	

@@ -25,7 +25,6 @@ import java.util.Map;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.transcode.images.ImageMagickAnalyser;
 import hd3gtv.mydmam.transcode.images.ImageMagickFFmpegThumbnailer;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer;
@@ -180,15 +179,7 @@ public class MetadataCenter {
 		if (extractor == null) {
 			return;
 		}
-		
 		Loggers.Metadata.debug("Load extractor " + extractor.getLongName());
-		
-		try {
-			ContainerOperations.declareAllEntriesType(extractor.getAllRootEntryClasses());
-		} catch (Exception e) {
-			Loggers.Metadata.error("Can't declare (de)serializer from Entry extractor " + extractor.getLongName(), e);
-			return;
-		}
 		
 		if (extractor.isEnabled() == false) {
 			return;

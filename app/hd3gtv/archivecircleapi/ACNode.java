@@ -19,13 +19,14 @@ package hd3gtv.archivecircleapi;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class ACNode implements ACAPIResult {
 	
@@ -46,9 +47,7 @@ public class ACNode implements ACAPIResult {
 	ACNode() {
 	}
 	
-	static class Deseralizer implements JsonDeserializer<ACNode> {
-		Type type_AL_ACNodesEntry = new TypeToken<ArrayList<ACNodesEntry>>() {
-		}.getType();
+	public static class Deseralizer implements JsonDeserializer<ACNode> {
 		
 		ACAPI acapi;
 		
@@ -57,8 +56,8 @@ public class ACNode implements ACAPIResult {
 		}
 		
 		public ACNode deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			ACNode node = acapi.gson_simple.fromJson(json, ACNode.class);
-			node.nodes = acapi.gson.fromJson(json.getAsJsonObject().get("nodes"), type_AL_ACNodesEntry);
+			ACNode node = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACNode.class);
+			node.nodes = MyDMAM.gson_kit.getGson().fromJson(json.getAsJsonObject().get("nodes"), GsonKit.type_ArrayList_ACNodesEntry);
 			return node;
 		}
 	}

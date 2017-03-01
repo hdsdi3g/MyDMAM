@@ -23,7 +23,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public final class TriggerJobCreator extends JobCreator {
 	
@@ -51,13 +52,13 @@ public final class TriggerJobCreator extends JobCreator {
 		
 		public JsonElement serialize(TriggerJobCreator src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonElement result = super.serialize(src, typeOfSrc, context);
-			result.getAsJsonObject().add("context_hook", AppManager.getGson().toJsonTree(src.context_hook, JobContext.class));
+			result.getAsJsonObject().add("context_hook", MyDMAM.gson_kit.getGson().toJsonTree(src.context_hook, JobContext.class));
 			return result;
 		}
 		
 		public TriggerJobCreator deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			TriggerJobCreator result = super.deserialize(json, typeOfT, context);
-			result.context_hook = AppManager.getGson().fromJson(json.getAsJsonObject().get("context_hook"), JobContext.class);
+			result.context_hook = MyDMAM.gson_kit.getGson().fromJson(json.getAsJsonObject().get("context_hook"), JobContext.class);
 			return result;
 		}
 	}

@@ -18,7 +18,6 @@ package hd3gtv.mydmam.web;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -28,16 +27,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import controllers.Secure;
 import ext.Bootstrap;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.UserNG;
 import hd3gtv.mydmam.web.AJSControllerItem.Verb;
-import hd3gtv.tools.GsonIgnoreStrategy;
 import play.Play;
 import play.vfs.VirtualFile;
 
@@ -45,24 +39,10 @@ public class AJSController {
 	
 	public static final String ASYNC_CLASS_PATH = "/app/controllers/ajs";
 	public static final String ASYNC_PACKAGE_NAME = "controllers.ajs";
-	public static final Gson gson_simple;
-	// private static final Gson gson_pretty;
-	private static final GsonBuilder gson_builder;
 	
-	static Gson gson;
 	private static final HashMap<String, AJSControllerItem> controllers;
 	
 	static {
-		gson_builder = new GsonBuilder();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		gson_builder.addDeserializationExclusionStrategy(ignore_strategy);
-		gson_builder.addSerializationExclusionStrategy(ignore_strategy);
-		gson_builder.serializeNulls();
-		MyDMAM.registerBaseSerializers(gson_builder);
-		gson_simple = gson_builder.create();
-		// gson_pretty = gson_builder.setPrettyPrinting().create();
-		gson = gson_builder.create();
-		
 		/**
 		 * Get all class files from all ASYNC_CLASS_PATH directory, module by module.
 		 */
@@ -106,11 +86,6 @@ public class AJSController {
 			}
 		}
 		
-	}
-	
-	@AJSIgnore
-	public static Gson getGson() {
-		return gson;
 	}
 	
 	/**
@@ -185,12 +160,6 @@ public class AJSController {
 			Loggers.Play.error("Can't check if AJSContoller is enabled for " + controller, e);
 		}
 		return true;
-	}
-	
-	@AJSIgnore
-	public static void registerTypeAdapter(Type type, Object typeAdapter) {
-		gson_builder.registerTypeAdapter(type, typeAdapter);
-		gson = gson_builder.create();
 	}
 	
 	@AJSIgnore

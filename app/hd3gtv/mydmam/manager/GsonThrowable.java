@@ -29,7 +29,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public final class GsonThrowable {
 	

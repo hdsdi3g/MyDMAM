@@ -29,9 +29,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -42,9 +39,9 @@ import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.tools.CopyMove;
-import hd3gtv.tools.GsonIgnore;
-import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class JSSourceDatabase {
 	
@@ -53,46 +50,20 @@ public class JSSourceDatabase {
 	private static final String BASE_SOURCE_DIRECTORY_JSX = File.separator + "app" + File.separator + "react";
 	private static final String BASE_SOURCE_DIRECTORY_VANILLA_JS = File.separator + "public" + File.separator + "javascripts" + File.separator + "src";
 	
-	private static final Gson gson_simple;
-	private static final Gson gson;
-	
-	private static final Type type_HM_db = new TypeToken<HashMap<String, JSSourceDatabaseEntry>>() {
-	}.getType();
-	
-	private final static class Serializer implements JsonSerializer<JSSourceDatabase>, JsonDeserializer<JSSourceDatabase> {
+	public final static class JSSourceDBSerializer implements JsonSerializer<JSSourceDatabase>, JsonDeserializer<JSSourceDatabase> {
 		
 		public JsonElement serialize(JSSourceDatabase src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = gson_simple.toJsonTree(src).getAsJsonObject();
-			result.add("entries", gson_simple.toJsonTree(src.entries, type_HM_db));
+			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+			result.add("entries", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.entries, GsonKit.type_HashMap_String_JSSourceDatabaseEntry));
 			return result;
 		}
 		
 		public JSSourceDatabase deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			JSSourceDatabase result = gson_simple.fromJson(jejson, JSSourceDatabase.class);
-			result.entries = gson_simple.fromJson(jejson.getAsJsonObject().get("entries"), type_HM_db);
+			JSSourceDatabase result = MyDMAM.gson_kit.getGsonSimple().fromJson(jejson, JSSourceDatabase.class);
+			result.entries = MyDMAM.gson_kit.getGsonSimple().fromJson(jejson.getAsJsonObject().get("entries"), GsonKit.type_HashMap_String_JSSourceDatabaseEntry);
 			return result;
 		}
 		
-	}
-	
-	static {
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		
-		/**
-		 * It don't use Gson Simple...
-		 */
-		builder.registerTypeAdapter(JSSourceDatabaseEntry.class, new JSSourceDatabaseEntry.Serializer());
-		gson_simple = builder.create();
-		
-		builder.registerTypeAdapter(JSSourceDatabase.class, new Serializer());
-		
-		builder.setPrettyPrinting();
-		gson = builder.create();
 	}
 	
 	private transient File dbfile;
@@ -113,7 +84,7 @@ public class JSSourceDatabase {
 			jsdb.entries = new HashMap<String, JSSourceDatabaseEntry>();
 			jsdb.save();
 		} else {
-			jsdb = gson.fromJson(FileUtils.readFileToString(dbfile, MyDMAM.UTF8), JSSourceDatabase.class);
+			jsdb = MyDMAM.gson_kit.getGson().fromJson(FileUtils.readFileToString(dbfile, MyDMAM.UTF8), JSSourceDatabase.class);
 			jsdb.dbfile = dbfile;
 			jsdb.module_name = source_module.getModuleName();
 			jsdb.module_path = source_module.getModulePath();
@@ -130,7 +101,7 @@ public class JSSourceDatabase {
 	
 	void save() throws IOException {
 		Loggers.Play_JSSource.debug("Save database: " + dbfile + " (module: " + module_name + ")");
-		FileUtils.write(dbfile, gson.toJson(this), MyDMAM.UTF8);
+		FileUtils.write(dbfile, MyDMAM.gson_kit.getGson().toJson(this), MyDMAM.UTF8);
 	}
 	
 	/**

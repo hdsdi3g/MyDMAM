@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import controllers.Check;
 import controllers.Secure;
 import hd3gtv.configuration.GitInfo;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.status.ElasticsearchStatus;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.AsyncJSInstanceActionRequest;
@@ -34,16 +35,13 @@ import hd3gtv.mydmam.web.PlayServerUpdateConfiguration;
 
 public class Instances extends AJSController {
 	
-	/*private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();*/
-	
 	/*private static Type hm_StringJob_typeOfT = new TypeToken<HashMap<String, JobNG>>() {
 	}.getType();*/
 	
 	private static final InstanceStatus current;
 	
 	static {
-		current = new AppManager("This Play instance").getInstanceStatus();
+		current = new AppManager().getInstanceStatus();
 		
 		/*AJSController.registerTypeAdapter(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
 			public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
@@ -58,7 +56,7 @@ public class Instances extends AJSController {
 	@Check("showInstances")
 	public static JsonObject allSummaries() {
 		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_SUMMARY);
-		result.add(current.summary.getInstanceNamePid(), AppManager.getSimpleGson().toJsonTree(current.summary));
+		result.add(current.summary.getInstanceNamePid(), MyDMAM.gson_kit.getGsonSimple().toJsonTree(current.summary));
 		return result;
 	}
 	

@@ -50,6 +50,9 @@ public class JSi18nCached {
 	 */
 	
 	private Db db;
+	/**
+	 * @deprecated
+	 */
 	private Gson simple_gson;
 	private boolean is_debug_mode = false;
 	

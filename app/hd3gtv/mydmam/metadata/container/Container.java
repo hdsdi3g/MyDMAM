@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 import org.elasticsearch.ElasticsearchException;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
@@ -155,7 +156,7 @@ public class Container {
 		for (int pos = 0; pos < containerEntries.size(); pos++) {
 			sb.append(", metadata." + containerEntries.get(pos).getES_Type() + ": ");
 			try {
-				sb.append(ContainerOperations.getGson().toJson(containerEntries.get(pos)));
+				sb.append(MyDMAM.gson_kit.getGson().toJson(containerEntries.get(pos)));
 			} catch (Exception e) {
 				/**
 				 * Check getAllRootEntryClasses and serializators.

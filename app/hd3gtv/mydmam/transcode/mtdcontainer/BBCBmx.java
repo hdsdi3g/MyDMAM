@@ -27,9 +27,7 @@ import com.google.gson.JsonObject;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.tools.VideoConst;
 import hd3gtv.tools.VideoConst.Framerate;
 import uk.co.bbc.rd.bmx.Bmx;
@@ -51,17 +49,13 @@ public class BBCBmx extends EntryAnalyser {
 		return "bbc_bmx";
 	}
 	
-	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-		return null;
-	}
-	
-	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
+	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
 		JsonElement j_file = source.get("file");
 		JsonElement j_clip = source.get("clip");
 		
 		BBCBmx ea = new BBCBmx();
-		ea.file = ContainerOperations.getGsonSimple().fromJson(j_file, FileType.class);
-		ea.clip = ContainerOperations.getGsonSimple().fromJson(j_clip, ClipType.class);
+		ea.file = MyDMAM.gson_kit.getGsonSimple().fromJson(j_file, FileType.class);
+		ea.clip = MyDMAM.gson_kit.getGsonSimple().fromJson(j_clip, ClipType.class);
 		return ea;
 	}
 	

@@ -62,7 +62,7 @@ public class Stream extends FFprobeNode {
 	protected void internalDeserialize(FFprobeNode _item, JsonObject source, Gson gson) {
 	}
 	
-	protected void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson) {
+	protected void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson) {// TODO move de/serializer
 		Stream item = (Stream) _item;
 		jo.add("disposition", gson.toJsonTree(item.internal.disposition));
 	}

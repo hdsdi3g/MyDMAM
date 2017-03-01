@@ -23,15 +23,11 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
 import controllers.Secure;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.manager.AppManager;
-import hd3gtv.tools.GsonIgnoreStrategy;
 import play.exceptions.NoRouteFoundException;
 import play.mvc.Router;
 import play.vfs.VirtualFile;
@@ -40,22 +36,9 @@ public class HeaderJS {
 	
 	public static final HeaderJS INSTANCE = new HeaderJS();
 	
-	private final Gson simple_gson;
 	private LinkedHashMap<String, Entry> entries;
 	
 	public HeaderJS() {
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		MyDMAM.registerBaseSerializers(builder);
-		
-		// builder.setPrettyPrinting();
-		
-		simple_gson = builder.create();
-		
 		entries = new LinkedHashMap<>();
 		entries.put("home", new Entry("Application.index"));
 		entries.put("disconnect", new Entry("Secure.logout"));
@@ -187,7 +170,7 @@ public class HeaderJS {
 			LinkedHashMap<String, Object> mydmam = new LinkedHashMap<>(1);
 			
 			JsonObject async = new JsonObject();
-			async.add("controllers", AppManager.getGson().toJsonTree(AJSController.getAllControllersVerbsForThisUser()));
+			async.add("controllers", MyDMAM.gson_kit.getGson().toJsonTree(AJSController.getAllControllersVerbsForThisUser()));
 			
 			if (Secure.getRequestAddress().equals("loopback") == false) {
 				async.addProperty("server_time", System.currentTimeMillis());
@@ -225,7 +208,7 @@ public class HeaderJS {
 			 */
 			mydmam.put("i18n", MyDMAM.getconfiguredMessages());
 			
-			return simple_gson.toJson(mydmam);
+			return MyDMAM.gson_kit.getGsonSimple().toJson(mydmam);
 		} catch (NullPointerException | DisconnectedUser e) {
 			Loggers.Play.warn("User was disconnected: " + e.getMessage());
 		}

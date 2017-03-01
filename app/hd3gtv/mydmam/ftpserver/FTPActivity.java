@@ -200,7 +200,7 @@ public class FTPActivity {
 		}
 		
 		try {
-			Elasticsearch.getClient().prepareIndex(ES_INDEX, ES_TYPE, activity.activity_key).setSource(FTPOperations.getGson().toJson(activity)).setTTL(ttl)
+			Elasticsearch.getClient().prepareIndex(ES_INDEX, ES_TYPE, activity.activity_key).setSource(MyDMAM.gson_kit.getGson().toJson(activity)).setTTL(ttl)
 					.execute(Elasticsearch.createEmptyActionListener(Loggers.FTPserver, FTPActivity.class));
 		} catch (Exception e) {
 			Loggers.FTPserver.warn("Error during store activity in DB: " + e);
@@ -325,7 +325,7 @@ public class FTPActivity {
 		ecr.allReader(new ElastisearchCrawlerHit() {
 			
 			public boolean onFoundHit(SearchHit hit) throws Exception {
-				ftp_activity.add(FTPOperations.getGson().fromJson(hit.getSourceAsString(), FTPActivity.class));
+				ftp_activity.add(MyDMAM.gson_kit.getGson().fromJson(hit.getSourceAsString(), FTPActivity.class));
 				return true;
 			}
 		});

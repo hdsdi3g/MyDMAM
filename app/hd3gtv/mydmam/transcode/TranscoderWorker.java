@@ -35,6 +35,7 @@ import com.google.gson.JsonSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobProgression;
@@ -48,7 +49,6 @@ import hd3gtv.mydmam.storage.DistantFileRecovery;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer;
-import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
@@ -457,7 +457,7 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 	}
 	
 	public JsonElement exportSpecificInstanceStatusItems() {
-		return WatchFolderDB.gson.toJsonTree(this);
+		return MyDMAM.gson_kit.getGson().toJsonTree(this);
 	}
 	
 	/**

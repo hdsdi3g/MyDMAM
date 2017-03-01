@@ -1,9 +1,20 @@
 package hd3gtv.mydmam.transcode.images;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.apache.commons.lang.StringEscapeUtils;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Colorspace;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Compose;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Compress;
@@ -17,32 +28,15 @@ import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Interlace;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Orientation;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.ResolutionUnits;
 import hd3gtv.tools.ExecprocessGettext;
-import hd3gtv.tools.GsonIgnore;
-
-import java.lang.reflect.Type;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang.StringEscapeUtils;
-
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
-import com.google.gson.JsonObject;
 
 public class ImageAttributes extends EntryAnalyser {
 	
-	private static Type properties_typeOfT = new TypeToken<LinkedHashMap<String, String>>() {
-	}.getType();
-	
-	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
+	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {// TODO move de/serializer
 		ImageAttributes item = (ImageAttributes) _item;
-		current_element.add("properties", gson.toJsonTree(item.properties, properties_typeOfT));
+		current_element.add("properties", gson.toJsonTree(item.properties, GsonKit.type_LinkedHashMap_String_String));
 	}
 	
-	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
+	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
 		String entry_value;
 		for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
 			if (entry.getValue().isJsonPrimitive() == false) {
@@ -54,8 +48,8 @@ public class ImageAttributes extends EntryAnalyser {
 			}
 		}
 		
-		ImageAttributes item = ContainerOperations.getGsonSimple().fromJson(source, ImageAttributes.class);
-		item.properties = gson.fromJson(source.get("properties"), properties_typeOfT);
+		ImageAttributes item = MyDMAM.gson_kit.getGsonSimple().fromJson(source, ImageAttributes.class);
+		item.properties = gson.fromJson(source.get("properties"), GsonKit.type_LinkedHashMap_String_String);
 		if (source.has("class")) {
 			item.imgclass = ImageClass.valueOf(source.get("class").getAsString());
 		}
@@ -64,10 +58,6 @@ public class ImageAttributes extends EntryAnalyser {
 	
 	public String getES_Type() {
 		return "imagemagick";
-	}
-	
-	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-		return null;
 	}
 	
 	String format;

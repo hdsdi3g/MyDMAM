@@ -18,7 +18,6 @@ package hd3gtv.mydmam.auth;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -29,7 +28,6 @@ import java.util.Properties;
 
 import javax.mail.internet.InternetAddress;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.MutationBatch;
@@ -38,8 +36,10 @@ import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.asyncjs.UserView;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import play.i18n.Lang;
 
@@ -71,15 +71,6 @@ public class UserNG implements AuthEntry {
 	private transient HashSet<String> user_groups_roles_privileges;
 	private transient AuthTurret turret;
 	
-	public static final Type linmap_string_basket_typeOfT = new TypeToken<LinkedHashMap<String, BasketNG>>() {
-	}.getType();
-	public static final Type al_useractivity_typeOfT = new TypeToken<ArrayList<UserActivity>>() {
-	}.getType();
-	public static final Type al_usernotification_typeOfT = new TypeToken<ArrayList<UserNotificationNG>>() {
-	}.getType();
-	public static final Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();
-	
 	/**
 	 * This cols names will always be imported from db.
 	 */
@@ -106,19 +97,19 @@ public class UserNG implements AuthEntry {
 			user_groups.forEach(group -> {
 				group_keys.add(group.getKey());
 			});
-			mutator.putColumnIfNotNull("user_groups", turret.getGson().toJson(group_keys, al_String_typeOfT));
+			mutator.putColumnIfNotNull("user_groups", MyDMAM.gson_kit.getGson().toJson(group_keys, GsonKit.type_ArrayList_String));
 		}
 		if (properties != null) {
-			mutator.putColumnIfNotNull("properties", turret.getGson().toJson(properties));
+			mutator.putColumnIfNotNull("properties", MyDMAM.gson_kit.getGson().toJson(properties));
 		}
 		if (baskets != null) {
-			mutator.putColumnIfNotNull("baskets", turret.getGson().toJson(baskets, linmap_string_basket_typeOfT));
+			mutator.putColumnIfNotNull("baskets", MyDMAM.gson_kit.getGson().toJson(baskets, GsonKit.type_LinkedHashMap_StringBasketNG));
 		}
 		if (activities != null) {
-			mutator.putColumnIfNotNull("activities", turret.getGson().toJson(activities, al_useractivity_typeOfT));
+			mutator.putColumnIfNotNull("activities", MyDMAM.gson_kit.getGson().toJson(activities, GsonKit.type_ArrayList_UserActivity));
 		}
 		if (notifications != null) {
-			mutator.putColumnIfNotNull("notifications", turret.getGson().toJson(notifications, al_usernotification_typeOfT));
+			mutator.putColumnIfNotNull("notifications", MyDMAM.gson_kit.getGson().toJson(notifications, GsonKit.type_ArrayList_UserNotificationNG));
 		}
 		if (preferences != null) {
 			mutator.putColumnIfNotNull("preferences", preferences.toString());
@@ -144,7 +135,7 @@ public class UserNG implements AuthEntry {
 		Column<String> col = null;
 		col = cols.getColumnByName("user_groups");
 		if (col != null) {
-			ArrayList<String> group_keys = turret.getGson().fromJson(col.getStringValue(), al_String_typeOfT);
+			ArrayList<String> group_keys = MyDMAM.gson_kit.getGson().fromJson(col.getStringValue(), GsonKit.type_ArrayList_String);
 			user_groups = new ArrayList<GroupNG>(group_keys.size() + 1);
 			ArrayList<String> old_group_keys = new ArrayList<>();
 			
@@ -162,27 +153,27 @@ public class UserNG implements AuthEntry {
 		
 		col = cols.getColumnByName("properties");
 		if (col != null) {
-			properties = turret.getGson().fromJson(col.getStringValue(), Properties.class);
+			properties = MyDMAM.gson_kit.getGson().fromJson(col.getStringValue(), Properties.class);
 		} else {
 			properties = null;
 		}
 		
 		col = cols.getColumnByName("baskets");
 		if (col != null) {
-			baskets = turret.getGson().fromJson(col.getStringValue(), linmap_string_basket_typeOfT);
+			baskets = MyDMAM.gson_kit.getGson().fromJson(col.getStringValue(), GsonKit.type_LinkedHashMap_StringBasketNG);
 		} else {
 			baskets = null;
 		}
 		col = cols.getColumnByName("activities");
 		if (col != null) {
-			activities = turret.getGson().fromJson(col.getStringValue(), al_useractivity_typeOfT);
+			activities = MyDMAM.gson_kit.getGson().fromJson(col.getStringValue(), GsonKit.type_ArrayList_UserActivity);
 		} else {
 			activities = null;
 		}
 		
 		col = cols.getColumnByName("notifications");
 		if (col != null) {
-			notifications = turret.getGson().fromJson(col.getStringValue(), al_usernotification_typeOfT);
+			notifications = MyDMAM.gson_kit.getGson().fromJson(col.getStringValue(), GsonKit.type_ArrayList_UserNotificationNG);
 		} else {
 			notifications = null;
 		}
@@ -321,7 +312,7 @@ public class UserNG implements AuthEntry {
 				if (cols.getColumnNames().contains("user_groups")) {
 					if (cols.getColumnByName("user_groups").hasValue()) {
 						groups_keys.clear();
-						groups_keys.addAll(turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT));
+						groups_keys.addAll(MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), GsonKit.type_ArrayList_String));
 						checkAndSetGroups(groups_keys, old_groups_keys);
 					}
 				}
@@ -395,7 +386,7 @@ public class UserNG implements AuthEntry {
 				cols = turret.prepareQuery().getKey(key).withColumnSlice("properties").execute().getResult();
 				if (cols.getColumnNames().contains("properties")) {
 					if (cols.getColumnByName("properties").hasValue()) {
-						properties = turret.getGson().fromJson(cols.getColumnByName("properties").getStringValue(), Properties.class);
+						properties = MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("properties").getStringValue(), Properties.class);
 					}
 				}
 			} catch (ConnectionException e) {
@@ -417,7 +408,7 @@ public class UserNG implements AuthEntry {
 				cols = turret.prepareQuery().getKey(key).withColumnSlice("baskets").execute().getResult();
 				if (cols.getColumnNames().contains("baskets")) {
 					if (cols.getColumnByName("baskets").hasValue()) {
-						baskets = turret.getGson().fromJson(cols.getColumnByName("baskets").getStringValue(), linmap_string_basket_typeOfT);
+						baskets = MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("baskets").getStringValue(), GsonKit.type_LinkedHashMap_StringBasketNG);
 					}
 				}
 			} catch (ConnectionException e) {
@@ -438,7 +429,7 @@ public class UserNG implements AuthEntry {
 				cols = turret.prepareQuery().getKey(key).withColumnSlice("activities").execute().getResult();
 				if (cols.getColumnNames().contains("activities")) {
 					if (cols.getColumnByName("activities").hasValue()) {
-						activities = turret.getGson().fromJson(cols.getColumnByName("activities").getStringValue(), al_useractivity_typeOfT);
+						activities = MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("activities").getStringValue(), GsonKit.type_ArrayList_UserActivity);
 					}
 				}
 			} catch (ConnectionException e) {
@@ -480,7 +471,7 @@ public class UserNG implements AuthEntry {
 				cols = turret.prepareQuery().getKey(key).withColumnSlice("notifications").execute().getResult();
 				if (cols.getColumnNames().contains("notifications")) {
 					if (cols.getColumnByName("notifications").hasValue()) {
-						notifications = turret.getGson().fromJson(cols.getColumnByName("notifications").getStringValue(), al_usernotification_typeOfT);
+						notifications = MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("notifications").getStringValue(), GsonKit.type_ArrayList_UserNotificationNG);
 					}
 				}
 			} catch (ConnectionException e) {
@@ -558,9 +549,9 @@ public class UserNG implements AuthEntry {
 			}
 			result.properties = sw.toString();
 			
-			result.baskets = turret.getGson().toJsonTree(getBaskets(), linmap_string_basket_typeOfT).getAsJsonObject();
-			result.activities = turret.getGson().toJsonTree(getActivities(), al_useractivity_typeOfT).getAsJsonArray();
-			result.notifications = turret.getGson().toJsonTree(getNotifications(), al_usernotification_typeOfT).getAsJsonArray();
+			result.baskets = MyDMAM.gson_kit.getGson().toJsonTree(getBaskets(), GsonKit.type_LinkedHashMap_StringBasketNG).getAsJsonObject();
+			result.activities = MyDMAM.gson_kit.getGson().toJsonTree(getActivities(), GsonKit.type_ArrayList_UserActivity).getAsJsonArray();
+			result.notifications = MyDMAM.gson_kit.getGson().toJsonTree(getNotifications(), GsonKit.type_ArrayList_UserNotificationNG).getAsJsonArray();
 		} else {
 			if (preferences != null) {
 				result.preferences = preferences;
@@ -575,13 +566,13 @@ public class UserNG implements AuthEntry {
 				result.properties = sw.toString();
 			}
 			if (baskets != null) {
-				result.baskets = turret.getGson().toJsonTree(baskets, linmap_string_basket_typeOfT).getAsJsonObject();
+				result.baskets = MyDMAM.gson_kit.getGson().toJsonTree(baskets, GsonKit.type_LinkedHashMap_StringBasketNG).getAsJsonObject();
 			}
 			if (activities != null) {
-				result.activities = turret.getGson().toJsonTree(activities, al_useractivity_typeOfT).getAsJsonArray();
+				result.activities = MyDMAM.gson_kit.getGson().toJsonTree(activities, GsonKit.type_ArrayList_UserActivity).getAsJsonArray();
 			}
 			if (notifications != null) {
-				result.notifications = turret.getGson().toJsonTree(notifications, al_usernotification_typeOfT).getAsJsonArray();
+				result.notifications = MyDMAM.gson_kit.getGson().toJsonTree(notifications, GsonKit.type_ArrayList_UserNotificationNG).getAsJsonArray();
 			}
 		}
 		

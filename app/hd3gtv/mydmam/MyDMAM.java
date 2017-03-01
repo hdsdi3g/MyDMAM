@@ -19,12 +19,6 @@ package hd3gtv.mydmam;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -33,7 +27,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Security;
 import java.text.SimpleDateFormat;
-import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -44,24 +37,11 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
-
 import hd3gtv.configuration.Configuration;
-import hd3gtv.tools.Timecode;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class MyDMAM {
 	
@@ -84,9 +64,11 @@ public class MyDMAM {
 	
 	public static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
-	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2016";
+	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2017";
 	
 	public static final Charset UTF8 = Charset.forName("UTF-8");
+	
+	public static final GsonKit gson_kit = new GsonKit();
 	
 	/**
 	 * @param filename without path
@@ -252,170 +234,6 @@ public class MyDMAM {
 			}
 		}
 		
-	}
-	
-	public static class GsonClassSerializer implements JsonSerializer<Class<?>>, JsonDeserializer<Class<?>> {
-		
-		public JsonElement serialize(Class<?> src, Type typeOfSrc, JsonSerializationContext context) {
-			if (src == null) {
-				return null;
-			}
-			return new JsonPrimitive(src.getName());
-		}
-		
-		public Class<?> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			try {
-				return Class.forName(json.getAsString());
-			} catch (Exception e) {
-				return null;
-			}
-		}
-	}
-	
-	/**
-	 * Direct (de)serializer.
-	 */
-	public static class GsonJsonArraySerializer implements JsonSerializer<JsonArray>, JsonDeserializer<JsonArray> {
-		
-		public JsonElement serialize(JsonArray src, Type typeOfSrc, JsonSerializationContext context) {
-			if (src == null) {
-				return null;
-			}
-			return src;
-		}
-		
-		public JsonArray deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			try {
-				return json.getAsJsonArray();
-			} catch (Exception e) {
-				Loggers.Manager.error("Can't deserialize JsonArray", e);
-				return null;
-			}
-		}
-	}
-	
-	/**
-	 * Direct (de)serializer.
-	 */
-	public static class GsonJsonObjectSerializer implements JsonSerializer<JsonObject>, JsonDeserializer<JsonObject> {
-		
-		public JsonElement serialize(JsonObject src, Type typeOfSrc, JsonSerializationContext context) {
-			if (src == null) {
-				return null;
-			}
-			return src;
-		}
-		
-		public JsonObject deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			try {
-				return json.getAsJsonObject();
-			} catch (Exception e) {
-				Loggers.Manager.error("Can't deserialize JsonObject", e);
-				return null;
-			}
-		}
-	}
-	
-	public static class XMLGregorianCalendarSerializer implements JsonSerializer<XMLGregorianCalendar>, JsonDeserializer<XMLGregorianCalendar> {
-		
-		public XMLGregorianCalendar deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			GregorianCalendar gc = new GregorianCalendar();
-			gc.setTimeInMillis(json.getAsBigInteger().longValue());
-			return new XMLGregorianCalendarImpl(gc);
-		}
-		
-		public JsonElement serialize(XMLGregorianCalendar src, Type typeOfSrc, JsonSerializationContext context) {
-			return new JsonPrimitive(src.toGregorianCalendar().getTimeInMillis());
-		}
-	}
-	
-	public static class InetAddrSerializer implements JsonSerializer<InetAddress>, JsonDeserializer<InetAddress> {
-		
-		public InetAddress deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			try {
-				return InetAddress.getByName(json.getAsString());
-			} catch (UnknownHostException e) {
-				throw new JsonParseException(json.getAsString(), e);
-			}
-		}
-		
-		public JsonElement serialize(InetAddress src, Type typeOfSrc, JsonSerializationContext context) {
-			return new JsonPrimitive(src.getHostAddress());
-		}
-	}
-	
-	public static class InetSocketAddressSerializer implements JsonSerializer<InetSocketAddress>, JsonDeserializer<InetSocketAddress> {
-		
-		public InetSocketAddress deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			JsonObject jo = json.getAsJsonObject();
-			return new InetSocketAddress(jo.get("addr").getAsString(), jo.get("port").getAsInt());
-		}
-		
-		public JsonElement serialize(InetSocketAddress src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject jo = new JsonObject();
-			jo.addProperty("addr", src.getHostString());
-			jo.addProperty("port", src.getPort());
-			return jo;
-		}
-	}
-	
-	public static class URLSerializer implements JsonSerializer<URL>, JsonDeserializer<URL> {
-		
-		public URL deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			try {
-				return new URL(json.getAsString());
-			} catch (MalformedURLException e) {
-				throw new JsonParseException(json.getAsString(), e);
-			}
-		}
-		
-		public JsonElement serialize(URL src, Type typeOfSrc, JsonSerializationContext context) {
-			return new JsonPrimitive(src.toString());
-		}
-	}
-	
-	public static class TimecodeSerializer implements JsonSerializer<Timecode>, JsonDeserializer<Timecode> {
-		
-		public Timecode deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			String raw = json.getAsString();
-			if (raw.indexOf("/") == -1) {
-				throw new JsonParseException("Missing / in Timecode: " + json.toString());
-			}
-			String[] vars = json.getAsString().split("/");
-			if (vars.length != 2) {
-				throw new JsonParseException("Too many / in Timecode: " + json.toString());
-			}
-			float fps = -1;
-			try {
-				fps = Float.parseFloat(vars[1]);
-			} catch (NumberFormatException e) {
-				throw new JsonParseException("Invalid fps in Timecode: " + json.toString(), e);
-			}
-			
-			return new Timecode(vars[0], fps);
-		}
-		
-		public JsonElement serialize(Timecode src, Type typeOfSrc, JsonSerializationContext context) {
-			if (Math.floor(src.getFps()) == Math.ceil(src.getFps())) {
-				return new JsonPrimitive(src.toString() + "/" + Math.round(src.getFps()));
-			}
-			
-			return new JsonPrimitive(src.toString() + "/" + src.getFps());
-		}
-	}
-	
-	/**
-	 * Register JsonArray, JsonObject, XMLGregorianCalendar, Class, InetAddress, URL.
-	 */
-	public static void registerBaseSerializers(GsonBuilder gson_builder) {
-		gson_builder.registerTypeAdapter(JsonArray.class, new MyDMAM.GsonJsonArraySerializer());
-		gson_builder.registerTypeAdapter(JsonObject.class, new MyDMAM.GsonJsonObjectSerializer());
-		gson_builder.registerTypeAdapter(XMLGregorianCalendar.class, new MyDMAM.XMLGregorianCalendarSerializer());
-		gson_builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
-		gson_builder.registerTypeAdapter(InetAddress.class, new MyDMAM.InetAddrSerializer());
-		gson_builder.registerTypeAdapter(InetSocketAddress.class, new MyDMAM.InetSocketAddressSerializer());
-		gson_builder.registerTypeAdapter(URL.class, new MyDMAM.URLSerializer());
-		gson_builder.registerTypeAdapter(Timecode.class, new MyDMAM.TimecodeSerializer());
 	}
 	
 	/**

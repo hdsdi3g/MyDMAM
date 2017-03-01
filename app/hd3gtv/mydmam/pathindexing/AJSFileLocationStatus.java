@@ -104,19 +104,4 @@ public class AJSFileLocationStatus {
 		}
 	}
 	
-	/*static Type type_List_Item=new TypeToken<ArrayList<Location>>(){}.getType();
-	@GsonIgnore
-	
-	public static class Serializer implements JsonSerializer<FileLocationStatus> {
-		
-		public JsonElement serialize(FileLocationStatus src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonElement je = PathElementStat.gson_simple.toJsonTree(src);
-			JsonObject jo = je.getAsJsonObject();
-			jo.add("locations", PathElementStat.gson_simple.toJsonTree(src));
-			
-			return jo;
-		}
-		
-	}*/
-	
 }

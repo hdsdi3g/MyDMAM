@@ -16,21 +16,21 @@
 */
 package hd3gtv.mydmam.auth;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
-import com.google.common.reflect.TypeToken;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.asyncjs.GroupView;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class GroupNG implements AuthEntry {
 	
@@ -39,9 +39,6 @@ public class GroupNG implements AuthEntry {
 	private ArrayList<RoleNG> group_roles;
 	
 	private transient AuthTurret turret;
-	
-	private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();
 	
 	/**
 	 * This cols names will always be imported from db.
@@ -56,7 +53,7 @@ public class GroupNG implements AuthEntry {
 			group_roles.forEach(role -> {
 				roles_keys.add(role.getKey());
 			});
-			mutator.putColumnIfNotNull("group_roles", turret.getGson().toJson(roles_keys, al_String_typeOfT));
+			mutator.putColumnIfNotNull("group_roles", MyDMAM.gson_kit.getGson().toJson(roles_keys, GsonKit.type_ArrayList_String));
 		}
 	}
 	
@@ -70,7 +67,7 @@ public class GroupNG implements AuthEntry {
 		group_name = cols.getStringValue("group_name", null);
 		
 		if (cols.getColumnByName("group_roles") != null) {
-			ArrayList<String> roles_keys = turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT);
+			ArrayList<String> roles_keys = MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), GsonKit.type_ArrayList_String);
 			group_roles = new ArrayList<RoleNG>(roles_keys.size() + 1);
 			
 			ArrayList<String> old_roles_keys = new ArrayList<>();
@@ -169,7 +166,7 @@ public class GroupNG implements AuthEntry {
 				if (cols.getColumnNames().contains("group_roles")) {
 					if (cols.getColumnByName("group_roles").hasValue()) {
 						roles_keys.clear();
-						roles_keys.addAll(turret.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), al_String_typeOfT));
+						roles_keys.addAll(MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("group_roles").getStringValue(), GsonKit.type_ArrayList_String));
 						checkAndSetRoles(roles_keys, old_roles_keys);
 					}
 				}

@@ -19,18 +19,20 @@ package hd3gtv.mydmam.metadata.container;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.MyDMAM;
+
 public abstract class EntryAnalyser extends ContainerEntry {
 	
 	/**
 	 * @param _item The same type as this.
 	 */
-	protected abstract void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson);
+	protected abstract void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson);// TODO remove
 	
 	/**
 	 * Patch output JSON
 	 */
-	protected final JsonObject internalSerialize(ContainerEntry _item, Gson gson) {
-		JsonObject jo = ContainerOperations.getGsonSimple().toJsonTree(_item).getAsJsonObject();
+	protected final JsonObject internalSerialize(ContainerEntry _item, Gson gson) {// TODO move de/serializer
+		JsonObject jo = MyDMAM.gson_kit.getGsonSimple().toJsonTree(_item).getAsJsonObject();
 		extendedInternalSerializer(jo, (EntryAnalyser) _item, gson);
 		return jo;
 	}

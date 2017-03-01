@@ -17,17 +17,12 @@
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
 import java.util.HashMap;
-import java.util.Map;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
-import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
-
-abstract class FFprobeNode implements SelfSerializing {
+abstract class FFprobeNode {
 	
 	protected abstract FFprobeNodeInternalItem getInternalItem();
 	
@@ -48,7 +43,7 @@ abstract class FFprobeNode implements SelfSerializing {
 	
 	protected abstract Class<? extends FFprobeNodeInternalItem> getInternalItemClass();
 	
-	public final SelfSerializing deserialize(JsonObject source, Gson gson) {
+	/*public final SelfSerializing deserialize(JsonObject source, Gson gson) {//TODO correct this shit
 		FFprobeNode item = create();
 		FFprobeNodeInternalItem internal = gson.fromJson(source, getInternalItemClass());
 		if (source.has("tags")) {
@@ -89,7 +84,7 @@ abstract class FFprobeNode implements SelfSerializing {
 		internalSerialize(jo, item, gson);
 		jo.add("tags", internal.tags);
 		return jo;
-	}
+	}*/
 	
 	public final boolean hasMultipleParams(String... list_params) {
 		for (int pos = 0; pos < list_params.length; pos++) {

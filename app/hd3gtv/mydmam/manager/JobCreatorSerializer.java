@@ -17,9 +17,7 @@
 package hd3gtv.mydmam.manager;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -28,11 +26,12 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-class JobCreatorSerializer<T extends JobCreator> implements JsonSerializer<T>, JsonDeserializer<T> {
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonKit;
+
+public class JobCreatorSerializer<T extends JobCreator> implements JsonSerializer<T>, JsonDeserializer<T> {
 	
 	private Class<T> referer_class;
-	private Type al_JobDeclaration_typeOfT = new TypeToken<ArrayList<JobCreator.Declaration>>() {
-	}.getType();
 	
 	JobCreatorSerializer(Class<T> referer_class) {
 		this.referer_class = referer_class;
@@ -40,14 +39,14 @@ class JobCreatorSerializer<T extends JobCreator> implements JsonSerializer<T>, J
 	
 	public T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 		JsonObject jo = json.getAsJsonObject();
-		T result = AppManager.getSimpleGson().fromJson(json, referer_class);
-		result.declarations = AppManager.getGson().fromJson(jo.get("declarations"), al_JobDeclaration_typeOfT);
+		T result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, referer_class);
+		result.declarations = MyDMAM.gson_kit.getGson().fromJson(jo.get("declarations"), GsonKit.type_ArrayList_JobCreatorJobDeclaration);
 		return result;
 	}
 	
 	public JsonElement serialize(T src, Type typeOfSrc, JsonSerializationContext context) {
-		JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
-		result.add("declarations", AppManager.getGson().toJsonTree(src.declarations, al_JobDeclaration_typeOfT));
+		JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+		result.add("declarations", MyDMAM.gson_kit.getGson().toJsonTree(src.declarations, GsonKit.type_ArrayList_JobCreatorJobDeclaration));
 		return result;
 	}
 	

@@ -24,8 +24,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-import hd3gtv.mydmam.web.AJSController;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public class GroupView {
 	
@@ -39,8 +39,8 @@ public class GroupView {
 		
 		@Override
 		public JsonElement serialize(GroupView src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
-			result.add("group_roles", AJSController.gson_simple.toJsonTree(src.group_roles));
+			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+			result.add("group_roles", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.group_roles));
 			return result;
 		}
 		

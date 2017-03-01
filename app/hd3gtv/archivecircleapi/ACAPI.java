@@ -30,11 +30,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.auth.AuthenticationException;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class ACAPI {
 	
@@ -45,28 +41,15 @@ public class ACAPI {
 	private String basic_auth;
 	private int tcp_port = 8081;
 	
-	final Gson gson_simple;
-	final Gson gson;
-	
 	public ACAPI(String host, String user, String password) {
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		MyDMAM.registerBaseSerializers(builder);
-		gson_simple = builder.create();
-		
-		builder.registerTypeAdapter(ACNode.class, new ACNode.Deseralizer(this));
-		builder.registerTypeAdapter(ACNodesEntry.class, new ACNodesEntry.Deseralizer(this));
-		builder.registerTypeAdapter(ACFile.class, new ACFile.Deseralizer(this));
-		builder.registerTypeAdapter(ACPositionType.class, new ACPositionType.Deseralizer(this));
-		builder.registerTypeAdapter(ACFileLocations.class, new ACFileLocations.Deseralizer(this));
-		builder.registerTypeAdapter(ACFileLocationCache.class, new ACFileLocationCache.Deseralizer(this));
-		builder.registerTypeAdapter(ACFileLocationPack.class, new ACFileLocationPack.Deseralizer(this));
-		builder.registerTypeAdapter(ACFileLocationTape.class, new ACFileLocationTape.Deseralizer(this));
-		
-		gson = builder.create();
+		MyDMAM.gson_kit.registerTypeAdapter(ACNode.class, new ACNode.Deseralizer(this));
+		MyDMAM.gson_kit.registerTypeAdapter(ACNodesEntry.class, new ACNodesEntry.Deseralizer(this));
+		MyDMAM.gson_kit.registerTypeAdapter(ACFile.class, new ACFile.Deseralizer(this));
+		MyDMAM.gson_kit.registerTypeAdapter(ACPositionType.class, new ACPositionType.Deseralizer(this));
+		MyDMAM.gson_kit.registerTypeAdapter(ACFileLocations.class, new ACFileLocations.Deseralizer(this));
+		MyDMAM.gson_kit.registerTypeAdapter(ACFileLocationCache.class, new ACFileLocationCache.Deseralizer_ACFileLocationCache(this));
+		MyDMAM.gson_kit.registerTypeAdapter(ACFileLocationPack.class, new ACFileLocationPack.Deseralizer(this));
+		MyDMAM.gson_kit.registerTypeAdapter(ACFileLocationTape.class, new ACFileLocationTape.Deseralizer(this));
 		
 		this.host = host;
 		if (host == null) {
@@ -183,11 +166,11 @@ public class ACAPI {
 				}
 				String json_raw = baos.toString("UTF-8");
 				log.trace("HTTP Response: " + json_raw);
-				result = gson.fromJson(json_raw, return_class);
+				result = MyDMAM.gson_kit.getGson().fromJson(json_raw, return_class);
 				IOUtils.closeQuietly(is);
 			} else {
 				InputStreamReader isr = new InputStreamReader(is);
-				result = gson.fromJson(isr, return_class);
+				result = MyDMAM.gson_kit.getGson().fromJson(isr, return_class);
 				IOUtils.closeQuietly(isr);
 			}
 		} catch (Exception e) {

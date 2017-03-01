@@ -27,6 +27,7 @@ import com.google.gson.JsonObject;
 
 import controllers.Check;
 import ext.Bootstrap;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthEntry;
 import hd3gtv.mydmam.auth.GroupNG;
 import hd3gtv.mydmam.auth.RoleNG;
@@ -43,23 +44,11 @@ import hd3gtv.mydmam.auth.asyncjs.RoleViewList;
 import hd3gtv.mydmam.auth.asyncjs.UserAdminUpdate;
 import hd3gtv.mydmam.auth.asyncjs.UserView;
 import hd3gtv.mydmam.auth.asyncjs.UserViewList;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.PrivilegeNG;
 
 public class Auth extends AJSController {
-	
-	static {
-		AJSController.registerTypeAdapter(UserView.class, new UserView.Serializer());
-		AJSController.registerTypeAdapter(UserViewList.class, new UserViewList.Serializer());
-		AJSController.registerTypeAdapter(GroupView.class, new GroupView.Serializer());
-		AJSController.registerTypeAdapter(GroupViewList.class, new GroupViewList.Serializer());
-		AJSController.registerTypeAdapter(RoleView.class, new RoleView.Serializer());
-		AJSController.registerTypeAdapter(RoleViewList.class, new RoleViewList.Serializer());
-		AJSController.registerTypeAdapter(NewUser.class, new NewUser.Deserializer());
-		AJSController.registerTypeAdapter(UserAdminUpdate.class, new UserAdminUpdate.Deserializer());
-		AJSController.registerTypeAdapter(GroupChRole.class, new GroupChRole.Deserializer());
-		AJSController.registerTypeAdapter(RoleChPrivileges.class, new RoleChPrivileges.Deserializer());
-	}
 	
 	@Check("authAdmin")
 	public static UserView userCreate(NewUser newuser) throws Exception {
@@ -91,7 +80,7 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static JsonArray domainList() throws Exception {
-		return Bootstrap.getAuth().getGsonSimple().toJsonTree(Bootstrap.getAuth().getDeclaredDomainList()).getAsJsonArray();
+		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(Bootstrap.getAuth().getDeclaredDomainList()).getAsJsonArray();
 	}
 	
 	@Check("authAdmin")
@@ -215,31 +204,31 @@ public class Auth extends AJSController {
 	}
 	
 	public static JsonObject getActivities() throws Exception {
-		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getActivities(), UserNG.al_useractivity_typeOfT).getAsJsonObject();
+		return MyDMAM.gson_kit.getGson().toJsonTree(AJSController.getUserProfile().getActivities(), GsonKit.type_ArrayList_UserActivity).getAsJsonObject();
 	}
 	
 	public static JsonObject basketsList() throws Exception {
-		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
+		return MyDMAM.gson_kit.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), GsonKit.type_LinkedHashMap_StringBasketNG).getAsJsonObject();
 	}
 	
 	public static JsonObject basketPush(BasketUpdate update) throws Exception {
-		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
+		return MyDMAM.gson_kit.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), GsonKit.type_LinkedHashMap_StringBasketNG).getAsJsonObject();
 	}
 	
 	public static JsonObject basketDelete(String basket_key) throws Exception {
-		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
+		return MyDMAM.gson_kit.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), GsonKit.type_LinkedHashMap_StringBasketNG).getAsJsonObject();
 	}
 	
 	public static JsonObject basketRename(BasketRename rename) throws Exception {
-		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), UserNG.linmap_string_basket_typeOfT).getAsJsonObject();
+		return MyDMAM.gson_kit.getGson().toJsonTree(AJSController.getUserProfile().getBaskets(), GsonKit.type_LinkedHashMap_StringBasketNG).getAsJsonObject();
 	}
 	
 	public static JsonArray notificationsList() throws Exception {
-		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
+		return MyDMAM.gson_kit.getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), GsonKit.type_ArrayList_UserNotificationNG).getAsJsonArray();
 	}
 	
 	public static JsonArray notificationCheck(String notification_key) throws Exception {
-		return Bootstrap.getAuth().getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), UserNG.al_usernotification_typeOfT).getAsJsonArray();
+		return MyDMAM.gson_kit.getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), GsonKit.type_ArrayList_UserNotificationNG).getAsJsonArray();
 	}
 	
 }

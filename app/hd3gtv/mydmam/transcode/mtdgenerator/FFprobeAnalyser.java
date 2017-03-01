@@ -29,12 +29,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.ContainerEntryResult;
 import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
@@ -92,7 +92,7 @@ public class FFprobeAnalyser implements MetadataExtractor {
 			throw e;
 		}
 		
-		FFprobe result = ContainerOperations.getGson().fromJson(process.getResultstdout().toString(), FFprobe.class);
+		FFprobe result = MyDMAM.gson_kit.getGson().fromJson(process.getResultstdout().toString(), FFprobe.class);
 		
 		/**
 		 * Patch mime code if no video stream

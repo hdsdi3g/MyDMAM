@@ -19,8 +19,6 @@ package hd3gtv.mydmam.transcode.watchfolder;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
@@ -34,9 +32,6 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.transcode.TranscodeProfile;
-import hd3gtv.mydmam.transcode.TranscoderWorker;
-import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class WatchFolderDB {
 	
@@ -63,25 +58,6 @@ public class WatchFolderDB {
 		} catch (Exception e) {
 			Loggers.Transcode_WatchFolder.error("Can't init database CF", e);
 		}
-	}
-	
-	static final Gson gson_simple;
-	public static final Gson gson;
-	
-	static {
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		gson_simple = builder.create();
-		
-		builder.registerTypeAdapter(AbstractFoundedFile.class, new AbstractFoundedFile.Serializer());
-		builder.registerTypeAdapter(WatchFolderEntry.class, new WatchFolderEntry.Serializer());
-		builder.registerTypeAdapter(TranscoderWorker.class, new TranscoderWorker.Serializer());
-		builder.registerTypeAdapter(TranscodeProfile.class, new TranscodeProfile.Serializer());
-		
-		gson = builder.create();
 	}
 	
 	private WatchFolderDB() {

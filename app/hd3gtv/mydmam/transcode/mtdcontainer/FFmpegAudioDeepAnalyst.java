@@ -16,19 +16,16 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.List;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.metadata.container.ContainerEntry;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
-import hd3gtv.tools.GsonIgnore;
 
 public class FFmpegAudioDeepAnalyst extends EntryAnalyser {
 	
@@ -117,28 +114,19 @@ public class FFmpegAudioDeepAnalyst extends EntryAnalyser {
 		return sb.toString();
 	}
 	
-	private static Type al_FFmpegAudioDeepAnalystChannelStat_typeOfT = new TypeToken<ArrayList<FFmpegAudioDeepAnalystChannelStat>>() {
-	}.getType();
-	private static Type al_FFmpegAudioDeepAnalystSilenceDetect_typeOfT = new TypeToken<ArrayList<FFmpegAudioDeepAnalystSilenceDetect>>() {
-	}.getType();
-	
-	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
-		current_element.add("channels_stat", gson.toJsonTree(((FFmpegAudioDeepAnalyst) _item).channels_stat, al_FFmpegAudioDeepAnalystChannelStat_typeOfT));
-		current_element.add("silences", gson.toJsonTree(((FFmpegAudioDeepAnalyst) _item).silences, al_FFmpegAudioDeepAnalystSilenceDetect_typeOfT));
+	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {// TODO move de/serializer
+		current_element.add("channels_stat", gson.toJsonTree(((FFmpegAudioDeepAnalyst) _item).channels_stat, GsonKit.type_ArrayList_FFmpegAudioDeepAnalystChannelStat));
+		current_element.add("silences", gson.toJsonTree(((FFmpegAudioDeepAnalyst) _item).silences, GsonKit.type_ArrayList_FFmpegAudioDeepAnalystSilenceDetect));
 	}
 	
 	public String getES_Type() {
 		return "ffaudioda";
 	}
 	
-	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-		return null;
-	}
-	
-	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
-		FFmpegAudioDeepAnalyst ffada = ContainerOperations.getGsonSimple().fromJson(source, FFmpegAudioDeepAnalyst.class);
-		ffada.channels_stat = gson.fromJson(source.get("channels_stat"), al_FFmpegAudioDeepAnalystChannelStat_typeOfT);
-		ffada.silences = gson.fromJson(source.get("silences"), al_FFmpegAudioDeepAnalystSilenceDetect_typeOfT);
+	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
+		FFmpegAudioDeepAnalyst ffada = MyDMAM.gson_kit.getGsonSimple().fromJson(source, FFmpegAudioDeepAnalyst.class);
+		ffada.channels_stat = gson.fromJson(source.get("channels_stat"), GsonKit.type_ArrayList_FFmpegAudioDeepAnalystChannelStat);
+		ffada.silences = gson.fromJson(source.get("silences"), GsonKit.type_ArrayList_FFmpegAudioDeepAnalystSilenceDetect);
 		return ffada;
 	}
 	

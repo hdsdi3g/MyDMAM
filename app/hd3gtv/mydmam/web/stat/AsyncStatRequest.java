@@ -17,15 +17,15 @@
 package hd3gtv.mydmam.web.stat;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class AsyncStatRequest {
 	
@@ -41,19 +41,14 @@ public class AsyncStatRequest {
 	int page_size;
 	List<SortDirListing> sort;
 	
-	static Type type_List_String = new TypeToken<ArrayList<String>>() {
-	}.getType();
-	static Type type_List_Sort = new TypeToken<ArrayList<SortDirListing>>() {
-	}.getType();
-	
 	public static class Deserializer implements JsonDeserializer<AsyncStatRequest> {
 		
 		public AsyncStatRequest deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) {
-			AsyncStatRequest result = PathElementStat.gson_simple.fromJson(json, AsyncStatRequest.class);
-			result.pathelementskeys = PathElementStat.gson_simple.fromJson(json.getAsJsonObject().get("pathelementskeys"), type_List_String);
-			result.scopes_element = PathElementStat.gson_simple.fromJson(json.getAsJsonObject().get("scopes_element"), type_List_String);
-			result.scopes_subelements = PathElementStat.gson_simple.fromJson(json.getAsJsonObject().get("scopes_subelements"), type_List_String);
-			result.sort = PathElementStat.gson_simple.fromJson(json.getAsJsonObject().get("sort"), type_List_Sort);
+			AsyncStatRequest result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, AsyncStatRequest.class);
+			result.pathelementskeys = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("pathelementskeys"), GsonKit.type_ArrayList_String);
+			result.scopes_element = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("scopes_element"), GsonKit.type_ArrayList_String);
+			result.scopes_subelements = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("scopes_subelements"), GsonKit.type_ArrayList_String);
+			result.sort = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("sort"), GsonKit.type_ArrayList_SortDirListing);
 			return result;
 		}
 		

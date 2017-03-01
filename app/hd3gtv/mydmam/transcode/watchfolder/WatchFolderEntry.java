@@ -50,6 +50,7 @@ import com.netflix.astyanax.recipes.locks.StaleLockException;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
@@ -819,9 +820,9 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			
 			jo_entry.addProperty("name", entry.name);
 			jo_entry.addProperty("source_storage", entry.source_storage);
-			jo_entry.add("targets", AppManager.getSimpleGson().toJsonTree(entry.targets));
-			jo_entry.add("must_contain", AppManager.getSimpleGson().toJsonTree(entry.must_contain));
-			jo_entry.add("limit_to_file_extentions", AppManager.getSimpleGson().toJsonTree(entry.limit_to_file_extentions));
+			jo_entry.add("targets", MyDMAM.gson_kit.getGsonSimple().toJsonTree(entry.targets));
+			jo_entry.add("must_contain", MyDMAM.gson_kit.getGsonSimple().toJsonTree(entry.must_contain));
+			jo_entry.add("limit_to_file_extentions", MyDMAM.gson_kit.getGsonSimple().toJsonTree(entry.limit_to_file_extentions));
 			jo_entry.addProperty("min_file_size", entry.min_file_size);
 			jo_entry.addProperty("time_to_sleep_between_scans", entry.time_to_sleep_between_scans);
 			jo_entry.addProperty("time_to_wait_growing_file", entry.time_to_wait_growing_file);
@@ -833,7 +834,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 	}
 	
 	public JsonElement getInstanceStatusItem() {
-		return WatchFolderDB.gson.toJsonTree(this);
+		return MyDMAM.gson_kit.getGson().toJsonTree(this);
 	}
 	
 	public String getReferenceKey() {

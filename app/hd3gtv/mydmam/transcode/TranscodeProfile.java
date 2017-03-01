@@ -37,8 +37,8 @@ import com.google.gson.JsonSerializer;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.InstanceStatusItem;
-import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.ExecprocessGettext;
@@ -528,7 +528,7 @@ public class TranscodeProfile implements InstanceStatusItem {
 	}
 	
 	public JsonElement getInstanceStatusItem() {
-		return WatchFolderDB.gson.toJsonTree(this);
+		return MyDMAM.gson_kit.getGson().toJsonTree(this);
 	}
 	
 	public String getReferenceKey() {

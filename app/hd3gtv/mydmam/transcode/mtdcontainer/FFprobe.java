@@ -18,20 +18,18 @@
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
 import java.awt.Point;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst.Framerate;
 import hd3gtv.tools.VideoConst.Resolution;
@@ -42,22 +40,17 @@ public class FFprobe extends EntryAnalyser {
 	private ArrayList<Stream> streams;
 	private Format format;
 	
-	private static Type chapters_typeOfT = new TypeToken<ArrayList<Chapter>>() {
-	}.getType();
-	private static Type streams_typeOfT = new TypeToken<ArrayList<Stream>>() {
-	}.getType();
-	
-	protected EntryAnalyser internalDeserialize(JsonObject source, Gson gson) {
+	protected EntryAnalyser internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
 		FFprobe item = new FFprobe();
 		if (source.has("chapters")) {
-			item.chapters = gson.fromJson(source.get("chapters").getAsJsonArray(), chapters_typeOfT);
+			item.chapters = gson.fromJson(source.get("chapters").getAsJsonArray(), GsonKit.type_ArrayList_Chapter);
 		}
 		if (item.chapters == null) {
 			item.chapters = new ArrayList<Chapter>(1);
 		}
 		
 		if (source.has("streams")) {
-			item.streams = gson.fromJson(source.get("streams").getAsJsonArray(), streams_typeOfT);
+			item.streams = gson.fromJson(source.get("streams").getAsJsonArray(), GsonKit.type_ArrayList_Stream);
 			for (int pos = item.streams.size() - 1; pos > -1; pos--) {
 				if (item.streams.get(pos).getCodec_type() == null) {
 					item.streams.remove(pos);
@@ -78,28 +71,16 @@ public class FFprobe extends EntryAnalyser {
 		return item;
 	}
 	
-	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
+	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {// TODO move de/serializer
 		FFprobe item = (FFprobe) _item;
-		current_element.add("chapters", gson.toJsonTree(item.chapters, chapters_typeOfT));
-		current_element.add("streams", gson.toJsonTree(item.streams, streams_typeOfT));
+		current_element.add("chapters", gson.toJsonTree(item.chapters, GsonKit.type_ArrayList_Chapter));
+		current_element.add("streams", gson.toJsonTree(item.streams, GsonKit.type_ArrayList_Stream));
 		current_element.add("format", gson.toJsonTree(item.format, Format.class));
 	}
 	
 	public String getES_Type() {
 		return "ffprobe";
 	}
-	
-	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-		List<Class<? extends SelfSerializing>> list = new ArrayList<Class<? extends SelfSerializing>>(1);
-		list.add(Format.class);
-		list.add(Stream.class);
-		list.add(Chapter.class);
-		return list;
-	}
-	
-	/*
-	 * End of serialization functions
-	 * */
 	
 	public ArrayList<Chapter> getChapters() {
 		return chapters;
@@ -276,7 +257,7 @@ public class FFprobe extends EntryAnalyser {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("ffprobe: ");
-		sb.append(ContainerOperations.getGson().toJson(this));
+		sb.append(MyDMAM.gson_kit.getGson().toJson(this));
 		return sb.toString();
 	}
 	
