@@ -17,10 +17,13 @@
 package hd3gtv.mydmam.bcastautomation;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
+import org.apache.commons.io.FileUtils;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
@@ -90,17 +93,19 @@ final class BCAWatcherThread extends StoppableThread {
 						Loggers.BroadcastAutomation.debug("Asrun file import is done, found " + count + " events");
 						processor.endsOperation();
 					}
+				}
+				
+				if (watcher.isDeleteAsrunAfterWatch() && as_runs_files.isEmpty() == false) {
+					Loggers.BroadcastAutomation.debug("Delete asrun file(s) " + as_runs_files.size());
 					
-					if (watcher.isDeleteAsrunAfterWatch()) {
-						all_status.stream().forEach(status -> {
-							if (status.getLastEventStartDate() < (System.currentTimeMillis() - watcher.getMaxRetentionDuration())) {
-								File sch = status.getScheduleFile();
-								Loggers.BroadcastAutomation.info("Delete asrun file \"" + sch.getPath() + "\"");
-								sch.delete();
-								files_dates.remove(sch);
-							}
-						});
-					}
+					as_runs_files.forEach(file -> {
+						try {
+							FileUtils.forceDelete(file);
+							files_dates.remove(file);
+						} catch (IOException e) {
+							Loggers.BroadcastAutomation.error("Can't delete asrun: " + file.getPath(), e);
+						}
+					});
 				}
 				
 				/**
@@ -141,12 +146,10 @@ final class BCAWatcherThread extends StoppableThread {
 					
 					if (watcher.isDeletePlaylistAfterWatch()) {
 						all_status.stream().forEach(status -> {
-							if (status.getLastEventStartDate() < (System.currentTimeMillis() - watcher.getMaxRetentionDuration())) {
-								File sch = status.getScheduleFile();
-								Loggers.BroadcastAutomation.info("Delete playlist file \"" + sch.getPath() + "\"");
-								sch.delete();
-								files_dates.remove(sch);
-							}
+							File sch = status.getScheduleFile();
+							Loggers.BroadcastAutomation.info("Delete playlist file \"" + sch.getPath() + "\"");
+							sch.delete();
+							files_dates.remove(sch);
 						});
 					}
 				}
