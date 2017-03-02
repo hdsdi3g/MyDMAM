@@ -162,12 +162,12 @@ public class MetadataIndexingOperation {
 			}
 		}
 		
-		/*if (skip_if_found) {//TODO is needed ?
-			if (container.containAnyMatchContainerEntry(metadata_extractor.getAllRootEntryClasses().stream())) {
+		if (skip_if_found) {
+			if (metadata_extractor.isTheExtractionWasActuallyDoes(container)) {
 				Loggers.Metadata.info("Don't reprocess " + reference + " because " + metadata_extractor.getClass().getSimpleName() + " was already done");
 				return null;
 			}
-		}*/
+		}
 		
 		String mime = container.getSummary().getMimetype();
 		ContainerEntryResult generator_result = null;

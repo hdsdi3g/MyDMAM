@@ -152,7 +152,12 @@ public class ContainerOperations {
 			return null;
 		}
 		
-		ContainerEntry element = MyDMAM.gson_kit.getGson().fromJson(getresponse.getSourceAsString(), declared_entries_type.get(type).getClass());
+		ContainerEntry element = MyDMAM.gson_kit.getGson().fromJson(getresponse.getSourceAsString(), declared_entries_type.get(type));
+		
+		if (element instanceof EntryRenderer) {
+			((EntryRenderer) element).setESType(type);
+		}
+		
 		Container result = new Container(mtd_key, element.getOrigin());
 		result.addEntry(element);
 		return result;
@@ -172,12 +177,15 @@ public class ContainerOperations {
 			throw new NullPointerException("Can't found type: " + type);
 		}
 		
-		if ((declared_entries_type.get(type).equals(EntryAnalyser.class)) == false) {
+		Class<? extends ContainerEntry> class_type = declared_entries_type.get(type);
+		
+		if ((EntryAnalyser.class.isAssignableFrom(class_type)) == false) {
+			Loggers.Metadata.warn("Invalid type: " + type + " -> " + class_type.getName() + " is not a " + EntryAnalyser.class.getName());
 			return null;
 		}
 		
 		try {
-			EntryAnalyser analyser = (EntryAnalyser) declared_entries_type.get(type).newInstance();
+			EntryAnalyser analyser = (EntryAnalyser) class_type.newInstance();
 			if (analyser.canBeSendedToWebclients() == false) {
 				return null;
 			}
@@ -281,7 +289,14 @@ public class ContainerOperations {
 				}
 				return true;
 			}
-			result.add(hit.getId(), MyDMAM.gson_kit.getGson().fromJson(hit.getSourceAsString(), declared_entries_type.get(type)));
+			
+			ContainerEntry element = MyDMAM.gson_kit.getGson().fromJson(hit.getSourceAsString(), declared_entries_type.get(type));
+			if (element instanceof EntryRenderer) {
+				((EntryRenderer) element).setESType(type);
+			}
+			
+			result.add(hit.getId(), element);
+			
 			return true;
 		}
 		
@@ -293,7 +308,13 @@ public class ContainerOperations {
 				}
 				return;
 			}
-			result.add(response.getId(), MyDMAM.gson_kit.getGson().fromJson(response.getSourceAsString(), declared_entries_type.get(type)));
+			
+			ContainerEntry element = MyDMAM.gson_kit.getGson().fromJson(response.getSourceAsString(), declared_entries_type.get(type));
+			if (element instanceof EntryRenderer) {
+				((EntryRenderer) element).setESType(type);
+			}
+			
+			result.add(response.getId(), element);
 		}
 	}
 	

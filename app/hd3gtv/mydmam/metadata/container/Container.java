@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Stream;
 
 import org.elasticsearch.ElasticsearchException;
 
@@ -136,7 +135,15 @@ public class Container {
 		}
 	}
 	
-	public boolean containAnyMatchContainerEntry(Stream<Class<? extends ContainerEntry>> s_class_of_T) {
+	public boolean containAnyMatchContainerEntryType(String... types) {
+		if (types == null) {
+			return false;
+		}
+		if (types.length == 0) {
+			return false;
+		}
+		ArrayList<String> al_types = new ArrayList<>(types.length);
+		// TODO...
 		return s_class_of_T.anyMatch(c -> {
 			return map_class_entry.containsKey(c);
 		});

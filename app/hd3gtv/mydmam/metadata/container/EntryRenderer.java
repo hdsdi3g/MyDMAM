@@ -56,7 +56,7 @@ public final class EntryRenderer extends ContainerEntry {
 		return es_type;
 	}
 	
-	public EntryRenderer setESType(String type) {
+	EntryRenderer setESType(String type) {
 		if (type == null) {
 			throw new NullPointerException("\"type\" can't to be null");
 		}
@@ -120,7 +120,7 @@ public final class EntryRenderer extends ContainerEntry {
 	
 	public static class Serializer extends ContainerEntryDeSerializer<EntryRenderer> {
 		
-		protected EntryRenderer internalDeserialize(JsonObject source) {// TODO method for patch ES Type value after deserialize...
+		protected EntryRenderer internalDeserialize(JsonObject source) {
 			EntryRenderer entry = new EntryRenderer();
 			entry.content = MyDMAM.gson_kit.getGson().fromJson(source.get("content").getAsJsonArray(), GsonKit.type_List_RenderedContent);
 			entry.options = source.get("options").getAsJsonObject();

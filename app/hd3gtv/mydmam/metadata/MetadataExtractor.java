@@ -65,4 +65,10 @@ public interface MetadataExtractor {
 	 */
 	PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry);
 	
+	/**
+	 * It checks in the container if it has the extractions that this Extractor was doing.
+	 * You can use container.containAnyMatchContainerEntryType for an easy check.
+	 */
+	boolean isTheExtractionWasActuallyDoes(Container container);
+	
 }
