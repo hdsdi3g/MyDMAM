@@ -18,7 +18,6 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +33,6 @@ import hd3gtv.mydmam.metadata.ContainerEntryResult;
 import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
@@ -452,10 +450,6 @@ public class FFprobeAnalyser implements MetadataExtractor {
 			}
 		}
 		return false;
-	}
-	
-	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
-		return Arrays.asList(FFprobe.class);
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {

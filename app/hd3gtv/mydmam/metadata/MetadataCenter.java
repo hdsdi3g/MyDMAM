@@ -26,11 +26,12 @@ import java.util.Map;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.transcode.images.ImageMagickAnalyser;
-import hd3gtv.mydmam.transcode.images.ImageMagickFFmpegThumbnailer;
-import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer;
-import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Cartridge;
-import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.FullDisplay;
-import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Icon;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerCartridge;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerCartridgeFFmpeg;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerFullDisplay;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerFullDisplayFFmpeg;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerIcon;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerIconFFmpeg;
 import hd3gtv.mydmam.transcode.mtdgenerator.BBCBmxAnalyser;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAudioDeepAnalyser;
@@ -157,12 +158,13 @@ public class MetadataCenter {
 			addExtractor(new FFmpegAlbumartwork());
 			addExtractor(new FFmpegSnapshot());
 			
-			addExtractor(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
-			addExtractor(new ImageMagickThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
-			addExtractor(new ImageMagickThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
-			addExtractor(new ImageMagickFFmpegThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
-			addExtractor(new ImageMagickFFmpegThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
-			addExtractor(new ImageMagickFFmpegThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
+			addExtractor(new ImageMagickThumbnailerFullDisplay());
+			addExtractor(new ImageMagickThumbnailerCartridge());
+			addExtractor(new ImageMagickThumbnailerIcon());
+			
+			addExtractor(new ImageMagickThumbnailerFullDisplayFFmpeg());
+			addExtractor(new ImageMagickThumbnailerCartridgeFFmpeg());
+			addExtractor(new ImageMagickThumbnailerIconFFmpeg());
 			
 			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererLQ.class, PreviewType.video_lq_pvw, false));
 			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererSD.class, PreviewType.video_sd_pvw, false));

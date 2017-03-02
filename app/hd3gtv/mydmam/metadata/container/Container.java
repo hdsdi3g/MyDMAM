@@ -42,6 +42,8 @@ public class Container {
 	private List<ContainerEntry> containerEntries;
 	private EntrySummary summary;
 	private HashMap<String, ContainerEntry> map_type_entry;
+	
+	@Deprecated
 	private HashMap<Class<? extends ContainerEntry>, ContainerEntry> map_class_entry;
 	
 	public Container(String mtd_key, ContainerOrigin origin) {
@@ -87,6 +89,23 @@ public class Container {
 	
 	public ContainerEntry getByType(String type) {
 		ContainerEntry result = map_type_entry.get(type);
+		result.container = this;
+		return result;
+	}
+	
+	public <T extends ContainerEntry> T getByType(String type, Class<T> class_type) {
+		if (map_type_entry.containsKey(type) == false) {
+			return null;
+		}
+		
+		ContainerEntry c_e = map_type_entry.get(type);
+		if (class_type.isAssignableFrom(c_e.getClass()) == false) {
+			Loggers.Metadata.error("Invalid transtype for type " + type + ": want item (" + class_type + ") is not compatible with declared item (" + c_e.getClass() + ")");
+			return null;
+		}
+		
+		@SuppressWarnings("unchecked")
+		T result = (T) map_type_entry.get(type);
 		result.container = this;
 		return result;
 	}
@@ -159,7 +178,7 @@ public class Container {
 				sb.append(MyDMAM.gson_kit.getGson().toJson(containerEntries.get(pos)));
 			} catch (Exception e) {
 				/**
-				 * Check getAllRootEntryClasses and serializators.
+				 * Check serializators.
 				 */
 				Loggers.Metadata.error("Problem during serialization with " + containerEntries.get(pos).getClass().getName(), e);
 			}

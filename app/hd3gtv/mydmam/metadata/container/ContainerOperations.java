@@ -50,6 +50,21 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
+import hd3gtv.mydmam.transcode.images.ImageAttributes;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerCartridge;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerFullDisplay;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerIcon;
+import hd3gtv.mydmam.transcode.mtdcontainer.BBCBmx;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAudioDeepAnalyser;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot;
+import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererAudio;
+import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererHD;
+import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererLQ;
+import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererSD;
 import hd3gtv.tools.StoppableProcessing;
 
 /**
@@ -77,7 +92,24 @@ public class ContainerOperations {
 	
 	static {
 		declared_entries_type = new LinkedHashMap<>();
-		declared_entries_type.put(EntrySummary.type, EntrySummary.class);
+		declared_entries_type.put(EntrySummary.ES_TYPE, EntrySummary.class);
+		
+		declared_entries_type.put(ImageAttributes.ES_TYPE, ImageAttributes.class);
+		declared_entries_type.put(BBCBmx.ES_TYPE, BBCBmx.class);
+		declared_entries_type.put(FFmpegAudioDeepAnalyst.ES_TYPE, FFmpegAudioDeepAnalyst.class);
+		declared_entries_type.put(FFmpegInterlacingStats.ES_TYPE, FFmpegInterlacingStats.class);
+		declared_entries_type.put(FFprobe.ES_TYPE, FFprobe.class);
+		
+		declared_entries_type.put(FFmpegSnapshot.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(FFmpegAudioDeepAnalyser.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(FFmpegAlbumartwork.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(JobContextFFmpegLowresRendererAudio.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(JobContextFFmpegLowresRendererHD.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(JobContextFFmpegLowresRendererLQ.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(JobContextFFmpegLowresRendererSD.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(ImageMagickThumbnailerCartridge.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(ImageMagickThumbnailerFullDisplay.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(ImageMagickThumbnailerIcon.ES_TYPE, EntryRenderer.class);
 		
 		/**
 		 * Call MetadataCenter for run static block.
@@ -194,7 +226,7 @@ public class ContainerOperations {
 		if (pathelement_key == null) {
 			throw new NullPointerException("\"pathelement_key\" can't to be null");
 		}
-		Containers result = ContainerOperations.searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key), EntrySummary.type);
+		Containers result = ContainerOperations.searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key), EntrySummary.ES_TYPE);
 		if (result.getAll().isEmpty()) {
 			return null;
 		} else {
@@ -354,7 +386,7 @@ public class ContainerOperations {
 				index.setSource(MyDMAM.gson_kit.getGson().toJson(containerEntry));
 			} catch (Exception e) {
 				/**
-				 * Check getAllRootEntryClasses and serializators.
+				 * Check serializators.
 				 */
 				Loggers.Metadata.error("Problem during serialization with " + containerEntry.getClass().getName(), e);
 				return;

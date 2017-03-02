@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -30,7 +29,6 @@ import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystChannelStat;
@@ -88,10 +86,6 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		return "Audio deep analyst and stats computing via ffmpeg";
 	}
 	
-	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
-		return Arrays.asList(FFmpegAudioDeepAnalyst.class, AudioDeepAnalystGraphic.class);
-	}
-	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
 		return null;
 	}
@@ -108,11 +102,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		return PreviewType.audio_graphic_deepanalyst;
 	}
 	
-	public static class AudioDeepAnalystGraphic extends EntryRenderer {
-		public String getES_Type() {
-			return "ffaudiodagraphic";
-		}
-	}
+	public static final String ES_TYPE = "ffaudiodagraphic";
 	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		FFprobe ffprobe = container.getByClass(FFprobe.class);
@@ -223,7 +213,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		ffdae.closeLastSilence();
 		ffdae.saveLUFSGraphic(rf_lufs_truepeak_graphic.getTempFile(), jpg_compression_ratio);
 		
-		AudioDeepAnalystGraphic entry_graphic = new AudioDeepAnalystGraphic();
+		EntryRenderer entry_graphic = new EntryRenderer(ES_TYPE);
 		entry_graphic.getOptions().addProperty("width", image_width);
 		entry_graphic.getOptions().addProperty("height", image_height);
 		entry_graphic.getOptions().addProperty("lufs_depth", lufs_depth);

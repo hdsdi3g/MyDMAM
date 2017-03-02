@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
@@ -13,7 +12,7 @@ import com.google.gson.JsonObject;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import hd3gtv.mydmam.metadata.container.ContainerEntryDeSerializer;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Colorspace;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Compose;
@@ -31,33 +30,39 @@ import hd3gtv.tools.ExecprocessGettext;
 
 public class ImageAttributes extends EntryAnalyser {
 	
-	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {// TODO move de/serializer
-		ImageAttributes item = (ImageAttributes) _item;
-		current_element.add("properties", gson.toJsonTree(item.properties, GsonKit.type_LinkedHashMap_String_String));
-	}
-	
-	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
-		String entry_value;
-		for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
-			if (entry.getValue().isJsonPrimitive() == false) {
-				continue;
+	public static class Serializer extends ContainerEntryDeSerializer<ImageAttributes> {
+		
+		protected ImageAttributes internalDeserialize(JsonObject source) {
+			String entry_value;
+			for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
+				if (entry.getValue().isJsonPrimitive() == false) {
+					continue;
+				}
+				entry_value = entry.getValue().getAsString();
+				if (entry_value.equalsIgnoreCase("undefined")) {
+					source.add(entry.getKey(), JsonNull.INSTANCE);
+				}
 			}
-			entry_value = entry.getValue().getAsString();
-			if (entry_value.equalsIgnoreCase("undefined")) {
-				source.add(entry.getKey(), JsonNull.INSTANCE);
+			
+			ImageAttributes item = MyDMAM.gson_kit.getGsonSimple().fromJson(source, ImageAttributes.class);
+			item.properties = MyDMAM.gson_kit.getGson().fromJson(source.get("properties"), GsonKit.type_LinkedHashMap_String_String);
+			if (source.has("class")) {
+				item.imgclass = ImageClass.valueOf(source.get("class").getAsString());
 			}
+			return item;
 		}
 		
-		ImageAttributes item = MyDMAM.gson_kit.getGsonSimple().fromJson(source, ImageAttributes.class);
-		item.properties = gson.fromJson(source.get("properties"), GsonKit.type_LinkedHashMap_String_String);
-		if (source.has("class")) {
-			item.imgclass = ImageClass.valueOf(source.get("class").getAsString());
+		protected JsonObject internalSerialize(ImageAttributes item) {
+			JsonObject current_element = super.internalSerialize(item);
+			current_element.add("properties", MyDMAM.gson_kit.getGson().toJsonTree(item.properties, GsonKit.type_LinkedHashMap_String_String));
+			return current_element;
 		}
-		return item;
 	}
 	
+	public static final String ES_TYPE = "imagemagick";
+	
 	public String getES_Type() {
-		return "imagemagick";
+		return ES_TYPE;
 	}
 	
 	String format;

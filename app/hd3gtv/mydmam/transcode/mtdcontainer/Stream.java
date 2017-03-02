@@ -59,10 +59,10 @@ public class Stream extends FFprobeNode {
 		return Internal.class;
 	}
 	
-	protected void internalDeserialize(FFprobeNode _item, JsonObject source, Gson gson) {
+	protected void internalDeserialize(FFprobeNode _item, JsonObject source, Gson gson) {// TODO correct
 	}
 	
-	protected void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson) {// TODO move de/serializer
+	protected void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson) {// TODO correct
 		Stream item = (Stream) _item;
 		jo.add("disposition", gson.toJsonTree(item.internal.disposition));
 	}

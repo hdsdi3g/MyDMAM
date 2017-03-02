@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2015
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
 package hd3gtv.mydmam.transcode.images;
@@ -23,23 +23,21 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.ContainerEntryResult;
 import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
-import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork.Albumartwork;
-import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot.Snapshot;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFprobeAnalyser;
 import hd3gtv.tools.StoppableProcessing;
 
 /**
  * Create valid and usable thumbnails from raw ffmpeg snapshots and albums artworks.
  */
-public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
+public class ImageMagickThumbnailerCartridgeFFmpeg extends ImageMagickThumbnailerCartridge {
 	
-	public ImageMagickFFmpegThumbnailer(Class<? extends EntryRenderer> root_entry_class, PreviewType preview_type, String profile_name) {
-		super(root_entry_class, preview_type, profile_name);
+	public ImageMagickThumbnailerCartridgeFFmpeg() {
+		super();
 	}
 	
 	public boolean canProcessThisMimeType(String mimetype) {
@@ -48,22 +46,14 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 		return false;
 	}
 	
-	public boolean isEnabled() {
-		return super.isEnabled();
-	}
-	
 	public String getLongName() {
 		return super.getLongName() + " from ffmpeg snapshots and artworks";
 	}
 	
-	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
-		return super.getPreviewTypeForRenderer(container, entry);
-	}
-	
-	public ContainerEntryResult processFull(Container media_source_container, StoppableProcessing stoppable) throws Exception {
-		EntryRenderer snapshot = media_source_container.getByClass(Albumartwork.class);
+	static ContainerEntryResult preProcessFull(Container media_source_container, StoppableProcessing stoppable, ImageMagickThumbnailer this_thumbnailer) throws Exception {
+		EntryRenderer snapshot = media_source_container.getByType(FFmpegAlbumartwork.ES_TYPE, EntryRenderer.class);
 		if (snapshot == null) {
-			snapshot = media_source_container.getByClass(Snapshot.class);
+			snapshot = media_source_container.getByType(FFmpegSnapshot.ES_TYPE, EntryRenderer.class);
 		}
 		if (snapshot == null) {
 			Loggers.Transcode.debug("No snapshot or artwork found from this container: " + media_source_container);
@@ -93,10 +83,10 @@ public class ImageMagickFFmpegThumbnailer extends ImageMagickThumbnailer {
 			Loggers.Transcode.debug("No image_attributes for the snapshot file container: " + snapshot_file_container);
 			return null;
 		}
-		return subProcess(media_source_container, stoppable, physical_source, image_attributes);
+		return this_thumbnailer.subProcess(media_source_container, stoppable, physical_source, image_attributes);
 	}
 	
-	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
-		return super.getAllRootEntryClasses();
+	public ContainerEntryResult processFull(Container media_source_container, StoppableProcessing stoppable) throws Exception {
+		return preProcessFull(media_source_container, stoppable, this);
 	}
 }

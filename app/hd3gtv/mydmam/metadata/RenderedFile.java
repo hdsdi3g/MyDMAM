@@ -701,7 +701,7 @@ public class RenderedFile {
 					}
 					element_source_key = allrootelements[pos].getName() + subrootfiles[pos_sroot].getName() + mtddir[pos_mtd].getName();
 					
-					Container container = ContainerOperations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.type);
+					Container container = ContainerOperations.getByMtdKeyForOnlyOneType(element_source_key, EntrySummary.ES_TYPE);
 					if (container == null) {
 						Loggers.Metadata.info("Delete all metadata references for directory, mtd key: " + element_source_key);
 						purge(element_source_key);

@@ -18,7 +18,6 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import hd3gtv.mydmam.Loggers;
@@ -27,13 +26,11 @@ import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
-import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork.Albumartwork;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.StoppableProcessing;
@@ -43,12 +40,7 @@ public class FFmpegSnapshot implements MetadataExtractor {
 	
 	private TranscodeProfile tprofile;
 	
-	public static class Snapshot extends EntryRenderer {
-		public String getES_Type() {
-			return "ffsnapshot";
-		}
-		
-	}
+	public final static String ES_TYPE = "ffsnapshot";
 	
 	public FFmpegSnapshot() {
 		if (TranscodeProfile.isConfigured()) {
@@ -84,7 +76,7 @@ public class FFmpegSnapshot implements MetadataExtractor {
 		/**
 		 * Skip if Albumartwork is already set
 		 */
-		if (container.getByClass(Albumartwork.class) != null) {
+		if (container.getByType(FFmpegAlbumartwork.ES_TYPE, EntryRenderer.class) != null) {
 			return null;
 		}
 		
@@ -147,17 +139,13 @@ public class FFmpegSnapshot implements MetadataExtractor {
 			throw e;
 		}
 		
-		Snapshot result = new Snapshot();
+		EntryRenderer result = new EntryRenderer(FFmpegSnapshot.ES_TYPE);
 		element.consolidateAndExportToEntry(result, container, this);
 		return new ContainerEntryResult(result);
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return null;
-	}
-	
-	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
-		return Arrays.asList(Snapshot.class);
 	}
 	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {

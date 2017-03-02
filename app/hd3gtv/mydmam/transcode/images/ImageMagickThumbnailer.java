@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.transcode.images;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 
 import hd3gtv.mydmam.Loggers;
@@ -29,7 +28,6 @@ import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
@@ -38,37 +36,11 @@ import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.StoppableProcessing;
 
-public class ImageMagickThumbnailer implements MetadataExtractor {
+public abstract class ImageMagickThumbnailer implements MetadataExtractor {
 	
-	public static class FullDisplay extends EntryRenderer {
-		public String getES_Type() {
-			return "imthumbnail_full";
-		}
-		
-		public static final String profile_name = "convert_full_display";
-		public static final String profile_personalizedsize_name = "convert_personalizedsize";
-	}
-	
-	public static class Cartridge extends EntryRenderer {
-		public String getES_Type() {
-			return "imthumbnail_cartridge";
-		}
-		
-		public static final String profile_name = "convert_cartridge";
-	}
-	
-	public static class Icon extends EntryRenderer {
-		public String getES_Type() {
-			return "imthumbnail_icon";
-		}
-		
-		public static final String profile_name = "convert_icon";
-	}
-	
-	private TranscodeProfile tprofile_opaque;
-	private TranscodeProfile tprofile_alpha;
-	private Class<? extends EntryRenderer> root_entry_class;
-	private PreviewType preview_type;
+	protected TranscodeProfile tprofile_opaque;
+	protected TranscodeProfile tprofile_alpha;
+	protected PreviewType preview_type;
 	protected static File icc_profile;
 	
 	static {
@@ -82,22 +54,6 @@ public class ImageMagickThumbnailer implements MetadataExtractor {
 	
 	public static File getICCProfile() {
 		return icc_profile;
-	}
-	
-	public ImageMagickThumbnailer(Class<? extends EntryRenderer> root_entry_class, PreviewType preview_type, String profile_name) {
-		this.root_entry_class = root_entry_class;
-		if (root_entry_class == null) {
-			throw new NullPointerException("\"root_entry_class\" can't to be null");
-		}
-		this.preview_type = preview_type;
-		if (preview_type == null) {
-			throw new NullPointerException("\"preview_type\" can't to be null");
-		}
-		
-		if (TranscodeProfile.isConfigured()) {
-			tprofile_opaque = TranscodeProfile.getTranscodeProfile(profile_name);
-			tprofile_alpha = TranscodeProfile.getTranscodeProfile(profile_name + "_alpha");
-		}
 	}
 	
 	public boolean canProcessThisMimeType(String mimetype) {
@@ -130,56 +86,35 @@ public class ImageMagickThumbnailer implements MetadataExtractor {
 		return subProcess(container, stoppable, container.getPhysicalSource(), image_attributes);
 	}
 	
+	protected abstract String getFileReferenceName();
+	
+	protected abstract String getEntryRendererESType();
+	
+	/**
+	 * @return if null, cancel this image format
+	 */
+	protected abstract TranscodeProfile getProfileIfItJudiciousToDoThumbnail(Compare compare, ImageAttributes image_attributes, TranscodeProfile primary_tprofile);
+	
+	protected abstract boolean isPersonalizedSize(Compare compare, ImageAttributes image_attributes);
+	
 	protected ContainerEntryResult subProcess(Container container, StoppableProcessing stoppable, File physical_source, ImageAttributes image_attributes) throws Exception {
 		TranscodeProfile tprofile = tprofile_opaque;
 		if (image_attributes.alpha != null) {
 			tprofile = tprofile_alpha;
 		}
 		
-		/*
-		 * Choose list :
-					img < icon		img < cartridge	img < full		img > full
-		full		nope			personalized	personalized	full
-		cartridge	nope			nope			cartridge		cartridge
-		icon		icon			icon			icon			icon 
-		 * */
-		
 		Compare compare = image_attributes.geometry.compare(tprofile);
-		boolean is_personalizedsize = false;
-		if (root_entry_class == FullDisplay.class) {
-			if (compare == Compare.IS_SMALLER_THAN_PROFILE) {
-				if (image_attributes.geometry.compare(TranscodeProfile.getTranscodeProfile(Icon.profile_name)) == Compare.IS_SMALLER_THAN_PROFILE) {
-					/**
-					 * full, but img < icon => nope
-					 */
-					Loggers.Transcode.debug(
-							"Image size (full) is too litte to fit in this profile, source: " + container + ", physical_source: " + physical_source + ", output format: " + tprofile.getOutputformat());
-					return null;
-				}
-				if (image_attributes.alpha == null) {
-					tprofile = TranscodeProfile.getTranscodeProfile(FullDisplay.profile_personalizedsize_name);
-				} else {
-					tprofile = TranscodeProfile.getTranscodeProfile(FullDisplay.profile_personalizedsize_name + "_alpha");
-				}
-				is_personalizedsize = true;
-			}
-		} else if (root_entry_class == Cartridge.class) {
-			if (compare == Compare.IS_SMALLER_THAN_PROFILE) {
-				/**
-				 * cartridge, but img < cartridge => nope
-				 */
-				Loggers.Transcode.debug("Image size (cartridge) is too litte to fit in this profile, source: " + container + ", physical_source: " + physical_source + ", output format: "
-						+ tprofile.getOutputformat());
-				return null;
-			}
-		} else if (root_entry_class == null) {
-			throw new NullPointerException("\"root_entry_class\" can't to be null");
-		}
+		
+		tprofile = getProfileIfItJudiciousToDoThumbnail(compare, image_attributes, tprofile);
+		
 		if (tprofile == null) {
-			throw new NullPointerException("\"tprofile\" can't to be null");
+			Loggers.Transcode.debug("Image is too litte to fit in this extractor (" + getClass().getName() + "), source: " + container + ", physical_source: " + physical_source);
+			return null;
 		}
 		
-		RenderedFile element = new RenderedFile(root_entry_class.getSimpleName().toLowerCase(), tprofile.getExtension("jpg"));
+		boolean is_personalizedsize = isPersonalizedSize(compare, image_attributes);
+		
+		RenderedFile element = new RenderedFile(getFileReferenceName(), tprofile.getExtension("jpg"));
 		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(physical_source, element.getTempFile());
 		process_conf.getInitialParams().addAll(ImageMagickAnalyser.convert_limits_params);
 		process_conf.getParamTags().put("ICCPROFILE", icc_profile.getAbsolutePath());
@@ -191,7 +126,7 @@ public class ImageMagickThumbnailer implements MetadataExtractor {
 		Loggers.Transcode.debug("Start conversion, process_conf: " + process_conf.toString());
 		process.start();
 		
-		EntryRenderer thumbnail = root_entry_class.newInstance();
+		EntryRenderer thumbnail = new EntryRenderer(getEntryRendererESType());
 		
 		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).setLimit(MetadataIndexingLimit.FAST).doIndexing();
 		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByClass(ImageAttributes.class);
@@ -211,10 +146,6 @@ public class ImageMagickThumbnailer implements MetadataExtractor {
 	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
 		return null;
-	}
-	
-	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
-		return Arrays.asList(root_entry_class);
 	}
 	
 	public boolean isCanUsedInMasterAsPreview(Container container) {

@@ -16,11 +16,14 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
+import hd3gtv.mydmam.gson.GsonIgnore;
+
 public abstract class ContainerEntry {
 	
 	ContainerEntry() {
 	}
 	
+	@GsonIgnore
 	ContainerOrigin origin;
 	
 	transient Container container;

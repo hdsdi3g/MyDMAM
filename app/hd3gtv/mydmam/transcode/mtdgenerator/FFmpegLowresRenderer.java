@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -37,7 +36,6 @@ import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
@@ -57,7 +55,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 	private TranscodeProfile transcode_profile;
 	private PreviewType preview_type;
 	private boolean audio_only;
-	private Class<? extends EntryRenderer> root_entry_class;
+	private String es_type_entry_renderer;
 	private Class<? extends JobContextFFmpegLowresRenderer> context_class;
 	
 	public FFmpegLowresRenderer(Class<? extends JobContextFFmpegLowresRenderer> context_class, PreviewType preview_type, boolean audio_only) throws InstantiationException, IllegalAccessException {
@@ -67,7 +65,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 		
 		JobContextFFmpegLowresRenderer item = context_class.newInstance();
-		root_entry_class = item.getEntryRendererClass();
+		es_type_entry_renderer = item.getESTypeEntryRenderer();
 		
 		if (TranscodeProfile.isConfigured()) {
 			this.transcode_profile = TranscodeProfile.getTranscodeProfile(item.getTranscodeProfileName());
@@ -260,7 +258,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		job_progress.updateStep(3, 3);
 		job_progress.update("Converting is ended");
 		
-		return new ContainerEntryResult(final_element.consolidateAndExportToEntry(root_entry_class.newInstance(), container, this));
+		return new ContainerEntryResult(final_element.consolidateAndExportToEntry(new EntryRenderer(es_type_entry_renderer), container, this));
 	}
 	
 	public synchronized void stopStandaloneProcess() throws Exception {
@@ -352,10 +350,6 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		};
 		
 		current_create_jobs_list.add(result);
-	}
-	
-	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
-		return Arrays.asList(root_entry_class);
 	}
 	
 	public Class<? extends JobContextMetadataRenderer> getContextClass() {

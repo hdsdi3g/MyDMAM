@@ -83,12 +83,17 @@ import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobCreator;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.metadata.container.ContainerPreview;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
+import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.metadata.container.RenderedContent;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscoderWorker;
+import hd3gtv.mydmam.transcode.images.ImageAttributes;
 import hd3gtv.mydmam.transcode.mtdcontainer.Chapter;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystChannelStat;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystSilenceDetect;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile;
 import hd3gtv.mydmam.transcode.watchfolder.AsyncJSWatchfolderResponseList;
@@ -425,7 +430,12 @@ public class GsonKit {
 			
 			builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Serializer());
 			builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
-			// TODO add all ContainerEntry de/serializer
+			
+			builder.registerTypeAdapter(EntrySummary.class, new EntrySummary.Serializer());
+			builder.registerTypeAdapter(ImageAttributes.class, new ImageAttributes.Serializer());
+			builder.registerTypeAdapter(FFmpegAudioDeepAnalyst.class, new FFmpegAudioDeepAnalyst.Serializer());
+			builder.registerTypeAdapter(FFmpegInterlacingStats.class, new FFmpegInterlacingStats.Serializer());
+			builder.registerTypeAdapter(EntryRenderer.class, new EntryRenderer.Serializer());
 			
 			/*
 			 * 	public class Serializer implements JsonSerializer<SelfSerializing> {
@@ -440,11 +450,6 @@ public class GsonKit {
 			}
 			}
 			
-			 * 
-			 */
-			
-			/*
-			 * 
 			registerDeSerializer(, .class, src -> {
 			}, json -> {
 			});

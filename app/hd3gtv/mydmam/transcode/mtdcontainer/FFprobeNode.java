@@ -33,9 +33,9 @@ abstract class FFprobeNode {
 	 */
 	protected abstract FFprobeNode create();
 	
-	protected abstract void internalDeserialize(FFprobeNode _item, JsonObject source, Gson gson);
+	protected abstract void internalDeserialize(FFprobeNode _item, JsonObject source, Gson gson);// TODO correct
 	
-	protected abstract void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson);
+	protected abstract void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson);// TODO correct
 	
 	private transient HashMap<String, JsonPrimitive> params;
 	

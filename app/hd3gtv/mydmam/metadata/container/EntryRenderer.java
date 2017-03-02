@@ -20,21 +20,48 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.metadata.RenderedFile;
 
-public abstract class EntryRenderer extends ContainerEntry {
+public final class EntryRenderer extends ContainerEntry {
 	
-	private @GsonIgnore List<RenderedContent> content;
-	private @GsonIgnore JsonObject options;
+	@GsonIgnore
+	private List<RenderedContent> content;
+	@GsonIgnore
+	private JsonObject options;
 	
-	public EntryRenderer() {
+	private transient String es_type;
+	
+	private EntryRenderer() {
 		options = new JsonObject();
+	}
+	
+	/**
+	 * Don't forget to declare type in ContainerOperations static block.
+	 * @param type ES type
+	 */
+	public EntryRenderer(String type) {
+		options = new JsonObject();
+		if (type == null) {
+			throw new NullPointerException("\"type\" can't to be null");
+		}
+		es_type = type;
+	}
+	
+	public String getES_Type() {
+		return es_type;
+	}
+	
+	public EntryRenderer setESType(String type) {
+		if (type == null) {
+			throw new NullPointerException("\"type\" can't to be null");
+		}
+		es_type = type;
+		return this;
 	}
 	
 	public boolean isEmpty() {
@@ -91,25 +118,22 @@ public abstract class EntryRenderer extends ContainerEntry {
 		return options;
 	}
 	
-	protected final ContainerEntry internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
-		EntryRenderer entry;
-		try {
-			entry = getClass().newInstance();
-		} catch (Exception e) {
-			Loggers.Metadata.error("Can't instanciate this Entry", e);
-			return null;
+	public static class Serializer extends ContainerEntryDeSerializer<EntryRenderer> {
+		
+		protected EntryRenderer internalDeserialize(JsonObject source) {// TODO method for patch ES Type value after deserialize...
+			EntryRenderer entry = new EntryRenderer();
+			entry.content = MyDMAM.gson_kit.getGson().fromJson(source.get("content").getAsJsonArray(), GsonKit.type_List_RenderedContent);
+			entry.options = source.get("options").getAsJsonObject();
+			return entry;
 		}
-		entry.content = gson.fromJson(source.get("content").getAsJsonArray(), GsonKit.type_List_RenderedContent);
-		entry.options = source.get("options").getAsJsonObject();
-		return entry;
-	}
-	
-	protected final JsonObject internalSerialize(ContainerEntry _item, Gson gson) {// TODO move de/serializer
-		EntryRenderer src = (EntryRenderer) _item;
-		JsonObject jo = new JsonObject();
-		jo.add("options", src.options);
-		jo.add("content", gson.toJsonTree(src.content));
-		return jo;
+		
+		protected JsonObject internalSerialize(EntryRenderer item) {
+			JsonObject jo = new JsonObject();
+			jo.add("options", item.options);
+			jo.add("content", MyDMAM.gson_kit.getGson().toJsonTree(item.content));
+			return jo;
+		}
+		
 	}
 	
 }

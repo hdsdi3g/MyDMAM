@@ -326,7 +326,7 @@ public class RequestResponseCache {
 		public HashMap<String, RequestResponseCacheExpirableItem<ContainersSummaryCachedItem>> makeValues(List<String> cache_reference_tags) throws Exception {
 			HashMap<String, RequestResponseCacheExpirableItem<ContainersSummaryCachedItem>> result = new HashMap<String, RequestResponseCacheExpirableItem<ContainersSummaryCachedItem>>();
 			
-			Containers containers = ContainerOperations.multipleGetInMetadataBase(cache_reference_tags, EntrySummary.type);
+			Containers containers = ContainerOperations.multipleGetInMetadataBase(cache_reference_tags, EntrySummary.ES_TYPE);
 			
 			if (containers.size() == 0) {
 				return result;

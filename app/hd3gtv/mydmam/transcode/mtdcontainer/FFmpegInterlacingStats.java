@@ -1,11 +1,10 @@
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import hd3gtv.mydmam.metadata.container.ContainerEntryDeSerializer;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.tools.VideoConst.Interlacing;
 
@@ -68,15 +67,18 @@ public class FFmpegInterlacingStats extends EntryAnalyser {
 		return stats;
 	}
 	
-	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
-	}
+	public static final String ES_TYPE = "ffinterlacing";
 	
 	public String getES_Type() {
-		return "ffinterlacing";
+		return ES_TYPE;
 	}
 	
-	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
-		return MyDMAM.gson_kit.getGsonSimple().fromJson(source, FFmpegInterlacingStats.class);
+	public static class Serializer extends ContainerEntryDeSerializer<FFmpegInterlacingStats> {
+		
+		protected FFmpegInterlacingStats internalDeserialize(JsonObject source) {
+			return MyDMAM.gson_kit.getGsonSimple().fromJson(source, FFmpegInterlacingStats.class);
+		}
+		
 	}
 	
 	public Interlacing getInterlacing() {

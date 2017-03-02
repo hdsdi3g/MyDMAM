@@ -19,7 +19,6 @@ package hd3gtv.mydmam.metadata;
 import java.util.List;
 
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.tools.StoppableProcessing;
 
@@ -30,10 +29,6 @@ public interface MetadataExtractor {
 	boolean isEnabled();
 	
 	String getLongName();
-	
-	<T extends ContainerEntry> List<Class<? extends T>> getAllRootEntryClasses();
-	
-	// ImageAttributes.class
 	
 	/**
 	 * @return can be null.

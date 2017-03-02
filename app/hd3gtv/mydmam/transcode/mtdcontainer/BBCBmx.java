@@ -20,13 +20,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import hd3gtv.mydmam.metadata.container.ContainerEntryDeSerializer;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.tools.VideoConst;
 import hd3gtv.tools.VideoConst.Framerate;
@@ -42,21 +41,24 @@ public class BBCBmx extends EntryAnalyser {
 	protected FileType file;
 	protected ClipType clip;
 	
-	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
-	}
+	public static final String ES_TYPE = "bbc_bmx";
 	
 	public String getES_Type() {
-		return "bbc_bmx";
+		return ES_TYPE;
 	}
 	
-	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
-		JsonElement j_file = source.get("file");
-		JsonElement j_clip = source.get("clip");
+	public static class Serializer extends ContainerEntryDeSerializer<BBCBmx> {
 		
-		BBCBmx ea = new BBCBmx();
-		ea.file = MyDMAM.gson_kit.getGsonSimple().fromJson(j_file, FileType.class);
-		ea.clip = MyDMAM.gson_kit.getGsonSimple().fromJson(j_clip, ClipType.class);
-		return ea;
+		protected BBCBmx internalDeserialize(JsonObject source) {
+			JsonElement j_file = source.get("file");
+			JsonElement j_clip = source.get("clip");
+			
+			BBCBmx ea = new BBCBmx();
+			ea.file = MyDMAM.gson_kit.getGsonSimple().fromJson(j_file, FileType.class);
+			ea.clip = MyDMAM.gson_kit.getGsonSimple().fromJson(j_clip, ClipType.class);
+			return ea;
+		}
+		
 	}
 	
 	public void setBmx(Bmx bmx) {

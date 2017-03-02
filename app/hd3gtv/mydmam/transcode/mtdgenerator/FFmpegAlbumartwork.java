@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 import hd3gtv.mydmam.Loggers;
@@ -26,7 +25,6 @@ import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
@@ -40,12 +38,7 @@ public class FFmpegAlbumartwork implements MetadataExtractor {
 	
 	private TranscodeProfile tprofile;
 	
-	public static class Albumartwork extends EntryRenderer {
-		public String getES_Type() {
-			return "ffalbumartwork";
-		}
-		
-	}
+	public static final String ES_TYPE = "ffalbumartwork";
 	
 	public FFmpegAlbumartwork() {
 		if (TranscodeProfile.isConfigured()) {
@@ -100,17 +93,13 @@ public class FFmpegAlbumartwork implements MetadataExtractor {
 			throw e;
 		}
 		
-		Albumartwork result = new Albumartwork();
+		EntryRenderer result = new EntryRenderer(FFmpegAlbumartwork.ES_TYPE);
 		element.consolidateAndExportToEntry(result, container, this);
 		return new ContainerEntryResult(result);
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return null;
-	}
-	
-	public List<Class<? extends ContainerEntry>> getAllRootEntryClasses() {
-		return Arrays.asList(Albumartwork.class);
 	}
 	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {

@@ -24,11 +24,15 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonDeSerializer;
 
-public abstract class ContainerEntryDeSerializer<T extends ContainerEntry> implements GsonDeSerializer<T> {// TODO set base for all ContainerEntry de/serialisators
+public abstract class ContainerEntryDeSerializer<T extends ContainerEntry> implements GsonDeSerializer<T> {
 	
+	/**
+	 * You must overload internalSerialize()
+	 */
 	public final T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 		T item = null;
 		JsonObject source = json.getAsJsonObject();
@@ -47,14 +51,26 @@ public abstract class ContainerEntryDeSerializer<T extends ContainerEntry> imple
 		return item;
 	}
 	
+	/**
+	 * You should overload internalSerialize()
+	 */
 	public final JsonElement serialize(T src, Type typeOfSrc, JsonSerializationContext context) {
 		JsonObject jo = internalSerialize(src);
+		if (jo == null) {
+			Loggers.Metadata.warn("Return null for serialize by " + getClass());
+			jo = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+		}
 		jo.add("origin", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.origin));
 		return jo;
 	}
 	
 	protected abstract T internalDeserialize(JsonObject source);
 	
-	protected abstract JsonObject internalSerialize(T item);
+	/**
+	 * By default with GsonSimple
+	 */
+	protected JsonObject internalSerialize(T item) {
+		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(item).getAsJsonObject();
+	}
 	
 }

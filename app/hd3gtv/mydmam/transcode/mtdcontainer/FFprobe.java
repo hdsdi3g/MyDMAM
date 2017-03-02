@@ -40,7 +40,7 @@ public class FFprobe extends EntryAnalyser {
 	private ArrayList<Stream> streams;
 	private Format format;
 	
-	protected EntryAnalyser internalDeserialize(JsonObject source, Gson gson) {// TODO move de/serializer
+	protected EntryAnalyser internalDeserialize(JsonObject source, Gson gson) {// TODO correct
 		FFprobe item = new FFprobe();
 		if (source.has("chapters")) {
 			item.chapters = gson.fromJson(source.get("chapters").getAsJsonArray(), GsonKit.type_ArrayList_Chapter);
@@ -71,15 +71,17 @@ public class FFprobe extends EntryAnalyser {
 		return item;
 	}
 	
-	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {// TODO move de/serializer
+	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {// TODO correct
 		FFprobe item = (FFprobe) _item;
 		current_element.add("chapters", gson.toJsonTree(item.chapters, GsonKit.type_ArrayList_Chapter));
 		current_element.add("streams", gson.toJsonTree(item.streams, GsonKit.type_ArrayList_Stream));
 		current_element.add("format", gson.toJsonTree(item.format, Format.class));
 	}
 	
+	public static final String ES_TYPE = "ffprobe";
+	
 	public String getES_Type() {
-		return "ffprobe";
+		return ES_TYPE;
 	}
 	
 	public ArrayList<Chapter> getChapters() {
