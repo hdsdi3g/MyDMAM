@@ -89,12 +89,15 @@ import hd3gtv.mydmam.metadata.container.RenderedContent;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscoderWorker;
 import hd3gtv.mydmam.transcode.images.ImageAttributes;
-import hd3gtv.mydmam.transcode.mtdcontainer.Chapter;
+import hd3gtv.mydmam.transcode.mtdcontainer.BBCBmx;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeChapter;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeFormat;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeStream;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystChannelStat;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystSilenceDetect;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
-import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile;
 import hd3gtv.mydmam.transcode.watchfolder.AsyncJSWatchfolderResponseList;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderEntry;
@@ -161,9 +164,9 @@ public class GsonKit {
 	}.getType();
 	public final static Type type_HashMap_String_String = new TypeToken<HashMap<String, String>>() {
 	}.getType();
-	public final static Type type_ArrayList_Chapter = new TypeToken<ArrayList<Chapter>>() {
+	public final static Type type_ArrayList_Chapter = new TypeToken<ArrayList<FFProbeChapter>>() {
 	}.getType();
-	public final static Type type_ArrayList_Stream = new TypeToken<ArrayList<Stream>>() {
+	public final static Type type_ArrayList_Stream = new TypeToken<ArrayList<FFProbeStream>>() {
 	}.getType();
 	public final static Type type_HashMap_String_JSSourceDatabaseEntry = new TypeToken<HashMap<String, JSSourceDatabaseEntry>>() {
 	}.getType();
@@ -172,300 +175,341 @@ public class GsonKit {
 	public final static Type type_Map_String_Object = new TypeToken<Map<String, Object>>() {
 	}.getType();
 	
-	public GsonKit() {
-	}
-	
-	private GsonBuilder builder;
-	private Gson gson_simple;
-	private Gson gson_full;
-	
-	private void init() {
-		if (builder != null) {
-			return;
-		}
-		synchronized (this) {
-			builder = new GsonBuilder();
-			builder.serializeNulls();
-			
-			GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-			builder.addDeserializationExclusionStrategy(ignore_strategy);
-			builder.addSerializationExclusionStrategy(ignore_strategy);
-			
-			/**
-			 * JsonArray
-			 */
-			registerDeSerializer(JsonArray.class, JsonArray.class, src -> {
-				if (src == null) {
-					return null;
-				}
-				return src;
-			}, json -> {
-				try {
-					return json.getAsJsonArray();
-				} catch (Exception e) {
-					Loggers.Manager.error("Can't deserialize JsonArray", e);
-					return null;
-				}
-			});
-			
-			/**
-			 * JsonObject
-			 */
-			registerDeSerializer(JsonObject.class, JsonObject.class, src -> {
-				if (src == null) {
-					return null;
-				}
-				return src;
-			}, json -> {
-				try {
-					return json.getAsJsonObject();
-				} catch (Exception e) {
-					Loggers.Manager.error("Can't deserialize JsonObject", e);
-					return null;
-				}
-			});
-			
-			/**
-			 * XMLGregorianCalendar
-			 */
-			registerDeSerializer(XMLGregorianCalendar.class, XMLGregorianCalendar.class, src -> {
-				return new JsonPrimitive(src.toGregorianCalendar().getTimeInMillis());
-			}, json -> {
-				GregorianCalendar gc = new GregorianCalendar();
-				gc.setTimeInMillis(json.getAsBigInteger().longValue());
-				return new XMLGregorianCalendarImpl(gc);
-			});
-			
-			/**
-			 * Class
-			 */
-			registerDeSerializer(Class.class, Class.class, src -> {
-				if (src == null) {
-					return null;
-				}
-				return new JsonPrimitive(src.getName());
-			}, json -> {
-				try {
-					return Class.forName(json.getAsString());
-				} catch (Exception e) {
-					return null;
-				}
-			});
-			
-			/**
-			 * InetAddress
-			 */
-			registerDeSerializer(InetAddress.class, InetAddress.class, src -> {
-				return new JsonPrimitive(src.getHostAddress());
-			}, json -> {
-				try {
-					return InetAddress.getByName(json.getAsString());
-				} catch (UnknownHostException e) {
-					throw new JsonParseException(json.getAsString(), e);
-				}
-			});
-			
-			/**
-			 * InetSocketAddress
-			 */
-			registerDeSerializer(InetSocketAddress.class, InetSocketAddress.class, src -> {
-				JsonObject jo = new JsonObject();
-				jo.addProperty("addr", src.getHostString());
-				jo.addProperty("port", src.getPort());
-				return jo;
-			}, json -> {
-				JsonObject jo = json.getAsJsonObject();
-				return new InetSocketAddress(jo.get("addr").getAsString(), jo.get("port").getAsInt());
-			});
-			
-			/**
-			 * URL
-			 */
-			registerDeSerializer(URL.class, URL.class, src -> {
-				return new JsonPrimitive(src.toString());
-			}, json -> {
-				try {
-					return new URL(json.getAsString());
-				} catch (MalformedURLException e) {
-					throw new JsonParseException(json.getAsString(), e);
-				}
-			});
-			
-			/**
-			 * Timecode
-			 */
-			registerDeSerializer(Timecode.class, Timecode.class, src -> {
-				if (Math.floor(src.getFps()) == Math.ceil(src.getFps())) {
-					return new JsonPrimitive(src.toString() + "/" + Math.round(src.getFps()));
-				}
-				return new JsonPrimitive(src.toString() + "/" + src.getFps());
-			}, json -> {
-				String raw = json.getAsString();
-				if (raw.indexOf("/") == -1) {
-					throw new JsonParseException("Missing / in Timecode: " + json.toString());
-				}
-				String[] vars = json.getAsString().split("/");
-				if (vars.length != 2) {
-					throw new JsonParseException("Too many / in Timecode: " + json.toString());
-				}
-				float fps = -1;
-				try {
-					fps = Float.parseFloat(vars[1]);
-				} catch (NumberFormatException e) {
-					throw new JsonParseException("Invalid fps in Timecode: " + json.toString(), e);
-				}
-				
-				return new Timecode(vars[0], fps);
-			});
-			
-			/**
-			 * Properties
-			 */
-			registerDeSerializer(Properties.class, Properties.class, src -> {
-				StringWriter pw = new StringWriter();
-				try {
-					src.store(pw, null);
-				} catch (IOException e) {
-					Loggers.Auth.warn("Can't serialize properties", e);
-				}
-				pw.flush();
-				
-				return new JsonPrimitive(pw.toString());
-			}, json -> {
-				Properties result = new Properties();
-				StringReader sr = new StringReader(json.getAsString());
-				try {
-					result.load(sr);
-				} catch (IOException e) {
-					Loggers.Auth.warn("Can't deserialize properties", e);
-				}
-				
-				return result;
-			});
-			
-			builder.registerTypeAdapter(JSSourceDatabaseEntry.class, new JSSourceDatabaseEntry.Serializer());
-			builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Serializer());
-			builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
-			
-			gson_simple = builder.create();
-			
-			/**
-			 * ===========================================
-			 * Gson declarations
-			 * ===========================================
-			 */
-			
-			builder.registerTypeAdapter(JSSourceDatabase.class, new JSSourceDBSerializer());
-			builder.registerTypeAdapter(AsyncStatResult.class, new AsyncStatResult.Serializer());
-			builder.registerTypeAdapter(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer());
-			builder.registerTypeAdapter(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer());
-			builder.registerTypeAdapter(AbstractFoundedFile.class, new AbstractFoundedFile.Serializer());
-			builder.registerTypeAdapter(WatchFolderEntry.class, new WatchFolderEntry.Serializer());
-			builder.registerTypeAdapter(TranscoderWorker.class, new TranscoderWorker.Serializer());
-			builder.registerTypeAdapter(TranscodeProfile.class, new TranscodeProfile.Serializer());
-			builder.registerTypeAdapter(SearchQuery.class, new SearchQuerySerializer());
-			builder.registerTypeAdapter(AJSResponseActivities.class, new JsonSerializer<AJSResponseActivities>() {
-				public JsonElement serialize(AJSResponseActivities src, Type typeOfSrc, JsonSerializationContext context) {
-					JsonObject result = new JsonObject();
-					result.add("activities", MyDMAM.gson_kit.getGson().toJsonTree(src.activities, GsonKit.type_ArrayList_FTPActivity));
-					return result;
-				}
-			});
-			builder.registerTypeAdapter(AJSResponseUserList.class, new JsonSerializer<AJSResponseUserList>() {
-				public JsonElement serialize(AJSResponseUserList src, Type typeOfSrc, JsonSerializationContext context) {
-					JsonObject result = new JsonObject();
-					result.add("users", MyDMAM.gson_kit.getGson().toJsonTree(src.users, GsonKit.type_ArrayList_AJSUser));
-					return result;
-				}
-			});
-			builder.registerTypeAdapter(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
-				public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-					return src.list;
-				}
-			});
-			
-			builder.registerTypeAdapter(AsyncJSBrokerResponseAction.class, new JsonSerializer<AsyncJSBrokerResponseAction>() {
-				public JsonElement serialize(AsyncJSBrokerResponseAction src, Type typeOfSrc, JsonSerializationContext context) {
-					return src.modified_jobs;
-				}
-			});
-			builder.registerTypeAdapter(AsyncJSWatchfolderResponseList.class, new JsonSerializer<AsyncJSWatchfolderResponseList>() {
-				public JsonElement serialize(AsyncJSWatchfolderResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-					JsonObject result = new JsonObject();
-					result.add("items", MyDMAM.gson_kit.getGson().toJsonTree(src.items, GsonKit.type_ArrayList_AbstractFoundedFile));
-					result.add("jobs", MyDMAM.gson_kit.getGson().toJsonTree(src.jobs, GsonKit.type_Map_String_JobNG));
-					return result;
-				}
-			});
-			builder.registerTypeAdapter(ContainerPreview.class, new JsonSerializer<ContainerPreview>() {
-				JsonSerializer<ContainerPreview> internal_s = new ContainerPreview.Serializer();
-				
-				public JsonElement serialize(ContainerPreview src, Type typeOfSrc, JsonSerializationContext context) {
-					return internal_s.serialize(src, typeOfSrc, context);
-				}
-			});
-			builder.registerTypeAdapter(AsyncStatResult.class, new AsyncStatResult.Serializer());
-			builder.registerTypeAdapter(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer());
-			builder.registerTypeAdapter(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer());
-			builder.registerTypeAdapter(AsyncStatRequest.class, new AsyncStatRequest.Deserializer());
-			builder.registerTypeAdapter(CommentList.class, new JsonSerializer<CommentList>() {
-				public JsonElement serialize(CommentList src, Type typeOfSrc, JsonSerializationContext context) {
-					JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
-					result.add("commentlist", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.commentlist, new TypeToken<ArrayList<Comment>>() {
-					}.getType()));
-					result.addProperty("hey", "ohoh");
-					return result;
-				}
-			});
-			builder.registerTypeAdapter(UserView.class, new UserView.Serializer());
-			builder.registerTypeAdapter(UserViewList.class, new UserViewList.Serializer());
-			builder.registerTypeAdapter(GroupView.class, new GroupView.Serializer());
-			builder.registerTypeAdapter(GroupViewList.class, new GroupViewList.Serializer());
-			builder.registerTypeAdapter(RoleView.class, new RoleView.Serializer());
-			builder.registerTypeAdapter(RoleViewList.class, new RoleViewList.Serializer());
-			builder.registerTypeAdapter(NewUser.class, new NewUser.Deserializer());
-			builder.registerTypeAdapter(UserAdminUpdate.class, new UserAdminUpdate.Deserializer());
-			builder.registerTypeAdapter(GroupChRole.class, new GroupChRole.Deserializer());
-			builder.registerTypeAdapter(RoleChPrivileges.class, new RoleChPrivileges.Deserializer());
-			
-			builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Serializer());
-			builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
-			
-			builder.registerTypeAdapter(EntrySummary.class, new EntrySummary.Serializer());
-			builder.registerTypeAdapter(ImageAttributes.class, new ImageAttributes.Serializer());
-			builder.registerTypeAdapter(FFmpegAudioDeepAnalyst.class, new FFmpegAudioDeepAnalyst.Serializer());
-			builder.registerTypeAdapter(FFmpegInterlacingStats.class, new FFmpegInterlacingStats.Serializer());
-			builder.registerTypeAdapter(EntryRenderer.class, new EntryRenderer.Serializer());
-			
-			/*
-			 * 	public class Serializer implements JsonSerializer<SelfSerializing> {
-			public JsonElement serialize(SelfSerializing src, Type typeOfSrc, JsonSerializationContext context) {
-			return selfserializer.serialize(src, MyDMAM.gson_kit.getGson());
-			}
-			}
-			
-			public class Deserializer implements JsonDeserializer<SelfSerializing> {
-			public SelfSerializing deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			return (SelfSerializing) selfserializer.deserialize(ContainerOperations.getJsonObject(json, false), MyDMAM.gson_kit.getGson());
-			}
-			}
-			
-			registerDeSerializer(, .class, src -> {
-			}, json -> {
-			});
-			*/
-			
-			// builder.setPrettyPrinting();
-		}
+	private class Serializator {
+		private Type type;
+		private Object typeAdapter;
 		
+		private Serializator(Type type, Object typeAdapter) {
+			this.type = type;
+			this.typeAdapter = typeAdapter;
+		}
 	}
+	
+	private GsonIgnoreStrategy ignore_strategy;
+	private Gson gson_simple;
+	private ArrayList<Serializator> gson_simple_serializator;
+	private ArrayList<Serializator> gson_full_serializator;
+	private boolean full_pretty_printing = false;
 	
 	/**
 	 * @return Gson with GsonIgnoreStrategy, SerializeNulls and BaseSerializers
 	 */
+	
+	public GsonKit() {
+		ignore_strategy = new GsonIgnoreStrategy();
+		
+		gson_simple_serializator = new ArrayList<>();
+		gson_full_serializator = new ArrayList<>();
+		
+		/**
+		 * JsonArray
+		 */
+		registerGsonSimpleDeSerializer(JsonArray.class, JsonArray.class, src -> {
+			if (src == null) {
+				return null;
+			}
+			return src;
+		}, json -> {
+			try {
+				return json.getAsJsonArray();
+			} catch (Exception e) {
+				Loggers.Manager.error("Can't deserialize JsonArray", e);
+				return null;
+			}
+		});
+		
+		/**
+		 * JsonObject
+		 */
+		registerGsonSimpleDeSerializer(JsonObject.class, JsonObject.class, src -> {
+			if (src == null) {
+				return null;
+			}
+			return src;
+		}, json -> {
+			try {
+				return json.getAsJsonObject();
+			} catch (Exception e) {
+				Loggers.Manager.error("Can't deserialize JsonObject", e);
+				return null;
+			}
+		});
+		
+		/**
+		 * XMLGregorianCalendar
+		 */
+		registerGsonSimpleDeSerializer(XMLGregorianCalendar.class, XMLGregorianCalendar.class, src -> {
+			return new JsonPrimitive(src.toGregorianCalendar().getTimeInMillis());
+		}, json -> {
+			GregorianCalendar gc = new GregorianCalendar();
+			gc.setTimeInMillis(json.getAsBigInteger().longValue());
+			return new XMLGregorianCalendarImpl(gc);
+		});
+		
+		/**
+		 * Class
+		 */
+		registerGsonSimpleDeSerializer(Class.class, Class.class, src -> {
+			if (src == null) {
+				return null;
+			}
+			return new JsonPrimitive(src.getName());
+		}, json -> {
+			try {
+				return Class.forName(json.getAsString());
+			} catch (Exception e) {
+				return null;
+			}
+		});
+		
+		/**
+		 * InetAddress
+		 */
+		registerGsonSimpleDeSerializer(InetAddress.class, InetAddress.class, src -> {
+			return new JsonPrimitive(src.getHostAddress());
+		}, json -> {
+			try {
+				return InetAddress.getByName(json.getAsString());
+			} catch (UnknownHostException e) {
+				throw new JsonParseException(json.getAsString(), e);
+			}
+		});
+		
+		/**
+		 * InetSocketAddress
+		 */
+		registerGsonSimpleDeSerializer(InetSocketAddress.class, InetSocketAddress.class, src -> {
+			JsonObject jo = new JsonObject();
+			jo.addProperty("addr", src.getHostString());
+			jo.addProperty("port", src.getPort());
+			return jo;
+		}, json -> {
+			JsonObject jo = json.getAsJsonObject();
+			return new InetSocketAddress(jo.get("addr").getAsString(), jo.get("port").getAsInt());
+		});
+		
+		/**
+		 * URL
+		 */
+		registerGsonSimpleDeSerializer(URL.class, URL.class, src -> {
+			return new JsonPrimitive(src.toString());
+		}, json -> {
+			try {
+				return new URL(json.getAsString());
+			} catch (MalformedURLException e) {
+				throw new JsonParseException(json.getAsString(), e);
+			}
+		});
+		
+		/**
+		 * Timecode
+		 */
+		registerGsonSimpleDeSerializer(Timecode.class, Timecode.class, src -> {
+			if (Math.floor(src.getFps()) == Math.ceil(src.getFps())) {
+				return new JsonPrimitive(src.toString() + "/" + Math.round(src.getFps()));
+			}
+			return new JsonPrimitive(src.toString() + "/" + src.getFps());
+		}, json -> {
+			String raw = json.getAsString();
+			if (raw.indexOf("/") == -1) {
+				throw new JsonParseException("Missing / in Timecode: " + json.toString());
+			}
+			String[] vars = json.getAsString().split("/");
+			if (vars.length != 2) {
+				throw new JsonParseException("Too many / in Timecode: " + json.toString());
+			}
+			float fps = -1;
+			try {
+				fps = Float.parseFloat(vars[1]);
+			} catch (NumberFormatException e) {
+				throw new JsonParseException("Invalid fps in Timecode: " + json.toString(), e);
+			}
+			
+			return new Timecode(vars[0], fps);
+		});
+		
+		/**
+		 * Properties
+		 */
+		registerGsonSimpleDeSerializer(Properties.class, Properties.class, src -> {
+			StringWriter pw = new StringWriter();
+			try {
+				src.store(pw, null);
+			} catch (IOException e) {
+				Loggers.Auth.warn("Can't serialize properties", e);
+			}
+			pw.flush();
+			
+			return new JsonPrimitive(pw.toString());
+		}, json -> {
+			Properties result = new Properties();
+			StringReader sr = new StringReader(json.getAsString());
+			try {
+				result.load(sr);
+			} catch (IOException e) {
+				Loggers.Auth.warn("Can't deserialize properties", e);
+			}
+			
+			return result;
+		});
+		
+		gson_simple_serializator.add(new Serializator(JSSourceDatabaseEntry.class, new JSSourceDatabaseEntry.Serializer()));
+		gson_simple_serializator.add(new Serializator(ContainerPreview.class, new ContainerPreview.Serializer()));
+		gson_simple_serializator.add(new Serializator(ContainerPreview.class, new ContainerPreview.Deserializer()));
+		
+		/**
+		 * ===========================================
+		 * Gson declarations
+		 * ===========================================
+		 */
+		
+		gson_full_serializator.add(new Serializator(JSSourceDatabase.class, new JSSourceDBSerializer()));
+		gson_full_serializator.add(new Serializator(AsyncStatResult.class, new AsyncStatResult.Serializer()));
+		gson_full_serializator.add(new Serializator(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer()));
+		gson_full_serializator.add(new Serializator(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer()));
+		gson_full_serializator.add(new Serializator(AbstractFoundedFile.class, new AbstractFoundedFile.Serializer()));
+		gson_full_serializator.add(new Serializator(WatchFolderEntry.class, new WatchFolderEntry.Serializer()));
+		gson_full_serializator.add(new Serializator(TranscoderWorker.class, new TranscoderWorker.Serializer()));
+		gson_full_serializator.add(new Serializator(TranscodeProfile.class, new TranscodeProfile.Serializer()));
+		gson_full_serializator.add(new Serializator(SearchQuery.class, new SearchQuerySerializer()));
+		gson_full_serializator.add(new Serializator(AJSResponseActivities.class, new JsonSerializer<AJSResponseActivities>() {
+			public JsonElement serialize(AJSResponseActivities src, Type typeOfSrc, JsonSerializationContext context) {
+				JsonObject result = new JsonObject();
+				result.add("activities", MyDMAM.gson_kit.getGson().toJsonTree(src.activities, GsonKit.type_ArrayList_FTPActivity));
+				return result;
+			}
+		}));
+		gson_full_serializator.add(new Serializator(AJSResponseUserList.class, new JsonSerializer<AJSResponseUserList>() {
+			public JsonElement serialize(AJSResponseUserList src, Type typeOfSrc, JsonSerializationContext context) {
+				JsonObject result = new JsonObject();
+				result.add("users", MyDMAM.gson_kit.getGson().toJsonTree(src.users, GsonKit.type_ArrayList_AJSUser));
+				return result;
+			}
+		}));
+		gson_full_serializator.add(new Serializator(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
+			public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
+				return src.list;
+			}
+		}));
+		
+		gson_full_serializator.add(new Serializator(AsyncJSBrokerResponseAction.class, new JsonSerializer<AsyncJSBrokerResponseAction>() {
+			public JsonElement serialize(AsyncJSBrokerResponseAction src, Type typeOfSrc, JsonSerializationContext context) {
+				return src.modified_jobs;
+			}
+		}));
+		gson_full_serializator.add(new Serializator(AsyncJSWatchfolderResponseList.class, new JsonSerializer<AsyncJSWatchfolderResponseList>() {
+			public JsonElement serialize(AsyncJSWatchfolderResponseList src, Type typeOfSrc, JsonSerializationContext context) {
+				JsonObject result = new JsonObject();
+				result.add("items", MyDMAM.gson_kit.getGson().toJsonTree(src.items, GsonKit.type_ArrayList_AbstractFoundedFile));
+				result.add("jobs", MyDMAM.gson_kit.getGson().toJsonTree(src.jobs, GsonKit.type_Map_String_JobNG));
+				return result;
+			}
+		}));
+		gson_full_serializator.add(new Serializator(AsyncStatResult.class, new AsyncStatResult.Serializer()));
+		gson_full_serializator.add(new Serializator(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer()));
+		gson_full_serializator.add(new Serializator(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer()));
+		gson_full_serializator.add(new Serializator(AsyncStatRequest.class, new AsyncStatRequest.Deserializer()));
+		gson_full_serializator.add(new Serializator(CommentList.class, new JsonSerializer<CommentList>() {
+			public JsonElement serialize(CommentList src, Type typeOfSrc, JsonSerializationContext context) {
+				JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+				result.add("commentlist", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.commentlist, new TypeToken<ArrayList<Comment>>() {
+				}.getType()));
+				result.addProperty("hey", "ohoh");
+				return result;
+			}
+		}));
+		
+		gson_full_serializator.add(new Serializator(UserView.class, new UserView.Serializer()));
+		gson_full_serializator.add(new Serializator(UserViewList.class, new UserViewList.Serializer()));
+		gson_full_serializator.add(new Serializator(GroupView.class, new GroupView.Serializer()));
+		gson_full_serializator.add(new Serializator(GroupViewList.class, new GroupViewList.Serializer()));
+		gson_full_serializator.add(new Serializator(RoleView.class, new RoleView.Serializer()));
+		gson_full_serializator.add(new Serializator(RoleViewList.class, new RoleViewList.Serializer()));
+		gson_full_serializator.add(new Serializator(NewUser.class, new NewUser.Deserializer()));
+		gson_full_serializator.add(new Serializator(UserAdminUpdate.class, new UserAdminUpdate.Deserializer()));
+		gson_full_serializator.add(new Serializator(GroupChRole.class, new GroupChRole.Deserializer()));
+		gson_full_serializator.add(new Serializator(RoleChPrivileges.class, new RoleChPrivileges.Deserializer()));
+		
+		gson_full_serializator.add(new Serializator(EntrySummary.class, new EntrySummary.Serializer()));
+		gson_full_serializator.add(new Serializator(EntryRenderer.class, new EntryRenderer.Serializer()));
+		gson_full_serializator.add(new Serializator(ImageAttributes.class, new ImageAttributes.Serializer()));
+		gson_full_serializator.add(new Serializator(FFmpegAudioDeepAnalyst.class, new FFmpegAudioDeepAnalyst.Serializer()));
+		gson_full_serializator.add(new Serializator(FFmpegInterlacingStats.class, new FFmpegInterlacingStats.Serializer()));
+		
+		gson_full_serializator.add(new Serializator(FFprobe.class, new FFprobe.Serializer()));
+		gson_full_serializator.add(new Serializator(FFProbeStream.class, new FFProbeStream.Serializer()));
+		gson_full_serializator.add(new Serializator(FFProbeChapter.class, new FFProbeChapter.Serializer()));
+		gson_full_serializator.add(new Serializator(FFProbeFormat.class, new FFProbeFormat.Serializer()));
+		gson_full_serializator.add(new Serializator(BBCBmx.class, new BBCBmx.Serializer()));
+		
+		/*
+		 * 	public class Serializer implements JsonSerializer<SelfSerializing> {
+		public JsonElement serialize(SelfSerializing src, Type typeOfSrc, JsonSerializationContext context) {
+		return selfserializer.serialize(src, MyDMAM.gson_kit.getGson());
+		}
+		}
+		
+		public class Deserializer implements JsonDeserializer<SelfSerializing> {
+		public SelfSerializing deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+		return (SelfSerializing) selfserializer.deserialize(ContainerOperations.getJsonObject(json, false), MyDMAM.gson_kit.getGson());
+		}
+		}
+		
+		registerDeSerializer(, .class, src -> {
+		}, json -> {
+		});
+		*/
+		
+		rebuildGsonSimple();
+	}
+	
+	private synchronized void rebuildGsonSimple() {
+		GsonBuilder builder = new GsonBuilder();
+		builder.serializeNulls();
+		
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		
+		gson_simple_serializator.forEach(ser -> {
+			builder.registerTypeAdapter(ser.type, ser.typeAdapter);
+		});
+		
+		if (full_pretty_printing) {
+			builder.setPrettyPrinting();
+		}
+		
+		gson_simple = builder.create();
+	}
+	
 	public Gson getGsonSimple() {
-		init();
 		return gson_simple;
+	}
+	
+	private Gson gson_full;
+	private Gson gson_full_pretty;
+	
+	private synchronized void rebuildGson() {
+		GsonBuilder builder = new GsonBuilder();
+		builder.serializeNulls();
+		
+		builder.addDeserializationExclusionStrategy(ignore_strategy);
+		builder.addSerializationExclusionStrategy(ignore_strategy);
+		
+		gson_simple_serializator.forEach(ser -> {
+			builder.registerTypeAdapter(ser.type, ser.typeAdapter);
+		});
+		gson_full_serializator.forEach(ser -> {
+			builder.registerTypeAdapter(ser.type, ser.typeAdapter);
+		});
+		
+		if (full_pretty_printing) {
+			builder.setPrettyPrinting();
+		}
+		
+		gson_full = builder.create();
+		
+		builder.setPrettyPrinting();
+		gson_full_pretty = builder.create();
 	}
 	
 	/**
@@ -473,10 +517,10 @@ public class GsonKit {
 	 * @return this
 	 */
 	public synchronized GsonKit registerTypeAdapter(Type type, Object type_adapter) {
-		init();
 		synchronized (this) {
-			builder.registerTypeAdapter(type, type_adapter);
+			gson_full_serializator.add(new Serializator(type, type_adapter));
 			gson_full = null;
+			gson_full_pretty = null;
 		}
 		return this;
 	}
@@ -485,13 +529,20 @@ public class GsonKit {
 	 * @return GsonSimple + all actual registerTypeAdapter()
 	 */
 	public Gson getGson() {
-		init();
 		if (gson_full == null) {
-			synchronized (this) {
-				gson_full = builder.create();
-			}
+			rebuildGson();
 		}
 		return gson_full;
+	}
+	
+	/**
+	 * @return GsonSimple + all actual registerTypeAdapter() + pretty printing
+	 */
+	public Gson getGsonPretty() {
+		if (gson_full_pretty == null) {
+			rebuildGson();
+		}
+		return gson_full_pretty;
 	}
 	
 	public <T> GsonKit registerDeserializer(Type type, Class<T> dest_type, Function<JsonElement, T> deserializer) {
@@ -520,8 +571,12 @@ public class GsonKit {
 		});
 	}
 	
-	public <T> GsonKit registerDeSerializer(Type type, Class<T> object_type, Function<T, JsonElement> adapter_serializer, Function<JsonElement, T> adapter_deserializer) {
-		return registerTypeAdapter(type, new GsonDeSerializer<T>() {
+	private <T> void registerGsonSimpleDeSerializer(Type type, Class<T> object_type, Function<T, JsonElement> adapter_serializer, Function<JsonElement, T> adapter_deserializer) {
+		gson_full_serializator.add(new Serializator(type, makeDeSerializer(object_type, adapter_serializer, adapter_deserializer)));
+	}
+	
+	private <T> GsonDeSerializer<T> makeDeSerializer(Class<T> object_type, Function<T, JsonElement> adapter_serializer, Function<JsonElement, T> adapter_deserializer) {
+		return new GsonDeSerializer<T>() {
 			public JsonElement serialize(T src, Type typeOfSrc, JsonSerializationContext context) {
 				try {
 					return adapter_serializer.apply(src);
@@ -539,7 +594,22 @@ public class GsonKit {
 					return null;
 				}
 			}
-		});
+		};
+	}
+	
+	public <T> GsonKit registerDeSerializer(Type type, Class<T> object_type, Function<T, JsonElement> adapter_serializer, Function<JsonElement, T> adapter_deserializer) {
+		return registerTypeAdapter(type, makeDeSerializer(object_type, adapter_serializer, adapter_deserializer));
+	}
+	
+	public void setFullPrettyPrinting() {
+		if (full_pretty_printing == false) {
+			synchronized (this) {
+				full_pretty_printing = true;
+				gson_full = null;
+				gson_full_pretty = null;
+			}
+			rebuildGsonSimple();
+		}
 	}
 	
 }

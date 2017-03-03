@@ -16,8 +16,24 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
-import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
 
-abstract class FFprobeNodeInternalItem {
-	JsonObject tags;
+public final class FFProbeStreamDisposition {
+	
+	public int clean_effects;
+	public int karaoke;
+	
+	@SerializedName("default")
+	public int default_;
+	
+	public int hearing_impaired;
+	public int original;
+	public int attached_pic;
+	public int lyrics;
+	public int comment;
+	public int dub;
+	public int visual_impaired;
+	public int forced;
+	public int timed_thumbnails;
+	
 }

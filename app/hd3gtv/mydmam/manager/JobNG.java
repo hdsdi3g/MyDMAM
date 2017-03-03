@@ -1076,7 +1076,7 @@ public final class JobNG {
 	}
 	
 	public String toString() {
-		return MyDMAM.gson_kit.getGson().toJson(this);// TODO pretty json
+		return MyDMAM.gson_kit.getGsonPretty().toJson(this);
 	}
 	
 	public String toStringLight() {

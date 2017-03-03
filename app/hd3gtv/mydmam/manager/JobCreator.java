@@ -153,7 +153,7 @@ public abstract class JobCreator implements InstanceActionReceiver, InstanceStat
 	}
 	
 	public String toString() {
-		return MyDMAM.gson_kit.getGson().toJson(this); // TODO pretty json
+		return MyDMAM.gson_kit.getGsonPretty().toJson(this);
 	}
 	
 	void createJobs(MutationBatch mutator) throws ConnectionException {

@@ -18,16 +18,22 @@
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
 import java.awt.Point;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.google.gson.Gson;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 import hd3gtv.tools.Timecode;
@@ -36,47 +42,14 @@ import hd3gtv.tools.VideoConst.Resolution;
 
 public class FFprobe extends EntryAnalyser {
 	
-	private ArrayList<Chapter> chapters;
-	private ArrayList<Stream> streams;
-	private Format format;
+	@GsonIgnore
+	private ArrayList<FFProbeChapter> chapters;
 	
-	protected EntryAnalyser internalDeserialize(JsonObject source, Gson gson) {// TODO correct
-		FFprobe item = new FFprobe();
-		if (source.has("chapters")) {
-			item.chapters = gson.fromJson(source.get("chapters").getAsJsonArray(), GsonKit.type_ArrayList_Chapter);
-		}
-		if (item.chapters == null) {
-			item.chapters = new ArrayList<Chapter>(1);
-		}
-		
-		if (source.has("streams")) {
-			item.streams = gson.fromJson(source.get("streams").getAsJsonArray(), GsonKit.type_ArrayList_Stream);
-			for (int pos = item.streams.size() - 1; pos > -1; pos--) {
-				if (item.streams.get(pos).getCodec_type() == null) {
-					item.streams.remove(pos);
-				} else if (item.streams.get(pos).getCodec_type().equals("data")) {
-					item.streams.remove(pos);
-				}
-			}
-		}
-		if (item.streams == null) {
-			item.streams = new ArrayList<Stream>(1);
-		}
-		if (source.has("format")) {
-			item.format = gson.fromJson(source.get("format").getAsJsonObject(), Format.class);
-		}
-		if (item.format == null) {
-			item.format = new Format();
-		}
-		return item;
-	}
+	@GsonIgnore
+	private ArrayList<FFProbeStream> streams;
 	
-	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {// TODO correct
-		FFprobe item = (FFprobe) _item;
-		current_element.add("chapters", gson.toJsonTree(item.chapters, GsonKit.type_ArrayList_Chapter));
-		current_element.add("streams", gson.toJsonTree(item.streams, GsonKit.type_ArrayList_Stream));
-		current_element.add("format", gson.toJsonTree(item.format, Format.class));
-	}
+	@GsonIgnore
+	private FFProbeFormat format;
 	
 	public static final String ES_TYPE = "ffprobe";
 	
@@ -84,15 +57,15 @@ public class FFprobe extends EntryAnalyser {
 		return ES_TYPE;
 	}
 	
-	public ArrayList<Chapter> getChapters() {
+	public ArrayList<FFProbeChapter> getChapters() {
 		return chapters;
 	}
 	
-	public ArrayList<Stream> getStreams() {
+	public ArrayList<FFProbeStream> getStreams() {
 		return streams;
 	}
 	
-	public Format getFormat() {
+	public FFProbeFormat getFormat() {
 		return format;
 	}
 	
@@ -100,14 +73,14 @@ public class FFprobe extends EntryAnalyser {
 	 * @param like audio or video
 	 * @return null if there are not stream with codec_type. NEVER return a "video" stream who is an attached_pic.
 	 */
-	public List<Stream> getStreamsByCodecType(String codec_type) {
+	public List<FFProbeStream> getStreamsByCodecType(String codec_type) {
 		return streams.stream().filter(s -> {
 			return s.isAttachedPic() == false && s.getCodec_type().equalsIgnoreCase(codec_type);
 		}).collect(Collectors.toList());
 	}
 	
-	public Stream getAttachedPicStream() {
-		Optional<Stream> o_result = streams.stream().filter(s -> {
+	public FFProbeStream getAttachedPicStream() {
+		Optional<FFProbeStream> o_result = streams.stream().filter(s -> {
 			return s.isAttachedPic() == true;
 		}).findFirst();
 		
@@ -165,7 +138,7 @@ public class FFprobe extends EntryAnalyser {
 			return Framerate.OTHER;
 		}
 		
-		Stream current_stream = getStreamsByCodecType("video").get(0);
+		FFProbeStream current_stream = getStreamsByCodecType("video").get(0);
 		
 		String avg_frame_rate = null;
 		String r_frame_rate = null;
@@ -263,4 +236,48 @@ public class FFprobe extends EntryAnalyser {
 		return sb.toString();
 	}
 	
+	public static class Serializer implements GsonDeSerializer<FFprobe> {
+		
+		public JsonElement serialize(FFprobe src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject current_element = new JsonObject();
+			current_element.add("chapters", MyDMAM.gson_kit.getGson().toJsonTree(src.chapters, GsonKit.type_ArrayList_Chapter));
+			current_element.add("streams", MyDMAM.gson_kit.getGson().toJsonTree(src.streams, GsonKit.type_ArrayList_Stream));
+			current_element.add("format", MyDMAM.gson_kit.getGson().toJsonTree(src.format, FFProbeFormat.class));
+			return current_element;
+		}
+		
+		public FFprobe deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			JsonObject source = json.getAsJsonObject();
+			
+			FFprobe item = new FFprobe();
+			if (source.has("chapters")) {
+				item.chapters = MyDMAM.gson_kit.getGson().fromJson(source.get("chapters").getAsJsonArray(), GsonKit.type_ArrayList_Chapter);
+			}
+			if (item.chapters == null) {
+				item.chapters = new ArrayList<FFProbeChapter>(1);
+			}
+			
+			if (source.has("streams")) {
+				item.streams = MyDMAM.gson_kit.getGson().fromJson(source.get("streams").getAsJsonArray(), GsonKit.type_ArrayList_Stream);
+				for (int pos = item.streams.size() - 1; pos > -1; pos--) {
+					if (item.streams.get(pos).getCodec_type() == null) {
+						item.streams.remove(pos);
+					} else if (item.streams.get(pos).getCodec_type().equals("data")) {
+						item.streams.remove(pos);
+					}
+				}
+			}
+			if (item.streams == null) {
+				item.streams = new ArrayList<FFProbeStream>(1);
+			}
+			if (source.has("format")) {
+				item.format = MyDMAM.gson_kit.getGson().fromJson(source.get("format").getAsJsonObject(), FFProbeFormat.class);
+			}
+			if (item.format == null) {
+				item.format = new FFProbeFormat();
+			}
+			return item;
+		}
+		
+	}
 }

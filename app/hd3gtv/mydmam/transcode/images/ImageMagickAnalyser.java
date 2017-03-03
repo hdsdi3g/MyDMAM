@@ -332,4 +332,8 @@ public class ImageMagickAnalyser implements MetadataExtractor {
 		json_lines.remove(line_pos);
 	}
 	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(ImageAttributes.ES_TYPE);
+	}
+	
 }

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.MetadataCenter;
 import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
@@ -47,7 +48,7 @@ public class CliModuleMetadata implements CliModule {
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
 		if (args.getParamExist("-ptt")) {
-			// ContainerOperations.setGsonPrettyPrinting(); //TODO set json Pretty
+			MyDMAM.gson_kit.setFullPrettyPrinting();
 		}
 		
 		if (args.getParamExist("-a")) {

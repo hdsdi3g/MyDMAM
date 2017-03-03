@@ -29,7 +29,7 @@ import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
-import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeStream;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.StoppableProcessing;
@@ -50,6 +50,10 @@ public class FFmpegAlbumartwork implements MetadataExtractor {
 		return (tprofile != null);
 	}
 	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(ES_TYPE);
+	}
+	
 	public boolean canProcessThisMimeType(String mimetype) {
 		return FFprobeAnalyser.canProcessThisAudioOnly(mimetype) | mimetype.equalsIgnoreCase("video/quicktime") | mimetype.equalsIgnoreCase("video/mp4");
 	}
@@ -63,12 +67,12 @@ public class FFmpegAlbumartwork implements MetadataExtractor {
 	}
 	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
-		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		if (ffprobe == null) {
 			return null;
 		}
 		
-		Stream artwork_stream = ffprobe.getAttachedPicStream();
+		FFProbeStream artwork_stream = ffprobe.getAttachedPicStream();
 		if (artwork_stream == null) {
 			return null;
 		}

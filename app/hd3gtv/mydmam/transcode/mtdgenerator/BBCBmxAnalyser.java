@@ -114,4 +114,9 @@ public class BBCBmxAnalyser implements MetadataExtractor {
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return null;
 	}
+	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(BBCBmx.ES_TYPE);
+	}
+	
 }

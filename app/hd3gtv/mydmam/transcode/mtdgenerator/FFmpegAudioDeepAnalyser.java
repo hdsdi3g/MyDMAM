@@ -34,7 +34,7 @@ import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystChannelStat;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalystSilenceDetect;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
-import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeStream;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
@@ -104,8 +104,12 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 	
 	public static final String ES_TYPE = "ffaudiodagraphic";
 	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(ES_TYPE);
+	}
+	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
-		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		
 		if (ffprobe == null) {
 			return null;
@@ -131,7 +135,7 @@ public class FFmpegAudioDeepAnalyser implements MetadataExtractor {
 		/**
 		 * Audio stream map/choose
 		 **/
-		List<Stream> audio_streams = ffprobe.getStreamsByCodecType("audio");
+		List<FFProbeStream> audio_streams = ffprobe.getStreamsByCodecType("audio");
 		
 		if (audio_streams.size() == 1) {
 			/**

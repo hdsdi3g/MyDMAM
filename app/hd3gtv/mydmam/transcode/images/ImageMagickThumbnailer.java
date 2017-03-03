@@ -77,7 +77,7 @@ public abstract class ImageMagickThumbnailer implements MetadataExtractor {
 	}
 	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
-		ImageAttributes image_attributes = container.getByClass(ImageAttributes.class);
+		ImageAttributes image_attributes = container.getByType(getEntryRendererESType(), ImageAttributes.class);
 		if (image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for this container: " + container);
 			return null;
@@ -129,7 +129,7 @@ public abstract class ImageMagickThumbnailer implements MetadataExtractor {
 		EntryRenderer thumbnail = new EntryRenderer(getEntryRendererESType());
 		
 		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).setLimit(MetadataIndexingLimit.FAST).doIndexing();
-		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByClass(ImageAttributes.class);
+		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByType(getEntryRendererESType(), ImageAttributes.class);
 		if (thumbnail_image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for the snapshot file container: " + thumbnail_image_attributes);
 			return null;

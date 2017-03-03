@@ -42,9 +42,6 @@ public class Container {
 	private EntrySummary summary;
 	private HashMap<String, ContainerEntry> map_type_entry;
 	
-	@Deprecated
-	private HashMap<Class<? extends ContainerEntry>, ContainerEntry> map_class_entry;
-	
 	public Container(String mtd_key, ContainerOrigin origin) {
 		this.origin = origin;
 		if (origin == null) {
@@ -54,7 +51,6 @@ public class Container {
 		containerEntries = new ArrayList<ContainerEntry>();
 		summary = null;
 		map_type_entry = new HashMap<String, ContainerEntry>();
-		map_class_entry = new HashMap<Class<? extends ContainerEntry>, ContainerEntry>();
 	}
 	
 	/**
@@ -71,7 +67,6 @@ public class Container {
 		containerEntries.add(containerEntry);
 		
 		map_type_entry.put(containerEntry.getES_Type(), containerEntry);
-		map_class_entry.put(containerEntry.getClass(), containerEntry);
 		
 		if (containerEntry instanceof EntrySummary) {
 			summary = (EntrySummary) containerEntry;
@@ -93,6 +88,13 @@ public class Container {
 	}
 	
 	public <T extends ContainerEntry> T getByType(String type, Class<T> class_type) {
+		if (type == null) {
+			throw new NullPointerException("\"type\" can't to be null");
+		}
+		if (class_type == null) {
+			throw new NullPointerException("\"class_type\" can't to be null");
+		}
+		
 		if (map_type_entry.containsKey(type) == false) {
 			return null;
 		}
@@ -124,17 +126,6 @@ public class Container {
 		return mtd_key;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public <T extends ContainerEntry> T getByClass(Class<T> class_of_T) {
-		if (map_class_entry.containsKey((Class<?>) class_of_T)) {
-			T result = (T) map_class_entry.get((Class<?>) class_of_T);
-			result.container = this;
-			return result;
-		} else {
-			return null;
-		}
-	}
-	
 	public boolean containAnyMatchContainerEntryType(String... types) {
 		if (types == null) {
 			return false;
@@ -142,10 +133,16 @@ public class Container {
 		if (types.length == 0) {
 			return false;
 		}
+		
 		ArrayList<String> al_types = new ArrayList<>(types.length);
-		// TODO...
-		return s_class_of_T.anyMatch(c -> {
-			return map_class_entry.containsKey(c);
+		for (int pos = 0; pos < types.length; pos++) {
+			if (types[pos] != null) {
+				al_types.add(types[pos]);
+			}
+		}
+		
+		return al_types.stream().anyMatch(type -> {
+			return map_type_entry.containsKey(type);
 		});
 	}
 	

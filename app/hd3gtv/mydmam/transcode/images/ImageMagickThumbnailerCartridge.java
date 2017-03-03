@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.transcode.images;
 
 import hd3gtv.mydmam.metadata.PreviewType;
+import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.images.ImageAttributeGeometry.Compare;
 
@@ -39,6 +40,10 @@ public class ImageMagickThumbnailerCartridge extends ImageMagickThumbnailer {
 	
 	final protected String getEntryRendererESType() {
 		return ES_TYPE;
+	}
+	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(ES_TYPE);
 	}
 	
 	/*

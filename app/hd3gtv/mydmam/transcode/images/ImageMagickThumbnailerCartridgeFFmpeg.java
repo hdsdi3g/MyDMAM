@@ -78,7 +78,7 @@ public class ImageMagickThumbnailerCartridgeFFmpeg extends ImageMagickThumbnaile
 		 */
 		Container snapshot_file_container = new MetadataIndexingOperation(physical_source).setStoppable(stoppable).setLimit(MetadataIndexingLimit.FAST).doIndexing();
 		
-		ImageAttributes image_attributes = snapshot_file_container.getByClass(ImageAttributes.class);
+		ImageAttributes image_attributes = snapshot_file_container.getByType(this_thumbnailer.getEntryRendererESType(), ImageAttributes.class);
 		if (image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for the snapshot file container: " + snapshot_file_container);
 			return null;

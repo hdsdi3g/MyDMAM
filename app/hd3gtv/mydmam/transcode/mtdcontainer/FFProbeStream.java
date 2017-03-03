@@ -17,86 +17,66 @@
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
 import java.awt.Point;
+import java.lang.reflect.Type;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.tools.VideoConst.AudioSampling;
 import hd3gtv.tools.VideoConst.Resolution;
 
-public class Stream extends FFprobeNode {
+public class FFProbeStream extends FFprobeNode {
 	
-	public Stream() {
-		internal = new Internal();
+	@GsonIgnore
+	private FFProbeStreamDisposition disposition;
+	
+	public static class Serializer implements GsonDeSerializer<FFProbeStream> {
+		
+		public JsonElement serialize(FFProbeStream src, Type typeOfSrc, JsonSerializationContext context) {
+			return src.node_content;
+		}
+		
+		public FFProbeStream deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			FFProbeStream item = new FFProbeStream();
+			item.node_content = json.getAsJsonObject();
+			item.disposition = MyDMAM.gson_kit.getGsonSimple().fromJson(item.node_content.get("disposition"), FFProbeStreamDisposition.class);
+			return item;
+		}
+		
 	}
 	
-	private class Internal extends FFprobeNodeInternalItem {
-		private Disposition disposition;
-		private String codec_type;
-		private String codec_tag;
-		private String codec_tag_string;
-		private float duration;
-		private int index;
-		private int bit_rate;
-	}
-	
-	private transient Internal internal;
-	
-	protected FFprobeNodeInternalItem getInternalItem() {
-		return internal;
-	}
-	
-	protected void setInternalItem(FFprobeNodeInternalItem internal) {
-		this.internal = (Internal) internal;
-	}
-	
-	protected FFprobeNode create() {
-		return new Stream();
-	}
-	
-	protected Class<? extends FFprobeNodeInternalItem> getInternalItemClass() {
-		return Internal.class;
-	}
-	
-	protected void internalDeserialize(FFprobeNode _item, JsonObject source, Gson gson) {// TODO correct
-	}
-	
-	protected void internalSerialize(JsonObject jo, FFprobeNode _item, Gson gson) {// TODO correct
-		Stream item = (Stream) _item;
-		jo.add("disposition", gson.toJsonTree(item.internal.disposition));
-	}
-	
-	protected String[] getAdditionnaries_keys_names_to_ignore_in_params() {
-		return new String[] { "disposition" };
-	}
-	
-	public Disposition getDisposition() {
-		return internal.disposition;
+	public FFProbeStreamDisposition getDisposition() {
+		return disposition;
 	}
 	
 	public int getBit_rate() {
-		return internal.bit_rate;
+		return getParam("bit_rate").getAsInt();
 	}
 	
 	public String getCodec_tag() {
-		return internal.codec_tag;
+		return getParam("codec_tag").getAsString();
 	}
 	
 	public String getCodec_tag_string() {
-		return internal.codec_tag_string;
+		return getParam("codec_tag_string").getAsString();
 	}
 	
 	public String getCodec_type() {
-		return internal.codec_type;
+		return getParam("codec_type").getAsString();
 	}
 	
 	public float getDuration() {
-		return internal.duration;
+		return getParam("duration").getAsFloat();
 	}
 	
 	public int getIndex() {
-		return internal.index;
+		return getParam("index").getAsInt();
 	}
 	
 	/**
@@ -104,7 +84,7 @@ public class Stream extends FFprobeNode {
 	 * @return "[2:3]" => "[input_pos:index]"
 	 */
 	public String getMapReference(int input_pos) {
-		return "[" + input_pos + ":" + internal.index + "]";
+		return "[" + input_pos + ":" + getIndex() + "]";
 	}
 	
 	public Point getVideoResolution() {

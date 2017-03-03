@@ -37,7 +37,7 @@ import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
-import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeStream;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
@@ -58,6 +58,10 @@ public class FFprobeAnalyser implements MetadataExtractor {
 	
 	public ContainerEntryResult processFast(Container container) throws Exception {
 		return processFull(container, null);
+	}
+	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(FFprobe.ES_TYPE);
 	}
 	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
@@ -106,9 +110,9 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		/**
 		 * Patch tags dates
 		 */
-		List<Stream> streams = result.getStreams();
-		for (int pos = 0; pos < streams.size(); pos++) {
-			patchTagDate(streams.get(pos).getTags());
+		List<FFProbeStream> fFProbeStreams = result.getStreams();
+		for (int pos = 0; pos < fFProbeStreams.size(); pos++) {
+			patchTagDate(fFProbeStreams.get(pos).getTags());
 		}
 		patchTagDate(result.getFormat().getTags());
 		
@@ -119,48 +123,48 @@ public class FFprobeAnalyser implements MetadataExtractor {
 		 */
 		StringBuffer sb_summary;
 		List<String> streams_list_summary = new ArrayList<String>(1);
-		Stream stream;
-		for (int pos = 0; pos < streams.size(); pos++) {
+		FFProbeStream fFProbeStream;
+		for (int pos = 0; pos < fFProbeStreams.size(); pos++) {
 			sb_summary = new StringBuffer();
-			stream = streams.get(pos);
-			if (stream.isAttachedPic()) {
+			fFProbeStream = fFProbeStreams.get(pos);
+			if (fFProbeStream.isAttachedPic()) {
 				continue;
 			}
-			String codec_name = stream.getCodec_tag_string();
+			String codec_name = fFProbeStream.getCodec_tag_string();
 			if (codec_name.indexOf("[") > -1) {
-				if (stream.hasMultipleParams("codec_name")) {
-					codec_name = stream.getParam("codec_name").getAsString();
+				if (fFProbeStream.hasMultipleParams("codec_name")) {
+					codec_name = fFProbeStream.getParam("codec_name").getAsString();
 				} else {
 					codec_name = "Unsupported";
 				}
 			}
-			String codec_type = stream.getCodec_type();
+			String codec_type = fFProbeStream.getCodec_type();
 			if (codec_type.equalsIgnoreCase("video")) {
 				sb_summary.append("Video: ");
 				sb_summary.append(translateCodecName(codec_name));
-				if (stream.getVideoResolution() != null) {
+				if (fFProbeStream.getVideoResolution() != null) {
 					sb_summary.append(" ");
-					sb_summary.append(VideoConst.getSystemSummary(stream.getVideoResolution().x, stream.getVideoResolution().y, result.getFramerate()));
+					sb_summary.append(VideoConst.getSystemSummary(fFProbeStream.getVideoResolution().x, fFProbeStream.getVideoResolution().y, result.getFramerate()));
 				}
 			} else if (codec_type.equalsIgnoreCase("audio")) {
 				sb_summary.append("Audio: ");
 				if (codec_name.equalsIgnoreCase("twos") | codec_name.equalsIgnoreCase("sowt")) {
-					codec_name = stream.getParam("codec_name").getAsString();
+					codec_name = fFProbeStream.getParam("codec_name").getAsString();
 				}
 				sb_summary.append(translateCodecName(codec_name));
 				
 				sb_summary.append(" (");
-				if (stream.hasMultipleParams("channels")) {
-					sb_summary.append(VideoConst.audioChannelCounttoString(stream.getParam("channels").getAsInt()));
+				if (fFProbeStream.hasMultipleParams("channels")) {
+					sb_summary.append(VideoConst.audioChannelCounttoString(fFProbeStream.getParam("channels").getAsInt()));
 				}
-				if (stream.hasMultipleParams("sample_rate")) {
+				if (fFProbeStream.hasMultipleParams("sample_rate")) {
 					sb_summary.append(" ");
-					sb_summary.append(new Integer(stream.getParam("sample_rate").getAsInt()).floatValue() / 1000f);
+					sb_summary.append(new Integer(fFProbeStream.getParam("sample_rate").getAsInt()).floatValue() / 1000f);
 					sb_summary.append("kHz");
 				}
-				if (stream.hasMultipleParams("bit_rate")) {
+				if (fFProbeStream.hasMultipleParams("bit_rate")) {
 					sb_summary.append(" ");
-					sb_summary.append(new Integer(stream.getParam("bit_rate").getAsInt()).floatValue() / 1000f);
+					sb_summary.append(new Integer(fFProbeStream.getParam("bit_rate").getAsInt()).floatValue() / 1000f);
 					sb_summary.append("kbps");
 				}
 				sb_summary.append(")");

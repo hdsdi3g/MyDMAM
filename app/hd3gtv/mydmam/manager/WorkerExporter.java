@@ -134,7 +134,7 @@ public final class WorkerExporter implements InstanceStatusItem {
 	
 	public String toString() {
 		update();
-		return MyDMAM.gson_kit.getGson().toJson(this); // TODO pretty json
+		return MyDMAM.gson_kit.getGsonPretty().toJson(this);
 	}
 	
 	private transient JsonArray ja_capablities;

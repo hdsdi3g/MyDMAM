@@ -48,6 +48,10 @@ public class FFmpegSnapshot implements MetadataExtractor {
 		}
 	}
 	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(ES_TYPE);
+	}
+	
 	public boolean isEnabled() {
 		return (tprofile != null);
 	}
@@ -65,7 +69,7 @@ public class FFmpegSnapshot implements MetadataExtractor {
 	}
 	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
-		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		if (ffprobe == null) {
 			return null;
 		}
@@ -81,7 +85,7 @@ public class FFmpegSnapshot implements MetadataExtractor {
 		}
 		
 		Interlacing interlacing = Interlacing.Progressive;
-		FFmpegInterlacingStats interlace_stats = container.getByClass(FFmpegInterlacingStats.class);
+		FFmpegInterlacingStats interlace_stats = container.getByType(FFmpegInterlacingStats.ES_TYPE, FFmpegInterlacingStats.class);
 		if (interlace_stats != null) {
 			interlacing = interlace_stats.getInterlacing();
 		}

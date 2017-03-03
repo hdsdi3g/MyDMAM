@@ -75,7 +75,7 @@ public class BCACatch {
 		if (modified == false) {
 			return;
 		}
-		FileUtils.writeStringToFile(json_db_file, MyDMAM.gson_kit.getGson().toJson(entries, GsonKit.type_ArrayList_BCACatchEntry), MyDMAM.UTF8);// TODO pretty json
+		FileUtils.writeStringToFile(json_db_file, MyDMAM.gson_kit.getGsonPretty().toJson(entries, GsonKit.type_ArrayList_BCACatchEntry), MyDMAM.UTF8);
 		modified = false;
 	}
 	

@@ -65,7 +65,7 @@ public class FFmpegInterlacingDetection implements MetadataExtractor {
 	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		
-		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		
 		if (ffprobe == null) {
 			return null;
@@ -174,6 +174,10 @@ public class FFmpegInterlacingDetection implements MetadataExtractor {
 			break;
 		}
 		return new ContainerEntryResult(stats);
+	}
+	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(FFmpegInterlacingStats.ES_TYPE);
 	}
 	
 	public List<String> getMimeFileListCanUsedInMasterAsPreview() {

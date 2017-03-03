@@ -648,7 +648,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		 * Process active files: transcoding jobs
 		 */
 		Timecode duration = null;
-		FFprobe ffprobe = indexing_result.getByClass(FFprobe.class);
+		FFprobe ffprobe = indexing_result.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		
 		if (ffprobe != null) {
 			Loggers.Transcode_WatchFolder.debug("Analyst file result, " + ffprobe);

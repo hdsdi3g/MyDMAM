@@ -44,7 +44,7 @@ import hd3gtv.mydmam.transcode.TranscodeProgressFFmpeg;
 import hd3gtv.mydmam.transcode.TranscoderWorker;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
-import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeStream;
 import hd3gtv.tools.Execprocess;
 import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.Timecode;
@@ -146,13 +146,13 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		 * Video filters
 		 */
 		ArrayList<String> filters = new ArrayList<String>();
-		FFmpegInterlacingStats interlace_stats = container.getByClass(FFmpegInterlacingStats.class);
+		FFmpegInterlacingStats interlace_stats = container.getByType(FFmpegInterlacingStats.ES_TYPE, FFmpegInterlacingStats.class);
 		if (interlace_stats != null) {
 			if (interlace_stats.getInterlacing() != Interlacing.Progressive) {
 				filters.add("yadif");
 			}
 		}
-		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		if (ffprobe != null) {
 			if (ffprobe.hasVerticalBlankIntervalInImage()) {
 				/**
@@ -185,7 +185,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		 * Audio filter (channel map)
 		 */
 		if (ffprobe.hasAudio()) {
-			List<Stream> audio_streams = ffprobe.getStreamsByCodecType("audio");
+			List<FFProbeStream> audio_streams = ffprobe.getStreamsByCodecType("audio");
 			
 			if (audio_streams.size() == 1) {
 				/**
@@ -276,7 +276,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		
 		FutureCreateJobs result = new FutureCreateJobs() {
 			public JobNG createJob() throws ConnectionException {
-				FFprobe ffprobe = container.getByClass(FFprobe.class);
+				FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 				if (ffprobe == null) {
 					return null;
 				}
@@ -363,4 +363,10 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 	public boolean isCanUsedInMasterAsPreview(Container container) {
 		return false;
 	}
+	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(JobContextFFmpegLowresRendererAudio.ES_TYPE, JobContextFFmpegLowresRendererHD.ES_TYPE, JobContextFFmpegLowresRendererLQ.ES_TYPE,
+				JobContextFFmpegLowresRendererSD.ES_TYPE);
+	}
+	
 }
