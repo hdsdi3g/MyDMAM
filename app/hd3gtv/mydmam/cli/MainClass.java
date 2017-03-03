@@ -25,7 +25,9 @@ import org.apache.log4j.PatternLayout;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.manager.ServiceNG;
 import hd3gtv.tools.ApplicationArgs;
+import hd3gtv.tools.TableList;
 
 public class MainClass {
 	
@@ -72,6 +74,9 @@ public class MainClass {
 		MyDMAM.testIllegalKeySize();
 		
 		ArrayList<CliModule> modules = new ArrayList<CliModule>();
+		modules.add(new ServiceNG.PlayInCli());
+		modules.add(new ServiceNG.BackgroundServicesInCli());
+		modules.add(new ServiceNG.FTPServerInCli());
 		modules.add(new CliModuleAuth());
 		modules.add(new CliModuleAccessControl());
 		modules.add(new CliModuleSsh());
@@ -92,17 +97,16 @@ public class MainClass {
 			System.out.println("MyDMAM Command line interface");
 			System.out.println("=============================");
 			System.out.println("Available modules:");
+			
+			TableList table = new TableList();
+			
 			for (int pos = 0; pos < modules.size(); pos++) {
 				if (modules.get(pos).isFunctionnal() == false) {
 					continue;
 				}
-				System.out.print(" * ");
-				System.out.print(modules.get(pos).getCliModuleName());
-				System.out.print(" (");
-				System.out.print(modules.get(pos).getCliModuleShortDescr());
-				System.out.print(")");
-				System.out.println();
+				table.addRow(" * " + modules.get(pos).getCliModuleName(), modules.get(pos).getCliModuleShortDescr());
 			}
+			table.print();
 			System.out.println("");
 			System.out.println("To show help: modulename -help or modulename -h");
 			System.out.println(" -verbose for verbose mode (always show caller and thread)");

@@ -16,6 +16,14 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.management.LockInfo;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MonitorInfo;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +40,7 @@ import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
+import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.ftpserver.FTPGroup;
 import hd3gtv.mydmam.ftpserver.FTPOperations;
@@ -41,6 +50,7 @@ import hd3gtv.mydmam.metadata.WorkerIndexer;
 import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.transcode.TranscoderWorker;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderTranscoder;
+import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.CopyMove;
 import play.Play;
 import play.Play.Mode;
@@ -51,17 +61,25 @@ public final class ServiceNG {
 	private boolean want_stop_service;
 	private ServiceThread servicethread;
 	private AppManager manager;
+	private ShutdownHook shutdown_hook;
 	
 	private final boolean enable_play;
 	private final boolean enable_ftpserver;
 	private final boolean enable_background_services;
 	
 	public ServiceNG(String[] args) throws Exception {
+		this(Configuration.global.isElementExists("play"), Configuration.global.isElementExists("ftpserverinstances"), true);
+	}
+	
+	public ServiceNG(boolean enable_play, boolean enable_ftpserver, boolean enable_background_services) throws Exception {
 		CassandraDb.autotest();
 		
-		enable_play = Configuration.global.isElementExists("play");// TODO or not by args
-		enable_ftpserver = Configuration.global.isElementExists("ftpserverinstances");// TODO or not by args
-		enable_background_services = true;// TODO or not by args
+		this.enable_play = enable_play;
+		this.enable_ftpserver = enable_ftpserver;
+		this.enable_background_services = enable_background_services;
+		
+		shutdown_hook = new ShutdownHook();
+		Runtime.getRuntime().addShutdownHook(shutdown_hook);
 		
 		StringJoiner names = new StringJoiner(", ");
 		if (enable_play) {
@@ -73,11 +91,10 @@ public final class ServiceNG {
 		if (enable_background_services) {
 			names.add("Background services");
 		}
-		manager.setAppName(names.toString());
-		
-		Runtime.getRuntime().addShutdownHook(new ShutdownHook());
 		
 		manager = new AppManager();
+		manager.setAppName(names.toString());
+		
 		WatchdogLogConf watch_log_conf = new WatchdogLogConf();
 		watch_log_conf.start();
 		
@@ -193,9 +210,12 @@ public final class ServiceNG {
 		Loggers.Manager.debug("Start all services...");
 		if (servicethread == null) {
 			servicethread = new ServiceThread();
-		}
-		if (servicethread.isAlive() == false) {
 			servicethread.start();
+		} else {
+			if (servicethread.isAlive() == false) {
+				servicethread = new ServiceThread();
+				servicethread.start();
+			}
 		}
 	}
 	
@@ -315,6 +335,170 @@ public final class ServiceNG {
 				AdminMailAlert.create("Can't stop the service", true).setThrowable(e).send();
 			}
 			LogManager.shutdown();
+		}
+	}
+	
+	/**
+	 * Blocking !
+	 */
+	private void waitUserInputConsole() {
+		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+		String line;
+		
+		Runnable help = () -> {
+			System.out.println(" ============ Start interactive mode ============");
+			System.out.println(" == Enter q for stop started services and quit ==");
+			System.out.println(" == Enter r for restart activated services     ==");
+			System.out.println(" == Enter x for stop directly this application ==");
+			System.out.println(" == Enter t for display Threads dump stack     ==");
+			System.out.println(" == Enter h for display this help              ==");
+			System.out.println();
+		};
+		help.run();
+		
+		try {
+			while (true) {
+				line = bufferedReader.readLine().trim();
+				if (line.equals("")) {
+					continue;
+				} else if (line.toLowerCase().equals("q")) {
+					System.out.println("Exit...");
+					System.exit(0);
+				} else if (line.toLowerCase().equals("r")) {
+					System.out.println("Stop all activated services...");
+					stopAllServices();
+					System.out.println("Start all activated services...");
+					startAllServices();
+				} else if (line.toLowerCase().equals("x") | line.toLowerCase().equals("k")) {
+					System.out.println("KILL");
+					Runtime.getRuntime().removeShutdownHook(shutdown_hook);
+					System.exit(0);
+				} else if (line.toLowerCase().equals("t")) {
+					ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+					ThreadInfo[] infos = bean.dumpAllThreads(true, true);
+					
+					System.out.println("=========== START THREAD DUMP ===========");
+					
+					for (ThreadInfo info : infos) {
+						String is_native = "";
+						if (info.isInNative()) {
+							is_native = " Native";
+						}
+						
+						System.out.println("#" + info.getThreadId() + " " + info.getThreadState().name() + " " + info.getThreadName() + is_native);
+						StackTraceElement[] elems = info.getStackTrace();
+						for (int pos = 0; pos < elems.length; pos++) {
+							System.out.println("  at  " + elems[pos].toString());
+						}
+						
+						LockInfo lckinfo = info.getLockInfo();
+						if (lckinfo != null) {
+							System.out.println("Lock: " + lckinfo.getClassName() + " #" + lckinfo.getIdentityHashCode());
+						}
+						if (info.getLockOwnerId() > -1) {
+							System.out.println("Owned by: " + info.getLockOwnerName() + " #" + info.getLockOwnerId());
+						}
+						
+						if (info.getLockedMonitors().length > 0) {
+							if (info.getLockedMonitors().length == 1) {
+								MonitorInfo mi = info.getLockedMonitors()[0];
+								System.out.println("LockedMonitor: " + mi.getClassName() + "  " + mi.getLockedStackFrame().toString() + " #" + mi.getIdentityHashCode() + ", StackDepth = "
+										+ mi.getLockedStackDepth());
+								
+							} else {
+								System.out.println("LockedMonitors:");
+								for (MonitorInfo mi : info.getLockedMonitors()) {
+									System.out.println(
+											" - " + mi.getClassName() + "  " + mi.getLockedStackFrame().toString() + " #" + mi.getIdentityHashCode() + ", StackDepth = " + mi.getLockedStackDepth());
+								}
+							}
+						}
+						
+						if (info.getLockedSynchronizers().length > 0) {
+							if (info.getLockedMonitors().length == 1) {
+								LockInfo li = info.getLockedSynchronizers()[0];
+								System.out.println("LockedSynchronizer: " + li.getClassName() + " #" + li.getIdentityHashCode());
+							} else {
+								System.out.println("LockedSynchronizers:");
+								for (LockInfo li : info.getLockedSynchronizers()) {
+									System.out.println(" - " + li.getClassName() + " #" + li.getIdentityHashCode());
+								}
+							}
+						}
+						
+						System.out.println();
+					}
+					
+					System.out.println("=========== END THREAD DUMP ===========");
+				} else if (line.toLowerCase().equals("h")) {
+					help.run();
+				}
+			}
+		} catch (IOException e) {
+			Loggers.Manager.error("Exit Console mode", e);
+		}
+	}
+	
+	public static class PlayInCli implements CliModule {
+		
+		public void showFullCliModuleHelp() {
+			System.out.println("Start front-end http Play! server for client access and admin");
+		}
+		
+		public String getCliModuleShortDescr() {
+			return "Start Play! server service";
+		}
+		
+		public String getCliModuleName() {
+			return "play";
+		}
+		
+		public void execCliModule(ApplicationArgs args) throws Exception {
+			ServiceNG s = new ServiceNG(true, false, false);
+			s.startAllServices();
+			s.waitUserInputConsole();
+		}
+	}
+	
+	public static class BackgroundServicesInCli implements CliModule {
+		
+		public void showFullCliModuleHelp() {
+			System.out.println("Start all background services activated in configuration like transcoding, path-indexing, watchfolder, BCA...");
+		}
+		
+		public String getCliModuleShortDescr() {
+			return "Start background services";
+		}
+		
+		public String getCliModuleName() {
+			return "services";
+		}
+		
+		public void execCliModule(ApplicationArgs args) throws Exception {
+			ServiceNG s = new ServiceNG(false, false, true);
+			s.startAllServices();
+			s.waitUserInputConsole();
+		}
+	}
+	
+	public static class FTPServerInCli implements CliModule {
+		
+		public void showFullCliModuleHelp() {
+			System.out.println("Start FTP Server. Before, you must set/check its configuration. Else it doesn't starts");
+		}
+		
+		public String getCliModuleShortDescr() {
+			return "Start FTP Server";
+		}
+		
+		public String getCliModuleName() {
+			return "ftpserver";
+		}
+		
+		public void execCliModule(ApplicationArgs args) throws Exception {
+			ServiceNG s = new ServiceNG(false, true, false);
+			s.startAllServices();
+			s.waitUserInputConsole();
 		}
 	}
 	
