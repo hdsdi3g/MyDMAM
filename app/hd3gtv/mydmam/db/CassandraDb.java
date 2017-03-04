@@ -111,7 +111,7 @@ public class CassandraDb {
 			AstyanaxConfigurationImpl configurationimpl = new AstyanaxConfigurationImpl();
 			configurationimpl.setDiscoveryType(NodeDiscoveryType.NONE);
 			configurationimpl.setTargetCassandraVersion("1.2");
-			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(default_keyspacename, 500, 60000, 50));
+			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(default_keyspacename, 5000, 120000, 100));
 			
 			builder = new AstyanaxContext.Builder().forCluster(clustername);
 			builder.withAstyanaxConfiguration(configurationimpl);

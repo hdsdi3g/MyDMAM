@@ -20,14 +20,13 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
 
@@ -52,7 +51,7 @@ public final class WorkerCapablitiesExporter {
 		hookednames = capablities.getHookedNames();
 	}
 	
-	public static class Serializer implements JsonSerializer<WorkerCapablitiesExporter>, JsonDeserializer<WorkerCapablitiesExporter> {
+	public static class Serializer implements GsonDeSerializer<WorkerCapablitiesExporter> {
 		
 		public WorkerCapablitiesExporter deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			WorkerCapablitiesExporter result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, WorkerCapablitiesExporter.class);

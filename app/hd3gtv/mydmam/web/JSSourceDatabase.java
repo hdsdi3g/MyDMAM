@@ -30,15 +30,14 @@ import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.tools.CopyMove;
@@ -50,7 +49,7 @@ public class JSSourceDatabase {
 	private static final String BASE_SOURCE_DIRECTORY_JSX = File.separator + "app" + File.separator + "react";
 	private static final String BASE_SOURCE_DIRECTORY_VANILLA_JS = File.separator + "public" + File.separator + "javascripts" + File.separator + "src";
 	
-	public final static class JSSourceDBSerializer implements JsonSerializer<JSSourceDatabase>, JsonDeserializer<JSSourceDatabase> {
+	public final static class JSSourceDBSerializer implements GsonDeSerializer<JSSourceDatabase> {
 		
 		public JsonElement serialize(JSSourceDatabase src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();

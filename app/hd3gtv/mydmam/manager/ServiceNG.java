@@ -67,10 +67,6 @@ public final class ServiceNG {
 	private final boolean enable_ftpserver;
 	private final boolean enable_background_services;
 	
-	public ServiceNG(String[] args) throws Exception {
-		this(Configuration.global.isElementExists("play"), Configuration.global.isElementExists("ftpserverinstances"), true);
-	}
-	
 	public ServiceNG(boolean enable_play, boolean enable_ftpserver, boolean enable_background_services) throws Exception {
 		CassandraDb.autotest();
 		

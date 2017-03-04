@@ -25,16 +25,15 @@ import java.util.List;
 import java.util.Objects;
 
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnList;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
@@ -243,7 +242,7 @@ public class AbstractFoundedFile implements AbstractFile {
 		return false;
 	}
 	
-	public static class Serializer implements JsonSerializer<AbstractFoundedFile>, JsonDeserializer<AbstractFoundedFile> {
+	public static class Serializer implements GsonDeSerializer<AbstractFoundedFile> {
 		
 		public AbstractFoundedFile deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			AbstractFoundedFile result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, AbstractFoundedFile.class);

@@ -27,15 +27,14 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 
 public class JSSourceDatabaseEntry {
 	
@@ -55,7 +54,7 @@ public class JSSourceDatabaseEntry {
 	private long date;
 	private String hash;
 	
-	public final static class Serializer implements JsonSerializer<JSSourceDatabaseEntry>, JsonDeserializer<JSSourceDatabaseEntry> {
+	public final static class Serializer implements GsonDeSerializer<JSSourceDatabaseEntry> {
 		
 		public JsonElement serialize(JSSourceDatabaseEntry src, Type typeOfSrc, JsonSerializationContext context) {
 			JsonObject result = new JsonObject();

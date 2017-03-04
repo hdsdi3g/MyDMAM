@@ -16,7 +16,9 @@
 */
 package hd3gtv.mydmam;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.manager.ServiceNG;
+import hd3gtv.tools.ApplicationArgs;
 
 public class MainClass {
 	
@@ -24,6 +26,34 @@ public class MainClass {
 		Loggers.Manager.info("Start application");
 		Loggers.displayCurrentConfiguration();
 		MyDMAM.testIllegalKeySize();
-		new ServiceNG(args).startAllServices();
+		
+		boolean enable_play = Configuration.global.isElementExists("play");
+		boolean enable_ftpserver = Configuration.global.isElementExists("ftpserverinstances");
+		boolean enable_background_services = true;
+		
+		ApplicationArgs aargs = new ApplicationArgs(args);
+		String fa = aargs.getFirstAction();
+		if (fa != null) {
+			if (fa.equalsIgnoreCase("play")) {
+				if (enable_play == false) {
+					throw new Exception("Wan't to start Play server, but it not enabled in configuration");
+				}
+				enable_ftpserver = false;
+				enable_background_services = false;
+			} else if (fa.equalsIgnoreCase("ftpserver")) {
+				if (enable_ftpserver == false) {
+					throw new Exception("Wan't to start FTP Server, but it not enabled in configuration");
+				}
+				enable_play = false;
+				enable_background_services = false;
+			} else if (fa.equalsIgnoreCase("services")) {
+				enable_play = false;
+				enable_ftpserver = false;
+			} else {
+				throw new Exception("Action \"" + fa + "\" is not supported");
+			}
+		}
+		
+		new ServiceNG(enable_play, enable_ftpserver, enable_background_services).startAllServices();
 	}
 }

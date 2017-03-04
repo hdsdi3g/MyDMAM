@@ -79,9 +79,15 @@ import hd3gtv.mydmam.ftpserver.AJSUser;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
 import hd3gtv.mydmam.manager.AsyncJSBrokerResponseAction;
 import hd3gtv.mydmam.manager.AsyncJSBrokerResponseList;
+import hd3gtv.mydmam.manager.CyclicJobCreator;
+import hd3gtv.mydmam.manager.GsonThrowable;
+import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.JobContext;
 import hd3gtv.mydmam.manager.JobCreator;
+import hd3gtv.mydmam.manager.JobCreatorDeclarationSerializer;
 import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.manager.TriggerJobCreator;
+import hd3gtv.mydmam.manager.WorkerCapablitiesExporter;
 import hd3gtv.mydmam.metadata.container.ContainerPreview;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
@@ -175,20 +181,71 @@ public class GsonKit {
 	public final static Type type_Map_String_Object = new TypeToken<Map<String, Object>>() {
 	}.getType();
 	
-	private class Serializator {
+	private class De_Serializator {
 		private Type type;
 		private Object typeAdapter;
 		
-		private Serializator(Type type, Object typeAdapter) {
+		private <T> De_Serializator(Type type, GsonDeSerializer<T> typeAdapter) {
+			Loggers.getGsonLoggersForSpecificClass(type).debug("Declare de/serializer " + type.getTypeName());
+			
 			this.type = type;
-			this.typeAdapter = typeAdapter;
+			if (Loggers.getGsonLoggersForSpecificClass(type).isTraceEnabled()) {
+				this.typeAdapter = new GsonDeSerializer<T>() {
+					public JsonElement serialize(T src, Type typeOfSrc, JsonSerializationContext context) {
+						JsonElement result = typeAdapter.serialize(src, typeOfSrc, context);
+						Loggers.getGsonLoggersForSpecificClass(type).trace("Serialize to " + result.toString());
+						return result;
+					}
+					
+					public T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+						Loggers.getGsonLoggersForSpecificClass(type).trace("Deserialize from " + json.toString());
+						return typeAdapter.deserialize(json, typeOfT, context);
+					}
+				};
+			} else {
+				this.typeAdapter = typeAdapter;
+			}
+		}
+		
+		private <T> De_Serializator(Type type, JsonSerializer<T> typeAdapter) {
+			Loggers.getGsonLoggersForSpecificClass(type).debug("Declare serializer " + type.getTypeName());
+			
+			this.type = type;
+			
+			if (Loggers.getGsonLoggersForSpecificClass(type).isTraceEnabled()) {
+				this.typeAdapter = new JsonSerializer<T>() {
+					public JsonElement serialize(T src, Type typeOfSrc, JsonSerializationContext context) {
+						JsonElement result = typeAdapter.serialize(src, typeOfSrc, context);
+						Loggers.getGsonLoggersForSpecificClass(type).trace("Serialize to " + result.toString());
+						return result;
+					}
+				};
+			} else {
+				this.typeAdapter = typeAdapter;
+			}
+		}
+		
+		private <T> De_Serializator(Type type, JsonDeserializer<T> typeAdapter) {
+			Loggers.Gson.debug("Declare deserializer " + type.getTypeName());
+			
+			this.type = type;
+			if (Loggers.getGsonLoggersForSpecificClass(type).isTraceEnabled()) {
+				this.typeAdapter = new JsonDeserializer<T>() {
+					public T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+						Loggers.getGsonLoggersForSpecificClass(type).trace("Deserialize from " + json.toString());
+						return typeAdapter.deserialize(json, typeOfT, context);
+					}
+				};
+			} else {
+				this.typeAdapter = typeAdapter;
+			}
 		}
 	}
 	
 	private GsonIgnoreStrategy ignore_strategy;
 	private Gson gson_simple;
-	private ArrayList<Serializator> gson_simple_serializator;
-	private ArrayList<Serializator> gson_full_serializator;
+	private ArrayList<De_Serializator> gson_simple_serializator;
+	private ArrayList<De_Serializator> gson_full_serializator;
 	private boolean full_pretty_printing = false;
 	
 	/**
@@ -353,9 +410,9 @@ public class GsonKit {
 			return result;
 		});
 		
-		gson_simple_serializator.add(new Serializator(JSSourceDatabaseEntry.class, new JSSourceDatabaseEntry.Serializer()));
-		gson_simple_serializator.add(new Serializator(ContainerPreview.class, new ContainerPreview.Serializer()));
-		gson_simple_serializator.add(new Serializator(ContainerPreview.class, new ContainerPreview.Deserializer()));
+		gson_simple_serializator.add(new De_Serializator(JSSourceDatabaseEntry.class, new JSSourceDatabaseEntry.Serializer()));
+		gson_simple_serializator.add(new De_Serializator(ContainerPreview.class, new ContainerPreview.Serializer()));
+		gson_simple_serializator.add(new De_Serializator(ContainerPreview.class, new ContainerPreview.Deserializer()));
 		
 		/**
 		 * ===========================================
@@ -363,41 +420,54 @@ public class GsonKit {
 		 * ===========================================
 		 */
 		
-		gson_full_serializator.add(new Serializator(JSSourceDatabase.class, new JSSourceDBSerializer()));
-		gson_full_serializator.add(new Serializator(AsyncStatResult.class, new AsyncStatResult.Serializer()));
-		gson_full_serializator.add(new Serializator(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer()));
-		gson_full_serializator.add(new Serializator(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer()));
-		gson_full_serializator.add(new Serializator(AbstractFoundedFile.class, new AbstractFoundedFile.Serializer()));
-		gson_full_serializator.add(new Serializator(WatchFolderEntry.class, new WatchFolderEntry.Serializer()));
-		gson_full_serializator.add(new Serializator(TranscoderWorker.class, new TranscoderWorker.Serializer()));
-		gson_full_serializator.add(new Serializator(TranscodeProfile.class, new TranscodeProfile.Serializer()));
-		gson_full_serializator.add(new Serializator(SearchQuery.class, new SearchQuerySerializer()));
-		gson_full_serializator.add(new Serializator(AJSResponseActivities.class, new JsonSerializer<AJSResponseActivities>() {
+		gson_full_serializator.add(new De_Serializator(InstanceAction.class, new InstanceAction.Serializer()));
+		gson_full_serializator.add(new De_Serializator(JobNG.class, new JobNG.Serializer()));
+		gson_full_serializator.add(new De_Serializator(GsonThrowable.class, new GsonThrowable.Serializer()));
+		gson_full_serializator.add(new De_Serializator(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer()));
+		
+		gson_full_serializator.add(new De_Serializator(JobContext.class, new JobContext.Serializer()));
+		gson_full_serializator.add(new De_Serializator(new TypeToken<ArrayList<JobContext>>() {
+		}.getType(), new JobContext.SerializerList()));
+		
+		gson_full_serializator.add(new De_Serializator(JobCreatorDeclarationSerializer.class, new JobCreatorDeclarationSerializer()));
+		gson_full_serializator.add(new De_Serializator(TriggerJobCreator.class, new TriggerJobCreator.Serializer()));
+		gson_full_serializator.add(new De_Serializator(CyclicJobCreator.class, new CyclicJobCreator.Serializer()));
+		
+		gson_full_serializator.add(new De_Serializator(JSSourceDatabase.class, new JSSourceDBSerializer()));
+		gson_full_serializator.add(new De_Serializator(AsyncStatResult.class, new AsyncStatResult.Serializer()));
+		gson_full_serializator.add(new De_Serializator(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer()));
+		gson_full_serializator.add(new De_Serializator(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer()));
+		gson_full_serializator.add(new De_Serializator(AbstractFoundedFile.class, new AbstractFoundedFile.Serializer()));
+		gson_full_serializator.add(new De_Serializator(WatchFolderEntry.class, new WatchFolderEntry.Serializer()));
+		gson_full_serializator.add(new De_Serializator(TranscoderWorker.class, new TranscoderWorker.Serializer()));
+		gson_full_serializator.add(new De_Serializator(TranscodeProfile.class, new TranscodeProfile.Serializer()));
+		gson_full_serializator.add(new De_Serializator(SearchQuery.class, new SearchQuerySerializer()));
+		gson_full_serializator.add(new De_Serializator(AJSResponseActivities.class, new JsonSerializer<AJSResponseActivities>() {
 			public JsonElement serialize(AJSResponseActivities src, Type typeOfSrc, JsonSerializationContext context) {
 				JsonObject result = new JsonObject();
 				result.add("activities", MyDMAM.gson_kit.getGson().toJsonTree(src.activities, GsonKit.type_ArrayList_FTPActivity));
 				return result;
 			}
 		}));
-		gson_full_serializator.add(new Serializator(AJSResponseUserList.class, new JsonSerializer<AJSResponseUserList>() {
+		gson_full_serializator.add(new De_Serializator(AJSResponseUserList.class, new JsonSerializer<AJSResponseUserList>() {
 			public JsonElement serialize(AJSResponseUserList src, Type typeOfSrc, JsonSerializationContext context) {
 				JsonObject result = new JsonObject();
 				result.add("users", MyDMAM.gson_kit.getGson().toJsonTree(src.users, GsonKit.type_ArrayList_AJSUser));
 				return result;
 			}
 		}));
-		gson_full_serializator.add(new Serializator(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
+		gson_full_serializator.add(new De_Serializator(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
 			public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
 				return src.list;
 			}
 		}));
 		
-		gson_full_serializator.add(new Serializator(AsyncJSBrokerResponseAction.class, new JsonSerializer<AsyncJSBrokerResponseAction>() {
+		gson_full_serializator.add(new De_Serializator(AsyncJSBrokerResponseAction.class, new JsonSerializer<AsyncJSBrokerResponseAction>() {
 			public JsonElement serialize(AsyncJSBrokerResponseAction src, Type typeOfSrc, JsonSerializationContext context) {
 				return src.modified_jobs;
 			}
 		}));
-		gson_full_serializator.add(new Serializator(AsyncJSWatchfolderResponseList.class, new JsonSerializer<AsyncJSWatchfolderResponseList>() {
+		gson_full_serializator.add(new De_Serializator(AsyncJSWatchfolderResponseList.class, new JsonSerializer<AsyncJSWatchfolderResponseList>() {
 			public JsonElement serialize(AsyncJSWatchfolderResponseList src, Type typeOfSrc, JsonSerializationContext context) {
 				JsonObject result = new JsonObject();
 				result.add("items", MyDMAM.gson_kit.getGson().toJsonTree(src.items, GsonKit.type_ArrayList_AbstractFoundedFile));
@@ -405,11 +475,11 @@ public class GsonKit {
 				return result;
 			}
 		}));
-		gson_full_serializator.add(new Serializator(AsyncStatResult.class, new AsyncStatResult.Serializer()));
-		gson_full_serializator.add(new Serializator(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer()));
-		gson_full_serializator.add(new Serializator(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer()));
-		gson_full_serializator.add(new Serializator(AsyncStatRequest.class, new AsyncStatRequest.Deserializer()));
-		gson_full_serializator.add(new Serializator(CommentList.class, new JsonSerializer<CommentList>() {
+		gson_full_serializator.add(new De_Serializator(AsyncStatResult.class, new AsyncStatResult.Serializer()));
+		gson_full_serializator.add(new De_Serializator(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer()));
+		gson_full_serializator.add(new De_Serializator(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer()));
+		gson_full_serializator.add(new De_Serializator(AsyncStatRequest.class, new AsyncStatRequest.Deserializer()));
+		gson_full_serializator.add(new De_Serializator(CommentList.class, new JsonSerializer<CommentList>() {
 			public JsonElement serialize(CommentList src, Type typeOfSrc, JsonSerializationContext context) {
 				JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
 				result.add("commentlist", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.commentlist, new TypeToken<ArrayList<Comment>>() {
@@ -419,28 +489,28 @@ public class GsonKit {
 			}
 		}));
 		
-		gson_full_serializator.add(new Serializator(UserView.class, new UserView.Serializer()));
-		gson_full_serializator.add(new Serializator(UserViewList.class, new UserViewList.Serializer()));
-		gson_full_serializator.add(new Serializator(GroupView.class, new GroupView.Serializer()));
-		gson_full_serializator.add(new Serializator(GroupViewList.class, new GroupViewList.Serializer()));
-		gson_full_serializator.add(new Serializator(RoleView.class, new RoleView.Serializer()));
-		gson_full_serializator.add(new Serializator(RoleViewList.class, new RoleViewList.Serializer()));
-		gson_full_serializator.add(new Serializator(NewUser.class, new NewUser.Deserializer()));
-		gson_full_serializator.add(new Serializator(UserAdminUpdate.class, new UserAdminUpdate.Deserializer()));
-		gson_full_serializator.add(new Serializator(GroupChRole.class, new GroupChRole.Deserializer()));
-		gson_full_serializator.add(new Serializator(RoleChPrivileges.class, new RoleChPrivileges.Deserializer()));
+		gson_full_serializator.add(new De_Serializator(UserView.class, new UserView.Serializer()));
+		gson_full_serializator.add(new De_Serializator(UserViewList.class, new UserViewList.Serializer()));
+		gson_full_serializator.add(new De_Serializator(GroupView.class, new GroupView.Serializer()));
+		gson_full_serializator.add(new De_Serializator(GroupViewList.class, new GroupViewList.Serializer()));
+		gson_full_serializator.add(new De_Serializator(RoleView.class, new RoleView.Serializer()));
+		gson_full_serializator.add(new De_Serializator(RoleViewList.class, new RoleViewList.Serializer()));
+		gson_full_serializator.add(new De_Serializator(NewUser.class, new NewUser.Deserializer()));
+		gson_full_serializator.add(new De_Serializator(UserAdminUpdate.class, new UserAdminUpdate.Deserializer()));
+		gson_full_serializator.add(new De_Serializator(GroupChRole.class, new GroupChRole.Deserializer()));
+		gson_full_serializator.add(new De_Serializator(RoleChPrivileges.class, new RoleChPrivileges.Deserializer()));
 		
-		gson_full_serializator.add(new Serializator(EntrySummary.class, new EntrySummary.Serializer()));
-		gson_full_serializator.add(new Serializator(EntryRenderer.class, new EntryRenderer.Serializer()));
-		gson_full_serializator.add(new Serializator(ImageAttributes.class, new ImageAttributes.Serializer()));
-		gson_full_serializator.add(new Serializator(FFmpegAudioDeepAnalyst.class, new FFmpegAudioDeepAnalyst.Serializer()));
-		gson_full_serializator.add(new Serializator(FFmpegInterlacingStats.class, new FFmpegInterlacingStats.Serializer()));
+		gson_full_serializator.add(new De_Serializator(EntrySummary.class, new EntrySummary.Serializer()));
+		gson_full_serializator.add(new De_Serializator(EntryRenderer.class, new EntryRenderer.Serializer()));
+		gson_full_serializator.add(new De_Serializator(ImageAttributes.class, new ImageAttributes.Serializer()));
+		gson_full_serializator.add(new De_Serializator(FFmpegAudioDeepAnalyst.class, new FFmpegAudioDeepAnalyst.Serializer()));
+		gson_full_serializator.add(new De_Serializator(FFmpegInterlacingStats.class, new FFmpegInterlacingStats.Serializer()));
 		
-		gson_full_serializator.add(new Serializator(FFprobe.class, new FFprobe.Serializer()));
-		gson_full_serializator.add(new Serializator(FFProbeStream.class, new FFProbeStream.Serializer()));
-		gson_full_serializator.add(new Serializator(FFProbeChapter.class, new FFProbeChapter.Serializer()));
-		gson_full_serializator.add(new Serializator(FFProbeFormat.class, new FFProbeFormat.Serializer()));
-		gson_full_serializator.add(new Serializator(BBCBmx.class, new BBCBmx.Serializer()));
+		gson_full_serializator.add(new De_Serializator(FFprobe.class, new FFprobe.Serializer()));
+		gson_full_serializator.add(new De_Serializator(FFProbeStream.class, new FFProbeStream.Serializer()));
+		gson_full_serializator.add(new De_Serializator(FFProbeChapter.class, new FFProbeChapter.Serializer()));
+		gson_full_serializator.add(new De_Serializator(FFProbeFormat.class, new FFProbeFormat.Serializer()));
+		gson_full_serializator.add(new De_Serializator(BBCBmx.class, new BBCBmx.Serializer()));
 		
 		/*
 		 * 	public class Serializer implements JsonSerializer<SelfSerializing> {
@@ -513,19 +583,6 @@ public class GsonKit {
 	}
 	
 	/**
-	 * @param type_adapter @see GsonBuilder.registerTypeAdapter()
-	 * @return this
-	 */
-	public synchronized GsonKit registerTypeAdapter(Type type, Object type_adapter) {
-		synchronized (this) {
-			gson_full_serializator.add(new Serializator(type, type_adapter));
-			gson_full = null;
-			gson_full_pretty = null;
-		}
-		return this;
-	}
-	
-	/**
 	 * @return GsonSimple + all actual registerTypeAdapter()
 	 */
 	public Gson getGson() {
@@ -545,8 +602,8 @@ public class GsonKit {
 		return gson_full_pretty;
 	}
 	
-	public <T> GsonKit registerDeserializer(Type type, Class<T> dest_type, Function<JsonElement, T> deserializer) {
-		return registerTypeAdapter(type, new JsonDeserializer<T>() {
+	public synchronized <T> GsonKit registerDeserializer(Type type, Class<T> dest_type, Function<JsonElement, T> deserializer) {
+		gson_full_serializator.add(new De_Serializator(type, new JsonDeserializer<T>() {
 			public T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 				try {
 					return deserializer.apply(json);
@@ -555,11 +612,14 @@ public class GsonKit {
 					return null;
 				}
 			}
-		});
+		}));
+		gson_full = null;
+		gson_full_pretty = null;
+		return this;
 	}
 	
-	public <T> GsonKit registerSerializer(Type type, Class<T> source_type, Function<T, JsonElement> serializer) {
-		return registerTypeAdapter(type, new JsonSerializer<T>() {
+	public synchronized <T> GsonKit registerSerializer(Type type, Class<T> source_type, Function<T, JsonElement> serializer) {
+		gson_full_serializator.add(new De_Serializator(type, new JsonSerializer<T>() {
 			public JsonElement serialize(T src, Type typeOfSrc, JsonSerializationContext context) {
 				try {
 					return serializer.apply(src);
@@ -568,11 +628,21 @@ public class GsonKit {
 					return null;
 				}
 			}
-		});
+		}));
+		gson_full = null;
+		gson_full_pretty = null;
+		return this;
+	}
+	
+	public synchronized <T> GsonKit registerDeSerializer(Type type, Class<T> object_type, Function<T, JsonElement> adapter_serializer, Function<JsonElement, T> adapter_deserializer) {
+		gson_full_serializator.add(new De_Serializator(type, makeDeSerializer(object_type, adapter_serializer, adapter_deserializer)));
+		gson_full = null;
+		gson_full_pretty = null;
+		return this;
 	}
 	
 	private <T> void registerGsonSimpleDeSerializer(Type type, Class<T> object_type, Function<T, JsonElement> adapter_serializer, Function<JsonElement, T> adapter_deserializer) {
-		gson_full_serializator.add(new Serializator(type, makeDeSerializer(object_type, adapter_serializer, adapter_deserializer)));
+		gson_simple_serializator.add(new De_Serializator(type, makeDeSerializer(object_type, adapter_serializer, adapter_deserializer)));
 	}
 	
 	private <T> GsonDeSerializer<T> makeDeSerializer(Class<T> object_type, Function<T, JsonElement> adapter_serializer, Function<JsonElement, T> adapter_deserializer) {
@@ -590,15 +660,11 @@ public class GsonKit {
 				try {
 					return adapter_deserializer.apply(json);
 				} catch (Exception e) {
-					Loggers.Gson.error("Can't deserialize to " + object_type.getName(), e);
+					Loggers.Gson.error("Can't deserialize from " + object_type.getName(), e);
 					return null;
 				}
 			}
 		};
-	}
-	
-	public <T> GsonKit registerDeSerializer(Type type, Class<T> object_type, Function<T, JsonElement> adapter_serializer, Function<JsonElement, T> adapter_deserializer) {
-		return registerTypeAdapter(type, makeDeSerializer(object_type, adapter_serializer, adapter_deserializer));
 	}
 	
 	public void setFullPrettyPrinting() {

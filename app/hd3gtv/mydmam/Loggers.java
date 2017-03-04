@@ -17,11 +17,13 @@
 package hd3gtv.mydmam;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -67,6 +69,18 @@ public final class Loggers {
 	public final static Logger BroadcastAutomation = Logger.getLogger("mydmam.bcauto");
 	public final static Logger Elemtl = Logger.getLogger("mydmam.elemtl");
 	public final static Logger Gson = Logger.getLogger("mydmam.gson");
+	
+	private static final HashMap<String, Logger> map_loggers_by_classname = new HashMap<>();
+	
+	public final static Logger getGsonLoggersForSpecificClass(Type type) {
+		String class_name = type.getTypeName().replace("<", ".").replace(">", "").replace("$", ".");
+		if (map_loggers_by_classname.containsKey(class_name) == false) {
+			synchronized (map_loggers_by_classname) {
+				map_loggers_by_classname.put(class_name, Logger.getLogger(Gson.getName() + "." + class_name));
+			}
+		}
+		return map_loggers_by_classname.get(class_name);
+	}
 	
 	/*public static JsonObject getAllLevels() {
 		JsonObject result = new JsonObject();

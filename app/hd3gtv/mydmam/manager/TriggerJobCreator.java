@@ -20,11 +20,14 @@ import java.lang.reflect.Type;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public final class TriggerJobCreator extends JobCreator {
 	
@@ -45,25 +48,23 @@ public final class TriggerJobCreator extends JobCreator {
 		return context_hook_trigger_key;
 	}
 	
-	static class Serializer extends JobCreatorSerializer<TriggerJobCreator> {
-		Serializer() {
-			super(TriggerJobCreator.class);
-		}
+	public static class Serializer implements GsonDeSerializer<TriggerJobCreator> {
 		
 		public JsonElement serialize(TriggerJobCreator src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonElement result = super.serialize(src, typeOfSrc, context);
+			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+			result.add("declarations", MyDMAM.gson_kit.getGson().toJsonTree(src.declarations, GsonKit.type_ArrayList_JobCreatorJobDeclaration));
 			result.getAsJsonObject().add("context_hook", MyDMAM.gson_kit.getGson().toJsonTree(src.context_hook, JobContext.class));
 			return result;
 		}
 		
 		public TriggerJobCreator deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			TriggerJobCreator result = super.deserialize(json, typeOfT, context);
+			JsonObject jo = json.getAsJsonObject();
+			TriggerJobCreator result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, TriggerJobCreator.class);
+			result.declarations = MyDMAM.gson_kit.getGson().fromJson(jo.get("declarations"), GsonKit.type_ArrayList_JobCreatorJobDeclaration);
 			result.context_hook = MyDMAM.gson_kit.getGson().fromJson(json.getAsJsonObject().get("context_hook"), JobContext.class);
 			return result;
 		}
 	}
-	
-	static Serializer serializer = new Serializer();
 	
 	public Class<? extends InstanceActionReceiver> getClassToCallback() {
 		return TriggerJobCreator.class;

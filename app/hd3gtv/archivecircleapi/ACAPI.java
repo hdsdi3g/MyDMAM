@@ -30,7 +30,11 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.auth.AuthenticationException;
 import org.apache.log4j.Logger;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public class ACAPI {
 	
@@ -42,14 +46,75 @@ public class ACAPI {
 	private int tcp_port = 8081;
 	
 	public ACAPI(String host, String user, String password) {
-		MyDMAM.gson_kit.registerTypeAdapter(ACNode.class, new ACNode.Deseralizer(this));
-		MyDMAM.gson_kit.registerTypeAdapter(ACNodesEntry.class, new ACNodesEntry.Deseralizer(this));
-		MyDMAM.gson_kit.registerTypeAdapter(ACFile.class, new ACFile.Deseralizer(this));
-		MyDMAM.gson_kit.registerTypeAdapter(ACPositionType.class, new ACPositionType.Deseralizer(this));
-		MyDMAM.gson_kit.registerTypeAdapter(ACFileLocations.class, new ACFileLocations.Deseralizer(this));
-		MyDMAM.gson_kit.registerTypeAdapter(ACFileLocationCache.class, new ACFileLocationCache.Deseralizer_ACFileLocationCache(this));
-		MyDMAM.gson_kit.registerTypeAdapter(ACFileLocationPack.class, new ACFileLocationPack.Deseralizer(this));
-		MyDMAM.gson_kit.registerTypeAdapter(ACFileLocationTape.class, new ACFileLocationTape.Deseralizer(this));
+		MyDMAM.gson_kit.registerDeserializer(ACNode.class, ACNode.class, json -> {
+			ACNode node = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACNode.class);
+			node.nodes = MyDMAM.gson_kit.getGson().fromJson(json.getAsJsonObject().get("nodes"), GsonKit.type_ArrayList_ACNodesEntry);
+			return node;
+		});
+		
+		MyDMAM.gson_kit.registerDeserializer(ACNodesEntry.class, ACNodesEntry.class, json -> {
+			ACNodesEntry nodes = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACNodesEntry.class);
+			nodes.ipAddresses = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("ipAddresses"), GsonKit.type_ArrayList_InetAddr);
+			return nodes;
+		});
+		
+		MyDMAM.gson_kit.registerDeserializer(ACFile.class, ACFile.class, json -> {
+			ACFile node = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACFile.class);
+			JsonObject jo = json.getAsJsonObject();
+			if (node.type == ACFileType.directory) {
+				node.files = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("files"), GsonKit.type_ArrayList_String);
+				node.sub_locations = MyDMAM.gson_kit.getGson().fromJson(jo.get("locations"), ACItemLocations.class);
+			} else if (node.type == ACFileType.file) {
+				node.this_locations = MyDMAM.gson_kit.getGson().fromJson(jo.get("locations"), GsonKit.type_ArrayList_ACFileLocations);
+			} else {
+				throw new NullPointerException("node");
+			}
+			return node;
+		});
+		
+		MyDMAM.gson_kit.registerDeserializer(ACPositionType.class, ACPositionType.class, json -> {
+			ACPositionType pt = new ACPositionType();
+			JsonObject jo = json.getAsJsonObject();
+			
+			pt.cache = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("cache"), GsonKit.type_ArrayList_String);
+			pt.disk = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("disk"), GsonKit.type_ArrayList_String);
+			pt.nearline = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("nearline"), GsonKit.type_ArrayList_String);
+			pt.offline = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("offline"), GsonKit.type_ArrayList_String);
+			return pt;
+		});
+		
+		MyDMAM.gson_kit.registerDeserializer(ACFileLocations.class, ACFileLocations.class, json -> {
+			JsonObject jo = json.getAsJsonObject();
+			String type = jo.get("type").getAsString();
+			
+			if (type.equalsIgnoreCase("CACHE")) {
+				return MyDMAM.gson_kit.getGson().fromJson(json, ACFileLocationCache.class);
+			} else if (type.equalsIgnoreCase("PACK")) {
+				return MyDMAM.gson_kit.getGson().fromJson(json, ACFileLocationPack.class);
+			} else if (type.equalsIgnoreCase("TAPE")) {
+				return MyDMAM.gson_kit.getGson().fromJson(json, ACFileLocationTape.class);
+			} else {
+				throw new JsonParseException("Unknow type: " + type);
+			}
+		});
+		
+		MyDMAM.gson_kit.registerDeserializer(ACFileLocationCache.class, ACFileLocationCache.class, json -> {
+			ACFileLocationCache location = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACFileLocationCache.class);
+			location.nodes = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("nodes"), GsonKit.type_ArrayList_String);
+			return location;
+		});
+		
+		MyDMAM.gson_kit.registerDeserializer(ACFileLocationPack.class, ACFileLocationPack.class, json -> {
+			ACFileLocationPack location = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACFileLocationPack.class);
+			location.partitions = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("partitions"), GsonKit.type_ArrayList_ACPartition);
+			return location;
+		});
+		
+		MyDMAM.gson_kit.registerDeserializer(ACFileLocationTape.class, ACFileLocationTape.class, json -> {
+			ACFileLocationTape location = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACFileLocationTape.class);
+			location.tapes = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("tapes"), GsonKit.type_ArrayList_ACTape);
+			return location;
+		});
 		
 		this.host = host;
 		if (host == null) {

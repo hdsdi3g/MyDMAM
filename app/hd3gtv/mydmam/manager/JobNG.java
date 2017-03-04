@@ -33,14 +33,12 @@ import java.util.concurrent.TimeUnit;
 import org.json.simple.parser.ParseException;
 
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -60,6 +58,7 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.DeployColumnDef;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.tools.StoppableProcessing;
@@ -390,7 +389,7 @@ public final class JobNG {
 		exportToDatabase(mutator.withRow(CF_QUEUE, key));
 	}
 	
-	public static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
+	public static class Serializer implements GsonDeSerializer<JobNG> {
 		public JobNG deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext jcontext) throws JsonParseException {
 			JsonObject json = (JsonObject) jejson;
 			JobNG job = MyDMAM.gson_kit.getGsonSimple().fromJson(json, JobNG.class);
@@ -407,7 +406,7 @@ public final class JobNG {
 		public JsonElement serialize(JobNG src, Type typeOfSrc, JsonSerializationContext jcontext) {
 			JsonObject result = (JsonObject) MyDMAM.gson_kit.getGsonSimple().toJsonTree(src);
 			result.add("required_keys", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.required_keys));
-			result.add("context", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.context, JobContext.class));
+			result.add("context", MyDMAM.gson_kit.getGson().toJsonTree(src.context, JobContext.class));
 			result.add("processing_error", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.processing_error));
 			return result;
 		}

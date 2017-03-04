@@ -24,13 +24,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.tools.StoppableThread;
@@ -52,22 +50,6 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	
 	static {
 		starttime = ManagementFactory.getRuntimeMXBean().getStartTime();
-		
-		/**
-		 * Inside of this package serializers
-		 */
-		MyDMAM.gson_kit.registerTypeAdapter(InstanceAction.class, new InstanceAction.Serializer());
-		MyDMAM.gson_kit.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
-		MyDMAM.gson_kit.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
-		MyDMAM.gson_kit.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
-		
-		MyDMAM.gson_kit.registerTypeAdapter(JobContext.class, new JobContext.Serializer());
-		MyDMAM.gson_kit.registerTypeAdapter(new TypeToken<ArrayList<JobContext>>() {
-		}.getType(), new JobContext.SerializerList());
-		
-		MyDMAM.gson_kit.registerTypeAdapter(JobCreatorDeclarationSerializer.class, new JobCreatorDeclarationSerializer());
-		MyDMAM.gson_kit.registerTypeAdapter(TriggerJobCreator.class, TriggerJobCreator.serializer);
-		MyDMAM.gson_kit.registerTypeAdapter(CyclicJobCreator.class, CyclicJobCreator.serializer);
 	}
 	
 	private volatile static HashMap<String, Class<?>> instance_class_name;

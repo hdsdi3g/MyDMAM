@@ -19,17 +19,16 @@ package hd3gtv.mydmam.manager;
 import java.lang.reflect.Type;
 
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 import hd3gtv.mydmam.gson.GsonKit;
 
-public final class JobCreatorDeclarationSerializer implements JsonSerializer<JobCreator.Declaration>, JsonDeserializer<JobCreator.Declaration> {
+public final class JobCreatorDeclarationSerializer implements GsonDeSerializer<JobCreator.Declaration> {
 	
 	public JobCreator.Declaration deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 		JsonObject jo = json.getAsJsonObject();

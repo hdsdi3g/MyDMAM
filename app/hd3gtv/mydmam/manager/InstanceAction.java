@@ -24,13 +24,11 @@ import java.util.UUID;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -42,6 +40,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 import hd3gtv.mydmam.gson.GsonIgnore;
 
 public final class InstanceAction {
@@ -183,7 +182,7 @@ public final class InstanceAction {
 		mutator.withRow(CF_ACTION, key).delete();
 	}
 	
-	public static class Serializer implements JsonSerializer<InstanceAction>, JsonDeserializer<InstanceAction> {
+	public static class Serializer implements GsonDeSerializer<InstanceAction> {
 		
 		public InstanceAction deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			JsonObject src = json.getAsJsonObject();

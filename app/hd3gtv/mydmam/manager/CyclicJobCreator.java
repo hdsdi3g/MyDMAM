@@ -16,13 +16,21 @@
 */
 package hd3gtv.mydmam.manager;
 
+import java.lang.reflect.Type;
 import java.util.concurrent.TimeUnit;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
+import hd3gtv.mydmam.gson.GsonKit;
 
 public final class CyclicJobCreator extends JobCreator {
 	
@@ -96,8 +104,6 @@ public final class CyclicJobCreator extends JobCreator {
 		job.setMaxExecutionTime(period, TimeUnit.MILLISECONDS);
 	}
 	
-	static JobCreatorSerializer<CyclicJobCreator> serializer = new JobCreatorSerializer<CyclicJobCreator>(CyclicJobCreator.class);
-	
 	public Class<? extends InstanceActionReceiver> getClassToCallback() {
 		return CyclicJobCreator.class;
 	}
@@ -121,4 +127,20 @@ public final class CyclicJobCreator extends JobCreator {
 		return CyclicJobCreator.class;
 	}
 	
+	public static class Serializer implements GsonDeSerializer<CyclicJobCreator> {
+		
+		public JsonElement serialize(CyclicJobCreator src, Type typeOfSrc, JsonSerializationContext context) {
+			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+			result.add("declarations", MyDMAM.gson_kit.getGson().toJsonTree(src.declarations, GsonKit.type_ArrayList_JobCreatorJobDeclaration));
+			return result;
+		}
+		
+		public CyclicJobCreator deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+			JsonObject jo = json.getAsJsonObject();
+			CyclicJobCreator result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, CyclicJobCreator.class);
+			result.declarations = MyDMAM.gson_kit.getGson().fromJson(jo.get("declarations"), GsonKit.type_ArrayList_JobCreatorJobDeclaration);
+			return result;
+		}
+		
+	}
 }

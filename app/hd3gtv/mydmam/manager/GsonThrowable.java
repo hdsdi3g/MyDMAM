@@ -20,15 +20,14 @@ import java.lang.reflect.Type;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 import hd3gtv.mydmam.gson.GsonIgnore;
 
 public final class GsonThrowable {
@@ -126,7 +125,7 @@ public final class GsonThrowable {
 		return toJsonString(json);
 	}
 	
-	public static class Serializer implements JsonSerializer<GsonThrowable>, JsonDeserializer<GsonThrowable> {
+	public static class Serializer implements GsonDeSerializer<GsonThrowable> {
 		
 		public GsonThrowable deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			return new GsonThrowable(json.getAsJsonObject());

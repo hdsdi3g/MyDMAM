@@ -25,15 +25,14 @@ import java.util.List;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
 import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.gson.GsonKit;
 
@@ -62,7 +61,7 @@ public abstract class JobContext {
 	 */
 	public @GsonIgnore List<String> hookednames;
 	
-	public final static class Serializer implements JsonSerializer<JobContext>, JsonDeserializer<JobContext> {
+	public final static class Serializer implements GsonDeSerializer<JobContext> {
 		
 		public JobContext deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			try {
@@ -93,7 +92,7 @@ public abstract class JobContext {
 		}
 	}
 	
-	public final static class SerializerList implements JsonSerializer<ArrayList<JobContext>>, JsonDeserializer<ArrayList<JobContext>> {
+	public final static class SerializerList implements GsonDeSerializer<ArrayList<JobContext>> {
 		
 		public ArrayList<JobContext> deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			JsonArray ja = jejson.getAsJsonArray();

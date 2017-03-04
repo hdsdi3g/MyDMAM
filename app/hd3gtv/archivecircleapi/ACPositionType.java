@@ -16,17 +16,7 @@
 */
 package hd3gtv.archivecircleapi;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.gson.GsonKit;
 
 public class ACPositionType {
 	
@@ -37,24 +27,5 @@ public class ACPositionType {
 	public ArrayList<String> disk;
 	public ArrayList<String> nearline;
 	public ArrayList<String> offline;
-	
-	public static class Deseralizer implements JsonDeserializer<ACPositionType> {
-		ACAPI acapi;
-		
-		public Deseralizer(ACAPI acapi) {
-			this.acapi = acapi;
-		}
-		
-		public ACPositionType deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			ACPositionType pt = new ACPositionType();
-			JsonObject jo = json.getAsJsonObject();
-			
-			pt.cache = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("cache"), GsonKit.type_ArrayList_String);
-			pt.disk = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("disk"), GsonKit.type_ArrayList_String);
-			pt.nearline = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("nearline"), GsonKit.type_ArrayList_String);
-			pt.offline = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("offline"), GsonKit.type_ArrayList_String);
-			return pt;
-		}
-	}
 	
 }

@@ -16,17 +16,9 @@
 */
 package hd3gtv.archivecircleapi;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
-
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonIgnore;
-import hd3gtv.mydmam.gson.GsonKit;
 
 public class ACFileLocationTape extends ACFileLocations {
 	
@@ -38,20 +30,5 @@ public class ACFileLocationTape extends ACFileLocations {
 	
 	@GsonIgnore
 	public ArrayList<ACTape> tapes;
-	
-	public static class Deseralizer implements JsonDeserializer<ACFileLocationTape> {
-		
-		ACAPI acapi;
-		
-		public Deseralizer(ACAPI acapi) {
-			this.acapi = acapi;
-		}
-		
-		public ACFileLocationTape deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			ACFileLocationTape location = MyDMAM.gson_kit.getGsonSimple().fromJson(json, ACFileLocationTape.class);
-			location.tapes = MyDMAM.gson_kit.getGsonSimple().fromJson(json.getAsJsonObject().get("tapes"), GsonKit.type_ArrayList_ACTape);
-			return location;
-		}
-	}
 	
 }
