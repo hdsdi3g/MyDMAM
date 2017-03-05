@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.io.File;
 import java.lang.management.ClassLoadingMXBean;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -111,19 +110,20 @@ public final class InstanceStatus {
 		items = new ArrayList<InstanceStatusItem>();
 		items.add(manager);
 		
-		String java_classpath = System.getProperty("java.class.path");
-		String[] classpath_lines = java_classpath.split(System.getProperty("path.separator"));
 		classpath = new JsonArray();
-		for (int pos = 0; pos < classpath_lines.length; pos++) {
-			File file = new File(classpath_lines[pos]);
+		
+		MyDMAM.factory.getClasspath().stream().map(cp -> {
 			StringBuffer sb_classpath = new StringBuffer();
-			sb_classpath.append(file.getParentFile().getParentFile().getName());
+			sb_classpath.append(cp.getParentFile().getParentFile().getName());
 			sb_classpath.append("/");
-			sb_classpath.append(file.getParentFile().getName());
+			sb_classpath.append(cp.getParentFile().getName());
 			sb_classpath.append("/");
-			sb_classpath.append(file.getName());
-			classpath.add(new JsonPrimitive(sb_classpath.toString().toLowerCase()));
-		}
+			sb_classpath.append(cp.getName());
+			return new JsonPrimitive(sb_classpath.toString().toLowerCase());
+		}).forEach(json -> {
+			classpath.add(json);
+		});
+		
 	}
 	
 	public class Summary {
@@ -178,7 +178,7 @@ public final class InstanceStatus {
 			
 			GitInfo git = GitInfo.getFromRoot();
 			if (git != null) {
-				app_version = git.getBranch() + " " + git.getCommit();
+				app_version = git.getActualRepositoryInformation();
 			} else {
 				app_version = "unknow";
 			}
@@ -382,20 +382,21 @@ public final class InstanceStatus {
 		OperatingSystemMXBean os_mxb = ManagementFactory.getOperatingSystemMXBean();
 		result.addProperty("getSystemLoadAverage", os_mxb.getSystemLoadAverage());
 		
-		try {
-			Class.forName("com.sun.management.OperatingSystemMXBean");
-			JsonObject jo_os = new JsonObject();
-			com.sun.management.OperatingSystemMXBean os_sun = (com.sun.management.OperatingSystemMXBean) os_mxb;
-			jo_os.addProperty("getCommittedVirtualMemorySize", os_sun.getCommittedVirtualMemorySize());
-			jo_os.addProperty("getFreePhysicalMemorySize", os_sun.getFreePhysicalMemorySize());
-			jo_os.addProperty("getFreeSwapSpaceSize", os_sun.getFreeSwapSpaceSize());
-			jo_os.addProperty("getProcessCpuLoad", os_sun.getProcessCpuLoad());
-			jo_os.addProperty("getProcessCpuTime", os_sun.getProcessCpuTime());
-			jo_os.addProperty("getSystemCpuLoad", os_sun.getSystemCpuLoad());
-			jo_os.addProperty("getTotalPhysicalMemorySize", os_sun.getTotalPhysicalMemorySize());
-			jo_os.addProperty("getTotalSwapSpaceSize", os_sun.getTotalSwapSpaceSize());
-			result.add("os", jo_os);
-		} catch (ClassNotFoundException e) {
+		if (MyDMAM.factory.isClassExists("com.sun.management.OperatingSystemMXBean")) {
+			try {
+				JsonObject jo_os = new JsonObject();
+				com.sun.management.OperatingSystemMXBean os_sun = MyDMAM.factory.create(com.sun.management.OperatingSystemMXBean.class);
+				jo_os.addProperty("getCommittedVirtualMemorySize", os_sun.getCommittedVirtualMemorySize());
+				jo_os.addProperty("getFreePhysicalMemorySize", os_sun.getFreePhysicalMemorySize());
+				jo_os.addProperty("getFreeSwapSpaceSize", os_sun.getFreeSwapSpaceSize());
+				jo_os.addProperty("getProcessCpuLoad", os_sun.getProcessCpuLoad());
+				jo_os.addProperty("getProcessCpuTime", os_sun.getProcessCpuTime());
+				jo_os.addProperty("getSystemCpuLoad", os_sun.getSystemCpuLoad());
+				jo_os.addProperty("getTotalPhysicalMemorySize", os_sun.getTotalPhysicalMemorySize());
+				jo_os.addProperty("getTotalSwapSpaceSize", os_sun.getTotalSwapSpaceSize());
+				result.add("os", jo_os);
+			} catch (ReflectiveOperationException e) {
+			}
 		}
 		
 		return result;

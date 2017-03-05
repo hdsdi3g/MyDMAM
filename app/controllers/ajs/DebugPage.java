@@ -27,7 +27,11 @@ public class DebugPage extends AJSController {
 	public static AJSDebugPage showcontrollers() {
 		AJSDebugPage result = new AJSDebugPage();
 		result.controllers = AJSController.getControllers();
-		result.version = GitInfo.getFromRoot().getActualRepositoryInformation();
+		try {
+			result.version = GitInfo.getFromRoot().getActualRepositoryInformation();
+		} catch (NullPointerException e) {
+			result.version = "";
+		}
 		return result;
 	}
 	

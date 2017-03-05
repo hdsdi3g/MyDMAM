@@ -146,9 +146,8 @@ public final class ServiceNG {
 			 * ok -Dplay.id=
 			 * ok play.server.Server ""
 			 */
-			try {
-				Class.forName("play.modules.docviewer.DocumentationGenerator");
-			} catch (Exception e) {
+			
+			if (MyDMAM.factory.isClassExists("play.modules.docviewer.DocumentationGenerator") == false) {
 				Loggers.Play.fatal("Missing play-docviewer.jar in class path !");
 				System.exit(1);
 			}

@@ -25,6 +25,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 
 public class GitInfo {
 	
@@ -69,34 +70,31 @@ public class GitInfo {
 	
 	public static GitInfo getFromRoot() {
 		try {
-			File git_dir = new File(".git");
-			if (git_dir.exists()) {
-				return new GitInfo(git_dir);
+			File _git_dir = new File(".git");
+			if (_git_dir.exists()) {
+				return new GitInfo(_git_dir);
 			}
 			
-			String[] classpathelementsstr = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
-			File cp_element;
-			for (int i = 0; i < classpathelementsstr.length; i++) {
-				if (classpathelementsstr[i].endsWith(".jar")) {
-					continue;
-				}
-				cp_element = new File(classpathelementsstr[i]);
-				if (cp_element.isDirectory() == false) {
-					continue;
-				}
-				git_dir = new File(cp_element.getCanonicalPath() + File.separator + ".git");
-				if (git_dir.exists()) {
-					return new GitInfo(git_dir);
-				} else if (cp_element.getCanonicalPath().endsWith(File.separator + "conf")) {
-					git_dir = new File(cp_element.getCanonicalFile().getParentFile().getPath() + File.separator + ".git");
+			return MyDMAM.factory.getClasspathOnlyDirectories().map(cp -> {
+				try {
+					File git_dir = new File(cp.getPath() + File.separator + ".git");
 					if (git_dir.exists()) {
 						return new GitInfo(git_dir);
+					} else if (cp.getPath().endsWith(File.separator + "conf")) {
+						git_dir = new File(cp.getParent() + File.separator + ".git");
+						if (git_dir.exists()) {
+							return new GitInfo(git_dir);
+						}
 					}
+				} catch (IOException e) {
+					Loggers.Manager.error("Can't access to classpath dir " + cp.getPath(), e);
 				}
-			}
-			throw new FileNotFoundException();
-		} catch (IOException e) {
-			Loggers.Manager.error("Can't access to local code git repository", e);
+				return null;
+			}).filter(cp -> {
+				return cp != null;
+			}).findFirst().get();
+		} catch (Exception e) {
+			Loggers.Manager.warn("Can't access to local code git repository", e);
 			return null;
 		}
 	}

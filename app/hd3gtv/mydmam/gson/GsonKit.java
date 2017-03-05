@@ -313,7 +313,7 @@ public class GsonKit {
 			return new JsonPrimitive(src.getName());
 		}, json -> {
 			try {
-				return Class.forName(json.getAsString());
+				return MyDMAM.factory.getClassByName(json.getAsString());
 			} catch (Exception e) {
 				return null;
 			}

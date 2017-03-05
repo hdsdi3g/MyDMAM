@@ -25,6 +25,7 @@ import java.util.Map;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.transcode.images.ImageMagickAnalyser;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerCartridge;
 import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerCartridgeFFmpeg;
@@ -92,7 +93,7 @@ public class MetadataCenter {
 				ArrayList<String> str_blacklist = (ArrayList<String>) conf.get("blacklist");
 				for (int pos_bl = 0; pos_bl < str_blacklist.size(); pos_bl++) {
 					try {
-						Class<?> c = Class.forName(str_blacklist.get(pos_bl));
+						Class<?> c = MyDMAM.factory.getClassByName(str_blacklist.get(pos_bl));
 						if (MetadataExtractor.class.isAssignableFrom(c)) {
 							blacklist.add((Class<? extends MetadataExtractor>) c);
 							Loggers.Metadata.debug("Add to blacklist: " + c.getName());

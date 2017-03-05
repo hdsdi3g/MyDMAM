@@ -29,6 +29,7 @@ import com.google.gson.JsonObject;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.tools.StoppableThread;
@@ -66,7 +67,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 				return false;
 			}
 			if (instance_class_name.containsKey(class_name) == false) {
-				instance_class_name.put(class_name, Class.forName(class_name));
+				instance_class_name.put(class_name, MyDMAM.factory.getClassByName(class_name));
 			}
 			return true;
 		} catch (Exception e) {

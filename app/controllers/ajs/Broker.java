@@ -38,7 +38,11 @@ public class Broker extends AJSController {
 	
 	@Check("showBroker")
 	public static String appversion() throws Exception {
-		return GitInfo.getFromRoot().getActualRepositoryInformation();
+		try {
+			return GitInfo.getFromRoot().getActualRepositoryInformation();
+		} catch (NullPointerException e) {
+			return "";
+		}
 	}
 	
 	@Check("actionBroker")

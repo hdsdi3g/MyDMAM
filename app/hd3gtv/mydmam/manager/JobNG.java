@@ -163,7 +163,7 @@ public final class JobNG {
 	
 	JobNG(JobContext context) throws ClassNotFoundException {
 		this.context = context;
-		MyDMAM.checkIsAccessibleClass(context.getClass(), false);
+		MyDMAM.factory.checkIsAccessibleClass(context.getClass(), false);
 		key = "job:" + UUID.randomUUID().toString();
 		name = "Generic job created at " + (new Date()).toString();
 		urgent = false;

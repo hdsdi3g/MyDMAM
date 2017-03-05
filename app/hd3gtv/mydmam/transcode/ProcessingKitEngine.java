@@ -49,9 +49,7 @@ public final class ProcessingKitEngine {
 		}
 		
 		try {
-			Class<?> candidate = Class.forName(class_name);
-			MyDMAM.checkIsAccessibleClass(candidate, false);
-			ProcessingKit pkit = (ProcessingKit) candidate.newInstance();
+			ProcessingKit pkit = MyDMAM.factory.create(class_name, ProcessingKit.class);
 			list_cache.put(class_name, pkit);
 			if (list_cache.get(class_name).isFunctionnal() == false) {
 				Loggers.Transcode.warn("Processingkit " + class_name + " is disabled.");

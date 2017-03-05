@@ -125,7 +125,11 @@ public class Instances extends AJSController {
 	
 	@Check("showInstances")
 	public static String appversion() throws Exception {
-		return GitInfo.getFromRoot().getActualRepositoryInformation();
+		try {
+			return GitInfo.getFromRoot().getActualRepositoryInformation();
+		} catch (NullPointerException e) {
+			return "";
+		}
 	}
 	
 	@Check("doInstanceAction")

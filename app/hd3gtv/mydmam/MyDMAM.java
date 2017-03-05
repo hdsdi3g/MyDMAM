@@ -18,7 +18,6 @@ package hd3gtv.mydmam;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -29,6 +28,7 @@ import java.security.Security;
 import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
@@ -41,6 +41,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.factory.Factory;
 import hd3gtv.mydmam.gson.GsonKit;
 
 public class MyDMAM {
@@ -69,6 +70,8 @@ public class MyDMAM {
 	public static final Charset UTF8 = Charset.forName("UTF-8");
 	
 	public static final GsonKit gson_kit = new GsonKit();
+	
+	public static final Factory factory = new Factory();
 	
 	/**
 	 * @param filename without path
@@ -213,30 +216,6 @@ public class MyDMAM {
 	}
 	
 	/**
-	 * @throws ClassNotFoundException if null, anonymous, local, member (or static if can_to_be_static).
-	 */
-	public static void checkIsAccessibleClass(Class<?> context, boolean can_to_be_static) throws ClassNotFoundException {
-		if (context == null) {
-			throw new ClassNotFoundException("\"context\" can't to be null");
-		}
-		if (context.getClass().isAnonymousClass()) {
-			throw new ClassNotFoundException("\"context\" can't to be an anonymous class");
-		}
-		if (context.getClass().isLocalClass()) {
-			throw new ClassNotFoundException("\"context\" can't to be a local class");
-		}
-		if (context.getClass().isMemberClass()) {
-			throw new ClassNotFoundException("\"context\" can't to be a member class");
-		}
-		if (can_to_be_static == false) {
-			if (Modifier.isStatic(context.getClass().getModifiers())) {
-				throw new ClassNotFoundException("\"context\" can't to be a static class");
-			}
-		}
-		
-	}
-	
-	/**
 	 * Search application.conf in classpath, and return the /mydmam main directory.
 	 */
 	public static final File APP_ROOT_PLAY_DIRECTORY;
@@ -248,19 +227,19 @@ public class MyDMAM {
 	}
 	
 	private static File getMyDMAMRootPlayDirectory() {
-		String[] classpathelements = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
 		/**
 		 * Search application.conf
 		 */
-		for (int i = 0; i < classpathelements.length; i++) {
-			if (classpathelements[i].endsWith(".jar")) {
-				continue;
-			}
-			File applicationconf_file = new File(classpathelements[i] + File.separator + "application.conf");
-			if (applicationconf_file.exists()) {
-				return (new File(classpathelements[i]).getParentFile());
-			}
+		Optional<File> o_applicationconf_file = factory.getClasspathOnlyDirectories().map(cp -> {
+			return new File(cp.getPath() + File.separator + "application.conf");
+		}).filter(appfile -> {
+			return appfile.exists();
+		}).findFirst();
+		
+		if (o_applicationconf_file.isPresent()) {
+			return o_applicationconf_file.get().getParentFile();
 		}
+		
 		Loggers.Manager.error("Can't found MyDMAM Play application", new FileNotFoundException(new File("").getAbsolutePath()));
 		return new File("");
 	}

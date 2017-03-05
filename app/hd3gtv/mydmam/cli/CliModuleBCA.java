@@ -73,9 +73,7 @@ public class CliModuleBCA implements CliModule {
 			return;
 		} else if (args.getParamExist("-propertycatch")) {
 			BCACatch bcacatch = new BCACatch();
-			Class<?> engine_class = Class.forName(Configuration.global.getValue("broadcast_automation", "catch_handler", null));
-			MyDMAM.checkIsAccessibleClass(engine_class, false);
-			BCACatchHandler handler = (BCACatchHandler) engine_class.newInstance();
+			BCACatchHandler handler = MyDMAM.factory.create(Configuration.global.getValue("broadcast_automation", "catch_handler", null), BCACatchHandler.class);
 			
 			bcacatch.parsePlaylist(handler).save();
 			return;

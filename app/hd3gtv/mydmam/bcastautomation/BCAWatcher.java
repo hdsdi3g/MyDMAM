@@ -94,9 +94,7 @@ public class BCAWatcher implements InstanceStatusItem {
 			throw new NullPointerException("broadcast_automation engine_class is not definited");
 		}
 		
-		Class<?> engine_class = Class.forName(engine_class_name);
-		MyDMAM.checkIsAccessibleClass(engine_class, false);
-		return (BCAEngine) engine_class.newInstance();
+		return MyDMAM.factory.create(engine_class_name, BCAEngine.class);
 	}
 	
 	public String getReferenceKey() {
