@@ -14,6 +14,7 @@ conf/*.db
 conf/log4j.xml
 conf/account_export.xml
 conf/jsfiles.json
+conf/build.properties
 public/img/personalized/*
 Test.java
 play-new-password.txt
@@ -25,3 +26,4 @@ public/javascripts/_reduced/*.js
 logs/
 server.pid
 node_modules/
+build/

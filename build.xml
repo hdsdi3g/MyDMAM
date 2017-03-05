@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<project name="MyDMAM" default="build">
+	<description>MyDMAM: Another way of looking a Digital Media Asset Management</description>
+	<property environment="env" />
+	<property file="conf/build.properties" />
+
+	<property name="mydmam.app" location="app"/>
+	<property name="mydmam.lib" location="lib"/>
+	<property name="play.jar" location="${PLAY_DIR}/framework"/>
+	<property name="play.lib" location="${PLAY_DIR}/framework/lib"/>
+	<property name="play.docviewer" location="${PLAY_DIR}/modules/docviewer/lib/"/>
+	
+	<property name="out.dir" location="build"/>
+	<property name="out.bin" location="${out.dir}/bin"/>
+	<property name="out.lib" location="${out.dir}/lib"/>
+	<property name="out.src" location="${out.dir}/src"/>
+	
+	<target name="prepare">
+		<!-- Get git last commit hash -->
+		<exec executable="git" outputproperty="gitversion">
+			<arg value="describe"/>
+		</exec>
+		
+		<!-- Create classpath with Play and MyDMAM dependencies -->
+		<path id="mydmam.classpath">
+			<fileset dir="${play.lib}">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="${play.jar}">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="${play.docviewer}">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="${mydmam.lib}">
+				<include name="*.jar" />
+			</fileset>
+		</path>
+		
+		<!-- Prepare output directories -->
+		<delete dir="${out.dir}"/>
+		<mkdir dir="${out.dir}"/>
+		<mkdir dir="${out.bin}"/>
+		<mkdir dir="${out.lib}"/>
+	</target>
+		
+	<target name="compile" depends="prepare">
+		<!-- Invoke javac for make class -->
+		<javac
+			srcdir="${mydmam.app}"
+			destdir="${out.bin}"
+			excludes="models react views **/*Test.java"
+			includeantruntime="false"
+			target="1.8">
+			<classpath refid="mydmam.classpath" />
+			<compilerarg value="-XDignore.symbol.file"/>
+		</javac>
+	</target>
+		
+	<target name="copyjars" depends="prepare">
+		<!-- Copy Play and MyDMAM dependencies to the build dir -->
+		<copy todir="${out.lib}" flatten="true">
+			<path refid="mydmam.classpath">
+			</path>
+		</copy>
+	</target>
+
+	<target name="copyproject" depends="prepare">
+		<!-- Copy all mandatory Play projet items -->
+		<mkdir dir="${out.dir}/app"/>
+		<mkdir dir="${out.dir}/app/controllers"/>
+		<mkdir dir="${out.dir}/app/models"/>
+		<mkdir dir="${out.dir}/app/views"/>
+		<copy todir="${out.dir}/app/views">
+			<fileset dir="app/views">
+			</fileset>
+		</copy>
+		
+		<mkdir dir="${out.dir}/conf"/>
+		<copy todir="${out.dir}/conf">
+			<fileset dir="conf">
+				<exclude name="app.d/"/>
+				<exclude name="application.conf"/>
+				<exclude name="build.properties"/>
+				<exclude name="*.db"/>
+				<exclude name="dependencies.yml"/>
+				<exclude name="log4j.xml"/>
+				<exclude name="ssh/"/>
+				<exclude name="jsfiles.json"/>
+			</fileset>
+		</copy>
+		<copy file="LICENSE" todir="${out.dir}"/>
+		<copy file="UPGRADE.txt" todir="${out.dir}"/>
+		
+		<mkdir dir="${out.dir}/modules"/>
+		<mkdir dir="${out.dir}/test"/>
+		
+		<copy todir="${out.dir}/public">
+			<fileset dir="public">
+				<exclude name="javascripts/src/"/>
+				<exclude name="javascripts/_transformed/"/>
+				<exclude name="javascripts/_reduced/*.js"/>
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="makelib" depends="compile">
+		<jar basedir="${out.bin}" destfile="${out.lib}/mydmam-${gitversion}-bin.jar">
+			<manifest>
+			      <attribute name="Main-Class" value="hd3gtv.mydmam.MainClass"/>
+			      <attribute name="Codebase" value="mydmam.org"/>
+			      <attribute name="Built-By" value="hdsdi3g"/>
+			      <attribute name="Implementation-Vendor" value="MyDMAM"/>
+			      <attribute name="Implementation-Title" value="MyDMAM"/>
+			      <attribute name="Implementation-Version" value="${gitversion}"/>
+		    </manifest>
+		</jar>
+		<delete dir="${out.bin}"/>
+	</target>
+
+	<target name="makesource" depends="prepare">
+		<mkdir dir="${out.src}"/>
+		<jar basedir="${mydmam.app}" destfile="${out.src}/mydmam-${gitversion}-src.jar" excludes="**/*Test.java">
+		</jar>
+	</target>
+	
+	<!-- TODO <get dest="downloads">
+			  <url url="http://ant.apache.org/index.html"/> 
+			  <url url="http://ant.apache.org/faq.html"/>
+		</get> --> 
+	<!-- TODO add bootstrap scripts -->
+	<!-- TODO add startup scripts -->
+	
+	<target name="build" depends="compile, copyjars, copyproject, makelib, makesource" description="Generation complete">
+	</target>
+
+</project>
