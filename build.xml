@@ -1,27 +1,86 @@
 <?xml version="1.0"?>
 <project name="MyDMAM" default="build">
-	<description>MyDMAM: Another way of looking a Digital Media Asset Management</description>
-	
+	<description>MyDMAM: Another way of looking a Digital Media Asset
+		Management</description>
+
 	<property environment="env" />
 	<property file="conf/build.properties" />
 
-	<property name="mydmam.app" location="app"/>
-	<property name="mydmam.lib" location="lib"/>
-	<property name="play.jar" location="${PLAY_DIR}/framework"/>
-	<property name="play.lib" location="${PLAY_DIR}/framework/lib"/>
-	<property name="play.docviewer" location="${PLAY_DIR}/modules/docviewer/lib/"/>
-	
-	<property name="out.dir" location="build"/>
-	<property name="out.bin" location="${out.dir}/bin"/>
-	<property name="out.lib" location="${out.dir}/lib"/>
-	<property name="out.src" location="${out.dir}/src"/>
-	
-	<target name="prepare">
-		<!-- Get git last commit hash -->
+	<property name="mydmam.app" location="app" />
+	<property name="mydmam.lib" location="lib" />
+	<property name="play.jar" location="${PLAY_DIR}/framework" />
+	<property name="play.lib" location="${PLAY_DIR}/framework/lib" />
+	<property name="play.docviewer" location="${PLAY_DIR}/modules/docviewer/lib/" />
+
+	<property name="out.dir" location="build" />
+	<property name="out.bin" location="${out.dir}/bin" />
+	<property name="out.lib" location="${out.dir}/lib" />
+	<property name="out.src" location="${out.dir}/src" />
+
+	<target name="prepare" description="Prepare output directories">
+		<delete dir="${out.dir}" />
+		<mkdir dir="${out.dir}" />
+		<mkdir dir="${out.bin}" />
+		<mkdir dir="${out.lib}" />
+	</target>
+
+	<target name="getgitversion" depends="prepare" description="Get git last commit hash">
 		<exec executable="git" outputproperty="gitversion">
-			<arg value="describe"/>
+			<arg value="describe" />
 		</exec>
-		
+		<echo>Git version: ${gitversion}</echo>
+	</target>
+
+	<target name="checklocaljardependencies" depends="prepare"
+		description="Test the needs to download all Play and MyDMAM dependencies or not">
+		<!-- If there are some jars in lib directory -->
+		<fileset dir="${mydmam.lib}" id="myfileset" includes="*.jar" />
+		<pathconvert refid="myfileset" property="fileset.notempty"
+			setonempty="false" />
+		<condition property="needstodownloadjardependencies">
+			<not>
+				<length string="${fileset.notempty}" trim="true" length="50"
+					when="greater" />
+			</not>
+		</condition>
+		<condition property="notneedstodownloadjardependencies">
+			<length string="${fileset.notempty}" trim="true" length="50"
+				when="greater" />
+		</condition>
+	</target>
+
+	<target name="downloadjardependencies" depends="checklocaljardependencies"
+		description="Get all Play and MyDMAM dependencies from MyDMAM website to the build dir"
+		if="needstodownloadjardependencies">
+		<mkdir dir="${out.lib}" />
+		<get src="http://mydmam.org/dwl/lib/" dest="${out.lib}/dependencies.xml" />
+		<ant antfile="${out.lib}/dependencies.xml" />
+		<delete file="${out.lib}/dependencies.xml" />
+		<checksum verifyProperty="isMD5ok">
+			<fileset dir="${out.lib}">
+				<include name="*.jar" />
+			</fileset>
+		</checksum>
+		<fail message="Invalid checksum for dependencies downloaded jar files.">
+			<condition>
+				<isfalse value="${isMD5ok}" />
+			</condition>
+		</fail>
+		<delete>
+			<fileset dir="${out.lib}" includes="*.jar.MD5" />
+		</delete>
+
+		<!-- Create classpath with Play and MyDMAM dependencies -->
+		<path id="mydmam.classpath">
+			<fileset dir="${out.lib}">
+				<include name="*.jar" />
+			</fileset>
+		</path>
+
+	</target>
+
+	<target name="copylocaljardependencies" depends="checklocaljardependencies"
+		description="Copy Play and MyDMAM dependencies to the build dir" if="notneedstodownloadjardependencies">
 		<!-- Create classpath with Play and MyDMAM dependencies -->
 		<path id="mydmam.classpath">
 			<fileset dir="${play.lib}">
@@ -37,135 +96,92 @@
 				<include name="*.jar" />
 			</fileset>
 		</path>
-		
-		<!-- Prepare output directories -->
-		<delete dir="${out.dir}"/>
-		<mkdir dir="${out.dir}"/>
-		<mkdir dir="${out.bin}"/>
-		<mkdir dir="${out.lib}"/>
-	</target>
-		
-	<!-- Invoke javac for make classes -->
-	<target name="compile" depends="prepare">
-		<javac
-			srcdir="${mydmam.app}"
-			destdir="${out.bin}"
-			excludes="models react views **/*Test.java"
-			includeantruntime="false"
-			target="1.8">
-			<classpath refid="mydmam.classpath" />
-			<compilerarg value="-XDignore.symbol.file"/>
-		</javac>
-	</target>
-		
-	<!-- Copy all mandatory Play projet items -->
-	<target name="copyproject" depends="prepare">
-		<mkdir dir="${out.dir}/app"/>
-		<mkdir dir="${out.dir}/app/controllers"/>
-		<mkdir dir="${out.dir}/app/models"/>
-		<mkdir dir="${out.dir}/app/views"/>
-		<copy todir="${out.dir}/app/views">
-			<fileset dir="app/views">
-			</fileset>
-		</copy>
-		
-		<mkdir dir="${out.dir}/conf"/>
-		<copy todir="${out.dir}/conf">
-			<fileset dir="conf">
-				<exclude name="app.d/"/>
-				<exclude name="application.conf"/>
-				<exclude name="build.properties"/>
-				<exclude name="*.db"/>
-				<exclude name="dependencies.yml"/>
-				<exclude name="log4j.xml"/>
-				<exclude name="ssh/"/>
-				<exclude name="jsfiles.json"/>
-			</fileset>
-		</copy>
-		<copy file="LICENSE" todir="${out.dir}"/>
-		<copy file="UPGRADE.txt" todir="${out.dir}"/>
-		
-		<mkdir dir="${out.dir}/modules"/>
-		<mkdir dir="${out.dir}/test"/>
-		
-		<copy todir="${out.dir}/public">
-			<fileset dir="public">
-				<exclude name="javascripts/src/"/>
-				<exclude name="javascripts/_transformed/"/>
-				<exclude name="javascripts/_reduced/*.js"/>
-			</fileset>
-		</copy>
-	</target>
 
-	<!-- Create MyDMAM bin jar -->
-	<target name="makelib" depends="compile">
-		<jar basedir="${out.bin}" destfile="${out.lib}/mydmam-${gitversion}-bin.jar">
-			<manifest>
-			      <attribute name="Main-Class" value="hd3gtv.mydmam.MainClass"/>
-			      <attribute name="Codebase" value="mydmam.org"/>
-			      <attribute name="Built-By" value="hdsdi3g"/>
-			      <attribute name="Implementation-Vendor" value="MyDMAM"/>
-			      <attribute name="Implementation-Title" value="MyDMAM"/>
-			      <attribute name="Implementation-Version" value="${gitversion}"/>
-		    </manifest>
-		</jar>
-		<delete dir="${out.bin}"/>
-	</target>
-
-	<!-- Create MyDMAM source jar -->
-	<target name="makesource" depends="prepare">
-		<mkdir dir="${out.src}"/>
-		<jar basedir="${mydmam.app}" destfile="${out.src}/mydmam-${gitversion}-src.jar" excludes="**/*Test.java">
-		</jar>
-	</target>
-	
-	<!-- Test the need to download all Play and MyDMAM dependencies or not -->
-	<target name="localjardependencies">
-		<!-- If there are some jars in lib directory -->
-		<fileset dir="${mydmam.lib}" id="myfileset" includes="*.jar"/>
-		<pathconvert refid="myfileset" property="fileset.notempty" setonempty="false"/>
-		<condition property="needstodownloadjardependencies">
-			<not><length string="${fileset.notempty}" trim="true" length="50" when="greater" /></not>
-		</condition>
-		<condition property="notneedstodownloadjardependencies">
-			<length string="${fileset.notempty}" trim="true" length="50" when="greater" />
-		</condition>
-	</target>
-
-	<!-- Get all Play and MyDMAM dependencies from MyDMAM website to the build dir -->
-	<target name="preparejardependencies" depends="prepare, localjardependencies" if="needstodownloadjardependencies">
-		<mkdir dir="${out.lib}"/>
-		<get src="http://mydmam.org/dwl/lib/" dest="${out.lib}/dependencies.xml" /> 
-		<ant antfile="${out.lib}/dependencies.xml" />
-		<delete file="${out.lib}/dependencies.xml"/>
-		<checksum verifyProperty="isMD5ok">
-			<fileset dir="${out.lib}">
-				<include name="*.jar"/>
-			</fileset>
-		</checksum>
-		<fail message="Invalid checksum for dependencies downloaded jar files.">
-			<condition>
-				<isfalse value="${isMD5ok}" />
-			</condition>
-		</fail>
-		<delete>
-			<fileset dir="${out.lib}" includes="*.jar.MD5"/>
-		</delete>
-	</target>
-
-	<!-- Copy Play and MyDMAM dependencies to the build dir -->
-	<target name="copylocaljars" depends="prepare, localjardependencies" if="notneedstodownloadjardependencies">
 		<copy todir="${out.lib}" flatten="true">
 			<path refid="mydmam.classpath">
 			</path>
 		</copy>
+
 	</target>
 
+	<target name="compile" depends="downloadjardependencies, copylocaljardependencies"
+		description="Invoke javac for make classes">
+		<javac srcdir="${mydmam.app}" destdir="${out.bin}"
+			excludes="models react views **/*Test.java" includeantruntime="false"
+			target="1.8">
+			<classpath refid="mydmam.classpath" />
+			<compilerarg value="-XDignore.symbol.file" />
+		</javac>
+	</target>
+
+	<target name="makelib" depends="compile, getgitversion"
+		description="Create MyDMAM bin jar">
+		<jar basedir="${out.bin}" destfile="${out.lib}/mydmam-${gitversion}-bin.jar">
+			<manifest>
+				<attribute name="Main-Class" value="hd3gtv.mydmam.MainClass" />
+				<attribute name="Codebase" value="mydmam.org" />
+				<attribute name="Built-By" value="hdsdi3g" />
+				<attribute name="Implementation-Vendor" value="MyDMAM" />
+				<attribute name="Implementation-Title" value="MyDMAM" />
+				<attribute name="Implementation-Version" value="${gitversion}" />
+			</manifest>
+		</jar>
+		<delete dir="${out.bin}" />
+	</target>
+
+	<target name="copyproject" depends="prepare"
+		description="Copy all mandatory Play projet items">
+		<mkdir dir="${out.dir}/app" />
+		<mkdir dir="${out.dir}/app/controllers" />
+		<mkdir dir="${out.dir}/app/models" />
+		<mkdir dir="${out.dir}/app/views" />
+		<copy todir="${out.dir}/app/views">
+			<fileset dir="app/views">
+			</fileset>
+		</copy>
+
+		<mkdir dir="${out.dir}/conf" />
+		<copy todir="${out.dir}/conf">
+			<fileset dir="conf">
+				<exclude name="app.d/" />
+				<exclude name="application.conf" />
+				<exclude name="build.properties" />
+				<exclude name="*.db" />
+				<exclude name="dependencies.yml" />
+				<exclude name="log4j.xml" />
+				<exclude name="ssh/" />
+				<exclude name="jsfiles.json" />
+			</fileset>
+		</copy>
+		<copy file="LICENSE" todir="${out.dir}" />
+		<copy file="UPGRADE.txt" todir="${out.dir}" />
+
+		<mkdir dir="${out.dir}/modules" />
+		<mkdir dir="${out.dir}/test" />
+
+		<copy todir="${out.dir}/public">
+			<fileset dir="public">
+				<exclude name="javascripts/src/" />
+				<exclude name="javascripts/_transformed/" />
+				<exclude name="javascripts/_reduced/*.js" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="makesource" depends="prepare, getgitversion"
+		description="Create MyDMAM source jar">
+		<mkdir dir="${out.src}" />
+		<jar basedir="${mydmam.app}" destfile="${out.src}/mydmam-${gitversion}-src.jar"
+			excludes="**/*Test.java">
+		</jar>
+	</target>
+
+	<target name="build" depends="makelib, makesource, copyproject" description="Prepare dependencies, compile, create jars, and prepare clean project">
+	</target>
+
+	<!-- TODO add doc: it needs JDK ! -->
+	<!-- TODO remove Play "zip" dependencies ? -->
 	<!-- TODO add bootstrap scripts -->
 	<!-- TODO add startup scripts -->
-	
-	<!-- deps compile, copyjars, copyproject, makelib, makesource, localjardependencies -->
-	<target name="build" depends="preparejardependencies, copylocaljars" description="Generation complete">
-	</target>
 
 </project>
