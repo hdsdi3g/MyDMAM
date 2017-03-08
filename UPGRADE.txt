@@ -7,3 +7,4 @@
 #234  Must use ant and build.xml for get *all* dependencies from MyDMAM.org (remove play.zip directory dependency)
 #234  Add key "java.source=1.8" in application.conf
 #234  Remove keys "db.url" and "db.driver" in application.conf
+#234  Java specific "unlimited" JCE setup are not mandatory now.

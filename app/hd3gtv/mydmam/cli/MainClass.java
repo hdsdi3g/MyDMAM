@@ -24,7 +24,6 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.ServiceNG;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.TableList;
@@ -70,8 +69,6 @@ public class MainClass {
 			Loggers._MyDMAM_Root.setLevel(Level.INFO);
 			Logger.getRootLogger().setLevel(Level.WARN);
 		}
-		
-		MyDMAM.testIllegalKeySize();
 		
 		ArrayList<CliModule> modules = new ArrayList<CliModule>();
 		modules.add(new ServiceNG.PlayInCli());

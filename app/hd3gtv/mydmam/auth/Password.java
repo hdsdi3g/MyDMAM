@@ -16,33 +16,31 @@
 */
 package hd3gtv.mydmam.auth;
 
-import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.Random;
 
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-
 import org.apache.commons.net.util.Base64;
+import org.bouncycastle.crypto.BufferedBlockCipher;
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.engines.AESEngine;
+import org.bouncycastle.crypto.modes.CBCBlockCipher;
+import org.bouncycastle.crypto.paddings.BlockCipherPadding;
+import org.bouncycastle.crypto.paddings.PKCS7Padding;
+import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
+import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.crypto.params.ParametersWithIV;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.BCrypt;
 
 public class Password {
 	
-	private IvParameterSpec salt;
-	private SecretKey skeySpec;
+	private KeyParameter keyParam;
+	private CipherParameters params;
 	private String master_password_key;
-	
-	static {
-		MyDMAM.testIllegalKeySize();
-	}
 	
 	public Password(String master_password_key) throws NoSuchAlgorithmException, NoSuchProviderException, UnsupportedEncodingException {
 		this.master_password_key = master_password_key;
@@ -53,11 +51,10 @@ public class Password {
 			throw new NullPointerException("\"master_password_key\" can't to be empty");
 		}
 		
-		MessageDigest md = MessageDigest.getInstance("SHA-256", "BC");
+		MessageDigest md = MessageDigest.getInstance("SHA-256");
 		byte[] key = md.digest(master_password_key.getBytes("UTF-8"));
-		
-		skeySpec = new SecretKeySpec(key, "AES");
-		salt = new IvParameterSpec(key, 0, 16);
+		keyParam = new KeyParameter(key);
+		params = new ParametersWithIV(keyParam, key, 0, 16);
 	}
 	
 	public String getMaster_password_key() {
@@ -121,14 +118,19 @@ public class Password {
 		try {
 			byte[] hashed = (BCrypt.hashpw(testIfPasswordIsStrong(clear_password), BCrypt.gensalt(10))).getBytes("UTF-8");
 			
-			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
-			cipher.init(Cipher.ENCRYPT_MODE, skeySpec, salt);
+			BlockCipherPadding padding = new PKCS7Padding();
+			BufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()), padding);
+			cipher.reset();
+			cipher.init(true, params);
 			
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			baos.write(cipher.update(hashed));
-			baos.write(cipher.doFinal());
+			byte[] buf = new byte[cipher.getOutputSize(hashed.length)];
+			int len = cipher.processBytes(hashed, 0, hashed.length, buf, 0);
+			len += cipher.doFinal(buf, len);
 			
-			return baos.toByteArray();
+			byte[] out = new byte[len];
+			System.arraycopy(buf, 0, out, 0, len);
+			
+			return out;
 		} catch (Exception e) {
 			Loggers.Auth.error("Can't prepare password", e);
 		}
@@ -137,14 +139,16 @@ public class Password {
 	
 	public boolean checkPassword(String candidate_password, byte[] raw_password) {
 		try {
-			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
-			cipher.init(Cipher.DECRYPT_MODE, skeySpec, salt);
+			BlockCipherPadding padding = new PKCS7Padding();
+			BufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()), padding);
+			cipher.reset();
+			cipher.init(false, params);
 			
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			baos.write(cipher.update(raw_password));
-			baos.write(cipher.doFinal());
+			byte[] buf = new byte[cipher.getOutputSize(raw_password.length)];
+			int len = cipher.processBytes(raw_password, 0, raw_password.length, buf, 0);
+			len += cipher.doFinal(buf, len);
 			
-			return BCrypt.checkpw(candidate_password, new String(baos.toByteArray()));
+			return BCrypt.checkpw(candidate_password, new String(buf, 0, len));
 		} catch (Exception e) {
 			Loggers.Auth.error("Can't extract hashed password", e);
 		}

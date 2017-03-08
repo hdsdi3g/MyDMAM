@@ -24,8 +24,8 @@ public class MainClass {
 	
 	public static void main(String[] args) throws Exception {
 		Loggers.Manager.info("Start application");
+		
 		Loggers.displayCurrentConfiguration();
-		MyDMAM.testIllegalKeySize();
 		
 		boolean enable_play = Configuration.global.isElementExists("play");
 		boolean enable_ftpserver = Configuration.global.isElementExists("ftpserverinstances");

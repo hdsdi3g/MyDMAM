@@ -19,26 +19,12 @@ package hd3gtv.mydmam;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.charset.Charset;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.Security;
 import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
-
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.factory.Factory;
@@ -163,56 +149,6 @@ public class MyDMAM {
 			}
 		}
 		return configured_messages;
-	}
-	
-	static {
-		Security.addProvider(new BouncyCastleProvider());
-	}
-	
-	public static void testIllegalKeySize() {
-		try {
-			MessageDigest md = MessageDigest.getInstance("SHA-256", "BC");
-			byte[] key = md.digest("".getBytes());
-			SecretKey skeySpec = new SecretKeySpec(key, "AES");
-			IvParameterSpec salt = new IvParameterSpec(key, 0, 16);
-			
-			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
-			cipher.init(Cipher.ENCRYPT_MODE, skeySpec, salt);
-			return;
-		} catch (NoSuchAlgorithmException e) {
-			Loggers.Manager.fatal("Can't found MessageDigest or Cipher Algorithm", e);
-		} catch (NoSuchProviderException e) {
-			Loggers.Manager.fatal("Can't found MessageDigest or Cipher Provider", e);
-		} catch (InvalidKeyException e) {
-			if (e.getMessage().equals("Illegal key size")) {
-				System.err.println("");
-				System.err.println("");
-				System.err.println("--------~~~~~~===============~~~~~~--------");
-				System.err.println("               Fatal error !");
-				System.err.println("You must to setup Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files");
-				System.err.println("");
-				System.err.println("Go to http://www.oracle.com/technetwork/java/javase/downloads/index.html");
-				System.err.println("And download it (it's free and legal)");
-				System.err.println("");
-				System.err.println("Unzip, and copy US_export_policy.jar and local_policy.jar to this directory:");
-				System.err.println("");
-				System.err.println(" " + System.getProperty("java.home") + File.separator + "lib" + File.separator + "security");
-				System.err.println("");
-				System.err.println("Overwrite the actual jar files");
-				System.err.println("--------~~~~~~==============~~~~~~--------");
-				System.err.println("");
-				Loggers.Manager.fatal(
-						"JCE no found ! Download JCE from http://www.oracle.com/technetwork/java/javase/downloads/index.html, and unzip in " + System.getProperty("java.home") + "/lib/security/");
-			} else {
-				Loggers.Manager.fatal("Invalid Cipher key", e);
-			}
-		} catch (InvalidAlgorithmParameterException e) {
-			Loggers.Manager.fatal("Invalid Cipher Parameter", e);
-		} catch (NoSuchPaddingException e) {
-			Loggers.Manager.fatal("Invalid Cipher Padding", e);
-		}
-		Loggers.Manager.fatal("Check your Java environment, and the JCE configuration. MyDMAM can't work without it.");
-		System.exit(1);
 	}
 	
 	/**

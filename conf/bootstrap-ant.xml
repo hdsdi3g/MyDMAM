@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<project name="MyDMAM Bootstrap" default="bootstrap">
+	<description>MyDMAM: Another way of looking a Digital Media Asset Management</description>
+
+	<property name="conf" location="conf" />
+	<property name="conf.application" location="${conf}/application.conf" />
+	<property name="conf.dependencies" location="${conf}/dependencies.yml" />
+	<property name="conf.log4j" location="${conf}/log4j" />
+	<property name="conf.appd" location="${conf}/app.d" />
+
+	<target name="bootstrap" description="Prepare configuration files">
+		<copy file="${conf.application}.examples" tofile="${conf.application}" />
+		<copy file="${conf.dependencies}.examples" tofile="${conf.dependencies}" />
+		<copy file="${conf.log4j}-prod.xml" tofile="${conf.log4j}.xml" />
+		
+		<mkdir dir="${conf.appd}" />
+		<copy todir="${conf.appd}">
+			<fileset dir="${conf.appd}-examples">
+			</fileset>
+		</copy>
+	</target>
+
+</project>

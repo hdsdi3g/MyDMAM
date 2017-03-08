@@ -170,14 +170,12 @@ public final class ServiceNG {
 			
 			Server.main(new String[] {});
 			
-			synchronized (Play.secretKey) {
-				String default_password = Password.passwordGenerator() + Password.passwordGenerator() + Password.passwordGenerator();
-				Play.secretKey = Configuration.global.getValue("play", "master_password_key", default_password);
-				if (Play.secretKey.equals(default_password)) {
-					Loggers.Play.warn("Please set play.master_password_key in configuration !");
-				} else if (Play.secretKey.equals("change me please")) {
-					Loggers.Play.warn("Please set a random key in play.master_password_key in configuration ! If you need a good example, you can set " + default_password + " as key.");
-				}
+			String default_password = Password.passwordGenerator() + Password.passwordGenerator() + Password.passwordGenerator();
+			Play.secretKey = Configuration.global.getValue("play", "master_password_key", default_password);
+			if (Play.secretKey.equals(default_password)) {
+				Loggers.Play.warn("Please set play.master_password_key in configuration !");
+			} else if (Play.secretKey.equals("change me please")) {
+				Loggers.Play.warn("Please set a random key in play.master_password_key in configuration ! If you need a good example, you can set " + default_password + " as key.");
 			}
 			
 			if (Play.mode == Mode.DEV) {

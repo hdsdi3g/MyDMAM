@@ -7,6 +7,7 @@
 
 	<property name="mydmam.app" location="app" />
 	<property name="mydmam.lib" location="lib" />
+	<property name="mydmam.startup" location="startup" />
 
 	<target name="prepare" description="Prepare output directories">
 		<property name="out.dir" location="build" />
@@ -99,6 +100,28 @@
 		<delete dir="${out.bin}" />
 	</target>
 
+	<target name="makewindowsstarters" description="Prepare Windows binaries starters">
+		<property name="favion" location="public/img/favicon.ico" />
+<!-- TODO (Select if windows or if linux) + pack JVM Windows OR Linux and add it in build/jvm (compress it with xz ? is ant support it ?) -->
+<!-- TODO create ini (cli + service)
+	main.class=hd3gtv.onroadmediasend.Main
+	working.directory=.\onroadmediasend
+	;log=.\starter.log
+	classpath.1=.\conf
+	classpath.2=.\lib\*.jar
+	vm.location=.\jre1.8.0_111\bin\server\jvm.dll
+	vmarg.1=-Dfile.encoding=UTF-8
+ -->
+<!-- TODO copy exe with the good name -->
+<!-- TODO embed icon
+	RCEDIT.exe /I onroadmediasend.exe logo_media_send_dMX_icon.ico
+ -->
+<!-- TODO Windows service -->
+
+<!-- TODO do Debian scripts + systemD -->
+
+	</target>
+	
 	<target name="copyproject" depends="prepare" description="Copy all mandatory Play projet items">
 		<mkdir dir="${out.dir}/app" />
 		<mkdir dir="${out.dir}/app/controllers" />
@@ -120,8 +143,11 @@
 				<exclude name="log4j.xml" />
 				<exclude name="ssh/" />
 				<exclude name="jsfiles.json" />
+				<exclude name="bootstrap-ant.xml" />
 			</fileset>
 		</copy>
+		<copy file="conf/bootstrap-ant.xml" tofile="${out.dir}/build.xml" />
+		
 		<copy file="LICENSE" todir="${out.dir}" />
 		<copy file="UPGRADE.txt" todir="${out.dir}" />
 
@@ -135,11 +161,22 @@
 				<exclude name="javascripts/_reduced/*.js" />
 			</fileset>
 		</copy>
+		
+		<mkdir dir="${out.dir}/startup" />
+		<copy todir="${out.dir}/startup">
+			<fileset dir="${mydmam.startup}">
+				<exclude name="WinRun4J64.exe" />
+				<exclude name="WinRun4J64c.exe" />
+				<include name="*.exe" />
+				<include name="*.ini" />
+				<include name="*.sh" />
+			</fileset>
+		</copy>
 	</target>
 
-	<target name="makesource" depends="prepare, getgitversion" description="Create MyDMAM source jar">
-		<mkdir dir="${out.src}" />
-		<jar basedir="${mydmam.app}" destfile="${out.src}/mydmam-${gitversion}-src.jar"
+	<target name="makesource" depends="prepare, getgitversion" description="Create MyDMAM source jar (autonomous task)">
+		<mkdir dir="src" />
+		<jar basedir="${mydmam.app}" destfile="src/mydmam-${gitversion}-src.jar"
 			excludes="**/*Test.java">
 		</jar>
 	</target>
@@ -161,11 +198,10 @@
 		</copy>
 	</target>
 
-	<target name="build" depends="makelib, makesource, copyproject" description="Prepare dependencies, compile, create jars, and prepare clean project">
+	<target name="build" depends="makelib, copyproject" description="Prepare dependencies, compile, create jars, and prepare clean project">
 	</target>
-
+	
 	<!-- TODO add doc: it needs JDK ! -->
-	<!-- TODO add bootstrap scripts -->
 	<!-- TODO add startup scripts -->
 
 </project>
