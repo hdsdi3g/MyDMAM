@@ -6,6 +6,7 @@ tmp/
 precompiled/
 desktop.ini
 .DS_Store
+Thumbs.db
 conf/ssh
 conf/app.d/*
 conf/application.conf
@@ -27,3 +28,6 @@ logs/
 server.pid
 node_modules/
 build/
+WinRun4J64.exe
+WinRun4J64c.exe
+RCEDIT64.exe

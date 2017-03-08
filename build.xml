@@ -169,20 +169,26 @@
 	</target>
 
 	<target name="preparewinrun4j" description="Make winrun4j executable for the MyDMAM look" if="is_windows">
-		<echo>Usage: please add to ${mydmam.startup} RCEDIT.exe, WinRun4J64.exe and WinRun4J64c.exe</echo>
+		<echo>Usage: please add to ${mydmam.startup} RCEDIT64.exe, WinRun4J64.exe and WinRun4J64c.exe</echo>
 		<property name="favicon" location="public/img/favicon.ico" />
-		
-		<move file="${mydmam.startup}/WinRun4J64.exe" tofile="${mydmam.startup}/mydmam-service.exe"/>
-		<move file="${mydmam.startup}/WinRun4J64c.exe" tofile="${mydmam.startup}/mydmam-cli.exe"/>
 		<!-- embed icon -->
-		<exec executable="RCEDIT.exe">
-			<arg value="/I"/><arg value="${mydmam.startup}/mydmam-service.exe"/><arg value="${favicon}"/>
+		<exec executable="RCEDIT64.exe">
+			<!-- remove old icon and manifest -->
+			<arg value="/C"/><arg value="${mydmam.startup}/WinRun4J64.exe"/>
 		</exec>
-		<exec executable="RCEDIT.exe">
-			<arg value="/I"/><arg value="${mydmam.startup}/mydmam-cli.exe"/><arg value="${favicon}"/>
+		<exec executable="RCEDIT64.exe">
+			<!-- add icon -->
+			<arg value="/I"/><arg value="${mydmam.startup}/WinRun4J64.exe"/><arg value="${favicon}"/>
+		</exec>
+		
+		<exec executable="RCEDIT64.exe">
+			<!-- add icon -->
+			<arg value="/I"/><arg value="${mydmam.startup}/WinRun4J64c.exe"/><arg value="${favicon}"/>
 		</exec>
 
-		<delete file="${mydmam.startup}/RCEDIT.exe"/>
+		<move file="${mydmam.startup}/WinRun4J64.exe" tofile="${mydmam.startup}/mydmam-service.exe"/>
+		<move file="${mydmam.startup}/WinRun4J64c.exe" tofile="${mydmam.startup}/mydmam-cli.exe"/>
+		<delete file="${mydmam.startup}/RCEDIT64.exe"/>
 	</target>
 	
 	<target name="copyproject" depends="prepare" description="Copy all mandatory Play projet items">
@@ -278,6 +284,9 @@
 		<!-- TODO make tar.gz -->
 	</target>
 
-	<!-- TODO add doc: it needs JDK ! -->
+	<!--
+	TODO add doc: it needs JDK !
+	TODO add licence information to Oracle JRE and winrun4j
+	-->
 
 </project>
