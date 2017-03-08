@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
@@ -121,14 +121,20 @@ public class Factory {
 		checkIsAccessibleClass(from_class, true);
 		
 		Constructor<?> constructor = class_constructor.computeIfAbsent(from_class, cl -> {
+			Optional<Constructor<?>> o_result = Arrays.asList(cl.getConstructors()).stream().filter(c -> {
+				return c.isAccessible() && c.getParameterCount() == 0 && c.isVarArgs() == false;
+			}).findFirst();
+			
 			try {
-				return Arrays.asList(cl.getConstructors()).stream().filter(c -> {
-					return c.isAccessible() && c.getParameterCount() == 0 && c.isVarArgs() == false;
-				}).findFirst().get();
-			} catch (NoSuchElementException e) {
-				Loggers.Manager.error("Class " + cl.getName() + " can't be instancied directly");
+				if (o_result.isPresent() == false) {
+					throw new ClassNotFoundException(cl.getName());
+				}
+			} catch (ClassNotFoundException e) {
+				Loggers.Manager.error("Class " + cl.getName() + " can't be instancied directly", e);
 				return null;
 			}
+			
+			return o_result.get();
 		});
 		
 		if (constructor == null) {

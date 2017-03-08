@@ -237,7 +237,10 @@ public class MyDMAM {
 		}).findFirst();
 		
 		if (o_applicationconf_file.isPresent()) {
-			return o_applicationconf_file.get().getParentFile();
+			/**
+			 * /mydmam/conf/application.conf => /mydmam
+			 */
+			return o_applicationconf_file.get().getParentFile().getParentFile();
 		}
 		
 		Loggers.Manager.error("Can't found MyDMAM Play application", new FileNotFoundException(new File("").getAbsolutePath()));

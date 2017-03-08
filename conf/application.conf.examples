@@ -13,7 +13,7 @@ application.mode=dev
 # ~~~~~
 # The secret key is used to secure cryptographics functions
 # If you deploy your application to several instances be sure to use the same key !
-application.secret=Use_play_secret_ToGenerateANewKeyItsimportant
+application.secret=PleaseGenerateAndInsertANewKeyItsimportant
 
 # i18n
 # ~~~~~
@@ -66,7 +66,7 @@ http.port=9001
 # jpda.port=8000
 #
 # Java source level => 1.5, 1.6 or 1.7 (experimental)
-# java.source=1.5
+java.source=1.8
 
 # Log level
 # ~~~~~
@@ -111,9 +111,8 @@ http.port=9001
 # the application is stopped. Depending on the datasource, you can define a
 # generic "destroy" method :
 # db.destroyMethod=close
-
-db.url=jdbc:h2:file:./conf/play
-db.driver=org.h2.Driver
+# db.url=jdbc:h2:file:./conf/play
+# db.driver=org.h2.Driver
 
 # JPA Configuration (Hibernate)
 # ~~~~~

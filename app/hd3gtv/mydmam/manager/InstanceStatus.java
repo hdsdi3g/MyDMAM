@@ -383,20 +383,17 @@ public final class InstanceStatus {
 		result.addProperty("getSystemLoadAverage", os_mxb.getSystemLoadAverage());
 		
 		if (MyDMAM.factory.isClassExists("com.sun.management.OperatingSystemMXBean")) {
-			try {
-				JsonObject jo_os = new JsonObject();
-				com.sun.management.OperatingSystemMXBean os_sun = MyDMAM.factory.create(com.sun.management.OperatingSystemMXBean.class);
-				jo_os.addProperty("getCommittedVirtualMemorySize", os_sun.getCommittedVirtualMemorySize());
-				jo_os.addProperty("getFreePhysicalMemorySize", os_sun.getFreePhysicalMemorySize());
-				jo_os.addProperty("getFreeSwapSpaceSize", os_sun.getFreeSwapSpaceSize());
-				jo_os.addProperty("getProcessCpuLoad", os_sun.getProcessCpuLoad());
-				jo_os.addProperty("getProcessCpuTime", os_sun.getProcessCpuTime());
-				jo_os.addProperty("getSystemCpuLoad", os_sun.getSystemCpuLoad());
-				jo_os.addProperty("getTotalPhysicalMemorySize", os_sun.getTotalPhysicalMemorySize());
-				jo_os.addProperty("getTotalSwapSpaceSize", os_sun.getTotalSwapSpaceSize());
-				result.add("os", jo_os);
-			} catch (ReflectiveOperationException e) {
-			}
+			JsonObject jo_os = new JsonObject();
+			com.sun.management.OperatingSystemMXBean os_sun = (com.sun.management.OperatingSystemMXBean) os_mxb;
+			jo_os.addProperty("getCommittedVirtualMemorySize", os_sun.getCommittedVirtualMemorySize());
+			jo_os.addProperty("getFreePhysicalMemorySize", os_sun.getFreePhysicalMemorySize());
+			jo_os.addProperty("getFreeSwapSpaceSize", os_sun.getFreeSwapSpaceSize());
+			jo_os.addProperty("getProcessCpuLoad", os_sun.getProcessCpuLoad());
+			jo_os.addProperty("getProcessCpuTime", os_sun.getProcessCpuTime());
+			jo_os.addProperty("getSystemCpuLoad", os_sun.getSystemCpuLoad());
+			jo_os.addProperty("getTotalPhysicalMemorySize", os_sun.getTotalPhysicalMemorySize());
+			jo_os.addProperty("getTotalSwapSpaceSize", os_sun.getTotalSwapSpaceSize());
+			result.add("os", jo_os);
 		}
 		
 		return result;

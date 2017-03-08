@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.manager;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.management.LockInfo;
@@ -39,6 +40,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.auth.Password;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
 import hd3gtv.mydmam.cli.CliModule;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -156,10 +158,27 @@ public final class ServiceNG {
 			System.setProperty("play.id", "");
 			
 			if (Configuration.global.getValueBoolean("play", "debug")) {
+				Play.forceProd = false;
 				System.setProperty("play.debug", "yes");
+				Play.mode = Play.Mode.DEV;
+			} else {
+				Play.forceProd = true;
+				System.setProperty("play.debug", "no");
+				Play.mode = Play.Mode.PROD;
 			}
+			Play.frameworkPath = new File(MyDMAM.APP_ROOT_PLAY_CONF_DIRECTORY, "play");
 			
 			Server.main(new String[] {});
+			
+			synchronized (Play.secretKey) {
+				String default_password = Password.passwordGenerator() + Password.passwordGenerator() + Password.passwordGenerator();
+				Play.secretKey = Configuration.global.getValue("play", "master_password_key", default_password);
+				if (Play.secretKey.equals(default_password)) {
+					Loggers.Play.warn("Please set play.master_password_key in configuration !");
+				} else if (Play.secretKey.equals("change me please")) {
+					Loggers.Play.warn("Please set a random key in play.master_password_key in configuration ! If you need a good example, you can set " + default_password + " as key.");
+				}
+			}
 			
 			if (Play.mode == Mode.DEV) {
 				/**

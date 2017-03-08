@@ -4,20 +4,16 @@
 		Management</description>
 
 	<property environment="env" />
-	<property file="conf/build.properties" />
 
 	<property name="mydmam.app" location="app" />
 	<property name="mydmam.lib" location="lib" />
-	<property name="play.jar" location="${PLAY_DIR}/framework" />
-	<property name="play.lib" location="${PLAY_DIR}/framework/lib" />
-	<property name="play.docviewer" location="${PLAY_DIR}/modules/docviewer/lib/" />
-
-	<property name="out.dir" location="build" />
-	<property name="out.bin" location="${out.dir}/bin" />
-	<property name="out.lib" location="${out.dir}/lib" />
-	<property name="out.src" location="${out.dir}/src" />
 
 	<target name="prepare" description="Prepare output directories">
+		<property name="out.dir" location="build" />
+		<property name="out.bin" location="${out.dir}/bin" />
+		<property name="out.lib" location="${out.dir}/lib" />
+		<property name="out.src" location="${out.dir}/src" />
+		
 		<delete dir="${out.dir}" />
 		<mkdir dir="${out.dir}" />
 		<mkdir dir="${out.bin}" />
@@ -31,27 +27,21 @@
 		<echo>Git version: ${gitversion}</echo>
 	</target>
 
-	<target name="checklocaljardependencies" depends="prepare"
-		description="Test the needs to download all Play and MyDMAM dependencies or not">
+	<target name="checklocaljardependencies" depends="prepare" description="Test the needs to download all Play and MyDMAM dependencies or not">
 		<!-- If there are some jars in lib directory -->
 		<fileset dir="${mydmam.lib}" id="myfileset" includes="*.jar" />
-		<pathconvert refid="myfileset" property="fileset.notempty"
-			setonempty="false" />
+		<pathconvert refid="myfileset" property="fileset.notempty" setonempty="false" />
 		<condition property="needstodownloadjardependencies">
 			<not>
-				<length string="${fileset.notempty}" trim="true" length="50"
-					when="greater" />
+				<length string="${fileset.notempty}" trim="true" length="50" when="greater" />
 			</not>
 		</condition>
 		<condition property="notneedstodownloadjardependencies">
-			<length string="${fileset.notempty}" trim="true" length="50"
-				when="greater" />
+			<length string="${fileset.notempty}" trim="true" length="50" when="greater" />
 		</condition>
 	</target>
 
-	<target name="downloadjardependencies" depends="checklocaljardependencies"
-		description="Get all Play and MyDMAM dependencies from MyDMAM website to the build dir"
-		if="needstodownloadjardependencies">
+	<target name="downloadjardependencies" depends="checklocaljardependencies" description="Get all Play and MyDMAM dependencies from MyDMAM website to the build dir" if="needstodownloadjardependencies">
 		<mkdir dir="${out.lib}" />
 		<get src="http://mydmam.org/dwl/lib/" dest="${out.lib}/dependencies.xml" />
 		<ant antfile="${out.lib}/dependencies.xml" />
@@ -70,52 +60,32 @@
 			<fileset dir="${out.lib}" includes="*.jar.MD5" />
 		</delete>
 
-		<!-- Create classpath with Play and MyDMAM dependencies -->
+	</target>
+
+	<target name="copylocaljardependencies" depends="checklocaljardependencies" description="Copy MyDMAM dependencies to the build dir" if="notneedstodownloadjardependencies">
+		<copy todir="${out.lib}" flatten="true">
+			<fileset dir="${mydmam.lib}">
+				<include name="*.jar" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="compile" depends="downloadjardependencies, copylocaljardependencies" description="Invoke javac for make classes">
+		
+		<!-- Create classpath with all MyDMAM dependencies -->
 		<path id="mydmam.classpath">
 			<fileset dir="${out.lib}">
 				<include name="*.jar" />
 			</fileset>
 		</path>
-
-	</target>
-
-	<target name="copylocaljardependencies" depends="checklocaljardependencies"
-		description="Copy Play and MyDMAM dependencies to the build dir" if="notneedstodownloadjardependencies">
-		<!-- Create classpath with Play and MyDMAM dependencies -->
-		<path id="mydmam.classpath">
-			<fileset dir="${play.lib}">
-				<include name="*.jar" />
-			</fileset>
-			<fileset dir="${play.jar}">
-				<include name="*.jar" />
-			</fileset>
-			<fileset dir="${play.docviewer}">
-				<include name="*.jar" />
-			</fileset>
-			<fileset dir="${mydmam.lib}">
-				<include name="*.jar" />
-			</fileset>
-		</path>
-
-		<copy todir="${out.lib}" flatten="true">
-			<path refid="mydmam.classpath">
-			</path>
-		</copy>
-
-	</target>
-
-	<target name="compile" depends="downloadjardependencies, copylocaljardependencies"
-		description="Invoke javac for make classes">
-		<javac srcdir="${mydmam.app}" destdir="${out.bin}"
-			excludes="models react views **/*Test.java" includeantruntime="false"
-			target="1.8">
+		
+		<javac srcdir="${mydmam.app}" destdir="${out.bin}" excludes="models react views **/*Test.java" includeantruntime="false" target="1.8">
 			<classpath refid="mydmam.classpath" />
 			<compilerarg value="-XDignore.symbol.file" />
 		</javac>
 	</target>
 
-	<target name="makelib" depends="compile, getgitversion"
-		description="Create MyDMAM bin jar">
+	<target name="makelib" depends="compile, getgitversion" description="Create MyDMAM bin jar">
 		<jar basedir="${out.bin}" destfile="${out.lib}/mydmam-${gitversion}-bin.jar">
 			<manifest>
 				<attribute name="Main-Class" value="hd3gtv.mydmam.MainClass" />
@@ -129,8 +99,7 @@
 		<delete dir="${out.bin}" />
 	</target>
 
-	<target name="copyproject" depends="prepare"
-		description="Copy all mandatory Play projet items">
+	<target name="copyproject" depends="prepare" description="Copy all mandatory Play projet items">
 		<mkdir dir="${out.dir}/app" />
 		<mkdir dir="${out.dir}/app/controllers" />
 		<mkdir dir="${out.dir}/app/models" />
@@ -168,19 +137,34 @@
 		</copy>
 	</target>
 
-	<target name="makesource" depends="prepare, getgitversion"
-		description="Create MyDMAM source jar">
+	<target name="makesource" depends="prepare, getgitversion" description="Create MyDMAM source jar">
 		<mkdir dir="${out.src}" />
 		<jar basedir="${mydmam.app}" destfile="${out.src}/mydmam-${gitversion}-src.jar"
 			excludes="**/*Test.java">
 		</jar>
 	</target>
 
+	<!-- Starts with like
+		ant -Dplay="/opt/play" copyplayjars
+	TODO add to doc --> 
+	<target name="copyplayjars" description="Copy Play dependencies to the current lib dir (autonomous task)">
+		<copy todir="${mydmam.lib}" flatten="true">
+			<fileset dir="${play}/framework/lib">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="${play}/framework">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="${play}/modules/docviewer/lib/">
+				<include name="*.jar" />
+			</fileset>
+		</copy>
+	</target>
+
 	<target name="build" depends="makelib, makesource, copyproject" description="Prepare dependencies, compile, create jars, and prepare clean project">
 	</target>
 
 	<!-- TODO add doc: it needs JDK ! -->
-	<!-- TODO remove Play "zip" dependencies ? -->
 	<!-- TODO add bootstrap scripts -->
 	<!-- TODO add startup scripts -->
 

@@ -4,3 +4,6 @@
 #234  Change Java main class for Probe/Server/FTP Server > all are now in hd3gtv.mydmam.MainClass. CLI is still the same.
 #234  Remove UIFrame
 #234  hd3gtv.mydmam.MainClass main with a parameter like "play" or "services" or "ftpserver" it only start one of them, even if they are declared in configuration.
+#234  Must use ant and build.xml for get *all* dependencies from MyDMAM.org (remove play.zip directory dependency)
+#234  Add key "java.source=1.8" in application.conf
+#234  Remove keys "db.url" and "db.driver" in application.conf
