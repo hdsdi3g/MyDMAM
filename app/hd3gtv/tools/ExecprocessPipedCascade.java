@@ -255,7 +255,7 @@ public class ExecprocessPipedCascade {
 		
 		public void onStderr(String message) {
 			if (log.isTraceEnabled()) {
-				System.err.println("[" + name + "]" + message);
+				log.trace("Process " + name + " stderr: " + message);
 			}
 		}
 		

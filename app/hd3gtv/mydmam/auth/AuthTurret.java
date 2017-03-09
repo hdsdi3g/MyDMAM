@@ -795,7 +795,6 @@ public class AuthTurret {
 			StringReader sr = new StringReader(request.properties);
 			try {
 				user.getProperties().load(sr);
-				System.out.println(user.getProperties());
 				Loggers.Auth.info("Change user properties: " + user.toString());
 			} catch (IOException e) {
 				Loggers.Auth.error("Can't change user " + user.toString() + " properties");

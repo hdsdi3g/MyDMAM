@@ -19,6 +19,10 @@
 	<property name="archive.jre.mac" value="jre-8u121-macosx-x64.tar.gz" />
 	<property name="archive.jre.extractedbasename" value="jre1.8.0_121" />
 	
+	<property name="basedir.jrebin.windows" value=".\jre\${archive.jre.extractedbasename}\bin" />
+	<property name="basedir.jrebin.linux" value="./jre/${archive.jre.extractedbasename}/bin/" />
+	<property name="basedir.jrebin.mac" value="./jre/${archive.jre.extractedbasename}.jre/Contents/Home/bin" />
+	
 	<target name="prepare" description="Prepare output directories">
 		<property name="out.dir" location="build" />
 		<property name="out.bin" location="${out.dir}/bin" />
@@ -31,10 +35,6 @@
 		<mkdir dir="${out.bin}" />
 		<mkdir dir="${out.lib}" />
 		<mkdir dir="${out.jre}" />
-		
-		<property name="out.dir.jrebin.windows" location="${out.jre}/${archive.jre.extractedbasename}/bin/" />
-		<property name="out.dir.jrebin.linux" location="${out.jre}/${archive.jre.extractedbasename}/bin/" />
-		<property name="out.dir.jrebin.mac" location="${out.jre}/${archive.jre.extractedbasename}.jre/Contents/Home/bin" />
 	</target>
 
 	<target name="getgitversion" depends="prepare" description="Get git last commit hash">
@@ -145,48 +145,26 @@
 	</target>
 
 	<target name="makestarters" description="Prepare Windows/OSX/Linux starters">
-		<!--
-		<property name="out.dir.jrebin.windows" location="${out.jre}/${archive.jre.extractedbasename}/bin/" />
-		<property name="out.dir.jrebin.linux" location="${out.jre}/${archive.jre.extractedbasename}/bin/" />
-		<property name="out.dir.jrebin.mac" location="${out.jre}/${archive.jre.extractedbasename}.jre/Contents/Home/bin" />
-		-->
-		<!-- TODO create ini (cli + service)
-			main.class=hd3gtv.onroadmediasend.Main
-			working.directory=.\onroadmediasend
-			;log=.\starter.log
-			classpath.1=.\conf
-			classpath.2=.\lib\*.jar
-			vm.location=.\jre1.8.0_111\bin\server\jvm.dll
-			vmarg.1=-Dfile.encoding=UTF-8
-			
-			${mydmam.startup}/mydmam-service.exe
-			${mydmam.startup}/mydmam-cli.exe
-		 -->
-		
-		<!-- TODO Windows service -->
+		<echo file="${mydmam.startup}/setup.ini" append="false" force="true">working.directory=..\&#xD;&#xA;
+classpath.1=..\conf&#xD;&#xA;
+classpath.2=..\lib\*.jar&#xD;&#xA;
+vm.location=.${basedir.jrebin.windows}\server\jvm.dll&#xD;&#xA;
+vmarg.1=-Dfile.encoding=UTF-8&#xD;&#xA;
+</echo>
+
 		<!-- TODO do Debian scripts + systemD -->
 		<!-- TODO osx service scripts -->
 	</target>
 
 	<target name="preparewinrun4j" description="Make winrun4j executable for the MyDMAM look" if="is_windows">
-		<echo>Usage: please add to ${mydmam.startup} RCEDIT64.exe, WinRun4J64.exe and WinRun4J64c.exe</echo>
+		<echo>Usage: please add to ${mydmam.startup} RCEDIT64.exe and WinRun4J64c.exe</echo>
 		<property name="favicon" location="public/img/favicon.ico" />
 		<!-- embed icon -->
-		<exec executable="RCEDIT64.exe">
-			<!-- remove old icon and manifest -->
-			<arg value="/C"/><arg value="${mydmam.startup}/WinRun4J64.exe"/>
-		</exec>
-		<exec executable="RCEDIT64.exe">
-			<!-- add icon -->
-			<arg value="/I"/><arg value="${mydmam.startup}/WinRun4J64.exe"/><arg value="${favicon}"/>
-		</exec>
-		
 		<exec executable="RCEDIT64.exe">
 			<!-- add icon -->
 			<arg value="/I"/><arg value="${mydmam.startup}/WinRun4J64c.exe"/><arg value="${favicon}"/>
 		</exec>
-
-		<move file="${mydmam.startup}/WinRun4J64.exe" tofile="${mydmam.startup}/mydmam-service.exe"/>
+		<copyfile src="${mydmam.startup}/WinRun4J64c.exe" dest="${mydmam.startup}/mydmam-service.exe"/>
 		<move file="${mydmam.startup}/WinRun4J64c.exe" tofile="${mydmam.startup}/mydmam-cli.exe"/>
 		<delete file="${mydmam.startup}/RCEDIT64.exe"/>
 	</target>
@@ -236,6 +214,7 @@
 			<fileset dir="${mydmam.startup}">
 				<include name="*.exe" />
 				<include name="*.ini" />
+				<include name="*.bat" />
 				<include name="*.sh" />
 			</fileset>
 		</copy>
@@ -269,24 +248,23 @@
 	<target name="getjreIflinux" depends="getjrelinux" description="Get Oracle JRE for Linux, only if this is Linux" if="is_linux"></target>
 	<target name="getjreIfmac" depends="getjremac" description="Get Oracle JRE for macOS, only if this is macOS" if="is_mac"></target>
 
-	<target name="build" depends="makelib, copyproject, makestarters, getjreIfwindows, getjreIflinux, getjreIfmac" description="Prepare dependencies, compile, create jars, and prepare clean project">
+	<target name="build" depends="makelib, makestarters, copyproject, getjreIfwindows, getjreIflinux, getjreIfmac" description="Prepare dependencies, compile, create jars, and prepare clean project">
 	</target>
 
-	<target name="pack" depends="makelib, copyproject, makestarters" description="Helper to create MyDMAM redistribuable archive without JRE">
+	<target name="pack" depends="makelib, makestarters, copyproject" description="Helper to create MyDMAM redistribuable archive without JRE">
 	</target>
-	<target name="pack-windows" depends="pack, getjrewindows" description="Create MyDMAM Windows redistribuable archive">
+	<target name="pack-windows" depends="pack, getjrewindows" description="Create MyDMAM Windows redistribuable archive with JRE">
 		<!-- TODO make zip -->
 	</target>
-	<target name="pack-linux" depends="pack, getjrelinux" description="Create MyDMAM Linux redistribuable archive">
+	<target name="pack-linux" depends="pack, getjrelinux" description="Create MyDMAM Linux redistribuable archive with JRE">
 		<!-- TODO make tar.gz -->
 	</target>
-	<target name="pack-mac" depends="pack, getjremac" description="Create MyDMAM macOS redistribuable archive">
+	<target name="pack-mac" depends="pack, getjremac" description="Create MyDMAM macOS redistribuable archive with JRE">
 		<!-- TODO make tar.gz -->
 	</target>
 
 	<!--
 	TODO add doc: it needs JDK !
-	TODO add licence information to Oracle JRE and winrun4j
 	-->
 
 </project>

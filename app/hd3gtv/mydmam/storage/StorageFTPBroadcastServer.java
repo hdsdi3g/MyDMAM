@@ -222,7 +222,6 @@ public class StorageFTPBroadcastServer extends StorageURILoginPassword {
 				} catch (IOException e) {
 					Loggers.Storage_FTPBCFT.error("Can't download file, " + this, e);
 				}
-				System.err.println("Connected 5");
 				return null;
 			}
 			

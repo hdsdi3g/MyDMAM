@@ -231,6 +231,9 @@ public final class ServiceNG {
 		}
 	}
 	
+	/**
+	 * Blocking
+	 */
 	public synchronized void stopAllServices() {
 		Loggers.Manager.debug("Stop all services...");
 		if (servicethread == null) {
