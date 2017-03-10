@@ -32,3 +32,4 @@ startup/WinRun4J64.exe
 startup/WinRun4J64c.exe
 startup/RCEDIT64.exe
 startup/setup.ini
+startup/*.service
