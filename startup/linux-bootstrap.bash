@@ -8,17 +8,6 @@
 
 # This script will do some tasks, like checks, relative paths to absolute path, and script creation.
 # You don't needs to install some tools.
-# Topics:
-	# Where I am ?
-	# Load boostrap configuration
-	# Resolve JRE relative path to absolute path
-	# Test Java (JRE)
-	# Create env file (actually classpath and Java)
-	# Create Service file
-	# Create Service register/unregister and actions
-	# Create CLI script
-	# Prepare log configuration
-	# Let user to start something
 
 set -e
 
@@ -29,32 +18,14 @@ BASEPATH=$(realpath $CURRENT_SCRIPT_DIR/..);
 
 # Load boostrap configuration
 . setup.bash
+# Load toolkit
+. _utils.bash
 
-# Resolve JRE relative path to absolute path
-JAVA=$(realpath $JAVA);
-
-# Test Java (JRE)
-if [ ! -f "$JAVA" ]; then
-	echo "Can't found file $JAVA."
-	echo "Please check you setup."
-fi
-if [ ! -x "$JAVA" ]; then
-	chmod +x $JAVA
-fi
-
-echo "Try to start JVM: $JAVA"
-$JAVA -version
+resolve_jre_path $JAVA_LINUX;
+set_classpath;
 
 # Create env file (actually classpath and Java)
-
 ENV_FILE=$CURRENT_SCRIPT_DIR/env.bash;
-
-CLASSPATH=$BASEPATH/conf;
-for file in $BASEPATH/lib/*.jar
-do
-        CLASSPATH=$CLASSPATH:$file;
-done
-
 cat <<- EOF > $ENV_FILE
 	# MyDMAM Configuration file, do not edit. Created by $0
 	JAVA=$JAVA
@@ -62,7 +33,6 @@ cat <<- EOF > $ENV_FILE
 EOF
 
 # Create Service file
-
 SERVICE_FILE=$CURRENT_SCRIPT_DIR/mydmam.service;
 
 cat <<- EOF > $SERVICE_FILE
@@ -81,15 +51,7 @@ cat <<- EOF > $SERVICE_FILE
 EOF
 
 # Create Service register/unregister and actions
-
-cp -f $CURRENT_SCRIPT_DIR/mydmam.service /usr/lib/systemd/mydmam.service
-echo "MyDMAM Service installed in /usr/lib/systemd/mydmam.service"
-
-SERVICE_ENABLE_FILE=$CURRENT_SCRIPT_DIR/mydmam-service-enable.bash
-SERVICE_DISABLE_FILE=$CURRENT_SCRIPT_DIR/mydmam-service-disable.bash
-SERVICE_START_FILE=$CURRENT_SCRIPT_DIR/mydmam-service-start.bash
-SERVICE_STOP_FILE=$CURRENT_SCRIPT_DIR/mydmam-service-stop.bash
-SERVICE_STATUS_FILE=$CURRENT_SCRIPT_DIR/mydmam-service-status.bash
+create_service_tools_filenames;
 
 cat <<- EOF > $SERVICE_ENABLE_FILE
 	#/bin/bash
@@ -155,51 +117,6 @@ cat <<- EOF > $SERVICE_STATUS_FILE
 EOF
 chmod +x $SERVICE_STATUS_FILE
 
-# Create CLI script
-
-CLI_FILE=$CURRENT_SCRIPT_DIR/mydmam-cli.bash
-
-cat <<- EOF > $CLI_FILE
-	#/bin/bash
-	# MyDMAM CLI script
-	set -e
-	. $ENV_FILE
-	\$JAVA -noverify -Dfile.encoding=UTF-8 -Dfile.encoding=UTF-8 -Dservice.config.path=$BASEPATH/conf/app.d -classpath \$CLASSPATH hd3gtv.mydmam.cli.MainClass $@
-EOF
-
-chmod +x $CLI_FILE
-
-# Prepare log configuration
-
-rm -f $BASEPATH/conf/log4j.xml
-cp $BASEPATH/conf/log4j-prod-linux.xml $BASEPATH/conf/log4j.xml
-
-LOG_FILE=$(cat $BASEPATH/conf/log4j.xml | grep param | grep log | grep File | cut -d "\"" -f 4);
-
-LOG_DIR=$(dirname $LOG_FILE);
-
-set +e
-{ # try
-	if [ ! -d "$LOG_DIR" ]; then
-		mkdir -p $LOG_DIR
-	fi
-	touch $LOG_FILE
-	echo "Set log configuration to $LOG_FILE"
-	set -e
-} || { # catch
-	set -e
-	LOG_DIR=$BASEPATH/logs
-	echo "Can't prepare log directory $LOG_DIR"
-	rm -f $BASEPATH/conf/log4j.xml
-	cp $BASEPATH/conf/log4j-prod.xml $BASEPATH/conf/log4j.xml
-	echo "MyDMAM log is set to local directory $LOG_DIR"
-	echo "For change it, edit $BASEPATH/conf/log4j.xml"
-}
-
-# Let user to start something
-
-echo "=== COMPLETED ==="
-echo "Please change/check MyDMAM configuration files in $BASEPATH/conf and $BASEPATH/conf/app.d";
-echo "You can use CLI tool $CLI_FILE and/or use mydmam-service-* tool in $CURRENT_SCRIPT_DIR for operate on service."
-echo "By default this script don't enable MyDMAM service"
-echo "After service startup, check MyDMAM status with tail -f $LOG_DIR/mydmam.log"
+create_cli;
+set_logs;
+ends_setup;
