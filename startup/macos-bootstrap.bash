@@ -6,7 +6,6 @@
 # But it can works with more recent macOS version.
 #
 # If you change the classpath and/or the JRE version/directory, you must redeclare the macOS service file.
-# TODO comments
 
 set -e
 
@@ -25,7 +24,9 @@ set_classpath;
 create_cli;
 set_logs;
 
+SERVICE_LABEL="hd3gtv.mydmam.service";
 SERVICE_FILE=$CURRENT_SCRIPT_DIR/hd3gtv.mydmam.service.plist;
+# Create service declaration file
 
 cat <<- EOF > $SERVICE_FILE
     <?xml version="1.0" encoding="UTF-8"?>
@@ -33,7 +34,7 @@ cat <<- EOF > $SERVICE_FILE
     <plist version="1.0">
     <dict>
         <key>Label</key>
-        <string>hd3gtv.mydmam.service</string>
+        <string>$SERVICE_LABEL</string>
         <key>ProgramArguments</key>
         <array>
             <string>$JAVA</string>
@@ -59,74 +60,68 @@ EOF
 
 create_service_tools_filenames;
 
+SETUP_SERVICE_FILE="$HOME/Library/LaunchAgents/"$(basename $SERVICE_FILE);
+
 # http://www.launchd.info/
-# ~/Library/LaunchAgents
-# launchctl load ~/Library/LaunchAgents/com.example.app.plist
-# launchctl unload ~/Library/LaunchAgents/com.example.app.plist
-# launchctl start com.example.app
-# launchctl stop com.example.app
 
 cat <<- EOF > $SERVICE_ENABLE_FILE
     #/bin/bash
     # MyDMAM Service script
     set -e
-    # cp -f $CURRENT_SCRIPT_DIR/mydmam.service /usr/lib/systemd/mydmam.service
-    # echo "MyDMAM Service installed in /usr/lib/systemd/mydmam.service"
-    # systemctl enable /usr/lib/systemd/mydmam.service
-    # systemctl daemon-reload
-    # echo "Use $SERVICE_START_FILE or systemctl start mydmam for start MyDMAM Service"
+    cp -f $SERVICE_FILE $SETUP_SERVICE_FILE
+    echo "MyDMAM Service installed in $SETUP_SERVICE_FILE"
+    launchctl load -w $SETUP_SERVICE_FILE
+    echo "Use $SERVICE_START_FILE or launchctl start $SERVICE_LABEL start MyDMAM Service"
 EOF
 chmod +x $SERVICE_ENABLE_FILE
 
 cat <<- EOF > $SERVICE_DISABLE_FILE
     #/bin/bash
     # MyDMAM Service script
-    # $SERVICE_STOP_FILE
-    # set -e
-    # systemctl disable /usr/lib/systemd/mydmam.service
-    # systemctl daemon-reload
-    # rm -f /usr/lib/systemd/mydmam.service
-    # echo "MyDMAM Service removed from /usr/lib/systemd/mydmam.service"
+    $SERVICE_STOP_FILE
+    set -e
+    launchctl unload -w $SETUP_SERVICE_FILE
+    rm -f $SETUP_SERVICE_FILE
+    echo "MyDMAM Service removed from $SETUP_SERVICE_FILE"
 EOF
 chmod +x $SERVICE_DISABLE_FILE
 
 cat <<- EOF > $SERVICE_START_FILE
     #/bin/bash
     # MyDMAM Service script
-    # set -e
-    # if [ ! -f "/usr/lib/systemd/mydmam.service" ]; then
-    #     $SERVICE_ENABLE_FILE
-    # fi
-    # 
-    # systemctl start mydmam
-    # $SERVICE_STATUS_FILE
+    set -e
+    if [ ! -f "$SETUP_SERVICE_FILE" ]; then
+        $SERVICE_ENABLE_FILE
+    fi
+    launchctl start $SERVICE_LABEL
+    $SERVICE_STATUS_FILE
 EOF
 chmod +x $SERVICE_START_FILE
 
 cat <<- EOF > $SERVICE_STOP_FILE
     #/bin/bash
     # MyDMAM Service script
-    # set -e
-    # if [ ! -f "/usr/lib/systemd/mydmam.service" ]; then
-    #     echo "MyDMAM service script (/usr/lib/systemd/mydmam.service) is not installed."
-    #     exit 0;
-    # fi
-    # 
-    # systemctl stop mydmam
-    # $SERVICE_STATUS_FILE
+    set -e
+    if [ ! -f "$SETUP_SERVICE_FILE" ]; then
+         echo "MyDMAM service script ($SETUP_SERVICE_FILE) is not installed."
+         exit 0;
+    fi
+    
+    launchctl stop $SERVICE_LABEL
+    $SERVICE_STATUS_FILE
 EOF
 chmod +x $SERVICE_STOP_FILE
 
 cat <<- EOF > $SERVICE_STATUS_FILE
     #/bin/bash
     # MyDMAM Service script
-    # set -e
-    # if [ ! -f "/usr/lib/systemd/mydmam.service" ]; then
-    #     echo "MyDMAM service script (/usr/lib/systemd/mydmam.service) is not installed."
-    #     exit 0;
-    # fi
-    # 
-    # systemctl status mydmam
+    set -e
+    if [ ! -f "$SETUP_SERVICE_FILE" ]; then
+        echo "MyDMAM service script ($SETUP_SERVICE_FILE) is not installed."
+        exit 0;
+    fi
+     
+    launchctl list | grep $SERVICE_LABEL
 EOF
 chmod +x $SERVICE_STATUS_FILE
 

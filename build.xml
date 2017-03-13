@@ -278,6 +278,7 @@ JAVA_OSX=.${basedir.jrebin.mac}\java&#xA;
 		<move file="${out.dir}" tofile="archive/mydmam"/>
 		<mkdir dir="pack"/>
 		<zip destfile="pack/mydmam-windows-${gitversion}.zip" basedir="archive" description="MyDMAM Windows redistribuable ${gitversion}" />
+		<checksum file="pack/mydmam-windows-${gitversion}.zip" forceOverwrite="yes" />
 		<move file="archive/mydmam" tofile="${out.dir}"/>
 		<delete dir="archive"/>
 	</target>
@@ -287,6 +288,7 @@ JAVA_OSX=.${basedir.jrebin.mac}\java&#xA;
 		<move file="${out.dir}" tofile="archive/mydmam"/>
 		<mkdir dir="pack"/>
 		<tar destfile="pack/mydmam-linux-${gitversion}.tar.gz" basedir="archive" compression="gzip" />
+		<checksum file="pack/mydmam-linux-${gitversion}.tar.gz" forceOverwrite="yes" />
 		<move file="archive/mydmam" tofile="${out.dir}"/>
 		<delete dir="archive"/>
 	</target>
@@ -296,6 +298,7 @@ JAVA_OSX=.${basedir.jrebin.mac}\java&#xA;
 		<move file="${out.dir}" tofile="archive/mydmam"/>
 		<mkdir dir="pack"/>
 		<tar destfile="pack/mydmam-macosx-${gitversion}.tar.gz" basedir="archive" compression="gzip" />
+		<checksum file="pack/mydmam-macosx-${gitversion}.tar.gz" forceOverwrite="yes" />
 		<move file="archive/mydmam" tofile="${out.dir}"/>
 		<delete dir="archive"/>
 	</target>
@@ -314,7 +317,7 @@ JAVA_OSX=.${basedir.jrebin.mac}\java&#xA;
 	<!--
 	TODO add doc: it needs JDK !
 	TODO add doc: `ln -s $BASEPATH/startup/mydmam-cli.bash /bin/mydmam` + ffmpeg + IM...
-	TODO add doc: ant eclipsify
+	TODO add doc: ant eclipsify + clean
 	TODO add doc: ant -Dplay="/opt/play" copyplayjars
 	-->
 
