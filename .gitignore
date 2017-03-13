@@ -36,3 +36,4 @@ startup/setup.bash
 startup/*.service
 pack/
 src/
+databaseredist/
