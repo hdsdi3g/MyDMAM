@@ -320,15 +320,12 @@ JAVA_OSX=.${basedir.jrebin.mac}\java&#xA;
 		<property name="dbredist" location="databaseredist"/>
 		<mkdir dir="${dbredist}"/>
 
-		<property name="url-archive-cassandra" value="http://archive.apache.org/dist/cassandra/1.2.19" />
-		<property name="url-archive-es" value="https://download.elastic.co/elasticsearch/elasticsearch" />
-		
 		<property name="archive-cassandra" value="apache-cassandra-1.2.19" />
 		<property name="archive-es" value="elasticsearch-1.5.2" />
 		
 		<!--
-		<get src="${url-archive-cassandra}/${archive-cassandra}-bin.tar.gz" dest="${dbredist}" />
-		<get src="${url-archive-es}/${archive-es}.tar.gz" dest="${dbredist}" />
+		<get src="${mydmam.website.url.download}/${archive-cassandra}-bin.tar.gz" dest="${dbredist}" />
+		<get src="${mydmam.website.url.download}/${archive-es}.tar.gz" dest="${dbredist}" />
 		
 		<untar src="${dbredist}/${archive-cassandra}-bin.tar.gz" dest="${dbredist}" compression="gzip"/>
 		<untar src="${dbredist}/${archive-es}.tar.gz" dest="${dbredist}" compression="gzip"/>
