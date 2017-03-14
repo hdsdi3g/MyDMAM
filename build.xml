@@ -287,7 +287,7 @@ JAVA_OSX=.${basedir.jrebin.mac}\java&#xA;
 		<mkdir dir="archive"/>
 		<move file="${out.dir}" tofile="archive/mydmam"/>
 		<mkdir dir="pack"/>
-		<tar destfile="pack/mydmam-linux-${gitversion}.tar.gz" basedir="archive" compression="gzip" />
+		<tar destfile="pack/mydmam-linux-${gitversion}.tar.gz" basedir="archive" compression="gzip" longfile="gnu" />
 		<checksum file="pack/mydmam-linux-${gitversion}.tar.gz" forceOverwrite="yes" />
 		<move file="archive/mydmam" tofile="${out.dir}"/>
 		<delete dir="archive"/>
@@ -297,7 +297,7 @@ JAVA_OSX=.${basedir.jrebin.mac}\java&#xA;
 		<mkdir dir="archive"/>
 		<move file="${out.dir}" tofile="archive/mydmam"/>
 		<mkdir dir="pack"/>
-		<tar destfile="pack/mydmam-macosx-${gitversion}.tar.gz" basedir="archive" compression="gzip" />
+		<tar destfile="pack/mydmam-macosx-${gitversion}.tar.gz" basedir="archive" compression="gzip" longfile="gnu" />
 		<checksum file="pack/mydmam-macosx-${gitversion}.tar.gz" forceOverwrite="yes" />
 		<move file="archive/mydmam" tofile="${out.dir}"/>
 		<delete dir="archive"/>
@@ -477,8 +477,15 @@ path.logs: /var/log/elasticsearch
 		<property name="basedir.jrebin.mac" value="./jre/${archive.jre.extractedbasename}.jre/Contents/Home/bin" />
 		-->
 		
+		<mkdir dir="archive"/>
+		<move file="${dbredist}" tofile="archive/mydmam-databases"/>
+		<mkdir dir="pack"/>
+		<property name="tardest" location="pack/mydmam-databases-${archive.jre.extractedbasename}-${archive-cassandra}-${archive-es}.tar.gz"/>
+		<tar destfile="${tardest}" basedir="archive" compression="gzip" longfile="gnu" />
+		<checksum file="${tardest}" forceOverwrite="yes" />
+		<move file="archive/mydmam-databases" tofile="${dbredist}"/>
+		<delete dir="archive"/>
 	</target>
-
 	
 	<!--
 	TODO add doc: it needs JDK !

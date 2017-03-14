@@ -37,3 +37,4 @@ startup/*.service
 pack/
 src/
 databaseredist/
+archive/
