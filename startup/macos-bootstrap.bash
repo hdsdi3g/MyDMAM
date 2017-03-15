@@ -11,15 +11,15 @@ set -e
 
 # Where I am ?
 CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
-cd $CURRENT_SCRIPT_DIR;
-BASEPATH=$(realpath $CURRENT_SCRIPT_DIR/..);
+cd "$CURRENT_SCRIPT_DIR";
+BASEPATH=$(realpath "$CURRENT_SCRIPT_DIR/..");
 
 # Load boostrap configuration
 . setup.bash
 # Load toolkit
 . _utils.bash
 
-resolve_jre_path $JAVA_OSX;
+resolve_jre_path "$JAVA_OSX";
 set_classpath;
 create_cli;
 set_logs;
@@ -60,7 +60,7 @@ EOF
 
 create_service_tools_filenames;
 
-SETUP_SERVICE_FILE="$HOME/Library/LaunchAgents/"$(basename $SERVICE_FILE);
+SETUP_SERVICE_FILE="$HOME/Library/LaunchAgents/"$(basename "$SERVICE_FILE");
 
 # http://www.launchd.info/
 
@@ -73,7 +73,7 @@ cat <<- EOF > $SERVICE_ENABLE_FILE
     launchctl load -w $SETUP_SERVICE_FILE
     echo "Use $SERVICE_START_FILE or launchctl start $SERVICE_LABEL start MyDMAM Service"
 EOF
-chmod +x $SERVICE_ENABLE_FILE
+chmod +x "$SERVICE_ENABLE_FILE"
 
 cat <<- EOF > $SERVICE_DISABLE_FILE
     #/bin/bash
@@ -84,7 +84,7 @@ cat <<- EOF > $SERVICE_DISABLE_FILE
     rm -f $SETUP_SERVICE_FILE
     echo "MyDMAM Service removed from $SETUP_SERVICE_FILE"
 EOF
-chmod +x $SERVICE_DISABLE_FILE
+chmod +x "$SERVICE_DISABLE_FILE"
 
 cat <<- EOF > $SERVICE_START_FILE
     #/bin/bash
@@ -96,7 +96,7 @@ cat <<- EOF > $SERVICE_START_FILE
     launchctl start $SERVICE_LABEL
     $SERVICE_STATUS_FILE
 EOF
-chmod +x $SERVICE_START_FILE
+chmod +x "$SERVICE_START_FILE"
 
 cat <<- EOF > $SERVICE_STOP_FILE
     #/bin/bash
@@ -110,7 +110,7 @@ cat <<- EOF > $SERVICE_STOP_FILE
     launchctl stop $SERVICE_LABEL
     $SERVICE_STATUS_FILE
 EOF
-chmod +x $SERVICE_STOP_FILE
+chmod +x "$SERVICE_STOP_FILE"
 
 cat <<- EOF > $SERVICE_STATUS_FILE
     #/bin/bash
@@ -123,6 +123,6 @@ cat <<- EOF > $SERVICE_STATUS_FILE
      
     launchctl list | grep $SERVICE_LABEL
 EOF
-chmod +x $SERVICE_STATUS_FILE
+chmod +x "$SERVICE_STATUS_FILE"
 
 ends_setup;
