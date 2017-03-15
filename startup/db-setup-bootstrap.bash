@@ -3,6 +3,9 @@
 # Copyright (C) hdsdi3g for hd3g.tv 2017
 #
 # Databases setup bootstrap
+# Tested and functionnal with Debian 8 / Systemd.
+# But it can works with others GNU/Linux distribution that support Systemd
+# You also can adapt this setup for others NIX OS.
 
 set -e
 
@@ -48,8 +51,7 @@ mkdir -p "$DATA_DIR"
 
 if [[ "$UNAME" == 'Linux' ]]; then
 	echo "Create user and group nosqldb in /opt/nosqldb"
-    addgroup --system nosqldb
-    adduser --system --home "$DATA_DIR" --no-create-home --group nosqldb --disabled-password --disabled-login nosqldb
+    adduser --system --home "$DATA_DIR" --no-create-home --group nosqldb nosqldb
     chown nosqldb:nosqldb -R "$LOG_DIR"
     chown nosqldb:nosqldb -R "$TEMP_DIR"
     chown nosqldb:nosqldb -R "$DATA_DIR"
@@ -102,11 +104,11 @@ if [[ "$UNAME" == 'Linux' ]]; then
 		Environment=CONF_FILE=$BASEPATH/$ELASTICSEARCH_HOME_NAME/config/elasticsearch.yml
 		Environment=DATA_DIR=$DATA_DIR
 		Environment=LOG_DIR=$LOG_DIR
-		Environment=PID_DIR=$DATA_DIR/elasticsearch.pid
+		Environment=PID_DIR=$DATA_DIR
 		#EnvironmentFile=-/etc/default/elasticsearch
 		User=nosqldb
 		Group=nosqldb
-		ExecStart=/usr/share/elasticsearch/bin/elasticsearch -Des.pidfile=$PID_DIR/elasticsearch.pid -Des.default.path.home=$ES_HOME -Des.default.path.logs=$LOG_DIR -Des.default.path.data=$DATA_DIR -Des.default.config=$CONF_FILE -Des.default.path.conf=$CONF_DIR
+		ExecStart=$BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/elasticsearch -Des.pidfile=$DATA_DIR/elasticsearch.pid -Des.default.path.home=$BASEPATH/$ELASTICSEARCH_HOME_NAME -Des.default.path.logs=$LOG_DIR -Des.default.path.data=$DATA_DIR -Des.default.config=$CONF_FILE -Des.default.path.conf=$BASEPATH/$ELASTICSEARCH_HOME_NAME/config/elasticsearch.yml
 		StandardOutput=null
 		StandardError=journal
 		SuccessExitStatus=143
@@ -121,7 +123,61 @@ if [[ "$UNAME" == 'Linux' ]]; then
 	EOF
 
 elif [[ "$UNAME" == 'Darwin' ]]; then
-	echo "OSX Has not service file. This is a TODO";
+	CASSANDRA_SERVICE_LABEL="org.apache.cassandra";
+	CASSANDRA_SERVICE_FILE="$BASEPATH/$CASSANDRA_SERVICE_LABEL.plist";
+
+	cat <<- EOF > $CASSANDRA_SERVICE_FILE
+	    <?xml version="1.0" encoding="UTF-8"?>
+	    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+	    <plist version="1.0">
+	    <dict>
+	        <key>Label</key>
+	        <string>$CASSANDRA_SERVICE_LABEL</string>
+	        <key>ProgramArguments</key>
+	        <array>
+	            <string>$BASEPATH/$CASSANDRA_HOME_NAME/bin/cassandra</string>
+	        </array>
+	        <key>StandardOutPath</key>
+	        <string>$LOG_DIR/service-cassandra.log</string>
+	        <key>StandardErrorPath</key>
+	        <string>$LOG_DIR/service-cassandra.log</string>
+	        <key>WorkingDirectory</key>
+	        <string>$BASEPATH</string>
+	        <key>RunAtLoad</key>
+	        <true/>
+	    </dict>
+	    </plist>
+	EOF
+
+	ES_SERVICE_LABEL="org.elasticsearch"
+	ES_SERVICE_FILE"=$BASEPATH/$ES_SERVICE_LABEL.plist";
+	cat <<- EOF > $ES_SERVICE_FILE
+	    <?xml version="1.0" encoding="UTF-8"?>
+	    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+	    <plist version="1.0">
+	    <dict>
+	        <key>Label</key>
+	        <string>$ES_SERVICE_LABEL</string>
+	        <key>ProgramArguments</key>
+	        <array>
+	            <string>$BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/elasticsearch</string>
+	            <string>-Des.default.path.home=$BASEPATH/$ELASTICSEARCH_HOME_NAME</string>
+	            <string>-Des.default.path.logs=$LOG_DIR</string>
+	            <string>-Des.default.path.data=$DATA_DIR</string>
+	            <string>-Des.default.config=$CONF_FILE</string>
+	            <string>-Des.default.path.conf=$BASEPATH/$ELASTICSEARCH_HOME_NAME/config/elasticsearch.yml</string>
+	        </array>
+	        <key>StandardOutPath</key>
+	        <string>$LOG_DIR/service-elasticsearch.log</string>
+	        <key>StandardErrorPath</key>
+	        <string>$LOG_DIR/service-elasticsearch.log</string>
+	        <key>WorkingDirectory</key>
+	        <string>$BASEPATH</string>
+	        <key>RunAtLoad</key>
+	        <true/>
+	    </dict>
+	    </plist>
+	EOF
 fi
 
 # Get CPU Count
@@ -258,16 +314,79 @@ cat <<- EOF > $ELASTICSEARCH_CONF_FILE
 	path.logs: $LOG_DIR
 	</echo>
 EOF
-		
+
 echo "=== COMPLETED ==="
 echo "By default this script don't enable Cassandra or Elasticsearch services"
-echo "Please check Cassandra and/or Elasticsearch configuration files:";
+echo "Please check Cassandra and/or Elasticsearch configuration files before start:";
 echo " - $CASSANDRA_CONF_FILE";
 echo " - $ELASTICSEARCH_CONF_FILE";
 echo "If you needs to use java or Cassandra ou Elasticsearch CLI tools on this shell,";
 echo "you should add in you .bashrc/.profile: JAVA_HOME=$JAVA";
-echo "TODO systemd cli example";
-echo "TODO standalone startup";
-echo "TODO cli tools command line";
-echo "TODO add _status for ES";
-echo "TODO log file path, conf, CPU_COUNT, data";
+echo "";
+echo "Run Cassandra and Elasticsearch in the same server only for testing pupose.";
+echo "Run two server for each database type is the prerequisite for a good production setup.";
+echo "";
+echo "=== Service instructions ===";
+if [[ "$UNAME" == 'Linux' ]]; then
+	echo "Declare service:";
+	echo "   cp $CASSANDRA_SERVICE_FILE /usr/lib/systemd/.service";
+	echo "   cp $ES_SERVICE_FILE /usr/lib/systemd/elasticsearch.service";
+	echo "Update services status:";
+	echo "   systemctl daemon-reload";
+	echo "Activate on-boot service";
+	echo "   systemctl enable /usr/lib/systemd/cassandra.service";
+	echo "   systemctl enable /usr/lib/systemd/elasticsearch.service";
+	echo "Desactivate on-boot service";
+	echo "   systemctl disable /usr/lib/systemd/cassandra.service";
+	echo "   systemctl disable /usr/lib/systemd/elasticsearch.service";
+	echo "Start/stop";
+	echo "   systemctl start cassandra";
+	echo "   systemctl start elasticsearch";
+	echo "   systemctl stop cassandra";
+	echo "   systemctl stop elasticsearch";
+	echo "Status";
+	echo "   systemctl status cassandra";
+	echo "   systemctl status elasticsearch";
+elif [[ "$UNAME" == 'Darwin' ]]; then
+	SETUP_SERVICE_BASE_DIR_CASSANDRA="$HOME/Library/LaunchAgents/"$(basename "$CASSANDRA_SERVICE_FILE");
+	SETUP_SERVICE_BASE_DIR_ES="$HOME/Library/LaunchAgents/"$(basename "$ES_SERVICE_FILE");
+
+	echo "Declare service:";
+	echo "   cp $CASSANDRA_SERVICE_FILE $SETUP_SERVICE_BASE_DIR_CASSANDRA";
+	echo "   cp $ES_SERVICE_FILE $SETUP_SERVICE_BASE_DIR_ES";
+	echo "Activate on-boot service";
+	echo "   launchctl load -w $CASSANDRA_SERVICE_FILE";
+	echo "   launchctl load -w $ES_SERVICE_FILE";
+	echo "Desactivate on-boot service";
+	echo "   launchctl unload -w $CASSANDRA_SERVICE_FILE";
+	echo "   launchctl unload -w $ES_SERVICE_FILE";
+	echo "Start/stop";
+	echo "   launchctl start $CASSANDRA_SERVICE_LABEL";
+	echo "   launchctl stop $CASSANDRA_SERVICE_LABEL";
+	echo "   launchctl start $ES_SERVICE_LABEL";
+	echo "   launchctl stop $ES_SERVICE_LABEL";
+	echo "Status";
+	echo "   launchctl list | grep $CASSANDRA_SERVICE_LABEL";
+	echo "   launchctl list | grep $ES_SERVICE_LABEL";
+fi
+echo "=== CLI Instructions ===";
+echo "Before to start something: export JAVA_HOME=$JAVA";
+
+CHOWNUSER="";
+if [[ "$UNAME" == 'Linux' ]]; then
+	CHOWNUSER="runuser -u nosqldb";
+fi
+
+echo "You can start Elasticsearch with:";
+echo "  $CHOWNUSER $BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/elasticsearch ";
+echo "You can install head plugin for Elasticsearch:";
+echo "  $CHOWNUSER $BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/plugin --install head";
+echo "You can start Cassandra with:";
+echo "  $CHOWNUSER $BASEPATH/$CASSANDRA_HOME_NAME/bin/cassandra";
+echo "You can start Cassandra CLI with:";
+echo "  $CHOWNUSER $BASEPATH/$CASSANDRA_HOME_NAME/bin/cassandra-cli --host localhost";
+echo "You can start Cassandra nodetool status tool with:";
+echo "  $CHOWNUSER $BASEPATH/$CASSANDRA_HOME_NAME/bin/nodetool status";
+
+echo "=== Configuration variables ===";
+echo "CPU_COUNT=$CPU_COUNT, DATA_DIR=$DATA_DIR, TEMP_DIR=$TEMP_DIR, LOG_DIR=$LOG_DIR";

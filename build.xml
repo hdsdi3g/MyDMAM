@@ -323,7 +323,6 @@ JAVA_OSX=.${basedir.jrebin.mac}/java
 		<property name="archive-cassandra" value="apache-cassandra-1.2.19" />
 		<property name="archive-es" value="elasticsearch-1.5.2" />
 
-		<!-- -->
 		<get src="${mydmam.website.url.download}/${archive-cassandra}-bin.tar.gz" dest="${dbredist}" />
 		<get src="${mydmam.website.url.download}/${archive-es}.tar.gz" dest="${dbredist}" />
 		
@@ -352,7 +351,17 @@ CASSANDRA_HOME_NAME=${archive-cassandra};
 ELASTICSEARCH_HOME_NAME=${archive-es};
 </echo>
 
-		<!--
+		<mkdir dir="archive"/>
+		<move file="${dbredist}" tofile="archive/mydmam-databases"/>
+		<mkdir dir="pack"/>
+		<property name="tardest" location="pack/mydmam-databases-${archive.jre.extractedbasename}-${archive-cassandra}-${archive-es}.tar.gz"/>
+		<tar destfile="${tardest}" basedir="archive" compression="gzip" longfile="gnu" />
+		<checksum file="${tardest}" forceOverwrite="yes" />
+		<move file="archive/mydmam-databases" tofile="${dbredist}"/>
+		<delete dir="archive"/>
+	</target>
+	
+	<!--
 		TODO DOC:
 		== Cassandra
 		 - edit log4j-server.properties (log4j.appender.R.File) and conf/cassandra.yaml
@@ -362,19 +371,7 @@ ELASTICSEARCH_HOME_NAME=${archive-es};
 		 - edit /config/elasticsearch.yml
 		 - Windows, set JAVA_HOME to jre-windows/jre1.x.0_xxx
 		 - Windows, use /bin/elasticsearch-service-x64.exe for create service
-		-->
-		
-		<!--<mkdir dir="archive"/>
-		<move file="${dbredist}" tofile="archive/mydmam-databases"/>
-		<mkdir dir="pack"/>
-		<property name="tardest" location="pack/mydmam-databases-${archive.jre.extractedbasename}-${archive-cassandra}-${archive-es}.tar.gz"/>
-		<tar destfile="${tardest}" basedir="archive" compression="gzip" longfile="gnu" />
-		<checksum file="${tardest}" forceOverwrite="yes" />
-		<move file="archive/mydmam-databases" tofile="${dbredist}"/>
-		<delete dir="archive"/>-->
-	</target>
 	
-	<!--
 	TODO add doc: it needs JDK !
 	TODO add doc: `ln -s $BASEPATH/startup/mydmam-cli.bash /bin/mydmam` + ffmpeg + IM...
 	TODO add doc: ant eclipsify + clean

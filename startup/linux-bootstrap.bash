@@ -39,9 +39,7 @@ EOF
 
 # Create Linux User
 echo "Create user and group mydmam in /var/lib/mydmam"
-addgroup --system mydmam
-adduser --system --home /var/lib/mydmam --no-create-home --group mydmam --disabled-password --disabled-login mydmam
-chown mydmam:mydmam -R /var/lib/mydmam
+adduser --system --home "$BASEPATH" --no-create-home --group mydmam mydmam
 chown mydmam:mydmam -R "$BASEPATH"
 
 # Create Service file
@@ -142,4 +140,5 @@ create_cli;
 set_logs;
 ends_setup;
 
-echo "You should start MyDMAM (service/cli) as mydmam user";
+echo "You should start MyDMAM (service/cli) as mydmam user with"
+echo "runuser -u mydmam $CLI_FILE";
