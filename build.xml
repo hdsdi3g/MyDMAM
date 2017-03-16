@@ -270,20 +270,20 @@ JAVA_OSX=.${basedir.jrebin.mac}/java
 	<target name="build" depends="makelib, makestarters, copyproject, getjreIfwindows, getjreIflinux, getjreIfmac" description="Prepare dependencies, compile, create jars, and prepare clean project">
 	</target>
 
-	<target name="pack" depends="makelib, makestarters, copyproject" description="Helper to create MyDMAM redistribuable archive without JRE">
+	<target name="pack" depends="makelib, makestarters, copyproject" description="Helper to create MyDMAM redistributable archive without JRE">
 	</target>
 	
-	<target name="pack-windows" depends="pack, getjrewindows" description="Create MyDMAM Windows redistribuable archive with JRE">
+	<target name="pack-windows" depends="pack, getjrewindows" description="Create MyDMAM Windows redistributable archive with JRE">
 		<mkdir dir="archive"/>
 		<move file="${out.dir}" tofile="archive/mydmam"/>
 		<mkdir dir="pack"/>
-		<zip destfile="pack/mydmam-windows-${gitversion}.zip" basedir="archive" description="MyDMAM Windows redistribuable ${gitversion}" />
+		<zip destfile="pack/mydmam-windows-${gitversion}.zip" basedir="archive" description="MyDMAM Windows redistributable ${gitversion}" />
 		<checksum file="pack/mydmam-windows-${gitversion}.zip" forceOverwrite="yes" />
 		<move file="archive/mydmam" tofile="${out.dir}"/>
 		<delete dir="archive"/>
 	</target>
 	
-	<target name="pack-linux" depends="pack, getjrelinux" description="Create MyDMAM Linux redistribuable archive with JRE">
+	<target name="pack-linux" depends="pack, getjrelinux" description="Create MyDMAM Linux redistributable archive with JRE">
 		<mkdir dir="archive"/>
 		<move file="${out.dir}" tofile="archive/mydmam"/>
 		<mkdir dir="pack"/>
@@ -293,7 +293,7 @@ JAVA_OSX=.${basedir.jrebin.mac}/java
 		<delete dir="archive"/>
 	</target>
 	
-	<target name="pack-mac" depends="pack, getjremac" description="Create MyDMAM macOS redistribuable archive with JRE">
+	<target name="pack-mac" depends="pack, getjremac" description="Create MyDMAM macOS redistributable archive with JRE">
 		<mkdir dir="archive"/>
 		<move file="${out.dir}" tofile="archive/mydmam"/>
 		<mkdir dir="pack"/>
@@ -316,7 +316,7 @@ JAVA_OSX=.${basedir.jrebin.mac}/java
 	</target>
 
 	
-	<target name="pack-databases" description="Create Cassandra and ElasticSearch redistribuables for MyDMAM">
+	<target name="pack-databases" description="Create Cassandra and ElasticSearch redistributables for MyDMAM">
 		<property name="dbredist" location="databaseredist"/>
 		<mkdir dir="${dbredist}"/>
 
