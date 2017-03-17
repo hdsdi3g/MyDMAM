@@ -27,19 +27,24 @@ More informations in _build.md_.
  * Switch to root rights.
  * # bash bootstrap.bash
 
-
-
 edit conf
+
+IF C* + ES > remove in cassandra.service
+LimitNOFILE=100000
+LimitMEMLOCK=infinity
+LimitNPROC=32768
+LimitAS=infinity
+
 try to start
 up services
 check up
 
+
 		TODO DOC:
 		== Cassandra
-		 - edit log4j-server.properties (log4j.appender.R.File) to /var/log/nosqldb/ and conf/cassandra.yaml
+		 - edit log4j-server.properties (log4j.appender.R.File) to /var/log/nosqldb/cassandra.log and conf/cassandra.yaml
 		 - Windows, get instructions for create service in bin/cassandra.bat (prunsrv.exe will be founded a the root directory)
 		 - Windows, set JAVA_HOME to jre-windows/jre1.x.0_xxx
-		log in /var/log/nosqldb/system.log
 		  INFO [Thread-2] 0000-00-00 00:00:00,000 ThriftServer.java (line 110) Listening for thrift clients...
 		== ES
 		 - edit /config/elasticsearch.yml
@@ -50,14 +55,15 @@ check up
 
  * You can delete unused jre (example: remove jre-macos and jre-windows directories on linux server)
  * You can delete unused database main directory (example: remove apache-cassandra directory on elasticsearch only setup).
-
++ ntp
 
 ## Configure MyDMAM
 
-bash bootstrap / windows
-
 cd startup
+Windows: goto in scripts/*.bat / *.exe
+
 bash linux-bootstrap.bash ou macos-bootstrap.bash 
+
 conf
 cli
 `ln -s $BASEPATH/startup/mydmam-cli.bash /bin/mydmam`
@@ -68,7 +74,7 @@ start service
 ## Configure external tools
 Not mantatory
 
-ffmpeg + IM + bmx
+ffmpeg + IM + bmx + ntp
 
 ## Remove C* ES
 systemctl stop elasticsearch

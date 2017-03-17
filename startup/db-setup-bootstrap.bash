@@ -56,8 +56,10 @@ if [[ "$UNAME" == 'Linux' ]]; then
     adduser --system --home "$DATA_DIR" --group nosqldb
     chown nosqldb:nosqldb -R "$LOG_DIR"
     chown nosqldb:nosqldb -R "$TEMP_DIR"
-
+    chown nosqldb:nosqldb -R "$DATA_DIR"
 fi
+
+# https://www.freedesktop.org/software/systemd/man/systemd.exec.html
 
 # Prepare service declaration files
 if [[ "$UNAME" == 'Linux' ]]; then
@@ -79,9 +81,12 @@ if [[ "$UNAME" == 'Linux' ]]; then
 		Group=nosqldb
 		# WorkingDirectory=$BASEPATH/$CASSANDRA_HOME_NAME
 		ExecStart=$BASEPATH/$CASSANDRA_HOME_NAME/bin/cassandra -p $DATA_DIR/cassandra.pid
-		StandardOutput=journal
+		StandardOutput=null
 		StandardError=journal
-		LimitNOFILE=infinity
+		LimitNOFILE=100000
+		LimitMEMLOCK=infinity
+		LimitNPROC=32768
+		LimitAS=infinity
 		SuccessExitStatus=143
 		TimeoutStopSec=30
 
@@ -116,7 +121,7 @@ if [[ "$UNAME" == 'Linux' ]]; then
 		StandardError=journal
 		SuccessExitStatus=143
 		LimitNOFILE=65535
-		#LimitMEMLOCK=infinity
+		LimitMEMLOCK=infinity
 		# Shutdown delay in seconds, before process is tried to be killed with KILL (if configured)
 		TimeoutStopSec=30
 
@@ -315,11 +320,12 @@ cat <<- EOF > $ELASTICSEARCH_CONF_FILE
 	path.data: $DATA_DIR
 	path.work: $TEMP_DIR
 	path.logs: $LOG_DIR
-	</echo>
 EOF
 
-chmod +x "$BASEPATH/$CASSANDRA_HOME_NAME/bin/*"
-chmod +x "$BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/*"
+chmod +x "$BASEPATH/$CASSANDRA_HOME_NAME/bin/"*
+chmod +x "$BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/"*
+cp "$BASEPATH/$ELASTICSEARCH_HOME_NAME/lib/jna-"*.jar "$BASEPATH/$CASSANDRA_HOME_NAME/lib/"
+export JAVA_HOME="$JAVA";
 
 echo "";
 echo "=== COMPLETED ==="
@@ -335,46 +341,40 @@ echo "Run two server for each database type is the prerequisite for a good produ
 echo "";
 echo "=== Service instructions ===";
 if [[ "$UNAME" == 'Linux' ]]; then
-	echo "Declare service:";
+	echo "Cassandra service:";
 	echo "   cp $CASSANDRA_SERVICE_FILE /usr/lib/systemd/cassandra.service";
-	echo "   cp $ES_SERVICE_FILE /usr/lib/systemd/elasticsearch.service";
-	echo "Update services status:";
 	echo "   systemctl daemon-reload";
-	echo "Activate on-boot service";
 	echo "   systemctl enable /usr/lib/systemd/cassandra.service";
-	echo "   systemctl enable /usr/lib/systemd/elasticsearch.service";
-	echo "Desactivate on-boot service";
-	echo "   systemctl disable /usr/lib/systemd/cassandra.service";
-	echo "   systemctl disable /usr/lib/systemd/elasticsearch.service";
-	echo "Start/stop";
 	echo "   systemctl start cassandra";
-	echo "   systemctl start elasticsearch";
-	echo "   systemctl stop cassandra";
-	echo "   systemctl stop elasticsearch";
-	echo "Status";
 	echo "   systemctl status cassandra";
+	echo "   systemctl stop cassandra";
+	echo "   systemctl disable /usr/lib/systemd/cassandra.service";
+	echo "Elasticsearch service";
+	echo "   cp $ES_SERVICE_FILE /usr/lib/systemd/elasticsearch.service";
+	echo "   systemctl daemon-reload";
+	echo "   systemctl enable /usr/lib/systemd/elasticsearch.service";
+	echo "   systemctl start elasticsearch";
 	echo "   systemctl status elasticsearch";
+	echo "   systemctl stop elasticsearch";
+	echo "   systemctl disable /usr/lib/systemd/elasticsearch.service";
 elif [[ "$UNAME" == 'Darwin' ]]; then
 	SETUP_SERVICE_BASE_DIR_CASSANDRA="$HOME/Library/LaunchAgents/"$(basename "$CASSANDRA_SERVICE_FILE");
 	SETUP_SERVICE_BASE_DIR_ES="$HOME/Library/LaunchAgents/"$(basename "$ES_SERVICE_FILE");
 
-	echo "Declare service:";
+	echo "Cassandra service:";
 	echo "   cp $CASSANDRA_SERVICE_FILE $SETUP_SERVICE_BASE_DIR_CASSANDRA";
-	echo "   cp $ES_SERVICE_FILE $SETUP_SERVICE_BASE_DIR_ES";
-	echo "Activate on-boot service";
 	echo "   launchctl load -w $CASSANDRA_SERVICE_FILE";
-	echo "   launchctl load -w $ES_SERVICE_FILE";
-	echo "Desactivate on-boot service";
-	echo "   launchctl unload -w $CASSANDRA_SERVICE_FILE";
-	echo "   launchctl unload -w $ES_SERVICE_FILE";
-	echo "Start/stop";
 	echo "   launchctl start $CASSANDRA_SERVICE_LABEL";
-	echo "   launchctl stop $CASSANDRA_SERVICE_LABEL";
-	echo "   launchctl start $ES_SERVICE_LABEL";
-	echo "   launchctl stop $ES_SERVICE_LABEL";
-	echo "Status";
 	echo "   launchctl list | grep $CASSANDRA_SERVICE_LABEL";
+	echo "   launchctl stop $CASSANDRA_SERVICE_LABEL";
+	echo "   launchctl unload -w $CASSANDRA_SERVICE_FILE";
+	echo "Elasticsearch service";
+	echo "   cp $ES_SERVICE_FILE $SETUP_SERVICE_BASE_DIR_ES";
+	echo "   launchctl load -w $ES_SERVICE_FILE";
+	echo "   launchctl start $ES_SERVICE_LABEL";
 	echo "   launchctl list | grep $ES_SERVICE_LABEL";
+	echo "   launchctl stop $ES_SERVICE_LABEL";
+	echo "   launchctl unload -w $ES_SERVICE_FILE";
 fi
 echo "";
 echo "=== CLI Instructions ===";

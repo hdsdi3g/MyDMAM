@@ -93,9 +93,8 @@ ends_setup () {
 	echo "";
 	echo "=== COMPLETED ==="
 	echo "Please change/check MyDMAM configuration files in $BASEPATH/conf and $BASEPATH/conf/app.d";
-	echo "You can use CLI tool $CLI_FILE and/or use"
-	echo "mydmam-service-* tool in $CURRENT_SCRIPT_DIR for operate on service."
 	echo "By default this script don't enable MyDMAM service."
+	echo "You can use mydmam-service-* tool in $CURRENT_SCRIPT_DIR for operate on service."
 	echo "After service startup, check MyDMAM status with tail -f $LOG_DIR/mydmam.log"
 	echo "";
 }

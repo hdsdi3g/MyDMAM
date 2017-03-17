@@ -141,4 +141,5 @@ set_logs;
 ends_setup;
 
 echo "You should start MyDMAM (service/cli) as mydmam user with"
-echo "runuser -u mydmam $CLI_FILE";
+echo "runuser -u mydmam $CLI_FILE [-- options]";
+echo "";
