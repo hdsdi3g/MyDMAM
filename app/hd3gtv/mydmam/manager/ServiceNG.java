@@ -175,7 +175,8 @@ public final class ServiceNG {
 			if (Play.secretKey.equals(default_password)) {
 				Loggers.Play.warn("Please set play.master_password_key in configuration !");
 			} else if (Play.secretKey.equals("change me please")) {
-				Loggers.Play.warn("Please set a random key in play.master_password_key in configuration ! If you need a good example, you can set " + default_password + " as key.");
+				Loggers.Play.warn("Please set a random key in play.master_password_key in configuration ! If you need a good example, you can set " + default_password
+						+ " as key. Unfortunally, you will need to reset passwords or delete all local accounts, even admin, after do this.");
 			}
 			
 			if (Play.mode == Mode.DEV) {

@@ -37,9 +37,12 @@ cat <<- EOF > $ENV_FILE
 	CLASSPATH=$CLASSPATH
 EOF
 
-# Create Linux User
-echo "Create user and group mydmam in /var/lib/mydmam"
-adduser --system --home "$BASEPATH" --group mydmam
+# Create Linux User if no exists
+if [ "$(cat /etc/passwd | grep mydmam | wc -w)" != "1" ]; then
+	echo "Create user and group mydmam in /var/lib/mydmam"
+	adduser --system --home "$BASEPATH" --group mydmam
+fi
+
 chown mydmam:mydmam -R "$BASEPATH"
 
 # Create Service file

@@ -96,7 +96,7 @@
 			</fileset>
 		</path>
 		
-		<javac srcdir="${mydmam.app}" destdir="${out.bin}" excludes="models react views **/*Test.java" includeantruntime="false" target="1.8">
+		<javac srcdir="${mydmam.app}" destdir="${out.bin}" excludes="models react views **/*Test.java" includeantruntime="false" target="1.8" debug="true">
 			<classpath refid="mydmam.classpath" />
 			<compilerarg value="-XDignore.symbol.file" />
 		</javac>
@@ -173,11 +173,8 @@ JAVA_OSX=.${basedir.jrebin.mac}/java
 	
 	<target name="copyproject" depends="prepare" description="Copy all mandatory Play projet items">
 		<mkdir dir="${out.dir}/app" />
-		<mkdir dir="${out.dir}/app/controllers" />
-		<mkdir dir="${out.dir}/app/models" />
-		<mkdir dir="${out.dir}/app/views" />
-		<copy todir="${out.dir}/app/views">
-			<fileset dir="app/views">
+		<copy todir="${out.dir}/app">
+			<fileset dir="app" excludes=".DS_Store desktop.ini Test.java">
 			</fileset>
 		</copy>
 

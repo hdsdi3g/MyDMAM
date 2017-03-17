@@ -64,7 +64,7 @@ Windows: goto in scripts/*.bat / *.exe
 
 bash linux-bootstrap.bash ou macos-bootstrap.bash 
 
-conf
+conf -> desactiv ply if not used
 cli
 `ln -s $BASEPATH/startup/mydmam-cli.bash /bin/mydmam`
 startup with cli

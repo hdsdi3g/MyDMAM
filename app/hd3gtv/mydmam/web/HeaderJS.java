@@ -209,8 +209,10 @@ public class HeaderJS {
 			mydmam.put("i18n", MyDMAM.getconfiguredMessages());
 			
 			return MyDMAM.gson_kit.getGsonSimple().toJson(mydmam);
-		} catch (NullPointerException | DisconnectedUser e) {
+		} catch (DisconnectedUser e) {
 			Loggers.Play.warn("User was disconnected: " + e.getMessage());
+		} catch (NullPointerException e) {
+			Loggers.Play.warn("Troubes during user request", e);
 		}
 		
 		return "null";

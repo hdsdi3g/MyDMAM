@@ -45,7 +45,7 @@ create_cli () {
 		# MyDMAM CLI script
 		set -e
 		. $ENV_FILE
-		\$JAVA -noverify -Dfile.encoding=UTF-8 -Dfile.encoding=UTF-8 -Dservice.config.path=$BASEPATH/conf/app.d -classpath \$CLASSPATH hd3gtv.mydmam.cli.MainClass $@
+		\$JAVA -noverify -Dfile.encoding=UTF-8 -Dfile.encoding=UTF-8 -Dservice.config.path=$BASEPATH/conf/app.d -classpath \$CLASSPATH hd3gtv.mydmam.cli.MainClass \$@
 	EOF
 	chmod +x "$CLI_FILE"
 }

@@ -47,6 +47,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.GitInfo;
+import hd3gtv.configuration.IGitInfo;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
@@ -176,7 +177,7 @@ public final class InstanceStatus {
 			pid = instance_raw.substring(0, instance_raw.indexOf("@"));
 			instance_name_pid = instance_name + "#" + pid + "@" + host_name;
 			
-			GitInfo git = GitInfo.getFromRoot();
+			IGitInfo git = GitInfo.getFromRoot();
 			if (git != null) {
 				app_version = git.getActualRepositoryInformation();
 			} else {
