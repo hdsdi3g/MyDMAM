@@ -22,6 +22,7 @@ resolve_jre_path () {
 	fi
 
 	echo "Try to start JVM: $JAVA"
+	chmod +x "$JAVA"
 	$JAVA -version
 }
 
@@ -66,6 +67,7 @@ set_logs () {
 		fi
 		touch "$LOG_FILE"
 		echo "Set log configuration to $LOG_FILE"
+		chown mydmam:mydmam -R "$LOG_DIR"
 		set -e
 	} || { # catch
 		set -e
@@ -88,9 +90,12 @@ create_service_tools_filenames () {
 
 # Let user to start something
 ends_setup () {
+	echo "";
 	echo "=== COMPLETED ==="
 	echo "Please change/check MyDMAM configuration files in $BASEPATH/conf and $BASEPATH/conf/app.d";
-	echo "You can use CLI tool $CLI_FILE and/or use mydmam-service-* tool in $CURRENT_SCRIPT_DIR for operate on service."
-	echo "By default this script don't enable MyDMAM service"
+	echo "You can use CLI tool $CLI_FILE and/or use"
+	echo "mydmam-service-* tool in $CURRENT_SCRIPT_DIR for operate on service."
+	echo "By default this script don't enable MyDMAM service."
 	echo "After service startup, check MyDMAM status with tail -f $LOG_DIR/mydmam.log"
+	echo "";
 }

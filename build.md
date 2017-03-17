@@ -37,4 +37,6 @@ Don't forget to read _setup.md_ instructions for prepare the MyDMAM run.
  * **makestarters** Prepare Windows/OSX/Linux starters.
  * **preparewinrun4j** Make _WinRun4j_ executable for the MyDMAM look **run only for Windows**.
 
+Pack-* targets make archives in /pack directory.
+
 For download separate JARs you can to [dependencies list page](http://mydmam.org/dwl/lib/list.php). 

@@ -39,7 +39,7 @@ EOF
 
 # Create Linux User
 echo "Create user and group mydmam in /var/lib/mydmam"
-adduser --system --home "$BASEPATH" --no-create-home --group mydmam mydmam
+adduser --system --home "$BASEPATH" --group mydmam
 chown mydmam:mydmam -R "$BASEPATH"
 
 # Create Service file
@@ -55,13 +55,13 @@ cat <<- EOF > $SERVICE_FILE
 
 	[Service]
 	EnvironmentFile=$ENV_FILE
+	WorkingDirectory=$BASEPATH
 	ExecStart=\$\{JAVA\} -noverify -server -Dfile.encoding=UTF-8 -Dservice.config.path=$BASEPATH/conf/app.d -classpath \$\{CLASSPATH\} hd3gtv.mydmam.MainClass
 	SuccessExitStatus=143
 	User=mydmam
 	Group=mydmam
 	StandardOutput=journal
 	StandardError=journal
-	SuccessExitStatus=143
 	TimeoutStopSec=30
 
 	[Install]

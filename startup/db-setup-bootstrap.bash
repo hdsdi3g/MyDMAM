@@ -31,7 +31,9 @@ if [[ "$UNAME" == 'Darwin' ]]; then
 elif [[ "$UNAME" == 'Linux' ]]; then
 	JAVA=$(realpath "$JAVA_LINUX");
 fi
-echo "Test Java JRE: $JAVA"
+
+echo "Test Java JRE in $JAVA/bin/java"
+chmod +x "$JAVA/bin/java"
 "$JAVA/bin/java" -version
 
 # Set working directories
@@ -50,11 +52,11 @@ mkdir -p "$TEMP_DIR"
 mkdir -p "$DATA_DIR"
 
 if [[ "$UNAME" == 'Linux' ]]; then
-	echo "Create user and group nosqldb in /opt/nosqldb"
-    adduser --system --home "$DATA_DIR" --no-create-home --group nosqldb nosqldb
+	echo "Create user and group nosqldb"
+    adduser --system --home "$DATA_DIR" --group nosqldb
     chown nosqldb:nosqldb -R "$LOG_DIR"
     chown nosqldb:nosqldb -R "$TEMP_DIR"
-    chown nosqldb:nosqldb -R "$DATA_DIR"
+
 fi
 
 # Prepare service declaration files
@@ -72,10 +74,11 @@ if [[ "$UNAME" == 'Linux' ]]; then
 		[Service]
 		Environment=JAVA_HOME=$JAVA
 		Type=forking
-		PIDFile=$BASEPATH/cassandra.pid
+		PIDFile=$DATA_DIR/cassandra.pid
 		User=nosqldb
 		Group=nosqldb
-		ExecStart=$BASEPATH/$CASSANDRA_HOME_NAME/bin/cassandra -p $BASEPATH/cassandra.pid
+		# WorkingDirectory=$BASEPATH/$CASSANDRA_HOME_NAME
+		ExecStart=$BASEPATH/$CASSANDRA_HOME_NAME/bin/cassandra -p $DATA_DIR/cassandra.pid
 		StandardOutput=journal
 		StandardError=journal
 		LimitNOFILE=infinity
@@ -105,9 +108,9 @@ if [[ "$UNAME" == 'Linux' ]]; then
 		Environment=DATA_DIR=$DATA_DIR
 		Environment=LOG_DIR=$LOG_DIR
 		Environment=PID_DIR=$DATA_DIR
-		#EnvironmentFile=-/etc/default/elasticsearch
 		User=nosqldb
 		Group=nosqldb
+		WorkingDirectory=$BASEPATH/$ELASTICSEARCH_HOME_NAME
 		ExecStart=$BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/elasticsearch -Des.pidfile=$DATA_DIR/elasticsearch.pid -Des.default.path.home=$BASEPATH/$ELASTICSEARCH_HOME_NAME -Des.default.path.logs=$LOG_DIR -Des.default.path.data=$DATA_DIR -Des.default.config=$CONF_FILE -Des.default.path.conf=$BASEPATH/$ELASTICSEARCH_HOME_NAME/config/elasticsearch.yml
 		StandardOutput=null
 		StandardError=journal
@@ -192,11 +195,11 @@ elif [[ "$UNAME" == 'Darwin' ]]; then
 fi
 
 # Default values = CPU NUM * 16
-CASSANDRA_CONCURENT=$((16 * "$CPU_COUNT"));
+CASSANDRA_CONCURENT=$((16 * $CPU_COUNT));
 
 # Backup actual configuration
 CASSANDRA_CONF_FILE=$BASEPATH/$CASSANDRA_HOME_NAME/conf/cassandra.yaml
-ELASTICSEARCH_CONF_FILE=$BASEPATH/$ELASTICSEARCH_HOME_NAME/config/elasticsearch.yaml
+ELASTICSEARCH_CONF_FILE=$BASEPATH/$ELASTICSEARCH_HOME_NAME/config/elasticsearch.yml
 
 mv "$CASSANDRA_CONF_FILE" "$CASSANDRA_CONF_FILE.original"
 mv "$ELASTICSEARCH_CONF_FILE" "$ELASTICSEARCH_CONF_FILE.original"
@@ -315,13 +318,17 @@ cat <<- EOF > $ELASTICSEARCH_CONF_FILE
 	</echo>
 EOF
 
+chmod +x "$BASEPATH/$CASSANDRA_HOME_NAME/bin/*"
+chmod +x "$BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/*"
+
+echo "";
 echo "=== COMPLETED ==="
 echo "By default this script don't enable Cassandra or Elasticsearch services"
 echo "Please check Cassandra and/or Elasticsearch configuration files before start:";
 echo " - $CASSANDRA_CONF_FILE";
 echo " - $ELASTICSEARCH_CONF_FILE";
 echo "If you needs to use java or Cassandra ou Elasticsearch CLI tools on this shell,";
-echo "you should add in you .bashrc/.profile: JAVA_HOME=$JAVA";
+echo "you should add in you .bashrc/.profile: export JAVA_HOME=$JAVA";
 echo "";
 echo "Run Cassandra and Elasticsearch in the same server only for testing pupose.";
 echo "Run two server for each database type is the prerequisite for a good production setup.";
@@ -329,7 +336,7 @@ echo "";
 echo "=== Service instructions ===";
 if [[ "$UNAME" == 'Linux' ]]; then
 	echo "Declare service:";
-	echo "   cp $CASSANDRA_SERVICE_FILE /usr/lib/systemd/.service";
+	echo "   cp $CASSANDRA_SERVICE_FILE /usr/lib/systemd/cassandra.service";
 	echo "   cp $ES_SERVICE_FILE /usr/lib/systemd/elasticsearch.service";
 	echo "Update services status:";
 	echo "   systemctl daemon-reload";
@@ -369,24 +376,29 @@ elif [[ "$UNAME" == 'Darwin' ]]; then
 	echo "   launchctl list | grep $CASSANDRA_SERVICE_LABEL";
 	echo "   launchctl list | grep $ES_SERVICE_LABEL";
 fi
+echo "";
 echo "=== CLI Instructions ===";
 echo "Before to start something: export JAVA_HOME=$JAVA";
 
 CHOWNUSER="";
+CHOWNSPACE="";
 if [[ "$UNAME" == 'Linux' ]]; then
 	CHOWNUSER="runuser -u nosqldb";
+	CHOWNSPACE="--";
 fi
 
 echo "You can start Elasticsearch with:";
-echo "  $CHOWNUSER $BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/elasticsearch ";
+echo "  $CHOWNUSER $BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/elasticsearch";
 echo "You can install head plugin for Elasticsearch:";
-echo "  $CHOWNUSER $BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/plugin --install head";
+echo "  $BASEPATH/$ELASTICSEARCH_HOME_NAME/bin/plugin --install mobz/elasticsearch-head";
 echo "You can start Cassandra with:";
 echo "  $CHOWNUSER $BASEPATH/$CASSANDRA_HOME_NAME/bin/cassandra";
 echo "You can start Cassandra CLI with:";
-echo "  $CHOWNUSER $BASEPATH/$CASSANDRA_HOME_NAME/bin/cassandra-cli --host localhost";
+echo "  $CHOWNUSER $BASEPATH/$CASSANDRA_HOME_NAME/bin/cassandra-cli $CHOWNSPACE --host localhost";
 echo "You can start Cassandra nodetool status tool with:";
-echo "  $CHOWNUSER $BASEPATH/$CASSANDRA_HOME_NAME/bin/nodetool status";
+echo "  $CHOWNUSER $BASEPATH/$CASSANDRA_HOME_NAME/bin/nodetool $CHOWNSPACE status";
 
+echo "";
 echo "=== Configuration variables ===";
 echo "CPU_COUNT=$CPU_COUNT, DATA_DIR=$DATA_DIR, TEMP_DIR=$TEMP_DIR, LOG_DIR=$LOG_DIR";
+echo "";
