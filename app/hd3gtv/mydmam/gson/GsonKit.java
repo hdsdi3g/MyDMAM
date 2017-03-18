@@ -51,8 +51,6 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
 
-import controllers.asyncjs.demo.Comment;
-import controllers.asyncjs.demo.CommentList;
 import hd3gtv.archivecircleapi.ACFileLocations;
 import hd3gtv.archivecircleapi.ACNodesEntry;
 import hd3gtv.archivecircleapi.ACPartition;
@@ -479,15 +477,6 @@ public class GsonKit {
 		gson_full_serializator.add(new De_Serializator(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer()));
 		gson_full_serializator.add(new De_Serializator(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer()));
 		gson_full_serializator.add(new De_Serializator(AsyncStatRequest.class, new AsyncStatRequest.Deserializer()));
-		gson_full_serializator.add(new De_Serializator(CommentList.class, new JsonSerializer<CommentList>() {
-			public JsonElement serialize(CommentList src, Type typeOfSrc, JsonSerializationContext context) {
-				JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
-				result.add("commentlist", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.commentlist, new TypeToken<ArrayList<Comment>>() {
-				}.getType()));
-				result.addProperty("hey", "ohoh");
-				return result;
-			}
-		}));
 		
 		gson_full_serializator.add(new De_Serializator(UserView.class, new UserView.Serializer()));
 		gson_full_serializator.add(new De_Serializator(UserViewList.class, new UserViewList.Serializer()));

@@ -41,6 +41,7 @@
 	<target name="getgitversion" depends="prepare" description="Get git last commit hash">
 		<exec executable="git" outputproperty="gitversion">
 			<arg value="describe" />
+            <arg value="--always" />
 		</exec>
 		<echo>Git version: ${gitversion}</echo>
 	</target>
@@ -171,13 +172,27 @@ JAVA_OSX=.${basedir.jrebin.mac}/java
 		<delete file="${mydmam.startup}/RCEDIT64.exe"/>
 	</target>
 	
-	<target name="copyproject" depends="prepare" description="Copy all mandatory Play projet items">
+	<target name="copyproject" depends="prepare, getgitversion" description="Copy all mandatory Play projet items">
 		<mkdir dir="${out.dir}/app" />
-		<copy todir="${out.dir}/app">
-			<fileset dir="app" excludes=".DS_Store desktop.ini Test.java">
+		<mkdir dir="${out.dir}/app/controllers" />
+		<mkdir dir="${out.dir}/app/models" />
+		<mkdir dir="${out.dir}/app/views" />
+
+		<copy todir="${out.dir}/app/controllers">
+			<fileset dir="app/controllers" includes="*.java" excludes="Test.java">
 			</fileset>
 		</copy>
-
+		<copy todir="${out.dir}/app/models">
+			<fileset dir="app/models" includes="**/*.java" excludes="Test.java">
+			</fileset>
+		</copy>
+		<copy todir="${out.dir}/app/views">
+			<fileset dir="app/views" includes="**/*.htm **/*.html **/*.tag">
+			</fileset>
+		</copy>
+		
+		<echo file="${out.dir}/version" append="false" force="true">${gitversion}</echo>
+		
 		<copy todir="${out.conf}">
 			<fileset dir="conf">
 				<exclude name="app.d/" />

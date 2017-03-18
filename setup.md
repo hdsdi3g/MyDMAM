@@ -8,17 +8,6 @@ Don't forget to read best setup practices before start MyDMAM in production. > s
 
 TODO security (FW / auth / pws / access control) > site
 
-## Build MyDMAM
-
-More informations in _build.md_.
-
- * Install Apache ant
- * Install a Java JDK 8
- * Install git
- * Git clone from GitHub: https://github.com/hdsdi3g/MyDMAM.git
- * ant build
- * ant pack-databases
-
 ## Configure Databases
 
  * Unpack mydmam-databases archive **tar xvfz mydmam-databases**... or with 7zip.
@@ -70,11 +59,25 @@ cli
 startup with cli
 set service
 start service
+(wait for play start...)
 
 ## Configure external tools
 Not mantatory
 
 ffmpeg + IM + bmx + ntp
+
+## Build and configure MyDMAM
+
+In the case if you want build yourself a MyDMAM.
+
+More informations in _build.md_.
+
+ * Install Apache ant
+ * Install a Java JDK 8
+ * Install git
+ * Git clone from GitHub: https://github.com/hdsdi3g/MyDMAM.git
+ * ant build
+ * ant pack-databases
 
 ## Remove C* ES
 systemctl stop elasticsearch

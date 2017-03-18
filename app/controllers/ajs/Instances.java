@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import controllers.Check;
 import controllers.Secure;
 import hd3gtv.configuration.GitInfo;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.status.ElasticsearchStatus;
 import hd3gtv.mydmam.manager.AppManager;
@@ -38,10 +39,14 @@ public class Instances extends AJSController {
 	/*private static Type hm_StringJob_typeOfT = new TypeToken<HashMap<String, JobNG>>() {
 	}.getType();*/
 	
-	private static final InstanceStatus current;
+	private static InstanceStatus current;
 	
 	static {
-		current = new AppManager().getInstanceStatus();
+		try {
+			current = new AppManager().getInstanceStatus();
+		} catch (Exception e) {
+			Loggers.Play.error("Can't load Instance Status", e);
+		}
 		
 		/*AJSController.registerTypeAdapter(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
 			public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {

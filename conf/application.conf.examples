@@ -8,6 +8,7 @@ application.name=mydmam
 # Otherwise set to prod.
 application.mode=dev
 %prod.application.mode=prod
+http.exposePlayServer=false
 
 # Secret key
 # ~~~~~

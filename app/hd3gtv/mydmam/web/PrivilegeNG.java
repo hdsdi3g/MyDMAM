@@ -22,8 +22,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.gson.JsonArray;
@@ -33,6 +36,7 @@ import com.google.gson.JsonPrimitive;
 import controllers.Check;
 import controllers.Secure;
 import hd3gtv.mydmam.Loggers;
+import play.Play;
 import play.mvc.Controller;
 import play.mvc.With;
 import play.vfs.VirtualFile;
@@ -50,7 +54,7 @@ public class PrivilegeNG {
 		/**
 		 * Get all class files from all PLAY_CONTROLLERS_PATH directory, module by module.
 		 */
-		List<VirtualFileModule> main_dirs = AJSController.getAllfromRelativePath(PLAY_CONTROLLERS_PATH, true, true);
+		List<VirtualFileModule> main_dirs = getAllfromRelativePath(PLAY_CONTROLLERS_PATH, true, true);
 		List<VirtualFile> class_vfiles = new ArrayList<VirtualFile>();
 		for (int pos = 0; pos < main_dirs.size(); pos++) {
 			class_vfiles.addAll(main_dirs.get(pos).getVfile().list());
@@ -134,6 +138,47 @@ public class PrivilegeNG {
 		
 	}
 	
+	/**
+	 * Get all items named and on this path, from all modules, and not only the first.
+	 */
+	private static List<VirtualFileModule> getAllfromRelativePath(String path, boolean must_exists, boolean must_directory) {
+		List<VirtualFileModule> file_list = new ArrayList<VirtualFileModule>();
+		
+		LinkedHashMap<VirtualFile, String> path_modules = new LinkedHashMap<VirtualFile, String>();
+		for (VirtualFile vfile : Play.roots) {
+			/**
+			 * 1st pass : add all paths (main and modules).
+			 */
+			path_modules.put(vfile, "internal");
+		}
+		for (Map.Entry<String, VirtualFile> entry : Play.modules.entrySet()) {
+			/**
+			 * 2nd pass : overload enties with modules names.
+			 */
+			path_modules.put(entry.getValue(), entry.getKey());
+		}
+		
+		VirtualFile child;
+		for (Map.Entry<VirtualFile, String> entry : path_modules.entrySet()) {
+			child = entry.getKey().child(path);
+			if (must_exists & (child.exists() == false)) {
+				continue;
+			}
+			if (must_directory & (child.isDirectory() == false)) {
+				continue;
+			}
+			file_list.add(new VirtualFileModule(child, entry.getValue()));
+		}
+		
+		Collections.sort(file_list, new Comparator<VirtualFileModule>() {
+			public int compare(VirtualFileModule o1, VirtualFileModule o2) {
+				return o1.getVfile().getName().compareToIgnoreCase(o2.getVfile().getName());
+			}
+		});
+		
+		return file_list;
+	}
+	
 	static PrivilegeNG createAndGetPrivilege(String privilege_name) {
 		if (all_privileges.containsKey(privilege_name)) {
 			return all_privileges.get(privilege_name);
@@ -207,6 +252,51 @@ public class PrivilegeNG {
 	
 	public static Set<String> getAllPrivilegesName() {
 		return all_privileges.keySet();
+	}
+	
+	private static class VirtualFileModule {
+		
+		private VirtualFile vfile;
+		// private String module_name;
+		
+		VirtualFileModule(VirtualFile vfile, String module_name) {
+			this.vfile = vfile;
+			if (vfile == null) {
+				throw new NullPointerException("\"vfile\" can't to be null");
+			}
+			// this.module_name = module_name;
+			if (module_name == null) {
+				throw new NullPointerException("\"module_name\" can't to be null");
+			}
+		}
+		
+		/*String getModule_name() {
+			return module_name;
+		}*/
+		
+		VirtualFile getVfile() {
+			return vfile;
+		}
+		
+		@Override
+		public boolean equals(Object other) {
+			if (other instanceof VirtualFileModule) {
+				VirtualFileModule vf = (VirtualFileModule) other;
+				if (vfile != null && vf.vfile != null) {
+					return vfile.equals(vf.vfile);
+				}
+			}
+			return super.equals(other);
+		}
+		
+		@Override
+		public int hashCode() {
+			if (vfile != null) {
+				return vfile.hashCode();
+			}
+			return super.hashCode();
+		}
+		
 	}
 	
 }

@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Optional;
 
+import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
@@ -57,30 +58,30 @@ public class GitInfo implements IGitInfo {
 		}
 	}
 	
-	public String getBranch() {
-		return branch;
-	}
-	
-	public String getCommit() {
-		return commit;
-	}
-	
 	public String getActualRepositoryInformation() {
 		return branch + " " + commit;
 	}
 	
 	private static class NoGit implements IGitInfo {
 		
-		public String getBranch() {
+		public String getActualRepositoryInformation() {
 			return "unknown";
 		}
+	}
+	
+	private static class Release implements IGitInfo {
 		
-		public String getCommit() {
-			return "xxxxxxxx";
+		private String content;
+		
+		/**
+		 * @param version => v0.18-78-g316c9be (from git describe --always)
+		 */
+		public Release(File version) throws IOException {
+			content = FileUtils.readFileToString(version, MyDMAM.UTF8).trim();
 		}
 		
 		public String getActualRepositoryInformation() {
-			return getBranch() + " " + getCommit();
+			return content;
 		}
 	}
 	
@@ -119,8 +120,18 @@ public class GitInfo implements IGitInfo {
 				if (o_git.isPresent()) {
 					git = o_git.get();
 				} else {
-					Loggers.Manager.debug("Can't found git repository");
-					git = new NoGit();
+					File version = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY + File.separator + "version");
+					if (version.exists()) {
+						try {
+							git = new Release(version);
+						} catch (IOException e) {
+							Loggers.Manager.warn("Can't open " + version + " file", e);
+							git = new NoGit();
+						}
+					} else {
+						Loggers.Manager.debug("Can't found git repository");
+						git = new NoGit();
+					}
 				}
 			}
 		}

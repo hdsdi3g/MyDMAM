@@ -18,10 +18,6 @@ package hd3gtv.configuration;
 
 public interface IGitInfo {
 	
-	String getBranch();
-	
-	String getCommit();
-	
 	String getActualRepositoryInformation();
 	
 }

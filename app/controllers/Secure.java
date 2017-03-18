@@ -20,6 +20,8 @@ import play.i18n.Lang;
 import play.libs.Crypto;
 import play.mvc.Before;
 import play.mvc.Controller;
+import play.mvc.Http.Request;
+import play.mvc.Scope.Session;
 
 /**
  * Imported from Play Secure Module
@@ -40,7 +42,7 @@ public class Secure extends Controller {
 			return privileges;
 		}
 		
-		session.clear();
+		Session.current().clear();
 		
 		throw new DisconnectedUser(username);
 	}
@@ -141,7 +143,7 @@ public class Secure extends Controller {
 	 * @return null, if no user
 	 */
 	public static String connected() {
-		String raw_user = session.get("username");
+		String raw_user = Session.current().get("username");
 		if (raw_user == null) {
 			return null;
 		}
@@ -153,7 +155,7 @@ public class Secure extends Controller {
 	 * @return true if the user is connected
 	 */
 	public static boolean isConnected() {
-		return session.contains("username");
+		return Session.current().contains("username");
 	}
 	
 	/*
@@ -229,7 +231,7 @@ public class Secure extends Controller {
 		
 		AccessControl.releaseIP(remote_address);
 		
-		session.put("username", Crypto.encryptAES(username));
+		Session.current().put("username", Crypto.encryptAES(username));
 		
 		Cache.set("user:" + username + ":privileges", authuser.getUser_groups_roles_privileges(), Bootstrap.getSessionTTL());
 		
@@ -249,7 +251,7 @@ public class Secure extends Controller {
 			if (username != null) {
 				Cache.delete("user:" + username + ":privileges");
 			}
-			session.clear();
+			Session.current().clear();
 			
 			UserNG user = Bootstrap.getAuth().getByUserKey(username);
 			if (user == null) {
@@ -274,14 +276,14 @@ public class Secure extends Controller {
 	 * @return public addr/host name/"loopback"
 	 */
 	public static String getRequestAddress() {
-		if (Controller.request.isLoopback == false) {
+		if (Request.current().isLoopback == false) {
 			try {
-				if (InetAddress.getByName(Controller.request.remoteAddress).isLoopbackAddress()) {
+				if (InetAddress.getByName(Request.current().remoteAddress).isLoopbackAddress()) {
 					return "loopback";
 				}
 			} catch (UnknownHostException e) {
 			}
-			return Controller.request.remoteAddress;
+			return Request.current().remoteAddress;
 		} else {
 			return "loopback";
 		}

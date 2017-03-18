@@ -17,17 +17,24 @@
 package hd3gtv.mydmam.factory;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.common.collect.Lists;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.reflect.ClassPath;
+import com.google.common.reflect.ClassPath.ClassInfo;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.CopyMove;
@@ -195,7 +202,26 @@ public class Factory {
 				throw new ClassNotFoundException("\"context\" can't to be a static class");
 			}
 		}
-		
+	}
+	
+	public List<Class<?>> getAllClassesFromPackage(String package_name) throws ClassNotFoundException {
+		try {
+			ClassPath cp = ClassPath.from(ClassLoader.getSystemClassLoader());
+			ImmutableSet<ClassInfo> packg = cp.getTopLevelClasses(package_name);
+			return packg.stream().map(cl -> {
+				try {
+					return Class.forName(cl.getName());
+				} catch (Exception e) {
+					Loggers.Manager.error("Can't load class " + cl.getName(), e);
+					return null;
+				}
+			}).filter(cl -> {
+				return cl != null;
+			}).collect(Collectors.toList());
+		} catch (IOException e) {
+			throw new ClassNotFoundException("Can't search in classpath", e);
+		}
+		// return Lists.newArrayList(Auth.class);
 	}
 	
 }

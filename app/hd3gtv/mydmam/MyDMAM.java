@@ -55,9 +55,20 @@ public class MyDMAM {
 	
 	public static final Charset UTF8 = Charset.forName("UTF-8");
 	
-	public static final GsonKit gson_kit = new GsonKit();
-	
 	public static final Factory factory = new Factory();
+	
+	/**
+	 * Search application.conf in classpath, and return the /mydmam main directory.
+	 */
+	public static final File APP_ROOT_PLAY_DIRECTORY;
+	public static final File APP_ROOT_PLAY_CONF_DIRECTORY;
+	
+	static {
+		APP_ROOT_PLAY_DIRECTORY = getMyDMAMRootPlayDirectory();
+		APP_ROOT_PLAY_CONF_DIRECTORY = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getPath() + File.separator + "conf");
+	}
+	
+	public static final GsonKit gson_kit = new GsonKit();
 	
 	/**
 	 * @param filename without path
@@ -149,17 +160,6 @@ public class MyDMAM {
 			}
 		}
 		return configured_messages;
-	}
-	
-	/**
-	 * Search application.conf in classpath, and return the /mydmam main directory.
-	 */
-	public static final File APP_ROOT_PLAY_DIRECTORY;
-	public static final File APP_ROOT_PLAY_CONF_DIRECTORY;
-	
-	static {
-		APP_ROOT_PLAY_DIRECTORY = getMyDMAMRootPlayDirectory();
-		APP_ROOT_PLAY_CONF_DIRECTORY = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getPath() + File.separator + "conf");
 	}
 	
 	private static File getMyDMAMRootPlayDirectory() {
