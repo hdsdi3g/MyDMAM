@@ -11,7 +11,7 @@ After unpack MyDMAM archive or do an `ant build`:
 * `bash linux-bootstrap.bash` OR `macos-bootstrap.bash`
 * If this instance not needs a HTTP Server (web interface), remove  `/conf/app.d/play.yml`
 * Check configuration files in `/conf/app.d`, setup databases addresses, master password key, your mail... Only `.yml` files are loaded. Do not use tabulations in this files.
-* Test a startup with cli, like the script tell you to do.
+* Test a startup with cli, like the script tell you to do. For Linux: `runuser -u mydmam /opt/mydmam/startup/mydmam-cli.bash [-- parameters]`
 * For Linux, you can setup cli in /bin directory for get in in path `ln -s (here)/startup/mydmam-cli.bash /bin/mydmam`
 * Activate service (see .bash files) and start it.
 * Keep an eye to logs. Log file are declared in `/conf/log4j.xml', and only this file (it's target to /var/log/mydmam/mydmam.log by default).
@@ -19,6 +19,18 @@ After unpack MyDMAM archive or do an `ant build`:
 * Then pickup the auto-generated new admin password in `mydmam/play-new-password.txt`, goto to `http://(mydman-server-addr):9001/` and logon.
 
 You should setup NTP time synchronization.
+
+### Linux, FTP server and port restriction
+
+FTP Server can't run in non-root user and listen on TCP ports 20 and 21.
+
+So:
+ * You can run it on root (just remove user and group from service), but it's not a good idea.
+ * Or set a firewall rule. Add `ExecStartPre=bash /opt/mydmam/startup/firewall-ftp.bash` in service setup.
+
+By default, FTP Server configuration listen on TCP/5020 and 5021.
+
+On macOS and Windows, just set in ftpserver.yml configuration `listen` and `active` to 21 and 20.
 
 ## Configure external tools
 

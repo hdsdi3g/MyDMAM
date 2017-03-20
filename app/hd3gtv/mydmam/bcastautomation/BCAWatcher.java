@@ -49,10 +49,12 @@ public class BCAWatcher implements InstanceStatusItem {
 	private HashMap<String, ConfigurationItem> import_other_properties_configuration = null;
 	
 	public BCAWatcher(AppManager manager) throws ReflectiveOperationException, IOException, ConnectionException {
-		if (Configuration.global.isElementExists("broadcast_automation") == false) {
+		try {
+			engine = getEngine();
+		} catch (NullPointerException e) {
+			Loggers.BroadcastAutomation.debug("BCA is disabled: " + e.getMessage());
 			return;
 		}
-		engine = getEngine();
 		
 		sleep_time = Configuration.global.getValue("broadcast_automation", "sleep_time", 1000);
 		max_retention_duration = TimeUnit.HOURS.toMillis(Configuration.global.getValue("broadcast_automation", "max_retention_duration", 24));

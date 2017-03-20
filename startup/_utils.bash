@@ -53,8 +53,9 @@ create_cli () {
 # Prepare log configuration
 # Set       $LOG_FILE and $LOG_DIR
 set_logs () {
-	rm -f "$BASEPATH/conf/log4j.xml"
-	cp "$BASEPATH/conf/log4j-prod-linux.xml" "$BASEPATH/conf/log4j.xml"
+	if [ ! -f "$BASEPATH/conf/log4j.xml" ]; then
+		cp "$BASEPATH/conf/log4j-prod-linux.xml" "$BASEPATH/conf/log4j.xml"
+	fi
 
 	LOG_FILE=$(cat "$BASEPATH/conf/log4j.xml" | grep param | grep log | grep File | cut -d "\"" -f 4);
 

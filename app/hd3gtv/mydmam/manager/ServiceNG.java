@@ -216,8 +216,12 @@ public final class ServiceNG {
 		}
 		
 		if (enable_background_services) {
-			wf_trancoder.stopAllWatchFolders();
-			bca_watcher.stop();
+			if (wf_trancoder != null) {
+				wf_trancoder.stopAllWatchFolders();
+			}
+			if (bca_watcher != null) {
+				bca_watcher.stop();
+			}
 		}
 	}
 	

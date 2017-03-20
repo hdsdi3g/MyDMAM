@@ -132,20 +132,15 @@ public class Factory {
 				return c.isAccessible() && c.getParameterCount() == 0 && c.isVarArgs() == false;
 			}).findFirst();
 			
-			try {
-				if (o_result.isPresent() == false) {
-					throw new ClassNotFoundException(cl.getName());
-				}
-			} catch (ClassNotFoundException e) {
-				Loggers.Manager.error("Class " + cl.getName() + " can't be instancied directly", e);
-				return null;
+			if (o_result.isPresent()) {
+				return o_result.get();
 			}
 			
-			return o_result.get();
+			return null;
 		});
 		
 		if (constructor == null) {
-			throw new ReflectiveOperationException("Can't found an available constructor for " + from_class.getName());
+			return from_class.newInstance();
 		}
 		
 		@SuppressWarnings("unchecked")

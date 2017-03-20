@@ -8,3 +8,4 @@
 #234  Add key "java.source=1.8" in application.conf
 #234  Remove keys "db.url" and "db.driver" in application.conf
 #234  Java specific "unlimited" JCE setup are not mandatory now.
+Remove web client cookies after upgrade
