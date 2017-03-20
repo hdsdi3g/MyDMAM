@@ -37,6 +37,8 @@ public class CliModuleAuth implements CliModule {
 			System.out.println("New password for admin account: " + new_password);
 			return;
 		}
+		
+		showFullCliModuleHelp();
 	}
 	
 	public void showFullCliModuleHelp() {

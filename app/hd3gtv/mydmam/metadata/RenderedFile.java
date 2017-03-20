@@ -508,7 +508,7 @@ public class RenderedFile {
 		result.rendered_file = Storage.getLocalFile(sourcepathindexerelement);
 		
 		if (result.rendered_file == null) {
-			throw new NullPointerException("Find storage bridge in configuration");
+			throw new IOException("Can't find storage bridge for " + sourcepathindexerelement.storagename + " in configuration");
 		}
 		if (result.rendered_file.exists() == false) {
 			throw new FileNotFoundException("Can't found rendered file " + result.rendered_file.getPath());

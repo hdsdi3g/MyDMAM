@@ -35,7 +35,6 @@ import org.apache.ftpserver.ftplet.Ftplet;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 
-import ext.StartPlayNoLazyLoad;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
@@ -52,6 +51,7 @@ import hd3gtv.mydmam.metadata.WorkerIndexer;
 import hd3gtv.mydmam.pathindexing.PathScan;
 import hd3gtv.mydmam.transcode.TranscoderWorker;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderTranscoder;
+import hd3gtv.mydmam.web.StartPlayNoLazyLoad;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.CopyMove;
 import play.Play;
@@ -178,6 +178,8 @@ public final class ServiceNG {
 				Loggers.Play.warn("Please set a random key in play.master_password_key in configuration ! If you need a good example, you can set " + default_password
 						+ " as key. Unfortunally, you will need to reset passwords or delete all local accounts, even admin, after do this.");
 			}
+			
+			MyDMAM.getPlayBootstrapper();
 			
 			if (Play.mode == Mode.DEV) {
 				/**

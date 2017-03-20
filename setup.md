@@ -14,7 +14,7 @@ After unpack MyDMAM archive or do an `ant build`:
 * Test a startup with cli, like the script tell you to do.
 * For Linux, you can setup cli in /bin directory for get in in path `ln -s (here)/startup/mydmam-cli.bash /bin/mydmam`
 * Activate service (see .bash files) and start it.
-* Keep an eye to logs. Log file are declared in `/conf/log4j.xml', and only this file.
+* Keep an eye to logs. Log file are declared in `/conf/log4j.xml', and only this file (it's target to /var/log/mydmam/mydmam.log by default).
 * For web interface, Play Server needs some seconds to start, so wait for it.
 * Then pickup the auto-generated new admin password in `mydmam/play-new-password.txt`, goto to `http://(mydman-server-addr):9001/` and logon.
 

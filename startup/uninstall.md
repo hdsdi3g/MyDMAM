@@ -29,4 +29,5 @@ systemctl disable /usr/lib/systemd/mydmam.service
 deluser mydmam
 rm -rf  /var/log/mydmam/
 rm -rf /opt/mydmam
+rm -f /bin/mydmam
 ```

@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.Map;
 
 import controllers.Secure;
-import ext.Bootstrap;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.UserNG;
@@ -129,7 +128,7 @@ public class AJSController {
 		if (Secure.isConnected() == false) {
 			throw new NullPointerException("No session user");
 		}
-		return Bootstrap.getAuth().getByUserKey(Secure.connected());
+		return MyDMAM.getPlayBootstrapper().getAuth().getByUserKey(Secure.connected());
 	}
 	
 	@AJSIgnore

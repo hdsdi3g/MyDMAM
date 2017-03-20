@@ -8,8 +8,8 @@ import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.List;
 
-import ext.Bootstrap;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.accesscontrol.AccessControl;
 import hd3gtv.mydmam.auth.UserNG;
 import hd3gtv.mydmam.web.DisconnectedUser;
@@ -38,7 +38,7 @@ public class Secure extends Controller {
 		HashSet<String> privileges = Cache.get("user:" + username + ":privileges", HashSet.class);
 		
 		if (privileges != null) {
-			Cache.set("user:" + username + ":privileges", privileges, Bootstrap.getSessionTTL());
+			Cache.set("user:" + username + ":privileges", privileges, MyDMAM.getPlayBootstrapper().getSessionTTL());
 			return privileges;
 		}
 		
@@ -181,8 +181,8 @@ public class Secure extends Controller {
 	}
 	
 	public static void login() {
-		boolean force_select_domain = Bootstrap.getAuth().isForceSelectDomain();
-		List<String> authenticators_domains = Bootstrap.getAuth().getDeclaredDomainList();
+		boolean force_select_domain = MyDMAM.getPlayBootstrapper().getAuth().isForceSelectDomain();
+		List<String> authenticators_domains = MyDMAM.getPlayBootstrapper().getAuth().getDeclaredDomainList();
 		
 		render(force_select_domain, authenticators_domains);
 	}
@@ -209,16 +209,16 @@ public class Secure extends Controller {
 		
 		UserNG authuser = null;
 		
-		if (Bootstrap.getAuth().isForceSelectDomain()) {
+		if (MyDMAM.getPlayBootstrapper().getAuth().isForceSelectDomain()) {
 			String domain_name = null;
 			
 			try {
-				domain_name = Bootstrap.getAuth().getDeclaredDomainList().get(Integer.valueOf(domainidx));
+				domain_name = MyDMAM.getPlayBootstrapper().getAuth().getDeclaredDomainList().get(Integer.valueOf(domainidx));
 			} catch (Exception e) {
 			}
-			authuser = Bootstrap.getAuth().authenticateWithThisDomain(remote_address, username.trim().toLowerCase(), password, domain_name, Lang.getLocale().getLanguage());
+			authuser = MyDMAM.getPlayBootstrapper().getAuth().authenticateWithThisDomain(remote_address, username.trim().toLowerCase(), password, domain_name, Lang.getLocale().getLanguage());
 		} else {
-			authuser = Bootstrap.getAuth().authenticate(remote_address, username.trim().toLowerCase(), password, Lang.getLocale().getLanguage());
+			authuser = MyDMAM.getPlayBootstrapper().getAuth().authenticate(remote_address, username.trim().toLowerCase(), password, Lang.getLocale().getLanguage());
 		}
 		
 		if (authuser == null) {
@@ -233,7 +233,7 @@ public class Secure extends Controller {
 		
 		Session.current().put("username", Crypto.encryptAES(username));
 		
-		Cache.set("user:" + username + ":privileges", authuser.getUser_groups_roles_privileges(), Bootstrap.getSessionTTL());
+		Cache.set("user:" + username + ":privileges", authuser.getUser_groups_roles_privileges(), MyDMAM.getPlayBootstrapper().getSessionTTL());
 		
 		String long_name = authuser.getFullname();
 		if (long_name == null) {
@@ -253,7 +253,7 @@ public class Secure extends Controller {
 			}
 			Session.current().clear();
 			
-			UserNG user = Bootstrap.getAuth().getByUserKey(username);
+			UserNG user = MyDMAM.getPlayBootstrapper().getAuth().getByUserKey(username);
 			if (user == null) {
 				Loggers.Play.info("User " + username + " went tries to sign off.");
 			} else {

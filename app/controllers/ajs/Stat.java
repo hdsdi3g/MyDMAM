@@ -20,7 +20,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import controllers.Check;
-import ext.Bootstrap;
 import hd3gtv.archivecircleapi.ACFile;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -62,7 +61,7 @@ public class Stat extends AJSController {
 	@Check("navigate")
 	public static AJSFileLocationStatus getExternalLocation(AJSFileLocationStatusRequest request) {
 		AJSFileLocationStatus response = new AJSFileLocationStatus();
-		ACFile ac_file = Bootstrap.bridge_pathindex_archivelocation.getExternalLocation(request.storagename, request.path);
+		ACFile ac_file = MyDMAM.getPlayBootstrapper().getBridgePathindexArchivelocation().getExternalLocation(request.storagename, request.path);
 		if (ac_file != null) {
 			if (Loggers.Play.isTraceEnabled()) {
 				Loggers.Play.trace("Get file location for " + request.storagename + ":" + request.path + " -> " + ac_file.bestLocation);
@@ -77,7 +76,7 @@ public class Stat extends AJSController {
 	
 	@Check("navigate")
 	public static JsonArray getExternalLocationStorageList() {
-		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(Bootstrap.bridge_pathindex_archivelocation.getExternalLocationStorageList()).getAsJsonArray();
+		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(MyDMAM.getPlayBootstrapper().getBridgePathindexArchivelocation().getExternalLocationStorageList()).getAsJsonArray();
 	}
 	
 }

@@ -26,7 +26,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import controllers.Check;
-import ext.Bootstrap;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthEntry;
 import hd3gtv.mydmam.auth.GroupNG;
@@ -54,12 +53,12 @@ public class Auth extends AJSController {
 	public static UserView userCreate(NewUser newuser) throws Exception {
 		newuser.login = newuser.login.toLowerCase().trim();
 		newuser.domain = newuser.domain.toLowerCase().trim();
-		return Bootstrap.getAuth().createUserIfNotExists(newuser).export(true, true);
+		return MyDMAM.getPlayBootstrapper().getAuth().createUserIfNotExists(newuser).export(true, true);
 	}
 	
 	@Check("authAdmin")
 	public static UserView userGet(String key) throws Exception {
-		UserNG user = Bootstrap.getAuth().getByUserKey(key);
+		UserNG user = MyDMAM.getPlayBootstrapper().getAuth().getByUserKey(key);
 		if (user == null) {
 			return null;
 		}
@@ -71,7 +70,7 @@ public class Auth extends AJSController {
 		UserViewList result = new UserViewList();
 		result.users = new LinkedHashMap<String, UserView>();
 		
-		sortList(Bootstrap.getAuth().getAllUsers().values()).forEach(v -> {
+		sortList(MyDMAM.getPlayBootstrapper().getAuth().getAllUsers().values()).forEach(v -> {
 			result.users.put(v.getKey(), ((UserNG) v).export(false, true));
 		});
 		
@@ -80,31 +79,31 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static JsonArray domainList() throws Exception {
-		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(Bootstrap.getAuth().getDeclaredDomainList()).getAsJsonArray();
+		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(MyDMAM.getPlayBootstrapper().getAuth().getDeclaredDomainList()).getAsJsonArray();
 	}
 	
 	@Check("authAdmin")
 	public static UserViewList userDelete(String key) throws Exception {
-		UserNG user = Bootstrap.getAuth().getByUserKey(key);
+		UserNG user = MyDMAM.getPlayBootstrapper().getAuth().getByUserKey(key);
 		if (user != null) {
-			Bootstrap.getAuth().deleteAll(Arrays.asList(user));
+			MyDMAM.getPlayBootstrapper().getAuth().deleteAll(Arrays.asList(user));
 		}
 		return userList();
 	}
 	
 	@Check("authAdmin")
 	public static UserView userToogleLock(String key) throws Exception {
-		return Bootstrap.getAuth().changeUserToogleLock(key).export(false, true);
+		return MyDMAM.getPlayBootstrapper().getAuth().changeUserToogleLock(key).export(false, true);
 	}
 	
 	@Check("authAdmin")
 	public static UserView userAdminUpdate(UserAdminUpdate ch) throws Exception {
-		return Bootstrap.getAuth().changeAdminUserPasswordGroups(ch).export(false, true);
+		return MyDMAM.getPlayBootstrapper().getAuth().changeAdminUserPasswordGroups(ch).export(false, true);
 	}
 	
 	@Check("authAdmin")
 	public static GroupView groupCreate(String new_group_name) throws Exception {
-		return Bootstrap.getAuth().createGroup(new_group_name).export();
+		return MyDMAM.getPlayBootstrapper().getAuth().createGroup(new_group_name).export();
 	}
 	
 	private static ArrayList<AuthEntry> sortList(Collection<?> source) {
@@ -127,7 +126,7 @@ public class Auth extends AJSController {
 		GroupViewList result = new GroupViewList();
 		result.groups = new LinkedHashMap<String, GroupView>();
 		
-		sortList(Bootstrap.getAuth().getAllGroups().values()).forEach(v -> {
+		sortList(MyDMAM.getPlayBootstrapper().getAuth().getAllGroups().values()).forEach(v -> {
 			result.groups.put(v.getKey(), ((GroupNG) v).export());
 		});
 		
@@ -136,21 +135,21 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static GroupViewList groupDelete(String key) throws Exception {
-		GroupNG group = Bootstrap.getAuth().getByGroupKey(key);
+		GroupNG group = MyDMAM.getPlayBootstrapper().getAuth().getByGroupKey(key);
 		if (group != null) {
-			Bootstrap.getAuth().deleteAll(Arrays.asList(group));
+			MyDMAM.getPlayBootstrapper().getAuth().deleteAll(Arrays.asList(group));
 		}
 		return groupList();
 	}
 	
 	@Check("authAdmin")
 	public static GroupView groupChangeRoles(GroupChRole ch_group) throws Exception {
-		return Bootstrap.getAuth().changeGroupRoles(ch_group).export();
+		return MyDMAM.getPlayBootstrapper().getAuth().changeGroupRoles(ch_group).export();
 	}
 	
 	@Check("authAdmin")
 	public static RoleView roleCreate(String new_role_name) throws Exception {
-		return Bootstrap.getAuth().createRole(new_role_name).export();
+		return MyDMAM.getPlayBootstrapper().getAuth().createRole(new_role_name).export();
 	}
 	
 	@Check("authAdmin")
@@ -158,7 +157,7 @@ public class Auth extends AJSController {
 		RoleViewList result = new RoleViewList();
 		result.roles = new LinkedHashMap<String, RoleView>();
 		
-		sortList(Bootstrap.getAuth().getAllRoles().values()).forEach(v -> {
+		sortList(MyDMAM.getPlayBootstrapper().getAuth().getAllRoles().values()).forEach(v -> {
 			result.roles.put(v.getKey(), ((RoleNG) v).export());
 		});
 		
@@ -167,16 +166,16 @@ public class Auth extends AJSController {
 	
 	@Check("authAdmin")
 	public static RoleViewList roleDelete(String key) throws Exception {
-		RoleNG role = Bootstrap.getAuth().getByRoleKey(key);
+		RoleNG role = MyDMAM.getPlayBootstrapper().getAuth().getByRoleKey(key);
 		if (role != null) {
-			Bootstrap.getAuth().deleteAll(Arrays.asList(role));
+			MyDMAM.getPlayBootstrapper().getAuth().deleteAll(Arrays.asList(role));
 		}
 		return roleList();
 	}
 	
 	@Check("authAdmin")
 	public static RoleView roleChangePrivilege(RoleChPrivileges new_privileges) throws Exception {
-		return Bootstrap.getAuth().changeRolePrivileges(new_privileges).export();
+		return MyDMAM.getPlayBootstrapper().getAuth().changeRolePrivileges(new_privileges).export();
 	}
 	
 	@Check("authAdmin")
@@ -192,7 +191,7 @@ public class Auth extends AJSController {
 		UserAdminUpdate upd = new UserAdminUpdate();
 		upd.user_key = AJSController.getUserProfile().getKey();
 		upd.new_password = new_clear_text_passwd;
-		return Bootstrap.getAuth().changeAdminUserPasswordGroups(upd).export(true, false);
+		return MyDMAM.getPlayBootstrapper().getAuth().changeAdminUserPasswordGroups(upd).export(true, false);
 	}
 	
 	public static void sendTestMail() throws Exception {
@@ -200,7 +199,7 @@ public class Auth extends AJSController {
 	}
 	
 	public static UserView changeUserMail(String new_mail_addr) throws Exception {
-		return Bootstrap.getAuth().changeUserMail(AJSController.getUserProfile().getKey(), new_mail_addr).export(true, false);
+		return MyDMAM.getPlayBootstrapper().getAuth().changeUserMail(AJSController.getUserProfile().getKey(), new_mail_addr).export(true, false);
 	}
 	
 	public static JsonObject getActivities() throws Exception {

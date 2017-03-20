@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.factory.Factory;
 import hd3gtv.mydmam.gson.GsonKit;
+import hd3gtv.mydmam.web.PlayBootstrap;
 
 public class MyDMAM {
 	
@@ -69,6 +70,15 @@ public class MyDMAM {
 	}
 	
 	public static final GsonKit gson_kit = new GsonKit();
+	
+	private static PlayBootstrap play_bootstrapper;
+	
+	public static PlayBootstrap getPlayBootstrapper() {
+		if (play_bootstrapper == null) {
+			play_bootstrapper = new PlayBootstrap();
+		}
+		return play_bootstrapper;
+	}
 	
 	/**
 	 * @param filename without path
@@ -231,4 +241,5 @@ public class MyDMAM {
 		 */
 		return Integer.signum(vals1.length - vals2.length);
 	}
+	
 }

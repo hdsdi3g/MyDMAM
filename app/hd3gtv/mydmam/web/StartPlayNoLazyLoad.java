@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package ext;
+package hd3gtv.mydmam.web;
 
 import java.net.HttpURLConnection;
 import java.net.URL;

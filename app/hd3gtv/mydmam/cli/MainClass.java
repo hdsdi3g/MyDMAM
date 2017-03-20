@@ -126,7 +126,7 @@ public class MainClass {
 					System.exit(0);
 				}
 			}
-			System.err.println("Can't found module " + modulename);
+			System.err.println("Can't found CLI module " + modulename);
 			System.exit(2);
 		}
 		
@@ -141,7 +141,7 @@ public class MainClass {
 		}
 		System.out.println("MyDMAM Command line interface");
 		System.out.println("=============================");
-		System.err.println("Can't found module " + modulename);
+		System.err.println("Can't found CLI module " + modulename);
 		System.exit(2);
 		
 	}

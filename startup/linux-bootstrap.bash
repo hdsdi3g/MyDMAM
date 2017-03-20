@@ -59,7 +59,7 @@ cat <<- EOF > $SERVICE_FILE
 	[Service]
 	EnvironmentFile=$ENV_FILE
 	WorkingDirectory=$BASEPATH
-	ExecStart=\$\{JAVA\} -noverify -server -Dfile.encoding=UTF-8 -Dservice.config.path=$BASEPATH/conf/app.d -classpath \$\{CLASSPATH\} hd3gtv.mydmam.MainClass
+	ExecStart=$JAVA -noverify -server -Dfile.encoding=UTF-8 -Dservice.config.path=$BASEPATH/conf/app.d -classpath \${CLASSPATH} hd3gtv.mydmam.MainClass
 	SuccessExitStatus=143
 	User=mydmam
 	Group=mydmam

@@ -3,6 +3,10 @@
 # Copyright (C) hdsdi3g for hd3g.tv 2017
 #
 # Databases setup bootstrap
+#
+# ONLY RUN IT IN ES + Cassandra PACKAGE MAKED WITH ant pack-databases.
+# NOT FROM mydmam/startup
+#
 # Tested and functionnal with Debian 8 / Systemd.
 # But it can works with others GNU/Linux distribution that support Systemd
 # You also can adapt this setup for others NIX OS.

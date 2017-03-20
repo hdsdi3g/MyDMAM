@@ -11,10 +11,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package ext;
+package hd3gtv.mydmam.web;
 
 import java.util.Map;
 
@@ -27,74 +27,99 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.AuthTurret;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
-import hd3gtv.mydmam.web.JSSourceManager;
-import hd3gtv.mydmam.web.JSi18nCached;
 import play.Play;
 import play.Play.Mode;
 import play.cache.Cache;
 import play.cache.CacheImpl;
 import play.cache.EhCacheImpl;
-import play.jobs.Job;
-import play.jobs.OnApplicationStart;
 
-@OnApplicationStart
-public class Bootstrap extends Job<Void> {
+public class PlayBootstrap {
 	
-	private static AuthTurret auth;
-	
-	public static AuthTurret getAuth() {
-		if (auth == null) {
-			try {
-				auth = new AuthTurret(CassandraDb.getkeyspace());
-			} catch (ConnectionException e) {
-				Loggers.Play.error("Can't access to Cassandra", e);
-			} catch (Exception e) {
-				Loggers.Play.error("Can't load Auth (secure)", e);
-			}
-		}
-		return auth;
-	}
-	
-	private static ACAPI acapi;
+	private AuthTurret auth;
+	private JSi18nCached i18n_cache;
+	private BridgePathindexArchivelocation bridge_pathindex_archivelocation;
 	
 	/**
-	 * @return null if not configured.
+	 * A Cache that will be resist to a service restart (in case of automatic re-compilation). Only used in dev mode.
 	 */
-	public static ACAPI getACAPI() {
-		if (acapi == null) {
-			String host = Configuration.global.getValue("acapi", "host", "");
-			if (host.equals("")) {
-				return null;
-			}
+	private final InternalDevCache permanent_dev_cache;
+	
+	public PlayBootstrap() {
+		try {
+			CassandraDb.getkeyspace();
+		} catch (ConnectionException e) {
+			Loggers.Play.fatal("Can't access to keyspace", e);
+			System.exit(1);
+		}
+		
+		i18n_cache = new JSi18nCached();
+		
+		try {
+			JSSourceManager.init();
+		} catch (Exception e) {
+			Loggers.Play_JSSource.fatal("Can't init JS Source manager", e);
+			System.exit(1);
+		}
+		
+		permanent_dev_cache = new InternalDevCache();
+		if (Play.mode == Mode.DEV) {
+			Cache.forcedCacheImpl = permanent_dev_cache;
+			Cache.cacheImpl = permanent_dev_cache;
+		}
+		
+		try {
+			auth = new AuthTurret(CassandraDb.getkeyspace());
+		} catch (ConnectionException e) {
+			Loggers.Play.fatal("Can't access to Cassandra", e);
+			System.exit(1);
+		} catch (Exception e) {
+			Loggers.Play.fatal("Can't load Auth (secure)", e);
+			System.exit(1);
+		}
+		
+		String host = Configuration.global.getValue("acapi", "host", "");
+		if (host.equals("") == false) {
 			String user = Configuration.global.getValue("acapi", "user", "");
 			String password = Configuration.global.getValue("acapi", "password", "");
 			int port = Configuration.global.getValue("acapi", "port", 8081);
 			
-			acapi = new ACAPI(host, user, password);
+			ACAPI acapi = new ACAPI(host, user, password);
 			acapi.setTcp_port(port);
 			
 			ACNode node = acapi.getNode();
 			if (node == null) {
 				Loggers.Play.warn("Can't init ACAPI now");
-				return null;
-			}
-			if (Loggers.Play.isInfoEnabled() & node.nodes != null) {
-				StringBuilder sb = new StringBuilder();
-				node.nodes.forEach(n -> {
-					sb.append(n.toString());
-					sb.append(" ");
-				});
-				Loggers.Play.info("Init ACAPI with nodes [" + sb.toString().trim() + "]");
+			} else {
+				if (Loggers.Play.isInfoEnabled() & node.nodes != null) {
+					StringBuilder sb = new StringBuilder();
+					node.nodes.forEach(n -> {
+						sb.append(n.toString());
+						sb.append(" ");
+					});
+					Loggers.Play.info("Init ACAPI with nodes [" + sb.toString().trim() + "]");
+					bridge_pathindex_archivelocation = new BridgePathindexArchivelocation(acapi, Configuration.global.getListMapValues("acapi", "bridge"));
+				}
 			}
 		}
-		return acapi;
+		if (bridge_pathindex_archivelocation == null) {
+			bridge_pathindex_archivelocation = new BridgePathindexArchivelocation();
+		}
 	}
 	
-	public static BridgePathindexArchivelocation bridge_pathindex_archivelocation;
+	public AuthTurret getAuth() {
+		return auth;
+	}
 	
-	public static JSi18nCached i18n_cache;
+	public JSi18nCached getI18nCache() {
+		return i18n_cache;
+	}
 	
-	public static String getSessionTTL() {
+	public JSi18nCached refreshI18nCache() {
+		i18n_cache = new JSi18nCached();
+		return i18n_cache;
+	}
+	
+	public String getSessionTTL() {
 		if (JSSourceManager.isJsDevMode()) {
 			return "24h";
 		} else {
@@ -102,34 +127,7 @@ public class Bootstrap extends Job<Void> {
 		}
 	}
 	
-	public void doJob() {
-		i18n_cache = new JSi18nCached();
-		
-		try {
-			CassandraDb.getkeyspace();
-		} catch (ConnectionException e) {
-			Loggers.Play.error("Can't access to keyspace", e);
-		}
-		
-		try {
-			JSSourceManager.init();
-		} catch (Exception e) {
-			Loggers.Play_JSSource.error("Can't init", e);
-		}
-		
-		if (getACAPI() != null) {
-			bridge_pathindex_archivelocation = new BridgePathindexArchivelocation(acapi, Configuration.global.getListMapValues("acapi", "bridge"));
-		} else {
-			bridge_pathindex_archivelocation = new BridgePathindexArchivelocation();
-		}
-		
-		if (Play.mode == Mode.DEV) {
-			Cache.forcedCacheImpl = permanent_dev_cache;
-			Cache.cacheImpl = permanent_dev_cache;
-		}
-	}
-	
-	public static void clearPlayCache() {
+	public void clearPlayCache() {
 		if (Play.mode == Mode.DEV) {
 			permanent_dev_cache.forceClear();
 		} else {
@@ -137,12 +135,11 @@ public class Bootstrap extends Job<Void> {
 		}
 	}
 	
-	/**
-	 * A Cache that will be resist to a service restart (in case of automatic re-compilation). Only used in dev mode.
-	 */
-	private static final InternalDevCache permanent_dev_cache = new InternalDevCache();
+	public BridgePathindexArchivelocation getBridgePathindexArchivelocation() {
+		return bridge_pathindex_archivelocation;
+	}
 	
-	private static class InternalDevCache implements CacheImpl {
+	private class InternalDevCache implements CacheImpl {
 		
 		EhCacheImpl eh_cache = EhCacheImpl.getInstance();
 		
@@ -207,4 +204,5 @@ public class Bootstrap extends Job<Void> {
 			eh_cache.add(key, value, expiration);
 		}
 	};
+	
 }
