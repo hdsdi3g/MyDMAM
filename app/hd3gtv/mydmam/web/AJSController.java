@@ -133,6 +133,9 @@ public class AJSController {
 	
 	@AJSIgnore
 	public static String getUserProfileLongName() {
+		if (Secure.isConnected() == false) {
+			return "(null)";
+		}
 		UserNG user = getUserProfile();
 		if (user == null) {
 			return "(Deleted, please log-off)";

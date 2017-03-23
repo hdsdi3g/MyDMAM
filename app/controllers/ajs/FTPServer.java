@@ -24,6 +24,7 @@ import javax.mail.internet.InternetAddress;
 
 import controllers.Check;
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.UserNG;
 import hd3gtv.mydmam.ftpserver.AJSRequestAdminOperationUser;
 import hd3gtv.mydmam.ftpserver.AJSRequestRecent;
@@ -32,6 +33,7 @@ import hd3gtv.mydmam.ftpserver.AJSResponseAdminOperationUser;
 import hd3gtv.mydmam.ftpserver.AJSResponseGroupsDomainsLists;
 import hd3gtv.mydmam.ftpserver.AJSResponseUserList;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
+import hd3gtv.mydmam.ftpserver.FTPGroup;
 import hd3gtv.mydmam.ftpserver.FTPUser;
 import hd3gtv.mydmam.mail.EndUserBaseMail;
 import hd3gtv.mydmam.web.AJSController;
@@ -55,28 +57,35 @@ public class FTPServer extends AJSController {
 	public static AJSResponseAdminOperationUser adminOperationUser(AJSRequestAdminOperationUser request) throws Exception {
 		AJSResponseAdminOperationUser response = new AJSResponseAdminOperationUser();
 		
-		switch (request.operation) {
-		case CREATE:
-			FTPUser ftp_user = request.createFTPUser();
-			response.user_name = ftp_user.getName();
-			response.done = true;
-			JobsPlugin.executor.submit(new SendMailAfterSave(ftp_user, request.clear_password, AJSController.getUserProfile()));
-			break;
-		case DELETE:
-			request.delete();
-			response.done = true;
-			JobsPlugin.executor.submit(new DeleteUserActivities(request.user_id));
-			break;
-		case CH_PASSWORD:
-			request.chPassword();
-			response.done = true;
-			break;
-		case TOGGLE_ENABLE:
-			request.toggleEnable();
-			response.done = true;
-			break;
-		default:
-			break;
+		try {
+			switch (request.operation) {
+			case CREATE:
+				FTPUser ftp_user = request.createFTPUser();
+				response.user_name = ftp_user.getName();
+				response.done = true;
+				JobsPlugin.executor.submit(new SendMailAfterSave(ftp_user, request.clear_password, AJSController.getUserProfile()));
+				JobsPlugin.executor.submit(new CreateUserDir(ftp_user));
+				break;
+			case DELETE:
+				request.delete();
+				response.done = true;
+				JobsPlugin.executor.submit(new DeleteUserActivities(request.user_id));
+				break;
+			case CH_PASSWORD:
+				request.chPassword();
+				response.done = true;
+				break;
+			case TOGGLE_ENABLE:
+				request.toggleEnable();
+				response.done = true;
+				break;
+			default:
+				break;
+			}
+		} catch (SecurityException e) {
+			Loggers.Play.error("User " + AJSController.getUserProfileLongName() + " can't do this: " + e.getMessage());
+			response.done = false;
+			return response;
 		}
 		
 		if (response.done) {
@@ -84,6 +93,25 @@ public class FTPServer extends AJSController {
 		}
 		
 		return response;
+	}
+	
+	private static class CreateUserDir implements Callable<Void> {
+		
+		FTPUser ftp_user;
+		
+		public CreateUserDir(FTPUser ftp_user) {
+			this.ftp_user = ftp_user;
+		}
+		
+		public Void call() throws Exception {
+			if (FTPGroup.isConfigured()) {
+				String dir = ftp_user.getHomeDirectory();
+				Loggers.Play.info("Create local user " + ftp_user.getName() + " FTP directory: " + dir);
+			} else {
+				Loggers.Play.info("Can't create local user FTP directory: groups are not configured");
+			}
+			return null;
+		}
 	}
 	
 	private static class SendMailAfterSave implements Callable<Void> {

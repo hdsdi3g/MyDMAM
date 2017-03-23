@@ -1,5 +1,8 @@
 === MyDMAM Upgrade document ===
 
+#239 FTP server admin (in Play side) can create FTP account user directories. Just add some ftpservergroups/group name/base_working_dir keys in configuration.
+
+v0.19
 #234  Change configuration keys: move auth.* to play.*
 #234  Change Java main class for Probe/Server/FTP Server > all are now in hd3gtv.mydmam.MainClass. CLI is still the same.
 #234  Remove UIFrame

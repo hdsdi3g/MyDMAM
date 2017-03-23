@@ -91,7 +91,7 @@ public class Password {
 			}
 		}
 		for (int pos = 0; pos < chars.length; pos++) {
-			if (chars[pos] > 64 && chars[pos] < 91) {
+			if (chars[pos] > 96 && chars[pos] < 123) {
 				/**
 				 * lower case
 				 */
@@ -100,8 +100,9 @@ public class Password {
 			}
 		}
 		
+		int min_len = 8;
 		if (real_char_num < 8) {
-			throw new SecurityException("Invalid tested password: not enough characters");
+			throw new SecurityException("Invalid tested password: not enough characters, this = " + real_char_num + ", min = " + min_len);
 		}
 		
 		if ((is_ok_1 & is_ok_2) | (is_ok_2 & is_ok_3) | (is_ok_1 & is_ok_3)) {
@@ -115,8 +116,9 @@ public class Password {
 	 * @return AES(BCrypt(clear_password, 10), SHA256(master_password_key))
 	 */
 	public byte[] getHashedPassword(String clear_password) throws SecurityException {
+		String tested_password = testIfPasswordIsStrong(clear_password);
 		try {
-			byte[] hashed = (BCrypt.hashpw(testIfPasswordIsStrong(clear_password), BCrypt.gensalt(10))).getBytes("UTF-8");
+			byte[] hashed = (BCrypt.hashpw(tested_password, BCrypt.gensalt(10))).getBytes("UTF-8");
 			
 			BlockCipherPadding padding = new PKCS7Padding();
 			BufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()), padding);

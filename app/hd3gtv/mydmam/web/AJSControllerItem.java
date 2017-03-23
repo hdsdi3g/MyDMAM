@@ -172,13 +172,12 @@ class AJSControllerItem {
 						request = MyDMAM.gson_kit.getGson().fromJson(raw_json, parameter_type);
 					}
 				} catch (Exception e) {
-					Loggers.Play.warn("Can't extract AJS request for " + controller_class + "." + method.getName() + "() with \"" + json_request + "\"", e);
-					
+					Loggers.Play.warn("User " + AJSController.getUserProfileLongName() + " can't extract AJS request for " + controller_class + "." + method.getName() + "() with \"" + json_request + "\"", e);
 					if (return_type != null) {
 						try {
 							return MyDMAM.gson_kit.getGson().toJson(return_type.newInstance(), return_type);
 						} catch (Exception e1) {
-							Loggers.Play.error("Can't create return object during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e1);
+							Loggers.Play.error("User " + AJSController.getUserProfileLongName() + " can't create return object during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e1);
 						}
 					} else {
 						return new JsonObject().toString();
@@ -194,16 +193,16 @@ class AJSControllerItem {
 					response = method.invoke(null, request);
 				}
 			} catch (IllegalAccessException e) {
-				Loggers.Play.warn("Can't invoke AJS controller verb for " + controller_class + "." + method.getName() + "()", e);
+				Loggers.Play.warn("User " + AJSController.getUserProfileLongName() + " can't invoke AJS controller verb for " + controller_class + "." + method.getName() + "()", e);// TODO add current user name...
 			} catch (IllegalArgumentException e) {
-				Loggers.Play.warn("Can't invoke AJS controller verb for " + controller_class + "." + method.getName() + "()", e);
+				Loggers.Play.warn("User " + AJSController.getUserProfileLongName() + " can't invoke AJS controller verb for " + controller_class + "." + method.getName() + "()", e);// TODO add current user name...
 			} catch (InvocationTargetException e) {
-				Loggers.Play.error("Exception during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e.getCause());
+				Loggers.Play.error("User " + AJSController.getUserProfileLongName() + " do an exception during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e.getCause());// TODO add current user name...
 				if (return_type != null) {
 					try {
 						return MyDMAM.gson_kit.getGson().toJson(return_type.newInstance(), return_type);
 					} catch (Exception e1) {
-						Loggers.Play.error("Can't create return object during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e1);
+						Loggers.Play.error("User " + AJSController.getUserProfileLongName() + " can't create return object during AJS controller verb invoke for " + controller_class + "." + method.getName() + "()", e1);// TODO add current user name...
 					}
 				}
 			}

@@ -101,6 +101,10 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		return declared_groups_expiration_based_on_last_activity;
 	}
 	
+	public static boolean isConfigured() {
+		return declared_groups.isEmpty() == false;
+	}
+	
 	public static void registerAppManager(AppManager manager) {
 		for (FTPGroup group : declared_groups.values()) {
 			manager.registerInstanceActionReceiver(group);
