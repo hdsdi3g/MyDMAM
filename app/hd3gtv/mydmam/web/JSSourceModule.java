@@ -31,6 +31,7 @@ import controllers.AsyncJavascript;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.CopyMove;
+import play.exceptions.NoRouteFoundException;
 import play.libs.IO;
 import play.mvc.Router;
 import play.vfs.VirtualFile;
@@ -371,8 +372,12 @@ public class JSSourceModule {
 		String url;
 		
 		if (reduced_declaration_file.exists()) {
-			url = Router.reverse(VirtualFile.open(reduced_declaration_file));
-			results.add(url);
+			try {
+				url = Router.reverse(VirtualFile.open(reduced_declaration_file));
+				results.add(url);
+			} catch (NoRouteFoundException e) {
+				throw new IOException("Play can't resolve route for " + reduced_declaration_file.getPath());
+			}
 		}
 		
 		File transformed_file;

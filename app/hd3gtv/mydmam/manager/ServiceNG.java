@@ -179,14 +179,17 @@ public final class ServiceNG {
 						+ " as key. Unfortunally, you will need to reset passwords or delete all local accounts, even admin, after do this.");
 			}
 			
-			MyDMAM.getPlayBootstrapper();
-			
 			if (Play.mode == Mode.DEV) {
 				/**
 				 * NO LAZY LOAD
 				 */
 				StartPlayNoLazyLoad t_load_on_boot = new StartPlayNoLazyLoad();
 				t_load_on_boot.start();
+			} else {
+				/**
+				 * Play is already loaded
+				 */
+				MyDMAM.getPlayBootstrapper();
 			}
 		}
 		

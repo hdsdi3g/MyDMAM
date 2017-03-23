@@ -52,6 +52,7 @@ public class Application extends Controller {
 	public static final int HTTP_unauthorized = 403;
 	
 	public static void index() {
+		MyDMAM.getPlayBootstrapper();
 		render();
 	}
 	

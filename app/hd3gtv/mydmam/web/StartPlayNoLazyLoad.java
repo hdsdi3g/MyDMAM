@@ -53,7 +53,12 @@ public class StartPlayNoLazyLoad extends Thread {
 			
 			sb.append(":");
 			sb.append(port);
-			sb.append("/");
+			
+			String path = Play.configuration.getProperty("http.path", "/");
+			if (path.startsWith("/") == false) {
+				sb.append("/");
+			}
+			sb.append(path);
 			
 			URL url = new URL(sb.toString());
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
