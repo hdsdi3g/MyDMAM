@@ -78,7 +78,7 @@ auth.Roles = React.createClass({
 
 auth.RoleCreate = React.createClass({
 	onAddBtnClick: function(e){
-		var new_role_name = React.findDOMNode(this.refs.role_name).value;
+		var new_role_name = ReactDOM.findDOMNode(this.refs.role_name).value;
 		mydmam.async.request("auth", "rolecreate", new_role_name, function(created) {
 			window.location = "#auth/roles";
 		}.bind(this));

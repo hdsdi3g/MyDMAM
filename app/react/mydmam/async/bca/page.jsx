@@ -352,7 +352,7 @@ bca.Home = React.createClass({
 		var updateClock = function(e) {
 			var new_time = mydmam.format.date(mydmam.async.getTime());
 			if (last_time != new_time) {
-				$(React.findDOMNode(this.refs.clock)).text(new_time);
+				$(ReactDOM.findDOMNode(this.refs.clock)).text(new_time);
 			}
 		}.bind(this);
 

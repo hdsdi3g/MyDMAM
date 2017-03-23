@@ -199,7 +199,7 @@ broker.NavTabs = React.createClass({
 broker.Tab = React.createClass({
 	onClick: function(e) {
 		e.preventDefault();
-		$(React.findDOMNode(this.refs.tab)).blur();
+		$(ReactDOM.findDOMNode(this.refs.tab)).blur();
 		this.props.onTabChange(this.props.tab_index);
 	},
 	render: function() {
@@ -242,7 +242,7 @@ broker.NavTabDropDownAction = React.createClass({
 	},
 	onDropDownActionClick: function(e) {
 		e.preventDefault();
-		$(React.findDOMNode(this.refs.tab)).blur();
+		$(ReactDOM.findDOMNode(this.refs.tab)).blur();
 		if (this.state.active_dropdown_action_tab) {
 			document.removeEventListener("click", this.hide);
 		} else {

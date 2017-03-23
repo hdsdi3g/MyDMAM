@@ -109,7 +109,7 @@ manager.InstancesNavListElement = React.createClass({
 	onClick: function(e) {
 		e.preventDefault();
 		this.props.onSelect(this.props.reference);
-		$(React.findDOMNode(this.refs.tab)).blur();
+		$(ReactDOM.findDOMNode(this.refs.tab)).blur();
 	},
 	render: function() {
 		return (<a href={location.href} ref="tab" onClick={this.onClick}>

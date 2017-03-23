@@ -69,23 +69,23 @@ $(document).ready(function() {
 
 	var CommentForm = React.createClass({
 		handleChange: function(event) {
-			var author = React.findDOMNode(this.refs.author).value;
-		    var text = React.findDOMNode(this.refs.text).value;
+			var author = ReactDOM.findDOMNode(this.refs.author).value;
+		    var text = ReactDOM.findDOMNode(this.refs.text).value;
 		    var key = this.props.edit.key;
 		    var edit = {key: key, author: author, text: text};
 			this.props.onChangeComment(edit);
 		},
 		handleSubmit: function(e) {
 			e.preventDefault();
-			var author = React.findDOMNode(this.refs.author).value.trim();
-		    var text = React.findDOMNode(this.refs.text).value.trim();
+			var author = ReactDOM.findDOMNode(this.refs.author).value.trim();
+		    var text = ReactDOM.findDOMNode(this.refs.text).value.trim();
 		    if (!text || !author) {
 				return;
 			}
 
 			this.props.onCommentSubmit({text: text, author: author, key: this.props.edit.key});
-			React.findDOMNode(this.refs.author).value = '';
-		    React.findDOMNode(this.refs.text).value = '';
+			ReactDOM.findDOMNode(this.refs.author).value = '';
+		    ReactDOM.findDOMNode(this.refs.text).value = '';
 
 		    return;
 		},

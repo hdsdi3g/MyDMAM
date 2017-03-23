@@ -38,7 +38,7 @@ metadatas.Mediaplayer = React.createClass({
 	componentDidMount: function(){
 		//this.setState({interval: setInterval(this.refresh_transport_status, 10000)});
 		if (this.props.transport_status) {
-			var video = React.findDOMNode(this.refs.videoplayer);
+			var video = ReactDOM.findDOMNode(this.refs.videoplayer);
 			video.addEventListener('timeupdate', this.refresh_transport_status, false);
 		}
 	},
@@ -46,14 +46,14 @@ metadatas.Mediaplayer = React.createClass({
 		/*if (this.state.interval) {
 			clearInterval(this.state.interval);
 		}*/
-		var video = React.findDOMNode(this.refs.videoplayer);
+		var video = ReactDOM.findDOMNode(this.refs.videoplayer);
 		video.removeEventListener('timeupdate', this.refresh_transport_status);
 	},
 	refresh_transport_status: function () {
 		if (this.props.transport_status == null) {
 			return;
 		}
-		var video = React.findDOMNode(this.refs.videoplayer);
+		var video = ReactDOM.findDOMNode(this.refs.videoplayer);
 		this.props.transport_status(video.currentTime, video.duration, video.paused);
 	},
 	componentWillReceiveProps: function(nextprops) {
@@ -61,7 +61,7 @@ metadatas.Mediaplayer = React.createClass({
 		if (transport == null) {
 			return;
 		}
-		var video = React.findDOMNode(this.refs.videoplayer);
+		var video = ReactDOM.findDOMNode(this.refs.videoplayer);
 
 		if (transport.macro) {
 			if (transport.macro == "RELOAD_PLAY") {

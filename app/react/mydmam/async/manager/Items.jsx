@@ -145,12 +145,12 @@ manager.Items = React.createClass({
 		return item_classes;
 	},
 	onGotoTheTop: function(e) {
-		var absolute = React.findDOMNode(this.refs.items_container).getBoundingClientRect().y;
+		var absolute = ReactDOM.findDOMNode(this.refs.items_container).getBoundingClientRect().y;
 		e.preventDefault();
 		$("html, body").scrollTop($("html, body").scrollTop() + absolute - 50);
 	},
 	onGoToItemBlock: function(reference) {
-		var absolute = React.findDOMNode(this.refs[reference]).getBoundingClientRect().y;
+		var absolute = ReactDOM.findDOMNode(this.refs[reference]).getBoundingClientRect().y;
 		$("html, body").scrollTop($("html, body").scrollTop() + absolute - 50);
 	},
 	render: function() {
@@ -335,7 +335,7 @@ manager.Items = React.createClass({
 manager.btnArrowGoToItemBlock = React.createClass({
 	onGoto: function (e) {
 		e.preventDefault();
-		$(React.findDOMNode(this.refs.a)).blur();
+		$(ReactDOM.findDOMNode(this.refs.a)).blur();
 		this.props.onGoToItemBlock(this.props.reference);
 	},
  	render: function() {
@@ -348,7 +348,7 @@ manager.btnArrowGoToItemBlock = React.createClass({
 manager.SelectNavItemInstance = React.createClass({
 	onClick: function (e) {
 		e.preventDefault();
-		$(React.findDOMNode(this.refs.a)).blur();
+		$(ReactDOM.findDOMNode(this.refs.a)).blur();
 		this.props.onClick(this.props.reference, ! this.props.checked);
 	},
  	render: function() {

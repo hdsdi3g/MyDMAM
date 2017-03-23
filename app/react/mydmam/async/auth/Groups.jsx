@@ -92,7 +92,7 @@ auth.Groups = React.createClass({
 
 auth.GroupCreate = React.createClass({
 	onAddBtnClick: function(e){
-		var new_group_name = React.findDOMNode(this.refs.group_name).value;
+		var new_group_name = ReactDOM.findDOMNode(this.refs.group_name).value;
 		mydmam.async.request("auth", "groupcreate", new_group_name, function(created) {
 			mydmam.async.request("auth", "grouplist", null, function(grouplist) {
 				auth.grouplist = grouplist.groups;

@@ -19,7 +19,7 @@ var divider_vertical = (<li className="divider-vertical"></li>);
 
 var TopMenuEntrylink = React.createClass({
 	onClick: function(e) {
-		$(React.findDOMNode(this.refs.thislink)).blur();
+		$(ReactDOM.findDOMNode(this.refs.thislink)).blur();
 	},
 	render: function() {
 		var href = this.props.href;
@@ -107,7 +107,7 @@ async.TopMenu = React.createClass({
 		}
     	var keyCode = event.keyCode || event.which;
     	if (keyCode == '13') {
-    		var item = React.findDOMNode(this.refs.search);
+    		var item = ReactDOM.findDOMNode(this.refs.search);
     		this.props.onDirectSearch(item.value);
       		item.value = "";
 

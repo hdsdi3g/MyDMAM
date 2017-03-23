@@ -61,7 +61,7 @@ ftpserver.UserList = React.createClass({
 		}.bind(this));
 	},
 	onUnLockDelete: function() {
-		this.setState({delete_enabled: React.findDOMNode(this.refs.cb_unlockdelete).checked});
+		this.setState({delete_enabled: ReactDOM.findDOMNode(this.refs.cb_unlockdelete).checked});
 	},
 	onChangeColSort: function(colname, previous_order) {
 		var order = null;

@@ -23,7 +23,7 @@ routes.loadBackbone = function(dom_target) {
 
 	var rlite = Rlite();
 
-	React.render(
+	ReactDOM.render(
 		<routes.Backbone rlite={rlite} />,
 		dom_target
 	);

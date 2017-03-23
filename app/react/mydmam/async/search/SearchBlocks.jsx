@@ -28,16 +28,16 @@ search.found = function(results, dom_target) {
 
 search.SearchForm = React.createClass({
 	componentDidMount: function() {
-		React.findDOMNode(this.refs.q).focus();
-		React.findDOMNode(this.refs.q).value = this.getDefaultText();
+		ReactDOM.findDOMNode(this.refs.q).focus();
+		ReactDOM.findDOMNode(this.refs.q).value = this.getDefaultText();
 	},
 	componentDidUpdate: function() {
-		React.findDOMNode(this.refs.q).focus();
-		React.findDOMNode(this.refs.q).value = this.getDefaultText();
+		ReactDOM.findDOMNode(this.refs.q).focus();
+		ReactDOM.findDOMNode(this.refs.q).value = this.getDefaultText();
 	},
 	handleSubmit: function(e) {
 		e.preventDefault();
-		var q = React.findDOMNode(this.refs.q).value.trim();
+		var q = ReactDOM.findDOMNode(this.refs.q).value.trim();
 	    if (!q) {
 			return;
 		}

@@ -156,7 +156,7 @@ async.CheckboxItem = React.createClass({
 		onChangeCheck: React.PropTypes.func.isRequired,
 	},
 	onClickCB: function(e) {
-   		$(React.findDOMNode(this.refs.cb)).blur();
+   		$(ReactDOM.findDOMNode(this.refs.cb)).blur();
    		this.props.onChangeCheck(this.props.reference, !this.props.checked);
 	},
 	render: function() {
@@ -430,7 +430,7 @@ async.SearchInputBox = React.createClass({
 	},
 	onTimerDone: function() {
 		this.setState({timer: null});
-		this.props.onKeyPress(React.findDOMNode(this.refs.inputbox).value);
+		this.props.onKeyPress(ReactDOM.findDOMNode(this.refs.inputbox).value);
 	},
 	onKeyPress: function() {
 		if (this.state.timer) {
@@ -459,7 +459,7 @@ async.NavTabsLink = React.createClass({
 	onClick: function(e) {
 		e.preventDefault();
 		this.props.onActiveChange(this.props.pos);
-		$(React.findDOMNode(this.refs.tab)).blur();
+		$(ReactDOM.findDOMNode(this.refs.tab)).blur();
 	},
 	render: function() {
 		var icon = null;
@@ -587,7 +587,7 @@ async.HeaderTab = React.createClass({
 	onClick: function(e) {
 		//e.preventDefault();
 		//this.props.onActiveChange(this.props.pos);
-		$(React.findDOMNode(this.refs.tab)).blur();
+		$(ReactDOM.findDOMNode(this.refs.tab)).blur();
 	},
 	render: function(){
 		var li_class = classNames({

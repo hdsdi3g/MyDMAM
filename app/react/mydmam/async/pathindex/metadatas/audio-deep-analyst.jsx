@@ -32,7 +32,7 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 			return;
 		}
 
-		var canvas = React.findDOMNode(this.refs.player_cursor);
+		var canvas = ReactDOM.findDOMNode(this.refs.player_cursor);
 		var rect = canvas.getBoundingClientRect();
 	    var cursor_xpos = event.clientX - rect.left;
 
@@ -68,7 +68,7 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 			return;
 		}
 
-		var canvas = React.findDOMNode(this.refs.player_cursor);
+		var canvas = ReactDOM.findDOMNode(this.refs.player_cursor);
 		var ref_width = canvas.width;
 		var ref_height = canvas.height;
 		

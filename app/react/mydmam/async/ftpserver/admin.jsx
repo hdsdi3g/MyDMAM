@@ -56,16 +56,16 @@ ftpserver.AddUser = React.createClass({
 		var user_id = this.props.params.userid;
 		if (user_id == null) {
 			request = {
-				user_name: 			React.findDOMNode(this.refs.user_name).value,
-				clear_password: 	React.findDOMNode(this.refs.password).value,
-				group_name: 		React.findDOMNode(this.refs.group).value,
-				domain: 			React.findDOMNode(this.refs.domain).value,
+				user_name: 			ReactDOM.findDOMNode(this.refs.user_name).value,
+				clear_password: 	ReactDOM.findDOMNode(this.refs.password).value,
+				group_name: 		ReactDOM.findDOMNode(this.refs.group).value,
+				domain: 			ReactDOM.findDOMNode(this.refs.domain).value,
 				operation: 			"CREATE",
 			};
 		} else {
 			request = {
 				user_id: 			user_id,		
-				clear_password: 	React.findDOMNode(this.refs.password).value,
+				clear_password: 	ReactDOM.findDOMNode(this.refs.password).value,
 				operation: 			"CH_PASSWORD",
 			};
 		}
@@ -75,7 +75,7 @@ ftpserver.AddUser = React.createClass({
 		mydmam.async.request("ftpserver", "adminoperationuser", request, function(data) {
 			document.body.style.cursor = 'auto';
 			if (this.props.params.userid == null) {
-				React.findDOMNode(this.refs.user_name).value = data.user_name;
+				ReactDOM.findDOMNode(this.refs.user_name).value = data.user_name;
 			}
 			this.setState({done: data.done});
 		}.bind(this));
@@ -83,13 +83,13 @@ ftpserver.AddUser = React.createClass({
 	toogleBtnDisplayGeneratePasswordForm: function() {
 		var generated_password = generatePassword();
 		this.setState({display_password_generator: ! this.state.display_password_generator, generated_password: generated_password});
-		React.findDOMNode(this.refs.password).value = generated_password;
+		ReactDOM.findDOMNode(this.refs.password).value = generated_password;
 	},
 	generatePasswordBtn: function() {
 		var generated_password = generatePassword();
 		this.setState({generated_password: generated_password});
-		React.findDOMNode(this.refs.inputgeneratedpassword).value = generated_password;
-		React.findDOMNode(this.refs.password).value = generated_password;
+		ReactDOM.findDOMNode(this.refs.inputgeneratedpassword).value = generated_password;
+		ReactDOM.findDOMNode(this.refs.password).value = generated_password;
 	},
 	render: function() {
 		var user_id = this.props.params.userid;

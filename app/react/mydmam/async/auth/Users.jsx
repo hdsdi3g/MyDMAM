@@ -160,18 +160,18 @@ auth.UserCreate = React.createClass({
 		this.setState({user_groups: user_groups});
 	},
 	onAddBtnClick: function(e) {
-		var password  = React.findDOMNode(this.refs.password).value;
-		var password2 = React.findDOMNode(this.refs.password2).value;
+		var password  = ReactDOM.findDOMNode(this.refs.password).value;
+		var password2 = ReactDOM.findDOMNode(this.refs.password2).value;
 		if (password != password2) {
-			React.findDOMNode(this.refs.password).value = "";
-			React.findDOMNode(this.refs.password2).value = "";
+			ReactDOM.findDOMNode(this.refs.password).value = "";
+			ReactDOM.findDOMNode(this.refs.password2).value = "";
 			return;
 		}
 
 		var new_user = {
-			login: React.findDOMNode(this.refs.login).value,
-			fullname: React.findDOMNode(this.refs.fullname).value,
-			email_addr: React.findDOMNode(this.refs.email_addr).value,
+			login: ReactDOM.findDOMNode(this.refs.login).value,
+			fullname: ReactDOM.findDOMNode(this.refs.fullname).value,
+			email_addr: ReactDOM.findDOMNode(this.refs.email_addr).value,
 			password: password,
 			locked_account: this.state.locked_account,
 			domain: this.state.user_domain,
@@ -307,12 +307,12 @@ var GroupPane = React.createClass({
 
 var PasswordPane = React.createClass({
 	onUpdBtnClick: function(e) {
-		var password  = React.findDOMNode(this.refs.password).value;
-		var password2 = React.findDOMNode(this.refs.password2).value;
+		var password  = ReactDOM.findDOMNode(this.refs.password).value;
+		var password2 = ReactDOM.findDOMNode(this.refs.password2).value;
 		if (password && password2) {
 			if (password != password2) {
-				React.findDOMNode(this.refs.password).value = "";
-				React.findDOMNode(this.refs.password2).value = "";
+				ReactDOM.findDOMNode(this.refs.password).value = "";
+				ReactDOM.findDOMNode(this.refs.password2).value = "";
 				return;
 			}
 		} else {
@@ -365,7 +365,7 @@ var DeletePane = React.createClass({
 
 var PropertiesPane = React.createClass({
 	onSaveBtnClick: function(e){
-		var new_value = React.findDOMNode(this.refs.data).value;
+		var new_value = ReactDOM.findDOMNode(this.refs.data).value;
 
 		var update_user = {
 			user_key: this.props.user_key,

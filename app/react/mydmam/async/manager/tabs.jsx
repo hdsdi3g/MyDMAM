@@ -158,7 +158,7 @@ manager.Threads = React.createClass({
 		$("html, body").scrollTop(0);
 	},
 	onSelectThread: function(thread_pos) {
-		var absolute = React.findDOMNode(this.refs[thread_pos]).getBoundingClientRect().y;
+		var absolute = ReactDOM.findDOMNode(this.refs[thread_pos]).getBoundingClientRect().y;
 		$("html, body").scrollTop($("html, body").scrollTop() + absolute - 50);
 	},
 	onGotoTheTop: function(e) {
@@ -337,7 +337,7 @@ manager.PerfstatsInstance = React.createClass({
 		var os_table = null;
 		if (instance.os) {
 			var os = instance.os;
-			os_table = (<table className="table table-bordered table-striped table-condensed table-hover" style={{width: "inherit"}}>
+			os_table = (<table className="table table-bordered table-striped table-condensed table-hover" style={{width: "inherit"}}><tbody>
 				<tr>
 					<th>CPU load</th>
 					<td>JVM process: {Math.round(os.getProcessCpuLoad * 100) / 100}</td>
@@ -362,7 +362,7 @@ manager.PerfstatsInstance = React.createClass({
 				<tr>
 					<td colSpan="4">Committed virtual memory size: {showMBsize(os.getCommittedVirtualMemorySize)}</td>
 				</tr>
-			</table>);
+			</tbody></table>);
 		}
 
 		return (<div>
@@ -624,9 +624,9 @@ var ClusterStatusTable = React.createClass({
 		}
 
 		return (<table style={{width: "auto"}} className="table table-striped table-hover table-condensed table-bordered">
-			<thead><th>
+			<thead><tr>
 				{headers}
-			</th></thead>
+			</tr></thead>
 			<tbody>{lines}</tbody>
 		</table>);
 	},
@@ -639,7 +639,7 @@ manager.ClusterStatus = React.createClass({
 			status: {},
 		};
 	},
-	componentWillMount: function() {
+	componentDidMount: function() {
 		mydmam.async.request("instances", "esclusterstatus", null, function(status) {
 			/*list.sort(function (a, b) {
 				return a.update_date < b.update_date;
@@ -726,8 +726,10 @@ manager.PlayServer = React.createClass({
 			btn_label_js_dev_mode = i18n("manager.playserver.switchjsprodmode")
 		}
 
+		var style_p = {marginBottom: "1em"};
+
 		return (<div>
-			<p>
+			<div style={style_p}>
 				<div className="btn-group">
 					<button onClick={this.onClickBtnPurgeplaycache} className="btn">
 						<i className="icon-fire"></i> {i18n("manager.playserver.purgeplaycache")}
@@ -742,13 +744,13 @@ manager.PlayServer = React.createClass({
 						<i className="icon-fire"></i> {i18n("manager.playserver.purgejs")}
 					</button>
 				</div>
-			</p>
-			<p>
+			</div>
+			<div style={style_p}>
 				{js_dev_mode}
-			</p>
-			<p>
+			</div>
+			<div style={style_p}>
 				<i className="icon-list-alt"></i> <a href="#debugpage">{i18n("manager.playserver.ajsdebugpage")}</a>
-			</p>
+			</div>
 			<pre>{this.state.report.pluginstatus}</pre>
 		</div>);
 	},
