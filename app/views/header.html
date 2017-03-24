@@ -40,11 +40,11 @@
 	<script src="@{'/public/javascripts/lib/rlite-1.1.1.min.js'}" type="text/javascript" charset="UTF-8"></script>
 
 	#{if hd3gtv.mydmam.web.JSSourceManager.isJsDevMode()}
-		<script src="@{'/public/javascripts/lib/react-0.14.0.js'}" type="text/javascript" charset="UTF-8"></script>
-		<script src="@{'/public/javascripts/lib/react-dom-0.14.0.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/react.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/react-dom.js'}" type="text/javascript" charset="UTF-8"></script>
 	#{/if}#{else}
-		<script src="@{'/public/javascripts/lib/react.min-0.14.0'}" type="text/javascript" charset="UTF-8"></script>
-		<script src="@{'/public/javascripts/lib/react-dom.min-0.14.0'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/react.min.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/react-dom.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	#{/else}
 
 	<script type="text/javascript"><!--
