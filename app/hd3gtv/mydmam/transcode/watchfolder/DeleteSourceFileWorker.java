@@ -31,6 +31,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.manager.JobContext;
+import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
 import hd3gtv.mydmam.manager.WorkerCapablities;
 import hd3gtv.mydmam.manager.WorkerNG;
@@ -123,6 +124,18 @@ class DeleteSourceFileWorker extends WorkerNG {
 		bulk.terminateBulk();
 		
 		DistantFileRecovery.manuallyReleaseFile(spie);
+		
+		if (order.clean_after_done) {
+			/**
+			 * Remove WF entry in db just after remove source file (in case of source file is removed)
+			 */
+			WatchFolderDB.remove(spie.prepare_key());
+			
+			/**
+			 * Remove all relative done jobs
+			 */
+			JobNG.Utility.removeJobsByKeys(order.getReferer().getRequiredJobKeys());
+		}
 	}
 	
 	private void sendSourceTo(SourcePathIndexerElement source, SourcePathIndexerElement dest) throws Exception {

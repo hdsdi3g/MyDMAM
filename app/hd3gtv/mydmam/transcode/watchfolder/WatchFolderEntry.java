@@ -79,6 +79,12 @@ import hd3gtv.tools.Timecode;
 
 public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 	
+	private static int max_founded_items = 0;
+	
+	static {
+		max_founded_items = Configuration.global.getValue("watchfolderopts", "max_founded_items", 0);
+	}
+	
 	private String name;
 	private String source_storage;
 	private ArrayList<String> limit_to_file_extentions;
@@ -237,7 +243,6 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		time_to_wait_growing_file = Configuration.getValue(all_wf_confs, name, "time_to_wait_growing_file", 1000);
 		time_to_sleep_between_scans = Configuration.getValue(all_wf_confs, name, "time_to_sleep_between_scans", 10000);
 		min_file_size = Configuration.getValue(all_wf_confs, name, "min_file_size", 10000);
-		
 		must_contain = new ArrayList<WatchFolderEntry.MustContainType>(2);
 		Object raw_must_contain = Configuration.getRawValue(all_wf_confs, name, "must_contain");
 		if (raw_must_contain != null) {
@@ -375,6 +380,15 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 					Thread.sleep(10);
 					sleep_time -= 10;
 				}
+				
+				if (max_founded_items > 0) {
+					int all_count = WatchFolderDB.getAllCount();
+					if (all_count > max_founded_items) {
+						Loggers.Transcode_WatchFolder.trace("Too many items in database (" + all_count + "), max is = " + max_founded_items);
+						continue;
+					}
+				}
+				
 				try {
 					
 					Loggers.Transcode_WatchFolder.trace("Start scan for " + name);
@@ -747,10 +761,8 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			
 			if (target.process_kit != null) {
 				if (target.process_kit.validateItem(indexing_result) == false) {
-					Loggers.Transcode_WatchFolder
-							.error("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass());
-					AdminMailAlert.create("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass(), false)
-							.send();
+					Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass());
+					AdminMailAlert.create("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass(), false).send();
 					validated_file.status = Status.ERROR;
 					WatchFolderDB.push(Arrays.asList(validated_file));
 					return;
@@ -776,6 +788,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				}
 			});
 		}
+		delete_source.clean_after_done = max_founded_items > 0;
 		
 		Loggers.Transcode_WatchFolder.trace("Prepare delete source job " + name + " for " + validated_file + " " + delete_source.contextToJson());
 		
@@ -824,6 +837,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			jo_entry.add("must_contain", MyDMAM.gson_kit.getGsonSimple().toJsonTree(entry.must_contain));
 			jo_entry.add("limit_to_file_extentions", MyDMAM.gson_kit.getGsonSimple().toJsonTree(entry.limit_to_file_extentions));
 			jo_entry.addProperty("min_file_size", entry.min_file_size);
+			jo_entry.addProperty("max_founded_items", max_founded_items);
 			jo_entry.addProperty("time_to_sleep_between_scans", entry.time_to_sleep_between_scans);
 			jo_entry.addProperty("time_to_wait_growing_file", entry.time_to_wait_growing_file);
 			jo_entry.addProperty("want_to_stop", entry.want_to_stop);

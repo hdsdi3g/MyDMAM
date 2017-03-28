@@ -178,7 +178,10 @@ public abstract class WorkerNG implements InstanceActionReceiver {
 				}
 				job.saveChanges();
 				
-				workerProcessJob(job.startProcessing(manager, reference), job.getContext());
+				JobContext context = job.getContext();
+				context.setReferer(job);
+				
+				workerProcessJob(job.startProcessing(manager, reference), context);
 				
 				if (job.isMaxExecutionTimeIsReached()) {
 					Loggers.Worker.warn("Job processing has reach the max execution time, for worker " + reference.toStringLight() + ":\t" + job.toString());

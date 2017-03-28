@@ -237,6 +237,13 @@ public final class JobNG {
 		return this;
 	}
 	
+	/**
+	 * @return can be null if no required jobs
+	 */
+	public List<String> getRequiredJobKeys() {
+		return required_keys;
+	}
+	
 	boolean isRequireIsDone() throws ConnectionException {
 		if (required_keys == null) {
 			return true;
@@ -816,6 +823,25 @@ public final class JobNG {
 			alterJobsFromJson(job_key, cols, mutator, order, result);
 			mutator.execute();
 			return result;
+		}
+		
+		/**
+		 * @param job_keys can be null or empty
+		 */
+		public static void removeJobsByKeys(Collection<String> job_keys) throws ConnectionException {
+			if (job_keys == null) {
+				return;
+			}
+			if (job_keys.isEmpty() == false) {
+				return;
+			}
+			
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			job_keys.forEach(job_key -> {
+				mutator.withRow(CF_QUEUE, job_key).delete();
+			});
+			mutator.execute();
+			return;
 		}
 		
 		private static void alterJobsFromJson(String job_key, ColumnList<String> cols, MutationBatch mutator, AlterJobOrderName order, JsonObject result) throws ConnectionException {
