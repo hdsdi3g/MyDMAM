@@ -115,7 +115,14 @@ public class WatchFolderDB {
 	}
 	
 	public static int getAllCount() throws ConnectionException {
-		return keyspace.prepareQuery(CF_WATCHFOLDERS).getAllRows().execute().getResult().size();
+		int size = 0;
+		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getAllRows().execute();
+		for (@SuppressWarnings("unused")
+		Row<String, String> row : rows.getResult()) {
+			size++;
+		}
+		
+		return size;
 	}
 	
 	static void push(List<AbstractFoundedFile> files) throws ConnectionException {

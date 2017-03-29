@@ -124,7 +124,7 @@ watchfoldertranscoder:
         must_contain: [video, audio] # or "video", or ["video"], or "audio" for audio only. In lowercase.
         # limit_to_file_extentions: mxf # or [mov, mp4] but without the dot.
 
-#watchfolderopts
+#watchfolderopts:
 #    max_founded_items: 100 # Limits the quantity of founded files stored in database (also and the limit of the created transcoding Jobs quantity)
 #                           # After the operation, the founded file entries and all transcoding related Jobs will be removed
 #    dontkeepdone: true     # Don't keep too long time founded files DB references after processing. If max_founded_items > 0, this param has not behaviors.
