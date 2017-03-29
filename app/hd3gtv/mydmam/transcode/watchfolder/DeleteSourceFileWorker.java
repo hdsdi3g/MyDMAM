@@ -126,15 +126,20 @@ class DeleteSourceFileWorker extends WorkerNG {
 		DistantFileRecovery.manuallyReleaseFile(spie);
 		
 		if (order.clean_after_done) {
+			String wf_item_key = spie.prepare_key();
+			List<String> jk = order.getReferer().getRequiredJobKeys();
+			
+			Loggers.Transcode_WatchFolder.info("Clean DB entries after processing: WF Key [" + wf_item_key + "] and relative jobkeys: " + jk);// TODO in debug
+			
 			/**
 			 * Remove WF entry in db just after remove source file (in case of source file is removed)
 			 */
-			WatchFolderDB.remove(spie.prepare_key());
+			WatchFolderDB.remove(wf_item_key);
 			
 			/**
 			 * Remove all relative done jobs
 			 */
-			JobNG.Utility.removeJobsByKeys(order.getReferer().getRequiredJobKeys());
+			JobNG.Utility.removeJobsByKeys(jk);
 		}
 	}
 	

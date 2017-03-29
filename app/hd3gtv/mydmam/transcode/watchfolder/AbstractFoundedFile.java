@@ -61,9 +61,13 @@ public class AbstractFoundedFile implements AbstractFile {
 		storage_name = cols.getStringValue("storage_name", "");
 		date = cols.getLongValue("filedate", 0l);
 		size = cols.getLongValue("filesize", 0l);
-		status = Status.valueOf(cols.getStringValue("status", Status.DETECTED.name()));
+		status = getStatusFromCols(cols);
 		last_checked = cols.getLongValue("last_checked", System.currentTimeMillis());
 		map_job_target = MyDMAM.gson_kit.getGsonSimple().fromJson(cols.getStringValue("map_job_target", "{}"), GsonKit.type_HashMap_String_String);
+	}
+	
+	static Status getStatusFromCols(ColumnList<String> cols) {
+		return Status.valueOf(cols.getStringValue("status", Status.DETECTED.name()));
 	}
 	
 	void saveToCassandra(MutationBatch mutator, boolean terminate) {

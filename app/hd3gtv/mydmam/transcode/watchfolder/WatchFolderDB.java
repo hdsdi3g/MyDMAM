@@ -32,6 +32,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
 
 public class WatchFolderDB {
 	
@@ -114,14 +115,14 @@ public class WatchFolderDB {
 		return result;
 	}
 	
-	public static int getAllCount() throws ConnectionException {
+	public static int getInProcessCount() throws ConnectionException {
 		int size = 0;
 		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getAllRows().execute();
-		for (@SuppressWarnings("unused")
-		Row<String, String> row : rows.getResult()) {
-			size++;
+		for (Row<String, String> row : rows.getResult()) {
+			if (AbstractFoundedFile.getStatusFromCols(row.getColumns()).equals(Status.IN_PROCESSING)) {
+				size++;
+			}
 		}
-		
 		return size;
 	}
 	

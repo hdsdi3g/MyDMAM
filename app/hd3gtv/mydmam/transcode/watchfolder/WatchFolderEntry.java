@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -382,7 +383,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				}
 				
 				if (max_founded_items > 0) {
-					int all_count = WatchFolderDB.getAllCount();
+					int all_count = WatchFolderDB.getInProcessCount();
 					if (all_count > max_founded_items) {
 						Loggers.Transcode_WatchFolder.trace("Too many items in database (" + all_count + "), max is = " + max_founded_items);
 						continue;
@@ -546,6 +547,11 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 					 * Lock it in Cassandra, and process it.
 					 */
 					Loggers.Transcode_WatchFolder.debug("For all validated files (" + validated_files.size() + "), lock it in Cassandra, and process it, in " + name);
+					
+					if (max_founded_items > 0 && validated_files.size() > max_founded_items) {
+						Collections.shuffle(validated_files);
+						validated_files = validated_files.subList(0, max_founded_items);
+					}
 					
 					for (int pos = 0; pos < validated_files.size(); pos++) {
 						validated_file = validated_files.get(pos);
