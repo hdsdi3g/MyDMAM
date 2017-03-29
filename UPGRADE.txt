@@ -1,7 +1,7 @@
 === MyDMAM Upgrade document ===
 
 #239 FTP server admin (in Play side) can create FTP account user directories. Just add some ftpservergroups/group name/base_working_dir keys in configuration
-#208 Add watchfolderopts.max_founded_items configuration entry for limit big watchfolders job explosion
+#208 Add watchfolderopts.max_founded_items and dontkeepdone configuration entry for limit big watchfolders job explosion
 
 v0.19
 #234  Change configuration keys: move auth.* to play.*

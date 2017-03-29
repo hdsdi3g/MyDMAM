@@ -31,6 +31,9 @@ import hd3gtv.mydmam.transcode.TranscodeProfile;
 public class WatchFolderTranscoder {
 	
 	static final int TTL_CASSANDRA = (int) TimeUnit.HOURS.toSeconds(24);
+	static final int TTL_CASSANDRA_SHORT = (int) TimeUnit.MINUTES.toSeconds(10);
+	static final boolean DONT_KEEP_DONE = Configuration.global.getValueBoolean("watchfolderopts", "dontkeepdone");
+	
 	static final long TTL_ES = TimeUnit.HOURS.toMillis(24);
 	
 	private transient ThreadGroup wf_group;

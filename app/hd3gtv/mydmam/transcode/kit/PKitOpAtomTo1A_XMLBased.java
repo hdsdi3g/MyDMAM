@@ -144,7 +144,9 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			if (file_atom_0.exists() && file_atom_0.isFile()) {
 				mxf_files.add(new Atom(file_atom_0));
 			} else {
-				throw new FileNotFoundException("Can't found main MXF file " + file_atom_0);
+				Loggers.Transcode.warn("Can't found main MXF file " + file_atom_0 + ", archive xml file to xml-old");
+				FileUtils.copyFile(physical_source, new File(FilenameUtils.removeExtension(physical_source.getAbsolutePath()) + ".xml-old"));
+				return null;
 			}
 			if (file_atom_1.exists() && file_atom_1.isFile()) {
 				mxf_files.add(new Atom(file_atom_1));
@@ -383,7 +385,6 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			mxf_files.forEach(atom -> {
 				atom.path.delete();
 			});
-			// physical_source.delete();
 			
 			return null;
 		}

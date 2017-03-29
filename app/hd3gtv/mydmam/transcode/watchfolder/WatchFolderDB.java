@@ -127,7 +127,7 @@ public class WatchFolderDB {
 			if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
 				Loggers.Transcode_WatchFolder.trace("Save FoundedFile in DB\t" + files.get(pos));
 			}
-			files.get(pos).saveToCassandra(mutator);
+			files.get(pos).saveToCassandra(mutator, false);
 		}
 		mutator.execute();
 	}
@@ -138,12 +138,13 @@ public class WatchFolderDB {
 		a_file.status = new_status;
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
-		a_file.saveToCassandra(mutator);
+		a_file.saveToCassandra(mutator, AbstractFoundedFile.Status.PROCESSED.equals(new_status));
 		
 		if (Loggers.Transcode_WatchFolder.isDebugEnabled()) {
 			Loggers.Transcode_WatchFolder.debug("Switch FoundedFile status: " + path_index_key + " is now " + new_status + " for this file: " + a_file.storage_name + ":" + a_file.path);
 		}
 		mutator.execute();
+		a_file.close();
 	}
 	
 	static ColumnPrefixDistributedRowLock<String> prepareLock(String pathindexkey) {
