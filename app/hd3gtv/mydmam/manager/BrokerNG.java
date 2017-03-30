@@ -283,7 +283,7 @@ public class BrokerNG {
 							Loggers.Broker.debug("Remove max date for postponed jobs for " + manager.getInstanceStatus().summary.getHostName());
 							JobNG.Utility.removeMaxDateForPostponedJobs(mutator, manager.getInstanceStatus().summary.getHostName());
 							
-							// TODO if job depends of and error job > set to error
+							JobNG.Utility.searchRequiredAndErrorJobsAndSetError(mutator);
 						}
 						
 						if (mutator.isEmpty() == false) {

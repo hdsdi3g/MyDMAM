@@ -129,7 +129,9 @@ class DeleteSourceFileWorker extends WorkerNG {
 			String wf_item_key = spie.prepare_key();
 			List<String> jk = order.getReferer().getRequiredJobKeys();
 			
-			Loggers.Transcode_WatchFolder.info("Clean DB entries after processing: WF Key [" + wf_item_key + "] and relative jobkeys: " + jk);// TODO in debug
+			if (Loggers.Transcode_WatchFolder.isDebugEnabled()) {
+				Loggers.Transcode_WatchFolder.debug("Clean DB entries after processing: WF Key [" + wf_item_key + "] and relative jobkeys: " + jk);
+			}
 			
 			/**
 			 * Remove WF entry in db just after remove source file (in case of source file is removed)

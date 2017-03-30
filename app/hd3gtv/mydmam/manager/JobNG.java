@@ -281,6 +281,42 @@ public final class JobNG {
 		return true;
 	}
 	
+	private boolean isRequireHasProblem() throws ConnectionException {
+		if (required_keys == null) {
+			return true;
+		}
+		if (required_keys.isEmpty()) {
+			return true;
+		}
+		
+		Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(required_keys).withColumnSlice("status").execute().getResult();
+		if (rows == null) {
+			return false;
+		}
+		if (rows.isEmpty()) {
+			return false;
+		}
+		for (Row<String, String> row : rows) {
+			String status = row.getColumns().getStringValue("status", JobStatus.WAITING.name());
+			if (status.equals(JobStatus.ERROR.name())) {
+				return true;
+			}
+			if (status.equals(JobStatus.CANCELED.name())) {
+				return true;
+			}
+			if (status.equals(JobStatus.STOPPED.name())) {
+				return true;
+			}
+			if (status.equals(JobStatus.TOO_LONG_DURATION.name())) {
+				return true;
+			}
+			if (status.equals(JobStatus.TOO_OLD.name())) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	boolean isTooOldjob() {
 		return (expiration_date < System.currentTimeMillis());
 	}
@@ -662,6 +698,35 @@ public final class JobNG {
 				Loggers.Job.info("Found old abandoned jobs:\t" + result);
 			}
 			return result;
+		}
+		
+		/**
+		 * If a job depends to an error job > set to error
+		 */
+		static void searchRequiredAndErrorJobsAndSetError(MutationBatch mutator) throws ConnectionException {
+			if (Loggers.Job.isDebugEnabled()) {
+				Loggers.Job.debug("Search required and error jobs and set error");
+			}
+			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
+			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
+			// index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
+			index_query.withColumnSlice("source");
+			
+			JobNG job;
+			OperationResult<Rows<String, String>> rows = index_query.execute();
+			for (Row<String, String> row : rows.getResult()) {
+				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+					continue;
+				}
+				job = JobNG.Utility.importFromDatabase(row.getColumns());
+				
+				if (job.isRequireHasProblem()) {
+					job.status = JobStatus.ERROR;
+					job.update_date = System.currentTimeMillis();
+					job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
+					Loggers.Job.info("Found a job to needs other(s) job(s). Set it in error: " + job.toStringLight());
+				}
+			}
 		}
 		
 		static void removeMaxDateForPostponedJobs(MutationBatch mutator, String creator_hostname) throws ConnectionException {
