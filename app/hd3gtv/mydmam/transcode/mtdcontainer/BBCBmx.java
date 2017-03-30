@@ -231,12 +231,20 @@ public class BBCBmx extends EntryAnalyser {
 	 */
 	public String getMXFStartTimecode() {
 		try {
-			return clip.getStartTimecodes().getMaterial().getValue();
+			return clip.getStartTimecodes().getPhysicalSource().getValue();
 		} catch (NullPointerException e) {
 			try {
-				return clip.getStartTimecodes().getPhysicalSource().getValue() + " (from physical source)";
+				return clip.getStartTimecodes().getMaterial().getValue();
 			} catch (NullPointerException e1) {
-				return null;
+				try {
+					return clip.getStartTimecodes().getFileSource().getValue();
+				} catch (NullPointerException e2) {
+					try {
+						return clip.getStartTimecodes().getMaterialOrigin().getValue();
+					} catch (NullPointerException e3) {
+						return null;
+					}
+				}
 			}
 		}
 	}
