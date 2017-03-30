@@ -257,7 +257,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			 * Get source timecode and name
 			 */
 			BBCBmx bmx = mxf_files.get(0).metadatas.getByType(BBCBmx.ES_TYPE, BBCBmx.class);
-			String source_tc_in = bmx.getClip().getStartTimecodes().getPhysicalSource().getValue();
+			String source_tc_in = bmx.getClip().getStartTimecodes().getPhysicalSource().getValue(); // TODO correct NPE
 			String source_name = bmx.getFile().getMaterialPackages().getMaterialPackage().get(0).getName();
 			
 			/**
@@ -403,5 +403,4 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 		}
 		
 	}
-	
 }

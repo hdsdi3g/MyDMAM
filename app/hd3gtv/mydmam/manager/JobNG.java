@@ -712,6 +712,8 @@ public final class JobNG {
 			// index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
 			index_query.withColumnSlice("source");
 			
+			ArrayList<JobNG> deleted_jobs = new ArrayList<>(1);
+			
 			JobNG job;
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			for (Row<String, String> row : rows.getResult()) {
@@ -724,8 +726,12 @@ public final class JobNG {
 					job.status = JobStatus.ERROR;
 					job.update_date = System.currentTimeMillis();
 					job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
-					Loggers.Job.info("Found a job to needs other(s) job(s). Set it in error: " + job.toStringLight());
+					deleted_jobs.add(job);
 				}
+			}
+			
+			if (deleted_jobs.isEmpty() == false) {
+				Loggers.Job.info("These job requires the success of other jobs. Some of these jobs are in error, so it also puts these job in error: " + deleted_jobs);
 			}
 		}
 		
