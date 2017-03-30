@@ -253,6 +253,14 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				files_to_clean.add(item.extracted_path);
 			}
 			
+			if (mxf_files.get(0).metadatas.containAnyMatchContainerEntryType(BBCBmx.ES_TYPE) == false) {
+				Loggers.Transcode.error("Can't get BMX analyst for " + mxf_files.get(0).path);
+				if (progression != null) {
+					progression.update("Error caused by bad MXF format");
+				}
+				throw new Exception("Invalid main MXF format: " + mxf_files.get(0).path.getName());
+			}
+			
 			/**
 			 * Get source timecode and name
 			 */
