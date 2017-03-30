@@ -126,6 +126,18 @@ public class WatchFolderDB {
 		return size;
 	}
 	
+	public static ArrayList<AbstractFoundedFile> getAllInProcess() throws ConnectionException {
+		ArrayList<AbstractFoundedFile> result = new ArrayList<AbstractFoundedFile>();
+		
+		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getAllRows().execute();
+		for (Row<String, String> row : rows.getResult()) {
+			if (AbstractFoundedFile.getStatusFromCols(row.getColumns()).equals(Status.IN_PROCESSING)) {
+				result.add(new AbstractFoundedFile(row.getKey(), row.getColumns()));
+			}
+		}
+		return result;
+	}
+	
 	static void push(List<AbstractFoundedFile> files) throws ConnectionException {
 		if (files.isEmpty()) {
 			return;

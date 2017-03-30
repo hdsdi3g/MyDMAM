@@ -373,6 +373,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		ColumnPrefixDistributedRowLock<String> lock;
 		
 		Crawler crawler = new Crawler();
+		int all_count = 0;
 		
 		try {
 			while (want_to_stop == false) {
@@ -383,11 +384,13 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				}
 				
 				if (max_founded_items > 0) {
-					int all_count = WatchFolderDB.getInProcessCount();
+					all_count = WatchFolderDB.getInProcessCount();
 					if (all_count > max_founded_items) {
 						Loggers.Transcode_WatchFolder.trace("Too many items in database (" + all_count + "), max is = " + max_founded_items);
 						continue;
 					}
+				} else {
+					all_count = 0;
 				}
 				
 				try {
@@ -549,8 +552,14 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 					Loggers.Transcode_WatchFolder.debug("For all validated files (" + validated_files.size() + "), lock it in Cassandra, and process it, in " + name);
 					
 					if (max_founded_items > 0 && validated_files.size() > max_founded_items) {
-						Collections.shuffle(validated_files);
-						validated_files = validated_files.subList(0, max_founded_items);
+						int max_start = max_founded_items - all_count;
+						if (max_start < 1) {
+							continue;
+						}
+						if (validated_files.size() > max_start) {
+							Collections.shuffle(validated_files);
+							validated_files = validated_files.subList(0, max_start);
+						}
 					}
 					
 					for (int pos = 0; pos < validated_files.size(); pos++) {
@@ -767,8 +776,10 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			
 			if (target.process_kit != null) {
 				if (target.process_kit.validateItem(indexing_result) == false) {
-					Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass());
-					AdminMailAlert.create("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass(), false).send();
+					Loggers.Transcode_WatchFolder
+							.error("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass());
+					AdminMailAlert.create("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass(), false)
+							.send();
 					validated_file.status = Status.ERROR;
 					WatchFolderDB.push(Arrays.asList(validated_file));
 					return;

@@ -18,6 +18,7 @@ package hd3gtv.mydmam.manager;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -107,6 +108,19 @@ public final class JobNG {
 	
 	public enum JobStatus {
 		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
+		
+		public boolean isInThisStatus(JobStatus... status) {
+			if (status == null) {
+				return false;
+			}
+			if (status.length == 0) {
+				return false;
+			}
+			return Arrays.asList(status).stream().anyMatch(s -> {
+				return s == this;
+			});
+		}
+		
 	}
 	
 	public enum AlterJobOrderName {
