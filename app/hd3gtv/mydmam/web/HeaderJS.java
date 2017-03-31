@@ -206,7 +206,11 @@ public class HeaderJS {
 			/**
 			 * Inject configuration Messages
 			 */
-			mydmam.put("i18n", MyDMAM.getconfiguredMessages());
+			JsonObject j_i18n = new JsonObject();
+			MyDMAM.getconfiguredMessages().forEach((k, v) -> {
+				j_i18n.addProperty((String) k, (String) v);
+			});
+			mydmam.put("i18n", j_i18n);
 			
 			return MyDMAM.gson_kit.getGsonSimple().toJson(mydmam);
 		} catch (DisconnectedUser e) {
