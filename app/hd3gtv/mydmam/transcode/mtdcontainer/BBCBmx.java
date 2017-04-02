@@ -16,9 +16,16 @@
 */
 package hd3gtv.mydmam.transcode.mtdcontainer;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -27,6 +34,9 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.container.ContainerEntryDeSerializer;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.tools.CopyMove;
+import hd3gtv.tools.ExecBinaryPath;
+import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.VideoConst;
 import hd3gtv.tools.VideoConst.Framerate;
 import uk.co.bbc.rd.bmx.Bmx;
@@ -37,6 +47,27 @@ import uk.co.bbc.rd.bmx.SoundDescriptorType;
 import uk.co.bbc.rd.bmx.TrackType;
 
 public class BBCBmx extends EntryAnalyser {
+	
+	public void analystFile(File source_file) throws IOException, JAXBException {
+		CopyMove.checkExistsCanRead(source_file);
+		CopyMove.checkIsFile(source_file);
+		
+		ArrayList<String> params = new ArrayList<String>();
+		params.add("--info-format");
+		params.add("xml");
+		params.add(source_file.getCanonicalPath());
+		
+		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("mxf2raw"), params);
+		process.setEndlinewidthnewline(true);
+		process.start();
+		
+		ByteArrayInputStream bias = new ByteArrayInputStream(process.getResultstdout().toString().getBytes("UTF-8"));
+		
+		JAXBContext jc = JAXBContext.newInstance("uk.co.bbc.rd.bmx");
+		Unmarshaller unmarshaller = jc.createUnmarshaller();
+		// unmarshaller.setValidating(true);
+		setBmx((Bmx) unmarshaller.unmarshal(bias));
+	}
 	
 	protected FileType file;
 	protected ClipType clip;

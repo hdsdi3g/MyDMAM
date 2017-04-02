@@ -16,13 +16,8 @@
 */
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Unmarshaller;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.metadata.ContainerEntryResult;
@@ -33,9 +28,7 @@ import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.mtdcontainer.BBCBmx;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
-import hd3gtv.tools.ExecprocessGettext;
 import hd3gtv.tools.StoppableProcessing;
-import uk.co.bbc.rd.bmx.Bmx;
 
 public class BBCBmxAnalyser implements MetadataExtractor {
 	
@@ -53,33 +46,18 @@ public class BBCBmxAnalyser implements MetadataExtractor {
 	}
 	
 	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
-		ArrayList<String> param = new ArrayList<String>();
-		param.add("--info-format");
-		param.add("xml");
-		param.add(container.getPhysicalSource().getPath());
+		BBCBmx result = new BBCBmx();
 		
-		ExecprocessGettext process = new ExecprocessGettext(ExecBinaryPath.get("mxf2raw"), param);
-		process.setEndlinewidthnewline(true);
 		try {
-			process.start();
+			result.analystFile(container.getPhysicalSource());
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
-				Loggers.Transcode_Metadata.error("Problem with mxf2raw (BBC BMX), " + process + ", " + container);
+				Loggers.Transcode_Metadata.error("Problem with mxf2raw (BBC BMX) on item " + container);
 			}
 			throw e;
 		}
 		
-		ByteArrayInputStream bias = new ByteArrayInputStream(process.getResultstdout().toString().getBytes("UTF-8"));
-		
-		JAXBContext jc = JAXBContext.newInstance("uk.co.bbc.rd.bmx");
-		Unmarshaller unmarshaller = jc.createUnmarshaller();
-		// unmarshaller.setValidating(true);
-		Bmx b = (Bmx) unmarshaller.unmarshal(bias);
-		BBCBmx result = new BBCBmx();
-		result.setBmx(b);
-		
 		container.getSummary().putSummaryContent(result, result.processSummary());
-		
 		return new ContainerEntryResult(result);
 	}
 	
