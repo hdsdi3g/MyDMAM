@@ -43,14 +43,14 @@ import hd3gtv.tools.XmlData;
 
 public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 	
-	private FFprobeJAXB ffprobe_jaxb;
-	
 	public boolean isFunctionnal() {
 		try {
 			ExecBinaryPath.get("ffprobe");
 			ExecBinaryPath.get("ffmpeg");
 			ExecBinaryPath.get("mxf2raw");
-			ffprobe_jaxb = new FFprobeJAXB();
+			ExecBinaryPath.get("bmxtranswrap");
+			ExecBinaryPath.get("writeavidmxf");
+			new FFprobeJAXB();
 			return true;
 		} catch (Exception e) {
 		}

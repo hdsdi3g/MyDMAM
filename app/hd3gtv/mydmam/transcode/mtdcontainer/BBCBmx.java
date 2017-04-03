@@ -362,4 +362,8 @@ public class BBCBmx extends EntryAnalyser {
 		return file;
 	}
 	
+	public boolean isLoaded() {
+		return clip != null && file != null;
+	}
+	
 }
