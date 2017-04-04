@@ -20,10 +20,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.ffmpeg.ffprobe.FfprobeType;
+import org.ffmpeg.ffprobe.StreamType;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.transcode.mtdcontainer.BBCBmx;
@@ -37,7 +39,7 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 	private FfprobeType ffprobe;
 	private BBCBmx bmx;
 	private String temp_base_file_name;
-	private File extracted_path; // TODO rename
+	private File extracted_atom;
 	
 	PKitOpAtomTo1A_XMLBasedAtom(File original_atom, String temp_base_file_name) {
 		this.original_atom = original_atom;
@@ -82,9 +84,9 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 			execMxf2raw(original_atom, temp_file_name_mxf2raw);
 			File corrected_file = foundFile(temp_file_name_mxf2raw);
 			
-			extracted_path = new File(FilenameUtils.removeExtension(corrected_file.getPath()) + ".mxf");
-			if (corrected_file.renameTo(extracted_path) == false) {
-				throw new FileNotFoundException("Can't rename file " + corrected_file + " to " + extracted_path.getName());
+			extracted_atom = new File(FilenameUtils.removeExtension(corrected_file.getPath()) + ".mxf");
+			if (corrected_file.renameTo(extracted_atom) == false) {
+				throw new FileNotFoundException("Can't rename file " + corrected_file + " to " + extracted_atom.getName());
 			}
 		} else {
 			/**
@@ -94,28 +96,26 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 			execWriteavidmxf(original_atom, temp_file_name_writeavidmxf);
 			File corrected_file = foundFile(temp_file_name_writeavidmxf);
 			
-			extracted_path = new File(FilenameUtils.removeExtension(corrected_file.getPath()) + ".mxf");
-			if (corrected_file.renameTo(extracted_path) == false) {
-				throw new FileNotFoundException("Can't rename file " + corrected_file + " to " + extracted_path.getName());
+			extracted_atom = new File(FilenameUtils.removeExtension(corrected_file.getPath()) + ".mxf");
+			if (corrected_file.renameTo(extracted_atom) == false) {
+				throw new FileNotFoundException("Can't rename file " + corrected_file + " to " + extracted_atom.getName());
 			}
 			
 			String temp_file_name_mxf2raw = makeTempFilePath("mxf2raw");
-			execMxf2raw(extracted_path, temp_file_name_mxf2raw);
+			execMxf2raw(extracted_atom, temp_file_name_mxf2raw);
 			corrected_file = foundFile(temp_file_name_mxf2raw);
-			FileUtils.forceDelete(extracted_path);
+			FileUtils.forceDelete(extracted_atom);
 			
-			extracted_path = new File(makeTempFilePath("bmxtranswrap") + ".mxf");
-			execBmxtranswrap(corrected_file, extracted_path);
+			extracted_atom = new File(makeTempFilePath("bmxtranswrap") + ".mxf");
+			execBmxtranswrap(corrected_file, extracted_atom);
 			FileUtils.forceDelete(corrected_file);
 		}
 		
-		// TODO do an analyse of output file (converted) with ffprobe and bmx
-		
 		/**
-		 * No error are allowed
+		 * No error are allowed from here
 		 */
-		bmx.analystFile(extracted_path);
-		ffprobe = ffprobe_jaxb.analystFile(extracted_path);
+		bmx.analystFile(extracted_atom);
+		ffprobe = ffprobe_jaxb.analystFile(extracted_atom);
 	}
 	
 	private void execBmxtranswrap(File source_file, File dest_file) throws IOException {
@@ -177,8 +177,8 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 	}
 	
 	File getValidAtomFile() {
-		if (extracted_path != null) {
-			return extracted_path;
+		if (extracted_atom != null) {
+			return extracted_atom;
 		}
 		return original_atom;
 	}
@@ -190,39 +190,86 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 		return bmx.isLoaded() == false | ffprobe == null;
 	}
 	
+	private StreamType getValidStream() {
+		if (ffprobe == null) {
+			throw new NullPointerException("ffprobe analysing is null for " + this.original_atom.getName());
+		}
+		
+		Optional<StreamType> result = ffprobe.getStreams().getStream().stream().filter(stream_type -> {
+			if (stream_type.getCodecType().equalsIgnoreCase("data")) {
+				return false;
+			}
+			if (stream_type.getCodecName() == null) {
+				return false;
+			}
+			if (stream_type.getCodecName().equals("")) {
+				return false;
+			}
+			if (stream_type.getBitRate() == null) {
+				return false;
+			}
+			if (stream_type.getBitRate() == 0) {
+				return false;
+			}
+			return true;
+		}).findFirst();
+		
+		if (result.isPresent() == false) {
+			throw new IndexOutOfBoundsException("No valid stream founded for " + this.original_atom.getName());
+		}
+		
+		return result.get();
+	}
+	
 	int getMXFStreamMap() {
-		// TODO
-		return 0;
+		return getValidStream().getIndex();
 	}
 	
 	String getStartTC() {
-		// TODO
-		/*BBCBmx bmx = mxf_files.get(0).metadatas.getByType(BBCBmx.ES_TYPE, BBCBmx.class);
-		String source_tc_in = bmx.getMXFStartTimecode();
-		if (source_tc_in == null) {
-			source_tc_in = "00:00:00:00";
-			Loggers.Transcode.warn("Can't extract TC from source " + mxf_files.get(0).path);
+		try {
+			return bmx.getMXFStartTimecode();
+		} catch (Exception e) {
+			Loggers.Transcode.debug("Can't get MXF TC from BMX " + original_atom.getName(), e);
 		}
-		*/
+		
+		try {
+			return getValidStream().getTag().stream().filter(tag -> {
+				return tag.getKey().equals("timecode");
+			}).findFirst().get().getValue();
+		} catch (Exception e) {
+			Loggers.Transcode.debug("Can't get MXF TC from ffprobe " + original_atom.getName(), e);
+		}
+		
 		return null;
 	}
 	
 	String getName() {
-		// TODO
-		/*
-			String source_name = bmx.getMXFName();
-			if (source_name == null) {
-			source_name = "";
-			Loggers.Transcode.warn("Can't extract name from source " + mxf_files.get(0).path);
-			}*/
+		try {
+			return bmx.getMXFName();
+		} catch (Exception e) {
+			Loggers.Transcode.debug("Can't get MXF Name from BMX " + original_atom.getName(), e);
+		}
+		
+		try {
+			return getValidStream().getTag().stream().filter(tag -> {
+				return tag.getKey().equals("file_package_name");
+			}).findFirst().orElseGet(() -> {
+				return getValidStream().getTag().stream().filter(tag -> {
+					return tag.getKey().equals("reel_name");
+				}).findFirst().get();
+			}).getValue();
+		} catch (Exception e) {
+			Loggers.Transcode.debug("Can't get MXF Name from ffprobe " + original_atom.getName(), e);
+		}
+		
 		return null;
 	}
 	
 	void clean() {
-		if (extracted_path != null) {
-			if (extracted_path.exists()) {
+		if (extracted_atom != null) {
+			if (extracted_atom.exists()) {
 				try {
-					FileUtils.forceDelete(extracted_path);
+					FileUtils.forceDelete(extracted_atom);
 				} catch (IOException e) {
 					Loggers.Transcode.error("Can't delete temp file", e);
 				}
