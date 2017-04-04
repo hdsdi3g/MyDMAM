@@ -275,9 +275,14 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 				}
 			}
 		}
+		try {
+			FileUtils.forceDelete(original_atom);
+		} catch (IOException e) {
+			Loggers.Transcode.error("Can't delete atom file", e);
+		}
 	}
 	
 	public String toString() {
-		return this.original_atom.getPath();
+		return original_atom.getPath();
 	}
 }

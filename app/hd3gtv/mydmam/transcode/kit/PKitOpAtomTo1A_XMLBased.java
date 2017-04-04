@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -101,7 +102,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			
 			ArrayList<File> all_mxf_files = new ArrayList<>(5);
 			
-			all_mxf_files.add(new File(FilenameUtils.removeExtension(physical_source.getAbsolutePath()) + ".mxf").getCanonicalFile());
+			all_mxf_files.add(new File(FilenameUtils.removeExtension(physical_source.getAbsolutePath()) + ".mxf").getCanonicalFile());// TODO must check this content
 			URL dest_archive = null;
 			String outputfile_basename = "(error).mxf";
 			
@@ -140,6 +141,10 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				}
 			} else {
 				result_op1a = new File(new File(chroot_ftp).getAbsolutePath() + File.separator + dest_archive.getPath() + File.separator + outputfile_basename);
+			}
+			
+			if (Loggers.Transcode.isDebugEnabled()) {
+				Loggers.Transcode.debug("Found some atoms declared by " + physical_source.getName() + ": " + all_mxf_files);
 			}
 			
 			FileUtils.forceMkdir(result_op1a.getParentFile());
@@ -219,6 +224,33 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				Loggers.Transcode.warn("Can't extract MXF Start TC from files: " + all_atoms);
 				return "";
 			});
+			
+			/**
+			 * Remove duplicate streams
+			 */
+			HashSet<Integer> actual_atom_indexes = new HashSet<>(5);
+			ArrayList<PKitOpAtomTo1A_XMLBasedAtom> duplicate_atoms_to_delete = new ArrayList<>(1);
+			
+			all_atoms.removeIf(atom -> {
+				Integer index = atom.getMXFStreamMap();
+				if (actual_atom_indexes.contains(index)) {
+					duplicate_atoms_to_delete.add(atom);
+					Loggers.Transcode.debug("Duplicate atom index (" + index + "), don't use it: " + atom);
+					return true;
+				}
+				actual_atom_indexes.add(index);
+				return false;
+			});
+			
+			/**
+			 * Check stream indexes order
+			 */
+			for (int pos = 0; pos < all_atoms.size(); pos++) {
+				int map = all_atoms.get(pos).getMXFStreamMap();
+				if (map != pos) {
+					throw new IOException("Invalid stream map: atom #" + pos + " have a index == " + map + ". " + all_atoms.get(pos).toString());
+				}
+			}
 			
 			/**
 			 * Prepare bmxtranswrap process exec
@@ -318,6 +350,9 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			 * Remove source files.
 			 */
 			all_atoms.forEach(atom -> {
+				atom.clean();
+			});
+			duplicate_atoms_to_delete.forEach(atom -> {
 				atom.clean();
 			});
 			
