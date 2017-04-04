@@ -21,6 +21,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.ffmpeg.ffprobe.FfprobeType;
 
 import hd3gtv.mydmam.Loggers;
@@ -34,11 +36,17 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 	private File original_atom;
 	private FfprobeType ffprobe;
 	private BBCBmx bmx;
-	// File extracted_path;
+	private String temp_base_file_name;
+	private File extracted_path; // TODO rename
 	
-	PKitOpAtomTo1A_XMLBasedAtom(File original_atom) {
+	PKitOpAtomTo1A_XMLBasedAtom(File original_atom, String temp_base_file_name) {
 		this.original_atom = original_atom;
+		this.temp_base_file_name = temp_base_file_name;
 		bmx = new BBCBmx();
+	}
+	
+	private String makeTempFilePath(String suffix) {
+		return original_atom.getParentFile().getAbsolutePath() + File.separator + temp_base_file_name + "_" + suffix;
 	}
 	
 	void analystNcorrect() throws Exception {
@@ -67,47 +75,47 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 		}
 		
 		if (bmx.isLoaded() == false ^ ffprobe == null) {
-			/* TODO SIMPLE CORRECT
-				File temp_dir = item.path.getParentFile();
-			if (temp_directory != null) {
-			temp_dir = temp_directory;
-			}
-			temp_dir = temp_dir.getCanonicalFile();
-			
-			String temp_file_name = temp_dir.getPath() + File.separator + item.metadatas.getMtd_key() + "_" + (pos + 1);
-			
-			mxf2raw(item.path, temp_file_name)
-						
-			File raw_file = foundFile(temp_dir, item.metadatas.getMtd_key())
-			if (raw_file.exists() == false) {
-			throw new FileNotFoundException(raw_file.getAbsolutePath());
-			}
-			item.extracted_path = new File(temp_file_name + ".mxf");
-			raw_file.renameTo(item.extracted_path);
-			files_to_clean.add(item.extracted_path);
-			
-			* */
-		} else {
-			/*
-			 * TODO big correction
-			 * 
-			 * writeavidmxf --prefix out --unc1080i remont_e_v01f1e13bb4.mxf
-			> out_v1.mxf
-			execWriteavidmxf(source_file, output_file_base_name)
-			
-			mxf2raw --ess-out outraw out_v1.mxf
-			>  outraw_v0.raw 
-			mxf2raw(item.path, temp_file_name)
-			
-			bmxtranswrap -t op1a -y 00:00:00:00 --clip AAA -o remont_e_v01f1e13bb4-corrige.mxf outraw_v0.raw
-			> remont_e_v01f1e13bb4-corrige.mxf
-			
-			execBmxtranswrap(File source_file, File dest_file)
-			 * 
+			/**
+			 * Simple correction
 			 */
+			String temp_file_name_mxf2raw = makeTempFilePath("mxf2raw");
+			execMxf2raw(original_atom, temp_file_name_mxf2raw);
+			File corrected_file = foundFile(temp_file_name_mxf2raw);
+			
+			extracted_path = new File(FilenameUtils.removeExtension(corrected_file.getPath()) + ".mxf");
+			if (corrected_file.renameTo(extracted_path) == false) {
+				throw new FileNotFoundException("Can't rename file " + corrected_file + " to " + extracted_path.getName());
+			}
+		} else {
+			/**
+			 * Big corrections for "corrupted" files
+			 */
+			String temp_file_name_writeavidmxf = makeTempFilePath("writeavidmxf");
+			execWriteavidmxf(original_atom, temp_file_name_writeavidmxf);
+			File corrected_file = foundFile(temp_file_name_writeavidmxf);
+			
+			extracted_path = new File(FilenameUtils.removeExtension(corrected_file.getPath()) + ".mxf");
+			if (corrected_file.renameTo(extracted_path) == false) {
+				throw new FileNotFoundException("Can't rename file " + corrected_file + " to " + extracted_path.getName());
+			}
+			
+			String temp_file_name_mxf2raw = makeTempFilePath("mxf2raw");
+			execMxf2raw(extracted_path, temp_file_name_mxf2raw);
+			corrected_file = foundFile(temp_file_name_mxf2raw);
+			FileUtils.forceDelete(extracted_path);
+			
+			extracted_path = new File(makeTempFilePath("bmxtranswrap") + ".mxf");
+			execBmxtranswrap(corrected_file, extracted_path);
+			FileUtils.forceDelete(corrected_file);
 		}
 		
 		// TODO do an analyse of output file (converted) with ffprobe and bmx
+		
+		/**
+		 * No error are allowed
+		 */
+		bmx.analystFile(extracted_path);
+		ffprobe = ffprobe_jaxb.analystFile(extracted_path);
 	}
 	
 	private void execBmxtranswrap(File source_file, File dest_file) throws IOException {
@@ -156,20 +164,22 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 		process.start();
 	}
 	
-	private File foundFile(File directory, String basename) throws FileNotFoundException {
-		File[] founded = directory.listFiles((dir, name) -> {
-			return name.startsWith(basename);
+	private File foundFile(String basename) throws FileNotFoundException {
+		String real_base_name = FilenameUtils.getBaseName(basename);
+		File[] founded = original_atom.getParentFile().listFiles((dir, name) -> {
+			return name.startsWith(real_base_name);
 		});
 		
 		if (founded.length != 1) {
-			throw new FileNotFoundException(directory.getPath() + File.separator + basename + "*");
+			throw new FileNotFoundException(original_atom.getParent() + File.separator + basename + "*");
 		}
 		return founded[0];
 	}
 	
 	File getValidAtomFile() {
-		// TODO
-		
+		if (extracted_path != null) {
+			return extracted_path;
+		}
 		return original_atom;
 	}
 	
@@ -209,11 +219,15 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 	}
 	
 	void clean() {
-		if (needsToBeWrapWithFFmpeg() == false) {
-			return;
+		if (extracted_path != null) {
+			if (extracted_path.exists()) {
+				try {
+					FileUtils.forceDelete(extracted_path);
+				} catch (IOException e) {
+					Loggers.Transcode.error("Can't delete temp file", e);
+				}
+			}
 		}
-		
-		// TODO remove corrected files
 	}
 	
 	public String toString() {

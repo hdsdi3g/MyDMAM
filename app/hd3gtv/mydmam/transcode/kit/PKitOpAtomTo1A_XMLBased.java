@@ -22,6 +22,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.w3c.dom.Element;
@@ -166,8 +167,9 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			/**
 			 * Create atom list
 			 */
+			AtomicInteger inc = new AtomicInteger(0);
 			List<PKitOpAtomTo1A_XMLBasedAtom> all_atoms = all_mxf_files.stream().distinct().map(mxf_file -> {
-				return new PKitOpAtomTo1A_XMLBasedAtom(mxf_file);
+				return new PKitOpAtomTo1A_XMLBasedAtom(mxf_file, FilenameUtils.removeExtension(physical_source.getName()) + "_" + String.valueOf(inc.getAndIncrement()));
 			}).collect(Collectors.toList());
 			
 			/**

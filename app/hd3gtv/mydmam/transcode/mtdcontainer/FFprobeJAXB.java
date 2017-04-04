@@ -57,8 +57,7 @@ public class FFprobeJAXB {
 		 */
 		unmarshaller.setEventHandler((ValidationEventHandler) e -> {
 			ValidationEventLocator localtor = e.getLocator();
-			Loggers.Transcode.warn("FFprobe XML validation: " + e.getMessage() + " [s" + e.getSeverity() + "] at line " + localtor.getLineNumber() + ", column " + localtor.getColumnNumber()
-					+ " offset " + localtor.getOffset() + " node: " + localtor.getNode() + ", object " + localtor.getObject());
+			Loggers.Transcode.warn("FFprobe XML validation: " + e.getMessage() + " [s" + e.getSeverity() + "] at line " + localtor.getLineNumber() + ", column " + localtor.getColumnNumber() + " offset " + localtor.getOffset() + " node: " + localtor.getNode() + ", object " + localtor.getObject());
 			return true;
 		});
 		
