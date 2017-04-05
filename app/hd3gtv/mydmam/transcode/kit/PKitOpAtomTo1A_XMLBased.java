@@ -40,7 +40,6 @@ import hd3gtv.mydmam.transcode.ProcessingKitInstance;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobeJAXB;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessGettext;
-import hd3gtv.tools.ExecprocessPipedCascade;
 import hd3gtv.tools.XmlData;
 
 public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
@@ -50,8 +49,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			ExecBinaryPath.get("ffprobe");
 			ExecBinaryPath.get("ffmpeg");
 			ExecBinaryPath.get("mxf2raw");
-			ExecBinaryPath.get("bmxtranswrap");
-			ExecBinaryPath.get("writeavidmxf");
+			ExecBinaryPath.get("raw2bmx");
 			new FFprobeJAXB();
 			return true;
 		} catch (Exception e) {
@@ -109,6 +107,10 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			NodeList document_items = order_xml.getDocumentElement().getChildNodes();
 			for (int pos = 0; pos < document_items.getLength(); pos++) {
 				Element node = (Element) document_items.item(pos);
+				if (node.getTextContent().equals("")) {
+					continue;
+				}
+				
 				if (node.getTagName().equals("atom1")) {
 					all_mxf_files.add(new File(FilenameUtils.getFullPath(physical_source.getAbsolutePath()) + node.getTextContent()).getCanonicalFile());
 				} else if (node.getTagName().equals("atom2")) {
@@ -182,6 +184,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			 */
 			Optional<Exception> o_exception = all_atoms.stream().map(atom -> {
 				try {
+					Loggers.Transcode.debug("Start analysing (and correction if needed) of Atom " + atom);
 					atom.analystNcorrect();
 					return null;
 				} catch (Exception e) {
@@ -196,34 +199,6 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				FileUtils.copyFile(physical_source, new File(FilenameUtils.removeExtension(physical_source.getAbsolutePath()) + ".xml-old"));
 				return null;
 			}
-			
-			/**
-			 * Get source name
-			 */
-			String source_name = all_atoms.stream().map(atom -> {
-				return atom.getName();
-			}).filter(name -> {
-				return name != null;
-			}).filter(name -> {
-				return name.isEmpty() == false;
-			}).findFirst().orElseGet(() -> {
-				Loggers.Transcode.warn("Can't extract MXF Name from files: " + all_atoms);
-				return "";
-			});
-			
-			/**
-			 * Get source timecode
-			 */
-			String source_tc_in = all_atoms.stream().map(atom -> {
-				return atom.getStartTC();
-			}).filter(name -> {
-				return name != null;
-			}).filter(name -> {
-				return name.isEmpty() == false;
-			}).findFirst().orElseGet(() -> {
-				Loggers.Transcode.warn("Can't extract MXF Start TC from files: " + all_atoms);
-				return "";
-			});
 			
 			/**
 			 * Remove duplicate streams
@@ -243,98 +218,72 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			});
 			
 			/**
+			 * Get source name
+			 */
+			String source_name = all_atoms.stream().map(atom -> {
+				return atom.getName();
+			}).filter(name -> {
+				return name != null;
+			}).filter(name -> {
+				return name.isEmpty() == false;
+			}).findFirst().orElseGet(() -> {
+				Loggers.Transcode.warn("Can't extract MXF Name from files: " + all_atoms);
+				return null;
+			});
+			
+			/**
+			 * Get source timecode
+			 */
+			String source_tc_in = all_atoms.stream().map(atom -> {
+				return atom.getStartTC();
+			}).filter(name -> {
+				return name != null;
+			}).filter(name -> {
+				return name.isEmpty() == false;
+			}).findFirst().orElseGet(() -> {
+				Loggers.Transcode.warn("Can't extract MXF Start TC from files: " + all_atoms);
+				return null;
+			});
+			
+			/*
 			 * Check stream indexes order
 			 */
-			for (int pos = 0; pos < all_atoms.size(); pos++) {
+			/*for (int pos = 0; pos < all_atoms.size(); pos++) {
 				int map = all_atoms.get(pos).getMXFStreamMap();
 				if (map != pos) {
 					throw new IOException("Invalid stream map: atom #" + pos + " have a index == " + map + ". " + all_atoms.get(pos).toString());
 				}
-			}
+			}*/
 			
 			/**
-			 * Prepare bmxtranswrap process exec
+			 * Prepare raw2bmx process exec for muxing operation (rewap atoms and set metadatas)
 			 */
-			ArrayList<String> bmxparams = new ArrayList<>();
-			bmxparams.add("-t");
-			bmxparams.add("op1a");
-			bmxparams.add("-y");
-			bmxparams.add(source_tc_in);
-			bmxparams.add("--clip");
-			bmxparams.add(source_name);
-			bmxparams.add("-o");
-			bmxparams.add(result_op1a.getAbsolutePath());
-			
-			/**
-			 * Muxing operation
-			 */
-			if (all_atoms.stream().filter(atom -> {
-				return atom.needsToBeWrapWithFFmpeg();
-			}).findFirst().isPresent()) {
-				/**
-				 * Start ffmpeg for rewrap raw streams, and pipe to bmxtranswrap to set metadatas.
-				 */
-				ExecprocessPipedCascade pipe = new ExecprocessPipedCascade();
-				pipe.setWorkingDirectory(result_op1a.getParentFile());
-				
-				ArrayList<String> params_ffmpeg = new ArrayList<>();
-				params_ffmpeg.add("-y");
-				all_atoms.stream().forEach(atom -> {
-					params_ffmpeg.add("-i");
-					params_ffmpeg.add(atom.getValidAtomFile().getAbsolutePath());
-				});
-				
-				params_ffmpeg.add("-codec:v");
-				params_ffmpeg.add("copy");
-				params_ffmpeg.add("-codec:a");
-				params_ffmpeg.add("copy");
-				all_atoms.stream().forEach(atom -> {
-					params_ffmpeg.add("-map");
-					params_ffmpeg.add(String.valueOf(atom.getMXFStreamMap()));
-				});
-				params_ffmpeg.add("-f");
-				params_ffmpeg.add("mxf");
-				params_ffmpeg.add("-");
-				pipe.add(ExecBinaryPath.get("ffmpeg"), params_ffmpeg);
-				
-				bmxparams.add("-");
-				pipe.add(ExecBinaryPath.get("bmxtranswrap"), bmxparams);
-				
-				if (progression != null) {
-					progression.update("Wrap all essences/Atom with ffmpeg and bmxtranswrap");
-				}
-				
-				pipe.startAll();
-				boolean is_ok = false;
-				if (stoppable != null) {
-					is_ok = pipe.waitExec(stoppable);
-					if (stoppable.isWantToStopCurrentProcessing() == true) {
-						return null;
-					}
-				} else {
-					is_ok = pipe.waitExec();
-				}
-				
-				if (is_ok == false) {
-					throw new IOException("Can't process wrap with bmx and ffmpeg");
-				}
-			} else {
-				/**
-				 * Use bmxtranswrap for rewap atoms and set metadatas
-				 */
-				all_atoms.stream().forEach(atom -> {
-					bmxparams.add(atom.getValidAtomFile().getAbsolutePath());
-				});
-				
-				ExecprocessGettext bmx_process = new ExecprocessGettext(ExecBinaryPath.get("bmxtranswrap"), bmxparams);
-				bmx_process.setWorkingDirectory(result_op1a.getParentFile());
-				
-				if (progression != null) {
-					progression.update("Wrap all essences/Atom with bmxtranswrap");
-				}
-				
-				bmx_process.start(stoppable);
+			ArrayList<String> raw2bmx = new ArrayList<>();
+			raw2bmx.add("-t");
+			raw2bmx.add("op1a");
+			if (source_tc_in != null) {
+				raw2bmx.add("-y");
+				raw2bmx.add(source_tc_in);
 			}
+			if (source_name != null) {
+				raw2bmx.add("--clip");
+				raw2bmx.add(source_name);
+			}
+			raw2bmx.add("-o");
+			raw2bmx.add(result_op1a.getAbsolutePath());
+			
+			all_atoms.stream().forEach(atom -> {
+				raw2bmx.add(atom.getValidAtomFile().getAbsolutePath());
+			});
+			
+			ExecprocessGettext bmx_process = new ExecprocessGettext(ExecBinaryPath.get("raw2bmx"), raw2bmx);
+			bmx_process.setWorkingDirectory(result_op1a.getParentFile());
+			
+			/*if (progression != null) {
+				progression.update("Wrap all essences/Atom with bmxtranswrap");
+			}*/
+			
+			bmx_process.start(stoppable);
 			
 			/*if (stoppable != null) {
 			if (stoppable.isWantToStopCurrentProcessing() == true) {
@@ -347,13 +296,13 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			}*/
 			
 			/**
-			 * Remove source files.
+			 * Prepare to remove source and temp files.
 			 */
 			all_atoms.forEach(atom -> {
-				atom.clean();
+				files_to_clean.addAll(atom.getFilesToClean());
 			});
 			duplicate_atoms_to_delete.forEach(atom -> {
-				atom.clean();
+				files_to_clean.addAll(atom.getFilesToClean());
 			});
 			
 			return null;
@@ -361,13 +310,13 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 		
 		public void cleanTempFiles() {
 			/**
-			 * Delete raw temp files, if exists
+			 * Delete raw temp files and sources, if exists
 			 */
 			files_to_clean.forEach(v -> {
 				try {
 					FileUtils.forceDelete(v);
 				} catch (Exception e) {
-					Loggers.Transcode.warn("Can't clean temp file", e);
+					Loggers.Transcode.warn("Can't clean file", e);
 				}
 			});
 		}

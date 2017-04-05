@@ -20,9 +20,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.ffmpeg.ffprobe.FfprobeType;
 import org.ffmpeg.ffprobe.StreamType;
@@ -69,6 +69,8 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 			Loggers.Transcode.debug("Can't analysing atom file with ffprobe " + original_atom.getPath(), e);
 		}
 		
+		// TODO refactor: use ffmpeg for audio, mxf2raw for video
+		
 		/**
 		 * This file is a perfect bug less MXF file
 		 */
@@ -80,19 +82,19 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 			/**
 			 * Simple correction
 			 */
-			String temp_file_name_mxf2raw = makeTempFilePath("mxf2raw");
+			/*String temp_file_name_mxf2raw = makeTempFilePath("mxf2raw");
 			execMxf2raw(original_atom, temp_file_name_mxf2raw);
 			File corrected_file = foundFile(temp_file_name_mxf2raw);
 			
 			extracted_atom = new File(FilenameUtils.removeExtension(corrected_file.getPath()) + ".mxf");
 			if (corrected_file.renameTo(extracted_atom) == false) {
 				throw new FileNotFoundException("Can't rename file " + corrected_file + " to " + extracted_atom.getName());
-			}
+			}*/
 		} else {
 			/**
 			 * Big corrections for "corrupted" files
 			 */
-			String temp_file_name_writeavidmxf = makeTempFilePath("writeavidmxf");
+			/*String temp_file_name_writeavidmxf = makeTempFilePath("writeavidmxf");
 			execWriteavidmxf(original_atom, temp_file_name_writeavidmxf);
 			File corrected_file = foundFile(temp_file_name_writeavidmxf);
 			
@@ -108,17 +110,18 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 			
 			extracted_atom = new File(makeTempFilePath("bmxtranswrap") + ".mxf");
 			execBmxtranswrap(corrected_file, extracted_atom);
-			FileUtils.forceDelete(corrected_file);
+			FileUtils.forceDelete(corrected_file);*/
 		}
 		
 		/**
 		 * No error are allowed from here
 		 */
+		// TODO if actual is incorrect, do it
 		bmx.analystFile(extracted_atom);
 		ffprobe = ffprobe_jaxb.analystFile(extracted_atom);
 	}
 	
-	private void execBmxtranswrap(File source_file, File dest_file) throws IOException {
+	/*private void execBmxtranswrap(File source_file, File dest_file) throws IOException {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-t");
 		param.add("op1a");
@@ -135,9 +138,9 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 		
 		Loggers.Transcode.info("Rewrap MXF essence: " + process.getRunprocess().getCommandline());
 		process.start();
-	}
+	}*/
 	
-	private void execWriteavidmxf(File source_file, String output_file_base_name) throws IOException {
+	/*private void execWriteavidmxf(File source_file, String output_file_base_name) throws IOException {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("--prefix");
 		param.add(output_file_base_name);
@@ -149,7 +152,7 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 		
 		Loggers.Transcode.info("Extract MXF essence: " + process.getRunprocess().getCommandline());
 		process.start();
-	}
+	}*/
 	
 	private void execMxf2raw(File source_file, String output_file_base_name) throws IOException {
 		ArrayList<String> param = new ArrayList<String>();
@@ -163,6 +166,38 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 		Loggers.Transcode.info("Extract MXF essence: " + process.getRunprocess().getCommandline());
 		process.start();
 	}
+	
+	// TODO ffmpeg audio
+	/*ArrayList<String> params_ffmpeg = new ArrayList<>();
+	params_ffmpeg.add("-y");
+	all_atoms.stream().forEach(atom -> {
+		params_ffmpeg.add("-i");
+		params_ffmpeg.add(atom.getValidAtomFile().getAbsolutePath());
+	});
+	
+	if (all_atoms.stream().anyMatch(atom -> {
+		return atom.isVideoAtom();
+	})) {
+		params_ffmpeg.add("-codec:v");
+		params_ffmpeg.add("copy");
+	}
+	
+	if (all_atoms.stream().anyMatch(atom -> {
+		return atom.isAudioAtom();
+	})) {
+		params_ffmpeg.add("-codec:a");
+		params_ffmpeg.add("copy");
+	}
+	
+	for (int pos = 0; pos < all_atoms.size(); pos++) {
+		params_ffmpeg.add("-map");
+		params_ffmpeg.add(String.valueOf(pos) + ":" + String.valueOf(pos));
+	}
+	params_ffmpeg.add("-f");
+	params_ffmpeg.add("mxf");
+	params_ffmpeg.add("-");
+	pipe.add(ExecBinaryPath.get("ffmpeg"), params_ffmpeg);
+	*/
 	
 	private File foundFile(String basename) throws FileNotFoundException {
 		String real_base_name = FilenameUtils.getBaseName(basename);
@@ -181,13 +216,6 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 			return extracted_atom;
 		}
 		return original_atom;
-	}
-	
-	/**
-	 * @return true if the file returned by getValidAtomFile is not manageable directly by bmxtranswrap
-	 */
-	boolean needsToBeWrapWithFFmpeg() {
-		return bmx.isLoaded() == false | ffprobe == null;
 	}
 	
 	private StreamType getValidStream() {
@@ -265,21 +293,23 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 		return null;
 	}
 	
-	void clean() {
+	boolean isVideoAtom() {
+		return getValidStream().getCodecType().equalsIgnoreCase("video");
+	}
+	
+	boolean isAudioAtom() {
+		return getValidStream().getCodecType().equalsIgnoreCase("video");
+	}
+	
+	List<File> getFilesToClean() {
+		ArrayList<File> result = new ArrayList<>();
 		if (extracted_atom != null) {
 			if (extracted_atom.exists()) {
-				try {
-					FileUtils.forceDelete(extracted_atom);
-				} catch (IOException e) {
-					Loggers.Transcode.error("Can't delete temp file", e);
-				}
+				result.add(extracted_atom);
 			}
 		}
-		try {
-			FileUtils.forceDelete(original_atom);
-		} catch (IOException e) {
-			Loggers.Transcode.error("Can't delete atom file", e);
-		}
+		result.add(original_atom);
+		return result;
 	}
 	
 	public String toString() {
