@@ -68,7 +68,12 @@ public abstract class ProcessingKitInstance {
 	 * Always called after process(), even it failed.
 	 * Don't touch to process() result list files.
 	 */
-	public abstract void cleanTempFiles();
+	public abstract void cleanTempFiles() throws Exception;
 	
-	// TODO add API function for catch error before thrown it to Worker
+	/**
+	 * Overload this for catch error before thrown it to Worker, and can clean temp files before ends job
+	 */
+	public void onProcessException(File physical_source, Container source_indexing_result, Exception e) throws Exception {
+	}
+	
 }

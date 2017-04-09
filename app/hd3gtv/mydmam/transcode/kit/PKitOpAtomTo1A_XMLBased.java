@@ -85,14 +85,20 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			files_to_clean = new ArrayList<>();
 		}
 		
+		public void onProcessException(File physical_source, Container source_indexing_result, Exception e) {
+			File to = new File(FilenameUtils.removeExtension(physical_source.getAbsolutePath()) + ".xml-error");
+			physical_source.renameTo(to);
+			Loggers.Transcode.info("Rename XML order file to " + to);
+		}
+		
 		public List<File> process(File physical_source, Container source_indexing_result) throws Exception {
+			// if (progression != null) {
+			// progression.update("Open order XML");
+			// }
+			
 			/**
 			 * Open XML.
 			 **/
-			if (progression != null) {
-				progression.update("Open order XML");
-			}
-			
 			XmlData order_xml = XmlData.loadFromFile(physical_source);
 			if (order_xml.getDocumentElement().getTagName().equals("wrap") == false) {
 				throw new IOException("Invalid format for XML document. Document element is <" + order_xml.getDocumentElement().getTagName() + ">");

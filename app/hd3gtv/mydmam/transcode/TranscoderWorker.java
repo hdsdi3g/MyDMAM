@@ -298,21 +298,22 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 					container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
 				}
 				
-				Exception catched_error = null;
 				List<File> output_files = null;
 				try {
 					output_files = process_kit_instance.process(physical_source, container);
 				} catch (Exception e) {
-					catched_error = e;
-				}
-				process_kit_instance.cleanTempFiles();
-				if (catched_error != null) {
-					if (output_files != null) {
-						output_files.forEach(v -> {
-							v.delete();
-						});
+					try {
+						process_kit_instance.onProcessException(physical_source, container, e);
+					} catch (Exception e1) {
+						Loggers.Transcode.error("It seems the PKit \"" + process_kit.getClass().getSimpleName() + "\" Exception catcher... thrown an error", e1);
 					}
-					throw catched_error;
+					throw e;
+				}
+				
+				try {
+					process_kit_instance.cleanTempFiles();
+				} catch (Exception e) {
+					Loggers.Transcode.error("It seems the PKit \"" + process_kit.getClass().getSimpleName() + "\" post-cleaner... thrown an error", e);
 				}
 				
 				FileUtils.forceDelete(temp_output_file);
