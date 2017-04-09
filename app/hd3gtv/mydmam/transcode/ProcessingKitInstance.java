@@ -70,4 +70,5 @@ public abstract class ProcessingKitInstance {
 	 */
 	public abstract void cleanTempFiles();
 	
+	// TODO add API function for catch error before thrown it to Worker
 }

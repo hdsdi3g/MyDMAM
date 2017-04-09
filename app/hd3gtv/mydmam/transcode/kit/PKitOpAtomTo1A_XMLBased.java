@@ -62,7 +62,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 	}
 	
 	public String getDescription() {
-		return "Wrap some MXF OpAtom files to an OP1A file, and move it to a specific dest, all is based to a XML file.";
+		return "Wrap some MXF OpAtom files to an OP1A file, and move it to a specific dest, all is based to a XML file";
 	}
 	
 	public String getVendor() {
@@ -100,7 +100,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			
 			ArrayList<File> all_mxf_files = new ArrayList<>(5);
 			
-			all_mxf_files.add(new File(FilenameUtils.removeExtension(physical_source.getAbsolutePath()) + ".mxf").getCanonicalFile());// TODO must check this content
+			all_mxf_files.add(new File(FilenameUtils.removeExtension(physical_source.getAbsolutePath()) + ".mxf").getCanonicalFile());
 			URL dest_archive = null;
 			String outputfile_basename = "(error).mxf";
 			
@@ -176,7 +176,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			 */
 			AtomicInteger inc = new AtomicInteger(0);
 			List<PKitOpAtomTo1A_XMLBasedAtom> all_atoms = all_mxf_files.stream().distinct().map(mxf_file -> {
-				return new PKitOpAtomTo1A_XMLBasedAtom(mxf_file, FilenameUtils.removeExtension(physical_source.getName()) + "_" + String.valueOf(inc.getAndIncrement()));
+				return new PKitOpAtomTo1A_XMLBasedAtom(stoppable, mxf_file, FilenameUtils.removeExtension(physical_source.getName()) + "_" + String.valueOf(inc.getAndIncrement()));
 			}).collect(Collectors.toList());
 			
 			/**
@@ -273,6 +273,11 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			raw2bmx.add(result_op1a.getAbsolutePath());
 			
 			all_atoms.stream().forEach(atom -> {
+				if (atom.isVideoAtom()) {
+					raw2bmx.add("--mpeg2lg_422p_hl_1080i");
+				} else if (atom.isAudioAtom()) {
+					raw2bmx.add("--wave");
+				}
 				raw2bmx.add(atom.getValidAtomFile().getAbsolutePath());
 			});
 			
@@ -283,6 +288,7 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				progression.update("Wrap all essences/Atom with bmxtranswrap");
 			}*/
 			
+			Loggers.Transcode.info("Wrap all essences/Atom with raw2bmx: " + bmx_process.getRunprocess().getCommandline());
 			bmx_process.start(stoppable);
 			
 			/*if (stoppable != null) {
