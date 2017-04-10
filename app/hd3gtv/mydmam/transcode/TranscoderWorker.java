@@ -240,7 +240,7 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 		 */
 		SourcePathIndexerElement pi_item = explorer.getelementByIdkey(transcode_context.source_pathindex_key);
 		if (pi_item == null) {
-			throw new NullPointerException("Can't found source file in index");
+			throw new NullPointerException("Can't found source file to transcode (" + transcode_context.source_pathindex_key + ") in pathindex. Set Job " + context.getReferer().getName() + " > " + transcode_context.hookednames + " in error");
 		}
 		
 		if (stop_process) {
@@ -284,8 +284,7 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 				 * ProcessingKit transcoding.
 				 */
 				process_kit = process_kits.get(profiles_to_transcode.get(pos));
-				temp_output_file = new File(
-						temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "_" + process_kit.getClass().getSimpleName());
+				temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "_" + process_kit.getClass().getSimpleName());
 				FileUtils.forceMkdir(temp_output_file);
 				
 				process_kit_instance = process_kit.createInstance(temp_output_file);
