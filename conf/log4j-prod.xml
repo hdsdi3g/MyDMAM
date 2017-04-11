@@ -2,7 +2,7 @@
 <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
 	<!-- Send all messages to a log file -->
-	<appender name="RollingAppender" class="org.apache.log4j.RollingFileAppender">
+	<appender name="RollingAppender" class="hd3gtv.mydmam.MyRollingFileAppender">
 		<param name="File" value="logs/mydmam.log" />
 		<param name="MaxBackupIndex" value="10" />
 		<param name="MaxFileSize" value="1000000" />
