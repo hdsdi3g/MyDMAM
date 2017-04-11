@@ -92,9 +92,8 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 		}
 		
 		public List<File> process(File physical_source, Container source_indexing_result) throws Exception {
-			// if (progression != null) {
-			// progression.update("Open order XML");
-			// }
+			
+			progress.update("Open order XML");
 			
 			/**
 			 * Open XML.
@@ -134,9 +133,8 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				}
 			}
 			
-			/**
-			 * Prepare output file
-			 */
+			progress.update("Prepare output file name");
+			
 			File result_op1a = null;
 			String chroot_ftp = Configuration.global.getValue("PKitOpAtomTo1A_XMLBased", "chroot_ftp", "/tmp");
 			if (chroot_ftp.equals("")) {
@@ -160,9 +158,8 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				FileUtils.forceDelete(result_op1a);
 			}
 			
-			/**
-			 * Search some missing MXF files
-			 */
+			progress.update("Search some missing MXF files");
+			
 			List<File> error_files = all_mxf_files.stream().filter(mxf_file -> {
 				return mxf_file.exists() == false;
 			}).filter(mxf_file -> {
@@ -182,16 +179,20 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			 */
 			AtomicInteger inc = new AtomicInteger(0);
 			List<PKitOpAtomTo1A_XMLBasedAtom> all_atoms = all_mxf_files.stream().distinct().map(mxf_file -> {
-				return new PKitOpAtomTo1A_XMLBasedAtom(stoppable, mxf_file, FilenameUtils.removeExtension(physical_source.getName()) + "_" + String.valueOf(inc.getAndIncrement()));
+				return new PKitOpAtomTo1A_XMLBasedAtom(this, mxf_file, FilenameUtils.removeExtension(physical_source.getName()) + "_" + String.valueOf(inc.getAndIncrement()));
 			}).collect(Collectors.toList());
 			
+			progress.update("Analyst and correct each atom");
+			progress.updateStep(0, inc.get());
+			
 			/**
-			 * Analyst and correct each atom, stop at the first error
+			 * Stop at the first error
 			 */
 			Optional<Exception> o_exception = all_atoms.stream().map(atom -> {
 				try {
 					Loggers.Transcode.debug("Start analysing (and correction if needed) of Atom " + atom);
-					atom.analystNcorrect();
+					atom.analystNcorrect(progress);
+					progress.incrStep();
 					return null;
 				} catch (Exception e) {
 					return e;
@@ -206,9 +207,8 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				return null;
 			}
 			
-			/**
-			 * Remove duplicate streams
-			 */
+			progress.update("Remove duplicate streams");
+			
 			HashSet<Integer> actual_atom_indexes = new HashSet<>(5);
 			ArrayList<PKitOpAtomTo1A_XMLBasedAtom> duplicate_atoms_to_delete = new ArrayList<>(1);
 			
@@ -223,9 +223,8 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				return false;
 			});
 			
-			/**
-			 * Get source name
-			 */
+			progress.update("Get source name and timecode");
+			
 			String source_name = all_atoms.stream().map(atom -> {
 				return atom.getName();
 			}).filter(name -> {
@@ -237,9 +236,6 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 				return null;
 			});
 			
-			/**
-			 * Get source timecode
-			 */
 			String source_tc_in = all_atoms.stream().map(atom -> {
 				return atom.getStartTC();
 			}).filter(name -> {
@@ -290,22 +286,12 @@ public class PKitOpAtomTo1A_XMLBased extends ProcessingKit {
 			ExecprocessGettext bmx_process = new ExecprocessGettext(ExecBinaryPath.get("raw2bmx"), raw2bmx);
 			bmx_process.setWorkingDirectory(result_op1a.getParentFile());
 			
-			/*if (progression != null) {
-				progression.update("Wrap all essences/Atom with bmxtranswrap");
-			}*/
+			progress.update("Wrap all essences/Atom to final dest file");
 			
 			Loggers.Transcode.info("Wrap all essences/Atom with raw2bmx: " + bmx_process.getRunprocess().getCommandline());
-			bmx_process.start(stoppable);
+			bmx_process.start(this);
 			
-			/*if (stoppable != null) {
-			if (stoppable.isWantToStopCurrentProcessing() == true) {
-				return null;
-			}
-			}
-			
-			if (progression != null) {
-			progression.update("Remove source files");
-			}*/
+			progress.update("Ends operation");
 			
 			/**
 			 * Prepare to remove source and temp files.

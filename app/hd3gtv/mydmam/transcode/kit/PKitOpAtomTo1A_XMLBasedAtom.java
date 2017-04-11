@@ -29,6 +29,7 @@ import org.ffmpeg.ffprobe.FfprobeType;
 import org.ffmpeg.ffprobe.StreamType;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.manager.JobProgressor;
 import hd3gtv.mydmam.transcode.mtdcontainer.BBCBmx;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobeJAXB;
 import hd3gtv.tools.ExecBinaryPath;
@@ -55,7 +56,7 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 		return original_atom.getParentFile().getAbsolutePath() + File.separator + temp_base_file_name + "_" + suffix;
 	}
 	
-	void analystNcorrect() throws Exception {
+	void analystNcorrect(JobProgressor progress) throws Exception {
 		FFprobeJAXB ffprobe_jaxb = new FFprobeJAXB();
 		ffprobe = ffprobe_jaxb.analystFile(original_atom);
 		
@@ -66,6 +67,9 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 			bmx.analystFile(original_atom);
 		} catch (Exception e) {
 			Loggers.Transcode.info("Can't analysing atom file with bmx " + original_atom.getName() + ", do a special treatment for it");
+			
+			progress.updateProgress(0, 4);
+			
 			/**
 			 * Special treatment for "corrupted" files: 4 rewrap operations
 			 */
@@ -76,15 +80,23 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 				throw new FileNotFoundException("Can't rename file " + corrected_file + " to " + corrected_file2.getName());
 			}
 			
+			progress.updateProgress(1, 4);
+			
 			corrected_file = execMxf2raw(corrected_file2, makeTempFilePath("mxf2raw1"));
 			FileUtils.forceDelete(corrected_file2);
+			
+			progress.updateProgress(2, 4);
 			
 			corrected_file2 = new File(makeTempFilePath("bmxtranswrap") + ".mxf");
 			execBmxtranswrap(corrected_file, corrected_file2);
 			FileUtils.forceDelete(corrected_file);
 			
+			progress.updateProgress(3, 4);
+			
 			extracted_atom = execMxf2raw(corrected_file2, makeTempFilePath("mxf2raw2"));
 			FileUtils.forceDelete(corrected_file2);
+			
+			progress.updateProgress(4, 4);
 			return;
 		}
 		
@@ -101,6 +113,8 @@ class PKitOpAtomTo1A_XMLBasedAtom {
 		} else {
 			throw new Exception("WTF is this file ? " + original_atom.getName());
 		}
+		
+		progress.updateProgress(1, 1);
 		
 		// bmx.analystFile(extracted_atom);
 		// ffprobe = ffprobe_jaxb.analystFile(extracted_atom);
