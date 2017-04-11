@@ -35,6 +35,7 @@ import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.tools.ApplicationArgs;
 
 public class CliModuleOperateDatabase implements CliModule {
@@ -273,6 +274,12 @@ public class CliModuleOperateDatabase implements CliModule {
 			}
 		}
 		
+		if (args.getParamExist("-truncatewf")) {
+			Loggers.CLI.info("Truncate watchfolder list");
+			WatchFolderDB.truncateList();
+			return;
+		}
+		
 		showFullCliModuleHelp();
 	}
 	
@@ -301,6 +308,8 @@ public class CliModuleOperateDatabase implements CliModule {
 		System.out.println("  " + getCliModuleName() + " -ftpactivity ftpuserid");
 		System.out.println("  ftpuserid is like \"ftpuser:domain#user\"");
 		System.out.println();
+		System.out.println("Truncate watchfolder list:");
+		System.out.println("  " + getCliModuleName() + " -truncatewf");
 	}
 	
 }

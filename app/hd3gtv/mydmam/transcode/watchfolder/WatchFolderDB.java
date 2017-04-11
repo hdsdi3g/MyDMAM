@@ -38,7 +38,6 @@ public class WatchFolderDB {
 	
 	static final ColumnFamily<String, String> CF_WATCHFOLDERS = new ColumnFamily<String, String>("WatchFolders", StringSerializer.get(), StringSerializer.get());
 	private static Keyspace keyspace;
-	// private static JsonParser parser = new JsonParser();
 	
 	static {
 		try {
@@ -169,6 +168,10 @@ public class WatchFolderDB {
 	
 	static ColumnPrefixDistributedRowLock<String> prepareLock(String pathindexkey) {
 		return new ColumnPrefixDistributedRowLock<String>(keyspace, CF_WATCHFOLDERS, pathindexkey);
+	}
+	
+	public static void truncateList() throws ConnectionException {
+		CassandraDb.truncateColumnFamilyString(CassandraDb.getkeyspace(), CF_WATCHFOLDERS.getName());
 	}
 	
 }
