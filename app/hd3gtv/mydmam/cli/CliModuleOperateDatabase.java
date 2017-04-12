@@ -16,27 +16,9 @@
 */
 package hd3gtv.mydmam.cli;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.Reader;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.h2.engine.Constants;
-import org.h2.store.fs.FileUtils;
-import org.h2.tools.RunScript;
-import org.h2.util.IOUtils;
-import org.h2.util.JdbcUtils;
 
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.TokenRange;
@@ -48,12 +30,12 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.tools.ApplicationArgs;
 
 public class CliModuleOperateDatabase implements CliModule {
@@ -284,74 +266,18 @@ public class CliModuleOperateDatabase implements CliModule {
 			return;
 		}
 		
-		if (args.getParamExist("-h2")) {
-			org.h2.Driver.load();
-			
-			if (args.getParamExist("-export")) {
-				String source = MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath() + "/conf/play";
-				File dest = new File(args.getSimpleParamValue("-export"));
-				
-				File f_source = new File(source + ".h2.db");
-				if (f_source.exists() == false) {
-					throw new FileNotFoundException(f_source.getAbsolutePath());
-				}
-				
-				Loggers.CLI.info("Export h2 base, source: " + f_source + ", dest: " + dest);
-				
-				Connection conn = null;
-				try {
-					conn = DriverManager.getConnection("jdbc:h2:file:" + source);
-					Statement stat = null;
-					try {
-						stat = conn.createStatement();
-						PrintWriter writer = new PrintWriter(IOUtils.getBufferedWriter(new FileOutputStream(dest)));
-						ResultSet rs = stat.executeQuery("SCRIPT");
-						while (rs.next()) {
-							String s = rs.getString(1);
-							writer.println(s);
-						}
-						writer.flush();
-					} finally {
-						JdbcUtils.closeSilently(stat);
-					}
-				} finally {
-					JdbcUtils.closeSilently(conn);
-				}
-				return;
-			} else if (args.getParamExist("-import")) {
-				File source = new File(args.getSimpleParamValue("-import"));
-				String dest = MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath() + "/conf/play";
-				
-				if (source.exists() == false) {
-					throw new FileNotFoundException(source.getAbsolutePath());
-				}
-				
-				Loggers.CLI.info("Export h2 base, source: " + source + ", dest: " + new File(dest + ".h2.db"));
-				
-				Connection conn = null;
-				try {
-					conn = DriverManager.getConnection("jdbc:h2:file:" + dest);
-					InputStream in = FileUtils.newInputStream(source.getAbsolutePath());
-					try {
-						in = new BufferedInputStream(in, Constants.IO_BUFFER_SIZE);
-						Reader reader = new InputStreamReader(in);
-						RunScript.execute(conn, reader);
-					} finally {
-						IOUtils.closeSilently(in);
-					}
-				} finally {
-					JdbcUtils.closeSilently(conn);
-				}
-				return;
-			}
-		}
-		
 		if (args.getParamExist("-ftpactivity")) {
 			String user_id = args.getSimpleParamValue("-ftpactivity");
 			if (user_id != null) {
 				FTPActivity.purgeUserActivity(user_id);
 				return;
 			}
+		}
+		
+		if (args.getParamExist("-truncatewf")) {
+			Loggers.CLI.info("Truncate watchfolder list");
+			WatchFolderDB.truncateList();
+			return;
 		}
 		
 		showFullCliModuleHelp();
@@ -382,9 +308,8 @@ public class CliModuleOperateDatabase implements CliModule {
 		System.out.println("  " + getCliModuleName() + " -ftpactivity ftpuserid");
 		System.out.println("  ftpuserid is like \"ftpuser:domain#user\"");
 		System.out.println();
-		System.out.println("Usage for H2 (Play internal db serverless):");
-		System.out.println(" " + getCliModuleName() + " -h2 -export filename.sql");
-		System.out.println(" " + getCliModuleName() + " -h2 -import filename.sql");
+		System.out.println("Truncate watchfolder list:");
+		System.out.println("  " + getCliModuleName() + " -truncatewf");
 	}
 	
 }

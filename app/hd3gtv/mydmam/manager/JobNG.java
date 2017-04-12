@@ -18,6 +18,7 @@ package hd3gtv.mydmam.manager;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -107,6 +108,19 @@ public final class JobNG {
 	
 	public enum JobStatus {
 		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
+		
+		public boolean isInThisStatus(JobStatus... status) {
+			if (status == null) {
+				return false;
+			}
+			if (status.length == 0) {
+				return false;
+			}
+			return Arrays.asList(status).stream().anyMatch(s -> {
+				return s == this;
+			});
+		}
+		
 	}
 	
 	public enum AlterJobOrderName {
@@ -237,6 +251,13 @@ public final class JobNG {
 		return this;
 	}
 	
+	/**
+	 * @return can be null if no required jobs
+	 */
+	public List<String> getRequiredJobKeys() {
+		return required_keys;
+	}
+	
 	boolean isRequireIsDone() throws ConnectionException {
 		if (required_keys == null) {
 			return true;
@@ -258,6 +279,42 @@ public final class JobNG {
 			}
 		}
 		return true;
+	}
+	
+	private boolean isRequireHasProblem() throws ConnectionException {
+		if (required_keys == null) {
+			return true;
+		}
+		if (required_keys.isEmpty()) {
+			return true;
+		}
+		
+		Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(required_keys).withColumnSlice("status").execute().getResult();
+		if (rows == null) {
+			return false;
+		}
+		if (rows.isEmpty()) {
+			return false;
+		}
+		for (Row<String, String> row : rows) {
+			String status = row.getColumns().getStringValue("status", JobStatus.WAITING.name());
+			if (status.equals(JobStatus.ERROR.name())) {
+				return true;
+			}
+			if (status.equals(JobStatus.CANCELED.name())) {
+				return true;
+			}
+			if (status.equals(JobStatus.STOPPED.name())) {
+				return true;
+			}
+			if (status.equals(JobStatus.TOO_LONG_DURATION.name())) {
+				return true;
+			}
+			if (status.equals(JobStatus.TOO_OLD.name())) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	boolean isTooOldjob() {
@@ -643,6 +700,41 @@ public final class JobNG {
 			return result;
 		}
 		
+		/**
+		 * If a job depends to an error job > set to error
+		 */
+		static void searchRequiredAndErrorJobsAndSetError(MutationBatch mutator) throws ConnectionException {
+			if (Loggers.Job.isDebugEnabled()) {
+				Loggers.Job.debug("Search required and error jobs and set error");
+			}
+			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
+			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
+			// index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
+			index_query.withColumnSlice("source");
+			
+			ArrayList<JobNG> deleted_jobs = new ArrayList<>(1);
+			
+			JobNG job;
+			OperationResult<Rows<String, String>> rows = index_query.execute();
+			for (Row<String, String> row : rows.getResult()) {
+				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+					continue;
+				}
+				job = JobNG.Utility.importFromDatabase(row.getColumns());
+				
+				if (job.isRequireHasProblem()) {
+					job.status = JobStatus.ERROR;
+					job.update_date = System.currentTimeMillis();
+					job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
+					deleted_jobs.add(job);
+				}
+			}
+			
+			if (deleted_jobs.isEmpty() == false) {
+				Loggers.Job.info("These job requires the success of other jobs. Some of these jobs are in error, so it also puts these job in error: " + deleted_jobs);
+			}
+		}
+		
 		static void removeMaxDateForPostponedJobs(MutationBatch mutator, String creator_hostname) throws ConnectionException {
 			if (Loggers.Job.isDebugEnabled()) {
 				Loggers.Job.debug("Search for remove max date for postponed jobs");
@@ -816,6 +908,25 @@ public final class JobNG {
 			alterJobsFromJson(job_key, cols, mutator, order, result);
 			mutator.execute();
 			return result;
+		}
+		
+		/**
+		 * @param job_keys can be null or empty
+		 */
+		public static void removeJobsByKeys(Collection<String> job_keys) throws ConnectionException {
+			if (job_keys == null) {
+				return;
+			}
+			if (job_keys.isEmpty() == false) {
+				return;
+			}
+			
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			job_keys.forEach(job_key -> {
+				mutator.withRow(CF_QUEUE, job_key).delete();
+			});
+			mutator.execute();
+			return;
 		}
 		
 		private static void alterJobsFromJson(String job_key, ColumnList<String> cols, MutationBatch mutator, AlterJobOrderName order, JsonObject result) throws ConnectionException {

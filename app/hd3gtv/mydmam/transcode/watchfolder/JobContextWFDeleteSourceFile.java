@@ -30,6 +30,11 @@ public class JobContextWFDeleteSourceFile extends JobContext {
 	String path;
 	
 	/**
+	 * Remove all JobsKeys and the WF entry.
+	 */
+	boolean clean_after_done;
+	
+	/**
 	 * List of pathindex keys
 	 */
 	ArrayList<String> send_to;
@@ -38,6 +43,7 @@ public class JobContextWFDeleteSourceFile extends JobContext {
 		JsonObject jo = new JsonObject();
 		jo.addProperty("storage", storage);
 		jo.addProperty("path", path);
+		jo.addProperty("clean_after_done", clean_after_done);
 		jo.add("send_to", MyDMAM.gson_kit.getGsonSimple().toJsonTree(send_to, GsonKit.type_ArrayList_String));
 		return jo;
 	}
@@ -45,6 +51,13 @@ public class JobContextWFDeleteSourceFile extends JobContext {
 	public void contextFromJson(JsonObject json_object) {
 		storage = json_object.get("storage").getAsString();
 		path = json_object.get("path").getAsString();
+		
+		if (json_object.has("clean_after_done")) {
+			clean_after_done = json_object.get("clean_after_done").getAsBoolean();
+		} else {
+			clean_after_done = false;
+		}
+		
 		send_to = MyDMAM.gson_kit.getGsonSimple().fromJson(json_object.get("send_to"), GsonKit.type_ArrayList_String);
 	}
 	

@@ -63,7 +63,11 @@ public final class ProcessingKitEngine {
 			
 			return pkit;
 		} catch (Exception e) {
-			Loggers.Transcode.error("Can't found or instance ProcessingKit: " + class_name, e);
+			if (class_name.startsWith("hd3gtv.mydmam.transcode.kit") == false && class_name.indexOf(".") == -1) {
+				return get("hd3gtv.mydmam.transcode.kit." + class_name);
+			} else {
+				Loggers.Transcode.error("Can't found or instance ProcessingKit: " + class_name, e);
+			}
 		}
 		return null;
 	}

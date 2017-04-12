@@ -61,7 +61,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		not_found_class_name = new ArrayList<String>();
 	}
 	
-	public static boolean isClassForNameExists(String class_name) {
+	public static boolean isClassForNameExists(String class_name) {// TODO move to Factory
 		try {
 			if (not_found_class_name.contains(class_name)) {
 				return false;
@@ -76,7 +76,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		return false;
 	}
 	
-	public static <T> T instanceClassForName(String class_name, Class<T> return_type) {
+	public static <T> T instanceClassForName(String class_name, Class<T> return_type) {// TODO move to Factory
 		try {
 			if (isClassForNameExists(class_name) == false) {
 				throw new ClassNotFoundException(class_name);

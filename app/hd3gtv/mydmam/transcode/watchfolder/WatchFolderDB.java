@@ -32,12 +32,12 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
 
 public class WatchFolderDB {
 	
 	static final ColumnFamily<String, String> CF_WATCHFOLDERS = new ColumnFamily<String, String>("WatchFolders", StringSerializer.get(), StringSerializer.get());
 	private static Keyspace keyspace;
-	// private static JsonParser parser = new JsonParser();
 	
 	static {
 		try {
@@ -114,6 +114,29 @@ public class WatchFolderDB {
 		return result;
 	}
 	
+	public static int getInProcessCount() throws ConnectionException {
+		int size = 0;
+		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getAllRows().execute();
+		for (Row<String, String> row : rows.getResult()) {
+			if (AbstractFoundedFile.getStatusFromCols(row.getColumns()).equals(Status.IN_PROCESSING)) {
+				size++;
+			}
+		}
+		return size;
+	}
+	
+	public static ArrayList<AbstractFoundedFile> getAllInProcess() throws ConnectionException {
+		ArrayList<AbstractFoundedFile> result = new ArrayList<AbstractFoundedFile>();
+		
+		OperationResult<Rows<String, String>> rows = keyspace.prepareQuery(CF_WATCHFOLDERS).getAllRows().execute();
+		for (Row<String, String> row : rows.getResult()) {
+			if (AbstractFoundedFile.getStatusFromCols(row.getColumns()).equals(Status.IN_PROCESSING)) {
+				result.add(new AbstractFoundedFile(row.getKey(), row.getColumns()));
+			}
+		}
+		return result;
+	}
+	
 	static void push(List<AbstractFoundedFile> files) throws ConnectionException {
 		if (files.isEmpty()) {
 			return;
@@ -123,7 +146,7 @@ public class WatchFolderDB {
 			if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
 				Loggers.Transcode_WatchFolder.trace("Save FoundedFile in DB\t" + files.get(pos));
 			}
-			files.get(pos).saveToCassandra(mutator);
+			files.get(pos).saveToCassandra(mutator, false);
 		}
 		mutator.execute();
 	}
@@ -134,16 +157,21 @@ public class WatchFolderDB {
 		a_file.status = new_status;
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
-		a_file.saveToCassandra(mutator);
+		a_file.saveToCassandra(mutator, AbstractFoundedFile.Status.PROCESSED.equals(new_status));
 		
 		if (Loggers.Transcode_WatchFolder.isDebugEnabled()) {
 			Loggers.Transcode_WatchFolder.debug("Switch FoundedFile status: " + path_index_key + " is now " + new_status + " for this file: " + a_file.storage_name + ":" + a_file.path);
 		}
 		mutator.execute();
+		a_file.close();
 	}
 	
 	static ColumnPrefixDistributedRowLock<String> prepareLock(String pathindexkey) {
 		return new ColumnPrefixDistributedRowLock<String>(keyspace, CF_WATCHFOLDERS, pathindexkey);
+	}
+	
+	public static void truncateList() throws ConnectionException {
+		CassandraDb.truncateColumnFamilyString(CassandraDb.getkeyspace(), CF_WATCHFOLDERS.getName());
 	}
 	
 }

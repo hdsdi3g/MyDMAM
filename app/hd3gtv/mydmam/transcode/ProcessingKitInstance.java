@@ -21,16 +21,27 @@ import java.io.IOException;
 import java.util.List;
 
 import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.manager.JobProgressor;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.StoppableProcessing;
 
-public abstract class ProcessingKitInstance {
+public abstract class ProcessingKitInstance implements StoppableProcessing {
 	
 	protected File temp_directory;
-	protected JobProgression progression;
-	protected StoppableProcessing stoppable;
+	
+	protected final Progress progress;
+	private JobProgression progression;
+	private StoppableProcessing stoppable;
+	
+	/**
+	 * maybe null
+	 */
 	protected JobContextTranscoder transcode_context;
+	
+	/**
+	 * maybe null
+	 */
 	protected File dest_base_directory;
 	
 	public ProcessingKitInstance(File temp_directory) throws NullPointerException, IOException {
@@ -41,6 +52,8 @@ public abstract class ProcessingKitInstance {
 		CopyMove.checkExistsCanRead(temp_directory);
 		CopyMove.checkIsDirectory(temp_directory);
 		CopyMove.checkIsWritable(temp_directory);
+		
+		progress = new Progress();
 	}
 	
 	public final void setJobProgression(JobProgression progression) {
@@ -68,6 +81,73 @@ public abstract class ProcessingKitInstance {
 	 * Always called after process(), even it failed.
 	 * Don't touch to process() result list files.
 	 */
-	public abstract void cleanTempFiles();
+	public abstract void cleanTempFiles() throws Exception;
+	
+	/**
+	 * Overload this for catch error before thrown it to Worker, and can clean temp files before ends job
+	 */
+	public void onProcessException(File physical_source, Container source_indexing_result, Exception e) throws Exception {
+	}
+	
+	/**
+	 * @return never null, but maybe without action...
+	 */
+	protected Progress getProgress() {
+		return progress;
+	}
+	
+	public boolean isWantToStopCurrentProcessing() {
+		if (stoppable != null) {
+			return stoppable.isWantToStopCurrentProcessing();
+		}
+		
+		return false;
+	}
+	
+	protected class Progress implements JobProgressor {
+		private Progress() {
+		}
+		
+		public void update(String last_message) {
+			if (progression != null) {
+				progression.update(last_message);
+			}
+		}
+		
+		public void updateStep(int step, int step_count) {
+			if (progression != null) {
+				progression.updateStep(step, step_count);
+			}
+		}
+		
+		public void incrStep() {
+			if (progression != null) {
+				progression.incrStep();
+			}
+		}
+		
+		public void incrStepCount() {
+			if (progression != null) {
+				progression.incrStepCount();
+			}
+		}
+		
+		public void updateProgress(int progress, int progress_size) {
+			if (progression != null) {
+				progression.updateProgress(progress, progress_size);
+			}
+		}
+		
+		/**
+		 * @return maybe empty, never null.
+		 */
+		public String getJobKey() {
+			if (progression != null) {
+				return progression.getJobKey();
+			}
+			return "";
+		}
+		
+	}
 	
 }

@@ -240,7 +240,7 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 		 */
 		SourcePathIndexerElement pi_item = explorer.getelementByIdkey(transcode_context.source_pathindex_key);
 		if (pi_item == null) {
-			throw new NullPointerException("Can't found source file in index");
+			throw new NullPointerException("Can't found source file to transcode (" + transcode_context.source_pathindex_key + ") in pathindex. Set Job " + context.getReferer().getName() + " > " + transcode_context.hookednames + " in error");
 		}
 		
 		if (stop_process) {
@@ -284,8 +284,7 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 				 * ProcessingKit transcoding.
 				 */
 				process_kit = process_kits.get(profiles_to_transcode.get(pos));
-				temp_output_file = new File(
-						temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "_" + process_kit.getClass().getSimpleName());
+				temp_output_file = new File(temp_directory.getAbsolutePath() + File.separator + transcode_context.source_pathindex_key + "_" + (pos + 1) + "_" + process_kit.getClass().getSimpleName());
 				FileUtils.forceMkdir(temp_output_file);
 				
 				process_kit_instance = process_kit.createInstance(temp_output_file);
@@ -298,21 +297,22 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 					container = ContainerOperations.getByPathIndexId(transcode_context.source_pathindex_key);
 				}
 				
-				Exception catched_error = null;
 				List<File> output_files = null;
 				try {
 					output_files = process_kit_instance.process(physical_source, container);
 				} catch (Exception e) {
-					catched_error = e;
-				}
-				process_kit_instance.cleanTempFiles();
-				if (catched_error != null) {
-					if (output_files != null) {
-						output_files.forEach(v -> {
-							v.delete();
-						});
+					try {
+						process_kit_instance.onProcessException(physical_source, container, e);
+					} catch (Exception e1) {
+						Loggers.Transcode.error("It seems the PKit \"" + process_kit.getClass().getSimpleName() + "\" Exception catcher... thrown an error", e1);
 					}
-					throw catched_error;
+					throw e;
+				}
+				
+				try {
+					process_kit_instance.cleanTempFiles();
+				} catch (Exception e) {
+					Loggers.Transcode.error("It seems the PKit \"" + process_kit.getClass().getSimpleName() + "\" post-cleaner... thrown an error", e);
 				}
 				
 				FileUtils.forceDelete(temp_output_file);

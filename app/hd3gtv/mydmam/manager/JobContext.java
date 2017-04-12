@@ -61,6 +61,19 @@ public abstract class JobContext {
 	 */
 	public @GsonIgnore List<String> hookednames;
 	
+	private transient JobNG referer;
+	
+	final void setReferer(JobNG referer) {
+		this.referer = referer;
+	}
+	
+	/**
+	 * Only avaliable for Workers
+	 */
+	final public JobNG getReferer() {
+		return referer;
+	}
+	
 	public final static class Serializer implements GsonDeSerializer<JobContext> {
 		
 		public JobContext deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {

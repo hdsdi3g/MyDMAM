@@ -61,22 +61,31 @@ public class AbstractFoundedFile implements AbstractFile {
 		storage_name = cols.getStringValue("storage_name", "");
 		date = cols.getLongValue("filedate", 0l);
 		size = cols.getLongValue("filesize", 0l);
-		status = Status.valueOf(cols.getStringValue("status", Status.DETECTED.name()));
+		status = getStatusFromCols(cols);
 		last_checked = cols.getLongValue("last_checked", System.currentTimeMillis());
 		map_job_target = MyDMAM.gson_kit.getGsonSimple().fromJson(cols.getStringValue("map_job_target", "{}"), GsonKit.type_HashMap_String_String);
 	}
 	
-	void saveToCassandra(MutationBatch mutator) {
+	static Status getStatusFromCols(ColumnList<String> cols) {
+		return Status.valueOf(cols.getStringValue("status", Status.DETECTED.name()));
+	}
+	
+	void saveToCassandra(MutationBatch mutator, boolean terminate) {
 		if (Loggers.Transcode_WatchFolder.isTraceEnabled()) {
 			Loggers.Transcode_WatchFolder.trace("Prepare saveToCassandra for:\t" + this);
 		}
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("path", path, WatchFolderTranscoder.TTL_CASSANDRA);
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("storage_name", storage_name, WatchFolderTranscoder.TTL_CASSANDRA);
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("filedate", date, WatchFolderTranscoder.TTL_CASSANDRA);
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("filesize", size, WatchFolderTranscoder.TTL_CASSANDRA);
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("status", status.name(), WatchFolderTranscoder.TTL_CASSANDRA);
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("last_checked", last_checked, WatchFolderTranscoder.TTL_CASSANDRA);
-		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("map_job_target", MyDMAM.gson_kit.getGsonSimple().toJson(map_job_target), WatchFolderTranscoder.TTL_CASSANDRA);
+		int ttl = WatchFolderTranscoder.TTL_CASSANDRA;
+		if (terminate && WatchFolderTranscoder.DONT_KEEP_DONE) {
+			ttl = WatchFolderTranscoder.TTL_CASSANDRA_SHORT;
+		}
+		
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("path", path, ttl);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("storage_name", storage_name, ttl);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("filedate", date, ttl);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("filesize", size, ttl);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("status", status.name(), ttl);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("last_checked", last_checked, ttl);
+		mutator.withRow(WatchFolderDB.CF_WATCHFOLDERS, getPathIndexKey()).putColumn("map_job_target", MyDMAM.gson_kit.getGsonSimple().toJson(map_job_target), ttl);
 	}
 	
 	AbstractFoundedFile(AbstractFile found_file, String storage_name) {
