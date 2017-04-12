@@ -614,6 +614,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 	}
 	
 	void performFoundAndValidatedFile(AbstractFoundedFile validated_file) throws ConnectionException {
+		ElasticsearchBulkOperation bulk;
 		/**
 		 * Refresh ES pathindex for this file
 		 */
@@ -623,7 +624,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				try {
 					Loggers.Transcode_WatchFolder.trace("Refresh ES pathindex for this file in " + name + " for " + validated_file);
 					
-					ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+					bulk = Elasticsearch.prepareBulk();
 					bulk.getConfiguration().setRefresh(true);
 					explorer.refreshCurrentStoragePath(bulk, Arrays.asList(pi_item), true);
 					bulk.terminateBulk();
@@ -634,8 +635,16 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				}
 			}
 		} else {
-			Loggers.Transcode_WatchFolder.error("Can't found current item in ES " + name + " for " + validated_file);
-			return;
+			bulk = Elasticsearch.prepareBulk();
+			try {
+				Loggers.Transcode_WatchFolder.trace("Refresh ES index in " + name + " for storage " + source_storage);
+				explorer.refreshStoragePath(bulk, Arrays.asList(SourcePathIndexerElement.prepareStorageElement(source_storage)), false);
+				bulk.terminateBulk();
+				pi_item = explorer.getelementByIdkey(validated_file.getPathIndexKey());
+			} catch (Exception e) {
+				Loggers.Transcode_WatchFolder.error("Trouble during Elasticsearch updating", e);
+				return;
+			}
 		}
 		
 		/**
@@ -661,7 +670,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		Container indexing_result = null;
 		try {
 			Loggers.Transcode_WatchFolder.trace("Save item to ES " + name + " for " + validated_file);
-			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+			bulk = Elasticsearch.prepareBulk();
 			MetadataIndexingOperation indexing = new MetadataIndexingOperation(physical_source).setReference(pi_item).setLimit(MetadataIndexingLimit.FAST);
 			indexing_result = indexing.doIndexing();
 			ContainerOperations.save(indexing_result, true, bulk);
@@ -776,10 +785,8 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			
 			if (target.process_kit != null) {
 				if (target.process_kit.validateItem(indexing_result) == false) {
-					Loggers.Transcode_WatchFolder
-							.error("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass());
-					AdminMailAlert.create("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass(), false)
-							.send();
+					Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass());
+					AdminMailAlert.create("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass(), false).send();
 					validated_file.status = Status.ERROR;
 					WatchFolderDB.push(Arrays.asList(validated_file));
 					return;
