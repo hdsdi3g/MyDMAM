@@ -281,36 +281,52 @@ public final class JobNG {
 		return true;
 	}
 	
-	private boolean isRequireHasProblem() throws ConnectionException {
+	private boolean isRequireHasProblemThisSwitchStatus() throws ConnectionException {
 		if (required_keys == null) {
-			return true;
+			return false;
 		}
 		if (required_keys.isEmpty()) {
-			return true;
+			return false;
 		}
 		
 		Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(required_keys).withColumnSlice("status").execute().getResult();
 		if (rows == null) {
-			return false;
+			return true;
 		}
 		if (rows.isEmpty()) {
-			return false;
+			return true;
 		}
 		for (Row<String, String> row : rows) {
 			String status = row.getColumns().getStringValue("status", JobStatus.WAITING.name());
-			if (status.equals(JobStatus.ERROR.name())) {
+			
+			if (status.equals(JobStatus.WAITING.name())) {
+				continue;
+			} else if (status.equals(JobStatus.DONE.name())) {
+				continue;
+			} else if (status.equals(JobStatus.PROCESSING.name())) {
+				continue;
+			} else if (status.equals(JobStatus.ERROR.name())) {
+				this.status = JobStatus.ERROR;
 				return true;
-			}
-			if (status.equals(JobStatus.CANCELED.name())) {
+			} else if (status.equals(JobStatus.CANCELED.name())) {
+				if (this.status != JobStatus.ERROR) {
+					this.status = JobStatus.CANCELED;
+				}
 				return true;
-			}
-			if (status.equals(JobStatus.STOPPED.name())) {
+			} else if (status.equals(JobStatus.STOPPED.name())) {
+				if (this.status != JobStatus.ERROR) {
+					this.status = JobStatus.CANCELED;
+				}
 				return true;
-			}
-			if (status.equals(JobStatus.TOO_LONG_DURATION.name())) {
+			} else if (status.equals(JobStatus.TOO_LONG_DURATION.name())) {
+				if (this.status != JobStatus.ERROR) {
+					this.status = JobStatus.CANCELED;
+				}
 				return true;
-			}
-			if (status.equals(JobStatus.TOO_OLD.name())) {
+			} else if (status.equals(JobStatus.TOO_OLD.name())) {
+				if (this.status != JobStatus.ERROR) {
+					this.status = JobStatus.CANCELED;
+				}
 				return true;
 			}
 		}
@@ -722,8 +738,7 @@ public final class JobNG {
 				}
 				job = JobNG.Utility.importFromDatabase(row.getColumns());
 				
-				if (job.isRequireHasProblem()) {
-					job.status = JobStatus.ERROR;
+				if (job.isRequireHasProblemThisSwitchStatus()) {
 					job.update_date = System.currentTimeMillis();
 					job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
 					deleted_jobs.add(job);
@@ -731,7 +746,7 @@ public final class JobNG {
 			}
 			
 			if (deleted_jobs.isEmpty() == false) {
-				Loggers.Job.info("These job requires the success of other jobs. Some of these jobs are in error, so it also puts these job in error: " + deleted_jobs);
+				Loggers.Job.info("This job requires the success of other jobs. Some of these jobs are in error, so it also puts these job in error: " + deleted_jobs);
 			}
 		}
 		
