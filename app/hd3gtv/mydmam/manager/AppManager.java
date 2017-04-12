@@ -16,11 +16,9 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -29,7 +27,6 @@ import com.google.gson.JsonObject;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.tools.StoppableThread;
@@ -41,71 +38,6 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	 */
 	private static final int SLEEP_BASE_TIME_UPDATE = 10;
 	private static final int SLEEP_COUNT_UPDATE = 6;
-	
-	/**
-	 * ============================================================================
-	 * Start of static realm
-	 * ============================================================================
-	 */
-	static final long starttime;
-	
-	static {
-		starttime = ManagementFactory.getRuntimeMXBean().getStartTime();
-	}
-	
-	private volatile static HashMap<String, Class<?>> instance_class_name;
-	private volatile static ArrayList<String> not_found_class_name;
-	
-	static {
-		instance_class_name = new HashMap<String, Class<?>>();
-		not_found_class_name = new ArrayList<String>();
-	}
-	
-	public static boolean isClassForNameExists(String class_name) {// TODO move to Factory
-		try {
-			if (not_found_class_name.contains(class_name)) {
-				return false;
-			}
-			if (instance_class_name.containsKey(class_name) == false) {
-				instance_class_name.put(class_name, MyDMAM.factory.getClassByName(class_name));
-			}
-			return true;
-		} catch (Exception e) {
-			not_found_class_name.add(class_name);
-		}
-		return false;
-	}
-	
-	public static <T> T instanceClassForName(String class_name, Class<T> return_type) {// TODO move to Factory
-		try {
-			if (isClassForNameExists(class_name) == false) {
-				throw new ClassNotFoundException(class_name);
-			}
-			Class<?> item = instance_class_name.get(class_name);
-			if (return_type.isAssignableFrom(item) == false) {
-				throw new ClassCastException(item.getName() + " by " + return_type.getName());
-			}
-			@SuppressWarnings("unchecked")
-			T newinstance = (T) item.newInstance();
-			instance_class_name.put(class_name, item);
-			return newinstance;
-		} catch (Exception e) {
-			if (not_found_class_name.contains(class_name) == false) {
-				not_found_class_name.add(class_name);
-			}
-			if (instance_class_name.containsKey(class_name)) {
-				instance_class_name.remove(class_name);
-			}
-			Loggers.Manager.error("Can't load class: " + class_name, e);
-		}
-		return null;
-	}
-	
-	/**
-	 * ============================================================================
-	 * End of static realm
-	 * ============================================================================
-	 */
 	
 	/**
 	 * All configured workers.

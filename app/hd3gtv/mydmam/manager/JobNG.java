@@ -701,7 +701,7 @@ public final class JobNG {
 			
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			for (Row<String, String> row : rows.getResult()) {
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				JobNG job = JobNG.Utility.importFromDatabase(row.getColumns());
@@ -733,7 +733,7 @@ public final class JobNG {
 			JobNG job;
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			for (Row<String, String> row : rows.getResult()) {
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				job = JobNG.Utility.importFromDatabase(row.getColumns());
@@ -762,7 +762,7 @@ public final class JobNG {
 			
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			for (Row<String, String> row : rows.getResult()) {
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				JobNG job = JobNG.Utility.importFromDatabase(row.getColumns());
@@ -837,7 +837,7 @@ public final class JobNG {
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			ArrayList<JobNG> result = new ArrayList<JobNG>();
 			for (Row<String, String> row : rows.getResult()) {
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				JobNG new_job = JobNG.Utility.importFromDatabase(row.getColumns());
@@ -1075,7 +1075,7 @@ public final class JobNG {
 				if (source.equals("{}")) {
 					continue;
 				}
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				result.add(MyDMAM.gson_kit.getGson().fromJson(source, JobNG.class));
@@ -1101,7 +1101,7 @@ public final class JobNG {
 				if (source.equals("{}")) {
 					continue;
 				}
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				result.put(row.getKey(), MyDMAM.gson_kit.getGson().fromJson(source, JobNG.class));

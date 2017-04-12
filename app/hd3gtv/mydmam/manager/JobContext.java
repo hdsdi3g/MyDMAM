@@ -80,7 +80,7 @@ public abstract class JobContext {
 			try {
 				JsonObject json = jejson.getAsJsonObject();
 				String context_class = json.get("classname").getAsString();
-				JobContext result = AppManager.instanceClassForName(context_class, JobContext.class);
+				JobContext result = MyDMAM.factory.create(context_class, JobContext.class);
 				result.contextFromJson(json.getAsJsonObject("content"));
 				result.neededstorages = MyDMAM.gson_kit.getGson().fromJson(json.get("neededstorages"), GsonKit.type_ArrayList_String);
 				result.hookednames = MyDMAM.gson_kit.getGson().fromJson(json.get("hookednames"), GsonKit.type_ArrayList_String);
