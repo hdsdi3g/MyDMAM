@@ -31,9 +31,6 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -42,18 +39,7 @@ import play.i18n.Messages;
 
 public class JSi18nCached {
 	
-	/**
-	 * Test if it needs to update cache
-	 * Make gzip by lang
-	 * Make & publish link by lang
-	 * Inject conf personalized messages in page.
-	 */
-	
 	private Db db;
-	/**
-	 * @deprecated
-	 */
-	private Gson simple_gson;
 	private boolean is_debug_mode = false;
 	
 	public JSi18nCached() {
@@ -106,11 +92,6 @@ public class JSi18nCached {
 		
 		is_debug_mode = Configuration.global.getValueBoolean("play", "check_i18n_cache_files");
 		
-		GsonBuilder builder = new GsonBuilder();
-		builder.setPrettyPrinting();
-		Gson simple_pretty_gson = builder.create();
-		simple_gson = builder.create();
-		
 		/**
 		 * Load actual entries.
 		 */
@@ -133,13 +114,13 @@ public class JSi18nCached {
 			
 			try {
 				if (dbfile.exists() == false) {
-					FileUtils.write(dbfile, simple_pretty_gson.toJson(db), MyDMAM.UTF8);
+					FileUtils.write(dbfile, MyDMAM.gson_kit.getGsonPretty().toJson(db), MyDMAM.UTF8);
 					db.entries.forEach(entry -> {
 						entry.makeCacheFile();
 					});
 					
 				} else {
-					Db db_compare = simple_pretty_gson.fromJson(FileUtils.readFileToString(dbfile, MyDMAM.UTF8), Db.class);
+					Db db_compare = MyDMAM.gson_kit.getGsonPretty().fromJson(FileUtils.readFileToString(dbfile, MyDMAM.UTF8), Db.class);
 					
 					List<I18nEntry> to_refresh = db.entries.stream().filter(current -> {
 						Optional<I18nEntry> o_previous = db_compare.entries.stream().filter(previous -> {
@@ -158,7 +139,7 @@ public class JSi18nCached {
 							r.makeCacheFile();
 						});
 						
-						FileUtils.write(dbfile, simple_pretty_gson.toJson(db), MyDMAM.UTF8);
+						FileUtils.write(dbfile, MyDMAM.gson_kit.getGsonPretty().toJson(db), MyDMAM.UTF8);
 					}
 				}
 			} catch (Exception e) {
@@ -204,7 +185,7 @@ public class JSi18nCached {
 			
 			GZIPOutputStream gz_concated_out_stream_gzipped = null;
 			try {
-				String js_content = "var i18nMessages = " + simple_gson.toJson(messages) + ";";
+				String js_content = "var i18nMessages = " + MyDMAM.gson_kit.getGsonSimple().toJson(messages) + ";";
 				
 				gz_concated_out_stream_gzipped = new GZIPOutputStream(new FileOutputStream(getFile()), 0xFFFF);
 				gz_concated_out_stream_gzipped.write(js_content.getBytes(MyDMAM.UTF8));

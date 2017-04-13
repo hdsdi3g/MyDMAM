@@ -29,6 +29,8 @@ import controllers.Secure;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import play.exceptions.NoRouteFoundException;
+import play.i18n.Lang;
+import play.i18n.Messages;
 import play.mvc.Router;
 import play.vfs.VirtualFile;
 
@@ -220,6 +222,13 @@ public class HeaderJS {
 		}
 		
 		return "null";
+	}
+	
+	public String getMessageForCurrentUserLocale(String key, Object... args) {
+		if (MyDMAM.getconfiguredMessages().containsKey(key)) {
+			return Messages.formatString(Lang.getLocale(), MyDMAM.getconfiguredMessages().getProperty(key), args);
+		}
+		return Messages.get(key, args);
 	}
 	
 }

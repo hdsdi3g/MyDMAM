@@ -19,15 +19,15 @@
 <div class="container-fluid">
 <div id="reactindex">
     <div class="alert alert-error">
-      <h4>&{'maingrid.nojavascript.head'}</h4>
-      &{'maingrid.nojavascript'}
+      <h4>%{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale("maingrid.nojavascript.head"))}%</h4>
+      %{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale("maingrid.nojavascript"))}%
     </div>
 </div>
 
 <script type="text/javascript" charset="UTF-8">
 <!--
 $('#reactindex').empty();
-$('#reactindex').html('<p class="muted">' + "&{'maingrid.nojavascript.loading'}" + '</p>');
+$('#reactindex').html('<p class="muted">' + "%{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale('maingrid.nojavascript.loading'))}%" + '</p>');
 
 $(document).ready(function() {
 	try {
