@@ -280,21 +280,31 @@ mydmam.module.register("WatchFolderEntry", {
 			</p>);
 		}
 
-		var on_toogle_enable_disable = function(){};
+		var on_toogle_enable_disable = function(ref){
+			console.log(ref);//TODO
+		};
 
-		var btn_label_enable_disable = (<mydmam.async.BtnEnableDisable
-			//simplelabel={!manager.canCreateInstanceAction()}
+		var btn_label_paused = (<mydmam.async.BtnEnableDisable
+			simplelabel={!manager.canCreateInstanceAction()}
+			enabled={true}
+			/* enabled={content.paused == false}*/
+			labelenabled={i18n("manager.items.watchfolderentry.paused")}
+			labeldisabled={i18n("manager.items.watchfolderentry.notpaused")}
+			onEnable={on_toogle_enable_disable}
+			onDisable={on_toogle_enable_disable}
+			/*reference={content.paused ? "false" : "true"} />);*/
+			reference={"false"} />);
+
+		var btn_label_alive = (<mydmam.async.BtnEnableDisable
 			simplelabel={true}
 			enabled={content.isalive}
 			labelenabled={i18n("manager.items.watchfolderentry.enabled")}
 			labeldisabled={i18n("manager.items.watchfolderentry.disabled")}
-			onEnable={on_toogle_enable_disable}
-			onDisable={on_toogle_enable_disable}
 			reference={content.isalive ? "disable" : "enable"} />);
 
 		return (<div>
 			<p>
-				{btn_label_enable_disable}
+				{btn_label_alive} {btn_label_paused}
 			</p>
 			{i18n("manager.items.watchfolderentry.source")} <span className="badge badge-warning">{content.source_storage}</span>
 			{want_to_stop}

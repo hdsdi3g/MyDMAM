@@ -57,6 +57,7 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.InstanceActionReceiver;
 import hd3gtv.mydmam.manager.InstanceStatusItem;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
@@ -78,7 +79,7 @@ import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
 import hd3gtv.tools.Timecode;
 
-public class WatchFolderEntry extends Thread implements InstanceStatusItem {
+public class WatchFolderEntry extends Thread implements InstanceStatusItem, InstanceActionReceiver {
 	
 	private static int max_founded_items = 0;
 	
@@ -102,7 +103,8 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		video, audio
 	}
 	
-	private boolean want_to_stop;
+	private volatile boolean want_to_stop;
+	private volatile boolean paused = false;
 	
 	class Target {
 		String storage;
@@ -381,6 +383,9 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				while (sleep_time > 0 & (want_to_stop == false)) {
 					Thread.sleep(10);
 					sleep_time -= 10;
+				}
+				if (paused) {
+					continue;
 				}
 				
 				if (max_founded_items > 0) {
@@ -866,6 +871,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			jo_entry.addProperty("time_to_wait_growing_file", entry.time_to_wait_growing_file);
 			jo_entry.addProperty("want_to_stop", entry.want_to_stop);
 			jo_entry.addProperty("isalive", entry.isAlive());
+			jo_entry.addProperty("paused", entry.paused);
 			return jo_entry;
 		}
 		
@@ -881,6 +887,16 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 	
 	public Class<?> getInstanceStatusItemReferenceClass() {
 		return WatchFolderEntry.class;
+	}
+	
+	public Class<? extends InstanceActionReceiver> getClassToCallback() {
+		return WatchFolderEntry.class;
+	}
+	
+	public void doAnAction(JsonObject order) throws Exception {
+		if (order.has("paused")) {
+			paused = order.get("paused").getAsString().equals("true");
+		}
 	}
 	
 }
