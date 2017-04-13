@@ -54,6 +54,7 @@ import hd3gtv.mydmam.transcode.watchfolder.WatchFolderTranscoder;
 import hd3gtv.mydmam.web.StartPlayNoLazyLoad;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.CopyMove;
+import play.ConfigurationChangeWatcherPlugin;
 import play.Play;
 import play.Play.Mode;
 import play.server.Server;
@@ -175,11 +176,15 @@ public final class ServiceNG {
 			if (Play.secretKey.equals(default_password)) {
 				Loggers.Play.warn("Please set play.master_password_key in configuration !");
 			} else if (Play.secretKey.equals("change me please")) {
-				Loggers.Play.warn("Please set a random key in play.master_password_key in configuration ! If you need a good example, you can set " + default_password
-						+ " as key. Unfortunally, you will need to reset passwords or delete all local accounts, even admin, after do this.");
+				Loggers.Play.warn("Please set a random key in play.master_password_key in configuration ! If you need a good example, you can set " + default_password + " as key. Unfortunally, you will need to reset passwords or delete all local accounts, even admin, after do this.");
 			}
 			
 			if (Play.mode == Mode.DEV) {
+				/**
+				 * Remove stupid Play warning message
+				 */
+				Play.pluginCollection.disablePlugin(ConfigurationChangeWatcherPlugin.class);
+				
 				/**
 				 * NO LAZY LOAD
 				 */
@@ -427,14 +432,12 @@ public final class ServiceNG {
 						if (info.getLockedMonitors().length > 0) {
 							if (info.getLockedMonitors().length == 1) {
 								MonitorInfo mi = info.getLockedMonitors()[0];
-								System.out.println("LockedMonitor: " + mi.getClassName() + "  " + mi.getLockedStackFrame().toString() + " #" + mi.getIdentityHashCode() + ", StackDepth = "
-										+ mi.getLockedStackDepth());
+								System.out.println("LockedMonitor: " + mi.getClassName() + "  " + mi.getLockedStackFrame().toString() + " #" + mi.getIdentityHashCode() + ", StackDepth = " + mi.getLockedStackDepth());
 								
 							} else {
 								System.out.println("LockedMonitors:");
 								for (MonitorInfo mi : info.getLockedMonitors()) {
-									System.out.println(
-											" - " + mi.getClassName() + "  " + mi.getLockedStackFrame().toString() + " #" + mi.getIdentityHashCode() + ", StackDepth = " + mi.getLockedStackDepth());
+									System.out.println(" - " + mi.getClassName() + "  " + mi.getLockedStackFrame().toString() + " #" + mi.getIdentityHashCode() + ", StackDepth = " + mi.getLockedStackDepth());
 								}
 							}
 						}
