@@ -18,7 +18,7 @@
 /*
  * ============ Summaries =============
  */
-manager.Summaries = React.createClass({
+manager.Summaries = createReactClass({
 	render: function() {
 		var items = [];
 		for (var instance_ref in this.props.summaries) {
@@ -44,7 +44,7 @@ manager.Summaries = React.createClass({
 	},
 });
 
-manager.InstanceSummary = React.createClass({
+manager.InstanceSummary = createReactClass({
 	render: function() {
 
 		var addr = [];
@@ -81,7 +81,7 @@ manager.InstanceSummary = React.createClass({
  * ============ Threads =============
  */
 
-manager.ThreadsInstancesNavList = React.createClass({
+manager.ThreadsInstancesNavList = createReactClass({
 	getInitialState: function() {
 		return {
 			instance_selected: null,
@@ -141,7 +141,7 @@ manager.ThreadsInstancesNavList = React.createClass({
 	},
 });
 
-manager.Threads = React.createClass({
+manager.Threads = createReactClass({
 	getInitialState: function() {
 		return {
 			thread_list: {},
@@ -229,7 +229,7 @@ manager.Threads = React.createClass({
 /*
  * ============ Perfstats =============
  */
-manager.Perfstats = React.createClass({
+manager.Perfstats = createReactClass({
 	getInitialState: function() {
 		return {
 			list: {},
@@ -267,7 +267,7 @@ manager.Perfstats = React.createClass({
 	},
 });
 
-manager.PerfstatsInstance = React.createClass({
+manager.PerfstatsInstance = createReactClass({
 	render: function() {
 		var instance = this.props.instance;
 
@@ -411,7 +411,7 @@ manager.PerfstatsInstance = React.createClass({
 /*
  * ============ Classpaths =============
  */
-manager.Classpaths = React.createClass({
+manager.Classpaths = createReactClass({
 	getInitialState: function() {
 		return {
 			list: {},
@@ -482,7 +482,7 @@ manager.Classpaths = React.createClass({
 /*
  * ============ Lastjobs =============
  */
-manager.Lastjobs = React.createClass({
+manager.Lastjobs = createReactClass({
 	getInitialState: function() {
 		return {
 			list: {},
@@ -523,7 +523,7 @@ manager.Lastjobs = React.createClass({
 /*
  * ============ Pending actions =============
  */
-manager.PendingActions = React.createClass({
+manager.PendingActions = createReactClass({
 	getInitialState: function() {
 		return {
 			list: {},
@@ -593,7 +593,7 @@ manager.PendingActions = React.createClass({
 	},
 }); 
 
-var ClusterStatusTable = React.createClass({
+var ClusterStatusTable = createReactClass({
 	render: function() {
 		var report = this.props.report;
 		var datas = report.datas;
@@ -633,7 +633,7 @@ var ClusterStatusTable = React.createClass({
 }); 
 
 
-manager.ClusterStatus = React.createClass({
+manager.ClusterStatus = createReactClass({
 	getInitialState: function() {
 		return {
 			status: {},
@@ -667,7 +667,7 @@ manager.ClusterStatus = React.createClass({
 	},
 }); 
 
-manager.PlayServer = React.createClass({
+manager.PlayServer = createReactClass({
 	getInitialState: function() {
 		return {
 			report: {

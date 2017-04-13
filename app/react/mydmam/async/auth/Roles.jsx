@@ -30,7 +30,7 @@ auth.roleList = function (list) {
 };
 
 
-auth.Roles = React.createClass({
+auth.Roles = createReactClass({
 	getInitialState: function() {
 		return {
 			rolelist: {},
@@ -76,7 +76,7 @@ auth.Roles = React.createClass({
 	}
 });
 
-auth.RoleCreate = React.createClass({
+auth.RoleCreate = createReactClass({
 	onAddBtnClick: function(e){
 		var new_role_name = ReactDOM.findDOMNode(this.refs.role_name).value;
 		mydmam.async.request("auth", "rolecreate", new_role_name, function(created) {
@@ -106,7 +106,7 @@ auth.RoleCreate = React.createClass({
 	},
 });
 
-auth.RoleEdit = React.createClass({
+auth.RoleEdit = createReactClass({
 	getInitialState: function() {
 		return {
 			privileges_full_list: [],

@@ -42,9 +42,13 @@
 	#{if hd3gtv.mydmam.web.JSSourceManager.isJsDevMode()}
 		<script src="@{'/public/javascripts/lib/react.js'}" type="text/javascript" charset="UTF-8"></script>
 		<script src="@{'/public/javascripts/lib/react-dom.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/create-react-class.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/prop-types.js'}" type="text/javascript" charset="UTF-8"></script>
 	#{/if}#{else}
 		<script src="@{'/public/javascripts/lib/react.min.js'}" type="text/javascript" charset="UTF-8"></script>
 		<script src="@{'/public/javascripts/lib/react-dom.min.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/create-react-class.min.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/prop-types.min.js'}" type="text/javascript" charset="UTF-8"></script>
 	#{/else}
 
 	<script type="text/javascript"><!--

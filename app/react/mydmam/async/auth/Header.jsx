@@ -17,7 +17,7 @@
 
 auth.grouplist = null;
 
-auth.Header = React.createClass({
+auth.Header = createReactClass({
 	getInitialState: function() {
 		return {ready: auth.grouplist != null};
 	},

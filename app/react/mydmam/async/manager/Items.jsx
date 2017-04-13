@@ -15,7 +15,7 @@
  * 
 */
 
-manager.Items = React.createClass({
+manager.Items = createReactClass({
 	getInitialState: function() {
 		return {
 			items: {},
@@ -332,7 +332,7 @@ manager.Items = React.createClass({
 	},
 });
 
-manager.btnArrowGoToItemBlock = React.createClass({
+manager.btnArrowGoToItemBlock = createReactClass({
 	onGoto: function (e) {
 		e.preventDefault();
 		$(ReactDOM.findDOMNode(this.refs.a)).blur();
@@ -345,7 +345,7 @@ manager.btnArrowGoToItemBlock = React.createClass({
 	},
 });
 
-manager.SelectNavItemInstance = React.createClass({
+manager.SelectNavItemInstance = createReactClass({
 	onClick: function (e) {
 		e.preventDefault();
 		$(ReactDOM.findDOMNode(this.refs.a)).blur();

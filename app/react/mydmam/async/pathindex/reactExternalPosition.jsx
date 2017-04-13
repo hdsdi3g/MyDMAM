@@ -47,7 +47,7 @@ pathindex.populateExternalLocationStorageList = function(onResult) {
 /**
  * You must call pathindex.resolveExternalLocation onResult OR populateExternalLocationStorageList before this. Else it never display anything.
  */
-pathindex.reactExternalLocation = React.createClass({
+pathindex.reactExternalLocation = createReactClass({
 	getInitialState: function() {
 		return {
 			expand_tapes: false,

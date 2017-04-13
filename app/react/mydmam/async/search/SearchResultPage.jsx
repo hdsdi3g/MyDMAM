@@ -15,7 +15,7 @@
  * 
 */
 
-search.SearchResultPage = React.createClass({
+search.SearchResultPage = createReactClass({
 	getInitialState: function() {
 		return {stat: {}, external_storages_location: []};
 	},
@@ -82,7 +82,7 @@ search.SearchResultPage = React.createClass({
 	}
 });
 
-search.Home = React.createClass({
+search.Home = createReactClass({
 	getInitialState: function() {
 		return {
 			q: this.props.q,

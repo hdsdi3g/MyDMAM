@@ -15,7 +15,7 @@
  * 
 */
 
-auth.Privileges = React.createClass({
+auth.Privileges = createReactClass({
 	getInitialState: function() {
 		return {
 			fulllist: {},

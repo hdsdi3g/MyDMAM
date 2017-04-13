@@ -18,7 +18,7 @@
 /**
  * Wait 300 ms before show it.
  */
-async.PageLoadingProgressBar = React.createClass({
+async.PageLoadingProgressBar = createReactClass({
 	getInitialState: function() {
 		return {timer: null, show_bar: false};
 	},
@@ -42,7 +42,7 @@ async.PageLoadingProgressBar = React.createClass({
 	}
 });
 
-async.AlertBox = React.createClass({
+async.AlertBox = createReactClass({
 	render: function() {
 		var title = null;
 		if (this.props.title) {
@@ -56,19 +56,19 @@ async.AlertBox = React.createClass({
 	}
 });
 
-async.AlertInfoBox = React.createClass({
+async.AlertInfoBox = createReactClass({
 	render: function() {
 		return (<async.AlertBox color="alert-info" {...this.props} />);
 	}
 });
 
-async.AlertErrorBox = React.createClass({
+async.AlertErrorBox = createReactClass({
 	render: function() {
 		return (<async.AlertBox color="alert-error" {...this.props} />);
 	}
 });
 
-async.FormControlGroup = React.createClass({
+async.FormControlGroup = createReactClass({
 	render: function() {
 		var label = null;
 		if (this.props.label) {
@@ -84,16 +84,16 @@ async.FormControlGroup = React.createClass({
 	}
 });
 
-async.BtnEnableDisable = React.createClass({
+async.BtnEnableDisable = createReactClass({
 	propTypes: {
-		simplelabel: React.PropTypes.bool.isRequired,
-		enabled: React.PropTypes.bool.isRequired,
-		labelenabled: React.PropTypes.string.isRequired,
-		labeldisabled: React.PropTypes.string.isRequired,
-		onEnable: React.PropTypes.func,
-		onDisable: React.PropTypes.func,
-		reference: React.PropTypes.string,
-		iconcircle: React.PropTypes.bool,
+		simplelabel: PropTypes.bool.isRequired,
+		enabled: PropTypes.bool.isRequired,
+		labelenabled: PropTypes.string.isRequired,
+		labeldisabled: PropTypes.string.isRequired,
+		onEnable: PropTypes.func,
+		onDisable: PropTypes.func,
+		reference: PropTypes.string,
+		iconcircle: PropTypes.bool,
 	},
 	getInitialState: function() {
 		return {pending_changes: false};
@@ -149,11 +149,11 @@ async.BtnEnableDisable = React.createClass({
 	},
 });
 
-async.CheckboxItem = React.createClass({
+async.CheckboxItem = createReactClass({
 	propTypes: {
-		reference: React.PropTypes.string.isRequired,
-		checked: React.PropTypes.bool.isRequired,
-		onChangeCheck: React.PropTypes.func.isRequired,
+		reference: PropTypes.string.isRequired,
+		checked: PropTypes.bool.isRequired,
+		onChangeCheck: PropTypes.func.isRequired,
 	},
 	onClickCB: function(e) {
    		$(ReactDOM.findDOMNode(this.refs.cb)).blur();
@@ -168,12 +168,12 @@ async.CheckboxItem = React.createClass({
 	}
 });
 
-async.BtnDelete = React.createClass({
+async.BtnDelete = createReactClass({
 	propTypes: {
-		label: React.PropTypes.string,
-		enabled: React.PropTypes.bool.isRequired,
-		onClickDelete: React.PropTypes.func.isRequired,
-		reference: React.PropTypes.string,
+		label: PropTypes.string,
+		enabled: PropTypes.bool.isRequired,
+		onClickDelete: PropTypes.func.isRequired,
+		reference: PropTypes.string,
 	},
 	getInitialState: function() {
 		return {pending_changes: false};
@@ -199,12 +199,12 @@ async.BtnDelete = React.createClass({
 	},
 });
 
-async.SimpleBtn = React.createClass({
+async.SimpleBtn = createReactClass({
 	propTypes: {
-		enabled: React.PropTypes.bool.isRequired,
-		onClick: React.PropTypes.func.isRequired,
-		reference: React.PropTypes.string,
-		btncolor: React.PropTypes.string,
+		enabled: PropTypes.bool.isRequired,
+		onClick: PropTypes.func.isRequired,
+		reference: PropTypes.string,
+		btncolor: PropTypes.string,
 	},
 	onClick: function() {
 		if (!this.props.enabled) {
@@ -221,7 +221,7 @@ async.SimpleBtn = React.createClass({
 });
 
 
-async.ButtonSort = React.createClass({
+async.ButtonSort = createReactClass({
 	handleClick: function(e) {
 		e.preventDefault();
 		this.props.onChangeState(this.props.colname, this.props.order);
@@ -256,12 +256,12 @@ async.ButtonSort = React.createClass({
 	}
 });
 
-async.LabelBoolean = React.createClass({
+async.LabelBoolean = createReactClass({
 	propTypes: {
-		label_true: 	React.PropTypes.string.isRequired,
-		label_false: 	React.PropTypes.string.isRequired,
-		value: 			React.PropTypes.bool.isRequired,
-		inverse: 		React.PropTypes.bool,
+		label_true: 	PropTypes.string.isRequired,
+		label_false: 	PropTypes.string.isRequired,
+		value: 			PropTypes.bool.isRequired,
+		inverse: 		PropTypes.bool,
 	},
 	render: function() {
 		var value = this.props.value;
@@ -288,10 +288,10 @@ async.LabelBoolean = React.createClass({
 	},
 });
 
-async.JsonCode = React.createClass({
+async.JsonCode = createReactClass({
 	propTypes: {
-		i18nlabel:		React.PropTypes.string.isRequired,
-		json: 			React.PropTypes.object.isRequired,
+		i18nlabel:		PropTypes.string.isRequired,
+		json: 			PropTypes.object.isRequired,
 	},
 	render: function() {
 		var i18nlabel = (<span className="jsontitle"> {i18n(this.props.i18nlabel)} </span>);
@@ -328,7 +328,7 @@ async.makeGitHubLink = function(javaclass) {
 	return "https://github.com/hdsdi3g/MyDMAM/blob/" + async.appversion.substring(async.appversion.lastIndexOf(" ") + 1) + "/app/" + javaclass.replace(/\./g, "/") + ".java";
 }
 
-async.JavaClassNameLink = React.createClass({
+async.JavaClassNameLink = createReactClass({
 	onClickLink: function(e) {
 		e.stopPropagation();
 	},
@@ -364,7 +364,7 @@ async.JavaClassNameLink = React.createClass({
 	},
 });
 
-async.JavaStackTrace = React.createClass({
+async.JavaStackTrace = createReactClass({
 	onClickLink: function(e) {
 		e.stopPropagation();
 	},
@@ -424,7 +424,7 @@ async.JavaStackTrace = React.createClass({
 	},
 });
 
-async.SearchInputBox = React.createClass({
+async.SearchInputBox = createReactClass({
 	getInitialState: function() {
 		return {timer: null};
 	},
@@ -455,7 +455,7 @@ async.SearchInputBox = React.createClass({
 	}
 });
 
-async.NavTabsLink = React.createClass({
+async.NavTabsLink = createReactClass({
 	onClick: function(e) {
 		e.preventDefault();
 		this.props.onActiveChange(this.props.pos);
@@ -474,7 +474,7 @@ async.NavTabsLink = React.createClass({
 	},
 });
 
-async.NavTabs = React.createClass({
+async.NavTabs = createReactClass({
 	onActiveChange: function(new_pos) {
 		if (new_pos < 0) {
 			return;
@@ -510,7 +510,7 @@ async.NavTabs = React.createClass({
 	},
 });
 
-async.PageHeaderTitle = React.createClass({
+async.PageHeaderTitle = createReactClass({
 	getInitialState: function() {
 		return {active_tab: 0};
 	},
@@ -583,7 +583,7 @@ async.PageHeaderTitle = React.createClass({
 	}
 });
 
-async.HeaderTab = React.createClass({
+async.HeaderTab = createReactClass({
 	onClick: function(e) {
 		//e.preventDefault();
 		//this.props.onActiveChange(this.props.pos);

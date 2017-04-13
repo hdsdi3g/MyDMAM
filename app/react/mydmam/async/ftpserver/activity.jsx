@@ -15,7 +15,7 @@
  * 
 */
 
-ftpserver.ActivityList = React.createClass({
+ftpserver.ActivityList = createReactClass({
 	getInitialState: function() {
 		return {
 			activities: null,

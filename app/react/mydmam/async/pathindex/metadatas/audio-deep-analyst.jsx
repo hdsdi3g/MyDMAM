@@ -18,7 +18,7 @@ metadatas.hasAudioGraphicDeepAnalyst = function(previews) {
 	return !(previews.audio_graphic_deepanalyst == null);
 };
 
-metadatas.AudioGraphicDeepAnalyst = React.createClass({
+metadatas.AudioGraphicDeepAnalyst = createReactClass({
 	getInitialState: function() {
 		return {
 			last_time_position: 0,
@@ -127,7 +127,7 @@ metadatas.AudioGraphicDeepAnalyst = React.createClass({
 	}
 });
 
-metadatas.AudioStatsDeepAnalyst = React.createClass({
+metadatas.AudioStatsDeepAnalyst = createReactClass({
 	getInitialState: function() {
 		return {
 			analyst_result: null,
@@ -344,7 +344,7 @@ metadatas.AudioStatsDeepAnalyst = React.createClass({
 	}
 });
 
-metadatas.ButtonChooseAudioStatBlock = React.createClass({
+metadatas.ButtonChooseAudioStatBlock = createReactClass({
 	btnClick: function() {
 		this.props.onChooseAudioStatBlock(this.props.channel);
 	},
@@ -371,7 +371,7 @@ metadatas.ButtonChooseAudioStatBlock = React.createClass({
 	}
 });
 
-metadatas.ButtonSilenceGotoPlay = React.createClass({
+metadatas.ButtonSilenceGotoPlay = createReactClass({
 	btnClick: function() {
 		if (this.props.onGotoSilence) {
 			this.props.onGotoSilence(this.props.timevalue / 1000);

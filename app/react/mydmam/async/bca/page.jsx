@@ -17,7 +17,7 @@
 
 bca.link = "broadcastautomation";
 
-bca.CountDown = React.createClass({
+bca.CountDown = createReactClass({
 	getInitialState: function() {
 		return {
 			interval: null,
@@ -89,7 +89,7 @@ bca.CountDown = React.createClass({
 	}
 });
 
-var Event = React.createClass({
+var Event = createReactClass({
 	getInitialState: function() {
 		return {
 			event_is_done: this.props.event.enddate < mydmam.async.getTime(),
@@ -215,7 +215,7 @@ var Event = React.createClass({
 	},
 });
 
-bca.Home = React.createClass({
+bca.Home = createReactClass({
 	getInitialState: function() {
 		return {
 			interval: null,

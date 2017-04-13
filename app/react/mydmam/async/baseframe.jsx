@@ -15,7 +15,7 @@
  * 
  */
 
-async.Home = React.createClass({
+async.Home = createReactClass({
 	render: function() {
 		return (<div className="container">
 			<div className="hero-unit">
@@ -26,7 +26,7 @@ async.Home = React.createClass({
 	}
 });
 
-async.Footer = React.createClass({
+async.Footer = createReactClass({
 	render: function() {
 		return (<div className="container-fluid" style={{textAlign: "center", marginTop: "1.5em"}}>
 			<small className="muted">

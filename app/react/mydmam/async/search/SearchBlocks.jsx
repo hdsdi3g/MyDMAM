@@ -26,7 +26,7 @@ search.found = function(results, dom_target) {
 	);
 };
 
-search.SearchForm = React.createClass({
+search.SearchForm = createReactClass({
 	componentDidMount: function() {
 		ReactDOM.findDOMNode(this.refs.q).focus();
 		ReactDOM.findDOMNode(this.refs.q).value = this.getDefaultText();
@@ -65,7 +65,7 @@ search.SearchForm = React.createClass({
 	}
 });
 
-search.SearchResults = React.createClass({
+search.SearchResults = createReactClass({
 	render: function() {
 		var stat = this.props.stat;
 		var external_storages_location = this.props.external_storages_location;
@@ -100,7 +100,7 @@ search.SearchResults = React.createClass({
 	}
 });
 
-search.SearchResultsHeader = React.createClass({
+search.SearchResultsHeader = createReactClass({
 	render: function() {
 		if (this.props.results.results.length == 0) {
 			return (

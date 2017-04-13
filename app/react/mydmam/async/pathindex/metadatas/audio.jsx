@@ -15,7 +15,7 @@
  * 
 */
 
-metadatas.Audio = React.createClass({
+metadatas.Audio = createReactClass({
 	getInitialState: function() {
 		return {currentTime: null, duration: null, transport: null};
 	},

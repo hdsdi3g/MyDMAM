@@ -15,7 +15,7 @@
  * 
 */
 
-var QualityTabs = React.createClass({
+var QualityTabs = createReactClass({
 	handleClickSwitchSize: function(event) {
 		event.preventDefault();
 		this.props.onSwitchSize(!this.props.isbigsize);
@@ -58,7 +58,7 @@ var QualityTabs = React.createClass({
 	}
 });
 
-metadatas.Video = React.createClass({
+metadatas.Video = createReactClass({
 	getInitialState: function() {
 		return {selectedquality: 0, medias: [], isbigsize: false, transport: null, currentTime: null, duration: null};
 	},

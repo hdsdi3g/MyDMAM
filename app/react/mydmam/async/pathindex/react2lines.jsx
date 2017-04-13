@@ -15,7 +15,7 @@
  * 
 */
 
-pathindex.react2lines = React.createClass({
+pathindex.react2lines = createReactClass({
 	render: function() {
 		var result = this.props.result;
 		var directory_block = null;

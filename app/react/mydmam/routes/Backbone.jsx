@@ -29,7 +29,7 @@ routes.loadBackbone = function(dom_target) {
 	);
 };
 
-routes.Backbone = React.createClass({
+routes.Backbone = createReactClass({
 	getInitialState: function() {
 		return {dest: null, params: null, q: null, };
 	},

@@ -15,20 +15,20 @@
  * 
 */
 
-metadatas.Mediaplayer = React.createClass({
+metadatas.Mediaplayer = createReactClass({
 	propTypes: {
-		audio_only: 	React.PropTypes.bool,
-		className: 		React.PropTypes.oneOfType([
-							React.PropTypes.string,
-							React.PropTypes.object,
+		audio_only: 	PropTypes.bool,
+		className: 		PropTypes.oneOfType([
+							PropTypes.string,
+							PropTypes.object,
 						]),
-		width: 			React.PropTypes.number, 
-		height: 		React.PropTypes.number,
-		poster: 		React.PropTypes.string,
-		cantloadingplayerexcuse: React.PropTypes.string,
-		source_url: 	React.PropTypes.string,
-		transport: 		React.PropTypes.object,
-		transport_status: React.PropTypes.func
+		width: 			PropTypes.number, 
+		height: 		PropTypes.number,
+		poster: 		PropTypes.string,
+		cantloadingplayerexcuse: PropTypes.string,
+		source_url: 	PropTypes.string,
+		transport: 		PropTypes.object,
+		transport_status: PropTypes.func
 	},
 	getInitialState: function() {
 		return {

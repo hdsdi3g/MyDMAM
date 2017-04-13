@@ -15,7 +15,7 @@
  * 
 */
 
-navigate.NavigateTable = React.createClass({
+navigate.NavigateTable = createReactClass({
 	getInitialState: function() {
 		return {
 			sorted_col: null,

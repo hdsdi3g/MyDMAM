@@ -15,7 +15,7 @@
  * 
 */
 
-ftpserver.MainPage = React.createClass({
+ftpserver.MainPage = createReactClass({
 	render: function() {
 		var content = [];
 
@@ -42,7 +42,7 @@ ftpserver.MainPage = React.createClass({
 
 mydmam.routes.push("ftpserver-MainPage", "ftpserver", ftpserver.MainPage, [{name: "ftpserver", verb: "allusers"}]);	
 
-ftpserver.UserList = React.createClass({
+ftpserver.UserList = createReactClass({
 	getInitialState: function() {
 		return {
 			users: null,
@@ -197,7 +197,7 @@ ftpserver.UserList = React.createClass({
 	},
 });
 
-ftpserver.UserLine = React.createClass({
+ftpserver.UserLine = createReactClass({
 	onAction: function(request) {
 		mydmam.async.request("ftpserver", "adminoperationuser", request, function(data) {
 			if (data.done) {
@@ -301,7 +301,7 @@ ftpserver.UserLine = React.createClass({
 	},	
 });
 
-ftpserver.BtnLastActivityToogle = React.createClass({
+ftpserver.BtnLastActivityToogle = createReactClass({
 	onLastActivityToogle: function() {
 		this.props.onLastActivityToogle(this.props.user);
 	},

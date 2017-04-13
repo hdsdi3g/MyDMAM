@@ -15,7 +15,7 @@
  * 
 */
 
-navigate.BreadCrumb = React.createClass({
+navigate.BreadCrumb = createReactClass({
 	render: function() {
 		var storagename = this.props.storagename;
 		var path = this.props.path;
@@ -91,7 +91,7 @@ navigate.BreadCrumb = React.createClass({
 	}
 });
 
-navigate.HeaderItem = React.createClass({
+navigate.HeaderItem = createReactClass({
 	render: function() {
 		var reference = this.props.stat.reference;
 		var mtdsummary = this.props.stat.mtdsummary;
@@ -169,7 +169,7 @@ navigate.HeaderItem = React.createClass({
 	}
 });
 
-navigate.NoResultsSearch = React.createClass({
+navigate.NoResultsSearch = createReactClass({
 	render: function() {
 		return (
 			<div className="alert alert-info">

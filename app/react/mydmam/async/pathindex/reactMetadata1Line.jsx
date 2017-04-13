@@ -15,7 +15,7 @@
  * 
 */
 
-pathindex.reactMetadata1Line = React.createClass({
+pathindex.reactMetadata1Line = createReactClass({
 	render: function() {
 		var stat = this.props.stat;
 		if (stat == null){

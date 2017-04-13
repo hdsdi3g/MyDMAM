@@ -34,7 +34,7 @@ var generatePassword = function() {
 	}
 }
 
-ftpserver.AddUser = React.createClass({
+ftpserver.AddUser = createReactClass({
 	getInitialState: function() {
 		return {
 			groups: null,

@@ -16,7 +16,7 @@
 */
 
 
-auth.Users = React.createClass({
+auth.Users = createReactClass({
 	getInitialState: function() {
 		return {
 			userlist: {},
@@ -120,7 +120,7 @@ auth.Users = React.createClass({
 });
 
 
-auth.UserCreate = React.createClass({
+auth.UserCreate = createReactClass({
 	getInitialState: function() {
 		return {
 			locked_account: false,
@@ -249,7 +249,7 @@ auth.UserCreate = React.createClass({
 	},
 });
 
-var GroupPane = React.createClass({
+var GroupPane = createReactClass({
 	getInitialState: function() {
 		return {
 			user_groups: this.props.user.user_groups,
@@ -305,7 +305,7 @@ var GroupPane = React.createClass({
 	},
 });
 
-var PasswordPane = React.createClass({
+var PasswordPane = createReactClass({
 	onUpdBtnClick: function(e) {
 		var password  = ReactDOM.findDOMNode(this.refs.password).value;
 		var password2 = ReactDOM.findDOMNode(this.refs.password2).value;
@@ -346,7 +346,7 @@ var PasswordPane = React.createClass({
 	},
 });
 
-var DeletePane = React.createClass({
+var DeletePane = createReactClass({
 	onDeleteBtnClick: function(e){
 		mydmam.async.request("auth", "userdelete", this.props.user_key, function(list) {
 			window.location = "#auth/users";
@@ -363,7 +363,7 @@ var DeletePane = React.createClass({
 	},
 });
 
-var PropertiesPane = React.createClass({
+var PropertiesPane = createReactClass({
 	onSaveBtnClick: function(e){
 		var new_value = ReactDOM.findDOMNode(this.refs.data).value;
 
@@ -395,7 +395,7 @@ var PropertiesPane = React.createClass({
 	},
 });
 
-var PreferencesPane = React.createClass({
+var PreferencesPane = createReactClass({
 	render: function(){
 		return (<div>
 			<mydmam.async.JsonCode i18nlabel="auth.preferences.last" json={this.props.preferences} />
@@ -404,7 +404,7 @@ var PreferencesPane = React.createClass({
 });
 
 
-auth.UserEdit = React.createClass({
+auth.UserEdit = createReactClass({
 	getInitialState: function() {
 		return {
 			user: null,

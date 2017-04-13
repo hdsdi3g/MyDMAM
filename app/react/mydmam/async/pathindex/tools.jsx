@@ -29,7 +29,7 @@ mydmam.module.register("PathIndexView", {
 	processViewSearchResult: searchResult,
 });
 
-pathindex.reactStoragePathLink = React.createClass({
+pathindex.reactStoragePathLink = createReactClass({
 	render: function() {
 		var storagename = this.props.storagename;
 		var path = this.props.path;
@@ -73,7 +73,7 @@ pathindex.reactStoragePathLink = React.createClass({
 	}
 });
 
-pathindex.reactFileSize = React.createClass({
+pathindex.reactFileSize = createReactClass({
 	render: function() {
 		if (!this.props.size) {
 			return null;
@@ -86,7 +86,7 @@ pathindex.reactFileSize = React.createClass({
 	},
 });
 
-pathindex.reactDate = React.createClass({
+pathindex.reactDate = createReactClass({
 	render: function() {
 		if (!this.props.date) {
 			return null;
@@ -106,7 +106,7 @@ pathindex.reactDate = React.createClass({
 	},
 });
 
-pathindex.reactSinceDate = React.createClass({
+pathindex.reactSinceDate = createReactClass({
 	render: function() {
 		if (!this.props.date) {
 			return null;
@@ -160,7 +160,7 @@ pathindex.mtdTypeofElement = function(mtd_element) {
 	return translated_element;
 };
 
-pathindex.reactBasketButton = React.createClass({
+pathindex.reactBasketButton = createReactClass({
 	getInitialState: function() {
 		return {present_in_basket: mydmam.basket.isInBasket(this.props.pathindexkey)};
 	},

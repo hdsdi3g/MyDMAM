@@ -15,7 +15,7 @@
  * 
 */
 
-broker.Jobs = React.createClass({
+broker.Jobs = createReactClass({
 	getInitialState: function() {
 		return {
 			selected_tab: 0,
@@ -127,7 +127,7 @@ broker.status = {
 		tab: 9,	i18n_tab_name: "manager.jobs.status.POSTPONED",			badge_class: null,				btns: ["setinwait", "noexpiration", "delete"],	},
 };
 
-broker.NavTabs = React.createClass({
+broker.NavTabs = createReactClass({
 	getInitialState: function() {
 		return {
 			display_drop_down_action: false,
@@ -196,7 +196,7 @@ broker.NavTabs = React.createClass({
 	},
 });
 
-broker.Tab = React.createClass({
+broker.Tab = createReactClass({
 	onClick: function(e) {
 		e.preventDefault();
 		$(ReactDOM.findDOMNode(this.refs.tab)).blur();
@@ -225,7 +225,7 @@ broker.Tab = React.createClass({
 	},
 });
 
-broker.NavTabDropDownAction = React.createClass({
+broker.NavTabDropDownAction = createReactClass({
 	getInitialState: function() {
 		return {
 			active_dropdown_action_tab: false,
@@ -295,7 +295,7 @@ broker.NavTabDropDownAction = React.createClass({
 	},
 });
 
-broker.JobListCartridges = React.createClass({
+broker.JobListCartridges = createReactClass({
 	render: function() {
 		var joblist = this.props.joblist;
 		var selected_tab = this.props.selected_tab;
@@ -388,7 +388,7 @@ broker.displayKey = function(key, react_return) {
 	}
 };
 
-broker.JobProgression = React.createClass({
+broker.JobProgression = createReactClass({
 	render: function() {
 		var job = this.props.job;
 		var progression_bar = null;
@@ -458,7 +458,7 @@ broker.JobProgression = React.createClass({
 	}
 });
 
-broker.JobCartridgeActionButtons = React.createClass({
+broker.JobCartridgeActionButtons = createReactClass({
 	onClickButton_hipriority: function(e) {		e.stopPropagation();		this.props.onActionButtonClick("hipriority");	},
 	onClickButton_postponed: function(e) {		e.stopPropagation();		this.props.onActionButtonClick("postponed");	},
 	onClickButton_cancel: function(e) {			e.stopPropagation();		this.props.onActionButtonClick("cancel");	},
@@ -587,7 +587,7 @@ broker.displayContext = function(context) {
 	</div>);
 };
 
-broker.JobCartridge = React.createClass({
+broker.JobCartridge = createReactClass({
 	getInitialState: function() {
 		return {
 			stacked: false,

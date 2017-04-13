@@ -17,7 +17,7 @@
 
 var divider_vertical = (<li className="divider-vertical"></li>);
 
-var TopMenuEntrylink = React.createClass({
+var TopMenuEntrylink = createReactClass({
 	onClick: function(e) {
 		$(ReactDOM.findDOMNode(this.refs.thislink)).blur();
 	},
@@ -45,7 +45,7 @@ var TopMenuEntrylink = React.createClass({
 	}
 });
 
-var DropdownMenu = React.createClass({
+var DropdownMenu = createReactClass({
 	render: function() {
 		var items = this.props.items;
 		var content = [];
@@ -100,7 +100,7 @@ var isMenuItemIsActive = function(href_hash_to_handle) {
 	return true;
 }
 
-async.TopMenu = React.createClass({
+async.TopMenu = createReactClass({
 	onSearchKeyPress: function(event) {
 		if (!event) {
 			event = window.event;

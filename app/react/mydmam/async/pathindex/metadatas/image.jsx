@@ -56,7 +56,7 @@ metadatas.chooseTheCorrectImageURL = function(file_hash, previews, prefered_size
 	return metadatas.ImageURL(file_hash, chooseTheCorrectImageToDisplay(previews, prefered_size));
 };
 
-metadatas.Image = React.createClass({
+metadatas.Image = createReactClass({
 	render: function() {
 		var file_hash = this.props.file_hash;
 		var previews = this.props.previews;

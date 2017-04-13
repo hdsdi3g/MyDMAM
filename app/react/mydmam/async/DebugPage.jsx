@@ -15,7 +15,7 @@
  * 
  */
 
-async.DebugPage = React.createClass({
+async.DebugPage = createReactClass({
 	getInitialState: function() {
 		return {
 			ajscontrollers: null,

@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-watchfolders.AbstractFoundedFile =  React.createClass({
+watchfolders.AbstractFoundedFile =  createReactClass({
 	btnDelete: function(e) {
 		e.preventDefault();
 		this.props.onDelete(this.props.abstract_founded_file);

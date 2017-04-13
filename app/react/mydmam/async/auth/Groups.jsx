@@ -15,7 +15,7 @@
  * 
 */
 
-auth.Groups = React.createClass({
+auth.Groups = createReactClass({
 	getInitialState: function() {
 		return {
 			rolelist: {},
@@ -90,7 +90,7 @@ auth.Groups = React.createClass({
 	}
 });
 
-auth.GroupCreate = React.createClass({
+auth.GroupCreate = createReactClass({
 	onAddBtnClick: function(e){
 		var new_group_name = ReactDOM.findDOMNode(this.refs.group_name).value;
 		mydmam.async.request("auth", "groupcreate", new_group_name, function(created) {
@@ -123,7 +123,7 @@ auth.GroupCreate = React.createClass({
 	},
 });
 
-auth.GroupEdit = React.createClass({
+auth.GroupEdit = createReactClass({
 	getInitialState: function() {
 		return {
 			roles_full_list: [],

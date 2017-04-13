@@ -15,7 +15,7 @@
  * 
 */
 
-pathindex.reactMetadataFull = React.createClass({
+pathindex.reactMetadataFull = createReactClass({
 	render: function() {
 		if (!this.props.mtdsummary | !this.props.reference) {
 			return null;

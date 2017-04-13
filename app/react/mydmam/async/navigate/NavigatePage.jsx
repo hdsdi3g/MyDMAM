@@ -15,7 +15,7 @@
  * 
 */
 
-navigate.Home = React.createClass({
+navigate.Home = createReactClass({
 	componentDidMount: function() {
 		this.setDocumentTitle();
 	},
@@ -113,7 +113,7 @@ mydmam.routes.setNeedsToRedirectSearch("navigate-subdir18");
 mydmam.routes.setNeedsToRedirectSearch("navigate-subdir19");
 mydmam.routes.setNeedsToRedirectSearch("navigate-subdir20");
 
-navigate.NavigatePage = React.createClass({
+navigate.NavigatePage = createReactClass({
 	getInitialState: function() {
 		return {
 			stat: {},

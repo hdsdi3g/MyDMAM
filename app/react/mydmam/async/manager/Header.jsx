@@ -15,7 +15,7 @@
  * 
 */
 
-manager.Header = React.createClass({
+manager.Header = createReactClass({
 	getInitialState: function() {
 		return {
 			summaries: {},
@@ -105,7 +105,7 @@ mydmam.routes.push("manager-PendingActions", "manager/pendingactions", 	manager.
 mydmam.routes.push("manager-ClusterStatus", "manager/clusterstatus", 	manager.Header, [{name: "instances", verb: "esclusterstatus"}]);	
 mydmam.routes.push("manager-PlayServer", "manager/playserver", 	manager.Header, [{name: "instances", verb: "playserver"}]);	
 
-manager.InstancesNavListElement = React.createClass({
+manager.InstancesNavListElement = createReactClass({
 	onClick: function(e) {
 		e.preventDefault();
 		this.props.onSelect(this.props.reference);
