@@ -22,10 +22,7 @@ import com.google.gson.JsonObject;
 import controllers.Check;
 import controllers.Secure;
 import hd3gtv.configuration.GitInfo;
-import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.status.ElasticsearchStatus;
-import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.AsyncJSInstanceActionRequest;
 import hd3gtv.mydmam.manager.BrokerNG;
 import hd3gtv.mydmam.manager.InstanceAction;
@@ -36,33 +33,12 @@ import hd3gtv.mydmam.web.PlayServerUpdateConfiguration;
 
 public class Instances extends AJSController {
 	
-	/*private static Type hm_StringJob_typeOfT = new TypeToken<HashMap<String, JobNG>>() {
-	}.getType();*/
-	
-	private static InstanceStatus current;
-	
-	static {
-		try {
-			current = new AppManager().getInstanceStatus();
-		} catch (Exception e) {
-			Loggers.Play.error("Can't load Instance Status", e);
-		}
-		
-		/*AJSController.registerTypeAdapter(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
-			public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-				return src.list;
-			}
-		});*/
-	}
-	
 	/**
 	 * @return instance ref -> raw JS
 	 */
 	@Check("showInstances")
 	public static JsonObject allSummaries() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_SUMMARY);
-		result.add(current.summary.getInstanceNamePid(), MyDMAM.gson_kit.getGsonSimple().toJsonTree(current.summary));
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_SUMMARY);
 	}
 	
 	/**
@@ -70,9 +46,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonObject allThreads() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_THREADS);
-		result.add(current.summary.getInstanceNamePid(), InstanceStatus.getThreadstacktraces());
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_THREADS);
 	}
 	
 	/**
@@ -80,9 +54,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonObject allClasspaths() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_CLASSPATH);
-		result.add(current.summary.getInstanceNamePid(), current.getClasspath());
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_CLASSPATH);
 	}
 	
 	/**
@@ -90,9 +62,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonObject allPerfStats() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_PERFSTATS);
-		result.add(current.summary.getInstanceNamePid(), current.getPerfStats());
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_PERFSTATS);
 	}
 	
 	/**
@@ -100,9 +70,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonObject allItems() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_ITEMS);
-		result.add(current.summary.getInstanceNamePid(), current.getItems());
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_ITEMS);
 	}
 	
 	/**

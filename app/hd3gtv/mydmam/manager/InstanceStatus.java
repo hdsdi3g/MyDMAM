@@ -441,7 +441,7 @@ public final class InstanceStatus {
 	/**
 	 * @return raw Cassandra items, but sorted by key names.
 	 */
-	public JsonObject getAll(final CF_COLS col_name) {
+	public static JsonObject getAll(final CF_COLS col_name) {
 		if (col_name == null) {
 			throw new NullPointerException("\"col_name\" can't to be null");
 		}
@@ -461,7 +461,7 @@ public final class InstanceStatus {
 				}
 			}, col_name.toString());
 		} catch (Exception e) {
-			manager.getServiceException().onCassandraError(e);
+			Loggers.Manager.error("Problem with cassandra", e);
 		}
 		
 		Collections.sort(keys);
