@@ -301,13 +301,7 @@ public final class InstanceStatus {
 		}
 	}
 	
-	public void registerInstanceStatusItem(InstanceStatusItem item) {
-		if (item == null) {
-			throw new NullPointerException("\"item\" can't to be null");
-		}
-		if (item.getReferenceKey() == null) {
-			throw new NullPointerException("\"instance status item name\" can't to be null");
-		}
+	void addItem(InstanceStatusItem item) {
 		items.add(item);
 	}
 	
@@ -481,7 +475,7 @@ public final class InstanceStatus {
 	 */
 	public static InstanceStatus getStatic() {
 		if (static_manager == null) {
-			static_manager = new AppManager();
+			static_manager = new AppManager("(Not loaded)");
 		}
 		return static_manager.getInstanceStatus();
 	}

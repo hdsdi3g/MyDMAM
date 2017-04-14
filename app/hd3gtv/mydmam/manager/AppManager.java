@@ -51,8 +51,12 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	private String app_name;
 	private ArrayList<InstanceActionReceiver> all_instance_action_receviers;
 	
-	public AppManager() {
-		this.app_name = "Manager";
+	public AppManager(String app_name) {
+		this.app_name = app_name;
+		if (app_name == null) {
+			throw new NullPointerException("\"app_name\" can't to be null");
+		}
+		
 		all_instance_action_receviers = new ArrayList<InstanceActionReceiver>();
 		all_instance_action_receviers.add(this);
 		service_exception = new ServiceException(this);
@@ -67,13 +71,6 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	 */
 	String getAppName() {
 		return app_name;
-	}
-	
-	void setAppName(String app_name) {
-		this.app_name = app_name;
-		if (app_name == null) {
-			throw new NullPointerException("\"app_name\" can't to be null");
-		}
 	}
 	
 	public void register(WorkerNG worker) {
@@ -112,17 +109,25 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		all_instance_action_receviers.add(trigger_creator);
 	}
 	
-	public void registerInstanceActionReceiver(InstanceActionReceiver recevier) {
-		if (recevier == null) {
+	public void registerInstanceStatusAction(InstanceStatusAction instance) {
+		if (instance == null) {
 			throw new NullPointerException("\"recevier\" can't to be null");
 		}
-		if (recevier.getClassToCallback() == null) {
-			throw new NullPointerException("recevier callback class can't to be null");
+		if (instance.getReferenceKey() == null) {
+			throw new NullPointerException("instance ReferenceKey can't to be null");
 		}
-		if (recevier.getReferenceKey() == null) {
-			throw new NullPointerException("recevier ReferenceKey can't to be null");
+		
+		if (instance instanceof InstanceActionReceiver) {
+			InstanceActionReceiver recevier = (InstanceActionReceiver) instance;
+			if (recevier.getClassToCallback() == null) {
+				throw new NullPointerException("recevier callback class can't to be null");
+			}
+			all_instance_action_receviers.add(recevier);
 		}
-		all_instance_action_receviers.add(recevier);
+		
+		if (instance instanceof InstanceStatusItem) {
+			instance_status.addItem((InstanceStatusItem) instance);
+		}
 	}
 	
 	/*public static void unRegisterRecevier(InstanceActionReceiver recevier) {

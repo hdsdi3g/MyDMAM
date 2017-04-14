@@ -126,7 +126,6 @@ manager.items.watchfolderentry.min_file_size=Taille minimum du fichier :
 manager.items.watchfolderentry.time_to_sleep_between_scans=Temps entre deux scans : %s sec
 manager.items.watchfolderentry.time_to_wait_growing_file=Temps à attendre après que le la taille du fichier ai fini de se cesser de croître : %s sec
 manager.items.watchfolderentry.want_to_stop=Le watchfolder est en cours d'arrêt...
-manager.items.watchfolderentry.enabled=Activé
 manager.items.watchfolderentry.disabled=Desactivé
 manager.items.watchfolderentry.paused=En pause
 manager.items.watchfolderentry.notpaused=En fonction

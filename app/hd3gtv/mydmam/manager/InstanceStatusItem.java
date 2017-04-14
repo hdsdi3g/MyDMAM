@@ -18,11 +18,9 @@ package hd3gtv.mydmam.manager;
 
 import com.google.gson.JsonElement;
 
-public interface InstanceStatusItem {
+public interface InstanceStatusItem extends InstanceStatusAction {
 	
 	public JsonElement getInstanceStatusItem();
-	
-	public String getReferenceKey();
 	
 	public Class<?> getInstanceStatusItemReferenceClass();
 	

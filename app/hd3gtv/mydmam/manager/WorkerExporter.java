@@ -112,7 +112,7 @@ public final class WorkerExporter implements InstanceStatusItem {
 		worker_class = worker.getClass().getName();
 		reference_key = worker.getReferenceKey();
 		update();
-		manager.getInstanceStatus().registerInstanceStatusItem(this);
+		manager.registerInstanceStatusAction(this);
 	}
 	
 	public String getCurrent_job_key() {

@@ -107,8 +107,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 	
 	public static void registerAppManager(AppManager manager) {
 		for (FTPGroup group : declared_groups.values()) {
-			manager.registerInstanceActionReceiver(group);
-			manager.getInstanceStatus().registerInstanceStatusItem(group);
+			manager.registerInstanceStatusAction(group);
 		}
 	}
 	

@@ -130,7 +130,7 @@ public class TranscoderWorker extends WorkerNG implements StoppableProcessing {
 		
 		List<TranscodeProfile> transcode_profiles = TranscodeProfile.getAllTranscodeProfiles();
 		for (int pos = 0; pos < transcode_profiles.size(); pos++) {
-			manager.getInstanceStatus().registerInstanceStatusItem(transcode_profiles.get(pos));
+			manager.registerInstanceStatusAction(transcode_profiles.get(pos));
 		}
 		
 	}

@@ -84,7 +84,7 @@ public class BCAWatcher implements InstanceStatusItem {
 		}
 		
 		Loggers.BroadcastAutomation.info("Init engine watcher: " + getInstanceStatusItem().toString());
-		manager.getInstanceStatus().registerInstanceStatusItem(this);
+		manager.registerInstanceStatusAction(this);
 		
 		watch = new BCAWatcherThread(this);
 		watch.start();

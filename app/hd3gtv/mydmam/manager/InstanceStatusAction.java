@@ -11,20 +11,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2014
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
 package hd3gtv.mydmam.manager;
 
-import com.google.gson.JsonObject;
-
-public interface InstanceActionReceiver extends InstanceStatusAction {
+public interface InstanceStatusAction {
 	
-	/**
-	 * Beware: use class.getSimpleName() to comparate. If 2 differents class has the same name, an error will be thrown.
-	 */
-	public Class<? extends InstanceActionReceiver> getClassToCallback();
-	
-	public void doAnAction(JsonObject order) throws Exception;
+	public String getReferenceKey();
 	
 }

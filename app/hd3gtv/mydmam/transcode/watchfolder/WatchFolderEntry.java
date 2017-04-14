@@ -287,7 +287,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem, Inst
 			Loggers.Transcode_WatchFolder.info("Load watchfolder entry " + log);
 		}
 		
-		manager.getInstanceStatus().registerInstanceStatusItem(this);
+		manager.registerInstanceStatusAction(this);
 	}
 	
 	synchronized void stopWatchfolderScans() {
@@ -882,7 +882,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem, Inst
 	}
 	
 	public String getReferenceKey() {
-		return name;
+		return manager.getReferenceKey() + ":" + name;
 	}
 	
 	public Class<?> getInstanceStatusItemReferenceClass() {
@@ -894,8 +894,18 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem, Inst
 	}
 	
 	public void doAnAction(JsonObject order) throws Exception {
+		if (isAlive() == false) {
+			return;
+		}
+		
 		if (order.has("paused")) {
-			paused = order.get("paused").getAsString().equals("true");
+			paused = order.get("paused").getAsBoolean();
+			
+			if (paused) {
+				Loggers.Transcode_WatchFolder.info("Pause watch for " + name + " to " + source_storage);
+			} else {
+				Loggers.Transcode_WatchFolder.info("Switch off pause for " + name + " to " + source_storage);
+			}
 		}
 	}
 	

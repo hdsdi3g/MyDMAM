@@ -91,8 +91,7 @@ public final class ServiceNG {
 			names.add("Background services");
 		}
 		
-		manager = new AppManager();
-		manager.setAppName(names.toString());
+		manager = new AppManager(names.toString());
 		
 		WatchdogLogConf watch_log_conf = new WatchdogLogConf();
 		watch_log_conf.start();

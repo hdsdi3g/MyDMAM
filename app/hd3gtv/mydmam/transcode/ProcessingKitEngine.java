@@ -58,7 +58,7 @@ public final class ProcessingKitEngine {
 			Loggers.Transcode.info("Load Processingkit " + pkit);
 			
 			if (manager != null) {
-				manager.getInstanceStatus().registerInstanceStatusItem(pkit);
+				manager.registerInstanceStatusAction(pkit);
 			}
 			
 			return pkit;
