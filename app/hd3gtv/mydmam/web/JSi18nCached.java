@@ -31,6 +31,8 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
+import com.google.gson.JsonObject;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -120,7 +122,7 @@ public class JSi18nCached {
 					});
 					
 				} else {
-					Db db_compare = MyDMAM.gson_kit.getGsonPretty().fromJson(FileUtils.readFileToString(dbfile, MyDMAM.UTF8), Db.class);
+					Db db_compare = MyDMAM.gson_kit.getGsonSimple().fromJson(FileUtils.readFileToString(dbfile, MyDMAM.UTF8), Db.class);
 					
 					List<I18nEntry> to_refresh = db.entries.stream().filter(current -> {
 						Optional<I18nEntry> o_previous = db_compare.entries.stream().filter(previous -> {
@@ -185,7 +187,12 @@ public class JSi18nCached {
 			
 			GZIPOutputStream gz_concated_out_stream_gzipped = null;
 			try {
-				String js_content = "var i18nMessages = " + MyDMAM.gson_kit.getGsonSimple().toJson(messages) + ";";
+				JsonObject jo = new JsonObject();
+				messages.forEach((k, v) -> {
+					jo.addProperty((String) k, (String) v);
+				});
+				
+				String js_content = "var i18nMessages = " + MyDMAM.gson_kit.getGsonSimple().toJson(jo) + ";";
 				
 				gz_concated_out_stream_gzipped = new GZIPOutputStream(new FileOutputStream(getFile()), 0xFFFF);
 				gz_concated_out_stream_gzipped.write(js_content.getBytes(MyDMAM.UTF8));
