@@ -50,8 +50,7 @@ public class Configuration {
 		try {
 			global = new Configuration(global_configuration_directory);
 		} catch (IOException e) {
-			Loggers.Configuration.fatal(
-					"Problem while load configuration documents, user-set: " + System.getProperty("service.config.path", "null") + ", default: " + (new File("conf/app.d")).getAbsolutePath(), e);
+			Loggers.Configuration.fatal("Problem while load configuration documents, user-set: " + System.getProperty("service.config.path", "null") + ", default: " + (new File("conf/app.d")).getAbsolutePath(), e);
 			System.exit(1);
 		}
 	}
@@ -347,11 +346,22 @@ public class Configuration {
 		return getRawValue(configuration, elementname, key);
 	}
 	
+	public LinkedHashMap<String, ?> getRaw(String elementname) {
+		return getRaw(configuration, elementname);
+	}
+	
 	public static Object getRawValue(HashMap<String, ConfigurationItem> baseelement, String elementname, String key) {
 		if (isElementKeyExists(baseelement, elementname, key) == false) {
 			return null;
 		}
 		return baseelement.get(elementname).content.get(key);
+	}
+	
+	public static LinkedHashMap<String, ?> getRaw(HashMap<String, ConfigurationItem> baseelement, String elementname) {
+		if (isElementExists(baseelement, elementname) == false) {
+			return null;
+		}
+		return baseelement.get(elementname).content;
 	}
 	
 	/**
