@@ -16,6 +16,10 @@
 */
 package hd3gtv.mydmam.dareport;
 
+import java.util.ArrayList;
+
 public class AJS_DAR_AccountList_Rs {
-	// TODO
+	
+	public ArrayList<DARAccount> list;
+	
 }

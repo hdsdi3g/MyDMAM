@@ -16,6 +16,23 @@
 */
 package hd3gtv.mydmam.dareport;
 
+import hd3gtv.mydmam.web.PlayBootstrap;
+import play.data.validation.Validation;
+
 public class AJS_DAR_EventNew {
-	// TODO
+	
+	String name;
+	long planned_date;
+	
+	public void create() throws Exception {
+		PlayBootstrap.validate(Validation.required("name", name), Validation.min("planned_date", planned_date, System.currentTimeMillis()));
+		
+		DAREvent event = new DAREvent();
+		
+		event.creator = "";// TODO
+		event.created_at = System.currentTimeMillis();
+		event.planned_date = planned_date;
+		event.name = name;
+		event.save();
+	}
 }

@@ -41,6 +41,7 @@ import hd3gtv.mydmam.auth.asyncjs.RoleChPrivileges;
 import hd3gtv.mydmam.auth.asyncjs.RoleView;
 import hd3gtv.mydmam.auth.asyncjs.RoleViewList;
 import hd3gtv.mydmam.auth.asyncjs.UserAdminUpdate;
+import hd3gtv.mydmam.auth.asyncjs.UserSearchResult;
 import hd3gtv.mydmam.auth.asyncjs.UserView;
 import hd3gtv.mydmam.auth.asyncjs.UserViewList;
 import hd3gtv.mydmam.gson.GsonKit;
@@ -230,4 +231,9 @@ public class Auth extends AJSController {
 		return MyDMAM.gson_kit.getGson().toJsonTree(AJSController.getUserProfile().getNotifications(), GsonKit.type_ArrayList_UserNotificationNG).getAsJsonArray();
 	}
 	
+	@Check("adminDAReport")
+	public static UserSearchResult searchuser(String q) throws Exception {
+		// TODO
+		return null;
+	}
 }

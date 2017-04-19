@@ -16,15 +16,19 @@
 */
 package controllers.ajs;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import controllers.Check;
 import hd3gtv.configuration.Configuration;
-import hd3gtv.mydmam.dareport.AJS_DAR_AccountDelete;
 import hd3gtv.mydmam.dareport.AJS_DAR_AccountList_Rs;
 import hd3gtv.mydmam.dareport.AJS_DAR_AccountNew;
 import hd3gtv.mydmam.dareport.AJS_DAR_EventDelete;
 import hd3gtv.mydmam.dareport.AJS_DAR_EventList_Rs;
 import hd3gtv.mydmam.dareport.AJS_DAR_EventNew;
 import hd3gtv.mydmam.dareport.AJS_DAR_EventSendmail;
+import hd3gtv.mydmam.dareport.AJS_DAR_ReportNew;
+import hd3gtv.mydmam.dareport.DARAccount;
 import hd3gtv.mydmam.web.AJSController;
 
 public class DAReport extends AJSController {
@@ -33,31 +37,21 @@ public class DAReport extends AJSController {
 		return Configuration.global.isElementExists("dareport_setup");
 	}
 	
-	// TODO event
-	// TODO report new
-	// TODO search user
-	// TODO get panels for user job
-	// TODO get job list for admin
+	@Check("adminDAReport")
+	public static void accountdelete(String name) throws Exception {
+		DARAccount.delete(name);
+	}
 	
 	@Check("adminDAReport")
-	public static void accountdelete(AJS_DAR_AccountDelete order) throws Exception {
-		// TODO
+	public static void accountnewupdate(AJS_DAR_AccountNew order) throws Exception {
+		order.create();
 	}
 	
 	@Check("adminDAReport")
 	public static AJS_DAR_AccountList_Rs accountlist() throws Exception {
-		// TODO
-		return null;
-	}
-	
-	@Check("adminDAReport")
-	public static void accountnew(AJS_DAR_AccountNew order) throws Exception {
-		// TODO
-	}
-	
-	@Check("adminDAReport")
-	public static void accountupdate(AJS_DAR_AccountNew order) throws Exception {
-		// TODO delete + add
+		AJS_DAR_AccountList_Rs list = new AJS_DAR_AccountList_Rs();
+		list.list = DARAccount.list();
+		return list;
 	}
 	
 	@Check("adminDAReport")
@@ -66,7 +60,7 @@ public class DAReport extends AJSController {
 	}
 	
 	@Check("adminDAReport")
-	public static void sendmailforevent(AJS_DAR_EventSendmail order) throws Exception {
+	public static void eventsendmail(AJS_DAR_EventSendmail order) throws Exception {
 		// TODO send mail action
 	}
 	
@@ -80,5 +74,26 @@ public class DAReport extends AJSController {
 		// TODO
 		return null;
 	}
+	
+	@Check("userDAReport")
+	public static void reportnew(AJS_DAR_ReportNew order) throws Exception {
+		// TODO
+	}
+	
+	@Check("userDAReport")
+	public static JsonObject getpanelsformyjob() throws Exception {
+		JsonObject jo = new JsonObject();
+		// TODO put panels and job name
+		return jo;
+	}
+	
+	@Check("adminDAReport")
+	public static JsonArray alldeclaredjobslist() throws Exception {
+		// TODO
+		JsonArray ja = new JsonArray();
+		return ja;
+	}
+	
+	// TODO get job list for admin
 	
 }

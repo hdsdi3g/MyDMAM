@@ -31,7 +31,7 @@ public class DAREvent {
 	
 	String name;
 	long planned_date;
-	long creation_date;
+	long created_at;
 	String creator;
 	
 	private static final int TTL = (int) TimeUnit.DAYS.toSeconds(30 * 6);

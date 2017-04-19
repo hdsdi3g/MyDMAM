@@ -14,8 +14,18 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.mydmam.dareport;
+package hd3gtv.mydmam.auth.asyncjs;
 
-public class AJS_DAR_AccountDelete {
-	// TODO
+import java.util.ArrayList;
+
+public class UserSearchResult {
+	
+	public String q;
+	public ArrayList<Item> results;
+	
+	public class Item {
+		public String username;
+		public String mail_addr;
+	}
+	
 }

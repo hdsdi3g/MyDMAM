@@ -16,6 +16,28 @@
 */
 package hd3gtv.mydmam.dareport;
 
+import hd3gtv.mydmam.web.PlayBootstrap;
+import play.data.validation.Validation;
+
 public class AJS_DAR_AccountNew {
-	// TODO
+	
+	String name;
+	String email;
+	String job;
+	
+	public void create() throws Exception {
+		PlayBootstrap.validate(Validation.email("email", email), Validation.required("name", name), Validation.required("job", job));
+		
+		if (DARDB.get().getJobs().containsKey(job) == false) {
+			throw new Exception("Can't found job " + job + " in configuration");
+		}
+		
+		DARAccount account = new DARAccount();
+		account.created_at = System.currentTimeMillis();
+		account.email = email;
+		account.job = job;
+		account.name = name;
+		account.save();
+	}
+	
 }

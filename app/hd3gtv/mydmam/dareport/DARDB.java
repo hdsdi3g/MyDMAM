@@ -90,6 +90,10 @@ public class DARDB {
 		}
 	}
 	
+	LinkedHashMap<String, Job> getJobs() {
+		return jobs;
+	}
+	
 	private DARDB() {
 	}
 	
