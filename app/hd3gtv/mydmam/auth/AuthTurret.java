@@ -114,9 +114,16 @@ public class AuthTurret {
 					return;
 				}
 				String server = (String) item.get("server");
-				String domain = (String) item.get("domain");
+				String domain = ((String) item.get("domain")).toLowerCase();
 				Integer port = (Integer) item.get("port");
 				ActiveDirectoryBackend adb = new ActiveDirectoryBackend(domain, server, port);
+				
+				if (item.containsKey("login")) {
+					String ldap_username = (String) item.get("login");
+					String ldap_password = (String) item.get("password");
+					adb.setLDAPAuth(ldap_username, ldap_password);
+				}
+				
 				auth_backend_by_domain.put(domain, adb);
 				if (Loggers.Auth.isDebugEnabled()) {
 					Loggers.Auth.debug("AD configuration loaded: " + adb.toString());
@@ -948,6 +955,19 @@ public class AuthTurret {
 		});
 		mutator.execute();
 		cache.resetCache();
+	}
+	
+	/**
+	 * @param domain the same declared in a play.backend configuration
+	 * @return null if domain is not in a declared backend
+	 */
+	public List<ADUser> searchUserInBackend(String domain, String q) {// TODO ldap inject protection for q
+		if (auth_backend_by_domain.containsKey(domain) == false) {
+			Loggers.Auth.debug("Can't found domain " + domain + " in backend list");
+			return null;
+		}
+		
+		return auth_backend_by_domain.get(domain).searchUsers(q);
 	}
 	
 }
