@@ -18,8 +18,10 @@ package hd3gtv.mydmam.dareport;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -37,6 +39,7 @@ public class DARDB {
 	
 	static final ColumnFamily<String, String> CF_DAR = new ColumnFamily<String, String>("dareport", StringSerializer.get(), StringSerializer.get());
 	private static Keyspace keyspace;
+	static final int TTL = (int) TimeUnit.DAYS.toSeconds(30 * 6);
 	
 	private static DARDB importFromConfiguration(Configuration configuration) throws ConnectionException {
 		keyspace = CassandraDb.getkeyspace();
@@ -49,7 +52,7 @@ public class DARDB {
 		return MyDMAM.gson_kit.getGsonSimple().fromJson(dar_conf, DARDB.class);
 	}
 	
-	public static DARDB instance;
+	private static DARDB instance;
 	
 	public static DARDB get() {
 		if (instance == null) {
@@ -107,6 +110,30 @@ public class DARDB {
 	
 	static Keyspace getKeyspace() {
 		return keyspace;
+	}
+	
+	public ArrayList<Panel> getPanelsForJob(String job_name) {
+		String panel_name = jobs.getOrDefault(job_name, new Job()).panels;
+		
+		if (panel_name == null) {
+			new ArrayList<>(1);
+		}
+		
+		return panels.getOrDefault(panel_name, new ArrayList<>(1));
+	}
+	
+	public String getJobLongName(String job_name) {
+		return jobs.getOrDefault(job_name, new Job()).name;
+	}
+	
+	public JsonObject allDeclaredJobs() {
+		JsonObject result = new JsonObject();
+		
+		jobs.forEach((name, job) -> {
+			result.addProperty(name, job.name);
+		});
+		
+		return result;
 	}
 	
 }

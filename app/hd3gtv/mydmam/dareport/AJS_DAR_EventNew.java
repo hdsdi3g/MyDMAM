@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.dareport;
 
+import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.PlayBootstrap;
 import play.data.validation.Validation;
 
@@ -29,7 +30,7 @@ public class AJS_DAR_EventNew {
 		
 		DAREvent event = new DAREvent();
 		
-		event.creator = "";// TODO
+		event.creator = AJSController.getUserProfileLongName();
 		event.created_at = System.currentTimeMillis();
 		event.planned_date = planned_date;
 		event.name = name;

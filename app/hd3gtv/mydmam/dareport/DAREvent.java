@@ -34,21 +34,20 @@ public class DAREvent {
 	long created_at;
 	String creator;
 	
-	private static final int TTL = (int) TimeUnit.DAYS.toSeconds(30 * 6);
-	
 	static String getKey(String name) {
 		return "event:" + name;
 	}
 	
 	public DAREvent save() throws ConnectionException {
 		MutationBatch mutator = DARDB.getKeyspace().prepareMutationBatch();
-		mutator.withRow(DARDB.CF_DAR, getKey(name)).putColumn("json", MyDMAM.gson_kit.getGsonSimple().toJson(this), TTL);
+		mutator.withRow(DARDB.CF_DAR, getKey(name)).putColumn("json", MyDMAM.gson_kit.getGsonSimple().toJson(this), DARDB.TTL);
+		mutator.withRow(DARDB.CF_DAR, getKey(name)).putColumn("planned_date", planned_date, DARDB.TTL);
 		mutator.execute();
 		return this;
 	}
 	
 	public static DAREvent get(String name) throws ConnectionException {
-		ColumnList<String> row = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(name)).execute().getResult();
+		ColumnList<String> row = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(name)).withColumnSlice("json").execute().getResult();
 		if (row == null) {
 			return null;
 		}
@@ -67,10 +66,38 @@ public class DAREvent {
 	
 	public static ArrayList<DAREvent> list() throws ConnectionException {
 		ArrayList<DAREvent> result = new ArrayList<DAREvent>();
-		Rows<String, String> rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().execute().getResult();
+		Rows<String, String> rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json").execute().getResult();
 		for (Row<String, String> row : rows) {
 			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json", "{}"), DAREvent.class));
 		}
+		return result;
+	}
+	
+	/**
+	 * @return event planned +/- 1 day
+	 */
+	public static ArrayList<DAREvent> todayList() throws ConnectionException {
+		Rows<String, String> rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("planned_date").execute().getResult();
+		
+		long tomorrow = System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1);
+		long yesterday = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1);
+		
+		ArrayList<String> today_event = new ArrayList<>(1);
+		for (Row<String, String> row : rows) {
+			long planned_date = row.getColumns().getLongValue("planned_date", 0l);
+			
+			if (planned_date > yesterday && planned_date < tomorrow) {
+				today_event.add(row.getKey());
+			}
+		}
+		
+		rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getKeySlice(today_event).withColumnSlice("json").execute().getResult();
+		
+		ArrayList<DAREvent> result = new ArrayList<DAREvent>();
+		for (Row<String, String> row : rows) {
+			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json", "{}"), DAREvent.class));
+		}
+		
 		return result;
 	}
 	

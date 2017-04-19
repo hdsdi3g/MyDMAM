@@ -21,14 +21,16 @@ import com.google.gson.JsonObject;
 
 import controllers.Check;
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.dareport.AJS_DAR_AccountList_Rs;
 import hd3gtv.mydmam.dareport.AJS_DAR_AccountNew;
-import hd3gtv.mydmam.dareport.AJS_DAR_EventDelete;
 import hd3gtv.mydmam.dareport.AJS_DAR_EventList_Rs;
+import hd3gtv.mydmam.dareport.AJS_DAR_EventName;
 import hd3gtv.mydmam.dareport.AJS_DAR_EventNew;
-import hd3gtv.mydmam.dareport.AJS_DAR_EventSendmail;
 import hd3gtv.mydmam.dareport.AJS_DAR_ReportNew;
 import hd3gtv.mydmam.dareport.DARAccount;
+import hd3gtv.mydmam.dareport.DARDB;
+import hd3gtv.mydmam.dareport.DAREvent;
 import hd3gtv.mydmam.web.AJSController;
 
 public class DAReport extends AJSController {
@@ -56,44 +58,55 @@ public class DAReport extends AJSController {
 	
 	@Check("adminDAReport")
 	public static void eventnew(AJS_DAR_EventNew order) throws Exception {
-		// TODO
+		order.create();
 	}
 	
 	@Check("adminDAReport")
-	public static void eventsendmail(AJS_DAR_EventSendmail order) throws Exception {
-		// TODO send mail action
+	public static void eventsendmail(AJS_DAR_EventName order) throws Exception {
+		order.sendMain();
 	}
 	
 	@Check("adminDAReport")
-	public static void eventdelete(AJS_DAR_EventDelete order) throws Exception {
-		// TODO
+	public static void eventdelete(AJS_DAR_EventName order) throws Exception {
+		order.delete();
 	}
 	
 	@Check("adminDAReport")
 	public static AJS_DAR_EventList_Rs eventlist() throws Exception {
-		// TODO
-		return null;
+		AJS_DAR_EventList_Rs result = new AJS_DAR_EventList_Rs();
+		result.populate();
+		return result;
 	}
 	
 	@Check("userDAReport")
 	public static void reportnew(AJS_DAR_ReportNew order) throws Exception {
-		// TODO
+		order.create();
 	}
 	
 	@Check("userDAReport")
 	public static JsonObject getpanelsformyjob() throws Exception {
 		JsonObject jo = new JsonObject();
-		// TODO put panels and job name
+		
+		DARAccount account = DARAccount.get(AJSController.getUserProfileLongName());
+		
+		if (account == null) {
+			jo.addProperty("error", "account is not declared");
+		}
+		
+		jo.add("panels", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getPanelsForJob(account.getJob())));
+		jo.add("jobname", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getJobLongName(account.getJob())));
+		
 		return jo;
 	}
 	
 	@Check("adminDAReport")
-	public static JsonArray alldeclaredjobslist() throws Exception {
-		// TODO
-		JsonArray ja = new JsonArray();
-		return ja;
+	public static JsonObject alldeclaredjobslist() throws Exception {
+		return DARDB.get().allDeclaredJobs();
 	}
 	
-	// TODO get job list for admin
+	@Check("userDAReport")
+	public static JsonArray eventlisttoday() throws Exception {
+		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(DAREvent.todayList()).getAsJsonArray();
+	}
 	
 }

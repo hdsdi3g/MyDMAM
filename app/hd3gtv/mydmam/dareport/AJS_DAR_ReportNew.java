@@ -16,6 +16,26 @@
 */
 package hd3gtv.mydmam.dareport;
 
+import com.google.gson.JsonArray;
+
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.mydmam.web.PlayBootstrap;
+import play.data.validation.Validation;
+
 public class AJS_DAR_ReportNew {
-	// TODO
+	
+	String event_name;
+	JsonArray content;
+	
+	public void create() throws Exception {
+		PlayBootstrap.validate(Validation.required("event_name", event_name), Validation.required("content", content));
+		
+		DARReport report = new DARReport();
+		report.account_name = AJSController.getUserProfileLongName();
+		report.created_at = System.currentTimeMillis();
+		report.event_name = event_name;
+		report.content = content;
+		report.save();
+	}
+	
 }

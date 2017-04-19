@@ -71,4 +71,7 @@ public class DARAccount {
 		return result;
 	}
 	
+	public String getJob() {
+		return job;
+	}
 }

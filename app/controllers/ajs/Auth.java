@@ -233,7 +233,8 @@ public class Auth extends AJSController {
 	
 	@Check("adminDAReport")
 	public static UserSearchResult searchuser(String q) throws Exception {
-		// TODO
-		return null;
+		UserSearchResult usr = new UserSearchResult();
+		usr.search(q, MyDMAM.getPlayBootstrapper().getAuth());
+		return usr;
 	}
 }

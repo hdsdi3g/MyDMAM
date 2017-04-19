@@ -16,17 +16,29 @@
 */
 package hd3gtv.mydmam.dareport;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-public class AJS_DAR_EventList_Rs {
+import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.mydmam.web.PlayBootstrap;
+import play.data.validation.Validation;
+
+public class AJS_DAR_EventName {
 	
-	ArrayList<DAREvent> events;
-	HashMap<String, ArrayList<String>> report_authors_by_event_name;
+	/**
+	 * Event name
+	 */
+	String name;
 	
-	public void populate() throws Exception {
-		events = DAREvent.list();
-		report_authors_by_event_name = DARReport.listAuthorsByEvents();
+	public void sendMain() {
+		PlayBootstrap.validate(Validation.required("name", name));
+		
+		AJSController.getUserProfile().getEmailAddr();
+		// TODO send mail, after check if the event is not in the future.
+	}
+	
+	public void delete() throws ConnectionException {
+		PlayBootstrap.validate(Validation.required("name", name));
+		DAREvent.delete(name);
 	}
 	
 }
