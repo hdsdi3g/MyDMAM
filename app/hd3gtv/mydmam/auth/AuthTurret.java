@@ -24,6 +24,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
@@ -63,6 +65,7 @@ import play.Play;
 public class AuthTurret {
 	
 	static final ColumnFamily<String, String> CF_AUTH = new ColumnFamily<String, String>("mgrAuth", StringSerializer.get(), StringSerializer.get());
+	private static final String LOCAL_DOMAIN = "local";
 	
 	final JsonParser parser = new JsonParser();
 	private Password password;
@@ -218,7 +221,7 @@ public class AuthTurret {
 			/**
 			 * Create admin user if needed, and create a password file:
 			 */
-			UserNG default_admin_user = new UserNG(this, "admin", "local");
+			UserNG default_admin_user = new UserNG(this, "admin", LOCAL_DOMAIN);
 			if (getByUserKey(default_admin_user.getKey()) == null) {
 				Loggers.Auth.info("Admin user is absent, create it.");
 				default_admin_user.chpassword(createAdminPasswordTextFile("admin"));
@@ -672,7 +675,7 @@ public class AuthTurret {
 		}
 		
 		final UserNG result = user;
-		result.doLoginOperations(remote_address, language);
+		result.doLoginOperations(remote_address, language);// TODO set optional
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		
@@ -961,13 +964,76 @@ public class AuthTurret {
 	 * @param domain the same declared in a play.backend configuration
 	 * @return null if domain is not in a declared backend
 	 */
-	public List<ADUser> searchUserInBackend(String domain, String q) {// TODO ldap inject protection for q
-		if (auth_backend_by_domain.containsKey(domain) == false) {
+	public List<UserNG> searchUser(String domain, String q) {
+		if (q == null) {
+			throw new NullPointerException("\"q\" can't to be null");
+		}
+		if (q.isEmpty()) {
+			throw new NullPointerException("\"q\" can't to be empty");
+		}
+		if (domain == null) {
+			throw new NullPointerException("\"domain\" can't to be null");
+		}
+		
+		if (domain.equals(LOCAL_DOMAIN) == false && auth_backend_by_domain.containsKey(domain) == false) {
 			Loggers.Auth.debug("Can't found domain " + domain + " in backend list");
 			return null;
 		}
 		
-		return auth_backend_by_domain.get(domain).searchUsers(q);
+		/**
+		 * First pass search in local user table
+		 */
+		ArrayList<UserNG> results = new ArrayList<>(getAllUsers().values().stream().filter(user -> {
+			if (user.getDomain().equalsIgnoreCase(domain) == false) {
+				return false;
+			}
+			
+			if (filterChars(user.getName()).contains(q)) {
+				return true;
+			} else if (user.getFullname() != null) {
+				if (filterChars(user.getFullname()).contains(q)) {
+					return true;
+				}
+			}
+			
+			return false;
+		}).collect(Collectors.toList()));
+		
+		if (results.size() >= 10) {
+			return results;
+		}
+		
+		/**
+		 * Second pass search in backends
+		 */
+		List<ADUser> backend_user_result = auth_backend_by_domain.get(domain).searchUsers(q);
+		if (backend_user_result == null) {
+			return results;
+		}
+		
+		backend_user_result.stream().filter(bk_user -> {
+			/**
+			 * Remove actual founded users
+			 */
+			return false == results.stream().anyMatch(founded_user -> {
+				return founded_user.getName().equalsIgnoreCase(bk_user.username);
+			});
+		}).map(bk_user -> {
+			try {
+				return syncADUser(bk_user, null, "fr");// TODO set correct lang
+			} catch (ConnectionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return null;
+		});// TODO filter null
+		
+		return null;
+	}
+	
+	public static String filterChars(String in) {
+		// TODO remove all non char (ldap inject protection for q)
+		return MyDMAM.PATTERN_Combining_Diacritical_Marks_Spaced.matcher(Normalizer.normalize(in, Normalizer.Form.NFD)).replaceAll("").toLowerCase();
 	}
 	
 }

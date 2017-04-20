@@ -115,6 +115,9 @@ class ActiveDirectoryBackend {
 				SearchControls controls = new SearchControls();
 				controls.setSearchScope(SUBTREE_SCOPE);
 				controls.setReturningAttributes(userAttributes);
+				controls.setCountLimit(10);
+				controls.setTimeLimit(500);
+				
 				NamingEnumeration<SearchResult> answer = context.search(toDC(domainName), "(& (userPrincipalName=" + principalName + ")(objectClass=user))", controls);
 				if (answer.hasMore()) {
 					Attributes attr = answer.next().getAttributes();
@@ -242,8 +245,10 @@ class ActiveDirectoryBackend {
 			SearchControls controls = new SearchControls();
 			controls.setSearchScope(SUBTREE_SCOPE);
 			controls.setReturningAttributes(userAttributes);
-			NamingEnumeration<SearchResult> answer = context.search(toDC(domainName), "(& (name=*" + q + "*)(objectClass=user))", controls);
+			controls.setCountLimit(10);
+			controls.setTimeLimit(1000);
 			
+			NamingEnumeration<SearchResult> answer = context.search(toDC(domainName), "(& (name=*" + q + "*)(objectClass=user))", controls);
 			return Collections.list(answer).stream().map(search_result -> {
 				try {
 					return new ADUser((String) search_result.getAttributes().get("sAMAccountName").get(), search_result.getAttributes());

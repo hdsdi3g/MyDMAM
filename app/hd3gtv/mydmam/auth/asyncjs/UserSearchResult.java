@@ -16,10 +16,8 @@
 */
 package hd3gtv.mydmam.auth.asyncjs;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
 
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthTurret;
 import hd3gtv.mydmam.auth.UserNG;
 
@@ -32,6 +30,7 @@ public class UserSearchResult {
 		String username;
 		String long_name;
 		String mail_addr;
+		String userkey;
 		
 		private Item() {
 		}
@@ -41,43 +40,24 @@ public class UserSearchResult {
 		}
 	}
 	
-	private String filterChars(String in) {
-		return MyDMAM.PATTERN_Combining_Diacritical_Marks_Spaced.matcher(Normalizer.normalize(in, Normalizer.Form.NFD)).replaceAll("").toLowerCase();
-	}
-	
-	public void search(String q, AuthTurret turret) throws Exception {
-		if (q == null) {
+	public void search(String raw, AuthTurret turret) throws Exception {
+		if (raw == null) {
 			throw new NullPointerException("\"q\" can't to be null");
 		}
-		if (q.isEmpty()) {
+		if (raw.isEmpty()) {
 			throw new IndexOutOfBoundsException("\"q\" can't to be empty");
 		}
+		
+		final String query = AuthTurret.filterChars(raw);
+		q = query;
 		results = new ArrayList<>(10);
 		
-		/**
-		 * First pass search in local user table
-		 */
-		final String query = filterChars(q);
-		
-		turret.getAllUsers().forEach((key, user) -> {
-			if (results.size() == 10) {
-				return;
-			}
-			
-			if (filterChars(user.getName()).contains(query)) {
-				results.add(new Item(user));
-			} else if (user.getFullname() != null) {
-				if (filterChars(user.getFullname()).contains(query)) {
-					results.add(new Item(user));
-				}
-			}
-		});
-		
-		if (results.size() >= 10) {
+		if (query.length() < 3) {
 			return;
 		}
 		
-		// TODO 2 pass search in backends...
+		// TODO do search with turret
+		
 	}
 	
 }

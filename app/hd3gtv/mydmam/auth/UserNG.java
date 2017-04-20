@@ -74,8 +74,7 @@ public class UserNG implements AuthEntry {
 	/**
 	 * This cols names will always be imported from db.
 	 */
-	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(
-			Arrays.asList("login", "fullname", "domain", "language", "email_addr", "protected_password", "lasteditdate", "lastlogindate", "lastloginipsource", "locked_account", "user_groups"));
+	static final HashSet<String> COLS_NAMES_LIMITED_TO_DB_IMPORT = new HashSet<String>(Arrays.asList("login", "fullname", "domain", "language", "email_addr", "protected_password", "lasteditdate", "lastlogindate", "lastloginipsource", "locked_account", "user_groups"));
 	
 	public void save(ColumnListMutation<String> mutator) {
 		Loggers.Auth.trace("Save User " + key);
@@ -234,8 +233,15 @@ public class UserNG implements AuthEntry {
 		createdate = System.currentTimeMillis();
 	}
 	
+	/**
+	 * == login
+	 */
 	public String getName() {
 		return login;
+	}
+	
+	public String getDomain() {
+		return domain;
 	}
 	
 	UserNG update(String fullname, String language, String email_addr, boolean locked_account) {
