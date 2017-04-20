@@ -28,6 +28,8 @@ import hd3gtv.mydmam.MyDMAM;
 
 public class DARAccount {
 	
+	// TODO add user_key and replace name by long name
+	
 	String name;
 	String email;
 	String job;
@@ -56,9 +58,9 @@ public class DARAccount {
 		return MyDMAM.gson_kit.getGsonSimple().fromJson(row.getStringValue("json", "{}"), DARAccount.class);
 	}
 	
-	public static void delete(String name) throws ConnectionException {
+	public static void delete(String user_key) throws ConnectionException {
 		MutationBatch mutator = DARDB.getKeyspace().prepareMutationBatch();
-		mutator.withRow(DARDB.CF_DAR, getKey(name)).delete();
+		mutator.withRow(DARDB.CF_DAR, getKey(user_key)).delete();
 		mutator.execute();
 	}
 	

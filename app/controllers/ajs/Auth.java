@@ -237,4 +237,11 @@ public class Auth extends AJSController {
 		usr.search(q, MyDMAM.getPlayBootstrapper().getAuth());
 		return usr;
 	}
+	
+	@Check("adminDAReport")
+	public static UserSearchResult resolveuserkeylist(JsonArray user_key_list) throws Exception {
+		UserSearchResult usr = new UserSearchResult();
+		usr.resolve(user_key_list, AJSController.getUserProfile().getDomain(), MyDMAM.getPlayBootstrapper().getAuth());
+		return usr;
+	}
 }

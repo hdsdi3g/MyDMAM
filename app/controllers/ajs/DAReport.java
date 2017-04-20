@@ -40,8 +40,8 @@ public class DAReport extends AJSController {
 	}
 	
 	@Check("adminDAReport")
-	public static void accountdelete(String name) throws Exception {
-		DARAccount.delete(name);
+	public static void accountdelete(String user_key) throws Exception {
+		DARAccount.delete(user_key);
 	}
 	
 	@Check("adminDAReport")
@@ -108,5 +108,7 @@ public class DAReport extends AJSController {
 	public static JsonArray eventlisttoday() throws Exception {
 		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(DAREvent.todayList()).getAsJsonArray();
 	}
+	
+	// TODO change all user refs by user keys (in admin scope)
 	
 }

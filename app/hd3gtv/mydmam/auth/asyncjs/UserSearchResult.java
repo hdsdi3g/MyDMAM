@@ -17,28 +17,21 @@
 package hd3gtv.mydmam.auth.asyncjs;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import com.google.gson.JsonArray;
+
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.AuthTurret;
 import hd3gtv.mydmam.auth.UserNG;
+import hd3gtv.mydmam.web.AJSController;
 
 public class UserSearchResult {
 	
 	String q;
-	ArrayList<Item> results;
-	
-	public class Item {
-		String username;
-		String long_name;
-		String mail_addr;
-		String userkey;
-		
-		private Item() {
-		}
-		
-		private Item(UserNG user) {
-			// TODO
-		}
-	}
+	ArrayList<UserInfo> results;
 	
 	public void search(String raw, AuthTurret turret) throws Exception {
 		if (raw == null) {
@@ -56,8 +49,40 @@ public class UserSearchResult {
 			return;
 		}
 		
-		// TODO do search with turret
+		List<UserNG> founded = turret.searchUser(AJSController.getUserProfile().getDomain(), raw);
 		
+		if (founded == null) {
+			return;
+		}
+		
+		results.addAll(founded.stream().map(userng -> {
+			return new UserInfo(userng);
+		}).collect(Collectors.toList()));
+	}
+	
+	public void resolve(JsonArray user_key_list, String domain_to_check, AuthTurret turret) throws Exception {
+		if (user_key_list == null) {
+			throw new NullPointerException("\"user_key_list\" can't to be null");
+		}
+		if (user_key_list.size() == 0) {
+			throw new IndexOutOfBoundsException("\"user_key_list\" can't to be empty");
+		}
+		q = null;
+		results = new ArrayList<>(user_key_list.size());
+		
+		HashMap<String, UserNG> all_users = turret.getAllUsers();
+		for (int pos = 0; pos < user_key_list.size(); pos++) {
+			String key = user_key_list.get(pos).getAsString();
+			if (all_users.containsKey(key) == false) {
+				continue;
+			}
+			UserNG user = all_users.get(key);
+			if (all_users.get(key).getDomain().equalsIgnoreCase(domain_to_check) == false) {
+				Loggers.Auth.warn("Security! User " + AJSController.getUserProfile().getFullname() + " want to resolve an user key not from it's own domain (" + domain_to_check + " / " + user.getDomain() + ")");
+				return;
+			}
+			results.add(new UserInfo(user));
+		}
 	}
 	
 }

@@ -59,6 +59,7 @@ import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.web.PrivilegeNG;
+import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.tools.BreakReturnException;
 import play.Play;
 
@@ -657,6 +658,17 @@ public class AuthTurret {
 	 * Import an backend extracted user to MyDMAM UserNG system.
 	 * If user don't exists in db, add it (w/o password) in new_user group
 	 * Sync user long name, email, groups, and last-edit if user is from AD
+	 * Do not set last login date.
+	 */
+	private UserNG syncADUser(ADUser aduser) throws ConnectionException {
+		return syncADUser(aduser, null, null);
+	}
+	
+	/**
+	 * Import an backend extracted user to MyDMAM UserNG system.
+	 * If user don't exists in db, add it (w/o password) in new_user group
+	 * Sync user long name, email, groups, and last-edit if user is from AD
+	 * Set last login date.
 	 */
 	private UserNG syncADUser(ADUser aduser, String remote_address, String language) throws ConnectionException {
 		if (aduser == null) {
@@ -675,7 +687,19 @@ public class AuthTurret {
 		}
 		
 		final UserNG result = user;
-		result.doLoginOperations(remote_address, language);// TODO set optional
+		if (remote_address != null | language != null) {
+			/**
+			 * both or none
+			 */
+			if (remote_address == null) {
+				throw new NullPointerException("\"remote_address\" can't to be null");
+			}
+			if (language == null) {
+				throw new NullPointerException("\"language\" can't to be null");
+			}
+			
+			result.doLoginOperations(remote_address, language);
+		}
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		
@@ -999,7 +1023,7 @@ public class AuthTurret {
 			return false;
 		}).collect(Collectors.toList()));
 		
-		if (results.size() >= 10) {
+		if (results.size() >= 10 | domain.equals(LOCAL_DOMAIN)) {
 			return results;
 		}
 		
@@ -1020,20 +1044,22 @@ public class AuthTurret {
 			});
 		}).map(bk_user -> {
 			try {
-				return syncADUser(bk_user, null, "fr");// TODO set correct lang
+				return syncADUser(bk_user);
 			} catch (ConnectionException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				Loggers.Auth.error("Can't write in cassandra", e);
 			}
 			return null;
-		});// TODO filter null
+		}).filter(user -> {
+			return user != null;
+		}).forEach(user -> {
+			results.add(user);
+		});
 		
-		return null;
+		return results;
 	}
 	
 	public static String filterChars(String in) {
-		// TODO remove all non char (ldap inject protection for q)
-		return MyDMAM.PATTERN_Combining_Diacritical_Marks_Spaced.matcher(Normalizer.normalize(in, Normalizer.Form.NFD)).replaceAll("").toLowerCase();
+		return MyDMAM.PATTERN_Combining_Diacritical_Marks_Spaced.matcher(Normalizer.normalize(SearchQuery.cleanUserTextSearch(in), Normalizer.Form.NFD)).replaceAll("").toLowerCase();
 	}
 	
 }
