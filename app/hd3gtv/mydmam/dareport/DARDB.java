@@ -38,18 +38,20 @@ public class DARDB {
 	// TODO CLI for cron > send admin mails and send for each user all its reports
 	
 	static final ColumnFamily<String, String> CF_DAR = new ColumnFamily<String, String>("dareport", StringSerializer.get(), StringSerializer.get());
-	private static Keyspace keyspace;
+	private Keyspace keyspace;
 	static final int TTL = (int) TimeUnit.DAYS.toSeconds(30 * 6);
 	
 	private static DARDB importFromConfiguration(Configuration configuration) throws ConnectionException {
-		keyspace = CassandraDb.getkeyspace();
+		Keyspace keyspace = CassandraDb.getkeyspace();
 		String default_keyspacename = CassandraDb.getDefaultKeyspacename();
 		if (CassandraDb.isColumnFamilyExists(keyspace, CF_DAR.getName()) == false) {
 			CassandraDb.createColumnFamilyString(default_keyspacename, CF_DAR.getName(), true);
 		}
 		
 		JsonElement dar_conf = MyDMAM.gson_kit.getGsonSimple().toJsonTree(configuration.getRaw("dareport_setup"));
-		return MyDMAM.gson_kit.getGsonSimple().fromJson(dar_conf, DARDB.class);
+		DARDB result = MyDMAM.gson_kit.getGsonSimple().fromJson(dar_conf, DARDB.class);
+		result.keyspace = keyspace;
+		return result;
 	}
 	
 	private static DARDB instance;
@@ -108,7 +110,7 @@ public class DARDB {
 		return log.toString();
 	}
 	
-	static Keyspace getKeyspace() {
+	Keyspace getKeyspace() {
 		return keyspace;
 	}
 	

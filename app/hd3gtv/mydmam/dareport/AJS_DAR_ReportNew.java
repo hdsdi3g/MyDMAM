@@ -31,7 +31,7 @@ public class AJS_DAR_ReportNew {
 		PlayBootstrap.validate(Validation.required("event_name", event_name), Validation.required("content", content));
 		
 		DARReport report = new DARReport();
-		report.account_name = AJSController.getUserProfileLongName();
+		report.account_user_key = AJSController.getUserProfile().getKey();
 		report.created_at = System.currentTimeMillis();
 		report.event_name = event_name;
 		report.content = content;

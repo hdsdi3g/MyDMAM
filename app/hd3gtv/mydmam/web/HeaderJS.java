@@ -179,7 +179,7 @@ public class HeaderJS {
 			}
 			
 			JsonObject user = new JsonObject();
-			user.addProperty("full_name", AJSController.getUserProfileLongName());
+			user.addProperty("long_name", AJSController.getUserProfileLongName());
 			
 			mydmam.put("async", async);
 			mydmam.put("user", user);

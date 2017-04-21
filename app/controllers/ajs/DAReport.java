@@ -87,7 +87,7 @@ public class DAReport extends AJSController {
 	public static JsonObject getpanelsformyjob() throws Exception {
 		JsonObject jo = new JsonObject();
 		
-		DARAccount account = DARAccount.get(AJSController.getUserProfileLongName());
+		DARAccount account = DARAccount.get(AJSController.getUserProfile().getKey());
 		
 		if (account == null) {
 			jo.addProperty("error", "account is not declared");
@@ -108,7 +108,5 @@ public class DAReport extends AJSController {
 	public static JsonArray eventlisttoday() throws Exception {
 		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(DAREvent.todayList()).getAsJsonArray();
 	}
-	
-	// TODO change all user refs by user keys (in admin scope)
 	
 }

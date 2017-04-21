@@ -608,3 +608,11 @@ day.3=Mercredi
 day.4=Jeudi
 day.5=Vendredi
 day.6=Samedi
+
+dareport.reportnew.page=Rapport d'activité
+dareport.adminmenu.separator=Rapports d'activité
+dareport.accountlist.page=Profils
+dareport.accountlist.addbtn=Ajouter l'utilisateur
+dareport.accountlist.searchuser=Rechercher un utilisateur
+dareport.accountlist.declareuser=Déclarer un nouvel utilisateur
+dareport.eventlist.page=Événements

@@ -150,7 +150,7 @@ public final class WorkerExporter implements InstanceStatusItem {
 			}
 		}
 		
-		jo.addProperty("full_name", worker.getWorkerLongName());
+		jo.addProperty("long_name", worker.getWorkerLongName());
 		jo.addProperty("vendor", worker.getWorkerVendorName());
 		jo.addProperty("category", worker.getWorkerCategory().toString());
 		jo.add("capablities", ja_capablities);

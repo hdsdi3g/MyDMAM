@@ -39,7 +39,7 @@ public class DAREvent {
 	}
 	
 	public DAREvent save() throws ConnectionException {
-		MutationBatch mutator = DARDB.getKeyspace().prepareMutationBatch();
+		MutationBatch mutator = DARDB.get().getKeyspace().prepareMutationBatch();
 		mutator.withRow(DARDB.CF_DAR, getKey(name)).putColumn("json", MyDMAM.gson_kit.getGsonSimple().toJson(this), DARDB.TTL);
 		mutator.withRow(DARDB.CF_DAR, getKey(name)).putColumn("planned_date", planned_date, DARDB.TTL);
 		mutator.execute();
@@ -47,7 +47,7 @@ public class DAREvent {
 	}
 	
 	public static DAREvent get(String name) throws ConnectionException {
-		ColumnList<String> row = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(name)).withColumnSlice("json").execute().getResult();
+		ColumnList<String> row = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(name)).withColumnSlice("json").execute().getResult();
 		if (row == null) {
 			return null;
 		}
@@ -59,14 +59,14 @@ public class DAREvent {
 	}
 	
 	public static void delete(String name) throws ConnectionException {
-		MutationBatch mutator = DARDB.getKeyspace().prepareMutationBatch();
+		MutationBatch mutator = DARDB.get().getKeyspace().prepareMutationBatch();
 		mutator.withRow(DARDB.CF_DAR, getKey(name)).delete();
 		mutator.execute();
 	}
 	
 	public static ArrayList<DAREvent> list() throws ConnectionException {
 		ArrayList<DAREvent> result = new ArrayList<DAREvent>();
-		Rows<String, String> rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json").execute().getResult();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json").execute().getResult();
 		for (Row<String, String> row : rows) {
 			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json", "{}"), DAREvent.class));
 		}
@@ -77,7 +77,7 @@ public class DAREvent {
 	 * @return event planned +/- 1 day
 	 */
 	public static ArrayList<DAREvent> todayList() throws ConnectionException {
-		Rows<String, String> rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("planned_date").execute().getResult();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("planned_date").execute().getResult();
 		
 		long tomorrow = System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1);
 		long yesterday = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1);
@@ -91,7 +91,7 @@ public class DAREvent {
 			}
 		}
 		
-		rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getKeySlice(today_event).withColumnSlice("json").execute().getResult();
+		rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKeySlice(today_event).withColumnSlice("json").execute().getResult();
 		
 		ArrayList<DAREvent> result = new ArrayList<DAREvent>();
 		for (Row<String, String> row : rows) {

@@ -28,26 +28,23 @@ import hd3gtv.mydmam.MyDMAM;
 
 public class DARAccount {
 	
-	// TODO add user_key and replace name by long name
-	
-	String name;
-	String email;
+	String userkey;
 	String job;
 	long created_at;
 	
-	static String getKey(String name) {
-		return "account:" + name;
+	static String getKey(String userkey) {
+		return "account:" + userkey;
 	}
 	
 	public DARAccount save() throws ConnectionException {
-		MutationBatch mutator = DARDB.getKeyspace().prepareMutationBatch();
-		mutator.withRow(DARDB.CF_DAR, getKey(name)).putColumn("json", MyDMAM.gson_kit.getGsonSimple().toJson(this));
+		MutationBatch mutator = DARDB.get().getKeyspace().prepareMutationBatch();
+		mutator.withRow(DARDB.CF_DAR, getKey(userkey)).putColumn("json", MyDMAM.gson_kit.getGsonSimple().toJson(this));
 		mutator.execute();
 		return this;
 	}
 	
-	public static DARAccount get(String name) throws ConnectionException {
-		ColumnList<String> row = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(name)).execute().getResult();
+	public static DARAccount get(String userkey) throws ConnectionException {
+		ColumnList<String> row = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(userkey)).execute().getResult();
 		if (row == null) {
 			return null;
 		}
@@ -59,14 +56,14 @@ public class DARAccount {
 	}
 	
 	public static void delete(String user_key) throws ConnectionException {
-		MutationBatch mutator = DARDB.getKeyspace().prepareMutationBatch();
+		MutationBatch mutator = DARDB.get().getKeyspace().prepareMutationBatch();
 		mutator.withRow(DARDB.CF_DAR, getKey(user_key)).delete();
 		mutator.execute();
 	}
 	
 	public static ArrayList<DARAccount> list() throws ConnectionException {
 		ArrayList<DARAccount> result = new ArrayList<DARAccount>();
-		Rows<String, String> rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().execute().getResult();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().execute().getResult();
 		for (Row<String, String> row : rows) {
 			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json", "{}"), DARAccount.class));
 		}

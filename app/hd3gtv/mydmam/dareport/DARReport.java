@@ -34,15 +34,15 @@ import hd3gtv.mydmam.MyDMAM;
 
 public class DARReport {
 	
-	String account_name;
+	String account_user_key;
 	long created_at;
 	String event_name;
 	JsonArray content;
 	
-	static String getKey(String account_name, String event_name) {
+	static String getKey(String account_user_key, String event_name) {
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");
-			md.update(account_name.getBytes("UTF-8"));
+			md.update(account_user_key.getBytes("UTF-8"));
 			md.update(";".getBytes());
 			md.update(event_name.getBytes("UTF-8"));
 			return "event:" + MyDMAM.byteToString(md.digest());
@@ -53,16 +53,16 @@ public class DARReport {
 	}
 	
 	public DARReport save() throws ConnectionException {
-		MutationBatch mutator = DARDB.getKeyspace().prepareMutationBatch();
-		mutator.withRow(DARDB.CF_DAR, getKey(account_name, event_name)).putColumn("json", MyDMAM.gson_kit.getGsonSimple().toJson(this), DARDB.TTL);
-		mutator.withRow(DARDB.CF_DAR, getKey(account_name, event_name)).putColumn("account_name", account_name, DARDB.TTL);
-		mutator.withRow(DARDB.CF_DAR, getKey(account_name, event_name)).putColumn("event_name", event_name, DARDB.TTL);
+		MutationBatch mutator = DARDB.get().getKeyspace().prepareMutationBatch();
+		mutator.withRow(DARDB.CF_DAR, getKey(account_user_key, event_name)).putColumn("json", MyDMAM.gson_kit.getGsonSimple().toJson(this), DARDB.TTL);
+		mutator.withRow(DARDB.CF_DAR, getKey(account_user_key, event_name)).putColumn("account_user_key", account_user_key, DARDB.TTL);
+		mutator.withRow(DARDB.CF_DAR, getKey(account_user_key, event_name)).putColumn("event_name", event_name, DARDB.TTL);
 		mutator.execute();
 		return this;
 	}
 	
-	public static DARReport get(String account_name, String event_name) throws ConnectionException {
-		ColumnList<String> row = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(account_name, event_name)).withColumnSlice("json").execute().getResult();
+	public static DARReport get(String account_user_key, String event_name) throws ConnectionException {
+		ColumnList<String> row = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(account_user_key, event_name)).withColumnSlice("json").execute().getResult();
 		if (row == null) {
 			return null;
 		}
@@ -74,14 +74,14 @@ public class DARReport {
 	}
 	
 	public static void delete(String key) throws ConnectionException {
-		MutationBatch mutator = DARDB.getKeyspace().prepareMutationBatch();
+		MutationBatch mutator = DARDB.get().getKeyspace().prepareMutationBatch();
 		mutator.withRow(DARDB.CF_DAR, key).delete();
 		mutator.execute();
 	}
 	
 	public static ArrayList<DARReport> list() throws ConnectionException {
 		ArrayList<DARReport> result = new ArrayList<DARReport>();
-		Rows<String, String> rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json").execute().getResult();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json").execute().getResult();
 		for (Row<String, String> row : rows) {
 			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json", "{}"), DARReport.class));
 		}
@@ -90,26 +90,26 @@ public class DARReport {
 	
 	public static HashMap<String, ArrayList<String>> listAuthorsByEvents() throws ConnectionException {
 		HashMap<String, ArrayList<String>> result = new HashMap<String, ArrayList<String>>();
-		Rows<String, String> rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("account_name", "event_name").execute().getResult();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("account_user_key", "event_name").execute().getResult();
 		for (Row<String, String> row : rows) {
-			String account_name = row.getColumns().getStringValue("account_name", "");
+			String account_user_key = row.getColumns().getStringValue("account_user_key", "");
 			String event_name = row.getColumns().getStringValue("event_name", "");
-			if (event_name.equals("") | account_name.equals("")) {
-				Loggers.DAReport.warn("Empty values for event_name or account_name in [" + row.getKey() + "]");
+			if (event_name.equals("") | account_user_key.equals("")) {
+				Loggers.DAReport.warn("Empty values for event_name or account_user_key in [" + row.getKey() + "]");
 				continue;
 			}
 			
 			if (result.containsKey(event_name) == false) {
 				result.put(event_name, new ArrayList<>(5));
 			}
-			result.get(event_name).add(account_name);
+			result.get(event_name).add(account_user_key);
 		}
 		return result;
 	}
 	
 	public static ArrayList<DARReport> listByEventname(String event_name) throws ConnectionException {
 		ArrayList<DARReport> result = new ArrayList<DARReport>();
-		Rows<String, String> rows = DARDB.getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json", "event_name").execute().getResult();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json", "event_name").execute().getResult();
 		for (Row<String, String> row : rows) {
 			if (row.getColumns().getStringValue("event_name", "").equals(event_name)) {
 				result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json", "{}"), DARReport.class));
