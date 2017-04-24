@@ -29,7 +29,7 @@ import hd3gtv.mydmam.MyDMAM;
 public class DARAccount {
 	
 	String userkey;
-	String job;
+	String jobkey;
 	long created_at;
 	
 	static String getKey(String userkey) {
@@ -70,7 +70,7 @@ public class DARAccount {
 		return result;
 	}
 	
-	public String getJob() {
-		return job;
+	public String getJobKey() {
+		return jobkey;
 	}
 }

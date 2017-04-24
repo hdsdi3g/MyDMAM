@@ -124,8 +124,8 @@ public class DARDB {
 		return panels.getOrDefault(panel_name, new ArrayList<>(1));
 	}
 	
-	public String getJobLongName(String job_name) {
-		return jobs.getOrDefault(job_name, new Job()).name;
+	public String getJobLongName(String job_key) {
+		return jobs.getOrDefault(job_key, new Job()).name;
 	}
 	
 	public JsonObject allDeclaredJobs() {

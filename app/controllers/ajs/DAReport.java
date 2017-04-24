@@ -45,8 +45,12 @@ public class DAReport extends AJSController {
 	}
 	
 	@Check("adminDAReport")
-	public static void accountnewupdate(AJS_DAR_AccountNew order) throws Exception {
+	public static AJS_DAR_AccountList_Rs accountnewupdate(AJS_DAR_AccountNew order) throws Exception {
 		order.create();
+		
+		AJS_DAR_AccountList_Rs list = new AJS_DAR_AccountList_Rs();
+		list.list = DARAccount.list();
+		return list;
 	}
 	
 	@Check("adminDAReport")
@@ -93,8 +97,8 @@ public class DAReport extends AJSController {
 			jo.addProperty("error", "account is not declared");
 		}
 		
-		jo.add("panels", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getPanelsForJob(account.getJob())));
-		jo.add("jobname", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getJobLongName(account.getJob())));
+		jo.add("panels", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getPanelsForJob(account.getJobKey())));
+		jo.add("jobname", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getJobLongName(account.getJobKey())));
 		
 		return jo;
 	}

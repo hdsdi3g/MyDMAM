@@ -37,18 +37,18 @@ import play.data.validation.Validation;
 public class AJS_DAR_AccountNew {
 	
 	String userkey;
-	String job;
+	String jobkey;
 	
 	public void create() throws Exception {
-		PlayBootstrap.validate(Validation.required("userkey", userkey), Validation.required("job", job));
+		PlayBootstrap.validate(Validation.required("userkey", userkey), Validation.required("job", jobkey));
 		
-		if (DARDB.get().getJobs().containsKey(job) == false) {
-			throw new Exception("Can't found job " + job + " in configuration");
+		if (DARDB.get().getJobs().containsKey(jobkey) == false) {
+			throw new Exception("Can't found job " + jobkey + " in configuration");
 		}
 		
 		DARAccount account = new DARAccount();
 		account.created_at = System.currentTimeMillis();
-		account.job = job;
+		account.jobkey = jobkey;
 		account.userkey = userkey;
 		
 		AuthTurret turret = MyDMAM.getPlayBootstrapper().getAuth();
@@ -128,6 +128,8 @@ public class AJS_DAR_AccountNew {
 			
 			turret.changeAdminUserPasswordGroups(uau);
 		}
+		
+		Loggers.DAReport.info("Declare User Job: " + user.getFullname() + " will be a " + DARDB.get().getJobs().get(jobkey).name);
 		
 		account.save();
 	}

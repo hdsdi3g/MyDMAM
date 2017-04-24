@@ -17,9 +17,11 @@
 package hd3gtv.mydmam.dareport;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class AJS_DAR_AccountList_Rs {
 	
 	public ArrayList<DARAccount> list;
+	public HashMap<String, String> usernames; // TODO populate !
 	
 }

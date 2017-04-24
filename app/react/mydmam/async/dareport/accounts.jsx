@@ -81,12 +81,12 @@ dareport.AccountAdd = createReactClass({
 
 			if (this.state.alldeclaredjobslist != null) {
 				var alldeclaredjobslist = this.state.alldeclaredjobslist;
-				var content = [];
+				var content = [<option key={0} value=""></option>];
 				for (var name in alldeclaredjobslist) {
 					content.push(<option key={name} value={name}>{i18n(alldeclaredjobslist[name])}</option>);
 				}
 				job_list = (<FormControlGroup>
-					<select ref="select_job" onChange={this.onSelectJob}>
+					<select ref="select_job" onChange={this.onSelectJob} required="true">
 						{content}
 					</select>
 				</FormControlGroup>);
@@ -129,28 +129,84 @@ dareport.AccountAdd = createReactClass({
 
 dareport.AccountList = createReactClass({
 	getInitialState: function() {
-		return {list: null,};
+		return {list: null, jobnames: {}, show_add_form: false, usernames: {}};
 	},
 	componentWillMount: function() {
+		mydmam.async.request("dareport", "alldeclaredjobslist", {}, function(data) {
+			this.setState({jobnames: data, });
+		}.bind(this));
+
 		mydmam.async.request("dareport", "accountlist", {}, function(data) {
 			this.setState({list: data.list, });
 		}.bind(this));
 	},
 	onAddUser: function(user, job_key) {
-		console.log("ADD", user, job_key);
+		var request = {
+			userkey: user.key,
+			jobkey: job_key,
+		};
+
+		mydmam.async.request("dareport", "accountnewupdate", request, function(data) {
+			this.setState({list: data.list, usernames: data.usernames});
+		}.bind(this));
+	},
+	onClickShowAddForm: function(e) {
+		e.preventDefault();
+		this.setState({show_add_form: true});
+	},
+	getUsername: function(userkey) {
+		if (this.state.usernames[userkey]) {
+			return this.state.usernames[userkey];
+		}
+		return i18n("dareport.deleteduser");
 	},
 	render: function() {
 		var show_this = (<mydmam.async.PageLoadingProgressBar />);
 
 		if (this.state.list != null) {
+			var table_content = [];
+
+			for (var pos in this.state.list) {
+				var item = this.state.list[pos];
+				table_content.push(<tr key={pos}>
+					<td>{this.getUsername(item.userkey)}</td>
+					<td>{this.state.jobnames[item.jobkey]}</td>
+					<td><mydmam.async.pathindex.reactDate date={item.created_at} /></td>
+				</tr>);
+			}
+
+			var table = (<table className="table table-striped table-hover table-bordered table-condensed">
+    			<thead>
+    				<tr>
+    					<th>{i18n("dareport.user")}</th>
+    					<th>{i18n("dareport.job")}</th>
+    					<th>{i18n("dareport.created_at")}</th>
+    				</tr>
+    			</thead>
+    			<tbody>
+    				{table_content}
+    			</tbody>
+    		</table>);
+
+			var add_form = (<div style={{marginBottom: "12px", }}>
+				<button onClick={this.onClickShowAddForm} className="btn btn-primary"><i className="icon-plus icon-white"></i> {i18n("dareport.accountlist.showformadduserbtn")}</button>
+			</div>);
+
+			if (this.state.show_add_form) {
+				add_form = (<dareport.AccountAdd onValidate={this.onAddUser} />);
+			}
+
 			show_this = (<div>
-				<dareport.AccountAdd onValidate={this.onAddUser} />
+				{add_form}
+				{table}
 			</div>);
 		}
 
-		return (<mydmam.async.PageHeaderTitle title={i18n("dareport.accountlist.page")} fluid="false">
-			{show_this}
-		</mydmam.async.PageHeaderTitle>);
+		return (<div className="container">
+			<mydmam.async.PageHeaderTitle title={i18n("dareport.accountlist.page")} fluid="false">
+				{show_this}
+			</mydmam.async.PageHeaderTitle>
+		</div>);
 	}
 });
 
