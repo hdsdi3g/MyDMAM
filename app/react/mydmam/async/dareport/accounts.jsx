@@ -127,6 +127,16 @@ dareport.AccountAdd = createReactClass({
 	}
 });
 
+var DeleteBtn = createReactClass({
+	onClick: function(e) {
+		e.preventDefault();
+		this.props.removeUser(this.props.userkey);
+	},
+	render: function() {
+		return (<button onClick={this.onClick} className="btn btn-mini btn-danger"><i className="icon-remove icon-white"></i> {i18n("dareport.delete")}</button>);
+	}
+});
+
 dareport.AccountList = createReactClass({
 	getInitialState: function() {
 		return {list: null, jobnames: {}, show_add_form: false, usernames: {}};
@@ -137,7 +147,7 @@ dareport.AccountList = createReactClass({
 		}.bind(this));
 
 		mydmam.async.request("dareport", "accountlist", {}, function(data) {
-			this.setState({list: data.list, });
+			this.setState({list: data.list, usernames: data.usernames, });
 		}.bind(this));
 	},
 	onAddUser: function(user, job_key) {
@@ -147,7 +157,7 @@ dareport.AccountList = createReactClass({
 		};
 
 		mydmam.async.request("dareport", "accountnewupdate", request, function(data) {
-			this.setState({list: data.list, usernames: data.usernames});
+			this.setState({list: data.list, usernames: data.usernames, });
 		}.bind(this));
 	},
 	onClickShowAddForm: function(e) {
@@ -160,6 +170,11 @@ dareport.AccountList = createReactClass({
 		}
 		return i18n("dareport.deleteduser");
 	},
+	onRemoveUser: function(userkey) {
+		mydmam.async.request("dareport", "accountdelete", userkey, function(data) {
+			this.setState({list: data.list, usernames: data.usernames, });
+		}.bind(this));
+	},
 	render: function() {
 		var show_this = (<mydmam.async.PageLoadingProgressBar />);
 
@@ -169,7 +184,12 @@ dareport.AccountList = createReactClass({
 			for (var pos in this.state.list) {
 				var item = this.state.list[pos];
 				table_content.push(<tr key={pos}>
-					<td>{this.getUsername(item.userkey)}</td>
+					<td>
+						{this.getUsername(item.userkey)}
+						<span className="pull-right">
+							<DeleteBtn removeUser={this.onRemoveUser} userkey={item.userkey} />
+						</span>
+					</td>
 					<td>{this.state.jobnames[item.jobkey]}</td>
 					<td><mydmam.async.pathindex.reactDate date={item.created_at} /></td>
 				</tr>);
@@ -193,7 +213,10 @@ dareport.AccountList = createReactClass({
 			</div>);
 
 			if (this.state.show_add_form) {
-				add_form = (<dareport.AccountAdd onValidate={this.onAddUser} />);
+				add_form = (<div>
+					<dareport.AccountAdd onValidate={this.onAddUser} />
+					<hr />
+				</div>);
 			}
 
 			show_this = (<div>

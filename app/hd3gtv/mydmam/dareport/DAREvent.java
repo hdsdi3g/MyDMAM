@@ -40,14 +40,14 @@ public class DAREvent {
 	
 	public DAREvent save() throws ConnectionException {
 		MutationBatch mutator = DARDB.get().getKeyspace().prepareMutationBatch();
-		mutator.withRow(DARDB.CF_DAR, getKey(name)).putColumn("json", MyDMAM.gson_kit.getGsonSimple().toJson(this), DARDB.TTL);
+		mutator.withRow(DARDB.CF_DAR, getKey(name)).putColumn("json-event", MyDMAM.gson_kit.getGsonSimple().toJson(this), DARDB.TTL);
 		mutator.withRow(DARDB.CF_DAR, getKey(name)).putColumn("planned_date", planned_date, DARDB.TTL);
 		mutator.execute();
 		return this;
 	}
 	
 	public static DAREvent get(String name) throws ConnectionException {
-		ColumnList<String> row = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(name)).withColumnSlice("json").execute().getResult();
+		ColumnList<String> row = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKey(getKey(name)).withColumnSlice("json-event").execute().getResult();
 		if (row == null) {
 			return null;
 		}
@@ -55,7 +55,7 @@ public class DAREvent {
 			return null;
 		}
 		
-		return MyDMAM.gson_kit.getGsonSimple().fromJson(row.getStringValue("json", "{}"), DAREvent.class);
+		return MyDMAM.gson_kit.getGsonSimple().fromJson(row.getStringValue("json-event", "{}"), DAREvent.class);
 	}
 	
 	public static void delete(String name) throws ConnectionException {
@@ -66,9 +66,9 @@ public class DAREvent {
 	
 	public static ArrayList<DAREvent> list() throws ConnectionException {
 		ArrayList<DAREvent> result = new ArrayList<DAREvent>();
-		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json").execute().getResult();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json-event").execute().getResult();
 		for (Row<String, String> row : rows) {
-			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json", "{}"), DAREvent.class));
+			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-event", "{}"), DAREvent.class));
 		}
 		return result;
 	}
@@ -91,11 +91,11 @@ public class DAREvent {
 			}
 		}
 		
-		rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKeySlice(today_event).withColumnSlice("json").execute().getResult();
+		rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKeySlice(today_event).withColumnSlice("json-event").execute().getResult();
 		
 		ArrayList<DAREvent> result = new ArrayList<DAREvent>();
 		for (Row<String, String> row : rows) {
-			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json", "{}"), DAREvent.class));
+			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-event", "{}"), DAREvent.class));
 		}
 		
 		return result;

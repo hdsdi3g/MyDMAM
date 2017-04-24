@@ -600,3 +600,70 @@ async.HeaderTab = createReactClass({
 		</li>);
 	},
 });
+
+async.Calendar = createReactClass({
+	render: function(){
+		//TODO up/down month
+		//TODO can forbidden the past
+		//TODO set by default a date
+
+		var date = new Date()
+		var y = date.getFullYear();
+		var m = date.getMonth();
+		var last_day = new Date(y, m + 1, 0);
+
+		var month = [];
+		for (var i = 1; i < last_day.getDate() + 1; i++) {
+			date = new Date(y, m, i);
+			month.push({
+				monthday: i,
+				weekday: date.getDay(),
+				nameday: i18n("day." + date.getDay()),
+				week: date.getWeekNumber(),
+			});
+		}
+
+		var weeks = [];
+		var week = null;
+		for(var pos in month) {
+			if (pos > 0) {
+				if (month[pos].week != month[pos - 1].week) {
+					week = null;
+				}
+			}
+
+			if (week == null) {
+				week = [];
+				weeks.push(<div className="week" key={month[pos].week}>{week}</div>);
+			}
+
+			// + "(" + month[pos].nameday + ")"
+			var style = null;
+			if (pos == 0) {
+				style = {marginLeft: "80%"}; //TODO
+			} else if (pos + 1 == month.length) {
+				style = {marginRight: "20%"}; //TODO
+			}
+			week.push(<div className="day" key={pos} style={style}>{month[pos].monthday}</div>);
+		}
+
+
+
+		// console.log(month, weeks);
+		// https://codepen.io/LandonSchropp/pen/GJWGrO
+
+		return (<div>
+
+			<div className="month">
+				{weeks}
+			</div>
+
+			<div className="pagination pagination-mini">
+				<ul>
+					<li className="disabled"><span>&laquo;</span></li>
+					<li><a href="#">10</a></li>
+				</ul>
+			</div>
+		</div>);
+	},
+});

@@ -21,6 +21,7 @@ import com.google.gson.JsonObject;
 
 import controllers.Check;
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.dareport.AJS_DAR_AccountList_Rs;
 import hd3gtv.mydmam.dareport.AJS_DAR_AccountNew;
@@ -40,8 +41,13 @@ public class DAReport extends AJSController {
 	}
 	
 	@Check("adminDAReport")
-	public static void accountdelete(String user_key) throws Exception {
+	public static AJS_DAR_AccountList_Rs accountdelete(String user_key) throws Exception {
+		Loggers.DAReport.info("Remove account: " + user_key);
 		DARAccount.delete(user_key);
+		
+		AJS_DAR_AccountList_Rs list = new AJS_DAR_AccountList_Rs();
+		list.populate(MyDMAM.getPlayBootstrapper().getAuth());
+		return list;
 	}
 	
 	@Check("adminDAReport")
@@ -49,14 +55,14 @@ public class DAReport extends AJSController {
 		order.create();
 		
 		AJS_DAR_AccountList_Rs list = new AJS_DAR_AccountList_Rs();
-		list.list = DARAccount.list();
+		list.populate(MyDMAM.getPlayBootstrapper().getAuth());
 		return list;
 	}
 	
 	@Check("adminDAReport")
 	public static AJS_DAR_AccountList_Rs accountlist() throws Exception {
 		AJS_DAR_AccountList_Rs list = new AJS_DAR_AccountList_Rs();
-		list.list = DARAccount.list();
+		list.populate(MyDMAM.getPlayBootstrapper().getAuth());
 		return list;
 	}
 	
@@ -78,7 +84,7 @@ public class DAReport extends AJSController {
 	@Check("adminDAReport")
 	public static AJS_DAR_EventList_Rs eventlist() throws Exception {
 		AJS_DAR_EventList_Rs result = new AJS_DAR_EventList_Rs();
-		result.populate();
+		result.populate(MyDMAM.getPlayBootstrapper().getAuth());
 		return result;
 	}
 	

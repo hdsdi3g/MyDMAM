@@ -333,3 +333,24 @@ div.bcaevent div.progress {
     border-radius: 0px;
     filter: none;
 }
+
+/** =============================================================================================== */
+
+div.month div.week {
+  display: flex;
+  height: 2em;
+}
+
+div.month div.week div.day {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0;
+
+  /*padding: 5px;*/
+}
+
+div.month {
+    max-width: 300px;
+    /*margin: 20px auto;*/
+}
+

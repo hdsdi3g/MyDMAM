@@ -18,10 +18,31 @@ package hd3gtv.mydmam.dareport;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.stream.Collectors;
+
+import hd3gtv.mydmam.auth.AuthTurret;
+import hd3gtv.mydmam.auth.UserNG;
 
 public class AJS_DAR_AccountList_Rs {
 	
-	public ArrayList<DARAccount> list;
-	public HashMap<String, String> usernames; // TODO populate !
+	ArrayList<DARAccount> list;
+	HashMap<String, String> usernames;
+	
+	public void populate(AuthTurret turret) throws Exception {
+		list = DARAccount.list();
+		
+		usernames = new HashMap<>(list.stream().map(account -> {
+			return account.userkey;
+		}).map(user_key -> {
+			return turret.getByUserKey(user_key);
+		}).filter(user -> {
+			return user != null;
+		}).collect(Collectors.toMap(user -> {
+			return ((UserNG) user).getKey();
+		}, user -> {
+			return ((UserNG) user).getFullname();
+		})));
+		
+	}
 	
 }

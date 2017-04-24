@@ -38,7 +38,7 @@ public class DARAccount {
 	
 	public DARAccount save() throws ConnectionException {
 		MutationBatch mutator = DARDB.get().getKeyspace().prepareMutationBatch();
-		mutator.withRow(DARDB.CF_DAR, getKey(userkey)).putColumn("json", MyDMAM.gson_kit.getGsonSimple().toJson(this));
+		mutator.withRow(DARDB.CF_DAR, getKey(userkey)).putColumn("json-account", MyDMAM.gson_kit.getGsonSimple().toJson(this));
 		mutator.execute();
 		return this;
 	}
@@ -52,7 +52,7 @@ public class DARAccount {
 			return null;
 		}
 		
-		return MyDMAM.gson_kit.getGsonSimple().fromJson(row.getStringValue("json", "{}"), DARAccount.class);
+		return MyDMAM.gson_kit.getGsonSimple().fromJson(row.getStringValue("json-account", "{}"), DARAccount.class);
 	}
 	
 	public static void delete(String user_key) throws ConnectionException {
@@ -65,7 +65,7 @@ public class DARAccount {
 		ArrayList<DARAccount> result = new ArrayList<DARAccount>();
 		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().execute().getResult();
 		for (Row<String, String> row : rows) {
-			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json", "{}"), DARAccount.class));
+			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-account", "{}"), DARAccount.class));
 		}
 		return result;
 	}

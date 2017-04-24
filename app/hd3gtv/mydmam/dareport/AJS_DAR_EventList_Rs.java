@@ -18,15 +18,32 @@ package hd3gtv.mydmam.dareport;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.stream.Collectors;
+
+import hd3gtv.mydmam.auth.AuthTurret;
+import hd3gtv.mydmam.auth.UserNG;
 
 public class AJS_DAR_EventList_Rs {
 	
 	ArrayList<DAREvent> events;
 	HashMap<String, ArrayList<String>> report_authors_by_event_name;
+	HashMap<String, String> usernames;
 	
-	public void populate() throws Exception {
+	public void populate(AuthTurret turret) throws Exception {
 		events = DAREvent.list();
 		report_authors_by_event_name = DARReport.listAuthorsByEvents();
+		
+		usernames = new HashMap<>(report_authors_by_event_name.values().stream().flatMap(list -> {
+			return list.stream();
+		}).map(user_key -> {
+			return turret.getByUserKey(user_key);
+		}).filter(user -> {
+			return user != null;
+		}).collect(Collectors.toMap(user -> {
+			return ((UserNG) user).getKey();
+		}, user -> {
+			return ((UserNG) user).getFullname();
+		})));
 	}
 	
 }
