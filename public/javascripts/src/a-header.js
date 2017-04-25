@@ -59,6 +59,32 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 		return Math.ceil((((d-new Date(d.getFullYear(),0,1))/8.64e7)+1)/7);
 	};
 
+	/**
+	 * http://www.ecma-international.org/ecma-402/1.0/#sec-12.1.1.1
+	*/
+	Date.prototype.getI18nFullDisplay = function() {
+	    if(window.Intl) {
+	        return new window.Intl.DateTimeFormat(navigator.language, opts = {
+				day: "numeric",
+				weekday: "long",
+				year: "numeric",
+				month: "long",
+		    }).format(+this);
+	    } else {
+	        return +this;   
+	    }
+	}
+
+	Date.prototype.getI18nOnlyMonth = function() {
+	    if(window.Intl) {
+	        return new window.Intl.DateTimeFormat(navigator.language, opts = {
+				month: "long",
+		    }).format(+this);
+	    } else {
+	        return +this;   
+	    }
+	}
+
 	window.keycodemap = {
 		down : 40,
 		up : 38,

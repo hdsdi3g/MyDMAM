@@ -602,30 +602,49 @@ async.HeaderTab = createReactClass({
 });
 
 async.Calendar = createReactClass({
-	render: function(){
-		//TODO up/down month
-		//TODO can forbidden the past
-		//TODO set by default a date
+	getInitialState: function() {
+		var date = new Date();
+		if (this.props.date) {
+			date = this.props.date;
+		}
+		date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
 
-		var date = new Date()
+		return {date: date};
+	},
+	getRelativeDate: function(months) {
+		var date = this.state.date;
+		return new Date(date.getFullYear(), date.getMonth() + 1 + months, 0, 0,0,0);
+	},
+	onClickNextMonth: function(e) {
+		e.preventDefault();
+		this.setState({date: this.getRelativeDate(1)});
+	},
+	render: function() {
+		//TODO up/down month
+
+		var date = this.state.date;
+		var now = new Date();
+		now = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+
 		var y = date.getFullYear();
 		var m = date.getMonth();
 		var last_day = new Date(y, m + 1, 0);
 
 		var month = [];
 		for (var i = 1; i < last_day.getDate() + 1; i++) {
-			date = new Date(y, m, i);
+			thisdate = new Date(y, m, i);
 			month.push({
 				monthday: i,
-				weekday: date.getDay(),
-				nameday: i18n("day." + date.getDay()),
-				week: date.getWeekNumber(),
+				weekday: thisdate.getDay(),
+				week: thisdate.getWeekNumber(),
+				ispast: thisdate < now,
 			});
 		}
 
 		var weeks = [];
 		var week = null;
 		for(var pos in month) {
+			pos = Number(pos);
 			if (pos > 0) {
 				if (month[pos].week != month[pos - 1].week) {
 					week = null;
@@ -637,33 +656,44 @@ async.Calendar = createReactClass({
 				weeks.push(<div className="week" key={month[pos].week}>{week}</div>);
 			}
 
-			// + "(" + month[pos].nameday + ")"
+			var day_classnames = classNames("day", {
+				selectable: month[pos].ispast == false,
+				noselectable: month[pos].ispast,
+			});
+
 			var style = null;
 			if (pos == 0) {
-				style = {marginLeft: "80%"}; //TODO
+				style = {marginLeft: (100 * (month[pos].weekday - 1) / 7) + "%"};
 			} else if (pos + 1 == month.length) {
-				style = {marginRight: "20%"}; //TODO
+				if (month[pos].weekday > 0) {
+					style = {marginRight: (100 * (7 - month[pos].weekday) / 7)+ "%"};
+				}
 			}
-			week.push(<div className="day" key={pos} style={style}>{month[pos].monthday}</div>);
+
+			week.push(<div className={day_classnames} key={pos} style={style}>{month[pos].monthday}</div>);
 		}
-
-
 
 		// console.log(month, weeks);
 		// https://codepen.io/LandonSchropp/pen/GJWGrO
 
-		return (<div>
+		var btn_previous_date = null;
+		if (this.getRelativeDate(-1) >= date) {
+			btn_previous_date = (<li><a href="#">{this.getRelativeDate(-1).getI18nOnlyMonth()}</a></li>);
+		}
+
+		return (<div style={{maxWidth: "18em"}}>
+			<div className="pagination pagination-small pagination-centered">
+				<ul>
+					{btn_previous_date}
+					<li className="active"><a href="#">{this.state.date.getI18nFullDisplay()}</a></li>
+					<li><a href="#" onClick={this.onClickNextMonth}>{this.getRelativeDate(1).getI18nOnlyMonth()}</a></li>
+				</ul>
+			</div>
 
 			<div className="month">
 				{weeks}
 			</div>
 
-			<div className="pagination pagination-mini">
-				<ul>
-					<li className="disabled"><span>&laquo;</span></li>
-					<li><a href="#">10</a></li>
-				</ul>
-			</div>
 		</div>);
 	},
 });
