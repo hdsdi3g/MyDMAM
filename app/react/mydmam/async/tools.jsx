@@ -601,38 +601,68 @@ async.HeaderTab = createReactClass({
 	},
 });
 
+var BtnCalendar = createReactClass({
+	onClick: function(e) {
+		e.preventDefault();
+		this.props.onChange(this.props.current);
+	},
+	render: function() {
+		return (<div className={this.props.classname} style={this.props.style} onClick={this.onClick}>
+			{this.props.current}
+		</div>);
+	},
+});
 async.Calendar = createReactClass({
 	getInitialState: function() {
 		var date = new Date();
 		if (this.props.date) {
 			date = this.props.date;
 		}
-		date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+		date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
 
-		return {date: date};
+		var now = new Date();
+		now = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12,0,0);
+
+		return {date: date, now: now, };
 	},
 	getRelativeDate: function(months) {
 		var date = this.state.date;
-		return new Date(date.getFullYear(), date.getMonth() + 1 + months, 0, 0,0,0);
+		return new Date(date.getFullYear(), date.getMonth() + months, 1, 12,0,0);
 	},
 	onClickNextMonth: function(e) {
 		e.preventDefault();
-		this.setState({date: this.getRelativeDate(1)});
+		this.setNewDate(this.getRelativeDate(1));
+		$(ReactDOM.findDOMNode(this.refs.btnnext)).blur();
+	},
+	onClickPreviousMonth: function(e) {
+		e.preventDefault();
+		this.setNewDate(this.getRelativeDate(-1));
+		$(ReactDOM.findDOMNode(this.refs.btnprevious)).blur();
+	},
+	onChangeDate: function(monthday) {
+		var date = this.state.date;
+		var newdate = new Date(date.getFullYear(), date.getMonth(), monthday, 12,0,0);
+		this.setNewDate(newdate);
+	},
+	setNewDate(date) {
+		if (date >= this.state.now) {
+			this.setState({date: date});
+		} else {
+			this.setState({date: this.state.now});
+		}
+		this.props.onChange(date);
 	},
 	render: function() {
-		//TODO up/down month
-
 		var date = this.state.date;
-		var now = new Date();
-		now = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0);
+		var now = this.state.now;
 
 		var y = date.getFullYear();
 		var m = date.getMonth();
-		var last_day = new Date(y, m + 1, 0);
+		var last_day = new Date(y, m + 1, 0, 12,0,0);
 
 		var month = [];
 		for (var i = 1; i < last_day.getDate() + 1; i++) {
-			thisdate = new Date(y, m, i);
+			thisdate = new Date(y, m, i, 12,0,0);
 			month.push({
 				monthday: i,
 				weekday: thisdate.getDay(),
@@ -659,41 +689,45 @@ async.Calendar = createReactClass({
 			var day_classnames = classNames("day", {
 				selectable: month[pos].ispast == false,
 				noselectable: month[pos].ispast,
+				selected: date.getDate() == month[pos].monthday,
 			});
 
 			var style = null;
 			if (pos == 0) {
-				style = {marginLeft: (100 * (month[pos].weekday - 1) / 7) + "%"};
+				if (month[pos].weekday > 0) {
+					style = {marginLeft: (100 * (month[pos].weekday - 1) / 7) + "%"};
+				} else {
+					style = {marginLeft: (6 * 100 / 7) + "%"};
+				}
 			} else if (pos + 1 == month.length) {
 				if (month[pos].weekday > 0) {
 					style = {marginRight: (100 * (7 - month[pos].weekday) / 7)+ "%"};
 				}
 			}
 
-			week.push(<div className={day_classnames} key={pos} style={style}>{month[pos].monthday}</div>);
+			week.push(<BtnCalendar key={pos}
+				current={month[pos].monthday}
+				onChange={this.onChangeDate}
+				style={style}
+				classname={day_classnames} />);
 		}
-
-		// console.log(month, weeks);
-		// https://codepen.io/LandonSchropp/pen/GJWGrO
 
 		var btn_previous_date = null;
-		if (this.getRelativeDate(-1) >= date) {
-			btn_previous_date = (<li><a href="#">{this.getRelativeDate(-1).getI18nOnlyMonth()}</a></li>);
+		if ((new Date(date.getFullYear(), date.getMonth(), 0, 12,0,0)) >= now) {
+			btn_previous_date = (<li><a href="#" onClick={this.onClickPreviousMonth} ref="btnprevious">{this.getRelativeDate(-1).getI18nOnlyMonth()}</a></li>);
 		}
 
-		return (<div style={{maxWidth: "18em"}}>
-			<div className="pagination pagination-small pagination-centered">
+		return (<div style={{maxWidth: "23em"}}>
+			<div className="pagination pagination-small pagination-centered" style={{marginTop: "2px", marginBottom: "0px"}}>
 				<ul>
 					{btn_previous_date}
 					<li className="active"><a href="#">{this.state.date.getI18nFullDisplay()}</a></li>
-					<li><a href="#" onClick={this.onClickNextMonth}>{this.getRelativeDate(1).getI18nOnlyMonth()}</a></li>
+					<li><a href="#" onClick={this.onClickNextMonth} ref="btnnext">{this.getRelativeDate(1).getI18nOnlyMonth()}</a></li>
 				</ul>
 			</div>
-
-			<div className="month">
+			<div className="month" style={{marginLeft: "auto", marginRight: "auto"}}>
 				{weeks}
 			</div>
-
 		</div>);
 	},
 });

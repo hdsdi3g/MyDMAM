@@ -625,5 +625,6 @@ dareport.delete=Supprimer
 dareport.event.future=Prochains événements
 dareport.event.past=Événements passés
 dareport.event.add=Nouvel événement
+dareport.event.create=Ajouter
 dareport.event.name=Nom de l'événement
 dareport.event.date=Date prévue

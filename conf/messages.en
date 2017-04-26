@@ -625,5 +625,6 @@ dareport.delete=Delete
 dareport.event.future=Next events
 dareport.event.past=Done events
 dareport.event.add=New event
+dareport.event.create=Add
 dareport.event.name=Event name
 dareport.event.date=Scheduled Date

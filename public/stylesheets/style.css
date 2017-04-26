@@ -352,13 +352,23 @@ div.month div.week div.day {
     background-color: #fff;
     text-align: center;
     border: 1px solid #fff;
+    border-radius: 3px;
     padding-top: 4px;
     padding-bottom: 4px;
     cursor: pointer;
+    color: #08c;
 }
 
 div.month div.week div.day.selectable:hover  {
     border: 1px solid #ddd;
+    background-color: #f5f5f5;
+}
+
+div.month div.week div.day.selected  {
+    border: 1px solid #ddd;
+    background-color: #fff;
+    color: #222;
+    cursor: default;
 }
 
 div.month div.week div.day.noselectable  {

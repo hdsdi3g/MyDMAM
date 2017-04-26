@@ -28,23 +28,37 @@ public static void eventdelete(AJS_DAR_EventName order) throws Exception {
 */
 
 var NewEvent = createReactClass({
+	getInitialState: function() {
+		return  {
+			selected_date: new Date(),
+		}
+	},
+	onChangeDate: function(new_date) {
+		this.setState({selected_date: new_date});
+	},
+	onNothing: function(e) {
+		e.preventDefault();
+	},
 	onAdd: function(e) {
 		e.preventDefault();
 		var request = {
-			name: "",
-			planned_date: 0,
+			name: ReactDOM.findDOMNode(this.refs.event_name).value,
+			planned_date: this.state.selected_date,
 		};
-		console.log("TODO");
+		console.log("TODO", request);
 	},
 	render: function() {
 		var FormControlGroup = mydmam.async.FormControlGroup;
 
-		return (<form className="form-horizontal" onSubmit={this.onAdd}>
+		return (<form className="form-horizontal" onSubmit={this.onNothing}>
 			<FormControlGroup label={i18n("dareport.event.name")}>
-				<input type="text" className="span3" ref="event_name" />
+				<input type="text" className="span4" ref="event_name" />
 			</FormControlGroup>
 			<FormControlGroup label={i18n("dareport.event.date")}>
-				<mydmam.async.Calendar />
+				<mydmam.async.Calendar onChange={this.onChangeDate} />
+			</FormControlGroup>
+			<FormControlGroup>
+				<button className="btn btn-small btn-success" onClick={this.onAdd}><i className="icon-ok icon-white"></i> {i18n("dareport.event.create")}</button>
 			</FormControlGroup>
 		</form>);
 	},
