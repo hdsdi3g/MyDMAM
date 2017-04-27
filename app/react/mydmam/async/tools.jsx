@@ -612,6 +612,7 @@ var BtnCalendar = createReactClass({
 		</div>);
 	},
 });
+
 async.Calendar = createReactClass({
 	getInitialState: function() {
 		var date = new Date();
@@ -730,4 +731,29 @@ async.Calendar = createReactClass({
 			</div>
 		</div>);
 	},
+});
+
+async.HourMinInputbox = createReactClass({
+	getInitialState: function() {
+		var hrs = 0;
+		var min = 0;
+		if (this.props.hrs) {
+			hrs = this.props.hrs;
+		}
+		if (this.props.min) {
+			min = this.props.min;
+		}
+
+		return {
+			hrs: hrs,
+			min: min,
+		};
+	},
+	render: function() {
+		var current = this.state.hrs + ":" + this.state.min;
+
+		return (<div style={{maxWidth: "23em"}}>
+			<input type="text" className="span1" defaultValue={current} style={{marginLeft: "auto", marginRight: "auto"}}/>
+		</div>);
+	}
 });

@@ -36,6 +36,10 @@ var NewEvent = createReactClass({
 	onChangeDate: function(new_date) {
 		this.setState({selected_date: new_date});
 	},
+	onChangeHour: function(new_date) {
+		// this.state.selected_date
+		// this.setState({selected_date: new_date});
+	},
 	onNothing: function(e) {
 		e.preventDefault();
 	},
@@ -56,6 +60,9 @@ var NewEvent = createReactClass({
 			</FormControlGroup>
 			<FormControlGroup label={i18n("dareport.event.date")}>
 				<mydmam.async.Calendar onChange={this.onChangeDate} />
+			</FormControlGroup>
+			<FormControlGroup label={i18n("dareport.event.hour")}>
+				<mydmam.async.HourMinInputbox  />
 			</FormControlGroup>
 			<FormControlGroup>
 				<button className="btn btn-small btn-success" onClick={this.onAdd}><i className="icon-ok icon-white"></i> {i18n("dareport.event.create")}</button>

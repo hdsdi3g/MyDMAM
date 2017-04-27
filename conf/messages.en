@@ -627,4 +627,5 @@ dareport.event.past=Done events
 dareport.event.add=New event
 dareport.event.create=Add
 dareport.event.name=Event name
-dareport.event.date=Scheduled Date
+dareport.event.date=Scheduled date
+dareport.event.hour=Scheduled hour

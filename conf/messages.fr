@@ -628,3 +628,4 @@ dareport.event.add=Nouvel événement
 dareport.event.create=Ajouter
 dareport.event.name=Nom de l'événement
 dareport.event.date=Date prévue
+dareport.event.hour=Heure prévue
