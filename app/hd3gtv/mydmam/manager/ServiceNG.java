@@ -87,7 +87,7 @@ public final class ServiceNG {
 		if (enable_ftpserver) {
 			names.add("FTP Server");
 		}
-		if (enable_background_services) {
+		if (enable_background_services && enable_play == false && enable_ftpserver == false) {
 			names.add("Background services");
 		}
 		
