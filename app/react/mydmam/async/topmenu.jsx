@@ -33,7 +33,7 @@ var TopMenuEntrylink = createReactClass({
 			</a>);
 		} else {
 			if (is_brand) {
-				return (<a href={href} ref="thislink" onClick={this.onClick} className="brand">
+				return (<a href={href} ref="thislink" onClick={this.onClick} className="brand exofont">
 					{label}
 				</a>);
 			} else {

@@ -24,6 +24,14 @@ body {
 	}
 } 
 
+.exofont {
+    font-family: "Exo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.brand.exofont {
+    font-weight: 400;
+}
+
 .navbar-fixed-top-btn > li > a {
 	padding-left: 8px !important;
 	padding-right: 8px !important;
