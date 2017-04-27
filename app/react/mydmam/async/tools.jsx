@@ -595,8 +595,20 @@ async.HeaderTab = createReactClass({
 			"pull-right": this.props.pullright,
 		});
 
+		var badge = null;
+		var badge_count = this.props.badge_count;
+		if (badge_count) {
+			var span_class = classNames("badge", this.props.badge_class);
+			badge = (<span className={span_class} style={{marginLeft: 5}}>
+				{badge_count}
+			</span>);
+		}
+
 		return (<li className={li_class}>
-			<a href={this.props.href} onClick={this.onClick} ref="tab">{i18n(this.props.i18nlabel)}</a>
+			<a href={this.props.href} onClick={this.onClick} ref="tab">
+				{i18n(this.props.i18nlabel)}
+				{badge}
+			</a>
 		</li>);
 	},
 });
@@ -737,23 +749,62 @@ async.HourMinInputbox = createReactClass({
 	getInitialState: function() {
 		var hrs = 0;
 		var min = 0;
+		var valid = false;
 		if (this.props.hrs) {
 			hrs = this.props.hrs;
+			valid = true;
 		}
 		if (this.props.min) {
 			min = this.props.min;
+			valid = true;
 		}
 
 		return {
 			hrs: hrs,
 			min: min,
+			valid: valid,
 		};
 	},
+	getFullTime: function() {
+		return this.state.hrs.twoDigit(24) + ":" + this.state.min.twoDigit(60);
+	},
+	onChange: function(e) {
+		var value = ReactDOM.findDOMNode(this.refs.inputbox).value.trim();
+		if (value.length > "00:00".length) {
+			ReactDOM.findDOMNode(this.refs.inputbox).value = this.getFullTime();
+		} else if (value.indexOf(":") == 2) {
+			var raw = value.split(":");
+			var min = raw[1];
+			if (min != null) {
+				if (min.length == 2) {
+					var hrs = raw[0].twoDigit(24);
+					var min = min.twoDigit(60);
+					if (value == hrs + ":" + min) {
+						this.setState({hrs: hrs, min: min, valid: true});
+						this.props.onChange(hrs, min);
+						return;
+					}
+				}
+			}
+		}
+		if (this.state.valid != false) {
+			this.props.onChange(null, null);
+			this.setState({valid: false});
+		}
+	},
 	render: function() {
-		var current = this.state.hrs + ":" + this.state.min;
-
-		return (<div style={{maxWidth: "23em"}}>
-			<input type="text" className="span1" defaultValue={current} style={{marginLeft: "auto", marginRight: "auto"}}/>
+		var display = (<i className="icon-exclamation-sign"></i>);
+		if (this.state.valid) {
+			display = (<span><i className="icon-arrow-right"></i> {this.getFullTime()}</span>);
+		}
+		return (<div>
+			<input
+				type="time"
+				placeholder="00:00"
+				style={{width: "90px", marginRight: "1em"}}
+				defaultValue={this.getFullTime()}
+				onChange={this.onChange}
+				ref="inputbox" /> {display}
 		</div>);
 	}
 });

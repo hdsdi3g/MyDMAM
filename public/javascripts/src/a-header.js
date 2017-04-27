@@ -51,6 +51,21 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 		return JSON.parse(this.getItem(key));
 	};
 	
+	Number.prototype.twoDigit = function(base) {
+		var val = +this;
+		if (val > base - 1) {
+			return (val % base).twoDigit(base);
+		}
+		if (val > 9) {
+			return "" + val;
+		}
+		return "0" + "" + val;
+	};
+
+	String.prototype.twoDigit = function(base) {
+		return (parseInt(this)).twoDigit(base);
+	};
+
 	Date.prototype.getWeekNumber = function() {
 		// See http://stackoverflow.com/questions/6117814/get-week-of-year-in-javascript-like-in-php
 		var d = new Date(+this);

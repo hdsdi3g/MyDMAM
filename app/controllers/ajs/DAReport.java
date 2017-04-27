@@ -67,8 +67,9 @@ public class DAReport extends AJSController {
 	}
 	
 	@Check("adminDAReport")
-	public static void eventnew(AJS_DAR_EventNew order) throws Exception {
+	public static AJS_DAR_EventList_Rs eventnew(AJS_DAR_EventNew order) throws Exception {
 		order.create();
+		return eventlist();
 	}
 	
 	@Check("adminDAReport")
