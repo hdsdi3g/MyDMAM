@@ -2,53 +2,53 @@
   font-family: 'Exo';
   font-style: normal;
   font-weight: 100;
-  src: local('Exo Thin'), local('Exo-Thin'), url(https://fonts.gstatic.com/s/exo/v4/Zr0MbJYTAN-HcZ_bTgvIlw.ttf) format('truetype');
+  src: local('Exo Thin'), local('Exo-Thin'), url(exo-100.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Exo';
   font-style: normal;
   font-weight: 200;
-  src: local('Exo ExtraLight'), local('Exo-ExtraLight'), url(https://fonts.gstatic.com/s/exo/v4/CMKhhPu7qcBoVeO_FVLYTg.ttf) format('truetype');
+  src: local('Exo ExtraLight'), local('Exo-ExtraLight'), url(exo-200.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Exo';
   font-style: normal;
   font-weight: 300;
-  src: local('Exo Light'), local('Exo-Light'), url(https://fonts.gstatic.com/s/exo/v4/dmD6gKcs59jrq1uKvTTMxQ.ttf) format('truetype');
+  src: local('Exo Light'), local('Exo-Light'), url(exo-300.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Exo';
   font-style: normal;
   font-weight: 400;
-  src: local('Exo Regular'), local('Exo-Regular'), url(https://fonts.gstatic.com/s/exo/v4/m5W5Curk5POZ4iQOoRn-Ug.ttf) format('truetype');
+  src: local('Exo Regular'), local('Exo-Regular'), url(exo-400.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Exo';
   font-style: normal;
   font-weight: 500;
-  src: local('Exo Medium'), local('Exo-Medium'), url(https://fonts.gstatic.com/s/exo/v4/9GQrDsQoLNPSbu4a8XkaZw.ttf) format('truetype');
+  src: local('Exo Medium'), local('Exo-Medium'), url(exo-500.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Exo';
   font-style: normal;
   font-weight: 600;
-  src: local('Exo DemiBold'), local('Exo-DemiBold'), url(https://fonts.gstatic.com/s/exo/v4/BfPy-oLZyJitfovLhnoy1A.ttf) format('truetype');
+  src: local('Exo DemiBold'), local('Exo-DemiBold'), url(exo-600.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Exo';
   font-style: normal;
   font-weight: 700;
-  src: local('Exo Bold'), local('Exo-Bold'), url(https://fonts.gstatic.com/s/exo/v4/Pb-Tqi3xXEdTJ3ZTpmCsBw.ttf) format('truetype');
+  src: local('Exo Bold'), local('Exo-Bold'), url(exo-700.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Exo';
   font-style: normal;
   font-weight: 800;
-  src: local('Exo ExtraBold'), local('Exo-ExtraBold'), url(https://fonts.gstatic.com/s/exo/v4/q6KmdSsfN6LEK-raIRJ77Q.ttf) format('truetype');
+  src: local('Exo ExtraBold'), local('Exo-ExtraBold'), url(exo-800.ttf) format('truetype');
 }
 @font-face {
   font-family: 'Exo';
   font-style: normal;
   font-weight: 900;
-  src: local('Exo Black'), local('Exo-Black'), url(https://fonts.gstatic.com/s/exo/v4/1eQ4lxSu6Wlzo5DJtsj51w.ttf) format('truetype');
+  src: local('Exo Black'), local('Exo-Black'), url(exo-900.ttf) format('truetype');
 }
