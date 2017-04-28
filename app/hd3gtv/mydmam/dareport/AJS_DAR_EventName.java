@@ -37,6 +37,7 @@ public class AJS_DAR_EventName {
 	}
 	
 	public void delete() throws ConnectionException {
+		// TODO before delete, check is the event is not in past.
 		PlayBootstrap.validate(Validation.required("name", name));
 		DAREvent.delete(name);
 	}

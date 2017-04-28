@@ -63,7 +63,7 @@ public class DARAccount {
 	
 	public static ArrayList<DARAccount> list() throws ConnectionException {
 		ArrayList<DARAccount> result = new ArrayList<DARAccount>();
-		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().execute().getResult();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json-account").execute().getResult();
 		for (Row<String, String> row : rows) {
 			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-account", "{}"), DARAccount.class));
 		}

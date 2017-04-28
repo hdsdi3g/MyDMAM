@@ -15,17 +15,11 @@
  * 
 */
 
-dareport.eventlist_link = "dareport/eventlist";
+dareport.eventlist_link = "dareport/events";
 var eventlist_link_future = dareport.eventlist_link + "/future";
+dareport.eventlist_link_future = eventlist_link_future;
 var eventlist_link_past = dareport.eventlist_link + "/past";
 var eventlist_link_add = dareport.eventlist_link + "/add";
-
-
-/*
-public static void eventnew(AJS_DAR_EventNew order) throws Exception {
-public static void eventsendmail(AJS_DAR_EventName order) throws Exception {
-public static void eventdelete(AJS_DAR_EventName order) throws Exception {
-*/
 
 var NewEvent = createReactClass({
 	getInitialState: function() {
@@ -91,25 +85,59 @@ var NewEvent = createReactClass({
 });
 
 var EventListTable = createReactClass({
+	onClickDelete: function(ref) {
+		mydmam.async.request("dareport", "eventdelete", {name: ref}, this.props.onDeleteEventGetNewerList);
+	},
+	onClickSend: function(ref) {
+		mydmam.async.request("dareport", "eventsendmail", {name: ref}, function(){
+		});
+	},
 	render: function() {
 		var items = this.props.items;
+		var report_authors_by_event_name = this.props.report_authors_by_event_name;
 		var is_past = this.props.is_past;
 
+		var content = [];
+		for (var pos in items) {
+			var item = items[pos];
+			content.push(<tr key={pos}>
+				<td>
+					{item.name}
+					<span className="pull-right">
+						<mydmam.async.SimpleBtn enabled={report_authors_by_event_name[item.name] != null} onClick={this.onClickSend} reference={item.name} btncolor="btn-info">
+							<i className="icon-envelope icon-white"></i>
+						</mydmam.async.SimpleBtn>
+					</span>
+				</td>
+				<td><mydmam.async.pathindex.reactDate date={item.planned_date} /></td>
+				<td><mydmam.async.pathindex.reactDate date={item.created_at} /></td>
+				<td>{item.creator}</td>
+				<td><mydmam.async.BtnDelete enabled={is_past == false} onClickDelete={this.onClickDelete} reference={item.name} /></td>
+			</tr>);
+		}
+
 		var table = (<table className="table table-striped table-hover table-bordered table-condensed">
-    			<thead>
-    				<tr>
-    					<th>{i18n("")}</th>
-    				</tr>
-    			</thead>
-    			<tbody>
-    			</tbody>
-    		</table>);
+			<thead>
+				<tr>
+					<th>{i18n("dareport.event.list.name")}
+						<span className="pull-right">{i18n("dareport.event.list.resendreport")}</span>
+					</th>
+					<th>{i18n("dareport.event.list.scheduled")}</th>
+					<th>{i18n("dareport.event.list.createdat")}</th>
+					<th>{i18n("dareport.event.list.createdby")}</th>
+					<th>{i18n("dareport.event.list.delete")}</th>
+				</tr>
+			</thead>
+			<tbody>
+    			{content}
+			</tbody>
+		</table>);
 
 		return (table);
 	},
 });
 
-dareport.EventList = createReactClass({
+dareport.Events = createReactClass({
 	getInitialState: function() {
 		return {
 			list: null,
@@ -128,37 +156,34 @@ dareport.EventList = createReactClass({
 		});
 	},
 	render: function(){
-		var show_this = null;
-
-		if (this.state.list == null) {
-			show_this = (<mydmam.async.PageLoadingProgressBar />);
-		} else {
-			var items = [];
-			//TODO this.state.list > item...
-			if (location.hash.indexOf("#" + eventlist_link_future) == 0) {
-				show_this = (<EventListTable items={items} is_past={false} />);
-			} else if (location.hash.indexOf("#" + eventlist_link_past) == 0) {
-				show_this = (<EventListTable items={items} is_past={true} />);
-			} else if (location.hash.indexOf("#" + eventlist_link_add) == 0) {
-				show_this = (<NewEvent onAddNewEventGetNewerList={this.importEventList} />);
-			} else {
-				show_this = (<EventListTable items={items} is_past={false} />);
-			}
-		}
-
+		var list = this.state.list;
 		var future_count = null;
 		var past_count = null;
-		var list = this.state.list;
+		var show_this = (<mydmam.async.PageLoadingProgressBar />);
+
 		if (list != null) {
+			var items_future = [];
+			var items_past = [];
 			future_count = 0;
-			past_count = 0;
+
 			for (var pos in list) {
 				var event = list[pos];
 				if (event.planned_date > (new Date()).getTime()) {
 					future_count++;
+					items_future.push(event);
 				} else {
-					past_count++;
+					items_past.push(event);
 				}
+			}
+
+			if (location.hash.indexOf("#" + eventlist_link_future) == 0) {
+				show_this = (<EventListTable items={items_future} is_past={false} onDeleteEventGetNewerList={this.importEventList} report_authors_by_event_name={this.state.report_authors_by_event_name} />);
+			} else if (location.hash.indexOf("#" + eventlist_link_past) == 0) {
+				show_this = (<EventListTable items={items_past} is_past={true} report_authors_by_event_name={this.state.report_authors_by_event_name}  />);
+			} else if (location.hash.indexOf("#" + eventlist_link_add) == 0) {
+				show_this = (<NewEvent onAddNewEventGetNewerList={this.importEventList} />);
+			} else {
+				show_this = (<EventListTable items={items_future} is_past={false} onDeleteEventGetNewerList={this.importEventList} report_authors_by_event_name={this.state.report_authors_by_event_name}  />);
 			}
 		}
 
@@ -166,7 +191,7 @@ dareport.EventList = createReactClass({
 			<mydmam.async.PageHeaderTitle title={i18n("dareport.eventlist.page")} fluid="true">
 				<ul className="nav nav-tabs">
 					<mydmam.async.HeaderTab href={"#" + eventlist_link_future}  i18nlabel="dareport.event.future" badge_count={future_count} />
-					<mydmam.async.HeaderTab href={"#" + eventlist_link_past} 	i18nlabel="dareport.event.past" badge_count={past_count} />	
+					<mydmam.async.HeaderTab href={"#" + eventlist_link_past} 	i18nlabel="dareport.event.past" />	
 					<mydmam.async.HeaderTab href={"#" + eventlist_link_add}     i18nlabel="dareport.event.add" />
 				</ul>
 				{show_this}
@@ -175,7 +200,7 @@ dareport.EventList = createReactClass({
 	},
 });
 
-mydmam.routes.push("dareport-eventlist",       dareport.eventlist_link,  dareport.EventList, [{name: "dareport", verb: "eventlist"}]);
-mydmam.routes.push("dareport-eventlistfuture", eventlist_link_future,    dareport.EventList, [{name: "dareport", verb: "eventlist"}]);
-mydmam.routes.push("dareport-eventlistpast",   eventlist_link_past,      dareport.EventList, [{name: "dareport", verb: "eventlist"}]);
-mydmam.routes.push("dareport-eventlistadd",    eventlist_link_add,       dareport.EventList, [{name: "dareport", verb: "eventlist"}]);
+mydmam.routes.push("dareport-events",       dareport.eventlist_link,  dareport.Events, [{name: "dareport", verb: "eventlist"}]);
+mydmam.routes.push("dareport-eventsfuture", eventlist_link_future,    dareport.Events, [{name: "dareport", verb: "eventlist"}]);
+mydmam.routes.push("dareport-eventspast",   eventlist_link_past,      dareport.Events, [{name: "dareport", verb: "eventlist"}]);
+mydmam.routes.push("dareport-eventsadd",    eventlist_link_add,       dareport.Events, [{name: "dareport", verb: "eventlist"}]);

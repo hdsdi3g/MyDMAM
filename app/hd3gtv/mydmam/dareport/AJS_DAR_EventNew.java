@@ -33,7 +33,7 @@ public class AJS_DAR_EventNew {
 		event.creator = AJSController.getUserProfileLongName();
 		event.created_at = System.currentTimeMillis();
 		event.planned_date = planned_date;
-		event.name = name;
+		event.name = name; // TODO check before, and alterate the name, if this name exists
 		event.save();
 	}
 }

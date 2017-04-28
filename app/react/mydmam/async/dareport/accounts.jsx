@@ -15,7 +15,7 @@
  * 
 */
 
-dareport.accountlist_link = "dareport/accountlist";
+dareport.accountlist_link = "dareport/accounts";
 
 var UserInfo = createReactClass({
 	onClick: function(e) {
