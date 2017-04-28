@@ -17,19 +17,10 @@
 
 async.Home = createReactClass({
 	render: function() {
-		var styleh1 = {
-			fontFamily: "'Exo', sans-serif",
-			fontWeight: 700,
-		};
-		var stylep = {
-			fontFamily: "'Exo', sans-serif",
-			fontWeight: 300,
-		};
-
 		return (<div className="container">
 			<div className="hero-unit">
-				<h1 style={styleh1}>{i18n("site.name")}</h1>
-				<p style={stylep}>{i18n("site.baseline")}</p>
+				<h1>{i18n("site.name")}</h1>
+				<p>{i18n("site.baseline")}</p>
 			</div>
 		</div>);
 	}
