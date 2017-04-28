@@ -79,8 +79,8 @@ public class JSProcessor {
 		input = output;
 	}
 	
-	public void writeTo(File filename) throws IOException {
-		Loggers.Play_JSSource.info("Write " + this.filename + " processed to " + filename + " (module: " + module_name + ")");
+	public void writeTo(File filename, Operation operation) throws IOException {
+		Loggers.Play_JSSource.debug("Write " + this.filename + " " + operation.toLogVerbString() + " to " + filename + " (module: " + module_name + ")");
 		FileUtils.write(filename, output, MyDMAM.UTF8, false);
 	}
 	

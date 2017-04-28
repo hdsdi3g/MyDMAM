@@ -45,6 +45,19 @@ public class NodeJSBabel {
 	
 	public enum Operation {
 		TRANSFORM, REDUCE, TRANSFORM_REDUCE;
+		
+		public String toLogVerbString() {
+			if (this == TRANSFORM) {
+				return "transformed";
+			}
+			if (this == REDUCE) {
+				return "reduced";
+			}
+			if (this == TRANSFORM_REDUCE) {
+				return "transformed and reduced";
+			}
+			return "???";
+		}
 	}
 	
 	private File babel_js;
@@ -128,8 +141,7 @@ public class NodeJSBabel {
 		String node_version = exec.getResultstdout().toString().trim();
 		
 		if (MyDMAM.versionCompare(node_version, MIN_NODEJS_VERSION) < 0) {
-			throw new IOException("Current installed NodeJS version is to low (" + node_version + "). Please update it before use (>= " + MIN_NODEJS_VERSION + ") from "
-					+ ExecBinaryPath.get("node").getAbsolutePath());
+			throw new IOException("Current installed NodeJS version is to low (" + node_version + "). Please update it before use (>= " + MIN_NODEJS_VERSION + ") from " + ExecBinaryPath.get("node").getAbsolutePath());
 		}
 		
 		log.debug("Use NodeJS version " + node_version);
