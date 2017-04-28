@@ -32,6 +32,20 @@ body {
     font-weight: 400;
 }
 
+div.hero-unit {
+    font-family: "Exo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+div.hero-unit h1 {
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+div.hero-unit p {
+    font-weight: 400;
+    font-size: 20px;
+}
+
 .navbar-fixed-top-btn > li > a {
 	padding-left: 8px !important;
 	padding-right: 8px !important;
