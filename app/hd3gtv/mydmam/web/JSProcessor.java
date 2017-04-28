@@ -24,6 +24,8 @@ import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
 
+import com.google.gson.JsonPrimitive;
+
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.web.NodeJSBabel.Operation;
@@ -109,25 +111,6 @@ public class JSProcessor {
 		input = output;
 	}
 	
-	private static String escapeAll(String text) {
-		StringBuilder sb = new StringBuilder(text.length() + 1);
-		char letter;
-		char backshash = "\\".charAt(0);
-		char quote = "\"".charAt(0);
-		
-		for (int pos = 0; pos < text.length(); pos++) {
-			letter = text.charAt(pos);
-			if (letter == backshash) {
-				sb.append("\\\\");
-			} else if (letter == quote) {
-				sb.append("\\\"");
-			} else {
-				sb.append(letter);
-			}
-		}
-		return sb.toString();
-	}
-	
 	public void wrapTransformationError(BabelException e) {
 		ArrayList<String> babel_stacktrace = e.getBabelStacktrace();
 		final StringBuffer sb = new StringBuffer();
@@ -143,9 +126,9 @@ public class JSProcessor {
 		pw.println("new function(){");
 		pw.println("	$(document).ready(function() {");
 		pw.println("		var message = {}");
-		pw.println("		message.from = \"" + module_name + " module: " + filename.getAbsolutePath().substring(module_path.length()) + "\";");
-		pw.println("		message.text = \"" + escapeAll(e.getMessage()) + "\";");
-		pw.println("		message.line = \"" + escapeAll(sb.toString()) + "\";");
+		pw.println("        message.from = " + (new JsonPrimitive(module_name + " module: " + filename.getAbsolutePath().substring(module_path.length()))).toString());
+		pw.println("        message.text = " + (new JsonPrimitive(e.getMessage())).toString());
+		pw.println("        message.line = " + (new JsonPrimitive(sb.toString())).toString());
 		pw.println("		jsx_error_messages.push(message);");
 		pw.println("	});");
 		pw.println("}();");

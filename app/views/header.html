@@ -71,7 +71,13 @@
 		$(function () {
 			if (jsx_error_messages.length > 0) {
 				for (pos = 0; pos < jsx_error_messages.length; pos++) {
-					console.log("Error in " + jsx_error_messages[pos].from + "\n\n" + jsx_error_messages[pos].text + "\n\n" + jsx_error_messages[pos].line);
+				    var to_display = '<div class="alert alert-error">';
+				    to_display += '<h4>JSX Processing error!</h4>';
+				    to_display += '<p><strong>' + jsx_error_messages[pos].from + '</strong></p>';
+				    to_display += '<p>' + jsx_error_messages[pos].text + '</p>';
+				    to_display += '<p><pre>' + jsx_error_messages[pos].line + '</pre></p>';
+				    to_display += '</div>';
+					$("body").prepend(to_display);
 				}
 			}
 	    });
