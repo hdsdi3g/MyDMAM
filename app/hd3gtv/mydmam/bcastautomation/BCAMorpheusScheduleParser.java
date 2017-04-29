@@ -169,13 +169,18 @@ class BCAMorpheusScheduleParser extends DefaultHandler implements ErrorHandler {
 	}
 	
 	public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
-		if (qName.equalsIgnoreCase("PreviousUid") | qName.equalsIgnoreCase("OwnerUid") | qName.equalsIgnoreCase("IsFixed") | qName.equalsIgnoreCase("EventKind") | qName.equalsIgnoreCase("IsMediaBall")
-				| qName.equalsIgnoreCase("IsUpStreamEvent") | qName.equalsIgnoreCase("IsBackupMixerEvent") | qName.equalsIgnoreCase("IsGuardEvent") | qName.equalsIgnoreCase("IsUpStreamGuardEvent")) {
+		if (qName.equalsIgnoreCase("PreviousUid") | qName.equalsIgnoreCase("OwnerUid") | qName.equalsIgnoreCase("IsFixed") | qName.equalsIgnoreCase("EventKind") | qName.equalsIgnoreCase("IsMediaBall") | qName.equalsIgnoreCase("IsUpStreamEvent") | qName.equalsIgnoreCase("IsBackupMixerEvent") | qName.equalsIgnoreCase("IsGuardEvent") | qName.equalsIgnoreCase("IsUpStreamGuardEvent")) {
 			rawtext = new StringBuffer();
 			return;
 		}
 		if (qName.equalsIgnoreCase("Parameter")) {
-			this.currentevent.fields.put(attributes.getValue("Name"), attributes.getValue("Value"));
+			if (currentevent == null) {
+				return;
+			}
+			if (currentevent.fields == null) {
+				return;
+			}
+			currentevent.fields.put(attributes.getValue("Name"), attributes.getValue("Value"));
 			return;
 		}
 		if (qName.equalsIgnoreCase("MasterSOM")) {
@@ -277,8 +282,7 @@ class BCAMorpheusScheduleParser extends DefaultHandler implements ErrorHandler {
 			this.currentevent.eventkind = this.rawtext.toString();
 			return;
 		}
-		if (qName.equalsIgnoreCase("Parameter") | qName.equalsIgnoreCase("Fields") | qName.equalsIgnoreCase("MasterSOM") | qName.equalsIgnoreCase("PlayoutDeviceSOM")
-				| qName.equalsIgnoreCase("ActualInpoint")) {
+		if (qName.equalsIgnoreCase("Parameter") | qName.equalsIgnoreCase("Fields") | qName.equalsIgnoreCase("MasterSOM") | qName.equalsIgnoreCase("PlayoutDeviceSOM") | qName.equalsIgnoreCase("ActualInpoint")) {
 			return;
 		}
 		
