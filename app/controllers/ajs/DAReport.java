@@ -93,8 +93,11 @@ public class DAReport extends AJSController {
 	}
 	
 	@Check("userDAReport")
-	public static void reportnew(AJS_DAR_ReportNew order) throws Exception {
+	public static JsonObject reportnew(AJS_DAR_ReportNew order) throws Exception {
 		order.create();
+		JsonObject jo = new JsonObject();
+		jo.addProperty("done", true);
+		return jo;
 	}
 	
 	@Check("userDAReport")
@@ -120,7 +123,7 @@ public class DAReport extends AJSController {
 	
 	@Check("userDAReport")
 	public static JsonArray eventlisttoday() throws Exception {
-		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(DAREvent.todayList()).getAsJsonArray();
+		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(DAREvent.todayList(AJSController.getUserProfile())).getAsJsonArray();
 	}
 	
 }

@@ -26,6 +26,7 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.auth.UserNG;
 
 public class DAREvent {
 	
@@ -76,22 +77,26 @@ public class DAREvent {
 	/**
 	 * @return event planned +/- 1 day
 	 */
-	public static ArrayList<DAREvent> todayList() throws ConnectionException {
+	public static ArrayList<DAREvent> todayList(UserNG creator) throws ConnectionException {
+		if (creator == null) {
+			throw new NullPointerException("\"creator\" can't to be null");
+		}
 		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("planned_date").execute().getResult();
 		
 		long tomorrow = System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1);
 		long yesterday = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1);
 		
-		ArrayList<String> today_event = new ArrayList<>(1);
+		ArrayList<String> today_event_keys = new ArrayList<>(1);
 		for (Row<String, String> row : rows) {
 			long planned_date = row.getColumns().getLongValue("planned_date", 0l);
 			
 			if (planned_date > yesterday && planned_date < tomorrow) {
-				today_event.add(row.getKey());
+				// TODO remove all actual reports created by creator.getKey()
+				today_event_keys.add(row.getKey());
 			}
 		}
 		
-		rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKeySlice(today_event).withColumnSlice("json-event").execute().getResult();
+		rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKeySlice(today_event_keys).withColumnSlice("json-event").execute().getResult();
 		
 		ArrayList<DAREvent> result = new ArrayList<DAREvent>();
 		for (Row<String, String> row : rows) {
