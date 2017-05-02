@@ -89,6 +89,7 @@ public class DARDB {
 		String label;
 		String tips;
 		boolean isstrong;
+		boolean reverse_boolean;
 		
 		public String toString() {
 			return type + " \"" + label + "\" [" + tips + "] S:" + isstrong;

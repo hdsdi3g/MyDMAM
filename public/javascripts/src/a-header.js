@@ -100,6 +100,21 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 	    }
 	}
 
+	Date.prototype.getI18nFullDisplayTime = function() {
+	    if(window.Intl) {
+	        return new window.Intl.DateTimeFormat(navigator.language, opts = {
+				day: "numeric",
+				weekday: "long",
+				year: "numeric",
+				month: "long",
+				hour: "numeric",
+				minute: "numeric",
+		    }).format(+this);
+	    } else {
+	        return +this;   
+	    }
+	}
+
 	window.keycodemap = {
 		down : 40,
 		up : 38,

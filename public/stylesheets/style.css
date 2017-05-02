@@ -403,3 +403,42 @@ div.month {
     /*margin: 20px auto;*/
 }
 
+div.dareport-event {
+    padding-left: 6px;
+    padding-top: 6px;
+    cursor: default;
+}
+
+div.dareport-event.in-list {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    background-color: #fff;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+div.dareport-event.in-list:hover {
+    background-color: #eee;
+    border: 1px solid #bbb;
+}
+
+form.dareport label.checkbox {
+    display: inline;
+}
+
+form.dareport textarea {
+    vertical-align: top;
+}
+
+form.dareport textarea[readonly] {
+    cursor: pointer;
+}
+
+form.dareport label.control-label {
+    text-align: left;    
+}
+
+form.dareport div.controls {
+    padding-top: 5px;
+}

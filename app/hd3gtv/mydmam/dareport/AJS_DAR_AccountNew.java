@@ -81,12 +81,12 @@ public class AJS_DAR_AccountNew {
 			if (dar_role.getPrivileges().stream().noneMatch(privilege -> {
 				return privilege.equalsIgnoreCase("userDAReport");
 			})) {
-				dar_role.getPrivileges().add("userDAReport");
-				
 				RoleChPrivileges rchp = new RoleChPrivileges();
 				rchp.role_key = dar_role.getKey();
-				rchp.privileges = new ArrayList<>(dar_role.getPrivileges());
-				turret.changeRolePrivileges(rchp);
+				rchp.privileges = new ArrayList<>();
+				rchp.privileges.addAll(dar_role.getPrivileges());
+				rchp.privileges.add("userDAReport");
+				/*dar_role =*/ turret.changeRolePrivileges(rchp);
 			}
 			
 			/**

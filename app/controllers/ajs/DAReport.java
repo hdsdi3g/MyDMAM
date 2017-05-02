@@ -67,8 +67,12 @@ public class DAReport extends AJSController {
 	}
 	
 	@Check("adminDAReport")
-	public static void eventnew(AJS_DAR_EventNew order) throws Exception {
+	public static AJS_DAR_EventList_Rs eventnew(AJS_DAR_EventNew order) throws Exception {
 		order.create();
+		
+		AJS_DAR_EventList_Rs result = new AJS_DAR_EventList_Rs();
+		result.populate(MyDMAM.getPlayBootstrapper().getAuth());
+		return result;
 	}
 	
 	@Check("adminDAReport")
