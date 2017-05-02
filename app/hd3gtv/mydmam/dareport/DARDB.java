@@ -17,6 +17,7 @@
 package hd3gtv.mydmam.dareport;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -71,6 +72,11 @@ public class DARDB {
 	private LinkedHashMap<String, Job> jobs;
 	private ArrayList<String> manager_addrs;
 	
+	/**
+	 * Like 03:00:00
+	 */
+	private String send_time;
+	
 	class Job {
 		String name;
 		String panels;
@@ -108,6 +114,7 @@ public class DARDB {
 		log.put("jobs", jobs);
 		log.put("panels", panels);
 		log.put("manager_addrs", manager_addrs);
+		log.put("send_time", send_time);
 		return log.toString();
 	}
 	
@@ -137,6 +144,38 @@ public class DARDB {
 		});
 		
 		return result;
+	}
+	
+	private Calendar parseSendTime() {
+		try {
+			String[] time_unit = send_time.split(":");
+			Calendar c = Calendar.getInstance();
+			c.set(Calendar.HOUR_OF_DAY, Integer.valueOf(time_unit[0]));
+			c.set(Calendar.MINUTE, Integer.valueOf(time_unit[1]));
+			c.set(Calendar.SECOND, Integer.valueOf(time_unit[2]));
+			return c;
+		} catch (NullPointerException | IndexOutOfBoundsException | NumberFormatException e) {
+			Loggers.DAReport.error("Can't parse send_time configuration key: " + send_time, e);
+			throw e;
+		}
+	}
+	
+	public long getNextSendTime() {
+		Calendar c = parseSendTime();
+		if (c.getTimeInMillis() < System.currentTimeMillis()) {
+			return c.getTimeInMillis() + TimeUnit.DAYS.toMillis(1);
+		}
+		
+		return c.getTimeInMillis();
+	}
+	
+	public long getPreviousSendTime() {
+		Calendar c = parseSendTime();
+		if (c.getTimeInMillis() > System.currentTimeMillis()) {
+			return c.getTimeInMillis() - TimeUnit.DAYS.toMillis(1);
+		}
+		
+		return c.getTimeInMillis();
 	}
 	
 }

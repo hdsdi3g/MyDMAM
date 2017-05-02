@@ -43,16 +43,28 @@ async.PageLoadingProgressBar = createReactClass({
 });
 
 async.AlertBox = createReactClass({
+	onBtnCloseClick: function(e) {
+		e.preventDefault();
+		this.props.onClose();
+	},
 	render: function() {
 		var title = null;
 		if (this.props.title) {
-			title = (<div><h4>{this.props.title}</h4></div>);
+			title = (<h4>{this.props.title}</h4>);
 		}
-		var classes = classNames("alert");
-		if (this.props.color) {
-			classes = classNames("alert", this.props.color);
+		
+		var classes = classNames("alert", "alert-block", this.props.color);
+
+		var btn_close = null;
+		if (this.props.onClose) {
+			btn_close = (<button type="button" className="close" onClick={this.onBtnCloseClick}>&times;</button>);
 		}
-		return (<div className={classes}>{title}{this.props.children}</div>);
+		
+		return (<div className={classes}>
+			{btn_close}
+			{title}
+			{this.props.children}
+		</div>);
 	}
 });
 
@@ -664,6 +676,9 @@ async.Calendar = createReactClass({
 		this.setNewDate(this.getRelativeDate(-1));
 		$(ReactDOM.findDOMNode(this.refs.btnprevious)).blur();
 	},
+	onClickMonth: function(e) {
+		e.preventDefault();
+	},
 	onChangeDate: function(monthday) {
 		var date = this.state.date;
 		var newdate = new Date(date.getFullYear(), date.getMonth(), monthday, 12,0,0);
@@ -746,7 +761,7 @@ async.Calendar = createReactClass({
 			<div className="pagination pagination-small pagination-centered" style={{marginTop: "2px", marginBottom: "0px"}}>
 				<ul>
 					{btn_previous_date}
-					<li className="active"><a href="#">{this.state.date.getI18nFullDisplay()}</a></li>
+					<li className="active"><a href="#" onClick={this.onClickMonth}>{this.state.date.getI18nFullDisplay()}</a></li>
 					<li><a href="#" onClick={this.onClickNextMonth} ref="btnnext">{this.getRelativeDate(1).getI18nOnlyMonth()}</a></li>
 				</ul>
 			</div>

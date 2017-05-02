@@ -31,10 +31,27 @@ public class AJS_DAR_ReportNew {
 	public void create() throws Exception {
 		PlayBootstrap.validate(Validation.required("event_name", event_name), Validation.required("content", content));
 		
-		DARReport report = new DARReport();
-		report.account_user_key = AJSController.getUserProfile().getKey();
+		DAREvent event = DAREvent.get(event_name);
+		if (event == null) {
+			throw new Exception("Can't found event \"" + event_name + "\" for report creation.");
+		}
+		if (event.planned_date < DARDB.get().getPreviousSendTime()) {
+			throw new Exception("Event \"" + event_name + "\" is too in past (" + Loggers.dateLog(event.planned_date) + "). Report creation time window is closed for it.");
+		}
+		if (event.planned_date > DARDB.get().getNextSendTime()) {
+			throw new Exception("Event \"" + event_name + "\" is not yet open for report creation (" + Loggers.dateLog(event.planned_date) + ").");
+		}
+		String account_user_key = AJSController.getUserProfile().getKey();
+		
+		DARReport report = DARReport.get(account_user_key, event_name);
+		if (report != null) {
+			throw new Exception("User " + AJSController.getUserProfileLongName() + " has already send it's report for event \"" + event_name + "\" the (" + Loggers.dateLog(report.created_at) + ").");
+		}
+		
+		report = new DARReport();
+		report.account_user_key = account_user_key;
 		report.created_at = System.currentTimeMillis();
-		report.event_name = event_name; // TODO check if event name exists, it's not in past, and if a entry for it don't exists
+		report.event_name = event_name;
 		report.content = content; // TODO compact report > keep only checked questions, and its responses. So, if some questions change, sended reports don't.
 		report.save();
 		

@@ -105,6 +105,16 @@ public class DARReport {
 		return result;
 	}
 	
+	static void truncate() throws ConnectionException {
+		MutationBatch mutator = DARDB.get().getKeyspace().prepareMutationBatch();
+		
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json-report").execute().getResult();
+		for (Row<String, String> row : rows) {
+			mutator.withRow(DARDB.CF_DAR, row.getKey()).delete();
+		}
+		mutator.execute();
+	}
+	
 	public static HashMap<String, ArrayList<String>> listAuthorsByEvents() throws ConnectionException {
 		HashMap<String, ArrayList<String>> result = new HashMap<String, ArrayList<String>>();
 		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("account_user_key", "event_name").execute().getResult();

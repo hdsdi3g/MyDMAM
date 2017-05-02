@@ -145,10 +145,10 @@ var EventListTable = createReactClass({
 						</mydmam.async.SimpleBtn>
 					</span>
 				</td>
-				<td><mydmam.async.pathindex.reactDate date={item.planned_date} /></td>
-				<td><mydmam.async.pathindex.reactDate date={item.created_at} /></td>
+				<td><mydmam.async.pathindex.reactDate date={item.planned_date} format="long" /></td>
+				<td><mydmam.async.pathindex.reactDate date={item.created_at} format="long" /></td>
 				<td>{item.creator}</td>
-				<td><mydmam.async.BtnDelete enabled={is_past == false} hide_for_disable={true} onClickDelete={this.onClickDelete} reference={item.name} /></td>
+				<td><mydmam.async.BtnDelete enabled={report_authors_by_event_name[item.name] == null} hide_for_disable={true} onClickDelete={this.onClickDelete} reference={item.name} /></td>
 			</tr>);
 		}
 

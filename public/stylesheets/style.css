@@ -418,6 +418,10 @@ div.dareport-event.in-list {
     border-radius: 3px;
 }
 
+div.dareport-event.row-fluid [class*="span"] {
+    min-height: 25px;    
+}
+
 div.dareport-event.in-list:hover {
     background-color: #eee;
     border: 1px solid #bbb;
@@ -426,6 +430,12 @@ div.dareport-event.in-list:hover {
 form.dareport label.checkbox {
     display: inline;
 }
+
+@media (max-width: 980px) {
+    form.dareport textarea {
+        margin-top: 6px;
+    }
+} 
 
 form.dareport textarea {
     vertical-align: top;

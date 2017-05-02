@@ -33,14 +33,14 @@ public class AJS_DAR_EventName {
 		PlayBootstrap.validate(Validation.required("name", name));
 		
 		AJSController.getUserProfile().getEmailAddr();
-		// TODO send mail
+		// TODO send report mail
 	}
 	
 	public void delete() throws ConnectionException {
 		PlayBootstrap.validate(Validation.required("name", name));
 		
-		if (DAREvent.get(name).planned_date < System.currentTimeMillis()) {
-			throw new IndexOutOfBoundsException("Event " + name + " is in past, can't delete it.");
+		if (DARReport.listByEventname(name).isEmpty() == false) {
+			throw new IndexOutOfBoundsException("Event " + name + " has reports: can't delete it.");
 		}
 		
 		DAREvent.delete(name);

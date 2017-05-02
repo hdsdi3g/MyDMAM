@@ -142,8 +142,8 @@ var Event = createReactClass({
 		var show_date = null;
 		if (inlist) {
 			show_date = (<div className="span4">
-				<span className="pull-right" style={{paddingRight: "5px", }}>
-					<mydmam.async.pathindex.reactDate date={event.planned_date} format="long" />
+				<span className="pull-right muted" style={{paddingRight: "5px", }}>
+					{(new Date(event.planned_date)).getI18nFullDisplayTime()}
 				</span>
 			</div>);
 		}
@@ -175,19 +175,19 @@ var EventList = createReactClass({
 
 		sorted_events.sort(function(a, b) {
 			if (a.planned_date == b.planned_date) {
-				return a.created_at - b.created_at;
+				return a.created_at > b.created_at;
 			} else {
-				return a.planned_date - b.planned_date;
+				return a.planned_date > b.planned_date;
 			}
 		});
 
 		var items = [];
 		for (var pos in sorted_events) {
-			items.push(<Event key={events[pos].name} event={events[pos]} onSelect={this.props.onSelectEvent} inlist={true} />);
+			items.push(<Event key={sorted_events[pos].name} event={sorted_events[pos]} onSelect={this.props.onSelectEvent} inlist={true} />);
 		}
 
 		return (<div>
-			<p className="text-warning"><strong>{i18n("dareport.report.events.select")}</strong></p>
+			<strong>{i18n("dareport.report.events.select")}</strong>
 		    <div className="container">
 				<div className="row-fluid">
 					<div className="span7">
@@ -276,7 +276,6 @@ dareport.NewReport = createReactClass({
 				if (pos_to_delete > -1) {
 					delete actual_events[pos_to_delete];
 				}
-				//TODO test if ok
 
 				this.setState({
 					selected_event_name: null,
@@ -294,8 +293,7 @@ dareport.NewReport = createReactClass({
 			}
 		}.bind(this));
 	},
-	onClickHideReportSendedAlert: function(e) {
-		e.preventDefault();
+	onClickHideReportSendedAlert: function() {
 		this.setState({report_sended: false, report_notsended: false});
 	},
 	render: function() {
@@ -324,20 +322,9 @@ dareport.NewReport = createReactClass({
 				}
 
 				event_list = (<div>
-				    <div className="container">
-						<div className="row-fluid">
-							<div className="span7">
-								<Event event={selected_event} />
-							</div>
-						</div>
-						<div className="row-fluid">
-							<div className="span7">
-								<mydmam.async.SimpleBtn enabled={true} onClick={this.onSelectEvent} reference={null}>
-									<i className="icon-chevron-left"></i> {i18n("dareport.report.changeevent")}
-								</mydmam.async.SimpleBtn>
-							</div>
-						</div>
-				    </div>
+					<mydmam.async.SimpleBtn enabled={true} onClick={this.onSelectEvent} reference={null} normalsize={true}>
+						<i className="icon-chevron-left"></i> {i18n("dareport.report.changeevent")}
+					</mydmam.async.SimpleBtn>
 				</div>);
 				if (panels == null) {
 					report_form = (<mydmam.async.PageLoadingProgressBar />);
@@ -373,20 +360,15 @@ dareport.NewReport = createReactClass({
 	
 		var jobname = this.state.jobname;
 		var title = i18n("dareport.report.page");
-		if (jobname != null) {
-			title = i18n("dareport.report.pagewithjobname", jobname);
+		if (selected_event_name) {
+			title = i18n("dareport.report.pagewithjobname", selected_event_name);
 		}
 
 		var alert_report_sended = null;
 		if (this.state.report_sended) {
-			//TODO migrate  onClose={this.onClickHideReportSendedAlert}
-			alert_report_sended = (<mydmam.async.AlertInfoBox title={i18n("dareport.report.send.ok")} onClose={this.onClickHideReportSendedAlert}>
-				<a href="#" className="close" onClick={this.onClickHideReportSendedAlert}>&times;</a>
-			</mydmam.async.AlertInfoBox>);
+			alert_report_sended = (<mydmam.async.AlertInfoBox title={i18n("dareport.report.send.ok")} onClose={this.onClickHideReportSendedAlert} />);
 		} else if (this.state.report_notsended) {
-			alert_report_sended = (<mydmam.async.AlertErrorBox title={i18n("dareport.report.send.nok")} onClose={this.onClickHideReportSendedAlert}>
-				<a href="#" className="close" onClick={this.onClickHideReportSendedAlert}>&times;</a>
-			</mydmam.async.AlertErrorBox>);
+			alert_report_sended = (<mydmam.async.AlertErrorBox title={i18n("dareport.report.send.nok")} onClose={this.onClickHideReportSendedAlert} />);
 		}
 
 		return (<div className="container">

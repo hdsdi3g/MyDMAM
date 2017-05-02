@@ -18,7 +18,6 @@ package hd3gtv.mydmam.dareport;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.netflix.astyanax.MutationBatch;
@@ -73,6 +72,20 @@ public class DAREvent {
 		for (Row<String, String> row : rows) {
 			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-event", "{}"), DAREvent.class));
 		}
+		
+		result.sort((a, b) -> {
+			if (a.planned_date < b.planned_date) {
+				return -1;
+			} else if (a.planned_date > b.planned_date) {
+				return 1;
+			} else if (a.created_at < b.created_at) {
+				return -1;
+			} else if (a.created_at > b.created_at) {
+				return 1;
+			}
+			return 0;
+		});
+		
 		return result;
 	}
 	
@@ -85,8 +98,8 @@ public class DAREvent {
 		}
 		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("planned_date").execute().getResult();
 		
-		long yesterday = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1); // TODO change time range. Not before the full sended date.
-		long tomorrow = System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1);
+		long yesterday = DARDB.get().getPreviousSendTime();
+		long tomorrow = DARDB.get().getNextSendTime();
 		
 		ArrayList<String> today_event_keys = new ArrayList<>(1);
 		for (Row<String, String> row : rows) {

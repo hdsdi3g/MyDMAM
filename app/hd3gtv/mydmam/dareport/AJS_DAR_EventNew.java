@@ -32,14 +32,12 @@ public class AJS_DAR_EventNew {
 	long planned_date;
 	
 	public void create() throws Exception {
-		PlayBootstrap.validate(Validation.required("name", name), Validation.min("planned_date", planned_date, System.currentTimeMillis()));
+		PlayBootstrap.validate(Validation.required("name", name), Validation.min("planned_date", planned_date, DARDB.get().getPreviousSendTime()));
 		
 		DAREvent event = new DAREvent();
-		
 		event.creator = AJSController.getUserProfileLongName();
 		event.created_at = System.currentTimeMillis();
 		event.planned_date = planned_date;
-		
 		event.name = validateEventName();
 		event.save();
 	}
