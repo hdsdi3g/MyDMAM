@@ -84,6 +84,40 @@ var NewEvent = createReactClass({
 	},
 });
 
+var AuthorList = createReactClass({
+	getInitialState: function() {
+		return {
+			display: false,
+		};
+	},
+	onClickExpand: function(e) {
+		e.preventDefault();
+		this.setState({display: true,});
+	},
+	render: function() {
+		var report_authors = this.props.report_authors;
+		if (report_authors == null) {
+			return (<span />);
+		}
+
+		if (this.state.display) {
+			var usernames = this.props.usernames;
+			var authors_names = [];
+			for (var pos in report_authors) {
+				authors_names.push(usernames[report_authors[pos]]);
+			}
+
+			return (<span style={{marginLeft: "6px"}}>
+				<i className="icon-user"></i> <small>{authors_names.join(", ")}</small>
+			</span>);
+		} else {
+			return (<span style={{marginLeft: "6px"}}>
+				[<a href="#" onClick={this.onClickExpand} style={{textDecoration: "underline dashed #08c"}}>{report_authors.length}</a>]
+			</span>);
+		}
+	},
+});
+
 var EventListTable = createReactClass({
 	onClickDelete: function(ref) {
 		mydmam.async.request("dareport", "eventdelete", {name: ref}, this.props.onDeleteEventGetNewerList);
@@ -100,11 +134,13 @@ var EventListTable = createReactClass({
 		var content = [];
 		for (var pos in items) {
 			var item = items[pos];
+
 			content.push(<tr key={pos}>
 				<td>
 					{item.name}
+					<AuthorList report_authors={report_authors_by_event_name[item.name]} usernames={this.props.usernames} />
 					<span className="pull-right">
-						<mydmam.async.SimpleBtn enabled={report_authors_by_event_name[item.name] != null} onClick={this.onClickSend} reference={item.name} btncolor="btn-info">
+						<mydmam.async.SimpleBtn enabled={report_authors_by_event_name[item.name] != null} hide_for_disable={true} onClick={this.onClickSend} reference={item.name} btncolor="btn-info">
 							<i className="icon-envelope icon-white"></i>
 						</mydmam.async.SimpleBtn>
 					</span>
@@ -112,7 +148,7 @@ var EventListTable = createReactClass({
 				<td><mydmam.async.pathindex.reactDate date={item.planned_date} /></td>
 				<td><mydmam.async.pathindex.reactDate date={item.created_at} /></td>
 				<td>{item.creator}</td>
-				<td><mydmam.async.BtnDelete enabled={is_past == false} onClickDelete={this.onClickDelete} reference={item.name} /></td>
+				<td><mydmam.async.BtnDelete enabled={is_past == false} hide_for_disable={true} onClickDelete={this.onClickDelete} reference={item.name} /></td>
 			</tr>);
 		}
 
@@ -177,13 +213,13 @@ dareport.Events = createReactClass({
 			}
 
 			if (location.hash.indexOf("#" + eventlist_link_future) == 0) {
-				show_this = (<EventListTable items={items_future} is_past={false} onDeleteEventGetNewerList={this.importEventList} report_authors_by_event_name={this.state.report_authors_by_event_name} />);
+				show_this = (<EventListTable items={items_future} is_past={false} onDeleteEventGetNewerList={this.importEventList} report_authors_by_event_name={this.state.report_authors_by_event_name} usernames={this.state.usernames} />);
 			} else if (location.hash.indexOf("#" + eventlist_link_past) == 0) {
-				show_this = (<EventListTable items={items_past} is_past={true} report_authors_by_event_name={this.state.report_authors_by_event_name}  />);
+				show_this = (<EventListTable items={items_past} is_past={true} report_authors_by_event_name={this.state.report_authors_by_event_name} usernames={this.state.usernames}  />);
 			} else if (location.hash.indexOf("#" + eventlist_link_add) == 0) {
 				show_this = (<NewEvent onAddNewEventGetNewerList={this.importEventList} />);
 			} else {
-				show_this = (<EventListTable items={items_future} is_past={false} onDeleteEventGetNewerList={this.importEventList} report_authors_by_event_name={this.state.report_authors_by_event_name}  />);
+				show_this = (<EventListTable items={items_future} is_past={false} onDeleteEventGetNewerList={this.importEventList} report_authors_by_event_name={this.state.report_authors_by_event_name} usernames={this.state.usernames} />);
 			}
 		}
 

@@ -77,7 +77,7 @@ public class DAReport extends AJSController {
 	
 	@Check("adminDAReport")
 	public static void eventsendmail(AJS_DAR_EventName order) throws Exception {
-		order.sendMain();
+		order.sendMail();
 	}
 	
 	@Check("adminDAReport")

@@ -174,6 +174,7 @@ async.BtnDelete = createReactClass({
 		enabled: PropTypes.bool.isRequired,
 		onClickDelete: PropTypes.func.isRequired,
 		reference: PropTypes.string,
+		hide_for_disable: PropTypes.bool,
 	},
 	getInitialState: function() {
 		return {pending_changes: false};
@@ -192,6 +193,10 @@ async.BtnDelete = createReactClass({
 		this.setState({pending_changes: false});
 	},
 	render: function() {
+		if (this.props.hide_for_disable && !this.props.enabled) {
+			return (<span />);
+		}
+
 		var btn_classes = classNames("btn", "btn-mini", "btn-danger", {
 			disabled: this.state.pending_changes | !this.props.enabled,
 		});
@@ -205,6 +210,8 @@ async.SimpleBtn = createReactClass({
 		onClick: PropTypes.func.isRequired,
 		reference: PropTypes.string,
 		btncolor: PropTypes.string,
+		normalsize: PropTypes.bool,
+		hide_for_disable: PropTypes.bool,
 	},
 	onClick: function() {
 		if (!this.props.enabled) {
@@ -213,7 +220,12 @@ async.SimpleBtn = createReactClass({
 		this.props.onClick(this.props.reference);
 	},
 	render: function() {
-		var btn_classes = classNames("btn", "btn-mini", this.props.btncolor, {
+		if (this.props.hide_for_disable && !this.props.enabled) {
+			return (<span />);
+		}
+
+		var btn_classes = classNames("btn", this.props.btncolor, {
+			"btn-mini": !this.props.normalsize,
 			disabled: !this.props.enabled,
 		});
 		return (<button className={btn_classes} onClick={this.onClick}>{this.props.children}</button>);

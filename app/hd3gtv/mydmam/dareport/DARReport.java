@@ -20,7 +20,10 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import com.google.gson.JsonArray;
 import com.netflix.astyanax.MutationBatch;
@@ -71,6 +74,20 @@ public class DARReport {
 		}
 		
 		return MyDMAM.gson_kit.getGsonSimple().fromJson(row.getStringValue("json-report", "{}"), DARReport.class);
+	}
+	
+	public static ArrayList<DARReport> getAll(String account_user_key, Collection<String> events_name) throws ConnectionException {
+		List<String> keys = events_name.stream().map(name -> {
+			return getKey(account_user_key, name);
+		}).collect(Collectors.toList());
+		
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getKeySlice(keys).withColumnSlice("json-report").execute().getResult();
+		
+		ArrayList<DARReport> result = new ArrayList<DARReport>();
+		for (Row<String, String> row : rows) {
+			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-report", "{}"), DARReport.class));
+		}
+		return result;
 	}
 	
 	public static void delete(String key) throws ConnectionException {

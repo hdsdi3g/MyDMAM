@@ -16,6 +16,12 @@
 */
 package hd3gtv.mydmam.dareport;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.PlayBootstrap;
 import play.data.validation.Validation;
@@ -33,7 +39,22 @@ public class AJS_DAR_EventNew {
 		event.creator = AJSController.getUserProfileLongName();
 		event.created_at = System.currentTimeMillis();
 		event.planned_date = planned_date;
-		event.name = name; // TODO check before, and alterate the name, if this name exists
+		
+		event.name = validateEventName();
 		event.save();
 	}
+	
+	/**
+	 * Check before, and alterate the name, if this name exists
+	 */
+	private String validateEventName() throws ConnectionException {
+		if (DAREvent.get(name) != null) {
+			LocalDate date = LocalDate.now();
+			name = name + " (" + date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)) + ")";
+			return validateEventName();
+		}
+		
+		return name;
+	}
+	
 }

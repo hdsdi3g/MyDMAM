@@ -18,6 +18,7 @@ package hd3gtv.mydmam.dareport;
 
 import com.google.gson.JsonArray;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.PlayBootstrap;
 import play.data.validation.Validation;
@@ -30,14 +31,14 @@ public class AJS_DAR_ReportNew {
 	public void create() throws Exception {
 		PlayBootstrap.validate(Validation.required("event_name", event_name), Validation.required("content", content));
 		
-		// TODO check if event name exists, it's not in past, and if a entry for it don't exists
-		
 		DARReport report = new DARReport();
 		report.account_user_key = AJSController.getUserProfile().getKey();
 		report.created_at = System.currentTimeMillis();
-		report.event_name = event_name;
-		report.content = content;
+		report.event_name = event_name; // TODO check if event name exists, it's not in past, and if a entry for it don't exists
+		report.content = content; // TODO compact report > keep only checked questions, and its responses. So, if some questions change, sended reports don't.
 		report.save();
+		
+		Loggers.DAReport.info("User " + AJSController.getUserProfileLongName() + " has just sent report for " + event_name);
 	}
 	
 }

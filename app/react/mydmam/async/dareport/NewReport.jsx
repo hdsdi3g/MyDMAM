@@ -27,22 +27,28 @@ var Panel = createReactClass({
 		};
 	},
 	onUpdate: function() {
-		//TODO collect check (if false | if reverse_boolean&true) + comment zone > this.props.onChangeForm(panelref, content)
+		if (this.state.check != this.props.panel.reverse_boolean) {
+			ReactDOM.findDOMNode(this.refs.commentzone).value = "";
+		}
+
+		var content = {
+			check: this.state.check,
+			comment: ReactDOM.findDOMNode(this.refs.commentzone).value.trim(),
+		};
+
+		this.props.onChange(this.props.panelnum, content);
 	},
 	onClickRadioYes: function(e) {
-		//e.preventDefault();
-		//TODO empty textarea if reverse_boolean...
 		this.setState({
 			check: true,
-		});
-		this.onUpdate();
+		}, this.onUpdate);
 	},
 	onClickRadioNo: function(e) {
-		//e.preventDefault();
-		//TODO empty textarea if !reverse_boolean...
 		this.setState({
 			check: false,
-		});
+		}, this.onUpdate);
+	},
+	onTextareaTextChange: function(e) {
 		this.onUpdate();
 	},
 	isTextAreaEnabled: function() {
@@ -100,15 +106,6 @@ var Panel = createReactClass({
 			first_radio = swap;
 		}
 
-		//this.props.panelref
-
-		/*async.CheckboxItem = createReactClass({
-			propTypes: {
-			reference: PropTypes.string.isRequired,
-			checked: PropTypes.bool.isRequired,
-			onChangeCheck: PropTypes.func.isRequired,
-		*/
-
 		return (<FormControlGroup label={panel.label}>
 			{first_radio}
 			{second_radio}
@@ -116,11 +113,12 @@ var Panel = createReactClass({
 				rows="2"
 				className="input-xxlarge dareport"
 				defaultValue=""
-				ref="comment"
+				ref="commentzone"
 				placeholder={panel.tips}
 				readOnly={this.isTextAreaEnabled() == false}
 				style={{fontFamily: "monospace", fontSize: 12, marginLeft: "12px"}}
-				onClick={this.onTextareaClick} />
+				onClick={this.onTextareaClick}
+				onKeyUp={this.onTextareaTextChange} />
 
 		</FormControlGroup>);
 	}
@@ -233,13 +231,14 @@ dareport.NewReport = createReactClass({
 			report_notsended: false,
 		});
 	},
-	onChangeForm: function(panelref, content) {
+	onChangeForm: function(panelnum, content) {
+		var panels = this.state.panels;
 		var form_content = jQuery.extend(true, {}, this.state.form_content);
-		form_content[panelref] = content;
+		form_content[panelnum] = content;
 		
 		var form_ready_to_send = true;
-		for (var panelref in panels) {
-			if (! form_content[panelref]) {
+		for (var panelnum in panels) {
+			if (! form_content[panelnum]) {
 				form_ready_to_send = false;
 				break;
 			}
@@ -251,27 +250,41 @@ dareport.NewReport = createReactClass({
 		});		
 	},
 	onSendForm: function() {
+		var form_content = this.state.form_content;
+		var content = [];
+		for (var pos in form_content) {
+			content.push(form_content[pos]);
+		}
+
 		var report = {
 			event_name: this.state.selected_event_name,
-			content: [],
+			content: content,
 		};
-
-		var form_content = this.state.form_content;
-		for (var panelref in form_content) {
-			report.content.push({
-				panelref: panelref,
-				content: form_content[panelref],
-			});
-		}
 
 		mydmam.async.request("dareport", "reportnew", report, function(data) {
 			if (data.done) {
+
+				/** Remove the event from the sended report... */
+				var actual_events = jQuery.extend(true, {}, this.state.events);
+				var pos_to_delete = -1;
+				for (var pos in actual_events) {
+					if (actual_events[pos].name == this.state.selected_event_name) {
+						pos_to_delete = pos;
+						break;
+					}
+				}
+				if (pos_to_delete > -1) {
+					delete actual_events[pos_to_delete];
+				}
+				//TODO test if ok
+
 				this.setState({
 					selected_event_name: null,
 					form_ready_to_send: false,
 					form_content: {},
 					report_sended: true,
 					report_notsended: false,
+					events: actual_events,
 				});
 			} else {
 				this.setState({
@@ -330,16 +343,21 @@ dareport.NewReport = createReactClass({
 					report_form = (<mydmam.async.PageLoadingProgressBar />);
 				} else {
 					var form_panels = [];
-					for (var panelref in panels) {
-						form_panels.push(<Panel panel={panels[panelref]} panelref={panelref} key={panelref} onChange={this.onChangeForm} />);
+					for (var panelnum in panels) {
+						form_panels.push(<Panel panel={panels[panelnum]} panelnum={panelnum} key={panelnum} onChange={this.onChangeForm} />);
 					}
 
 					var btn_send_form = null;
 					if (form_ready_to_send) {
 						btn_send_form = (<FormControlGroup>
-							<mydmam.async.SimpleBtn enabled={true} onClick={this.onSendForm} reference={null} btncolor="btn-primary">
-								<i className="icon-ok icon-white"></i> {i18n("dareport.report.send")}
-							</mydmam.async.SimpleBtn>
+							<span style={{marginLeft: "18px"}}>
+								<mydmam.async.SimpleBtn enabled={true} normalsize={true} onClick={this.onSendForm} reference={null} btncolor="btn-primary">
+									<i className="icon-ok icon-white"></i> {i18n("dareport.report.send")}
+								</mydmam.async.SimpleBtn>
+							</span>
+							<span style={{marginLeft: "15px"}}>
+								<i className="icon-info-sign"></i> <em>{i18n("dareport.report.send.tips")}</em>
+							</span>
 						</FormControlGroup>);
 					}
 
@@ -361,11 +379,12 @@ dareport.NewReport = createReactClass({
 
 		var alert_report_sended = null;
 		if (this.state.report_sended) {
-			alert_report_sended = (<mydmam.async.AlertInfoBox title={i18n("dareport.report.send.ok")}>
+			//TODO migrate  onClose={this.onClickHideReportSendedAlert}
+			alert_report_sended = (<mydmam.async.AlertInfoBox title={i18n("dareport.report.send.ok")} onClose={this.onClickHideReportSendedAlert}>
 				<a href="#" className="close" onClick={this.onClickHideReportSendedAlert}>&times;</a>
 			</mydmam.async.AlertInfoBox>);
 		} else if (this.state.report_notsended) {
-			alert_report_sended = (<mydmam.async.AlertErrorBox title={i18n("dareport.report.send.nok")}>
+			alert_report_sended = (<mydmam.async.AlertErrorBox title={i18n("dareport.report.send.nok")} onClose={this.onClickHideReportSendedAlert}>
 				<a href="#" className="close" onClick={this.onClickHideReportSendedAlert}>&times;</a>
 			</mydmam.async.AlertErrorBox>);
 		}

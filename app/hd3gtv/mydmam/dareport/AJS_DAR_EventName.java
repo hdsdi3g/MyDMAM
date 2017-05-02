@@ -29,16 +29,20 @@ public class AJS_DAR_EventName {
 	 */
 	String name;
 	
-	public void sendMain() {
+	public void sendMail() throws Exception {
 		PlayBootstrap.validate(Validation.required("name", name));
 		
 		AJSController.getUserProfile().getEmailAddr();
-		// TODO send mail, after check if the event is not in the future.
+		// TODO send mail
 	}
 	
 	public void delete() throws ConnectionException {
-		// TODO before delete, check is the event is not in past.
 		PlayBootstrap.validate(Validation.required("name", name));
+		
+		if (DAREvent.get(name).planned_date < System.currentTimeMillis()) {
+			throw new IndexOutOfBoundsException("Event " + name + " is in past, can't delete it.");
+		}
+		
 		DAREvent.delete(name);
 	}
 	
