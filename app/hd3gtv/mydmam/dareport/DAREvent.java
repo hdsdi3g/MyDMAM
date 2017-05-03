@@ -90,7 +90,7 @@ public class DAREvent {
 	}
 	
 	/**
-	 * @return event planned +/- 1 day
+	 * @return events planned for this user
 	 */
 	public static ArrayList<DAREvent> todayList(UserNG creator) throws ConnectionException {
 		if (creator == null) {
