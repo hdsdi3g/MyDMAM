@@ -29,16 +29,12 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.log4j.Logger;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
 
 public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionReceiver {
-	
-	// TODO add to AppManager
 	
 	private static final int MAX_QUEUED_TASKS = 100;
 	private ScheduledExecutorService scheduled_ex_service;
@@ -67,7 +63,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	}
 	
 	public String getReferenceKey() {
-		return "ClPrTs:" + manager.getReferenceKey();
+		return "clkprgmtsk:" + manager.getReferenceKey();
 	}
 	
 	/**
@@ -75,6 +71,8 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	 * @param force don't let the time to close current tasks
 	 */
 	void cancelAllProgrammed(long timeout, TimeUnit unit) {
+		Loggers.ClkPrgmTsk.info("Stop regular scheduling for " + all_tasks.size() + "task(s)");
+		
 		all_tasks.forEach(task -> {
 			task.stopNextScheduling();
 		});
@@ -97,6 +95,8 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	}
 	
 	void startAllProgrammed() {
+		Loggers.ClkPrgmTsk.info("Start regular scheduling for " + all_tasks.size() + "task(s)");
+		
 		initThreadPoolExecutor();
 		
 		all_tasks.forEach(task -> {
@@ -162,11 +162,9 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		private String key;
 		private String name;
 		private long start_time_after_midnight;
-		private Logger logger;
 		private Runnable task;
 		private long retry_after;
 		private boolean unschedule_if_error;
-		private boolean log_regular_in_debug;
 		private volatile ScheduledFuture<?> next_scheduled;
 		private JsonObject last_status;
 		private volatile long last_execute_date;
@@ -188,7 +186,6 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 			if (task == null) {
 				throw new NullPointerException("\"task\" can't to be null");
 			}
-			logger = Loggers.Manager;
 			last_execute_date = -1;
 			last_execute_duration = -1;
 			
@@ -197,7 +194,6 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 			last_status.addProperty("name", name);
 			last_status.addProperty("start_time_after_midnight", start_time_after_midnight);
 			last_status.addProperty("task_class", task.getClass().getName());
-			last_status.addProperty("logger", logger.getName());
 			last_status.addProperty("retry_after", -1);
 			last_status.addProperty("unschedule_if_error", false);
 			last_status.addProperty("last_execute_date", last_execute_date);
@@ -213,13 +209,6 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 			last_status.addProperty("last_execute_date", last_execute_date);
 			last_status.addProperty("last_execute_duration", last_execute_duration);
 			return last_status;
-		}
-		
-		public TaskWrapper setLogger(Logger logger, boolean log_regular_in_debug) {
-			this.logger = logger;
-			this.log_regular_in_debug = log_regular_in_debug;
-			last_status.addProperty("logger", logger.getName());
-			return this;
 		}
 		
 		public TaskWrapper retryAfter(long retry_after, TimeUnit unit) {
@@ -239,15 +228,20 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 				if (executor_pool.isShutdown()) {
 					return;
 				}
+				Loggers.ClkPrgmTsk.info("Manual start task \"" + name + "\" via InstanceAction");
+				
 				executor_pool.execute(() -> {
 					executeAndSetNext();
 				});
 			} else if (order.equalsIgnoreCase("unschedule")) {
+				Loggers.ClkPrgmTsk.info("Manual stop scheduling for task \"" + name + "\" via InstanceAction");
 				stopNextScheduling();
 			} else if (order.equalsIgnoreCase("schedule")) {
+				Loggers.ClkPrgmTsk.info("Manual start scheduling for task \"" + name + "\" via InstanceAction");
 				setNextScheduling(false);
 			} else if (order.equalsIgnoreCase("toggle_unschedule_if_error")) {
 				unschedule_if_error = !unschedule_if_error;
+				Loggers.ClkPrgmTsk.info("Set task unschedule_if_error status for task \"" + name + "\" to " + unschedule_if_error);
 			}
 		}
 		
@@ -270,22 +264,19 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		private void executeAndSetNext() {
 			last_execute_date = System.currentTimeMillis();
 			try {
-				if (log_regular_in_debug) {
-					logger.debug("Start scheduled task \"" + name + "\"");
-				} else {
-					logger.info("Start scheduled task \"" + name + "\"");
-				}
+				Loggers.ClkPrgmTsk.info("Start scheduled task \"" + name + "\"");
 				task.run();
+				Loggers.ClkPrgmTsk.debug("Scheduled task \"" + name + "\" was correcly executed");
 				setNextScheduling(false);
 			} catch (Exception e) {
 				if (unschedule_if_error) {
-					logger.error("Schedule task \"" + name + "\" cause exception. Next executions will be canceled", e);
+					Loggers.ClkPrgmTsk.error("Schedule task \"" + name + "\" cause exception. Next executions will be canceled", e);
 				} else {
 					if (retry_after > 0) {
-						logger.warn("Schedule task \"" + name + "\" cause exception. Retry in " + retry_after / 1000 + " sec", e);
+						Loggers.ClkPrgmTsk.warn("Schedule task \"" + name + "\" cause exception. Retry in " + retry_after / 1000 + " sec", e);
 						setNextScheduling(true);
 					} else {
-						logger.warn("Schedule task \"" + name + "\" cause exception, retry tomorrow", e);
+						Loggers.ClkPrgmTsk.warn("Schedule task \"" + name + "\" cause exception, retry tomorrow", e);
 					}
 				}
 			}
@@ -297,16 +288,20 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 				return;
 			}
 			
-			long time_to_wait = System.currentTimeMillis() - getNextSendTime();
+			long time_to_wait = getNextSendTime() - System.currentTimeMillis();
 			
 			if (add_retry_after) {
 				time_to_wait = retry_after;
 			}
 			
+			Loggers.ClkPrgmTsk.debug("Create the next scheduling for \"" + name + "\" in " + (time_to_wait / 1000) + " seconds");
+			
 			next_scheduled = scheduled_ex_service.schedule(() -> {
 				if (executor_pool.isShutdown()) {
 					return;
 				}
+				Loggers.ClkPrgmTsk.debug("The time to wait is done for \"" + name + "\", it's start to queue the task in executor.");
+				
 				executor_pool.execute(() -> {
 					executeAndSetNext();
 				});
@@ -319,14 +314,14 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 			} else if (next_scheduled.isCancelled() | next_scheduled.isDone()) {
 				return;
 			}
-			logger.info("Remove scheduled task \"" + name + "\"");
+			Loggers.ClkPrgmTsk.info("Remove scheduled task \"" + name + "\"");
 			next_scheduled.cancel(false);
 		}
 		
 		public void schedule() {
 			setNextScheduling(false);
 			all_tasks.add(this);
-			logger.info("Schedule task \"" + name + "\" every days, the next execution will be the " + Loggers.dateLog(getNextSendTime()));
+			Loggers.ClkPrgmTsk.info("Schedule task \"" + name + "\" every days, the next execution will be the " + Loggers.dateLog(getNextSendTime()));
 		}
 		
 	}
