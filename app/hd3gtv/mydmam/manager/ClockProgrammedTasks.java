@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -91,6 +92,10 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		}
 	}
 	
+	boolean isActive() {
+		return executor_pool.isShutdown() == false;
+	}
+	
 	void startAllProgrammed() {
 		initThreadPoolExecutor();
 		
@@ -100,8 +105,24 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		});
 	}
 	
-	public JsonElement getInstanceStatusItem() {// TODO publish to website
-		// TODO Auto-generated method stub
+	public JsonElement getInstanceStatusItem() {// TODO publish correctly to website
+		JsonObject result = new JsonObject();
+		JsonObject jo_executor_pool = new JsonObject();
+		jo_executor_pool.addProperty("active", String.valueOf(executor_pool.getActiveCount()));
+		jo_executor_pool.addProperty("max_capacity", String.valueOf(executor_pool_queue.remainingCapacity()));
+		jo_executor_pool.addProperty("completed", String.valueOf(executor_pool.getCompletedTaskCount()));
+		jo_executor_pool.addProperty("core_pool", String.valueOf(executor_pool.getCorePoolSize()));
+		jo_executor_pool.addProperty("pool", String.valueOf(executor_pool.getPoolSize()));
+		jo_executor_pool.addProperty("largest_pool", String.valueOf(executor_pool.getLargestPoolSize()));
+		jo_executor_pool.addProperty("maximum_pool", String.valueOf(executor_pool.getMaximumPoolSize()));
+		
+		JsonObject jo_tasks = new JsonObject();
+		all_tasks.forEach(task -> {
+			jo_tasks.add(task.key, task.toJson());
+		});
+		
+		result.add("executor", jo_executor_pool);
+		result.add("tasks", jo_tasks);
 		return null;
 	}
 	
@@ -110,10 +131,22 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	}
 	
 	public void doAnAction(JsonObject order) throws Exception {// TODO publish to website
-		if (order.has("disable")) {
-			cancelAllProgrammed(5, TimeUnit.SECONDS);
-		} else if (order.has("enable")) {
-			startAllProgrammed();
+		if (order.has("executor")) {
+			String s_order = order.get("executor").getAsString();
+			if (s_order.equalsIgnoreCase("enable")) {
+				startAllProgrammed();
+			} else if (s_order.equalsIgnoreCase("disable")) {
+				cancelAllProgrammed(5, TimeUnit.SECONDS);
+			}
+		} else if (order.has("task") && order.has("action")) {
+			String task_key = order.get("task").getAsString();
+			String action = order.get("action").getAsString();
+			
+			all_tasks.stream().filter(task -> {
+				return task.key.equalsIgnoreCase(task_key);
+			}).findFirst().orElseThrow(() -> {
+				return new NullPointerException("Can't found task: " + task_key);
+			}).doAnAction(action);
 		}
 	}
 	
@@ -126,6 +159,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	}
 	
 	public class TaskWrapper {
+		private String key;
 		private String name;
 		private long start_time_after_midnight;
 		private Logger logger;
@@ -133,10 +167,14 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		private long retry_after;
 		private boolean unschedule_if_error;
 		private boolean log_regular_in_debug;
-		
 		private volatile ScheduledFuture<?> next_scheduled;
+		private JsonObject last_status;
+		private volatile long last_execute_date;
+		private volatile long last_execute_duration;
 		
 		private TaskWrapper(String name, long start_time_after_midnight, TimeUnit unit, Runnable task) {
+			key = UUID.randomUUID().toString();
+			
 			this.name = name;
 			if (name == null) {
 				throw new NullPointerException("\"name\" can't to be null");
@@ -151,22 +189,66 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 				throw new NullPointerException("\"task\" can't to be null");
 			}
 			logger = Loggers.Manager;
+			last_execute_date = -1;
+			last_execute_duration = -1;
+			
+			last_status = new JsonObject();
+			last_status.addProperty("key", key);
+			last_status.addProperty("name", name);
+			last_status.addProperty("start_time_after_midnight", start_time_after_midnight);
+			last_status.addProperty("task_class", task.getClass().getName());
+			last_status.addProperty("logger", logger.getName());
+			last_status.addProperty("retry_after", -1);
+			last_status.addProperty("unschedule_if_error", false);
+			last_status.addProperty("last_execute_date", last_execute_date);
+			last_status.addProperty("last_execute_duration", last_execute_duration);
+		}
+		
+		private JsonObject toJson() {
+			if (next_scheduled != null) {
+				last_status.addProperty("next_scheduled", System.currentTimeMillis() + next_scheduled.getDelay(TimeUnit.MILLISECONDS));
+			} else {
+				last_status.addProperty("next_scheduled", -1);
+			}
+			last_status.addProperty("last_execute_date", last_execute_date);
+			last_status.addProperty("last_execute_duration", last_execute_duration);
+			return last_status;
 		}
 		
 		public TaskWrapper setLogger(Logger logger, boolean log_regular_in_debug) {
 			this.logger = logger;
 			this.log_regular_in_debug = log_regular_in_debug;
+			last_status.addProperty("logger", logger.getName());
 			return this;
 		}
 		
 		public TaskWrapper retryAfter(long retry_after, TimeUnit unit) {
 			this.retry_after = unit.toMillis(retry_after);
+			last_status.addProperty("retry_after", retry_after);
 			return this;
 		}
 		
 		public TaskWrapper setUnscheduleIfError(boolean remove_task_in_case_of_error) {
 			this.unschedule_if_error = remove_task_in_case_of_error;
+			last_status.addProperty("unschedule_if_error", unschedule_if_error);
 			return this;
+		}
+		
+		private void doAnAction(String order) throws Exception {
+			if (order.equalsIgnoreCase("start_now")) {
+				if (executor_pool.isShutdown()) {
+					return;
+				}
+				executor_pool.execute(() -> {
+					executeAndSetNext();
+				});
+			} else if (order.equalsIgnoreCase("unschedule")) {
+				stopNextScheduling();
+			} else if (order.equalsIgnoreCase("schedule")) {
+				setNextScheduling(false);
+			} else if (order.equalsIgnoreCase("toggle_unschedule_if_error")) {
+				unschedule_if_error = !unschedule_if_error;
+			}
 		}
 		
 		private long getNextSendTime() {
@@ -186,6 +268,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		}
 		
 		private void executeAndSetNext() {
+			last_execute_date = System.currentTimeMillis();
 			try {
 				if (log_regular_in_debug) {
 					logger.debug("Start scheduled task \"" + name + "\"");
@@ -198,10 +281,15 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 				if (unschedule_if_error) {
 					logger.error("Schedule task \"" + name + "\" cause exception. Next executions will be canceled", e);
 				} else {
-					logger.warn("Schedule task \"" + name + "\" cause exception. Retry in " + retry_after / 1000 + " sec", e);
-					setNextScheduling(true);
+					if (retry_after > 0) {
+						logger.warn("Schedule task \"" + name + "\" cause exception. Retry in " + retry_after / 1000 + " sec", e);
+						setNextScheduling(true);
+					} else {
+						logger.warn("Schedule task \"" + name + "\" cause exception, retry tomorrow", e);
+					}
 				}
 			}
+			last_execute_duration = System.currentTimeMillis() - last_execute_date;
 		}
 		
 		private void setNextScheduling(boolean add_retry_after) {
