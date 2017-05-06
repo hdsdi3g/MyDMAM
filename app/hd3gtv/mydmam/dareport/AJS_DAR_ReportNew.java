@@ -52,7 +52,7 @@ public class AJS_DAR_ReportNew {
 		report.account_user_key = account_user_key;
 		report.created_at = System.currentTimeMillis();
 		report.event_name = event_name;
-		report.content = content; // TODO compact report > keep only checked questions, and its responses. So, if some questions change, sended reports don't.
+		report.content = content; // TODO IN PRIORITY compact report > keep only checked questions, and its responses. So, if some questions change, sended reports don't.
 		report.save();
 		
 		Loggers.DAReport.info("User " + AJSController.getUserProfileLongName() + " has just sent report for " + event_name);

@@ -32,11 +32,9 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.manager.AppManager;
 
 public class DARDB {
-	
-	// TODO mail engine
-	// TODO CLI for cron > send admin mails and send for each user all its reports
 	
 	static final ColumnFamily<String, String> CF_DAR = new ColumnFamily<String, String>("dareport", StringSerializer.get(), StringSerializer.get());
 	private Keyspace keyspace;
@@ -176,6 +174,20 @@ public class DARDB {
 		}
 		
 		return c.getTimeInMillis();
+	}
+	
+	public static void setPlannedTask(AppManager manager) {
+		if (Configuration.global.isElementExists("dareport_setup") == false) {
+			return;
+		}
+		String[] time_unit = get().send_time.split(":");
+		long start_time_after_midnight = TimeUnit.HOURS.toMillis(Integer.parseInt(time_unit[0]));
+		start_time_after_midnight += TimeUnit.MINUTES.toMillis(Integer.parseInt(time_unit[1]));
+		start_time_after_midnight += TimeUnit.SECONDS.toMillis(Integer.parseInt(time_unit[2]));
+		
+		manager.getClockProgrammedTasks().createTask("Daily activity report mail", start_time_after_midnight, TimeUnit.MILLISECONDS, () -> {
+			// TODO send mail order...
+		});
 	}
 	
 }

@@ -32,6 +32,13 @@ public class AJS_DAR_EventName {
 	public void sendMail() throws Exception {
 		PlayBootstrap.validate(Validation.required("name", name));
 		
+		if (DAREvent.get(name) == null) {
+			throw new NullPointerException("Event " + name + " don't exists.");
+		}
+		if (DARReport.listByEventname(name).isEmpty()) {
+			throw new IndexOutOfBoundsException("Event " + name + " has not reports.");
+		}
+		
 		AJSController.getUserProfile().getEmailAddr();
 		// TODO send report mail
 	}
