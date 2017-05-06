@@ -226,7 +226,12 @@ public class AuthTurret {
 			if (getByUserKey(default_admin_user.getKey()) == null) {
 				Loggers.Auth.info("Admin user is absent, create it.");
 				default_admin_user.chpassword(createAdminPasswordTextFile("admin"));
-				default_admin_user.update("Default administrator", Locale.getDefault().getLanguage(), AdminMailAlert.getAdminAddr("root@localhost"), false);
+				try {
+					default_admin_user.update("Default administrator", Locale.getDefault().getLanguage(), AdminMailAlert.getAdminAddr("root@localhost"), false);
+				} catch (Exception e) {
+					Loggers.Auth.fatal("Can't create admin user", e);
+					return;
+				}
 				default_admin_user.setUserGroups(Arrays.asList(getByGroupKey(default_admin_group.getKey())));
 				default_admin_user.save(mutator.withRow(CF_AUTH, default_admin_user.getKey()));
 				cache.all_users.put(default_admin_user.getKey(), default_admin_user);
@@ -607,7 +612,7 @@ public class AuthTurret {
 		
 	}
 	
-	public UserNG authenticateWithThisDomain(String remote_address, String username, String clear_text_password, String domain, String language) throws ConnectionException {
+	public UserNG authenticateWithThisDomain(String remote_address, String username, String clear_text_password, String domain, String language) throws ConnectionException, AddressException {
 		if (remote_address == null) {
 			throw new NullPointerException("\"remote_address\" can't to be null");
 		}
@@ -660,7 +665,7 @@ public class AuthTurret {
 	 * Sync user long name, email, groups, and last-edit if user is from AD
 	 * Do not set last login date.
 	 */
-	private UserNG syncADUser(ADUser aduser) throws ConnectionException {
+	private UserNG syncADUser(ADUser aduser) throws ConnectionException, AddressException {
 		return syncADUser(aduser, null, null);
 	}
 	
@@ -670,7 +675,7 @@ public class AuthTurret {
 	 * Sync user long name, email, groups, and last-edit if user is from AD
 	 * Set last login date.
 	 */
-	private UserNG syncADUser(ADUser aduser, String remote_address, String language) throws ConnectionException {
+	private UserNG syncADUser(ADUser aduser, String remote_address, String language) throws ConnectionException, AddressException {
 		if (aduser == null) {
 			return null;
 		}
@@ -739,7 +744,7 @@ public class AuthTurret {
 		return result;
 	}
 	
-	public UserNG authenticate(String remote_address, String username, String clear_text_password, String language) throws ConnectionException {
+	public UserNG authenticate(String remote_address, String username, String clear_text_password, String language) throws ConnectionException, AddressException {
 		/**
 		 * Try to authenticate with "local" domain
 		 */
@@ -1047,6 +1052,8 @@ public class AuthTurret {
 				return syncADUser(bk_user);
 			} catch (ConnectionException e) {
 				Loggers.Auth.error("Can't write in cassandra", e);
+			} catch (AddressException e) {
+				Loggers.Auth.error("Can't parse mail address", e);
 			}
 			return null;
 		}).filter(user -> {

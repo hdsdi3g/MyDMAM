@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
 
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import com.google.common.reflect.TypeToken;
@@ -406,6 +408,19 @@ public class GsonKit {
 			}
 			
 			return result;
+		});
+		
+		/**
+		 * InternetAddress
+		 */
+		registerGsonSimpleDeSerializer(InternetAddress.class, InternetAddress.class, src -> {
+			return new JsonPrimitive(src.toString());
+		}, json -> {
+			try {
+				return new InternetAddress(json.getAsString());
+			} catch (AddressException e) {
+				throw new JsonParseException(json.getAsString(), e);
+			}
 		});
 		
 		gson_simple_serializator.add(new De_Serializator(JSSourceDatabaseEntry.class, new JSSourceDatabaseEntry.Serializer()));

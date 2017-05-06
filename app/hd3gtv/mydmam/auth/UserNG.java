@@ -18,6 +18,7 @@ package hd3gtv.mydmam.auth;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import com.google.gson.JsonObject;
@@ -244,7 +246,7 @@ public class UserNG implements AuthEntry {
 		return domain;
 	}
 	
-	UserNG update(String fullname, String language, String email_addr, boolean locked_account) {
+	UserNG update(String fullname, String language, String email_addr, boolean locked_account) throws AddressException {
 		if (fullname == null) {
 			throw new NullPointerException("\"fullname\" can't to be null");
 		}
@@ -256,7 +258,8 @@ public class UserNG implements AuthEntry {
 		if (email_addr == null) {
 			throw new NullPointerException("\"email_addr\" can't to be null");
 		}
-		this.email_addr = email_addr;
+		setEmailAddr(email_addr);
+		
 		this.locked_account = locked_account;
 		lasteditdate = System.currentTimeMillis();
 		
@@ -284,8 +287,16 @@ public class UserNG implements AuthEntry {
 		return this;
 	}
 	
-	UserNG setEmailAddr(String email_addr) {
+	UserNG setEmailAddr(String email_addr) throws AddressException {
+		if (email_addr == null) {
+			this.email_addr = null;
+			return this;
+		}
+		if (email_addr.equalsIgnoreCase(this.email_addr)) {
+			return this;
+		}
 		this.email_addr = email_addr;
+		new InternetAddress(email_addr, true);
 		return this;
 	}
 	
@@ -512,7 +523,10 @@ public class UserNG implements AuthEntry {
 			Loggers.Auth.debug("Send test mail " + toString());
 		}
 		
-		InternetAddress email_addr = new InternetAddress(this.email_addr);
+		InternetAddress email_addr = getInternetAddress();
+		if (email_addr == null) {
+			return;
+		}
 		
 		EndUserBaseMail mail;
 		if (language == null) {
@@ -594,18 +608,45 @@ public class UserNG implements AuthEntry {
 		}
 	}
 	
-	void postCreate(String fullname, String email_addr, String language) {
+	void postCreate(String fullname, String email_addr, String language) throws AddressException {
 		this.fullname = fullname;
-		this.email_addr = email_addr;
+		setEmailAddr(email_addr);
 		this.language = language;
 	}
 	
+	/**
+	 * @return key if fullname is not set
+	 */
 	public String getFullname() {
 		return fullname;
 	}
 	
 	public String getEmailAddr() {
 		return email_addr;
+	}
+	
+	/**
+	 * @return can be null
+	 */
+	public InternetAddress getInternetAddress() {
+		if (email_addr == null) {
+			return null;
+		}
+		if (email_addr.isEmpty()) {
+			return null;
+		}
+		try {
+			InternetAddress ia = new InternetAddress(email_addr, true);
+			if (fullname != null) {
+				if (fullname.isEmpty() == false) {
+					ia.setPersonal(fullname);
+				}
+			}
+			return ia;
+		} catch (UnsupportedEncodingException | AddressException e) {
+			Loggers.Auth.error("Invalid email address for " + key + " (" + fullname + ")", e);
+		}
+		return null;
 	}
 	
 	public boolean isLockedAccount() {

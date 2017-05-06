@@ -22,10 +22,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.google.gson.JsonArray;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnList;
@@ -38,9 +38,77 @@ import hd3gtv.mydmam.MyDMAM;
 public class DARReport {
 	
 	String account_user_key;
+	String account_job;
 	long created_at;
 	String event_name;
-	JsonArray content;
+	/**
+	 * Maybe null
+	 */
+	ArrayList<Content> content;
+	
+	/**
+	 * For archive reasons
+	 */
+	String account_user_name;
+	/**
+	 * For archive reasons
+	 */
+	String account_job_name;
+	
+	class Content {
+		String question;
+		boolean check;
+		String comment;
+		
+		private Content() {
+		}
+	}
+	
+	void addContent(String question, boolean check, String comment) {
+		if (content == null) {
+			content = new ArrayList<>();
+		}
+		if (question == null) {
+			throw new NullPointerException("\"question\" can't to be null");
+		}
+		if (comment == null) {
+			throw new NullPointerException("\"comment\" can't to be null");
+		}
+		
+		Content c = new Content();
+		c.question = question;
+		c.check = check;
+		c.comment = comment;
+		content.add(c);
+	}
+	
+	DARReport() {
+	}
+	
+	/**
+	 * Sorted by jobs position in configuration
+	 * @return reports
+	 */
+	static List<DARReport> sortDARReport(List<DARReport> reports) {
+		List<String> job_list = DARDB.get().getJobs().keySet().stream().collect(Collectors.toList());
+		
+		reports.sort((a, b) -> {
+			int job_pos_a = job_list.indexOf(a.account_job);
+			int job_pos_b = job_list.indexOf(b.account_job);
+			
+			if (job_pos_a == -1 && job_pos_b > -1) {
+				return -1;
+			} else if (job_pos_a > -1 && job_pos_b == -1) {
+				return 1;
+			} else if (job_pos_a == -1 && job_pos_b == -1) {
+				return 0;
+			}
+			
+			return job_pos_a - job_pos_b;
+		});
+		
+		return reports;
+	}
 	
 	static String getKey(String account_user_key, String event_name) {
 		try {
@@ -141,6 +209,21 @@ public class DARReport {
 		for (Row<String, String> row : rows) {
 			if (row.getColumns().getStringValue("event_name", "").equals(event_name)) {
 				result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-report", "{}"), DARReport.class));
+			}
+		}
+		return result;
+	}
+	
+	public static LinkedHashMap<String, ArrayList<DARReport>> listByEventsname(Collection<String> events_name) throws ConnectionException {
+		LinkedHashMap<String, ArrayList<DARReport>> result = new LinkedHashMap<>();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json-report", "event_name").execute().getResult();
+		for (Row<String, String> row : rows) {
+			String current_event_name = row.getColumns().getStringValue("event_name", "");
+			if (events_name.contains(current_event_name)) {
+				if (result.containsKey(current_event_name) == false) {
+					result.put(current_event_name, new ArrayList<>(1));
+				}
+				result.get(current_event_name).add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-report", "{}"), DARReport.class));
 			}
 		}
 		return result;

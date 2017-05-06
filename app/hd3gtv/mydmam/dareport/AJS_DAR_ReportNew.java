@@ -16,9 +16,14 @@
 */
 package hd3gtv.mydmam.dareport;
 
+import java.util.ArrayList;
+
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.dareport.DARDB.Panel;
+import hd3gtv.mydmam.dareport.DARDB.PanelType;
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.PlayBootstrap;
 import play.data.validation.Validation;
@@ -41,18 +46,52 @@ public class AJS_DAR_ReportNew {
 		if (event.planned_date > DARDB.get().getNextSendTime()) {
 			throw new Exception("Event \"" + event_name + "\" is not yet open for report creation (" + Loggers.dateLog(event.planned_date) + ").");
 		}
+		
 		String account_user_key = AJSController.getUserProfile().getKey();
+		String account_user_name = AJSController.getUserProfileLongName();
 		
 		DARReport report = DARReport.get(account_user_key, event_name);
 		if (report != null) {
-			throw new Exception("User " + AJSController.getUserProfileLongName() + " has already send it's report for event \"" + event_name + "\" the (" + Loggers.dateLog(report.created_at) + ").");
+			throw new Exception("User " + account_user_name + " has already send it's report for event \"" + event_name + "\" the (" + Loggers.dateLog(report.created_at) + ").");
 		}
+		DARAccount account = DARAccount.get(account_user_key);
+		if (account == null) {
+			throw new Exception("Can't found a valid account for " + AJSController.getUserProfileLongName());
+		}
+		ArrayList<Panel> panels = DARDB.get().getPanelsForJob(account.jobkey);
+		if (content.size() != panels.size()) {
+			throw new Exception("This report has not the same item count (" + content.size() + ") as the job declaration (" + panels.size() + "). This is the raw content: " + content.toString());
+		}
+		
+		// TODO manage isstrong panels in view !
 		
 		report = new DARReport();
 		report.account_user_key = account_user_key;
+		report.account_user_name = account_user_name;
+		report.account_job = account.jobkey;
+		report.account_job_name = DARDB.get().getJobLongName(account.jobkey);
 		report.created_at = System.currentTimeMillis();
 		report.event_name = event_name;
-		report.content = content; // TODO IN PRIORITY compact report > keep only checked questions, and its responses. So, if some questions change, sended reports don't.
+		
+		for (int pos = 0; pos < panels.size(); pos++) {
+			Panel panel = panels.get(pos);
+			if (panel.type != PanelType.radiobox) {
+				throw new Exception("Can't manage panel type " + panel.type);
+			}
+			
+			JsonObject report_entry = content.get(pos).getAsJsonObject();
+			boolean check = report_entry.get("check").getAsBoolean();
+			
+			if (check != panel.reverse_boolean) {
+				/**
+				 * Nothing to report
+				 */
+				continue;
+			}
+			
+			report.addContent(panel.label, check, report_entry.get("comment").getAsString());
+		}
+		
 		report.save();
 		
 		Loggers.DAReport.info("User " + AJSController.getUserProfileLongName() + " has just sent report for " + event_name);

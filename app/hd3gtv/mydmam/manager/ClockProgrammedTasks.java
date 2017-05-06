@@ -105,7 +105,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		});
 	}
 	
-	public JsonElement getInstanceStatusItem() {// TODO publish correctly to website
+	public JsonElement getInstanceStatusItem() {// TODO (no urgent) publish correctly to website
 		JsonObject result = new JsonObject();
 		JsonObject jo_executor_pool = new JsonObject();
 		jo_executor_pool.addProperty("active", String.valueOf(executor_pool.getActiveCount()));
@@ -130,7 +130,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		return ClockProgrammedTasks.class;
 	}
 	
-	public void doAnAction(JsonObject order) throws Exception {// TODO publish to website
+	public void doAnAction(JsonObject order) throws Exception {// TODO (no urgent) publish to website
 		if (order.has("executor")) {
 			String s_order = order.get("executor").getAsString();
 			if (s_order.equalsIgnoreCase("enable")) {
@@ -154,7 +154,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		return ClockProgrammedTasks.class;
 	}
 	
-	public TaskWrapper createTask(String name, long start_time_after_midnight, TimeUnit unit, Runnable task) {
+	public TaskWrapper createTask(String name, long start_time_after_midnight, TimeUnit unit, ClockProgrammedRunnable task) {
 		return new TaskWrapper(name, start_time_after_midnight, unit, task);
 	}
 	
@@ -162,7 +162,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		private String key;
 		private String name;
 		private long start_time_after_midnight;
-		private Runnable task;
+		private ClockProgrammedRunnable task;
 		private long retry_after;
 		private boolean unschedule_if_error;
 		private volatile ScheduledFuture<?> next_scheduled;
@@ -170,7 +170,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		private volatile long last_execute_date;
 		private volatile long last_execute_duration;
 		
-		private TaskWrapper(String name, long start_time_after_midnight, TimeUnit unit, Runnable task) {
+		private TaskWrapper(String name, long start_time_after_midnight, TimeUnit unit, ClockProgrammedRunnable task) {
 			key = UUID.randomUUID().toString();
 			
 			this.name = name;

@@ -21,6 +21,8 @@ import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.concurrent.TimeUnit;
 
+import javax.mail.internet.InternetAddress;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.netflix.astyanax.Keyspace;
@@ -68,7 +70,7 @@ public class DARDB {
 	
 	private LinkedHashMap<String, ArrayList<Panel>> panels;
 	private LinkedHashMap<String, Job> jobs;
-	private ArrayList<String> manager_addrs;
+	private ArrayList<InternetAddress> manager_addrs;
 	
 	/**
 	 * Like 03:00:00
@@ -120,6 +122,10 @@ public class DARDB {
 		return keyspace;
 	}
 	
+	ArrayList<InternetAddress> getManagerAddrs() {
+		return manager_addrs;
+	}
+	
 	public ArrayList<Panel> getPanelsForJob(String job_name) {
 		String panel_name = jobs.getOrDefault(job_name, new Job()).panels;
 		
@@ -151,6 +157,7 @@ public class DARDB {
 			c.set(Calendar.HOUR_OF_DAY, Integer.valueOf(time_unit[0]));
 			c.set(Calendar.MINUTE, Integer.valueOf(time_unit[1]));
 			c.set(Calendar.SECOND, Integer.valueOf(time_unit[2]));
+			c.set(Calendar.MILLISECOND, 0);
 			return c;
 		} catch (NullPointerException | IndexOutOfBoundsException | NumberFormatException e) {
 			Loggers.DAReport.error("Can't parse send_time configuration key: " + send_time, e);
@@ -158,7 +165,7 @@ public class DARDB {
 		}
 	}
 	
-	public long getNextSendTime() {
+	long getNextSendTime() {
 		Calendar c = parseSendTime();
 		if (c.getTimeInMillis() < System.currentTimeMillis()) {
 			return c.getTimeInMillis() + TimeUnit.DAYS.toMillis(1);
@@ -167,13 +174,21 @@ public class DARDB {
 		return c.getTimeInMillis();
 	}
 	
-	public long getPreviousSendTime() {
+	long getPreviousSendTime() {
 		Calendar c = parseSendTime();
 		if (c.getTimeInMillis() > System.currentTimeMillis()) {
 			return c.getTimeInMillis() - TimeUnit.DAYS.toMillis(1);
 		}
 		
 		return c.getTimeInMillis();
+	}
+	
+	long getYesterdayStartOfTime() {
+		return getPreviousSendTime() - TimeUnit.DAYS.toMillis(1);
+	}
+	
+	long getYesterdayEndOfTime() {
+		return getPreviousSendTime();
 	}
 	
 	public static void setPlannedTask(AppManager manager) {
@@ -186,7 +201,7 @@ public class DARDB {
 		start_time_after_midnight += TimeUnit.SECONDS.toMillis(Integer.parseInt(time_unit[2]));
 		
 		manager.getClockProgrammedTasks().createTask("Daily activity report mail", start_time_after_midnight, TimeUnit.MILLISECONDS, () -> {
-			// TODO send mail order...
+			new DARMails().sendDailyReports();
 		});
 	}
 	

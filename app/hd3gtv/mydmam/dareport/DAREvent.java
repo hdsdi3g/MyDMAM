@@ -66,14 +66,11 @@ public class DAREvent {
 		mutator.execute();
 	}
 	
-	public static ArrayList<DAREvent> list() throws ConnectionException {
-		ArrayList<DAREvent> result = new ArrayList<DAREvent>();
-		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json-event").execute().getResult();
-		for (Row<String, String> row : rows) {
-			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-event", "{}"), DAREvent.class));
-		}
-		
-		result.sort((a, b) -> {
+	/**
+	 * @return events
+	 */
+	static List<DAREvent> sortEvents(List<DAREvent> events) {
+		events.sort((a, b) -> {
 			if (a.planned_date < b.planned_date) {
 				return -1;
 			} else if (a.planned_date > b.planned_date) {
@@ -85,27 +82,31 @@ public class DAREvent {
 			}
 			return 0;
 		});
+		return events;
+	}
+	
+	public static ArrayList<DAREvent> list() throws ConnectionException {
+		ArrayList<DAREvent> result = new ArrayList<DAREvent>();
+		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("json-event").execute().getResult();
+		for (Row<String, String> row : rows) {
+			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-event", "{}"), DAREvent.class));
+		}
+		sortEvents(result);
 		
 		return result;
 	}
 	
 	/**
-	 * @return events planned for this user
+	 * @return events planned for this user, not sorted
 	 */
-	public static ArrayList<DAREvent> todayList(UserNG creator) throws ConnectionException {
-		if (creator == null) {
-			throw new NullPointerException("\"creator\" can't to be null");
-		}
+	static ArrayList<DAREvent> datesBoundedList(long after_date, long before_date) throws ConnectionException {
 		Rows<String, String> rows = DARDB.get().getKeyspace().prepareQuery(DARDB.CF_DAR).getAllRows().withColumnSlice("planned_date").execute().getResult();
-		
-		long yesterday = DARDB.get().getPreviousSendTime();
-		long tomorrow = DARDB.get().getNextSendTime();
 		
 		ArrayList<String> today_event_keys = new ArrayList<>(1);
 		for (Row<String, String> row : rows) {
 			long planned_date = row.getColumns().getLongValue("planned_date", 0l);
 			
-			if (planned_date > yesterday && planned_date < tomorrow) {
+			if (planned_date > after_date && planned_date < before_date) {
 				today_event_keys.add(row.getKey());
 			}
 		}
@@ -116,6 +117,19 @@ public class DAREvent {
 		for (Row<String, String> row : rows) {
 			result.add(MyDMAM.gson_kit.getGsonSimple().fromJson(row.getColumns().getStringValue("json-event", "{}"), DAREvent.class));
 		}
+		
+		return result;
+	}
+	
+	/**
+	 * @return events planned for this user, not sorted
+	 */
+	public static ArrayList<DAREvent> todayList(UserNG creator) throws ConnectionException {
+		if (creator == null) {
+			throw new NullPointerException("\"creator\" can't to be null");
+		}
+		
+		ArrayList<DAREvent> result = datesBoundedList(DARDB.get().getPreviousSendTime(), DARDB.get().getNextSendTime());
 		
 		/**
 		 * Remove all actual reports created by creator
