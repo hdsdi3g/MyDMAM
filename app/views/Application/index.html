@@ -34,6 +34,11 @@ $(document).ready(function() {
 		mydmam.routes.loadBackbone(document.getElementById('reactindex'));
 	} catch (err) {
 		%{ if (play.Play.mode == play.Play.Mode.DEV) { }%
+			var content = '<p><div class="btn-group">';
+			content = content + '<a href="@{Secure.login()}" class="btn btn-large btn-primary"><i class="icon-home icon-white"></i> %{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale('maingrid.backtologin'))}%</a>';
+			content = content + '<a href="#" onclick="window.location.reload(true);" class="btn btn-large btn-info"><i class="icon-refresh icon-white"></i> %{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale('maingrid.refreshpage'))}%</a>';
+			content = content + '</div></p>';
+			$('#reactindex').append(content);
 			console.error(err);
 		%{ } else { }%
 			window.location.href = "@{Secure.login()}";

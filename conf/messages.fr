@@ -15,6 +15,8 @@ maingrid.activities=Activités
 maingrid.nojavascript.head=Attention !
 maingrid.nojavascript=Le javascript de votre navigateur est desactivé. Vous devez l'activer et recharger la page pour continuer.
 maingrid.nojavascript.loading=Le site est en cours de chargement... Si vous pensez qu'il est bloqué, actualisez-le, sinon avertir votre administrateur.
+maingrid.backtologin=Retour à la page de connexion
+maingrid.refreshpage=Recharger cette page
 
 site.name=MyDMAM
 site.baseline=Une nouvelle façon de voir un Digital Media Asset Management

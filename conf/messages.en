@@ -15,6 +15,8 @@ maingrid.activities=Activities
 maingrid.nojavascript.head=Warning!
 maingrid.nojavascript=Javascript in your browser is disabled. You must activate and reload the page to continue.
 maingrid.nojavascript.loading=The site is loading... If you think it's blocked, refresh it, else warn your administrator.
+maingrid.backtologin=Back to login page
+maingrid.refreshpage=Refresh this current page
 
 site.name=MyDMAM
 site.baseline=Another way of looking a Digital Media Asset Management

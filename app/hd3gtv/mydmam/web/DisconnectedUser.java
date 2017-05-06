@@ -18,8 +18,15 @@ package hd3gtv.mydmam.web;
 
 public class DisconnectedUser extends Exception {
 	
-	public DisconnectedUser(String username) {
-		super("Disconnected user: " + username);
+	private String userkey;
+	
+	public DisconnectedUser(String userkey) {
+		super("Disconnected user: " + userkey);
+		this.userkey = userkey;
+	}
+	
+	public String getUserkey() {
+		return userkey;
 	}
 	
 }

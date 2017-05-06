@@ -27,6 +27,7 @@ import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.auth.UserNG;
 import hd3gtv.mydmam.web.AJSController;
 import hd3gtv.mydmam.web.DisconnectedUser;
 import hd3gtv.mydmam.web.JSSourceManager;
@@ -49,7 +50,12 @@ public class AsyncJavascript extends Controller {
 		try {
 			renderJSON(AJSController.doRequest(name, verb, jsonrq));
 		} catch (DisconnectedUser e) {
-			Loggers.Play.warn("User was disconnected, " + e.getMessage() + ", can't process AJS request name: " + name + ", verb: " + verb);
+			try {
+				UserNG user = MyDMAM.getPlayBootstrapper().getAuth().getByUserKey(e.getUserkey());
+				Loggers.Play.warn("User " + user.getFullname() + " was disconnected, can't process AJS request name: " + name + ", verb: " + verb);
+			} catch (Exception e2) {
+				Loggers.Play.warn("User was disconnected, " + e.getMessage() + ", can't process AJS request name: " + name + ", verb: " + verb, e2);
+			}
 			
 			JsonObject jo = new JsonObject();
 			jo.addProperty("redirect", Router.reverse("Secure.login").url);
