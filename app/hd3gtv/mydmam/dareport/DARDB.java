@@ -19,6 +19,7 @@ package hd3gtv.mydmam.dareport;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import javax.mail.internet.InternetAddress;
@@ -71,6 +72,7 @@ public class DARDB {
 	private LinkedHashMap<String, ArrayList<Panel>> panels;
 	private LinkedHashMap<String, Job> jobs;
 	private ArrayList<InternetAddress> manager_addrs;
+	private Locale mail_locale; // TODO add to conf
 	
 	/**
 	 * Like 03:00:00
@@ -104,6 +106,16 @@ public class DARDB {
 	
 	LinkedHashMap<String, Job> getJobs() {
 		return jobs;
+	}
+	
+	/**
+	 * @return never null
+	 */
+	Locale getMailLocale() {
+		if (mail_locale == null) {
+			return Locale.getDefault();
+		}
+		return mail_locale;
 	}
 	
 	private DARDB() {

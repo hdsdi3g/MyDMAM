@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
@@ -421,6 +422,15 @@ public class GsonKit {
 			} catch (AddressException e) {
 				throw new JsonParseException(json.getAsString(), e);
 			}
+		});
+		
+		/**
+		 * Locale
+		 */
+		registerGsonSimpleDeSerializer(Locale.class, Locale.class, src -> {
+			return new JsonPrimitive(src.toLanguageTag());
+		}, json -> {
+			return Locale.forLanguageTag(json.getAsString());
 		});
 		
 		gson_simple_serializator.add(new De_Serializator(JSSourceDatabaseEntry.class, new JSSourceDatabaseEntry.Serializer()));

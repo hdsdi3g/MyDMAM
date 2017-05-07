@@ -86,7 +86,6 @@ public class AJS_DAR_ReportNew {
 				/**
 				 * Nothing to report
 				 */
-				// XXX ne pas discriminer les utilsateurs qui n'ont pas fait de comment mais bien répondus au form: no comment, mais l'user doit apparaintre pour ce rapport
 				continue;
 			}
 			

@@ -1,0 +1,68 @@
+<!-- <% /*
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
+ * 
+*/ %> -->
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8">
+	<style>
+	 body {
+	 	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	 }
+	 .title {
+	 	font-family: Bitter, Georgia, serif;
+	 	font-weight: bold;
+	 	color: #4AB534;
+	 }
+	</style>
+</head>
+<body>
+	<span class="title">${messages.get("dareport.mail.subject")} :: ${date_now}</span><br>
+	<hr style="height:3px; background-color:#992626">
+
+	<% for (event in events) { %>
+		<h2>${event.key.name}</h2>
+		${event.key.planned_date}
+
+		<% for (report in event.value) { %>
+			<p>
+				${report.account_user_name} &bull;
+				${report.account_job_name} &bull;
+				${report.created_at}
+			</p>
+
+			<% if (report.content) { %>
+				${report.content.question} &bull;
+				<% if (report.content.check) { %>
+					${messages.get("dareport.mail.check.yes")}
+				<% } else { %>
+					${messages.get("dareport.mail.check.no")}
+				<% } /* end if report.content.check */ %>
+				&bull; ${report.content.comment}
+			<% } else { %>
+				<p>${messages.get("dareport.mail.nothingtoreport")}</p>
+			<% } /* end if report.content */ %>
+		<% } /* end for reports */ %>
+	<% } /* end for events */ %>
+
+	<div style="background-color:#3d9999; color:#FFFFFF; padding:7pt;" class="footer">
+		<p>
+			<i>${messages.get("mailtemplate.please_not_respond")}</i>
+		</p>
+	</div>
+	<br>
+	<span style="font-size:0.9em;">${messages.get("site.name")} ${messages.get("site.vendor")}</span>
+</body>
+</html>

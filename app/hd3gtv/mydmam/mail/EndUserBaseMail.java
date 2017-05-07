@@ -107,12 +107,12 @@ public class EndUserBaseMail {
 	}
 	
 	private Locale locale;
-	private InternetAddress to;
+	private InternetAddress[] to;
 	private MailPriority priority;
 	
 	private File template_directory;
 	
-	public EndUserBaseMail(Locale locale, InternetAddress to, String mail_template_name) throws FileNotFoundException {
+	public EndUserBaseMail(Locale locale, String mail_template_name, InternetAddress... to) throws FileNotFoundException {
 		this.locale = locale;
 		if (locale == null) {
 			throw new NullPointerException("\"locale\" can't to be null");
@@ -121,6 +121,9 @@ public class EndUserBaseMail {
 		this.to = to;
 		if (to == null) {
 			throw new NullPointerException("\"to\" can't to be null");
+		}
+		if (to.length == 0) {
+			throw new IndexOutOfBoundsException("\"to\" can't to be empty");
 		}
 		
 		if (mail_template_name == null) {
@@ -155,7 +158,7 @@ public class EndUserBaseMail {
 	/**
 	 * @param mail_vars Beware ! "message" key is reserved, and it used with messages.* files.
 	 */
-	public void send(HashMap<String, Object> mail_vars) {
+	public boolean send(HashMap<String, Object> mail_vars) {
 		if (mail_vars == null) {
 			throw new NullPointerException("\"mail_vars\" can't to be null");
 		}
@@ -187,10 +190,11 @@ public class EndUserBaseMail {
 			
 			Loggers.Mail.info("Send an user mail, " + toString() + "\t" + mail_vars);
 			mail.send();
-			
+			return true;
 		} catch (Exception e) {
 			Loggers.Mail.error("Fail to send an user mail, " + toString() + "\t" + mail_vars, e);
 		}
+		return false;
 	}
 	
 	private static class TemplateWriter extends Writer {

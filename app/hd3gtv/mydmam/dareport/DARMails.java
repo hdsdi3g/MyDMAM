@@ -16,10 +16,14 @@
 */
 package hd3gtv.mydmam.dareport;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.mail.internet.InternetAddress;
@@ -28,6 +32,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthTurret;
 import hd3gtv.mydmam.auth.UserNG;
+import hd3gtv.mydmam.mail.EndUserBaseMail;
 
 public class DARMails {
 	
@@ -41,6 +46,8 @@ public class DARMails {
 	 * Accumulate all reports for this day to one summary
 	 */
 	public void sendDailyReports() throws Exception {
+		Loggers.DAReport.debug("Send daily mails");
+		
 		reports_by_events.clear();
 		
 		/**
@@ -85,11 +92,14 @@ public class DARMails {
 		}
 		
 		LinkedHashMap<DAREvent, List<DARReport>> yesterday_sorted_events = superSort();
-		// TODO prepare admin mail
 		
-		ArrayList<InternetAddress> managers_addrs = DARDB.get().getManagerAddrs();
+		DARDB dardb = DARDB.get();
+		ArrayList<InternetAddress> managers_addrs = dardb.getManagerAddrs();
 		
-		// TODO send admin mail
+		boolean done = sendMail(yesterday_sorted_events, managers_addrs, dardb.getMailLocale());
+		if (done == false) {
+			return;
+		}
 		
 		/**
 		 * Get reports users mail from all reports from all events. Check if the mail addr exists and is valid.
@@ -97,7 +107,6 @@ public class DARMails {
 		ArrayList<String> no_mails_user_list = new ArrayList<>();
 		AuthTurret auth = MyDMAM.getPlayBootstrapper().getAuth();
 		
-		// TODO only use this for send mails, not create reports ! (some names can be squashed here)
 		List<UserNG> all_valid_report_authors = yesterday_sorted_events.values().stream().map(report_list -> {
 			return report_list.stream().map(report -> {
 				return report.account_user_key;
@@ -136,11 +145,31 @@ public class DARMails {
 			Loggers.DAReport.info("Some users has not set correctly their email address in database. No reports will be send for they. Users: " + no_mails_user_list.stream().collect(Collectors.joining(", ")));
 		}
 		
-		// TODO reverse maplist: foreach user, get all events > its reports, with no empty events.
-		// TODO prepare user mails
-		// TODO send users mail
+		/**
+		 * Foreach user, get all events > its reports, with no empty events.
+		 */
+		Consumer<UserNG> action_prepare_send_user_mail = user -> {
+			LinkedHashMap<DAREvent, List<DARReport>> user_events = new LinkedHashMap<>();
+			
+			yesterday_sorted_events.forEach((event, report_list) -> {
+				/**
+				 * Add only event if user add a report on it
+				 */
+				report_list.stream().filter(report -> {
+					return user.getKey().equals(report.account_user_key);
+				}).findFirst().ifPresent(report -> {
+					user_events.put(event, Arrays.asList(report));
+				});
+			});
+			
+			try {
+				sendMail(user_events, Arrays.asList(user.getInternetAddress()), user.getLocale());
+			} catch (FileNotFoundException e) {
+				Loggers.DAReport.error("Can't found mail template", e);
+			}
+		};
 		
-		Loggers.DAReport.info("Send daily mails");
+		all_valid_report_authors.stream().forEach(action_prepare_send_user_mail);
 	}
 	
 	private LinkedHashMap<DAREvent, List<DARReport>> superSort() {
@@ -156,14 +185,33 @@ public class DARMails {
 		return result;
 	}
 	
-	/**
-	 * TODO Send a report to the current requested user (an admin).
-	 */
 	public void sendReportForAdmin(UserNG user, DAREvent event) throws Exception {
-		reports_by_events.put(event, DARReport.listByEventname(event.name));
-		LinkedHashMap<DAREvent, List<DARReport>> sorted_reports = superSort();
-		// ...
 		Loggers.DAReport.info("Send event \"" + event.name + "\" reports mail for " + user.getFullname());
+		
+		reports_by_events.put(event, DARReport.listByEventname(event.name));
+		
+		LinkedHashMap<DAREvent, List<DARReport>> sorted_reports = superSort();
+		
+		sendMail(sorted_reports, Arrays.asList(user.getInternetAddress()), user.getLocale());
+	}
+	
+	private boolean sendMail(LinkedHashMap<DAREvent, List<DARReport>> events, List<InternetAddress> to, Locale locale) throws FileNotFoundException {
+		if (events.isEmpty()) {
+			throw new IndexOutOfBoundsException("No events to display !");
+		}
+		InternetAddress[] _to = new InternetAddress[to.size()];
+		_to = to.toArray(_to);
+		
+		EndUserBaseMail mail = new EndUserBaseMail(locale, "dailyactivityreport", _to);
+		HashMap<String, Object> mail_vars = new HashMap<String, Object>();
+		mail_vars.put("events", events);
+		mail_vars.put("date_now", events.keySet().stream().findFirst().get().planned_date);
+		// TODO add new func: long to i18n date + time
+		// TODO add new func: long to i18n time only
+		
+		// return mail.send(mail_vars);
+		System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(events));// XXX
+		return true;
 	}
 	
 }

@@ -648,3 +648,7 @@ dareport.report.events.empty=No upcoming and declared events
 dareport.report.events.select=Select an event:
 dareport.report.event.no=No
 dareport.report.event.yes=yes
+dareport.mail.subject=Activity report
+dareport.mail.nothingtoreport=Nothing to report in particular
+dareport.mail.check.no=no
+dareport.mail.check.yes=yes

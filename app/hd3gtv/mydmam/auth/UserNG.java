@@ -530,9 +530,9 @@ public class UserNG implements AuthEntry {
 		
 		EndUserBaseMail mail;
 		if (language == null) {
-			mail = new EndUserBaseMail(Locale.getDefault(), email_addr, "usertestmail");
+			mail = new EndUserBaseMail(Locale.getDefault(), "usertestmail", email_addr);
 		} else {
-			mail = new EndUserBaseMail(Lang.getLocale(language), email_addr, "usertestmail");
+			mail = new EndUserBaseMail(Lang.getLocale(language), "usertestmail", email_addr);
 		}
 		
 		mail.send();
@@ -659,6 +659,10 @@ public class UserNG implements AuthEntry {
 	
 	public String getLanguage() {
 		return language;
+	}
+	
+	public Locale getLocale() {
+		return Lang.getLocaleOrDefault(language);
 	}
 	
 	public void delete(ColumnListMutation<String> mutator) {
