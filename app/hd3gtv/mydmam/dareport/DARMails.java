@@ -97,6 +97,7 @@ public class DARMails {
 		ArrayList<String> no_mails_user_list = new ArrayList<>();
 		AuthTurret auth = MyDMAM.getPlayBootstrapper().getAuth();
 		
+		// TODO only use this for send mails, not create reports ! (some names can be squashed here)
 		List<UserNG> all_valid_report_authors = yesterday_sorted_events.values().stream().map(report_list -> {
 			return report_list.stream().map(report -> {
 				return report.account_user_key;
