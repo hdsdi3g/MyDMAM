@@ -72,7 +72,7 @@ public class DARDB {
 	private LinkedHashMap<String, ArrayList<Panel>> panels;
 	private LinkedHashMap<String, Job> jobs;
 	private ArrayList<InternetAddress> manager_addrs;
-	private Locale mail_locale; // TODO add to conf
+	private Locale mail_locale;
 	
 	/**
 	 * Like 03:00:00

@@ -85,7 +85,7 @@ public class DAReport extends AJSController {
 		order.delete();
 		
 		AJS_DAR_EventList_Rs result = new AJS_DAR_EventList_Rs();
-		result.populate(MyDMAM.getPlayBootstrapper().getAuth());
+		result.populate(MyDMAM.getPlayBootstrapper().getAuth()); // TODO in jsx side: refresh table after delete past events...
 		return result;
 	}
 	

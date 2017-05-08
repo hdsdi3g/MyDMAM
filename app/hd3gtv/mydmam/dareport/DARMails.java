@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.dareport;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -96,7 +97,7 @@ public class DARMails {
 		DARDB dardb = DARDB.get();
 		ArrayList<InternetAddress> managers_addrs = dardb.getManagerAddrs();
 		
-		boolean done = sendMail(yesterday_sorted_events, managers_addrs, dardb.getMailLocale());
+		boolean done = sendMail(yesterday_sorted_events, managers_addrs, dardb.getMailLocale(), "daily");
 		if (done == false) {
 			return;
 		}
@@ -163,7 +164,7 @@ public class DARMails {
 			});
 			
 			try {
-				sendMail(user_events, Arrays.asList(user.getInternetAddress()), user.getLocale());
+				sendMail(user_events, Arrays.asList(user.getInternetAddress()), user.getLocale(), "user-" + user.getName());
 			} catch (FileNotFoundException e) {
 				Loggers.DAReport.error("Can't found mail template", e);
 			}
@@ -186,16 +187,16 @@ public class DARMails {
 	}
 	
 	public void sendReportForAdmin(UserNG user, DAREvent event) throws Exception {
-		Loggers.DAReport.info("Send event \"" + event.name + "\" reports mail for " + user.getFullname());
+		Loggers.DAReport.info("Send by mail all reports for event \"" + event.name + "\" to " + user.getFullname());
 		
 		reports_by_events.put(event, DARReport.listByEventname(event.name));
 		
 		LinkedHashMap<DAREvent, List<DARReport>> sorted_reports = superSort();
 		
-		sendMail(sorted_reports, Arrays.asList(user.getInternetAddress()), user.getLocale());
+		sendMail(sorted_reports, Arrays.asList(user.getInternetAddress()), user.getLocale(), "admin-" + user.getName());
 	}
 	
-	private boolean sendMail(LinkedHashMap<DAREvent, List<DARReport>> events, List<InternetAddress> to, Locale locale) throws FileNotFoundException {
+	private boolean sendMail(LinkedHashMap<DAREvent, List<DARReport>> events, List<InternetAddress> to, Locale locale, String mail_type) throws FileNotFoundException {
 		if (events.isEmpty()) {
 			throw new IndexOutOfBoundsException("No events to display !");
 		}
@@ -209,9 +210,10 @@ public class DARMails {
 		// TODO add new func: long to i18n date + time
 		// TODO add new func: long to i18n time only
 		
-		// return mail.send(mail_vars);
-		System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(events));// XXX
-		return true;
+		Loggers.DAReport.info("Dump mail \"events\" var content " + MyDMAM.gson_kit.getGsonPretty().toJson(events));// TODO (after debug) set to trace
+		mail.setDumpMailContentToFile(new File("darmail_" + mail_type + ".htm"));// TODO (after debug) remove
+		
+		return mail.send(mail_vars);
 	}
 	
 }

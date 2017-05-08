@@ -50,6 +50,7 @@ public class MailCenter {
 		global.starttls = Configuration.global.getValueBoolean("javamail", "starttls");
 		global.username = Configuration.global.getValue("javamail", "username", "");
 		global.password = Configuration.global.getValue("javamail", "password", "");
+		global.groovy_debug = Configuration.global.getValueBoolean("javamail", "groovy_debug");
 		global.prepareSession();
 	}
 	
@@ -65,6 +66,7 @@ public class MailCenter {
 	private boolean starttls;
 	private String username;
 	private String password;
+	private boolean groovy_debug;
 	
 	private Session session;
 	
@@ -84,6 +86,10 @@ public class MailCenter {
 		
 		session = Session.getDefaultInstance(props);
 		session.setDebug(debug);
+	}
+	
+	boolean isGroovyDebug() {
+		return groovy_debug;
 	}
 	
 	public MailContent prepareMessage(String subject, InternetAddress... to_addr) throws MessagingException {

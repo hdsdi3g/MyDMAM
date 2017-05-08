@@ -46,9 +46,9 @@
 			<% if (report.content) { %>
 				${report.content.question} &bull;
 				<% if (report.content.check) { %>
-					${messages.get("dareport.mail.check.yes")}
-				<% } else { %>
 					${messages.get("dareport.mail.check.no")}
+				<% } else { %>
+					${messages.get("dareport.mail.check.yes")}
 				<% } /* end if report.content.check */ %>
 				&bull; ${report.content.comment}
 			<% } else { %>
