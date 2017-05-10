@@ -123,7 +123,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		
 		result.add("executor", jo_executor_pool);
 		result.add("tasks", jo_tasks);
-		return null;
+		return result;
 	}
 	
 	public Class<?> getInstanceStatusItemReferenceClass() {

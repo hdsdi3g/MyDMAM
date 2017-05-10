@@ -168,7 +168,11 @@ public class DARDB {
 			Calendar c = Calendar.getInstance();
 			c.set(Calendar.HOUR_OF_DAY, Integer.valueOf(time_unit[0]));
 			c.set(Calendar.MINUTE, Integer.valueOf(time_unit[1]));
-			c.set(Calendar.SECOND, Integer.valueOf(time_unit[2]));
+			if (time_unit.length > 2) {
+				c.set(Calendar.SECOND, Integer.valueOf(time_unit[2]));
+			} else {
+				c.set(Calendar.SECOND, 0);
+			}
 			c.set(Calendar.MILLISECOND, 0);
 			return c;
 		} catch (NullPointerException | IndexOutOfBoundsException | NumberFormatException e) {
@@ -210,11 +214,13 @@ public class DARDB {
 		String[] time_unit = get().send_time.split(":");
 		long start_time_after_midnight = TimeUnit.HOURS.toMillis(Integer.parseInt(time_unit[0]));
 		start_time_after_midnight += TimeUnit.MINUTES.toMillis(Integer.parseInt(time_unit[1]));
-		start_time_after_midnight += TimeUnit.SECONDS.toMillis(Integer.parseInt(time_unit[2]));
+		if (time_unit.length > 2) {
+			start_time_after_midnight += TimeUnit.SECONDS.toMillis(Integer.parseInt(time_unit[2]));
+		}
 		
 		manager.getClockProgrammedTasks().createTask("Daily activity report mail", start_time_after_midnight, TimeUnit.MILLISECONDS, () -> {
 			new DARMails().sendDailyReports();
-		});
+		}).schedule();
 	}
 	
 }

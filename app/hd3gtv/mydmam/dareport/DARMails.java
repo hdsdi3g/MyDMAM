@@ -18,8 +18,11 @@ package hd3gtv.mydmam.dareport;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -196,6 +199,19 @@ public class DARMails {
 		sendMail(sorted_reports, Arrays.asList(user.getInternetAddress()), user.getLocale(), "admin-" + user.getName());
 	}
 	
+	public final static String formatDate(long date, Locale locale) {
+		DateFormat df = DateFormat.getDateInstance(DateFormat.LONG, locale);
+		return df.format(new Date(date));
+	}
+	
+	public final static String formatTime(long date, Locale locale) {
+		return new SimpleDateFormat("HH:mm").format(new Date(date));
+	}
+	
+	public final static String nl2br(String value) {
+		return value.replaceAll("\r\n", "\n").replaceAll("\n", "<br>");
+	}
+	
 	private boolean sendMail(LinkedHashMap<DAREvent, List<DARReport>> events, List<InternetAddress> to, Locale locale, String mail_type) throws FileNotFoundException {
 		if (events.isEmpty()) {
 			throw new IndexOutOfBoundsException("No events to display !");
@@ -207,8 +223,9 @@ public class DARMails {
 		HashMap<String, Object> mail_vars = new HashMap<String, Object>();
 		mail_vars.put("events", events);
 		mail_vars.put("date_now", events.keySet().stream().findFirst().get().planned_date);
-		// TODO add new func: long to i18n date + time
-		// TODO add new func: long to i18n time only
+		mail_vars.put("locale", locale);
+		
+		// TODO test with multiple reports
 		
 		Loggers.DAReport.info("Dump mail \"events\" var content " + MyDMAM.gson_kit.getGsonPretty().toJson(events));// TODO (after debug) set to trace
 		mail.setDumpMailContentToFile(new File("darmail_" + mail_type + ".htm"));// TODO (after debug) remove

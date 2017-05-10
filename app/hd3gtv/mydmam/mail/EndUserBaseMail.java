@@ -37,6 +37,7 @@ import org.codehaus.groovy.control.CompilationFailedException;
 
 import groovy.lang.Writable;
 import groovy.text.SimpleTemplateEngine;
+import groovy.text.Template;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.CopyMove;
@@ -272,7 +273,8 @@ public class EndUserBaseMail {
 	};
 	
 	private static ArrayList<String> process(File template_file, HashMap<String, Object> all_mail_vars) throws IOException, CompilationFailedException, ClassNotFoundException {
-		Writable writable = template_engine.createTemplate(template_file).make(all_mail_vars);
+		Template template = template_engine.createTemplate(template_file);
+		Writable writable = template.make(all_mail_vars);
 		TemplateWriter tw = new TemplateWriter();
 		writable.writeTo(tw);
 		return tw.getContent();

@@ -86,7 +86,7 @@ public class AJS_DAR_AccountNew {
 				rchp.privileges = new ArrayList<>();
 				rchp.privileges.addAll(dar_role.getPrivileges());
 				rchp.privileges.add("userDAReport");
-				/*dar_role =*/ turret.changeRolePrivileges(rchp);
+				/*dar_role =*/ turret.changeRolePrivileges(rchp);// TODO changeRole don't works ?!
 			}
 			
 			/**
@@ -126,7 +126,7 @@ public class AJS_DAR_AccountNew {
 			}).collect(Collectors.toList()));
 			uau.user_groups.add(dar_group.getKey());
 			
-			turret.changeAdminUserPasswordGroups(uau);
+			turret.changeAdminUserPasswordGroups(uau);// TODO changeAdminUserPasswordGroups don't works ?!
 		}
 		
 		Loggers.DAReport.info("Declare User Job: " + user.getFullname() + " will be a " + DARDB.get().getJobs().get(jobkey).name);

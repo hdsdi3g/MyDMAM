@@ -127,6 +127,8 @@ public class DAReport extends AJSController {
 	
 	@Check("userDAReport")
 	public static JsonArray eventlisttoday() throws Exception {
+		// TODO in jsx side: refresh regulary (each 5 min)
+		// TODO in jsx side, in some case, after send the last event, the string select an event is display with no events. ONLY with chrome, not with FF.
 		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(DAREvent.todayList(AJSController.getUserProfile())).getAsJsonArray();
 	}
 	
