@@ -106,7 +106,7 @@ var Panel = createReactClass({
 			first_radio = swap;
 		}
 
-		return (<FormControlGroup label={panel.label}>
+		return (<FormControlGroup label={panel.label} stronglabel={panel.isstrong}>
 			{first_radio}
 			{second_radio}
 			<textarea
@@ -164,13 +164,13 @@ var Event = createReactClass({
 var EventList = createReactClass({
 	render: function() {
 		var events = this.props.events;
-		if (events.length == 0) {
-			return (<mydmam.async.AlertInfoBox title={i18n("dareport.report.events.empty")} />);
-		}
-
 		var sorted_events = [];
 		for (var pos in events) {
 			sorted_events.push(events[pos]);
+		}
+
+		if (sorted_events.length == 0) {
+			return (<mydmam.async.AlertInfoBox title={i18n("dareport.report.events.empty")} />);
 		}
 
 		sorted_events.sort(function(a, b) {
@@ -210,12 +210,16 @@ dareport.NewReport = createReactClass({
 			form_content: {},
 			report_sended: false,
 			report_notsended: false,
+			interval: null,
 		};
 	},
-	componentWillMount: function() {
+	refresh: function() {
 		mydmam.async.request("dareport", "eventlisttoday", null, function(data) {
 			this.setState({events: data});
 		}.bind(this));
+	},
+	componentWillMount: function() {
+		this.refresh();
 
 		mydmam.async.request("dareport", "getpanelsformyjob", null, function(data) {
 			this.setState({
@@ -223,6 +227,14 @@ dareport.NewReport = createReactClass({
 				jobname: data.jobname,
 			});
 		}.bind(this));
+	},
+	componentDidMount: function(){
+		this.setState({interval: setInterval(this.refresh, 5 * 60000)});
+	},
+	componentWillUnmount: function() {
+		if (this.state.interval) {
+			clearInterval(this.state.interval);
+		}
 	},
 	onSelectEvent: function(event_name) {
 		this.setState({

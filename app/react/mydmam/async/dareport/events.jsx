@@ -120,7 +120,7 @@ var AuthorList = createReactClass({
 
 var EventListTable = createReactClass({
 	onClickDelete: function(ref) {
-		mydmam.async.request("dareport", "eventdelete", {name: ref}, this.props.onDeleteEventGetNewerList);
+		mydmam.async.request("dareport", "eventdelete", {name: ref}, this.props.onDeleteEventGetNewerList);//TODO
 	},
 	onClickSend: function(ref) {
 		mydmam.async.request("dareport", "eventsendmail", {name: ref}, function(){
@@ -215,7 +215,7 @@ dareport.Events = createReactClass({
 			if (location.hash.indexOf("#" + eventlist_link_future) == 0) {
 				show_this = (<EventListTable items={items_future} is_past={false} onDeleteEventGetNewerList={this.importEventList} report_authors_by_event_name={this.state.report_authors_by_event_name} usernames={this.state.usernames} />);
 			} else if (location.hash.indexOf("#" + eventlist_link_past) == 0) {
-				show_this = (<EventListTable items={items_past} is_past={true} report_authors_by_event_name={this.state.report_authors_by_event_name} usernames={this.state.usernames}  />);
+				show_this = (<EventListTable items={items_past} is_past={true} onDeleteEventGetNewerList={this.importEventList} report_authors_by_event_name={this.state.report_authors_by_event_name} usernames={this.state.usernames}  />);
 			} else if (location.hash.indexOf("#" + eventlist_link_add) == 0) {
 				show_this = (<NewEvent onAddNewEventGetNewerList={this.importEventList} />);
 			} else {

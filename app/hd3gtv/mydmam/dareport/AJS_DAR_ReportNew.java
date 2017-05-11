@@ -63,8 +63,6 @@ public class AJS_DAR_ReportNew {
 			throw new Exception("This report has not the same item count (" + content.size() + ") as the job declaration (" + panels.size() + "). This is the raw content: " + content.toString());
 		}
 		
-		// TODO in jsx side: manage isstrong panels in view !
-		
 		report = new DARReport();
 		report.account_user_key = account_user_key;
 		report.account_user_name = account_user_name;

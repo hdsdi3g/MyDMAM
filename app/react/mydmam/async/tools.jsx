@@ -83,8 +83,13 @@ async.AlertErrorBox = createReactClass({
 async.FormControlGroup = createReactClass({
 	render: function() {
 		var label = null;
+
+		var classname_label = classNames("control-label", {
+			"text-error": this.props.stronglabel,
+		});
+
 		if (this.props.label) {
-			label = (<label className="control-label">{this.props.label}</label>);
+			label = (<label className={classname_label}>{this.props.label}</label>);
 		}
 
 		return (<div className="control-group">

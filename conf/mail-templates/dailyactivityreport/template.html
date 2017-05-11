@@ -29,6 +29,12 @@
 	.muted {
 		color: #999999;
 	}
+	.text-error {
+		color: #b94a48;
+	}
+	.text-warning {
+	    color: #c09853;
+	}
 	.sublist {
 		list-style-type: none;
 	}
@@ -39,22 +45,26 @@
 	<hr style="height:3px; background-color:#992626">
 
 	<% for (event in events) { %>
-		<h2>${hd3gtv.mydmam.dareport.DARMails.formatTime(event.key.planned_date, locale)} - ${event.key.name}</h2>
+		<h2><span class="muted">${hd3gtv.mydmam.dareport.DARMails.formatTime(event.key.planned_date, locale)} -</span> ${event.key.name}</h2>
 		<% for (report in event.value) { %>
 			<p>
 				<b>${report.account_user_name}</b>
-				<span class="muted">${report.account_job_name}</span>
-				&bull; ${messages.get("dareport.mail.reportsendat", hd3gtv.mydmam.dareport.DARMails.formatTime(report.created_at, locale))}
+				<span class="muted">
+					&bull; ${report.account_job_name}
+					&bull; ${messages.get("dareport.mail.reportsendat", hd3gtv.mydmam.dareport.DARMails.formatTime(report.created_at, locale))}
+				</span>
 
 				<% if (report.content) { %>
 					<ul>
 					<% for (item in report.content) { %>
 						<li>
-							<% if (item.check) { %>
-								${messages.get("dareport.mail.check.yes", item.question)}
-							<% } else { %>
-								${messages.get("dareport.mail.check.no", item.question)}
-							<% } /* end if item.check */ %>
+							<span class="text-error">
+								<% if (item.check) { %>
+									${messages.get("dareport.mail.check.yes", item.question)}
+								<% } else { %>
+									${messages.get("dareport.mail.check.no", item.question)}
+								<% } /* end if item.check */ %>
+							</span>
 							<% if (item.comment) { %>
 								<br><b>${hd3gtv.mydmam.dareport.DARMails.nl2br(item.comment)}</b>
 							<% } /* end if item.comment */ %>

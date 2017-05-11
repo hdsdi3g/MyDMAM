@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.dareport;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -225,10 +224,10 @@ public class DARMails {
 		mail_vars.put("date_now", events.keySet().stream().findFirst().get().planned_date);
 		mail_vars.put("locale", locale);
 		
-		// TODO test with multiple reports
-		
-		Loggers.DAReport.info("Dump mail \"events\" var content " + MyDMAM.gson_kit.getGsonPretty().toJson(events));// TODO (after debug) set to trace
-		mail.setDumpMailContentToFile(new File("darmail_" + mail_type + ".htm"));// TODO (after debug) remove
+		if (Loggers.DAReport.isTraceEnabled()) {
+			Loggers.DAReport.trace("Dump mail \"events\" var content " + MyDMAM.gson_kit.getGsonPretty().toJson(events));
+		}
+		// mail.setDumpMailContentToFile(new File("darmail_" + mail_type + ".htm"));
 		
 		return mail.send(mail_vars);
 	}
