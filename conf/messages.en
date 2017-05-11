@@ -314,6 +314,7 @@ auth.rolename=Role name
 auth.roles=Roles
 auth.roleedit=Role settings
 auth.useractivated=Activated
+auth.userdelete=Delete
 auth.usercreate=Create a new user
 auth.userlongname=Long name
 auth.fullname=Full name
