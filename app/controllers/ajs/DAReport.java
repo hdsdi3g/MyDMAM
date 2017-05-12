@@ -16,6 +16,9 @@
 */
 package controllers.ajs;
 
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -23,6 +26,9 @@ import controllers.Check;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.auth.AuthTurret;
+import hd3gtv.mydmam.auth.UserNG;
+import hd3gtv.mydmam.auth.asyncjs.UserAdminUpdate;
 import hd3gtv.mydmam.dareport.AJS_DAR_AccountList_Rs;
 import hd3gtv.mydmam.dareport.AJS_DAR_AccountNew;
 import hd3gtv.mydmam.dareport.AJS_DAR_EventList_Rs;
@@ -40,13 +46,46 @@ public class DAReport extends AJSController {
 		return Configuration.global.isElementExists("dareport_setup");
 	}
 	
+	public static final String PRIVILEGE_USER = "userDAReport";
+	
 	@Check("adminDAReport")
 	public static AJS_DAR_AccountList_Rs accountdelete(String user_key) throws Exception {
 		Loggers.DAReport.info("Remove account: " + user_key);
 		DARAccount.delete(user_key);
 		
+		AuthTurret auth = MyDMAM.getPlayBootstrapper().getAuth();
+		try {
+			UserNG user = auth.getByUserKey(user_key);
+			if (user != null) {
+				if (user.getUser_groups_roles_privileges().stream().anyMatch(privilege -> {
+					return privilege.equalsIgnoreCase(PRIVILEGE_USER);
+				})) {
+					if (user.getUserGroups().stream().anyMatch(group -> {
+						return group.getName().equalsIgnoreCase(AJS_DAR_AccountNew.GROUP_NAME);
+					})) {
+						/**
+						 * Remove user from special group
+						 */
+						UserAdminUpdate uau = new UserAdminUpdate();
+						uau.user_key = user.getKey();
+						uau.user_groups = new ArrayList<>(user.getUserGroups().stream().filter(group -> {
+							return group.getName().equalsIgnoreCase(AJS_DAR_AccountNew.GROUP_NAME) == false;
+						}).map(group -> {
+							return group.getKey();
+						}).collect(Collectors.toList()));
+						
+						auth.changeAdminUserPasswordGroups(uau);
+					} else {
+						Loggers.DAReport.info("Please remove role(s)/group(s) with privilege \"" + PRIVILEGE_USER + "\" for user " + user.getFullname());
+					}
+				}
+			}
+		} catch (Exception e) {
+			Loggers.DAReport.error("Can't update user rights", e);
+		}
+		
 		AJS_DAR_AccountList_Rs list = new AJS_DAR_AccountList_Rs();
-		list.populate(MyDMAM.getPlayBootstrapper().getAuth());
+		list.populate(auth);
 		return list;
 	}
 	
@@ -96,7 +135,7 @@ public class DAReport extends AJSController {
 		return result;
 	}
 	
-	@Check("userDAReport")
+	@Check(PRIVILEGE_USER)
 	public static JsonObject reportnew(AJS_DAR_ReportNew order) throws Exception {
 		order.create();
 		JsonObject jo = new JsonObject();
@@ -104,7 +143,7 @@ public class DAReport extends AJSController {
 		return jo;
 	}
 	
-	@Check("userDAReport")
+	@Check(PRIVILEGE_USER)
 	public static JsonObject getpanelsformyjob() throws Exception {
 		JsonObject jo = new JsonObject();
 		
@@ -114,8 +153,13 @@ public class DAReport extends AJSController {
 			jo.addProperty("error", "account is not declared");
 		}
 		
-		jo.add("panels", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getPanelsForJob(account.getJobKey())));
-		jo.add("jobname", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getJobLongName(account.getJobKey())));
+		try {
+			jo.add("panels", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getPanelsForJob(account.getJobKey())));
+			jo.add("jobname", MyDMAM.gson_kit.getGsonSimple().toJsonTree(DARDB.get().getJobLongName(account.getJobKey())));
+		} catch (NullPointerException e) {
+			jo.add("panels", new JsonArray());
+			jo.addProperty("jobname", "");
+		}
 		
 		return jo;
 	}
@@ -125,7 +169,7 @@ public class DAReport extends AJSController {
 		return DARDB.get().allDeclaredJobs();
 	}
 	
-	@Check("userDAReport")
+	@Check(PRIVILEGE_USER)
 	public static JsonArray eventlisttoday() throws Exception {
 		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(DAREvent.todayList(AJSController.getUserProfile())).getAsJsonArray();
 	}

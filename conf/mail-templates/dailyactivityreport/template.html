@@ -49,12 +49,11 @@
 		<% for (report in event.value) { %>
 			<p>
 				<b>${report.account_user_name}</b>
-				<span class="muted">
-					&bull; ${report.account_job_name}
-					&bull; ${messages.get("dareport.mail.reportsendat", hd3gtv.mydmam.dareport.DARMails.formatTime(report.created_at, locale))}
-				</span>
-
 				<% if (report.content) { %>
+					<span class="muted">
+						&bull; ${report.account_job_name}
+						&bull; ${messages.get("dareport.mail.reportsendat", hd3gtv.mydmam.dareport.DARMails.formatTime(report.created_at, locale))}
+					</span>
 					<ul>
 					<% for (item in report.content) { %>
 						<li>
@@ -72,7 +71,11 @@
 					<% } /* end for reports */ %>
 					</ul>
 				<% } else { %>
-					&bull; <b>${messages.get("dareport.mail.nothingtoreport")}</b>
+					&bull; ${messages.get("dareport.mail.nothingtoreport")}
+					<span class="muted">
+						&bull; ${report.account_job_name}
+						&bull; ${messages.get("dareport.mail.reportsendat", hd3gtv.mydmam.dareport.DARMails.formatTime(report.created_at, locale))}
+					</span>
 				<% } /* end if report.content */ %>
 			</p>
 		<% } /* end for reports */ %>

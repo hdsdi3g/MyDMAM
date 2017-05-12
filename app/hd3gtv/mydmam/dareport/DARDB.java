@@ -41,7 +41,7 @@ public class DARDB {
 	
 	static final ColumnFamily<String, String> CF_DAR = new ColumnFamily<String, String>("dareport", StringSerializer.get(), StringSerializer.get());
 	private Keyspace keyspace;
-	static final int TTL = (int) TimeUnit.DAYS.toSeconds(30 * 2);
+	static final int TTL = (int) TimeUnit.DAYS.toSeconds(31);
 	
 	private static DARDB importFromConfiguration(Configuration configuration) throws ConnectionException {
 		Keyspace keyspace = CassandraDb.getkeyspace();

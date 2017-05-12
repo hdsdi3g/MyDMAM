@@ -46,7 +46,7 @@ dareport.AccountAdd = createReactClass({
 	onKeyPressUserInput: function(e) {
 		var raw_value = ReactDOM.findDOMNode(this.refs.user_key).value;
 		raw_value = raw_value.trim();
-		if (raw_value.length < 3) {
+		if (raw_value.length < 5) {
 			this.setState({selected_user: null, founded_users: [], selected_job: null,});
 			return
 		}

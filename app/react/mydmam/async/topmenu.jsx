@@ -198,8 +198,8 @@ async.TopMenu = createReactClass({
 			admin_menu_items.push({
 				headeri18n: "dareport.adminmenu.separator",
 			});
-			admin_menu_items.push({href: "#" + async.dareport.eventlist_link, 		icon: "icon-calendar",	i18nlabel: "dareport.eventlist.page",});
-			admin_menu_items.push({href: "#" + async.dareport.accountlist_link, 	icon: "icon-user",	i18nlabel: "dareport.accountlist.page",});
+			admin_menu_items.push({href: "#" + async.dareport.eventlist_link_future, icon: "icon-calendar",	i18nlabel: "dareport.eventlist.page",	links: ["#" + async.dareport.eventlist_link]});
+			admin_menu_items.push({href: "#" + async.dareport.accountlist_link, 	 icon: "icon-user",	i18nlabel: "dareport.accountlist.page",});
 		}
 
 		admin_menu_items.push({

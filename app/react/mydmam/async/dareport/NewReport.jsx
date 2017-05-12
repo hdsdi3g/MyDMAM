@@ -358,12 +358,17 @@ dareport.NewReport = createReactClass({
 								<i className="icon-info-sign"></i> <em>{i18n("dareport.report.send.tips")}</em>
 							</span>
 						</FormControlGroup>);
+					} else {
+						btn_send_form = (<FormControlGroup><span style={{marginLeft: "15px"}}>
+							<em className="text-warning">{i18n("dareport.report.send.tipsnoready")}</em>
+						</span></FormControlGroup>);
 					}
 
 					report_form = (<div>
 						<form className="form-horizontal dareport" style={{marginTop: "15px"}}>
 							{form_panels}
 							{btn_send_form}
+							<p className="muted" style={{paddingTop: "10px", }}><small>{i18n("dareport.report.send.disclamer")}</small></p>
 						</form>
 					</div>);
 				}

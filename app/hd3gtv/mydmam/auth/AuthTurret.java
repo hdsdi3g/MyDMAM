@@ -930,6 +930,7 @@ public class AuthTurret {
 			throw new NullPointerException("Role " + request.role_key + " don't exists");
 		}
 		if (request.privileges == null) {
+			Loggers.Auth.warn("Null privileges for a role: " + role.toString());
 			return role;
 		}
 		

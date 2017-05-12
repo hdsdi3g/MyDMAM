@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+import controllers.ajs.DAReport;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthTurret;
@@ -38,6 +39,9 @@ public class AJS_DAR_AccountNew {
 	
 	String userkey;
 	String jobkey;
+	
+	public static final String GROUP_NAME = "Daily activity report authors";
+	public static final String ROLE_NAME = "Daily activity report author";
 	
 	public void create() throws Exception {
 		PlayBootstrap.validate(Validation.required("userkey", userkey), Validation.required("job", jobkey));
@@ -58,16 +62,16 @@ public class AJS_DAR_AccountNew {
 		}
 		
 		if (user.getUser_groups_roles_privileges().stream().anyMatch(privilege -> {
-			return privilege.equalsIgnoreCase("userDAReport");
+			return privilege.equalsIgnoreCase(DAReport.PRIVILEGE_USER);
 		}) == false) {
 			/**
 			 * Check Special role
 			 */
 			RoleNG dar_role = turret.getAllRoles().values().stream().filter(role -> {
-				return role.getName().equals("Daily activity report author");
+				return role.getName().equals(ROLE_NAME);
 			}).findFirst().orElseGet(() -> {
 				try {
-					return turret.createRole("Daily activity report author");
+					return turret.createRole(ROLE_NAME);
 				} catch (ConnectionException e) {
 					Loggers.DAReport.error("Can't connect to Cassandra", e);
 				}
@@ -79,24 +83,24 @@ public class AJS_DAR_AccountNew {
 			}
 			
 			if (dar_role.getPrivileges().stream().noneMatch(privilege -> {
-				return privilege.equalsIgnoreCase("userDAReport");
+				return privilege.equalsIgnoreCase(DAReport.PRIVILEGE_USER);
 			})) {
 				RoleChPrivileges rchp = new RoleChPrivileges();
 				rchp.role_key = dar_role.getKey();
 				rchp.privileges = new ArrayList<>();
 				rchp.privileges.addAll(dar_role.getPrivileges());
-				rchp.privileges.add("userDAReport");
-				/*dar_role =*/ turret.changeRolePrivileges(rchp);// TODO changeRole don't works ?!
+				rchp.privileges.add(DAReport.PRIVILEGE_USER);
+				turret.changeRolePrivileges(rchp);
 			}
 			
 			/**
 			 * Check special group
 			 */
 			GroupNG dar_group = turret.getAllGroups().values().stream().filter(group -> {
-				return group.getName().equals("Daily activity report authors");
+				return group.getName().equals(GROUP_NAME);
 			}).findFirst().orElseGet(() -> {
 				try {
-					return turret.createGroup("Daily activity report authors");
+					return turret.createGroup(GROUP_NAME);
 				} catch (ConnectionException e) {
 					Loggers.DAReport.error("Can't connect to Cassandra", e);
 				}
@@ -126,7 +130,7 @@ public class AJS_DAR_AccountNew {
 			}).collect(Collectors.toList()));
 			uau.user_groups.add(dar_group.getKey());
 			
-			turret.changeAdminUserPasswordGroups(uau);// TODO changeAdminUserPasswordGroups don't works ?!
+			turret.changeAdminUserPasswordGroups(uau);
 		}
 		
 		Loggers.DAReport.info("Declare User Job: " + user.getFullname() + " will be a " + DARDB.get().getJobs().get(jobkey).name);
