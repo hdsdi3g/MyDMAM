@@ -71,6 +71,7 @@ public final class Loggers {
 	public final static Logger Elemtl = Logger.getLogger("mydmam.elemtl");
 	public final static Logger Gson = Logger.getLogger("mydmam.gson");
 	public final static Logger DAReport = Logger.getLogger("mydmam.dareport");
+	public final static Logger Update = Logger.getLogger("mydmam.update");
 	
 	private static final HashMap<String, Logger> map_loggers_by_classname = new HashMap<>();
 	
