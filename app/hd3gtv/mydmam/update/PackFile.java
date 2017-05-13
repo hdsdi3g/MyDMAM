@@ -18,13 +18,12 @@ package hd3gtv.mydmam.update;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.IOUtils;
 
@@ -34,15 +33,15 @@ import hd3gtv.tools.CopyMove;
 
 class PackFile {
 	
+	String stored_name;
 	String file_name;
+	
 	/**
-	 * Only with "/"
+	 * Only with "/", no "\"
 	 */
 	String file_path;
 	long size;
 	String digest;
-	// TODO add var: stored_as
-	// TODO and protect manifest.js* files
 	
 	/**
 	 * Only for Gson
@@ -50,15 +49,12 @@ class PackFile {
 	PackFile() {
 	}
 	
-	public PackFile(PackManifest manifest, File ref, Packager packager, ByteBuffer byte_buffer) throws NullPointerException, IOException {
+	public PackFile(PackManifest manifest, File ref, Packager packager) throws NullPointerException, IOException {
 		if (manifest == null) {
 			throw new NullPointerException("\"manifest\" can't to be null");
 		}
 		if (packager == null) {
 			throw new NullPointerException("\"packager\" can't to be null");
-		}
-		if (byte_buffer == null) {
-			throw new NullPointerException("\"byte_buffer\" can't to be null");
 		}
 		
 		if (ref == null) {
@@ -67,6 +63,8 @@ class PackFile {
 		CopyMove.checkExistsCanRead(ref);
 		CopyMove.checkIsFile(ref);
 		
+		ZipOutputStream zipdata = manifest.getOutputZipPackage();
+		
 		String root = packager.build_dir.getAbsolutePath().replaceAll("\\\\", "/");
 		String file_dir = ref.getParentFile().getAbsolutePath().replaceAll("\\\\", "/");
 		
@@ -74,51 +72,38 @@ class PackFile {
 			throw new IOException("Can't add a file outside the mydmam local build directory: " + ref.getAbsolutePath());
 		}
 		
-		this.file_name = ref.getName();
-		this.file_path = file_dir.substring(root.length());
-		this.size = ref.length();
-		
-		String base_dest_dir = manifest.getWorkingDir(packager).getAbsolutePath();
+		file_name = ref.getName();
+		file_path = file_dir.substring(root.length());
+		size = ref.length();
+		stored_name = manifest.validStoredName(file_name.toLowerCase().replace(" ", ""));
 		
 		FileInputStream fis = null;
-		FileOutputStream fos = null;
-		FileChannel in_channel = null;
-		FileChannel out_channel = null;
 		try {
 			MessageDigest md = MessageDigest.getInstance(manifest.digest_type);
 			
 			fis = new FileInputStream(ref);
-			fos = new FileOutputStream(base_dest_dir + File.separator + ref.getName());
 			
-			in_channel = fis.getChannel();
-			out_channel = fos.getChannel();
-			byte_buffer.clear();
+			ZipEntry entry = new ZipEntry(stored_name);
+			entry.setTime(manifest.creation_date);
+			zipdata.putNextEntry(entry);
+			// entry.setSize(len);
 			
-			while (in_channel.read(byte_buffer) > -1) {
-				byte_buffer.flip();
-				md.update(byte_buffer);
-				byte_buffer.flip();
-				out_channel.write(byte_buffer);
-				byte_buffer.clear();
+			int len;
+			byte[] buffer = packager.buffer;
+			while ((len = fis.read(buffer, 0, buffer.length)) != -1) {
+				md.update(buffer, 0, len);
+				zipdata.write(buffer, 0, len);
 			}
 			
-			in_channel.close();
-			out_channel.close();
+			zipdata.flush();
+			zipdata.closeEntry();
+			
 			fis.close();
 			digest = MyDMAM.byteToString(md.digest());
 		} catch (NoSuchAlgorithmException e) {
 		} catch (IOException e) {
-			if (out_channel != null) {
-				IOUtils.closeQuietly(out_channel);
-			}
-			if (in_channel != null) {
-				IOUtils.closeQuietly(in_channel);
-			}
 			if (fis != null) {
 				IOUtils.closeQuietly(fis);
-			}
-			if (fos != null) {
-				IOUtils.closeQuietly(fos);
 			}
 			throw e;
 		}
@@ -132,13 +117,27 @@ class PackFile {
 		}
 	}
 	
+	File getLocalFile(File root) {
+		return new File(root + file_path.replace("/", File.separator) + File.separator + file_name);
+	}
+	
 	public String toString() {
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		log.put("file_name", file_name);
 		log.put("file_path", file_path);
+		log.put("stored_name", stored_name);
 		log.put("size", size);
 		log.put("digest", digest);
 		return log.toString();
 	}
 	
+	/*
+	 * 			ByteArrayOutputStream bias = new ByteArrayOutputStream(Protocol.BUFFER_SIZE);
+			IOUtils.copy(zipdatas, bias);
+			
+			datas = bias.toByteArray();
+			len = datas.length;
+			date = entry.getTime();
+			name = entry.getName();
+	 * */
 }

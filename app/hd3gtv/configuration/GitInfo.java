@@ -19,6 +19,8 @@ package hd3gtv.configuration;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Optional;
 
 import org.apache.commons.io.FileUtils;
@@ -31,8 +33,11 @@ import hd3gtv.mydmam.MyDMAM;
 
 public class GitInfo implements IGitInfo {
 	
+	public final static String VERSION_FILE = "version";
+	
 	private String branch = "unknown";
 	private String commit = "00000000";
+	private String user = null;
 	
 	public GitInfo(File repository_file) throws IOException {
 		if (repository_file == null) {
@@ -53,6 +58,21 @@ public class GitInfo implements IGitInfo {
 			}
 			branch = repository.getBranch();
 			commit = repository.getRef(Constants.HEAD).getObjectId().abbreviate(8).name();
+			
+			final String session_username = System.getProperty("user.name", "user");
+			Optional<String> o_git_user_name = Optional.ofNullable(repository.getConfig().getString("user", null, "name"));
+			Optional<String> o_git_user_email = Optional.ofNullable(repository.getConfig().getString("user", null, "email"));
+			
+			user = o_git_user_name.orElseGet(() -> {
+				return session_username;
+			}) + " <" + o_git_user_email.orElseGet(() -> {
+				try {
+					return session_username + "@" + InetAddress.getLocalHost().getHostName();
+				} catch (UnknownHostException e) {
+					return session_username + "@" + "localhost";
+				}
+			}) + ">";
+			
 		} catch (Exception e) {
 			throw new IOException("Can't load git repository \"" + repository_file + "\"");
 		}
@@ -62,10 +82,18 @@ public class GitInfo implements IGitInfo {
 		return branch + " " + commit;
 	}
 	
+	public String getCurrentGitUser() {
+		return user;
+	}
+	
 	private static class NoGit implements IGitInfo {
 		
 		public String getActualRepositoryInformation() {
 			return "unknown";
+		}
+		
+		public String getCurrentGitUser() {
+			return System.getProperty("user.name", "unknown");
 		}
 	}
 	
@@ -82,6 +110,10 @@ public class GitInfo implements IGitInfo {
 		
 		public String getActualRepositoryInformation() {
 			return content;
+		}
+		
+		public String getCurrentGitUser() {
+			return System.getProperty("user.name", "unknown");
 		}
 	}
 	
@@ -120,7 +152,7 @@ public class GitInfo implements IGitInfo {
 				if (o_git.isPresent()) {
 					git = o_git.get();
 				} else {
-					File version = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY + File.separator + "version");
+					File version = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY + File.separator + VERSION_FILE);
 					if (version.exists()) {
 						try {
 							git = new Release(version);
@@ -137,4 +169,5 @@ public class GitInfo implements IGitInfo {
 		}
 		return git;
 	}
+	
 }

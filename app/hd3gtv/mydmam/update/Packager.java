@@ -17,8 +17,10 @@
 package hd3gtv.mydmam.update;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,24 +28,32 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+
+import com.google.gson.JsonSyntaxException;
 
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.storage.IgnoreFiles;
 import hd3gtv.tools.CopyMove;
 
 public class Packager {
 	
 	final File local_package_dir = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath() + File.separator + "pack" + File.separator + "upgrade");
 	final File build_dir = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath() + File.separator + "build");
+	final Collection<File> ignore_filesdirs = Collections.unmodifiableCollection(Arrays.asList("jre", "conf/app.d", "conf/application.conf", "conf/dependencies.yml", "conf/log4j.xml").stream().map(item -> {
+		return (new File(build_dir + File.separator + item.replace("/", File.separator))).getAbsoluteFile();
+	}).collect(Collectors.toList()));
+	
+	private String digest_type = "SHA-256";
+	transient final byte[] buffer = new byte[1024 * 1024];
 	
 	/**
 	 * From build directory
 	 */
-	private final Collection<String> ignore_filesdirs = Collections.unmodifiableCollection(Arrays.asList("jre", "conf/app.d", "conf/application.conf", "conf/dependencies.yml", "conf/log4j.xml"));
-	// TODO ignore DS_Store, desktop.ini ...
-	
-	public Packager() throws IOException {
+	public Packager() throws IOException, NoSuchAlgorithmException {
 		FileUtils.forceMkdir(local_package_dir);
 		FileUtils.forceMkdir(build_dir);
+		MessageDigest.getInstance(digest_type);
 	}
 	
 	/**
@@ -53,26 +63,22 @@ public class Packager {
 		return local_package_dir;
 	}
 	
-	private List<File> ignoreFilesDirs() {
-		return ignore_filesdirs.stream().map(item -> {
-			return (new File(build_dir + File.separator + item.replace("/", File.separator))).getAbsoluteFile();
-		}).collect(Collectors.toList());
+	public String getDigestType() {
+		return digest_type;
 	}
 	
 	public void importCurrentDirectory() throws Exception {
-		List<File> ignore_filesdirs = ignoreFilesDirs();
+		PackManifest manifest = new PackManifest(this);
+		// TODO manage actual manifest in conf
+		recursiveSearch(manifest, build_dir);
+		manifest.close();
+		// TODO overwrite the new manifest in conf
+		// TODO overwrite the new manifest in build/conf
 		
-		PackManifest manifest = new PackManifest("SHA-256");
-		
-		ByteBuffer byte_buffer = ByteBuffer.allocate(1024 * 1024);
-		
-		recursiveSearch(manifest, build_dir, byte_buffer, ignore_filesdirs);
-		
-		File manifest_file = new File(manifest.getWorkingDir(this) + File.separator + "manifest.json");
-		FileUtils.write(manifest_file, MyDMAM.gson_kit.getGsonPretty().toJson(manifest), "UTF-8", false);
+		// TODO update build.xml >> "build" target should: make, move, call java/CLI/importCurrentDirectory. And only after pack.
 	}
 	
-	private void recursiveSearch(PackManifest manifest, File start_from, ByteBuffer byte_buffer, List<File> ignore_filesdirs) {
+	private void recursiveSearch(PackManifest manifest, File start_from) {
 		try {
 			CopyMove.checkExistsCanRead(start_from);
 			CopyMove.checkIsDirectory(start_from);
@@ -85,6 +91,8 @@ public class Packager {
 				if (file.canRead() == false) {
 					return false;
 				} else if (ignore_filesdirs.contains(file)) {
+					return false;
+				} else if (IgnoreFiles.directory_config_list.isFileNameIsAllowed(file.getName()) == false) {
 					return false;
 				} else if (FileUtils.isSymlink(file)) {
 					return false;
@@ -99,7 +107,7 @@ public class Packager {
 			return item.isFile();
 		}).map(file -> {
 			try {
-				return new PackFile(manifest, file, this, byte_buffer);
+				return new PackFile(manifest, file, this);
 			} catch (Exception e) {
 				throw new RuntimeException("Can't create PackFile with " + file.getAbsolutePath(), e);
 			}
@@ -108,8 +116,41 @@ public class Packager {
 		founded.stream().filter(item -> {
 			return item.isDirectory();
 		}).forEach(dir -> {
-			recursiveSearch(manifest, dir, byte_buffer, ignore_filesdirs);
+			recursiveSearch(manifest, dir);
 		});
+	}
+	
+	public void importPackage(File json_manifest) throws JsonSyntaxException, IOException {
+		PackManifest manifest = PackManifest.openFromJson(this, json_manifest);
+		List<PackFile> to_change = manifest.checkManifestWithActualVersion(this);
+		
+		System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(to_change));
+		// TODO for debug, work only in a /build dir
+		// TODO extract, or not, some files
+		// TODO create upgrade list
+	}
+	
+	String computeDigest(File file_to_do) throws IOException {
+		FileInputStream fis = null;
+		try {
+			MessageDigest md = MessageDigest.getInstance(digest_type);
+			fis = new FileInputStream(file_to_do);
+			
+			int len;
+			while ((len = fis.read(buffer, 0, buffer.length)) != -1) {
+				md.update(buffer, 0, len);
+			}
+			fis.close();
+			
+			return MyDMAM.byteToString(md.digest());
+		} catch (NoSuchAlgorithmException e) {
+			return null;
+		} catch (IOException e) {
+			if (fis != null) {
+				IOUtils.closeQuietly(fis);
+			}
+			throw e;
+		}
 	}
 	
 }

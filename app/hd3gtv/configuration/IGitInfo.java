@@ -20,4 +20,6 @@ public interface IGitInfo {
 	
 	String getActualRepositoryInformation();
 	
+	String getCurrentGitUser();
+	
 }
