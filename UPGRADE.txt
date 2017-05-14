@@ -1,5 +1,10 @@
 === MyDMAM Upgrade document ===
 
+#252 You should set a login and a password for all AD backends (in play.yml).
+
+=== Previous versions ===
+
+v0.20
 #239 FTP server admin (in Play side) can create FTP account user directories. Just add some ftpservergroups/group name/base_working_dir keys in configuration.
 #246 Set MyRollingFileAppender for new log appender if you want display an end-of-file message before rolling. Useful with a tail option.
 #208 Add watchfolderopts.max_founded_items and dontkeepdone configuration entry for limit big watchfolders job explosion
