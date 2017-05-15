@@ -107,21 +107,12 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	
 	public JsonElement getInstanceStatusItem() {// TODO (no urgent) publish correctly to website
 		JsonObject result = new JsonObject();
-		JsonObject jo_executor_pool = new JsonObject();
-		jo_executor_pool.addProperty("active", String.valueOf(executor_pool.getActiveCount()));
-		jo_executor_pool.addProperty("max_capacity", String.valueOf(executor_pool_queue.remainingCapacity()));
-		jo_executor_pool.addProperty("completed", String.valueOf(executor_pool.getCompletedTaskCount()));
-		jo_executor_pool.addProperty("core_pool", String.valueOf(executor_pool.getCorePoolSize()));
-		jo_executor_pool.addProperty("pool", String.valueOf(executor_pool.getPoolSize()));
-		jo_executor_pool.addProperty("largest_pool", String.valueOf(executor_pool.getLargestPoolSize()));
-		jo_executor_pool.addProperty("maximum_pool", String.valueOf(executor_pool.getMaximumPoolSize()));
 		
 		JsonObject jo_tasks = new JsonObject();
 		all_tasks.forEach(task -> {
 			jo_tasks.add(task.key, task.toJson());
 		});
-		
-		result.add("executor", jo_executor_pool);
+		result.add("executor", InstanceStatus.getExecutorStatus(executor_pool, executor_pool_queue));
 		result.add("tasks", jo_tasks);
 		return result;
 	}

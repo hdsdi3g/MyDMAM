@@ -151,6 +151,15 @@ manager.items.FTPGroup.long_activity_log=Keep activity log traces for a long tim
 manager.items.FTPGroup.trash_directory=Trash directory: %s
 manager.items.FTPGroup.users_no_activity_log=No activity log for:
 manager.clusterstatus=Clusters status
+manager.items.ExecutorStatus=ThreadPoolExecutor
+manager.items.ExecutorStatus.active=Active: %s
+manager.items.ExecutorStatus.max_capacity=Max capacity: %s
+manager.items.ExecutorStatus.completed=Completed: %s
+manager.items.ExecutorStatus.core_pool=Core pool: %s
+manager.items.ExecutorStatus.pool=Pool: %s
+manager.items.ExecutorStatus.largest_pool=Largest pool: %s
+manager.items.ExecutorStatus.maximum_pool=Maximum pool: %s
+manager.items.ClockProgrammedTasks=TODO
 
 manager.playserver=Play server
 manager.playserver.in_js_dev=Actually in dev mode: dynamic JS/JSX compilation with NodeJS and Babel.

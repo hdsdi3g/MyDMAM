@@ -32,6 +32,8 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -478,6 +480,22 @@ public final class InstanceStatus {
 			static_manager = new AppManager("(Not loaded)");
 		}
 		return static_manager.getInstanceStatus();
+	}
+	
+	public static JsonObject getExecutorStatus(ThreadPoolExecutor executor, BlockingQueue<Runnable> queue) {
+		JsonObject jo_executor_pool = new JsonObject();
+		jo_executor_pool.addProperty("active", String.valueOf(executor.getActiveCount()));
+		if (queue != null) {
+			jo_executor_pool.addProperty("max_capacity", String.valueOf(queue.remainingCapacity()));
+		} else {
+			jo_executor_pool.addProperty("max_capacity", -1);
+		}
+		jo_executor_pool.addProperty("completed", String.valueOf(executor.getCompletedTaskCount()));
+		jo_executor_pool.addProperty("core_pool", String.valueOf(executor.getCorePoolSize()));
+		jo_executor_pool.addProperty("pool", String.valueOf(executor.getPoolSize()));
+		jo_executor_pool.addProperty("largest_pool", String.valueOf(executor.getLargestPoolSize()));
+		jo_executor_pool.addProperty("maximum_pool", String.valueOf(executor.getMaximumPoolSize()));
+		return jo_executor_pool;
 	}
 	
 }

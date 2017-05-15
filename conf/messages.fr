@@ -151,6 +151,15 @@ manager.items.FTPGroup.long_activity_log=Garde les log des activités pendant un
 manager.items.FTPGroup.trash_directory=Dossier de la corbeille : %s
 manager.items.FTPGroup.users_no_activity_log=Pas de journal d'activité pour :
 manager.clusterstatus=Suivi des clusters
+manager.items.ExecutorStatus=ThreadPoolExecutor
+manager.items.ExecutorStatus.active=Actifs : %s
+manager.items.ExecutorStatus.max_capacity=Capacité max : %s
+manager.items.ExecutorStatus.completed=Terminés : %s
+manager.items.ExecutorStatus.core_pool=Core pool : %s
+manager.items.ExecutorStatus.pool=Pool : %s
+manager.items.ExecutorStatus.largest_pool=Pool le plus large : %s
+manager.items.ExecutorStatus.maximum_pool=Pool maximum : %s
+manager.items.ClockProgrammedTasks=TODO
 
 manager.playserver=Serveur Play
 manager.playserver.in_js_dev=Actuellement en mode dev : compilation dynamique JS/JSX avec NodeJS et Babel.
