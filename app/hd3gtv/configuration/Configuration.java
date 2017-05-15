@@ -22,10 +22,14 @@ import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -490,6 +494,25 @@ public class Configuration {
 		}
 		
 		return result;
+	}
+	
+	/**
+	 * @param o can be Collection<String> or String
+	 * @return never null
+	 */
+	public static List<String> rawToListString(Object o) {
+		if (o == null) {
+			return Collections.emptyList();
+		}
+		if (Collection.class.isAssignableFrom(o.getClass())) {
+			return ((Collection<?>) o).stream().map(item -> {
+				return (String) item;
+			}).collect(Collectors.toList());
+		} else if (o instanceof String) {
+			return Arrays.asList((String) o);
+		} else {
+			throw new ClassCastException("Invalid " + o.getClass() + " class.");
+		}
 	}
 	
 	public List<List<String>> getListsInListValues(String elementname, String key) {

@@ -50,6 +50,9 @@ class ActiveDirectoryBackend {
 	
 	private static final String[] userAttributes = { "distinguishedName", "cn", "name", "uid", "sn", "givenname", "memberOf", "samaccountname", "userPrincipalName", "mail" };
 	
+	private List<String> organizational_unit_white_list = Collections.emptyList();
+	private List<String> organizational_unit_black_list = Collections.emptyList();
+	
 	ActiveDirectoryBackend(String domain, String server, int ldap_port) {
 		this.domain = domain;
 		if (domain == null) {
@@ -71,6 +74,18 @@ class ActiveDirectoryBackend {
 		if (ldap_password == null) {
 			throw new NullPointerException("\"password\" can't to be null");
 		}
+	}
+	
+	public void setOrganizationalUnitBlackList(List<String> organizational_unit_black_list) {
+		this.organizational_unit_black_list = organizational_unit_black_list.stream().map(ou -> {
+			return ou.toLowerCase().trim();
+		}).collect(Collectors.toList());
+	}
+	
+	public void setOrganizationalUnitWhiteList(List<String> organizational_unit_white_list) {
+		this.organizational_unit_white_list = organizational_unit_white_list.stream().map(ou -> {
+			return ou.toLowerCase().trim();
+		}).collect(Collectors.toList());
 	}
 	
 	private static String toDC(String domainName) {
@@ -138,6 +153,20 @@ class ActiveDirectoryBackend {
 		return null;
 	}
 	
+	private static List<String> extractOrganizationalUnits(Attributes attr) throws NamingException {
+		if (attr.get("distinguishedName") == null) {
+			return Collections.emptyList();
+		}
+		
+		String dn_values = (String) attr.get("distinguishedName").get();
+		
+		return Arrays.asList(dn_values.split(",")).stream().filter(dn -> {
+			return dn.toUpperCase().startsWith("OU=");
+		}).map(ou -> {
+			return ou.substring(3);
+		}).collect(Collectors.toList());
+	}
+	
 	public class ADUser {
 		
 		/**
@@ -183,14 +212,7 @@ class ActiveDirectoryBackend {
 				mail = (String) attr.get("mail").get();
 			}
 			
-			organizational_units = new ArrayList<String>(1);
-			
-			String dn_values = (String) attr.get("distinguishedName").get();
-			Arrays.asList(dn_values.split(",")).forEach(v -> {
-				if (v.toLowerCase().startsWith("ou=")) {
-					organizational_units.add(v.substring(3));
-				}
-			});
+			organizational_units = new ArrayList<String>(extractOrganizationalUnits(attr));
 		}
 		
 		public String getDomain() {
@@ -245,22 +267,50 @@ class ActiveDirectoryBackend {
 			SearchControls controls = new SearchControls();
 			controls.setSearchScope(SUBTREE_SCOPE);
 			controls.setReturningAttributes(userAttributes);
-			controls.setCountLimit(10);
+			controls.setCountLimit(50);
 			controls.setTimeLimit(1000);
 			
 			NamingEnumeration<SearchResult> answer = context.search(toDC(domainName), "(& (name=*" + q + "*)(objectClass=user))", controls);
 			return Collections.list(answer).stream().map(search_result -> {
+				return search_result.getAttributes();
+			}).filter(attributes -> {
+				/**
+				 * Filter by organizational_unit_white/black_list
+				 */
+				if (organizational_unit_white_list.isEmpty() && organizational_unit_black_list.isEmpty()) {
+					return true;
+				}
 				try {
-					return new ADUser((String) search_result.getAttributes().get("sAMAccountName").get(), search_result.getAttributes());
+					List<String> organizational_units = extractOrganizationalUnits(attributes);
+					
+					boolean wl = true;
+					if (organizational_unit_white_list.isEmpty() == false) {
+						wl = organizational_units.stream().anyMatch(ou -> {
+							return organizational_unit_white_list.contains(ou.toLowerCase());
+						});
+					}
+					
+					boolean bl = true;
+					if (organizational_unit_black_list.isEmpty() == false) {
+						bl = organizational_units.stream().noneMatch(ou -> {
+							return organizational_unit_black_list.contains(ou.toLowerCase());
+						});
+					}
+					
+					return wl && bl;
 				} catch (NamingException e) {
-					Loggers.Auth.warn("Can't get attribute", e);
-				} catch (NullPointerException e) {
+					throw new RuntimeException("Can't process AD search results", e);
+				}
+			}).map(attributes -> {
+				try {
+					return new ADUser((String) attributes.get("sAMAccountName").get(), attributes);
+				} catch (Exception e) {
+					Loggers.Auth.warn("Can't load AD user", e);
 				}
 				return null;
 			}).filter(user -> {
 				return user != null;
-			}).collect(Collectors.toList());
-			
+			}).limit(10).collect(Collectors.toList());
 		} catch (CommunicationException e) {
 			Loggers.Auth.error("Failed to connect to " + server + ":" + String.valueOf(ldap_port), e);
 		} catch (NamingException e) {

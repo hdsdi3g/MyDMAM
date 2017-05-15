@@ -127,6 +127,12 @@ public class AuthTurret {
 					String ldap_password = (String) item.get("password");
 					adb.setLDAPAuth(ldap_username, ldap_password);
 				}
+				if (item.containsKey("search_ou_white_list")) {
+					adb.setOrganizationalUnitWhiteList(Configuration.rawToListString(item.get("search_ou_white_list")));
+				}
+				if (item.containsKey("search_ou_black_list")) {
+					adb.setOrganizationalUnitBlackList(Configuration.rawToListString(item.get("search_ou_black_list")));
+				}
 				
 				auth_backend_by_domain.put(domain, adb);
 				if (Loggers.Auth.isDebugEnabled()) {

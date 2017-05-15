@@ -12,6 +12,8 @@ play:
 #            # AD login and password are used only for AD operations, like user search.
 #            login: mydmam_ad_user
 #            password: mydmam_ad_password
+#            # search_ou_white_list: ["MyCompanyUnit"]
+#            # search_ou_black_list: ["Printers", "Switchs"]
 # 
 # Danger zone (developpement tools): debug functions are only avaliable with java source in /app.
 # This can lower security in some special case.
