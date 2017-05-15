@@ -21,4 +21,10 @@ public interface BCAAutomationEventHandler {
 	
 	public void onAutomationEvent(BCAAutomationEvent event);
 	
+	public default void beforeStartToScanEvents() {
+	}
+	
+	public default void afterScanAndHasFoundEvents() {
+	}
+	
 }

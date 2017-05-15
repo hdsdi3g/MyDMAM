@@ -23,7 +23,6 @@ broadcast_automation:
         fieldparameter: ["FileId", "StorageDevice"]
 
     catch_json_db_file: /mnt/catch_events_occult_db.json
-    catch_playlist_to_parse: /mnt/Schedule.sch
     catch_property: foo2
     catch_max_min_to_check: 120
     catch_handler: hd3gtv.elemtl.CuePointEngine

@@ -18,9 +18,12 @@ package hd3gtv.mydmam.bcastautomation;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.google.common.primitives.Longs;
 import com.netflix.astyanax.MutationBatch;
@@ -45,6 +48,9 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 	private HashMap<String, ConfigurationItem> import_other_properties_configuration;
 	private String cf_name;
 	private boolean is_first_list_event;
+	private ArrayList<BCAEventCatcherHandler> event_catchers;
+	
+	private ExecutorService event_catcher_callbacks_executor;
 	
 	BCAAutomationEventProcessor(String cf_name, long max_retention_duration, HashMap<String, ConfigurationItem> import_other_properties_configuration) throws ConnectionException {
 		this.max_retention_duration = max_retention_duration;
@@ -60,12 +66,34 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 			md = MessageDigest.getInstance("MD5");
 		} catch (NoSuchAlgorithmException e) {
 		}
+		event_catchers = new ArrayList<>();
+		
+		event_catcher_callbacks_executor = Executors.newSingleThreadExecutor((r) -> {
+			Thread t = new Thread(r);
+			t.setDaemon(true);
+			t.setName("EventCatcherCallbackAsyncThread-" + Loggers.dateLog(System.currentTimeMillis()));
+			t.setUncaughtExceptionHandler((_t, e) -> {
+				Loggers.BroadcastAutomation.error("Can't process event catcher callback Thread", e);
+			});
+			return t;
+		});
+		
 	}
 	
 	void clearEventList() throws Exception {
 		actual_event_list.clear();
 		actual_event_pause_automation_list.clear();
 		is_first_list_event = true;
+	}
+	
+	void addEventCatcher(BCAEventCatcherHandler catcher) {
+		if (catcher == null) {
+			return;
+		}
+		Loggers.BroadcastAutomation.info("Add EventCatcher " + catcher.getName() + " by " + catcher.getVendor());
+		synchronized (event_catchers) {
+			event_catchers.add(catcher);
+		}
 	}
 	
 	void preparePurgeEventList() throws Exception {
@@ -86,11 +114,22 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 			 * Too old event (normally an as-run)
 			 */
 			if (Loggers.BroadcastAutomation.isTraceEnabled()) {
-				Loggers.BroadcastAutomation.trace("Process event: event \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " is too old. It will not be added to database. "
-						+ event.serialize(import_other_properties_configuration).toString());
+				Loggers.BroadcastAutomation.trace("Process event: event \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " is too old. It will not be added to database. " + event.serialize(import_other_properties_configuration).toString());
 			}
 			return;
 		}
+		
+		/**
+		 * Callbacks event_catchers
+		 */
+		event_catcher_callbacks_executor.execute(() -> {
+			event_catchers.stream().filter(catcher -> {
+				return catcher.isEventCanBeCatched(event);
+			}).forEach(catcher -> {
+				catcher.onCatchEvent(event);
+			});
+		});
+		
 		/**
 		 * Compute event unique key
 		 */
@@ -123,8 +162,7 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 		if (event.isPlaylist() | event.isOnair()) {
 			if (actual_event_list.contains(event_key) || (actual_event_pause_automation_list.contains(event_key) && is_first_list_event)) {
 				if (Loggers.BroadcastAutomation.isTraceEnabled()) {
-					Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate())
-							+ " is already added in database. " + event.serialize(import_other_properties_configuration).toString());
+					Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " is already added in database. " + event.serialize(import_other_properties_configuration).toString());
 				}
 				actual_event_list.remove(event_key);
 				actual_event_pause_automation_list.remove(event_key);
@@ -133,8 +171,7 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 		} else if (event.isAsrun() && event.isAutomationPaused() && is_first_list_event) {
 			if (actual_event_pause_automation_list.contains(event_key)) {
 				if (Loggers.BroadcastAutomation.isTraceEnabled()) {
-					Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate())
-							+ " is already added in database (it's a \"too long time\" pause automation event). " + event.serialize(import_other_properties_configuration).toString());
+					Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " is already added in database (it's a \"too long time\" pause automation event). " + event.serialize(import_other_properties_configuration).toString());
 				}
 				actual_event_pause_automation_list.remove(event_key);
 				return;
@@ -175,8 +212,7 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 		}
 		
 		if (Loggers.BroadcastAutomation.isTraceEnabled()) {
-			Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " will be added in database. "
-					+ event.serialize(import_other_properties_configuration).toString());
+			Loggers.BroadcastAutomation.trace("Process event: event [" + event_key + "] \"" + event.getName() + "\" at the " + new Date(event.getStartDate()) + " will be added in database. " + event.serialize(import_other_properties_configuration).toString());
 		}
 	}
 	
@@ -207,4 +243,27 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 			mutator.execute();
 		}
 	}
+	
+	/**
+	 * Callbacks event_catchers, non-blocking.
+	 */
+	public void afterScanAndHasFoundEvents() {
+		event_catcher_callbacks_executor.execute(() -> {
+			event_catchers.forEach(catcher -> {
+				catcher.onAfterCatchEvents();
+			});
+		});
+	}
+	
+	/**
+	 * Callbacks event_catchers, non-blocking.
+	 */
+	public void beforeStartToScanEvents() {
+		event_catcher_callbacks_executor.execute(() -> {
+			event_catchers.forEach(catcher -> {
+				catcher.onBeforeCatchEvents();
+			});
+		});
+	}
+	
 }

@@ -33,13 +33,19 @@ import hd3gtv.tools.StoppableThread;
 final class BCAWatcherThread extends StoppableThread {
 	
 	private BCAWatcher watcher;
+	private BCAAutomationEventProcessor processor;
 	
-	public BCAWatcherThread(BCAWatcher watcher) {
+	public BCAWatcherThread(BCAWatcher watcher) throws ConnectionException {
 		super("Watch all BCA events");
 		this.watcher = watcher;
 		if (watcher == null) {
 			throw new NullPointerException("\"watcher\" can't to be null");
 		}
+		processor = new BCAAutomationEventProcessor(BCAWatcher.CF_NAME, watcher.getMaxRetentionDuration(), watcher.getImportOtherPropertiesConfiguration());
+	}
+	
+	BCAAutomationEventProcessor getProcessor() {
+		return processor;
 	}
 	
 	public void run() {
@@ -49,14 +55,6 @@ final class BCAWatcherThread extends StoppableThread {
 		HashMap<File, Long> files_dates = new HashMap<>();
 		ArrayList<File> file_refs_to_remove = new ArrayList<>();
 		ArrayList<ScheduleFileStatus> all_status = new ArrayList<>();
-		
-		final BCAAutomationEventProcessor processor;
-		try {
-			processor = new BCAAutomationEventProcessor(BCAWatcher.CF_NAME, watcher.getMaxRetentionDuration(), watcher.getImportOtherPropertiesConfiguration());
-		} catch (ConnectionException e1) {
-			Loggers.BroadcastAutomation.error("Can't access to Cassandra DB, cancel BCA watcher", e1);
-			return;
-		}
 		
 		while (isWantToRun()) {
 			try {

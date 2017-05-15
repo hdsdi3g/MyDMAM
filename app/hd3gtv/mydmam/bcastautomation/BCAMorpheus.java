@@ -42,10 +42,15 @@ public class BCAMorpheus implements BCAEngine {
 	public ScheduleFileStatus processScheduleFile(File schedule, BCAAutomationEventHandler handler) throws IOException {
 		BCAMorpheusScheduleParser parser = new BCAMorpheusScheduleParser(schedule);
 		
+		handler.beforeStartToScanEvents();
+		
 		parser.getEvents().forEach(event -> {
 			handler.onAutomationEvent(event.getBCAEvent(parser));
 		});
+		
 		if (parser.getEvents().isEmpty() == false) {
+			handler.afterScanAndHasFoundEvents();
+			
 			return new ScheduleFileStatus(schedule, parser.getEvents().size(), parser.getEvents().get(parser.getEvents().size() - 1).notionalstarttime);
 		}
 		

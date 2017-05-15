@@ -19,7 +19,7 @@ package hd3gtv.mydmam.bcastautomation;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.Timecode;
 
-public class BCACatchEntry {
+public final class BCACatchedEvent {
 	
 	private long date;
 	
@@ -33,8 +33,8 @@ public class BCACatchEntry {
 	
 	private String external_ref;
 	
-	static BCACatchEntry create(BCAAutomationEvent event, String external_ref) {
-		BCACatchEntry result = new BCACatchEntry();
+	static BCACatchedEvent create(BCAAutomationEvent event, String external_ref) {
+		BCACatchedEvent result = new BCACatchedEvent();
 		result.date = event.getStartDate();
 		result.duration = event.getDuration();
 		result.name = event.getName();

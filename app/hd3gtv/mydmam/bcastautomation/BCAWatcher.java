@@ -87,6 +87,12 @@ public class BCAWatcher implements InstanceStatusItem {
 		manager.registerInstanceStatusAction(this);
 		
 		watch = new BCAWatcherThread(this);
+		
+		String catch_handler_class = Configuration.global.getValue("broadcast_automation", "catch_handler", null);
+		if (catch_handler_class != null) {
+			watch.getProcessor().addEventCatcher(MyDMAM.factory.create(catch_handler_class, BCAEventCatcherHandler.class));
+		}
+		
 		watch.start();
 	}
 	

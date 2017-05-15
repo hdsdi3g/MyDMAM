@@ -1,6 +1,8 @@
 === MyDMAM Upgrade document ===
 
 #252 You should set a login and a password for all AD backends (in play.yml).
+#268 Remove CLI bca -propertycatch
+#268 Remove configuration key broadcast_automation.catch_playlist_to_parse
 
 === Previous versions ===
 

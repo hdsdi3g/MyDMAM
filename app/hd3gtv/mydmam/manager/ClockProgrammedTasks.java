@@ -39,9 +39,9 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	private static final int MAX_QUEUED_TASKS = 100;
 	private ScheduledExecutorService scheduled_ex_service;
 	private ThreadPoolExecutor executor_pool;
+	private BlockingQueue<Runnable> executor_pool_queue;
 	private AppManager manager;
 	private List<TaskWrapper> all_tasks;
-	private BlockingQueue<Runnable> executor_pool_queue;
 	
 	ClockProgrammedTasks(AppManager manager) {
 		this.manager = manager;
@@ -58,7 +58,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		executor_pool_queue.clear();
 		executor_pool = new ThreadPoolExecutor(1, Runtime.getRuntime().availableProcessors(), 1, TimeUnit.SECONDS, executor_pool_queue);
 		executor_pool.setRejectedExecutionHandler((r, executor) -> {
-			Loggers.Manager.warn("Too many task to be executed on the ClockProgrammedTasks at the same time ! This will not proceed: " + r);
+			Loggers.Manager.warn("Too many tasks to be executed on the ClockProgrammedTasks at the same time ! This will not proceed: " + r);
 		});
 	}
 	

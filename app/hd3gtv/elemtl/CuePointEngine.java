@@ -16,21 +16,25 @@
 */
 package hd3gtv.elemtl;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import com.google.gson.JsonSyntaxException;
+
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.bcastautomation.BCACatchEntry;
-import hd3gtv.mydmam.bcastautomation.BCACatchHandler;
+import hd3gtv.mydmam.bcastautomation.BCACatchedEvent;
+import hd3gtv.mydmam.bcastautomation.BCAEventCatcherHandler;
 
-public class CuePointEngine implements BCACatchHandler {
+public class CuePointEngine extends BCAEventCatcherHandler {
 	
 	private HashMap<ElemtlServer, Integer> event_id_by_server;
 	
-	public CuePointEngine() {
+	public CuePointEngine() throws JsonSyntaxException, IOException {
+		super();
 		event_id_by_server = new HashMap<>();
 		
 		ArrayList<String> srvs = Configuration.global.getValues("elemtl", "servers", null);
@@ -61,7 +65,7 @@ public class CuePointEngine implements BCACatchHandler {
 		}
 	}
 	
-	public void handleEventCreation(BCACatchEntry entry) {
+	public void handleEventCreation(BCACatchedEvent entry) {
 		event_id_by_server.forEach((s, id) -> {
 			try {
 				s.createCuePoint(entry.getDate(), Math.round(entry.getDuration().getValue()), id, Integer.parseInt(entry.getExternalRef()));
@@ -71,7 +75,7 @@ public class CuePointEngine implements BCACatchHandler {
 		});
 	}
 	
-	public void handleEventRemoving(BCACatchEntry entry) {
+	public void handleEventRemoving(BCACatchedEvent entry) {
 		event_id_by_server.forEach((s, id) -> {
 			try {
 				s.removeCuePoint(id, Integer.parseInt(entry.getExternalRef()));
@@ -79,6 +83,14 @@ public class CuePointEngine implements BCACatchHandler {
 				Loggers.Elemtl.error("Can't push to server " + s, e);
 			}
 		});
+	}
+	
+	public String getName() {
+		return "Elemtl CuePoint on playlist event";
+	}
+	
+	public String getVendor() {
+		return "MyDMAM Internal";
 	}
 	
 }

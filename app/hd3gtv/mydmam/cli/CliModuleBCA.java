@@ -29,9 +29,6 @@ import com.google.gson.JsonParser;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.bcastautomation.BCACatch;
-import hd3gtv.mydmam.bcastautomation.BCACatchHandler;
 import hd3gtv.mydmam.bcastautomation.BCAEngine;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
 import hd3gtv.mydmam.bcastautomation.TimedEventStore;
@@ -58,24 +55,16 @@ public class CliModuleBCA implements CliModule {
 			
 			TableList tl = new TableList();
 			
-			final HashMap<String, ConfigurationItem> import_other_properties_configuration = Configuration.getElement(Configuration.global.getElement("broadcast_automation"),
-					"import_other_properties");
+			final HashMap<String, ConfigurationItem> import_other_properties_configuration = Configuration.getElement(Configuration.global.getElement("broadcast_automation"), "import_other_properties");
 			
 			SimpleDateFormat date_format = new SimpleDateFormat("HH:mm:ss");
 			
 			engine.processScheduleFile(file_to_parse, event -> {
-				tl.addRow(date_format.format(new Date(event.getStartDate())), event.getName(), event.getDuration().toString(),
-						event.getOtherProperties(import_other_properties_configuration).toString());
+				tl.addRow(date_format.format(new Date(event.getStartDate())), event.getName(), event.getDuration().toString(), event.getOtherProperties(import_other_properties_configuration).toString());
 			});
 			
 			tl.print();
 			
-			return;
-		} else if (args.getParamExist("-propertycatch")) {
-			BCACatch bcacatch = new BCACatch();
-			BCACatchHandler handler = MyDMAM.factory.create(Configuration.global.getValue("broadcast_automation", "catch_handler", null), BCACatchHandler.class);
-			
-			bcacatch.parsePlaylist(handler).save();
 			return;
 		} else if (args.getParamExist("-dump")) {
 			if (CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME) == false) {
@@ -137,7 +126,6 @@ public class CliModuleBCA implements CliModule {
 	public void showFullCliModuleHelp() {
 		System.out.println("Usage (with no confirm)");
 		System.out.println(" * just parse playlist/asrun: " + getCliModuleName() + " -parse file.sch");
-		System.out.println(" * get property from playlist and do actions on match events: " + getCliModuleName() + " -propertycatch");
 		System.out.println(" * get all events actually in database: " + getCliModuleName() + " -dump [-raw] [-key]");
 		System.out.println("   with -raw for display raw content");
 		System.out.println("   with -key for display event key");
