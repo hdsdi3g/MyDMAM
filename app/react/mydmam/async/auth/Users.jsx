@@ -35,6 +35,11 @@ auth.Users = createReactClass({
 			this.setState({userlist: new_user_list});
 		}.bind(this));
 	},
+	deleteUser: function(user_key) {
+		mydmam.async.request("auth", "userdelete", user_key, function(list) {
+			this.setState({userlist: list.users});
+		}.bind(this));
+	},
 	render: function(){
 		var items = [];
 		var userlist = this.state.userlist;
@@ -92,12 +97,15 @@ auth.Users = createReactClass({
 						reference={user_key}
 						iconcircle={true} />
 				</td>
+				<td>
+					<mydmam.async.BtnDelete enabled={true} onClickDelete={this.deleteUser} reference={user_key}  />
+				</td>
 			</tr>);
 		}
 
 		return (<div>
 			<p><a href="#auth/user/create" className="btn btn-small btn-success">{i18n("auth.usercreate")}</a></p>
-			<table className="table table-bordered table-striped table-condensed">
+			<table className="table table-bordered table-striped table-condensed table-hover">
 				<thead>
 					<tr>
 						<th>{i18n("auth.userlongname")}</th>
@@ -109,6 +117,7 @@ auth.Users = createReactClass({
 						<th>{i18n("auth.lastlogin")}</th>
 						<th>{i18n("auth.groups")}</th>
 						<th>{i18n("auth.useractivated")}</th>
+						<th>{i18n("auth.userdelete")}</th>
 					</tr>
 				</thead>
 				<tbody>

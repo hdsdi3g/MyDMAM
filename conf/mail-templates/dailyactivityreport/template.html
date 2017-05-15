@@ -1,0 +1,89 @@
+<!-- <% /*
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2017
+ * 
+*/ %> -->
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8">
+	<style>
+	body {
+		font-family: "Source Sans Pro", Helvetica, sans-serif;
+	}
+	.title {
+		font-family: Bitter, Georgia, serif;
+		font-weight: bold;
+		color: #4AB534;
+	}
+	.muted {
+		color: #999999;
+	}
+	.text-error {
+		color: #b94a48;
+	}
+	.text-warning {
+	    color: #c09853;
+	}
+	.sublist {
+		list-style-type: none;
+	}
+	</style>
+</head>
+<body>
+	<span class="title">${messages.get("dareport.mail.subject", hd3gtv.mydmam.dareport.DARMails.formatDate(date_now, locale))}</span><br>
+	<hr style="height:3px; background-color:#992626">
+
+	<% for (event in events) { %>
+		<h2><span class="muted">${hd3gtv.mydmam.dareport.DARMails.formatTime(event.key.planned_date, locale)} -</span> ${event.key.name}</h2>
+		<% for (report in event.value) { %>
+			<p>
+				<b>${report.account_user_name}</b>
+				<% if (report.content) { %>
+					<span class="muted">
+						&bull; ${report.account_job_name}
+						&bull; ${messages.get("dareport.mail.reportsendat", hd3gtv.mydmam.dareport.DARMails.formatTime(report.created_at, locale))}
+					</span>
+					<ul>
+					<% for (item in report.content) { %>
+						<li>
+							<span class="text-error">
+								<% if (item.check) { %>
+									${messages.get("dareport.mail.check.yes", item.question)}
+								<% } else { %>
+									${messages.get("dareport.mail.check.no", item.question)}
+								<% } /* end if item.check */ %>
+							</span>
+							<% if (item.comment) { %>
+								<br><b>${hd3gtv.mydmam.dareport.DARMails.nl2br(item.comment)}</b>
+							<% } /* end if item.comment */ %>
+						</li>
+					<% } /* end for reports */ %>
+					</ul>
+				<% } else { %>
+					&bull; ${messages.get("dareport.mail.nothingtoreport")}
+					<span class="muted">
+						&bull; ${report.account_job_name}
+						&bull; ${messages.get("dareport.mail.reportsendat", hd3gtv.mydmam.dareport.DARMails.formatTime(report.created_at, locale))}
+					</span>
+				<% } /* end if report.content */ %>
+			</p>
+		<% } /* end for reports */ %>
+	<% } /* end for events */ %>
+
+	<div style="background-color:#3d9999; color:#FFFFFF; padding:6pt;" class="footer">
+		<i>${messages.get("mailtemplate.please_not_respond")}</i>
+	</div>
+	<p style="font-size:0.9em;">${messages.get("site.name")} ${messages.get("site.vendor")}</p>
+</body>
+</html>

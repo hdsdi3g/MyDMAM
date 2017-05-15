@@ -14,19 +14,25 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.mydmam.web;
+package hd3gtv.mydmam.auth.asyncjs;
 
-public class DisconnectedUser extends Exception {
+import hd3gtv.mydmam.auth.UserNG;
+
+public class UserInfo {
 	
-	private String userkey;
+	String login;
+	String full_name;
+	String mail_addr;
+	String key;
 	
-	public DisconnectedUser(String userkey) {
-		super("Disconnected user: " + userkey);
-		this.userkey = userkey;
+	UserInfo() {
 	}
 	
-	public String getUserkey() {
-		return userkey;
+	UserInfo(UserNG user) {
+		mail_addr = user.getEmailAddr();
+		full_name = user.getFullname();
+		key = user.getKey();
+		login = user.getName();
 	}
 	
 }

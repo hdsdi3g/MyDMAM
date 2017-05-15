@@ -448,3 +448,50 @@ mydmam.module.register("FTPGroup", {
 		return i18n("manager.items.FTPGroup.key", item.key);
 	},
 });
+
+manager.ExecutorStatus = createReactClass({
+	render: function() {
+		var exec = this.props.executor;
+		return (<div>
+			<p><strong>{i18n("manager.items.ExecutorStatus")}</strong></p>
+			<table className="table table-bordered table-striped table-condensed table-hover"><tbody>
+				<tr><th>{i18n("manager.items.ExecutorStatus.active", exec.active)}</th></tr>
+				<tr><td>{i18n("manager.items.ExecutorStatus.max_capacity", exec.max_capacity)}</td></tr>
+				<tr><td>{i18n("manager.items.ExecutorStatus.completed", exec.completed)}</td></tr>
+				<tr><td>{i18n("manager.items.ExecutorStatus.core_pool", exec.core_pool)}</td></tr>
+				<tr><td>{i18n("manager.items.ExecutorStatus.pool", exec.pool)}</td></tr>
+				<tr><td>{i18n("manager.items.ExecutorStatus.largest_pool", exec.largest_pool)}</td></tr>
+				<tr><td>{i18n("manager.items.ExecutorStatus.maximum_pool", exec.maximum_pool)}</td></tr>
+			</tbody></table>
+		</div>);
+	},
+});
+
+mydmam.module.register("ClockProgrammedTasks", {
+	managerInstancesItems: function(item) {
+		if (item["class"] != "ClockProgrammedTasks") {
+			return null;
+		}
+		var content = item.content;
+
+		/*
+		"84757670-c450-4d66-b9ba-ccda2592afaf": {
+		"key": "84757670-c450-4d66-b9ba-ccda2592afaf",
+		"name": "Daily activity report mail",
+		"start_time_after_midnight": 77400000,
+		"task_class": "hd3gtv.mydmam.dareport.DARDB$$Lambda$35/706679684",
+		"retry_after": -1,
+		"unschedule_if_error": false,
+		"last_execute_date": -1,
+		"last_execute_duration": -1,
+		"next_scheduled": 1400076600013
+		}
+		}
+		}*/
+		//<code className="json">{content.tasks}</code>
+
+		return (<div>
+			<manager.ExecutorStatus executor={content.executor} />
+		</div>);
+	},
+});

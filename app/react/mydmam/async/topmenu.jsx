@@ -79,7 +79,7 @@ var DropdownMenu = createReactClass({
 	}
 });
 
-var isMenuItemIsActive = function(href_hash_to_handle) {
+var isMenuItemIsActive = function(href_hash_to_handle, limit_to_current_href_not_sub_dirs) {
 	if (!location.hash) {
 		return false;
 	}
@@ -91,7 +91,11 @@ var isMenuItemIsActive = function(href_hash_to_handle) {
 	if (href_hash_to_handle.indexOf(location.hash) == -1) {
 		for (var pos in href_hash_to_handle) {
 			var href = href_hash_to_handle[pos];
-			if (location.hash.startsWith(href)) {
+			if (limit_to_current_href_not_sub_dirs) {
+				if (location.hash == href) {
+					return true;
+				}
+			} else if (location.hash.startsWith(href)) {
 				return true;
 			}
 		}
@@ -136,6 +140,21 @@ async.TopMenu = createReactClass({
 			sitesearchbox_divider = divider_vertical;
 		}
 
+		/**
+		 * TOP MENUS
+		 */
+		var dareport_link = null;
+		if (async.isAvaliable("dareport", "reportnew")) {
+			var li_class = classNames({
+				"active": isMenuItemIsActive("#" + async.dareport.reportnew_link, true),
+			});
+
+			dareport_link = (<li className={li_class}>
+				<TopMenuEntrylink label={i18n("dareport.reportnew.page")} href={"#" + async.dareport.reportnew_link} />
+			</li>);
+		}
+
+
 		if (async.isAvaliable("stat", "cache")) {
 			var li_class = classNames({
 				"active": isMenuItemIsActive("#navigate"),
@@ -158,6 +177,9 @@ async.TopMenu = createReactClass({
 			</li>);
 		}
 
+		/**
+		 * USER MENU
+		 */
 		var user_profile_menu_active = false; // isMenuItemIsActive()
 
 		var user_dropdown_items = [];
@@ -167,7 +189,18 @@ async.TopMenu = createReactClass({
 			i18nlabel: "maingrid.disconnect",
 		});
 
+		/**
+		 * ADMIN MENU
+		 */
 		var admin_menu_items = [];
+
+		if (mydmam.async.isAvaliable("dareport", "eventnew")) {
+			admin_menu_items.push({
+				headeri18n: "dareport.adminmenu.separator",
+			});
+			admin_menu_items.push({href: "#" + async.dareport.eventlist_link_future, icon: "icon-calendar",	i18nlabel: "dareport.eventlist.page",	links: ["#" + async.dareport.eventlist_link]});
+			admin_menu_items.push({href: "#" + async.dareport.accountlist_link, 	 icon: "icon-user",	i18nlabel: "dareport.accountlist.page",});
+		}
 
 		admin_menu_items.push({
 			headeri18n: "service.menuinfrastructure",
@@ -227,6 +260,7 @@ async.TopMenu = createReactClass({
 
 					<div className="nav-collapse collapse">
 				 		<ul className="nav pull-left navbar-fixed-top-btn">
+				 			{dareport_link}
 							{navigate_link}
 							{bca_link}
 							{navigate_link_divider}

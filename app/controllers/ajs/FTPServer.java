@@ -137,9 +137,9 @@ public class FTPServer extends AJSController {
 			
 			EndUserBaseMail mail;
 			if (user.getLanguage() == null) {
-				mail = new EndUserBaseMail(Locale.getDefault(), email_addr, "adduserftpserver");
+				mail = new EndUserBaseMail(Locale.getDefault(), "adduserftpserver", email_addr);
 			} else {
-				mail = new EndUserBaseMail(Lang.getLocale(user.getLanguage()), email_addr, "adduserftpserver");
+				mail = new EndUserBaseMail(Lang.getLocale(user.getLanguage()), "adduserftpserver", email_addr);
 			}
 			HashMap<String, Object> mail_vars = new HashMap<String, Object>();
 			mail_vars.put("login", ftp_user.getName());

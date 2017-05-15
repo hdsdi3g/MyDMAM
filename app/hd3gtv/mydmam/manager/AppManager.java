@@ -21,6 +21,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -50,6 +51,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	private BrokerNG broker;
 	private String app_name;
 	private ArrayList<InstanceActionReceiver> all_instance_action_receviers;
+	private ClockProgrammedTasks clock_programmed_tasks;
 	
 	public AppManager(String app_name) {
 		this.app_name = app_name;
@@ -217,12 +219,24 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		}
 		Loggers.Manager.debug("Start updater");
 		updater.start();
+		
+		if (clock_programmed_tasks != null) {
+			if (clock_programmed_tasks.isActive() == false) {
+				clock_programmed_tasks.startAllProgrammed();
+			}
+		}
 	}
 	
 	/**
 	 * Blocking
 	 */
 	public void stopAll() {
+		if (clock_programmed_tasks != null) {
+			if (clock_programmed_tasks.isActive()) {
+				clock_programmed_tasks.cancelAllProgrammed(1, TimeUnit.SECONDS);
+			}
+		}
+		
 		if (updater != null) {
 			Loggers.Manager.debug("Stop updater");
 			updater.stopUpdate();
@@ -263,7 +277,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		}
 	}
 	
-	boolean isWorkingToShowUIStatus() {
+	/*boolean isWorkingToShowUIStatus() {
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			if (enabled_workers.get(pos).getLifecyle().getState() == WorkerState.PROCESSING) {
 				Loggers.Manager.trace("isWorkingToShowUIStatus ? true");
@@ -277,7 +291,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		
 		Loggers.Manager.trace("isWorkingToShowUIStatus ? false");
 		return false;
-	}
+	}*/
 	
 	List<WorkerNG> getEnabledWorkers() {
 		return Collections.unmodifiableList(enabled_workers);
@@ -290,6 +304,17 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 			Loggers.Manager.error("The context origin class (" + context.getClass() + ") is invalid, don't forget it will be (de)serialized.", e);
 			return null;
 		}
+	}
+	
+	public ClockProgrammedTasks getClockProgrammedTasks() {
+		if (clock_programmed_tasks == null) {
+			synchronized (this) {
+				if (clock_programmed_tasks == null) {
+					clock_programmed_tasks = new ClockProgrammedTasks(this);
+				}
+			}
+		}
+		return clock_programmed_tasks;
 	}
 	
 	public InstanceStatus getInstanceStatus() {

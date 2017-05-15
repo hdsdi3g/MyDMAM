@@ -37,6 +37,7 @@ public final class Loggers {
 	public final static Logger ClusterStatus = Logger.getLogger("mydmam.clusterstatus");
 	public final static Logger Broker = Logger.getLogger("mydmam.broker");
 	public final static Logger Worker = Logger.getLogger("mydmam.worker");
+	public final static Logger ClkPrgmTsk = Logger.getLogger("mydmam.clkprgmtsk");
 	public final static Logger Job = Logger.getLogger("mydmam.job");
 	public final static Logger Transcode = Logger.getLogger("mydmam.transcode");
 	public final static Logger Transcode_Metadata = Logger.getLogger("mydmam.transcoder.mtd");
@@ -69,6 +70,7 @@ public final class Loggers {
 	public final static Logger BroadcastAutomation = Logger.getLogger("mydmam.bcauto");
 	public final static Logger Elemtl = Logger.getLogger("mydmam.elemtl");
 	public final static Logger Gson = Logger.getLogger("mydmam.gson");
+	public final static Logger DAReport = Logger.getLogger("mydmam.dareport");
 	
 	private static final HashMap<String, Logger> map_loggers_by_classname = new HashMap<>();
 	

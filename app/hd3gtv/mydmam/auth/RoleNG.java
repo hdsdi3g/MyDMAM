@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -139,8 +140,15 @@ public class RoleNG implements AuthEntry {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(key);
-		sb.append(", ");
+		sb.append(", \"");
 		sb.append(role_name);
+		sb.append("\" ");
+		if (privileges != null) {
+			if (privileges.isEmpty() == false) {
+				sb.append("P: ");
+				sb.append(privileges.stream().collect(Collectors.joining(", ")));
+			}
+		}
 		return sb.toString();
 	}
 	

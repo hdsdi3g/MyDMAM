@@ -22,10 +22,14 @@ import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -50,8 +54,7 @@ public class Configuration {
 		try {
 			global = new Configuration(global_configuration_directory);
 		} catch (IOException e) {
-			Loggers.Configuration.fatal(
-					"Problem while load configuration documents, user-set: " + System.getProperty("service.config.path", "null") + ", default: " + (new File("conf/app.d")).getAbsolutePath(), e);
+			Loggers.Configuration.fatal("Problem while load configuration documents, user-set: " + System.getProperty("service.config.path", "null") + ", default: " + (new File("conf/app.d")).getAbsolutePath(), e);
 			System.exit(1);
 		}
 	}
@@ -347,11 +350,22 @@ public class Configuration {
 		return getRawValue(configuration, elementname, key);
 	}
 	
+	public LinkedHashMap<String, ?> getRaw(String elementname) {
+		return getRaw(configuration, elementname);
+	}
+	
 	public static Object getRawValue(HashMap<String, ConfigurationItem> baseelement, String elementname, String key) {
 		if (isElementKeyExists(baseelement, elementname, key) == false) {
 			return null;
 		}
 		return baseelement.get(elementname).content.get(key);
+	}
+	
+	public static LinkedHashMap<String, ?> getRaw(HashMap<String, ConfigurationItem> baseelement, String elementname) {
+		if (isElementExists(baseelement, elementname) == false) {
+			return null;
+		}
+		return baseelement.get(elementname).content;
 	}
 	
 	/**
@@ -480,6 +494,25 @@ public class Configuration {
 		}
 		
 		return result;
+	}
+	
+	/**
+	 * @param o can be Collection<String> or String
+	 * @return never null
+	 */
+	public static List<String> rawToListString(Object o) {
+		if (o == null) {
+			return Collections.emptyList();
+		}
+		if (Collection.class.isAssignableFrom(o.getClass())) {
+			return ((Collection<?>) o).stream().map(item -> {
+				return (String) item;
+			}).collect(Collectors.toList());
+		} else if (o instanceof String) {
+			return Arrays.asList((String) o);
+		} else {
+			throw new ClassCastException("Invalid " + o.getClass() + " class.");
+		}
 	}
 	
 	public List<List<String>> getListsInListValues(String elementname, String key) {

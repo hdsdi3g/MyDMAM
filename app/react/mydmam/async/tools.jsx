@@ -43,16 +43,28 @@ async.PageLoadingProgressBar = createReactClass({
 });
 
 async.AlertBox = createReactClass({
+	onBtnCloseClick: function(e) {
+		e.preventDefault();
+		this.props.onClose();
+	},
 	render: function() {
 		var title = null;
 		if (this.props.title) {
-			title = (<div><h4>{this.props.title}</h4></div>);
+			title = (<h4>{this.props.title}</h4>);
 		}
-		var classes = classNames("alert");
-		if (this.props.color) {
-			classes = classNames("alert", this.props.color);
+		
+		var classes = classNames("alert", "alert-block", this.props.color);
+
+		var btn_close = null;
+		if (this.props.onClose) {
+			btn_close = (<button type="button" className="close" onClick={this.onBtnCloseClick}>&times;</button>);
 		}
-		return (<div className={classes}>{title}{this.props.children}</div>);
+		
+		return (<div className={classes}>
+			{btn_close}
+			{title}
+			{this.props.children}
+		</div>);
 	}
 });
 
@@ -71,8 +83,13 @@ async.AlertErrorBox = createReactClass({
 async.FormControlGroup = createReactClass({
 	render: function() {
 		var label = null;
+
+		var classname_label = classNames("control-label", {
+			"text-error": this.props.stronglabel,
+		});
+
 		if (this.props.label) {
-			label = (<label className="control-label">{this.props.label}</label>);
+			label = (<label className={classname_label}>{this.props.label}</label>);
 		}
 
 		return (<div className="control-group">
@@ -174,6 +191,7 @@ async.BtnDelete = createReactClass({
 		enabled: PropTypes.bool.isRequired,
 		onClickDelete: PropTypes.func.isRequired,
 		reference: PropTypes.string,
+		hide_for_disable: PropTypes.bool,
 	},
 	getInitialState: function() {
 		return {pending_changes: false};
@@ -192,6 +210,10 @@ async.BtnDelete = createReactClass({
 		this.setState({pending_changes: false});
 	},
 	render: function() {
+		if (this.props.hide_for_disable && !this.props.enabled) {
+			return (<span />);
+		}
+
 		var btn_classes = classNames("btn", "btn-mini", "btn-danger", {
 			disabled: this.state.pending_changes | !this.props.enabled,
 		});
@@ -205,6 +227,8 @@ async.SimpleBtn = createReactClass({
 		onClick: PropTypes.func.isRequired,
 		reference: PropTypes.string,
 		btncolor: PropTypes.string,
+		normalsize: PropTypes.bool,
+		hide_for_disable: PropTypes.bool,
 	},
 	onClick: function() {
 		if (!this.props.enabled) {
@@ -213,7 +237,12 @@ async.SimpleBtn = createReactClass({
 		this.props.onClick(this.props.reference);
 	},
 	render: function() {
-		var btn_classes = classNames("btn", "btn-mini", this.props.btncolor, {
+		if (this.props.hide_for_disable && !this.props.enabled) {
+			return (<span />);
+		}
+
+		var btn_classes = classNames("btn", this.props.btncolor, {
+			"btn-mini": !this.props.normalsize,
 			disabled: !this.props.enabled,
 		});
 		return (<button className={btn_classes} onClick={this.onClick}>{this.props.children}</button>);
@@ -595,8 +624,219 @@ async.HeaderTab = createReactClass({
 			"pull-right": this.props.pullright,
 		});
 
+		var badge = null;
+		var badge_count = this.props.badge_count;
+		if (badge_count) {
+			var span_class = classNames("badge", this.props.badge_class);
+			badge = (<span className={span_class} style={{marginLeft: 5}}>
+				{badge_count}
+			</span>);
+		}
+
 		return (<li className={li_class}>
-			<a href={this.props.href} onClick={this.onClick} ref="tab">{i18n(this.props.i18nlabel)}</a>
+			<a href={this.props.href} onClick={this.onClick} ref="tab">
+				{i18n(this.props.i18nlabel)}
+				{badge}
+			</a>
 		</li>);
 	},
+});
+
+var BtnCalendar = createReactClass({
+	onClick: function(e) {
+		e.preventDefault();
+		this.props.onChange(this.props.current);
+	},
+	render: function() {
+		return (<div className={this.props.classname} style={this.props.style} onClick={this.onClick}>
+			{this.props.current}
+		</div>);
+	},
+});
+
+async.Calendar = createReactClass({
+	getInitialState: function() {
+		var date = new Date();
+		if (this.props.date) {
+			date = this.props.date;
+		}
+		date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+
+		var now = new Date();
+		now = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12,0,0);
+
+		return {date: date, now: now, };
+	},
+	getRelativeDate: function(months) {
+		var date = this.state.date;
+		return new Date(date.getFullYear(), date.getMonth() + months, 1, 12,0,0);
+	},
+	onClickNextMonth: function(e) {
+		e.preventDefault();
+		this.setNewDate(this.getRelativeDate(1));
+		$(ReactDOM.findDOMNode(this.refs.btnnext)).blur();
+	},
+	onClickPreviousMonth: function(e) {
+		e.preventDefault();
+		this.setNewDate(this.getRelativeDate(-1));
+		$(ReactDOM.findDOMNode(this.refs.btnprevious)).blur();
+	},
+	onClickMonth: function(e) {
+		e.preventDefault();
+	},
+	onChangeDate: function(monthday) {
+		var date = this.state.date;
+		var newdate = new Date(date.getFullYear(), date.getMonth(), monthday, 12,0,0);
+		this.setNewDate(newdate);
+	},
+	setNewDate(date) {
+		if (date >= this.state.now) {
+			this.setState({date: date});
+		} else {
+			this.setState({date: this.state.now});
+		}
+		this.props.onChange(date);
+	},
+	render: function() {
+		var date = this.state.date;
+		var now = this.state.now;
+
+		var y = date.getFullYear();
+		var m = date.getMonth();
+		var last_day = new Date(y, m + 1, 0, 12,0,0);
+
+		var month = [];
+		for (var i = 1; i < last_day.getDate() + 1; i++) {
+			thisdate = new Date(y, m, i, 12,0,0);
+			month.push({
+				monthday: i,
+				weekday: thisdate.getDay(),
+				week: thisdate.getWeekNumber(),
+				ispast: thisdate < now,
+			});
+		}
+
+		var weeks = [];
+		var week = null;
+		for(var pos in month) {
+			pos = Number(pos);
+			if (pos > 0) {
+				if (month[pos].week != month[pos - 1].week) {
+					week = null;
+				}
+			}
+
+			if (week == null) {
+				week = [];
+				weeks.push(<div className="week" key={month[pos].week}>{week}</div>);
+			}
+
+			var day_classnames = classNames("day", {
+				selectable: month[pos].ispast == false,
+				noselectable: month[pos].ispast,
+				selected: date.getDate() == month[pos].monthday,
+			});
+
+			var style = null;
+			if (pos == 0) {
+				if (month[pos].weekday > 0) {
+					style = {marginLeft: (100 * (month[pos].weekday - 1) / 7) + "%"};
+				} else {
+					style = {marginLeft: (6 * 100 / 7) + "%"};
+				}
+			} else if (pos + 1 == month.length) {
+				if (month[pos].weekday > 0) {
+					style = {marginRight: (100 * (7 - month[pos].weekday) / 7)+ "%"};
+				}
+			}
+
+			week.push(<BtnCalendar key={pos}
+				current={month[pos].monthday}
+				onChange={this.onChangeDate}
+				style={style}
+				classname={day_classnames} />);
+		}
+
+		var btn_previous_date = null;
+		if ((new Date(date.getFullYear(), date.getMonth(), 0, 12,0,0)) >= now) {
+			btn_previous_date = (<li><a href="#" onClick={this.onClickPreviousMonth} ref="btnprevious">{this.getRelativeDate(-1).getI18nOnlyMonth()}</a></li>);
+		}
+
+		return (<div style={{maxWidth: "23em"}}>
+			<div className="pagination pagination-small pagination-centered" style={{marginTop: "2px", marginBottom: "0px"}}>
+				<ul>
+					{btn_previous_date}
+					<li className="active"><a href="#" onClick={this.onClickMonth}>{this.state.date.getI18nFullDisplay()}</a></li>
+					<li><a href="#" onClick={this.onClickNextMonth} ref="btnnext">{this.getRelativeDate(1).getI18nOnlyMonth()}</a></li>
+				</ul>
+			</div>
+			<div className="month" style={{marginLeft: "auto", marginRight: "auto"}}>
+				{weeks}
+			</div>
+		</div>);
+	},
+});
+
+async.HourMinInputbox = createReactClass({
+	getInitialState: function() {
+		var hrs = 0;
+		var min = 0;
+		var valid = false;
+		if (this.props.hrs) {
+			hrs = this.props.hrs;
+			valid = true;
+		}
+		if (this.props.min) {
+			min = this.props.min;
+			valid = true;
+		}
+
+		return {
+			hrs: hrs,
+			min: min,
+			valid: valid,
+		};
+	},
+	getFullTime: function() {
+		return this.state.hrs.twoDigit(24) + ":" + this.state.min.twoDigit(60);
+	},
+	onChange: function(e) {
+		var value = ReactDOM.findDOMNode(this.refs.inputbox).value.trim();
+		if (value.length > "00:00".length) {
+			ReactDOM.findDOMNode(this.refs.inputbox).value = this.getFullTime();
+		} else if (value.indexOf(":") == 2) {
+			var raw = value.split(":");
+			var min = raw[1];
+			if (min != null) {
+				if (min.length == 2) {
+					var hrs = raw[0].twoDigit(24);
+					var min = min.twoDigit(60);
+					if (value == hrs + ":" + min) {
+						this.setState({hrs: hrs, min: min, valid: true});
+						this.props.onChange(hrs, min);
+						return;
+					}
+				}
+			}
+		}
+		if (this.state.valid != false) {
+			this.props.onChange(null, null);
+			this.setState({valid: false});
+		}
+	},
+	render: function() {
+		var display = (<i className="icon-exclamation-sign"></i>);
+		if (this.state.valid) {
+			display = (<span><i className="icon-arrow-right"></i> {this.getFullTime()}</span>);
+		}
+		return (<div>
+			<input
+				type="time"
+				placeholder="00:00"
+				style={{width: "90px", marginRight: "1em"}}
+				defaultValue={this.getFullTime()}
+				onChange={this.onChange}
+				ref="inputbox" /> {display}
+		</div>);
+	}
 });

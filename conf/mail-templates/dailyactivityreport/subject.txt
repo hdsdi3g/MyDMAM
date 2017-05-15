@@ -1,4 +1,4 @@
-/*
+<% /*
  * This file is part of MyDMAM.
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -13,20 +13,5 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
-*/
-package hd3gtv.mydmam.web;
-
-public class DisconnectedUser extends Exception {
-	
-	private String userkey;
-	
-	public DisconnectedUser(String userkey) {
-		super("Disconnected user: " + userkey);
-		this.userkey = userkey;
-	}
-	
-	public String getUserkey() {
-		return userkey;
-	}
-	
-}
+*/ %>
+${messages.get("dareport.mail.subject", hd3gtv.mydmam.dareport.DARMails.formatDate(date_now, locale))}

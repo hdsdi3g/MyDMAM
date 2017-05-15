@@ -14,19 +14,11 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.mydmam.web;
+package hd3gtv.mydmam.manager;
 
-public class DisconnectedUser extends Exception {
+@FunctionalInterface
+public interface ClockProgrammedRunnable {
 	
-	private String userkey;
-	
-	public DisconnectedUser(String userkey) {
-		super("Disconnected user: " + userkey);
-		this.userkey = userkey;
-	}
-	
-	public String getUserkey() {
-		return userkey;
-	}
+	public void run() throws Exception;
 	
 }

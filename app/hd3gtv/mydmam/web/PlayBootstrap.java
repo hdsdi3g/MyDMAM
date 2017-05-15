@@ -16,8 +16,14 @@
 */
 package hd3gtv.mydmam.web;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import javax.validation.ValidationException;
+
+import com.google.common.collect.Lists;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.archivecircleapi.ACAPI;
@@ -32,6 +38,7 @@ import play.Play.Mode;
 import play.cache.Cache;
 import play.cache.CacheImpl;
 import play.cache.EhCacheImpl;
+import play.data.validation.Validation.ValidationResult;
 
 public class PlayBootstrap {
 	
@@ -204,5 +211,30 @@ public class PlayBootstrap {
 			eh_cache.add(key, value, expiration);
 		}
 	};
+	
+	public static void validate(ValidationResult... allvr) throws ValidationException {
+		if (allvr == null) {
+			throw new NullPointerException("\"allvr\" can't to be null");
+		}
+		if (allvr.length == 0) {
+			throw new NullPointerException("\"allvr\" can't to be empty");
+		}
+		
+		ArrayList<ValidationResult> list_vr = Lists.newArrayList(allvr);
+		
+		List<ValidationResult> iserror_vr = list_vr.stream().filter(vr -> {
+			return vr.ok == false;
+		}).collect(Collectors.toList());
+		
+		if (iserror_vr.isEmpty()) {
+			return;
+		}
+		
+		String all_errors = iserror_vr.stream().map(vr -> {
+			return vr.error.message();
+		}).collect(Collectors.joining(", "));
+		
+		throw new ValidationException(all_errors);
+	}
 	
 }

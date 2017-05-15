@@ -42,6 +42,7 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.Password;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
 import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.dareport.DARDB;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.ftpserver.FTPGroup;
 import hd3gtv.mydmam.ftpserver.FTPOperations;
@@ -203,6 +204,7 @@ public final class ServiceNG {
 			wf_trancoder = new WatchFolderTranscoder(manager);
 			TranscoderWorker.declareTranscoders(manager);
 			bca_watcher = new BCAWatcher(manager);
+			DARDB.setPlannedTask(manager);
 		}
 	}
 	

@@ -50,6 +50,70 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 	Storage.prototype.getObject = function(key) {
 		return JSON.parse(this.getItem(key));
 	};
+	
+	Number.prototype.twoDigit = function(base) {
+		var val = +this;
+		if (val > base - 1) {
+			return (val % base).twoDigit(base);
+		}
+		if (val > 9) {
+			return "" + val;
+		}
+		return "0" + "" + val;
+	};
+
+	String.prototype.twoDigit = function(base) {
+		return (parseInt(this)).twoDigit(base);
+	};
+
+	Date.prototype.getWeekNumber = function() {
+		// See http://stackoverflow.com/questions/6117814/get-week-of-year-in-javascript-like-in-php
+		var d = new Date(+this);
+		d.setHours(0,0,0,0);
+		d.setDate(d.getDate()+4-(d.getDay()||7));
+		return Math.ceil((((d-new Date(d.getFullYear(),0,1))/8.64e7)+1)/7);
+	};
+
+	/**
+	 * http://www.ecma-international.org/ecma-402/1.0/#sec-12.1.1.1
+	*/
+	Date.prototype.getI18nFullDisplay = function() {
+	    if(window.Intl) {
+	        return new window.Intl.DateTimeFormat(navigator.language, opts = {
+				day: "numeric",
+				weekday: "long",
+				year: "numeric",
+				month: "long",
+		    }).format(+this);
+	    } else {
+	        return +this;   
+	    }
+	}
+
+	Date.prototype.getI18nOnlyMonth = function() {
+	    if(window.Intl) {
+	        return new window.Intl.DateTimeFormat(navigator.language, opts = {
+				month: "long",
+		    }).format(+this);
+	    } else {
+	        return +this;   
+	    }
+	}
+
+	Date.prototype.getI18nFullDisplayTime = function() {
+	    if(window.Intl) {
+	        return new window.Intl.DateTimeFormat(navigator.language, opts = {
+				day: "numeric",
+				weekday: "long",
+				year: "numeric",
+				month: "long",
+				hour: "numeric",
+				minute: "numeric",
+		    }).format(+this);
+	    } else {
+	        return +this;   
+	    }
+	}
 
 	window.keycodemap = {
 		down : 40,

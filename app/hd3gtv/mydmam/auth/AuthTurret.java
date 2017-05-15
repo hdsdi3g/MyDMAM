@@ -24,6 +24,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
@@ -57,12 +59,14 @@ import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.web.PrivilegeNG;
+import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.tools.BreakReturnException;
 import play.Play;
 
 public class AuthTurret {
 	
 	static final ColumnFamily<String, String> CF_AUTH = new ColumnFamily<String, String>("mgrAuth", StringSerializer.get(), StringSerializer.get());
+	private static final String LOCAL_DOMAIN = "local";
 	
 	final JsonParser parser = new JsonParser();
 	private Password password;
@@ -114,9 +118,22 @@ public class AuthTurret {
 					return;
 				}
 				String server = (String) item.get("server");
-				String domain = (String) item.get("domain");
+				String domain = ((String) item.get("domain")).toLowerCase();
 				Integer port = (Integer) item.get("port");
 				ActiveDirectoryBackend adb = new ActiveDirectoryBackend(domain, server, port);
+				
+				if (item.containsKey("login")) {
+					String ldap_username = (String) item.get("login");
+					String ldap_password = (String) item.get("password");
+					adb.setLDAPAuth(ldap_username, ldap_password);
+				}
+				if (item.containsKey("search_ou_white_list")) {
+					adb.setOrganizationalUnitWhiteList(Configuration.rawToListString(item.get("search_ou_white_list")));
+				}
+				if (item.containsKey("search_ou_black_list")) {
+					adb.setOrganizationalUnitBlackList(Configuration.rawToListString(item.get("search_ou_black_list")));
+				}
+				
 				auth_backend_by_domain.put(domain, adb);
 				if (Loggers.Auth.isDebugEnabled()) {
 					Loggers.Auth.debug("AD configuration loaded: " + adb.toString());
@@ -211,11 +228,16 @@ public class AuthTurret {
 			/**
 			 * Create admin user if needed, and create a password file:
 			 */
-			UserNG default_admin_user = new UserNG(this, "admin", "local");
+			UserNG default_admin_user = new UserNG(this, "admin", LOCAL_DOMAIN);
 			if (getByUserKey(default_admin_user.getKey()) == null) {
 				Loggers.Auth.info("Admin user is absent, create it.");
 				default_admin_user.chpassword(createAdminPasswordTextFile("admin"));
-				default_admin_user.update("Default administrator", Locale.getDefault().getLanguage(), AdminMailAlert.getAdminAddr("root@localhost"), false);
+				try {
+					default_admin_user.update("Default administrator", Locale.getDefault().getLanguage(), AdminMailAlert.getAdminAddr("root@localhost"), false);
+				} catch (Exception e) {
+					Loggers.Auth.fatal("Can't create admin user", e);
+					return;
+				}
 				default_admin_user.setUserGroups(Arrays.asList(getByGroupKey(default_admin_group.getKey())));
 				default_admin_user.save(mutator.withRow(CF_AUTH, default_admin_user.getKey()));
 				cache.all_users.put(default_admin_user.getKey(), default_admin_user);
@@ -596,7 +618,7 @@ public class AuthTurret {
 		
 	}
 	
-	public UserNG authenticateWithThisDomain(String remote_address, String username, String clear_text_password, String domain, String language) throws ConnectionException {
+	public UserNG authenticateWithThisDomain(String remote_address, String username, String clear_text_password, String domain, String language) throws ConnectionException, AddressException {
 		if (remote_address == null) {
 			throw new NullPointerException("\"remote_address\" can't to be null");
 		}
@@ -647,8 +669,19 @@ public class AuthTurret {
 	 * Import an backend extracted user to MyDMAM UserNG system.
 	 * If user don't exists in db, add it (w/o password) in new_user group
 	 * Sync user long name, email, groups, and last-edit if user is from AD
+	 * Do not set last login date.
 	 */
-	private UserNG syncADUser(ADUser aduser, String remote_address, String language) throws ConnectionException {
+	private UserNG syncADUser(ADUser aduser) throws ConnectionException, AddressException {
+		return syncADUser(aduser, null, null);
+	}
+	
+	/**
+	 * Import an backend extracted user to MyDMAM UserNG system.
+	 * If user don't exists in db, add it (w/o password) in new_user group
+	 * Sync user long name, email, groups, and last-edit if user is from AD
+	 * Set last login date.
+	 */
+	private UserNG syncADUser(ADUser aduser, String remote_address, String language) throws ConnectionException, AddressException {
 		if (aduser == null) {
 			return null;
 		}
@@ -665,7 +698,19 @@ public class AuthTurret {
 		}
 		
 		final UserNG result = user;
-		result.doLoginOperations(remote_address, language);
+		if (remote_address != null | language != null) {
+			/**
+			 * both or none
+			 */
+			if (remote_address == null) {
+				throw new NullPointerException("\"remote_address\" can't to be null");
+			}
+			if (language == null) {
+				throw new NullPointerException("\"language\" can't to be null");
+			}
+			
+			result.doLoginOperations(remote_address, language);
+		}
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		
@@ -705,7 +750,7 @@ public class AuthTurret {
 		return result;
 	}
 	
-	public UserNG authenticate(String remote_address, String username, String clear_text_password, String language) throws ConnectionException {
+	public UserNG authenticate(String remote_address, String username, String clear_text_password, String language) throws ConnectionException, AddressException {
 		/**
 		 * Try to authenticate with "local" domain
 		 */
@@ -891,6 +936,7 @@ public class AuthTurret {
 			throw new NullPointerException("Role " + request.role_key + " don't exists");
 		}
 		if (request.privileges == null) {
+			Loggers.Auth.warn("Null privileges for a role: " + role.toString());
 			return role;
 		}
 		
@@ -948,6 +994,86 @@ public class AuthTurret {
 		});
 		mutator.execute();
 		cache.resetCache();
+	}
+	
+	/**
+	 * @param domain the same declared in a play.backend configuration
+	 * @return null if domain is not in a declared backend
+	 */
+	public List<UserNG> searchUser(String domain, String q) {
+		if (q == null) {
+			throw new NullPointerException("\"q\" can't to be null");
+		}
+		if (q.isEmpty()) {
+			throw new NullPointerException("\"q\" can't to be empty");
+		}
+		if (domain == null) {
+			throw new NullPointerException("\"domain\" can't to be null");
+		}
+		
+		if (domain.equals(LOCAL_DOMAIN) == false && auth_backend_by_domain.containsKey(domain) == false) {
+			Loggers.Auth.debug("Can't found domain " + domain + " in backend list");
+			return null;
+		}
+		
+		/**
+		 * First pass search in local user table
+		 */
+		ArrayList<UserNG> results = new ArrayList<>(getAllUsers().values().stream().filter(user -> {
+			if (user.getDomain().equalsIgnoreCase(domain) == false) {
+				return false;
+			}
+			
+			if (filterChars(user.getName()).contains(q)) {
+				return true;
+			} else if (user.getFullname() != null) {
+				if (filterChars(user.getFullname()).contains(q)) {
+					return true;
+				}
+			}
+			
+			return false;
+		}).collect(Collectors.toList()));
+		
+		if (results.size() >= 10 | domain.equals(LOCAL_DOMAIN)) {
+			return results;
+		}
+		
+		/**
+		 * Second pass search in backends
+		 */
+		List<ADUser> backend_user_result = auth_backend_by_domain.get(domain).searchUsers(q);
+		if (backend_user_result == null) {
+			return results;
+		}
+		
+		backend_user_result.stream().filter(bk_user -> {
+			/**
+			 * Remove actual founded users
+			 */
+			return false == results.stream().anyMatch(founded_user -> {
+				return founded_user.getName().equalsIgnoreCase(bk_user.username);
+			});
+		}).map(bk_user -> {
+			try {
+				return syncADUser(bk_user);
+			} catch (ConnectionException e) {
+				Loggers.Auth.error("Can't write in cassandra", e);
+			} catch (AddressException e) {
+				Loggers.Auth.error("Can't parse mail address", e);
+			}
+			return null;
+		}).filter(user -> {
+			return user != null;
+		}).forEach(user -> {
+			results.add(user);
+		});
+		
+		return results;
+	}
+	
+	public static String filterChars(String in) {
+		return MyDMAM.PATTERN_Combining_Diacritical_Marks_Spaced.matcher(Normalizer.normalize(SearchQuery.cleanUserTextSearch(in), Normalizer.Form.NFD)).replaceAll("").toLowerCase();
 	}
 	
 }

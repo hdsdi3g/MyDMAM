@@ -1,16 +1,22 @@
 play:
     force_select_domain: false
     cache_ttl: 10   # in minutes
-    master_password_key: "change me please"   # all instances should have the same master_password_key if you want to login/create accounts/change password accross multiple instances. Only use for local auth.
+    master_password_key: "change me please"   # all instances should have the same master_password_key if you want to login/create accounts/change password accross multiple instances. Only used for local auth.
+#    # Declaration for Microsoft Active Directory authentication via LDAP
 #    backends:
 #        -
 #            source: ad
 #            domain: mydomain.local
 #            server: 192.168.0.1
 #            port: 389
+#            # AD login and password are used only for AD operations, like user search.
+#            login: mydmam_ad_user
+#            password: mydmam_ad_password
+#            # search_ou_white_list: ["MyCompanyUnit"]
+#            # search_ou_black_list: ["Printers", "Switchs"]
 # 
 # Danger zone (developpement tools): debug functions are only avaliable with java source in /app.
-# This can lower security in same special case.
+# This can lower security in some special case.
 # Do not use in production !
 #    debug: true # start play server in debug mode
 #    js_dev_mode: true # disable optimized JS source, and check, at each request, the status (new/update/delete) for all JS sources, and transform JSX if needed.

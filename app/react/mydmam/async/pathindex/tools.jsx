@@ -102,7 +102,14 @@ pathindex.reactDate = createReactClass({
 		if (this.props.style != null) {
 			style = this.props.style;
 		}
-		return (<span className="label" style={style}>{label}{mydmam.format.fulldate(this.props.date)}</span>);
+
+		var content = mydmam.format.fulldate(this.props.date);
+
+		if (this.props.format == "long") {
+			content = (new Date(this.props.date)).getI18nFullDisplayTime();
+		}
+
+		return (<span className="label" style={style}>{label}{content}</span>);
 	},
 });
 
