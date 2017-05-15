@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.IOUtils;
@@ -31,7 +34,6 @@ import org.elasticsearch.indices.IndexMissingException;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.internaltaskqueue.ITQueue;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
@@ -129,9 +131,6 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			process_count = (int) Configuration.global.getValue("metadata_analysing", "parallelized", 1);
 		}
 		
-		ITQueue queue = new ITQueue(process_count);
-		queue.setExternalStoppable(this);
-		
 		final AtomicInteger pos = new AtomicInteger(0);
 		List<FutureCreateJobs> current_create_job_list = Collections.synchronizedList(new ArrayList<FutureCreateJobs>(1));
 		ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
@@ -149,30 +148,37 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			es_bulk.setWindowUpdateSize(process_count);
 		}
 		
+		ThreadPoolExecutor executor_pool = new ThreadPoolExecutor(1, process_count, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(process_list.size()));
+		
 		process_list.forEach(item_to_analyst -> {
-			queue.addToQueue(item_to_analyst, i -> {
-				if (isWantToStopCurrentProcessing()) {
-					return;
-				}
-				
-				if (processFoundedElement(i, es_bulk, current_create_job_list) == false) {
-					queue.emptyTheCurrentWaitingList();
-					return;
-				}
-				
-				if (progression != null) {
-					synchronized (lock) {
-						progression.updateProgress(pos.getAndIncrement(), process_list.size());
+			executor_pool.execute(() -> {
+				try {
+					if (isWantToStopCurrentProcessing()) {
+						executor_pool.getQueue().clear();
+						return;
 					}
+					
+					if (processFoundedElement(item_to_analyst, es_bulk, current_create_job_list) == false) {
+						executor_pool.getQueue().clear();
+						return;
+					}
+					
+					if (progression != null) {
+						synchronized (lock) {
+							progression.updateProgress(pos.getAndIncrement(), process_list.size());
+						}
+					}
+				} catch (Exception e) {
+					Loggers.Metadata.warn("Can't analyst metadatas for " + item_to_analyst.toString(), e);
 				}
-			}, (i, e) -> {
-				Loggers.Metadata.warn("Can't analyst metadatas for " + i.toString(), e);
 			});
 		});
 		
-		queue.waitToEndCurrentList();
-		queue.wantToStopAll();
-		
+		executor_pool.shutdown();
+		try {
+			executor_pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+		} catch (InterruptedException e) {
+		}
 		es_bulk.terminateBulk();
 		
 		return createJobs(current_create_job_list);
