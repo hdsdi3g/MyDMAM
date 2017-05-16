@@ -449,23 +449,59 @@ mydmam.module.register("FTPGroup", {
 	},
 });
 
-manager.ExecutorStatus = createReactClass({
-	render: function() {
-		var exec = this.props.executor;
-		return (<div>
-			<p><strong>{i18n("manager.items.ExecutorStatus")}</strong></p>
-			<table className="table table-bordered table-striped table-condensed table-hover"><tbody>
-				<tr><th>{i18n("manager.items.ExecutorStatus.active", exec.active)}</th></tr>
-				<tr><td>{i18n("manager.items.ExecutorStatus.max_capacity", exec.max_capacity)}</td></tr>
-				<tr><td>{i18n("manager.items.ExecutorStatus.completed", exec.completed)}</td></tr>
-				<tr><td>{i18n("manager.items.ExecutorStatus.core_pool", exec.core_pool)}</td></tr>
-				<tr><td>{i18n("manager.items.ExecutorStatus.pool", exec.pool)}</td></tr>
-				<tr><td>{i18n("manager.items.ExecutorStatus.largest_pool", exec.largest_pool)}</td></tr>
-				<tr><td>{i18n("manager.items.ExecutorStatus.maximum_pool", exec.maximum_pool)}</td></tr>
-			</tbody></table>
-		</div>);
-	},
-});
+manager.executorStatus = function(exec) {
+	var status = i18n("manager.items.ExecutorStatus.status.run");
+	if (exec.shutdown) {
+		status = i18n("manager.items.ExecutorStatus.status.shutdown");
+	} else if (exec.terminating) {
+		status = i18n("manager.items.ExecutorStatus.status.terminating");
+	} else if (exec.terminated) {
+		status = i18n("manager.items.ExecutorStatus.status.terminated");
+	} 
+
+	return (<div style={{maxWidth: "300px"}}>
+		<p>
+			<strong>{i18n("manager.items.ExecutorStatus")}</strong>
+		</p>
+
+		<table className="table table-bordered table-striped table-condensed table-hover">
+		<tbody>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.status")}</th>
+				<td>{status}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.active")}</th>
+				<td>{exec.active}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.max_capacity")}</th>
+				<td>{exec.max_capacity}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.completed")}</th>
+				<td>{exec.completed}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.core_pool")}</th>
+				<td>{exec.core_pool}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.pool")}</th>
+				<td>{exec.pool}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.largest_pool")}</th>
+				<td>{exec.largest_pool}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.maximum_pool")}</th>
+				<td>{exec.maximum_pool}</td>
+			</tr>
+			</tbody>
+		</table>
+	</div>);
+};
 
 mydmam.module.register("ClockProgrammedTasks", {
 	managerInstancesItems: function(item) {
@@ -473,25 +509,47 @@ mydmam.module.register("ClockProgrammedTasks", {
 			return null;
 		}
 		var content = item.content;
+		var tasks = [];
 
-		/*
-		"84757670-c450-4d66-b9ba-ccda2592afaf": {
-		"key": "84757670-c450-4d66-b9ba-ccda2592afaf",
-		"name": "Daily activity report mail",
-		"start_time_after_midnight": 77400000,
-		"task_class": "hd3gtv.mydmam.dareport.DARDB$$Lambda$35/706679684",
-		"retry_after": -1,
-		"unschedule_if_error": false,
-		"last_execute_date": -1,
-		"last_execute_duration": -1,
-		"next_scheduled": 1400076600013
+		var cpTask = function(task) {
+			var retry_after = task.retry_after;
+			if (retry_after > 0) {
+				retry_after = <span>Retry: {mydmam.format.msecToHMSms(task.retry_after, false, false)} &bull;</span>;
+			} else {
+				retry_after = null;
+			}
+
+			var last_execute_date = task.last_execute_date;
+			var last_execute_duration = null;
+			if (last_execute_date > 0) {
+				last_execute_date = <mydmam.async.pathindex.reactDate date={last_execute_date} i18nlabel={i18n("manager.items.ClockProgrammedTasks.previous_start_date")} />;
+				last_execute_duration = <span>{i18n("manager.items.ClockProgrammedTasks.previous_duration", mydmam.format.msecToHMSms(task.last_execute_duration, false, false))}</span>
+			} else {
+				last_execute_date = null;
+			}
+
+			return (<div style={{marginBottom: "15px", marginLeft: "15px"}}>
+				<strong>{task.name}</strong> &bull; {i18n("manager.items.ClockProgrammedTasks.start_at", mydmam.format.msecToHMSms(task.start_time_after_midnight, false, true))}
+				<span style={{marginLeft: "6px"}}>
+					{mydmam.async.broker.displayKey(task.key, true)} <mydmam.async.JavaClassNameLink javaclass={task.task_class} />
+				</span>
+				<br />
+				{retry_after} <mydmam.async.LabelBoolean value={task.unschedule_if_error} inverse={false} label_true={i18n("manager.items.ClockProgrammedTasks.unschedule_if_error")} label_false={i18n("manager.items.ClockProgrammedTasks.not-unschedule_if_error")} />
+				<br />
+				<mydmam.async.pathindex.reactDate date={task.next_scheduled} i18nlabel={i18n("manager.items.ClockProgrammedTasks.next_scheduled")} />
+				<br />
+				{last_execute_date} {last_execute_duration}
+			</div>);
+		};
+
+		for (var key in content.tasks) {
+			tasks.push(<div key={key}>{cpTask(content.tasks[key])}</div>);
 		}
-		}
-		}*/
-		//<code className="json">{content.tasks}</code>
 
 		return (<div>
-			<manager.ExecutorStatus executor={content.executor} />
+			<strong style={{marginBottom: "15px"}}>{i18n("manager.items.ClockProgrammedTasks.list")}</strong>
+			{tasks}
+			{manager.executorStatus(content.executor)}
 		</div>);
 	},
 });

@@ -105,7 +105,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		});
 	}
 	
-	public JsonElement getInstanceStatusItem() {// TODO (no urgent) publish correctly to website
+	public JsonElement getInstanceStatusItem() {
 		JsonObject result = new JsonObject();
 		
 		JsonObject jo_tasks = new JsonObject();

@@ -381,12 +381,18 @@ async.JavaClassNameLink = createReactClass({
 			width: 14,
 		};
 
+		javaclass = javaclass.substring(javaclass.lastIndexOf(".") + 1);
+		var lambda_pos = javaclass.indexOf("$$Lambda$");
+		if (lambda_pos > -1) {
+			javaclass = javaclass.substring(0, lambda_pos) + " (lambda)";
+		}
+
 		return (<span>
 			<a href={href} target="_blank" onClick={this.onClickLink}>
 				<img src={mydmam.routes.reverse("github_favicon")} style={icon_style} />
 				&nbsp;
 				<abbr title={javaclass}>
-					{javaclass.substring(javaclass.lastIndexOf(".") + 1)}
+					{javaclass}
 				</abbr>
 			</a>
 		</span>);

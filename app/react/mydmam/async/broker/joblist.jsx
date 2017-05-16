@@ -372,7 +372,10 @@ broker.displayKey = function(key, react_return) {
 		return null;
 	}
 	var short_value = key;
-	if (key.indexOf(":") > -1) {
+	if (key.length == (8 + 4 + 4 + 4 + 12 + 4) && key.indexOf("-") == 8 && key.lastIndexOf("-") == 23) {
+		/** UUID */
+		short_value = key.substring(0, 8);
+	} else if (key.indexOf(":") > -1) {
 		short_value = key.substring(key.lastIndexOf(":") + 1, key.lastIndexOf(":") + 9) + '.';
 	} else if (key.indexOf("#") > -1) {
 		short_value = key.substring(key.indexOf("#") + 1, key.length);

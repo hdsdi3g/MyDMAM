@@ -485,6 +485,10 @@ public final class InstanceStatus {
 	public static JsonObject getExecutorStatus(ThreadPoolExecutor executor, BlockingQueue<Runnable> queue) {
 		JsonObject jo_executor_pool = new JsonObject();
 		jo_executor_pool.addProperty("active", String.valueOf(executor.getActiveCount()));
+		jo_executor_pool.addProperty("shutdown", executor.isShutdown());
+		jo_executor_pool.addProperty("terminating", executor.isTerminating());
+		jo_executor_pool.addProperty("terminated", executor.isTerminated());
+		
 		if (queue != null) {
 			jo_executor_pool.addProperty("max_capacity", String.valueOf(queue.remainingCapacity()));
 		} else {
