@@ -241,23 +241,23 @@ div.instancesnavlists {
     padding: 12px;
 }
 
-div.instancesnavlists pre {
-    background-color: inherit;
-    border-radius: inherit;
-    padding: 0px;
-    border: 0;
+div.instancesnavlists span.labelcheckbox {
     font-size: 90%;
-    line-height: 20px;
-    margin: 0;
+    cursor: pointer;
+    /*line-height: 20px;*/
 }
 
-div.instancesnavlists a {
-    color: inherit;
+div.instancesnavlists span.labelcheckbox:hover {
+    color: #C00;
 }
 
-div.instancesnavlists a:hover {
-   text-decoration: none;
-   color: #C00;
+div.instancesnavlists input {
+    margin-top: 0px;
+    margin-right: 3px;
+}
+
+div.instancesnavlists span.labelcheckbox small {
+    color: #777;
 }
 
 div.instancesnavlists hr {

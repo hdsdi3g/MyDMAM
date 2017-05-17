@@ -95,6 +95,7 @@ manager.items.summarytable.instance=Instance
 manager.items.summarytable.item=Classe
 manager.items.summarytable.descr=Description
 manager.items.summarytable.descr.noset=(Non défini)
+manager.items.summarytable.empty=Selectionnez une instance pour afficher ses éléments déclarés.
 manager.items.AppManager.next_updater_refresh_date=Prochain rafraichissement :
 manager.items.AppManager.broker.off=Broker inactif
 manager.items.AppManager.broker.on=Broker actif
@@ -170,7 +171,7 @@ manager.items.ClockProgrammedTasks.not-unschedule_if_error=N'est pas déplanifi�
 manager.items.ClockProgrammedTasks.next_scheduled=Prochaine execution programmée
 manager.items.ClockProgrammedTasks.list=Tâches déclarées
 manager.items.ClockProgrammedTasks.previous_start_date=Précédent démarrage
-manager.items.ClockProgrammedTasks.previous_duration=Durée
+manager.items.ClockProgrammedTasks.previous_duration=Durée : %s secondes
 
 manager.playserver=Serveur Play
 manager.playserver.in_js_dev=Actuellement en mode dev : compilation dynamique JS/JSX avec NodeJS et Babel.

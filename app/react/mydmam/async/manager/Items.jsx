@@ -53,7 +53,7 @@ manager.Items = createReactClass({
 						break;
 					}
 					pos++;
-					selected_instances.push(instance_key);
+					//selected_instances.push(instance_key);
 				}
 				this.setState({
 					selected_instances: selected_instances,
@@ -308,20 +308,22 @@ manager.Items = createReactClass({
 				</table>
 				<hr />
 			</div>);
+		} else {
+			table_summary_items = (<mydmam.async.AlertInfoBox>{i18n("manager.items.summarytable.empty")}</mydmam.async.AlertInfoBox>);
 		}
 
 		return (<div className="row-fluid">
 			<div className="span3">
 			 	<div className="well instancesnavlists">
-				 	<pre>
-	 					<strong>{i18n("manager.items.chooseinstancelist")}</strong>
-				    	{display_instance_list}
-					</pre>
-						<hr />
-				 	<pre>
-	 					<strong>{i18n("manager.items.chooseitemlist")}</strong>
-				    	{display_item_classes_list}
-					</pre>
+					<div style={{marginBottom: "4px", }}>
+						<strong>{i18n("manager.items.chooseinstancelist")}</strong>
+					</div>
+					{display_instance_list}
+					<hr />
+					<div style={{marginBottom: "4px", }}>
+						<strong>{i18n("manager.items.chooseitemlist")}</strong>
+					</div>
+					{display_item_classes_list}
 			    </div>
 			</div>
 			<div className="span9" style={{marginLeft: 15}} ref="items_container">
@@ -347,15 +349,12 @@ manager.btnArrowGoToItemBlock = createReactClass({
 
 manager.SelectNavItemInstance = createReactClass({
 	onClick: function (e) {
-		e.preventDefault();
-		$(ReactDOM.findDOMNode(this.refs.a)).blur();
+		$(ReactDOM.findDOMNode(this.refs.cb)).blur();
 		this.props.onClick(this.props.reference, ! this.props.checked);
 	},
  	render: function() {
  		return (<div>
- 			<a href={location.hash} onClick={this.onClick} ref="a">
-	 			{this.props.checked ? "[X]" : "[ ]"} {this.props.children}
-	 		</a>
+	 		<input type="checkbox" checked={this.props.checked} ref="cb" onClick={this.onClick} /> <span onClick={this.onClick} className="labelcheckbox">{this.props.children}</span>
 	 	</div>);
 	},
 });

@@ -552,4 +552,15 @@ mydmam.module.register("ClockProgrammedTasks", {
 			{manager.executorStatus(content.executor)}
 		</div>);
 	},
+	managerInstancesItemsDescr: function(item) {
+		if (item["class"] != "ClockProgrammedTasks") {
+			return null;
+		}
+		var tasks = [];
+		for (var key in item.content.tasks) {
+			tasks.push(item.content.tasks[key].name);
+		}
+
+		return tasks.join(', ');
+	},
 });
