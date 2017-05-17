@@ -71,7 +71,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	 * @param force don't let the time to close current tasks
 	 */
 	void cancelAllProgrammed(long timeout, TimeUnit unit) {
-		Loggers.ClkPrgmTsk.info("Stop regular scheduling for " + all_tasks.size() + "task(s)");
+		Loggers.ClkPrgmTsk.info("Stop regular scheduling for " + all_tasks.size() + " task(s)");
 		
 		all_tasks.forEach(task -> {
 			task.stopNextScheduling();

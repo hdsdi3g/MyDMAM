@@ -511,6 +511,33 @@ mydmam.module.register("ClockProgrammedTasks", {
 		var content = item.content;
 		var tasks = [];
 
+		var onToogleExecutorEnableDisable = function(action) {
+			manager.createInstanceAction("ClockProgrammedTasks", item.key, {executor: action});
+		};
+
+		var executor = item.content.executor;
+		var active = executor.shutdown == false && executor.terminating == false && executor.terminated == false;
+		var BtnExecutorEnableDisable = <mydmam.async.BtnEnableDisable
+			simplelabel={!manager.canCreateInstanceAction()}
+			enabled={active}
+			labelenabled={i18n("manager.items.ExecutorStatus.status.stop")}
+			labeldisabled={i18n("manager.items.ExecutorStatus.status.start")}
+			onEnable={onToogleExecutorEnableDisable}
+			onDisable={onToogleExecutorEnableDisable}
+			reference={active ? "disable" : "enable"} />
+
+		//TODO task = task.key && action = start_now/unschedule/schedule/toggle_unschedule_if_error
+
+		/*async.SimpleBtn = createReactClass({
+			propTypes: {
+				enabled: PropTypes.bool.isRequired,
+				onClick: PropTypes.func.isRequired,
+				reference: PropTypes.string,
+				btncolor: PropTypes.string,
+				normalsize: PropTypes.bool,
+				hide_for_disable: PropTypes.bool,*/
+
+
 		var cpTask = function(task) {
 			var retry_after = task.retry_after;
 			if (retry_after > 0) {
@@ -549,6 +576,9 @@ mydmam.module.register("ClockProgrammedTasks", {
 		return (<div>
 			<strong style={{marginBottom: "15px"}}>{i18n("manager.items.ClockProgrammedTasks.list")}</strong>
 			{tasks}
+			<p>
+				{BtnExecutorEnableDisable}
+			</p>
 			{manager.executorStatus(content.executor)}
 		</div>);
 	},
