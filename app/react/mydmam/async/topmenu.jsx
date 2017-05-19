@@ -105,14 +105,17 @@ var isMenuItemIsActive = function(href_hash_to_handle, limit_to_current_href_not
 }
 
 async.TopMenu = createReactClass({
-	onSearchKeyPress: function(event) {
+	onSearchKeyUp: function(event) {
 		if (!event) {
 			event = window.event;
 		}
     	var keyCode = event.keyCode || event.which;
+   		var item = ReactDOM.findDOMNode(this.refs.search);
+
     	if (keyCode == '13') {
-    		var item = ReactDOM.findDOMNode(this.refs.search);
-    		this.props.onDirectSearch(item.value);
+			if (this.props.onClassicSearch) {
+				this.props.onClassicSearch(item.value);
+			}
       		item.value = "";
 
 			event.preventDefault();
@@ -120,6 +123,10 @@ async.TopMenu = createReactClass({
 				event.stopImmediatePropagation();
 			}
 			event.stopPropagation();
+    	} else {
+    		if (this.props.onInternalSearch) {
+	    		this.props.onInternalSearch(item.value);
+    		}
     	}
 	},
 	render: function() {
@@ -128,13 +135,13 @@ async.TopMenu = createReactClass({
 		var navigate_link = null;
 		var navigate_link_divider = null;
 
-		if (this.props.display_search_inputbox) {
+		if (this.props.can_display_search_inputbox) {
 			sitesearchbox = (<li className="navbar-search">
 				<input
 					type="text"
 					className="search-query span2"
 					placeholder={i18n("maingrid.search")}
-					onKeyPress={this.onSearchKeyPress}
+					onKeyUp={this.onSearchKeyUp}
 					ref="search" />
 			</li>);
 			sitesearchbox_divider = divider_vertical;

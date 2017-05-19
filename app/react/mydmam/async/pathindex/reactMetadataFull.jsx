@@ -22,7 +22,6 @@ pathindex.reactMetadataFull = createReactClass({
 		}
 		var mtdsummary = this.props.mtdsummary;
 		var reference = this.props.reference;
-		// console.log("TODO", this.props);
 
 		var file_hash = md5(reference.storagename + ":" + reference.path);
 		var master_as_preview_type = '';

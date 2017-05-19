@@ -121,7 +121,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 		return ClockProgrammedTasks.class;
 	}
 	
-	public void doAnAction(JsonObject order) throws Exception {// TODO (no urgent) publish to website
+	public void doAnAction(JsonObject order) throws Exception {
 		if (order.has("executor")) {
 			String s_order = order.get("executor").getAsString();
 			if (s_order.equalsIgnoreCase("enable")) {

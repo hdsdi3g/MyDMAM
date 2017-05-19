@@ -120,7 +120,7 @@ var AuthorList = createReactClass({
 
 var EventListTable = createReactClass({
 	onClickDelete: function(ref) {
-		mydmam.async.request("dareport", "eventdelete", {name: ref}, this.props.onDeleteEventGetNewerList);//TODO
+		mydmam.async.request("dareport", "eventdelete", {name: ref}, this.props.onDeleteEventGetNewerList);
 	},
 	onClickSend: function(ref) {
 		mydmam.async.request("dareport", "eventsendmail", {name: ref}, function(){

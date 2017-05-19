@@ -212,7 +212,7 @@ manager.Threads = createReactClass({
 				</div>
 			</div>);
 
-			thread_names.push(<span>{thread.id} &bull; {thread.name.substring(0, 50)}</span>);
+			thread_names.push(<span key={pos}>{thread.id} &bull; {thread.name.substring(0, 50)}</span>);
 		}
 
 		return (<manager.ThreadsInstancesNavList

@@ -227,25 +227,6 @@ navigate.NavigatePage = createReactClass({
 		}
 		this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, this.props.q, stat_order);
 	},
-	/*componentWillReceiveProps: function(nextProps) {
-		if (this.props.q != null | nextProps.q != null) {
-			nextProps
-		}
-	},
-	/*handleChangeSearchBox: function(dom_inputbox) {
-		if (!this.state.inputboxsearch) {
-			this.setState({
-				inputboxsearch: dom_inputbox,
-			});
-		}
-		var stat = this.state.stat[md5(this.state.pathindex)];
-		if (!stat) {
-			return;
-		}
-		if (stat.reference.directory) {
-			this.navigateTo(this.state.pathindex, 0, this.state.default_page_size, null);
-		}
-	},*/
 	render: function() {
 		var stat = this.state.stat[md5(this.state.pathindex)];
 		if (!stat) {

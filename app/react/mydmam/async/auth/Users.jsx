@@ -334,7 +334,7 @@ var PasswordPane = createReactClass({
 		}
 
 		mydmam.async.request("auth", "useradminupdate", update_user, function(user) {
-			//TODO done action with user
+			//T O D O done action with user
 		}.bind(this));
 	},
 	render: function(){
