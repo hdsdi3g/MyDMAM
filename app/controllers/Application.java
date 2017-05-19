@@ -35,6 +35,7 @@ import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.web.JSSourceManager;
 import hd3gtv.mydmam.web.PartialContent;
+import hd3gtv.mydmam.web.PlayBootstrap;
 import play.Play;
 import play.Play.Mode;
 import play.data.validation.Required;
@@ -52,8 +53,9 @@ public class Application extends Controller {
 	public static final int HTTP_unauthorized = 403;
 	
 	public static void index() {
-		MyDMAM.getPlayBootstrapper();
-		render();
+		PlayBootstrap pb = MyDMAM.getPlayBootstrapper();
+		String revision_hash_query = pb.getRevisionHashQuery();
+		render(revision_hash_query);
 	}
 	
 	public static void i18n() {

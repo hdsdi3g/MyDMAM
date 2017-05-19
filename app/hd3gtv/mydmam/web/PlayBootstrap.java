@@ -29,6 +29,7 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import hd3gtv.archivecircleapi.ACAPI;
 import hd3gtv.archivecircleapi.ACNode;
 import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.GitInfo;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.auth.AuthTurret;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -39,12 +40,14 @@ import play.cache.Cache;
 import play.cache.CacheImpl;
 import play.cache.EhCacheImpl;
 import play.data.validation.Validation.ValidationResult;
+import play.libs.Crypto;
 
 public class PlayBootstrap {
 	
 	private AuthTurret auth;
 	private JSi18nCached i18n_cache;
 	private BridgePathindexArchivelocation bridge_pathindex_archivelocation;
+	private String revision_hash_query;
 	
 	/**
 	 * A Cache that will be resist to a service restart (in case of automatic re-compilation). Only used in dev mode.
@@ -52,6 +55,12 @@ public class PlayBootstrap {
 	private final InternalDevCache permanent_dev_cache;
 	
 	public PlayBootstrap() {
+		if (Play.mode == Play.Mode.PROD) {
+			revision_hash_query = "?rev=" + Crypto.passwordHash(Crypto.encryptAES(GitInfo.getFromRoot().getActualRepositoryInformation())).substring(0, 4);
+		} else {
+			revision_hash_query = "";
+		}
+		
 		try {
 			CassandraDb.getkeyspace();
 		} catch (ConnectionException e) {
@@ -111,6 +120,10 @@ public class PlayBootstrap {
 		if (bridge_pathindex_archivelocation == null) {
 			bridge_pathindex_archivelocation = new BridgePathindexArchivelocation();
 		}
+	}
+	
+	public String getRevisionHashQuery() {
+		return revision_hash_query;
 	}
 	
 	public AuthTurret getAuth() {
