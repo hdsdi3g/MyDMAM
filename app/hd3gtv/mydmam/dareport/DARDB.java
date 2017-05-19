@@ -218,7 +218,9 @@ public class DARDB {
 			start_time_after_midnight += TimeUnit.SECONDS.toMillis(Integer.parseInt(time_unit[2]));
 		}
 		
-		manager.getClockProgrammedTasks().createTask("Daily activity report mail", start_time_after_midnight, TimeUnit.MILLISECONDS, () -> {
+		String name = Configuration.global.getValue("dareport_setup", "name", "Daily activity report mail");
+		
+		manager.getClockProgrammedTasks().createTask(name, start_time_after_midnight, TimeUnit.MILLISECONDS, () -> {
 			new DARMails().sendDailyReports();
 		}).schedule();
 	}

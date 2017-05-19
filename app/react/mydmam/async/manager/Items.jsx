@@ -354,7 +354,7 @@ manager.SelectNavItemInstance = createReactClass({
 	},
  	render: function() {
  		return (<div>
-	 		<input type="checkbox" checked={this.props.checked} ref="cb" onClick={this.onClick} /> <span onClick={this.onClick} className="labelcheckbox">{this.props.children}</span>
+	 		<input type="checkbox" checked={this.props.checked} ref="cb" onClick={this.onClick} readOnly={true} /> <span onClick={this.onClick} className="labelcheckbox">{this.props.children}</span>
 	 	</div>);
 	},
 });

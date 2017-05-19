@@ -109,8 +109,9 @@ async.BtnEnableDisable = createReactClass({
 		labeldisabled: PropTypes.string.isRequired,
 		onEnable: PropTypes.func,
 		onDisable: PropTypes.func,
-		reference: PropTypes.string,
+		/*reference: PropTypes.string,*/
 		iconcircle: PropTypes.bool,
+		hidden: PropTypes.bool,
 	},
 	getInitialState: function() {
 		return {pending_changes: false};
@@ -133,6 +134,10 @@ async.BtnEnableDisable = createReactClass({
 		this.setState({pending_changes: false});
 	},
 	render: function() {
+		if (this.props.hidden) {
+			return null;
+		}
+
 		var class_name_icon = classNames({
 			"icon-white":       !(!this.props.enabled &  this.props.iconcircle),
 			"icon-stop":         this.props.enabled & !this.props.iconcircle,
@@ -168,7 +173,7 @@ async.BtnEnableDisable = createReactClass({
 
 async.CheckboxItem = createReactClass({
 	propTypes: {
-		reference: PropTypes.string.isRequired,
+		/*reference: PropTypes.string.isRequired,*/
 		checked: PropTypes.bool.isRequired,
 		onChangeCheck: PropTypes.func.isRequired,
 	},
@@ -190,7 +195,7 @@ async.BtnDelete = createReactClass({
 		label: PropTypes.string,
 		enabled: PropTypes.bool.isRequired,
 		onClickDelete: PropTypes.func.isRequired,
-		reference: PropTypes.string,
+		/*reference: PropTypes.string,*/
 		hide_for_disable: PropTypes.bool,
 	},
 	getInitialState: function() {
@@ -225,7 +230,7 @@ async.SimpleBtn = createReactClass({
 	propTypes: {
 		enabled: PropTypes.bool.isRequired,
 		onClick: PropTypes.func.isRequired,
-		reference: PropTypes.string,
+		/*reference: PropTypes.string,*/
 		btncolor: PropTypes.string,
 		normalsize: PropTypes.bool,
 		hide_for_disable: PropTypes.bool,

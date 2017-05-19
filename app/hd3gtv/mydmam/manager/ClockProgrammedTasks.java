@@ -189,6 +189,11 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 			last_status.addProperty("unschedule_if_error", false);
 			last_status.addProperty("last_execute_date", last_execute_date);
 			last_status.addProperty("last_execute_duration", last_execute_duration);
+			if (next_scheduled == null) {
+				last_status.addProperty("scheduled", false);
+			} else {
+				last_status.addProperty("scheduled", next_scheduled.isCancelled() == false && next_scheduled.isDone() == false);
+			}
 		}
 		
 		private JsonObject toJson() {
@@ -199,6 +204,13 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 			}
 			last_status.addProperty("last_execute_date", last_execute_date);
 			last_status.addProperty("last_execute_duration", last_execute_duration);
+			last_status.addProperty("unschedule_if_error", unschedule_if_error);
+			
+			if (next_scheduled == null) {
+				last_status.addProperty("scheduled", false);
+			} else {
+				last_status.addProperty("scheduled", next_scheduled.isCancelled() == false && next_scheduled.isDone() == false);
+			}
 			return last_status;
 		}
 		

@@ -516,34 +516,34 @@ mydmam.module.register("ClockProgrammedTasks", {
 		};
 
 		var executor = item.content.executor;
-		var active = executor.shutdown == false && executor.terminating == false && executor.terminated == false;
-		var BtnExecutorEnableDisable = <mydmam.async.BtnEnableDisable
-			simplelabel={!manager.canCreateInstanceAction()}
-			enabled={active}
-			labelenabled={i18n("manager.items.ExecutorStatus.status.stop")}
-			labeldisabled={i18n("manager.items.ExecutorStatus.status.start")}
-			onEnable={onToogleExecutorEnableDisable}
-			onDisable={onToogleExecutorEnableDisable}
-			reference={active ? "disable" : "enable"} />
+		var executor_active = executor.shutdown == false && executor.terminating == false && executor.terminated == false;
 
-		//TODO task = task.key && action = start_now/unschedule/schedule/toggle_unschedule_if_error
-
-		/*async.SimpleBtn = createReactClass({
-			propTypes: {
-				enabled: PropTypes.bool.isRequired,
-				onClick: PropTypes.func.isRequired,
-				reference: PropTypes.string,
-				btncolor: PropTypes.string,
-				normalsize: PropTypes.bool,
-				hide_for_disable: PropTypes.bool,*/
-
+		var taskAction = function(order) {
+			manager.createInstanceAction("ClockProgrammedTasks", item.key, {
+				task: order.task,
+				action: order.action,
+			});
+		};
 
 		var cpTask = function(task) {
+
+			var start_at = i18n("manager.items.ClockProgrammedTasks.start_at", mydmam.format.msecToHMSms(task.start_time_after_midnight, false, true));
+			if (! task.scheduled) {
+				 start_at = <em>{i18n("manager.items.ClockProgrammedTasks.start_at_never")}</em>;
+			}
+
 			var retry_after = task.retry_after;
 			if (retry_after > 0) {
 				retry_after = <span>Retry: {mydmam.format.msecToHMSms(task.retry_after, false, false)} &bull;</span>;
 			} else {
 				retry_after = null;
+			}
+
+			var block_next_start = null;
+			if (task.scheduled) {
+				block_next_start = (<span>
+					<mydmam.async.pathindex.reactDate date={task.next_scheduled} i18nlabel={i18n("manager.items.ClockProgrammedTasks.next_scheduled")} /> {retry_after}
+				</span>);
 			}
 
 			var last_execute_date = task.last_execute_date;
@@ -556,14 +556,42 @@ mydmam.module.register("ClockProgrammedTasks", {
 			}
 
 			return (<div style={{marginBottom: "15px", marginLeft: "15px"}}>
-				<strong>{task.name}</strong> &bull; {i18n("manager.items.ClockProgrammedTasks.start_at", mydmam.format.msecToHMSms(task.start_time_after_midnight, false, true))}
+				<strong>{task.name}</strong> &bull; {start_at}
 				<span style={{marginLeft: "6px"}}>
 					{mydmam.async.broker.displayKey(task.key, true)} <mydmam.async.JavaClassNameLink javaclass={task.task_class} />
 				</span>
-				<br />
-				{retry_after} <mydmam.async.LabelBoolean value={task.unschedule_if_error} inverse={false} label_true={i18n("manager.items.ClockProgrammedTasks.unschedule_if_error")} label_false={i18n("manager.items.ClockProgrammedTasks.not-unschedule_if_error")} />
-				<br />
-				<mydmam.async.pathindex.reactDate date={task.next_scheduled} i18nlabel={i18n("manager.items.ClockProgrammedTasks.next_scheduled")} />
+
+				<div className="btn-group" style={{display: "block", marginTop: "6px", marginBottom: "6px"}}>
+					<mydmam.async.SimpleBtn reference={{task: task.key, action: "start_now"}} enabled={true} onClick={taskAction} btncolor="btn-primary" normalsize={false}>
+						{i18n("manager.items.ClockProgrammedTasks.start_now")}
+					</mydmam.async.SimpleBtn>
+					<mydmam.async.BtnEnableDisable
+						simplelabel={!manager.canCreateInstanceAction()}
+						enabled={task.scheduled}
+						labelenabled={i18n("manager.items.ClockProgrammedTasks.unschedule")}
+						labeldisabled={i18n("manager.items.ClockProgrammedTasks.schedule")}
+						onEnable={taskAction}
+						onDisable={taskAction}
+						reference={{
+							task: task.key,
+							action: task.scheduled ? "unschedule" : "schedule",
+						}} />
+					<mydmam.async.BtnEnableDisable
+						simplelabel={!manager.canCreateInstanceAction()}
+						enabled={!task.unschedule_if_error}
+						hidden={!task.scheduled}
+						labelenabled={i18n("manager.items.ClockProgrammedTasks.not-unschedule_if_error")}
+						labeldisabled={i18n("manager.items.ClockProgrammedTasks.unschedule_if_error")}
+						onEnable={taskAction}
+						onDisable={taskAction}
+						iconcircle={true}
+						reference={{
+							task: task.key,
+							action: "toggle_unschedule_if_error",
+						}} />
+				</div>
+
+				{block_next_start}
 				<br />
 				{last_execute_date} {last_execute_duration}
 			</div>);
@@ -577,7 +605,14 @@ mydmam.module.register("ClockProgrammedTasks", {
 			<strong style={{marginBottom: "15px"}}>{i18n("manager.items.ClockProgrammedTasks.list")}</strong>
 			{tasks}
 			<p>
-				{BtnExecutorEnableDisable}
+				<mydmam.async.BtnEnableDisable
+					simplelabel={!manager.canCreateInstanceAction()}
+					enabled={executor_active}
+					labelenabled={i18n("manager.items.ExecutorStatus.status.stop")}
+					labeldisabled={i18n("manager.items.ExecutorStatus.status.start")}
+					onEnable={onToogleExecutorEnableDisable}
+					onDisable={onToogleExecutorEnableDisable}
+					reference={executor_active ? "disable" : "enable"} />
 			</p>
 			{manager.executorStatus(content.executor)}
 		</div>);
