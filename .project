@@ -59,5 +59,32 @@
 				<arguments>1.0-projectRelativePath-matches-false-false-build</arguments>
 			</matcher>
 		</filter>
+                <filter>
+                        <id>1495230547268</id>
+                        <name></name>
+                        <type>22</type>
+                        <matcher>
+                                <id>org.eclipse.ui.ide.multiFilter</id>
+                                <arguments>1.0-name-matches-false-false-*.icc</arguments>
+                        </matcher>
+                </filter>
+                <filter>
+                        <id>1495230547269</id>
+                        <name></name>
+                        <type>22</type>
+                        <matcher>
+                                <id>org.eclipse.ui.ide.multiFilter</id>
+                                <arguments>1.0-name-matches-false-false-*.mime</arguments>
+                        </matcher>
+                </filter>
+                <filter>
+                        <id>1495230646087</id>
+                        <name></name>
+                        <type>26</type>
+                        <matcher>
+                                <id>org.eclipse.ui.ide.multiFilter</id>
+                                <arguments>1.0-projectRelativePath-matches-false-false-conf/play</arguments>
+                        </matcher>
+                </filter>
 	</filteredResources>
 </projectDescription>
