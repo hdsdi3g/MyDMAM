@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="MyDMAM ant tools: JRE" default="nope">
+
+	<target name="nope" description="Warn for remind to not use this file">
+		<echo>Don't use this ANT build file directly</echo>
+	</target>
+
+	<import file="./ant-utils.xml"/>
+
+	<target name="checkjrepresencelocal" depends="prepare" description="Check if some JRE zip/gzip files does not exists in local cache">
+		<condition property="needstodownloadjre">
+			<or>
+				<not><available file="${archive.jre.cache}/${archive.jre.windows}" /></not>
+				<not><available file="${archive.jre.cache}/${archive.jre.mac}" /></not>
+				<not><available file="${archive.jre.cache}/${archive.jre.linux}" /></not>
+			</or>
+		</condition>
+		<!-- <condition property="notneedstodownloadjre">
+			<and>
+				<available file="${archive.jre.cache}/${archive.jre.windows}" />
+				<available file="${archive.jre.cache}/${archive.jre.mac}" />
+				<available file="${archive.jre.cache}/${archive.jre.linux}" />
+			</and>
+		</condition> -->
+	</target>
+	
+	<target name="downloadjre" depends="prepare, checkjrepresencelocal" description="Download all JRE in local cache" if="needstodownloadjre">
+		<mkdir dir="${archive.jre.cache}" />
+		<delete failonerror="false">
+			<fileset dir="${archive.jre.cache}">
+				<include name="${archive.jre.windows}"/>
+				<include name="${archive.jre.mac}"/>
+				<include name="${archive.jre.linux}"/>
+			</fileset>
+		</delete>
+
+		<echo>You must accept the Oracle Binary Code License Agreement for Java SE to download this software.</echo>
+		<echo>http://www.oracle.com/technetwork/java/javase/terms/license/index.html</echo>
+		<get src="${mydmam.website.url.download}/${archive.jre.windows}" dest="${archive.jre.cache}" />
+		<get src="${mydmam.website.url.download}/${archive.jre.linux}" dest="${archive.jre.cache}" />
+		<get src="${mydmam.website.url.download}/${archive.jre.mac}" dest="${archive.jre.cache}" />
+	</target>
+
+	<target name="getjrewindows" depends="prepare, downloadjre" description="Get Oracle JRE for Windows in build directory">
+		<unzip src="${archive.jre.cache}/${archive.jre.windows}" dest="${out.jre}"/>
+		<move file="${out.jre}/${archive.jre.extractedbasename}" tofile="${out.jre.windows}"/>
+	</target>
+
+	<target name="getjrelinux" depends="prepare, downloadjre" description="Get Oracle JRE for Linux in build directory">
+		<gunzip src="${archive.jre.cache}/${archive.jre.linux}" dest="${out.jre}/jre-linux.tar"/>
+		<untar src="${out.jre}/jre-linux.tar" dest="${out.jre}" />
+		<delete file="${out.jre}/jre-linux.tar" />
+		<move file="${out.jre}/${archive.jre.extractedbasename}" tofile="${out.jre.linux}"/>
+	</target>
+
+	<target name="getjremac" depends="prepare, downloadjre" description="Get Oracle JRE for macOS in build directory">
+		<gunzip src="${archive.jre.cache}/${archive.jre.mac}" dest="${out.jre}/jre-mac.tar"/>
+		<untar src="${out.jre}/jre-mac.tar" dest="${out.jre}" />
+		<delete file="${out.jre}/jre-mac.tar" />
+		<move file="${out.jre}/${archive.jre.extractedbasename}.jre" tofile="${out.jre.mac}"/>
+	</target>
+
+	<target name="getjreIfwindows" depends="getjrewindows" description="Get Oracle JRE for Windows, only if this is Windows" if="is_windows"></target>
+	<target name="getjreIflinux" depends="getjrelinux" description="Get Oracle JRE for Linux, only if this is Linux" if="is_linux"></target>
+	<target name="getjreIfmac" depends="getjremac" description="Get Oracle JRE for macOS, only if this is macOS" if="is_mac"></target>
+
+</project>
+	

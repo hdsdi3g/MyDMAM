@@ -38,3 +38,4 @@ pack/
 src/
 databaseredist/
 archive/
+.cache/
