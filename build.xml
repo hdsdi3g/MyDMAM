@@ -179,7 +179,7 @@
 	<target name="build" depends="makelib, makestarters, copyproject, getjreIfwindows, getjreIflinux, getjreIfmac" description="Prepare dependencies, compile, create jars, and prepare clean project">
 	</target>
 
-	<target name="pack" depends="makelib, makestarters, copyproject" description="Helper to create MyDMAM redistributable archive without JRE">
+	<target name="pack" depends="makelib, makestarters, copyproject, makepackdir" description="Helper to create MyDMAM redistributable archive without JRE">
 	</target>
 	
 	<target name="pack-windows" depends="pack, getjrewindows" description="Create MyDMAM Windows redistributable archive with JRE">
@@ -191,11 +191,12 @@
 
 		<mkdir dir="archive"/>
 		<move file="${out.dir}" tofile="archive/mydmam"/>
-		<mkdir dir="pack"/>
 		<property name="out.dir.archive.windows" value="mydmam-windows-${gitversion}.zip" />
-		<zip destfile="pack/${out.dir.archive.windows}" basedir="archive" description="MyDMAM Windows redistributable ${gitversion}" />
-		<checksum file="pack/${out.dir.archive.windows}" forceOverwrite="yes" />
-		<loadfile property="out.dir.archive.windows.hash" srcFile="pack/${out.dir.archive.windows}.MD5"/>
+		<zip destfile="${pack}/${out.dir.archive.windows}" basedir="archive" description="MyDMAM Windows redistributable ${gitversion}" />
+		<checksum file="${pack}/${out.dir.archive.windows}" forceOverwrite="yes" />
+		<loadfile property="out.dir.archive.windows.hash" srcFile="${pack}/${out.dir.archive.windows}.MD5"/>
+		<delete file="${pack}/${out.dir.archive.windows}.MD5"/>
+		<length property="out.dir.archive.windows.size" file="${pack}/${out.dir.archive.windows}" />
 		<move file="archive/mydmam" tofile="${out.dir}"/>
 		<delete dir="archive"/>
 	</target>
@@ -209,11 +210,12 @@
 
 		<mkdir dir="archive"/>
 		<move file="${out.dir}" tofile="archive/mydmam"/>
-		<mkdir dir="pack"/>
 		<property name="out.dir.archive.linux" value="mydmam-linux-${gitversion}.tar.gz" />
-		<tar destfile="pack/${out.dir.archive.linux}" basedir="archive" compression="gzip" longfile="gnu" />
-		<checksum file="pack/${out.dir.archive.linux}" forceOverwrite="yes" />
-		<loadfile property="out.dir.archive.linux.hash" srcFile="pack/${out.dir.archive.linux}.MD5"/>
+		<tar destfile="${pack}/${out.dir.archive.linux}" basedir="archive" compression="gzip" longfile="gnu" />
+		<checksum file="${pack}/${out.dir.archive.linux}" forceOverwrite="yes" />
+		<loadfile property="out.dir.archive.linux.hash" srcFile="${pack}/${out.dir.archive.linux}.MD5"/>
+		<delete file="${pack}/${out.dir.archive.linux}.MD5"/>
+		<length property="out.dir.archive.linux.size" file="${pack}/${out.dir.archive.linux}" />
 		<move file="archive/mydmam" tofile="${out.dir}"/>
 		<delete dir="archive"/>
 	</target>
@@ -227,11 +229,12 @@
 
 		<mkdir dir="archive"/>
 		<move file="${out.dir}" tofile="archive/mydmam"/>
-		<mkdir dir="pack"/>
 		<property name="out.dir.archive.mac" value="mydmam-mac-${gitversion}.tar.gz" />
-		<tar destfile="pack/${out.dir.archive.mac}" basedir="archive" compression="gzip" longfile="gnu" />
-		<checksum file="pack/${out.dir.archive.mac}" forceOverwrite="yes" />
-		<loadfile property="out.dir.archive.mac.hash" srcFile="pack/${out.dir.archive.mac}.MD5"/>
+		<tar destfile="${pack}/${out.dir.archive.mac}" basedir="archive" compression="gzip" longfile="gnu" />
+		<checksum file="${pack}/${out.dir.archive.mac}" forceOverwrite="yes" />
+		<loadfile property="out.dir.archive.mac.hash" srcFile="${pack}/${out.dir.archive.mac}.MD5"/>
+		<delete file="${pack}/${out.dir.archive.mac}.MD5"/>
+		<length property="out.dir.archive.mac.size" file="${pack}/${out.dir.archive.mac}" />
 		<move file="archive/mydmam" tofile="${out.dir}"/>
 		<delete dir="archive"/>
 	</target>
