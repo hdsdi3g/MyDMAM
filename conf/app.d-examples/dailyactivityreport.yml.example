@@ -1,0 +1,50 @@
+# Daily activity report
+# Only enable it in a play server instance.
+
+dareport_setup:
+    manager_addrs:
+        - manager@mydomain.local # Full report will be sended to this mail addr
+        # Add more as you want
+    send_time: "03:00:00" # Every 3:00 AM (current instance local time), all mails will be sended. Use 24h mode! Not 12 AM/PM!
+    mail_locale: en # or fr, use conf/messages.* files
+    jobs:
+        prod:
+            name: "Producer"
+            panels: "manager" # See panels zone in below
+        dir:
+            name: "Director"
+            panels: "manager"
+        editor:
+            name: "Editor"
+            panels: "tech"
+        sound:
+            name: "Sound engineer"
+            panels: "tech"
+        # Add more as you want
+    panels:
+        manager:
+            -
+                type: "radiobox" # Actually, only radiobox is supported. Yes/No. If false, ignore question, else display response in emails.
+                label: "All is ok with crew" # Question to display
+                tips: "Explain problems here please..." # textaera placeholder text. User can enter reasons for set "no" in response.
+                isstrong: true # "Bold font" question
+            -
+                type: "radiobox"
+                label: "Time is respected"
+                tips: "Explain with not"
+                isstrong: true
+            -
+                type: "radiobox"
+                label: "Weather problems"
+                tips: "What was the weather."
+                isstrong: false
+                reverse_boolean: true # set this for set a "true" is "bad", and a "false" is ok. Instead of the oposite...
+            # Add more as you want
+        tech:
+            -
+                type: "radiobox"
+                label: "Technical problems"
+                tips: "Explain problems here please..."
+                isstrong: true
+                reverse_boolean: true
+            # Add more as you want
