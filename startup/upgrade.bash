@@ -83,6 +83,20 @@ if [ ! -f "$MYDMAM_DIR/version" ]; then
 	exit 2;
 fi
 
+# Check if archive file and this script is not localized in old mydmam directory
+CURRENT_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+ARCHVIVE_FILE_RPATH="$(dirname "$( realpath "$ARCHVIVE_FILE" )")";
+MYDMAM_DIR_RPATH=$(realpath "$MYDMAM_DIR");
+
+if [[ $ARCHVIVE_FILE_RPATH == "$MYDMAM_DIR_RPATH"* ]]; then
+	echo "You can't use $ARCHVIVE_FILE inside the mydmam directory to upgrade... Copy it outside first." 1>&2
+	exit 2;
+fi
+if [[ $CURRENT_SCRIPT_DIR == "$MYDMAM_DIR_RPATH"* ]]; then
+	echo "You can't use $0 inside the mydmam directory to upgrade... Copy it outside first." 1>&2
+	exit 2;
+fi
+
 ACTUAL_MYDMAM_VERSION=$(cat "$MYDMAM_DIR/version");
 
 # Make temp directory
