@@ -49,6 +49,7 @@ public abstract class ImageMagickThumbnailer implements MetadataExtractor {
 			CopyMove.checkExistsCanRead(icc_profile);
 		} catch (Exception e) {
 			Loggers.Transcode.error("Can't found icc profile file in conf directory.", e);
+			System.exit(1);
 		}
 	}
 	

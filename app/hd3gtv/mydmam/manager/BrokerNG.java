@@ -67,6 +67,7 @@ public class BrokerNG {
 			}
 		} catch (Exception e) {
 			Loggers.Manager.error("Can't init database CFs", e);
+			System.exit(1);
 		}
 	}
 	

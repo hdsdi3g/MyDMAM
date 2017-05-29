@@ -111,6 +111,7 @@ public class RenderedFile {
 			random = new Random();
 		} catch (Exception e) {
 			Loggers.Metadata.error("Can't init, check configuration on metadata_analysing.temp/local_directory", e);
+			System.exit(1);
 		}
 		
 	}

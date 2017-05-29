@@ -44,6 +44,7 @@ public class AdminMailAlert {
 			admin_addr = new InternetAddress(Configuration.global.getValue("service", "administrator_mail", NO_ADMIN_ADDR));
 		} catch (Exception e) {
 			Loggers.Mail.error("Can't init message alert", e);
+			System.exit(1);
 		}
 		
 		try {

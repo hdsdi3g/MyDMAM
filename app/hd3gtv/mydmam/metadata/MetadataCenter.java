@@ -175,6 +175,7 @@ public class MetadataCenter {
 			addExtractor(new FFmpegAudioDeepAnalyser());
 		} catch (Exception e) {
 			Loggers.Metadata.error("Can't instanciate Providers", e);
+			System.exit(1);
 		}
 	}
 	

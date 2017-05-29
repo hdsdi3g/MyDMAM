@@ -89,6 +89,7 @@ public final class JobNG {
 			}
 		} catch (Exception e) {
 			Loggers.Manager.error("Can't init database CFs", e);
+			System.exit(1);
 		}
 	}
 	

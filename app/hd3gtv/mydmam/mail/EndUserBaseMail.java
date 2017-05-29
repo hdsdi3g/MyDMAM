@@ -105,6 +105,7 @@ public class EndUserBaseMail {
 			
 		} catch (Exception e) {
 			Loggers.Mail.error("Can't found template directory in: " + templates_directories, e);
+			System.exit(1);
 		}
 	}
 	

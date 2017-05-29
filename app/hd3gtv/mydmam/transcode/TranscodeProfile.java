@@ -170,6 +170,7 @@ public class TranscodeProfile implements InstanceStatusItem {
 			}
 		} catch (Exception e) {
 			Loggers.Transcode.error("Can't load transcoding configuration", e);
+			System.exit(1);
 		}
 	}
 	

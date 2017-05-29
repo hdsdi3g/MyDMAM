@@ -66,6 +66,7 @@ public class FTPUser implements User {
 			}
 		} catch (Exception e) {
 			Loggers.FTPserver.error("Can't init database CFs", e);
+			System.exit(1);
 		}
 		
 		try {

@@ -46,6 +46,7 @@ public class AccessControlEntry {
 			}
 		} catch (Exception e) {
 			Loggers.AccessControl.error("Can't init database CFs", e);
+			System.exit(1);
 		}
 	}
 	

@@ -57,6 +57,7 @@ public class WatchFolderDB {
 			}
 		} catch (Exception e) {
 			Loggers.Transcode_WatchFolder.error("Can't init database CF", e);
+			System.exit(1);
 		}
 	}
 	
