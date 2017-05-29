@@ -56,7 +56,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 	
 	private void initThreadPoolExecutor() {
 		executor_pool_queue.clear();
-		executor_pool = new ThreadPoolExecutor(1, Runtime.getRuntime().availableProcessors(), 1, TimeUnit.SECONDS, executor_pool_queue);
+		executor_pool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors(), 1, TimeUnit.SECONDS, executor_pool_queue);
 		executor_pool.setRejectedExecutionHandler((r, executor) -> {
 			Loggers.Manager.warn("Too many tasks to be executed on the ClockProgrammedTasks at the same time ! This will not proceed: " + r);
 		});

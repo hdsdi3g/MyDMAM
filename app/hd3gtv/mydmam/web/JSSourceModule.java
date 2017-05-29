@@ -98,7 +98,7 @@ public class JSSourceModule {
 		allfiles_concated_file = new File(reduced_directory.getPath() + File.separator + "_" + module_name + "_" + "concated.js.gz");
 		reduced_declaration_file = new File(reduced_directory + File.separator + "_" + module_name + "_" + "declarations.js");
 		
-		global_executor_pool = new ThreadPoolExecutor(1, Runtime.getRuntime().availableProcessors(), 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(100));
+		global_executor_pool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors(), 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(100));
 		
 		Loggers.Play_JSSource.debug("Init source module, module_name: " + module_name + ", module_path: " + module_path + ", transformed_directory: " + transformed_directory + ", reduced_directory: " + reduced_directory + ", allfiles_concated_file: " + allfiles_concated_file + ", reduced_declaration_file: " + reduced_declaration_file);
 	}
