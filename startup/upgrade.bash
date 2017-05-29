@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # MyDMAM Upgrade script
 #
 # This script extract the new version archive file,
@@ -167,7 +167,6 @@ fi
 
 # Show upgrade notes
 function show_upgrade_notes {
-	echo "";
 	echo "Upgrade notes:"
 	local IFS=$'\n'
 	for line in $(cat "$MYDMAM_DIR/UPGRADE.txt")
