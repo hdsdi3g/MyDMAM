@@ -287,10 +287,12 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			return true;
 		}
 		if (physical_source.isFile() == false) {
-			throw new IOException(physical_source.getPath() + " is not a file");
+			Loggers.Metadata.error("Can analyst file " + physical_source.getPath() + ", is not a file");
+			return true;
 		}
 		if (physical_source.canRead() == false) {
-			throw new IOException("Can't read " + physical_source.getPath());
+			Loggers.Metadata.error("Can analyst file " + physical_source.getPath() + ": can't read it");
+			return true;
 		}
 		
 		if (isWantToStopCurrentProcessing()) {
