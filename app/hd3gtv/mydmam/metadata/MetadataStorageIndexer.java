@@ -124,11 +124,15 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			return new ArrayList<JobNG>(1);
 		}
 		
-		Loggers.Metadata.info("Start to analyst " + process_list.size() + " item(s)");
-		
 		int process_count = 1;
 		if (no_parallelized == false) {
 			process_count = (int) Configuration.global.getValue("metadata_analysing", "parallelized", 1);
+		}
+		
+		if (process_count > 1) {
+			Loggers.Metadata.info("Start to analyst " + process_list.size() + " item(s) by " + process_count + " parallelized processes");
+		} else {
+			Loggers.Metadata.info("Start to analyst " + process_list.size() + " item(s) sequentially");
 		}
 		
 		final AtomicInteger pos = new AtomicInteger(0);
@@ -148,7 +152,7 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 			es_bulk.setWindowUpdateSize(process_count);
 		}
 		
-		ThreadPoolExecutor executor_pool = new ThreadPoolExecutor(1, process_count, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(process_list.size()));
+		ThreadPoolExecutor executor_pool = new ThreadPoolExecutor(process_count, process_count, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(process_list.size()));
 		
 		process_list.forEach(item_to_analyst -> {
 			executor_pool.execute(() -> {
