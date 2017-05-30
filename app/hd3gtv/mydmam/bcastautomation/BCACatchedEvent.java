@@ -39,7 +39,7 @@ public final class BCACatchedEvent {
 		result.duration = event.getDuration();
 		result.name = event.getName();
 		result.update_date = System.currentTimeMillis();
-		result.checked = true;
+		result.checked = false;
 		result.external_ref = external_ref;
 		return result;
 	}
