@@ -33,13 +33,16 @@ public final class BCACatchedEvent {
 	
 	private String external_ref;
 	
+	/**
+	 * @return checked event
+	 */
 	static BCACatchedEvent create(BCAAutomationEvent event, String external_ref) {
 		BCACatchedEvent result = new BCACatchedEvent();
 		result.date = event.getStartDate();
 		result.duration = event.getDuration();
 		result.name = event.getName();
 		result.update_date = System.currentTimeMillis();
-		result.checked = false;
+		result.checked = true;
 		result.external_ref = external_ref;
 		return result;
 	}
@@ -71,8 +74,8 @@ public final class BCACatchedEvent {
 		return checked;
 	}
 	
-	void setChecked() {
-		this.checked = true;
+	void setChecked(boolean checked) {
+		this.checked = checked;
 	}
 	
 	public String getExternalRef() {

@@ -97,7 +97,7 @@ public abstract class BCAEventCatcherHandler {
 		}).findFirst();
 		
 		if (opt_entry.isPresent()) {
-			opt_entry.get().setChecked();
+			opt_entry.get().setChecked(true);
 		} else {
 			BCACatchedEvent entry = BCACatchedEvent.create(event, createExternalRef());
 			to_add.add(entry);
@@ -117,6 +117,10 @@ public abstract class BCAEventCatcherHandler {
 				return true;
 			}
 			return false;
+		});
+		
+		entries.forEach(en -> {
+			en.setChecked(false);
 		});
 	}
 	
