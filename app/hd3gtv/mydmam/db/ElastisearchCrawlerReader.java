@@ -18,6 +18,7 @@ package hd3gtv.mydmam.db;
 
 import java.util.ArrayList;
 
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
@@ -132,7 +133,15 @@ public class ElastisearchCrawlerReader {
 	private SearchResponse execute(final SearchRequestBuilder request) {
 		return Elasticsearch.withRetry(new ElasticsearchWithRetry<SearchResponse>() {
 			public SearchResponse call(Client client) throws NoNodeAvailableException {
-				return client.search(request.request()).actionGet();
+				try {
+					ActionFuture<SearchResponse> result = client.search(request.request());
+					return result.actionGet();
+				} catch (IndexMissingException e) {
+					throw e;
+				} catch (Exception e) {
+					Loggers.ElasticSearch.warn("Can't search", e);
+					throw e;
+				}
 			}
 		});
 	}
@@ -257,6 +266,8 @@ public class ElastisearchCrawlerReader {
 			Loggers.ElasticSearch.debug("Missing index during Crawler reader: no callbacks", ime);
 		} catch (SearchPhaseExecutionException epee) {
 			Loggers.ElasticSearch.debug("Problem during Crawler reader (maybe shard failures / no data): no callbacks", epee);
+		} catch (Exception e) {
+			Loggers.ElasticSearch.warn("Generic exception", e);
 		}
 	}
 	

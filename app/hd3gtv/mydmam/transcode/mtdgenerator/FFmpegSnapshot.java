@@ -18,9 +18,11 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
@@ -31,18 +33,14 @@ import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.VideoConst.Interlacing;
 
-public class FFmpegSnapshot implements MetadataGeneratorRenderer {
+public class FFmpegSnapshot implements MetadataExtractor {
 	
 	private TranscodeProfile tprofile;
 	
-	public static class Snapshot extends EntryRenderer {
-		public String getES_Type() {
-			return "ffsnapshot";
-		}
-		
-	}
+	public final static String ES_TYPE = "ffsnapshot";
 	
 	public FFmpegSnapshot() {
 		if (TranscodeProfile.isConfigured()) {
@@ -50,11 +48,15 @@ public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 		}
 	}
 	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(ES_TYPE);
+	}
+	
 	public boolean isEnabled() {
 		return (tprofile != null);
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		return FFprobeAnalyser.canProcessThisVideoOnly(mimetype);
 	}
 	
@@ -62,8 +64,12 @@ public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 		return "FFmpeg Snapshot";
 	}
 	
-	public EntryRenderer process(Container container) throws Exception {
-		FFprobe ffprobe = container.getByClass(FFprobe.class);
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return null;
+	}
+	
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
+		FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		if (ffprobe == null) {
 			return null;
 		}
@@ -71,8 +77,15 @@ public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 			return null;
 		}
 		
+		/**
+		 * Skip if Albumartwork is already set
+		 */
+		if (container.getByType(FFmpegAlbumartwork.ES_TYPE, EntryRenderer.class) != null) {
+			return null;
+		}
+		
 		Interlacing interlacing = Interlacing.Progressive;
-		FFmpegInterlacingStats interlace_stats = container.getByClass(FFmpegInterlacingStats.class);
+		FFmpegInterlacingStats interlace_stats = container.getByType(FFmpegInterlacingStats.ES_TYPE, FFmpegInterlacingStats.class);
 		if (interlace_stats != null) {
 			interlacing = interlace_stats.getInterlacing();
 		}
@@ -130,17 +143,20 @@ public class FFmpegSnapshot implements MetadataGeneratorRenderer {
 			throw e;
 		}
 		
-		Snapshot result = new Snapshot();
+		EntryRenderer result = new EntryRenderer(FFmpegSnapshot.ES_TYPE);
 		element.consolidateAndExportToEntry(result, container, this);
-		return result;
+		return new ContainerEntryResult(result);
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return null;
 	}
 	
-	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return Snapshot.class;
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		return null;
 	}
 	
+	public boolean isCanUsedInMasterAsPreview(Container container) {
+		return false;
+	}
 }

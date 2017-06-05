@@ -2,7 +2,7 @@
 
 <html>
     <head>
-        <title>&{'site.errorpage.notfound'}</title>
+        <title>%{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale("site.errorpage.notfound"))}%</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>    
     </head>
     <body>
@@ -10,7 +10,7 @@
             #{404 result /}
         #{/if}
         #{else}
-            <h1>&{'site.errorpage.notfound'}</h1>
+            <h1>%{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale("site.errorpage.notfound"))}%</h1>
             <p>
                 ${result.message}
             </p>

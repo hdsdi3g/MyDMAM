@@ -24,9 +24,9 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.manager.ServiceNG;
 import hd3gtv.tools.ApplicationArgs;
+import hd3gtv.tools.TableList;
 
 public class MainClass {
 	
@@ -34,21 +34,48 @@ public class MainClass {
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-		Logger.getRootLogger().removeAllAppenders();
-		ConsoleAppender console_appender = new ConsoleAppender();
-		console_appender.setTarget(ConsoleAppender.SYSTEM_ERR);
-		console_appender.setLayout(new PatternLayout("%-5p ‹%t› “%m”%n ‣ %C.%M(%F:%L)%n"));
-		console_appender.activateOptions();
-		Logger.getRootLogger().addAppender(console_appender);
-		Loggers._MyDMAM_Root.setLevel(Level.WARN);
-		
-		MyDMAM.testIllegalKeySize();
 		
 		ApplicationArgs appargs = new ApplicationArgs(args);
 		
+		Logger.getRootLogger().removeAllAppenders();
+		ConsoleAppender console_appender = new ConsoleAppender();
+		console_appender.setTarget(ConsoleAppender.SYSTEM_OUT);
+		
+		if (appargs.getParamExist("-verbose")) {
+			/**
+			 * always show caller and thread
+			 */
+			console_appender.setLayout(new PatternLayout("%-5p ‹%t› “%m”%n ‣ %C.%M(%F:%L)%n"));
+		} else {
+			console_appender.setLayout(new PatternLayout("%-5p %m%n"));
+		}
+		
+		console_appender.activateOptions();
+		Logger.getRootLogger().addAppender(console_appender);
+		
+		if (appargs.getParamExist("-trace")) {
+			/**
+			 * enable trace mode (debug level)
+			 */
+			Loggers._MyDMAM_Root.setLevel(Level.TRACE);
+			Logger.getRootLogger().setLevel(Level.INFO);
+		} else if (appargs.getParamExist("-quiet")) {
+			/**
+			 * never show a normal log message (debug level)
+			 */
+			Loggers._MyDMAM_Root.setLevel(Level.ERROR);
+			Logger.getRootLogger().setLevel(Level.ERROR);
+		} else {
+			Loggers._MyDMAM_Root.setLevel(Level.INFO);
+			Logger.getRootLogger().setLevel(Level.WARN);
+		}
+		
 		ArrayList<CliModule> modules = new ArrayList<CliModule>();
+		modules.add(new ServiceNG.PlayInCli());
+		modules.add(new ServiceNG.BackgroundServicesInCli());
+		modules.add(new ServiceNG.FTPServerInCli());
+		modules.add(new CliModuleAuth());
 		modules.add(new CliModuleAccessControl());
-		modules.add(new CliModuleAuthenticatorLocal());
 		modules.add(new CliModuleSsh());
 		modules.add(new CliModuleStorageManager());
 		modules.add(new CliModuleCDFinderPathIndexer());
@@ -58,8 +85,8 @@ public class MainClass {
 		modules.add(new CliModuleCopyDirStruct());
 		modules.add(new CliModuleBroker());
 		modules.add(new CliModuleMetadata());
-		
-		modules.addAll(MyDMAMModulesManager.getAllCliModules());
+		modules.add(new CliModuleProcessKit());
+		modules.add(new CliModuleBCA());
 		
 		String modulename = appargs.getFirstAction();
 		
@@ -67,16 +94,21 @@ public class MainClass {
 			System.out.println("MyDMAM Command line interface");
 			System.out.println("=============================");
 			System.out.println("Available modules:");
+			
+			TableList table = new TableList();
+			
 			for (int pos = 0; pos < modules.size(); pos++) {
-				System.out.print(" * ");
-				System.out.print(modules.get(pos).getCliModuleName());
-				System.out.print(" (");
-				System.out.print(modules.get(pos).getCliModuleShortDescr());
-				System.out.print(")");
-				System.out.println();
+				if (modules.get(pos).isFunctionnal() == false) {
+					continue;
+				}
+				table.addRow(" * " + modules.get(pos).getCliModuleName(), modules.get(pos).getCliModuleShortDescr());
 			}
+			table.print();
 			System.out.println("");
 			System.out.println("To show help: modulename -help or modulename -h");
+			System.out.println(" -verbose for verbose mode (always show caller and thread)");
+			System.out.println(" -trace for enable trace mode (debug level)");
+			System.out.println(" -quiet never show a normal log message (debug level)");
 			System.exit(1);
 		}
 		
@@ -84,6 +116,9 @@ public class MainClass {
 			System.out.println("MyDMAM Command line interface");
 			System.out.println("=============================");
 			for (int pos = 0; pos < modules.size(); pos++) {
+				if (modules.get(pos).isFunctionnal() == false) {
+					continue;
+				}
 				if (modules.get(pos).getCliModuleName().equalsIgnoreCase(modulename)) {
 					System.out.println("Help for module " + modulename);
 					System.out.println();
@@ -91,11 +126,14 @@ public class MainClass {
 					System.exit(0);
 				}
 			}
-			System.err.println("Can't found module " + modulename);
+			System.err.println("Can't found CLI module " + modulename);
 			System.exit(2);
 		}
 		
 		for (int pos = 0; pos < modules.size(); pos++) {
+			if (modules.get(pos).isFunctionnal() == false) {
+				continue;
+			}
 			if (modules.get(pos).getCliModuleName().equalsIgnoreCase(modulename)) {
 				modules.get(pos).execCliModule(appargs);
 				System.exit(0);
@@ -103,7 +141,7 @@ public class MainClass {
 		}
 		System.out.println("MyDMAM Command line interface");
 		System.out.println("=============================");
-		System.err.println("Can't found module " + modulename);
+		System.err.println("Can't found CLI module " + modulename);
 		System.exit(2);
 		
 	}

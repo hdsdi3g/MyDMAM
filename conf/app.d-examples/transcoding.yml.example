@@ -1,9 +1,3 @@
-transcoding_probe:
-    maxpresencewaittime : 300
-    sourcelocalfiles : /mnt/storage1
-    deststorage : testfile
-    templocaldir : /tmp
-
 imagemagick_limits:
     memory: 256MB
     disk: 4000MB
@@ -11,17 +5,12 @@ imagemagick_limits:
     time: 120
 
 transcodingprofiles:
-    ffmpeg_vod : 
-        command : "-progress <%$PROGRESSFILE%> -i <%$INPUTFILE%> -i <%$VAR=logo%> -s 640x360 -codec:v h264 -b:v 400k -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
-        logo : /opt/logo 16-9 720x576.png
-        extension : mp4
-        executable : ffmpeg
     ffmpeg_snapshot_first : 
         command : "-i <%$INPUTFILE%> -y -vf <%$FILTERS%> -frames:v 1 <%$OUTPUTFILE%>"
         extension : png
         executable : ffmpeg
     ffmpeg_lowres_lq : 
-        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -vf <%$FILTERS%> -pix_fmt yuv420p -aspect 16:9 -s 384x216 -codec:v h264 -b:v 200k -g 250 -bf 3 -codec:a libfaac -b:a 64k -f mp4 <%$OUTPUTFILE%>"
+        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -filter_complex <%$AUDIOMAPFILTER%> -vf <%$FILTERS%> -pix_fmt yuv420p -aspect 16:9 -s 384x216 -codec:v h264 -b:v 200k -g 250 -bf 3 -codec:a libfdk_aac -b:a 64k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
         output : 
             width : 384
@@ -29,7 +18,7 @@ transcodingprofiles:
             faststart : true
         executable : ffmpeg
     ffmpeg_lowres_sd : 
-        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -vf <%$FILTERS%> -pix_fmt yuv420p -aspect 16:9 -s 640x360 -codec:v h264 -b:v 400k -g 250 -bf 3 -codec:a libfaac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
+        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -filter_complex <%$AUDIOMAPFILTER%> -vf <%$FILTERS%> -pix_fmt yuv420p -aspect 16:9 -s 640x360 -codec:v h264 -b:v 400k -g 250 -bf 3 -codec:a libfdk_aac -b:a 128k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
         output : 
             width : 640
@@ -37,7 +26,7 @@ transcodingprofiles:
             faststart : true
         executable : ffmpeg
     ffmpeg_lowres_hd : 
-        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -vf <%$FILTERS%> -pix_fmt yuv420p -aspect 16:9 -s 1280x720 -codec:v h264 -b:v 3500k -g 250 -bf 3 -codec:a libfaac -b:a 256k -f mp4 <%$OUTPUTFILE%>"
+        command : "-i <%$INPUTFILE%> -threads 8 -slices 4 -y -progress <%$PROGRESSFILE%> -filter_complex <%$AUDIOMAPFILTER%> -vf <%$FILTERS%> -pix_fmt yuv420p -aspect 16:9 -s 1280x720 -codec:v h264 -b:v 3500k -g 250 -bf 3 -codec:a libfdk_aac -b:a 256k -f mp4 <%$OUTPUTFILE%>"
         extension : mp4
         output : 
             width : 1280
@@ -45,7 +34,7 @@ transcodingprofiles:
             faststart : true
         executable : ffmpeg
     ffmpeg_lowres_audio : 
-        command : "-i <%$INPUTFILE%> -y -progress <%$PROGRESSFILE%> -codec:a libfaac -b:a 96k -ac 2 -f mp4 <%$OUTPUTFILE%>"
+        command : "-i <%$INPUTFILE%> -y -progress <%$PROGRESSFILE%> -filter_complex <%$AUDIOMAPFILTER%> -codec:a libfdk_aac -b:a 96k -ac 2 -f mp4 <%$OUTPUTFILE%>"
         extension : aac
         output : 
             faststart : true
@@ -128,7 +117,14 @@ watchfoldertranscoder:
                 #dest_file_prefix: F_
                 #dest_file_suffix: _S
                 #keep_input_dir_to_dest: true
+                #copy_source_file_to_dest: true
         time_to_wait_growing_file: 1000
         time_to_sleep_between_scans: 10000
         min_file_size: 10000
         must_contain: [video, audio] # or "video", or ["video"], or "audio" for audio only. In lowercase.
+        # limit_to_file_extentions: mxf # or [mov, mp4] but without the dot.
+
+#watchfolderopts:
+#    max_founded_items: 100 # Limits the quantity of founded files stored in database (also and the limit of the created transcoding Jobs quantity)
+#                           # After the operation, the founded file entries and all transcoding related Jobs will be removed
+#    dontkeepdone: true     # Don't keep too long time founded files DB references after processing. If max_founded_items > 0, this param has not behaviors.

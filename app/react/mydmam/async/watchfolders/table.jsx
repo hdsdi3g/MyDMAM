@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2015
  * 
 */
-watchfolders.table =  React.createClass({
+watchfolders.table =  createReactClass({
 	loadActualItemList: function() {
 		mydmam.async.request("watchfolders", "list", {}, function(data) {
 			this.setState({items: data.items, jobs: data.jobs});

@@ -135,6 +135,20 @@ public class FTPActivity {
 	
 	@SuppressWarnings("unchecked")
 	static void push(FtpSession session, FtpRequest request) throws FtpException {
+		FTPUser user = (FTPUser) session.getUser();
+		
+		Action action = Action.valueOf(request.getCommand());
+		if (action != Action.REST & action != Action.RETR) {
+			FTPOperations.get().addActiveUser((FTPUser) session.getUser());
+		}
+		
+		if (user.getGroup().isUserHasActivityDisabled(user.getName())) {
+			if (Loggers.FTPserver.isTraceEnabled()) {
+				Loggers.FTPserver.trace("No activity for " + user);
+			}
+			return;
+		}
+		
 		FTPActivity activity = new FTPActivity();
 		activity.activity_date = System.currentTimeMillis();
 		activity.session_key = session.getSessionId().toString();
@@ -142,14 +156,13 @@ public class FTPActivity {
 		activity.activity_key = activity.session_key + "-" + (activity.activity_date - activity.login_time);
 		activity.client_host = session.getClientAddress().getHostString();
 		
-		FTPUser user = (FTPUser) session.getUser();
 		activity.user_id = user.getUserId();
 		activity.working_directory = ((NativeFtpFile) session.getFileSystemView().getWorkingDirectory()).getAbsolutePath();
 		activity.user_name = user.getName();
 		activity.user_domain = user.getDomain();
 		activity.user_group = user.getGroupName();
 		
-		activity.action = Action.valueOf(request.getCommand());
+		activity.action = action;
 		if (activity.action == Action.RNFR) {
 			activity.argument = request.getArgument() + " >";
 		} else if (activity.action == Action.RNTO) {
@@ -187,14 +200,10 @@ public class FTPActivity {
 		}
 		
 		try {
-			Elasticsearch.getClient().prepareIndex(ES_INDEX, ES_TYPE, activity.activity_key).setSource(FTPOperations.getGson().toJson(activity)).setTTL(ttl)
+			Elasticsearch.getClient().prepareIndex(ES_INDEX, ES_TYPE, activity.activity_key).setSource(MyDMAM.gson_kit.getGson().toJson(activity)).setTTL(ttl)
 					.execute(Elasticsearch.createEmptyActionListener(Loggers.FTPserver, FTPActivity.class));
 		} catch (Exception e) {
 			Loggers.FTPserver.warn("Error during store activity in DB: " + e);
-		}
-		
-		if (activity.action != Action.REST & activity.action != Action.RETR) {
-			FTPOperations.get().addActiveUser((FTPUser) session.getUser());
 		}
 	}
 	
@@ -256,7 +265,7 @@ public class FTPActivity {
 		
 		printer.println(new String[] { "Date", "Session", "User name", "User domain", "User group", "User session ref", "Action", "Working Directory", "Argument", "File size", "File offset",
 				"Sec after login", "Client" });
-				
+		
 		ElastisearchCrawlerReader ecr = Elasticsearch.createCrawlerReader();
 		ecr.setIndices(ES_INDEX);
 		ecr.setTypes(ES_TYPE);
@@ -316,7 +325,7 @@ public class FTPActivity {
 		ecr.allReader(new ElastisearchCrawlerHit() {
 			
 			public boolean onFoundHit(SearchHit hit) throws Exception {
-				ftp_activity.add(FTPOperations.getGson().fromJson(hit.getSourceAsString(), FTPActivity.class));
+				ftp_activity.add(MyDMAM.gson_kit.getGson().fromJson(hit.getSourceAsString(), FTPActivity.class));
 				return true;
 			}
 		});

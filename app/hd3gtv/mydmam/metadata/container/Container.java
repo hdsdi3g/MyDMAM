@@ -26,6 +26,7 @@ import java.util.List;
 import org.elasticsearch.ElasticsearchException;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
@@ -40,7 +41,6 @@ public class Container {
 	private List<ContainerEntry> containerEntries;
 	private EntrySummary summary;
 	private HashMap<String, ContainerEntry> map_type_entry;
-	private HashMap<Class<? extends ContainerEntry>, ContainerEntry> map_class_entry;
 	
 	public Container(String mtd_key, ContainerOrigin origin) {
 		this.origin = origin;
@@ -51,14 +51,13 @@ public class Container {
 		containerEntries = new ArrayList<ContainerEntry>();
 		summary = null;
 		map_type_entry = new HashMap<String, ContainerEntry>();
-		map_class_entry = new HashMap<Class<? extends ContainerEntry>, ContainerEntry>();
 	}
 	
 	/**
 	 * Add origin in entry, if missing.
 	 */
 	public void addEntry(ContainerEntry containerEntry) {
-		if (containerEntry.getOrigin() == null) {
+		if (containerEntry.hasOrigin() == false) {
 			containerEntry.setOrigin(origin);
 		} else if (origin.equals(containerEntry.getOrigin()) == false) {
 			Loggers.Metadata.error("Divergent origins, candidate: " + containerEntry + ", reference origin: " + origin);
@@ -68,7 +67,6 @@ public class Container {
 		containerEntries.add(containerEntry);
 		
 		map_type_entry.put(containerEntry.getES_Type(), containerEntry);
-		map_class_entry.put(containerEntry.getClass(), containerEntry);
 		
 		if (containerEntry instanceof EntrySummary) {
 			summary = (EntrySummary) containerEntry;
@@ -89,6 +87,30 @@ public class Container {
 		return result;
 	}
 	
+	public <T extends ContainerEntry> T getByType(String type, Class<T> class_type) {
+		if (type == null) {
+			throw new NullPointerException("\"type\" can't to be null");
+		}
+		if (class_type == null) {
+			throw new NullPointerException("\"class_type\" can't to be null");
+		}
+		
+		if (map_type_entry.containsKey(type) == false) {
+			return null;
+		}
+		
+		ContainerEntry c_e = map_type_entry.get(type);
+		if (class_type.isAssignableFrom(c_e.getClass()) == false) {
+			Loggers.Metadata.error("Invalid transtype for type " + type + ": want item (" + class_type + ") is not compatible with declared item (" + c_e.getClass() + ")");
+			return null;
+		}
+		
+		@SuppressWarnings("unchecked")
+		T result = (T) map_type_entry.get(type);
+		result.container = this;
+		return result;
+	}
+	
 	public ContainerOrigin getOrigin() {
 		return origin;
 	}
@@ -104,15 +126,24 @@ public class Container {
 		return mtd_key;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public <T extends ContainerEntry> T getByClass(Class<T> class_of_T) {
-		if (map_class_entry.containsKey((Class<?>) class_of_T)) {
-			T result = (T) map_class_entry.get((Class<?>) class_of_T);
-			result.container = this;
-			return result;
-		} else {
-			return null;
+	public boolean containAnyMatchContainerEntryType(String... types) {
+		if (types == null) {
+			return false;
 		}
+		if (types.length == 0) {
+			return false;
+		}
+		
+		ArrayList<String> al_types = new ArrayList<>(types.length);
+		for (int pos = 0; pos < types.length; pos++) {
+			if (types[pos] != null) {
+				al_types.add(types[pos]);
+			}
+		}
+		
+		return al_types.stream().anyMatch(type -> {
+			return map_type_entry.containsKey(type);
+		});
 	}
 	
 	public void save() throws ElasticsearchException {
@@ -144,9 +175,17 @@ public class Container {
 			sb.append(", origin.storage: ");
 			sb.append(origin.storage);
 		}
+		
 		for (int pos = 0; pos < containerEntries.size(); pos++) {
 			sb.append(", metadata." + containerEntries.get(pos).getES_Type() + ": ");
-			sb.append(ContainerOperations.getGson().toJson(containerEntries.get(pos)));
+			try {
+				sb.append(MyDMAM.gson_kit.getGson().toJson(containerEntries.get(pos)));
+			} catch (Exception e) {
+				/**
+				 * Check serializators.
+				 */
+				Loggers.Metadata.error("Problem during serialization with " + containerEntries.get(pos).getClass().getName(), e);
+			}
 		}
 		return sb.toString();
 	}

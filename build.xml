@@ -1,0 +1,304 @@
+<?xml version="1.0"?>
+<project name="MyDMAM" default="build">
+	<description>MyDMAM: Another way of looking a Digital Media Asset Management</description>
+
+	<property environment="env" />
+
+	<property name="mydmam.app" location="app" />
+	<property name="mydmam.lib" location="lib" />
+	<property name="mydmam.startup" location="startup" />
+
+	<property name="mydmam.website.url.download" value="http://mydmam.org/dwl" />
+	<property name="archive.jre.cache" location=".cache" />
+	<property name="archive.jre.windows" value="jre-8u121-windows-x64.zip" />
+	<property name="archive.jre.linux" value="jre-8u121-linux-x64.tar.gz" />
+	<property name="archive.jre.mac" value="jre-8u121-macosx-x64.tar.gz" />
+	<property name="archive.jre.extractedbasename" value="jre1.8.0_121" />
+	<property name="archive.jre.extractedbasename.windows" value="${archive.jre.extractedbasename}-windows" />
+	<property name="archive.jre.extractedbasename.linux" value="${archive.jre.extractedbasename}-linux" />
+	<property name="archive.jre.extractedbasename.mac" value="${archive.jre.extractedbasename}-mac" />
+	
+	<property name="basedir.jrebin.windows" value=".\jre\${archive.jre.extractedbasename.windows}\bin" />
+	<property name="basedir.jrebin.linux" value="./jre/${archive.jre.extractedbasename.linux}/bin" />
+	<property name="basedir.jrebin.mac" value="./jre/${archive.jre.extractedbasename.mac}/Contents/Home/bin" />
+	<property name="out.dir" location="build" />
+
+	<import file="./conf/tools/ant-utils.xml"/>
+	<import file="./conf/tools/ant-jre.xml"/>
+	
+	<target name="compile" depends="downloadjardependencies, copylocaljardependencies" description="Invoke javac for make classes">
+		
+		<!-- Create classpath with all MyDMAM dependencies -->
+		<path id="mydmam.classpath">
+			<fileset dir="${out.lib}">
+				<include name="*.jar" />
+			</fileset>
+		</path>
+		
+		<javac srcdir="${mydmam.app}" destdir="${out.bin}" excludes="models react views **/*Test.java" includeantruntime="false" target="1.8" debug="true">
+			<classpath refid="mydmam.classpath" />
+			<compilerarg value="-XDignore.symbol.file" />
+		</javac>
+	</target>
+
+	<target name="makelib" depends="compile, getgitversion" description="Create MyDMAM bin jar">
+		<jar basedir="${out.bin}" destfile="${out.lib}/mydmam-${gitversion}-bin.jar">
+			<manifest>
+				<attribute name="Main-Class" value="hd3gtv.mydmam.MainClass" />
+				<attribute name="Codebase" value="mydmam.org" />
+				<attribute name="Built-By" value="hdsdi3g" />
+				<attribute name="Implementation-Vendor" value="MyDMAM" />
+				<attribute name="Implementation-Title" value="MyDMAM" />
+				<attribute name="Implementation-Version" value="${gitversion}" />
+			</manifest>
+		</jar>
+		<delete dir="${out.bin}" />
+	</target>
+
+	<target name="preparewinrun4j" description="Make winrun4j executable for the MyDMAM look" if="is_windows">
+		<echo>Usage: please add to ${mydmam.startup} RCEDIT64.exe and WinRun4J64c.exe</echo>
+		<property name="favicon" location="public/img/favicon.ico" />
+		<!-- embed icon -->
+		<exec executable="RCEDIT64.exe">
+			<!-- add icon -->
+			<arg value="/I"/><arg value="${mydmam.startup}/WinRun4J64c.exe"/><arg value="${favicon}"/>
+		</exec>
+		<copyfile src="${mydmam.startup}/WinRun4J64c.exe" dest="${mydmam.startup}/mydmam-service.exe"/>
+		<move file="${mydmam.startup}/WinRun4J64c.exe" tofile="${mydmam.startup}/mydmam-cli.exe"/>
+		<delete file="${mydmam.startup}/RCEDIT64.exe"/>
+	</target>
+	
+	<target name="copyproject" depends="prepare, getgitversion" description="Copy all mandatory Play projet items">
+		<mkdir dir="${out.dir}/app" />
+		<mkdir dir="${out.dir}/app/controllers" />
+		<mkdir dir="${out.dir}/app/models" />
+		<mkdir dir="${out.dir}/app/views" />
+
+		<copy todir="${out.dir}/app/controllers">
+			<fileset dir="app/controllers" includes="*.java" excludes="Test.java">
+			</fileset>
+		</copy>
+		<copy todir="${out.dir}/app/models">
+			<fileset dir="app/models" includes="**/*.java" excludes="Test.java">
+			</fileset>
+		</copy>
+		<copy todir="${out.dir}/app/views">
+			<fileset dir="app/views" includes="**/*.htm **/*.html **/*.tag">
+			</fileset>
+		</copy>
+		
+		<echo file="${out.dir}/version" append="false" force="true">${gitversion}</echo>
+		
+		<copy todir="${out.conf}">
+			<fileset dir="conf">
+				<exclude name="app.d/" />
+				<exclude name="application.conf" />
+				<exclude name="build.properties" />
+				<exclude name="*.db" />
+				<exclude name="dependencies.yml" />
+				<exclude name="log4j.xml" />
+				<exclude name="ssh/" />
+				<exclude name="jsfiles.json" />
+			</fileset>
+		</copy>
+		
+		<copy file="${out.conf}/application.conf.examples" tofile="${out.conf}/application.conf" />
+		<copy file="${out.conf}/dependencies.yml.examples" tofile="${out.conf}/dependencies.yml" />
+		<copy file="${out.conf}/log4j-prod.xml" tofile="${out.conf}/log4j.xml" />
+		
+		<mkdir dir="${out.conf}/app.d" />
+		<copy todir="${out.conf}/app.d">
+			<fileset dir="${out.conf}/app.d-examples">
+			</fileset>
+		</copy>
+		
+		<copy todir="${out.dir}">
+			<fileset includes="*.txt" dir="" />
+			<fileset includes="*.md" dir="" />
+		</copy>
+
+		<mkdir dir="${out.dir}/modules" />
+		<mkdir dir="${out.dir}/test" />
+
+		<copy todir="${out.dir}/public">
+			<fileset dir="public">
+				<exclude name="javascripts/src/" />
+				<exclude name="javascripts/_transformed/" />
+				<exclude name="javascripts/_reduced/*.js" />
+			</fileset>
+		</copy>
+		
+		<mkdir dir="${out.dir}/startup" />
+		<copy todir="${out.dir}/startup">
+			<fileset dir="${mydmam.startup}">
+				<include name="*.exe" />
+				<include name="*.ini" />
+				<include name="*.bat" />
+				<include name="*.bash" />
+			</fileset>
+		</copy>
+		
+		<fixcrlf srcdir="${out.dir}/startup" includes="**/*.bash" eol="unix" />
+		<fixcrlf srcdir="${out.dir}/startup" includes="**/*.bat **/*.ini" eol="dos" />
+	</target>
+
+	<target name="makesource" depends="prepare, getgitversion" description="Create MyDMAM source jar">
+		<mkdir dir="src" />
+		<jar basedir="${mydmam.app}" destfile="src/mydmam-${gitversion}-src.jar" excludes="**/*Test.java">
+		</jar>
+	</target>
+
+	<target name="copyplayjars" description="Copy Play dependencies to the current lib dir">
+		<copy todir="${mydmam.lib}" flatten="true">
+			<fileset dir="${play}/framework/lib">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="${play}/framework">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="${play}/modules/docviewer/lib/">
+				<include name="*.jar" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="eclipsify" description="Create Eclipse project in MyDMAM root dir">
+		<antcall target="downloadjardependencies">
+			<param name="out.lib" value="${mydmam.lib}"/>
+		</antcall>
+		<get src="https://raw.githubusercontent.com/hdsdi3g/MyDMAM/eclipsify/.project" dest=".project"/>
+		<get src="https://raw.githubusercontent.com/hdsdi3g/MyDMAM/eclipsify/.classpath" dest=".classpath"/>
+		<mkdir dir=".settings"/>
+		<get src="https://raw.githubusercontent.com/hdsdi3g/MyDMAM/eclipsify/.settings/org.eclipse.core.resources.prefs" dest=".settings/org.eclipse.core.resources.prefs"/>
+		<mkdir dir="eclipse"/>
+		<mkdir dir="eclipse/classes"/>
+		<echo>Declare this directory (${basedir}) in Eclipse, via File/Import/Existing Projects into Workspace.</echo>
+		<echo>After that, add ALL jars founded in ${basedir}/lib directory to Project librairies list (via Project property/Java Build Path/Librairies/Add JARs).</echo>
+	</target>
+
+	<target name="build" depends="makelib, makestarters, copyproject, getjreIfwindows, getjreIflinux, getjreIfmac" description="Prepare dependencies, compile, create jars, and prepare clean project">
+	</target>
+
+	<target name="pack" depends="makelib, makestarters, copyproject, makepackdir" description="Helper to create MyDMAM redistributable archive without JRE">
+	</target>
+	
+	<target name="pack-windows" depends="pack, getjrewindows" description="Create MyDMAM Windows redistributable archive with JRE">
+		<delete dir="${out.jre.mac}" failonerror="false" />
+		<delete dir="${out.jre.linux}" failonerror="false" />
+
+		<fixcrlf srcdir="${out.dir}" includes="*.txt *.md" eol="dos" />
+		<fixcrlf srcdir="${out.dir}/conf" includes="**/*.examples **/*.properties **/*.yml **/*.yaml **/*.xml **/messages.* **/*.txt **/*.html **/routes" eol="dos" />
+
+		<mkdir dir="archive"/>
+		<move file="${out.dir}" tofile="archive/mydmam"/>
+		<property name="out.dir.archive.windows" value="mydmam-windows-${gitversion}.zip" />
+		<zip destfile="${pack}/${out.dir.archive.windows}" basedir="archive" description="MyDMAM Windows redistributable ${gitversion}" />
+		<checksum file="${pack}/${out.dir.archive.windows}" forceOverwrite="yes" />
+		<loadfile property="out.dir.archive.windows.hash" srcFile="${pack}/${out.dir.archive.windows}.MD5"/>
+		<delete file="${pack}/${out.dir.archive.windows}.MD5"/>
+		<length property="out.dir.archive.windows.size" file="${pack}/${out.dir.archive.windows}" />
+		<move file="archive/mydmam" tofile="${out.dir}"/>
+		<delete dir="archive"/>
+	</target>
+	
+	<target name="pack-linux" depends="pack, getjrelinux" description="Create MyDMAM Linux redistributable archive with JRE">
+		<delete dir="${out.jre.windows}" failonerror="false" />
+		<delete dir="${out.jre.mac}" failonerror="false" />
+
+		<fixcrlf srcdir="${out.dir}" includes="*.txt *.md" eol="unix" />
+		<fixcrlf srcdir="${out.dir}/conf" includes="**/*.examples **/*.properties **/*.yml **/*.yaml **/*.xml **/messages.* **/*.txt **/*.html **/routes" eol="unix" />
+
+		<mkdir dir="archive"/>
+		<move file="${out.dir}" tofile="archive/mydmam"/>
+		<property name="out.dir.archive.linux" value="mydmam-linux-${gitversion}.tar.gz" />
+		<tar destfile="${pack}/${out.dir.archive.linux}" basedir="archive" compression="gzip" longfile="gnu" />
+		<checksum file="${pack}/${out.dir.archive.linux}" forceOverwrite="yes" />
+		<loadfile property="out.dir.archive.linux.hash" srcFile="${pack}/${out.dir.archive.linux}.MD5"/>
+		<delete file="${pack}/${out.dir.archive.linux}.MD5"/>
+		<length property="out.dir.archive.linux.size" file="${pack}/${out.dir.archive.linux}" />
+		<move file="archive/mydmam" tofile="${out.dir}"/>
+		<delete dir="archive"/>
+	</target>
+	
+	<target name="pack-mac" depends="pack, getjremac" description="Create MyDMAM macOS redistributable archive with JRE">
+		<delete dir="${out.jre.windows}" failonerror="false" />
+		<delete dir="${out.jre.linux}" failonerror="false" />
+
+		<fixcrlf srcdir="${out.dir}" includes="*.txt *.md" eol="unix" />
+		<fixcrlf srcdir="${out.dir}/conf" includes="**/*.examples **/*.properties **/*.yml **/*.yaml **/*.xml **/messages.* **/*.txt **/*.html **/routes" eol="unix" />
+
+		<mkdir dir="archive"/>
+		<move file="${out.dir}" tofile="archive/mydmam"/>
+		<property name="out.dir.archive.mac" value="mydmam-mac-${gitversion}.tar.gz" />
+		<tar destfile="${pack}/${out.dir.archive.mac}" basedir="archive" compression="gzip" longfile="gnu" />
+		<checksum file="${pack}/${out.dir.archive.mac}" forceOverwrite="yes" />
+		<loadfile property="out.dir.archive.mac.hash" srcFile="${pack}/${out.dir.archive.mac}.MD5"/>
+		<delete file="${pack}/${out.dir.archive.mac}.MD5"/>
+		<length property="out.dir.archive.mac.size" file="${pack}/${out.dir.archive.mac}" />
+		<move file="archive/mydmam" tofile="${out.dir}"/>
+		<delete dir="archive"/>
+	</target>
+
+	<target name="pack-all" depends="pack-windows, pack-linux, pack-mac, exportpackforpublish" description="Create MyDMAM Windows, Linux and macOS redistributable archives with JRE">
+	</target>
+
+	<target name="clean" description="Remove build directory, pack archives and source archive">
+		<delete dir="${out.dir}"/>
+		<delete dir="src"/>
+		<delete dir="pack"/>
+		<delete dir="databaseredist"/>
+		<delete>
+			<fileset dir="." includes="mydmam*.jar"/>
+			<fileset dir="." includes="mydmam*.zip"/>
+			<fileset dir="." includes="mydmam*.tar.gz"/>
+		</delete>
+	</target>
+	
+	<target name="pack-databases" description="Create Cassandra and ElasticSearch redistributables for MyDMAM">
+		<property name="dbredist" location="databaseredist"/>
+		<delete dir="${dbredist}"/>
+		<mkdir dir="${dbredist}"/>
+
+		<property name="archive-cassandra" value="apache-cassandra-1.2.19" />
+		<property name="archive-es" value="elasticsearch-1.5.2" />
+
+		<get src="${mydmam.website.url.download}/${archive-cassandra}-bin.tar.gz" dest="${dbredist}" />
+		<get src="${mydmam.website.url.download}/${archive-es}.tar.gz" dest="${dbredist}" />
+		
+		<untar src="${dbredist}/${archive-cassandra}-bin.tar.gz" dest="${dbredist}" compression="gzip"/>
+		<untar src="${dbredist}/${archive-es}.tar.gz" dest="${dbredist}" compression="gzip"/>
+
+		<delete file="${dbredist}/${archive-cassandra}-bin.tar.gz" />
+		<delete file="${dbredist}/${archive-es}.tar.gz" />
+
+		<antcall target="getjrewindows"><param name="out.jre" value="${dbredist}/jre-windows"/>	</antcall>
+		<antcall target="getjrelinux">	<param name="out.jre" value="${dbredist}/jre-linux"/>	</antcall>
+		<antcall target="getjremac">	<param name="out.jre" value="${dbredist}/jre-macos"/>	</antcall>
+
+		<get src="${mydmam.website.url.download}/commons-daemon-1.0.15-bin-windows.zip" dest="${dbredist}" />
+		<unzip src="${dbredist}/commons-daemon-1.0.15-bin-windows.zip" dest="${dbredist}/commons-daemon-1.0.15/" />
+		<move file="${dbredist}/commons-daemon-1.0.15/amd64/prunsrv.exe" todir="${dbredist}" />
+		<delete file="${dbredist}/commons-daemon-1.0.15-bin-windows.zip" />
+		<delete dir="${dbredist}/commons-daemon-1.0.15" />
+	
+		<copy file="${mydmam.startup}/db-setup-bootstrap.bash" tofile="${dbredist}/bootstrap.bash"/>
+		
+		<echo file="${dbredist}/setup.bash" append="false" force="true"># MyDMAM autogenerated file
+JAVA_LINUX=./jre-linux/${archive.jre.extractedbasename.linux}
+JAVA_OSX=./jre-macos/${archive.jre.extractedbasename.mac}/Contents/Home
+CASSANDRA_HOME_NAME=${archive-cassandra};
+ELASTICSEARCH_HOME_NAME=${archive-es};
+</echo>
+
+		<fixcrlf srcdir="${dbredist}" includes="*.bash" eol="unix" />
+		<mkdir dir="archive"/>
+		<move file="${dbredist}" tofile="archive/mydmam-databases"/>
+		<mkdir dir="pack"/>
+		<property name="tardest" location="pack/mydmam-databases-${archive.jre.extractedbasename}-${archive-cassandra}-${archive-es}.tar.gz"/>
+		<tar destfile="${tardest}" basedir="archive" compression="gzip" longfile="gnu" />
+		<checksum file="${tardest}" forceOverwrite="yes" />
+		<move file="archive/mydmam-databases" tofile="${dbredist}"/>
+		<delete dir="archive"/>
+	</target>
+
+</project>

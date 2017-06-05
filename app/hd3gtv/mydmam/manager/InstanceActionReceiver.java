@@ -18,14 +18,12 @@ package hd3gtv.mydmam.manager;
 
 import com.google.gson.JsonObject;
 
-public interface InstanceActionReceiver {
+public interface InstanceActionReceiver extends InstanceStatusAction {
 	
 	/**
 	 * Beware: use class.getSimpleName() to comparate. If 2 differents class has the same name, an error will be thrown.
 	 */
 	public Class<? extends InstanceActionReceiver> getClassToCallback();
-	
-	public String getReferenceKey();
 	
 	public void doAnAction(JsonObject order) throws Exception;
 	

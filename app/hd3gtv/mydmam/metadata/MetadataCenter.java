@@ -25,15 +25,17 @@ import java.util.Map;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.transcode.images.ImageMagickAnalyser;
-import hd3gtv.mydmam.transcode.images.ImageMagickFFmpegThumbnailer;
-import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer;
-import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Cartridge;
-import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.FullDisplay;
-import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailer.Icon;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerCartridge;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerCartridgeFFmpeg;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerFullDisplay;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerFullDisplayFFmpeg;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerIcon;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerIconFFmpeg;
+import hd3gtv.mydmam.transcode.mtdgenerator.BBCBmxAnalyser;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAudioDeepAnalyser;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegInterlacingDetection;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegLowresRenderer;
 import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot;
@@ -45,9 +47,9 @@ import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererSD;
 
 public class MetadataCenter {
 	
-	private static ArrayList<MetadataGeneratorAnalyser> metadataGeneratorAnalysers;
-	private static ArrayList<MetadataGeneratorRenderer> metadataGeneratorRenderers;
-	private static Map<String, MetadataGeneratorAnalyser> master_as_preview_mime_list_providers;
+	private static final ArrayList<MetadataExtractor> declared_extractors;
+	
+	private static Map<String, MetadataExtractor> master_as_preview_mime_list_providers;
 	static File rendering_temp_directory;
 	static File rendering_local_directory;
 	
@@ -57,7 +59,7 @@ public class MetadataCenter {
 		String storage_label_name;
 		String currentpath;
 		MetadataIndexingLimit limit = MetadataIndexingLimit.NOLIMITS;
-		ArrayList<Class<? extends MetadataGenerator>> blacklist;
+		ArrayList<Class<? extends MetadataExtractor>> blacklist;
 		
 		@SuppressWarnings("unchecked")
 		private MetadataConfigurationItem(LinkedHashMap<String, ?> conf) {
@@ -86,14 +88,15 @@ public class MetadataCenter {
 				}
 			}
 			
-			blacklist = new ArrayList<Class<? extends MetadataGenerator>>();
+			blacklist = new ArrayList<Class<? extends MetadataExtractor>>();
 			if (conf.containsKey("blacklist")) {
 				ArrayList<String> str_blacklist = (ArrayList<String>) conf.get("blacklist");
 				for (int pos_bl = 0; pos_bl < str_blacklist.size(); pos_bl++) {
 					try {
-						Class<?> c = Class.forName(str_blacklist.get(pos_bl));
-						if (MetadataGenerator.class.isAssignableFrom(c)) {
-							blacklist.add((Class<? extends MetadataGenerator>) c);
+						Class<?> c = MyDMAM.factory.getClassByName(str_blacklist.get(pos_bl));
+						if (MetadataExtractor.class.isAssignableFrom(c)) {
+							blacklist.add((Class<? extends MetadataExtractor>) c);
+							Loggers.Metadata.debug("Add to blacklist: " + c.getName());
 						} else {
 							throw new ClassNotFoundException(c.getName() + " is not a MetadataGenerator");
 						}
@@ -126,96 +129,85 @@ public class MetadataCenter {
 	}
 	
 	static {
-		metadataGeneratorAnalysers = new ArrayList<MetadataGeneratorAnalyser>();
-		metadataGeneratorRenderers = new ArrayList<MetadataGeneratorRenderer>();
+		declared_extractors = new ArrayList<MetadataExtractor>();
 		
 		master_as_preview_mime_list_providers = null;
 		conf_items = new ArrayList<MetadataCenter.MetadataConfigurationItem>();
 		
 		if (Configuration.global.isElementExists("metadata_analysing")) {
-			List<LinkedHashMap<String, ?>> list_conf = Configuration.global.getListMapValues("metadata_analysing", "items");
-			for (int pos_item = 0; pos_item < list_conf.size(); pos_item++) {
-				conf_items.add(new MetadataConfigurationItem(list_conf.get(pos_item)));
+			if (Configuration.global.isElementKeyExists("metadata_analysing", "items")) {
+				List<LinkedHashMap<String, ?>> list_conf = Configuration.global.getListMapValues("metadata_analysing", "items");
+				for (int pos_item = 0; pos_item < list_conf.size(); pos_item++) {
+					conf_items.add(new MetadataConfigurationItem(list_conf.get(pos_item)));
+				}
+				
 			}
 			
 			if (Configuration.global.getValueBoolean("metadata_analysing", "master_as_preview")) {
-				master_as_preview_mime_list_providers = new HashMap<String, MetadataGeneratorAnalyser>();
+				master_as_preview_mime_list_providers = new HashMap<String, MetadataExtractor>();
 			}
 			rendering_temp_directory = new File(Configuration.global.getValue("metadata_analysing", "temp_directory", System.getProperty("java.io.tmpdir", "/tmp")));
 			rendering_local_directory = new File(Configuration.global.getValue("metadata_analysing", "local_directory", System.getProperty("user.home", "/tmp")));
 		}
 		
 		try {
-			addProvider(new ImageMagickAnalyser());
+			addExtractor(new ImageMagickAnalyser());
 			
-			addProvider(new FFprobeAnalyser());
-			addProvider(new FFmpegInterlacingDetection());
-			addProvider(new FFmpegSnapshot());
-			addProvider(new FFmpegAlbumartwork());
+			addExtractor(new FFprobeAnalyser());
+			addExtractor(new BBCBmxAnalyser());
+			addExtractor(new FFmpegInterlacingDetection());
+			addExtractor(new FFmpegAlbumartwork());
+			addExtractor(new FFmpegSnapshot());
 			
-			addProvider(new ImageMagickThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
-			addProvider(new ImageMagickThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
-			addProvider(new ImageMagickThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
-			addProvider(new ImageMagickFFmpegThumbnailer(FullDisplay.class, PreviewType.full_size_thumbnail, FullDisplay.profile_name));
-			addProvider(new ImageMagickFFmpegThumbnailer(Cartridge.class, PreviewType.cartridge_thumbnail, Cartridge.profile_name));
-			addProvider(new ImageMagickFFmpegThumbnailer(Icon.class, PreviewType.icon_thumbnail, Icon.profile_name));
+			addExtractor(new ImageMagickThumbnailerFullDisplay());
+			addExtractor(new ImageMagickThumbnailerCartridge());
+			addExtractor(new ImageMagickThumbnailerIcon());
 			
-			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererLQ.class, PreviewType.video_lq_pvw, false));
-			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererSD.class, PreviewType.video_sd_pvw, false));
-			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererHD.class, PreviewType.video_hd_pvw, false));
-			addProvider(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererAudio.class, PreviewType.audio_pvw, true));
+			addExtractor(new ImageMagickThumbnailerFullDisplayFFmpeg());
+			addExtractor(new ImageMagickThumbnailerCartridgeFFmpeg());
+			addExtractor(new ImageMagickThumbnailerIconFFmpeg());
+			
+			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererLQ.class, PreviewType.video_lq_pvw, false));
+			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererSD.class, PreviewType.video_sd_pvw, false));
+			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererHD.class, PreviewType.video_hd_pvw, false));
+			addExtractor(new FFmpegLowresRenderer(JobContextFFmpegLowresRendererAudio.class, PreviewType.audio_pvw, true));
+			
+			addExtractor(new FFmpegAudioDeepAnalyser());
 		} catch (Exception e) {
 			Loggers.Metadata.error("Can't instanciate Providers", e);
+			System.exit(1);
 		}
 	}
 	
-	private static void addProvider(MetadataGenerator provider) {
-		if (provider == null) {
+	private static void addExtractor(MetadataExtractor extractor) {
+		if (extractor == null) {
 			return;
 		}
-		if (provider.isEnabled() == false) {
+		Loggers.Metadata.debug("Load extractor " + extractor.getLongName());
+		
+		if (extractor.isEnabled() == false) {
 			return;
 		}
 		
-		Loggers.Metadata.info("Load provider " + provider.getLongName());
-		try {
-			ContainerOperations.declareEntryType(provider.getRootEntryClass());
-		} catch (Exception e) {
-			Loggers.Metadata.error("Can't declare (de)serializer from Entry provider " + provider.getLongName(), e);
-			return;
-		}
-		
-		MetadataGeneratorAnalyser metadataGeneratorAnalyser;
-		if (provider instanceof MetadataGeneratorAnalyser) {
-			metadataGeneratorAnalyser = (MetadataGeneratorAnalyser) provider;
-			metadataGeneratorAnalysers.add(metadataGeneratorAnalyser);
-			if (master_as_preview_mime_list_providers != null) {
-				List<String> list = metadataGeneratorAnalyser.getMimeFileListCanUsedInMasterAsPreview();
-				if (list != null) {
-					for (int pos = 0; pos < list.size(); pos++) {
-						master_as_preview_mime_list_providers.put(list.get(pos).toLowerCase(), metadataGeneratorAnalyser);
-					}
+		declared_extractors.add(extractor);
+		if (master_as_preview_mime_list_providers != null) {
+			List<String> list = extractor.getMimeFileListCanUsedInMasterAsPreview();
+			if (list != null) {
+				for (int pos = 0; pos < list.size(); pos++) {
+					master_as_preview_mime_list_providers.put(list.get(pos).toLowerCase(), extractor);
 				}
 			}
-		} else if (provider instanceof MetadataGeneratorRenderer) {
-			metadataGeneratorRenderers.add((MetadataGeneratorRenderer) provider);
-		} else {
-			Loggers.Metadata.error("Can't add unrecognized provider", null);
 		}
 	}
 	
 	private MetadataCenter() {
 	}
 	
-	public static ArrayList<MetadataGeneratorRenderer> getRenderers() {
-		return metadataGeneratorRenderers;
+	public static ArrayList<MetadataExtractor> getExtractors() {
+		return declared_extractors;
 	}
 	
-	public static ArrayList<MetadataGeneratorAnalyser> getAnalysers() {
-		return metadataGeneratorAnalysers;
-	}
-	
-	public static Map<String, MetadataGeneratorAnalyser> getMasterAsPreviewMimeListProviders() {
+	public static Map<String, MetadataExtractor> getMasterAsPreviewMimeListProviders() {
 		return master_as_preview_mime_list_providers;
 	}
 	

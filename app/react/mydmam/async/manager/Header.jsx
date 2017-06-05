@@ -15,7 +15,7 @@
  * 
 */
 
-manager.Header = React.createClass({
+manager.Header = createReactClass({
 	getInitialState: function() {
 		return {
 			summaries: {},
@@ -67,18 +67,24 @@ manager.Header = React.createClass({
 			show_this = (<manager.Lastjobs />);
 		} else if (location.hash.indexOf("#manager/pendingactions") == 0) {
 			show_this = (<manager.PendingActions />);
-		}
+		} else if (location.hash.indexOf("#manager/clusterstatus") == 0) {
+			show_this = (<manager.ClusterStatus />);
+		} else if (location.hash.indexOf("#manager/playserver") == 0) {
+			show_this = (<manager.PlayServer />);
+		} 
 
 		return (
 			<mydmam.async.PageHeaderTitle title={i18n("manager.pagename")} fluid="true">
 				<ul className="nav nav-tabs">
-					<manager.HeaderTab href="#manager/summary"   i18nlabel="manager.summaries" />
-					<manager.HeaderTab href="#manager/items" 	 i18nlabel="manager.items" />
-					<manager.HeaderTab href="#manager/pendingactions"  i18nlabel="manager.pendingactions" />
-					<manager.HeaderTab href="#manager/lastjobs"  i18nlabel="manager.lastjobs" />
-					<manager.HeaderTab href="#manager/threads" 	 i18nlabel="manager.threads" />
-					<manager.HeaderTab href="#manager/perfstats" i18nlabel="manager.perfstats" />
-					<manager.HeaderTab href="#manager/classpath" i18nlabel="manager.classpath" />
+					<mydmam.async.HeaderTab href="#manager/summary"   i18nlabel="manager.summaries" />
+					<mydmam.async.HeaderTab href="#manager/items" 	 i18nlabel="manager.items" />
+					<mydmam.async.HeaderTab href="#manager/pendingactions"  i18nlabel="manager.pendingactions" />
+					<mydmam.async.HeaderTab href="#manager/lastjobs"  i18nlabel="manager.lastjobs" />
+					<mydmam.async.HeaderTab href="#manager/threads" 	 i18nlabel="manager.threads" />
+					<mydmam.async.HeaderTab href="#manager/perfstats" i18nlabel="manager.perfstats" />
+					<mydmam.async.HeaderTab href="#manager/classpath" i18nlabel="manager.classpath" />
+					<mydmam.async.HeaderTab href="#manager/playserver" i18nlabel="manager.playserver" />
+					<mydmam.async.HeaderTab href="#manager/clusterstatus" i18nlabel="manager.clusterstatus" />
 					<li className="pull-right">
 						<a href={location.hash} onClick={this.truncateDb}>{i18n("manager.truncate")}</a>
 					</li>
@@ -96,29 +102,14 @@ mydmam.routes.push("manager-Threads", 	"manager/threads", 		manager.Header, [{na
 mydmam.routes.push("manager-Items", 	"manager/items", 		manager.Header, [{name: "instances", verb: "allitems"}, {name: "instances", verb: "allsummaries"}]);	
 mydmam.routes.push("manager-Perfstats", "manager/perfstats", 	manager.Header, [{name: "instances", verb: "allperfstats"}]);	
 mydmam.routes.push("manager-PendingActions", "manager/pendingactions", 	manager.Header, [{name: "instances", verb: "allpendingactions"}]);	
+mydmam.routes.push("manager-ClusterStatus", "manager/clusterstatus", 	manager.Header, [{name: "instances", verb: "esclusterstatus"}]);	
+mydmam.routes.push("manager-PlayServer", "manager/playserver", 	manager.Header, [{name: "instances", verb: "playserver"}]);	
 
-manager.HeaderTab = React.createClass({
-	onClick: function(e) {
-		//e.preventDefault();
-		//this.props.onActiveChange(this.props.pos);
-		$(React.findDOMNode(this.refs.tab)).blur();
-	},
-	render: function(){
-		var li_class = classNames({
-			"active": this.props.href == location.hash
-		});
-
-		return (<li className={li_class}>
-			<a href={this.props.href} onClick={this.onClick} ref="tab">{i18n(this.props.i18nlabel)}</a>
-		</li>);
-	},
-});
-
-manager.InstancesNavListElement = React.createClass({
+manager.InstancesNavListElement = createReactClass({
 	onClick: function(e) {
 		e.preventDefault();
 		this.props.onSelect(this.props.reference);
-		$(React.findDOMNode(this.refs.tab)).blur();
+		$(ReactDOM.findDOMNode(this.refs.tab)).blur();
 	},
 	render: function() {
 		return (<a href={location.href} ref="tab" onClick={this.onClick}>

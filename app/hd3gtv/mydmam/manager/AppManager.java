@@ -16,26 +16,20 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
-import hd3gtv.tools.GsonIgnoreStrategy;
 import hd3gtv.tools.StoppableThread;
 
 public final class AppManager implements InstanceActionReceiver, InstanceStatusItem {
@@ -45,118 +39,6 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	 */
 	private static final int SLEEP_BASE_TIME_UPDATE = 10;
 	private static final int SLEEP_COUNT_UPDATE = 6;
-	
-	/**
-	 * ============================================================================
-	 * Start of static realm
-	 * ============================================================================
-	 */
-	private static final Gson gson;
-	private static final Gson simple_gson;
-	private static final Gson pretty_gson;
-	static final long starttime;
-	
-	static {
-		starttime = ManagementFactory.getRuntimeMXBean().getStartTime();
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		
-		/**
-		 * Outside of this package serializers
-		 */
-		builder.registerTypeAdapter(Class.class, new MyDMAM.GsonClassSerializer());
-		
-		simple_gson = builder.create();
-		
-		/**
-		 * Inside of this package serializers
-		 */
-		builder.registerTypeAdapter(InstanceAction.class, new InstanceAction.Serializer());
-		builder.registerTypeAdapter(JobNG.class, new JobNG.Serializer());
-		builder.registerTypeAdapter(GsonThrowable.class, new GsonThrowable.Serializer());
-		builder.registerTypeAdapter(WorkerCapablitiesExporter.class, new WorkerCapablitiesExporter.Serializer());
-		
-		builder.registerTypeAdapter(JobContext.class, new JobContext.Serializer());
-		builder.registerTypeAdapter(new TypeToken<ArrayList<JobContext>>() {
-		}.getType(), new JobContext.SerializerList());
-		
-		builder.registerTypeAdapter(JobCreatorDeclarationSerializer.class, new JobCreatorDeclarationSerializer());
-		builder.registerTypeAdapter(TriggerJobCreator.class, TriggerJobCreator.serializer);
-		builder.registerTypeAdapter(CyclicJobCreator.class, CyclicJobCreator.serializer);
-		
-		gson = builder.create();
-		pretty_gson = builder.setPrettyPrinting().create();
-	}
-	
-	public static Gson getGson() {
-		return gson;
-	}
-	
-	public static Gson getSimpleGson() {
-		return simple_gson;
-	}
-	
-	public static Gson getPrettyGson() {
-		return pretty_gson;
-	}
-	
-	private volatile static HashMap<String, Class<?>> instance_class_name;
-	private volatile static ArrayList<String> not_found_class_name;
-	
-	static {
-		instance_class_name = new HashMap<String, Class<?>>();
-		not_found_class_name = new ArrayList<String>();
-	}
-	
-	public static boolean isClassForNameExists(String class_name) {
-		try {
-			if (not_found_class_name.contains(class_name)) {
-				return false;
-			}
-			if (instance_class_name.containsKey(class_name) == false) {
-				instance_class_name.put(class_name, Class.forName(class_name));
-			}
-			return true;
-		} catch (Exception e) {
-			not_found_class_name.add(class_name);
-		}
-		return false;
-	}
-	
-	public static <T> T instanceClassForName(String class_name, Class<T> return_type) {
-		try {
-			if (isClassForNameExists(class_name) == false) {
-				throw new ClassNotFoundException(class_name);
-			}
-			Class<?> item = instance_class_name.get(class_name);
-			if (return_type.isAssignableFrom(item) == false) {
-				throw new ClassCastException(item.getName() + " by " + return_type.getName());
-			}
-			@SuppressWarnings("unchecked")
-			T newinstance = (T) item.newInstance();
-			instance_class_name.put(class_name, item);
-			return newinstance;
-		} catch (Exception e) {
-			if (not_found_class_name.contains(class_name) == false) {
-				not_found_class_name.add(class_name);
-			}
-			if (instance_class_name.containsKey(class_name)) {
-				instance_class_name.remove(class_name);
-			}
-			Loggers.Manager.error("Can't load class: " + class_name, e);
-		}
-		return null;
-	}
-	
-	/**
-	 * ============================================================================
-	 * End of static realm
-	 * ============================================================================
-	 */
 	
 	/**
 	 * All configured workers.
@@ -169,9 +51,14 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	private BrokerNG broker;
 	private String app_name;
 	private ArrayList<InstanceActionReceiver> all_instance_action_receviers;
+	private ClockProgrammedTasks clock_programmed_tasks;
 	
 	public AppManager(String app_name) {
 		this.app_name = app_name;
+		if (app_name == null) {
+			throw new NullPointerException("\"app_name\" can't to be null");
+		}
+		
 		all_instance_action_receviers = new ArrayList<InstanceActionReceiver>();
 		all_instance_action_receviers.add(this);
 		service_exception = new ServiceException(this);
@@ -181,19 +68,11 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		updater = new Updater(this);
 	}
 	
+	/**
+	 * @return may be null
+	 */
 	String getAppName() {
 		return app_name;
-	}
-	
-	void setAppName(String app_name) {
-		this.app_name = app_name;
-		if (app_name == null) {
-			throw new NullPointerException("\"app_name\" can't to be null");
-		}
-	}
-	
-	public BrokerNG getBroker() {
-		return broker;
 	}
 	
 	public void register(WorkerNG worker) {
@@ -202,6 +81,10 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		}
 		if (worker.isActivated() == false) {
 			return;
+		} else {
+			if (broker.isAlive() == false) {
+				broker.start();
+			}
 		}
 		worker.setManager(this);
 		enabled_workers.add(worker);
@@ -211,26 +94,42 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	}
 	
 	public void register(CyclicJobCreator cyclic_creator) {
+		if (broker.isAlive() == false) {
+			broker.start();
+		}
+		
 		broker.cyclicJobsRegister(cyclic_creator);
 		all_instance_action_receviers.add(cyclic_creator);
 	}
 	
 	public void register(TriggerJobCreator trigger_creator) {
+		if (broker.isAlive() == false) {
+			broker.start();
+		}
+		
 		broker.triggerJobsRegister(trigger_creator);
 		all_instance_action_receviers.add(trigger_creator);
 	}
 	
-	public void registerInstanceActionReceiver(InstanceActionReceiver recevier) {
-		if (recevier == null) {
+	public void registerInstanceStatusAction(InstanceStatusAction instance) {
+		if (instance == null) {
 			throw new NullPointerException("\"recevier\" can't to be null");
 		}
-		if (recevier.getClassToCallback() == null) {
-			throw new NullPointerException("recevier callback class can't to be null");
+		if (instance.getReferenceKey() == null) {
+			throw new NullPointerException("instance ReferenceKey can't to be null");
 		}
-		if (recevier.getReferenceKey() == null) {
-			throw new NullPointerException("recevier ReferenceKey can't to be null");
+		
+		if (instance instanceof InstanceActionReceiver) {
+			InstanceActionReceiver recevier = (InstanceActionReceiver) instance;
+			if (recevier.getClassToCallback() == null) {
+				throw new NullPointerException("recevier callback class can't to be null");
+			}
+			all_instance_action_receviers.add(recevier);
 		}
-		all_instance_action_receviers.add(recevier);
+		
+		if (instance instanceof InstanceStatusItem) {
+			instance_status.addItem((InstanceStatusItem) instance);
+		}
 	}
 	
 	/*public static void unRegisterRecevier(InstanceActionReceiver recevier) {
@@ -307,44 +206,42 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	public void startAll() {
 		Loggers.Manager.debug("Start " + enabled_workers.size() + " worker(s)");
 		
+		if (enabled_workers.isEmpty() == false && broker.isAlive() == false) {
+			broker.start();
+		}
+		
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			enabled_workers.get(pos).getLifecyle().enable();
 		}
-		if (broker == null) {
-			broker = new BrokerNG(this);
-		}
-		Loggers.Manager.debug("Start broker");
-		broker.start();
+		
 		if (updater == null) {
 			updater = new Updater(this);
 		}
 		Loggers.Manager.debug("Start updater");
 		updater.start();
-	}
-	
-	/**
-	 * Don't start broker and workers.
-	 */
-	public void startJustService() {
-		if (broker == null) {
-			broker = new BrokerNG(this);
+		
+		if (clock_programmed_tasks != null) {
+			if (clock_programmed_tasks.isActive() == false) {
+				clock_programmed_tasks.startAllProgrammed();
+			}
 		}
-		if (updater == null) {
-			updater = new Updater(this);
-		}
-		Loggers.Manager.debug("Start just updater");
-		updater.start();
 	}
 	
 	/**
 	 * Blocking
 	 */
 	public void stopAll() {
+		if (clock_programmed_tasks != null) {
+			if (clock_programmed_tasks.isActive()) {
+				clock_programmed_tasks.cancelAllProgrammed(1, TimeUnit.SECONDS);
+			}
+		}
+		
 		if (updater != null) {
 			Loggers.Manager.debug("Stop updater");
 			updater.stopUpdate();
 		}
-		if (broker != null) {
+		if (broker.isAlive()) {
 			Loggers.Manager.debug("Stop broker");
 			broker.askStop();
 		}
@@ -369,19 +266,18 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 			}
 			updater = null;
 			
-			if (broker != null) {
+			if (broker.isAlive()) {
 				Loggers.Manager.debug("Wait broker to stop...");
 				while (broker.isAlive()) {
 					Thread.sleep(1);
 				}
 			}
-			broker = null;
 		} catch (InterruptedException e) {
 			service_exception.onAppManagerError(e, "Can't stop all services threads");
 		}
 	}
 	
-	boolean isWorkingToShowUIStatus() {
+	/*boolean isWorkingToShowUIStatus() {
 		for (int pos = 0; pos < enabled_workers.size(); pos++) {
 			if (enabled_workers.get(pos).getLifecyle().getState() == WorkerState.PROCESSING) {
 				Loggers.Manager.trace("isWorkingToShowUIStatus ? true");
@@ -395,7 +291,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		
 		Loggers.Manager.trace("isWorkingToShowUIStatus ? false");
 		return false;
-	}
+	}*/
 	
 	List<WorkerNG> getEnabledWorkers() {
 		return Collections.unmodifiableList(enabled_workers);
@@ -408,6 +304,17 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 			Loggers.Manager.error("The context origin class (" + context.getClass() + ") is invalid, don't forget it will be (de)serialized.", e);
 			return null;
 		}
+	}
+	
+	public ClockProgrammedTasks getClockProgrammedTasks() {
+		if (clock_programmed_tasks == null) {
+			synchronized (this) {
+				if (clock_programmed_tasks == null) {
+					clock_programmed_tasks = new ClockProgrammedTasks(this);
+				}
+			}
+		}
+		return clock_programmed_tasks;
 	}
 	
 	public InstanceStatus getInstanceStatus() {

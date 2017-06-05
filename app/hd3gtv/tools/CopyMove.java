@@ -50,9 +50,31 @@ public class CopyMove {
 		}
 	}
 	
+	/**
+	 * @return true if element is FS side hidden or element name start by a "."
+	 */
+	public static boolean isHidden(File element) {
+		if (element == null) {
+			return false;
+		}
+		if (element.isHidden()) {
+			return true;
+		}
+		if (element.getName().startsWith(".")) {
+			return true;
+		}
+		return false;
+	}
+	
 	public static void checkIsDirectory(File element) throws FileNotFoundException {
 		if (element.isDirectory() == false) {
 			throw new FileNotFoundException("\"" + element.getPath() + "\" is not a directory");
+		}
+	}
+	
+	public static void checkIsFile(File element) throws FileNotFoundException {
+		if (element.isFile() == false) {
+			throw new FileNotFoundException("\"" + element.getPath() + "\" is not a file");
 		}
 	}
 	

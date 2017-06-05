@@ -1,0 +1,92 @@
+*{
+ * This file is part of MyDMAM.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ * 
+ * Copyright (C) hdsdi3g for hd3g.tv 2012-2017
+ * 
+}*<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>
+		%{ if (flash.pagename != null) {
+				if (flash.pagename.equals("null") == false) {
+					out.println(flash.pagename + " ::");
+				}
+			} }%
+		%{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale("site.name"))}%
+	</title>
+	<meta charset="UTF-8">
+	<!-- meta name="viewport" content="width=device-width, initial-scale=1.0" -->
+	<link rel="stylesheet" media="all" href="@{'/public/font/font.css'}${revision_hash_query}">
+	<link rel="stylesheet" media="all" href="@{'/public/stylesheets/bootstrap.min.css'}${revision_hash_query}">
+	<link rel="stylesheet" media="all" href="@{'/public/stylesheets/bootstrap-responsive.min.css'}${revision_hash_query}">
+	<link rel="stylesheet" media="all" href="@{'/public/stylesheets/style.css'}${revision_hash_query}">
+	#{get 'moreStyles' /}
+	
+	<link rel="shortcut icon" href="@{'/public/img/favicon.ico'}${revision_hash_query}">
+	<link rel="apple-touch-icon" href="@{'/public/img/apple-touch-icon.png'}${revision_hash_query}" />
+	
+	<script src="@{'/public/javascripts/lib/jquery-1.10.2.min.js'}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>
+	<script src="@{'/public/javascripts/lib/bootstrap.min.js'}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>
+	<script src="@{'/public/javascripts/lib/md5.min.js'}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>
+	<script src="@{'/public/javascripts/lib/rlite-1.1.1.min.js'}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>
+
+	#{if hd3gtv.mydmam.web.JSSourceManager.isJsDevMode()}
+		<script src="@{'/public/javascripts/lib/react.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/react-dom.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/create-react-class.js'}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/prop-types.js'}" type="text/javascript" charset="UTF-8"></script>
+	#{/if}#{else}
+		<script src="@{'/public/javascripts/lib/react.min.js'}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/react-dom.min.js'}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/create-react-class.min.js'}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>
+		<script src="@{'/public/javascripts/lib/prop-types.min.js'}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>
+	#{/else}
+
+	<script type="text/javascript"><!--
+	window.mydmam = %{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.toString())}%;
+	--></script>
+	
+	#{list hd3gtv.mydmam.web.JSSourceManager.getURLs(), as:'item'}
+	<script src="&{item}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>#{/list}
+	
+	<script src="@{Application.i18n()}${revision_hash_query}" type="text/javascript" charset="UTF-8"></script>
+	
+	#{get 'moreScripts' /}
+	
+	<script type="text/javascript" charset="UTF-8">
+	<!--
+	var jsx_error_messages = [];
+	
+	$(document).ready(function() {
+		$(function () {
+			if (jsx_error_messages.length > 0) {
+				for (pos = 0; pos < jsx_error_messages.length; pos++) {
+				    var to_display = '<div class="alert alert-error">';
+				    to_display += '<h4>JSX Processing error!</h4>';
+				    to_display += '<p><strong>' + jsx_error_messages[pos].from + '</strong></p>';
+				    to_display += '<p>' + jsx_error_messages[pos].text + '</p>';
+				    to_display += '<p><pre>' + jsx_error_messages[pos].line + '</pre></p>';
+				    to_display += '</div>';
+					$("body").prepend(to_display);
+				}
+			}
+	    });
+	});
+	-->
+	</script>
+	
+</head>
+<body>
+#{doLayout /}
+</body>
+</html>

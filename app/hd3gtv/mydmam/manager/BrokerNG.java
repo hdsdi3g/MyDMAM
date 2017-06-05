@@ -23,26 +23,71 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
+import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ConsistencyLevel;
+import com.netflix.astyanax.model.Row;
+import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.recipes.locks.BusyLockException;
 import com.netflix.astyanax.recipes.locks.ColumnPrefixDistributedRowLock;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
+import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.manager.JobNG.JobStatus;
 import hd3gtv.mydmam.manager.WorkerNG.WorkerState;
 import hd3gtv.tools.StoppableThread;
 
-class BrokerNG {
+public class BrokerNG {
 	
 	/**
 	 * In msec
 	 */
 	private static final int QUEUE_SLEEP_TIME = 5000;
 	private static final int GRACE_PERIOD_TO_REMOVE_DELETED_AFTER_COMPLETED_JOB = 1000 * 30;
+	
+	private static Keyspace keyspace;
+	private static final ColumnFamily<String, String> CF_DONE_JOBS = new ColumnFamily<String, String>("mgrDoneJobs", StringSerializer.get(), StringSerializer.get());
+	
+	static {
+		try {
+			keyspace = CassandraDb.getkeyspace();
+			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
+			if (CassandraDb.isColumnFamilyExists(keyspace, CF_DONE_JOBS.getName()) == false) {
+				CassandraDb.createColumnFamilyString(default_keyspacename, CF_DONE_JOBS.getName(), false);
+			}
+		} catch (Exception e) {
+			Loggers.Manager.error("Can't init database CFs", e);
+			System.exit(1);
+		}
+	}
+	
+	private static final JsonParser parser = new JsonParser();
+	
+	public static JsonArray getAllDoneJobs() throws Exception {
+		final JsonArray ja = new JsonArray();
+		
+		CassandraDb.allRowsReader(CF_DONE_JOBS, new AllRowsFoundRow() {
+			public void onFoundRow(Row<String, String> row) throws Exception {
+				ja.add(parser.parse(row.getColumns().getColumnByName("source").getStringValue()));
+			}
+		}, "source");
+		
+		return ja;
+	}
+	
+	/**
+	 * End of static realm
+	 */
 	
 	private AppManager manager;
 	private volatile List<JobNG> active_jobs;
@@ -77,6 +122,18 @@ class BrokerNG {
 		if (cyclic_creator == null) {
 			throw new NullPointerException("\"cyclic_creator\" can't to be null");
 		}
+		
+		try {
+			String first_context_key = cyclic_creator.getFirstContextKey();
+			Loggers.Manager.trace("Get last end date for this cyclic job: " + cyclic_creator.toString() + ", with first_context_key: " + first_context_key);
+			Column<String> cols = keyspace.prepareQuery(CF_DONE_JOBS).getKey(first_context_key).getColumn("end_date").execute().getResult();
+			if (cols.hasValue()) {
+				cyclic_creator.setLastDateCreatedJobLikeThis(cols.getLongValue());
+			}
+		} catch (ConnectionException e) {
+			Loggers.Manager.warn("Can't access to Cassandra CF", e);
+		}
+		
 		declared_cyclics.add(cyclic_creator);
 		Loggers.Manager.debug("Register cyclic job creator: " + cyclic_creator.toString());
 	}
@@ -93,6 +150,8 @@ class BrokerNG {
 		if (isAlive()) {
 			return;
 		}
+		Loggers.Manager.debug("Start broker");
+		
 		watch_dog = new QueueWatchDog();
 		watch_dog.start();
 	}
@@ -124,6 +183,8 @@ class BrokerNG {
 				List<JobNG> jobs;
 				CyclicJobCreator cyclic_creator;
 				long precedent_date_trigger = System.currentTimeMillis();
+				HashMap<String, TriggerJobCreator> map_triggers = new HashMap<String, TriggerJobCreator>();
+				Rows<String, String> rows = null;
 				
 				while (isWantToRun()) {
 					if (active_jobs.isEmpty() == false) {
@@ -152,8 +213,12 @@ class BrokerNG {
 								}
 							}
 							if (job.isThisStatus(JobStatus.DONE)) {
-								Loggers.Broker.trace("Pull trigger for job [" + job.getKey() + "] " + job.getName());
-								TriggerJobCreator.doneJob(job, mutator);
+								Loggers.Broker.trace("Set done job [" + job.getKey() + "] " + job.getName());
+								if (job.getContext() != null) {
+									String key = JobContext.Utility.prepareContextKeyForTrigger(job.getContext());
+									mutator.withRow(CF_DONE_JOBS, key).putColumn("source", MyDMAM.gson_kit.getGson().toJson(job), JobNG.TTL_WAITING);
+									mutator.withRow(CF_DONE_JOBS, key).putColumn("end_date", job.getEndDate(), JobNG.TTL_WAITING);
+								}
 							}
 						}
 					}
@@ -192,7 +257,20 @@ class BrokerNG {
 						
 						if (declared_triggers.isEmpty() == false) {
 							Loggers.Broker.debug("Prepare trigger hooks create jobs (" + declared_triggers.size() + " items) since " + Loggers.dateLog(precedent_date_trigger));
-							TriggerJobCreator.prepareTriggerHooksCreateJobs(declared_triggers, precedent_date_trigger, mutator);
+							
+							map_triggers.clear();
+							for (int pos = 0; pos < declared_triggers.size(); pos++) {
+								map_triggers.put(declared_triggers.get(pos).getContextHookTriggerKey(), declared_triggers.get(pos));
+							}
+							
+							rows = keyspace.prepareQuery(CF_DONE_JOBS).getKeySlice(map_triggers.keySet()).withColumnSlice("end_date").execute().getResult();
+							for (int pos = 0; pos < rows.size(); pos++) {
+								long last_date = rows.getRowByIndex(pos).getColumns().getLongValue("end_date", 0l);
+								if (last_date > precedent_date_trigger) {
+									map_triggers.get(rows.getRowByIndex(pos).getKey()).createJobs(mutator);
+								}
+							}
+							
 							precedent_date_trigger = System.currentTimeMillis();
 						}
 						
@@ -205,13 +283,14 @@ class BrokerNG {
 							}
 							Loggers.Broker.debug("Remove max date for postponed jobs for " + manager.getInstanceStatus().summary.getHostName());
 							JobNG.Utility.removeMaxDateForPostponedJobs(mutator, manager.getInstanceStatus().summary.getHostName());
+							
+							JobNG.Utility.searchRequiredAndErrorJobsAndSetError(mutator);
 						}
 						
 						if (mutator.isEmpty() == false) {
 							mutator.execute();
 							mutator = null;
 						}
-						
 					}
 					
 					stoppableSleep(QUEUE_SLEEP_TIME);
@@ -305,6 +384,10 @@ class BrokerNG {
 					waiting_jobs = JobNG.Utility.getJobsByStatus(JobStatus.WAITING);
 					some_jobs_to_execute = false;
 					
+					if (waiting_jobs.isEmpty() == false && Loggers.Broker.isDebugEnabled()) {
+						Loggers.Broker.debug("available_workers_capablities dump list\t" + available_workers_capablities);
+					}
+					
 					for (int pos_wj = 0; pos_wj < waiting_jobs.size(); pos_wj++) {
 						current_job = waiting_jobs.get(pos_wj);
 						
@@ -331,6 +414,10 @@ class BrokerNG {
 						}
 						
 						workers = available_workers_capablities.get(context.getClass());
+						
+						// if (workers.isEmpty() == false && Loggers.Broker.isDebugEnabled()) {
+						// Loggers.Broker.debug("workers dump list avaliable for " + context.getClass() + "\t" + workers);
+						// }
 						
 						for (int pos_wr = 0; pos_wr < workers.size(); pos_wr++) {
 							if (workers.get(pos_wr).canProcessThis(context)) {
@@ -392,6 +479,10 @@ class BrokerNG {
 								continue;
 							}
 							
+							if (Loggers.Broker.isDebugEnabled()) {
+								Loggers.Broker.debug("workers dump list avaliable for " + context.getClass() + "\t" + workers);
+							}
+							
 							worker = null;
 							for (int pos_wr = 0; pos_wr < workers.size(); pos_wr++) {
 								if (workers.get(pos_wr).canProcessThis(context)) {
@@ -412,11 +503,22 @@ class BrokerNG {
 								continue;
 							}
 							
+							if (best_jobs_worker.containsValue(worker)) {
+								/**
+								 * This worker is actually reserved by a previous job attribution, and can't to link to a new job.
+								 * This is only happend if a worker as several capabilities.
+								 */
+								continue;
+							}
+							
 							/**
 							 * This is actually the best jobs found.
 							 */
 							best_jobs_worker.put(current_job, worker);
-							workers.remove(worker);
+							
+							if (workers.remove(worker) == false) {
+								throw new Exception("Broker exception: can't remove a worker (" + worker.toStringLight() + ") from waiting workers list");
+							}
 						}
 						
 						/**
@@ -432,7 +534,9 @@ class BrokerNG {
 						
 						mutator = CassandraDb.prepareMutationBatch();
 						for (JobNG job : best_jobs_worker.keySet()) {
-							Loggers.Broker.debug("Prepare new job:\t" + job.toString());
+							if (Loggers.Job.isDebugEnabled()) {
+								Loggers.Broker.debug("Prepare new job:\t" + job.toStringLight());
+							}
 							job.prepareProcessing(mutator);
 						}
 						mutator.execute();

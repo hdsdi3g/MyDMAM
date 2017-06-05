@@ -1,7 +1,29 @@
 play:
-    deploy: /opt/play
-    # js_dev_mode: true # disable optimized JS source, and check, at each request, the status (new/update/delete) for all JS sources, and transform JSX if needed.
-                      # js_dev_mode is mandatory if you want change JS files on the fly (else, you must reboot Play for see changes).
+    force_select_domain: false
+    cache_ttl: 10   # in minutes
+    master_password_key: "change me please"   # all instances should have the same master_password_key if you want to login/create accounts/change password accross multiple instances. Only used for local auth.
+#    # Declaration for Microsoft Active Directory authentication via LDAP
+#    backends:
+#        -
+#            source: ad
+#            domain: mydomain.local
+#            server: 192.168.0.1
+#            port: 389
+#            # AD login and password are used only for AD operations, like user search.
+#            login: mydmam_ad_user
+#            password: mydmam_ad_password
+#            # search_ou_white_list: ["MyCompanyUnit"]
+#            # search_ou_black_list: ["Printers", "Switchs"]
+# 
+# Danger zone (developpement tools): debug functions are only avaliable with java source in /app.
+# This can lower security in some special case.
+# Do not use in production !
+#    debug: true # start play server in debug mode
+#    js_dev_mode: true # disable optimized JS source, and check, at each request, the status (new/update/delete) for all JS sources, and transform JSX if needed.
+#                        js_dev_mode is mandatory if you want change JS files on the fly (else, you must reboot Play for see changes).
+#    no_check_babel_at_start: true # Disable the BabelJS checks during Play booting. Speedup up to 2 seconds the boot if js_dev_mode = true (Babel & NodeJS take some time to boot).
+#                                    Useful on intense debugging, after having setup your development environment.
+#    check_i18n_cache_files: true # Set true if you want to change the messages.<lang> files (and the associed cached files).
 
 # messages:
     # maingrid.brand: Site name
@@ -9,20 +31,3 @@ play:
     # site.baseline: My wonderful Media Asset Management tool
     # site.aboutfooter: service Name.
     # site.logintips: Use your current login account for connect
-
-auth:
-    force_select_domain: false
-    # change this for separate in database user profiles between play setups
-    user_scope_isolation: default
-#    privileges_ttl: 10
-    backend:
-        -
-            source: local
-            path: conf/auth.db
-            masterkey: asecretkey
-            label: Local auth
-#        -
-#            source: ad
-#            domain: mydomain.local
-#            server: 192.168.0.1
-#            port: 389

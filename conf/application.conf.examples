@@ -6,14 +6,15 @@ application.name=mydmam
 # ~~~~~
 # Set to dev to enable instant reloading and other development help.
 # Otherwise set to prod.
-application.mode=dev
+# application.mode=dev
 %prod.application.mode=prod
+http.exposePlayServer=false
 
 # Secret key
 # ~~~~~
 # The secret key is used to secure cryptographics functions
 # If you deploy your application to several instances be sure to use the same key !
-application.secret=Use_play_secret_ToGenerateANewKeyItsimportant
+application.secret=PleaseGenerateAndInsertANewKeyItsimportant
 
 # i18n
 # ~~~~~
@@ -39,6 +40,9 @@ http.port=9001
 # you're serving it from. This parameter has no effect when deployed as a
 # war, because the path will be handled by the application server.
 # http.path=/
+#
+# Reverse Proxies IP addresses.
+# XForwardedSupport=127.0.0.1,...
 
 # Session configuration
 # ~~~~~~~~~~~~~~~~~~~~~~
@@ -63,7 +67,7 @@ http.port=9001
 # jpda.port=8000
 #
 # Java source level => 1.5, 1.6 or 1.7 (experimental)
-# java.source=1.5
+java.source=1.8
 
 # Log level
 # ~~~~~
@@ -108,9 +112,8 @@ http.port=9001
 # the application is stopped. Depending on the datasource, you can define a
 # generic "destroy" method :
 # db.destroyMethod=close
-
-db.url=jdbc:h2:file:./conf/play
-db.driver=org.h2.Driver
+# db.url=jdbc:h2:file:./conf/play
+# db.driver=org.h2.Driver
 
 # JPA Configuration (Hibernate)
 # ~~~~~

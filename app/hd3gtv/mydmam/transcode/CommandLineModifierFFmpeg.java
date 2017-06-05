@@ -22,9 +22,9 @@ import java.util.List;
 
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.transcode.TranscodeProfile.OutputFormat;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeStream;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
-import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
 import hd3gtv.tools.VideoConst.AudioRoutingStream;
 import hd3gtv.tools.VideoConst.Interlacing;
 import hd3gtv.tools.VideoConst.Resolution;
@@ -38,7 +38,7 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 			return;
 		}
 		
-		FFprobe ffprobe = source_container.getByClass(FFprobe.class);
+		FFprobe ffprobe = source_container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		if (ffprobe == null) {
 			return;
 		}
@@ -48,7 +48,7 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 		 */
 		ArrayList<AudioRoutingStream> audio_destination_map = current_profile_output_format.getAudioMap();
 		if (audio_destination_map != null && ffprobe.hasAudio()) {
-			List<Stream> source_audio_streams = ffprobe.getStreamsByCodecType("audio");
+			List<FFProbeStream> source_audio_streams = ffprobe.getStreamsByCodecType("audio");
 			
 			/**
 			 * Add to map video stream
@@ -68,7 +68,7 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 			StringBuilder sb;
 			ArrayList<String> avaliable_streams = new ArrayList<String>();
 			
-			for (Stream stream : source_audio_streams) {
+			for (FFProbeStream stream : source_audio_streams) {
 				source_stream_index = stream.getIndex();
 				source_stream_channels_count = stream.getParam("channels").getAsInt();
 				
@@ -151,7 +151,7 @@ public class CommandLineModifierFFmpeg implements CommandLineModifier {
 		 * or
 		 * -i <> -filter_complex '[0:0]scale=720:576:interl=1,setfield=tff,fieldorder=bff,setfield=bff,setdar=dar=16/9[2:0];[1:0]scale=1920x1080,[2:0]overlay'
 		 */
-		FFmpegInterlacingStats source_interlacing_stats = source_container.getByClass(FFmpegInterlacingStats.class);
+		FFmpegInterlacingStats source_interlacing_stats = source_container.getByType(FFmpegInterlacingStats.ES_TYPE, FFmpegInterlacingStats.class);
 		Interlacing input_interlacing = null;
 		if (source_interlacing_stats != null) {
 			input_interlacing = source_interlacing_stats.getInterlacing();

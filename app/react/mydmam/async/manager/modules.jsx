@@ -280,21 +280,25 @@ mydmam.module.register("WatchFolderEntry", {
 			</p>);
 		}
 
-		var on_toogle_enable_disable = function(){};
+		var on_toogle_enable_disable = function(want_to_paused){
+			manager.createInstanceAction("WatchFolderEntry", item.key, {paused: want_to_paused == "true"});
+		};
 
-		var btn_label_enable_disable = (<mydmam.async.BtnEnableDisable
-			//simplelabel={!manager.canCreateInstanceAction()}
-			simplelabel={true}
-			enabled={content.isalive}
-			labelenabled={i18n("manager.items.watchfolderentry.enabled")}
-			labeldisabled={i18n("manager.items.watchfolderentry.disabled")}
-			onEnable={on_toogle_enable_disable}
-			onDisable={on_toogle_enable_disable}
-			reference={content.isalive ? "disable" : "enable"} />);
+		var btn_label_paused = i18n("manager.items.watchfolderentry.disabled");
+		if (content.isalive) {
+			btn_label_paused = (<mydmam.async.BtnEnableDisable
+				simplelabel={!manager.canCreateInstanceAction()}
+				enabled={!content.paused}
+				labelenabled={i18n("manager.items.watchfolderentry.notpaused")}
+				labeldisabled={i18n("manager.items.watchfolderentry.paused")}
+				onEnable={on_toogle_enable_disable}
+				onDisable={on_toogle_enable_disable}
+				reference={content.paused ? "false" : "true"} />);
+		}
 
 		return (<div>
 			<p>
-				{btn_label_enable_disable}
+				{btn_label_paused}
 			</p>
 			{i18n("manager.items.watchfolderentry.source")} <span className="badge badge-warning">{content.source_storage}</span>
 			{want_to_stop}
@@ -388,6 +392,17 @@ mydmam.module.register("FTPGroup", {
 			disabled = (<p><span className="label label-error">{i18n("manager.items.FTPGroup.disabled_group")}</span></p>);
 		}
 
+		var freespace = null;
+		if (content.last_free_space) {
+			freespace = (<p>
+				{i18n("manager.items.FTPGroup.last_free_space")} <mydmam.async.pathindex.reactFileSize size={content.last_free_space} />
+				<br />
+				{i18n("manager.items.FTPGroup.min_disk_space_before_warn")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_warn} />
+				<br />
+				{i18n("manager.items.FTPGroup.min_disk_space_before_stop")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_stop} />
+			</p>);
+		}
+
 		var expirations = null;
 		if (content.account_expiration_trash_duration > 0 | content.account_expiration_purge_duration > 0) {
 			expirations = (<p>
@@ -404,17 +419,26 @@ mydmam.module.register("FTPGroup", {
 		if (content.short_activity_log == false) {
 			short_activity_log = (<div><span className="badge badge-important">{i18n("manager.items.FTPGroup.long_activity_log")}</span></div>);
 		}
+
+		var users_no_activity_log = null;
+		if (content.users_no_activity_log.length > 0) {
+			var users = [];
+			for (var pos in content.users_no_activity_log) {
+				var user = content.users_no_activity_log[pos];
+				users.push(<span className="label label-inverse" style={{marginRight: 5}} key={pos}>{user}</span>);
+			}
+			users_no_activity_log = (<div>{i18n("manager.items.FTPGroup.users_no_activity_log")} {users}</div>);
+		}
+
 		return (<div>
 			{disabled}
 			<strong>{i18n("manager.items.FTPGroup.base_working_dir", content.base_working_dir)}</strong>{domain_isolation}<br />
 			{i18n("manager.items.FTPGroup.pathindex_storagename")} <span className="label label-warning">{content.pathindex_storagename}</span><br />
-
-			{i18n("manager.items.FTPGroup.last_free_space")} <mydmam.async.pathindex.reactFileSize size={content.last_free_space} /><br />
-			{i18n("manager.items.FTPGroup.min_disk_space_before_warn")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_warn} /><br />
-			{i18n("manager.items.FTPGroup.min_disk_space_before_stop")} <mydmam.async.pathindex.reactFileSize size={content.min_disk_space_before_stop} /><br />
+			{freespace}
 			{expirations}
 			{short_activity_log}
-			{i18n("manager.items.FTPGroup.trash_directory", content.trash_directory)}<br />
+			{i18n("manager.items.FTPGroup.trash_directory", content.trash_directory)}
+			{users_no_activity_log}<br />
 		</div>);
 	},
 	managerInstancesItemsDescr: function(item) {
@@ -422,5 +446,186 @@ mydmam.module.register("FTPGroup", {
 			return null;
 		}
 		return i18n("manager.items.FTPGroup.key", item.key);
+	},
+});
+
+manager.executorStatus = function(exec) {
+	var status = i18n("manager.items.ExecutorStatus.status.run");
+	if (exec.shutdown) {
+		status = i18n("manager.items.ExecutorStatus.status.shutdown");
+	} else if (exec.terminating) {
+		status = i18n("manager.items.ExecutorStatus.status.terminating");
+	} else if (exec.terminated) {
+		status = i18n("manager.items.ExecutorStatus.status.terminated");
+	} 
+
+	return (<div style={{maxWidth: "300px"}}>
+		<p>
+			<strong>{i18n("manager.items.ExecutorStatus")}</strong>
+		</p>
+
+		<table className="table table-bordered table-striped table-condensed table-hover">
+		<tbody>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.status")}</th>
+				<td>{status}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.active")}</th>
+				<td>{exec.active}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.max_capacity")}</th>
+				<td>{exec.max_capacity}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.completed")}</th>
+				<td>{exec.completed}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.core_pool")}</th>
+				<td>{exec.core_pool}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.pool")}</th>
+				<td>{exec.pool}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.largest_pool")}</th>
+				<td>{exec.largest_pool}</td>
+			</tr>
+			<tr>
+				<th>{i18n("manager.items.ExecutorStatus.maximum_pool")}</th>
+				<td>{exec.maximum_pool}</td>
+			</tr>
+			</tbody>
+		</table>
+	</div>);
+};
+
+mydmam.module.register("ClockProgrammedTasks", {
+	managerInstancesItems: function(item) {
+		if (item["class"] != "ClockProgrammedTasks") {
+			return null;
+		}
+		var content = item.content;
+		var tasks = [];
+
+		var onToogleExecutorEnableDisable = function(action) {
+			manager.createInstanceAction("ClockProgrammedTasks", item.key, {executor: action});
+		};
+
+		var executor = item.content.executor;
+		var executor_active = executor.shutdown == false && executor.terminating == false && executor.terminated == false;
+
+		var taskAction = function(order) {
+			manager.createInstanceAction("ClockProgrammedTasks", item.key, {
+				task: order.task,
+				action: order.action,
+			});
+		};
+
+		var cpTask = function(task) {
+
+			var start_at = i18n("manager.items.ClockProgrammedTasks.start_at", mydmam.format.msecToHMSms(task.start_time_after_midnight, false, true));
+			if (! task.scheduled) {
+				 start_at = <em>{i18n("manager.items.ClockProgrammedTasks.start_at_never")}</em>;
+			}
+
+			var retry_after = task.retry_after;
+			if (retry_after > 0) {
+				retry_after = <span>Retry: {mydmam.format.msecToHMSms(task.retry_after, false, false)} &bull;</span>;
+			} else {
+				retry_after = null;
+			}
+
+			var block_next_start = null;
+			if (task.scheduled) {
+				block_next_start = (<span>
+					<mydmam.async.pathindex.reactDate date={task.next_scheduled} i18nlabel={i18n("manager.items.ClockProgrammedTasks.next_scheduled")} /> {retry_after}
+				</span>);
+			}
+
+			var last_execute_date = task.last_execute_date;
+			var last_execute_duration = null;
+			if (last_execute_date > 0) {
+				last_execute_date = <mydmam.async.pathindex.reactDate date={last_execute_date} i18nlabel={i18n("manager.items.ClockProgrammedTasks.previous_start_date")} />;
+				last_execute_duration = <span>{i18n("manager.items.ClockProgrammedTasks.previous_duration", mydmam.format.msecToHMSms(task.last_execute_duration, false, false))}</span>
+			} else {
+				last_execute_date = null;
+			}
+
+			return (<div style={{marginBottom: "15px", marginLeft: "15px"}}>
+				<strong>{task.name}</strong> &bull; {start_at}
+				<span style={{marginLeft: "6px"}}>
+					{mydmam.async.broker.displayKey(task.key, true)} <mydmam.async.JavaClassNameLink javaclass={task.task_class} />
+				</span>
+
+				<div className="btn-group" style={{display: "block", marginTop: "6px", marginBottom: "6px"}}>
+					<mydmam.async.SimpleBtn reference={{task: task.key, action: "start_now"}} enabled={true} onClick={taskAction} btncolor="btn-primary" normalsize={false}>
+						{i18n("manager.items.ClockProgrammedTasks.start_now")}
+					</mydmam.async.SimpleBtn>
+					<mydmam.async.BtnEnableDisable
+						simplelabel={!manager.canCreateInstanceAction()}
+						enabled={task.scheduled}
+						labelenabled={i18n("manager.items.ClockProgrammedTasks.unschedule")}
+						labeldisabled={i18n("manager.items.ClockProgrammedTasks.schedule")}
+						onEnable={taskAction}
+						onDisable={taskAction}
+						reference={{
+							task: task.key,
+							action: task.scheduled ? "unschedule" : "schedule",
+						}} />
+					<mydmam.async.BtnEnableDisable
+						simplelabel={!manager.canCreateInstanceAction()}
+						enabled={!task.unschedule_if_error}
+						hidden={!task.scheduled}
+						labelenabled={i18n("manager.items.ClockProgrammedTasks.not-unschedule_if_error")}
+						labeldisabled={i18n("manager.items.ClockProgrammedTasks.unschedule_if_error")}
+						onEnable={taskAction}
+						onDisable={taskAction}
+						iconcircle={true}
+						reference={{
+							task: task.key,
+							action: "toggle_unschedule_if_error",
+						}} />
+				</div>
+
+				{block_next_start}
+				<br />
+				{last_execute_date} {last_execute_duration}
+			</div>);
+		};
+
+		for (var key in content.tasks) {
+			tasks.push(<div key={key}>{cpTask(content.tasks[key])}</div>);
+		}
+
+		return (<div>
+			<strong style={{marginBottom: "15px"}}>{i18n("manager.items.ClockProgrammedTasks.list")}</strong>
+			{tasks}
+			<p>
+				<mydmam.async.BtnEnableDisable
+					simplelabel={!manager.canCreateInstanceAction()}
+					enabled={executor_active}
+					labelenabled={i18n("manager.items.ExecutorStatus.status.stop")}
+					labeldisabled={i18n("manager.items.ExecutorStatus.status.start")}
+					onEnable={onToogleExecutorEnableDisable}
+					onDisable={onToogleExecutorEnableDisable}
+					reference={executor_active ? "disable" : "enable"} />
+			</p>
+			{manager.executorStatus(content.executor)}
+		</div>);
+	},
+	managerInstancesItemsDescr: function(item) {
+		if (item["class"] != "ClockProgrammedTasks") {
+			return null;
+		}
+		var tasks = [];
+		for (var key in item.content.tasks) {
+			tasks.push(item.content.tasks[key].name);
+		}
+
+		return tasks.join(', ');
 	},
 });

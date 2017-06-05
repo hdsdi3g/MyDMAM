@@ -27,6 +27,7 @@ final class URILoginPasswordConfiguration {
 	String host;
 	int port;
 	String relative_path;
+	String domain;
 	
 	URILoginPasswordConfiguration(String configuration_path, LinkedHashMap<String, ?> optional_storage_def) {
 		int pos_colon = configuration_path.indexOf(":");
@@ -72,6 +73,9 @@ final class URILoginPasswordConfiguration {
 		if (optional_storage_def.containsKey("password")) {
 			password = (String) optional_storage_def.get("password");
 		}
+		if (optional_storage_def.containsKey("domain")) {
+			domain = (String) optional_storage_def.get("domain");
+		}
 	}
 	
 	public String toString() {
@@ -83,6 +87,10 @@ final class URILoginPasswordConfiguration {
 		sb.append(type);
 		sb.append("://");
 		if (login != null) {
+			if (domain != null) {
+				sb.append(domain);
+				sb.append("\\");
+			}
 			sb.append(login);
 			if (password != null) {
 				sb.append(":");

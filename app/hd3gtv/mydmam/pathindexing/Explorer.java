@@ -34,12 +34,11 @@ import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
@@ -47,22 +46,11 @@ import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerMultipleHits;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchMultipleCrawlerReader;
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.mydmam.web.stat.PathElementStat;
-import hd3gtv.tools.GsonIgnore;
-import hd3gtv.tools.GsonIgnoreStrategy;
 
 public class Explorer {
-	
-	private static Gson gson_simple;
-	
-	static {
-		GsonBuilder builder = new GsonBuilder();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		gson_simple = builder.create();
-	}
 	
 	public ArrayList<SourcePathIndexerElement> getByStorageFilenameAndSize(String storagename, final String filename, long size) throws Exception {
 		ElastisearchCrawlerReader request = Elasticsearch.createCrawlerReader();
@@ -335,7 +323,7 @@ public class Explorer {
 			JsonObject jo = new JsonObject();
 			jo.addProperty("size", directory_size);
 			jo.addProperty("pathindexkey", pathindexkey);
-			jo.add("content", gson_simple.toJsonTree(directory_content));
+			jo.add("content", MyDMAM.gson_kit.getGsonSimple().toJsonTree(directory_content));
 			return jo;
 		}
 	}
@@ -347,7 +335,7 @@ public class Explorer {
 		DirectoryContent dc = new DirectoryContent();
 		dc.directory_size = jo.get("size").getAsLong();
 		dc.pathindexkey = jo.get("pathindexkey").getAsString();
-		dc.directory_content = gson_simple.fromJson(jo.get("content").getAsJsonObject(), typeOfT_LinkedHashMap_String_SPIE);
+		dc.directory_content = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("content").getAsJsonObject(), typeOfT_LinkedHashMap_String_SPIE);
 		return dc;
 	}
 	

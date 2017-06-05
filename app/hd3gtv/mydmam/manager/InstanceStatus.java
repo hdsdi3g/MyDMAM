@@ -16,7 +16,6 @@
 */
 package hd3gtv.mydmam.manager;
 
-import java.io.File;
 import java.lang.management.ClassLoadingMXBean;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -33,9 +32,9 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -50,10 +49,11 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.GitInfo;
+import hd3gtv.configuration.IGitInfo;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnoreStrategy;
 
 public final class InstanceStatus {
 	
@@ -82,19 +82,7 @@ public final class InstanceStatus {
 	
 	private static Keyspace keyspace;
 	
-	private static final Gson gson;
-	
-	/*private static Type type_instance_status_item = new TypeToken<ArrayList<InstanceStatusItem>>() {
-	}.getType();*/
-	
 	static {
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		gson = builder.create();
-		
 		try {
 			keyspace = CassandraDb.getkeyspace();
 			String default_keyspacename = CassandraDb.getDefaultKeyspacename();
@@ -103,6 +91,7 @@ public final class InstanceStatus {
 			}
 		} catch (Exception e) {
 			Loggers.Manager.error("Can't init database CFs", e);
+			System.exit(1);
 		}
 	}
 	
@@ -125,19 +114,20 @@ public final class InstanceStatus {
 		items = new ArrayList<InstanceStatusItem>();
 		items.add(manager);
 		
-		String java_classpath = System.getProperty("java.class.path");
-		String[] classpath_lines = java_classpath.split(System.getProperty("path.separator"));
 		classpath = new JsonArray();
-		for (int pos = 0; pos < classpath_lines.length; pos++) {
-			File file = new File(classpath_lines[pos]);
+		
+		MyDMAM.factory.getClasspath().stream().map(cp -> {
 			StringBuffer sb_classpath = new StringBuffer();
-			sb_classpath.append(file.getParentFile().getParentFile().getName());
+			sb_classpath.append(cp.getParentFile().getParentFile().getName());
 			sb_classpath.append("/");
-			sb_classpath.append(file.getParentFile().getName());
+			sb_classpath.append(cp.getParentFile().getName());
 			sb_classpath.append("/");
-			sb_classpath.append(file.getName());
-			classpath.add(new JsonPrimitive(sb_classpath.toString().toLowerCase()));
-		}
+			sb_classpath.append(cp.getName());
+			return new JsonPrimitive(sb_classpath.toString().toLowerCase());
+		}).forEach(json -> {
+			classpath.add(json);
+		});
+		
 	}
 	
 	public class Summary {
@@ -190,9 +180,9 @@ public final class InstanceStatus {
 			pid = instance_raw.substring(0, instance_raw.indexOf("@"));
 			instance_name_pid = instance_name + "#" + pid + "@" + host_name;
 			
-			GitInfo git = GitInfo.getFromRoot();
+			IGitInfo git = GitInfo.getFromRoot();
 			if (git != null) {
-				app_version = git.getBranch() + " " + git.getCommit();
+				app_version = git.getActualRepositoryInformation();
 			} else {
 				app_version = "unknow";
 			}
@@ -314,20 +304,14 @@ public final class InstanceStatus {
 		}
 	}
 	
-	public void registerInstanceStatusItem(InstanceStatusItem item) {
-		if (item == null) {
-			throw new NullPointerException("\"item\" can't to be null");
-		}
-		if (item.getReferenceKey() == null) {
-			throw new NullPointerException("\"instance status item name\" can't to be null");
-		}
+	void addItem(InstanceStatusItem item) {
 		items.add(item);
 	}
 	
 	public static JsonArray getThreadstacktraces() {
 		JsonArray threadstacktraces = new JsonArray();
 		for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
-			threadstacktraces.add(gson.toJsonTree(new ThreadStackTrace().importThread(entry.getKey(), entry.getValue())));
+			threadstacktraces.add(MyDMAM.gson_kit.getGson().toJsonTree(new ThreadStackTrace().importThread(entry.getKey(), entry.getValue())));
 		}
 		return threadstacktraces;
 	}
@@ -396,8 +380,7 @@ public final class InstanceStatus {
 		OperatingSystemMXBean os_mxb = ManagementFactory.getOperatingSystemMXBean();
 		result.addProperty("getSystemLoadAverage", os_mxb.getSystemLoadAverage());
 		
-		try {
-			Class.forName("com.sun.management.OperatingSystemMXBean");
+		if (MyDMAM.factory.isClassExists("com.sun.management.OperatingSystemMXBean")) {
 			JsonObject jo_os = new JsonObject();
 			com.sun.management.OperatingSystemMXBean os_sun = (com.sun.management.OperatingSystemMXBean) os_mxb;
 			jo_os.addProperty("getCommittedVirtualMemorySize", os_sun.getCommittedVirtualMemorySize());
@@ -409,7 +392,6 @@ public final class InstanceStatus {
 			jo_os.addProperty("getTotalPhysicalMemorySize", os_sun.getTotalPhysicalMemorySize());
 			jo_os.addProperty("getTotalSwapSpaceSize", os_sun.getTotalSwapSpaceSize());
 			result.add("os", jo_os);
-		} catch (ClassNotFoundException e) {
 		}
 		
 		return result;
@@ -420,7 +402,7 @@ public final class InstanceStatus {
 			long start_time = System.currentTimeMillis();
 			MutationBatch mutator = CassandraDb.prepareMutationBatch();
 			String key = summary.instance_name_pid;
-			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_SUMMARY.toString(), gson.toJson(summary), TTL);
+			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_SUMMARY.toString(), MyDMAM.gson_kit.getGson().toJson(summary), TTL);
 			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_THREADS.toString(), getThreadstacktraces().toString(), TTL);
 			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_CLASSPATH.toString(), classpath.toString(), TTL);
 			mutator.withRow(CF_INSTANCES, key).putColumn(CF_COLS.COL_ITEMS.toString(), getItems().toString(), TTL);
@@ -446,7 +428,7 @@ public final class InstanceStatus {
 	}
 	
 	public String toString() {
-		return gson.toJson(this.summary);
+		return MyDMAM.gson_kit.getGson().toJson(this.summary);
 	}
 	
 	public static void truncate() throws ConnectionException {
@@ -456,7 +438,7 @@ public final class InstanceStatus {
 	/**
 	 * @return raw Cassandra items, but sorted by key names.
 	 */
-	public JsonObject getAll(final CF_COLS col_name) {
+	public static JsonObject getAll(final CF_COLS col_name) {
 		if (col_name == null) {
 			throw new NullPointerException("\"col_name\" can't to be null");
 		}
@@ -476,7 +458,7 @@ public final class InstanceStatus {
 				}
 			}, col_name.toString());
 		} catch (Exception e) {
-			manager.getServiceException().onCassandraError(e);
+			Loggers.Manager.error("Problem with cassandra", e);
 		}
 		
 		Collections.sort(keys);
@@ -496,9 +478,29 @@ public final class InstanceStatus {
 	 */
 	public static InstanceStatus getStatic() {
 		if (static_manager == null) {
-			static_manager = new AppManager("Gatherer");
+			static_manager = new AppManager("(Not loaded)");
 		}
 		return static_manager.getInstanceStatus();
+	}
+	
+	public static JsonObject getExecutorStatus(ThreadPoolExecutor executor, BlockingQueue<Runnable> queue) {
+		JsonObject jo_executor_pool = new JsonObject();
+		jo_executor_pool.addProperty("active", String.valueOf(executor.getActiveCount()));
+		jo_executor_pool.addProperty("shutdown", executor.isShutdown());
+		jo_executor_pool.addProperty("terminating", executor.isTerminating());
+		jo_executor_pool.addProperty("terminated", executor.isTerminated());
+		
+		if (queue != null) {
+			jo_executor_pool.addProperty("max_capacity", String.valueOf(queue.remainingCapacity()));
+		} else {
+			jo_executor_pool.addProperty("max_capacity", -1);
+		}
+		jo_executor_pool.addProperty("completed", String.valueOf(executor.getCompletedTaskCount()));
+		jo_executor_pool.addProperty("core_pool", String.valueOf(executor.getCorePoolSize()));
+		jo_executor_pool.addProperty("pool", String.valueOf(executor.getPoolSize()));
+		jo_executor_pool.addProperty("largest_pool", String.valueOf(executor.getLargestPoolSize()));
+		jo_executor_pool.addProperty("maximum_pool", String.valueOf(executor.getMaximumPoolSize()));
+		return jo_executor_pool;
 	}
 	
 }

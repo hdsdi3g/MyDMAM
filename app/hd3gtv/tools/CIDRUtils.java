@@ -33,22 +33,19 @@ import java.util.List;
 
 public class CIDRUtils {
 	
-	private final String cidr;
-	
 	private InetAddress inetAddress;
 	private InetAddress startAddress;
 	private InetAddress endAddress;
 	private final int prefixLength;
 	
+	/**
+	 * @param cidr like 192.168.1.0/24
+	 */
 	public CIDRUtils(String cidr) throws UnknownHostException {
-		
-		this.cidr = cidr;
-		
-		/* split CIDR to address and prefix part */
-		if (this.cidr.contains("/")) {
-			int index = this.cidr.indexOf("/");
-			String addressPart = this.cidr.substring(0, index);
-			String networkPart = this.cidr.substring(index + 1);
+		if (cidr.contains("/")) {
+			int index = cidr.indexOf("/");
+			String addressPart = cidr.substring(0, index);
+			String networkPart = cidr.substring(index + 1);
 			
 			inetAddress = InetAddress.getByName(addressPart);
 			prefixLength = Integer.parseInt(networkPart);
@@ -59,8 +56,18 @@ public class CIDRUtils {
 		}
 	}
 	
+	/**
+	 * Example for 192.168.1.0/24 :
+	 * @param addr 192.168.1.0
+	 * @param cidr_val 24
+	 */
+	public CIDRUtils(InetAddress addr, int cidr_val) throws UnknownHostException {
+		inetAddress = addr;
+		prefixLength = cidr_val;
+		calculate();
+	}
+	
 	private void calculate() throws UnknownHostException {
-		
 		ByteBuffer maskBuffer;
 		int targetSize;
 		if (inetAddress.getAddress().length == 4) {
@@ -84,7 +91,6 @@ public class CIDRUtils {
 		
 		this.startAddress = InetAddress.getByAddress(startIpArr);
 		this.endAddress = InetAddress.getByAddress(endIpArr);
-		
 	}
 	
 	private byte[] toBytes(byte[] array, int targetSize) {
@@ -109,7 +115,6 @@ public class CIDRUtils {
 	}
 	
 	public String getNetworkAddress() {
-		
 		return this.startAddress.getHostAddress();
 	}
 	
@@ -118,7 +123,10 @@ public class CIDRUtils {
 	}
 	
 	public boolean isInRange(String ipAddress) throws UnknownHostException {
-		InetAddress address = InetAddress.getByName(ipAddress);
+		return isInRange(InetAddress.getByName(ipAddress));
+	}
+	
+	public boolean isInRange(InetAddress address) {
 		BigInteger start = new BigInteger(1, this.startAddress.getAddress());
 		BigInteger end = new BigInteger(1, this.endAddress.getAddress());
 		BigInteger target = new BigInteger(1, address.getAddress());

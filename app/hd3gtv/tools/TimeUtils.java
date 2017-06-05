@@ -151,8 +151,8 @@ public class TimeUtils {
 	}
 	
 	/**
-	 * Converti un nombre de secondes en duree (annees/semaines/jours/heures/min/sec).
-	 * @return un resultat tel que "39 ans 29 sem 6j 12:32:11" avec an et semaine facultatifs
+	 * Compute a second value to a duration (years/weeks/days/hours/min/sec).
+	 * @return like "39y 29w 6d 12:32:11" with optional years, weeks and days values.
 	 */
 	public static String secondsToYWDHMS(long seconds) {
 		if (seconds < 0) {
@@ -163,38 +163,34 @@ public class TimeUtils {
 		double _seconds = (double) seconds;
 		
 		double oneyear = 31536000d;
-		/** 365 x 24 x 60 x 60 ) en secondes */
+		/** 365 x 24 x 60 x 60 ) in seconds */
 		double _years = _seconds / oneyear;
 		double years = Math.floor(_years);
 		if (years > 0) {
 			sb.append((int) years);
-			if (years > 1) {
-				sb.append(" ans ");
-			} else {
-				sb.append(" an ");
-			}
+			sb.append("y ");
 		}
 		
 		double oneweek = 604800d;
-		/** 7 x 24 x 60 x 60 en secondes */
+		/** 7 x 24 x 60 x 60 in seconds */
 		double _weeks = (_years - years) * oneyear / oneweek;
 		double weeks = Math.floor(_weeks);
 		if (weeks > 0) {
 			sb.append((int) weeks);
-			sb.append(" sem ");
+			sb.append("w ");
 		}
 		
 		double oneday = 86400d;
-		/** 24 x 60 x 60 en secondes */
+		/** 24 x 60 x 60 in seconds */
 		double _days = (_weeks - weeks) * oneweek / oneday;
 		double days = Math.floor(_days);
 		if (days > 0) {
 			sb.append((int) days);
-			sb.append(" jrs ");
+			sb.append("d ");
 		}
 		
 		double rest = (_days - days) * oneday;
-		/** secondes restantes */
+		/** last seconds */
 		sb.append(secondstoHMS((long) rest));
 		
 		return sb.toString();

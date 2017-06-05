@@ -19,7 +19,6 @@ package hd3gtv.mydmam.transcode.mtdgenerator;
 import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.metadata.JobContextMetadataRenderer;
-import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.ProgressForJobContextFFmpegBased;
 import hd3gtv.tools.Timecode;
 
@@ -61,7 +60,7 @@ public abstract class JobContextFFmpegLowresRenderer extends JobContextMetadataR
 	
 	abstract String getTranscodeProfileName();
 	
-	abstract Class<? extends EntryRenderer> getEntryRendererClass();
+	abstract String getESTypeEntryRenderer();
 	
 	public void setPerformance_fps(float performance_fps) {
 		this.performance_fps = performance_fps;

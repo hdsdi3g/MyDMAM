@@ -23,10 +23,6 @@ import hd3gtv.mydmam.web.search.SearchRequest;
 
 public class Search extends AJSController {
 	
-	static {
-		AJSController.registerTypeAdapter(SearchQuery.class, SearchQuery.serializer);
-	}
-	
 	@Check("navigate")
 	public static SearchQuery query(SearchRequest request) throws Exception {
 		return new SearchQuery().search(request);

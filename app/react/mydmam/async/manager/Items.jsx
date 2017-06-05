@@ -15,7 +15,7 @@
  * 
 */
 
-manager.Items = React.createClass({
+manager.Items = createReactClass({
 	getInitialState: function() {
 		return {
 			items: {},
@@ -53,7 +53,7 @@ manager.Items = React.createClass({
 						break;
 					}
 					pos++;
-					selected_instances.push(instance_key);
+					//selected_instances.push(instance_key);
 				}
 				this.setState({
 					selected_instances: selected_instances,
@@ -145,12 +145,12 @@ manager.Items = React.createClass({
 		return item_classes;
 	},
 	onGotoTheTop: function(e) {
-		var absolute = React.findDOMNode(this.refs.items_container).getBoundingClientRect().y;
+		var absolute = ReactDOM.findDOMNode(this.refs.items_container).getBoundingClientRect().y;
 		e.preventDefault();
 		$("html, body").scrollTop($("html, body").scrollTop() + absolute - 50);
 	},
 	onGoToItemBlock: function(reference) {
-		var absolute = React.findDOMNode(this.refs[reference]).getBoundingClientRect().y;
+		var absolute = ReactDOM.findDOMNode(this.refs[reference]).getBoundingClientRect().y;
 		$("html, body").scrollTop($("html, body").scrollTop() + absolute - 50);
 	},
 	render: function() {
@@ -308,20 +308,22 @@ manager.Items = React.createClass({
 				</table>
 				<hr />
 			</div>);
+		} else {
+			table_summary_items = (<mydmam.async.AlertInfoBox>{i18n("manager.items.summarytable.empty")}</mydmam.async.AlertInfoBox>);
 		}
 
 		return (<div className="row-fluid">
 			<div className="span3">
 			 	<div className="well instancesnavlists">
-				 	<pre>
-	 					<strong>{i18n("manager.items.chooseinstancelist")}</strong>
-				    	{display_instance_list}
-					</pre>
-						<hr />
-				 	<pre>
-	 					<strong>{i18n("manager.items.chooseitemlist")}</strong>
-				    	{display_item_classes_list}
-					</pre>
+					<div style={{marginBottom: "4px", }}>
+						<strong>{i18n("manager.items.chooseinstancelist")}</strong>
+					</div>
+					{display_instance_list}
+					<hr />
+					<div style={{marginBottom: "4px", }}>
+						<strong>{i18n("manager.items.chooseitemlist")}</strong>
+					</div>
+					{display_item_classes_list}
 			    </div>
 			</div>
 			<div className="span9" style={{marginLeft: 15}} ref="items_container">
@@ -332,10 +334,10 @@ manager.Items = React.createClass({
 	},
 });
 
-manager.btnArrowGoToItemBlock = React.createClass({
+manager.btnArrowGoToItemBlock = createReactClass({
 	onGoto: function (e) {
 		e.preventDefault();
-		$(React.findDOMNode(this.refs.a)).blur();
+		$(ReactDOM.findDOMNode(this.refs.a)).blur();
 		this.props.onGoToItemBlock(this.props.reference);
 	},
  	render: function() {
@@ -345,17 +347,14 @@ manager.btnArrowGoToItemBlock = React.createClass({
 	},
 });
 
-manager.SelectNavItemInstance = React.createClass({
+manager.SelectNavItemInstance = createReactClass({
 	onClick: function (e) {
-		e.preventDefault();
-		$(React.findDOMNode(this.refs.a)).blur();
+		$(ReactDOM.findDOMNode(this.refs.cb)).blur();
 		this.props.onClick(this.props.reference, ! this.props.checked);
 	},
  	render: function() {
  		return (<div>
- 			<a href={location.hash} onClick={this.onClick} ref="a">
-	 			{this.props.checked ? "[X]" : "[ ]"} {this.props.children}
-	 		</a>
+	 		<input type="checkbox" checked={this.props.checked} ref="cb" onClick={this.onClick} readOnly={true} /> <span onClick={this.onClick} className="labelcheckbox">{this.props.children}</span>
 	 	</div>);
 	},
 });

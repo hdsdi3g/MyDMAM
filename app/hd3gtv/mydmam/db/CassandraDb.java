@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.db;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -110,7 +111,7 @@ public class CassandraDb {
 			AstyanaxConfigurationImpl configurationimpl = new AstyanaxConfigurationImpl();
 			configurationimpl.setDiscoveryType(NodeDiscoveryType.NONE);
 			configurationimpl.setTargetCassandraVersion("1.2");
-			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(default_keyspacename, 100, 30000, 20));
+			configurationimpl.setRetryPolicy(new BoundedExponentialBackoffLog(default_keyspacename, 5000, 120000, 100));
 			
 			builder = new AstyanaxContext.Builder().forCluster(clustername);
 			builder.withAstyanaxConfiguration(configurationimpl);
@@ -168,7 +169,7 @@ public class CassandraDb {
 				.put("strategy_options",
 						ImmutableMap.<String, Object> builder().put("replication_factor", String.valueOf(Configuration.global.getValue("cassandra", "default_replication_factor", 1))).build())
 				.put("strategy_class", "SimpleStrategy").build());
-				
+		
 		cluster.getKeyspace(keyspacename).describeKeyspace();
 		Loggers.Cassandra.info("Create Keyspace " + keyspacename);
 	}
@@ -311,6 +312,23 @@ public class CassandraDb {
 		allrowsreaderbuilder.forEachRow(handler_bridge);
 		if (columns != null) {
 			if (columns.length > 0) {
+				allrowsreaderbuilder.withColumnSlice(columns);
+			}
+		}
+		allrowsreaderbuilder.withIncludeEmptyRows(false);
+		return allrowsreaderbuilder.build().call();
+	}
+	
+	/**
+	 * @param columns not mandatory
+	 */
+	public static boolean allRowsReader(ColumnFamily<String, String> columnfamily, AllRowsFoundRow handler, Collection<String> columns) throws Exception {
+		AllRowsHandlerBridge handler_bridge = new AllRowsHandlerBridge(handler);
+		AllRowsReader.Builder<String, String> allrowsreaderbuilder = new AllRowsReader.Builder<String, String>(getkeyspace(), columnfamily);
+		allrowsreaderbuilder.withPartitioner(Murmur3Partitioner.get());
+		allrowsreaderbuilder.forEachRow(handler_bridge);
+		if (columns != null) {
+			if (columns.isEmpty() == false) {
 				allrowsreaderbuilder.withColumnSlice(columns);
 			}
 		}

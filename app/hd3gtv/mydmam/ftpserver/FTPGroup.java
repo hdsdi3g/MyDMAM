@@ -34,6 +34,7 @@ import com.google.gson.JsonObject;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.AppManager;
 import hd3gtv.mydmam.manager.InstanceActionReceiver;
@@ -100,10 +101,13 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		return declared_groups_expiration_based_on_last_activity;
 	}
 	
-	static void registerAppManager(AppManager manager) {
+	public static boolean isConfigured() {
+		return declared_groups.isEmpty() == false;
+	}
+	
+	public static void registerAppManager(AppManager manager) {
 		for (FTPGroup group : declared_groups.values()) {
-			manager.registerInstanceActionReceiver(group);
-			manager.getInstanceStatus().registerInstanceStatusItem(group);
+			manager.registerInstanceStatusAction(group);
 		}
 	}
 	
@@ -148,6 +152,8 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 	
 	private File trash_directory;
 	
+	private ArrayList<String> users_no_activity_log;
+	
 	private FTPGroup(String group_name, HashMap<String, ConfigurationItem> all_groups_confs) throws Exception {
 		name = group_name;
 		disabled_group = Configuration.getValueBoolean(all_groups_confs, group_name, "disabled");
@@ -171,6 +177,11 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 			FileUtils.forceMkdir(base_working_dir);
 		}
 		
+		users_no_activity_log = Configuration.getValues(all_groups_confs, group_name, "no_activity_log", null);
+		if (users_no_activity_log == null) {
+			users_no_activity_log = new ArrayList<>();
+		}
+		
 		min_disk_space_before_warn = Configuration.getValue(all_groups_confs, group_name, "min_disk_space_before_warn", 0);
 		min_disk_space_before_stop = Configuration.getValue(all_groups_confs, group_name, "min_disk_space_before_stop", 0);
 		pathindex_storagename = Configuration.getValue(all_groups_confs, group_name, "pathindex_storagename", null);
@@ -189,6 +200,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		if (pathindex_storagename != null) {
 			Storage.registerStorage(new StorageLocalFile(base_working_dir, pathindex_storagename, false, 3600));
 		}
+		
 	}
 	
 	private File makeUserHomeDirectoryPath(String user_name, String user_domain) {
@@ -312,7 +324,7 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 			if (pathname.getAbsolutePath().equals(trash_directory.getAbsolutePath())) {
 				return false;
 			}
-			return pathname.isHidden() == false;
+			return CopyMove.isHidden(pathname) == false;
 		}
 	}
 	
@@ -435,7 +447,12 @@ public class FTPGroup implements InstanceActionReceiver, InstanceStatusItem {
 		jo.addProperty("short_activity_log", short_activity_log);
 		jo.addProperty("last_free_space", last_free_space);
 		jo.addProperty("trash_directory", trash_directory.getAbsolutePath());
+		jo.add("users_no_activity_log", MyDMAM.gson_kit.getGsonSimple().toJsonTree(users_no_activity_log));
 		return jo;
+	}
+	
+	public boolean isUserHasActivityDisabled(String simple_username) {
+		return users_no_activity_log.contains(simple_username);
 	}
 	
 }

@@ -24,7 +24,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public class AsyncStatResultElement extends AsyncStatResultSubElement {
 	
@@ -54,11 +55,11 @@ public class AsyncStatResultElement extends AsyncStatResultSubElement {
 	
 	public static class Serializer implements JsonSerializer<AsyncStatResultElement> {
 		public JsonElement serialize(AsyncStatResultElement src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = PathElementStat.gson_simple.toJsonTree(src).getAsJsonObject();
+			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
 			if (src.reference != null) {
 				result.add("reference", src.reference.toGson());
 			}
-			result.add("items", PathElementStat.gson.toJsonTree(src.items));
+			result.add("items", MyDMAM.gson_kit.getGson().toJsonTree(src.items));
 			return result;
 		}
 		

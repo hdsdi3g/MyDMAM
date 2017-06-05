@@ -22,41 +22,23 @@ import com.google.gson.JsonObject;
 import controllers.Check;
 import controllers.Secure;
 import hd3gtv.configuration.GitInfo;
-import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.db.status.ElasticsearchStatus;
 import hd3gtv.mydmam.manager.AsyncJSInstanceActionRequest;
+import hd3gtv.mydmam.manager.BrokerNG;
 import hd3gtv.mydmam.manager.InstanceAction;
 import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.mydmam.manager.TriggerJobCreator;
 import hd3gtv.mydmam.web.AJSController;
+import hd3gtv.mydmam.web.PlayServerReport;
+import hd3gtv.mydmam.web.PlayServerUpdateConfiguration;
 
 public class Instances extends AJSController {
-	
-	/*private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();*/
-	
-	/*private static Type hm_StringJob_typeOfT = new TypeToken<HashMap<String, JobNG>>() {
-	}.getType();*/
-	
-	private static final InstanceStatus current;
-	
-	static {
-		current = new AppManager("This Play instance").getInstanceStatus();
-		
-		/*AJSController.registerTypeAdapter(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
-			public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-				return src.list;
-			}
-		});*/
-	}
 	
 	/**
 	 * @return instance ref -> raw JS
 	 */
 	@Check("showInstances")
 	public static JsonObject allSummaries() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_SUMMARY);
-		result.add(current.summary.getInstanceNamePid(), AppManager.getSimpleGson().toJsonTree(current.summary));
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_SUMMARY);
 	}
 	
 	/**
@@ -64,9 +46,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonObject allThreads() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_THREADS);
-		result.add(current.summary.getInstanceNamePid(), InstanceStatus.getThreadstacktraces());
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_THREADS);
 	}
 	
 	/**
@@ -74,9 +54,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonObject allClasspaths() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_CLASSPATH);
-		result.add(current.summary.getInstanceNamePid(), current.getClasspath());
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_CLASSPATH);
 	}
 	
 	/**
@@ -84,9 +62,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonObject allPerfStats() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_PERFSTATS);
-		result.add(current.summary.getInstanceNamePid(), current.getPerfStats());
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_PERFSTATS);
 	}
 	
 	/**
@@ -94,9 +70,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonObject allItems() {
-		JsonObject result = current.getAll(InstanceStatus.CF_COLS.COL_ITEMS);
-		result.add(current.summary.getInstanceNamePid(), current.getItems());
-		return result;
+		return InstanceStatus.getAll(InstanceStatus.CF_COLS.COL_ITEMS);
 	}
 	
 	/**
@@ -104,7 +78,7 @@ public class Instances extends AJSController {
 	 */
 	@Check("showInstances")
 	public static JsonArray allDoneJobs() throws Exception {
-		return TriggerJobCreator.getAllDoneJobs();
+		return BrokerNG.getAllDoneJobs();
 	}
 	
 	/**
@@ -124,12 +98,34 @@ public class Instances extends AJSController {
 	
 	@Check("showInstances")
 	public static String appversion() throws Exception {
-		return GitInfo.getFromRoot().getActualRepositoryInformation();
+		try {
+			return GitInfo.getFromRoot().getActualRepositoryInformation();
+		} catch (NullPointerException e) {
+			return "";
+		}
 	}
 	
 	@Check("doInstanceAction")
 	public static void instanceAction(AsyncJSInstanceActionRequest action) throws Exception {
-		action.doAction(getUserProfile().key + " " + Secure.getRequestAddress());
+		action.doAction(getUserProfile().getKey() + " " + Secure.getRequestAddress());
+	}
+	
+	@Check("showInstances")
+	public static ElasticsearchStatus esClusterStatus() throws Exception {
+		ElasticsearchStatus es_status = new ElasticsearchStatus();
+		es_status.refreshStatus();
+		return es_status;
+	}
+	
+	@Check("showInstances")
+	public static PlayServerReport playserver() throws Exception {
+		return new PlayServerReport();
+	}
+	
+	@Check("showInstances")
+	public static PlayServerReport playserverUpdate(PlayServerUpdateConfiguration upd_conf) throws Exception {
+		upd_conf.doAction();
+		return new PlayServerReport();
 	}
 	
 }

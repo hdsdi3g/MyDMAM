@@ -3,8 +3,8 @@ ftpserver:
 
 ftpserverinstances:
     default:                           # the "domain" name for group users name to avoid conflicts if you want multiple same user name.
-        listen: 21                     # FTP port to listen. 21 by default. Must be open in firewall and NATed.
-        active: 0.0.0.0:20             # The FTP adress and port to transfert datas. Port should be listen port - 1. 20 by default. Must be open in firewall and NATed.
+        listen: 5021                   # FTP port to listen. 21 by default. Must be open in firewall and NATed.
+        active: 0.0.0.0:5020           # The FTP adress and port to transfert datas. Port should be the listen port - 1. 20 by default. Must be open in firewall and NATed.
         idle: 300                      # How much time to wait ?
         passive-internal: 0.0.0.0      # The address to listen passive connection. Address should be the same as active. Must be open in firewall and NATed.
         passive-external: 0.0.0.0      # The external, public, IP address to access to this server. FTP server will send this to clients during passive data transferts.
@@ -13,7 +13,7 @@ ftpserverinstances:
 
 ftpservergroups:
     group1:                           # rule for a group of FTP accounts, apply only for this current instance.
-        base_working_dir: /var/ftp    # Location for all FTP accounts
+        base_working_dir: /var/ftp    # Location for all FTP accounts. Use Windows style for path like C:\\FTP\\DIR in Windows.
         disabled: false               # true for disable all logins for this group
         # account_expiration_trash_duration: 86400     # seconds to wait before move to trash an old FTP account
         # account_expiration_purge_duration: 604800    # seconds to wait before DELETE an old FTP account
@@ -23,6 +23,7 @@ ftpservergroups:
         # pathindex_storagename: FTP Group 1         # set if you want to indexing FTP accounts, with this storage name
         # domain_isolation: false                    # If you want use separate directories for each domain (by example if base_working_dir is splitted between with differents mounts).
         # short_activity_log: false                  # Set true if you don't want keep FTP activities logs during a long time.
+        # no_activity_log: [account1, account2]      # Disable activity log for this accounts. It never display an history for it !
     # you can add many groups
 
 # Play Server configuration for create FTP Users, and assign it a group and a domain
@@ -35,3 +36,7 @@ ftpserveradmin_hostsbydomain:
     default:                         # Same domains names as set in ftpserverinstances
         host: 127.0.0.1              # Used to build an URL like ftp://user:password@<host>/
                                      #  host can be an ip, an host name, a FQDN, and you can be set a port, like myspecialserver:4021
+ftpservergroups:
+    group1:                           # rule for a group of FTP accounts, apply only for this current instance.
+        base_working_dir: /var/ftp    # Location for all FTP accounts. Use Windows style for path like C:\\FTP\\DIR in Windows.
+    # you can add many groups

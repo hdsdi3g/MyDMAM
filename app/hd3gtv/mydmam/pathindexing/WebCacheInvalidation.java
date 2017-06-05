@@ -47,6 +47,7 @@ public class WebCacheInvalidation {
 			}
 		} catch (Exception e) {
 			Loggers.Pathindex.error("Can't init database CFs", e);
+			System.exit(1);
 		}
 	}
 	

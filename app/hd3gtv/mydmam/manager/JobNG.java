@@ -18,6 +18,7 @@ package hd3gtv.mydmam.manager;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -32,16 +33,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.json.simple.parser.ParseException;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -61,7 +59,9 @@ import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.DeployColumnDef;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.tools.StoppableProcessing;
 
 /**
@@ -89,6 +89,7 @@ public final class JobNG {
 			}
 		} catch (Exception e) {
 			Loggers.Manager.error("Can't init database CFs", e);
+			System.exit(1);
 		}
 	}
 	
@@ -108,6 +109,19 @@ public final class JobNG {
 	
 	public enum JobStatus {
 		TOO_OLD, CANCELED, POSTPONED, WAITING, DONE, PROCESSING, STOPPED, ERROR, PREPARING, TOO_LONG_DURATION;
+		
+		public boolean isInThisStatus(JobStatus... status) {
+			if (status == null) {
+				return false;
+			}
+			if (status.length == 0) {
+				return false;
+			}
+			return Arrays.asList(status).stream().anyMatch(s -> {
+				return s == this;
+			});
+		}
+		
 	}
 	
 	public enum AlterJobOrderName {
@@ -164,7 +178,7 @@ public final class JobNG {
 	
 	JobNG(JobContext context) throws ClassNotFoundException {
 		this.context = context;
-		MyDMAM.checkIsAccessibleClass(context.getClass(), false);
+		MyDMAM.factory.checkIsAccessibleClass(context.getClass(), false);
 		key = "job:" + UUID.randomUUID().toString();
 		name = "Generic job created at " + (new Date()).toString();
 		urgent = false;
@@ -182,10 +196,6 @@ public final class JobNG {
 		update_date = -1;
 		start_date = -1;
 		end_date = -1;
-		
-		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Create Job:\t" + toString());
-		}
 	}
 	
 	public JobNG setName(String name) {
@@ -242,6 +252,13 @@ public final class JobNG {
 		return this;
 	}
 	
+	/**
+	 * @return can be null if no required jobs
+	 */
+	public List<String> getRequiredJobKeys() {
+		return required_keys;
+	}
+	
 	boolean isRequireIsDone() throws ConnectionException {
 		if (required_keys == null) {
 			return true;
@@ -263,6 +280,58 @@ public final class JobNG {
 			}
 		}
 		return true;
+	}
+	
+	private boolean isRequireHasProblemThisSwitchStatus() throws ConnectionException {
+		if (required_keys == null) {
+			return false;
+		}
+		if (required_keys.isEmpty()) {
+			return false;
+		}
+		
+		Rows<String, String> rows = keyspace.prepareQuery(CF_QUEUE).getKeySlice(required_keys).withColumnSlice("status").execute().getResult();
+		if (rows == null) {
+			return true;
+		}
+		if (rows.isEmpty()) {
+			return true;
+		}
+		for (Row<String, String> row : rows) {
+			String status = row.getColumns().getStringValue("status", JobStatus.WAITING.name());
+			
+			if (status.equals(JobStatus.WAITING.name())) {
+				continue;
+			} else if (status.equals(JobStatus.DONE.name())) {
+				continue;
+			} else if (status.equals(JobStatus.PROCESSING.name())) {
+				continue;
+			} else if (status.equals(JobStatus.ERROR.name())) {
+				this.status = JobStatus.ERROR;
+				return true;
+			} else if (status.equals(JobStatus.CANCELED.name())) {
+				if (this.status != JobStatus.ERROR) {
+					this.status = JobStatus.CANCELED;
+				}
+				return true;
+			} else if (status.equals(JobStatus.STOPPED.name())) {
+				if (this.status != JobStatus.ERROR) {
+					this.status = JobStatus.CANCELED;
+				}
+				return true;
+			} else if (status.equals(JobStatus.TOO_LONG_DURATION.name())) {
+				if (this.status != JobStatus.ERROR) {
+					this.status = JobStatus.CANCELED;
+				}
+				return true;
+			} else if (status.equals(JobStatus.TOO_OLD.name())) {
+				if (this.status != JobStatus.ERROR) {
+					this.status = JobStatus.CANCELED;
+				}
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	boolean isTooOldjob() {
@@ -333,7 +402,7 @@ public final class JobNG {
 	 */
 	public JobNG publish() throws ConnectionException {
 		if (Loggers.Job.isInfoEnabled()) {
-			Loggers.Job.info("Publish new job:\t" + toString());
+			Loggers.Job.info("Publish new job:\t" + toStringLight());
 		}
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		publish(mutator);
@@ -362,7 +431,7 @@ public final class JobNG {
 		}
 		saveChanges(mutator);
 		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Prepare publish:\t" + toString());
+			Loggers.Job.debug("Prepare publish:\t" + toStringLight());
 		}
 		return this;
 	}
@@ -373,9 +442,6 @@ public final class JobNG {
 	 * @throws ConnectionException
 	 */
 	void saveChanges() throws ConnectionException {
-		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Save changes:\t" + toString());
-		}
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
 		saveChanges(mutator);
 		mutator.execute();
@@ -387,41 +453,41 @@ public final class JobNG {
 	 * @throws ConnectionException
 	 */
 	public void saveChanges(MutationBatch mutator) {
-		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Prepare save actual changes:\t" + toString());
+		if (Loggers.Job.isTraceEnabled()) {
+			Loggers.Job.trace("Prepare save actual changes:\t" + toString());
+		} else if (Loggers.Job.isDebugEnabled()) {
+			Loggers.Job.debug("Prepare save actual changes:\t" + toStringLight());
 		}
+		
 		update_date = System.currentTimeMillis();
 		exportToDatabase(mutator.withRow(CF_QUEUE, key));
 	}
 	
-	static class Serializer implements JsonSerializer<JobNG>, JsonDeserializer<JobNG> {
-		private static Type al_string_typeOfT = new TypeToken<ArrayList<String>>() {
-		}.getType();
-		
+	public static class Serializer implements GsonDeSerializer<JobNG> {
 		public JobNG deserialize(JsonElement jejson, Type typeOfT, JsonDeserializationContext jcontext) throws JsonParseException {
 			JsonObject json = (JsonObject) jejson;
-			JobNG job = AppManager.getSimpleGson().fromJson(json, JobNG.class);
+			JobNG job = MyDMAM.gson_kit.getGsonSimple().fromJson(json, JobNG.class);
 			if (json.has("required_keys")) {
-				job.required_keys = AppManager.getSimpleGson().fromJson(json.get("required_keys"), al_string_typeOfT);
+				job.required_keys = MyDMAM.gson_kit.getGsonSimple().fromJson(json.get("required_keys"), GsonKit.type_ArrayList_String);
 			} else {
 				job.required_keys = new ArrayList<String>(1);
 			}
-			job.context = AppManager.getGson().fromJson(json.get("context"), JobContext.class);
-			job.processing_error = AppManager.getGson().fromJson(json.get("processing_error"), GsonThrowable.class);
+			job.context = MyDMAM.gson_kit.getGson().fromJson(json.get("context"), JobContext.class);
+			job.processing_error = MyDMAM.gson_kit.getGson().fromJson(json.get("processing_error"), GsonThrowable.class);
 			return job;
 		}
 		
 		public JsonElement serialize(JobNG src, Type typeOfSrc, JsonSerializationContext jcontext) {
-			JsonObject result = (JsonObject) AppManager.getSimpleGson().toJsonTree(src);
-			result.add("required_keys", AppManager.getSimpleGson().toJsonTree(src.required_keys));
-			result.add("context", AppManager.getGson().toJsonTree(src.context, JobContext.class));
-			result.add("processing_error", AppManager.getGson().toJsonTree(src.processing_error));
+			JsonObject result = (JsonObject) MyDMAM.gson_kit.getGsonSimple().toJsonTree(src);
+			result.add("required_keys", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.required_keys));
+			result.add("context", MyDMAM.gson_kit.getGson().toJsonTree(src.context, JobContext.class));
+			result.add("processing_error", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.processing_error));
 			return result;
 		}
 	}
 	
 	public JsonObject toJson() {
-		return AppManager.getGson().toJsonTree(this).getAsJsonObject();
+		return MyDMAM.gson_kit.getGson().toJsonTree(this).getAsJsonObject();
 	}
 	
 	/**
@@ -490,7 +556,7 @@ public final class JobNG {
 	
 	public void delete(MutationBatch mutator) throws ConnectionException {
 		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Prepare delete job:\t" + toString());
+			Loggers.Job.debug("Prepare delete job:\t" + toStringLight());
 		}
 		mutator.withRow(CF_QUEUE, key).delete();
 	}
@@ -564,11 +630,12 @@ public final class JobNG {
 		 * Workaround for Cassandra index select bug.
 		 */
 		mutator.putColumn("indexingdebug", 1, ttl);
-		mutator.putColumn("source", AppManager.getGson().toJson(this), ttl);
+		mutator.putColumn("source", MyDMAM.gson_kit.getGson().toJson(this), ttl);
 		
-		if (Loggers.Job.isDebugEnabled()) {
-			Loggers.Job.debug("Prepare export to db job:\t" + toString() + " with ttl " + ttl);
+		if (Loggers.Job.isTraceEnabled()) {
+			Loggers.Job.trace("Prepare export to db job:\t" + toString() + " with ttl " + ttl);
 		}
+		
 	}
 	
 	private static void exportToDatabase(ColumnListMutation<String> mutator, JsonObject json_job) {
@@ -618,7 +685,7 @@ public final class JobNG {
 		 * Check before if you can instanciate the JobContext class.
 		 */
 		static JobNG importFromDatabase(ColumnList<String> columnlist) {
-			return AppManager.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), JobNG.class);
+			return MyDMAM.gson_kit.getGson().fromJson(columnlist.getColumnByName("source").getStringValue(), JobNG.class);
 		}
 		
 		static List<JobNG> watchOldAbandonedJobs(MutationBatch mutator, InstanceStatus instance_status) throws ConnectionException {
@@ -635,7 +702,7 @@ public final class JobNG {
 			
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			for (Row<String, String> row : rows.getResult()) {
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				JobNG job = JobNG.Utility.importFromDatabase(row.getColumns());
@@ -650,6 +717,40 @@ public final class JobNG {
 			return result;
 		}
 		
+		/**
+		 * If a job depends to an error job > set to error
+		 */
+		static void searchRequiredAndErrorJobsAndSetError(MutationBatch mutator) throws ConnectionException {
+			if (Loggers.Job.isDebugEnabled()) {
+				Loggers.Job.debug("Search required and error jobs and set error");
+			}
+			IndexQuery<String, String> index_query = keyspace.prepareQuery(CF_QUEUE).searchWithIndex();
+			index_query.addExpression().whereColumn("status").equals().value(JobStatus.WAITING.name());
+			// index_query.addExpression().whereColumn("indexingdebug").equals().value(1);
+			index_query.withColumnSlice("source");
+			
+			ArrayList<JobNG> deleted_jobs = new ArrayList<>(1);
+			
+			JobNG job;
+			OperationResult<Rows<String, String>> rows = index_query.execute();
+			for (Row<String, String> row : rows.getResult()) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+					continue;
+				}
+				job = JobNG.Utility.importFromDatabase(row.getColumns());
+				
+				if (job.isRequireHasProblemThisSwitchStatus()) {
+					job.update_date = System.currentTimeMillis();
+					job.exportToDatabase(mutator.withRow(CF_QUEUE, job.key));
+					deleted_jobs.add(job);
+				}
+			}
+			
+			if (deleted_jobs.isEmpty() == false) {
+				Loggers.Job.info("This job requires the success of other jobs. Some of these jobs are in error, so it also puts these job in error: " + deleted_jobs);
+			}
+		}
+		
 		static void removeMaxDateForPostponedJobs(MutationBatch mutator, String creator_hostname) throws ConnectionException {
 			if (Loggers.Job.isDebugEnabled()) {
 				Loggers.Job.debug("Search for remove max date for postponed jobs");
@@ -662,7 +763,7 @@ public final class JobNG {
 			
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			for (Row<String, String> row : rows.getResult()) {
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				JobNG job = JobNG.Utility.importFromDatabase(row.getColumns());
@@ -737,7 +838,7 @@ public final class JobNG {
 			OperationResult<Rows<String, String>> rows = index_query.execute();
 			ArrayList<JobNG> result = new ArrayList<JobNG>();
 			for (Row<String, String> row : rows.getResult()) {
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
 				JobNG new_job = JobNG.Utility.importFromDatabase(row.getColumns());
@@ -823,6 +924,25 @@ public final class JobNG {
 			alterJobsFromJson(job_key, cols, mutator, order, result);
 			mutator.execute();
 			return result;
+		}
+		
+		/**
+		 * @param job_keys can be null or empty
+		 */
+		public static void removeJobsByKeys(Collection<String> job_keys) throws ConnectionException {
+			if (job_keys == null) {
+				return;
+			}
+			if (job_keys.isEmpty() == false) {
+				return;
+			}
+			
+			MutationBatch mutator = CassandraDb.prepareMutationBatch();
+			job_keys.forEach(job_key -> {
+				mutator.withRow(CF_QUEUE, job_key).delete();
+			});
+			mutator.execute();
+			return;
 		}
 		
 		private static void alterJobsFromJson(String job_key, ColumnList<String> cols, MutationBatch mutator, AlterJobOrderName order, JsonObject result) throws ConnectionException {
@@ -956,10 +1076,10 @@ public final class JobNG {
 				if (source.equals("{}")) {
 					continue;
 				}
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
-				result.add(AppManager.getGson().fromJson(source, JobNG.class));
+				result.add(MyDMAM.gson_kit.getGson().fromJson(source, JobNG.class));
 			}
 			return result;
 		}
@@ -982,10 +1102,10 @@ public final class JobNG {
 				if (source.equals("{}")) {
 					continue;
 				}
-				if (AppManager.isClassForNameExists(row.getColumns().getStringValue("context_class", "null")) == false) {
+				if (MyDMAM.factory.isClassExists(row.getColumns().getStringValue("context_class", "null")) == false) {
 					continue;
 				}
-				result.put(row.getKey(), AppManager.getGson().fromJson(source, JobNG.class));
+				result.put(row.getKey(), MyDMAM.gson_kit.getGson().fromJson(source, JobNG.class));
 			}
 			return result;
 		}
@@ -1082,7 +1202,7 @@ public final class JobNG {
 	}
 	
 	public String toString() {
-		return AppManager.getPrettyGson().toJson(this);
+		return MyDMAM.gson_kit.getGsonPretty().toJson(this);
 	}
 	
 	public String toStringLight() {

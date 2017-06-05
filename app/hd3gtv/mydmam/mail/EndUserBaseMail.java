@@ -24,23 +24,26 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.mail.internet.InternetAddress;
 
+import org.apache.commons.io.FileUtils;
 import org.codehaus.groovy.control.CompilationFailedException;
 
 import groovy.lang.Writable;
 import groovy.text.SimpleTemplateEngine;
+import groovy.text.Template;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.module.MessagesOutsidePlay;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.tools.CopyMove;
 
 /**
- * With Groovy engine front-end (outside Play scope). Ignore Jar files content, but manage Play modules.
+ * With Groovy engine front-end (outside Play scope). Ignore Jar files content.
  */
 public class EndUserBaseMail {
 	
@@ -50,32 +53,23 @@ public class EndUserBaseMail {
 	private static final String TEMPLATE_BASE_PATH = "mail-templates";
 	private static final String TEMPLATE_HTML_FILE = "template.html";
 	private static final String TEMPLATE_SUBJECT_FILE = "subject.txt";
-	
-	public static boolean GROOVY_VERBOSE = false;
 	private static SimpleTemplateEngine template_engine;
 	
 	static {
 		mailcenter = MailCenter.getGlobal();
 		templates = new LinkedHashMap<String, File>();
 		template_engine = new SimpleTemplateEngine();
-		template_engine.setVerbose(GROOVY_VERBOSE);
+		template_engine.setVerbose(mailcenter.isGroovyDebug());
 		
-		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
-		File templates_directories;
-		File[] templates_directories_content;
-		File template_directory;
-		String module_name;
-		String template_name;
-		String tpl_path;
-		for (Map.Entry<String, File> conf_dir_entry : conf_dirs.entrySet()) {
-			module_name = conf_dir_entry.getKey();
-			templates_directories = new File(conf_dir_entry.getValue() + File.separator + TEMPLATE_BASE_PATH);
-			if (templates_directories.exists() == false) {
-				continue;
-			}
-			if (templates_directories.isDirectory() == false) {
-				continue;
-			}
+		File templates_directories = new File(MyDMAM.APP_ROOT_PLAY_CONF_DIRECTORY + File.separator + TEMPLATE_BASE_PATH);
+		try {
+			CopyMove.checkExistsCanRead(templates_directories);
+			CopyMove.checkIsDirectory(templates_directories);
+			
+			File[] templates_directories_content;
+			File template_directory;
+			String template_name;
+			String tpl_path;
 			
 			/**
 			 * Test validity
@@ -99,25 +93,29 @@ public class EndUserBaseMail {
 					template_name = template_directory.getName();
 					if (templates.containsKey(template_name) == false) {
 						templates.put(template_name, template_directory);
-						Loggers.Mail.debug("Import mail template: \"" + template_name + "\" from \"" + module_name + "\" module in \"" + template_directory.getAbsolutePath() + "\"");
+						Loggers.Mail.debug("Import mail template: \"" + template_name + "\" in \"" + template_directory.getAbsolutePath() + "\"");
 					} else {
 						throw new Exception("Template directory with the name \"" + template_name + "\" is already added.");
 					}
 				} catch (Exception e) {
-					Loggers.Mail.error("Can't use/import template directory, path: " + template_directory + ", module: " + module_name, e);
+					Loggers.Mail.error("Can't use/import template directory, path: " + template_directory, e);
 				}
+				
 			}
 			
+		} catch (Exception e) {
+			Loggers.Mail.error("Can't found template directory in: " + templates_directories, e);
+			System.exit(1);
 		}
 	}
 	
 	private Locale locale;
-	private InternetAddress to;
+	private InternetAddress[] to;
 	private MailPriority priority;
-	
 	private File template_directory;
+	private File dump_mail_content_to_file;
 	
-	public EndUserBaseMail(Locale locale, InternetAddress to, String mail_template_name) throws FileNotFoundException {
+	public EndUserBaseMail(Locale locale, String mail_template_name, InternetAddress... to) throws FileNotFoundException {
 		this.locale = locale;
 		if (locale == null) {
 			throw new NullPointerException("\"locale\" can't to be null");
@@ -126,6 +124,9 @@ public class EndUserBaseMail {
 		this.to = to;
 		if (to == null) {
 			throw new NullPointerException("\"to\" can't to be null");
+		}
+		if (to.length == 0) {
+			throw new IndexOutOfBoundsException("\"to\" can't to be empty");
 		}
 		
 		if (mail_template_name == null) {
@@ -142,14 +143,36 @@ public class EndUserBaseMail {
 		return this;
 	}
 	
+	/**
+	 * If set, mail engine will not send a mail, but write to file the mail content.
+	 * @param dump_mail_content_to_file
+	 */
+	public void setDumpMailContentToFile(File dump_mail_content_to_file) {
+		this.dump_mail_content_to_file = dump_mail_content_to_file;
+		if (dump_mail_content_to_file == null) {
+			throw new NullPointerException("\"dump_mail_content_to_file\" can't to be null");
+		}
+	}
+	
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("to: ");
-		sb.append(to);
+		if (to != null) {
+			sb.append(Arrays.asList(to).stream().map(addr -> {
+				return addr.toString();
+			}).collect(Collectors.joining(", ")));
+		} else {
+			sb.append("(null)");
+		}
+		
 		sb.append(", locale: ");
 		sb.append(locale);
 		sb.append(", template_directory: ");
 		sb.append(template_directory);
+		if (dump_mail_content_to_file != null) {
+			sb.append(", dump_mail_content_to_file: ");
+			sb.append(dump_mail_content_to_file);
+		}
 		return sb.toString();
 	}
 	
@@ -160,7 +183,7 @@ public class EndUserBaseMail {
 	/**
 	 * @param mail_vars Beware ! "message" key is reserved, and it used with messages.* files.
 	 */
-	public void send(HashMap<String, Object> mail_vars) {
+	public boolean send(HashMap<String, Object> mail_vars) {
 		if (mail_vars == null) {
 			throw new NullPointerException("\"mail_vars\" can't to be null");
 		}
@@ -181,21 +204,33 @@ public class EndUserBaseMail {
 				sb.append(subject_text_list.get(pos));
 				sb.append(" ");
 			}
-			MailContent mail = mailcenter.prepareMessage(sb.toString().trim(), to);
+			String subject = sb.toString().trim();
 			
 			/**
 			 * Process templates: html text
 			 */
-			mail.setHtmltext(process(new File(template_directory.getPath() + File.separator + TEMPLATE_HTML_FILE), all_mail_vars));
+			ArrayList<String> content = process(new File(template_directory.getPath() + File.separator + TEMPLATE_HTML_FILE), all_mail_vars);
 			
-			mail.setMailPriority(priority);
+			if (dump_mail_content_to_file == null) {
+				if (Loggers.Mail.isDebugEnabled()) {
+					Loggers.Mail.info("Send an user mail, " + toString() + "\t" + mail_vars);
+				} else {
+					Loggers.Mail.info("Send an user mail, " + toString());
+				}
+				MailContent mail = mailcenter.prepareMessage(subject, to);
+				mail.setHtmltext(content);
+				mail.setMailPriority(priority);
+				mail.send();
+			} else {
+				Loggers.Mail.info("Fake mail sending with subject \"" + subject + "\", " + toString());
+				FileUtils.writeLines(dump_mail_content_to_file, content, false);
+			}
 			
-			Loggers.Mail.info("Send an user mail, " + toString() + "\t" + mail_vars);
-			mail.send();
-			
+			return true;
 		} catch (Exception e) {
 			Loggers.Mail.error("Fail to send an user mail, " + toString() + "\t" + mail_vars, e);
 		}
+		return false;
 	}
 	
 	private static class TemplateWriter extends Writer {
@@ -239,7 +274,8 @@ public class EndUserBaseMail {
 	};
 	
 	private static ArrayList<String> process(File template_file, HashMap<String, Object> all_mail_vars) throws IOException, CompilationFailedException, ClassNotFoundException {
-		Writable writable = template_engine.createTemplate(template_file).make(all_mail_vars);
+		Template template = template_engine.createTemplate(template_file);
+		Writable writable = template.make(all_mail_vars);
 		TemplateWriter tw = new TemplateWriter();
 		writable.writeTo(tw);
 		return tw.getContent();

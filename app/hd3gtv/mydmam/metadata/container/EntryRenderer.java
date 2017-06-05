@@ -17,25 +17,51 @@
 package hd3gtv.mydmam.metadata.container;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.metadata.RenderedFile;
-import hd3gtv.tools.GsonIgnore;
 
-public abstract class EntryRenderer extends ContainerEntry {
+public final class EntryRenderer extends ContainerEntry {
 	
-	private @GsonIgnore List<RenderedContent> content;
-	private @GsonIgnore JsonObject options;
+	@GsonIgnore
+	private List<RenderedContent> content;
+	@GsonIgnore
+	private JsonObject options;
 	
-	public EntryRenderer() {
+	private transient String es_type;
+	
+	private EntryRenderer() {
 		options = new JsonObject();
+	}
+	
+	/**
+	 * Don't forget to declare type in ContainerOperations static block.
+	 * @param type ES type
+	 */
+	public EntryRenderer(String type) {
+		options = new JsonObject();
+		if (type == null) {
+			throw new NullPointerException("\"type\" can't to be null");
+		}
+		es_type = type;
+	}
+	
+	public String getES_Type() {
+		return es_type;
+	}
+	
+	EntryRenderer setESType(String type) {
+		if (type == null) {
+			throw new NullPointerException("\"type\" can't to be null");
+		}
+		es_type = type;
+		return this;
 	}
 	
 	public boolean isEmpty() {
@@ -64,10 +90,6 @@ public abstract class EntryRenderer extends ContainerEntry {
 		content.add(rendered_content);
 	}
 	
-	protected final List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-		return null;
-	}
-	
 	public List<String> getContentFileNames() {
 		if (content == null) {
 			content = new ArrayList<RenderedContent>(1);
@@ -92,32 +114,26 @@ public abstract class EntryRenderer extends ContainerEntry {
 		return null;
 	}
 	
-	private Type type_l_RenderedContent_OfT = new TypeToken<List<RenderedContent>>() {
-	}.getType();
-	
 	public JsonObject getOptions() {
 		return options;
 	}
 	
-	protected final ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
-		EntryRenderer entry;
-		try {
-			entry = getClass().newInstance();
-		} catch (Exception e) {
-			Loggers.Metadata.error("Can't instanciate this Entry", e);
-			return null;
+	public static class Serializer extends ContainerEntryDeSerializer<EntryRenderer> {
+		
+		protected EntryRenderer internalDeserialize(JsonObject source) {
+			EntryRenderer entry = new EntryRenderer();
+			entry.content = MyDMAM.gson_kit.getGson().fromJson(source.get("content").getAsJsonArray(), GsonKit.type_List_RenderedContent);
+			entry.options = source.get("options").getAsJsonObject();
+			return entry;
 		}
-		entry.content = gson.fromJson(source.get("content").getAsJsonArray(), type_l_RenderedContent_OfT);
-		entry.options = source.get("options").getAsJsonObject();
-		return entry;
-	}
-	
-	protected final JsonObject internalSerialize(ContainerEntry _item, Gson gson) {
-		EntryRenderer src = (EntryRenderer) _item;
-		JsonObject jo = new JsonObject();
-		jo.add("options", src.options);
-		jo.add("content", gson.toJsonTree(src.content));
-		return jo;
+		
+		protected JsonObject internalSerialize(EntryRenderer item) {
+			JsonObject jo = new JsonObject();
+			jo.add("options", item.options);
+			jo.add("content", MyDMAM.gson_kit.getGson().toJsonTree(item.content));
+			return jo;
+		}
+		
 	}
 	
 }

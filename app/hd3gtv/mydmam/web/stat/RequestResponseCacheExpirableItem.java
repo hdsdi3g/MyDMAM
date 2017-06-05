@@ -16,10 +16,11 @@
 */
 package hd3gtv.mydmam.web.stat;
 
-import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
-import hd3gtv.tools.GsonIgnore;
-
 import com.google.gson.JsonObject;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 
 final class RequestResponseCacheExpirableItem<E> {
 	
@@ -65,7 +66,7 @@ final class RequestResponseCacheExpirableItem<E> {
 	}
 	
 	final JsonObject getCacheStatus() {
-		return PathElementStat.gson_simple.toJsonTree(this).getAsJsonObject();
+		return MyDMAM.gson_kit.getGsonSimple().toJsonTree(this).getAsJsonObject();
 	}
 	
 }

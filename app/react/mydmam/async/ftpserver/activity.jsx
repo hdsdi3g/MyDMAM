@@ -15,7 +15,7 @@
  * 
 */
 
-ftpserver.ActivityList = React.createClass({
+ftpserver.ActivityList = createReactClass({
 	getInitialState: function() {
 		return {
 			activities: null,
@@ -86,7 +86,7 @@ ftpserver.ActivityList = React.createClass({
 		var request = {
 			max_items: this.state.max_items,
 			searched_text: this.state.searched_text,
-			searched_action_type: React.findDOMNode(this.refs.select_action).value,
+			searched_action_type: ReactDOM.findDOMNode(this.refs.select_action).value,
 		};
 		if (this.props.user_id) {
 			request.user_session_ref = md5(this.props.user_id);

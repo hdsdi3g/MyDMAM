@@ -17,15 +17,24 @@
 package hd3gtv.mydmam.transcode.watchfolder;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.elasticsearch.ElasticsearchException;
 
 import com.google.gson.JsonElement;
@@ -42,15 +51,17 @@ import com.netflix.astyanax.recipes.locks.StaleLockException;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.mail.AdminMailAlert;
 import hd3gtv.mydmam.manager.AppManager;
+import hd3gtv.mydmam.manager.InstanceActionReceiver;
 import hd3gtv.mydmam.manager.InstanceStatusItem;
 import hd3gtv.mydmam.manager.JobNG;
+import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -61,15 +72,24 @@ import hd3gtv.mydmam.storage.IgnoreFiles;
 import hd3gtv.mydmam.storage.Storage;
 import hd3gtv.mydmam.storage.StorageCrawler;
 import hd3gtv.mydmam.transcode.JobContextTranscoder;
+import hd3gtv.mydmam.transcode.ProcessingKit;
+import hd3gtv.mydmam.transcode.ProcessingKitEngine;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.mydmam.transcode.watchfolder.AbstractFoundedFile.Status;
 import hd3gtv.tools.Timecode;
 
-public class WatchFolderEntry extends Thread implements InstanceStatusItem {
+public class WatchFolderEntry extends Thread implements InstanceStatusItem, InstanceActionReceiver {
+	
+	private static int max_founded_items = 0;
+	
+	static {
+		max_founded_items = Configuration.global.getValue("watchfolderopts", "max_founded_items", 0);
+	}
 	
 	private String name;
 	private String source_storage;
+	private ArrayList<String> limit_to_file_extentions;
 	private long time_to_wait_growing_file;
 	private long time_to_sleep_between_scans;
 	private long min_file_size;
@@ -77,12 +97,14 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 	private AppManager manager;
 	private Explorer explorer;
 	private List<MustContainType> must_contain;
+	private ProcessingKitEngine process_kit_engine;
 	
 	public enum MustContainType {
 		video, audio
 	}
 	
-	private boolean want_to_stop;
+	private volatile boolean want_to_stop;
+	private volatile boolean paused = false;
 	
 	class Target {
 		String storage;
@@ -90,6 +112,8 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		String dest_file_prefix;
 		String dest_file_suffix;
 		boolean keep_input_dir_to_dest;
+		boolean copy_source_file_to_dest;
+		transient ProcessingKit process_kit;
 		
 		Target init(LinkedHashMap<String, ?> conf) throws Exception {
 			if (conf.containsKey("storage") == false) {
@@ -109,7 +133,10 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			profile = (String) conf.get("profile");
 			
 			if (TranscodeProfile.getTranscodeProfile(profile) == null) {
-				throw new NullPointerException("Can't found transcode profile \"" + profile + "\" in \"" + name + "\" watch folder configuration");
+				process_kit = process_kit_engine.get(profile);
+				if (process_kit == null) {
+					throw new NullPointerException("Can't found transcode profile/processing kit \"" + profile + "\" in \"" + name + "\" watch folder configuration");
+				}
 			}
 			
 			if (conf.containsKey("dest_file_prefix")) {
@@ -124,13 +151,23 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				keep_input_dir_to_dest = (Boolean) conf.get("keep_input_dir_to_dest");
 			}
 			
+			copy_source_file_to_dest = false;
+			if (conf.containsKey("copy_source_file_to_dest")) {
+				copy_source_file_to_dest = (Boolean) conf.get("copy_source_file_to_dest");
+			}
+			
 			if (Loggers.Transcode_WatchFolder.isDebugEnabled()) {
 				LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 				log.put("storage", storage);
-				log.put("profile", profile);
+				if (process_kit != null) {
+					log.put("process_kit", profile);
+				} else {
+					log.put("profile", profile);
+				}
 				log.put("dest_file_prefix", dest_file_prefix);
 				log.put("dest_file_suffix", dest_file_suffix);
 				log.put("keep_input_dir_to_dest", keep_input_dir_to_dest);
+				log.put("copy_source_file_to_dest", copy_source_file_to_dest);
 				Loggers.Transcode_WatchFolder.debug("Init watchfolder target: " + log.toString());
 			}
 			
@@ -160,14 +197,34 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			
 			return AppManager.createJob(job_transcode).setCreator(getClass()).setName("Transcode from watchfolder " + simple_file_name).publish(mutator);
 		}
+		
+		private void addToCopySourceFileList(ArrayList<String> send_source_to_dest, ArrayList<String> send_source_to_dest_storages_names, String source_sub_directory) {
+			if (copy_source_file_to_dest == false) {
+				return;
+			}
+			String spie_key = SourcePathIndexerElement.prepareStorageElement(storage).prepare_key();
+			
+			if (keep_input_dir_to_dest) {
+				spie_key = SourcePathIndexerElement.prepare_key(storage, source_sub_directory);
+			}
+			if (send_source_to_dest.contains(spie_key) == false) {
+				send_source_to_dest.add(spie_key);
+			}
+			
+			if (send_source_to_dest_storages_names.contains(storage) == false) {
+				send_source_to_dest_storages_names.add(storage);
+			}
+		}
+		
 	}
 	
-	WatchFolderEntry(AppManager manager, ThreadGroup thread_group, String name, HashMap<String, ConfigurationItem> all_wf_confs) throws Exception {
+	WatchFolderEntry(AppManager manager, ThreadGroup thread_group, String name, HashMap<String, ConfigurationItem> all_wf_confs, ProcessingKitEngine process_kit_engine) throws Exception {
 		super(thread_group, "WatchFolder:" + name);
 		setDaemon(true);
 		
 		this.manager = manager;
 		this.name = name;
+		this.process_kit_engine = process_kit_engine;
 		explorer = new Explorer();
 		
 		source_storage = Configuration.getValue(all_wf_confs, name, "source_storage", "");
@@ -189,7 +246,6 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		time_to_wait_growing_file = Configuration.getValue(all_wf_confs, name, "time_to_wait_growing_file", 1000);
 		time_to_sleep_between_scans = Configuration.getValue(all_wf_confs, name, "time_to_sleep_between_scans", 10000);
 		min_file_size = Configuration.getValue(all_wf_confs, name, "min_file_size", 10000);
-		
 		must_contain = new ArrayList<WatchFolderEntry.MustContainType>(2);
 		Object raw_must_contain = Configuration.getRawValue(all_wf_confs, name, "must_contain");
 		if (raw_must_contain != null) {
@@ -203,6 +259,19 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			}
 		}
 		
+		limit_to_file_extentions = new ArrayList<>(1);
+		Object raw_limit_to_file_extentions = Configuration.getRawValue(all_wf_confs, name, "limit_to_file_extentions");
+		if (raw_limit_to_file_extentions != null) {
+			if (raw_limit_to_file_extentions instanceof String) {
+				limit_to_file_extentions.add(((String) raw_limit_to_file_extentions).toLowerCase());
+			} else if (raw_limit_to_file_extentions instanceof ArrayList) {
+				ArrayList<?> al_raw_limit_to_file_extentions = (ArrayList<?>) raw_limit_to_file_extentions;
+				for (int pos_almc = 0; pos_almc < al_raw_limit_to_file_extentions.size(); pos_almc++) {
+					limit_to_file_extentions.add(((String) al_raw_limit_to_file_extentions.get(pos_almc)).toLowerCase());
+				}
+			}
+		}
+		
 		if (Loggers.Transcode_WatchFolder.isInfoEnabled()) {
 			LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 			log.put("name", name);
@@ -211,11 +280,14 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			log.put("time_to_wait_growing_file", time_to_wait_growing_file);
 			log.put("time_to_sleep_between_scans", time_to_sleep_between_scans);
 			log.put("min_file_size", min_file_size);
+			if (limit_to_file_extentions.isEmpty() == false) {
+				log.put("limit_to_file_extentions", limit_to_file_extentions);
+			}
 			log.put("must_contain", must_contain);
 			Loggers.Transcode_WatchFolder.info("Load watchfolder entry " + log);
 		}
 		
-		manager.getInstanceStatus().registerInstanceStatusItem(this);
+		manager.registerInstanceStatusAction(this);
 	}
 	
 	synchronized void stopWatchfolderScans() {
@@ -233,6 +305,11 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		public boolean onFoundFile(AbstractFile file, String storagename) {
 			if (file.length() < min_file_size) {
 				return true;
+			}
+			if (limit_to_file_extentions.isEmpty() == false) {
+				if (limit_to_file_extentions.contains(FilenameUtils.getExtension(file.getName()).toLowerCase()) == false) {
+					return true;
+				}
 			}
 			Loggers.Transcode_WatchFolder.debug("Search has found a file: " + storagename + ":" + file.getPath());
 			founded.add(new AbstractFoundedFile(file, storagename));
@@ -263,7 +340,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		}
 		
 		public IgnoreFiles getRules() {
-			return IgnoreFiles.default_list;
+			return IgnoreFiles.directory_config_list;
 		}
 		
 		public boolean onStartSearch(String storage_name, AbstractFile search_root_path) {
@@ -298,6 +375,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		ColumnPrefixDistributedRowLock<String> lock;
 		
 		Crawler crawler = new Crawler();
+		int all_count = 0;
 		
 		try {
 			while (want_to_stop == false) {
@@ -306,6 +384,20 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 					Thread.sleep(10);
 					sleep_time -= 10;
 				}
+				if (paused) {
+					continue;
+				}
+				
+				if (max_founded_items > 0) {
+					all_count = WatchFolderDB.getInProcessCount();
+					if (all_count > max_founded_items) {
+						Loggers.Transcode_WatchFolder.trace("Too many items in database (" + all_count + "), max is = " + max_founded_items);
+						continue;
+					}
+				} else {
+					all_count = 0;
+				}
+				
 				try {
 					
 					Loggers.Transcode_WatchFolder.trace("Start scan for " + name);
@@ -437,6 +529,13 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 						}
 						
 						if (db_entry_file.last_checked + time_to_wait_growing_file < System.currentTimeMillis()) {
+							if (canIReadThisFile(db_entry_file) == false) {
+								/**
+								 * Something lock this file. Maybe a Windows copy process ?
+								 */
+								Loggers.Transcode_WatchFolder.trace("Found file is currently locked (can't open it) in " + name + ": " + active_file);
+								continue;
+							}
 							Loggers.Transcode_WatchFolder.trace("Set found file to validated files in " + name + ": " + db_entry_file);
 							validated_files.add(db_entry_file);
 						} else {
@@ -456,6 +555,17 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 					 * Lock it in Cassandra, and process it.
 					 */
 					Loggers.Transcode_WatchFolder.debug("For all validated files (" + validated_files.size() + "), lock it in Cassandra, and process it, in " + name);
+					
+					if (max_founded_items > 0 && validated_files.size() > max_founded_items) {
+						int max_start = max_founded_items - all_count;
+						if (max_start < 1) {
+							continue;
+						}
+						if (validated_files.size() > max_start) {
+							Collections.shuffle(validated_files);
+							validated_files = validated_files.subList(0, max_start);
+						}
+					}
 					
 					for (int pos = 0; pos < validated_files.size(); pos++) {
 						validated_file = validated_files.get(pos);
@@ -509,6 +619,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 	}
 	
 	void performFoundAndValidatedFile(AbstractFoundedFile validated_file) throws ConnectionException {
+		ElasticsearchBulkOperation bulk;
 		/**
 		 * Refresh ES pathindex for this file
 		 */
@@ -518,7 +629,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				try {
 					Loggers.Transcode_WatchFolder.trace("Refresh ES pathindex for this file in " + name + " for " + validated_file);
 					
-					ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
+					bulk = Elasticsearch.prepareBulk();
 					bulk.getConfiguration().setRefresh(true);
 					explorer.refreshCurrentStoragePath(bulk, Arrays.asList(pi_item), true);
 					bulk.terminateBulk();
@@ -529,8 +640,16 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				}
 			}
 		} else {
-			Loggers.Transcode_WatchFolder.error("Can't found current item in ES " + name + " for " + validated_file);
-			return;
+			bulk = Elasticsearch.prepareBulk();
+			try {
+				Loggers.Transcode_WatchFolder.trace("Refresh ES index in " + name + " for storage " + source_storage);
+				explorer.refreshStoragePath(bulk, Arrays.asList(SourcePathIndexerElement.prepareStorageElement(source_storage)), false);
+				bulk.terminateBulk();
+				pi_item = explorer.getelementByIdkey(validated_file.getPathIndexKey());
+			} catch (Exception e) {
+				Loggers.Transcode_WatchFolder.error("Trouble during Elasticsearch updating", e);
+				return;
+			}
 		}
 		
 		/**
@@ -546,7 +665,7 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 				physical_source = DistantFileRecovery.getFile(pi_item, false);
 			} catch (Exception e) {
 				Loggers.Transcode_WatchFolder.error("Can't download found file to temp directory " + name + " for " + validated_file, e);
-				AdminMailAlert.create("Can't download watch folder found file to temp directory", false).setThrowable(e).send();
+				AdminMailAlert.create("Can't download watch folder found file to temp directory " + name + " for " + validated_file, false).setThrowable(e).send();
 				validated_file.status = Status.ERROR;
 				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
@@ -556,8 +675,8 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		Container indexing_result = null;
 		try {
 			Loggers.Transcode_WatchFolder.trace("Save item to ES " + name + " for " + validated_file);
-			ElasticsearchBulkOperation bulk = Elasticsearch.prepareBulk();
-			MetadataIndexingOperation indexing = new MetadataIndexingOperation(physical_source).setReference(pi_item).setLimit(MetadataIndexingLimit.ANALYST);
+			bulk = Elasticsearch.prepareBulk();
+			MetadataIndexingOperation indexing = new MetadataIndexingOperation(physical_source).setReference(pi_item).setLimit(MetadataIndexingLimit.FAST);
 			indexing_result = indexing.doIndexing();
 			ContainerOperations.save(indexing_result, true, bulk);
 			bulk.terminateBulk();
@@ -572,36 +691,86 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		 * Process active files: transcoding jobs
 		 */
 		Timecode duration = null;
-		
-		FFprobe ffprobe = indexing_result.getByClass(FFprobe.class);
+		FFprobe ffprobe = indexing_result.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		
 		if (ffprobe != null) {
 			Loggers.Transcode_WatchFolder.debug("Analyst file result, " + ffprobe);
+			duration = ffprobe.getDuration();
 		}
 		
 		if (must_contain.contains(MustContainType.video) | must_contain.contains(MustContainType.audio)) {
 			if (ffprobe == null) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must be a media file " + name + " for " + validated_file);
-				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file", false).send();
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must be a media file " + name + " for " + validated_file, false).send();
 				validated_file.status = Status.ERROR;
 				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			} else if (must_contain.contains(MustContainType.video) & (ffprobe.hasVideo() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have a video track " + name + " for " + validated_file);
-				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track", false).send();
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have a video track " + name + " for " + validated_file, false).send();
 				validated_file.status = Status.ERROR;
 				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			} else if (must_contain.contains(MustContainType.audio) & (ffprobe.hasAudio() == false)) {
 				Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: it must have an audio track " + name + " for " + validated_file);
-				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track", false).send();
+				AdminMailAlert.create("Invalid file dropped in watchfolder: it must have an audio track " + name + " for " + validated_file, false).send();
 				validated_file.status = Status.ERROR;
 				WatchFolderDB.push(Arrays.asList(validated_file));
 				return;
 			}
-			duration = ffprobe.getDuration();
 		} else {
 			Loggers.Transcode_WatchFolder.debug("WF entry (" + name + ") don't required a media file");
+		}
+		
+		if (indexing_result.getSummary().equalsMimetype("application/zip", "application/x-compressed", "application/x-zip-compressed", "multipart/x-zip")) {
+			/**
+			 * Zip extraction in-place
+			 */
+			Loggers.Transcode_WatchFolder.info("Zip file dropped in watchfolder: extract it and delete it, " + name + " for " + validated_file);
+			AbstractFile dest_adir = null;
+			AbstractFile dest_afile = null;
+			OutputStream fos;
+			byte[] buffer = new byte[0xFFF];
+			
+			try {
+				String base_dest_path = FilenameUtils.getFullPath(pi_item.currentpath);
+				dest_adir = Storage.getByName(pi_item.storagename).getRootPath().getAbstractFile(base_dest_path);
+				
+				ZipInputStream zis = new ZipInputStream(new FileInputStream(physical_source));
+				ZipEntry zip_element = zis.getNextEntry();
+				
+				while (zip_element != null) {
+					if (zip_element.isDirectory()) {
+						zip_element = zis.getNextEntry();
+						continue;
+					}
+					String file_ext = FilenameUtils.getExtension(zip_element.getName());
+					String file_name = FilenameUtils.getBaseName(zip_element.getName()) + "." + file_ext;
+					if (file_ext.equals("")) {
+						file_name = FilenameUtils.getBaseName(zip_element.getName());
+					}
+					
+					dest_afile = dest_adir.getAbstractFile(base_dest_path + "/" + file_name);
+					fos = dest_afile.getOutputStream(0xFFF);
+					
+					int len;
+					while ((len = zis.read(buffer)) > 0) {
+						fos.write(buffer, 0, len);
+					}
+					fos.close();
+					zip_element = zis.getNextEntry();
+				}
+				zis.closeEntry();
+				zis.close();
+				validated_file.status = Status.PROCESSED;
+				FileUtils.forceDelete(physical_source);
+			} catch (IOException e) {
+				validated_file.status = Status.ERROR;
+				Loggers.Transcode_WatchFolder.error("Can't extract Zip file dropped in watchfolder: " + name + " for " + validated_file, e);
+			}
+			WatchFolderDB.push(Arrays.asList(validated_file));
+			IOUtils.closeQuietly(dest_adir);
+			return;
 		}
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
@@ -612,24 +781,75 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 		Loggers.Transcode_WatchFolder.trace("Prepare all transcode jobs " + name + " for " + validated_file + ", in " + sub_dir_name);
 		
 		JobNG new_job;
+		ArrayList<String> send_source_to_dest = new ArrayList<String>();
+		ArrayList<String> send_source_to_dest_storages_names = new ArrayList<String>();
+		Target target;
+		
 		for (int pos = 0; pos < targets.size(); pos++) {
-			new_job = targets.get(pos).prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), sub_dir_name, duration, mutator);
+			target = targets.get(pos);
+			
+			if (target.process_kit != null) {
+				if (target.process_kit.validateItem(indexing_result) == false) {
+					Loggers.Transcode_WatchFolder.error("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass());
+					AdminMailAlert.create("Invalid file dropped in watchfolder: processing kit don't validate it: " + name + " for " + validated_file + " by " + target.process_kit.getClass(), false).send();
+					validated_file.status = Status.ERROR;
+					WatchFolderDB.push(Arrays.asList(validated_file));
+					return;
+				}
+			}
+			
+			new_job = target.prepareTranscodeJob(pi_item.prepare_key(), validated_file.getName(), sub_dir_name, duration, mutator);
 			jobs_to_watch.add(new_job);
-			validated_file.map_job_target.put(new_job.getKey(), targets.get(pos).storage + ":" + targets.get(pos).profile);
+			validated_file.map_job_target.put(new_job.getKey(), target.storage + ":" + target.profile);
+			targets.get(pos).addToCopySourceFileList(send_source_to_dest, send_source_to_dest_storages_names, sub_dir_name);
 		}
 		WatchFolderDB.push(Arrays.asList(validated_file));
 		
 		JobContextWFDeleteSourceFile delete_source = new JobContextWFDeleteSourceFile();
-		delete_source.neededstorages = Arrays.asList(validated_file.storage_name);
+		delete_source.neededstorages = new ArrayList<>(Arrays.asList(validated_file.storage_name));
 		delete_source.path = validated_file.path;
 		delete_source.storage = validated_file.storage_name;
+		delete_source.send_to = send_source_to_dest;
+		if (send_source_to_dest_storages_names.isEmpty() == false) {
+			send_source_to_dest_storages_names.forEach(storage -> {
+				if (delete_source.neededstorages.contains(storage) == false) {
+					delete_source.neededstorages.add(storage);
+				}
+			});
+		}
+		delete_source.clean_after_done = max_founded_items > 0;
 		
 		Loggers.Transcode_WatchFolder.trace("Prepare delete source job " + name + " for " + validated_file + " " + delete_source.contextToJson());
 		
-		AppManager.createJob(delete_source).setCreator(getClass()).setName("Delete watchfolder source " + validated_file.getName()).setRequiredCompletedJob(jobs_to_watch).setDeleteAfterCompleted()
-				.publish(mutator);
+		AppManager.createJob(delete_source).setCreator(
 				
+				getClass()).setName("Delete watchfolder source " + validated_file.getName()).setRequiredCompletedJob(jobs_to_watch).setDeleteAfterCompleted().publish(mutator);
+		
 		mutator.execute();
+	}
+	
+	/**
+	 * Try to read the first byte of the founded file.
+	 */
+	private static boolean canIReadThisFile(AbstractFoundedFile file) {
+		InputStream i_stream = null;
+		AbstractFile a_file = null;
+		try {
+			a_file = Storage.getByName(file.storage_name).getRootPath().getAbstractFile(file.path);
+			i_stream = a_file.getInputStream(0xFF);
+			i_stream.read();
+			i_stream.close();
+			a_file.close();
+			return true;
+		} catch (IOException e1) {
+			Loggers.Transcode_WatchFolder.trace("Can't read file: " + file.storage_name + ":" + file.path, e1);
+		} catch (Exception e2) {
+			Loggers.Transcode_WatchFolder.warn("Error during file reading test: " + file.storage_name + ":" + file.path, e2);
+		} finally {
+			IOUtils.closeQuietly(i_stream);
+			IOUtils.closeQuietly(a_file);
+		}
+		return false;
 	}
 	
 	public static class Serializer implements JsonSerializer<WatchFolderEntry> {
@@ -642,28 +862,51 @@ public class WatchFolderEntry extends Thread implements InstanceStatusItem {
 			
 			jo_entry.addProperty("name", entry.name);
 			jo_entry.addProperty("source_storage", entry.source_storage);
-			jo_entry.add("targets", AppManager.getSimpleGson().toJsonTree(entry.targets));
-			jo_entry.add("must_contain", AppManager.getSimpleGson().toJsonTree(entry.must_contain));
+			jo_entry.add("targets", MyDMAM.gson_kit.getGsonSimple().toJsonTree(entry.targets));
+			jo_entry.add("must_contain", MyDMAM.gson_kit.getGsonSimple().toJsonTree(entry.must_contain));
+			jo_entry.add("limit_to_file_extentions", MyDMAM.gson_kit.getGsonSimple().toJsonTree(entry.limit_to_file_extentions));
 			jo_entry.addProperty("min_file_size", entry.min_file_size);
+			jo_entry.addProperty("max_founded_items", max_founded_items);
 			jo_entry.addProperty("time_to_sleep_between_scans", entry.time_to_sleep_between_scans);
 			jo_entry.addProperty("time_to_wait_growing_file", entry.time_to_wait_growing_file);
 			jo_entry.addProperty("want_to_stop", entry.want_to_stop);
 			jo_entry.addProperty("isalive", entry.isAlive());
+			jo_entry.addProperty("paused", entry.paused);
 			return jo_entry;
 		}
 		
 	}
 	
 	public JsonElement getInstanceStatusItem() {
-		return WatchFolderDB.gson.toJsonTree(this);
+		return MyDMAM.gson_kit.getGson().toJsonTree(this);
 	}
 	
 	public String getReferenceKey() {
-		return name;
+		return manager.getReferenceKey() + ":" + name;
 	}
 	
 	public Class<?> getInstanceStatusItemReferenceClass() {
 		return WatchFolderEntry.class;
+	}
+	
+	public Class<? extends InstanceActionReceiver> getClassToCallback() {
+		return WatchFolderEntry.class;
+	}
+	
+	public void doAnAction(JsonObject order) throws Exception {
+		if (isAlive() == false) {
+			return;
+		}
+		
+		if (order.has("paused")) {
+			paused = order.get("paused").getAsBoolean();
+			
+			if (paused) {
+				Loggers.Transcode_WatchFolder.info("Pause watch for " + name + " to " + source_storage);
+			} else {
+				Loggers.Transcode_WatchFolder.info("Switch off pause for " + name + " to " + source_storage);
+			}
+		}
 	}
 	
 }

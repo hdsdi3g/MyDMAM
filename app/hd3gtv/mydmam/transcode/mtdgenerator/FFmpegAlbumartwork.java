@@ -17,28 +17,28 @@
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
+import java.util.List;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
+import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeStream;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 
-public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
+public class FFmpegAlbumartwork implements MetadataExtractor {
 	
 	private TranscodeProfile tprofile;
 	
-	public static class Albumartwork extends EntryRenderer {
-		public String getES_Type() {
-			return "ffalbumartwork";
-		}
-		
-	}
+	public static final String ES_TYPE = "ffalbumartwork";
 	
 	public FFmpegAlbumartwork() {
 		if (TranscodeProfile.isConfigured()) {
@@ -50,37 +50,39 @@ public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 		return (tprofile != null);
 	}
 	
-	public boolean canProcessThis(String mimetype) {
-		return FFprobeAnalyser.canProcessThisAudioOnly(mimetype);
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(ES_TYPE);
+	}
+	
+	public boolean canProcessThisMimeType(String mimetype) {
+		return FFprobeAnalyser.canProcessThisAudioOnly(mimetype) | mimetype.equalsIgnoreCase("video/quicktime") | mimetype.equalsIgnoreCase("video/mp4");
 	}
 	
 	public String getLongName() {
 		return "FFmpeg album artwork extracting";
 	}
 	
-	public EntryRenderer process(Container container) throws Exception {
-		FFprobe ffprobe = container.getByClass(FFprobe.class);
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return null;
+	}
+	
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
+		FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		if (ffprobe == null) {
 			return null;
 		}
 		
-		/**
-		 * Must not have real video stream.
-		 */
-		if (ffprobe.hasVideo()) {
-			return null;
-		}
-		
-		/**
-		 * Must have fake video stream : artwork
-		 */
-		if (ffprobe.getStreamsByCodecType("video") == null) {
+		FFProbeStream artwork_stream = ffprobe.getAttachedPicStream();
+		if (artwork_stream == null) {
 			return null;
 		}
 		
 		RenderedFile element = new RenderedFile("album_artwork", tprofile.getExtension("jpg"));
 		
-		ExecprocessGettext process = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile(), container).prepareExecprocess();
+		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(container.getPhysicalSource(), element.getTempFile(), container);
+		process_conf.getParamTags().put("PICSTREAMID", "0:" + artwork_stream.getIndex());
+		
+		ExecprocessGettext process = process_conf.prepareExecprocess();
 		process.setEndlinewidthnewline(true);
 		try {
 			process.start();
@@ -95,17 +97,21 @@ public class FFmpegAlbumartwork implements MetadataGeneratorRenderer {
 			throw e;
 		}
 		
-		Albumartwork result = new Albumartwork();
+		EntryRenderer result = new EntryRenderer(FFmpegAlbumartwork.ES_TYPE);
 		element.consolidateAndExportToEntry(result, container, this);
-		return result;
+		return new ContainerEntryResult(result);
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return null;
 	}
 	
-	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return Albumartwork.class;
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		return null;
+	}
+	
+	public boolean isCanUsedInMasterAsPreview(Container container) {
+		return false;
 	}
 	
 }

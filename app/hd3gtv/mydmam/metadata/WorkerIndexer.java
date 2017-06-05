@@ -38,7 +38,7 @@ import hd3gtv.mydmam.storage.Storage;
  */
 public class WorkerIndexer extends WorkerNG {
 	
-	private volatile List<MetadataIndexer> analysis_indexers;
+	private volatile List<MetadataStorageIndexer> analysis_indexers;
 	
 	private HashMap<String, Long> lastindexeddatesforstoragenames;
 	private Explorer explorer = new Explorer();
@@ -47,7 +47,7 @@ public class WorkerIndexer extends WorkerNG {
 		if (isActivated() == false) {
 			return;
 		}
-		analysis_indexers = new ArrayList<MetadataIndexer>();
+		analysis_indexers = new ArrayList<MetadataStorageIndexer>();
 		lastindexeddatesforstoragenames = new HashMap<String, Long>();
 		
 		for (int pos = 0; pos < MetadataCenter.conf_items.size(); pos++) {
@@ -63,12 +63,14 @@ public class WorkerIndexer extends WorkerNG {
 			JobContextPathScan context_hook = new JobContextPathScan();
 			context_hook.neededstorages = Arrays.asList(item.storage_label_name);
 			TriggerJobCreator trigger_creator = new TriggerJobCreator(manager, context_hook);
-			trigger_creator.setOptions(this.getClass(), "Pathindex metadata indexer", "MyDMAM Internal");
-			trigger_creator.add("Analyst " + item.storage_label_name + " storage", analyst);
+			trigger_creator.createThis("Analyst " + item.storage_label_name + " storage", this.getClass(), "Pathindex metadata indexer", "MyDMAM Internal", analyst);
 			manager.register(trigger_creator);
 			
 			lastindexeddatesforstoragenames.put(item.storage_label_name, 0l);
 		}
+		
+		manager.register(this);
+		manager.register(new WorkerRenderer(this));
 	}
 	
 	protected void workerProcessJob(JobProgression progression, JobContext context) throws Exception {
@@ -80,13 +82,13 @@ public class WorkerIndexer extends WorkerNG {
 			throw new IndexOutOfBoundsException("\"neededstorages\" can't to be empty");
 		}
 		String storagename;
-		MetadataIndexer metadataIndexer;
+		MetadataStorageIndexer metadataStorageIndexer;
 		
 		for (int pos = 0; pos < analyst_context.neededstorages.size(); pos++) {
 			progression.updateStep(pos + 1, analyst_context.neededstorages.size());
 			
-			metadataIndexer = new MetadataIndexer(analyst_context.force_refresh);
-			analysis_indexers.add(metadataIndexer);
+			metadataStorageIndexer = new MetadataStorageIndexer(analyst_context.force_refresh, false);
+			analysis_indexers.add(metadataStorageIndexer);
 			storagename = analyst_context.neededstorages.get(pos);
 			long min_index_date = 0;
 			if (lastindexeddatesforstoragenames.containsKey(storagename)) {
@@ -94,8 +96,8 @@ public class WorkerIndexer extends WorkerNG {
 			} else {
 				lastindexeddatesforstoragenames.put(storagename, 0l);
 			}
-			metadataIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, analyst_context.currentpath)), min_index_date);
-			analysis_indexers.remove(metadataIndexer);
+			metadataStorageIndexer.process(explorer.getelementByIdkey(Explorer.getElementKey(storagename, analyst_context.currentpath)), min_index_date, progression);
+			analysis_indexers.remove(metadataStorageIndexer);
 		}
 	}
 	

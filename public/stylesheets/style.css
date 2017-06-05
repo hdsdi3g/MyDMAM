@@ -24,6 +24,28 @@ body {
 	}
 } 
 
+.exofont {
+    font-family: "Exo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.brand.exofont {
+    font-weight: 400;
+}
+
+div.hero-unit {
+    font-family: "Exo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+div.hero-unit h1 {
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+div.hero-unit p {
+    font-weight: 400;
+    font-size: 20px;
+}
+
 .navbar-fixed-top-btn > li > a {
 	padding-left: 8px !important;
 	padding-right: 8px !important;
@@ -219,23 +241,24 @@ div.instancesnavlists {
     padding: 12px;
 }
 
-div.instancesnavlists pre {
-    background-color: inherit;
-    border-radius: inherit;
-    padding: 0px;
-    border: 0;
+div.instancesnavlists span.labelcheckbox {
     font-size: 90%;
-    line-height: 20px;
-    margin: 0;
+    cursor: pointer;
+    /*line-height: 20px;*/
 }
 
-div.instancesnavlists a {
-    color: inherit;
+div.instancesnavlists span.labelcheckbox:hover {
+    color: #C00;
 }
 
-div.instancesnavlists a:hover {
-   text-decoration: none;
-   color: #C00;
+div.instancesnavlists input {
+    margin-top: 0px;
+    margin-right: 3px;
+    cursor: pointer;
+}
+
+div.instancesnavlists span.labelcheckbox small {
+    color: #777;
 }
 
 div.instancesnavlists hr {
@@ -298,3 +321,135 @@ code.commandline span.cmd_var {
     position: relative;
 }
 
+/* ============================================================================== */
+div.bcaevent {
+    border-top: 1px solid #DDD;
+    border-bottom: 1px solid #CCC;
+    margin-top: 1px;
+    padding-top: 3px;
+
+    padding-bottom: 3px;
+    margin-bottom: 1px;
+}
+
+div.bcaevent span.other {
+    margin-left: 4px;
+    border: 1px dotted #AAA;
+    border-radius: 3px;
+    padding: 2px 4px;
+}
+
+div.bcaevent div.progress {
+    margin-bottom: 0px;
+    height: 12px;
+    border-radius: 0px;
+    background-color: #E0DD08;
+    border: 1px solid #CCC;
+    background-image: none;
+    background-image: none;
+    background-image: none;
+    background-image: none;
+    background-image: none;
+    background-repeat: none;
+    -webkit-border-radius: 0px;
+    -moz-border-radius: 0px;
+    border-radius: 0px;
+    filter: none;
+}
+
+/** =============================================================================================== */
+
+div.month div.week {
+    display: flex;
+    /*height: 2em;*/
+}
+
+div.month div.week div.day {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+
+    font-size: 10.5px;
+    line-height: 20px;
+    text-decoration: none;
+    background-color: #fff;
+    text-align: center;
+    border: 1px solid #fff;
+    border-radius: 3px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    cursor: pointer;
+    color: #08c;
+}
+
+div.month div.week div.day.selectable:hover  {
+    border: 1px solid #ddd;
+    background-color: #f5f5f5;
+}
+
+div.month div.week div.day.selected  {
+    border: 1px solid #ddd;
+    background-color: #fff;
+    color: #222;
+    cursor: default;
+}
+
+div.month div.week div.day.noselectable  {
+    color: #999;
+    cursor: default;
+}
+
+div.month {
+    max-width: 18em;
+    /*margin: 20px auto;*/
+}
+
+div.dareport-event {
+    padding-left: 6px;
+    padding-top: 6px;
+    cursor: default;
+}
+
+div.dareport-event.in-list {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    background-color: #fff;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+div.dareport-event.row-fluid [class*="span"] {
+    min-height: 25px;    
+}
+
+div.dareport-event.in-list:hover {
+    background-color: #eee;
+    border: 1px solid #bbb;
+}
+
+form.dareport label.checkbox {
+    display: inline;
+}
+
+@media (max-width: 980px) {
+    form.dareport textarea {
+        margin-top: 6px;
+    }
+} 
+
+form.dareport textarea {
+    vertical-align: top;
+}
+
+form.dareport textarea[readonly] {
+    cursor: pointer;
+}
+
+form.dareport label.control-label {
+    text-align: left;    
+}
+
+form.dareport div.controls {
+    padding-top: 5px;
+}

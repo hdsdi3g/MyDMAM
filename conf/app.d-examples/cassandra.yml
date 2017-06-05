@@ -1,13 +1,16 @@
 cassandra:
     clustername : mycluster
-    rcp_cluster : 127.0.0.1
-    keyspace : ks
-    default_replication_factor: 1
 
-# rcp_cluster can to be like :
-# host
-# host:specialport
-# host1,host2
-# host1:specialport,host2
-# host1:host2:host3
-# ...
+    # rcp_cluster can to be like :
+    # host
+    # host:specialport
+    # host1,host2
+    # host1:specialport,host2
+    # host1:host2:host3
+    # ...
+    rcp_cluster : 127.0.0.1
+
+    keyspace : mydmam
+    # If you setup more than one Cassandra server, you should set 2
+    # Replication factor is the number of copy that a data will have on the cluster
+    default_replication_factor: 1

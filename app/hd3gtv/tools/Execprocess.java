@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 @SuppressWarnings("nls")
@@ -41,9 +42,10 @@ public class Execprocess extends Thread {
 	
 	private long starttime;
 	
-	private ArrayList<String> processinfo;
+	private List<String> processinfo;
 	private int exitvalue;
 	private int status;
+	private String exec_name;
 	
 	private ProcessBuilder pb;
 	private Process process;
@@ -56,8 +58,9 @@ public class Execprocess extends Thread {
 	private File working_directory;
 	
 	private ExecprocessOutputstream outputstreamhandler;
+	private ExecprocessPipedCascade pipe_cascade;
 	
-	public Execprocess(File execname, ArrayList<String> param, ExecprocessEvent events) {
+	public Execprocess(File execname, List<String> param, ExecprocessEvent events) {
 		processinfo = new ArrayList<String>();
 		processinfo.add(execname.getPath());
 		if (param != null) {
@@ -76,7 +79,11 @@ public class Execprocess extends Thread {
 			cmdline.append(param.get(i));
 		}
 		commandline = cmdline.toString();
-		
+		exec_name = execname.getName();
+	}
+	
+	void setPipe_cascade(ExecprocessPipedCascade pipe_cascade) {
+		this.pipe_cascade = pipe_cascade;
 	}
 	
 	public void setWorkingDirectory(File working_directory) throws IOException {
@@ -90,12 +97,16 @@ public class Execprocess extends Thread {
 		return events;
 	}
 	
-	public Execprocess(File execname, ArrayList<String> param) {
+	public Execprocess(File execname, List<String> param) {
 		this(execname, param, null);
 	}
 	
 	public String getCommandline() {
 		return commandline;
+	}
+	
+	public String getExec_name() {
+		return exec_name;
 	}
 	
 	public File getWorkingDirectory() {
@@ -117,7 +128,9 @@ public class Execprocess extends Thread {
 		status = STATE_RUNNIG;
 		
 		pb = new ProcessBuilder(processinfo);
+		
 		pb.environment().put("LANG", Locale.getDefault().getLanguage() + "_" + Locale.getDefault().getCountry() + "." + Charset.forName("UTF-8"));
+		pb.environment().put("PATH", ExecBinaryPath.getFullPath());
 		
 		if (working_directory != null) {
 			pb.directory(working_directory);
@@ -135,17 +148,30 @@ public class Execprocess extends Thread {
 		
 		if (process != null) {
 			
-			if (outputstreamhandler != null) {
-				ExecprocessOutputStream eos = new ExecprocessOutputStream();
-				eos.outputstreamhandler = outputstreamhandler;
-				eos.processoutputstream = process.getOutputStream();
-				eos.start();
-			}
-			if (events != null) {
-				stdout = new ExecprocessStringresult(this, process.getInputStream(), false, events);
-				stdout.start();
+			if (pipe_cascade != null) {
+				if (pipe_cascade.hasSourceDatas(this)) {
+					pipe_cascade.connectSourceDatas(this, process.getOutputStream());
+				}
+				if (pipe_cascade.hasDestDatas(this)) {
+					pipe_cascade.connectDestDatas(this, process.getInputStream());
+				}
+				
 				stderr = new ExecprocessStringresult(this, process.getErrorStream(), true, events);
 				stderr.start();
+			} else {
+				
+				if (outputstreamhandler != null) {
+					ExecprocessOutputStream eos = new ExecprocessOutputStream();
+					eos.outputstreamhandler = outputstreamhandler;
+					eos.processoutputstream = process.getOutputStream();
+					eos.start();
+				}
+				if (events != null) {
+					stdout = new ExecprocessStringresult(this, process.getInputStream(), false, events);
+					stdout.start();
+					stderr = new ExecprocessStringresult(this, process.getErrorStream(), true, events);
+					stderr.start();
+				}
 			}
 			
 			try {

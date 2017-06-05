@@ -16,17 +16,15 @@
 */
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
-import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegLowres.Lowres_hd;
-
 public class JobContextFFmpegLowresRendererHD extends JobContextFFmpegLowresRenderer {
 	
 	String getTranscodeProfileName() {
 		return "ffmpeg_lowres_hd";
 	}
 	
-	Class<? extends EntryRenderer> getEntryRendererClass() {
-		return Lowres_hd.class;
-	}
+	public static final String ES_TYPE = "pvw_ffmpeg_lowres_hd";
 	
+	String getESTypeEntryRenderer() {
+		return ES_TYPE;
+	}
 }

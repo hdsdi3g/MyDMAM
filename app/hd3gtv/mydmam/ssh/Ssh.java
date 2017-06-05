@@ -193,7 +193,7 @@ public class Ssh {
 			ByteArrayInputStream bais = new ByteArrayInputStream(sb.toString().getBytes());
 			
 			channel.setInputStream(bais);
-			channel.setOutputStream(System.out);
+			// channel.setOutputStream(System.out);
 			
 			channel.connect(timeout);
 			

@@ -16,12 +16,6 @@
 */
 package controllers.ajs;
 
-import java.lang.reflect.Type;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-
 import controllers.Check;
 import controllers.Secure;
 import hd3gtv.configuration.GitInfo;
@@ -35,26 +29,6 @@ import hd3gtv.mydmam.web.AJSController;
 
 public class Broker extends AJSController {
 	
-	/*private static Type al_String_typeOfT = new TypeToken<ArrayList<String>>() {
-	}.getType();*/
-	
-	/*private static Type hm_StringJob_typeOfT = new TypeToken<HashMap<String, JobNG>>() {
-	}.getType();*/
-	
-	static {
-		AJSController.registerTypeAdapter(AsyncJSBrokerResponseList.class, new JsonSerializer<AsyncJSBrokerResponseList>() {
-			public JsonElement serialize(AsyncJSBrokerResponseList src, Type typeOfSrc, JsonSerializationContext context) {
-				return src.list;
-			}
-		});
-		
-		AJSController.registerTypeAdapter(AsyncJSBrokerResponseAction.class, new JsonSerializer<AsyncJSBrokerResponseAction>() {
-			public JsonElement serialize(AsyncJSBrokerResponseAction src, Type typeOfSrc, JsonSerializationContext context) {
-				return src.modified_jobs;
-			}
-		});
-	}
-	
 	@Check("showBroker")
 	public static AsyncJSBrokerResponseList list(AsyncJSBrokerRequestList request) throws Exception {
 		AsyncJSBrokerResponseList result = new AsyncJSBrokerResponseList();
@@ -64,14 +38,18 @@ public class Broker extends AJSController {
 	
 	@Check("showBroker")
 	public static String appversion() throws Exception {
-		return GitInfo.getFromRoot().getActualRepositoryInformation();
+		try {
+			return GitInfo.getFromRoot().getActualRepositoryInformation();
+		} catch (NullPointerException e) {
+			return "";
+		}
 	}
 	
 	@Check("actionBroker")
 	public static AsyncJSBrokerResponseAction action(AsyncJSBrokerRequestAction request) throws Exception {
 		AsyncJSBrokerResponseAction result = new AsyncJSBrokerResponseAction();
 		
-		Loggers.Job.info("Do action on job(s), caller: " + AJSController.getUserProfile().key + " [" + Secure.getRequestAddress() + "], " + request);
+		Loggers.Job.info("Do action on job(s), caller: " + AJSController.getUserProfile().getKey() + " [" + Secure.getRequestAddress() + "], " + request);
 		
 		if (request.job_key != null) {
 			result.modified_jobs = JobNG.Utility.alterJobByKey(request.job_key, request.order);

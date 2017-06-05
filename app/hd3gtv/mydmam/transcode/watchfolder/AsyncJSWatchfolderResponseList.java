@@ -19,8 +19,8 @@ package hd3gtv.mydmam.transcode.watchfolder;
 import java.util.ArrayList;
 import java.util.Map;
 
+import hd3gtv.mydmam.gson.GsonIgnore;
 import hd3gtv.mydmam.manager.JobNG;
-import hd3gtv.tools.GsonIgnore;
 
 public class AsyncJSWatchfolderResponseList {
 	

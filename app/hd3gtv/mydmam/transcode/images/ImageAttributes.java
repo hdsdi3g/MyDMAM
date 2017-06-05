@@ -1,9 +1,19 @@
 package hd3gtv.mydmam.transcode.images;
 
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.apache.commons.lang.StringEscapeUtils;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
+import hd3gtv.mydmam.metadata.container.ContainerEntryDeSerializer;
 import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.container.SelfSerializing;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Colorspace;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Compose;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Compress;
@@ -17,57 +27,42 @@ import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Interlace;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.Orientation;
 import hd3gtv.mydmam.transcode.images.ImageAttributesEnum.ResolutionUnits;
 import hd3gtv.tools.ExecprocessGettext;
-import hd3gtv.tools.GsonIgnore;
-
-import java.lang.reflect.Type;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang.StringEscapeUtils;
-
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
-import com.google.gson.JsonObject;
 
 public class ImageAttributes extends EntryAnalyser {
 	
-	private static Type properties_typeOfT = new TypeToken<LinkedHashMap<String, String>>() {
-	}.getType();
-	
-	protected void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson) {
-		ImageAttributes item = (ImageAttributes) _item;
-		current_element.add("properties", gson.toJsonTree(item.properties, properties_typeOfT));
-	}
-	
-	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
-		String entry_value;
-		for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
-			if (entry.getValue().isJsonPrimitive() == false) {
-				continue;
+	public static class Serializer extends ContainerEntryDeSerializer<ImageAttributes> {
+		
+		protected ImageAttributes internalDeserialize(JsonObject source) {
+			String entry_value;
+			for (Map.Entry<String, JsonElement> entry : source.entrySet()) {
+				if (entry.getValue().isJsonPrimitive() == false) {
+					continue;
+				}
+				entry_value = entry.getValue().getAsString();
+				if (entry_value.equalsIgnoreCase("undefined")) {
+					source.add(entry.getKey(), JsonNull.INSTANCE);
+				}
 			}
-			entry_value = entry.getValue().getAsString();
-			if (entry_value.equalsIgnoreCase("undefined")) {
-				source.add(entry.getKey(), JsonNull.INSTANCE);
+			
+			ImageAttributes item = MyDMAM.gson_kit.getGsonSimple().fromJson(source, ImageAttributes.class);
+			item.properties = MyDMAM.gson_kit.getGson().fromJson(source.get("properties"), GsonKit.type_LinkedHashMap_String_String);
+			if (source.has("class")) {
+				item.imgclass = ImageClass.valueOf(source.get("class").getAsString());
 			}
+			return item;
 		}
 		
-		ImageAttributes item = ContainerOperations.getGsonSimple().fromJson(source, ImageAttributes.class);
-		item.properties = gson.fromJson(source.get("properties"), properties_typeOfT);
-		if (source.has("class")) {
-			item.imgclass = ImageClass.valueOf(source.get("class").getAsString());
+		protected JsonObject internalSerialize(ImageAttributes item) {
+			JsonObject current_element = super.internalSerialize(item);
+			current_element.add("properties", MyDMAM.gson_kit.getGson().toJsonTree(item.properties, GsonKit.type_LinkedHashMap_String_String));
+			return current_element;
 		}
-		return item;
 	}
+	
+	public static final String ES_TYPE = "imagemagick";
 	
 	public String getES_Type() {
-		return "imagemagick";
-	}
-	
-	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-		return null;
+		return ES_TYPE;
 	}
 	
 	String format;

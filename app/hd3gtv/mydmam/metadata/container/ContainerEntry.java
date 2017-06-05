@@ -16,22 +16,26 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import java.util.List;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
-public abstract class ContainerEntry implements SelfSerializing {
+public abstract class ContainerEntry {
 	
 	ContainerEntry() {
 	}
 	
-	private ContainerOrigin origin;
+	@GsonIgnore
+	ContainerOrigin origin;
 	
 	transient Container container;
 	
+	public final boolean hasOrigin() {
+		return (origin != null);
+	}
+	
 	public final ContainerOrigin getOrigin() {
+		if (hasOrigin() == false) {
+			throw new NullPointerException("Origin is not set because this Entry is not get from database");
+		}
 		return origin;
 	}
 	
@@ -53,31 +57,6 @@ public abstract class ContainerEntry implements SelfSerializing {
 			throw new NullPointerException("\"origin\" can't to be null");
 		}
 		this.origin = origin;
-	}
-	
-	/**
-	 * Do not overload in abstract implementations.
-	 * @return null for not dependencies (this will be declared himself).
-	 */
-	protected abstract List<Class<? extends SelfSerializing>> getSerializationDependencies();
-	
-	protected abstract ContainerEntry internalDeserialize(JsonObject source, Gson gson);
-	
-	protected abstract JsonObject internalSerialize(ContainerEntry item, Gson gson);
-	
-	public ContainerEntry deserialize(JsonObject source, Gson gson) {
-		JsonElement j_origin = source.get("origin");
-		source.remove("origin");
-		ContainerEntry item = internalDeserialize(source, gson);
-		item.origin = gson.fromJson(j_origin, ContainerOrigin.class);
-		return item;
-	}
-	
-	public JsonObject serialize(SelfSerializing _item, Gson gson) {
-		ContainerEntry item = (ContainerEntry) _item;
-		JsonObject jo = item.internalSerialize(item, gson);
-		jo.add("origin", gson.toJsonTree(item.origin));
-		return jo;
 	}
 	
 }

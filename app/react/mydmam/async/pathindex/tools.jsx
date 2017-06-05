@@ -15,37 +15,29 @@
  * 
 */
 
-pathindex.resolveExternalPosition = function(externalpos_request_keys, data_callback) {
-	if (!externalpos_request_keys) {
-		return;
+var searchResult = function(result) {
+	if (result.index !== "pathindex") {
+		return null;
 	}
-	if (externalpos_request_keys.length == 0) {
-		return;
-	}
-	$.ajax({
-		url: mydmam.metadatas.url.resolvepositions,
-		type: "POST",
-		data: {
-			"keys": externalpos_request_keys,
-		},
-		success: data_callback,
-		error: function(jqXHR, textStatus, errorThrown) {
-			console.error(jqXHR, textStatus, errorThrown);
-		},
-	});
+	return pathindex.react2lines;
 };
 
-pathindex.reactStoragePathLink = React.createClass({
-	render: function() {
-		var url_navigate = mydmam.metadatas.url.navigate_react;
+/**
+ * We don't wait the document.ready because we are sure the mydmam.module.f code is already loaded. 
+ */
+mydmam.module.register("PathIndexView", {
+	processViewSearchResult: searchResult,
+});
 
+pathindex.reactStoragePathLink = createReactClass({
+	render: function() {
 		var storagename = this.props.storagename;
 		var path = this.props.path;
 		var add_link = this.props.add_link;
 
 		var storage_linked = storagename;
 		if (add_link) {
-			storage_linked = (<a href={url_navigate + "#" + storagename + ":/"}>{storagename}</a>);
+			storage_linked = (<a href={mydmam.routes.reverse("navigate") + storagename + ":/"}>{storagename}</a>);
 		}		
 
 		var path_linked = path;
@@ -58,7 +50,7 @@ pathindex.reactStoragePathLink = React.createClass({
 				sub_path = sub_paths[i];
 				path_linked.push(
 					<span key={i}>/
-						<a href={url_navigate + "#" + storagename + ':' + currentpath + "/" + sub_path}>
+						<a href={mydmam.routes.reverse("navigate") + storagename + ':' + currentpath + "/" + sub_path}>
 							{sub_path}
 						</a>
 					</span>
@@ -81,7 +73,7 @@ pathindex.reactStoragePathLink = React.createClass({
 	}
 });
 
-pathindex.reactFileSize = React.createClass({
+pathindex.reactFileSize = createReactClass({
 	render: function() {
 		if (!this.props.size) {
 			return null;
@@ -94,7 +86,7 @@ pathindex.reactFileSize = React.createClass({
 	},
 });
 
-pathindex.reactDate = React.createClass({
+pathindex.reactDate = createReactClass({
 	render: function() {
 		if (!this.props.date) {
 			return null;
@@ -110,11 +102,18 @@ pathindex.reactDate = React.createClass({
 		if (this.props.style != null) {
 			style = this.props.style;
 		}
-		return (<span className="label" style={style}>{label}{mydmam.format.fulldate(this.props.date)}</span>);
+
+		var content = mydmam.format.fulldate(this.props.date);
+
+		if (this.props.format == "long") {
+			content = (new Date(this.props.date)).getI18nFullDisplayTime();
+		}
+
+		return (<span className="label" style={style}>{label}{content}</span>);
 	},
 });
 
-pathindex.reactSinceDate = React.createClass({
+pathindex.reactSinceDate = createReactClass({
 	render: function() {
 		if (!this.props.date) {
 			return null;
@@ -168,7 +167,7 @@ pathindex.mtdTypeofElement = function(mtd_element) {
 	return translated_element;
 };
 
-pathindex.reactBasketButton = React.createClass({
+pathindex.reactBasketButton = createReactClass({
 	getInitialState: function() {
 		return {present_in_basket: mydmam.basket.isInBasket(this.props.pathindexkey)};
 	},

@@ -18,7 +18,9 @@ package hd3gtv.mydmam.web.search;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.common.unit.Fuzziness;
@@ -29,9 +31,6 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
@@ -43,10 +42,10 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElastisearchCrawlerHit;
 import hd3gtv.mydmam.db.ElastisearchCrawlerReader;
 import hd3gtv.mydmam.db.ElastisearchStatSearch;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.web.AJSController;
-import hd3gtv.tools.GsonIgnore;
-import hd3gtv.tools.GsonIgnoreStrategy;
+import hd3gtv.mydmam.gson.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonKit;
+import hd3gtv.mydmam.pathindexing.Importer;
+import hd3gtv.mydmam.pathindexing.Importer.SearchPreProcessor;
 
 public final class SearchQuery implements ElastisearchStatSearch {
 	
@@ -56,28 +55,14 @@ public final class SearchQuery implements ElastisearchStatSearch {
 	
 	/**
 	 * Also serialize SearchResult
+	 * @deprecated
 	 */
-	public static final Serializer serializer = new Serializer();
+	public static final SearchQuerySerializer searchQuerySerializer = new SearchQuerySerializer();
 	private static final String[] all_search_types;
 	private static final int MAX_ELEMENTS_RESPONSE_PAGE_SIZE = 10;
 	
-	/**
-	 * Only used here for the toJsonString
-	 */
-	private static final Gson internal_gson;
-	private static final Type type_Resultlist = new TypeToken<ArrayList<SearchResult>>() {
-	}.getType();
-	
 	static {
-		GsonBuilder builder = new GsonBuilder();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		builder.serializeNulls();
-		builder.registerTypeAdapter(SearchQuery.class, serializer);
-		internal_gson = builder.create();
-		
-		List<String> module_ES_TYPE_search = MyDMAMModulesManager.getESTypesForUserSearch();
+		List<String> module_ES_TYPE_search = new Importer.SearchPreProcessor().getESTypeForUserSearch();
 		all_search_types = module_ES_TYPE_search.toArray(new String[module_ES_TYPE_search.size()]);
 	}
 	
@@ -104,10 +89,10 @@ public final class SearchQuery implements ElastisearchStatSearch {
 	@SuppressWarnings("unused")
 	private SearchMode mode = null;
 	
-	public static class Serializer implements JsonSerializer<SearchQuery> {
+	public static class SearchQuerySerializer implements JsonSerializer<SearchQuery> {
 		public JsonElement serialize(SearchQuery src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = AJSController.gson_simple.toJsonTree(src).getAsJsonObject();
-			result.add("results", AJSController.gson_simple.toJsonTree(src.results, type_Resultlist));
+			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+			result.add("results", MyDMAM.gson_kit.getGsonSimple().toJsonTree(src.results, GsonKit.type_ArrayList_SearchResult));
 			return result;
 		}
 	}
@@ -243,7 +228,7 @@ public final class SearchQuery implements ElastisearchStatSearch {
 	}
 	
 	public String toJsonString() {
-		return internal_gson.toJson(this);
+		return MyDMAM.gson_kit.getGson().toJson(this);
 	}
 	
 	public String getQ() {
@@ -256,6 +241,11 @@ public final class SearchQuery implements ElastisearchStatSearch {
 		}
 		return results.isEmpty() == false;
 	}
+	
+	/**
+	 * Index -> Module
+	 */
+	private volatile static Map<String, SearchResultPreProcessor> search_engines_pre_processing;
 	
 	private class Operation implements ElastisearchCrawlerHit {
 		
@@ -282,7 +272,35 @@ public final class SearchQuery implements ElastisearchStatSearch {
 		}
 		
 		public boolean onFoundHit(SearchHit hit) throws Exception {
-			results.add(MyDMAMModulesManager.renderSearchResult(hit));
+			
+			SearchResult result = new SearchResult(hit.getIndex(), hit.getType(), hit.getId(), hit.getSource(), hit.getScore());
+			
+			if (search_engines_pre_processing == null) {
+				search_engines_pre_processing = new HashMap<String, SearchResultPreProcessor>();
+				
+				/**
+				 * Add Pathindex
+				 */
+				SearchPreProcessor pathindex_preproc = new Importer.SearchPreProcessor();
+				List<String> es_type_handled = pathindex_preproc.getESTypeForUserSearch();
+				for (int pos_estype = 0; pos_estype < es_type_handled.size(); pos_estype++) {
+					search_engines_pre_processing.put(es_type_handled.get(pos_estype), pathindex_preproc);
+				}
+				
+			}
+			
+			SearchResultPreProcessor pre_processor = search_engines_pre_processing.get(hit.getType());
+			if (pre_processor == null) {
+				results.add(result);
+				return true;
+			}
+			pre_processor.prepareSearchResult(hit, result);
+			
+			if (result.getContent() == null) {
+				result.setContent(new HashMap<String, Object>());
+			}
+			results.add(result);
+			
 			return true;
 		}
 	}

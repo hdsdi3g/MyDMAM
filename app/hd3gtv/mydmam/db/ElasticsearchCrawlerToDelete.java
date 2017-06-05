@@ -16,12 +16,17 @@
 */
 package hd3gtv.mydmam.db;
 
+import org.elasticsearch.action.delete.DeleteRequestBuilder;
 import org.elasticsearch.search.SearchHit;
 
 public class ElasticsearchCrawlerToDelete implements ElasticsearchCrawlerHitToBulk {
 	
 	public boolean onFoundHit(SearchHit hit, ElasticsearchBulkOperation bulk) throws Exception {
-		bulk.deleteRequest().setId(hit.getId()).setIndex(hit.getIndex()).setType(hit.getType());
+		bulk.refresh();
+		
+		DeleteRequestBuilder request = new DeleteRequestBuilder(bulk.getClient());
+		request.setId(hit.getId()).setIndex(hit.getIndex()).setType(hit.getType());
+		bulk.add(request.request());
 		return true;
 	}
 	

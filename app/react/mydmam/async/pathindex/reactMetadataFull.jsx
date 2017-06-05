@@ -15,14 +15,13 @@
  * 
 */
 
-pathindex.reactMetadataFull = React.createClass({
+pathindex.reactMetadataFull = createReactClass({
 	render: function() {
 		if (!this.props.mtdsummary | !this.props.reference) {
 			return null;
 		}
 		var mtdsummary = this.props.mtdsummary;
 		var reference = this.props.reference;
-		// console.log("TODO", this.props);
 
 		var file_hash = md5(reference.storagename + ":" + reference.path);
 		var master_as_preview_type = '';
@@ -45,6 +44,8 @@ pathindex.reactMetadataFull = React.createClass({
 				preview = (<pathindex.metadatas.Audio file_hash={file_hash} mtdsummary={mtdsummary} reference={reference} master_as_preview_url={master_as_preview_url} />);
 			} else if ((previews.full_size_thumbnail != null) | (previews.cartridge_thumbnail != null) | (previews.icon_thumbnail != null)) {
 				preview = (<pathindex.metadatas.Image file_hash={file_hash} previews={previews} />);
+			} else if (previews.audio_graphic_deepanalyst != null) {
+				preview = (<pathindex.metadatas.AudioGraphicDeepAnalyst previews={previews} file_hash={file_hash} />);
 			}
 		} else {
 			//Only master_as_preview (maybe a small element)

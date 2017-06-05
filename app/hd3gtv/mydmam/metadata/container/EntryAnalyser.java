@@ -16,23 +16,14 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-
 public abstract class EntryAnalyser extends ContainerEntry {
 	
 	/**
-	 * @param _item The same type as this.
+	 * @return true if you wan't get JSON raw data in webclient side.
+	 *         Don't set true if sometimes it contains sensitive data like some path, names or things that the end user does not have to see.
 	 */
-	protected abstract void extendedInternalSerializer(JsonObject current_element, EntryAnalyser _item, Gson gson);
-	
-	/**
-	 * Patch output JSON
-	 */
-	protected final JsonObject internalSerialize(ContainerEntry _item, Gson gson) {
-		JsonObject jo = ContainerOperations.getGsonSimple().toJsonTree(_item).getAsJsonObject();
-		extendedInternalSerializer(jo, (EntryAnalyser) _item, gson);
-		return jo;
+	public boolean canBeSendedToWebclients() {
+		return false;
 	}
 	
 }

@@ -16,18 +16,19 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
-import hd3gtv.mydmam.metadata.PreviewType;
-
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
+import hd3gtv.mydmam.metadata.PreviewType;
 
 public final class EntrySummary extends ContainerEntry {
 	
@@ -37,10 +38,10 @@ public final class EntrySummary extends ContainerEntry {
 	private String mimetype;
 	private transient HashMap<PreviewType, ContainerPreview> cache_previews;
 	
-	public final static String type = "summary";
+	public final static String ES_TYPE = "summary";
 	
 	public String getES_Type() {
-		return type;
+		return ES_TYPE;
 	}
 	
 	public String getMimetype() {
@@ -75,47 +76,46 @@ public final class EntrySummary extends ContainerEntry {
 	
 	public static final String MASTER_AS_PREVIEW = "master_as_preview";
 	
-	protected ContainerEntry internalDeserialize(JsonObject source, Gson gson) {
-		EntrySummary entry = new EntrySummary();
-		for (Map.Entry<String, JsonElement> item : source.entrySet()) {
-			if (item.getKey().equals("previews")) {
-				Type typeOfT = new TypeToken<HashMap<String, ContainerPreview>>() {
-				}.getType();
-				entry.containerPreviews = gson.fromJson(item.getValue().getAsJsonObject(), typeOfT);
-			} else if (item.getKey().equals("mimetype")) {
-				entry.mimetype = item.getValue().getAsString();
-			} else if (item.getKey().equals(MASTER_AS_PREVIEW)) {
-				entry.master_as_preview = item.getValue().getAsBoolean();
-			} else {
-				if (entry.summaries == null) {
-					entry.summaries = new HashMap<String, String>();
+	public static class Serializer extends ContainerEntryDeSerializer<EntrySummary> {
+		
+		protected EntrySummary internalDeserialize(JsonObject source) {
+			EntrySummary entry = new EntrySummary();
+			for (Map.Entry<String, JsonElement> item : source.entrySet()) {
+				if (item.getKey().equals("previews")) {
+					Type typeOfT = new TypeToken<HashMap<String, ContainerPreview>>() {
+					}.getType();
+					entry.containerPreviews = MyDMAM.gson_kit.getGson().fromJson(item.getValue().getAsJsonObject(), typeOfT);
+				} else if (item.getKey().equals("mimetype")) {
+					entry.mimetype = item.getValue().getAsString();
+				} else if (item.getKey().equals(MASTER_AS_PREVIEW)) {
+					entry.master_as_preview = item.getValue().getAsBoolean();
+				} else {
+					if (entry.summaries == null) {
+						entry.summaries = new HashMap<String, String>();
+					}
+					entry.summaries.put(item.getKey(), item.getValue().getAsString());
 				}
-				entry.summaries.put(item.getKey(), item.getValue().getAsString());
 			}
-		}
-		return entry;
-	}
-	
-	protected JsonObject internalSerialize(ContainerEntry _item, Gson gson) {
-		EntrySummary src = (EntrySummary) _item;
-		JsonObject jo = new JsonObject();
-		
-		if (src.containerPreviews != null) {
-			jo.add("previews", gson.toJsonTree(src.containerPreviews));
+			return entry;
 		}
 		
-		jo.addProperty("mimetype", src.mimetype);
-		jo.addProperty("master_as_preview", src.master_as_preview);
-		if (src.summaries != null) {
-			for (Map.Entry<String, String> entry : src.summaries.entrySet()) {
-				jo.addProperty(entry.getKey(), entry.getValue());
+		protected JsonObject internalSerialize(EntrySummary item) {
+			EntrySummary src = item;
+			JsonObject jo = new JsonObject();
+			
+			if (src.containerPreviews != null) {
+				jo.add("previews", MyDMAM.gson_kit.getGson().toJsonTree(src.containerPreviews));
 			}
+			
+			jo.addProperty("mimetype", src.mimetype);
+			jo.addProperty("master_as_preview", src.master_as_preview);
+			if (src.summaries != null) {
+				for (Map.Entry<String, String> entry : src.summaries.entrySet()) {
+					jo.addProperty(entry.getKey(), entry.getValue());
+				}
+			}
+			return jo;
 		}
-		return jo;
-	}
-	
-	protected List<Class<? extends SelfSerializing>> getSerializationDependencies() {
-		return null;
 	}
 	
 	public void putSummaryContent(EntryAnalyser entry, String value) {
@@ -144,7 +144,21 @@ public final class EntrySummary extends ContainerEntry {
 		}
 	}
 	
-	public void addPreviewsFromEntryRenderer(EntryRenderer entry, Container container, MetadataGeneratorRenderer generator) {
+	public void addPreviewsFromEntryRenderer(ContainerEntryResult result_entries, Container container, MetadataExtractor generator) {
+		if (result_entries == null) {
+			return;
+		}
+		EntryRenderer entry = result_entries.getRenderingResult();
+		if (entry == null) {
+			return;
+		}
+		if (generator == null) {
+			throw new NullPointerException("\"generator\" can't to be null");
+		}
+		if (container == null) {
+			throw new NullPointerException("\"container\" can't to be null");
+		}
+		
 		populate_previews();
 		
 		List<String> files = entry.getContentFileNames();

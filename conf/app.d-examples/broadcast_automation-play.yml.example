@@ -1,0 +1,4 @@
+# AsyncJS will enable BCA web controllers only if broadcast_automation exists
+
+broadcast_automation:
+    nothing: true

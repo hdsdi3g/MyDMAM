@@ -17,76 +17,39 @@
 package hd3gtv.mydmam.transcode.images;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.List;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataGeneratorRenderer;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
+import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.images.ImageAttributeGeometry.Compare;
+import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 
-public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
+public abstract class ImageMagickThumbnailer implements MetadataExtractor {
 	
-	public static class FullDisplay extends EntryRenderer {
-		public String getES_Type() {
-			return "imthumbnail_full";
-		}
-		
-		public static final String profile_name = "convert_full_display";
-		public static final String profile_personalizedsize_name = "convert_personalizedsize";
-	}
-	
-	public static class Cartridge extends EntryRenderer {
-		public String getES_Type() {
-			return "imthumbnail_cartridge";
-		}
-		
-		public static final String profile_name = "convert_cartridge";
-	}
-	
-	public static class Icon extends EntryRenderer {
-		public String getES_Type() {
-			return "imthumbnail_icon";
-		}
-		
-		public static final String profile_name = "convert_icon";
-	}
-	
-	private TranscodeProfile tprofile_opaque;
-	private TranscodeProfile tprofile_alpha;
-	private Class<? extends EntryRenderer> root_entry_class;
-	private PreviewType preview_type;
+	protected TranscodeProfile tprofile_opaque;
+	protected TranscodeProfile tprofile_alpha;
+	protected PreviewType preview_type;
 	protected static File icc_profile;
 	
 	static {
-		LinkedHashMap<String, File> conf_dirs = MyDMAMModulesManager.getAllConfDirectories();
-		File conf_dir;
-		FilenameFilter fnf = new FilenameFilter() {
-			public boolean accept(File dir, String name) {
-				return name.equals("srgb.icc");
-			}
-		};
-		for (Map.Entry<String, File> entry : conf_dirs.entrySet()) {
-			conf_dir = entry.getValue();
-			File[] modules_files = conf_dir.listFiles(fnf);
-			for (int pos_mf = 0; pos_mf < modules_files.length; pos_mf++) {
-				icc_profile = modules_files[pos_mf];
-			}
-		}
-		
-		if (icc_profile == null) {
-			Loggers.Transcode.error("Can't found icc profile file in conf directory.", new FileNotFoundException("conf/srgb.icc"));
+		icc_profile = new File(MyDMAM.APP_ROOT_PLAY_CONF_DIRECTORY + File.separator + "srgb.icc");
+		try {
+			CopyMove.checkExistsCanRead(icc_profile);
+		} catch (Exception e) {
+			Loggers.Transcode.error("Can't found icc profile file in conf directory.", e);
+			System.exit(1);
 		}
 	}
 	
@@ -94,23 +57,7 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		return icc_profile;
 	}
 	
-	public ImageMagickThumbnailer(Class<? extends EntryRenderer> root_entry_class, PreviewType preview_type, String profile_name) {
-		this.root_entry_class = root_entry_class;
-		if (root_entry_class == null) {
-			throw new NullPointerException("\"root_entry_class\" can't to be null");
-		}
-		this.preview_type = preview_type;
-		if (preview_type == null) {
-			throw new NullPointerException("\"preview_type\" can't to be null");
-		}
-		
-		if (TranscodeProfile.isConfigured()) {
-			tprofile_opaque = TranscodeProfile.getTranscodeProfile(profile_name);
-			tprofile_alpha = TranscodeProfile.getTranscodeProfile(profile_name + "_alpha");
-		}
-	}
-	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		return ImageMagickAnalyser.mimetype_list.contains(mimetype);
 	}
 	
@@ -119,77 +66,56 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 	}
 	
 	public String getLongName() {
-		return "ImageMagick low-res image thumbnailer";
+		return "ImageMagick low-res image thumbnailer (" + preview_type + ")";
 	}
 	
 	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
 		return preview_type;
 	}
 	
-	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return root_entry_class;
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return null;
 	}
 	
-	public EntryRenderer process(Container container) throws Exception {
-		ImageAttributes image_attributes = container.getByClass(ImageAttributes.class);
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
+		ImageAttributes image_attributes = container.getByType(getEntryRendererESType(), ImageAttributes.class);
 		if (image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for this container: " + container);
 			return null;
 		}
 		
-		return subProcess(container, container.getPhysicalSource(), image_attributes);
+		return subProcess(container, stoppable, container.getPhysicalSource(), image_attributes);
 	}
 	
-	protected EntryRenderer subProcess(Container container, File physical_source, ImageAttributes image_attributes) throws Exception {
+	protected abstract String getFileReferenceName();
+	
+	protected abstract String getEntryRendererESType();
+	
+	/**
+	 * @return if null, cancel this image format
+	 */
+	protected abstract TranscodeProfile getProfileIfItJudiciousToDoThumbnail(Compare compare, ImageAttributes image_attributes, TranscodeProfile primary_tprofile);
+	
+	protected abstract boolean isPersonalizedSize(Compare compare, ImageAttributes image_attributes);
+	
+	protected ContainerEntryResult subProcess(Container container, StoppableProcessing stoppable, File physical_source, ImageAttributes image_attributes) throws Exception {
 		TranscodeProfile tprofile = tprofile_opaque;
 		if (image_attributes.alpha != null) {
 			tprofile = tprofile_alpha;
 		}
 		
-		/*
-		 * Choose list :
-					img < icon		img < cartridge	img < full		img > full
-		full		nope			personalized	personalized	full
-		cartridge	nope			nope			cartridge		cartridge
-		icon		icon			icon			icon			icon 
-		 * */
-		
 		Compare compare = image_attributes.geometry.compare(tprofile);
-		boolean is_personalizedsize = false;
-		if (root_entry_class == FullDisplay.class) {
-			if (compare == Compare.IS_SMALLER_THAN_PROFILE) {
-				if (image_attributes.geometry.compare(TranscodeProfile.getTranscodeProfile(Icon.profile_name)) == Compare.IS_SMALLER_THAN_PROFILE) {
-					/**
-					 * full, but img < icon => nope
-					 */
-					Loggers.Transcode.debug(
-							"Image size (full) is too litte to fit in this profile, source: " + container + ", physical_source: " + physical_source + ", output format: " + tprofile.getOutputformat());
-					return null;
-				}
-				if (image_attributes.alpha == null) {
-					tprofile = TranscodeProfile.getTranscodeProfile(FullDisplay.profile_personalizedsize_name);
-				} else {
-					tprofile = TranscodeProfile.getTranscodeProfile(FullDisplay.profile_personalizedsize_name + "_alpha");
-				}
-				is_personalizedsize = true;
-			}
-		} else if (root_entry_class == Cartridge.class) {
-			if (compare == Compare.IS_SMALLER_THAN_PROFILE) {
-				/**
-				 * cartridge, but img < cartridge => nope
-				 */
-				Loggers.Transcode.debug("Image size (cartridge) is too litte to fit in this profile, source: " + container + ", physical_source: " + physical_source + ", output format: "
-						+ tprofile.getOutputformat());
-				return null;
-			}
-		} else if (root_entry_class == null) {
-			throw new NullPointerException("\"root_entry_class\" can't to be null");
-		}
+		
+		tprofile = getProfileIfItJudiciousToDoThumbnail(compare, image_attributes, tprofile);
+		
 		if (tprofile == null) {
-			throw new NullPointerException("\"tprofile\" can't to be null");
+			Loggers.Transcode.debug("Image is too litte to fit in this extractor (" + getClass().getName() + "), source: " + container + ", physical_source: " + physical_source);
+			return null;
 		}
 		
-		RenderedFile element = new RenderedFile(root_entry_class.getSimpleName().toLowerCase(), tprofile.getExtension("jpg"));
+		boolean is_personalizedsize = isPersonalizedSize(compare, image_attributes);
+		
+		RenderedFile element = new RenderedFile(getFileReferenceName(), tprofile.getExtension("jpg"));
 		ProcessConfiguration process_conf = tprofile.createProcessConfiguration(physical_source, element.getTempFile(), container);
 		process_conf.getInitialParams().addAll(ImageMagickAnalyser.convert_limits_params);
 		process_conf.getParamTags().put("ICCPROFILE", icc_profile.getAbsolutePath());
@@ -201,10 +127,10 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		Loggers.Transcode.debug("Start conversion, process_conf: " + process_conf.toString());
 		process.start();
 		
-		EntryRenderer thumbnail = root_entry_class.newInstance();
+		EntryRenderer thumbnail = new EntryRenderer(getEntryRendererESType());
 		
-		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).setLimit(MetadataIndexingLimit.ANALYST).doIndexing();
-		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByClass(ImageAttributes.class);
+		Container thumbnail_file_container = new MetadataIndexingOperation(element.getTempFile()).setLimit(MetadataIndexingLimit.FAST).doIndexing();
+		ImageAttributes thumbnail_image_attributes = thumbnail_file_container.getByType(getEntryRendererESType(), ImageAttributes.class);
 		if (thumbnail_image_attributes == null) {
 			Loggers.Transcode.debug("No image_attributes for the snapshot file container: " + thumbnail_image_attributes);
 			return null;
@@ -216,7 +142,14 @@ public class ImageMagickThumbnailer implements MetadataGeneratorRenderer {
 		thumbnail.getOptions().addProperty("height", thumbnail_image_attributes.geometry.height);
 		thumbnail.getOptions().addProperty("width", thumbnail_image_attributes.geometry.width);
 		
-		return element.consolidateAndExportToEntry(thumbnail, container, this);
+		return new ContainerEntryResult(element.consolidateAndExportToEntry(thumbnail, container, this));
 	}
 	
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		return null;
+	}
+	
+	public boolean isCanUsedInMasterAsPreview(Container container) {
+		return false;
+	}
 }

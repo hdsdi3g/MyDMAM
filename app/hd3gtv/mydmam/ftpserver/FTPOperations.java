@@ -17,22 +17,30 @@
 package hd3gtv.mydmam.ftpserver;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import org.apache.ftpserver.DataConnectionConfigurationFactory;
+import org.apache.ftpserver.FtpServer;
+import org.apache.ftpserver.FtpServerFactory;
+import org.apache.ftpserver.ftplet.Ftplet;
+import org.apache.ftpserver.listener.ListenerFactory;
+
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
+import hd3gtv.configuration.Configuration;
+import hd3gtv.configuration.ConfigurationClusterItem;
+import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.tools.GsonIgnoreStrategy;
 import hd3gtv.tools.StoppableThread;
 
 public class FTPOperations {
@@ -41,36 +49,15 @@ public class FTPOperations {
 	private static final long DELAY_ACTIVE_GROUPS_PATHINDEXING = TimeUnit.SECONDS.toMillis(60);
 	private static final long DELAY_BACKGROUD_OPERATIONS = TimeUnit.MINUTES.toMillis(10);
 	
-	private static final Gson gson;
-	// private static final Gson simple_gson;
-	// private static final Gson pretty_gson;
-	
 	private static FTPOperations global;
 	
 	static {
 		global = new FTPOperations();
-		
-		GsonBuilder builder = new GsonBuilder();
-		builder.serializeNulls();
-		
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		
-		gson = builder.create();
 	}
 	
 	public static FTPOperations get() {
 		return global;
 	}
-	
-	public static Gson getGson() {
-		return gson;
-	}
-	
-	/*public static Gson getSimpleGson() {
-		return simple_gson;
-	}*/
 	
 	private Internal internal;
 	
@@ -231,7 +218,7 @@ public class FTPOperations {
 							
 							mutator.execute();
 						} /** end trash operation */
-							
+						
 						/**
 						 * Group operations
 						 */
@@ -270,7 +257,7 @@ public class FTPOperations {
 							}
 							
 						} /** end for each groups */
-							
+						
 						if (storages_regular_to_refresh.isEmpty() == false) {
 							if (Loggers.FTPserver.isTraceEnabled()) {
 								Loggers.FTPserver.debug("Regular pathindex refresh: " + storages_regular_to_refresh);
@@ -282,7 +269,7 @@ public class FTPOperations {
 						}
 						
 					} /** end next_backgroud_operations */
-						
+					
 				} catch (ConnectionException e) {
 					Loggers.FTPserver.warn("Can't access to db", e);
 				} catch (Exception e) {
@@ -292,6 +279,62 @@ public class FTPOperations {
 				stoppableSleep(DELAY_ACTIVE_GROUPS_PATHINDEXING);
 			}
 		}
+	}
+	
+	public static FtpServer ftpServerFactory(String name, HashMap<String, ConfigurationItem> all_instances_confs, HashMap<String, Ftplet> ftplets) throws Exception {
+		FtpServerFactory server_factory = new FtpServerFactory();
+		
+		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
+		
+		DataConnectionConfigurationFactory dccf = new DataConnectionConfigurationFactory();
+		dccf.setActiveEnabled(true);
+		dccf.setActiveIpCheck(true);
+		log.put("active", dccf.isActiveEnabled());
+		log.put("active IP check", dccf.isActiveIpCheck());
+		
+		ConfigurationClusterItem local = Configuration.getClusterConfiguration(all_instances_confs, name, "active", "0.0.0.0", 20).get(0);
+		dccf.setActiveLocalAddress(local.address);
+		dccf.setActiveLocalPort(local.port);
+		log.put("active local", dccf.getActiveLocalAddress() + ":" + dccf.getActiveLocalPort());
+		
+		int idle = Configuration.getValue(all_instances_confs, name, "idle", 300);
+		dccf.setIdleTime(idle);
+		log.put("Idle time", dccf.getIdleTime());
+		
+		dccf.setImplicitSsl(false);
+		dccf.setPassiveAddress(Configuration.getValue(all_instances_confs, name, "passive-internal", "0.0.0.0"));
+		dccf.setPassiveExternalAddress(Configuration.getValue(all_instances_confs, name, "passive-external", "0.0.0.0"));
+		dccf.setPassivePorts(Configuration.getValue(all_instances_confs, name, "passive-ports", "30000-40000"));
+		log.put("passive", dccf.getPassiveAddress() + ">" + dccf.getPassiveExternalAddress());
+		log.put("passive ports", dccf.getPassivePorts());
+		
+		ListenerFactory factory = new ListenerFactory();
+		factory.setPort(Configuration.getValue(all_instances_confs, name, "listen", 21));
+		factory.setIpFilter(FTPIpFilter.getFilter());
+		factory.setIdleTimeout(idle);
+		log.put("port", factory.getPort());
+		
+		factory.setDataConnectionConfiguration(dccf.createDataConnectionConfiguration());
+		
+		server_factory.addListener("default", factory.createListener());
+		
+		FTPUserManager ftpum;
+		if (name == "default") {
+			ftpum = new FTPUserManager("");
+		} else {
+			ftpum = new FTPUserManager(name);
+			server_factory.setUserManager(ftpum);
+		}
+		server_factory.setUserManager(ftpum);
+		log.put("User Manager", ftpum);
+		
+		server_factory.setFtplets(ftplets);
+		
+		Loggers.FTPserver.info("Start FTP Server: " + log);
+		
+		FtpServer server = server_factory.createServer();
+		server.start();
+		return server;
 	}
 	
 }

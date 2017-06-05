@@ -44,6 +44,7 @@ public class AdminMailAlert {
 			admin_addr = new InternetAddress(Configuration.global.getValue("service", "administrator_mail", NO_ADMIN_ADDR));
 		} catch (Exception e) {
 			Loggers.Mail.error("Can't init message alert", e);
+			System.exit(1);
 		}
 		
 		try {
@@ -52,6 +53,13 @@ public class AdminMailAlert {
 			hostname = "localhost";
 		}
 		
+	}
+	
+	public static String getAdminAddr(String default_addr) {
+		if (admin_addr.getAddress().equalsIgnoreCase(NO_ADMIN_ADDR)) {
+			return default_addr;
+		}
+		return admin_addr.getAddress();
 	}
 	
 	private AdminMailAlert() {

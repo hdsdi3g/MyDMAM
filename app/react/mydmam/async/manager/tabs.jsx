@@ -18,7 +18,7 @@
 /*
  * ============ Summaries =============
  */
-manager.Summaries = React.createClass({
+manager.Summaries = createReactClass({
 	render: function() {
 		var items = [];
 		for (var instance_ref in this.props.summaries) {
@@ -44,7 +44,7 @@ manager.Summaries = React.createClass({
 	},
 });
 
-manager.InstanceSummary = React.createClass({
+manager.InstanceSummary = createReactClass({
 	render: function() {
 
 		var addr = [];
@@ -81,7 +81,7 @@ manager.InstanceSummary = React.createClass({
  * ============ Threads =============
  */
 
-manager.ThreadsInstancesNavList = React.createClass({
+manager.ThreadsInstancesNavList = createReactClass({
 	getInitialState: function() {
 		return {
 			instance_selected: null,
@@ -141,7 +141,7 @@ manager.ThreadsInstancesNavList = React.createClass({
 	},
 });
 
-manager.Threads = React.createClass({
+manager.Threads = createReactClass({
 	getInitialState: function() {
 		return {
 			thread_list: {},
@@ -158,7 +158,7 @@ manager.Threads = React.createClass({
 		$("html, body").scrollTop(0);
 	},
 	onSelectThread: function(thread_pos) {
-		var absolute = React.findDOMNode(this.refs[thread_pos]).getBoundingClientRect().y;
+		var absolute = ReactDOM.findDOMNode(this.refs[thread_pos]).getBoundingClientRect().y;
 		$("html, body").scrollTop($("html, body").scrollTop() + absolute - 50);
 	},
 	onGotoTheTop: function(e) {
@@ -212,7 +212,7 @@ manager.Threads = React.createClass({
 				</div>
 			</div>);
 
-			thread_names.push(<span>{thread.id} &bull; {thread.name.substring(0, 50)}</span>);
+			thread_names.push(<span key={pos}>{thread.id} &bull; {thread.name.substring(0, 50)}</span>);
 		}
 
 		return (<manager.ThreadsInstancesNavList
@@ -229,7 +229,7 @@ manager.Threads = React.createClass({
 /*
  * ============ Perfstats =============
  */
-manager.Perfstats = React.createClass({
+manager.Perfstats = createReactClass({
 	getInitialState: function() {
 		return {
 			list: {},
@@ -267,7 +267,7 @@ manager.Perfstats = React.createClass({
 	},
 });
 
-manager.PerfstatsInstance = React.createClass({
+manager.PerfstatsInstance = createReactClass({
 	render: function() {
 		var instance = this.props.instance;
 
@@ -337,7 +337,7 @@ manager.PerfstatsInstance = React.createClass({
 		var os_table = null;
 		if (instance.os) {
 			var os = instance.os;
-			os_table = (<table className="table table-bordered table-striped table-condensed table-hover" style={{width: "inherit"}}>
+			os_table = (<table className="table table-bordered table-striped table-condensed table-hover" style={{width: "inherit"}}><tbody>
 				<tr>
 					<th>CPU load</th>
 					<td>JVM process: {Math.round(os.getProcessCpuLoad * 100) / 100}</td>
@@ -362,7 +362,7 @@ manager.PerfstatsInstance = React.createClass({
 				<tr>
 					<td colSpan="4">Committed virtual memory size: {showMBsize(os.getCommittedVirtualMemorySize)}</td>
 				</tr>
-			</table>);
+			</tbody></table>);
 		}
 
 		return (<div>
@@ -411,7 +411,7 @@ manager.PerfstatsInstance = React.createClass({
 /*
  * ============ Classpaths =============
  */
-manager.Classpaths = React.createClass({
+manager.Classpaths = createReactClass({
 	getInitialState: function() {
 		return {
 			list: {},
@@ -482,7 +482,7 @@ manager.Classpaths = React.createClass({
 /*
  * ============ Lastjobs =============
  */
-manager.Lastjobs = React.createClass({
+manager.Lastjobs = createReactClass({
 	getInitialState: function() {
 		return {
 			list: {},
@@ -523,7 +523,7 @@ manager.Lastjobs = React.createClass({
 /*
  * ============ Pending actions =============
  */
-manager.PendingActions = React.createClass({
+manager.PendingActions = createReactClass({
 	getInitialState: function() {
 		return {
 			list: {},
@@ -589,6 +589,169 @@ manager.PendingActions = React.createClass({
 				{i18n("manager.pendingactions.descr")}
 			</h4>
 			{actionlist}
+		</div>);
+	},
+}); 
+
+var ClusterStatusTable = createReactClass({
+	render: function() {
+		var report = this.props.report;
+		var datas = report.datas;
+		var colums_names = report.colums_names;
+
+		var headers = [];
+		//headers.push(<th key="_empty"></th>);
+		for (colname in colums_names) {
+			headers.push(<th key={colname}>{colums_names[colname]}</th>);
+		}
+
+		var lines = [];
+		for (line in datas) {
+			var data = datas[line];
+			var cols = [];
+
+			for (col in data.content) {
+				cols.push(<td key={col}>
+					{data.content[col]}
+				</td>);
+			}
+
+			lines.push(<tr key={line + "_head"}>
+				<th key="head">{data.name}</th>
+				{cols}
+			</tr>);
+
+		}
+
+		return (<table style={{width: "auto"}} className="table table-striped table-hover table-condensed table-bordered">
+			<thead><tr>
+				{headers}
+			</tr></thead>
+			<tbody>{lines}</tbody>
+		</table>);
+	},
+}); 
+
+
+manager.ClusterStatus = createReactClass({
+	getInitialState: function() {
+		return {
+			status: {},
+		};
+	},
+	componentDidMount: function() {
+		mydmam.async.request("instances", "esclusterstatus", null, function(status) {
+			/*list.sort(function (a, b) {
+				return a.update_date < b.update_date;
+			});*/
+			this.setState({status: status});
+		}.bind(this));
+	},
+	render: function() {
+		var status = this.state.status;
+
+		var result = [];
+		if (status.last_status_reports) {
+			for (var report in status.last_status_reports) {
+				var report_name = status.last_status_reports[report].report_name;
+				result.push(<div key={report}>
+					<h3>{report_name}</h3>
+					<ClusterStatusTable report={status.last_status_reports[report]} />
+				</div>);
+			}
+		}
+
+		return (<div>
+			{result}
+		</div>);
+	},
+}); 
+
+manager.PlayServer = createReactClass({
+	getInitialState: function() {
+		return {
+			report: {
+				is_js_dev_mode: false,
+				pluginstatus: "Loading...",
+			},
+		};
+	},
+	componentWillMount: function() {
+		mydmam.async.request("instances", "playserver", null, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnPurgeplaycache: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: true, refreshlogconf: false, switchjsdevmode: false, purgejs: false
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnRefreshlogconf: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: false, refreshlogconf: true, switchjsdevmode: false, purgejs: false
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnSwitchjsdevmode: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: true, purgejs: false
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnPurgejs: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: false, purgejs: true
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	render: function() {
+		var js_dev_mode = (<span className="text-success">{i18n("manager.playserver.in_js_prod")}</span>);
+		var btn_label_js_dev_mode = i18n("manager.playserver.switchjsdevmode");
+
+		if (this.state.report.is_js_dev_mode) {
+			js_dev_mode = (<span className="text-error">{i18n("manager.playserver.in_js_dev")}</span>);
+			btn_label_js_dev_mode = i18n("manager.playserver.switchjsprodmode")
+		}
+
+		var style_p = {marginBottom: "1em"};
+
+		return (<div>
+			<div style={style_p}>
+				<div className="btn-group">
+					<button onClick={this.onClickBtnPurgeplaycache} className="btn">
+						<i className="icon-fire"></i> {i18n("manager.playserver.purgeplaycache")}
+					</button>
+					<button onClick={this.onClickBtnRefreshlogconf} className="btn">
+						<i className="icon-refresh"></i> {i18n("manager.playserver.refreshlogconf")}
+					</button>
+					<button onClick={this.onClickBtnSwitchjsdevmode} className="btn">
+						<i className="icon-plane"></i> {btn_label_js_dev_mode}
+					</button>
+					<button onClick={this.onClickBtnPurgejs} className="btn">
+						<i className="icon-fire"></i> {i18n("manager.playserver.purgejs")}
+					</button>
+				</div>
+			</div>
+			<div style={style_p}>
+				{js_dev_mode}
+			</div>
+			<div style={style_p}>
+				<i className="icon-list-alt"></i> <a href="#debugpage">{i18n("manager.playserver.ajsdebugpage")}</a>
+			</div>
+			<pre>{this.state.report.pluginstatus}</pre>
 		</div>);
 	},
 }); 

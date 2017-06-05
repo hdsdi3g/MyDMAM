@@ -26,11 +26,11 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.InstanceStatus;
 import hd3gtv.mydmam.metadata.MetadataCenter.MetadataConfigurationItem;
 import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.ContainerOrigin;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.tools.StoppableProcessing;
 
 public class MetadataIndexingOperation {
 	private File physical_source;
@@ -38,9 +38,14 @@ public class MetadataIndexingOperation {
 	private List<FutureCreateJobs> create_job_list;
 	private MetadataIndexingLimit limit;
 	
-	private Map<String, MetadataGeneratorAnalyser> master_as_preview_mime_list_providers;
-	private ArrayList<MetadataGeneratorAnalyser> metadataGeneratorAnalysers;
-	private ArrayList<MetadataGeneratorRenderer> metadataGeneratorRenderers;
+	private Map<String, MetadataExtractor> master_as_preview_mime_list_providers;
+	private ArrayList<MetadataExtractor> current_metadata_extractors;
+	
+	private StoppableProcessing stoppable = new StoppableProcessing() {
+		public boolean isWantToStopCurrentProcessing() {
+			return false;
+		}
+	};
 	
 	@SuppressWarnings("unchecked")
 	public MetadataIndexingOperation(File physical_source) {
@@ -50,8 +55,14 @@ public class MetadataIndexingOperation {
 		}
 		limit = MetadataIndexingLimit.NOLIMITS;
 		master_as_preview_mime_list_providers = MetadataCenter.getMasterAsPreviewMimeListProviders();
-		metadataGeneratorAnalysers = (ArrayList<MetadataGeneratorAnalyser>) MetadataCenter.getAnalysers().clone();
-		metadataGeneratorRenderers = (ArrayList<MetadataGeneratorRenderer>) MetadataCenter.getRenderers().clone();
+		current_metadata_extractors = (ArrayList<MetadataExtractor>) MetadataCenter.getExtractors().clone();
+	}
+	
+	public MetadataIndexingOperation setStoppable(StoppableProcessing stoppable) {
+		if (stoppable != null) {
+			this.stoppable = stoppable;
+		}
+		return this;
 	}
 	
 	public MetadataIndexingOperation setReference(SourcePathIndexerElement reference) {
@@ -67,47 +78,11 @@ public class MetadataIndexingOperation {
 		return this;
 	}
 	
-	public enum MetadataIndexingLimit {
-		/**
-		 * Just get Mime type
-		 */
-		MIMETYPE,
-		/**
-		 * MimeType + all analysers
-		 */
-		ANALYST,
-		/**
-		 * MimeType + all analysers + all simple renderers
-		 */
-		SIMPLERENDERS,
-		/**
-		 * Full, but you need to set a CreateJobList
-		 */
-		NOLIMITS
-	}
-	
 	public MetadataIndexingOperation setLimit(MetadataIndexingLimit limit) {
 		if (limit == null) {
 			this.limit = MetadataIndexingLimit.NOLIMITS;
 		} else {
 			this.limit = limit;
-		}
-		return this;
-	}
-	
-	public MetadataIndexingOperation blacklistGenerator(Class<? extends MetadataGenerator> generator_to_ignore) {
-		if (generator_to_ignore == null) {
-			return this;
-		}
-		for (int pos = metadataGeneratorAnalysers.size() - 1; pos > -1; pos--) {
-			if (generator_to_ignore.isAssignableFrom(metadataGeneratorAnalysers.get(pos).getClass())) {
-				metadataGeneratorAnalysers.remove(pos);
-			}
-		}
-		for (int pos = metadataGeneratorRenderers.size() - 1; pos > -1; pos--) {
-			if (generator_to_ignore.isAssignableFrom(metadataGeneratorRenderers.get(pos).getClass())) {
-				metadataGeneratorRenderers.remove(pos);
-			}
 		}
 		return this;
 	}
@@ -129,7 +104,11 @@ public class MetadataIndexingOperation {
 			}
 			if (item.blacklist != null) {
 				for (int pos_bl = 0; pos_bl < item.blacklist.size(); pos_bl++) {
-					blacklistGenerator(item.blacklist.get(pos_bl));
+					for (int pos_cme = current_metadata_extractors.size() - 1; pos_cme > -1; pos_cme--) {
+						if (item.blacklist.get(pos_bl).isAssignableFrom(current_metadata_extractors.get(pos_cme).getClass())) {
+							current_metadata_extractors.remove(pos_cme);
+						}
+					}
 				}
 			}
 			setLimit(item.limit);
@@ -137,6 +116,97 @@ public class MetadataIndexingOperation {
 		}
 		
 		return this;
+	}
+	
+	/**
+	 * If setReference() is not called before, or if actual db info don't exists... it will call doIndexing().
+	 * It follow limit. It ignore blacklist.
+	 * @param cancel_if_not_found don't call doIndexing if the item is not already in database
+	 * @param skip_if_found if the metadata_extractor already exists, don't replace it.
+	 * @return the updated container or null if the actual container is not modified. YOU MUST SAVE IT IN YOUR SIDE.
+	 */
+	Container reprocess(MetadataExtractor metadata_extractor, boolean cancel_if_not_found, boolean skip_if_found) throws Exception {
+		/**
+		 * If current blackling configuration was remove this metadata_extractor, it will re-add on current extractors list.
+		 * Needed for all doIndexing() calls: if this funct has need to call doIndexing(), it will stupid to forget to call the original extractor that user want to process.
+		 */
+		if (current_metadata_extractors.stream().anyMatch(p -> {
+			return metadata_extractor.getClass().isAssignableFrom(p.getClass());
+		}) == false) {
+			current_metadata_extractors.add(metadata_extractor);
+		}
+		
+		if (reference == null) {
+			Loggers.Metadata.debug("Can't reprocess a null item");
+			return doIndexing();
+		}
+		
+		final Container container;
+		try {
+			container = ContainerOperations.getByMtdKey(ContainerOrigin.getUniqueElementKey(reference));
+		} catch (Exception e) {
+			Loggers.Metadata.warn("Can't reprocess " + reference + " because the actual container can't be get correctly from database.", e);
+			if (cancel_if_not_found == false) {
+				return doIndexing();
+			} else {
+				return null;
+			}
+		}
+		
+		if (container == null) {
+			Loggers.Metadata.info("Can't reprocess " + reference + " because it's a new element.");
+			if (cancel_if_not_found == false) {
+				return doIndexing();
+			} else {
+				return null;
+			}
+		}
+		
+		if (skip_if_found) {
+			if (metadata_extractor.isTheExtractionWasActuallyDoes(container)) {
+				Loggers.Metadata.info("Don't reprocess " + reference + " because " + metadata_extractor.getClass().getSimpleName() + " was already done");
+				return null;
+			}
+		}
+		
+		String mime = container.getSummary().getMimetype();
+		ContainerEntryResult generator_result = null;
+		try {
+			if (metadata_extractor.canProcessThisMimeType(mime) == false) {
+				Loggers.Metadata.debug("Can't reprocess " + reference + " with " + metadata_extractor.getClass().getSimpleName() + " because it's not support the item mime (" + mime + ").");
+				return null;
+			}
+			
+			Loggers.Metadata.info("Reindexing item (" + limit + ") with " + metadata_extractor.getClass().getSimpleName() + " " + physical_source.getPath());
+			
+			generator_result = internalProcess(metadata_extractor, mime, container);
+		} catch (Exception e) {
+			Loggers.Metadata.error(
+					"Can't reanalyst/render file, " + "analyser class: " + metadata_extractor + ", analyser name: " + metadata_extractor.getLongName() + ", physical_source: " + physical_source, e);
+			return null;
+		}
+		
+		if (generator_result == null) {
+			Loggers.Metadata.debug("Reprocess " + reference + " with " + metadata_extractor.getClass().getSimpleName() + " return nothing.");
+			return null;
+		}
+		
+		if (master_as_preview_mime_list_providers != null) {
+			mime = mime.toLowerCase();
+			if (master_as_preview_mime_list_providers.containsKey(mime)) {
+				container.getSummary().master_as_preview = master_as_preview_mime_list_providers.get(mime).isCanUsedInMasterAsPreview(container);
+			}
+		}
+		
+		if (Loggers.Metadata.isDebugEnabled()) {
+			Loggers.Metadata.debug("Indexing item " + reference + " with " + metadata_extractor.getClass().getSimpleName() + " will have now this entry: " + generator_result.toString());
+		}
+		
+		if (limit == MetadataIndexingLimit.NOLIMITS | limit == MetadataIndexingLimit.FULL) {
+			RenderedFile.cleanCurrentTempDirectory();
+		}
+		
+		return container;
 	}
 	
 	public Container doIndexing() throws Exception {
@@ -165,62 +235,81 @@ public class MetadataIndexingOperation {
 			entry_summary.setMimetype(MimeExtract.getMime(physical_source));
 		}
 		
+		String mime = entry_summary.getMimetype();
+		
+		Loggers.Metadata.debug("Indexing item " + physical_source.getPath() + " is a " + mime);
+		
 		if (limit == MetadataIndexingLimit.MIMETYPE) {
 			return container;
 		}
 		
-		for (int pos = 0; pos < metadataGeneratorAnalysers.size(); pos++) {
-			MetadataGeneratorAnalyser metadataGeneratorAnalyser = metadataGeneratorAnalysers.get(pos);
-			if (metadataGeneratorAnalyser.canProcessThis(entry_summary.getMimetype())) {
-				try {
-					EntryAnalyser entry_analyser = metadataGeneratorAnalyser.process(container);
-					if (entry_analyser == null) {
-						continue;
-					}
-					container.addEntry(entry_analyser);
-				} catch (Exception e) {
-					Loggers.Metadata.error("Can't analyst/render file, " + "analyser class: " + metadataGeneratorAnalyser + ", analyser name: " + metadataGeneratorAnalyser.getLongName()
-							+ ", physical_source: " + physical_source, e);
+		Loggers.Metadata.info("Indexing item (" + limit + "): " + physical_source.getPath());
+		
+		for (int pos = 0; pos < current_metadata_extractors.size(); pos++) {
+			MetadataExtractor metadata_extractor = current_metadata_extractors.get(pos);
+			try {
+				if (metadata_extractor.canProcessThisMimeType(mime) == false) {
+					continue;
 				}
+				internalProcess(metadata_extractor, mime, container);
+			} catch (Exception e) {
+				Loggers.Metadata.error(
+						"Can't analyst/render file, " + "analyser class: " + metadata_extractor + ", analyser name: " + metadata_extractor.getLongName() + ", physical_source: " + physical_source, e);
 			}
 		}
 		
 		if (master_as_preview_mime_list_providers != null) {
-			String mime = container.getSummary().getMimetype().toLowerCase();
+			mime = container.getSummary().getMimetype().toLowerCase();
 			if (master_as_preview_mime_list_providers.containsKey(mime)) {
 				entry_summary.master_as_preview = master_as_preview_mime_list_providers.get(mime).isCanUsedInMasterAsPreview(container);
 			}
 		}
 		
-		if (limit == MetadataIndexingLimit.ANALYST) {
-			return container;
+		if (Loggers.Metadata.isDebugEnabled()) {
+			Loggers.Metadata.debug("Indexing item " + reference + " will have this container: " + container.toString());
 		}
 		
-		for (int pos = 0; pos < metadataGeneratorRenderers.size(); pos++) {
-			MetadataGeneratorRenderer metadataGeneratorRenderer = metadataGeneratorRenderers.get(pos);
-			if (metadataGeneratorRenderer.canProcessThis(entry_summary.getMimetype())) {
-				try {
-					EntryRenderer entry_renderer = metadataGeneratorRenderer.process(container);
-					if ((metadataGeneratorRenderer instanceof MetadataGeneratorRendererViaWorker) & (create_job_list != null) & (limit == MetadataIndexingLimit.NOLIMITS)) {
-						MetadataGeneratorRendererViaWorker renderer_via_worker = (MetadataGeneratorRendererViaWorker) metadataGeneratorRenderer;
-						renderer_via_worker.prepareJobs(container, create_job_list);
+		if (limit == MetadataIndexingLimit.NOLIMITS | limit == MetadataIndexingLimit.FULL) {
+			RenderedFile.cleanCurrentTempDirectory();
+		}
+		
+		return container;
+	}
+	
+	private ContainerEntryResult internalProcess(MetadataExtractor metadata_extractor, String mime, Container container) throws Exception {
+		ContainerEntryResult generator_result = null;
+		
+		if (limit == MetadataIndexingLimit.FAST) {
+			Loggers.Metadata.debug("Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " in processFast()");
+			generator_result = metadata_extractor.processFast(container);
+		} else {
+			Loggers.Metadata.debug("Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " in processFull()");
+			generator_result = metadata_extractor.processFull(container, stoppable);
+			
+			if ((limit == MetadataIndexingLimit.NOLIMITS) & (metadata_extractor instanceof MetadataGeneratorRendererViaWorker) & (create_job_list != null)) {
+				MetadataGeneratorRendererViaWorker renderer_via_worker = (MetadataGeneratorRendererViaWorker) metadata_extractor;
+				int before = create_job_list.size();
+				Loggers.Metadata.debug("Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " do a prepareJobs()");
+				renderer_via_worker.prepareJobs(container, create_job_list);
+				
+				if (before < create_job_list.size()) {
+					for (int pos_mgrvw = before; pos_mgrvw < create_job_list.size() - 1; pos_mgrvw++) {
+						Loggers.Metadata.debug(
+								"Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " will create this job: " + create_job_list.get(pos_mgrvw));
 					}
-					if (entry_renderer == null) {
-						continue;
-					}
-					
-					container.getSummary().addPreviewsFromEntryRenderer(entry_renderer, container, metadataGeneratorRenderer);
-					container.addEntry(entry_renderer);
-				} catch (Exception e) {
-					Loggers.Metadata.error("Can't analyst/render file, " + "provider class: " + metadataGeneratorRenderer + ", provider name: " + metadataGeneratorRenderer.getLongName()
-							+ ", physical_source: " + physical_source, e);
 				}
 			}
 		}
 		
-		RenderedFile.cleanCurrentTempDirectory();
+		if (generator_result == null) {
+			Loggers.Metadata.debug("Indexing item \"" + reference + "\" with extractor " + metadata_extractor.getClass().getSimpleName() + " don't return result");
+			return null;
+		}
 		
-		return container;
+		container.getSummary().addPreviewsFromEntryRenderer(generator_result, container, metadata_extractor);
+		generator_result.addEntriesToContainer(container);
+		
+		return generator_result;
 	}
 	
 }

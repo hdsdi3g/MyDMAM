@@ -16,161 +16,93 @@
 */
 package controllers;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.Date;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.metadata.container.EntrySummary;
-import hd3gtv.mydmam.module.MyDMAMModulesManager;
-import hd3gtv.mydmam.web.Basket;
+import hd3gtv.mydmam.web.JSSourceManager;
 import hd3gtv.mydmam.web.PartialContent;
-import hd3gtv.mydmam.web.search.SearchQuery;
-import hd3gtv.mydmam.web.search.SearchRequest;
-import hd3gtv.mydmam.web.stat.PathElementStat;
+import hd3gtv.mydmam.web.PlayBootstrap;
+import play.Play;
+import play.Play.Mode;
 import play.data.validation.Required;
 import play.data.validation.Validation;
-import play.i18n.Messages;
-import play.jobs.JobsPlugin;
+import play.i18n.Lang;
 import play.mvc.Controller;
 import play.mvc.Http.Header;
 import play.mvc.With;
+import play.utils.Utils;
 
 @With(Secure.class)
 public class Application extends Controller {
 	
-	public static final int HTTP_bad_request = 400;
-	public static final int HTTP_unauthorized = 401;
-	public static final int HTTP_forbidden = 403;
 	public static final int HTTP_not_found = 404;
-	public static final int HTTP_internal_error = 500;
-	public static final int HTTP_not_implemented = 501;
-	
-	@Check("navigate")
-	public static void navigate() {
-		flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("application.navigate"));
-		
-		String current_basket_content = "[]";
-		try {
-			current_basket_content = Basket.getBasketForCurrentPlayUser().getSelectedContentJson();
-		} catch (Exception e) {
-			Loggers.Play.error("Can't get user basket", e);
-		}
-		String list_external_positions_storages = MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
-		
-		render(current_basket_content, list_external_positions_storages);
-	}
-	
-	@Check("navigate")
-	public static void stat() {
-		ArrayList<String> fileshashs = new ArrayList<String>();
-		if (params.get("fileshashs") != null) {
-			fileshashs.add(params.get("fileshashs"));
-		} else if (params.getAll("fileshashs[]") != null) {
-			fileshashs.addAll(Arrays.asList(params.getAll("fileshashs[]")));
-		}
-		
-		ArrayList<String> scopes_element = new ArrayList<String>();
-		if (params.get("scopes_element") != null) {
-			scopes_element.add(params.get("scopes_element"));
-		} else if (params.getAll("scopes_element[]") != null) {
-			scopes_element.addAll(Arrays.asList(params.getAll("scopes_element[]")));
-		}
-		
-		ArrayList<String> scopes_subelements = new ArrayList<String>();
-		if (params.get("scopes_subelements") != null) {
-			scopes_subelements.add(params.get("scopes_subelements"));
-		} else if (params.getAll("scopes_subelements[]") != null) {
-			scopes_subelements.addAll(Arrays.asList(params.getAll("scopes_subelements[]")));
-		}
-		
-		PathElementStat pathElementStat = new PathElementStat(fileshashs, scopes_element, scopes_subelements);
-		pathElementStat.setJsonSearch(params.get("search"));
-		try {
-			pathElementStat.setPageFrom(Integer.parseInt(params.get("page_from")));
-		} catch (Exception e) {
-		}
-		try {
-			pathElementStat.setPageSize(Integer.parseInt(params.get("page_size")));
-		} catch (Exception e) {
-		}
-		
-		String result = pathElementStat.getResult().toJSONString();
-		renderJSON(result);
-	}
+	public static final int HTTP_unauthorized = 403;
 	
 	public static void index() {
-		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		String current_basket_content = "[]";
-		try {
-			Basket basket = Basket.getBasketForCurrentPlayUser();
-			current_basket_content = basket.getSelectedContentJson();
-			if (basket.isKeepIndexDeletedBasketItems() == false) {
-				JobsPlugin.executor.submit(new UserBasket.AsyncCleanBasket(basket));
-			}
-		} catch (Exception e) {
-			Loggers.Play.error("Can't get user basket", e);
-		}
-		render(title, current_basket_content);
-	}
-	
-	@Check("navigate")
-	public static void search(String q, Integer from) {
-		if (from == null) {
-			from = 0;
-		}
-		SearchQuery s_results = new SearchQuery();
-		s_results.search(new SearchRequest(q, from));
-		
-		if (s_results.hasResults()) {
-			// flash("q", s_results.getQ());
-			flash("pagename", s_results.getQ() + " - " + Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
-		} else {
-			flash("pagename", Messages.all(play.i18n.Lang.get()).getProperty("search.pagetitle"));
-		}
-		
-		String title = Messages.all(play.i18n.Lang.get()).getProperty("site.name");
-		
-		String results = s_results.toJsonString();
-		String list_external_positions_storages = MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving();
-		
-		render(title, results, list_external_positions_storages);
+		PlayBootstrap pb = MyDMAM.getPlayBootstrapper();
+		String revision_hash_query = pb.getRevisionHashQuery();
+		render(revision_hash_query);
 	}
 	
 	public static void i18n() {
-		response.cacheFor("24h");
-		response.contentType = "application/javascript";
-		Properties ymessages = Messages.all(play.i18n.Lang.get());
-		render(ymessages);
-	}
-	
-	public static void redirectToHome(String oldURL) {
-		index();
-	}
-	
-	public static void iconsmap() {
-		response.cacheFor("600s");
-		
-		if (Configuration.global.isElementExists("iconsmap") == false) {
-			renderJSON("{}");
-		} else {
-			renderJSON((new Gson()).toJson(Configuration.global.getValues("iconsmap")));
+		if (Play.mode == Mode.DEV && Configuration.global.getValueBoolean("play", "check_i18n_cache_files") && JSSourceManager.isJsDevMode()) {
+			MyDMAM.getPlayBootstrapper().refreshI18nCache();
 		}
+		
+		File ressource_file = MyDMAM.getPlayBootstrapper().getI18nCache().getCachedFile(Lang.get());
+		if (ressource_file == null) {
+			notFound();
+		}
+		long last_modified = ressource_file.lastModified();
+		
+		String etag = last_modified + "--";
+		if (Play.mode == Mode.PROD) {
+			response.setHeader("Cache-Control", "max-age=864000");
+		} else {
+			response.setHeader("Cache-Control", "max-age=60");
+		}
+		
+		if (request.isModified(etag, last_modified) == false) {
+			response.setHeader("Etag", etag);
+			notModified();
+		}
+		
+		if (FilenameUtils.isExtension(ressource_file.getName(), "gz")) {
+			if (request.headers.containsKey("accept-encoding") == false) {
+				badRequest("// Your browser don't accept encoding files.");
+			}
+			if (request.headers.get("accept-encoding").value().indexOf("gzip") == -1) {
+				badRequest("// Your browser don't accept GZipped files.");
+			}
+			response.setHeader("Content-Encoding", "gzip");
+		}
+		
+		response.setHeader("Content-Length", ressource_file.length() + "");
+		response.setHeader("Content-Type", "text/javascript");
+		response.setHeader("Etag", etag);
+		response.setHeader("Last-Modified", Utils.getHttpDateFormatter().format(new Date(last_modified)));
+		
+		try {
+			FileUtils.copyFile(ressource_file, response.out);
+		} catch (IOException e) {
+			Loggers.Play_i18n.error("Can't response (send) js file: " + ressource_file, e);
+			notFound();
+		}
+		ok();
 	}
 	
 	@Check("navigate")
@@ -190,7 +122,7 @@ public class Application extends Controller {
 				element = ContainerOperations.getMetadataFile(filehash, type, file, false);
 			}
 		} catch (IOException e) {
-			Loggers.Play.error("Can't get the file, filehash: " + filehash + ", type:" + type + ", file: " + file, e);
+			Loggers.Play.error("Can't get the file, filehash: " + filehash + ", type:" + type + ", file: " + file + ", reason: " + e.getMessage());
 		} catch (IndexMissingException e) {
 			Loggers.Play.debug("Index mising", e);
 		} catch (SearchPhaseExecutionException e) {
@@ -211,40 +143,6 @@ public class Application extends Controller {
 		} catch (FileNotFoundException e) {
 			forbidden();
 		}
-	}
-	
-	@Check("navigate")
-	public static void resolvePositions() throws ConnectionException {
-		String[] keys = params.getAll("keys[]");
-		if (keys == null) {
-			renderJSON("{}");
-			return;
-		}
-		if (keys.length == 0) {
-			renderJSON("{}");
-			return;
-		}
-		
-		JsonObject result = new JsonObject();
-		Map<String, List<String>> raw_positions = MyDMAMModulesManager.getPositions(keys);
-		
-		ArrayList<String> queries_locations = new ArrayList<String>();
-		
-		for (Map.Entry<String, List<String>> position : raw_positions.entrySet()) {
-			List<String> l_locations = position.getValue();
-			for (int pos_location = 0; pos_location < l_locations.size(); pos_location++) {
-				if (queries_locations.contains(l_locations.get(pos_location)) == false) {
-					queries_locations.add(l_locations.get(pos_location));
-				}
-			}
-		}
-		result.add("positions", new Gson().toJsonTree(raw_positions));
-		result.add("locations", new Gson().toJsonTree(MyDMAMModulesManager.getPositionInformationsByTapeName(queries_locations.toArray(new String[0]))));
-		renderJSON(result.toString());
-	}
-	
-	public static void indexjs() {
-		render();
 	}
 	
 }

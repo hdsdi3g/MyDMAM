@@ -19,7 +19,7 @@ if(!async.pagination){async.pagination = {};}
 
 var pagination = async.pagination;
 
-pagination.PageButton = React.createClass({
+pagination.PageButton = createReactClass({
 	handleClick: function(e) {
 		if (!this.props.onClickButton) {
 			return;
@@ -42,7 +42,7 @@ pagination.PageButton = React.createClass({
 	}
 });
 
-pagination.PagePreviousNext = React.createClass({
+pagination.PagePreviousNext = createReactClass({
 	handleClick: function(e) {
 		if (!this.props.onClickButton) {
 			return;
@@ -67,7 +67,7 @@ pagination.PagePreviousNext = React.createClass({
 	}
 });
 
-pagination.PageSpacer = React.createClass({
+pagination.PageSpacer = createReactClass({
 	render: function() {
 		return (<li className="active"><span>&hellip;</span></li>);
 	}
@@ -77,7 +77,7 @@ var PagePreviousNext = pagination.PagePreviousNext;
 var PageSpacer = pagination.PageSpacer;
 var PageButton = pagination.PageButton;
 
-pagination.reactBlock = React.createClass({
+pagination.reactBlock = createReactClass({
 	onlinkTargeter: function(new_pos) {
 		if (this.props.onlinkTargeter) {
 			return this.props.onlinkTargeter(new_pos);

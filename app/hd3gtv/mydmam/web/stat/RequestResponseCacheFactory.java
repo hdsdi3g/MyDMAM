@@ -25,6 +25,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import hd3gtv.mydmam.MyDMAM;
+
 public abstract class RequestResponseCacheFactory<E> {
 	
 	private static JsonParser json_parser;
@@ -43,10 +45,10 @@ public abstract class RequestResponseCacheFactory<E> {
 	final String serializeThis(RequestResponseCacheExpirableItem<E> item) throws Exception {
 		JsonObject result = item.getCacheStatus();
 		result.add("item", toJson(item.getItem()));
-		return PathElementStat.gson_simple.toJson(result);
+		return MyDMAM.gson_kit.getGsonSimple().toJson(result);
 	}
 	
-	private Type RequestResponseExpirableItem_typeOfT = new TypeToken<RequestResponseCacheExpirableItem<E>>() {
+	public final Type RequestResponseExpirableItem_typeOfT = new TypeToken<RequestResponseCacheExpirableItem<E>>() {
 	}.getType();
 	
 	/**
@@ -54,7 +56,7 @@ public abstract class RequestResponseCacheFactory<E> {
 	 */
 	final RequestResponseCacheExpirableItem<E> deserializeThis(String raw_json_value) throws Exception {
 		JsonObject jo_ei = json_parser.parse(raw_json_value).getAsJsonObject();
-		RequestResponseCacheExpirableItem<E> result = PathElementStat.gson_simple.fromJson(jo_ei, RequestResponseExpirableItem_typeOfT);
+		RequestResponseCacheExpirableItem<E> result = MyDMAM.gson_kit.getGsonSimple().fromJson(jo_ei, RequestResponseExpirableItem_typeOfT);
 		result.setItem(fromJson(jo_ei.get("item")));
 		return result;
 	}

@@ -23,28 +23,28 @@ routes.loadBackbone = function(dom_target) {
 
 	var rlite = Rlite();
 
-	React.render(
+	ReactDOM.render(
 		<routes.Backbone rlite={rlite} />,
 		dom_target
 	);
 };
 
-routes.Backbone = React.createClass({
+routes.Backbone = createReactClass({
 	getInitialState: function() {
-		return {dest: null, params: null};
+		return {dest: null, params: null, q: null, };
 	},
   	processHash: function() {
 		var hash = location.hash || '#';
 		this.props.rlite.run(hash.slice(1));
 	},
 	onChangePage: function(route_name, params) {
-		this.setState({dest: route_name, params: params});
+		this.setState({dest: route_name, params: params, q: null});
 	},
   	componentWillMount: function() {
   		var r = this.props.rlite;
   		
 		r.add('', function () {
-			this.setState({dest: null, params: null});
+			this.setState({dest: null, params: null, q: null});
 		}.bind(this));
 
 		routes.populate(r, this.onChangePage);
@@ -60,16 +60,49 @@ routes.Backbone = React.createClass({
  	componentWillUnmount: function() {
   		window.removeEventListener('hashchange', this.processHash);
   	},
+  	doClassicSearch: function(q) {
+  		location.hash = "#" + mydmam.async.search.urlify(q, 0);
+	},
+	onInternalSearch: function(q) {
+		if (q == '') {
+			q = null;
+		}
+		if (routes.canHandleSearch(this.state.dest)) {
+			this.setState({q: q});
+		}
+	},
 	render: function() {
 		var main = null;
 
+		var can_display_search_inputbox = mydmam.async.isAvaliable("search", "query");
+		var classic_search = null;
+		if (can_display_search_inputbox) {
+			classic_search = this.doClassicSearch;
+		}
+
 		if (this.state.dest) {
 			var ReactTopLevelClass = routes.getReactTopLevelClassByRouteName(this.state.dest);
+			var can_handle_search = routes.canHandleSearch(this.state.dest);
+			can_display_search_inputbox = can_display_search_inputbox | can_handle_search;
+
+			var internal_search = null;
+			if (can_handle_search) {
+				internal_search = this.onInternalSearch;
+			}
+
 			if (ReactTopLevelClass) {
-				return <ReactTopLevelClass params={this.state.params} />;
+				return (<div>
+					<mydmam.async.TopMenu onInternalSearch={internal_search} onClassicSearch={classic_search} can_display_search_inputbox={can_display_search_inputbox} />
+					<ReactTopLevelClass params={this.state.params} q={this.state.q} />
+					<mydmam.async.Footer />
+				</div>);
 			}
 		}
 
-		return (<div>Nothing here...</div>);
+		return (<div>
+			<mydmam.async.TopMenu onClassicSearch={classic_search} can_display_search_inputbox={can_display_search_inputbox} />
+			<mydmam.async.Home />
+			<mydmam.async.Footer />
+		</div>);
 	}
 });

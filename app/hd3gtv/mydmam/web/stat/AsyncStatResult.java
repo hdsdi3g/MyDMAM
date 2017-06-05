@@ -28,6 +28,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
@@ -151,12 +152,12 @@ public final class AsyncStatResult {
 				}
 				items.put(entry.getKey(), entry.getValue());
 			}
-			return PathElementStat.gson.toJsonTree(items);
+			return MyDMAM.gson_kit.getGson().toJsonTree(items);
 		}
 		
 	}
 	
 	public String toJSONString() {
-		return PathElementStat.gson.toJson(this);
+		return MyDMAM.gson_kit.getGson().toJson(this);
 	}
 }

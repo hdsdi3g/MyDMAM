@@ -15,7 +15,7 @@
  * 
  */
 
-async.DebugPage = React.createClass({
+async.DebugPage = createReactClass({
 	getInitialState: function() {
 		return {
 			ajscontrollers: null,
@@ -66,11 +66,11 @@ async.DebugPage = React.createClass({
 		return (<mydmam.async.PageHeaderTitle title={i18n("ajscontroller.debugpage.title")} fluid="true">
 			<table className="table table-striped table-hover table-condensed table-bordered">
 				<thead>
-					<th>{i18n("ajscontroller.debugpage.controller")}</th>
-					<th>{i18n("ajscontroller.debugpage.verb")}</th>
-					<th>{i18n("ajscontroller.debugpage.parametertype")}</th>
-					<th>{i18n("ajscontroller.debugpage.returntype")}</th>
-					<th>{i18n("ajscontroller.debugpage.privileges")}</th>
+					<tr><th>{i18n("ajscontroller.debugpage.controller")}</th></tr>
+					<tr><th>{i18n("ajscontroller.debugpage.verb")}</th></tr>
+					<tr><th>{i18n("ajscontroller.debugpage.parametertype")}</th></tr>
+					<tr><th>{i18n("ajscontroller.debugpage.returntype")}</th></tr>
+					<tr><th>{i18n("ajscontroller.debugpage.privileges")}</th></tr>
 				</thead>
 				<tbody>
 					{items}

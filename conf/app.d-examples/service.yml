@@ -1,5 +1,4 @@
 service:
-    apply: prod
     workername : productionsrv
     brokercleanjobs : true
     administrator_mail : Me <me@domain.com>
@@ -23,3 +22,4 @@ javamail:
     starttls : true
     username : me
     password : mypasswd
+    # groovy_debug: true

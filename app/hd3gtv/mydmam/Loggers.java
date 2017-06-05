@@ -17,11 +17,13 @@
 package hd3gtv.mydmam;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -35,9 +37,11 @@ public final class Loggers {
 	public final static Logger ClusterStatus = Logger.getLogger("mydmam.clusterstatus");
 	public final static Logger Broker = Logger.getLogger("mydmam.broker");
 	public final static Logger Worker = Logger.getLogger("mydmam.worker");
+	public final static Logger ClkPrgmTsk = Logger.getLogger("mydmam.clkprgmtsk");
 	public final static Logger Job = Logger.getLogger("mydmam.job");
 	public final static Logger Transcode = Logger.getLogger("mydmam.transcode");
 	public final static Logger Transcode_Metadata = Logger.getLogger("mydmam.transcoder.mtd");
+	public final static Logger Transcode_Metadata_Validation = Logger.getLogger("mydmam.transcoder.mtd.validation");
 	public final static Logger Transcode_WatchFolder = Logger.getLogger("mydmam.transcode.watchfolder");
 	public final static Logger Storage = Logger.getLogger("mydmam.storage");
 	public final static Logger Storage_FTP = Logger.getLogger("mydmam.storage.ftp");
@@ -48,19 +52,37 @@ public final class Loggers {
 	public final static Logger Logger_log = Logger.getLogger("mydmam.loggers");
 	public final static Logger Cassandra = Logger.getLogger("mydmam.cassandra");
 	public final static Logger Metadata = Logger.getLogger("mydmam.metadata");
-	public final static Logger ORM = Logger.getLogger("mydmam.orm");
+	public final static Logger Metadata_Commitlog = Logger.getLogger("mydmam.metadata.commitlog");
+	// public final static Logger ORM = Logger.getLogger("mydmam.orm");
 	public final static Logger ElasticSearch = Logger.getLogger("mydmam.elasticsearch");
 	public final static Logger Play = Logger.getLogger("mydmam.play");
 	public final static Logger Play_JSSource = Logger.getLogger("mydmam.play.jssource");
+	public final static Logger NodeJSBabel = Logger.getLogger("mydmam.play.babel");
+	public final static Logger Play_i18n = Logger.getLogger("mydmam.play.i18n");
 	public final static Logger Configuration = Logger.getLogger("mydmam.configuration");
 	public final static Logger Auth = Logger.getLogger("mydmam.auth");
 	public final static Logger CLI = Logger.getLogger("mydmam.cli");
 	public final static Logger Mail = Logger.getLogger("mydmam.mail");
-	public final static Logger Module = Logger.getLogger("mydmam.module");
 	public final static Logger Ssh = Logger.getLogger("mydmam.ssh");
 	public final static Logger Pathindex = Logger.getLogger("mydmam.pathindex");
 	public final static Logger FTPserver = Logger.getLogger("mydmam.ftpserver");
 	public final static Logger AccessControl = Logger.getLogger("mydmam.accesscontrol");
+	public final static Logger BroadcastAutomation = Logger.getLogger("mydmam.bcauto");
+	public final static Logger Elemtl = Logger.getLogger("mydmam.elemtl");
+	public final static Logger Gson = Logger.getLogger("mydmam.gson");
+	public final static Logger DAReport = Logger.getLogger("mydmam.dareport");
+	
+	private static final HashMap<String, Logger> map_loggers_by_classname = new HashMap<>();
+	
+	public final static Logger getGsonLoggersForSpecificClass(Type type) {
+		String class_name = type.getTypeName().replace("<", ".").replace(">", "").replace("$", ".");
+		if (map_loggers_by_classname.containsKey(class_name) == false) {
+			synchronized (map_loggers_by_classname) {
+				map_loggers_by_classname.put(class_name, Logger.getLogger(Gson.getName() + "." + class_name));
+			}
+		}
+		return map_loggers_by_classname.get(class_name);
+	}
 	
 	/*public static JsonObject getAllLevels() {
 		JsonObject result = new JsonObject();

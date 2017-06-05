@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.metadata.container;
 
-import java.io.FileNotFoundException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -33,13 +31,13 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.search.SearchHit;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.db.ElasticsearchMultiGetRequest;
@@ -52,7 +50,21 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
-import hd3gtv.tools.GsonIgnoreStrategy;
+import hd3gtv.mydmam.transcode.images.ImageAttributes;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerCartridge;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerFullDisplay;
+import hd3gtv.mydmam.transcode.images.ImageMagickThumbnailerIcon;
+import hd3gtv.mydmam.transcode.mtdcontainer.BBCBmx;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegAudioDeepAnalyst;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAlbumartwork;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegAudioDeepAnalyser;
+import hd3gtv.mydmam.transcode.mtdgenerator.FFmpegSnapshot;
+import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererAudio;
+import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererHD;
+import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererLQ;
+import hd3gtv.mydmam.transcode.mtdgenerator.JobContextFFmpegLowresRendererSD;
 import hd3gtv.tools.StoppableProcessing;
 
 /**
@@ -76,90 +88,33 @@ public class ContainerOperations {
 		return (JsonObject) json.getAsJsonObject();
 	}
 	
-	private static final Map<String, ContainerEntry> declared_entries_type;
-	private static final GsonBuilder gson_builder;
-	private static volatile Gson gson;
-	private static final Gson gson_simple;
+	private static final Map<String, Class<? extends ContainerEntry>> declared_entries_type;
 	
 	static {
-		declared_entries_type = new LinkedHashMap<String, ContainerEntry>();
-		gson_builder = new GsonBuilder();
-		gson_builder.serializeNulls();
+		declared_entries_type = new LinkedHashMap<>();
+		declared_entries_type.put(EntrySummary.ES_TYPE, EntrySummary.class);
 		
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		gson_builder.addDeserializationExclusionStrategy(ignore_strategy);
-		gson_builder.addSerializationExclusionStrategy(ignore_strategy);
+		declared_entries_type.put(ImageAttributes.ES_TYPE, ImageAttributes.class);
+		declared_entries_type.put(BBCBmx.ES_TYPE, BBCBmx.class);
+		declared_entries_type.put(FFmpegAudioDeepAnalyst.ES_TYPE, FFmpegAudioDeepAnalyst.class);
+		declared_entries_type.put(FFmpegInterlacingStats.ES_TYPE, FFmpegInterlacingStats.class);
+		declared_entries_type.put(FFprobe.ES_TYPE, FFprobe.class);
 		
-		gson_simple = gson_builder.create();
-		
-		try {
-			declareEntryType(EntrySummary.class);
-		} catch (Exception e) {
-			Loggers.Metadata.error("Can't declare (de)serializer for EntrySummary", e);
-		}
-		gson_builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Serializer());
-		gson_builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
+		declared_entries_type.put(FFmpegSnapshot.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(FFmpegAudioDeepAnalyser.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(FFmpegAlbumartwork.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(JobContextFFmpegLowresRendererAudio.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(JobContextFFmpegLowresRendererHD.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(JobContextFFmpegLowresRendererLQ.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(JobContextFFmpegLowresRendererSD.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(ImageMagickThumbnailerCartridge.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(ImageMagickThumbnailerFullDisplay.ES_TYPE, EntryRenderer.class);
+		declared_entries_type.put(ImageMagickThumbnailerIcon.ES_TYPE, EntryRenderer.class);
 		
 		/**
 		 * Call MetadataCenter for run static block.
 		 */
-		MetadataCenter.getAnalysers();
-	}
-	
-	public static void setGsonPrettyPrinting() {
-		gson_builder.setPrettyPrinting();
-		gson = gson_builder.create();
-	}
-	
-	public static GsonBuilder getGsonBuilder() {
-		return gson_builder;
-	}
-	
-	public static Gson getGsonSimple() {
-		return gson_simple;
-	}
-	
-	/**
-	 * With all declared (de)serializers.
-	 */
-	public static Gson getGson() {
-		return gson;
-	}
-	
-	public synchronized static void declareEntryType(Class<? extends ContainerEntry> entry_class)
-			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-		if (entry_class == null) {
-			throw new NullPointerException("\"entry_class\" can't to be null");
-		}
-		ContainerEntry containerEntry = (ContainerEntry) declareType(entry_class);
-		declared_entries_type.put(containerEntry.getES_Type(), containerEntry);
-		
-		List<Class<? extends SelfSerializing>> dependencies = containerEntry.getSerializationDependencies();
-		if (dependencies != null) {
-			for (int pos = 0; pos < dependencies.size(); pos++) {
-				declareType(dependencies.get(pos));
-			}
-		}
-		gson = gson_builder.create();
-	}
-	
-	public synchronized static void declareSelfSerializingType(Class<? extends SelfSerializing> selfserializing_class)
-			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-		if (selfserializing_class == null) {
-			throw new NullPointerException("\"selfserializing_class\" can't to be null");
-		}
-		declareType(selfserializing_class);
-		gson = gson_builder.create();
-	}
-	
-	private synchronized static SelfSerializing declareType(Class<? extends SelfSerializing> selfserializing_class)
-			throws NullPointerException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-		if (selfserializing_class == null) {
-			throw new NullPointerException("\"selfserializing_class\" can't to be null");
-		}
-		SelfSerializing instance = selfserializing_class.getConstructor().newInstance();
-		SelfSerialiserBridge.registerInstance(instance);
-		return instance;
+		MetadataCenter.getExtractors();
 	}
 	
 	public static Container getByMtdKey(String mtd_key) throws Exception {
@@ -197,10 +152,70 @@ public class ContainerOperations {
 			return null;
 		}
 		
-		ContainerEntry element = gson.fromJson(getresponse.getSourceAsString(), declared_entries_type.get(type).getClass());
+		ContainerEntry element = MyDMAM.gson_kit.getGson().fromJson(getresponse.getSourceAsString(), declared_entries_type.get(type));
+		
+		if (element instanceof EntryRenderer) {
+			((EntryRenderer) element).setESType(type);
+		}
+		
 		Container result = new Container(mtd_key, element.getOrigin());
 		result.addEntry(element);
 		return result;
+	}
+	
+	/**
+	 * Simple and light request. No deserializing.
+	 */
+	public static JsonObject getRawByMtdKeyForOnlyOneTypeAndCheckedToBeSendedToWebclients(String pathelement_key, String type) throws NullPointerException {
+		if (pathelement_key == null) {
+			throw new NullPointerException("\"mtd_key\" can't to be null");
+		}
+		if (type == null) {
+			throw new NullPointerException("\"type\" can't to be null");
+		}
+		if (declared_entries_type.containsKey(type) == false) {
+			throw new NullPointerException("Can't found type: " + type);
+		}
+		
+		Class<? extends ContainerEntry> class_type = declared_entries_type.get(type);
+		
+		if ((EntryAnalyser.class.isAssignableFrom(class_type)) == false) {
+			Loggers.Metadata.warn("Invalid type: " + type + " -> " + class_type.getName() + " is not a " + EntryAnalyser.class.getName());
+			return null;
+		}
+		
+		try {
+			EntryAnalyser analyser = (EntryAnalyser) class_type.newInstance();
+			if (analyser.canBeSendedToWebclients() == false) {
+				return null;
+			}
+			
+			ElastisearchCrawlerReader reader = Elasticsearch.createCrawlerReader();
+			reader.setIndices(ES_INDEX);
+			reader.setTypes(type);
+			reader.setQuery(QueryBuilders.termQuery("origin.key", pathelement_key));
+			reader.setMaximumSize(1);
+			
+			final ArrayList<JsonObject> results = new ArrayList<JsonObject>(1);
+			try {
+				reader.allReader(new ElastisearchCrawlerHit() {
+					public boolean onFoundHit(SearchHit hit) throws Exception {
+						results.add(Elasticsearch.getJSONFromSimpleResponse(hit));
+						return false;
+					}
+				});
+			} catch (Exception e) {
+				Loggers.Metadata.warn("Can't get from db", e);
+				return null;
+			}
+			
+			if (results.isEmpty()) {
+				return null;
+			}
+			return results.get(0);
+		} catch (InstantiationException | IllegalAccessException e1) {
+			throw new NullPointerException(e1.getMessage());
+		}
 	}
 	
 	public static Container getByPathIndexId(String pathelement_key) throws Exception {
@@ -219,7 +234,7 @@ public class ContainerOperations {
 		if (pathelement_key == null) {
 			throw new NullPointerException("\"pathelement_key\" can't to be null");
 		}
-		Containers result = ContainerOperations.searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key), EntrySummary.type);
+		Containers result = ContainerOperations.searchInMetadataBase(QueryBuilders.termQuery("origin.key", pathelement_key), EntrySummary.ES_TYPE);
 		if (result.getAll().isEmpty()) {
 			return null;
 		} else {
@@ -274,7 +289,14 @@ public class ContainerOperations {
 				}
 				return true;
 			}
-			result.add(hit.getId(), gson.fromJson(hit.getSourceAsString(), declared_entries_type.get(type).getClass()));
+			
+			ContainerEntry element = MyDMAM.gson_kit.getGson().fromJson(hit.getSourceAsString(), declared_entries_type.get(type));
+			if (element instanceof EntryRenderer) {
+				((EntryRenderer) element).setESType(type);
+			}
+			
+			result.add(hit.getId(), element);
+			
 			return true;
 		}
 		
@@ -286,7 +308,13 @@ public class ContainerOperations {
 				}
 				return;
 			}
-			result.add(response.getId(), gson.fromJson(response.getSourceAsString(), declared_entries_type.get(type).getClass()));
+			
+			ContainerEntry element = MyDMAM.gson_kit.getGson().fromJson(response.getSourceAsString(), declared_entries_type.get(type));
+			if (element instanceof EntryRenderer) {
+				((EntryRenderer) element).setESType(type);
+			}
+			
+			result.add(response.getId(), element);
 		}
 	}
 	
@@ -311,7 +339,9 @@ public class ContainerOperations {
 		
 		Containers result = new Containers();
 		
-		reader.allReader(new HitReader(result, unknow_types));
+		HitReader hr = new HitReader(result, unknow_types);
+		
+		reader.allReader(hr);
 		
 		if (unknow_types.isEmpty() == false) {
 			Loggers.Metadata.error("Can't found some declared types retrieved by search, unknow_types: " + unknow_types);
@@ -361,17 +391,28 @@ public class ContainerOperations {
 	/**
 	 * Only create/update. No delete operations.
 	 */
-	public static void save(Container container, boolean refresh_index_after_save, ElasticsearchBulkOperation es_bulk) {
+	public static void save(Container container, boolean refresh_index_after_save, ElasticsearchBulkOperation es_bulk) throws JsonIOException {
 		if (container == null) {
 			throw new NullPointerException("\"container\" can't to be null");
 		}
+		
 		List<ContainerEntry> containerEntries = container.getEntries();
 		ContainerEntry containerEntry;
 		
 		for (int pos = 0; pos < containerEntries.size(); pos++) {
 			containerEntry = containerEntries.get(pos);
 			IndexRequestBuilder index = es_bulk.getClient().prepareIndex(ES_INDEX, containerEntry.getES_Type(), container.getMtd_key());
-			index.setSource(gson.toJson(containerEntry));
+			
+			try {
+				index.setSource(MyDMAM.gson_kit.getGson().toJson(containerEntry));
+			} catch (Exception e) {
+				/**
+				 * Check serializators.
+				 */
+				Loggers.Metadata.error("Problem during serialization with " + containerEntry.getClass().getName(), e);
+				return;
+			}
+			
 			index.setRefresh(refresh_index_after_save);
 			es_bulk.add(index);
 		}
@@ -435,48 +476,73 @@ public class ContainerOperations {
 		Explorer explorer;
 		HashMap<String, Long> elementcount_by_storage;
 		ElasticsearchBulkOperation es_bulk;
+		boolean let_clean_empty_and_removed_storages;
 		
-		HitPurge(ElasticsearchBulkOperation es_bulk) {
+		HitPurge(ElasticsearchBulkOperation es_bulk, boolean let_clean_empty_and_removed_storages) {
 			this.es_bulk = es_bulk;
+			this.let_clean_empty_and_removed_storages = let_clean_empty_and_removed_storages;
 			explorer = new Explorer();
 			elementcount_by_storage = new HashMap<String, Long>();
 		}
 		
-		/**
-		 * Protect to no remove all mtd if pathindexing is empty for a storage.
-		 * https://github.com/hdsdi3g/MyDMAM/issues/7
-		 */
-		boolean containsStorageInBase(ContainerOrigin origin) {
-			if (elementcount_by_storage.containsKey(origin.storage) == false) {
-				elementcount_by_storage.put(origin.storage, explorer.countStorageContentElements(origin.storage));
-				if (elementcount_by_storage.get(origin.storage) == 0) {
-					Loggers.Metadata.info("Missing storage item in datatabase, storagename: " + origin.storage);
-				}
-			}
-			return elementcount_by_storage.get(origin.storage) > 0;
-		}
-		
 		public boolean onFoundHit(SearchHit hit) {
-			if (declared_entries_type.containsKey(hit.getType()) == false) {
-				return true;
-			}
-			ContainerEntry containerEntry = gson.fromJson(hit.getSourceAsString(), declared_entries_type.get(hit.getType()).getClass());
-			Container container = new Container(hit.getId(), containerEntry.getOrigin());
 			
-			try {
-				container.getOrigin().getPathindexElement();
-				return true;
-			} catch (FileNotFoundException e) {
+			JsonObject entry = Elasticsearch.getJSONFromSimpleResponse(hit);
+			if (entry.has("origin")) {
+				JsonObject origin = entry.get("origin").getAsJsonObject();
+				
+				/**
+				 * Is item is actually indexed ?
+				 */
+				if (origin.has("key")) {
+					String origin_key = origin.get("key").getAsString();
+					if (explorer.getelementByIdkey(origin_key) != null) {
+						return true;
+					}
+				} else {
+					Loggers.Metadata.warn("Bad metadata origin entry founded during purge: " + hit.getId() + "/" + hit.getType() + "/" + hit.getSourceAsString());
+				}
+				
+				/**
+				 * Protect to no remove all mtd if pathindexing is empty for a storage...
+				 * https://github.com/hdsdi3g/MyDMAM/issues/7
+				 */
+				if (origin.has("storage")) {
+					/**
+					 * ...but if the user want to remove it:
+					 */
+					if (let_clean_empty_and_removed_storages == false) {
+						String origin_storage = origin.get("storage").getAsString();
+						if (elementcount_by_storage.containsKey(origin_storage) == false) {
+							elementcount_by_storage.put(origin_storage, explorer.countStorageContentElements(origin_storage));
+							if (elementcount_by_storage.get(origin_storage) == 0) {
+								Loggers.Metadata.info("Missing storage item in datatabase, storagename: " + origin_storage);
+							}
+						}
+						if (elementcount_by_storage.get(origin_storage) == 0) {
+							/**
+							 * Empty storage !!
+							 */
+							return true;
+						}
+					}
+				} else {
+					Loggers.Metadata.warn("Bad metadata origin entry founded during purge: " + hit.getId() + "/" + hit.getType() + "/" + hit.getSourceAsString());
+				}
+			} else {
+				Loggers.Metadata.warn("Bad metadata entry founded during purge: " + hit.getId() + "/" + hit.getType() + "/" + hit.getSourceAsString());
 			}
 			
-			if (containsStorageInBase(container.getOrigin()) == false) {
-				return true;
-			}
 			/**
-			 * This storage is not empty... Source file is really deleted, we can delete metadatas, and associated rendered files.
+			 * This storage is not empty and source file is really deleted, we can delete metadatas, and associated rendered files.
 			 */
-			requestDelete(container, es_bulk);
-			RenderedFile.purge(container.getMtd_key());
+			if (Loggers.Metadata.isTraceEnabled()) {
+				Loggers.Metadata.trace("Purge: request delete for " + hit.getId() + "/" + hit.getType());
+			}
+			
+			es_bulk.add(es_bulk.getClient().prepareDelete(ES_INDEX, hit.getType(), hit.getId()));
+			
+			RenderedFile.purge(hit.getId());
 			
 			return true;
 		}
@@ -485,7 +551,7 @@ public class ContainerOperations {
 	/**
 	 * Delete orphan (w/o pathindex) metadatas elements
 	 */
-	public static void purge_orphan_metadatas() throws Exception {
+	public static void purge_orphan_metadatas(boolean let_clean_empty_and_removed_storages) throws Exception {
 		try {
 			ElastisearchCrawlerReader reader = Elasticsearch.createCrawlerReader();
 			reader.setIndices(ES_INDEX);
@@ -493,7 +559,7 @@ public class ContainerOperations {
 			
 			ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();
 			
-			HitPurge hit_purge = new HitPurge(es_bulk);
+			HitPurge hit_purge = new HitPurge(es_bulk, let_clean_empty_and_removed_storages);
 			reader.allReader(hit_purge);
 			es_bulk.terminateBulk();
 			
@@ -502,7 +568,9 @@ public class ContainerOperations {
 			RenderedFile.purge_orphan_metadatas_files();
 			
 		} catch (IndexMissingException ime) {
+			Loggers.Metadata.warn("Can't purge orphan metadatas: " + ES_INDEX + " index is not present", ime);
 		} catch (SearchPhaseExecutionException e) {
+			Loggers.Metadata.warn("Can't purge orphan metadatas", e);
 		}
 	}
 	
@@ -640,4 +708,5 @@ public class ContainerOperations {
 		}
 		return result;
 	}
+	
 }

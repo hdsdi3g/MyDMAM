@@ -29,8 +29,9 @@ import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public final class WorkerExporter implements InstanceStatusItem {
 	
@@ -50,6 +51,7 @@ public final class WorkerExporter implements InstanceStatusItem {
 			}
 		} catch (Exception e) {
 			Loggers.Manager.error("Can't init database CFs", e);
+			System.exit(1);
 		}
 	}
 	
@@ -58,7 +60,7 @@ public final class WorkerExporter implements InstanceStatusItem {
 		if (cols.isEmpty()) {
 			return null;
 		}
-		return AppManager.getGson().fromJson(cols.getColumnByName("source").getStringValue(), WorkerExporter.class);
+		return MyDMAM.gson_kit.getGson().fromJson(cols.getColumnByName("source").getStringValue(), WorkerExporter.class);
 	}
 	
 	public static void truncate() throws ConnectionException {
@@ -76,7 +78,7 @@ public final class WorkerExporter implements InstanceStatusItem {
 			for (int pos = 0; pos < workers.size(); pos++) {
 				we = workers.get(pos).getExporter();
 				we.update();
-				mutator.withRow(CF_WORKERS, we.reference_key).putColumn("source", AppManager.getGson().toJson(we), InstanceStatus.TTL);
+				mutator.withRow(CF_WORKERS, we.reference_key).putColumn("source", MyDMAM.gson_kit.getGson().toJson(we), InstanceStatus.TTL);
 				Loggers.Manager.trace("Update worker status [" + we.reference_key + "], " + we.worker_class);
 			}
 			
@@ -111,7 +113,7 @@ public final class WorkerExporter implements InstanceStatusItem {
 		worker_class = worker.getClass().getName();
 		reference_key = worker.getReferenceKey();
 		update();
-		manager.getInstanceStatus().registerInstanceStatusItem(this);
+		manager.registerInstanceStatusAction(this);
 	}
 	
 	public String getCurrent_job_key() {
@@ -133,19 +135,19 @@ public final class WorkerExporter implements InstanceStatusItem {
 	
 	public String toString() {
 		update();
-		return AppManager.getPrettyGson().toJson(this);
+		return MyDMAM.gson_kit.getGsonPretty().toJson(this);
 	}
 	
 	private transient JsonArray ja_capablities;
 	
 	public JsonElement getInstanceStatusItem() {
-		JsonObject jo = AppManager.getGson().toJsonTree(this).getAsJsonObject();
+		JsonObject jo = MyDMAM.gson_kit.getGson().toJsonTree(this).getAsJsonObject();
 		
 		if (ja_capablities == null) {
 			ja_capablities = new JsonArray();
 			List<WorkerCapablities> capablities = worker.getWorkerCapablities();
 			for (int pos = 0; pos < capablities.size(); pos++) {
-				ja_capablities.add(AppManager.getGson().toJsonTree(capablities.get(pos).getExporter()));
+				ja_capablities.add(MyDMAM.gson_kit.getGson().toJsonTree(capablities.get(pos).getExporter()));
 			}
 		}
 		

@@ -28,6 +28,7 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.manager.JobNG;
 import hd3gtv.mydmam.manager.JobProgression;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
 import hd3gtv.mydmam.metadata.FutureCreateJobs;
 import hd3gtv.mydmam.metadata.JobContextMetadataRenderer;
 import hd3gtv.mydmam.metadata.MetadataGeneratorRendererViaWorker;
@@ -36,14 +37,16 @@ import hd3gtv.mydmam.metadata.RenderedFile;
 import hd3gtv.mydmam.metadata.WorkerRenderer;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.EntryRenderer;
-import hd3gtv.mydmam.transcode.Publish;
 import hd3gtv.mydmam.transcode.TranscodeProfile;
 import hd3gtv.mydmam.transcode.TranscodeProfile.ProcessConfiguration;
 import hd3gtv.mydmam.transcode.TranscodeProgress;
 import hd3gtv.mydmam.transcode.TranscodeProgressFFmpeg;
+import hd3gtv.mydmam.transcode.TranscoderWorker;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFmpegInterlacingStats;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeStream;
 import hd3gtv.tools.Execprocess;
+import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst.Interlacing;
 
@@ -52,7 +55,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 	private TranscodeProfile transcode_profile;
 	private PreviewType preview_type;
 	private boolean audio_only;
-	private Class<? extends EntryRenderer> root_entry_class;
+	private String es_type_entry_renderer;
 	private Class<? extends JobContextFFmpegLowresRenderer> context_class;
 	
 	public FFmpegLowresRenderer(Class<? extends JobContextFFmpegLowresRenderer> context_class, PreviewType preview_type, boolean audio_only) throws InstantiationException, IllegalAccessException {
@@ -62,7 +65,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 		
 		JobContextFFmpegLowresRenderer item = context_class.newInstance();
-		root_entry_class = item.getEntryRendererClass();
+		es_type_entry_renderer = item.getESTypeEntryRenderer();
 		
 		if (TranscodeProfile.isConfigured()) {
 			this.transcode_profile = TranscodeProfile.getTranscodeProfile(item.getTranscodeProfileName());
@@ -87,7 +90,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		return (transcode_profile != null);
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		if (audio_only) {
 			return FFprobeAnalyser.canProcessThisAudioOnly(mimetype);
 		} else {
@@ -95,7 +98,11 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 	}
 	
-	public EntryRenderer process(Container container) throws Exception {
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return null;
+	}
+	
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		return null;
 	}
 	
@@ -107,7 +114,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 	private TranscodeProgress progress;
 	private boolean stop;
 	
-	public EntryRenderer standaloneProcess(File origin, final JobProgression job_progress, Container container, JobContextMetadataRenderer renderer_context) throws Exception {
+	public ContainerEntryResult standaloneProcess(File origin, final JobProgression job_progress, Container container, JobContextMetadataRenderer renderer_context) throws Exception {
 		stop = false;
 		job_progress.updateStep(1, 3);
 		
@@ -135,14 +142,17 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 		progress.init(progress_file.getTempFile(), job_progress, ffmpeg_renderer_context).startWatching();
 		
+		/**
+		 * Video filters
+		 */
 		ArrayList<String> filters = new ArrayList<String>();
-		FFmpegInterlacingStats interlace_stats = container.getByClass(FFmpegInterlacingStats.class);
+		FFmpegInterlacingStats interlace_stats = container.getByType(FFmpegInterlacingStats.ES_TYPE, FFmpegInterlacingStats.class);
 		if (interlace_stats != null) {
 			if (interlace_stats.getInterlacing() != Interlacing.Progressive) {
 				filters.add("yadif");
 			}
 		}
-		FFprobe ffprobe = container.getByClass(FFprobe.class);
+		FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 		if (ffprobe != null) {
 			if (ffprobe.hasVerticalBlankIntervalInImage()) {
 				/**
@@ -170,11 +180,44 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		}
 		
 		process_conf.getParamTags().put("FILTERS", sb_filters.toString());
+		
+		/**
+		 * Audio filter (channel map)
+		 */
+		if (ffprobe.hasAudio()) {
+			List<FFProbeStream> audio_streams = ffprobe.getStreamsByCodecType("audio");
+			
+			if (audio_streams.size() == 1) {
+				/**
+				 * Source has only one stream
+				 * -filter_complex "nullsink"
+				 */
+				process_conf.getParamTags().put("AUDIOMAPFILTER", "anullsink");
+			} else if (audio_streams.get(0).getAudioChannelCount() == 1 && audio_streams.get(1).getAudioChannelCount() == 1) {
+				/**
+				 * Channel 1 and 2 are mono => regroup to stereo.
+				 * -filter_complex "[0:1][0:2]amerge=inputs=2"
+				 */
+				process_conf.getParamTags().put("AUDIOMAPFILTER", audio_streams.get(0).getMapReference(0) + audio_streams.get(1).getMapReference(0) + "amerge=inputs=2");
+			} else {
+				/**
+				 * Source is too complex to import it correctly. We will only take the first stream.
+				 * -filter_complex "nullsink"
+				 */
+				process_conf.getParamTags().put("AUDIOMAPFILTER", "anullsink");
+			}
+		} else {
+			/**
+			 * No audio. No process.
+			 */
+			process_conf.getParamTags().put("AUDIOMAPFILTER", "nullsink");
+		}
+		
 		process = process_conf.prepareExecprocess(job_progress.getJobKey() + ": " + origin.getName());
 		
 		Loggers.Transcode_Metadata.info("Start ffmpeg, " + "job: " + job_progress.getJobKey() + ", origin: " + origin + ", temp_file: " + temp_element.getTempFile() + ", transcode_profile: "
 				+ transcode_profile + ", commandline: \"" + process.getCommandline() + "\"");
-				
+		
 		process.run();
 		
 		progress.stopWatching();
@@ -202,7 +245,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		
 		if (ffmpeg_renderer_context.faststarted) {
 			final_element = new RenderedFile(transcode_profile.getName(), transcode_profile.getExtension("mp4"));
-			Publish.faststartFile(temp_element.getTempFile(), final_element.getTempFile());
+			TranscoderWorker.faststartFile(temp_element.getTempFile(), final_element.getTempFile());
 			temp_element.deleteTempFile();
 		} else {
 			final_element = temp_element;
@@ -215,7 +258,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		job_progress.updateStep(3, 3);
 		job_progress.update("Converting is ended");
 		
-		return final_element.consolidateAndExportToEntry(root_entry_class.newInstance(), container, this);
+		return new ContainerEntryResult(final_element.consolidateAndExportToEntry(new EntryRenderer(es_type_entry_renderer), container, this));
 	}
 	
 	public synchronized void stopStandaloneProcess() throws Exception {
@@ -233,7 +276,7 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		
 		FutureCreateJobs result = new FutureCreateJobs() {
 			public JobNG createJob() throws ConnectionException {
-				FFprobe ffprobe = container.getByClass(FFprobe.class);
+				FFprobe ffprobe = container.getByType(FFprobe.ES_TYPE, FFprobe.class);
 				if (ffprobe == null) {
 					return null;
 				}
@@ -309,12 +352,21 @@ public class FFmpegLowresRenderer implements MetadataGeneratorRendererViaWorker 
 		current_create_jobs_list.add(result);
 	}
 	
-	public Class<? extends EntryRenderer> getRootEntryClass() {
-		return root_entry_class;
-	}
-	
 	public Class<? extends JobContextMetadataRenderer> getContextClass() {
 		return context_class;
+	}
+	
+	public List<String> getMimeFileListCanUsedInMasterAsPreview() {
+		return null;
+	}
+	
+	public boolean isCanUsedInMasterAsPreview(Container container) {
+		return false;
+	}
+	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(JobContextFFmpegLowresRendererAudio.ES_TYPE, JobContextFFmpegLowresRendererHD.ES_TYPE, JobContextFFmpegLowresRendererLQ.ES_TYPE,
+				JobContextFFmpegLowresRendererSD.ES_TYPE);
 	}
 	
 }

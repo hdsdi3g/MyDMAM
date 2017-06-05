@@ -11,48 +11,40 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2012-2013
+ * Copyright (C) hdsdi3g for hd3g.tv 2012-2017
  * 
 }*
-#{extends 'maingrid.html' /}
+#{extends 'header.html' /}
 
-<div class="container">
-	<script type="text/javascript" charset="UTF-8">
-	<!--
-	$(document).ready(function() {
-		/**
-		 * Test jquery loading
-		 */
-		$("#deleteme1").remove();
-	
-		/**
-		 * Test localStorage presence
-		 */
-		if (localStorage) {
-			$("#deleteme2").remove();
-		} else {
-			$("#navigator").remove();
-		}
-	});
-	-->
-	</script>
-	<div class="alert alert-error" id="deleteme1">&{'site.autotest.l1'}</div>
-	<div class="alert alert-error" id="deleteme2">&{'site.autotest.l2'}</div>
-	<div class="hero-unit">
-	  <h1>&{'site.name'}</h1>
-	  <p>&{'site.baseline'}</p>
-	</div>
+<div class="container-fluid">
+<div id="reactindex">
+    <div class="alert alert-error">
+      <h4>%{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale("maingrid.nojavascript.head"))}%</h4>
+      %{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale("maingrid.nojavascript"))}%
+    </div>
 </div>
 
-#{secure.check 'navigate'}
 <script type="text/javascript" charset="UTF-8">
 <!--
-var list_external_positions_storages = %{out.print(hd3gtv.mydmam.module.MyDMAMModulesManager.getStorageIndexNameJsonListForHostedInArchiving())}%;
-mydmam.basket.setContent(${current_basket_content.raw()});
+$('#reactindex').empty();
+$('#reactindex').html('<p class="muted">' + "%{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale('maingrid.nojavascript.loading'))}%" + '</p>');
 
 $(document).ready(function() {
-	mydmam.basket.addSearchSwitchButtons();
+	try {
+		mydmam.routes.loadBackbone(document.getElementById('reactindex'));
+	} catch (err) {
+		%{ if (play.Play.mode == play.Play.Mode.DEV) { }%
+			var content = '<p><div class="btn-group">';
+			content = content + '<a href="@{Secure.login()}" class="btn btn-large btn-primary"><i class="icon-home icon-white"></i> %{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale('maingrid.backtologin'))}%</a>';
+			content = content + '<a href="#" onclick="window.location.reload(true);" class="btn btn-large btn-info"><i class="icon-refresh icon-white"></i> %{out.print(hd3gtv.mydmam.web.HeaderJS.INSTANCE.getMessageForCurrentUserLocale('maingrid.refreshpage'))}%</a>';
+			content = content + '</div></p>';
+			$('#reactindex').append(content);
+			console.error(err);
+		%{ } else { }%
+			window.location.href = "@{Secure.login()}";
+		%{ } }%
+	}
 });
 -->
 </script>
-#{/secure.check}
+</div>

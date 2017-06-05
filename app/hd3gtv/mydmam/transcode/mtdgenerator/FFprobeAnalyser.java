@@ -17,9 +17,6 @@
 package hd3gtv.mydmam.transcode.mtdgenerator;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,21 +28,24 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.MetadataGeneratorAnalyser;
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.metadata.ContainerEntryResult;
+import hd3gtv.mydmam.metadata.MetadataExtractor;
+import hd3gtv.mydmam.metadata.PreviewType;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
+import hd3gtv.mydmam.metadata.container.EntryRenderer;
 import hd3gtv.mydmam.metadata.validation.Comparator;
 import hd3gtv.mydmam.metadata.validation.ValidatorCenter;
 import hd3gtv.mydmam.transcode.mtdcontainer.FFprobe;
-import hd3gtv.mydmam.transcode.mtdcontainer.Stream;
+import hd3gtv.mydmam.transcode.mtdcontainer.FFProbeStream;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.ExecprocessBadExecutionException;
 import hd3gtv.tools.ExecprocessGettext;
+import hd3gtv.tools.StoppableProcessing;
 import hd3gtv.tools.Timecode;
 import hd3gtv.tools.VideoConst;
 
-public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
+public class FFprobeAnalyser implements MetadataExtractor {
 	
 	public boolean isEnabled() {
 		try {
@@ -56,7 +56,15 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		return false;
 	}
 	
-	public EntryAnalyser process(Container container) throws Exception {
+	public ContainerEntryResult processFast(Container container) throws Exception {
+		return processFull(container, null);
+	}
+	
+	public boolean isTheExtractionWasActuallyDoes(Container container) {
+		return container.containAnyMatchContainerEntryType(FFprobe.ES_TYPE);
+	}
+	
+	public ContainerEntryResult processFull(Container container, StoppableProcessing stoppable) throws Exception {
 		ArrayList<String> param = new ArrayList<String>();
 		param.add("-show_streams");
 		param.add("-show_format");
@@ -73,7 +81,12 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		} catch (IOException e) {
 			if (e instanceof ExecprocessBadExecutionException) {
 				if (process.getRunprocess().getExitvalue() == 1) {
-					Loggers.Transcode_Metadata.error("Invalid data found when processing input, " + process + ", " + container);
+					if (Loggers.Transcode_Metadata.isDebugEnabled()) {
+						Loggers.Transcode_Metadata.warn("ffprobe can't open/analyst file, " + process + ", " + container);
+					} else {
+						Loggers.Transcode_Metadata.warn("ffprobe can't open/analyst file " + container.getPhysicalSource());
+					}
+					return null;
 				} else {
 					Loggers.Transcode_Metadata.error("Problem with ffprobe, " + process + ", " + container);
 				}
@@ -81,31 +94,13 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 			throw e;
 		}
 		
-		FFprobe result = ContainerOperations.getGson().fromJson(process.getResultstdout().toString(), FFprobe.class);
+		FFprobe result = MyDMAM.gson_kit.getGson().fromJson(process.getResultstdout().toString(), FFprobe.class);
 		
 		/**
 		 * Patch mime code if no video stream
 		 */
 		
-		if (result.hasVideo()) {
-			/**
-			 * Video is present and valid
-			 */
-			List<Stream> video_streams = result.getStreamsByCodecType("video");
-			for (int pos = 0; pos < video_streams.size(); pos++) {
-				if (video_streams.get(pos).isAValidVideoStreamOrAlbumArtwork()) {
-					continue;
-				} else {
-					video_streams.get(pos).setIgnored(true);
-					if (container.getSummary().getMimetype().startsWith("video")) {
-						/**
-						 * Need to correct bad mime category
-						 */
-						container.getSummary().setMimetype("audio" + container.getSummary().getMimetype().substring(5));
-					}
-				}
-			}
-		} else if (container.getSummary().getMimetype().startsWith("video")) {
+		if (container.getSummary().getMimetype().startsWith("video") && result.hasVideo() == false) {
 			/**
 			 * No video, only audio is present but with bad mime category
 			 */
@@ -115,9 +110,9 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		/**
 		 * Patch tags dates
 		 */
-		List<Stream> streams = result.getStreams();
-		for (int pos = 0; pos < streams.size(); pos++) {
-			patchTagDate(streams.get(pos).getTags());
+		List<FFProbeStream> fFProbeStreams = result.getStreams();
+		for (int pos = 0; pos < fFProbeStreams.size(); pos++) {
+			patchTagDate(fFProbeStreams.get(pos).getTags());
 		}
 		patchTagDate(result.getFormat().getTags());
 		
@@ -128,48 +123,48 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		 */
 		StringBuffer sb_summary;
 		List<String> streams_list_summary = new ArrayList<String>(1);
-		Stream stream;
-		for (int pos = 0; pos < streams.size(); pos++) {
+		FFProbeStream fFProbeStream;
+		for (int pos = 0; pos < fFProbeStreams.size(); pos++) {
 			sb_summary = new StringBuffer();
-			stream = streams.get(pos);
-			if (stream.isIgnored()) {
+			fFProbeStream = fFProbeStreams.get(pos);
+			if (fFProbeStream.isAttachedPic()) {
 				continue;
 			}
-			String codec_name = stream.getCodec_tag_string();
+			String codec_name = fFProbeStream.getCodec_tag_string();
 			if (codec_name.indexOf("[") > -1) {
-				if (stream.hasMultipleParams("codec_name")) {
-					codec_name = stream.getParam("codec_name").getAsString();
+				if (fFProbeStream.hasMultipleParams("codec_name")) {
+					codec_name = fFProbeStream.getParam("codec_name").getAsString();
 				} else {
 					codec_name = "Unsupported";
 				}
 			}
-			String codec_type = stream.getCodec_type();
+			String codec_type = fFProbeStream.getCodec_type();
 			if (codec_type.equalsIgnoreCase("video")) {
 				sb_summary.append("Video: ");
 				sb_summary.append(translateCodecName(codec_name));
-				if (stream.getVideoResolution() != null) {
+				if (fFProbeStream.getVideoResolution() != null) {
 					sb_summary.append(" ");
-					sb_summary.append(VideoConst.getSystemSummary(stream.getVideoResolution().x, stream.getVideoResolution().y, result.getFramerate()));
+					sb_summary.append(VideoConst.getSystemSummary(fFProbeStream.getVideoResolution().x, fFProbeStream.getVideoResolution().y, result.getFramerate()));
 				}
 			} else if (codec_type.equalsIgnoreCase("audio")) {
 				sb_summary.append("Audio: ");
 				if (codec_name.equalsIgnoreCase("twos") | codec_name.equalsIgnoreCase("sowt")) {
-					codec_name = stream.getParam("codec_name").getAsString();
+					codec_name = fFProbeStream.getParam("codec_name").getAsString();
 				}
 				sb_summary.append(translateCodecName(codec_name));
 				
 				sb_summary.append(" (");
-				if (stream.hasMultipleParams("channels")) {
-					sb_summary.append(VideoConst.audioChannelCounttoString(stream.getParam("channels").getAsInt()));
+				if (fFProbeStream.hasMultipleParams("channels")) {
+					sb_summary.append(VideoConst.audioChannelCounttoString(fFProbeStream.getParam("channels").getAsInt()));
 				}
-				if (stream.hasMultipleParams("sample_rate")) {
+				if (fFProbeStream.hasMultipleParams("sample_rate")) {
 					sb_summary.append(" ");
-					sb_summary.append(new Integer(stream.getParam("sample_rate").getAsInt()).floatValue() / 1000f);
+					sb_summary.append(new Integer(fFProbeStream.getParam("sample_rate").getAsInt()).floatValue() / 1000f);
 					sb_summary.append("kHz");
 				}
-				if (stream.hasMultipleParams("bit_rate")) {
+				if (fFProbeStream.hasMultipleParams("bit_rate")) {
 					sb_summary.append(" ");
-					sb_summary.append(new Integer(stream.getParam("bit_rate").getAsInt()).floatValue() / 1000f);
+					sb_summary.append(new Integer(fFProbeStream.getParam("bit_rate").getAsInt()).floatValue() / 1000f);
 					sb_summary.append("kbps");
 				}
 				sb_summary.append(")");
@@ -252,7 +247,7 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 			container.getSummary().putSummaryContent(result, sb_summary.toString().trim());
 		}
 		
-		return result;
+		return new ContainerEntryResult(result);
 	}
 	
 	private static void patchTagDate(JsonObject tags) {
@@ -261,10 +256,7 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		}
 		String key;
 		String value;
-		DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		
 		HashMap<String, JsonPrimitive> new_values = new HashMap<String, JsonPrimitive>();
-		List<String> remove_values = new ArrayList<String>();
 		
 		/**
 		 * Search and prepare changes
@@ -272,23 +264,8 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		for (Map.Entry<String, JsonElement> entry : tags.entrySet()) {
 			key = (String) entry.getKey();
 			value = entry.getValue().getAsString();
-			try {
-				if (key.equals("creation_time")) {
-					new_values.put(key, new JsonPrimitive(format.parse(value).getTime()));
-				} else if (key.equals("date")) {
-					if (value.length() == "0000-00-00T00:00:00Z".length()) {
-						new_values.put(key, new JsonPrimitive(format.parse(value.substring(0, 10) + " " + value.substring(11, 19)).getTime()));
-					} else if (value.length() == "0000-00-00 00:00:00".length()) {
-						new_values.put(key, new JsonPrimitive(format.parse(value).getTime()));
-					} else if (value.length() == "0000-00-00".length()) {
-						new_values.put(key, new JsonPrimitive(format.parse(value.substring(0, 10) + " 00:00:00").getTime()));
-					} else {
-						remove_values.add(key);
-						new_values.put(key + "-raw", new JsonPrimitive("#" + value));
-					}
-				}
-			} catch (ParseException e) {
-				Loggers.Transcode_Metadata.error("Can't parse date, tags: " + tags, e);
+			if (key.equals("creation_time") | key.equals("date")) {
+				new_values.put(key, new JsonPrimitive("date:" + value));
 			}
 		}
 		
@@ -297,9 +274,6 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		 */
 		for (Map.Entry<String, JsonPrimitive> entry : new_values.entrySet()) {
 			tags.add(entry.getKey(), entry.getValue());
-		}
-		for (int pos = 0; pos < remove_values.size(); pos++) {
-			tags.remove(remove_values.get(pos));
 		}
 	}
 	
@@ -319,6 +293,8 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		if (mimetype.equalsIgnoreCase("video/x-dv")) return true;
 		if (mimetype.equalsIgnoreCase("video/vc1")) return true;
 		if (mimetype.equalsIgnoreCase("video/ogg")) return true;
+		if (mimetype.equalsIgnoreCase("video/webm")) return true;
+		if (mimetype.equalsIgnoreCase("video/x-matroska")) return true;
 		if (mimetype.equalsIgnoreCase("video/mp2p")) return true;
 		if (mimetype.equalsIgnoreCase("video/h264")) return true;
 		if (mimetype.equalsIgnoreCase("video/x-flv")) return true;
@@ -336,8 +312,10 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		if (mimetype.equalsIgnoreCase("audio/ogg")) return true;
 		if (mimetype.equalsIgnoreCase("audio/vorbis")) return true;
 		if (mimetype.equalsIgnoreCase("audio/quicktime")) return true;
+		if (mimetype.equalsIgnoreCase("application/mxf")) return true;
 		
 		if (mimetype.equalsIgnoreCase("audio/x-ms-wmv")) return true;
+		if (mimetype.equalsIgnoreCase("audio/x-ms-wma")) return true;
 		if (mimetype.equalsIgnoreCase("audio/x-hx-aac-adts")) return true;
 		if (mimetype.equalsIgnoreCase("audio/3gpp")) return true;
 		if (mimetype.equalsIgnoreCase("audio/AMR")) return true;
@@ -374,7 +352,7 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		return false;
 	}
 	
-	public boolean canProcessThis(String mimetype) {
+	public boolean canProcessThisMimeType(String mimetype) {
 		if (canProcessThisVideoOnly(mimetype)) return true;
 		if (canProcessThisAudioOnly(mimetype)) return true;
 		return false;
@@ -392,11 +370,18 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		translated_codecs_names.setProperty("mpeg2video", "MPEG2");
 		translated_codecs_names.setProperty("mx5p", "MPEG2/4:2:2");
 		translated_codecs_names.setProperty("mpeg", "MPEG");
+		translated_codecs_names.setProperty("wmv3", "WMV9");
+		translated_codecs_names.setProperty("apch", "Apple ProRes 422 HQ");
+		translated_codecs_names.setProperty("apcn", "Apple ProRes 422");
+		translated_codecs_names.setProperty("apcs", "Apple ProRes 422 LT");
+		translated_codecs_names.setProperty("apco", "Apple ProRes 422 Proxy");
+		translated_codecs_names.setProperty("ap4h", "Apple ProRes 4444");
+		
 		translated_codecs_names.setProperty("mp2", "MPEG/L2");
 		translated_codecs_names.setProperty("mp3", "MP3");
-		translated_codecs_names.setProperty("wmv3", "WMV9");
 		translated_codecs_names.setProperty("wmav2", "WMA9");
 		translated_codecs_names.setProperty("aac", "AAC");
+		translated_codecs_names.setProperty("mp4a", "AAC");
 		translated_codecs_names.setProperty("eac3", "EAC3");
 		translated_codecs_names.setProperty("ec-3", "EAC3");
 		translated_codecs_names.setProperty("pcm_s16le", "PCM 16b");
@@ -404,11 +389,8 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		translated_codecs_names.setProperty("pcm_s16be", "PCM 16b/BE");
 		translated_codecs_names.setProperty("pcm_s24le", "PCM 24b");
 		translated_codecs_names.setProperty("pcm_s24be", "PCM 24b/BE");
-		translated_codecs_names.setProperty("apch", "Apple ProRes 422 HQ");
-		translated_codecs_names.setProperty("apcn", "Apple ProRes 422");
-		translated_codecs_names.setProperty("apcs", "Apple ProRes 422 LT");
-		translated_codecs_names.setProperty("apco", "Apple ProRes 422 Proxy");
-		translated_codecs_names.setProperty("ap4h", "Apple ProRes 4444");
+		translated_codecs_names.setProperty("pcm_f32le", "PCM 32b float");
+		translated_codecs_names.setProperty("pcm_f32be", "PCM 32b float/BE");
 	}
 	
 	public static String translateCodecName(String ffmpeg_name) {
@@ -436,10 +418,6 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 		if (container.getSummary().equalsMimetype(mime_list_master_as_preview)) {
 			if (video_webbrowser_validation == null) {
 				video_webbrowser_validation = new ValidatorCenter();
-				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'video')].index", Comparator.EQUALS, 0);
-				video_webbrowser_validation.and();
-				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 1);
-				video_webbrowser_validation.and();
 				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].sample_rate", Comparator.EQUALS, 48000, 44100, 32000);
 				video_webbrowser_validation.and();
 				video_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac");
@@ -460,9 +438,6 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 			}
 			if (audio_webbrowser_validation == null) {
 				audio_webbrowser_validation = new ValidatorCenter();
-				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].index", Comparator.EQUALS, 0);
-				audio_webbrowser_validation.and();
-				
 				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].codec_name", Comparator.EQUALS, "aac", "mp3");
 				audio_webbrowser_validation.and();
 				audio_webbrowser_validation.addRule(FFprobe.class, "$.streams[?(@.codec_type == 'audio')].channels", Comparator.EQUALS, 1, 2);
@@ -471,16 +446,17 @@ public class FFprobeAnalyser implements MetadataGeneratorAnalyser {
 			}
 			
 			if (video_webbrowser_validation.validate(container)) {
-				Loggers.Transcode_Metadata.debug("YES ??");
+				Loggers.Transcode_Metadata_Validation.debug("Master as preview (video) ok for " + container.getOrigin().toString());
 				return true;
 			} else if (audio_webbrowser_validation.validate(container)) {
+				Loggers.Transcode_Metadata_Validation.debug("Master as preview (audio) ok for " + container.getOrigin().toString());
 				return true;
 			}
 		}
 		return false;
 	}
 	
-	public Class<? extends EntryAnalyser> getRootEntryClass() {
-		return FFprobe.class;
+	public PreviewType getPreviewTypeForRenderer(Container container, EntryRenderer entry) {
+		return null;
 	}
 }

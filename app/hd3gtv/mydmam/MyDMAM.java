@@ -18,40 +18,18 @@ package hd3gtv.mydmam;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.Security;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.factory.Factory;
+import hd3gtv.mydmam.gson.GsonKit;
+import hd3gtv.mydmam.web.PlayBootstrap;
 
 public class MyDMAM {
 	
@@ -74,7 +52,33 @@ public class MyDMAM {
 	
 	public static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	
-	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2016";
+	public static String APP_COPYRIGHT = "Copyright (C) hdsdi3g for hd3g.tv 2012-2017";
+	
+	public static final Charset UTF8 = Charset.forName("UTF-8");
+	
+	public static final Factory factory = new Factory();
+	
+	/**
+	 * Search application.conf in classpath, and return the /mydmam main directory.
+	 */
+	public static final File APP_ROOT_PLAY_DIRECTORY;
+	public static final File APP_ROOT_PLAY_CONF_DIRECTORY;
+	
+	static {
+		APP_ROOT_PLAY_DIRECTORY = getMyDMAMRootPlayDirectory();
+		APP_ROOT_PLAY_CONF_DIRECTORY = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getPath() + File.separator + "conf");
+	}
+	
+	public static final GsonKit gson_kit = new GsonKit();
+	
+	private static PlayBootstrap play_bootstrapper;
+	
+	public static PlayBootstrap getPlayBootstrapper() {
+		if (play_bootstrapper == null) {
+			play_bootstrapper = new PlayBootstrap();
+		}
+		return play_bootstrapper;
+	}
 	
 	/**
 	 * @param filename without path
@@ -168,182 +172,74 @@ public class MyDMAM {
 		return configured_messages;
 	}
 	
-	static {
-		Security.addProvider(new BouncyCastleProvider());
-	}
-	
-	public static void testIllegalKeySize() {
-		try {
-			MessageDigest md = MessageDigest.getInstance("SHA-256", "BC");
-			byte[] key = md.digest("".getBytes());
-			SecretKey skeySpec = new SecretKeySpec(key, "AES");
-			IvParameterSpec salt = new IvParameterSpec(key, 0, 16);
-			
-			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
-			cipher.init(Cipher.ENCRYPT_MODE, skeySpec, salt);
-			return;
-		} catch (NoSuchAlgorithmException e) {
-			Loggers.Manager.fatal("Can't found MessageDigest or Cipher Algorithm", e);
-		} catch (NoSuchProviderException e) {
-			Loggers.Manager.fatal("Can't found MessageDigest or Cipher Provider", e);
-		} catch (InvalidKeyException e) {
-			if (e.getMessage().equals("Illegal key size")) {
-				System.err.println("");
-				System.err.println("");
-				System.err.println("--------~~~~~~===============~~~~~~--------");
-				System.err.println("               Fatal error !");
-				System.err.println("You must to setup Java Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy Files");
-				System.err.println("");
-				System.err.println("Go to http://www.oracle.com/technetwork/java/javase/downloads/index.html");
-				System.err.println("And download it (it's free and legal)");
-				System.err.println("");
-				System.err.println("Unzip, and copy US_export_policy.jar and local_policy.jar to this directory:");
-				System.err.println("");
-				System.err.println(" " + System.getProperty("java.home") + "/lib/security/");
-				System.err.println("");
-				System.err.println("Overwrite the actual jar files");
-				System.err.println("--------~~~~~~==============~~~~~~--------");
-				System.err.println("");
-				Loggers.Manager.fatal(
-						"JCE no found ! Download JCE from http://www.oracle.com/technetwork/java/javase/downloads/index.html, and unzip in " + System.getProperty("java.home") + "/lib/security/");
-			} else {
-				Loggers.Manager.fatal("Invalid Cipher key", e);
-			}
-		} catch (InvalidAlgorithmParameterException e) {
-			Loggers.Manager.fatal("Invalid Cipher Parameter", e);
-		} catch (NoSuchPaddingException e) {
-			Loggers.Manager.fatal("Invalid Cipher Padding", e);
-		}
-		Loggers.Manager.fatal("Check your Java environment, and the JCE configuration. MyDMAM can't work without it.");
-		System.exit(1);
-	}
-	
-	/**
-	 * @throws ClassNotFoundException if null, anonymous, local, member (or static if can_to_be_static).
-	 */
-	public static void checkIsAccessibleClass(Class<?> context, boolean can_to_be_static) throws ClassNotFoundException {
-		if (context == null) {
-			throw new ClassNotFoundException("\"context\" can't to be null");
-		}
-		if (context.getClass().isAnonymousClass()) {
-			throw new ClassNotFoundException("\"context\" can't to be an anonymous class");
-		}
-		if (context.getClass().isLocalClass()) {
-			throw new ClassNotFoundException("\"context\" can't to be a local class");
-		}
-		if (context.getClass().isMemberClass()) {
-			throw new ClassNotFoundException("\"context\" can't to be a member class");
-		}
-		if (can_to_be_static == false) {
-			if (Modifier.isStatic(context.getClass().getModifiers())) {
-				throw new ClassNotFoundException("\"context\" can't to be a static class");
-			}
-		}
-		
-	}
-	
-	/*private static volatile GsonBuilder gsonbuilder;
-	
-	public static Gson getGson() {
-		if (gsonbuilder == null) {
-			gsonbuilder = new GsonBuilder();
-			gsonbuilder.registerTypeAdapter(SourcePathIndexerElement.class, new SourcePathIndexerElement());
-		}
-		return gsonbuilder.create();
-	}*/
-	
-	public static class GsonClassSerializer implements JsonSerializer<Class<?>>, JsonDeserializer<Class<?>> {
-		
-		public JsonElement serialize(Class<?> src, Type typeOfSrc, JsonSerializationContext context) {
-			if (src == null) {
-				return null;
-			}
-			return new JsonPrimitive(src.getName());
-		}
-		
-		public Class<?> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			try {
-				return Class.forName(json.getAsString());
-			} catch (Exception e) {
-				return null;
-			}
-		}
-	}
-	
-	public static void registerJsonArrayAndObjectSerializer(GsonBuilder gson_builder) {
-		gson_builder.registerTypeAdapter(JsonArray.class, new MyDMAM.GsonJsonArraySerializer());
-		gson_builder.registerTypeAdapter(JsonObject.class, new MyDMAM.GsonJsonObjectSerializer());
-	}
-	
-	/**
-	 * Direct (de)serializer.
-	 */
-	public static class GsonJsonArraySerializer implements JsonSerializer<JsonArray>, JsonDeserializer<JsonArray> {
-		
-		public JsonElement serialize(JsonArray src, Type typeOfSrc, JsonSerializationContext context) {
-			if (src == null) {
-				return null;
-			}
-			return src;
-		}
-		
-		public JsonArray deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			try {
-				return json.getAsJsonArray();
-			} catch (Exception e) {
-				Loggers.Manager.error("Can't deserialize JsonArray", e);
-				return null;
-			}
-		}
-	}
-	
-	/**
-	 * Direct (de)serializer.
-	 */
-	public static class GsonJsonObjectSerializer implements JsonSerializer<JsonObject>, JsonDeserializer<JsonObject> {
-		
-		public JsonElement serialize(JsonObject src, Type typeOfSrc, JsonSerializationContext context) {
-			if (src == null) {
-				return null;
-			}
-			return src;
-		}
-		
-		public JsonObject deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-			try {
-				return json.getAsJsonObject();
-			} catch (Exception e) {
-				Loggers.Manager.error("Can't deserialize JsonObject", e);
-				return null;
-			}
-		}
-	}
-	
-	/**
-	 * Search application.conf in classpath, and return the /mydmam main directory.
-	 */
-	public static final File APP_ROOT_PLAY_DIRECTORY;
-	
-	static {
-		APP_ROOT_PLAY_DIRECTORY = getMyDMAMRootPlayDirectory();
-	}
-	
 	private static File getMyDMAMRootPlayDirectory() {
-		String[] classpathelements = System.getProperty("java.class.path").split(System.getProperty("path.separator"));
 		/**
 		 * Search application.conf
 		 */
-		for (int i = 0; i < classpathelements.length; i++) {
-			if (classpathelements[i].endsWith(".jar")) {
-				continue;
-			}
-			File applicationconf_file = new File(classpathelements[i] + File.separator + "application.conf");
-			if (applicationconf_file.exists()) {
-				return (new File(classpathelements[i]).getParentFile());
-			}
+		Optional<File> o_applicationconf_file = factory.getClasspathOnlyDirectories().map(cp -> {
+			return new File(cp.getPath() + File.separator + "application.conf");
+		}).filter(appfile -> {
+			return appfile.exists();
+		}).findFirst();
+		
+		if (o_applicationconf_file.isPresent()) {
+			/**
+			 * /mydmam/conf/application.conf => /mydmam
+			 */
+			return o_applicationconf_file.get().getParentFile().getParentFile();
 		}
+		
 		Loggers.Manager.error("Can't found MyDMAM Play application", new FileNotFoundException(new File("").getAbsolutePath()));
 		return new File("");
+	}
+	
+	/**
+	 * Compares two version strings.
+	 * Use this instead of String.compareTo() for a non-lexicographical
+	 * comparison that works for version strings. e.g. "1.10".compareTo("1.6").
+	 * It remove the "v" char in front.
+	 * @note It does not work if "1.10" is supposed to be equal to "1.10.0".
+	 * @param str1 a string of ordinal numbers separated by decimal points.
+	 * @param str2 a string of ordinal numbers separated by decimal points.
+	 * @return The result is a negative integer if str1 is _numerically_ less than str2.
+	 *         The result is a positive integer if str1 is _numerically_ greater than str2.
+	 *         The result is zero if the strings are _numerically_ equal.
+	 * @see from http://stackoverflow.com/questions/6701948/efficient-way-to-compare-version-strings-in-java
+	 */
+	public static int versionCompare(String version1, String version2) {
+		String str1 = version1;
+		if (str1.startsWith("v")) {
+			str1 = str1.substring(1);
+		}
+		str1 = str1.trim();
+		
+		String str2 = version2;
+		if (str2.startsWith("v")) {
+			str2 = str2.substring(1);
+		}
+		str2 = str2.trim();
+		
+		String[] vals1 = str1.split("\\.");
+		String[] vals2 = str2.split("\\.");
+		int i = 0;
+		/**
+		 * Set index to first non-equal ordinal or length of shortest version string
+		 */
+		while (i < vals1.length && i < vals2.length && vals1[i].equals(vals2[i])) {
+			i++;
+		}
+		/**
+		 * Compare first non-equal ordinal number
+		 */
+		if (i < vals1.length && i < vals2.length) {
+			int diff = Integer.valueOf(vals1[i]).compareTo(Integer.valueOf(vals2[i]));
+			return Integer.signum(diff);
+		}
+		/**
+		 * The strings are equal or one string is a substring of the other
+		 * e.g. "1.2.3" = "1.2.3" or "1.2.3" < "1.2.3.4"
+		 */
+		return Integer.signum(vals1.length - vals2.length);
 	}
 	
 }

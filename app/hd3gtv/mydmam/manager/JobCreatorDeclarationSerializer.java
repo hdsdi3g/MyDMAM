@@ -17,32 +17,29 @@
 package hd3gtv.mydmam.manager;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 
-import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
-final class JobCreatorDeclarationSerializer implements JsonSerializer<JobCreator.Declaration>, JsonDeserializer<JobCreator.Declaration> {
-	
-	private Type al_JobContext_typeOfT = new TypeToken<ArrayList<JobContext>>() {
-	}.getType();
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
+import hd3gtv.mydmam.gson.GsonKit;
+
+public final class JobCreatorDeclarationSerializer implements GsonDeSerializer<JobCreator.Declaration> {
 	
 	public JobCreator.Declaration deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 		JsonObject jo = json.getAsJsonObject();
-		JobCreator.Declaration result = AppManager.getSimpleGson().fromJson(json, JobCreator.Declaration.class);
-		result.contexts = AppManager.getGson().fromJson(jo.get("contexts"), al_JobContext_typeOfT);
+		JobCreator.Declaration result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, JobCreator.Declaration.class);
+		result.contexts = MyDMAM.gson_kit.getGsonSimple().fromJson(jo.get("contexts"), GsonKit.type_ArrayList_JobContext);
 		return result;
 	}
 	
 	public JsonElement serialize(JobCreator.Declaration src, Type typeOfSrc, JsonSerializationContext context) {
-		JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
-		result.add("contexts", AppManager.getGson().toJsonTree(src.contexts, al_JobContext_typeOfT));
+		JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
+		result.add("contexts", MyDMAM.gson_kit.getGson().toJsonTree(src.contexts, GsonKit.type_ArrayList_JobContext));
 		return result;
 	}
 	

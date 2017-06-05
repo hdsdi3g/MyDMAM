@@ -4,7 +4,6 @@
 
 # Home page
 GET     /                                       Application.index
-GET		/!										Application.indexjs
 
 # Ignore favicon requests
 GET     /favicon.ico                            404
@@ -19,42 +18,8 @@ GET		/login									Secure.login
 POST	/login									Secure.authenticate
 GET		/logout									Secure.logout
 
-GET		/admin/{objtype}						Admin.index
-GET		/admin/{objtype}/new					Admin.blank
-GET		/admin/{objtype}/edit/{key}				Admin.edit
-GET		/admin/{objtype}/delete/{key}			Admin.delete
-POST	/admin/{objtype}/add					Admin.create
-POST	/admin/{objtype}/update/{key}			Admin.update
-GET		/admin/{objtype}/action/{action}/{key}	Admin.action
-*		/admin									Application.redirectToHome
-*		/admin/?								Application.redirectToHome
-
-*		/stat									Application.stat
-*		/navigate								Application.navigate
 GET		/i18n.js								Application.i18n
-GET		/search/{from}/{q}						Application.search
 GET		/preview/{filehash}/{type}/{file}		Application.metadatafile
-
-GET		/user/notification/list					User.notificationslist
-GET		/user/notification/{key}/close			User.notificationclose
-GET		/user/notification/{key}/alert/{reason}/{notify} User.notificationupdatealert
-POST	/user/notification/{key}/comment		User.notificationupdatecomment
-GET		/user/notification/{key}/read			User.notificationupdateread
-POST	/user/notification/resolve/users		User.notificationresolveusers
-GET		/user/notification/admin				User.notificationsadminlist
-GET		/user/notification/admin/{key}/close	User.notificationadminclose
-
-GET		/user/basket/show						User.baskets
-POST	/user/basket/push						User.basket_push
-GET		/user/basket/pull						User.basket_pull
-GET		/user/basket/selected					User.basket_get_selected
-GET		/user/basket/all						User.basket_get_all_user
-POST	/user/basket/delete						User.basket_delete
-POST	/user/basket/truncate					User.basket_truncate
-POST	/user/basket/rename						User.basket_rename
-POST	/user/basket/create						User.basket_create
-POST	/user/basket/switch						User.basket_switch_selected
-POST	/user/basket/admin						User.basket_admin_action
 
 POST	/asyncjs/{name}/{verb}					AsyncJavascript.index
 

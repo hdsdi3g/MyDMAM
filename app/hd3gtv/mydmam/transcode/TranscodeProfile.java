@@ -37,9 +37,9 @@ import com.google.gson.JsonSerializer;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.manager.InstanceStatusItem;
 import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.ExecBinaryPath;
 import hd3gtv.tools.Execprocess;
@@ -179,6 +179,7 @@ public class TranscodeProfile implements InstanceStatusItem {
 			}
 		} catch (Exception e) {
 			Loggers.Transcode.error("Can't load transcoding configuration", e);
+			System.exit(1);
 		}
 	}
 	
@@ -514,7 +515,11 @@ public class TranscodeProfile implements InstanceStatusItem {
 					cmdline.add(output_file_path);
 				} else if (param.equals(TAG_PROGRESSFILE)) {
 					if (progress != null) {
-						cmdline.add(progress.getProgressfile().getCanonicalPath());
+						if (progress.getProgressfile() == null) {
+							Loggers.Transcode.error("Progress in transcode profile !", new NullPointerException());
+						} else {
+							cmdline.add(progress.getProgressfile().getCanonicalPath());
+						}
 					} else {
 						cmdline.add(System.getProperty("java.io.tmpdir") + File.separator + "progress.txt");
 					}
@@ -605,7 +610,7 @@ public class TranscodeProfile implements InstanceStatusItem {
 	}
 	
 	public JsonElement getInstanceStatusItem() {
-		return WatchFolderDB.gson.toJsonTree(this);
+		return MyDMAM.gson_kit.getGson().toJsonTree(this);
 	}
 	
 	public String getReferenceKey() {

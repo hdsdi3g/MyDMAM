@@ -102,7 +102,6 @@ public class ValidatorCenter {
 			throw new NullPointerException("\"container\" can't to be null");
 		}
 		List<Validator> current_list;
-		Validator current;
 		List<RejectCause> rejects = null;
 		LinkedHashMap<String, Object> log = new LinkedHashMap<String, Object>();
 		boolean passed;
@@ -120,8 +119,7 @@ public class ValidatorCenter {
 				/**
 				 * OR relations
 				 */
-				current = current_list.get(pos_list);
-				rejects = current.validate(container);
+				rejects = current_list.get(pos_list).validate(container);
 				if (rejects == null) {
 					passed = true;
 					break;
@@ -131,7 +129,7 @@ public class ValidatorCenter {
 				}
 			}
 			if (passed == false) {
-				Loggers.Metadata.debug("Fail to validate analysis: " + log);
+				Loggers.Transcode_Metadata_Validation.debug("Fail to validate analysis: " + log);
 				return false;
 			} else {
 				log.clear();

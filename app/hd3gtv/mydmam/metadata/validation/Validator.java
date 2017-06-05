@@ -16,15 +16,15 @@
 */
 package hd3gtv.mydmam.metadata.validation;
 
-import hd3gtv.mydmam.metadata.container.Container;
-import hd3gtv.mydmam.metadata.container.ContainerEntry;
-import hd3gtv.mydmam.metadata.container.EntryAnalyser;
-import hd3gtv.mydmam.metadata.container.ContainerOperations;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.metadata.container.Container;
+import hd3gtv.mydmam.metadata.container.ContainerEntry;
+import hd3gtv.mydmam.metadata.container.EntryAnalyser;
 
 /**
  * Test if some analysis JSON result values match with predefinited values.
@@ -67,7 +67,7 @@ public class Validator {
 		List<ContainerEntry> containerEntries = container.getEntries();
 		for (int pos = 0; pos < containerEntries.size(); pos++) {
 			if (containerEntries.get(pos) instanceof EntryAnalyser) {
-				analysis_results.put(((EntryAnalyser) containerEntries.get(pos)).getClass(), ContainerOperations.getGson().toJson(containerEntries.get(pos)));
+				analysis_results.put(((EntryAnalyser) containerEntries.get(pos)).getClass(), MyDMAM.gson_kit.getGson().toJson(containerEntries.get(pos)));
 			}
 		}
 		
@@ -84,7 +84,9 @@ public class Validator {
 			analyser_rules = entry.getValue();
 			for (int pos_rules = 0; pos_rules < analyser_rules.size(); pos_rules++) {
 				constraint = analyser_rules.get(pos_rules);
-				if (constraint.isPassing(source) == false) {
+				if (constraint.isPassing(source)) {
+					return null;
+				} else {
 					rejects.add(new RejectCause(entry.getKey(), source, constraint));
 				}
 			}

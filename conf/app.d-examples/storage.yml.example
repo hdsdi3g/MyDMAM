@@ -7,6 +7,7 @@ storage:
             # or path: ftp_passive://user:password@host/dest/path/to/go
             # with file, ftp_passive, ftp_active, smb, ftp_broadcastserver
             # password: A:Spec:alP:ssword
+            # domain: my-ad-domain.network # Set AD Windows domain, only for SMB access.
             regular_indexing: true # set to false for just declare a storage.
             period: 600 # in seconds: if regular_indexing, it will index this storage regulary, else period will help to calculate the ttl for pushing in database.
             # mounted: /Volumes/host/dest/path/to/go # if you want the local tools, like ffmpeg or ImageMagick can access to a distant file, you can mount it in local.
@@ -25,3 +26,5 @@ storage:
 # protocol://123.10.09.1:1234/A Path/with @
 # protocol://user:password@123.10.09.1:1234/A Path/with @/
 # If your password contain a ":", please set it in a "password" entry in definition.
+#
+# For windows local storages, use this syntax : "path: file:C/My/Storage/Path"

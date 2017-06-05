@@ -24,13 +24,11 @@ import java.util.UUID;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -39,9 +37,11 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
 import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.tools.GsonIgnore;
+import hd3gtv.mydmam.gson.GsonDeSerializer;
+import hd3gtv.mydmam.gson.GsonIgnore;
 
 public final class InstanceAction {
 	
@@ -59,6 +59,7 @@ public final class InstanceAction {
 			}
 		} catch (Exception e) {
 			Loggers.Manager.error("Can't init database CFs", e);
+			System.exit(1);
 		}
 	}
 	
@@ -100,7 +101,7 @@ public final class InstanceAction {
 		new_instance_action.created_at = System.currentTimeMillis();
 		
 		MutationBatch mutator = CassandraDb.prepareMutationBatch();
-		mutator.withRow(CF_ACTION, new_instance_action.key).putColumn("source", AppManager.getGson().toJson(new_instance_action), TTL);
+		mutator.withRow(CF_ACTION, new_instance_action.key).putColumn("source", MyDMAM.gson_kit.getGson().toJson(new_instance_action), TTL);
 		mutator.execute();
 		
 		Loggers.Manager.info("Create manager action:\t" + new_instance_action.toString());
@@ -129,7 +130,7 @@ public final class InstanceAction {
 		
 		CassandraDb.allRowsReader(CF_ACTION, new AllRowsFoundRow() {
 			public void onFoundRow(Row<String, String> row) throws Exception {
-				pending_actions.add(AppManager.getGson().fromJson(row.getColumns().getColumnByName("source").getStringValue(), InstanceAction.class));
+				pending_actions.add(MyDMAM.gson_kit.getGson().fromJson(row.getColumns().getColumnByName("source").getStringValue(), InstanceAction.class));
 			}
 		});
 		
@@ -141,7 +142,6 @@ public final class InstanceAction {
 		
 		for (int pos_pa = 0; pos_pa < pending_actions.size(); pos_pa++) {
 			InstanceAction current_instance_action = pending_actions.get(pos_pa);
-			current_instance_action.delete(mutator);
 			String target_class_name = current_instance_action.target_class_name;
 			
 			InstanceActionReceiver recevier = null;
@@ -155,11 +155,15 @@ public final class InstanceAction {
 			}
 			
 			if (recevier == null) {
-				Loggers.Manager.error("An instance action can't be executed: no valid target " + current_instance_action);
+				if (Loggers.Manager.isDebugEnabled()) {
+					Loggers.Manager.debug("An instance action exists in database but this Instance is not concerned " + current_instance_action);
+				}
 				continue;
 			}
 			
 			Loggers.Manager.info("Do an Instance Action " + current_instance_action);
+			
+			current_instance_action.delete(mutator);
 			
 			try {
 				recevier.doAnAction(current_instance_action.order);
@@ -179,17 +183,17 @@ public final class InstanceAction {
 		mutator.withRow(CF_ACTION, key).delete();
 	}
 	
-	static class Serializer implements JsonSerializer<InstanceAction>, JsonDeserializer<InstanceAction> {
+	public static class Serializer implements GsonDeSerializer<InstanceAction> {
 		
 		public InstanceAction deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 			JsonObject src = json.getAsJsonObject();
-			InstanceAction result = AppManager.getSimpleGson().fromJson(json, InstanceAction.class);
+			InstanceAction result = MyDMAM.gson_kit.getGsonSimple().fromJson(json, InstanceAction.class);
 			result.order = src.getAsJsonObject("order");
 			return result;
 		}
 		
 		public JsonElement serialize(InstanceAction src, Type typeOfSrc, JsonSerializationContext context) {
-			JsonObject result = AppManager.getSimpleGson().toJsonTree(src).getAsJsonObject();
+			JsonObject result = MyDMAM.gson_kit.getGsonSimple().toJsonTree(src).getAsJsonObject();
 			result.add("order", src.order);
 			return result;
 		}

@@ -16,7 +16,7 @@
 */
 package hd3gtv.mydmam.manager;
 
-public final class JobProgression {
+public final class JobProgression implements JobProgressor {
 	
 	private transient JobNG job;
 	private int progress = 0;

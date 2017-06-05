@@ -45,8 +45,11 @@ public class JSSourceManager {
 	}
 	
 	public static void init() throws Exception {
+		NodeJSBabel node_js_babel = new NodeJSBabel();
+		
 		if (isJsDevMode()) {
 			Loggers.Play_JSSource.info("JS Source manager is in dev mode.");
+			node_js_babel.doChecks();
 		}
 		
 		js_modules.clear();
@@ -54,7 +57,8 @@ public class JSSourceManager {
 			/**
 			 * 1st pass : get only main, the first.
 			 */
-			js_modules.add(new JSSourceModule("internal", vfile.getRealFile().getAbsoluteFile()));
+			Loggers.Play_JSSource.debug("Load Module " + vfile.getRealFile().getName());
+			js_modules.add(new JSSourceModule("internal", vfile.getRealFile().getAbsoluteFile(), node_js_babel));
 			break;
 		}
 		for (Map.Entry<String, VirtualFile> entry : Play.modules.entrySet()) {
@@ -64,7 +68,8 @@ public class JSSourceManager {
 			if (entry.getKey().startsWith("_")) {
 				continue;
 			}
-			js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile()));
+			Loggers.Play_JSSource.debug("Load Module " + entry.getKey());
+			js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile(), node_js_babel));
 		}
 		
 		refreshAllSources();
@@ -72,12 +77,11 @@ public class JSSourceManager {
 	
 	public static void refreshAllSources() throws Exception {
 		synchronized (list_urls) {
-			Loggers.Play_JSSource.debug("Refresh for all sources from all modules.");
-			
 			list_urls.clear();
 			for (int pos = 0; pos < js_modules.size(); pos++) {
-				js_modules.get(pos).processSources();
 				if (isJsDevMode()) {
+					js_modules.get(pos).processSources();
+					Loggers.Play_JSSource.debug("Add all sources for " + js_modules.get(pos).getModuleName());
 					list_urls.addAll(js_modules.get(pos).getTransformedFilesRelativeURLs());
 				} else {
 					list_urls.add(js_modules.get(pos).getConcatedFileRelativeURL());

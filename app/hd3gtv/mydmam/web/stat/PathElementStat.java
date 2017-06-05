@@ -24,14 +24,10 @@ import java.util.Map;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.indices.IndexMissingException;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.metadata.container.ContainerPreview;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.tools.GsonIgnoreStrategy;
 
 /**
  * User do a global request.
@@ -57,26 +53,10 @@ public class PathElementStat {
 	public static final String SCOPE_COUNT_ITEMS = "countitems";
 	public static final String SCOPE_ONLYDIRECTORIES = "onlydirs";
 	
-	static Gson gson_simple;
-	static Gson gson;
-	
 	static RequestResponseCache request_response_cache;
 	
 	static {
 		request_response_cache = new RequestResponseCache();
-		
-		GsonBuilder builder = new GsonBuilder();
-		GsonIgnoreStrategy ignore_strategy = new GsonIgnoreStrategy();
-		builder.addDeserializationExclusionStrategy(ignore_strategy);
-		builder.addSerializationExclusionStrategy(ignore_strategy);
-		builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Serializer());
-		builder.registerTypeAdapter(ContainerPreview.class, new ContainerPreview.Deserializer());
-		gson_simple = builder.create();
-		
-		builder.registerTypeAdapter(AsyncStatResult.class, new AsyncStatResult.Serializer());
-		builder.registerTypeAdapter(AsyncStatResultElement.class, new AsyncStatResultElement.Serializer());
-		builder.registerTypeAdapter(AsyncStatResultSubElement.class, new AsyncStatResultSubElement.Serializer());
-		gson = builder.create();
 	}
 	
 	private AsyncStatResult result;
@@ -158,11 +138,13 @@ public class PathElementStat {
 		if (json_search == null) {
 			return this;
 		}
-		search = gson.fromJson(json_search, String.class);
-		if (search.trim().equals("")) {
-			search = null;
-		} else {
-			search = search.toLowerCase();
+		search = MyDMAM.gson_kit.getGson().fromJson(json_search, String.class);
+		if (search != null) {
+			if (search.trim().equals("")) {
+				search = null;
+			} else {
+				search = search.toLowerCase();
+			}
 		}
 		return this;
 	}

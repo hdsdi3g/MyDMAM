@@ -1,0 +1,24 @@
+=== MyDMAM Upgrade document ===
+
+#252 You should set a login and a password for all AD backends (in play.yml).
+#268 Remove CLI bca -propertycatch
+#268 Remove configuration key broadcast_automation.catch_playlist_to_parse
+
+=== Previous versions ===
+
+v0.20
+#239 FTP server admin (in Play side) can create FTP account user directories. Just add some ftpservergroups/group name/base_working_dir keys in configuration.
+#246 Set MyRollingFileAppender for new log appender if you want display an end-of-file message before rolling. Useful with a tail option.
+#208 Add watchfolderopts.max_founded_items and dontkeepdone configuration entry for limit big watchfolders job explosion
+#208 Add ffprobe-jaxb-1.0.jar to classpath
+
+v0.19
+#234  Change configuration keys: move auth.* to play.*
+#234  Change Java main class for Probe/Server/FTP Server > all are now in hd3gtv.mydmam.MainClass. CLI is still the same.
+#234  Remove UIFrame
+#234  hd3gtv.mydmam.MainClass main with a parameter like "play" or "services" or "ftpserver" it only start one of them, even if they are declared in configuration.
+#234  Must use ant and build.xml for get *all* dependencies from MyDMAM.org (remove play.zip directory dependency)
+#234  Add key "java.source=1.8" in application.conf
+#234  Remove keys "db.url" and "db.driver" in application.conf
+#234  Java specific "unlimited" JCE setup are not mandatory now.
+Remove web client cookies after upgrade
