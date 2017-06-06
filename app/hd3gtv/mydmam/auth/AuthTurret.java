@@ -62,6 +62,7 @@ import hd3gtv.mydmam.web.PrivilegeNG;
 import hd3gtv.mydmam.web.search.SearchQuery;
 import hd3gtv.tools.BreakReturnException;
 import play.Play;
+import play.Play.Mode;
 
 public class AuthTurret {
 	
@@ -548,7 +549,12 @@ public class AuthTurret {
 								/**
 								 * Check & remove missing privileges
 								 */
-								if (role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {
+								boolean dev_mode = false;
+								try {
+									dev_mode = Play.started && Play.mode == Mode.DEV;
+								} catch (Exception e) {
+								}
+								if (dev_mode == false & role.getPrivileges().containsAll(PrivilegeNG.getAllPrivilegesName()) == false) {
 									privileges_to_remove.clear();
 									role.getPrivileges().forEach(v -> {
 										if (PrivilegeNG.getAllPrivilegesName().contains(v) == false) {
@@ -556,7 +562,7 @@ public class AuthTurret {
 										}
 									});
 									if (privileges_to_remove.isEmpty() == false) {
-										Loggers.Auth.info("Remove old privileges from \"" + role + "\": " + privileges_to_remove);
+										Loggers.Auth.info("Remove old privileges for " + role.getName() + ": actual privileges: " + role.getPrivileges() + ", removed privileges: " + privileges_to_remove);
 										privileges_to_remove.forEach(v -> {
 											role.getPrivileges().remove(v);
 										});
