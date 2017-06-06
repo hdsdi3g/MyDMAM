@@ -87,6 +87,7 @@ public class MainClass {
 		modules.add(new CliModuleMetadata());
 		modules.add(new CliModuleProcessKit());
 		modules.add(new CliModuleBCA());
+		modules.add(new CliModuleProject());
 		
 		String modulename = appargs.getFirstAction();
 		

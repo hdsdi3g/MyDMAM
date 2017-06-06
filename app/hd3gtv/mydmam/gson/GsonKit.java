@@ -58,6 +58,7 @@ import hd3gtv.archivecircleapi.ACFileLocations;
 import hd3gtv.archivecircleapi.ACNodesEntry;
 import hd3gtv.archivecircleapi.ACPartition;
 import hd3gtv.archivecircleapi.ACTape;
+import hd3gtv.configuration.GithubIssue;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.BasketNG;
@@ -180,6 +181,8 @@ public class GsonKit {
 	public final static Type type_ArrayList_SearchResult = new TypeToken<ArrayList<SearchResult>>() {
 	}.getType();
 	public final static Type type_Map_String_Object = new TypeToken<Map<String, Object>>() {
+	}.getType();
+	public final static Type type_LinkedHashMap_Integer_GithubIssue = new TypeToken<LinkedHashMap<Integer, GithubIssue>>() {
 	}.getType();
 	
 	private class De_Serializator {

@@ -1,4 +1,4 @@
-/*
+<% /*
  * This file is part of MyDMAM.
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -13,21 +13,5 @@
  * 
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
-*/
-package hd3gtv.configuration;
-
-import java.util.List;
-
-public interface IGitInfo {
-	
-	String getActualRepositoryInformation();
-	
-	List<GitRevision> getRevisionsFrom(String from);
-	
-	String getLastTag();
-	
-	default boolean isEmulatedGit() {
-		return true;
-	}
-	
-}
+*/ %>
+<li>${issue.title} (<a href="${issue.html_url}" target="_blank">#${issue.number}</a>)</li>

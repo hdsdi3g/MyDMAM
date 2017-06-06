@@ -16,6 +16,7 @@ conf/log4j.xml
 conf/account_export.xml
 conf/jsfiles.json
 conf/build.properties
+conf/github_issues.json
 public/img/personalized/*
 Test.java
 play-new-password.txt
