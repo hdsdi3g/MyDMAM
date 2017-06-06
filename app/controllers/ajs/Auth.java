@@ -184,6 +184,8 @@ public class Auth extends AJSController {
 		return PrivilegeNG.dumpAllPrivileges();
 	}
 	
+	// TODO push Preferences
+	
 	public static JsonObject getPreferences() throws Exception {
 		return AJSController.getUserProfile().getPreferences();
 	}
@@ -198,6 +200,8 @@ public class Auth extends AJSController {
 	public static void sendTestMail() throws Exception {
 		AJSController.getUserProfile().sendTestMail();
 	}
+	
+	// TODO get current user name, lang, creation date, last login date, last login IP, mail addr, if is AD user
 	
 	public static UserView changeUserMail(String new_mail_addr) throws Exception {
 		return MyDMAM.getPlayBootstrapper().getAuth().changeUserMail(AJSController.getUserProfile().getKey(), new_mail_addr).export(true, false);
