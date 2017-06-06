@@ -73,7 +73,7 @@ public class ExecBinaryPath {
 					declared_in_configuration.put(entry.getKey(), exec);
 					continue;
 				}
-				Log.error("Invalid declared_in_configuration executable: Key[" + entry.getKey() + "] " + exec, new FileNotFoundException(exec.getPath()));
+				Log.error("Invalid declared_in_configuration executable: " + entry.getKey() + " can't be correctly found in " + exec.getPath());
 			}
 		}
 	}
