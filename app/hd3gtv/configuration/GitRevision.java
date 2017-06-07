@@ -53,7 +53,17 @@ public class GitRevision {
 		return ONLY_SPACES.splitAsStream(full_message).filter(chunk -> {
 			return chunk.startsWith("#") & chunk.length() > 1;
 		}).map(chunk -> {
-			return chunk.substring(1);
+			String corrected_ck = chunk.substring(1);
+			if (corrected_ck.length() > 1) {
+				if (StringUtils.isNumeric(corrected_ck.substring(corrected_ck.length() - 1)) == false) {
+					/**
+					 * If the last char is not a number, remove it.
+					 * Example = "Task #123: correct some thing", "#123:", remome the first "#", and the last ":".
+					 */
+					corrected_ck = corrected_ck.substring(0, corrected_ck.length() - 1);
+				}
+			}
+			return corrected_ck;
 		}).filter(chunk -> {
 			return StringUtils.isNumeric(chunk);
 		}).map(chunk -> {
