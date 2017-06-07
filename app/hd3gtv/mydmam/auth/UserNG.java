@@ -477,6 +477,22 @@ public class UserNG implements AuthEntry {
 		return preferences;
 	}
 	
+	public void setPreferences(JsonObject preferences) throws ConnectionException {
+		if (preferences == null) {
+			return;
+		}
+		this.preferences = preferences;
+		
+		MutationBatch mutator = CassandraDb.prepareMutationBatch();
+		ColumnListMutation<String> mt = mutator.withRow(AuthTurret.CF_AUTH, getKey());
+		mt.putColumnIfNotNull("preferences", preferences.toString());
+		updateLastEditTime();
+		mt.putColumnIfNotNull("lasteditdate", lasteditdate);
+		mutator.execute();
+		
+		turret.getCache().updateManuallyCache(this);
+	}
+	
 	public ArrayList<UserNotificationNG> getNotifications() {
 		if (notifications == null) {
 			notifications = new ArrayList<UserNotificationNG>();
@@ -623,6 +639,18 @@ public class UserNG implements AuthEntry {
 	
 	public String getEmailAddr() {
 		return email_addr;
+	}
+	
+	public long getLasteditdate() {
+		return lasteditdate;
+	}
+	
+	public long getLastlogindate() {
+		return lastlogindate;
+	}
+	
+	public String getLastloginipsource() {
+		return lastloginipsource;
 	}
 	
 	/**

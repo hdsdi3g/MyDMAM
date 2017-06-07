@@ -36,7 +36,6 @@ startup/setup.ini
 startup/setup.bash
 startup/*.service
 pack/
-src/
 databaseredist/
 archive/
 .cache/

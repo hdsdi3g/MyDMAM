@@ -26,6 +26,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import controllers.Check;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthEntry;
 import hd3gtv.mydmam.auth.GroupNG;
@@ -184,10 +185,16 @@ public class Auth extends AJSController {
 		return PrivilegeNG.dumpAllPrivileges();
 	}
 	
-	// TODO push Preferences
-	
 	public static JsonObject getPreferences() throws Exception {
 		return AJSController.getUserProfile().getPreferences();
+	}
+	
+	public static void setPreferences(JsonObject new_preferences) throws Exception {
+		UserNG user = AJSController.getUserProfile();
+		if (Loggers.Auth.isDebugEnabled()) {
+			Loggers.Auth.debug("Push preferences for " + user.getFullname());
+		}
+		user.setPreferences(new_preferences);
 	}
 	
 	public static UserView changePassword(String new_clear_text_passwd) throws Exception {
@@ -200,8 +207,6 @@ public class Auth extends AJSController {
 	public static void sendTestMail() throws Exception {
 		AJSController.getUserProfile().sendTestMail();
 	}
-	
-	// TODO get current user name, lang, creation date, last login date, last login IP, mail addr, if is AD user
 	
 	public static UserView changeUserMail(String new_mail_addr) throws Exception {
 		return MyDMAM.getPlayBootstrapper().getAuth().changeUserMail(AJSController.getUserProfile().getKey(), new_mail_addr).export(true, false);

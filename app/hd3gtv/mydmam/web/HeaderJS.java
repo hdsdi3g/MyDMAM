@@ -28,6 +28,7 @@ import com.google.gson.JsonObject;
 import controllers.Secure;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.auth.UserNG;
 import play.exceptions.NoRouteFoundException;
 import play.i18n.Lang;
 import play.i18n.Messages;
@@ -179,7 +180,17 @@ public class HeaderJS {
 			}
 			
 			JsonObject user = new JsonObject();
-			user.addProperty("long_name", AJSController.getUserProfileLongName());
+			UserNG current_user = AJSController.getUserProfile();
+			user.addProperty("long_name", current_user.getFullname());
+			user.add("preferencesdatas", current_user.getPreferences());
+			user.addProperty("domain", current_user.getDomain());
+			user.addProperty("email", current_user.getEmailAddr());
+			user.addProperty("lang", current_user.getLanguage());
+			user.addProperty("login", current_user.getName());
+			user.addProperty("lasteditdate", current_user.getLasteditdate());
+			user.addProperty("lastlogindate", current_user.getLastlogindate());
+			user.addProperty("lastloginipsource", current_user.getLastloginipsource());
+			// current_user.getBaskets()
 			
 			mydmam.put("async", async);
 			mydmam.put("user", user);
