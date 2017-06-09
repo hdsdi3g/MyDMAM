@@ -274,7 +274,7 @@ public class UserNG implements AuthEntry {
 		return this;
 	}
 	
-	UserNG chpassword(String clear_text_password) {
+	UserNG chpassword(String clear_text_password) throws SecurityException {
 		if (clear_text_password == null) {
 			throw new NullPointerException("\"clear_text_password\" can't to be null");
 		}

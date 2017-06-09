@@ -428,7 +428,27 @@ mime.image-webp=WebP image
 mime.image-xbm=X Windows system (N&B) image
 mime.image-xpm=X Windows system image
 
-# userprofile.usereditor.pagename=Settings
+user.pagename=Settings
+user.fullname=Identification
+user.lasteditdate=Last edit date
+user.lastlogin=Last login
+user.lastlogindate=The %
+user.lastloginip=From the IP address %s
+user.login=Login: %s
+user.domain=Domain: %s
+user.email_addr=Email address
+user.lang=Interface lang: %s
+user.btn_update=Change
+user.btn_test_email_addr=Test address
+user.password=New password
+user.password-hint=You must ensure that you have a number of characters and sufficient complexity.
+user.password2=Re-type password
+
+# user.fullname=Full name
+# user.update=Update
+# user.save=Save
+
+
 # userprofile.notifications.pagename=Notifications
 # userprofile.notifications.notify_if_error=&{%s} if error
 # userprofile.notifications.notify_if_done=&{%s} if done

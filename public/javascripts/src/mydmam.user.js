@@ -33,6 +33,11 @@
 })(window.mydmam);
 
 (function(mydmam, user) {
+
+	user.isInDomain = function() {
+		return user.domain != "local";
+	};
+
 	var datas = user.preferencesdatas;
 
 	var pullFromServer = function(callback_after_pull) {

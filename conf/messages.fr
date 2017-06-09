@@ -428,7 +428,26 @@ mime.image-webp=Image WebP
 mime.image-xbm=Image X Windows system (N&B)
 mime.image-xpm=Image X Windows system
 
-# userprofile.usereditor.pagename=Préférences
+user.pagename=Préférences
+user.fullname=Identification
+user.lasteditdate=Dernière modification
+user.lastlogin=Dernière connexion
+user.lastlogindate=Le %s
+user.lastloginip=Depuis l'adresse IP %s
+user.login=Login : %s
+user.domain=Domaine : %s
+user.email_addr=Adresse mail
+user.lang=Langue de l'interface : %s
+user.btn_update=Modifier
+user.btn_test_email_addr=Tester l'adresse
+user.password=Nouveau mot de passe
+user.password-hint=Vous devez vérifiez que vous avez un nombre de caracteres et une complexité suffisante.
+user.password2=Re-taper le mot de passe
+user.password_change=Changer votre mot de passe
+
+# user.update=Mettre à jour
+# user.save=Valider
+
 # userprofile.notifications.pagename=Notifications
 # userprofile.notifications.notify_if_error=&{%s} en cas d'erreur
 # userprofile.notifications.notify_if_done=&{%s} quand c'est terminé
