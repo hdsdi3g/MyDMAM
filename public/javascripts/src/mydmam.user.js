@@ -88,17 +88,27 @@
 	};
 
 	/**
+	 * @return {created: <unixtime>, modified: <unixtime>}
+	 */
+	user.getPreferenceDates = function(key) {
+		if (user.isPreferenceExists(key) == false) {
+			return null;
+		}
+		var pref = datas[key];
+		return {
+			created: pref.crd,
+			modified: pref.upd,
+		};
+	};
+
+	/**
 	 * Set value = null for remove Preference
 	 * return value
 	 */
 	user.setPreference = function(key, value, not_send_to_server_now) {
-		if (value == undefined) {
-			return null;
-		}
-
 		var exists = user.isPreferenceExists(key);
 		if (exists) {
-			if (value == null) {
+			if (value == null || value == undefined) {
 				/** Remove */
 				delete datas[key];
 				if (!not_send_to_server_now) {
@@ -148,7 +158,7 @@
 
 	/**
 	 * item[key] = mapper(key, json_value, created_date, last_modified_date)
-	*/
+	 */
 	user.listPreferences = function(mapper) {
 		var key_list = [];
 		for (var key in datas) {
@@ -162,6 +172,7 @@
 			var data = datas[key];
 			result[key] = mapper(key, data.val, data.crd, data.upd);
 		}
+		return result;
 	};
 
 })(window.mydmam, window.mydmam.user);
