@@ -428,7 +428,43 @@ mime.image-webp=WebP image
 mime.image-xbm=X Windows system (N&B) image
 mime.image-xpm=X Windows system image
 
-# userprofile.usereditor.pagename=Settings
+user.pagename=Settings
+user.fullname=Identification
+user.lasteditdate=Last edit date
+user.lastlogin=Last login
+user.lastlogindate=The %
+user.lastloginip=From the IP address %s
+user.login=Login: %s
+user.domain=Domain: %s
+user.email_addr=Email address
+user.lang=Interface lang: %s
+user.btn_update=Change
+user.btn_test_email_addr=Test address
+user.password=New password
+user.password-hint=You must ensure that you have a number of characters and sufficient complexity.
+user.password2=Re-type password
+user.password_change=Change your password
+user.empty_new_email_addr=Unable to change the email address: the input is blank.
+user.error_during_change_email_addr=Unable to change the email address.
+user.changing_email_addr_done=The mail address is updated.
+user.test_email_is_sended=The test mail is sent correctly.
+userprofile.mailtemplate.mailtest=Send test mail
+userprofile.mailtemplate.testmessage=This email was sent to check the proper functioning of the mail engine, as well as your ability to receive and read this email.
+userprofile.mailtemplate.me_has_sent_this_message=You should normally have caused the sending of this email.
+user.prefeditor.placeholder.key=New key
+user.prefeditor.placeholder.value=New value
+user.prefeditor.tablehead.key=Key
+user.prefeditor.tablehead.value=Value
+user.prefeditor.tablehead.created=Created the
+user.prefeditor.tablehead.updated=Updated the
+user.prefeditor.tablehead.title=User configuration editor
+user.prefeditor.tablehead.display=Show the user configuration editor
+
+# user.fullname=Full name
+# user.update=Update
+# user.save=Save
+
+
 # userprofile.notifications.pagename=Notifications
 # userprofile.notifications.notify_if_error=&{%s} if error
 # userprofile.notifications.notify_if_done=&{%s} if done
@@ -513,10 +549,6 @@ mime.image-xpm=X Windows system image
 # userprofile.drifttime.value=Drift time with the server: %s sec
 # userprofile.drifttime.server=The server is now the %s
 # userprofile.drifttime.warn=Because of this shift, the information dates and time on the site may be incorrect.
-# 
-# userprofile.mailtemplate.mailtest=Send test mail
-# userprofile.mailtemplate.testmessage=This email was sent to check the proper functioning of the mail engine, as well as your ability to receive and read this email.
-# userprofile.mailtemplate.me_has_sent_this_message=You should normally have caused the sending of this email.
 # 
 # crud.field.userprofile=User settings
 # crud.field.userprofile.longname=Name

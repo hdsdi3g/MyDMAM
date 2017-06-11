@@ -115,6 +115,23 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 	    }
 	}
 
+	/**
+	 * Like return like "11/06/17 à 01:03"
+	 */
+	Date.prototype.getI18nShortDisplayTime = function() {
+	    if(window.Intl) {
+	        return new window.Intl.DateTimeFormat(navigator.language, opts = {
+				day: "numeric",
+				year: "2-digit",
+				month: "numeric",
+				hour: "numeric",
+				minute: "numeric",
+		    }).format(+this);
+	    } else {
+	        return +this;   
+	    }
+	}
+
 	window.keycodemap = {
 		down : 40,
 		up : 38,

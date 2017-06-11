@@ -428,7 +428,41 @@ mime.image-webp=Image WebP
 mime.image-xbm=Image X Windows system (N&B)
 mime.image-xpm=Image X Windows system
 
-# userprofile.usereditor.pagename=Préférences
+user.pagename=Préférences
+user.fullname=Identification
+user.lasteditdate=Dernière modification
+user.lastlogin=Dernière connexion
+user.lastlogindate=Le %s
+user.lastloginip=Depuis l'adresse IP %s
+user.login=Login : %s
+user.domain=Domaine : %s
+user.email_addr=Adresse mail
+user.lang=Langue de l'interface : %s
+user.btn_update=Modifier
+user.btn_test_email_addr=Tester l'adresse
+user.password=Nouveau mot de passe
+user.password-hint=Vous devez vérifiez que vous avez un nombre de caracteres et une complexité suffisante.
+user.password2=Re-taper le mot de passe
+user.password_change=Changer votre mot de passe
+user.empty_new_email_addr=Impossible de changer l'adresse mail: le champ est vide.
+user.error_during_change_email_addr=Impossible de changer l'adresse mail.
+user.changing_email_addr_done=L'adresse mail est changée.
+user.test_email_is_sended=Le mail de test est correctement envoyé.
+userprofile.mailtemplate.mailtest=Test d'envoi de mail
+userprofile.mailtemplate.testmessage=Ce mail a été envoyé pour vérifier le bon fonctionnement du moteur de mail, ainsi que votre capacité à pouvoir recevoir et lire ce mail.
+userprofile.mailtemplate.me_has_sent_this_message=Vous devez avoir normalement provoqué l'envoi de ce mail.
+user.prefeditor.placeholder.key=Nouvelle clé
+user.prefeditor.placeholder.value=Nouvelle valeur
+user.prefeditor.tablehead.key=Clé
+user.prefeditor.tablehead.value=Valeur
+user.prefeditor.tablehead.created=Crée le
+user.prefeditor.tablehead.updated=Mise à jour le
+user.prefeditor.tablehead.title=Editeur de configuration utilisateur
+user.prefeditor.tablehead.display=Afficher l'éditeur de configuration utilisateur
+
+# user.update=Mettre à jour
+# user.save=Valider
+
 # userprofile.notifications.pagename=Notifications
 # userprofile.notifications.notify_if_error=&{%s} en cas d'erreur
 # userprofile.notifications.notify_if_done=&{%s} quand c'est terminé
@@ -513,10 +547,6 @@ mime.image-xpm=Image X Windows system
 # userprofile.drifttime.value=Décallage de temps avec le serveur : %s sec
 # userprofile.drifttime.server=Le serveur est actuellement le %s
 # userprofile.drifttime.warn=A cause de ce décallage, les informations de dates et de temps sur le site peuvent être erronées.
-# 
-# userprofile.mailtemplate.mailtest=Test d'envoi de mail
-# userprofile.mailtemplate.testmessage=Ce mail a été envoyé pour vérifier le bon fonctionnement du moteur de mail, ainsi que votre capacité à pouvoir recevoir et lire ce mail.
-# userprofile.mailtemplate.me_has_sent_this_message=Vous devez avoir normalement provoqué l'envoi de ce mail.
 # 
 # crud.field.userprofile=Préférences utilisateur
 # crud.field.userprofile.longname=Nom

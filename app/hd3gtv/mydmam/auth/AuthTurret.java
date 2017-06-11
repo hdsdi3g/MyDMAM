@@ -819,7 +819,7 @@ public class AuthTurret {
 		return newuser;
 	}
 	
-	public UserNG changeAdminUserPasswordGroups(UserAdminUpdate request) throws ConnectionException {
+	public UserNG changeAdminUserPasswordGroups(UserAdminUpdate request) throws ConnectionException, SecurityException {
 		UserNG user = getByUserKey(request.user_key);
 		if (user == null) {
 			throw new NullPointerException("User " + request.user_key + " don't exists");

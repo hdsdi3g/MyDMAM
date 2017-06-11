@@ -26,6 +26,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import controllers.Check;
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.AuthEntry;
 import hd3gtv.mydmam.auth.GroupNG;
@@ -188,19 +189,39 @@ public class Auth extends AJSController {
 		return AJSController.getUserProfile().getPreferences();
 	}
 	
-	public static UserView changePassword(String new_clear_text_passwd) throws Exception {
+	public static void setPreferences(JsonObject new_preferences) throws Exception {
+		UserNG user = AJSController.getUserProfile();
+		if (Loggers.Auth.isDebugEnabled()) {
+			Loggers.Auth.debug("Push preferences for " + user.getFullname());
+		}
+		user.setPreferences(new_preferences);
+	}
+	
+	/**
+	 * @return null or error message...
+	 */
+	public static String changePassword(String new_clear_text_passwd) throws Exception {
 		UserAdminUpdate upd = new UserAdminUpdate();
 		upd.user_key = AJSController.getUserProfile().getKey();
 		upd.new_password = new_clear_text_passwd;
-		return MyDMAM.getPlayBootstrapper().getAuth().changeAdminUserPasswordGroups(upd).export(true, false);
+		try {
+			MyDMAM.getPlayBootstrapper().getAuth().changeAdminUserPasswordGroups(upd);
+		} catch (SecurityException se) {
+			Loggers.Auth.warn("User " + AJSController.getUserProfileLongName() + " try to change its password", se);
+			return se.getMessage();
+		}
+		return null;
 	}
 	
 	public static void sendTestMail() throws Exception {
 		AJSController.getUserProfile().sendTestMail();
 	}
 	
-	public static UserView changeUserMail(String new_mail_addr) throws Exception {
-		return MyDMAM.getPlayBootstrapper().getAuth().changeUserMail(AJSController.getUserProfile().getKey(), new_mail_addr).export(true, false);
+	/**
+	 * @return new filtered mail addr
+	 */
+	public static String changeUserMail(String new_mail_addr) throws Exception {
+		return MyDMAM.getPlayBootstrapper().getAuth().changeUserMail(AJSController.getUserProfile().getKey(), new_mail_addr).getEmailAddr();
 	}
 	
 	public static JsonObject getActivities() throws Exception {

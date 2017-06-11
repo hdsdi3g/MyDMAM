@@ -484,16 +484,3 @@ mydmam.routes.push("auth-user-view-remove",		"auth/user/edit/:user_key/remove",	
 mydmam.routes.push("auth-user-view-password",	"auth/user/edit/:user_key/password",	auth.UserEdit, [{name: "auth", verb: "usercreate"}]);	
 mydmam.routes.push("auth-user-view-properties",	"auth/user/edit/:user_key/properties",	auth.UserEdit, [{name: "auth", verb: "usercreate"}]);	
 mydmam.routes.push("auth-user-view-preferences","auth/user/edit/:user_key/preferences",	auth.UserEdit, [{name: "auth", verb: "usercreate"}]);	
-
-// only for this user
-//	public static JsonObject getPreferencies() throws Exception {
-//	public static UserView changePassword(String new_clear_text_passwd) throws Exception {
-//	public static void sendTestMail() throws Exception {
-//	public static UserView changeUserMail(String new_mail_addr) throws Exception {
-//	public static JsonObject getActivities() throws Exception {
-//	public static JsonObject basketsList() throws Exception {
-//	public static JsonObject basketPush(BasketUpdate update) throws Exception {
-//	public static JsonObject basketDelete(String basket_key) throws Exception {
-//	public static JsonObject basketRename(BasketRename rename) throws Exception {
-//	public static JsonArray notificationsList() throws Exception {
-//	public static JsonArray notificationCheck(String notification_key) throws Exception {

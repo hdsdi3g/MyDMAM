@@ -191,6 +191,10 @@ async.TopMenu = createReactClass({
 
 		var user_dropdown_items = [];
 		user_dropdown_items.push({
+			href: "#" + async.user.settings_link,
+			icon: "icon-wrench",
+			i18nlabel: "user.pagename",
+		},{
 			href: mydmam.routes.reverse("disconnect"),
 			icon: "icon-off",
 			i18nlabel: "maingrid.disconnect",

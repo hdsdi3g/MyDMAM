@@ -322,6 +322,15 @@ async.LabelBoolean = createReactClass({
 	},
 });
 
+async.Empty = createReactClass({
+	render: function() {
+		return (<span className="label label-inverse" style={{fontFamily: "\"Helvetica Neue\",Helvetica,Arial,sans-serif",}}>
+			{i18n("empty")}
+		</span>);
+	},
+});
+
+
 async.JsonCode = createReactClass({
 	propTypes: {
 		i18nlabel:		PropTypes.string.isRequired,
@@ -332,7 +341,7 @@ async.JsonCode = createReactClass({
 
 		var json_string = JSON.stringify(this.props.json, null, " ");
 		if (json_string == "{}") {
-			json_string = (<span className="label label-inverse" style={{fontFamily: "\"Helvetica Neue\",Helvetica,Arial,sans-serif",}}>{i18n("empty")}</span>);
+			json_string = <async.Empty />;
 		}
 		
 		return (<div>
