@@ -16,11 +16,15 @@
 */
 package hd3gtv.mydmam.bcastautomation;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 
+import com.google.common.primitives.Longs;
 import com.google.gson.JsonObject;
 
 import hd3gtv.configuration.ConfigurationItem;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.Timecode;
 
 public abstract class BCAAutomationEvent {
@@ -108,6 +112,51 @@ public abstract class BCAAutomationEvent {
 		jo.addProperty("material_type", getMaterialType());
 		jo.addProperty("automation_type", getAutomationType());
 		return jo;
+	}
+	
+	private transient String computed_key;
+	
+	final String getPreviouslyComputedKey() {
+		return computed_key;
+	}
+	
+	/**
+	 * Compute event unique key
+	 */
+	final String computeKey(HashMap<String, ConfigurationItem> import_other_properties_configuration) {
+		MessageDigest md = null;
+		try {
+			md = MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException("Can't load MD5", e);
+		}
+		
+		md.reset();
+		if (isRecording()) {
+			md.update(Longs.toByteArray(1l));
+		} else {
+			md.update(Longs.toByteArray(0l));
+		}
+		if (isAutomationPaused()) {
+			md.update(Longs.toByteArray(1l));
+		} else {
+			md.update(Longs.toByteArray(0l));
+		}
+		md.update(getAutomationId().getBytes());
+		md.update(getChannel().getBytes());
+		md.update(getSOM().toString().getBytes());
+		md.update(getDuration().toString().getBytes());
+		md.update(Longs.toByteArray(getStartDate()));
+		md.update(getVideoSource().getBytes());
+		md.update(getMaterialType().getBytes());
+		md.update(getFileId().getBytes());
+		md.update(getName().getBytes());
+		md.update(getComment().getBytes());
+		if (import_other_properties_configuration != null) {
+			md.update(getOtherProperties(import_other_properties_configuration).toString().getBytes());
+		}
+		computed_key = MyDMAM.byteToString(md.digest());
+		return computed_key;
 	}
 	
 }

@@ -20,8 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 
@@ -33,6 +33,7 @@ import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.gson.GsonKit;
+import hd3gtv.tools.TwoListComparing;
 
 public abstract class BCAEventCatcherHandler {
 	
@@ -42,10 +43,7 @@ public abstract class BCAEventCatcherHandler {
 	
 	private File json_db_file;
 	private ArrayList<BCAEventCatched> entries;
-	private ArrayList<BCAEventCatched> to_add = new ArrayList<>();
-	private ArrayList<BCAEventCatched> to_remove = new ArrayList<>();
-	
-	private boolean modified;
+	private ArrayList<BCAAutomationEvent> actually_founded_in_playlist;
 	
 	public BCAEventCatcherHandler() throws JsonSyntaxException, IOException {
 		import_other_properties_configuration = Configuration.getElement(Configuration.global.getElement("broadcast_automation"), "import_other_properties");
@@ -63,8 +61,7 @@ public abstract class BCAEventCatcherHandler {
 			entries = new ArrayList<>();
 		}
 		
-		to_add = new ArrayList<>();
-		to_remove = new ArrayList<>();
+		actually_founded_in_playlist = new ArrayList<>();
 	}
 	
 	boolean isEventCanBeCatched(BCAAutomationEvent event) {
@@ -92,77 +89,74 @@ public abstract class BCAEventCatcherHandler {
 	 * @param event was tested true by isEventCanBeCatched()
 	 */
 	void onCatchEvent(BCAAutomationEvent event) {
-		Optional<BCAEventCatched> opt_entry = entries.stream().filter(event_catch -> {
-			return event_catch.compare(event);
-		}).findFirst();
-		
-		if (opt_entry.isPresent()) {
-			opt_entry.get().setChecked(true);
-		} else {
-			BCAEventCatched entry = BCAEventCatched.create(event, createExternalRef());
-			to_add.add(entry);
-			entries.add(entry);
-		}
+		actually_founded_in_playlist.add(event);
 	}
 	
 	void onBeforeCatchEvents() {
-		to_add.clear();
-		to_remove.clear();
-		
-		modified = false;
-		
-		entries.removeIf(en -> {
-			if (en.isOld()) {
-				modified = true;
-				return true;
-			}
-			return false;
-		});
-		
-		entries.forEach(en -> {
-			en.setChecked(false);
-		});
+		actually_founded_in_playlist.clear();
 	}
 	
+	private static Function<BCAEventCatched, String> extract_key_from_catched_event = event -> {
+		return event.getOriginalEventKey();
+	};
+	
+	private static Function<BCAAutomationEvent, String> extract_key_from_automation_event = event -> {
+		return event.getPreviouslyComputedKey();
+	};
+	
 	void onAfterCatchEvents() {
-		entries.removeIf(entry -> {
-			if (entry.isChecked() == false) {
-				to_remove.add(entry);
-				return true;
-			}
-			return false;
+		boolean modified = false;
+		
+		/**
+		 * Remove old catched events.
+		 */
+		modified = entries.removeIf(en -> {
+			Loggers.BroadcastAutomationEventCatch.debug("Remove old aired event: " + en.toString());
+			return en.isOldAired();
 		});
 		
-		modified = modified | to_remove.isEmpty() == false | to_add.isEmpty() == false;
+		/**
+		 * Compare actual list and founded events.
+		 */
+		TwoListComparing<BCAAutomationEvent, BCAEventCatched, String> comparing = new TwoListComparing<>(actually_founded_in_playlist, entries, extract_key_from_automation_event, extract_key_from_catched_event);
+		TwoListComparing<BCAAutomationEvent, BCAEventCatched, String>.ComparingResult c_result = comparing.process();
 		
-		to_remove.forEach(entry -> {
-			Loggers.BroadcastAutomation.info("Catch event moved/removed in playlist: \"" + entry.toString() + "\"");
-			// handleEventRemoving(entry); XXX
-		});
-		to_add.forEach(entry -> {
-			Loggers.BroadcastAutomation.info("Catch new event: \"" + entry.toString() + "\"");
-			// handleEventCreation(entry); XXX
+		if (Loggers.BroadcastAutomationEventCatch.isDebugEnabled() && c_result.hasPositiveResults()) {
+			Loggers.BroadcastAutomationEventCatch.debug("Catch some events (L=new, R=actual): " + c_result.toString());
+		}
+		
+		/**
+		 * Remove previously catched events removed from last playlist.
+		 */
+		c_result.getMissingInLAddedInR().forEach(event -> {
+			Loggers.BroadcastAutomationEventCatch.info("Catch event moved/removed in playlist: \"" + event.toString() + "\"");
+			handleEventRemoving(event);
+			entries.remove(event);
 		});
 		
-		if (modified) {
+		/**
+		 * Add new events to add to catched event.
+		 */
+		entries.addAll(c_result.getMissingInRAddedInL().stream().map(event -> {
+			return BCAEventCatched.create(event, createExternalRef());
+		}).peek(event -> {
+			Loggers.BroadcastAutomationEventCatch.info("Catch new event: \"" + event.toString() + "\"");
+			handleEventCreation(event);
+		}).collect(Collectors.toList()));
+		
+		if (modified | c_result.hasPositiveResults()) {
 			try {
 				FileUtils.writeStringToFile(json_db_file, MyDMAM.gson_kit.getGsonPretty().toJson(entries, GsonKit.type_ArrayList_BCACatchEntry), MyDMAM.UTF8);
 			} catch (IOException e) {
-				Loggers.BroadcastAutomation.error("Can't write to json events: \"" + entries.toString() + "\"");
+				Loggers.BroadcastAutomationEventCatch.error("Can't write to json events: \"" + entries.toString() + "\"");
 			}
-			modified = false;
 		}
 	}
 	
 	private String createExternalRef() {
-		AtomicInteger i = new AtomicInteger(0);// TODO Not start from 0
-		
-		while (entries.stream().anyMatch(entry -> {
-			return Integer.parseInt(entry.getExternalRef()) == i.get();
-		})) {
-			i.incrementAndGet();
-		}
-		return String.valueOf(i.get());
+		return String.valueOf(entries.stream().mapToInt(event -> {
+			return Integer.parseInt(event.getExternalRef());
+		}).max().orElse(-1) + 1);
 	}
 	
 	protected abstract void handleEventCreation(BCAEventCatched entry);

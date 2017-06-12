@@ -68,6 +68,7 @@ public final class Loggers {
 	public final static Logger FTPserver = Logger.getLogger("mydmam.ftpserver");
 	public final static Logger AccessControl = Logger.getLogger("mydmam.accesscontrol");
 	public final static Logger BroadcastAutomation = Logger.getLogger("mydmam.bcauto");
+	public final static Logger BroadcastAutomationEventCatch = Logger.getLogger("mydmam.bcauto.catch");
 	public final static Logger Elemtl = Logger.getLogger("mydmam.elemtl");
 	public final static Logger Gson = Logger.getLogger("mydmam.gson");
 	public final static Logger DAReport = Logger.getLogger("mydmam.dareport");

@@ -16,8 +16,6 @@
 */
 package hd3gtv.mydmam.bcastautomation;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,7 +23,6 @@ import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.google.common.primitives.Longs;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -33,13 +30,11 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.bcastautomation.TimedEventStore.TimedEvent;
 import hd3gtv.mydmam.db.CassandraDb;
 
 final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 	
-	private MessageDigest md;
 	private TimedEvent t_event;
 	private HashSet<String> actual_event_list;
 	private HashSet<String> actual_event_pause_automation_list;
@@ -62,10 +57,6 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 		actual_event_pause_automation_list = new HashSet<>();
 		is_first_list_event = true;
 		
-		try {
-			md = MessageDigest.getInstance("MD5");
-		} catch (NoSuchAlgorithmException e) {
-		}
 		event_catchers = new ArrayList<>();
 		
 		event_catcher_callbacks_executor = Executors.newSingleThreadExecutor((r) -> {
@@ -130,34 +121,7 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 			});
 		});
 		
-		/**
-		 * Compute event unique key
-		 */
-		md.reset();
-		if (event.isRecording()) {
-			md.update(Longs.toByteArray(1l));
-		} else {
-			md.update(Longs.toByteArray(0l));
-		}
-		if (event.isAutomationPaused()) {
-			md.update(Longs.toByteArray(1l));
-		} else {
-			md.update(Longs.toByteArray(0l));
-		}
-		md.update(event.getAutomationId().getBytes());
-		md.update(event.getChannel().getBytes());
-		md.update(event.getSOM().toString().getBytes());
-		md.update(event.getDuration().toString().getBytes());
-		md.update(Longs.toByteArray(event.getStartDate()));
-		md.update(event.getVideoSource().getBytes());
-		md.update(event.getMaterialType().getBytes());
-		md.update(event.getFileId().getBytes());
-		md.update(event.getName().getBytes());
-		md.update(event.getComment().getBytes());
-		if (import_other_properties_configuration != null) {
-			md.update(event.getOtherProperties(import_other_properties_configuration).toString().getBytes());
-		}
-		String event_key = MyDMAM.byteToString(md.digest());
+		String event_key = event.computeKey(import_other_properties_configuration);
 		
 		if (event.isPlaylist() | event.isOnair()) {
 			if (actual_event_list.contains(event_key) || (actual_event_pause_automation_list.contains(event_key) && is_first_list_event)) {

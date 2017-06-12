@@ -27,11 +27,6 @@ public final class BCAEventCatched {
 	
 	private Timecode duration;
 	
-	private long update_date;
-	
-	@Deprecated
-	private transient boolean checked;
-	
 	private String external_ref;
 	
 	private String original_event_key;
@@ -43,45 +38,18 @@ public final class BCAEventCatched {
 		BCAEventCatched result = new BCAEventCatched();
 		result.date = event.getStartDate();
 		result.duration = event.getDuration();
-		result.name = event.getName();
-		result.update_date = System.currentTimeMillis();
-		result.checked = true;
+		result.name = event.getName() + ": " + Loggers.dateLog(result.date) + " > " + Loggers.dateLog(event.getEndDate()) + " (" + Math.round(result.duration.getValue()) + " sec)";
 		result.external_ref = external_ref;
-		// result.original_event_key = event.getAutomationId()XXX
+		result.original_event_key = event.getPreviouslyComputedKey();
 		return result;
 	}
 	
-	boolean compare(BCAAutomationEvent event) {
-		/*System.out.println(event.getStartDate());
-		System.out.println(date);
-		System.out.println(Timecode.delta(duration, event.getDuration()));*/
-		return event.getStartDate() == date && Math.abs(Timecode.delta(duration, event.getDuration())) < 10; // TODO test with original_event_key
-	}
-	
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append(Loggers.dateLog(date));
-		sb.append(" ");
-		sb.append(name);
-		sb.append(" (");
-		sb.append(duration);
-		sb.append(") upt ");
-		sb.append(Loggers.dateLog(update_date));
-		return sb.toString();
+		return name + " [" + external_ref + "] event key: " + original_event_key;
 	}
 	
-	boolean isOld() {// TODO for what ?
+	boolean isOldAired() {
 		return date + 10000 < System.currentTimeMillis();
-	}
-	
-	@Deprecated
-	boolean isChecked() {
-		return checked;
-	}
-	
-	@Deprecated
-	void setChecked(boolean checked) {
-		this.checked = checked;
 	}
 	
 	public String getExternalRef() {
@@ -94,5 +62,9 @@ public final class BCAEventCatched {
 	
 	public Timecode getDuration() {
 		return duration;
+	}
+	
+	String getOriginalEventKey() {
+		return original_event_key;
 	}
 }
