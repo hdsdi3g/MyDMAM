@@ -41,9 +41,9 @@ public abstract class BCAEventCatcherHandler {
 	private String property_to_catch;
 	
 	private File json_db_file;
-	private ArrayList<BCACatchedEvent> entries;
-	private ArrayList<BCACatchedEvent> to_add = new ArrayList<>();
-	private ArrayList<BCACatchedEvent> to_remove = new ArrayList<>();
+	private ArrayList<BCAEventCatched> entries;
+	private ArrayList<BCAEventCatched> to_add = new ArrayList<>();
+	private ArrayList<BCAEventCatched> to_remove = new ArrayList<>();
 	
 	private boolean modified;
 	
@@ -92,14 +92,14 @@ public abstract class BCAEventCatcherHandler {
 	 * @param event was tested true by isEventCanBeCatched()
 	 */
 	void onCatchEvent(BCAAutomationEvent event) {
-		Optional<BCACatchedEvent> opt_entry = entries.stream().filter(event_catch -> {
+		Optional<BCAEventCatched> opt_entry = entries.stream().filter(event_catch -> {
 			return event_catch.compare(event);
 		}).findFirst();
 		
 		if (opt_entry.isPresent()) {
 			opt_entry.get().setChecked(true);
 		} else {
-			BCACatchedEvent entry = BCACatchedEvent.create(event, createExternalRef());
+			BCAEventCatched entry = BCAEventCatched.create(event, createExternalRef());
 			to_add.add(entry);
 			entries.add(entry);
 		}
@@ -137,11 +137,11 @@ public abstract class BCAEventCatcherHandler {
 		
 		to_remove.forEach(entry -> {
 			Loggers.BroadcastAutomation.info("Catch event moved/removed in playlist: \"" + entry.toString() + "\"");
-			handleEventRemoving(entry);
+			// handleEventRemoving(entry); XXX
 		});
 		to_add.forEach(entry -> {
 			Loggers.BroadcastAutomation.info("Catch new event: \"" + entry.toString() + "\"");
-			handleEventCreation(entry);
+			// handleEventCreation(entry); XXX
 		});
 		
 		if (modified) {
@@ -155,7 +155,7 @@ public abstract class BCAEventCatcherHandler {
 	}
 	
 	private String createExternalRef() {
-		AtomicInteger i = new AtomicInteger(0);
+		AtomicInteger i = new AtomicInteger(0);// TODO Not start from 0
 		
 		while (entries.stream().anyMatch(entry -> {
 			return Integer.parseInt(entry.getExternalRef()) == i.get();
@@ -165,9 +165,9 @@ public abstract class BCAEventCatcherHandler {
 		return String.valueOf(i.get());
 	}
 	
-	protected abstract void handleEventCreation(BCACatchedEvent entry);
+	protected abstract void handleEventCreation(BCAEventCatched entry);
 	
-	protected abstract void handleEventRemoving(BCACatchedEvent entry);
+	protected abstract void handleEventRemoving(BCAEventCatched entry);
 	
 	public abstract String getName();
 	

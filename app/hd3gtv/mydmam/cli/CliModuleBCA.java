@@ -118,6 +118,48 @@ public class CliModuleBCA implements CliModule {
 			table.print();
 			
 			return;
+			/*} else if (args.getParamExist("-catch")) {
+				// TODO CLI ?
+				if (CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME) == false) {
+					System.err.println("No BCA events in database");
+					return;
+				}
+				
+				TimedEventStore database = new TimedEventStore(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME);
+				
+				TableList table = new TableList();
+				
+				final JsonParser p = new JsonParser();
+				Function<String, ArrayList<String>> json_reducer = (event) -> {
+					ArrayList<String> result = new ArrayList<>();
+					JsonObject jo_event = p.parse(event).getAsJsonObject();
+					result.add(jo_event.get("name").getAsString());
+					result.add(jo_event.get("duration").getAsString());
+					result.add(jo_event.get("channel").getAsString());
+					result.add(jo_event.get("file_id").getAsString());
+					result.add(jo_event.get("video_source").getAsString());
+					result.add(jo_event.get("other").toString());
+					return result;
+				};
+				
+				database.getFilteredAll().forEach(event -> {
+					if (event.isAired()) {
+						return;
+					}
+					event.toTable(table, true, json_reducer);
+				});
+				
+				if (table.size() > 0) {
+					Row footer = table.createRow();
+					footer.addCell("Event key");
+					footer.addCells("Start date", "End date", "Name", "Duration", "Channel", "File", "Source", "Aired");
+					
+					System.out.println("Showed " + (table.size() - 1) + " events");
+				}
+				
+				table.print();
+				
+				return;*/
 		}
 		
 		showFullCliModuleHelp();
@@ -129,6 +171,7 @@ public class CliModuleBCA implements CliModule {
 		System.out.println(" * get all events actually in database: " + getCliModuleName() + " -dump [-raw] [-key]");
 		System.out.println("   with -raw for display raw content");
 		System.out.println("   with -key for display event key");
+		// System.out.println(" * event catcher debug: " + getCliModuleName() + " -catch"); //TODO CLI ?
 	}
 	
 	public boolean isFunctionnal() {

@@ -19,7 +19,7 @@ package hd3gtv.mydmam.bcastautomation;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.Timecode;
 
-public final class BCACatchedEvent {
+public final class BCAEventCatched {
 	
 	private long date;
 	
@@ -29,21 +29,25 @@ public final class BCACatchedEvent {
 	
 	private long update_date;
 	
+	@Deprecated
 	private transient boolean checked;
 	
 	private String external_ref;
 	
+	private String original_event_key;
+	
 	/**
 	 * @return checked event
 	 */
-	static BCACatchedEvent create(BCAAutomationEvent event, String external_ref) {
-		BCACatchedEvent result = new BCACatchedEvent();
+	static BCAEventCatched create(BCAAutomationEvent event, String external_ref) {
+		BCAEventCatched result = new BCAEventCatched();
 		result.date = event.getStartDate();
 		result.duration = event.getDuration();
 		result.name = event.getName();
 		result.update_date = System.currentTimeMillis();
 		result.checked = true;
 		result.external_ref = external_ref;
+		// result.original_event_key = event.getAutomationId()XXX
 		return result;
 	}
 	
@@ -51,7 +55,7 @@ public final class BCACatchedEvent {
 		/*System.out.println(event.getStartDate());
 		System.out.println(date);
 		System.out.println(Timecode.delta(duration, event.getDuration()));*/
-		return event.getStartDate() == date && Math.abs(Timecode.delta(duration, event.getDuration())) < 10;
+		return event.getStartDate() == date && Math.abs(Timecode.delta(duration, event.getDuration())) < 10; // TODO test with original_event_key
 	}
 	
 	public String toString() {
@@ -66,14 +70,16 @@ public final class BCACatchedEvent {
 		return sb.toString();
 	}
 	
-	boolean isOld() {
+	boolean isOld() {// TODO for what ?
 		return date + 10000 < System.currentTimeMillis();
 	}
 	
+	@Deprecated
 	boolean isChecked() {
 		return checked;
 	}
 	
+	@Deprecated
 	void setChecked(boolean checked) {
 		this.checked = checked;
 	}

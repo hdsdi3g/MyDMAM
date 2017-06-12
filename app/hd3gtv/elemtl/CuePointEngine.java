@@ -26,7 +26,7 @@ import com.google.gson.JsonSyntaxException;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.bcastautomation.BCACatchedEvent;
+import hd3gtv.mydmam.bcastautomation.BCAEventCatched;
 import hd3gtv.mydmam.bcastautomation.BCAEventCatcherHandler;
 
 public class CuePointEngine extends BCAEventCatcherHandler {
@@ -65,7 +65,7 @@ public class CuePointEngine extends BCAEventCatcherHandler {
 		}
 	}
 	
-	public void handleEventCreation(BCACatchedEvent entry) {
+	public void handleEventCreation(BCAEventCatched entry) {
 		event_id_by_server.forEach((s, id) -> {
 			try {
 				s.createCuePoint(entry.getDate(), Math.round(entry.getDuration().getValue()), id, Integer.parseInt(entry.getExternalRef()));
@@ -75,7 +75,7 @@ public class CuePointEngine extends BCAEventCatcherHandler {
 		});
 	}
 	
-	public void handleEventRemoving(BCACatchedEvent entry) {
+	public void handleEventRemoving(BCAEventCatched entry) {
 		event_id_by_server.forEach((s, id) -> {
 			try {
 				s.removeCuePoint(id, Integer.parseInt(entry.getExternalRef()));

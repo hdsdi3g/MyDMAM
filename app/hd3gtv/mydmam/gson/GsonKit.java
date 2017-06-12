@@ -74,7 +74,7 @@ import hd3gtv.mydmam.auth.asyncjs.RoleViewList;
 import hd3gtv.mydmam.auth.asyncjs.UserAdminUpdate;
 import hd3gtv.mydmam.auth.asyncjs.UserView;
 import hd3gtv.mydmam.auth.asyncjs.UserViewList;
-import hd3gtv.mydmam.bcastautomation.BCACatchedEvent;
+import hd3gtv.mydmam.bcastautomation.BCAEventCatched;
 import hd3gtv.mydmam.ftpserver.AJSResponseActivities;
 import hd3gtv.mydmam.ftpserver.AJSResponseUserList;
 import hd3gtv.mydmam.ftpserver.AJSUser;
@@ -154,7 +154,7 @@ public class GsonKit {
 	}.getType();
 	public final static Type type_ArrayList_UserNotificationNG = new TypeToken<ArrayList<UserNotificationNG>>() {
 	}.getType();
-	public final static Type type_ArrayList_BCACatchEntry = new TypeToken<ArrayList<BCACatchedEvent>>() {
+	public final static Type type_ArrayList_BCACatchEntry = new TypeToken<ArrayList<BCAEventCatched>>() {
 	}.getType();
 	public final static Type type_ArrayList_JobContext = new TypeToken<ArrayList<JobContext>>() {
 	}.getType();
