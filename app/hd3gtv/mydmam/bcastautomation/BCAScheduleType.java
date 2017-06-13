@@ -16,15 +16,8 @@
 */
 package hd3gtv.mydmam.bcastautomation;
 
-@FunctionalInterface
-public interface BCAAutomationEventHandler {
+public enum BCAScheduleType {
 	
-	public void onAutomationEvent(BCAAutomationEvent event, BCAScheduleType schedule_type);
-	
-	public default void beforeStartToScanEvents(BCAScheduleType schedule_type) {
-	}
-	
-	public default void afterScanAndHasFoundEvents(BCAScheduleType schedule_type) {
-	}
-	
+	PLAYLIST, ASRUN, OTHER
+
 }

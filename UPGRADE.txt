@@ -1,10 +1,13 @@
 === MyDMAM Upgrade document ===
 
+No particular points to be check.
+
+=== Previous versions ===
+
+v0.21
 #252 You should set a login and a password for all AD backends (in play.yml).
 #268 Remove CLI bca -propertycatch
 #268 Remove configuration key broadcast_automation.catch_playlist_to_parse
-
-=== Previous versions ===
 
 v0.20
 #239 FTP server admin (in Play side) can create FTP account user directories. Just add some ftpservergroups/group name/base_working_dir keys in configuration.

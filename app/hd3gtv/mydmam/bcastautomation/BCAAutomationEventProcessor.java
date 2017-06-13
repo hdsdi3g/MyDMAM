@@ -99,7 +99,7 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 		Loggers.BroadcastAutomation.debug("Event list as currently " + actual_event_list.size() + " future and non-aired events");
 	}
 	
-	public void onAutomationEvent(BCAAutomationEvent event) {
+	public void onAutomationEvent(BCAAutomationEvent event, BCAScheduleType schedule_type) {
 		if (event.getStartDate() < (System.currentTimeMillis() - max_retention_duration)) {
 			/**
 			 * Too old event (normally an as-run)
@@ -110,6 +110,8 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 			return;
 		}
 		
+		String event_key = event.computeKey(import_other_properties_configuration);
+		
 		/**
 		 * Callbacks event_catchers
 		 */
@@ -117,11 +119,9 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 			event_catchers.stream().filter(catcher -> {
 				return catcher.isEventCanBeCatched(event);
 			}).forEach(catcher -> {
-				catcher.onCatchEvent(event);
+				catcher.onCatchEvent(event, schedule_type);
 			});
 		});
-		
-		String event_key = event.computeKey(import_other_properties_configuration);
 		
 		if (event.isPlaylist() | event.isOnair()) {
 			if (actual_event_list.contains(event_key) || (actual_event_pause_automation_list.contains(event_key) && is_first_list_event)) {
@@ -211,10 +211,10 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 	/**
 	 * Callbacks event_catchers, non-blocking.
 	 */
-	public void afterScanAndHasFoundEvents() {
+	public void afterScanAndHasFoundEvents(BCAScheduleType schedule_type) {
 		event_catcher_callbacks_executor.execute(() -> {
 			event_catchers.forEach(catcher -> {
-				catcher.onAfterCatchEvents();
+				catcher.onAfterCatchEvents(schedule_type);
 			});
 		});
 	}
@@ -222,10 +222,10 @@ final class BCAAutomationEventProcessor implements BCAAutomationEventHandler {
 	/**
 	 * Callbacks event_catchers, non-blocking.
 	 */
-	public void beforeStartToScanEvents() {
+	public void beforeStartToScanEvents(BCAScheduleType schedule_type) {
 		event_catcher_callbacks_executor.execute(() -> {
 			event_catchers.forEach(catcher -> {
-				catcher.onBeforeCatchEvents();
+				catcher.onBeforeCatchEvents(schedule_type);
 			});
 		});
 	}

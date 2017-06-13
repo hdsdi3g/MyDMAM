@@ -76,7 +76,7 @@ final class BCAWatcherThread extends StoppableThread {
 					try {
 						processor.clearEventList();
 						Loggers.BroadcastAutomation.info("Start process asrun file import from \"" + file.getPath() + "\"");
-						all_status.add(watcher.getCurrentEngine().processScheduleFile(file, processor));
+						all_status.add(watcher.getCurrentEngine().processScheduleFile(file, processor, BCAScheduleType.ASRUN));
 					} catch (Exception e) {
 						Loggers.BroadcastAutomation.warn("Can't open file", e);
 					}
@@ -126,7 +126,7 @@ final class BCAWatcherThread extends StoppableThread {
 						processor.clearEventList();
 						processor.preparePurgeEventList();
 						Loggers.BroadcastAutomation.info("Start process playlist file import from \"" + file.getPath() + "\"");
-						all_status.add(watcher.getCurrentEngine().processScheduleFile(file, processor));
+						all_status.add(watcher.getCurrentEngine().processScheduleFile(file, processor, BCAScheduleType.PLAYLIST));
 					} catch (Exception e) {
 						Loggers.BroadcastAutomation.warn("Can't open file", e);
 					}

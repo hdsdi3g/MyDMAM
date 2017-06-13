@@ -30,6 +30,6 @@ public interface BCAEngine {
 	
 	public List<String> getValidFileExtension();
 	
-	public ScheduleFileStatus processScheduleFile(File schedule, BCAAutomationEventHandler hanlder) throws IOException;
+	public ScheduleFileStatus processScheduleFile(File schedule, BCAAutomationEventHandler hanlder, BCAScheduleType schedule_type) throws IOException;
 	
 }

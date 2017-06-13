@@ -38,7 +38,7 @@ import hd3gtv.tools.TwoListComparing;
 public abstract class BCAEventCatcherHandler {
 	
 	private HashMap<String, ConfigurationItem> import_other_properties_configuration;
-	private long max_date_to_check;
+	private long catch_max_min_to_check;
 	private String property_to_catch;
 	
 	private File json_db_file;
@@ -51,7 +51,7 @@ public abstract class BCAEventCatcherHandler {
 		if (property_to_catch.equals("")) {
 			throw new NullPointerException("broadcast_automation.catch_property is not set");
 		}
-		max_date_to_check = System.currentTimeMillis() + Configuration.global.getValue("broadcast_automation", "catch_max_min_to_check", 24 * 60) * 60 * 1000;
+		catch_max_min_to_check = Configuration.global.getValue("broadcast_automation", "catch_max_min_to_check", 24 * 60);
 		
 		json_db_file = new File(Configuration.global.getValue("broadcast_automation", "catch_json_db_file", "catch_bca_event.json"));
 		
@@ -65,13 +65,13 @@ public abstract class BCAEventCatcherHandler {
 	}
 	
 	boolean isEventCanBeCatched(BCAAutomationEvent event) {
-		if (event.getStartDate() > max_date_to_check) {
+		if (event.getStartDate() > System.currentTimeMillis() + catch_max_min_to_check * 60 * 1000) {
 			return false;
 		}
 		if (event.isAutomationPaused()) {
 			return false;
 		}
-		if (event.getStartDate() < System.currentTimeMillis()) {
+		if (event.isAsrun()) {
 			return false;
 		}
 		
@@ -79,20 +79,24 @@ public abstract class BCAEventCatcherHandler {
 		if (other_properties == null) {
 			return false;
 		}
-		if (other_properties.has(property_to_catch) == false) {
-			return false;
-		}
-		return true;
+		
+		return other_properties.has(property_to_catch);
 	}
 	
 	/**
 	 * @param event was tested true by isEventCanBeCatched()
 	 */
-	void onCatchEvent(BCAAutomationEvent event) {
+	void onCatchEvent(BCAAutomationEvent event, BCAScheduleType schedule_type) {
+		if (schedule_type != BCAScheduleType.PLAYLIST) {
+			return;
+		}
 		actually_founded_in_playlist.add(event);
 	}
 	
-	void onBeforeCatchEvents() {
+	void onBeforeCatchEvents(BCAScheduleType schedule_type) {
+		if (schedule_type != BCAScheduleType.PLAYLIST) {
+			return;
+		}
 		actually_founded_in_playlist.clear();
 	}
 	
@@ -104,7 +108,11 @@ public abstract class BCAEventCatcherHandler {
 		return event.getPreviouslyComputedKey();
 	};
 	
-	void onAfterCatchEvents() {
+	void onAfterCatchEvents(BCAScheduleType schedule_type) {
+		if (schedule_type != BCAScheduleType.PLAYLIST) {
+			return;
+		}
+		
 		boolean modified = false;
 		
 		/**

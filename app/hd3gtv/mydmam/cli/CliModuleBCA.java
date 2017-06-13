@@ -30,6 +30,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.bcastautomation.BCAEngine;
+import hd3gtv.mydmam.bcastautomation.BCAScheduleType;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
 import hd3gtv.mydmam.bcastautomation.TimedEventStore;
 import hd3gtv.mydmam.db.CassandraDb;
@@ -59,9 +60,9 @@ public class CliModuleBCA implements CliModule {
 			
 			SimpleDateFormat date_format = new SimpleDateFormat("HH:mm:ss");
 			
-			engine.processScheduleFile(file_to_parse, event -> {
+			engine.processScheduleFile(file_to_parse, (event, schedule_type) -> {
 				tl.addRow(date_format.format(new Date(event.getStartDate())), event.getName(), event.getDuration().toString(), event.getOtherProperties(import_other_properties_configuration).toString());
-			});
+			}, BCAScheduleType.OTHER);
 			
 			tl.print();
 			
