@@ -120,7 +120,6 @@ public class CliModuleBCA implements CliModule {
 			
 			return;
 			/*} else if (args.getParamExist("-catch")) {
-				// TODO CLI ?
 				if (CassandraDb.isColumnFamilyExists(CassandraDb.getkeyspace(), BCAWatcher.CF_NAME) == false) {
 					System.err.println("No BCA events in database");
 					return;
@@ -172,7 +171,7 @@ public class CliModuleBCA implements CliModule {
 		System.out.println(" * get all events actually in database: " + getCliModuleName() + " -dump [-raw] [-key]");
 		System.out.println("   with -raw for display raw content");
 		System.out.println("   with -key for display event key");
-		// System.out.println(" * event catcher debug: " + getCliModuleName() + " -catch"); //TODO CLI ?
+		// System.out.println(" * event catcher debug: " + getCliModuleName() + " -catch");
 	}
 	
 	public boolean isFunctionnal() {
