@@ -41,6 +41,16 @@ timeunit.weeks=sems
 timeunit.day=jour
 timeunit.days=jours
 
+sizeunit.Bytes=%s octets
+sizeunit.KB=%s Ko
+sizeunit.MB=%s Mo
+sizeunit.GB=%s Go
+sizeunit.TB=%s To
+sizeunit.PB=%s Po
+sizeunit.EB=%s Eo
+sizeunit.ZB=%s Zo
+sizeunit.YB=%s Yo
+
 search.pagetitle=Recherche
 search.method.by_id=Recherche par ID/media ID
 search.method.by_all_words=Recherche avec tous les mots

@@ -66,6 +66,21 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 		return (parseInt(this)).twoDigit(base);
 	};
 
+	Number.prototype.getI18n = function(maximumFractionDigits) {
+		var val = +this;
+	    if(window.Intl) {
+			if (maximumFractionDigits != null) {
+		        return new window.Intl.NumberFormat(navigator.language, opts = {
+					maximumFractionDigits: maximumFractionDigits,
+			    }).format(+this);
+			} else {
+		        return new window.Intl.NumberFormat(navigator.language).format(+this);
+			}
+	    } else {
+	        return val;   
+	    }
+	};
+
 	Date.prototype.getWeekNumber = function() {
 		// See http://stackoverflow.com/questions/6117814/get-week-of-year-in-javascript-like-in-php
 		var d = new Date(+this);

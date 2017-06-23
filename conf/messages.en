@@ -41,6 +41,16 @@ timeunit.week=week
 timeunit.days=days
 timeunit.day=day
 
+sizeunit.Bytes=%s bytes
+sizeunit.KB=%s KB
+sizeunit.MB=%s MB
+sizeunit.GB=%s GB
+sizeunit.TB=%s TB
+sizeunit.PB=%s PB
+sizeunit.EB=%s EB
+sizeunit.ZB=%s ZB
+sizeunit.YB=%s YB
+
 search.pagetitle=Search
 search.method.by_id=Search by ID
 search.method.by_all_words=Search with all words
