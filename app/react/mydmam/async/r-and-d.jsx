@@ -17,6 +17,170 @@
  */
 
 /**
+ * Simple and static TreeView
+ * TODO dynamic branch loading (and/or) load dir content after open dir
+*/
+async.DemoTreeView = createReactClass({
+	render: function() {
+		var content = [
+			"Item 1",
+			{name: "Item 2, Sub list", content: [
+				{name: "Another Item 1", content: [
+					"Another Sub Item 1",
+					"Another Sub Item 2",
+				], default_opened: true},
+				"Another Item 2",
+			], default_opened: true},
+			"Item 3",
+		];
+		var processor = function(actual_name, external_ref) {
+			return <span><i className="icon-folder-close"></i> {actual_name}</span>;
+		}
+
+		return <async.TreeView content={content} processor={processor} />
+	}
+});
+
+var TreeViewItem = createReactClass({
+	propTypes: {
+		item: PropTypes.oneOfType([
+			PropTypes.string,
+			PropTypes.object,
+		]).isRequired,
+		processor: PropTypes.func.isRequired,
+		is_root: PropTypes.bool,
+		is_first_root: PropTypes.bool,
+	},
+	getInitialState: function() {
+		return {
+			is_open: null,
+		};
+	},
+	onToogleOpenClose: function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		if (this.state.is_open == null) {
+			if (this.props.item.default_opened) {
+				this.setState({is_open: false});
+			} else {
+				this.setState({is_open: true});
+			}
+		} else {
+			this.setState({is_open: !this.state.is_open});
+		}
+	},
+	render: function() {
+		var item = this.props.item;
+
+		var btn_open_close = null;
+		var display = null;
+		var sub_items = [];
+
+		if (typeof item != "string") {
+			var btn = function(icon_chevron_class) {
+				return (<span style={{
+						cursor: "pointer",
+						marginRight: 6,
+					}}
+					onClick={this.onToogleOpenClose}>
+						<i className={icon_chevron_class}></i>
+				</span>);
+			}.bind(this);
+
+			if (item.content != null) {
+				if (item.content.length > 0) {
+					if (this.props.is_root) {
+						for (var pos in item.content) {
+							sub_items.push(<TreeViewItem key={pos} item={item.content[pos]} processor={this.props.processor} is_first_root={true} />);
+						}
+					} else {
+						display = this.props.processor(item.name, item.external_ref);
+
+						var is_really_open = item.default_opened;
+						if (this.state.is_open != null) {
+							is_really_open = this.state.is_open;
+						}
+						if (is_really_open) {
+							btn_open_close = btn("icon-chevron-down");
+							for (var pos in item.content) {
+								sub_items.push(<TreeViewItem key={pos} item={item.content[pos]} processor={this.props.processor} />);
+							}
+						} else {
+							btn_open_close = btn("icon-chevron-right");
+						}
+					}
+				}
+			}
+		}
+
+		if (display == null && !this.props.is_root) {
+			display = <span style={{marginLeft: 20,}}>{this.props.processor(item, null)}</span>;
+		}
+
+		var node_style = null;
+		var sub_nodes_style = null;
+
+		/*border: "1px solid #000",*/
+		if (!this.props.is_root) {
+			node_style = {
+				marginTop: 3,
+				marginBottom: 3,
+			};
+
+			if (this.props.is_first_root) {
+				node_style.marginLeft = 5;
+			} else {
+				node_style.marginLeft = 10;
+			}
+
+			sub_nodes_style = {
+				marginLeft: 10,
+			};
+		}
+
+		return (<div style={node_style}>
+			{btn_open_close}
+			{display}
+			<div style={sub_nodes_style}>{sub_items}</div>
+		</div>);
+	}
+});
+
+async.TreeView = createReactClass({
+	propTypes: {
+		/**
+		 * Is like [item1, item2, item3]
+		 * Each item is like: {name: "", external_ref: "external_object_reference", content: [sub content], default_opened: false}
+		 * With all is not mandatory, a simple string can be used.
+		 */
+		content: PropTypes.array.isRequired,
+		 /**
+		  * callback(actual_name, external_ref) return <ToDisplayInTreeViewNode>
+		  */
+		processor: PropTypes.func,
+	},
+	render: function() {
+		var content = this.props.content;
+		var processor = this.props.processor;
+
+		if (processor == null) {
+			processor = function(actual_name, external_ref) {
+				return actual_name;
+			}
+		}
+		var sub_item = {
+			name: "",
+			content: content,
+			default_opened: true,
+		};
+
+		return (<div style={{border: "1px solid #888", }}>
+			<TreeViewItem item={sub_item} processor={processor} is_root={true} />
+		</div>);
+	}
+});
+
+/**
  * Polyvalent div resizer (mouse/touch).
  * <async.ResizablePane mode="both">...items...</async.ResizablePane>
  * With mode=both|width|height
