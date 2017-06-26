@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.web;
 
+import hd3gtv.mydmam.MyDMAM;
 import play.Play;
 import play.PlayPlugin;
 import play.jobs.JobsPlugin;
@@ -24,8 +25,13 @@ public class PlayServerReport {
 	
 	boolean is_js_dev_mode;
 	String pluginstatus;
+	String ajs_process_time_log;
+	String jsressource_process_time_log;
 	
 	public PlayServerReport() {
+	}
+	
+	public PlayServerReport populate() {
 		PlayPlugin plugin = Play.pluginCollection.getPluginInstance(JobsPlugin.class);
 		if (plugin != null) {
 			pluginstatus = plugin.getStatus();
@@ -33,6 +39,18 @@ public class PlayServerReport {
 			pluginstatus = "(pluginCollection is disabled)";
 		}
 		is_js_dev_mode = JSSourceManager.isJsDevMode();
+		
+		if (MyDMAM.getPlayBootstrapper().getAJSProcessTimeLog() != null) {
+			ajs_process_time_log = MyDMAM.getPlayBootstrapper().getAJSProcessTimeLog().toString();
+		} else {
+			ajs_process_time_log = null;
+		}
+		if (MyDMAM.getPlayBootstrapper().getJSRessourceProcessTimeLog() != null) {
+			jsressource_process_time_log = MyDMAM.getPlayBootstrapper().getJSRessourceProcessTimeLog().toString();
+		} else {
+			jsressource_process_time_log = null;
+		}
+		return this;
 	}
 	
 }

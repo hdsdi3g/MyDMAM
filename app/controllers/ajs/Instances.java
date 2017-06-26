@@ -119,13 +119,13 @@ public class Instances extends AJSController {
 	
 	@Check("showInstances")
 	public static PlayServerReport playserver() throws Exception {
-		return new PlayServerReport();
+		return new PlayServerReport().populate();
 	}
 	
 	@Check("showInstances")
 	public static PlayServerReport playserverUpdate(PlayServerUpdateConfiguration upd_conf) throws Exception {
 		upd_conf.doAction();
-		return new PlayServerReport();
+		return new PlayServerReport().populate();
 	}
 	
 }

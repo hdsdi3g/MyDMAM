@@ -48,6 +48,8 @@ public class PlayBootstrap {
 	private JSi18nCached i18n_cache;
 	private BridgePathindexArchivelocation bridge_pathindex_archivelocation;
 	private String revision_hash_query;
+	private AJSProcessTimeLog ajs_process_time_log;
+	private AJSProcessTimeLog jsressource_process_time_log;
 	
 	/**
 	 * A Cache that will be resist to a service restart (in case of automatic re-compilation). Only used in dev mode.
@@ -81,6 +83,10 @@ public class PlayBootstrap {
 		if (Play.mode == Mode.DEV) {
 			Cache.forcedCacheImpl = permanent_dev_cache;
 			Cache.cacheImpl = permanent_dev_cache;
+		}
+		
+		if (Play.mode == Mode.DEV) {
+			enableProcessTimeLogs();
 		}
 		
 		try {
@@ -248,6 +254,30 @@ public class PlayBootstrap {
 		}).collect(Collectors.joining(", "));
 		
 		throw new ValidationException(all_errors);
+	}
+	
+	/**
+	 * @return maybe null
+	 */
+	public AJSProcessTimeLog getAJSProcessTimeLog() {
+		return ajs_process_time_log;
+	}
+	
+	/**
+	 * @return maybe null
+	 */
+	public AJSProcessTimeLog getJSRessourceProcessTimeLog() {
+		return jsressource_process_time_log;
+	}
+	
+	void enableProcessTimeLogs() {
+		ajs_process_time_log = new AJSProcessTimeLog();
+		jsressource_process_time_log = new AJSProcessTimeLog();
+	}
+	
+	void disableProcessTimeLogs() {
+		ajs_process_time_log = null;
+		jsressource_process_time_log = null;
 	}
 	
 }

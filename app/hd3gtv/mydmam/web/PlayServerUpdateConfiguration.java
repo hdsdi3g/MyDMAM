@@ -25,6 +25,8 @@ public class PlayServerUpdateConfiguration {
 	boolean refreshlogconf = false;
 	boolean switchjsdevmode = false;
 	boolean purgejs = false;
+	boolean reset_process_time_log = false;
+	boolean toogle_process_time_log = false;
 	
 	public void doAction() throws Exception {
 		if (purgeplaycache) {
@@ -47,6 +49,28 @@ public class PlayServerUpdateConfiguration {
 		if (purgejs) {
 			Loggers.Play_JSSource.info("Purge and remake all JS computed");
 			JSSourceManager.purgeAll();
+		}
+		if (reset_process_time_log) {
+			PlayBootstrap playboot = MyDMAM.getPlayBootstrapper();
+			
+			if (playboot.getAJSProcessTimeLog() != null || playboot.getJSRessourceProcessTimeLog() != null) {
+				Loggers.Play_JSSource.info("Reset process time logs");
+				if (playboot.getAJSProcessTimeLog() != null) {
+					playboot.getAJSProcessTimeLog().truncate();
+				}
+				if (playboot.getJSRessourceProcessTimeLog() != null) {
+					playboot.getJSRessourceProcessTimeLog().truncate();
+				}
+			}
+		}
+		if (toogle_process_time_log) {
+			if (MyDMAM.getPlayBootstrapper().getAJSProcessTimeLog() == null) {
+				Loggers.Play_JSSource.info("Enable process time logs");
+				MyDMAM.getPlayBootstrapper().enableProcessTimeLogs();
+			} else {
+				Loggers.Play_JSSource.info("Disable process time logs");
+				MyDMAM.getPlayBootstrapper().disableProcessTimeLogs();
+			}
 		}
 	}
 	
