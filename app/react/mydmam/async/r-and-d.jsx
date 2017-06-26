@@ -17,6 +17,83 @@
  */
 
 /**
+ * Experiment popup
+ */
+async.DemoFrontPanel = createReactClass({
+	getInitialState: function() {
+		return {
+			display_front_panel: false,
+		};
+	},
+	btnShowOnClick: function(e) {
+		e.preventDefault();
+		ReactDOM.findDOMNode(this.refs.btnhideshow).blur();
+		this.setState({display_front_panel: !this.state.display_front_panel});
+	},
+	onDocumentClick: function(e) {
+		if (this.state.display_front_panel) {
+			var dom_panel = ReactDOM.findDOMNode(this.refs.panel);
+			if (dom_panel == null) {
+				return;
+			}
+			var val = dom_panel.compareDocumentPosition(e.target);
+			if (val != 20 & val != 0) {
+				this.setState({display_front_panel: false});
+			}
+		}
+	},
+	componentDidMount: function() {
+		if (this.state.display_front_panel) {
+			document.addEventListener("click", this.onDocumentClick);
+		}
+	},
+	componentDidUpdate: function() {
+		if (this.state.display_front_panel) {
+			document.addEventListener("click", this.onDocumentClick);
+		} else {
+			document.removeEventListener("click", this.onDocumentClick);
+		}
+	},
+	componentWillUnmount: function() {
+		if (this.state.display_front_panel) {
+			document.removeEventListener("click", this.onDocumentClick);
+		}
+	},
+	render: function() {
+		var front_panel = null;
+		if (this.state.display_front_panel) {
+			var style = {
+				position: "absolute",
+				display: "block",
+				/*top: "100%",*/
+				/*left: 0,*/
+				zIndex: 1000,
+				/*float: "left",*/
+				/*minWidth: "160px",*/
+				/*maxWidth: "300px",*/
+				padding: "5px",
+				margin: "2px 0 0",
+				backgroundColor: "#ffffff",
+				border: "1px solid rgba(0, 0, 0, 0.2)",
+				borderRadius: "6px",
+				boxShadow: "0 5px 10px rgba(0, 0, 0, 0.2)",
+				backgroundClip: "padding-box",
+			};
+
+			front_panel = (<div style={style} ref="panel">
+				<div style={{width: 300}}>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas dictum lorem nec efficitur dapibus. Phasellus risus nisl, venenatis eu quam vitae, placerat placerat libero. Integer auctor lectus metus, vel malesuada dui facilisis non. Proin sagittis arcu eu fringilla rutrum. Phasellus faucibus est sed enim molestie vulputate. Nullam magna nulla, laoreet a lorem in, tempus vehicula magna. Phasellus et egestas eros, id vestibulum massa. Duis accumsan massa in nulla mollis placerat. Maecenas mollis lectus in risus facilisis, vel viverra lacus vulputate.</div>
+			</div>);
+			// {this.props.children}
+		}
+
+		return (<div>
+			<button className="btn" onClick={this.btnShowOnClick} ref="btnhideshow">Show</button>
+			{front_panel}
+		</div>);
+	}
+});
+
+/**
  * Simple and static TreeView
  * TODO dynamic branch loading (and/or) load dir content after open dir
 */
