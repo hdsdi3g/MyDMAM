@@ -16,6 +16,72 @@
  * Research and development for some new tools
  */
 
+async.DemoTextOverlay = createReactClass({
+	render: function() {
+		var w1 = 352/4;
+		var h1 = 288/4;
+
+		var w2 = 352;
+		var h2 = 288;
+
+		return (<div style={{display: "inline"}}>
+			<async.TextOverlay overlay="MonTexteSuperLong" width={w1} height={h1} style={{display: "inline"}}>
+				<div style={{
+					background: "#f5f5f5 url('/public/img/background-v1.jpg') no-repeat center top",
+					backgroundSize: "cover",
+					width: w1 + "px",
+					height: h1 + "px",
+				}}></div>
+			</async.TextOverlay>
+
+			<async.TextOverlay overlay="MonText2sSuperLong" width={w2} height={h2} style={{display: "inline"}}>
+				<div style={{
+					background: "#f5f5f5 url('/public/img/background-v1.jpg') no-repeat center top",
+					backgroundSize: "cover",
+					width: w2 + "px",
+					height: h2 + "px",
+				}}></div>
+			</async.TextOverlay>
+		</div>);
+	}
+});
+
+async.TextOverlay = createReactClass({
+	propTypes: {
+		overlay: PropTypes.string.isRequired,
+		width: PropTypes.number.isRequired,
+		height: PropTypes.number.isRequired,
+		children: PropTypes.node.isRequired,
+		style: PropTypes.object,
+	},
+	render: function() {
+		var w = this.props.width;
+		var h = this.props.height;
+
+		var font_size = h/6;
+		var margin_top = font_size * 4;
+		var padding_left = w/20;
+
+		var style_front = {
+			width: (w - padding_left) + "px",
+			marginTop: margin_top + "px",
+			paddingLeft: padding_left + "px",
+			fontSize: font_size + "pt",
+		};
+
+		var style_bgk = {
+			zIndex: -1,
+			width: w + "px",
+			height: h + "px",
+		};
+
+		return (<div style={this.props.style}>
+			<div style={style_front} className="img-text-overlay">{this.props.overlay}</div>
+			<div style={style_bgk}>{this.props.children}</div>
+		</div>);
+	}
+});
+
 /**
  * Experiment popup
  */
