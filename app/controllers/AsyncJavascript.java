@@ -42,13 +42,19 @@ import play.utils.Utils;
 public class AsyncJavascript extends Controller {
 	
 	public static void index(@Required String name, @Required String verb, @Required String jsonrq) throws Exception {
+		long start_time = System.currentTimeMillis();
+		
 		if (Validation.hasErrors()) {
 			response.status = Application.HTTP_not_found;
 			renderJSON("{}");
 		}
 		
 		try {
-			renderJSON(AJSController.doRequest(name, verb, jsonrq));
+			String result = AJSController.doRequest(name, verb, jsonrq);
+			if (MyDMAM.getPlayBootstrapper().getAJSProcessTimeLog() != null) {
+				MyDMAM.getPlayBootstrapper().getAJSProcessTimeLog().addEntry(System.currentTimeMillis() - start_time, name + "/" + verb);
+			}
+			renderJSON(result);
 		} catch (DisconnectedUser e) {
 			try {
 				UserNG user = MyDMAM.getPlayBootstrapper().getAuth().getByUserKey(e.getUserkey());
@@ -69,6 +75,7 @@ public class AsyncJavascript extends Controller {
 		} catch (Exception e) {
 			Loggers.Play.error("Can't process AJS request name: " + name + ", verb: " + verb + ", jsonrq: " + jsonrq, e);
 		}
+		
 		renderJSON("{}");
 	}
 	
@@ -117,6 +124,7 @@ public class AsyncJavascript extends Controller {
 			Loggers.Play_JSSource.error("Can't response (send) js file: " + ressource_file, e);
 			notFound();
 		}
+		
 		ok();
 	}
 	

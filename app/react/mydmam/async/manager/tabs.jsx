@@ -673,6 +673,8 @@ manager.PlayServer = createReactClass({
 			report: {
 				is_js_dev_mode: false,
 				pluginstatus: "Loading...",
+				ajs_process_time_log: null,
+				jsressource_process_time_log: null,
 			},
 		};
 	},
@@ -684,7 +686,7 @@ manager.PlayServer = createReactClass({
 	onClickBtnPurgeplaycache: function(e) {
 		e.preventDefault();
 		var request = {
-			purgeplaycache: true, refreshlogconf: false, switchjsdevmode: false, purgejs: false
+			purgeplaycache: true, refreshlogconf: false, switchjsdevmode: false, purgejs: false, reset_process_time_log: false, toogle_process_time_log: false,
 		};
 		mydmam.async.request("instances", "playserverupdate", request, function(report) {
 			this.setState({report: report});
@@ -693,7 +695,7 @@ manager.PlayServer = createReactClass({
 	onClickBtnRefreshlogconf: function(e) {
 		e.preventDefault();
 		var request = {
-			purgeplaycache: false, refreshlogconf: true, switchjsdevmode: false, purgejs: false
+			purgeplaycache: false, refreshlogconf: true, switchjsdevmode: false, purgejs: false, reset_process_time_log: false, toogle_process_time_log: false,
 		};
 		mydmam.async.request("instances", "playserverupdate", request, function(report) {
 			this.setState({report: report});
@@ -702,7 +704,7 @@ manager.PlayServer = createReactClass({
 	onClickBtnSwitchjsdevmode: function(e) {
 		e.preventDefault();
 		var request = {
-			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: true, purgejs: false
+			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: true, purgejs: false, reset_process_time_log: false, toogle_process_time_log: false,
 		};
 		mydmam.async.request("instances", "playserverupdate", request, function(report) {
 			this.setState({report: report});
@@ -711,7 +713,25 @@ manager.PlayServer = createReactClass({
 	onClickBtnPurgejs: function(e) {
 		e.preventDefault();
 		var request = {
-			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: false, purgejs: true
+			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: false, purgejs: true, reset_process_time_log: false, toogle_process_time_log: false,
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnResetProcessTimeLog: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: false, purgejs: false, reset_process_time_log: true, toogle_process_time_log: false,
+		};
+		mydmam.async.request("instances", "playserverupdate", request, function(report) {
+			this.setState({report: report});
+		}.bind(this));
+	},
+	onClickBtnToogleProcessTimeLog: function(e) {
+		e.preventDefault();
+		var request = {
+			purgeplaycache: false, refreshlogconf: false, switchjsdevmode: false, purgejs: false, reset_process_time_log: false, toogle_process_time_log: true,
 		};
 		mydmam.async.request("instances", "playserverupdate", request, function(report) {
 			this.setState({report: report});
@@ -726,22 +746,48 @@ manager.PlayServer = createReactClass({
 			btn_label_js_dev_mode = i18n("manager.playserver.switchjsprodmode")
 		}
 
+		var ajs_process_time_log = null;
+		if (this.state.report.ajs_process_time_log) {
+			ajs_process_time_log = (<div>
+				<strong>{i18n("manager.playserver.ajs_process_time_log")}</strong><br />
+				<pre>{this.state.report.ajs_process_time_log}</pre>
+			</div>);
+		}
+
+		var jsressource_process_time_log = null;
+		if (this.state.report.jsressource_process_time_log) {
+			jsressource_process_time_log = (<div>
+				<strong>{i18n("manager.playserver.jsressource_process_time_log")}</strong><br />
+				<pre>{this.state.report.jsressource_process_time_log}</pre>
+			</div>);
+		}
+
 		var style_p = {marginBottom: "1em"};
 
 		return (<div>
-			<div style={style_p}>
-				<div className="btn-group">
+			<div>
+				<div className="btn-group" style={{marginBottom: "10px", marginLeft: 0, marginRight: "10px", }}>
 					<button onClick={this.onClickBtnPurgeplaycache} className="btn">
 						<i className="icon-fire"></i> {i18n("manager.playserver.purgeplaycache")}
 					</button>
 					<button onClick={this.onClickBtnRefreshlogconf} className="btn">
 						<i className="icon-refresh"></i> {i18n("manager.playserver.refreshlogconf")}
 					</button>
+				</div>
+				<div className="btn-group" style={{marginBottom: "10px", marginLeft: 0, marginRight: "10px", }}>
 					<button onClick={this.onClickBtnSwitchjsdevmode} className="btn">
 						<i className="icon-plane"></i> {btn_label_js_dev_mode}
 					</button>
 					<button onClick={this.onClickBtnPurgejs} className="btn">
 						<i className="icon-fire"></i> {i18n("manager.playserver.purgejs")}
+					</button>
+				</div>
+				<div className="btn-group" style={{marginBottom: "10px", marginLeft: 0, marginRight: "10px", }}>
+					<button onClick={this.onClickBtnResetProcessTimeLog} className="btn">
+						<i className="icon-trash"></i> {i18n("manager.playserver.ResetProcessTimeLog")}
+					</button>
+					<button onClick={this.onClickBtnToogleProcessTimeLog} className="btn">
+						<i className="icon-off"></i> {i18n("manager.playserver.ToogleProcessTimeLog")}
 					</button>
 				</div>
 			</div>
@@ -752,6 +798,8 @@ manager.PlayServer = createReactClass({
 				<i className="icon-list-alt"></i> <a href="#debugpage">{i18n("manager.playserver.ajsdebugpage")}</a>
 			</div>
 			<pre>{this.state.report.pluginstatus}</pre>
+			{ajs_process_time_log}
+			{jsressource_process_time_log}
 		</div>);
 	},
 }); 

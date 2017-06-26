@@ -16,12 +16,18 @@
 */
 package hd3gtv.tools;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Locale;
 
 import org.apache.commons.lang.StringUtils;
+
+import hd3gtv.mydmam.MyDMAM;
 
 public class TableList {
 	
@@ -105,18 +111,18 @@ public class TableList {
 			return cells.size();
 		}
 		
-		private void print(PrintWriter out, ArrayList<Integer> cols_sizes) {
+		private void print(Writer out, ArrayList<Integer> cols_sizes) throws IOException {
 			for (int pos = 0; pos < cells.size(); pos++) {
-				out.print(StringUtils.rightPad(cells.get(pos), cols_sizes.get(pos) + 2));
+				out.write(StringUtils.rightPad(cells.get(pos), cols_sizes.get(pos) + 2));
 			}
 			
 			if (cells.size() < cols_sizes.size()) {
 				for (int pos = cells.size(); pos < cols_sizes.size(); pos++) {
-					out.print(StringUtils.rightPad("", cols_sizes.get(pos) + 2));
+					out.write(StringUtils.rightPad("", cols_sizes.get(pos) + 2));
 				}
 			}
 			
-			out.println();
+			out.write(MyDMAM.LINESEPARATOR);
 		}
 	}
 	
@@ -135,12 +141,24 @@ public class TableList {
 		return this;
 	}
 	
+	public TableList addRow(String element, Number value, double divider, int precision, String unit, Locale locale) {
+		if (element == null) {
+			createRow().addCell(null);
+		} else if (value == null) {
+			createRow().addCell(element).addCell(null);
+		} else {
+			String val = String.format(locale, "%." + String.valueOf(precision) + "f", value.doubleValue() / divider) + " " + unit;
+			createRow().addCell(element).addCell(val);
+		}
+		return this;
+	}
+	
 	public TableList addSimpleCellRow(String content) {
 		createRow().addCell(content);
 		return this;
 	}
 	
-	public void print(PrintWriter out) {
+	public void print(Writer out) {
 		if (table.isEmpty()) {
 			return;
 		}
@@ -161,10 +179,18 @@ public class TableList {
 		});
 		
 		table.forEach(row -> {
-			row.print(out, cols_sizes);
+			try {
+				row.print(out, cols_sizes);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		});
 		
-		out.flush();
+		try {
+			out.flush();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public void print(PrintStream out) {
@@ -180,6 +206,12 @@ public class TableList {
 		if (size() > 0) {
 			System.out.println();
 		}
+	}
+	
+	public String toString() {
+		StringWriter sw = new StringWriter();
+		print(sw);
+		return sw.toString();
 	}
 	
 }
