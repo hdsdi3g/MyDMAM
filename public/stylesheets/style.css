@@ -304,17 +304,17 @@ div.img-text-overlay {
     line-height: initial;
     cursor: default;
     font-family: Arial,sans-serif;
-    color: #333;
-    /*text-shadow: -1px 0px 1px rgb(10, 10, 10), 0px 1px 1px rgb(10, 10, 10), 1px 0px 1px rgb(10, 10, 10), 0px -1px 1px rgb(10, 10, 10);*/
+    color: #EEE;
+    text-shadow: -1px 0px 1px rgb(10, 10, 10), 0px 1px 1px rgb(10, 10, 10), 1px 0px 1px rgb(10, 10, 10), 0px -1px 1px rgb(10, 10, 10);
     text-rendering: geometricprecision;
     font-weight: 700;
     letter-spacing: 0.04em;
     /* see https://stackoverflow.com/questions/15597167/css3-opacity-gradient */
-    background-image: linear-gradient(to right, rgb(200, 200, 200, 1) 80%, rgb(200, 200, 200, 0.4));
+    /*background-image: linear-gradient(to right, rgb(200, 200, 200, 1) 80%, rgb(200, 200, 200, 0.4));
     background-clip: text;
     -webkit-background-clip: text;
     background-color: transparent;
-    -webkit-text-fill-color: transparent;
+    -webkit-text-fill-color: transparent;*/
 }
 
 /* ============================================================================== */	
