@@ -16,6 +16,22 @@
  * Research and development for some new tools
  */
 
+/*
+.grid {
+  display: grid;
+  grid-gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  margin: 50px;
+}
+
+<div class="grid">  <div>1</div>  <div>2</div>  <div>3</div>  <div>4</div>  <div>5</div>  <div>6</div>  <div>7</div>  <div>8</div>  <div>9</div>  <div>10</div>  <div>11</div>  <div>12</div>  <div>13</div></div>
+
+Suite : https://developer.mozilla.org/fr/docs/Web/CSS/CSS_Grid_Layout
+*/
+
+/**
+ * Overlay a text on an image
+ */
 async.DemoTextOverlay = createReactClass({
 	render: function() {
 		var w1 = 352/4;
