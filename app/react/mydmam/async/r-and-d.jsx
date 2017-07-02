@@ -17,17 +17,52 @@
  */
 
 /*
-.grid {
-  display: grid;
-  grid-gap: 20px;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  margin: 50px;
-}
-
-<div class="grid">  <div>1</div>  <div>2</div>  <div>3</div>  <div>4</div>  <div>5</div>  <div>6</div>  <div>7</div>  <div>8</div>  <div>9</div>  <div>10</div>  <div>11</div>  <div>12</div>  <div>13</div></div>
-
 Suite : https://developer.mozilla.org/fr/docs/Web/CSS/CSS_Grid_Layout
 */
+
+var DemoListitem = createReactClass({
+	render: function() {
+		var style = {
+			border: "1px solid #CCC",
+			height: "100px",
+		};
+
+		return (<article style={style}>
+			{this.props.text}
+		</article>);
+	}
+});
+
+async.DemoPanelLists = createReactClass({
+	render: function() {
+		var article_grid_style = {
+			display: "grid",
+			gridGap: "10px",
+			gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
+			margin: "20px",
+		};
+
+		var article_list = [];
+		for (var i = 0; i < 20; i++) {
+			article_list.push(<DemoListitem key={i} text={i} />);
+		}
+		
+		return (<section>
+			<header>
+				<nav>Breadcrumb</nav>
+				<section>Option's menu</section>
+			</header>
+			<section>
+				<aside>Left panel</aside>
+				<section style={article_grid_style}>
+					{article_list}
+				</section>
+				<aside>Right panel</aside>
+			</section>
+			<footer>Pagination</footer>
+		</section>);
+	}
+});
 
 /**
  * Overlay a text on an image
