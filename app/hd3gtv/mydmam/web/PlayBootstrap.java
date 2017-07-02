@@ -61,6 +61,7 @@ public class PlayBootstrap {
 			revision_hash_query = "?rev=" + Crypto.passwordHash(Crypto.encryptAES(GitInfo.getFromRoot().getActualRepositoryInformation())).substring(0, 4);
 		} else {
 			revision_hash_query = "";
+			enableProcessTimeLogs();
 		}
 		
 		try {
@@ -73,7 +74,7 @@ public class PlayBootstrap {
 		i18n_cache = new JSi18nCached();
 		
 		try {
-			JSSourceManager.init();
+			JSSourceManager.init(this);
 		} catch (Exception e) {
 			Loggers.Play_JSSource.fatal("Can't init JS Source manager", e);
 			System.exit(1);
@@ -83,10 +84,6 @@ public class PlayBootstrap {
 		if (Play.mode == Mode.DEV) {
 			Cache.forcedCacheImpl = permanent_dev_cache;
 			Cache.cacheImpl = permanent_dev_cache;
-		}
-		
-		if (Play.mode == Mode.DEV) {
-			enableProcessTimeLogs();
 		}
 		
 		try {

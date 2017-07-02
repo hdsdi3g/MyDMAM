@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.FileUtils;
@@ -128,7 +129,7 @@ public class JSSourceModule {
 		return module_path;
 	}
 	
-	void processSources() throws IOException {
+	void processSources(PlayBootstrap play_bootstrap) throws IOException {
 		Loggers.Play_JSSource.debug("Process source, module_name: " + module_name);
 		
 		altered_source_files = getDatabase().checkAndClean();
@@ -188,12 +189,24 @@ public class JSSourceModule {
 		 * - Reduce JS
 		 */
 		if (must_process_source_files.isEmpty() == false) {
-			Loggers.Play_JSSource.info("Start Babel processing for " + must_process_source_files.size() + " JS file(s), for module " + module_name);
+			int file_count = must_process_source_files.size();
 			
-			int core_pool_size = Math.min(must_process_source_files.size(), Runtime.getRuntime().availableProcessors());
+			if (file_count == 1) {
+				File file = must_process_source_files.get(0).getRealFile(module_path);
+				Loggers.Play_JSSource.info("Start Babel processing for " + file.getName() + " (in " + file.getParent() + ")");
+			} else if (file_count < 10) {
+				String f_list = must_process_source_files.stream().map(s_f -> {
+					return FilenameUtils.getBaseName(s_f.getRelativePath());
+				}).collect(Collectors.joining(", "));
+				Loggers.Play_JSSource.info("Start Babel processing for " + f_list + " (" + file_count + " JS files), in module " + module_name);
+			} else {
+				Loggers.Play_JSSource.info("Start Babel processing for " + file_count + " JS files, in module " + module_name);
+			}
+			
+			int core_pool_size = Math.min(file_count, Runtime.getRuntime().availableProcessors());
 			ThreadPoolExecutor executor_pool = new ThreadPoolExecutor(core_pool_size, Runtime.getRuntime().availableProcessors(), 100, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(must_process_source_files.size()));
 			
-			final Map<JSSourceDatabaseEntry, Exception> failed_list = Collections.synchronizedMap(new LinkedHashMap<JSSourceDatabaseEntry, Exception>(must_process_source_files.size()));
+			final Map<JSSourceDatabaseEntry, Exception> failed_list = Collections.synchronizedMap(new LinkedHashMap<JSSourceDatabaseEntry, Exception>(file_count));
 			
 			must_process_source_files.forEach(jsentry -> {
 				Runnable r = () -> {
@@ -246,8 +259,8 @@ public class JSSourceModule {
 						failed_list.put(jsentry, e);
 					}
 					
-					if (MyDMAM.getPlayBootstrapper().getJSRessourceProcessTimeLog() != null) {
-						MyDMAM.getPlayBootstrapper().getJSRessourceProcessTimeLog().addEntry(System.currentTimeMillis() - start_time, source_scope + "/" + source_file.getName());
+					if (play_bootstrap.getJSRessourceProcessTimeLog() != null) {
+						play_bootstrap.getJSRessourceProcessTimeLog().addEntry(System.currentTimeMillis() - start_time, source_scope + "/" + source_file.getName());
 					}
 				};
 				executor_pool.execute(r);
@@ -259,7 +272,7 @@ public class JSSourceModule {
 				/**
 				 * Wait 3 seconds for all tasks (+1), one by one, is a very low time tolerance...
 				 */
-				executor_pool.awaitTermination(3 * (must_process_source_files.size() + 1), TimeUnit.SECONDS);
+				executor_pool.awaitTermination(3 * (file_count + 1), TimeUnit.SECONDS);
 			} catch (InterruptedException e) {
 				throw new IOException("Babel processing is blocked (too long time for do all jobs)", e);
 			}

@@ -29,6 +29,7 @@ public class PlayServerUpdateConfiguration {
 	boolean toogle_process_time_log = false;
 	
 	public void doAction() throws Exception {
+		PlayBootstrap play_bootstrap = MyDMAM.getPlayBootstrapper();
 		if (purgeplaycache) {
 			Loggers.Play.info("Purge Play cache");
 			MyDMAM.getPlayBootstrapper().clearPlayCache();
@@ -44,22 +45,20 @@ public class PlayServerUpdateConfiguration {
 			} else {
 				Loggers.Play_JSSource.info("Switch to JS prod mode");
 			}
-			JSSourceManager.refreshAllSources();
+			JSSourceManager.refreshAllSources(play_bootstrap);
 		}
 		if (purgejs) {
 			Loggers.Play_JSSource.info("Purge and remake all JS computed");
 			JSSourceManager.purgeAll();
 		}
 		if (reset_process_time_log) {
-			PlayBootstrap playboot = MyDMAM.getPlayBootstrapper();
-			
-			if (playboot.getAJSProcessTimeLog() != null || playboot.getJSRessourceProcessTimeLog() != null) {
+			if (play_bootstrap.getAJSProcessTimeLog() != null || play_bootstrap.getJSRessourceProcessTimeLog() != null) {
 				Loggers.Play_JSSource.info("Reset process time logs");
-				if (playboot.getAJSProcessTimeLog() != null) {
-					playboot.getAJSProcessTimeLog().truncate();
+				if (play_bootstrap.getAJSProcessTimeLog() != null) {
+					play_bootstrap.getAJSProcessTimeLog().truncate();
 				}
-				if (playboot.getJSRessourceProcessTimeLog() != null) {
-					playboot.getJSRessourceProcessTimeLog().truncate();
+				if (play_bootstrap.getJSRessourceProcessTimeLog() != null) {
+					play_bootstrap.getJSRessourceProcessTimeLog().truncate();
 				}
 			}
 		}

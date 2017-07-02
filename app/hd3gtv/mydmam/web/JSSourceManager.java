@@ -25,6 +25,7 @@ import org.apache.commons.io.FilenameUtils;
 
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.CopyMove;
 import play.Play;
 import play.vfs.VirtualFile;
@@ -44,7 +45,7 @@ public class JSSourceManager {
 		js_dev_mode = Configuration.global.getValueBoolean("play", "js_dev_mode");
 	}
 	
-	public static void init() throws Exception {
+	public static void init(PlayBootstrap play_bootstrap) throws Exception {
 		NodeJSBabel node_js_babel = new NodeJSBabel();
 		
 		if (isJsDevMode()) {
@@ -72,15 +73,15 @@ public class JSSourceManager {
 			js_modules.add(new JSSourceModule(entry.getKey(), entry.getValue().getRealFile().getAbsoluteFile(), node_js_babel));
 		}
 		
-		refreshAllSources();
+		refreshAllSources(play_bootstrap);
 	}
 	
-	public static void refreshAllSources() throws Exception {
+	public static void refreshAllSources(PlayBootstrap play_bootstrap) throws Exception {
 		synchronized (list_urls) {
 			list_urls.clear();
 			for (int pos = 0; pos < js_modules.size(); pos++) {
 				if (isJsDevMode()) {
-					js_modules.get(pos).processSources();
+					js_modules.get(pos).processSources(play_bootstrap);
 					Loggers.Play_JSSource.debug("Add all sources for " + js_modules.get(pos).getModuleName());
 					list_urls.addAll(js_modules.get(pos).getTransformedFilesRelativeURLs());
 				} else {
@@ -121,7 +122,7 @@ public class JSSourceManager {
 	public static ArrayList<String> getURLs() {
 		if (isJsDevMode()) {
 			try {
-				refreshAllSources();
+				refreshAllSources(MyDMAM.getPlayBootstrapper());
 			} catch (Exception e) {
 				Loggers.Play_JSSource.warn("Can't refresh all JS source in dev mode", e);
 			}
@@ -144,7 +145,7 @@ public class JSSourceManager {
 		for (int pos = 0; pos < js_modules.size(); pos++) {
 			js_modules.get(pos).purgeDatabase();
 		}
-		init();
+		init(MyDMAM.getPlayBootstrapper());
 	}
 	
 }
