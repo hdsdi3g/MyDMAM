@@ -103,14 +103,9 @@ public class Explorer {
 		request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("id", id.toLowerCase())).must(QueryBuilders.termQuery("storagename", storagename.toLowerCase())));
 		request.setPageSize(100);
 		
-		crawler(request, new IndexingEvent() {
-			public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
-				result.add(element);
-				return true;
-			}
-			
-			public void onRemoveFile(String storagename, String path) throws Exception {
-			}
+		crawler(request, element -> {
+			result.add(element);
+			return true;
 		});
 		return result;
 	}
@@ -133,8 +128,7 @@ public class Explorer {
 		if (min_index_date == 0) {
 			request.setQuery(QueryBuilders.termQuery("parentpath", parentpath_key));
 		} else {
-			request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("parentpath", parentpath_key))
-					.must(QueryBuilders.rangeQuery("dateindex").from(min_index_date).to(System.currentTimeMillis() + 1000000)));
+			request.setQuery(QueryBuilders.boolQuery().must(QueryBuilders.termQuery("parentpath", parentpath_key)).must(QueryBuilders.rangeQuery("dateindex").from(min_index_date).to(System.currentTimeMillis() + 1000000)));
 		}
 		request.setPageSize(500);
 		
@@ -455,9 +449,6 @@ public class Explorer {
 				bulk_op.add(bulk_op.getClient().prepareDelete(Importer.ES_INDEX, Importer.ES_TYPE_FILE, element.prepare_key()));
 			}
 			return true;
-		}
-		
-		public void onRemoveFile(String storagename, String path) throws Exception {
 		}
 		
 	}

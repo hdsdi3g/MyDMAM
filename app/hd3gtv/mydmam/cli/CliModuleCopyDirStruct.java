@@ -16,12 +16,10 @@
 */
 package hd3gtv.mydmam.cli;
 
-import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.pathindexing.IndexingEvent;
-import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.tools.ApplicationArgs;
-
 import java.io.File;
+
+import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.tools.ApplicationArgs;
 
 public class CliModuleCopyDirStruct implements CliModule {
 	
@@ -44,19 +42,12 @@ public class CliModuleCopyDirStruct implements CliModule {
 		
 		Explorer explorer = new Explorer();
 		
-		IndexingEvent found_elements_observer = new IndexingEvent() {
-			@Override
-			public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
-				File file = new File(dest_dir_path + element.currentpath);
-				System.out.println(file.getPath());
-				file.mkdirs();
-				return true;
-			}
-			
-			public void onRemoveFile(String storagename, String path) throws Exception {
-			}
-		};
-		explorer.getAllDirectoriesStorage(args.getSimpleParamValue("-storage"), found_elements_observer);
+		explorer.getAllDirectoriesStorage(args.getSimpleParamValue("-storage"), element -> {
+			File file = new File(dest_dir_path + element.currentpath);
+			System.out.println(file.getPath());
+			file.mkdirs();
+			return true;
+		});
 	}
 	
 	public void showFullCliModuleHelp() {

@@ -615,8 +615,7 @@ public class ContainerOperations {
 			this.copy = copy;
 			this.stoppable = stoppable;
 			
-			Loggers.Metadata.debug(
-					"Init CopyMoveMetadatas, root_from_currentpath: " + root_from_currentpath + ", dest_storage: " + dest_storage + ", dest_parent_path: " + dest_parent_path + ", copy: " + copy);
+			Loggers.Metadata.debug("Init CopyMoveMetadatas, root_from_currentpath: " + root_from_currentpath + ", dest_storage: " + dest_storage + ", dest_parent_path: " + dest_parent_path + ", copy: " + copy);
 		}
 		
 		/**
@@ -663,9 +662,6 @@ public class ContainerOperations {
 			es_bulk.terminateBulk();
 			
 			return stoppable.isWantToStopCurrentProcessing() == false;
-		}
-		
-		public void onRemoveFile(String storagename, String path) throws Exception {
 		}
 		
 	}

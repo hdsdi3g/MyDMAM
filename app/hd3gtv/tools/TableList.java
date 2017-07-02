@@ -27,6 +27,7 @@ import java.util.Locale;
 
 import org.apache.commons.lang.StringUtils;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 
 public class TableList {
@@ -53,6 +54,66 @@ public class TableList {
 			cells.add(StringUtils.defaultString(content, "null"));
 			max_cols = Math.max(max_cols, cells.size());
 			return this;
+		}
+		
+		private Row addNullCell() {
+			cells.add("null");
+			max_cols = Math.max(max_cols, cells.size());
+			return this;
+		}
+		
+		/**
+		 * @param content can be null
+		 */
+		public Row addCell(Number content) {
+			if (content == null) {
+				cells.add("null");
+			} else {
+				cells.add(String.valueOf(content));
+			}
+			max_cols = Math.max(max_cols, cells.size());
+			return this;
+		}
+		
+		/**
+		 * @param unix_time_ms must be > 0
+		 */
+		public Row addDateLog(long unix_time_ms) {
+			if (unix_time_ms <= 0) {
+				cells.add("null");
+			} else {
+				cells.add(Loggers.dateLog(unix_time_ms));
+			}
+			max_cols = Math.max(max_cols, cells.size());
+			return this;
+		}
+		
+		/**
+		 * @param content can be null
+		 * @param unit can be null
+		 */
+		public Row addCell(Number content, double divider, int precision, String unit, Locale locale) {
+			if (content == null) {
+				cells.add("null");
+			} else {
+				String _unit = "";
+				if (unit != null) {
+					if (unit.trim().equals("") == false) {
+						_unit = " " + unit.trim();
+					}
+				}
+				cells.add(String.format(locale, "%." + String.valueOf(precision) + "f", content.doubleValue() / divider) + _unit);
+			}
+			
+			max_cols = Math.max(max_cols, cells.size());
+			return this;
+		}
+		
+		/**
+		 * @param content can be null
+		 */
+		public Row addCell(Number content, double divider, int precision, Locale locale) {
+			return addCell(content, divider, precision, null, locale);
 		}
 		
 		/**
@@ -143,9 +204,9 @@ public class TableList {
 	
 	public TableList addRow(String element, Number value, double divider, int precision, String unit, Locale locale) {
 		if (element == null) {
-			createRow().addCell(null);
+			createRow().addNullCell();
 		} else if (value == null) {
-			createRow().addCell(element).addCell(null);
+			createRow().addCell(element).addNullCell();
 		} else {
 			String val = String.format(locale, "%." + String.valueOf(precision) + "f", value.doubleValue() / divider) + " " + unit;
 			createRow().addCell(element).addCell(val);

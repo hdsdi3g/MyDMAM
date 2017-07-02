@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.pathindexing;
 
+@FunctionalInterface
 public interface IndexingEvent {
 	
 	/**
@@ -26,5 +27,7 @@ public interface IndexingEvent {
 	/**
 	 * Used only for importing new file/refresh index, not for search.
 	 */
-	public void onRemoveFile(String storagename, String path) throws Exception;
+	public default void onRemoveFile(String storagename, String path) throws Exception {
+	}
+	
 }

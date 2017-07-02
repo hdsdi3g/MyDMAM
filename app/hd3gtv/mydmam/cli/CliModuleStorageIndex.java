@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.cli;
 
 import hd3gtv.mydmam.pathindexing.Explorer;
-import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.ApplicationArgs;
 
@@ -46,17 +45,10 @@ public class CliModuleStorageIndex implements CliModule {
 			}
 			System.err.println();
 			
-			IndexingEvent found_elements_observer = new IndexingEvent() {
-				@Override
-				public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
-					System.out.println(element.toString("\t"));
-					return true;
-				}
-				
-				public void onRemoveFile(String storagename, String path) throws Exception {
-				}
-			};
-			explorer.getAllStorage(args.getSimpleParamValue("-storage"), found_elements_observer);
+			explorer.getAllStorage(args.getSimpleParamValue("-storage"), element -> {
+				System.out.println(element.toString("\t"));
+				return true;
+			});
 		}
 	}
 	

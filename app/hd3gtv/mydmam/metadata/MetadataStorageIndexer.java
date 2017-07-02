@@ -43,7 +43,6 @@ import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.Importer;
-import hd3gtv.mydmam.pathindexing.IndexingEvent;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.mydmam.pathindexing.WebCacheInvalidation;
 import hd3gtv.mydmam.storage.Storage;
@@ -95,20 +94,14 @@ public class MetadataStorageIndexer implements StoppableProcessing {
 		Loggers.Metadata.debug("Prepare, item: " + item + ", min_index_date: " + Loggers.dateLog(min_index_date));
 		
 		if (item.directory) {
-			explorer.getAllSubElementsFromElementKey(item.prepare_key(), min_index_date, new IndexingEvent() {
-				
-				public void onRemoveFile(String storagename, String path) throws Exception {
+			explorer.getAllSubElementsFromElementKey(item.prepare_key(), min_index_date, element -> {
+				if (isWantToStopCurrentProcessing()) {
+					return false;
 				}
-				
-				public boolean onFoundElement(SourcePathIndexerElement element) throws Exception {
-					if (isWantToStopCurrentProcessing()) {
-						return false;
-					}
-					if (element.directory == false) {
-						process_list.add(element);
-					}
-					return true;
+				if (element.directory == false) {
+					process_list.add(element);
 				}
+				return true;
 			});
 		} else {
 			ElasticsearchBulkOperation es_bulk = Elasticsearch.prepareBulk();

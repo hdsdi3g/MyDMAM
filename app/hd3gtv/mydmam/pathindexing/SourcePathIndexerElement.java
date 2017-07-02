@@ -21,11 +21,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
 
+import org.apache.commons.io.FilenameUtils;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.search.SearchHit;
 
 import com.google.gson.JsonObject;
 
+import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 
@@ -86,9 +88,8 @@ public class SourcePathIndexerElement implements Serializable/*, JsonSerializer<
 		return jo;
 	}
 	
-	public static final String[] TOSTRING_HEADERS = { "Element key", "Storage index name", "Directory", "Full path", "Id", "Size", "Element date", "Element name", "Simple name", "Extension",
-			"Indexing date", "Parent key" };
-			
+	public static final String[] TOSTRING_HEADERS = { "Element key", "Storage index name", "Directory", "Full path", "Id", "Size", "Element date", "Element name", "Simple name", "Extension", "Indexing date", "Parent key" };
+	
 	public String toString() {
 		return storagename + ":" + currentpath;
 	}
@@ -111,20 +112,18 @@ public class SourcePathIndexerElement implements Serializable/*, JsonSerializer<
 		sb.append(separator);
 		sb.append(size);
 		sb.append(separator);
-		sb.append(date / 1000l);
+		sb.append(Loggers.dateLog(date));
 		sb.append(separator);
-		String filename = currentpath.substring(currentpath.lastIndexOf("/") + 1);
-		sb.append(filename);
+		sb.append(FilenameUtils.getBaseName(currentpath));
 		sb.append(separator);
-		if (currentpath.lastIndexOf(".") > 0) {
-			sb.append(filename.substring(0, filename.lastIndexOf(".") - 1));
-			sb.append(separator);
-			sb.append(filename.substring(filename.lastIndexOf(".")));
-		} else {
+		
+		String ext = FilenameUtils.getExtension(currentpath);
+		if (ext.isEmpty() == false) {
+			sb.append(ext);
 			sb.append(separator);
 		}
-		sb.append(separator);
-		sb.append(dateindex / 1000l);
+		
+		sb.append(Loggers.dateLog(dateindex));
 		sb.append(separator);
 		sb.append(parentpath);
 		return sb.toString();
@@ -278,28 +277,51 @@ public class SourcePathIndexerElement implements Serializable/*, JsonSerializer<
 		return result;
 	}
 	
-	public boolean equals(Object o) {
-		if (o == null) {
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((currentpath == null) ? 0 : currentpath.hashCode());
+		result = prime * result + (int) (date ^ (date >>> 32));
+		result = prime * result + (directory ? 1231 : 1237);
+		result = prime * result + (int) (size ^ (size >>> 32));
+		result = prime * result + ((storagename == null) ? 0 : storagename.hashCode());
+		return result;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
 			return false;
 		}
-		if ((o instanceof SourcePathIndexerElement) == false) {
+		if (!(obj instanceof SourcePathIndexerElement)) {
 			return false;
 		}
-		SourcePathIndexerElement compare = (SourcePathIndexerElement) o;
-		
-		if (storagename.equals(compare.storagename) == false) {
+		SourcePathIndexerElement other = (SourcePathIndexerElement) obj;
+		if (currentpath == null) {
+			if (other.currentpath != null) {
+				return false;
+			}
+		} else if (!currentpath.equals(other.currentpath)) {
 			return false;
 		}
-		if (currentpath.equals(compare.currentpath) == false) {
+		if (date != other.date) {
 			return false;
 		}
-		if (directory != compare.directory) {
+		if (directory != other.directory) {
 			return false;
 		}
-		if (size != compare.size) {
+		if (size != other.size) {
 			return false;
 		}
-		if (date != compare.date) {
+		if (storagename == null) {
+			if (other.storagename != null) {
+				return false;
+			}
+		} else if (!storagename.equals(other.storagename)) {
 			return false;
 		}
 		return true;
