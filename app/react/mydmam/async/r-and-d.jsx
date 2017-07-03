@@ -23,7 +23,6 @@ Suite : https://developer.mozilla.org/fr/docs/Web/CSS/CSS_Grid_Layout
 var DemoListitem = createReactClass({
 	render: function() {
 		var style = {
-			border: "1px solid #CCC",
 			height: "100px",
 		};
 
@@ -35,31 +34,31 @@ var DemoListitem = createReactClass({
 
 async.DemoPanelLists = createReactClass({
 	render: function() {
-		var article_grid_style = {
-			display: "grid",
-			gridGap: "10px",
-			gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
-			margin: "20px",
-		};
-
 		var article_list = [];
 		for (var i = 0; i < 20; i++) {
-			article_list.push(<DemoListitem key={i} text={i} />);
+			article_list.push(<DemoListitem key={i} text={"article" + i} />);
 		}
 		
-		return (<section>
-			<header>
-				<nav>Breadcrumb</nav>
-				<section>Option's menu</section>
+		return (<section className="demopanellists">
+			<header className="display-table">
+				<div className="display-table-row">
+					<nav className="display-table-cell">Breadcrumb</nav>
+				</div>
 			</header>
-			<section>
-				<aside>Left panel</aside>
-				<section style={article_grid_style}>
-					{article_list}
-				</section>
-				<aside>Right panel</aside>
+			<section className="display-table">
+				<div className="display-table-row">
+					<aside style={{width: "150px"}} className="display-table-cell">Left panel</aside>
+					<div className="display-table-cell">
+						<header>Option's menu</header>
+						<section className="article-list">{article_list}</section>
+						<footer>Pagination</footer>
+					</div>
+					<aside style={{width: "200px"}} className="display-table-cell">Right panel</aside>
+				</div>
 			</section>
-			<footer>Pagination</footer>
+			<footer>
+				Status bar
+			</footer>
 		</section>);
 	}
 });

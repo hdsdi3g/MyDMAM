@@ -476,3 +476,31 @@ form.dareport label.control-label {
 form.dareport div.controls {
     padding-top: 5px;
 }
+
+/** =============================================================================================== */
+.display-table-cell {
+    display: table-cell;
+}
+.display-table-row {
+    display: table-row;
+}
+.display-table {
+    display: table;
+    border-collapse: collapse;
+}
+
+section.demopanellists * {
+    border: 1px solid #CCC;
+    padding: 3px;
+    margin: 3px;
+}
+
+section.demopanellists .article-list {
+    display: grid;
+    grid-gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+}
+
+section.demopanellists .display-table {
+    width: 100%;
+}
