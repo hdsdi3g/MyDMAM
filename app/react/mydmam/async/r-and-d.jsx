@@ -38,7 +38,7 @@ async.DemoPanelLists = createReactClass({
 		for (var i = 0; i < 20; i++) {
 			article_list.push(<DemoListitem key={i} text={"article" + i} />);
 		}
-		
+
 		return (<section className="demopanellists">
 			<header className="display-table">
 				<div className="display-table-row">
@@ -47,13 +47,17 @@ async.DemoPanelLists = createReactClass({
 			</header>
 			<section className="display-table">
 				<div className="display-table-row">
-					<aside style={{width: "150px"}} className="display-table-cell">Left panel</aside>
+					<async.ResizablePane mode="width" initial_width="150px" className="display-table-cell">
+						<aside>Left panel</aside>
+					</async.ResizablePane>
 					<div className="display-table-cell">
 						<header>Option's menu</header>
 						<section className="article-list">{article_list}</section>
 						<footer>Pagination</footer>
 					</div>
-					<aside style={{width: "200px"}} className="display-table-cell">Right panel</aside>
+					<async.ResizablePane mode="width" drag_handle="left" initial_width="200px" className="display-table-cell">
+						<aside>Right panel</aside>
+					</async.ResizablePane>
 				</div>
 			</section>
 			<footer>
@@ -392,6 +396,25 @@ var ResizerHandle = createReactClass({
 });
 
 async.ResizablePane = createReactClass({
+	propTypes: {
+		mode: PropTypes.string.isRequired,
+		children: PropTypes.node.isRequired,
+		//className: PropTypes
+		initial_width: PropTypes.oneOfType([
+			PropTypes.string,
+			PropTypes.number,
+		]),
+		initial_height: PropTypes.oneOfType([
+			PropTypes.string,
+			PropTypes.number,
+		]),
+		drag_handle: PropTypes.string,
+	},
+	getDefaultProps: function() {
+		return {
+			drag_handle: "right",
+		};
+	},
 	getInitialState: function() {
 		return {
 			start_x: null,
@@ -431,31 +454,39 @@ async.ResizablePane = createReactClass({
 		this.doResize(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
 	},
 	doResize: function(new_x, new_y) {
+		var actual_w = this.state.start_width;
+		var actual_h = this.state.start_height;
+		var new_w = actual_w + new_x - this.state.start_x;
+		if (this.props.drag_handle == "left") {
+			new_w = actual_w + this.state.start_x - new_x;
+		}
+		var new_h = this.state.start_height + new_y - this.state.start_y;
+
 		if (this.props.mode == "width") {
 			this.setState({
-				width: this.state.start_width + new_x - this.state.start_x,
-				height: this.state.start_height,
+				width: new_w,
+				height: actual_h,
 			});
 		} else if (this.props.mode == "height") {
 			this.setState({
-				width: this.state.start_width,
-				height: this.state.start_height + new_y - this.state.start_y,
+				width: actual_w,
+				height: new_h,
 			});
 		} else {
 			if (this.state.behavior == "width") {
 				this.setState({
-					width: this.state.start_width + new_x - this.state.start_x,
-					height: this.state.start_height,
+					width: new_w,
+					height: actual_h,
 				});
 			} else if (this.state.behavior == "height") {
 				this.setState({
-					width: this.state.start_width,
-					height: this.state.start_height + new_y - this.state.start_y,
+					width: actual_w,
+					height: new_h,
 				});
 			} else {
 				this.setState({
-					width: this.state.start_width + new_x - this.state.start_x,
-					height: this.state.start_height + new_y - this.state.start_y,
+					width: new_w,
+					height: new_h,
 				});
 			}
 		}
@@ -488,21 +519,37 @@ async.ResizablePane = createReactClass({
 		if (this.state.width != null && this.state.height != null) {
 			style.width = this.state.width + "px";
 			style.height = this.state.height + "px";
+		} else if (this.state.width == null && this.state.height == null){
+			if (this.props.initial_width != null) {
+				style.width = this.props.initial_width;
+			}
+			if (this.props.initial_height != null) {
+				style.height = this.props.initial_height;
+			}
 		}
 
 		var border_debug = null; //"1px solid #888";
 
 		var handles = [];
+		var div_style_children = null;
 		if (mode == "width") {
-			handles.push(<ResizerHandle style={{
+			var hdl_style = {
 				width: "20px",
 				height: "100%",
 				position: "absolute",
 				border: border_debug,
-				right: 0,
 				top: 0,
 				cursor: "ew-resize",
-			}} key="w" onStartResize={this.onStartResize} behavior="width" />);
+			};
+
+			if (this.props.drag_handle == "left") {
+				hdl_style["left"] = 0;
+				div_style_children = {marginLeft: "15px"};
+			} else {
+				hdl_style["right"] = 0;
+			}
+
+			handles.push(<ResizerHandle style={hdl_style} key="w" onStartResize={this.onStartResize} behavior="width" />);
 		} else if (mode == "height") {
 			handles.push(<ResizerHandle style={{
 				width: "100%",
@@ -514,15 +561,23 @@ async.ResizablePane = createReactClass({
 				cursor: "ns-resize",
 			}} key="h" onStartResize={this.onStartResize} behavior="height" />);
 		} else {
-			handles.push(<ResizerHandle style={{
+			var hdl_style = {
 				width: "20px",
 				height: "100%",
 				position: "absolute",
 				border: border_debug,
-				right: 0,
 				top: 0,
 				cursor: "ew-resize",
-			}} key="w" onStartResize={this.onStartResize} behavior="width" />);
+			};
+
+			if (this.props.drag_handle == "left") {
+				hdl_style["left"] = 0;
+				div_style_children = {marginLeft: "15px"};
+			} else {
+				hdl_style["right"] = 0;
+			}
+
+			handles.push(<ResizerHandle style={hdl_style} key="w" onStartResize={this.onStartResize} behavior="width" />);
 			handles.push(<ResizerHandle style={{
 				width: "100%",
 				height: "20px",
@@ -532,19 +587,27 @@ async.ResizablePane = createReactClass({
 				bottom: 0,
 				cursor: "ns-resize",
 			}} key="h" onStartResize={this.onStartResize} behavior="height" />);
-			handles.push(<ResizerHandle style={{
+
+			hdl_style = {
 				width: "20px",
 				height: "20px",
 				position: "absolute",
 				border: border_debug,
-				right: 0,
 				bottom: 0,
 				cursor: "nwse-resize",
-			}} key="c" onStartResize={this.onStartResize} behavior="corner" />);
+			};
+
+			if (this.props.drag_handle == "left") {
+				hdl_style["left"] = 0;
+			} else {
+				hdl_style["right"] = 0;
+			}
+
+			handles.push(<ResizerHandle style={hdl_style} key="c" onStartResize={this.onStartResize} behavior="corner" />);
 		}
 
-		return (<div ref="resizeable" style={style}>
-			{this.props.children}
+		return (<div ref="resizeable" style={style} className={this.props.className}>
+			<div style={div_style_children}>{this.props.children}</div>
 			{handles}
 		</div>);
 	}
