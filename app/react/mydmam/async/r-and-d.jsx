@@ -16,10 +16,20 @@
  * Research and development for some new tools
  */
 
-/*
-Suite : https://developer.mozilla.org/fr/docs/Web/CSS/CSS_Grid_Layout
-*/
+async.DemoColorTemplate = createReactClass({
+	render: function() {
 
+		return (<div>
+			<div style={{width: "100px", height: "100px", backgroundColor: "#CCC"}}></div>
+		</div>);
+	}
+});
+
+
+/*
+Panels and item list
+https://developer.mozilla.org/fr/docs/Web/CSS/CSS_Grid_Layout
+*/
 var DemoListitem = createReactClass({
 	render: function() {
 		var style = {
