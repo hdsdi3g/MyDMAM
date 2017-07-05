@@ -17,11 +17,56 @@
  */
 
 async.DemoColorTemplate = createReactClass({
+	onClickChange: function(e) {
+		e.preventDefault();
+		mydmam.lookandfeel.switchTheme("avd");
+	},
 	render: function() {
+		var defs = [];
+		defs.push({
+			name: "avd-1",
+			content: ["515c67" /*selected*/, "353535" /*not selected*/, "1e1e1e" /*background*/, "181818" /*n selec background*/, "7e9dbf" /*Selected text color*/, "969696" /*text color*/ ,"7a7a7a" /*icon color*/],
+		});
+		defs.push({
+			name: "avd-2",
+			content: ["495b70" /*selected*/, "4b4b4b" /*not selected*/, "2e2e2e" /*background*/, "272727" /*n selec background*/, "7e9dbf" /*Selected text color*/, "b3b3b3" /*text color*/ ,"939393" /*icon color*/],
+		});
+		defs.push({
+			name: "avd-3",
+			content: ["445569" /*selected*/, "6c6c6c" /*not selected*/, "414141" /*background*/, "373737" /*n selec background*/, "7e9dbf" /*Selected text color*/, "cccccc" /*text color*/ ,"ababab" /*icon color*/],
+		});
+		defs.push({
+			name: "avd-4",
+			content: ["445569" /*selected*/, "959595" /*not selected*/, "666666" /*background*/, "535353" /*n selec background*/, "000000" /*Selected text color*/, "1a1a1a" /*text color*/ ,"222222" /*icon color*/],
+		});
+		defs.push({
+			name: "avd-5",
+			content: ["8c9eb1" /*selected*/, "b2b2b2" /*not selected*/, "818181" /*background*/, "6c6c6c" /*n selec background*/, "000000" /*Selected text color*/, "1a1a1a" /*text color*/ ,"2A2A2A" /*icon color*/],
+		});
+		defs.push({
+			name: "avd-6",
+			content: ["a0b0c1" /*selected*/, "d1d1d1" /*not selected*/, "959595" /*background*/, "838383" /*n selec background*/, "000000" /*Selected text color*/, "1a1a1a" /*text color*/ ,"323232" /*icon color*/],
+		});
 
-		return (<div>
-			<div style={{width: "100px", height: "100px", backgroundColor: "#CCC"}}></div>
-		</div>);
+		var blocks = [];
+		for (var pos in defs) {
+			blocks.push(<div key={pos}>
+				// style={{width: "50px", height: "50px", color: f_color, backgroundColor: b_color}}
+			</div>);
+		}
+
+		var b_color = mydmam.lookandfeel.get("bgnd2");
+		var f_color = mydmam.lookandfeel.get("frt2");
+
+		return (<div>{blocks}</div>);
+
+		/*return (<div>
+			<div style={{width: "100px", height: "100px", color: f_color, backgroundColor: b_color}}>
+				Text
+			</div>
+			<br />
+			<button onClick={this.onClickChange} className="btn">Change</button>
+		</div>);*/
 	}
 });
 
