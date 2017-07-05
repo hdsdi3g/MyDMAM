@@ -23,44 +23,52 @@ async.DemoColorTemplate = createReactClass({
 	},
 	render: function() {
 		var defs = [];
-		defs.push({
-			name: "avd-1",
-			content: ["515c67" /*selected*/, "353535" /*not selected*/, "1e1e1e" /*background*/, "181818" /*n selec background*/, "7e9dbf" /*Selected text color*/, "969696" /*text color*/ ,"7a7a7a" /*icon color*/],
-		});
-		defs.push({
-			name: "avd-2",
-			content: ["495b70" /*selected*/, "4b4b4b" /*not selected*/, "2e2e2e" /*background*/, "272727" /*n selec background*/, "7e9dbf" /*Selected text color*/, "b3b3b3" /*text color*/ ,"939393" /*icon color*/],
-		});
-		defs.push({
-			name: "avd-3",
-			content: ["445569" /*selected*/, "6c6c6c" /*not selected*/, "414141" /*background*/, "373737" /*n selec background*/, "7e9dbf" /*Selected text color*/, "cccccc" /*text color*/ ,"ababab" /*icon color*/],
-		});
-		defs.push({
-			name: "avd-4",
-			content: ["445569" /*selected*/, "959595" /*not selected*/, "666666" /*background*/, "535353" /*n selec background*/, "000000" /*Selected text color*/, "1a1a1a" /*text color*/ ,"222222" /*icon color*/],
-		});
-		defs.push({
-			name: "avd-5",
-			content: ["8c9eb1" /*selected*/, "b2b2b2" /*not selected*/, "818181" /*background*/, "6c6c6c" /*n selec background*/, "000000" /*Selected text color*/, "1a1a1a" /*text color*/ ,"2A2A2A" /*icon color*/],
-		});
-		defs.push({
-			name: "avd-6",
-			content: ["a0b0c1" /*selected*/, "d1d1d1" /*not selected*/, "959595" /*background*/, "838383" /*n selec background*/, "000000" /*Selected text color*/, "1a1a1a" /*text color*/ ,"323232" /*icon color*/],
-		});
+
+		defs.push({ name: "assbk", content: ["7ec499", "black", "white", "148b3e", "f4f4f4", "", "", "", "", ""], });
+		defs.push({ name: "avd1", content: ["", "969696", "181818", "7e9dbf", "1e1e1e", "515c67", "353535", "7a7a7a", "", ""], });
+		defs.push({ name: "avd2", content: ["", "b3b3b3", "272727", "7e9dbf", "2e2e2e", "495b70", "4b4b4b", "939393", "", ""], });
+		defs.push({ name: "avd3", content: ["", "cccccc", "373737", "7e9dbf", "414141", "445569", "6c6c6c", "ababab", "", ""], });
+		defs.push({ name: "avd4", content: ["", "1a1a1a", "535353", "black", "666666", "445569", "959595", "222222", "", ""], });
+		defs.push({ name: "avd5", content: ["", "1a1a1a", "6c6c6c", "black", "818181", "8c9eb1", "b2b2b2", "2A2A2A", "", ""], });
+		defs.push({ name: "avd6", content: ["", "1a1a1a", "838383", "black", "959595", "a0b0c1", "d1d1d1", "323232", "", ""], });
+		defs.push({ name: "cntmo1", content: ["", "black", "f0f0f0", "2f4fcc", "f7f7f7", "", "", "4d4d4d", "d4d4d4", ""], });
+		defs.push({ name: "cntmo2", content: ["", "e8e8e8", "292929", "3686bf", "24242a", "", "", "4d4d4d", "242529", ""], });
+		defs.push({ name: "frmio", content: ["", "e6ecf8", "2f3440", "bdc1d1", "3c4054", "1e212a", "252835", "838ba1", "white", "524afb"], });
+		defs.push({ name: "kyfw", content: ["", "c6c4c3", "1d1d1d", "e8e8e8", "232323", "3ca8f4", "8d8d8d", "3197fb", "262626", ""], });
+		defs.push({ name: "ppro2", content: ["", "a2a2a2", "202020", "2176ce", "1b1b1b", "3c4144", "", "a7a7a7", "", ""], });
+		defs.push({ name: "ppro1", content: ["5b5b5b", "787878", "3c3c3c", "529ad3", "3a3a3a", "134c7a", "494949", "b7b7b7", "", ""], });
+
+		/*defs.push({
+			name: "btn-avd",
+			content: ["5f7792", "587f7e", "558656", "875b95", "a9963f", "be8e1c", ],
+		});*/
 
 		var blocks = [];
 		for (var pos in defs) {
-			blocks.push(<div key={pos}>
-				// style={{width: "50px", height: "50px", color: f_color, backgroundColor: b_color}}
-			</div>);
+			var sub_block = [];
+			// style={{width: "50px", height: "50px", color: f_color, backgroundColor: b_color}}
+			var def = defs[pos];
+
+			for (var pos2 in def.content) {
+				var color = "#" + def.content[pos2];
+				sub_block.push(<td key={pos2} style={{backgroundColor: color, margin: 0, padding: 0}}>
+					<span style={{margin: 0, paddingLeft: "10px", paddingRight: "10px"}}>&nbsp;</span>
+				</td>);
+			}
+
+			blocks.push(<tr key={pos}>
+				<td key={-1}><span style={{marginLeft: "5px", marginRight: "5px"}}>{def.name}</span></td>
+				{sub_block}
+			</tr>);
 		}
 
+		return (<table style={{border: 0}}><tbody>{blocks}</tbody></table>);
+
+		/*
 		var b_color = mydmam.lookandfeel.get("bgnd2");
 		var f_color = mydmam.lookandfeel.get("frt2");
 
-		return (<div>{blocks}</div>);
-
-		/*return (<div>
+		return (<div>
 			<div style={{width: "100px", height: "100px", color: f_color, backgroundColor: b_color}}>
 				Text
 			</div>
