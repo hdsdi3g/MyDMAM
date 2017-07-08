@@ -169,6 +169,16 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 		};
 	}
 	
+	if (window.cssHSL == null) {
+		window.cssHSL = function(h, s, l, a) {
+			if (a) {
+				return "hsla(" + h + ", " + s + "%, " + l +"%, "+ a +")";
+			} else {
+				return "hsl(" + h + ", " + s + "%, " + l +"%)";
+			}
+		};
+	}
+
 })(window);
 
 /**
