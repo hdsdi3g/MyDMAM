@@ -35,6 +35,18 @@ async.DemoColorTemplate = createReactClass({
 			color_hue: value_hue,
 		});
 	},
+	componentDidMount: function() {
+		/*var canvas = ReactDOM.findDOMNode(this.refs.canvas);
+		var ctx = canvas.getContext("2d");
+		for (var i = 0; i < 360; i++) {
+			ctx.beginPath();
+			ctx.moveTo(i, 0);
+			ctx.lineTo(i, 30);
+			ctx.lineWidth = 1;
+			ctx.strokeStyle = cssHSL(i, 80, 60);
+			ctx.stroke();
+		}*/
+	},
 	render: function() {
 		var bkg_color = (this.state.color_luma * 0.35) + 14;  /* +/- 13>31 */
 		var frt_color = (this.state.color_luma * 0.35) + 70;
@@ -50,21 +62,114 @@ async.DemoColorTemplate = createReactClass({
 			padding: 12,
 		};
 
-		var btn_bkg_color = bkg_color + 10;
-		var btn_bkg_sat = 50;
+		var well_bkg_color = bkg_color + 10;
+		var well_bkg_sat = 30;
 		if (this.state.color_luma > 50) {
-			btn_bkg_color = bkg_color - 10;
-			btn_bkg_sat = 30;
+			well_bkg_color = bkg_color;
+			well_bkg_sat = 25;
+		}
+		if (this.state.color_luma > 75) {
+			well_bkg_color = bkg_color - 10;
+			well_bkg_sat = 40;
+		}
+
+		var well_style = {
+			backgroundColor: cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color),
+			color: cssHSL(0, 0, frt_color),
+			paddingLeft: "8px",
+			paddingRight: "8px",
+			paddingTop: "4px",
+			paddingBottom: "4px",
+		};
+
+		var btn_color = cssHSL(0, 0, 95);
+		var btn_bkg_color = cssHSL(this.state.color_hue, 60, 50);
+		if (this.state.color_hue > 35 && this.state.color_hue < 190) {
+			btn_color = cssHSL(0, 0, 5);
 		}
 
 		var btn_style = {
-			backgroundColor: cssHSL(this.state.color_hue, btn_bkg_sat, btn_bkg_color),
-			color: cssHSL(0, 0, frt_color),
+			backgroundColor: btn_bkg_color,
+			color: btn_color,
+			paddingLeft: "8px",
+			paddingRight: "8px",
+			paddingTop: "4px",
+			paddingBottom: "4px",
+			marginLeft: "6px",
 		};
 
+		var link_color = cssHSL(this.state.color_hue + 10, 50, 60);
+		if (this.state.color_luma < 50 && this.state.color_hue > 195 && this.state.color_hue < 280) {
+			/** dark & blue */
+			link_color = cssHSL(this.state.color_hue + 10, 40, 70);
+		}
+		if (this.state.color_luma > 50) {
+			/** mid */
+			if (this.state.color_hue > 20 && this.state.color_hue < 200) {
+				/* orange -> blue */
+				link_color = cssHSL(this.state.color_hue + 10, 70, 20);
+			} else {
+				/* red -> orange / blue -> violet */
+				link_color = cssHSL(this.state.color_hue + 10, 80, 15);
+			}
+		}
+		if (this.state.color_luma > 75) {
+			/** high */
+			link_color = cssHSL(this.state.color_hue + 10, 100, 30);
+		}
+
+		var link_style = {
+			color: link_color,
+			textDecorationColor: link_color,
+			textDecorationStyle: "dotted",
+			textDecorationLine: "underline",
+		};
+
+		var hover_link_style = {
+			color: link_color,
+			textDecorationColor: link_color,
+			textDecorationStyle: "solid",
+			textDecorationLine: "underline",
+		};
+
+		var block_color = bkg_color + 5;
+		if (this.state.color_luma > 50) {
+			block_color = bkg_color - 5;
+		}
+		var block_style = {
+			backgroundColor: cssHSL(0, 0, block_color),
+			padding: 12,
+		};
+
+		var icon_style = {
+			backgroundColor: btn_bkg_color,
+			marginLeft: "6px",
+			cursor: "pointer",
+			textAlign: "center",
+			display: "inline-block",
+			padding: "4px 12px",
+			marginBottom: 0,
+			verticalAlign: "middle",
+		};
+
+		var icon_class = classNames("icon-off", {
+			"icon-white": this.state.color_hue < 35 || this.state.color_hue > 190,
+		});
+
+		// TODO navbar-inverse + body background
+		
+		//<canvas ref="canvas" width="360" height="30"></canvas>
 		return (<div>
 			<div style={bkg_style}>
-				This is text. <a style={btn_style} href="#" onClick={this.onClickNothing}>This a button</a>
+				This is a text.
+				<a style={link_style} href="#" onClick={this.onClickNothing}>This is a link</a> <a style={hover_link_style} href="#" onClick={this.onClickNothing}>Hover link</a>
+				<span style={well_style}>This is a well <a style={link_style} href="#" onClick={this.onClickNothing}>This is a link in a well</a> <a style={hover_link_style} href="#" onClick={this.onClickNothing}>Hover link</a></span>
+				<a style={btn_style} href="#" onClick={this.onClickNothing}>This is an important button</a>
+				<br /> 
+				<div style={icon_style}><i className={icon_class}></i></div>
+				<div style={block_style}>
+					This is a block
+				</div>
 			</div>
 			<input type="range" ref="color_luma" min="0" max="100" defaultValue={0} onChange={this.onMoveSlider} /> {this.state.color_luma}<br />
 			<input type="range" ref="color_hue" min="0" max="359" defaultValue={0} onChange={this.onMoveSlider} /> {this.state.color_hue}<br />
