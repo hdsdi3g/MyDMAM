@@ -1,0 +1,5 @@
+interplay:
+    host: 192.168.0.1 # Interplay Webservices (Lookup Server) hostname or IP
+    user: administrator       # Webservices username
+    password: password        # Webservices password
+    workgroup: AvidWorkgroup  # Interplay workgroup
