@@ -65,7 +65,7 @@ public class CSVESImporter {
 	}
 	
 	private enum ImportType {
-		TEXT, INTEGER, FLOAT, DATE
+		TEXT, INTEGER, FLOAT, DATE, BOOLEAN
 	}
 	
 	public class ImportRoutingEntry {
@@ -88,6 +88,8 @@ public class CSVESImporter {
 					date_format = new SimpleDateFormat(setup);
 				}
 				return date_format.parse(csv_cell).getTime();
+			} else if (type == ImportType.BOOLEAN) {
+				return setup.equalsIgnoreCase(csv_cell.trim());
 			} else {
 				return csv_cell;
 			}
