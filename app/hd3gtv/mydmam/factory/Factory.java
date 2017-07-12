@@ -19,7 +19,9 @@ package hd3gtv.mydmam.factory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -217,6 +219,20 @@ public class Factory {
 			throw new ClassNotFoundException("Can't search in classpath", e);
 		}
 		// return Lists.newArrayList(Auth.class);
+	}
+	
+	/**
+	 * It can instance Interface
+	 * @see https://gist.github.com/thomasdarimont/974bf70fe51bbe03b05e
+	 */
+	public static <T> T instanceDynamicProxy(Class<? extends T> interface_to_instanciate, SimpleInvocationHandler dynamic_behavior) {
+		Object proxy = Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(), new Class[] { interface_to_instanciate }, (Object _proxy_do_not_use, Method method, Object[] arguments) -> {
+			return dynamic_behavior.dynamicInvoke(method, arguments);
+		});
+		
+		@SuppressWarnings("unchecked")
+		T result = (T) proxy;
+		return result;
 	}
 	
 }
