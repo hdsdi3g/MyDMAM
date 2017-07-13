@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,6 +41,7 @@ import com.google.common.reflect.ClassPath.ClassInfo;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.tools.CopyMove;
+import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 /**
  * Create Objects and search Class
@@ -51,6 +53,7 @@ public class Factory {
 	private HashSet<String> absent_class_names;
 	private ConcurrentHashMap<Class<?>, Constructor<?>> class_constructor;
 	private final Object lock;
+	private JSModuleManager js_module_manager;
 	
 	public Factory() {
 		ArrayList<String> classpath_string = Lists.newArrayList(System.getProperty("java.class.path").split(System.getProperty("path.separator")));
@@ -62,7 +65,7 @@ public class Factory {
 				CopyMove.checkExistsCanRead(f);
 				classpath.add(f.getCanonicalFile());
 			} catch (Exception e) {
-				Loggers.Manager.error("Can't access to classpath item: " + cp);
+				Loggers.Factory.error("Can't access to classpath item: " + cp);
 			}
 		});
 		
@@ -209,7 +212,7 @@ public class Factory {
 				try {
 					return Class.forName(cl.getName());
 				} catch (Exception e) {
-					Loggers.Manager.error("Can't load class " + cl.getName(), e);
+					Loggers.Factory.error("Can't load class " + cl.getName(), e);
 					return null;
 				}
 			}).filter(cl -> {
@@ -232,6 +235,25 @@ public class Factory {
 		
 		@SuppressWarnings("unchecked")
 		T result = (T) proxy;
+		return result;
+	}
+	
+	/**
+	 * @see ScriptObjectMirror
+	 */
+	public <T> T getInterfaceDeclaredByJSModule(Class<? extends T> interface_reference, String module_name, Supplier<T> default_if_not_declare) {
+		synchronized (lock) {
+			if (js_module_manager == null) {
+				js_module_manager = new JSModuleManager();
+			}
+			js_module_manager.load();
+		}
+		
+		T result = js_module_manager.moduleBindTo(module_name, interface_reference);
+		if (result == null) {
+			return default_if_not_declare.get();
+		}
+		
 		return result;
 	}
 	

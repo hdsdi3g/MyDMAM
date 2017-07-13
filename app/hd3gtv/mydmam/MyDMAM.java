@@ -62,6 +62,11 @@ public class MyDMAM {
 	 * Search application.conf in classpath, and return the /mydmam main directory.
 	 */
 	public static final File APP_ROOT_PLAY_DIRECTORY;
+	
+	/**
+	 * @see APP_ROOT_PLAY_DIRECTORY
+	 * @return APP_ROOT_PLAY_DIRECTORY/conf
+	 */
 	public static final File APP_ROOT_PLAY_CONF_DIRECTORY;
 	
 	static {
