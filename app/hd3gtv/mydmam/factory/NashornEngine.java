@@ -20,7 +20,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
@@ -33,6 +36,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.tools.CopyMove;
 import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
+import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 public class NashornEngine {
 	
@@ -74,6 +78,43 @@ public class NashornEngine {
 		} catch (ScriptException e) {
 			IOUtils.closeQuietly(isr);
 			throw e;
+		}
+	}
+	
+	/**
+	 * @return java native, emptyList, ArrayList, emptyMap, LinkedHashMap
+	 */
+	public static Object getExtractJavaTypeFromJS(Object raw_js_attribute, Object... arguments_if_function_to_call) {
+		if (raw_js_attribute == null) {
+			return null;
+		}
+		if ((raw_js_attribute instanceof ScriptObjectMirror) == false) {
+			return raw_js_attribute;
+		}
+		ScriptObjectMirror js_attribute = (ScriptObjectMirror) raw_js_attribute;
+		
+		if (js_attribute.isArray()) {
+			if (js_attribute.size() == 0) {
+				return Collections.emptyList();
+			} else {
+				ArrayList<Object> items = new ArrayList<>(js_attribute.size());
+				js_attribute.forEach((pos, value) -> {
+					items.add(getExtractJavaTypeFromJS(value, arguments_if_function_to_call));
+				});
+				return items;
+			}
+		} else if (js_attribute.isFunction()) {
+			return getExtractJavaTypeFromJS(js_attribute.call(null, arguments_if_function_to_call), arguments_if_function_to_call);
+		} else {
+			if (js_attribute.size() == 0) {
+				return Collections.emptyMap();
+			} else {
+				LinkedHashMap<String, Object> items = new LinkedHashMap<>(js_attribute.size());
+				js_attribute.forEach((key, value) -> {
+					items.put(key, getExtractJavaTypeFromJS(value, arguments_if_function_to_call));
+				});
+				return items;
+			}
 		}
 	}
 	
