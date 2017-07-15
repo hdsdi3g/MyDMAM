@@ -77,11 +77,8 @@ public class MainClass {
 		modules.add(new CliModuleAuth());
 		modules.add(new CliModuleAccessControl());
 		modules.add(new CliModuleSsh());
-		modules.add(new CliModuleStorageManager());
 		modules.add(new CliModuleCDFinderPathIndexer());
-		modules.add(new CliModuleDumpDatabase());
 		modules.add(new CliModuleOperateDatabase());
-		modules.add(new CliModuleStorageIndex());
 		modules.add(new CliModuleCopyDirStruct());
 		modules.add(new CliModuleBroker());
 		modules.add(new CliModuleMetadata());

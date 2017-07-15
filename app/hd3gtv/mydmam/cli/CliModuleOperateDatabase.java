@@ -16,6 +16,7 @@
 */
 package hd3gtv.mydmam.cli;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.db.AllRowsFoundRow;
+import hd3gtv.mydmam.db.BackupDb;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
@@ -49,6 +51,31 @@ public class CliModuleOperateDatabase implements CliModule {
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
+		if (args.getParamExist("-import") | args.getParamExist("-export")) {
+			BackupDb.mode_debug = args.getParamExist("-debug");
+			String prefix = args.getSimpleParamValue("-prefix");
+			if (prefix == null) {
+				prefix = "backup";
+			}
+			
+			BackupDb bdb = new BackupDb();
+			if (args.getParamExist("-import")) {
+				File outfile = new File(args.getSimpleParamValue("-import"));
+				long esttl = 0;
+				try {
+					esttl = Long.valueOf(args.getSimpleParamValue("-esttl"));
+				} catch (Exception e) {
+				}
+				
+				bdb.restore(outfile, CassandraDb.getkeyspace().getKeyspaceName(), args.getParamExist("-purgebefore"), esttl);
+			} else if (args.getParamExist("-export")) {
+				bdb.backup(prefix, args.getParamExist("-c"), args.getParamExist("-e"));
+			} else {
+				showFullCliModuleHelp();
+			}
+			
+			return;
+		}
 		if (args.getParamExist("-cassandra")) {
 			if (args.getParamExist("-keyspacesdef")) {
 				List<KeyspaceDefinition> kd_def = CassandraDb.getAllKeyspaces();
@@ -284,6 +311,16 @@ public class CliModuleOperateDatabase implements CliModule {
 	}
 	
 	public void showFullCliModuleHelp() {
+		System.out.println("Usage for export (dump):");
+		System.out.println(" " + getCliModuleName() + " -export [-prefix pathToFile/prefix] [-debug] [-c | -e]");
+		System.out.println("  with -c for Cassandra export only");
+		System.out.println("  with -e for ElasticSearch export only");
+		System.out.println("  default : Cassandra and ElasticSearch export");
+		System.out.println();
+		System.out.println("Usage for import (dump):");
+		System.out.println(" " + getCliModuleName() + " -import dumpfile.xml [-purgebefore] [-esttl sec]");
+		System.out.println("  -esttl for set ttl for each inserted key, in seconds (if TTL is enabled in the index type)");
+		System.out.println();
 		System.out.println("Usage for Cassandra:");
 		System.out.println(" " + getCliModuleName() + " -cassandra [-keyspace keyspacename] [-describe cf | -truncate cf | -delete cf]");
 		System.out.println("  default : keyspace informations");
