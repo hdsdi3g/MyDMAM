@@ -14,12 +14,12 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.mydmam.cli;
+package hd3gtv.mydmam.ssh;
 
-import hd3gtv.mydmam.ssh.Ssh;
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.tools.ApplicationArgs;
 
-public class CliModuleSsh implements CliModule {
+public class CLISsh implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "ssh";

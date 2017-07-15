@@ -41,7 +41,7 @@ import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.auth.Password;
 import hd3gtv.mydmam.bcastautomation.BCAWatcher;
-import hd3gtv.mydmam.cli.CliModule;
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.dareport.DARDB;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.mydmam.ftpserver.FTPGroup;
@@ -468,7 +468,7 @@ public final class ServiceNG {
 		}
 	}
 	
-	public static class PlayInCli implements CliModule {
+	public static class PlayInCli implements CLIDefinition {
 		
 		public void showFullCliModuleHelp() {
 			System.out.println("Start front-end http Play! server for client access and admin");
@@ -489,7 +489,7 @@ public final class ServiceNG {
 		}
 	}
 	
-	public static class BackgroundServicesInCli implements CliModule {
+	public static class BackgroundServicesInCli implements CLIDefinition {
 		
 		public void showFullCliModuleHelp() {
 			System.out.println("Start all background services activated in configuration like transcoding, path-indexing, watchfolder, BCA...");
@@ -510,7 +510,7 @@ public final class ServiceNG {
 		}
 	}
 	
-	public static class FTPServerInCli implements CliModule {
+	public static class FTPServerInCli implements CLIDefinition {
 		
 		public void showFullCliModuleHelp() {
 			System.out.println("Start FTP Server. Before, you must set/check its configuration. Else it doesn't starts");

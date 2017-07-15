@@ -14,17 +14,17 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.cli;
+package hd3gtv.mydmam.pathindexing;
 
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
-import hd3gtv.mydmam.pathindexing.ImporterCDFinder;
 import hd3gtv.tools.ApplicationArgs;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 
-public class CliModuleCDFinderPathIndexer implements CliModule {
+public class CLICDFinderPathIndexer implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "cdfinderimporter";

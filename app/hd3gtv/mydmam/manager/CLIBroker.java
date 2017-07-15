@@ -14,19 +14,17 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.mydmam.cli;
-
-import hd3gtv.mydmam.manager.InstanceStatus;
-import hd3gtv.mydmam.manager.JobNG;
-import hd3gtv.mydmam.manager.JobNG.JobStatus;
-import hd3gtv.mydmam.manager.WorkerExporter;
-import hd3gtv.tools.ApplicationArgs;
+package hd3gtv.mydmam.manager;
 
 import java.util.List;
 
 import com.google.gson.JsonObject;
 
-public class CliModuleBroker implements CliModule {
+import hd3gtv.mydmam.cli.CLIDefinition;
+import hd3gtv.mydmam.manager.JobNG.JobStatus;
+import hd3gtv.tools.ApplicationArgs;
+
+public class CLIBroker implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "broker";

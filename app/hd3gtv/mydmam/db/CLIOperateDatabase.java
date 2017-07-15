@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.mydmam.cli;
+package hd3gtv.mydmam.db;
 
 import java.io.File;
 import java.util.HashMap;
@@ -31,16 +31,13 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.db.AllRowsFoundRow;
-import hd3gtv.mydmam.db.BackupDb;
-import hd3gtv.mydmam.db.CassandraDb;
-import hd3gtv.mydmam.db.Elasticsearch;
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.ftpserver.FTPActivity;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.transcode.watchfolder.WatchFolderDB;
 import hd3gtv.tools.ApplicationArgs;
 
-public class CliModuleOperateDatabase implements CliModule {
+public class CLIOperateDatabase implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "actiondb";

@@ -23,8 +23,20 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
+import hd3gtv.configuration.CLIProject;
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.accesscontrol.CLIAccessControl;
+import hd3gtv.mydmam.auth.CLIAuth;
+import hd3gtv.mydmam.bcastautomation.CLIBCA;
+import hd3gtv.mydmam.db.CLIOperateDatabase;
+import hd3gtv.mydmam.factory.CLIJS;
+import hd3gtv.mydmam.manager.CLIBroker;
 import hd3gtv.mydmam.manager.ServiceNG;
+import hd3gtv.mydmam.metadata.CLIMetadata;
+import hd3gtv.mydmam.pathindexing.CLICDFinderPathIndexer;
+import hd3gtv.mydmam.pathindexing.CLICopyDirStruct;
+import hd3gtv.mydmam.ssh.CLISsh;
+import hd3gtv.mydmam.transcode.kit.CLIProcessKit;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.TableList;
 
@@ -70,21 +82,22 @@ public class MainClass {
 			Logger.getRootLogger().setLevel(Level.WARN);
 		}
 		
-		ArrayList<CliModule> modules = new ArrayList<CliModule>();
+		ArrayList<CLIDefinition> modules = new ArrayList<CLIDefinition>();
 		modules.add(new ServiceNG.PlayInCli());
 		modules.add(new ServiceNG.BackgroundServicesInCli());
 		modules.add(new ServiceNG.FTPServerInCli());
-		modules.add(new CliModuleAuth());
-		modules.add(new CliModuleAccessControl());
-		modules.add(new CliModuleSsh());
-		modules.add(new CliModuleCDFinderPathIndexer());
-		modules.add(new CliModuleOperateDatabase());
-		modules.add(new CliModuleCopyDirStruct());
-		modules.add(new CliModuleBroker());
-		modules.add(new CliModuleMetadata());
-		modules.add(new CliModuleProcessKit());
-		modules.add(new CliModuleBCA());
-		modules.add(new CliModuleProject());
+		modules.add(new CLIAuth());
+		modules.add(new CLIAccessControl());
+		modules.add(new CLISsh());
+		modules.add(new CLICDFinderPathIndexer());
+		modules.add(new CLIOperateDatabase());
+		modules.add(new CLICopyDirStruct());
+		modules.add(new CLIBroker());
+		modules.add(new CLIMetadata());
+		modules.add(new CLIProcessKit());
+		modules.add(new CLIBCA());
+		modules.add(new CLIJS());
+		modules.add(new CLIProject());
 		
 		String modulename = appargs.getFirstAction();
 		
