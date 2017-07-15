@@ -20,6 +20,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -68,7 +71,86 @@ public final class JSModuleManager {
 		declared_modules = new ArrayList<>();
 	}
 	
-	@SuppressWarnings("resource")
+	private static void extractJSNameAnnotation(Class<?> _class, PrintWriter out_js) {
+		Annotation[] anno = _class.getAnnotations();
+		String comment = getJSComment(anno);
+		if (comment != null) {
+			out_js.println("    /*");
+			out_js.println("     * " + comment);
+			out_js.println("     */");
+		}
+	}
+	
+	private static void extractJSNameAnnotation(Method method, PrintWriter out_js) {
+		ArrayList<String> lines = new ArrayList<>();
+		
+		Annotation[] anno = method.getAnnotations();
+		String comment = getJSComment(anno);
+		if (comment != null) {
+			lines.add(comment);
+		}
+		
+		lines.addAll(Arrays.asList(method.getParameters()).stream().map(param -> {
+			String var_name = getJSVarName(param.getAnnotations());
+			if (var_name == null) {
+				var_name = "";
+			} else {
+				var_name = " " + var_name;
+			}
+			
+			String p_comment = getJSComment(param.getAnnotations());
+			if (p_comment == null) {
+				p_comment = "";
+			} else {
+				p_comment = " " + p_comment;
+			}
+			
+			String mtd = "";
+			if (param.isVarArgs()) {
+				mtd = "...";
+			} else if (param.getType().isArray()) {
+				mtd = "[]";
+			} else if (param.getType().isEnum()) {
+				mtd = " enum";
+			}
+			
+			return "@param " + param.getType().getSimpleName() + var_name + mtd + p_comment;
+		}).collect(Collectors.toList()));
+		
+		String return_simple_name = method.getReturnType().getSimpleName();
+		if (return_simple_name.equalsIgnoreCase("void") == false) {
+			lines.add("@return " + return_simple_name);
+		}
+		
+		if (lines.isEmpty() == false) {
+			out_js.println("        /*");
+			lines.forEach(l -> {
+				out_js.println("         * " + l);
+			});
+			out_js.println("         */");
+		}
+	}
+	
+	private static String getJSComment(Annotation[] anno) {
+		return Arrays.asList(anno).stream().filter(a -> {
+			return a instanceof JSComment;
+		}).map(a -> {
+			return ((JSComment) a).value();
+		}).findFirst().orElseGet(() -> {
+			return null;
+		});
+	}
+	
+	private static String getJSVarName(Annotation[] anno) {
+		return Arrays.asList(anno).stream().filter(a -> {
+			return a instanceof JSVarName;
+		}).map(a -> {
+			return ((JSVarName) a).value();
+		}).findFirst().orElseGet(() -> {
+			return null;
+		});
+	}
+	
 	/**
 	 * @return created file
 	 */
@@ -80,46 +162,37 @@ public final class JSModuleManager {
 			out_js.println();
 		}
 		
-		out_js.println("/* This module is mapped from " + interface_to_implements.getName() + " */");
+		out_js.println("// This module is mapped from " + interface_to_implements.getName());
 		out_js.println(MODULE_JS_OBJECT_NAME + ".register({");
 		out_js.println("    name:    \"" + new_module_name + "\",");
 		out_js.println("    vendor:  \"MyCompany\",");
 		out_js.println("    version: \"1.0\",");
+		
+		extractJSNameAnnotation(interface_to_implements, out_js);
 		out_js.println("    content: {");
 		Arrays.asList(interface_to_implements.getMethods()).forEach(method -> {
 			AtomicInteger pos = new AtomicInteger(0);
 			String return_simple_name = method.getReturnType().getSimpleName();
 			
-			List<Class<?>> params = Arrays.asList(method.getParameterTypes());
-			if (params.isEmpty() == false) {
-				String funct_param = params.stream().map(param -> {
-					String mtd = "";
-					if (param.isEnum()) {
-						mtd = " Enum";
-					} else if (param.isArray()) {
-						mtd = " Array";
-					}
-					return "/*" + param.getSimpleName() + mtd + "*/ arg" + pos.getAndIncrement();
-				}).collect(Collectors.joining(", "));
-				out_js.println("        " + method.getName() + ": function(" + funct_param + ") {");
-				if (return_simple_name.equalsIgnoreCase("void") == false) {
-					out_js.println("            return null; //TODO must return a Java equivalent of " + return_simple_name);
-				}
-				out_js.println("        },");
-			} else {
-				/**
-				 * No params
-				 */
-				if (return_simple_name.equalsIgnoreCase("void") == false) {
-					out_js.println("        " + method.getName() + ": null, /*TODO must be a Java equivalent of " + return_simple_name + "*/");
+			List<Parameter> params = Arrays.asList(method.getParameters());
+			String funct_param = params.stream().map(parameter -> {
+				String var_name = getJSVarName(parameter.getAnnotations());
+				if (var_name == null) {
+					var_name = "arg" + pos.getAndIncrement();
 				} else {
-					/**
-					 * No return
-					 */
-					out_js.println("        " + method.getName() + ": function() {");
-					out_js.println("        },");
+					pos.getAndIncrement();
 				}
+				
+				return var_name;
+			}).collect(Collectors.joining(", "));
+			
+			extractJSNameAnnotation(method, out_js);
+			
+			out_js.println("        " + method.getName() + ": function(" + funct_param + ") {");
+			if (return_simple_name.equalsIgnoreCase("void") == false) {
+				out_js.println("            return null;");
 			}
+			out_js.println("        },");
 		});
 		out_js.println("    },");
 		out_js.println("});");
@@ -128,7 +201,8 @@ public final class JSModuleManager {
 			out_js.println("/*");
 			out_js.println(" You can use console.log() or error() or debug() for debugging in Java side.");
 			out_js.println(" Content entries can be JS variables or functions.");
-			out_js.println(" Content entries name are not case sensitive.");
+			out_js.println(" Content entries names are not case sensitive.");
+			out_js.println(" Use Java annotations @JSVarName and @JSComment for display some informations in autogenerated JS code.");
 			out_js.println("*/");
 		}
 		out_js.close();
@@ -167,6 +241,7 @@ public final class JSModuleManager {
 			
 			declared_modules.add(new_module);
 		}
+		
 	}
 	
 	/**
@@ -212,13 +287,12 @@ public final class JSModuleManager {
 	public void load() {
 		js_conf_sources.forEach(js_file -> {
 			try {
+				Loggers.Factory.debug("Load JS file: " + js_file);
 				engine.eval(js_file);
 			} catch (NullPointerException | IOException | ScriptException e) {
 				Loggers.Factory.error("Can't load JS file: " + js_file, e);
 			}
 		});
 	}
-	
-	// TODO CLI for test/execute and JSModuleManager.createEmptyJSDefinition(MyDMAM.factory.getClassByName("hd3gtv.mydmam.Test$HW"), "hw");
 	
 }
