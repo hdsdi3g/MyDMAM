@@ -55,7 +55,7 @@ pathindex.react2lines = createReactClass({
 				<pathindex.reactMetadata1Line stat={this.props.stat} />
 				<br />
 				<span>
-					<pathindex.reactBasketButton pathindexkey={this.props.result.key}/> {external_location}&nbsp;
+					{external_location}&nbsp;
 					<strong className="storagename">
 						<a href={mydmam.routes.reverse("navigate") + result.content.storagename + ":/"}>
 							{result.content.storagename}

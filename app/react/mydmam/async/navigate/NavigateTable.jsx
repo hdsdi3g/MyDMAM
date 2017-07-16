@@ -113,7 +113,6 @@ navigate.NavigateTable = createReactClass({
 
 				td_element_name = (
 					<th>
-						<mydmam.async.pathindex.reactBasketButton pathindexkey={elementkey} />
 						{name}
 						{empty_badge}
 					</th>
@@ -125,7 +124,6 @@ navigate.NavigateTable = createReactClass({
 				}
 				td_element_name = (
 					<td>
-						<mydmam.async.pathindex.reactBasketButton pathindexkey={elementkey} />
 						<a
 							className="tlbdirlistitem"
 							href={mydmam.routes.reverse("navigate") + element.storagename + ":" + element.path}>
