@@ -28,7 +28,6 @@ import java.util.Calendar;
 import org.json.simple.parser.ParseException;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 
 public class ImporterCDFinder extends Importer {
 	
@@ -85,7 +84,7 @@ public class ImporterCDFinder extends Importer {
 				if (cols[4].equals("dossier") | cols[4].equals("Dossier d'archive Zip")) {
 					element.directory = true;
 				} else {
-					element.id = MyDMAM.getIdFromFilename(cols[0]);
+					element.id = Importer.getIdExtractorFileName().getId(cols[0]);
 					element.directory = false;
 				}
 				

@@ -229,7 +229,9 @@ public class Factory {
 	 * @see https://gist.github.com/thomasdarimont/974bf70fe51bbe03b05e
 	 */
 	public static <T> T instanceDynamicProxy(Class<? extends T> interface_to_instanciate, SimpleInvocationHandler dynamic_behavior) {
-		Object proxy = Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(), new Class[] { interface_to_instanciate }, (Object _proxy_do_not_use, Method method, Object[] arguments) -> {
+		ClassLoader cl = Thread.currentThread().getContextClassLoader();
+		// ClassLoader.getSystemClassLoader()
+		Object proxy = Proxy.newProxyInstance(cl, new Class[] { interface_to_instanciate }, (Object _proxy_do_not_use, Method method, Object[] arguments) -> {
 			return dynamic_behavior.dynamicInvoke(method, arguments);
 		});
 		

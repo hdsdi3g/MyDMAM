@@ -39,7 +39,7 @@ import jdk.nashorn.api.scripting.ScriptObjectMirror;
 
 public final class JSModuleManager {
 	
-	private static final String MODULE_JS_OBJECT_NAME = "module";
+	public static final String MODULE_JS_OBJECT_NAME = "universalmodule";
 	
 	private ArrayList<File> js_conf_sources;
 	private NashornEngine engine;
@@ -190,7 +190,11 @@ public final class JSModuleManager {
 			
 			out_js.println("        " + method.getName() + ": function(" + funct_param + ") {");
 			if (return_simple_name.equalsIgnoreCase("void") == false) {
-				out_js.println("            return null;");
+				if (return_simple_name.equalsIgnoreCase("boolean")) {
+					out_js.println("            return false;");
+				} else {
+					out_js.println("            return null;");
+				}
 			}
 			out_js.println("        },");
 		});

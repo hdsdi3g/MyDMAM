@@ -124,8 +124,13 @@ public class CLIJS implements CLIDefinition {
 				System.out.println("Result:");
 				System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(method_to_run.invoke(module)));
 			} else {
+				Object o_method_args = method_args;
+				
 				JsonParser json_parser = new JsonParser();
-				Object o_method_args = MyDMAM.gson_kit.getGsonSimple().fromJson(json_parser.parse(method_args), method_to_run.getParameterTypes()[0]);
+				Class<?> ptype = method_to_run.getParameterTypes()[0];
+				if (ptype != String.class) {
+					o_method_args = MyDMAM.gson_kit.getGsonSimple().fromJson(json_parser.parse(method_args), ptype);
+				}
 				System.out.println("Result: " + MyDMAM.gson_kit.getGsonPretty().toJson(method_to_run.invoke(module, o_method_args)));
 			}
 		} else {
