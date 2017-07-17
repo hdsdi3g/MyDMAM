@@ -49,10 +49,10 @@ async.DemoColorTemplate = createReactClass({
 	},
 	render: function() {
 		var bkg_color = (this.state.color_luma * 0.35) + 14;  /* +/- 13>31 */
-		var frt_color = (this.state.color_luma * 0.35) + 70;
+		var frt_color = (this.state.color_luma * 0.35) + 80;
 
 		if (this.state.color_luma > 50) {
-			bkg_color = (this.state.color_luma);
+			bkg_color = (this.state.color_luma * 0.7) + 30;
 			frt_color = (this.state.color_luma * 0.1) + 5;
 		}
 
@@ -64,13 +64,11 @@ async.DemoColorTemplate = createReactClass({
 
 		var well_bkg_color = bkg_color + 10;
 		var well_bkg_sat = 30;
+		var well_shadow = cssHSL(0, 0, well_bkg_color - 12, 0.8);
 		if (this.state.color_luma > 50) {
-			well_bkg_color = bkg_color;
-			well_bkg_sat = 25;
-		}
-		if (this.state.color_luma > 75) {
 			well_bkg_color = bkg_color - 10;
-			well_bkg_sat = 40;
+			well_bkg_sat = 30;
+			well_shadow = cssHSL(0, 0, well_bkg_color - 5, 0.8);
 		}
 
 		var well_style = {
@@ -80,12 +78,18 @@ async.DemoColorTemplate = createReactClass({
 			paddingRight: "8px",
 			paddingTop: "4px",
 			paddingBottom: "4px",
+			textShadow: "0px -1px 0 " + well_shadow,
+			borderRadius: "3px",
 		};
 
-		var btn_color = cssHSL(0, 0, 95);
-		var btn_bkg_color = cssHSL(this.state.color_hue, 60, 50);
+		var btn_color = cssHSL(0, 0, 95);//TODO dark/white
+		var btn_bkg_color = cssHSL(this.state.color_hue, 60, 50, 0.2);
 		if (this.state.color_hue > 35 && this.state.color_hue < 190) {
 			btn_color = cssHSL(0, 0, 5);
+		}
+		var btn_border = 30;
+		if (this.state.color_luma > 50) {
+			btn_border = 80;
 		}
 
 		var btn_style = {
@@ -96,6 +100,9 @@ async.DemoColorTemplate = createReactClass({
 			paddingTop: "4px",
 			paddingBottom: "4px",
 			marginLeft: "6px",
+			textShadow: "-1px 0px 0 " + cssHSL(0, 0, 50, 0.4),
+			border: "1px solid " + cssHSL(this.state.color_hue, 40, btn_border, 0.8),
+			borderRadius: "5px",
 		};
 
 		var link_color = cssHSL(this.state.color_hue + 10, 50, 60);
@@ -135,10 +142,15 @@ async.DemoColorTemplate = createReactClass({
 		var block_color = bkg_color + 5;
 		if (this.state.color_luma > 50) {
 			block_color = bkg_color - 5;
+			if (this.state.color_luma > 90) {
+				block_color = bkg_color - 8;
+			}
 		}
+
 		var block_style = {
 			backgroundColor: cssHSL(0, 0, block_color),
 			padding: 12,
+			borderRadius: "3px",
 		};
 
 		var icon_style = {
@@ -150,6 +162,7 @@ async.DemoColorTemplate = createReactClass({
 			padding: "4px 12px",
 			marginBottom: 0,
 			verticalAlign: "middle",
+			borderRadius: "5px",
 		};
 
 		var icon_class = classNames("icon-off", {
