@@ -62,6 +62,11 @@ public class MyDMAM {
 	 * Search application.conf in classpath, and return the /mydmam main directory.
 	 */
 	public static final File APP_ROOT_PLAY_DIRECTORY;
+	
+	/**
+	 * @see APP_ROOT_PLAY_DIRECTORY
+	 * @return APP_ROOT_PLAY_DIRECTORY/conf
+	 */
 	public static final File APP_ROOT_PLAY_CONF_DIRECTORY;
 	
 	static {
@@ -78,67 +83,6 @@ public class MyDMAM {
 			play_bootstrapper = new PlayBootstrap();
 		}
 		return play_bootstrapper;
-	}
-	
-	/**
-	 * @param filename without path
-	 * @return S0000000 or 00000000 or null
-	 */
-	public static String getIdFromFilename(String filename) {
-		if (filename == null) {
-			return null;
-		}
-		if (filename.length() < 8) {
-			return null;
-		}
-		char[] chars = filename.toCharArray();
-		char curchar;
-		for (int pos = 0; pos < 8; pos++) {
-			curchar = chars[pos];
-			if ((curchar > 47) && (curchar < 58)) {
-				/**
-				 * from 0 to 9
-				 */
-				continue;
-			}
-			if (((curchar == 83) || (curchar == 115)) && (pos == 0)) {
-				/**
-				 * Start by "S" or "s"
-				 */
-				continue;
-			}
-			return null;
-		}
-		
-		return filename.substring(0, 8);
-	}
-	
-	/**
-	 * @return true if S0000000 or 00000000
-	 */
-	public static boolean isValidMediaId(String value) {
-		if (value.length() != 8) {
-			return false;
-		}
-		char[] chars = value.toCharArray();
-		char curchar;
-		for (int pos = 0; pos < 8; pos++) {
-			curchar = chars[pos];
-			if ((curchar > 47) && (curchar < 58)) {
-				/**
-				 * from 0 to 9
-				 */
-				continue;
-			}
-			if (((curchar == 83) || (curchar == 115)) && (pos == 0)) {
-				/**
-				 * Start by "S" or "s"
-				 */
-				continue;
-			}
-			return false;
-		}
-		return true;
 	}
 	
 	public static final String byteToString(byte[] b) {

@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2014
  * 
 */
-package hd3gtv.mydmam.cli;
+package hd3gtv.mydmam.metadata;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -23,11 +23,7 @@ import java.util.stream.Collectors;
 
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
-import hd3gtv.mydmam.metadata.MetadataCenter;
-import hd3gtv.mydmam.metadata.MetadataExtractor;
-import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
-import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
-import hd3gtv.mydmam.metadata.MetadataStorageIndexer;
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.metadata.container.Container;
 import hd3gtv.mydmam.metadata.container.ContainerOperations;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -36,7 +32,7 @@ import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.CopyMove;
 import hd3gtv.tools.TableList;
 
-public class CliModuleMetadata implements CliModule {
+public class CLIMetadata implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "mtd";

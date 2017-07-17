@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.mydmam.cli;
+package hd3gtv.configuration;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,14 +28,11 @@ import java.util.stream.Collectors;
 
 import groovy.text.SimpleTemplateEngine;
 import groovy.text.Template;
-import hd3gtv.configuration.GitInfo;
-import hd3gtv.configuration.GithubIssue;
-import hd3gtv.configuration.GithubIssuesList;
-import hd3gtv.configuration.IGitInfo;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.tools.ApplicationArgs;
 
-public class CliModuleProject implements CliModule {
+public class CLIProject implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "project";

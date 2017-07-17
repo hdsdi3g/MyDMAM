@@ -159,7 +159,6 @@ navigate.HeaderItem = createReactClass({
 		return (
 			<div className="page-header">
 				<h3>{header_title}</h3>
-				<mydmam.async.pathindex.reactBasketButton pathindexkey={this.props.pathindexkey} />
 				<mydmam.async.pathindex.reactDate date={reference.date} i18nlabel={"browser.file.modifiedat"} />
 				<mydmam.async.pathindex.reactDate date={dateindex} i18nlabel={"browser.file.indexedat"} />
 				<mydmam.async.pathindex.reactFileSize size={reference.size} />

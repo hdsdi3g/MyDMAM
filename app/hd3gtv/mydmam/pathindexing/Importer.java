@@ -20,10 +20,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.elasticsearch.search.SearchHit;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.db.ElasticsearchBulkOperation;
 import hd3gtv.mydmam.web.search.SearchResult;
@@ -175,4 +177,25 @@ public abstract class Importer {
 		}
 		
 	}
+	
+	private static IdExtractorFileName cached;
+	
+	public static IdExtractorFileName getIdExtractorFileName() {
+		if (cached == null) {
+			Supplier<IdExtractorFileName> supplier = () -> {
+				return new IdExtractorFileName() {
+					public boolean isValidId(String filename) {
+						return false;
+					}
+					
+					public String getId(String filename) {
+						return null;
+					}
+				};
+			};
+			cached = MyDMAM.factory.getInterfaceDeclaredByJSModule(IdExtractorFileName.class, IdExtractorFileName.MODULE_NAME, supplier);
+		}
+		return cached;
+	}
+	
 }

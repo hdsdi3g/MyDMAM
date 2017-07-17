@@ -153,7 +153,7 @@ public final class SearchQuery implements ElastisearchStatSearch {
 		}
 		
 		Operation operation = new Operation(this);
-		boolean isvalidmediaid = MyDMAM.isValidMediaId(q);
+		boolean isvalidmediaid = Importer.getIdExtractorFileName().isValidId(q);
 		BoolQueryBuilder querybuilder;
 		
 		if (isvalidmediaid) {

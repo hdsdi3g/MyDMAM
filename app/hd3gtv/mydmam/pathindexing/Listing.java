@@ -17,7 +17,6 @@
 package hd3gtv.mydmam.pathindexing;
 
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.storage.AbstractFile;
 import hd3gtv.mydmam.storage.IgnoreFiles;
 import hd3gtv.mydmam.storage.StorageCrawler;
@@ -65,7 +64,7 @@ class Listing implements StorageCrawler {
 		}
 		if (element.directory == false) {
 			element.size = file.length();
-			element.id = MyDMAM.getIdFromFilename(file.getName());
+			element.id = Importer.getIdExtractorFileName().getId(file.getName());
 		}
 		element.storagename = referer.getName();
 		
