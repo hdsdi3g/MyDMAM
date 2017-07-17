@@ -179,6 +179,18 @@ if(!mydmam.routes.statics){mydmam.routes.statics = {};}
 		};
 	}
 
+	if (window.cssGrad == null) {
+		// to bottom
+		window.cssGrad = function(direction, steps) {
+			var css_steps = [];
+			for (var pos in steps) {
+				var step = steps[pos];
+				css_steps.push(step.c + " " + step.step + "%");
+			}
+			return "linear-gradient(" + direction + ", " + css_steps.join(", ") + ")";
+		};
+	}
+
 })(window);
 
 /**
