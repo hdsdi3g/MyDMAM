@@ -62,6 +62,9 @@ async.DemoColorTemplate = createReactClass({
 			padding: 12,
 		};
 
+		/**
+		 * Well
+		 */ 
 		var well_bkg_color = bkg_color + 10;
 		var well_bkg_sat = 30;
 		var well_shadow = cssHSL(0, 0, well_bkg_color - 12, 0.8);
@@ -79,54 +82,18 @@ async.DemoColorTemplate = createReactClass({
 			paddingRight: "8px",
 			paddingTop: "4px",
 			paddingBottom: "4px",
-			textShadow: "0px -1px 0 " + well_shadow,
+			/*textShadow: "0px -1px 0 " + well_shadow,*/
 			borderRadius: "3px",
 			marginTop: "12px",
 			border: "1px solid " + cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color - 8),
 		};
 
-		var btn_border = 70;
-		if (this.state.color_luma > 50) {
-			btn_border = 40;
-		}
-		var btn_style = {
-			color: cssHSL(0, 0, frt_color),
-			backgroundColor: cssHSL(0, 0, bkg_color),
-			paddingLeft: "8px",
-			paddingRight: "8px",
-			paddingTop: "5px",
-			paddingBottom: "4px",
-			marginLeft: "6px",
-			/*textShadow: "0px -1px 0 " + cssHSL(0, 0, 50, 0.2),*/
-			border: "1px solid " + cssHSL(this.state.color_hue, 60, btn_border, 0.5),
-			borderRadius: "5px",
-			textDecorationLine: "none",
-		};
-
-		var btn_hover_style = Object.assign({}, btn_style);
-		btn_hover_style.border = "1px solid " + cssHSL(this.state.color_hue, 50, btn_border - 10, 0.5);
-		btn_hover_style.backgroundColor = cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color);
-
-		var btn_active_style = Object.assign({}, btn_hover_style);
-		btn_active_style.background = cssGrad("to bottom", [
-			{c: cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color - 15), step: 0},
-			{c: cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color), step: 30},
-			{c: cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color), step: 100},
-		]);
-		btn_active_style.border = "1px solid " + cssHSL(this.state.color_hue, 30, btn_border - 20, 0.5);
-		if (this.state.color_luma > 40) {
-			btn_active_style.background = cssGrad("to bottom", [
-				{c: cssHSL(this.state.color_hue, well_bkg_sat - 10, well_bkg_color - 20), step: 0},
-				{c: cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color - 10), step: 15},
-				{c: cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color - 5), step: 100},
-			]);
-			btn_active_style.border = "1px solid " + cssHSL(this.state.color_hue, 40, btn_border - 20, 0.5);
-		}
-
+		/**
+		 * Link
+		 */ 
 		var link_color = cssHSL(this.state.color_hue + 10, 50, 60);
-		if (this.state.color_luma < 50 && this.state.color_hue > 195 && this.state.color_hue < 280) {
-			/** dark & blue */
-			link_color = cssHSL(this.state.color_hue + 10, 40, 70);
+		if (this.state.color_luma > 25) { /* && this.state.color_hue > 195 && this.state.color_hue < 280 *//** dark & blue */
+			link_color = cssHSL(this.state.color_hue + 10, 70, 75);
 		}
 		if (this.state.color_luma > 50) {
 			/** mid */
@@ -157,6 +124,9 @@ async.DemoColorTemplate = createReactClass({
 			textDecorationLine: "underline",
 		};
 
+		/**
+		 * Block
+		 */ 
 		var block_color = bkg_color + 5;
 		if (this.state.color_luma > 50) {
 			block_color = bkg_color - 5;
@@ -172,6 +142,75 @@ async.DemoColorTemplate = createReactClass({
 			borderRadius: "3px",
 		};
 
+		/**
+		 * Buttons
+		 */ 
+		var btn_border = 70;
+		if (this.state.color_luma > 50) {
+			btn_border = 40;
+		}
+		/** Standby */
+		var btn_style = {
+			color: cssHSL(0, 0, frt_color),
+			backgroundColor: cssHSL(0, 0, bkg_color),
+			paddingLeft: "8px",
+			paddingRight: "8px",
+			paddingTop: "5px",
+			paddingBottom: "4px",
+			marginLeft: "6px",
+			border: "1px solid " + cssHSL(this.state.color_hue, 60, btn_border, 0.5),
+			borderRadius: "5px",
+			textDecorationLine: "none",
+		};
+
+		var btn_style_well = Object.assign({}, btn_style);
+		btn_style_well.backgroundColor = well_style.backgroundColor;
+
+		var btn_style_block = Object.assign({}, btn_style);
+		btn_style_block.backgroundColor = block_style.backgroundColor;
+
+		/** Hover */
+		var btn_hover_style = Object.assign({}, btn_style);
+		btn_hover_style.border = "1px solid " + cssHSL(this.state.color_hue, 50, btn_border - 10, 0.5);
+		btn_hover_style.backgroundColor = cssHSL(0, 0, block_color);
+
+		var btn_hover_style_well = Object.assign({}, btn_hover_style);
+		btn_hover_style_well.backgroundColor = cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color - 3);
+
+		var btn_hover_style_block = Object.assign({}, btn_hover_style);
+		btn_hover_style_block.backgroundColor = cssHSL(0, 0, block_color - 5);
+
+		/** Active */
+		var createGrad = function(source_dark, source_light, dest) {
+			var result = cssGrad("to bottom", [
+				{c: source_dark, step: 0},
+				{c: dest, step: 40},
+				{c: dest, step: 100},
+			]);
+			//btn_active_style.border = "1px solid " + cssHSL(this.state.color_hue, 30, btn_border - 20, 0.5);
+			if (this.state.color_luma > 50) {
+				btn_active_style.background = cssGrad("to bottom", [
+					{c: source_light, step: 0},
+					{c: dest, step: 50},
+					{c: dest, step: 100},
+				]);
+				//btn_active_style.border = "1px solid " + cssHSL(this.state.color_hue, 40, btn_border - 20, 0.5);
+			}
+			return result;
+		}.bind(this);
+
+		var btn_active_style = Object.assign({}, btn_hover_style);
+		btn_active_style.background = createGrad(cssHSL(this.state.color_hue, well_bkg_sat - 20, well_bkg_color - 15), cssHSL(this.state.color_hue, well_bkg_sat - 50, well_bkg_color - 10), btn_hover_style.backgroundColor);
+
+		var btn_active_style_well = Object.assign({}, btn_hover_style);
+		btn_active_style_well.background = createGrad(cssHSL(this.state.color_hue, well_bkg_sat - 20, well_bkg_color - 15), cssHSL(this.state.color_hue, well_bkg_sat - 50, well_bkg_color - 10), btn_hover_style_well.backgroundColor);
+		
+		var btn_active_style_block = Object.assign({}, btn_hover_style);
+		btn_active_style_block.background = createGrad(cssHSL(this.state.color_hue, well_bkg_sat - 20, well_bkg_color - 15), cssHSL(this.state.color_hue, well_bkg_sat - 50, well_bkg_color - 5), btn_hover_style_block.backgroundColor);
+
+		/**
+		 * Icon
+		 */
 		var icon_style = Object.assign({}, btn_style);
 		icon_style.display = "inline-block";
 		icon_style.paddingTop = "3px";
@@ -180,17 +219,8 @@ async.DemoColorTemplate = createReactClass({
 		icon_style.borderRadius = "5px";
 
 		var icon_class = classNames("icon-off", {
-			"icon-white": this.state.color_luma < 50,
+			"icon-white": this.state.color_luma <= 50,
 		});
-
-		var btn_style_well = Object.assign({}, btn_style);
-		btn_style_well.backgroundColor = well_style.backgroundColor;
-		var btn_hover_style_well = Object.assign({}, btn_hover_style);
-		btn_hover_style_well.backgroundColor = cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color - 3);
-
-		var btn_style_block = Object.assign({}, btn_style);
-		btn_style_block.backgroundColor = block_style.backgroundColor;
-
 		// TODO navbar-inverse + body background
 		
 		//<canvas ref="canvas" width="360" height="30"></canvas>
@@ -209,15 +239,18 @@ async.DemoColorTemplate = createReactClass({
 					This is a well <a style={link_style} href="#" onClick={this.onClickNothing}>This is a link in a well</a> <a style={hover_link_style} href="#" onClick={this.onClickNothing}>Hover link</a>
 					<a style={btn_style_well} href="#" onClick={this.onClickNothing}>This is an important button</a>
 					<a style={btn_hover_style_well} href="#" onClick={this.onClickNothing}>Hover button</a>
-					<a style={btn_active_style} href="#" onClick={this.onClickNothing}>Active button</a>
+					<a style={btn_active_style_well} href="#" onClick={this.onClickNothing}>Active button</a>
 					<div style={icon_style}><i className={icon_class}></i></div>
 				</div>
 				<div style={block_style}>
 					This is a block <a style={link_style} href="#" onClick={this.onClickNothing}>This is a link in a block</a> <a style={hover_link_style} href="#" onClick={this.onClickNothing}>Hover link</a>
 					<a style={btn_style_block} href="#" onClick={this.onClickNothing}>This is an important button</a>
-					<a style={btn_hover_style} href="#" onClick={this.onClickNothing}>Hover button</a>
-					<a style={btn_active_style} href="#" onClick={this.onClickNothing}>Active button</a>
+					<a style={btn_hover_style_block} href="#" onClick={this.onClickNothing}>Hover button</a>
+					<a style={btn_active_style_block} href="#" onClick={this.onClickNothing}>Active button</a>
 					<div style={icon_style}><i className={icon_class}></i></div>
+					<div style={well_style}>
+						This is a well in a block <a style={link_style} href="#" onClick={this.onClickNothing}>This is a link in a well in a block</a> <a style={hover_link_style} href="#" onClick={this.onClickNothing}>Hover link</a>
+					</div>
 				</div>
 			</div>
 			<input type="range" ref="color_luma" min="0" max="100" defaultValue={0} onChange={this.onMoveSlider} /> {this.state.color_luma}<br />
