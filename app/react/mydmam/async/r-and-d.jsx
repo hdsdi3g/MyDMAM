@@ -16,201 +16,64 @@
  * Research and development for some new tools
  */
 
+var lookandfeel = mydmam.async.lookandfeel;
+
 async.DemoColorTemplate = createReactClass({
-	getInitialState: function() {
-		return {
-			color_luma: 0,
-			color_hue: 0,
-		};
-	},
 	onClickNothing: function(e) {
 		e.preventDefault();
 	},
 	onMoveSlider: function(e) {
 		e.preventDefault();
-		var value_luma = parseInt(ReactDOM.findDOMNode(this.refs.color_luma).value, 10);
-		var value_hue = parseInt(ReactDOM.findDOMNode(this.refs.color_hue).value, 10);
-		this.setState({
-			color_luma: value_luma,
-			color_hue: value_hue,
-		});
-	},
-	componentDidMount: function() {
-		/*var canvas = ReactDOM.findDOMNode(this.refs.canvas);
-		var ctx = canvas.getContext("2d");
-		for (var i = 0; i < 360; i++) {
-			ctx.beginPath();
-			ctx.moveTo(i, 0);
-			ctx.lineTo(i, 30);
-			ctx.lineWidth = 1;
-			ctx.strokeStyle = cssHSL(i, 80, 60);
-			ctx.stroke();
-		}*/
+		var value_luma = parseInt(ReactDOM.findDOMNode(this.refs.base_luma).value, 10);
+		var value_hue = parseInt(ReactDOM.findDOMNode(this.refs.base_hue).value, 10);
+		lookandfeel.changeBaseColors(value_luma, value_hue);
+		this.forceUpdate();
 	},
 	render: function() {
-		var bkg_color = (this.state.color_luma * 0.35) + 14;  /* +/- 13>31 */
-		var frt_color = (this.state.color_luma * 0.35) + 80;
+		var base_luma = lookandfeel.getBaseLuma();
+		var base_hue = lookandfeel.getBaseHue();
+		var applyStyle = lookandfeel.applyStyle;
 
-		if (this.state.color_luma > 50) {
-			bkg_color = (this.state.color_luma * 0.7) + 30;
-			frt_color = (this.state.color_luma * 0.1) + 5;
-		}
-
-		var bkg_style = {
-			backgroundColor: cssHSL(0, 0, bkg_color),
-			color: cssHSL(0, 0, frt_color),
+		var base_style = applyStyle("default", {
 			padding: 12,
-		};
-
-		/**
-		 * Well
-		 */ 
-		var well_bkg_color = bkg_color + 10;
-		var well_bkg_sat = 30;
-		var well_shadow = cssHSL(0, 0, well_bkg_color - 12, 0.8);
-		if (this.state.color_luma > 50) {
-			well_bkg_color = bkg_color - 8;
-			well_bkg_sat = 30;
-			well_shadow = cssHSL(0, 0, well_bkg_color - 5, 0.8);
-		}
-
-		var well_style = {
-			backgroundColor: cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color),
-			color: cssHSL(0, 0, frt_color),
+		});
+		var well_style = applyStyle("well", {
 			display: "block",
 			paddingLeft: "8px",
 			paddingRight: "8px",
 			paddingTop: "4px",
 			paddingBottom: "4px",
-			/*textShadow: "0px -1px 0 " + well_shadow,*/
 			borderRadius: "3px",
 			marginTop: "12px",
-			border: "1px solid " + cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color - 8),
-		};
-
-		/**
-		 * Link
-		 */ 
-		var link_color = cssHSL(this.state.color_hue + 10, 50, 60);
-		if (this.state.color_luma > 25) { /* && this.state.color_hue > 195 && this.state.color_hue < 280 *//** dark & blue */
-			link_color = cssHSL(this.state.color_hue + 10, 70, 75);
-		}
-		if (this.state.color_luma > 50) {
-			/** mid */
-			if (this.state.color_hue > 20 && this.state.color_hue < 200) {
-				/* orange -> blue */
-				link_color = cssHSL(this.state.color_hue + 10, 70, 20);
-			} else {
-				/* red -> orange / blue -> violet */
-				link_color = cssHSL(this.state.color_hue + 10, 80, 15);
-			}
-		}
-		if (this.state.color_luma > 75) {
-			/** high */
-			link_color = cssHSL(this.state.color_hue + 10, 100, 30);
-		}
-
-		var link_style = {
-			color: link_color,
-			textDecorationColor: link_color,
-			textDecorationStyle: "dotted",
-			textDecorationLine: "underline",
-		};
-
-		var hover_link_style = {
-			color: link_color,
-			textDecorationColor: link_color,
-			textDecorationStyle: "solid",
-			textDecorationLine: "underline",
-		};
-
-		/**
-		 * Block
-		 */ 
-		var block_color = bkg_color + 5;
-		if (this.state.color_luma > 50) {
-			block_color = bkg_color - 5;
-			if (this.state.color_luma > 90) {
-				block_color = bkg_color - 8;
-			}
-		}
-
-		var block_style = {
-			backgroundColor: cssHSL(0, 0, block_color),
+		});
+		var block_style = applyStyle("block", {
 			padding: 12,
 			marginTop: "12px",
 			borderRadius: "3px",
-		};
+		});
+		var link_style = applyStyle("link_normal");
+		var hover_link_style = applyStyle("link_hover");
 
-		/**
-		 * Buttons
-		 */ 
-		var btn_border = 70;
-		if (this.state.color_luma > 50) {
-			btn_border = 40;
-		}
-		/** Standby */
-		var btn_style = {
-			color: cssHSL(0, 0, frt_color),
-			backgroundColor: cssHSL(0, 0, bkg_color),
+		var base_button = {
 			paddingLeft: "8px",
 			paddingRight: "8px",
 			paddingTop: "5px",
 			paddingBottom: "4px",
 			marginLeft: "6px",
-			border: "1px solid " + cssHSL(this.state.color_hue, 60, btn_border, 0.5),
-			borderRadius: "5px",
-			textDecorationLine: "none",
 		};
 
-		var btn_style_well = Object.assign({}, btn_style);
-		btn_style_well.backgroundColor = well_style.backgroundColor;
-
-		var btn_style_block = Object.assign({}, btn_style);
-		btn_style_block.backgroundColor = block_style.backgroundColor;
-
-		/** Hover */
-		var btn_hover_style = Object.assign({}, btn_style);
-		btn_hover_style.border = "1px solid " + cssHSL(this.state.color_hue, 50, btn_border - 10, 0.5);
-		btn_hover_style.backgroundColor = cssHSL(0, 0, block_color);
-
-		var btn_hover_style_well = Object.assign({}, btn_hover_style);
-		btn_hover_style_well.backgroundColor = cssHSL(this.state.color_hue, well_bkg_sat, well_bkg_color - 3);
-
-		var btn_hover_style_block = Object.assign({}, btn_hover_style);
-		btn_hover_style_block.backgroundColor = cssHSL(0, 0, block_color - 5);
-
-		/** Active */
-		var createGrad = function(source_dark, source_light, dest) {
-			var result = cssGrad("to bottom", [
-				{c: source_dark, step: 0},
-				{c: dest, step: 40},
-				{c: dest, step: 100},
-			]);
-			//btn_active_style.border = "1px solid " + cssHSL(this.state.color_hue, 30, btn_border - 20, 0.5);
-			if (this.state.color_luma > 50) {
-				btn_active_style.background = cssGrad("to bottom", [
-					{c: source_light, step: 0},
-					{c: dest, step: 50},
-					{c: dest, step: 100},
-				]);
-				//btn_active_style.border = "1px solid " + cssHSL(this.state.color_hue, 40, btn_border - 20, 0.5);
-			}
-			return result;
-		}.bind(this);
-
-		var btn_active_style = Object.assign({}, btn_hover_style);
-		btn_active_style.background = createGrad(cssHSL(this.state.color_hue, well_bkg_sat - 20, well_bkg_color - 15), cssHSL(this.state.color_hue, well_bkg_sat - 50, well_bkg_color - 10), btn_hover_style.backgroundColor);
-
-		var btn_active_style_well = Object.assign({}, btn_hover_style);
-		btn_active_style_well.background = createGrad(cssHSL(this.state.color_hue, well_bkg_sat - 20, well_bkg_color - 15), cssHSL(this.state.color_hue, well_bkg_sat - 50, well_bkg_color - 10), btn_hover_style_well.backgroundColor);
-		
-		var btn_active_style_block = Object.assign({}, btn_hover_style);
-		btn_active_style_block.background = createGrad(cssHSL(this.state.color_hue, well_bkg_sat - 20, well_bkg_color - 15), cssHSL(this.state.color_hue, well_bkg_sat - 50, well_bkg_color - 5), btn_hover_style_block.backgroundColor);
+		var btn_style = applyStyle("btn_normal", Object.assign({}, base_button));
+		var btn_hover_style = applyStyle("btn_hover", Object.assign({}, base_button));
+		var btn_active_style = applyStyle("btn_active", Object.assign({}, base_button));
+		var btn_style_well = applyStyle("btn_well_normal", Object.assign({}, base_button));
+		var btn_hover_style_well = applyStyle("btn_well_hover", Object.assign({}, base_button));
+		var btn_active_style_well = applyStyle("btn_well_active", Object.assign({}, base_button));
+		var btn_style_block = applyStyle("btn_block_normal", Object.assign({}, base_button));
+		var btn_hover_style_block = applyStyle("btn_block_hover", Object.assign({}, base_button));
+		var btn_active_style_block = applyStyle("btn_block_active", Object.assign({}, base_button));
 
 		/**
 		 * Icon
-		 */
 		var icon_style = Object.assign({}, btn_style);
 		icon_style.display = "inline-block";
 		icon_style.paddingTop = "3px";
@@ -219,98 +82,42 @@ async.DemoColorTemplate = createReactClass({
 		icon_style.borderRadius = "5px";
 
 		var icon_class = classNames("icon-off", {
-			"icon-white": this.state.color_luma <= 50,
-		});
+			"icon-white": base_luma <= 50,
+		});*/
+		// <div style={icon_style}><i className={icon_class}></i></div>
+
 		// TODO navbar-inverse + body background
-		
-		//<canvas ref="canvas" width="360" height="30"></canvas>
+
 		return (<div>
-			<div style={bkg_style}>
+			<div style={base_style}>
 				
 				This is a text.
 				<a style={link_style} href="#" onClick={this.onClickNothing}>This is a link</a> <a style={hover_link_style} href="#" onClick={this.onClickNothing}>Hover link</a>
 				<a style={btn_style} href="#" onClick={this.onClickNothing}>This is an important button</a>
 				<a style={btn_hover_style} href="#" onClick={this.onClickNothing}>Hover button</a>
 				<a style={btn_active_style} href="#" onClick={this.onClickNothing}>Active button</a>
-				<div style={icon_style}><i className={icon_class}></i></div>
-
 				<br />
 				<div style={well_style}>
 					This is a well <a style={link_style} href="#" onClick={this.onClickNothing}>This is a link in a well</a> <a style={hover_link_style} href="#" onClick={this.onClickNothing}>Hover link</a>
 					<a style={btn_style_well} href="#" onClick={this.onClickNothing}>This is an important button</a>
 					<a style={btn_hover_style_well} href="#" onClick={this.onClickNothing}>Hover button</a>
 					<a style={btn_active_style_well} href="#" onClick={this.onClickNothing}>Active button</a>
-					<div style={icon_style}><i className={icon_class}></i></div>
 				</div>
 				<div style={block_style}>
 					This is a block <a style={link_style} href="#" onClick={this.onClickNothing}>This is a link in a block</a> <a style={hover_link_style} href="#" onClick={this.onClickNothing}>Hover link</a>
 					<a style={btn_style_block} href="#" onClick={this.onClickNothing}>This is an important button</a>
 					<a style={btn_hover_style_block} href="#" onClick={this.onClickNothing}>Hover button</a>
 					<a style={btn_active_style_block} href="#" onClick={this.onClickNothing}>Active button</a>
-					<div style={icon_style}><i className={icon_class}></i></div>
 					<div style={well_style}>
 						This is a well in a block <a style={link_style} href="#" onClick={this.onClickNothing}>This is a link in a well in a block</a> <a style={hover_link_style} href="#" onClick={this.onClickNothing}>Hover link</a>
 					</div>
 				</div>
 			</div>
-			<input type="range" ref="color_luma" min="0" max="100" defaultValue={0} onChange={this.onMoveSlider} /> {this.state.color_luma}<br />
-			<input type="range" ref="color_hue" min="0" max="359" defaultValue={0} onChange={this.onMoveSlider} /> {this.state.color_hue}<br />
+			<input type="range" ref="base_luma" min="0" max="100" defaultValue={lookandfeel.getBaseLuma()} onChange={this.onMoveSlider} /> {base_luma}<br />
+			<input type="range" ref="base_hue" min="0" max="359" defaultValue={lookandfeel.getBaseHue()} onChange={this.onMoveSlider} /> {base_hue}<br />
 		</div>);
-
-		//var defs = [];
-		/*defs.push({ name: "assbk", content: ["7ec499", "000000", "ffffff", "148b3e", "f4f4f4", "", "", "", "", ""], });*/
-		/*defs.push({ name: "avd1", content: ["", "969696", "181818", "7e9dbf", "1e1e1e", "515c67", "353535", "7a7a7a", "", ""], });
-		defs.push({ name: "avd2", content: ["", "b3b3b3", "272727", "7e9dbf", "2e2e2e", "495b70", "4b4b4b", "939393", "", ""], });
-		defs.push({ name: "avd3", content: ["", "cccccc", "373737", "7e9dbf", "414141", "445569", "6c6c6c", "ababab", "", ""], });
-		defs.push({ name: "avd4", content: ["", "1a1a1a", "535353", "000000", "666666", "445569", "959595", "222222", "", ""], });
-		defs.push({ name: "avd5", content: ["", "1a1a1a", "6c6c6c", "000000", "818181", "8c9eb1", "b2b2b2", "2A2A2A", "", ""], });
-		defs.push({ name: "avd6", content: ["", "1a1a1a", "838383", "000000", "959595", "a0b0c1", "d1d1d1", "323232", "", ""], });*/
-		/*defs.push({ name: "cntmo1", content: ["", "000000", "f0f0f0", "2f4fcc", "f7f7f7", "", "", "4d4d4d", "d4d4d4", ""], });
-		defs.push({ name: "cntmo2", content: ["", "e8e8e8", "292929", "3686bf", "24242a", "", "", "4d4d4d", "242529", ""], });
-		defs.push({ name: "frmio", content: ["", "e6ecf8", "2f3440", "bdc1d1", "3c4054", "1e212a", "252835", "838ba1", "ffffff", "524afb"], });
-		defs.push({ name: "kyfw", content: ["", "c6c4c3", "1d1d1d", "e8e8e8", "232323", "3ca8f4", "8d8d8d", "3197fb", "262626", ""], });
-		defs.push({ name: "ppro2", content: ["", "a2a2a2", "202020", "2176ce", "1b1b1b", "3c4144", "", "a7a7a7", "", ""], });
-		defs.push({ name: "ppro1", content: ["5b5b5b", "787878", "3c3c3c", "529ad3", "3a3a3a", "134c7a", "494949", "b7b7b7", "", ""], });*/
-
-		/*defs.push({
-			name: "btn-avd",
-			content: ["5f7792", "587f7e", "558656", "875b95", "a9963f", "be8e1c", ],
-		});*/
-
-		/*var blocks = [];
-		for (var pos in defs) {
-			var sub_block = [];
-			// style={{width: "50px", height: "50px", color: f_color, backgroundColor: b_color}}
-			var def = defs[pos];
-
-			for (var pos2 in def.content) {
-				var color = "#" + def.content[pos2];
-				sub_block.push(<td key={pos2} style={{backgroundColor: color, margin: 0, padding: 0}}>
-					<span style={{margin: 0, paddingLeft: "10px", paddingRight: "10px"}}>&nbsp;</span>
-				</td>);
-			}
-
-			blocks.push(<tr key={pos}>
-				<td key={-1}><span style={{marginLeft: "5px", marginRight: "5px"}}>{def.name}</span></td>
-				{sub_block}
-			</tr>);
-		}*/
-		//return (<table style={{border: 0}}><tbody>{blocks}</tbody></table>);
-
-		/*
-		var b_color = mydmam.lookandfeel.get("bgnd2");
-		var f_color = mydmam.lookandfeel.get("frt2");
-
-		return (<div>
-			<div style={{width: "100px", height: "100px", color: f_color, backgroundColor: b_color}}>
-				Text
-			</div>
-			<br />
-			<button onClick={this.onClickChange} className="btn">Change</button>
-		</div>);*/
 	}
 });
-
 
 /*
 Panels and item list
