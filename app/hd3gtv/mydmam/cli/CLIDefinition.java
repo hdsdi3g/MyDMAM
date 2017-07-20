@@ -18,7 +18,7 @@ package hd3gtv.mydmam.cli;
 
 import hd3gtv.tools.ApplicationArgs;
 
-public interface CliModule {
+public interface CLIDefinition {
 	
 	public String getCliModuleName();
 	

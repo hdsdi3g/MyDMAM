@@ -48,7 +48,7 @@ search.SearchResultPage = createReactClass({
 		if (stat_request_keys.length > 0) {
 			var stat_request = {
 				pathelementskeys: stat_request_keys,
-				scopes_element: [mydmam.stat.SCOPE_MTD_SUMMARY],
+				scopes_element: [mydmam.async.navigate.SCOPE_MTD_SUMMARY],
 				scopes_subelements: [],
 				page_from: 0,
 				page_size: 500,

@@ -14,14 +14,14 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013-2014
  * 
 */
-package hd3gtv.mydmam.cli;
+package hd3gtv.mydmam.pathindexing;
 
 import java.io.File;
 
-import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.tools.ApplicationArgs;
 
-public class CliModuleCopyDirStruct implements CliModule {
+public class CLICopyDirStruct implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "copydirstruct";

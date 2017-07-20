@@ -14,13 +14,13 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2016
  * 
 */
-package hd3gtv.mydmam.cli;
+package hd3gtv.mydmam.auth;
 
-import hd3gtv.mydmam.auth.AuthTurret;
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.ApplicationArgs;
 
-public class CliModuleAuth implements CliModule {
+public class CLIAuth implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "auth";

@@ -166,37 +166,3 @@ pathindex.mtdTypeofElement = function(mtd_element) {
 	}
 	return translated_element;
 };
-
-pathindex.reactBasketButton = createReactClass({
-	getInitialState: function() {
-		return {present_in_basket: mydmam.basket.isInBasket(this.props.pathindexkey)};
-	},
-	handleBasketSwitch: function(event) {
-		if (this.state.present_in_basket) {
-			mydmam.basket.content.remove(this.props.pathindexkey);
-		} else {
-			mydmam.basket.content.add(this.props.pathindexkey);
-		}
-		this.setState({present_in_basket: !this.state.present_in_basket});
-	},
-	render: function() {
-		if (this.props.pathindexkey === md5('')) {
-			return null;
-		}
-		var btn_basket_classes = classNames({
-		    'btn': true, 'btn-mini': true, 'basket': true,
-		    'active': this.state.present_in_basket,
-		});
-
-		var icon = (<i className="icon-star-empty"></i>);
-		if (this.state.present_in_basket) {
-			icon = (<i className="icon-star"></i>);
-		}
-
-		return (
-			<button className={btn_basket_classes} type="button" onClick={this.handleBasketSwitch}>
-				{icon}
-			</button>
-		);
-	},
-});

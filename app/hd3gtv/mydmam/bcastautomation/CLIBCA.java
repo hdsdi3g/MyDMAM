@@ -14,7 +14,7 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2013
  * 
 */
-package hd3gtv.mydmam.cli;
+package hd3gtv.mydmam.bcastautomation;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -29,16 +29,13 @@ import com.google.gson.JsonParser;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.configuration.ConfigurationItem;
 import hd3gtv.mydmam.Loggers;
-import hd3gtv.mydmam.bcastautomation.BCAEngine;
-import hd3gtv.mydmam.bcastautomation.BCAScheduleType;
-import hd3gtv.mydmam.bcastautomation.BCAWatcher;
-import hd3gtv.mydmam.bcastautomation.TimedEventStore;
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.db.CassandraDb;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.TableList;
 import hd3gtv.tools.TableList.Row;
 
-public class CliModuleBCA implements CliModule {
+public class CLIBCA implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "bca";

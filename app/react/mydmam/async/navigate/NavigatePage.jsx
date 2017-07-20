@@ -15,6 +15,15 @@
  * 
 */
 
+/**
+ * Must match with Stat.java
+ */
+navigate.SCOPE_DIRLIST = "dirlist";
+navigate.SCOPE_PATHINFO = "pathinfo";
+navigate.SCOPE_MTD_SUMMARY = "mtdsummary";
+navigate.SCOPE_COUNT_ITEMS = "countitems";
+navigate.SCOPE_ONLYDIRECTORIES = "onlydirs";
+
 navigate.Home = createReactClass({
 	componentDidMount: function() {
 		this.setDocumentTitle();
@@ -139,8 +148,8 @@ navigate.NavigatePage = createReactClass({
 			pathelementskeys: [pathindex_key],
 			page_from: page_from,
 			page_size: page_size,
-			scopes_element: [stat.SCOPE_DIRLIST, stat.SCOPE_PATHINFO, stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
-			scopes_subelements: [stat.SCOPE_MTD_SUMMARY, stat.SCOPE_COUNT_ITEMS],
+			scopes_element: [navigate.SCOPE_DIRLIST, navigate.SCOPE_PATHINFO, navigate.SCOPE_MTD_SUMMARY, navigate.SCOPE_COUNT_ITEMS],
+			scopes_subelements: [navigate.SCOPE_MTD_SUMMARY, navigate.SCOPE_COUNT_ITEMS],
 			search: search,
 			sort: sort,
 		};

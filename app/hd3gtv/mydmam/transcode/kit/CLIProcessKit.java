@@ -14,13 +14,14 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2016
  * 
 */
-package hd3gtv.mydmam.cli;
+package hd3gtv.mydmam.transcode.kit;
 
 import java.io.File;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 
+import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.metadata.MetadataIndexingLimit;
 import hd3gtv.mydmam.metadata.MetadataIndexingOperation;
 import hd3gtv.mydmam.metadata.container.Container;
@@ -30,7 +31,7 @@ import hd3gtv.mydmam.transcode.ProcessingKitInstance;
 import hd3gtv.tools.ApplicationArgs;
 import hd3gtv.tools.CopyMove;
 
-public class CliModuleProcessKit implements CliModule {
+public class CLIProcessKit implements CLIDefinition {
 	
 	public String getCliModuleName() {
 		return "processkit";
