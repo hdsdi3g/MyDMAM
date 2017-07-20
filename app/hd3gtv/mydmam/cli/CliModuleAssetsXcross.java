@@ -21,7 +21,7 @@ import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.assetsxcross.ACAPIInterplayTag;
 import hd3gtv.tools.ApplicationArgs;
 
-public class CliModuleAssetsXcross implements CliModule {
+public class CliModuleAssetsXcross implements CLIDefinition {
 	
 	private boolean is_interplay_api_configured;
 	private boolean is_acapi_configured;
