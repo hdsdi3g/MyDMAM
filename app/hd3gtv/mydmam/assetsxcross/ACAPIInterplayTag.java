@@ -34,7 +34,6 @@ import com.google.gson.JsonElement;
 
 import hd3gtv.archivecircleapi.ACAPI;
 import hd3gtv.archivecircleapi.ACFile;
-import hd3gtv.archivecircleapi.ACFileLocationTape;
 import hd3gtv.archivecircleapi.ACNode;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.MyDMAM;
@@ -229,25 +228,12 @@ public class ACAPIInterplayTag {
 				
 				if (ac_file == null) {
 					return false;
-				} else if (ac_file.this_locations == null) {
+				}
+				if (ac_file.isOnTape() == false) {
 					return false;
 				}
 				
-				if (ac_file.this_locations.stream().anyMatch(location -> {
-					return location instanceof ACFileLocationTape;
-				}) == false) {
-					return false;
-				}
-				
-				locations = ac_file.this_locations.stream().filter(location -> {
-					return location instanceof ACFileLocationTape;
-				}).map(location -> {
-					return (ACFileLocationTape) location;
-				}).flatMap(tape_location -> {
-					return tape_location.tapes.stream();
-				}).map(tape -> {
-					return tape.barcode;
-				}).collect(Collectors.joining(" "));
+				locations = ac_file.getTapeBarcodeLocations().stream().collect(Collectors.joining(" "));
 				
 				ac_path = "/" + ac_file.share + "/" + ac_file.path;
 				

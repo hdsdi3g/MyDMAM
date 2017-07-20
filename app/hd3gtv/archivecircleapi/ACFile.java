@@ -17,6 +17,8 @@
 package hd3gtv.archivecircleapi;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import hd3gtv.mydmam.gson.GsonIgnore;
 
@@ -57,6 +59,35 @@ public class ACFile implements ACAPIResult {
 	public ArrayList<String> files;
 	
 	ACFile() {
+	}
+	
+	public boolean isOnTape() {
+		if (this_locations == null) {
+			return false;
+		}
+		
+		return this_locations.stream().anyMatch(location -> {
+			return location instanceof ACFileLocationTape;
+		});
+	}
+	
+	/**
+	 * @return null if this is not archived
+	 */
+	public List<String> getTapeBarcodeLocations() {
+		if (this_locations == null) {
+			return null;
+		}
+		
+		return this_locations.stream().filter(location -> {
+			return location instanceof ACFileLocationTape;
+		}).map(location -> {
+			return (ACFileLocationTape) location;
+		}).flatMap(tape_location -> {
+			return tape_location.tapes.stream();
+		}).map(tape -> {
+			return tape.barcode;
+		}).collect(Collectors.toList());
 	}
 	
 }
