@@ -121,7 +121,7 @@ public class VantageAPI {
 		
 		final ConditionList condition_list = new ConditionList();
 		variables.forEach(variable -> {
-			// variable.toJobConditionList(workflow, condition_list);
+			variable.toJobConditionList(workflow, condition_list);
 		});
 		
 		Context myContext = new Context();

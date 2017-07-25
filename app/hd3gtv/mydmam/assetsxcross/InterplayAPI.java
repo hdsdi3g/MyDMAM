@@ -142,7 +142,29 @@ public class InterplayAPI {
 		return "interplay://" + workgoup + path;
 	}
 	
+	/**
+	 * Remove media files... but not references in Interplay... "Manual" purge with Access is better !
+	 */
+	@Deprecated
 	public List<MediaDetailsType> deleteMediasOnly(String... path_list) throws AssetsFault, IOException {
+		/*String mob_id = "00000-000";
+		InterplayAPI interplay = InterplayAPI.initFromConfiguration();
+		String interplay_mob_uri = interplay.createURLInterplayMobid(mob_id);
+		
+		Map<String, List<AttributeType>> attr = interplay.getAttributes(interplay_mob_uri);
+		Map<String, String> attr_map = InterplayAPI.getSimpleAttributeMap(attr.get(interplay_mob_uri));
+		
+		String interplay_path = attr_map.get("Path");
+		interplay.deleteMediasOnly(interplay_path);
+		
+		List<String> g_r = interplay.getResolutions(interplay_mob_uri);
+		System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(g_r));
+		System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(interplay.getFileDetailsByURI(interplay_mob_uri)));
+		// System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(InterplayAPI.getSimpleAttributeMap(attr.get(interplay_mob_uri))));
+		
+		String source_id = attr_map.get("Source ID");
+		System.out.println(source_id);*/
+		
 		if (path_list == null) {
 			throw new NullPointerException("\"path_list\" can't to be null");
 		}
