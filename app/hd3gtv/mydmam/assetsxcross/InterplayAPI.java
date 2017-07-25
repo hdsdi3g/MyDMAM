@@ -21,19 +21,33 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
 import javax.xml.ws.Service;
 
+import com.avid.interplay.ws.assets.AssetDescriptionType;
 import com.avid.interplay.ws.assets.Assets;
 import com.avid.interplay.ws.assets.AssetsFault;
 import com.avid.interplay.ws.assets.AssetsPortType;
 import com.avid.interplay.ws.assets.AttributeConditionType;
 import com.avid.interplay.ws.assets.AttributeListType;
 import com.avid.interplay.ws.assets.AttributeType;
+import com.avid.interplay.ws.assets.DeleteAssetsResponseType;
+import com.avid.interplay.ws.assets.DeleteAssetsType;
 import com.avid.interplay.ws.assets.ErrorListType;
 import com.avid.interplay.ws.assets.ErrorType;
+import com.avid.interplay.ws.assets.FileLocationDetailsType;
+import com.avid.interplay.ws.assets.FileLocationType;
+import com.avid.interplay.ws.assets.GetAttributesResponseType;
+import com.avid.interplay.ws.assets.GetAttributesType;
+import com.avid.interplay.ws.assets.GetFileDetailsResponseType;
+import com.avid.interplay.ws.assets.GetFileDetailsType;
+import com.avid.interplay.ws.assets.GetResolutionsResponseType;
+import com.avid.interplay.ws.assets.GetResolutionsType;
 import com.avid.interplay.ws.assets.InterplayURIListType;
+import com.avid.interplay.ws.assets.MediaDetailsType;
 import com.avid.interplay.ws.assets.SearchGroupType;
 import com.avid.interplay.ws.assets.SearchResponseType;
 import com.avid.interplay.ws.assets.SearchType;
@@ -66,6 +80,14 @@ public class InterplayAPI {
 		GREATER_THAN,
 		/** Like GREATER_THAN, but inclusive of the passed in date and time */
 		GREATER_THAN_OR_EQUAL_TO,
+	}
+	
+	public enum MediaStatus {
+		online, offline;
+	}
+	
+	public enum AssetType {
+		sequence, masterclip, motioneffect, renderedeffect, subclip;
 	}
 	
 	private AssetsPortType assets;
@@ -109,13 +131,88 @@ public class InterplayAPI {
 		}
 	}
 	
-	public SearchResponseType search(SearchType search) throws AssetsFault, IOException {
-		SearchResponseType response = assets.search(search, credentialsHeader);
-		checkError(response.getErrors());
-		return response;
+	public String createURLInterplayMobid(String mob_id) {
+		return "interplay://" + workgoup + "?mobid=" + mob_id.toLowerCase();
 	}
 	
-	public void setAttributes(Collection<AttributeType> attributes, String... interplay_uri_list) throws AssetsFault, IOException {
+	public String createURLInterplayPath(String path) {
+		if (path.startsWith("/") == false) {
+			path = "/" + path;
+		}
+		return "interplay://" + workgoup + path;
+	}
+	
+	public List<MediaDetailsType> deleteMediasOnly(String... path_list) throws AssetsFault, IOException {
+		if (path_list == null) {
+			throw new NullPointerException("\"path_list\" can't to be null");
+		}
+		if (path_list.length == 0) {
+			throw new IndexOutOfBoundsException("\"path_list\" can't to be empty");
+		}
+		
+		InterplayURIListType uri_list = new InterplayURIListType();
+		Arrays.asList(path_list).forEach(path -> {
+			if (path != null) {
+				uri_list.getInterplayURI().add(createURLInterplayPath(path));
+			}
+		});
+		
+		DeleteAssetsType body = new DeleteAssetsType();
+		body.setDeleteMedia(true);
+		body.setDeleteMetadata(false);
+		// body.setSimulation(false);
+		body.setInterplayURIs(uri_list);
+		
+		// ResolutionListType value = new ResolutionListType();
+		// value.getResolution().add(e)
+		// body.setResolutions(value);
+		
+		DeleteAssetsResponseType response = assets.deleteAssets(body, credentialsHeader);
+		checkError(response.getErrors());
+		return response.getDeletedMedia().getMediaDetails();
+	}
+	
+	/**
+	 * @return like ["PCM", "XDCAM-HD 50mbps 1080i 50"]
+	 */
+	public List<String> getResolutions(String... interplay_uri_list) throws AssetsFault, IOException {
+		GetResolutionsType body = new GetResolutionsType();
+		body.setOnlineResolutionsOnly(false);
+		body.setInterplayURIs(getInterplayURIList(interplay_uri_list));
+		body.setReportDetails(false);
+		GetResolutionsResponseType response = assets.getResolutions(body, credentialsHeader);
+		checkError(response.getErrors());
+		return response.getSummary().getResolution();
+	}
+	
+	public Map<String, List<FileLocationType>> getFileDetailsByURI(String... interplay_uri_list) throws AssetsFault, IOException {
+		GetFileDetailsType body = new GetFileDetailsType();
+		body.setInterplayURIs(getInterplayURIList(interplay_uri_list));
+		GetFileDetailsResponseType response = assets.getFileDetails(body, credentialsHeader);
+		checkError(response.getErrors());
+		
+		return response.getResults().getFileLocationDetails().stream().collect(Collectors.toMap(r -> {
+			return ((FileLocationDetailsType) r).getInterplayURI();
+		}, r -> {
+			return ((FileLocationDetailsType) r).getFileLocations().getFileLocation();
+		}));
+	}
+	
+	public Map<String, List<AttributeType>> getAttributes(String... interplay_uri_list) throws AssetsFault, IOException {
+		GetAttributesType body = new GetAttributesType();
+		// body.setAllAttributes(true);
+		body.setInterplayURIs(getInterplayURIList(interplay_uri_list));
+		GetAttributesResponseType response = assets.getAttributes(body, credentialsHeader);
+		checkError(response.getErrors());
+		
+		return response.getResults().getAssetDescription().stream().collect(Collectors.toMap(ad -> {
+			return ((AssetDescriptionType) ad).getInterplayURI();
+		}, ad -> {
+			return ((AssetDescriptionType) ad).getAttributes().getAttribute();
+		}));
+	}
+	
+	private static InterplayURIListType getInterplayURIList(String... interplay_uri_list) {
 		if (interplay_uri_list == null) {
 			throw new NullPointerException("\"interplay_uri_list\" can't to be null");
 		}
@@ -123,15 +220,19 @@ public class InterplayAPI {
 			throw new IndexOutOfBoundsException("\"interplay_uri_list\" can't to be empty");
 		}
 		
-		SetAttributesType set_attributes = new SetAttributesType();
-		
 		InterplayURIListType uri_list = new InterplayURIListType();
 		Arrays.asList(interplay_uri_list).forEach(uri -> {
 			if (uri != null) {
 				uri_list.getInterplayURI().add(uri);
 			}
 		});
-		set_attributes.setInterplayURIs(uri_list);
+		return uri_list;
+	}
+	
+	public void setAttributes(Collection<AttributeType> attributes, String... interplay_uri_list) throws AssetsFault, IOException {
+		
+		SetAttributesType set_attributes = new SetAttributesType();
+		set_attributes.setInterplayURIs(getInterplayURIList(interplay_uri_list));
 		
 		AttributeListType attributelist = new AttributeListType();
 		attributes.forEach(attr -> {
@@ -143,7 +244,7 @@ public class InterplayAPI {
 		checkError(response.getErrors());
 	}
 	
-	private void checkError(ErrorListType errors) throws IOException {
+	static void checkError(ErrorListType errors) throws IOException {
 		if (errors == null) {
 			return;
 		}
@@ -158,6 +259,12 @@ public class InterplayAPI {
 			error.getMessage()
 		});*/
 		throw new IOException(e_type.get(0).getMessage() + ". " + e_type.get(0).getDetails());
+	}
+	
+	public SearchResponseType search(SearchType search) throws AssetsFault, IOException {
+		SearchResponseType response = assets.search(search, credentialsHeader);
+		checkError(response.getErrors());
+		return response;
 	}
 	
 	public SearchResponseType search(String interplay_path, int max_results, Collection<AttributeType> attributes, Collection<AttributeConditionType> conditions) throws AssetsFault, IOException {
@@ -215,6 +322,14 @@ public class InterplayAPI {
 		}).map(attr -> {
 			return attr.getValue();
 		}).findFirst().orElse(null);
+	}
+	
+	public static Map<String, String> getSimpleAttributeMap(List<AttributeType> list) {
+		return list.stream().collect(Collectors.toMap(attr -> {
+			return ((AttributeType) attr).getName();
+		}, attr -> {
+			return ((AttributeType) attr).getValue();
+		}));
 	}
 	
 	/*public static String toStringAttributeType(AttributeType attr) {
