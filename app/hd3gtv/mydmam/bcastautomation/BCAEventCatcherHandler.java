@@ -65,7 +65,7 @@ public abstract class BCAEventCatcherHandler {
 	}
 	
 	boolean isEventCanBeCatched(BCAAutomationEvent event) {
-		if (event.getStartDate() > System.currentTimeMillis() + catch_max_min_to_check * 60 * 1000) {
+		if (event.getStartDate() > System.currentTimeMillis() + catch_max_min_to_check * 60l * 1000l) {
 			return false;
 		}
 		if (event.isAutomationPaused()) {

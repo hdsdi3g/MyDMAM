@@ -297,7 +297,7 @@ public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionR
 				time_to_wait = retry_after;
 			}
 			
-			Loggers.ClkPrgmTsk.debug("Create the next scheduling for \"" + name + "\" in " + (time_to_wait / 1000) + " seconds");
+			Loggers.ClkPrgmTsk.debug("Create the next scheduling for \"" + name + "\" in " + (time_to_wait / 1000l) + " seconds");
 			
 			next_scheduled = scheduled_ex_service.schedule(() -> {
 				if (executor_pool.isShutdown()) {
