@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 import hd3gtv.mydmam.gson.GsonIgnore;
 
-public class ACFile implements ACAPIResult {
+public class ACFile {
 	
 	public String self;
 	public int max = 0;

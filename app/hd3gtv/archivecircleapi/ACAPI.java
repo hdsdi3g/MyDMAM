@@ -20,16 +20,22 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.auth.AuthenticationException;
 import org.apache.log4j.Logger;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
@@ -41,6 +47,7 @@ public class ACAPI {
 	
 	static final Logger log = Logger.getLogger(ACAPI.class);
 	private static boolean gson_registed = false;
+	public static final int OLD_TRANSFERT_JOBS_RETENTION_DAYS = 30;
 	
 	private static final String BASE_URL = "/acapi/1.0/";
 	private String host;
@@ -75,21 +82,20 @@ public class ACAPI {
 	}
 	
 	/**
+	 * @param query without "/acapi/1.0/"
 	 * @return null if error
 	 */
-	private <T extends ACAPIResult> T request(String query, Class<T> return_class, LinkedHashMap<String, String> query_strings) {
+	private <T> T request(String method, String query, Class<T> return_class, LinkedHashMap<String, String> query_strings, JsonObject post_playload) {
 		if (query == null) {
 			throw new NullPointerException("\"query\" can't to be null");
 		}
-		if (return_class == null) {
-			throw new NullPointerException("\"return_class\" can't to be null");
-		}
 		if (query_strings == null) {
-			throw new NullPointerException("\"query_strings\" can't to be null");
+			query_strings = new LinkedHashMap<>();
 		}
 		
 		HttpURLConnection connection = null;
 		T result = null;
+		OutputStream so_out = null;
 		try {
 			StringBuilder full_query = new StringBuilder(BASE_URL);
 			
@@ -129,55 +135,65 @@ public class ACAPI {
 			}
 			
 			connection = (HttpURLConnection) url.openConnection();
-			connection.setRequestMethod("GET");
-			// connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-			// connection.setRequestProperty("Content-Length", Integer.toString(urlParameters.getBytes().length));
+			connection.setRequestMethod(method.toUpperCase());
 			// connection.setRequestProperty("Content-Language", "en-US");
 			// connection.setUseCaches(false);
 			connection.setConnectTimeout(30);
 			connection.setRequestProperty("Authorization", basic_auth);
 			
+			if (post_playload != null) {
+				byte[] b_post_playload = post_playload.toString().getBytes(MyDMAM.UTF8);
+				connection.setRequestProperty("Content-Type", "application/json;charset=utf-8");
+				connection.setRequestProperty("Content-Length", Integer.toString(b_post_playload.length));
+				connection.setDoOutput(true);
+				so_out = connection.getOutputStream();
+				so_out.write(b_post_playload);
+			}
+			
 			int status = connection.getResponseCode();
 			if (status == 401) {
-				throw new AuthenticationException("Bad creditentials for " + url.toString());
-			} else if (status != 200) {
-				// throw new IOException("Unknow status (" + status + ") for " + url.toString());
+				throw new AuthenticationException("Bad creditentials for " + url.toString() + " for " + url.toString());
+			} else if (status == 400) {
+				throw new AuthenticationException("Invalid request for " + url.toString() + " for " + url.toString());
+			} else if (status == 403) {
+				throw new AuthenticationException("Forbidden " + url.toString() + " for " + url.toString());
+			} else if (status == 404) {
+				throw new AuthenticationException("Not Found " + url.toString() + " for " + url.toString());
+			} else if (status > 399) {
+				log.warn("Invalid status: " + status + " for " + url.toString());
 			}
 			
-			log.trace("status: " + status);
-			
-			String content_type = connection.getContentType();
-			if (content_type.toLowerCase().equals("application/json;charset=utf-8") == false) {
-				throw new IOException("Unknow content type (" + content_type + ") for " + url.toString());
-			}
-			
-			// connection.setDoOutput(true);
-			// Send request
-			/*DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-			wr.writeBytes(urlParameters);
-			wr.close();*/
-			
-			InputStream is = connection.getInputStream();
-			
-			if (log.isTraceEnabled()) {
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				byte[] buffer = new byte[1024];
-				int length;
-				while ((length = is.read(buffer)) != -1) {
-					baos.write(buffer, 0, length);
+			if (return_class != null) {
+				String content_type = connection.getContentType();
+				if (content_type.toLowerCase().equals("application/json;charset=utf-8") == false) {
+					throw new IOException("Unknow content type (" + content_type + ") for " + url.toString());
 				}
-				String json_raw = baos.toString("UTF-8");
-				log.trace("HTTP Response: " + json_raw);
-				result = MyDMAM.gson_kit.getGson().fromJson(json_raw, return_class);
-				IOUtils.closeQuietly(is);
-			} else {
-				InputStreamReader isr = new InputStreamReader(is);
-				result = MyDMAM.gson_kit.getGson().fromJson(isr, return_class);
-				IOUtils.closeQuietly(isr);
+				
+				InputStream is = connection.getInputStream();
+				
+				if (log.isTraceEnabled()) {
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					byte[] buffer = new byte[1024];
+					int length;
+					while ((length = is.read(buffer)) != -1) {
+						baos.write(buffer, 0, length);
+					}
+					String json_raw = baos.toString("UTF-8");
+					log.trace("HTTP Response: " + json_raw);
+					result = MyDMAM.gson_kit.getGson().fromJson(json_raw, return_class);
+					IOUtils.closeQuietly(is);
+				} else {
+					InputStreamReader isr = new InputStreamReader(is);
+					result = MyDMAM.gson_kit.getGson().fromJson(isr, return_class);
+					IOUtils.closeQuietly(isr);
+				}
 			}
 		} catch (Exception e) {
-			log.error(e);
+			log.error("Invalid error", e);
 		} finally {
+			if (so_out != null) {
+				IOUtils.closeQuietly(so_out);
+			}
 			if (connection != null) {
 				try {
 					connection.disconnect();
@@ -186,11 +202,15 @@ public class ACAPI {
 			}
 		}
 		
+		if (so_out != null) {
+			IOUtils.closeQuietly(so_out);
+		}
+		
 		return result;
 	}
 	
 	public ACNode getNode() {
-		return request("node", ACNode.class, new LinkedHashMap<>());
+		return request("GET", "node", ACNode.class, new LinkedHashMap<>(), null);
 	}
 	
 	public ACFile getFile(String share, String path, boolean show_location_directories) {
@@ -223,8 +243,108 @@ public class ACAPI {
 			log.trace("Request dump " + lhm_log);
 		}
 		
-		return request(sb.toString(), ACFile.class, args);
+		return request("GET", sb.toString(), ACFile.class, args, null);
 	}
+	
+	public ACTransferJob destage(ACFile ac_file, String external_id, boolean urgent, String destination_node) {// TODO needs to test
+		JsonObject body = new JsonObject();
+		body.addProperty("type", "RestoreJob");
+		body.addProperty("share ", ac_file.share);
+		if (urgent) {
+			body.addProperty("priority", 100);
+		} else {
+			body.addProperty("priority", 0);
+		}
+		body.addProperty("node", destination_node);
+		body.addProperty("workflow ", "DESTAGE");
+		
+		JsonArray files = new JsonArray();
+		JsonObject file = new JsonObject();
+		file.addProperty("src", ac_file.path);
+		if (external_id != null) {
+			file.addProperty("externalId", external_id);
+		}
+		files.add(file);
+		body.add("files", files);
+		
+		return request("POST", "transferJob", ACTransferJob.class, null, body);
+	}
+	
+	public ACTransferJob getTransfertJob(int job_id) {
+		LinkedHashMap<String, String> args = new LinkedHashMap<>();
+		args.put("max", "10000");
+		args.put("offset", "0");
+		args.put("sort", "id");
+		args.put("order", "asc");
+		args.put("showCounters", "true");
+		return request("GET", "transferJob/" + job_id, ACTransferJob.class, args, null);
+	}
+	
+	/**
+	 * @return don't return file details
+	 */
+	public ArrayList<ACTransferJob> getAllTransfertsJobs(boolean dont_purge_old) {
+		LinkedHashMap<String, String> args = new LinkedHashMap<>();
+		args.put("max", "100");
+		args.put("offset", "0");
+		args.put("sort", "id");
+		args.put("order", "asc");
+		args.put("showCounters", "true");
+		JsonObject response = request("GET", "transferJob", JsonObject.class, args, null);
+		
+		ArrayList<ACTransferJob> all_transferts_jobs = new ArrayList<>();
+		
+		response.get("transferJobs").getAsJsonArray().forEach(t_job -> {
+			all_transferts_jobs.add(MyDMAM.gson_kit.getGson().fromJson(t_job, ACTransferJob.class));
+		});
+		
+		int count_total = response.get("count").getAsInt() - response.get("size").getAsInt();
+		while (count_total > 0) {
+			args.put("offset", String.valueOf(Integer.parseInt(args.get("offset")) + 100));
+			response = request("GET", "transferJob", JsonObject.class, args, null);
+			count_total = count_total - response.get("size").getAsInt();
+			
+			response.get("transferJobs").getAsJsonArray().forEach(t_job -> {
+				all_transferts_jobs.add(MyDMAM.gson_kit.getGson().fromJson(t_job, ACTransferJob.class));
+			});
+		}
+		if (dont_purge_old == false) {
+			/**
+			 * Search old jobs
+			 */
+			List<ACTransferJob> old_jobs = all_transferts_jobs.stream().filter(j -> {
+				return j.lastUpdated < System.currentTimeMillis() - TimeUnit.DAYS.toMillis(OLD_TRANSFERT_JOBS_RETENTION_DAYS);
+			}).collect(Collectors.toList());
+			
+			/**
+			 * Remove old jobs from current list
+			 */
+			all_transferts_jobs.removeIf(j -> {
+				return old_jobs.stream().anyMatch(old -> {
+					return j.id == old.id;
+				});
+			});
+			
+			old_jobs.stream().filter(old -> {
+				return old.running == false;
+			}).forEach(old -> {
+				log.warn("Remove old transfert job: " + old);
+				deleteTransfertJob(old.id);
+			});
+		}
+		
+		return all_transferts_jobs;
+	}
+	
+	/**
+	 * Don't try to remove running job...
+	 * @param job_id
+	 */
+	public void deleteTransfertJob(int job_id) {
+		request("DELETE", "transferJob/" + job_id, null, null, null);
+	}
+	
+	// TODO tape service >> mailbox, refresh, enter, out, position
 	
 	public static ACAPI loadFromConfiguration() {
 		String host = Configuration.global.getValue("acapi", "host", "");

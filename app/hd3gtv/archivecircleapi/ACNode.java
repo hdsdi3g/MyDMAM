@@ -20,7 +20,7 @@ import java.util.ArrayList;
 
 import hd3gtv.mydmam.gson.GsonIgnore;
 
-public class ACNode implements ACAPIResult {
+public class ACNode {
 	
 	public String self;
 	public int max = 0;
