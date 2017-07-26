@@ -152,22 +152,34 @@ public class ACAPI {
 			
 			int status = connection.getResponseCode();
 			if (status == 401) {
-				throw new AuthenticationException("Bad creditentials for " + url.toString() + " for " + url.toString());
-			} else if (status == 400) {
-				throw new AuthenticationException("Invalid request for " + url.toString() + " for " + url.toString());
-			} else if (status == 403) {
-				throw new AuthenticationException("Forbidden " + url.toString() + " for " + url.toString());
+				throw new AuthenticationException("Bad creditentials for " + method + " " + url.toString());
 			} else if (status == 404) {
-				throw new AuthenticationException("Not Found " + url.toString() + " for " + url.toString());
-			} else if (status > 399) {
-				log.warn("Invalid status: " + status + " for " + url.toString());
+				throw new IOException("Not Found " + method + " " + url.toString());
+			} else if (status >= 400) {
+				InputStream is = connection.getErrorStream();
+				
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				byte[] buffer = new byte[1024];
+				int length;
+				while ((length = is.read(buffer)) != -1) {
+					baos.write(buffer, 0, length);
+				}
+				IOUtils.closeQuietly(is);
+				
+				if (status == 400) {
+					throw new IOException("Invalid request for " + method + " " + url.toString() + ": " + baos.toString("UTF-8"));
+				} else if (status == 403) {
+					throw new IOException("Forbidden " + method + " " + url.toString() + ": " + baos.toString("UTF-8"));
+				} else if (status > 399) {
+					log.warn("Invalid status: " + status + " for " + url.toString() + ": " + baos.toString("UTF-8"));
+				}
 			}
 			
 			if (return_class != null) {
-				String content_type = connection.getContentType();
-				if (content_type.toLowerCase().equals("application/json;charset=utf-8") == false) {
+				/*String content_type = connection.getContentType();
+				if (content_type.toLowerCase().equals("application/json;charset=utf-8") == false) { // text/html;charset=utf-8
 					throw new IOException("Unknow content type (" + content_type + ") for " + url.toString());
-				}
+				}*/
 				
 				InputStream is = connection.getInputStream();
 				
@@ -246,21 +258,29 @@ public class ACAPI {
 		return request("GET", sb.toString(), ACFile.class, args, null);
 	}
 	
-	public ACTransferJob destage(ACFile ac_file, String external_id, boolean urgent, String destination_node) {// TODO needs to test
+	/**
+	 * @return null if the file is in the cache.
+	 */
+	public ACTransferJob destage(ACFile ac_file, String external_id, boolean urgent, String destination_node) {
+		if (ac_file.bestLocation == ACLocationType.CACHE) {
+			return null;
+		}
+		
 		JsonObject body = new JsonObject();
 		body.addProperty("type", "RestoreJob");
-		body.addProperty("share ", ac_file.share);
+		body.addProperty("share", ac_file.share);
 		if (urgent) {
 			body.addProperty("priority", 100);
 		} else {
 			body.addProperty("priority", 0);
 		}
 		body.addProperty("node", destination_node);
-		body.addProperty("workflow ", "DESTAGE");
+		body.addProperty("workflow", "DESTAGE");
 		
 		JsonArray files = new JsonArray();
 		JsonObject file = new JsonObject();
-		file.addProperty("src", ac_file.path);
+		file.addProperty("src", "/" + ac_file.share + "/" + ac_file.path);
+		file.addProperty("dst", "/");
 		if (external_id != null) {
 			file.addProperty("externalId", external_id);
 		}

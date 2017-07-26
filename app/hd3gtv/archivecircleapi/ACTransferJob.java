@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import com.google.gson.annotations.SerializedName;
 
 import hd3gtv.mydmam.Loggers;
+import hd3gtv.mydmam.MyDMAM;
 
 /**
  * Not for workflow == TRANSFER_TAPE
@@ -113,7 +114,7 @@ public class ACTransferJob {
 		}
 		sb.append(type);
 		if (node != null) {
-			sb.append("by ");
+			sb.append(" by ");
 			sb.append(node);
 		}
 		if (userName != null) {
@@ -201,7 +202,10 @@ public class ACTransferJob {
 		public boolean allBytesTransfered() {
 			return size_transfert_success == size_transfert_total;
 		}
-		
+	}
+	
+	public String toStringVerbose() {
+		return MyDMAM.gson_kit.getGsonPretty().toJson(this);
 	}
 	
 }
