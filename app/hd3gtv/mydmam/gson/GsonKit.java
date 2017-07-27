@@ -57,7 +57,7 @@ import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl
 import hd3gtv.archivecircleapi.ACFileLocations;
 import hd3gtv.archivecircleapi.ACNodesEntry;
 import hd3gtv.archivecircleapi.ACPartition;
-import hd3gtv.archivecircleapi.ACTape;
+import hd3gtv.archivecircleapi.ACFileLocationTapeSupport;
 import hd3gtv.configuration.GithubIssue;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
@@ -141,7 +141,7 @@ public class GsonKit {
 	}.getType();
 	public final static Type type_ArrayList_ACPartition = new TypeToken<ArrayList<ACPartition>>() {
 	}.getType();
-	public final static Type type_ArrayList_ACTape = new TypeToken<ArrayList<ACTape>>() {
+	public final static Type type_ArrayList_ACTape = new TypeToken<ArrayList<ACFileLocationTapeSupport>>() {
 	}.getType();
 	public final static Type type_ArrayList_ACNodesEntry = new TypeToken<ArrayList<ACNodesEntry>>() {
 	}.getType();

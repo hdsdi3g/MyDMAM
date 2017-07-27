@@ -19,11 +19,11 @@ package hd3gtv.archivecircleapi;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,6 +35,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.auth.AuthenticationException;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -82,6 +83,136 @@ public class ACAPI {
 	}
 	
 	/**
+	 * @return response
+	 */
+	public static HTTPHandler requestHTTP(String method, URL url, String http_accept, HTTPHandler post_playload, String basic_auth) throws IOException, AuthenticationException {
+		
+		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+		connection.setRequestMethod(method.toUpperCase());
+		// connection.setRequestProperty("Content-Language", "en-US");
+		// connection.setUseCaches(false);
+		if (http_accept != null) {
+			connection.setRequestProperty("Accept", http_accept);
+		}
+		connection.setRequestProperty("User-Agent", "Java/MyDMAM");
+		connection.setConnectTimeout(30000);
+		connection.setReadTimeout(30000);
+		connection.setRequestProperty("Authorization", basic_auth);
+		HttpURLConnection.setFollowRedirects(true);
+		
+		OutputStream so_out = null;
+		if (post_playload != null) {
+			connection.setRequestProperty("Content-Type", post_playload.content_type);
+			connection.setRequestProperty("Content-Length", Integer.toString(post_playload.payload.length));
+			connection.setDoOutput(true);
+			so_out = connection.getOutputStream();
+			so_out.write(post_playload.payload);
+		}
+		
+		int status = connection.getResponseCode();
+		if (status == 401) {
+			throw new AuthenticationException("Bad creditentials for " + method + " " + url.toString());
+		} else if (status == 404) {
+			throw new IOException("Not Found " + method + " " + url.toString());
+		} else if (status >= 400) {
+			return new HTTPHandler(status).getServerResponse(connection.getErrorStream(), connection.getContentLength());
+		}
+		
+		if (connection.getContentLength() == 0) {
+			try {
+				URL redirect_url = new URL(connection.getHeaderField("location"));
+				if (so_out == null) {
+					IOUtils.closeQuietly(so_out);
+				}
+				return requestHTTP("GET", redirect_url, http_accept, null, basic_auth);
+			} catch (Exception e) {
+			}
+		}
+		
+		HTTPHandler result = new HTTPHandler(status);
+		result.content_type = connection.getContentType();
+		
+		result.getServerResponse(connection.getInputStream(), connection.getContentLength());
+		
+		if (so_out == null) {
+			IOUtils.closeQuietly(so_out);
+		}
+		
+		return result;
+	}
+	
+	public static class HTTPHandler {
+		private byte[] payload;
+		private String content_type;
+		private int status;
+		
+		private HTTPHandler(int status) {
+			this.status = status;
+		}
+		
+		public HTTPHandler(byte[] payload, String content_type) {
+			this.payload = payload;
+			if (payload == null) {
+				throw new NullPointerException("\"payload\" can't to be null");
+			}
+			this.content_type = content_type;
+			if (content_type == null) {
+				throw new NullPointerException("\"content_type\" can't to be null");
+			}
+		}
+		
+		/**
+		 * @param is will be closed at end
+		 */
+		private HTTPHandler getServerResponse(InputStream is, int size) throws IOException {
+			if (size == 0) {
+				IOUtils.closeQuietly(is);
+				return this;
+			}
+			
+			ByteArrayOutputStream baos = new ByteArrayOutputStream(size + 2); // size can be == -1
+			byte[] buffer = new byte[1024];
+			int length;
+			while ((length = is.read(buffer)) != -1) {
+				baos.write(buffer, 0, length);
+			}
+			payload = baos.toByteArray();
+			IOUtils.closeQuietly(is);
+			return this;
+		}
+		
+		public int getStatus() {
+			return status;
+		}
+		
+		public String getContent_type() {
+			return content_type;
+		}
+		
+		public String toString() {
+			if (payload == null) {
+				return status + " " + content_type;
+			}
+			return new String(payload, MyDMAM.UTF8);
+		}
+		
+		public byte[] getPayload() {
+			return payload;
+		}
+		
+		public <T> T getPayloadFromJson(Gson gson, Charset charset, Class<T> reference) {
+			if (payload == null) {
+				return null;
+			}
+			if (payload.length == 0) {
+				return null;
+			}
+			return gson.fromJson(new String(payload, charset), reference);
+		}
+		
+	}
+	
+	/**
 	 * @param query without "/acapi/1.0/"
 	 * @return null if error
 	 */
@@ -93,9 +224,6 @@ public class ACAPI {
 			query_strings = new LinkedHashMap<>();
 		}
 		
-		HttpURLConnection connection = null;
-		T result = null;
-		OutputStream so_out = null;
 		try {
 			StringBuilder full_query = new StringBuilder(BASE_URL);
 			
@@ -134,91 +262,29 @@ public class ACAPI {
 				log.trace("HTTP Request: " + url.toString());
 			}
 			
-			connection = (HttpURLConnection) url.openConnection();
-			connection.setRequestMethod(method.toUpperCase());
-			// connection.setRequestProperty("Content-Language", "en-US");
-			// connection.setUseCaches(false);
-			connection.setConnectTimeout(30);
-			connection.setRequestProperty("Authorization", basic_auth);
-			
+			HTTPHandler post_request = null;
 			if (post_playload != null) {
-				byte[] b_post_playload = post_playload.toString().getBytes(MyDMAM.UTF8);
-				connection.setRequestProperty("Content-Type", "application/json;charset=utf-8");
-				connection.setRequestProperty("Content-Length", Integer.toString(b_post_playload.length));
-				connection.setDoOutput(true);
-				so_out = connection.getOutputStream();
-				so_out.write(b_post_playload);
+				post_request = new HTTPHandler(post_playload.toString().getBytes(MyDMAM.UTF8), "application/json;charset=utf-8");
 			}
 			
-			int status = connection.getResponseCode();
-			if (status == 401) {
-				throw new AuthenticationException("Bad creditentials for " + method + " " + url.toString());
-			} else if (status == 404) {
-				throw new IOException("Not Found " + method + " " + url.toString());
-			} else if (status >= 400) {
-				InputStream is = connection.getErrorStream();
-				
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				byte[] buffer = new byte[1024];
-				int length;
-				while ((length = is.read(buffer)) != -1) {
-					baos.write(buffer, 0, length);
-				}
-				IOUtils.closeQuietly(is);
-				
-				if (status == 400) {
-					throw new IOException("Invalid request for " + method + " " + url.toString() + ": " + baos.toString("UTF-8"));
-				} else if (status == 403) {
-					throw new IOException("Forbidden " + method + " " + url.toString() + ": " + baos.toString("UTF-8"));
-				} else if (status > 399) {
-					log.warn("Invalid status: " + status + " for " + url.toString() + ": " + baos.toString("UTF-8"));
-				}
+			HTTPHandler response = requestHTTP(method, url, "application/json", post_request, basic_auth);
+			
+			if (response.status >= 400) {
+				throw new IOException("Invalid request for " + method + " " + url.toString() + ": " + response);
 			}
 			
 			if (return_class != null) {
-				/*String content_type = connection.getContentType();
-				if (content_type.toLowerCase().equals("application/json;charset=utf-8") == false) { // text/html;charset=utf-8
-					throw new IOException("Unknow content type (" + content_type + ") for " + url.toString());
-				}*/
-				
-				InputStream is = connection.getInputStream();
-				
-				if (log.isTraceEnabled()) {
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					byte[] buffer = new byte[1024];
-					int length;
-					while ((length = is.read(buffer)) != -1) {
-						baos.write(buffer, 0, length);
-					}
-					String json_raw = baos.toString("UTF-8");
-					log.trace("HTTP Response: " + json_raw);
-					result = MyDMAM.gson_kit.getGson().fromJson(json_raw, return_class);
-					IOUtils.closeQuietly(is);
-				} else {
-					InputStreamReader isr = new InputStreamReader(is);
-					result = MyDMAM.gson_kit.getGson().fromJson(isr, return_class);
-					IOUtils.closeQuietly(isr);
+				if (response.getContent_type().toLowerCase().equals("application/json;charset=utf-8") == false) {
+					throw new IOException("Unknow content type (" + response.getContent_type() + ") for " + url.toString());
 				}
+				return response.getPayloadFromJson(MyDMAM.gson_kit.getGson(), MyDMAM.UTF8, return_class);
 			}
-		} catch (Exception e) {
-			log.error("Invalid error", e);
-		} finally {
-			if (so_out != null) {
-				IOUtils.closeQuietly(so_out);
-			}
-			if (connection != null) {
-				try {
-					connection.disconnect();
-				} catch (Exception e2) {
-				}
-			}
+		} catch (IOException e) {
+			throw new RuntimeException("Can't " + method + " " + query, e);
+		} catch (AuthenticationException e) {
+			throw new RuntimeException("Bad login/password for ACAPI", e);
 		}
-		
-		if (so_out != null) {
-			IOUtils.closeQuietly(so_out);
-		}
-		
-		return result;
+		return null;
 	}
 	
 	public ACNode getNode() {
@@ -364,7 +430,54 @@ public class ACAPI {
 		request("DELETE", "transferJob/" + job_id, null, null, null);
 	}
 	
-	// TODO tape service >> mailbox, refresh, enter, out, position
+	public ACTape getTape(String barcode) {
+		return request("GET", "tape/" + barcode, ACTape.class, null, null);
+	}
+	
+	public List<ACTape> getAllTapes() {
+		LinkedHashMap<String, String> args = new LinkedHashMap<>();
+		args.put("max", "100");
+		args.put("offset", "0");
+		args.put("sort", "id");
+		args.put("order", "asc");
+		JsonObject response = request("GET", "tape", JsonObject.class, args, null);
+		
+		ArrayList<ACTape> all_tapes = new ArrayList<>();
+		
+		response.get("tapes").getAsJsonArray().forEach(t_tape -> {
+			all_tapes.add(MyDMAM.gson_kit.getGson().fromJson(t_tape, ACTape.class));
+		});
+		
+		int count_total = response.get("count").getAsInt() - response.get("size").getAsInt();
+		while (count_total > 0) {
+			args.put("offset", String.valueOf(Integer.parseInt(args.get("offset")) + 100));
+			response = request("GET", "tape", JsonObject.class, args, null);
+			count_total = count_total - response.get("size").getAsInt();
+			
+			response.get("tapes").getAsJsonArray().forEach(t_tape -> {
+				all_tapes.add(MyDMAM.gson_kit.getGson().fromJson(t_tape, ACTape.class));
+			});
+		}
+		return all_tapes;
+	}
+	
+	public ArrayList<ACTapeAudit> getLastTapeAudit(long last_time_to_start_list) {
+		ArrayList<ACTapeAudit> result = new ArrayList<>();
+		
+		LinkedHashMap<String, String> args = new LinkedHashMap<>();
+		args.put("max", "200");
+		args.put("offset", "0");
+		args.put("sort", "date");
+		args.put("order", "asc");
+		args.put("date_min", String.valueOf(last_time_to_start_list));
+		JsonObject response = request("GET", "tapeAudit", JsonObject.class, args, null);
+		
+		response.get("tapes").getAsJsonArray().forEach(t_taudit -> {
+			result.add(MyDMAM.gson_kit.getGson().fromJson(t_taudit, ACTapeAudit.class));
+		});
+		
+		return result;
+	}
 	
 	public static ACAPI loadFromConfiguration() {
 		String host = Configuration.global.getValue("acapi", "host", "");

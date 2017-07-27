@@ -283,11 +283,33 @@ public class RestoreInterplayVantageAC {
 				return status;
 			}
 			
+			public class DestageAsset {
+				
+			}
+			
 			public void createDestageJob() {
+				
 				// TODO do destage OP1A file with AC !
 				// TODO check if file is currently in a destage operation, and check destage status
 				// TODO should return a pointer to status && a offline tape list to enter
 				// locations = ac_file.getTapeBarcodeLocations().stream().collect(Collectors.joining(" "));
+				
+				// System.out.println(ac_file.bestLocation);
+				// System.out.println(acapi.destage(ac_file, file_id, true, "srv-ac-1"));
+				
+				// acapi.getAllTransfertsJobs(false).forEach(j -> System.out.println(j));
+				
+				/*acapi.getAllTransfertsJobs(false).forEach(j -> {
+					System.out.println(j);
+				});*/
+				
+				// System.out.println(acapi.getTransfertJob(4124129).toStringVerbose());
+				// acapi.deleteTransfertJob(4123352);
+				
+				// System.out.println(acapi.getTape("K00046L5"));
+				// acapi.getAllTapes().forEach(t -> System.out.println(t));
+				
+				// acapi.getLastTapeAudit(System.currentTimeMillis() - (1000l * 3600l * 24l * 7l)).forEach(ta -> System.out.println(ta));
 			}
 			
 			/**

@@ -14,23 +14,23 @@
  * Copyright (C) hdsdi3g for hd3g.tv 2017
  * 
 */
-package hd3gtv.configuration;
+package hd3gtv.archivecircleapi;
 
-import java.util.List;
+import hd3gtv.mydmam.Loggers;
 
-public interface IGitInfo {
+public class ACTapeAudit {
 	
-	/**
-	 * @return "branch commit" or "v0.18-78-g316c9be"
-	 */
-	String getActualRepositoryInformation();
+	public int id;
+	public String barcode;
+	public long date;
+	public TapeAuditEvent event;
 	
-	List<GitRevision> getRevisionsFrom(String from);
+	public String toString() {
+		return Loggers.dateLog(date) + " " + barcode + " " + event + " [" + id + "]";
+	}
 	
-	String getLastTag();
-	
-	default boolean isEmulatedGit() {
-		return true;
+	public enum TapeAuditEvent {
+		CREATED, REMOVED, DELETED, MOVED_OUT_FROM_LIBRARY, MOVED_INTO_LIBRARY;
 	}
 	
 }

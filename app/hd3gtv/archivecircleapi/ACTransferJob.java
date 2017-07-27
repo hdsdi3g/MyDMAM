@@ -53,6 +53,7 @@ public class ACTransferJob {
 	public long dateCreated;
 	public long lastUpdated;
 	public long dateEnd;
+	
 	/**
 	 * DESTAGE
 	 */

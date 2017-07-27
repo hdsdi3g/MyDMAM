@@ -11,26 +11,19 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  * 
- * Copyright (C) hdsdi3g for hd3g.tv 2017
+ * Copyright (C) hdsdi3g for hd3g.tv 2016
  * 
 */
-package hd3gtv.configuration;
+package hd3gtv.archivecircleapi;
 
-import java.util.List;
-
-public interface IGitInfo {
+public class ACFileLocationTapeSupport {
 	
-	/**
-	 * @return "branch commit" or "v0.18-78-g316c9be"
-	 */
-	String getActualRepositoryInformation();
-	
-	List<GitRevision> getRevisionsFrom(String from);
-	
-	String getLastTag();
-	
-	default boolean isEmulatedGit() {
-		return true;
+	ACFileLocationTapeSupport() {
 	}
+	
+	public String barcode;
+	public ACAccessibility accessibility;
+	public String tarNumber;
+	public String offsetInTar;
 	
 }

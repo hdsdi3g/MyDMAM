@@ -29,6 +29,6 @@ public class ACFileLocationTape extends ACFileLocations {
 	public String pool;
 	
 	@GsonIgnore
-	public ArrayList<ACTape> tapes;
+	public ArrayList<ACFileLocationTapeSupport> tapes;
 	
 }
