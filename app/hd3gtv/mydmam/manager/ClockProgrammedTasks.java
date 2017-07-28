@@ -34,6 +34,9 @@ import com.google.gson.JsonObject;
 
 import hd3gtv.mydmam.Loggers;
 
+/**
+ * Execute tasks daily.
+ */
 public class ClockProgrammedTasks implements InstanceStatusItem, InstanceActionReceiver {
 	
 	private static final int MAX_QUEUED_TASKS = 100;

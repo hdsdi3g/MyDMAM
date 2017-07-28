@@ -479,6 +479,35 @@ public class ACAPI {
 		return result;
 	}
 	
+	private String default_destage_node;
+	
+	/**
+	 * Node name -> Host name
+	 */
+	private LinkedHashMap<String, String> host_name_by_node_names;
+	
+	public void setHostNameByNodeNames(LinkedHashMap<String, String> host_name_by_node_names) {
+		this.host_name_by_node_names = host_name_by_node_names;
+	}
+	
+	public void setDefaultDestageNode(String default_destage_node) {
+		this.default_destage_node = default_destage_node;
+	}
+	
+	public String getDefaultDestageNode() {
+		return default_destage_node;
+	}
+	
+	/**
+	 * @return can be null
+	 */
+	public String getHostnameByNodename(String nodename) {
+		if (host_name_by_node_names == null) {
+			return null;
+		}
+		return host_name_by_node_names.get(nodename);
+	}
+	
 	public static ACAPI loadFromConfiguration() {
 		String host = Configuration.global.getValue("acapi", "host", "");
 		if (host.equals("")) {
@@ -491,6 +520,12 @@ public class ACAPI {
 		
 		ACAPI acapi = new ACAPI(host, user, password);
 		acapi.setTcp_port(port);
+		if (Configuration.global.isElementKeyExists("acapi", "default_destage_node")) {
+			acapi.setDefaultDestageNode(Configuration.global.getValue("acapi", "default_destage_node", ""));
+		}
+		if (Configuration.global.isElementExists("acapi_node_host_names_map")) {
+			acapi.setHostNameByNodeNames(Configuration.global.getValues("acapi_node_host_names_map"));
+		}
 		
 		return acapi;
 	}

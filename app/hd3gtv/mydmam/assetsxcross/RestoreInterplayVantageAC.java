@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -35,6 +37,8 @@ import com.google.gson.JsonElement;
 
 import hd3gtv.archivecircleapi.ACAPI;
 import hd3gtv.archivecircleapi.ACFile;
+import hd3gtv.archivecircleapi.ACFileLocationCache;
+import hd3gtv.archivecircleapi.DestageManager;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.MyDMAM;
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.AssetType;
@@ -59,8 +63,9 @@ public class RestoreInterplayVantageAC {
 	private String archive_storagename;
 	private int fps;
 	private String ac_share;
-	private String ac_unc_host;
 	private String vantage_workflow_name;
+	
+	private DestageManager destage_manager;
 	
 	public static RestoreInterplayVantageAC createFromConfiguration() {
 		Object raw_conf = Configuration.global.getRawValue("assetsxcross", "interplay_restore");
@@ -71,6 +76,7 @@ public class RestoreInterplayVantageAC {
 	private transient Explorer explorer;
 	private transient InterplayAPI interplay;
 	private transient ACAPI acapi;
+	private transient VantageAPI vantage;
 	
 	private RestoreInterplayVantageAC() throws IOException {
 		interplay = InterplayAPI.initFromConfiguration();
@@ -87,6 +93,23 @@ public class RestoreInterplayVantageAC {
 		if (node == null) {
 			throw new IOException("Can't init ACAPI");
 		}*/
+		
+		destage_manager = new DestageManager(acapi, tapes -> { // TODO by mail...
+			if (tapes.size() > 1) {
+				System.out.println("Please insert in a tape library one of " + tapes.stream().map(tape -> {
+					return tape.barcode;
+				}).collect(Collectors.joining(", ")));
+			} else {
+				System.out.println("Please insert in a tape library " + tapes.get(0).barcode);
+			}
+			return true;
+		}, (ac_file, e) -> {
+			// TODO by mail...
+			System.err.println("Can't get AC file from tape: " + ac_file);
+			e.printStackTrace();
+		});
+		
+		vantage = VantageAPI.createFromConfiguration();
 	}
 	
 	/**
@@ -237,6 +260,8 @@ public class RestoreInterplayVantageAC {
 			return has_video_track && audio_tracks_count > 0;
 		}
 		
+		// TODO add copy into a shred directory function
+		
 		/**
 		 * @return null if destage is impossible (file not archived/not found in AC) or stupid (file is not offine in Interplay) or not a master clip
 		 */
@@ -283,58 +308,68 @@ public class RestoreInterplayVantageAC {
 				return status;
 			}
 			
-			public class DestageAsset {
-				
-			}
-			
-			public void createDestageJob() {
-				
-				// TODO do destage OP1A file with AC !
-				// TODO check if file is currently in a destage operation, and check destage status
-				// TODO should return a pointer to status && a offline tape list to enter
-				// locations = ac_file.getTapeBarcodeLocations().stream().collect(Collectors.joining(" "));
-				
-				// System.out.println(ac_file.bestLocation);
-				// System.out.println(acapi.destage(ac_file, file_id, true, "srv-ac-1"));
-				
-				// acapi.getAllTransfertsJobs(false).forEach(j -> System.out.println(j));
-				
-				/*acapi.getAllTransfertsJobs(false).forEach(j -> {
-					System.out.println(j);
-				});*/
-				
-				// System.out.println(acapi.getTransfertJob(4124129).toStringVerbose());
-				// acapi.deleteTransfertJob(4123352);
-				
-				// System.out.println(acapi.getTape("K00046L5"));
-				// acapi.getAllTapes().forEach(t -> System.out.println(t));
-				
-				// acapi.getLastTapeAudit(System.currentTimeMillis() - (1000l * 3600l * 24l * 7l)).forEach(ta -> System.out.println(ta));
-			}
-			
 			/**
-			 * Always check destage status before use this...
-			 * @return created Vantage Job key
+			 * Async operation
 			 */
-			public String createVantageRestoreJob(VantageAPI vantage, String job_name) throws IOException {
-				String source_file_unc = "//" + ac_unc_host + "/" + acfile.share + "/" + acfile.path;
-				try {
-					ArrayList<VariableDefinition> vars = new ArrayList<>();
-					vars.add(vantage.createVariableDef(vantage_variable_name_interplay_mastermob, mob_id));
-					vars.add(vantage.createVariableDef(vantage_variable_name_interplay_sourcemob, source_id));
-					vars.add(vantage.createVariableDef(vantage_variable_name_interplay_path, FilenameUtils.getFullPathNoEndSeparator(paths.get(0))));
-					vars.add(vantage.createVariableDef(vantage_variable_name_interplay_file, display_names.get(0)));
-					vars.add(vantage.createVariableDef(vantage_variable_name_audio_ch, audio_tracks_count));
-					vars.add(vantage.createVariableDef(vantage_variable_name_tcin, new Timecode(tc_in, fps)));
-					return vantage.createJob(source_file_unc, vantage_workflow_name, vars, job_name);
-					// TODO Watch Vantage job during restore
-				} catch (Exception e) {
-					throw new IOException("Can't send to Vantage restore Job", e);
-				}
+			public void destageAndCreateVantageRestoreJob(String base_job_name) {
+				destage_manager.addFileToDestage(acfile, mydmam_id, (acf, id) -> {
+					try {
+						/**
+						 * Get the better node to get file
+						 */
+						ArrayList<String> stored_media_nodes = acf.this_locations.stream().filter(location -> {
+							return location instanceof ACFileLocationCache;
+						}).map(location -> {
+							return ((ACFileLocationCache) location).nodes;
+						}).findFirst().orElse(new ArrayList<>(Arrays.asList(acapi.getDefaultDestageNode())));
+						
+						if (stored_media_nodes.isEmpty()) {
+							stored_media_nodes = new ArrayList<>(Arrays.asList(acapi.getDefaultDestageNode()));
+						}
+						
+						String ac_unc_host = null;
+						if (stored_media_nodes.contains(acapi.getDefaultDestageNode())) {
+							ac_unc_host = acapi.getHostnameByNodename(acapi.getDefaultDestageNode());
+						} else {
+							ac_unc_host = acapi.getHostnameByNodename(stored_media_nodes.get(0));
+						}
+						
+						/**
+						 * Prepare new Vantage Job vars
+						 */
+						String source_file_unc = "//" + ac_unc_host + "/" + acfile.share + "/" + acfile.path;
+						try {
+							ArrayList<VariableDefinition> vars = new ArrayList<>();
+							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_mastermob, mob_id));
+							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_sourcemob, source_id));
+							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_path, FilenameUtils.getFullPathNoEndSeparator(paths.get(0))));
+							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_file, display_names.get(0)));
+							vars.add(vantage.createVariableDef(vantage_variable_name_audio_ch, audio_tracks_count));
+							vars.add(vantage.createVariableDef(vantage_variable_name_tcin, new Timecode(tc_in, fps)));
+							
+							/**
+							 * Start Vantage Job
+							 */
+							String key = vantage.createJob(source_file_unc, vantage_workflow_name, vars, base_job_name + " " + id);
+							// TODO Watch Vantage job during restore
+						} catch (Exception e) {
+							throw new IOException("Can't send to Vantage restore Job", e);
+						}
+					} catch (IOException e) {
+						// TODO error
+						e.printStackTrace();
+					}
+				}, (acf, id) -> {
+					// TODO error
+					System.err.println("Can't destage " + acf + " (" + id + ")");
+				}, 4, TimeUnit.HOURS);
 			}
+			
 		}
 		
 	}
 	
 	// TODO search&restore scan
+	// TODO search&copy for shred proposal
+	// TODO Decision lists conf for shred proposal
 }

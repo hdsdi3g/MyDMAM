@@ -67,4 +67,34 @@ public class ACTape {
 		
 		return barcode + " " + accessibility + " " + type + " from " + poolName + " " + s_closed + s_full + s_location + s_address;
 	}
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((barcode == null) ? 0 : barcode.hashCode());
+		return result;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		ACTape other = (ACTape) obj;
+		if (barcode == null) {
+			if (other.barcode != null) {
+				return false;
+			}
+		} else if (!barcode.equals(other.barcode)) {
+			return false;
+		}
+		return true;
+	}
 }

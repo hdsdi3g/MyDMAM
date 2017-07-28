@@ -90,4 +90,52 @@ public class ACFile {
 		}).collect(Collectors.toList());
 	}
 	
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((path == null) ? 0 : path.hashCode());
+		result = prime * result + ((share == null) ? 0 : share.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		return result;
+	}
+	
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		ACFile other = (ACFile) obj;
+		if (path == null) {
+			if (other.path != null) {
+				return false;
+			}
+		} else if (!path.equals(other.path)) {
+			return false;
+		}
+		if (share == null) {
+			if (other.share != null) {
+				return false;
+			}
+		} else if (!share.equals(other.share)) {
+			return false;
+		}
+		if (type != other.type) {
+			return false;
+		}
+		return true;
+	}
+	
+	public String toString() {
+		if (type == ACFileType.directory) {
+			return "[D] " + share + "/" + path;
+		} else {
+			return share + "/" + path + " (" + accessibility.name().toLowerCase() + ")";
+		}
+	}
+	
 }

@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
 
+import hd3gtv.configuration.Configuration;
 import hd3gtv.tools.Timecode;
 import net.telestream.vantage.ws.ArrayOfstring;
 import net.telestream.vantage.ws.Condition;
@@ -47,6 +48,14 @@ public class VantageAPI {
 	private SdkService service;
 	private List<Procedure> workflow_list;
 	private ObjectFactory fact;
+	
+	public static VantageAPI createFromConfiguration() {
+		try {
+			return new VantageAPI(Configuration.global.getValue("vantage", "host", "127.0.0.1"));
+		} catch (MalformedURLException e) {
+			return null;
+		}
+	}
 	
 	public VantageAPI(String host) throws MalformedURLException {
 		URL url = new URL("http://" + host + ":8676/");
