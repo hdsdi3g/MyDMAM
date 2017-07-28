@@ -21,15 +21,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 
-import com.avid.interplay.ws.assets.AssetDescriptionType;
 import com.avid.interplay.ws.assets.AssetsFault;
-import com.avid.interplay.ws.assets.AttributeListType;
 import com.avid.interplay.ws.assets.SearchGroupType;
 import com.avid.interplay.ws.assets.SearchResponseType;
 import com.avid.interplay.ws.assets.SearchType;
@@ -45,6 +42,7 @@ import hd3gtv.mydmam.assetsxcross.InterplayAPI.AssetType;
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.AttributeGroup;
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.Condition;
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.MediaStatus;
+import hd3gtv.mydmam.assetsxcross.InterplayAPI.SimpleInterplayAsset;
 import hd3gtv.mydmam.assetsxcross.VantageAPI.VariableDefinition;
 import hd3gtv.mydmam.pathindexing.AJSFileLocationStatus;
 import hd3gtv.mydmam.pathindexing.Explorer;
@@ -129,14 +127,15 @@ public class RestoreInterplayVantageAC {
 		SearchResponseType response = interplay.search(search_type);
 		InterplayAPI.checkError(response.getErrors());
 		
-		List<AssetDescriptionType> asset_description_list = response.getResults().getAssetDescription();
-		if (asset_description_list.isEmpty()) {
+		List<SimpleInterplayAsset> asset_list = interplay.convertSearchResponseToAssetList(response);
+		
+		if (asset_list.isEmpty()) {
 			return null;
 		}
 		
 		InterplayMasterClip result = new InterplayMasterClip();
-		asset_description_list.forEach(asset -> {
-			result.setAttributes(asset.getAttributes());// asset.getInterplayURI(),
+		asset_list.forEach(asset -> {
+			result.setAttributes(asset);
 		});
 		return result;
 	}
@@ -184,36 +183,33 @@ public class RestoreInterplayVantageAC {
 		private boolean has_video_track;
 		private int audio_tracks_count;
 		
-		private void setAttributes(/*String interplay_uri, */AttributeListType attr) {
-			// this.interplay_uri = interplay_uri;
-			
-			Map<String, String> attributes = InterplayAPI.getSimpleAttributeMap(attr.getAttribute());
+		private void setAttributes(SimpleInterplayAsset asset) {
 			
 			if (mob_id != null) {
-				if (mob_id.equalsIgnoreCase(attributes.get("MOB ID")) == false) {
+				if (mob_id.equalsIgnoreCase(asset.getAttribute("MOB ID")) == false) {
 					throw new IndexOutOfBoundsException("MobID conflicts with this version");
 				}
 			}
-			mob_id = attributes.get("MOB ID");
+			mob_id = asset.getAttribute("MOB ID");
 			
 			if (source_id != null) {
-				if (source_id.equalsIgnoreCase(attributes.get("Source ID")) == false) {
+				if (source_id.equalsIgnoreCase(asset.getAttribute("Source ID")) == false) {
 					throw new IndexOutOfBoundsException("Source ID conflicts with this version");
 				}
 			}
-			source_id = attributes.get("Source ID");
+			source_id = asset.getAttribute("Source ID");
 			
-			media_status = MediaStatus.valueOf(attributes.get("Media Status"));
-			tc_in = attributes.get("Start"); // TC IN
-			type = AssetType.valueOf(attributes.get("Type"));
-			mydmam_id = attributes.get(mydmam_id_in_interplay);
-			tracks = attributes.get("Tracks"); // V1 A1A2
+			media_status = MediaStatus.valueOf(asset.getAttribute("Media Status"));
+			tc_in = asset.getAttribute("Start"); // TC IN
+			type = AssetType.valueOf(asset.getAttribute("Type"));
+			mydmam_id = asset.getAttribute(mydmam_id_in_interplay);
+			tracks = asset.getAttribute("Tracks"); // V1 A1A2
 			
-			if (display_names.contains(attributes.get("Display Name")) == false) {
-				display_names.add(attributes.get("Display Name"));
+			if (display_names.contains(asset.getAttribute("Display Name")) == false) {
+				display_names.add(asset.getAttribute("Display Name"));
 			}
-			if (paths.contains(attributes.get("Path")) == false) {
-				paths.add(attributes.get("Path"));
+			if (paths.contains(asset.getAttribute("Path")) == false) {
+				paths.add(asset.getAttribute("Path"));
 			}
 			
 			/**

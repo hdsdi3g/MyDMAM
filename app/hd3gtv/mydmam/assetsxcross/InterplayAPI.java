@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,7 +29,6 @@ import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
 import javax.xml.ws.Service;
 
-import com.avid.interplay.ws.assets.AssetDescriptionType;
 import com.avid.interplay.ws.assets.Assets;
 import com.avid.interplay.ws.assets.AssetsFault;
 import com.avid.interplay.ws.assets.AssetsPortType;
@@ -40,6 +41,10 @@ import com.avid.interplay.ws.assets.ErrorListType;
 import com.avid.interplay.ws.assets.ErrorType;
 import com.avid.interplay.ws.assets.FileLocationDetailsType;
 import com.avid.interplay.ws.assets.FileLocationType;
+import com.avid.interplay.ws.assets.FindLinksResponseType;
+import com.avid.interplay.ws.assets.FindLinksType;
+import com.avid.interplay.ws.assets.FindRelativesResponseType;
+import com.avid.interplay.ws.assets.FindRelativesType;
 import com.avid.interplay.ws.assets.GetAttributesResponseType;
 import com.avid.interplay.ws.assets.GetAttributesType;
 import com.avid.interplay.ws.assets.GetFileDetailsResponseType;
@@ -220,18 +225,76 @@ public class InterplayAPI {
 		}));
 	}
 	
-	public Map<String, List<AttributeType>> getAttributes(String... interplay_uri_list) throws AssetsFault, IOException {
+	public List<SimpleInterplayAsset> convertSearchResponseToAssetList(SearchResponseType response) {
+		return response.getResults().getAssetDescription().stream().map(ad -> {
+			return new SimpleInterplayAsset(ad.getInterplayURI(), ad.getAttributes().getAttribute());
+		}).collect(Collectors.toList());
+	}
+	
+	public class SimpleInterplayAsset {
+		public final String interplay_uri;
+		/**
+		 * unmodifiableList
+		 */
+		public final List<AttributeType> attributes;
+		private LinkedHashMap<String, String> attributes_map;
+		
+		private SimpleInterplayAsset(String interplay_uri, List<AttributeType> attributes) {
+			this.interplay_uri = interplay_uri;
+			if (attributes != null) {
+				this.attributes = Collections.unmodifiableList(attributes);
+			} else {
+				this.attributes = Collections.unmodifiableList(Collections.emptyList());
+			}
+		}
+		
+		public String getAttribute(String name, String default_value) {
+			if (attributes_map == null) {
+				attributes_map = new LinkedHashMap<>(attributes.size() + 1);
+				
+				attributes.stream().filter(attr -> {
+					return attr.getGroup().equalsIgnoreCase(InterplayAPI.AttributeGroup.SYSTEM.name());
+				}).forEach(attr -> {
+					attributes_map.put(attr.getName(), attr.getValue());
+				});
+				
+				attributes.stream().filter(attr -> {
+					return attr.getGroup().equalsIgnoreCase(InterplayAPI.AttributeGroup.SYSTEM.name()) == false;
+				}).forEach(attr -> {
+					attributes_map.putIfAbsent(attr.getName(), attr.getValue());
+				});
+			}
+			return attributes_map.getOrDefault(name, default_value);
+		}
+		
+		public String getAttribute(String name) {
+			return getAttribute(name, null);
+		}
+		
+	}
+	
+	public List<SimpleInterplayAsset> getAttributes(String... interplay_uri_list) throws AssetsFault, IOException {
+		return getAttributes(Arrays.asList(interplay_uri_list));
+	}
+	
+	public List<SimpleInterplayAsset> getAttributes(Collection<String> interplay_uri_list) throws AssetsFault, IOException {
 		GetAttributesType body = new GetAttributesType();
 		// body.setAllAttributes(true);
-		body.setInterplayURIs(getInterplayURIList(interplay_uri_list));
+		
+		InterplayURIListType uri_list = new InterplayURIListType();
+		interplay_uri_list.forEach(uri -> {
+			if (uri != null) {
+				uri_list.getInterplayURI().add(uri);
+			}
+		});
+		
+		body.setInterplayURIs(uri_list);
 		GetAttributesResponseType response = assets.getAttributes(body, credentialsHeader);
 		checkError(response.getErrors());
 		
-		return response.getResults().getAssetDescription().stream().collect(Collectors.toMap(ad -> {
-			return ((AssetDescriptionType) ad).getInterplayURI();
-		}, ad -> {
-			return ((AssetDescriptionType) ad).getAttributes().getAttribute();
-		}));
+		return response.getResults().getAssetDescription().stream().map(ad -> {
+			return new SimpleInterplayAsset(ad.getInterplayURI(), ad.getAttributes().getAttribute());
+		}).collect(Collectors.toList());
 	}
 	
 	private static InterplayURIListType getInterplayURIList(String... interplay_uri_list) {
@@ -265,6 +328,42 @@ public class InterplayAPI {
 		SetAttributesResponseType response = assets.setAttributes(set_attributes, credentialsHeader);
 		checkError(response.getErrors());
 	}
+	
+	public List<SimpleInterplayAsset> getRelatives(String interplay_uri, Collection<AttributeType> attributes) throws AssetsFault, IOException {
+		FindRelativesType find_relatives = new FindRelativesType();
+		find_relatives.setInterplayURI(interplay_uri);
+		
+		AttributeListType ltype = new AttributeListType();
+		attributes.forEach(attr -> {
+			ltype.getAttribute().add(attr);
+		});
+		find_relatives.setReturnAttributes(ltype);
+		
+		FindRelativesResponseType response = assets.findRelatives(find_relatives, credentialsHeader);
+		checkError(response.getErrors());
+		
+		return response.getResults().getAssetDescription().stream().map(ad -> {
+			return new SimpleInterplayAsset(ad.getInterplayURI(), ad.getAttributes().getAttribute());
+		}).collect(Collectors.toList());
+	}
+	
+	/**
+	 * @return list of interplay_uri
+	 */
+	public List<String> findLinks(String interplay_uri) throws AssetsFault, IOException {
+		FindLinksType find_links = new FindLinksType();
+		find_links.setInterplayURI(interplay_uri);
+		FindLinksResponseType response = assets.findLinks(find_links, credentialsHeader);
+		checkError(response.getErrors());
+		return response.getResults().getInterplayURI();
+	}
+	
+	// TODO add new API tools...
+	// assets.createFolders(body, credentialsHeader)
+	// assets.duplicate(body, credentialsHeader)
+	// assets.getCategories(body, credentialsHeader)
+	// assets.setCategories(body, credentialsHeader)
+	// assets.linkToMOB(body, credentialsHeader) ????
 	
 	static void checkError(ErrorListType errors) throws IOException {
 		if (errors == null) {
@@ -344,14 +443,6 @@ public class InterplayAPI {
 		}).map(attr -> {
 			return attr.getValue();
 		}).findFirst().orElse(null);
-	}
-	
-	public static Map<String, String> getSimpleAttributeMap(List<AttributeType> list) {
-		return list.stream().collect(Collectors.toMap(attr -> {
-			return ((AttributeType) attr).getName();
-		}, attr -> {
-			return ((AttributeType) attr).getValue();
-		}));
 	}
 	
 	/*public static String toStringAttributeType(AttributeType attr) {

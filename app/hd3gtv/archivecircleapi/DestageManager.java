@@ -30,10 +30,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.log4j.Logger;
+
 import hd3gtv.archivecircleapi.ACTapeAudit.TapeAuditEvent;
 import hd3gtv.archivecircleapi.ACTransferJob.Status;
+import hd3gtv.mydmam.Loggers;
 
 public class DestageManager {
+	
+	private final Logger log = Logger.getLogger(DestageManager.class);
 	
 	private ACAPI acapi;
 	private Function<List<ACTape>, Boolean> tapeRequest;
@@ -88,6 +93,7 @@ public class DestageManager {
 		}
 		
 		if (file.accessibility == ACAccessibility.ONLINE) {
+			log.debug("Destage an ONLINE file: " + file + " (do nothing)");
 			onAvailability.accept(file, external_id);
 		} else {
 			all_file_jobs.add(new FileJob(file, external_id, onAvailability, onCantRestore, unit.toMillis(timeout)));
@@ -107,6 +113,7 @@ public class DestageManager {
 		
 		private List<String> wanted_tape_barcodes;
 		private ACTransferJob destage_job;
+		private ScheduledFuture<?> last_time_check;
 		
 		private FileJob(ACFile file, String external_id, BiConsumer<ACFile, String> onAvailability, BiConsumer<ACFile, String> onCantRestore, long timeout) {
 			this.file = file;
@@ -114,21 +121,27 @@ public class DestageManager {
 			this.onCantRestore = onCantRestore;
 			this.max_date = System.currentTimeMillis() + timeout;
 			this.external_id = external_id;
+			log.info("Create a destage Job for " + external_id + ": " + file + ", job expiration the " + Loggers.dateLog(max_date));
 			run();
 		}
 		
 		public void run() {
 			try {
+				log.trace("Start to check destage status for " + external_id + ", " + file);
 				file = acapi.getFile(file.share, file.path, false);
 				
 				if (file.accessibility == ACAccessibility.ONLINE) {
+					log.info("File " + external_id + ", " + file + " is now ONLINE");
 					throwEnd();
+					return;
 				} else if (file.accessibility == ACAccessibility.NEARLINE) {
 					if (destage_job == null) {
+						log.info("Start destage for " + external_id + ", " + file + " in " + acapi.getDefaultDestageNode());
 						destage_job = acapi.destage(file, external_id, false, acapi.getDefaultDestageNode());
 						if (destage_job == null) {
 							throw new IOException("Can't do a destage request for " + external_id + " in " + acapi.getDefaultDestageNode());
 						}
+						log.debug("Destage id is " + destage_job.id + " for " + external_id + ", " + file);
 					} else {
 						destage_job = acapi.getTransfertJob(destage_job.id);
 						if (destage_job.running == false) {
@@ -136,19 +149,27 @@ public class DestageManager {
 								throwError(new Exception("Impossible error: file " + file + " is destaged but not online"));
 								return;
 							} else if (destage_job.status == Status.STOPPED) {
+								log.warn("Don't destage " + external_id + ", " + file + " because it's STOPPED");
 								throwImpossible();
 								return;
+							} else {
+								log.trace("Destage " + destage_job.id + " is " + destage_job.status + " (not running) for " + external_id + ", " + file);
 							}
+						} else {
+							log.trace("Destage " + destage_job.id + " is " + destage_job.status + " (running) for " + external_id + ", " + file);
 						}
 					}
 				} else {
 					if (wanted_tape_barcodes != null) {
 						wanted_tape_barcodes = file.getTapeBarcodeLocations();
+						log.info("Needs tape(s) " + wanted_tape_barcodes.stream().collect(Collectors.joining(", ")) + " before destage " + external_id + ", " + file);
 						askToInsertTape(wanted_tape_barcodes);
-						scheduled_ex_service.schedule(() -> {
+						last_time_check = scheduled_ex_service.schedule(() -> {
 							/**
 							 * Solution for abandoned get tape requests: at the max wait time, refresh file status and re-run this.
 							 */
+							log.info("Abandoned get tape request will try to restart operation for " + external_id + ", " + file);
+							
 							file = acapi.getFile(file.share, file.path, false);
 							run();
 						}, max_date - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
@@ -156,13 +177,17 @@ public class DestageManager {
 					}
 				}
 			} catch (Exception e) {
+				log.error("Generic error (cancel destaging) for " + external_id + ", " + file, e);
 				throwError(e);
 				return;
 			}
 			
 			if (System.currentTimeMillis() < max_date) {
-				scheduled_ex_service.schedule(this, 1 + (all_file_jobs.size() / 50), TimeUnit.MINUTES);
+				int time = 1 + (all_file_jobs.size() / 50);
+				log.trace("Schedule next watching destage in " + time + " min for " + external_id + ", " + file);
+				scheduled_ex_service.schedule(this, time, TimeUnit.MINUTES);
 			} else {
+				log.warn("Destage job take to long time, cancel it for " + external_id + ", " + file);
 				throwImpossible();
 			}
 		}
@@ -170,6 +195,7 @@ public class DestageManager {
 		private void removeTransfertJob() {
 			if (destage_job != null) {
 				try {
+					log.trace("Remove destage " + destage_job.id + " job from ACAPI (it's was for " + external_id + ", " + file + ")");
 					acapi.deleteTransfertJob(destage_job.id);
 				} catch (Exception e) {
 				}
@@ -179,12 +205,20 @@ public class DestageManager {
 		private void throwEnd() {
 			all_file_jobs.remove(this);
 			removeTransfertJob();
+			if (last_time_check != null) {
+				last_time_check.cancel(false);
+				last_time_check = null;
+			}
 			onAvailability.accept(file, external_id);
 		}
 		
 		private void throwImpossible() {
 			all_file_jobs.remove(this);
 			removeTransfertJob();
+			if (last_time_check != null) {
+				last_time_check.cancel(false);
+				last_time_check = null;
+			}
 			onCantRestore.accept(file, external_id);
 		}
 		
@@ -202,6 +236,8 @@ public class DestageManager {
 	}
 	
 	private Runnable refreshTapesAudit = () -> {
+		log.trace("Start tapes audit refresh (the last was the " + Loggers.dateLog(last_tape_audit_refresh_date.get()) + ")");
+		
 		ArrayList<ACTapeAudit> last_movments = acapi.getLastTapeAudit(last_tape_audit_refresh_date.getAndSet(System.currentTimeMillis()));
 		
 		/**
@@ -213,6 +249,20 @@ public class DestageManager {
 			return last_mvt.barcode;
 		}).collect(Collectors.toList());
 		
+		if (last_movments.isEmpty()) {
+			log.trace("Tape audit don't found event in library");
+		} else {
+			if (recently_added_tapes_barcodes.isEmpty()) {
+				if (log.isTraceEnabled()) {
+					log.trace("Tape audit found event(s) in library:" + last_movments.stream().map(last_mvt -> {
+						return last_mvt.barcode + " > " + last_mvt.event;
+					}).collect(Collectors.joining(", ")));
+				}
+			} else {
+				log.info("Tape audit found tape(s) moved into library: " + recently_added_tapes_barcodes.stream().collect(Collectors.joining(", ")));
+			}
+		}
+		
 		all_file_jobs.stream().filter(f_j -> {
 			return f_j.wanted_tape_barcodes != null && f_j.destage_job == null;
 		}).filter(f_j -> {
@@ -220,6 +270,9 @@ public class DestageManager {
 				return recently_added_tapes_barcodes.contains(barcode);
 			});
 		}).forEach(f_j -> {
+			if (log.isTraceEnabled()) {
+				log.trace("Tape audit found some needed tape(s) " + f_j.wanted_tape_barcodes.stream().collect(Collectors.joining(", ")) + " required by " + f_j.external_id + ", " + f_j.file + " are now in library");
+			}
 			f_j.run();
 		});
 		
@@ -233,6 +286,7 @@ public class DestageManager {
 			if (all_file_jobs.isEmpty()) {
 				all_wanted_tapes.clear();
 			}
+			log.debug("Tape audit don't needs to continue to check because job lists are now empty.");
 			regular_refresh_tape_audit.cancel(false);
 		}
 	};
@@ -276,6 +330,8 @@ public class DestageManager {
 				return;
 			}
 		}
+		
+		log.debug("Start tape audit regular refresh for wait one of tape(s) in " + barcodes.stream().collect(Collectors.joining(", ")));
 		regular_refresh_tape_audit = scheduled_ex_service.scheduleWithFixedDelay(refreshTapesAudit, 60, 10, TimeUnit.SECONDS);
 	}
 	
