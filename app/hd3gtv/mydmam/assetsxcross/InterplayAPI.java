@@ -20,8 +20,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -98,6 +96,7 @@ public class InterplayAPI {
 	private AssetsPortType assets;
 	private UserCredentialsType credentialsHeader;
 	private String workgoup;
+	private String mydmam_id_in_interplay;
 	
 	public InterplayAPI(String host, String user, String password, String workgoup) throws IOException {
 		if (host == null) {
@@ -125,15 +124,27 @@ public class InterplayAPI {
 		assets = service.getPort(AssetsPortType.class);
 	}
 	
+	public InterplayAPI setMydmamIDinInterplay(String mydmam_id_in_interplay) {
+		this.mydmam_id_in_interplay = mydmam_id_in_interplay;
+		if (mydmam_id_in_interplay == null) {
+			throw new NullPointerException("\"mydmam_id_in_interplay\" can't to be null");
+		}
+		return this;
+	}
+	
 	public static InterplayAPI initFromConfiguration() throws IOException {
 		if (Configuration.global.isElementKeyExists("interplay", "host") == false) {
 			return null;
 		}
 		try {
-			return new InterplayAPI(Configuration.global.getValue("interplay", "host", ""), Configuration.global.getValue("interplay", "user", ""), Configuration.global.getValue("interplay", "password", ""), Configuration.global.getValue("interplay", "workgroup", "AvidWorkgroup"));
+			return new InterplayAPI(Configuration.global.getValue("interplay", "host", ""), Configuration.global.getValue("interplay", "user", ""), Configuration.global.getValue("interplay", "password", ""), Configuration.global.getValue("interplay", "workgroup", "AvidWorkgroup")).setMydmamIDinInterplay(Configuration.global.getValue("interplay", "mydmam_id_in_interplay", "Video ID"));
 		} catch (NullPointerException e) {
 			return null;
 		}
+	}
+	
+	public String getMydmamIDinInterplay() {
+		return mydmam_id_in_interplay;
 	}
 	
 	public String createURLInterplayMobid(String mob_id) {
@@ -225,59 +236,17 @@ public class InterplayAPI {
 		}));
 	}
 	
-	public List<SimpleInterplayAsset> convertSearchResponseToAssetList(SearchResponseType response) {
+	public List<InterplayAsset> convertSearchResponseToAssetList(SearchResponseType response) {
 		return response.getResults().getAssetDescription().stream().map(ad -> {
-			return new SimpleInterplayAsset(ad.getInterplayURI(), ad.getAttributes().getAttribute());
+			return new InterplayAsset(this, ad.getInterplayURI(), ad.getAttributes().getAttribute());
 		}).collect(Collectors.toList());
 	}
 	
-	public class SimpleInterplayAsset {
-		public final String interplay_uri;
-		/**
-		 * unmodifiableList
-		 */
-		public final List<AttributeType> attributes;
-		private LinkedHashMap<String, String> attributes_map;
-		
-		private SimpleInterplayAsset(String interplay_uri, List<AttributeType> attributes) {
-			this.interplay_uri = interplay_uri;
-			if (attributes != null) {
-				this.attributes = Collections.unmodifiableList(attributes);
-			} else {
-				this.attributes = Collections.unmodifiableList(Collections.emptyList());
-			}
-		}
-		
-		public String getAttribute(String name, String default_value) {
-			if (attributes_map == null) {
-				attributes_map = new LinkedHashMap<>(attributes.size() + 1);
-				
-				attributes.stream().filter(attr -> {
-					return attr.getGroup().equalsIgnoreCase(InterplayAPI.AttributeGroup.SYSTEM.name());
-				}).forEach(attr -> {
-					attributes_map.put(attr.getName(), attr.getValue());
-				});
-				
-				attributes.stream().filter(attr -> {
-					return attr.getGroup().equalsIgnoreCase(InterplayAPI.AttributeGroup.SYSTEM.name()) == false;
-				}).forEach(attr -> {
-					attributes_map.putIfAbsent(attr.getName(), attr.getValue());
-				});
-			}
-			return attributes_map.getOrDefault(name, default_value);
-		}
-		
-		public String getAttribute(String name) {
-			return getAttribute(name, null);
-		}
-		
-	}
-	
-	public List<SimpleInterplayAsset> getAttributes(String... interplay_uri_list) throws AssetsFault, IOException {
+	public List<InterplayAsset> getAttributes(String... interplay_uri_list) throws AssetsFault, IOException {
 		return getAttributes(Arrays.asList(interplay_uri_list));
 	}
 	
-	public List<SimpleInterplayAsset> getAttributes(Collection<String> interplay_uri_list) throws AssetsFault, IOException {
+	public List<InterplayAsset> getAttributes(Collection<String> interplay_uri_list) throws AssetsFault, IOException {
 		GetAttributesType body = new GetAttributesType();
 		// body.setAllAttributes(true);
 		
@@ -293,7 +262,7 @@ public class InterplayAPI {
 		checkError(response.getErrors());
 		
 		return response.getResults().getAssetDescription().stream().map(ad -> {
-			return new SimpleInterplayAsset(ad.getInterplayURI(), ad.getAttributes().getAttribute());
+			return new InterplayAsset(this, ad.getInterplayURI(), ad.getAttributes().getAttribute());
 		}).collect(Collectors.toList());
 	}
 	
@@ -329,7 +298,7 @@ public class InterplayAPI {
 		checkError(response.getErrors());
 	}
 	
-	public List<SimpleInterplayAsset> getRelatives(String interplay_uri, Collection<AttributeType> attributes) throws AssetsFault, IOException {
+	public List<InterplayAsset> getRelatives(String interplay_uri, Collection<AttributeType> attributes) throws AssetsFault, IOException {
 		FindRelativesType find_relatives = new FindRelativesType();
 		find_relatives.setInterplayURI(interplay_uri);
 		
@@ -343,7 +312,7 @@ public class InterplayAPI {
 		checkError(response.getErrors());
 		
 		return response.getResults().getAssetDescription().stream().map(ad -> {
-			return new SimpleInterplayAsset(ad.getInterplayURI(), ad.getAttributes().getAttribute());
+			return new InterplayAsset(this, ad.getInterplayURI(), ad.getAttributes().getAttribute());
 		}).collect(Collectors.toList());
 	}
 	
@@ -358,11 +327,12 @@ public class InterplayAPI {
 		return response.getResults().getInterplayURI();
 	}
 	
-	// TODO add new API tools...
+	// TODO add new Interplay tools...
 	// assets.createFolders(body, credentialsHeader)
 	// assets.duplicate(body, credentialsHeader)
 	// assets.getCategories(body, credentialsHeader)
 	// assets.setCategories(body, credentialsHeader)
+	
 	// assets.linkToMOB(body, credentialsHeader) ????
 	
 	static void checkError(ErrorListType errors) throws IOException {

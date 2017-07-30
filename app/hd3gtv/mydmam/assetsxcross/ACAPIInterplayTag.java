@@ -72,7 +72,6 @@ public class ACAPIInterplayTag {
 	private transient final Explorer explorer;
 	
 	private ArrayList<String> interplay_paths;
-	private String mydmam_id_in_interplay;
 	private ArrayList<ConfigurableCondition> search_conditions;
 	private String ac_locations_in_interplay;
 	private String ac_path_in_interplay;
@@ -80,8 +79,32 @@ public class ACAPIInterplayTag {
 	private String storage_name;
 	private int bulk_size;
 	
+	private transient ACAPI ac;
+	private transient InterplayAPI interplay;
+	
 	private ACAPIInterplayTag() {
 		explorer = new Explorer();
+		
+		/**
+		 * Init ACAPI
+		 */
+		ACAPI ac = ACAPI.loadFromConfiguration();
+		if (ac == null) {
+			throw new RuntimeException(new IOException("ACAPI is not configured"));
+		}
+		ACNode node = ac.getNode();
+		if (node == null) {
+			throw new RuntimeException(new IOException("Can't init ACAPI"));
+		}
+		
+		/**
+		 * Init Interplay WS
+		 */
+		try {
+			interplay = InterplayAPI.initFromConfiguration();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	/**
@@ -89,27 +112,10 @@ public class ACAPIInterplayTag {
 	 */
 	public void process(boolean verbose_found_noid) throws IOException, AssetsFault {
 		/**
-		 * Init ACAPI
-		 */
-		ACAPI ac = ACAPI.loadFromConfiguration();
-		if (ac == null) {
-			throw new IOException("ACAPI is not configured");
-		}
-		ACNode node = ac.getNode();
-		if (node == null) {
-			throw new IOException("Can't init ACAPI");
-		}
-		
-		/**
-		 * Init Interplay WS
-		 */
-		InterplayAPI interplay = InterplayAPI.initFromConfiguration();
-		
-		/**
 		 * Set Interplay search result display
 		 */
 		ArrayList<AttributeType> attrs = new ArrayList<>();
-		attrs.add(InterplayAPI.createAttribute(AttributeGroup.USER, mydmam_id_in_interplay, ""));
+		attrs.add(InterplayAPI.createAttribute(AttributeGroup.USER, interplay.getMydmamIDinInterplay(), ""));
 		attrs.add(InterplayAPI.createAttribute(AttributeGroup.USER, "Display Name", ""));
 		attrs.add(InterplayAPI.createAttribute(AttributeGroup.SYSTEM, "Path", ""));
 		
@@ -144,7 +150,7 @@ public class ACAPIInterplayTag {
 					}
 					
 					asset_description_list.stream().filter(asset_description -> {
-						String id = InterplayAPI.getAttributeValueFromList(asset_description.getAttributes(), mydmam_id_in_interplay);
+						String id = InterplayAPI.getAttributeValueFromList(asset_description.getAttributes(), interplay.getMydmamIDinInterplay());
 						if (id == null) {
 							if (verbose_found_noid) {
 								System.out.println("No valid ID for " + getFullInterplayPath(asset_description));
@@ -195,9 +201,9 @@ public class ACAPIInterplayTag {
 		String ac_path;
 		
 		public InterplayAssetLocalisator(AssetDescriptionType asset_description) {
-			id = InterplayAPI.getAttributeValueFromList(asset_description.getAttributes(), mydmam_id_in_interplay);
+			id = InterplayAPI.getAttributeValueFromList(asset_description.getAttributes(), interplay.getMydmamIDinInterplay());
 			if (id == null) {
-				throw new NullPointerException("Interplay attribute \"" + mydmam_id_in_interplay + "\" can't to be empty");
+				throw new NullPointerException("Interplay attribute \"" + interplay.getMydmamIDinInterplay() + "\" can't to be empty");
 			}
 			asset_pathname = getFullInterplayPath(asset_description);
 			// mob_id = InterplayAPI.getAttributeValueFromList(asset_description.getAttributes(), "MOB ID");
