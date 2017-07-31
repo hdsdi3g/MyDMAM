@@ -125,7 +125,7 @@ public class VantageAPI {
 	 * @param workflow_name the same in Workflow Designer
 	 * @param job_name As you want
 	 */
-	public String createJob(String source_file_unc, String workflow_name, Collection<VariableDefinition> variables, String job_name) throws IWorkflowSubmitSubmitFileUnlicensedSdkExceptionFaultFaultMessage, IWorkflowSubmitSubmitFileWorkflowDoesNotExistExceptionFaultFaultMessage, IWorkflowSubmitSubmitFileWorkflowInvalidStateExceptionFaultFaultMessage, IDomainGetWorkflowsUnlicensedSdkExceptionFaultFaultMessage {
+	public VantageJob createJob(String source_file_unc, String workflow_name, Collection<VariableDefinition> variables, String job_name) throws IWorkflowSubmitSubmitFileUnlicensedSdkExceptionFaultFaultMessage, IWorkflowSubmitSubmitFileWorkflowDoesNotExistExceptionFaultFaultMessage, IWorkflowSubmitSubmitFileWorkflowInvalidStateExceptionFaultFaultMessage, IDomainGetWorkflowsUnlicensedSdkExceptionFaultFaultMessage {
 		Procedure workflow = getWorkflowByName(workflow_name);
 		
 		final ConditionList condition_list = new ConditionList();
@@ -136,7 +136,25 @@ public class VantageAPI {
 		Context myContext = new Context();
 		myContext.setConditions(fact.createContextConditions(condition_list));
 		
-		return service.getSubmit().submitFile(getWorkflowIdentifier(workflow), source_file_unc, myContext, job_name);
+		String job_id = service.getSubmit().submitFile(getWorkflowIdentifier(workflow), source_file_unc, myContext, job_name);
+		
+		return new VantageJob(job_id, source_file_unc, workflow_name, job_name);
+	}
+	
+	public class VantageJob {
+		private String job_id;
+		private String source_file_unc;
+		private String workflow_name;
+		private String job_name;
+		
+		private VantageJob(String job_id, String source_file_unc, String workflow_name, String job_name) {
+			this.job_id = job_id;
+			this.source_file_unc = source_file_unc;
+			this.workflow_name = workflow_name;
+			this.job_name = job_name;
+		}
+		// TODO (postponed) Watch Vantage job during restore
+		
 	}
 	
 	public VariableDefinition createVariableDef(String name, String value, TypeCode code) {

@@ -18,6 +18,7 @@ package hd3gtv.mydmam.assetsxcross;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -27,12 +28,16 @@ import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
 import javax.xml.ws.Service;
 
+import com.avid.interplay.ws.assets.AssetCategoriesType;
 import com.avid.interplay.ws.assets.Assets;
 import com.avid.interplay.ws.assets.AssetsFault;
 import com.avid.interplay.ws.assets.AssetsPortType;
 import com.avid.interplay.ws.assets.AttributeConditionType;
 import com.avid.interplay.ws.assets.AttributeListType;
 import com.avid.interplay.ws.assets.AttributeType;
+import com.avid.interplay.ws.assets.CategoriesListType;
+import com.avid.interplay.ws.assets.CreateFolderResponseType;
+import com.avid.interplay.ws.assets.CreateFolderType;
 import com.avid.interplay.ws.assets.DeleteAssetsResponseType;
 import com.avid.interplay.ws.assets.DeleteAssetsType;
 import com.avid.interplay.ws.assets.ErrorListType;
@@ -45,17 +50,23 @@ import com.avid.interplay.ws.assets.FindRelativesResponseType;
 import com.avid.interplay.ws.assets.FindRelativesType;
 import com.avid.interplay.ws.assets.GetAttributesResponseType;
 import com.avid.interplay.ws.assets.GetAttributesType;
+import com.avid.interplay.ws.assets.GetCategoriesResponseType;
+import com.avid.interplay.ws.assets.GetCategoriesType;
 import com.avid.interplay.ws.assets.GetFileDetailsResponseType;
 import com.avid.interplay.ws.assets.GetFileDetailsType;
 import com.avid.interplay.ws.assets.GetResolutionsResponseType;
 import com.avid.interplay.ws.assets.GetResolutionsType;
 import com.avid.interplay.ws.assets.InterplayURIListType;
+import com.avid.interplay.ws.assets.LinkToMOBResponseType;
+import com.avid.interplay.ws.assets.LinkToMOBType;
 import com.avid.interplay.ws.assets.MediaDetailsType;
 import com.avid.interplay.ws.assets.SearchGroupType;
 import com.avid.interplay.ws.assets.SearchResponseType;
 import com.avid.interplay.ws.assets.SearchType;
 import com.avid.interplay.ws.assets.SetAttributesResponseType;
 import com.avid.interplay.ws.assets.SetAttributesType;
+import com.avid.interplay.ws.assets.SetCategoriesResponseType;
+import com.avid.interplay.ws.assets.SetCategoriesType;
 import com.avid.interplay.ws.assets.UserCredentialsType;
 
 import hd3gtv.configuration.Configuration;
@@ -97,6 +108,7 @@ public class InterplayAPI {
 	private UserCredentialsType credentialsHeader;
 	private String workgoup;
 	private String mydmam_id_in_interplay;
+	private transient List<String> declared_workgoup_categories;
 	
 	public InterplayAPI(String host, String user, String password, String workgoup) throws IOException {
 		if (host == null) {
@@ -327,13 +339,99 @@ public class InterplayAPI {
 		return response.getResults().getInterplayURI();
 	}
 	
-	// TODO add new Interplay tools...
-	// assets.createFolders(body, credentialsHeader)
-	// assets.duplicate(body, credentialsHeader)
-	// assets.getCategories(body, credentialsHeader)
-	// assets.setCategories(body, credentialsHeader)
+	/**
+	 * @param new_path If parent folders do not yet exist, they will be created as well.
+	 */
+	public void createFolder(String new_path/*, String owner*/) throws AssetsFault, IOException {
+		CreateFolderType create_folder = new CreateFolderType();
+		// create_folder.setOwner(value);
+		create_folder.setInterplayURI(createURLInterplayPath(new_path));
+		
+		CreateFolderResponseType response = assets.createFolder(create_folder, credentialsHeader);
+		checkError(response.getErrors());
+	}
 	
-	// assets.linkToMOB(body, credentialsHeader) ????
+	public void link(String uri_interplay, String new_path) throws AssetsFault, IOException {
+		LinkToMOBType link = new LinkToMOBType();
+		link.setInterplayMOBURI(uri_interplay);
+		link.setInterplayPathURI(createURLInterplayPath(new_path));
+		
+		LinkToMOBResponseType response = assets.linkToMOB(link, credentialsHeader);
+		checkError(response.getErrors());
+	}
+	
+	/**
+	 * @return URI -> [cat1, cat2]
+	 */
+	public Map<String, List<String>> getCategories(String... interplay_uri_list) throws AssetsFault, IOException {
+		GetCategoriesType get_cat = new GetCategoriesType();
+		get_cat.setInterplayURIs(getInterplayURIList(interplay_uri_list));
+		
+		GetCategoriesResponseType response = assets.getCategories(get_cat, credentialsHeader);
+		checkError(response.getErrors());
+		
+		return response.getAssetCategories().getAssetCategories().stream().collect(Collectors.toMap(asset_cat -> {
+			return ((AssetCategoriesType) asset_cat).getInterplayURI();
+		}, asset_cat -> {
+			return ((AssetCategoriesType) asset_cat).getCategories().getCategory();
+		}));
+	}
+	
+	/**
+	 * @return [cat1, cat2]
+	 */
+	public List<String> getDeclaredWorkgoupCategories() throws AssetsFault, IOException {
+		if (declared_workgoup_categories == null) {
+			GetCategoriesType get_cat = new GetCategoriesType();
+			get_cat.setWorkgroupURI(createURLInterplayPath("/"));
+			GetCategoriesResponseType response = assets.getCategories(get_cat, credentialsHeader);
+			checkError(response.getErrors());
+			declared_workgoup_categories = response.getConfiguredCategories().getCategory();
+		}
+		
+		return declared_workgoup_categories;
+	}
+	
+	/**
+	 * One-pass update
+	 */
+	public void setCategories(String interplay_uri, Collection<String> actual_categories, Collection<String> new_categories) throws AssetsFault, IOException {
+		/** Check declared categories */
+		if (getDeclaredWorkgoupCategories().containsAll(new_categories) == false) {
+			String bad_cats = new_categories.stream().filter(cat -> {
+				return declared_workgoup_categories.contains(cat) == false;
+			}).collect(Collectors.joining(", "));
+			
+			throw new IOException("Unknown categorie(s) \"" + bad_cats + "\" in Interplay workgroup " + workgoup);
+		}
+		
+		SetCategoriesType set_cat = new SetCategoriesType();
+		
+		CategoriesListType add_clt = new CategoriesListType();
+		add_clt.getCategory().addAll(new_categories.stream().filter(new_cat -> {
+			return actual_categories.contains(new_cat) == false;
+		}).collect(Collectors.toList()));
+		set_cat.setCategoriesToAdd(add_clt);
+		
+		CategoriesListType del_clt = new CategoriesListType();
+		del_clt.getCategory().addAll(actual_categories.stream().filter(old_cat -> {
+			return new_categories.contains(old_cat) == false;
+		}).collect(Collectors.toList()));
+		set_cat.setCategoriesToRemove(del_clt);
+		
+		set_cat.setInterplayURI(interplay_uri);
+		
+		SetCategoriesResponseType response = assets.setCategories(set_cat, credentialsHeader);
+		checkError(response.getErrors());
+	}
+	
+	/**
+	 * Two-pass get&update
+	 */
+	public void setCategories(String interplay_uri, Collection<String> new_categories) throws AssetsFault, IOException {
+		Collection<String> actual_categories = getCategories(interplay_uri).getOrDefault(interplay_uri, new ArrayList<>());
+		setCategories(interplay_uri, actual_categories, new_categories);
+	}
 	
 	static void checkError(ErrorListType errors) throws IOException {
 		if (errors == null) {

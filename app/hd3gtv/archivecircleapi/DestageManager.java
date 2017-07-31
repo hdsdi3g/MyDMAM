@@ -45,7 +45,7 @@ public class DestageManager {
 	private BiConsumer<ACFile, Exception> onError;
 	private ScheduledExecutorService scheduled_ex_service;
 	
-	private List<FileJob> all_file_jobs;
+	private List<FileDestageJob> all_file_jobs;
 	private List<ACTape> all_wanted_tapes;
 	
 	private ScheduledFuture<?> regular_refresh_tape_audit;
@@ -80,8 +80,9 @@ public class DestageManager {
 	 * @param onAvailability callback when it's done.
 	 * @param onCantRestore this file can't be restored actually (error status or timeout)
 	 * @param timeout in ms
+	 * @return null if the file is now online (no created job).
 	 */
-	public void addFileToDestage(ACFile file, String external_id, BiConsumer<ACFile, String> onAvailability, BiConsumer<ACFile, String> onCantRestore, long timeout, TimeUnit unit) {
+	public FileDestageJob addFileToDestage(ACFile file, String external_id, BiConsumer<ACFile, String> onAvailability, BiConsumer<ACFile, String> onCantRestore, long timeout, TimeUnit unit) {
 		if (file == null) {
 			throw new NullPointerException("\"file\" can't to be null");
 		}
@@ -95,16 +96,15 @@ public class DestageManager {
 		if (file.accessibility == ACAccessibility.ONLINE) {
 			log.debug("Destage an ONLINE file: " + file + " (do nothing)");
 			onAvailability.accept(file, external_id);
+			return null;
 		} else {
-			all_file_jobs.add(new FileJob(file, external_id, onAvailability, onCantRestore, unit.toMillis(timeout)));
+			FileDestageJob result = new FileDestageJob(file, external_id, onAvailability, onCantRestore, unit.toMillis(timeout));
+			all_file_jobs.add(result);
+			return result;
 		}
-		
-		/**
-		 * T O D O return potental work desc: nothing to do, destage, ask tapes
-		 */
 	}
 	
-	private class FileJob implements Runnable {
+	public class FileDestageJob implements Runnable {
 		private ACFile file;
 		private BiConsumer<ACFile, String> onAvailability;
 		private BiConsumer<ACFile, String> onCantRestore;
@@ -115,7 +115,7 @@ public class DestageManager {
 		private ACTransferJob destage_job;
 		private ScheduledFuture<?> last_time_check;
 		
-		private FileJob(ACFile file, String external_id, BiConsumer<ACFile, String> onAvailability, BiConsumer<ACFile, String> onCantRestore, long timeout) {
+		private FileDestageJob(ACFile file, String external_id, BiConsumer<ACFile, String> onAvailability, BiConsumer<ACFile, String> onCantRestore, long timeout) {
 			this.file = file;
 			this.onAvailability = onAvailability;
 			this.onCantRestore = onCantRestore;
@@ -227,6 +227,7 @@ public class DestageManager {
 			onError.accept(file, e);
 		}
 		
+		// TODO get public status and return potental work desc: destage, ask tapes, waiting...
 	}
 	
 	public Stream<ACFile> getCurrentList() {

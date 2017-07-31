@@ -73,6 +73,7 @@ public final class Loggers {
 	public final static Logger Gson = Logger.getLogger("mydmam.gson");
 	public final static Logger DAReport = Logger.getLogger("mydmam.dareport");
 	public final static Logger Factory = Logger.getLogger("mydmam.factory");
+	public final static Logger AssetsXCross = Logger.getLogger("mydmam.assetsxcross");
 	
 	private static final HashMap<String, Logger> map_loggers_by_classname = new HashMap<>();
 	

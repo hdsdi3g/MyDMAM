@@ -42,6 +42,7 @@ import hd3gtv.mydmam.assetsxcross.InterplayAPI.Condition;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
+@Deprecated
 public class ACAPIInterplayTag {
 	
 	public static boolean isConfigured() {
