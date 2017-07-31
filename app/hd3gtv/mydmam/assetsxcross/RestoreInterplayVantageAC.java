@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -29,6 +28,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 
+import com.avid.interplay.ws.assets.AttributeType;
 import com.avid.interplay.ws.assets.SearchGroupType;
 import com.avid.interplay.ws.assets.SearchResponseType;
 import com.avid.interplay.ws.assets.SearchType;
@@ -48,6 +48,7 @@ import hd3gtv.mydmam.assetsxcross.RestoreInterplayVantageAC.ManageableAsset.Arch
 import hd3gtv.mydmam.assetsxcross.VantageAPI.VantageJob;
 import hd3gtv.mydmam.assetsxcross.VantageAPI.VariableDefinition;
 import hd3gtv.mydmam.pathindexing.AJSFileLocationStatus;
+import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.Timecode;
@@ -79,6 +80,7 @@ public class RestoreInterplayVantageAC {
 	private transient InterplayAPI interplay;
 	private transient ACAPI acapi;
 	private transient VantageAPI vantage;
+	private transient BridgePathindexArchivelocation bridge_pathindex_archivelocation;
 	
 	private RestoreInterplayVantageAC() throws IOException {
 		interplay = InterplayAPI.initFromConfiguration();
@@ -95,6 +97,8 @@ public class RestoreInterplayVantageAC {
 		if (node == null) {
 			throw new IOException("Can't init ACAPI");
 		}*/
+		
+		bridge_pathindex_archivelocation = new BridgePathindexArchivelocation(acapi, Configuration.global.getListMapValues("acapi", "bridge"));
 		
 		destage_manager = new DestageManager(acapi, tapes -> { // TODO (postponed) by mail...
 			if (tapes.size() > 1) {
@@ -116,8 +120,9 @@ public class RestoreInterplayVantageAC {
 	
 	/**
 	 * Search in interplay and AC is sync. Destage is async. Transcoding is async (and not managed).
+	 * @return null if mydmam_id don't match with an Sequence/Masterclip, of if this is already online.
 	 */
-	public void restore(String mydmam_id, String search_root_path, String base_job_name) throws Exception {
+	public RestoreJob restore(String mydmam_id, String search_root_path, String base_job_name) throws Exception {
 		SearchType search_type = new SearchType();
 		search_type.setMaxResults(100);
 		
@@ -136,7 +141,7 @@ public class RestoreInterplayVantageAC {
 			return asset.isMasterclip() == false & asset.isSequence() == false;
 		});
 		if (asset_list.isEmpty()) {
-			return;
+			return null;
 		}
 		
 		if (asset_list.size() > 1) {
@@ -159,18 +164,20 @@ public class RestoreInterplayVantageAC {
 			 * Restore this Masterclip
 			 */
 			ManageableAsset ma = new ManageableAsset(asset);
-			ArchivedAsset archive = ma.localizeArchivedVersion();
-			if (archive == null) {
-				return;
+			ma.localizeArchivedVersion();
+			if (ma.getLocalizedArchivedVersion() == null) {
+				return null;
 			}
 			
 			Loggers.AssetsXCross.info("Start to restore master clip \"" + asset.getDisplayName() + "\" " + mydmam_id);
 			
-			archive.destageAndCreateVantageRestoreJob(base_job_name, vantage_job -> {
-				// TODO log
-			}, error -> {
-				// TODO log
+			ma.getLocalizedArchivedVersion().destageAndCreateVantageRestoreJob(base_job_name, vantage_job -> {
+				Loggers.AssetsXCross.info("Submit Vantage job " + vantage_job + " for restore master clip \"" + asset.getDisplayName() + "\" " + mydmam_id);
+			}, e -> {
+				Loggers.AssetsXCross.info("Error during master clip restauration \"" + asset.getDisplayName() + "\" " + mydmam_id, e);
 			});
+			
+			return new RestoreJob(asset, Arrays.asList(ma));
 		} else if (asset.isSequence()) {
 			/**
 			 * Restore all Masterclips linked in this sequence
@@ -181,29 +188,58 @@ public class RestoreInterplayVantageAC {
 				return new ManageableAsset(r_asset);
 			}).collect(Collectors.toList()));
 			
-			List<ArchivedAsset> archived_list = rmc.destageAllAndCreateVantageRestoreJobForEachDestaged(base_job_name, (archive, vantage_job) -> {
-				// TODO log
-				// ((ArchivedAsset) archive).referer.asset.getDisplayName();
-			}, (mng_asset, error) -> {
-				// TODO log
-			}, (archive, error) -> {
-				// TODO log
-			});
+			Consumer<ManageableAsset> onStartDestage = relative_asset -> {
+				Loggers.AssetsXCross.info("Start to restore master clip \"" + relative_asset.asset.getDisplayName() + "\" " + relative_asset.asset.getMyDMAMID() + " (asked by \"" + asset.getDisplayName() + "\" " + mydmam_id + ")");
+			};
+			BiConsumer<ManageableAsset, VantageJob> onCreateVantageJob = (relative_asset, vantage_job) -> {
+				Loggers.AssetsXCross.info("Submit Vantage job " + vantage_job + " for restore master clip \"" + relative_asset.asset.getDisplayName() + "\" " + relative_asset.asset.getMyDMAMID() + " (asked by \"" + asset.getDisplayName() + "\" " + mydmam_id + ")");
+			};
+			BiConsumer<ManageableAsset, Exception> onError = (relative_asset, e) -> {
+				Loggers.AssetsXCross.info("Error during master clip restauration \"" + relative_asset.asset.getDisplayName() + "\" " + relative_asset.asset.getMyDMAMID() + " (asked by \"" + asset.getDisplayName() + "\" " + mydmam_id + ")", e);
+			};
 			
-			if (archived_list.isEmpty() == false) {
-				archived_list.stream().forEach(arch_asset -> {
-					Loggers.AssetsXCross.info("Start to restore master clip \"" + arch_asset.referer.asset.getDisplayName() + "\" " + arch_asset.referer.asset.getMyDMAMID() + " (asked by \"" + asset.getDisplayName() + "\" " + mydmam_id + ")");
-				});
-			}
+			rmc.destageAllAndCreateVantageRestoreJobForEachDestaged(base_job_name, onStartDestage, onCreateVantageJob, onError);
+			
+			return new RestoreJob(asset, rmc);
+		} else {
+			throw new IOException("Asset " + asset.getDisplayName() + " is neither a sequence or a master clip");
+		}
+	}
+	
+	public class RestoreJob {
+		private InterplayAsset base_asset;
+		private Collection<ManageableAsset> manageable_assets;
+		
+		private RestoreJob(InterplayAsset base_asset, Collection<ManageableAsset> manageable_assets) {
+			this.base_asset = base_asset;
+			this.manageable_assets = manageable_assets;
 		}
 		
-		// TODO how to know if destage is finish ?! >> must watch all restore pending (aka list & refresh)... >> create Class for store all this
-		// see archived_list.get(0).getDestageJob() for destage progress
+		public void globalStatus() {
+			base_asset.getDisplayName();
+			base_asset.getMyDMAMID();
+			
+			manageable_assets.stream().forEach(m_asset -> {
+				if (base_asset.interplay_uri != m_asset.asset.interplay_uri) {
+					base_asset.getDisplayName();
+					base_asset.getMyDMAMID();
+				}
+				if (base_asset.isOnline()) {
+					return;
+				} else if (m_asset.localized_archived_version == null) {
+					return;
+				}
+				m_asset.localized_archived_version.getDestageJob();
+				m_asset.localized_archived_version.getVantageJob();
+				// TODO watch all restore pending (aka list & refresh)...
+			});
+		}
 	}
 	
 	public class ManageableAsset {
 		
 		private InterplayAsset asset;
+		private ArchivedAsset localized_archived_version;
 		
 		private ManageableAsset(InterplayAsset asset) {
 			this.asset = asset;
@@ -229,44 +265,59 @@ public class RestoreInterplayVantageAC {
 		/**
 		 * @return null if destage is impossible (file not archived/not found in AC) or stupid (file is not offine in Interplay) or not a master clip
 		 */
-		public ArchivedAsset localizeArchivedVersion() throws Exception {
-			if (canBeRestoredinFuture() == false | asset.isOnline() | asset.isMasterclip() == false) {
-				return null;
+		public void localizeArchivedVersion() throws Exception {
+			if (canBeRestoredinFuture() == false | asset.isOnline() | asset.isMasterclip() == false | localized_archived_version != null) {
+				return;
 			}
-			// TODO use ac_path if exists for resolve archive path
-			
-			ArrayList<SourcePathIndexerElement> founded = explorer.getAllIdFromStorage(asset.getMyDMAMID(), archive_storagename);
-			if (founded.isEmpty()) {
-				return null;
-			}
-			if (founded.size() > 1) {
-				throw new IOException("More than 1 file archived as " + asset.getMyDMAMID() + ": " + founded);
-			}
-			
-			SourcePathIndexerElement archived_pathelement = founded.get(0);
-			// TODO set ac_path && ac_tapes
-			
 			/**
 			 * Resolve path from AC and get tape locations.
 			 */
-			ACFile ac_file = acapi.getFile(ac_share, archived_pathelement.currentpath, false);
 			
-			if (ac_file == null) {
-				throw new FileNotFoundException("Can't found archived file in ACAPI: " + ac_share + "/" + archived_pathelement.currentpath);
+			ACFile ac_file = null;
+			String full_ac_path = asset.getAttribute(ac_path_in_interplay);
+			
+			if (full_ac_path == null) {
+				ArrayList<SourcePathIndexerElement> founded = explorer.getAllIdFromStorage(asset.getMyDMAMID(), archive_storagename);
+				if (founded.isEmpty()) {
+					throw new FileNotFoundException("Can't found archived file with ID " + asset.getMyDMAMID() + " in " + archive_storagename);
+				}
+				if (founded.size() > 1) {
+					throw new IOException("More than 1 file archived as " + asset.getMyDMAMID() + ": " + founded);
+				}
+				
+				ac_file = bridge_pathindex_archivelocation.getExternalLocation(founded.get(0));
+				if (ac_file == null) {
+					throw new FileNotFoundException("Can't found archived file in ACAPI: " + founded.get(0).currentpath);
+				}
+				
+				ArrayList<AttributeType> attributes = new ArrayList<>();
+				attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_locations_in_interplay, ac_file.getTapeBarcodeLocations().stream().collect(Collectors.joining(" "))));
+				attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_path_in_interplay, "/" + ac_file.share + "/" + ac_file.path));
+				interplay.setAttributes(attributes, asset.interplay_uri);
+			} else {
+				String[] path = full_ac_path.split("/", 2);
+				ac_file = acapi.getFile(path[0], "/" + path[1], false);
+				
+				if (ac_file == null) {
+					throw new FileNotFoundException("Can't found archived file in ACAPI: " + full_ac_path);
+				}
 			}
-			return new ArchivedAsset(this, ac_file);
+			
+			localized_archived_version = new ArchivedAsset(ac_file);
+		}
+		
+		/**
+		 * @return can be null, please call localizeArchivedVersion() before
+		 */
+		public ArchivedAsset getLocalizedArchivedVersion() {
+			return localized_archived_version;
 		}
 		
 		public class ArchivedAsset {
 			private ACFile acfile;
 			private AJSFileLocationStatus status;
-			private ManageableAsset referer;
 			
-			private ArchivedAsset(ManageableAsset referer, ACFile acfile) {
-				this.referer = referer;
-				if (referer == null) {
-					throw new NullPointerException("\"referer\" can't to be null");
-				}
+			private ArchivedAsset(ACFile acfile) {
 				this.acfile = acfile;
 				if (acfile == null) {
 					throw new NullPointerException("\"acfile\" can't to be null");
@@ -275,11 +326,8 @@ public class RestoreInterplayVantageAC {
 				status.getFromACAPI(acfile);
 			}
 			
-			public AJSFileLocationStatus getStatus() {
-				return status;
-			}
-			
 			private FileDestageJob destage_job;
+			private VantageJob vantage_job;
 			
 			/**
 			 * Async operation
@@ -323,7 +371,8 @@ public class RestoreInterplayVantageAC {
 							/**
 							 * Start Vantage Job
 							 */
-							onCreateVantageJob.accept(vantage.createJob(source_file_unc, vantage_workflow_name, vars, base_job_name + " " + id));
+							vantage_job = vantage.createJob(source_file_unc, vantage_workflow_name, vars, base_job_name + " " + id);
+							onCreateVantageJob.accept(vantage_job);
 						} catch (Exception e) {
 							throw new IOException("Can't send to Vantage restore Job (" + vantage_workflow_name + "] \"" + base_job_name + " " + id + "\" from " + source_file_unc, e);
 						}
@@ -342,6 +391,12 @@ public class RestoreInterplayVantageAC {
 				return destage_job;
 			}
 			
+			/**
+			 * @return maybe null if no planned Job
+			 */
+			public VantageJob getVantageJob() {
+				return vantage_job;
+			}
 		}
 		
 		// TODO add copy into a shred directory function
@@ -352,38 +407,37 @@ public class RestoreInterplayVantageAC {
 			super(source);
 		}
 		
-		public List<ArchivedAsset> localizeAllRelativeArchivedVersion(BiConsumer<ManageableAsset, Exception> onError) {
-			return stream().map(asset -> {
+		public void localizeAllRelativeArchivedVersion(BiConsumer<ManageableAsset, Exception> onError) {
+			stream().forEach(asset -> {
 				try {
-					return asset.localizeArchivedVersion();
+					asset.localizeArchivedVersion();
 				} catch (Exception e) {
 					onError.accept(asset, e);
 				}
-				return null;
-			}).filter(arch -> {
-				return arch != null;
-			}).collect(Collectors.toList());
+			});
 		}
 		
-		public List<ArchivedAsset> destageAllAndCreateVantageRestoreJobForEachDestaged(String base_job_name, BiConsumer<ArchivedAsset, VantageJob> onCreateVantageJob, BiConsumer<ManageableAsset, Exception> onErrorLocalizeArchived, BiConsumer<ArchivedAsset, Exception> onErrorDestageAndVantage) {
-			List<ArchivedAsset> archived_list = localizeAllRelativeArchivedVersion(onErrorLocalizeArchived);
+		public void destageAllAndCreateVantageRestoreJobForEachDestaged(String base_job_name, Consumer<ManageableAsset> onStartDestage, BiConsumer<ManageableAsset, VantageJob> onCreateVantageJob, BiConsumer<ManageableAsset, Exception> onError) {
+			localizeAllRelativeArchivedVersion(onError);
 			
-			// BiConsumer<ArchivedAsset, VantageJob> onCreateVantageJob, BiConsumer<ArchivedAsset, Exception> onError
-			archived_list.forEach(arch -> {
+			stream().forEach(asset -> {
+				ArchivedAsset arch = asset.getLocalizedArchivedVersion();
+				if (arch == null) {
+					return;
+				}
+				onStartDestage.accept(asset);
 				arch.destageAndCreateVantageRestoreJob(base_job_name, v -> {
-					onCreateVantageJob.accept(arch, v);
+					onCreateVantageJob.accept(asset, v);
 				}, e -> {
-					onErrorDestageAndVantage.accept(arch, e);
+					onError.accept(asset, e);
 				});
 			});
-			
-			return archived_list;
 		}
 		
 		// TODO shred proposal
 	}
 	
-	// TODO search&restore scan with catergories
+	// TODO (postpone) search&restore scan with categories
 	// TODO search&copy for shred proposal & mergue with ACAPI Interplay Tag
 	// TODO Decision path lists in conf for shred proposal
 }

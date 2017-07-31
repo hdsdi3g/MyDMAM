@@ -125,6 +125,50 @@ public class DestageManager {
 			run();
 		}
 		
+		public synchronized ACAccessibility getActualAccessibility() {
+			return file.accessibility;
+		}
+		
+		/**
+		 * @return [Barcode1, ...] or null
+		 */
+		public synchronized Stream<String> wantsSomeTapesActually() {
+			if (wanted_tape_barcodes == null) {
+				return null;
+			}
+			if (wanted_tape_barcodes.isEmpty()) {
+				return null;
+			}
+			return wanted_tape_barcodes.stream();
+		}
+		
+		public long getJobExpirationDate() {
+			return max_date;
+		}
+		
+		/**
+		 * @return can be null
+		 */
+		public synchronized String getDestageJobStatus() {
+			if (destage_job == null) {
+				return null;
+			}
+			
+			StringBuilder sb = new StringBuilder();
+			if (destage_job.running) {
+				sb.append("Running ");
+			}
+			
+			sb.append(destage_job.status + " ");
+			
+			try {
+				sb.append(destage_job.files.get(0).status);
+			} catch (Exception e) {
+			}
+			
+			return sb.toString();
+		}
+		
 		public void run() {
 			try {
 				log.trace("Start to check destage status for " + external_id + ", " + file);
@@ -227,7 +271,6 @@ public class DestageManager {
 			onError.accept(file, e);
 		}
 		
-		// TODO get public status and return potental work desc: destage, ask tapes, waiting...
 	}
 	
 	public Stream<ACFile> getCurrentList() {
@@ -274,6 +317,7 @@ public class DestageManager {
 			if (log.isTraceEnabled()) {
 				log.trace("Tape audit found some needed tape(s) " + f_j.wanted_tape_barcodes.stream().collect(Collectors.joining(", ")) + " required by " + f_j.external_id + ", " + f_j.file + " are now in library");
 			}
+			f_j.wanted_tape_barcodes = null;
 			f_j.run();
 		});
 		

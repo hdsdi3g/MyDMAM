@@ -155,6 +155,9 @@ public class VantageAPI {
 		}
 		// TODO (postponed) Watch Vantage job during restore
 		
+		public String toString() {
+			return "Job " + job_id + " in workflow " + workflow_name + " \"" + job_name + "\", for source " + source_file_unc;
+		}
 	}
 	
 	public VariableDefinition createVariableDef(String name, String value, TypeCode code) {
