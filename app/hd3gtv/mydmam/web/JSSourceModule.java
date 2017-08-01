@@ -197,6 +197,8 @@ public class JSSourceModule {
 			
 			must_process_source_files.forEach(jsentry -> {
 				Runnable r = () -> {
+					long start_time = System.currentTimeMillis();
+					
 					String source_scope = jsentry.computeJSScope();
 					File source_file = jsentry.getRealFile(module_path);
 					
@@ -242,6 +244,10 @@ public class JSSourceModule {
 						processor.writeTo(jsentry.computeReducedFilepath(module_path, reduced_directory), Operation.REDUCE);
 					} catch (Exception e) {
 						failed_list.put(jsentry, e);
+					}
+					
+					if (MyDMAM.getPlayBootstrapper().getJSRessourceProcessTimeLog() != null) {
+						MyDMAM.getPlayBootstrapper().getJSRessourceProcessTimeLog().addEntry(System.currentTimeMillis() - start_time, source_scope + "/" + source_file.getName());
 					}
 				};
 				executor_pool.execute(r);

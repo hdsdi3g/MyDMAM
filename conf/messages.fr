@@ -188,6 +188,10 @@ manager.playserver.refreshlogconf=Rafraichir la configuration des logs
 manager.playserver.switchjsdevmode=Basculer en mode JS dev
 manager.playserver.switchjsprodmode=Basculer en mode JS prod
 manager.playserver.purgejs=Purger et refaire tout les fichiers JS calculés
+manager.playserver.ajs_process_time_log=Statistiques de performance Async JS :
+manager.playserver.jsressource_process_time_log=Statistiques de performance pour la compilation dynamique :
+manager.playserver.ResetProcessTimeLog=Remise à zéro des statistiques de performance
+manager.playserver.ToogleProcessTimeLog=Basculer l'état de fonctionnement des statistiques de performance
 
 manager.jobs.pagename=Liste des jobs
 manager.jobs.status.WAITING=En attente
