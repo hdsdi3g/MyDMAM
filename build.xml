@@ -69,6 +69,7 @@
 	</target>
 	
 	<target name="copyproject" depends="prepare, getgitversion" description="Copy all mandatory Play projet items">
+		<mkdir dir="app/models" />
 		<mkdir dir="${out.dir}/app" />
 		<mkdir dir="${out.dir}/app/controllers" />
 		<mkdir dir="${out.dir}/app/models" />
