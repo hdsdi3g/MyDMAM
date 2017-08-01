@@ -151,7 +151,7 @@
 			return user.getPreference(key);
 		}
 		if (default_result != null) {
-			return user.setPreference(key, value, not_send_to_server_now);
+			return user.setPreference(key, default_result, not_send_to_server_now);
 		}
 		return null;
 	};
@@ -173,6 +173,16 @@
 			result[key] = mapper(key, data.val, data.crd, data.upd);
 		}
 		return result;
+	};
+
+	var handle_timeout = null;
+	user.delayedPushToServer = function() {
+		if (handle_timeout != null) {
+			clearTimeout(handle_timeout);
+		}
+		handle_timeout = setTimeout(function() {
+			pushToServer();
+		}, 1000);
 	};
 
 })(window.mydmam, window.mydmam.user);

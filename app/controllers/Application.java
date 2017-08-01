@@ -110,6 +110,7 @@ public class Application extends Controller {
 		response.setHeader("Accept-Ranges", "bytes");
 		
 		if (Validation.hasErrors()) {
+			Loggers.Play.warn("User " + Secure.connected() + " try an invalid request with metadatafile(): filehash: " + filehash + ", type:" + type + ", file: " + file);
 			forbidden();
 		}
 		response.cacheFor("60s");
@@ -122,7 +123,7 @@ public class Application extends Controller {
 				element = ContainerOperations.getMetadataFile(filehash, type, file, false);
 			}
 		} catch (IOException e) {
-			Loggers.Play.error("Can't get the file, filehash: " + filehash + ", type:" + type + ", file: " + file + ", reason: " + e.getMessage());
+			Loggers.Play.error("Can't get the metadata rendered file, filehash: " + filehash + ", type:" + type + ", file: " + file, e);
 		} catch (IndexMissingException e) {
 			Loggers.Play.debug("Index mising", e);
 		} catch (SearchPhaseExecutionException e) {
@@ -130,6 +131,7 @@ public class Application extends Controller {
 		}
 		
 		if (element == null) {
+			Loggers.Play.error("Can't found the metadata rendered file, filehash: " + filehash + ", type:" + type + ", file: " + file);
 			forbidden();
 		}
 		
@@ -141,6 +143,7 @@ public class Application extends Controller {
 				renderBinary(new FileInputStream(element.getRendered_file()), file, element.getRendered_file().length(), element.getRendered_mime(), false);
 			}
 		} catch (FileNotFoundException e) {
+			Loggers.Play.error("Can't get the metadata rendered file, filehash: " + filehash + ", type:" + type + ", file: " + file, e);
 			forbidden();
 		}
 	}
