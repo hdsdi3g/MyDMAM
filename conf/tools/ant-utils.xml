@@ -58,7 +58,7 @@
 	
 	<target name="downloadjardependencies" depends="checklocaljardependencies" description="Get all Play and MyDMAM dependencies from MyDMAM website to the build dir" if="needstodownloadjardependencies">
 		<mkdir dir="${out.lib}" />
-		<get src="${mydmam.websiteurldownload}/lib/" dest="${out.lib}/dependencies.xml" />
+		<get src="${mydmam.website.url.download}/lib/" dest="${out.lib}/dependencies.xml" />
 		<ant antfile="${out.lib}/dependencies.xml" />
 		<delete file="${out.lib}/dependencies.xml" />
 		<checksum verifyProperty="isMD5ok">
