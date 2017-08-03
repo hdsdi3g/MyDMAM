@@ -52,7 +52,6 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import hd3gtv.tools.TableList;
 import hd3gtv.tools.TableList.Row;
-import hd3gtv.tools.Timecode;
 
 public class RestoreInterplayVantageAC {
 	
@@ -63,7 +62,7 @@ public class RestoreInterplayVantageAC {
 	private String vantage_variable_name_audio_ch;
 	private String vantage_variable_name_tcin;
 	private String archive_storagename;
-	private int fps;
+	private float fps;
 	private String vantage_workflow_name;
 	private String ac_locations_in_interplay;
 	private String ac_path_in_interplay;
@@ -189,7 +188,7 @@ public class RestoreInterplayVantageAC {
 			Loggers.AssetsXCross.info("Prepare to restore sequence \"" + asset.getDisplayName() + "\" " + mydmam_id);
 			
 			RelativeMasterclips rmc = new RelativeMasterclips(asset.getRelatives(true, ac_locations_in_interplay, ac_path_in_interplay).stream().map(r_asset -> {
-				return new ManageableAsset(r_asset);
+				return new ManageableAsset(r_asset, asset.getPath());
 			}).collect(Collectors.toList()));
 			
 			Consumer<ManageableAsset> onStartDestage = relative_asset -> {
@@ -239,25 +238,25 @@ public class RestoreInterplayVantageAC {
 					row_line = table.createRow();
 					
 					if (m_asset.asset.isOnline()) {
-						row_base.addCell("  o");
+						row_line.addCell("  o");
 					} else if (m_asset.localized_archived_version != null) {
 						if (m_asset.localized_archived_version.vantage_job != null) {
-							row_base.addCell("  V");
+							row_line.addCell("  V");
 						} else if (m_asset.localized_archived_version.destage_job != null) {
-							row_base.addCell("  D");
+							row_line.addCell("  D");
 						} else {
-							row_base.addCell("  !");
+							row_line.addCell("  !");
 						}
 					} else {
-						row_base.addCell("  X");
+						row_line.addCell("  X");
 					}
 					
 					if (m_asset.asset.getMyDMAMID() != null) {
-						row_base.addCell(m_asset.asset.getMyDMAMID());
+						row_line.addCell(m_asset.asset.getMyDMAMID());
 					} else {
-						row_base.addEmptyCell();
+						row_line.addEmptyCell();
 					}
-					row_base.addCell(m_asset.asset.getDisplayName().substring(0, Math.min(m_asset.asset.getDisplayName().length(), 15)));
+					row_line.addCell(m_asset.asset.getDisplayName().substring(0, Math.min(m_asset.asset.getDisplayName().length(), 15)));
 				}
 				
 				if (m_asset.asset.isOnline()) {
@@ -296,13 +295,19 @@ public class RestoreInterplayVantageAC {
 	public class ManageableAsset {
 		
 		private InterplayAsset asset;
+		private String interplay_destination_path;
 		private ArchivedAsset localized_archived_version;
 		
 		private ManageableAsset(InterplayAsset asset) {
+			this(asset, asset.getPath());
+		}
+		
+		private ManageableAsset(InterplayAsset asset, String interplay_destination_path) {
 			this.asset = asset;
 			if (asset == null) {
 				throw new NullPointerException("\"asset\" can't to be null");
 			}
+			this.interplay_destination_path = interplay_destination_path;
 		}
 		
 		/**
@@ -369,8 +374,8 @@ public class RestoreInterplayVantageAC {
 				attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_path_in_interplay, "/" + ac_file.share + "/" + ac_file.path));
 				interplay.setAttributes(attributes, asset.interplay_uri);
 			} else {
-				String[] path = full_ac_path.split("/", 2);
-				ac_file = acapi.getFile(path[0], "/" + path[1], false);
+				String[] path = full_ac_path.split("/", 3);
+				ac_file = acapi.getFile(path[1], "/" + path[2], false);
 				
 				if (ac_file == null) {
 					throw new FileNotFoundException("Can't found archived file in ACAPI: " + full_ac_path);
@@ -428,15 +433,22 @@ public class RestoreInterplayVantageAC {
 						/**
 						 * Prepare new Vantage Job vars
 						 */
-						String source_file_unc = "//" + ac_unc_host + "/" + acfile.share + "/" + acfile.path;
+						String source_file_unc = "\\\\" + ac_unc_host + "\\" + acfile.share + "\\" + acfile.path.replace("/", "\\");
 						try {
 							ArrayList<VariableDefinition> vars = new ArrayList<>();
 							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_mastermob, asset.getMobID()));
 							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_sourcemob, asset.getSourceID()));
-							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_path, FilenameUtils.getFullPathNoEndSeparator(asset.getPath())));
+							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_path, FilenameUtils.getFullPathNoEndSeparator(interplay_destination_path)));
+							// "/Catalogs/Restaurations"
 							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_file, asset.getDisplayName()));
 							vars.add(vantage.createVariableDef(vantage_variable_name_audio_ch, asset.getAudioTracksCount()));
-							vars.add(vantage.createVariableDef(vantage_variable_name_tcin, new Timecode(asset.getStart(), fps)));
+							String tc_in = asset.getStart();
+							if (tc_in == null) {
+								throw new IOException("Not TC IN for Clip " + asset.getDisplayName());
+							} else if (tc_in.equals("")) {
+								throw new IOException("TC IN empty for Clip " + asset.getDisplayName());
+							}
+							vars.add(vantage.createTimeCodeVariableDef(vantage_variable_name_tcin, tc_in, fps));
 							
 							/**
 							 * Start Vantage Job

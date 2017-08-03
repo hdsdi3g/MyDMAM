@@ -330,6 +330,9 @@ public class InterplayAPI {
 		checkError(response.getErrors());
 	}
 	
+	/**
+	 * @return without Path attribute
+	 */
 	public List<InterplayAsset> getRelatives(String interplay_uri, Collection<AttributeType> attributes) throws AssetsFault, IOException {
 		FindRelativesType find_relatives = new FindRelativesType();
 		find_relatives.setInterplayURI(interplay_uri);

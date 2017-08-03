@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 import javax.xml.namespace.QName;
 
 import hd3gtv.configuration.Configuration;
-import hd3gtv.tools.Timecode;
 import net.telestream.vantage.ws.ArrayOfstring;
 import net.telestream.vantage.ws.Condition;
 import net.telestream.vantage.ws.ConditionList;
@@ -136,7 +135,7 @@ public class VantageAPI {
 		Context myContext = new Context();
 		myContext.setConditions(fact.createContextConditions(condition_list));
 		
-		String job_id = service.getSubmit().submitFile(getWorkflowIdentifier(workflow), source_file_unc, myContext, job_name);
+		String job_id = service.getSubmit().submitFile(getWorkflowIdentifier(workflow), source_file_unc.replace("/", "\\"), myContext, job_name);
 		
 		return new VantageJob(job_id, source_file_unc, workflow_name, job_name);
 	}
@@ -175,9 +174,9 @@ public class VantageAPI {
 		return vd.setValue(String.valueOf(value), TypeCode.INT_16);
 	}
 	
-	public VariableDefinition createVariableDef(String name, Timecode value) {
+	public VariableDefinition createTimeCodeVariableDef(String name, String tc_value, float framerate) {
 		VariableDefinition vd = new VariableDefinition(name);
-		return vd.setValue(value.toString(), TypeCode.TIME_CODE);
+		return vd.setValue(tc_value + "@" + String.valueOf(framerate), TypeCode.TIME_CODE);
 	}
 	
 	public VariableDefinition createVariableDef(String name, boolean value) {

@@ -94,7 +94,7 @@ public class DestageManager {
 		}
 		
 		if (file.accessibility == ACAccessibility.ONLINE) {
-			log.debug("Destage an ONLINE file: " + file + " (do nothing)");
+			log.debug("File: " + file + " don't needs to be destaged");
 			onAvailability.accept(file, external_id);
 			return null;
 		} else {
@@ -182,10 +182,10 @@ public class DestageManager {
 					} else if (destage_job.status == Status.STOPPED) {
 						return "Destaging is stopped for " + external_id + ", " + file;
 					} else {
-						return "Destage " + destage_job.id + " is " + destage_job.status + " (not running) for " + external_id + ", " + file;
+						return "Destage " + destage_job.id + " is " + destage_job.status + " for " + external_id + ", " + file;
 					}
 				} else {
-					return "Destage " + destage_job.id + " is " + destage_job.status + " (running) for " + external_id + ", " + file;
+					return "Destage " + destage_job.id + " is " + destage_job.status + ", running for " + external_id + ", " + file;
 				}
 			}
 			
@@ -224,10 +224,10 @@ public class DestageManager {
 								throwImpossible();
 								return;
 							} else {
-								log.trace("Destage " + destage_job.id + " is " + destage_job.status + " (not running) for " + external_id + ", " + file);
+								log.trace("Destage " + destage_job.id + " is " + destage_job.status + " for " + external_id + ", " + file);
 							}
 						} else {
-							log.trace("Destage " + destage_job.id + " is " + destage_job.status + " (running) for " + external_id + ", " + file);
+							log.trace("Destage " + destage_job.id + " is " + destage_job.status + ", running, for " + external_id + ", " + file);
 						}
 					}
 				} else if (wanted_tape_barcodes == null) {

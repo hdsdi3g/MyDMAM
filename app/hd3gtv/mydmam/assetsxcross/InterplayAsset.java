@@ -158,6 +158,9 @@ public class InterplayAsset {
 		return AssetType.sequence.equals(getType());
 	}
 	
+	/**
+	 * @return it never return attribute Path
+	 */
 	public List<InterplayAsset> getRelatives(boolean keep_only_masterclips_and_sequences, String... attributes) throws AssetsFault, IOException {
 		List<AttributeType> attr = new ArrayList<>();
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Type", ""));
@@ -167,7 +170,7 @@ public class InterplayAsset {
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Source ID", ""));
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Start", ""));
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Duration", ""));
-		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Path", ""));
+		// attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Path", ""));
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.USER, "Display Name", ""));
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.USER, interplay_api.getMydmamIDinInterplay(), ""));
 		
