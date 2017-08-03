@@ -146,10 +146,7 @@ public class DestageManager {
 			return max_date;
 		}
 		
-		/**
-		 * @return can be null
-		 */
-		public synchronized String getDestageJobStatus() {
+		/*public synchronized String getDestageJobStatus() {
 			if (destage_job == null) {
 				return null;
 			}
@@ -167,6 +164,36 @@ public class DestageManager {
 			}
 			
 			return sb.toString();
+		}*/
+		
+		public synchronized String toString() {
+			if (file.accessibility == ACAccessibility.ONLINE) {
+				return "File " + external_id + ", " + file + " is online on archive system";
+			}
+			
+			if (file.accessibility == ACAccessibility.NEARLINE) {
+				if (destage_job == null) {
+					return "Pending destage job for " + external_id + ", " + file + " in " + acapi.getDefaultDestageNode();
+				}
+				
+				if (destage_job.running == false) {
+					if (destage_job.status == Status.DONE) {
+						return "Error: file is destaged but not online for " + external_id + ", " + file + " in " + acapi.getDefaultDestageNode();
+					} else if (destage_job.status == Status.STOPPED) {
+						return "Destaging is stopped for " + external_id + ", " + file;
+					} else {
+						return "Destage " + destage_job.id + " is " + destage_job.status + " (not running) for " + external_id + ", " + file;
+					}
+				} else {
+					return "Destage " + destage_job.id + " is " + destage_job.status + " (running) for " + external_id + ", " + file;
+				}
+			}
+			
+			if (wanted_tape_barcodes == null) {
+				return "No current activity for offline file " + external_id + ", " + file;
+			}
+			
+			return "Wait tape(s) availities " + wanted_tape_barcodes.stream().collect(Collectors.joining(", ")) + " on library for start the destage of " + external_id + ", " + file;
 		}
 		
 		public void run() {
@@ -203,22 +230,21 @@ public class DestageManager {
 							log.trace("Destage " + destage_job.id + " is " + destage_job.status + " (running) for " + external_id + ", " + file);
 						}
 					}
-				} else {
-					if (wanted_tape_barcodes != null) {
-						wanted_tape_barcodes = file.getTapeBarcodeLocations();
-						log.info("Needs tape(s) " + wanted_tape_barcodes.stream().collect(Collectors.joining(", ")) + " before destage " + external_id + ", " + file);
-						askToInsertTape(wanted_tape_barcodes);
-						last_time_check = scheduled_ex_service.schedule(() -> {
-							/**
-							 * Solution for abandoned get tape requests: at the max wait time, refresh file status and re-run this.
-							 */
-							log.info("Abandoned get tape request will try to restart operation for " + external_id + ", " + file);
-							
-							file = acapi.getFile(file.share, file.path, false);
-							run();
-						}, max_date - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-						return;
-					}
+				} else if (wanted_tape_barcodes == null) {
+					wanted_tape_barcodes = file.getTapeBarcodeLocations();
+					log.info("Needs tape(s) " + wanted_tape_barcodes.stream().collect(Collectors.joining(", ")) + " before destage " + external_id + ", " + file);
+					askToInsertTape(wanted_tape_barcodes);
+					last_time_check = scheduled_ex_service.schedule(() -> {
+						/**
+						 * Solution for abandoned get tape requests: at the max wait time, refresh file status and re-run this.
+						 */
+						log.info("Abandoned get tape request will try to restart operation for " + external_id + ", " + file);
+						
+						file = acapi.getFile(file.share, file.path, false);
+						run();
+					}, max_date - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+					return;
+					
 				}
 			} catch (Exception e) {
 				log.error("Generic error (cancel destaging) for " + external_id + ", " + file, e);

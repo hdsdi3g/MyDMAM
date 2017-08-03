@@ -40,7 +40,14 @@ public class InterplayAsset {
 	private LinkedHashMap<String, String> attributes_map;
 	
 	InterplayAsset(InterplayAPI interplay_api, String interplay_uri, List<AttributeType> attributes) {
+		this.interplay_api = interplay_api;
+		if (interplay_api == null) {
+			throw new NullPointerException("\"interplay_api\" can't to be null");
+		}
 		this.interplay_uri = interplay_uri;
+		if (interplay_uri == null) {
+			throw new NullPointerException("\"interplay_uri\" can't to be null");
+		}
 		if (attributes != null) {
 			this.attributes = Collections.unmodifiableList(attributes);
 		} else {
@@ -136,6 +143,9 @@ public class InterplayAsset {
 		});
 	}
 	
+	/**
+	 * Beware: sequences can return partial (it's not online but maybe totally usable w/o renders)...
+	 */
 	public boolean isOnline() {
 		return MediaStatus.online.equals(getMediaStatus());
 	}

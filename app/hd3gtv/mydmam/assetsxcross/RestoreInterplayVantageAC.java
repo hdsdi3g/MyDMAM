@@ -32,7 +32,6 @@ import com.avid.interplay.ws.assets.AttributeType;
 import com.avid.interplay.ws.assets.SearchGroupType;
 import com.avid.interplay.ws.assets.SearchResponseType;
 import com.avid.interplay.ws.assets.SearchType;
-import com.google.gson.JsonElement;
 
 import hd3gtv.archivecircleapi.ACAPI;
 import hd3gtv.archivecircleapi.ACFile;
@@ -51,6 +50,8 @@ import hd3gtv.mydmam.pathindexing.AJSFileLocationStatus;
 import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import hd3gtv.tools.TableList;
+import hd3gtv.tools.TableList.Row;
 import hd3gtv.tools.Timecode;
 
 public class RestoreInterplayVantageAC {
@@ -63,17 +64,14 @@ public class RestoreInterplayVantageAC {
 	private String vantage_variable_name_tcin;
 	private String archive_storagename;
 	private int fps;
-	private String ac_share;
 	private String vantage_workflow_name;
 	private String ac_locations_in_interplay;
 	private String ac_path_in_interplay;
 	
-	private DestageManager destage_manager;
-	
 	public static RestoreInterplayVantageAC createFromConfiguration() {
 		Object raw_conf = Configuration.global.getRawValue("assetsxcross", "interplay_restore");
-		JsonElement j_conf = MyDMAM.gson_kit.getGsonSimple().toJsonTree(raw_conf);
-		return MyDMAM.gson_kit.getGsonSimple().fromJson(j_conf, RestoreInterplayVantageAC.class);
+		String s_conf = MyDMAM.gson_kit.getGsonSimple().toJsonTree(raw_conf).toString();
+		return MyDMAM.gson_kit.getGsonSimple().fromJson(s_conf, RestoreInterplayVantageAC.class);
 	}
 	
 	private transient Explorer explorer;
@@ -81,6 +79,7 @@ public class RestoreInterplayVantageAC {
 	private transient ACAPI acapi;
 	private transient VantageAPI vantage;
 	private transient BridgePathindexArchivelocation bridge_pathindex_archivelocation;
+	private transient DestageManager destage_manager;
 	
 	private RestoreInterplayVantageAC() throws IOException {
 		interplay = InterplayAPI.initFromConfiguration();
@@ -159,19 +158,24 @@ public class RestoreInterplayVantageAC {
 			return new FileNotFoundException("Can't found asset with ID " + mydmam_id + " in \"" + search_root_path + "\" Interplay directory");
 		});
 		
+		if (asset.isOnline()) {
+			Loggers.AssetsXCross.info("Asset is already online: " + asset.getDisplayName());
+			return null;
+		}
+		
 		if (asset.isMasterclip()) {
 			/**
 			 * Restore this Masterclip
 			 */
 			ManageableAsset ma = new ManageableAsset(asset);
 			ma.localizeArchivedVersion();
-			if (ma.getLocalizedArchivedVersion() == null) {
+			if (ma.localized_archived_version == null) {
 				return null;
 			}
 			
 			Loggers.AssetsXCross.info("Start to restore master clip \"" + asset.getDisplayName() + "\" " + mydmam_id);
 			
-			ma.getLocalizedArchivedVersion().destageAndCreateVantageRestoreJob(base_job_name, vantage_job -> {
+			ma.localized_archived_version.destageAndCreateVantageRestoreJob(base_job_name, vantage_job -> {
 				Loggers.AssetsXCross.info("Submit Vantage job " + vantage_job + " for restore master clip \"" + asset.getDisplayName() + "\" " + mydmam_id);
 			}, e -> {
 				Loggers.AssetsXCross.info("Error during master clip restauration \"" + asset.getDisplayName() + "\" " + mydmam_id, e);
@@ -215,23 +219,76 @@ public class RestoreInterplayVantageAC {
 			this.manageable_assets = manageable_assets;
 		}
 		
-		public void globalStatus() {
-			base_asset.getDisplayName();
-			base_asset.getMyDMAMID();
+		public void globalStatus(TableList table) {
+			final Row row_base = table.createRow();
+			row_base.addCell(base_asset.getType().getShortName());
+			if (base_asset.getMyDMAMID() != null) {
+				row_base.addCell(base_asset.getMyDMAMID());
+			} else {
+				row_base.addEmptyCell();
+			}
+			row_base.addCell(base_asset.getDisplayName().substring(0, Math.min(base_asset.getDisplayName().length(), 15)));
+			if (base_asset.isOnline()) {
+				row_base.addCell("online");
+				return;
+			}
 			
 			manageable_assets.stream().forEach(m_asset -> {
+				Row row_line = row_base;
 				if (base_asset.interplay_uri != m_asset.asset.interplay_uri) {
-					base_asset.getDisplayName();
-					base_asset.getMyDMAMID();
+					row_line = table.createRow();
+					
+					if (m_asset.asset.isOnline()) {
+						row_base.addCell("  o");
+					} else if (m_asset.localized_archived_version != null) {
+						if (m_asset.localized_archived_version.vantage_job != null) {
+							row_base.addCell("  V");
+						} else if (m_asset.localized_archived_version.destage_job != null) {
+							row_base.addCell("  D");
+						} else {
+							row_base.addCell("  !");
+						}
+					} else {
+						row_base.addCell("  X");
+					}
+					
+					if (m_asset.asset.getMyDMAMID() != null) {
+						row_base.addCell(m_asset.asset.getMyDMAMID());
+					} else {
+						row_base.addEmptyCell();
+					}
+					row_base.addCell(m_asset.asset.getDisplayName().substring(0, Math.min(m_asset.asset.getDisplayName().length(), 15)));
 				}
-				if (base_asset.isOnline()) {
-					return;
+				
+				if (m_asset.asset.isOnline()) {
+					row_line.addCell("Online");
 				} else if (m_asset.localized_archived_version == null) {
-					return;
+					row_line.addCell("No localized version: can't restore this clip");
+				} else if (m_asset.localized_archived_version.vantage_job != null) {
+					row_line.addCell("Vantage: " + m_asset.localized_archived_version.vantage_job.toString());
+				} else if (m_asset.localized_archived_version.destage_job != null) {
+					row_line.addCell(m_asset.localized_archived_version.destage_job.toString());
+				} else {
+					row_line.addCell("No action pending for localized version !");
 				}
-				m_asset.localized_archived_version.getDestageJob();
-				m_asset.localized_archived_version.getVantageJob();
-				// TODO watch all restore pending (aka list & refresh)...
+			});
+		}
+		
+		public boolean isDone() {
+			if (base_asset.isOnline()) {
+				return true;
+			}
+			return manageable_assets.stream().allMatch(m_asset -> {
+				if (m_asset.asset.isOnline()) {
+					return true;
+				}
+				if (m_asset.localized_archived_version != null) {
+					ArchivedAsset arch = m_asset.localized_archived_version;
+					if (arch.vantage_job != null) {
+						return true;
+					}
+				}
+				return false;
 			});
 		}
 	}
@@ -252,31 +309,46 @@ public class RestoreInterplayVantageAC {
 		 * @return true if online & can be restored in the future
 		 */
 		public boolean canBePurged() {
-			return asset.isOnline() && canBeRestoredinFuture() && asset.isMasterclip();
+			return asset.isOnline() & canBeRestoredinFuture() & asset.isMasterclip();
 		}
 		
 		/**
 		 * @return true if video & audio presence.
 		 */
 		public boolean canBeRestoredinFuture() {
-			return asset.hasVideoTrack() && asset.getAudioTracksCount() > 0 && asset.isMasterclip();
+			return asset.getMyDMAMID() != null & asset.isMasterclip() & asset.hasVideoTrack() & asset.getAudioTracksCount() > 0;
 		}
 		
 		/**
 		 * @return null if destage is impossible (file not archived/not found in AC) or stupid (file is not offine in Interplay) or not a master clip
 		 */
 		public void localizeArchivedVersion() throws Exception {
-			if (canBeRestoredinFuture() == false | asset.isOnline() | asset.isMasterclip() == false | localized_archived_version != null) {
+			if (localized_archived_version != null) {
 				return;
 			}
+			
+			if (asset.isOnline()) {
+				Loggers.AssetsXCross.debug("Ignore the restoration of " + asset.getDisplayName() + " beacause it's already on line");
+				return;
+			}
+			if (asset.isMasterclip() == false) {
+				Loggers.AssetsXCross.debug("Ignore the restoration of " + asset.getDisplayName() + " beacause it's not a masterclip");
+				return;
+			}
+			if (canBeRestoredinFuture() == false) {
+				Loggers.AssetsXCross.info("Ignore the restoration of " + asset.getDisplayName() + " beacause it's not possible to restore it");
+				return;
+			}
+			
 			/**
 			 * Resolve path from AC and get tape locations.
 			 */
-			
 			ACFile ac_file = null;
 			String full_ac_path = asset.getAttribute(ac_path_in_interplay);
 			
 			if (full_ac_path == null) {
+				Loggers.AssetsXCross.debug("Search archived version for " + asset.getMyDMAMID() + " in " + archive_storagename);
+				
 				ArrayList<SourcePathIndexerElement> founded = explorer.getAllIdFromStorage(asset.getMyDMAMID(), archive_storagename);
 				if (founded.isEmpty()) {
 					throw new FileNotFoundException("Can't found archived file with ID " + asset.getMyDMAMID() + " in " + archive_storagename);
@@ -289,6 +361,8 @@ public class RestoreInterplayVantageAC {
 				if (ac_file == null) {
 					throw new FileNotFoundException("Can't found archived file in ACAPI: " + founded.get(0).currentpath);
 				}
+				
+				Loggers.AssetsXCross.debug("Found archived version for " + asset.getMyDMAMID() + ": " + ac_file.toString() + " and update Interplay database");
 				
 				ArrayList<AttributeType> attributes = new ArrayList<>();
 				attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_locations_in_interplay, ac_file.getTapeBarcodeLocations().stream().collect(Collectors.joining(" "))));
@@ -304,13 +378,6 @@ public class RestoreInterplayVantageAC {
 			}
 			
 			localized_archived_version = new ArchivedAsset(ac_file);
-		}
-		
-		/**
-		 * @return can be null, please call localizeArchivedVersion() before
-		 */
-		public ArchivedAsset getLocalizedArchivedVersion() {
-			return localized_archived_version;
 		}
 		
 		public class ArchivedAsset {
@@ -333,6 +400,9 @@ public class RestoreInterplayVantageAC {
 			 * Async operation
 			 */
 			public void destageAndCreateVantageRestoreJob(String base_job_name, Consumer<VantageJob> onCreateVantageJob, Consumer<Exception> onError) {
+				if (asset.getMyDMAMID() == null) {
+					throw new NullPointerException("No MyDMAM ID for asset " + asset.getDisplayName());
+				}
 				destage_job = destage_manager.addFileToDestage(acfile, asset.getMyDMAMID(), (acf, id) -> {
 					try {
 						/**
@@ -421,7 +491,7 @@ public class RestoreInterplayVantageAC {
 			localizeAllRelativeArchivedVersion(onError);
 			
 			stream().forEach(asset -> {
-				ArchivedAsset arch = asset.getLocalizedArchivedVersion();
+				ArchivedAsset arch = asset.localized_archived_version;
 				if (arch == null) {
 					return;
 				}

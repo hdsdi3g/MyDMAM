@@ -97,11 +97,31 @@ public class InterplayAPI {
 	}
 	
 	public enum MediaStatus {
-		online, offline;
+		online, offline, partial;
 	}
 	
 	public enum AssetType {
 		sequence, masterclip, motioneffect, renderedeffect, subclip;
+		
+		/**
+		 * @return Sequ, Clip, MotE, RenE, SubC
+		 */
+		public String getShortName() {
+			switch (this) {
+			case sequence:
+				return "Sequ";
+			case masterclip:
+				return "Clip";
+			case motioneffect:
+				return "MotE";
+			case renderedeffect:
+				return "RenE";
+			case subclip:
+				return "SubC";
+			default:
+				return name().substring(0, 2);
+			}
+		}
 	}
 	
 	private AssetsPortType assets;
@@ -433,7 +453,7 @@ public class InterplayAPI {
 		setCategories(interplay_uri, actual_categories, new_categories);
 	}
 	
-	static void checkError(ErrorListType errors) throws IOException {
+	public static void checkError(ErrorListType errors) throws IOException {
 		if (errors == null) {
 			return;
 		}
