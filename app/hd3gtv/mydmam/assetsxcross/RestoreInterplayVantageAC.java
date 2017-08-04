@@ -71,6 +71,7 @@ public class RestoreInterplayVantageAC {
 	private String ac_locations_in_interplay;
 	private String ac_path_in_interplay;
 	private String last_check_shred_in_interplay;
+	private ArrayList<String> do_not_touch_interplay_paths;
 	
 	public static RestoreInterplayVantageAC createFromConfiguration() {
 		Object raw_conf = Configuration.global.getRawValue("assetsxcross", "interplay_restore");
@@ -378,10 +379,7 @@ public class RestoreInterplayVantageAC {
 				
 				Loggers.AssetsXCross.debug("Found archived version for " + asset.getMyDMAMID() + ": " + ac_file.toString() + " and update Interplay database");
 				
-				ArrayList<AttributeType> attributes = new ArrayList<>();
-				attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_locations_in_interplay, ac_file.getTapeBarcodeLocations().stream().collect(Collectors.joining(" "))));
-				attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_path_in_interplay, "/" + ac_file.share + "/" + ac_file.path));
-				interplay.setAttributes(attributes, asset.interplay_uri);
+				updateAssetArchiveLocalization(ac_file);
 			} else {
 				String[] path = full_ac_path.split("/", 3);
 				ac_file = acapi.getFile(path[1], "/" + path[2], false);
@@ -501,7 +499,14 @@ public class RestoreInterplayVantageAC {
 			asset.setAttributes(attributes);
 		}
 		
-		public void tagToShred(String search_root_path) throws AssetsFault, IOException {
+		private void updateAssetArchiveLocalization(ACFile ac_file) throws AssetsFault, IOException {
+			ArrayList<AttributeType> attributes = new ArrayList<>();
+			attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_locations_in_interplay, ac_file.getTapeBarcodeLocations().stream().collect(Collectors.joining(" "))));
+			attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_path_in_interplay, "/" + ac_file.share + "/" + ac_file.path));
+			interplay.setAttributes(attributes, asset.interplay_uri);
+		}
+		
+		public void tagToShred(String dest_interplay_dir, long min_date_relative) throws Exception {
 			if (canBePurged() == false) {
 				/**
 				 * Not purgable: just update last_check_shred_in_interplay
@@ -510,19 +515,61 @@ public class RestoreInterplayVantageAC {
 				return;
 			}
 			
-			// TODO Is correclty archived, with an Itp db update if needed
-			// TODO Is linked in a sequence...
-			// TODO If this sequence is "recent"
-			// TODO Is present outside of search_root_path
-			
-			// asset.getRelatives(true, attributes)
+			/**
+			 * Search if asset is correclty archived, with an Itp db update if needed >> else ? how to do ?
+			 * Resolve path from AC and get tape locations.
+			 */
+			String full_ac_path = asset.getAttribute(ac_path_in_interplay);
+			if (full_ac_path == null) {
+				Loggers.AssetsXCross.debug("Search archived version for " + asset.getMyDMAMID() + " in " + archive_storagename);
+				
+				ArrayList<SourcePathIndexerElement> founded = explorer.getAllIdFromStorage(asset.getMyDMAMID(), archive_storagename);
+				if (founded.isEmpty()) {
+					Loggers.AssetsXCross.warn("Can't found archived file with ID " + asset.getMyDMAMID() + " in " + archive_storagename);
+					return;
+				} else if (founded.size() > 1) {
+					throw new IOException("More than 1 file archived as " + asset.getMyDMAMID() + ": " + founded + " in " + archive_storagename);
+				}
+				
+				ACFile ac_file = bridge_pathindex_archivelocation.getExternalLocation(founded.get(0));
+				if (ac_file == null) {
+					throw new FileNotFoundException("Can't found archived file in ACAPI: " + founded.get(0).currentpath);
+				} else if (ac_file.isOnTape() == false) {
+					Loggers.AssetsXCross.warn("File is dropped in archive system but not actually archived, ID " + asset.getMyDMAMID() + " in " + archive_storagename);
+				}
+				
+				Loggers.AssetsXCross.debug("Found archived version for " + asset.getMyDMAMID() + ": " + ac_file.toString() + " and update Interplay database");
+				updateAssetArchiveLocalization(ac_file);
+			}
 			
 			/**
-			 * Create a link in shred directory
+			 * Search if is linked in a (recent) sequence...
 			 */
-			String dest_dir = purge_interplay_folder + "/" + date_link_dir.format(System.currentTimeMillis());
-			interplay.createFolder(dest_dir);
-			interplay.link(asset.interplay_uri, dest_dir);
+			if (asset.getRelatives(true).stream().anyMatch(relative -> {
+				return (relative.isSequence() | relative.isGroup()) && relative.getLastModificationDate() > min_date_relative;
+			})) {
+				Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset.getMyDMAMID() + ") still relative to a recent used sequence");
+				return;
+			}
+			
+			/**
+			 * Search if is present in a protected directory.
+			 */
+			if (asset.getPathLinks().stream().anyMatch(path -> {
+				return do_not_touch_interplay_paths.stream().anyMatch(protected_path -> {
+					return path.startsWith(protected_path);
+				});
+			})) {
+				Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset.getMyDMAMID() + ") is placed in a protected path: tag it, but don't purge it.");
+				return;
+			}
+			
+			Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset.getMyDMAMID() + ") will be put in the Interplay shred directory.");
+			
+			/**
+			 * Create a link in the shred directory
+			 */
+			interplay.link(asset.interplay_uri, dest_interplay_dir);
 			
 			/**
 			 * Remove from future searchs
@@ -569,12 +616,9 @@ public class RestoreInterplayVantageAC {
 		
 	}
 	
-	public void tagForShred(String search_root_path, int max_result, int since_update_month, int since_check_month) throws Exception {
+	public void tagForShred(String search_root_path, int max_result, int since_update_month, int since_used_month) throws Exception {
 		Calendar calendar_update = Calendar.getInstance();
 		calendar_update.add(Calendar.MONTH, -Math.abs(since_update_month));
-		
-		Calendar calendar_check = Calendar.getInstance();
-		calendar_check.add(Calendar.MONTH, -Math.abs(since_check_month));
 		
 		SearchType search_type = new SearchType();
 		search_type.setMaxResults(max_result);
@@ -597,13 +641,19 @@ public class RestoreInterplayVantageAC {
 			return new ManageableAsset(asset);
 		}).collect(Collectors.toList());
 		
+		Calendar calendar_used = Calendar.getInstance();
+		calendar_used.add(Calendar.MONTH, -Math.abs(since_used_month));
+		
+		String dest_dir = purge_interplay_folder + "/" + date_link_dir.format(System.currentTimeMillis());
+		interplay.createFolder(dest_dir);
+		
 		/**
 		 * Checks if is restorable
 		 */
 		m_assets.stream().forEach(asset -> {
 			try {
-				asset.tagToShred(search_root_path);
-			} catch (AssetsFault | IOException e) {
+				asset.tagToShred(dest_dir, calendar_used.getTimeInMillis());
+			} catch (Exception e) {
 				throw new RuntimeException("Error with asset " + asset, e);
 			}
 		});

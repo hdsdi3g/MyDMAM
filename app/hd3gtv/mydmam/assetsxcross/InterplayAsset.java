@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -131,6 +132,17 @@ public class InterplayAsset {
 		return getAttribute("Path", null);
 	}
 	
+	/**
+	 * @return -1 if no date
+	 */
+	public long getLastModificationDate() {
+		String mdate = getAttribute("Modified Date", null);
+		if (mdate == null) {
+			return -1;
+		}
+		return InterplayAPI.parseInterplayDate(mdate);
+	}
+	
 	private int audio_tracks_count = -1;
 	
 	public int getAudioTracksCount() {
@@ -172,6 +184,10 @@ public class InterplayAsset {
 		return AssetType.sequence.equals(getType());
 	}
 	
+	public boolean isGroup() {
+		return AssetType.group.equals(getType());
+	}
+	
 	/**
 	 * @return it never return attribute Path
 	 */
@@ -184,6 +200,7 @@ public class InterplayAsset {
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Source ID", ""));
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Start", ""));
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Duration", ""));
+		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Modified Date", ""));
 		// attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Path", ""));
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.USER, "Display Name", ""));
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.USER, interplay_api.getMydmamIDinInterplay(), ""));
@@ -207,6 +224,36 @@ public class InterplayAsset {
 		}
 		
 		return relatives;
+	}
+	
+	/**
+	 * @return list of interplay_uri
+	 */
+	public List<String> findLinks() throws AssetsFault, IOException {
+		return interplay_api.findLinks(interplay_uri);
+	}
+	
+	/**
+	 * @return list of linked assets paths, without this path.
+	 */
+	public List<String> getPathLinks() throws AssetsFault, IOException {
+		List<String> links = findLinks();
+		if (links.isEmpty()) {
+			return Collections.emptyList();
+		}
+		
+		String this_path = getPath();
+		
+		List<AttributeType> attr = new ArrayList<>();
+		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.SYSTEM, "Path", ""));
+		
+		return interplay_api.getAttributes(links, attr).stream().map(asset -> {
+			return asset.getPath();
+		}).filter(path -> {
+			return path != null;
+		}).filter(path -> {
+			return path.equals(this_path) == false;
+		}).collect(Collectors.toList());
 	}
 	
 	public void setAttributes(Collection<AttributeType> attributes) throws AssetsFault, IOException {

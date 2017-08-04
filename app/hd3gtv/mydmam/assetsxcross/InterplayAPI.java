@@ -18,6 +18,7 @@ package hd3gtv.mydmam.assetsxcross;
 
 import java.io.IOException;
 import java.net.URL;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,6 +72,7 @@ import com.avid.interplay.ws.assets.SetCategoriesType;
 import com.avid.interplay.ws.assets.UserCredentialsType;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.Loggers;
 
 public class InterplayAPI {
 	
@@ -102,7 +104,7 @@ public class InterplayAPI {
 	}
 	
 	public enum AssetType {
-		sequence, masterclip, motioneffect, renderedeffect, subclip;
+		sequence, masterclip, motioneffect, renderedeffect, subclip, group;
 		
 		/**
 		 * @return Sequ, Clip, MotE, RenE, SubC
@@ -119,6 +121,8 @@ public class InterplayAPI {
 				return "RenE";
 			case subclip:
 				return "SubC";
+			case group:
+				return "Grou";
 			default:
 				return name().substring(0, 2);
 			}
@@ -280,8 +284,11 @@ public class InterplayAPI {
 	}
 	
 	public List<InterplayAsset> getAttributes(Collection<String> interplay_uri_list) throws AssetsFault, IOException {
+		return getAttributes(interplay_uri_list, null);
+	}
+	
+	public List<InterplayAsset> getAttributes(Collection<String> interplay_uri_list, Collection<AttributeType> attributes) throws AssetsFault, IOException {
 		GetAttributesType body = new GetAttributesType();
-		// body.setAllAttributes(true);
 		
 		InterplayURIListType uri_list = new InterplayURIListType();
 		interplay_uri_list.forEach(uri -> {
@@ -289,8 +296,14 @@ public class InterplayAPI {
 				uri_list.getInterplayURI().add(uri);
 			}
 		});
-		
 		body.setInterplayURIs(uri_list);
+		
+		if (attributes != null) {
+			AttributeListType attr_list = new AttributeListType();
+			attr_list.getAttribute().addAll(attributes);
+			body.setAttributes(attr_list);
+		}
+		
 		GetAttributesResponseType response = assets.getAttributes(body, credentialsHeader);
 		checkError(response.getErrors());
 		
@@ -339,9 +352,7 @@ public class InterplayAPI {
 		find_relatives.setInterplayURI(interplay_uri);
 		
 		AttributeListType ltype = new AttributeListType();
-		attributes.forEach(attr -> {
-			ltype.getAttribute().add(attr);
-		});
+		ltype.getAttribute().addAll(attributes);
 		find_relatives.setReturnAttributes(ltype);
 		
 		FindRelativesResponseType response = assets.findRelatives(find_relatives, credentialsHeader);
@@ -360,6 +371,15 @@ public class InterplayAPI {
 	 */
 	public static String formatInterplayDate(long date) {
 		return interplay_date_format.format(date);
+	}
+	
+	public static long parseInterplayDate(String date) {
+		try {
+			return interplay_date_format.parse(date).getTime();
+		} catch (ParseException e) {
+			Loggers.AssetsXCross.error("Can't parse Interplay date \"" + date + "\"", e);
+			return -1;
+		}
 	}
 	
 	/**
