@@ -19,9 +19,12 @@ package hd3gtv.mydmam.assetsxcross;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+
+import org.apache.commons.io.FilenameUtils;
 
 import com.avid.interplay.ws.assets.AssetsFault;
 import com.avid.interplay.ws.assets.AttributeType;
@@ -72,6 +75,17 @@ public class InterplayAsset {
 			});
 		}
 		return attributes_map.getOrDefault(name, default_value);
+	}
+	
+	public String toString() {
+		String display_name = getDisplayName();
+		String path = getPath();
+		
+		if (display_name != null && path != null) {
+			return getType() + ": " + FilenameUtils.getFullPath(path) + display_name + " (" + getMobID() + ")";
+		} else {
+			return interplay_uri + " (" + getType() + ")";
+		}
 	}
 	
 	public String getAttribute(String name) {
@@ -193,6 +207,10 @@ public class InterplayAsset {
 		}
 		
 		return relatives;
+	}
+	
+	public void setAttributes(Collection<AttributeType> attributes) throws AssetsFault, IOException {
+		interplay_api.setAttributes(attributes, interplay_uri);
 	}
 	
 	/*	public String get() {

@@ -43,7 +43,7 @@ import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
 @Deprecated
-public class ACAPIInterplayTag {
+public class ACAPIInterplayTag { // TODO (postponed) remove
 	
 	public static boolean isConfigured() {
 		return Configuration.global.isElementKeyExists("assetsxcross", "interplay_tag");

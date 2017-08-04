@@ -18,9 +18,12 @@ package hd3gtv.mydmam.assetsxcross;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 
+import com.avid.interplay.ws.assets.AssetsFault;
 import com.avid.interplay.ws.assets.AttributeType;
 import com.avid.interplay.ws.assets.SearchGroupType;
 import com.avid.interplay.ws.assets.SearchResponseType;
@@ -66,6 +70,7 @@ public class RestoreInterplayVantageAC {
 	private String vantage_workflow_name;
 	private String ac_locations_in_interplay;
 	private String ac_path_in_interplay;
+	private String last_check_shred_in_interplay;
 	
 	public static RestoreInterplayVantageAC createFromConfiguration() {
 		Object raw_conf = Configuration.global.getRawValue("assetsxcross", "interplay_restore");
@@ -310,6 +315,10 @@ public class RestoreInterplayVantageAC {
 			this.interplay_destination_path = interplay_destination_path;
 		}
 		
+		public String toString() {
+			return asset.toString();
+		}
+		
 		/**
 		 * @return true if online & can be restored in the future
 		 */
@@ -439,7 +448,6 @@ public class RestoreInterplayVantageAC {
 							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_mastermob, asset.getMobID()));
 							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_sourcemob, asset.getSourceID()));
 							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_path, FilenameUtils.getFullPathNoEndSeparator(interplay_destination_path)));
-							// "/Catalogs/Restaurations"
 							vars.add(vantage.createVariableDef(vantage_variable_name_interplay_file, asset.getDisplayName()));
 							vars.add(vantage.createVariableDef(vantage_variable_name_audio_ch, asset.getAudioTracksCount()));
 							String tc_in = asset.getStart();
@@ -464,6 +472,12 @@ public class RestoreInterplayVantageAC {
 				}, (acf, id) -> {
 					onError.accept(new IOException("Can't destage " + acf + " (" + id + ")"));
 				}, 4, TimeUnit.HOURS);
+				
+				try {
+					updateDateLastCheckShred();
+				} catch (AssetsFault | IOException e) {
+					onError.accept(e);
+				}
 			}
 			
 			/**
@@ -481,8 +495,45 @@ public class RestoreInterplayVantageAC {
 			}
 		}
 		
-		// TODO add copy into a shred directory function
+		private void updateDateLastCheckShred() throws AssetsFault, IOException {
+			ArrayList<AttributeType> attributes = new ArrayList<>();
+			attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, last_check_shred_in_interplay, "1"));
+			asset.setAttributes(attributes);
+		}
+		
+		public void tagToShred(String search_root_path) throws AssetsFault, IOException {
+			if (canBePurged() == false) {
+				/**
+				 * Not purgable: just update last_check_shred_in_interplay
+				 */
+				updateDateLastCheckShred();
+				return;
+			}
+			
+			// TODO Is correclty archived, with an Itp db update if needed
+			// TODO Is linked in a sequence...
+			// TODO If this sequence is "recent"
+			// TODO Is present outside of search_root_path
+			
+			// asset.getRelatives(true, attributes)
+			
+			/**
+			 * Create a link in shred directory
+			 */
+			String dest_dir = purge_interplay_folder + "/" + date_link_dir.format(System.currentTimeMillis());
+			interplay.createFolder(dest_dir);
+			interplay.link(asset.interplay_uri, dest_dir);
+			
+			/**
+			 * Remove from future searchs
+			 */
+			updateDateLastCheckShred();
+		}
+		
 	}
+	
+	private static final SimpleDateFormat date_link_dir = new SimpleDateFormat("yyyy-MM-dd");
+	private String purge_interplay_folder;
 	
 	public class RelativeMasterclips extends ArrayList<ManageableAsset> {
 		private RelativeMasterclips(Collection<? extends ManageableAsset> source) {
@@ -516,10 +567,49 @@ public class RestoreInterplayVantageAC {
 			});
 		}
 		
-		// TODO shred proposal
+	}
+	
+	public void tagForShred(String search_root_path, int max_result, int since_update_month, int since_check_month) throws Exception {
+		Calendar calendar_update = Calendar.getInstance();
+		calendar_update.add(Calendar.MONTH, -Math.abs(since_update_month));
+		
+		Calendar calendar_check = Calendar.getInstance();
+		calendar_check.add(Calendar.MONTH, -Math.abs(since_check_month));
+		
+		SearchType search_type = new SearchType();
+		search_type.setMaxResults(max_result);
+		
+		SearchGroupType search_group_type = new SearchGroupType();
+		search_group_type.setOperator("AND");
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.masterclip.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Media Status", InterplayAPI.MediaStatus.online.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.LESS_THAN, AttributeGroup.SYSTEM, "Modified Date", InterplayAPI.formatInterplayDate(calendar_update.getTimeInMillis())));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_EQUALS, AttributeGroup.USER, last_check_shred_in_interplay, "1"));
+		// search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.GREATER_THAN, AttributeGroup.USER, interplay.getMydmamIDinInterplay(), String.valueOf(0)));
+		
+		search_type.setSearchGroup(search_group_type);
+		search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_root_path));
+		
+		SearchResponseType response = interplay.search(search_type);
+		InterplayAPI.checkError(response.getErrors());
+		
+		List<ManageableAsset> m_assets = interplay.convertSearchResponseToAssetList(response).stream().map(asset -> {
+			return new ManageableAsset(asset);
+		}).collect(Collectors.toList());
+		
+		/**
+		 * Checks if is restorable
+		 */
+		m_assets.stream().forEach(asset -> {
+			try {
+				asset.tagToShred(search_root_path);
+			} catch (AssetsFault | IOException e) {
+				throw new RuntimeException("Error with asset " + asset, e);
+			}
+		});
+		
+		// TODO loop search + log messages
 	}
 	
 	// TODO (postpone) search&restore scan with categories
-	// TODO search&copy for shred proposal & mergue with ACAPI Interplay Tag
-	// TODO Decision path lists in conf for shred proposal
 }

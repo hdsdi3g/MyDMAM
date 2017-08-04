@@ -18,6 +18,7 @@ package hd3gtv.mydmam.assetsxcross;
 
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
+@Deprecated
 @FunctionalInterface
 public interface PathindexScanToESMatchingItem<T> {
 	

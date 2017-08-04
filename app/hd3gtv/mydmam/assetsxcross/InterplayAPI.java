@@ -18,6 +18,7 @@ package hd3gtv.mydmam.assetsxcross;
 
 import java.io.IOException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -349,6 +350,16 @@ public class InterplayAPI {
 		return response.getResults().getAssetDescription().stream().map(ad -> {
 			return new InterplayAsset(this, ad.getInterplayURI(), ad.getAttributes().getAttribute());
 		}).collect(Collectors.toList());
+	}
+	
+	private static final SimpleDateFormat interplay_date_format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+	
+	/**
+	 * @param date Unix time in ms
+	 * @return like YYYY-MM-DDThh:mm:ss.sTZD
+	 */
+	public static String formatInterplayDate(long date) {
+		return interplay_date_format.format(date);
 	}
 	
 	/**

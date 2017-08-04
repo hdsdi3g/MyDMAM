@@ -27,6 +27,7 @@ import hd3gtv.mydmam.db.Elasticsearch;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 
+@Deprecated
 public class PathindexScanToES {
 	private String es_index;
 	private String es_type;

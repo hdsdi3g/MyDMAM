@@ -184,12 +184,15 @@ public final class Loggers {
 		}
 	}
 	
+	private static final SimpleDateFormat date_log = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss,SSS");
+	private static final SimpleDateFormat date_filename = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS");
+	
 	public static final String dateLog(long date) {
-		return new SimpleDateFormat("yyyy/MM/dd HH:mm:ss,SSS").format(new Date(date));
+		return date_log.format(new Date(date));
 	}
 	
 	public static final String dateFilename(long date) {
-		return new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS").format(new Date(date));
+		return date_filename.format(new Date(date));
 	}
 	
 	public static final File log4j_xml_configuration_file = new File(MyDMAM.APP_ROOT_PLAY_DIRECTORY.getAbsolutePath() + File.separator + "conf" + File.separator + "log4j.xml");
