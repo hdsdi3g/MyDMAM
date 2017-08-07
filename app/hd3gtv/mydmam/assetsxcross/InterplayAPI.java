@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.xml.namespace.QName;
@@ -104,7 +105,7 @@ public class InterplayAPI {
 	}
 	
 	public enum AssetType {
-		sequence, masterclip, motioneffect, renderedeffect, subclip, group;
+		sequence, masterclip, motioneffect, renderedeffect, subclip, group, folder;
 		
 		/**
 		 * @return Sequ, Clip, MotE, RenE, SubC
@@ -123,6 +124,8 @@ public class InterplayAPI {
 				return "SubC";
 			case group:
 				return "Grou";
+			case folder:
+				return "dir";
 			default:
 				return name().substring(0, 2);
 			}
@@ -196,46 +199,28 @@ public class InterplayAPI {
 	}
 	
 	/**
-	 * Remove media files... but not references in Interplay... "Manual" purge with Access is better !
+	 * @param onDeletedAssetsURIs can be null
+	 * @param onDeletedFiles can be null
 	 */
-	@Deprecated
-	public List<MediaDetailsType> deleteMediasOnly(String... path_list) throws AssetsFault, IOException {
-		/*String mob_id = "00000-000";
-		InterplayAPI interplay = InterplayAPI.initFromConfiguration();
-		String interplay_mob_uri = interplay.createURLInterplayMobid(mob_id);
-		
-		Map<String, List<AttributeType>> attr = interplay.getAttributes(interplay_mob_uri);
-		Map<String, String> attr_map = InterplayAPI.getSimpleAttributeMap(attr.get(interplay_mob_uri));
-		
-		String interplay_path = attr_map.get("Path");
-		interplay.deleteMediasOnly(interplay_path);
-		
-		List<String> g_r = interplay.getResolutions(interplay_mob_uri);
-		System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(g_r));
-		System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(interplay.getFileDetailsByURI(interplay_mob_uri)));
-		// System.out.println(MyDMAM.gson_kit.getGsonPretty().toJson(InterplayAPI.getSimpleAttributeMap(attr.get(interplay_mob_uri))));
-		
-		String source_id = attr_map.get("Source ID");
-		System.out.println(source_id);*/
-		
+	public void delete(Collection<String> path_list, boolean remove_assets, boolean remove_files, Consumer<List<String>> onDeletedAssetsURIs, Consumer<List<MediaDetailsType>> onDeletedFiles, boolean simulation) throws AssetsFault, IOException {
 		if (path_list == null) {
 			throw new NullPointerException("\"path_list\" can't to be null");
 		}
-		if (path_list.length == 0) {
+		if (path_list.isEmpty()) {
 			throw new IndexOutOfBoundsException("\"path_list\" can't to be empty");
 		}
 		
 		InterplayURIListType uri_list = new InterplayURIListType();
-		Arrays.asList(path_list).forEach(path -> {
+		path_list.forEach(path -> {
 			if (path != null) {
 				uri_list.getInterplayURI().add(createURLInterplayPath(path));
 			}
 		});
 		
 		DeleteAssetsType body = new DeleteAssetsType();
-		body.setDeleteMedia(true);
-		body.setDeleteMetadata(false);
-		// body.setSimulation(false);
+		body.setDeleteMedia(remove_files);
+		body.setDeleteMetadata(remove_assets);
+		body.setSimulation(simulation);
 		body.setInterplayURIs(uri_list);
 		
 		// ResolutionListType value = new ResolutionListType();
@@ -244,7 +229,17 @@ public class InterplayAPI {
 		
 		DeleteAssetsResponseType response = assets.deleteAssets(body, credentialsHeader);
 		checkError(response.getErrors());
-		return response.getDeletedMedia().getMediaDetails();
+		
+		if (response.getDeletedAssets() != null & onDeletedAssetsURIs != null) {
+			if (response.getDeletedAssets().getInterplayURI().isEmpty() == false) {
+				onDeletedAssetsURIs.accept(response.getDeletedAssets().getInterplayURI());
+			}
+		}
+		if (response.getDeletedMedia() != null & onDeletedFiles != null) {
+			if (response.getDeletedMedia().getMediaDetails().isEmpty() == false) {
+				onDeletedFiles.accept(response.getDeletedMedia().getMediaDetails());
+			}
+		}
 	}
 	
 	/**

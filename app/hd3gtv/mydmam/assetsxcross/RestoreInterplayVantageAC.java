@@ -72,6 +72,7 @@ public class RestoreInterplayVantageAC {
 	private String ac_path_in_interplay;
 	private String last_check_shred_in_interplay;
 	private ArrayList<String> do_not_touch_interplay_paths;
+	private int mydmam_id_size;
 	
 	public static RestoreInterplayVantageAC createFromConfiguration() {
 		Object raw_conf = Configuration.global.getRawValue("assetsxcross", "interplay_restore");
@@ -360,16 +361,17 @@ public class RestoreInterplayVantageAC {
 			 */
 			ACFile ac_file = null;
 			String full_ac_path = asset.getAttribute(ac_path_in_interplay);
+			String asset_mydmam_id = asset.getMyDMAMID().substring(0, mydmam_id_size);
 			
 			if (full_ac_path == null) {
-				Loggers.AssetsXCross.debug("Search archived version for " + asset.getMyDMAMID() + " in " + archive_storagename);
+				Loggers.AssetsXCross.debug("Search archived version for " + asset_mydmam_id + " in " + archive_storagename);
 				
-				ArrayList<SourcePathIndexerElement> founded = explorer.getAllIdFromStorage(asset.getMyDMAMID(), archive_storagename);
+				ArrayList<SourcePathIndexerElement> founded = explorer.getAllIdFromStorage(asset_mydmam_id, archive_storagename);
 				if (founded.isEmpty()) {
-					throw new FileNotFoundException("Can't found archived file with ID " + asset.getMyDMAMID() + " in " + archive_storagename);
+					throw new FileNotFoundException("Can't found archived file with ID " + asset_mydmam_id + " in " + archive_storagename);
 				}
 				if (founded.size() > 1) {
-					throw new IOException("More than 1 file archived as " + asset.getMyDMAMID() + ": " + founded);
+					throw new IOException("More than 1 file archived as " + asset_mydmam_id + ": " + founded);
 				}
 				
 				ac_file = bridge_pathindex_archivelocation.getExternalLocation(founded.get(0));
@@ -377,7 +379,7 @@ public class RestoreInterplayVantageAC {
 					throw new FileNotFoundException("Can't found archived file in ACAPI: " + founded.get(0).currentpath);
 				}
 				
-				Loggers.AssetsXCross.debug("Found archived version for " + asset.getMyDMAMID() + ": " + ac_file.toString() + " and update Interplay database");
+				Loggers.AssetsXCross.debug("Found archived version for " + asset_mydmam_id + ": " + ac_file.toString() + " and update Interplay database");
 				
 				updateAssetArchiveLocalization(ac_file);
 			} else {
@@ -415,7 +417,7 @@ public class RestoreInterplayVantageAC {
 				if (asset.getMyDMAMID() == null) {
 					throw new NullPointerException("No MyDMAM ID for asset " + asset.getDisplayName());
 				}
-				destage_job = destage_manager.addFileToDestage(acfile, asset.getMyDMAMID(), (acf, id) -> {
+				destage_job = destage_manager.addFileToDestage(acfile, asset.getMyDMAMID().substring(0, mydmam_id_size), (acf, id) -> {
 					try {
 						/**
 						 * Get the better node to get file
@@ -515,30 +517,32 @@ public class RestoreInterplayVantageAC {
 				return;
 			}
 			
+			String asset_mydmam_id = asset.getMyDMAMID().substring(0, mydmam_id_size);
+			
 			/**
 			 * Search if asset is correclty archived, with an Itp db update if needed >> else ? how to do ?
 			 * Resolve path from AC and get tape locations.
 			 */
 			String full_ac_path = asset.getAttribute(ac_path_in_interplay);
 			if (full_ac_path == null) {
-				Loggers.AssetsXCross.debug("Search archived version for " + asset.getMyDMAMID() + " in " + archive_storagename);
+				Loggers.AssetsXCross.debug("Search archived version for " + asset_mydmam_id + " in " + archive_storagename);
 				
-				ArrayList<SourcePathIndexerElement> founded = explorer.getAllIdFromStorage(asset.getMyDMAMID(), archive_storagename);
+				ArrayList<SourcePathIndexerElement> founded = explorer.getAllIdFromStorage(asset_mydmam_id, archive_storagename);
 				if (founded.isEmpty()) {
-					Loggers.AssetsXCross.warn("Can't found archived file with ID " + asset.getMyDMAMID() + " in " + archive_storagename);
+					Loggers.AssetsXCross.warn("Can't found archived file with ID " + asset_mydmam_id + " in " + archive_storagename);
 					return;
 				} else if (founded.size() > 1) {
-					throw new IOException("More than 1 file archived as " + asset.getMyDMAMID() + ": " + founded + " in " + archive_storagename);
+					throw new IOException("More than 1 file archived as " + asset_mydmam_id + ": " + founded + " in " + archive_storagename);
 				}
 				
 				ACFile ac_file = bridge_pathindex_archivelocation.getExternalLocation(founded.get(0));
 				if (ac_file == null) {
 					throw new FileNotFoundException("Can't found archived file in ACAPI: " + founded.get(0).currentpath);
 				} else if (ac_file.isOnTape() == false) {
-					Loggers.AssetsXCross.warn("File is dropped in archive system but not actually archived, ID " + asset.getMyDMAMID() + " in " + archive_storagename);
+					Loggers.AssetsXCross.warn("File is dropped in archive system but not actually archived, ID " + asset_mydmam_id + " in " + archive_storagename);
 				}
 				
-				Loggers.AssetsXCross.debug("Found archived version for " + asset.getMyDMAMID() + ": " + ac_file.toString() + " and update Interplay database");
+				Loggers.AssetsXCross.debug("Found archived version for " + asset_mydmam_id + ": " + ac_file.toString() + " and update Interplay database");
 				updateAssetArchiveLocalization(ac_file);
 			}
 			
@@ -548,7 +552,7 @@ public class RestoreInterplayVantageAC {
 			if (asset.getRelatives(true).stream().anyMatch(relative -> {
 				return (relative.isSequence() | relative.isGroup()) && relative.getLastModificationDate() > min_date_relative;
 			})) {
-				Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset.getMyDMAMID() + ") still relative to a recent used sequence");
+				Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset_mydmam_id + ") still relative to a recent used sequence");
 				return;
 			}
 			
@@ -560,11 +564,11 @@ public class RestoreInterplayVantageAC {
 					return path.startsWith(protected_path);
 				});
 			})) {
-				Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset.getMyDMAMID() + ") is placed in a protected path: tag it, but don't purge it.");
+				Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset_mydmam_id + ") is placed in a protected path: tag it, but don't purge it.");
 				return;
 			}
 			
-			Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset.getMyDMAMID() + ") will be put in the Interplay shred directory.");
+			Loggers.AssetsXCross.info("Clip " + asset.getDisplayName() + " (" + asset_mydmam_id + ") will be put in the Interplay shred directory.");
 			
 			/**
 			 * Create a link in the shred directory
@@ -658,7 +662,62 @@ public class RestoreInterplayVantageAC {
 			}
 		});
 		
-		// TODO loop search + log messages
+		// TODO loop search
+	}
+	
+	public void removeOldAssets(String search_root_path, int since_update_month) throws AssetsFault, IOException, InterruptedException {
+		Calendar calendar_update = Calendar.getInstance();
+		calendar_update.add(Calendar.MONTH, -Math.abs(since_update_month));
+		
+		SearchType search_type = new SearchType();
+		search_type.setMaxResults(500);
+		
+		SearchGroupType search_group_type = new SearchGroupType();
+		search_group_type.setOperator("AND");
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.folder.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.LESS_THAN, AttributeGroup.SYSTEM, "Created Date", InterplayAPI.formatInterplayDate(calendar_update.getTimeInMillis())));
+		
+		search_type.setSearchGroup(search_group_type);
+		search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_root_path));
+		
+		SearchResponseType response = interplay.search(search_type);
+		InterplayAPI.checkError(response.getErrors());
+		Loggers.AssetsXCross.info("Search assets to delete in " + search_root_path + " older from " + Loggers.dateLog(calendar_update.getTimeInMillis()) + "...");
+		List<InterplayAsset> assets = interplay.convertSearchResponseToAssetList(response);
+		
+		while (assets.isEmpty() == false) {
+			List<String> assets_uri_list = assets.stream().map(asset -> asset.getPath()).collect(Collectors.toList());
+			
+			Loggers.AssetsXCross.info("Start to delete " + assets_uri_list.size() + " assets");
+			
+			final ArrayList<String> deleted_uri_path_list = new ArrayList<>();
+			interplay.delete(assets_uri_list, true, false, d_uri_asset_path -> {
+				deleted_uri_path_list.addAll(d_uri_asset_path);
+			}, null, false);
+			
+			assets.stream().map(asset_to_delete -> {
+				return interplay.createURLInterplayPath(asset_to_delete.getPath());
+			}).filter(asset_uri_path_to_delete -> {
+				return deleted_uri_path_list.contains(asset_uri_path_to_delete) == false;
+			}).forEach(asset -> {
+				Loggers.AssetsXCross.warn("Can't delete " + asset);
+			});
+			
+			assets.stream().map(asset_to_delete -> {
+				return interplay.createURLInterplayPath(asset_to_delete.getPath());
+			}).filter(asset_uri_path_to_delete -> {
+				return deleted_uri_path_list.contains(asset_uri_path_to_delete);
+			}).forEach(asset -> {
+				Loggers.AssetsXCross.trace("Delete " + asset);
+			});
+			
+			Thread.sleep(100);
+			
+			Loggers.AssetsXCross.info("Search assets to delete in " + search_root_path + " older from " + Loggers.dateLog(calendar_update.getTimeInMillis()) + "...");
+			response = interplay.search(search_type);
+			InterplayAPI.checkError(response.getErrors());
+			assets = interplay.convertSearchResponseToAssetList(response);
+		}
 	}
 	
 	// TODO (postpone) search&restore scan with categories
