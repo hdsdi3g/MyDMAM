@@ -71,6 +71,7 @@ public class RestoreInterplayVantageAC {
 	private String ac_locations_in_interplay;
 	private String ac_path_in_interplay;
 	private String last_check_shred_in_interplay;
+	private String todoarchives_interplay_folder;
 	private String seq_check_rel_orphan_in_interplay;
 	private ArrayList<String> do_not_touch_interplay_paths;
 	private ArrayList<String> interplay_paths_ignore_during_orphan_projects_dir_search;
@@ -447,12 +448,13 @@ public class RestoreInterplayVantageAC {
 		
 		public void tagToShred(String dest_interplay_dir, long min_date_relative) throws Exception {
 			if (canBePurged() == false) {
-				/**
-				 * Not purgable: just update last_check_shred_in_interplay
-				 */
+				if (asset.getMyDMAMID() != null) {
+					try {
+						resolveArchivedVersion(true);
+					} catch (Exception e) {
+					}
+				}
 				updateDateLastCheckShred(asset, null);
-				
-				// TODO but... do an resolveArchivedVersion if MyDMAM id exists... it will be nice in the future
 				return;
 			}
 			
@@ -525,7 +527,7 @@ public class RestoreInterplayVantageAC {
 			}
 		};
 		
-		private List<InterplayAsset> searchOrphansInProjectDirectories(String purge_interplay_folder) throws AssetsFault, IOException {
+		private void searchOrphansInProjectDirectories(String purge_interplay_folder) throws AssetsFault, IOException {
 			SearchType search_type = new SearchType();
 			
 			String asset_real_path = FilenameUtils.getFullPath(asset.getPath());
@@ -548,7 +550,7 @@ public class RestoreInterplayVantageAC {
 			
 			if (to_check.isEmpty()) {
 				updateSeqCheckRelOrphan();
-				return null;
+				return;
 			}
 			
 			if (interplay_paths_tag_to_purge_during_orphan_projects_dir_search.stream().anyMatch(remove_path -> {
@@ -568,10 +570,24 @@ public class RestoreInterplayVantageAC {
 				});
 				
 				updateSeqCheckRelOrphan();
-				return null;
+				return;
 			}
 			
-			return to_check;
+			to_check.forEach(orphan -> {
+				InternalId m_id = InternalId.create(orphan, FilenameUtils.getFullPath(asset.getPath()), asset.interplay_uri);
+				Loggers.AssetsXCross.info("Create an Id [" + m_id.getId() + "] for " + orphan.getDisplayName() + " " + FilenameUtils.getFullPath(orphan.getPath()));
+				try {
+					ArrayList<AttributeType> attributes = new ArrayList<>();
+					attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, interplay.getMydmamIDinInterplay(), m_id.getId()));
+					orphan.setAttributes(attributes);
+					
+					interplay.link(orphan.interplay_uri, todoarchives_interplay_folder);
+				} catch (AssetsFault | IOException e) {
+					throw new RuntimeException("Can't operate for " + asset.getDisplayName(), e);
+				}
+			});
+			
+			updateSeqCheckRelOrphan();
 		}
 		
 		private void updateSeqCheckRelOrphan() throws AssetsFault, IOException {
@@ -732,7 +748,6 @@ public class RestoreInterplayVantageAC {
 	
 	public void searchAndArchiveOrphansInProjectDirectories(String search_root_path, boolean bypass_archive_check) throws Exception {
 		SearchType search_type = new SearchType();
-		search_type.setMaxResults(3000);// TODO remove...
 		
 		SearchGroupType search_group_type = new SearchGroupType();
 		search_group_type.setOperator("AND");
@@ -775,17 +790,13 @@ public class RestoreInterplayVantageAC {
 			}
 		}).forEach(asset -> {
 			try {
-				asset.searchOrphansInProjectDirectories(purge_interplay_folder).stream().forEach(orphan -> {
-					InternalId i_id = InternalId.create(orphan, FilenameUtils.getFullPath(asset.asset.getPath()), asset.asset.interplay_uri);
-					System.out.println("Archive me [" + i_id.getId() + "] " + orphan.getDisplayName() + " " + FilenameUtils.getFullPath(orphan.getPath()));
-					// TODO archive for each... Beware ! there are sometimes several time the same !
-				});
-				
+				asset.searchOrphansInProjectDirectories(purge_interplay_folder);
 			} catch (AssetsFault | IOException e) {
 				throw new RuntimeException("Can't process " + asset.toString(), e);
 			}
 		});
-		
 	}
+	
+	// TODO archive for each in todoarchives_interplay_folder
 	
 }
