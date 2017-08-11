@@ -29,16 +29,14 @@ public class CliModuleAssetsXcross implements CLIDefinition {
 	
 	private boolean is_interplay_api_configured;
 	private boolean is_acapi_configured;
-	private boolean is_acapiinterplaytag_configured;
 	
 	public CliModuleAssetsXcross() {
 		is_interplay_api_configured = Configuration.global.isElementKeyExists("interplay", "host");
 		is_acapi_configured = ACAPI.loadFromConfiguration() != null;
-		is_acapiinterplaytag_configured = ACAPIInterplayTag.isConfigured();
 	}
 	
 	private boolean isACAPIInterplayTagIsFunctionnal() {
-		return is_interplay_api_configured & is_acapi_configured & is_acapiinterplaytag_configured;
+		return is_interplay_api_configured & is_acapi_configured;
 	}
 	
 	public String getCliModuleName() {
@@ -50,10 +48,6 @@ public class CliModuleAssetsXcross implements CLIDefinition {
 	}
 	
 	public void execCliModule(ApplicationArgs args) throws Exception {
-		if (args.getParamExist("-acitptag") & isACAPIInterplayTagIsFunctionnal()) {
-			ACAPIInterplayTag.createFromConfiguration().process(args.getParamExist("-v"));
-			return;
-		}
 		if (args.getParamExist("-csves")) {
 			String celement = args.getSimpleParamValue("-celement");
 			String ckey = args.getSimpleParamValue("-ckey");
@@ -95,10 +89,10 @@ public class CliModuleAssetsXcross implements CLIDefinition {
 	
 	public void showFullCliModuleHelp() {
 		System.out.println("Usage (with no confirm)");
-		System.out.println(" * Tag Interplay assets with ACAPI");
+		/*System.out.println(" * Tag Interplay assets with ACAPI");
 		if (isACAPIInterplayTagIsFunctionnal()) {
 			System.out.println("  " + getCliModuleName() + " -acitptag [-v] For start " + ACAPIInterplayTag.class.getSimpleName() + " operation");
-		}
+		}*/
 		System.out.println(" * Import MS Excel CSV to ElasticSearch");
 		System.out.println("  " + getCliModuleName() + " -csves -celement <CElement> -ckey <CKey> -esindex <Index> -estype <Type> [-charset ISO-8859-15] -csv <file.csv>");
 		System.out.println("  With:");

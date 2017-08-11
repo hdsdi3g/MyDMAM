@@ -56,8 +56,6 @@ import hd3gtv.mydmam.pathindexing.AJSFileLocationStatus;
 import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
-import hd3gtv.tools.TableList;
-import hd3gtv.tools.TableList.Row;
 
 public class RestoreInterplayVantageAC {
 	
@@ -221,97 +219,14 @@ public class RestoreInterplayVantageAC {
 		}
 	}
 	
-	public class RestoreJob {
-		private InterplayAsset base_asset;
-		private Collection<ManageableAsset> manageable_assets;
-		
-		private RestoreJob(InterplayAsset base_asset, Collection<ManageableAsset> manageable_assets) {
-			this.base_asset = base_asset;
-			this.manageable_assets = manageable_assets;
-		}
-		
-		public void globalStatus(TableList table) {
-			final Row row_base = table.createRow();
-			row_base.addCell(base_asset.getType().getShortName());
-			if (base_asset.getMyDMAMID() != null) {
-				row_base.addCell(base_asset.getMyDMAMID());
-			} else {
-				row_base.addEmptyCell();
-			}
-			row_base.addCell(base_asset.getDisplayName().substring(0, Math.min(base_asset.getDisplayName().length(), 15)));
-			if (base_asset.isOnline()) {
-				row_base.addCell("online");
-				return;
-			}
-			
-			manageable_assets.stream().forEach(m_asset -> {
-				Row row_line = row_base;
-				if (base_asset.interplay_uri != m_asset.asset.interplay_uri) {
-					row_line = table.createRow();
-					
-					if (m_asset.asset.isOnline()) {
-						row_line.addCell("  o");
-					} else if (m_asset.localized_archived_version != null) {
-						if (m_asset.localized_archived_version.vantage_job != null) {
-							row_line.addCell("  V");
-						} else if (m_asset.localized_archived_version.destage_job != null) {
-							row_line.addCell("  D");
-						} else {
-							row_line.addCell("  !");
-						}
-					} else {
-						row_line.addCell("  X");
-					}
-					
-					if (m_asset.asset.getMyDMAMID() != null) {
-						row_line.addCell(m_asset.asset.getMyDMAMID());
-					} else {
-						row_line.addEmptyCell();
-					}
-					row_line.addCell(m_asset.asset.getDisplayName().substring(0, Math.min(m_asset.asset.getDisplayName().length(), 15)));
-				}
-				
-				if (m_asset.asset.isOnline()) {
-					row_line.addCell("Online");
-				} else if (m_asset.localized_archived_version == null) {
-					row_line.addCell("No localized version: can't restore this clip");
-				} else if (m_asset.localized_archived_version.vantage_job != null) {
-					row_line.addCell("Vantage: " + m_asset.localized_archived_version.vantage_job.toString());
-				} else if (m_asset.localized_archived_version.destage_job != null) {
-					row_line.addCell(m_asset.localized_archived_version.destage_job.toString());
-				} else {
-					row_line.addCell("No action pending for localized version !");
-				}
-			});
-		}
-		
-		public boolean isDone() {
-			if (base_asset.isOnline()) {
-				return true;
-			}
-			return manageable_assets.stream().allMatch(m_asset -> {
-				if (m_asset.asset.isOnline()) {
-					return true;
-				}
-				if (m_asset.localized_archived_version != null) {
-					ArchivedAsset arch = m_asset.localized_archived_version;
-					if (arch.vantage_job != null) {
-						return true;
-					}
-				}
-				return false;
-			});
-		}
-	}
-	
 	public static boolean isTechnicallyPossibleToRestore(InterplayAsset asset) {
 		return asset.isMasterclip() & asset.hasVideoTrack() & asset.getAudioTracksCount() > 0;
 	}
 	
 	public class ManageableAsset {
 		
-		private InterplayAsset asset;
-		private String interplay_destination_path;
+		final InterplayAsset asset;
+		private final String interplay_destination_path;
 		private ArchivedAsset localized_archived_version;
 		
 		private ManageableAsset(InterplayAsset asset) {
@@ -416,6 +331,10 @@ public class RestoreInterplayVantageAC {
 		
 		public String getMyDMAMId() {
 			return asset.getMyDMAMID().substring(0, mydmam_id_size);
+		}
+		
+		ArchivedAsset getLocalizedArchivedVersion() {
+			return localized_archived_version;
 		}
 		
 		public class ArchivedAsset {
@@ -532,6 +451,8 @@ public class RestoreInterplayVantageAC {
 				 * Not purgable: just update last_check_shred_in_interplay
 				 */
 				updateDateLastCheckShred(asset, null);
+				
+				// TODO but... do an resolveArchivedVersion if MyDMAM id exists... it will be nice in the future
 				return;
 			}
 			
@@ -854,9 +775,12 @@ public class RestoreInterplayVantageAC {
 			}
 		}).forEach(asset -> {
 			try {
-				asset.searchOrphansInProjectDirectories(purge_interplay_folder);
-				// System.out.println("Archive me: " + s_asset.getDisplayName() + " " + FilenameUtils.getFullPath(s_asset.getPath()));
-				// TODO create ID and Archive for each... Beware ! there are sometimes several time the same
+				asset.searchOrphansInProjectDirectories(purge_interplay_folder).stream().forEach(orphan -> {
+					InternalId i_id = InternalId.create(orphan, FilenameUtils.getFullPath(asset.asset.getPath()), asset.asset.interplay_uri);
+					System.out.println("Archive me [" + i_id.getId() + "] " + orphan.getDisplayName() + " " + FilenameUtils.getFullPath(orphan.getPath()));
+					// TODO archive for each... Beware ! there are sometimes several time the same !
+				});
+				
 			} catch (AssetsFault | IOException e) {
 				throw new RuntimeException("Can't process " + asset.toString(), e);
 			}
