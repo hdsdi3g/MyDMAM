@@ -157,6 +157,10 @@ public class VantageAPI {
 		public String toString() {
 			return "Job " + job_id + " in workflow " + workflow_name + " \"" + job_name + "\", for source " + source_file_unc;
 		}
+		
+		public String getJobId() {
+			return job_id;
+		}
 	}
 	
 	public VariableDefinition createVariableDef(String name, String value, TypeCode code) {
@@ -167,6 +171,11 @@ public class VantageAPI {
 	public VariableDefinition createVariableDef(String name, String value) {
 		VariableDefinition vd = new VariableDefinition(name);
 		return vd.setValue(value, TypeCode.STRING);
+	}
+	
+	public VariableDefinition createVariableDefURI(String name, String value) {
+		VariableDefinition vd = new VariableDefinition(name);
+		return vd.setValue(value, TypeCode.URI);
 	}
 	
 	public VariableDefinition createVariableDef(String name, int value) {

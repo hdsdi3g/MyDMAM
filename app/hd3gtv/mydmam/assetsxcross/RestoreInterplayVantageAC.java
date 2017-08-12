@@ -25,6 +25,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -35,6 +36,7 @@ import org.apache.commons.io.FilenameUtils;
 
 import com.avid.interplay.ws.assets.AssetsFault;
 import com.avid.interplay.ws.assets.AttributeType;
+import com.avid.interplay.ws.assets.FileLocationType;
 import com.avid.interplay.ws.assets.SearchGroupType;
 import com.avid.interplay.ws.assets.SearchResponseType;
 import com.avid.interplay.ws.assets.SearchType;
@@ -47,6 +49,7 @@ import hd3gtv.archivecircleapi.DestageManager.FileDestageJob;
 import hd3gtv.configuration.Configuration;
 import hd3gtv.mydmam.Loggers;
 import hd3gtv.mydmam.MyDMAM;
+import hd3gtv.mydmam.assetsxcross.InterplayAPI.AssetType;
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.AttributeGroup;
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.Condition;
 import hd3gtv.mydmam.assetsxcross.RestoreInterplayVantageAC.ManageableAsset.ArchivedAsset;
@@ -56,6 +59,10 @@ import hd3gtv.mydmam.pathindexing.AJSFileLocationStatus;
 import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
 import hd3gtv.mydmam.pathindexing.Explorer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
+import net.telestream.vantage.ws.IDomainGetWorkflowsUnlicensedSdkExceptionFaultFaultMessage;
+import net.telestream.vantage.ws.IWorkflowSubmitSubmitFileUnlicensedSdkExceptionFaultFaultMessage;
+import net.telestream.vantage.ws.IWorkflowSubmitSubmitFileWorkflowDoesNotExistExceptionFaultFaultMessage;
+import net.telestream.vantage.ws.IWorkflowSubmitSubmitFileWorkflowInvalidStateExceptionFaultFaultMessage;
 
 public class RestoreInterplayVantageAC {
 	
@@ -65,6 +72,9 @@ public class RestoreInterplayVantageAC {
 	private String vantage_variable_name_interplay_file;
 	private String vantage_variable_name_audio_ch;
 	private String vantage_variable_name_tcin;
+	private String vantage_variable_name_filepathaudio;
+	private String vantage_variable_name_mediaid;
+	private String vantage_variable_name_archivepath;
 	private String archive_storagename;
 	private float fps;
 	private String vantage_workflow_name;
@@ -77,6 +87,8 @@ public class RestoreInterplayVantageAC {
 	private ArrayList<String> interplay_paths_ignore_during_orphan_projects_dir_search;
 	private ArrayList<String> interplay_paths_tag_to_purge_during_orphan_projects_dir_search;
 	private int mydmam_id_size;
+	private String vantage_archive_workflow_name;
+	private String vantage_archive_destbasepath;
 	
 	public static RestoreInterplayVantageAC createFromConfiguration() {
 		Object raw_conf = Configuration.global.getRawValue("assetsxcross", "interplay_restore");
@@ -746,7 +758,7 @@ public class RestoreInterplayVantageAC {
 		}
 	}
 	
-	public void searchAndArchiveOrphansInProjectDirectories(String search_root_path, boolean bypass_archive_check) throws Exception {
+	public void searchAndTagOrphansInProjectDirectories(String search_root_path, boolean bypass_archive_check) throws Exception {
 		SearchType search_type = new SearchType();
 		
 		SearchGroupType search_group_type = new SearchGroupType();
@@ -797,6 +809,111 @@ public class RestoreInterplayVantageAC {
 		});
 	}
 	
-	// TODO archive for each in todoarchives_interplay_folder
+	public VantageJob archive(InterplayAsset asset, boolean delete_asset_after_start_job) throws AssetsFault, IOException, IWorkflowSubmitSubmitFileUnlicensedSdkExceptionFaultFaultMessage, IWorkflowSubmitSubmitFileWorkflowDoesNotExistExceptionFaultFaultMessage, IWorkflowSubmitSubmitFileWorkflowInvalidStateExceptionFaultFaultMessage, IDomainGetWorkflowsUnlicensedSdkExceptionFaultFaultMessage {
+		if (asset == null) {
+			throw new NullPointerException("\"asset\" can't to be null");
+		}
+		if (asset.isMasterclip() == false) {
+			throw new NullPointerException("Can't archive other think like masterclips");
+		}
+		if (asset.isOnline() == false) {
+			throw new NullPointerException("Can't archive offline masterclip");
+		}
+		if (asset.getMyDMAMID() == null) {
+			throw new NullPointerException("Can't archive masterclip without MyDMAM Id");
+		}
+		
+		List<FileLocationType> all_atoms = interplay.getFileDetailsByURI(asset.interplay_uri).get(asset.interplay_uri);
+		
+		List<String> atom_unc_paths_for_asset = all_atoms.stream().filter(flt -> {
+			/**
+			 * Get only online video and audio atoms.
+			 */
+			return flt.getStatus().equalsIgnoreCase("Online") && (flt.getTrack().startsWith("A") | flt.getTrack().startsWith("V"));
+		}).map(flt -> {
+			return flt.getInterplayURI();
+		}).distinct().map(atom_uri -> {
+			/**
+			 * Remove multiple identical Atoms by each distinct InterplayURIs
+			 */
+			return all_atoms.stream().filter(flt -> {
+				return flt.getInterplayURI().equals(atom_uri);
+			}).findFirst().get();
+		}).sorted((l, r) -> {
+			/**
+			 * Vx first, Ax after
+			 */
+			String l_track = l.getTrack();
+			String r_track = r.getTrack();
+			
+			if (l_track.substring(0, 1).equals(r_track.substring(0, 1))) {
+				/**
+				 * Both video/audio
+				 */
+				return Integer.valueOf(l_track.substring(1)) - Integer.valueOf(r_track.substring(1));
+			} else if (l_track.substring(0, 1).equals("A") & r_track.substring(0, 1).equals("V")) {
+				/**
+				 * Audio < Video
+				 */
+				return 1;
+			}
+			return -1;
+		}).map(flt -> {
+			return flt.getFilePath();
+		}).collect(Collectors.toList());
+		
+		if (atom_unc_paths_for_asset.isEmpty()) {
+			throw new NullPointerException("Not found valid Atoms for " + asset.getMyDMAMID() + " " + asset.getDisplayName());
+		}
+		
+		String mydmam_id = asset.getMyDMAMID();
+		
+		String source_file_unc = atom_unc_paths_for_asset.get(0);
+		ArrayList<VariableDefinition> vars = new ArrayList<>();
+		if (atom_unc_paths_for_asset.size() > 1) {
+			AtomicInteger count = new AtomicInteger(1);
+			atom_unc_paths_for_asset.stream().skip(1).limit(4).forEach(unc_atom -> {
+				vars.add(vantage.createVariableDefURI(vantage_variable_name_filepathaudio + " " + count.getAndIncrement(), unc_atom));
+			});
+		}
+		vars.add(vantage.createVariableDef(vantage_variable_name_mediaid, mydmam_id));
+		vars.add(vantage.createVariableDef(vantage_variable_name_archivepath, vantage_archive_destbasepath + "/" + mydmam_id.substring(0, 4)));
+		
+		VantageJob job = vantage.createJob(source_file_unc, vantage_archive_workflow_name, vars, "Archiving Avid Atoms for " + mydmam_id);
+		
+		if (delete_asset_after_start_job) {
+			interplay.delete(Arrays.asList(asset.getPath()), true, false, null, null, false);
+		}
+		
+		return job;
+	}
+	
+	public List<VantageJob> searchAssetsToArchive(int max_results) throws AssetsFault, IOException {
+		SearchType search_type = new SearchType();
+		search_type.setMaxResults(max_results);
+		
+		SearchGroupType search_group_type = new SearchGroupType();
+		search_group_type.setOperator("AND");
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", AssetType.masterclip.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Media Status", InterplayAPI.MediaStatus.online.name()));
+		search_type.setSearchGroup(search_group_type);
+		search_type.setInterplayPathURI(interplay.createURLInterplayPath(todoarchives_interplay_folder));
+		
+		SearchResponseType response = interplay.search(search_type);
+		InterplayAPI.checkError(response.getErrors());
+		
+		return interplay.convertSearchResponseToAssetList(response).stream().map(asset -> {
+			try {
+				VantageJob job = archive(asset, true);
+				Loggers.AssetsXCross.info("Start archive job for " + asset.getMyDMAMID() + " " + asset.getDisplayName() + ". Vantage #" + job.getJobId());
+				return job;
+			} catch (Exception e) {
+				Loggers.AssetsXCross.error("Can't start archive job for " + asset.getMyDMAMID() + " " + asset.getDisplayName(), e);
+				return null;
+			}
+		}).filter(job -> {
+			return job != null;
+		}).collect(Collectors.toList());
+	}
 	
 }

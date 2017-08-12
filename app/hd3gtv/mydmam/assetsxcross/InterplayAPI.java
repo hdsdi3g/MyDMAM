@@ -255,6 +255,12 @@ public class InterplayAPI {
 		return response.getSummary().getResolution();
 	}
 	
+	/**
+	 * FileLocationType.getFormat() == XDCAM-HD 50mbps 1080i 50 | PCM
+	 * FileLocationType.getType() == filemob
+	 * FileLocationType.getTrack() == V1 | A1 ...
+	 * FileLocationType.getStatus() == Online
+	 */
 	public Map<String, List<FileLocationType>> getFileDetailsByURI(String... interplay_uri_list) throws AssetsFault, IOException {
 		GetFileDetailsType body = new GetFileDetailsType();
 		body.setInterplayURIs(getInterplayURIList(interplay_uri_list));
