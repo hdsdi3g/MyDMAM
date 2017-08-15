@@ -430,7 +430,7 @@ public class RestoreInterplayVantageAC {
 				}, 4, TimeUnit.HOURS);
 				
 				try {
-					updateDateLastCheckShred(asset, null);
+					updateDateLastCheckShred(asset, "Restored from archives");
 				} catch (AssetsFault | IOException e) {
 					onError.accept(e);
 				}
@@ -697,12 +697,17 @@ public class RestoreInterplayVantageAC {
 		m_assets.stream().forEach(asset -> {
 			try {
 				asset.tagToShred(dest_dir, calendar_used.getTimeInMillis());
+			} catch (FileNotFoundException e) {
+				Loggers.AssetsXCross.warn("Can't found asset " + asset + " > " + e.getMessage());
 			} catch (Exception e) {
 				throw new RuntimeException("Error with asset " + asset, e);
 			}
 		});
 	}
 	
+	/**
+	 * Don't remove files, only assets.
+	 */
 	public void removeOldAssets(String search_root_path, int since_update_month) throws AssetsFault, IOException, InterruptedException {
 		Calendar calendar_update = Calendar.getInstance();
 		calendar_update.add(Calendar.MONTH, -Math.abs(since_update_month));
@@ -758,21 +763,27 @@ public class RestoreInterplayVantageAC {
 		}
 	}
 	
-	public void searchAndTagOrphansInProjectDirectories(String search_root_path, boolean bypass_archive_check) throws Exception {
+	public void searchAndTagOrphansInProjectDirectories(String search_root_path, int since_created_month, int grace_time_sec_non_archived_since_month /*, boolean bypass_archive_check*/) throws Exception {
 		SearchType search_type = new SearchType();
+		
+		Calendar calendar_update = Calendar.getInstance();
+		calendar_update.add(Calendar.MONTH, -Math.abs(since_created_month));
 		
 		SearchGroupType search_group_type = new SearchGroupType();
 		search_group_type.setOperator("AND");
 		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.sequence.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.LESS_THAN, AttributeGroup.SYSTEM, "Created Date", InterplayAPI.formatInterplayDate(calendar_update.getTimeInMillis())));
 		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_EQUALS, AttributeGroup.USER, seq_check_rel_orphan_in_interplay, "1"));
 		
 		interplay_paths_ignore_during_orphan_projects_dir_search.forEach(path -> {
 			search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_CONTAINS, AttributeGroup.SYSTEM, "Path", path));
 		});
 		
-		if (bypass_archive_check) {
+		/*if (bypass_archive_check) {
 			search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.CONTAINS, AttributeGroup.USER, ac_locations_in_interplay, " "));
-		}
+		}*/
+		Calendar calendar_grace_sec_non_archived = Calendar.getInstance();
+		calendar_grace_sec_non_archived.add(Calendar.MONTH, -Math.abs(grace_time_sec_non_archived_since_month));
 		
 		search_type.setSearchGroup(search_group_type);
 		search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_root_path));
@@ -789,15 +800,19 @@ public class RestoreInterplayVantageAC {
 		String purge_interplay_folder = createPurgeInterplayFolder();
 		
 		m_assets.stream().filter(asset -> {
-			if (bypass_archive_check) {
+			/*if (bypass_archive_check) {
 				return true;
-			}
+			}*/
 			try {
 				asset.resolveArchivedVersion(true);
 				Loggers.AssetsXCross.info("Archived sequence: " + asset.asset.getDisplayName());
 				return true;
 			} catch (Exception e) {
-				Loggers.AssetsXCross.info("Non archived sequence " + FilenameUtils.getFullPath(asset.asset.getPath()) + asset.asset.getDisplayName() + " (" + asset.asset.getMyDMAMID() + ")");
+				if (asset.asset.getLastModificationDate() < calendar_grace_sec_non_archived.getTimeInMillis()) {
+					Loggers.AssetsXCross.info("Non archived sequence, but too old and not needs to wait to be archived " + asset.asset.getDisplayName());
+					return true;
+				}
+				Loggers.AssetsXCross.info("Non archived sequence, but still recent " + FilenameUtils.getFullPath(asset.asset.getPath()) + asset.asset.getDisplayName() + " (" + asset.asset.getMyDMAMID() + ")");
 				return false;
 			}
 		}).forEach(asset -> {
