@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,6 +83,7 @@ public class RestoreInterplayVantageAC {
 	private String ac_path_in_interplay;
 	private String last_check_shred_in_interplay;
 	private String todoarchives_interplay_folder;
+	private String lostandfound_base_interplay_folder;
 	private String seq_check_rel_orphan_in_interplay;
 	private ArrayList<String> do_not_touch_interplay_paths;
 	private ArrayList<String> interplay_paths_ignore_during_orphan_projects_dir_search;
@@ -94,6 +96,19 @@ public class RestoreInterplayVantageAC {
 		Object raw_conf = Configuration.global.getRawValue("assetsxcross", "interplay_restore");
 		String s_conf = MyDMAM.gson_kit.getGsonSimple().toJsonTree(raw_conf).toString();
 		return MyDMAM.gson_kit.getGsonSimple().fromJson(s_conf, RestoreInterplayVantageAC.class);
+	}
+	
+	/**
+	 * @param id can be null: return null
+	 */
+	public String parseMyDMAMID(String id) {
+		if (id == null) {
+			return null;
+		}
+		if (id.length() < mydmam_id_size) {
+			return null;
+		}
+		return id.substring(0, mydmam_id_size);
 	}
 	
 	private transient Explorer explorer;
@@ -238,7 +253,7 @@ public class RestoreInterplayVantageAC {
 	
 	public class ManageableAsset {
 		
-		final InterplayAsset asset;
+		private InterplayAsset asset;
 		private final String interplay_destination_path;
 		private ArchivedAsset localized_archived_version;
 		
@@ -254,8 +269,16 @@ public class RestoreInterplayVantageAC {
 			this.interplay_destination_path = interplay_destination_path;
 		}
 		
+		public void refreshAsset() throws AssetsFault, IOException {
+			asset = asset.refresh();
+		}
+		
 		public String toString() {
 			return asset.toString();
+		}
+		
+		public InterplayAsset getAsset() {
+			return asset;
 		}
 		
 		/**
@@ -343,7 +366,7 @@ public class RestoreInterplayVantageAC {
 		}
 		
 		public String getMyDMAMId() {
-			return asset.getMyDMAMID().substring(0, mydmam_id_size);
+			return parseMyDMAMID(asset.getMyDMAMID());
 		}
 		
 		ArchivedAsset getLocalizedArchivedVersion() {
@@ -515,6 +538,20 @@ public class RestoreInterplayVantageAC {
 			updateDateLastCheckShred(asset, null);
 		}
 		
+		private void moveToLostAndFoundInterplayPath() throws AssetsFault, IOException {
+			Calendar c = Calendar.getInstance();
+			c.setTimeInMillis(asset.getLastModificationDate());
+			String path = createAndGetLostAndFoundInterplayFolder(String.valueOf(c.get(Calendar.YEAR)));
+			interplay.move(asset.getPath(), path, false);
+		}
+		
+		private void copyToLostAndFoundInterplayPath() throws AssetsFault, IOException {
+			Calendar c = Calendar.getInstance();
+			c.setTimeInMillis(asset.getLastModificationDate());
+			String path = createAndGetLostAndFoundInterplayFolder(String.valueOf(c.get(Calendar.YEAR)));
+			interplay.link(asset.interplay_uri, path);
+		}
+		
 		private final Function<InterplayAsset, Stream<InterplayAsset>> search_Sub_Restorable_Masterclips_WO_MyDMAM_Ids = sub_dir_asset -> {
 			SearchType search_type = new SearchType();
 			SearchGroupType search_group_type = new SearchGroupType();
@@ -538,6 +575,12 @@ public class RestoreInterplayVantageAC {
 				throw new RuntimeException(e);
 			}
 		};
+		
+		private void setMyDMAMIdInInterplay(InterplayAsset asset, String new_mydmam_id) throws AssetsFault, IOException {
+			ArrayList<AttributeType> attributes = new ArrayList<>();
+			attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, interplay.getMydmamIDinInterplay(), new_mydmam_id));
+			asset.setAttributes(attributes);
+		}
 		
 		private void searchOrphansInProjectDirectories(String purge_interplay_folder) throws AssetsFault, IOException {
 			SearchType search_type = new SearchType();
@@ -572,7 +615,7 @@ public class RestoreInterplayVantageAC {
 					/**
 					 * Create a link in the shred directory + tag Shred
 					 */
-					Loggers.AssetsXCross.info("Tag to purge " + s_asset.getDisplayName() + " " + FilenameUtils.getFullPath(s_asset.getPath()));
+					Loggers.AssetsXCross.info("Tag to purge " + s_asset.getDisplayName() + " " + s_asset.getFullPath());
 					try {
 						interplay.link(s_asset.interplay_uri, purge_interplay_folder);
 						updateDateLastCheckShred(s_asset, "Non-archived in an ignored path: " + asset_real_path + ", for an archived show");
@@ -586,13 +629,10 @@ public class RestoreInterplayVantageAC {
 			}
 			
 			to_check.forEach(orphan -> {
-				InternalId m_id = InternalId.create(orphan, FilenameUtils.getFullPath(asset.getPath()), asset.interplay_uri);
+				InternalId m_id = InternalId.create(orphan, asset.getFullPath(), asset.interplay_uri);
 				Loggers.AssetsXCross.info("Create an Id [" + m_id.getId() + "] for " + orphan.getDisplayName() + " " + FilenameUtils.getFullPath(orphan.getPath()));
 				try {
-					ArrayList<AttributeType> attributes = new ArrayList<>();
-					attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, interplay.getMydmamIDinInterplay(), m_id.getId()));
-					orphan.setAttributes(attributes);
-					
+					setMyDMAMIdInInterplay(orphan, m_id.getId());
 					interplay.link(orphan.interplay_uri, todoarchives_interplay_folder);
 				} catch (AssetsFault | IOException e) {
 					throw new RuntimeException("Can't operate for " + asset.getDisplayName(), e);
@@ -660,6 +700,27 @@ public class RestoreInterplayVantageAC {
 		String dest_dir = purge_interplay_folder + "/" + date_link_dir.format(System.currentTimeMillis());
 		interplay.createFolder(dest_dir);
 		return dest_dir;
+	}
+	
+	/**
+	 * year > Interplay path
+	 */
+	private transient HashMap<String, String> lost_and_found_interplay_paths_by_years;
+	
+	private String createAndGetLostAndFoundInterplayFolder(String year) {
+		if (lost_and_found_interplay_paths_by_years == null) {
+			lost_and_found_interplay_paths_by_years = new HashMap<>(1);
+		}
+		
+		return lost_and_found_interplay_paths_by_years.computeIfAbsent(year, _year -> {
+			String dest_dir = lostandfound_base_interplay_folder + "/" + _year;
+			try {
+				interplay.createFolder(dest_dir);
+			} catch (AssetsFault | IOException e) {
+				throw new RuntimeException(e);
+			}
+			return dest_dir;
+		});
 	}
 	
 	public void tagForShred(String search_root_path, int since_update_month, int since_used_month) throws Exception {
@@ -897,7 +958,7 @@ public class RestoreInterplayVantageAC {
 		VantageJob job = vantage.createJob(source_file_unc, vantage_archive_workflow_name, vars, "Archiving Avid Atoms for " + mydmam_id);
 		
 		if (delete_asset_after_start_job) {
-			interplay.delete(Arrays.asList(asset.getPath()), true, false, null, null, false);
+			asset.delete(true, false, null, null, false);
 		}
 		
 		return job;
@@ -929,6 +990,157 @@ public class RestoreInterplayVantageAC {
 		}).filter(job -> {
 			return job != null;
 		}).collect(Collectors.toList());
+	}
+	
+	/**
+	 * @param search_sequences > false == masterclip
+	 */
+	public void tagArchiveStatusForRecent(String search_root_path, int since_after_update_month, boolean search_sequences) throws Exception {
+		Calendar calendar_update = Calendar.getInstance();
+		calendar_update.add(Calendar.MONTH, -Math.abs(since_after_update_month));
+		
+		SearchType search_type = new SearchType();
+		
+		SearchGroupType search_group_type = new SearchGroupType();
+		search_group_type.setOperator("AND");
+		if (search_sequences) {
+			search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.sequence.name()));
+		} else {
+			/**
+			 * masterclip
+			 */
+			search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.masterclip.name()));
+			search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Media Status", InterplayAPI.MediaStatus.online.name()));
+		}
+		
+		long start_date = calendar_update.getTimeInMillis();
+		long end_date = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(2);
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.GREATER_THAN_OR_EQUAL_TO, AttributeGroup.SYSTEM, "Modified Date", InterplayAPI.formatInterplayDate(start_date)));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.LESS_THAN, AttributeGroup.SYSTEM, "Modified Date", InterplayAPI.formatInterplayDate(end_date)));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_CONTAINS, AttributeGroup.USER, ac_locations_in_interplay, " "));
+		search_type.setSearchGroup(search_group_type);
+		search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_root_path));
+		
+		SearchResponseType response = interplay.search(search_type);
+		InterplayAPI.checkError(response.getErrors());
+		
+		if (response.getResults().getAssetDescription().isEmpty()) {
+			return;
+		}
+		Loggers.AssetsXCross.info("First Interplay search get " + response.getResults().getAssetDescription().size() + " asset(s)");
+		
+		List<ManageableAsset> m_assets = interplay.convertSearchResponseToAssetList(response).stream().map(asset -> {
+			return new ManageableAsset(asset);
+		}).filter(m_asset -> {
+			return m_asset.getMyDMAMId() != null;
+		}).collect(Collectors.toList());
+		
+		Loggers.AssetsXCross.info("Only " + m_assets.size() + " asset(s) match for this search (have an usable Id)");
+		
+		/**
+		 * Checks if is restorable
+		 */
+		m_assets.stream().forEach(asset -> {
+			try {
+				ACFile f = asset.resolveArchivedVersion(false);
+				Loggers.AssetsXCross.info("Founded archived asset " + asset + " on " + f.getTapeBarcodeLocations());
+			} catch (FileNotFoundException e) {
+				Loggers.AssetsXCross.info("Not (yet) archived asset " + asset + " > " + e.getMessage());
+			} catch (Exception e) {
+				throw new RuntimeException("Error with asset " + asset, e);
+			}
+		});
+	}
+	
+	public void tagToPurgeOrArchiveIsolatesMClipsInPath(String path, int since_after_update_month) throws Exception {
+		Calendar calendar_update = Calendar.getInstance();
+		calendar_update.add(Calendar.MONTH, -Math.abs(since_after_update_month));
+		
+		SearchType search_type = new SearchType();
+		
+		SearchGroupType search_group_type = new SearchGroupType();
+		search_group_type.setOperator("AND");
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.masterclip.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Media Status", InterplayAPI.MediaStatus.online.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.LESS_THAN, AttributeGroup.SYSTEM, "Modified Date", InterplayAPI.formatInterplayDate(calendar_update.getTimeInMillis())));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_CONTAINS, AttributeGroup.USER, ac_locations_in_interplay, " "));
+		search_type.setSearchGroup(search_group_type);
+		search_type.setInterplayPathURI(interplay.createURLInterplayPath(path));
+		
+		search_type.setMaxResults(500);// XXX
+		
+		SearchResponseType response = interplay.search(search_type);
+		InterplayAPI.checkError(response.getErrors());
+		
+		List<ManageableAsset> m_assets = interplay.convertSearchResponseToAssetList(response).stream().filter(asset -> {
+			return path.equals(asset.getFullPath());
+		}).map(asset -> {
+			return new ManageableAsset(asset);
+		}).collect(Collectors.toList());
+		
+		/**
+		 * Search all mclips with a real Id (Or if the name is a an ID)
+		 */
+		m_assets.forEach(m_asset -> {
+			try {
+				String id = m_asset.getMyDMAMId();
+				if (id == null) {
+					id = parseMyDMAMID(m_asset.asset.getDisplayName());
+					if (id != null) {
+						Loggers.AssetsXCross.info("Set clip ID " + id + " for " + m_asset.asset.getDisplayName());
+						m_asset.setMyDMAMIdInInterplay(m_asset.asset, id);
+						m_asset.refreshAsset();
+						if (id.equals(m_asset.getMyDMAMId()) == false) {
+							throw new IOException("Can't set new MyDMAM Id [" + id + "] for " + m_asset + "(" + m_asset.getMyDMAMId() + ")");
+						}
+						try {
+							ACFile f = m_asset.resolveArchivedVersion(false);
+							Loggers.AssetsXCross.info("Founded archived asset " + m_asset + " on " + f.getTapeBarcodeLocations());
+							if (m_asset.asset.getPathLinks().isEmpty() == false) {
+								/**
+								 * If item is linked outside
+								 */
+								m_asset.asset.delete(true, false, uri -> {
+									Loggers.AssetsXCross.info("Remove asset " + m_asset);
+								}, null, true);// TODO set false
+							} else {
+								Loggers.AssetsXCross.info("Move to Lost+Found orphan archived asset " + m_asset);
+								m_asset.moveToLostAndFoundInterplayPath();
+							}
+							return;
+						} catch (FileNotFoundException e) {
+							/**
+							 * Not archived ? Continue...
+							 */
+						}
+					} else {
+						/**
+						 * No id ?
+						 */
+						Loggers.AssetsXCross.info("Move to Lost+Found orphan non archived w/o Id asset " + m_asset);
+						m_asset.moveToLostAndFoundInterplayPath();
+						return;
+					}
+				}
+				
+				/**
+				 * MClip has now an Id, but is not yet archived
+				 */
+				if (m_asset.asset.getPathLinks().isEmpty()) {
+					/**
+					 * if item is not linked outside
+					 */
+					Loggers.AssetsXCross.info("Copy to Lost+Found orphan non archived (" + id + ") asset " + m_asset);
+					m_asset.copyToLostAndFoundInterplayPath();
+				}
+				
+				Loggers.AssetsXCross.info("Move to " + todoarchives_interplay_folder + " non archived (" + id + ") asset " + m_asset);
+				interplay.move(m_asset.asset.getPath(), todoarchives_interplay_folder, false);
+			} catch (Exception e) {
+				throw new RuntimeException("Error (with " + m_asset + ")", e);
+			}
+		});
+		
 	}
 	
 }

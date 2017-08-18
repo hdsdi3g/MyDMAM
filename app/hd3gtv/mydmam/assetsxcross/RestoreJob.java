@@ -49,10 +49,10 @@ public class RestoreJob {
 		
 		manageable_assets.stream().forEach(m_asset -> {
 			Row row_line = row_base;
-			if (base_asset.interplay_uri != m_asset.asset.interplay_uri) {
+			if (base_asset.interplay_uri != m_asset.getAsset().interplay_uri) {
 				row_line = table.createRow();
 				
-				if (m_asset.asset.isOnline()) {
+				if (m_asset.getAsset().isOnline()) {
 					row_line.addCell("  o");
 				} else if (m_asset.getLocalizedArchivedVersion() != null) {
 					if (m_asset.getLocalizedArchivedVersion().getVantageJob() != null) {
@@ -66,15 +66,15 @@ public class RestoreJob {
 					row_line.addCell("  X");
 				}
 				
-				if (m_asset.asset.getMyDMAMID() != null) {
-					row_line.addCell(m_asset.asset.getMyDMAMID());
+				if (m_asset.getAsset().getMyDMAMID() != null) {
+					row_line.addCell(m_asset.getAsset().getMyDMAMID());
 				} else {
 					row_line.addEmptyCell();
 				}
-				row_line.addCell(m_asset.asset.getDisplayName().substring(0, Math.min(m_asset.asset.getDisplayName().length(), 15)));
+				row_line.addCell(m_asset.getAsset().getDisplayName().substring(0, Math.min(m_asset.getAsset().getDisplayName().length(), 15)));
 			}
 			
-			if (m_asset.asset.isOnline()) {
+			if (m_asset.getAsset().isOnline()) {
 				row_line.addCell("Online");
 			} else if (m_asset.getLocalizedArchivedVersion() == null) {
 				row_line.addCell("No localized version: can't restore this clip");
@@ -93,7 +93,7 @@ public class RestoreJob {
 			return true;
 		}
 		return manageable_assets.stream().allMatch(m_asset -> {
-			if (m_asset.asset.isOnline()) {
+			if (m_asset.getAsset().isOnline()) {
 				return true;
 			}
 			if (m_asset.getLocalizedArchivedVersion() != null) {

@@ -63,6 +63,8 @@ import com.avid.interplay.ws.assets.InterplayURIListType;
 import com.avid.interplay.ws.assets.LinkToMOBResponseType;
 import com.avid.interplay.ws.assets.LinkToMOBType;
 import com.avid.interplay.ws.assets.MediaDetailsType;
+import com.avid.interplay.ws.assets.MoveResponseType;
+import com.avid.interplay.ws.assets.MoveType;
 import com.avid.interplay.ws.assets.SearchGroupType;
 import com.avid.interplay.ws.assets.SearchResponseType;
 import com.avid.interplay.ws.assets.SearchType;
@@ -412,6 +414,16 @@ public class InterplayAPI {
 		link.setInterplayPathURI(createURLInterplayPath(new_path));
 		
 		LinkToMOBResponseType response = assets.linkToMOB(link, credentialsHeader);
+		checkError(response.getErrors());
+	}
+	
+	public void move(String path, String destination_path, boolean override_reservations) throws AssetsFault, IOException {
+		MoveType move = new MoveType();
+		move.setInterplayAssetURI(createURLInterplayPath(path));
+		move.setInterplayFolderURI(createURLInterplayPath(destination_path));
+		move.setOverrideReservations(override_reservations);
+		
+		MoveResponseType response = assets.move(move, credentialsHeader);
 		checkError(response.getErrors());
 	}
 	

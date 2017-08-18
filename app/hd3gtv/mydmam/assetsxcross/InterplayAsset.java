@@ -23,12 +23,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 
 import com.avid.interplay.ws.assets.AssetsFault;
 import com.avid.interplay.ws.assets.AttributeType;
+import com.avid.interplay.ws.assets.MediaDetailsType;
 
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.AssetType;
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.MediaStatus;
@@ -59,6 +61,12 @@ public class InterplayAsset {
 		}
 	}
 	
+	public InterplayAsset refresh() throws AssetsFault, IOException {
+		return interplay_api.getAttributes(interplay_uri).stream().findFirst().orElseThrow(() -> {
+			return new IOException("Can't found " + interplay_uri + " in Interplay");
+		});
+	}
+	
 	public String getAttribute(String name, String default_value) {
 		if (attributes_map == null) {
 			attributes_map = new LinkedHashMap<>(attributes.size() + 1);
@@ -80,12 +88,28 @@ public class InterplayAsset {
 	
 	public String toString() {
 		String display_name = getDisplayName();
-		String path = getPath();
+		String path = getFullPath();
 		
 		if (display_name != null && path != null) {
-			return getType() + ": " + FilenameUtils.getFullPath(path) + display_name + " (" + getMobID() + ")";
+			return getType() + ": " + path + display_name + " (" + getMobID() + ")";
 		} else {
 			return interplay_uri + " (" + getType() + ")";
+		}
+	}
+	
+	/**
+	 * @return Path without MOB
+	 */
+	public String getFullPath() {
+		try {
+			String out = FilenameUtils.getFullPath(getPath());
+			if (out.endsWith("/") & out.length() > 1) {
+				return out.substring(0, out.length() - 1);
+			} else {
+				return out;
+			}
+		} catch (NullPointerException e) {
+			return null;
 		}
 	}
 	
@@ -128,6 +152,9 @@ public class InterplayAsset {
 		return getAttribute("Display Name", null);
 	}
 	
+	/**
+	 * @return Path with MOB
+	 */
 	public String getPath() {
 		return getAttribute("Path", null);
 	}
@@ -258,6 +285,22 @@ public class InterplayAsset {
 	
 	public void setAttributes(Collection<AttributeType> attributes) throws AssetsFault, IOException {
 		interplay_api.setAttributes(attributes, interplay_uri);
+	}
+	
+	public void delete(boolean remove_asset, boolean remove_files, Consumer<String> onDeletedAssetURI, Consumer<MediaDetailsType> onDeletedFile, boolean simulation) throws AssetsFault, IOException {
+		interplay_api.delete(Arrays.asList(getPath()), remove_asset, remove_files, list -> {
+			if (onDeletedAssetURI != null) {
+				list.forEach(uri -> {
+					onDeletedAssetURI.accept(uri);
+				});
+			}
+		}, list -> {
+			if (onDeletedFile != null) {
+				list.forEach(uri -> {
+					onDeletedFile.accept(uri);
+				});
+			}
+		}, simulation);
 	}
 	
 	/*	public String get() {
