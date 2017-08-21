@@ -261,9 +261,10 @@ public class InterplayAsset {
 	}
 	
 	/**
+	 * @param full_path false: return /path/mob, true return just /path
 	 * @return list of linked assets paths, without this path.
 	 */
-	public List<String> getPathLinks() throws AssetsFault, IOException {
+	public List<String> getPathLinks(boolean full_path) throws AssetsFault, IOException {
 		List<String> links = findLinks();
 		if (links.isEmpty()) {
 			return Collections.emptyList();
@@ -280,6 +281,19 @@ public class InterplayAsset {
 			return path != null;
 		}).filter(path -> {
 			return path.equals(this_path) == false;
+		}).map(path -> {
+			if (full_path) {
+				try {
+					String out = FilenameUtils.getFullPath(path);
+					if (out.endsWith("/") & out.length() > 1) {
+						return out.substring(0, out.length() - 1);
+					} else {
+						return out;
+					}
+				} catch (NullPointerException e) {
+				}
+			}
+			return path;
 		}).collect(Collectors.toList());
 	}
 	

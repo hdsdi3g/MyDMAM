@@ -59,6 +59,7 @@ import hd3gtv.mydmam.assetsxcross.VantageAPI.VariableDefinition;
 import hd3gtv.mydmam.pathindexing.AJSFileLocationStatus;
 import hd3gtv.mydmam.pathindexing.BridgePathindexArchivelocation;
 import hd3gtv.mydmam.pathindexing.Explorer;
+import hd3gtv.mydmam.pathindexing.Importer;
 import hd3gtv.mydmam.pathindexing.SourcePathIndexerElement;
 import net.telestream.vantage.ws.IDomainGetWorkflowsUnlicensedSdkExceptionFaultFaultMessage;
 import net.telestream.vantage.ws.IWorkflowSubmitSubmitFileUnlicensedSdkExceptionFaultFaultMessage;
@@ -106,6 +107,9 @@ public class RestoreInterplayVantageAC {
 			return null;
 		}
 		if (id.length() < mydmam_id_size) {
+			return null;
+		}
+		if (Importer.getIdExtractorFileName().isValidId(id) == false) {
 			return null;
 		}
 		return id.substring(0, mydmam_id_size);
@@ -313,7 +317,7 @@ public class RestoreInterplayVantageAC {
 				ac_file = acapi.getFile(path[1], "/" + path[2], false);
 				
 				if (ac_file == null) {
-					throw new FileNotFoundException("Can't found archived file in ACAPI: " + full_ac_path);
+					throw new FileNotFoundInArchive("Can't found archived file in ACAPI: " + full_ac_path);
 				}
 				return ac_file;
 			}
@@ -322,18 +326,23 @@ public class RestoreInterplayVantageAC {
 			
 			ArrayList<SourcePathIndexerElement> founded = explorer.getAllIdFromStorage(asset_mydmam_id, archive_storagename);
 			if (founded.isEmpty()) {
-				throw new FileNotFoundException("Can't found archived file with ID " + asset_mydmam_id + " in " + archive_storagename);
+				throw new FileNotArchived("Can't found archived file with ID " + asset_mydmam_id + " in " + archive_storagename);
 			}
 			if (founded.size() > 1) {
-				throw new IOException("More than 1 file archived as " + asset_mydmam_id + ": " + founded);
+				throw new InvalidArchivedFile("More than 1 file archived as " + asset_mydmam_id + ": " + founded);
 			}
 			
 			ac_file = bridge_pathindex_archivelocation.getExternalLocation(founded.get(0));
 			if (ac_file == null) {
-				throw new FileNotFoundException("Can't found archived file in ACAPI: " + founded.get(0).currentpath);
+				throw new FileNotFoundInArchive("Can't found archived file in ACAPI: " + founded.get(0).currentpath);
 			}
 			
-			updateAssetArchiveLocalization(ac_file);
+			if (ac_file.isOnTape()) {
+				ArrayList<AttributeType> attributes = new ArrayList<>();
+				attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_locations_in_interplay, ac_file.getTapeBarcodeLocations().stream().collect(Collectors.joining(" "))));
+				attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_path_in_interplay, "/" + ac_file.share + "/" + ac_file.path));
+				interplay.setAttributes(attributes, asset.interplay_uri);
+			}
 			
 			return ac_file;
 		}
@@ -362,7 +371,7 @@ public class RestoreInterplayVantageAC {
 			ACFile ac_file = resolveArchivedVersion(false);
 			Loggers.AssetsXCross.debug("Found archived version for " + getMyDMAMId() + ": " + ac_file.toString() + " and update Interplay database");
 			
-			localized_archived_version = new ArchivedAsset(ac_file);
+			localized_archived_version = new ArchivedAsset(ac_file);// TODO if file is not in tape ?
 		}
 		
 		public String getMyDMAMId() {
@@ -474,13 +483,6 @@ public class RestoreInterplayVantageAC {
 			}
 		}
 		
-		private void updateAssetArchiveLocalization(ACFile ac_file) throws AssetsFault, IOException {
-			ArrayList<AttributeType> attributes = new ArrayList<>();
-			attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_locations_in_interplay, ac_file.getTapeBarcodeLocations().stream().collect(Collectors.joining(" "))));
-			attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, ac_path_in_interplay, "/" + ac_file.share + "/" + ac_file.path));
-			interplay.setAttributes(attributes, asset.interplay_uri);
-		}
-		
 		public void tagToShred(String dest_interplay_dir, long min_date_relative) throws Exception {
 			if (canBePurged() == false) {
 				if (asset.getMyDMAMID() != null) {
@@ -516,7 +518,7 @@ public class RestoreInterplayVantageAC {
 			/**
 			 * Search if is present in a protected directory.
 			 */
-			if (asset.getPathLinks().stream().anyMatch(path -> {
+			if (asset.getPathLinks(false).stream().anyMatch(path -> {
 				return do_not_touch_interplay_paths.stream().anyMatch(protected_path -> {
 					return path.startsWith(protected_path);
 				});
@@ -1096,7 +1098,7 @@ public class RestoreInterplayVantageAC {
 						try {
 							ACFile f = m_asset.resolveArchivedVersion(false);
 							Loggers.AssetsXCross.info("Founded archived asset " + m_asset + " on " + f.getTapeBarcodeLocations());
-							if (m_asset.asset.getPathLinks().isEmpty() == false) {
+							if (m_asset.asset.getPathLinks(false).isEmpty() == false) {
 								/**
 								 * If item is linked outside
 								 */
@@ -1108,7 +1110,7 @@ public class RestoreInterplayVantageAC {
 								m_asset.moveToLostAndFoundInterplayPath();
 							}
 							return;
-						} catch (FileNotFoundException e) {
+						} catch (FileNotArchived e) {
 							/**
 							 * Not archived ? Continue...
 							 */
@@ -1126,7 +1128,7 @@ public class RestoreInterplayVantageAC {
 				/**
 				 * MClip has now an Id, but is not yet archived
 				 */
-				if (m_asset.asset.getPathLinks().isEmpty()) {
+				if (m_asset.asset.getPathLinks(false).isEmpty()) {
 					/**
 					 * if item is not linked outside
 					 */
@@ -1136,11 +1138,59 @@ public class RestoreInterplayVantageAC {
 				
 				Loggers.AssetsXCross.info("Move to " + todoarchives_interplay_folder + " non archived (" + id + ") asset " + m_asset);
 				interplay.move(m_asset.asset.getPath(), todoarchives_interplay_folder, false);
+			} catch (InvalidArchivedFile | FileNotFoundInArchive e) {
+				Loggers.AssetsXCross.error("Found invalid archived file for " + m_asset, e);
 			} catch (Exception e) {
 				throw new RuntimeException("Error (with " + m_asset + ")", e);
 			}
 		});
+	}
+	
+	public void restartArchive(String search_root_path, int since_update_month) throws Exception {
+		Calendar calendar_update = Calendar.getInstance();
+		calendar_update.add(Calendar.MONTH, -Math.abs(since_update_month));
 		
+		SearchType search_type = new SearchType();
+		
+		SearchGroupType search_group_type = new SearchGroupType();
+		search_group_type.setOperator("AND");
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.masterclip.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Media Status", InterplayAPI.MediaStatus.online.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.LESS_THAN, AttributeGroup.SYSTEM, "Modified Date", InterplayAPI.formatInterplayDate(calendar_update.getTimeInMillis())));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_CONTAINS, AttributeGroup.USER, ac_locations_in_interplay, " "));
+		
+		search_type.setSearchGroup(search_group_type);
+		search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_root_path));
+		
+		SearchResponseType response = interplay.search(search_type);
+		InterplayAPI.checkError(response.getErrors());
+		
+		List<ManageableAsset> m_assets = interplay.convertSearchResponseToAssetList(response).stream().map(asset -> {
+			return new ManageableAsset(asset);
+		}).filter(m_asset -> {
+			return m_asset.getMyDMAMId() != null;
+		}).collect(Collectors.toList());
+		
+		m_assets.stream().forEach(asset -> {
+			try {
+				asset.resolveArchivedVersion(false);
+			} catch (FileNotArchived e) {
+				try {
+					if (asset.asset.getPathLinks(true).stream().noneMatch(path -> {
+						return todoarchives_interplay_folder.equals(path);
+					})) {
+						Loggers.AssetsXCross.info("Propose to archive asset " + asset.getMyDMAMId() + " " + asset);
+						interplay.link(asset.asset.interplay_uri, todoarchives_interplay_folder);
+					} else {
+						Loggers.AssetsXCross.info("Asset already waits to be archived " + asset.getMyDMAMId() + " " + asset);
+					}
+				} catch (AssetsFault | IOException e1) {
+					throw new RuntimeException("Error with asset during link " + asset, e);
+				}
+			} catch (Exception e) {
+				throw new RuntimeException("Error with asset " + asset, e);
+			}
+		});
 	}
 	
 }
