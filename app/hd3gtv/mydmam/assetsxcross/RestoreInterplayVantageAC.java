@@ -24,14 +24,15 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -86,9 +87,11 @@ public class RestoreInterplayVantageAC {
 	private String todoarchives_interplay_folder;
 	private String lostandfound_base_interplay_folder;
 	private String seq_check_rel_orphan_in_interplay;
+	private String last_check_outside_gather_seq_in_interplay;
 	private ArrayList<String> do_not_touch_interplay_paths;
 	private ArrayList<String> interplay_paths_ignore_during_orphan_projects_dir_search;
 	private ArrayList<String> interplay_paths_tag_to_purge_during_orphan_projects_dir_search;
+	private ArrayList<String> do_not_gather_to_seq_interplay_paths;
 	private int mydmam_id_size;
 	private String vantage_archive_workflow_name;
 	private String vantage_archive_destbasepath;
@@ -532,7 +535,7 @@ public class RestoreInterplayVantageAC {
 			/**
 			 * Create a link in the shred directory
 			 */
-			interplay.link(asset.interplay_uri, dest_interplay_dir);
+			asset.linkTo(dest_interplay_dir);
 			
 			/**
 			 * Remove from future searchs
@@ -551,37 +554,7 @@ public class RestoreInterplayVantageAC {
 			Calendar c = Calendar.getInstance();
 			c.setTimeInMillis(asset.getLastModificationDate());
 			String path = createAndGetLostAndFoundInterplayFolder(String.valueOf(c.get(Calendar.YEAR)));
-			interplay.link(asset.interplay_uri, path);
-		}
-		
-		private final Function<InterplayAsset, Stream<InterplayAsset>> search_Sub_Restorable_Masterclips_WO_MyDMAM_Ids = sub_dir_asset -> {
-			SearchType search_type = new SearchType();
-			SearchGroupType search_group_type = new SearchGroupType();
-			search_group_type.setOperator("AND");
-			search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.masterclip.name()));
-			search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Media Status", InterplayAPI.MediaStatus.online.name()));
-			search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_EQUALS, AttributeGroup.USER, last_check_shred_in_interplay, "1"));
-			search_type.setSearchGroup(search_group_type);
-			search_type.setInterplayPathURI(interplay.createURLInterplayPath(FilenameUtils.getFullPath(sub_dir_asset.getPath())));
-			
-			try {
-				SearchResponseType response = interplay.search(search_type);
-				InterplayAPI.checkError(response.getErrors());
-				
-				return interplay.convertSearchResponseToAssetList(response).stream().filter(sub_asset -> {
-					return sub_asset.getMyDMAMID() == null;
-				}).filter(sub_asset -> {
-					return isTechnicallyPossibleToRestore(sub_asset);
-				});
-			} catch (AssetsFault | IOException e) {
-				throw new RuntimeException(e);
-			}
-		};
-		
-		private void setMyDMAMIdInInterplay(InterplayAsset asset, String new_mydmam_id) throws AssetsFault, IOException {
-			ArrayList<AttributeType> attributes = new ArrayList<>();
-			attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, interplay.getMydmamIDinInterplay(), new_mydmam_id));
-			asset.setAttributes(attributes);
+			asset.linkTo(path);
 		}
 		
 		private void searchOrphansInProjectDirectories(String purge_interplay_folder) throws AssetsFault, IOException {
@@ -601,12 +574,37 @@ public class RestoreInterplayVantageAC {
 			List<InterplayAsset> to_check = interplay.convertSearchResponseToAssetList(response).stream().filter(f_asset -> {
 				String name = f_asset.getDisplayName();
 				return name.equalsIgnoreCase("RESSOURCES") | name.equalsIgnoreCase("SUJETS") | name.equalsIgnoreCase("RUSHS");
-			}).map(search_Sub_Restorable_Masterclips_WO_MyDMAM_Ids).flatMap(s_i_asset -> {
+			}).map(sub_dir_asset -> {
+				/**
+				 * Search sub restorable master clips W/O MyDMAM Ids
+				 */
+				SearchType sub_search_type = new SearchType();
+				SearchGroupType sub_search_group_type = new SearchGroupType();
+				sub_search_group_type.setOperator("AND");
+				sub_search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.masterclip.name()));
+				sub_search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Media Status", InterplayAPI.MediaStatus.online.name()));
+				sub_search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_EQUALS, AttributeGroup.USER, last_check_shred_in_interplay, "1"));
+				sub_search_type.setSearchGroup(sub_search_group_type);
+				sub_search_type.setInterplayPathURI(interplay.createURLInterplayPath(FilenameUtils.getFullPath(sub_dir_asset.getPath())));
+				
+				try {
+					SearchResponseType sub_response = interplay.search(sub_search_type);
+					InterplayAPI.checkError(sub_response.getErrors());
+					
+					return interplay.convertSearchResponseToAssetList(sub_response).stream().filter(sub_asset -> {
+						return sub_asset.getMyDMAMID() == null;
+					}).filter(sub_asset -> {
+						return isTechnicallyPossibleToRestore(sub_asset);
+					});
+				} catch (AssetsFault | IOException e) {
+					throw new RuntimeException(e);
+				}
+			}).flatMap(s_i_asset -> {
 				return s_i_asset;
 			}).collect(Collectors.toList());
 			
 			if (to_check.isEmpty()) {
-				updateSeqCheckRelOrphan();
+				asset.setAttribute(AttributeGroup.USER, seq_check_rel_orphan_in_interplay, "1");
 				return;
 			}
 			
@@ -619,14 +617,14 @@ public class RestoreInterplayVantageAC {
 					 */
 					Loggers.AssetsXCross.info("Tag to purge " + s_asset.getDisplayName() + " " + s_asset.getFullPath());
 					try {
-						interplay.link(s_asset.interplay_uri, purge_interplay_folder);
+						s_asset.linkTo(purge_interplay_folder);
 						updateDateLastCheckShred(s_asset, "Non-archived in an ignored path: " + asset_real_path + ", for an archived show");
 					} catch (AssetsFault | IOException e) {
 						throw new RuntimeException(e);
 					}
 				});
 				
-				updateSeqCheckRelOrphan();
+				asset.setAttribute(AttributeGroup.USER, seq_check_rel_orphan_in_interplay, "1");
 				return;
 			}
 			
@@ -634,20 +632,14 @@ public class RestoreInterplayVantageAC {
 				InternalId m_id = InternalId.create(orphan, asset.getFullPath(), asset.interplay_uri);
 				Loggers.AssetsXCross.info("Create an Id [" + m_id.getId() + "] for " + orphan.getDisplayName() + " " + FilenameUtils.getFullPath(orphan.getPath()));
 				try {
-					setMyDMAMIdInInterplay(orphan, m_id.getId());
-					interplay.link(orphan.interplay_uri, todoarchives_interplay_folder);
+					orphan.setAttribute(AttributeGroup.USER, interplay.getMydmamIDinInterplay(), m_id.getId());
+					orphan.linkTo(todoarchives_interplay_folder);
 				} catch (AssetsFault | IOException e) {
 					throw new RuntimeException("Can't operate for " + asset.getDisplayName(), e);
 				}
 			});
 			
-			updateSeqCheckRelOrphan();
-		}
-		
-		private void updateSeqCheckRelOrphan() throws AssetsFault, IOException {
-			ArrayList<AttributeType> attributes = new ArrayList<>();
-			attributes.add(InterplayAPI.createAttribute(AttributeGroup.USER, seq_check_rel_orphan_in_interplay, "1"));
-			asset.setAttributes(attributes);
+			asset.setAttribute(AttributeGroup.USER, seq_check_rel_orphan_in_interplay, "1");
 		}
 		
 	}
@@ -1090,7 +1082,7 @@ public class RestoreInterplayVantageAC {
 					id = parseMyDMAMID(m_asset.asset.getDisplayName());
 					if (id != null) {
 						Loggers.AssetsXCross.info("Set clip ID " + id + " for " + m_asset.asset.getDisplayName());
-						m_asset.setMyDMAMIdInInterplay(m_asset.asset, id);
+						m_asset.asset.setAttribute(AttributeGroup.USER, interplay.getMydmamIDinInterplay(), id);
 						m_asset.refreshAsset();
 						if (id.equals(m_asset.getMyDMAMId()) == false) {
 							throw new IOException("Can't set new MyDMAM Id [" + id + "] for " + m_asset + "(" + m_asset.getMyDMAMId() + ")");
@@ -1180,7 +1172,7 @@ public class RestoreInterplayVantageAC {
 						return todoarchives_interplay_folder.equals(path);
 					})) {
 						Loggers.AssetsXCross.info("Propose to archive asset " + asset.getMyDMAMId() + " " + asset);
-						interplay.link(asset.asset.interplay_uri, todoarchives_interplay_folder);
+						asset.asset.linkTo(todoarchives_interplay_folder);
 					} else {
 						Loggers.AssetsXCross.info("Asset already waits to be archived " + asset.getMyDMAMId() + " " + asset);
 					}
@@ -1189,6 +1181,185 @@ public class RestoreInterplayVantageAC {
 				}
 			} catch (Exception e) {
 				throw new RuntimeException("Error with asset " + asset, e);
+			}
+		});
+	}
+	
+	/**
+	 * Sequences don't needs to be archived or have an Id.
+	 * Big time comsuming...
+	 */
+	public void searchForAllSeqsAndGatherToEachSeqDirExternalMClip(String search_root_path, int since_updated_month, String expected_target_sub_folder) throws Exception {
+		SearchType search_type = new SearchType();
+		
+		Calendar calendar_update = Calendar.getInstance();
+		calendar_update.add(Calendar.MONTH, -Math.abs(since_updated_month));
+		
+		SearchGroupType search_group_type = new SearchGroupType();
+		search_group_type.setOperator("AND");
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.sequence.name()));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.LESS_THAN, AttributeGroup.SYSTEM, "Updated Date", InterplayAPI.formatInterplayDate(calendar_update.getTimeInMillis())));
+		search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_EQUALS, AttributeGroup.USER, last_check_outside_gather_seq_in_interplay, "1"));
+		
+		List<String> ignore_this_paths = new ArrayList<>(interplay_paths_ignore_during_orphan_projects_dir_search);
+		ignore_this_paths.addAll(interplay_paths_tag_to_purge_during_orphan_projects_dir_search);
+		ignore_this_paths.forEach(path -> {
+			search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.NOT_CONTAINS, AttributeGroup.SYSTEM, "Path", path));
+		});
+		
+		search_type.setSearchGroup(search_group_type);
+		search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_root_path));
+		
+		search_type.setMaxResults(1000);// XXX
+		
+		SearchResponseType response = interplay.search(search_type);
+		InterplayAPI.checkError(response.getErrors());
+		
+		List<ManageableAsset> m_assets = interplay.convertSearchResponseToAssetList(response).stream().filter(asset -> {
+			return ignore_this_paths.stream().noneMatch(path -> {
+				return path.equals(asset.getFullPath());
+			});
+		}).map(asset -> {
+			return new ManageableAsset(asset);
+		}).collect(Collectors.toList());
+		
+		HashSet<String> resolved_and_correctly_gathered_mclips_mobs = new HashSet<>();
+		
+		/**
+		 * Functionnal declarations
+		 */
+		Predicate<InterplayAsset> filterNotYetResolved = relative -> {
+			return resolved_and_correctly_gathered_mclips_mobs.contains(relative.getMobID()) == false;
+		};
+		
+		Predicate<String> filterOutIfInBlacklistPath = path -> {
+			return do_not_gather_to_seq_interplay_paths.stream().noneMatch(black_path -> {
+				return path.startsWith(black_path);
+			});
+		};
+		Function<String, String> getTargetFolder = seq_full_path -> {
+			if (getAllInterplayPaths(seq_full_path).contains(seq_full_path + "/" + expected_target_sub_folder)) {
+				/**
+				 * expected_target_sub_folder exists from seq position
+				 */
+				return seq_full_path + "/" + expected_target_sub_folder;
+			} else {
+				String root_seq_folder = FilenameUtils.getFullPathNoEndSeparator(seq_full_path);
+				if (getAllInterplayPaths(root_seq_folder).contains(root_seq_folder + "/" + expected_target_sub_folder)) {
+					/**
+					 * expected_target_sub_folder exists in root dir from seq position
+					 */
+					return root_seq_folder + "/" + expected_target_sub_folder;
+				} else {
+					/**
+					 * Can't found expected_target_sub_folder
+					 */
+					return seq_full_path;
+				}
+			}
+		};
+		Consumer<InterplayAsset> addToNewResolvedList = relative -> {
+			resolved_and_correctly_gathered_mclips_mobs.add(relative.getMobID());
+		};
+		
+		Consumer<ManageableAsset> foundedAssetsProcess = sequence -> {
+			try {
+				Loggers.AssetsXCross.info("Get relatives for \"" + sequence.asset.getDisplayName() + "\" in " + sequence.asset.getFullPath());
+				
+				/**
+				 * Get relatives for sequence
+				 */
+				List<InterplayAsset> relatives = sequence.asset.getRelatives(true).stream().filter(filterNotYetResolved).collect(Collectors.toList());
+				
+				/**
+				 * Get all full paths for all sequence relative
+				 * MobID -> [path]
+				 */
+				HashMap<String, List<String>> relatives_paths_by_relatives = new HashMap<>();
+				relatives.forEach(relative -> {
+					try {
+						relatives_paths_by_relatives.put(relative.getMobID(), relative.getPathLinks(true));
+					} catch (AssetsFault | IOException e) {
+						throw new RuntimeException("Can't process with Interplay with " + relative, e);
+					}
+				});
+				
+				/**
+				 * Get all relatives who do not put in do_not_gather_to_seq directory list
+				 */
+				List<InterplayAsset> filtered_relatives = relatives.stream().filter(relative -> {
+					return relatives_paths_by_relatives.get(relative.getMobID()).stream().allMatch(filterOutIfInBlacklistPath);
+				}).collect(Collectors.toList());
+				
+				if (filtered_relatives.isEmpty()) {
+					sequence.asset.setAttribute(AttributeGroup.USER, last_check_outside_gather_seq_in_interplay, "1");
+					return;
+				}
+				
+				String dest_folder_to_put_relatives = ((Function<String, String>) seq_path -> {
+					if (seq_path.equals(search_root_path) | FilenameUtils.getFullPathNoEndSeparator(seq_path).equals(search_root_path)) {
+						/**
+						 * If seq is in root dir or in a direct sub dir...
+						 */
+						return search_root_path;
+					} else {
+						return getTargetFolder.apply(seq_path);
+					}
+				}).apply(sequence.asset.getFullPath());
+				
+				Loggers.AssetsXCross.info("Add " + filtered_relatives.size() + " relative(s) for \"" + sequence.asset.getDisplayName() + "\" in " + dest_folder_to_put_relatives);
+				
+				filtered_relatives.stream().forEach(relative -> {
+					try {
+						Loggers.AssetsXCross.info("This relative " + relative.getDisplayName() + " is founded in " + relatives_paths_by_relatives.get(relative.getMobID()) + " and it will be linked to current sequence directory");
+						relative.setAttribute(AttributeGroup.USER, last_check_outside_gather_seq_in_interplay, "1");
+						relative.linkTo(dest_folder_to_put_relatives);
+						addToNewResolvedList.accept(relative);
+					} catch (AssetsFault | IOException e) {
+						throw new RuntimeException("Can't link " + relative + " to " + dest_folder_to_put_relatives, e);
+					}
+				});
+				sequence.asset.setAttribute(AttributeGroup.USER, last_check_outside_gather_seq_in_interplay, "1");
+			} catch (Exception e) {
+				throw new RuntimeException("Can't process with Interplay with " + sequence, e);
+			}
+		};
+		
+		m_assets.forEach(foundedAssetsProcess);
+	}
+	
+	/**
+	 * /Dir1/Dir2 -> [/Dir1/Dir2/DirA, /Dir1/Dir2/DirB, /Dir1/Dir2/DirC]
+	 */
+	private HashMap<String, HashSet<String>> interplay_paths_by_sub_dirs;
+	
+	/**
+	 * @return folder list
+	 */
+	private HashSet<String> getAllInterplayPaths(String search_root_path) {
+		if (interplay_paths_by_sub_dirs == null) {
+			interplay_paths_by_sub_dirs = new HashMap<>();
+		}
+		return interplay_paths_by_sub_dirs.computeIfAbsent(search_root_path, key -> {
+			try {
+				Loggers.AssetsXCross.info("Get all sub folders for " + search_root_path);
+				
+				SearchType search_type = new SearchType();
+				
+				SearchGroupType search_group_type = new SearchGroupType();
+				search_group_type.setOperator("AND");
+				search_group_type.getAttributeCondition().add(InterplayAPI.createAttributeCondition(Condition.EQUALS, AttributeGroup.SYSTEM, "Type", InterplayAPI.AssetType.folder.name()));
+				search_type.setSearchGroup(search_group_type);
+				search_type.setInterplayPathURI(interplay.createURLInterplayPath(search_root_path));
+				
+				SearchResponseType response = interplay.search(search_type);
+				InterplayAPI.checkError(response.getErrors());
+				
+				return new HashSet<String>(interplay.convertSearchResponseToAssetList(response).stream().map(asset -> {
+					return asset.getFullPath();
+				}).collect(Collectors.toSet()));
+			} catch (Exception e) {
+				throw new RuntimeException("Can't search Interplay folders in " + key, e);
 			}
 		});
 	}

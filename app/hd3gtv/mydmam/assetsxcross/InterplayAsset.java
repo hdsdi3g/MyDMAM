@@ -33,6 +33,7 @@ import com.avid.interplay.ws.assets.AttributeType;
 import com.avid.interplay.ws.assets.MediaDetailsType;
 
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.AssetType;
+import hd3gtv.mydmam.assetsxcross.InterplayAPI.AttributeGroup;
 import hd3gtv.mydmam.assetsxcross.InterplayAPI.MediaStatus;
 
 public class InterplayAsset {
@@ -216,6 +217,7 @@ public class InterplayAsset {
 	}
 	
 	/**
+	 * @param attributes can be null/empty
 	 * @return it never return attribute Path
 	 */
 	public List<InterplayAsset> getRelatives(boolean keep_only_masterclips_and_sequences, String... attributes) throws AssetsFault, IOException {
@@ -232,15 +234,17 @@ public class InterplayAsset {
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.USER, "Display Name", ""));
 		attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.USER, interplay_api.getMydmamIDinInterplay(), ""));
 		
-		Arrays.asList(attributes).forEach(external_attr -> {
-			if (attr.stream().map(itp_a -> {
-				return itp_a.getName();
-			}).anyMatch(itp_a_n -> {
-				return itp_a_n.equalsIgnoreCase(external_attr);
-			}) == false) {
-				attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.USER, external_attr, ""));
-			}
-		});
+		if (attributes != null) {
+			Arrays.asList(attributes).forEach(external_attr -> {
+				if (attr.stream().map(itp_a -> {
+					return itp_a.getName();
+				}).anyMatch(itp_a_n -> {
+					return itp_a_n.equalsIgnoreCase(external_attr);
+				}) == false) {
+					attr.add(InterplayAPI.createAttribute(InterplayAPI.AttributeGroup.USER, external_attr, ""));
+				}
+			});
+		}
 		
 		List<InterplayAsset> relatives = interplay_api.getRelatives(interplay_uri, attr);
 		
@@ -301,6 +305,12 @@ public class InterplayAsset {
 		interplay_api.setAttributes(attributes, interplay_uri);
 	}
 	
+	public void setAttribute(AttributeGroup group, String name, String value) throws AssetsFault, IOException {
+		ArrayList<AttributeType> attributes = new ArrayList<>();
+		attributes.add(InterplayAPI.createAttribute(group, name, value));
+		setAttributes(attributes);
+	}
+	
 	public void delete(boolean remove_asset, boolean remove_files, Consumer<String> onDeletedAssetURI, Consumer<MediaDetailsType> onDeletedFile, boolean simulation) throws AssetsFault, IOException {
 		interplay_api.delete(Arrays.asList(getPath()), remove_asset, remove_files, list -> {
 			if (onDeletedAssetURI != null) {
@@ -315,6 +325,38 @@ public class InterplayAsset {
 				});
 			}
 		}, simulation);
+	}
+	
+	public void linkTo(String dest_path) throws AssetsFault, IOException {
+		interplay_api.link(interplay_uri, dest_path);
+	}
+	
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((interplay_uri == null) ? 0 : interplay_uri.hashCode());
+		return result;
+	}
+	
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		InterplayAsset other = (InterplayAsset) obj;
+		if (interplay_uri == null) {
+			if (other.interplay_uri != null) {
+				return false;
+			}
+		} else if (!interplay_uri.equals(other.interplay_uri)) {
+			return false;
+		}
+		return true;
 	}
 	
 	/*	public String get() {
