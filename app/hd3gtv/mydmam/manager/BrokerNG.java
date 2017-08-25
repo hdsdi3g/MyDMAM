@@ -170,7 +170,6 @@ public class BrokerNG {
 		
 		public QueueOperations() {
 			super("Queue operations for Broker " + manager.getInstanceStatus().summary.getInstanceNamePid());
-			setLogger(Loggers.Broker);
 			Loggers.Broker.debug("Init queue operations thread for " + manager.getInstanceStatus().summary.getInstanceNamePid());
 		}
 		
@@ -305,7 +304,6 @@ public class BrokerNG {
 		
 		public QueueNewJobs() {
 			super("Queue new jobs for Broker " + manager.getInstanceStatus().summary.getInstanceNamePid());
-			setLogger(Loggers.Broker);
 			Loggers.Broker.debug("Init queue new jobs thread for " + manager.getInstanceStatus().summary.getInstanceNamePid());
 		}
 		
@@ -579,7 +577,6 @@ public class BrokerNG {
 		
 		public QueueWatchDog() {
 			super("Queue Watchdog");
-			setLogger(Loggers.Broker);
 		}
 		
 		public void run() {

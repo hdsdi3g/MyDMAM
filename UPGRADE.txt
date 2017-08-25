@@ -1,10 +1,13 @@
 === MyDMAM Upgrade document ===
 
+#291 Add embddb option in Service YAML Configuration. This is not mandatory to use. Log this with hd3gtv.mydmam.embddb.*
+
+=== Previous versions ===
+
+v0.23
 #283 CLI option dumpdb is removed. Use instead actiondb -import|export.
 #283 CLI options storageindex and storage are definitively removed.
 #286 Remove getIdFromFilename (isValidMediaId) function ! Don't forget to migrate it to a JSModule.
-
-=== Previous versions ===
 
 v0.22
 No particular points to be check.

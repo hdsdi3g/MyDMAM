@@ -53,7 +53,7 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	private ArrayList<InstanceActionReceiver> all_instance_action_receviers;
 	private ClockProgrammedTasks clock_programmed_tasks;
 	
-	public AppManager(String app_name) {
+	AppManager(String app_name) {
 		this.app_name = app_name;
 		if (app_name == null) {
 			throw new NullPointerException("\"app_name\" can't to be null");
@@ -328,7 +328,6 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 		public Updater(AppManager referer) {
 			super("Updater for " + instance_status.summary.getInstanceNamePid());
 			this.referer = referer;
-			setLogger(Loggers.Manager);
 		}
 		
 		public void run() {
@@ -430,4 +429,5 @@ public final class AppManager implements InstanceActionReceiver, InstanceStatusI
 	public Class<?> getInstanceStatusItemReferenceClass() {
 		return AppManager.class;
 	}
+	
 }

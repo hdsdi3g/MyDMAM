@@ -65,7 +65,6 @@ public class FTPOperations {
 		stop();
 		Loggers.FTPserver.info("Start FTP Operations watchdog");
 		internal = new Internal();
-		internal.setLogger(Loggers.FTPserver);
 		internal.start();
 	}
 	

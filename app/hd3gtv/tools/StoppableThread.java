@@ -20,18 +20,14 @@ import org.apache.log4j.Logger;
 
 public abstract class StoppableThread extends Thread {
 	
+	private static final Logger log = Logger.getLogger(StoppableThread.class);
+	
 	private volatile boolean want_to_stop;
-	private Logger logger;
 	
 	public StoppableThread(String name) {
 		super(name);
 		this.setDaemon(true);
 		want_to_stop = false;
-	}
-	
-	public StoppableThread(String name, Logger logger) {
-		this(name);
-		this.logger = logger;
 	}
 	
 	public boolean isWantToStop() {
@@ -46,15 +42,11 @@ public abstract class StoppableThread extends Thread {
 	 * Non blocking
 	 */
 	public void wantToStop() {
-		if (logger != null) {
-			if (logger.isDebugEnabled()) {
-				logger.debug("Manual stop");
-			}
+		if (log.isDebugEnabled()) {
+			log.debug("Manual stop");
 		}
 		this.want_to_stop = true;
 	}
-	
-	private static final Logger log = Logger.getLogger(StoppableThread.class);
 	
 	/**
 	 * Blocking
@@ -70,21 +62,15 @@ public abstract class StoppableThread extends Thread {
 		}
 	}
 	
-	public void setLogger(Logger logger) {
-		this.logger = logger;
-	}
-	
 	protected void stoppableSleep(long milis) {
-		if (logger != null) {
-			if (logger.isTraceEnabled()) {
-				logger.trace("Wait some times (" + milis + " msec)");
-			}
+		if (log.isTraceEnabled()) {
+			log.trace("Wait some times (" + milis + " msec)");
 		}
 		
 		try {
 			long end_date = System.currentTimeMillis() + milis;
 			while (end_date > System.currentTimeMillis() & want_to_stop == false) {
-				Thread.sleep(50);
+				Thread.sleep(1);
 			}
 		} catch (InterruptedException e) {
 			log.warn("Can't wait Thread stop", e);

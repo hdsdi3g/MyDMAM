@@ -18,7 +18,9 @@ package hd3gtv.mydmam;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.security.GeneralSecurityException;
 import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -27,6 +29,7 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 
 import hd3gtv.configuration.Configuration;
+import hd3gtv.mydmam.embddb.EmbDDB;
 import hd3gtv.mydmam.factory.Factory;
 import hd3gtv.mydmam.gson.GsonKit;
 import hd3gtv.mydmam.web.PlayBootstrap;
@@ -184,6 +187,21 @@ public class MyDMAM {
 		 * e.g. "1.2.3" = "1.2.3" or "1.2.3" < "1.2.3.4"
 		 */
 		return Integer.signum(vals1.length - vals2.length);
+	}
+	
+	private static EmbDDB embddb;
+	private static boolean embddb_loaded = false;
+	
+	public static EmbDDB getEmbDDB() {
+		if (embddb_loaded == false) {
+			try {
+				embddb = EmbDDB.createFromConfiguration();
+			} catch (GeneralSecurityException | IOException | InterruptedException e) {
+				Loggers.Manager.error("Can't load EmbDDB", e);
+			}
+			embddb_loaded = true;
+		}
+		return embddb;
 	}
 	
 }

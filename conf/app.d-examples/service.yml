@@ -23,3 +23,9 @@ javamail:
     username : me
     password : mypasswd
     # groovy_debug: true
+
+# embddb:
+#    master_password_key: SetMePlease
+#    # bootstrap_nodes: 192.168.0.1, 192.168.0.2:35000 # You can add some "permanent" nodes for speedup start and node detection (IPv4 only).
+#    # listen_only_from: 127.0.0.1:35000, 192.168.0.3 # You can choose to listen only from specific addresses (IPv4 only)
+#    # disable_broadcast_discover: true

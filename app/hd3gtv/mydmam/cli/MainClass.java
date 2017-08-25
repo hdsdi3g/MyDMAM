@@ -29,6 +29,7 @@ import hd3gtv.mydmam.accesscontrol.CLIAccessControl;
 import hd3gtv.mydmam.auth.CLIAuth;
 import hd3gtv.mydmam.bcastautomation.CLIBCA;
 import hd3gtv.mydmam.db.CLIOperateDatabase;
+import hd3gtv.mydmam.embddb.EmbDDB;
 import hd3gtv.mydmam.factory.CLIJS;
 import hd3gtv.mydmam.manager.CLIBroker;
 import hd3gtv.mydmam.manager.ServiceNG;
@@ -86,6 +87,7 @@ public class MainClass {
 		modules.add(new ServiceNG.PlayInCli());
 		modules.add(new ServiceNG.BackgroundServicesInCli());
 		modules.add(new ServiceNG.FTPServerInCli());
+		modules.add(new EmbDDB.CLI());
 		modules.add(new CLIAuth());
 		modules.add(new CLIAccessControl());
 		modules.add(new CLISsh());

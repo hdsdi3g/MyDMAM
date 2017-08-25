@@ -16,6 +16,8 @@
 */
 package hd3gtv.configuration;
 
+import java.net.InetSocketAddress;
+
 public class ConfigurationClusterItem {
 	
 	public String address;
@@ -32,6 +34,10 @@ public class ConfigurationClusterItem {
 		sb.append(":");
 		sb.append(port);
 		return sb.toString();
+	}
+	
+	public InetSocketAddress getSocketAddress() {
+		return new InetSocketAddress(address, port);
 	}
 	
 }

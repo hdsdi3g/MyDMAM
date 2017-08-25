@@ -44,6 +44,7 @@ import hd3gtv.mydmam.bcastautomation.BCAWatcher;
 import hd3gtv.mydmam.cli.CLIDefinition;
 import hd3gtv.mydmam.dareport.DARDB;
 import hd3gtv.mydmam.db.CassandraDb;
+import hd3gtv.mydmam.embddb.EmbDDB;
 import hd3gtv.mydmam.ftpserver.FTPGroup;
 import hd3gtv.mydmam.ftpserver.FTPOperations;
 import hd3gtv.mydmam.ftpserver.FTPlet;
@@ -72,6 +73,11 @@ public final class ServiceNG {
 	private final boolean enable_background_services;
 	
 	public ServiceNG(boolean enable_play, boolean enable_ftpserver, boolean enable_background_services) throws Exception {
+		EmbDDB embddb = MyDMAM.getEmbDDB();
+		if (embddb != null) {
+			embddb.startServers();
+		}
+		
 		CassandraDb.autotest();
 		
 		this.enable_play = enable_play;

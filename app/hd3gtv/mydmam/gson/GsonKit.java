@@ -146,6 +146,8 @@ public class GsonKit {
 	}.getType();
 	public final static Type type_ArrayList_InetAddr = new TypeToken<ArrayList<InetAddress>>() {
 	}.getType();
+	public final static Type type_ArrayList_InetSocketAddr = new TypeToken<ArrayList<InetSocketAddress>>() {
+	}.getType();
 	public final static Type type_HashSet_String = new TypeToken<HashSet<String>>() {
 	}.getType();
 	public final static Type type_LinkedHashMap_StringBasketNG = new TypeToken<LinkedHashMap<String, BasketNG>>() {
